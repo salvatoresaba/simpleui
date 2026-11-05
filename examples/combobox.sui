@@ -1,0 +1,72 @@
+# Searchable combobox example with a runtime-loaded option list.
+# options: countryOptions binds the list to a string state.
+# The state starts empty, can be edited in the designer, and can be
+# replaced by application code at runtime.
+
+state country = ""
+state countryOptions = ""
+state person = ""
+
+fn countryChanged() -> null {
+}
+
+fn personChanged() -> null {
+}
+
+fn loadCountries() -> null {
+	# The double backslash in SUI source becomes the escape character used by
+	# the runtime option parser, so this option displays Washington, D.C.
+	countryOptions = "Italy,France,Germany,Spain=es,Washington\\, D.C."
+}
+
+fn clearCountries() -> null {
+	countryOptions = ""
+	country = ""
+}
+
+view main {
+	title "Combobox - runtime options"
+	h1 "Searchable combobox"
+	p "The country list is bound to countryOptions. It starts empty and can be loaded at runtime."
+
+	row {
+		combobox "Country" options: countryOptions value: country onChange: countryChanged placeholder: "Search a country (wildcards * and ?)..." empty: "No countries loaded" maxOptionLength: 24 maxOptions: 8
+		combobox "Person" options: "Alice,Bob,Carol" value: person onChange: personChanged placeholder: "Search a person..."
+	}
+
+	row {
+		button "Load countries at runtime" onClick: loadCountries
+		button "Clear options" onClick: clearCountries
+	}
+
+	p "Selected country: {country}"
+	p "Selected person: {person}"
+	p "Country options state: {countryOptions}"
+
+	card {
+		p "The designer starts with an empty options state. Use the Combobox inspector to add design-time options; they update state countryOptions."
+		p "At runtime loadCountries assigns a new comma-separated string, and the view re-renders the list."
+		p "Options with a different stored value use Label=value, for example Spain=es."
+		p "A comma inside a label is escaped with a backslash; Washington, D.C. is one option. Options longer than 24 characters or more than 8 items are rejected as invalid."
+	}
+
+	accordion "How this example works" {
+		accordionitem "Runtime options" {
+			p "The combobox reads data-sui-options on every render. Assigning a new string to countryOptions refreshes the list automatically."
+			p "If a replacement list no longer contains the selected value, the control clears country automatically; otherwise only the list changes."
+		}
+		accordionitem "Keyboard and search" {
+			p "ArrowDown and ArrowUp move through the filtered options."
+			p "Enter selects the highlighted option; Escape closes without changing the value."
+			p "Search supports * for any sequence and ? for one character, for example W*. Use \\* for a literal asterisk."
+		}
+		accordionitem "Accessibility" {
+			p "The input uses role=combobox, the popup uses role=listbox and each row uses role=option."
+			p "The selected value is kept in a hidden input and synchronized with the bound state."
+		}
+		accordionitem "Security" {
+			p "Option labels and the empty message are rendered as text, never as HTML."
+			p "Invalid option data shows an error instead of a partial list. Search uses a linear wildcard matcher, not user-controlled regular expressions."
+		}
+	}
+}

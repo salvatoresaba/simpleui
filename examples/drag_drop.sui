@@ -1,0 +1,33 @@
+state items = ["Design", "Build", "Ship", "Review"]
+state attachment = ""
+state dropped = ""
+
+fn reorder() -> null {
+	let src = indexOf(items, drag.source())
+	let dst = indexOf(items, drag.target())
+	if src < 0 or dst < 0 or src == dst {
+		return
+	}
+	items = moveItem(items, src, dst)
+}
+
+fn inspectFiles() -> null {
+	let names = []
+	loop f in drag.files() {
+		names = append(names, f["path"])
+	}
+	dropped = join(names, ", ")
+}
+
+view main {
+	title "Drag and drop"
+	h1 "Drag and drop"
+	p "Drag a row onto another row to reorder it. Drop files or a folder onto the field to fill its value."
+	list item in items {
+		row draggable: true dragKey: item dropKey: item onDrop: reorder {
+			text "{item}"
+		}
+	}
+	input "Attachment" value: attachment dropFiles: attachment onDrop: inspectFiles
+	p "Dropped files: {dropped}"
+}

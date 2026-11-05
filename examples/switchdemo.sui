@@ -1,0 +1,19 @@
+state available = false
+
+fn toggleAvailable() -> null {
+  available = available == true ? false : true
+}
+
+view App {
+  title "Switch demo"
+  col {
+    h1 "Switch state binding"
+    switch checked: available onChange: toggleAvailable
+    p "Available: {str(available)}"
+    if available {
+      badge "IN STOCK"
+    } else {
+      badge "SOLD OUT"
+    }
+  }
+}

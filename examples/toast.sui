@@ -1,0 +1,61 @@
+# Complete toast example.
+# toast.show(message [, kind [, duration]]) adds text-only notifications.
+# kind: info (default) | success | warning | error
+# duration: milliseconds; 0 keeps the toast open until dismissed.
+# toast.clear() removes all visible toasts.
+
+view main {
+	title "Toast - complete example"
+	h1 "Toast notifications"
+	p "Click the buttons to show short feedback messages. Each toast can be closed with its X button."
+	p "The host below is a normal designer element. Without a toast host, the runtime creates a fixed top-right host automatically."
+
+	row {
+		button "Info (default)" onClick: showInfo
+		button "Success (2s)" onClick: showSuccess
+		button "Warning (6s)" onClick: showWarning
+		button "Persistent error" onClick: showError
+		button "Clear all" onClick: clearToasts
+	}
+
+	toast class: "demo-toast-host"
+
+	accordion "How this example works" {
+		accordionitem "API and defaults" {
+			p "toast.show(text) uses the info kind and a 4000 ms timeout."
+			p "toast.show(text, kind) accepts info, success, warning or error."
+			p "toast.show(text, kind, duration) uses a custom duration; 0 keeps the toast open."
+			p "toast.clear() removes every visible toast."
+		}
+		accordionitem "Host and positioning" {
+			p "The toast host is optional. Drag Toast host from the Overlay palette to position notifications in a custom place."
+			p "Select the host and use the Toast panel: choose horizontal and vertical anchors; offset fields appear only for edge-anchored axes. Size and Border in the inspector style the toast card."
+			p "The runtime creates a fixed host if the page has no toast host."
+		}
+		accordionitem "Safety and accessibility" {
+			p "Messages are assigned with textContent, so they cannot inject HTML."
+			p "Kinds are restricted to the four supported values. Unknown kinds fall back to info."
+			p "Toasts use role=status and the host uses aria-live=polite."
+		}
+	}
+}
+
+fn showInfo() -> null {
+	toast.show("This is an info toast.")
+}
+
+fn showSuccess() -> null {
+	toast.show("Saved successfully.", "success", 2000)
+}
+
+fn showWarning() -> null {
+	toast.show("Please review this value.", "warning", 6000)
+}
+
+fn showError() -> null {
+	toast.show("This error stays until you close it.", "error", 0)
+}
+
+fn clearToasts() -> null {
+	toast.clear()
+}

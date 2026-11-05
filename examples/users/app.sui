@@ -1,0 +1,63 @@
+import { http, json } from "std"
+
+state rows: array[array[string]] = []
+state status = "loading"
+state debug = "diagnostics:\n"
+
+fn note(m: string) -> null {
+	debug = debug + m + "\n"
+}
+
+async fn loadUsers() -> null {
+	note("1. onLoad -> loadUsers() called")
+	note("2. http.get(\"/api/users\") ...")
+	body, herr = http.get("/api/users")
+	if herr != null {
+		note("3. http.get FAILED: " + herr)
+		status = "error"
+	} else {
+		note("3. http.get ok")
+		data, jerr = json.parse(body)
+		if jerr != null {
+			note("4. json.parse FAILED: " + jerr)
+			status = "error"
+		} else {
+			note("4. json.parse ok")
+			rows = data
+			status = "ok"
+			note("5. rows updated, re-rendering handle")
+		}
+	}
+}
+
+view main {
+	title "Users table"
+	onLoad: loadUsers
+	h1 "Users from the JSON API"
+	if status == "ok" {
+		table class: "users" {
+			thead {
+				trow {
+					tcell "ID" head: true
+					tcell "Name" head: true
+					tcell "Email" head: true
+				}
+			}
+			list r in rows {
+				trow {
+					tcell "{r[0]}"
+					tcell "{r[1]}"
+					tcell "{r[2]}"
+				}
+			}
+		}
+	} else {
+		if status == "error" {
+			p "API unreachable - see the diagnostics panel below."
+		} else {
+			p "Loading users ..."
+		}
+	}
+	button "Refresh" onClick: loadUsers
+	pre "{debug}" class: "debug"
+}

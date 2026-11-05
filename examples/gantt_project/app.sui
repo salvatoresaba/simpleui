@@ -1,0 +1,86 @@
+# Atlas Workspace launch plan.
+#
+# A realistic project-management Gantt that combines:
+# - WBS phases and leaf tasks
+# - dependencies with per-link type and lag
+# - working-day schedule, dependencies and critical path
+# - actual start/end, effort and remaining work
+# - resources, costs, milestones and deadlines
+# - a holiday calendar and synchronized editable table
+#
+# Edit any table cell or drag a bar; the status line confirms onTaskChange.
+
+state project = "\"Task\",\"Id\",\"Parent\",\"Start\",\"End\",\"Progress\",\"Milestone\",\"Group\",\"Resource\",\"DependsOn\",\"Constraint\",\"ConstraintDate\",\"ActualStart\",\"ActualEnd\",\"Remaining\",\"Work\",\"WorkDone\",\"Deadline\",\"Cost\",\"Color\"\n\"Discovery\",\"discovery\",\"\",\"2027-03-01\",\"2027-03-19\",,,\"Discovery\",,\"\",,,,,,,,,,\"#38bdf8\"\n\"Stakeholder interviews\",\"interviews\",\"discovery\",\"2027-03-01\",\"2027-03-05\",\"100\",,\"Discovery\",\"Marta\",\"\",,,\"2027-03-01\",\"2027-03-05\",,\"10\",\"10\",,\"3200\",\n\"Requirements and scope\",\"requirements\",\"discovery\",\"2027-03-08\",\"2027-03-12\",\"75\",,\"Discovery\",\"Marta\",\"interviews\",,,\"2027-03-08\",\"2027-03-11\",,\"16\",\"12\",\"2027-03-12\",\"4800\",\n\"Solution architecture\",\"architecture\",\"discovery\",\"2027-03-15\",\"2027-03-19\",\"30\",,\"Discovery\",\"Luca\",\"requirements\",,,\"2027-03-15\",,,\"12\",\"3.6\",,\"4200\",\n\"Experience design\",\"design\",\"\",\"2027-03-15\",\"2027-04-06\",,,\"Design\",,\"\",,,,,,,,,,\"#a78bfa\"\n\"Wireframes\",\"wireframes\",\"design\",\"2027-03-15\",\"2027-03-19\",\"100\",,\"Design\",\"Sara\",\"requirements\",,,\"2027-03-15\",\"2027-03-19\",,\"8\",\"8\",,\"2400\",\n\"UI kit and components\",\"ui-kit\",\"design\",\"2027-03-22\",\"2027-03-31\",\"60\",,\"Design\",\"Sara\",\"wireframes\",,,\"2027-03-22\",,,\"12\",\"7.2\",,\"3600\",\n\"Interactive prototype\",\"prototype\",\"design\",\"2027-04-01\",\"2027-04-06\",\"20\",,\"Design\",\"Sara\",\"ui-kit,architecture[FS+1]\",,,\"2027-03-30\",,,\"10\",\"2\",,\"3000\",\n\"Platform build\",\"build\",\"\",\"2027-03-22\",\"2027-04-21\",,,\"Build\",,\"\",,,,,,,,,,\"#34d399\"\n\"Backend API\",\"backend-api\",\"build\",\"2027-03-22\",\"2027-04-09\",\"45\",,\"Build\",\"Luca + API team\",\"architecture\",,,\"2027-03-22\",,,\"20\",\"9\",,\"12000\",\n\"Frontend shell\",\"frontend-shell\",\"build\",\"2027-04-01\",\"2027-04-14\",\"25\",,\"Build\",\"Web team\",\"ui-kit\",,,\"2027-03-30\",,,\"18\",\"4.5\",,\"9000\",\n\"Service integrations\",\"integrations\",\"build\",\"2027-04-15\",\"2027-04-21\",\"0\",,\"Build\",\"Luca + Web team\",\"backend-api,frontend-shell\",,,,,,\"14\",,,\"7000\",\n\"Quality and launch\",\"quality\",\"\",\"2027-03-15\",\"2027-05-14\",,,\"Quality\",,\"\",,,,,,,,,,\"#f59e0b\"\n\"Test plan\",\"test-plan\",\"quality\",\"2027-03-15\",\"2027-03-19\",\"100\",,\"Quality\",\"Elena\",\"requirements\",,,\"2027-03-15\",\"2027-03-19\",,\"5\",\"5\",,\"1200\",\n\"QA and regression\",\"qa-cycle\",\"quality\",\"2027-04-22\",\"2027-05-05\",\"0\",,\"Quality\",\"Elena + QA\",\"integrations,prototype\",,,,,,\"20\",,\"2027-05-05\",\"6000\",\n\"Security review\",\"security-review\",\"quality\",\"2027-04-12\",\"2027-04-16\",\"0\",,\"Quality\",\"Security\",\"backend-api\",,,,,,\"6\",,,\"2400\",\n\"Release\",\"release\",\"\",\"2027-05-06\",\"2027-05-14\",,,\"Release\",,\"\",,,,,,,,,,\"#fb7185\"\n\"Team training\",\"training\",\"release\",\"2027-05-06\",\"2027-05-12\",\"0\",,\"Release\",\"Marta\",\"qa-cycle\",,,,,,\"8\",,,\"2000\",\n\"Go live\",\"go-live\",\"release\",\"2027-05-14\",\"2027-05-14\",\"0\",\"True\",\"Release\",,\"training,security-review\",\"MFO\",\"2027-05-14\",,,,,,\"2027-05-12\",,"
+state lastChange = "Project loaded. Select a bar, its name or a table row to inspect it."
+
+fn projectChanged(next: string) -> null {
+	project = next
+	lastChange = "onTaskChange received the edited project. The chart and table are synchronized."
+}
+
+css ".project-page \{ max-width: 1500px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; align-items: stretch; gap: 16px; \} .project-hero \{ display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; padding: 22px 24px; border: 1px solid #263449; border-radius: 16px; background: radial-gradient(circle at 15% 0%, #12314a 0%, #101722 46%, #0b111a 100%); \} .project-kicker \{ color: #38bdf8; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin: 0 0 6px; \} .project-title \{ margin: 0; font-size: 30px; line-height: 1.1; color: #f8fafc; \} .project-subtitle \{ margin: 8px 0 0; max-width: 760px; color: #94a3b8; font-size: 13px; \} .project-badge \{ display: inline-flex; align-items: center; gap: 7px; border: 1px solid #f59e0b; border-radius: 999px; padding: 7px 12px; color: #fbbf24; background: rgba(245,158,11,.1); font-size: 12px; font-weight: 700; white-space: nowrap; \} .project-dot \{ width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,.12); \} .project-stats \{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; \} .project-stat \{ padding: 14px 16px; border: 1px solid #223047; border-radius: 12px; background: #111a27; \} .project-stat-label \{ margin: 0; color: #7f93ad; font-size: 11px; font-weight: 700; letter-spacing: .9px; text-transform: uppercase; \} .project-stat-value \{ margin: 6px 0 0; color: #e6edf7; font-size: 21px; font-weight: 750; \} .project-stat-note \{ margin: 3px 0 0; color: #8da2bb; font-size: 11px; \} .project-chart \{ width: 100%; height: 760px; \} .project-card \{ min-width: 0; border: 1px solid #223047; border-radius: 14px; background: #0f1724; padding: 12px; \} .project-help \{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 20px; \} .project-help p \{ margin: 0; color: #9fb0c5; font-size: 12px; line-height: 1.55; \} .project-help strong \{ color: #e2e8f0; \} .project-status \{ margin: 0; color: #7dd3fc; font-size: 12px; \} @media (max-width: 900px) \{ .project-stats, .project-help \{ grid-template-columns: 1fr 1fr; \} .project-title \{ font-size: 24px; \} \} @media (max-width: 560px) \{ .project-stats, .project-help \{ grid-template-columns: 1fr; \} .project-chart \{ height: 680px; \} \}"
+
+view main {
+	title "Atlas Workspace launch plan"
+	row class: "project-page" {
+		row class: "project-hero" {
+			col {
+				p "Program management" class: "project-kicker"
+				h1 "Atlas Workspace relaunch" class: "project-title"
+				p "A cross-functional launch plan for the new customer workspace: discovery, experience design, platform build, quality gates and go-live. Edit the plan directly in the synchronized table below the timeline." class: "project-subtitle"
+			}
+			row class: "project-badge" {
+				span class: "project-dot"
+				span "AT RISK · 2 days late"
+			}
+		}
+
+		row class: "project-stats" {
+			row class: "project-stat" {
+				col {
+					p "Planned go-live" class: "project-stat-label"
+					p "14 May 2027" class: "project-stat-value"
+					p "Target deadline: 12 May - 2 days late" class: "project-stat-note"
+				}
+			}
+			row class: "project-stat" {
+				col {
+					p "Critical path" class: "project-stat-label"
+					p "9 tasks" class: "project-stat-value"
+					p "Discovery -> build -> QA -> launch" class: "project-stat-note"
+				}
+			}
+			row class: "project-stat" {
+				col {
+					p "Effort" class: "project-stat-label"
+					p "159 person-days" class: "project-stat-value"
+					p "Planned across 5 phases" class: "project-stat-note"
+				}
+			}
+			row class: "project-stat" {
+				col {
+					p "Calendar" class: "project-stat-label"
+					p "Europe/Rome" class: "project-stat-value"
+					p "Weekends + 4 public holidays" class: "project-stat-note"
+				}
+			}
+		}
+
+		card class: "project-card" {
+			chart "Atlas Workspace — launch plan" name: "atlas_launch" class: "project-chart" data: project chartType: "gantt" theme: "dark" tableView: "both" tableFilters: true tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true tableSelection: "cell" criticalPath: true autoSchedule: false showProgress: true showResources: true showCosts: true showSlack: true holidays: "2027-04-02, 2027-04-05, 2027-04-25, 2027-05-01" weekend: "sat,sun" timezone: "Europe/Rome" showGrid: true showValues: false interactive: true onTaskChange: projectChanged style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #a78bfa; --sui-chart-series-3: #34d399; --sui-chart-series-4: #f59e0b; --sui-chart-series-5: #fb7185; --sui-chart-gantt-weekend: #52637a; --sui-chart-gantt-holiday: #ef4444; --sui-chart-gantt-today: #f59e0b; --sui-chart-gantt-dependency: #94a3b8; --sui-chart-critical: #f59e0b; --sui-chart-grid: #263449; --sui-chart-axis: #64748b; --sui-chart-fg: #e6edf7; --sui-chart-muted: #8da2bb;")
+			p "{lastChange}" class: "project-status"
+		}
+
+		card class: "project-card" {
+			row class: "project-help" {
+				p "Timeline: use −/+ next to the chart title, Ctrl/Cmd + mouse wheel or a two-finger pinch to change the time scale; a horizontal scrollbar appears when the plan is wider than the frame." 
+				p "Selection: click a bar, its left-hand name or a table row. The same task is highlighted in all three places."
+				p "Dependencies: click a name chip in Depends on to edit the link type and lag. Drag a chip's x to remove it."
+				p "Execution: edit Actual start/end, Work and Work done to update Progress and Remaining."
+				p "Schedule: drag bar handles to move or resize a task. Ctrl/Cmd+Z and Ctrl/Cmd+Y undo and redo table or bar edits."
+				p "Calendar: open the chart menu (menu) -> Calendar... to change weekends, holidays and closure ranges."
+				p "Table: use the column headers to sort/filter, drag borders to resize and open the gear menu for columns and export."
+			}
+		}
+	}
+}

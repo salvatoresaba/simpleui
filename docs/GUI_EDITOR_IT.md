@@ -1,0 +1,1318 @@
+# Editor GUI: drag and drop
+
+Questa guida spiega i due sistemi di drag and drop indipendenti di SimpleUI:
+
+1. **Drag and drop del designer** - spostare elementi, voci della palette e
+   sezioni della toolbar dentro l'editor visuale.
+2. **Drag and drop dell'applicazione** - trascinare elementi, file o cartelle
+   dentro l'applicazione generata.
+
+Condividono le primitive del browser ma hanno regole diverse. Abilitare uno non
+abilita l'altro.
+
+## Risposta rapida
+
+| Obiettivo | Cosa impostare |
+|---|---|
+| Spostare componenti nel designer | Niente; il DnD del designer è sempre attivo |
+| Rendere trascinabile un elemento dell'app | `draggable: true` e/o `dragKey` |
+| Rendere un elemento target di drop | `dropKey` più `onDrop` |
+| Riordinare i dati dopo un drop | Leggere `drag.source()`/`drag.target()` e chiamare `moveItem` |
+| Trascinare file/cartelle su un campo | `dropFiles: state`, più `value: state` per mostrare i percorsi |
+| Aprire un dialogo file/cartella | `pickFiles: state`, con `multiple`, `accept`, `directory`, `pickMode` |
+| Percorsi assoluti nativi | Build desktop più il modulo std separato `dialog` |
+| Creare una barra dei menù | Palette **Layout → Navigation → Menu bar**; modificare menu e voci |
+| Creare contenuti a schede | Palette **Layout → Navigation → Tabs**; tasto destro per aggiungere/rimuovere schede |
+| Creare un dialogo modale | Palette **Overlay → Modal**; aggiungere/rimuovere pulsanti dall'albero |
+
+Nell'inspector a destra la sezione **Drag & drop** usa queste etichette:
+`draggable`, `dragKey` (drag key expression), `dropKey` (drop key expression),
+`dropFiles` (drop files into state), `pickFiles` (choose files into state) e
+`pickMode` (picker API mode). Il gestore `onDrop` si seleziona in **Events**.
+
+## Preferenze dell'editor di codice
+
+Aprire **Preferences → Editor settings…** per personalizzare l'editor SUI.
+
+### Editor generale
+
+| Impostazione | Default | Effetto |
+|---|---|---|
+| Font family | Monospace di sistema | Stack integrato o famiglia CSS personalizzata |
+| Editor size | 16px | Dimensione del codice, indipendente dallo zoom generale dell'interfaccia |
+| Line height | 1.6 | Spaziatura verticale e allineamento dei numeri di riga |
+| Tab size | 4 | Larghezza dei tab nell'overlay e nella textarea |
+| Word wrap | off | Va a capo nelle righe lunghe in entrambi i livelli |
+| Line numbers | on | Mostra il gutter |
+
+### Aspetto del codice SUI
+
+| Impostazione | Default | Effetto |
+|---|---|---|
+| Syntax colors | on | Colora keyword, stringhe, numeri e commenti SUI |
+| Bracket match | on | Evidenzia la parentesi corrispondente |
+| Selected line | off | Sfondo opzionale per la riga dell'elemento selezionato |
+
+Con **Syntax colors** attivo, le funzioni dichiarate e le loro chiamate sono
+mostrate in giallo, mentre stati, parametri di funzione, binding `let` e
+variabili dei loop sono mostrati in azzurro. Gli stessi colori vengono usati
+nelle dichiarazioni, nei riferimenti e nelle interpolazioni come
+`"Count {count}"`, così un nome è facile da trovare e riutilizzare. Cambia solo
+il colore, quindi overlay e textarea mantengono metriche identiche.
+
+L'editor usa font, padding, line-height e metriche dei caratteri identici
+nell'overlay colorato e nella textarea trasparente, così cursore e caratteri
+visibili restano allineati. I token cambiano solo colore: non vengono applicati
+grassetto o corsivo al codice.
+
+Le preferenze vengono salvate con le altre impostazioni del designer e restano
+dopo il reload. **Font size** generale scala l'interfaccia, mentre **Editor size**
+controlla il codice in modo indipendente.
+
+## Completamento e indentazione
+
+Premere **Ctrl+Space** nell'editor SUI per aprire l'elenco dei suggerimenti
+vicino al cursore. I suggerimenti cambiano in base al contesto:
+
+| Posizione | Voci suggerite |
+|---|---|
+| Livello superiore | `import`, `css`, `state`, `type`, `struct`, `fn`, `async`, `view` |
+| Dentro una view o un elemento | `title`, `onLoad`, tag degli elementi e view componente |
+| Dentro una funzione o un blocco | `let`, `if`, `else`, `loop`, `while`, `return`, stati, funzioni e variabili locali |
+| Dopo il nome di un elemento | attributi ed eventi dell'elemento |
+| Dopo un attributo evento (`onClick:`) | funzioni dichiarate e **+ new function…** |
+| In un'espressione o interpolazione | stati, funzioni, variabili locali, item dei loop, builtin e moduli std |
+| Dopo `class:` | classi CSS dichiarate nel sorgente |
+| Dopo `state nome:` o `->` | tipi SUI |
+
+Le lettere digitate filtrano l'elenco per prefisso. Le frecce spostano la
+selezione, **Invio** o **Tab** inserisce la voce, **Esc** chiude. Il popup
+automatico usa lo stesso contesto e compare dopo le prime lettere; Ctrl+Space
+funziona anche con la parola vuota.
+
+Quando il designer rigenera il sorgente, il corpo delle funzioni viene indentato
+di un livello dentro le parentesi graffe. Le istruzioni annidate mantengono la
+loro indentazione relativa, quindi il round-trip attraverso l'editor visuale non
+appiattisce il codice delle funzioni.
+
+## Undo e redo
+
+La toolbar e **Edit → Undo / Redo** usano un'unica cronologia per tutto il
+designer, non solo per l'albero degli elementi. La stessa cronologia risponde a
+**Ctrl+Z** e **Ctrl+U** per l'undo e a **Ctrl+Y** / **Ctrl+Shift+Z** per il redo.
+
+Vengono registrate:
+
+- le modifiche al testo SUI (una raffica di digitazione è un solo passo finché
+  non viene eseguito l'apply automatico);
+- testo, classi ed espressioni reattive degli elementi;
+- le proprietà dell'inspector, comprese le regole CSS e le opzioni delle tabelle;
+- inserimento, eliminazione, duplicazione, spostamento e incolla di componenti;
+- pagine, menu, tab, modali e modifiche drag-and-drop;
+- regole CSS/media e sorgente applicato dall'editor SUI.
+
+L'undo ripristina sia il modello sia il sorgente SUI, quindi aggiorna albero,
+preview e inspector. Il pannello della cronologia elenca i passi e permette di
+tornare direttamente a uno stato precedente. Quando il focus è in un campo
+dell'inspector, Ctrl+Z/Ctrl+U usano la cronologia del designer; i campi dei
+prompt e delle modali mantengono l'undo nativo.
+
+## Inspector e stili effettivi
+
+Tutte le sezioni dell'inspector partono chiuse. Aprire una sezione cliccando
+sull'intestazione; resta aperta tra cambi di selezione e reload della preview
+finché non viene richiusa.
+
+Ogni riga dell'albero **Structure** a sinistra inizia con un badge del tipo
+esatto (`div`, `tree`, `treeitem`, `chart`, `input`, ...). Il badge e separato
+dall'etichetta descrittiva, quindi il tipo dell'elemento selezionato e sempre
+inequivocabile. L'inspector ripete il tipo esatto in un banner **Selected
+element** sopra le sezioni.
+
+I campi di stile mostrano il valore che raggiunge realmente l'elemento
+selezionato, non solo una dichiarazione della prima classe. La preview riporta i
+valori dichiarati e quelli calcolati, quindi l'inspector popola i campi anche
+per:
+
+- regole su selettori composti come `table.suitbl` o `div.card`;
+- valori ereditati, incluso il colore del testo;
+- attributi `style` inline;
+- variabili CSS e regole base delle tabelle.
+
+I valori dichiarati vengono mantenuti quando disponibili, quindi
+`width: 100%` resta `100%`; quando il valore deriva solo dal layout viene usato
+quello calcolato (per esempio `400px`). Larghezza, altezza, colori, tipografia,
+spaziature, bordi, layout e gli altri controlli seguono la stessa regola.
+Modificare un campo continua a scrivere la regola appropriata per la classe
+selezionata (o per il contenitore padre per le proprietà di layout dei
+contenitori).
+La proprietà **required** è disponibile per `input`, `textarea`, `select`,
+`combobox`, `radio`, `number`, `date`, `time` e `datepicker`. I controlli nativi
+usano l'attributo `required` del browser; il combobox aggiunge un errore inline
+quando non è selezionato un valore.
+
+## Drag and drop del designer
+
+Il drag and drop interno del designer è sempre attivo. Non esiste un'impostazione,
+una proprietà o un flag di build per abilitarlo. La sezione **Drag & drop**
+dell'inspector configura l'applicazione generata; non controlla lo spostamento
+dei componenti nell'editor.
+
+| Azione | Come |
+|---|---|
+| Inserire un componente | Trascinare una voce della palette nel preview o nell'albero |
+| Riordinare un componente | Trascinare una riga dell'albero sopra/sotto un'altra |
+| Cambiare padre a un componente | Trascinare una riga dentro una riga contenitore |
+| Riordinare le sezioni della toolbar | Trascinare la maniglia della toolbar |
+| Ridimensionare righe/colonne di una tabella | Trascinare il bordo della tabella |
+
+L'editor usa il modello interno degli elementi come fonte di verità. Un drop
+riuscito crea uno snapshot per l'undo, aggiorna l'albero, ridisegna il preview e
+rigenera il sorgente `.sui`.
+
+### Drop nell'albero
+
+Le righe dell'albero trasportano il percorso dell'elemento nel `dataTransfer`
+come testo. Durante `dragover` l'editor evidenzia il possibile target. Al
+`drop`:
+
+1. rifiuta un drop dentro il sottoalbero dell'elemento stesso;
+2. rimuove il nodo sorgente dal vecchio padre;
+3. lo inserisce nella posizione del target o dentro il contenitore target;
+4. registra un passo di undo.
+
+Le righe che contengono altri elementi mostrano una freccia di espansione.
+Cliccarla per comprimere o espandere il sottoalbero senza cambiare la
+selezione; lo stato resta finché il progetto è aperto. Le righe foglia mostrano
+uno spazio vuoto equivalente, così le etichette restano allineate.
+
+Se il drag è ambiguo, usare l'**albero**, non il preview. L'albero mostra in modo
+esplicito le relazioni padre/figlio ed è il target più affidabile.
+
+### Drop dalla palette
+
+La palette memorizza un tipo temporaneo come `palette:button`. Il preview
+intercetta il drop, invia all'editor l'id dell'elemento target e l'editor
+inserisce il nuovo componente:
+
+- dentro un contenitore, come figlio;
+- dopo un elemento foglia, come fratello successivo;
+- nel body della pagina selezionata quando non c'è un target.
+
+Il nuovo elemento viene selezionato dopo l'inserimento.
+
+### Limiti del designer
+
+- Il drop di un nodo dentro il proprio sottoalbero è bloccato intenzionalmente.
+- Alcune foglie (`button`, `input`, `img`, `text`, `br`, ...) non possono
+  contenere figli; il drop viene fatto accanto a loro.
+- Il preview è un iframe. Se il browser non consegna i drop al suo interno,
+  usare l'albero.
+- Il drag and drop del designer è una funzione di editing. Non rende
+  trascinabile l'applicazione generata.
+
+## Drag and drop dell'applicazione
+
+Il drag and drop dell'applicazione si configura per singolo elemento. Non esiste
+una proprietà globale "abilita drag and drop". Un'interazione funzionante di
+solito richiede:
+
+- un attributo sul **sorgente**;
+- un attributo sul **target**;
+- un **gestore evento** sul target;
+- stati/funzioni dichiarati per l'operazione.
+
+### Proprietà necessarie
+
+| Proprietà | Dove | Scopo |
+|---|---|---|
+| `draggable: true` | Sorgente | Marca l'elemento come sorgente HTML |
+| `dragKey: expr` | Sorgente | Chiave/payload esposto da `drag.source()` |
+| `dropKey: expr` | Target | Chiave esposta da `drag.target()` |
+| `onDrop: handler` | Target | Funzione chiamata su un drop valido |
+| `dropFiles: state` | Target file | Riceve automaticamente i percorsi di file/cartelle trascinati |
+| `pickFiles: state` | Trigger dialogo | Apre il dialogo nativo per file/cartelle |
+| `multiple: true` | Picker | Permette più di un file |
+| `accept: ".csv,.txt"` | Picker | Filtra i file selezionabili |
+| `pickMode: "native" \| "fs" \| "auto"` | Picker | Sceglie input del browser, File System Access API o fallback automatico |
+| `directory: true` | Picker | Seleziona una cartella invece di singoli file |
+
+`dropKey`/`onDrop` servono per trascinare elementi e dati dentro la pagina.
+`dropFiles` serve per file e cartelle trascinati dal sistema operativo e non
+richiede `onDrop`.
+
+Tutti i parametri drag and drop sono raggruppati nella sezione comprimibile
+**Drag & drop** in fondo all'inspector, dopo le sezioni di stile. Fare clic
+sull'intestazione per espanderla o comprimerla. I gestori `onDrag*` e `onDrop`
+restano nella sezione **Events**.
+
+Eventi supportati dal runtime dell'applicazione:
+
+```text
+onDragStart  onDragEnter  onDragOver  onDragLeave  onDrop  onDragEnd
+```
+
+I gestori non hanno argomenti. Lo stato del drag si legge con i builtin:
+
+```text
+drag.source()  drag.target()  drag.data()
+drag.files()   drag.folder()  drag.error()
+drag.active()  drag.clear()
+```
+
+### Esempio minimo di riordino
+
+```sui
+state items = ["Design", "Build", "Ship"]
+
+fn reorder() -> null {
+	let src = indexOf(items, drag.source())
+	let dst = indexOf(items, drag.target())
+	if src < 0 or dst < 0 or src == dst {
+		return
+	}
+	items = moveItem(items, src, dst)
+}
+
+view main {
+	list item in items {
+		row draggable: true dragKey: item dropKey: item onDrop: reorder {
+			text "{item}"
+		}
+	}
+}
+```
+
+`dragKey: item` da solo rende la riga trascinabile. Il `draggable: true`
+esplicito rende l'intenzione visibile nel sorgente e nel designer.
+`draggable: true` senza `dragKey` non invia una chiave utile, quindi il target
+non può identificare il sorgente. Il target deve avere sia `dropKey` sia
+`onDrop`; una chiave senza gestore non fa nulla.
+
+### Passi nel designer per l'esempio di riordino
+
+1. Selezionare la riga ripetuta nell'albero o aprire il suo sorgente nel code
+   view. Le proprietà sono nell'inspector a destra.
+2. In **Drag & drop** impostare:
+   - `draggable` attivo;
+   - `dragKey` a `item`;
+   - `dropKey` a `item`.
+3. In **Events**, scegliere `onDrop` e creare/selezionare `reorder`.
+4. Implementare `reorder` nel pannello funzioni/stati.
+5. Nel preview, trascinare una riga su un'altra.
+
+Per le righe ripetute di una `list` e per le celle delle tabelle il designer
+potrebbe non esporre ogni attributo per riga. In quel caso aggiungere gli
+attributi direttamente nel sorgente `.sui`. Il runtime emette le callback DnD
+inline per le righe ripetute, quindi funziona ogni riga, non solo la prima.
+
+## Drop di file e cartelle
+
+`dropFiles` è il target automatico per file e cartelle. Richiede uno stato
+stringa:
+
+```sui
+state attachment = ""
+
+view main {
+	input "Allegato" value: attachment dropFiles: attachment
+}
+```
+
+Lo stato riceve i percorsi trascinati. Abbinare un binding `value:` se il
+controllo deve mostrarli. Per più file un input usa percorsi separati da virgola;
+una textarea usa righe separate. L'inspector crea automaticamente lo stato
+stringa quando si inserisce un nuovo nome in `dropFiles` o `pickFiles`; nel code
+editor bisogna dichiararlo.
+
+Il drop di cartelle è ricorsivo dove il browser espone le directory. La
+selezione popola anche:
+
+- `drag.files()` - metadati (`name`, `path`, `size`, `type`, `isDirectory`);
+- `drag.folder()` - nome della cartella comune di primo livello, se disponibile;
+- `drag.error()` - motivo del rifiuto;
+- `drag.active()` - se un drag è in corso.
+
+Limiti e sicurezza:
+
+- 2.000 file, 16 livelli di directory e 4.096 caratteri per percorso;
+- i nomi sono dati non fidati e vengono renderizzati con l'escaping normale;
+- il gestore del drop non legge i byte dei file;
+- `http.postFiles` può caricare i byte selezionati verso un backend;
+- un percorso trascinato non è il permesso di leggere il percorso locale
+  originale.
+
+Vedere [Drag and drop nell'API reference](API_REFERENCE_IT.md#drag-and-drop) e
+l'[esempio file analyzer](../examples/file_analyzer/README.md).
+
+## Menu bar control
+
+La palette contiene un controllo pronto per la barra dei menù in
+**Layout → Navigation**:
+
+- **Menu bar** inserisce un `menubar` con i menu File, Edit e Help e voci di
+  esempio;
+- **Menu** inserisce un menu di primo livello con due voci di esempio;
+- **Menu item** inserisce una voce dentro il menu selezionato.
+
+### Modifica dall'albero degli elementi
+
+Fare clic con il tasto destro su una riga dell'albero. Il menu contestuale è
+l'editor dei menu:
+
+| Riga | Azioni |
+|---|---|
+| `body` | **Add menu bar** |
+| `menubar` | **Add menu**, **Edit label**, **Duplicate**, **Move up/down**, **Delete** |
+| `menu` | **Add menu item**, **Add submenu**, **Edit label**, **Duplicate**, **Move up/down**, **Delete** |
+| `menuitem` | **Add item below**, **Add submenu below**, **Edit label**, **Duplicate**, **Move up/down**, **Delete** |
+| altro elemento | **Duplicate**, **Move up/down**, **Delete** |
+
+**Add submenu** inserisce un `menu` annidato dentro il menu selezionato.
+L'albero lo mostra indentato; il suo menu contestuale offre ancora **Add menu
+item** e **Add submenu**, quindi l'annidamento non ha limiti. **Add menu** è
+disponibile sul `menubar` e crea un menu di primo livello con due voci iniziali.
+
+### Configurare etichette e azioni
+
+1. Inserire **Menu bar**. L'albero mostra `menubar` con figli `menu` e
+   `menuitem`.
+2. Selezionare un `menu` e modificare **Text** per cambiare l'etichetta
+   visibile.
+3. Selezionare un `menuitem` e modificare **Text** per la sua etichetta.
+4. Per un'azione, impostare **onClick** in **Events** su una funzione senza
+   argomenti.
+5. Per la navigazione, impostare **link** nell'inspector dell'elemento. I link
+   passano dal normale URL guard; gli URL dinamici non fidati richiedono
+   comunque validazione.
+6. Aggiungere/eliminare/riordinare le voci con il menu contestuale dell'albero.
+   Funziona anche il trascinamento di **Menu** o **Menu item** dalla palette.
+7. Usare `divider` dentro un menu per un separatore.
+8. Personalizzare le parti generate con le classi `.sui-menubar`, `.sui-menu`,
+   `.sui-menu-button`, `.sui-menu-popup` e `.sui-menuitem`.
+
+Il campo **Text** del `menubar` è il nome accessibile (`aria-label`), non un
+titolo visibile. Il **Text** del `menu` è l'etichetta del pulsante e il **Text**
+del `menuitem` è l'etichetta della voce.
+
+### Comportamento
+
+- Il click su un pulsante menu/sottomenu apre/chiude il popup; il click fuori o
+  Escape chiude l'intero albero dei menu.
+- Le frecce spostano il focus tra le voci di un menu aperto; destra/sinistra
+  entrano ed escono da un sottomenu.
+- Un `menuitem` può avere `onClick`, `link` o entrambi.
+- Un `menu` annidato nel popup di un altro `menu` è un sottomenu; l'annidamento
+  non ha limiti.
+- Le voci di un popup chiuso sono nascoste nel preview. Selezionarle
+  nell'albero; fare clic sul pulsante del menu nel preview per vedere il popup.
+- Le etichette sono escapate e gli URL dei link sono sanitizzati dal runtime.
+- La struttura generata è semantica: `nav[role=menubar]`, pulsanti menu e voci
+  `[role=menuitem]`.
+
+Vedere [API reference: menu bar](API_REFERENCE_IT.md#menu-bar) e l'[esempio menu
+bar](../examples/menu_bar.sui).
+
+## Pagine
+
+Ogni progetto ha una o più pagine. I **chip pagina sopra il preview** sono il
+selettore: fare clic su un chip per modificare quella pagina. Nel designer è
+modificabile/visibile solo la pagina attiva; è una vista dell'editor, non un
+limite dell'app.
+
+- **Insert → New page…** crea una pagina vuota o da template.
+- La sezione **View** dell'inspector modifica `title` e `name` della pagina
+  attiva.
+- **Duplicate**, **Delete** e **Save as template** sono in quella sezione.
+- Ogni pagina viene emessa come `view` SUI; la prima pagina è quella iniziale
+  dell'app generata.
+
+L'app generata nasconde le altre pagine finché un handler chiama il builtin
+`navigate("pageName")`:
+
+```sui
+fn openSettings() -> null {
+	navigate("settings")
+}
+
+button "Settings" onClick: openSettings
+```
+
+`navigate` è un no-op nelle app a pagina singola e con nomi sconosciuti. Usare
+pulsanti, voci di menu o qualsiasi handler normale per esporre la navigazione.
+Vedere [API reference: pagine](API_REFERENCE_IT.md#pagine-e-navigazione) e
+l'[esempio pages](../examples/pages/README.md).
+
+## Modal control
+
+La voce **Overlay → Modal** inserisce un dialogo nascosto con titolo, contenuto
+e due pulsanti predefiniti: **Cancel** e **OK** (primary). Il dialogo usa
+`modal`; ogni pulsante del footer usa `modalbutton`.
+
+### Configurazione
+
+1. Selezionare `modal`; nella sezione **Modal** dell'inspector modificare:
+   - **name** — l'id stabile usato da `modal.open(name)` / `modal.close(name)`;
+   - **Open in preview** — controlla il dialogo live senza uscire dal designer.
+2. Selezionare un `modalbutton`:
+   - **Text** = etichetta;
+   - **variant** = default, primary o danger;
+   - **close** = chiude il dialogo dopo il click (attivo di default);
+   - **onClick** = azione opzionale, eseguita prima della chiusura.
+3. Tasto destro sull'albero:
+   - `modal` → **Add modal button**, **Edit label**, **Duplicate**, **Move up/down**, **Delete**;
+   - `modalbutton` → **Add button below**, **Edit label**, **Duplicate**, **Move up/down**, **Delete**.
+
+Il contenuto del body è ogni figlio diretto che non è un `modalbutton`;
+trascinare paragrafi, input, tabelle, ecc. dentro il `modal`.
+
+### Comportamento
+
+- Il dialogo resta nascosto finché non viene chiamato `modal.open("name")`.
+- Si chiude con click sul backdrop, `Escape` o un `modalbutton` predefinito.
+- Il focus entra nel dialogo; l'opener viene ripristinato quando è disponibile.
+- Aprire un altro modale chiude quello corrente.
+- I pulsanti con `close: false` mantengono il dialogo aperto.
+- Il runtime ripristina un dialogo aperto dopo un normale re-render.
+- Le etichette sono escapate; il pannello usa `role=dialog` / `aria-modal=true`.
+
+Vedere [API reference: dialoghi modali](API_REFERENCE_IT.md#dialoghi-modali) e
+l'[esempio modal](../examples/modal.sui).
+
+## Tabs control
+
+La voce **Tabs** in **Layout → Navigation** inserisce un set di schede
+funzionante con due schede e contenuto di esempio. Un nodo `tabs` è il set; ogni
+figlio diretto `tab` è una scheda:
+
+- **Text** di `tabs` = nome accessibile (`aria-label`), non un titolo visibile;
+- **Text** di `tab` = etichetta visibile del pulsante;
+- figli di `tab` = contenuto del pannello.
+
+### Modifica dall'albero degli elementi
+
+Fare clic con il tasto destro su una riga:
+
+| Riga | Azioni |
+|---|---|
+| `tabs` | **Add tab**, **Edit label**, **Duplicate**, **Move up/down**, **Delete** |
+| `tab` | **Add tab below**, **Edit label**, **Duplicate**, **Move up/down**, **Delete** |
+| altro elemento | **Duplicate**, **Move up/down**, **Delete** |
+
+L'albero le etichetta esplicitamente come `tabs 'Settings'` e
+`tab 'General'`. Ogni nuova scheda riceve un paragrafo iniziale; è possibile
+trascinare o inserire qualsiasi componente al suo interno.
+
+### Comportamento
+
+- La prima scheda è attiva inizialmente.
+- Il click su una scheda cambia pannello.
+- Sinistra/destra/Home/End spostano tra le schede.
+- La scheda selezionata viene ripristinata dopo un re-render della view per i
+  tab set a livello pagina.
+- Solo i figli diretti `tab` sono schede; il contenuto del pannello va dentro
+  un `tab`.
+- Classi generate: `.sui-tabs`, `.sui-tablist`, `.sui-tab`, `.sui-tabpanels`,
+  `.sui-tabpanel`.
+- Le etichette sono escapate e la struttura usa i ruoli `tablist`, `tab` e
+  `tabpanel`.
+
+Vedere [API reference: tabs](API_REFERENCE_IT.md#tabs) e l'[esempio
+tabs](../examples/tabs.sui).
+
+## Controllo Accordion
+
+La voce **Accordion** in **Layout → Navigation** inserisce una pila di sezioni
+espandibili con due elementi:
+
+- **Text** di `accordion` = nome accessibile (`aria-label`);
+- **Text** di `accordionitem` = intestazione visibile della sezione;
+- figli di `accordionitem` = contenuto del pannello.
+
+Fare clic con il tasto destro su una riga:
+
+| Riga | Azioni |
+|---|---|
+| `accordion` | **Add accordion item**, **Edit label**, **Duplicate**, **Move up/down**, **Delete** |
+| `accordionitem` | **Add item below**, **Edit label**, **Duplicate**, **Move up/down**, **Delete** |
+
+La prima sezione è aperta. Cliccando un'intestazione si apre e si chiudono le
+altre; cliccando quella aperta si chiude. La sezione aperta viene ripristinata
+dopo un normale re-render della view. Classi generate: `.sui-accordion`,
+`.sui-accordion-item`, `.sui-accordion-head`, `.sui-accordion-panel`.
+
+Vedere [API reference: accordion](API_REFERENCE_IT.md#accordion) e
+l'[esempio accordion](../examples/accordion.sui).
+## Controllo Combobox
+
+Inserire **Combobox** dalla sezione **Controls**. Un nuovo controllo parte con
+uno stato opzioni vuoto (`options1`, `options2`, ...) e un campo ricercabile.
+L'etichetta nell'albero è `combobox 'etichetta'`.
+
+La sezione inspector **Combobox** contiene:
+
+| Campo | Significato |
+|---|---|
+| options state | stato stringa con la lista separata da virgole; vuoto per una lista literal |
+| Options in ... | righe di design lette dal valore iniziale dello stato; aggiungi o rimuovi opzioni qui |
+| value state | nome dello stato che riceve il valore selezionato |
+| placeholder | testo del campo di ricerca |
+| empty text | messaggio quando nessuna opzione corrisponde |
+| max option length | caratteri massimi accettati per etichetta/valore; oltre = errore |
+| max options | numero massimo di elementi accettati quando si forma la lista |
+| required | richiede un valore selezionato |
+| disabled | disabilita il controllo |
+
+Aggiungere una riga aggiorna il **valore iniziale** dello stato collegato. Il
+sorgente generato mantiene `options: nomeStato`, quindi il codice applicativo può
+assegnare una nuova stringa separata da virgole a runtime e la lista si aggiorna
+al render successivo. Rimuovendo tutte le righe lo stato resta vuoto.
+`Etichetta=valore` separa il testo mostrato dal valore salvato. Usare `\,` nel
+campo di aggiunta per una virgola dentro un'etichetta; il sorgente dello stato
+viene escapato automaticamente. Se una riga supera **max option length** o la
+lista supera **max options**, la lista candidata viene rifiutata con un errore e
+non vengono mostrate opzioni parziali. Anche le righe aggiunte dall'editor
+vengono controllate prima dell'inserimento.
+
+La ricerca supporta `*` (qualsiasi sequenza) e `?` (un carattere); `\*` cerca un
+asterisco letterale. Dati runtime non validi mostrano un errore sotto il
+controllo. Quando una lista sostitutiva non contiene più il valore selezionato,
+il binding di stato generato dall'editor azzera automaticamente il valore; un
+valore ancora presente viene mantenuto.
+
+Uno stato con inizializzatore non literal non può essere modificato come lista
+di righe; modificarne l'inizializzatore nel pannello States o gestire la lista
+runtime nel codice. Lasciando vuoto **options state** il controllo torna a una
+lista literal `options: "..."`.
+
+La sezione Events espone `onChange`; la funzione viene chiamata dopo che il
+valore selezionato è stato scritto nello stato collegato.
+
+La preview supporta filtro digitando, `ArrowDown`/`ArrowUp`, `Enter`, `Escape`
+e il pulsante di clear.
+
+Vedere [API reference: combobox](API_REFERENCE_IT.md#combobox) e
+l'[esempio combobox](../examples/combobox/README.md).
+
+## Controllo Tree
+
+Inserire **Tree** dalla sezione **Controls** (la palette dei componenti),
+accanto agli altri controlli. Un nuovo albero parte con un elemento genitore e
+un figlio. Aggiungere nodi **Tree item** dalla stessa palette o duplicare righe
+esistenti.
+
+L'inspector **Tree** espone:
+
+| Campo | Significato |
+|---|---|
+| tree name | target runtime per import/export del modulo core `tree`; default = titolo |
+| JSON/XML data | import/export dei tree item nel sorgente di design |
+| value state | stato stringa che riceve la key selezionata |
+| style preset | 16 preset da Default e Compact a Neon, Forest, High contrast e Cards; custom modifica style expr |
+| rename icon | simbolo matita (ad esempio `✏️`); vuoto usa `✎` |
+| show rename icon | nasconde o mostra la matita per tutto il tree |
+| editable | abilita la rinomina inline |
+| editable depth | livello massimo editabile; `0` = tutti |
+| rename key state | stato che riceve la key rinominata |
+| rename value state | stato che riceve la nuova etichetta |
+
+L'inspector **Tree item** espone:
+
+| Campo | Significato |
+|---|---|
+| key | valore stabile scritto nello stato selezionato |
+| initially open | stato di espansione iniziale |
+| node style preset | Inherit / Muted / Accent / Success / Warning / Danger / Folder / Compact row / custom |
+| show rename icon | inherit / show / hide |
+| rename icon | simbolo per nodo; vuoto eredita quello del tree |
+| editable | inherit / yes / read-only |
+| Text | etichetta visibile (sezione Content) |
+
+`onChange` e `onRename` sono disponibili in **Events**. Il sorgente generato
+mantiene i `treeitem` annidati con key, open ed editable.
+
+Il menu **style preset** del tree scrive lo stile visivo nel campo **style expr**
+dell'elemento (sezione **Appearance**). I preset sono **Default**, **Compact**,
+**Comfortable**, **Dense**, **Bordered**, **Soft rounded**, **Minimal**,
+**Neon**, **Forest**, **Amber**, **Ocean**, **High contrast**, **Outline**,
+**Mono**, **Candy** e **Cards**. Modificando direttamente l'espressione
+`cssSafe("...")` si ottiene il controllo completo e il menu passa a **Custom**.
+
+Ogni tree item ha un menu **node style preset** (**Inherit**, **Muted**,
+**Accent**, **Success**, **Warning**, **Danger**, **Folder**, **Compact row** o
+**Custom**). I preset di nodo scrivono variabili `--sui-tree-*` di riga nello
+`style expr` del singolo item, quindi sovrascrivono solo quel nodo. Entrambi i
+livelli usano lo stesso campo **style expr** dell'inspector.
+
+Il campo **rename icon** cambia il simbolo della matita; **show rename icon** la
+nasconde. Sul tree item gli stessi campi possono ereditare, mostrare o nascondere
+l'icona per nodo. Nascondere il pulsante non disabilita F2 o doppio click.
+
+Il campo **tree name** rende il tree un target runtime. I pulsanti **JSON/XML
+data** importano/esportano i tree item nel sorgente di design: l'import
+sostituisce i figli `treeitem` del tree selezionato, l'export scarica il modello
+corrente. L'import di design non memorizza dati a runtime; per i dati
+dell'applicazione usare il modulo core `tree` (`tree.importJson`,
+`tree.importXml`, `tree.importJsonFile`, `tree.importXmlFile`,
+`tree.exportJson`, `tree.exportXml`, `tree.downloadJson`,
+`tree.downloadXml`). L'esempio combina un pulsante `pickFiles` con gli helper
+file e un pulsante di download. Schema JSON/XML in
+[`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
+
+La preview supporta selezione riga, toggle di espansione, navigazione con frecce,
+Home/End e rinomina inline (doppio click, F2 o matita; Enter/Escape). Espansione
+ed etichette rinominate vengono ripristinate dopo un re-render. Il runtime usa
+`localStorage` per stato aperto e override locali delle etichette; etichette e
+key sono escapate.
+
+Vedere [API reference: tree](API_REFERENCE_IT.md#tree) e l'[esempio
+tree](../examples/tree/README.md).
+
+## Controllo Chart
+
+Inserire **Chart** da **Controls**. Un nuovo grafico parte come barre con dati
+CSV di esempio, `640px` per `320px` e `overflow: "scroll"`.
+
+L'inspector dedicato **Chart** espone:
+
+| Campo | Significato |
+|---|---|
+| type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell, Gantt o state machine; nel sorgente l'attributo e `chartType` perche `type` e riservato |
+| data | pulsante che apre il pannello overlay spostabile e ridimensionabile dei dati |
+| x field / y field | colonne label e numerica; vuote = rilevamento automatico |
+| point width | pixel orizzontali per punto in modalita scroll |
+| point size | raggio dei punti dati in pixel (1-24, default 3) |
+| bins | numero bucket dell'istogramma (1-100) |
+| min / max | intervallo gauge (default 0-100) |
+| interactive | abilita tooltip, hover/selezione e modifica Gantt |
+| table view | solo grafico, tabella accessibile, oppure entrambi; ogni tipo |
+| initial zoom | zoom iniziale della modalita zoom (0.5-4; timeline Gantt 0.5-24) |
+| overflow | Scrollbars, Zoom controls o Fit to frame |
+| show grid / show legend / show values | toggle di presentazione |
+| preset | 14 preset colore che scrivono variabili CSS in `style expr` |
+
+L'inspector **Chart** dipende dal tipo: i campi non utilizzabili vengono nascosti.
+
+- **bins** solo per histogram;
+- **min/max** solo per gauge;
+- **x field** nascosto per gauge e histogram;
+- **y field** nascosto per gauge;
+- **point width** nascosto per pie, donut, radar, gauge, funnel, treemap, bullet, dumbbell e Gantt;
+- **point size** visibile solo per line, step, smooth, area, scatter, combo, radar e dumbbell;
+- **table view** disponibile per ogni tipo di grafico;
+- **show grid** nascosto per pie, donut, radar, gauge, funnel, heatmap, treemap e bullet;
+- **show legend** nascosto per gauge e funnel;
+- **show values** nascosto per pie, donut, scatter, gauge e radar.
+
+Cambiando **type** i campi visibili si aggiornano subito. Se `chartType` �
+un'espressione, tutti i campi restano visibili e la compatibilit� viene
+controllata a runtime.
+
+Il Gantt usa lo stesso overlay ma legge righe pi� ricche: `task`, `start`, `end`
+(o `duration`), `progress`, `milestone`, `group`, `parent`, `dependsOn`,
+`dependencyType`, `lag`, `constraint`, `constraintDate`, `resource`, `status`,
+`color`, `cost`, `actualStart`, `actualEnd`, `remaining`, `work`, `workDone` e
+`resources` (array o lista separata da virgole/punto e virgola; il vecchio
+`resource` è accettato). Date, barre di avanzamento, frecce di dipendenza,
+weekend e marcatore oggi non richiedono campi inspector aggiuntivi. `group` è diverso: è una fase visiva che lascia il task come task reale, con la
+sua barra e i suoi link. Usa la cella **Group** della tabella per un singolo task,
+oppure il menu contestuale **Assign to group...** per assegnare una o più righe
+selezionate senza cambiare il parent WBS. Per creare un vero contenitore WBS,
+seleziona i task con Ctrl/Cmd + click nel grafico o le righe in tabella, poi
+scegli **Create group from selection**: viene inserito un summary **New group**
+sopra il primo task selezionato e diventa il parent dei task scelti. `parent` costruisce una struttura WBS: un summary espanso è una riga
+di intestazione e solo il summary collassato mostra la barra di riepilogo, con
+date, progresso e costo aggregati. Per espanderlo di nuovo basta cliccare la
+barra collassata, il nome, il triangolino o il toggle in tabella. L'intestazione Gantt espone i controlli
+**timeline zoom**; cambiano la larghezza dell'asse temporale senza scalare
+etichette o testo delle righe. Quando la timeline zoomata supera la cornice,
+compare una barra di scorrimento orizzontale nel viewport. Ctrl/Cmd + rotella
+sulla timeline esegue lo zoom sulla posizione del puntatore; il pinch touch con
+due dita esegue lo zoom al centro del gesto senza zoomare la pagina. La cornice del grafico mantiene la dimensione configurata. La colonna sinistra
+con i nomi ha larghezza fissa, resta allineata a sinistra anche quando la
+timeline è più stretta della cornice e rimane fissa durante scroll e zoom. Le
+etichette lunghe vanno a capo fino a tre righe; anche la colonna Task della
+tabella manda a capo il testo. **Progress % column** aggiunge una colonna
+percentuale fissa dopo i nomi; le deadline sono trascinabili orizzontalmente. Le
+dipendenze usano la corsia ortogonale libera più corta e vengono ricalcolate live
+durante spostamento o ridimensionamento; anche warning e tabella si aggiornano.
+La punta della freccia resta sul bordo sinistro del task e un tratto orizzontale
+di almeno 4px la collega al punto di ingresso condiviso, quindi nessun link
+termina con un segmento verticale contro la barra. I percorsi verticali non
+invertono mai la direzione verso la riga di destinazione; lo stage Gantt cresce
+con `linkGap` (in altezza per i corridoi tra righe, in larghezza per le corsie
+parallele) e il viewport scorre per mantenere la distanza.
+Ogni modifica Gantt ricontrolla tipo/lag delle dipendenze, vincoli, deadline ed
+effort; i percorsi evitano barre e segmenti orizzontali/verticali già usati.
+**Time scale** in Chart settings sceglie la granularità dei tick (auto, giorno,
+settimana, mese o anno). Bande verticali alternate seguono la scala attiva
+(giorni, settimane con inizio lunedì o mesi), con colori adattati al tema
+dark/light; i tick settimanali iniziano di lunedì e alla scala settimanale le
+bande dei giorni non lavorativi non vengono mai disegnate. Alla scala
+giornaliera i giorni non lavorativi mantengono il colore weekend/festivo quando
+sono visibili. Trascinando il bordo destro della colonna dei nomi la si
+ridimensiona; la larghezza viene salvata per grafico e le etichette della scala
+si fermano al separatore mentre la timeline scorre. Il menu del grafico può
+mostrare/nascondere la colonna progressi e le bande dei giorni non lavorativi
+senza cambiare schedulazione o dati della tabella. Mostrando la colonna
+progressi, le percentuali accanto alle barre vengono nascoste. `dependsOn` accetta id o nomi dei task; la
+tabella mostra chip con i nomi e un combo con tutti i task per aggiungere più
+predecessori; un click sul chip apre l'editor del tipo e del lag del singolo
+link. Il piccolo connettore sotto il bordo destro della barra crea una dipendenza
+FS trascinandolo su un'altra barra o sul nome del task. I cicli di dipendenza
+vengono rifiutati. I gruppi collassati
+nascondono anche le righe corrispondenti in tabella; una barra di toggle sopra
+la tabella permette di espanderli o collassarli senza usare il grafico. Critical path, auto scheduling, festivi, weekend e timezone si configurano
+in **Chart settings → Interactions**: i festivi accettano date esatte, intervalli
+e ricorrenze annuali; il weekend accetta nomi/numeri dei giorni o `none`; il
+timezone accetta un fuso IANA come `Europe/Rome` (predefinito `UTC`). **Show
+non-working days** è attivo per default e mostra/nasconde solo le bande
+weekend/festivi; la validazione delle date resta attiva. L'overlay
+**Calendar...** nel menu del grafico aggiunge festività e intervalli di chiusura;
+il calendario è salvato per grafico e ricalcola subito la durata effettiva.
+
+**table view** è disponibile per ogni grafico e mostra una tabella nativa
+accessibile, oppure la affianca al grafico. Il Gantt usa Task, WBS parent, Start,
+End, Deadline, Actual start/end, Duration, Effective duration, Remaining,
+Progress, Work, Work done, Milestone, Status, Group, Resources, Depends on, Link,
+Lag, Constraint, Constraint date, Slack e Cost. Le risorse multiple sono chip
+rimovibili; il piccolo pulsante **+** apre una tendina dei tipi di risorsa con il
+campo quantità e la conferma aggiunge l'assegnazione. Le schede della tabella passano
+tra **Tasks** e **Resources**: la barra delle schede resta visibile durante lo
+scroll. La scheda Resources modifica Name, Role, Max people, Daily cost e Notes,
+aggiunge righe ed elimina le risorse non usate. Rinominare una
+risorsa aggiorna le assegnazioni; l'eliminazione di una risorsa ancora assegnata
+viene rifiutata. Ogni chip risorsa ha una quantità (`×N`) per le persone richieste
+dall'assegnazione. Max people limita la somma delle quantità dei task
+contemporanei e le modifiche che lo superano vengono rifiutate; Daily cost
+alimenta il calcolo automatico del Cost dei task. La
+voce **Resource workload...** del menu del grafico riepiloga task, ruolo, carico,
+lavoro, completamento, picco di persone, max people e costo giornaliero per
+risorsa. Il registro viene salvato in `localStorage` e può essere replicato
+nell'app con `onResourceChange`; **Reset saved** cancella la copia locale e la
+ricostruisce dal sorgente del chart.
+Actual/remaining/work guidano
+esecuzione e progresso basato sull'effort; il grafico mostra le barre actual.
+Duration è la differenza di calendario end-start; Effective duration conta
+i giorni lavorativi usando weekend, festivi e timezone. Il
+combo Constraint e il suo filtro mostrano sempre tutti i sette tipi con etichette
+descrittive, anche quando tutte le righe usano `ASAP`; gli altri tipi usano Label più le serie o colonne
+specifiche. La scala `state` usa un modello generico forme/link: il data overlay
+accetta `initial`, `states` e `transitions`, array di stati con transizioni
+annidate, edge list CSV o XML. Le forme hanno `shape` (rectangle, square, circle,
+stadium, ellipse, rhombus), fill, bordo singolo con stile/spessore/colore,
+raggio angoli, dimensioni e tag/nota. Nel diagramma sono visibili solo i `tag`
+espliciti: nomi, etichette e descrizioni restano nella tabella e nell'inspector.
+I link hanno tipo linea (straight, arc, bezier, orthogonal,
+circular), spessore, tratteggio, colore, marker iniziale/finale e tag/nota. Il
+layout è automatico per livelli, con `x`/`y` espliciti per posizioni manuali.
+
+Il pulsante a ingranaggio nell'intestazione apre un pannello **Settings** a tab:
+**General** (titolo, colori bordo forme/evidenziazione, tema, switch ancore e
+maniglie, una riga di pulsanti GRID, SHAPES, LINKS e TAGS, salvataggio come default e
+reset), **Versions** (modifiche pendenti, commit e cronologia versioni)
+e **Data** (import e export JSON/CSV/SVG/PNG). Alla chiusura di un sotto-pannello
+GRID/SHAPES/LINKS/TAGS ricompare il pannello General. I default SHAPES usano due
+colonne allineate con righe di pari altezza. Il grafo mantiene solo diagramma,
+tabella forme/link e controlli di aggiunta. **Export JSON** include forme, link e
+impostazioni complete: reimportandolo il diagramma viene ricostruito identico.
+Lo switch **Edit mode** nella tab Interactions passa tra **Editing** e
+**Static**. Static rimuove selezione, drag/resize e maniglie mantenendo pan/zoom;
+lo stesso valore è disponibile come `stateMode` e nelle impostazioni chart del
+designer. In modalità statica ogni interazione viene accodata dal chart; SUI consuma la
+lista con `chart.pollEvents` / `chart.nextEvent` e decide quale funzione esterna
+chiamare. L'elemento della lista contiene `event`, `kind`, `part`, `id`,
+`label`, `tag`, coordinate e modificatori. I callback diretti legacy restano
+disponibili (`chart.on`, campi dati, attributi chart-level `onShapeClick`, ...),
+ma la lista eventi è il modello consigliato. Gli id delle forme sono obbligatori
+e univoci; il designer segnala id mancanti o duplicati come errore di import.
+**Hover hints** nella tab Interactions corrisponde a `stateHints`; disattivarlo
+nasconde tutti i tooltip. Il pulsante **HINTS...** apre il pannello globale dello
+stile tooltip (sfondo e opacità, colore testo/bordo, font e dimensione, spessore
+bordo, padding, raggio) e scrive gli attributi chart `stateHint*`. Ogni forma/link
+accetta un campo `hint`, modificabile dalla colonna **Hint** della tabella o dal
+menu contestuale **Hint settings...**; usare `|` per andare a capo e `\|` per una
+pipe letterale. **Element hints...** nell'inspector del chart elenca tutti gli stati e link nei
+dati JSON (incluso un letterale JSON contenuto in uno state semplice come `data`)
+e modifica tag e hint con campi a riga singola (`|` va a capo, `\|` è una pipe
+letterale). Riscrive il JSON; per dati CSV/XML o espressioni calcolate usare
+l'editor dati.
+Con la tabella visibile, selezionando un elemento nel diagramma la
+riga corrispondente riceve focus ed evidenziazione (tab **Links** per i link).
+
+La griglia usa `stateGridGap` come lato cella e distanza minima tra linee, con
+`stateGridColor` per il colore; è visibile di default (24 px) e si nasconde dal
+pannello Settings (GRID). Centri dei
+cerchi e vertici delle forme sono agganciati ai vertici della griglia; i box
+rettangolo/quadrato/stadio sono allineati e dimensionati sul passo, rombo/ellisse
+seguono centro ed estremi. I segmenti orizzontali/verticali, gli stub e le corsie
+di fallback dei link ortogonali giacciono sulle linee della griglia. Gli anchor sono intersezioni griglia/perimetro nominate
+`V<col>T/B`, `H<row>L/R` (fallback `P:<side>`), visibili solo con l'elemento
+selezionato e le maniglie di modifica attive; le proprietà link mostrano nomi e coordinate
+in sola lettura. Selezionando un link compaiono le maniglie inizio/fine:
+trascinandole su un altro anchor il percorso viene ricalcolato con il router che
+evita gli ostacoli e il tipo link scelto.
+X/Y, dimensioni e anchor completi sono nei metadati nascosti della riga e nel
+pannello proprietà, senza colonne aggiuntive. Il tooltip di forme e link mostra sempre nome e
+descrizione, anche senza tag; i tag nel grafico usano lo stesso tooltip.
+Description e Tag / note nel pannello proprietà sono campi a riga singola; nei tag
+`|` va a capo e `\|` è una pipe letterale. I tratti ortogonali escono/entrano
+perpendicolari per almeno `stateGridGap`, poi seguono A* o le corsie esterne; i
+self-loop sono normali link tra due punti di attacco distinti della stessa forma
+(mai lo stesso punto): si crea in modalità link facendo doppio clic sulla stessa
+forma e trascinando una delle due maniglie si cambia quel punto di attacco in modo
+indipendente. Il sottotipo scelto determina anche il self-link
+(`straight`/`arc`/`circular`/`orthogonal`/`curved`) e le Bézier espongono due
+maniglie per i punti di controllo. I link circolari espongono una maniglia del
+raggio che ribalta anche l'arco se trascinata oltre la corda; il link selezionato
+evidenzia tutto il tracciato, punte comprese. I livelli delle maniglie stanno sopra
+le forme, così le maniglie di raggio/vertici restano raggiungibili anche sui
+cerchi; durante il trascinamento la lavagna resta fissa e al rilascio l'elemento
+spostato viene riportato in vista. Le maniglie possono essere rilasciate anche su un'altra
+forma per riagganciare quell'estremità. Le proprietà del link hanno **Direction**
+(inversione sorgente/destinazione) e il pannello **LINK** può disegnare la freccia a
+entrambe le estremità. Se il router non
+trova un percorso pulito il diagramma resta invariato e un avviso non bloccante
+spiega il problema. Spostando/ridimensionando una
+forma gli anchor sono ricalcolati e i link non più agganciati vengono riancorati.
+Lo spostamento e il ridimensionamento agganciano sempre la forma alla griglia e
+salvano la geometria arrotondata. Zoom con Ctrl/Cmd + rotella o pinch a due dita (50%-400%). La tabella usa due
+schede, **Shapes** e **Links**: Shapes mostra `Element`, `Tag`, `Type` e azioni;
+Links mostra `Element`, `Tag`, `Type`, `From`, `To` e azioni. Element è la prima
+e contiene il color picker. Selezionando un elemento nel grafico si apre la
+scheda corrispondente e la riga viene portata nell'area visibile. Cliccare
+l'elemento o il suo tag produce la stessa selezione. Con una forma selezionata,
+le frecce la spostano di una cella, Shift+frecce la ridimensionano (Left/Right
+larghezza, Up/Down altezza) mantenendo l'angolo superiore sinistro e
+Delete/Backspace la elimina. Un solo
+pulsante **Add row** apre la scelta Shape/Link. Il pulsante compatto **+**
+nell'intestazione apre un unico menu con i sei tipi e **New link**, senza coprire
+i nodi; il tooltip indica `+`/`N` e `L` crea direttamente un link.
+La selezione è sincronizzata grafico/tabella con colore ambra.
+**Ctrl/Cmd/Shift+click** aggiunge o toglie elementi dalla selezione; il
+**trascinamento con il tasto sinistro** sullo spazio vuoto disegna un rettangolo
+di selezione, mentre il **trascinamento con il tasto destro** sposta l'intero
+grafico. **Alt+trascinamento** e il tasto centrale spostano anch'essi la lavagna.
+Un click sinistro sullo spazio vuoto azzera la selezione. Un gruppo selezionato si trascina come un'unica
+unità mantenendo invariate le interdistanze; la traslazione finale è arrotondata
+a passi interi di griglia su entrambi gli assi. Trascinando oltre il viewport la
+lavagna si espande invece di bloccare le forme. **Ctrl+C**/**Ctrl+V** copiano e incollano,
+**Ctrl+D** o **Duplicate** duplicano; duplicare le forme non copia i link
+collegati se non sono selezionati. Con almeno due forme selezionate compare la
+toolbar di allineamento (sinistra/centro/destra, alto/centro/basso,
+distribuzione orizzontale/verticale) con guide magnetiche blu durante il
+trascinamento. Il menu contestuale della forma contiene **Shape properties...**,
+**Tag settings...**, **Duplicate** e **Delete**: lo stile del testo è in
+**Tag settings...**, la rotazione si modifica nella tab **Position** e
+l'eliminazione rimuove anche i link collegati. Undo/Redo sono icone con hint. Il pulsante
+`…` apre il pannello proprietà per forme/link (stili, dimensioni, testo, tag,
+marker e porte). Le proprietà del link sono a schede (**Line**, **Arrows**,
+**Anchors**): colori linea/evidenziazione impilati, spessore con slider + campo
+numerico, tipo di tratteggio e marker iniziale/finale con anteprima grafica,
+anchor in sola lettura. Il campo label resta nella tabella; i campi description,
+event, guard, action e tag/nota non fanno parte del pannello. Anche le proprietà
+della forma sono a schede (**Shape**, **Position**): in **Shape** le impostazioni
+bordo (bordi, stile, spessore, corner radius, lunghezza/gap per dashed/dotted)
+stanno a sinistra, subtype e colori fill/bordo/evidenziazione a destra, con
+un'anteprima della forma in basso; **Position** contiene rotazione, X/Y, larghezza
+e altezza su due colonne allineate in alto. La label resta nella tabella e lo stile
+del testo è nei Tag settings. Ogni cella Element ha un color picker. I due tipi di tag
+(forme/link) hanno box, linea, font e dimensione separati e si configurano dal
+sotto-pannello **TAGS** nella tab **General** delle impostazioni; il pannello
+imposta anche la dimensione delle frecce dei tag e dei link tra forme (default
+`stateGridGap / 4`). I tag evitano forme, altri tag e segmenti. La tab **General**
+espone anche i sotto-pannelli GRID, SHAPES e LINKS, il tema chiaro/scuro,
+**Save settings as default** per i nuovi diagrammi e **Reset settings** per
+ripristinare i valori `.sui`. Le impostazioni del diagramma includono anche
+l'interruttore **Show anchors and handles**: disattivato rende il diagramma di
+sola lettura (`stateHandles: false`), nascondendo ancore, grip di
+ridimensionamento/rotazione, maniglie di tag e percorso e disabilitando il
+trascinamento delle forme. La griglia è opzionale dal pannello **GRID**
+(`stateGrid: false`). I percorsi ortogonali vengono verificati su griglia,
+altre forme e link già instradati; i candidati non validi riprovano con corsie
+esterne e il riepilogo è in `data-sui-chart-route-audit`. Il tasto destro su un
+link apre Link properties, Tag settings e i comandi per i waypoint: **Add
+waypoint here** inserisce un vertice trascinabile agganciato alla griglia,
+**Clear manual waypoints** li rimuove. Le modifiche sono autosalvate e supportano Undo/Redo;
+**Commit changes…** nella tab **Versions** delle impostazioni crea versioni con
+audit per campo, **Version history…** le ispeziona e `onCommit` gestisce la
+sincronizzazione server. Vedi
+[`examples/state_machine/`](../examples/state_machine/README.md).
+Ogni intestazione ha un pulsante filtro in stile Excel con popup:
+ricerca testuale, elenco dei valori distinti e campi min/max per colonne numeriche
+o date ISO. Un click ordina; Shift+click aggiunge un ordinamento multi-colonna.
+Trascinando le intestazioni si riordinano le colonne; trascinando il bordo
+destro di un'intestazione si ridimensiona la colonna; un doppio click la adatta
+al contenuto più largo. La maniglia è accessibile da tastiera con
+Left/Right/Home. Le larghezze sono salvate con la tabella e
+**Columns → Reset column widths** ripristina il dimensionamento automatico. La
+prima colonna identificativa resta fissa durante lo scroll orizzontale. L'ingranaggio
+**Settings** apre i sottomenu Columns, Filters ed Export. Export scrive le righe
+visibili in CSV, TSV, JSON o JSONL, copia le righe visibili come TSV oppure apre
+una vista di stampa. L'opzione **Add row button** in **Chart settings → Table**
+abilita **+ Row** per ogni tipo di grafico; le righe Gantt sono modificabili,
+gli altri grafici ricevono una riga locale a valori zero e possono notificare
+`onDataChange`. Lo stesso pannello controlla **Delete row button**, **Number
+steppers**, **Context menu** e **Selection** (`none`, `row`, `column`, `cell`).
+Gli stepper numerici abilitati stanno sul bordo destro delle celle e compaiono
+solo dopo un click che porta il focus sulla cella, non al solo passaggio del
+mouse, e sono nascosti durante un trascinamento di selezione. Iniziare una
+selezione annulla la modifica in sospeso e rimuove il focus. Le selezioni di
+righe, colonne e celle usano lo stesso colore e un perimetro da 2px
+`--sui-chart-table-selection-border`. In modalità cella viene riempita solo la
+cella selezionata; la riga resta collegata al grafico senza tinta completa. Il focus
+da hover usa sfondi neutri attenuati (`--sui-chart-table-focus-row-bg` /
+`--sui-chart-table-focus-cell-bg`); clic e trascinamento rimuovono l'evidenza
+hover e lasciano solo la selezione. Il focus da tastiera è un bordo sottile
+`--sui-chart-table-focus-color`, lasciando visibili testo e griglia; righe e
+celle selezionate mantengono il colore di selezione anche sotto il mouse. Le
+modifiche inline e gli stepper aggiornano grafico e tabella in place; i refresh
+generati della view preservano il DOM di grafico e tabella, evitando flicker e
+ricostruzioni.
+Usa la gutter dei numeri di riga per selezionare/trascinare righe, la striscia
+sopra le intestazioni per le colonne, oppure trascina in diagonale nel corpo per
+disegnare un rettangolo di celle. Ctrl/Cmd+click attiva/disattiva, Shift+click
+estende e Alt+click ordina un'intestazione. Il menu
+**Rows** e il menu contestuale copiano, incollano o eliminano la selezione;
+l'accesso agli appunti viene richiesto dal browser e il risultato appare nella
+status line della tabella. **Export selection** esporta solo righe, colonne o celle
+selezionate in CSV, TSV, JSON, JSONL, XLSX o HTML. **Export options** controlla
+intestazioni, colonne nascoste e ordine originale/corrente. **Print / Save PDF
+(chart + table)...** stampa l'SVG del grafico con la tabella filtrata. Le tabelle
+oltre 300 righe usano lo scrolling virtuale a finestra, mentre filtri ed export
+coprono l'intero insieme filtrato. Filtri, ordinamento, ordine, larghezze e visibilità
+restano in `localStorage`. Le intestazioni ordinano al click o con Enter; righe e header
+sono raggiungibili da tastiera. Filtro, ordinamento e colonne restano durante i
+rerender. La didascalia appare solo in modalità tabella.
+
+Click destro sul grafico, o pulsante **⚙**, per export SVG, PNG, CSV, TSV, JSON o
+JSONL, raggruppati nel sottomenu **Export** del menu del grafico. L'export dal
+grafico include tutte le righe; Settings esporta le righe e colonne visibili.
+
+**Chart settings** apre il pannello unificato con tab Appearance, Points, Tooltip,
+Table, Interactions e Data. Controlla tema dark/light, **Editable colors**
+(color picker on/off), preset, point size, tooltip, tabella, **Column filters**
+on/off, modalità interactive, **Critical path**, **Auto schedule**, **Holidays**, **Weekend**,
+**Timezone**, **Link color**, **Link width** (default `1px`), **Min link gap**
+(default `4px`), **Line style**,
+**Arrow**, **Arrow size**, **Bar border** e **Bar border color**, oltre ai campi
+x/y. Apply scrive attributi e variabili
+`--sui-chart-tooltip-*` / `--sui-chart-table-*` insieme. I temi dark e light
+usano token espliciti; i colori di selezione sono condivisi e le tonalità focus
+si adattano allo sfondo del tema. Un click sul campione colore di una serie
+nell'intestazione o nella legenda cambia il colore della serie e salva
+l'override per chart. Gli aggiornamenti del grafico sfumano il vecchio SVG nel
+nuovo, salvo richiesta di movimento ridotto.
+
+I grafici ricevono il focus da tastiera: frecce per spostarsi tra gli elementi,
+Home/End per saltare, Enter/Spazio per selezionare, Escape per chiudere il tooltip.
+
+Con **interactive** attivo, le celle Task, WBS parent, Start, End, Progress, Group e Depends on sono modificabili;
+anche le celle Label/X/serie non Gantt sono modificabili e chiamano `onDataChange`
+(i bin dell'istogramma restano read-only).
+Con **tableAddRow** attivo, **+ Row** aggiunge un task, lo seleziona, cancella i
+filtri attivi, ridisegna la timeline e chiama `onTaskChange`.
+Le modifiche alle tabelle Gantt e non Gantt si annullano/ripristinano con
+`Ctrl+Z`, `Ctrl+Shift+Z`/`Ctrl+Y`, dai controlli della tabella o dal menu
+contestuale della tabella; con un input focalizzato resta attivo l'undo nativo del browser.
+Una modifica ridisegna il Gantt e chiama `onTaskChange`; drag/resize sulla
+timeline aggiornano la tabella con gli stessi valori. Selezionando un'attività
+nella timeline, il nome del task a sinistra o la riga si evidenziano tutti e tre e la riga viene portata in vista. La selezione vale per ogni coppia
+grafico/tabella: un elemento seleziona la riga e una riga evidenzia tutti gli
+elementi della label, comprese tutte le serie nei grafici multi-serie. La
+selezione è salvata in `localStorage` e ripristinata dopo il reload. Una modifica
+valida fa lampeggiare per qualche istante le celle e l'attività grafica.
+
+Tooltip, evidenziazione hover, navigazione da tastiera e selezione sono
+disponibili su ogni grafico. Le righe Gantt sono target da tastiera: Left/Right
+spostano, Shift+Left/Right ridimensionano la fine, Alt+Left/Right l'inizio,
+Enter apre il menu attività e il connettore dipendenze apre con Enter il
+selettore destinazione. Una dipendenza focalizzata supporta Enter/Shift+F10 per
+la modifica e Delete per la rimozione. **interactive** abilita inoltre
+drag/resize Gantt, gruppi collassabili e celle Gantt modificabili. Le modifiche
+sono autosalvate in una bozza locale e non diventano una versione finché non si
+preme **Commit** nell'intestazione. **Commit changes...** e **Version history...**
+nel menu del grafico creano e ispezionano versioni con audit per campo. Se il
+grafico ha `onTaskChange` in **Events**, l'handler riceve il JSON aggiornato;
+`onCommit` riceve la versione committata per la sincronizzazione host/server con
+`revision` e `baseRevision`.
+
+
+**Overlay dati.** Il pulsante **data** sostituisce la vecchia textarea inline.
+Apre un pannello flottante sopra il designer con un grande editor monospace.
+Trascinare l'intestazione per spostarlo e la maniglia in basso a destra per
+ridimensionarlo; l'editor ricorda posizione e dimensioni. Il pannello offre:
+
+- modalita **Literal data** e **State expression**;
+- selettore formato auto, JSON, XML o CSV;
+- validazione live e conteggio righe/caratteri;
+- **Load file** per file `.json`, `.xml`, `.csv` o `.txt`;
+- **Insert sample** per il formato selezionato;
+- **Pretty JSON** per JSON valido;
+- **Apply**, **Cancel**, chiusura con click sullo sfondo o Escape e Ctrl+Enter
+  per applicare.
+
+JSON/XML non validi vengono segnalati prima di Apply e bloccano l'aggiornamento.
+L'overlay controlla anche la **compatibilita dati/tipo**: i grafici a serie
+singola richiedono una serie numerica, stacked/grouped/combo almeno due, radar
+piu serie, heatmap y+valore, candlestick OHLC, box plot cinque statistiche,
+bullet valore+target, dumbbell/Gantt due serie, pie/donut/funnel/treemap un
+valore positivo e histogram valori numerici. Il selettore tipo
+nell'overlay segnala la differenza e disabilita Apply finche non viene risolta.
+Applicando dati letterali il pannello scrive automaticamente la stringa SUI con
+gli escape. La modalita espressione salva lo stato/espressione e rende il
+grafico reattivo. Il pannello resta uno strumento del designer: l'app generata
+mantiene il normale runtime chart e i suoi limiti.
+
+Larghezza e altezza del chart si impostano con i campi standard della sezione
+**Size** (o con CSS in **style expr**), non con parametri chart dedicati.
+
+Con **Scrollbars** il grafico mantiene la cornice e mostra una scrollbar
+orizzontale quando i punti richiedono piu spazio. **Zoom controls** aggiunge `-`, `+`, `Reset` e la
+percentuale; ingrandendo compaiono le scrollbar. **Fit to frame** comprime il
+disegno nella cornice senza controlli.
+
+Il menu **preset** scrive variabili `--sui-chart-*` nel campo **style expr**
+dell'elemento (sezione **Appearance**). I preset sono **Default**, **Ocean**,
+**Forest**, **Sunset**, **Neon**, **Mono**, **Pastel**, **High contrast**,
+**Amber**, **Candy**, **Slate**, **Light**, **Outline** e **Minimal**. Scegliendo **Custom**
+l'espressione resta invariata e si puo modificare direttamente.
+
+Un grafico in modalita espressione e reattivo: cambiando lo stato collegato
+viene ridisegnato. Dati non validi o vuoti mostrano un messaggio testuale dentro
+il grafico. Le graffe JSON letterali vanno scritte `\{` e `\}`; l'overlay dati
+lo fa automaticamente quando applica un valore letterale.
+
+Vedere [API reference: chart](API_REFERENCE_IT.md#chart) e l'[esempio
+chart](../examples/chart/README.md).
+
+## Controllo Date/Time picker
+
+Inserire **Date/Time picker** dalla sezione **Controls**. Un nuovo controllo
+parte in modalità `date`, con valore vuoto ed etichetta `Date`.
+
+La sezione inspector **Date/Time picker** contiene:
+
+| Campo | Significato |
+|---|---|
+| value state | stato stringa che riceve il valore simil-ISO |
+| mode | date, time o datetime |
+| min | valore minimo nativo nel formato della modalità |
+| max | valore massimo nativo nel formato della modalità |
+| step | secondi opzionali per time/datetime |
+| disabled | disabilita input e clear |
+| required | flag required nativo |
+
+`onChange` è disponibile in **Events**. Il sorgente generato mantiene modalità e
+intervallo; il valore è collegato tramite un input nascosto sincronizzato dal
+runtime.
+
+Formati:
+
+- date: `YYYY-MM-DD`
+- time: `HH:MM` oppure `HH:MM:SS`
+- datetime: `YYYY-MM-DDTHH:MM` oppure con secondi
+
+La preview usa il picker nativo del browser. Il pulsante clear azzera valore e
+stato. Valori non validi o fuori intervallo mostrano un errore inline.
+
+Vedere [API reference: date/time picker](API_REFERENCE_IT.md#datetime-picker) e
+l'[esempio datepicker](../examples/datepicker/README.md).
+
+## Controllo Toast
+
+La voce **Toast host** nella sezione **Overlay** inserisce un contenitore vuoto
+con live region. È opzionale: senza host il runtime crea automaticamente un host
+fisso in alto a destra.
+
+Usare un handler per mostrare il feedback:
+
+```sui
+fn save() -> null {
+	toast.show("Salvato", "success", 3000)
+}
+
+fn clear() -> null {
+	toast.clear()
+}
+```
+
+- `toast.show(message [, kind [, duration]])`;
+- tipi: `info` (default), `success`, `warning`, `error`;
+- durata predefinita: `4000` ms; `0` mantiene il toast aperto;
+- massimo quattro toast per host per default (`max` accetta 1–8); il più vecchio viene rimosso;
+- l'utente può chiudere ogni toast con il pulsante X;
+- `toast.clear()` rimuove tutti i toast visibili;
+- i messaggi usano `textContent`, mai HTML raw;
+- l'host usa `aria-live="polite"` e ogni toast usa `role="status"`.
+
+Selezionare il **toast host** nell'albero per aprire il pannello dedicato
+**Toast**:
+
+| Sezione | Controlli |
+|---|---|
+| Posizionamento | orizzontale `left`/`center`/`right` e verticale `top`/`center`/`bottom` |
+| Offset | offset orizzontale solo per left/right; offset verticale solo per top/bottom |
+| Comportamento | durata predefinita, massimo visibili, mostra icone |
+| Anteprima | tipo anteprima, messaggio, **Show preview**, **Clear preview** |
+
+Ogni asse è indipendente. Un asse centrato non ha campo offset perché è
+centrato nel viewport; un asse ancorato a un bordo mostra il proprio campo
+offset (default `16px`). Un numero senza unità viene interpretato come pixel;
+scrivere esplicitamente `%`, `em`, `rem`, `vw` o un'altra unità quando serve. Il
+sorgente generato usa `hAlign`, `vAlign`, `hOffset` e `vOffset`.
+
+Con più notifiche, un'ancora superiore aggiunge ogni nuovo toast sotto il
+precedente; un'ancora inferiore inverte lo stack, quindi ogni nuovo toast appare
+sopra il precedente. Il toast più vecchio resta il primo a essere rimosso quando
+si raggiunge il massimo.
+
+Le normali sezioni **Size**, **Border**, **Box model**, **Typography**,
+**Background** ed **Effects** sotto il pannello scrivono la regola della card.
+Larghezza e altezza usano quindi i campi **Size** standard; bordo, raggio,
+sfondo e tipografia si applicano direttamente alla card del toast.
+
+Le stesse dichiarazioni compaiono nel campo **style expr** dell'host Toast.
+Quel campo è l'elenco CSS modificabile per `.sui-toast` (ad esempio
+`width: 420px; border-width: 3px;`). Modificarlo aggiorna la card; le custom
+properties come `--sui-toast-icon-bg` vengono ereditate da icona, messaggio e
+pulsante di chiusura.
+Le modifiche aggiornano subito sorgente e CSS generati. La preview mostra un
+toast campione con il vero CSS dell'app, così posizione, dimensioni e bordo
+sono visibili prima di uscire dal designer. Se il progetto contiene più host
+Toast, il campione appare nell'host selezionato; a runtime `toast.show` usa il
+primo host nel documento.
+
+L'etichetta nell'albero è `toast host`; il campo Text non viene usato. Senza host
+il runtime crea un host fisso in alto a destra.
+
+Vedere [API reference: toast](API_REFERENCE_IT.md#notifiche-toast) e
+l'[esempio toast](../examples/toast/README.md).
+## Proprietà Tooltip
+
+Il Tooltip è una **proprietà di elementi/controlli**, non un controllo separato
+nella palette. Selezionare un elemento qualsiasi (ad esempio un pulsante, un
+link, un input o una card) e aprire la sezione collassabile **Tooltip**
+nell'inspector. Il campo `text` imposta il messaggio hover/focus; svuotarlo
+rimuove la proprietà.
+
+Il target riceve `aria-describedby` mentre il fumetto è visibile; il fumetto usa
+`role="tooltip"` e testo escapato. Focus da tastiera e chiusura con `Escape`
+funzionano automaticamente per i target focusabili.
+
+L'aspetto e il comportamento globali si gestiscono da **Preferences > Tooltip
+settings**:
+
+| Impostazione | Significato |
+|---|---|
+| Place | `top`, `right`, `bottom` o `left` |
+| Delay | ritardo hover in millisecondi |
+| Background / text / border | colori del fumetto |
+| Radius | raggio del bordo |
+| Max width | larghezza massima del fumetto |
+
+Il pannello globale scrive le custom properties `--sui-tooltip-*` in `:root`,
+quindi le impostazioni restano nel sorgente e valgono per tutti i tooltip. Il
+runtime posiziona il fumetto nel viewport, anche per controlli void come
+`input`.
+
+Vedere [API reference: tooltip](API_REFERENCE_IT.md#proprietà-tooltip) e
+l'[esempio tooltip](../examples/tooltip/README.md).
+
+## Dialoghi nativi per file e cartelle
+
+Usare `pickFiles` per un dialogo invece del trascinamento:
+
+```sui
+button "Scegli file..." pickFiles: attachment multiple: true
+button "Scegli cartella..." pickFiles: attachment directory: true pickMode: "auto"
+```
+
+Valori di `pickMode` (default `native`):
+
+- `native` - `<input type=file>`/`webkitdirectory` del browser;
+- `fs` - File System Access API (`showDirectoryPicker`);
+- `auto` - `fs` quando disponibile, altrimenti `native`.
+
+`fs` e `auto` sono orientati alle cartelle: usano `showDirectoryPicker()` per
+restituire un handle di directory e i suoi file. Per la normale selezione di
+file lasciare `pickMode: "native"`. Usare `directory: true` quando il dialogo
+deve selezionare una cartella.
+
+La FS API richiede un browser Chromium, un contesto sicuro e il permesso
+dell'utente. Può restituire il nome di una cartella vuota; il picker nativo
+`webkitdirectory` no. Sul target web non esiste comunque un percorso locale
+assoluto: sono disponibili solo nomi e percorsi relativi, più i byte tramite
+upload.
+
+Nelle **build desktop**, il modulo separato `dialog` restituisce veri percorsi
+assoluti:
+
+```sui
+import { dialog } from "std"
+
+async fn choose() -> null {
+	path, err = dialog.pickFile()
+	if err != null { status = err; return }
+	if path == "" { status = "annullato"; return }
+	status = path
+}
+```
+
+`dialog.pickFile`, `dialog.pickFiles` e `dialog.pickDirectory` usano i dialoghi
+nativi del sistema operativo e sono documentati in
+[STDLIB](STDLIB_IT.md#dialog-module-dialog-desktop). Il percorso non è una
+capability: `fs` richiede `--allow-dir` e `exec` richiede `--allow-exec`.
+
+## Checklist dell'inspector
+
+Quando un'interazione drag dell'applicazione non funziona, controllare:
+
+1. Il **sorgente** ha `dragKey` o `draggable: true`.
+2. Il **target** ha `dropKey`.
+3. Il **target** ha `onDrop` che nomina una funzione dichiarata.
+4. Il **target file** ha `dropFiles` verso uno stato stringa e, per la vista, un
+   binding `value:` corrispondente.
+5. La funzione evento esiste ed è disponibile nella view corrente.
+6. L'elemento non è una tabella se ci si aspetta l'inspector DnD generico; gli
+   interni delle tabelle vanno modificati nel sorgente.
+7. Le righe di una `list` e gli interni dei componenti possono richiedere la
+   modifica del sorgente.
+8. Il folder picking con `fs` richiede Chromium, localhost/HTTPS e permesso.
+
+## Risoluzione problemi
+
+| Sintomo | Causa probabile | Correzione |
+|---|---|---|
+| Un componente del designer non si trascina | Contenitore non valido, drop nel proprio sottoalbero o drop nell'iframe | Usare l'albero, rilasciare accanto/dentro un contenitore valido |
+| La riga generata non è trascinabile | Manca `dragKey` o `draggable: false` | Impostare `dragKey` e `draggable: true` |
+| Appare il contorno di drop ma non succede nulla | Manca il gestore `onDrop` | Creare/selezionare una funzione `onDrop` |
+| Reagisce solo la prima riga di una lista | Il wiring custom punta a un solo elemento invece che alla riga ripetuta | Mettere `dragKey`/`dropKey`/`onDrop` sulla riga ripetuta; il runtime li emette per ogni riga |
+| Il drop file non fa nulla | Lo stato `dropFiles` manca o non è una stringa | Aggiungere uno stato stringa e collegare `dropFiles` |
+| Il campo non mostra i percorsi | Manca il binding `value:` | Collegare lo stesso stato con `value:` |
+| Il folder picker non ha il nome di una cartella vuota | È stato scelto il picker nativo `webkitdirectory` | Provare `pickMode: "auto"`/`"fs"` su Chromium |
+| Il picker FS non è disponibile | Firefox/Safari o contesto non sicuro | Usare `native` o servire su localhost/HTTPS con Chromium |
+| Il picker desktop restituisce errore | Build web o ambiente headless | Compilare con `--target desktop` ed eseguire in una sessione desktop |
+
+## Note di sicurezza
+
+- Trattare nomi e percorsi trascinati come testo non fidato.
+- Non costruire HTML, CSS o URL da questi dati senza validazione.
+- Caricare solo verso un backend sotto il proprio controllo.
+- Il picker desktop restituisce percorsi solo dopo una selezione esplicita
+  dell'utente; non concede da solo accesso al filesystem.
+- Tenere `fs` dietro `--allow-dir` e i comandi dietro `--allow-exec`.
+- Il runtime limita numero di file, profondità, percorsi e dati delle tabelle.
+
+## Documenti correlati
+
+- [API reference: drag and drop](API_REFERENCE_IT.md#drag-and-drop)
+- [Builtins: drag and drop](BUILTINS_IT.md#drag-and-drop-functions)
+- [Agent recipes: drag and drop](AGENT_RECIPES_IT.md#drag-and-drop)
+- [Standard library: dialog desktop](STDLIB_IT.md#dialog-module-dialog-desktop)
+- [Esempio file picker](../examples/file_picker.sui)
+- [Esempio menu bar](../examples/menu_bar.sui)
+- [Esempio file analyzer](../examples/file_analyzer/README.md)
+- [Esempio desktop picker](../examples/desktop_picker.sui)
+
+

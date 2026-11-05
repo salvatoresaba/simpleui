@@ -1,0 +1,19 @@
+state name = ""
+
+view main {
+	title "Tabs"
+	h1 "Tabs"
+	tabs "Settings" {
+		tab "General" {
+			p "General settings"
+			input "Name" value: name
+		}
+		tab "Advanced" {
+			p "Advanced settings"
+			alert "Changes here affect the whole project."
+		}
+		tab "About" {
+			p "SimpleUI tabs example."
+		}
+	}
+}

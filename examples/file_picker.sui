@@ -1,0 +1,11 @@
+state attachment = ""
+
+view main {
+	title "File picker"
+	h1 "File picker"
+	p "Use the native dialog, or drop files onto the field."
+	button "Choose files..." pickFiles: attachment accept: ".txt,.sui" multiple: true
+	file accept: ".txt,.sui" multiple: true pickFiles: attachment
+	input "Selected" value: attachment dropFiles: attachment
+	p "Selected value: {attachment}"
+}

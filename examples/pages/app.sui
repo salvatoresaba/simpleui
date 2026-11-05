@@ -1,0 +1,49 @@
+state visits = 0
+
+fn openHome() -> null {
+	visits = visits + 1
+	navigate("main")
+}
+
+fn openProjects() -> null {
+	visits = visits + 1
+	navigate("projects")
+}
+
+fn openSettings() -> null {
+	visits = visits + 1
+	navigate("settings")
+}
+
+view main {
+	title "Pages"
+	h1 "Home"
+	p "This is the first page."
+	p "Navigations: {visits}"
+	row {
+		button "Projects" onClick: openProjects
+		button "Settings" onClick: openSettings
+	}
+}
+
+view projects {
+	title "Projects"
+	h1 "Projects"
+	p "A second page, with its own content."
+	p "Navigations: {visits}"
+	row {
+		button "Home" onClick: openHome
+		button "Settings" onClick: openSettings
+	}
+}
+
+view settings {
+	title "Settings"
+	h1 "Settings"
+	p "A third page. The state above is shared by all pages."
+	p "Navigations: {visits}"
+	row {
+		button "Home" onClick: openHome
+		button "Projects" onClick: openProjects
+	}
+}

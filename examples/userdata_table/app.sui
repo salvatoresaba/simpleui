@@ -1,0 +1,63 @@
+import { exec, json } from "std"
+
+state rows: array[array[string]] = []
+state status = "loading"
+state debug = "diagnostics:\n"
+
+fn note(m: string) -> null {
+	debug = debug + m + "\n"
+}
+
+async fn loadRows() -> null {
+	note("1. onLoad -> loadRows()")
+	note("2. exec.run(\"userdata.exe\", []) ...")
+	out, err1 = exec.run("userdata.exe", [])
+	if err1 != null {
+		note("3. exec.run FAILED: " + err1)
+		status = "error"
+	} else {
+		note("3. exec.run ok")
+		data, jerr = json.parse(out)
+		if jerr != null {
+			note("4. json.parse FAILED: " + jerr)
+			status = "error"
+		} else {
+			note("4. json.parse ok")
+			rows = data
+			status = "ok"
+			note("5. rows updated")
+		}
+	}
+}
+
+view main {
+	title "Users from a CLI executable"
+	onLoad: loadRows
+	h1 "Users from userdata.exe"
+	if status == "ok" {
+		table class: "users" {
+			thead {
+				trow {
+					tcell "ID" head: true
+					tcell "Name" head: true
+					tcell "Email" head: true
+				}
+			}
+			list r in rows {
+				trow {
+					tcell "{r[0]}"
+					tcell "{r[1]}"
+					tcell "{r[2]}"
+				}
+			}
+		}
+	} else {
+		if status == "error" {
+			p "The command failed - see the diagnostics panel below."
+		} else {
+			p "Launching userdata.exe ..."
+	}
+	}
+	button "Refresh" onClick: loadRows
+	pre "{debug}" class: "debug"
+}

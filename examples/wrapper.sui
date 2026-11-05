@@ -1,0 +1,36 @@
+import { exec } from "std"
+
+state cmd = "ls"
+state output = ""
+state error = ""
+state failed = false
+
+fn onCmd(v: string) -> null {
+	cmd = v
+}
+
+async fn run() -> null {
+	out, err = exec.run(cmd, [])
+	if err != null {
+		failed = true
+		error = err
+		output = ""
+	} else {
+		failed = false
+		error = ""
+		output = out
+	}
+}
+
+view main {
+	title "CLI Wrapper"
+	h1 "CLI Wrapper"
+	text "Command: {cmd}"
+	input "Enter a command" value: cmd onChange: onCmd
+	button "Run" onClick: run
+	if failed {
+		p "Error: {error}"
+	} else {
+		p "{output}"
+	}
+}

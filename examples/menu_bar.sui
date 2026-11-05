@@ -1,0 +1,49 @@
+state last = "Choose a command."
+
+fn newFile() -> null {
+	last = "New file"
+}
+
+fn openFile() -> null {
+	last = "Open file"
+}
+
+fn undo() -> null {
+	last = "Undo"
+}
+
+fn redo() -> null {
+	last = "Redo"
+}
+
+fn preferences() -> null {
+	last = "Preferences"
+}
+
+fn about() -> null {
+	last = "SimpleUI menu bar"
+}
+
+view main {
+	title "Menu bar"
+	h1 "Menu bar"
+	menubar "Main menu" {
+		menu "File" {
+			menuitem "New" onClick: newFile
+			menuitem "Open" onClick: openFile
+			divider
+			menuitem "Project site" link: "https://example.com"
+		}
+		menu "Edit" {
+			menuitem "Undo" onClick: undo
+			menuitem "Redo" onClick: redo
+			menu "More" {
+				menuitem "Preferences" onClick: preferences
+			}
+		}
+		menu "Help" {
+			menuitem "About" onClick: about
+		}
+	}
+	p "{last}"
+}

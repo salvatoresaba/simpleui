@@ -1,0 +1,45 @@
+# Tooltip property example.
+# Any element can carry tooltip: "Text".
+# Global placement and timing are configured from Preferences > Tooltip settings.
+
+state count = 0
+
+fn noop() -> null {
+}
+
+fn increment() -> null {
+	count += 1
+}
+
+view main {
+	title "Tooltip - complete example"
+	h1 "Tooltip"
+	p "Hover a control or focus it with the keyboard. Press Escape to dismiss the bubble."
+
+	row {
+		button "Save" tooltip: "Saves the current document" onClick: noop
+		button "Delete" tooltip: "Delete permanently" onClick: noop
+		button "Focus me" tooltip: "Keyboard focus works too" onClick: noop
+		button "Count: {str(count)}" tooltip: "Clicked {str(count)} times" onClick: increment
+	}
+
+	card {
+		p "The tooltip property can be attached to a button inside any layout."
+		button "Card action" tooltip: "Tooltip on a button inside a card" onClick: noop
+	}
+
+	accordion "How this example works" {
+		accordionitem "Tooltip property" {
+			p "Select any element and open the Tooltip section in the inspector."
+			p "The text field is the only per-element setting; appearance and timing are global."
+		}
+		accordionitem "Global settings" {
+			p "Open Preferences > Tooltip settings to choose place, delay and bubble colors."
+			p "The settings are written as CSS custom properties in the project."
+		}
+		accordionitem "Safety and accessibility" {
+			p "Tooltip text is rendered as text, never as raw HTML."
+			p "The target receives aria-describedby while the bubble is open."
+		}
+	}
+}

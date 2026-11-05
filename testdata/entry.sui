@@ -1,0 +1,13 @@
+import { scale } from "./components.sui"
+import { http } from "std"
+
+state start: int = 3
+
+fn run(a: int) -> int {
+	return scale(a)
+}
+
+view main {
+	title "Entry App"
+	h1 "Hello"
+}

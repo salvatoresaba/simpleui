@@ -1,0 +1,137 @@
+import { json } from "std"
+
+state data = "\{\"states\":[\{\"id\":\"intake\",\"label\":\"Intake\",\"shape\":\"stadium\",\"w\":150,\"h\":64,\"tag\":\"WAITING\",\"tagBox\":\"rounded\",\"tagBoxColor\":\"#e2e8f0\",\"tagTextColor\":\"#0f172a\",\"hint\":\"Waiting for a new item\"\},\{\"id\":\"process\",\"label\":\"Process\",\"shape\":\"rectangle\",\"w\":160,\"h\":76,\"tag\":\"IDLE\",\"tagBox\":\"rounded\",\"tagBoxColor\":\"#fef3c7\",\"tagTextColor\":\"#78350f\",\"hint\":\"Processing the order; click|to mark the output.\"\},\{\"id\":\"output\",\"label\":\"Output\",\"shape\":\"circle\",\"w\":96,\"h\":96,\"tag\":\"OUTPUT\",\"tagBox\":\"rounded\",\"tagBoxColor\":\"#dcfce7\",\"tagTextColor\":\"#14532d\",\"hint\":\"Completed item\"\}],\"transitions\":[\{\"id\":\"edge_1\",\"from\":\"intake\",\"to\":\"process\",\"tag\":\"start\",\"hint\":\"Start processing\"\},\{\"id\":\"edge_2\",\"from\":\"process\",\"to\":\"output\",\"tag\":\"done\",\"hint\":\"Processing finished\"\}]\}"
+
+state staticMode = true
+state chartMode = "static"
+state status = "Static mode: click a shape or tag. Events are read from the chart event list."
+state selectedShape = ""
+state selectedTag = ""
+
+fn startEvents() -> null {
+	interval(120, pumpChartEvents)
+}
+
+async fn pumpChartEvents() -> null {
+	events, err = chart.pollEvents("monitor")
+	if err != null {
+		return
+	}
+	items, jerr = json.parse(events)
+	if jerr != null {
+		return
+	}
+	let i = 0
+	while i < len(items) {
+		let ev = items[i]
+		let eventName = str(ev["event"])
+		let eventPart = str(ev["part"])
+		let eventKind = str(ev["kind"])
+		if eventName == "click" {
+			okFocus, focusErr = chart.focusRow("monitor", str(ev["id"]))
+			if eventPart == "tag" {
+				tagClicked(ev)
+			} else if eventKind == "shape" {
+				if str(ev["id"]) == "process" {
+					processClicked(ev)
+				} else {
+					shapeClicked(ev)
+				}
+			}
+		} else if eventName == "mouseover" and eventKind == "shape" {
+			status = "Hover " + str(ev["id"])
+		}
+		i = i + 1
+	}
+}
+
+fn setWaiting() -> null {
+	ok1, e1 = chart.update("monitor", "intake", "\{\"text\":\"WAITING\",\"tagColor\":\"#e2e8f0\",\"textColor\":\"#0f172a\"\}")
+	ok2, e2 = chart.update("monitor", "process", "\{\"text\":\"IDLE\",\"tagColor\":\"#fef3c7\",\"textColor\":\"#78350f\",\"color\":\"#f8fafc\"\}")
+	ok3, e3 = chart.update("monitor", "output", "\{\"text\":\"OUTPUT\",\"tagColor\":\"#dcfce7\",\"textColor\":\"#14532d\"\}")
+}
+
+fn setRunning() -> null {
+	ok1, e1 = chart.update("monitor", "intake", "\{\"text\":\"READY\",\"tagColor\":\"#dbeafe\",\"textColor\":\"#1e3a8a\"\}")
+	ok2, e2 = chart.update("monitor", "process", "\{\"text\":\"RUNNING\",\"tagColor\":\"#f59e0b\",\"textColor\":\"#111827\",\"color\":\"#fffbeb\"\}")
+	ok3, e3 = chart.update("monitor", "output", "\{\"text\":\"WAITING\",\"tagColor\":\"#e5e7eb\",\"textColor\":\"#374151\"\}")
+}
+
+fn setDone() -> null {
+	ok1, e1 = chart.update("monitor", "intake", "\{\"text\":\"DONE\",\"tagColor\":\"#d1fae5\",\"textColor\":\"#065f46\"\}")
+	ok2, e2 = chart.update("monitor", "process", "\{\"text\":\"DONE\",\"tagColor\":\"#d1fae5\",\"textColor\":\"#065f46\"\}")
+	ok3, e3 = chart.update("monitor", "output", "\{\"text\":\"COMPLETE\",\"tagColor\":\"#22c55e\",\"textColor\":\"#ffffff\",\"color\":\"#dcfce7\"\}")
+}
+
+fn toggleMode() -> null {
+	staticMode = staticMode == true ? false : true
+	chartMode = staticMode ? "static" : "editing"
+	status = staticMode ? "Static mode: click shapes or tags." : "Editing mode."
+}
+
+fn shapeClicked(ev: any) -> null {
+	selectedShape = str(ev["label"])
+	selectedTag = str(ev["tag"])
+	status = "Shape " + str(ev["id"]) + " · " + str(ev["event"])
+	modal.open("process-details")
+}
+
+fn processClicked(ev: any) -> null {
+	selectedShape = str(ev["label"])
+	selectedTag = str(ev["tag"])
+
+	ok1, e1 = chart.setText("monitor", "output", "PROCESS CLICKED")
+	ok2, e2 = chart.setTagColor("monitor", "output", "#22c55e")
+	ok3, e3 = chart.setTextColor("monitor", "output", "#ffffff")
+	ok4, e4 = chart.setColor("monitor", "output", "#dcfce7")
+
+	if e1 != null {
+		status = "Update failed: " + e1
+	} else if e2 != null {
+		status = "Update failed: " + e2
+	} else if e3 != null {
+		status = "Update failed: " + e3
+	} else if e4 != null {
+		status = "Update failed: " + e4
+	} else {
+		status = "Event list: process click updated the output shape"
+	}
+
+	modal.open("process-details")
+}
+
+fn tagClicked(ev: any) -> null {
+	selectedShape = str(ev["label"])
+	selectedTag = str(ev["tag"])
+	status = "Tag " + str(ev["tag"]) + " on " + str(ev["id"]) + " · " + str(ev["event"])
+	modal.open("process-details")
+}
+
+view main {
+	title "Process monitor"
+	onLoad: startEvents
+	col class: "monitor" {
+		header {
+			h1 "Process monitor"
+			p "The chart only queues events (type + element). SUI reads them with chart.pollEvents and calls its own functions; the Process handler updates another shape."
+		}
+		row {
+			button "Waiting" onClick: setWaiting
+			button "Running" onClick: setRunning
+			button "Done" onClick: setDone
+			switch checked: staticMode onChange: toggleMode
+			text "Static mode"
+		}
+		p "Status: {status}"
+		chart "Process monitor" name: "monitor" data: data chartType: "state" width: "100%" height: "620px" stateMode: chartMode stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateShapeTagStyle: "rounded" stateShapeTagKind: "external" stateShapeTagLink: "line" stateLinkTagStyle: "rounded" stateLinkTagKind: "external" stateLinkTagLink: "line" tableView: "both" interactive: true theme: "dark" style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #22c55e; --sui-chart-series-3: #f59e0b; --sui-chart-bg: #0f172a;")
+	}
+
+	modal "Process details" name: "process-details" {
+		p "Shape: {selectedShape}"
+		p "Tag: {selectedTag}"
+		p "Opened from the chart event list by pumpChartEvents → processClicked."
+		modalbutton "Close"
+	}
+}
+
+css "body \{ margin: 0; background: #020617; color: #e2e8f0; font-family: system-ui, sans-serif; \} .monitor \{ max-width: 1400px; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 16px; \} .monitor h1 \{ margin: 0 0 6px; \} .monitor p \{ margin: 0; color: #94a3b8; \}"

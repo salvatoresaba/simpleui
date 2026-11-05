@@ -1,0 +1,35 @@
+# SSRF guard: dynamic URLs go through http.getSafe with a literal allow-list.
+# getSafe matches scheme/host/port, rejects credentials and redirects, and
+# never lets data widen the allow-list.
+
+import { http } from "std"
+
+state url = "https://api.github.com/zen"
+state out = "ready"
+
+async fn fetchIt() -> null {
+	st, serr = http.getStatusSafe(url, "https://api.github.com")
+	if serr != null {
+		out = serr
+		return
+	}
+	if st != 200 {
+		out = "HTTP " + str(st)
+		return
+	}
+	body, err = http.getSafe(url, "https://api.github.com")
+	if err != null {
+		out = err
+	} else {
+		out = body
+	}
+}
+
+view main {
+	title "URL guard"
+	h1 "URL guard"
+	p "Only https://api.github.com is allowed; redirects are refused."
+	input value: url
+	button "Fetch" onClick: fetchIt
+	pre "{out}"
+}

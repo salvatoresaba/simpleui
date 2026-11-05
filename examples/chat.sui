@@ -1,0 +1,42 @@
+import { ws } from "std"
+
+state url = "ws://localhost:8080"
+state message = ""
+state connected = false
+state conn: any = null
+state messages: array[string] = []
+
+fn gotMessage(m: string) -> null {
+	messages = append(messages, m)
+}
+
+async fn connect() -> null {
+	c, err = ws.connectSafe(url, "ws://localhost:8080")
+	if err != null {
+		connected = false
+	} else {
+		conn = c
+		ws.onMessage(conn, gotMessage)
+		connected = true
+	}
+}
+
+async fn send() -> null {
+	ws.send(conn, message)
+}
+
+view main {
+	title "WebSocket Client"
+	h1 "Chat over WebSocket"
+	if connected {
+		p "Connected"
+		list m in messages { p "{m}" }
+	} else {
+		p "Disconnected"
+	}
+	input "Type a message" value: message
+	row {
+		button "Send" onClick: send
+		button "Connect" onClick: connect
+	}
+}

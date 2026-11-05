@@ -1,0 +1,31 @@
+# Untrusted text stays text.
+
+state evil = "<img src=x onerror=alert(1)>"
+state badUrl = "javascript:alert(1)"
+state goodUrl = "https://example.com/?q=hello"
+
+view main {
+	title "Untrusted text"
+	h1 "Untrusted text"
+	p "Everything below comes from data, not from the view: it is displayed literally."
+	p "{evil}"
+	code "{evil}"
+	table {
+		thead {
+			trow {
+				tcell "payload" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "{evil}"
+			}
+		}
+	}
+	row {
+		a "blocked javascript URL" href: badUrl
+		a "allowed https URL" href: goodUrl
+	}
+	img src: badUrl
+	input value: evil
+}

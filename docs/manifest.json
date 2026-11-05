@@ -1,0 +1,549 @@
+{
+  "version": 1,
+  "project": "SimpleUI (SUI)",
+  "description": "A small reactive UI language and compiler: .sui source becomes a self-contained web app or a desktop executable. Documentation is organized for humans and coding agents.",
+  "entrypoints": {
+    "index": "docs/INDEX.md",
+    "agent": "AGENTS.md",
+    "claude": "CLAUDE.md",
+    "llms": "llms.txt",
+    "recipes": "docs/AGENT_RECIPES.md",
+    "manifest": "docs/manifest.json"
+  },
+  "commands": {
+    "start": "simpleui docs --agent",
+    "check": "simpleui check app.sui --json",
+    "build": "simpleui build app.sui --out dist",
+    "single": "simpleui build app.sui --single --out app.html",
+    "serve": "simpleui serve app.sui --watch",
+    "docs": "simpleui docs --agent",
+    "docs_read": "simpleui docs --read api",
+    "docs_search": "simpleui docs --search table",
+    "mcp": "simpleui mcp"
+  },
+  "invariants": [
+    {
+      "id": "check-before-build",
+      "rule": "Run `simpleui check --json` after editing a .sui file and fix all errors before building or previewing.",
+      "docs": ["agents", "api"]
+    },
+    {
+      "id": "no-raw-html",
+      "rule": "Interpolated text and attributes are escaped automatically. Raw HTML interpolation is intentionally unavailable; never try to inject markup from data.",
+      "docs": ["security", "api"]
+    },
+    {
+      "id": "validate-input",
+      "rule": "Treat API, file, CSV, URL and iframe input as untrusted. Check returned errors and show them; rejected iframe URLs must produce the built-in visible error.",
+      "docs": ["security", "recipes"]
+    },
+    {
+      "id": "dynamic-style",
+      "rule": "A dynamic `style:` value must be wrapped in `cssSafe(expr)`. Static developer-authored styles are trusted.",
+      "docs": ["security", "builtins"]
+    },
+    {
+      "id": "dynamic-classes",
+      "rule": "Dynamic classes are filtered to the app class allow-list. Prefer static classes for layout.",
+      "docs": ["security"]
+    },
+    {
+      "id": "safe-urls",
+      "rule": "Dynamic HTTP/WebSocket URLs require `*Safe` with a literal allow-list. Do not concatenate untrusted data into a literal URL to bypass this.",
+      "docs": ["security", "stdlib"]
+    },
+    {
+      "id": "iframe",
+      "rule": "Iframes default to `sandbox=\"\"` and `no-referrer`. Dynamic `src` requires a literal `srcAllow` allow-list; rejected data is not loaded and shows an error.",
+      "docs": ["security", "api"]
+    },
+    {
+      "id": "table-data",
+      "rule": "Table cells are inert (`textContent`). Use `table.display`, check its error, and preserve the table's style. Use `;formula=escape` for CSV opened by spreadsheets.",
+      "docs": ["api", "stdlib", "security"]
+    },
+    {
+      "id": "desktop-capabilities",
+      "rule": "Desktop file and command access is granted only at build time with `--allow-dir` / `--allow-exec`. Validate user-supplied names on top of the bridge checks.",
+      "docs": ["security", "stdlib", "recipes"]
+    },
+    {
+      "id": "docs-first",
+      "rule": "Use the manifest/recipes instead of inventing syntax. Search `simpleui docs --search <term>` and read the canonical doc before coding.",
+      "docs": ["agents", "recipes"]
+    },
+    {
+      "id": "docs-language",
+      "rule": "Canonical documentation, code comments and UI strings are English. If an Italian `_IT` counterpart exists, update it in the same change.",
+      "docs": ["agents", "index"]
+    }
+  ],
+  "docs": [
+    {
+      "id": "readme",
+      "path": "README.md",
+      "title": "SimpleUI README",
+      "summary": "Overview, quick start, build/serve commands, language concepts and examples.",
+      "audience": ["human", "agent"],
+      "priority": 1,
+      "tags": ["start", "overview", "cli", "examples"],
+      "sections": ["What is SimpleUI", "Quick start", "Project structure", "Documentation", "Integration with Hermes", "Implementation status"]
+    },
+    {
+      "id": "examples",
+      "path": "examples/README.md",
+      "title": "Examples index",
+      "summary": "Runnable examples grouped by task: local UI, drag and drop, tables, remote APIs, desktop bridge, spreadsheets and security.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "start", "tasks", "drag"],
+      "sections": []
+    },
+    {
+      "id": "agents",
+      "path": "AGENTS.md",
+      "title": "Coding-agent guide",
+      "summary": "Canonical entry point for coding agents: workflow, commands, repo map, security rules and task routing.",
+      "audience": ["agent"],
+      "priority": 1,
+      "tags": ["agent", "workflow", "commands", "rules"],
+      "sections": ["Start here", "Non-negotiable rules", "Repository map", "Build and verify", "Task routing", "MCP and automation"]
+    },
+    {
+      "id": "claude",
+      "path": "CLAUDE.md",
+      "title": "Claude Code pointer",
+      "summary": "Short pointer telling Claude Code to read AGENTS.md and the documentation manifest.",
+      "audience": ["agent"],
+      "priority": 1,
+      "tags": ["agent", "claude"],
+      "sections": []
+    },
+    {
+      "id": "copilot",
+      "path": ".github/copilot-instructions.md",
+      "title": "GitHub Copilot instructions",
+      "summary": "Pointer to AGENTS.md and the check/docs workflow for Copilot.",
+      "audience": ["agent"],
+      "priority": 1,
+      "tags": ["agent", "copilot"],
+      "sections": []
+    },
+    {
+      "id": "cursor",
+      "path": ".cursor/rules/simpleui.mdc",
+      "title": "Cursor rule",
+      "summary": "Cursor rule pointing at the canonical agent workflow and security invariants.",
+      "audience": ["agent"],
+      "priority": 1,
+      "tags": ["agent", "cursor"],
+      "sections": []
+    },
+    {
+      "id": "index",
+      "path": "docs/INDEX.md",
+      "title": "Documentation index",
+      "summary": "Human-friendly map of all documentation plus task-based routing for local and remote applications.",
+      "audience": ["human", "agent"],
+      "priority": 1,
+      "tags": ["navigation", "index", "tasks"],
+      "sections": ["Start here", "What are you building?", "Documentation map", "Machine interfaces", "Conventions"]
+    },
+    {
+      "id": "recipes",
+      "path": "docs/AGENT_RECIPES.md",
+      "title": "Agent recipes: local and remote interfaces",
+      "summary": "Operational playbooks with code patterns for local forms/tables, drag and drop, remote APIs, CRUD, polling, desktop files, spreadsheets and iframes.",
+      "audience": ["agent", "human"],
+      "priority": 1,
+      "tags": ["recipes", "local", "remote", "forms", "table", "drag", "files", "http", "desktop", "iframe"],
+      "sections": ["Workflow", "Common skeleton", "Drag and drop", "Local application", "Remote API", "CRUD form", "Polling dashboard", "Desktop files and commands", "Spreadsheet data", "Iframe", "Security checklist", "Verification"]
+    },
+    {
+      "id": "api",
+      "path": "docs/API_REFERENCE.md",
+      "title": "API reference",
+      "summary": "Essential SUI syntax, drag and drop, menu bars, tabs, accordions, toast notifications, tooltips, dynamic combobox options, escaped commas, wildcard search, option length/count validation, runtime option errors, date/time pickers, nested trees with JSON/XML import/export, charts from JSON/XML/CSV including horizontal, stacked/grouped, combo, step/smooth, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell and Gantt with data/type compatibility checks, presets, scroll and zoom, accessible synchronized tables with text/value/range filters, sorting, column reordering, copy/print and exports, tableAddRow insertion for every chart table with onDataChange, row/column/cell multi-selection, visible numeric steppers, delete-row buttons, context-menu clipboard copy/paste, selected-region export and virtual scrolling, Gantt critical path, recurring holidays, configurable weekends and timezone, state-machine diagrams with states/transitions and edge-list input, page navigation, modal dialogs, native file picker, table API, security, iframe attributes and CLI targets.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["language", "syntax", "api", "drag", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "state", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "table", "iframe", "cli"],
+      "sections": ["SUI language (essential syntax)", "Drag and drop", "Menu bar", "Tabs", "Accordion", "Toast notifications", "Tooltip property", "Combobox", "Tree", "Chart", "Date/Time picker", "Pages and navigation", "Modal dialogs", "Tables and untrusted data", "Security", "Iframe", "CLI", "Targets"]
+    },
+    {
+      "id": "table_colors",
+      "path": "docs/TABLE_COLORS.md",
+      "title": "Chart / Gantt table colors",
+      "summary": "Color audit for every chart-table surface and state in dark and light themes, with swatches, CSS tokens and effective values.",
+      "audience": ["human", "agent"],
+      "priority": 3,
+      "tags": ["chart", "gantt", "table", "colors", "theme", "accessibility", "selection"],
+      "sections": ["Struttura e superfici", "Righe e stati di selezione", "Editor e controlli delle celle", "Filtri, menu e controlli della tabella", "Theme tokens"]
+    },
+    {
+      "id": "gantt_reference",
+      "path": "docs/GANTT_COMPLETE_REFERENCE.md",
+      "title": "Gantt complete reference",
+      "summary": "One consolidated reference for the Gantt chart: data fields, scheduling, WBS/groups, resources/costs, calendar, attributes, table, visual grammar, link routing, keyboard access, autosave, commit/version audit, server synchronization contract, persistence, exports, testing and limitations.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["gantt", "chart", "project", "wbs", "resources", "routing", "keyboard", "accessibility", "autosave", "commit", "versions", "audit", "server", "sync", "table", "calendar"],
+      "sections": ["Overview", "Quick start", "Data formats and fields", "Scheduling model", "WBS, groups and summaries", "Resources, workload and cost", "Calendar, timezone and period bands", "Chart attributes", "Synchronized table", "Visual grammar", "Dependency routing", "Keyboard and accessibility", "Autosave, commit, versions and audit", "Persistence keys", "Exports and printing", "Designer workflow", "Verification checklist", "Known limitations and future work", "Implementation map", "Glossary"]
+    },
+    {
+      "id": "gui_editor",
+      "path": "docs/GUI_EDITOR.md",
+      "title": "GUI editor: drag and drop",
+      "summary": "How the visual designer handles the code editor, completion, exact element-type badges, indentation, drag and drop, menu bars, tabs, pages, modal dialogs, toast and tooltip properties and dynamic combobox option lists, escaped commas, wildcard search, option length/count validation, runtime option errors, date/time pickers, nested trees with styles and JSON/XML import/export, charts with a movable/resizable data editor, data/type compatibility checks, multi-series data, data expressions, dimensions, scroll/zoom and presets, unified chart settings, table settings with nested submenus, Gantt critical path/holidays/weekend/timezone controls, source/target attributes, file drops and native pickers in the generated app.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["gui", "designer", "editor", "completion", "autocomplete", "indent", "highlight", "symbols", "undo", "redo", "styles", "drag", "drop", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "inspector"],
+      "sections": ["GUI editor: drag and drop", "Quick answer", "Code editor preferences", "General editor", "SUI code appearance", "Completion and indentation", "Undo and redo", "Inspector and effective styles", "Designer drag and drop", "Tree drops", "Palette drops", "Designer limitations", "Application drag and drop", "Required properties", "Minimal reorder example", "Designer steps for the reorder example", "Dropping files and folders", "Menu bar control", "Pages", "Modal control", "Tabs control", "Accordion control", "Combobox control", "Tree control", "Chart control", "Date/Time picker control", "Toast control", "Tooltip property", "Native file and folder dialogs", "Designer inspector checklist", "Troubleshooting", "Security notes", "Related documents"]
+    },
+    {
+      "id": "builtins",
+      "path": "docs/BUILTINS.md",
+      "title": "Builtin functions",
+      "summary": "All core functions that require no import: strings, collections, maps, drag and drop, navigation, math, timers, time, storage, clipboard and validation.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["builtins", "strings", "arrays", "drag", "pages", "files", "math", "time", "storage", "validation"],
+      "sections": ["String Functions", "Collection Functions", "Map/Object Functions", "Math Functions", "Drag and Drop Functions", "Navigation", "Timer Functions", "Time/Date Functions", "Storage Functions (Cross-target)", "Clipboard Functions", "Validation Functions", "Security"]
+    },
+    {
+      "id": "stdlib",
+      "path": "docs/STDLIB.md",
+      "title": "Standard library",
+      "summary": "Importable std modules: http (including file upload), ws, fs, exec, json, the core table/tree/chart APIs and the desktop dialog picker.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["stdlib", "http", "upload", "ws", "fs", "exec", "json", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
+      "sections": ["Import", "HTTP Module (`http`)", "WebSocket Module (`ws`)", "File System Module (`fs`)", "Exec Module (`exec`)", "JSON Module (`json`)", "Dialog Module (`dialog`, desktop)", "Table Module (`table`, core)", "Chart Module (`chart`, core)", "Tree Module (`tree`, core)", "Error Handling Pattern"]
+    },
+    {
+      "id": "state_chart_runtime",
+      "path": "docs/STATE_CHART_RUNTIME.md",
+      "title": "State chart runtime guide",
+      "summary": "Runtime chart API, mandatory unique element ids, event queue consumed with chart.pollEvents, single-line tag/hint text with | line breaks, custom hover hints (JSON/CSV/XML, per-element none) and a standalone HINTS panel with global styling and live preview, source stateHint* attributes and designer HINTS/Edit mode parity, per-element hint editor, legacy JSON migration, table view/focusRow, full attribute get/set helpers including geometry and link fields, editing/static mode and complete SUI examples including the process monitor modal.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["chart", "state", "runtime", "process-monitor", "events", "event-list", "static-mode", "modal", "chart-api", "element-id", "hint", "hint-style", "hint-settings", "tooltip", "multiline", "line-break", "designer", "source", "table-view", "focus-row", "csv", "xml", "geometry"],
+      "sections": ["Overview", "Chart identity", "Element identity", "Hover hints and table view", "Editing and static mode", "Event list", "Static event callbacks", "Runtime chart API", "Examples", "Process monitor example", "Security and performance notes", "Troubleshooting"]
+    },
+    {
+      "id": "state_chart_runtime_it",
+      "path": "docs/STATE_CHART_RUNTIME_IT.md",
+      "title": "State chart runtime guide (Italian)",
+      "summary": "Traduzione italiana della guida runtime: API chart, id univoci obbligatori, lista eventi con chart.pollEvents, testo tag/hint a riga singola con | per andare a capo, hint da JSON/CSV/XML con soppressione per-elemento e pannello HINTS autonomo con stile globale e anteprima, attributi sorgente stateHint* e parità designer con HINTS/Edit mode, editor hint per-elemento, migrazione JSON legacy, tabella/focusRow, get/set completo di geometria e campi link, modalità editing/static e modal.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "chart", "state", "runtime", "events", "hint", "hint-style", "tooltip", "multiline", "line-break", "designer", "source"],
+      "sections": []
+    },
+    {
+      "id": "security",
+      "path": "SECURITY.md",
+      "title": "Security model",
+      "summary": "Threat model, escaping, CSS/classes, SSRF, iframe hardening, configuration, desktop bridge, spreadsheet conversion and residual risks.",
+      "audience": ["human", "agent"],
+      "priority": 1,
+      "tags": ["security", "escaping", "css", "ssrf", "iframe", "bridge", "csv"],
+      "sections": ["Threat model", "Language protections", "Security configuration", "Desktop bridge", "Spreadsheet converter", "Iframe risks in detail", "Residual risks", "Examples"]
+    },
+    {
+      "id": "spec",
+      "path": "SPEC.md",
+      "title": "Technical specification",
+      "summary": "Normative language, drag and drop, native file picker, compiler phases, runtime contract, CLI contract and security model.",
+      "audience": ["human", "agent"],
+      "priority": 3,
+      "tags": ["spec", "language", "compiler", "runtime", "contract", "drag", "picker"],
+      "sections": ["1. Repository layout (adapted from the Design Document)", "2. The SUI language", "3. Standard library (contract — see `stdlib.go`)", "5. Generated-web-app contract (the runtime surface)", "6. CLI contract (main.go — integration milestone)", "9. Security model (untrusted data)"]
+    },
+    {
+      "id": "design",
+      "path": "DESIGN.md",
+      "title": "Design document",
+      "summary": "Original architecture and design rationale for the language, compiler and desktop bridge.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["design", "architecture", "history"],
+      "sections": ["1. Vision and Core Principles", "3. Compiler Architecture (Go)", "4. Logic and the Native Bridge"]
+    },
+    {
+      "id": "todo",
+      "path": "TODO.md",
+      "title": "Roadmap and TODO",
+      "summary": "Current and planned work. Not normative; do not treat unchecked items as implemented APIs.",
+      "audience": ["human", "agent"],
+      "priority": 5,
+      "tags": ["roadmap", "status", "todo"],
+      "sections": ["1. Core Language", "2. Reactivity & Runtime", "3. Builtins/Stdlib (Improvements)", "5. Tooling (LSP, GUI, CLI)", "7. Security & Desktop Bridge", "8. Documentation & Ecosystem"]
+    },
+    {
+      "id": "security_examples",
+      "path": "examples/security/README.md",
+      "title": "Security examples",
+      "summary": "Runnable examples for untrusted text, CSS, classes, tables, payloads, URLs, iframes and desktop files.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "security", "untrusted", "iframe", "table"],
+      "sections": ["Try it", "Security configuration", "Practical rules"]
+    },
+    {
+      "id": "spreadsheet_examples",
+      "path": "examples/spreadsheet_table/README.md",
+      "title": "Spreadsheet table example",
+      "summary": "XLSX/ODS to JSON/CSV conversion and a SimpleUI table demo.",
+      "audience": ["human", "agent"],
+      "priority": 3,
+      "tags": ["examples", "xlsx", "ods", "csv", "table", "converter"],
+      "sections": ["Web demo", "CLI", "HTTP service", "Desktop alternative (`exec.run`)", "Security"]
+    },
+    {
+      "id": "gantt_project_example",
+      "path": "examples/gantt_project/README.md",
+      "title": "Atlas Workspace project Gantt",
+      "summary": "Complete project-management Gantt with WBS, dependencies, actuals, effort, resources, costs, deadlines and calendar.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "gantt", "project", "wbs", "actual", "calendar"],
+      "sections": ["Run it", "What the example demonstrates", "Complete SUI source"]
+    },
+    {
+      "id": "process_monitor_example",
+      "path": "examples/process_monitor/README.md",
+      "title": "Process monitor with runtime chart events",
+      "summary": "Wide process monitor with mandatory unique shape ids, event-list polling, custom hover hints, a Hint table column, focused table rows, buttons and a switch for chart API updates, editing/static mode and a shape-click modal.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "chart", "state", "process-monitor", "events", "event-list", "static-mode", "chart-api", "element-id", "hint", "table-view"],
+      "sections": ["What it demonstrates", "Build and run", "Complete source", "How the event list works", "Reading and writing elements"]
+    },
+    {
+      "id": "gantt_construction_example",
+      "path": "examples/gantt_construction/README.md",
+      "title": "North River pump station construction Gantt",
+      "summary": "Construction programme with permits, civil, mechanical, electrical and commissioning phases, execution tracking, critical path and calendar.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "gantt", "construction", "project", "wbs", "critical-path", "calendar"],
+      "sections": ["Run it", "What the example demonstrates", "Complete SUI source"]
+    },
+    {
+      "id": "index_it",
+      "path": "docs/INDEX_IT.md",
+      "title": "Documentation index (Italian)",
+      "summary": "Italian translation of the documentation index.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "navigation"],
+      "sections": []
+    },
+    {
+      "id": "api_it",
+      "path": "docs/API_REFERENCE_IT.md",
+      "title": "API reference (Italian)",
+      "summary": "Italian translation of the API reference.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "api"],
+      "sections": []
+    },
+    {
+      "id": "builtins_it",
+      "path": "docs/BUILTINS_IT.md",
+      "title": "Builtins (Italian)",
+      "summary": "Italian translation of the builtin reference.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "builtins"],
+      "sections": []
+    },
+    {
+      "id": "stdlib_it",
+      "path": "docs/STDLIB_IT.md",
+      "title": "Standard library (Italian)",
+      "summary": "Italian translation of the standard library.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "stdlib", "chart"],
+      "sections": []
+    },
+    {
+      "id": "recipes_it",
+      "path": "docs/AGENT_RECIPES_IT.md",
+      "title": "Agent recipes (Italian)",
+      "summary": "Italian translation of the local/remote interface recipes.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "recipes"],
+      "sections": []
+    },
+    {
+      "id": "gui_editor_it",
+      "path": "docs/GUI_EDITOR_IT.md",
+      "title": "GUI editor: editor, completion and drag and drop (Italian)",
+      "summary": "Italian translation of the GUI editor guide, including editor preferences, completion and drag-and-drop.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "gui", "editor", "completion", "indent", "drag", "drop"],
+      "sections": []
+    },
+    {
+      "id": "llms",
+      "path": "llms.txt",
+      "title": "llms.txt",
+      "summary": "Compact LLM discovery file with canonical links and automation commands.",
+      "audience": ["agent"],
+      "priority": 1,
+      "tags": ["agent", "llm", "index"],
+      "sections": []
+    }
+  ],
+  "recipes": [
+    {
+      "id": "drag-and-drop",
+      "title": "Drag and drop",
+      "when": "The interface must reorder rows or accept files and directories dropped from the operating system.",
+      "target": "local",
+      "docs": ["recipes", "api", "builtins", "gui_editor", "security"],
+      "examples": ["examples/drag_drop.sui", "examples/file_picker.sui"],
+      "steps": [
+        "Give each source and target a stable `dragKey` / `dropKey`; use `onDrop` to update the array with `moveItem`.",
+        "Bind a string state with `dropFiles: state` and display it with `value: state` on an input or textarea.",
+        "Use `pickFiles: state` on a file control or button when the native dialog is preferable to dragging; configure it with `accept`, `multiple`, `directory`.",
+        "Use `drag.files()` for immediate metadata and `drag.error()` for rejected input.",
+        "Open `docs/GUI_EDITOR.md` for inspector steps and for the list/table/component editing limits.",
+        "Treat dropped names as untrusted text; browsers expose names/relative paths, not absolute paths."
+      ]
+    },
+    {
+      "id": "file-type-analyzer",
+      "title": "File type analyzer with a Go backend",
+      "when": "The app must upload selected/dropped files to a Go service, analyze them in the backend and render the results in a table.",
+      "target": "local",
+      "docs": ["recipes", "stdlib", "api", "security"],
+      "examples": ["examples/file_analyzer/app.sui"],
+      "steps": [
+        "Select files with `pickFiles` or `dropFiles`; keep a visible state field.",
+        "Call `http.postFiles(\"/api/analyze\")` inside an async function and show a loading state.",
+        "Validate the JSON response and pass `{columns, rows}` to `table.display`.",
+        "Enforce upload size/count limits and treat filenames as untrusted text in the backend."
+      ]
+    },
+    {
+      "id": "local-form-table",
+      "title": "Local form + reactive table",
+      "when": "A local-only app needs forms, derived state, validation and tabular data.",
+      "target": "local",
+      "docs": ["recipes", "api", "stdlib"],
+      "examples": ["examples/todo.sui", "examples/table_data.sui"],
+      "steps": [
+        "Declare states for form fields, status and rows.",
+        "Bind inputs with `value:` / `checked:` and wire actions with `onClick:`.",
+        "Use `table name:` for the model and `table.display` for data.",
+        "Show loading, empty and error states explicitly."
+      ]
+    },
+    {
+      "id": "remote-api-table",
+      "title": "Remote JSON API + table",
+      "when": "A remote service returns JSON that should become a read-only or editable table.",
+      "target": "remote",
+      "docs": ["recipes", "stdlib", "security", "api"],
+      "examples": ["examples/users/app.sui"],
+      "steps": [
+        "Import `http` and `json` from std.",
+        "Use a literal URL for a fixed endpoint; otherwise use `getSafe` with a literal allow-list.",
+        "Check both HTTP and JSON errors and render them.",
+        "Pass the parsed data to `table.display` and check its error."
+      ]
+    },
+    {
+      "id": "remote-crud",
+      "title": "Remote CRUD form",
+      "when": "The interface must send user input to a remote service and update a local view.",
+      "target": "remote",
+      "docs": ["recipes", "stdlib", "security"],
+      "examples": ["examples/users/app.sui"],
+      "steps": [
+        "Validate fields before sending.",
+        "Use `http.postSafe` for dynamic destinations and a literal allow-list.",
+        "Serialize with `json.stringify`; never build JSON by string concatenation.",
+        "On success, refresh the local rows or table; on error, show the returned error."
+      ]
+    },
+    {
+      "id": "polling-dashboard",
+      "title": "Polling dashboard",
+      "when": "A dashboard must refresh metrics periodically without a WebSocket.",
+      "target": "local",
+      "docs": ["recipes", "stdlib", "api"],
+      "examples": ["examples/monitor.sui"],
+      "steps": [
+        "Use `onLoad:` to start `interval(ms, refresh)`.",
+        "Keep status separate from data.",
+        "Guard against overlapping refreshes if the request is slow.",
+        "Render a stable empty/loading/error state."
+      ]
+    },
+    {
+      "id": "desktop-files",
+      "title": "Desktop files and commands",
+      "when": "The app must read/write local files or run a helper executable.",
+      "target": "desktop",
+      "docs": ["recipes", "security", "stdlib"],
+      "examples": ["examples/security/desktop_files.sui", "examples/userdata_table/app.sui", "examples/desktop_picker.sui"],
+      "steps": [
+        "Build with explicit `--allow-dir` / `--allow-exec` capabilities.",
+        "Validate user-supplied names before calling fs/exec.",
+        "Use `dialog.pickFile`/`pickDirectory` for user-driven native paths; they still require fs/exec capabilities.",
+        "Show bridge errors; do not retry blindly.",
+        "Never assume web builds have these capabilities."
+      ]
+    },
+    {
+      "id": "spreadsheet-data",
+      "title": "Spreadsheet ingestion",
+      "when": "The user provides XLSX or ODS files that should populate a table.",
+      "target": "local",
+      "docs": ["spreadsheet_examples", "stdlib", "recipes"],
+      "examples": ["examples/spreadsheet_table/app.sui"],
+      "steps": [
+        "Convert XLSX/ODS upstream with `sheet2json` or the local converter service.",
+        "Receive JSON/CSV, validate the response and show conversion errors.",
+        "Use `table.display` for rendering and `table.exportText` for export.",
+        "Do not parse binary spreadsheets in the browser."
+      ]
+    },
+    {
+      "id": "iframe-embed",
+      "title": "Embed external content safely",
+      "when": "The interface must show a video, map, document or other third-party page.",
+      "target": "remote",
+      "docs": ["security", "api", "recipes"],
+      "examples": ["examples/security/untrusted_iframe.sui"],
+      "steps": [
+        "Use a literal `src` for a trusted endpoint; otherwise add a literal `srcAllow` origin/path allow-list.",
+        "Start with the default empty sandbox; add only the tokens actually needed.",
+        "Keep `referrerpolicy` at `no-referrer` unless there is a reason.",
+        "Never use `srcdoc`; malformed iframe data is rejected with a visible message."
+      ]
+    },
+    {
+      "id": "security-review",
+      "title": "Security review",
+      "when": "The app consumes untrusted text, URLs, files, tables, iframes or desktop capabilities.",
+      "target": "any",
+      "docs": ["security", "security_examples", "agents"],
+      "examples": ["examples/security/untrusted_text.sui", "examples/security/url_guard.sui"],
+      "steps": [
+        "Check every untrusted value is data, never markup/CSS/URL syntax.",
+        "Use `cssSafe`, `*Safe` URLs, `srcAllow`, and table `textContent`.",
+        "Show errors from parsers, HTTP, table and bridge calls.",
+        "Run the security examples and the full test suite."
+      ]
+    }
+  ]
+}
+

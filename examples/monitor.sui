@@ -1,0 +1,38 @@
+import { http, json } from "std"
+
+state metrics = []
+state status = "loading"
+
+async fn refresh() -> null {
+	data, err = http.get("/api/monitor")
+	if err != null {
+		status = "error"
+	} else {
+		rows, jerr = json.parse(data)
+		if jerr != null {
+			status = "error"
+		} else {
+			metrics = rows
+			status = "ok"
+		}
+	}
+}
+
+fn boot() -> null {
+	interval(2000, refresh)
+}
+
+view main {
+	title "CPU Monitor"
+	onLoad: boot
+	h1 "CPU Monitor"
+	text "Status: {status}"
+	if status == "ok" {
+		list m in metrics {
+			p "{m}"
+		}
+	} else {
+		p "Unavailable"
+	}
+	button "Refresh" onClick: refresh
+}

@@ -1,0 +1,25 @@
+# Build outputs and generated artifacts
+/simpleui.exe
+*.exe
+*.exe~
+*.exe.old
+*.old
+*~
+/dist/
+/dist_*/
+/examples/*/dist/
+/examples/*/bin/
+/examples/*/public/
+/examples/*/server/*.exe
+/testcombo2/
+/testev/
+/testout2/
+/node_modules/
+
+# Scratch / local state
+*.broken
+*.pid
+server_out.txt
+.DS_Store
+Thumbs.db
+*.tmp

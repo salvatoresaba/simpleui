@@ -1,0 +1,29 @@
+type Contact struct { id: string, name: string, email: string }
+
+state contacts: array[Contact] = [
+	Contact{ id: "1", name: "Alice", email: "alice@example.dev" },
+	Contact{ id: "2", name: "Bob", email: "bob@example.dev" },
+	Contact{ id: "3", name: "Carol", email: "carol@example.dev" },
+	Contact{ id: "4", name: "Dan", email: "dan@example.dev" }
+]
+
+view main {
+	title "Contacts"
+	h1 "Contacts (user-defined struct type)"
+	table class: "users" {
+		thead {
+			trow {
+				tcell "ID" head: true
+				tcell "Name" head: true
+				tcell "Email" head: true
+			}
+		}
+		list c in contacts {
+			trow {
+				tcell "{c.id}"
+				tcell "{c.name}"
+				tcell "{c.email}"
+			}
+		}
+	}
+}

@@ -1,0 +1,29 @@
+state active = false
+state bg = "#1b1f27"
+state size = 16
+state label = "OFF"
+
+fn toggle() -> null {
+  if active == false {
+    active = true
+    bg = "#2563eb"
+    size = 28
+    label = "ON"
+  } else {
+    active = false
+    bg = "#1b1f27"
+    size = 16
+    label = "OFF"
+  }
+}
+
+view App {
+  title "Reactive demo"
+  col {
+    h1 "Reactive binding (no element id)"
+    card "Click me to change colour and size" class: active ? "on" : "" style: "background:" + bg onClick: toggle
+    p "Size: {size}px" style: "font-size:" + str(size) + "px"
+    badge "{label}" class: active ? "sui-badge on" : "sui-badge off"
+    button "Toggle" onClick: toggle
+  }
+}

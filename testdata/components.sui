@@ -1,0 +1,7 @@
+fn scale(x: int) -> int {
+	return x * 2
+}
+
+view card {
+	p "card text"
+}

@@ -1,0 +1,72 @@
+import { dialog } from "std"
+
+state file = ""
+state files = ""
+state folder = ""
+state status = "Choose a file or a folder."
+
+async fn pickFile() -> null {
+	path, err = dialog.pickFile()
+	if err != null {
+		status = err
+		return
+	}
+	if path == "" {
+		status = "Selection cancelled"
+		return
+	}
+	file = path
+	status = "File: " + path
+}
+
+async fn pickFiles() -> null {
+	paths, err = dialog.pickFiles()
+	if err != null {
+		status = err
+		return
+	}
+	if len(paths) == 0 {
+		status = "Selection cancelled"
+		return
+	}
+	files = join(paths, "\n")
+	status = str(len(paths)) + " file(s) selected"
+}
+
+async fn pickDirectory() -> null {
+	path, err = dialog.pickDirectory()
+	if err != null {
+		status = err
+		return
+	}
+	if path == "" {
+		status = "Selection cancelled"
+		return
+	}
+	folder = path
+	status = "Folder: " + path
+}
+
+view main {
+	title "Native desktop picker"
+	h1 "Native desktop picker"
+	p "Desktop build: these buttons open the real OS file and folder dialogs."
+	row {
+		button "Pick file..." onClick: pickFile
+		button "Pick files..." onClick: pickFiles
+		button "Pick folder..." onClick: pickDirectory
+	}
+	if file != "" {
+		p "File path:"
+		pre "{file}"
+	}
+	if files != "" {
+		p "File paths:"
+		pre "{files}"
+	}
+	if folder != "" {
+		p "Folder path:"
+		pre "{folder}"
+	}
+	pre "{status}"
+}

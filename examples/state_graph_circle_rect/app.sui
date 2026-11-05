@@ -1,0 +1,18 @@
+state stateGraph = "\{\"states\":[\{\"id\":\"a\",\"label\":\"Circle\",\"shape\":\"circle\",\"color\":\"#16a34a\",\"w\":72,\"h\":72,\"x\":216,\"y\":192,\"tag\":\"Circle\",\"tagKind\":\"internal\",\"tagBox\":\"plain\",\"description\":\"Round shape on the grid\"\},\{\"id\":\"b\",\"label\":\"Rectangle\",\"shape\":\"rectangle\",\"color\":\"#3b82f6\",\"w\":144,\"h\":72,\"x\":480,\"y\":168,\"tag\":\"Rectangle\",\"tagKind\":\"external\",\"tagBox\":\"rounded\",\"tagLeader\":\"bezier\",\"tagArrow\":true,\"description\":\"Rectangular shape on the grid\"\},\{\"id\":\"c\",\"label\":\"Triangle\",\"shape\":\"triangle\",\"rotation\":20,\"color\":\"#f59e0b\",\"w\":120,\"h\":96,\"x\":720,\"y\":180,\"tag\":\"Triangle\",\"tagKind\":\"external\",\"tagBox\":\"circle\",\"tagLeader\":\"line\",\"tagArrow\":true,\"description\":\"Triangle with bisector anchors\"\}],\"transitions\":[\{\"from\":\"a\",\"to\":\"b\",\"event\":\"go\",\"label\":\"go\",\"tag\":\"Link\",\"tagKind\":\"external\",\"tagBox\":\"ellipse\",\"tagLeader\":\"bezier-arrow\",\"tagArrow\":true,\"routing\":\"orthogonal\",\"description\":\"Orthogonal link between the two shapes\"\}]\}"
+
+view main {
+	title "Circle, rectangle and triangle"
+	col class: "state-page" {
+		header class: "state-hero" {
+			p "SimpleUI diagram editor" class: "state-kicker"
+			h1 "Circle + rectangle + triangle" class: "state-title"
+			p "One circle, one rectangle, one triangle and one orthogonal link. The diagram and the Shapes/Links tables edit the same entities: add, edit, resize or delete from either view and the other stays in sync." class: "state-subtitle"
+		}
+
+		card class: "state-card" {
+			chart "Circle, rectangle and triangle" name: "circle_rect_demo" class: "state-chart" data: stateGraph chartType: "state" stateShapeTagStyle: "rectangle" stateShapeTagLink: "bezier-arrow" stateLinkTagStyle: "ellipse" stateLinkTagLink: "bezier-arrow" stateTagFontSize: 11 stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateTagsMovable: true stateRoutesEditable: true tableView: "both" tableFilters: false showGrid: false showLegend: false showValues: true interactive: true theme: "light"
+		}
+	}
+}
+
+css "body \{ margin: 0; background: #f3f7fb; \} .state-page \{ max-width: 1180px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; \} .state-hero \{ padding: 18px 22px; border: 1px solid #cbd9e8; border-radius: 14px; background: #fff; \} .state-kicker \{ margin: 0 0 4px; color: #0369a1; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; \} .state-title \{ margin: 0; color: #0f2740; font-size: 28px; \} .state-subtitle \{ margin: 8px 0 0; max-width: 820px; color: #526b84; font-size: 13px; line-height: 1.5; \} .state-card \{ border: 1px solid #d5e1ee; border-radius: 14px; background: #fff; padding: 10px; \} .state-chart \{ width: 100%; height: 560px; \}"

@@ -1,0 +1,17 @@
+{
+  "name": "simpleui-vscode",
+  "displayName": "SimpleUI VS Code",
+  "version": "0.1.0",
+  "publisher": "hermes",
+  "description": "Hermes agent integration for VS Code: build/check .sui files, run opencode tasks.",
+  "main": "./out/extension.js",
+  "engines": { "vscode": "^1.74.0" },
+  "activationEvents": ["onCommand:hermes.buildSui", "onCommand:hermes.checkSui", "onLanguage:sui"],
+  "contributes": {
+    "commands": [
+      { "command": "hermes.buildSui", "title": "Hermes: Build .sui", "category": "Hermes" },
+      { "command": "hermes.checkSui", "title": "Hermes: Check .sui", "category": "Hermes" }
+    ],
+    "languages": [{ "id": "sui", "extensions": [".sui"], "aliases": ["SimpleUI"] }]
+  }
+}

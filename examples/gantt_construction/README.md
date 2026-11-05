@@ -1,0 +1,140 @@
+# North River pump station construction Gantt
+
+A second complete project-management example, independent from the Atlas
+Workspace plan. It models a pump-station upgrade with permits, civil works,
+mechanical installation, electrical/controls and commissioning.
+
+## Run it
+
+A desktop build is included in `dist/`:
+
+- **Windows:** double-click `examples/gantt_construction/dist/app.exe`.
+- Keep the `assets` folder next to `app.exe`.
+
+Rebuild and launch from this folder:
+
+```powershell
+./run.ps1
+```
+
+or:
+
+```bat
+run.bat
+```
+
+Browser build:
+
+```bash
+simpleui build app.sui --out dist
+simpleui serve app.sui --watch
+```
+
+## What the example demonstrates
+
+- 5 WBS phases and 20 rows in the synchronized table.
+- Dependencies typed by task name/id and per-link lag (`permit[FS+2]`).
+- Actual start/end, work, work done, remaining and effort-based progress.
+- Deadline validation and a critical path.
+- Multiple resources per task (`Civil crew; Surveyor` on the foundation), editable resource chips and a per-resource workload dialog.
+- A Resources table tab with Name, Role, Max people, Daily cost and Notes; renaming a resource updates task assignments.
+- Resource chips carry a ×N people quantity used by the max-people check and task cost calculation; a small + picker adds a resource type and quantity.
+- Costs, milestones, constraints and a European/Rome calendar.
+- Timeline zoom from the header or with Ctrl/Cmd + wheel and touch pinch.
+- Fixed task-name column while scrolling and zooming.
+- Dependency links that exit from the right edge and enter from the left edge.
+- Configurable minimum link gap (`linkGap: 4`).
+- Editable table, filters, sorting, selection and exports.
+
+The programme is intentionally at risk: **Handover** is planned on 20 August
+while the target deadline is 18 August, which produces a clear deadline warning.
+
+## Complete SUI source
+
+The complete source is `app.sui` and is copied to `dist/app.sui`.
+
+```sui
+# North River pump station — construction Gantt.
+#
+# A second complete project-management example with a different domain:
+# permits, civil works, mechanical installation, electrical/controls and
+# commissioning. It uses actuals, effort, critical path, resources, costs,
+# deadlines and a working calendar. Edit the table or drag a bar; every
+# change is validated and the dependencies are re-routed.
+
+state project = "\"Task\",\"Id\",\"Parent\",\"Start\",\"End\",\"Progress\",\"Milestone\",\"Group\",\"Resource\",\"DependsOn\",\"Constraint\",\"ConstraintDate\",\"ActualStart\",\"ActualEnd\",\"Remaining\",\"Work\",\"WorkDone\",\"Deadline\",\"Cost\",\"Color\"\n\"Permits and approvals\",\"permits\",\"\",\"2027-03-01\",\"2027-04-07\",,,\"Permits\",,\"\",,,,,,,,,,\"#0284c7\"\n\"Environmental survey\",\"survey\",\"permits\",\"2027-03-01\",\"2027-03-10\",\"100\",,\"Permits\",\"Environmental team\",\"\",,,\"2027-03-01\",\"2027-03-09\",,\"12\",\"12\",\"2027-03-10\",\"9000\",\n\"Permit application\",\"permit\",\"permits\",\"2027-03-15\",\"2027-03-24\",\"65\",,\"Permits\",\"Regulatory team\",\"survey\",,,\"2027-03-15\",,,\"8\",\"5.2\",\"2027-03-31\",\"4500\",\n\"Utility approval\",\"utility\",\"permits\",\"2027-03-29\",\"2027-04-07\",\"0\",,\"Permits\",\"Utility liaison\",\"permit[FS+2]\",,,,,,\"6\",,,\"3500\",\n\"Civil works\",\"civil\",\"\",\"2027-04-12\",\"2027-06-04\",,,\"Civil works\",,\"\",,,,,,,,,,\"#16a34a\"\n\"Site access and excavation\",\"site\",\"civil\",\"2027-04-12\",\"2027-04-16\",\"0\",,\"Civil works\",\"Civil crew\",\"utility\",,,,,,\"6\",,,\"7000\",\n\"Pump-station foundation\",\"foundation\",\"civil\",\"2027-04-19\",\"2027-05-07\",\"30\",,\"Civil works\",\"Civil crew; Surveyor\",\"site\",,,\"2027-04-19\",,,\"20\",\"6\",,\"25000\",\n\"Pump house structure\",\"pumphouse\",\"civil\",\"2027-05-10\",\"2027-06-04\",\"0\",,\"Civil works\",\"Civil crew\",\"foundation\",,,,,,\"24\",,,\"30000\",\n\"Mechanical works\",\"mechanical\",\"\",\"2027-04-12\",\"2027-06-25\",,,\"Mechanical\",,\"\",,,,,,,,,,\"#d97706\"\n\"Pump procurement\",\"procurement\",\"mechanical\",\"2027-04-12\",\"2027-05-14\",\"30\",,\"Mechanical\",\"Procurement\",\"utility\",,,\"2027-04-12\",,,\"10\",\"3\",,\"42000\",\n\"Pump installation\",\"pumps\",\"mechanical\",\"2027-06-07\",\"2027-06-25\",\"0\",,\"Mechanical\",\"Mechanical crew\",\"procurement,pumphouse\",,,,,,\"18\",,,\"22000\",\n\"Process piping\",\"piping\",\"mechanical\",\"2027-06-07\",\"2027-06-25\",\"0\",,\"Mechanical\",\"Mechanical crew\",\"pumphouse\",,,,,,\"16\",,,\"16000\",\n\"Electrical and controls\",\"electrical\",\"\",\"2027-05-10\",\"2027-08-18\",,,\"Electrical\",,\"\",,,,,,,,,,\"#9333ea\"\n\"Electrical rough-in\",\"roughin\",\"electrical\",\"2027-05-10\",\"2027-06-04\",\"35\",,\"Electrical\",\"Electrical crew\",\"foundation\",,,\"2027-05-10\",,,\"12\",\"4.2\",,\"14000\",\n\"Controls integration\",\"controls\",\"electrical\",\"2027-06-28\",\"2027-07-16\",\"0\",,\"Electrical\",\"Controls engineer\",\"pumps,roughin\",,,,,,\"14\",,,\"18000\",\n\"Instrumentation\",\"instrumentation\",\"electrical\",\"2027-07-19\",\"2027-07-30\",\"0\",,\"Electrical\",\"Controls engineer\",\"controls\",,,,,,\"8\",,,\"9000\",\n\"Commissioning and handover\",\"commissioning\",\"\",\"2027-08-02\",\"2027-08-20\",,,\"Commissioning\",,\"\",,,,,,,,,,\"#dc2626\"\n\"Wet testing\",\"wet-test\",\"commissioning\",\"2027-08-02\",\"2027-08-11\",\"0\",,\"Commissioning\",\"Commissioning team\",\"piping,controls,instrumentation\",,,,,,\"8\",,,\"6000\",\n\"Performance test\",\"performance\",\"commissioning\",\"2027-08-12\",\"2027-08-18\",\"0\",,\"Commissioning\",\"Commissioning team\",\"wet-test\",,,,,,\"5\",,,\"4000\",\n\"Handover\",\"handover\",\"commissioning\",\"2027-08-20\",\"2027-08-20\",\"0\",\"True\",\"Commissioning\",,\"performance\",\"MFO\",\"2027-08-20\",,,,,,\"2027-08-18\",,"
+state lastChange = "Programme loaded. Select a bar, its name or a table row to inspect it."
+
+fn projectChanged(next: string) -> null {
+	project = next
+	lastChange = "onTaskChange received the updated construction programme."
+}
+
+css "body \{ background: #f3f7fb; \} .construction-page \{ max-width: 1500px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; align-items: stretch; gap: 16px; background: #f3f7fb; min-height: 100vh; \} .construction-hero \{ display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; padding: 22px 24px; border: 1px solid #cbd9e8; border-radius: 16px; background: linear-gradient(135deg, #ffffff 0%, #eaf4ff 100%); box-shadow: 0 8px 24px rgba(15, 54, 90, .08); \} .construction-kicker \{ margin: 0 0 6px; color: #0369a1; font-size: 12px; font-weight: 750; letter-spacing: 1.4px; text-transform: uppercase; \} .construction-title \{ margin: 0; color: #0f2740; font-size: 30px; line-height: 1.1; \} .construction-subtitle \{ margin: 8px 0 0; max-width: 760px; color: #526b84; font-size: 13px; line-height: 1.5; \} .construction-badge \{ display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d97706; border-radius: 999px; padding: 7px 12px; color: #92400e; background: #fff7ed; font-size: 12px; font-weight: 750; white-space: nowrap; \} .construction-dot \{ width: 7px; height: 7px; border-radius: 50%; background: #d97706; box-shadow: 0 0 0 4px rgba(217,119,6,.12); \} .construction-stats \{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; \} .construction-stat \{ padding: 14px 16px; border: 1px solid #d5e1ee; border-radius: 12px; background: #ffffff; box-shadow: 0 2px 8px rgba(15,54,90,.04); \} .construction-stat-label \{ margin: 0; color: #6b8198; font-size: 11px; font-weight: 750; letter-spacing: .9px; text-transform: uppercase; \} .construction-stat-value \{ margin: 6px 0 0; color: #102a43; font-size: 21px; font-weight: 750; \} .construction-stat-note \{ margin: 3px 0 0; color: #71869c; font-size: 11px; \} .construction-card \{ min-width: 0; border: 1px solid #d5e1ee; border-radius: 14px; background: #ffffff; padding: 12px; box-shadow: 0 3px 12px rgba(15,54,90,.05); \} .construction-chart \{ width: 100%; height: 720px; \} .construction-help \{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 20px; \} .construction-help p \{ margin: 0; color: #526b84; font-size: 12px; line-height: 1.55; \} .construction-status \{ margin: 0; color: #0369a1; font-size: 12px; \} @media (max-width: 900px) \{ .construction-stats, .construction-help \{ grid-template-columns: 1fr 1fr; \} .construction-title \{ font-size: 24px; \} \} @media (max-width: 560px) \{ .construction-stats, .construction-help \{ grid-template-columns: 1fr; \} .construction-chart \{ height: 660px; \} \}"
+
+view main {
+	title "North River pump station — construction programme"
+	row class: "construction-page" {
+		row class: "construction-hero" {
+			col {
+				p "Capital delivery · Work package 04" class: "construction-kicker"
+				h1 "North River pump station" class: "construction-title"
+				p "An 18-month upgrade programme covering permits, civil structures, mechanical installation and controls commissioning. Review the sequence, edit execution data and inspect the critical path in the synchronized table." class: "construction-subtitle"
+			}
+			row class: "construction-badge" {
+				span class: "construction-dot"
+				span "AT RISK · handover target 18 Aug"
+			}
+		}
+
+		row class: "construction-stats" {
+			row class: "construction-stat" {
+				col {
+					p "Planned handover" class: "construction-stat-label"
+					p "20 Aug 2027" class: "construction-stat-value"
+					p "Target: 18 Aug · 2 days late" class: "construction-stat-note"
+				}
+			}
+			row class: "construction-stat" {
+				col {
+					p "Critical path" class: "construction-stat-label"
+					p "10 tasks" class: "construction-stat-value"
+					p "Permits → civil → mechanical → controls → commissioning" class: "construction-stat-note"
+				}
+			}
+			row class: "construction-stat" {
+				col {
+					p "Effort" class: "construction-stat-label"
+					p "167 person-days" class: "construction-stat-value"
+					p "Planned across five work packages" class: "construction-stat-note"
+				}
+			}
+			row class: "construction-stat" {
+				col {
+					p "Budget" class: "construction-stat-label"
+					p "€210k" class: "construction-stat-value"
+					p "Construction and commissioning" class: "construction-stat-note"
+				}
+			}
+		}
+
+		card class: "construction-card" {
+			chart "North River pump station — construction sequence" name: "north_river" class: "construction-chart" data: project chartType: "gantt" theme: "light" tableView: "both" tableFilters: true tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true tableSelection: "cell" criticalPath: true autoSchedule: false showProgress: true showResources: true showCosts: true showSlack: true linkGap: 4 holidays: "2027-04-02, 2027-04-05, 2027-04-25, 2027-05-01, 2027-06-02" weekend: "sat,sun" timezone: "Europe/Rome" showGrid: true showValues: false interactive: true onTaskChange: projectChanged style: cssSafe("--sui-chart-series-1: #0284c7; --sui-chart-series-2: #16a34a; --sui-chart-series-3: #d97706; --sui-chart-series-4: #9333ea; --sui-chart-series-5: #dc2626; --sui-chart-gantt-weekend: #e8eef6; --sui-chart-gantt-holiday: #fee2e2; --sui-chart-gantt-today: #d97706; --sui-chart-gantt-dependency: #64748b; --sui-chart-critical: #d97706; --sui-chart-grid: #e2e8f0; --sui-chart-axis: #94a3b8; --sui-chart-fg: #102a43; --sui-chart-muted: #64748b;")
+			p "{lastChange}" class: "construction-status"
+		}
+
+		card class: "construction-card" {
+			row class: "construction-help" {
+				p "Timeline: use −/+ next to the title, Ctrl/Cmd + wheel or a two-finger pinch to zoom; the task-name column stays fixed."
+				p "Selection: click a bar, a task name or a table row; the same task is highlighted everywhere."
+				p "Dependencies: drag the small connector under a bar onto another bar or name; right-click a link to edit or delete it."
+				p "Groups: select tasks with Ctrl/Cmd + click or table rows, then Create group from selection; Group keeps bars, WBS parent creates a summary."
+				p "Execution: edit Actual start/end, Work, Work done or Remaining to refresh progress and effort."
+				p "Schedule: drag a bar or resize it with the handles; the dependency routes and warnings update live."
+				p "Table: sort/filter from headers, resize columns, or use the gear menu for columns and exports."
+				p "Resources: use the Resources tab for roles, max people, daily cost and notes; add task resources with +, choose a type and quantity, then set ×N on each chip."
+			}
+		}
+	}
+}
+```

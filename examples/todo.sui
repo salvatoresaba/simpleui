@@ -1,0 +1,23 @@
+state draft = ""
+state todos = ["write e2e tests", "ship v0.1"]
+
+fn onDraft(v: string) -> null {
+	draft = v
+}
+
+fn add() -> null {
+	if draft != "" {
+		todos = [draft]
+		draft = ""
+	}
+}
+
+view main {
+	title "Todo"
+	h1 "Todos"
+	list t in todos {
+		p "{t}"
+	}
+	input "New todo" value: draft onChange: onDraft
+	button "Add" onClick: add
+}

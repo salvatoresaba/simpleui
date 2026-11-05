@@ -1,0 +1,144 @@
+state status = "ready"
+
+fn loadArrays() -> null {
+	n, err = table.display("users", [
+		["1", "Alice", "alice@example.com"],
+		["2", "Bob", "bob@example.com"],
+		["3", "Carla", "carla@example.com"]
+	])
+	if err != null {
+		status = err
+	} else {
+		status = str(n) + " rows (arrays)"
+	}
+}
+
+fn loadObjects() -> null {
+	n, err = table.display("users", [
+		{"name": "Dario", "email": "dario@example.com"},
+		{"name": "Elena", "email": "elena@example.com"}
+	])
+	if err != null {
+		status = err
+	} else {
+		status = str(n) + " rows (objects, header from keys)"
+	}
+}
+
+fn loadJSON() -> null {
+	n, err = table.display("users", "\{\"columns\":[\"ID\",\"Name\",\"Email\"],\"rows\":[[\"7\",\"Franco\",\"franco@example.com\"]]\}")
+	if err != null {
+		status = err
+	} else {
+		status = str(n) + " rows (JSON text)"
+	}
+}
+
+fn loadCSV() -> null {
+	let text = "ID,Name,Email\n10,Giulia,giulia@example.com\n11,\"Rossi, Anna\",anna@example.com"
+	n, err = table.display("users", text)
+	if err != null {
+		status = err
+	} else {
+		status = str(n) + " rows (CSV auto-detected, quoted field)"
+	}
+}
+
+fn loadSSV() -> null {
+	let text = "10;Giulia;giulia@example.com\n11;Marco;marco@example.com"
+	n, err = table.importText("users", text, "ssv;header=0")
+	if err != null {
+		status = err
+	} else {
+		status = str(n) + " rows (SSV, no header row)"
+	}
+}
+
+fn loadJSONL() -> null {
+	let text = "\{\"name\":\"Nadia\",\"email\":\"nadia@example.com\"\}\n\{\"name\":\"Paolo\",\"email\":\"paolo@example.com\"\}"
+	n, err = table.importText("users", text, "jsonl")
+	if err != null {
+		status = err
+	} else {
+		status = str(n) + " rows (JSON Lines)"
+	}
+}
+
+fn exportCSV() -> null {
+	body, err = table.exportText("users", "csv")
+	if err != null {
+		status = err
+	} else {
+		status = body
+	}
+}
+
+fn extractAll() -> null {
+	rows, err = table.data("users")
+	if err != null {
+		status = err
+	} else {
+		status = "table.data: " + str(len(rows)) + " rows"
+	}
+}
+
+fn extractPart() -> null {
+	part, err = table.select("users", [0, 2])
+	if err != null {
+		status = err
+	} else {
+		status = "table.select [0,2] -> " + str(len(part)) + " rows"
+	}
+}
+
+fn extractJSON() -> null {
+	body, err = table.json("users")
+	if err != null {
+		status = err
+	} else {
+		status = "table.json: " + body
+	}
+}
+
+view main {
+	title "Table data API"
+	onLoad: loadArrays
+	h1 "Table data API"
+	p "The table keeps the styling designed here; rows and columns follow the data."
+	table name: "users" {
+		thead {
+			trow {
+				tcell "ID" head: true
+				tcell "Name" head: true
+				tcell "Email" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "1"
+				tcell "Alice"
+				tcell "alice@example.com"
+			}
+			trow {
+				tcell "2"
+				tcell "Bob"
+				tcell "bob@example.com"
+			}
+		}
+	}
+	row {
+		button "Arrays" onClick: loadArrays
+		button "Objects" onClick: loadObjects
+		button "JSON text" onClick: loadJSON
+		button "CSV" onClick: loadCSV
+		button "SSV no header" onClick: loadSSV
+		button "JSON Lines" onClick: loadJSONL
+	}
+	row {
+		button "Extract all" onClick: extractAll
+		button "Extract columns 0,2" onClick: extractPart
+		button "Export JSON" onClick: extractJSON
+		button "Export CSV" onClick: exportCSV
+	}
+	pre "{status}"
+}

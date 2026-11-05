@@ -1,0 +1,264 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// main.go — the SimpleUI compiler CLI.
+//
+//   simpleui version
+//   simpleui help
+//   simpleui parse <file.sui>
+//   simpleui build <file.sui> [--target web] [--out <dir>]
+//
+// The only supported target in this iteration is `web`. The desktop wrapper
+// (DESIGN.md §3.2/§4, SPEC.md §8) is stubbed with an explicit message.
+
+func main() {
+	// A panic in any phase is a compiler bug: never dump a stack trace on the
+	// user. Report it cleanly and exit with a distinct code. (os.Exit paths
+	// below still exit immediately; this only catches unexpected panics.)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "%v: internal error: %v\n", AppName, r)
+			fmt.Fprintf(os.Stderr, "%v: this is a bug in the compiler, not in your code — please report it\n", AppName)
+			os.Exit(2)
+		}
+	}()
+	args := os.Args
+	cmd := "help"
+	if len(args) > 1 {
+		cmd = args[1]
+	}
+	if cmd == "version" || cmd == "--version" || cmd == "-v" {
+		fmt.Printf("%v %v\n", AppName, AppVersion)
+	} else if cmd == "help" || cmd == "-h" || cmd == "--help" || cmd == "" {
+		PrintHelp()
+	} else if cmd == "parse" {
+		CmdParse(ArgsAfter(args, 2))
+	} else if cmd == "check" {
+		CmdCheck(ArgsAfter(args, 2))
+	} else if cmd == "docs" {
+		CmdDocs(ArgsAfter(args, 2))
+	} else if cmd == "build" {
+		CmdBuild(ArgsAfter(args, 2))
+	} else if cmd == "serve" {
+		CmdServe(ArgsAfter(args, 2))
+	} else if cmd == "fmt" {
+		CmdFmt(ArgsAfter(args, 2))
+	} else if cmd == "lsp" {
+		CmdLsp(ArgsAfter(args, 2))
+	} else if cmd == "gui" {
+		CmdGui(ArgsAfter(args, 2))
+	} else if cmd == "mcp" {
+		CmdMcp(ArgsAfter(args, 2))
+	} else {
+		fmt.Fprintf(os.Stderr, "%v: unknown command %q\n", AppName, cmd)
+		PrintHelp()
+		os.Exit(1)
+	}
+}
+
+func ArgsAfter(args []string, n int) []string {
+	var rest []string
+	for i := n; i < len(args); i++ {
+		rest = append(rest, args[i])
+	}
+	return rest
+}
+
+func CmdParse(args []string) {
+	if len(args) != 1 {
+		UsageError("parse takes exactly one input file")
+	}
+	prog, errs := LoadProgram(args[0])
+	if errs.HasErrors() {
+		errs.Print()
+		os.Exit(1)
+	}
+	fmt.Printf("%v\n", ProgToJson(prog))
+}
+
+func CmdBuild(args []string) {
+	target := "web"
+	out := "dist"
+	input := ""
+	single := false
+	minify := false
+	var allowExec []string
+	var allowDirs []string
+	security := ""
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "--") {
+			name, value, hasValue := SplitFlag(arg)
+			needsValue := name == "target" || name == "out" || name == "allow-exec" ||
+				name == "allow-dir" || name == "security"
+			if !hasValue && needsValue && i+1 < len(args) {
+				value, hasValue = args[i+1], true
+				i++
+			}
+			if name == "target" {
+				if !hasValue {
+					UsageError("--target needs a value (web|desktop)")
+				}
+				target = value
+			} else if name == "out" {
+				if !hasValue {
+					UsageError("--out needs a value")
+				}
+				out = value
+			} else if name == "allow-exec" {
+				if !hasValue {
+					UsageError("--allow-exec needs a command name")
+				}
+				allowExec = append(allowExec, value)
+			} else if name == "allow-dir" {
+				if !hasValue {
+					UsageError("--allow-dir needs a directory")
+				}
+				allowDirs = append(allowDirs, value)
+			} else if name == "security" {
+				if !hasValue {
+					UsageError("--security needs a JSON file")
+				}
+				security = value
+			} else if name == "single" {
+				single = true
+			} else if name == "minify" {
+				minify = true
+			} else {
+				UsageError("unknown flag --" + name)
+			}
+		} else if input == "" {
+			input = arg
+		} else {
+			UsageError("unexpected argument " + arg)
+		}
+	}
+
+	if input == "" {
+		UsageError("missing input file")
+	}
+	if target != "web" && target != "desktop" {
+		UsageError("unknown target " + target)
+	}
+	if minify && !single {
+		UsageError("--minify requires --single")
+	}
+	if single && target == "desktop" {
+		UsageError("--single is for web builds; the desktop target is already one executable")
+	}
+	if !single && (strings.HasSuffix(strings.ToLower(out), ".html") || strings.HasSuffix(strings.ToLower(out), ".htm")) {
+		UsageError("--out ending in .html requires --single")
+	}
+
+	SetSecurityPath(security)
+	prog, errs := LoadProgram(input)
+	if errs.HasErrors() {
+		errs.Print()
+		os.Exit(1)
+	}
+	cerrs := Check(prog)
+	errs.Extend(&cerrs)
+	if errs.HasErrors() {
+		errs.Print()
+		os.Exit(1)
+	}
+	if errs.Count() > 0 {
+		// Warnings only: report them but keep building.
+		errs.Print()
+	}
+
+	if target == "desktop" {
+		BuildDesktop(prog, out, allowExec, allowDirs)
+		return
+	}
+	if single {
+		path := SingleOutputPath(out)
+		parent := filepath.Dir(path)
+		if parent != "." && parent != "" {
+			if err := os.MkdirAll(parent, 0o755); err != nil {
+				fmt.Fprintf(os.Stderr, "%v: cannot create output directory %q: %v\n", AppName, parent, err)
+				os.Exit(1)
+			}
+		}
+		html := BuildSingleHTML(prog, minify)
+		if err := os.WriteFile(path, []byte(html), 0o644); err != nil {
+			fmt.Fprintf(os.Stderr, "%v: cannot write %q: %v\n", AppName, path, err)
+			os.Exit(1)
+		}
+		fmt.Printf("wrote single HTML to %v\n", path)
+		return
+	}
+
+	appJs := GenerateJs(prog)
+	indexHtml := GenerateIndexHtml(prog)
+	styleCss := GenerateCss(prog)
+
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "%v: cannot create output directory %q: %v\n", AppName, out, err)
+		os.Exit(1)
+	}
+	WriteFileTo(out, "index.html", indexHtml)
+	WriteFileTo(out, "style.css", styleCss)
+	WriteFileTo(out, "app.js", appJs)
+	fmt.Printf("wrote index.html, style.css, app.js to %v\n", out)
+}
+
+// SplitFlag splits "--name=value" into (name, value, hasValue).
+func SplitFlag(arg string) (name, value string, hasValue bool) {
+	eq := 0
+	for eq < len(arg) && arg[eq] != '=' {
+		eq++
+	}
+	if eq < len(arg) {
+		return arg[2:eq], arg[eq+1:], true
+	}
+	return arg[2:], "", false
+}
+
+func WriteFileTo(dir, name, content string) {
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		fmt.Fprintf(os.Stderr, "%v: cannot write %q: %v\n", AppName, path, err)
+		os.Exit(1)
+	}
+}
+
+func UsageError(msg string) {
+	fmt.Fprintf(os.Stderr, "%v: %v\n", AppName, msg)
+	PrintHelp()
+	os.Exit(1)
+}
+
+func PrintHelp() {
+	fmt.Printf("%v - %v\n\n", AppName, AppTagline)
+	fmt.Printf("usage:\n")
+	fmt.Printf("  %v version              print version\n", AppName)
+	fmt.Printf("  %v help                 show this help\n", AppName)
+	fmt.Printf("  %v parse <file.sui>     tokenize and parse, print the AST as JSON\n", AppName)
+	fmt.Printf("  %v check <file.sui>     parse + typecheck; --json for structured diagnostics\n", AppName)
+	fmt.Printf("  %v fmt <file.sui>       canonical format (--write to update in place)\n", AppName)
+	fmt.Printf("  %v docs                 documentation index (also: --agent, --json, --read, --search)\n", AppName)
+	fmt.Printf("  %v gui                   visual design tool (palette + live preview + .sui export)\n", AppName)
+	fmt.Printf("         --security <f>   strict/relaxed policy file (default: ./simpleui.security.json)\n")
+	fmt.Printf("  %v mcp                   Model Context Protocol server (for AI agents)\n", AppName)
+	fmt.Printf("  %v serve <file.sui>     build + serve with browser hot-reload\n", AppName)
+	fmt.Printf("         --port <n>       bind port (default: random)\n")
+	fmt.Printf("         --watch           recompile and reload on source changes\n")
+	fmt.Printf("         --security <f>   policy file (default: next to the .sui)\n")
+	fmt.Printf("  %v build <file.sui>     compile a .sui app to a web or desktop app\n", AppName)
+	fmt.Printf("         --target web     generate index.html, style.css, app.js (default)\n")
+	fmt.Printf("         --target desktop generate and compile a desktop executable\n")
+	fmt.Printf("         --out <dir>      output directory (default: ./dist)\n")
+	fmt.Printf("         --single         web: emit one self-contained app.html\n")
+	fmt.Printf("         --minify         with --single: strip comments/indentation\n")
+	fmt.Printf("         --allow-exec <c> (desktop) grant the bridge the command name <c>\n")
+	fmt.Printf("         --allow-dir <d>  (desktop) grant the bridge read/write under <d> (repeatable)\n")
+	fmt.Printf("         --security <f>   policy file (default: simpleui.security.json next to <file.sui>)\n")
+	fmt.Printf("\n")
+}

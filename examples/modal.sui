@@ -1,0 +1,29 @@
+state name = ""
+state saved = false
+
+fn openDialog() -> null {
+	modal.open("edit-name")
+}
+
+fn closeDialog() -> null {
+	modal.close("edit-name")
+}
+
+fn saveDialog() -> null {
+	saved = true
+}
+
+view main {
+	title "Modal"
+	h1 "Modal dialog"
+	p "Name: {name}"
+	p "Saved: {saved}"
+	button "Edit name" onClick: openDialog
+
+	modal "Edit name" name: "edit-name" {
+		p "Update the name, then choose Save or Cancel."
+		input "Name" value: name
+		modalbutton "Cancel" onClick: closeDialog
+		modalbutton "Save" variant: "primary" onClick: saveDialog
+	}
+}

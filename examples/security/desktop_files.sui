@@ -1,0 +1,49 @@
+# Desktop capabilities are explicit: build with
+#   --allow-dir C:/data --allow-exec sheet2json.exe
+# The bridge enforces both; the app adds a name check on top.
+
+import { fs, exec } from "std"
+
+state base = "C:/data"
+state name = "report.csv"
+state out = "ready"
+
+async fn readIt() -> null {
+	if contains(name, "..") or contains(name, "/") or contains(name, "\\") {
+		out = "blocked: keep the file name inside the allowed directory"
+		return
+	}
+	let path = base + "/" + name
+	data, err = fs.read(path)
+	if err != null {
+		out = err
+	} else {
+		out = data
+	}
+}
+
+async fn convertIt() -> null {
+	if contains(name, "..") or contains(name, "/") or contains(name, "\\") {
+		out = "blocked: invalid file name"
+		return
+	}
+	let path = base + "/" + name
+	result, err = exec.run("sheet2json.exe", [path])
+	if err != null {
+		out = err
+	} else {
+		out = result
+	}
+}
+
+view main {
+	title "Desktop file guard"
+	h1 "Desktop file guard"
+	p "Only files below the allowed directory, and only allow-listed commands."
+	input value: name
+	row {
+		button "Read" onClick: readIt
+		button "Convert spreadsheet" onClick: convertIt
+	}
+	pre "{out}"
+}

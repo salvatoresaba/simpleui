@@ -1,0 +1,26 @@
+{
+  "style": {
+    "dynamic": "safe"
+  },
+  "class": {
+    "dynamic": "filter"
+  },
+  "urls": {
+    "dynamic": "safe",
+    "staticActiveSchemes": "error"
+  },
+  "table": {
+    "maxRows": 100000,
+    "maxCols": 10000,
+    "maxText": 20000000
+  },
+  "csv": {
+    "formulaEscapeByDefault": false
+  },
+  "iframe": {
+    "sandbox": "default",
+    "referrerPolicy": "no-referrer",
+    "scriptsSameOrigin": "error",
+    "dynamicSrc": "allowlist"
+  }
+}

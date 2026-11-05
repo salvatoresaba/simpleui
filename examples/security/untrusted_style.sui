@@ -1,0 +1,13 @@
+# Dynamic styles are a security boundary: wrap them in cssSafe().
+
+state safe = "color:#1a7f37; font-weight:bold"
+state hostile = "color:red; position:fixed; inset:0; z-index:9999; background:url(https://evil.example/x)"
+
+view main {
+	title "Untrusted style"
+	h1 "Untrusted style"
+	p "Dynamic style values are sanitized; static styles written in the view are trusted."
+	div "safe dynamic style" style: cssSafe(safe)
+	div "hostile style: positioning and url() are dropped" style: cssSafe(hostile)
+	pre "{hostile}"
+}

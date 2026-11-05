@@ -1,0 +1,3 @@
+import { x } from "./nope.sui"
+
+state ok: int = 1

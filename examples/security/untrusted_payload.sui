@@ -1,0 +1,57 @@
+# Feed arbitrary JSON/CSV text to the table and handle parse errors.
+
+state payload = "ID,Name\n1,<b>not bold</b>\n2,=1+1"
+state out = "ready"
+
+fn loadPayload() -> null {
+	n, e = table.display("data", payload)
+	if e != null {
+		out = "refused: " + e
+	} else {
+		out = str(n) + " rows loaded"
+	}
+}
+
+fn jsonSample() -> null {
+	payload = "[\{\"name\":\"<script>alert(1)</script>\",\"value\":\"=1+1\"\}]"
+	out = "JSON sample loaded into the editor"
+}
+
+fn csvSample() -> null {
+	payload = "ID,Name\n1,<b>not bold</b>\n2,=1+1"
+	out = "CSV sample loaded into the editor"
+}
+
+fn safeCSV() -> null {
+	s, e = table.exportText("data", "csv;formula=escape")
+	if e != null { out = e } else { out = s }
+}
+
+view main {
+	title "Untrusted payload"
+	onLoad: loadPayload
+	h1 "Untrusted payload"
+	p "Paste JSON or CSV here; table.display parses data only and reports errors."
+	textarea value: payload
+	row {
+		button "Load" onClick: loadPayload
+		button "JSON sample" onClick: jsonSample
+		button "CSV sample" onClick: csvSample
+		button "Safe CSV" onClick: safeCSV
+	}
+	table name: "data" {
+		thead {
+			trow {
+				tcell "A" head: true
+				tcell "B" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "x"
+				tcell "y"
+			}
+		}
+	}
+	pre "{out}"
+}

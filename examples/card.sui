@@ -1,0 +1,21 @@
+state likes = 0
+
+fn like() -> null {
+	likes += 1
+}
+
+view Card(heading: string, note: string) {
+	row {
+		h2 "{heading}"
+		p "{note}"
+		button "Like" onClick: like
+	}
+}
+
+view main {
+	title "Components"
+	h1 "Parameterized views"
+	Card heading: "First card" note: "a reusable, parameterized view"
+	Card heading: "Second card" note: "each instance renders its own markup"
+	p "Likes: {likes}"
+}

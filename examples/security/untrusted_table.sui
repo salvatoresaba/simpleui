@@ -1,0 +1,52 @@
+# Table cells are data: table.display never parses them as HTML.
+
+state out = "ready"
+
+fn loadRows() -> null {
+	n, e = table.display("data", [
+		["<img src=x onerror=alert(1)>", "=HYPERLINK(\"http://evil\",\"click\")"],
+		["plain", "ok"]
+	])
+	if e != null {
+		out = e
+	} else {
+		out = str(n) + " rows; cells kept as text"
+	}
+}
+
+fn rawCSV() -> null {
+	s, e = table.exportText("data", "csv")
+	if e != null { out = e } else { out = s }
+}
+
+fn safeCSV() -> null {
+	s, e = table.exportText("data", "csv;formula=escape")
+	if e != null { out = e } else { out = s }
+}
+
+view main {
+	title "Untrusted table"
+	onLoad: loadRows
+	h1 "Untrusted table"
+	p "Hostile markup and spreadsheet formulas stay inert in the table."
+	table name: "data" {
+		thead {
+			trow {
+				tcell "payload" head: true
+				tcell "formula" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "x"
+				tcell "y"
+			}
+		}
+	}
+	row {
+		button "Reload" onClick: loadRows
+		button "Raw CSV" onClick: rawCSV
+		button "Safe CSV" onClick: safeCSV
+	}
+	pre "{out}"
+}

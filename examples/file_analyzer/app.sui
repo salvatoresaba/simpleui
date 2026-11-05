@@ -1,0 +1,139 @@
+import { http, json } from "std"
+
+state attachment = ""
+state status = "idle"
+state errorMsg = ""
+state summary = ""
+
+fn clearSelection() -> null {
+	drag.clear()
+	attachment = ""
+	status = "idle"
+	errorMsg = ""
+	summary = ""
+}
+
+async fn showResponse(body: string) -> null {
+	data, perr = json.parse(body)
+	if perr != null {
+		status = "error"
+		errorMsg = "Invalid server response: " + perr
+		return
+	}
+	if has(data, "error") {
+		status = "error"
+		errorMsg = data["error"]
+		return
+	}
+
+	# Render the table before table.display fills it.
+	status = "ok"
+	n, terr = table.display("analysis", data)
+	if terr != null {
+		status = "error"
+		errorMsg = terr
+		return
+	}
+	if n == 1 {
+		summary = "1 result"
+	} else {
+		summary = str(n) + " results"
+	}
+}
+
+async fn analyzeFiles() -> null {
+	body, err = http.postFiles("/api/analyze")
+	if err != null {
+		status = "error"
+		errorMsg = err
+		return
+	}
+	showResponse(body)
+}
+
+async fn analyzeFolder(folder: string) -> null {
+	payload, jerr = json.stringify({"folder": folder})
+	if jerr != null {
+		status = "error"
+		errorMsg = str(jerr)
+		return
+	}
+	body, err = http.post("/api/analyze-folder", payload)
+	if err != null {
+		status = "error"
+		errorMsg = err
+		return
+	}
+	showResponse(body)
+}
+
+async fn analyze() -> null {
+	status = "loading"
+	errorMsg = ""
+	summary = ""
+
+	let files = drag.files()
+	let folder = drag.folder()
+	if len(files) == 0 or (len(files) == 1 and files[0]["isDirectory"] == true) {
+		if folder == "" {
+			status = "error"
+			errorMsg = "Select files or a folder first"
+			return
+		}
+		analyzeFolder(folder)
+	} else {
+		analyzeFiles()
+	}
+}
+
+view main {
+	title "File analyzer"
+	h1 "File analyzer"
+	p "Choose files with the native dialog or drag them onto the field. The Go backend detects their type."
+
+	row {
+		button "Choose files..." pickFiles: attachment multiple: true
+		button "Choose folder..." pickFiles: attachment multiple: true directory: true pickMode: "auto"
+		button "Analyze" onClick: analyze
+		button "Clear" onClick: clearSelection
+	}
+
+	input "Selected files" value: attachment dropFiles: attachment
+	if drag.folder() != "" {
+		p "Folder: {drag.folder()}"
+	}
+
+	if status == "loading" {
+		p "Analyzing files on the Go backend..."
+	}
+	if status == "error" {
+		alert "{errorMsg}"
+	}
+	if status == "ok" {
+		p "{summary}"
+		table name: "analysis" {
+			thead {
+				trow {
+					tcell "File" head: true
+					tcell "Path" head: true
+					tcell "Size" head: true
+					tcell "MIME" head: true
+					tcell "Category" head: true
+					tcell "Detected by" head: true
+					tcell "Detail" head: true
+				}
+			}
+			tbody {
+				trow {
+					tcell ""
+					tcell ""
+					tcell ""
+					tcell ""
+					tcell ""
+					tcell ""
+					tcell ""
+				}
+			}
+		}
+	}
+}

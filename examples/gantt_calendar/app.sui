@@ -1,0 +1,131 @@
+# Gantt calendar example.
+#
+# Demonstrates the chart-level calendar attributes:
+# - holidays: exact dates, inclusive ranges, yearly recurrences and recurring ranges
+# - weekend: weekday names/numbers, or "none"
+# - timezone: IANA zone, visible in table dates, tooltips and axis ticks
+#
+# Use the buttons to switch each setting. The table under the chart is
+# editable: change Task, Start, End, Actual start/end, Work, Work done,
+# Progress, Group or Depends on and observe execution and remaining work
+# update through onTaskChange.
+
+state tasks = "[\{\"id\":\"kickoff\",\"task\":\"Kickoff\",\"start\":\"2026-11-02T00:30\",\"end\":\"2026-11-02T03:00\",\"progress\":100,\"group\":\"Plan\"\},\{\"id\":\"design\",\"task\":\"Design\",\"start\":\"2026-11-02T09:00\",\"end\":\"2026-11-05T17:00\",\"progress\":75,\"actualStart\":\"2026-11-03T09:00\",\"actualEnd\":\"2026-11-06T12:00\",\"work\":10,\"workDone\":7.5,\"group\":\"Build\",\"dependsOn\":[\"kickoff\"]\},\{\"id\":\"review\",\"task\":\"Review\",\"start\":\"2026-11-06T09:30\",\"end\":\"2026-11-06T12:00\",\"progress\":50,\"group\":\"Build\",\"dependsOn\":[\"design\"]\},\{\"id\":\"build\",\"task\":\"Implement\",\"start\":\"2026-11-09T08:00\",\"end\":\"2026-11-13T18:00\",\"progress\":40,\"group\":\"Build\",\"dependsOn\":[\"review\"]\},\{\"id\":\"holiday\",\"task\":\"Holiday check\",\"start\":\"2026-11-16T10:00\",\"end\":\"2026-11-16T12:00\",\"progress\":0,\"group\":\"Calendar\",\"dependsOn\":[\"build\"]\},\{\"id\":\"range\",\"task\":\"Range check\",\"start\":\"2026-11-19T09:00\",\"end\":\"2026-11-20T17:00\",\"progress\":0,\"group\":\"Calendar\",\"dependsOn\":[\"holiday\"]\},\{\"id\":\"release\",\"task\":\"Release\",\"start\":\"2026-11-27T16:00\",\"end\":\"2026-11-27T16:00\",\"milestone\":true,\"group\":\"Release\",\"dependsOn\":[\"range\"]\},\{\"id\":\"freeze\",\"task\":\"Year-end freeze\",\"start\":\"2026-12-24T08:00\",\"end\":\"2027-01-06T18:00\",\"progress\":0,\"group\":\"Calendar\",\"dependsOn\":[\"release\"]\}]"
+state tz = "Europe/Rome"
+state weekendDays = "sat,sun"
+state holidayList = "*-11-16, 2026-11-19..2026-11-20"
+state lastChange = "No task edits yet."
+
+css ".calendar-page \{ max-width: 1280px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; \} .calendar-controls \{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; \} .calendar-label \{ min-width: 86px; color: #8fa0b8; font-size: 13px; \} .calendar-chart \{ width: 100%; height: 560px; \} .calendar-status \{ color: #a5f3fc; font-size: 13px; \}"
+
+fn setUtc() -> null {
+	tz = "UTC"
+	lastChange = "Timezone changed to UTC."
+}
+
+fn setRome() -> null {
+	tz = "Europe/Rome"
+	lastChange = "Timezone changed to Europe/Rome."
+}
+
+fn setNewYork() -> null {
+	tz = "America/New_York"
+	lastChange = "Timezone changed to America/New_York."
+}
+
+fn setSatSun() -> null {
+	weekendDays = "sat,sun"
+	lastChange = "Weekend changed to Saturday and Sunday."
+}
+
+fn setFriSat() -> null {
+	weekendDays = "fri,sat"
+	lastChange = "Weekend changed to Friday and Saturday."
+}
+
+fn setNoWeekend() -> null {
+	weekendDays = "none"
+	lastChange = "Weekend shading disabled."
+}
+
+fn setMixedHolidays() -> null {
+	holidayList = "*-11-16, 2026-11-19..2026-11-20"
+	lastChange = "Holidays: recurring 16 November plus the range 19-20 November."
+}
+
+fn setExactHoliday() -> null {
+	holidayList = "2026-11-16"
+	lastChange = "Holidays: exact date 16 November 2026."
+}
+
+fn setRangeHoliday() -> null {
+	holidayList = "2026-11-19..2026-11-20"
+	lastChange = "Holidays: inclusive range 19-20 November 2026."
+}
+
+fn setRecurringHoliday() -> null {
+	holidayList = "*-11-16"
+	lastChange = "Holidays: yearly recurrence 16 November."
+}
+
+fn setRecurringRange() -> null {
+	holidayList = "*-12-24..*-01-06"
+	lastChange = "Holidays: yearly recurring range 24 December-6 January, wrapping across the year boundary."
+}
+
+fn setNoHolidays() -> null {
+	holidayList = ""
+	lastChange = "Holiday shading cleared."
+}
+
+fn tasksChanged(next: string) -> null {
+	tasks = next
+	lastChange = "onTaskChange received the edited task list."
+}
+
+view main {
+	title "Gantt calendar controls"
+	row class: "calendar-page" {
+		h1 "Gantt calendar controls"
+		p "Switch holidays, weekend and timezone to verify each chart attribute. The table below the chart is accessible, editable and synchronized with the timeline." style: "margin:0;color:#8fa0b8"
+
+		card {
+			row class: "calendar-controls" {
+				span "Timezone" class: "calendar-label"
+				button "UTC" onClick: setUtc
+				button "Europe/Rome" onClick: setRome
+				button "America/New_York" onClick: setNewYork
+			}
+			row class: "calendar-controls" {
+				span "Weekend" class: "calendar-label"
+				button "Sat/Sun" onClick: setSatSun
+				button "Fri/Sat" onClick: setFriSat
+				button "None" onClick: setNoWeekend
+			}
+			row class: "calendar-controls" {
+				span "Holidays" class: "calendar-label"
+				button "Mixed" onClick: setMixedHolidays
+				button "Exact" onClick: setExactHoliday
+				button "Range" onClick: setRangeHoliday
+				button "Recurring" onClick: setRecurringHoliday
+				button "Recurring range" onClick: setRecurringRange
+				button "None" onClick: setNoHolidays
+			}
+			p "Timezone: {tz} · Weekend: {weekendDays} · Holidays: {holidayList}" class: "calendar-status"
+			p "{lastChange}" class: "calendar-status"
+		}
+
+		chart "Calendar controls" name: "calendar" class: "calendar-chart" data: tasks chartType: "gantt" tableView: "both" tableFilters: true tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true tableSelection: "row" criticalPath: true holidays: holidayList weekend: weekendDays timezone: tz showGrid: true showValues: true interactive: true onTaskChange: tasksChanged style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #a855f7; --sui-chart-gantt-weekend: #64748b; --sui-chart-gantt-holiday: #ef4444; --sui-chart-gantt-today: #f59e0b; --sui-chart-gantt-dependency: #94a3b8; --sui-chart-critical: #f59e0b; --sui-chart-grid: #334155; --sui-chart-axis: #475569;")
+
+		card {
+			p "How to verify:" style: "margin:0 0 6px;font-weight:600;color:#e2e8f0"
+			p "1. Click UTC, Europe/Rome and America/New_York: Start/End values in the table and tooltips change with the selected zone. The kickoff crosses the date boundary in New York."
+			p "2. Click Sat/Sun, Fri/Sat and None: the shaded weekend bands move or disappear."
+			p "3. Click Exact, Range, Recurring, Recurring range and Mixed: the red holiday bands update, including recurring ranges that wrap across a year boundary in other datasets."
+			p "4. Edit a Gantt table cell or drag a task bar: the chart and table stay synchronized and the status line confirms onTaskChange."
+			p "5. Press + Row: a new task is appended, selected and focused; the chart, table and onTaskChange payload update immediately. Press Ctrl+Z to undo."
+			p "6. Ctrl/Cmd+click or Shift+click selects multiple rows. Use the Rows menu to select all visible, clear, copy, paste or delete the selection, and Export selection to export only those records. Right-click the table for the same copy/paste/export/delete actions; the browser asks for clipboard permission."
+			p "7. Numeric cells show visible minus/plus buttons, and each row ends with a delete button. Both behaviors are enabled by the table options in the source."
+		}
+	}
+}

@@ -1,0 +1,14 @@
+# Dynamic classes are filtered against the classes declared by the app.
+
+css ".active \{ color: #1a7f37; font-weight: bold; \} .danger \{ color: #b42318; \}"
+
+state cls = "active danger not-a-class"
+
+view main {
+	title "Untrusted class"
+	h1 "Untrusted class"
+	p "Only classes declared in the app CSS (or static class attributes) survive."
+	div "dynamic class" class: cls
+	div "static class" class: "active"
+	pre "{cls}"
+}

@@ -1,0 +1,24 @@
+# Iframe examples: static URLs are trusted developer data, dynamic URLs are
+# checked again at runtime. Malformed or non-allow-listed URLs are not loaded
+# and render "Cannot accept the data: ..." instead.
+
+state trusted = "https://example.com/embed"
+state hostile = "javascript:alert(1)"
+state otherHost = "https://evil.example/embed"
+
+view main {
+	h2 "Iframe"
+	p "Static URL with an explicit sandbox and no-referrer."
+	iframe src: "https://example.com/embed" sandbox: "allow-scripts" referrerpolicy: "no-referrer" loading: "lazy" width: "640" height: "360"
+
+	p "Dynamic URL accepted by the literal srcAllow origin."
+	iframe src: trusted srcAllow: "https://example.com" sandbox: "allow-scripts"
+
+	p "Dynamic active scheme rejected at runtime."
+	iframe src: hostile srcAllow: "https://example.com" sandbox: ""
+
+	p "Dynamic URL outside the allow-list rejected at runtime."
+	iframe src: otherHost srcAllow: "https://example.com" sandbox: ""
+}
+
+

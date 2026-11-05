@@ -1,0 +1,59 @@
+import { http } from "std"
+
+state file = "data.xlsx"
+state status = "ready"
+
+async fn load() -> null {
+	let target = file
+	let url = "/api/sheet?file=" + target
+	st, serr = http.getStatusSafe(url, "/api/")
+	if serr != null {
+		status = serr
+		return
+	}
+	if st != 200 {
+		status = "HTTP " + str(st) + " for " + target
+		return
+	}
+	body, err = http.getSafe(url, "/api/")
+	if err != null {
+		status = err
+		return
+	}
+	n, e = table.display("data", body)
+	if e != null {
+		status = e
+	} else {
+		status = str(n) + " rows from " + target
+	}
+}
+
+view main {
+	title "Spreadsheet table"
+	onLoad: load
+	h1 "Spreadsheet table"
+	p "XLSX/ODS are converted upstream by sheet2json; the table keeps this design."
+	table name: "data" {
+		thead {
+			trow {
+				tcell "ID" head: true
+				tcell "Name" head: true
+				tcell "When" head: true
+				tcell "Note" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "1"
+				tcell "Alice"
+				tcell "2024-01-01"
+				tcell "sample"
+			}
+		}
+	}
+	row {
+		input value: file
+		button "Load" onClick: load
+	}
+	pre "{status}"
+}

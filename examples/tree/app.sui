@@ -1,0 +1,147 @@
+# Nested tree example.
+# tree value: selected key state
+# treeitem key: stable item identifier
+# treeitem open: initial expansion state
+# open/closed state is persisted per tree path in localStorage.
+
+state selected = "main"
+state renameKey = ""
+state renameValue = ""
+state importPath = ""
+state notice = "Choose a JSON/XML file, then import it. Downloads use the current tree."
+state exportText = ""
+
+fn selectedChanged() -> null {
+}
+
+fn renamed() -> null {
+}
+
+async fn importJsonFile() -> null {
+	if importPath == "" {
+		notice = "Choose a JSON/XML file first."
+		return
+	}
+	n, err = tree.importJsonFile("files", importPath)
+	if err != null {
+		notice = "JSON import failed: " + err
+	} else {
+		notice = "Imported " + str(n) + " nodes from JSON."
+	}
+}
+
+async fn importXmlFile() -> null {
+	if importPath == "" {
+		notice = "Choose a JSON/XML file first."
+		return
+	}
+	n, err = tree.importXmlFile("files", importPath)
+	if err != null {
+		notice = "XML import failed: " + err
+	} else {
+		notice = "Imported " + str(n) + " nodes from XML."
+	}
+}
+
+fn downloadJson() -> null {
+	body, err = tree.exportJson("files")
+	if err != null {
+		notice = "JSON export failed: " + err
+		return
+	}
+	exportText = body
+	n, derr = tree.downloadJson("files", "tree.json")
+	if derr != null {
+		notice = "JSON download failed: " + derr
+	} else {
+		notice = "JSON exported and downloaded."
+	}
+}
+
+fn downloadXml() -> null {
+	body, err = tree.exportXml("files")
+	if err != null {
+		notice = "XML export failed: " + err
+		return
+	}
+	exportText = body
+	n, derr = tree.downloadXml("files", "tree.xml")
+	if derr != null {
+		notice = "XML download failed: " + derr
+	} else {
+		notice = "XML exported and downloaded."
+	}
+}
+
+fn clearTree() -> null {
+	n, err = tree.clear("files")
+	if err != null {
+		notice = "Clear failed: " + err
+	} else {
+		exportText = ""
+		notice = "Tree cleared. Import a file to load data."
+	}
+}
+
+view main {
+	title "Tree"
+	h1 "Nested tree"
+	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
+
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
+		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
+			treeitem "main.go" key: "main" showRenameIcon: false
+			treeitem "components" key: "components" open: true {
+				treeitem "tree.go" key: "tree"
+				treeitem "runtime.go" key: "runtime"
+			}
+		}
+		treeitem "docs" key: "docs" {
+			treeitem "README.md" key: "readme" renameIcon: "📝"
+		}
+		treeitem "go.mod" key: "gomod"
+		treeitem "generated" key: "generated" editable: false
+	}
+
+	p "Selected key: {selected}"
+	p "Last rename: {renameKey} -> {renameValue}"
+
+	card {
+		p "The selected key is stored in state selected. The tree restores expansion state after a re-render."
+		p "Editable levels 1-2: double-click a label, press F2 or use the pencil, type, then Enter. Escape cancels. generated is explicitly read-only."
+		p "The tree uses a custom ✏️ icon. main.go hides the pencil with showRenameIcon: false but still supports F2 and double-click. src uses a per-node folder style preset."
+		p "Keyboard: Up/Down move, Right expands or enters, Left collapses or returns to the parent, Enter/Space selects, Home/End jump."
+		p "ARIA: role=tree, treeitem, group, aria-expanded, aria-level and aria-selected."
+	}
+
+	card {
+		p "Import/export: choose a .json or .xml file, import it into the tree, or download the current tree data."
+		row {
+			button "Choose JSON/XML..." pickFiles: importPath accept: ".json,.xml"
+			button "Import JSON" onClick: importJsonFile
+			button "Import XML" onClick: importXmlFile
+		}
+		row {
+			button "Download JSON" onClick: downloadJson
+			button "Download XML" onClick: downloadXml
+			button "Clear tree" onClick: clearTree
+		}
+		p "Selected file: {importPath}"
+		p "{notice}"
+		pre "{exportText}"
+	}
+
+	accordion "How this example works" {
+		accordionitem "Selection and expansion" {
+			p "Clicking the label selects the item; clicking the arrow only expands or collapses it."
+			p "Selection is independent from expansion and persists through state-driven re-renders."
+		}
+		accordionitem "Keys" {
+			p "Each treeitem has a stable key used as the value of the selected state. If no key is set, the item path is used."
+		}
+		accordionitem "Accessibility" {
+			p "Only one treeitem is in the tab order at a time; arrow keys move focus."
+			p "Expanded parents expose aria-expanded; the selected item exposes aria-selected=true."
+		}
+	}
+}

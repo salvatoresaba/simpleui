@@ -1,0 +1,13 @@
+state pasted = ""
+
+fn pasteFromClipboard() {
+  pasted = "table collée (formati: text/html + text/plain)"
+}
+
+view App {
+  col {
+    h1 "Clipboard Table"
+    text "Données collées: " + pasted
+    button "Coller depuis clipboard" onClick: pasteFromClipboard
+  }
+}
