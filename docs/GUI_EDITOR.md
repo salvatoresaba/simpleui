@@ -1079,24 +1079,23 @@ Insert **Graph** from **Controls**. A new graph starts as a block diagram with
 sample JSON states and transitions and `overflow: "scroll"`. It is a leaf
 control: it cannot contain child elements.
 
-The graph inspector exposes:
+The graph inspector is ordered as follows:
 
 | Field | Meaning |
 |---|---|
-| data | movable, resizable data overlay for JSON, XML or CSV shapes/links |
-| table view | diagram only, accessible table only, or both |
-| initial zoom | starting zoom for zoom mode |
-| overflow | Scrollbars, Zoom controls or Fit to frame |
-| settings | opens the same runtime **Graph settings** panel as the chart gear: general diagram options plus GRID, SHAPES, LINKS, TAGS and HINTS |
-| element hints | edit the tag and hint text of every state and link |
-| attributes | grid, routing and tag/link attributes preserved verbatim |
-| preset | color presets that write CSS variables into `style expr` |
+| Graph settings | first button; opens the same runtime panel as the chart gear (General plus GRID, SHAPES, LINKS, TAGS and HINTS) |
+| Styles | color preset and **Edit styles...**, which opens the Graph style editor for background, text, title, muted, grid, axis and component colors |
+| show table | shows or hides the synchronized data table |
+| settings button | shows or hides the gear that opens Graph settings |
+| zoom buttons | shows or hides zoom, reset and fit buttons |
+| add element button | shows or hides the + Add shape/link button |
+| undo/redo buttons | shows or hides the history buttons |
+| edit data | last control; opens the JSON/XML/CSV or expression data editor |
 
 The graph type selector is not shown: `graph` always renders the block diagram
 geometry and never writes `chartType` in the source. Editing the chart type in
-the data overlay is disabled for the same reason. Everything else (JSON/CSV/XML
-import, element hints, grid, routing, tag/link styling, synchronized table,
-runtime API and events) follows the chart block-diagram behavior.
+the data overlay is disabled for the same reason. The inspector no longer shows
+initial zoom, interactive, element hints or chart attributes for Graph.
 
 ## Date/Time picker control
 

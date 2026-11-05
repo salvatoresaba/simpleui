@@ -21,6 +21,10 @@ const suiChartRuntime = `(function(){
   function text(v) { return v === null || v === undefined ? "" : String(v); }
   function attr(root, name) { return root.getAttribute("data-sui-chart-" + name) || ""; }
   function flag(root, name) { return root.getAttribute("data-sui-chart-" + name) === "1"; }
+  function flagDefault(root, name, def) {
+    var value = root.getAttribute("data-sui-chart-" + name);
+    return value === null ? def : value === "1";
+  }
   // Editing chrome (anchors, resize/rotation grips, tag and route handles) is
   // optional: a missing value keeps it enabled, so existing editable diagrams
   // are unchanged; stateHandles: false turns the diagram into a view-only chart.
@@ -19630,8 +19634,19 @@ const suiChartRuntime = `(function(){
     });
     root.__suiStateCreateShapeHandlers = { move: onMove, click: onClick, svg: svg };
   }
+  function applyStateToolbarFlags(root) {
+    var showHistory = flagDefault(root, "show-history", true);
+    var showAdd = flagDefault(root, "show-add", true);
+    if (root.__suiStateUndoBtn) root.__suiStateUndoBtn.hidden = !showHistory;
+    if (root.__suiStateRedoBtn) root.__suiStateRedoBtn.hidden = !showHistory;
+    if (root.__suiStateCreateBtn) root.__suiStateCreateBtn.hidden = !showAdd;
+    if (root.__suiStateCreateTools) root.__suiStateCreateTools.hidden = !showHistory && !showAdd;
+  }
   function ensureStateCreateTools(root) {
-    if (root.__suiStateCreateTools && root.__suiStateCreateTools.parentNode) return;
+    if (root.__suiStateCreateTools && root.__suiStateCreateTools.parentNode) {
+      applyStateToolbarFlags(root);
+      return;
+    }
     var tools = document.createElement("div");
     tools.className = "sui-chart-state-create-tools";
     tools.setAttribute("role", "toolbar");
@@ -19668,6 +19683,7 @@ const suiChartRuntime = `(function(){
     }
     root.__suiStateCreateTools = tools;
     root.__suiStateCreateBtn = create;
+    applyStateToolbarFlags(root);
     updateStateHistoryButtons(root);
     if (!root.__suiStateCreateShortcutBound) {
       root.__suiStateCreateShortcutBound = true;
@@ -22162,6 +22178,17 @@ const suiChartRuntime = `(function(){
   function bindChartMenu(root) {
     if (root.__suiChartMenuBound) return;
     root.__suiChartMenuBound = true;
+    if (!root.__suiChartSettingsEventBound) {
+      root.__suiChartSettingsEventBound = true;
+      root.addEventListener("sui-open-chart-settings", function() {
+        if ((root.getAttribute("data-sui-chart-type") || "") === "state") {
+          openStateSettingsPanel(root);
+          return;
+        }
+        var gear = root.querySelector(".sui-chart-menu-btn");
+        if (gear) gear.click();
+      });
+    }
     var menu = document.createElement("div");
     menu.className = "sui-chart-menu";
     menu.hidden = true;
@@ -22834,7 +22861,7 @@ const suiChartRuntime = `(function(){
     }
     var tools = root.querySelector(".sui-chart-zoom");
     if (tools) {
-      tools.hidden = tableOnly || (!isGantt && type !== "state" && overflow !== "zoom");
+      tools.hidden = !flagDefault(root, "show-zoom", true) || tableOnly || (!isGantt && type !== "state" && overflow !== "zoom");
       var zl = tools.querySelector(".sui-chart-zoom-label");
       if (zl) zl.textContent = isGantt ? "Timeline " + Math.round(timelineZoom * 100) + "%" : Math.round(zoom * 100) + "%";
       var zoomIn = tools.querySelector('[data-zoom="in"]');

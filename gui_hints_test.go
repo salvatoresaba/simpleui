@@ -43,6 +43,10 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		"chartSampleDataset", "chartSampleFormatFor", `graph: "Graph"`, `CHART_GRAPH_SAMPLE_JSON`,
 		"Block diagram (legacy chart)", "Replace chart data?",
 		"openGraphRuntimeSettings",
+		"function graphControls", "openGraphStyleEditor", "applyGraphStyleEditor", "closeGraphStyleEditor",
+		`id="gstyle"`, "Graph style editor", "gs-series-8",
+		"show table", "zoom buttons", "add element button", "undo/redo buttons", "edit data",
+		"showZoom", "showAdd", "showHistory", "settingsButton",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer HTML missing %q", want)

@@ -1834,6 +1834,10 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		o.obj["chartBins"] = JStr("10")
 		o.obj["chartInteractive"] = JBool(false)
 		o.obj["chartColorPicker"] = JBool(true)
+		o.obj["chartSettingsButton"] = JBool(true)
+		o.obj["chartShowZoom"] = JBool(true)
+		o.obj["chartShowAdd"] = JBool(true)
+		o.obj["chartShowHistory"] = JBool(true)
 		o.obj["chartShowResources"] = JBool(false)
 		o.obj["chartShowProgress"] = JBool(false)
 		o.obj["chartProgressColumn"] = JBool(false)
@@ -1929,9 +1933,13 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if chartTag(e.tag) && a.key == "interactive" {
 			o.obj["chartInteractive"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
-		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "criticalPath" || a.key == "colorPicker" ||
-			a.key == "showResources" || a.key == "showProgress" || a.key == "showSlack" || a.key == "showCosts" || a.key == "statusColors" || a.key == "autoSchedule" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "stateHints") {
+		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "criticalPath" || a.key == "colorPicker" || a.key == "settingsButton" ||
+			a.key == "showResources" || a.key == "showProgress" || a.key == "showSlack" || a.key == "showCosts" || a.key == "statusColors" || a.key == "autoSchedule" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "stateHints" ||
+			a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory") {
 			field := "chart" + strings.ToUpper(a.key[4:5]) + a.key[5:]
+			if a.key == "settingsButton" {
+				field = "chartSettingsButton"
+			}
 			if a.key == "tableFilters" {
 				field = "chartTableFilters"
 			}

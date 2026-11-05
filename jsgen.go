@@ -2294,7 +2294,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "interactive" || a.key == "stateMode" || a.key == "stateHints" || a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius" ||
-			a.key == "colorPicker" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||
+			a.key == "colorPicker" || a.key == "settingsButton" || a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||
 			a.key == "onShapeClick" || a.key == "onShapeDoubleClick" || a.key == "onShapeMouseOver" || a.key == "onShapeMouseOut" || a.key == "onShapeContextMenu" ||
 			a.key == "onLinkClick" || a.key == "onLinkDoubleClick" || a.key == "onLinkMouseOver" || a.key == "onLinkMouseOut" || a.key == "onLinkContextMenu" ||
 			a.key == "onTagClick" || a.key == "onTagDoubleClick" || a.key == "onTagMouseOver" || a.key == "onTagMouseOut" || a.key == "onTagContextMenu" || a.key == "stateRouting" || a.key == "stateTagStyle" || a.key == "stateTagLink" || a.key == "stateLinkTagStyle" || a.key == "stateLinkTagLink" || a.key == "stateShapeTagStyle" || a.key == "stateShapeTagLink" || a.key == "stateTagFont" || a.key == "stateTagFontSize" || a.key == "stateShapeTagFont" || a.key == "stateShapeTagFontSize" || a.key == "stateLinkTagFont" || a.key == "stateLinkTagFontSize" || a.key == "stateRouteAlgorithm" || a.key == "stateLinkArcRadius" || a.key == "stateGrid" || a.key == "stateGridGap" || a.key == "stateGridColor" ||
@@ -2853,6 +2853,14 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString(chartFlagValue(e, "interactive", false))
 	b.WriteString("\" data-sui-chart-color-picker=\"")
 	b.WriteString(chartFlagValue(e, "colorPicker", true))
+	b.WriteString("\" data-sui-chart-settings-button=\"")
+	b.WriteString(chartFlagValue(e, "settingsButton", true))
+	b.WriteString("\" data-sui-chart-show-zoom=\"")
+	b.WriteString(chartFlagValue(e, "showZoom", true))
+	b.WriteString("\" data-sui-chart-show-add=\"")
+	b.WriteString(chartFlagValue(e, "showAdd", true))
+	b.WriteString("\" data-sui-chart-show-history=\"")
+	b.WriteString(chartFlagValue(e, "showHistory", true))
 	b.WriteString("\" data-sui-chart-show-resources=\"")
 	b.WriteString(chartFlagValue(e, "showResources", false))
 	b.WriteString("\" data-sui-chart-show-progress=\"")
@@ -3116,7 +3124,11 @@ func chartElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	b.WriteString(open)
 	b.WriteString(`<div class="sui-chart-head"><div class="sui-chart-title">`)
 	b.WriteString(htmlTextParts(e.text))
-	b.WriteString(`</div><button type="button" class="sui-chart-menu-btn" aria-label="Chart settings" title="Chart settings">&#9881;</button><div class="sui-chart-zoom" hidden><button type="button" class="sui-chart-zoom-btn" data-zoom="out" aria-label="Zoom out" title="Zoom out">`)
+	b.WriteString(`</div>`)
+	if chartFlagValue(e, "settingsButton", true) != "0" {
+		b.WriteString(`<button type="button" class="sui-chart-menu-btn" aria-label="Chart settings" title="Chart settings">&#9881;</button>`)
+	}
+	b.WriteString(`<div class="sui-chart-zoom" hidden><button type="button" class="sui-chart-zoom-btn" data-zoom="out" aria-label="Zoom out" title="Zoom out">`)
 	b.WriteString("\u2212")
 	b.WriteString(`</button><span class="sui-chart-zoom-label">100%</span><button type="button" class="sui-chart-zoom-btn" data-zoom="in" aria-label="Zoom in" title="Zoom in">+</button><button type="button" class="sui-chart-zoom-reset" data-zoom="reset" title="Reset zoom">Reset</button><button type="button" class="sui-chart-zoom-fit" data-zoom="fit" aria-label="Fit to width" title="Fit to width">Fit width</button><button type="button" class="sui-chart-zoom-fit sui-chart-zoom-fit-all" data-zoom="fitall" aria-label="Fit all graph elements" title="Fit all graph elements">Fit all</button></div></div>`)
 	b.WriteString(`<div class="sui-chart-viewport"><div class="sui-chart-stage"><svg class="sui-chart-svg" role="img"></svg></div></div>`)

@@ -1108,24 +1108,23 @@ Inserire **Graph** da **Controls**. Un nuovo graph parte come diagramma a blocch
 con dati JSON di esempio (stati e transizioni) e `overflow: "scroll"`. È un
 controllo foglia: non può contenere elementi figli.
 
-L'inspector del graph espone:
+L'inspector del graph è ordinato così:
 
 | Campo | Significato |
 |---|---|
-| data | overlay spostabile e ridimensionabile per forme/link JSON, XML o CSV |
-| table view | solo diagramma, solo tabella accessibile, oppure entrambi |
-| initial zoom | zoom iniziale della modalità zoom |
-| overflow | Scrollbars, Zoom controls o Fit to frame |
-| settings | apre lo stesso pannello runtime **Graph settings** dell'ingranaggio: impostazioni generali piu GRID, SHAPES, LINKS, TAGS e HINTS |
-| element hints | modifica tag e hint di ogni stato e link |
-| attributes | attributi griglia, routing e stile tag/link preservati alla lettera |
-| preset | preset colore che scrivono variabili CSS in `style expr` |
+| Graph settings | primo pulsante; apre lo stesso pannello runtime dell'ingranaggio (Generale più GRID, SHAPES, LINKS, TAGS e HINTS) |
+| Styles | preset colore e **Edit styles...**, che apre il Graph style editor per sfondo, testo, titolo, muted, griglia, asse e colori dei componenti |
+| show table | mostra o nasconde la tabella sincronizzata |
+| settings button | mostra o nasconde l'ingranaggio che apre Graph settings |
+| zoom buttons | mostra o nasconde i pulsanti zoom, reset e fit |
+| add element button | mostra o nasconde il pulsante + Add per forme e link |
+| undo/redo buttons | mostra o nasconde i pulsanti di cronologia |
+| edit data | ultimo controllo; apre l'editor dati JSON/XML/CSV o espressione |
 
 Il selettore del tipo non compare: `graph` disegna sempre la geometria a blocchi
 e non scrive `chartType` nel sorgente. Per lo stesso motivo il tipo è disabilitato
-nell'editor dati. Tutto il resto (import JSON/CSV/XML, element hints, griglia,
-routing, stile tag/link, tabella sincronizzata, API runtime ed eventi) segue il
-comportamento del chart a blocchi.
+nell'editor dati. L'inspector non mostra più zoom iniziale, interactive, element
+hints o attributi chart per Graph.
 
 ## Controllo Date/Time picker
 

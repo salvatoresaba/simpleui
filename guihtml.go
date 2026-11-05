@@ -438,6 +438,16 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 /* unified chart settings panel */
 #csettings { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
 #csettings.on { display:flex; }
+#gstyle { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:13; }
+#gstyle.on { display:flex; }
+#gstylebox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:14px 16px; width:640px; max-width:94vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#gstylebox h2 { font-size:15px; margin:0 0 8px; }
+#gstylebox .gstyle-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px 12px; align-items:center; }
+#gstylebox .gstyle-grid .pfrow { margin:0; gap:6px; }
+#gstylebox .gstyle-grid .pfrow label { width:96px; font-size:12px; }
+#gstylebox .gstyle-grid input[type=color] { width:48px; height:26px; padding:1px; background:var(--input-bg); border:1px solid var(--border2); border-radius:5px; }
+#gstylebox .gstyle-grid input[type=checkbox] { flex:none; }
+.gstyle-x { float:right; font-size:11px; padding:2px 6px; }
 #csettingsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:460px; max-width:94vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #csettingsbox h2 { font-size:15px; margin:0 0 10px; }
 .cset-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--border); margin-bottom:10px; }
@@ -1110,6 +1120,34 @@ RUNNING</div>
     </div>
   </div>
 </div>
+<div id="gstyle">
+  <div id="gstylebox">
+    <button class="btn gstyle-x" type="button" aria-label="Close style editor" title="Close without applying" onclick="closeGraphStyleEditor()">&#10005;</button>
+    <h2>Graph style editor</h2>
+    <div class="hint">Fine-tune chart and component colors. Values are written to the graph style expression.</div>
+    <div class="gstyle-grid">
+      <div class="pfrow"><label>Background</label><input type="color" id="gs-bg" value="#0f1115"><input type="checkbox" id="gs-bg-transparent" title="Transparent background" aria-label="Transparent background"></div>
+      <div class="pfrow"><label>Text</label><input type="color" id="gs-fg" value="#e6e6ef"></div>
+      <div class="pfrow"><label>Title</label><input type="color" id="gs-title" value="#e6e6ef"></div>
+      <div class="pfrow"><label>Muted</label><input type="color" id="gs-muted" value="#8fa0b8"></div>
+      <div class="pfrow"><label>Grid</label><input type="color" id="gs-grid" value="#2c3444"><input type="checkbox" id="gs-grid-transparent" title="Transparent grid" aria-label="Transparent grid"></div>
+      <div class="pfrow"><label>Axis</label><input type="color" id="gs-axis" value="#3a4152"></div>
+      <div class="pfrow"><label>Component 1</label><input type="color" id="gs-series-1" value="#4c5cf7"></div>
+      <div class="pfrow"><label>Component 2</label><input type="color" id="gs-series-2" value="#22c55e"></div>
+      <div class="pfrow"><label>Component 3</label><input type="color" id="gs-series-3" value="#f59e0b"></div>
+      <div class="pfrow"><label>Component 4</label><input type="color" id="gs-series-4" value="#ef4444"></div>
+      <div class="pfrow"><label>Component 5</label><input type="color" id="gs-series-5" value="#06b6d4"></div>
+      <div class="pfrow"><label>Component 6</label><input type="color" id="gs-series-6" value="#a855f7"></div>
+      <div class="pfrow"><label>Component 7</label><input type="color" id="gs-series-7" value="#84cc16"></div>
+      <div class="pfrow"><label>Component 8</label><input type="color" id="gs-series-8" value="#ec4899"></div>
+    </div>
+    <div class="pfbtns">
+      <span style="flex:1"></span>
+      <button class="btn" type="button" onclick="closeGraphStyleEditor()">Cancel</button>
+      <button class="btn" type="button" onclick="applyGraphStyleEditor()">Apply</button>
+    </div>
+  </div>
+</div>
 <div id="askdlg">
   <div id="askbox">
     <h2 id="ask-title">Prompt</h2>
@@ -1663,6 +1701,10 @@ function newChartNode() {
   n.chartStateHintPadding = "";
   n.chartStateHintRadius = "";
   n.chartColorPicker = true;
+  n.chartSettingsButton = true;
+  n.chartShowZoom = true;
+  n.chartShowAdd = true;
+  n.chartShowHistory = true;
   n.chartShowResources = false;
   n.chartShowProgress = false;
   n.chartProgressColumn = false;
@@ -4419,6 +4461,93 @@ function chartPresetKey(n) {
   }
   return "custom";
 }
+var GRAPH_STYLE_FIELDS = [
+  { id: "gs-bg", name: "--sui-chart-bg", transparent: "gs-bg-transparent" },
+  { id: "gs-fg", name: "--sui-chart-fg" },
+  { id: "gs-title", name: "--sui-chart-title-color" },
+  { id: "gs-muted", name: "--sui-chart-muted" },
+  { id: "gs-grid", name: "--sui-chart-grid", transparent: "gs-grid-transparent" },
+  { id: "gs-axis", name: "--sui-chart-axis" },
+  { id: "gs-series-1", name: "--sui-chart-series-1" },
+  { id: "gs-series-2", name: "--sui-chart-series-2" },
+  { id: "gs-series-3", name: "--sui-chart-series-3" },
+  { id: "gs-series-4", name: "--sui-chart-series-4" },
+  { id: "gs-series-5", name: "--sui-chart-series-5" },
+  { id: "gs-series-6", name: "--sui-chart-series-6" },
+  { id: "gs-series-7", name: "--sui-chart-series-7" },
+  { id: "gs-series-8", name: "--sui-chart-series-8" }
+];
+var graphStyleNode = null;
+function chartCssVarValue(css, name) {
+  var m = String(css || "").match(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*([^;]+)(?:;|$)"));
+  return m ? m[1].trim() : "";
+}
+function openGraphStyleEditor(n) {
+  graphStyleNode = n || chartSettingsNode;
+  if (!graphStyleNode) return;
+  var css = chartStyleCss(graphStyleNode);
+  if (css === null) {
+    alert("This graph uses a custom style expression. Edit it manually in Appearance.");
+    return;
+  }
+  if (!String(css || "").trim()) {
+    var preset = chartPresetKey(graphStyleNode);
+    css = chartPresetCss(preset === "custom" ? "default" : preset);
+  }
+  var fallback = chartPresetCss(graphStyleNode.chartTheme === "light" ? "light" : "default");
+  GRAPH_STYLE_FIELDS.forEach(function(field) {
+    var value = chartCssVarValue(css, field.name);
+    if (!value) value = chartCssVarValue(fallback, field.name);
+    var transparent = value === "transparent";
+    var color = value;
+    if (!/^#[0-9a-f]{6}$/i.test(color)) color = chartCssVarValue(fallback, field.name);
+    if (!/^#[0-9a-f]{6}$/i.test(color)) color = "#000000";
+    var input = document.getElementById(field.id);
+    if (input) input.value = color.toLowerCase();
+    if (field.transparent) {
+      var box = document.getElementById(field.transparent);
+      if (box) box.checked = transparent;
+    }
+  });
+  document.getElementById("gstyle").classList.add("on");
+}
+function closeGraphStyleEditor() {
+  document.getElementById("gstyle").classList.remove("on");
+  graphStyleNode = null;
+}
+function applyGraphStyleEditor() {
+  var n = graphStyleNode;
+  if (!n) return;
+  var css = chartStyleCss(n);
+  if (css === null) {
+    alert("This graph uses a custom style expression. Edit it manually in Appearance.");
+    return;
+  }
+  var fallback = chartPresetCss(n.chartTheme === "light" ? "light" : "default");
+  var values = {};
+  GRAPH_STYLE_FIELDS.forEach(function(field) {
+    var transparentBox = field.transparent ? document.getElementById(field.transparent) : null;
+    var value = transparentBox && transparentBox.checked ? "transparent" : (document.getElementById(field.id).value || "");
+    if (value !== "transparent" && !/^#[0-9a-f]{6}$/i.test(value)) value = chartCssVarValue(fallback, field.name);
+    if (value !== "transparent" && !/^#[0-9a-f]{6}$/i.test(value)) value = "#000000";
+    values[field.name] = value.toLowerCase();
+  });
+  var parts = [];
+  String(css || "").split(";").forEach(function(part) {
+    var t = part.trim();
+    if (!t) return;
+    var name = t.split(":")[0].trim();
+    if (Object.prototype.hasOwnProperty.call(values, name)) return;
+    parts.push(t);
+  });
+  Object.keys(values).forEach(function(name) { parts.push(name + ": " + values[name]); });
+  snap("graph styles");
+  n.styleExpr = parts.length ? "cssSafe(" + JSON.stringify(parts.join("; ")) + ")" : "";
+  closeGraphStyleEditor();
+  setOut();
+  autoPreview();
+  renderInspector();
+}
 function chartClearParam(n, field) {
   if (n.chartExprs && n.chartExprs[field]) delete n.chartExprs[field];
 }
@@ -5344,7 +5473,109 @@ function chartFieldRow(labelText, control, hintText) {
   if (hintText) label.title = hintText;
   return row;
 }
+function graphControls(n) {
+  var a = document.createElement("div");
+  a.className = "acc open";
+  var h = document.createElement("div");
+  h.className = "acchead";
+  h.innerHTML = '<span>Graph</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div");
+  b.className = "accbody";
+
+  var settingsBtn = document.createElement("button");
+  settingsBtn.type = "button";
+  settingsBtn.className = "btn";
+  settingsBtn.style.fontSize = "11px";
+  settingsBtn.textContent = "Graph settings...";
+  settingsBtn.title = "Open the same settings panel as the chart settings button";
+  settingsBtn.onclick = function(){ openGraphRuntimeSettings(n); };
+  b.appendChild(chartFieldRow("settings", settingsBtn, "General diagram options, GRID, SHAPES, LINKS, TAGS and HINTS."));
+
+  var styleLabel = document.createElement("div");
+  styleLabel.className = "rowth";
+  styleLabel.textContent = "Styles";
+  b.appendChild(styleLabel);
+  var styleSel = document.createElement("select");
+  CHART_STYLE_PRESETS.forEach(function(p){
+    var o = document.createElement("option"); o.value = p.key; o.textContent = p.label;
+    if (chartPresetKey(n) === p.key) o.selected = true;
+    styleSel.appendChild(o);
+  });
+  var customOpt = document.createElement("option");
+  customOpt.value = "custom"; customOpt.textContent = "Custom (edit style expr)";
+  if (chartPresetKey(n) === "custom") customOpt.selected = true;
+  styleSel.appendChild(customOpt);
+  styleSel.onchange = function(){
+    if (styleSel.value === "custom") { styleSel.value = chartPresetKey(n); return; }
+    snap("graph style preset");
+    n.styleExpr = chartPresetStyleExpr(styleSel.value);
+    setOut(); autoPreview(); renderInspector();
+  };
+  b.appendChild(chartFieldRow("preset", styleSel, "Color preset for the diagram, shapes, links and tags."));
+  var styleBtn = document.createElement("button");
+  styleBtn.type = "button";
+  styleBtn.className = "btn";
+  styleBtn.style.fontSize = "11px";
+  styleBtn.textContent = "Edit styles...";
+  styleBtn.title = "Fine-tune chart and component colors";
+  styleBtn.onclick = function(){ openGraphStyleEditor(n); };
+  b.appendChild(chartFieldRow("editor", styleBtn, "Edit background, text, grid, axis and series component colors."));
+
+  function boolRow(label, key, hint, onChange) {
+    var row = document.createElement("div");
+    row.className = "rowline";
+    var lab = document.createElement("label");
+    lab.textContent = label;
+    lab.title = hint || "";
+    row.appendChild(lab);
+    row.appendChild(mkSwitch(!!onChange.value, false, function(on){
+      snap("graph " + label);
+      onChange.set(on);
+      setOut(); autoPreview();
+    }));
+    b.appendChild(row);
+    return row;
+  }
+  boolRow("show table", "chartTableView", "Show the synchronized data table below the diagram.", {
+    value: n.chartTableView === "both" || n.chartTableView === "table",
+    set: function(on){ n.chartTableView = on ? "both" : "chart"; }
+  });
+  boolRow("settings button", "chartSettingsButton", "Show the gear that opens the graph settings panel.", {
+    value: n.chartSettingsButton !== false,
+    set: function(on){ n.chartSettingsButton = on; }
+  });
+  boolRow("zoom buttons", "chartShowZoom", "Show the zoom in/out/reset/fit buttons in the graph header.", {
+    value: n.chartShowZoom !== false,
+    set: function(on){ n.chartShowZoom = on; }
+  });
+  boolRow("add element button", "chartShowAdd", "Show the + Add button used to create shapes and links.", {
+    value: n.chartShowAdd !== false,
+    set: function(on){ n.chartShowAdd = on; }
+  });
+  boolRow("undo/redo buttons", "chartShowHistory", "Show the undo and redo buttons in the graph header.", {
+    value: n.chartShowHistory !== false,
+    set: function(on){ n.chartShowHistory = on; }
+  });
+
+  var sep = document.createElement("div");
+  sep.style.cssText = "border-top:1px solid var(--border);margin:8px 0 6px";
+  b.appendChild(sep);
+  var dataBtn = document.createElement("button");
+  dataBtn.type = "button";
+  dataBtn.className = "btn chart-data-btn";
+  dataBtn.style.cssText = "flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+  dataBtn.textContent = chartDataButtonText(n);
+  dataBtn.title = "Open the resizable graph data editor";
+  dataBtn.onclick = function(){ openChartDataEditor(n); };
+  b.appendChild(chartFieldRow("edit data", dataBtn, "Edit JSON, XML or CSV shapes and links, or a reactive state expression."));
+
+  a.appendChild(b);
+  return a;
+}
 function chartControls(n) {
+  if (isGraphKind(n)) return graphControls(n);
   var a = document.createElement("div");
   a.className = "acc open";
   var h = document.createElement("div");
@@ -8333,6 +8564,10 @@ function attrsOf(n) {
   a += chartParamAttr(n, "stateHintPadding", "chartStateHintPadding", n.chartStateHintPadding, "", true);
   a += chartParamAttr(n, "stateHintRadius", "chartStateHintRadius", n.chartStateHintRadius, "", true);
     if (n.chartColorPicker === false) a += " colorPicker: false";
+    if (n.chartSettingsButton === false) a += " settingsButton: false";
+    if (n.chartShowZoom === false) a += " showZoom: false";
+    if (n.chartShowAdd === false) a += " showAdd: false";
+    if (n.chartShowHistory === false) a += " showHistory: false";
     a += chartBoolAttr(n, "showResources", "chartShowResources", n.chartShowResources, false);
     a += chartBoolAttr(n, "showProgress", "chartShowProgress", n.chartShowProgress, false);
     a += chartBoolAttr(n, "showSlack", "chartShowSlack", n.chartShowSlack, false);
@@ -10697,21 +10932,19 @@ function openGraphRuntimeSettings(n) {
   var frame = document.getElementById("prev");
   try {
     var doc = frame && frame.contentDocument;
-    if (doc) {
+    if (doc && frame.contentWindow) {
       var charts = doc.querySelectorAll("[data-sui-chart]");
       for (var i = 0; i < charts.length; i++) {
         if (String(charts[i].getAttribute("data-sui-chart-name") || "") !== name) continue;
-        var gear = charts[i].querySelector(".sui-chart-menu-btn");
-        if (gear) {
-          gear.click();
-          setStatus("graph settings opened from the chart preview");
-          return;
-        }
+        var openEvent = new frame.contentWindow.CustomEvent("sui-open-chart-settings", { bubbles: true });
+        charts[i].dispatchEvent(openEvent);
+        setStatus("graph settings opened from the chart preview");
+        return;
       }
     }
   } catch (e) {}
-  // The preview may still be loading or the gear may be hidden: keep the
-  // designer panel available as a fallback.
+  // The preview may still be loading: keep the designer panel available as a
+  // fallback so the button is never inert.
   openChartSettings(n);
 }
 function openChartSettings(n) {

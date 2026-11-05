@@ -77,6 +77,47 @@ func TestGraphControlValidation(t *testing.T) {
 	}
 }
 
+func TestGraphVisibilityAttributes(t *testing.T) {
+	src := `view main {
+	graph "G" settingsButton: false showZoom: false showAdd: false showHistory: false
+}`
+	prog, dl := ParseSource(src, "graph_visibility.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`data-sui-chart-settings-button="0"`,
+		`data-sui-chart-show-zoom="0"`,
+		`data-sui-chart-show-add="0"`,
+		`data-sui-chart-show-history="0"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("graph JS missing %q", want)
+		}
+	}
+	if strings.Contains(js, `class="sui-chart-menu-btn"`) {
+		t.Errorf("settingsButton: false must not render the gear")
+	}
+	html := GenerateHtmlPage(prog)
+	for _, want := range []string{
+		`data-sui-chart-settings-button="0"`,
+		`data-sui-chart-show-zoom="0"`,
+		`data-sui-chart-show-add="0"`,
+		`data-sui-chart-show-history="0"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("static graph HTML missing %q", want)
+		}
+	}
+	if strings.Contains(html, `class="sui-chart-menu-btn"`) {
+		t.Errorf("static graph must omit the gear")
+	}
+}
+
 func TestGraphDesignerModel(t *testing.T) {
 	prog, dl := ParseSource(graphTestSource, "graph.sui")
 	if dl.HasErrors() {

@@ -676,7 +676,7 @@ tabella o nella legenda apre il selettore colore; il campione pieno nella legend
 mostra il colore esatto usato dalla serie e la scelta aggiorna subito il token
 `--sui-chart-series-N`, viene salvata per chart in `localStorage` e non
 ricostruisce la tabella né ridisegna l'SVG. `colorPicker: false` lascia visibili
-i campioni ma disabilita la modifica (predefinito `true`). Un grafico con più
+i campioni ma disabilita la modifica (predefinito `true`). Per i diagrammi a blocchi, `settingsButton: false` nasconde l'ingranaggio, `showZoom: false` nasconde i controlli zoom, `showAdd: false` nasconde il pulsante + Add e `showHistory: false` nasconde undo/redo. Un grafico con più
 colori in legenda mostra sempre la legenda, anche con `showLegend: false`, così
 ogni colore resta identificabile. Le righe Gantt mostrano un campione colore
 accanto al nome del task; modificarlo aggiorna barra e tabella. Le voci legenda

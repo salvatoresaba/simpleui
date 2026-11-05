@@ -697,7 +697,9 @@ filled legend swatch shows the exact color used by that series, and the choice
 updates the corresponding `--sui-chart-series-N` token immediately, is
 stored per chart in `localStorage`, and does not rebuild the table or redraw the
 SVG. `colorPicker: false` keeps the swatches visible but disables editing
-(default `true`). A chart with more than one legend color always shows the
+(default `true`). For block diagrams, `settingsButton: false` hides the header
+gear, `showZoom: false` hides the zoom controls, `showAdd: false` hides the
+**+ Add** button and `showHistory: false` hides undo/redo. A chart with more than one legend color always shows the
 legend, even when `showLegend` is false, so each color remains identifiable.
 Gantt task rows show a color swatch next to the task name; changing it updates the
 bar and table. Gantt legend entries represent groups or individual tasks when

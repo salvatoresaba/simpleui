@@ -2976,7 +2976,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "renameIcon" || key == "showRenameIcon") {
 		return true
 	}
-	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" ||
+	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
 		key == "x" || key == "y" || key == "width" || key == "height" || key == "overflow" ||
 		key == "zoom" || key == "pointWidth" || key == "pointSize" || key == "bins" || key == "min" || key == "max" || key == "interactive" || key == "stateMode" || key == "stateHints" ||
 		key == "stateHintBg" || key == "stateHintOpacity" || key == "stateHintTextColor" || key == "stateHintBorderColor" ||
@@ -3559,7 +3559,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 				c.diagAt(a.span, a.key+" must be one of: "+strings.Join(allowed, ", "))
 			}
 			return
-		case "showGrid", "showLegend", "showValues", "tableFilters", "tableAddRow", "tableDeleteRow", "tableSteppers", "tableContextMenu", "criticalPath", "colorPicker",
+		case "showGrid", "showLegend", "showValues", "tableFilters", "tableAddRow", "tableDeleteRow", "tableSteppers", "tableContextMenu", "criticalPath", "colorPicker", "settingsButton", "showZoom", "showAdd", "showHistory",
 			"showResources", "showProgress", "showSlack", "showCosts", "statusColors", "autoSchedule", "showNonWorkingDays", "progressColumn",
 			"stateTagsMovable", "stateRoutesEditable", "stateHandles", "stateStartArrow":
 			if a.hasExpr {
