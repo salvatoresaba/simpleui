@@ -396,12 +396,22 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 /* per-chart state hint mini panel */
 #chintscfg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:11; }
 #chintscfg.on { display:flex; }
-#chintscfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:430px; max-width:92vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#chintscfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:780px; max-width:94vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #chintscfgbox h2 { font-size:15px; margin:0 0 8px; }
 #chintscfgbox .pfrow input[type=text], #chintscfgbox .pfrow input[type=number] { flex:1; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
-#chintscfgbox .pfrow label { width:120px; }
-#chints-preview { display:inline-block; max-width:280px; margin:4px 0 2px; padding:6px; border:1px solid #3d4556; border-radius:6px; background:#1d2129; color:#e6e6e6; font-size:11px; line-height:1.4; white-space:pre-line; }
-#chints-preview-label { margin-top:10px; }
+#chintscfgbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; }
+#chints-groups { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; align-items:start; }
+.chints-group { min-width:0; padding:8px 10px 10px; border:1px solid var(--border2); border-radius:10px; background:rgba(148,163,184,.045); }
+.chints-group-title { margin:0 0 6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+.chints-group .pfrow { margin:6px 0; gap:4px; }
+.chints-group .pfrow label { width:105px; font-size:12px; }
+.chints-group .pfrow input[type=range] { flex:1; min-width:0; accent-color:var(--accent); }
+.chints-bg-field { display:grid; grid-template-columns:52px minmax(0,1fr) 34px; gap:6px; align-items:center; flex:1; min-width:0; }
+.chints-bg-field input[type=range] { width:100%; min-width:0; }
+.chints-alpha-label { font-size:11px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+#chints-preview { display:block; width:max-content; max-width:280px; margin:4px auto 2px; padding:6px; border:1px solid #3d4556; border-radius:6px; background:#1d2129; color:#e6e6e6; font-size:11px; line-height:1.4; white-space:pre-line; text-align:left; }
+#chints-preview-label { margin-top:10px; text-align:center; }
+@media (max-width: 640px) { #chints-groups { grid-template-columns:1fr; } }
 
 /* per-element state hint editor */
 #celemhints { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:12; }
@@ -941,16 +951,27 @@ value: 12</div>
   <div id="chintscfgbox">
     <h2>HINTS settings</h2>
     <div class="hint">Global tooltip style for the selected state chart. Values left empty use the theme defaults. In tag and hint text <b>|</b> breaks a line and <b>\\|</b> is a literal pipe.</div>
-    <div class="pfrow"><label>Show hints</label><input type="checkbox" id="chints-enabled" checked></div>
-    <div class="pfrow"><label>Background</label><input type="text" id="chints-bg" placeholder="#rrggbb or transparent" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Opacity</label><input type="number" id="chints-opacity" min="0" max="1" step="0.05" value="1" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Text color</label><input type="text" id="chints-text" placeholder="#rrggbb" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Border color</label><input type="text" id="chints-border" placeholder="#rrggbb" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Font</label><input type="text" id="chints-font" placeholder="system-ui, sans-serif" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Font size</label><input type="number" id="chints-fontsize" min="8" max="32" step="1" value="11" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Border width</label><input type="number" id="chints-borderwidth" min="0" max="6" step="0.5" value="1" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Text padding</label><input type="number" id="chints-padding" min="0" max="24" step="1" value="6" oninput="updateChartHintsPreview()"></div>
-    <div class="pfrow"><label>Corner radius</label><input type="number" id="chints-radius" min="0" max="32" step="1" value="6" oninput="updateChartHintsPreview()"></div>
+    <div id="chints-groups">
+      <div class="chints-group">
+        <div class="chints-group-title">Hints and colors</div>
+        <div class="pfrow"><label>Show hints</label><input type="checkbox" id="chints-enabled" checked></div>
+        <div class="pfrow"><label>Background</label><span class="chints-bg-field">
+          <input type="color" id="chints-bg" value="#1d2129" oninput="updateChartHintsPreview()">
+          <input type="range" id="chints-opacity" min="0" max="1" step="0.05" value="1" oninput="updateChartHintsPreview()">
+          <span id="chints-opacity-label" class="chints-alpha-label">100%</span>
+        </span></div>
+        <div class="pfrow"><label>Text color</label><input type="text" id="chints-text" placeholder="#rrggbb" oninput="updateChartHintsPreview()"></div>
+        <div class="pfrow"><label>Border color</label><input type="text" id="chints-border" placeholder="#rrggbb" oninput="updateChartHintsPreview()"></div>
+        <div class="pfrow"><label>Font</label><input type="text" id="chints-font" placeholder="system-ui, sans-serif" oninput="updateChartHintsPreview()"></div>
+      </div>
+      <div class="chints-group">
+        <div class="chints-group-title">Size and spacing</div>
+        <div class="pfrow"><label>Font size</label><input type="number" id="chints-fontsize" min="8" max="32" step="1" value="11" oninput="updateChartHintsPreview()"></div>
+        <div class="pfrow"><label>Border width</label><input type="number" id="chints-borderwidth" min="0" max="6" step="0.5" value="1" oninput="updateChartHintsPreview()"></div>
+        <div class="pfrow"><label>Text padding</label><input type="number" id="chints-padding" min="0" max="24" step="1" value="6" oninput="updateChartHintsPreview()"></div>
+        <div class="pfrow"><label>Corner radius</label><input type="number" id="chints-radius" min="0" max="32" step="1" value="6" oninput="updateChartHintsPreview()"></div>
+      </div>
+    </div>
     <div id="chints-preview-label" class="cset-hint">Preview</div>
     <div id="chints-preview">Process
 RUNNING</div>
@@ -8069,6 +8090,13 @@ function attrsOf(n) {
     a += chartBoolAttr(n, "showGrid", "chartGrid", n.chartGrid, true);
     a += chartBoolAttr(n, "showLegend", "chartLegend", n.chartLegend, true);
     a += chartBoolAttr(n, "showValues", "chartValues", n.chartValues, false);
+    if (n.chartExtra && typeof n.chartExtra === "object") {
+      Object.keys(n.chartExtra).forEach(function(k) {
+        var v = n.chartExtra[k];
+        if (v === undefined || v === null || v === "") return;
+        a += " " + k + ": " + v;
+      });
+    }
   }
   if (n.kind === "treeitem" && n.key) a += " key: \"" + esc(n.key) + "\"";
   if (n.kind === "treeitem" && n.open) a += " open: true";
@@ -9865,13 +9893,29 @@ function resetChartTableCfg() {
   renderInspector();
 }
 var chartHintsNode = null;
+var chartHintsUseDefaults = false;
 function chartHintsColor(value, fallback) {
   var v = String(value || "").trim();
   return v || fallback;
 }
+function chartHintHex(value, fallback) {
+  var v = String(value || "").trim();
+  if (!v || /^(transparent|none)$/i.test(v)) return fallback;
+  var direct = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
+  var h = direct ? direct[1] : "";
+  if (!h) {
+    var css = cssColorToHex(v);
+    var m = /^#([0-9a-f]{3}|[0-9a-f]{6})/i.exec(css);
+    if (m) h = m[1];
+  }
+  if (!h) return fallback;
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  return "#" + h.slice(0, 6).toLowerCase();
+}
 function chartHintsPreviewColor(value, opacity, fallback) {
   var v = String(value || "").trim();
-  if (!v || v.toLowerCase() === "transparent") return "transparent";
+  if (!v) return fallback;
+  if (v.toLowerCase() === "transparent") return "transparent";
   var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
   if (!m) return fallback;
   var h = m[1];
@@ -9888,6 +9932,10 @@ function updateChartHintsPreview() {
   if (!el) return;
   var opacityRaw = document.getElementById("chints-opacity").value;
   var opacity = opacityRaw === "" ? 1 : Number(opacityRaw);
+  if (!isFinite(opacity)) opacity = 1;
+  opacity = Math.max(0, Math.min(1, opacity));
+  var opacityLabel = document.getElementById("chints-opacity-label");
+  if (opacityLabel) opacityLabel.textContent = Math.round(opacity * 100) + "%";
   var bg = chartHintsPreviewColor(document.getElementById("chints-bg").value, opacity, "#1d2129");
   var fg = chartHintsPreviewColor(document.getElementById("chints-text").value, 1, "#e6e6e6");
   var border = chartHintsPreviewColor(document.getElementById("chints-border").value, 1, "#3d4556");
@@ -9915,10 +9963,17 @@ function openChartHintsCfg(n) {
   var node = n || chartSettingsNode;
   if (!node) return;
   chartHintsNode = node;
+  chartHintsUseDefaults = false;
   var settingsOpen = document.getElementById("csettings").classList.contains("on");
   document.getElementById("chints-enabled").checked = settingsOpen ? document.getElementById("cs-state-hints").checked : node.chartStateHints !== false;
-  document.getElementById("chints-bg").value = node.chartStateHintBg || "";
-  document.getElementById("chints-opacity").value = node.chartStateHintOpacity || "";
+  var bgRaw = String(node.chartStateHintBg || "").trim();
+  var bgTransparent = /^(transparent|none)$/i.test(bgRaw);
+  var bgHex = chartHintHex(bgRaw, "#1d2129");
+  var opacity = Number(node.chartStateHintOpacity);
+  if (!isFinite(opacity)) opacity = 1;
+  if (bgTransparent) opacity = 0;
+  document.getElementById("chints-bg").value = bgHex;
+  document.getElementById("chints-opacity").value = String(Math.max(0, Math.min(1, opacity)));
   document.getElementById("chints-text").value = node.chartStateHintTextColor || "";
   document.getElementById("chints-border").value = node.chartStateHintBorderColor || "";
   document.getElementById("chints-font").value = node.chartStateHintFont || "";
@@ -9926,12 +9981,20 @@ function openChartHintsCfg(n) {
   document.getElementById("chints-borderwidth").value = node.chartStateHintBorderWidth || "";
   document.getElementById("chints-padding").value = node.chartStateHintPadding || "";
   document.getElementById("chints-radius").value = node.chartStateHintRadius || "";
+  var box = document.getElementById("chintscfgbox");
+  if (box && !box.__chintsDefaultsBound) {
+    box.__chintsDefaultsBound = true;
+    var markEdited = function() { chartHintsUseDefaults = false; };
+    box.addEventListener("input", markEdited);
+    box.addEventListener("change", markEdited);
+  }
   updateChartHintsPreview();
   document.getElementById("chintscfg").classList.add("on");
 }
 function closeChartHintsCfg() {
   document.getElementById("chintscfg").classList.remove("on");
   chartHintsNode = null;
+  chartHintsUseDefaults = false;
 }
 function chartHintsField(id) {
   return document.getElementById(id).value.trim();
@@ -9942,25 +10005,39 @@ function applyChartHintsCfg() {
   snap("chart hint settings");
   n.chartStateHints = document.getElementById("chints-enabled").checked;
   document.getElementById("cs-state-hints").checked = n.chartStateHints;
-  n.chartStateHintBg = chartHintsField("chints-bg");
-  n.chartStateHintOpacity = chartHintsField("chints-opacity");
-  n.chartStateHintTextColor = chartHintsField("chints-text");
-  n.chartStateHintBorderColor = chartHintsField("chints-border");
-  n.chartStateHintFont = chartHintsField("chints-font");
-  n.chartStateHintFontSize = chartHintsField("chints-fontsize");
-  n.chartStateHintBorderWidth = chartHintsField("chints-borderwidth");
-  n.chartStateHintPadding = chartHintsField("chints-padding");
-  n.chartStateHintRadius = chartHintsField("chints-radius");
+  if (chartHintsUseDefaults) {
+    n.chartStateHintBg = "";
+    n.chartStateHintOpacity = "";
+    n.chartStateHintTextColor = "";
+    n.chartStateHintBorderColor = "";
+    n.chartStateHintFont = "";
+    n.chartStateHintFontSize = "";
+    n.chartStateHintBorderWidth = "";
+    n.chartStateHintPadding = "";
+    n.chartStateHintRadius = "";
+  } else {
+    n.chartStateHintBg = document.getElementById("chints-bg").value || "";
+    n.chartStateHintOpacity = String(Number(document.getElementById("chints-opacity").value));
+    n.chartStateHintTextColor = chartHintsField("chints-text");
+    n.chartStateHintBorderColor = chartHintsField("chints-border");
+    n.chartStateHintFont = chartHintsField("chints-font");
+    n.chartStateHintFontSize = chartHintsField("chints-fontsize");
+    n.chartStateHintBorderWidth = chartHintsField("chints-borderwidth");
+    n.chartStateHintPadding = chartHintsField("chints-padding");
+    n.chartStateHintRadius = chartHintsField("chints-radius");
+  }
   closeChartHintsCfg();
   setOut();
   autoPreview();
   renderInspector();
 }
 function resetChartHintsCfg() {
-  ["chints-bg", "chints-text", "chints-border", "chints-font"].forEach(function(id) {
+  chartHintsUseDefaults = true;
+  document.getElementById("chints-bg").value = "#1d2129";
+  document.getElementById("chints-opacity").value = "1";
+  ["chints-text", "chints-border", "chints-font"].forEach(function(id) {
     document.getElementById(id).value = "";
   });
-  document.getElementById("chints-opacity").value = "1";
   document.getElementById("chints-fontsize").value = "11";
   document.getElementById("chints-borderwidth").value = "1";
   document.getElementById("chints-padding").value = "6";

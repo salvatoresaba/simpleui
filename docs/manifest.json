@@ -196,7 +196,7 @@
       "summary": "How the visual designer handles the code editor, completion, exact element-type badges, indentation, drag and drop, menu bars, tabs, pages, modal dialogs, toast and tooltip properties and dynamic combobox option lists, escaped commas, wildcard search, option length/count validation, runtime option errors, date/time pickers, nested trees with styles and JSON/XML import/export, charts with a movable/resizable data editor, data/type compatibility checks, multi-series data, data expressions, dimensions, scroll/zoom and presets, unified chart settings, table settings with nested submenus, Gantt critical path/holidays/weekend/timezone controls, source/target attributes, file drops and native pickers in the generated app.",
       "audience": ["human", "agent"],
       "priority": 2,
-      "tags": ["gui", "designer", "editor", "completion", "autocomplete", "indent", "highlight", "symbols", "undo", "redo", "styles", "drag", "drop", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "inspector"],
+      "tags": ["gui", "designer", "editor", "completion", "autocomplete", "indent", "highlight", "symbols", "undo", "redo", "styles", "drag", "drop", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "inspector", "hints", "round-trip"],
       "sections": ["GUI editor: drag and drop", "Quick answer", "Code editor preferences", "General editor", "SUI code appearance", "Completion and indentation", "Undo and redo", "Inspector and effective styles", "Designer drag and drop", "Tree drops", "Palette drops", "Designer limitations", "Application drag and drop", "Required properties", "Minimal reorder example", "Designer steps for the reorder example", "Dropping files and folders", "Menu bar control", "Pages", "Modal control", "Tabs control", "Accordion control", "Combobox control", "Tree control", "Chart control", "Date/Time picker control", "Toast control", "Tooltip property", "Native file and folder dialogs", "Designer inspector checklist", "Troubleshooting", "Security notes", "Related documents"]
     },
     {
@@ -386,7 +386,7 @@
       "summary": "Italian translation of the GUI editor guide, including editor preferences, completion and drag-and-drop.",
       "audience": ["human"],
       "priority": 4,
-      "tags": ["translation", "italian", "gui", "editor", "completion", "indent", "drag", "drop"],
+      "tags": ["translation", "italian", "gui", "editor", "completion", "indent", "drag", "drop", "hints", "round-trip"],
       "sections": []
     },
     {

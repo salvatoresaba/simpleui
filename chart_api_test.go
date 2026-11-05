@@ -238,7 +238,7 @@ view main {
 
 func TestStateHintsDesignerAndHtml(t *testing.T) {
 	src := `view main {
-	chart "C" name: "c" data: "" chartType: "state" stateHints: false stateHintBg: "#112233" stateHintOpacity: 0.4 stateHintTextColor: "#aabbcc" stateHintBorderColor: "#00ff99" stateHintFont: "Georgia, serif" stateHintFontSize: 15 stateHintBorderWidth: 2 stateHintPadding: 9 stateHintRadius: 12
+	chart "C" name: "c" data: "" chartType: "state" stateHints: false stateHintBg: "#112233" stateHintOpacity: 0.4 stateHintTextColor: "#aabbcc" stateHintBorderColor: "#00ff99" stateHintFont: "Georgia, serif" stateHintFontSize: 15 stateHintBorderWidth: 2 stateHintPadding: 9 stateHintRadius: 12 stateGridGap: 40 stateRouting: "orthogonal" stateTagFont: "Georgia, serif" stateGridColor: "#cbd5e1"
 }
 `
 	prog, pdl := ParseSource(src, "state_hints.sui")
@@ -272,6 +272,11 @@ func TestStateHintsDesignerAndHtml(t *testing.T) {
 		`"chartStateHintOpacity":"0.4"`,
 		`"chartStateHintFont":"Georgia, serif"`,
 		`"chartStateHintRadius":"12"`,
+		`"chartExtra":`,
+		`"stateGridGap"`,
+		`"stateRouting"`,
+		`"stateTagFont"`,
+		`"stateGridColor"`,
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("designer model missing %s: %s", want, model)

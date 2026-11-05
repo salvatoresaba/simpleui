@@ -10,6 +10,20 @@ import (
 
 // gui_hints_test.go covers the designer state-chart hint controls: the panel
 // markup, the serializer entries and the security-relevant colour helpers.
+func TestGuiSuiQuote(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{`a"b`, `"a\"b"`},
+		{`a{b}`, `"a\{b\}"`},
+		{"a\nb", `"a\nb"`},
+		{`a\b`, `"a\\b"`},
+	}
+	for _, c := range cases {
+		if got := guiSuiQuote(c.in); got != c.want {
+			t.Errorf("guiSuiQuote(%q) = %s, want %s", c.in, got, c.want)
+		}
+	}
+}
+
 func TestGuiStateHintPanelMarkup(t *testing.T) {
 	for _, want := range []string{
 		`id="chintscfg"`, `id="chintscfgbox"`, `id="chints-enabled"`,
@@ -18,6 +32,8 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		`id="chints-borderwidth"`, `id="chints-padding"`, `id="chints-radius"`,
 		`id="chints-preview"`, "HINTS settings", "openChartHintsCfg",
 		"applyChartHintsCfg", "resetChartHintsCfg", "updateChartHintsPreview",
+		`id="chints-groups"`, `class="chints-group"`, `id="chints-opacity-label"`, `class="chints-bg-field"`,
+		"Hints and colors", "Size and spacing", "chartHintHex",
 		`id="cs-state-edit"`, "Edit mode",
 		`id="celemhints"`, `id="celemhints-rows"`, "openChartElementHints",
 		"applyChartElementHints", "Element hints...", "chartElementRows",
@@ -36,6 +52,7 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		`chartParamAttr(n, "stateHintBorderWidth"`,
 		`chartParamAttr(n, "stateHintPadding"`,
 		`chartParamAttr(n, "stateHintRadius"`,
+		`if (n.chartExtra && typeof n.chartExtra === "object")`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer serializer missing %q", want)
@@ -95,6 +112,38 @@ console.log(JSON.stringify([rows.map(function(r) { return [r.kind, r.item.id || 
 	want := `[[["state","a","A|B"],["transition","a","X|Y"]],"A\nB","plain",null]`
 	if got != want {
 		t.Fatalf("element hint rows = %s, want %s", got, want)
+	}
+}
+
+func TestGuiHintHex(t *testing.T) {
+	nodePath, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed; skipping designer hint colour test")
+	}
+	start := strings.Index(guiHTML, "function chartHintHex(")
+	end := strings.Index(guiHTML, "function chartHintsPreviewColor(")
+	if start < 0 || end <= start {
+		t.Fatal("chartHintHex helper not found")
+	}
+	script := guiHTML[start:end] + `
+console.log(JSON.stringify([
+  chartHintHex("#abc", "#111111"),
+  chartHintHex("transparent", "#111111"),
+  chartHintHex("#112233", "#111111")
+]));
+`
+	path := filepath.Join(t.TempDir(), "hint_hex.js")
+	if err := os.WriteFile(path, []byte(script), 0o600); err != nil {
+		t.Fatalf("write hint hex test: %v", err)
+	}
+	out, err := exec.Command(nodePath, path).CombinedOutput()
+	if err != nil {
+		t.Fatalf("run hint hex test: %v\n%s", err, out)
+	}
+	got := strings.TrimSpace(string(out))
+	want := `["#aabbcc","#111111","#112233"]`
+	if got != want {
+		t.Fatalf("chartHintHex = %s, want %s", got, want)
 	}
 }
 

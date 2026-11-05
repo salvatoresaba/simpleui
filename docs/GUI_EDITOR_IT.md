@@ -828,8 +828,10 @@ ma la lista eventi è il modello consigliato. Gli id delle forme sono obbligator
 e univoci; il designer segnala id mancanti o duplicati come errore di import.
 **Hover hints** nella tab Interactions corrisponde a `stateHints`; disattivarlo
 nasconde tutti i tooltip. Il pulsante **HINTS...** apre il pannello globale dello
-stile tooltip (sfondo e opacità, colore testo/bordo, font e dimensione, spessore
-bordo, padding, raggio) e scrive gli attributi chart `stateHint*`. Ogni forma/link
+stile tooltip con due gruppi: switch/colori a sinistra e slider di
+dimensione/spaziatura a destra. Il campione dello sfondo include il proprio
+slider di opacità, quindi non serve un pulsante trasparente separato; scrive gli
+attributi chart `stateHint*`. Ogni forma/link
 accetta un campo `hint`, modificabile dalla colonna **Hint** della tabella o dal
 menu contestuale **Hint settings...**; usare `|` per andare a capo e `\|` per una
 pipe letterale. **Element hints...** nell'inspector del chart elenca tutti gli stati e link nei
@@ -837,6 +839,8 @@ dati JSON (incluso un letterale JSON contenuto in uno state semplice come `data`
 e modifica tag e hint con campi a riga singola (`|` va a capo, `\|` è una pipe
 letterale). Riscrive il JSON; per dati CSV/XML o espressioni calcolate usare
 l'editor dati.
+Gli attributi chart non esposti dall'inspector (griglia, routing, stili tag/link,
+...) vengono preservati alla lettera quando il documento viene aperto e salvato.
 Con la tabella visibile, selezionando un elemento nel diagramma la
 riga corrispondente riceve focus ed evidenziazione (tab **Links** per i link).
 

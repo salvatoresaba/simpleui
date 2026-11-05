@@ -802,15 +802,19 @@ etc.) but the event list is the recommended model. Shape ids are mandatory and
 unique; the designer reports missing or duplicate ids as an import error.
 **Hover hints** in the Interactions tab maps to `stateHints`; turn it off to hide
 all tooltips. The **HINTS...** button opens the global tooltip style panel
-(background and opacity, text/border color, font and size, border width, padding,
-radius) and writes the `stateHint*` chart attributes. Each shape/link also
-accepts a `hint` field, editable from the table **Hint** column or the context
-menu **Hint settings...**; use `|` for a line break and `\|` for a literal pipe.
+with two groups: switches/colors on the left and size/spacing sliders on the
+right. The background swatch includes its own opacity slider, so no separate
+transparent button is needed; it writes the `stateHint*` chart attributes. Each
+shape/link also accepts a `hint` field, editable from the table **Hint** column
+or the context menu **Hint settings...**; use `|` for a line break and `\|` for a
+literal pipe.
 **Element hints...** in the chart inspector lists every state and link found in
 JSON chart data (including a literal JSON string held by a simple state such as
 `data`) and edits their tag and hint text in single-line fields (`|` breaks a
 line, `\|` a literal pipe). It writes the JSON back; for CSV/XML data or computed
 expressions use the data editor instead.
+Chart attributes that the inspector does not expose yet (grid, routing, tag or
+link styles, ...) are preserved verbatim when the document is opened and saved.
 With the table visible, selecting an element in the diagram focuses and
 highlights its row (the **Links** tab for edges).
 

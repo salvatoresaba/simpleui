@@ -2125,6 +2125,20 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj[a.key] = JStr(partsLiteral(a.text))
 			}
+		} else if e.tag == "chart" {
+			// Preserve chart attributes the inspector does not model yet (grid,
+			// routing, tag/link styles, ...) so opening and saving a document in
+			// the designer never drops them.
+			extras, _ := o.obj["chartExtra"]
+			if extras.kind != "obj" {
+				extras = JObj()
+				o.obj["chartExtra"] = extras
+			}
+			if a.hasExpr && a.expr != nil {
+				extras.obj[a.key] = JStr(exprSource(a.expr))
+			} else {
+				extras.obj[a.key] = JStr(guiSuiQuote(partsLiteral(a.text)))
+			}
 		}
 	}
 	if e.tag != "table" && e.tag != "ul" && e.tag != "ol" && !isBlockTextTag(e.tag) {
@@ -2526,6 +2540,23 @@ func partsLiteral(parts []StrPart) string {
 		}
 	}
 	return sb.String()
+}
+
+// guiSuiQuote returns a SUI string literal for a static attribute value.
+// Braces and newlines must be escaped so the result can be emitted verbatim by
+// the designer without starting interpolation or breaking the literal.
+func guiSuiQuote(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	r := strings.NewReplacer(
+		"\\", "\\\\",
+		"\"", "\\\"",
+		"\n", "\\n",
+		"\t", "\\t",
+		"{", "\\{",
+		"}", "\\}",
+	)
+	return "\"" + r.Replace(s) + "\""
 }
 
 // guiTextSource serializes element text back to SUI source, preserving the
