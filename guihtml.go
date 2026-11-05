@@ -5457,7 +5457,7 @@ function chartControls(n) {
   settingsBtn.style.fontSize = "11px";
   settingsBtn.textContent = graph ? "Graph settings..." : "Chart settings...";
   settingsBtn.title = graph ? "Open the unified graph configuration panel" : "Open the unified chart configuration panel";
-  settingsBtn.onclick = function(){ openChartSettings(n); };
+  settingsBtn.onclick = function(){ if (graph) openGraphRuntimeSettings(n); else openChartSettings(n); };
   fields.chartSettings = chartFieldRow("settings", settingsBtn, "Appearance, points, tooltip, table, interactions and data fields in one panel.");
   b.appendChild(fields.chartSettings);
 
@@ -10691,6 +10691,28 @@ var chartSettingsNode = null;
 function showChartSettingsTab(name) {
   document.querySelectorAll(".cset-tab").forEach(function(b) { b.classList.toggle("on", b.getAttribute("data-cset") === name); });
   document.querySelectorAll("#csettings .cset-pane").forEach(function(p) { p.classList.toggle("on", p.getAttribute("data-pane") === name); });
+}
+function openGraphRuntimeSettings(n) {
+  var name = n && n.name ? String(n.name) : (n && n.text ? String(n.text) : "chart");
+  var frame = document.getElementById("prev");
+  try {
+    var doc = frame && frame.contentDocument;
+    if (doc) {
+      var charts = doc.querySelectorAll("[data-sui-chart]");
+      for (var i = 0; i < charts.length; i++) {
+        if (String(charts[i].getAttribute("data-sui-chart-name") || "") !== name) continue;
+        var gear = charts[i].querySelector(".sui-chart-menu-btn");
+        if (gear) {
+          gear.click();
+          setStatus("graph settings opened from the chart preview");
+          return;
+        }
+      }
+    }
+  } catch (e) {}
+  // The preview may still be loading or the gear may be hidden: keep the
+  // designer panel available as a fallback.
+  openChartSettings(n);
 }
 function openChartSettings(n) {
   chartSettingsNode = n;

@@ -1116,7 +1116,7 @@ L'inspector del graph espone:
 | table view | solo diagramma, solo tabella accessibile, oppure entrambi |
 | initial zoom | zoom iniziale della modalità zoom |
 | overflow | Scrollbars, Zoom controls o Fit to frame |
-| settings | pannello unificato con tab appearance, points, tooltip, table, interactions e data |
+| settings | apre lo stesso pannello runtime **Graph settings** dell'ingranaggio: impostazioni generali piu GRID, SHAPES, LINKS, TAGS e HINTS |
 | element hints | modifica tag e hint di ogni stato e link |
 | attributes | attributi griglia, routing e stile tag/link preservati alla lettera |
 | preset | preset colore che scrivono variabili CSS in `style expr` |

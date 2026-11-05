@@ -1087,7 +1087,7 @@ The graph inspector exposes:
 | table view | diagram only, accessible table only, or both |
 | initial zoom | starting zoom for zoom mode |
 | overflow | Scrollbars, Zoom controls or Fit to frame |
-| settings | unified panel with appearance, points, tooltip, table, interactions and data tabs |
+| settings | opens the same runtime **Graph settings** panel as the chart gear: general diagram options plus GRID, SHAPES, LINKS, TAGS and HINTS |
 | element hints | edit the tag and hint text of every state and link |
 | attributes | grid, routing and tag/link attributes preserved verbatim |
 | preset | color presets that write CSS variables into `style expr` |
