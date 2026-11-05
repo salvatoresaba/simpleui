@@ -442,6 +442,11 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #gstyle.on { display:flex; }
 #gstylebox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:14px 16px; width:640px; max-width:94vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #gstylebox h2 { font-size:15px; margin:0 0 8px; }
+.gstyle-tabs { display:flex; flex-wrap:wrap; gap:2px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+.gstyle-tab { border:0; border-bottom:2px solid transparent; background:transparent; color:var(--muted); padding:5px 8px; font-size:12px; cursor:pointer; }
+.gstyle-tab.on { color:var(--fg); border-bottom-color:var(--accent); }
+.gstyle-pane { display:none; }
+.gstyle-pane.on { display:block; }
 #gstylebox .gstyle-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px 12px; align-items:center; }
 #gstylebox .gstyle-grid .pfrow { margin:0; gap:6px; }
 .gstyle-section { grid-column:1/-1; margin-top:6px; padding-top:6px; border-top:1px solid var(--border); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
@@ -1127,55 +1132,63 @@ RUNNING</div>
     <button class="btn gstyle-x" type="button" aria-label="Close style editor" title="Close without applying" onclick="closeGraphStyleEditor()">&#10005;</button>
     <h2>Graph style editor</h2>
     <div class="hint">Fine-tune chart and component colors. Values are written to the graph style expression.</div>
-    <div class="gstyle-grid">
-      <div class="gstyle-section">Chart</div>
-      <div class="pfrow"><label>Background</label><input type="color" id="gs-bg" value="#0f1115"><input type="checkbox" id="gs-bg-transparent" title="Transparent background" aria-label="Transparent background"></div>
-      <div class="pfrow"><label>Text</label><input type="color" id="gs-fg" value="#e6e6ef"></div>
-      <div class="pfrow"><label>Title</label><input type="color" id="gs-title" value="#e6e6ef"></div>
-      <div class="pfrow"><label>Muted</label><input type="color" id="gs-muted" value="#8fa0b8"></div>
-      <div class="pfrow"><label>Grid</label><input type="color" id="gs-grid" value="#2c3444"><input type="checkbox" id="gs-grid-transparent" title="Transparent grid" aria-label="Transparent grid"></div>
-      <div class="pfrow"><label>Axis</label><input type="color" id="gs-axis" value="#3a4152"></div>
-      <div class="pfrow"><label>Component 1</label><input type="color" id="gs-series-1" value="#4c5cf7"></div>
-      <div class="pfrow"><label>Component 2</label><input type="color" id="gs-series-2" value="#22c55e"></div>
-      <div class="pfrow"><label>Component 3</label><input type="color" id="gs-series-3" value="#f59e0b"></div>
-      <div class="pfrow"><label>Component 4</label><input type="color" id="gs-series-4" value="#ef4444"></div>
-      <div class="pfrow"><label>Component 5</label><input type="color" id="gs-series-5" value="#06b6d4"></div>
-      <div class="pfrow"><label>Component 6</label><input type="color" id="gs-series-6" value="#a855f7"></div>
-      <div class="pfrow"><label>Component 7</label><input type="color" id="gs-series-7" value="#84cc16"></div>
-      <div class="pfrow"><label>Component 8</label><input type="color" id="gs-series-8" value="#ec4899"></div>
-
-      <div class="gstyle-section">Outer frame</div>
-      <div class="pfrow"><label>Border width</label><input type="number" id="gs-border-width" min="0" max="12" step="1" value="0"></div>
-      <div class="pfrow"><label>Border color</label><input type="color" id="gs-border-color" value="#475569"></div>
-      <div class="pfrow"><label>Corner radius</label><input type="number" id="gs-border-radius" min="0" max="80" step="1" value="0"></div>
-
-      <div class="gstyle-section">Buttons</div>
-      <div class="pfrow"><label>Background</label><input type="color" id="gs-btn-bg" value="#1d2129"></div>
-      <div class="pfrow"><label>Text</label><input type="color" id="gs-btn-fg" value="#e6e6e6"></div>
-      <div class="pfrow"><label>Border</label><input type="color" id="gs-btn-border" value="#3d4556"></div>
-      <div class="pfrow"><label>Radius</label><input type="number" id="gs-btn-radius" min="0" max="40" step="1" value="5"></div>
-      <div class="pfrow"><label>Font</label><input type="text" id="gs-btn-font" placeholder="inherit"></div>
-      <div class="pfrow"><label>Font size</label><input type="text" id="gs-btn-fontsize" placeholder="12px"></div>
-      <div class="pfrow"><label>Shadow</label><input type="text" id="gs-btn-shadow" placeholder="none"></div>
-      <div class="pfrow"><label>Hover background</label><input type="color" id="gs-btn-hover-bg" value="#2d3340"></div>
-      <div class="pfrow"><label>Hover text</label><input type="color" id="gs-btn-hover-fg" value="#ffffff"></div>
-      <div class="pfrow"><label>Hover border</label><input type="color" id="gs-btn-hover-border" value="#556075"></div>
-      <div class="pfrow"><label>Focus border</label><input type="color" id="gs-btn-focus-border" value="#4c5cf7"></div>
-      <div class="pfrow"><label>Active background</label><input type="color" id="gs-btn-active-bg" value="#2d3340"></div>
-
-      <div class="gstyle-section">Table</div>
-      <div class="pfrow"><label>Font size</label><input type="text" id="gs-table-fontsize" placeholder="11px"></div>
-      <div class="pfrow"><label>Cell padding</label><input type="text" id="gs-table-padding" placeholder="4px 6px"></div>
-      <div class="pfrow"><label>Header background</label><input type="color" id="gs-table-headbg" value="#1d2129"></div>
-      <div class="pfrow"><label>Header text</label><input type="color" id="gs-table-headfg" value="#e6e6ef"></div>
-      <div class="pfrow"><label>Row background</label><input type="color" id="gs-table-rowbg" value="#14171c"></div>
-      <div class="pfrow"><label>Row border</label><input type="color" id="gs-table-rowborder" value="#2c3444"></div>
-      <div class="pfrow"><label>Stripe opacity</label><input type="number" id="gs-table-stripe" min="0" max="1" step="0.01" value="0.06"></div>
-
-      <div class="gstyle-section">Scrollbars</div>
-      <div class="pfrow"><label>Size</label><input type="text" id="gs-scroll-size" placeholder="9px"></div>
-      <div class="pfrow"><label>Track</label><input type="color" id="gs-scroll-track" value="#1a1e26"></div>
-      <div class="pfrow"><label>Thumb</label><input type="color" id="gs-scroll-thumb" value="#3d4556"></div>
+    <div class="gstyle-tabs">
+      <button class="gstyle-tab on" type="button" data-gtab="title" onclick="showGraphStyleTab('title')">Title</button>
+      <button class="gstyle-tab" type="button" data-gtab="frame" onclick="showGraphStyleTab('frame')">Frame</button>
+      <button class="gstyle-tab" type="button" data-gtab="buttons" onclick="showGraphStyleTab('buttons')">Buttons</button>
+      <button class="gstyle-tab" type="button" data-gtab="table" onclick="showGraphStyleTab('table')">Table</button>
+      <button class="gstyle-tab" type="button" data-gtab="scrollbars" onclick="showGraphStyleTab('scrollbars')">Scrollbars</button>
+    </div>
+    <div class="gstyle-pane on" data-gpane="title">
+      <div class="gstyle-grid">
+        <div class="pfrow"><label>Header background</label><input type="color" id="gs-head-bg" value="#1d2129"><input type="checkbox" id="gs-head-transparent" title="Transparent header" aria-label="Transparent header"></div>
+        <div class="pfrow"><label>Title color</label><input type="color" id="gs-title" value="#e6e6ef"></div>
+        <div class="pfrow"><label>Title font</label><input type="text" id="gs-title-font" placeholder="inherit"></div>
+        <div class="pfrow"><label>Title size</label><input type="text" id="gs-title-size" placeholder="14px"></div>
+        <div class="pfrow"><label>Title weight</label><input type="text" id="gs-title-weight" placeholder="600"></div>
+        <div class="pfrow"><label>Title spacing</label><input type="text" id="gs-title-spacing" placeholder="normal"></div>
+      </div>
+    </div>
+    <div class="gstyle-pane" data-gpane="frame">
+      <div class="gstyle-grid">
+        <div class="pfrow"><label>Border width</label><input type="number" id="gs-border-width" min="0" max="12" step="1" value="0"></div>
+        <div class="pfrow"><label>Border color</label><input type="color" id="gs-border-color" value="#475569"></div>
+        <div class="pfrow"><label>Corner radius</label><input type="number" id="gs-border-radius" min="0" max="80" step="1" value="0"></div>
+      </div>
+    </div>
+    <div class="gstyle-pane" data-gpane="buttons">
+      <div class="gstyle-grid">
+        <div class="pfrow"><label>Background</label><input type="color" id="gs-btn-bg" value="#1d2129"></div>
+        <div class="pfrow"><label>Text</label><input type="color" id="gs-btn-fg" value="#e6e6e6"></div>
+        <div class="pfrow"><label>Border</label><input type="color" id="gs-btn-border" value="#3d4556"></div>
+        <div class="pfrow"><label>Radius</label><input type="number" id="gs-btn-radius" min="0" max="40" step="1" value="5"></div>
+        <div class="pfrow"><label>Font</label><input type="text" id="gs-btn-font" placeholder="inherit"></div>
+        <div class="pfrow"><label>Font size</label><input type="text" id="gs-btn-fontsize" placeholder="12px"></div>
+        <div class="pfrow"><label>Shadow</label><input type="text" id="gs-btn-shadow" placeholder="none"></div>
+        <div class="pfrow"><label>Hover background</label><input type="color" id="gs-btn-hover-bg" value="#2d3340"></div>
+        <div class="pfrow"><label>Hover text</label><input type="color" id="gs-btn-hover-fg" value="#ffffff"></div>
+        <div class="pfrow"><label>Hover border</label><input type="color" id="gs-btn-hover-border" value="#556075"></div>
+        <div class="pfrow"><label>Focus border</label><input type="color" id="gs-btn-focus-border" value="#4c5cf7"></div>
+        <div class="pfrow"><label>Active background</label><input type="color" id="gs-btn-active-bg" value="#2d3340"></div>
+      </div>
+    </div>
+    <div class="gstyle-pane" data-gpane="table">
+      <div class="gstyle-grid">
+        <div class="pfrow"><label>Font size</label><input type="text" id="gs-table-fontsize" placeholder="11px"></div>
+        <div class="pfrow"><label>Cell padding</label><input type="text" id="gs-table-padding" placeholder="4px 6px"></div>
+        <div class="pfrow"><label>Header background</label><input type="color" id="gs-table-headbg" value="#1d2129"></div>
+        <div class="pfrow"><label>Header text</label><input type="color" id="gs-table-headfg" value="#e6e6ef"></div>
+        <div class="pfrow"><label>Row background</label><input type="color" id="gs-table-rowbg" value="#14171c"></div>
+        <div class="pfrow"><label>Row border</label><input type="color" id="gs-table-rowborder" value="#2c3444"></div>
+        <div class="pfrow"><label>Stripe opacity</label><input type="number" id="gs-table-stripe" min="0" max="1" step="0.01" value="0.06"></div>
+      </div>
+    </div>
+    <div class="gstyle-pane" data-gpane="scrollbars">
+      <div class="gstyle-grid">
+        <div class="pfrow"><label>Size</label><input type="text" id="gs-scroll-size" placeholder="9px"></div>
+        <div class="pfrow"><label>Track</label><input type="color" id="gs-scroll-track" value="#1a1e26"></div>
+        <div class="pfrow"><label>Thumb</label><input type="color" id="gs-scroll-thumb" value="#3d4556"></div>
+      </div>
     </div>
     <div class="pfbtns">
       <span style="flex:1"></span>
@@ -4499,20 +4512,8 @@ function chartPresetKey(n) {
   return "custom";
 }
 var GRAPH_STYLE_FIELDS = [
-  { id: "gs-bg", name: "--sui-chart-bg", transparent: "gs-bg-transparent" },
-  { id: "gs-fg", name: "--sui-chart-fg" },
+  { id: "gs-head-bg", name: "--sui-chart-head-bg", transparent: "gs-head-transparent" },
   { id: "gs-title", name: "--sui-chart-title-color" },
-  { id: "gs-muted", name: "--sui-chart-muted" },
-  { id: "gs-grid", name: "--sui-chart-grid", transparent: "gs-grid-transparent" },
-  { id: "gs-axis", name: "--sui-chart-axis" },
-  { id: "gs-series-1", name: "--sui-chart-series-1" },
-  { id: "gs-series-2", name: "--sui-chart-series-2" },
-  { id: "gs-series-3", name: "--sui-chart-series-3" },
-  { id: "gs-series-4", name: "--sui-chart-series-4" },
-  { id: "gs-series-5", name: "--sui-chart-series-5" },
-  { id: "gs-series-6", name: "--sui-chart-series-6" },
-  { id: "gs-series-7", name: "--sui-chart-series-7" },
-  { id: "gs-series-8", name: "--sui-chart-series-8" },
   { id: "gs-btn-bg", name: "--sui-chart-control-bg", fallback: "#1d2129" },
   { id: "gs-btn-fg", name: "--sui-chart-control-fg", fallback: "#e6e6e6" },
   { id: "gs-btn-border", name: "--sui-chart-control-border", fallback: "#3d4556" },
@@ -4529,6 +4530,10 @@ var GRAPH_STYLE_FIELDS = [
   { id: "gs-scroll-thumb", name: "--sui-chart-scroll-thumb", fallback: "#3d4556" }
 ];
 var GRAPH_STYLE_TEXT_FIELDS = [
+  { id: "gs-title-font", name: "--sui-chart-title-font", fallback: "" },
+  { id: "gs-title-size", name: "--sui-chart-title-size", fallback: "14px" },
+  { id: "gs-title-weight", name: "--sui-chart-title-weight", fallback: "600" },
+  { id: "gs-title-spacing", name: "--sui-chart-title-letter-spacing", fallback: "normal" },
   { id: "gs-btn-font", name: "--sui-chart-control-font", fallback: "" },
   { id: "gs-btn-fontsize", name: "--sui-chart-control-font-size", fallback: "" },
   { id: "gs-btn-shadow", name: "--sui-chart-control-shadow", fallback: "" },
@@ -4541,6 +4546,10 @@ var graphStyleNode = null;
 function chartCssVarValue(css, name) {
   var m = String(css || "").match(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*([^;]+)(?:;|$)"));
   return m ? m[1].trim() : "";
+}
+function showGraphStyleTab(name) {
+  document.querySelectorAll("#gstylebox .gstyle-tab").forEach(function(b) { b.classList.toggle("on", b.getAttribute("data-gtab") === name); });
+  document.querySelectorAll("#gstylebox .gstyle-pane").forEach(function(p) { p.classList.toggle("on", p.getAttribute("data-gpane") === name); });
 }
 function graphStyleBorderParts(css) {
   var raw = chartCssVarValue(css, "--sui-chart-border");
@@ -4633,6 +4642,7 @@ function openGraphStyleEditor(n) {
     box.addEventListener("change", updateGraphStylePreview);
   }
   document.getElementById("gstyle").classList.add("on");
+  showGraphStyleTab("title");
   updateGraphStylePreview();
 }
 function closeGraphStyleEditor(restore) {

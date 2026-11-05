@@ -44,7 +44,8 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		"Block diagram (legacy chart)", "Replace chart data?",
 		"openGraphRuntimeSettings",
 		"function graphControls", "openGraphStyleEditor", "applyGraphStyleEditor", "closeGraphStyleEditor",
-		`id="gstyle"`, "Graph style editor", "gs-series-8",
+		`id="gstyle"`, "Graph style editor", "gs-head-bg", "gs-title-font", "gs-title-weight",
+		"showGraphStyleTab", `data-gtab="title"`,
 		"show table", "zoom buttons", "add element button", "undo/redo buttons", "edit data",
 		"showZoom", "showAdd", "showHistory", "settingsButton",
 		"gs-border-width", "gs-btn-shadow", "gs-table-headfg", "gs-scroll-thumb",
@@ -56,6 +57,9 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 	}
 	if strings.Contains(guiHTML, `["state", "State machine"]`) {
 		t.Error("chart type menu still offers State machine")
+	}
+	if strings.Contains(guiHTML, `id="gs-series-1"`) || strings.Contains(guiHTML, "Component 1") {
+		t.Error("component color controls should be removed from the graph style editor")
 	}
 	for _, want := range []string{
 		`chartParamAttr(n, "stateHintBg"`,

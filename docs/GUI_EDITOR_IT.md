@@ -1126,10 +1126,11 @@ e non scrive `chartType` nel sorgente. Per lo stesso motivo il tipo è disabilit
 nell'editor dati. L'inspector non mostra più zoom iniziale, interactive, element
 hints o attributi chart per Graph.
 
-Il **Graph style editor** raggruppa i token in Chart, Outer frame, Buttons, Table
-e Scrollbars. Modifica colori di sfondo/testo/componenti, bordo e raggio del
-grafico, background/testo/bordo/raggio/font/ombra dei pulsanti con colori hover,
-focus e active, intestazione/righe/font/spaziatura della tabella e
+Il **Graph style editor** raggruppa i token nei tab Title, Frame, Buttons, Table e
+Scrollbars. Modifica colori header/titolo, font/dimensione/peso/spaziatura del
+titolo e background dell'header, bordo e raggio del grafico,
+background/testo/bordo/raggio/font/ombra dei pulsanti con colori hover, focus e
+active, intestazione/righe/font/spaziatura della tabella e
 dimensione/track/thumb delle scrollbar. Le modifiche sono mostrate in anteprima
 dal vivo e diventano valori del sorgente solo con **Apply**.
 

@@ -345,6 +345,7 @@ body {
   gap: 8px;
   flex: none;
   padding: var(--sui-chart-head-padding, 2px 4px 6px);
+  background: var(--sui-chart-head-bg, transparent);
 }
 .sui-chart-head button,
 .sui-chart-head .sui-chart-state-create-tools button {
@@ -356,8 +357,10 @@ body {
   justify-content: center;
 }
 .sui-chart-title {
-  font-weight: 600;
+  font-weight: var(--sui-chart-title-weight, 600);
+  font-family: var(--sui-chart-title-font, var(--sui-chart-font, inherit));
   font-size: var(--sui-chart-title-size, 14px);
+  letter-spacing: var(--sui-chart-title-letter-spacing, normal);
   color: var(--sui-chart-title-color, var(--sui-chart-fg, #e6e6ef));
   min-width: 0;
   overflow: hidden;
