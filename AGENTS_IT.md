@@ -31,6 +31,13 @@ italiane: quando la versione inglese cambia, aggiorna anche la copia `_IT`.
 
 ## Regole non negoziabili
 
+- **Commit obbligatorio per ogni modifica tracciata.** Al termine di qualsiasi
+  modifica ai file tracciati esegui `git add -A` e crea un commit descrittivo
+  prima di chiudere il turno. Non lasciare modifiche tracciate non committate.
+  Se il lavoro è incompleto o i test falliscono, committa con prefisso `wip:`
+  (su un branch quando possibile) così da poter recuperare il lavoro. Gli
+  artefatti generati sono ignorati: non forzarne l'aggiunta. Verifica con
+  `git status --short` e riporta l'hash del commit.
 - **Niente HTML raw.** Testo e attributi sono escapati automaticamente; non
   esiste l'interpolazione HTML raw.
 - **Valida i dati non fidati.** Corpi API, file, CSV/JSON, URL e iframe sono
@@ -185,7 +192,8 @@ Al termine riporta:
 1. file `.sui` modificati (e, se necessario, file del compilatore);
 2. esito di `simpleui check` e comando di build/serve usato;
 3. decisioni di sicurezza (allow-list, token sandbox, capability desktop);
-4. rischi residui o header di deployment ancora necessari.
+4. rischi residui o header di deployment ancora necessari;
+5. commit git creato per la modifica (hash e messaggio).
 
 Non dichiarare funzionante un'interfaccia se `simpleui check` fallisce o se il
 build non è stato eseguito.

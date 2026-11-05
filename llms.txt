@@ -4,7 +4,8 @@
 
 ## Start here
 
-- [AGENTS.md](AGENTS.md): Canonical coding-agent guide — workflow, security rules, repo map, commands, task routing.
+- [AGENTS.md](AGENTS.md): Canonical coding-agent guide - workflow, security rules, repo map, commands, task routing.
+- [GIT_WORKFLOW.md](GIT_WORKFLOW.md): Mandatory commit policy for agents, baseline tag and restore commands.
 - [docs/INDEX.md](docs/INDEX.md): Human-friendly documentation map and task-based navigation.
 - [docs/AGENT_RECIPES.md](docs/AGENT_RECIPES.md): Code patterns for local forms/tables, drag and drop, remote APIs, CRUD, polling, desktop capabilities, spreadsheets and iframes.
 - [docs/GUI_EDITOR.md](docs/GUI_EDITOR.md): Designer drag and drop, application DnD properties, file drops and native pickers.

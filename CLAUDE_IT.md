@@ -24,5 +24,9 @@ Dopo ogni modifica a un file `.sui` esegui sempre:
 simpleui check app.sui --json
 ```
 
+Dopo qualsiasi modifica ai file tracciati crea un commit git prima di
+concludere (`git add -A && git commit -m "type(scope): summary"`). Non lasciare
+modifiche tracciate non committate. Vedi `GIT_WORKFLOW.md`.
+
 Non inventare sintassi e non aggirare le regole di sicurezza descritte in
 `AGENTS_IT.md`.

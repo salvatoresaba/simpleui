@@ -8,5 +8,7 @@ Read [`AGENTS.md`](../../AGENTS.md) before changing SUI or compiler code. Use
 [`docs/manifest.json`](../../docs/manifest.json) and
 [`docs/AGENT_RECIPES.md`](../../docs/AGENT_RECIPES.md) to choose the canonical
 pattern. After editing a `.sui` file run `simpleui check app.sui --json`.
-Do not bypass `cssSafe`, `*Safe` URL allow-lists, iframe `srcAllow`/sandbox
-defaults, table `textContent`, or desktop capability checks.
+Commit every tracked change before finishing (`git add -A && git commit`); do
+not leave the working tree dirty. Do not bypass `cssSafe`, `*Safe` URL
+allow-lists, iframe `srcAllow`/sandbox defaults, table `textContent`, or desktop
+capability checks.

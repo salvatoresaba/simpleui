@@ -17,5 +17,9 @@ After editing a `.sui` file:
 simpleui check app.sui --json
 ```
 
+After any change to tracked files, commit before finishing
+(`git add -A && git commit -m "type(scope): summary"`). Do not leave tracked
+changes uncommitted. See `GIT_WORKFLOW.md`.
+
 Do not invent syntax, bypass `cssSafe`/`*Safe`/`srcAllow`, or disable the
 security defaults in `AGENTS.md`.

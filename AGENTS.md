@@ -28,6 +28,12 @@ go build -o simpleui .         # Linux/macOS
 
 These rules are part of the language's security model. Do not work around them.
 
+- **Commit every tracked change.** After finishing any edit to tracked files,
+  run `git add -A` and create a descriptive commit before ending the turn. Do
+  not leave tracked changes uncommitted. If a task is incomplete or failing,
+  commit with a `wip:` prefix (on a branch when possible) so the work is
+  recoverable. Generated outputs are ignored; never force-add them. Verify with
+  `git status --short` and report the commit hash.
 - **No raw HTML.** Interpolated text and attributes are escaped automatically.
   Raw HTML interpolation is intentionally unavailable. Data is data, never
   markup.
@@ -215,7 +221,8 @@ When you finish a task, report:
 1. the `.sui` files (and, only if necessary, compiler files) changed;
 2. `simpleui check` result and the build/serve command used;
 3. any security decisions (allow-lists, sandbox tokens, desktop capabilities);
-4. known residual risks or deployment headers still required.
+4. known residual risks or deployment headers still required;
+5. the git commit created for the change (hash and message).
 
 Do not claim a UI works if `simpleui check` fails or if the build was not run.
 

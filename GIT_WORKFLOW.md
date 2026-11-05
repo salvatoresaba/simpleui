@@ -3,6 +3,20 @@
 This repository is versioned on the `main` branch. The first commit is tagged
 `baseline` and represents the known-good state before future changes.
 
+## Mandatory for every agent
+
+Every agent must commit all tracked changes before finishing a task:
+
+```bash
+git add -A
+git commit -m "type(scope): summary"
+git status --short          # must be empty except ignored files
+```
+
+Do not leave tracked changes uncommitted. If the task is incomplete or tests are
+failing and cannot be fixed immediately, commit with a `wip:` prefix (preferably
+on a branch) so the work is recoverable. Never force-add generated outputs.
+
 ## Daily commands
 
 ```bash
