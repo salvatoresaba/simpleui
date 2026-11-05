@@ -3048,7 +3048,11 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString("\" data-sui-chart-state-grid-color=\"")
 	b.WriteString(chartAttrValue(e, "stateGridColor", ""))
 	b.WriteString("\" data-sui-chart-state-mode=\"")
-	b.WriteString(chartAttrValue(e, "stateMode", "editing"))
+	stateModeDefault := "editing"
+	if e.tag == "graph" {
+		stateModeDefault = "static"
+	}
+	b.WriteString(chartAttrValue(e, "stateMode", stateModeDefault))
 	b.WriteString("\" data-sui-chart-state-hints=\"")
 	b.WriteString(chartFlagValue(e, "stateHints", true))
 	b.WriteString("\" data-sui-chart-state-hint-bg=\"")

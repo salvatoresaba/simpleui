@@ -332,6 +332,13 @@ body {
   --sui-table-hover-bg: transparent;
 }
 .sui-chart:focus-visible { outline: 2px solid var(--sui-chart-control-hover-border, var(--sui-chart-series-1, #4c5cf7)); outline-offset: 2px; }
+.sui-chart-head button, .sui-chart-state-create-tools button, .sui-chart-zoom-btn, .sui-chart-zoom-reset, .sui-chart-zoom-fit, .sui-chart-menu-btn { font-family: var(--sui-chart-control-font, inherit); box-shadow: var(--sui-chart-control-shadow, none); }
+.sui-chart-head button:not(.sui-chart-menu-btn), .sui-chart-state-create-tools button, .sui-chart-zoom-btn, .sui-chart-zoom-reset, .sui-chart-zoom-fit { font-size: var(--sui-chart-control-font-size, 12px); }
+.sui-chart-head button:focus-visible, .sui-chart-state-create-tools button:focus-visible, .sui-chart-zoom-btn:focus-visible, .sui-chart-zoom-reset:focus-visible, .sui-chart-zoom-fit:focus-visible { outline: 2px solid var(--sui-chart-control-focus-border, var(--sui-chart-control-hover-border, var(--sui-chart-series-1, #4c5cf7))); outline-offset: 1px; }
+.sui-chart-head button:active, .sui-chart-state-create-tools button:active, .sui-chart-zoom-btn:active, .sui-chart-zoom-reset:active, .sui-chart-zoom-fit:active { background: var(--sui-chart-control-active-bg, var(--sui-chart-control-hover-bg, var(--sui-chart-grid, #2c3444))); }
+.sui-chart-table tbody tr { background: var(--sui-chart-table-row-bg, transparent); }
+.sui-chart-table th { color: var(--sui-chart-table-head-fg, var(--sui-chart-fg, #e6e6ef)); }
+.sui-chart-table th, .sui-chart-table td { border-bottom-color: var(--sui-chart-table-row-border, var(--sui-chart-grid, #2c3444)); }
 .sui-chart-head {
   display: flex;
   align-items: center;
@@ -428,6 +435,10 @@ body {
 }
 .sui-chart[data-sui-chart-type="gantt"] .sui-chart-viewport { touch-action: pan-x pan-y; }
 .sui-chart-viewport::-webkit-scrollbar { width: var(--sui-chart-scroll-size, 9px); height: var(--sui-chart-scroll-size, 9px); }
+.sui-chart { scrollbar-color: var(--sui-chart-scroll-thumb, var(--sui-chart-axis, var(--sui-chart-muted, #3d4556))) var(--sui-chart-scroll-track, transparent); }
+.sui-chart::-webkit-scrollbar { width: var(--sui-chart-scroll-size, 9px); height: var(--sui-chart-scroll-size, 9px); }
+.sui-chart::-webkit-scrollbar-track { background: var(--sui-chart-scroll-track, transparent); }
+.sui-chart::-webkit-scrollbar-thumb { background: var(--sui-chart-scroll-thumb, var(--sui-chart-axis, var(--sui-chart-muted, #3d4556))); border-radius: 6px; }
 .sui-chart-viewport::-webkit-scrollbar-track { background: var(--sui-chart-scroll-track, transparent); }
 .sui-chart-viewport::-webkit-scrollbar-thumb { background: var(--sui-chart-scroll-thumb, var(--sui-chart-axis, var(--sui-chart-muted, #3d4556))); border-radius: 6px; }
 .sui-chart-stage { position: relative; min-width: 100%; min-height: 100%; }
@@ -871,6 +882,7 @@ body {
 .sui-chart-state-table-tools button { border: 1px solid var(--sui-chart-control-border, #475569); background: var(--sui-chart-control-bg, var(--sui-chart-bg, #14171c)); color: var(--sui-chart-fg, #e6e6ef); border-radius: 4px; padding: 3px 7px; font: inherit; font-size: 11px; height: 28px; min-height: 28px; box-sizing: border-box; cursor: pointer; }
 .sui-chart-state-table-tools .sui-chart-state-table-settings { margin-left: auto; font-size: 14px; padding: 1px 6px; }
 .sui-chart-state-create-tools { margin-left: auto; display: flex; flex: none; align-items: center; position: static; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.sui-chart-state-create-tools { display: flex; align-items: center; gap: 3px; flex: none; margin-left: auto; }
 .sui-chart-state-create-tools + .sui-chart-menu-btn { margin-left: 0; }
 .sui-chart-state-create-tools button { width: 26px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--sui-chart-control-border, var(--sui-chart-axis, #475569)); border-radius: var(--sui-chart-control-radius, 5px); background: var(--sui-chart-control-bg, transparent); color: var(--sui-chart-control-fg, var(--sui-chart-fg, #e6e6ef)); font: inherit; font-size: 17px; line-height: 1; padding: 0; cursor: pointer; }
 .sui-chart-state-create-tools .sui-chart-state-icon-btn { width: 28px; height: 28px; padding: 0; }
@@ -1068,7 +1080,9 @@ body {
 .sui-chart-table-only .sui-chart-zoom,
 .sui-chart-table-only .sui-chart-legend { display: none; }
 .sui-chart-table-only .sui-chart-table { flex: 1 1 auto; max-height: 70vh; overflow: auto; margin-top: 0; border-top: 0; }
-.sui-chart-table-both .sui-chart-table { flex: 0 1 45%; }
+.sui-chart-table-both { overflow-y: auto; overflow-x: hidden; }
+.sui-chart-table-both .sui-chart-viewport { flex: 0 0 auto; height: calc(100% - var(--sui-chart-head-height, 38px)); }
+.sui-chart-table-both .sui-chart-table { flex: 0 0 auto; max-height: none; overflow: visible; }
 .sui-chart-slice { stroke: var(--sui-chart-bg, #14171c); stroke-width: var(--sui-chart-slice-stroke, 2); }
 .sui-chart-pie-hole { fill: var(--sui-chart-bg, #14171c); }
 .sui-chart-series-1 { fill: var(--sui-chart-series-1, #4c5cf7); }
@@ -3557,7 +3571,12 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 		"\" data-sui-chart-state-grid=\"" + boolAttr01(chartStaticFlag(e, "stateGrid", true)) +
 		"\" data-sui-chart-state-grid-gap=\"" + htmlEscape(chartStaticValue(e, "stateGridGap", "24")) +
 		"\" data-sui-chart-state-grid-color=\"" + htmlEscape(chartStaticValue(e, "stateGridColor", "")) +
-		"\" data-sui-chart-state-mode=\"" + htmlEscape(chartStaticValue(e, "stateMode", "editing")) +
+		"\" data-sui-chart-state-mode=\"" + htmlEscape(chartStaticValue(e, "stateMode", func() string {
+		if e.tag == "graph" {
+			return "static"
+		}
+		return "editing"
+	}())) +
 		"\" data-sui-chart-state-hints=\"" + boolAttr01(chartStaticFlag(e, "stateHints", true)) +
 		"\" data-sui-chart-state-handles=\"" + boolAttr01(chartStaticFlag(e, "stateHandles", true)) +
 		"\" data-sui-chart-state-tags-movable=\"" + boolAttr01(chartStaticFlag(e, "stateTagsMovable", false)) +

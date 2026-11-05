@@ -1126,6 +1126,20 @@ e non scrive `chartType` nel sorgente. Per lo stesso motivo il tipo è disabilit
 nell'editor dati. L'inspector non mostra più zoom iniziale, interactive, element
 hints o attributi chart per Graph.
 
+Il **Graph style editor** raggruppa i token in Chart, Outer frame, Buttons, Table
+e Scrollbars. Modifica colori di sfondo/testo/componenti, bordo e raggio del
+grafico, background/testo/bordo/raggio/font/ombra dei pulsanti con colori hover,
+focus e active, intestazione/righe/font/spaziatura della tabella e
+dimensione/track/thumb delle scrollbar. Le modifiche sono mostrate in anteprima
+dal vivo e diventano valori del sorgente solo con **Apply**.
+
+Con **show table** attivo la tabella viene aggiunta sotto il diagramma senza
+ridurne l'altezza. Il contenitore del grafico cresce come contenuto scrollabile:
+le scrollbar indicano che c'è la tabella sotto e ingrandendo il contenitore la
+tabella diventa visibile. I Graph partono in modalità statica nel designer; gli
+oggetti esistenti si modificano dal Graph settings panel, mentre il pulsante
++ Add può essere mostrato dal relativo switch.
+
 ## Controllo Date/Time picker
 
 Inserire **Date/Time picker** dalla sezione **Controls**. Un nuovo controllo

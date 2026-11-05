@@ -444,6 +444,8 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #gstylebox h2 { font-size:15px; margin:0 0 8px; }
 #gstylebox .gstyle-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px 12px; align-items:center; }
 #gstylebox .gstyle-grid .pfrow { margin:0; gap:6px; }
+.gstyle-section { grid-column:1/-1; margin-top:6px; padding-top:6px; border-top:1px solid var(--border); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.gstyle-section:first-child { margin-top:0; padding-top:0; border-top:0; }
 #gstylebox .gstyle-grid .pfrow label { width:96px; font-size:12px; }
 #gstylebox .gstyle-grid input[type=color] { width:48px; height:26px; padding:1px; background:var(--input-bg); border:1px solid var(--border2); border-radius:5px; }
 #gstylebox .gstyle-grid input[type=checkbox] { flex:none; }
@@ -1126,6 +1128,7 @@ RUNNING</div>
     <h2>Graph style editor</h2>
     <div class="hint">Fine-tune chart and component colors. Values are written to the graph style expression.</div>
     <div class="gstyle-grid">
+      <div class="gstyle-section">Chart</div>
       <div class="pfrow"><label>Background</label><input type="color" id="gs-bg" value="#0f1115"><input type="checkbox" id="gs-bg-transparent" title="Transparent background" aria-label="Transparent background"></div>
       <div class="pfrow"><label>Text</label><input type="color" id="gs-fg" value="#e6e6ef"></div>
       <div class="pfrow"><label>Title</label><input type="color" id="gs-title" value="#e6e6ef"></div>
@@ -1140,6 +1143,39 @@ RUNNING</div>
       <div class="pfrow"><label>Component 6</label><input type="color" id="gs-series-6" value="#a855f7"></div>
       <div class="pfrow"><label>Component 7</label><input type="color" id="gs-series-7" value="#84cc16"></div>
       <div class="pfrow"><label>Component 8</label><input type="color" id="gs-series-8" value="#ec4899"></div>
+
+      <div class="gstyle-section">Outer frame</div>
+      <div class="pfrow"><label>Border width</label><input type="number" id="gs-border-width" min="0" max="12" step="1" value="0"></div>
+      <div class="pfrow"><label>Border color</label><input type="color" id="gs-border-color" value="#475569"></div>
+      <div class="pfrow"><label>Corner radius</label><input type="number" id="gs-border-radius" min="0" max="80" step="1" value="0"></div>
+
+      <div class="gstyle-section">Buttons</div>
+      <div class="pfrow"><label>Background</label><input type="color" id="gs-btn-bg" value="#1d2129"></div>
+      <div class="pfrow"><label>Text</label><input type="color" id="gs-btn-fg" value="#e6e6e6"></div>
+      <div class="pfrow"><label>Border</label><input type="color" id="gs-btn-border" value="#3d4556"></div>
+      <div class="pfrow"><label>Radius</label><input type="number" id="gs-btn-radius" min="0" max="40" step="1" value="5"></div>
+      <div class="pfrow"><label>Font</label><input type="text" id="gs-btn-font" placeholder="inherit"></div>
+      <div class="pfrow"><label>Font size</label><input type="text" id="gs-btn-fontsize" placeholder="12px"></div>
+      <div class="pfrow"><label>Shadow</label><input type="text" id="gs-btn-shadow" placeholder="none"></div>
+      <div class="pfrow"><label>Hover background</label><input type="color" id="gs-btn-hover-bg" value="#2d3340"></div>
+      <div class="pfrow"><label>Hover text</label><input type="color" id="gs-btn-hover-fg" value="#ffffff"></div>
+      <div class="pfrow"><label>Hover border</label><input type="color" id="gs-btn-hover-border" value="#556075"></div>
+      <div class="pfrow"><label>Focus border</label><input type="color" id="gs-btn-focus-border" value="#4c5cf7"></div>
+      <div class="pfrow"><label>Active background</label><input type="color" id="gs-btn-active-bg" value="#2d3340"></div>
+
+      <div class="gstyle-section">Table</div>
+      <div class="pfrow"><label>Font size</label><input type="text" id="gs-table-fontsize" placeholder="11px"></div>
+      <div class="pfrow"><label>Cell padding</label><input type="text" id="gs-table-padding" placeholder="4px 6px"></div>
+      <div class="pfrow"><label>Header background</label><input type="color" id="gs-table-headbg" value="#1d2129"></div>
+      <div class="pfrow"><label>Header text</label><input type="color" id="gs-table-headfg" value="#e6e6ef"></div>
+      <div class="pfrow"><label>Row background</label><input type="color" id="gs-table-rowbg" value="#14171c"></div>
+      <div class="pfrow"><label>Row border</label><input type="color" id="gs-table-rowborder" value="#2c3444"></div>
+      <div class="pfrow"><label>Stripe opacity</label><input type="number" id="gs-table-stripe" min="0" max="1" step="0.01" value="0.06"></div>
+
+      <div class="gstyle-section">Scrollbars</div>
+      <div class="pfrow"><label>Size</label><input type="text" id="gs-scroll-size" placeholder="9px"></div>
+      <div class="pfrow"><label>Track</label><input type="color" id="gs-scroll-track" value="#1a1e26"></div>
+      <div class="pfrow"><label>Thumb</label><input type="color" id="gs-scroll-thumb" value="#3d4556"></div>
     </div>
     <div class="pfbtns">
       <span style="flex:1"></span>
@@ -1740,6 +1776,7 @@ function newGraphNode() {
   n.chartData = CHART_GRAPH_SAMPLE_JSON;
   n.chartDataExpr = false;
   n.chartFormat = "auto";
+  n.chartStateMode = "static";
   return n;
 }
 function newNodeForKind(kind) {
@@ -4475,12 +4512,83 @@ var GRAPH_STYLE_FIELDS = [
   { id: "gs-series-5", name: "--sui-chart-series-5" },
   { id: "gs-series-6", name: "--sui-chart-series-6" },
   { id: "gs-series-7", name: "--sui-chart-series-7" },
-  { id: "gs-series-8", name: "--sui-chart-series-8" }
+  { id: "gs-series-8", name: "--sui-chart-series-8" },
+  { id: "gs-btn-bg", name: "--sui-chart-control-bg", fallback: "#1d2129" },
+  { id: "gs-btn-fg", name: "--sui-chart-control-fg", fallback: "#e6e6e6" },
+  { id: "gs-btn-border", name: "--sui-chart-control-border", fallback: "#3d4556" },
+  { id: "gs-btn-hover-bg", name: "--sui-chart-control-hover-bg", fallback: "#2d3340" },
+  { id: "gs-btn-hover-fg", name: "--sui-chart-control-hover-fg", fallback: "#ffffff" },
+  { id: "gs-btn-hover-border", name: "--sui-chart-control-hover-border", fallback: "#556075" },
+  { id: "gs-btn-focus-border", name: "--sui-chart-control-focus-border", fallback: "#4c5cf7" },
+  { id: "gs-btn-active-bg", name: "--sui-chart-control-active-bg", fallback: "#2d3340" },
+  { id: "gs-table-headbg", name: "--sui-chart-table-head-bg", fallback: "#1d2129" },
+  { id: "gs-table-headfg", name: "--sui-chart-table-head-fg", fallback: "#e6e6ef" },
+  { id: "gs-table-rowbg", name: "--sui-chart-table-row-bg", fallback: "#14171c" },
+  { id: "gs-table-rowborder", name: "--sui-chart-table-row-border", fallback: "#2c3444" },
+  { id: "gs-scroll-track", name: "--sui-chart-scroll-track", fallback: "#1a1e26" },
+  { id: "gs-scroll-thumb", name: "--sui-chart-scroll-thumb", fallback: "#3d4556" }
+];
+var GRAPH_STYLE_TEXT_FIELDS = [
+  { id: "gs-btn-font", name: "--sui-chart-control-font", fallback: "" },
+  { id: "gs-btn-fontsize", name: "--sui-chart-control-font-size", fallback: "" },
+  { id: "gs-btn-shadow", name: "--sui-chart-control-shadow", fallback: "" },
+  { id: "gs-table-fontsize", name: "--sui-chart-table-font-size", fallback: "11px" },
+  { id: "gs-table-padding", name: "--sui-chart-table-cell-padding", fallback: "4px 6px" },
+  { id: "gs-table-stripe", name: "--sui-chart-table-stripe-opacity", fallback: "0.06" },
+  { id: "gs-scroll-size", name: "--sui-chart-scroll-size", fallback: "9px" }
 ];
 var graphStyleNode = null;
 function chartCssVarValue(css, name) {
   var m = String(css || "").match(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*([^;]+)(?:;|$)"));
   return m ? m[1].trim() : "";
+}
+function graphStyleBorderParts(css) {
+  var raw = chartCssVarValue(css, "--sui-chart-border");
+  var m = String(raw || "").match(/^\s*([\d.]+)px\s+[a-z-]+\s+(#[0-9a-f]{6})/i);
+  return m ? { width: m[1], color: m[2] } : { width: "0", color: "#475569" };
+}
+function graphStyleInputValues() {
+  var fallback = chartPresetCss(graphStyleNode && graphStyleNode.chartTheme === "light" ? "light" : "default");
+  var values = {};
+  GRAPH_STYLE_FIELDS.forEach(function(field) {
+    var transparentBox = field.transparent ? document.getElementById(field.transparent) : null;
+    var value = transparentBox && transparentBox.checked ? "transparent" : (document.getElementById(field.id).value || "");
+    if (value !== "transparent" && !/^#[0-9a-f]{6}$/i.test(value)) value = field.fallback || chartCssVarValue(fallback, field.name);
+    if (value !== "transparent" && !/^#[0-9a-f]{6}$/i.test(value)) value = "#000000";
+    values[field.name] = value.toLowerCase();
+  });
+  GRAPH_STYLE_TEXT_FIELDS.forEach(function(field) {
+    values[field.name] = String(document.getElementById(field.id).value || "").trim();
+  });
+  var borderWidth = Math.max(0, Math.min(12, parseInt(document.getElementById("gs-border-width").value, 10) || 0));
+  var borderColor = document.getElementById("gs-border-color").value || "#475569";
+  values["--sui-chart-border"] = borderWidth > 0 ? borderWidth + "px solid " + borderColor : "0";
+  values["--sui-chart-radius"] = Math.max(0, Math.min(80, parseInt(document.getElementById("gs-border-radius").value, 10) || 0)) + "px";
+  values["--sui-chart-control-radius"] = Math.max(0, Math.min(40, parseInt(document.getElementById("gs-btn-radius").value, 10) || 0)) + "px";
+  return values;
+}
+function graphStylePreviewChart() {
+  var name = graphStyleNode && graphStyleNode.name ? String(graphStyleNode.name) : (graphStyleNode && graphStyleNode.text ? String(graphStyleNode.text) : "chart");
+  var frame = document.getElementById("prev");
+  try {
+    var doc = frame && frame.contentDocument;
+    if (!doc) return null;
+    var charts = doc.querySelectorAll("[data-sui-chart]");
+    for (var i = 0; i < charts.length; i++) {
+      if (String(charts[i].getAttribute("data-sui-chart-name") || "") === name) return charts[i];
+    }
+  } catch (e) {}
+  return null;
+}
+function updateGraphStylePreview() {
+  if (!graphStyleNode) return;
+  var chart = graphStylePreviewChart();
+  if (!chart) return;
+  var values = graphStyleInputValues();
+  Object.keys(values).forEach(function(name) {
+    if (values[name] === "") chart.style.removeProperty(name);
+    else chart.style.setProperty(name, values[name]);
+  });
 }
 function openGraphStyleEditor(n) {
   graphStyleNode = n || chartSettingsNode;
@@ -4490,17 +4598,14 @@ function openGraphStyleEditor(n) {
     alert("This graph uses a custom style expression. Edit it manually in Appearance.");
     return;
   }
-  if (!String(css || "").trim()) {
-    var preset = chartPresetKey(graphStyleNode);
-    css = chartPresetCss(preset === "custom" ? "default" : preset);
-  }
   var fallback = chartPresetCss(graphStyleNode.chartTheme === "light" ? "light" : "default");
+  if (!String(css || "").trim()) css = fallback;
   GRAPH_STYLE_FIELDS.forEach(function(field) {
     var value = chartCssVarValue(css, field.name);
-    if (!value) value = chartCssVarValue(fallback, field.name);
+    if (!value) value = field.fallback || chartCssVarValue(fallback, field.name);
     var transparent = value === "transparent";
     var color = value;
-    if (!/^#[0-9a-f]{6}$/i.test(color)) color = chartCssVarValue(fallback, field.name);
+    if (!/^#[0-9a-f]{6}$/i.test(color)) color = field.fallback || chartCssVarValue(fallback, field.name);
     if (!/^#[0-9a-f]{6}$/i.test(color)) color = "#000000";
     var input = document.getElementById(field.id);
     if (input) input.value = color.toLowerCase();
@@ -4509,10 +4614,30 @@ function openGraphStyleEditor(n) {
       if (box) box.checked = transparent;
     }
   });
+  GRAPH_STYLE_TEXT_FIELDS.forEach(function(field) {
+    var value = chartCssVarValue(css, field.name);
+    if (!value) value = field.fallback || "";
+    document.getElementById(field.id).value = value;
+  });
+  var border = graphStyleBorderParts(css);
+  document.getElementById("gs-border-width").value = border.width;
+  document.getElementById("gs-border-color").value = border.color;
+  var radius = parseInt(chartCssVarValue(css, "--sui-chart-radius") || chartCssVarValue(fallback, "--sui-chart-radius") || "0", 10);
+  document.getElementById("gs-border-radius").value = isFinite(radius) ? radius : 0;
+  var btnRadius = parseInt(chartCssVarValue(css, "--sui-chart-control-radius") || chartCssVarValue(fallback, "--sui-chart-control-radius") || "5", 10);
+  document.getElementById("gs-btn-radius").value = isFinite(btnRadius) ? btnRadius : 5;
+  var box = document.getElementById("gstylebox");
+  if (box && !box.__wired) {
+    box.__wired = true;
+    box.addEventListener("input", updateGraphStylePreview);
+    box.addEventListener("change", updateGraphStylePreview);
+  }
   document.getElementById("gstyle").classList.add("on");
+  updateGraphStylePreview();
 }
-function closeGraphStyleEditor() {
+function closeGraphStyleEditor(restore) {
   document.getElementById("gstyle").classList.remove("on");
+  if (restore !== false) autoPreview();
   graphStyleNode = null;
 }
 function applyGraphStyleEditor() {
@@ -4523,15 +4648,7 @@ function applyGraphStyleEditor() {
     alert("This graph uses a custom style expression. Edit it manually in Appearance.");
     return;
   }
-  var fallback = chartPresetCss(n.chartTheme === "light" ? "light" : "default");
-  var values = {};
-  GRAPH_STYLE_FIELDS.forEach(function(field) {
-    var transparentBox = field.transparent ? document.getElementById(field.transparent) : null;
-    var value = transparentBox && transparentBox.checked ? "transparent" : (document.getElementById(field.id).value || "");
-    if (value !== "transparent" && !/^#[0-9a-f]{6}$/i.test(value)) value = chartCssVarValue(fallback, field.name);
-    if (value !== "transparent" && !/^#[0-9a-f]{6}$/i.test(value)) value = "#000000";
-    values[field.name] = value.toLowerCase();
-  });
+  var values = graphStyleInputValues();
   var parts = [];
   String(css || "").split(";").forEach(function(part) {
     var t = part.trim();
@@ -4540,10 +4657,12 @@ function applyGraphStyleEditor() {
     if (Object.prototype.hasOwnProperty.call(values, name)) return;
     parts.push(t);
   });
-  Object.keys(values).forEach(function(name) { parts.push(name + ": " + values[name]); });
+  Object.keys(values).forEach(function(name) {
+    if (values[name] !== "") parts.push(name + ": " + values[name]);
+  });
   snap("graph styles");
   n.styleExpr = parts.length ? "cssSafe(" + JSON.stringify(parts.join("; ")) + ")" : "";
-  closeGraphStyleEditor();
+  closeGraphStyleEditor(false);
   setOut();
   autoPreview();
   renderInspector();

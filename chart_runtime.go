@@ -19675,8 +19675,10 @@ const suiChartRuntime = `(function(){
     tools.appendChild(create);
     var head = root.querySelector(".sui-chart-head");
     var menuBtn = head ? head.querySelector(".sui-chart-menu-btn") : null;
+    var zoomTools = head ? head.querySelector(".sui-chart-zoom") : null;
     if (head) {
       if (menuBtn) head.insertBefore(tools, menuBtn);
+      else if (zoomTools) head.insertBefore(tools, zoomTools);
       else head.appendChild(tools);
     } else {
       root.appendChild(tools);
@@ -22311,6 +22313,8 @@ const suiChartRuntime = `(function(){
     if (root && root.__suiChartSuppressDraw) return;
     options = options || {};
     applySize(root);
+    var chartHead = root.querySelector(".sui-chart-head");
+    if (chartHead && chartHead.offsetHeight) root.style.setProperty("--sui-chart-head-height", chartHead.offsetHeight + "px");
     var viewport = root.querySelector(".sui-chart-viewport");
     var stage = root.querySelector(".sui-chart-stage");
     var svg = root.querySelector(".sui-chart-svg");
@@ -22489,7 +22493,10 @@ const suiChartRuntime = `(function(){
     root.__suiChartSeries = series;
     root.__suiChartType = type;
     if (type === "state") {
-      if (stateHandlesEnabled(root)) {
+      var rawStateHandles = root.getAttribute("data-sui-chart-state-handles");
+      var stateToolsAllowed = rawStateHandles !== "0" && rawStateHandles !== "false";
+      var stateToolsRequested = flagDefault(root, "show-add", true) || flagDefault(root, "show-history", true);
+      if (stateToolsAllowed && stateToolsRequested) {
         ensureStateCreateTools(root);
       } else {
         // View-only: no shape/link creation tools on the canvas.

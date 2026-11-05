@@ -47,6 +47,8 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		`id="gstyle"`, "Graph style editor", "gs-series-8",
 		"show table", "zoom buttons", "add element button", "undo/redo buttons", "edit data",
 		"showZoom", "showAdd", "showHistory", "settingsButton",
+		"gs-border-width", "gs-btn-shadow", "gs-table-headfg", "gs-scroll-thumb",
+		"updateGraphStylePreview", "graphStyleInputValues",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer HTML missing %q", want)

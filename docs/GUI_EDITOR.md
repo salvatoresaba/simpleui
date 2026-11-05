@@ -1097,6 +1097,20 @@ geometry and never writes `chartType` in the source. Editing the chart type in
 the data overlay is disabled for the same reason. The inspector no longer shows
 initial zoom, interactive, element hints or chart attributes for Graph.
 
+The **Graph style editor** groups tokens into Chart, Outer frame, Buttons, Table
+and Scrollbars. It edits background/text/component colors, chart border and
+radius, button background/text/border/radius/font/shadow plus hover, focus and
+active colors, table header/row/font/spacing colors, and scrollbar size/track/
+thumb. Changes are previewed live on the graph and become source values only
+when **Apply** is pressed.
+
+With **show table** on, the table is added below the diagram without reducing the
+diagram height. The chart container grows scroll content instead: scrollbars
+show that the table is available below, and enlarging the container reveals it.
+Graphs default to static editing in the designer; existing shapes and links are
+edited from the Graph settings panel, while the + Add button can still be shown
+with its switch.
+
 ## Date/Time picker control
 
 Insert **Date/Time picker** from **Controls**. A new control starts in `date`
