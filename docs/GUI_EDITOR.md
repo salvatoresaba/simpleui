@@ -809,12 +809,15 @@ shape/link also accepts a `hint` field, editable from the table **Hint** column
 or the context menu **Hint settings...**; use `|` for a line break and `\|` for a
 literal pipe.
 **Element hints...** in the chart inspector lists every state and link found in
-JSON chart data (including a literal JSON string held by a simple state such as
-`data`) and edits their tag and hint text in single-line fields (`|` breaks a
-line, `\|` a literal pipe). It writes the JSON back; for CSV/XML data or computed
-expressions use the data editor instead.
+JSON, CSV or XML chart data (including a literal document held by a simple state
+such as `data`) and edits their tag and hint text in single-line fields (`|`
+breaks a line, `\|` a literal pipe). It writes the data back; CSV needs a header
+row with `id`/`label` or `from`/`to` plus `tag`/`hint` columns, which are added
+when missing. Computed expressions still use the data editor.
 Chart attributes that the inspector does not expose yet (grid, routing, tag or
-link styles, ...) are preserved verbatim when the document is opened and saved.
+link styles, ...) are preserved verbatim when the document is opened and saved;
+use **Chart attributes...** in the chart inspector to edit them without leaving
+the designer.
 With the table visible, selecting an element in the diagram focuses and
 highlights its row (the **Links** tab for edges).
 

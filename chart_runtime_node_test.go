@@ -68,6 +68,8 @@ ok(data.stateTransitions[0].hint === 'HE', 'JSON link hint parsed');
 
 const csvNode = api.parseStateData('id,label,hint\na,A,CSV A\nb,B,CSV B', 'csv');
 ok(csvNode.stateNodes[0].hint === 'CSV A', 'CSV shape hint parsed');
+const csvTag = api.parseStateData('id,label,tag,hint\na,A,TAG A,HINT A', 'csv');
+ok(csvTag.stateNodes[0].tag === 'TAG A' && csvTag.stateNodes[0].hint === 'HINT A', 'CSV shape tag and hint parsed');
 const csvLink = api.parseStateData('From,To,Label,Hint\nA,B,go,CSV link', 'csv');
 ok(csvLink.stateTransitions[0].hint === 'CSV link', 'CSV link hint parsed');
 

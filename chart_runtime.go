@@ -1413,6 +1413,7 @@ const suiChartRuntime = `(function(){
             y: ix.y >= 0 ? row[ix.y] : "",
             description: ix.description >= 0 ? row[ix.description] : "",
             hint: ix.hint >= 0 ? row[ix.hint] : "",
+            tag: ix.tag >= 0 ? row[ix.tag] : "",
             color: ix.color >= 0 ? row[ix.color] : ""
           }, i);
         } else {
@@ -1462,6 +1463,7 @@ const suiChartRuntime = `(function(){
           y: attrs.y || childText(["y"]),
           description: attrs.description || childText(["description", "note"]),
           hint: attrs.hint || attrs.tooltip || childText(["hint", "tooltip", "tip"]),
+          tag: attrs.tag || attrs.note || childText(["tag", "note", "comment"]),
           color: attrs.color || attrs.colour || childText(["color", "colour"])
         };
         var node = addNode(nodeObj, fallbackIndex);
@@ -1475,6 +1477,7 @@ const suiChartRuntime = `(function(){
           addTransition(ca.from || ca.source || node.id, ca.to || ca.target, ca.label || ca.event, ca.event || ca.trigger, ca.guard || ca.condition, ca.action || ca.effect, ca.description, ca.color);
           var xmlEdge = transitions[transitions.length - 1];
           if (xmlEdge && (ca.hint || ca.tooltip)) xmlEdge.hint = normalizeLineText(ca.hint || ca.tooltip);
+          if (xmlEdge && (ca.tag || ca.note)) xmlEdge.tag = normalizeLineText(ca.tag || ca.note);
         }
         return node;
       };
@@ -1487,6 +1490,7 @@ const suiChartRuntime = `(function(){
           addTransition(xa.from || xa.source, xa.to || xa.target, xa.label || xa.event, xa.event || xa.trigger, xa.guard || xa.condition, xa.action || xa.effect, xa.description, xa.color);
           var xmlTopEdge = transitions[transitions.length - 1];
           if (xmlTopEdge && (xa.hint || xa.tooltip)) xmlTopEdge.hint = normalizeLineText(xa.hint || xa.tooltip);
+          if (xmlTopEdge && (xa.tag || xa.note)) xmlTopEdge.tag = normalizeLineText(xa.tag || xa.note);
         }
       }
       if (root && (root.localName || root.nodeName || "").toLowerCase() === "transition" && !transitions.length) {
@@ -1495,6 +1499,7 @@ const suiChartRuntime = `(function(){
         addTransition(ra.from || ra.source, ra.to || ra.target, ra.label || ra.event, ra.event || ra.trigger, ra.guard || ra.condition, ra.action || ra.effect, ra.description, ra.color);
         var xmlRootEdge = transitions[transitions.length - 1];
         if (xmlRootEdge && (ra.hint || ra.tooltip)) xmlRootEdge.hint = normalizeLineText(ra.hint || ra.tooltip);
+        if (xmlRootEdge && (ra.tag || ra.note)) xmlRootEdge.tag = normalizeLineText(ra.tag || ra.note);
       }
     } else {
       throw new Error("unknown format: " + fmt);

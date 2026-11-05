@@ -424,6 +424,16 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .celemhints-head { background:var(--input-bg); font-size:11px; font-weight:600; color:var(--muted); position:sticky; top:0; z-index:1; }
 .celemhints-row .lbl { font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .celemhints-input { width:100%; box-sizing:border-box; font-size:12px; padding:5px 7px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
+#cextrattrs { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:13; }
+#cextrattrs.on { display:flex; }
+#cextrattrsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:640px; max-width:94vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#cextrattrsbox h2 { font-size:15px; margin:0 0 8px; }
+#cextrattrs-rows { overflow:auto; max-height:50vh; margin:8px 0; border:1px solid var(--border); border-radius:8px; }
+.cextra-row { display:grid; grid-template-columns:180px minmax(0,1fr) 28px; gap:6px; align-items:center; padding:5px 7px; border-bottom:1px solid var(--border); }
+.cextra-row:last-child { border-bottom:0; }
+.cextra-row input { width:100%; box-sizing:border-box; font-size:12px; padding:5px 7px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
+.cextra-remove { width:26px; height:26px; padding:0; border:1px solid var(--border2); border-radius:6px; background:transparent; color:var(--muted); cursor:pointer; }
+.cextra-remove:hover { color:var(--fg); border-color:var(--accent); }
 
 /* unified chart settings panel */
 #csettings { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
@@ -986,13 +996,27 @@ RUNNING</div>
 <div id="celemhints">
   <div id="celemhintsbox">
     <h2>Element hints</h2>
-    <div class="hint">Edit tag and hint text for every state and link in JSON chart data. Use <b>|</b> for a line break and <b>\\|</b> for a literal pipe. The JSON is rewritten when you apply.</div>
+    <div class="hint">Edit tag and hint text for every state and link in JSON, CSV or XML chart data. Use <b>|</b> for a line break and <b>\\|</b> for a literal pipe. The data is rewritten when you apply; CSV needs a header row with id/label or from/to plus tag/hint.</div>
     <div id="celemhints-msg" class="hint"></div>
     <div id="celemhints-rows"></div>
     <div class="pfbtns">
       <span style="flex:1"></span>
       <button class="btn" onclick="closeChartElementHints()">Cancel</button>
       <button class="btn" onclick="applyChartElementHints()">Apply</button>
+    </div>
+  </div>
+</div>
+<div id="cextrattrs">
+  <div id="cextrattrsbox">
+    <h2>Chart attributes</h2>
+    <div class="hint">Attributes not exposed by the inspector. Values use SUI source syntax: strings in quotes, numbers and booleans bare. Example: <b>"orthogonal"</b>, <b>24</b>, <b>true</b>.</div>
+    <div id="cextrattrs-msg" class="hint"></div>
+    <div id="cextrattrs-rows"></div>
+    <div class="pfbtns">
+      <button class="btn" onclick="addChartExtraRow()">Add attribute</button>
+      <span style="flex:1"></span>
+      <button class="btn" onclick="closeChartExtraCfg()">Cancel</button>
+      <button class="btn" onclick="applyChartExtraCfg()">Apply</button>
     </div>
   </div>
 </div>
@@ -5216,8 +5240,18 @@ function chartControls(n) {
   elemHintsBtn.textContent = "Element hints...";
   elemHintsBtn.title = "Edit tag and hint text for each state and link";
   elemHintsBtn.onclick = function(){ openChartElementHints(n); };
-  fields.chartElementHints = chartFieldRow("element hints", elemHintsBtn, "Per-element tag and hint text. Uses | for line breaks in JSON state data.");
+  fields.chartElementHints = chartFieldRow("element hints", elemHintsBtn, "Per-element tag and hint text. Uses | for line breaks in JSON, CSV or XML state data.");
   b.appendChild(fields.chartElementHints);
+
+  var extraAttrsBtn = document.createElement("button");
+  extraAttrsBtn.type = "button";
+  extraAttrsBtn.className = "btn";
+  extraAttrsBtn.style.fontSize = "11px";
+  extraAttrsBtn.textContent = "Chart attributes...";
+  extraAttrsBtn.title = "Edit chart attributes that the inspector does not expose";
+  extraAttrsBtn.onclick = function(){ openChartExtraCfg(n); };
+  fields.chartExtraAttrs = chartFieldRow("attributes", extraAttrsBtn, "Grid, routing, tag/link style and other chart attributes preserved by the designer.");
+  b.appendChild(fields.chartExtraAttrs);
 
   var sep = document.createElement("div");
   sep.style.cssText = "border-top:1px solid var(--border);margin:8px 0 6px";
@@ -10066,6 +10100,170 @@ function chartElementRows(data) {
   }
   return rows;
 }
+function chartElementJsonDraft(source) {
+  var data;
+  try { data = JSON.parse(source); } catch (e) { return { error: "Invalid JSON: " + e.message }; }
+  var items = chartElementRows(data);
+  var rows = items.map(function(ref) {
+    var item = ref.item;
+    var label = ref.kind === "state"
+      ? (item.label || item.id || String(ref.key))
+      : ((item.from || "?") + " \u2192 " + (item.to || "?") + (item.id ? " (" + item.id + ")" : ""));
+    return {
+      kind: ref.kind,
+      key: ref.key,
+      label: label,
+      getTag: function() { return item.tag || ""; },
+      getHint: function() { return item.hint || ""; },
+      setTag: function(value) { if (value !== "") item.tag = value; else delete item.tag; },
+      setHint: function(value) { if (value !== "") item.hint = value; else delete item.hint; }
+    };
+  });
+  return {
+    kind: "json",
+    data: data,
+    rows: rows,
+    serialize: function() { return JSON.stringify(data, null, 2); }
+  };
+}
+function chartElementCsvQuote(value, sep) {
+  var s = String(value === null || value === undefined ? "" : value);
+  if (s.indexOf(sep) >= 0 || s.indexOf('"') >= 0 || /[\r\n]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+function chartElementCsvDraft(source) {
+  var rows = chartDataCsvRows(source);
+  if (!rows.length) return { error: "The CSV chart data is empty." };
+  var sep = chartDataDetectSep(source);
+  var header = rows[0].map(function(cell) { return String(cell === null || cell === undefined ? "" : cell).trim(); });
+  var lower = header.map(function(cell) { return cell.toLowerCase(); });
+  var known = ["id", "state", "key", "from", "source", "to", "target", "label", "name", "tag", "hint", "tooltip", "tip"];
+  var hasHeader = lower.some(function(cell) { return known.indexOf(cell) >= 0; });
+  if (!hasHeader) return { error: "CSV chart data needs a header row (id/label/tag/hint or from/to/tag/hint)." };
+  var body = rows.slice(1).map(function(row) { return row.slice(); });
+  var indexOf = function(names) {
+    for (var i = 0; i < lower.length; i++) if (names.indexOf(lower[i]) >= 0) return i;
+    return -1;
+  };
+  var fromIdx = indexOf(["from", "source", "fromstate", "from_state"]);
+  var toIdx = indexOf(["to", "target", "tostate", "to_state"]);
+  var isTransition = fromIdx >= 0 && toIdx >= 0;
+  var idIdx = indexOf(["id", "state", "key"]);
+  var labelIdx = indexOf(["label", "name", "title"]);
+  var tagIdx = indexOf(["tag", "comment"]);
+  var hintIdx = indexOf(["hint", "tooltip", "tip"]);
+  var width = header.length;
+  body.forEach(function(row) { while (row.length < width) row.push(""); });
+  if (tagIdx < 0) {
+    header.push("tag");
+    lower.push("tag");
+    tagIdx = header.length - 1;
+    body.forEach(function(row) { row.push(""); });
+  }
+  if (hintIdx < 0) {
+    header.push("hint");
+    lower.push("hint");
+    hintIdx = header.length - 1;
+    body.forEach(function(row) { row.push(""); });
+  }
+  var refs = body.map(function(row, index) {
+    var kind = isTransition ? "transition" : "state";
+    var label;
+    if (kind === "transition") {
+      label = (row[fromIdx] || "?") + " \u2192 " + (row[toIdx] || "?") + (idIdx >= 0 && row[idIdx] ? " (" + row[idIdx] + ")" : "");
+    } else {
+      label = (labelIdx >= 0 && row[labelIdx]) || (idIdx >= 0 && row[idIdx]) || ("#" + (index + 1));
+    }
+    return {
+      kind: kind,
+      key: index,
+      label: label,
+      getTag: function() { return row[tagIdx] || ""; },
+      getHint: function() { return row[hintIdx] || ""; },
+      setTag: function(value) { row[tagIdx] = value; },
+      setHint: function(value) { row[hintIdx] = value; }
+    };
+  });
+  return {
+    kind: "csv",
+    rows: refs,
+    serialize: function() {
+      return [header].concat(body).map(function(row) {
+        return row.map(function(cell) { return chartElementCsvQuote(cell, sep); }).join(sep);
+      }).join("\n");
+    }
+  };
+}
+function chartElementXmlDraft(source) {
+  var doc;
+  try { doc = new DOMParser().parseFromString(source, "application/xml"); } catch (e) { return { error: "Invalid XML." }; }
+  if (!doc || !doc.documentElement || doc.getElementsByTagName("parsererror").length) return { error: "Invalid XML." };
+  var refs = [];
+  var seen = [];
+  var add = function(el, kind) {
+    if (!el || !el.getAttribute || seen.indexOf(el) >= 0) return;
+    seen.push(el);
+    var id = el.getAttribute("id") || el.getAttribute("key") || "";
+    var label = kind === "transition"
+      ? (el.getAttribute("from") || "?") + " \u2192 " + (el.getAttribute("to") || "?") + (id ? " (" + id + ")" : "")
+      : (el.getAttribute("label") || el.getAttribute("name") || id || "state");
+    var tagChild = el.querySelector ? el.querySelector("tag") : null;
+    var hintChild = el.querySelector ? el.querySelector("hint") : null;
+    refs.push({
+      kind: kind,
+      key: refs.length,
+      label: label,
+      getTag: function() { return el.getAttribute("tag") || el.getAttribute("note") || (tagChild ? tagChild.textContent : "") || ""; },
+      getHint: function() { return el.getAttribute("hint") || el.getAttribute("tooltip") || (hintChild ? hintChild.textContent : "") || ""; },
+      setTag: function(value) {
+        el.removeAttribute("note");
+        if (tagChild) {
+          if (value !== "") tagChild.textContent = value;
+          else if (tagChild.parentNode) { tagChild.parentNode.removeChild(tagChild); tagChild = null; }
+        }
+        if (value !== "") el.setAttribute("tag", value); else el.removeAttribute("tag");
+      },
+      setHint: function(value) {
+        el.removeAttribute("tooltip");
+        if (hintChild) {
+          if (value !== "") hintChild.textContent = value;
+          else if (hintChild.parentNode) { hintChild.parentNode.removeChild(hintChild); hintChild = null; }
+        }
+        if (value !== "") el.setAttribute("hint", value); else el.removeAttribute("hint");
+      }
+    });
+  };
+  var rootName = (doc.documentElement.localName || doc.documentElement.nodeName || "").toLowerCase();
+  if (rootName === "state" || rootName === "node") add(doc.documentElement, "state");
+  if (rootName === "transition" || rootName === "edge") add(doc.documentElement, "transition");
+  var states = doc.getElementsByTagName("state");
+  for (var si = 0; si < states.length; si++) add(states[si], "state");
+  var nodes = doc.getElementsByTagName("node");
+  for (var ni = 0; ni < nodes.length; ni++) add(nodes[ni], "state");
+  var transitions = doc.getElementsByTagName("transition");
+  for (var ti = 0; ti < transitions.length; ti++) add(transitions[ti], "transition");
+  var edges = doc.getElementsByTagName("edge");
+  for (var ei = 0; ei < edges.length; ei++) add(edges[ei], "transition");
+  if (!refs.length) return { error: "No states or links found in the XML data." };
+  return {
+    kind: "xml",
+    rows: refs,
+    serialize: function() { return new XMLSerializer().serializeToString(doc); }
+  };
+}
+function chartElementDraft(source, format) {
+  var f = String(format || "").toLowerCase();
+  if (!f || f === "auto") {
+    var first = String(source || "").replace(/^\s+/, "").charAt(0);
+    f = first === "<" ? "xml" : (first === "{" || first === "[" ? "json" : "csv");
+  }
+  if (f === "json") return chartElementJsonDraft(source);
+  if (f === "csv") return chartElementCsvDraft(source);
+  if (f === "xml") return chartElementXmlDraft(source);
+  return { error: "Unsupported chart data format: " + f };
+}
 function chartElementLiteralText(expr) {
   var s = String(expr || "").trim();
   if (s.length < 2 || s.charAt(0) !== '"' || s.charAt(s.length - 1) !== '"') return null;
@@ -10111,39 +10309,35 @@ function openChartElementHints(n) {
     msg.textContent = resolved.error;
   } else {
     var source = resolved.source;
-    var data = null;
     if (!source) msg.textContent = "The chart has no data.";
-    else if (source.charAt(0) !== "{" && source.charAt(0) !== "[") msg.textContent = "Only JSON chart data can be edited here; use the data editor for CSV/XML.";
     else {
-      try { data = JSON.parse(source); } catch (e) { msg.textContent = "Invalid JSON: " + e.message; }
-    }
-    if (data) {
-      var rows = chartElementRows(data);
-      if (!rows.length) msg.textContent = "No states or links found in the JSON data.";
+      var draft = chartElementDraft(source, node.chartFormat);
+      if (draft.error) msg.textContent = draft.error;
+      else if (!draft.rows.length) msg.textContent = "No states or links found in the chart data.";
       else {
-        chartElementHintsDraft = { data: data, rows: rows, state: resolved.state || null };
+        draft.state = resolved.state || null;
+        chartElementHintsDraft = draft;
         if (resolved.state) msg.textContent = "Editing the value of state '" + resolved.name + "'.";
         var head = document.createElement("div");
         head.className = "celemhints-row celemhints-head";
         ["Element", "Tag", "Hint"].forEach(function(label) { var cell = document.createElement("div"); cell.textContent = label; head.appendChild(cell); });
         box.appendChild(head);
-        rows.forEach(function(ref, index) {
+        draft.rows.forEach(function(ref, index) {
           var row = document.createElement("div");
           row.className = "celemhints-row";
           row.setAttribute("data-elem-index", String(index));
           var label = document.createElement("div");
           label.className = "lbl";
-          if (ref.kind === "state") label.textContent = ref.item.label || ref.item.id || String(ref.key);
-          else label.textContent = (ref.item.from || "?") + " \u2192 " + (ref.item.to || "?") + (ref.item.id ? " (" + ref.item.id + ")" : "");
+          label.textContent = ref.label;
           var tag = document.createElement("input");
           tag.type = "text";
           tag.className = "celemhints-input";
-          tag.value = chartElementLineText(ref.item.tag || "");
+          tag.value = chartElementLineText(ref.getTag());
           tag.setAttribute("aria-label", "Tag for " + label.textContent);
           var hint = document.createElement("input");
           hint.type = "text";
           hint.className = "celemhints-input";
-          hint.value = chartElementLineText(ref.item.hint || "");
+          hint.value = chartElementLineText(ref.getHint());
           hint.setAttribute("aria-label", "Hint for " + label.textContent);
           row.appendChild(label);
           row.appendChild(tag);
@@ -10173,17 +10367,85 @@ function applyChartElementHints() {
     var inputs = rows[i].querySelectorAll("input.celemhints-input");
     var tag = inputs[0] ? inputs[0].value : "";
     var hint = inputs[1] ? inputs[1].value : "";
-    if (tag !== "") ref.item.tag = tag; else delete ref.item.tag;
-    if (hint !== "") ref.item.hint = hint; else delete ref.item.hint;
+    ref.setTag(tag);
+    ref.setHint(hint);
   }
-  var json = JSON.stringify(draft.data, null, 2);
+  var serialized = draft.serialize();
   if (draft.state) {
-    draft.state.init = '"' + esc(json) + '"';
+    draft.state.init = '"' + esc(serialized) + '"';
   } else {
-    n.chartData = json;
+    n.chartData = serialized;
     n.chartDataExpr = false;
   }
   closeChartElementHints();
+  setOut();
+  autoPreview();
+  renderInspector();
+}
+var chartExtraNode = null;
+function addChartExtraRow(key, value) {
+  var rows = document.getElementById("cextrattrs-rows");
+  if (!rows) return;
+  var row = document.createElement("div");
+  row.className = "cextra-row";
+  var name = document.createElement("input");
+  name.type = "text";
+  name.className = "cextra-key";
+  name.placeholder = "attribute name";
+  name.value = key || "";
+  var val = document.createElement("input");
+  val.type = "text";
+  val.className = "cextra-value";
+  val.placeholder = '"text", 24, true';
+  val.value = value || "";
+  var remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "cextra-remove";
+  remove.textContent = "\u00d7";
+  remove.title = "Remove attribute";
+  remove.addEventListener("click", function() { if (row.parentNode) row.parentNode.removeChild(row); });
+  row.appendChild(name);
+  row.appendChild(val);
+  row.appendChild(remove);
+  rows.appendChild(row);
+}
+function openChartExtraCfg(n) {
+  var node = n || chartSettingsNode;
+  if (!node) return;
+  chartExtraNode = node;
+  var rows = document.getElementById("cextrattrs-rows");
+  var msg = document.getElementById("cextrattrs-msg");
+  rows.textContent = "";
+  msg.textContent = "";
+  var extra = node.chartExtra && typeof node.chartExtra === "object" ? node.chartExtra : {};
+  Object.keys(extra).sort().forEach(function(key) { addChartExtraRow(key, extra[key]); });
+  document.getElementById("cextrattrs").classList.add("on");
+}
+function closeChartExtraCfg() {
+  document.getElementById("cextrattrs").classList.remove("on");
+  chartExtraNode = null;
+}
+function applyChartExtraCfg() {
+  var n = chartExtraNode;
+  if (!n) return;
+  var rows = document.querySelectorAll("#cextrattrs-rows .cextra-row");
+  var extra = {};
+  var error = "";
+  for (var i = 0; i < rows.length; i++) {
+    var keyInput = rows[i].querySelector(".cextra-key");
+    var valueInput = rows[i].querySelector(".cextra-value");
+    var key = keyInput ? keyInput.value.trim() : "";
+    var value = valueInput ? valueInput.value.trim() : "";
+    if (!key && !value) continue;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) { error = "Invalid attribute name: " + key; break; }
+    if (!value) { error = "Attribute '" + key + "' has no value."; break; }
+    extra[key] = value;
+  }
+  var msg = document.getElementById("cextrattrs-msg");
+  if (error) { msg.textContent = error; return; }
+  snap("chart attributes");
+  n.chartExtra = extra;
+  closeChartExtraCfg();
   setOut();
   autoPreview();
   renderInspector();

@@ -37,6 +37,8 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		`id="cs-state-edit"`, "Edit mode",
 		`id="celemhints"`, `id="celemhints-rows"`, "openChartElementHints",
 		"applyChartElementHints", "Element hints...", "chartElementRows",
+		"chartElementCsvDraft", "chartElementXmlDraft", "chartElementDraft",
+		`id="cextrattrs"`, "openChartExtraCfg", "applyChartExtraCfg", "Chart attributes...", "cextra-row",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer HTML missing %q", want)

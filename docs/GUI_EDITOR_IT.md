@@ -835,12 +835,15 @@ attributi chart `stateHint*`. Ogni forma/link
 accetta un campo `hint`, modificabile dalla colonna **Hint** della tabella o dal
 menu contestuale **Hint settings...**; usare `|` per andare a capo e `\|` per una
 pipe letterale. **Element hints...** nell'inspector del chart elenca tutti gli stati e link nei
-dati JSON (incluso un letterale JSON contenuto in uno state semplice come `data`)
-e modifica tag e hint con campi a riga singola (`|` va a capo, `\|` è una pipe
-letterale). Riscrive il JSON; per dati CSV/XML o espressioni calcolate usare
-l'editor dati.
+dati JSON, CSV o XML (incluso un documento letterale contenuto in uno state
+semplice come `data`) e modifica tag e hint con campi a riga singola (`|` va a
+capo, `\|` è una pipe letterale). Riscrive i dati; il CSV richiede una riga di
+intestazione con `id`/`label` oppure `from`/`to` più le colonne `tag`/`hint`, che
+vengono aggiunte se mancanti. Le espressioni calcolate usano ancora l'editor dati.
 Gli attributi chart non esposti dall'inspector (griglia, routing, stili tag/link,
-...) vengono preservati alla lettera quando il documento viene aperto e salvato.
+...) vengono preservati alla lettera quando il documento viene aperto e salvato;
+usa **Chart attributes...** nell'inspector del chart per modificarli senza
+lasciare il designer.
 Con la tabella visibile, selezionando un elemento nel diagramma la
 riga corrispondente riceve focus ed evidenziazione (tab **Links** per i link).
 
