@@ -41,6 +41,7 @@ Ordine consigliato per un agente:
 | Albero con rinomina, icone e stili | [API: tree](API_REFERENCE_IT.md#tree) | [Editor GUI: tree](GUI_EDITOR_IT.md#controllo-tree) | `examples/tree/README.md` |
 | Import/export JSON e XML del tree | [STDLIB: tree](STDLIB_IT.md#tree-module-tree-core) | [API: tree](API_REFERENCE_IT.md#tree) | `examples/tree/README.md` |
 | Grafici da JSON/XML/CSV con preset, scroll e zoom | [API: chart](API_REFERENCE_IT.md#chart) | [Editor GUI: chart](GUI_EDITOR_IT.md#controllo-chart) | `examples/chart/README.md` |
+| Controllo Graph / diagrammi a blocchi | [API: Graph](API_REFERENCE_IT.md#controllo-graph-diagrammi-a-blocchi) | [Editor GUI: Graph](GUI_EDITOR_IT.md#controllo-graph) | `examples/graph/README.md`, `examples/state_machine/README.md` |
 | Più pagine e navigazione | [API: pagine](API_REFERENCE_IT.md#pagine-e-navigazione) | [Editor GUI: pagine](GUI_EDITOR_IT.md#pagine) | `examples/pages/README.md` |
 | Dialoghi modali | [API: modali](API_REFERENCE_IT.md#dialoghi-modali) | [Editor GUI: modal](GUI_EDITOR_IT.md#modal-control) | `examples/modal.sui` |
 | Riordinare righe o trascinare/scegliere file/cartelle | [drag-and-drop](AGENT_RECIPES_IT.md#drag-and-drop) | [API](API_REFERENCE_IT.md#drag-and-drop), [BUILTINS](BUILTINS_IT.md#drag-and-drop-functions), [Editor GUI](GUI_EDITOR_IT.md) | `examples/drag_drop.sui`, `examples/file_picker.sui` |

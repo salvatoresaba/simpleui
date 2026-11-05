@@ -1,8 +1,11 @@
 # State machine chart
 
-This example demonstrates the `state` chart type: a generic shapes/links
-diagram with events, guards, actions, a self-loop and an accessible synchronized
-data table.
+This example demonstrates the legacy `chartType: "state"` geometry: a generic
+shapes/links diagram with events, guards, actions, a self-loop and an accessible
+synchronized data table. New documents should use the dedicated **Graph** control
+(`graph "..." data: ...`) documented in
+[`examples/graph`](../graph/README.md); this example intentionally keeps the old
+syntax to verify backward compatibility.
 
 ## What it demonstrates
 

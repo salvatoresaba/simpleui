@@ -147,6 +147,7 @@ For desktop capabilities:
 | Date/time picker | `docs/API_REFERENCE.md#datetime-picker`, `docs/GUI_EDITOR.md#datetime-picker-control` | `examples/datepicker/README.md`, `examples/datepicker/dist/app.exe` |
 | Tree / nested navigation | `docs/API_REFERENCE.md#tree`, `docs/GUI_EDITOR.md#tree-control` | `examples/tree/README.md`, `examples/tree/dist/app.exe` |
 | Tree JSON/XML import/export | `docs/STDLIB.md#tree-module-tree-core`, `docs/API_REFERENCE.md#tree` | `examples/tree/README.md` |
+| Graph / block diagram | `docs/API_REFERENCE.md#graph-control-block-diagrams`, `docs/GUI_EDITOR.md#graph-control` | `examples/graph/README.md` |
 | Chart from JSON/XML/CSV with presets, scroll/zoom | `docs/API_REFERENCE.md#chart`, `docs/GUI_EDITOR.md#chart-control` | `examples/chart/README.md`, `examples/chart/dist/app.exe` |
 | Runtime chart tags/colors, unique element ids, event-list polling, custom hints, table view/focus, element read/write API, static mode and shape/tag events | `docs/STATE_CHART_RUNTIME.md`, `docs/STDLIB.md#chart-module-chart-core` | `examples/process_monitor/README.md` |
 | Multi-page navigation | `docs/API_REFERENCE.md#pages-and-navigation`, `docs/GUI_EDITOR.md#pages` | `examples/pages/README.md` |

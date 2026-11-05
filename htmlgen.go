@@ -2685,7 +2685,7 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		writeStaticTree(sb, e, ind)
 		return
 	}
-	if e.tag == "chart" {
+	if chartTag(e.tag) {
 		writeStaticChart(sb, e, ind)
 		return
 	}
@@ -3411,15 +3411,23 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 	title := partsContent(e.text)
 	ariaLabel := strings.TrimSpace(title)
 	if ariaLabel == "" {
-		ariaLabel = "Chart"
+		if e.tag == "graph" {
+			ariaLabel = "Graph"
+		} else {
+			ariaLabel = "Chart"
+		}
 	}
 	sb.WriteString(ind)
 	sb.WriteString("<div class=\"sui-chart")
 	staticClassSuffix(sb, e)
 	sb.WriteString("\" data-sui-chart=\"1\" role=\"group\" aria-label=\"" + htmlEscape(ariaLabel) + "\" data-sui-chart-name=\"" + htmlEscape(name) +
-		"\" data-sui-chart-title=\"" + htmlEscape(title) +
-		"\" data-sui-chart-type=\"" + htmlEscape(chartStaticValue(e, "chartType", "bar")) +
-		"\" data-sui-chart-theme=\"" + htmlEscape(chartStaticValue(e, "theme", "dark")) +
+		"\" data-sui-chart-title=\"" + htmlEscape(title) + "\"")
+	if e.tag == "graph" {
+		sb.WriteString(" data-sui-chart-type=\"state\"")
+	} else {
+		sb.WriteString(" data-sui-chart-type=\"" + htmlEscape(chartStaticValue(e, "chartType", "bar")) + "\"")
+	}
+	sb.WriteString(" data-sui-chart-theme=\"" + htmlEscape(chartStaticValue(e, "theme", "dark")) +
 		"\" data-sui-chart-data=\"" + htmlEscape(chartStaticValue(e, "data", "")) +
 		"\" data-sui-chart-format=\"" + htmlEscape(chartStaticValue(e, "format", "auto")) +
 		"\" data-sui-chart-x=\"" + htmlEscape(chartStaticValue(e, "x", "")) +
@@ -3854,7 +3862,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon") {
 			continue
 		}
-		if e.tag == "chart" && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" ||
+		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" ||
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "interactive" || a.key == "stateMode" || a.key == "stateHints" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||

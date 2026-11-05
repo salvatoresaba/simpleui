@@ -677,7 +677,7 @@ L'inspector dedicato **Chart** espone:
 
 | Campo | Significato |
 |---|---|
-| type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell, Gantt o state machine; nel sorgente l'attributo e `chartType` perche `type` e riservato |
+| type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell o Gantt; nel sorgente l'attributo e `chartType` perche `type` e riservato. I diagrammi a blocchi usano il controllo separato **Graph** |
 | data | pulsante che apre il pannello overlay spostabile e ridimensionabile dei dati |
 | x field / y field | colonne label e numerica; vuote = rilevamento automatico |
 | point width | pixel orizzontali per punto in modalita scroll |
@@ -707,6 +707,11 @@ L'inspector **Chart** dipende dal tipo: i campi non utilizzabili vengono nascost
 Cambiando **type** i campi visibili si aggiornano subito. Se `chartType` �
 un'espressione, tutti i campi restano visibili e la compatibilit� viene
 controllata a runtime.
+
+Se i dati correnti non sono compatibili con il tipo scelto, una finestra di
+conferma avvisa che i dati esistenti verranno ignorati e sostituiti da un dataset
+di esempio adatto al nuovo tipo; annullando si torna al tipo precedente. I dati
+compatibili vengono mantenuti.
 
 Il Gantt usa lo stesso overlay ma legge righe pi� ricche: `task`, `start`, `end`
 (o `duration`), `progress`, `milestone`, `group`, `parent`, `dependsOn`,
@@ -797,8 +802,9 @@ Duration è la differenza di calendario end-start; Effective duration conta
 i giorni lavorativi usando weekend, festivi e timezone. Il
 combo Constraint e il suo filtro mostrano sempre tutti i sette tipi con etichette
 descrittive, anche quando tutte le righe usano `ASAP`; gli altri tipi usano Label più le serie o colonne
-specifiche. La scala `state` usa un modello generico forme/link: il data overlay
-accetta `initial`, `states` e `transitions`, array di stati con transizioni
+specifiche. I **diagrammi a blocchi** usano il controllo dedicato **Graph**
+(`graph "..." data: ...`), inserito da **Controls**: un modello generico
+forme/link con `initial`, `states` e `transitions`, array di stati con transizioni
 annidate, edge list CSV o XML. Le forme hanno `shape` (rectangle, square, circle,
 stadium, ellipse, rhombus), fill, bordo singolo con stile/spessore/colore,
 raggio angoli, dimensioni e tag/nota. Nel diagramma sono visibili solo i `tag`
@@ -806,6 +812,9 @@ espliciti: nomi, etichette e descrizioni restano nella tabella e nell'inspector.
 I link hanno tipo linea (straight, arc, bezier, orthogonal,
 circular), spessore, tratteggio, colore, marker iniziale/finale e tag/nota. Il
 layout è automatico per livelli, con `x`/`y` espliciti per posizioni manuali.
+I documenti legacy con `chartType: "state"` (alias `statemachine`) continuano ad
+aprirsi e disegnarsi; il vecchio tipo compare come **Block diagram (legacy
+chart)** solo per quei chart.
 
 Il pulsante a ingranaggio nell'intestazione apre un pannello **Settings** a tab:
 **General** (titolo, colori bordo forme/evidenziazione, tema, switch ancore e
@@ -1092,6 +1101,31 @@ lo fa automaticamente quando applica un valore letterale.
 
 Vedere [API reference: chart](API_REFERENCE_IT.md#chart) e l'[esempio
 chart](../examples/chart/README.md).
+
+## Controllo Graph
+
+Inserire **Graph** da **Controls**. Un nuovo graph parte come diagramma a blocchi
+con dati JSON di esempio (stati e transizioni) e `overflow: "scroll"`. È un
+controllo foglia: non può contenere elementi figli.
+
+L'inspector del graph espone:
+
+| Campo | Significato |
+|---|---|
+| data | overlay spostabile e ridimensionabile per forme/link JSON, XML o CSV |
+| table view | solo diagramma, solo tabella accessibile, oppure entrambi |
+| initial zoom | zoom iniziale della modalità zoom |
+| overflow | Scrollbars, Zoom controls o Fit to frame |
+| settings | pannello unificato con tab appearance, points, tooltip, table, interactions e data |
+| element hints | modifica tag e hint di ogni stato e link |
+| attributes | attributi griglia, routing e stile tag/link preservati alla lettera |
+| preset | preset colore che scrivono variabili CSS in `style expr` |
+
+Il selettore del tipo non compare: `graph` disegna sempre la geometria a blocchi
+e non scrive `chartType` nel sorgente. Per lo stesso motivo il tipo è disabilitato
+nell'editor dati. Tutto il resto (import JSON/CSV/XML, element hints, griglia,
+routing, stile tag/link, tabella sincronizzata, API runtime ed eventi) segue il
+comportamento del chart a blocchi.
 
 ## Controllo Date/Time picker
 

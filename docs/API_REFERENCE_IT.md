@@ -692,7 +692,7 @@ attributi modificati.
 `line`, `step`, `smooth`, `area`, `combo`, `pie`, `donut`, `scatter`,
 `histogram`, `waterfall`, `radar`, `gauge`, `funnel`, `heatmap`, `candlestick`,
 `treemap`, `boxplot`, `bullet`, `dumbbell`, `gantt`, `state` (alias
-`statemachine`).
+`statemachine`, legacy: usare il controllo `graph`).
 
 I tipi `barstacked`, `bargrouped` e `combo` richiedono almeno due serie
 numeriche; `radar` ne accetta una o pi�. `heatmap` richiede due serie (y e
@@ -909,10 +909,28 @@ stringa.
 
 ### Compatibilit? dati/tipo
 
-### Macchina a stati
+### Controllo Graph (diagrammi a blocchi)
 
-`chartType: "state"` (alias `statemachine`) disegna forme e link. Il JSON
-principale usa `states` e `transitions`; ogni stato deve avere un `id` esplicito
+Il controllo dedicato `graph` disegna un diagramma a blocchi/stati. Usa sempre
+la geometria forme/link, quindi non scrive `chartType`:
+
+```sui
+state flow = "\{\"states\":[\{\"id\":\"input\",\"label\":\"Input\"\},\{\"id\":\"process\",\"label\":\"Process\"\},\{\"id\":\"output\",\"label\":\"Output\"\}],\"transitions\":[\{\"from\":\"input\",\"to\":\"process\"\},\{\"from\":\"process\",\"to\":\"output\"\}]\}"
+
+view main {
+  graph "Pipeline" name: "pipeline" data: flow
+}
+```
+
+`graph` accetta gli stessi attributi di dati, layout, griglia, stile tag/link,
+tabella e runtime della geometria a blocchi. La forma legacy
+`chart "..." chartType: "state"` (alias `statemachine`) continua a funzionare
+per i documenti esistenti, ma il designer non la elenca pi� nel menu dei tipi.
+Quando si cambia un chart verso un tipo con struttura dati incompatibile appare
+una conferma e, se accettata, i dati vengono sostituiti con un esempio adatto al
+nuovo tipo.
+
+Il JSON principale usa `states` e `transitions`; ogni stato deve avere un `id` esplicito
 e univoco all'interno del chart (id mancanti o duplicati bloccano il parsing) e
 può avere `label`, `description`, `hint`, `color`, `shape`, proprietà bordo/testo e
 `x`/`y`/`w`/`h` opzionali. Un `hint` non vuoto sostituisce il tooltip predefinito;

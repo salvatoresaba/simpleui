@@ -1802,10 +1802,15 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		o.obj["raw"] = JStr(componentInvocationSource(e))
 		return o
 	}
-	if e.tag == "chart" {
+	if chartTag(e.tag) {
 		// Runtime defaults, mirrored so the inspector never shows a blank or
-		// wrong value when the source omits an attribute.
-		o.obj["chartType"] = JStr("bar")
+		// wrong value when the source omits an attribute. The graph control is
+		// always a block diagram, so its implicit type is state.
+		chartType := "bar"
+		if e.tag == "graph" {
+			chartType = "state"
+		}
+		o.obj["chartType"] = JStr(chartType)
 		o.obj["chartTheme"] = JStr("dark")
 		o.obj["chartFormat"] = JStr("auto")
 		o.obj["chartWidth"] = JStr("640px")
@@ -1889,14 +1894,14 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj["style"] = JStr(guiTextSource(a.text))
 			}
-		} else if e.tag == "chart" && a.key == "data" {
+		} else if chartTag(e.tag) && a.key == "data" {
 			if a.hasExpr {
 				o.obj["chartData"] = JStr(exprSource(a.expr))
 				o.obj["chartDataExpr"] = JBool(true)
 			} else {
 				o.obj["chartData"] = JStr(partsLiteral(a.text))
 			}
-		} else if e.tag == "chart" && (a.key == "chartType" || a.key == "theme" || a.key == "ganttScale" || a.key == "linkColor" || a.key == "linkWidth" || a.key == "linkGap" || a.key == "linkStyle" || a.key == "arrowType" || a.key == "arrowSize" || a.key == "barBorderColor" || a.key == "format" || a.key == "x" ||
+		} else if chartTag(e.tag) && (a.key == "chartType" || a.key == "theme" || a.key == "ganttScale" || a.key == "linkColor" || a.key == "linkWidth" || a.key == "linkGap" || a.key == "linkStyle" || a.key == "arrowType" || a.key == "arrowSize" || a.key == "barBorderColor" || a.key == "format" || a.key == "x" ||
 			a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "tableView" || a.key == "tableSelection" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "bins" || a.key == "min" || a.key == "max" || a.key == "stateMode" ||
 			a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius") {
@@ -1922,9 +1927,9 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj[field] = JStr(partsLiteral(a.text))
 			}
-		} else if e.tag == "chart" && a.key == "interactive" {
+		} else if chartTag(e.tag) && a.key == "interactive" {
 			o.obj["chartInteractive"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
-		} else if e.tag == "chart" && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "criticalPath" || a.key == "colorPicker" ||
+		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "criticalPath" || a.key == "colorPicker" ||
 			a.key == "showResources" || a.key == "showProgress" || a.key == "showSlack" || a.key == "showCosts" || a.key == "statusColors" || a.key == "autoSchedule" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "stateHints") {
 			field := "chart" + strings.ToUpper(a.key[4:5]) + a.key[5:]
 			if a.key == "tableFilters" {
@@ -2125,7 +2130,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj[a.key] = JStr(partsLiteral(a.text))
 			}
-		} else if e.tag == "chart" {
+		} else if chartTag(e.tag) {
 			// Preserve chart attributes the inspector does not model yet (grid,
 			// routing, tag/link styles, ...) so opening and saving a document in
 			// the designer never drops them.

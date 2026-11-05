@@ -1706,6 +1706,13 @@ func childPtrs(a []ViewNode) []*ViewNode {
 	return r
 }
 
+// chartTag reports whether a tag renders through the shared chart runtime.
+// "graph" is the dedicated block-diagram control; it always renders the state
+// (shapes/links) geometry while chart keeps the explicit chartType attribute.
+func chartTag(tag string) bool {
+	return tag == "chart" || tag == "graph"
+}
+
 func elemHtmlTag(tag string) string {
 	if tag == "text" {
 		return "span"
@@ -1719,7 +1726,7 @@ func elemHtmlTag(tag string) string {
 	if tag == "menubar" {
 		return "nav"
 	}
-	if tag == "combobox" || tag == "datepicker" || tag == "tree" || tag == "chart" {
+	if tag == "combobox" || tag == "datepicker" || tag == "tree" || tag == "chart" || tag == "graph" {
 		return "div"
 	}
 	if tag == "menu" || tag == "menuitem" || tag == "tab" || tag == "modal" {
@@ -2082,6 +2089,7 @@ var newControlClass = map[string]string{
 	"tree":          "sui-tree",
 	"treeitem":      "sui-tree-item",
 	"chart":         "sui-chart",
+	"graph":         "sui-chart",
 	"modal":         "sui-modal",
 	"modalbutton":   "sui-modal-button",
 	"menubar":       "sui-menubar",
@@ -2282,7 +2290,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "max" || a.key == "step" || a.key == "disabled" || a.key == "required") {
 			continue
 		}
-		if e.tag == "chart" && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" || a.key == "theme" ||
+		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" || a.key == "theme" ||
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "interactive" || a.key == "stateMode" || a.key == "stateHints" || a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius" ||
@@ -2564,7 +2572,7 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	if e.tag == "tree" {
 		return treeElemJs(e, g, ctx, idx)
 	}
-	if e.tag == "chart" {
+	if chartTag(e.tag) {
 		return chartElemJs(e, g, ctx, idx)
 	}
 	if e.tag == "tabs" {
@@ -2759,7 +2767,11 @@ func chartDataAttrs(e *Element) string {
 	var b strings.Builder
 	label := strings.TrimSpace(partsContent(e.text))
 	if label == "" {
-		label = "Chart"
+		if e.tag == "graph" {
+			label = "Graph"
+		} else {
+			label = "Chart"
+		}
 	}
 	b.WriteString(" data-sui-chart=\"1\" role=\"group\" aria-label=\"")
 	b.WriteString(htmlEscape(label))
@@ -2769,7 +2781,11 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString("\" data-sui-chart-title=\"")
 	b.WriteString(htmlEscape(partsContent(e.text)))
 	b.WriteString("\" data-sui-chart-type=\"")
-	b.WriteString(chartAttrValue(e, "chartType", "bar"))
+	if e.tag == "graph" {
+		b.WriteString("state")
+	} else {
+		b.WriteString(chartAttrValue(e, "chartType", "bar"))
+	}
 	b.WriteString("\" data-sui-chart-theme=\"")
 	b.WriteString(chartAttrValue(e, "theme", "dark"))
 	b.WriteString("\" data-sui-chart-data=\"")

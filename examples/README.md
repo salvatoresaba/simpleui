@@ -19,7 +19,8 @@ For an agent-oriented walkthrough see
 | [`contacts.sui`](contacts.sui) | Local records and table-like layout. |
 | [`table_data.sui`](table_data.sui) | `table.display` with arrays, objects, JSON, CSV, TSV and export. |
 | [`chart/app.sui`](chart/app.sui) | Reactive JSON/XML/CSV charts, advanced types, compatibility checks, presets, scroll and zoom. |
-| [`state_machine/`](state_machine/README.md) | Shape/link diagram with events, guards, actions, self-loop and synchronized shape/transition table. |
+| [`graph/`](graph/README.md) | Dedicated Graph control for block diagrams, with layout, tags, links, grid and synchronized table. |
+| [`state_machine/`](state_machine/README.md) | Legacy `chartType: "state"` shape/link diagram with events, guards, actions, self-loop and synchronized shape/transition table. |
 | [`process_monitor/`](process_monitor/README.md) | Wide process monitor with runtime tag colors/text, editing/static mode, static-mode shape/tag events and a modal opened from a shape click. |
 | [`gantt_calendar/`](gantt_calendar/README.md) | Gantt holidays, weekend rules, IANA timezone, critical path and editable synchronized table (see its [README](gantt_calendar/README.md)). |
 | [`gantt_wbs/`](gantt_wbs/README.md) | Hierarchical WBS summary tasks, collapsed roll-up bars, external dependencies and dependency-driven auto scheduling (see its [README](gantt_wbs/README.md)). |

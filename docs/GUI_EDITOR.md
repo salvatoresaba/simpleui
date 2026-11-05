@@ -653,7 +653,7 @@ The dedicated **Chart** inspector exposes:
 
 | Field | Meaning |
 |---|---|
-| type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell, Gantt or state machine; the source attribute is `chartType` because `type` is reserved |
+| type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell or Gantt; the source attribute is `chartType` because `type` is reserved. Block diagrams use the separate **Graph** control |
 | data | button that opens the movable, resizable chart-data overlay |
 | x field / y field | label and numeric columns in object/CSV data; empty auto-detects |
 | point width | horizontal pixels reserved per point in scroll mode |
@@ -681,8 +681,12 @@ selected type cannot use them.
 - **show legend** hidden for gauge and funnel;
 - **show values** hidden for pie, donut, scatter, gauge and radar.
 
-Changing **type** updates the visible fields immediately. If `chartType` is an
-expression, all fields stay visible and compatibility is checked at runtime.
+Changing **type** updates the visible fields immediately. If the current data is
+not compatible with the selected type, a confirmation dialog warns that the
+existing data will be ignored and replaced by a sample dataset suited to the new
+type; cancelling restores the previous type. Compatible data is kept. If
+`chartType` is an expression, all fields stay visible and compatibility is
+checked at runtime.
 
 Gantt uses the same data overlay but reads richer rows: `task`, `start`, `end`
 (or `duration`), `progress`, `milestone`, `group`, `parent`, `dependsOn`,
@@ -769,8 +773,9 @@ its column filter always show all seven types with descriptive labels, even
 when every row currently uses `ASAP`; other types use Label plus their series or
 type-specific columns.
 
-**Diagram / state machine** (`chartType: "state"`) uses a generic shapes/links
-model instead of numeric series. The data overlay accepts an object with
+**Block diagrams** use the dedicated **Graph** control (`graph "..." data: ...`),
+inserted from **Controls**. It uses a generic shapes/links model instead of
+numeric series. The data overlay accepts an object with
 `initial`, `states` and `transitions`, a state array with nested transitions, a
 CSV edge list or XML state/transition elements. Shapes have a `shape` subtype
 (rectangle, square, circle, stadium, ellipse, rhombus), fill, border
@@ -779,7 +784,9 @@ Only explicit tags are rendered on the diagram; shape names, labels and
 descriptions stay in the table and inspector. Links have a line subtype
 (straight, arc, bezier, orthogonal, circular), width, dash, color, start/end
 markers and an optional visible tag/note. The diagram is laid out automatically by level,
-with explicit `x`/`y` coordinates available for manual placement.
+with explicit `x`/`y` coordinates available for manual placement. Legacy
+documents using `chartType: "state"` (`statemachine` alias) still open and render;
+the old type is shown as **Block diagram (legacy chart)** only for those charts.
 
 The gear button in the chart header opens a tabbed **Settings** panel: **General**
 (chart title, shape border/highlight colors, theme, show-anchors switch plus one
@@ -1065,6 +1072,31 @@ source; the data overlay does that automatically when applying a literal.
 
 See [API reference: chart](API_REFERENCE.md#chart) and the
 [chart example](../examples/chart/README.md).
+
+## Graph control
+
+Insert **Graph** from **Controls**. A new graph starts as a block diagram with
+sample JSON states and transitions and `overflow: "scroll"`. It is a leaf
+control: it cannot contain child elements.
+
+The graph inspector exposes:
+
+| Field | Meaning |
+|---|---|
+| data | movable, resizable data overlay for JSON, XML or CSV shapes/links |
+| table view | diagram only, accessible table only, or both |
+| initial zoom | starting zoom for zoom mode |
+| overflow | Scrollbars, Zoom controls or Fit to frame |
+| settings | unified panel with appearance, points, tooltip, table, interactions and data tabs |
+| element hints | edit the tag and hint text of every state and link |
+| attributes | grid, routing and tag/link attributes preserved verbatim |
+| preset | color presets that write CSS variables into `style expr` |
+
+The graph type selector is not shown: `graph` always renders the block diagram
+geometry and never writes `chartType` in the source. Editing the chart type in
+the data overlay is disabled for the same reason. Everything else (JSON/CSV/XML
+import, element hints, grid, routing, tag/link styling, synchronized table,
+runtime API and events) follows the chart block-diagram behavior.
 
 ## Date/Time picker control
 

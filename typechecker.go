@@ -2905,7 +2905,7 @@ func isAllowedTag(tag string) bool {
 		"a", "img", "video", "audio", "iframe", "hr", "br",
 		// feedback & nav
 		"progress", "badge", "alert", "spinner", "divider", "combobox", "datepicker",
-		"tabs", "tab", "accordion", "accordionitem", "tree", "treeitem", "chart", "toast",
+		"tabs", "tab", "accordion", "accordionitem", "tree", "treeitem", "chart", "graph", "toast",
 		"menubar", "menu", "menuitem", "modal", "modalbutton":
 		return true
 	}
@@ -2976,7 +2976,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "renameIcon" || key == "showRenameIcon") {
 		return true
 	}
-	if tag == "chart" && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" ||
+	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" ||
 		key == "x" || key == "y" || key == "width" || key == "height" || key == "overflow" ||
 		key == "zoom" || key == "pointWidth" || key == "pointSize" || key == "bins" || key == "min" || key == "max" || key == "interactive" || key == "stateMode" || key == "stateHints" ||
 		key == "stateHintBg" || key == "stateHintOpacity" || key == "stateHintTextColor" || key == "stateHintBorderColor" ||
@@ -3257,8 +3257,12 @@ func (c *Checker) checkElement(e *Element) {
 	if e.tag == "iframe" {
 		c.checkIframe(e)
 	}
-	if e.tag == "chart" && len(e.children) > 0 {
-		c.diagAt(e.span, "chart cannot contain child elements")
+	if (e.tag == "chart" || e.tag == "graph") && len(e.children) > 0 {
+		kind := "chart"
+		if e.tag == "graph" {
+			kind = "graph"
+		}
+		c.diagAt(e.span, kind+" cannot contain child elements")
 	}
 	c.checkControlBinding(e)
 	if len(e.children) > 0 {
@@ -3480,7 +3484,11 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
-	if tag == "chart" {
+	if tag == "graph" && a.key == "chartType" {
+		c.diagAt(a.span, "graph always renders a block diagram; chartType is not allowed on <graph>")
+		return
+	}
+	if tag == "chart" || tag == "graph" {
 		switch a.key {
 		case "chartType", "format", "overflow", "theme", "ganttScale", "linkStyle", "arrowType", "stateRouting", "stateTagStyle", "stateTagLink",
 			"stateLinkTagStyle", "stateLinkTagLink", "stateShapeTagStyle", "stateShapeTagLink",

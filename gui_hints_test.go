@@ -39,10 +39,16 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		"applyChartElementHints", "Element hints...", "chartElementRows",
 		"chartElementCsvDraft", "chartElementXmlDraft", "chartElementDraft",
 		`id="cextrattrs"`, "openChartExtraCfg", "applyChartExtraCfg", "Chart attributes...", "cextra-row",
+		"newGraphNode", "isGraphKind", "chartTypeChangePlan", "chartTypeWarningText",
+		"chartSampleDataset", "chartSampleFormatFor", `graph: "Graph"`, `CHART_GRAPH_SAMPLE_JSON`,
+		"Block diagram (legacy chart)", "Replace chart data?",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer HTML missing %q", want)
 		}
+	}
+	if strings.Contains(guiHTML, `["state", "State machine"]`) {
+		t.Error("chart type menu still offers State machine")
 	}
 	for _, want := range []string{
 		`chartParamAttr(n, "stateHintBg"`,

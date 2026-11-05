@@ -735,7 +735,7 @@ and table DOM and redraw only charts whose chart attributes changed.
 | `bullet` | KPI value against a target and optional max. | two or three: value, target, max |
 | `dumbbell` | Before/after dots connected per category. | exactly two |
 | `gantt` | Horizontal start/end tasks. | exactly two: start, end |
-| `state` | State machine states and transitions (`statemachine` alias). | states/transitions object or edge list |
+| `state` | Legacy block-diagram geometry (`statemachine` alias); prefer the dedicated `graph` control. | states/transitions object or edge list |
 
 ### Data
 
@@ -931,10 +931,27 @@ each attribute at runtime and shows the resulting table dates and bands.
 [`examples/gantt_wbs/`](../examples/gantt_wbs/README.md) demonstrates parent/child
 summary tasks, collapsed summary bars, auto scheduling and dependency cycles.
 
-### State machine
+### Graph control (block diagrams)
 
-`chartType: "state"` renders a state/transition diagram. `statemachine` is an
-accepted alias. The primary JSON form is:
+The dedicated `graph` control renders a block/state diagram. It always uses the
+shapes/links geometry, so no `chartType` attribute is written:
+
+```sui
+state flow = "\{\"states\":[\{\"id\":\"input\",\"label\":\"Input\"\},\{\"id\":\"process\",\"label\":\"Process\"\},\{\"id\":\"output\",\"label\":\"Output\"\}],\"transitions\":[\{\"from\":\"input\",\"to\":\"process\"\},\{\"from\":\"process\",\"to\":\"output\"\}]\}"
+
+view main {
+  graph "Pipeline" name: "pipeline" data: flow
+}
+```
+
+`graph` accepts the same data, layout, grid, tag/link styling, table and runtime
+attributes as the block-diagram chart geometry. The legacy
+`chart "..." chartType: "state"` form (alias `statemachine`) keeps working for
+existing documents, but the designer no longer lists it in the chart type menu.
+Changing a chart to a type whose data shape is incompatible shows a confirmation
+dialog and, if accepted, replaces the data with a sample suited to the new type.
+
+The primary JSON form is:
 
 ```json
 {

@@ -1022,7 +1022,7 @@ RUNNING</div>
 </div>
 <div id="csettings">
   <div id="csettingsbox">
-    <h2>Chart settings</h2>
+    <h2 id="csettings-title">Chart settings</h2>
     <div class="cset-tabs">
       <button class="cset-tab on" data-cset="appearance" onclick="showChartSettingsTab('appearance')">Appearance</button>
       <button class="cset-tab" data-cset="points" onclick="showChartSettingsTab('points')">Points</button>
@@ -1261,7 +1261,7 @@ var PALETTE = [
   { group: "Overlay", tags: ["modal", "modalbutton", "toast"] },
   { group: "Text", tags: ["h1", "h2", "h3", "p", "text", "hr", "blockquote", "pre"],
     subs: [ { name: "Lists", tags: ["list", "ul", "ol"] } ] },
-  { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "treeitem", "chart"],
+  { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "treeitem", "chart", "graph"],
     subs: [ { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] } ] },
   { group: "Tables", tags: ["table"] },
   { group: "Media", tags: ["img", "video", "audio", "iframe"] }
@@ -1274,7 +1274,7 @@ var PALETTE_LABEL = {
   number: "Number input", slider: "Slider/Range", file: "File input",
   color: "Color picker", date: "Date", time: "Time", button: "Button",
   card: "Card", tabs: "Tabs", tab: "Tab", accordion: "Accordion", accordionitem: "Accordion item",
-  tree: "Tree", treeitem: "Tree item", chart: "Chart",
+  tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph",
   menubar: "Menu bar", menu: "Menu", menuitem: "Menu item", modal: "Modal", modalbutton: "Modal button", toast: "Toast host",
   progress: "Progress",
   badge: "Badge", alert: "Alert", spinner: "Spinner", divider: "Divider"
@@ -1351,6 +1351,7 @@ var TAG_FIELDS = {
   tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "onChange", "onRename"],
   treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon"],
   chart: ["text", "name"],
+  graph: ["text", "name"],
   modal: ["text", "name"],
   modalbutton: ["text", "onClick"],
   toast: [],
@@ -1391,7 +1392,7 @@ function newNode(kind) {
   return { kind: kind, text: "", class: "", onClick: "", placeholder: "", value: "", src: "", name: "", variant: "", close: true, draggable: false, dragKey: "", dropKey: "", dropFiles: "", pickFiles: "", pickMode: "native", accept: "", multiple: false, directory: false, children: [] };
 }
 // "Leaf" tags cannot contain children; everything else can nest.
-var LEAF = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, button:1, input:1, textarea:1, img:1, video:1, audio:1, iframe:1, a:1, br:1, hr:1, spacer:1, text:1, code:1, mark:1, strong:1, em:1, small:1, legend:1, option:1, list:1, checkbox:1, radio:1, switch:1, select:1, combobox:1, datepicker:1, number:1, slider:1, file:1, color:1, date:1, time:1, progress:1, badge:1, spinner:1, divider:1, menuitem:1, modalbutton:1, toast:1, chart:1 };
+var LEAF = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, button:1, input:1, textarea:1, img:1, video:1, audio:1, iframe:1, a:1, br:1, hr:1, spacer:1, text:1, code:1, mark:1, strong:1, em:1, small:1, legend:1, option:1, list:1, checkbox:1, radio:1, switch:1, select:1, combobox:1, datepicker:1, number:1, slider:1, file:1, color:1, date:1, time:1, progress:1, badge:1, spinner:1, divider:1, menuitem:1, modalbutton:1, toast:1, chart:1, graph:1 };
 function canNest(k) { return !LEAF[k]; }
 function isContainer(k) { return k === "row" || k === "col"; }
 function normalizeTables(nodes) {
@@ -1683,12 +1684,29 @@ function newChartNode() {
   n.styleExpr = chartPresetStyleExpr("default");
   return n;
 }
+function isChartKind(n) {
+  return !!n && (n.kind === "chart" || n.kind === "graph");
+}
+function isGraphKind(n) {
+  return !!n && n.kind === "graph";
+}
+function newGraphNode() {
+  var n = newChartNode();
+  n.kind = "graph";
+  n.text = "Graph";
+  n.chartType = "state";
+  n.chartData = CHART_GRAPH_SAMPLE_JSON;
+  n.chartDataExpr = false;
+  n.chartFormat = "auto";
+  return n;
+}
 function newNodeForKind(kind) {
   if (kind === "combobox") return newComboboxNode();
   if (kind === "datepicker") return newDatepickerNode();
   if (kind === "tree") return newTreeNode();
   if (kind === "treeitem") return newTreeItemNode("Item");
   if (kind === "chart") return newChartNode();
+  if (kind === "graph") return newGraphNode();
   if (kind === "table") return newTableNode();
   if (kind === "modal") return newModalNode();
   if (kind === "modalbutton") return newModalButtonNode("Button");
@@ -2176,6 +2194,8 @@ function renderNodes(children, depth, parent, path) {
       labelText = "treeitem " + (node.text ? "'" + node.text + "'" : "''");
     } else if (node.kind === "chart") {
       labelText = "chart " + (node.chartType || "bar") + (node.text ? " '" + node.text + "'" : "");
+    } else if (node.kind === "graph") {
+      labelText = "graph block diagram" + (node.text ? " '" + node.text + "'" : "");
     } else if (node.kind === "menubar") {
       labelText = "menubar " + (node.text ? "'" + node.text + "'" : "''");
     } else if (node.kind === "menu") {
@@ -3510,7 +3530,7 @@ function renderInspector() {
   if (nodes.length === 1 && n && n.kind === "treeitem") {
     box.appendChild(treeItemControls(n));
   }
-  if (nodes.length === 1 && n && n.kind === "chart") {
+  if (nodes.length === 1 && n && isChartKind(n)) {
     box.appendChild(chartControls(n));
   }
   if (nodes.length === 1 && n && !n.raw && n.kind !== "toast" && n.kind !== "text") {
@@ -3668,6 +3688,10 @@ var ELEMENT_EVENTS = {
   datepicker: ["onChange"],
   tree:     ["onChange", "onRename"],
   chart:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
+             "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
+             "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
+             "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"],
+  graph:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
              "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
              "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
              "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"],
@@ -4405,11 +4429,89 @@ var chartDataEditorNode = null;
 var chartDataDraft = null;
 var chartDataEditorMode = "literal";
 var chartDataPanelGeom = null;
-var CHART_DATA_SAMPLES = {
-  json: '[\n  {"month":"Jan","value":12},\n  {"month":"Feb","value":18},\n  {"month":"Mar","value":15},\n  {"month":"Apr","value":24}\n]',
-  csv: 'Month,Value\nJan,12\nFeb,18\nMar,15\nApr,24',
-  xml: '<data>\n  <row label="Jan" value="12"/>\n  <row label="Feb" value="18"/>\n  <row label="Mar" value="15"/>\n  <row label="Apr" value="24"/>\n</data>'
+// Sample datasets are grouped by data shape. When a chart type change needs a
+// new dataset the designer keeps the current literal format and picks the
+// sample for the target type, so the replacement is immediately renderable.
+var CHART_GRAPH_SAMPLE_JSON = '{"states":[\n  {"id":"input","label":"Input","shape":"rectangle","x":40,"y":80,"w":120,"h":56},\n  {"id":"process","label":"Process","shape":"rectangle","x":240,"y":80,"w":120,"h":56},\n  {"id":"output","label":"Output","shape":"rectangle","x":440,"y":80,"w":120,"h":56}\n],"transitions":[\n  {"from":"input","to":"process","label":"data"},\n  {"from":"process","to":"output","label":"result"}\n]}';
+var CHART_SAMPLE_DATA = {
+  state: {
+    json: CHART_GRAPH_SAMPLE_JSON,
+    csv: 'From,To,Label\ninput,process,data\nprocess,output,result',
+    xml: '<states>\n  <state id="input" label="Input" shape="rectangle" x="40" y="80" w="120" h="56"/>\n  <state id="process" label="Process" shape="rectangle" x="240" y="80" w="120" h="56"/>\n  <state id="output" label="Output" shape="rectangle" x="440" y="80" w="120" h="56"/>\n  <transition from="input" to="process" label="data"/>\n  <transition from="process" to="output" label="result"/>\n</states>'
+  },
+  single: {
+    json: '[{"label":"Jan","value":12},{"label":"Feb","value":18},{"label":"Mar","value":15},{"label":"Apr","value":24}]',
+    csv: 'Label,Value\nJan,12\nFeb,18\nMar,15\nApr,24',
+    xml: '<data>\n  <row label="Jan" value="12"/>\n  <row label="Feb" value="18"/>\n  <row label="Mar" value="15"/>\n  <row label="Apr" value="24"/>\n</data>'
+  },
+  multi: {
+    json: '[{"label":"Jan","revenue":12,"cost":7,"profit":5},{"label":"Feb","revenue":18,"cost":9,"profit":9},{"label":"Mar","revenue":15,"cost":6,"profit":9},{"label":"Apr","revenue":24,"cost":11,"profit":13}]',
+    csv: 'Label,Revenue,Cost,Profit\nJan,12,7,5\nFeb,18,9,9\nMar,15,6,9\nApr,24,11,13',
+    xml: '<data>\n  <row label="Jan" revenue="12" cost="7" profit="5"/>\n  <row label="Feb" revenue="18" cost="9" profit="9"/>\n  <row label="Mar" revenue="15" cost="6" profit="9"/>\n  <row label="Apr" revenue="24" cost="11" profit="13"/>\n</data>'
+  },
+  heatmap: {
+    json: '[{"label":"A","row":1,"value":5},{"label":"B","row":1,"value":8},{"label":"A","row":2,"value":3},{"label":"B","row":2,"value":6}]',
+    csv: 'Label,Row,Value\nA,1,5\nB,1,8\nA,2,3\nB,2,6',
+    xml: '<data>\n  <row label="A" row="1" value="5"/>\n  <row label="B" row="1" value="8"/>\n  <row label="A" row="2" value="3"/>\n  <row label="B" row="2" value="6"/>\n</data>'
+  },
+  ohlc: {
+    json: '[{"date":"Jan 2","open":10,"high":14,"low":9,"close":13},{"date":"Jan 3","open":13,"high":16,"low":11,"close":15},{"date":"Jan 4","open":15,"high":18,"low":12,"close":14}]',
+    csv: 'Date,Open,High,Low,Close\nJan 2,10,14,9,13\nJan 3,13,16,11,15\nJan 4,15,18,12,14',
+    xml: '<data>\n  <row label="Jan 2" open="10" high="14" low="9" close="13"/>\n  <row label="Jan 3" open="13" high="16" low="11" close="15"/>\n  <row label="Jan 4" open="15" high="18" low="12" close="14"/>\n</data>'
+  },
+  boxplot: {
+    json: '[{"label":"A","min":2,"q1":5,"median":8,"q3":12,"max":16},{"label":"B","min":3,"q1":6,"median":10,"q3":14,"max":18}]',
+    csv: 'Label,Min,Q1,Median,Q3,Max\nA,2,5,8,12,16\nB,3,6,10,14,18',
+    xml: '<data>\n  <row label="A" min="2" q1="5" median="8" q3="12" max="16"/>\n  <row label="B" min="3" q1="6" median="10" q3="14" max="18"/>\n</data>'
+  },
+  bullet: {
+    json: '[{"label":"Revenue","value":72,"target":80,"max":100},{"label":"Costs","value":48,"target":45,"max":100}]',
+    csv: 'Label,Value,Target,Max\nRevenue,72,80,100\nCosts,48,45,100',
+    xml: '<data>\n  <row label="Revenue" value="72" target="80" max="100"/>\n  <row label="Costs" value="48" target="45" max="100"/>\n</data>'
+  },
+  dumbbell: {
+    json: '[{"label":"A","before":12,"after":18},{"label":"B","before":9,"after":15},{"label":"C","before":14,"after":11}]',
+    csv: 'Label,Before,After\nA,12,18\nB,9,15\nC,14,11',
+    xml: '<data>\n  <row label="A" before="12" after="18"/>\n  <row label="B" before="9" after="15"/>\n  <row label="C" before="14" after="11"/>\n</data>'
+  },
+  gantt: {
+    json: '[{"task":"Design","start":"2026-01-05","end":"2026-01-12"},{"task":"Build","start":"2026-01-12","end":"2026-01-23"},{"task":"Test","start":"2026-01-23","end":"2026-01-30"}]',
+    csv: 'Task,Start,End\nDesign,2026-01-05,2026-01-12\nBuild,2026-01-12,2026-01-23\nTest,2026-01-23,2026-01-30',
+    xml: '<data>\n  <task label="Design" start="2026-01-05" end="2026-01-12"/>\n  <task label="Build" start="2026-01-12" end="2026-01-23"/>\n  <task label="Test" start="2026-01-23" end="2026-01-30"/>\n</data>'
+  },
+  histogram: {
+    json: '[3,5,5,6,7,8,8,9,12,14,15,18]',
+    csv: 'Value\n3\n5\n5\n6\n7\n8\n8\n9\n12\n14\n15\n18',
+    xml: '<data>\n  <row value="3"/>\n  <row value="5"/>\n  <row value="5"/>\n  <row value="6"/>\n  <row value="7"/>\n  <row value="8"/>\n  <row value="8"/>\n  <row value="9"/>\n  <row value="12"/>\n  <row value="14"/>\n  <row value="15"/>\n  <row value="18"/>\n</data>'
+  },
+  waterfall: {
+    json: '[{"label":"Start","delta":20},{"label":"Sales","delta":-5},{"label":"Costs","delta":-3},{"label":"Final","delta":8}]',
+    csv: 'Label,Delta\nStart,20\nSales,-5\nCosts,-3\nFinal,8',
+    xml: '<data>\n  <row label="Start" delta="20"/>\n  <row label="Sales" delta="-5"/>\n  <row label="Costs" delta="-3"/>\n  <row label="Final" delta="8"/>\n</data>'
+  }
 };
+var CHART_TYPE_SAMPLE_FAMILY = {
+  bar: "single", barhorizontal: "single", line: "single", step: "single",
+  smooth: "single", area: "single", pie: "single", donut: "single",
+  scatter: "single", gauge: "single", funnel: "single", treemap: "single",
+  barstacked: "multi", bargrouped: "multi", combo: "multi", radar: "multi",
+  heatmap: "heatmap", candlestick: "ohlc", boxplot: "boxplot",
+  bullet: "bullet", dumbbell: "dumbbell", gantt: "gantt",
+  histogram: "histogram", waterfall: "waterfall",
+  state: "state", statemachine: "state"
+};
+function chartSampleDataset(type, format) {
+  var family = CHART_TYPE_SAMPLE_FAMILY[type] || "single";
+  var set = CHART_SAMPLE_DATA[family] || CHART_SAMPLE_DATA.single;
+  var fmt = String(format || "").toLowerCase();
+  if (fmt !== "csv" && fmt !== "xml") fmt = "json";
+  return set[fmt] || set.json;
+}
+function chartSampleFormatFor(format) {
+  var fmt = String(format || "").toLowerCase();
+  return (fmt === "csv" || fmt === "xml") ? fmt : "json";
+}
+
 var CHART_TYPE_OPTIONS = [
   ["bar", "Bar"], ["barhorizontal", "Horizontal bar"], ["barstacked", "Stacked bar"],
   ["bargrouped", "Grouped bar"], ["line", "Line"], ["step", "Step line"],
@@ -4419,10 +4521,14 @@ var CHART_TYPE_OPTIONS = [
   ["radar", "Radar"], ["gauge", "Gauge"], ["funnel", "Funnel"],
   ["heatmap", "Heatmap"], ["candlestick", "Candlestick"],
   ["treemap", "Treemap"], ["boxplot", "Box plot"], ["bullet", "Bullet"],
-  ["dumbbell", "Dumbbell"], ["gantt", "Gantt"], ["state", "State machine"]
+  ["dumbbell", "Dumbbell"], ["gantt", "Gantt"]
 ];
 var CHART_TYPE_LABEL = {};
 CHART_TYPE_OPTIONS.forEach(function(v){ CHART_TYPE_LABEL[v[0]] = v[1]; });
+// The block-diagram geometry is now the dedicated Graph control. Keep the
+// labels for legacy chartType sources so existing documents stay editable.
+CHART_TYPE_LABEL.state = "Block diagram";
+CHART_TYPE_LABEL.statemachine = "Block diagram";
 function looksNumeric(v) {
   if (typeof v === "number") return isFinite(v);
   var s = String(v === null || v === undefined ? "" : v).trim().replace(/\s+/g, "").replace(",", ".");
@@ -4661,8 +4767,19 @@ function chartDataStateProfile(text, format) {
   try {
     if (f === "json") {
       var d = JSON.parse(t);
-      var states = Array.isArray(d) ? (d.some(function(x){ return x && typeof x === "object" && (x.from !== undefined || x.source !== undefined); }) ? [] : d) : (d && Array.isArray(d.states) ? d.states : (d && Array.isArray(d.nodes) ? d.nodes : []));
-      var transitions = Array.isArray(d) ? (states.length ? [] : d) : (d && Array.isArray(d.transitions) ? d.transitions : (d && Array.isArray(d.edges) ? d.edges : []));
+      var hasId = function(x) { return x && typeof x === "object" && (x.id !== undefined || x.key !== undefined); };
+      var hasEdge = function(x) { return x && typeof x === "object" && (x.from !== undefined || x.source !== undefined); };
+      var states = [];
+      var transitions = [];
+      if (Array.isArray(d)) {
+        if (d.some(hasEdge)) transitions = d;
+        else if (d.some(hasId)) states = d;
+      } else if (d && typeof d === "object") {
+        var sr = Array.isArray(d.states) ? d.states : (Array.isArray(d.nodes) ? d.nodes : []);
+        states = sr.filter(hasId);
+        var tr = Array.isArray(d.transitions) ? d.transitions : (Array.isArray(d.edges) ? d.edges : []);
+        transitions = tr.filter(hasEdge);
+      }
       out.stateCount = states.length;
       out.transitionCount = transitions.length;
       out.labels = Math.max(states.length, transitions.length);
@@ -4677,10 +4794,15 @@ function chartDataStateProfile(text, format) {
       var rows = chartDataCsvRows(t);
       var body = rows.length > 1 ? rows.slice(1) : rows;
       var head = rows.length ? rows[0] : [];
-      var hasEdges = head.some(function(c){ return ["from","source","to","target"].indexOf(String(c).trim().toLowerCase()) >= 0; });
-      out.stateCount = hasEdges ? 0 : body.length;
-      out.transitionCount = hasEdges ? body.length : 0;
-      out.labels = body.length;
+      var lower = head.map(function(c){ return String(c).trim().toLowerCase(); });
+      var hasEdges = lower.some(function(c){ return ["from","source","fromstate","from_state","to","target","tostate","to_state"].indexOf(c) >= 0; });
+      var hasStates = lower.some(function(c){ return ["id","key","state","type","kind","label","name"].indexOf(c) >= 0; });
+      var hasNumericValue = lower.some(function(c){ return ["value","values","amount","total","count","y"].indexOf(c) >= 0; });
+      if (hasEdges || (hasStates && !hasNumericValue)) {
+        out.stateCount = hasEdges ? 0 : body.length;
+        out.transitionCount = hasEdges ? body.length : 0;
+        out.labels = body.length;
+      }
     }
   } catch (e) {}
   return out;
@@ -4688,10 +4810,10 @@ function chartDataStateProfile(text, format) {
 function chartDataCompatibility(profile, type) {
   if (!profile || type === "__expr__") return { ok: true, level: "warn", msg: "Chart type is an expression; compatibility is checked at runtime." };
   if (type === "state" || type === "statemachine") {
-    if (profile.stateCount || profile.transitionCount) return { ok: true, level: "ok", msg: "Compatible with state machine (" + profile.stateCount + " states, " + profile.transitionCount + " transitions)." };
-    return { ok: false, level: "err", msg: "State machine data needs at least one state or transition." };
+    if (profile.stateCount || profile.transitionCount) return { ok: true, level: "ok", msg: "Compatible with block diagram (" + profile.stateCount + " states, " + profile.transitionCount + " transitions)." };
+    return { ok: false, level: "err", msg: "Block diagram data needs at least one state or transition." };
   }
-  if (!profile.labels) return { ok: true, level: "warn", msg: "No data yet." };
+  if (!profile.labels) return { ok: false, level: "err", msg: "No " + chartTypeLabel(type) + " data rows were found in the current dataset." };
   if (!profile.seriesCount) return { ok: false, level: "err", msg: "No numeric series found. Add a numeric column or check the x/y fields." };
   var multi = chartTypeIsMulti(type);
   if (multi && profile.seriesCount < 2) {
@@ -4728,6 +4850,69 @@ function chartDataCompatibility(profile, type) {
     return { ok: true, level: "warn", msg: "Waterfall has no negative deltas; it will only show increases." };
   }
   return { ok: true, level: "ok", msg: "Compatible with " + chartTypeLabel(type) + " (" + profile.seriesCount + " numeric series)." };
+}
+// Pick the parser that matches the target geometry. State/graph data is a
+// shapes/links document, not a numeric series, and Gantt has its own date
+// profile, so a plain chart profile would report a false mismatch.
+function chartDataProfileForType(text, format, type, xField, yField) {
+  if (type === "state" || type === "statemachine") return chartDataStateProfile(text, format);
+  if (type === "gantt") return chartDataGanttProfile(text, format);
+  return chartDataProfile(text, format, xField, yField);
+}
+function chartTypeCompatibilityForData(text, format, type, xField, yField) {
+  var profile = chartDataProfileForType(text, format, type, xField, yField);
+  return { profile: profile, compat: chartDataCompatibility(profile, type) };
+}
+// Legacy chartType values stay selectable only on documents that already use
+// them, so the normal chart type menu no longer offers "State machine".
+function chartTypeMenuOptions(n) {
+  var out = CHART_TYPE_OPTIONS.slice();
+  var current = n && n.chartType ? String(n.chartType) : "";
+  if (current === "state" || current === "statemachine") {
+    out.push([current, "Block diagram (legacy chart)"]);
+  }
+  return out;
+}
+// Decide what a chart type change implies for the current dataset. Numeric
+// types keep compatible data; an incompatible or empty dataset gets the
+// sample that matches the target geometry.
+function chartTypeChangePlan(n, newType) {
+  var sourceFormat = n.chartFormat || "auto";
+  var sampleFormat = chartSampleFormatFor(sourceFormat);
+  var sample = chartSampleDataset(newType, sampleFormat);
+  var appliedFormat = sampleFormat === "json" ? "auto" : sampleFormat;
+  if (n.chartDataExpr) return { needsReplace: false, fillSample: false, sample: "", format: "", reason: "" };
+  var source = String(n.chartData || "");
+  if (!source.trim()) return { needsReplace: false, fillSample: true, sample: sample, format: appliedFormat, reason: "" };
+  var check = chartTypeCompatibilityForData(
+    source,
+    sourceFormat === "__expr__" ? "auto" : sourceFormat,
+    newType,
+    n.chartX,
+    n.chartY
+  );
+  if (check.compat.ok) return { needsReplace: false, fillSample: false, sample: "", format: "", reason: "" };
+  return { needsReplace: true, fillSample: false, sample: sample, format: appliedFormat, reason: check.compat.msg };
+}
+function chartApplyTypeChange(n, newType, plan) {
+  snap("chart type");
+  chartClearParam(n, "chartType");
+  n.chartType = newType;
+  if (plan && (plan.needsReplace || plan.fillSample)) {
+    n.chartData = plan.sample;
+    n.chartDataExpr = false;
+    chartClearParam(n, "chartFormat");
+    n.chartFormat = plan.format || "auto";
+  }
+  setOut();
+  autoPreview();
+  renderInspector();
+}
+function chartTypeWarningText(newType, plan) {
+  var label = chartTypeLabel(newType);
+  var why = plan && plan.reason ? " " + plan.reason : "";
+  return "The current data is not compatible with " + label + "." + why +
+    " Changing the chart type will ignore the existing data and replace it with a sample dataset suited to " + label + ".";
 }
 function chartDataLines(text) {
   var t = String(text || "");
@@ -4875,7 +5060,7 @@ function chartDataUpdateStatus() {
     r = chartDataValidateText(chartDataDraft.literal, fmt);
     var lines = chartDataLines(chartDataDraft.literal);
     var chars = String(chartDataDraft.literal || "").length;
-    if (r.ok) {
+    if (r.ok && String(chartDataDraft.literal || "").trim() !== "") {
       profile = chartDataDraft.type === "gantt"
         ? chartDataGanttProfile(chartDataDraft.literal, fmt === "__expr__" ? "auto" : fmt)
         : (chartDataDraft.type === "state" || chartDataDraft.type === "statemachine"
@@ -4954,7 +5139,17 @@ function chartDataFillType(n) {
   var sel = document.getElementById("cd-type");
   if (!sel) return;
   sel.innerHTML = "";
-  CHART_TYPE_OPTIONS.forEach(function(v){
+  if (isGraphKind(n)) {
+    var graphOpt = document.createElement("option");
+    graphOpt.value = "state";
+    graphOpt.textContent = "Graph — block diagram";
+    sel.appendChild(graphOpt);
+    sel.value = "state";
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  chartTypeMenuOptions(n).forEach(function(v){
     var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1]; sel.appendChild(o);
   });
   var typeExpr = chartParamExpr(n, "chartType");
@@ -4973,14 +5168,14 @@ function chartDataSetLiteral(text) {
   document.getElementById("cd-text").value = chartDataDraft.literal;
 }
 function openChartDataEditor(n) {
-  if (!n || n.kind !== "chart") return;
+  if (!isChartKind(n)) return;
   chartDataEditorNode = n;
   var fmtExpr = chartParamExpr(n, "chartFormat");
   chartDataDraft = {
     literal: n.chartDataExpr ? "" : (n.chartData || ""),
     expression: n.chartDataExpr ? (n.chartData || "") : "",
     format: fmtExpr ? "__expr__" : (n.chartFormat || "auto"),
-    type: chartParamExpr(n, "chartType") ? "__expr__" : (n.chartType || "bar"),
+    type: isGraphKind(n) ? "state" : (chartParamExpr(n, "chartType") ? "__expr__" : (n.chartType || "bar")),
     xField: n.chartX || "",
     yField: n.chartY || ""
   };
@@ -5059,16 +5254,46 @@ function wireChartDataEditor() {
   e.text.oninput = function(){ chartDataDraft.literal = e.text.value; chartDataUpdateStatus(); };
   e.expr.oninput = function(){ chartDataDraft.expression = e.expr.value; chartDataUpdateStatus(); };
   e.format.onchange = function(){ chartDataDraft.format = e.format.value; chartDataUpdateStatus(); };
-  e.type.onchange = function(){ chartDataDraft.type = e.type.value; chartDataUpdateStatus(); };
+  e.type.onchange = function(){
+    var newType = e.type.value;
+    if (newType === chartDataDraft.type) return;
+    if (newType === "__expr__") { chartDataDraft.type = newType; chartDataUpdateStatus(); return; }
+    var probe = {
+      chartData: chartDataDraft.literal,
+      chartDataExpr: chartDataEditorMode === "expr",
+      chartFormat: chartDataDraft.format,
+      chartX: chartDataDraft.xField,
+      chartY: chartDataDraft.yField
+    };
+    var plan = chartTypeChangePlan(probe, newType);
+    if (plan.needsReplace) {
+      var previous = chartDataDraft.type;
+      e.type.value = previous;
+      confirmBox("Replace chart data?", chartTypeWarningText(newType, plan), function(){
+        chartDataDraft.type = newType;
+        e.type.value = newType;
+        chartDataSetLiteral(plan.sample);
+        chartDataSetMode("literal", false);
+        if (plan.format) { e.format.value = plan.format; chartDataDraft.format = plan.format; }
+        chartDataUpdateStatus();
+      });
+      return;
+    }
+    chartDataDraft.type = newType;
+    if (plan.fillSample) {
+      chartDataSetLiteral(plan.sample);
+      chartDataSetMode("literal", false);
+      if (plan.format) { e.format.value = plan.format; chartDataDraft.format = plan.format; }
+    }
+    chartDataUpdateStatus();
+  };
   e.text.addEventListener("keydown", function(ev){
     if (ev.key === "Tab") { ev.preventDefault(); chartDataInsertText(e.text, "  "); }
   });
   document.getElementById("cd-sample").onclick = function(){
     var fmt = e.format.value;
-    if (fmt === "auto" || fmt === "__expr__") {
-      fmt = String(chartDataDraft.literal || "").trim() ? chartDataDetectFormat(chartDataDraft.literal) : "json";
-    }
-    chartDataSetLiteral(CHART_DATA_SAMPLES[fmt] || CHART_DATA_SAMPLES.json);
+    var sampleFormat = chartSampleFormatFor(fmt === "__expr__" ? "auto" : fmt);
+    chartDataSetLiteral(chartSampleDataset(chartDataDraft.type, sampleFormat));
     chartDataSetMode("literal", false);
     chartDataUpdateStatus();
   };
@@ -5124,7 +5349,8 @@ function chartControls(n) {
   a.className = "acc open";
   var h = document.createElement("div");
   h.className = "acchead";
-  h.innerHTML = '<span>Chart</span><span>\u25BE</span>';
+  var graph = isGraphKind(n);
+  h.innerHTML = '<span>' + (graph ? "Graph" : "Chart") + '</span><span>\u25BE</span>';
   h.onclick = function(){ a.classList.toggle("open"); };
   a.appendChild(h);
   var b = document.createElement("div");
@@ -5132,20 +5358,22 @@ function chartControls(n) {
 
   var hint = document.createElement("div");
   hint.className = "hint";
-  hint.textContent = "Data can be JSON, XML or CSV. Width/height define the frame; scroll shows bars, zoom adds +/- controls when the chart is larger than its frame.";
+  hint.textContent = graph
+    ? "Block diagram data: states as boxes and transitions as links. JSON, XML or CSV; use Element hints for shapes and links."
+    : "Data can be JSON, XML or CSV. Width/height define the frame; scroll shows bars, zoom adds +/- controls when the chart is larger than its frame.";
   b.appendChild(hint);
 
   var typeSel = document.createElement("select");
-  CHART_TYPE_OPTIONS.forEach(function(v){
+  chartTypeMenuOptions(n).forEach(function(v){
     var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1]; typeSel.appendChild(o);
   });
   typeSel.value = n.chartType || "bar";
   if (!typeSel.value) typeSel.value = "bar";
   var typeRow = chartFieldRow("type", typeSel, "Chart geometry. Fields below follow the selected type.");
-  b.appendChild(typeRow);
+  if (!graph) b.appendChild(typeRow);
   var typeHint = document.createElement("div");
   typeHint.className = "hint";
-  b.appendChild(typeHint);
+  if (!graph) b.appendChild(typeHint);
 
   var dataBtn = document.createElement("button");
   dataBtn.type = "button";
@@ -5227,8 +5455,8 @@ function chartControls(n) {
   settingsBtn.type = "button";
   settingsBtn.className = "btn";
   settingsBtn.style.fontSize = "11px";
-  settingsBtn.textContent = "Chart settings...";
-  settingsBtn.title = "Open the unified chart configuration panel";
+  settingsBtn.textContent = graph ? "Graph settings..." : "Chart settings...";
+  settingsBtn.title = graph ? "Open the unified graph configuration panel" : "Open the unified chart configuration panel";
   settingsBtn.onclick = function(){ openChartSettings(n); };
   fields.chartSettings = chartFieldRow("settings", settingsBtn, "Appearance, points, tooltip, table, interactions and data fields in one panel.");
   b.appendChild(fields.chartSettings);
@@ -5313,36 +5541,44 @@ function chartControls(n) {
     if (row) row.style.display = show ? "" : "none";
   }
   function applyChartTypeVisibility() {
-    var type = typeSel.value || "bar";
+    var type = graph ? "state" : (typeSel.value || "bar");
     var all = !!chartParamExpr(n, "chartType");
     var noPoint = ["pie", "donut", "radar", "gauge", "funnel", "treemap", "bullet", "dumbbell", "gantt", "state"].indexOf(type) >= 0;
     var hasPoints = ["line", "step", "smooth", "area", "scatter", "combo", "radar", "dumbbell"].indexOf(type) >= 0;
     var noGrid = ["pie", "donut", "radar", "gauge", "funnel", "heatmap", "treemap", "bullet"].indexOf(type) >= 0;
     var noValues = ["pie", "donut", "scatter", "gauge", "radar"].indexOf(type) >= 0;
-    setRowVisible(fields.x, all || (type !== "gauge" && type !== "histogram"));
-    setRowVisible(fields.y, all || type !== "gauge");
-    setRowVisible(fields.pointWidth, all || !noPoint);
-    setRowVisible(fields.pointSize, all || hasPoints);
+    setRowVisible(fields.x, !graph && (all || (type !== "gauge" && type !== "histogram")));
+    setRowVisible(fields.y, !graph && (all || type !== "gauge"));
+    setRowVisible(fields.pointWidth, !graph && (all || !noPoint));
+    setRowVisible(fields.pointSize, !graph && (all || hasPoints));
     if (fields.setTableLabels) fields.setTableLabels(type);
     setRowVisible(fields.tableView, true);
     setRowVisible(fields.zoom, true);
-    setRowVisible(fields.bins, all || type === "histogram");
-    setRowVisible(fields.min, all || type === "gauge");
-    setRowVisible(fields.max, all || type === "gauge");
-    setRowVisible(fields.grid, all || !noGrid);
-    setRowVisible(fields.legend, all || (type !== "gauge" && type !== "funnel"));
-    setRowVisible(fields.values, all || !noValues);
-    typeHint.textContent = all
+    setRowVisible(fields.bins, !graph && (all || type === "histogram"));
+    setRowVisible(fields.min, !graph && (all || type === "gauge"));
+    setRowVisible(fields.max, !graph && (all || type === "gauge"));
+    setRowVisible(fields.grid, !graph && (all || !noGrid));
+    setRowVisible(fields.legend, !graph && (all || (type !== "gauge" && type !== "funnel")));
+    setRowVisible(fields.values, !graph && (all || !noValues));
+    if (graph) typeHint.textContent = "Block diagram: states and links.";
+    else typeHint.textContent = all
       ? "Chart type is an expression; all parameters are shown and compatibility is checked at runtime."
       : (TYPE_HINTS[type] || "Configure the fields relevant to the selected chart type.");
   }
   typeSel.onchange = function(){
-    snap("chart type");
-    chartClearParam(n, "chartType");
-    n.chartType = typeSel.value;
-    applyChartTypeVisibility();
-    setOut();
-    autoPreview();
+    if (graph) return;
+    var newType = typeSel.value;
+    var oldType = n.chartType || "bar";
+    if (newType === oldType) return;
+    var plan = chartTypeChangePlan(n, newType);
+    if (plan.needsReplace) {
+      typeSel.value = oldType;
+      confirmBox("Replace chart data?", chartTypeWarningText(newType, plan), function(){
+        chartApplyTypeChange(n, newType, plan);
+      });
+      return;
+    }
+    chartApplyTypeChange(n, newType, plan);
   };
   applyChartTypeVisibility();
 
@@ -8055,9 +8291,9 @@ function attrsOf(n) {
   if (n.options) a += n.optionsExpr ? " options: " + n.options : " options: \"" + esc(n.options) + "\"";
   if (n.maxOptionLength) a += " maxOptionLength: " + n.maxOptionLength;
   if (n.maxOptions) a += " maxOptions: " + n.maxOptions;
-  if (n.kind === "chart") {
+  if (isChartKind(n)) {
     if (n.chartData) a += " data: " + (n.chartDataExpr ? n.chartData : "\"" + esc(n.chartData) + "\"");
-    a += chartParamAttr(n, "chartType", "chartType", n.chartType, "bar", true);
+    if (n.kind !== "graph") a += chartParamAttr(n, "chartType", "chartType", n.chartType, "bar", true);
     a += chartParamAttr(n, "theme", "chartTheme", n.chartTheme, "dark", true);
     a += chartParamAttr(n, "format", "chartFormat", n.chartFormat, "auto", true);
     a += chartParamAttr(n, "x", "chartX", n.chartX, "", true);
@@ -8978,6 +9214,7 @@ var PAL_ICON = {
   tree: '<rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="16" width="5" height="4" rx="1"/><rect x="9.5" y="16" width="5" height="4" rx="1"/><rect x="16" y="16" width="5" height="4" rx="1"/><path d="M12 7v4M5.5 16v-3h13v3M12 13v3"/>',
   treeitem: '<rect x="7" y="9" width="10" height="6" rx="1.5"/><line x1="10" y1="12" x2="14" y2="12"/>',
   chart: '<path d="M4 20V4M4 20h16"/><rect x="7" y="12" width="3" height="5" rx=".5"/><rect x="12" y="8" width="3" height="9" rx=".5"/><rect x="17" y="5" width="3" height="12" rx=".5"/><path d="M6.5 7.5l4-2 4 1 5-2.5" opacity=".55"/>',
+  graph: '<rect x="3" y="8" width="6" height="5" rx="1"/><rect x="15" y="4" width="6" height="5" rx="1"/><rect x="15" y="15" width="6" height="5" rx="1"/><path d="M9 10.5h3v-4h3M12 10.5v7h3"/>',
   progress: '<rect x="4" y="9" width="16" height="6" rx="3" opacity="0.35"/><rect x="4" y="9" width="10" height="6" rx="3" fill="currentColor" stroke="none"/>',
   badge: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="0.6" fill="currentColor" stroke="none"/>',
   alert: '<path d="M12 7l7 12H5z"/><line x1="12" y1="11" x2="12" y2="14"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>',
@@ -10457,6 +10694,7 @@ function showChartSettingsTab(name) {
 }
 function openChartSettings(n) {
   chartSettingsNode = n;
+  document.getElementById("csettings-title").textContent = isGraphKind(n) ? "Graph settings" : "Chart settings";
   var theme = document.getElementById("cs-theme");
   theme.value = n.chartTheme === "light" ? "light" : "dark";
   document.getElementById("cs-colorpicker").checked = n.chartColorPicker !== false;

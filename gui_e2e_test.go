@@ -19,10 +19,8 @@ func TestGuiDesignerE2E(t *testing.T) {
 		t.Skip("no Chrome/Edge found; skipping designer end-to-end test")
 	}
 
-	const source = `state data = "\{\"states\":[\{\"id\":\"a\",\"label\":\"Alpha\",\"hint\":\"H1\"\},\{\"id\":\"b\",\"label\":\"Beta\"\}]}"
-
-view main {
-	chart "C" name: "c" data: data chartType: "state"
+	const source = `view main {
+	chart "C" name: "c" data: "\{\"states\":[\{\"id\":\"a\",\"label\":\"Alpha\",\"hint\":\"H1\"\},\{\"id\":\"b\",\"label\":\"Beta\"\}]\}" chartType: "state"
 }`
 
 	page := strings.Replace(guiHTML, "</body>", guiE2EScript+"</body>", 1)
@@ -198,6 +196,25 @@ const guiE2EScript = `<script>
     elementApply.click();
     await wait(1000);
     if (document.getElementById('out').value.indexOf('E2E|LINE') < 0) throw new Error('element hint not applied');
+    var typeSelect = null;
+    var selects = document.querySelectorAll('#inspector select');
+    for (var s = 0; s < selects.length; s++) {
+      if (selects[s].querySelector('option[value="candlestick"]')) { typeSelect = selects[s]; break; }
+    }
+    if (!typeSelect) throw new Error('chart type selector not found');
+    var stateOption = typeSelect.querySelector('option[value="state"]');
+    if (stateOption && stateOption.textContent.indexOf('legacy') < 0) throw new Error('state machine still listed as a normal chart type');
+    typeSelect.value = 'candlestick';
+    typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(400);
+    if (!document.getElementById('confdlg').classList.contains('on')) throw new Error('incompatible type warning not shown');
+    if (document.getElementById('conf-text').textContent.indexOf('sample dataset') < 0) throw new Error('warning does not mention sample data');
+    document.getElementById('conf-ok').click();
+    await wait(1200);
+    var finalSource = document.getElementById('out').value;
+    if (finalSource.indexOf('chartType: "candlestick"') < 0) throw new Error('candlestick type not applied');
+    if (finalSource.indexOf('"open"') < 0 && finalSource.indexOf('open') < 0) throw new Error('OHLC sample data not applied');
+    if (finalSource.indexOf('"close"') < 0 && finalSource.indexOf('close') < 0) throw new Error('OHLC sample data not applied');
     result(true, '');
   } catch (error) {
     result(false, error && error.message ? error.message : String(error));

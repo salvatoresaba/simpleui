@@ -33,6 +33,7 @@ jobs:
         run: |
           ./simpleui.exe check examples/process_monitor/app.sui --json
           ./simpleui.exe check examples/state_machine/app.sui --json
+          ./simpleui.exe check examples/graph/app.sui --json
           ./simpleui.exe check examples/chart/app.sui --json
 
       - name: Ensure clean tracked tree

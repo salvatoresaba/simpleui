@@ -163,10 +163,10 @@
       "id": "api",
       "path": "docs/API_REFERENCE.md",
       "title": "API reference",
-      "summary": "Essential SUI syntax, drag and drop, menu bars, tabs, accordions, toast notifications, tooltips, dynamic combobox options, escaped commas, wildcard search, option length/count validation, runtime option errors, date/time pickers, nested trees with JSON/XML import/export, charts from JSON/XML/CSV including horizontal, stacked/grouped, combo, step/smooth, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell and Gantt with data/type compatibility checks, presets, scroll and zoom, accessible synchronized tables with text/value/range filters, sorting, column reordering, copy/print and exports, tableAddRow insertion for every chart table with onDataChange, row/column/cell multi-selection, visible numeric steppers, delete-row buttons, context-menu clipboard copy/paste, selected-region export and virtual scrolling, Gantt critical path, recurring holidays, configurable weekends and timezone, state-machine diagrams with states/transitions and edge-list input, page navigation, modal dialogs, native file picker, table API, security, iframe attributes and CLI targets.",
+      "summary": "Essential SUI syntax, drag and drop, menu bars, tabs, accordions, toast notifications, tooltips, dynamic combobox options, escaped commas, wildcard search, option length/count validation, runtime option errors, date/time pickers, nested trees with JSON/XML import/export, charts from JSON/XML/CSV including horizontal, stacked/grouped, combo, step/smooth, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell and Gantt with data/type compatibility checks, presets, scroll and zoom, accessible synchronized tables with text/value/range filters, sorting, column reordering, copy/print and exports, tableAddRow insertion for every chart table with onDataChange, row/column/cell multi-selection, visible numeric steppers, delete-row buttons, context-menu clipboard copy/paste, selected-region export and virtual scrolling, Gantt critical path, recurring holidays, configurable weekends and timezone, state-machine diagrams with states/transitions and edge-list input, the dedicated Graph block-diagram control, page navigation, modal dialogs, native file picker, table API, security, iframe attributes and CLI targets.",
       "audience": ["human", "agent"],
       "priority": 2,
-      "tags": ["language", "syntax", "api", "drag", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "state", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "table", "iframe", "cli"],
+      "tags": ["language", "syntax", "api", "drag", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "graph", "state", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "table", "iframe", "cli"],
       "sections": ["SUI language (essential syntax)", "Drag and drop", "Menu bar", "Tabs", "Accordion", "Toast notifications", "Tooltip property", "Combobox", "Tree", "Chart", "Date/Time picker", "Pages and navigation", "Modal dialogs", "Tables and untrusted data", "Security", "Iframe", "CLI", "Targets"]
     },
     {
@@ -193,11 +193,11 @@
       "id": "gui_editor",
       "path": "docs/GUI_EDITOR.md",
       "title": "GUI editor: drag and drop",
-      "summary": "How the visual designer handles the code editor, completion, exact element-type badges, indentation, drag and drop, menu bars, tabs, pages, modal dialogs, toast and tooltip properties and dynamic combobox option lists, escaped commas, wildcard search, option length/count validation, runtime option errors, date/time pickers, nested trees with styles and JSON/XML import/export, charts with a movable/resizable data editor, data/type compatibility checks, multi-series data, data expressions, dimensions, scroll/zoom and presets, unified chart settings, table settings with nested submenus, Gantt critical path/holidays/weekend/timezone controls, source/target attributes, file drops and native pickers in the generated app.",
+      "summary": "How the visual designer handles the code editor, completion, exact element-type badges, indentation, drag and drop, menu bars, tabs, pages, modal dialogs, toast and tooltip properties and dynamic combobox option lists, escaped commas, wildcard search, option length/count validation, runtime option errors, date/time pickers, nested trees with styles and JSON/XML import/export, charts with a movable/resizable data editor, data/type compatibility checks, multi-series data, data expressions, dimensions, scroll/zoom and presets, unified chart settings, table settings with nested submenus, Gantt critical path/holidays/weekend/timezone controls, Graph block diagram control, incompatible chart type replacement warning, source/target attributes, file drops and native pickers in the generated app.",
       "audience": ["human", "agent"],
       "priority": 2,
-      "tags": ["gui", "designer", "editor", "completion", "autocomplete", "indent", "highlight", "symbols", "undo", "redo", "styles", "drag", "drop", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "inspector", "hints", "round-trip"],
-      "sections": ["GUI editor: drag and drop", "Quick answer", "Code editor preferences", "General editor", "SUI code appearance", "Completion and indentation", "Undo and redo", "Inspector and effective styles", "Designer drag and drop", "Tree drops", "Palette drops", "Designer limitations", "Application drag and drop", "Required properties", "Minimal reorder example", "Designer steps for the reorder example", "Dropping files and folders", "Menu bar control", "Pages", "Modal control", "Tabs control", "Accordion control", "Combobox control", "Tree control", "Chart control", "Date/Time picker control", "Toast control", "Tooltip property", "Native file and folder dialogs", "Designer inspector checklist", "Troubleshooting", "Security notes", "Related documents"]
+      "tags": ["gui", "designer", "editor", "completion", "autocomplete", "indent", "highlight", "symbols", "undo", "redo", "styles", "drag", "drop", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "graph", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "inspector", "hints", "round-trip"],
+      "sections": ["GUI editor: drag and drop", "Quick answer", "Code editor preferences", "General editor", "SUI code appearance", "Completion and indentation", "Undo and redo", "Inspector and effective styles", "Designer drag and drop", "Tree drops", "Palette drops", "Designer limitations", "Application drag and drop", "Required properties", "Minimal reorder example", "Designer steps for the reorder example", "Dropping files and folders", "Menu bar control", "Pages", "Modal control", "Tabs control", "Accordion control", "Combobox control", "Tree control", "Chart control", "Graph control", "Date/Time picker control", "Toast control", "Tooltip property", "Native file and folder dialogs", "Designer inspector checklist", "Troubleshooting", "Security notes", "Related documents"]
     },
     {
       "id": "builtins",
@@ -308,6 +308,16 @@
       "priority": 2,
       "tags": ["examples", "gantt", "project", "wbs", "actual", "calendar"],
       "sections": ["Run it", "What the example demonstrates", "Complete SUI source"]
+    },
+    {
+      "id": "graph_example",
+      "path": "examples/graph/README.md",
+      "title": "Graph block-diagram control",
+      "summary": "Runnable Graph control example with a JSON states/transitions document, explicit layout, tags with line breaks, link styling, grid and synchronized accessible table.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "graph", "chart", "state", "block-diagram", "json", "table", "designer"],
+      "sections": ["What it demonstrates", "Run it", "Designer workflow", "Complete SUI source"]
     },
     {
       "id": "process_monitor_example",
