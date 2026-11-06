@@ -118,6 +118,32 @@ func TestGuiEditorPreferencesPanel(t *testing.T) {
 	}
 }
 
+func TestGuiEditorMenusAndFind(t *testing.T) {
+	for _, want := range []string{
+		`id="sui-findbar"`,
+		`id="sui-find-input"`,
+		`id="sui-replace-input"`,
+		`id="cmd-palette"`,
+		`id="cmd-input"`,
+		`function openFindBar`,
+		`function findNext`,
+		`function replaceFindAll`,
+		`function openCommandPalette`,
+		`function duplicateLine`,
+		`function moveLines`,
+		`function deleteLine`,
+		`function selectLine`,
+		`function outdentSelection`,
+		`function showEditorMenu`,
+		`function wireEditorTools`,
+		`__findMarks`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("editor tools missing %q", want)
+		}
+	}
+}
+
 func TestGuiHistorySettingsParsing(t *testing.T) {
 	auto, interval, keep := parseGuiHistorySettings(`{}`)
 	if !auto || interval != time.Minute || keep != guiVersionKeep {

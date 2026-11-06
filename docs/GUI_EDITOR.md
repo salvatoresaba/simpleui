@@ -173,6 +173,60 @@ inside their braces. Nested statements keep their relative indentation, so
 round-tripping a project through the visual editor does not flatten function
 code.
 
+## Code editor menus and navigation
+
+### Context menu
+
+Right-click in the SUI editor to open grouped actions:
+
+- **Undo / Redo**
+- **Cut / Copy / Paste**
+- **Select all / Select line**
+- **Duplicate line, Move line up/down, Delete line, Indent, Outdent**
+- **Go to definition, Find references, Rename symbol**
+- **Find, Replace, Go to line, Command palette**
+- **Toggle comment**
+
+The menu is contextual: Cut and Copy are enabled only with a selection, while
+navigation entries require a symbol under the cursor. Items show their shortcut,
+can be reached with the arrow keys and run with Enter; Escape closes the menu.
+
+### Line operations
+
+| Action | Shortcut |
+|---|---|
+| Select line | Ctrl+L |
+| Duplicate line or selection | Shift+Alt+Down |
+| Move line or selection up / down | Alt+Up / Alt+Down |
+| Delete line or selection | Ctrl+Shift+K |
+| Indent / outdent | Tab / Shift+Tab |
+
+### Find and replace
+
+Press **Ctrl+F** to open the find bar and **Ctrl+H** to show the replace row.
+
+| Action | Shortcut |
+|---|---|
+| Next / previous match | Enter / Shift+Enter, F3 / Shift+F3 |
+| Toggle match case | **Aa** button |
+| Replace current match | **Replace** |
+| Replace every match | **All** |
+| Close the bar | Escape |
+
+Matches are highlighted in the editor with the current match in a stronger
+colour, and the match counter shows the current position and total. Find starts
+from the current selection when it is a single-line selection.
+
+### Command palette
+
+Press **Ctrl+Shift+P** to search editor commands and declared symbols.
+
+- Type to filter by command name, shortcut, state, function or view.
+- Arrow keys move the selection; Enter runs it; Escape closes.
+- Symbol entries jump directly to their declaration line.
+- Commands include Find, Replace, Go to line, navigation, line operations,
+  comment toggle and Apply SUI source.
+
 ## Undo and redo
 
 The toolbar and **Edit → Undo / Redo** use one history for the whole designer,

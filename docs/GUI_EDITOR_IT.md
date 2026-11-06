@@ -176,6 +176,61 @@ di un livello dentro le parentesi graffe. Le istruzioni annidate mantengono la
 loro indentazione relativa, quindi il round-trip attraverso l'editor visuale non
 appiattisce il codice delle funzioni.
 
+## Menu e navigazione del code editor
+
+### Menu contestuale
+
+Il tasto destro nell'editor SUI apre azioni raggruppate:
+
+- **Undo / Redo**
+- **Cut / Copy / Paste**
+- **Select all / Select line**
+- **Duplicate line, Move line up/down, Delete line, Indent, Outdent**
+- **Go to definition, Find references, Rename symbol**
+- **Find, Replace, Go to line, Command palette**
+- **Toggle comment**
+
+Il menu è contestuale: Cut e Copy sono attivi solo con una selezione, mentre le
+voci di navigazione richiedono un simbolo sotto il cursore. Ogni voce mostra la
+scorciatoia, si raggiunge con le frecce e si esegue con Invio; Esc chiude il menu.
+
+### Operazioni sulle righe
+
+| Azione | Scorciatoia |
+|---|---|
+| Seleziona riga | Ctrl+L |
+| Duplica riga o selezione | Shift+Alt+Giù |
+| Sposta riga o selezione su / giù | Alt+Su / Alt+Giù |
+| Elimina riga o selezione | Ctrl+Shift+K |
+| Indenta / riduci indentazione | Tab / Shift+Tab |
+
+### Trova e sostituisci
+
+Premere **Ctrl+F** per aprire la barra di ricerca e **Ctrl+H** per mostrare la
+riga di sostituzione.
+
+| Azione | Scorciatoia |
+|---|---|
+| Corrispondenza successiva / precedente | Invio / Shift+Invio, F3 / Shift+F3 |
+| Distinzione maiuscole/minuscole | pulsante **Aa** |
+| Sostituisci la corrispondenza corrente | **Replace** |
+| Sostituisci tutte le corrispondenze | **All** |
+| Chiudi la barra | Esc |
+
+Le corrispondenze sono evidenziate nell'editor e quella corrente ha un colore più
+forte; il contatore mostra posizione e totale. La ricerca parte dalla selezione
+corrente quando è una selezione su una sola riga.
+
+### Command palette
+
+Premere **Ctrl+Shift+P** per cercare comandi dell'editor e simboli dichiarati.
+
+- Digitare per filtrare per nome comando, scorciatoia, stato, funzione o view.
+- Le frecce spostano la selezione; Invio esegue; Esc chiude.
+- Le voci simbolo saltano direttamente alla riga di dichiarazione.
+- I comandi includono Find, Replace, Go to line, navigazione, operazioni sulle
+  righe, toggle comment e Apply SUI source.
+
 ## Undo e redo
 
 La toolbar e **Edit → Undo / Redo** usano un'unica cronologia per tutto il

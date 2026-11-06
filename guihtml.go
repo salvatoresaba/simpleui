@@ -184,6 +184,26 @@ main { flex:1; display:flex; min-height:0; }
   .sui-ac-item.active, .sui-ac-item:hover { background:var(--btn-hover); }
   .sui-ac-item .ac-desc { color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ctx-sep { height:1px; background:var(--border); margin:4px 2px; }
+  .cm-find { background:rgba(255,213,79,.25); border-radius:2px; }
+  .cm-find-current { background:rgba(255,152,0,.55); border-radius:2px; }
+  #sui-findbar { display:none; flex-direction:column; gap:5px; padding:6px 10px; border-bottom:1px solid var(--border); background:var(--panel2); }
+  #sui-findbar.on { display:flex; }
+  .sui-fb-row { display:flex; align-items:center; gap:6px; }
+  .sui-fb-row input[type=text] { flex:1; min-width:0; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:4px 7px; font-size:12px; }
+  .sui-fb-btn { background:var(--btn-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:3px 7px; font-size:11px; cursor:pointer; }
+  .sui-fb-btn:hover { background:var(--btn-hover); }
+  .sui-fb-btn.on { background:var(--btn-on); }
+  #sui-find-count { min-width:64px; text-align:right; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  #cmd-palette { position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:flex-start; justify-content:center; z-index:60; }
+  #cmd-palette.on { display:flex; }
+  #cmd-box { margin-top:70px; width:560px; max-width:92vw; background:var(--panel); border:1px solid var(--border2); border-radius:8px; box-shadow:0 18px 50px rgba(0,0,0,.5); overflow:hidden; }
+  #cmd-input { width:100%; border:0; border-bottom:1px solid var(--border); background:var(--input-bg); color:var(--fg); padding:10px 12px; font-size:14px; outline:none; }
+  #cmd-list { max-height:360px; overflow:auto; }
+  .cmd-item { display:flex; align-items:baseline; gap:10px; padding:6px 12px; font-size:12.5px; cursor:pointer; }
+  .cmd-item:hover, .cmd-item.active { background:var(--btn-hover); }
+  .cmd-item .cmd-key { margin-left:auto; font-size:11px; color:var(--muted); font-family:ui-monospace,monospace; }
+  .cmd-item .cmd-kind { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; flex:none; }
+  .cmd-empty { padding:12px; color:var(--muted); font-size:12px; }
   .ac-kind { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.04em; flex:none; }
   .sui-doc { position:absolute; background:var(--panel); border:1px solid var(--border); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,.45); padding:8px 10px; z-index:10001; display:none; max-width:420px; font-size:12px; color:var(--fg); pointer-events:none; }
   .sui-doc .doc-sig { font-family:ui-monospace,monospace; color:#82aaff; font-size:12.5px; }
@@ -811,6 +831,22 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
           <span style="margin:0">SUI source</span>
           <button class="btn" data-apply="sui" onclick="applySui()" style="font-size:12px;display:none">Apply</button>
         </div>
+        <div id="sui-findbar" role="search" aria-label="Find and replace">
+          <div class="sui-fb-row">
+            <input id="sui-find-input" type="text" placeholder="Find" aria-label="Find" autocomplete="off">
+            <span id="sui-find-count">0/0</span>
+            <button class="sui-fb-btn" type="button" onclick="findNext(-1)" title="Previous match (Shift+Enter)">&#8593;</button>
+            <button class="sui-fb-btn" type="button" onclick="findNext(1)" title="Next match (Enter)">&#8595;</button>
+            <button class="sui-fb-btn" type="button" id="sui-find-case" onclick="toggleFindCase()" title="Match case">Aa</button>
+            <button class="sui-fb-btn" type="button" id="sui-find-replace-toggle" onclick="toggleFindReplace()" title="Toggle replace">&#8646;</button>
+            <button class="sui-fb-btn" type="button" onclick="closeFindBar()" title="Close (Esc)">&#10005;</button>
+          </div>
+          <div class="sui-fb-row" id="sui-replace-row" hidden>
+            <input id="sui-replace-input" type="text" placeholder="Replace" aria-label="Replace" autocomplete="off">
+            <button class="sui-fb-btn" type="button" onclick="replaceFindCurrent()" title="Replace current match">Replace</button>
+            <button class="sui-fb-btn" type="button" onclick="replaceFindAll()" title="Replace all matches">All</button>
+          </div>
+        </div>
         <div class="editor">
           <div class="gutter" id="suigutter"></div>
           <div class="codescroll"><pre class="hl" id="sui_hl"></pre><textarea id="out" spellcheck="false" oninput="onSuiEdit()"></textarea></div>
@@ -1083,6 +1119,11 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       <button class="btn" type="button" onclick="closePrefs()">Cancel</button>
       <button class="btn" type="button" onclick="applyPrefs()">Apply</button>
     </div>
+  </div>
+</div><div id="cmd-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+  <div id="cmd-box">
+    <input id="cmd-input" type="text" placeholder="Type a command or symbol..." aria-label="Command palette" autocomplete="off" spellcheck="false">
+    <div id="cmd-list" role="listbox"></div>
   </div>
 </div><div id="edtip" role="tooltip" aria-hidden="true"></div>
 <div id="ttcfg">
@@ -11867,6 +11908,18 @@ var EDITOR_SHORTCUTS = [
   { g: "General", k: "Escape", d: "Close a popup, menu or dialog" },
   { g: "SUI editor", k: "Ctrl+Space", d: "Open the completion list" },
   { g: "SUI editor", k: "Ctrl+/", d: "Toggle a line comment" },
+  { g: "SUI editor", k: "Ctrl+F", d: "Find in the SUI source" },
+  { g: "SUI editor", k: "Ctrl+H", d: "Find and replace in the SUI source" },
+  { g: "SUI editor", k: "Ctrl+G", d: "Go to a line" },
+  { g: "SUI editor", k: "Ctrl+Shift+P", d: "Open the command palette" },
+  { g: "SUI editor", k: "F3 / Shift+F3", d: "Next or previous search match" },
+  { g: "SUI editor", k: "F12 / Shift+F12", d: "Go to definition or find references" },
+  { g: "SUI editor", k: "F2", d: "Rename the symbol under the cursor" },
+  { g: "SUI editor", k: "Shift+Alt+Down", d: "Duplicate the current line or selection" },
+  { g: "SUI editor", k: "Alt+Up / Alt+Down", d: "Move the current line or selection" },
+  { g: "SUI editor", k: "Ctrl+Shift+K", d: "Delete the current line or selection" },
+  { g: "SUI editor", k: "Ctrl+L", d: "Select the current line" },
+  { g: "SUI editor", k: "Tab / Shift+Tab", d: "Indent or outdent the line or selection" },
   { g: "SUI editor", k: "Arrow Up / Arrow Down", d: "Move in the completion list" },
   { g: "SUI editor", k: "Enter / Tab", d: "Insert the highlighted completion" },
   { g: "SUI editor", k: "Escape", d: "Close completion or snippet menu" },
@@ -12348,7 +12401,7 @@ function tokenizeHighlight(code, lang, symbolsOverride) {
 // When no overlay is active it falls back to the plain highlighter.
 function supHighlight(code) {
   var br = (prefs.editorBracketMatch !== false && __brMatch.open >= 0 && __brMatch.close >= 0);
-  var hasMarks = (__cmMarks && __cmMarks.length) || (prefs.editorSelectedLine && __elline && __elline.line >= 0);
+  var hasMarks = (__cmMarks && __cmMarks.length) || (__findMarks && __findMarks.length) || (prefs.editorSelectedLine && __elline && __elline.line >= 0);
   var hasDiags = __suiDiags && __suiDiags.length;
   if (!br && !hasMarks && !hasDiags) return highlight(code, "sui");
   return overlayHighlight(code);
@@ -12366,6 +12419,11 @@ function overlayHighlight(code) {
   if (__cmMarks) {
     __cmMarks.forEach(function(m) {
       for (var i = m.start; i < m.end && i < code.length; i++) addClass(i, m.cls || "cm-ref");
+    });
+  }
+  if (__findMarks) {
+    __findMarks.forEach(function(m) {
+      for (var i = m.start; i < m.end && i < code.length; i++) addClass(i, m.cls || "cm-find");
     });
   }
   if (prefs.editorSelectedLine && __elline && __elline.line >= 0) {
@@ -12975,6 +13033,7 @@ function onSuiEdit() {
   suiSuggest();
   scheduleLiveCheck();
   renderOutline();
+  if (__find.open) refreshFindAfterEdit();
   scheduleAutoApply();
 }
 // applySuiCommon compiles an edited SUI source and adopts the resulting model.
@@ -13188,6 +13247,17 @@ function editorKeydown(ev) {
   // Navigation shortcuts win even while the popup is open.
   if (ev.key === "F12") { ev.preventDefault(); if (ev.shiftKey) findReferences(); else gotoDefinition(); return; }
   if (ev.key === "F2") { ev.preventDefault(); renameSymbol(); return; }
+  var mod = ev.ctrlKey || ev.metaKey;
+  if (mod && ev.shiftKey && (ev.key === "P" || ev.key === "p")) { ev.preventDefault(); openCommandPalette(); return; }
+  if (mod && !ev.shiftKey && (ev.key === "f" || ev.key === "F")) { ev.preventDefault(); openFindBar(false); return; }
+  if (mod && !ev.shiftKey && (ev.key === "h" || ev.key === "H")) { ev.preventDefault(); openFindBar(true); return; }
+  if (mod && !ev.shiftKey && (ev.key === "g" || ev.key === "G")) { ev.preventDefault(); gotoLinePrompt(); return; }
+  if (ev.key === "F3") { ev.preventDefault(); findNext(ev.shiftKey ? -1 : 1); return; }
+  if (mod && ev.shiftKey && (ev.key === "k" || ev.key === "K")) { ev.preventDefault(); deleteLine(); return; }
+  if (mod && !ev.shiftKey && (ev.key === "l" || ev.key === "L")) { ev.preventDefault(); selectLine(); return; }
+  if (ev.altKey && ev.shiftKey && ev.key === "ArrowDown") { ev.preventDefault(); duplicateLine(); return; }
+  if (ev.altKey && !ev.shiftKey && ev.key === "ArrowUp") { ev.preventDefault(); moveLines(-1); return; }
+  if (ev.altKey && !ev.shiftKey && ev.key === "ArrowDown") { ev.preventDefault(); moveLines(1); return; }
   // Ctrl+Space opens the context-aware completion popup even when no word has
   // been typed yet. It is also the manual refresh while the popup is open.
   if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && (ev.code === "Space" || ev.key === " " || ev.key === "Spacebar")) {
@@ -13311,20 +13381,10 @@ function editorKeydown(ev) {
     }
   }
 
-  // Tab inserts a tab (or indents the selection) rather than moving focus.
-  if (ev.key === 'Tab' && !ev.shiftKey) {
+  // Tab indents the current line/selection; Shift+Tab outdents.
+  if (ev.key === 'Tab') {
     ev.preventDefault();
-    if (start === end) {
-      ta.value = val.slice(0, start) + "\t" + val.slice(end);
-      ta.selectionStart = ta.selectionEnd = start + 1;
-    } else {
-      var ls = val.lastIndexOf("\n", start - 1) + 1;
-      var block = val.slice(ls, end);
-      var indented = block.replace(/\n/g, "\n\t");
-      ta.value = val.slice(0, ls) + "\t" + indented + val.slice(end);
-      ta.selectionStart = start + 1; ta.selectionEnd = end + indented.length - block.length + 1;
-    }
-    onSuiEdit();
+    if (ev.shiftKey) outdentSelection(); else indentSelection();
     return;
   }
 }
@@ -13387,6 +13447,8 @@ function repaintEditor() {
 // Overlay marks for cross-navigation, plus the line range of the element
 // selected in the designer tree (keeps editor and tree in sync).
 var __cmMarks = [];
+var __findMarks = [];
+var __find = { open:false, replace:false, matches:[], idx:-1, query:"", caseSensitive:false };
 var __elline = { line: -1 };
 // __suiDiags holds the compiler diagnostics for the current editor text so
 // they can be underlined inline. Each entry: {line, col, kind, msg}.
@@ -13705,33 +13767,593 @@ function updateHoverDoc(ev) {
   showDoc(html, rect.left + 12 + col * cw - ta.scrollLeft, rect.top + 10 + (line + 1) * lh - ta.scrollTop);
 }
 
+// ---- editor line operations ----------------------------------------------
+function editorLineStart(src, pos) {
+  return src.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
+}
+function editorLineEnd(src, pos) {
+  var e = src.indexOf("\n", pos);
+  return e < 0 ? src.length : e;
+}
+function editorSelectedLineRange(ta) {
+  var src = ta.value, start = ta.selectionStart, end = ta.selectionEnd;
+  var ls = editorLineStart(src, start);
+  var le = editorLineEnd(src, end);
+  // A selection that ends exactly at the next line start does not include it.
+  if (end > start && end === editorLineStart(src, end) && end > 0) le = end - 1;
+  return { start: ls, end: le };
+}
+function editorLineIndex(src, pos) {
+  return src.slice(0, pos).split("\n").length - 1;
+}
+function editorLinesOffset(lines, index) {
+  var off = 0;
+  for (var i = 0; i < index; i++) off += lines[i].length + 1;
+  return off;
+}
+function duplicateLine() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value, r = editorSelectedLineRange(ta);
+  var block = src.slice(r.start, r.end);
+  if (!block) return;
+  var at, insert;
+  if (r.end < src.length && src[r.end] === "\n") {
+    at = r.end + 1;
+    insert = block + "\n";
+  } else {
+    at = r.end;
+    insert = "\n" + block;
+  }
+  ta.value = src.slice(0, at) + insert + src.slice(at);
+  var dupStart = at + (insert.charAt(0) === "\n" ? 1 : 0);
+  ta.selectionStart = dupStart;
+  ta.selectionEnd = dupStart + block.length;
+  ta.focus();
+  onSuiEdit();
+}
+function moveLines(dir) {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value, r = editorSelectedLineRange(ta);
+  if (!src.length) return;
+  var lines = src.split("\n");
+  var first = editorLineIndex(src, r.start);
+  var last = editorLineIndex(src, r.end);
+  if (dir < 0 && first === 0) return;
+  if (dir > 0 && last >= lines.length - 1) return;
+  var block = lines.splice(first, last - first + 1);
+  var target = first + (dir < 0 ? -1 : 1);
+  Array.prototype.splice.apply(lines, [target, 0].concat(block));
+  var newFirst = target;
+  var newLast = target + block.length - 1;
+  var newSrc = lines.join("\n");
+  var selStart = editorLinesOffset(lines, newFirst);
+  var selEnd = editorLinesOffset(lines, newLast) + lines[newLast].length;
+  ta.value = newSrc;
+  ta.selectionStart = selStart;
+  ta.selectionEnd = selEnd;
+  ta.focus();
+  onSuiEdit();
+}
+function deleteLine() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value, r = editorSelectedLineRange(ta);
+  var from = r.start, to = r.end;
+  if (to < src.length && src[to] === "\n") to++;
+  else if (from > 0) from--;
+  ta.value = src.slice(0, from) + src.slice(to);
+  ta.selectionStart = ta.selectionEnd = Math.min(from, ta.value.length);
+  ta.focus();
+  onSuiEdit();
+}
+function selectLine() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value, r = editorSelectedLineRange(ta);
+  if (ta.selectionStart === r.start && ta.selectionEnd === r.end) {
+    var nextEnd = r.end < src.length ? editorLineEnd(src, r.end + 1) : r.end;
+    ta.selectionEnd = nextEnd;
+  } else {
+    ta.selectionStart = r.start;
+    ta.selectionEnd = r.end;
+  }
+  ta.focus();
+}
+function indentSelection() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value, start = ta.selectionStart, end = ta.selectionEnd;
+  if (start === end) {
+    ta.value = src.slice(0, start) + "\t" + src.slice(end);
+    ta.selectionStart = ta.selectionEnd = start + 1;
+    ta.focus();
+    onSuiEdit();
+    return;
+  }
+  var r = editorSelectedLineRange(ta);
+  var block = src.slice(r.start, r.end);
+  var changed = block.replace(/^/gm, "\t");
+  ta.value = src.slice(0, r.start) + changed + src.slice(r.end);
+  ta.selectionStart = r.start;
+  ta.selectionEnd = r.start + changed.length;
+  ta.focus();
+  onSuiEdit();
+}
+function outdentSelection() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value, r = editorSelectedLineRange(ta);
+  var block = src.slice(r.start, r.end);
+  var changed = block.replace(/^\t/gm, "").replace(/^ {1,4}/gm, "");
+  if (changed === block) return;
+  ta.value = src.slice(0, r.start) + changed + src.slice(r.end);
+  ta.selectionStart = r.start;
+  ta.selectionEnd = r.start + changed.length;
+  ta.focus();
+  onSuiEdit();
+}
+function insertTextAtSelection(text) {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value, start = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = src.slice(0, start) + text + src.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + text.length;
+  ta.focus();
+  onSuiEdit();
+}
+function copySelection() {
+  var ta = document.getElementById("out");
+  if (!ta || ta.selectionStart === ta.selectionEnd) return;
+  var text = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ setStatus("copied"); }).catch(function(){ setStatus("could not copy"); });
+  } else {
+    ta.focus();
+    document.execCommand("copy");
+  }
+}
+function cutSelection() {
+  var ta = document.getElementById("out");
+  if (!ta || ta.selectionStart === ta.selectionEnd) return;
+  var start = ta.selectionStart, end = ta.selectionEnd;
+  copySelection();
+  ta.value = ta.value.slice(0, start) + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start;
+  ta.focus();
+  onSuiEdit();
+}
+function pasteFromClipboard() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText().then(function(text){
+      if (text) insertTextAtSelection(text);
+    }).catch(function(){ setStatus("clipboard access denied; use Ctrl+V"); });
+  } else {
+    setStatus("use Ctrl+V to paste");
+  }
+}
+
+// ---- find and replace -----------------------------------------------------
+function findBarEl() { return document.getElementById("sui-findbar"); }
+function openFindBar(withReplace) {
+  var bar = findBarEl();
+  var ta = document.getElementById("out");
+  var inp = document.getElementById("sui-find-input");
+  if (!bar || !inp || !ta) return;
+  if (ta.selectionStart !== ta.selectionEnd) {
+    var sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+    if (sel && sel.indexOf("\n") < 0) inp.value = sel;
+  }
+  bar.classList.add("on");
+  __find.open = true;
+  __find.replace = !!withReplace;
+  document.getElementById("sui-replace-row").hidden = !withReplace;
+  document.getElementById("sui-find-replace-toggle").classList.toggle("on", !!withReplace);
+  if (inp.value) updateFindMatches(true);
+  else { __find.matches = []; __find.idx = -1; updateFindMarks(); updateFindCount(); }
+  inp.focus();
+  inp.select();
+}
+function closeFindBar() {
+  var bar = findBarEl();
+  __find.open = false;
+  __find.matches = [];
+  __find.idx = -1;
+  __findMarks = [];
+  if (bar) bar.classList.remove("on");
+  highlightSui();
+  var ta = document.getElementById("out");
+  if (ta) ta.focus();
+}
+function computeFindMatches(query, caseSensitive) {
+  var ta = document.getElementById("out");
+  var out = [];
+  if (!ta || !query) return out;
+  var hay = caseSensitive ? ta.value : ta.value.toLowerCase();
+  var needle = caseSensitive ? query : query.toLowerCase();
+  var at = 0;
+  while (at <= hay.length) {
+    var found = hay.indexOf(needle, at);
+    if (found < 0) break;
+    out.push({ start: found, end: found + query.length });
+    at = found + Math.max(1, needle.length);
+  }
+  return out;
+}
+function selectFindMatch(scroll) {
+  var ta = document.getElementById("out");
+  var m = __find.matches[__find.idx];
+  if (!ta || !m) return;
+  ta.setSelectionRange(m.start, m.end);
+  if (scroll) {
+    var line = editorLineIndex(ta.value, m.start);
+    var lh = editorLineHeightPx();
+    ta.scrollTop = Math.max(0, line * lh - ta.clientHeight / 2 + lh);
+    var hl = document.getElementById("sui_hl");
+    if (hl) hl.scrollTop = ta.scrollTop;
+  }
+}
+function updateFindMarks() {
+  __findMarks = __find.matches.map(function(m, i) {
+    return { start: m.start, end: m.end, cls: i === __find.idx ? "cm-find-current" : "cm-find" };
+  });
+  highlightSui();
+}
+function updateFindCount() {
+  var el = document.getElementById("sui-find-count");
+  if (!el) return;
+  el.textContent = __find.matches.length ? ((__find.idx + 1) + "/" + __find.matches.length) : "0/0";
+}
+function updateFindMatches(selectFirst) {
+  var inp = document.getElementById("sui-find-input");
+  if (!inp) return;
+  __find.query = inp.value;
+  __find.matches = computeFindMatches(__find.query, __find.caseSensitive);
+  if (selectFirst) __find.idx = __find.matches.length ? 0 : -1;
+  if (__find.idx >= __find.matches.length) __find.idx = __find.matches.length - 1;
+  if (__find.idx < 0 && __find.matches.length) __find.idx = 0;
+  if (__find.idx >= 0) selectFindMatch(false);
+  updateFindMarks();
+  updateFindCount();
+}
+function findNext(dir) {
+  if (!__find.open) { openFindBar(false); return; }
+  if (!__find.matches.length) updateFindMatches(true);
+  if (!__find.matches.length) return;
+  __find.idx = (__find.idx + dir + __find.matches.length) % __find.matches.length;
+  selectFindMatch(true);
+  updateFindMarks();
+  updateFindCount();
+}
+function toggleFindCase() {
+  var btn = document.getElementById("sui-find-case");
+  if (!btn) return;
+  btn.classList.toggle("on");
+  __find.caseSensitive = btn.classList.contains("on");
+  updateFindMatches(false);
+}
+function toggleFindReplace() {
+  var row = document.getElementById("sui-replace-row");
+  var btn = document.getElementById("sui-find-replace-toggle");
+  if (!row || !btn) return;
+  var show = row.hidden;
+  row.hidden = !show;
+  btn.classList.toggle("on", show);
+  __find.replace = show;
+  if (show) {
+    var rep = document.getElementById("sui-replace-input");
+    if (rep) { rep.focus(); rep.select(); }
+  } else {
+    var inp = document.getElementById("sui-find-input");
+    if (inp) inp.focus();
+  }
+}
+function refreshFindAfterEdit() {
+  if (!__find.open) return;
+  __find.matches = computeFindMatches(__find.query, __find.caseSensitive);
+  if (__find.idx >= __find.matches.length) __find.idx = __find.matches.length - 1;
+  if (__find.idx < 0 && __find.matches.length) __find.idx = 0;
+  updateFindMarks();
+  updateFindCount();
+}
+function replaceFindCurrent() {
+  var ta = document.getElementById("out");
+  var rep = document.getElementById("sui-replace-input");
+  if (!ta || !rep) return;
+  if (!__find.matches.length) updateFindMatches(true);
+  var m = __find.matches[__find.idx];
+  if (!m) return;
+  var text = rep.value;
+  ta.value = ta.value.slice(0, m.start) + text + ta.value.slice(m.end);
+  ta.selectionStart = ta.selectionEnd = m.start + text.length;
+  onSuiEdit();
+  refreshFindAfterEdit();
+  findNext(1);
+  ta.focus();
+}
+function replaceFindAll() {
+  var ta = document.getElementById("out");
+  var rep = document.getElementById("sui-replace-input");
+  var inp = document.getElementById("sui-find-input");
+  if (!ta || !rep || !inp || !inp.value) return;
+  var escaped = inp.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var re = new RegExp(escaped, __find.caseSensitive ? "g" : "gi");
+  var count = 0;
+  var next = ta.value.replace(re, function(){ count++; return rep.value; });
+  if (!count) { setStatus("no matches to replace"); return; }
+  ta.value = next;
+  ta.selectionStart = ta.selectionEnd = 0;
+  onSuiEdit();
+  updateFindMatches(true);
+  ta.focus();
+  setStatus("replaced " + count + " occurrences");
+}
+
+// ---- command palette ------------------------------------------------------
+var __cmdFiltered = [];
+var __cmdIdx = 0;
+function commandPaletteItems() {
+  var items = [];
+  function add(label, key, fn) { items.push({ label: label, key: key || "", run: fn }); }
+  add("Find", "Ctrl+F", function(){ openFindBar(false); });
+  add("Replace", "Ctrl+H", function(){ openFindBar(true); });
+  add("Go to line", "Ctrl+G", gotoLinePrompt);
+  add("Go to definition", "F12", gotoDefinition);
+  add("Find references", "Shift+F12", findReferences);
+  add("Rename symbol", "F2", renameSymbol);
+  add("Toggle line comment", "Ctrl+/", toggleComment);
+  add("Duplicate line", "Shift+Alt+Down", duplicateLine);
+  add("Move line up", "Alt+Up", function(){ moveLines(-1); });
+  add("Move line down", "Alt+Down", function(){ moveLines(1); });
+  add("Delete line", "Ctrl+Shift+K", deleteLine);
+  add("Select line", "Ctrl+L", selectLine);
+  add("Indent", "Tab", indentSelection);
+  add("Outdent", "Shift+Tab", outdentSelection);
+  add("Apply SUI source", "", function(){ applySui(); });
+  var ta = document.getElementById("out");
+  if (ta) {
+    parseOutline(ta.value).forEach(function(s) {
+      items.push({
+        label: s.name,
+        key: "line " + (s.line + 1),
+        detail: s.detail || "",
+        kind: s.kind,
+        run: function(){ revealLine(s.line, 0, 0); setStatus("jump to " + s.name + " (line " + (s.line + 1) + ")"); }
+      });
+    });
+  }
+  return items;
+}
+function openCommandPalette() {
+  var p = document.getElementById("cmd-palette");
+  var inp = document.getElementById("cmd-input");
+  if (!p || !inp) return;
+  closeSnippetMenu();
+  hideSuiAc();
+  closeContextMenus();
+  p.classList.add("on");
+  inp.value = "";
+  __cmdFiltered = commandPaletteItems();
+  __cmdIdx = 0;
+  renderCommandPalette();
+  inp.focus();
+}
+function closeCommandPalette() {
+  var p = document.getElementById("cmd-palette");
+  if (p) p.classList.remove("on");
+  var ta = document.getElementById("out");
+  if (ta) ta.focus();
+}
+function renderCommandPalette() {
+  var list = document.getElementById("cmd-list");
+  var inp = document.getElementById("cmd-input");
+  if (!list || !inp) return;
+  var q = (inp.value || "").trim().toLowerCase();
+  var terms = q ? q.split(/\s+/) : [];
+  var all = commandPaletteItems();
+  __cmdFiltered = [];
+  for (var i = 0; i < all.length && __cmdFiltered.length < 80; i++) {
+    var it = all[i];
+    var hay = (it.label + " " + it.key + " " + (it.detail || "") + " " + (it.kind || "")).toLowerCase();
+    var ok = true;
+    for (var t = 0; t < terms.length; t++) if (hay.indexOf(terms[t]) < 0) { ok = false; break; }
+    if (ok) __cmdFiltered.push(it);
+  }
+  list.textContent = "";
+  if (!__cmdFiltered.length) {
+    var empty = document.createElement("div");
+    empty.className = "cmd-empty";
+    empty.textContent = "No command or symbol matches.";
+    list.appendChild(empty);
+    return;
+  }
+  __cmdIdx = 0;
+  for (var j = 0; j < __cmdFiltered.length; j++) {
+    var item = __cmdFiltered[j];
+    var row = document.createElement("div");
+    row.className = "cmd-item" + (j === 0 ? " active" : "");
+    row.setAttribute("role", "option");
+    if (item.kind) {
+      var kind = document.createElement("span");
+      kind.className = "cmd-kind";
+      kind.textContent = item.kind;
+      row.appendChild(kind);
+    }
+    var lab = document.createElement("span");
+    lab.textContent = item.label;
+    row.appendChild(lab);
+    if (item.detail) {
+      var det = document.createElement("span");
+      det.className = "cmd-kind";
+      det.textContent = item.detail;
+      row.appendChild(det);
+    }
+    var key = document.createElement("span");
+    key.className = "cmd-key";
+    key.textContent = item.key || "";
+    row.appendChild(key);
+    row.onmouseenter = (function(index){ return function(){
+      __cmdIdx = index;
+      var rows = list.querySelectorAll(".cmd-item");
+      for (var r = 0; r < rows.length; r++) rows[r].classList.toggle("active", r === __cmdIdx);
+    }; })(j);
+    row.onclick = (function(index){ return function(){ runCommandPalette(index); }; })(j);
+    list.appendChild(row);
+  }
+}
+function runCommandPalette(index) {
+  var it = __cmdFiltered[index];
+  if (!it) return;
+  closeCommandPalette();
+  if (it.run) it.run();
+}
+function commandPaletteKeydown(ev) {
+  if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+    if (!__cmdFiltered.length) return;
+    ev.preventDefault();
+    __cmdIdx = (__cmdIdx + (ev.key === "ArrowDown" ? 1 : -1) + __cmdFiltered.length) % __cmdFiltered.length;
+    var rows = document.querySelectorAll("#cmd-list .cmd-item");
+    for (var i = 0; i < rows.length; i++) rows[i].classList.toggle("active", i === __cmdIdx);
+    if (rows[__cmdIdx]) rows[__cmdIdx].scrollIntoView({ block: "nearest" });
+  } else if (ev.key === "Enter") {
+    ev.preventDefault();
+    runCommandPalette(__cmdIdx);
+  } else if (ev.key === "Escape") {
+    ev.preventDefault();
+    closeCommandPalette();
+  }
+}
+function gotoLinePrompt() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var total = ta.value.split("\n").length;
+  var current = ta.value.slice(0, ta.selectionStart).split("\n").length;
+  askPrompt("Go to line", "Line number (1-" + total + ")", String(current), function(v) {
+    var n = parseInt(v, 10);
+    if (!isFinite(n)) return;
+    n = Math.max(1, Math.min(total, n));
+    revealLine(n - 1, 0, 0);
+  });
+}
+
 // ---- editor context menu (right-click) -----------------------------------
 function showEditorMenu(ev) {
   ev.preventDefault();
   closeSnippetMenu();
+  hideSuiAc();
   closeContextMenus();
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value;
+  var hasSel = ta.selectionStart !== ta.selectionEnd;
+  var probe = ta.selectionStart < src.length && /[A-Za-z0-9_.]/.test(src[ta.selectionStart]) ? ta.selectionStart : ta.selectionStart - 1;
+  var word = probe >= 0 ? wordAt(src, probe).word.replace(/^.*\./, "") : "";
+  var hasWord = !!word;
   var m = document.createElement("div");
-  m.id = "ed-menu"; m.className = "sui-ac"; m.style.display = "block"; m.style.minWidth = "170px";
-  var items = [
-    { label: "Go to definition", fn: gotoDefinition, key: "F12" },
-    { label: "Find references", fn: findReferences, key: "Shift+F12" },
-    { label: "Rename symbol", fn: renameSymbol, key: "F2" },
-    { label: "Toggle comment", fn: toggleComment, key: "Ctrl+/" }
-  ];
-  items.forEach(function(it) {
-    var d = document.createElement("div"); d.className = "sui-ac-item";
-    d.innerHTML = '<span>' + it.label + '</span><span class="ac-kind" style="margin-left:auto">' + it.key + '</span>';
-    d.onclick = function(){ m.remove(); it.fn(); };
+  m.id = "ed-menu"; m.className = "sui-ac"; m.style.display = "block"; m.style.minWidth = "250px"; m.tabIndex = -1;
+  var actions = [];
+  function closeMenu() {
+    m.remove();
+    document.removeEventListener("click", outside);
+  }
+  var outside = function(e) { if (!m.contains(e.target)) closeMenu(); };
+  function sep() {
+    var d = document.createElement("div");
+    d.className = "ctx-sep";
     m.appendChild(d);
-  });
+  }
+  function item(label, key, fn, enabled) {
+    var d = document.createElement("div");
+    d.className = "sui-ac-item";
+    d.setAttribute("role", "menuitem");
+    if (enabled === false) {
+      d.style.opacity = ".45";
+      d.style.pointerEvents = "none";
+    }
+    var l = document.createElement("span"); l.textContent = label;
+    var k = document.createElement("span"); k.className = "ac-kind"; k.style.marginLeft = "auto"; k.textContent = key || "";
+    d.appendChild(l); d.appendChild(k);
+    if (enabled !== false) {
+      d.onclick = function(){ closeMenu(); fn(); };
+      actions.push({ el: d, fn: fn });
+    }
+    m.appendChild(d);
+  }
+  item("Undo", "Ctrl+Z", undo);
+  item("Redo", "Ctrl+Y", redo);
+  sep();
+  item("Cut", "Ctrl+X", cutSelection, hasSel);
+  item("Copy", "Ctrl+C", copySelection, hasSel);
+  item("Paste", "Ctrl+V", pasteFromClipboard);
+  sep();
+  item("Select all", "Ctrl+A", function(){ ta.focus(); ta.select(); });
+  item("Select line", "Ctrl+L", selectLine);
+  sep();
+  item("Duplicate line", "Shift+Alt+Down", duplicateLine);
+  item("Move line up", "Alt+Up", function(){ moveLines(-1); });
+  item("Move line down", "Alt+Down", function(){ moveLines(1); });
+  item("Delete line", "Ctrl+Shift+K", deleteLine);
+  item("Indent", "Tab", indentSelection);
+  item("Outdent", "Shift+Tab", outdentSelection);
+  sep();
+  item("Go to definition", "F12", gotoDefinition, hasWord);
+  item("Find references", "Shift+F12", findReferences, hasWord);
+  item("Rename symbol", "F2", renameSymbol, hasWord);
+  sep();
+  item("Find", "Ctrl+F", function(){ openFindBar(false); });
+  item("Replace", "Ctrl+H", function(){ openFindBar(true); });
+  item("Go to line", "Ctrl+G", gotoLinePrompt);
+  item("Command palette", "Ctrl+Shift+P", openCommandPalette);
+  sep();
+  item("Toggle comment", "Ctrl+/", toggleComment);
   document.body.appendChild(m);
   var z = menuZoom();
-  m.style.left = (ev.pageX / z) + "px";
-  m.style.top = (ev.pageY / z) + "px";
-  var close = function(){ m.remove(); document.removeEventListener("click", close); };
-  setTimeout(function(){ document.addEventListener("click", close); }, 0);
+  var mw = m.offsetWidth, mh = m.offsetHeight;
+  var vw = window.innerWidth / z, vh = window.innerHeight / z;
+  var left = Math.max(4, Math.min(vw - mw - 8, ev.pageX / z));
+  var top = Math.max(4, Math.min(vh - mh - 8, ev.pageY / z));
+  m.style.left = left + "px";
+  m.style.top = top + "px";
+  var active = -1;
+  function setActive(next) {
+    if (!actions.length) return;
+    active = (next + actions.length) % actions.length;
+    for (var i = 0; i < actions.length; i++) actions[i].el.classList.toggle("active", i === active);
+  }
+  m.addEventListener("keydown", function(e) {
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(active + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive(active - 1); }
+    else if (e.key === "Enter") { e.preventDefault(); if (actions[active]) { var fn = actions[active].fn; closeMenu(); fn(); } }
+    else if (e.key === "Escape") { e.preventDefault(); closeMenu(); ta.focus(); }
+  });
+  m.focus();
+  setTimeout(function(){ document.addEventListener("click", outside); }, 0);
 }
-
+function wireEditorTools() {
+  var fi = document.getElementById("sui-find-input");
+  if (fi) {
+    fi.addEventListener("input", function(){ updateFindMatches(true); });
+    fi.addEventListener("keydown", function(ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); findNext(ev.shiftKey ? -1 : 1); }
+      else if (ev.key === "Escape") { ev.preventDefault(); closeFindBar(); }
+    });
+  }
+  var ri = document.getElementById("sui-replace-input");
+  if (ri) ri.addEventListener("keydown", function(ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); replaceFindCurrent(); }
+    else if (ev.key === "Escape") { ev.preventDefault(); closeFindBar(); }
+  });
+  var ci = document.getElementById("cmd-input");
+  if (ci) {
+    ci.addEventListener("input", renderCommandPalette);
+    ci.addEventListener("keydown", commandPaletteKeydown);
+  }
+  var cp = document.getElementById("cmd-palette");
+  if (cp) cp.addEventListener("mousedown", function(ev){ if (ev.target === cp) closeCommandPalette(); });
+}
 // ---- toggle line comment -------------------------------------------------
 function toggleComment() {
   var ta = document.getElementById("out");
@@ -13798,6 +14420,7 @@ renderTemplates();
 applyTheme();
 applyPanelVisibility();
 loadRemotePrefs();
+wireEditorTools();
 applyEditorTipPrefs();
 initEditorTips();
 loadRemoteFonts();
