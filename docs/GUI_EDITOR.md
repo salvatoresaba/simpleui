@@ -335,8 +335,11 @@ interface, and plain values for one-off declarations.
 ## Project component defaults
 
 Open **Preferences → Project preferences.** to set defaults for every instance
-of a component in the project. The list is grouped into **Feedback**, **Layout**,
-**Form**, **Navigation**, **Data**, **Overlay** and **General**.
+of a component in the project. The panel has a **Theme** combo above the
+category tabs. Tabs are **All**, **Feedback**, **Layout**, **Form**,
+**Navigation**, **Data**, **Overlay** and **General**. The Theme combo applies a
+shared style to every control at once, including scrollbars, instead of setting
+each component by hand. Choosing **Custom** leaves the current values untouched.
 
 Each component opens the same configuration panel used by its element settings.
 The panel follows the editor preferences layout:
@@ -354,6 +357,25 @@ Applying a component from project preferences writes both blocks and refreshes
 the preview. **Tooltips** in the same panel opens the existing global tooltip
 settings; closing it returns to the project list.
 
+### Project themes
+
+Every shared style has a **Light** and a **Dark** variant. The Theme combo lists
+them grouped by family, for example Sketch → Light/Dark, Terminal / CRT →
+Light/Dark and Geometric → Light/Dark. Applying a theme writes the complete set
+of component defaults for every control, updates the managed CSS rule blocks,
+styles the scrollbars and selects the matching preview background. Editing one
+component afterwards changes the Theme combo to **Custom**, so it is always
+clear whether the project still follows a single theme.
+
+### Scrollbars
+
+Scrollbars are not inserted like normal elements: they appear whenever a box
+scrolls. Their appearance is configured from **Project preferences → General →
+Scrollbars**. The panel controls the scrollbar size, thumb radius, Firefox width,
+track, thumb, thumb hover and border. The shared themes set the scrollbar palette
+consistently with the other components, and the panel preview contains a
+scrollable sample.
+
 ### Element overrides
 
 Select an element and press **Settings...** in the inspector banner. The same
@@ -365,12 +387,18 @@ project defaults for that element. Closing the panel returns to the inspector.
 Implemented component panels: **Progress bar**, **Badge**, **Alert**, **Spinner**,
 **Card**, **Divider**, **Button**, **Input / Textarea / Select**, **Combobox**,
 **Date / Time picker**, **Checkbox / Radio**, **Switch**, **Slider**, **Tabs**,
-**Accordion**, **Menu**, **Tree**, **Table**, **Toast** and **Modal**. Chart,
-Graph and media controls keep their specialised inspectors for now.
+**Accordion**, **Menu**, **Tree**, **Table**, **Toast**, **Modal** and
+**Scrollbars** (global). Chart, Graph and media controls keep their specialised
+inspectors for now.
 
 Each panel shows a live preview above the fields. The preview uses the current
 draft values, not the saved ones, so colours, sizes and states can be checked
 before Apply.
+
+Text-bearing controls expose a **Letter spacing** field. Interactive controls
+have a **Hover** tab with the colours used while the pointer is over them:
+background, text, border, option, row or thumb depending on the component. This
+makes hover feedback part of the same theme instead of an extra CSS edit.
 
 ### Style presets and animations
 
@@ -378,7 +406,9 @@ Every component panel starts with a **Style** selector. **Custom** is the raw
 default, and each named preset applies a coordinated set of colours, shapes and
 effects in one step. Presets are optional: they never run unless selected, and
 editing any field switches the selector to **Custom** so fine-tuning stays
-explicit.
+explicit. Every shared family exists in **Light** and **Dark** versions, for 22
+shared variants in total. The Style selector lists them under **Shared styles**;
+the project Theme combo selects the same variants for all components at once.
 
 Above the preview, **Preview background** switches between **Dark** and
 **Light**. The choice is remembered and makes it easy to check a component
@@ -401,21 +431,22 @@ motion effect; the Animation/Effects tab also exposes the effects directly:
 - Button: pulse, float and glow.
 - Toast: slide down, fade, zoom, slide up and bounce.
 
-The **Sketch** preset is shared by all twenty panels so components placed on the
-same light page stay visually related. It uses a warm paper surface, ink borders
-and offset shadows, a handwriting font and a highlighter selection where
-applicable. Every colour, font, radius and shadow remains editable, so the
-family can be tuned without losing its hand-drawn character.
+The **Sketch** family has Light and Dark versions, shared by all twenty panels so
+components placed on the same page stay visually related. The light variant uses
+a warm paper surface; the dark variant uses cream ink on dark paper. Both use
+hand-drawn borders, offset shadows, a handwriting font and a highlighter
+selection where applicable. Every colour, font, radius and shadow remains
+editable, so the family can be tuned without losing its hand-drawn character.
 
-The **Wireframe** preset is also shared by all twenty panels. It removes
-background fills and draws each control only with thin lines, dashed borders and
-soft shadows. Accent states use a cyan line; colours, font, radius and shadow
-fields remain editable, so a page can mix several Wireframe components without
-losing the same outline language.
+The **Wireframe** family also has Light and Dark versions. It removes background
+fills and draws each control only with thin lines, dashed borders and soft
+shadows. Accent states use a cyan line; colours, font, radius and shadow fields
+remain editable, so a page can mix several Wireframe components without losing
+the same outline language.
 
 The Style selector groups these families under **Shared styles** and keeps
 component-specific looks under **Component styles**. The additional shared
-families are:
+families, each with Light and Dark variants, are:
 
 - **Terminal / CRT**: green phosphor text on black, monospace labels and glow.
 - **Glassmorphism**: smoked translucent surfaces with blur and light edges.

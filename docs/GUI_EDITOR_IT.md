@@ -347,8 +347,12 @@ nell'interfaccia e valori espliciti per le dichiarazioni una tantum.
 ## Default dei componenti di progetto
 
 Aprire **Preferences → Project preferences.** per impostare i default di ogni
-istanza di un componente nel progetto. La lista è raggruppata in **Feedback**,
-**Layout**, **Form**, **Navigation**, **Data**, **Overlay** e **General**.
+istanza di un componente nel progetto. Il pannello ha un combo **Theme** sopra le
+tab delle categorie. Le tab sono **All**, **Feedback**, **Layout**, **Form**,
+**Navigation**, **Data**, **Overlay** e **General**. Il combo Theme applica uno
+stile condiviso a tutti i controlli in una sola volta, incluse le scrollbar,
+invece di configurare ogni componente a mano. Scegliendo **Custom** i valori
+correnti restano invariati.
 
 Ogni componente apre lo stesso pannello di configurazione usato dalle
 impostazioni dell'elemento. Il pannello segue il layout delle preferenze
@@ -368,6 +372,25 @@ scritti entrambi i blocchi e la preview viene aggiornata. **Tooltips** nello
 stesso pannello apre le impostazioni globali dei tooltip; chiudendole si torna
 alla lista di progetto.
 
+### Temi di progetto
+
+Ogni stile condiviso ha una versione **Light** e una **Dark**. Il combo Theme le
+elenca raggruppate per famiglia, per esempio Sketch → Light/Dark, Terminal / CRT
+→ Light/Dark e Geometric → Light/Dark. Applicando un tema vengono scritti tutti i
+default di tutti i controlli, aggiornati i blocchi CSS gestiti, applicate le
+regole delle scrollbar e selezionato lo sfondo di anteprima corrispondente.
+Modificando poi un componente il combo Theme passa a **Custom**, quindi è sempre
+chiaro se il progetto segue ancora un unico tema.
+
+### Scrollbar
+
+Le scrollbar non si inseriscono come elementi normali: compaiono quando un
+contenitore scorre. L'aspetto si configura da **Project preferences → General →
+Scrollbars**. Il pannello controlla dimensione, raggio del thumb, larghezza
+Firefox, track, thumb, hover del thumb e bordo. I temi condivisi impostano la
+palette delle scrollbar in modo coerente con gli altri componenti e l'anteprima
+del pannello contiene un esempio scorrevole.
+
 ### Override dell'elemento
 
 Selezionare un elemento e premere **Settings...** nel banner dell'inspector. Si
@@ -380,13 +403,18 @@ pannello si torna all'inspector.
 Pannelli componente implementati: **Progress bar**, **Badge**, **Alert**,
 **Spinner**, **Card**, **Divider**, **Button**, **Input / Textarea / Select**,
 **Combobox**, **Date / Time picker**, **Checkbox / Radio**, **Switch**,
-**Slider**, **Tabs**, **Accordion**, **Menu**, **Tree**, **Table**, **Toast** e
-**Modal**. Chart, Graph e i controlli media mantengono per ora i loro inspector
-specializzati.
+**Slider**, **Tabs**, **Accordion**, **Menu**, **Tree**, **Table**, **Toast**,
+**Modal** e **Scrollbars** (globale). Chart, Graph e i controlli media
+mantengono per ora i loro inspector specializzati.
 
 Ogni pannello mostra un'anteprima dal vivo sopra i campi. L'anteprima usa i
 valori in modifica, non quelli salvati, quindi colori, dimensioni e stati si
 possono verificare prima di Apply.
+
+I controlli con testo espongono un campo **Letter spacing**. I controlli
+interattivi hanno una tab **Hover** con i colori usati mentre il puntatore è
+sopra il controllo: sfondo, testo, bordo, opzione, riga o thumb a seconda del
+componente. In questo modo lo stato hover fa parte dello stesso tema.
 
 ### Preset grafici e animazioni
 
@@ -394,7 +422,10 @@ Ogni pannello componente inizia con un selettore **Style**. **Custom** e il
 valore predefinito grezzo, mentre ogni preset con nome applica in un solo passo
 un insieme coordinato di colori, forme ed effetti. I preset sono opzionali: non
 vengono mai usati se non selezionati, e modificando un campo il selettore passa
-a **Custom** per rendere esplicita la personalizzazione.
+a **Custom** per rendere esplicita la personalizzazione. Ogni famiglia condivisa
+esiste in versione **Light** e **Dark**, per 22 varianti condivise. Il selettore
+Style le elenca sotto **Shared styles**; il combo Theme di progetto seleziona le
+stesse varianti per tutti i componenti in una volta.
 
 Sopra l'anteprima, **Preview background** passa tra **Dark** e **Light**. La
 scelta viene ricordata e permette di controllare il componente sia su una shell
@@ -418,22 +449,23 @@ direttamente:
 - Button: pulse, float e glow.
 - Toast: discesa, fade, zoom, salita e rimbalzo.
 
-Il preset **Sketch** e condiviso da tutti e venti i pannelli, cosi i componenti
-messi sulla stessa pagina chiara restano visivamente coerenti. Usa una superficie
-di carta calda, bordi a inchiostro, ombre offset, un font calligrafico e una
+La famiglia **Sketch** ha versioni Light e Dark, condivise da tutti e venti i
+pannelli, cosi i componenti sulla stessa pagina restano visivamente coerenti. La
+versione chiara usa carta calda; quella scura usa inchiostro crema su carta
+scura. Entrambe usano bordi disegnati, ombre offset, un font calligrafico e una
 selezione evidenziatore dove serve. Ogni colore, font, raggio e ombra resta
 modificabile, quindi la famiglia si puo adattare senza perdere il carattere
 disegnato a mano.
 
-Anche il preset **Wireframe** e condiviso da tutti e venti i pannelli. Rimuove i
-riempimenti e disegna ogni controllo solo con linee sottili, bordi tratteggiati e
-ombre morbide. Gli stati attivi usano una linea ciano; colori, font, raggio e
-ombre restano modificabili, quindi una pagina puo combinare piu componenti
-Wireframe mantenendo lo stesso linguaggio a contorno.
+Anche la famiglia **Wireframe** ha versioni Light e Dark. Rimuove i riempimenti e
+disegna ogni controllo solo con linee sottili, bordi tratteggiati e ombre morbide.
+Gli stati attivi usano una linea ciano; colori, font, raggio e ombre restano
+modificabili, quindi una pagina puo combinare piu componenti Wireframe mantenendo
+lo stesso linguaggio a contorno.
 
 Il selettore Style raggruppa queste famiglie sotto **Shared styles** e lascia gli
 stili specifici di un componente sotto **Component styles**. Le altre famiglie
-condivise sono:
+condivise, ciascuna con varianti Light e Dark, sono:
 
 - **Terminal / CRT**: fosfori verdi su nero, etichette monospace e glow.
 - **Glassmorphism**: superfici traslucide fumose con blur e bordi luminosi.
