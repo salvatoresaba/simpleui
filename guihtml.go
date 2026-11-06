@@ -137,7 +137,9 @@ main { flex:1; display:flex; min-height:0; }
 #toolbar.drop-hot, #elementbar.drop-hot { outline:2px dashed var(--accent); outline-offset:-2px; }
 
 /* left panel (structure tree) */
-#left { width:248px; min-width:190px; border-right:1px solid var(--border); display:flex; flex-direction:column; background: var(--panel); }
+#left { width:248px; min-width:190px; border-right:1px solid var(--border); display:flex; flex-direction:column; background: var(--panel); position:relative; }
+#left-grip { position:absolute; right:-3px; top:0; bottom:0; width:6px; cursor:col-resize; z-index:6; }
+#left-grip:hover, #left-grip.drag { background:rgba(76,92,247,.35); }
 .tabs { display:flex; border-bottom:1px solid var(--border); }
 .tab { flex:1; text-align:center; padding:8px 4px; font-size:12px; color:var(--muted); cursor:pointer; border-right:1px solid var(--border); }
 .tab.on { color:var(--fg); background:var(--panel3); border-bottom:2px solid var(--accent); }
@@ -777,6 +779,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       <div class="tab on" data-tab="structure" onclick="switchLeft('structure')">Structure</div>
       <div class="tab" data-tab="tokens" onclick="switchLeft('tokens')">Tokens</div>
     </div>
+    <div id="left-grip" title="Drag to resize the structure panel"></div>
     <div id="leftbody">
       <div id="l-structure">
         <div class="rowth" id="elmcount">Elements</div>
@@ -14880,6 +14883,33 @@ setBp("desktop");
       document.removeEventListener("mouseup", up);
       grip.classList.remove("drag");
       try { localStorage.setItem("sui.rightW", String(right.offsetWidth)); } catch (e) {}
+    }
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  });
+})();
+// Structure panel resize: drag the right edge of the left panel. The width is
+// remembered across reloads like the inspector width.
+(function(){
+  var left = document.getElementById("left"), grip = document.getElementById("left-grip");
+  if (!left || !grip) return;
+  try {
+    var st = parseInt(localStorage.getItem("sui.leftW") || "", 10);
+    if (st >= 190) left.style.width = st + "px";
+  } catch (e) {}
+  grip.addEventListener("mousedown", function(e){
+    e.preventDefault();
+    grip.classList.add("drag");
+    var startX = e.clientX, startW = left.offsetWidth;
+    function move(ev){
+      var w = Math.max(190, Math.min(600, startW + (ev.clientX - startX)));
+      left.style.width = w + "px";
+    }
+    function up(){
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      grip.classList.remove("drag");
+      try { localStorage.setItem("sui.leftW", String(left.offsetWidth)); } catch (e) {}
     }
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", up);

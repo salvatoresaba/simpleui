@@ -283,6 +283,34 @@ and inspector. The history panel lists the recorded steps and can jump directly
 to an earlier state. When focus is in an inspector field, Ctrl+Z/Ctrl+U follow
 the designer history; prompt and modal text fields keep their native undo.
 
+## Left panel and design tokens
+
+Drag the right edge of the left panel to resize it, exactly like the inspector.
+The width stays between 190 and 600 px and is remembered across reloads.
+
+### Design tokens
+
+The **Tokens** tab lists the design tokens found in the project CSS. A design
+token is a CSS custom property such as:
+
+```css
+:root {
+  --primary: #4c5cf7;
+  --radius: 10px;
+  --page-gap: 16px;
+}
+```
+
+They are **not** the syntax tokens used to colour SUI code. Design tokens are
+reusable values for colours, spacing, radii, fonts and similar design choices.
+Use them with `var(--primary)` in class rules, `style: cssSafe(...)` or theme
+overrides. Changing a token updates every rule that references it.
+
+The tab shows the token name, value and a colour swatch when the value is a
+colour. **+ token** adds a new custom property to `:root`; edit existing values
+in the CSS source. Use tokens for values shared across the interface, and plain
+values for one-off declarations.
+
 ## Inspector and effective styles
 
 All inspector sections start collapsed. Open a section by clicking its header;

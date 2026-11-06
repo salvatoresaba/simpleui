@@ -132,6 +132,8 @@ func TestGuiEditorMenusAndFind(t *testing.T) {
 		`id="sui-lncol"`,
 		`id="sui-diaginfo"`,
 		`id="sui-applystate"`,
+		`id="left-grip"`,
+		`"sui.leftW"`,
 		`id="cmd-palette"`,
 		`id="cmd-input"`,
 		`function openFindBar`,

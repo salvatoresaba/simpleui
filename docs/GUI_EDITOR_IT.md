@@ -291,6 +291,36 @@ tornare direttamente a uno stato precedente. Quando il focus è in un campo
 dell'inspector, Ctrl+Z/Ctrl+U usano la cronologia del designer; i campi dei
 prompt e delle modali mantengono l'undo nativo.
 
+## Pannello sinistro e design token
+
+Trascinando il bordo destro del pannello sinistro lo si ridimensiona, esattamente
+come l'inspector. La larghezza resta tra 190 e 600 px e viene ricordata tra i
+reload.
+
+### Design token
+
+La tab **Tokens** elenca i design token presenti nel CSS del progetto. Un design
+token è una custom property CSS come:
+
+```css
+:root {
+  --primary: #4c5cf7;
+  --radius: 10px;
+  --page-gap: 16px;
+}
+```
+
+Non sono i token di sintassi usati per colorare il codice SUI. I design token
+sono valori riutilizzabili per colori, spaziature, raggi, font e scelte di
+design simili. Si usano con `var(--primary)` nelle regole di classe, in
+`style: cssSafe(...)` o negli override del tema. Modificando un token si
+aggiornano tutte le regole che lo usano.
+
+La tab mostra nome, valore e un campione colore quando il valore è un colore.
+**+ token** aggiunge una nuova custom property a `:root`; per modificare i
+valori esistenti si usa il sorgente CSS. Usare i token per valori condivisi
+nell'interfaccia e valori espliciti per le dichiarazioni una tantum.
+
 ## Inspector e stili effettivi
 
 Tutte le sezioni dell'inspector partono chiuse. Aprire una sezione cliccando
