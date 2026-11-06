@@ -18367,11 +18367,6 @@ const suiChartRuntime = `(function(){
     text.type = "text";
     text.className = "sui-chart-state-cell-input sui-chart-color-text";
     text.placeholder = "#rrggbb or transparent";
-    var alphaInput = document.createElement("input");
-    alphaInput.type = "text";
-    alphaInput.inputMode = "numeric";
-    alphaInput.className = "sui-chart-state-cell-input sui-chart-color-alpha-input";
-    alphaInput.setAttribute("aria-label", "Alpha percent");
     var fallbackHex = colorToHex(fallback, "#64748b") || "#64748b";
     var initial = value === null || value === undefined ? "" : String(value);
     var initialHex = colorToHex(initial, fallbackHex) || fallbackHex;
@@ -18402,14 +18397,15 @@ const suiChartRuntime = `(function(){
       var p = hexParts(currentHex());
       return "rgba(" + p[0] + "," + p[1] + "," + p[2] + "," + Math.round(a * 1000) / 1000 + ")";
     };
-    var updateSwatch = function(skipAlphaInput) {
+    var updateSwatch = function() {
       var transparent = isTransparent();
       swatch.style.boxShadow = "inset 0 0 0 999px " + rgbaText(transparent ? 0 : alpha);
-      if (!skipAlphaInput) alphaInput.value = String(Math.round(alpha * 100));
       if (wrap.__pickerInput) wrap.__pickerInput.value = currentHex();
       if (wrap.__pickerAlpha) {
         wrap.__pickerAlpha.value = String(alpha);
-        if (wrap.__pickerAlphaValue) wrap.__pickerAlphaValue.textContent = Math.round(alpha * 100) + "%";
+        if (wrap.__pickerAlphaText && document.activeElement !== wrap.__pickerAlphaText) {
+          wrap.__pickerAlphaText.value = String(Math.round(alpha * 100));
+        }
       }
     };
     var setAlpha = function(next) {
@@ -18446,12 +18442,15 @@ const suiChartRuntime = `(function(){
       alphaRange.step = "0.01";
       alphaRange.value = String(alpha);
       alphaRange.setAttribute("aria-label", "Alpha");
-      var alphaValue = document.createElement("span");
-      alphaValue.className = "sui-chart-color-picker-alpha-value";
-      alphaValue.textContent = Math.round(alpha * 100) + "%";
+      var alphaText = document.createElement("input");
+      alphaText.type = "text";
+      alphaText.inputMode = "numeric";
+      alphaText.className = "sui-chart-state-cell-input sui-chart-color-picker-alpha-text";
+      alphaText.setAttribute("aria-label", "Alpha percent");
+      alphaText.value = String(Math.round(alpha * 100));
       alphaRow.appendChild(alphaLabel);
       alphaRow.appendChild(alphaRange);
-      alphaRow.appendChild(alphaValue);
+      alphaRow.appendChild(alphaText);
       var closeBtn = document.createElement("button");
       closeBtn.type = "button";
       closeBtn.className = "sui-chart-color-picker-close";
@@ -18470,14 +18469,14 @@ const suiChartRuntime = `(function(){
       panel.style.top = Math.round(top) + "px";
       wrap.__pickerInput = input;
       wrap.__pickerAlpha = alphaRange;
-      wrap.__pickerAlphaValue = alphaValue;
+      wrap.__pickerAlphaText = alphaText;
       var close = function() {
         document.removeEventListener("click", onDocClick, true);
         document.removeEventListener("keydown", onKey, true);
         if (panel.parentNode) panel.parentNode.removeChild(panel);
         wrap.__pickerInput = null;
         wrap.__pickerAlpha = null;
-        wrap.__pickerAlphaValue = null;
+        wrap.__pickerAlphaText = null;
         if (activeColorPicker && activeColorPicker.__owner === wrap) activeColorPicker = null;
       };
       var onDocClick = function(e) {
@@ -18499,9 +18498,25 @@ const suiChartRuntime = `(function(){
       });
       alphaRange.addEventListener("input", function() {
         setAlpha(alphaRange.value);
-        alphaValue.textContent = Math.round(alpha * 100) + "%";
-        alphaInput.dispatchEvent(new Event("input", { bubbles: true }));
-        alphaInput.dispatchEvent(new Event("change", { bubbles: true }));
+        text.dispatchEvent(new Event("input", { bubbles: true }));
+        text.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      alphaText.addEventListener("input", function() {
+        var v = alphaText.value.replace(/[^\d.-]/g, "");
+        if (v === "" || v === "-") return;
+        alpha = clampAlpha(Number(v) / 100);
+        if (alpha > 0.001 && textIsTransparent()) text.value = lastValid || fallbackHex;
+        updateSwatch();
+        text.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      alphaText.addEventListener("change", function() {
+        var v = alphaText.value.replace(/[^\d.-]/g, "");
+        alpha = v === "" ? 1 : clampAlpha(Number(v) / 100);
+        if (alpha > 0.001 && textIsTransparent()) text.value = lastValid || fallbackHex;
+        updateSwatch();
+        alphaText.value = String(Math.round(alpha * 100));
+        text.dispatchEvent(new Event("input", { bubbles: true }));
+        text.dispatchEvent(new Event("change", { bubbles: true }));
       });
       closeBtn.addEventListener("click", function(e) {
         e.preventDefault();
@@ -18531,23 +18546,9 @@ const suiChartRuntime = `(function(){
       }
       updateSwatch();
     });
-    alphaInput.addEventListener("input", function() {
-      var v = alphaInput.value.replace(/[^\d.-]/g, "");
-      if (v === "" || v === "-") return;
-      alpha = clampAlpha(Number(v) / 100);
-      if (alpha > 0.001 && textIsTransparent()) text.value = lastValid || fallbackHex;
-      updateSwatch(true);
-    });
-    alphaInput.addEventListener("change", function() {
-      var v = alphaInput.value.replace(/[^\d.-]/g, "");
-      alpha = v === "" ? 1 : clampAlpha(Number(v) / 100);
-      if (alpha > 0.001 && textIsTransparent()) text.value = lastValid || fallbackHex;
-      updateSwatch();
-    });
     wrap.appendChild(swatch);
     wrap.appendChild(text);
-    wrap.appendChild(alphaInput);
-    wrap.inputs = [text, alphaInput];
+    wrap.inputs = [text];
     wrap.getValue = function() {
       var raw = text.value.trim().toLowerCase();
       if (raw === "transparent" || raw === "none" || alpha <= 0.001) return "transparent";

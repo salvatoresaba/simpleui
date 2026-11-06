@@ -820,18 +820,17 @@ body {
 @media (max-width: 640px) { .sui-chart-hint-groups { grid-template-columns: 1fr; } }
 .sui-chart-tag-editor .sui-chart-state-cell-input, .sui-chart-tag-editor select { width: 100%; box-sizing: border-box; height: 26px; border-radius: 6px; font-size: 11px; }
 .sui-chart-tag-editor .sui-chart-state-color { width: 100%; max-width: none; height: 26px; box-sizing: border-box; border-radius: 6px; }
-.sui-chart-color-field { display: grid; grid-template-columns: 30px minmax(0, 1fr) 48px; gap: 6px; align-items: center; }
+.sui-chart-color-field { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 6px; align-items: center; }
 .sui-chart-color-alpha-field { display: grid; grid-template-columns: 30px minmax(0, 1fr) 48px; gap: 6px; align-items: center; width: 100%; box-sizing: border-box; }
 .sui-chart-color-alpha-range { width: 100%; min-width: 0; accent-color: var(--sui-chart-series-1, #38bdf8); }
 .sui-chart-color-alpha-text { width: 100%; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; padding-left: 2px; padding-right: 2px; }
 .sui-chart-color-swatch { width: 30px; height: 26px; padding: 0; box-sizing: border-box; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 6px; background-color: transparent; background-image: linear-gradient(45deg, #cbd5e1 25%, transparent 25%), linear-gradient(-45deg, #cbd5e1 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #cbd5e1 75%), linear-gradient(-45deg, transparent 75%, #cbd5e1 75%); background-size: 8px 8px; background-position: 0 0, 0 4px, 4px -4px, -4px 0; cursor: pointer; }
 .sui-chart-color-text { width: 100%; min-width: 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10.5px; }
-.sui-chart-color-alpha-input { width: 100%; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; padding-left: 2px; padding-right: 2px; }
 .sui-chart-color-picker { position: fixed; z-index: 10060; width: 230px; box-sizing: border-box; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--sui-chart-control-bg, #1e293b); color: var(--sui-chart-control-fg, #f8fafc); border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 10px; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
 .sui-chart-color-picker-input { width: 100%; height: 36px; padding: 2px; box-sizing: border-box; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 8px; background: transparent; cursor: pointer; }
 .sui-chart-color-picker-alpha { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: var(--sui-chart-control-fg, #f8fafc); }
 .sui-chart-color-picker-alpha input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: var(--sui-chart-series-1, #38bdf8); }
-.sui-chart-color-picker-alpha-value { width: 34px; text-align: right; color: var(--sui-chart-muted, #8fa0b8); font-variant-numeric: tabular-nums; }
+.sui-chart-color-picker-alpha-text { width: 46px; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .sui-chart-color-picker-close { align-self: flex-end; height: 24px; padding: 0 10px; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 6px; background: var(--sui-chart-control-bg, #1e293b); color: var(--sui-chart-control-fg, #f8fafc); font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
 .sui-chart-number-field { display: grid; grid-template-columns: minmax(0, 1fr) 54px; gap: 6px; align-items: center; }
 .sui-chart-number-range { width: 100%; min-width: 0; box-sizing: border-box; accent-color: var(--sui-chart-series-1, #38bdf8); }
