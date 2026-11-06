@@ -144,6 +144,8 @@ main { flex:1; display:flex; min-height:0; }
 #right-grip::after { right:5px; }
 #left-grip:hover, #left-grip.drag, #right-grip:hover, #right-grip.drag { background:rgba(76,92,247,.18); }
 #left-grip:hover::after, #left-grip.drag::after, #right-grip:hover::after, #right-grip.drag::after { background:var(--accent); width:2px; opacity:1; }
+body.panel-resizing, body.panel-resizing * { user-select:none !important; }
+body.panel-resizing iframe { pointer-events:none !important; }
 .tabs { display:flex; border-bottom:1px solid var(--border); }
 .tab { flex:1; text-align:center; padding:8px 4px; font-size:12px; color:var(--muted); cursor:pointer; border-right:1px solid var(--border); }
 .tab.on { color:var(--fg); background:var(--panel3); border-bottom:2px solid var(--accent); }
@@ -14869,6 +14871,41 @@ setBp("desktop");
   try { makeDraggable(document.getElementById('sf-panel'), document.getElementById('sf-hdr')); } catch(e) {}
   try { makeResizable(document.getElementById('sf-panel'), document.getElementById('sf-resize')); } catch(e) {}
   try { wireChartDataEditor(); } catch(e) {}
+// Pointer capture keeps a panel drag continuous even when the pointer crosses
+// the preview iframe or another element that would otherwise steal the events.
+function bindPointerResize(grip, cursor, startFn, moveFn, endFn) {
+  if (!grip) return;
+  grip.addEventListener("pointerdown", function(e) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    var state = startFn(e);
+    if (!state) return;
+    grip.classList.add("drag");
+    document.body.classList.add("panel-resizing");
+    document.body.style.cursor = cursor;
+    var frame = document.getElementById("prev");
+    var oldPE = frame ? frame.style.pointerEvents : "";
+    if (frame) frame.style.pointerEvents = "none";
+    try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+    function move(ev) { moveFn(ev, state); }
+    function end() {
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", end);
+      grip.removeEventListener("pointercancel", end);
+      grip.removeEventListener("lostpointercapture", end);
+      grip.classList.remove("drag");
+      document.body.classList.remove("panel-resizing");
+      document.body.style.cursor = "";
+      if (frame) frame.style.pointerEvents = oldPE;
+      try { grip.releasePointerCapture(e.pointerId); } catch (err) {}
+      if (endFn) endFn(state);
+    }
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", end);
+    grip.addEventListener("pointercancel", end);
+    grip.addEventListener("lostpointercapture", end);
+  });
+}
 // Inspector resize: the whole right panel can be widened/narrowed at will by
 // dragging its left edge. The width is remembered across reloads.
 (function(){
@@ -14878,23 +14915,15 @@ setBp("desktop");
     var st = parseInt(localStorage.getItem("sui.rightW") || "", 10);
     if (st >= 210) right.style.width = st + "px";
   } catch (e) {}
-  grip.addEventListener("mousedown", function(e){
-    e.preventDefault();
-    grip.classList.add("drag");
-    var startX = e.clientX, startW = right.offsetWidth;
-    function move(ev){
-      var w = Math.max(210, Math.min(760, startW - (ev.clientX - startX)));
+  bindPointerResize(grip, "col-resize",
+    function(e){ return { startX: e.clientX, startW: right.offsetWidth }; },
+    function(e, s){
+      var w = Math.max(210, Math.min(760, s.startW - (e.clientX - s.startX)));
       right.style.width = w + "px";
-    }
-    function up(){
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-      grip.classList.remove("drag");
+    },
+    function(){
       try { localStorage.setItem("sui.rightW", String(right.offsetWidth)); } catch (e) {}
-    }
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  });
+    });
 })();
 // Structure panel resize: drag the right edge of the left panel. The width is
 // remembered across reloads like the inspector width.
@@ -14905,23 +14934,15 @@ setBp("desktop");
     var st = parseInt(localStorage.getItem("sui.leftW") || "", 10);
     if (st >= 190) left.style.width = st + "px";
   } catch (e) {}
-  grip.addEventListener("mousedown", function(e){
-    e.preventDefault();
-    grip.classList.add("drag");
-    var startX = e.clientX, startW = left.offsetWidth;
-    function move(ev){
-      var w = Math.max(190, Math.min(600, startW + (ev.clientX - startX)));
+  bindPointerResize(grip, "col-resize",
+    function(e){ return { startX: e.clientX, startW: left.offsetWidth }; },
+    function(e, s){
+      var w = Math.max(190, Math.min(600, s.startW + (e.clientX - s.startX)));
       left.style.width = w + "px";
-    }
-    function up(){
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-      grip.classList.remove("drag");
+    },
+    function(){
       try { localStorage.setItem("sui.leftW", String(left.offsetWidth)); } catch (e) {}
-    }
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  });
+    });
 })();
 // Problems/History panel resize: drag the top edge. The height is stored in
 // localStorage and restored across reloads.
@@ -14933,23 +14954,15 @@ setBp("desktop");
     var st = parseInt(localStorage.getItem("sui.bottomH") || "", 10);
     if (st >= 90) bottom.style.height = Math.min(st, maxH()) + "px";
   } catch (e) {}
-  grip.addEventListener("mousedown", function(e){
-    e.preventDefault();
-    grip.classList.add("drag");
-    var startY = e.clientY, startH = bottom.offsetHeight;
-    function move(ev){
-      var h = Math.max(90, Math.min(maxH(), startH - (ev.clientY - startY)));
+  bindPointerResize(grip, "row-resize",
+    function(e){ return { startY: e.clientY, startH: bottom.offsetHeight }; },
+    function(e, s){
+      var h = Math.max(90, Math.min(maxH(), s.startH - (e.clientY - s.startY)));
       bottom.style.height = h + "px";
-    }
-    function up(){
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-      grip.classList.remove("drag");
+    },
+    function(){
       try { localStorage.setItem("sui.bottomH", String(bottom.offsetHeight)); } catch (e) {}
-    }
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  });
+    });
   grip.addEventListener("dblclick", function(){
     bottom.style.height = "190px";
     try { localStorage.setItem("sui.bottomH", "190"); } catch (e) {}

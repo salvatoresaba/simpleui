@@ -298,7 +298,9 @@ prompt e delle modali mantengono l'undo nativo.
 Trascinando il bordo destro del pannello sinistro lo si ridimensiona, esattamente
 come l'inspector. Il divisore ha un'area di presa più ampia (12 px) e una linea
 visibile, quindi è più facile da afferrare. La larghezza resta tra 190 e 600 px
-e viene ricordata tra i reload.
+e viene ricordata tra i reload. Il trascinamento usa il pointer capture, quindi
+il ridimensionamento resta continuo anche quando il puntatore attraversa
+l'iframe di anteprima.
 
 Il pannello **Problems/History** in basso si ridimensiona trascinando il bordo
 superiore. L'altezza resta tra 90 px e il 65% della finestra, viene ricordata tra

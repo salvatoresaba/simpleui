@@ -136,6 +136,8 @@ func TestGuiEditorMenusAndFind(t *testing.T) {
 		`"sui.leftW"`,
 		`id="bottom-grip"`,
 		`"sui.bottomH"`,
+		`function bindPointerResize`,
+		`panel-resizing`,
 		`id="cmd-palette"`,
 		`id="cmd-input"`,
 		`function openFindBar`,
