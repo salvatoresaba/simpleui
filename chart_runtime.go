@@ -19637,10 +19637,15 @@ const suiChartRuntime = `(function(){
   function applyStateToolbarFlags(root) {
     var showHistory = flagDefault(root, "show-history", true);
     var showAdd = flagDefault(root, "show-add", true);
-    if (root.__suiStateUndoBtn) root.__suiStateUndoBtn.hidden = !showHistory;
-    if (root.__suiStateRedoBtn) root.__suiStateRedoBtn.hidden = !showHistory;
-    if (root.__suiStateCreateBtn) root.__suiStateCreateBtn.hidden = !showAdd;
-    if (root.__suiStateCreateTools) root.__suiStateCreateTools.hidden = !showHistory && !showAdd;
+    var setShown = function(el, shown) {
+      if (!el) return;
+      el.hidden = !shown;
+      el.style.display = shown ? "" : "none";
+    };
+    setShown(root.__suiStateUndoBtn, showHistory);
+    setShown(root.__suiStateRedoBtn, showHistory);
+    setShown(root.__suiStateCreateBtn, showAdd);
+    setShown(root.__suiStateCreateTools, showHistory || showAdd);
   }
   function ensureStateCreateTools(root) {
     if (root.__suiStateCreateTools && root.__suiStateCreateTools.parentNode) {
