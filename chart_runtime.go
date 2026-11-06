@@ -1818,8 +1818,8 @@ const suiChartRuntime = `(function(){
   }
   function clear(node) { while (node && node.firstChild) node.removeChild(node.firstChild); }
   function applySize(root) {
-    var w = attr(root, "width") || "640px";
-    var h = attr(root, "height") || "320px";
+    var w = attr(root, "width") || "100%";
+    var h = attr(root, "height") || "100%";
     root.style.setProperty("--sui-chart-width", w);
     root.style.setProperty("--sui-chart-height", h);
   }

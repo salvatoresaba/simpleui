@@ -1100,7 +1100,9 @@ grafico reattivo. Il pannello resta uno strumento del designer: l'app generata
 mantiene il normale runtime chart e i suoi limiti.
 
 Larghezza e altezza del chart si impostano con i campi standard della sezione
-**Size** (o con CSS in **style expr**), non con parametri chart dedicati.
+**Size** (o con CSS in **style expr**), non con parametri chart dedicati. Se la
+dimensione è omessa il chart riempie il contenitore e cresce con esso; la
+tabella segue la larghezza del contenitore mantenendo l'altezza fissa.
 
 Con **Scrollbars** il grafico mantiene la cornice e mostra una scrollbar
 orizzontale quando i punti richiedono piu spazio. **Zoom controls** aggiunge `-`, `+`, `Reset` e la

@@ -38,6 +38,21 @@ func TestChartDesignerDefaultsFillContainer(t *testing.T) {
 	}
 }
 
+func TestChartDefaultSizeFillsContainer(t *testing.T) {
+	if !strings.Contains(suiChartRuntime, `var w = attr(root, "width") || "100%"`) ||
+		!strings.Contains(suiChartRuntime, `var h = attr(root, "height") || "100%"`) {
+		t.Error("chart runtime does not default to a container-filling size")
+	}
+	if !strings.Contains(suiCssBase, "width: var(--sui-chart-width, 100%)") ||
+		!strings.Contains(suiCssBase, "height: var(--sui-chart-height, 100%)") {
+		t.Error("chart CSS does not fall back to a container-filling size")
+	}
+	if !strings.Contains(suiCssBase, ".sui-chart-table-both > .sui-chart-table") ||
+		!strings.Contains(suiCssBase, "width: 100%") {
+		t.Error("chart table does not follow the control width")
+	}
+}
+
 func TestChartRender(t *testing.T) {
 	prog, dl := ParseSource(chartTestSource, "chart.sui")
 	if dl.HasErrors() {

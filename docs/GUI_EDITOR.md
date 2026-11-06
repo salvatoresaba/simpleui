@@ -1064,7 +1064,9 @@ data limits.
 
 Chart width and height come from the standard **Size** inspector fields (or
 CSS in **style expr**), not from chart-specific parameters. Use those fields to
-set the visible frame.
+set the visible frame. When the size is omitted, the chart fills its container
+and grows with it; the table follows the container width while keeping its
+fixed height.
 
 When `overflow` is **Scrollbars**, the chart draws at its natural width inside
 the configured frame and the viewport scrolls horizontally when the points need

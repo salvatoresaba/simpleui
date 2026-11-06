@@ -8666,8 +8666,8 @@ function attrsOf(n) {
     a += chartParamAttr(n, "format", "chartFormat", n.chartFormat, "auto", true);
     a += chartParamAttr(n, "x", "chartX", n.chartX, "", true);
     a += chartParamAttr(n, "y", "chartY", n.chartY, "", true);
-    a += chartParamAttr(n, "width", "chartWidth", n.chartWidth, "640px", true);
-    a += chartParamAttr(n, "height", "chartHeight", n.chartHeight, "320px", true);
+    a += chartParamAttr(n, "width", "chartWidth", n.chartWidth, "100%", true);
+    a += chartParamAttr(n, "height", "chartHeight", n.chartHeight, "100%", true);
     a += chartParamAttr(n, "overflow", "chartOverflow", n.chartOverflow, "scroll", true);
     a += chartParamAttr(n, "zoom", "chartZoom", n.chartZoom, "1", false);
     a += chartParamAttr(n, "pointWidth", "chartPointWidth", n.chartPointWidth, "48", false);

@@ -235,8 +235,8 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: var(--sui-chart-width, 640px);
-  height: var(--sui-chart-height, 320px);
+  width: var(--sui-chart-width, 100%);
+  height: var(--sui-chart-height, 100%);
   max-width: 100%;
   min-width: 0;
   color: var(--sui-chart-fg, var(--sui-fg, #e6e6ef));
