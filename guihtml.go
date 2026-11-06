@@ -426,7 +426,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .pfrow select, .pfrow input[type=range] { flex:1; font-size:13px; }
 .pfrow input[type=checkbox] { flex:none; }
 #prefbox .pfsec:first-child { margin-top:0; padding-top:0; border-top:0; }
-#prefbox select { appearance:none; -webkit-appearance:none; flex:1; min-width:0; font-size:13px; padding:6px 26px 6px 8px; color:var(--fg); background-color:var(--input-bg); border:1px solid var(--border2); border-radius:6px; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position:calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
+#prefbox select, #compcfg select { appearance:none; -webkit-appearance:none; flex:1; min-width:0; font-size:13px; padding:6px 26px 6px 8px; color:var(--fg); background-color:var(--input-bg); border:1px solid var(--border2); border-radius:6px; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position:calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
 .pref-acc-head { display:flex; align-items:center; gap:8px; width:100%; padding:10px 2px; margin:0; border:0; border-top:1px solid var(--border); background:transparent; color:var(--fg); font:inherit; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; cursor:pointer; text-align:left; }
 .pref-acc-head:first-child { border-top:0; }
 .pref-acc-head:before { content:"\25B8"; color:var(--muted); font-size:10px; width:10px; }
@@ -471,6 +471,25 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #edtip.on { opacity:1; }
 
 /* tooltip global settings modal */
+#projprefs { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
+#projprefs.on { display:flex; }
+#projprefsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:780px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#projprefs .pref-body { max-height:64vh; }
+.pp-groups { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px 22px; }
+.pp-group h3 { margin:0 0 5px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+.pp-item { display:flex; align-items:center; gap:8px; width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--fg); font:inherit; font-size:12.5px; text-align:left; cursor:pointer; margin:0 0 4px; }
+.pp-item:hover { background:var(--btn-hover); border-color:var(--border2); }
+.pp-item .pp-kind { margin-left:auto; font-size:10px; color:var(--muted); font-family:ui-monospace, Consolas, monospace; }
+.pp-note { grid-column:1 / -1; color:var(--muted); font-size:11.5px; line-height:1.5; }
+#compcfg { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
+#compcfg.on { display:flex; }
+#compcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:700px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#compcfg .pref-body { max-height:62vh; }
+#compcfg .pf-field { grid-template-columns:minmax(88px, 126px) minmax(0, 1fr); }
+#compcfg .pf-field > label { font-size:12px; }
+#compcfg .pf-field input[type=text], #compcfg .pf-field input[type=number] { font-size:12.5px; padding:5px 7px; }
+#compcfg .pf-num input[type=number] { padding:4px 6px; }
+@media (max-width: 760px) { .pp-groups { grid-template-columns:1fr; } }
 #ttcfg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
 #ttcfg.on { display:flex; }
 #ttcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:18px 20px; width:440px; max-width:92vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -774,7 +793,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <span class="mitem">Preferences</span>
     <div class="drop" id="drop-prefs">
       <div class="mi" onclick="openPrefs()">Editor preferences.</div>
-      <div class="mi" onclick="openTooltipCfg()">Project preferences.</div>
+      <div class="mi" onclick="openProjectPreferences()">Project preferences.</div>
       <div class="dropsep"></div>
       <div class="mi" id="probbtn" onclick="toggleBottom()">Problems panel</div>
     </div>
@@ -1181,9 +1200,38 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <div id="cmd-list" role="listbox"></div>
   </div>
 </div><div id="edtip" role="tooltip" aria-hidden="true"></div>
+<div id="projprefs" role="dialog" aria-modal="true" aria-labelledby="projprefs-title">
+  <div id="projprefsbox">
+    <div class="pref-head">
+      <h2 id="projprefs-title">Project preferences</h2>
+      <button class="btn" type="button" onclick="closeProjectPreferences()" aria-label="Close project preferences" title="Close">&#10005;</button>
+    </div>
+    <div class="hint" style="padding:0 20px 6px">Defaults for every component inserted in the project. Element settings override these values for a single instance.</div>
+    <div class="pref-body"><div id="projprefs-list"></div></div>
+    <div class="pfbtns"><button class="btn" type="button" onclick="closeProjectPreferences()">Close</button></div>
+  </div>
+</div>
+<div id="compcfg" role="dialog" aria-modal="true" aria-labelledby="compcfg-title">
+  <div id="compcfgbox">
+    <div class="pref-head">
+      <h2 id="compcfg-title">Component settings</h2>
+      <button class="btn" type="button" onclick="closeComponentSettings()" aria-label="Close component settings" title="Close">&#10005;</button>
+    </div>
+    <div class="hint" id="compcfg-scope" style="padding:0 20px 6px"></div>
+    <div class="pref-tabs" id="compcfg-tabs" role="tablist"></div>
+    <div class="pref-body" id="compcfg-body"></div>
+    <div class="pfbtns">
+      <button class="btn" type="button" onclick="resetComponentSettings()">Reset</button>
+      <button class="btn" type="button" id="compcfg-clear" onclick="clearComponentOverrides()" style="display:none">Clear overrides</button>
+      <span style="flex:1"></span>
+      <button class="btn" type="button" onclick="closeComponentSettings()">Cancel</button>
+      <button class="btn" type="button" onclick="applyComponentSettings()">Apply</button>
+    </div>
+  </div>
+</div>
 <div id="ttcfg">
   <div id="ttcfgbox">
-    <h2>Project preferences</h2>
+    <div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1;margin:0">Project preferences</h2><button class="btn" type="button" onclick="closeTooltipCfg()" aria-label="Close tooltip settings" title="Close">&#10005;</button></div>
     <div class="hint">Global defaults for every element of the generated app with a tooltip property. These values are written into the project CSS, not into the editor preferences.</div>
     <div class="pfsec">Tooltip settings</div>
     <div class="pfrow"><label>Place</label><select id="tt-place">
@@ -3725,6 +3773,19 @@ function renderInspector() {
       code.textContent = t;
       typeBar.appendChild(code);
     });
+    if (!selBody && nodes.length === 1) {
+      var cdef = componentDefForKind(nodes[0].kind);
+      if (cdef) {
+        var sbtn = document.createElement("button");
+        sbtn.type = "button";
+        sbtn.className = "btn";
+        sbtn.style.cssText = "margin-left:auto;font-size:11px;padding:3px 8px";
+        sbtn.textContent = "Settings...";
+        sbtn.title = "Configure " + cdef.label + " for this element only";
+        sbtn.onclick = function(){ openComponentSettings(cdef, nodes[0]); };
+        typeBar.appendChild(sbtn);
+      }
+    }
     typeBar.title = selPath ? "Path: " + selPath.join(".") : "Page body";
     box.appendChild(typeBar);
   }
@@ -11830,6 +11891,494 @@ function resetChartSettings() {
   autoPreview();
   renderInspector();
 }
+// ---- component defaults ---------------------------------------------------
+// Each definition maps a component kind to CSS variables consumed by a small
+// rule block. Project values live in a managed :root block; element values are
+// inline custom properties on that element only.
+var COMPONENT_DEFS = [
+  { id: "progress", label: "Progress bar", group: "Feedback", kinds: ["progress"],
+    categories: [
+      { name: "Size", fields: [
+        { key: "--sui-progress-height", label: "Height", type: "number", def: 8, min: 2, max: 48, step: 1, unit: "px" },
+        { key: "--sui-progress-width", label: "Width", type: "text", def: "100%" },
+        { key: "--sui-progress-radius", label: "Radius", type: "number", def: 999, min: 0, max: 999, step: 1, unit: "px" }
+      ]},
+      { name: "Colors", fields: [
+        { key: "--sui-progress-track", label: "Track", type: "color", def: "#374151" },
+        { key: "--sui-progress-value", label: "Value", type: "color", def: "#4c5cf7" },
+        { key: "--sui-progress-value-end", label: "Value end", type: "color", def: "#6366f1" }
+      ]},
+      { name: "Animation", fields: [
+        { key: "--sui-progress-animation", label: "Effect", type: "select", def: "none", opts: [["None", "none"], ["Pulse", "sui-progress-pulse 1.4s ease-in-out infinite"]] }
+      ]}
+    ],
+    css: ".sui-progress { width: var(--sui-progress-width, 100%); height: var(--sui-progress-height, 8px); background: var(--sui-progress-track, #374151); border-radius: var(--sui-progress-radius, 999px); overflow: hidden; animation: var(--sui-progress-animation, none); }\n" +
+      ".sui-progress::-webkit-progress-bar { background: var(--sui-progress-track, #374151); }\n" +
+      ".sui-progress::-webkit-progress-value { background: linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1)); border-radius: var(--sui-progress-radius, 999px); }\n" +
+      ".sui-progress::-moz-progress-bar { background: linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1)); border-radius: var(--sui-progress-radius, 999px); }\n" +
+      "@keyframes sui-progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .62; } }"
+  },
+  { id: "badge", label: "Badge", group: "Feedback", kinds: ["badge"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-badge-bg", label: "Background", type: "color", def: "#252b45" },
+        { key: "--sui-badge-fg", label: "Text", type: "color", def: "#a5b4fc" },
+        { key: "--sui-badge-border", label: "Border", type: "color", def: "#4c5cf7" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-badge-padding", label: "Padding", type: "text", def: "2px 10px" },
+        { key: "--sui-badge-radius", label: "Radius", type: "number", def: 999, min: 0, max: 999, step: 1, unit: "px" },
+        { key: "--sui-badge-font-size", label: "Font size", type: "number", def: 12, min: 8, max: 40, step: 1, unit: "px" },
+        { key: "--sui-badge-font-weight", label: "Weight", type: "select", def: "500", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"], ["800", "800"]] },
+        { key: "--sui-badge-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-badge-font", label: "Font", type: "font", def: "inherit" }
+      ]}
+    ],
+    css: ".sui-badge { background: var(--sui-badge-bg, #252b45); color: var(--sui-badge-fg, #a5b4fc); padding: var(--sui-badge-padding, 2px 10px); border-radius: var(--sui-badge-radius, 999px); font-size: var(--sui-badge-font-size, 12px); font-weight: var(--sui-badge-font-weight, 500); font-family: var(--sui-badge-font, inherit); border: var(--sui-badge-border-width, 0) solid var(--sui-badge-border, #4c5cf7); }"
+  },
+  { id: "alert", label: "Alert", group: "Feedback", kinds: ["alert"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-alert-bg", label: "Background", type: "color", def: "#3a2427" },
+        { key: "--sui-alert-fg", label: "Text", type: "color", def: "#fca5a5" },
+        { key: "--sui-alert-border", label: "Border", type: "color", def: "#7f3a3d" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-alert-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-alert-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-alert-padding", label: "Padding", type: "text", def: "12px 16px" },
+        { key: "--sui-alert-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 32, step: 1, unit: "px" },
+        { key: "--sui-alert-font", label: "Font", type: "font", def: "inherit" }
+      ]}
+    ],
+    css: ".sui-alert { background: var(--sui-alert-bg, #3a2427); color: var(--sui-alert-fg, #fca5a5); border: var(--sui-alert-border-width, 1px) solid var(--sui-alert-border, #7f3a3d); border-radius: var(--sui-alert-radius, 8px); padding: var(--sui-alert-padding, 12px 16px); font-size: var(--sui-alert-font-size, 14px); font-family: var(--sui-alert-font, inherit); }"
+  },
+  { id: "spinner", label: "Spinner", group: "Feedback", kinds: ["spinner"],
+    categories: [
+      { name: "Size", fields: [
+        { key: "--sui-spinner-size", label: "Size", type: "number", def: 24, min: 8, max: 120, step: 1, unit: "px" },
+        { key: "--sui-spinner-thickness", label: "Thickness", type: "number", def: 3, min: 1, max: 16, step: 1, unit: "px" }
+      ]},
+      { name: "Colors", fields: [
+        { key: "--sui-spinner-track", label: "Track", type: "color", def: "#4b5563" },
+        { key: "--sui-spinner-color", label: "Active", type: "color", def: "#4c5cf7" }
+      ]},
+      { name: "Animation", fields: [
+        { key: "--sui-spinner-speed", label: "Speed", type: "number", def: 0.8, min: 0.2, max: 4, step: 0.1, unit: "s" },
+        { key: "--sui-spinner-play", label: "Animate", type: "switch", def: "running", on: "running", off: "paused" }
+      ]}
+    ],
+    css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) solid var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-radius: 50%; animation: sui-spin var(--sui-spinner-speed, .8s) linear infinite; animation-play-state: var(--sui-spinner-play, running); }"
+  },
+  { id: "card", label: "Card", group: "Layout", kinds: ["card"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-card-bg", label: "Background", type: "color", def: "#1a1d26" },
+        { key: "--sui-card-border", label: "Border", type: "color", def: "#3d4556" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-card-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-card-radius", label: "Radius", type: "number", def: 12, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-card-padding", label: "Padding", type: "text", def: "16px" },
+        { key: "--sui-card-shadow", label: "Shadow", type: "select", def: "0 4px 12px rgba(0,0,0,.3)", opts: [["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Medium", "0 4px 12px rgba(0,0,0,.3)"], ["Strong", "0 12px 30px rgba(0,0,0,.42)"]] },
+        { key: "--sui-card-font", label: "Font", type: "font", def: "inherit" }
+      ]}
+    ],
+    css: ".sui-card { background: var(--sui-card-bg, #1a1d26); border: var(--sui-card-border-width, 1px) solid var(--sui-card-border, #3d4556); border-radius: var(--sui-card-radius, 12px); padding: var(--sui-card-padding, 16px); box-shadow: var(--sui-card-shadow, 0 4px 12px rgba(0,0,0,.3)); font-family: var(--sui-card-font, inherit); }"
+  },
+  { id: "divider", label: "Divider", group: "Layout", kinds: ["divider"],
+    categories: [
+      { name: "Shape", fields: [
+        { key: "--sui-divider-thickness", label: "Thickness", type: "number", def: 1, min: 1, max: 12, step: 1, unit: "px" },
+        { key: "--sui-divider-margin", label: "Margin", type: "text", def: "8px 0" },
+        { key: "--sui-divider-color", label: "Color", type: "color", def: "#3d4556" }
+      ]}
+    ],
+    css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) solid var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }"
+  },
+  { id: "form", label: "Input / Textarea / Select", group: "Form", kinds: ["input", "textarea", "select"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-field-bg", label: "Background", type: "color", def: "#1d2129" },
+        { key: "--sui-field-fg", label: "Text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-field-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-field-focus", label: "Focus border", type: "color", def: "#4c5cf7" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-field-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-field-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-field-padding", label: "Padding", type: "text", def: "8px 12px" }
+      ]},
+      { name: "Typography", fields: [
+        { key: "--sui-field-font", label: "Font", type: "font", def: "inherit" },
+        { key: "--sui-field-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 32, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-input, .sui-textarea, .sui-select { background: var(--sui-field-bg, #1d2129); color: var(--sui-field-fg, #e6e6ef); border: var(--sui-field-border-width, 1px) solid var(--sui-field-border, #3d4556); border-radius: var(--sui-field-radius, 8px); padding: var(--sui-field-padding, 8px 12px); font-family: var(--sui-field-font, inherit); font-size: var(--sui-field-font-size, 14px); }\n:where(.sui-input):focus, :where(.sui-textarea):focus, :where(.sui-select):focus { border-color: var(--sui-field-focus, #4c5cf7); }"
+  },
+  { id: "button", label: "Button", group: "Form", kinds: ["button"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-button-bg", label: "Background", type: "color", def: "#2d3340" },
+        { key: "--sui-button-fg", label: "Text", type: "color", def: "#e6e6e6" },
+        { key: "--sui-button-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-button-hover", label: "Hover", type: "color", def: "#3a4356" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-button-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-button-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-button-padding", label: "Padding", type: "text", def: "8px 16px" },
+        { key: "--sui-button-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 32, step: 1, unit: "px" },
+        { key: "--sui-button-font-weight", label: "Weight", type: "select", def: "400", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"]] },
+        { key: "--sui-button-font", label: "Font", type: "font", def: "inherit" }
+      ]}
+    ],
+    css: ".sui-button { background: var(--sui-button-bg, #2d3340); color: var(--sui-button-fg, #e6e6e6); border: var(--sui-button-border-width, 1px) solid var(--sui-button-border, #3d4556); border-radius: var(--sui-button-radius, 8px); padding: var(--sui-button-padding, 8px 16px); font-size: var(--sui-button-font-size, 14px); font-weight: var(--sui-button-font-weight, 400); font-family: var(--sui-button-font, inherit); }\n.sui-button:hover { background: var(--sui-button-hover, #3a4356); }"
+  },
+  { id: "check", label: "Checkbox / Radio", group: "Form", kinds: ["checkbox", "radio"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-check-bg", label: "Background", type: "color", def: "#1d2129" },
+        { key: "--sui-check-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-check-checked", label: "Checked", type: "color", def: "#4c5cf7" },
+        { key: "--sui-check-mark", label: "Mark", type: "color", def: "#ffffff" }
+      ]},
+      { name: "Size", fields: [
+        { key: "--sui-check-size", label: "Size", type: "number", def: 18, min: 10, max: 48, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-checkbox, .sui-radio { width: var(--sui-check-size, 18px); height: var(--sui-check-size, 18px); background: var(--sui-check-bg, #1d2129); border-color: var(--sui-check-border, #3d4556); }\n:where(.sui-checkbox):checked, :where(.sui-radio):checked { background: var(--sui-check-checked, #4c5cf7); border-color: var(--sui-check-checked, #4c5cf7); }\n.sui-checkbox:checked::after { border-color: var(--sui-check-mark, #fff); }\n.sui-radio:checked::after { background: var(--sui-check-mark, #fff); }"
+  },
+  { id: "switch", label: "Switch", group: "Form", kinds: ["switch"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-switch-bg", label: "Off", type: "color", def: "#374151" },
+        { key: "--sui-switch-checked", label: "On", type: "color", def: "#4c5cf7" },
+        { key: "--sui-switch-thumb", label: "Thumb", type: "color", def: "#ffffff" }
+      ]},
+      { name: "Size", fields: [
+        { key: "--sui-switch-width", label: "Width", type: "number", def: 42, min: 24, max: 96, step: 1, unit: "px" },
+        { key: "--sui-switch-height", label: "Height", type: "number", def: 24, min: 14, max: 56, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-switch { width: var(--sui-switch-width, 42px); height: var(--sui-switch-height, 24px); background: var(--sui-switch-bg, #374151); }\n.sui-switch::after { width: calc(var(--sui-switch-height, 24px) - 4px); height: calc(var(--sui-switch-height, 24px) - 4px); background: var(--sui-switch-thumb, #fff); }\n:where(.sui-switch):checked { background: var(--sui-switch-checked, #4c5cf7); }\n.sui-switch:checked::after { transform: translateX(calc(var(--sui-switch-width, 42px) - var(--sui-switch-height, 24px))); }"
+  },
+  { id: "slider", label: "Slider", group: "Form", kinds: ["slider"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-slider-bg", label: "Track", type: "color", def: "#374151" },
+        { key: "--sui-slider-thumb-bg", label: "Thumb", type: "color", def: "#4c5cf7" }
+      ]},
+      { name: "Size", fields: [
+        { key: "--sui-slider-track", label: "Track height", type: "number", def: 6, min: 2, max: 24, step: 1, unit: "px" },
+        { key: "--sui-slider-thumb", label: "Thumb size", type: "number", def: 18, min: 8, max: 48, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-slider { height: var(--sui-slider-track, 6px); background: var(--sui-slider-bg, #374151); }\n.sui-slider::-webkit-slider-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }\n.sui-slider::-moz-range-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }"
+  },
+  { id: "tabs", label: "Tabs", group: "Navigation", kinds: ["tabs"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-tabs-bg", label: "Panel", type: "color", def: "#1d2129" },
+        { key: "--sui-tablist-bg", label: "Tab bar", type: "color", def: "#1d2129" },
+        { key: "--sui-tab-fg", label: "Tab text", type: "color", def: "#9aa7b8" },
+        { key: "--sui-tab-active-bg", label: "Active tab", type: "color", def: "#14171c" },
+        { key: "--sui-tab-active-fg", label: "Active text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-tab-accent", label: "Accent", type: "color", def: "#4c5cf7" },
+        { key: "--sui-tabs-border", label: "Border", type: "color", def: "#3d4556" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-tabs-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-tab-padding", label: "Tab padding", type: "text", def: "8px 14px" },
+        { key: "--sui-tab-size", label: "Font size", type: "number", def: 13, min: 9, max: 28, step: 1, unit: "px" },
+        { key: "--sui-tab-transform", label: "Uppercase", type: "switch", def: "none", on: "uppercase", off: "none" }
+      ]}
+    ],
+    css: ".sui-tabs { background: var(--sui-tabs-bg, #1d2129); border-color: var(--sui-tabs-border, #3d4556); border-radius: var(--sui-tabs-radius, 8px); }\n.sui-tablist { background: var(--sui-tablist-bg, #1d2129); border-bottom-color: var(--sui-tabs-border, #3d4556); }\n.sui-tab { color: var(--sui-tab-fg, #9aa7b8); padding: var(--sui-tab-padding, 8px 14px); font-size: var(--sui-tab-size, 13px); text-transform: var(--sui-tab-transform, none); }\n.sui-tab.active { color: var(--sui-tab-active-fg, #e6e6ef); background: var(--sui-tab-active-bg, #14171c); box-shadow: inset 0 -2px 0 var(--sui-tab-accent, #4c5cf7); }"
+  },
+  { id: "accordion", label: "Accordion", group: "Navigation", kinds: ["accordion"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-accordion-bg", label: "Background", type: "color", def: "#1d2129" },
+        { key: "--sui-accordion-head-bg", label: "Header", type: "color", def: "#1d2129" },
+        { key: "--sui-accordion-fg", label: "Text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-accordion-border", label: "Border", type: "color", def: "#3d4556" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-accordion-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-accordion-padding", label: "Header padding", type: "text", def: "11px 14px" },
+        { key: "--sui-accordion-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-accordion { background: var(--sui-accordion-bg, #1d2129); border-color: var(--sui-accordion-border, #3d4556); border-radius: var(--sui-accordion-radius, 8px); }\n.sui-accordion-head { background: var(--sui-accordion-head-bg, transparent); color: var(--sui-accordion-fg, #e6e6ef); padding: var(--sui-accordion-padding, 11px 14px); font-size: var(--sui-accordion-size, 14px); }\n.sui-accordion-panel { color: var(--sui-accordion-fg, #e6e6ef); }"
+  }
+];
+var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation"];
+function componentDefForKind(kind) {
+  for (var i = 0; i < COMPONENT_DEFS.length; i++) {
+    if (COMPONENT_DEFS[i].kinds.indexOf(kind) >= 0) return COMPONENT_DEFS[i];
+  }
+  return null;
+}
+function componentDefById(id) {
+  for (var i = 0; i < COMPONENT_DEFS.length; i++) if (COMPONENT_DEFS[i].id === id) return COMPONENT_DEFS[i];
+  return null;
+}
+function componentVarsBlockRe() { return /\/\* sui-component-defaults \*\/[\s\S]*?\/\* \/sui-component-defaults \*\//; }
+function readComponentVars() {
+  var out = {};
+  var m = root.css.match(/\/\* sui-component-defaults \*\/\s*:root\s*\{([\s\S]*?)\}\s*\/\* \/sui-component-defaults \*\//);
+  if (!m) return out;
+  m[1].split(";").forEach(function(d){
+    var i = d.indexOf(":");
+    if (i < 0) return;
+    var k = d.slice(0, i).trim(), v = d.slice(i + 1).trim();
+    if (k && v) out[k] = v;
+  });
+  return out;
+}
+function writeComponentVars(vars) {
+  var keys = Object.keys(vars).sort();
+  var re = componentVarsBlockRe();
+  if (!keys.length) {
+    if (re.test(root.css)) root.css = root.css.replace(re, "").replace(/\n{3,}/g, "\n\n");
+    return;
+  }
+  var block = "/* sui-component-defaults */\n:root {\n" +
+    keys.map(function(k){ return "  " + k + ": " + vars[k] + ";"; }).join("\n") +
+    "\n}\n/* /sui-component-defaults */";
+  if (re.test(root.css)) root.css = root.css.replace(re, block);
+  else root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
+}
+function ensureComponentRules(def) {
+  if (!def) return;
+  var re = new RegExp("/\\* sui-component-rules:" + def.id + " \\*/[\\s\\S]*?/\\* /sui-component-rules:" + def.id + " \\*/");
+  if (re.test(root.css)) return;
+  var block = "/* sui-component-rules:" + def.id + " */\n" + def.css + "\n/* /sui-component-rules:" + def.id + " */";
+  root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
+}
+function componentFieldDefault(field) {
+  if (field.type === "switch") return field.on;
+  if (field.type === "number") return String(field.def) + (field.unit || "");
+  return String(field.def);
+}
+function componentFieldValue(def, field, node) {
+  if (node) {
+    var m = styleDeclMap(node.style || "");
+    if (m[field.key] !== undefined) return m[field.key];
+  }
+  var vars = readComponentVars();
+  if (vars[field.key] !== undefined) return vars[field.key];
+  return componentFieldDefault(field);
+}
+var __compSettings = null;
+function openComponentSettings(def, node) {
+  if (!def) return;
+  __compSettings = { def: def, node: node || null, tab: def.categories[0].name, values: {} };
+  def.categories.forEach(function(cat){
+    cat.fields.forEach(function(f){ __compSettings.values[f.key] = componentFieldValue(def, f, node); });
+  });
+  document.getElementById("compcfg-title").textContent = def.label;
+  document.getElementById("compcfg-scope").textContent = node
+    ? "This element only" + (node.text ? " · " + node.text : "") + ". Leave values here to override the project default."
+    : "Project default for every " + def.label + " in this project.";
+  document.getElementById("compcfg-clear").style.display = node ? "" : "none";
+  document.getElementById("compcfg").classList.add("on");
+  renderComponentSettings();
+}
+function closeComponentSettings() {
+  document.getElementById("compcfg").classList.remove("on");
+  __compSettings = null;
+}
+function resetComponentSettings() {
+  if (!__compSettings) return;
+  __compSettings.def.categories.forEach(function(cat){
+    cat.fields.forEach(function(f){
+      __compSettings.values[f.key] = __compSettings.node
+        ? componentFieldValue(__compSettings.def, f, null)
+        : componentFieldDefault(f);
+    });
+  });
+  renderComponentSettings();
+}
+function clearComponentOverrides() {
+  var s = __compSettings;
+  if (!s || !s.node) return;
+  snap("clear component overrides");
+  var map = styleDeclMap(s.node.style || "");
+  s.def.categories.forEach(function(cat){
+    cat.fields.forEach(function(f){ delete map[f.key]; });
+  });
+  s.node.style = styleDeclStr(map);
+  setOut(); autoPreview(); renderInspector(); closeComponentSettings();
+}
+function renderComponentSettings() {
+  var s = __compSettings;
+  if (!s) return;
+  var tabs = document.getElementById("compcfg-tabs");
+  var body = document.getElementById("compcfg-body");
+  tabs.textContent = "";
+  body.textContent = "";
+  if (s.def.categories.length > 1) {
+    tabs.style.display = "";
+    s.def.categories.forEach(function(cat){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "pref-tab" + (cat.name === s.tab ? " on" : "");
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", cat.name === s.tab ? "true" : "false");
+      b.textContent = cat.name;
+      b.onclick = function(){ s.tab = cat.name; renderComponentSettings(); };
+      tabs.appendChild(b);
+    });
+  } else {
+    tabs.style.display = "none";
+  }
+  var cat = s.def.categories.filter(function(c){ return c.name === s.tab; })[0] || s.def.categories[0];
+  var grid = document.createElement("div");
+  grid.className = "pref-grid";
+  cat.fields.forEach(function(f){ grid.appendChild(componentFieldRow(f)); });
+  body.appendChild(grid);
+}
+function componentFieldRow(field) {
+  var s = __compSettings;
+  var row = document.createElement("div");
+  row.className = "pf-field" + (field.type === "text" && field.label === "Padding" ? " wide" : "");
+  var lab = document.createElement("label");
+  lab.textContent = field.label;
+  row.appendChild(lab);
+  var value = s.values[field.key];
+  if (field.type === "number") {
+    var wrap = document.createElement("div");
+    wrap.className = "pf-num";
+    var num = parseFloat(value);
+    if (!isFinite(num)) num = field.def;
+    var range = document.createElement("input");
+    range.type = "range"; range.min = field.min; range.max = field.max; range.step = field.step || 1; range.value = num;
+    var box = document.createElement("input");
+    box.type = "number"; box.min = field.min; box.max = field.max; box.step = field.step || 1; box.value = num;
+    function sync(v) {
+      var n = parseFloat(v);
+      if (!isFinite(n)) return;
+      n = Math.max(field.min, Math.min(field.max, n));
+      s.values[field.key] = n + (field.unit || "");
+      range.value = n; box.value = n;
+    }
+    range.oninput = function(){ sync(range.value); };
+    box.oninput = function(){ sync(box.value); };
+    wrap.appendChild(range); wrap.appendChild(box);
+    row.appendChild(wrap);
+  } else if (field.type === "switch") {
+    row.appendChild(mkSwitch(value === field.on, false, function(on){
+      s.values[field.key] = on ? field.on : field.off;
+    }));
+  } else if (field.type === "color") {
+    row.appendChild(makeColorField(value, function(v){ s.values[field.key] = v; }));
+  } else if (field.type === "font") {
+    var fsel = document.createElement("select");
+    var list = ["inherit"].concat(BUILTIN_FONTS, uploadedFonts);
+    list.forEach(function(f){
+      var o = document.createElement("option"); o.value = f; o.textContent = f === "inherit" ? "Inherit" : f;
+      if (f === value) o.selected = true;
+      fsel.appendChild(o);
+    });
+    fsel.onchange = function(){ s.values[field.key] = fsel.value; };
+    row.appendChild(fsel);
+  } else if (field.type === "select") {
+    var sel = document.createElement("select");
+    var found = false;
+    (field.opts || []).forEach(function(o){
+      var e = document.createElement("option"); e.value = o[1]; e.textContent = o[0];
+      if (o[1] === value) { e.selected = true; found = true; }
+      sel.appendChild(e);
+    });
+    if (!found && value) { var e2 = document.createElement("option"); e2.value = value; e2.textContent = value; e2.selected = true; sel.appendChild(e2); }
+    sel.onchange = function(){ s.values[field.key] = sel.value; };
+    row.appendChild(sel);
+  } else {
+    var inp = document.createElement("input");
+    inp.type = "text"; inp.value = value; inp.spellcheck = false;
+    inp.oninput = function(){ s.values[field.key] = inp.value; };
+    row.appendChild(inp);
+  }
+  return row;
+}
+function applyComponentSettings() {
+  var s = __compSettings;
+  if (!s) return;
+  var values = s.values;
+  if (s.node) {
+    snap("component settings " + s.def.label);
+    var map = styleDeclMap(s.node.style || "");
+    Object.keys(values).forEach(function(k){ map[k] = values[k]; });
+    s.node.style = styleDeclStr(map);
+    ensureComponentRules(s.def);
+    setOut(); autoPreview(); renderInspector();
+  } else {
+    snap("project " + s.def.label + " defaults");
+    var vars = readComponentVars();
+    Object.keys(values).forEach(function(k){ vars[k] = values[k]; });
+    writeComponentVars(vars);
+    ensureComponentRules(s.def);
+    setOut(); autoPreview(); scheduleCssSync();
+  }
+  closeComponentSettings();
+}
+function openProjectPreferences() {
+  renderProjectPreferences();
+  document.getElementById("projprefs").classList.add("on");
+}
+function closeProjectPreferences() {
+  document.getElementById("projprefs").classList.remove("on");
+}
+function renderProjectPreferences() {
+  var box = document.getElementById("projprefs-list");
+  if (!box) return;
+  box.textContent = "";
+  var grid = document.createElement("div");
+  grid.className = "pp-groups";
+  COMPONENT_GROUPS.forEach(function(group){
+    var defs = COMPONENT_DEFS.filter(function(d){ return d.group === group; });
+    if (!defs.length) return;
+    var sec = document.createElement("div");
+    sec.className = "pp-group";
+    var h = document.createElement("h3"); h.textContent = group; sec.appendChild(h);
+    defs.forEach(function(def){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "pp-item";
+      var l = document.createElement("span"); l.textContent = def.label;
+      var k = document.createElement("span"); k.className = "pp-kind"; k.textContent = def.kinds.join(" / ");
+      b.appendChild(l); b.appendChild(k);
+      b.onclick = function(){ openComponentSettings(def, null); };
+      sec.appendChild(b);
+    });
+    grid.appendChild(sec);
+  });
+  var general = document.createElement("div");
+  general.className = "pp-group";
+  var gh = document.createElement("h3"); gh.textContent = "General"; general.appendChild(gh);
+  var tb = document.createElement("button");
+  tb.type = "button"; tb.className = "pp-item";
+  var tl = document.createElement("span"); tl.textContent = "Tooltips";
+  var tk = document.createElement("span"); tk.className = "pp-kind"; tk.textContent = "global";
+  tb.appendChild(tl); tb.appendChild(tk);
+  tb.onclick = function(){ openTooltipCfg(); };
+  general.appendChild(tb);
+  grid.appendChild(general);
+  var note = document.createElement("div");
+  note.className = "pp-note";
+  note.textContent = "Component defaults apply to every instance. Element settings override them for one element. Chart, graph, table, tree, toast, combobox and date picker keep their specialised inspectors.";
+  grid.appendChild(note);
+  box.appendChild(grid);
+}
+document.addEventListener("keydown", function(ev) {
+  if (ev.key !== "Escape") return;
+  var tt = document.getElementById("ttcfg");
+  if (tt && tt.classList.contains("on")) { ev.preventDefault(); closeTooltipCfg(); return; }
+  var cc = document.getElementById("compcfg");
+  if (cc && cc.classList.contains("on")) { ev.preventDefault(); closeComponentSettings(); return; }
+  var pp = document.getElementById("projprefs");
+  if (pp && pp.classList.contains("on")) { ev.preventDefault(); closeProjectPreferences(); }
+});
 function tooltipCssValue(name, fallback) {
   var re = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*([^;]+);");
   var m = String(root.css || "").match(re);

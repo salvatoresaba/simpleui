@@ -2073,6 +2073,7 @@ var newControlClass = map[string]string{
 	"textarea":      "sui-textarea",
 	"select":        "sui-select",
 	"input":         "sui-input",
+	"button":        "sui-button",
 	"progress":      "sui-progress",
 	"badge":         "sui-badge",
 	"alert":         "sui-alert",

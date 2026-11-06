@@ -332,6 +332,42 @@ fields saves the current value as a token and replaces the field with
 `var(--name)` in one undoable step. Use tokens for values shared across the
 interface, and plain values for one-off declarations.
 
+## Project component defaults
+
+Open **Preferences → Project preferences.** to set defaults for every instance
+of a component in the project. The list is grouped into **Feedback**, **Layout**,
+**Form**, **Navigation** and **General**.
+
+Each component opens the same configuration panel used by its element settings.
+The panel follows the editor preferences layout:
+
+- categories in tabs when there are several groups;
+- two-column label/control layout;
+- sliders with a numeric box for numeric values;
+- switches for on/off options;
+- combo boxes for fonts and choices;
+- a close icon in the header and Reset/Cancel/Apply actions.
+
+Project values are stored as CSS custom properties in a managed
+`/* sui-component-defaults */` block and consumed by a per-component rule block.
+Applying a component from project preferences writes both blocks and refreshes
+the preview. **Tooltips** in the same panel opens the existing global tooltip
+settings; closing it returns to the project list.
+
+### Element overrides
+
+Select an element and press **Settings...** in the inspector banner. The same
+panel opens with a **This element only** scope. Values are written as inline CSS
+custom properties on that element, so every other instance keeps the project
+defaults. **Clear overrides** removes those inline values and restores the
+project defaults for that element. Closing the panel returns to the inspector.
+
+Implemented component panels: **Progress bar**, **Badge**, **Alert**, **Spinner**,
+**Card**, **Divider**, **Button**, **Input / Textarea / Select**,
+**Checkbox / Radio**, **Switch**, **Slider**, **Tabs** and **Accordion**. Chart, Graph, Table, Tree,
+Toast, Combobox, Date/Time picker and media keep their specialised inspectors
+for now.
+
 ## Inspector and effective styles
 
 All inspector sections start collapsed. Open a section by clicking its header;

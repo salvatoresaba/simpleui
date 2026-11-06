@@ -344,6 +344,45 @@ lunghezza salva il valore corrente come token e sostituisce il campo con
 `var(--name)` in un unico passo annullabile. Usare i token per valori condivisi
 nell'interfaccia e valori espliciti per le dichiarazioni una tantum.
 
+## Default dei componenti di progetto
+
+Aprire **Preferences → Project preferences.** per impostare i default di ogni
+istanza di un componente nel progetto. La lista è raggruppata in **Feedback**,
+**Layout**, **Form**, **Navigation** e **General**.
+
+Ogni componente apre lo stesso pannello di configurazione usato dalle
+impostazioni dell'elemento. Il pannello segue il layout delle preferenze
+dell'editor:
+
+- categorie in tab quando ci sono più gruppi;
+- layout a due colonne etichetta/controllo;
+- slider con campo numerico per i valori numerici;
+- switch per le opzioni on/off;
+- combo box per font e scelte;
+- icona di chiusura nell'intestazione e azioni Reset/Cancel/Apply.
+
+I valori di progetto sono salvati come custom properties CSS in un blocco
+gestito `/* sui-component-defaults */` e consumati da un blocco di regole per
+componente. Applicando un componente dalle preferenze di progetto vengono
+scritti entrambi i blocchi e la preview viene aggiornata. **Tooltips** nello
+stesso pannello apre le impostazioni globali dei tooltip; chiudendole si torna
+alla lista di progetto.
+
+### Override dell'elemento
+
+Selezionare un elemento e premere **Settings...** nel banner dell'inspector. Si
+apre lo stesso pannello con ambito **This element only**. I valori vengono
+scritti come custom properties inline su quell'elemento, quindi tutte le altre
+istanze mantengono i default di progetto. **Clear overrides** rimuove i valori
+inline e ripristina i default di progetto per quell'elemento. Chiudendo il
+pannello si torna all'inspector.
+
+Pannelli componente implementati: **Progress bar**, **Badge**, **Alert**,
+**Spinner**, **Card**, **Divider**, **Button**, **Input / Textarea / Select**,
+**Checkbox / Radio**, **Switch**, **Slider**, **Tabs** e **Accordion**. Chart,
+Graph, Table, Tree, Toast, Combobox, Date/Time picker e media mantengono per ora
+i loro inspector specializzati.
+
 ## Inspector e stili effettivi
 
 Tutte le sezioni dell'inspector partono chiuse. Aprire una sezione cliccando

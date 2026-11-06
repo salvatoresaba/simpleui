@@ -2810,6 +2810,10 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 	case "spinner":
 		sb.WriteString(" class=\"sui-spinner\"")
 		staticClassSuffix(sb, e)
+	case "button":
+		sb.WriteString(" class=\"sui-button\"")
+		staticClassSuffix(sb, e)
+		staticUserAttrsNoClass(sb, e, dlId)
 	case "progress":
 		sb.WriteString(" class=\"sui-progress\"")
 		staticClassSuffix(sb, e)

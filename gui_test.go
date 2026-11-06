@@ -189,6 +189,30 @@ func TestGuiDesignTokens(t *testing.T) {
 	}
 }
 
+func TestGuiComponentDefaults(t *testing.T) {
+	for _, want := range []string{
+		`id="projprefs"`,
+		`id="compcfg"`,
+		`id="compcfg-tabs"`,
+		`id="compcfg-body"`,
+		`id="compcfg-clear"`,
+		`function openProjectPreferences`,
+		`function openComponentSettings`,
+		`function applyComponentSettings`,
+		`function clearComponentOverrides`,
+		`function componentDefForKind`,
+		`COMPONENT_DEFS`,
+		`readComponentVars`,
+		`writeComponentVars`,
+		`ensureComponentRules`,
+		`Settings...`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("component defaults support missing %q", want)
+		}
+	}
+}
+
 func TestGuiHistorySettingsParsing(t *testing.T) {
 	auto, interval, keep := parseGuiHistorySettings(`{}`)
 	if !auto || interval != time.Minute || keep != guiVersionKeep {
