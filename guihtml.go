@@ -471,6 +471,15 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #edtip.on { opacity:1; }
 
 /* tooltip global settings modal */
+#insertdlg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:13; }
+#insertdlg.on { display:flex; }
+#insertbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:620px; max-width:94vw; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#insert-search { width:100%; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; padding:7px 9px; font-size:13px; }
+#insert-list { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:5px; }
+.insert-item { display:flex; align-items:center; gap:8px; padding:7px 9px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--fg); font:inherit; font-size:12.5px; text-align:left; cursor:pointer; }
+.insert-item:hover { background:var(--btn-hover); border-color:var(--border2); }
+.insert-item .insert-kind { margin-left:auto; font-size:10px; color:var(--muted); font-family:ui-monospace, Consolas, monospace; }
+@media (max-width: 720px) { #insert-list { grid-template-columns:1fr; } }
 #projprefs { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
 #projprefs.on { display:flex; }
 #projprefsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:780px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -485,6 +494,9 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #compcfg.on { display:flex; }
 #compcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:700px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #compcfg .pref-body { max-height:62vh; }
+#compcfg-preview-wrap { padding:0 20px 8px; }
+#compcfg-preview { min-height:94px; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--bg); overflow:auto; }
+#compcfg-preview > * { max-width:100%; }
 #compcfg .pf-field { grid-template-columns:minmax(88px, 126px) minmax(0, 1fr); }
 #compcfg .pf-field > label { font-size:12px; }
 #compcfg .pf-field input[type=text], #compcfg .pf-field input[type=number] { font-size:12.5px; padding:5px 7px; }
@@ -806,6 +818,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   <span class="bar-grip" draggable="true" data-bar="toolbar" title="Drag to move">&#10495;</span>
   <button class="tbtn" id="tb-undo" title="Undo" onclick="undo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
   <button class="tbtn" id="tb-redo" title="Redo" onclick="redo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg></button>
+<button class="tbtn" id="tb-insert" title="Insert component..." onclick="openInsertDialog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
   <span class="tbtnsep"></span>
   <button class="tbtn" id="tb-dup" title="Duplicate" onclick="duplicateSelected()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
   <span class="tbtnsep"></span>
@@ -1200,6 +1213,17 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <div id="cmd-list" role="listbox"></div>
   </div>
 </div><div id="edtip" role="tooltip" aria-hidden="true"></div>
+<div id="insertdlg" role="dialog" aria-modal="true" aria-labelledby="insert-title">
+  <div id="insertbox">
+    <div class="pref-head">
+      <h2 id="insert-title">Insert component</h2>
+      <button class="btn" type="button" onclick="closeInsertDialog()" aria-label="Close insert component" title="Close">&#10005;</button>
+    </div>
+    <div style="padding:0 18px 8px"><input id="insert-search" placeholder="Search components..." oninput="renderInsertList()" autocomplete="off" spellcheck="false"></div>
+    <div class="pref-body"><div id="insert-list"></div></div>
+    <div class="pfbtns"><button class="btn" type="button" onclick="closeInsertDialog()">Close</button></div>
+  </div>
+</div>
 <div id="projprefs" role="dialog" aria-modal="true" aria-labelledby="projprefs-title">
   <div id="projprefsbox">
     <div class="pref-head">
@@ -1218,6 +1242,8 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       <button class="btn" type="button" onclick="closeComponentSettings()" aria-label="Close component settings" title="Close">&#10005;</button>
     </div>
     <div class="hint" id="compcfg-scope" style="padding:0 20px 6px"></div>
+    <div id="compcfg-preview-wrap"><div id="compcfg-preview"></div></div>
+    <style id="compcfg-preview-style"></style>
     <div class="pref-tabs" id="compcfg-tabs" role="tablist"></div>
     <div class="pref-body" id="compcfg-body"></div>
     <div class="pfbtns">
@@ -11895,6 +11921,78 @@ function resetChartSettings() {
 // Each definition maps a component kind to CSS variables consumed by a small
 // rule block. Project values live in a managed :root block; element values are
 // inline custom properties on that element only.
+var COMPONENT_PREVIEW_BASE = ".sui-checkbox-wrap,.sui-radio-wrap,.sui-switch-wrap{display:flex;align-items:center;gap:8px}" +
+  ".sui-checkbox,.sui-radio,.sui-switch{appearance:none;-webkit-appearance:none;position:relative;flex:none}" +
+  ".sui-checkbox{border-radius:4px}.sui-radio{border-radius:50%}" +
+  ".sui-checkbox:checked::after{content:'';position:absolute;left:5px;top:2px;width:5px;height:9px;border:solid var(--sui-check-mark,#fff);border-width:0 2px 2px 0;transform:rotate(45deg)}" +
+  ".sui-radio:checked::after{content:'';position:absolute;left:5px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--sui-check-mark,#fff)}" +
+  ".sui-switch{border-radius:999px;transition:background .2s}" +
+  ".sui-switch::after{content:'';position:absolute;left:2px;top:2px;border-radius:50%;background:var(--sui-switch-thumb,#fff)}" +
+  ".sui-switch:checked::after{transform:translateX(calc(var(--sui-switch-width,42px) - var(--sui-switch-height,24px)))}" +
+  ".sui-slider{appearance:none;-webkit-appearance:none;display:block;outline:none;border-radius:999px}" +
+  ".sui-slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;border-radius:50%;box-shadow:none}" +
+  ".sui-slider::-moz-range-thumb{border:none;border-radius:50%}" +
+  ".sui-tabs{border:1px solid var(--sui-tabs-border,#3d4556);border-radius:var(--sui-tabs-radius,8px);overflow:hidden}" +
+  ".sui-tablist{display:flex;gap:2px;padding:4px 4px 0;border-bottom:1px solid var(--sui-tabs-border,#3d4556)}" +
+  ".sui-tab{border:0;background:transparent;font:inherit;cursor:pointer;border-radius:6px 6px 0 0}" +
+  ".sui-tab.active{box-shadow:inset 0 -2px 0 var(--sui-tab-accent,#4c5cf7)}" +
+  ".sui-tabpanels{padding:12px}.sui-tabpanel{font-size:12px}" +
+  ".sui-accordion{border:1px solid var(--sui-accordion-border,#3d4556);border-radius:var(--sui-accordion-radius,8px);overflow:hidden}" +
+  ".sui-accordion-head{display:flex;justify-content:space-between;width:100%;border:0;font:inherit;font-weight:600;cursor:pointer;text-align:left}" +
+  ".sui-accordion-head::after{content:'\\25BE';color:var(--sui-accordion-fg,#e6e6ef)}" +
+  ".sui-accordion-panel{padding:0 14px 12px}" +
+  ".sui-tree-group{list-style:none;margin:0}.sui-tree-row{display:flex;align-items:center;gap:4px}" +
+  ".sui-combobox-input,.sui-datepicker-input{width:100%;box-sizing:border-box}" +
+  ".sui-toast-host{display:flex;flex-direction:column;gap:8px}" +
+  ".sui-toast{box-sizing:border-box}" +
+  ".sui-combobox{display:flex;flex-direction:column;gap:4px;min-width:220px}" +
+  ".sui-combobox-control{position:relative;display:flex;align-items:center}" +
+  ".sui-combobox-popup{display:block;position:static;margin-top:4px;padding:4px;border:1px solid var(--sui-combobox-border,#3d4556);border-radius:var(--sui-combobox-radius,8px);background:var(--sui-combobox-popup-bg,#1d2129)}" +
+  ".sui-combobox-option{padding:6px 8px;border-radius:5px}" +
+  ".sui-datepicker{display:flex;flex-direction:column;gap:4px;min-width:220px}" +
+  ".sui-datepicker-control{position:relative;display:flex;align-items:center}" +
+  ".sui-modal-panel{position:relative;width:280px;max-width:100%}" +
+  ".sui-modal-title,.sui-modal-body,.sui-modal-actions{box-sizing:border-box}" +
+  ".sui-menu{position:relative;display:inline-block}" +
+  ".sui-menu-popup{display:block;position:static;margin-top:4px;padding:4px;min-width:190px}" +
+  ".sui-menuitem{display:block;width:100%;border:0;font:inherit;text-align:left;cursor:pointer}" +
+  "table.suitbl{border-collapse:collapse;width:100%}" +
+  "table.suitbl th,table.suitbl td{border:1px solid var(--sui-table-border,#2c3444)}";
+function componentPreviewHTML(def) {
+  switch (def.id) {
+    case "progress": return '<progress class="sui-progress" value="62" max="100" style="width:min(280px,100%)"></progress>';
+    case "badge": return '<span class="sui-badge">Badge preview</span>';
+    case "alert": return '<div class="sui-alert" style="width:100%">This is an alert preview.</div>';
+    case "spinner": return '<div class="sui-spinner"></div>';
+    case "card": return '<div class="sui-card" style="width:240px"><div style="font-weight:600">Card title</div><div style="font-size:12px;opacity:.7;margin-top:4px">Card content preview</div></div>';
+    case "divider": return '<hr class="sui-divider" style="width:100%">';
+    case "button": return '<button type="button" class="sui-button">Button</button>';
+    case "form": return '<input class="sui-input" placeholder="Input preview" style="width:240px">';
+    case "check": return '<label class="sui-checkbox-wrap"><input type="checkbox" class="sui-checkbox" checked><span>Checked</span></label><label class="sui-radio-wrap"><input type="radio" class="sui-radio" checked><span>Radio</span></label>';
+    case "switch": return '<label class="sui-switch-wrap"><input type="checkbox" class="sui-switch" checked><span>Enabled</span></label>';
+    case "slider": return '<input type="range" class="sui-slider" value="62" style="width:240px">';
+    case "tabs": return '<div class="sui-tabs" style="width:300px"><div class="sui-tablist"><button type="button" class="sui-tab active">One</button><button type="button" class="sui-tab">Two</button></div><div class="sui-tabpanels"><div class="sui-tabpanel">Tab content preview</div></div></div>';
+    case "accordion": return '<div class="sui-accordion" style="width:300px"><div class="sui-accordion-item open"><button type="button" class="sui-accordion-head">Section one</button><div class="sui-accordion-panel">Accordion content preview</div></div><div class="sui-accordion-item"><button type="button" class="sui-accordion-head">Section two</button></div></div>';
+    case "tree": return '<div class="sui-tree" style="width:240px"><div class="sui-tree-title">Project</div><ul class="sui-tree-group"><li class="sui-tree-item selected"><div class="sui-tree-row"><span class="sui-tree-toggle">▾</span><span class="sui-tree-label">src</span></div><ul class="sui-tree-group"><li class="sui-tree-item"><div class="sui-tree-row"><span class="sui-tree-spacer"></span><span class="sui-tree-label">app.sui</span></div></li></ul></li><li class="sui-tree-item"><div class="sui-tree-row"><span class="sui-tree-toggle">▸</span><span class="sui-tree-label">docs</span></div></li></ul></div>';
+    case "toast": return '<div class="sui-toast" style="width:min(320px,100%)">Saved successfully.</div>';
+    case "combobox": return '<div class="sui-combobox"><span class="sui-combobox-label">Choose</span><div class="sui-combobox-control"><input class="sui-combobox-input" value="Option A" readonly></div><div class="sui-combobox-popup"><div class="sui-combobox-option">Option A</div><div class="sui-combobox-option">Option B</div></div></div>';
+    case "datepicker": return '<div class="sui-datepicker"><span class="sui-datepicker-label">Date</span><div class="sui-datepicker-control"><input class="sui-datepicker-input" value="2026-11-06" readonly></div></div>';
+    case "modal": return '<div class="sui-modal-panel"><div class="sui-modal-title">Modal title</div><div class="sui-modal-body">Modal content preview.</div><div class="sui-modal-actions"><button type="button" class="sui-modal-button primary">OK</button></div></div>';
+    case "menu": return '<div class="sui-menu open"><button type="button" class="sui-menu-button">File</button><div class="sui-menu-popup"><button type="button" class="sui-menuitem">Open</button><button type="button" class="sui-menuitem">Save</button></div></div>';
+    case "table": return '<table class="suitbl" style="width:100%"><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody><tr><td>Alpha</td><td>12</td></tr><tr><td>Beta</td><td>18</td></tr></tbody></table>';
+    default: return '<span style="font-size:12px;color:var(--muted)">Preview not available.</span>';
+  }
+}
+function updateComponentPreview() {
+  var s = __compSettings;
+  var pv = document.getElementById("compcfg-preview");
+  var st = document.getElementById("compcfg-preview-style");
+  if (!s || !pv) return;
+  if (st) st.textContent = COMPONENT_PREVIEW_BASE + "\n" + s.def.css;
+  pv.removeAttribute("style");
+  Object.keys(s.values).forEach(function(k){ pv.style.setProperty(k, s.values[k]); });
+  pv.innerHTML = componentPreviewHTML(s.def);
+}
 var COMPONENT_DEFS = [
   { id: "progress", label: "Progress bar", group: "Feedback", kinds: ["progress"],
     categories: [
@@ -12111,9 +12209,136 @@ var COMPONENT_DEFS = [
       ]}
     ],
     css: ".sui-accordion { background: var(--sui-accordion-bg, #1d2129); border-color: var(--sui-accordion-border, #3d4556); border-radius: var(--sui-accordion-radius, 8px); }\n.sui-accordion-head { background: var(--sui-accordion-head-bg, transparent); color: var(--sui-accordion-fg, #e6e6ef); padding: var(--sui-accordion-padding, 11px 14px); font-size: var(--sui-accordion-size, 14px); }\n.sui-accordion-panel { color: var(--sui-accordion-fg, #e6e6ef); }"
+  },
+  { id: "combobox", label: "Combobox", group: "Form", kinds: ["combobox"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-combobox-bg", label: "Input background", type: "color", def: "#1d2129" },
+        { key: "--sui-combobox-fg", label: "Input text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-combobox-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-combobox-label", label: "Label", type: "color", def: "#8fa0b8" },
+        { key: "--sui-combobox-popup-bg", label: "Popup", type: "color", def: "#1d2129" },
+        { key: "--sui-combobox-hover", label: "Option hover", type: "color", def: "#2a3143" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-combobox-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
+        { key: "--sui-combobox-padding", label: "Padding", type: "text", def: "8px 12px" },
+        { key: "--sui-combobox-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-combobox-label { color: var(--sui-combobox-label, #8fa0b8); font-size: var(--sui-combobox-font-size, 12px); }\n.sui-combobox-input { background: var(--sui-combobox-bg, #1d2129); color: var(--sui-combobox-fg, #e6e6ef); border: 1px solid var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); padding: var(--sui-combobox-padding, 8px 12px); font-size: var(--sui-combobox-font-size, 14px); }\n.sui-combobox-popup { background: var(--sui-combobox-popup-bg, #1d2129); border-color: var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); }\n.sui-combobox-option:hover, .sui-combobox-option.active { background: var(--sui-combobox-hover, #2a3143); }"
+  },
+  { id: "datepicker", label: "Date / Time picker", group: "Form", kinds: ["datepicker"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-datepicker-bg", label: "Input background", type: "color", def: "#1d2129" },
+        { key: "--sui-datepicker-fg", label: "Input text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-datepicker-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-datepicker-label", label: "Label", type: "color", def: "#8fa0b8" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-datepicker-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
+        { key: "--sui-datepicker-padding", label: "Padding", type: "text", def: "8px 12px" },
+        { key: "--sui-datepicker-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-datepicker-label { color: var(--sui-datepicker-label, #8fa0b8); font-size: var(--sui-datepicker-font-size, 12px); }\n.sui-datepicker-input { background: var(--sui-datepicker-bg, #1d2129); color: var(--sui-datepicker-fg, #e6e6ef); border: 1px solid var(--sui-datepicker-border, #3d4556); border-radius: var(--sui-datepicker-radius, 8px); padding: var(--sui-datepicker-padding, 8px 12px); font-size: var(--sui-datepicker-font-size, 14px); }"
+  },
+  { id: "tree", label: "Tree", group: "Data", kinds: ["tree", "treeitem"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-tree-fg", label: "Text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-tree-title", label: "Title", type: "color", def: "#e6e6ef" },
+        { key: "--sui-tree-row-bg", label: "Row", type: "color", def: "#1d2129" },
+        { key: "--sui-tree-hover", label: "Hover", type: "color", def: "#2a3143" },
+        { key: "--sui-tree-selected-bg", label: "Selected", type: "color", def: "#2a3560" },
+        { key: "--sui-tree-selected-fg", label: "Selected text", type: "color", def: "#ffffff" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-tree-indent", label: "Indent", type: "number", def: 16, min: 4, max: 48, step: 1, unit: "px" },
+        { key: "--sui-tree-padding", label: "Row padding", type: "text", def: "2px 5px" },
+        { key: "--sui-tree-row-height", label: "Row height", type: "number", def: 28, min: 18, max: 64, step: 1, unit: "px" },
+        { key: "--sui-tree-radius", label: "Radius", type: "number", def: 5, min: 0, max: 30, step: 1, unit: "px" },
+        { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-tree { color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); }\n.sui-tree-title { color: var(--sui-tree-title, #e6e6ef); }\n.sui-tree-group { padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); }"
+  },
+  { id: "table", label: "Table", group: "Data", kinds: ["table"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-table-bg", label: "Table", type: "color", def: "#1d2129" },
+        { key: "--sui-table-head-bg", label: "Header", type: "color", def: "#202732" },
+        { key: "--sui-table-head-fg", label: "Header text", type: "color", def: "#f2f4f6" },
+        { key: "--sui-table-row-bg", label: "Row", type: "color", def: "#1d2129" },
+        { key: "--sui-table-hover", label: "Hover row", type: "color", def: "#20252e" },
+        { key: "--sui-table-border", label: "Border", type: "color", def: "#2c3444" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-table-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 6, step: 1, unit: "px" },
+        { key: "--sui-table-radius", label: "Radius", type: "number", def: 0, min: 0, max: 40, step: 1, unit: "px" },
+        { key: "--sui-table-padding", label: "Cell padding", type: "text", def: "10px 14px" },
+        { key: "--sui-table-font", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+      ]}
+    ],
+    css: "table.suitbl { background: var(--sui-table-bg, #1d2129); border: var(--sui-table-border-width, 1px) solid var(--sui-table-border, #2c3444); border-radius: var(--sui-table-radius, 0); font-size: var(--sui-table-font, 14px); }\ntable.suitbl th, table.suitbl td { padding: var(--sui-table-padding, 10px 14px); border-color: var(--sui-table-border, #2c3444); }\ntable.suitbl thead th { background: var(--sui-table-head-bg, #202732); color: var(--sui-table-head-fg, #f2f4f6); }\ntable.suitbl tbody td { background: var(--sui-table-row-bg, #1d2129); }\ntable.suitbl tbody tr:hover td { background: var(--sui-table-hover, #20252e); }"
+  },
+  { id: "toast", label: "Toast", group: "Overlay", kinds: ["toast"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-toast-bg", label: "Background", type: "color", def: "#1d2129" },
+        { key: "--sui-toast-fg", label: "Text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-toast-accent", label: "Accent", type: "color", def: "#6b8afd" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-toast-width", label: "Width", type: "number", def: 360, min: 200, max: 720, step: 10, unit: "px" },
+        { key: "--sui-toast-border-width", label: "Accent width", type: "number", def: 4, min: 0, max: 12, step: 1, unit: "px" },
+        { key: "--sui-toast-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
+        { key: "--sui-toast-padding", label: "Padding", type: "text", def: "12px 14px" },
+        { key: "--sui-toast-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-toast { width: var(--sui-toast-width, 360px); background: var(--sui-toast-bg, #1d2129); color: var(--sui-toast-fg, #e6e6ef); border-left: var(--sui-toast-border-width, 4px) solid var(--sui-toast-accent, #6b8afd); border-radius: var(--sui-toast-radius, 8px); padding: var(--sui-toast-padding, 12px 14px); font-size: var(--sui-toast-font-size, 14px); }"
+  },
+  { id: "modal", label: "Modal", group: "Overlay", kinds: ["modal"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-modal-bg", label: "Panel", type: "color", def: "#1d2129" },
+        { key: "--sui-modal-fg", label: "Text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-modal-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-modal-button-bg", label: "Button", type: "color", def: "#252b36" },
+        { key: "--sui-modal-button-fg", label: "Button text", type: "color", def: "#e6e6ef" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-modal-width", label: "Width", type: "number", def: 520, min: 280, max: 900, step: 10, unit: "px" },
+        { key: "--sui-modal-radius", label: "Radius", type: "number", def: 10, min: 0, max: 40, step: 1, unit: "px" },
+        { key: "--sui-modal-title-size", label: "Title size", type: "number", def: 17, min: 10, max: 36, step: 1, unit: "px" },
+        { key: "--sui-modal-padding", label: "Body padding", type: "text", def: "14px 18px" },
+        { key: "--sui-modal-button-radius", label: "Button radius", type: "number", def: 6, min: 0, max: 30, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-modal-panel { background: var(--sui-modal-bg, #1d2129); color: var(--sui-modal-fg, #e6e6ef); border: 1px solid var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-radius, 10px); width: min(var(--sui-modal-width, 520px), 100%); }\n.sui-modal-title { color: var(--sui-modal-fg, #e6e6ef); font-size: var(--sui-modal-title-size, 17px); }\n.sui-modal-body { padding: var(--sui-modal-padding, 14px 18px); }\n.sui-modal-button { background: var(--sui-modal-button-bg, #252b36); color: var(--sui-modal-button-fg, #e6e6ef); border-color: var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-button-radius, 6px); }"
+  },
+  { id: "menu", label: "Menu", group: "Navigation", kinds: ["menubar", "menu"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-menu-button-bg", label: "Button", type: "color", def: "#1d2129" },
+        { key: "--sui-menu-fg", label: "Text", type: "color", def: "#e6e6ef" },
+        { key: "--sui-menu-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-menu-popup-bg", label: "Popup", type: "color", def: "#1d2129" },
+        { key: "--sui-menu-hover", label: "Hover", type: "color", def: "#2a3143" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-menu-radius", label: "Radius", type: "number", def: 6, min: 0, max: 30, step: 1, unit: "px" },
+        { key: "--sui-menu-padding", label: "Button padding", type: "text", def: "7px 12px" },
+        { key: "--sui-menu-item-padding", label: "Item padding", type: "text", def: "8px 12px" },
+        { key: "--sui-menu-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" }
+      ]}
+    ],
+    css: ".sui-menu-button { background: var(--sui-menu-button-bg, transparent); color: var(--sui-menu-fg, #e6e6ef); border-radius: var(--sui-menu-radius, 6px); padding: var(--sui-menu-padding, 7px 12px); font-size: var(--sui-menu-font-size, 14px); }\n.sui-menu-popup { background: var(--sui-menu-popup-bg, #1d2129); border-color: var(--sui-menu-border, #3d4556); border-radius: var(--sui-menu-radius, 8px); }\n.sui-menuitem { color: var(--sui-menu-fg, #e6e6ef); padding: var(--sui-menu-item-padding, 8px 12px); }\n.sui-menuitem:hover, .sui-menuitem:focus { background: var(--sui-menu-hover, #2a3143); }"
   }
 ];
-var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation"];
+var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation", "Data", "Overlay"];
 function componentDefForKind(kind) {
   for (var i = 0; i < COMPONENT_DEFS.length; i++) {
     if (COMPONENT_DEFS[i].kinds.indexOf(kind) >= 0) return COMPONENT_DEFS[i];
@@ -12238,6 +12463,7 @@ function renderComponentSettings() {
   grid.className = "pref-grid";
   cat.fields.forEach(function(f){ grid.appendChild(componentFieldRow(f)); });
   body.appendChild(grid);
+  updateComponentPreview();
 }
 function componentFieldRow(field) {
   var s = __compSettings;
@@ -12262,6 +12488,7 @@ function componentFieldRow(field) {
       n = Math.max(field.min, Math.min(field.max, n));
       s.values[field.key] = n + (field.unit || "");
       range.value = n; box.value = n;
+      updateComponentPreview();
     }
     range.oninput = function(){ sync(range.value); };
     box.oninput = function(){ sync(box.value); };
@@ -12270,9 +12497,10 @@ function componentFieldRow(field) {
   } else if (field.type === "switch") {
     row.appendChild(mkSwitch(value === field.on, false, function(on){
       s.values[field.key] = on ? field.on : field.off;
+      updateComponentPreview();
     }));
   } else if (field.type === "color") {
-    row.appendChild(makeColorField(value, function(v){ s.values[field.key] = v; }));
+    row.appendChild(makeColorField(value, function(v){ s.values[field.key] = v; updateComponentPreview(); }));
   } else if (field.type === "font") {
     var fsel = document.createElement("select");
     var list = ["inherit"].concat(BUILTIN_FONTS, uploadedFonts);
@@ -12281,7 +12509,7 @@ function componentFieldRow(field) {
       if (f === value) o.selected = true;
       fsel.appendChild(o);
     });
-    fsel.onchange = function(){ s.values[field.key] = fsel.value; };
+    fsel.onchange = function(){ s.values[field.key] = fsel.value; updateComponentPreview(); };
     row.appendChild(fsel);
   } else if (field.type === "select") {
     var sel = document.createElement("select");
@@ -12292,12 +12520,12 @@ function componentFieldRow(field) {
       sel.appendChild(e);
     });
     if (!found && value) { var e2 = document.createElement("option"); e2.value = value; e2.textContent = value; e2.selected = true; sel.appendChild(e2); }
-    sel.onchange = function(){ s.values[field.key] = sel.value; };
+    sel.onchange = function(){ s.values[field.key] = sel.value; updateComponentPreview(); };
     row.appendChild(sel);
   } else {
     var inp = document.createElement("input");
     inp.type = "text"; inp.value = value; inp.spellcheck = false;
-    inp.oninput = function(){ s.values[field.key] = inp.value; };
+    inp.oninput = function(){ s.values[field.key] = inp.value; updateComponentPreview(); };
     row.appendChild(inp);
   }
   return row;
@@ -12322,6 +12550,52 @@ function applyComponentSettings() {
     setOut(); autoPreview(); scheduleCssSync();
   }
   closeComponentSettings();
+}
+function openInsertDialog() {
+  var dlg = document.getElementById("insertdlg");
+  if (!dlg) return;
+  var search = document.getElementById("insert-search");
+  if (search) search.value = "";
+  renderInsertList();
+  dlg.classList.add("on");
+  if (search) search.focus();
+}
+function closeInsertDialog() {
+  var dlg = document.getElementById("insertdlg");
+  if (dlg) dlg.classList.remove("on");
+}
+function allInsertTags() {
+  var out = [];
+  function add(t) { if (t && out.indexOf(t) < 0) out.push(t); }
+  PALETTE.forEach(function(g){
+    (g.tags || []).forEach(add);
+    (g.subs || []).forEach(function(s){ (s.tags || []).forEach(add); });
+  });
+  ["progress", "badge", "alert", "spinner"].forEach(add);
+  return out;
+}
+function renderInsertList() {
+  var box = document.getElementById("insert-list");
+  var search = document.getElementById("insert-search");
+  if (!box) return;
+  var q = search && search.value ? search.value.toLowerCase() : "";
+  box.textContent = "";
+  allInsertTags().forEach(function(tag){
+    var label = PALETTE_LABEL[tag] || tag;
+    if (q && (tag + " " + label).toLowerCase().indexOf(q) < 0) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "insert-item";
+    var l = document.createElement("span"); l.textContent = label;
+    var k = document.createElement("span"); k.className = "insert-kind"; k.textContent = tag;
+    b.appendChild(l); b.appendChild(k);
+    b.onclick = function(){ closeInsertDialog(); addEl(tag); setStatus("inserted " + label); };
+    box.appendChild(b);
+  });
+  if (!box.children.length) {
+    var empty = document.createElement("div");
+    empty.className = "pp-note"; empty.textContent = "No components match.";
+    box.appendChild(empty);
+  }
 }
 function openProjectPreferences() {
   renderProjectPreferences();
@@ -12366,12 +12640,14 @@ function renderProjectPreferences() {
   grid.appendChild(general);
   var note = document.createElement("div");
   note.className = "pp-note";
-  note.textContent = "Component defaults apply to every instance. Element settings override them for one element. Chart, graph, table, tree, toast, combobox and date picker keep their specialised inspectors.";
+  note.textContent = "Component defaults apply to every instance. Element settings override them for one element. Chart, graph and media controls keep their specialised inspectors.";
   grid.appendChild(note);
   box.appendChild(grid);
 }
 document.addEventListener("keydown", function(ev) {
   if (ev.key !== "Escape") return;
+  var ins = document.getElementById("insertdlg");
+  if (ins && ins.classList.contains("on")) { ev.preventDefault(); closeInsertDialog(); return; }
   var tt = document.getElementById("ttcfg");
   if (tt && tt.classList.contains("on")) { ev.preventDefault(); closeTooltipCfg(); return; }
   var cc = document.getElementById("compcfg");

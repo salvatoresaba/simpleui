@@ -363,10 +363,22 @@ defaults. **Clear overrides** removes those inline values and restores the
 project defaults for that element. Closing the panel returns to the inspector.
 
 Implemented component panels: **Progress bar**, **Badge**, **Alert**, **Spinner**,
-**Card**, **Divider**, **Button**, **Input / Textarea / Select**,
-**Checkbox / Radio**, **Switch**, **Slider**, **Tabs** and **Accordion**. Chart, Graph, Table, Tree,
-Toast, Combobox, Date/Time picker and media keep their specialised inspectors
-for now.
+**Card**, **Divider**, **Button**, **Input / Textarea / Select**, **Combobox**,
+**Date / Time picker**, **Checkbox / Radio**, **Switch**, **Slider**, **Tabs**,
+**Accordion**, **Menu**, **Tree**, **Table**, **Toast** and **Modal**. Chart,
+Graph and media controls keep their specialised inspectors for now.
+
+Each panel shows a live preview above the fields. The preview uses the current
+draft values, not the saved ones, so colours, sizes and states can be checked
+before Apply.
+
+### Insert any component
+
+The top toolbar has an **Insert component** button. It opens a searchable list of
+every component tag supported by the designer, including controls that are
+nested in submenus (Progress, Badge, Alert, Spinner, Combobox, Date/Time picker,
+Tree, Chart, Graph and so on). Select a component to insert it at the current
+position.
 
 ## Inspector and effective styles
 

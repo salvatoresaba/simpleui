@@ -379,9 +379,22 @@ pannello si torna all'inspector.
 
 Pannelli componente implementati: **Progress bar**, **Badge**, **Alert**,
 **Spinner**, **Card**, **Divider**, **Button**, **Input / Textarea / Select**,
-**Checkbox / Radio**, **Switch**, **Slider**, **Tabs** e **Accordion**. Chart,
-Graph, Table, Tree, Toast, Combobox, Date/Time picker e media mantengono per ora
-i loro inspector specializzati.
+**Combobox**, **Date / Time picker**, **Checkbox / Radio**, **Switch**,
+**Slider**, **Tabs**, **Accordion**, **Menu**, **Tree**, **Table**, **Toast** e
+**Modal**. Chart, Graph e i controlli media mantengono per ora i loro inspector
+specializzati.
+
+Ogni pannello mostra un'anteprima dal vivo sopra i campi. L'anteprima usa i
+valori in modifica, non quelli salvati, quindi colori, dimensioni e stati si
+possono verificare prima di Apply.
+
+### Inserire qualsiasi componente
+
+La toolbar in alto ha un pulsante **Insert component**. Apre un elenco
+ricercabile di tutti i tag componente supportati dal designer, inclusi quelli
+annidati nei sottomenu (Progress, Badge, Alert, Spinner, Combobox, Date/Time
+picker, Tree, Chart, Graph e così via). Selezionando un componente viene
+inserito nella posizione corrente.
 
 ## Inspector e stili effettivi
 
