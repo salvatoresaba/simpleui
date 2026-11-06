@@ -20136,9 +20136,74 @@ const suiChartRuntime = `(function(){
     document.addEventListener("click", outside, true);
     var first = menu.querySelector("button"); if (first) first.focus();
   }
+  function stateTableTip(root) {
+    var key = ganttUiKey(root);
+    var tip = root.__suiStateTableTip;
+    if (tip && tip.parentNode) return tip;
+    var stale = document.querySelectorAll(".sui-chart-table-cell-tip");
+    for (var i = 0; i < stale.length; i++) {
+      if (stale[i].getAttribute("data-sui-chart-tip-key") === key && stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
+    }
+    tip = document.createElement("div");
+    tip.className = "sui-chart-table-cell-tip";
+    tip.setAttribute("role", "tooltip");
+    tip.setAttribute("data-sui-chart-tip-key", key);
+    tip.hidden = true;
+    copyChartThemeVars(root, tip);
+    document.body.appendChild(tip);
+    root.__suiStateTableTip = tip;
+    return tip;
+  }
+  function stateHideTableTip(root) {
+    var tip = root && root.__suiStateTableTip;
+    if (tip) tip.hidden = true;
+  }
+  function statePlaceTableTip(tip, x, y) {
+    tip.hidden = false;
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var left = x + 14, top = y + 16;
+    if (left + w > window.innerWidth - 8) left = Math.max(8, x - w - 14);
+    if (top + h > window.innerHeight - 8) top = Math.max(8, y - h - 14);
+    tip.style.left = Math.round(left) + "px";
+    tip.style.top = Math.round(top) + "px";
+  }
+  function stateShowTableTip(root, cell, x, y) {
+    var text = cell.getAttribute("data-sui-chart-tip") || "";
+    if (!text) { stateHideTableTip(root); return; }
+    var tip = stateTableTip(root);
+    if (tip.textContent !== text) tip.textContent = text;
+    statePlaceTableTip(tip, x, y);
+  }
+  function stateCellTip(cell, value) {
+    var label = stateLineParts(value).join("\n");
+    if (label && label.trim()) cell.setAttribute("data-sui-chart-tip", label);
+  }
+  function stateBindTableTips(root, container) {
+    if (!root || !container || container.__suiStateTipsBound) return;
+    container.__suiStateTipsBound = true;
+    container.addEventListener("mouseover", function(ev) {
+      var cell = ev.target && ev.target.closest ? ev.target.closest("td[data-sui-chart-tip]") : null;
+      if (!cell) { stateHideTableTip(root); return; }
+      stateShowTableTip(root, cell, ev.clientX, ev.clientY);
+    });
+    container.addEventListener("mousemove", function(ev) {
+      var tip = root.__suiStateTableTip;
+      if (tip && !tip.hidden) statePlaceTableTip(tip, ev.clientX, ev.clientY);
+    });
+    container.addEventListener("mouseout", function(ev) {
+      var cell = ev.target && ev.target.closest ? ev.target.closest("td[data-sui-chart-tip]") : null;
+      if (!cell) return;
+      var to = ev.relatedTarget;
+      if (to && cell.contains(to)) return;
+      stateHideTableTip(root);
+    });
+    container.addEventListener("scroll", function() { stateHideTableTip(root); }, true);
+    document.addEventListener("click", function() { stateHideTableTip(root); }, true);
+  }
   function renderStateTable(container, data, title, root) {
     clear(container);
     container.classList.add("sui-chart-state-table-scroll");
+    stateBindTableTips(root, container);
     var addRow = document.createElement("button");
     addRow.type = "button";
     addRow.className = "sui-chart-state-add-row";
@@ -20249,16 +20314,20 @@ const suiChartRuntime = `(function(){
         anchors: (node.__suiAnchors || []).map(function(anchor) { return { id: anchor.id, x: anchor.x, y: anchor.y, side: anchor.side }; })
       });
       labelCell.appendChild(shapeMeta);
+      stateCellTip(labelCell, node.label);
       tr.appendChild(labelCell);
       var descCell = document.createElement("td");
       descCell.appendChild(stateFieldInput(stateLineText(node.tag || node.description || ""), function(v) { node.tag = stateLineText(v); stateRefresh(root, data, "state:" + node.id); }));
+      stateCellTip(descCell, node.tag || node.description || "");
       tr.appendChild(descCell);
       var hintCell = document.createElement("td");
       hintCell.appendChild(stateFieldInput(stateLineText(node.hint || ""), function(v) { node.hint = stateLineText(v); stateRefresh(root, data, "state:" + node.id); }));
+      stateCellTip(hintCell, node.hint || "");
       tr.appendChild(hintCell);
       var subtypeCell = document.createElement("td");
       var shapeOptions = ["rectangle", "square", "circle", "stadium", "ellipse", "rhombus", "triangle", "parallelogram", "hexagon", "trapezoid", "pentagon", "note"];
       subtypeCell.appendChild(stateSelectInput(shapeOptions, stateShapeKind(node), null, function(v) { node.shape = v; stateRefresh(root, data, "state:" + node.id); }));
+      stateCellTip(subtypeCell, stateShapeKind(node));
       tr.appendChild(subtypeCell);
       var delCell = document.createElement("td");
       delCell.className = "sui-chart-state-actions";
@@ -20313,12 +20382,15 @@ const suiChartRuntime = `(function(){
         targetAnchor: targetAnchorForMeta ? { id: targetAnchorForMeta.id, x: targetAnchorForMeta.x, y: targetAnchorForMeta.y } : null
       });
       labelCell.appendChild(linkMeta);
+      stateCellTip(labelCell, edge.label || "");
       tr.appendChild(labelCell);
       var descCell = document.createElement("td");
       descCell.appendChild(stateFieldInput(stateLineText(edge.tag || edge.description || ""), function(v) { edge.tag = stateLineText(v); stateRefresh(root, data, "edge:" + index); }));
+      stateCellTip(descCell, edge.tag || edge.description || "");
       tr.appendChild(descCell);
       var hintCell = document.createElement("td");
       hintCell.appendChild(stateFieldInput(stateLineText(edge.hint || ""), function(v) { edge.hint = stateLineText(v); stateRefresh(root, data, "edge:" + index); }));
+      stateCellTip(hintCell, edge.hint || "");
       tr.appendChild(hintCell);
       var subtypeCell = document.createElement("td");
       subtypeCell.appendChild(stateSelectInput(["auto", "straight", "arc", "bezier", "orthogonal", "circular"], stateLinkSubtype(edge), null, function(v) {
@@ -20327,9 +20399,10 @@ const suiChartRuntime = `(function(){
         else edge.routing = chosen;
         stateRefresh(root, data, "edge:" + index);
       }));
+      stateCellTip(subtypeCell, stateLinkSubtype(edge));
       tr.appendChild(subtypeCell);
-      var fromCell = document.createElement("td"); fromCell.appendChild(stateSelectInput(ids, edge.from, labels, function(v) { edge.from = v; stateRefresh(root, data, "edge:" + index); })); tr.appendChild(fromCell);
-      var toCell = document.createElement("td"); toCell.appendChild(stateSelectInput(ids, edge.to, labels, function(v) { edge.to = v; stateRefresh(root, data, "edge:" + index); })); tr.appendChild(toCell);
+      var fromCell = document.createElement("td"); fromCell.appendChild(stateSelectInput(ids, edge.from, labels, function(v) { edge.from = v; stateRefresh(root, data, "edge:" + index); })); stateCellTip(fromCell, labels[ids.indexOf(edge.from)] || edge.from); tr.appendChild(fromCell);
+      var toCell = document.createElement("td"); toCell.appendChild(stateSelectInput(ids, edge.to, labels, function(v) { edge.to = v; stateRefresh(root, data, "edge:" + index); })); stateCellTip(toCell, labels[ids.indexOf(edge.to)] || edge.to); tr.appendChild(toCell);
       var delCell = document.createElement("td");
       delCell.className = "sui-chart-state-actions";
       var textSettings = stateIconButton("sui-chart-state-icon-btn", "Text settings " + edge.from + " to " + edge.to, ["M5 6h14", "M12 6v12"]);

@@ -1232,6 +1232,8 @@ Rendering:
   Graph settings panel, and the graph undo/redo buttons cover both diagram and
   table edits.
   Event/guard/action fields remain available in the link properties panel.
+  Hovering a table cell shows a tooltip with its full text; `|` line breaks are
+  rendered on separate lines, as in the diagram.
   The diagram and the tables are two views of the same model: adding, editing,
   moving, resizing, retagging or deleting in either view updates the shared
   element and is reflected immediately in the other view. Deleting a shape also

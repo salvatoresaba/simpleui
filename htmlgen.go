@@ -1150,6 +1150,8 @@ body {
   box-shadow: var(--sui-chart-tooltip-shadow, 0 6px 18px rgba(0,0,0,.35));
 }
 .sui-chart-tooltip[hidden] { display: none; }
+.sui-chart-table-cell-tip { position: fixed; z-index: 60; pointer-events: none; max-width: 320px; background: var(--sui-chart-tooltip-bg, #111827); color: var(--sui-chart-tooltip-fg, #f8fafc); border: var(--sui-chart-tooltip-border-width, 1px) solid var(--sui-chart-tooltip-border, #475569); border-radius: var(--sui-chart-tooltip-radius, 6px); padding: var(--sui-chart-tooltip-padding, 6px 8px); font-family: var(--sui-chart-tooltip-font-family, system-ui, sans-serif); font-size: var(--sui-chart-tooltip-font-size, 11px); line-height: 1.4; white-space: pre-line; box-shadow: var(--sui-chart-tooltip-shadow, 0 6px 18px rgba(0,0,0,.35)); }
+.sui-chart-table-cell-tip[hidden] { display: none; }
 .sui-chart-hint-preview { grid-column: 1 / -1; margin-top: 10px; padding: 14px; border: 1px dashed var(--sui-chart-control-border, #475569); border-radius: 8px; background: var(--sui-chart-control-bg, #1d2129); text-align: center; }
 .sui-chart-hint-preview-label { font-size: 11px; color: var(--sui-chart-muted, #8fa0b8); margin-bottom: 8px; }
 .sui-chart-hint-preview-box { display: inline-block; max-width: 240px; white-space: pre-line; line-height: 1.4; margin-left: auto; margin-right: auto; }

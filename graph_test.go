@@ -246,6 +246,31 @@ func TestGraphStateTableToolbar(t *testing.T) {
 	}
 }
 
+func TestGraphTableCellTooltip(t *testing.T) {
+	for _, want := range []string{
+		`function stateCellTip(cell, value)`,
+		`stateLineParts(value).join("\n")`,
+		`cell.setAttribute("data-sui-chart-tip", label)`,
+		`stateCellTip(labelCell, node.label)`,
+		`stateCellTip(descCell, node.tag || node.description || "")`,
+		`stateCellTip(hintCell, node.hint || "")`,
+		`stateCellTip(fromCell, labels[ids.indexOf(edge.from)] || edge.from)`,
+		`sui-chart-table-cell-tip`,
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("state table tooltip runtime missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		".sui-chart-table-cell-tip { position: fixed;",
+		"white-space: pre-line;",
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("state table tooltip CSS missing %q", want)
+		}
+	}
+}
+
 func TestGraphDesignerModel(t *testing.T) {
 	prog, dl := ParseSource(graphTestSource, "graph.sui")
 	if dl.HasErrors() {

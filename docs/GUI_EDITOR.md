@@ -911,6 +911,8 @@ edits. A compact **+** button in the chart header opens one create menu with the
 six shape subtypes and **New link**, so it cannot cover diagram nodes; its tooltip
 shows `+`/`N`, and `L` creates a link directly.
 Selection is synchronized between graph and table with an amber selection color.
+Hovering a table cell shows a tooltip with its full text; `|` line breaks are
+displayed on separate lines, exactly as they appear in the diagram.
 The shape context menu contains **Shape properties...**, **Tag settings...** and
 **Delete** only: text styling lives in **Tag settings...**, rotation is edited in
 the **Position** tab, and deleting a shape removes its connected links. Undo/redo use icon buttons with accessible hints. The `…` button opens
