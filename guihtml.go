@@ -388,10 +388,23 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #history div { margin:3px 0; cursor:pointer; color:var(--fg); }
 
 /* tokens */
-.tok { display:flex; align-items:center; gap:7px; margin:4px 0; }
-.sw { width:18px; height:18px; border-radius:4px; border:1px solid var(--border2); }
-.tok .tkname { font-size:12px; font-family:ui-monospace, monospace; color:var(--fg); }
-.tok .tkval { font-size:12px; color:var(--muted); margin-left:auto; }
+.tok-toolbar { margin:2px 0 6px; }
+.tok-toolbar input, .tok-new input { width:100%; min-width:0; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:4px 6px; font-size:11.5px; }
+.tok-new { display:flex; gap:4px; margin:2px 0 7px; align-items:center; }
+.tok-new input { flex:1; }
+.tok-new button { flex:none; padding:3px 7px; font-size:11px; }
+.tok-group { margin:9px 0 3px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+.tok { position:relative; display:flex; align-items:center; gap:4px; margin:3px 0; }
+.tok-color { width:22px; height:22px; padding:0; border:1px solid var(--border2); border-radius:5px; background:var(--input-bg); flex:none; cursor:pointer; }
+.tok .tkname { width:104px; min-width:0; font-size:11.5px; font-family:ui-monospace, monospace; color:var(--fg); background:var(--input-bg); border:1px solid transparent; border-radius:4px; padding:2px 3px; }
+.tok .tkval { flex:1; min-width:0; font-size:11.5px; color:var(--muted); background:var(--input-bg); border:1px solid transparent; border-radius:4px; padding:2px 3px; }
+.tok .tkname:hover, .tok .tkval:hover { border-color:var(--border2); }
+.tok .tkname:focus, .tok .tkval:focus { border-color:var(--accent); outline:none; }
+.tok-actions { position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; gap:1px; align-items:center; padding-left:5px; background:var(--panel); opacity:0; pointer-events:none; }
+.tok:hover .tok-actions, .tok:focus-within .tok-actions { opacity:1; pointer-events:auto; }
+.tok-act { width:19px; height:19px; padding:0; border:1px solid transparent; border-radius:3px; background:transparent; color:var(--muted); font-size:11px; line-height:1; cursor:pointer; }
+.tok-act:hover { background:var(--btn-hover); color:var(--fg); border-color:var(--border2); }
+.tok-empty { color:var(--muted); font-size:11.5px; padding:5px 0; }
 
 /* preferences modal */
 #pref { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
@@ -801,8 +814,13 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       </div>
       <div id="l-tokens" style="display:none">
         <div class="rowth">Design tokens</div>
+        <div class="tok-toolbar"><input id="token-search" placeholder="Search tokens..." oninput="renderTokens(true)"></div>
+        <div class="tok-new">
+          <input id="tok-new-name" placeholder="--name" spellcheck="false">
+          <input id="tok-new-value" placeholder="#4c5cf7" spellcheck="false">
+          <button class="btn" type="button" onclick="addTokenForm()" title="Add token">+</button>
+        </div>
         <div id="tokens"></div>
-        <div class="rowline" style="margin-top:8px"><button class="btn" onclick="addToken()">+ token</button></div>
         <div class="hint">Tokens are custom properties (--name) declared in the CSS. Define colors/spacing here and use var(--name) anywhere.</div>
       </div>
     </div>
@@ -3239,24 +3257,24 @@ function ensureClass(n) {
   return cls;
 }
 
-function setCssProp(prop, value) {
-  var obj = {}; obj[prop] = value; setCssProps(obj);
+function setCssProp(prop, value, after) {
+  var obj = {}; obj[prop] = value; setCssProps(obj, after);
 }
 
 // Writes one or more CSS properties, expanding vendor prefixes as needed.
 // Applies to every selected element (sequentially, to avoid racing writes).
-function setCssProps(map) {
+function setCssProps(map, after) {
   var decls = [];
   for (var k in map) {
     compatDecls(k, map[k]).forEach(function(d){ decls.push(d); });
   }
   snap(snapLabelFromMap(map));
-  if (selBody) { setCssOnClass("body" + selState, decls); return; }
+  if (selBody) { setCssOnClass("body" + selState, decls, after); return; }
   var paths = selectedPaths();
-  if (!paths.length) return;
+  if (!paths.length) { if (after) after(); return; }
   var i = 0;
   (function next() {
-    if (i >= paths.length) return;
+    if (i >= paths.length) { if (after) after(); return; }
     var n = byPath(paths[i], root.children);
     var cls = ensureClass(n) + selState;
     if (n.kind === "toast") {
@@ -6891,6 +6909,51 @@ function currentRule() {
   var sel = selClass();
   return findRule(sel);
 }
+var TOKEN_VALUE_PROPS = {
+  width:1, height:1, "max-width":1, "min-width":1, "max-height":1, "min-height":1,
+  margin:1, padding:1, gap:1, top:1, right:1, bottom:1, left:1,
+  "font-size":1, "line-height":1, "letter-spacing":1, "word-spacing":1, "text-indent":1,
+  "border-width":1, "border-radius":1, "font-family":1,
+  color:1, background:1, "background-color":1, "border-color":1
+};
+function suggestTokenName(prop) {
+  var cls = "";
+  if (selBody) cls = "body";
+  else if (selPath) {
+    var n = byPath(selPath, root.children);
+    cls = (selClass() || (n && n.kind) || "").replace(/:.*$/, "");
+  }
+  var raw = (cls ? cls + "-" + prop : prop).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  var base = "--" + (raw || "token"), name = base, i = 2;
+  while (tokenExists(name)) name = base + "-" + (i++);
+  return name;
+}
+function saveAsToken(prop, value) {
+  value = String(value == null ? "" : value).trim();
+  if (!value) { setStatus("set a value first"); return; }
+  if (/^var\(/.test(value)) { setStatus("this value is already a token"); return; }
+  if (!selPath && !selBody) { setStatus("select an element first"); return; }
+  askPrompt("Save as token", "Token name", suggestTokenName(prop), function(name){
+    name = normalTokenName(name);
+    if (!name) { setStatus("invalid token name"); return; }
+    setCssProp(prop, "var(" + name + ")", function(){
+      if (tokenExists(name)) updateTokenValue(name, value, { noSnap: true });
+      else createToken(name, value, { noSnap: true });
+      setOut(); autoPreview(); scheduleCssSync();
+      setStatus("saved " + name + " and applied it to " + prop);
+    });
+  });
+}
+function tokenButton(prop, getValue) {
+  var b = document.createElement("button");
+  b.className = "btn";
+  b.type = "button";
+  b.style.cssText = "font-size:10px;padding:2px 5px;flex:none";
+  b.textContent = "T";
+  b.title = "Save this value as a design token";
+  b.onclick = function(){ saveAsToken(prop, getValue()); };
+  return b;
+}
 function txt(prop, label, ph) {
   var d = document.createElement("div"); d.className = "rowline";
   var l = document.createElement("label"); l.textContent = label; d.appendChild(l);
@@ -6898,6 +6961,7 @@ function txt(prop, label, ph) {
   i.placeholder = ph || "auto";
   i.onchange = function(){ setCssProp(prop, NO_PX[prop] ? i.value : normLen(i.value)); };
   d.appendChild(i);
+  if (TOKEN_VALUE_PROPS[prop]) d.appendChild(tokenButton(prop, function(){ return i.value; }));
   return d;
 }
 function fillControls() {
@@ -7029,6 +7093,7 @@ function color(prop, label) {
   var l = document.createElement("label"); l.textContent = label; d.appendChild(l);
   var f = makeColorField(cssFieldValue(prop, currentRule()), function(v){ setCssProp(prop, v); });
   d.appendChild(f);
+  d.appendChild(tokenButton(prop, function(){ return cssFieldValue(prop, currentRule()); }));
   return d;
 }
 function fontBox() {
@@ -7080,6 +7145,7 @@ function range(prop, label, min, max, unit) {
   r.onchange = function(){ setCssProp(prop, r.value + unit); };
   t.onchange = function(){ var raw = t.value.trim(); if (/^-?\d*\.?\d+$/.test(raw)) raw = raw + unit; var nn = parseFloat(raw) || 0; r.value = nn; setCssProp(prop, raw); };
   d.appendChild(r); d.appendChild(t);
+  d.appendChild(tokenButton(prop, function(){ return t.value; }));
   return d;
 }
 function normColor(v) { return /^#[0-9a-fA-F]{3,8}$/.test(v || "") ? v : "#000000"; }
@@ -8490,35 +8556,260 @@ function renderProblems() {
   var pb = document.getElementById("probbtn");
   if (pb) pb.textContent = (document.getElementById("bottom").classList.contains("on") ? "Hide" : "Problems") + " panel" + (n ? " (" + n + ")" : "");
 }
-function renderTokens() {
-  var box = document.getElementById("tokens"); box.innerHTML = "";
-  tokens.forEach(function(t){
-    var d = document.createElement("div"); d.className = "tok";
-    var sw = document.createElement("span"); sw.className = "sw"; sw.style.background = isColor(t.value) ? t.value : "#2a2f3d";
-    d.appendChild(sw);
-    var nm = document.createElement("span"); nm.className = "tkname"; nm.textContent = t.name;
-    d.appendChild(nm);
-    var vl = document.createElement("span"); vl.className = "tkval"; vl.textContent = t.value;
-    d.appendChild(vl);
-    box.appendChild(d);
-  });
-}
 function isColor(v) { return /^#([0-9a-fA-F]{3,8})$/.test(v) || /^rgb/.test(v) || /^hsl/.test(v); }
-function addToken() {
-  var name = prompt("Token name", "--primary");
-  var value = prompt("Token value", "#4c5cf7");
-  if (!name || !value) return;
-  if (name.indexOf("--") !== 0) name = "--" + name;
-  snap();
-  var prefix = ":root { " + name + ": " + value + "; }\n";
-  if (root.css.indexOf(":root") >= 0) {
-    root.css = root.css.replace(/:root\s*\{/, ":root { " + name + ": " + value + "; ");
-  } else {
-    root.css = prefix + root.css;
-  }
-  setOut(); autoPreview(); scheduleCssSync();
+function regEsc(x) { return String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function tokenGroup(t) {
+  var name = String(t.name || "").toLowerCase();
+  var value = String(t.value || "").toLowerCase();
+  if (isColor(value) || /color|bg|background|fg|foreground|fill|stroke|shadow/.test(name)) return "Colors";
+  if (/radius|round/.test(name)) return "Radius";
+  if (/space|spacing|gap|padding|margin|inset|size|width|height/.test(name)) return "Spacing";
+  if (/font|text|line|letter|weight|family/.test(name)) return "Typography";
+  return "Other";
 }
-function renderHistory() {
+function normalTokenName(v) {
+  v = String(v == null ? "" : v).trim();
+  if (!v) return "";
+  if (v.indexOf("--") !== 0) v = "--" + v;
+  if (!/^--[A-Za-z0-9_-]+$/.test(v)) return "";
+  return v;
+}
+function tokenDeclRe(name) {
+  return new RegExp("(^|[;{\\s])" + regEsc(name) + "\\s*:\\s*([^;]+);");
+}
+function tokenExists(name) {
+  return tokenDeclRe(name).test(root.css);
+}
+function tokenValue(name) {
+  var m = tokenDeclRe(name).exec(root.css);
+  return m ? String(m[2] || "").trim() : "";
+}
+function createToken(name, value, opts) {
+  name = normalTokenName(name);
+  value = String(value == null ? "" : value).trim();
+  if (!name || !value || /[;{}]/.test(value)) return false;
+  if (!opts || !opts.noSnap) snap("add token");
+  if (tokenExists(name)) {
+    updateTokenValue(name, value, { noSnap: true });
+    return true;
+  }
+  var decl = name + ": " + value + ";";
+  if (/:root\s*\{/.test(root.css)) root.css = root.css.replace(/:root\s*\{/, ":root { " + decl + " ");
+  else root.css = ":root { " + decl + " }\n" + root.css;
+  tokens.push({ name: name, value: value, line: 0 });
+  setOut(); autoPreview(); scheduleCssSync();
+  return true;
+}
+function updateTokenValue(name, value, opts) {
+  value = String(value == null ? "" : value).trim();
+  if (!value || /[;{}]/.test(value)) { setStatus("invalid token value"); return false; }
+  var re = tokenDeclRe(name);
+  if (!re.test(root.css)) { setStatus("token not found: " + name); return false; }
+  if (!opts || !opts.noSnap) snap("edit token");
+  root.css = root.css.replace(re, function(m, prefix){ return prefix + name + ": " + value + ";"; });
+  tokens.forEach(function(t){ if (t.name === name) t.value = value; });
+  setOut(); autoPreview(); scheduleCssSync();
+  return true;
+}
+function renameToken(oldName, newName, input) {
+  newName = normalTokenName(newName);
+  if (!newName) { setStatus("invalid token name"); if (input) input.value = oldName; return false; }
+  if (newName === oldName) return true;
+  if (tokenExists(newName)) { setStatus("token already exists: " + newName); if (input) input.value = oldName; return false; }
+  var re = tokenDeclRe(oldName);
+  if (!re.test(root.css)) { setStatus("token not found: " + oldName); if (input) input.value = oldName; return false; }
+  var value = tokenValue(oldName);
+  snap("rename token");
+  root.css = root.css.replace(re, function(m, prefix){ return prefix + newName + ": " + value + ";"; });
+  var useRe = new RegExp("var\\(\\s*" + regEsc(oldName) + "\\s*\\)", "g");
+  root.css = root.css.replace(useRe, "var(" + newName + ")");
+  tokens.forEach(function(t){ if (t.name === oldName) t.name = newName; });
+  setOut(); autoPreview(); scheduleCssSync();
+  return true;
+}
+function deleteToken(name) {
+  var value = tokenValue(name);
+  var useRe = new RegExp("var\\(\\s*" + regEsc(name) + "\\s*\\)", "g");
+  var uses = (root.css.match(useRe) || []).length;
+  function remove(replaceUses) {
+    snap("delete token");
+    if (replaceUses) root.css = root.css.replace(useRe, function(){ return value; });
+    root.css = root.css.replace(tokenDeclRe(name), function(m, prefix){ return prefix; });
+    tokens = tokens.filter(function(t){ return t.name !== name; });
+    setOut(); autoPreview(); scheduleCssSync();
+  }
+  if (uses > 0) {
+    confirmBox("Delete token?", "Token " + name + " is used " + uses + " time(s). Replace those uses with its value and delete it?", function(){ remove(true); });
+  } else {
+    remove(false);
+  }
+}
+function duplicateToken(name) {
+  var value = tokenValue(name);
+  if (!value) return;
+  var base = name + "-copy", next = base, i = 2;
+  while (tokenExists(next)) next = base + "-" + (i++);
+  createToken(next, value);
+  setStatus("duplicated " + name + " as " + next);
+}
+function addTokenForm() {
+  var nameEl = document.getElementById("tok-new-name");
+  var valueEl = document.getElementById("tok-new-value");
+  if (!nameEl || !valueEl) return;
+  if (!nameEl.value.trim() || !valueEl.value.trim()) { setStatus("enter token name and value"); return; }
+  if (!createToken(nameEl.value, valueEl.value)) { setStatus("invalid token name or value"); return; }
+  nameEl.value = ""; valueEl.value = ""; nameEl.focus();
+  renderTokens(true);
+}
+function copyTokenVar(name) {
+  var text = "var(" + name + ")";
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ setStatus("copied " + text); }).catch(function(){ setStatus(text); });
+  } else {
+    setStatus(text);
+  }
+}
+function showTokenUseMenu(name, ev) {
+  if (ev && ev.preventDefault) ev.preventDefault();
+  if (!selPath && !selBody) { setStatus("select an element first"); return; }
+  closeContextMenus();
+  var items = [
+    ["Background", "background-color"],
+    ["Text color", "color"],
+    ["Border", "border-color"],
+    ["Radius", "border-radius"],
+    ["Padding", "padding"],
+    ["Gap", "gap"],
+    ["Font", "font-family"],
+    ["Font size", "font-size"]
+  ];
+  var m = document.createElement("div");
+  m.id = "tok-menu"; m.className = "sui-ac"; m.style.display = "block"; m.style.minWidth = "210px"; m.tabIndex = -1;
+  var head = document.createElement("div");
+  head.className = "ctx-head"; head.textContent = "Use var(" + name + ")";
+  m.appendChild(head);
+  function closeMenu(){ m.remove(); document.removeEventListener("click", outside); }
+  var outside = function(e){ if (!m.contains(e.target)) closeMenu(); };
+  items.forEach(function(it){
+    var row = document.createElement("div");
+    row.className = "sui-ac-item";
+    var l = document.createElement("span"); l.textContent = it[0];
+    var k = document.createElement("span"); k.className = "ac-kind"; k.style.marginLeft = "auto"; k.textContent = it[1];
+    row.appendChild(l); row.appendChild(k);
+    row.onclick = function(){ closeMenu(); setCssProp(it[1], "var(" + name + ")"); setStatus("applied var(" + name + ") to " + it[1]); };
+    m.appendChild(row);
+  });
+  document.body.appendChild(m);
+  var z = menuZoom();
+  var rect = ev && ev.currentTarget ? ev.currentTarget.getBoundingClientRect() : { left: 120, top: 120, bottom: 140 };
+  var mw = m.offsetWidth, mh = m.offsetHeight;
+  var vw = window.innerWidth / z, vh = window.innerHeight / z;
+  var left = Math.max(4, Math.min(vw - mw - 8, rect.left / z));
+  var top = rect.bottom / z + 3;
+  if (top + mh > vh - 4) top = Math.max(4, rect.top / z - mh - 4);
+  m.style.left = left + "px";
+  m.style.top = top + "px";
+  m.focus();
+  m.addEventListener("keydown", function(e){
+    if (e.key === "Escape") { e.preventDefault(); closeMenu(); }
+  });
+  setTimeout(function(){ document.addEventListener("click", outside); }, 0);
+}
+function tokenRow(t) {
+  var row = document.createElement("div");
+  row.className = "tok";
+  row.setAttribute("data-token", t.name);
+  var colorIn = null;
+  if (isColor(t.value)) {
+    colorIn = document.createElement("input");
+    colorIn.type = "color";
+    colorIn.className = "tok-color";
+    var hex = cssColorToHex(t.value) || "#000000";
+    if (/^#[0-9a-f]{3}$/i.test(hex)) hex = "#" + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+    colorIn.value = hex.slice(0, 7);
+    colorIn.title = "Change color";
+    row.appendChild(colorIn);
+  } else {
+    var sw = document.createElement("span");
+    sw.className = "tok-color";
+    sw.style.background = "#2a2f3d";
+    sw.style.cursor = "default";
+    row.appendChild(sw);
+  }
+  var nameIn = document.createElement("input");
+  nameIn.className = "tkname";
+  nameIn.value = t.name;
+  nameIn.spellcheck = false;
+  nameIn.title = "Rename token";
+  nameIn.onchange = function(){ renameToken(t.name, nameIn.value, nameIn); };
+  row.appendChild(nameIn);
+  var valIn = document.createElement("input");
+  valIn.className = "tkval";
+  valIn.value = t.value;
+  valIn.spellcheck = false;
+  valIn.title = "Token value";
+  valIn.onchange = function(){ updateTokenValue(t.name, valIn.value); };
+  row.appendChild(valIn);
+  if (colorIn) {
+    var colorTimer = 0;
+    colorIn.oninput = function(){
+      valIn.value = colorIn.value;
+      if (colorTimer) clearTimeout(colorTimer);
+      colorTimer = setTimeout(function(){ updateTokenValue(t.name, colorIn.value); }, 120);
+    };
+  }
+  var actions = document.createElement("div");
+  actions.className = "tok-actions";
+  function act(label, title, fn) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tok-act"; b.textContent = label; b.title = title;
+    b.onclick = fn;
+    actions.appendChild(b);
+  }
+  act("C", "Copy var(" + t.name + ")", function(){ copyTokenVar(t.name); });
+  act("U", "Apply to the selected element", function(e){ showTokenUseMenu(t.name, e); });
+  act("D", "Duplicate token", function(){ duplicateToken(t.name); });
+  act("\u00d7", "Delete token", function(){ deleteToken(t.name); });
+  row.appendChild(actions);
+  [nameIn, valIn, colorIn].forEach(function(el){
+    if (!el) return;
+    el.addEventListener("blur", function(){ setTimeout(function(){ renderTokens(false); }, 160); });
+  });
+  return row;
+}
+function renderTokens(force) {
+  var box = document.getElementById("tokens");
+  if (!box) return;
+  var active = document.activeElement;
+  if (!force && active && active.closest && active.closest("#tokens")) return;
+  var search = document.getElementById("token-search");
+  var q = (search && search.value ? search.value : "").toLowerCase();
+  var list = tokens.filter(function(t){
+    return !q || (t.name + " " + t.value).toLowerCase().indexOf(q) >= 0;
+  });
+  var groups = {}, order = ["Colors", "Typography", "Spacing", "Radius", "Other"];
+  list.forEach(function(t){
+    var g = tokenGroup(t);
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(t);
+  });
+  box.textContent = "";
+  if (!list.length) {
+    var empty = document.createElement("div");
+    empty.className = "tok-empty";
+    empty.textContent = tokens.length ? "No tokens match." : "No design tokens yet.";
+    box.appendChild(empty);
+    return;
+  }
+  order.forEach(function(g){
+    if (!groups[g] || !groups[g].length) return;
+    var head = document.createElement("div");
+    head.className = "tok-group";
+    head.textContent = g + " (" + groups[g].length + ")";
+    box.appendChild(head);
+    groups[g].forEach(function(t){ box.appendChild(tokenRow(t)); });
+  });
+}function renderHistory() {
   var h = document.getElementById("history"); if (!h) return;
   h.innerHTML = "";
   var title = document.createElement("div"); title.className = "hint"; title.textContent = "Click a step to revert";

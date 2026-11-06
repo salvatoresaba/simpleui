@@ -315,10 +315,22 @@ reusable values for colours, spacing, radii, fonts and similar design choices.
 Use them with `var(--primary)` in class rules, `style: cssSafe(...)` or theme
 overrides. Changing a token updates every rule that references it.
 
-The tab shows the token name, value and a colour swatch when the value is a
-colour. **+ token** adds a new custom property to `:root`; edit existing values
-in the CSS source. Use tokens for values shared across the interface, and plain
-values for one-off declarations.
+The tab groups tokens into **Colors**, **Typography**, **Spacing**, **Radius**
+and **Other**, with a search field. Each row is editable inline:
+
+- change the name to rename the token; the declaration and every
+  `var(--old)` reference in the CSS are updated;
+- change the value directly, or use the colour picker for colour tokens;
+- **C** copies `var(--name)`;
+- **U** applies `var(--name)` to a CSS property of the selected element;
+- **D** duplicates the token;
+- **x** deletes it (used tokens are replaced by their value first).
+
+The inline form at the top adds a new custom property to `:root` without browser
+prompts. In the inspector, the small **T** button next to colour and length
+fields saves the current value as a token and replaces the field with
+`var(--name)` in one undoable step. Use tokens for values shared across the
+interface, and plain values for one-off declarations.
 
 ## Inspector and effective styles
 

@@ -325,9 +325,23 @@ design simili. Si usano con `var(--primary)` nelle regole di classe, in
 `style: cssSafe(...)` o negli override del tema. Modificando un token si
 aggiornano tutte le regole che lo usano.
 
-La tab mostra nome, valore e un campione colore quando il valore è un colore.
-**+ token** aggiunge una nuova custom property a `:root`; per modificare i
-valori esistenti si usa il sorgente CSS. Usare i token per valori condivisi
+La tab raggruppa i token in **Colors**, **Typography**, **Spacing**, **Radius**
+e **Other**, con un campo di ricerca. Ogni riga è modificabile inline:
+
+- cambiare il nome rinomina il token; la dichiarazione e tutti i riferimenti
+  `var(--old)` nel CSS vengono aggiornati;
+- cambiare il valore direttamente, oppure usare il color picker per i token
+  colore;
+- **C** copia `var(--name)`;
+- **U** applica `var(--name)` a una proprietà CSS dell'elemento selezionato;
+- **D** duplica il token;
+- **x** elimina il token (se usato, le occorrenze vengono prima sostituite con
+  il suo valore).
+
+Il modulo in alto aggiunge una nuova custom property a `:root` senza prompt del
+browser. Nell'inspector, il piccolo pulsante **T** accanto ai campi colore e
+lunghezza salva il valore corrente come token e sostituisce il campo con
+`var(--name)` in un unico passo annullabile. Usare i token per valori condivisi
 nell'interfaccia e valori espliciti per le dichiarazioni una tantum.
 
 ## Inspector e stili effettivi

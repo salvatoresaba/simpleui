@@ -168,6 +168,27 @@ func TestGuiEditorMenusAndFind(t *testing.T) {
 	}
 }
 
+func TestGuiDesignTokens(t *testing.T) {
+	for _, want := range []string{
+		`id="token-search"`,
+		`id="tok-new-name"`,
+		`id="tok-new-value"`,
+		`function addTokenForm`,
+		`function renameToken`,
+		`function deleteToken`,
+		`function duplicateToken`,
+		`function showTokenUseMenu`,
+		`function saveAsToken`,
+		`TOKEN_VALUE_PROPS`,
+		`tokenDeclRe`,
+		`tokenGroup`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("design token support missing %q", want)
+		}
+	}
+}
+
 func TestGuiHistorySettingsParsing(t *testing.T) {
 	auto, interval, keep := parseGuiHistorySettings(`{}`)
 	if !auto || interval != time.Minute || keep != guiVersionKeep {
