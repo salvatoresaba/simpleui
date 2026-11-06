@@ -428,6 +428,20 @@ ombre morbide. Gli stati attivi usano una linea ciano; colori, font, raggio e
 ombre restano modificabili, quindi una pagina puo combinare piu componenti
 Wireframe mantenendo lo stesso linguaggio a contorno.
 
+Il selettore Style raggruppa queste famiglie sotto **Shared styles** e lascia gli
+stili specifici di un componente sotto **Component styles**. Le altre famiglie
+condivise sono:
+
+- **Terminal / CRT**: fosfori verdi su nero, etichette monospace e glow.
+- **Glassmorphism**: superfici traslucide fumose con blur e bordi luminosi.
+- **Brutalist**: contorni neri spessi, blocchi gialli e ombre offset dure.
+- **Blueprint**: carta blu profonda, linee ciano tratteggiate e font monospace.
+- **Neumorphic**: superfici morbide con ombre chiare e scure accoppiate.
+- **High contrast**: nero, bianco, giallo e focus ciano per l'accessibilita.
+- **Editorial / Luxury**: navy profondo, crema, filetti oro e carattere serif.
+- **Cyberpunk**: nero cromato, linee neon magenta e ciano con glow.
+- **Geometric**: quadrati netti, angoli tagliati e motivi a triangoli/quadretti.
+
 Nelle impostazioni dell'elemento il selettore offre anche **Project default**.
 Applicandolo si rimuovono gli override componente dell'elemento, che torna a
 ereditare i default di progetto. I preset con nome, invece, fissano i loro

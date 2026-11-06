@@ -410,6 +410,20 @@ soft shadows. Accent states use a cyan line; colours, font, radius and shadow
 fields remain editable, so a page can mix several Wireframe components without
 losing the same outline language.
 
+The Style selector groups these families under **Shared styles** and keeps
+component-specific looks under **Component styles**. The additional shared
+families are:
+
+- **Terminal / CRT**: green phosphor text on black, monospace labels and glow.
+- **Glassmorphism**: smoked translucent surfaces with blur and light edges.
+- **Brutalist**: thick black outlines, flat yellow blocks and hard offset shadows.
+- **Blueprint**: deep blue paper, cyan dashed technical lines and monospace type.
+- **Neumorphic**: soft monochrome surfaces with paired light and dark shadows.
+- **High contrast**: black, white, yellow and cyan focus for accessibility.
+- **Editorial / Luxury**: deep navy, cream type, gold rules and serif type.
+- **Cyberpunk**: black chrome, magenta and cyan neon lines with hard glow.
+- **Geometric**: hard squares, cut corners and triangle/checker patterns.
+
 In element settings the selector also offers **Project default**. Applying it
 removes the element's component overrides, so the element inherits the project
 defaults again. Named presets, by contrast, pin their values on that element.
