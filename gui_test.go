@@ -197,12 +197,20 @@ func TestGuiComponentDefaults(t *testing.T) {
 		`id="compcfg-body"`,
 		`id="compcfg-clear"`,
 		`id="compcfg-preview"`,
+		`id="compcfg-presets"`,
+		`psel.id = "compcfg-preset"`,
 		`function openProjectPreferences`,
 		`function openComponentSettings`,
 		`function applyComponentSettings`,
 		`function clearComponentOverrides`,
 		`function componentPreviewHTML`,
 		`function updateComponentPreview`,
+		`function applyComponentPreset`,
+		`function componentPresetMatch`,
+		`function componentPresetDescription`,
+		`function componentAllKeys`,
+		`function componentNodeHasOverrides`,
+		`function componentValuesMatchProject`,
 		`COMPONENT_PREVIEW_BASE`,
 		`id: "combobox"`,
 		`id: "datepicker"`,
@@ -227,6 +235,49 @@ func TestGuiComponentDefaults(t *testing.T) {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("component defaults support missing %q", want)
 		}
+	}
+}
+
+func TestGuiComponentPresets(t *testing.T) {
+	for _, want := range []string{
+		`presets: [`,
+		`inherit`,
+		`"Project default"`,
+		`--sui-progress-fill`,
+		`--sui-progress-fill-size`,
+		`@keyframes sui-progress-stripes`,
+		`@keyframes sui-progress-shimmer`,
+		`@keyframes sui-progress-glow`,
+		`@keyframes sui-spinner-pulse`,
+		`@keyframes sui-spinner-flip`,
+		`@keyframes sui-badge-glow`,
+		`@keyframes sui-alert-shake`,
+		`@keyframes sui-card-float`,
+		`@keyframes sui-button-glow`,
+		`@keyframes sui-toast-bounce`,
+		`--sui-tablist-padding`,
+		`--sui-accordion-border-width`,
+		`--sui-menu-border-width`,
+		`--sui-table-striped-bg`,
+		`--sui-modal-shadow`,
+		`id: "barber"`,
+		`id: "gradient"`,
+		`id: "glass"`,
+		`id: "striped"`,
+		`id: "pills"`,
+		`if (re.test(root.css)) root.css = root.css.replace(re, block);`,
+		`componentAllKeys(s.def).forEach(function(k){ delete map[k]; });`,
+		`componentAllKeys(s.def).forEach(function(k){ delete vars[k]; });`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("component preset support missing %q", want)
+		}
+	}
+	if got := strings.Count(guiHTML, "presets: ["); got < 20 {
+		t.Errorf("component presets = %d, want at least 20", got)
+	}
+	if got := strings.Count(guiHTML, "id: \"classic\""); got < 4 {
+		t.Errorf("classic baseline presets = %d, want several", got)
 	}
 }
 

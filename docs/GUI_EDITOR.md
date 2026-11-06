@@ -336,7 +336,7 @@ interface, and plain values for one-off declarations.
 
 Open **Preferences → Project preferences.** to set defaults for every instance
 of a component in the project. The list is grouped into **Feedback**, **Layout**,
-**Form**, **Navigation** and **General**.
+**Form**, **Navigation**, **Data**, **Overlay** and **General**.
 
 Each component opens the same configuration panel used by its element settings.
 The panel follows the editor preferences layout:
@@ -371,6 +371,35 @@ Graph and media controls keep their specialised inspectors for now.
 Each panel shows a live preview above the fields. The preview uses the current
 draft values, not the saved ones, so colours, sizes and states can be checked
 before Apply.
+
+### Style presets and animations
+
+Every component panel starts with a **Style** selector. **Custom** is the raw
+default, and each named preset applies a coordinated set of colours, shapes and
+effects in one step. Presets are optional: they never run unless selected, and
+editing any field switches the selector to **Custom** so fine-tuning stays
+explicit.
+
+The presets cover all twenty component panels, for example **Neon glow** and
+**Barber pole** for Progress, **Dual ring**, **Gradient ring** and **Coin flip**
+for Spinner, **Glass** for Card and Toast, **Pill** for Button and Input, and
+**Striped**, **Borderless** and **Rounded** for Table. Several presets include a
+motion effect; the Animation/Effects tab also exposes the effects directly:
+
+- Progress: pulse, scrolling stripes, shimmer and glow.
+- Spinner: classic spin, pulse and vertical flip.
+- Badge: pulse, glow and float.
+- Alert: fade in, slide in, shake and pulse.
+- Card: fade in and float.
+- Button: pulse, float and glow.
+- Toast: slide down, fade, zoom, slide up and bounce.
+
+In element settings the selector also offers **Project default**. Applying it
+removes the element's component overrides, so the element inherits the project
+defaults again. Named presets, by contrast, pin their values on that element.
+Project presets are written in the managed `/* sui-component-defaults */` and
+`/* sui-component-rules:<id> */` blocks, while element presets use inline custom
+properties.
 
 ### Insert any component
 

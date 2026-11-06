@@ -495,6 +495,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #compcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:700px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #compcfg .pref-body { max-height:62vh; }
 #compcfg-preview-wrap { padding:0 20px 8px; }
+#compcfg-presets { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 20px 8px; }
+#compcfg-presets label { font-size:12px; color:var(--muted); min-width:42px; }
+#compcfg-presets select { min-width:190px; max-width:100%; }
+.compcfg-preset-desc { flex-basis:100%; font-size:11.5px; color:var(--muted); padding-left:50px; margin-top:-2px; min-height:15px; }
 #compcfg-preview { min-height:94px; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--bg); overflow:auto; }
 #compcfg-preview > * { max-width:100%; }
 #compcfg .pf-field { grid-template-columns:minmax(88px, 126px) minmax(0, 1fr); }
@@ -1242,6 +1246,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       <button class="btn" type="button" onclick="closeComponentSettings()" aria-label="Close component settings" title="Close">&#10005;</button>
     </div>
     <div class="hint" id="compcfg-scope" style="padding:0 20px 6px"></div>
+    <div id="compcfg-presets"></div>
     <div id="compcfg-preview-wrap"><div id="compcfg-preview"></div></div>
     <style id="compcfg-preview-style"></style>
     <div class="pref-tabs" id="compcfg-tabs" role="tablist"></div>
@@ -11960,7 +11965,7 @@ var COMPONENT_PREVIEW_BASE = ".sui-checkbox-wrap,.sui-radio-wrap,.sui-switch-wra
   "table.suitbl th,table.suitbl td{border:1px solid var(--sui-table-border,#2c3444)}";
 function componentPreviewHTML(def) {
   switch (def.id) {
-    case "progress": return '<progress class="sui-progress" value="62" max="100" style="width:min(280px,100%)"></progress>';
+    case "progress": return '<progress class="sui-progress" value="62" max="100"></progress>';
     case "badge": return '<span class="sui-badge">Badge preview</span>';
     case "alert": return '<div class="sui-alert" style="width:100%">This is an alert preview.</div>';
     case "spinner": return '<div class="sui-spinner"></div>';
@@ -11974,7 +11979,7 @@ function componentPreviewHTML(def) {
     case "tabs": return '<div class="sui-tabs" style="width:300px"><div class="sui-tablist"><button type="button" class="sui-tab active">One</button><button type="button" class="sui-tab">Two</button></div><div class="sui-tabpanels"><div class="sui-tabpanel">Tab content preview</div></div></div>';
     case "accordion": return '<div class="sui-accordion" style="width:300px"><div class="sui-accordion-item open"><button type="button" class="sui-accordion-head">Section one</button><div class="sui-accordion-panel">Accordion content preview</div></div><div class="sui-accordion-item"><button type="button" class="sui-accordion-head">Section two</button></div></div>';
     case "tree": return '<div class="sui-tree" style="width:240px"><div class="sui-tree-title">Project</div><ul class="sui-tree-group"><li class="sui-tree-item selected"><div class="sui-tree-row"><span class="sui-tree-toggle">▾</span><span class="sui-tree-label">src</span></div><ul class="sui-tree-group"><li class="sui-tree-item"><div class="sui-tree-row"><span class="sui-tree-spacer"></span><span class="sui-tree-label">app.sui</span></div></li></ul></li><li class="sui-tree-item"><div class="sui-tree-row"><span class="sui-tree-toggle">▸</span><span class="sui-tree-label">docs</span></div></li></ul></div>';
-    case "toast": return '<div class="sui-toast" style="width:min(320px,100%)">Saved successfully.</div>';
+    case "toast": return '<div class="sui-toast">Saved successfully.</div>';
     case "combobox": return '<div class="sui-combobox"><span class="sui-combobox-label">Choose</span><div class="sui-combobox-control"><input class="sui-combobox-input" value="Option A" readonly></div><div class="sui-combobox-popup"><div class="sui-combobox-option">Option A</div><div class="sui-combobox-option">Option B</div></div></div>';
     case "datepicker": return '<div class="sui-datepicker"><span class="sui-datepicker-label">Date</span><div class="sui-datepicker-control"><input class="sui-datepicker-input" value="2026-11-06" readonly></div></div>';
     case "modal": return '<div class="sui-modal-panel"><div class="sui-modal-title">Modal title</div><div class="sui-modal-body">Modal content preview.</div><div class="sui-modal-actions"><button type="button" class="sui-modal-button primary">OK</button></div></div>';
@@ -11993,6 +11998,20 @@ function updateComponentPreview() {
   Object.keys(s.values).forEach(function(k){ pv.style.setProperty(k, s.values[k]); });
   pv.innerHTML = componentPreviewHTML(s.def);
 }
+var SUI_PROGRESS_FILLS = {
+  gradient: "linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))",
+  solid: "var(--sui-progress-value, #4c5cf7)",
+  stripes: "repeating-linear-gradient(45deg, var(--sui-progress-value, #4c5cf7) 0 12px, var(--sui-progress-value-end, #6366f1) 12px 24px)",
+  segments: "repeating-linear-gradient(90deg, var(--sui-progress-value, #4c5cf7) 0 14px, transparent 14px 22px)",
+  shimmer: "linear-gradient(90deg, transparent 20%, rgba(255,255,255,.55) 50%, transparent 80%), linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))"
+};
+var SUI_PROGRESS_ANIMS = {
+  none: "none",
+  pulse: "sui-progress-pulse 1.4s ease-in-out infinite",
+  stripes: "sui-progress-stripes .9s linear infinite",
+  shimmer: "sui-progress-shimmer 2.2s linear infinite",
+  glow: "sui-progress-glow 1.6s ease-in-out infinite"
+};
 var COMPONENT_DEFS = [
   { id: "progress", label: "Progress bar", group: "Feedback", kinds: ["progress"],
     categories: [
@@ -12004,17 +12023,59 @@ var COMPONENT_DEFS = [
       { name: "Colors", fields: [
         { key: "--sui-progress-track", label: "Track", type: "color", def: "#374151" },
         { key: "--sui-progress-value", label: "Value", type: "color", def: "#4c5cf7" },
-        { key: "--sui-progress-value-end", label: "Value end", type: "color", def: "#6366f1" }
+        { key: "--sui-progress-value-end", label: "Value end", type: "color", def: "#6366f1" },
+        { key: "--sui-progress-fill", label: "Fill", type: "select", def: SUI_PROGRESS_FILLS.gradient, opts: [
+          ["Gradient", SUI_PROGRESS_FILLS.gradient, { "--sui-progress-fill-size": "auto" }],
+          ["Solid", SUI_PROGRESS_FILLS.solid, { "--sui-progress-fill-size": "auto" }],
+          ["Stripes", SUI_PROGRESS_FILLS.stripes, { "--sui-progress-fill-size": "auto" }],
+          ["Segments", SUI_PROGRESS_FILLS.segments, { "--sui-progress-fill-size": "auto" }],
+          ["Shimmer", SUI_PROGRESS_FILLS.shimmer, { "--sui-progress-fill-size": "220% 100%" }]
+        ] }
       ]},
       { name: "Animation", fields: [
-        { key: "--sui-progress-animation", label: "Effect", type: "select", def: "none", opts: [["None", "none"], ["Pulse", "sui-progress-pulse 1.4s ease-in-out infinite"]] }
+        { key: "--sui-progress-animation", label: "Effect", type: "select", def: SUI_PROGRESS_ANIMS.none, opts: [
+          ["None", SUI_PROGRESS_ANIMS.none],
+          ["Pulse", SUI_PROGRESS_ANIMS.pulse],
+          ["Stripes", SUI_PROGRESS_ANIMS.stripes, { "--sui-progress-fill": SUI_PROGRESS_FILLS.stripes, "--sui-progress-fill-size": "auto" }],
+          ["Shimmer", SUI_PROGRESS_ANIMS.shimmer, { "--sui-progress-fill": SUI_PROGRESS_FILLS.shimmer, "--sui-progress-fill-size": "220% 100%" }],
+          ["Glow", SUI_PROGRESS_ANIMS.glow]
+        ] }
       ]}
     ],
-    css: ".sui-progress { width: var(--sui-progress-width, 100%); height: var(--sui-progress-height, 8px); background: var(--sui-progress-track, #374151); border-radius: var(--sui-progress-radius, 999px); overflow: hidden; animation: var(--sui-progress-animation, none); }\n" +
+    presets: [
+      { id: "classic", label: "Classic", desc: "Rounded gradient bar on a soft track.", vars: {} },
+      { id: "neon", label: "Neon glow", desc: "Cyan-to-violet gradient with a pulsing glow.", vars: {
+        "--sui-progress-track": "#0f172a", "--sui-progress-value": "#22d3ee", "--sui-progress-value-end": "#a855f7",
+        "--sui-progress-height": "10px", "--sui-progress-radius": "999px",
+        "--sui-progress-fill": SUI_PROGRESS_FILLS.gradient, "--sui-progress-fill-size": "auto",
+        "--sui-progress-animation": SUI_PROGRESS_ANIMS.glow } },
+      { id: "barber", label: "Barber pole", desc: "Diagonal stripes that scroll continuously.", vars: {
+        "--sui-progress-track": "#1f2937", "--sui-progress-value": "#f59e0b", "--sui-progress-value-end": "#ef4444",
+        "--sui-progress-height": "14px", "--sui-progress-radius": "4px",
+        "--sui-progress-fill": SUI_PROGRESS_FILLS.stripes, "--sui-progress-fill-size": "auto",
+        "--sui-progress-animation": SUI_PROGRESS_ANIMS.stripes } },
+      { id: "shimmer", label: "Shimmer", desc: "A light sweep travels across the finished value.", vars: {
+        "--sui-progress-track": "#0b1220", "--sui-progress-value": "#38bdf8", "--sui-progress-value-end": "#a78bfa",
+        "--sui-progress-height": "10px", "--sui-progress-fill": SUI_PROGRESS_FILLS.shimmer,
+        "--sui-progress-fill-size": "220% 100%", "--sui-progress-animation": SUI_PROGRESS_ANIMS.shimmer } },
+      { id: "segments", label: "Segmented", desc: "Discrete blocks, like a battery or step meter.", vars: {
+        "--sui-progress-track": "#0f172a", "--sui-progress-value": "#22c55e", "--sui-progress-value-end": "#16a34a",
+        "--sui-progress-height": "12px", "--sui-progress-radius": "3px",
+        "--sui-progress-fill": SUI_PROGRESS_FILLS.segments, "--sui-progress-fill-size": "auto",
+        "--sui-progress-animation": SUI_PROGRESS_ANIMS.none } },
+      { id: "pulse", label: "Soft pulse", desc: "A calm opacity pulse for waiting states.", vars: {
+        "--sui-progress-track": "#3f1d24", "--sui-progress-value": "#f43f5e", "--sui-progress-value-end": "#fb7185",
+        "--sui-progress-height": "12px", "--sui-progress-fill": SUI_PROGRESS_FILLS.gradient,
+        "--sui-progress-fill-size": "auto", "--sui-progress-animation": SUI_PROGRESS_ANIMS.pulse } }
+    ],
+    css: ".sui-progress { width: var(--sui-progress-width, 100%); height: var(--sui-progress-height, 8px); background: var(--sui-progress-track, #374151); border-radius: var(--sui-progress-radius, 999px); overflow: hidden; }\n" +
       ".sui-progress::-webkit-progress-bar { background: var(--sui-progress-track, #374151); }\n" +
-      ".sui-progress::-webkit-progress-value { background: linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1)); border-radius: var(--sui-progress-radius, 999px); }\n" +
-      ".sui-progress::-moz-progress-bar { background: linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1)); border-radius: var(--sui-progress-radius, 999px); }\n" +
-      "@keyframes sui-progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .62; } }"
+      ".sui-progress::-webkit-progress-value { background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))); background-size: var(--sui-progress-fill-size, auto); border-radius: var(--sui-progress-radius, 999px); animation: var(--sui-progress-animation, none); }\n" +
+      ".sui-progress::-moz-progress-bar { background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))); background-size: var(--sui-progress-fill-size, auto); border-radius: var(--sui-progress-radius, 999px); animation: var(--sui-progress-animation, none); }\n" +
+      "@keyframes sui-progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .62; } }\n" +
+      "@keyframes sui-progress-stripes { to { background-position: 40px 0; } }\n" +
+      "@keyframes sui-progress-shimmer { from { background-position: 220% 0; } to { background-position: -220% 0; } }\n" +
+      "@keyframes sui-progress-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.5); } }"
   },
   { id: "badge", label: "Badge", group: "Feedback", kinds: ["badge"],
     categories: [
@@ -12030,9 +12091,41 @@ var COMPONENT_DEFS = [
         { key: "--sui-badge-font-weight", label: "Weight", type: "select", def: "500", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"], ["800", "800"]] },
         { key: "--sui-badge-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-badge-font", label: "Font", type: "font", def: "inherit" }
+      ]},
+      { name: "Effects", fields: [
+        { key: "--sui-badge-transform", label: "Uppercase", type: "switch", def: "none", on: "uppercase", off: "none" },
+        { key: "--sui-badge-tracking", label: "Letter spacing", type: "number", def: 0, min: 0, max: 4, step: 0.5, unit: "px" },
+        { key: "--sui-badge-shadow", label: "Shadow", type: "select", def: "none", opts: [
+          ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.28)"],
+          ["Glow", "0 0 12px rgba(76,92,247,.65)"], ["Strong", "0 6px 18px rgba(0,0,0,.45)"]
+        ] },
+        { key: "--sui-badge-animation", label: "Effect", type: "select", def: "none", opts: [
+          ["None", "none"], ["Pulse", "sui-badge-pulse 1.8s ease-in-out infinite"],
+          ["Glow", "sui-badge-glow 2s ease-in-out infinite"], ["Float", "sui-badge-float 2.4s ease-in-out infinite"]
+        ] }
       ]}
     ],
-    css: ".sui-badge { background: var(--sui-badge-bg, #252b45); color: var(--sui-badge-fg, #a5b4fc); padding: var(--sui-badge-padding, 2px 10px); border-radius: var(--sui-badge-radius, 999px); font-size: var(--sui-badge-font-size, 12px); font-weight: var(--sui-badge-font-weight, 500); font-family: var(--sui-badge-font, inherit); border: var(--sui-badge-border-width, 0) solid var(--sui-badge-border, #4c5cf7); }"
+    presets: [
+      { id: "soft", label: "Soft pill", desc: "Muted background with a pill shape.", vars: {} },
+      { id: "solid", label: "Solid", desc: "High-contrast filled pill.", vars: {
+        "--sui-badge-bg": "#4c5cf7", "--sui-badge-fg": "#ffffff", "--sui-badge-border-width": "0px" } },
+      { id: "outline", label: "Outline", desc: "Transparent badge with a visible ring.", vars: {
+        "--sui-badge-bg": "transparent", "--sui-badge-fg": "#a5b4fc", "--sui-badge-border": "#4c5cf7",
+        "--sui-badge-border-width": "1px", "--sui-badge-shadow": "none" } },
+      { id: "tag", label: "Label tag", desc: "Compact uppercase tag with a square corner.", vars: {
+        "--sui-badge-bg": "#111827", "--sui-badge-fg": "#e5e7eb", "--sui-badge-border": "#374151",
+        "--sui-badge-border-width": "1px", "--sui-badge-radius": "4px", "--sui-badge-padding": "2px 8px",
+        "--sui-badge-transform": "uppercase", "--sui-badge-tracking": "0.5px", "--sui-badge-font-size": "11px",
+        "--sui-badge-font-weight": "600", "--sui-badge-shadow": "none" } },
+      { id: "glow", label: "Neon glow", desc: "Dark badge with a luminous aura that breathes.", vars: {
+        "--sui-badge-bg": "#111827", "--sui-badge-fg": "#a5b4fc", "--sui-badge-border": "#4c5cf7",
+        "--sui-badge-border-width": "1px", "--sui-badge-shadow": "0 0 12px rgba(76,92,247,.65)",
+        "--sui-badge-animation": "sui-badge-glow 2s ease-in-out infinite" } },
+      { id: "success", label: "Success", desc: "Green status badge for positive states.", vars: {
+        "--sui-badge-bg": "#052e16", "--sui-badge-fg": "#86efac", "--sui-badge-border": "#166534",
+        "--sui-badge-border-width": "1px" } }
+    ],
+    css: ".sui-badge { background: var(--sui-badge-bg, #252b45); color: var(--sui-badge-fg, #a5b4fc); padding: var(--sui-badge-padding, 2px 10px); border-radius: var(--sui-badge-radius, 999px); font-size: var(--sui-badge-font-size, 12px); font-weight: var(--sui-badge-font-weight, 500); font-family: var(--sui-badge-font, inherit); border: var(--sui-badge-border-width, 0) solid var(--sui-badge-border, #4c5cf7); box-shadow: var(--sui-badge-shadow, none); text-transform: var(--sui-badge-transform, none); letter-spacing: var(--sui-badge-tracking, normal); animation: var(--sui-badge-animation, none); }\n@keyframes sui-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }\n@keyframes sui-badge-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n@keyframes sui-badge-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }"
   },
   { id: "alert", label: "Alert", group: "Feedback", kinds: ["alert"],
     categories: [
@@ -12043,30 +12136,94 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Shape", fields: [
         { key: "--sui-alert-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-alert-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },
         { key: "--sui-alert-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
         { key: "--sui-alert-padding", label: "Padding", type: "text", def: "12px 16px" },
         { key: "--sui-alert-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 32, step: 1, unit: "px" },
         { key: "--sui-alert-font", label: "Font", type: "font", def: "inherit" }
+      ]},
+      { name: "Effects", fields: [
+        { key: "--sui-alert-shadow", label: "Shadow", type: "select", def: "none", opts: [
+          ["None", "none"], ["Soft", "0 4px 14px rgba(0,0,0,.22)"], ["Glass", "0 8px 24px rgba(0,0,0,.35)"], ["Strong", "0 10px 28px rgba(0,0,0,.42)"]
+        ] },
+        { key: "--sui-alert-animation", label: "Effect", type: "select", def: "none", opts: [
+          ["None", "none"], ["Fade in", "sui-alert-in .24s ease-out"],
+          ["Slide in", "sui-alert-slide .26s ease-out"], ["Shake", "sui-alert-shake .5s ease-in-out"],
+          ["Pulse", "sui-alert-pulse 1.8s ease-in-out infinite"]
+        ] }
       ]}
     ],
-    css: ".sui-alert { background: var(--sui-alert-bg, #3a2427); color: var(--sui-alert-fg, #fca5a5); border: var(--sui-alert-border-width, 1px) solid var(--sui-alert-border, #7f3a3d); border-radius: var(--sui-alert-radius, 8px); padding: var(--sui-alert-padding, 12px 16px); font-size: var(--sui-alert-font-size, 14px); font-family: var(--sui-alert-font, inherit); }"
+    presets: [
+      { id: "danger", label: "Danger", desc: "Red alert for errors and destructive actions.", vars: {} },
+      { id: "success", label: "Success", desc: "Green confirmation alert.", vars: {
+        "--sui-alert-bg": "#0f2a1d", "--sui-alert-fg": "#86efac", "--sui-alert-border": "#166534" } },
+      { id: "info", label: "Info", desc: "Blue informational message.", vars: {
+        "--sui-alert-bg": "#10233f", "--sui-alert-fg": "#93c5fd", "--sui-alert-border": "#1d4ed8" } },
+      { id: "warning", label: "Warning", desc: "Amber alert for caution and pending work.", vars: {
+        "--sui-alert-bg": "#3a2a12", "--sui-alert-fg": "#fcd34d", "--sui-alert-border": "#b45309" } },
+      { id: "glass", label: "Glass", desc: "Translucent panel with a soft edge.", vars: {
+        "--sui-alert-bg": "rgba(255,255,255,.06)", "--sui-alert-fg": "#e6e6ef",
+        "--sui-alert-border": "rgba(255,255,255,.18)", "--sui-alert-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "bar", label: "Accent bar", desc: "Flat alert with a thick left accent bar.", vars: {
+        "--sui-alert-bg": "#0f172a", "--sui-alert-fg": "#bfdbfe", "--sui-alert-border": "#4c5cf7",
+        "--sui-alert-border-width": "0 0 0 4px", "--sui-alert-radius": "0px", "--sui-alert-shadow": "none" } }
+    ],
+    css: ".sui-alert { background: var(--sui-alert-bg, #3a2427); color: var(--sui-alert-fg, #fca5a5); border: var(--sui-alert-border-width, 1px) var(--sui-alert-border-style, solid) var(--sui-alert-border, #7f3a3d); border-radius: var(--sui-alert-radius, 8px); padding: var(--sui-alert-padding, 12px 16px); font-size: var(--sui-alert-font-size, 14px); font-family: var(--sui-alert-font, inherit); box-shadow: var(--sui-alert-shadow, none); animation: var(--sui-alert-animation, none); }\n@keyframes sui-alert-in { from { opacity: 0; } to { opacity: 1; } }\n@keyframes sui-alert-slide { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-alert-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }\n@keyframes sui-alert-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(127,58,61,.0); } 50% { box-shadow: 0 0 0 5px rgba(127,58,61,.32); } }"
   },
   { id: "spinner", label: "Spinner", group: "Feedback", kinds: ["spinner"],
     categories: [
       { name: "Size", fields: [
         { key: "--sui-spinner-size", label: "Size", type: "number", def: 24, min: 8, max: 120, step: 1, unit: "px" },
-        { key: "--sui-spinner-thickness", label: "Thickness", type: "number", def: 3, min: 1, max: 16, step: 1, unit: "px" }
+        { key: "--sui-spinner-thickness", label: "Thickness", type: "number", def: 3, min: 0, max: 16, step: 1, unit: "px" },
+        { key: "--sui-spinner-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"]] }
       ]},
       { name: "Colors", fields: [
         { key: "--sui-spinner-track", label: "Track", type: "color", def: "#4b5563" },
-        { key: "--sui-spinner-color", label: "Active", type: "color", def: "#4c5cf7" }
+        { key: "--sui-spinner-color", label: "Active", type: "color", def: "#4c5cf7" },
+        { key: "--sui-spinner-color2", label: "Active end", type: "color", def: "transparent" },
+        { key: "--sui-spinner-bg", label: "Fill", type: "color", def: "transparent" }
       ]},
       { name: "Animation", fields: [
+        { key: "--sui-spinner-animation", label: "Effect", type: "select", def: "sui-spin", opts: [
+          ["Classic spin", "sui-spin"], ["Pulse", "sui-spinner-pulse"], ["Flip", "sui-spinner-flip"]
+        ] },
         { key: "--sui-spinner-speed", label: "Speed", type: "number", def: 0.8, min: 0.2, max: 4, step: 0.1, unit: "s" },
+        { key: "--sui-spinner-easing", label: "Easing", type: "select", def: "linear", opts: [["Linear", "linear"], ["Ease in out", "ease-in-out"], ["Ease", "ease"]] },
         { key: "--sui-spinner-play", label: "Animate", type: "switch", def: "running", on: "running", off: "paused" }
+      ]},
+      { name: "Effects", fields: [
+        { key: "--sui-spinner-shadow", label: "Glow", type: "select", def: "none", opts: [
+          ["None", "none"], ["Soft", "0 0 10px rgba(76,92,247,.55)"], ["Cyan", "0 0 10px rgba(34,211,238,.55)"], ["Strong", "0 0 18px rgba(76,92,247,.9)"]
+        ] }
       ]}
     ],
-    css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) solid var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-radius: 50%; animation: sui-spin var(--sui-spinner-speed, .8s) linear infinite; animation-play-state: var(--sui-spinner-play, running); }"
+    presets: [
+      { id: "classic", label: "Classic ring", desc: "Thin ring with one highlighted quarter.", vars: {} },
+      { id: "dual", label: "Dual ring", desc: "Two opposite arcs in complementary colours.", vars: {
+        "--sui-spinner-thickness": "4px", "--sui-spinner-track": "#334155",
+        "--sui-spinner-color": "#22d3ee", "--sui-spinner-color2": "#a855f7",
+        "--sui-spinner-shadow": "0 0 10px rgba(34,211,238,.55)" } },
+      { id: "dotted", label: "Dotted", desc: "A dotted track that rotates smoothly.", vars: {
+        "--sui-spinner-thickness": "4px", "--sui-spinner-border-style": "dotted",
+        "--sui-spinner-track": "#475569", "--sui-spinner-color": "#22d3ee" } },
+      { id: "pulse", label: "Pulse dot", desc: "A filled dot that breathes instead of spinning.", vars: {
+        "--sui-spinner-thickness": "0px", "--sui-spinner-size": "20px",
+        "--sui-spinner-track": "transparent", "--sui-spinner-color": "transparent",
+        "--sui-spinner-color2": "transparent", "--sui-spinner-bg": "#4c5cf7",
+        "--sui-spinner-animation": "sui-spinner-pulse", "--sui-spinner-easing": "ease-in-out",
+        "--sui-spinner-speed": "1.1s" } },
+      { id: "gradient", label: "Gradient ring", desc: "Conic gradient masked into a thin ring.", vars: {
+        "--sui-spinner-thickness": "0px", "--sui-spinner-size": "32px",
+        "--sui-spinner-track": "transparent", "--sui-spinner-color": "#22d3ee", "--sui-spinner-color2": "#a855f7",
+        "--sui-spinner-bg": "conic-gradient(from 0deg, transparent 0 18%, var(--sui-spinner-color, #22d3ee) 55%, var(--sui-spinner-color2, #a855f7) 100%)",
+        "--sui-spinner-mask": "radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px))",
+        "--sui-spinner-animation": "sui-spin", "--sui-spinner-speed": "1s" } },
+      { id: "flip", label: "Coin flip", desc: "The ring flips on its vertical axis.", vars: {
+        "--sui-spinner-thickness": "3px", "--sui-spinner-track": "#1e293b",
+        "--sui-spinner-color": "#34d399", "--sui-spinner-animation": "sui-spinner-flip",
+        "--sui-spinner-easing": "ease-in-out", "--sui-spinner-speed": "1.4s" } }
+    ],
+    css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) var(--sui-spinner-border-style, solid) var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-bottom-color: var(--sui-spinner-color2, transparent); background: var(--sui-spinner-bg, transparent); border-radius: 50%; box-shadow: var(--sui-spinner-shadow, none); mask: var(--sui-spinner-mask, none); -webkit-mask: var(--sui-spinner-mask, none); animation-name: var(--sui-spinner-animation, sui-spin); animation-duration: var(--sui-spinner-speed, .8s); animation-timing-function: var(--sui-spinner-easing, linear); animation-iteration-count: infinite; animation-play-state: var(--sui-spinner-play, running); }\n@keyframes sui-spinner-pulse { 0%, 100% { transform: scale(.68); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }\n@keyframes sui-spinner-flip { to { transform: rotateY(360deg); } }"
   },
   { id: "card", label: "Card", group: "Layout", kinds: ["card"],
     categories: [
@@ -12076,23 +12233,57 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Shape", fields: [
         { key: "--sui-card-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-card-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },
         { key: "--sui-card-radius", label: "Radius", type: "number", def: 12, min: 0, max: 60, step: 1, unit: "px" },
         { key: "--sui-card-padding", label: "Padding", type: "text", def: "16px" },
-        { key: "--sui-card-shadow", label: "Shadow", type: "select", def: "0 4px 12px rgba(0,0,0,.3)", opts: [["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Medium", "0 4px 12px rgba(0,0,0,.3)"], ["Strong", "0 12px 30px rgba(0,0,0,.42)"]] },
         { key: "--sui-card-font", label: "Font", type: "font", def: "inherit" }
+      ]},
+      { name: "Effects", fields: [
+        { key: "--sui-card-shadow", label: "Shadow", type: "select", def: "0 4px 12px rgba(0,0,0,.3)", opts: [["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Medium", "0 4px 12px rgba(0,0,0,.3)"], ["Glass", "0 8px 32px rgba(0,0,0,.28)"], ["Neon", "0 0 0 1px rgba(34,211,238,.35), 0 0 24px rgba(34,211,238,.25)"], ["Strong", "0 12px 30px rgba(0,0,0,.42)"]] },
+        { key: "--sui-card-backdrop", label: "Backdrop", type: "select", def: "none", opts: [["None", "none"], ["Blur light", "blur(6px)"], ["Blur strong", "blur(14px)"]] },
+        { key: "--sui-card-animation", label: "Effect", type: "select", def: "none", opts: [
+          ["None", "none"], ["Fade in", "sui-card-in .28s ease-out"], ["Float", "sui-card-float 3.2s ease-in-out infinite"]
+        ] }
       ]}
     ],
-    css: ".sui-card { background: var(--sui-card-bg, #1a1d26); border: var(--sui-card-border-width, 1px) solid var(--sui-card-border, #3d4556); border-radius: var(--sui-card-radius, 12px); padding: var(--sui-card-padding, 16px); box-shadow: var(--sui-card-shadow, 0 4px 12px rgba(0,0,0,.3)); font-family: var(--sui-card-font, inherit); }"
+    presets: [
+      { id: "elevated", label: "Elevated", desc: "Rounded panel with a medium drop shadow.", vars: {} },
+      { id: "flat", label: "Flat", desc: "No shadow, just a subtle outline.", vars: {
+        "--sui-card-shadow": "none", "--sui-card-border-width": "1px", "--sui-card-radius": "8px" } },
+      { id: "outline", label: "Outline", desc: "Transparent card with a bold coloured border.", vars: {
+        "--sui-card-bg": "transparent", "--sui-card-border": "#4c5cf7", "--sui-card-border-width": "2px",
+        "--sui-card-shadow": "none" } },
+      { id: "glass", label: "Glass", desc: "Translucent surface with a strong blur.", vars: {
+        "--sui-card-bg": "rgba(255,255,255,.06)", "--sui-card-border": "rgba(255,255,255,.18)",
+        "--sui-card-shadow": "0 8px 32px rgba(0,0,0,.28)", "--sui-card-backdrop": "blur(10px)" } },
+      { id: "neon", label: "Neon", desc: "Dark card with a cyan halo.", vars: {
+        "--sui-card-bg": "#0b1020", "--sui-card-border": "#22d3ee", "--sui-card-border-width": "1px",
+        "--sui-card-shadow": "0 0 0 1px rgba(34,211,238,.35), 0 0 24px rgba(34,211,238,.25)" } },
+      { id: "dashed", label: "Dashed", desc: "Dashed outline for placeholders and drop zones.", vars: {
+        "--sui-card-bg": "transparent", "--sui-card-border": "#4c5cf7", "--sui-card-border-style": "dashed",
+        "--sui-card-border-width": "2px", "--sui-card-shadow": "none" } }
+    ],
+    css: ".sui-card { background: var(--sui-card-bg, #1a1d26); border: var(--sui-card-border-width, 1px) var(--sui-card-border-style, solid) var(--sui-card-border, #3d4556); border-radius: var(--sui-card-radius, 12px); padding: var(--sui-card-padding, 16px); box-shadow: var(--sui-card-shadow, 0 4px 12px rgba(0,0,0,.3)); backdrop-filter: var(--sui-card-backdrop, none); font-family: var(--sui-card-font, inherit); animation: var(--sui-card-animation, none); }\n@keyframes sui-card-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-card-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }"
   },
   { id: "divider", label: "Divider", group: "Layout", kinds: ["divider"],
     categories: [
       { name: "Shape", fields: [
         { key: "--sui-divider-thickness", label: "Thickness", type: "number", def: 1, min: 1, max: 12, step: 1, unit: "px" },
+        { key: "--sui-divider-style", label: "Line style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["Double", "double"]] },
         { key: "--sui-divider-margin", label: "Margin", type: "text", def: "8px 0" },
         { key: "--sui-divider-color", label: "Color", type: "color", def: "#3d4556" }
       ]}
     ],
-    css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) solid var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Thin solid separator.", vars: {} },
+      { id: "dashed", label: "Dashed", desc: "Dashed blue separator for related groups.", vars: {
+        "--sui-divider-style": "dashed", "--sui-divider-color": "#4c5cf7" } },
+      { id: "dotted", label: "Dotted", desc: "Dotted line with a medium weight.", vars: {
+        "--sui-divider-style": "dotted", "--sui-divider-thickness": "2px", "--sui-divider-color": "#64748b" } },
+      { id: "accent", label: "Accent rule", desc: "Bold accent rule with generous spacing.", vars: {
+        "--sui-divider-thickness": "3px", "--sui-divider-color": "#4c5cf7", "--sui-divider-margin": "16px 0" } }
+    ],
+    css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) var(--sui-divider-style, solid) var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }"
   },
   { id: "form", label: "Input / Textarea / Select", group: "Form", kinds: ["input", "textarea", "select"],
     categories: [
@@ -12112,6 +12303,20 @@ var COMPONENT_DEFS = [
         { key: "--sui-field-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 32, step: 1, unit: "px" }
       ]}
     ],
+    presets: [
+      { id: "classic", label: "Classic", desc: "Dark field with a subtle border.", vars: {} },
+      { id: "filled", label: "Filled", desc: "Soft filled field without a visible border.", vars: {
+        "--sui-field-bg": "#1f2937", "--sui-field-border": "#1f2937", "--sui-field-border-width": "0px",
+        "--sui-field-focus": "#60a5fa" } },
+      { id: "outline", label: "Outline", desc: "Transparent field with a bold focus colour.", vars: {
+        "--sui-field-bg": "transparent", "--sui-field-border": "#4c5cf7", "--sui-field-border-width": "2px" } },
+      { id: "underline", label: "Underline", desc: "Minimal field with a single bottom rule.", vars: {
+        "--sui-field-bg": "transparent", "--sui-field-border-width": "0 0 2px 0", "--sui-field-radius": "0px",
+        "--sui-field-padding": "8px 2px", "--sui-field-border": "#475569" } },
+      { id: "pill", label: "Pill", desc: "Fully rounded field with roomy padding.", vars: {
+        "--sui-field-radius": "999px", "--sui-field-padding": "10px 16px", "--sui-field-bg": "#111827",
+        "--sui-field-border": "#334155" } }
+    ],
     css: ".sui-input, .sui-textarea, .sui-select { background: var(--sui-field-bg, #1d2129); color: var(--sui-field-fg, #e6e6ef); border: var(--sui-field-border-width, 1px) solid var(--sui-field-border, #3d4556); border-radius: var(--sui-field-radius, 8px); padding: var(--sui-field-padding, 8px 12px); font-family: var(--sui-field-font, inherit); font-size: var(--sui-field-font-size, 14px); }\n:where(.sui-input):focus, :where(.sui-textarea):focus, :where(.sui-select):focus { border-color: var(--sui-field-focus, #4c5cf7); }"
   },
   { id: "button", label: "Button", group: "Form", kinds: ["button"],
@@ -12124,14 +12329,52 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Shape", fields: [
         { key: "--sui-button-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-button-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },
         { key: "--sui-button-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
         { key: "--sui-button-padding", label: "Padding", type: "text", def: "8px 16px" },
         { key: "--sui-button-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 32, step: 1, unit: "px" },
         { key: "--sui-button-font-weight", label: "Weight", type: "select", def: "400", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"]] },
         { key: "--sui-button-font", label: "Font", type: "font", def: "inherit" }
+      ]},
+      { name: "Effects", fields: [
+        { key: "--sui-button-shadow", label: "Shadow", type: "select", def: "none", opts: [
+          ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.28)"], ["Glow", "0 0 14px rgba(76,92,247,.5)"],
+          ["Primary", "0 4px 14px rgba(76,92,247,.45)"], ["Success", "0 4px 12px rgba(34,197,94,.35)"],
+          ["Danger", "0 4px 14px rgba(220,38,38,.4)"], ["Neon", "0 0 14px rgba(34,211,238,.45)"],
+          ["Strong", "0 8px 22px rgba(0,0,0,.45)"]
+        ] },
+        { key: "--sui-button-animation", label: "Effect", type: "select", def: "none", opts: [
+          ["None", "none"], ["Pulse", "sui-button-pulse 1.8s ease-in-out infinite"],
+          ["Float", "sui-button-float 2.6s ease-in-out infinite"], ["Glow", "sui-button-glow 2.2s ease-in-out infinite"]
+        ] }
       ]}
     ],
-    css: ".sui-button { background: var(--sui-button-bg, #2d3340); color: var(--sui-button-fg, #e6e6e6); border: var(--sui-button-border-width, 1px) solid var(--sui-button-border, #3d4556); border-radius: var(--sui-button-radius, 8px); padding: var(--sui-button-padding, 8px 16px); font-size: var(--sui-button-font-size, 14px); font-weight: var(--sui-button-font-weight, 400); font-family: var(--sui-button-font, inherit); }\n.sui-button:hover { background: var(--sui-button-hover, #3a4356); }"
+    presets: [
+      { id: "secondary", label: "Secondary", desc: "Neutral button for everyday actions.", vars: {} },
+      { id: "primary", label: "Primary", desc: "Gradient call-to-action with a coloured shadow.", vars: {
+        "--sui-button-bg": "linear-gradient(135deg, #4c5cf7, #7c3aed)", "--sui-button-fg": "#ffffff",
+        "--sui-button-border": "#4c5cf7", "--sui-button-hover": "#5b6bff",
+        "--sui-button-shadow": "0 4px 14px rgba(76,92,247,.45)" } },
+      { id: "outline", label: "Outline", desc: "Transparent button with a coloured ring.", vars: {
+        "--sui-button-bg": "transparent", "--sui-button-fg": "#a5b4fc", "--sui-button-border": "#4c5cf7",
+        "--sui-button-border-width": "1px", "--sui-button-hover": "rgba(76,92,247,.16)",
+        "--sui-button-shadow": "none" } },
+      { id: "ghost", label: "Ghost", desc: "Borderless button that appears on hover.", vars: {
+        "--sui-button-bg": "transparent", "--sui-button-fg": "#c7d2fe", "--sui-button-border-width": "0px",
+        "--sui-button-hover": "rgba(255,255,255,.08)", "--sui-button-shadow": "none" } },
+      { id: "pill", label: "Pill", desc: "Fully rounded green button.", vars: {
+        "--sui-button-radius": "999px", "--sui-button-padding": "8px 20px", "--sui-button-bg": "#22c55e",
+        "--sui-button-fg": "#052e16", "--sui-button-border": "#16a34a", "--sui-button-hover": "#4ade80",
+        "--sui-button-shadow": "0 4px 12px rgba(34,197,94,.35)" } },
+      { id: "danger", label: "Danger", desc: "Red button for destructive actions.", vars: {
+        "--sui-button-bg": "#dc2626", "--sui-button-fg": "#ffffff", "--sui-button-border": "#b91c1c",
+        "--sui-button-hover": "#ef4444", "--sui-button-shadow": "0 4px 14px rgba(220,38,38,.4)" } },
+      { id: "neon", label: "Neon", desc: "Transparent cyan button with a breathing glow.", vars: {
+        "--sui-button-bg": "transparent", "--sui-button-fg": "#22d3ee", "--sui-button-border": "#22d3ee",
+        "--sui-button-hover": "rgba(34,211,238,.12)", "--sui-button-shadow": "0 0 14px rgba(34,211,238,.45)",
+        "--sui-button-animation": "sui-button-glow 2.2s ease-in-out infinite" } }
+    ],
+    css: ".sui-button { background: var(--sui-button-bg, #2d3340); color: var(--sui-button-fg, #e6e6e6); border: var(--sui-button-border-width, 1px) var(--sui-button-border-style, solid) var(--sui-button-border, #3d4556); border-radius: var(--sui-button-radius, 8px); padding: var(--sui-button-padding, 8px 16px); font-size: var(--sui-button-font-size, 14px); font-weight: var(--sui-button-font-weight, 400); font-family: var(--sui-button-font, inherit); box-shadow: var(--sui-button-shadow, none); animation: var(--sui-button-animation, none); transition: background .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease; }\n.sui-button:hover { background: var(--sui-button-hover, #3a4356); }\n@keyframes sui-button-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(76,92,247,.45); } 50% { box-shadow: 0 0 0 6px rgba(76,92,247,0); } }\n@keyframes sui-button-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }\n@keyframes sui-button-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }"
   },
   { id: "check", label: "Checkbox / Radio", group: "Form", kinds: ["checkbox", "radio"],
     categories: [
@@ -12145,6 +12388,18 @@ var COMPONENT_DEFS = [
         { key: "--sui-check-size", label: "Size", type: "number", def: 18, min: 10, max: 48, step: 1, unit: "px" }
       ]}
     ],
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard checkbox and radio controls.", vars: {} },
+      { id: "square", label: "Square", desc: "Larger square checkbox with a strong border.", vars: {
+        "--sui-check-size": "22px", "--sui-check-bg": "#111827", "--sui-check-border": "#4c5cf7",
+        "--sui-check-checked": "#4c5cf7", "--sui-check-mark": "#ffffff" } },
+      { id: "soft", label: "Soft green", desc: "Compact control with a green checked state.", vars: {
+        "--sui-check-size": "16px", "--sui-check-bg": "#1f2937", "--sui-check-border": "#475569",
+        "--sui-check-checked": "#22c55e", "--sui-check-mark": "#052e16" } },
+      { id: "neon", label: "Neon", desc: "Dark control with a cyan checked state.", vars: {
+        "--sui-check-size": "20px", "--sui-check-bg": "#0f172a", "--sui-check-border": "#22d3ee",
+        "--sui-check-checked": "#22d3ee", "--sui-check-mark": "#052e16" } }
+    ],
     css: ".sui-checkbox, .sui-radio { width: var(--sui-check-size, 18px); height: var(--sui-check-size, 18px); background: var(--sui-check-bg, #1d2129); border-color: var(--sui-check-border, #3d4556); }\n:where(.sui-checkbox):checked, :where(.sui-radio):checked { background: var(--sui-check-checked, #4c5cf7); border-color: var(--sui-check-checked, #4c5cf7); }\n.sui-checkbox:checked::after { border-color: var(--sui-check-mark, #fff); }\n.sui-radio:checked::after { background: var(--sui-check-mark, #fff); }"
   },
   { id: "switch", label: "Switch", group: "Form", kinds: ["switch"],
@@ -12156,10 +12411,21 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Size", fields: [
         { key: "--sui-switch-width", label: "Width", type: "number", def: 42, min: 24, max: 96, step: 1, unit: "px" },
-        { key: "--sui-switch-height", label: "Height", type: "number", def: 24, min: 14, max: 56, step: 1, unit: "px" }
+        { key: "--sui-switch-height", label: "Height", type: "number", def: 24, min: 14, max: 56, step: 1, unit: "px" },
+        { key: "--sui-switch-radius", label: "Radius", type: "number", def: 999, min: 0, max: 999, step: 1, unit: "px" }
       ]}
     ],
-    css: ".sui-switch { width: var(--sui-switch-width, 42px); height: var(--sui-switch-height, 24px); background: var(--sui-switch-bg, #374151); }\n.sui-switch::after { width: calc(var(--sui-switch-height, 24px) - 4px); height: calc(var(--sui-switch-height, 24px) - 4px); background: var(--sui-switch-thumb, #fff); }\n:where(.sui-switch):checked { background: var(--sui-switch-checked, #4c5cf7); }\n.sui-switch:checked::after { transform: translateX(calc(var(--sui-switch-width, 42px) - var(--sui-switch-height, 24px))); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Rounded blue toggle.", vars: {} },
+      { id: "ios", label: "iOS", desc: "Wide green toggle with a crisp white thumb.", vars: {
+        "--sui-switch-width": "46px", "--sui-switch-height": "26px", "--sui-switch-bg": "#334155",
+        "--sui-switch-checked": "#22c55e", "--sui-switch-thumb": "#ffffff" } },
+      { id: "square", label: "Square", desc: "Compact rectangular toggle.", vars: {
+        "--sui-switch-radius": "6px", "--sui-switch-bg": "#1e293b", "--sui-switch-checked": "#4c5cf7" } },
+      { id: "neon", label: "Neon", desc: "Dark toggle with a cyan active state.", vars: {
+        "--sui-switch-bg": "#0f172a", "--sui-switch-checked": "#22d3ee", "--sui-switch-thumb": "#f0f9ff" } }
+    ],
+    css: ".sui-switch { width: var(--sui-switch-width, 42px); height: var(--sui-switch-height, 24px); background: var(--sui-switch-bg, #374151); border-radius: var(--sui-switch-radius, 999px); }\n.sui-switch::after { width: calc(var(--sui-switch-height, 24px) - 4px); height: calc(var(--sui-switch-height, 24px) - 4px); background: var(--sui-switch-thumb, #fff); }\n:where(.sui-switch):checked { background: var(--sui-switch-checked, #4c5cf7); }\n.sui-switch:checked::after { transform: translateX(calc(var(--sui-switch-width, 42px) - var(--sui-switch-height, 24px))); }"
   },
   { id: "slider", label: "Slider", group: "Form", kinds: ["slider"],
     categories: [
@@ -12171,6 +12437,17 @@ var COMPONENT_DEFS = [
         { key: "--sui-slider-track", label: "Track height", type: "number", def: 6, min: 2, max: 24, step: 1, unit: "px" },
         { key: "--sui-slider-thumb", label: "Thumb size", type: "number", def: 18, min: 8, max: 48, step: 1, unit: "px" }
       ]}
+    ],
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard track with a round thumb.", vars: {} },
+      { id: "thin", label: "Thin", desc: "Slim track and compact thumb.", vars: {
+        "--sui-slider-track": "3px", "--sui-slider-thumb": "14px" } },
+      { id: "thick", label: "Thick", desc: "Bold track with a large thumb.", vars: {
+        "--sui-slider-track": "12px", "--sui-slider-thumb": "26px", "--sui-slider-bg": "#334155" } },
+      { id: "neon", label: "Neon", desc: "Dark track with a cyan thumb.", vars: {
+        "--sui-slider-bg": "#0f172a", "--sui-slider-thumb-bg": "#22d3ee" } },
+      { id: "danger", label: "Danger", desc: "Red thumb for destructive ranges.", vars: {
+        "--sui-slider-bg": "#3f1d24", "--sui-slider-thumb-bg": "#ef4444" } }
     ],
     css: ".sui-slider { height: var(--sui-slider-track, 6px); background: var(--sui-slider-bg, #374151); }\n.sui-slider::-webkit-slider-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }\n.sui-slider::-moz-range-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }"
   },
@@ -12187,12 +12464,32 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Shape", fields: [
         { key: "--sui-tabs-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-tab-radius", label: "Tab radius", type: "text", def: "6px 6px 0 0" },
+        { key: "--sui-tablist-padding", label: "Tab bar padding", type: "text", def: "4px 4px 0" },
         { key: "--sui-tab-padding", label: "Tab padding", type: "text", def: "8px 14px" },
         { key: "--sui-tab-size", label: "Font size", type: "number", def: 13, min: 9, max: 28, step: 1, unit: "px" },
         { key: "--sui-tab-transform", label: "Uppercase", type: "switch", def: "none", on: "uppercase", off: "none" }
       ]}
     ],
-    css: ".sui-tabs { background: var(--sui-tabs-bg, #1d2129); border-color: var(--sui-tabs-border, #3d4556); border-radius: var(--sui-tabs-radius, 8px); }\n.sui-tablist { background: var(--sui-tablist-bg, #1d2129); border-bottom-color: var(--sui-tabs-border, #3d4556); }\n.sui-tab { color: var(--sui-tab-fg, #9aa7b8); padding: var(--sui-tab-padding, 8px 14px); font-size: var(--sui-tab-size, 13px); text-transform: var(--sui-tab-transform, none); }\n.sui-tab.active { color: var(--sui-tab-active-fg, #e6e6ef); background: var(--sui-tab-active-bg, #14171c); box-shadow: inset 0 -2px 0 var(--sui-tab-accent, #4c5cf7); }"
+    presets: [
+      { id: "underline", label: "Underline", desc: "Classic tabs with an accent underline.", vars: {} },
+      { id: "pills", label: "Pills", desc: "Rounded pill tabs on a dark bar.", vars: {
+        "--sui-tabs-bg": "#0f172a", "--sui-tablist-bg": "#0f172a", "--sui-tab-fg": "#94a3b8",
+        "--sui-tab-active-bg": "#4c5cf7", "--sui-tab-active-fg": "#ffffff", "--sui-tab-accent": "#4c5cf7",
+        "--sui-tabs-border": "transparent", "--sui-tabs-radius": "12px", "--sui-tab-radius": "999px",
+        "--sui-tablist-padding": "4px", "--sui-tab-padding": "7px 14px" } },
+      { id: "segmented", label: "Segmented", desc: "Inset segmented control with a cyan accent.", vars: {
+        "--sui-tabs-bg": "#0f172a", "--sui-tablist-bg": "#0b1220", "--sui-tab-fg": "#94a3b8",
+        "--sui-tab-active-bg": "#1e293b", "--sui-tab-active-fg": "#e2e8f0", "--sui-tab-accent": "#22d3ee",
+        "--sui-tabs-border": "#1e293b", "--sui-tabs-radius": "10px", "--sui-tab-radius": "6px",
+        "--sui-tablist-padding": "4px" } },
+      { id: "boxed", label: "Boxed", desc: "Solid boxed tabs with a crisp border.", vars: {
+        "--sui-tabs-bg": "#111827", "--sui-tablist-bg": "#0b1220", "--sui-tab-fg": "#94a3b8",
+        "--sui-tab-active-bg": "#111827", "--sui-tab-active-fg": "#ffffff", "--sui-tab-accent": "#4c5cf7",
+        "--sui-tabs-border": "#334155", "--sui-tabs-radius": "8px", "--sui-tab-radius": "6px",
+        "--sui-tablist-padding": "0px" } }
+    ],
+    css: ".sui-tabs { background: var(--sui-tabs-bg, #1d2129); border-color: var(--sui-tabs-border, #3d4556); border-radius: var(--sui-tabs-radius, 8px); }\n.sui-tablist { background: var(--sui-tablist-bg, #1d2129); border-bottom-color: var(--sui-tabs-border, #3d4556); padding: var(--sui-tablist-padding, 4px 4px 0); }\n.sui-tab { color: var(--sui-tab-fg, #9aa7b8); padding: var(--sui-tab-padding, 8px 14px); font-size: var(--sui-tab-size, 13px); text-transform: var(--sui-tab-transform, none); border-radius: var(--sui-tab-radius, 6px 6px 0 0); }\n.sui-tab.active { color: var(--sui-tab-active-fg, #e6e6ef); background: var(--sui-tab-active-bg, #14171c); box-shadow: inset 0 -2px 0 var(--sui-tab-accent, #4c5cf7); }"
   },
   { id: "accordion", label: "Accordion", group: "Navigation", kinds: ["accordion"],
     categories: [
@@ -12203,12 +12500,27 @@ var COMPONENT_DEFS = [
         { key: "--sui-accordion-border", label: "Border", type: "color", def: "#3d4556" }
       ]},
       { name: "Shape", fields: [
+        { key: "--sui-accordion-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-accordion-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
         { key: "--sui-accordion-padding", label: "Header padding", type: "text", def: "11px 14px" },
         { key: "--sui-accordion-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
       ]}
     ],
-    css: ".sui-accordion { background: var(--sui-accordion-bg, #1d2129); border-color: var(--sui-accordion-border, #3d4556); border-radius: var(--sui-accordion-radius, 8px); }\n.sui-accordion-head { background: var(--sui-accordion-head-bg, transparent); color: var(--sui-accordion-fg, #e6e6ef); padding: var(--sui-accordion-padding, 11px 14px); font-size: var(--sui-accordion-size, 14px); }\n.sui-accordion-panel { color: var(--sui-accordion-fg, #e6e6ef); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard bordered accordion.", vars: {} },
+      { id: "filled", label: "Filled", desc: "Dark panel with a raised header.", vars: {
+        "--sui-accordion-bg": "#0f172a", "--sui-accordion-head-bg": "#1e293b",
+        "--sui-accordion-fg": "#e2e8f0", "--sui-accordion-border": "#334155" } },
+      { id: "accent", label: "Indigo", desc: "Indigo header with a matching border.", vars: {
+        "--sui-accordion-bg": "#1e1b4b", "--sui-accordion-head-bg": "#312e81",
+        "--sui-accordion-fg": "#e0e7ff", "--sui-accordion-border": "#4c5cf7" } },
+      { id: "compact", label: "Compact", desc: "Tighter spacing for dense forms.", vars: {
+        "--sui-accordion-radius": "6px", "--sui-accordion-padding": "8px 10px", "--sui-accordion-size": "13px" } },
+      { id: "borderless", label: "Borderless", desc: "Flat accordion without an outer frame.", vars: {
+        "--sui-accordion-border-width": "0px", "--sui-accordion-bg": "transparent",
+        "--sui-accordion-head-bg": "transparent", "--sui-accordion-fg": "#cbd5e1" } }
+    ],
+    css: ".sui-accordion { background: var(--sui-accordion-bg, #1d2129); border: var(--sui-accordion-border-width, 1px) solid var(--sui-accordion-border, #3d4556); border-radius: var(--sui-accordion-radius, 8px); }\n.sui-accordion-head { background: var(--sui-accordion-head-bg, transparent); color: var(--sui-accordion-fg, #e6e6ef); padding: var(--sui-accordion-padding, 11px 14px); font-size: var(--sui-accordion-size, 14px); }\n.sui-accordion-panel { color: var(--sui-accordion-fg, #e6e6ef); }"
   },
   { id: "combobox", label: "Combobox", group: "Form", kinds: ["combobox"],
     categories: [
@@ -12221,12 +12533,26 @@ var COMPONENT_DEFS = [
         { key: "--sui-combobox-hover", label: "Option hover", type: "color", def: "#2a3143" }
       ]},
       { name: "Shape", fields: [
+        { key: "--sui-combobox-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-combobox-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-combobox-padding", label: "Padding", type: "text", def: "8px 12px" },
         { key: "--sui-combobox-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
       ]}
     ],
-    css: ".sui-combobox-label { color: var(--sui-combobox-label, #8fa0b8); font-size: var(--sui-combobox-font-size, 12px); }\n.sui-combobox-input { background: var(--sui-combobox-bg, #1d2129); color: var(--sui-combobox-fg, #e6e6ef); border: 1px solid var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); padding: var(--sui-combobox-padding, 8px 12px); font-size: var(--sui-combobox-font-size, 14px); }\n.sui-combobox-popup { background: var(--sui-combobox-popup-bg, #1d2129); border-color: var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); }\n.sui-combobox-option:hover, .sui-combobox-option.active { background: var(--sui-combobox-hover, #2a3143); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard input with a dark popup.", vars: {} },
+      { id: "filled", label: "Filled", desc: "Solid filled control without a border.", vars: {
+        "--sui-combobox-bg": "#1f2937", "--sui-combobox-border": "#1f2937", "--sui-combobox-border-width": "0px",
+        "--sui-combobox-popup-bg": "#1f2937", "--sui-combobox-hover": "#374151" } },
+      { id: "outline", label: "Outline", desc: "Transparent control with a bold blue ring.", vars: {
+        "--sui-combobox-bg": "transparent", "--sui-combobox-border": "#4c5cf7", "--sui-combobox-border-width": "2px",
+        "--sui-combobox-popup-bg": "#0f172a", "--sui-combobox-hover": "#1e293b" } },
+      { id: "pill", label: "Pill", desc: "Fully rounded control and popup.", vars: {
+        "--sui-combobox-radius": "999px", "--sui-combobox-bg": "#111827", "--sui-combobox-border": "#334155" } },
+      { id: "compact", label: "Compact", desc: "Tighter padding for dense forms.", vars: {
+        "--sui-combobox-padding": "6px 10px", "--sui-combobox-font-size": "13px", "--sui-combobox-radius": "6px" } }
+    ],
+    css: ".sui-combobox-label { color: var(--sui-combobox-label, #8fa0b8); font-size: var(--sui-combobox-font-size, 12px); }\n.sui-combobox-input { background: var(--sui-combobox-bg, #1d2129); color: var(--sui-combobox-fg, #e6e6ef); border: var(--sui-combobox-border-width, 1px) solid var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); padding: var(--sui-combobox-padding, 8px 12px); font-size: var(--sui-combobox-font-size, 14px); }\n.sui-combobox-popup { background: var(--sui-combobox-popup-bg, #1d2129); border-color: var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); }\n.sui-combobox-option:hover, .sui-combobox-option.active { background: var(--sui-combobox-hover, #2a3143); }"
   },
   { id: "datepicker", label: "Date / Time picker", group: "Form", kinds: ["datepicker"],
     categories: [
@@ -12237,12 +12563,26 @@ var COMPONENT_DEFS = [
         { key: "--sui-datepicker-label", label: "Label", type: "color", def: "#8fa0b8" }
       ]},
       { name: "Shape", fields: [
+        { key: "--sui-datepicker-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-datepicker-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-datepicker-padding", label: "Padding", type: "text", def: "8px 12px" },
         { key: "--sui-datepicker-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
       ]}
     ],
-    css: ".sui-datepicker-label { color: var(--sui-datepicker-label, #8fa0b8); font-size: var(--sui-datepicker-font-size, 12px); }\n.sui-datepicker-input { background: var(--sui-datepicker-bg, #1d2129); color: var(--sui-datepicker-fg, #e6e6ef); border: 1px solid var(--sui-datepicker-border, #3d4556); border-radius: var(--sui-datepicker-radius, 8px); padding: var(--sui-datepicker-padding, 8px 12px); font-size: var(--sui-datepicker-font-size, 14px); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard date and time input.", vars: {} },
+      { id: "filled", label: "Filled", desc: "Solid filled field without a border.", vars: {
+        "--sui-datepicker-bg": "#1f2937", "--sui-datepicker-border": "#1f2937",
+        "--sui-datepicker-border-width": "0px" } },
+      { id: "outline", label: "Outline", desc: "Transparent field with a bold blue ring.", vars: {
+        "--sui-datepicker-bg": "transparent", "--sui-datepicker-border": "#4c5cf7",
+        "--sui-datepicker-border-width": "2px" } },
+      { id: "pill", label: "Pill", desc: "Fully rounded control.", vars: {
+        "--sui-datepicker-radius": "999px", "--sui-datepicker-bg": "#111827", "--sui-datepicker-border": "#334155" } },
+      { id: "compact", label: "Compact", desc: "Tighter padding for dense forms.", vars: {
+        "--sui-datepicker-padding": "6px 10px", "--sui-datepicker-font-size": "13px", "--sui-datepicker-radius": "6px" } }
+    ],
+    css: ".sui-datepicker-label { color: var(--sui-datepicker-label, #8fa0b8); font-size: var(--sui-datepicker-font-size, 12px); }\n.sui-datepicker-input { background: var(--sui-datepicker-bg, #1d2129); color: var(--sui-datepicker-fg, #e6e6ef); border: var(--sui-datepicker-border-width, 1px) solid var(--sui-datepicker-border, #3d4556); border-radius: var(--sui-datepicker-radius, 8px); padding: var(--sui-datepicker-padding, 8px 12px); font-size: var(--sui-datepicker-font-size, 14px); }"
   },
   { id: "tree", label: "Tree", group: "Data", kinds: ["tree", "treeitem"],
     categories: [
@@ -12262,6 +12602,18 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" }
       ]}
     ],
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard tree with a blue selection.", vars: {} },
+      { id: "compact", label: "Compact", desc: "Tight rows for large trees.", vars: {
+        "--sui-tree-indent": "12px", "--sui-tree-padding": "1px 4px", "--sui-tree-row-height": "24px",
+        "--sui-tree-radius": "4px", "--sui-tree-font": "12px" } },
+      { id: "spacious", label: "Spacious", desc: "Roomy rows and a wider indent.", vars: {
+        "--sui-tree-indent": "22px", "--sui-tree-padding": "4px 8px", "--sui-tree-row-height": "34px",
+        "--sui-tree-radius": "8px", "--sui-tree-font": "14px" } },
+      { id: "dark", label: "Midnight", desc: "Slate text with a strong blue selection.", vars: {
+        "--sui-tree-fg": "#cbd5e1", "--sui-tree-title": "#f8fafc", "--sui-tree-row-bg": "transparent",
+        "--sui-tree-hover": "#1e293b", "--sui-tree-selected-bg": "#1d4ed8", "--sui-tree-selected-fg": "#ffffff" } }
+    ],
     css: ".sui-tree { color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); }\n.sui-tree-title { color: var(--sui-tree-title, #e6e6ef); }\n.sui-tree-group { padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); }"
   },
   { id: "table", label: "Table", group: "Data", kinds: ["table"],
@@ -12271,6 +12623,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-table-head-bg", label: "Header", type: "color", def: "#202732" },
         { key: "--sui-table-head-fg", label: "Header text", type: "color", def: "#f2f4f6" },
         { key: "--sui-table-row-bg", label: "Row", type: "color", def: "#1d2129" },
+        { key: "--sui-table-striped-bg", label: "Even row", type: "color", def: "#1d2129" },
         { key: "--sui-table-hover", label: "Hover row", type: "color", def: "#20252e" },
         { key: "--sui-table-border", label: "Border", type: "color", def: "#2c3444" }
       ]},
@@ -12281,7 +12634,19 @@ var COMPONENT_DEFS = [
         { key: "--sui-table-font", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
       ]}
     ],
-    css: "table.suitbl { background: var(--sui-table-bg, #1d2129); border: var(--sui-table-border-width, 1px) solid var(--sui-table-border, #2c3444); border-radius: var(--sui-table-radius, 0); font-size: var(--sui-table-font, 14px); }\ntable.suitbl th, table.suitbl td { padding: var(--sui-table-padding, 10px 14px); border-color: var(--sui-table-border, #2c3444); }\ntable.suitbl thead th { background: var(--sui-table-head-bg, #202732); color: var(--sui-table-head-fg, #f2f4f6); }\ntable.suitbl tbody td { background: var(--sui-table-row-bg, #1d2129); }\ntable.suitbl tbody tr:hover td { background: var(--sui-table-hover, #20252e); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Bordered table with a dark header.", vars: {} },
+      { id: "striped", label: "Striped", desc: "Alternating row colours for easier scanning.", vars: {
+        "--sui-table-striped-bg": "#202733", "--sui-table-hover": "#2a3344" } },
+      { id: "compact", label: "Compact", desc: "Dense table with smaller text.", vars: {
+        "--sui-table-padding": "6px 8px", "--sui-table-font": "12px" } },
+      { id: "borderless", label: "Borderless", desc: "Clean table without cell or outer borders.", vars: {
+        "--sui-table-border-width": "0px", "--sui-table-bg": "transparent", "--sui-table-head-bg": "transparent",
+        "--sui-table-row-bg": "transparent", "--sui-table-striped-bg": "transparent", "--sui-table-hover": "#1e293b" } },
+      { id: "rounded", label: "Rounded", desc: "Softly rounded table with a slate header.", vars: {
+        "--sui-table-radius": "10px", "--sui-table-border": "#334155", "--sui-table-head-bg": "#1e293b" } }
+    ],
+    css: "table.suitbl { background: var(--sui-table-bg, #1d2129); border: var(--sui-table-border-width, 1px) solid var(--sui-table-border, #2c3444); border-radius: var(--sui-table-radius, 0); font-size: var(--sui-table-font, 14px); }\ntable.suitbl th, table.suitbl td { padding: var(--sui-table-padding, 10px 14px); border-color: var(--sui-table-border, #2c3444); }\ntable.suitbl thead th { background: var(--sui-table-head-bg, #202732); color: var(--sui-table-head-fg, #f2f4f6); }\ntable.suitbl tbody td { background: var(--sui-table-row-bg, #1d2129); }\ntable.suitbl tbody tr:nth-child(even) td { background: var(--sui-table-striped-bg, #1d2129); }\ntable.suitbl tbody tr:hover td { background: var(--sui-table-hover, #20252e); }"
   },
   { id: "toast", label: "Toast", group: "Overlay", kinds: ["toast"],
     categories: [
@@ -12296,9 +12661,36 @@ var COMPONENT_DEFS = [
         { key: "--sui-toast-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-toast-padding", label: "Padding", type: "text", def: "12px 14px" },
         { key: "--sui-toast-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" }
+      ]},
+      { name: "Effects", fields: [
+        { key: "--sui-toast-shadow", label: "Shadow", type: "select", def: "0 8px 24px rgba(0,0,0,.35)", opts: [
+          ["None", "none"], ["Soft", "0 4px 14px rgba(0,0,0,.25)"], ["Medium", "0 8px 24px rgba(0,0,0,.35)"],
+          ["Glass", "0 10px 32px rgba(0,0,0,.5)"], ["Minimal", "0 8px 24px rgba(0,0,0,.4)"], ["Strong", "0 14px 38px rgba(0,0,0,.5)"]
+        ] },
+        { key: "--sui-toast-backdrop", label: "Backdrop", type: "select", def: "none", opts: [["None", "none"], ["Blur light", "blur(6px)"], ["Blur strong", "blur(14px)"]] },
+        { key: "--sui-toast-animation", label: "Entrance", type: "select", def: "sui-toast-slide .22s ease-out", opts: [
+          ["Slide down", "sui-toast-slide .22s ease-out"], ["Fade", "sui-toast-fade .28s ease-out"],
+          ["Zoom", "sui-toast-zoom .22s ease-out"], ["Slide up", "sui-toast-rise .26s ease-out"],
+          ["Bounce", "sui-toast-bounce .48s cubic-bezier(.2,1.2,.4,1)"]
+        ] }
       ]}
     ],
-    css: ".sui-toast { width: var(--sui-toast-width, 360px); background: var(--sui-toast-bg, #1d2129); color: var(--sui-toast-fg, #e6e6ef); border-left: var(--sui-toast-border-width, 4px) solid var(--sui-toast-accent, #6b8afd); border-radius: var(--sui-toast-radius, 8px); padding: var(--sui-toast-padding, 12px 14px); font-size: var(--sui-toast-font-size, 14px); }"
+    presets: [
+      { id: "info", label: "Info", desc: "Neutral toast with a blue accent.", vars: {} },
+      { id: "success", label: "Success", desc: "Green confirmation toast.", vars: {
+        "--sui-toast-bg": "#0f2a1d", "--sui-toast-fg": "#dcfce7", "--sui-toast-accent": "#22c55e" } },
+      { id: "warning", label: "Warning", desc: "Amber toast for caution messages.", vars: {
+        "--sui-toast-bg": "#3a2a12", "--sui-toast-fg": "#fef3c7", "--sui-toast-accent": "#f59e0b" } },
+      { id: "danger", label: "Error", desc: "Red toast for failures.", vars: {
+        "--sui-toast-bg": "#3a1d22", "--sui-toast-fg": "#fee2e2", "--sui-toast-accent": "#ef4444" } },
+      { id: "glass", label: "Glass", desc: "Translucent toast with a blurred backdrop.", vars: {
+        "--sui-toast-bg": "rgba(17,24,39,.72)", "--sui-toast-fg": "#f8fafc", "--sui-toast-accent": "#38bdf8",
+        "--sui-toast-shadow": "0 10px 32px rgba(0,0,0,.5)", "--sui-toast-backdrop": "blur(10px)" } },
+      { id: "minimal", label: "Minimal", desc: "Compact toast without an accent bar.", vars: {
+        "--sui-toast-bg": "#111827", "--sui-toast-fg": "#e5e7eb", "--sui-toast-border-width": "0px",
+        "--sui-toast-radius": "12px", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.4)" } }
+    ],
+    css: ".sui-toast { width: var(--sui-toast-width, 360px); background: var(--sui-toast-bg, #1d2129); color: var(--sui-toast-fg, #e6e6ef); border-left: var(--sui-toast-border-width, 4px) solid var(--sui-toast-accent, #6b8afd); border-radius: var(--sui-toast-radius, 8px); padding: var(--sui-toast-padding, 12px 14px); font-size: var(--sui-toast-font-size, 14px); box-shadow: var(--sui-toast-shadow, 0 8px 24px rgba(0,0,0,.35)); backdrop-filter: var(--sui-toast-backdrop, none); animation: var(--sui-toast-animation, sui-toast-slide .22s ease-out); }\n@keyframes sui-toast-fade { from { opacity: 0; } to { opacity: 1; } }\n@keyframes sui-toast-slide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-zoom { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }\n@keyframes sui-toast-bounce { 0% { opacity: 0; transform: translateY(-14px) scale(.96); } 70% { opacity: 1; transform: translateY(2px) scale(1.01); } 100% { opacity: 1; transform: translateY(0) scale(1); } }"
   },
   { id: "modal", label: "Modal", group: "Overlay", kinds: ["modal"],
     categories: [
@@ -12311,13 +12703,34 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Shape", fields: [
         { key: "--sui-modal-width", label: "Width", type: "number", def: 520, min: 280, max: 900, step: 10, unit: "px" },
+        { key: "--sui-modal-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-modal-radius", label: "Radius", type: "number", def: 10, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-modal-title-size", label: "Title size", type: "number", def: 17, min: 10, max: 36, step: 1, unit: "px" },
         { key: "--sui-modal-padding", label: "Body padding", type: "text", def: "14px 18px" },
         { key: "--sui-modal-button-radius", label: "Button radius", type: "number", def: 6, min: 0, max: 30, step: 1, unit: "px" }
+      ]},
+      { name: "Effects", fields: [
+        { key: "--sui-modal-shadow", label: "Shadow", type: "select", def: "0 24px 60px rgba(0,0,0,.55)", opts: [
+          ["None", "none"], ["Soft", "0 10px 30px rgba(0,0,0,.35)"],
+          ["Medium", "0 24px 60px rgba(0,0,0,.55)"], ["Glass", "0 24px 60px rgba(0,0,0,.6)"], ["Glow", "0 0 32px rgba(76,92,247,.35)"]
+        ] }
       ]}
     ],
-    css: ".sui-modal-panel { background: var(--sui-modal-bg, #1d2129); color: var(--sui-modal-fg, #e6e6ef); border: 1px solid var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-radius, 10px); width: min(var(--sui-modal-width, 520px), 100%); }\n.sui-modal-title { color: var(--sui-modal-fg, #e6e6ef); font-size: var(--sui-modal-title-size, 17px); }\n.sui-modal-body { padding: var(--sui-modal-padding, 14px 18px); }\n.sui-modal-button { background: var(--sui-modal-button-bg, #252b36); color: var(--sui-modal-button-fg, #e6e6ef); border-color: var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-button-radius, 6px); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard centred dialog.", vars: {} },
+      { id: "glass", label: "Glass", desc: "Translucent dialog with a soft border.", vars: {
+        "--sui-modal-bg": "rgba(17,24,39,.78)", "--sui-modal-border": "rgba(255,255,255,.18)",
+        "--sui-modal-shadow": "0 24px 60px rgba(0,0,0,.6)", "--sui-modal-button-bg": "rgba(255,255,255,.08)" } },
+      { id: "flat", label: "Flat", desc: "Borderless dialog with no shadow.", vars: {
+        "--sui-modal-border-width": "0px", "--sui-modal-shadow": "none" } },
+      { id: "accent", label: "Accent", desc: "Indigo outline with a matching glow.", vars: {
+        "--sui-modal-border": "#4c5cf7", "--sui-modal-border-width": "2px",
+        "--sui-modal-shadow": "0 0 32px rgba(76,92,247,.35)" } },
+      { id: "compact", label: "Compact", desc: "Narrow dialog for short confirmations.", vars: {
+        "--sui-modal-width": "380px", "--sui-modal-radius": "8px", "--sui-modal-title-size": "15px",
+        "--sui-modal-padding": "10px 14px", "--sui-modal-button-radius": "4px" } }
+    ],
+    css: ".sui-modal-panel { background: var(--sui-modal-bg, #1d2129); color: var(--sui-modal-fg, #e6e6ef); border: var(--sui-modal-border-width, 1px) solid var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-radius, 10px); width: min(var(--sui-modal-width, 520px), 100%); box-shadow: var(--sui-modal-shadow, 0 24px 60px rgba(0,0,0,.55)); }\n.sui-modal-title { color: var(--sui-modal-fg, #e6e6ef); font-size: var(--sui-modal-title-size, 17px); }\n.sui-modal-body { padding: var(--sui-modal-padding, 14px 18px); }\n.sui-modal-button { background: var(--sui-modal-button-bg, #252b36); color: var(--sui-modal-button-fg, #e6e6ef); border-color: var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-button-radius, 6px); }"
   },
   { id: "menu", label: "Menu", group: "Navigation", kinds: ["menubar", "menu"],
     categories: [
@@ -12329,13 +12742,31 @@ var COMPONENT_DEFS = [
         { key: "--sui-menu-hover", label: "Hover", type: "color", def: "#2a3143" }
       ]},
       { name: "Shape", fields: [
+        { key: "--sui-menu-border-width", label: "Popup border", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-menu-radius", label: "Radius", type: "number", def: 6, min: 0, max: 30, step: 1, unit: "px" },
         { key: "--sui-menu-padding", label: "Button padding", type: "text", def: "7px 12px" },
         { key: "--sui-menu-item-padding", label: "Item padding", type: "text", def: "8px 12px" },
         { key: "--sui-menu-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" }
       ]}
     ],
-    css: ".sui-menu-button { background: var(--sui-menu-button-bg, transparent); color: var(--sui-menu-fg, #e6e6ef); border-radius: var(--sui-menu-radius, 6px); padding: var(--sui-menu-padding, 7px 12px); font-size: var(--sui-menu-font-size, 14px); }\n.sui-menu-popup { background: var(--sui-menu-popup-bg, #1d2129); border-color: var(--sui-menu-border, #3d4556); border-radius: var(--sui-menu-radius, 8px); }\n.sui-menuitem { color: var(--sui-menu-fg, #e6e6ef); padding: var(--sui-menu-item-padding, 8px 12px); }\n.sui-menuitem:hover, .sui-menuitem:focus { background: var(--sui-menu-hover, #2a3143); }"
+    presets: [
+      { id: "classic", label: "Classic", desc: "Standard dark menu button and popup.", vars: {} },
+      { id: "accent", label: "Accent", desc: "Filled blue menu button.", vars: {
+        "--sui-menu-button-bg": "#4c5cf7", "--sui-menu-fg": "#ffffff", "--sui-menu-border": "#4c5cf7",
+        "--sui-menu-popup-bg": "#111827", "--sui-menu-hover": "#5b6bff", "--sui-menu-radius": "8px",
+        "--sui-menu-padding": "7px 14px" } },
+      { id: "ghost", label: "Ghost", desc: "Transparent button that only appears on hover.", vars: {
+        "--sui-menu-button-bg": "transparent", "--sui-menu-fg": "#c7d2fe", "--sui-menu-border": "transparent",
+        "--sui-menu-border-width": "0px", "--sui-menu-popup-bg": "#111827",
+        "--sui-menu-hover": "rgba(255,255,255,.08)", "--sui-menu-radius": "8px" } },
+      { id: "pill", label: "Pills", desc: "Fully rounded button and popup.", vars: {
+        "--sui-menu-radius": "999px", "--sui-menu-button-bg": "#1d2129", "--sui-menu-border": "#334155",
+        "--sui-menu-padding": "6px 14px" } },
+      { id: "compact", label: "Compact", desc: "Tighter menu for toolbars.", vars: {
+        "--sui-menu-padding": "5px 9px", "--sui-menu-item-padding": "6px 10px",
+        "--sui-menu-font-size": "13px", "--sui-menu-radius": "5px" } }
+    ],
+    css: ".sui-menu-button { background: var(--sui-menu-button-bg, transparent); color: var(--sui-menu-fg, #e6e6ef); border-radius: var(--sui-menu-radius, 6px); padding: var(--sui-menu-padding, 7px 12px); font-size: var(--sui-menu-font-size, 14px); }\n.sui-menu-popup { background: var(--sui-menu-popup-bg, #1d2129); border: var(--sui-menu-border-width, 1px) solid var(--sui-menu-border, #3d4556); border-radius: var(--sui-menu-radius, 8px); }\n.sui-menuitem { color: var(--sui-menu-fg, #e6e6ef); padding: var(--sui-menu-item-padding, 8px 12px); }\n.sui-menuitem:hover, .sui-menuitem:focus { background: var(--sui-menu-hover, #2a3143); }"
   }
 ];
 var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation", "Data", "Overlay"];
@@ -12378,31 +12809,144 @@ function writeComponentVars(vars) {
 function ensureComponentRules(def) {
   if (!def) return;
   var re = new RegExp("/\\* sui-component-rules:" + def.id + " \\*/[\\s\\S]*?/\\* /sui-component-rules:" + def.id + " \\*/");
-  if (re.test(root.css)) return;
   var block = "/* sui-component-rules:" + def.id + " */\n" + def.css + "\n/* /sui-component-rules:" + def.id + " */";
-  root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
+  if (re.test(root.css)) root.css = root.css.replace(re, block);
+  else root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
 }
 function componentFieldDefault(field) {
   if (field.type === "switch") return field.on;
   if (field.type === "number") return String(field.def) + (field.unit || "");
   return String(field.def);
 }
-function componentFieldValue(def, field, node) {
+function componentFieldByKey(def, key) {
+  for (var i = 0; i < def.categories.length; i++) {
+    var fields = def.categories[i].fields;
+    for (var j = 0; j < fields.length; j++) if (fields[j].key === key) return fields[j];
+  }
+  return null;
+}
+function componentAllKeys(def) {
+  var seen = {}, out = [];
+  function add(k) { if (k && !seen[k]) { seen[k] = 1; out.push(k); } }
+  def.categories.forEach(function(cat){
+    cat.fields.forEach(function(f){
+      add(f.key);
+      (f.opts || []).forEach(function(o){ if (o[2] && typeof o[2] === "object") Object.keys(o[2]).forEach(add); });
+    });
+  });
+  (def.presets || []).forEach(function(p){ Object.keys(p.vars || {}).forEach(add); });
+  return out;
+}
+function componentKeyBaseValue(def, key, node) {
   if (node) {
     var m = styleDeclMap(node.style || "");
-    if (m[field.key] !== undefined) return m[field.key];
+    if (m[key] !== undefined) return m[key];
   }
   var vars = readComponentVars();
-  if (vars[field.key] !== undefined) return vars[field.key];
-  return componentFieldDefault(field);
+  if (vars[key] !== undefined) return vars[key];
+  var field = componentFieldByKey(def, key);
+  return field ? componentFieldDefault(field) : undefined;
+}
+function componentPresetBaseValue(def, key) {
+  var field = componentFieldByKey(def, key);
+  return field ? componentFieldDefault(field) : undefined;
+}
+function componentResetValue(def, key, node) {
+  if (node) {
+    var vars = readComponentVars();
+    if (vars[key] !== undefined) return vars[key];
+  }
+  var field = componentFieldByKey(def, key);
+  return field ? componentFieldDefault(field) : undefined;
+}
+function componentNodeHasOverrides(def, node) {
+  if (!node) return false;
+  var map = styleDeclMap(node.style || ""), keys = componentAllKeys(def);
+  for (var i = 0; i < keys.length; i++) if (map[keys[i]] !== undefined) return true;
+  return false;
+}
+function componentValuesMatchProject(def, values, node) {
+  if (!node) return false;
+  var keys = componentAllKeys(def);
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var expected = componentResetValue(def, k, node);
+    var actual = values[k];
+    if (String(expected === undefined ? "" : expected) !== String(actual === undefined ? "" : actual)) return false;
+  }
+  return true;
+}
+function componentFieldValue(def, field, node) {
+  return componentKeyBaseValue(def, field.key, node);
+}
+function componentPresetMatch(def, values, node) {
+  var keys = componentAllKeys(def), presets = def.presets || [];
+  for (var i = 0; i < presets.length; i++) {
+    var p = presets[i], ok = true;
+    for (var j = 0; j < keys.length; j++) {
+      var k = keys[j];
+      var expected = (p.vars && p.vars[k] !== undefined) ? p.vars[k] : componentPresetBaseValue(def, k);
+      var actual = values[k];
+      if (String(expected === undefined ? "" : expected) !== String(actual === undefined ? "" : actual)) { ok = false; break; }
+    }
+    if (ok) return p.id;
+  }
+  return "custom";
+}
+function componentPresetDescription(def, id) {
+  if (id === "inherit") return "Inherits the project default for this component. Apply removes element overrides.";
+  if (id === "custom") return "Custom style. Adjust the fields below; Apply saves these values.";
+  var list = def.presets || [];
+  for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i].desc || "";
+  return "Values do not match a preset. Adjust the fields below to fine-tune the style.";
+}
+function applyComponentPreset(id) {
+  var s = __compSettings;
+  if (!s) return;
+  if (id === "custom") { s.presetId = "custom"; renderComponentSettings(); return; }
+  if (id === "inherit" && s.node) {
+    componentAllKeys(s.def).forEach(function(k){
+      var base = componentResetValue(s.def, k, s.node);
+      if (base === undefined) delete s.values[k];
+      else s.values[k] = base;
+    });
+    s.presetId = "inherit";
+    renderComponentSettings();
+    return;
+  }
+  var p = null;
+  (s.def.presets || []).forEach(function(x){ if (x.id === id) p = x; });
+  if (!p) return;
+  componentAllKeys(s.def).forEach(function(k){
+    var base = componentPresetBaseValue(s.def, k);
+    if (base === undefined) delete s.values[k];
+    else s.values[k] = base;
+  });
+  Object.keys(p.vars || {}).forEach(function(k){ s.values[k] = p.vars[k]; });
+  s.presetId = p.id;
+  renderComponentSettings();
+}
+function markComponentCustom() {
+  var s = __compSettings;
+  if (!s) return;
+  if (s.node && componentValuesMatchProject(s.def, s.values, s.node)) s.presetId = "inherit";
+  else s.presetId = componentPresetMatch(s.def, s.values, s.node);
+  var sel = document.getElementById("compcfg-preset");
+  if (sel) sel.value = s.presetId;
+  var desc = document.getElementById("compcfg-preset-desc");
+  if (desc) desc.textContent = componentPresetDescription(s.def, s.presetId);
+  updateComponentPreview();
 }
 var __compSettings = null;
 function openComponentSettings(def, node) {
   if (!def) return;
-  __compSettings = { def: def, node: node || null, tab: def.categories[0].name, values: {} };
-  def.categories.forEach(function(cat){
-    cat.fields.forEach(function(f){ __compSettings.values[f.key] = componentFieldValue(def, f, node); });
+  __compSettings = { def: def, node: node || null, tab: def.categories[0].name, values: {}, presetId: "custom" };
+  componentAllKeys(def).forEach(function(k){
+    var v = componentKeyBaseValue(def, k, node);
+    if (v !== undefined) __compSettings.values[k] = v;
   });
+  if (node && !componentNodeHasOverrides(def, node)) __compSettings.presetId = "inherit";
+  else __compSettings.presetId = componentPresetMatch(def, __compSettings.values, node);
   document.getElementById("compcfg-title").textContent = def.label;
   document.getElementById("compcfg-scope").textContent = node
     ? "This element only" + (node.text ? " · " + node.text : "") + ". Leave values here to override the project default."
@@ -12416,14 +12960,15 @@ function closeComponentSettings() {
   __compSettings = null;
 }
 function resetComponentSettings() {
-  if (!__compSettings) return;
-  __compSettings.def.categories.forEach(function(cat){
-    cat.fields.forEach(function(f){
-      __compSettings.values[f.key] = __compSettings.node
-        ? componentFieldValue(__compSettings.def, f, null)
-        : componentFieldDefault(f);
-    });
+  var s = __compSettings;
+  if (!s) return;
+  componentAllKeys(s.def).forEach(function(k){
+    var v = componentResetValue(s.def, k, s.node);
+    if (v === undefined) delete s.values[k];
+    else s.values[k] = v;
   });
+  if (s.node && componentValuesMatchProject(s.def, s.values, s.node)) s.presetId = "inherit";
+  else s.presetId = componentPresetMatch(s.def, s.values, s.node);
   renderComponentSettings();
 }
 function clearComponentOverrides() {
@@ -12431,9 +12976,7 @@ function clearComponentOverrides() {
   if (!s || !s.node) return;
   snap("clear component overrides");
   var map = styleDeclMap(s.node.style || "");
-  s.def.categories.forEach(function(cat){
-    cat.fields.forEach(function(f){ delete map[f.key]; });
-  });
+  componentAllKeys(s.def).forEach(function(k){ delete map[k]; });
   s.node.style = styleDeclStr(map);
   setOut(); autoPreview(); renderInspector(); closeComponentSettings();
 }
@@ -12442,8 +12985,40 @@ function renderComponentSettings() {
   if (!s) return;
   var tabs = document.getElementById("compcfg-tabs");
   var body = document.getElementById("compcfg-body");
+  var presetBox = document.getElementById("compcfg-presets");
   tabs.textContent = "";
   body.textContent = "";
+  if (presetBox) {
+    presetBox.textContent = "";
+    if (s.def.presets && s.def.presets.length) {
+      presetBox.style.display = "";
+      var plab = document.createElement("label");
+      plab.textContent = "Style";
+      var psel = document.createElement("select");
+      psel.id = "compcfg-preset";
+      if (s.node) {
+        var inh = document.createElement("option");
+        inh.value = "inherit"; inh.textContent = "Project default";
+        psel.appendChild(inh);
+      }
+      var custom = document.createElement("option");
+      custom.value = "custom"; custom.textContent = "Custom";
+      psel.appendChild(custom);
+      s.def.presets.forEach(function(p){
+        var o = document.createElement("option");
+        o.value = p.id; o.textContent = p.label;
+        psel.appendChild(o);
+      });
+      psel.value = s.presetId || "custom";
+      psel.onchange = function(){ applyComponentPreset(psel.value); };
+      var pdesc = document.createElement("div");
+      pdesc.className = "compcfg-preset-desc"; pdesc.id = "compcfg-preset-desc";
+      pdesc.textContent = componentPresetDescription(s.def, s.presetId || "custom");
+      presetBox.appendChild(plab); presetBox.appendChild(psel); presetBox.appendChild(pdesc);
+    } else {
+      presetBox.style.display = "none";
+    }
+  }
   if (s.def.categories.length > 1) {
     tabs.style.display = "";
     s.def.categories.forEach(function(cat){
@@ -12488,7 +13063,7 @@ function componentFieldRow(field) {
       n = Math.max(field.min, Math.min(field.max, n));
       s.values[field.key] = n + (field.unit || "");
       range.value = n; box.value = n;
-      updateComponentPreview();
+      markComponentCustom();
     }
     range.oninput = function(){ sync(range.value); };
     box.oninput = function(){ sync(box.value); };
@@ -12497,10 +13072,10 @@ function componentFieldRow(field) {
   } else if (field.type === "switch") {
     row.appendChild(mkSwitch(value === field.on, false, function(on){
       s.values[field.key] = on ? field.on : field.off;
-      updateComponentPreview();
+      markComponentCustom();
     }));
   } else if (field.type === "color") {
-    row.appendChild(makeColorField(value, function(v){ s.values[field.key] = v; updateComponentPreview(); }));
+    row.appendChild(makeColorField(value, function(v){ s.values[field.key] = v; markComponentCustom(); }));
   } else if (field.type === "font") {
     var fsel = document.createElement("select");
     var list = ["inherit"].concat(BUILTIN_FONTS, uploadedFonts);
@@ -12509,7 +13084,7 @@ function componentFieldRow(field) {
       if (f === value) o.selected = true;
       fsel.appendChild(o);
     });
-    fsel.onchange = function(){ s.values[field.key] = fsel.value; updateComponentPreview(); };
+    fsel.onchange = function(){ s.values[field.key] = fsel.value; markComponentCustom(); };
     row.appendChild(fsel);
   } else if (field.type === "select") {
     var sel = document.createElement("select");
@@ -12520,12 +13095,20 @@ function componentFieldRow(field) {
       sel.appendChild(e);
     });
     if (!found && value) { var e2 = document.createElement("option"); e2.value = value; e2.textContent = value; e2.selected = true; sel.appendChild(e2); }
-    sel.onchange = function(){ s.values[field.key] = sel.value; updateComponentPreview(); };
+    sel.onchange = function(){
+      s.values[field.key] = sel.value;
+      var chosen = null;
+      (field.opts || []).forEach(function(o){ if (o[1] === sel.value) chosen = o; });
+      if (chosen && chosen[2] && typeof chosen[2] === "object") {
+        Object.keys(chosen[2]).forEach(function(k){ s.values[k] = chosen[2][k]; });
+      }
+      markComponentCustom();
+    };
     row.appendChild(sel);
   } else {
     var inp = document.createElement("input");
     inp.type = "text"; inp.value = value; inp.spellcheck = false;
-    inp.oninput = function(){ s.values[field.key] = inp.value; updateComponentPreview(); };
+    inp.oninput = function(){ s.values[field.key] = inp.value; markComponentCustom(); };
     row.appendChild(inp);
   }
   return row;
@@ -12537,6 +13120,14 @@ function applyComponentSettings() {
   if (s.node) {
     snap("component settings " + s.def.label);
     var map = styleDeclMap(s.node.style || "");
+    if (s.presetId === "inherit") {
+      componentAllKeys(s.def).forEach(function(k){ delete map[k]; });
+      s.node.style = styleDeclStr(map);
+      ensureComponentRules(s.def);
+      setOut(); autoPreview(); renderInspector(); closeComponentSettings();
+      return;
+    }
+    componentAllKeys(s.def).forEach(function(k){ delete map[k]; });
     Object.keys(values).forEach(function(k){ map[k] = values[k]; });
     s.node.style = styleDeclStr(map);
     ensureComponentRules(s.def);
@@ -12544,6 +13135,7 @@ function applyComponentSettings() {
   } else {
     snap("project " + s.def.label + " defaults");
     var vars = readComponentVars();
+    componentAllKeys(s.def).forEach(function(k){ delete vars[k]; });
     Object.keys(values).forEach(function(k){ vars[k] = values[k]; });
     writeComponentVars(vars);
     ensureComponentRules(s.def);

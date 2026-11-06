@@ -348,7 +348,7 @@ nell'interfaccia e valori espliciti per le dichiarazioni una tantum.
 
 Aprire **Preferences → Project preferences.** per impostare i default di ogni
 istanza di un componente nel progetto. La lista è raggruppata in **Feedback**,
-**Layout**, **Form**, **Navigation** e **General**.
+**Layout**, **Form**, **Navigation**, **Data**, **Overlay** e **General**.
 
 Ogni componente apre lo stesso pannello di configurazione usato dalle
 impostazioni dell'elemento. Il pannello segue il layout delle preferenze
@@ -387,6 +387,36 @@ specializzati.
 Ogni pannello mostra un'anteprima dal vivo sopra i campi. L'anteprima usa i
 valori in modifica, non quelli salvati, quindi colori, dimensioni e stati si
 possono verificare prima di Apply.
+
+### Preset grafici e animazioni
+
+Ogni pannello componente inizia con un selettore **Style**. **Custom** e il
+valore predefinito grezzo, mentre ogni preset con nome applica in un solo passo
+un insieme coordinato di colori, forme ed effetti. I preset sono opzionali: non
+vengono mai usati se non selezionati, e modificando un campo il selettore passa
+a **Custom** per rendere esplicita la personalizzazione.
+
+I preset coprono tutti e venti i pannelli componente, per esempio **Neon glow**
+e **Barber pole** per Progress, **Dual ring**, **Gradient ring** e **Coin flip**
+per Spinner, **Glass** per Card e Toast, **Pill** per Button e Input, e
+**Striped**, **Borderless** e **Rounded** per Table. Diversi preset includono
+un effetto di movimento; la scheda Animation/Effects espone gli effetti anche
+direttamente:
+
+- Progress: pulse, strisce scorrevoli, shimmer e glow.
+- Spinner: rotazione classica, pulse e flip verticale.
+- Badge: pulse, glow e float.
+- Alert: fade in, slide in, shake e pulse.
+- Card: fade in e float.
+- Button: pulse, float e glow.
+- Toast: discesa, fade, zoom, salita e rimbalzo.
+
+Nelle impostazioni dell'elemento il selettore offre anche **Project default**.
+Applicandolo si rimuovono gli override componente dell'elemento, che torna a
+ereditare i default di progetto. I preset con nome, invece, fissano i loro
+valori su quell'elemento. I preset di progetto vengono scritti nei blocchi
+gestiti `/* sui-component-defaults */` e `/* sui-component-rules:<id> */`,
+mentre i preset dell'elemento usano custom properties inline.
 
 ### Inserire qualsiasi componente
 
