@@ -1080,7 +1080,6 @@ sample JSON states and transitions and `overflow: "scroll"`. It is a leaf
 control: it cannot contain child elements.
 
 The graph inspector is ordered as follows:
-
 | Field | Meaning |
 |---|---|
 | Graph settings | first button; opens the same runtime panel as the chart gear (General plus GRID, SHAPES, LINKS, TAGS and HINTS) |
@@ -1097,11 +1096,18 @@ geometry and never writes `chartType` in the source. Editing the chart type in
 the data overlay is disabled for the same reason. The inspector no longer shows
 initial zoom, interactive, element hints or chart attributes for Graph.
 
-The **Graph style editor** groups tokens into Title, Frame, Buttons, Table and
-Scrollbars tabs. It edits the header/title colors, title font/size/weight/spacing
-and header background, chart border and radius, button background/text/border/
-radius/font/shadow plus hover, focus and active colors, table header/row/font/
-spacing colors, and scrollbar size/track/thumb. Changes are previewed live on the
+The runtime **Graph settings** panel opened from the gear (or from the inspector
+Graph settings button) has a **Style** tab. It starts from a large preset list
+(Midnight, Graphite, Ocean, Forest, Sunset, Candy, Neon, Slate, Paper, Sand, Ice,
+High contrast, Plum, Mono) and then exposes every non-diagram component: header
+background, title typography, outer frame, buttons with hover/focus/active
+states, table, and scrollbars. Shapes, links, tags, hints and grid style are not
+part of the theme because they already have dedicated panels. Numeric values use
+a slider plus a number input. Theme changes apply immediately and are stored per
+chart; **Reset settings** clears them.
+
+The designer **Graph style editor** uses the same component categories in Title,
+Frame, Buttons, Table and Scrollbars tabs. Changes are previewed live on the
 graph and become source values only when **Apply** is pressed.
 
 With **show table** on, the table is added below the diagram without reducing the

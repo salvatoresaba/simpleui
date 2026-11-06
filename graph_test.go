@@ -118,6 +118,22 @@ func TestGraphVisibilityAttributes(t *testing.T) {
 	}
 }
 
+func TestGraphRuntimeThemePresets(t *testing.T) {
+	for _, want := range []string{
+		"STATE_THEME_PRESETS", "stateThemePreset(\"midnight\"", "stateThemePreset(\"paper\"",
+		"stateThemePreset(\"sand\"", "stateThemePreset(\"contrast\"", "stateThemePreset(\"plum\"",
+		"applyStateThemeOverrides", "STATE_THEME_FIELDS", "Title size", "Stripe opacity",
+		"stateTagFieldNumber", "Preset", "Style",
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("chart runtime theme support missing %q", want)
+		}
+	}
+	if count := strings.Count(suiChartRuntime, "stateThemePreset(\""); count < 14 {
+		t.Errorf("expected at least 14 theme presets, got %d", count)
+	}
+}
+
 func TestGraphDesignerModel(t *testing.T) {
 	prog, dl := ParseSource(graphTestSource, "graph.sui")
 	if dl.HasErrors() {

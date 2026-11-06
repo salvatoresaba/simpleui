@@ -1126,13 +1126,19 @@ e non scrive `chartType` nel sorgente. Per lo stesso motivo il tipo è disabilit
 nell'editor dati. L'inspector non mostra più zoom iniziale, interactive, element
 hints o attributi chart per Graph.
 
-Il **Graph style editor** raggruppa i token nei tab Title, Frame, Buttons, Table e
-Scrollbars. Modifica colori header/titolo, font/dimensione/peso/spaziatura del
-titolo e background dell'header, bordo e raggio del grafico,
-background/testo/bordo/raggio/font/ombra dei pulsanti con colori hover, focus e
-active, intestazione/righe/font/spaziatura della tabella e
-dimensione/track/thumb delle scrollbar. Le modifiche sono mostrate in anteprima
-dal vivo e diventano valori del sorgente solo con **Apply**.
+Il pannello runtime **Graph settings** aperto dall'ingranaggio (o dal pulsante
+Graph settings dell'inspector) ha un tab **Style**. Parte da un ampio elenco di
+preset (Midnight, Graphite, Ocean, Forest, Sunset, Candy, Neon, Slate, Paper,
+Sand, Ice, High contrast, Plum, Mono) e mostra poi ogni componente non diagramma:
+background header, tipografia titolo, bordo esterno, pulsanti con stati
+hover/focus/active, tabella e scrollbar. Forme, link, tag, hint e griglia non
+fanno parte del tema perché hanno già pannelli dedicati. I valori numerici usano
+slider + input numerico. Le modifiche sono immediate e salvate per chart;
+**Reset settings** le cancella.
+
+Il **Graph style editor** del designer usa le stesse categorie Title, Frame,
+Buttons, Table e Scrollbars. Le modifiche sono mostrate in anteprima dal vivo e
+diventano valori del sorgente solo con **Apply**.
 
 Con **show table** attivo la tabella viene aggiunta sotto il diagramma senza
 ridurne l'altezza. Il contenitore del grafico cresce come contenuto scrollabile:

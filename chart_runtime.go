@@ -10775,8 +10775,220 @@ const suiChartRuntime = `(function(){
     if (!root) return;
     stateSettingsApply(root, root.__suiStateSettingsBase || {});
     applyStateHintSettings(root);
+    resetStateTheme(root);
     saveStateSettings(root, false);
     root.__suiStateSettingsApplied = true;
+  }
+  var STATE_THEME_VARS = [
+    "--sui-chart-bg", "--sui-chart-fg", "--sui-chart-title-color", "--sui-chart-muted", "--sui-chart-axis",
+    "--sui-chart-head-bg", "--sui-chart-border", "--sui-chart-radius",
+    "--sui-chart-title-font", "--sui-chart-title-size", "--sui-chart-title-weight", "--sui-chart-title-letter-spacing",
+    "--sui-chart-control-bg", "--sui-chart-control-fg", "--sui-chart-control-border", "--sui-chart-control-radius",
+    "--sui-chart-control-font", "--sui-chart-control-font-size", "--sui-chart-control-shadow",
+    "--sui-chart-control-hover-bg", "--sui-chart-control-hover-fg", "--sui-chart-control-hover-border",
+    "--sui-chart-control-focus-border", "--sui-chart-control-active-bg",
+    "--sui-chart-table-font-size", "--sui-chart-table-cell-padding", "--sui-chart-table-head-bg",
+    "--sui-chart-table-head-fg", "--sui-chart-table-row-bg", "--sui-chart-table-row-border",
+    "--sui-chart-table-stripe-opacity",
+    "--sui-chart-scroll-size", "--sui-chart-scroll-track", "--sui-chart-scroll-thumb"
+  ];
+  function stateThemePreset(key, label, o) {
+    return { key: key, label: label, vars: {
+      "--sui-chart-bg": o.bg,
+      "--sui-chart-fg": o.fg,
+      "--sui-chart-title-color": o.title,
+      "--sui-chart-muted": o.muted,
+      "--sui-chart-axis": o.axis,
+      "--sui-chart-head-bg": o.head,
+      "--sui-chart-border": "1px solid " + o.border,
+      "--sui-chart-radius": "10px",
+      "--sui-chart-title-font": "system-ui, sans-serif",
+      "--sui-chart-title-size": "14px",
+      "--sui-chart-title-weight": "600",
+      "--sui-chart-title-letter-spacing": "normal",
+      "--sui-chart-control-bg": o.controlBg,
+      "--sui-chart-control-fg": o.controlFg,
+      "--sui-chart-control-border": o.border,
+      "--sui-chart-control-radius": "6px",
+      "--sui-chart-control-font": "system-ui, sans-serif",
+      "--sui-chart-control-font-size": "12px",
+      "--sui-chart-control-shadow": o.shadow || "none",
+      "--sui-chart-control-hover-bg": o.hoverBg,
+      "--sui-chart-control-hover-fg": o.hoverFg,
+      "--sui-chart-control-hover-border": o.hoverBorder,
+      "--sui-chart-control-focus-border": o.focus,
+      "--sui-chart-control-active-bg": o.active,
+      "--sui-chart-table-font-size": "11px",
+      "--sui-chart-table-cell-padding": "4px 6px",
+      "--sui-chart-table-head-bg": o.tableHead,
+      "--sui-chart-table-head-fg": o.tableHeadFg,
+      "--sui-chart-table-row-bg": o.rowBg,
+      "--sui-chart-table-row-border": o.rowBorder,
+      "--sui-chart-table-stripe-opacity": "0.06",
+      "--sui-chart-scroll-size": "9px",
+      "--sui-chart-scroll-track": o.scrollTrack,
+      "--sui-chart-scroll-thumb": o.scrollThumb
+    }};
+  }
+  var STATE_THEME_PRESETS = [
+    stateThemePreset("midnight", "Midnight", { bg: "#0f172a", fg: "#e2e8f0", title: "#f8fafc", muted: "#a8b6c9", axis: "#64748b", head: "#111c33", border: "#334155", controlBg: "#1e293b", controlFg: "#f8fafc", hoverBg: "#334155", hoverFg: "#ffffff", hoverBorder: "#94a3b8", focus: "#60a5fa", active: "#475569", tableHead: "#1e293b", tableHeadFg: "#f8fafc", rowBg: "#0f172a", rowBorder: "#334155", scrollTrack: "#0b1220", scrollThumb: "#64748b" }),
+    stateThemePreset("graphite", "Graphite", { bg: "#151515", fg: "#f2f2f2", title: "#ffffff", muted: "#b8b8b8", axis: "#666666", head: "#1f1f1f", border: "#444444", controlBg: "#222222", controlFg: "#ffffff", hoverBg: "#3a3a3a", hoverFg: "#ffffff", hoverBorder: "#888888", focus: "#a3a3a3", active: "#444444", tableHead: "#262626", tableHeadFg: "#ffffff", rowBg: "#171717", rowBorder: "#333333", scrollTrack: "#0a0a0a", scrollThumb: "#555555" }),
+    stateThemePreset("ocean", "Ocean", { bg: "#06283d", fg: "#e0f2fe", title: "#bae6fd", muted: "#7dd3fc", axis: "#0ea5e9", head: "#0b3a56", border: "#0e7490", controlBg: "#0c4a6e", controlFg: "#f0f9ff", hoverBg: "#0e7490", hoverFg: "#ffffff", hoverBorder: "#38bdf8", focus: "#22d3ee", active: "#155e75", tableHead: "#0c4a6e", tableHeadFg: "#f0f9ff", rowBg: "#06283d", rowBorder: "#0e7490", scrollTrack: "#04202f", scrollThumb: "#0ea5e9" }),
+    stateThemePreset("forest", "Forest", { bg: "#0f241a", fg: "#ecfdf5", title: "#bbf7d0", muted: "#86efac", axis: "#22c55e", head: "#153a28", border: "#2f6b49", controlBg: "#1b4332", controlFg: "#f0fdf4", hoverBg: "#2f6b49", hoverFg: "#ffffff", hoverBorder: "#4ade80", focus: "#22c55e", active: "#276749", tableHead: "#1b4332", tableHeadFg: "#f0fdf4", rowBg: "#0f241a", rowBorder: "#2f6b49", scrollTrack: "#0a1a13", scrollThumb: "#22c55e" }),
+    stateThemePreset("sunset", "Sunset", { bg: "#2a1420", fg: "#fff1f2", title: "#fecdd3", muted: "#fda4af", axis: "#fb7185", head: "#3b1b2c", border: "#7f2947", controlBg: "#4a1d33", controlFg: "#fff1f2", hoverBg: "#7f2947", hoverFg: "#ffffff", hoverBorder: "#fb7185", focus: "#f472b6", active: "#9f1239", tableHead: "#4a1d33", tableHeadFg: "#fff1f2", rowBg: "#2a1420", rowBorder: "#7f2947", scrollTrack: "#1a0c14", scrollThumb: "#fb7185" }),
+    stateThemePreset("candy", "Candy", { bg: "#2a1033", fg: "#fdf2f8", title: "#f9a8d4", muted: "#f0abfc", axis: "#ec4899", head: "#3b1747", border: "#86198f", controlBg: "#4a1d5c", controlFg: "#fdf2f8", hoverBg: "#86198f", hoverFg: "#ffffff", hoverBorder: "#ec4899", focus: "#d946ef", active: "#701a75", tableHead: "#4a1d5c", tableHeadFg: "#fdf2f8", rowBg: "#2a1033", rowBorder: "#86198f", scrollTrack: "#1a0a20", scrollThumb: "#ec4899" }),
+    stateThemePreset("neon", "Neon", { bg: "#08161d", fg: "#e0ffff", title: "#7df9ff", muted: "#67e8f9", axis: "#00e5ff", head: "#0d2530", border: "#0e7490", controlBg: "#103340", controlFg: "#e0ffff", hoverBg: "#0e7490", hoverFg: "#ffffff", hoverBorder: "#00e5ff", focus: "#22d3ee", active: "#155e75", tableHead: "#103340", tableHeadFg: "#e0ffff", rowBg: "#08161d", rowBorder: "#0e7490", scrollTrack: "#041014", scrollThumb: "#00e5ff" }),
+    stateThemePreset("slate", "Slate", { bg: "#1e293b", fg: "#f1f5f9", title: "#e2e8f0", muted: "#94a3b8", axis: "#64748b", head: "#243449", border: "#475569", controlBg: "#334155", controlFg: "#f8fafc", hoverBg: "#475569", hoverFg: "#ffffff", hoverBorder: "#94a3b8", focus: "#60a5fa", active: "#64748b", tableHead: "#334155", tableHeadFg: "#f8fafc", rowBg: "#1e293b", rowBorder: "#475569", scrollTrack: "#0f172a", scrollThumb: "#64748b" }),
+    stateThemePreset("paper", "Paper", { bg: "#ffffff", fg: "#1f2937", title: "#111827", muted: "#6b7280", axis: "#9ca3af", head: "#f3f4f6", border: "#cbd5e1", controlBg: "#f3f4f6", controlFg: "#111827", hoverBg: "#e5e7eb", hoverFg: "#111827", hoverBorder: "#94a3b8", focus: "#2563eb", active: "#dbeafe", tableHead: "#eef2f7", tableHeadFg: "#111827", rowBg: "#ffffff", rowBorder: "#d1d5db", scrollTrack: "#f3f4f6", scrollThumb: "#9ca3af", shadow: "0 1px 2px rgba(15,23,42,.08)" }),
+    stateThemePreset("sand", "Sand", { bg: "#fffaf0", fg: "#3b2f1e", title: "#78350f", muted: "#8a6d3b", axis: "#b45309", head: "#fdf2d7", border: "#d6c3a1", controlBg: "#fdf2d7", controlFg: "#3b2f1e", hoverBg: "#f5e3b3", hoverFg: "#3b2f1e", hoverBorder: "#b45309", focus: "#d97706", active: "#f8e8c0", tableHead: "#fdf2d7", tableHeadFg: "#3b2f1e", rowBg: "#fffaf0", rowBorder: "#d6c3a1", scrollTrack: "#f5ead2", scrollThumb: "#b45309", shadow: "0 1px 2px rgba(120,53,15,.10)" }),
+    stateThemePreset("ice", "Ice", { bg: "#f4f9ff", fg: "#0f2740", title: "#0c4a6e", muted: "#526b84", axis: "#0284c7", head: "#e6f2fb", border: "#b8d4e8", controlBg: "#e6f2fb", controlFg: "#0f2740", hoverBg: "#d4e8f7", hoverFg: "#0f2740", hoverBorder: "#0284c7", focus: "#0369a1", active: "#cfe4f3", tableHead: "#e6f2fb", tableHeadFg: "#0f2740", rowBg: "#f4f9ff", rowBorder: "#b8d4e8", scrollTrack: "#e6f2fb", scrollThumb: "#0284c7", shadow: "0 1px 2px rgba(15,39,64,.08)" }),
+    stateThemePreset("contrast", "High contrast", { bg: "#000000", fg: "#ffffff", title: "#ffff00", muted: "#ffffff", axis: "#ffffff", head: "#000000", border: "#ffffff", controlBg: "#000000", controlFg: "#ffffff", hoverBg: "#ffff00", hoverFg: "#000000", hoverBorder: "#ffff00", focus: "#ffff00", active: "#ffff00", tableHead: "#000000", tableHeadFg: "#ffff00", rowBg: "#000000", rowBorder: "#666666", scrollTrack: "#000000", scrollThumb: "#ffff00" }),
+    stateThemePreset("plum", "Plum", { bg: "#2e1a3d", fg: "#f5e8ff", title: "#e9d5ff", muted: "#c4b5fd", axis: "#a855f7", head: "#3d2252", border: "#6b21a8", controlBg: "#4c1d69", controlFg: "#faf5ff", hoverBg: "#6b21a8", hoverFg: "#ffffff", hoverBorder: "#c084fc", focus: "#a855f7", active: "#7e22ce", tableHead: "#4c1d69", tableHeadFg: "#faf5ff", rowBg: "#2e1a3d", rowBorder: "#6b21a8", scrollTrack: "#1c0f26", scrollThumb: "#a855f7" }),
+    stateThemePreset("mono", "Mono", { bg: "#171717", fg: "#f5f5f5", title: "#ffffff", muted: "#b5b5b5", axis: "#777777", head: "#222222", border: "#555555", controlBg: "#2a2a2a", controlFg: "#f5f5f5", hoverBg: "#404040", hoverFg: "#ffffff", hoverBorder: "#a3a3a3", focus: "#d4d4d4", active: "#525252", tableHead: "#262626", tableHeadFg: "#ffffff", rowBg: "#171717", rowBorder: "#404040", scrollTrack: "#0a0a0a", scrollThumb: "#737373" })
+  ];
+  function stateThemePresetByKey(key) {
+    for (var i = 0; i < STATE_THEME_PRESETS.length; i++) if (STATE_THEME_PRESETS[i].key === key) return STATE_THEME_PRESETS[i];
+    return null;
+  }
+  function stateThemeStorageKey(root) { return "sui.chart.state.theme." + ganttUiKey(root); }
+  function stateThemeRead(root) {
+    try {
+      var raw = window.localStorage && window.localStorage.getItem(stateThemeStorageKey(root));
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function stateThemeWrite(root, key, vars) {
+    try {
+      if (!window.localStorage) return;
+      window.localStorage.setItem(stateThemeStorageKey(root), JSON.stringify({ key: key, vars: vars || {} }));
+    } catch (e) {}
+  }
+  function stateThemeBase(root) {
+    if (!root.__suiStateThemeBase) {
+      var base = {};
+      for (var i = 0; i < STATE_THEME_VARS.length; i++) base[STATE_THEME_VARS[i]] = root.style.getPropertyValue(STATE_THEME_VARS[i]);
+      root.__suiStateThemeBase = base;
+    }
+    return root.__suiStateThemeBase;
+  }
+  function stateThemeApplyVars(root, vars) {
+    stateThemeBase(root);
+    for (var i = 0; i < STATE_THEME_VARS.length; i++) {
+      var name = STATE_THEME_VARS[i];
+      if (vars && Object.prototype.hasOwnProperty.call(vars, name) && vars[name]) root.style.setProperty(name, String(vars[name]));
+      else root.style.removeProperty(name);
+    }
+  }
+  function stateThemeCurrentVars(root) {
+    var out = {};
+    for (var i = 0; i < STATE_THEME_VARS.length; i++) {
+      var name = STATE_THEME_VARS[i];
+      var value = root.style.getPropertyValue(name).trim();
+      if (value) out[name] = value;
+    }
+    return out;
+  }
+  function applyStateThemeOverrides(root) {
+    if (!root || root.__suiStateThemeApplied) return;
+    var saved = stateThemeRead(root);
+    if (saved && saved.vars) stateThemeApplyVars(root, saved.vars);
+    else stateThemeBase(root);
+    root.__suiStateThemeKey = saved && saved.key ? saved.key : "custom";
+    root.__suiStateThemeApplied = true;
+  }
+  function stateThemeApplyPreset(root, preset) {
+    if (!root || !preset) return;
+    stateThemeApplyVars(root, preset.vars);
+    root.__suiStateThemeKey = preset.key;
+    stateThemeWrite(root, preset.key, preset.vars);
+    root.__suiStateThemeApplied = true;
+  }
+  function stateThemeSetVar(root, name, value) {
+    stateThemeBase(root);
+    if (value) root.style.setProperty(name, String(value));
+    else root.style.removeProperty(name);
+    root.__suiStateThemeKey = "custom";
+    stateThemeWrite(root, "custom", stateThemeCurrentVars(root));
+    root.__suiStateThemeApplied = true;
+  }
+  function resetStateTheme(root) {
+    if (!root) return;
+    try { if (window.localStorage) window.localStorage.removeItem(stateThemeStorageKey(root)); } catch (e) {}
+    stateThemeApplyVars(root, stateThemeBase(root));
+    root.__suiStateThemeKey = "custom";
+    root.__suiStateThemeApplied = true;
+  }
+  var STATE_THEME_FIELDS = [
+    { cat: "Title", label: "Header background", name: "--sui-chart-head-bg", type: "color", fallback: "#111c33", transparent: true },
+    { cat: "Title", label: "Title color", name: "--sui-chart-title-color", type: "color", fallback: "#f8fafc" },
+    { cat: "Title", label: "Title font", name: "--sui-chart-title-font", type: "text", fallback: "system-ui, sans-serif" },
+    { cat: "Title", label: "Title size", name: "--sui-chart-title-size", type: "number", fallback: "14", min: 10, max: 40, step: 1, unit: "px" },
+    { cat: "Title", label: "Title weight", name: "--sui-chart-title-weight", type: "number", fallback: "600", min: 100, max: 900, step: 100 },
+    { cat: "Title", label: "Title spacing", name: "--sui-chart-title-letter-spacing", type: "number", fallback: "0", min: -2, max: 10, step: 0.5, unit: "px" },
+    { cat: "Frame", label: "Border width", name: "--sui-chart-border", type: "number", fallback: "1", min: 0, max: 12, step: 1, unit: "px", composite: "borderWidth" },
+    { cat: "Frame", label: "Border color", name: "--sui-chart-border", type: "color", fallback: "#334155", composite: "borderColor" },
+    { cat: "Frame", label: "Corner radius", name: "--sui-chart-radius", type: "number", fallback: "10", min: 0, max: 80, step: 1, unit: "px" },
+    { cat: "Buttons", label: "Background", name: "--sui-chart-control-bg", type: "color", fallback: "#1e293b" },
+    { cat: "Buttons", label: "Text", name: "--sui-chart-control-fg", type: "color", fallback: "#f8fafc" },
+    { cat: "Buttons", label: "Border", name: "--sui-chart-control-border", type: "color", fallback: "#334155" },
+    { cat: "Buttons", label: "Radius", name: "--sui-chart-control-radius", type: "number", fallback: "6", min: 0, max: 40, step: 1, unit: "px" },
+    { cat: "Buttons", label: "Font", name: "--sui-chart-control-font", type: "text", fallback: "system-ui, sans-serif" },
+    { cat: "Buttons", label: "Font size", name: "--sui-chart-control-font-size", type: "number", fallback: "12", min: 8, max: 24, step: 1, unit: "px" },
+    { cat: "Buttons", label: "Shadow", name: "--sui-chart-control-shadow", type: "text", fallback: "none" },
+    { cat: "Buttons", label: "Hover background", name: "--sui-chart-control-hover-bg", type: "color", fallback: "#334155" },
+    { cat: "Buttons", label: "Hover text", name: "--sui-chart-control-hover-fg", type: "color", fallback: "#ffffff" },
+    { cat: "Buttons", label: "Hover border", name: "--sui-chart-control-hover-border", type: "color", fallback: "#94a3b8" },
+    { cat: "Buttons", label: "Focus border", name: "--sui-chart-control-focus-border", type: "color", fallback: "#60a5fa" },
+    { cat: "Buttons", label: "Active background", name: "--sui-chart-control-active-bg", type: "color", fallback: "#475569" },
+    { cat: "Table", label: "Font size", name: "--sui-chart-table-font-size", type: "number", fallback: "11", min: 8, max: 20, step: 1, unit: "px" },
+    { cat: "Table", label: "Cell padding", name: "--sui-chart-table-cell-padding", type: "text", fallback: "4px 6px" },
+    { cat: "Table", label: "Header background", name: "--sui-chart-table-head-bg", type: "color", fallback: "#1e293b" },
+    { cat: "Table", label: "Header text", name: "--sui-chart-table-head-fg", type: "color", fallback: "#f8fafc" },
+    { cat: "Table", label: "Row background", name: "--sui-chart-table-row-bg", type: "color", fallback: "#0f172a" },
+    { cat: "Table", label: "Row border", name: "--sui-chart-table-row-border", type: "color", fallback: "#334155" },
+    { cat: "Table", label: "Stripe opacity", name: "--sui-chart-table-stripe-opacity", type: "number", fallback: "0.06", min: 0, max: 1, step: 0.05 },
+    { cat: "Scrollbars", label: "Size", name: "--sui-chart-scroll-size", type: "number", fallback: "9", min: 4, max: 24, step: 1, unit: "px" },
+    { cat: "Scrollbars", label: "Track", name: "--sui-chart-scroll-track", type: "color", fallback: "#0b1220" },
+    { cat: "Scrollbars", label: "Thumb", name: "--sui-chart-scroll-thumb", type: "color", fallback: "#64748b" }
+  ];
+  function stateThemeComputed(root, name, fallback) {
+    var value = "";
+    try { value = window.getComputedStyle(root).getPropertyValue(name).trim(); } catch (e) {}
+    if (!value) value = root.style.getPropertyValue(name).trim();
+    if (!value) value = fallback || "";
+    if (value === "rgba(0, 0, 0, 0)" || value === "rgba(0,0,0,0)" || value === "transparent") return "transparent";
+    return value;
+  }
+  function stateThemeBorderParts(root) {
+    var raw = stateThemeComputed(root, "--sui-chart-border", "1px solid #334155");
+    var m = String(raw).match(/^\s*([\d.]+)px\s+[a-z-]+\s+(#[0-9a-f]{6})/i);
+    return m ? { width: m[1], color: m[2] } : { width: "1", color: "#334155" };
+  }
+  function stateThemeFieldRaw(root, field) {
+    if (field.composite === "borderWidth") return stateThemeBorderParts(root).width;
+    if (field.composite === "borderColor") return stateThemeBorderParts(root).color;
+    return stateThemeComputed(root, field.name, field.fallback);
+  }
+  function stateThemeFieldNumber(field, value) {
+    var n = parseFloat(String(value || "").replace(/[^\d.-]/g, ""));
+    if (!isFinite(n)) n = parseFloat(field.fallback) || 0;
+    return n;
+  }
+  function stateThemeFieldValue(field, control) {
+    if (field.type === "number") {
+      var n = stateTagFieldValue(control);
+      return String(n) + (field.unit || "");
+    }
+    return stateTagFieldValue(control);
+  }
+  function stateThemeSetPreset(root, overlay, key, presetSelect, themeControls, refresh) {
+    if (key === "custom") return;
+    var preset = stateThemePresetByKey(key);
+    if (!preset) return;
+    stateThemeApplyPreset(root, preset);
+    copyChartThemeVars(root, overlay);
+    if (refresh) refresh();
+    draw(root);
   }
   function statePayloadData(data) {
     return {
@@ -16632,7 +16844,6 @@ const suiChartRuntime = `(function(){
     addField("Chart title", titleControl);
     var shapeBorderControl = addField("Shape border color", stateTagFieldColor(attr(root, "state-shape-border-color") || "#64748b", "#64748b"));
     var highlightControl = addField("Highlight color", stateTagFieldColor(attr(root, "state-selection-color") || "#f59e0b", "#f59e0b"));
-    var themeControl = addField("Theme", stateTagFieldSelect([["dark", "Dark"], ["light", "Light"]], (attr(root, "theme") || "dark").toLowerCase()));
     var handlesDefault = attr(root, "state-handles") === "" ? true : flag(root, "state-handles");
     var handlesControl = addField("Show anchors and handles", stateTagFieldSwitch(handlesDefault));
     var editModeControl = addField("Edit mode", stateTagFieldSwitch(stateEditingMode(root)));
@@ -16661,7 +16872,6 @@ const suiChartRuntime = `(function(){
     stateTagFieldInputs(highlightControl).forEach(function(input) {
       input.addEventListener("change", function() { persistDiagramField("state-selection-color", stateTagFieldValue(highlightControl)); });
     });
-    themeControl.addEventListener("change", function() { setStateOption(root, "theme", themeControl.value); });
     stateTagFieldInputs(handlesControl).forEach(function(input) {
       input.addEventListener("change", function() { persistDiagramField("state-handles", stateTagFieldValue(handlesControl) ? "1" : "0"); });
     });
@@ -16693,6 +16903,68 @@ const suiChartRuntime = `(function(){
       ganttAnnounce(root, "Diagram settings reset to the source values.");
       close();
     });
+    var styleTab = tabs.add("Style");
+    var styleHint = document.createElement("p");
+    styleHint.className = "sui-chart-calendar-hint sui-chart-tag-field-wide";
+    styleHint.textContent = "Theme presets and component styles. Shapes, links, tags, hints and grid style keep their own panels.";
+    styleTab.appendChild(styleHint);
+    var themeGrid = stateTagSection(styleTab, "Theme");
+    var presetOptions = STATE_THEME_PRESETS.map(function(preset) { return [preset.key, preset.label]; });
+    presetOptions.push(["custom", "Custom"]);
+    var presetSelect = stateTagFieldSelect(presetOptions, root.__suiStateThemeKey || "custom");
+    addField("Preset", presetSelect, themeGrid);
+    var themeControls = {};
+    var controlKey = function(field) { return field.name + "|" + (field.composite || ""); };
+    var refreshThemeControls = function() {
+      STATE_THEME_FIELDS.forEach(function(field) {
+        var control = themeControls[controlKey(field)];
+        if (!control) return;
+        var raw = stateThemeFieldRaw(root, field);
+        if (field.type === "number") stateTagFieldSetValue(control, stateThemeFieldNumber(field, raw));
+        else stateTagFieldSetValue(control, raw);
+      });
+      presetSelect.value = root.__suiStateThemeKey || "custom";
+    };
+    var themeCategories = {};
+    STATE_THEME_FIELDS.forEach(function(field) {
+      var grid = themeCategories[field.cat];
+      if (!grid) grid = themeCategories[field.cat] = stateTagSection(styleTab, field.cat);
+      var raw = stateThemeFieldRaw(root, field);
+      var control;
+      if (field.type === "color") control = stateTagFieldColor(raw, field.fallback, !!field.transparent);
+      else if (field.type === "number") control = stateTagFieldNumber(stateThemeFieldNumber(field, raw), field.min, field.max, field.step);
+      else control = stateTagFieldText(raw);
+      themeControls[controlKey(field)] = control;
+      stateTagBindField(control, function() {
+        if (field.composite === "borderWidth" || field.composite === "borderColor") {
+          var widthControl = themeControls["--sui-chart-border|borderWidth"];
+          var colorControl = themeControls["--sui-chart-border|borderColor"];
+          var width = Number(stateTagFieldValue(widthControl));
+          if (!isFinite(width)) width = 0;
+          var color = String(stateTagFieldValue(colorControl) || "#334155");
+          stateThemeSetVar(root, "--sui-chart-border", (width > 0 ? width + "px" : "0") + " solid " + color);
+        } else {
+          var value = stateThemeFieldValue(field, control);
+          if (field.type === "text" && !String(value).trim()) value = "";
+          stateThemeSetVar(root, field.name, value);
+        }
+        root.__suiStateThemeKey = "custom";
+        presetSelect.value = "custom";
+        copyChartThemeVars(root, overlay);
+        draw(root);
+      });
+      addField(field.label, control, grid);
+    });
+    presetSelect.addEventListener("change", function() {
+      if (presetSelect.value === "custom") return;
+      var preset = stateThemePresetByKey(presetSelect.value);
+      if (!preset) return;
+      stateThemeApplyPreset(root, preset);
+      refreshThemeControls();
+      copyChartThemeVars(root, overlay);
+      draw(root);
+    });
+    refreshThemeControls();
     var versions = tabs.add("Versions");
     var pending = statePendingChanges(root).length;
     var pendingHint = document.createElement("p");
@@ -22332,6 +22604,7 @@ const suiChartRuntime = `(function(){
     var overflow = (attr(root, "overflow") || "scroll").toLowerCase();
     if (["scroll", "zoom", "fit"].indexOf(overflow) < 0) overflow = "scroll";
     if (type === "state") {
+      applyStateThemeOverrides(root);
       applyStateSettings(root);
       applyStateHintSettings(root);
     }
