@@ -682,6 +682,13 @@ chart "Monthly sales"
 	showValues: false
 ```
 
+`width` and `height` are optional. When omitted, empty, `auto` or a
+percentage, the chart fills its container and follows it when the container
+grows; the table keeps its fixed pixel height while the graphic area grows in
+both directions. An explicit pixel size keeps a fixed frame. In a container
+without a definite height the chart falls back to at least 240 px
+(`--sui-chart-min-height` overrides the fallback), so it never collapses.
+
 `theme: "dark"` (default) or `theme: "light"` selects the built-in token set.
 The light theme defines explicit `--sui-chart-*` values for background, text,
 grid, controls, tooltip, table and scrollbars. Dialog overlays, the chart menu,
@@ -1599,7 +1606,9 @@ mode the table is docked to the bottom edge with a fixed height shared by every
 chart type: the chart shrinks, a draggable separator above the table sets its
 height (stored per chart), only the table body scrolls while the header and the
 table tools stay fixed, and resizing the container keeps the table height while
-the chart takes the extra space. Each header
+the chart takes the extra space. The separator is keyboard focusable: Up/Down
+resize by 8 px (Shift+Up/Down by 32 px), PageUp/PageDown by 10% of the chart
+height, Home resets to 80 px and End uses the maximum height. Each header
 cell has a filter button that opens an Excel-style popup filter, so columns are filtered independently. The popup
 combines a contains search, a value checklist (up to 40 distinct values) and,
 for numeric or ISO-date columns, minimum/maximum range fields. Click a header

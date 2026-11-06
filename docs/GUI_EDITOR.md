@@ -778,7 +778,9 @@ type-specific columns.
 With **table view** set to **both**, every chart docks a fixed-height table at
 the bottom: the chart shrinks, the table spans the full width and stays aligned
 with the bottom edge of the control. Drag the separator above the table to set
-its height; the value is stored per chart. Adding or scrolling rows moves only
+its height; the value is stored per chart. The separator is keyboard focusable:
+Up/Down resize by 8 px (Shift+Up/Down by 32 px), PageUp/PageDown by 10% of the
+control height, Home resets to 80 px and End uses the maximum. Adding or scrolling rows moves only
 the table body, while the header row and the table tools above it stay fixed.
 Resizing the container keeps the table height and gives the extra space to the
 chart. The Graph control follows the same rules.
@@ -1066,7 +1068,8 @@ Chart width and height come from the standard **Size** inspector fields (or
 CSS in **style expr**), not from chart-specific parameters. Use those fields to
 set the visible frame. When the size is omitted, the chart fills its container
 and grows with it; the table follows the container width while keeping its
-fixed height.
+fixed height. In a container without a definite height the chart keeps at least
+240 px (`--sui-chart-min-height` overrides the fallback).
 
 When `overflow` is **Scrollbars**, the chart draws at its natural width inside
 the configured frame and the viewport scrolls horizontally when the points need
@@ -1148,7 +1151,8 @@ The graph fills its container and starts with the table hidden. With **show
 table** on, the table spans the full width at the bottom of the control and the
 diagram shrinks, so chart and table share the available height. Drag the
 separator between them to set the table height; the height is stored per chart.
-Adding rows scrolls only the table body, while the header and the buttons above
+The separator supports the same keyboard controls (Up/Down, Shift+Up/Down,
+PageUp/PageDown, Home and End). Adding rows scrolls only the table body, while the header and the buttons above
 it stay fixed. Resizing the container keeps the table height and gives the extra
 space to the chart.
 

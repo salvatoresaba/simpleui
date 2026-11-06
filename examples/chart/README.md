@@ -38,7 +38,8 @@ counts together, and part-to-whole charts together.
 - Accessible data tables for every chart type through `tableView: "table"` or
   `"both"`. In `"both"` mode the table docks to the bottom with a draggable
   separator; it keeps its height when the container resizes and only the rows
-  scroll while the header and table tools stay fixed. Gantt tables include Task,
+  scroll while the header and table tools stay fixed. The separator is keyboard
+  focusable (Up/Down, Shift+Up/Down, PageUp/PageDown, Home/End). Gantt tables include Task,
   Start, End, Progress, Group and Depends
   on; other pages show Label plus series or type-specific columns.
 - Optional Excel-style per-column filter popups (`tableFilters: false` disables
@@ -352,7 +353,9 @@ view time {
    load a file or insert a sample. The overlay also shows the selected chart type
    and blocks Apply when the data shape is incompatible.
 5. Apply the overlay, then set **x field** and **y field**, or leave them on auto.
-6. Set **width** and **height** in the standard **Size** inspector section;
+6. Leave **width** and **height** empty (or `100%`) to fill the container and
+   follow it when it grows; set an explicit pixel size for a fixed frame. In a
+   container without a definite height the chart keeps at least 240 px. Then
    choose **overflow**:
    - **Scrollbars** for a fixed frame with scrolling,
    - **Zoom controls** for `-`, `+`, `Reset`,

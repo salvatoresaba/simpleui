@@ -810,7 +810,9 @@ Con **table view** impostata su **both**, ogni grafico aggancia una tabella di
 altezza fissa in basso: il grafico si riduce, la tabella occupa tutta la
 larghezza e resta allineata al bordo inferiore del controllo. Trascinando il
 separatore sopra la tabella si imposta l'altezza; il valore è salvato per chart.
-Aggiungendo o scorrendo righe si muove solo il corpo della tabella, mentre
+Il separatore è raggiungibile da tastiera: Su/Giù di 8 px (Shift+Su/Giù di
+32 px), PageUp/PageDown del 10% dell'altezza del controllo, Home riporta a 80 px
+ed End usa il massimo. Aggiungendo o scorrendo righe si muove solo il corpo della tabella, mentre
 l'intestazione e i pulsanti sopra di essa restano fissi. Ridimensionando il
 contenitore l'altezza della tabella resta costante e lo spazio in più va al
 grafico. Il controllo Graph segue le stesse regole.
@@ -1102,7 +1104,9 @@ mantiene il normale runtime chart e i suoi limiti.
 Larghezza e altezza del chart si impostano con i campi standard della sezione
 **Size** (o con CSS in **style expr**), non con parametri chart dedicati. Se la
 dimensione è omessa il chart riempie il contenitore e cresce con esso; la
-tabella segue la larghezza del contenitore mantenendo l'altezza fissa.
+tabella segue la larghezza del contenitore mantenendo l'altezza fissa. In un
+contenitore senza altezza definita il chart mantiene almeno 240 px
+(`--sui-chart-min-height` sovrascrive il fallback).
 
 Con **Scrollbars** il grafico mantiene la cornice e mostra una scrollbar
 orizzontale quando i punti richiedono piu spazio. **Zoom controls** aggiunge `-`, `+`, `Reset` e la
@@ -1183,7 +1187,8 @@ Il graph riempie il contenitore e parte con la tabella nascosta. Con **show
 table** attivo la tabella occupa tutta la larghezza in basso nel controllo e il
 diagramma si riduce, così grafico e tabella si dividono l'altezza disponibile.
 Trascinando il separatore tra loro si imposta l'altezza della tabella; l'altezza
-viene salvata per chart. Aggiungendo righe scorre solo il corpo della tabella,
+viene salvata per chart. Il separatore supporta gli stessi comandi da tastiera
+(Su/Giù, Shift+Su/Giù, PageUp/PageDown, Home ed End). Aggiungendo righe scorre solo il corpo della tabella,
 mentre l'intestazione e i pulsanti sopra di essa restano fissi. Ridimensionando il
 contenitore l'altezza della tabella resta costante e lo spazio in più va al
 grafico.

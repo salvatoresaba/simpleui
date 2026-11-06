@@ -662,6 +662,13 @@ chart "Monthly sales"
 	showValues: false
 ```
 
+`width` e `height` sono opzionali. Se omessi, vuoti, `auto` o percentuali, il
+chart riempie il contenitore e lo segue quando cresce; la tabella mantiene
+l'altezza fissa in pixel mentre l'area grafica cresce in entrambe le direzioni.
+Una dimensione esplicita in pixel mantiene una cornice fissa. In un contenitore
+senza altezza definita il chart usa un minimo di 240 px
+(`--sui-chart-min-height` sovrascrive il fallback), quindi non collassa.
+
 `theme: "dark"` (predefinito) o `theme: "light"` seleziona il set di token
 integrato. Il tema chiaro definisce valori espliciti `--sui-chart-*` per sfondo,
 testo, griglia, controlli, tooltip, tabella e scrollbar. Overlay, menu del grafico,
@@ -1550,7 +1557,9 @@ per ogni tipo di grafico: il grafico si riduce, un separatore trascinabile sopra
 la tabella ne imposta l'altezza (salvata per chart), scorre solo il corpo mentre
 intestazione e pulsanti restano fissi, e ridimensionando il contenitore
 l'altezza della tabella resta costante mentre il grafico prende lo spazio extra.
-Ogni cella di intestazione contiene un pulsante filtro che apre un popup in stile
+Il separatore è raggiungibile da tastiera: Su/Giù ridimensionano di 8 px
+(Shift+Su/Giù di 32 px), PageUp/PageDown del 10% dell'altezza del chart, Home
+riporta a 80 px ed End usa l'altezza massima. Ogni cella di intestazione contiene un pulsante filtro che apre un popup in stile
 Excel, indipendente per colonna. Il popup combina ricerca testuale, elenco dei
 valori (fino a 40 valori distinti) e, per colonne numeriche o date ISO, campi
 minimo/massimo. Un click sull'intestazione (non sul filtro) ordina in modo

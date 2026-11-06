@@ -13,10 +13,13 @@ inspector instead of the chart type menu.
 - Automatic links plus explicit layout coordinates.
 - Grid, tag/link styling and a synchronized accessible table (`tableView: "both"`).
 - A fixed-height table docked at the bottom of the graph: drag the separator to
-  resize it, and only the rows scroll while the header stays fixed.
+  resize it (or focus it and use Up/Down, Shift+Up/Down, PageUp/PageDown,
+  Home/End), and only the rows scroll while the header stays fixed.
 - An editable table (`tableEdit: true`): change colors, text, shape type and
   element settings or delete rows. Turn the switch off to show plain read-only
   data with no actions column.
+- A runtime theme editor with presets: **General → Theme** stores Control, Title,
+  Buttons, Table and Scrollbars tones per chart and applies changes live.
 - Theme and chart CSS variables applied through `style: cssSafe(...)`.
 
 ## Run it
@@ -31,11 +34,15 @@ simpleui build examples/graph/app.sui --single --out examples/graph/app.html
 
 1. Open the designer and insert **Graph** from **Controls** (it is a leaf control).
 2. Select the graph and open **Graph settings** for the runtime panel (General
-   plus GRID, SHAPES, LINKS, TAGS and HINTS).
+   plus GRID, SHAPES, LINKS, TAGS and HINTS). **General → Theme** chooses a preset
+   and **Edit theme...** opens the Control, Title, Buttons, Table and Scrollbars
+   editor with live preview and per-chart storage.
 3. Use **Styles** for a color preset or **Edit styles...** to change the title,
-   frame, buttons, table and scrollbars.
+   frame, buttons, table and scrollbars in the compiled source. The runtime
+   theme editor is separate and does not rewrite the `.sui` file.
 4. Toggle the table, **edit table**, settings button, zoom, + Add and undo/redo
-   with their switches; drag the separator above the table to set its height.
+   with their switches; drag the separator above the table to set its height, or
+   focus it and use the arrow keys.
 5. Use **Edit data...** (right below the switches) to change JSON, CSV or XML.
 
 The graph inspector has no type selector: the control always renders the block

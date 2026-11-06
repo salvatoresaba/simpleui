@@ -237,6 +237,7 @@ body {
   flex-direction: column;
   width: var(--sui-chart-width, 100%);
   height: var(--sui-chart-height, 100%);
+  min-height: var(--sui-chart-min-height, 240px);
   max-width: 100%;
   min-width: 0;
   color: var(--sui-chart-fg, var(--sui-fg, #e6e6ef));
@@ -247,6 +248,7 @@ body {
   overflow: hidden;
   font-family: var(--sui-chart-font, inherit);
 }
+.sui-chart.sui-chart-fixed-height { min-height: 0; }
 .sui-chart[data-sui-chart-theme="dark"] {
   color-scheme: dark;
   --sui-chart-bg: var(--sui-bg, #14171c);
@@ -1115,6 +1117,8 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
 .sui-chart-splitter { display: none; flex: none; height: 9px; margin-top: 4px; cursor: row-resize; align-items: center; justify-content: center; touch-action: none; }
 .sui-chart-splitter::before { content: ""; display: block; width: 44px; height: 2px; border-radius: 2px; background: var(--sui-chart-axis, #475569); opacity: .65; }
 .sui-chart-splitter:hover::before, .sui-chart-splitter.sui-chart-splitter-active::before { background: var(--sui-chart-control-hover-border, var(--sui-chart-series-1, #4c5cf7)); opacity: 1; }
+.sui-chart-splitter:focus-visible { outline: 2px solid var(--sui-chart-control-hover-border, var(--sui-chart-series-1, #4c5cf7)); outline-offset: 2px; border-radius: 3px; }
+.sui-chart-splitter:focus-visible::before { background: var(--sui-chart-control-hover-border, var(--sui-chart-series-1, #4c5cf7)); opacity: 1; }
 .sui-chart-table-both .sui-chart-splitter { display: flex; }
 .sui-chart-slice { stroke: var(--sui-chart-bg, #14171c); stroke-width: var(--sui-chart-slice-stroke, 2); }
 .sui-chart-pie-hole { fill: var(--sui-chart-bg, #14171c); }
@@ -3653,7 +3657,7 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString("<button type=\"button\" class=\"sui-chart-zoom-fit\" data-zoom=\"fit\" aria-label=\"Fit to width\" title=\"Fit to width\">Fit width</button>")
 	sb.WriteString("<button type=\"button\" class=\"sui-chart-zoom-fit sui-chart-zoom-fit-all\" data-zoom=\"fitall\" aria-label=\"Fit all graph elements\" title=\"Fit all graph elements\">Fit all</button></div></div>\n")
 	sb.WriteString(inner + "<div class=\"sui-chart-viewport\"><div class=\"sui-chart-stage\"><svg class=\"sui-chart-svg\" role=\"img\"></svg></div></div>\n")
-	sb.WriteString(inner + "<div class=\"sui-chart-legend\"></div><div class=\"sui-chart-splitter\" role=\"separator\" aria-orientation=\"horizontal\" aria-label=\"Resize chart and table\" title=\"Drag to resize chart and table\"></div><div class=\"sui-chart-table\" role=\"region\" aria-label=\"Task table\" hidden></div><div class=\"sui-chart-error\" role=\"alert\" hidden></div><div class=\"sui-chart-tooltip\" role=\"tooltip\" aria-live=\"polite\" hidden></div>\n")
+	sb.WriteString(inner + "<div class=\"sui-chart-legend\"></div><div class=\"sui-chart-splitter\" role=\"separator\" tabindex=\"0\" aria-orientation=\"horizontal\" aria-valuemin=\"80\" aria-valuemax=\"320\" aria-valuenow=\"180\" aria-valuetext=\"180 pixels\" aria-label=\"Resize chart and table\" title=\"Drag, or use the arrow keys, to resize chart and table\"></div><div class=\"sui-chart-table\" role=\"region\" aria-label=\"Task table\" hidden></div><div class=\"sui-chart-error\" role=\"alert\" hidden></div><div class=\"sui-chart-tooltip\" role=\"tooltip\" aria-live=\"polite\" hidden></div>\n")
 	sb.WriteString(ind + "</div>\n")
 }
 

@@ -51,6 +51,33 @@ func TestChartDefaultSizeFillsContainer(t *testing.T) {
 		!strings.Contains(suiCssBase, "width: 100%") {
 		t.Error("chart table does not follow the control width")
 	}
+	if !strings.Contains(suiCssBase, "min-height: var(--sui-chart-min-height, 240px)") ||
+		!strings.Contains(suiCssBase, ".sui-chart.sui-chart-fixed-height { min-height: 0; }") {
+		t.Error("chart CSS is missing the auto-height minimum or the fixed-height override")
+	}
+	if !strings.Contains(suiChartRuntime, `classList.toggle("sui-chart-fixed-height", !autoHeight)`) {
+		t.Error("chart runtime does not skip the minimum for explicit pixel heights")
+	}
+}
+
+func TestChartSplitterKeyboardResize(t *testing.T) {
+	for _, want := range []string{
+		`splitter.addEventListener("keydown"`,
+		`if (key === "ArrowUp") next = current + step;`,
+		`else if (key === "ArrowDown") next = current - step;`,
+		`else if (key === "PageUp")`,
+		`else if (key === "PageDown")`,
+		`else if (key === "Home") next = 80;`,
+		`else if (key === "End") next = chartTableHeightMax(root);`,
+		`function syncChartSplitterAria(root)`,
+		`splitter.setAttribute("aria-valuenow", String(now));`,
+		`splitter.setAttribute("aria-valuetext", now + " pixels");`,
+		`function setChartTableHeight(root, height)`,
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("chart runtime missing splitter keyboard support %q", want)
+		}
+	}
 }
 
 func TestChartRender(t *testing.T) {

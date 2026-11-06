@@ -1822,6 +1822,10 @@ const suiChartRuntime = `(function(){
     var h = attr(root, "height") || "100%";
     root.style.setProperty("--sui-chart-width", w);
     root.style.setProperty("--sui-chart-height", h);
+    // A percentage or automatic height depends on the container, so keep the
+    // usable minimum fallback. A concrete height is a fixed frame and must win.
+    var autoHeight = !h || h === "auto" || /%$/.test(String(h).trim());
+    root.classList.toggle("sui-chart-fixed-height", !autoHeight);
   }
   function showError(root, message) {
     var err = root.querySelector(".sui-chart-error");
@@ -10988,6 +10992,31 @@ const suiChartRuntime = `(function(){
       if (window.localStorage) window.localStorage.setItem(chartTableHeightStorageKey(root), String(Math.round(value)));
     } catch (e) {}
   }
+  function chartTableHeightCurrent(root) {
+    var current = parseFloat(getComputedStyle(root).getPropertyValue("--sui-chart-table-height"));
+    if (!isFinite(current) || current <= 0) {
+      var tableEl = root.querySelector(".sui-chart-table");
+      current = tableEl ? tableEl.getBoundingClientRect().height : 180;
+    }
+    return isFinite(current) && current > 0 ? current : 180;
+  }
+  function syncChartSplitterAria(root) {
+    var splitter = root ? root.querySelector(".sui-chart-splitter") : null;
+    if (!splitter) return;
+    var max = Math.round(chartTableHeightMax(root));
+    var now = Math.round(Math.max(80, Math.min(max, chartTableHeightCurrent(root))));
+    splitter.setAttribute("aria-valuemin", "80");
+    splitter.setAttribute("aria-valuemax", String(max));
+    splitter.setAttribute("aria-valuenow", String(now));
+    splitter.setAttribute("aria-valuetext", now + " pixels");
+  }
+  function setChartTableHeight(root, height) {
+    var next = Math.round(Math.max(80, Math.min(chartTableHeightMax(root), height)));
+    root.style.setProperty("--sui-chart-table-height", next + "px");
+    chartTableHeightWrite(root, next);
+    syncChartSplitterAria(root);
+    return next;
+  }
   function applyChartTableHeight(root) {
     if (!root) return;
     if (!root.classList.contains("sui-chart-table-both")) {
@@ -10998,6 +11027,7 @@ const suiChartRuntime = `(function(){
     if (height === null) return;
     height = Math.max(80, Math.min(chartTableHeightMax(root), height));
     root.style.setProperty("--sui-chart-table-height", Math.round(height) + "px");
+    syncChartSplitterAria(root);
   }
   function syncChartTableSticky(root) {
     var tableEl = root ? root.querySelector(".sui-chart-table") : null;
@@ -11032,19 +11062,12 @@ const suiChartRuntime = `(function(){
     var dragStartHeight = 0;
     var update = function(clientY) {
       var height = dragStartHeight + (dragStartY - clientY);
-      height = Math.max(80, Math.min(chartTableHeightMax(root), height));
-      root.style.setProperty("--sui-chart-table-height", Math.round(height) + "px");
-      chartTableHeightWrite(root, height);
+      setChartTableHeight(root, height);
     };
     splitter.addEventListener("pointerdown", function(ev) {
       dragging = true;
       dragStartY = ev.clientY;
-      var current = parseFloat(getComputedStyle(root).getPropertyValue("--sui-chart-table-height"));
-      if (!isFinite(current) || current <= 0) {
-        var tableEl = root.querySelector(".sui-chart-table");
-        current = tableEl ? tableEl.getBoundingClientRect().height : 180;
-      }
-      dragStartHeight = current;
+      dragStartHeight = chartTableHeightCurrent(root);
       splitter.classList.add("sui-chart-splitter-active");
       try { splitter.setPointerCapture(ev.pointerId); } catch (e) {}
       ev.preventDefault();
@@ -11062,6 +11085,23 @@ const suiChartRuntime = `(function(){
     };
     splitter.addEventListener("pointerup", end);
     splitter.addEventListener("pointercancel", end);
+    splitter.addEventListener("keydown", function(ev) {
+      var key = ev.key || "";
+      var step = ev.shiftKey ? 32 : 8;
+      var current = chartTableHeightCurrent(root);
+      var next = null;
+      if (key === "ArrowUp") next = current + step;
+      else if (key === "ArrowDown") next = current - step;
+      else if (key === "PageUp") next = current + Math.max(32, Math.round(root.clientHeight * 0.1));
+      else if (key === "PageDown") next = current - Math.max(32, Math.round(root.clientHeight * 0.1));
+      else if (key === "Home") next = 80;
+      else if (key === "End") next = chartTableHeightMax(root);
+      if (next === null) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      setChartTableHeight(root, next);
+    });
+    if (root.classList.contains("sui-chart-table-both")) syncChartSplitterAria(root);
   }
   var STATE_FONT_OPTIONS = [
     ["system-ui, sans-serif", "System UI"],

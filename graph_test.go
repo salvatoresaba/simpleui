@@ -133,7 +133,8 @@ func TestGraphFullSizeAndSplitterMarkup(t *testing.T) {
 	for _, want := range []string{
 		`data-sui-chart-width="100%"`,
 		`data-sui-chart-height="100%"`,
-		`class="sui-chart-splitter"`,
+		`class="sui-chart-splitter" role="separator" tabindex="0"`,
+		`aria-valuenow="180"`,
 		`class="sui-chart-table" role="region"`,
 	} {
 		if !strings.Contains(js, want) {
@@ -144,7 +145,8 @@ func TestGraphFullSizeAndSplitterMarkup(t *testing.T) {
 	for _, want := range []string{
 		`data-sui-chart-width="100%"`,
 		`data-sui-chart-height="100%"`,
-		`class="sui-chart-splitter"`,
+		`class="sui-chart-splitter" role="separator" tabindex="0"`,
+		`aria-valuenow="180"`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("static graph HTML missing %q", want)
