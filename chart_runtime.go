@@ -16987,7 +16987,7 @@ const suiChartRuntime = `(function(){
     generic.classList.add("sui-chart-two-col-fields");
     var addField = function(labelText, control, grid) {
       var row = document.createElement("label");
-      row.className = "sui-chart-setting-row";
+      row.className = "sui-chart-setting-row " + stateFieldKindClass(control);
       var text = document.createElement("span");
       text.className = "sui-chart-setting-label";
       text.textContent = labelText;
@@ -17156,7 +17156,7 @@ const suiChartRuntime = `(function(){
     var controlKey = function(field) { return field.name + "|" + (field.composite || ""); };
     var addField = function(grid, labelText, control) {
       var row = document.createElement("label");
-      row.className = "sui-chart-setting-row";
+      row.className = "sui-chart-setting-row " + stateFieldKindClass(control);
       var text = document.createElement("span");
       text.className = "sui-chart-setting-label";
       text.textContent = labelText;
@@ -18285,6 +18285,14 @@ const suiChartRuntime = `(function(){
     });
     el.value = value;
     return el;
+  }
+  function stateFieldKindClass(control) {
+    if (!control || !control.classList) return "sui-chart-field-other";
+    if (control.classList.contains("sui-chart-color-field")) return "sui-chart-field-color";
+    if (control.classList.contains("sui-chart-number-field")) return "sui-chart-field-number";
+    if (String(control.tagName || "").toLowerCase() === "select") return "sui-chart-field-select";
+    if (control.classList.contains("sui-chart-switch")) return "sui-chart-field-switch";
+    return "sui-chart-field-other";
   }
   function stateTagFieldNumber(value, min, max, step) {
     var wrap = document.createElement("span");

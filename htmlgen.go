@@ -805,6 +805,11 @@ body {
 .sui-chart-setting-label { min-width: 0; overflow-wrap: anywhere; }
 .sui-chart-state-theme-dialog .sui-chart-tag-grid label.sui-chart-setting-row { grid-column: auto; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.5fr); gap: 8px; align-items: center; }
 .sui-chart-two-col-fields label.sui-chart-setting-row { grid-column: auto; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.5fr); gap: 8px; align-items: center; }
+.sui-chart-two-col-fields, .sui-chart-state-theme-dialog .sui-chart-tag-grid { grid-auto-flow: row dense; }
+.sui-chart-two-col-fields label.sui-chart-setting-row.sui-chart-field-color,
+.sui-chart-state-theme-dialog .sui-chart-tag-grid label.sui-chart-setting-row.sui-chart-field-color { grid-column: 1; }
+.sui-chart-two-col-fields label.sui-chart-setting-row.sui-chart-field-number,
+.sui-chart-state-theme-dialog .sui-chart-tag-grid label.sui-chart-setting-row.sui-chart-field-number { grid-column: 2; }
 .sui-chart-setting-control { display: flex; align-items: center; justify-content: flex-end; min-width: 0; }
 .sui-chart-setting-control > * { width: 100%; min-width: 0; }
 .sui-chart-setting-control > .sui-chart-switch { width: auto; margin-left: 0; margin-right: auto; }
@@ -819,6 +824,7 @@ body {
 .sui-chart-hint-group-title { margin: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--sui-chart-muted, #8fa0b8); }
 @media (max-width: 640px) { .sui-chart-hint-groups { grid-template-columns: 1fr; } }
 .sui-chart-tag-editor .sui-chart-state-cell-input, .sui-chart-tag-editor select { width: 100%; box-sizing: border-box; height: 26px; border-radius: 6px; font-size: 11px; }
+select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 7px center; background-size: 9px 5px; padding-right: 22px; cursor: pointer; }
 .sui-chart-tag-editor .sui-chart-state-color { width: 100%; max-width: none; height: 26px; box-sizing: border-box; border-radius: 6px; }
 .sui-chart-color-field { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 6px; align-items: center; }
 .sui-chart-color-alpha-field { display: grid; grid-template-columns: 30px minmax(0, 1fr) 48px; gap: 6px; align-items: center; width: 100%; box-sizing: border-box; }

@@ -1165,7 +1165,9 @@ valori attualmente applicati: dopo aver scelto un preset i campi mostrano quel
 preset, non i default. I campi sono disposti su due colonne, ciascuna con
 l'etichetta sulla stessa riga del controllo; i campi colore mostrano il valore
 hex, mentre il pannello di selezione contiene lo slider alfa e il campo alfa
-testuale. Le modifiche sono
+testuale. I campi colore sono raggruppati nella stessa colonna e gli slider/numeri
+nell'altra; le combo mostrano una freccia a tendina per non essere confuse con i
+campi di testo. Le modifiche sono
 immediate, salvate per chart, e gli
 stessi stili di controllo e pulsanti sono usati dai pannelli interni al grafico.
 **Reset theme** nell'editor (o **Reset settings**) li cancella.
