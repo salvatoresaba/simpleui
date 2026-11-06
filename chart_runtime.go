@@ -20206,8 +20206,8 @@ const suiChartRuntime = `(function(){
         }
         if (hi === headers.length - 1) {
           th.className = "sui-chart-state-actions-header";
-          th.style.width = "58px";
-          th.style.minWidth = "58px";
+          th.style.width = "88px";
+          th.style.minWidth = "88px";
           table.style.tableLayout = "fixed";
         }
         if (hi < headers.length - 1) stateColumnResize(table, th, hi, root, group);

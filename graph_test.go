@@ -173,10 +173,14 @@ func TestGraphStateTableDeleteIcon(t *testing.T) {
 		"sui-chart-state-delete sui-chart-table-row-delete",
 		`["M6 6l12 12", "M18 6L6 18"]`,
 		`delCell.appendChild(del)`,
+		`th.style.width = "88px"`,
 	} {
 		if !strings.Contains(suiChartRuntime, want) {
 			t.Errorf("state table delete action missing %q", want)
 		}
+	}
+	if !strings.Contains(suiCssBase, "width: 88px !important") {
+		t.Error("state table actions column is too narrow for all icons")
 	}
 }
 

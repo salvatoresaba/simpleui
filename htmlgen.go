@@ -905,7 +905,7 @@ body {
 .sui-chart-state-tooltip-hint { position: absolute; background: var(--sui-chart-control-bg, #14171c); color: var(--sui-chart-fg, #e6e6ef); border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 4px; padding: 4px 8px; font-size: 11px; pointer-events: none; z-index: 100; white-space: nowrap; }
 .sui-chart-state-table-tools .sui-chart-state-icon-btn { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; }
 .sui-chart-state-table-tools .sui-chart-state-add-row { font-weight: 650; }
-.sui-chart-state-actions-header, .sui-chart-state-actions { width: 56px !important; min-width: 56px !important; max-width: 56px !important; padding: 2px 3px !important; text-align: center; white-space: nowrap; }
+.sui-chart-state-actions-header, .sui-chart-state-actions { width: 88px !important; min-width: 88px !important; max-width: 88px !important; padding: 2px 3px !important; text-align: center; white-space: nowrap; }
 .sui-chart-state-actions { text-align: center; vertical-align: middle; }
 .sui-chart-state-actions .sui-chart-state-icon-btn + .sui-chart-state-icon-btn { margin-left: 2px; }
 .sui-chart-state-actions .sui-chart-state-icon-btn { width: 24px; height: 24px; padding: 0; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; color: var(--sui-chart-muted, #8fa0b8); }
