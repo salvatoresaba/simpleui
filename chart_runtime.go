@@ -20282,7 +20282,7 @@ const suiChartRuntime = `(function(){
       var props = stateIconButton("sui-chart-state-icon-btn", "Shape properties " + node.label, ["M5 12h.01", "M12 12h.01", "M19 12h.01"]);
       props.addEventListener("click", function(ev) { ev.stopPropagation(); openStateElementProperties(root, data, "state:" + node.id); });
       delCell.appendChild(props);
-      var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete", "Delete row " + node.label, ["M4 7h16", "M10 11v6", "M14 11v6", "M6 7l1 13h10l1-13", "M9 7V4h6v3"]);
+      var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete sui-chart-table-row-delete", "Delete row " + node.label, ["M6 6l12 12", "M18 6L6 18"]);
       del.addEventListener("click", function(ev) { ev.stopPropagation(); stateDeleteNode(root, index); });
       delCell.appendChild(del); tr.appendChild(delCell);
       shapeBody.appendChild(tr);
@@ -20352,7 +20352,7 @@ const suiChartRuntime = `(function(){
       var props = stateIconButton("sui-chart-state-icon-btn", "Link properties " + edge.from + " to " + edge.to, ["M5 12h.01", "M12 12h.01", "M19 12h.01"]);
       props.addEventListener("click", function(ev) { ev.stopPropagation(); openStateElementProperties(root, data, "edge:" + index); });
       delCell.appendChild(props);
-      var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete", "Delete row " + edge.from + " to " + edge.to, ["M4 7h16", "M10 11v6", "M14 11v6", "M6 7l1 13h10l1-13", "M9 7V4h6v3"]);
+      var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete sui-chart-table-row-delete", "Delete row " + edge.from + " to " + edge.to, ["M6 6l12 12", "M18 6L6 18"]);
       del.addEventListener("click", function(ev) { ev.stopPropagation(); stateDeleteTransition(root, index); });
       delCell.appendChild(del); tr.appendChild(delCell);
       linkBody.appendChild(tr);

@@ -168,6 +168,18 @@ func TestGraphRuntimeThemePresets(t *testing.T) {
 	}
 }
 
+func TestGraphStateTableDeleteIcon(t *testing.T) {
+	for _, want := range []string{
+		"sui-chart-state-delete sui-chart-table-row-delete",
+		`["M6 6l12 12", "M18 6L6 18"]`,
+		`delCell.appendChild(del)`,
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("state table delete action missing %q", want)
+		}
+	}
+}
+
 func TestGraphDesignerModel(t *testing.T) {
 	prog, dl := ParseSource(graphTestSource, "graph.sui")
 	if dl.HasErrors() {
