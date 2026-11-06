@@ -10802,9 +10802,19 @@ const suiChartRuntime = `(function(){
     "--sui-chart-table-input-bg", "--sui-chart-table-summary-bg",
     "--sui-chart-table-row-bg", "--sui-chart-table-row-border",
     "--sui-chart-table-stripe-opacity",
+    "--sui-chart-table-focus-row-bg", "--sui-chart-table-focus-cell-bg", "--sui-chart-table-focus-color",
+    "--sui-chart-table-selected-row-bg",
     "--sui-chart-critical", "--sui-chart-error",
     "--sui-chart-scroll-size", "--sui-chart-scroll-track", "--sui-chart-scroll-thumb", "--sui-chart-scroll-radius"
   ];
+  function themeAlpha(value, alpha) {
+    var hex = colorToHex(value, "");
+    if (!hex) return "transparent";
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
   function stateThemePreset(key, label, o) {
     return { key: key, label: label, vars: {
       "--sui-chart-padding": "0px",
@@ -10853,6 +10863,10 @@ const suiChartRuntime = `(function(){
       "--sui-chart-table-row-bg": o.rowBg,
       "--sui-chart-table-row-border": o.rowBorder,
       "--sui-chart-table-stripe-opacity": "0.06",
+      "--sui-chart-table-focus-row-bg": themeAlpha(o.focus || o.axis, 0.12),
+      "--sui-chart-table-focus-cell-bg": themeAlpha(o.focus || o.axis, 0.20),
+      "--sui-chart-table-focus-color": o.focus || o.axis,
+      "--sui-chart-table-selected-row-bg": themeAlpha(o.focus || o.axis, 0.22),
       "--sui-chart-critical": o.light ? "#b45309" : "#fbbf24",
       "--sui-chart-error": o.light ? "#b91c1c" : "#f87171",
       "--sui-chart-scroll-size": "9px",
@@ -11049,6 +11063,20 @@ const suiChartRuntime = `(function(){
     splitter.addEventListener("pointerup", end);
     splitter.addEventListener("pointercancel", end);
   }
+  var STATE_FONT_OPTIONS = [
+    ["system-ui, sans-serif", "System UI"],
+    ["'Segoe UI', Tahoma, sans-serif", "Segoe UI"],
+    ["Arial, Helvetica, sans-serif", "Arial"],
+    ["Verdana, Geneva, sans-serif", "Verdana"],
+    ["'Trebuchet MS', sans-serif", "Trebuchet"],
+    ["Georgia, 'Times New Roman', serif", "Georgia"],
+    ["'Times New Roman', Times, serif", "Times"],
+    ["'Courier New', monospace", "Courier"],
+    ["ui-monospace, SFMono-Regular, Consolas, monospace", "Monospace"]
+  ];
+  var STATE_FONT_STYLE_OPTIONS = [["normal", "Normal"], ["italic", "Italic"], ["oblique", "Oblique"]];
+  var STATE_TEXT_DECORATION_OPTIONS = [["none", "None"], ["underline", "Underline"], ["overline", "Overline"], ["line-through", "Line through"], ["underline line-through", "Underline + line through"]];
+  var STATE_TITLE_SHADOW_OPTIONS = [["none", "None"], ["0 1px 2px rgba(0,0,0,.35)", "Soft"], ["0 2px 6px rgba(0,0,0,.45)", "Medium"], ["0 0 10px rgba(56,189,248,.55)", "Glow"]];
   var STATE_THEME_FIELDS = [
     { cat: "Control", label: "Background", name: "--sui-chart-bg", type: "color", fallback: "#14171c" },
     { cat: "Control", label: "Border width", name: "--sui-chart-border", type: "number", fallback: "1", min: 0, max: 12, step: 1, unit: "px", composite: "borderWidth" },
@@ -11058,19 +11086,19 @@ const suiChartRuntime = `(function(){
     { cat: "Title", label: "Bar background", name: "--sui-chart-head-bg", type: "color", fallback: "#111c33", transparent: true },
     { cat: "Title", label: "Bar height", name: "--sui-chart-head-min-height", type: "number", fallback: "38", min: 24, max: 120, step: 1, unit: "px" },
     { cat: "Title", label: "Title color", name: "--sui-chart-title-color", type: "color", fallback: "#f8fafc" },
-    { cat: "Title", label: "Title font", name: "--sui-chart-title-font", type: "text", fallback: "system-ui, sans-serif" },
+    { cat: "Title", label: "Title font", name: "--sui-chart-title-font", type: "select", options: STATE_FONT_OPTIONS, fallback: "system-ui, sans-serif" },
     { cat: "Title", label: "Title size", name: "--sui-chart-title-size", type: "number", fallback: "14", min: 10, max: 40, step: 1, unit: "px" },
     { cat: "Title", label: "Title weight", name: "--sui-chart-title-weight", type: "number", fallback: "600", min: 100, max: 900, step: 100 },
-    { cat: "Title", label: "Title style", name: "--sui-chart-title-style", type: "text", fallback: "normal" },
-    { cat: "Title", label: "Title decoration", name: "--sui-chart-title-decoration", type: "text", fallback: "none" },
-    { cat: "Title", label: "Title shadow", name: "--sui-chart-title-shadow", type: "text", fallback: "none" },
+    { cat: "Title", label: "Font style", name: "--sui-chart-title-style", type: "select", options: STATE_FONT_STYLE_OPTIONS, fallback: "normal" },
+    { cat: "Title", label: "Title decoration", name: "--sui-chart-title-decoration", type: "select", options: STATE_TEXT_DECORATION_OPTIONS, fallback: "none" },
+    { cat: "Title", label: "Title shadow", name: "--sui-chart-title-shadow", type: "select", options: STATE_TITLE_SHADOW_OPTIONS, fallback: "none" },
     { cat: "Title", label: "Title spacing", name: "--sui-chart-title-letter-spacing", type: "number", fallback: "0", min: -2, max: 10, step: 0.5, unit: "px" },
     { cat: "Buttons", label: "Background", name: "--sui-chart-control-bg", type: "color", fallback: "#1e293b" },
     { cat: "Buttons", label: "Text", name: "--sui-chart-control-fg", type: "color", fallback: "#f8fafc" },
     { cat: "Buttons", label: "Border width", name: "--sui-chart-control-border-width", type: "number", fallback: "1", min: 0, max: 8, step: 1, unit: "px" },
     { cat: "Buttons", label: "Border", name: "--sui-chart-control-border", type: "color", fallback: "#334155" },
     { cat: "Buttons", label: "Radius", name: "--sui-chart-control-radius", type: "number", fallback: "6", min: 0, max: 40, step: 1, unit: "px" },
-    { cat: "Buttons", label: "Font", name: "--sui-chart-control-font", type: "text", fallback: "system-ui, sans-serif" },
+    { cat: "Buttons", label: "Font", name: "--sui-chart-control-font", type: "select", options: STATE_FONT_OPTIONS, fallback: "system-ui, sans-serif" },
     { cat: "Buttons", label: "Font size", name: "--sui-chart-control-font-size", type: "number", fallback: "12", min: 8, max: 24, step: 1, unit: "px" },
     { cat: "Buttons", label: "Shadow", name: "--sui-chart-control-shadow", type: "text", fallback: "none" },
     { cat: "Buttons", label: "Hover background", name: "--sui-chart-control-hover-bg", type: "color", fallback: "#334155" },
@@ -11080,7 +11108,7 @@ const suiChartRuntime = `(function(){
     { cat: "Buttons", label: "Active background", name: "--sui-chart-control-active-bg", type: "color", fallback: "#475569" },
     { cat: "Table", label: "Background", name: "--sui-chart-table-bg", type: "color", fallback: "#14171c", transparent: true },
     { cat: "Table", label: "Text", name: "--sui-chart-table-fg", type: "color", fallback: "#e6e6ef" },
-    { cat: "Table", label: "Font", name: "--sui-chart-table-font-family", type: "text", fallback: "inherit" },
+    { cat: "Table", label: "Font", name: "--sui-chart-table-font-family", type: "select", options: [["inherit", "Inherit"]].concat(STATE_FONT_OPTIONS), fallback: "inherit" },
     { cat: "Table", label: "Font size", name: "--sui-chart-table-font-size", type: "number", fallback: "11", min: 8, max: 20, step: 1, unit: "px" },
     { cat: "Table", label: "Cell padding", name: "--sui-chart-table-cell-padding", type: "text", fallback: "4px 6px" },
     { cat: "Table", label: "Header background", name: "--sui-chart-table-head-bg", type: "color", fallback: "#1e293b" },
@@ -11092,6 +11120,10 @@ const suiChartRuntime = `(function(){
     { cat: "Table", label: "Row background", name: "--sui-chart-table-row-bg", type: "color", fallback: "#0f172a" },
     { cat: "Table", label: "Row border", name: "--sui-chart-table-row-border", type: "color", fallback: "#334155" },
     { cat: "Table", label: "Stripe opacity", name: "--sui-chart-table-stripe-opacity", type: "number", fallback: "0.06", min: 0, max: 1, step: 0.05 },
+    { cat: "Table", label: "Hover row", name: "--sui-chart-table-focus-row-bg", type: "color", fallback: "rgba(127,127,127,.12)", transparent: true },
+    { cat: "Table", label: "Hover cell", name: "--sui-chart-table-focus-cell-bg", type: "color", fallback: "rgba(127,127,127,.20)", transparent: true },
+    { cat: "Table", label: "Hover outline", name: "--sui-chart-table-focus-color", type: "color", fallback: "#64748b" },
+    { cat: "Table", label: "Selected row", name: "--sui-chart-table-selected-row-bg", type: "color", fallback: "rgba(56,189,248,.22)", transparent: true },
     { cat: "Scrollbars", label: "Size", name: "--sui-chart-scroll-size", type: "number", fallback: "9", min: 4, max: 24, step: 1, unit: "px" },
     { cat: "Scrollbars", label: "Track", name: "--sui-chart-scroll-track", type: "color", fallback: "#0b1220" },
     { cat: "Scrollbars", label: "Thumb", name: "--sui-chart-scroll-thumb", type: "color", fallback: "#64748b" },
@@ -17192,6 +17224,14 @@ const suiChartRuntime = `(function(){
       var control;
       if (field.type === "color") control = stateTagFieldColor(raw, field.fallback, !!field.transparent);
       else if (field.type === "number") control = stateTagFieldNumber(stateThemeFieldNumber(field, raw), field.min, field.max, field.step);
+      else if (field.type === "select") {
+        var opts = (field.options || []).slice();
+        var rawValue = String(raw == null ? "" : raw);
+        var hasOption = false;
+        for (var oi = 0; oi < opts.length; oi++) if (opts[oi][0] === rawValue) { hasOption = true; break; }
+        if (!hasOption && rawValue) opts.push([rawValue, rawValue]);
+        control = stateTagFieldSelect(opts, rawValue);
+      }
       else control = stateTagFieldText(raw);
       controls[controlKey(field)] = control;
       stateTagBindField(control, function() {

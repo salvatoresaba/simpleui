@@ -1121,8 +1121,10 @@ split into **Control**, **Title**, **Buttons**, **Table** and **Scrollbars**
 tabs. It exposes the current values of every non-diagram component: control
 background, border, radius and padding; title bar background and height, title
 typography, decorations and shadow; button colors for each state, border
-width/radius/font; table colors, borders, typography, header and input tones;
-and scrollbar size, colors and radius. Presets also define readable defaults for
+width/radius/font; table colors, borders, typography, header and input tones,
+plus hover and selected-row tones; and scrollbar size, colors and radius.
+Fonts, font style, decoration and shadow use combo boxes. Presets also define
+readable defaults for
 axis, grid, legend and value labels, tooltips/hints and error/critical accents.
 Shapes, links, tags, hints and grid style keep their own panels, which override
 the theme defaults. The editor starts from the currently applied values, so

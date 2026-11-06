@@ -1157,8 +1157,9 @@ tema, diviso nei tab **Control**, **Title**, **Buttons**, **Table** e
 sfondo, bordo, raggio e padding del controllo; background e altezza della barra
 titolo; tipografia, abbellimenti e ombra del titolo; colori dei pulsanti per
 ogni stato, spessore bordo/raggio/font; colori, bordi, tipografia, header e toni
-degli input della tabella; dimensione, colori e raggio delle scrollbar. I preset
-definiscono anche default leggibili per axis, grid, legenda ed etichette valori,
+degli input della tabella, inclusi hover e riga selezionata; dimensione, colori e
+raggio delle scrollbar. Font, font style, decorazione e ombra usano combo box. I
+preset definiscono anche default leggibili per axis, grid, legenda ed etichette valori,
 tooltip/hint e accenti error/critical. Forme, link, tag, hint e griglia hanno i
 loro pannelli dedicati, che sovrascrivono i default del tema. L'editor parte dai
 valori attualmente applicati: dopo aver scelto un preset i campi mostrano quel
