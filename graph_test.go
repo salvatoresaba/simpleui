@@ -118,6 +118,40 @@ func TestGraphVisibilityAttributes(t *testing.T) {
 	}
 }
 
+func TestGraphFullSizeAndSplitterMarkup(t *testing.T) {
+	src := `view main {
+	graph "G" width: "100%" height: "100%" tableView: "chart"
+}`
+	prog, dl := ParseSource(src, "graph_fullsize.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`data-sui-chart-width="100%"`,
+		`data-sui-chart-height="100%"`,
+		`class="sui-chart-splitter"`,
+		`class="sui-chart-table" role="region"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("graph JS missing %q", want)
+		}
+	}
+	html := GenerateHtmlPage(prog)
+	for _, want := range []string{
+		`data-sui-chart-width="100%"`,
+		`data-sui-chart-height="100%"`,
+		`class="sui-chart-splitter"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("static graph HTML missing %q", want)
+		}
+	}
+}
+
 func TestGraphRuntimeThemePresets(t *testing.T) {
 	for _, want := range []string{
 		"STATE_THEME_PRESETS", "stateThemePreset(\"midnight\"", "stateThemePreset(\"paper\"",

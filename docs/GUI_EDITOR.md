@@ -1113,9 +1113,12 @@ graph and become source values only when **Apply** is pressed.
 With **show table** on, the table is added below the diagram without reducing the
 diagram height. The chart container grows scroll content instead: scrollbars
 show that the table is available below, and enlarging the container reveals it.
-Graphs default to static editing in the designer; existing shapes and links are
-edited from the Graph settings panel, while the + Add button can still be shown
-with its switch.
+A draggable separator between chart and table changes the percentage of the
+Graph height assigned to the chart; the value is stored per chart. New Graph
+controls default to `width: "100%"` and `height: "100%"`, fill their container,
+and start with the table hidden. Graphs default to static editing in the
+designer; existing shapes and links are edited from the Graph settings panel,
+while the + Add button can still be shown with its switch.
 
 ## Date/Time picker control
 

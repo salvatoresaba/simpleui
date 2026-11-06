@@ -10918,6 +10918,68 @@ const suiChartRuntime = `(function(){
     root.__suiStateThemeKey = "custom";
     root.__suiStateThemeApplied = true;
   }
+  function chartSplitStorageKey(root) { return "sui.chart.split." + ganttUiKey(root); }
+  function chartSplitRead(root) {
+    try {
+      var raw = window.localStorage && window.localStorage.getItem(chartSplitStorageKey(root));
+      var value = raw ? parseFloat(raw) : NaN;
+      return isFinite(value) ? Math.max(0.2, Math.min(1, value)) : 1;
+    } catch (e) { return 1; }
+  }
+  function chartSplitWrite(root, value) {
+    try { if (window.localStorage) window.localStorage.setItem(chartSplitStorageKey(root), String(value)); } catch (e) {}
+  }
+  function chartSplitMetrics(root) {
+    var head = root.querySelector(".sui-chart-head");
+    var legend = root.querySelector(".sui-chart-legend");
+    var splitter = root.querySelector(".sui-chart-splitter");
+    var headH = head ? head.offsetHeight : 0;
+    var legendH = legend && !legend.hidden ? legend.offsetHeight : 0;
+    var splitterH = splitter ? splitter.offsetHeight : 0;
+    var available = Math.max(40, root.clientHeight - headH - legendH - splitterH);
+    return { headH: headH, legendH: legendH, splitterH: splitterH, available: available };
+  }
+  function applyChartSplit(root) {
+    if (!root) return;
+    var pct = chartSplitRead(root);
+    var m = chartSplitMetrics(root);
+    root.style.setProperty("--sui-chart-split-height", Math.max(40, Math.round(m.available * pct)) + "px");
+  }
+  function bindChartSplitter(root) {
+    if (!root || root.__suiChartSplitBound) return;
+    var splitter = root.querySelector(".sui-chart-splitter");
+    if (!splitter) return;
+    root.__suiChartSplitBound = true;
+    var dragging = false;
+    var update = function(clientY) {
+      var rect = root.getBoundingClientRect();
+      var m = chartSplitMetrics(root);
+      var y = clientY - rect.top - m.headH - m.legendH - m.splitterH / 2;
+      var pct = Math.max(0.2, Math.min(1, y / m.available));
+      root.style.setProperty("--sui-chart-split-height", Math.max(40, Math.round(m.available * pct)) + "px");
+      chartSplitWrite(root, pct);
+    };
+    splitter.addEventListener("pointerdown", function(ev) {
+      dragging = true;
+      splitter.classList.add("sui-chart-splitter-active");
+      try { splitter.setPointerCapture(ev.pointerId); } catch (e) {}
+      ev.preventDefault();
+      update(ev.clientY);
+    });
+    splitter.addEventListener("pointermove", function(ev) {
+      if (!dragging) return;
+      ev.preventDefault();
+      update(ev.clientY);
+    });
+    var end = function(ev) {
+      if (!dragging) return;
+      dragging = false;
+      splitter.classList.remove("sui-chart-splitter-active");
+      try { splitter.releasePointerCapture(ev.pointerId); } catch (e) {}
+    };
+    splitter.addEventListener("pointerup", end);
+    splitter.addEventListener("pointercancel", end);
+  }
   var STATE_THEME_FIELDS = [
     { cat: "Title", label: "Header background", name: "--sui-chart-head-bg", type: "color", fallback: "#111c33", transparent: true },
     { cat: "Title", label: "Title color", name: "--sui-chart-title-color", type: "color", fallback: "#f8fafc" },
@@ -22618,6 +22680,9 @@ const suiChartRuntime = `(function(){
     if (tableEl) tableEl.hidden = !showTable;
     root.classList.toggle("sui-chart-table-only", tableOnly);
     root.classList.toggle("sui-chart-table-both", tableView === "both");
+    bindChartSplitter(root);
+    if (tableView === "both") applyChartSplit(root);
+    else root.style.removeProperty("--sui-chart-split-height");
     viewport.hidden = tableOnly;
     var series;
     try {

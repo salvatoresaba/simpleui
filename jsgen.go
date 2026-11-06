@@ -3136,7 +3136,7 @@ func chartElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	b.WriteString("\u2212")
 	b.WriteString(`</button><span class="sui-chart-zoom-label">100%</span><button type="button" class="sui-chart-zoom-btn" data-zoom="in" aria-label="Zoom in" title="Zoom in">+</button><button type="button" class="sui-chart-zoom-reset" data-zoom="reset" title="Reset zoom">Reset</button><button type="button" class="sui-chart-zoom-fit" data-zoom="fit" aria-label="Fit to width" title="Fit to width">Fit width</button><button type="button" class="sui-chart-zoom-fit sui-chart-zoom-fit-all" data-zoom="fitall" aria-label="Fit all graph elements" title="Fit all graph elements">Fit all</button></div></div>`)
 	b.WriteString(`<div class="sui-chart-viewport"><div class="sui-chart-stage"><svg class="sui-chart-svg" role="img"></svg></div></div>`)
-	b.WriteString(`<div class="sui-chart-legend"></div><div class="sui-chart-table" role="region" aria-label="Chart data table" hidden></div><div class="sui-chart-error" role="alert" hidden></div><div class="sui-chart-tooltip" role="tooltip" aria-live="polite" hidden></div></div>`)
+	b.WriteString(`<div class="sui-chart-legend"></div><div class="sui-chart-splitter" role="separator" aria-orientation="horizontal" aria-label="Resize chart and table" title="Drag to resize chart and table"></div><div class="sui-chart-table" role="region" aria-label="Chart data table" hidden></div><div class="sui-chart-error" role="alert" hidden></div><div class="sui-chart-tooltip" role="tooltip" aria-live="polite" hidden></div></div>`)
 	b.WriteString("`")
 	return b.String()
 }

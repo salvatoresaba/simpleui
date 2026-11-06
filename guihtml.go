@@ -1790,6 +1790,9 @@ function newGraphNode() {
   n.chartDataExpr = false;
   n.chartFormat = "auto";
   n.chartStateMode = "static";
+  n.chartWidth = "100%";
+  n.chartHeight = "100%";
+  n.chartTableView = "chart";
   return n;
 }
 function newNodeForKind(kind) {

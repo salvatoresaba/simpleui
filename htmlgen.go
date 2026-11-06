@@ -1084,8 +1084,12 @@ body {
 .sui-chart-table-only .sui-chart-legend { display: none; }
 .sui-chart-table-only .sui-chart-table { flex: 1 1 auto; max-height: 70vh; overflow: auto; margin-top: 0; border-top: 0; }
 .sui-chart-table-both { overflow-y: auto; overflow-x: hidden; }
-.sui-chart-table-both .sui-chart-viewport { flex: 0 0 auto; height: calc(100% - var(--sui-chart-head-height, 38px)); }
+.sui-chart-table-both .sui-chart-viewport { flex: 0 0 auto; height: var(--sui-chart-split-height, calc(100% - var(--sui-chart-head-height, 38px))); }
 .sui-chart-table-both .sui-chart-table { flex: 0 0 auto; max-height: none; overflow: visible; }
+.sui-chart-splitter { display: none; flex: none; height: 9px; margin-top: 4px; cursor: row-resize; align-items: center; justify-content: center; touch-action: none; }
+.sui-chart-splitter::before { content: ""; display: block; width: 44px; height: 2px; border-radius: 2px; background: var(--sui-chart-axis, #475569); opacity: .65; }
+.sui-chart-splitter:hover::before, .sui-chart-splitter.sui-chart-splitter-active::before { background: var(--sui-chart-control-hover-border, var(--sui-chart-series-1, #4c5cf7)); opacity: 1; }
+.sui-chart-table-both .sui-chart-splitter { display: flex; }
 .sui-chart-slice { stroke: var(--sui-chart-bg, #14171c); stroke-width: var(--sui-chart-slice-stroke, 2); }
 .sui-chart-pie-hole { fill: var(--sui-chart-bg, #14171c); }
 .sui-chart-series-1 { fill: var(--sui-chart-series-1, #4c5cf7); }
@@ -3620,7 +3624,7 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString("<button type=\"button\" class=\"sui-chart-zoom-fit\" data-zoom=\"fit\" aria-label=\"Fit to width\" title=\"Fit to width\">Fit width</button>")
 	sb.WriteString("<button type=\"button\" class=\"sui-chart-zoom-fit sui-chart-zoom-fit-all\" data-zoom=\"fitall\" aria-label=\"Fit all graph elements\" title=\"Fit all graph elements\">Fit all</button></div></div>\n")
 	sb.WriteString(inner + "<div class=\"sui-chart-viewport\"><div class=\"sui-chart-stage\"><svg class=\"sui-chart-svg\" role=\"img\"></svg></div></div>\n")
-	sb.WriteString(inner + "<div class=\"sui-chart-legend\"></div><div class=\"sui-chart-table\" role=\"region\" aria-label=\"Task table\" hidden></div><div class=\"sui-chart-error\" role=\"alert\" hidden></div><div class=\"sui-chart-tooltip\" role=\"tooltip\" aria-live=\"polite\" hidden></div>\n")
+	sb.WriteString(inner + "<div class=\"sui-chart-legend\"></div><div class=\"sui-chart-splitter\" role=\"separator\" aria-orientation=\"horizontal\" aria-label=\"Resize chart and table\" title=\"Drag to resize chart and table\"></div><div class=\"sui-chart-table\" role=\"region\" aria-label=\"Task table\" hidden></div><div class=\"sui-chart-error\" role=\"alert\" hidden></div><div class=\"sui-chart-tooltip\" role=\"tooltip\" aria-live=\"polite\" hidden></div>\n")
 	sb.WriteString(ind + "</div>\n")
 }
 
