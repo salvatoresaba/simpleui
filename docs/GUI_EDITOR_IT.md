@@ -422,6 +422,12 @@ selezione evidenziatore dove serve. Ogni colore, font, raggio e ombra resta
 modificabile, quindi la famiglia si puo adattare senza perdere il carattere
 disegnato a mano.
 
+Anche il preset **Wireframe** e condiviso da tutti e venti i pannelli. Rimuove i
+riempimenti e disegna ogni controllo solo con linee sottili, bordi tratteggiati e
+ombre morbide. Gli stati attivi usano una linea ciano; colori, font, raggio e
+ombre restano modificabili, quindi una pagina puo combinare piu componenti
+Wireframe mantenendo lo stesso linguaggio a contorno.
+
 Nelle impostazioni dell'elemento il selettore offre anche **Project default**.
 Applicandolo si rimuovono gli override componente dell'elemento, che torna a
 ereditare i default di progetto. I preset con nome, invece, fissano i loro

@@ -404,6 +404,12 @@ and offset shadows, a handwriting font and a highlighter selection where
 applicable. Every colour, font, radius and shadow remains editable, so the
 family can be tuned without losing its hand-drawn character.
 
+The **Wireframe** preset is also shared by all twenty panels. It removes
+background fills and draws each control only with thin lines, dashed borders and
+soft shadows. Accent states use a cyan line; colours, font, radius and shadow
+fields remain editable, so a page can mix several Wireframe components without
+losing the same outline language.
+
 In element settings the selector also offers **Project default**. Applying it
 removes the element's component overrides, so the element inherits the project
 defaults again. Named presets, by contrast, pin their values on that element.

@@ -11945,6 +11945,7 @@ function resetChartSettings() {
 // inline custom properties on that element only.
 var COMPONENT_PREVIEW_BASE = ".sui-checkbox-wrap,.sui-radio-wrap,.sui-switch-wrap{display:flex;align-items:center;gap:8px}" +
   ".sui-checkbox,.sui-radio,.sui-switch{appearance:none;-webkit-appearance:none;position:relative;flex:none}" +
+  ".sui-checkbox,.sui-radio{border:1px solid var(--sui-check-border,#3d4556)}" +
   ".sui-checkbox{border-radius:4px}.sui-radio{border-radius:50%}" +
   ".sui-checkbox:checked::after{content:'';position:absolute;left:5px;top:2px;width:5px;height:9px;border:solid var(--sui-check-mark,#fff);border-width:0 2px 2px 0;transform:rotate(45deg)}" +
   ".sui-radio:checked::after{content:'';position:absolute;left:5px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--sui-check-mark,#fff)}" +
@@ -12041,6 +12042,7 @@ var SUI_PROGRESS_FILLS = {
   stripes: "repeating-linear-gradient(45deg, var(--sui-progress-value, #4c5cf7) 0 12px, var(--sui-progress-value-end, #6366f1) 12px 24px)",
   segments: "repeating-linear-gradient(90deg, var(--sui-progress-value, #4c5cf7) 0 14px, transparent 14px 22px)",
   pencil: "repeating-linear-gradient(45deg, var(--sui-progress-value, #2b2622) 0 3px, transparent 3px 7px)",
+  wire: "repeating-linear-gradient(90deg, var(--sui-progress-value, #94a3b8) 0 6px, transparent 6px 12px)",
   shimmer: "linear-gradient(90deg, transparent 20%, rgba(255,255,255,.55) 50%, transparent 80%), linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))"
 };
 var SUI_PROGRESS_ANIMS = {
@@ -12063,6 +12065,14 @@ var SUI_SKETCH = {
   shadowStrong: "4px 4px 0 rgba(43,38,34,.24)",
   font: "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive"
 };
+var SUI_WIRE = {
+  line: "#94a3b8",
+  text: "#94a3b8",
+  accent: "#38bdf8",
+  shadow: "0 6px 18px rgba(15,23,42,.28)",
+  shadowSoft: "0 2px 10px rgba(15,23,42,.2)",
+  shadowStrong: "0 10px 28px rgba(15,23,42,.35)"
+};
 var COMPONENT_DEFS = [
   { id: "progress", label: "Progress bar", group: "Feedback", kinds: ["progress"],
     categories: [
@@ -12081,6 +12091,7 @@ var COMPONENT_DEFS = [
           ["Stripes", SUI_PROGRESS_FILLS.stripes, { "--sui-progress-fill-size": "auto" }],
           ["Segments", SUI_PROGRESS_FILLS.segments, { "--sui-progress-fill-size": "auto" }],
           ["Pencil", SUI_PROGRESS_FILLS.pencil, { "--sui-progress-fill-size": "auto" }],
+          ["Wire", SUI_PROGRESS_FILLS.wire, { "--sui-progress-fill-size": "auto" }],
           ["Shimmer", SUI_PROGRESS_FILLS.shimmer, { "--sui-progress-fill-size": "220% 100%" }]
         ] }
       ]},
@@ -12123,9 +12134,16 @@ var COMPONENT_DEFS = [
         "--sui-progress-track": SUI_SKETCH.paperTrack, "--sui-progress-value": SUI_SKETCH.ink,
         "--sui-progress-value-end": SUI_SKETCH.accent, "--sui-progress-height": "10px",
         "--sui-progress-radius": "6px", "--sui-progress-fill": SUI_PROGRESS_FILLS.pencil,
-        "--sui-progress-fill-size": "auto", "--sui-progress-animation": SUI_PROGRESS_ANIMS.none } }
+        "--sui-progress-fill-size": "auto", "--sui-progress-animation": SUI_PROGRESS_ANIMS.none } },
+      { id: "wire", label: "Wireframe", desc: "Line-only progress with a dashed outline and no fill.", vars: {
+        "--sui-progress-track": "transparent", "--sui-progress-value": SUI_WIRE.line,
+        "--sui-progress-value-end": SUI_WIRE.accent, "--sui-progress-height": "10px",
+        "--sui-progress-radius": "4px", "--sui-progress-fill": SUI_PROGRESS_FILLS.wire,
+        "--sui-progress-fill-size": "auto", "--sui-progress-animation": SUI_PROGRESS_ANIMS.none,
+        "--sui-progress-border-width": "1px", "--sui-progress-border": SUI_WIRE.line,
+        "--sui-progress-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-progress { width: var(--sui-progress-width, 100%); height: var(--sui-progress-height, 8px); background: var(--sui-progress-track, #374151); border-radius: var(--sui-progress-radius, 999px); overflow: hidden; }\n" +
+    css: ".sui-progress { width: var(--sui-progress-width, 100%); height: var(--sui-progress-height, 8px); background: var(--sui-progress-track, #374151); border: var(--sui-progress-border-width, 0) dashed var(--sui-progress-border, transparent); box-sizing: border-box; border-radius: var(--sui-progress-radius, 999px); box-shadow: var(--sui-progress-shadow, none); overflow: hidden; }\n" +
       ".sui-progress::-webkit-progress-bar { background: var(--sui-progress-track, #374151); }\n" +
       ".sui-progress::-webkit-progress-value { background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))); background-size: var(--sui-progress-fill-size, auto); border-radius: var(--sui-progress-radius, 999px); animation: var(--sui-progress-animation, none); }\n" +
       ".sui-progress::-moz-progress-bar { background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))); background-size: var(--sui-progress-fill-size, auto); border-radius: var(--sui-progress-radius, 999px); animation: var(--sui-progress-animation, none); }\n" +
@@ -12147,6 +12165,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-badge-font-size", label: "Font size", type: "number", def: 12, min: 8, max: 40, step: 1, unit: "px" },
         { key: "--sui-badge-font-weight", label: "Weight", type: "select", def: "500", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"], ["800", "800"]] },
         { key: "--sui-badge-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-badge-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },
         { key: "--sui-badge-font", label: "Font", type: "font", def: "inherit" }
       ]},
       { name: "Effects", fields: [
@@ -12155,7 +12174,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-badge-shadow", label: "Shadow", type: "select", def: "none", opts: [
           ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.28)"],
           ["Glow", "0 0 12px rgba(76,92,247,.65)"], ["Strong", "0 6px 18px rgba(0,0,0,.45)"],
-          ["Sketch", SUI_SKETCH.shadow]
+          ["Sketch", SUI_SKETCH.shadow], ["Wireframe", SUI_WIRE.shadowSoft]
         ] },
         { key: "--sui-badge-animation", label: "Effect", type: "select", def: "none", opts: [
           ["None", "none"], ["Pulse", "sui-badge-pulse 1.8s ease-in-out infinite"],
@@ -12187,9 +12206,16 @@ var COMPONENT_DEFS = [
         "--sui-badge-padding": "2px 9px", "--sui-badge-radius": "6px", "--sui-badge-font-size": "12px",
         "--sui-badge-font-weight": "600", "--sui-badge-border-width": "1px", "--sui-badge-font": SUI_SKETCH.font,
         "--sui-badge-transform": "none", "--sui-badge-tracking": "0.3px", "--sui-badge-shadow": SUI_SKETCH.shadow,
-        "--sui-badge-animation": "none" } }
+        "--sui-badge-animation": "none" } },
+      { id: "wire", label: "Wireframe", desc: "Transparent badge made only of a dashed line and shadow.", vars: {
+        "--sui-badge-bg": "transparent", "--sui-badge-fg": SUI_WIRE.text, "--sui-badge-border": SUI_WIRE.line,
+        "--sui-badge-padding": "2px 9px", "--sui-badge-radius": "6px", "--sui-badge-font-size": "12px",
+        "--sui-badge-font-weight": "600", "--sui-badge-border-width": "1px",
+        "--sui-badge-border-style": "dashed", "--sui-badge-font": "inherit",
+        "--sui-badge-transform": "none", "--sui-badge-tracking": "0.3px",
+        "--sui-badge-shadow": SUI_WIRE.shadowSoft, "--sui-badge-animation": "none" } }
     ],
-    css: ".sui-badge { background: var(--sui-badge-bg, #252b45); color: var(--sui-badge-fg, #a5b4fc); padding: var(--sui-badge-padding, 2px 10px); border-radius: var(--sui-badge-radius, 999px); font-size: var(--sui-badge-font-size, 12px); font-weight: var(--sui-badge-font-weight, 500); font-family: var(--sui-badge-font, inherit); border: var(--sui-badge-border-width, 0) solid var(--sui-badge-border, #4c5cf7); box-shadow: var(--sui-badge-shadow, none); text-transform: var(--sui-badge-transform, none); letter-spacing: var(--sui-badge-tracking, normal); animation: var(--sui-badge-animation, none); }\n@keyframes sui-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }\n@keyframes sui-badge-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n@keyframes sui-badge-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }"
+    css: ".sui-badge { background: var(--sui-badge-bg, #252b45); color: var(--sui-badge-fg, #a5b4fc); padding: var(--sui-badge-padding, 2px 10px); border-radius: var(--sui-badge-radius, 999px); font-size: var(--sui-badge-font-size, 12px); font-weight: var(--sui-badge-font-weight, 500); font-family: var(--sui-badge-font, inherit); border: var(--sui-badge-border-width, 0) var(--sui-badge-border-style, solid) var(--sui-badge-border, #4c5cf7); box-shadow: var(--sui-badge-shadow, none); text-transform: var(--sui-badge-transform, none); letter-spacing: var(--sui-badge-tracking, normal); animation: var(--sui-badge-animation, none); }\n@keyframes sui-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }\n@keyframes sui-badge-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n@keyframes sui-badge-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }"
   },
   { id: "alert", label: "Alert", group: "Feedback", kinds: ["alert"],
     categories: [
@@ -12209,7 +12235,7 @@ var COMPONENT_DEFS = [
       { name: "Effects", fields: [
         { key: "--sui-alert-shadow", label: "Shadow", type: "select", def: "none", opts: [
           ["None", "none"], ["Soft", "0 4px 14px rgba(0,0,0,.22)"], ["Glass", "0 8px 24px rgba(0,0,0,.35)"], ["Strong", "0 10px 28px rgba(0,0,0,.42)"],
-          ["Sketch", SUI_SKETCH.shadow]
+          ["Sketch", SUI_SKETCH.shadow], ["Wireframe", SUI_WIRE.shadowSoft]
         ] },
         { key: "--sui-alert-animation", label: "Effect", type: "select", def: "none", opts: [
           ["None", "none"], ["Fade in", "sui-alert-in .24s ease-out"],
@@ -12236,7 +12262,12 @@ var COMPONENT_DEFS = [
         "--sui-alert-bg": SUI_SKETCH.paper, "--sui-alert-fg": SUI_SKETCH.ink, "--sui-alert-border": SUI_SKETCH.ink,
         "--sui-alert-border-width": "2px", "--sui-alert-border-style": "solid", "--sui-alert-radius": "8px",
         "--sui-alert-padding": "12px 16px", "--sui-alert-font-size": "14px", "--sui-alert-font": SUI_SKETCH.font,
-        "--sui-alert-shadow": SUI_SKETCH.shadow, "--sui-alert-animation": "none" } }
+        "--sui-alert-shadow": SUI_SKETCH.shadow, "--sui-alert-animation": "none" } },
+      { id: "wire", label: "Wireframe", desc: "A transparent alert outlined with dashes and a soft shadow.", vars: {
+        "--sui-alert-bg": "transparent", "--sui-alert-fg": SUI_WIRE.text, "--sui-alert-border": SUI_WIRE.line,
+        "--sui-alert-border-width": "1px", "--sui-alert-border-style": "dashed", "--sui-alert-radius": "6px",
+        "--sui-alert-padding": "12px 16px", "--sui-alert-font-size": "14px", "--sui-alert-font": "inherit",
+        "--sui-alert-shadow": SUI_WIRE.shadowSoft, "--sui-alert-animation": "none" } }
     ],
     css: ".sui-alert { background: var(--sui-alert-bg, #3a2427); color: var(--sui-alert-fg, #fca5a5); border: var(--sui-alert-border-width, 1px) var(--sui-alert-border-style, solid) var(--sui-alert-border, #7f3a3d); border-radius: var(--sui-alert-radius, 8px); padding: var(--sui-alert-padding, 12px 16px); font-size: var(--sui-alert-font-size, 14px); font-family: var(--sui-alert-font, inherit); box-shadow: var(--sui-alert-shadow, none); animation: var(--sui-alert-animation, none); }\n@keyframes sui-alert-in { from { opacity: 0; } to { opacity: 1; } }\n@keyframes sui-alert-slide { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-alert-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }\n@keyframes sui-alert-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(127,58,61,.0); } 50% { box-shadow: 0 0 0 5px rgba(127,58,61,.32); } }"
   },
@@ -12263,7 +12294,8 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Effects", fields: [
         { key: "--sui-spinner-shadow", label: "Glow", type: "select", def: "none", opts: [
-          ["None", "none"], ["Soft", "0 0 10px rgba(76,92,247,.55)"], ["Cyan", "0 0 10px rgba(34,211,238,.55)"], ["Strong", "0 0 18px rgba(76,92,247,.9)"]
+          ["None", "none"], ["Soft", "0 0 10px rgba(76,92,247,.55)"], ["Cyan", "0 0 10px rgba(34,211,238,.55)"], ["Strong", "0 0 18px rgba(76,92,247,.9)"],
+          ["Wireframe", "0 0 14px rgba(56,189,248,.35)"]
         ] }
       ]}
     ],
@@ -12297,7 +12329,13 @@ var COMPONENT_DEFS = [
         "--sui-spinner-track": SUI_SKETCH.paperTrack, "--sui-spinner-color": SUI_SKETCH.ink,
         "--sui-spinner-color2": SUI_SKETCH.accent, "--sui-spinner-bg": "transparent",
         "--sui-spinner-animation": "sui-spin", "--sui-spinner-speed": "1s", "--sui-spinner-easing": "linear",
-        "--sui-spinner-play": "running", "--sui-spinner-shadow": "none" } }
+        "--sui-spinner-play": "running", "--sui-spinner-shadow": "none" } },
+      { id: "wire", label: "Wireframe", desc: "A hollow dashed ring with no fill.", vars: {
+        "--sui-spinner-size": "26px", "--sui-spinner-thickness": "3px", "--sui-spinner-border-style": "dashed",
+        "--sui-spinner-track": "transparent", "--sui-spinner-color": SUI_WIRE.line,
+        "--sui-spinner-color2": SUI_WIRE.accent, "--sui-spinner-bg": "transparent",
+        "--sui-spinner-animation": "sui-spin", "--sui-spinner-speed": "1s", "--sui-spinner-easing": "linear",
+        "--sui-spinner-play": "running", "--sui-spinner-shadow": "0 0 14px rgba(56,189,248,.35)" } }
     ],
     css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) var(--sui-spinner-border-style, solid) var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-bottom-color: var(--sui-spinner-color2, transparent); background: var(--sui-spinner-bg, transparent); border-radius: 50%; box-shadow: var(--sui-spinner-shadow, none); mask: var(--sui-spinner-mask, none); -webkit-mask: var(--sui-spinner-mask, none); animation-name: var(--sui-spinner-animation, sui-spin); animation-duration: var(--sui-spinner-speed, .8s); animation-timing-function: var(--sui-spinner-easing, linear); animation-iteration-count: infinite; animation-play-state: var(--sui-spinner-play, running); }\n@keyframes sui-spinner-pulse { 0%, 100% { transform: scale(.68); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }\n@keyframes sui-spinner-flip { to { transform: rotateY(360deg); } }"
   },
@@ -12315,7 +12353,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-card-font", label: "Font", type: "font", def: "inherit" }
       ]},
       { name: "Effects", fields: [
-        { key: "--sui-card-shadow", label: "Shadow", type: "select", def: "0 4px 12px rgba(0,0,0,.3)", opts: [["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Medium", "0 4px 12px rgba(0,0,0,.3)"], ["Glass", "0 8px 32px rgba(0,0,0,.28)"], ["Neon", "0 0 0 1px rgba(34,211,238,.35), 0 0 24px rgba(34,211,238,.25)"], ["Strong", "0 12px 30px rgba(0,0,0,.42)"], ["Sketch", SUI_SKETCH.shadowStrong]] },
+        { key: "--sui-card-shadow", label: "Shadow", type: "select", def: "0 4px 12px rgba(0,0,0,.3)", opts: [["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Medium", "0 4px 12px rgba(0,0,0,.3)"], ["Glass", "0 8px 32px rgba(0,0,0,.28)"], ["Neon", "0 0 0 1px rgba(34,211,238,.35), 0 0 24px rgba(34,211,238,.25)"], ["Strong", "0 12px 30px rgba(0,0,0,.42)"], ["Sketch", SUI_SKETCH.shadowStrong], ["Wireframe", SUI_WIRE.shadow]] },
         { key: "--sui-card-backdrop", label: "Backdrop", type: "select", def: "none", opts: [["None", "none"], ["Blur light", "blur(6px)"], ["Blur strong", "blur(14px)"]] },
         { key: "--sui-card-animation", label: "Effect", type: "select", def: "none", opts: [
           ["None", "none"], ["Fade in", "sui-card-in .28s ease-out"], ["Float", "sui-card-float 3.2s ease-in-out infinite"]
@@ -12343,6 +12381,12 @@ var COMPONENT_DEFS = [
         "--sui-card-border-width": "2px", "--sui-card-border-style": "solid", "--sui-card-radius": "8px",
         "--sui-card-padding": "16px", "--sui-card-font": SUI_SKETCH.font,
         "--sui-card-shadow": SUI_SKETCH.shadowStrong, "--sui-card-backdrop": "none",
+        "--sui-card-animation": "none" } },
+      { id: "wire", label: "Wireframe", desc: "A transparent card drawn with dashed edges and a shadow.", vars: {
+        "--sui-card-bg": "transparent", "--sui-card-border": SUI_WIRE.line,
+        "--sui-card-border-width": "1px", "--sui-card-border-style": "dashed", "--sui-card-radius": "8px",
+        "--sui-card-padding": "16px", "--sui-card-font": "inherit",
+        "--sui-card-shadow": SUI_WIRE.shadow, "--sui-card-backdrop": "none",
         "--sui-card-animation": "none" } }
     ],
     css: ".sui-card { background: var(--sui-card-bg, #1a1d26); border: var(--sui-card-border-width, 1px) var(--sui-card-border-style, solid) var(--sui-card-border, #3d4556); border-radius: var(--sui-card-radius, 12px); padding: var(--sui-card-padding, 16px); box-shadow: var(--sui-card-shadow, 0 4px 12px rgba(0,0,0,.3)); backdrop-filter: var(--sui-card-backdrop, none); font-family: var(--sui-card-font, inherit); animation: var(--sui-card-animation, none); }\n@keyframes sui-card-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-card-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }"
@@ -12366,7 +12410,10 @@ var COMPONENT_DEFS = [
         "--sui-divider-thickness": "3px", "--sui-divider-color": "#4c5cf7", "--sui-divider-margin": "16px 0" } },
       { id: "sketch", label: "Sketch", desc: "A dashed ink line ruled by hand.", vars: {
         "--sui-divider-thickness": "2px", "--sui-divider-style": "dashed",
-        "--sui-divider-margin": "12px 0", "--sui-divider-color": SUI_SKETCH.ink } }
+        "--sui-divider-margin": "12px 0", "--sui-divider-color": SUI_SKETCH.ink } },
+      { id: "wire", label: "Wireframe", desc: "A thin dashed rule with no fill.", vars: {
+        "--sui-divider-thickness": "1px", "--sui-divider-style": "dashed",
+        "--sui-divider-margin": "12px 0", "--sui-divider-color": SUI_WIRE.line } }
     ],
     css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) var(--sui-divider-style, solid) var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }"
   },
@@ -12381,7 +12428,10 @@ var COMPONENT_DEFS = [
       { name: "Shape", fields: [
         { key: "--sui-field-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-field-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
-        { key: "--sui-field-padding", label: "Padding", type: "text", def: "8px 12px" }
+        { key: "--sui-field-padding", label: "Padding", type: "text", def: "8px 12px" },
+        { key: "--sui-field-shadow", label: "Shadow", type: "select", def: "none", opts: [
+          ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Wireframe", SUI_WIRE.shadowSoft]
+        ] }
       ]},
       { name: "Typography", fields: [
         { key: "--sui-field-font", label: "Font", type: "font", def: "inherit" },
@@ -12404,9 +12454,14 @@ var COMPONENT_DEFS = [
       { id: "sketch", label: "Sketch", desc: "A handwritten field bordered with ink.", vars: {
         "--sui-field-bg": SUI_SKETCH.paper, "--sui-field-fg": SUI_SKETCH.ink, "--sui-field-border": SUI_SKETCH.ink,
         "--sui-field-focus": SUI_SKETCH.accent, "--sui-field-border-width": "2px", "--sui-field-radius": "6px",
-        "--sui-field-padding": "8px 12px", "--sui-field-font": SUI_SKETCH.font, "--sui-field-font-size": "14px" } }
+        "--sui-field-padding": "8px 12px", "--sui-field-font": SUI_SKETCH.font, "--sui-field-font-size": "14px" } },
+      { id: "wire", label: "Wireframe", desc: "A transparent field drawn with a thin line and shadow.", vars: {
+        "--sui-field-bg": "transparent", "--sui-field-fg": SUI_WIRE.text, "--sui-field-border": SUI_WIRE.line,
+        "--sui-field-focus": SUI_WIRE.accent, "--sui-field-border-width": "1px", "--sui-field-radius": "6px",
+        "--sui-field-padding": "8px 12px", "--sui-field-font": "inherit", "--sui-field-font-size": "14px",
+        "--sui-field-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-input, .sui-textarea, .sui-select { background: var(--sui-field-bg, #1d2129); color: var(--sui-field-fg, #e6e6ef); border: var(--sui-field-border-width, 1px) solid var(--sui-field-border, #3d4556); border-radius: var(--sui-field-radius, 8px); padding: var(--sui-field-padding, 8px 12px); font-family: var(--sui-field-font, inherit); font-size: var(--sui-field-font-size, 14px); }\n:where(.sui-input):focus, :where(.sui-textarea):focus, :where(.sui-select):focus { border-color: var(--sui-field-focus, #4c5cf7); }"
+    css: ".sui-input, .sui-textarea, .sui-select { background: var(--sui-field-bg, #1d2129); color: var(--sui-field-fg, #e6e6ef); border: var(--sui-field-border-width, 1px) solid var(--sui-field-border, #3d4556); border-radius: var(--sui-field-radius, 8px); padding: var(--sui-field-padding, 8px 12px); font-family: var(--sui-field-font, inherit); font-size: var(--sui-field-font-size, 14px); box-shadow: var(--sui-field-shadow, none); }\n:where(.sui-input):focus, :where(.sui-textarea):focus, :where(.sui-select):focus { border-color: var(--sui-field-focus, #4c5cf7); }"
   },
   { id: "button", label: "Button", group: "Form", kinds: ["button"],
     categories: [
@@ -12430,7 +12485,7 @@ var COMPONENT_DEFS = [
           ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.28)"], ["Glow", "0 0 14px rgba(76,92,247,.5)"],
           ["Primary", "0 4px 14px rgba(76,92,247,.45)"], ["Success", "0 4px 12px rgba(34,197,94,.35)"],
           ["Danger", "0 4px 14px rgba(220,38,38,.4)"], ["Neon", "0 0 14px rgba(34,211,238,.45)"],
-          ["Sketch", SUI_SKETCH.shadow],
+          ["Sketch", SUI_SKETCH.shadow], ["Wireframe", SUI_WIRE.shadowSoft],
           ["Strong", "0 8px 22px rgba(0,0,0,.45)"]
         ] },
         { key: "--sui-button-animation", label: "Effect", type: "select", def: "none", opts: [
@@ -12468,7 +12523,13 @@ var COMPONENT_DEFS = [
         "--sui-button-hover": SUI_SKETCH.paperDeep, "--sui-button-border-width": "2px",
         "--sui-button-border-style": "solid", "--sui-button-radius": "6px", "--sui-button-padding": "8px 16px",
         "--sui-button-font-size": "14px", "--sui-button-font-weight": "600", "--sui-button-font": SUI_SKETCH.font,
-        "--sui-button-shadow": SUI_SKETCH.shadow, "--sui-button-animation": "none" } }
+        "--sui-button-shadow": SUI_SKETCH.shadow, "--sui-button-animation": "none" } },
+      { id: "wire", label: "Wireframe", desc: "A transparent button made of one dashed line and a shadow.", vars: {
+        "--sui-button-bg": "transparent", "--sui-button-fg": SUI_WIRE.text, "--sui-button-border": SUI_WIRE.line,
+        "--sui-button-hover": "transparent", "--sui-button-border-width": "1px",
+        "--sui-button-border-style": "dashed", "--sui-button-radius": "6px", "--sui-button-padding": "8px 16px",
+        "--sui-button-font-size": "14px", "--sui-button-font-weight": "600", "--sui-button-font": "inherit",
+        "--sui-button-shadow": SUI_WIRE.shadowSoft, "--sui-button-animation": "none" } }
     ],
     css: ".sui-button { background: var(--sui-button-bg, #2d3340); color: var(--sui-button-fg, #e6e6e6); border: var(--sui-button-border-width, 1px) var(--sui-button-border-style, solid) var(--sui-button-border, #3d4556); border-radius: var(--sui-button-radius, 8px); padding: var(--sui-button-padding, 8px 16px); font-size: var(--sui-button-font-size, 14px); font-weight: var(--sui-button-font-weight, 400); font-family: var(--sui-button-font, inherit); box-shadow: var(--sui-button-shadow, none); animation: var(--sui-button-animation, none); transition: background .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease; }\n.sui-button:hover { background: var(--sui-button-hover, #3a4356); }\n@keyframes sui-button-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(76,92,247,.45); } 50% { box-shadow: 0 0 0 6px rgba(76,92,247,0); } }\n@keyframes sui-button-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }\n@keyframes sui-button-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }"
   },
@@ -12478,10 +12539,12 @@ var COMPONENT_DEFS = [
         { key: "--sui-check-bg", label: "Background", type: "color", def: "#1d2129" },
         { key: "--sui-check-border", label: "Border", type: "color", def: "#3d4556" },
         { key: "--sui-check-checked", label: "Checked", type: "color", def: "#4c5cf7" },
+        { key: "--sui-check-checked-border", label: "Checked border", type: "color", def: "#4c5cf7" },
         { key: "--sui-check-mark", label: "Mark", type: "color", def: "#ffffff" }
       ]},
       { name: "Size", fields: [
         { key: "--sui-check-size", label: "Size", type: "number", def: 18, min: 10, max: 48, step: 1, unit: "px" },
+        { key: "--sui-check-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"]] },
         { key: "--sui-check-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
@@ -12489,19 +12552,25 @@ var COMPONENT_DEFS = [
       { id: "classic", label: "Classic", desc: "Standard checkbox and radio controls.", vars: {} },
       { id: "square", label: "Square", desc: "Larger square checkbox with a strong border.", vars: {
         "--sui-check-size": "22px", "--sui-check-bg": "#111827", "--sui-check-border": "#4c5cf7",
-        "--sui-check-checked": "#4c5cf7", "--sui-check-mark": "#ffffff" } },
+        "--sui-check-checked": "#4c5cf7", "--sui-check-checked-border": "#4c5cf7", "--sui-check-mark": "#ffffff" } },
       { id: "soft", label: "Soft green", desc: "Compact control with a green checked state.", vars: {
         "--sui-check-size": "16px", "--sui-check-bg": "#1f2937", "--sui-check-border": "#475569",
-        "--sui-check-checked": "#22c55e", "--sui-check-mark": "#052e16" } },
+        "--sui-check-checked": "#22c55e", "--sui-check-checked-border": "#22c55e", "--sui-check-mark": "#052e16" } },
       { id: "neon", label: "Neon", desc: "Dark control with a cyan checked state.", vars: {
         "--sui-check-size": "20px", "--sui-check-bg": "#0f172a", "--sui-check-border": "#22d3ee",
-        "--sui-check-checked": "#22d3ee", "--sui-check-mark": "#052e16" } },
+        "--sui-check-checked": "#22d3ee", "--sui-check-checked-border": "#22d3ee", "--sui-check-mark": "#052e16" } },
       { id: "sketch", label: "Sketch", desc: "Ink-drawn tick boxes on warm paper.", vars: {
         "--sui-check-size": "20px", "--sui-check-bg": SUI_SKETCH.paper, "--sui-check-border": SUI_SKETCH.ink,
-        "--sui-check-checked": SUI_SKETCH.ink, "--sui-check-mark": SUI_SKETCH.paper,
-        "--sui-check-font": SUI_SKETCH.font } }
+        "--sui-check-checked": SUI_SKETCH.ink, "--sui-check-checked-border": SUI_SKETCH.ink,
+        "--sui-check-mark": SUI_SKETCH.paper, "--sui-check-font": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "Hollow check boxes drawn with lines only.", vars: {
+        "--sui-check-size": "20px", "--sui-check-bg": "transparent", "--sui-check-border": SUI_WIRE.line,
+        "--sui-check-border-style": "dashed",
+        "--sui-check-checked": "transparent", "--sui-check-checked-border": SUI_WIRE.accent,
+        "--sui-check-mark": SUI_WIRE.accent, "--sui-check-font": "inherit",
+        "--sui-check-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-checkbox, .sui-radio { width: var(--sui-check-size, 18px); height: var(--sui-check-size, 18px); background: var(--sui-check-bg, #1d2129); border-color: var(--sui-check-border, #3d4556); }\n:where(.sui-checkbox):checked, :where(.sui-radio):checked { background: var(--sui-check-checked, #4c5cf7); border-color: var(--sui-check-checked, #4c5cf7); }\n.sui-checkbox:checked::after { border-color: var(--sui-check-mark, #fff); }\n.sui-radio:checked::after { background: var(--sui-check-mark, #fff); }\n.sui-checkbox-wrap, .sui-radio-wrap { font-family: var(--sui-check-font, inherit); }"
+    css: ".sui-checkbox, .sui-radio { width: var(--sui-check-size, 18px); height: var(--sui-check-size, 18px); background: var(--sui-check-bg, #1d2129); border-color: var(--sui-check-border, #3d4556); border-style: var(--sui-check-border-style, solid); box-shadow: var(--sui-check-shadow, none); }\n:where(.sui-checkbox):checked, :where(.sui-radio):checked { background: var(--sui-check-checked, #4c5cf7); border-color: var(--sui-check-checked-border, var(--sui-check-checked, #4c5cf7)); }\n.sui-checkbox:checked::after { border-color: var(--sui-check-mark, #fff); }\n.sui-radio:checked::after { background: var(--sui-check-mark, #fff); }\n.sui-checkbox-wrap, .sui-radio-wrap { font-family: var(--sui-check-font, inherit); }"
   },
   { id: "switch", label: "Switch", group: "Form", kinds: ["switch"],
     categories: [
@@ -12514,6 +12583,10 @@ var COMPONENT_DEFS = [
         { key: "--sui-switch-width", label: "Width", type: "number", def: 42, min: 24, max: 96, step: 1, unit: "px" },
         { key: "--sui-switch-height", label: "Height", type: "number", def: 24, min: 14, max: 56, step: 1, unit: "px" },
         { key: "--sui-switch-radius", label: "Radius", type: "number", def: 999, min: 0, max: 999, step: 1, unit: "px" },
+        { key: "--sui-switch-border", label: "Outline", type: "color", def: "transparent" },
+        { key: "--sui-switch-border-width", label: "Outline width", type: "number", def: 0, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-switch-thumb-border", label: "Thumb outline", type: "color", def: "transparent" },
+        { key: "--sui-switch-thumb-border-width", label: "Thumb outline width", type: "number", def: 0, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-switch-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
@@ -12529,9 +12602,16 @@ var COMPONENT_DEFS = [
       { id: "sketch", label: "Sketch", desc: "A paper toggle with an ink thumb.", vars: {
         "--sui-switch-width": "44px", "--sui-switch-height": "24px", "--sui-switch-radius": "6px",
         "--sui-switch-bg": SUI_SKETCH.paperDeep, "--sui-switch-checked": SUI_SKETCH.accent,
-        "--sui-switch-thumb": SUI_SKETCH.ink, "--sui-switch-font": SUI_SKETCH.font } }
+        "--sui-switch-thumb": SUI_SKETCH.ink, "--sui-switch-font": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "A hollow track and thumb drawn with lines only.", vars: {
+        "--sui-switch-width": "44px", "--sui-switch-height": "24px", "--sui-switch-radius": "6px",
+        "--sui-switch-bg": "transparent", "--sui-switch-checked": "transparent",
+        "--sui-switch-thumb": "transparent", "--sui-switch-border": SUI_WIRE.line,
+        "--sui-switch-border-width": "1px", "--sui-switch-thumb-border": SUI_WIRE.line,
+        "--sui-switch-thumb-border-width": "2px", "--sui-switch-font": "inherit",
+        "--sui-switch-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-switch { width: var(--sui-switch-width, 42px); height: var(--sui-switch-height, 24px); background: var(--sui-switch-bg, #374151); border-radius: var(--sui-switch-radius, 999px); }\n.sui-switch::after { width: calc(var(--sui-switch-height, 24px) - 4px); height: calc(var(--sui-switch-height, 24px) - 4px); background: var(--sui-switch-thumb, #fff); }\n:where(.sui-switch):checked { background: var(--sui-switch-checked, #4c5cf7); }\n.sui-switch:checked::after { transform: translateX(calc(var(--sui-switch-width, 42px) - var(--sui-switch-height, 24px))); }\n.sui-switch-wrap { font-family: var(--sui-switch-font, inherit); }"
+    css: ".sui-switch { width: var(--sui-switch-width, 42px); height: var(--sui-switch-height, 24px); background: var(--sui-switch-bg, #374151); border: var(--sui-switch-border-width, 0) solid var(--sui-switch-border, transparent); border-radius: var(--sui-switch-radius, 999px); box-sizing: border-box; box-shadow: var(--sui-switch-shadow, none); }\n.sui-switch::after { width: calc(var(--sui-switch-height, 24px) - 4px); height: calc(var(--sui-switch-height, 24px) - 4px); background: var(--sui-switch-thumb, #fff); border: var(--sui-switch-thumb-border-width, 0) solid var(--sui-switch-thumb-border, transparent); box-sizing: border-box; }\n:where(.sui-switch):checked { background: var(--sui-switch-checked, #4c5cf7); }\n.sui-switch:checked::after { transform: translateX(calc(var(--sui-switch-width, 42px) - var(--sui-switch-height, 24px))); }\n.sui-switch-wrap { font-family: var(--sui-switch-font, inherit); }"
   },
   { id: "slider", label: "Slider", group: "Form", kinds: ["slider"],
     categories: [
@@ -12556,9 +12636,15 @@ var COMPONENT_DEFS = [
         "--sui-slider-bg": "#3f1d24", "--sui-slider-thumb-bg": "#ef4444" } },
       { id: "sketch", label: "Sketch", desc: "A thick pencil track with an ink thumb.", vars: {
         "--sui-slider-bg": SUI_SKETCH.paperTrack, "--sui-slider-thumb-bg": SUI_SKETCH.ink,
-        "--sui-slider-track": "8px", "--sui-slider-thumb": "22px" } }
+        "--sui-slider-track": "8px", "--sui-slider-thumb": "22px" } },
+      { id: "wire", label: "Wireframe", desc: "A hollow line track with an outlined thumb.", vars: {
+        "--sui-slider-bg": "transparent", "--sui-slider-thumb-bg": "transparent",
+        "--sui-slider-track": "8px", "--sui-slider-thumb": "22px",
+        "--sui-slider-border": SUI_WIRE.line, "--sui-slider-border-width": "1px",
+        "--sui-slider-thumb-border": SUI_WIRE.line, "--sui-slider-thumb-border-width": "2px",
+        "--sui-slider-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-slider { height: var(--sui-slider-track, 6px); background: var(--sui-slider-bg, #374151); }\n.sui-slider::-webkit-slider-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }\n.sui-slider::-moz-range-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }"
+    css: ".sui-slider { height: var(--sui-slider-track, 6px); background: var(--sui-slider-bg, #374151); border: var(--sui-slider-border-width, 0) dashed var(--sui-slider-border, transparent); box-sizing: border-box; box-shadow: var(--sui-slider-shadow, none); }\n.sui-slider::-webkit-slider-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); border: var(--sui-slider-thumb-border-width, 0) solid var(--sui-slider-thumb-border, transparent); box-sizing: border-box; }\n.sui-slider::-moz-range-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); border: var(--sui-slider-thumb-border-width, 0) solid var(--sui-slider-thumb-border, transparent); box-sizing: border-box; }"
   },
   { id: "tabs", label: "Tabs", group: "Navigation", kinds: ["tabs"],
     categories: [
@@ -12604,7 +12690,14 @@ var COMPONENT_DEFS = [
         "--sui-tab-active-fg": SUI_SKETCH.ink, "--sui-tab-accent": SUI_SKETCH.accent,
         "--sui-tabs-border": SUI_SKETCH.ink, "--sui-tabs-radius": "8px", "--sui-tab-radius": "7px 5px 0 0",
         "--sui-tablist-padding": "4px 4px 0", "--sui-tab-padding": "8px 14px", "--sui-tab-size": "13px",
-        "--sui-tab-font": SUI_SKETCH.font, "--sui-tab-transform": "none" } }
+        "--sui-tab-font": SUI_SKETCH.font, "--sui-tab-transform": "none" } },
+      { id: "wire", label: "Wireframe", desc: "Transparent tabs separated only by lines and a dashed frame.", vars: {
+        "--sui-tabs-bg": "transparent", "--sui-tablist-bg": "transparent",
+        "--sui-tab-fg": SUI_WIRE.text, "--sui-tab-active-bg": "transparent",
+        "--sui-tab-active-fg": SUI_WIRE.accent, "--sui-tab-accent": SUI_WIRE.accent,
+        "--sui-tabs-border": SUI_WIRE.line, "--sui-tabs-radius": "6px", "--sui-tab-radius": "6px 6px 0 0",
+        "--sui-tablist-padding": "4px 4px 0", "--sui-tab-padding": "8px 14px", "--sui-tab-size": "13px",
+        "--sui-tab-font": "inherit", "--sui-tab-transform": "none" } }
     ],
     css: ".sui-tabs { background: var(--sui-tabs-bg, #1d2129); border-color: var(--sui-tabs-border, #3d4556); border-radius: var(--sui-tabs-radius, 8px); font-family: var(--sui-tab-font, inherit); }\n.sui-tablist { background: var(--sui-tablist-bg, #1d2129); border-bottom-color: var(--sui-tabs-border, #3d4556); padding: var(--sui-tablist-padding, 4px 4px 0); }\n.sui-tab { color: var(--sui-tab-fg, #9aa7b8); padding: var(--sui-tab-padding, 8px 14px); font-size: var(--sui-tab-size, 13px); text-transform: var(--sui-tab-transform, none); border-radius: var(--sui-tab-radius, 6px 6px 0 0); }\n.sui-tab.active { color: var(--sui-tab-active-fg, #e6e6ef); background: var(--sui-tab-active-bg, #14171c); box-shadow: inset 0 -2px 0 var(--sui-tab-accent, #4c5cf7); }\n.sui-tab:hover, .sui-tab:focus-visible { background: var(--sui-tablist-bg, #1d2129); color: var(--sui-tab-active-fg, #e6e6ef); }"
   },
@@ -12642,7 +12735,13 @@ var COMPONENT_DEFS = [
         "--sui-accordion-fg": SUI_SKETCH.ink, "--sui-accordion-border": SUI_SKETCH.ink,
         "--sui-accordion-border-width": "2px", "--sui-accordion-radius": "8px",
         "--sui-accordion-padding": "11px 14px", "--sui-accordion-size": "14px",
-        "--sui-accordion-font": SUI_SKETCH.font } }
+        "--sui-accordion-font": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "A transparent accordion drawn with a single dashed frame.", vars: {
+        "--sui-accordion-bg": "transparent", "--sui-accordion-head-bg": "transparent",
+        "--sui-accordion-fg": SUI_WIRE.text, "--sui-accordion-border": SUI_WIRE.line,
+        "--sui-accordion-border-width": "1px", "--sui-accordion-radius": "6px",
+        "--sui-accordion-padding": "11px 14px", "--sui-accordion-size": "14px",
+        "--sui-accordion-font": "inherit" } }
     ],
     css: ".sui-accordion { background: var(--sui-accordion-bg, #1d2129); border: var(--sui-accordion-border-width, 1px) solid var(--sui-accordion-border, #3d4556); border-radius: var(--sui-accordion-radius, 8px); font-family: var(--sui-accordion-font, inherit); }\n.sui-accordion-head { background: var(--sui-accordion-head-bg, transparent); color: var(--sui-accordion-fg, #e6e6ef); padding: var(--sui-accordion-padding, 11px 14px); font-size: var(--sui-accordion-size, 14px); }\n.sui-accordion-panel { color: var(--sui-accordion-fg, #e6e6ef); }\n.sui-accordion-head:hover, .sui-accordion-head:focus-visible { background: var(--sui-accordion-head-bg, transparent); }"
   },
@@ -12682,9 +12781,16 @@ var COMPONENT_DEFS = [
         "--sui-combobox-popup-bg": SUI_SKETCH.paper, "--sui-combobox-hover": SUI_SKETCH.paperDeep,
         "--sui-combobox-border-width": "2px", "--sui-combobox-radius": "6px",
         "--sui-combobox-padding": "8px 12px", "--sui-combobox-font-size": "14px",
-        "--sui-combobox-font": SUI_SKETCH.font } }
+        "--sui-combobox-font": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "A transparent picker drawn with a thin line and shadow.", vars: {
+        "--sui-combobox-bg": "transparent", "--sui-combobox-fg": SUI_WIRE.text,
+        "--sui-combobox-border": SUI_WIRE.line, "--sui-combobox-label": SUI_WIRE.text,
+        "--sui-combobox-popup-bg": "transparent", "--sui-combobox-hover": "transparent",
+        "--sui-combobox-border-width": "1px", "--sui-combobox-radius": "6px",
+        "--sui-combobox-padding": "8px 12px", "--sui-combobox-font-size": "14px",
+        "--sui-combobox-font": "inherit", "--sui-combobox-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-combobox { font-family: var(--sui-combobox-font, inherit); }\n.sui-combobox-label { color: var(--sui-combobox-label, #8fa0b8); font-size: var(--sui-combobox-font-size, 12px); }\n.sui-combobox-input { background: var(--sui-combobox-bg, #1d2129); color: var(--sui-combobox-fg, #e6e6ef); border: var(--sui-combobox-border-width, 1px) solid var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); padding: var(--sui-combobox-padding, 8px 12px); font-size: var(--sui-combobox-font-size, 14px); }\n.sui-combobox-popup { background: var(--sui-combobox-popup-bg, #1d2129); border-color: var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); }\n.sui-combobox-option:hover, .sui-combobox-option.active { background: var(--sui-combobox-hover, #2a3143); }"
+    css: ".sui-combobox { font-family: var(--sui-combobox-font, inherit); }\n.sui-combobox-label { color: var(--sui-combobox-label, #8fa0b8); font-size: var(--sui-combobox-font-size, 12px); }\n.sui-combobox-input { background: var(--sui-combobox-bg, #1d2129); color: var(--sui-combobox-fg, #e6e6ef); border: var(--sui-combobox-border-width, 1px) solid var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); padding: var(--sui-combobox-padding, 8px 12px); font-size: var(--sui-combobox-font-size, 14px); box-shadow: var(--sui-combobox-shadow, none); }\n.sui-combobox-popup { background: var(--sui-combobox-popup-bg, #1d2129); border-color: var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); box-shadow: var(--sui-combobox-shadow, none); }\n.sui-combobox-option:hover, .sui-combobox-option.active { background: var(--sui-combobox-hover, #2a3143); }"
   },
   { id: "datepicker", label: "Date / Time picker", group: "Form", kinds: ["datepicker"],
     categories: [
@@ -12719,9 +12825,15 @@ var COMPONENT_DEFS = [
         "--sui-datepicker-border": SUI_SKETCH.ink, "--sui-datepicker-label": SUI_SKETCH.inkSoft,
         "--sui-datepicker-border-width": "2px", "--sui-datepicker-radius": "6px",
         "--sui-datepicker-padding": "8px 12px", "--sui-datepicker-font-size": "14px",
-        "--sui-datepicker-font": SUI_SKETCH.font } }
+        "--sui-datepicker-font": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "A transparent date field drawn with a thin line and shadow.", vars: {
+        "--sui-datepicker-bg": "transparent", "--sui-datepicker-fg": SUI_WIRE.text,
+        "--sui-datepicker-border": SUI_WIRE.line, "--sui-datepicker-label": SUI_WIRE.text,
+        "--sui-datepicker-border-width": "1px", "--sui-datepicker-radius": "6px",
+        "--sui-datepicker-padding": "8px 12px", "--sui-datepicker-font-size": "14px",
+        "--sui-datepicker-font": "inherit", "--sui-datepicker-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-datepicker { font-family: var(--sui-datepicker-font, inherit); }\n.sui-datepicker-label { color: var(--sui-datepicker-label, #8fa0b8); font-size: var(--sui-datepicker-font-size, 12px); }\n.sui-datepicker-input { background: var(--sui-datepicker-bg, #1d2129); color: var(--sui-datepicker-fg, #e6e6ef); border: var(--sui-datepicker-border-width, 1px) solid var(--sui-datepicker-border, #3d4556); border-radius: var(--sui-datepicker-radius, 8px); padding: var(--sui-datepicker-padding, 8px 12px); font-size: var(--sui-datepicker-font-size, 14px); }"
+    css: ".sui-datepicker { font-family: var(--sui-datepicker-font, inherit); }\n.sui-datepicker-label { color: var(--sui-datepicker-label, #8fa0b8); font-size: var(--sui-datepicker-font-size, 12px); }\n.sui-datepicker-input { background: var(--sui-datepicker-bg, #1d2129); color: var(--sui-datepicker-fg, #e6e6ef); border: var(--sui-datepicker-border-width, 1px) solid var(--sui-datepicker-border, #3d4556); border-radius: var(--sui-datepicker-radius, 8px); padding: var(--sui-datepicker-padding, 8px 12px); font-size: var(--sui-datepicker-font-size, 14px); box-shadow: var(--sui-datepicker-shadow, none); }"
   },
   { id: "tree", label: "Tree", group: "Data", kinds: ["tree", "treeitem"],
     categories: [
@@ -12758,9 +12870,16 @@ var COMPONENT_DEFS = [
         "--sui-tree-row-bg": "transparent", "--sui-tree-hover": SUI_SKETCH.paperDeep,
         "--sui-tree-selected-bg": SUI_SKETCH.highlight, "--sui-tree-selected-fg": SUI_SKETCH.ink,
         "--sui-tree-indent": "16px", "--sui-tree-padding": "2px 5px", "--sui-tree-row-height": "28px",
-        "--sui-tree-radius": "5px", "--sui-tree-font": "13px", "--sui-tree-font-family": SUI_SKETCH.font } }
+        "--sui-tree-radius": "5px", "--sui-tree-font": "13px", "--sui-tree-font-family": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "Transparent rows with an outlined selection and no fill.", vars: {
+        "--sui-tree-fg": SUI_WIRE.text, "--sui-tree-title": SUI_WIRE.accent,
+        "--sui-tree-row-bg": "transparent", "--sui-tree-hover": "transparent",
+        "--sui-tree-selected-bg": "transparent", "--sui-tree-selected-fg": SUI_WIRE.accent,
+        "--sui-tree-selected-border": SUI_WIRE.accent,
+        "--sui-tree-indent": "16px", "--sui-tree-padding": "2px 5px", "--sui-tree-row-height": "28px",
+        "--sui-tree-radius": "5px", "--sui-tree-font": "13px", "--sui-tree-font-family": "inherit" } }
     ],
-    css: ".sui-tree { color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); font-family: var(--sui-tree-font-family, inherit); }\n.sui-tree-title { color: var(--sui-tree-title, #e6e6ef); }\n.sui-tree-group { padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); }"
+    css: ".sui-tree { color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); font-family: var(--sui-tree-font-family, inherit); }\n.sui-tree-title { color: var(--sui-tree-title, #e6e6ef); }\n.sui-tree-group { padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); box-shadow: inset 0 0 0 1px var(--sui-tree-selected-border, transparent); }"
   },
   { id: "table", label: "Table", group: "Data", kinds: ["table"],
     categories: [
@@ -12797,9 +12916,16 @@ var COMPONENT_DEFS = [
         "--sui-table-head-fg": SUI_SKETCH.ink, "--sui-table-row-bg": SUI_SKETCH.paper,
         "--sui-table-striped-bg": SUI_SKETCH.paperHover, "--sui-table-hover": SUI_SKETCH.paperTrack,
         "--sui-table-border": SUI_SKETCH.ink, "--sui-table-border-width": "1px", "--sui-table-radius": "6px",
-        "--sui-table-padding": "8px 12px", "--sui-table-font": "13px", "--sui-table-font-family": SUI_SKETCH.font } }
+        "--sui-table-padding": "8px 12px", "--sui-table-font": "13px", "--sui-table-font-family": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "A transparent table built only from lines and shadows.", vars: {
+        "--sui-table-bg": "transparent", "--sui-table-head-bg": "transparent",
+        "--sui-table-head-fg": SUI_WIRE.accent, "--sui-table-row-bg": "transparent",
+        "--sui-table-striped-bg": "transparent", "--sui-table-hover": "transparent",
+        "--sui-table-border": SUI_WIRE.line, "--sui-table-border-width": "1px", "--sui-table-radius": "6px",
+        "--sui-table-padding": "8px 12px", "--sui-table-font": "13px", "--sui-table-font-family": "inherit",
+        "--sui-table-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: "table.suitbl { background: var(--sui-table-bg, #1d2129); border: var(--sui-table-border-width, 1px) solid var(--sui-table-border, #2c3444); border-radius: var(--sui-table-radius, 0); font-size: var(--sui-table-font, 14px); font-family: var(--sui-table-font-family, inherit); }\ntable.suitbl th, table.suitbl td { padding: var(--sui-table-padding, 10px 14px); border-color: var(--sui-table-border, #2c3444); }\ntable.suitbl thead th { background: var(--sui-table-head-bg, #202732); color: var(--sui-table-head-fg, #f2f4f6); }\ntable.suitbl tbody td { background: var(--sui-table-row-bg, #1d2129); }\ntable.suitbl tbody tr:nth-child(even) td { background: var(--sui-table-striped-bg, #1d2129); }\ntable.suitbl tbody tr:hover td { background: var(--sui-table-hover, #20252e); }"
+    css: "table.suitbl { background: var(--sui-table-bg, #1d2129); border: var(--sui-table-border-width, 1px) solid var(--sui-table-border, #2c3444); border-radius: var(--sui-table-radius, 0); font-size: var(--sui-table-font, 14px); font-family: var(--sui-table-font-family, inherit); box-shadow: var(--sui-table-shadow, none); }\ntable.suitbl th, table.suitbl td { padding: var(--sui-table-padding, 10px 14px); border-color: var(--sui-table-border, #2c3444); }\ntable.suitbl thead th { background: var(--sui-table-head-bg, #202732); color: var(--sui-table-head-fg, #f2f4f6); }\ntable.suitbl tbody td { background: var(--sui-table-row-bg, #1d2129); }\ntable.suitbl tbody tr:nth-child(even) td { background: var(--sui-table-striped-bg, #1d2129); }\ntable.suitbl tbody tr:hover td { background: var(--sui-table-hover, #20252e); }"
   },
   { id: "toast", label: "Toast", group: "Overlay", kinds: ["toast"],
     categories: [
@@ -12820,7 +12946,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-toast-shadow", label: "Shadow", type: "select", def: "0 8px 24px rgba(0,0,0,.35)", opts: [
           ["None", "none"], ["Soft", "0 4px 14px rgba(0,0,0,.25)"], ["Medium", "0 8px 24px rgba(0,0,0,.35)"],
           ["Glass", "0 10px 32px rgba(0,0,0,.5)"], ["Minimal", "0 8px 24px rgba(0,0,0,.4)"], ["Strong", "0 14px 38px rgba(0,0,0,.5)"],
-          ["Sketch", SUI_SKETCH.shadowStrong]
+          ["Sketch", SUI_SKETCH.shadowStrong], ["Wireframe", SUI_WIRE.shadow]
         ] },
         { key: "--sui-toast-backdrop", label: "Backdrop", type: "select", def: "none", opts: [["None", "none"], ["Blur light", "blur(6px)"], ["Blur strong", "blur(14px)"]] },
         { key: "--sui-toast-animation", label: "Entrance", type: "select", def: "sui-toast-slide .22s ease-out", opts: [
@@ -12850,6 +12976,13 @@ var COMPONENT_DEFS = [
         "--sui-toast-border-width": "4px", "--sui-toast-radius": "8px",
         "--sui-toast-padding": "12px 14px", "--sui-toast-font-size": "14px",
         "--sui-toast-font": SUI_SKETCH.font, "--sui-toast-shadow": SUI_SKETCH.shadowStrong,
+        "--sui-toast-backdrop": "none", "--sui-toast-animation": "sui-toast-slide .22s ease-out" } },
+      { id: "wire", label: "Wireframe", desc: "A transparent toast marked by one accent line and a shadow.", vars: {
+        "--sui-toast-bg": "transparent", "--sui-toast-fg": SUI_WIRE.text,
+        "--sui-toast-accent": SUI_WIRE.accent, "--sui-toast-width": "360px",
+        "--sui-toast-border-width": "3px", "--sui-toast-radius": "6px",
+        "--sui-toast-padding": "12px 14px", "--sui-toast-font-size": "14px",
+        "--sui-toast-font": "inherit", "--sui-toast-shadow": SUI_WIRE.shadow,
         "--sui-toast-backdrop": "none", "--sui-toast-animation": "sui-toast-slide .22s ease-out" } }
     ],
     css: ".sui-toast { width: var(--sui-toast-width, 360px); background: var(--sui-toast-bg, #1d2129); color: var(--sui-toast-fg, #e6e6ef); border-left: var(--sui-toast-border-width, 4px) solid var(--sui-toast-accent, #6b8afd); border-radius: var(--sui-toast-radius, 8px); padding: var(--sui-toast-padding, 12px 14px); font-size: var(--sui-toast-font-size, 14px); font-family: var(--sui-toast-font, inherit); box-shadow: var(--sui-toast-shadow, 0 8px 24px rgba(0,0,0,.35)); backdrop-filter: var(--sui-toast-backdrop, none); animation: var(--sui-toast-animation, sui-toast-slide .22s ease-out); }\n@keyframes sui-toast-fade { from { opacity: 0; } to { opacity: 1; } }\n@keyframes sui-toast-slide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-zoom { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }\n@keyframes sui-toast-bounce { 0% { opacity: 0; transform: translateY(-14px) scale(.96); } 70% { opacity: 1; transform: translateY(2px) scale(1.01); } 100% { opacity: 1; transform: translateY(0) scale(1); } }"
@@ -12876,7 +13009,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-modal-shadow", label: "Shadow", type: "select", def: "0 24px 60px rgba(0,0,0,.55)", opts: [
           ["None", "none"], ["Soft", "0 10px 30px rgba(0,0,0,.35)"],
           ["Medium", "0 24px 60px rgba(0,0,0,.55)"], ["Glass", "0 24px 60px rgba(0,0,0,.6)"], ["Glow", "0 0 32px rgba(76,92,247,.35)"],
-          ["Sketch", SUI_SKETCH.shadowStrong]
+          ["Sketch", SUI_SKETCH.shadowStrong], ["Wireframe", SUI_WIRE.shadow]
         ] }
       ]}
     ],
@@ -12900,7 +13033,15 @@ var COMPONENT_DEFS = [
         "--sui-modal-border-width": "2px", "--sui-modal-radius": "8px",
         "--sui-modal-title-size": "17px", "--sui-modal-padding": "14px 18px",
         "--sui-modal-button-radius": "6px", "--sui-modal-shadow": SUI_SKETCH.shadowStrong,
-        "--sui-modal-font": SUI_SKETCH.font } }
+        "--sui-modal-font": SUI_SKETCH.font } },
+      { id: "wire", label: "Wireframe", desc: "A transparent dialog outlined with a thin line and shadow.", vars: {
+        "--sui-modal-bg": "transparent", "--sui-modal-fg": SUI_WIRE.text,
+        "--sui-modal-border": SUI_WIRE.line, "--sui-modal-button-bg": "transparent",
+        "--sui-modal-button-fg": SUI_WIRE.text, "--sui-modal-width": "520px",
+        "--sui-modal-border-width": "1px", "--sui-modal-radius": "8px",
+        "--sui-modal-title-size": "17px", "--sui-modal-padding": "14px 18px",
+        "--sui-modal-button-radius": "6px", "--sui-modal-shadow": SUI_WIRE.shadow,
+        "--sui-modal-font": "inherit" } }
     ],
     css: ".sui-modal-panel { background: var(--sui-modal-bg, #1d2129); color: var(--sui-modal-fg, #e6e6ef); border: var(--sui-modal-border-width, 1px) solid var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-radius, 10px); width: min(var(--sui-modal-width, 520px), 100%); box-shadow: var(--sui-modal-shadow, 0 24px 60px rgba(0,0,0,.55)); font-family: var(--sui-modal-font, inherit); }\n.sui-modal-title { color: var(--sui-modal-fg, #e6e6ef); font-size: var(--sui-modal-title-size, 17px); }\n.sui-modal-body { padding: var(--sui-modal-padding, 14px 18px); }\n.sui-modal-button { background: var(--sui-modal-button-bg, #252b36); color: var(--sui-modal-button-fg, #e6e6ef); border-color: var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-button-radius, 6px); }"
   },
@@ -12944,9 +13085,17 @@ var COMPONENT_DEFS = [
         "--sui-menu-hover": SUI_SKETCH.paperDeep, "--sui-menu-border-width": "2px",
         "--sui-menu-radius": "6px", "--sui-menu-padding": "7px 12px",
         "--sui-menu-item-padding": "8px 12px", "--sui-menu-font-size": "14px",
-        "--sui-menu-font": SUI_SKETCH.font, "--sui-menu-button-border-width": "2px" } }
+        "--sui-menu-font": SUI_SKETCH.font, "--sui-menu-button-border-width": "2px" } },
+      { id: "wire", label: "Wireframe", desc: "Transparent menu with a single line frame and shadow.", vars: {
+        "--sui-menu-button-bg": "transparent", "--sui-menu-fg": SUI_WIRE.text,
+        "--sui-menu-border": SUI_WIRE.line, "--sui-menu-popup-bg": "transparent",
+        "--sui-menu-hover": "transparent", "--sui-menu-border-width": "1px",
+        "--sui-menu-radius": "6px", "--sui-menu-padding": "7px 12px",
+        "--sui-menu-item-padding": "8px 12px", "--sui-menu-font-size": "14px",
+        "--sui-menu-font": "inherit", "--sui-menu-button-border-width": "1px",
+        "--sui-menu-shadow": SUI_WIRE.shadowSoft } }
     ],
-    css: ".sui-menu { font-family: var(--sui-menu-font, inherit); }\n.sui-menu-button { background: var(--sui-menu-button-bg, transparent); color: var(--sui-menu-fg, #e6e6ef); border: var(--sui-menu-button-border-width, 0px) solid var(--sui-menu-border, transparent); border-radius: var(--sui-menu-radius, 6px); padding: var(--sui-menu-padding, 7px 12px); font-size: var(--sui-menu-font-size, 14px); }\n.sui-menu-button:hover, .sui-menu-button:focus-visible, .sui-menu.open > .sui-menu-button { background: var(--sui-menu-hover, #2a3143); }\n.sui-menu-popup { background: var(--sui-menu-popup-bg, #1d2129); border: var(--sui-menu-border-width, 1px) solid var(--sui-menu-border, #3d4556); border-radius: var(--sui-menu-radius, 8px); }\n.sui-menuitem { color: var(--sui-menu-fg, #e6e6ef); padding: var(--sui-menu-item-padding, 8px 12px); }\n.sui-menuitem:hover, .sui-menuitem:focus { background: var(--sui-menu-hover, #2a3143); }"
+    css: ".sui-menu { font-family: var(--sui-menu-font, inherit); }\n.sui-menu-button { background: var(--sui-menu-button-bg, transparent); color: var(--sui-menu-fg, #e6e6ef); border: var(--sui-menu-button-border-width, 0px) solid var(--sui-menu-border, transparent); border-radius: var(--sui-menu-radius, 6px); padding: var(--sui-menu-padding, 7px 12px); font-size: var(--sui-menu-font-size, 14px); }\n.sui-menu-button:hover, .sui-menu-button:focus-visible, .sui-menu.open > .sui-menu-button { background: var(--sui-menu-hover, #2a3143); }\n.sui-menu-popup { background: var(--sui-menu-popup-bg, #1d2129); border: var(--sui-menu-border-width, 1px) solid var(--sui-menu-border, #3d4556); border-radius: var(--sui-menu-radius, 8px); box-shadow: var(--sui-menu-shadow, none); }\n.sui-menuitem { color: var(--sui-menu-fg, #e6e6ef); padding: var(--sui-menu-item-padding, 8px 12px); }\n.sui-menuitem:hover, .sui-menuitem:focus { background: var(--sui-menu-hover, #2a3143); }"
   }
 ];
 var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation", "Data", "Overlay"];

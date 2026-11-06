@@ -266,8 +266,25 @@ func TestGuiComponentPresets(t *testing.T) {
 		`id: "striped"`,
 		`id: "pills"`,
 		`id: "sketch"`,
+		`id: "wire"`,
 		`SUI_SKETCH`,
+		`SUI_WIRE`,
 		`SUI_PROGRESS_FILLS.pencil`,
+		`SUI_PROGRESS_FILLS.wire`,
+		`--sui-progress-border`,
+		`--sui-badge-border-style`,
+		`--sui-check-checked-border`,
+		`--sui-check-border-style`,
+		`--sui-switch-thumb-border`,
+		`--sui-switch-border`,
+		`--sui-slider-border`,
+		`--sui-slider-thumb-border`,
+		`--sui-field-shadow`,
+		`--sui-combobox-shadow`,
+		`--sui-datepicker-shadow`,
+		`--sui-table-shadow`,
+		`--sui-menu-shadow`,
+		`--sui-tree-selected-border`,
 		`id="compcfg-preview-bar"`,
 		`data-preview-theme="dark"`,
 		`data-preview-theme="light"`,
@@ -299,6 +316,9 @@ func TestGuiComponentPresets(t *testing.T) {
 	}
 	if got := strings.Count(guiHTML, `id: "sketch"`); got < 20 {
 		t.Errorf("sketch presets = %d, want one per component", got)
+	}
+	if got := strings.Count(guiHTML, `id: "wire"`); got < 20 {
+		t.Errorf("wireframe presets = %d, want one per component", got)
 	}
 	if got := strings.Count(guiHTML, "id: \"classic\""); got < 4 {
 		t.Errorf("classic baseline presets = %d, want several", got)
