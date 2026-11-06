@@ -250,11 +250,12 @@ func TestGraphTableCellTooltip(t *testing.T) {
 	for _, want := range []string{
 		`function stateCellTip(cell, value)`,
 		`stateLineParts(value).join("\n")`,
-		`cell.setAttribute("data-sui-chart-tip", label)`,
+		`cell.setAttribute("data-sui-chart-cell-tip", label)`,
 		`stateCellTip(labelCell, node.label)`,
 		`stateCellTip(descCell, node.tag || node.description || "")`,
 		`stateCellTip(hintCell, node.hint || "")`,
 		`stateCellTip(fromCell, labels[ids.indexOf(edge.from)] || edge.from)`,
+		`ev.target.closest(".sui-chart-table")`,
 		`sui-chart-table-cell-tip`,
 	} {
 		if !strings.Contains(suiChartRuntime, want) {

@@ -1888,6 +1888,9 @@ const suiChartRuntime = `(function(){
       moveTip(ev);
     });
     root.addEventListener("mouseover", function(ev) {
+      // The data tables have their own cell tooltip; never let the chart
+      // tooltip react to table cells as if they were chart marks.
+      if (ev.target && ev.target.closest && ev.target.closest(".sui-chart-table")) return;
       var hit = ev.target && ev.target.closest ? ev.target.closest("[data-sui-chart-tip]") : null;
       if (!hit || !tip) return;
       if (tipTimer) { clearTimeout(tipTimer); tipTimer = 0; }
@@ -20142,12 +20145,12 @@ const suiChartRuntime = `(function(){
     if (tip && tip.parentNode) return tip;
     var stale = document.querySelectorAll(".sui-chart-table-cell-tip");
     for (var i = 0; i < stale.length; i++) {
-      if (stale[i].getAttribute("data-sui-chart-tip-key") === key && stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
+      if (stale[i].getAttribute("data-sui-chart-cell-tip-key") === key && stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
     }
     tip = document.createElement("div");
     tip.className = "sui-chart-table-cell-tip";
     tip.setAttribute("role", "tooltip");
-    tip.setAttribute("data-sui-chart-tip-key", key);
+    tip.setAttribute("data-sui-chart-cell-tip-key", key);
     tip.hidden = true;
     copyChartThemeVars(root, tip);
     document.body.appendChild(tip);
@@ -20168,7 +20171,7 @@ const suiChartRuntime = `(function(){
     tip.style.top = Math.round(top) + "px";
   }
   function stateShowTableTip(root, cell, x, y) {
-    var text = cell.getAttribute("data-sui-chart-tip") || "";
+    var text = cell.getAttribute("data-sui-chart-cell-tip") || "";
     if (!text) { stateHideTableTip(root); return; }
     var tip = stateTableTip(root);
     if (tip.textContent !== text) tip.textContent = text;
@@ -20176,13 +20179,13 @@ const suiChartRuntime = `(function(){
   }
   function stateCellTip(cell, value) {
     var label = stateLineParts(value).join("\n");
-    if (label && label.trim()) cell.setAttribute("data-sui-chart-tip", label);
+    if (label && label.trim()) cell.setAttribute("data-sui-chart-cell-tip", label);
   }
   function stateBindTableTips(root, container) {
     if (!root || !container || container.__suiStateTipsBound) return;
     container.__suiStateTipsBound = true;
     container.addEventListener("mouseover", function(ev) {
-      var cell = ev.target && ev.target.closest ? ev.target.closest("td[data-sui-chart-tip]") : null;
+      var cell = ev.target && ev.target.closest ? ev.target.closest("td[data-sui-chart-cell-tip]") : null;
       if (!cell) { stateHideTableTip(root); return; }
       stateShowTableTip(root, cell, ev.clientX, ev.clientY);
     });
@@ -20191,7 +20194,7 @@ const suiChartRuntime = `(function(){
       if (tip && !tip.hidden) statePlaceTableTip(tip, ev.clientX, ev.clientY);
     });
     container.addEventListener("mouseout", function(ev) {
-      var cell = ev.target && ev.target.closest ? ev.target.closest("td[data-sui-chart-tip]") : null;
+      var cell = ev.target && ev.target.closest ? ev.target.closest("td[data-sui-chart-cell-tip]") : null;
       if (!cell) return;
       var to = ev.relatedTarget;
       if (to && cell.contains(to)) return;
