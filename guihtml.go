@@ -194,6 +194,15 @@ main { flex:1; display:flex; min-height:0; }
   .sui-fb-btn:hover { background:var(--btn-hover); }
   .sui-fb-btn.on { background:var(--btn-on); }
   #sui-find-count { min-width:64px; text-align:right; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  #sui-replace-preview { margin-top:2px; padding:6px 8px; border:1px solid var(--border2); border-radius:5px; background:var(--input-bg); color:var(--muted); font-family:ui-monospace,Consolas,monospace; font-size:11px; line-height:1.45; white-space:pre-wrap; max-height:90px; overflow:auto; }
+  #sui-statusbar { display:flex; align-items:center; gap:10px; padding:3px 10px; border-top:1px solid var(--border); background:var(--panel); color:var(--muted); font-size:11px; flex:none; }
+  #sui-statusbar .sb-strong { color:var(--fg); }
+  #sui-statusbar .sb-ok { color:#9ece6a; }
+  #sui-statusbar .sb-warn { color:#e0af68; }
+  #sui-statusbar .sb-err { color:#f7768e; }
+  .sb-btn { background:transparent; color:var(--muted); border:1px solid var(--border2); border-radius:4px; padding:1px 6px; font-size:11px; cursor:pointer; }
+  .sb-btn:hover { background:var(--btn-hover); color:var(--fg); }
+  .ctx-head { padding:5px 9px 3px; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
   #cmd-palette { position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:flex-start; justify-content:center; z-index:60; }
   #cmd-palette.on { display:flex; }
   #cmd-box { margin-top:70px; width:560px; max-width:92vw; background:var(--panel); border:1px solid var(--border2); border-radius:8px; box-shadow:0 18px 50px rgba(0,0,0,.5); overflow:hidden; }
@@ -833,10 +842,14 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
         </div>
         <div id="sui-findbar" role="search" aria-label="Find and replace">
           <div class="sui-fb-row">
-            <input id="sui-find-input" type="text" placeholder="Find" aria-label="Find" autocomplete="off">
+            <input id="sui-find-input" type="text" placeholder="Find" aria-label="Find" autocomplete="off" list="sui-find-history">
+            <datalist id="sui-find-history"></datalist>
             <span id="sui-find-count">0/0</span>
             <button class="sui-fb-btn" type="button" onclick="findNext(-1)" title="Previous match (Shift+Enter)">&#8593;</button>
             <button class="sui-fb-btn" type="button" onclick="findNext(1)" title="Next match (Enter)">&#8595;</button>
+            <button class="sui-fb-btn" type="button" id="sui-find-word" onclick="toggleFindWord()" title="Whole word">W</button>
+            <button class="sui-fb-btn" type="button" id="sui-find-regex" onclick="toggleFindRegex()" title="Regular expression">.*</button>
+            <button class="sui-fb-btn" type="button" id="sui-find-sel" onclick="toggleFindInSelection()" title="Find in selection">Sel</button>
             <button class="sui-fb-btn" type="button" id="sui-find-case" onclick="toggleFindCase()" title="Match case">Aa</button>
             <button class="sui-fb-btn" type="button" id="sui-find-replace-toggle" onclick="toggleFindReplace()" title="Toggle replace">&#8646;</button>
             <button class="sui-fb-btn" type="button" onclick="closeFindBar()" title="Close (Esc)">&#10005;</button>
@@ -846,10 +859,21 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
             <button class="sui-fb-btn" type="button" onclick="replaceFindCurrent()" title="Replace current match">Replace</button>
             <button class="sui-fb-btn" type="button" onclick="replaceFindAll()" title="Replace all matches">All</button>
           </div>
+          <div id="sui-replace-preview" hidden></div>
         </div>
         <div class="editor">
           <div class="gutter" id="suigutter"></div>
           <div class="codescroll"><pre class="hl" id="sui_hl"></pre><textarea id="out" spellcheck="false" oninput="onSuiEdit()"></textarea></div>
+        </div>
+        <div id="sui-statusbar">
+          <span id="sui-lncol" class="sb-strong">Ln 1, Col 1</span>
+          <span id="sui-selinfo"></span>
+          <span id="sui-diaginfo" title="Open Problems" onclick="toggleBottom()">No problems</span>
+          <span id="sui-indentinfo">Tab: 4</span>
+          <span id="sui-applystate" class="sb-ok">Applied</span>
+          <span style="flex:1"></span>
+          <button class="sb-btn" type="button" onclick="gotoNextProblem(-1)" title="Previous problem (Shift+F8)">&#8593;</button>
+          <button class="sb-btn" type="button" onclick="gotoNextProblem(1)" title="Next problem (F8)">&#8595;</button>
         </div>
       </div>
     </div>
@@ -3122,6 +3146,7 @@ function updateApply() {
   var dirty = document.getElementById("out").value !== suiSource;
   btn.style.display = dirty ? '' : 'none';
   btn.classList.toggle("applyhot", dirty);
+  updateEditorStatus();
 }
 function buildDatalist() {
   var dl = document.getElementById("classlist"); if (!dl) return;
@@ -8429,8 +8454,9 @@ function renderProblems() {
   var ul = document.getElementById("problems"); ul.innerHTML = "";
   var items = [];
   // SUI diagnostics (compiler) first so they can be clicked to jump.
+  var problemSrc = document.getElementById("out") ? document.getElementById("out").value : "";
   (__suiDiags || []).forEach(function(d){
-    items.push({ kind: (d.kind === "warning" ? "warn" : "error"), line: d.line, message: d.msg, col: d.col });
+    items.push({ kind: (d.kind === "warning" ? "warn" : "error"), line: diagLineFor(problemSrc, d), message: d.msg, col: d.col });
   });
   problems.forEach(function(p){
     items.push({ kind: p.kind, line: p.line, message: p.message, css: true });
@@ -8559,6 +8585,7 @@ function setSuiEditor() {
   document.getElementById("out").value = v;
   highlightSui();
   renderOutline();
+  updateEditorStatus();
 }
 function highlightSui() {
   var s = document.getElementById("out").value;
@@ -11913,6 +11940,8 @@ var EDITOR_SHORTCUTS = [
   { g: "SUI editor", k: "Ctrl+G", d: "Go to a line" },
   { g: "SUI editor", k: "Ctrl+Shift+P", d: "Open the command palette" },
   { g: "SUI editor", k: "F3 / Shift+F3", d: "Next or previous search match" },
+  { g: "SUI editor", k: "F8 / Shift+F8", d: "Next or previous problem" },
+  { g: "SUI editor", k: "Ctrl+.", d: "Open Quick Fix for the problem at the cursor" },
   { g: "SUI editor", k: "F12 / Shift+F12", d: "Go to definition or find references" },
   { g: "SUI editor", k: "F2", d: "Rename the symbol under the cursor" },
   { g: "SUI editor", k: "Shift+Alt+Down", d: "Duplicate the current line or selection" },
@@ -12434,7 +12463,7 @@ function overlayHighlight(code) {
   if (__suiDiags) {
     __suiDiags.forEach(function(d) {
       var cls = (d.kind === "warning") ? "cm-warn" : "cm-error";
-      var start = lineColOffset(code, d.line - 1, Math.max(0, (d.col || 1) - 1));
+      var start = lineColOffset(code, diagLineFor(code, d) - 1, Math.max(0, (d.col || 1) - 1));
       // Underline the token at the position, or the rest of the line.
       var end = start;
       while (end < code.length && /[A-Za-z0-9_.]/.test(code[end])) end++;
@@ -13029,6 +13058,7 @@ function onSuiEdit() {
   undoCaptureSoon();
   highlightSui();
   updateApply();
+  updateEditorStatus();
   setStatus("editing SUI - auto-apply on pause, or click Apply");
   suiSuggest();
   scheduleLiveCheck();
@@ -13130,17 +13160,19 @@ function setupEditorScroll() {
       hideSuiAc();
     });
     ta.addEventListener("keydown", function(ev){ editorKeydown(ev); });
-    ta.addEventListener("input", function(){ undoCaptureSoon(); updateBracketMatch(); });
-    ta.addEventListener("click", function(){ updateBracketMatch(); });
-    ta.addEventListener("mouseup", function(){ updateBracketMatch(); syncEditorToTreeSoon(); });
+    ta.addEventListener("input", function(){ undoCaptureSoon(); updateBracketMatch(); updateEditorStatus(); });
+    ta.addEventListener("click", function(){ updateBracketMatch(); updateEditorStatus(); });
+    ta.addEventListener("mouseup", function(){ updateBracketMatch(); updateEditorStatus(); syncEditorToTreeSoon(); });
     ta.addEventListener("contextmenu", function(ev){ showEditorMenu(ev); });
     ta.addEventListener("mousemove", function(ev){ updateHoverDoc(ev); });
     ta.addEventListener("mouseleave", function(){ hideDoc(); });
+    ta.addEventListener("select", function(){ updateEditorStatus(); });
     ta.addEventListener("keyup", function(e){
       // Caret movement with the arrow keys / Home / End should refresh the
       // bracket highlight too.
       if(e.key && e.key.indexOf('Arrow') === 0) { updateBracketMatch(); syncEditorToTreeSoon(); updateHoverDoc(); }
       else if(e.key === 'Home' || e.key === 'End') { updateBracketMatch(); syncEditorToTreeSoon(); updateHoverDoc(); }
+      updateEditorStatus();
     });
     ta.addEventListener("blur", function(){ setTimeout(hideSuiAc, 150); hideDoc(); });
   });
@@ -13253,6 +13285,8 @@ function editorKeydown(ev) {
   if (mod && !ev.shiftKey && (ev.key === "h" || ev.key === "H")) { ev.preventDefault(); openFindBar(true); return; }
   if (mod && !ev.shiftKey && (ev.key === "g" || ev.key === "G")) { ev.preventDefault(); gotoLinePrompt(); return; }
   if (ev.key === "F3") { ev.preventDefault(); findNext(ev.shiftKey ? -1 : 1); return; }
+  if (ev.key === "F8") { ev.preventDefault(); gotoNextProblem(ev.shiftKey ? -1 : 1); return; }
+  if (mod && (ev.key === "." || ev.key === ">")) { ev.preventDefault(); showQuickFixMenu(); return; }
   if (mod && ev.shiftKey && (ev.key === "k" || ev.key === "K")) { ev.preventDefault(); deleteLine(); return; }
   if (mod && !ev.shiftKey && (ev.key === "l" || ev.key === "L")) { ev.preventDefault(); selectLine(); return; }
   if (ev.altKey && ev.shiftKey && ev.key === "ArrowDown") { ev.preventDefault(); duplicateLine(); return; }
@@ -13448,7 +13482,10 @@ function repaintEditor() {
 // selected in the designer tree (keeps editor and tree in sync).
 var __cmMarks = [];
 var __findMarks = [];
-var __find = { open:false, replace:false, matches:[], idx:-1, query:"", caseSensitive:false };
+var __find = { open:false, replace:false, matches:[], idx:-1, query:"", caseSensitive:false,
+  wholeWord:false, regex:false, inSelection:false, rangeStart:0, rangeEnd:0,
+  baseStart:0, baseEnd:0, error:"" };
+var __findHistory = [];
 var __elline = { line: -1 };
 // __suiDiags holds the compiler diagnostics for the current editor text so
 // they can be underlined inline. Each entry: {line, col, kind, msg}.
@@ -13473,11 +13510,13 @@ function runLiveCheck() {
     __suiDiags = j.diagDetails || [];
     renderProblems();
     repaintEditor();
+    updateEditorStatus();
   }).catch(function(){
     if (seq !== __checkSeq) return;
     __suiDiags = [];
     renderProblems();
     repaintEditor();
+    updateEditorStatus();
     setStatus("live check failed: server unavailable");
   });
 }
@@ -13669,8 +13708,18 @@ function docHtml(name) {
 // diagRangeFor returns the underlined byte range of a diagnostic — the same
 // range overlayHighlight paints — so the hover tooltip matches exactly what is
 // marked wavy in the editor.
+function diagLineFor(code, d) {
+  var m = /^unknown (?:variable|function) ([A-Za-z_]\w*)/.exec(d.msg || "");
+  if (m) {
+    var re = new RegExp("\\b" + m[1] + "\\b");
+    var lines = code.split("\n");
+    for (var i = 0; i < lines.length; i++) if (re.test(lines[i])) return i + 1;
+  }
+  return d.line;
+}
 function diagRangeFor(code, d) {
-  var start = lineColOffset(code, d.line - 1, Math.max(0, (d.col || 1) - 1));
+  var line = diagLineFor(code, d);
+  var start = lineColOffset(code, line - 1, Math.max(0, (d.col || 1) - 1));
   var end = start;
   while (end < code.length && /[A-Za-z0-9_.]/.test(code[end])) end++;
   if (end === start) { while (end < code.length && code[end] !== "\n") end++; }
@@ -13937,49 +13986,128 @@ function pasteFromClipboard() {
 }
 
 // ---- find and replace -----------------------------------------------------
+function findStorageKey() { return "sui.editor.find"; }
 function findBarEl() { return document.getElementById("sui-findbar"); }
+function updateFindOptionButtons() {
+  var c = document.getElementById("sui-find-case");
+  var w = document.getElementById("sui-find-word");
+  var r = document.getElementById("sui-find-regex");
+  var s = document.getElementById("sui-find-sel");
+  if (c) c.classList.toggle("on", !!__find.caseSensitive);
+  if (w) w.classList.toggle("on", !!__find.wholeWord);
+  if (r) r.classList.toggle("on", !!__find.regex);
+  if (s) s.classList.toggle("on", !!__find.inSelection);
+}
+function loadFindState() {
+  var st = {};
+  try { st = JSON.parse(localStorage.getItem(findStorageKey()) || "{}") || {}; } catch (e) {}
+  __find.caseSensitive = !!st.caseSensitive;
+  __find.wholeWord = !!st.wholeWord;
+  __find.regex = !!st.regex;
+  __findHistory = Array.isArray(st.history) ? st.history.slice(0, 12) : [];
+  var inp = document.getElementById("sui-find-input");
+  var rep = document.getElementById("sui-replace-input");
+  if (inp && !inp.value && st.query) inp.value = st.query;
+  if (rep && !rep.value && st.replace) rep.value = st.replace;
+  updateFindOptionButtons();
+  renderFindHistory();
+}
+function saveFindState() {
+  var inp = document.getElementById("sui-find-input");
+  var rep = document.getElementById("sui-replace-input");
+  try {
+    localStorage.setItem(findStorageKey(), JSON.stringify({
+      query: inp ? inp.value : "",
+      replace: rep ? rep.value : "",
+      caseSensitive: !!__find.caseSensitive,
+      wholeWord: !!__find.wholeWord,
+      regex: !!__find.regex,
+      history: __findHistory.slice(0, 12)
+    }));
+  } catch (e) {}
+}
+function renderFindHistory() {
+  var dl = document.getElementById("sui-find-history");
+  if (!dl) return;
+  dl.textContent = "";
+  for (var i = 0; i < __findHistory.length; i++) {
+    var o = document.createElement("option");
+    o.value = __findHistory[i];
+    dl.appendChild(o);
+  }
+}
+function recordFindHistory(query) {
+  query = String(query || "").trim();
+  if (!query) return;
+  __findHistory = [query].concat(__findHistory.filter(function(q){ return q !== query; })).slice(0, 12);
+  renderFindHistory();
+  saveFindState();
+}
 function openFindBar(withReplace) {
   var bar = findBarEl();
   var ta = document.getElementById("out");
   var inp = document.getElementById("sui-find-input");
   if (!bar || !inp || !ta) return;
+  loadFindState();
+  __find.baseStart = ta.selectionStart;
+  __find.baseEnd = ta.selectionEnd;
+  __find.inSelection = false;
+  __find.rangeStart = 0;
+  __find.rangeEnd = ta.value.length;
   if (ta.selectionStart !== ta.selectionEnd) {
     var sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
     if (sel && sel.indexOf("\n") < 0) inp.value = sel;
   }
+  updateFindOptionButtons();
   bar.classList.add("on");
   __find.open = true;
   __find.replace = !!withReplace;
   document.getElementById("sui-replace-row").hidden = !withReplace;
   document.getElementById("sui-find-replace-toggle").classList.toggle("on", !!withReplace);
   if (inp.value) updateFindMatches(true);
-  else { __find.matches = []; __find.idx = -1; updateFindMarks(); updateFindCount(); }
+  else { __find.matches = []; __find.idx = -1; __find.error = ""; updateFindMarks(); updateFindCount(); updateReplacePreview(); }
   inp.focus();
   inp.select();
 }
 function closeFindBar() {
   var bar = findBarEl();
+  saveFindState();
   __find.open = false;
   __find.matches = [];
   __find.idx = -1;
+  __find.error = "";
   __findMarks = [];
   if (bar) bar.classList.remove("on");
   highlightSui();
   var ta = document.getElementById("out");
   if (ta) ta.focus();
+  updateEditorStatus();
+}
+function buildFindRegex(query, flags) {
+  var pat = __find.regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (__find.wholeWord) pat = "\\b(?:" + pat + ")\\b";
+  return new RegExp(pat, flags);
 }
 function computeFindMatches(query, caseSensitive) {
   var ta = document.getElementById("out");
   var out = [];
-  if (!ta || !query) return out;
-  var hay = caseSensitive ? ta.value : ta.value.toLowerCase();
-  var needle = caseSensitive ? query : query.toLowerCase();
-  var at = 0;
-  while (at <= hay.length) {
-    var found = hay.indexOf(needle, at);
-    if (found < 0) break;
-    out.push({ start: found, end: found + query.length });
-    at = found + Math.max(1, needle.length);
+  if (!ta || !query) { __find.error = ""; return out; }
+  var src = ta.value;
+  var rangeStart = 0, rangeEnd = src.length;
+  if (__find.inSelection) {
+    rangeStart = Math.max(0, Math.min(__find.rangeStart, src.length));
+    rangeEnd = Math.max(rangeStart, Math.min(__find.rangeEnd, src.length));
+  }
+  var hay = src.slice(rangeStart, rangeEnd);
+  var flags = "g" + (caseSensitive ? "" : "i");
+  var re;
+  try { re = buildFindRegex(query, flags); } catch (e) { __find.error = "invalid regex"; return out; }
+  __find.error = "";
+  var m, guard = 0;
+  while ((m = re.exec(hay)) !== null) {
+    out.push({ start: rangeStart + m.index, end: rangeStart + m.index + m[0].length, text: m[0] });
+    if (m[0].length === 0) re.lastIndex++;
+    if (++guard > 20000) break;
   }
   return out;
 }
@@ -13997,7 +14125,7 @@ function selectFindMatch(scroll) {
   }
 }
 function updateFindMarks() {
-  __findMarks = __find.matches.map(function(m, i) {
+  __findMarks = __find.error ? [] : __find.matches.map(function(m, i) {
     return { start: m.start, end: m.end, cls: i === __find.idx ? "cm-find-current" : "cm-find" };
   });
   highlightSui();
@@ -14005,6 +14133,7 @@ function updateFindMarks() {
 function updateFindCount() {
   var el = document.getElementById("sui-find-count");
   if (!el) return;
+  if (__find.error) { el.textContent = "invalid regex"; return; }
   el.textContent = __find.matches.length ? ((__find.idx + 1) + "/" + __find.matches.length) : "0/0";
 }
 function updateFindMatches(selectFirst) {
@@ -14018,22 +14147,50 @@ function updateFindMatches(selectFirst) {
   if (__find.idx >= 0) selectFindMatch(false);
   updateFindMarks();
   updateFindCount();
+  updateReplacePreview();
+  saveFindState();
 }
 function findNext(dir) {
   if (!__find.open) { openFindBar(false); return; }
   if (!__find.matches.length) updateFindMatches(true);
   if (!__find.matches.length) return;
+  recordFindHistory(__find.query);
   __find.idx = (__find.idx + dir + __find.matches.length) % __find.matches.length;
   selectFindMatch(true);
   updateFindMarks();
   updateFindCount();
+  updateReplacePreview();
 }
 function toggleFindCase() {
-  var btn = document.getElementById("sui-find-case");
-  if (!btn) return;
-  btn.classList.toggle("on");
-  __find.caseSensitive = btn.classList.contains("on");
+  __find.caseSensitive = !__find.caseSensitive;
+  updateFindOptionButtons();
   updateFindMatches(false);
+}
+function toggleFindWord() {
+  __find.wholeWord = !__find.wholeWord;
+  updateFindOptionButtons();
+  updateFindMatches(false);
+}
+function toggleFindRegex() {
+  __find.regex = !__find.regex;
+  updateFindOptionButtons();
+  updateFindMatches(false);
+}
+function toggleFindInSelection() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  if (!__find.inSelection) {
+    var start = __find.baseStart, end = __find.baseEnd;
+    if (start === end && ta.selectionStart !== ta.selectionEnd) {
+      start = ta.selectionStart; end = ta.selectionEnd;
+    }
+    if (start === end) { setStatus("select text before using find in selection"); return; }
+    __find.rangeStart = Math.min(start, end);
+    __find.rangeEnd = Math.max(start, end);
+  }
+  __find.inSelection = !__find.inSelection;
+  updateFindOptionButtons();
+  updateFindMatches(true);
 }
 function toggleFindReplace() {
   var row = document.getElementById("sui-replace-row");
@@ -14043,21 +14200,54 @@ function toggleFindReplace() {
   row.hidden = !show;
   btn.classList.toggle("on", show);
   __find.replace = show;
+  saveFindState();
   if (show) {
     var rep = document.getElementById("sui-replace-input");
     if (rep) { rep.focus(); rep.select(); }
+    updateReplacePreview();
   } else {
     var inp = document.getElementById("sui-find-input");
     if (inp) inp.focus();
+    updateReplacePreview();
   }
+}
+function replacementForMatch(m) {
+  var rep = document.getElementById("sui-replace-input");
+  var value = rep ? rep.value : "";
+  if (!__find.regex) return value;
+  try { return m.text.replace(buildFindRegex(__find.query, __find.caseSensitive ? "" : "i"), value); } catch (e) { return value; }
+}
+function updateReplacePreview() {
+  var box = document.getElementById("sui-replace-preview");
+  if (!box) return;
+  if (!__find.open || !__find.replace || !__find.query) { box.hidden = true; box.textContent = ""; return; }
+  if (__find.error) { box.hidden = false; box.textContent = "Invalid regular expression."; return; }
+  if (!__find.matches.length) { box.hidden = false; box.textContent = "No matches."; return; }
+  var ta = document.getElementById("out");
+  var limit = Math.min(3, __find.matches.length);
+  var out = [__find.matches.length + " replacement" + (__find.matches.length === 1 ? "" : "s") + (__find.matches.length > limit ? " (first " + limit + ")" : "")];
+  for (var i = 0; i < limit; i++) {
+    var m = __find.matches[i];
+    var line = ta ? (editorLineIndex(ta.value, m.start) + 1) : 0;
+    out.push("L" + line + ": " + m.text + " \u2192 " + replacementForMatch(m));
+  }
+  box.hidden = false;
+  box.textContent = out.join("\n");
 }
 function refreshFindAfterEdit() {
   if (!__find.open) return;
+  var ta = document.getElementById("out");
+  if (ta && __find.inSelection) {
+    __find.rangeStart = Math.min(__find.rangeStart, ta.value.length);
+    __find.rangeEnd = Math.min(__find.rangeEnd, ta.value.length);
+    if (__find.rangeEnd < __find.rangeStart) __find.rangeEnd = __find.rangeStart;
+  }
   __find.matches = computeFindMatches(__find.query, __find.caseSensitive);
   if (__find.idx >= __find.matches.length) __find.idx = __find.matches.length - 1;
   if (__find.idx < 0 && __find.matches.length) __find.idx = 0;
   updateFindMarks();
   updateFindCount();
+  updateReplacePreview();
 }
 function replaceFindCurrent() {
   var ta = document.getElementById("out");
@@ -14066,7 +14256,8 @@ function replaceFindCurrent() {
   if (!__find.matches.length) updateFindMatches(true);
   var m = __find.matches[__find.idx];
   if (!m) return;
-  var text = rep.value;
+  recordFindHistory(__find.query);
+  var text = replacementForMatch(m);
   ta.value = ta.value.slice(0, m.start) + text + ta.value.slice(m.end);
   ta.selectionStart = ta.selectionEnd = m.start + text.length;
   onSuiEdit();
@@ -14079,19 +14270,243 @@ function replaceFindAll() {
   var rep = document.getElementById("sui-replace-input");
   var inp = document.getElementById("sui-find-input");
   if (!ta || !rep || !inp || !inp.value) return;
-  var escaped = inp.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  var re = new RegExp(escaped, __find.caseSensitive ? "g" : "gi");
-  var count = 0;
-  var next = ta.value.replace(re, function(){ count++; return rep.value; });
+  recordFindHistory(inp.value);
+  var src = ta.value;
+  var start = __find.inSelection ? Math.max(0, Math.min(__find.rangeStart, src.length)) : 0;
+  var end = __find.inSelection ? Math.max(start, Math.min(__find.rangeEnd, src.length)) : src.length;
+  var target = src.slice(start, end);
+  var flags = "g" + (__find.caseSensitive ? "" : "i");
+  var re;
+  try { re = buildFindRegex(inp.value, flags); } catch (e) { setStatus("invalid regular expression"); return; }
+  var count = 0, replaced;
+  if (__find.regex) {
+    var counter = buildFindRegex(inp.value, flags);
+    var cm, guard = 0;
+    while ((cm = counter.exec(target)) !== null) {
+      count++;
+      if (cm[0].length === 0) counter.lastIndex++;
+      if (++guard > 20000) break;
+    }
+    replaced = target.replace(re, rep.value);
+  } else {
+    replaced = target.replace(re, function(){ count++; return rep.value; });
+  }
   if (!count) { setStatus("no matches to replace"); return; }
-  ta.value = next;
-  ta.selectionStart = ta.selectionEnd = 0;
+  ta.value = src.slice(0, start) + replaced + src.slice(end);
+  ta.selectionStart = ta.selectionEnd = start;
   onSuiEdit();
   updateFindMatches(true);
   ta.focus();
   setStatus("replaced " + count + " occurrences");
 }
 
+// ---- editor status bar and problem navigation -----------------------------
+function updateEditorStatus() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var pos = ta.selectionStart, end = ta.selectionEnd;
+  var before = ta.value.slice(0, pos);
+  var line = before.split("\n").length;
+  var col = pos - (before.lastIndexOf("\n") + 1) + 1;
+  var ln = document.getElementById("sui-lncol");
+  var sel = document.getElementById("sui-selinfo");
+  var diag = document.getElementById("sui-diaginfo");
+  var indent = document.getElementById("sui-indentinfo");
+  var apply = document.getElementById("sui-applystate");
+  if (ln) ln.textContent = "Ln " + line + ", Col " + col;
+  if (sel) sel.textContent = end > pos ? (end - pos) + " selected" : "";
+  var errs = 0, warns = 0;
+  (__suiDiags || []).forEach(function(d){ if (d.kind === "warning") warns++; else errs++; });
+  if (diag) {
+    diag.textContent = (errs || warns) ? (errs + " error" + (errs === 1 ? "" : "s") + ", " + warns + " warning" + (warns === 1 ? "" : "s")) : "No problems";
+    diag.className = errs ? "sb-err" : (warns ? "sb-warn" : "sb-ok");
+  }
+  if (indent) indent.textContent = "Tab: " + (parseInt(prefs.editorTabSize, 10) || 4);
+  if (apply) {
+    var dirty = ta.value !== suiSource;
+    apply.textContent = dirty ? "Modified" : "Applied";
+    apply.className = dirty ? "sb-warn" : "sb-ok";
+  }
+}
+function gotoNextProblem(dir) {
+  var ta = document.getElementById("out");
+  var src = ta ? ta.value : "";
+  var items = (__suiDiags || []).map(function(d){ return { d: d, line: diagLineFor(src, d) }; });
+  items.sort(function(a, b){ return (a.line - b.line) || (((a.d.col || 1) - (b.d.col || 1))); });
+  if (!items.length) { setStatus("no problems"); return; }
+  var line = ta ? (ta.value.slice(0, ta.selectionStart).split("\n").length) : 1;
+  var target = null;
+  if (dir > 0) {
+    for (var i = 0; i < items.length; i++) if (items[i].line > line) { target = items[i]; break; }
+    if (!target) target = items[0];
+  } else {
+    for (var j = items.length - 1; j >= 0; j--) if (items[j].line < line) { target = items[j]; break; }
+    if (!target) target = items[items.length - 1];
+  }
+  revealLine(target.line - 1, Math.max(0, (target.d.col || 1) - 1));
+  setStatus((target.d.kind === "warning" ? "warning: " : "error: ") + (target.d.msg || ""));
+  updateEditorStatus();
+}
+
+// ---- quick fix ------------------------------------------------------------
+function diagnosticAtCaret() {
+  var ta = document.getElementById("out");
+  if (!ta || !__suiDiags || !__suiDiags.length) return null;
+  var before = ta.value.slice(0, ta.selectionStart);
+  var line = before.split("\n").length;
+  var col = ta.selectionStart - (before.lastIndexOf("\n") + 1) + 1;
+  var best = null, bestDist = 1e9;
+  __suiDiags.forEach(function(d){
+    if (diagLineFor(ta.value, d) !== line) return;
+    var dist = Math.abs((d.col || 1) - col);
+    if (dist < bestDist) { best = d; bestDist = dist; }
+  });
+  return best;
+}
+function enclosingFunctionLine(src, line) {
+  var lines = src.split("\n");
+  for (var i = Math.min(line, lines.length - 1); i >= 0; i--) {
+    if (/^\s*(async\s+)?fn\b/.test(lines[i])) return i;
+    if (/^\s*view\b/.test(lines[i])) return -1;
+  }
+  return -1;
+}
+function insertTopLevelState(name) {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var lines = ta.value.split("\n");
+  var at = lines.length;
+  for (var i = 0; i < lines.length; i++) {
+    if (/^\s*(view|fn|component)\b/.test(lines[i])) { at = i; break; }
+  }
+  lines.splice(at, 0, "state " + name + " = 0", "");
+  ta.value = lines.join("\n").replace(/\n{3,}/g, "\n\n");
+  ta.selectionStart = ta.selectionEnd = editorLinesOffset(lines, at) + ("state " + name).length;
+  ta.focus();
+  onSuiEdit();
+  setStatus('declared state "' + name + '"');
+}
+function defineMissingFunction(name) {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var base = ta.value.replace(/\s*$/, "");
+  ta.value = base + "\n\nfn " + name + "() -> null {\n\t\n}\n";
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  ta.focus();
+  onSuiEdit();
+  setStatus('defined function "' + name + '"');
+}
+function makeEnclosingAsync(d) {
+  var ta = document.getElementById("out");
+  if (!ta || !d) return false;
+  var lines = ta.value.split("\n");
+  var idx = enclosingFunctionLine(ta.value, d.line - 1);
+  if (idx < 0) { setStatus("enclosing function not found"); return false; }
+  if (/^\s*async\s+fn\b/.test(lines[idx])) { setStatus("enclosing function is already async"); return false; }
+  lines[idx] = lines[idx].replace(/^(\s*)fn\b/, "$1async fn");
+  ta.value = lines.join("\n");
+  ta.focus();
+  onSuiEdit();
+  setStatus("made enclosing function async");
+  return true;
+}
+function copyDiagnostic(d) {
+  var text = "L" + d.line + ": " + (d.msg || "") + (d.hint ? " - " + d.hint : "");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ setStatus("diagnostic copied"); }).catch(function(){ setStatus("could not copy diagnostic"); });
+  } else {
+    setStatus(text);
+  }
+}
+function handlerNameAtCaret() {
+  var ta = document.getElementById("out");
+  if (!ta) return "";
+  var before = ta.value.slice(0, ta.selectionStart);
+  var line = before.split("\n").length;
+  var text = ta.value.split("\n")[line - 1] || "";
+  var m = /\bon[A-Za-z]+\s*:\s*([A-Za-z_]\w*)/.exec(text);
+  return m ? m[1] : "";
+}
+function quickFixActions(d) {
+  var actions = [];
+  var msg = d.msg || "";
+  var mv = /^unknown variable ([A-Za-z_]\w*)/.exec(msg);
+  if (mv) {
+    var varName = mv[1];
+    actions.push({ label: 'Declare state "' + varName + '"', fn: function(){ insertTopLevelState(varName); } });
+  }
+  var mf = /^unknown function ([A-Za-z_]\w*)/.exec(msg);
+  if (mf) {
+    var fnName = mf[1];
+    actions.push({ label: 'Define function "' + fnName + '"', fn: function(){ defineMissingFunction(fnName); } });
+  }
+  if (/must name a declared function/.test(msg)) {
+    var handler = handlerNameAtCaret();
+    if (handler) actions.push({ label: 'Define function "' + handler + '"', fn: function(){ defineMissingFunction(handler); } });
+  }
+  if (/cannot be called from a non-async function/.test(msg)) {
+    actions.push({ label: "Make enclosing function async", fn: function(){ makeEnclosingAsync(d); } });
+  }
+  actions.push({ label: "Open Problems panel", fn: function(){ toggleBottom(); } });
+  actions.push({ label: "Copy diagnostic message", fn: function(){ copyDiagnostic(d); } });
+  return actions;
+}
+function showQuickFixMenu(ev) {
+  if (ev && ev.preventDefault) ev.preventDefault();
+  closeSnippetMenu();
+  hideSuiAc();
+  closeContextMenus();
+  var d = diagnosticAtCaret();
+  if (!d) { setStatus("no problem under the cursor"); return; }
+  var ta = document.getElementById("out");
+  var m = document.createElement("div");
+  m.id = "ed-menu"; m.className = "sui-ac"; m.style.display = "block"; m.style.minWidth = "260px"; m.tabIndex = -1;
+  var head = document.createElement("div");
+  head.className = "ctx-head";
+  head.textContent = "L" + d.line + ": " + (d.msg || "");
+  m.appendChild(head);
+  var actions = quickFixActions(d);
+  var rows = [];
+  actions.forEach(function(a){
+    var row = document.createElement("div");
+    row.className = "sui-ac-item";
+    row.setAttribute("role", "menuitem");
+    var l = document.createElement("span");
+    l.textContent = a.label;
+    row.appendChild(l);
+    row.onclick = function(){ closeMenu(); a.fn(); };
+    rows.push(row);
+    m.appendChild(row);
+  });
+  function closeMenu() { m.remove(); document.removeEventListener("click", outside); }
+  var outside = function(e) { if (!m.contains(e.target)) closeMenu(); };
+  document.body.appendChild(m);
+  var z = menuZoom();
+  var rect;
+  if (ev && typeof ev.clientX === "number") rect = { left: ev.clientX, top: ev.clientY, bottom: ev.clientY };
+  else rect = suiCaretRect(ta ? ta.selectionStart : 0) || { left: 80, bottom: 80 };
+  var mw = m.offsetWidth, mh = m.offsetHeight;
+  var vw = window.innerWidth / z, vh = window.innerHeight / z;
+  var left = Math.max(4, Math.min(vw - mw - 8, rect.left / z));
+  var top = rect.bottom / z + 3;
+  if (top + mh > vh - 4) top = Math.max(4, rect.top ? rect.top / z - mh - 4 : vh - mh - 4);
+  m.style.left = left + "px";
+  m.style.top = top + "px";
+  var active = -1;
+  function setActive(next) {
+    if (!rows.length) return;
+    active = (next + rows.length) % rows.length;
+    for (var i = 0; i < rows.length; i++) rows[i].classList.toggle("active", i === active);
+  }
+  m.addEventListener("keydown", function(e){
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(active + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive(active - 1); }
+    else if (e.key === "Enter") { e.preventDefault(); if (rows[active]) { var fn = actions[active].fn; closeMenu(); fn(); } }
+    else if (e.key === "Escape") { e.preventDefault(); closeMenu(); if (ta) ta.focus(); }
+  });
+  m.focus();
+  setTimeout(function(){ document.addEventListener("click", outside); }, 0);
+}
 // ---- command palette ------------------------------------------------------
 var __cmdFiltered = [];
 var __cmdIdx = 0;
@@ -14104,6 +14519,9 @@ function commandPaletteItems() {
   add("Go to definition", "F12", gotoDefinition);
   add("Find references", "Shift+F12", findReferences);
   add("Rename symbol", "F2", renameSymbol);
+  add("Quick Fix", "Ctrl+.", showQuickFixMenu);
+  add("Next problem", "F8", function(){ gotoNextProblem(1); });
+  add("Previous problem", "Shift+F8", function(){ gotoNextProblem(-1); });
   add("Toggle line comment", "Ctrl+/", toggleComment);
   add("Duplicate line", "Shift+Alt+Down", duplicateLine);
   add("Move line up", "Alt+Up", function(){ moveLines(-1); });
@@ -14252,6 +14670,7 @@ function showEditorMenu(ev) {
   var probe = ta.selectionStart < src.length && /[A-Za-z0-9_.]/.test(src[ta.selectionStart]) ? ta.selectionStart : ta.selectionStart - 1;
   var word = probe >= 0 ? wordAt(src, probe).word.replace(/^.*\./, "") : "";
   var hasWord = !!word;
+  var diag = diagnosticAtCaret();
   var m = document.createElement("div");
   m.id = "ed-menu"; m.className = "sui-ac"; m.style.display = "block"; m.style.minWidth = "250px"; m.tabIndex = -1;
   var actions = [];
@@ -14302,6 +14721,7 @@ function showEditorMenu(ev) {
   item("Go to definition", "F12", gotoDefinition, hasWord);
   item("Find references", "Shift+F12", findReferences, hasWord);
   item("Rename symbol", "F2", renameSymbol, hasWord);
+  item("Quick Fix", "Ctrl+.", function(){ showQuickFixMenu(); }, !!diag);
   sep();
   item("Find", "Ctrl+F", function(){ openFindBar(false); });
   item("Replace", "Ctrl+H", function(){ openFindBar(true); });
@@ -14337,15 +14757,18 @@ function wireEditorTools() {
   if (fi) {
     fi.addEventListener("input", function(){ updateFindMatches(true); });
     fi.addEventListener("keydown", function(ev) {
-      if (ev.key === "Enter") { ev.preventDefault(); findNext(ev.shiftKey ? -1 : 1); }
+      if (ev.key === "Enter") { ev.preventDefault(); recordFindHistory(fi.value); findNext(ev.shiftKey ? -1 : 1); }
       else if (ev.key === "Escape") { ev.preventDefault(); closeFindBar(); }
     });
   }
   var ri = document.getElementById("sui-replace-input");
-  if (ri) ri.addEventListener("keydown", function(ev) {
-    if (ev.key === "Enter") { ev.preventDefault(); replaceFindCurrent(); }
-    else if (ev.key === "Escape") { ev.preventDefault(); closeFindBar(); }
-  });
+  if (ri) {
+    ri.addEventListener("input", updateReplacePreview);
+    ri.addEventListener("keydown", function(ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); replaceFindCurrent(); }
+      else if (ev.key === "Escape") { ev.preventDefault(); closeFindBar(); }
+    });
+  }
   var ci = document.getElementById("cmd-input");
   if (ci) {
     ci.addEventListener("input", renderCommandPalette);
@@ -14353,6 +14776,8 @@ function wireEditorTools() {
   }
   var cp = document.getElementById("cmd-palette");
   if (cp) cp.addEventListener("mousedown", function(ev){ if (ev.target === cp) closeCommandPalette(); });
+  loadFindState();
+  updateEditorStatus();
 }
 // ---- toggle line comment -------------------------------------------------
 function toggleComment() {

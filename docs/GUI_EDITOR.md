@@ -208,7 +208,10 @@ Press **Ctrl+F** to open the find bar and **Ctrl+H** to show the replace row.
 | Action | Shortcut |
 |---|---|
 | Next / previous match | Enter / Shift+Enter, F3 / Shift+F3 |
-| Toggle match case | **Aa** button |
+| Match case | **Aa** button |
+| Whole word | **W** button |
+| Regular expression | **Regex** button (`.*`) |
+| Find in selection | **Sel** button |
 | Replace current match | **Replace** |
 | Replace every match | **All** |
 | Close the bar | Escape |
@@ -217,6 +220,39 @@ Matches are highlighted in the editor with the current match in a stronger
 colour, and the match counter shows the current position and total. Find starts
 from the current selection when it is a single-line selection.
 
+The search options are remembered between sessions. The find field keeps a
+history of recent queries. With replace open, a preview lists the first
+replacements with their line numbers before **Replace** or **All** is used. In
+regular-expression mode the replacement supports capture groups such as `$1`.
+
+### Quick Fix and problems
+
+| Action | Shortcut |
+|---|---|
+| Quick Fix at the cursor | Ctrl+. |
+| Next problem | F8 |
+| Previous problem | Shift+F8 |
+
+Quick Fix proposes actions for the diagnostic under the cursor, including
+declaring a missing state, defining a missing handler/function and making the
+enclosing function `async`. Diagnostics remain clickable in the Problems panel.
+
+### Status bar
+
+The bottom of the code editor shows the caret line and column, the selection
+size, the number of errors and warnings, the tab size and whether the source is
+**Applied** or **Modified**. The problem count opens the Problems panel; the
+arrow buttons move to the previous or next problem.
+
+### Command palette
+
+Press **Ctrl+Shift+P** to search editor commands and declared symbols.
+
+- Type to filter by command name, shortcut, state, function or view.
+- Arrow keys move the selection; Enter runs it; Escape closes.
+- Symbol entries jump directly to their declaration line.
+- Commands include Find, Replace, Go to line, Quick Fix, problem navigation,
+  line operations, comment toggle and Apply SUI source.
 ### Command palette
 
 Press **Ctrl+Shift+P** to search editor commands and declared symbols.

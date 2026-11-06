@@ -213,6 +213,9 @@ riga di sostituzione.
 |---|---|
 | Corrispondenza successiva / precedente | Invio / Shift+Invio, F3 / Shift+F3 |
 | Distinzione maiuscole/minuscole | pulsante **Aa** |
+| Parola intera | pulsante **W** |
+| Espressione regolare | pulsante **Regex** (`.*`) |
+| Cerca nella selezione | pulsante **Sel** |
 | Sostituisci la corrispondenza corrente | **Replace** |
 | Sostituisci tutte le corrispondenze | **All** |
 | Chiudi la barra | Esc |
@@ -221,6 +224,41 @@ Le corrispondenze sono evidenziate nell'editor e quella corrente ha un colore pi
 forte; il contatore mostra posizione e totale. La ricerca parte dalla selezione
 corrente quando è una selezione su una sola riga.
 
+Le opzioni di ricerca restano memorizzate tra le sessioni. Il campo di ricerca
+mantiene una cronologia delle query recenti. Con la sostituzione aperta,
+un'anteprima elenca le prime sostituzioni con il numero di riga prima di usare
+**Replace** o **All**. In modalità espressione regolare la sostituzione supporta
+i gruppi di cattura come `$1`.
+
+### Quick Fix e problemi
+
+| Azione | Scorciatoia |
+|---|---|
+| Quick Fix sul cursore | Ctrl+. |
+| Problema successivo | F8 |
+| Problema precedente | Shift+F8 |
+
+Quick Fix propone azioni per il diagnostico sotto il cursore, tra cui dichiarare
+uno stato mancante, definire un handler/funzione mancante e rendere `async` la
+funzione che contiene la chiamata. I diagnostici restano cliccabili nel pannello
+Problems.
+
+### Status bar
+
+In fondo al code editor compaiono riga e colonna del cursore, dimensione della
+selezione, numero di errori e warning, dimensione dei tab e stato **Applied** o
+**Modified**. Il conteggio dei problemi apre il pannello Problems; le frecce
+spostano al problema precedente o successivo.
+
+### Command palette
+
+Premere **Ctrl+Shift+P** per cercare comandi dell'editor e simboli dichiarati.
+
+- Digitare per filtrare per nome comando, scorciatoia, stato, funzione o view.
+- Le frecce spostano la selezione; Invio esegue; Esc chiude.
+- Le voci simbolo saltano direttamente alla riga di dichiarazione.
+- I comandi includono Find, Replace, Go to line, Quick Fix, navigazione dei
+  problemi, operazioni sulle righe, toggle comment e Apply SUI source.
 ### Command palette
 
 Premere **Ctrl+Shift+P** per cercare comandi dell'editor e simboli dichiarati.
