@@ -380,6 +380,10 @@ effects in one step. Presets are optional: they never run unless selected, and
 editing any field switches the selector to **Custom** so fine-tuning stays
 explicit.
 
+Above the preview, **Preview background** switches between **Dark** and
+**Light**. The choice is remembered and makes it easy to check a component
+against both a dark application shell and a light or paper-like page.
+
 The presets cover all twenty component panels, for example **Neon glow** and
 **Barber pole** for Progress, **Dual ring**, **Gradient ring** and **Coin flip**
 for Spinner, **Glass** for Card and Toast, **Pill** for Button and Input, and
@@ -393,6 +397,12 @@ motion effect; the Animation/Effects tab also exposes the effects directly:
 - Card: fade in and float.
 - Button: pulse, float and glow.
 - Toast: slide down, fade, zoom, slide up and bounce.
+
+The **Sketch** preset is shared by all twenty panels so components placed on the
+same light page stay visually related. It uses a warm paper surface, ink borders
+and offset shadows, a handwriting font and a highlighter selection where
+applicable. Every colour, font, radius and shadow remains editable, so the
+family can be tuned without losing its hand-drawn character.
 
 In element settings the selector also offers **Project default**. Applying it
 removes the element's component overrides, so the element inherits the project

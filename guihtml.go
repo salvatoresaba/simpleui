@@ -495,11 +495,18 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #compcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:700px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #compcfg .pref-body { max-height:62vh; }
 #compcfg-preview-wrap { padding:0 20px 8px; }
+#compcfg-preview-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+#compcfg-preview-bar .preview-label { font-size:11.5px; color:var(--muted); }
+.preview-theme { display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+.preview-theme-btn { background:transparent; color:var(--muted); border:0; padding:3px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
+.preview-theme-btn.on { background:var(--accent); color:#fff; }
 #compcfg-presets { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 20px 8px; }
 #compcfg-presets label { font-size:12px; color:var(--muted); min-width:42px; }
 #compcfg-presets select { min-width:190px; max-width:100%; }
 .compcfg-preset-desc { flex-basis:100%; font-size:11.5px; color:var(--muted); padding-left:50px; margin-top:-2px; min-height:15px; }
-#compcfg-preview { min-height:94px; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--bg); overflow:auto; }
+#compcfg-preview { min-height:94px; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--fg); overflow:auto; }
+#compcfg-preview.preview-light { background:#f3ede1; border-color:#d6cbb8; color:#2b2620; }
+#compcfg-preview.preview-dark { background:var(--bg); border-color:var(--border); color:var(--fg); }
 #compcfg-preview > * { max-width:100%; }
 #compcfg .pf-field { grid-template-columns:minmax(88px, 126px) minmax(0, 1fr); }
 #compcfg .pf-field > label { font-size:12px; }
@@ -1247,7 +1254,16 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     </div>
     <div class="hint" id="compcfg-scope" style="padding:0 20px 6px"></div>
     <div id="compcfg-presets"></div>
-    <div id="compcfg-preview-wrap"><div id="compcfg-preview"></div></div>
+    <div id="compcfg-preview-wrap">
+      <div id="compcfg-preview-bar">
+        <span class="preview-label">Preview background</span>
+        <div class="preview-theme" role="group" aria-label="Preview background">
+          <button type="button" class="preview-theme-btn" data-preview-theme="dark" onclick="setComponentPreviewTheme('dark')" aria-pressed="true">Dark</button>
+          <button type="button" class="preview-theme-btn" data-preview-theme="light" onclick="setComponentPreviewTheme('light')" aria-pressed="false">Light</button>
+        </div>
+      </div>
+      <div id="compcfg-preview"></div>
+    </div>
     <style id="compcfg-preview-style"></style>
     <div class="pref-tabs" id="compcfg-tabs" role="tablist"></div>
     <div class="pref-body" id="compcfg-body"></div>
@@ -1732,6 +1748,7 @@ var BUILTIN_FONTS = [
   "'Courier New', Courier, monospace",
   "'Lucida Console', Monaco, monospace",
   "'Comic Sans MS', cursive, sans-serif",
+  "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive",
   "Impact, Charcoal, sans-serif",
   "'Lucida Sans Unicode', 'Lucida Grande', sans-serif",
   "cursive",
@@ -11988,6 +12005,25 @@ function componentPreviewHTML(def) {
     default: return '<span style="font-size:12px;color:var(--muted)">Preview not available.</span>';
   }
 }
+var __compPreviewTheme = "dark";
+try { __compPreviewTheme = localStorage.getItem("sui.componentPreviewTheme") || "dark"; } catch (e) {}
+function setComponentPreviewTheme(theme) {
+  __compPreviewTheme = theme === "light" ? "light" : "dark";
+  try { localStorage.setItem("sui.componentPreviewTheme", __compPreviewTheme); } catch (e) {}
+  applyComponentPreviewTheme();
+}
+function applyComponentPreviewTheme() {
+  var pv = document.getElementById("compcfg-preview");
+  if (!pv) return;
+  pv.classList.toggle("preview-light", __compPreviewTheme === "light");
+  pv.classList.toggle("preview-dark", __compPreviewTheme !== "light");
+  var btns = document.querySelectorAll("#compcfg-preview-bar .preview-theme-btn");
+  for (var i = 0; i < btns.length; i++) {
+    var on = btns[i].getAttribute("data-preview-theme") === __compPreviewTheme;
+    btns[i].classList.toggle("on", on);
+    btns[i].setAttribute("aria-pressed", on ? "true" : "false");
+  }
+}
 function updateComponentPreview() {
   var s = __compSettings;
   var pv = document.getElementById("compcfg-preview");
@@ -11997,12 +12033,14 @@ function updateComponentPreview() {
   pv.removeAttribute("style");
   Object.keys(s.values).forEach(function(k){ pv.style.setProperty(k, s.values[k]); });
   pv.innerHTML = componentPreviewHTML(s.def);
+  applyComponentPreviewTheme();
 }
 var SUI_PROGRESS_FILLS = {
   gradient: "linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))",
   solid: "var(--sui-progress-value, #4c5cf7)",
   stripes: "repeating-linear-gradient(45deg, var(--sui-progress-value, #4c5cf7) 0 12px, var(--sui-progress-value-end, #6366f1) 12px 24px)",
   segments: "repeating-linear-gradient(90deg, var(--sui-progress-value, #4c5cf7) 0 14px, transparent 14px 22px)",
+  pencil: "repeating-linear-gradient(45deg, var(--sui-progress-value, #2b2622) 0 3px, transparent 3px 7px)",
   shimmer: "linear-gradient(90deg, transparent 20%, rgba(255,255,255,.55) 50%, transparent 80%), linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))"
 };
 var SUI_PROGRESS_ANIMS = {
@@ -12011,6 +12049,19 @@ var SUI_PROGRESS_ANIMS = {
   stripes: "sui-progress-stripes .9s linear infinite",
   shimmer: "sui-progress-shimmer 2.2s linear infinite",
   glow: "sui-progress-glow 1.6s ease-in-out infinite"
+};
+var SUI_SKETCH = {
+  paper: "#f4ecd8",
+  paperDeep: "#e9dcc0",
+  paperHover: "#efe3c8",
+  paperTrack: "#dfd1b4",
+  ink: "#2b2622",
+  inkSoft: "#5b5248",
+  accent: "#b45309",
+  highlight: "#fde68a",
+  shadow: "3px 3px 0 rgba(43,38,34,.22)",
+  shadowStrong: "4px 4px 0 rgba(43,38,34,.24)",
+  font: "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive"
 };
 var COMPONENT_DEFS = [
   { id: "progress", label: "Progress bar", group: "Feedback", kinds: ["progress"],
@@ -12029,6 +12080,7 @@ var COMPONENT_DEFS = [
           ["Solid", SUI_PROGRESS_FILLS.solid, { "--sui-progress-fill-size": "auto" }],
           ["Stripes", SUI_PROGRESS_FILLS.stripes, { "--sui-progress-fill-size": "auto" }],
           ["Segments", SUI_PROGRESS_FILLS.segments, { "--sui-progress-fill-size": "auto" }],
+          ["Pencil", SUI_PROGRESS_FILLS.pencil, { "--sui-progress-fill-size": "auto" }],
           ["Shimmer", SUI_PROGRESS_FILLS.shimmer, { "--sui-progress-fill-size": "220% 100%" }]
         ] }
       ]},
@@ -12066,7 +12118,12 @@ var COMPONENT_DEFS = [
       { id: "pulse", label: "Soft pulse", desc: "A calm opacity pulse for waiting states.", vars: {
         "--sui-progress-track": "#3f1d24", "--sui-progress-value": "#f43f5e", "--sui-progress-value-end": "#fb7185",
         "--sui-progress-height": "12px", "--sui-progress-fill": SUI_PROGRESS_FILLS.gradient,
-        "--sui-progress-fill-size": "auto", "--sui-progress-animation": SUI_PROGRESS_ANIMS.pulse } }
+        "--sui-progress-fill-size": "auto", "--sui-progress-animation": SUI_PROGRESS_ANIMS.pulse } },
+      { id: "sketch", label: "Sketch", desc: "Pencil shading on warm paper with a hand-drawn feel.", vars: {
+        "--sui-progress-track": SUI_SKETCH.paperTrack, "--sui-progress-value": SUI_SKETCH.ink,
+        "--sui-progress-value-end": SUI_SKETCH.accent, "--sui-progress-height": "10px",
+        "--sui-progress-radius": "6px", "--sui-progress-fill": SUI_PROGRESS_FILLS.pencil,
+        "--sui-progress-fill-size": "auto", "--sui-progress-animation": SUI_PROGRESS_ANIMS.none } }
     ],
     css: ".sui-progress { width: var(--sui-progress-width, 100%); height: var(--sui-progress-height, 8px); background: var(--sui-progress-track, #374151); border-radius: var(--sui-progress-radius, 999px); overflow: hidden; }\n" +
       ".sui-progress::-webkit-progress-bar { background: var(--sui-progress-track, #374151); }\n" +
@@ -12097,7 +12154,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-badge-tracking", label: "Letter spacing", type: "number", def: 0, min: 0, max: 4, step: 0.5, unit: "px" },
         { key: "--sui-badge-shadow", label: "Shadow", type: "select", def: "none", opts: [
           ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.28)"],
-          ["Glow", "0 0 12px rgba(76,92,247,.65)"], ["Strong", "0 6px 18px rgba(0,0,0,.45)"]
+          ["Glow", "0 0 12px rgba(76,92,247,.65)"], ["Strong", "0 6px 18px rgba(0,0,0,.45)"],
+          ["Sketch", SUI_SKETCH.shadow]
         ] },
         { key: "--sui-badge-animation", label: "Effect", type: "select", def: "none", opts: [
           ["None", "none"], ["Pulse", "sui-badge-pulse 1.8s ease-in-out infinite"],
@@ -12123,7 +12181,13 @@ var COMPONENT_DEFS = [
         "--sui-badge-animation": "sui-badge-glow 2s ease-in-out infinite" } },
       { id: "success", label: "Success", desc: "Green status badge for positive states.", vars: {
         "--sui-badge-bg": "#052e16", "--sui-badge-fg": "#86efac", "--sui-badge-border": "#166534",
-        "--sui-badge-border-width": "1px" } }
+        "--sui-badge-border-width": "1px" } },
+      { id: "sketch", label: "Sketch", desc: "Hand-lettered paper tag with an ink outline.", vars: {
+        "--sui-badge-bg": SUI_SKETCH.paper, "--sui-badge-fg": SUI_SKETCH.ink, "--sui-badge-border": SUI_SKETCH.ink,
+        "--sui-badge-padding": "2px 9px", "--sui-badge-radius": "6px", "--sui-badge-font-size": "12px",
+        "--sui-badge-font-weight": "600", "--sui-badge-border-width": "1px", "--sui-badge-font": SUI_SKETCH.font,
+        "--sui-badge-transform": "none", "--sui-badge-tracking": "0.3px", "--sui-badge-shadow": SUI_SKETCH.shadow,
+        "--sui-badge-animation": "none" } }
     ],
     css: ".sui-badge { background: var(--sui-badge-bg, #252b45); color: var(--sui-badge-fg, #a5b4fc); padding: var(--sui-badge-padding, 2px 10px); border-radius: var(--sui-badge-radius, 999px); font-size: var(--sui-badge-font-size, 12px); font-weight: var(--sui-badge-font-weight, 500); font-family: var(--sui-badge-font, inherit); border: var(--sui-badge-border-width, 0) solid var(--sui-badge-border, #4c5cf7); box-shadow: var(--sui-badge-shadow, none); text-transform: var(--sui-badge-transform, none); letter-spacing: var(--sui-badge-tracking, normal); animation: var(--sui-badge-animation, none); }\n@keyframes sui-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }\n@keyframes sui-badge-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n@keyframes sui-badge-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }"
   },
@@ -12144,7 +12208,8 @@ var COMPONENT_DEFS = [
       ]},
       { name: "Effects", fields: [
         { key: "--sui-alert-shadow", label: "Shadow", type: "select", def: "none", opts: [
-          ["None", "none"], ["Soft", "0 4px 14px rgba(0,0,0,.22)"], ["Glass", "0 8px 24px rgba(0,0,0,.35)"], ["Strong", "0 10px 28px rgba(0,0,0,.42)"]
+          ["None", "none"], ["Soft", "0 4px 14px rgba(0,0,0,.22)"], ["Glass", "0 8px 24px rgba(0,0,0,.35)"], ["Strong", "0 10px 28px rgba(0,0,0,.42)"],
+          ["Sketch", SUI_SKETCH.shadow]
         ] },
         { key: "--sui-alert-animation", label: "Effect", type: "select", def: "none", opts: [
           ["None", "none"], ["Fade in", "sui-alert-in .24s ease-out"],
@@ -12166,7 +12231,12 @@ var COMPONENT_DEFS = [
         "--sui-alert-border": "rgba(255,255,255,.18)", "--sui-alert-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
       { id: "bar", label: "Accent bar", desc: "Flat alert with a thick left accent bar.", vars: {
         "--sui-alert-bg": "#0f172a", "--sui-alert-fg": "#bfdbfe", "--sui-alert-border": "#4c5cf7",
-        "--sui-alert-border-width": "0 0 0 4px", "--sui-alert-radius": "0px", "--sui-alert-shadow": "none" } }
+        "--sui-alert-border-width": "0 0 0 4px", "--sui-alert-radius": "0px", "--sui-alert-shadow": "none" } },
+      { id: "sketch", label: "Sketch", desc: "A hand-drawn note in ink on warm paper.", vars: {
+        "--sui-alert-bg": SUI_SKETCH.paper, "--sui-alert-fg": SUI_SKETCH.ink, "--sui-alert-border": SUI_SKETCH.ink,
+        "--sui-alert-border-width": "2px", "--sui-alert-border-style": "solid", "--sui-alert-radius": "8px",
+        "--sui-alert-padding": "12px 16px", "--sui-alert-font-size": "14px", "--sui-alert-font": SUI_SKETCH.font,
+        "--sui-alert-shadow": SUI_SKETCH.shadow, "--sui-alert-animation": "none" } }
     ],
     css: ".sui-alert { background: var(--sui-alert-bg, #3a2427); color: var(--sui-alert-fg, #fca5a5); border: var(--sui-alert-border-width, 1px) var(--sui-alert-border-style, solid) var(--sui-alert-border, #7f3a3d); border-radius: var(--sui-alert-radius, 8px); padding: var(--sui-alert-padding, 12px 16px); font-size: var(--sui-alert-font-size, 14px); font-family: var(--sui-alert-font, inherit); box-shadow: var(--sui-alert-shadow, none); animation: var(--sui-alert-animation, none); }\n@keyframes sui-alert-in { from { opacity: 0; } to { opacity: 1; } }\n@keyframes sui-alert-slide { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-alert-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }\n@keyframes sui-alert-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(127,58,61,.0); } 50% { box-shadow: 0 0 0 5px rgba(127,58,61,.32); } }"
   },
@@ -12221,7 +12291,13 @@ var COMPONENT_DEFS = [
       { id: "flip", label: "Coin flip", desc: "The ring flips on its vertical axis.", vars: {
         "--sui-spinner-thickness": "3px", "--sui-spinner-track": "#1e293b",
         "--sui-spinner-color": "#34d399", "--sui-spinner-animation": "sui-spinner-flip",
-        "--sui-spinner-easing": "ease-in-out", "--sui-spinner-speed": "1.4s" } }
+        "--sui-spinner-easing": "ease-in-out", "--sui-spinner-speed": "1.4s" } },
+      { id: "sketch", label: "Sketch", desc: "A dashed ink ring drawn on paper.", vars: {
+        "--sui-spinner-size": "26px", "--sui-spinner-thickness": "3px", "--sui-spinner-border-style": "dashed",
+        "--sui-spinner-track": SUI_SKETCH.paperTrack, "--sui-spinner-color": SUI_SKETCH.ink,
+        "--sui-spinner-color2": SUI_SKETCH.accent, "--sui-spinner-bg": "transparent",
+        "--sui-spinner-animation": "sui-spin", "--sui-spinner-speed": "1s", "--sui-spinner-easing": "linear",
+        "--sui-spinner-play": "running", "--sui-spinner-shadow": "none" } }
     ],
     css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) var(--sui-spinner-border-style, solid) var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-bottom-color: var(--sui-spinner-color2, transparent); background: var(--sui-spinner-bg, transparent); border-radius: 50%; box-shadow: var(--sui-spinner-shadow, none); mask: var(--sui-spinner-mask, none); -webkit-mask: var(--sui-spinner-mask, none); animation-name: var(--sui-spinner-animation, sui-spin); animation-duration: var(--sui-spinner-speed, .8s); animation-timing-function: var(--sui-spinner-easing, linear); animation-iteration-count: infinite; animation-play-state: var(--sui-spinner-play, running); }\n@keyframes sui-spinner-pulse { 0%, 100% { transform: scale(.68); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }\n@keyframes sui-spinner-flip { to { transform: rotateY(360deg); } }"
   },
@@ -12239,7 +12315,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-card-font", label: "Font", type: "font", def: "inherit" }
       ]},
       { name: "Effects", fields: [
-        { key: "--sui-card-shadow", label: "Shadow", type: "select", def: "0 4px 12px rgba(0,0,0,.3)", opts: [["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Medium", "0 4px 12px rgba(0,0,0,.3)"], ["Glass", "0 8px 32px rgba(0,0,0,.28)"], ["Neon", "0 0 0 1px rgba(34,211,238,.35), 0 0 24px rgba(34,211,238,.25)"], ["Strong", "0 12px 30px rgba(0,0,0,.42)"]] },
+        { key: "--sui-card-shadow", label: "Shadow", type: "select", def: "0 4px 12px rgba(0,0,0,.3)", opts: [["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.18)"], ["Medium", "0 4px 12px rgba(0,0,0,.3)"], ["Glass", "0 8px 32px rgba(0,0,0,.28)"], ["Neon", "0 0 0 1px rgba(34,211,238,.35), 0 0 24px rgba(34,211,238,.25)"], ["Strong", "0 12px 30px rgba(0,0,0,.42)"], ["Sketch", SUI_SKETCH.shadowStrong]] },
         { key: "--sui-card-backdrop", label: "Backdrop", type: "select", def: "none", opts: [["None", "none"], ["Blur light", "blur(6px)"], ["Blur strong", "blur(14px)"]] },
         { key: "--sui-card-animation", label: "Effect", type: "select", def: "none", opts: [
           ["None", "none"], ["Fade in", "sui-card-in .28s ease-out"], ["Float", "sui-card-float 3.2s ease-in-out infinite"]
@@ -12261,7 +12337,13 @@ var COMPONENT_DEFS = [
         "--sui-card-shadow": "0 0 0 1px rgba(34,211,238,.35), 0 0 24px rgba(34,211,238,.25)" } },
       { id: "dashed", label: "Dashed", desc: "Dashed outline for placeholders and drop zones.", vars: {
         "--sui-card-bg": "transparent", "--sui-card-border": "#4c5cf7", "--sui-card-border-style": "dashed",
-        "--sui-card-border-width": "2px", "--sui-card-shadow": "none" } }
+        "--sui-card-border-width": "2px", "--sui-card-shadow": "none" } },
+      { id: "sketch", label: "Sketch", desc: "A pen-drawn paper card with an offset ink shadow.", vars: {
+        "--sui-card-bg": SUI_SKETCH.paper, "--sui-card-border": SUI_SKETCH.ink,
+        "--sui-card-border-width": "2px", "--sui-card-border-style": "solid", "--sui-card-radius": "8px",
+        "--sui-card-padding": "16px", "--sui-card-font": SUI_SKETCH.font,
+        "--sui-card-shadow": SUI_SKETCH.shadowStrong, "--sui-card-backdrop": "none",
+        "--sui-card-animation": "none" } }
     ],
     css: ".sui-card { background: var(--sui-card-bg, #1a1d26); border: var(--sui-card-border-width, 1px) var(--sui-card-border-style, solid) var(--sui-card-border, #3d4556); border-radius: var(--sui-card-radius, 12px); padding: var(--sui-card-padding, 16px); box-shadow: var(--sui-card-shadow, 0 4px 12px rgba(0,0,0,.3)); backdrop-filter: var(--sui-card-backdrop, none); font-family: var(--sui-card-font, inherit); animation: var(--sui-card-animation, none); }\n@keyframes sui-card-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-card-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }"
   },
@@ -12281,7 +12363,10 @@ var COMPONENT_DEFS = [
       { id: "dotted", label: "Dotted", desc: "Dotted line with a medium weight.", vars: {
         "--sui-divider-style": "dotted", "--sui-divider-thickness": "2px", "--sui-divider-color": "#64748b" } },
       { id: "accent", label: "Accent rule", desc: "Bold accent rule with generous spacing.", vars: {
-        "--sui-divider-thickness": "3px", "--sui-divider-color": "#4c5cf7", "--sui-divider-margin": "16px 0" } }
+        "--sui-divider-thickness": "3px", "--sui-divider-color": "#4c5cf7", "--sui-divider-margin": "16px 0" } },
+      { id: "sketch", label: "Sketch", desc: "A dashed ink line ruled by hand.", vars: {
+        "--sui-divider-thickness": "2px", "--sui-divider-style": "dashed",
+        "--sui-divider-margin": "12px 0", "--sui-divider-color": SUI_SKETCH.ink } }
     ],
     css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) var(--sui-divider-style, solid) var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }"
   },
@@ -12315,7 +12400,11 @@ var COMPONENT_DEFS = [
         "--sui-field-padding": "8px 2px", "--sui-field-border": "#475569" } },
       { id: "pill", label: "Pill", desc: "Fully rounded field with roomy padding.", vars: {
         "--sui-field-radius": "999px", "--sui-field-padding": "10px 16px", "--sui-field-bg": "#111827",
-        "--sui-field-border": "#334155" } }
+        "--sui-field-border": "#334155" } },
+      { id: "sketch", label: "Sketch", desc: "A handwritten field bordered with ink.", vars: {
+        "--sui-field-bg": SUI_SKETCH.paper, "--sui-field-fg": SUI_SKETCH.ink, "--sui-field-border": SUI_SKETCH.ink,
+        "--sui-field-focus": SUI_SKETCH.accent, "--sui-field-border-width": "2px", "--sui-field-radius": "6px",
+        "--sui-field-padding": "8px 12px", "--sui-field-font": SUI_SKETCH.font, "--sui-field-font-size": "14px" } }
     ],
     css: ".sui-input, .sui-textarea, .sui-select { background: var(--sui-field-bg, #1d2129); color: var(--sui-field-fg, #e6e6ef); border: var(--sui-field-border-width, 1px) solid var(--sui-field-border, #3d4556); border-radius: var(--sui-field-radius, 8px); padding: var(--sui-field-padding, 8px 12px); font-family: var(--sui-field-font, inherit); font-size: var(--sui-field-font-size, 14px); }\n:where(.sui-input):focus, :where(.sui-textarea):focus, :where(.sui-select):focus { border-color: var(--sui-field-focus, #4c5cf7); }"
   },
@@ -12341,6 +12430,7 @@ var COMPONENT_DEFS = [
           ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.28)"], ["Glow", "0 0 14px rgba(76,92,247,.5)"],
           ["Primary", "0 4px 14px rgba(76,92,247,.45)"], ["Success", "0 4px 12px rgba(34,197,94,.35)"],
           ["Danger", "0 4px 14px rgba(220,38,38,.4)"], ["Neon", "0 0 14px rgba(34,211,238,.45)"],
+          ["Sketch", SUI_SKETCH.shadow],
           ["Strong", "0 8px 22px rgba(0,0,0,.45)"]
         ] },
         { key: "--sui-button-animation", label: "Effect", type: "select", def: "none", opts: [
@@ -12372,7 +12462,13 @@ var COMPONENT_DEFS = [
       { id: "neon", label: "Neon", desc: "Transparent cyan button with a breathing glow.", vars: {
         "--sui-button-bg": "transparent", "--sui-button-fg": "#22d3ee", "--sui-button-border": "#22d3ee",
         "--sui-button-hover": "rgba(34,211,238,.12)", "--sui-button-shadow": "0 0 14px rgba(34,211,238,.45)",
-        "--sui-button-animation": "sui-button-glow 2.2s ease-in-out infinite" } }
+        "--sui-button-animation": "sui-button-glow 2.2s ease-in-out infinite" } },
+      { id: "sketch", label: "Sketch", desc: "A hand-drawn paper button with an ink offset shadow.", vars: {
+        "--sui-button-bg": SUI_SKETCH.paper, "--sui-button-fg": SUI_SKETCH.ink, "--sui-button-border": SUI_SKETCH.ink,
+        "--sui-button-hover": SUI_SKETCH.paperDeep, "--sui-button-border-width": "2px",
+        "--sui-button-border-style": "solid", "--sui-button-radius": "6px", "--sui-button-padding": "8px 16px",
+        "--sui-button-font-size": "14px", "--sui-button-font-weight": "600", "--sui-button-font": SUI_SKETCH.font,
+        "--sui-button-shadow": SUI_SKETCH.shadow, "--sui-button-animation": "none" } }
     ],
     css: ".sui-button { background: var(--sui-button-bg, #2d3340); color: var(--sui-button-fg, #e6e6e6); border: var(--sui-button-border-width, 1px) var(--sui-button-border-style, solid) var(--sui-button-border, #3d4556); border-radius: var(--sui-button-radius, 8px); padding: var(--sui-button-padding, 8px 16px); font-size: var(--sui-button-font-size, 14px); font-weight: var(--sui-button-font-weight, 400); font-family: var(--sui-button-font, inherit); box-shadow: var(--sui-button-shadow, none); animation: var(--sui-button-animation, none); transition: background .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease; }\n.sui-button:hover { background: var(--sui-button-hover, #3a4356); }\n@keyframes sui-button-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(76,92,247,.45); } 50% { box-shadow: 0 0 0 6px rgba(76,92,247,0); } }\n@keyframes sui-button-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }\n@keyframes sui-button-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }"
   },
@@ -12385,7 +12481,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-check-mark", label: "Mark", type: "color", def: "#ffffff" }
       ]},
       { name: "Size", fields: [
-        { key: "--sui-check-size", label: "Size", type: "number", def: 18, min: 10, max: 48, step: 1, unit: "px" }
+        { key: "--sui-check-size", label: "Size", type: "number", def: 18, min: 10, max: 48, step: 1, unit: "px" },
+        { key: "--sui-check-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12398,9 +12495,13 @@ var COMPONENT_DEFS = [
         "--sui-check-checked": "#22c55e", "--sui-check-mark": "#052e16" } },
       { id: "neon", label: "Neon", desc: "Dark control with a cyan checked state.", vars: {
         "--sui-check-size": "20px", "--sui-check-bg": "#0f172a", "--sui-check-border": "#22d3ee",
-        "--sui-check-checked": "#22d3ee", "--sui-check-mark": "#052e16" } }
+        "--sui-check-checked": "#22d3ee", "--sui-check-mark": "#052e16" } },
+      { id: "sketch", label: "Sketch", desc: "Ink-drawn tick boxes on warm paper.", vars: {
+        "--sui-check-size": "20px", "--sui-check-bg": SUI_SKETCH.paper, "--sui-check-border": SUI_SKETCH.ink,
+        "--sui-check-checked": SUI_SKETCH.ink, "--sui-check-mark": SUI_SKETCH.paper,
+        "--sui-check-font": SUI_SKETCH.font } }
     ],
-    css: ".sui-checkbox, .sui-radio { width: var(--sui-check-size, 18px); height: var(--sui-check-size, 18px); background: var(--sui-check-bg, #1d2129); border-color: var(--sui-check-border, #3d4556); }\n:where(.sui-checkbox):checked, :where(.sui-radio):checked { background: var(--sui-check-checked, #4c5cf7); border-color: var(--sui-check-checked, #4c5cf7); }\n.sui-checkbox:checked::after { border-color: var(--sui-check-mark, #fff); }\n.sui-radio:checked::after { background: var(--sui-check-mark, #fff); }"
+    css: ".sui-checkbox, .sui-radio { width: var(--sui-check-size, 18px); height: var(--sui-check-size, 18px); background: var(--sui-check-bg, #1d2129); border-color: var(--sui-check-border, #3d4556); }\n:where(.sui-checkbox):checked, :where(.sui-radio):checked { background: var(--sui-check-checked, #4c5cf7); border-color: var(--sui-check-checked, #4c5cf7); }\n.sui-checkbox:checked::after { border-color: var(--sui-check-mark, #fff); }\n.sui-radio:checked::after { background: var(--sui-check-mark, #fff); }\n.sui-checkbox-wrap, .sui-radio-wrap { font-family: var(--sui-check-font, inherit); }"
   },
   { id: "switch", label: "Switch", group: "Form", kinds: ["switch"],
     categories: [
@@ -12412,7 +12513,8 @@ var COMPONENT_DEFS = [
       { name: "Size", fields: [
         { key: "--sui-switch-width", label: "Width", type: "number", def: 42, min: 24, max: 96, step: 1, unit: "px" },
         { key: "--sui-switch-height", label: "Height", type: "number", def: 24, min: 14, max: 56, step: 1, unit: "px" },
-        { key: "--sui-switch-radius", label: "Radius", type: "number", def: 999, min: 0, max: 999, step: 1, unit: "px" }
+        { key: "--sui-switch-radius", label: "Radius", type: "number", def: 999, min: 0, max: 999, step: 1, unit: "px" },
+        { key: "--sui-switch-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12423,9 +12525,13 @@ var COMPONENT_DEFS = [
       { id: "square", label: "Square", desc: "Compact rectangular toggle.", vars: {
         "--sui-switch-radius": "6px", "--sui-switch-bg": "#1e293b", "--sui-switch-checked": "#4c5cf7" } },
       { id: "neon", label: "Neon", desc: "Dark toggle with a cyan active state.", vars: {
-        "--sui-switch-bg": "#0f172a", "--sui-switch-checked": "#22d3ee", "--sui-switch-thumb": "#f0f9ff" } }
+        "--sui-switch-bg": "#0f172a", "--sui-switch-checked": "#22d3ee", "--sui-switch-thumb": "#f0f9ff" } },
+      { id: "sketch", label: "Sketch", desc: "A paper toggle with an ink thumb.", vars: {
+        "--sui-switch-width": "44px", "--sui-switch-height": "24px", "--sui-switch-radius": "6px",
+        "--sui-switch-bg": SUI_SKETCH.paperDeep, "--sui-switch-checked": SUI_SKETCH.accent,
+        "--sui-switch-thumb": SUI_SKETCH.ink, "--sui-switch-font": SUI_SKETCH.font } }
     ],
-    css: ".sui-switch { width: var(--sui-switch-width, 42px); height: var(--sui-switch-height, 24px); background: var(--sui-switch-bg, #374151); border-radius: var(--sui-switch-radius, 999px); }\n.sui-switch::after { width: calc(var(--sui-switch-height, 24px) - 4px); height: calc(var(--sui-switch-height, 24px) - 4px); background: var(--sui-switch-thumb, #fff); }\n:where(.sui-switch):checked { background: var(--sui-switch-checked, #4c5cf7); }\n.sui-switch:checked::after { transform: translateX(calc(var(--sui-switch-width, 42px) - var(--sui-switch-height, 24px))); }"
+    css: ".sui-switch { width: var(--sui-switch-width, 42px); height: var(--sui-switch-height, 24px); background: var(--sui-switch-bg, #374151); border-radius: var(--sui-switch-radius, 999px); }\n.sui-switch::after { width: calc(var(--sui-switch-height, 24px) - 4px); height: calc(var(--sui-switch-height, 24px) - 4px); background: var(--sui-switch-thumb, #fff); }\n:where(.sui-switch):checked { background: var(--sui-switch-checked, #4c5cf7); }\n.sui-switch:checked::after { transform: translateX(calc(var(--sui-switch-width, 42px) - var(--sui-switch-height, 24px))); }\n.sui-switch-wrap { font-family: var(--sui-switch-font, inherit); }"
   },
   { id: "slider", label: "Slider", group: "Form", kinds: ["slider"],
     categories: [
@@ -12447,7 +12553,10 @@ var COMPONENT_DEFS = [
       { id: "neon", label: "Neon", desc: "Dark track with a cyan thumb.", vars: {
         "--sui-slider-bg": "#0f172a", "--sui-slider-thumb-bg": "#22d3ee" } },
       { id: "danger", label: "Danger", desc: "Red thumb for destructive ranges.", vars: {
-        "--sui-slider-bg": "#3f1d24", "--sui-slider-thumb-bg": "#ef4444" } }
+        "--sui-slider-bg": "#3f1d24", "--sui-slider-thumb-bg": "#ef4444" } },
+      { id: "sketch", label: "Sketch", desc: "A thick pencil track with an ink thumb.", vars: {
+        "--sui-slider-bg": SUI_SKETCH.paperTrack, "--sui-slider-thumb-bg": SUI_SKETCH.ink,
+        "--sui-slider-track": "8px", "--sui-slider-thumb": "22px" } }
     ],
     css: ".sui-slider { height: var(--sui-slider-track, 6px); background: var(--sui-slider-bg, #374151); }\n.sui-slider::-webkit-slider-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }\n.sui-slider::-moz-range-thumb { width: var(--sui-slider-thumb, 18px); height: var(--sui-slider-thumb, 18px); background: var(--sui-slider-thumb-bg, #4c5cf7); }"
   },
@@ -12468,6 +12577,7 @@ var COMPONENT_DEFS = [
         { key: "--sui-tablist-padding", label: "Tab bar padding", type: "text", def: "4px 4px 0" },
         { key: "--sui-tab-padding", label: "Tab padding", type: "text", def: "8px 14px" },
         { key: "--sui-tab-size", label: "Font size", type: "number", def: 13, min: 9, max: 28, step: 1, unit: "px" },
+        { key: "--sui-tab-font", label: "Font", type: "font", def: "inherit" },
         { key: "--sui-tab-transform", label: "Uppercase", type: "switch", def: "none", on: "uppercase", off: "none" }
       ]}
     ],
@@ -12487,9 +12597,16 @@ var COMPONENT_DEFS = [
         "--sui-tabs-bg": "#111827", "--sui-tablist-bg": "#0b1220", "--sui-tab-fg": "#94a3b8",
         "--sui-tab-active-bg": "#111827", "--sui-tab-active-fg": "#ffffff", "--sui-tab-accent": "#4c5cf7",
         "--sui-tabs-border": "#334155", "--sui-tabs-radius": "8px", "--sui-tab-radius": "6px",
-        "--sui-tablist-padding": "0px" } }
+        "--sui-tablist-padding": "0px" } },
+      { id: "sketch", label: "Sketch", desc: "Paper tabs with an ink rule and handwritten labels.", vars: {
+        "--sui-tabs-bg": SUI_SKETCH.paper, "--sui-tablist-bg": SUI_SKETCH.paperDeep,
+        "--sui-tab-fg": SUI_SKETCH.inkSoft, "--sui-tab-active-bg": SUI_SKETCH.paper,
+        "--sui-tab-active-fg": SUI_SKETCH.ink, "--sui-tab-accent": SUI_SKETCH.accent,
+        "--sui-tabs-border": SUI_SKETCH.ink, "--sui-tabs-radius": "8px", "--sui-tab-radius": "7px 5px 0 0",
+        "--sui-tablist-padding": "4px 4px 0", "--sui-tab-padding": "8px 14px", "--sui-tab-size": "13px",
+        "--sui-tab-font": SUI_SKETCH.font, "--sui-tab-transform": "none" } }
     ],
-    css: ".sui-tabs { background: var(--sui-tabs-bg, #1d2129); border-color: var(--sui-tabs-border, #3d4556); border-radius: var(--sui-tabs-radius, 8px); }\n.sui-tablist { background: var(--sui-tablist-bg, #1d2129); border-bottom-color: var(--sui-tabs-border, #3d4556); padding: var(--sui-tablist-padding, 4px 4px 0); }\n.sui-tab { color: var(--sui-tab-fg, #9aa7b8); padding: var(--sui-tab-padding, 8px 14px); font-size: var(--sui-tab-size, 13px); text-transform: var(--sui-tab-transform, none); border-radius: var(--sui-tab-radius, 6px 6px 0 0); }\n.sui-tab.active { color: var(--sui-tab-active-fg, #e6e6ef); background: var(--sui-tab-active-bg, #14171c); box-shadow: inset 0 -2px 0 var(--sui-tab-accent, #4c5cf7); }"
+    css: ".sui-tabs { background: var(--sui-tabs-bg, #1d2129); border-color: var(--sui-tabs-border, #3d4556); border-radius: var(--sui-tabs-radius, 8px); font-family: var(--sui-tab-font, inherit); }\n.sui-tablist { background: var(--sui-tablist-bg, #1d2129); border-bottom-color: var(--sui-tabs-border, #3d4556); padding: var(--sui-tablist-padding, 4px 4px 0); }\n.sui-tab { color: var(--sui-tab-fg, #9aa7b8); padding: var(--sui-tab-padding, 8px 14px); font-size: var(--sui-tab-size, 13px); text-transform: var(--sui-tab-transform, none); border-radius: var(--sui-tab-radius, 6px 6px 0 0); }\n.sui-tab.active { color: var(--sui-tab-active-fg, #e6e6ef); background: var(--sui-tab-active-bg, #14171c); box-shadow: inset 0 -2px 0 var(--sui-tab-accent, #4c5cf7); }\n.sui-tab:hover, .sui-tab:focus-visible { background: var(--sui-tablist-bg, #1d2129); color: var(--sui-tab-active-fg, #e6e6ef); }"
   },
   { id: "accordion", label: "Accordion", group: "Navigation", kinds: ["accordion"],
     categories: [
@@ -12503,7 +12620,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-accordion-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-accordion-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
         { key: "--sui-accordion-padding", label: "Header padding", type: "text", def: "11px 14px" },
-        { key: "--sui-accordion-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+        { key: "--sui-accordion-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" },
+        { key: "--sui-accordion-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12518,9 +12636,15 @@ var COMPONENT_DEFS = [
         "--sui-accordion-radius": "6px", "--sui-accordion-padding": "8px 10px", "--sui-accordion-size": "13px" } },
       { id: "borderless", label: "Borderless", desc: "Flat accordion without an outer frame.", vars: {
         "--sui-accordion-border-width": "0px", "--sui-accordion-bg": "transparent",
-        "--sui-accordion-head-bg": "transparent", "--sui-accordion-fg": "#cbd5e1" } }
+        "--sui-accordion-head-bg": "transparent", "--sui-accordion-fg": "#cbd5e1" } },
+      { id: "sketch", label: "Sketch", desc: "Paper sections outlined in ink with a handwritten header.", vars: {
+        "--sui-accordion-bg": SUI_SKETCH.paper, "--sui-accordion-head-bg": SUI_SKETCH.paperDeep,
+        "--sui-accordion-fg": SUI_SKETCH.ink, "--sui-accordion-border": SUI_SKETCH.ink,
+        "--sui-accordion-border-width": "2px", "--sui-accordion-radius": "8px",
+        "--sui-accordion-padding": "11px 14px", "--sui-accordion-size": "14px",
+        "--sui-accordion-font": SUI_SKETCH.font } }
     ],
-    css: ".sui-accordion { background: var(--sui-accordion-bg, #1d2129); border: var(--sui-accordion-border-width, 1px) solid var(--sui-accordion-border, #3d4556); border-radius: var(--sui-accordion-radius, 8px); }\n.sui-accordion-head { background: var(--sui-accordion-head-bg, transparent); color: var(--sui-accordion-fg, #e6e6ef); padding: var(--sui-accordion-padding, 11px 14px); font-size: var(--sui-accordion-size, 14px); }\n.sui-accordion-panel { color: var(--sui-accordion-fg, #e6e6ef); }"
+    css: ".sui-accordion { background: var(--sui-accordion-bg, #1d2129); border: var(--sui-accordion-border-width, 1px) solid var(--sui-accordion-border, #3d4556); border-radius: var(--sui-accordion-radius, 8px); font-family: var(--sui-accordion-font, inherit); }\n.sui-accordion-head { background: var(--sui-accordion-head-bg, transparent); color: var(--sui-accordion-fg, #e6e6ef); padding: var(--sui-accordion-padding, 11px 14px); font-size: var(--sui-accordion-size, 14px); }\n.sui-accordion-panel { color: var(--sui-accordion-fg, #e6e6ef); }\n.sui-accordion-head:hover, .sui-accordion-head:focus-visible { background: var(--sui-accordion-head-bg, transparent); }"
   },
   { id: "combobox", label: "Combobox", group: "Form", kinds: ["combobox"],
     categories: [
@@ -12536,7 +12660,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-combobox-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-combobox-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-combobox-padding", label: "Padding", type: "text", def: "8px 12px" },
-        { key: "--sui-combobox-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+        { key: "--sui-combobox-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" },
+        { key: "--sui-combobox-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12550,9 +12675,16 @@ var COMPONENT_DEFS = [
       { id: "pill", label: "Pill", desc: "Fully rounded control and popup.", vars: {
         "--sui-combobox-radius": "999px", "--sui-combobox-bg": "#111827", "--sui-combobox-border": "#334155" } },
       { id: "compact", label: "Compact", desc: "Tighter padding for dense forms.", vars: {
-        "--sui-combobox-padding": "6px 10px", "--sui-combobox-font-size": "13px", "--sui-combobox-radius": "6px" } }
+        "--sui-combobox-padding": "6px 10px", "--sui-combobox-font-size": "13px", "--sui-combobox-radius": "6px" } },
+      { id: "sketch", label: "Sketch", desc: "An ink-outlined paper picker with handwritten options.", vars: {
+        "--sui-combobox-bg": SUI_SKETCH.paper, "--sui-combobox-fg": SUI_SKETCH.ink,
+        "--sui-combobox-border": SUI_SKETCH.ink, "--sui-combobox-label": SUI_SKETCH.inkSoft,
+        "--sui-combobox-popup-bg": SUI_SKETCH.paper, "--sui-combobox-hover": SUI_SKETCH.paperDeep,
+        "--sui-combobox-border-width": "2px", "--sui-combobox-radius": "6px",
+        "--sui-combobox-padding": "8px 12px", "--sui-combobox-font-size": "14px",
+        "--sui-combobox-font": SUI_SKETCH.font } }
     ],
-    css: ".sui-combobox-label { color: var(--sui-combobox-label, #8fa0b8); font-size: var(--sui-combobox-font-size, 12px); }\n.sui-combobox-input { background: var(--sui-combobox-bg, #1d2129); color: var(--sui-combobox-fg, #e6e6ef); border: var(--sui-combobox-border-width, 1px) solid var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); padding: var(--sui-combobox-padding, 8px 12px); font-size: var(--sui-combobox-font-size, 14px); }\n.sui-combobox-popup { background: var(--sui-combobox-popup-bg, #1d2129); border-color: var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); }\n.sui-combobox-option:hover, .sui-combobox-option.active { background: var(--sui-combobox-hover, #2a3143); }"
+    css: ".sui-combobox { font-family: var(--sui-combobox-font, inherit); }\n.sui-combobox-label { color: var(--sui-combobox-label, #8fa0b8); font-size: var(--sui-combobox-font-size, 12px); }\n.sui-combobox-input { background: var(--sui-combobox-bg, #1d2129); color: var(--sui-combobox-fg, #e6e6ef); border: var(--sui-combobox-border-width, 1px) solid var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); padding: var(--sui-combobox-padding, 8px 12px); font-size: var(--sui-combobox-font-size, 14px); }\n.sui-combobox-popup { background: var(--sui-combobox-popup-bg, #1d2129); border-color: var(--sui-combobox-border, #3d4556); border-radius: var(--sui-combobox-radius, 8px); }\n.sui-combobox-option:hover, .sui-combobox-option.active { background: var(--sui-combobox-hover, #2a3143); }"
   },
   { id: "datepicker", label: "Date / Time picker", group: "Form", kinds: ["datepicker"],
     categories: [
@@ -12566,7 +12698,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-datepicker-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-datepicker-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-datepicker-padding", label: "Padding", type: "text", def: "8px 12px" },
-        { key: "--sui-datepicker-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+        { key: "--sui-datepicker-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" },
+        { key: "--sui-datepicker-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12580,9 +12713,15 @@ var COMPONENT_DEFS = [
       { id: "pill", label: "Pill", desc: "Fully rounded control.", vars: {
         "--sui-datepicker-radius": "999px", "--sui-datepicker-bg": "#111827", "--sui-datepicker-border": "#334155" } },
       { id: "compact", label: "Compact", desc: "Tighter padding for dense forms.", vars: {
-        "--sui-datepicker-padding": "6px 10px", "--sui-datepicker-font-size": "13px", "--sui-datepicker-radius": "6px" } }
+        "--sui-datepicker-padding": "6px 10px", "--sui-datepicker-font-size": "13px", "--sui-datepicker-radius": "6px" } },
+      { id: "sketch", label: "Sketch", desc: "A handwritten paper date field with an ink outline.", vars: {
+        "--sui-datepicker-bg": SUI_SKETCH.paper, "--sui-datepicker-fg": SUI_SKETCH.ink,
+        "--sui-datepicker-border": SUI_SKETCH.ink, "--sui-datepicker-label": SUI_SKETCH.inkSoft,
+        "--sui-datepicker-border-width": "2px", "--sui-datepicker-radius": "6px",
+        "--sui-datepicker-padding": "8px 12px", "--sui-datepicker-font-size": "14px",
+        "--sui-datepicker-font": SUI_SKETCH.font } }
     ],
-    css: ".sui-datepicker-label { color: var(--sui-datepicker-label, #8fa0b8); font-size: var(--sui-datepicker-font-size, 12px); }\n.sui-datepicker-input { background: var(--sui-datepicker-bg, #1d2129); color: var(--sui-datepicker-fg, #e6e6ef); border: var(--sui-datepicker-border-width, 1px) solid var(--sui-datepicker-border, #3d4556); border-radius: var(--sui-datepicker-radius, 8px); padding: var(--sui-datepicker-padding, 8px 12px); font-size: var(--sui-datepicker-font-size, 14px); }"
+    css: ".sui-datepicker { font-family: var(--sui-datepicker-font, inherit); }\n.sui-datepicker-label { color: var(--sui-datepicker-label, #8fa0b8); font-size: var(--sui-datepicker-font-size, 12px); }\n.sui-datepicker-input { background: var(--sui-datepicker-bg, #1d2129); color: var(--sui-datepicker-fg, #e6e6ef); border: var(--sui-datepicker-border-width, 1px) solid var(--sui-datepicker-border, #3d4556); border-radius: var(--sui-datepicker-radius, 8px); padding: var(--sui-datepicker-padding, 8px 12px); font-size: var(--sui-datepicker-font-size, 14px); }"
   },
   { id: "tree", label: "Tree", group: "Data", kinds: ["tree", "treeitem"],
     categories: [
@@ -12599,7 +12738,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-padding", label: "Row padding", type: "text", def: "2px 5px" },
         { key: "--sui-tree-row-height", label: "Row height", type: "number", def: 28, min: 18, max: 64, step: 1, unit: "px" },
         { key: "--sui-tree-radius", label: "Radius", type: "number", def: 5, min: 0, max: 30, step: 1, unit: "px" },
-        { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" }
+        { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" },
+        { key: "--sui-tree-font-family", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12612,9 +12752,15 @@ var COMPONENT_DEFS = [
         "--sui-tree-radius": "8px", "--sui-tree-font": "14px" } },
       { id: "dark", label: "Midnight", desc: "Slate text with a strong blue selection.", vars: {
         "--sui-tree-fg": "#cbd5e1", "--sui-tree-title": "#f8fafc", "--sui-tree-row-bg": "transparent",
-        "--sui-tree-hover": "#1e293b", "--sui-tree-selected-bg": "#1d4ed8", "--sui-tree-selected-fg": "#ffffff" } }
+        "--sui-tree-hover": "#1e293b", "--sui-tree-selected-bg": "#1d4ed8", "--sui-tree-selected-fg": "#ffffff" } },
+      { id: "sketch", label: "Sketch", desc: "Ink-labelled paper rows with a highlighter selection.", vars: {
+        "--sui-tree-fg": SUI_SKETCH.ink, "--sui-tree-title": SUI_SKETCH.ink,
+        "--sui-tree-row-bg": "transparent", "--sui-tree-hover": SUI_SKETCH.paperDeep,
+        "--sui-tree-selected-bg": SUI_SKETCH.highlight, "--sui-tree-selected-fg": SUI_SKETCH.ink,
+        "--sui-tree-indent": "16px", "--sui-tree-padding": "2px 5px", "--sui-tree-row-height": "28px",
+        "--sui-tree-radius": "5px", "--sui-tree-font": "13px", "--sui-tree-font-family": SUI_SKETCH.font } }
     ],
-    css: ".sui-tree { color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); }\n.sui-tree-title { color: var(--sui-tree-title, #e6e6ef); }\n.sui-tree-group { padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); }"
+    css: ".sui-tree { color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); font-family: var(--sui-tree-font-family, inherit); }\n.sui-tree-title { color: var(--sui-tree-title, #e6e6ef); }\n.sui-tree-group { padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); }"
   },
   { id: "table", label: "Table", group: "Data", kinds: ["table"],
     categories: [
@@ -12631,7 +12777,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-table-border-width", label: "Border width", type: "number", def: 1, min: 0, max: 6, step: 1, unit: "px" },
         { key: "--sui-table-radius", label: "Radius", type: "number", def: 0, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-table-padding", label: "Cell padding", type: "text", def: "10px 14px" },
-        { key: "--sui-table-font", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" }
+        { key: "--sui-table-font", label: "Font size", type: "number", def: 14, min: 9, max: 28, step: 1, unit: "px" },
+        { key: "--sui-table-font-family", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12644,9 +12791,15 @@ var COMPONENT_DEFS = [
         "--sui-table-border-width": "0px", "--sui-table-bg": "transparent", "--sui-table-head-bg": "transparent",
         "--sui-table-row-bg": "transparent", "--sui-table-striped-bg": "transparent", "--sui-table-hover": "#1e293b" } },
       { id: "rounded", label: "Rounded", desc: "Softly rounded table with a slate header.", vars: {
-        "--sui-table-radius": "10px", "--sui-table-border": "#334155", "--sui-table-head-bg": "#1e293b" } }
+        "--sui-table-radius": "10px", "--sui-table-border": "#334155", "--sui-table-head-bg": "#1e293b" } },
+      { id: "sketch", label: "Sketch", desc: "A ruled paper table drawn with an ink pen.", vars: {
+        "--sui-table-bg": SUI_SKETCH.paper, "--sui-table-head-bg": SUI_SKETCH.paperDeep,
+        "--sui-table-head-fg": SUI_SKETCH.ink, "--sui-table-row-bg": SUI_SKETCH.paper,
+        "--sui-table-striped-bg": SUI_SKETCH.paperHover, "--sui-table-hover": SUI_SKETCH.paperTrack,
+        "--sui-table-border": SUI_SKETCH.ink, "--sui-table-border-width": "1px", "--sui-table-radius": "6px",
+        "--sui-table-padding": "8px 12px", "--sui-table-font": "13px", "--sui-table-font-family": SUI_SKETCH.font } }
     ],
-    css: "table.suitbl { background: var(--sui-table-bg, #1d2129); border: var(--sui-table-border-width, 1px) solid var(--sui-table-border, #2c3444); border-radius: var(--sui-table-radius, 0); font-size: var(--sui-table-font, 14px); }\ntable.suitbl th, table.suitbl td { padding: var(--sui-table-padding, 10px 14px); border-color: var(--sui-table-border, #2c3444); }\ntable.suitbl thead th { background: var(--sui-table-head-bg, #202732); color: var(--sui-table-head-fg, #f2f4f6); }\ntable.suitbl tbody td { background: var(--sui-table-row-bg, #1d2129); }\ntable.suitbl tbody tr:nth-child(even) td { background: var(--sui-table-striped-bg, #1d2129); }\ntable.suitbl tbody tr:hover td { background: var(--sui-table-hover, #20252e); }"
+    css: "table.suitbl { background: var(--sui-table-bg, #1d2129); border: var(--sui-table-border-width, 1px) solid var(--sui-table-border, #2c3444); border-radius: var(--sui-table-radius, 0); font-size: var(--sui-table-font, 14px); font-family: var(--sui-table-font-family, inherit); }\ntable.suitbl th, table.suitbl td { padding: var(--sui-table-padding, 10px 14px); border-color: var(--sui-table-border, #2c3444); }\ntable.suitbl thead th { background: var(--sui-table-head-bg, #202732); color: var(--sui-table-head-fg, #f2f4f6); }\ntable.suitbl tbody td { background: var(--sui-table-row-bg, #1d2129); }\ntable.suitbl tbody tr:nth-child(even) td { background: var(--sui-table-striped-bg, #1d2129); }\ntable.suitbl tbody tr:hover td { background: var(--sui-table-hover, #20252e); }"
   },
   { id: "toast", label: "Toast", group: "Overlay", kinds: ["toast"],
     categories: [
@@ -12660,12 +12813,14 @@ var COMPONENT_DEFS = [
         { key: "--sui-toast-border-width", label: "Accent width", type: "number", def: 4, min: 0, max: 12, step: 1, unit: "px" },
         { key: "--sui-toast-radius", label: "Radius", type: "number", def: 8, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-toast-padding", label: "Padding", type: "text", def: "12px 14px" },
-        { key: "--sui-toast-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" }
+        { key: "--sui-toast-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" },
+        { key: "--sui-toast-font", label: "Font", type: "font", def: "inherit" }
       ]},
       { name: "Effects", fields: [
         { key: "--sui-toast-shadow", label: "Shadow", type: "select", def: "0 8px 24px rgba(0,0,0,.35)", opts: [
           ["None", "none"], ["Soft", "0 4px 14px rgba(0,0,0,.25)"], ["Medium", "0 8px 24px rgba(0,0,0,.35)"],
-          ["Glass", "0 10px 32px rgba(0,0,0,.5)"], ["Minimal", "0 8px 24px rgba(0,0,0,.4)"], ["Strong", "0 14px 38px rgba(0,0,0,.5)"]
+          ["Glass", "0 10px 32px rgba(0,0,0,.5)"], ["Minimal", "0 8px 24px rgba(0,0,0,.4)"], ["Strong", "0 14px 38px rgba(0,0,0,.5)"],
+          ["Sketch", SUI_SKETCH.shadowStrong]
         ] },
         { key: "--sui-toast-backdrop", label: "Backdrop", type: "select", def: "none", opts: [["None", "none"], ["Blur light", "blur(6px)"], ["Blur strong", "blur(14px)"]] },
         { key: "--sui-toast-animation", label: "Entrance", type: "select", def: "sui-toast-slide .22s ease-out", opts: [
@@ -12688,9 +12843,16 @@ var COMPONENT_DEFS = [
         "--sui-toast-shadow": "0 10px 32px rgba(0,0,0,.5)", "--sui-toast-backdrop": "blur(10px)" } },
       { id: "minimal", label: "Minimal", desc: "Compact toast without an accent bar.", vars: {
         "--sui-toast-bg": "#111827", "--sui-toast-fg": "#e5e7eb", "--sui-toast-border-width": "0px",
-        "--sui-toast-radius": "12px", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.4)" } }
+        "--sui-toast-radius": "12px", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.4)" } },
+      { id: "sketch", label: "Sketch", desc: "A handwritten paper note with an ink edge.", vars: {
+        "--sui-toast-bg": SUI_SKETCH.paper, "--sui-toast-fg": SUI_SKETCH.ink,
+        "--sui-toast-accent": SUI_SKETCH.accent, "--sui-toast-width": "360px",
+        "--sui-toast-border-width": "4px", "--sui-toast-radius": "8px",
+        "--sui-toast-padding": "12px 14px", "--sui-toast-font-size": "14px",
+        "--sui-toast-font": SUI_SKETCH.font, "--sui-toast-shadow": SUI_SKETCH.shadowStrong,
+        "--sui-toast-backdrop": "none", "--sui-toast-animation": "sui-toast-slide .22s ease-out" } }
     ],
-    css: ".sui-toast { width: var(--sui-toast-width, 360px); background: var(--sui-toast-bg, #1d2129); color: var(--sui-toast-fg, #e6e6ef); border-left: var(--sui-toast-border-width, 4px) solid var(--sui-toast-accent, #6b8afd); border-radius: var(--sui-toast-radius, 8px); padding: var(--sui-toast-padding, 12px 14px); font-size: var(--sui-toast-font-size, 14px); box-shadow: var(--sui-toast-shadow, 0 8px 24px rgba(0,0,0,.35)); backdrop-filter: var(--sui-toast-backdrop, none); animation: var(--sui-toast-animation, sui-toast-slide .22s ease-out); }\n@keyframes sui-toast-fade { from { opacity: 0; } to { opacity: 1; } }\n@keyframes sui-toast-slide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-zoom { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }\n@keyframes sui-toast-bounce { 0% { opacity: 0; transform: translateY(-14px) scale(.96); } 70% { opacity: 1; transform: translateY(2px) scale(1.01); } 100% { opacity: 1; transform: translateY(0) scale(1); } }"
+    css: ".sui-toast { width: var(--sui-toast-width, 360px); background: var(--sui-toast-bg, #1d2129); color: var(--sui-toast-fg, #e6e6ef); border-left: var(--sui-toast-border-width, 4px) solid var(--sui-toast-accent, #6b8afd); border-radius: var(--sui-toast-radius, 8px); padding: var(--sui-toast-padding, 12px 14px); font-size: var(--sui-toast-font-size, 14px); font-family: var(--sui-toast-font, inherit); box-shadow: var(--sui-toast-shadow, 0 8px 24px rgba(0,0,0,.35)); backdrop-filter: var(--sui-toast-backdrop, none); animation: var(--sui-toast-animation, sui-toast-slide .22s ease-out); }\n@keyframes sui-toast-fade { from { opacity: 0; } to { opacity: 1; } }\n@keyframes sui-toast-slide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes sui-toast-zoom { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }\n@keyframes sui-toast-bounce { 0% { opacity: 0; transform: translateY(-14px) scale(.96); } 70% { opacity: 1; transform: translateY(2px) scale(1.01); } 100% { opacity: 1; transform: translateY(0) scale(1); } }"
   },
   { id: "modal", label: "Modal", group: "Overlay", kinds: ["modal"],
     categories: [
@@ -12707,12 +12869,14 @@ var COMPONENT_DEFS = [
         { key: "--sui-modal-radius", label: "Radius", type: "number", def: 10, min: 0, max: 40, step: 1, unit: "px" },
         { key: "--sui-modal-title-size", label: "Title size", type: "number", def: 17, min: 10, max: 36, step: 1, unit: "px" },
         { key: "--sui-modal-padding", label: "Body padding", type: "text", def: "14px 18px" },
-        { key: "--sui-modal-button-radius", label: "Button radius", type: "number", def: 6, min: 0, max: 30, step: 1, unit: "px" }
+        { key: "--sui-modal-button-radius", label: "Button radius", type: "number", def: 6, min: 0, max: 30, step: 1, unit: "px" },
+        { key: "--sui-modal-font", label: "Font", type: "font", def: "inherit" }
       ]},
       { name: "Effects", fields: [
         { key: "--sui-modal-shadow", label: "Shadow", type: "select", def: "0 24px 60px rgba(0,0,0,.55)", opts: [
           ["None", "none"], ["Soft", "0 10px 30px rgba(0,0,0,.35)"],
-          ["Medium", "0 24px 60px rgba(0,0,0,.55)"], ["Glass", "0 24px 60px rgba(0,0,0,.6)"], ["Glow", "0 0 32px rgba(76,92,247,.35)"]
+          ["Medium", "0 24px 60px rgba(0,0,0,.55)"], ["Glass", "0 24px 60px rgba(0,0,0,.6)"], ["Glow", "0 0 32px rgba(76,92,247,.35)"],
+          ["Sketch", SUI_SKETCH.shadowStrong]
         ] }
       ]}
     ],
@@ -12728,9 +12892,17 @@ var COMPONENT_DEFS = [
         "--sui-modal-shadow": "0 0 32px rgba(76,92,247,.35)" } },
       { id: "compact", label: "Compact", desc: "Narrow dialog for short confirmations.", vars: {
         "--sui-modal-width": "380px", "--sui-modal-radius": "8px", "--sui-modal-title-size": "15px",
-        "--sui-modal-padding": "10px 14px", "--sui-modal-button-radius": "4px" } }
+        "--sui-modal-padding": "10px 14px", "--sui-modal-button-radius": "4px" } },
+      { id: "sketch", label: "Sketch", desc: "A paper dialog drawn with an ink outline and offset shadow.", vars: {
+        "--sui-modal-bg": SUI_SKETCH.paper, "--sui-modal-fg": SUI_SKETCH.ink,
+        "--sui-modal-border": SUI_SKETCH.ink, "--sui-modal-button-bg": SUI_SKETCH.paperDeep,
+        "--sui-modal-button-fg": SUI_SKETCH.ink, "--sui-modal-width": "520px",
+        "--sui-modal-border-width": "2px", "--sui-modal-radius": "8px",
+        "--sui-modal-title-size": "17px", "--sui-modal-padding": "14px 18px",
+        "--sui-modal-button-radius": "6px", "--sui-modal-shadow": SUI_SKETCH.shadowStrong,
+        "--sui-modal-font": SUI_SKETCH.font } }
     ],
-    css: ".sui-modal-panel { background: var(--sui-modal-bg, #1d2129); color: var(--sui-modal-fg, #e6e6ef); border: var(--sui-modal-border-width, 1px) solid var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-radius, 10px); width: min(var(--sui-modal-width, 520px), 100%); box-shadow: var(--sui-modal-shadow, 0 24px 60px rgba(0,0,0,.55)); }\n.sui-modal-title { color: var(--sui-modal-fg, #e6e6ef); font-size: var(--sui-modal-title-size, 17px); }\n.sui-modal-body { padding: var(--sui-modal-padding, 14px 18px); }\n.sui-modal-button { background: var(--sui-modal-button-bg, #252b36); color: var(--sui-modal-button-fg, #e6e6ef); border-color: var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-button-radius, 6px); }"
+    css: ".sui-modal-panel { background: var(--sui-modal-bg, #1d2129); color: var(--sui-modal-fg, #e6e6ef); border: var(--sui-modal-border-width, 1px) solid var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-radius, 10px); width: min(var(--sui-modal-width, 520px), 100%); box-shadow: var(--sui-modal-shadow, 0 24px 60px rgba(0,0,0,.55)); font-family: var(--sui-modal-font, inherit); }\n.sui-modal-title { color: var(--sui-modal-fg, #e6e6ef); font-size: var(--sui-modal-title-size, 17px); }\n.sui-modal-body { padding: var(--sui-modal-padding, 14px 18px); }\n.sui-modal-button { background: var(--sui-modal-button-bg, #252b36); color: var(--sui-modal-button-fg, #e6e6ef); border-color: var(--sui-modal-border, #3d4556); border-radius: var(--sui-modal-button-radius, 6px); }"
   },
   { id: "menu", label: "Menu", group: "Navigation", kinds: ["menubar", "menu"],
     categories: [
@@ -12746,7 +12918,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-menu-radius", label: "Radius", type: "number", def: 6, min: 0, max: 30, step: 1, unit: "px" },
         { key: "--sui-menu-padding", label: "Button padding", type: "text", def: "7px 12px" },
         { key: "--sui-menu-item-padding", label: "Item padding", type: "text", def: "8px 12px" },
-        { key: "--sui-menu-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" }
+        { key: "--sui-menu-font-size", label: "Font size", type: "number", def: 14, min: 9, max: 24, step: 1, unit: "px" },
+        { key: "--sui-menu-font", label: "Font", type: "font", def: "inherit" }
       ]}
     ],
     presets: [
@@ -12764,9 +12937,16 @@ var COMPONENT_DEFS = [
         "--sui-menu-padding": "6px 14px" } },
       { id: "compact", label: "Compact", desc: "Tighter menu for toolbars.", vars: {
         "--sui-menu-padding": "5px 9px", "--sui-menu-item-padding": "6px 10px",
-        "--sui-menu-font-size": "13px", "--sui-menu-radius": "5px" } }
+        "--sui-menu-font-size": "13px", "--sui-menu-radius": "5px" } },
+      { id: "sketch", label: "Sketch", desc: "A paper menu with an ink outline and handwritten items.", vars: {
+        "--sui-menu-button-bg": SUI_SKETCH.paper, "--sui-menu-fg": SUI_SKETCH.ink,
+        "--sui-menu-border": SUI_SKETCH.ink, "--sui-menu-popup-bg": SUI_SKETCH.paper,
+        "--sui-menu-hover": SUI_SKETCH.paperDeep, "--sui-menu-border-width": "2px",
+        "--sui-menu-radius": "6px", "--sui-menu-padding": "7px 12px",
+        "--sui-menu-item-padding": "8px 12px", "--sui-menu-font-size": "14px",
+        "--sui-menu-font": SUI_SKETCH.font, "--sui-menu-button-border-width": "2px" } }
     ],
-    css: ".sui-menu-button { background: var(--sui-menu-button-bg, transparent); color: var(--sui-menu-fg, #e6e6ef); border-radius: var(--sui-menu-radius, 6px); padding: var(--sui-menu-padding, 7px 12px); font-size: var(--sui-menu-font-size, 14px); }\n.sui-menu-popup { background: var(--sui-menu-popup-bg, #1d2129); border: var(--sui-menu-border-width, 1px) solid var(--sui-menu-border, #3d4556); border-radius: var(--sui-menu-radius, 8px); }\n.sui-menuitem { color: var(--sui-menu-fg, #e6e6ef); padding: var(--sui-menu-item-padding, 8px 12px); }\n.sui-menuitem:hover, .sui-menuitem:focus { background: var(--sui-menu-hover, #2a3143); }"
+    css: ".sui-menu { font-family: var(--sui-menu-font, inherit); }\n.sui-menu-button { background: var(--sui-menu-button-bg, transparent); color: var(--sui-menu-fg, #e6e6ef); border: var(--sui-menu-button-border-width, 0px) solid var(--sui-menu-border, transparent); border-radius: var(--sui-menu-radius, 6px); padding: var(--sui-menu-padding, 7px 12px); font-size: var(--sui-menu-font-size, 14px); }\n.sui-menu-button:hover, .sui-menu-button:focus-visible, .sui-menu.open > .sui-menu-button { background: var(--sui-menu-hover, #2a3143); }\n.sui-menu-popup { background: var(--sui-menu-popup-bg, #1d2129); border: var(--sui-menu-border-width, 1px) solid var(--sui-menu-border, #3d4556); border-radius: var(--sui-menu-radius, 8px); }\n.sui-menuitem { color: var(--sui-menu-fg, #e6e6ef); padding: var(--sui-menu-item-padding, 8px 12px); }\n.sui-menuitem:hover, .sui-menuitem:focus { background: var(--sui-menu-hover, #2a3143); }"
   }
 ];
 var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation", "Data", "Overlay"];
@@ -13080,7 +13260,7 @@ function componentFieldRow(field) {
     var fsel = document.createElement("select");
     var list = ["inherit"].concat(BUILTIN_FONTS, uploadedFonts);
     list.forEach(function(f){
-      var o = document.createElement("option"); o.value = f; o.textContent = f === "inherit" ? "Inherit" : f;
+      var o = document.createElement("option"); o.value = f; o.textContent = f === "inherit" ? "Inherit" : (f === SUI_SKETCH.font ? "Handwriting (Segoe Print)" : f);
       if (f === value) o.selected = true;
       fsel.appendChild(o);
     });

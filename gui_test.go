@@ -265,6 +265,27 @@ func TestGuiComponentPresets(t *testing.T) {
 		`id: "glass"`,
 		`id: "striped"`,
 		`id: "pills"`,
+		`id: "sketch"`,
+		`SUI_SKETCH`,
+		`SUI_PROGRESS_FILLS.pencil`,
+		`id="compcfg-preview-bar"`,
+		`data-preview-theme="dark"`,
+		`data-preview-theme="light"`,
+		`function setComponentPreviewTheme`,
+		`function applyComponentPreviewTheme`,
+		`sui.componentPreviewTheme`,
+		`#compcfg-preview.preview-light`,
+		`--sui-check-font`,
+		`--sui-switch-font`,
+		`--sui-tab-font`,
+		`--sui-accordion-font`,
+		`--sui-combobox-font`,
+		`--sui-datepicker-font`,
+		`--sui-tree-font-family`,
+		`--sui-table-font-family`,
+		`--sui-toast-font`,
+		`--sui-modal-font`,
+		`--sui-menu-font`,
 		`if (re.test(root.css)) root.css = root.css.replace(re, block);`,
 		`componentAllKeys(s.def).forEach(function(k){ delete map[k]; });`,
 		`componentAllKeys(s.def).forEach(function(k){ delete vars[k]; });`,
@@ -275,6 +296,9 @@ func TestGuiComponentPresets(t *testing.T) {
 	}
 	if got := strings.Count(guiHTML, "presets: ["); got < 20 {
 		t.Errorf("component presets = %d, want at least 20", got)
+	}
+	if got := strings.Count(guiHTML, `id: "sketch"`); got < 20 {
+		t.Errorf("sketch presets = %d, want one per component", got)
 	}
 	if got := strings.Count(guiHTML, "id: \"classic\""); got < 4 {
 		t.Errorf("classic baseline presets = %d, want several", got)

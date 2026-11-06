@@ -396,6 +396,10 @@ un insieme coordinato di colori, forme ed effetti. I preset sono opzionali: non
 vengono mai usati se non selezionati, e modificando un campo il selettore passa
 a **Custom** per rendere esplicita la personalizzazione.
 
+Sopra l'anteprima, **Preview background** passa tra **Dark** e **Light**. La
+scelta viene ricordata e permette di controllare il componente sia su una shell
+scura sia su una pagina chiara o simile alla carta.
+
 I preset coprono tutti e venti i pannelli componente, per esempio **Neon glow**
 e **Barber pole** per Progress, **Dual ring**, **Gradient ring** e **Coin flip**
 per Spinner, **Glass** per Card e Toast, **Pill** per Button e Input, e
@@ -410,6 +414,13 @@ direttamente:
 - Card: fade in e float.
 - Button: pulse, float e glow.
 - Toast: discesa, fade, zoom, salita e rimbalzo.
+
+Il preset **Sketch** e condiviso da tutti e venti i pannelli, cosi i componenti
+messi sulla stessa pagina chiara restano visivamente coerenti. Usa una superficie
+di carta calda, bordi a inchiostro, ombre offset, un font calligrafico e una
+selezione evidenziatore dove serve. Ogni colore, font, raggio e ombra resta
+modificabile, quindi la famiglia si puo adattare senza perdere il carattere
+disegnato a mano.
 
 Nelle impostazioni dell'elemento il selettore offre anche **Project default**.
 Applicandolo si rimuovono gli override componente dell'elemento, che torna a
