@@ -922,7 +922,8 @@ nell'intestazione apre un unico menu con i sei tipi e **New link**, senza coprir
 i nodi; il tooltip indica `+`/`N` e `L` crea direttamente un link.
 La selezione è sincronizzata grafico/tabella con colore ambra.
 Passando il mouse su una cella della tabella appare un tooltip con tutto il
-testo; i `|` vengono mostrati su righe separate, come nel diagramma.
+testo; la combo della colonna Type è esclusa perché il valore è già leggibile.
+I `|` vengono mostrati su righe separate, come nel diagramma.
 **Ctrl/Cmd/Shift+click** aggiunge o toglie elementi dalla selezione; il
 **trascinamento con il tasto sinistro** sullo spazio vuoto disegna un rettangolo
 di selezione, mentre il **trascinamento con il tasto destro** sposta l'intero

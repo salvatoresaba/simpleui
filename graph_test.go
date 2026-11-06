@@ -270,6 +270,9 @@ func TestGraphTableCellTooltip(t *testing.T) {
 			t.Errorf("state table tooltip CSS missing %q", want)
 		}
 	}
+	if strings.Contains(suiChartRuntime, "stateCellTip(subtypeCell") {
+		t.Error("Type column must not show a cell tooltip")
+	}
 }
 
 func TestGraphTableEditSwitch(t *testing.T) {

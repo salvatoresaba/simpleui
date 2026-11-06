@@ -1174,8 +1174,8 @@ righe dei dati, con le intestazioni sticky. Il pulsante **Add row** è nella
 barra delle schede, allineato a destra, e apre la scelta Shape/Link. La tabella
 non ha pulsanti propri di impostazioni o undo/redo: import/export sono in **Graph
 settings** e i pulsanti undo/redo del grafico coprono diagramma e tabella.
-Passando il mouse su una cella appare un tooltip con tutto il testo; i `|`
-vengono mostrati su righe separate, come nel diagramma.
+Passando il mouse su una cella appare un tooltip con tutto il testo; la combo
+Type è esclusa. I `|` vengono mostrati su righe separate, come nel diagramma.
 Event/guard/action restano nel pannello
 proprietà del link. Il pulsante compatto **+** nell'intestazione del grafico apre un unico
 menu con le sette forme e **New link**, quindi non copre i nodi. Tooltip e

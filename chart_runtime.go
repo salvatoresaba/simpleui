@@ -20367,7 +20367,6 @@ const suiChartRuntime = `(function(){
       var shapeOptions = ["rectangle", "square", "circle", "stadium", "ellipse", "rhombus", "triangle", "parallelogram", "hexagon", "trapezoid", "pentagon", "note"];
       if (editable) subtypeCell.appendChild(stateSelectInput(shapeOptions, stateShapeKind(node), null, function(v) { node.shape = v; stateRefresh(root, data, "state:" + node.id); }));
       else subtypeCell.appendChild(stateReadonlyText(stateShapeKind(node)));
-      stateCellTip(subtypeCell, stateShapeKind(node));
       tr.appendChild(subtypeCell);
       if (editable) {
         var delCell = document.createElement("td");
@@ -20449,7 +20448,6 @@ const suiChartRuntime = `(function(){
         stateRefresh(root, data, "edge:" + index);
       }));
       else subtypeCell.appendChild(stateReadonlyText(stateLinkSubtype(edge)));
-      stateCellTip(subtypeCell, stateLinkSubtype(edge));
       tr.appendChild(subtypeCell);
       var fromLabel = labels[ids.indexOf(edge.from)] || edge.from;
       var toLabel = labels[ids.indexOf(edge.to)] || edge.to;
