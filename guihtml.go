@@ -397,6 +397,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .pf-path { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:6px; align-items:center; min-width:0; }
 .pf-path input { width:100%; min-width:0; }
 .pf-code-preview { margin:0; padding:10px 12px; border:1px solid var(--border2); border-radius:7px; background:var(--editorbg); color:var(--editorfg); font-family:ui-monospace, Consolas, monospace; font-size:13px; line-height:1.55; overflow:auto; max-height:190px; white-space:pre; tab-size:4; }
+.pf-ui-preview { padding:10px 12px; border:1px solid var(--border2); border-radius:7px; background:var(--panel); color:var(--fg); line-height:1.5; }
 .pf-preview-line-selected { display:inline-block; width:100%; background:rgba(148,163,184,.16); box-shadow:inset 2px 0 0 var(--accent); }
 .pf-tip-demo { display:flex; flex-direction:column; align-items:flex-start; }
 .pf-tip-bubble { margin:14px 0 4px 42px; max-width:320px; padding:6px 8px; border:1px solid #3a4152; border-radius:6px; background:#1d2129; color:#e6e6ef; font-size:12px; line-height:1.4; white-space:pre-line; box-shadow:0 6px 20px rgba(0,0,0,.3); position:relative; }
@@ -939,9 +940,24 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
           <div class="pref-acc-body on">
             <div class="pref-grid">
               <div class="pf-field"><label>Theme</label><select id="pf-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></div>
+              <div class="pf-field"><label>Interface font</label>
+                <select id="pf-ui-font" onchange="updateUiPreview()">
+                  <option value='system-ui, "Segoe UI", Roboto, sans-serif'>System UI</option>
+                  <option value='"Segoe UI", Tahoma, sans-serif'>Segoe UI</option>
+                  <option value='Arial, Helvetica, sans-serif'>Arial</option>
+                  <option value='Verdana, Geneva, sans-serif'>Verdana</option>
+                  <option value='"Trebuchet MS", sans-serif'>Trebuchet MS</option>
+                  <option value='Georgia, "Times New Roman", serif'>Georgia</option>
+                  <option value='"Times New Roman", Times, serif'>Times New Roman</option>
+                  <option value='ui-monospace, Consolas, monospace'>Monospace</option>
+                  <option value='__custom__'>Custom.</option>
+                </select>
+              </div>
+              <div class="pf-field"><label>Custom interface font</label><input type="text" id="pf-ui-font-custom" placeholder="'My UI Font', sans-serif" oninput="updateUiPreview()"></div>
               <div class="pf-field"><label>Font size</label><div class="pf-num"><input type="range" id="pf-size-range" min="12" max="20" step="1" value="14" oninput="syncPrefNum('pf-size', this.value)"><input type="number" id="pf-size" min="12" max="20" step="1" value="14" oninput="syncPrefNum('pf-size', this.value)"></div></div>
               <div class="pf-field"><label>Density</label><select id="pf-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>
               <div class="pf-field"><label>Accent color</label><input type="color" id="pf-accent" value="#4c5cf7"></div>
+              <div class="pf-field wide"><label>Preview</label><div id="pf-ui-preview" class="pf-ui-preview">Structure &middot; Inspector &middot; Problems &middot; Preferences</div></div>
             </div>
           </div>
           <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Layout</button>
@@ -960,12 +976,12 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
         </div>
       </section>
       <section class="pref-pane" id="pref-pane-editor" role="tabpanel" aria-labelledby="pref-tab-editor">
-        <div class="hint" style="margin-top:0">Everything about writing SUI: typography, editing behaviour, syntax colours and editor tooltips. The preview below reflects all of them.</div>
+        <div class="hint" style="margin-top:0">Everything about writing SUI: typography, editing behaviour, syntax colours and editor tooltips. The code font is independent from the Interface font. The preview below reflects all of them.</div>
         <div class="pref-acc">
           <button class="pref-acc-head on" type="button" aria-expanded="true" onclick="togglePrefAcc(this)">Font &amp; metrics</button>
           <div class="pref-acc-body on">
             <div class="pref-grid">
-              <div class="pf-field"><label>Font family</label>
+              <div class="pf-field"><label>Code font</label>
                 <select id="pf-editor-font" onchange="updateAllPreviews()">
                   <option value="ui-monospace, Consolas, Menlo, monospace">System monospace</option>
                   <option value="'Cascadia Code', 'Cascadia Mono', Consolas, monospace">Cascadia Code</option>
@@ -977,7 +993,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
                   <option value="__custom__">Custom.</option>
                 </select>
               </div>
-              <div class="pf-field"><label>Custom font</label><input type="text" id="pf-editor-font-custom" placeholder="'My Mono', monospace" oninput="updateAllPreviews()"></div>
+              <div class="pf-field"><label>Custom code font</label><input type="text" id="pf-editor-font-custom" placeholder="'My Mono', monospace" oninput="updateAllPreviews()"></div>
               <div class="pf-field"><label>Editor size</label><div class="pf-num"><input type="range" id="pf-editor-size-range" min="12" max="28" step="1" value="16" oninput="syncPrefNum('pf-editor-size', this.value)"><input type="number" id="pf-editor-size" min="12" max="28" step="1" value="16" oninput="syncPrefNum('pf-editor-size', this.value)"></div></div>
               <div class="pf-field"><label>Line height</label><div class="pf-num"><input type="range" id="pf-editor-lh-range" min="1.2" max="2.1" step="0.05" value="1.6" oninput="syncPrefNum('pf-editor-lh', this.value)"><input type="number" id="pf-editor-lh" min="1.2" max="2.1" step="0.05" value="1.6" oninput="syncPrefNum('pf-editor-lh', this.value)"></div></div>
               <div class="pf-field"><label>Tab size</label><div class="pf-num"><input type="range" id="pf-editor-tab-range" min="1" max="12" step="1" value="4" oninput="syncPrefNum('pf-editor-tab', this.value)"><input type="number" id="pf-editor-tab" min="1" max="12" step="1" value="4" oninput="syncPrefNum('pf-editor-tab', this.value)"></div></div>
@@ -1552,6 +1568,7 @@ var BUILTIN_FONTS = [
 var uploadedFonts = [];
 var PREF_DEFAULTS = {
   theme: "dark", font: 14, density: "comfortable", accent: "#4c5cf7",
+  uiFont: 'system-ui, "Segoe UI", Roboto, sans-serif',
   showLeft: true, showRight: true, showBottom: false,
   barOrder: ["toolbar", "elementbar"], palette: [],
   editorFont: "ui-monospace, Consolas, Menlo, monospace",
@@ -10458,6 +10475,7 @@ function loadRemotePrefs() {
     prefs.font = p.font || PREF_DEFAULTS.font;
     prefs.density = p.density || PREF_DEFAULTS.density;
     prefs.accent = p.accent || PREF_DEFAULTS.accent;
+    prefs.uiFont = safeFontFamily(p.uiFont, PREF_DEFAULTS.uiFont);
     prefs.showLeft = p.showLeft !== undefined ? p.showLeft : PREF_DEFAULTS.showLeft;
     prefs.showRight = p.showRight !== undefined ? p.showRight : PREF_DEFAULTS.showRight;
     prefs.showBottom = p.showBottom !== undefined ? p.showBottom : PREF_DEFAULTS.showBottom;
@@ -11500,7 +11518,9 @@ function syncPrefNum(id, value) {
   if (!isFinite(v)) return;
   if (n) n.value = String(v);
   if (r) r.value = String(v);
-  if (id === "pf-editor-size" || id === "pf-editor-lh" || id === "pf-editor-tab") {
+  if (id === "pf-size") {
+    updateUiPreview();
+  } else if (id === "pf-editor-size" || id === "pf-editor-lh" || id === "pf-editor-tab") {
     updateCodePreview();
     updatePrefTipPreview();
   } else if (id === "pf-tip-fontsize" || id === "pf-tip-delay") {
@@ -11525,8 +11545,17 @@ function togglePrefAcc(btn) {
   var body = btn.nextElementSibling;
   if (body && body.classList.contains("pref-acc-body")) body.classList.add("on");
 }
-function prefPreviewFont() {
-  var fsel = document.getElementById("pf-editor-font");
+function updateUiPreview() {
+  var pv = document.getElementById("pf-ui-preview");
+  if (!pv) return;
+  var sel = document.getElementById("pf-ui-font");
+  var custom = document.getElementById("pf-ui-font-custom");
+  var size = document.getElementById("pf-size");
+  var font = sel && sel.value === "__custom__" ? ((custom && custom.value) || PREF_DEFAULTS.uiFont) : (sel ? sel.value : PREF_DEFAULTS.uiFont);
+  pv.style.fontFamily = safeFontFamily(font, PREF_DEFAULTS.uiFont);
+  pv.style.fontSize = prefNumber(size && size.value, 14, 12, 20) + "px";
+}
+function prefPreviewFont() {  var fsel = document.getElementById("pf-editor-font");
   var custom = document.getElementById("pf-editor-font-custom");
   if (!fsel) return PREF_DEFAULTS.editorFont;
   return safeEditorFont(fsel.value === "__custom__" ? ((custom && custom.value) || PREF_DEFAULTS.editorFont) : fsel.value);
@@ -11576,6 +11605,14 @@ function fillPrefsForm() {
   setPrefNum("pf-size", p.font);
   document.getElementById("pf-density").value = p.density;
   document.getElementById("pf-accent").value = p.accent;
+  var uiSel = document.getElementById("pf-ui-font");
+  var uiCustom = document.getElementById("pf-ui-font-custom");
+  var uiKnown = false;
+  for (var ui = 0; ui < uiSel.options.length; ui++) {
+    if (uiSel.options[ui].value === p.uiFont) { uiKnown = true; break; }
+  }
+  uiSel.value = uiKnown ? p.uiFont : "__custom__";
+  uiCustom.value = uiKnown ? "" : (p.uiFont || "");
   document.getElementById("pf-left").checked = p.showLeft;
   document.getElementById("pf-right").checked = p.showRight;
   document.getElementById("pf-bottom").checked = p.showBottom;
@@ -11611,6 +11648,7 @@ function fillPrefsForm() {
   document.getElementById("pf-hist-auto").checked = p.historyAuto !== false;
   setPrefNum("pf-hist-interval", p.historyInterval);
   setPrefNum("pf-hist-keep", p.historyKeep);
+  updateUiPreview();
   updateCodePreview();
   updatePrefTipPreview();
 }
@@ -11761,6 +11799,9 @@ function applyPrefs() {
   prefs.font = parseInt(document.getElementById("pf-size").value, 10) || 14;
   prefs.density = document.getElementById("pf-density").value;
   prefs.accent = document.getElementById("pf-accent").value;
+  var uiFsel = document.getElementById("pf-ui-font").value;
+  var uiFcustom = document.getElementById("pf-ui-font-custom").value.trim();
+  prefs.uiFont = safeFontFamily(uiFsel === "__custom__" ? (uiFcustom || PREF_DEFAULTS.uiFont) : uiFsel, PREF_DEFAULTS.uiFont);
   prefs.showLeft = document.getElementById("pf-left").checked;
   prefs.showRight = document.getElementById("pf-right").checked;
   prefs.showBottom = document.getElementById("pf-bottom").checked;
@@ -12095,9 +12136,12 @@ function prefNumber(value, fallback, min, max) {
 function prefColor(value, fallback) {
   return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? String(value) : fallback;
 }
-function safeEditorFont(v) {
+function safeFontFamily(v, fallback) {
   var s = String(v || "").replace(/[;{}<>]/g, "").trim().slice(0, 200);
-  return s || PREF_DEFAULTS.editorFont;
+  return s || fallback;
+}
+function safeEditorFont(v) {
+  return safeFontFamily(v, PREF_DEFAULTS.editorFont);
 }
 function applyEditorPrefs() {
   var r = document.documentElement.style;
@@ -12130,6 +12174,7 @@ function applyTheme() {
   // Scale the whole UI so the font-size preference has a visible effect even
   // though individual controls hard-code px sizes.
   document.body.style.zoom = String(Math.round((prefs.font / 14) * 100) / 100);
+  document.body.style.fontFamily = safeFontFamily(prefs.uiFont, PREF_DEFAULTS.uiFont);
   var light = {
     "--bg":"#f5f6fa", "--panel":"#eceef4", "--panel2":"#e2e5ee", "--panel3":"#d8dce8",
     "--border":"#c8ccd8", "--border2":"#aab0c0",

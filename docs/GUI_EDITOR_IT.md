@@ -46,6 +46,8 @@ Aspetto e layout della shell dell'editor.
 | Impostazione | Default | Effetto |
 |---|---|---|
 | Theme | Dark | Interfaccia Dark, Light o High contrast |
+| Interface font | System UI | Font di menu, pannelli, etichette e controlli |
+| Custom interface font | - | Famiglia CSS usata quando è selezionato **Custom** |
 | Font size | 14 | Scala l'intera interfaccia dell'editor |
 | Density | Comfortable | Spaziatura comfortable o compact |
 | Accent color | #4c5cf7 | Focus, selezione e azioni principali |
@@ -57,13 +59,15 @@ Aspetto e layout della shell dell'editor.
 Tutto ciò che riguarda la scrittura in SUI: tipografia, comportamento di editing,
 colori della sintassi e tooltip dell'editor. Le impostazioni sono raggruppate in
 accordion e un'unica anteprima in fondo al tab riflette tutte le scelte.
+L'**Interface font** nel tab Interface e il **Code font** qui sono indipendenti:
+modificare uno non cambia l'altro.
 
 #### Font & metrics
 
 | Impostazione | Default | Effetto |
 |---|---|---|
-| Font family | Monospace di sistema | Combo box con stack integrati o famiglia CSS personalizzata |
-| Custom font | - | Famiglia CSS usata quando è selezionato **Custom** |
+| Code font | Monospace di sistema | Combo box con stack integrati o famiglia CSS personalizzata, solo per l'editor del codice SUI |
+| Custom code font | - | Famiglia CSS usata quando è selezionato **Custom** |
 | Editor size | 16px | Dimensione del codice, indipendente dallo zoom generale |
 | Line height | 1.6 | Spaziatura verticale e allineamento dei numeri di riga |
 | Tab size | 4 | Larghezza dei tab nell'overlay e nella textarea |
