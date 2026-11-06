@@ -1119,11 +1119,13 @@ Sunset, Candy, Neon, Slate, Paper, Sand, Ice, High contrast, Plum, Mono and
 Custom) and an **Edit theme...** button. The button opens the theme editor panel,
 split into **Control**, **Title**, **Buttons**, **Table** and **Scrollbars**
 tabs. It exposes the current values of every non-diagram component: control
-background/border/radius, title bar background and height, title typography,
-decorations and shadow, button colors for each state, border width/radius/font,
-table colors/borders/typography, and scrollbar size, colors and radius. Shapes,
-links, tags, hints and grid style are not part of the theme because they already
-have dedicated panels. The editor starts from the currently applied values, so
+background, border, radius and padding; title bar background and height, title
+typography, decorations and shadow; button colors for each state, border
+width/radius/font; table colors, borders, typography, header and input tones;
+and scrollbar size, colors and radius. Presets also define readable defaults for
+axis, grid, legend and value labels, tooltips/hints and error/critical accents.
+Shapes, links, tags, hints and grid style keep their own panels, which override
+the theme defaults. The editor starts from the currently applied values, so
 after choosing a preset its fields show that preset, not the defaults. Changes
 apply immediately, are stored per chart, and the same control and button styles
 are used by the settings panels inside the graph. **Reset theme** in the editor

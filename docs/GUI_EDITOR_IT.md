@@ -1154,11 +1154,13 @@ Forest, Sunset, Candy, Neon, Slate, Paper, Sand, Ice, High contrast, Plum, Mono 
 Custom) e un pulsante **Edit theme...**. Il pulsante apre il pannello editor del
 tema, diviso nei tab **Control**, **Title**, **Buttons**, **Table** e
 **Scrollbars**. Mostra i valori attuali di ogni componente non diagramma:
-sfondo/bordo/raggio del controllo, background e altezza della barra titolo,
-tipografia, abbellimenti e ombra del titolo, colori dei pulsanti per ogni stato,
-spessore bordo/raggio/font, colori/bordi/tipografia della tabella e
-dimensione/colori/raggio delle scrollbar. Forme, link, tag, hint e griglia non
-fanno parte del tema perché hanno già pannelli dedicati. L'editor parte dai
+sfondo, bordo, raggio e padding del controllo; background e altezza della barra
+titolo; tipografia, abbellimenti e ombra del titolo; colori dei pulsanti per
+ogni stato, spessore bordo/raggio/font; colori, bordi, tipografia, header e toni
+degli input della tabella; dimensione, colori e raggio delle scrollbar. I preset
+definiscono anche default leggibili per axis, grid, legenda ed etichette valori,
+tooltip/hint e accenti error/critical. Forme, link, tag, hint e griglia hanno i
+loro pannelli dedicati, che sovrascrivono i default del tema. L'editor parte dai
 valori attualmente applicati: dopo aver scelto un preset i campi mostrano quel
 preset, non i default. Le modifiche sono immediate, salvate per chart, e gli
 stessi stili di controllo e pulsanti sono usati dai pannelli interni al grafico.

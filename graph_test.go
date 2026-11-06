@@ -189,7 +189,7 @@ func TestGraphRuntimeThemePresets(t *testing.T) {
 		"stateThemePreset(\"sand\"", "stateThemePreset(\"contrast\"", "stateThemePreset(\"plum\"",
 		"applyStateThemeOverrides", "STATE_THEME_FIELDS", "Title size", "Stripe opacity",
 		"stateTagFieldNumber", "Preset", "Theme editor", "openStateThemeEditor",
-		"Bar height", "Title shadow", "Thumb radius", "Control",
+		"Bar height", "Title shadow", "Thumb radius", "Control", "Padding",
 		`themeGrid.section.classList.add("sui-chart-tag-field-wide")`,
 	} {
 		if !strings.Contains(suiChartRuntime, want) {

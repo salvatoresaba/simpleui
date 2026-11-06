@@ -10787,28 +10787,37 @@ const suiChartRuntime = `(function(){
     root.__suiStateSettingsApplied = true;
   }
   var STATE_THEME_VARS = [
-    "--sui-chart-bg", "--sui-chart-fg", "--sui-chart-title-color", "--sui-chart-muted", "--sui-chart-axis",
+    "--sui-chart-padding", "--sui-chart-bg", "--sui-chart-fg", "--sui-chart-title-color", "--sui-chart-muted", "--sui-chart-axis",
+    "--sui-chart-grid",
     "--sui-chart-head-bg", "--sui-chart-head-min-height", "--sui-chart-border", "--sui-chart-radius",
     "--sui-chart-title-font", "--sui-chart-title-size", "--sui-chart-title-weight", "--sui-chart-title-letter-spacing",
     "--sui-chart-title-style", "--sui-chart-title-decoration", "--sui-chart-title-shadow",
-    "--sui-chart-control-bg", "--sui-chart-control-fg", "--sui-chart-control-border", "--sui-chart-control-border-width", "--sui-chart-control-radius",
+    "--sui-chart-control-bg", "--sui-chart-control-fg", "--sui-chart-control-muted", "--sui-chart-control-border", "--sui-chart-control-border-width", "--sui-chart-control-radius",
     "--sui-chart-control-font", "--sui-chart-control-font-size", "--sui-chart-control-shadow",
     "--sui-chart-control-hover-bg", "--sui-chart-control-hover-fg", "--sui-chart-control-hover-border",
     "--sui-chart-control-focus-border", "--sui-chart-control-active-bg",
     "--sui-chart-table-bg", "--sui-chart-table-fg", "--sui-chart-table-font-family",
     "--sui-chart-table-font-size", "--sui-chart-table-cell-padding", "--sui-chart-table-head-bg",
     "--sui-chart-table-head-fg", "--sui-chart-table-head-weight", "--sui-chart-table-sticky-bg",
+    "--sui-chart-table-input-bg", "--sui-chart-table-summary-bg",
     "--sui-chart-table-row-bg", "--sui-chart-table-row-border",
     "--sui-chart-table-stripe-opacity",
+    "--sui-chart-critical", "--sui-chart-error",
     "--sui-chart-scroll-size", "--sui-chart-scroll-track", "--sui-chart-scroll-thumb", "--sui-chart-scroll-radius"
   ];
   function stateThemePreset(key, label, o) {
     return { key: key, label: label, vars: {
+      "--sui-chart-padding": "0px",
+      "--sui-chart-head-min-height": "38px",
+      "--sui-chart-title-style": "normal",
+      "--sui-chart-title-decoration": "none",
+      "--sui-chart-title-shadow": o.titleShadow || "none",
       "--sui-chart-bg": o.bg,
       "--sui-chart-fg": o.fg,
       "--sui-chart-title-color": o.title,
       "--sui-chart-muted": o.muted,
       "--sui-chart-axis": o.axis,
+      "--sui-chart-grid": o.grid || o.border,
       "--sui-chart-head-bg": o.head,
       "--sui-chart-border": "1px solid " + o.border,
       "--sui-chart-radius": "10px",
@@ -10818,7 +10827,9 @@ const suiChartRuntime = `(function(){
       "--sui-chart-title-letter-spacing": "normal",
       "--sui-chart-control-bg": o.controlBg,
       "--sui-chart-control-fg": o.controlFg,
+      "--sui-chart-control-muted": o.muted,
       "--sui-chart-control-border": o.border,
+      "--sui-chart-control-border-width": "1px",
       "--sui-chart-control-radius": "6px",
       "--sui-chart-control-font": "system-ui, sans-serif",
       "--sui-chart-control-font-size": "12px",
@@ -10828,16 +10839,22 @@ const suiChartRuntime = `(function(){
       "--sui-chart-control-hover-border": o.hoverBorder,
       "--sui-chart-control-focus-border": o.focus,
       "--sui-chart-control-active-bg": o.active,
+      "--sui-chart-table-font-family": "inherit",
       "--sui-chart-table-font-size": "11px",
       "--sui-chart-table-cell-padding": "4px 6px",
       "--sui-chart-table-bg": o.bg,
       "--sui-chart-table-fg": o.fg,
       "--sui-chart-table-head-bg": o.tableHead,
       "--sui-chart-table-head-fg": o.tableHeadFg,
+      "--sui-chart-table-head-weight": "600",
       "--sui-chart-table-sticky-bg": o.tableHead,
+      "--sui-chart-table-input-bg": o.light ? "#ffffff" : o.controlBg,
+      "--sui-chart-table-summary-bg": o.tableHead,
       "--sui-chart-table-row-bg": o.rowBg,
       "--sui-chart-table-row-border": o.rowBorder,
       "--sui-chart-table-stripe-opacity": "0.06",
+      "--sui-chart-critical": o.light ? "#b45309" : "#fbbf24",
+      "--sui-chart-error": o.light ? "#b91c1c" : "#f87171",
       "--sui-chart-scroll-size": "9px",
       "--sui-chart-scroll-track": o.scrollTrack,
       "--sui-chart-scroll-thumb": o.scrollThumb,
@@ -10853,9 +10870,9 @@ const suiChartRuntime = `(function(){
     stateThemePreset("candy", "Candy", { bg: "#2a1033", fg: "#fdf2f8", title: "#f9a8d4", muted: "#f0abfc", axis: "#ec4899", head: "#3b1747", border: "#86198f", controlBg: "#4a1d5c", controlFg: "#fdf2f8", hoverBg: "#86198f", hoverFg: "#ffffff", hoverBorder: "#ec4899", focus: "#d946ef", active: "#701a75", tableHead: "#4a1d5c", tableHeadFg: "#fdf2f8", rowBg: "#2a1033", rowBorder: "#86198f", scrollTrack: "#1a0a20", scrollThumb: "#ec4899" }),
     stateThemePreset("neon", "Neon", { bg: "#08161d", fg: "#e0ffff", title: "#7df9ff", muted: "#67e8f9", axis: "#00e5ff", head: "#0d2530", border: "#0e7490", controlBg: "#103340", controlFg: "#e0ffff", hoverBg: "#0e7490", hoverFg: "#ffffff", hoverBorder: "#00e5ff", focus: "#22d3ee", active: "#155e75", tableHead: "#103340", tableHeadFg: "#e0ffff", rowBg: "#08161d", rowBorder: "#0e7490", scrollTrack: "#041014", scrollThumb: "#00e5ff" }),
     stateThemePreset("slate", "Slate", { bg: "#1e293b", fg: "#f1f5f9", title: "#e2e8f0", muted: "#94a3b8", axis: "#64748b", head: "#243449", border: "#475569", controlBg: "#334155", controlFg: "#f8fafc", hoverBg: "#475569", hoverFg: "#ffffff", hoverBorder: "#94a3b8", focus: "#60a5fa", active: "#64748b", tableHead: "#334155", tableHeadFg: "#f8fafc", rowBg: "#1e293b", rowBorder: "#475569", scrollTrack: "#0f172a", scrollThumb: "#64748b" }),
-    stateThemePreset("paper", "Paper", { bg: "#ffffff", fg: "#1f2937", title: "#111827", muted: "#6b7280", axis: "#9ca3af", head: "#f3f4f6", border: "#cbd5e1", controlBg: "#f3f4f6", controlFg: "#111827", hoverBg: "#e5e7eb", hoverFg: "#111827", hoverBorder: "#94a3b8", focus: "#2563eb", active: "#dbeafe", tableHead: "#eef2f7", tableHeadFg: "#111827", rowBg: "#ffffff", rowBorder: "#d1d5db", scrollTrack: "#f3f4f6", scrollThumb: "#9ca3af", shadow: "0 1px 2px rgba(15,23,42,.08)" }),
-    stateThemePreset("sand", "Sand", { bg: "#fffaf0", fg: "#3b2f1e", title: "#78350f", muted: "#8a6d3b", axis: "#b45309", head: "#fdf2d7", border: "#d6c3a1", controlBg: "#fdf2d7", controlFg: "#3b2f1e", hoverBg: "#f5e3b3", hoverFg: "#3b2f1e", hoverBorder: "#b45309", focus: "#d97706", active: "#f8e8c0", tableHead: "#fdf2d7", tableHeadFg: "#3b2f1e", rowBg: "#fffaf0", rowBorder: "#d6c3a1", scrollTrack: "#f5ead2", scrollThumb: "#b45309", shadow: "0 1px 2px rgba(120,53,15,.10)" }),
-    stateThemePreset("ice", "Ice", { bg: "#f4f9ff", fg: "#0f2740", title: "#0c4a6e", muted: "#526b84", axis: "#0284c7", head: "#e6f2fb", border: "#b8d4e8", controlBg: "#e6f2fb", controlFg: "#0f2740", hoverBg: "#d4e8f7", hoverFg: "#0f2740", hoverBorder: "#0284c7", focus: "#0369a1", active: "#cfe4f3", tableHead: "#e6f2fb", tableHeadFg: "#0f2740", rowBg: "#f4f9ff", rowBorder: "#b8d4e8", scrollTrack: "#e6f2fb", scrollThumb: "#0284c7", shadow: "0 1px 2px rgba(15,39,64,.08)" }),
+    stateThemePreset("paper", "Paper", { light: true, bg: "#ffffff", fg: "#1f2937", title: "#111827", muted: "#6b7280", axis: "#6b7280", head: "#f3f4f6", border: "#cbd5e1", controlBg: "#f3f4f6", controlFg: "#111827", hoverBg: "#e5e7eb", hoverFg: "#111827", hoverBorder: "#94a3b8", focus: "#2563eb", active: "#dbeafe", tableHead: "#eef2f7", tableHeadFg: "#111827", rowBg: "#ffffff", rowBorder: "#d1d5db", scrollTrack: "#f3f4f6", scrollThumb: "#9ca3af", shadow: "0 1px 2px rgba(15,23,42,.08)" }),
+    stateThemePreset("sand", "Sand", { light: true, bg: "#fffaf0", fg: "#3b2f1e", title: "#78350f", muted: "#8a6d3b", axis: "#b45309", head: "#fdf2d7", border: "#d6c3a1", controlBg: "#fdf2d7", controlFg: "#3b2f1e", hoverBg: "#f5e3b3", hoverFg: "#3b2f1e", hoverBorder: "#b45309", focus: "#d97706", active: "#f8e8c0", tableHead: "#fdf2d7", tableHeadFg: "#3b2f1e", rowBg: "#fffaf0", rowBorder: "#d6c3a1", scrollTrack: "#f5ead2", scrollThumb: "#b45309", shadow: "0 1px 2px rgba(120,53,15,.10)" }),
+    stateThemePreset("ice", "Ice", { light: true, bg: "#f4f9ff", fg: "#0f2740", title: "#0c4a6e", muted: "#526b84", axis: "#0284c7", head: "#e6f2fb", border: "#b8d4e8", controlBg: "#e6f2fb", controlFg: "#0f2740", hoverBg: "#d4e8f7", hoverFg: "#0f2740", hoverBorder: "#0284c7", focus: "#0369a1", active: "#cfe4f3", tableHead: "#e6f2fb", tableHeadFg: "#0f2740", rowBg: "#f4f9ff", rowBorder: "#b8d4e8", scrollTrack: "#e6f2fb", scrollThumb: "#0284c7", shadow: "0 1px 2px rgba(15,39,64,.08)" }),
     stateThemePreset("contrast", "High contrast", { bg: "#000000", fg: "#ffffff", title: "#ffff00", muted: "#ffffff", axis: "#ffffff", head: "#000000", border: "#ffffff", controlBg: "#000000", controlFg: "#ffffff", hoverBg: "#ffff00", hoverFg: "#000000", hoverBorder: "#ffff00", focus: "#ffff00", active: "#ffff00", tableHead: "#000000", tableHeadFg: "#ffff00", rowBg: "#000000", rowBorder: "#666666", scrollTrack: "#000000", scrollThumb: "#ffff00" }),
     stateThemePreset("plum", "Plum", { bg: "#2e1a3d", fg: "#f5e8ff", title: "#e9d5ff", muted: "#c4b5fd", axis: "#a855f7", head: "#3d2252", border: "#6b21a8", controlBg: "#4c1d69", controlFg: "#faf5ff", hoverBg: "#6b21a8", hoverFg: "#ffffff", hoverBorder: "#c084fc", focus: "#a855f7", active: "#7e22ce", tableHead: "#4c1d69", tableHeadFg: "#faf5ff", rowBg: "#2e1a3d", rowBorder: "#6b21a8", scrollTrack: "#1c0f26", scrollThumb: "#a855f7" }),
     stateThemePreset("mono", "Mono", { bg: "#171717", fg: "#f5f5f5", title: "#ffffff", muted: "#b5b5b5", axis: "#777777", head: "#222222", border: "#555555", controlBg: "#2a2a2a", controlFg: "#f5f5f5", hoverBg: "#404040", hoverFg: "#ffffff", hoverBorder: "#a3a3a3", focus: "#d4d4d4", active: "#525252", tableHead: "#262626", tableHeadFg: "#ffffff", rowBg: "#171717", rowBorder: "#404040", scrollTrack: "#0a0a0a", scrollThumb: "#737373" })
@@ -11037,6 +11054,7 @@ const suiChartRuntime = `(function(){
     { cat: "Control", label: "Border width", name: "--sui-chart-border", type: "number", fallback: "1", min: 0, max: 12, step: 1, unit: "px", composite: "borderWidth" },
     { cat: "Control", label: "Border color", name: "--sui-chart-border", type: "color", fallback: "#334155", composite: "borderColor" },
     { cat: "Control", label: "Corner radius", name: "--sui-chart-radius", type: "number", fallback: "10", min: 0, max: 80, step: 1, unit: "px" },
+    { cat: "Control", label: "Padding", name: "--sui-chart-padding", type: "number", fallback: "0", min: 0, max: 40, step: 1, unit: "px" },
     { cat: "Title", label: "Bar background", name: "--sui-chart-head-bg", type: "color", fallback: "#111c33", transparent: true },
     { cat: "Title", label: "Bar height", name: "--sui-chart-head-min-height", type: "number", fallback: "38", min: 24, max: 120, step: 1, unit: "px" },
     { cat: "Title", label: "Title color", name: "--sui-chart-title-color", type: "color", fallback: "#f8fafc" },
@@ -11069,6 +11087,8 @@ const suiChartRuntime = `(function(){
     { cat: "Table", label: "Header text", name: "--sui-chart-table-head-fg", type: "color", fallback: "#f8fafc" },
     { cat: "Table", label: "Header weight", name: "--sui-chart-table-head-weight", type: "number", fallback: "600", min: 100, max: 900, step: 100 },
     { cat: "Table", label: "Sticky header", name: "--sui-chart-table-sticky-bg", type: "color", fallback: "#1e293b" },
+    { cat: "Table", label: "Input background", name: "--sui-chart-table-input-bg", type: "color", fallback: "#1e293b" },
+    { cat: "Table", label: "Summary background", name: "--sui-chart-table-summary-bg", type: "color", fallback: "#1e293b" },
     { cat: "Table", label: "Row background", name: "--sui-chart-table-row-bg", type: "color", fallback: "#0f172a" },
     { cat: "Table", label: "Row border", name: "--sui-chart-table-row-border", type: "color", fallback: "#334155" },
     { cat: "Table", label: "Stripe opacity", name: "--sui-chart-table-stripe-opacity", type: "number", fallback: "0.06", min: 0, max: 1, step: 0.05 },
@@ -11101,7 +11121,13 @@ const suiChartRuntime = `(function(){
     }
     if (field.name === "--sui-chart-table-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-bg", field.fallback));
     if (field.name === "--sui-chart-table-fg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-fg", field.fallback));
-    if (field.name === "--sui-chart-table-sticky-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-table-head-bg", field.fallback));
+    if (field.name === "--sui-chart-table-head-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-table-sticky-bg", stateThemeComputed(root, "--sui-chart-bg", field.fallback)));
+    if (field.name === "--sui-chart-table-head-fg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-title-color", stateThemeComputed(root, "--sui-chart-fg", field.fallback)));
+    if (field.name === "--sui-chart-table-sticky-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-table-head-bg", stateThemeComputed(root, "--sui-chart-bg", field.fallback)));
+    if (field.name === "--sui-chart-table-input-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-control-bg", field.fallback));
+    if (field.name === "--sui-chart-table-summary-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-table-head-bg", field.fallback));
+    if (field.name === "--sui-chart-table-row-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-table-bg", stateThemeComputed(root, "--sui-chart-bg", field.fallback)));
+    if (field.name === "--sui-chart-table-row-border") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-grid", field.fallback));
     if (field.name === "--sui-chart-table-font-family") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-font", field.fallback));
     return stateThemeComputed(root, field.name, field.fallback);
   }
