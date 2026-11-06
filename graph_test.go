@@ -188,11 +188,15 @@ func TestGraphRuntimeThemePresets(t *testing.T) {
 		"STATE_THEME_PRESETS", "stateThemePreset(\"midnight\"", "stateThemePreset(\"paper\"",
 		"stateThemePreset(\"sand\"", "stateThemePreset(\"contrast\"", "stateThemePreset(\"plum\"",
 		"applyStateThemeOverrides", "STATE_THEME_FIELDS", "Title size", "Stripe opacity",
-		"stateTagFieldNumber", "Preset", "Style",
+		"stateTagFieldNumber", "Preset", "Theme editor", "openStateThemeEditor",
+		"Bar height", "Title shadow", "Thumb radius", "Control",
 	} {
 		if !strings.Contains(suiChartRuntime, want) {
 			t.Errorf("chart runtime theme support missing %q", want)
 		}
+	}
+	if strings.Contains(suiChartRuntime, `tabs.add("Style")`) {
+		t.Error("the runtime settings panel must not expose a Style tab")
 	}
 	if count := strings.Count(suiChartRuntime, "stateThemePreset(\""); count < 14 {
 		t.Errorf("expected at least 14 theme presets, got %d", count)

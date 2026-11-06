@@ -1113,14 +1113,21 @@ the data overlay is disabled for the same reason. The inspector no longer shows
 initial zoom, interactive, element hints or chart attributes for Graph.
 
 The runtime **Graph settings** panel opened from the gear (or from the inspector
-Graph settings button) has a **Style** tab. It starts from a large preset list
-(Midnight, Graphite, Ocean, Forest, Sunset, Candy, Neon, Slate, Paper, Sand, Ice,
-High contrast, Plum, Mono) and then exposes every non-diagram component: header
-background, title typography, outer frame, buttons with hover/focus/active
-states, table, and scrollbars. Shapes, links, tags, hints and grid style are not
-part of the theme because they already have dedicated panels. Numeric values use
-a slider plus a number input. Theme changes apply immediately and are stored per
-chart; **Reset settings** clears them.
+Graph settings button) has no separate Style tab. The **General** tab contains a
+**Theme** area with a preset combo box (Midnight, Graphite, Ocean, Forest,
+Sunset, Candy, Neon, Slate, Paper, Sand, Ice, High contrast, Plum, Mono and
+Custom) and an **Edit theme...** button. The button opens the theme editor panel,
+split into **Control**, **Title**, **Buttons**, **Table** and **Scrollbars**
+tabs. It exposes the current values of every non-diagram component: control
+background/border/radius, title bar background and height, title typography,
+decorations and shadow, button colors for each state, border width/radius/font,
+table colors/borders/typography, and scrollbar size, colors and radius. Shapes,
+links, tags, hints and grid style are not part of the theme because they already
+have dedicated panels. The editor starts from the currently applied values, so
+after choosing a preset its fields show that preset, not the defaults. Changes
+apply immediately, are stored per chart, and the same control and button styles
+are used by the settings panels inside the graph. **Reset theme** in the editor
+(or **Reset settings**) clears them.
 
 The designer **Graph style editor** uses the same component categories in Title,
 Frame, Buttons, Table and Scrollbars tabs. Changes are previewed live on the

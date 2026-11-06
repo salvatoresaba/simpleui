@@ -1148,14 +1148,21 @@ nell'editor dati. L'inspector non mostra più zoom iniziale, interactive, elemen
 hints o attributi chart per Graph.
 
 Il pannello runtime **Graph settings** aperto dall'ingranaggio (o dal pulsante
-Graph settings dell'inspector) ha un tab **Style**. Parte da un ampio elenco di
-preset (Midnight, Graphite, Ocean, Forest, Sunset, Candy, Neon, Slate, Paper,
-Sand, Ice, High contrast, Plum, Mono) e mostra poi ogni componente non diagramma:
-background header, tipografia titolo, bordo esterno, pulsanti con stati
-hover/focus/active, tabella e scrollbar. Forme, link, tag, hint e griglia non
-fanno parte del tema perché hanno già pannelli dedicati. I valori numerici usano
-slider + input numerico. Le modifiche sono immediate e salvate per chart;
-**Reset settings** le cancella.
+Graph settings dell'inspector) non ha più un tab **Style**. Il tab **General**
+contiene un'area **Theme** con un combo dei preset (Midnight, Graphite, Ocean,
+Forest, Sunset, Candy, Neon, Slate, Paper, Sand, Ice, High contrast, Plum, Mono e
+Custom) e un pulsante **Edit theme...**. Il pulsante apre il pannello editor del
+tema, diviso nei tab **Control**, **Title**, **Buttons**, **Table** e
+**Scrollbars**. Mostra i valori attuali di ogni componente non diagramma:
+sfondo/bordo/raggio del controllo, background e altezza della barra titolo,
+tipografia, abbellimenti e ombra del titolo, colori dei pulsanti per ogni stato,
+spessore bordo/raggio/font, colori/bordi/tipografia della tabella e
+dimensione/colori/raggio delle scrollbar. Forme, link, tag, hint e griglia non
+fanno parte del tema perché hanno già pannelli dedicati. L'editor parte dai
+valori attualmente applicati: dopo aver scelto un preset i campi mostrano quel
+preset, non i default. Le modifiche sono immediate, salvate per chart, e gli
+stessi stili di controllo e pulsanti sono usati dai pannelli interni al grafico.
+**Reset theme** nell'editor (o **Reset settings**) li cancella.
 
 Il **Graph style editor** del designer usa le stesse categorie Title, Frame,
 Buttons, Table e Scrollbars. Le modifiche sono mostrate in anteprima dal vivo e

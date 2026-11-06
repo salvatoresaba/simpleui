@@ -10788,16 +10788,19 @@ const suiChartRuntime = `(function(){
   }
   var STATE_THEME_VARS = [
     "--sui-chart-bg", "--sui-chart-fg", "--sui-chart-title-color", "--sui-chart-muted", "--sui-chart-axis",
-    "--sui-chart-head-bg", "--sui-chart-border", "--sui-chart-radius",
+    "--sui-chart-head-bg", "--sui-chart-head-min-height", "--sui-chart-border", "--sui-chart-radius",
     "--sui-chart-title-font", "--sui-chart-title-size", "--sui-chart-title-weight", "--sui-chart-title-letter-spacing",
-    "--sui-chart-control-bg", "--sui-chart-control-fg", "--sui-chart-control-border", "--sui-chart-control-radius",
+    "--sui-chart-title-style", "--sui-chart-title-decoration", "--sui-chart-title-shadow",
+    "--sui-chart-control-bg", "--sui-chart-control-fg", "--sui-chart-control-border", "--sui-chart-control-border-width", "--sui-chart-control-radius",
     "--sui-chart-control-font", "--sui-chart-control-font-size", "--sui-chart-control-shadow",
     "--sui-chart-control-hover-bg", "--sui-chart-control-hover-fg", "--sui-chart-control-hover-border",
     "--sui-chart-control-focus-border", "--sui-chart-control-active-bg",
+    "--sui-chart-table-bg", "--sui-chart-table-fg", "--sui-chart-table-font-family",
     "--sui-chart-table-font-size", "--sui-chart-table-cell-padding", "--sui-chart-table-head-bg",
-    "--sui-chart-table-head-fg", "--sui-chart-table-row-bg", "--sui-chart-table-row-border",
+    "--sui-chart-table-head-fg", "--sui-chart-table-head-weight", "--sui-chart-table-sticky-bg",
+    "--sui-chart-table-row-bg", "--sui-chart-table-row-border",
     "--sui-chart-table-stripe-opacity",
-    "--sui-chart-scroll-size", "--sui-chart-scroll-track", "--sui-chart-scroll-thumb"
+    "--sui-chart-scroll-size", "--sui-chart-scroll-track", "--sui-chart-scroll-thumb", "--sui-chart-scroll-radius"
   ];
   function stateThemePreset(key, label, o) {
     return { key: key, label: label, vars: {
@@ -10827,14 +10830,18 @@ const suiChartRuntime = `(function(){
       "--sui-chart-control-active-bg": o.active,
       "--sui-chart-table-font-size": "11px",
       "--sui-chart-table-cell-padding": "4px 6px",
+      "--sui-chart-table-bg": o.bg,
+      "--sui-chart-table-fg": o.fg,
       "--sui-chart-table-head-bg": o.tableHead,
       "--sui-chart-table-head-fg": o.tableHeadFg,
+      "--sui-chart-table-sticky-bg": o.tableHead,
       "--sui-chart-table-row-bg": o.rowBg,
       "--sui-chart-table-row-border": o.rowBorder,
       "--sui-chart-table-stripe-opacity": "0.06",
       "--sui-chart-scroll-size": "9px",
       "--sui-chart-scroll-track": o.scrollTrack,
-      "--sui-chart-scroll-thumb": o.scrollThumb
+      "--sui-chart-scroll-thumb": o.scrollThumb,
+      "--sui-chart-scroll-radius": "6px"
     }};
   }
   var STATE_THEME_PRESETS = [
@@ -11026,17 +11033,23 @@ const suiChartRuntime = `(function(){
     splitter.addEventListener("pointercancel", end);
   }
   var STATE_THEME_FIELDS = [
-    { cat: "Title", label: "Header background", name: "--sui-chart-head-bg", type: "color", fallback: "#111c33", transparent: true },
+    { cat: "Control", label: "Background", name: "--sui-chart-bg", type: "color", fallback: "#14171c" },
+    { cat: "Control", label: "Border width", name: "--sui-chart-border", type: "number", fallback: "1", min: 0, max: 12, step: 1, unit: "px", composite: "borderWidth" },
+    { cat: "Control", label: "Border color", name: "--sui-chart-border", type: "color", fallback: "#334155", composite: "borderColor" },
+    { cat: "Control", label: "Corner radius", name: "--sui-chart-radius", type: "number", fallback: "10", min: 0, max: 80, step: 1, unit: "px" },
+    { cat: "Title", label: "Bar background", name: "--sui-chart-head-bg", type: "color", fallback: "#111c33", transparent: true },
+    { cat: "Title", label: "Bar height", name: "--sui-chart-head-min-height", type: "number", fallback: "38", min: 24, max: 120, step: 1, unit: "px" },
     { cat: "Title", label: "Title color", name: "--sui-chart-title-color", type: "color", fallback: "#f8fafc" },
     { cat: "Title", label: "Title font", name: "--sui-chart-title-font", type: "text", fallback: "system-ui, sans-serif" },
     { cat: "Title", label: "Title size", name: "--sui-chart-title-size", type: "number", fallback: "14", min: 10, max: 40, step: 1, unit: "px" },
     { cat: "Title", label: "Title weight", name: "--sui-chart-title-weight", type: "number", fallback: "600", min: 100, max: 900, step: 100 },
+    { cat: "Title", label: "Title style", name: "--sui-chart-title-style", type: "text", fallback: "normal" },
+    { cat: "Title", label: "Title decoration", name: "--sui-chart-title-decoration", type: "text", fallback: "none" },
+    { cat: "Title", label: "Title shadow", name: "--sui-chart-title-shadow", type: "text", fallback: "none" },
     { cat: "Title", label: "Title spacing", name: "--sui-chart-title-letter-spacing", type: "number", fallback: "0", min: -2, max: 10, step: 0.5, unit: "px" },
-    { cat: "Frame", label: "Border width", name: "--sui-chart-border", type: "number", fallback: "1", min: 0, max: 12, step: 1, unit: "px", composite: "borderWidth" },
-    { cat: "Frame", label: "Border color", name: "--sui-chart-border", type: "color", fallback: "#334155", composite: "borderColor" },
-    { cat: "Frame", label: "Corner radius", name: "--sui-chart-radius", type: "number", fallback: "10", min: 0, max: 80, step: 1, unit: "px" },
     { cat: "Buttons", label: "Background", name: "--sui-chart-control-bg", type: "color", fallback: "#1e293b" },
     { cat: "Buttons", label: "Text", name: "--sui-chart-control-fg", type: "color", fallback: "#f8fafc" },
+    { cat: "Buttons", label: "Border width", name: "--sui-chart-control-border-width", type: "number", fallback: "1", min: 0, max: 8, step: 1, unit: "px" },
     { cat: "Buttons", label: "Border", name: "--sui-chart-control-border", type: "color", fallback: "#334155" },
     { cat: "Buttons", label: "Radius", name: "--sui-chart-control-radius", type: "number", fallback: "6", min: 0, max: 40, step: 1, unit: "px" },
     { cat: "Buttons", label: "Font", name: "--sui-chart-control-font", type: "text", fallback: "system-ui, sans-serif" },
@@ -11047,16 +11060,22 @@ const suiChartRuntime = `(function(){
     { cat: "Buttons", label: "Hover border", name: "--sui-chart-control-hover-border", type: "color", fallback: "#94a3b8" },
     { cat: "Buttons", label: "Focus border", name: "--sui-chart-control-focus-border", type: "color", fallback: "#60a5fa" },
     { cat: "Buttons", label: "Active background", name: "--sui-chart-control-active-bg", type: "color", fallback: "#475569" },
+    { cat: "Table", label: "Background", name: "--sui-chart-table-bg", type: "color", fallback: "#14171c", transparent: true },
+    { cat: "Table", label: "Text", name: "--sui-chart-table-fg", type: "color", fallback: "#e6e6ef" },
+    { cat: "Table", label: "Font", name: "--sui-chart-table-font-family", type: "text", fallback: "inherit" },
     { cat: "Table", label: "Font size", name: "--sui-chart-table-font-size", type: "number", fallback: "11", min: 8, max: 20, step: 1, unit: "px" },
     { cat: "Table", label: "Cell padding", name: "--sui-chart-table-cell-padding", type: "text", fallback: "4px 6px" },
     { cat: "Table", label: "Header background", name: "--sui-chart-table-head-bg", type: "color", fallback: "#1e293b" },
     { cat: "Table", label: "Header text", name: "--sui-chart-table-head-fg", type: "color", fallback: "#f8fafc" },
+    { cat: "Table", label: "Header weight", name: "--sui-chart-table-head-weight", type: "number", fallback: "600", min: 100, max: 900, step: 100 },
+    { cat: "Table", label: "Sticky header", name: "--sui-chart-table-sticky-bg", type: "color", fallback: "#1e293b" },
     { cat: "Table", label: "Row background", name: "--sui-chart-table-row-bg", type: "color", fallback: "#0f172a" },
     { cat: "Table", label: "Row border", name: "--sui-chart-table-row-border", type: "color", fallback: "#334155" },
     { cat: "Table", label: "Stripe opacity", name: "--sui-chart-table-stripe-opacity", type: "number", fallback: "0.06", min: 0, max: 1, step: 0.05 },
     { cat: "Scrollbars", label: "Size", name: "--sui-chart-scroll-size", type: "number", fallback: "9", min: 4, max: 24, step: 1, unit: "px" },
     { cat: "Scrollbars", label: "Track", name: "--sui-chart-scroll-track", type: "color", fallback: "#0b1220" },
-    { cat: "Scrollbars", label: "Thumb", name: "--sui-chart-scroll-thumb", type: "color", fallback: "#64748b" }
+    { cat: "Scrollbars", label: "Thumb", name: "--sui-chart-scroll-thumb", type: "color", fallback: "#64748b" },
+    { cat: "Scrollbars", label: "Thumb radius", name: "--sui-chart-scroll-radius", type: "number", fallback: "6", min: 0, max: 20, step: 1, unit: "px" }
   ];
   function stateThemeComputed(root, name, fallback) {
     var value = "";
@@ -11074,6 +11093,16 @@ const suiChartRuntime = `(function(){
   function stateThemeFieldRaw(root, field) {
     if (field.composite === "borderWidth") return stateThemeBorderParts(root).width;
     if (field.composite === "borderColor") return stateThemeBorderParts(root).color;
+    if (field.name === "--sui-chart-head-min-height") {
+      var headHeight = stateThemeComputed(root, field.name, "");
+      if (headHeight) return headHeight;
+      var headEl = root && root.querySelector ? root.querySelector(".sui-chart-head") : null;
+      return headEl && headEl.offsetHeight ? String(headEl.offsetHeight) : field.fallback;
+    }
+    if (field.name === "--sui-chart-table-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-bg", field.fallback));
+    if (field.name === "--sui-chart-table-fg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-fg", field.fallback));
+    if (field.name === "--sui-chart-table-sticky-bg") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-table-head-bg", field.fallback));
+    if (field.name === "--sui-chart-table-font-family") return stateThemeComputed(root, field.name, stateThemeComputed(root, "--sui-chart-font", field.fallback));
     return stateThemeComputed(root, field.name, field.fallback);
   }
   function stateThemeFieldNumber(field, value) {
@@ -17001,6 +17030,31 @@ const suiChartRuntime = `(function(){
     addSubAction("TAGS", function() { openSub(function() { openStateTagFamilySettings(root); }, true); });
     addSubAction("HINTS", function() { openSub(function() { openStateHintSettings(root); }, true); });
     generic.appendChild(subRow);
+    var themeGrid = stateTagSection(generic, "Theme");
+    var presetOptions = STATE_THEME_PRESETS.map(function(preset) { return [preset.key, preset.label]; });
+    presetOptions.push(["custom", "Custom"]);
+    var presetSelect = stateTagFieldSelect(presetOptions, root.__suiStateThemeKey || "custom");
+    addField("Preset", presetSelect, themeGrid);
+    var editThemeButton = document.createElement("button");
+    editThemeButton.type = "button";
+    editThemeButton.className = "sui-chart-settings-action sui-chart-tag-field-wide";
+    editThemeButton.textContent = "Edit theme...";
+    editThemeButton.addEventListener("click", function() {
+      openSub(function() {
+        openStateThemeEditor(root, overlay, function() {
+          presetSelect.value = root.__suiStateThemeKey || "custom";
+        });
+      }, true);
+    });
+    addField("Theme editor", editThemeButton, themeGrid);
+    presetSelect.addEventListener("change", function() {
+      if (presetSelect.value === "custom") return;
+      var preset = stateThemePresetByKey(presetSelect.value);
+      if (!preset) return;
+      stateThemeApplyPreset(root, preset);
+      copyChartThemeVars(root, overlay);
+      draw(root);
+    });
     addAction(generic, "Save settings as default", function() {
       saveStateSettings(root, true);
       ganttAnnounce(root, "Diagram settings saved as default.");
@@ -17012,68 +17066,6 @@ const suiChartRuntime = `(function(){
       ganttAnnounce(root, "Diagram settings reset to the source values.");
       close();
     });
-    var styleTab = tabs.add("Style");
-    var styleHint = document.createElement("p");
-    styleHint.className = "sui-chart-calendar-hint sui-chart-tag-field-wide";
-    styleHint.textContent = "Theme presets and component styles. Shapes, links, tags, hints and grid style keep their own panels.";
-    styleTab.appendChild(styleHint);
-    var themeGrid = stateTagSection(styleTab, "Theme");
-    var presetOptions = STATE_THEME_PRESETS.map(function(preset) { return [preset.key, preset.label]; });
-    presetOptions.push(["custom", "Custom"]);
-    var presetSelect = stateTagFieldSelect(presetOptions, root.__suiStateThemeKey || "custom");
-    addField("Preset", presetSelect, themeGrid);
-    var themeControls = {};
-    var controlKey = function(field) { return field.name + "|" + (field.composite || ""); };
-    var refreshThemeControls = function() {
-      STATE_THEME_FIELDS.forEach(function(field) {
-        var control = themeControls[controlKey(field)];
-        if (!control) return;
-        var raw = stateThemeFieldRaw(root, field);
-        if (field.type === "number") stateTagFieldSetValue(control, stateThemeFieldNumber(field, raw));
-        else stateTagFieldSetValue(control, raw);
-      });
-      presetSelect.value = root.__suiStateThemeKey || "custom";
-    };
-    var themeCategories = {};
-    STATE_THEME_FIELDS.forEach(function(field) {
-      var grid = themeCategories[field.cat];
-      if (!grid) grid = themeCategories[field.cat] = stateTagSection(styleTab, field.cat);
-      var raw = stateThemeFieldRaw(root, field);
-      var control;
-      if (field.type === "color") control = stateTagFieldColor(raw, field.fallback, !!field.transparent);
-      else if (field.type === "number") control = stateTagFieldNumber(stateThemeFieldNumber(field, raw), field.min, field.max, field.step);
-      else control = stateTagFieldText(raw);
-      themeControls[controlKey(field)] = control;
-      stateTagBindField(control, function() {
-        if (field.composite === "borderWidth" || field.composite === "borderColor") {
-          var widthControl = themeControls["--sui-chart-border|borderWidth"];
-          var colorControl = themeControls["--sui-chart-border|borderColor"];
-          var width = Number(stateTagFieldValue(widthControl));
-          if (!isFinite(width)) width = 0;
-          var color = String(stateTagFieldValue(colorControl) || "#334155");
-          stateThemeSetVar(root, "--sui-chart-border", (width > 0 ? width + "px" : "0") + " solid " + color);
-        } else {
-          var value = stateThemeFieldValue(field, control);
-          if (field.type === "text" && !String(value).trim()) value = "";
-          stateThemeSetVar(root, field.name, value);
-        }
-        root.__suiStateThemeKey = "custom";
-        presetSelect.value = "custom";
-        copyChartThemeVars(root, overlay);
-        draw(root);
-      });
-      addField(field.label, control, grid);
-    });
-    presetSelect.addEventListener("change", function() {
-      if (presetSelect.value === "custom") return;
-      var preset = stateThemePresetByKey(presetSelect.value);
-      if (!preset) return;
-      stateThemeApplyPreset(root, preset);
-      refreshThemeControls();
-      copyChartThemeVars(root, overlay);
-      draw(root);
-    });
-    refreshThemeControls();
     var versions = tabs.add("Versions");
     var pending = statePendingChanges(root).length;
     var pendingHint = document.createElement("p");
@@ -17106,6 +17098,117 @@ const suiChartRuntime = `(function(){
     overlay.addEventListener("click", function(ev) { if (ev.target === overlay) close(); });
     overlay.addEventListener("keydown", function(ev) { if (ev.key === "Escape") close(); });
     var first = dialog.querySelector("button,input,select");
+    if (first) first.focus();
+  }
+  function openStateThemeEditor(root, settingsOverlay, onChange) {
+    var overlay = document.createElement("div");
+    overlay.className = "sui-chart-calendar-overlay";
+    copyChartThemeVars(root, overlay);
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Theme editor");
+    var dialog = document.createElement("div");
+    dialog.className = "sui-chart-calendar-dialog sui-chart-state-properties-dialog sui-chart-state-tag-dialog sui-chart-state-theme-dialog";
+    var title = document.createElement("h3");
+    title.textContent = "Theme editor";
+    dialog.appendChild(title);
+    var hint = document.createElement("p");
+    hint.className = "sui-chart-calendar-hint";
+    hint.textContent = "Styles for the graph control. Shapes, links, tags, hints and grid keep their own panels.";
+    dialog.appendChild(hint);
+    var fields = document.createElement("div");
+    fields.className = "sui-chart-tag-editor";
+    dialog.appendChild(fields);
+    var tabs = stateTagTabs(fields);
+    var grids = {};
+    ["Control", "Title", "Buttons", "Table", "Scrollbars"].forEach(function(cat) {
+      grids[cat] = tabs.add(cat);
+    });
+    var controls = {};
+    var controlKey = function(field) { return field.name + "|" + (field.composite || ""); };
+    var addField = function(grid, labelText, control) {
+      var row = document.createElement("label");
+      row.className = "sui-chart-setting-row";
+      var text = document.createElement("span");
+      text.className = "sui-chart-setting-label";
+      text.textContent = labelText;
+      row.appendChild(text);
+      stateTagFieldInputs(control).forEach(function(input) {
+        if (!input.getAttribute("aria-label")) input.setAttribute("aria-label", labelText);
+      });
+      var cell = document.createElement("span");
+      cell.className = "sui-chart-setting-control";
+      cell.appendChild(control);
+      row.appendChild(cell);
+      grid.appendChild(row);
+      return control;
+    };
+    var refresh = function() {
+      STATE_THEME_FIELDS.forEach(function(field) {
+        var control = controls[controlKey(field)];
+        if (!control) return;
+        var raw = stateThemeFieldRaw(root, field);
+        if (field.type === "number") stateTagFieldSetValue(control, stateThemeFieldNumber(field, raw));
+        else stateTagFieldSetValue(control, raw);
+      });
+    };
+    var apply = function() {
+      copyChartThemeVars(root, overlay);
+      if (settingsOverlay) copyChartThemeVars(root, settingsOverlay);
+      draw(root);
+      if (onChange) onChange();
+    };
+    STATE_THEME_FIELDS.forEach(function(field) {
+      var grid = grids[field.cat] || grids.Control;
+      var raw = stateThemeFieldRaw(root, field);
+      var control;
+      if (field.type === "color") control = stateTagFieldColor(raw, field.fallback, !!field.transparent);
+      else if (field.type === "number") control = stateTagFieldNumber(stateThemeFieldNumber(field, raw), field.min, field.max, field.step);
+      else control = stateTagFieldText(raw);
+      controls[controlKey(field)] = control;
+      stateTagBindField(control, function() {
+        if (field.composite === "borderWidth" || field.composite === "borderColor") {
+          var widthControl = controls["--sui-chart-border|borderWidth"];
+          var colorControl = controls["--sui-chart-border|borderColor"];
+          var width = Number(stateTagFieldValue(widthControl));
+          if (!isFinite(width)) width = 0;
+          var color = String(stateTagFieldValue(colorControl) || "#334155");
+          stateThemeSetVar(root, "--sui-chart-border", (width > 0 ? width + "px" : "0") + " solid " + color);
+        } else {
+          var value = stateThemeFieldValue(field, control);
+          if (field.type === "text" && !String(value).trim()) value = "";
+          stateThemeSetVar(root, field.name, value);
+        }
+        root.__suiStateThemeKey = "custom";
+        apply();
+      });
+      addField(grid, field.label, control);
+    });
+    refresh();
+    var actions = document.createElement("div");
+    actions.className = "sui-chart-calendar-actions";
+    var reset = document.createElement("button");
+    reset.type = "button";
+    reset.textContent = "Reset theme";
+    var done = document.createElement("button");
+    done.type = "button";
+    done.className = "primary";
+    done.textContent = "Close";
+    actions.appendChild(reset);
+    actions.appendChild(done);
+    dialog.appendChild(actions);
+    overlay.appendChild(dialog);
+    root.appendChild(overlay);
+    var close = function() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    reset.addEventListener("click", function() {
+      resetStateTheme(root);
+      refresh();
+      apply();
+    });
+    done.addEventListener("click", close);
+    overlay.addEventListener("click", function(ev) { if (ev.target === overlay) close(); });
+    overlay.addEventListener("keydown", function(ev) { if (ev.key === "Escape") close(); });
+    var first = dialog.querySelector("input,select,button");
     if (first) first.focus();
   }
   function openStateShapeSettings(root) {
