@@ -30,9 +30,22 @@ In the right-hand inspector the **Drag & drop** section uses these labels:
 `dropFiles` (drop files into state), `pickFiles` (choose files into state) and
 `pickMode` (picker API mode). The `onDrop` handler is selected in **Events**.
 
-## Code editor preferences
+## Editor preferences
 
-Open **Preferences → Editor settings…** to customize the SUI code editor:
+Open **Preferences → Editor preferences.** The panel is divided into tabs so the
+editor shell, the code editor, the SUI syntax, shortcuts and project files stay
+separate.
+
+### Interface
+
+| Setting | Default | Effect |
+|---|---|---|
+| Theme | Dark | Dark, Light or High contrast editor chrome |
+| Font size | 14 | Scales the whole editor UI |
+| Density | Comfortable | Comfortable or compact spacing |
+| Accent color | #4c5cf7 | Focus rings, selection and primary actions |
+| Panels | all visible except history | Show or hide Structure/Tokens, Inspector and Problems/History |
+| Reset toolbar order | - | Restores the default toolbar layout |
 
 ### General editor
 
@@ -44,8 +57,11 @@ Open **Preferences → Editor settings…** to customize the SUI code editor:
 | Tab size | 4 | Tab width in the overlay and textarea |
 | Word wrap | off | Wrap long lines in both layers |
 | Line numbers | on | Show the gutter |
+| Auto-close pairs | on | Insert the closing bracket or quote while typing |
+| Smart indent | on | Keep indentation on Enter and indent after an opening bracket |
+| Auto suggestions | on | Open the completion popup while typing; Ctrl+Space always works |
 
-### SUI code appearance
+### SUI code
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -64,10 +80,46 @@ syntax-highlight overlay and the transparent textarea, so the caret and the
 visible characters stay aligned. Syntax tokens only change colour; bold/italic
 styles are not applied to code tokens.
 
+### Editor tooltips
+
+Tooltips that describe buttons, fields and toolbar actions of the editor are
+configured in **General editor → Editor tooltips**. They are part of the editor
+chrome and never affect the generated app.
+
+| Setting | Default | Effect |
+|---|---|---|
+| Show tooltips | on | Enable the custom editor tooltip bubble |
+| Delay | 450 ms | Hover delay before the bubble appears |
+| Place | Auto | Top, right, bottom, left or automatic placement |
+| Max width | 320px | Maximum bubble width |
+| Font size | 12px | Bubble text size |
+| Background / text / border | dark palette | Bubble colours |
+| Radius | 6px | Bubble border radius |
+
+### Shortcuts
+
+The **Shortcuts** tab is a read-only reference. Use the search field to filter
+by action, key or group. It lists the designer, SUI editor, menu, structure and
+chart data shortcuts; shortcuts are not rebindable yet.
+
+### Files & history
+
+| Setting | Default | Effect |
+|---|---|---|
+| Automatic snapshots | on | Store a project version while the designer saves |
+| Interval | 60 s | Minimum time between automatic snapshots |
+| Versions kept | 30 | Automatic retention limit |
+| Snapshot now | - | Force a version immediately |
+| Open project history | - | Open the restore panel |
+| Clear history | - | Delete every saved version after confirmation |
+
+The tab also shows the data folder, the preferences file and the project file,
+with a copy button for each path. Automatic snapshot settings are stored in the
+editor preferences; the version files live under the data folder.
+
 Preferences are saved with the other designer preferences and persist across
 reloads. The general **Font size** setting scales the UI, while **Editor size**
 controls the code independently.
-
 ## Completion and indentation
 
 Press **Ctrl+Space** in the SUI editor to open the completion list at the caret.
@@ -1281,8 +1333,10 @@ The target receives `aria-describedby` while the bubble is visible; the bubble
 uses `role="tooltip"` and escaped text. Keyboard focus and `Escape` dismissal
 work automatically for focusable targets.
 
-Global appearance and behaviour are managed in **Preferences > Tooltip
-settings**:
+The tooltip style of the generated app is managed in **Preferences → Project
+preferences.** This panel writes `--sui-tooltip-*` into the project CSS. Editor
+tooltips are separate and live in **Preferences → Editor preferences → General
+editor**.
 
 | Setting | Meaning |
 |---|---|

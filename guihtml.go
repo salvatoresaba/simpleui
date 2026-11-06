@@ -356,14 +356,41 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 /* preferences modal */
 #pref { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
 #pref.on { display:flex; }
-#prefbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:18px 20px; width:420px; max-width:92vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
-#prefbox h2 { font-size:15px; margin:0 0 12px; }
+#prefbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:660px; max-width:94vw; max-height:92vh; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); display:flex; flex-direction:column; }
+.pref-head { display:flex; align-items:center; gap:10px; padding:16px 20px 10px; }
+.pref-head h2 { font-size:15px; margin:0; flex:1; }
+.pref-tabs { display:flex; align-items:flex-end; gap:2px; padding:0 14px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.pref-tab { background:transparent; color:var(--muted); border:1px solid transparent; border-bottom:2px solid transparent; border-radius:6px 6px 0 0; padding:8px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
+.pref-tab:hover { color:var(--fg); background:rgba(148,163,184,.08); }
+.pref-tab.on { color:var(--fg); border-bottom-color:var(--accent); background:rgba(148,163,184,.10); }
+.pref-tab:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.pref-body { padding:14px 20px 4px; overflow:auto; min-height:320px; max-height:60vh; }
+.pref-pane { display:none; }
+.pref-pane.on { display:block; }
 .pfsec { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:16px 0 6px; padding-top:10px; border-top:1px solid var(--border); }
-.pfrow input[type=checkbox] { flex:none; }
 .pfrow { display:flex; align-items:center; gap:10px; margin:10px 0; }
 .pfrow label { font-size:13px; width:120px; flex:none; color:var(--muted); }
 .pfrow select, .pfrow input[type=range] { flex:1; font-size:13px; }
+.pfrow input[type=checkbox] { flex:none; }
+#prefbox .pfsec:first-child { margin-top:0; padding-top:0; border-top:0; }
+#prefbox .pfrow label { width:150px; }
+#prefbox .pfrow input[type=text], #prefbox .pfrow input[type=number] { flex:1; min-width:0; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
+#prefbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; flex:none; }
+#prefbox .pfrow input[readonly] { color:var(--muted); }
 .pfbtns { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+#prefbox .pfbtns { margin:0; padding:12px 20px 16px; border-top:1px solid var(--border); }
+.pf-actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; }
+.pf-actions .btn { font-size:12px; }
+.pf-tip-preview { margin:12px 0 4px; max-width:320px; padding:6px 8px; border:1px solid var(--edtip-border,#3a4152); border-radius:var(--edtip-radius,6px); background:var(--edtip-bg,#1d2129); color:var(--edtip-fg,#e6e6ef); font-size:var(--edtip-font-size,12px); line-height:1.4; white-space:pre-line; box-shadow:0 6px 20px rgba(0,0,0,.3); }
+.sc-group { margin:0 0 14px; }
+.sc-group h4 { margin:0 0 6px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+.sc-row { display:flex; align-items:baseline; gap:12px; padding:5px 0; border-top:1px solid var(--border); font-size:12.5px; }
+.sc-row:first-of-type { border-top:0; }
+.sc-row kbd { flex:none; min-width:150px; font-family:ui-monospace, Consolas, monospace; font-size:11.5px; color:var(--fg); background:var(--input-bg); border:1px solid var(--border2); border-bottom-width:2px; border-radius:4px; padding:2px 6px; }
+.sc-row span { color:var(--muted); }
+.sc-empty { color:var(--muted); font-size:12px; padding:10px 0; }
+#edtip { position:fixed; z-index:100; max-width:var(--edtip-max-width,320px); padding:6px 8px; border:1px solid var(--edtip-border,#3a4152); border-radius:var(--edtip-radius,6px); background:var(--edtip-bg,#1d2129); color:var(--edtip-fg,#e6e6ef); font-size:var(--edtip-font-size,12px); line-height:1.4; white-space:pre-line; box-shadow:0 6px 20px rgba(0,0,0,.35); pointer-events:none; opacity:0; transition:opacity .08s ease; }
+#edtip.on { opacity:1; }
 
 /* tooltip global settings modal */
 #ttcfg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
@@ -668,8 +695,8 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   <div class="menu" data-menu="prefs">
     <span class="mitem">Preferences</span>
     <div class="drop" id="drop-prefs">
-      <div class="mi" onclick="openPrefs()">Editor settings…</div>
-      <div class="mi" onclick="openTooltipCfg()">Tooltip settings.</div>
+      <div class="mi" onclick="openPrefs()">Editor preferences.</div>
+      <div class="mi" onclick="openTooltipCfg()">Project preferences.</div>
       <div class="dropsep"></div>
       <div class="mi" id="probbtn" onclick="toggleBottom()">Problems panel</div>
     </div>
@@ -870,55 +897,115 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   </div>
 </div>
 <div id="pref">
-  <div id="prefbox">
-    <h2>Preferences</h2>
-    <div class="pfsec">Interface</div>
-    <div class="pfrow"><label>Theme</label><select id="pf-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></div>
-    <div class="pfrow"><label>Font size</label><input type="range" id="pf-size" min="12" max="20" value="14"></div>
-    <div class="pfrow"><label>Density</label><select id="pf-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>
-    <div class="pfrow"><label>Accent color</label><input type="color" id="pf-accent" value="#4c5cf7"></div>
-    <div class="pfrow"><label>Toolbars</label>
-      <span style="display:flex;flex-direction:column;gap:4px;font-size:12px">
-        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="pf-left"> Structure / Tokens</label>
-        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="pf-right"> Inspector</label>
-        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="pf-bottom"> Problems / History</label>
-      </span>
+  <div id="prefbox" role="dialog" aria-modal="true" aria-labelledby="pref-title">
+    <div class="pref-head">
+      <h2 id="pref-title">Editor preferences</h2>
+      <button class="btn" type="button" onclick="closePrefs()" aria-label="Close preferences" title="Close">&#10005;</button>
     </div>
-    <div class="pfsec">General editor</div>
-    <div class="pfrow"><label>Font family</label>
-      <select id="pf-editor-font">
-        <option value="ui-monospace, Consolas, Menlo, monospace">System monospace</option>
-        <option value="'Cascadia Code', 'Cascadia Mono', Consolas, monospace">Cascadia Code</option>
-        <option value="'Fira Code', Consolas, monospace">Fira Code</option>
-        <option value="'JetBrains Mono', Consolas, monospace">JetBrains Mono</option>
-        <option value="Consolas, 'Courier New', monospace">Consolas</option>
-        <option value="'Courier New', Courier, monospace">Courier New</option>
-        <option value="monospace">Browser monospace</option>
-        <option value="__custom__">Custom…</option>
-      </select>
+    <div class="pref-tabs" id="pref-tabs" role="tablist" aria-label="Editor preferences">
+      <button class="pref-tab on" type="button" role="tab" id="pref-tab-interface" aria-controls="pref-pane-interface" aria-selected="true" onclick="showPrefTab('interface')">Interface</button>
+      <button class="pref-tab" type="button" role="tab" id="pref-tab-editor" aria-controls="pref-pane-editor" aria-selected="false" tabindex="-1" onclick="showPrefTab('editor')">General editor</button>
+      <button class="pref-tab" type="button" role="tab" id="pref-tab-sui" aria-controls="pref-pane-sui" aria-selected="false" tabindex="-1" onclick="showPrefTab('sui')">SUI code</button>
+      <button class="pref-tab" type="button" role="tab" id="pref-tab-shortcuts" aria-controls="pref-pane-shortcuts" aria-selected="false" tabindex="-1" onclick="showPrefTab('shortcuts')">Shortcuts</button>
+      <button class="pref-tab" type="button" role="tab" id="pref-tab-history" aria-controls="pref-pane-history" aria-selected="false" tabindex="-1" onclick="showPrefTab('history')">Files &amp; history</button>
     </div>
-    <div class="pfrow"><label>Custom font</label><input type="text" id="pf-editor-font-custom" placeholder="'My Mono', monospace"></div>
-    <div class="pfrow"><label>Editor size</label><input type="range" id="pf-editor-size" min="12" max="28" value="16"></div>
-    <div class="pfrow"><label>Line height</label><input type="range" id="pf-editor-lh" min="1.2" max="2.1" step="0.05" value="1.6"></div>
-    <div class="pfrow"><label>Tab size</label><select id="pf-editor-tab"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></div>
-    <div class="pfrow"><label>Word wrap</label><input type="checkbox" id="pf-editor-wrap"></div>
-    <div class="pfrow"><label>Line numbers</label><input type="checkbox" id="pf-editor-lines" checked></div>
-    <div class="pfsec">SUI code appearance</div>
-    <div class="pfrow"><label>Syntax colors</label><input type="checkbox" id="pf-editor-syntax" checked></div>
-    <div class="pfrow"><label>Bracket match</label><input type="checkbox" id="pf-editor-brackets" checked></div>
-    <div class="pfrow"><label>Selected line</label><input type="checkbox" id="pf-editor-linehl" checked></div>
+    <div class="pref-body">
+      <section class="pref-pane on" id="pref-pane-interface" role="tabpanel" aria-labelledby="pref-tab-interface">
+        <div class="pfsec">Appearance</div>
+        <div class="pfrow"><label>Theme</label><select id="pf-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></div>
+        <div class="pfrow"><label>Font size</label><input type="range" id="pf-size" min="12" max="20" value="14"></div>
+        <div class="pfrow"><label>Density</label><select id="pf-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>
+        <div class="pfrow"><label>Accent color</label><input type="color" id="pf-accent" value="#4c5cf7"></div>
+        <div class="pfsec">Layout</div>
+        <div class="pfrow"><label>Panels</label>
+          <span style="display:flex;flex-direction:column;gap:4px;font-size:12px">
+            <label style="display:flex;align-items:center;gap:6px;width:auto"><input type="checkbox" id="pf-left"> Structure / Tokens</label>
+            <label style="display:flex;align-items:center;gap:6px;width:auto"><input type="checkbox" id="pf-right"> Inspector</label>
+            <label style="display:flex;align-items:center;gap:6px;width:auto"><input type="checkbox" id="pf-bottom"> Problems / History</label>
+          </span>
+        </div>
+        <div class="pfrow"><label>Toolbars</label><button class="btn" type="button" style="font-size:12px" onclick="resetBarOrder()">Reset toolbar order</button></div>
+      </section>
+      <section class="pref-pane" id="pref-pane-editor" role="tabpanel" aria-labelledby="pref-tab-editor">
+        <div class="pfsec">Code editor</div>
+        <div class="pfrow"><label>Font family</label>
+          <select id="pf-editor-font">
+            <option value="ui-monospace, Consolas, Menlo, monospace">System monospace</option>
+            <option value="'Cascadia Code', 'Cascadia Mono', Consolas, monospace">Cascadia Code</option>
+            <option value="'Fira Code', Consolas, monospace">Fira Code</option>
+            <option value="'JetBrains Mono', Consolas, monospace">JetBrains Mono</option>
+            <option value="Consolas, 'Courier New', monospace">Consolas</option>
+            <option value="'Courier New', Courier, monospace">Courier New</option>
+            <option value="monospace">Browser monospace</option>
+            <option value="__custom__">Custom.</option>
+          </select>
+        </div>
+        <div class="pfrow"><label>Custom font</label><input type="text" id="pf-editor-font-custom" placeholder="'My Mono', monospace"></div>
+        <div class="pfrow"><label>Editor size</label><input type="range" id="pf-editor-size" min="12" max="28" value="16"></div>
+        <div class="pfrow"><label>Line height</label><input type="range" id="pf-editor-lh" min="1.2" max="2.1" step="0.05" value="1.6"></div>
+        <div class="pfrow"><label>Tab size</label><select id="pf-editor-tab"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></div>
+        <div class="pfrow"><label>Word wrap</label><input type="checkbox" id="pf-editor-wrap"></div>
+        <div class="pfrow"><label>Line numbers</label><input type="checkbox" id="pf-editor-lines" checked></div>
+        <div class="pfsec">Editing</div>
+        <div class="pfrow"><label>Auto-close pairs</label><input type="checkbox" id="pf-editor-autoclose" checked></div>
+        <div class="pfrow"><label>Smart indent</label><input type="checkbox" id="pf-editor-smartindent" checked></div>
+        <div class="pfrow"><label>Auto suggestions</label><input type="checkbox" id="pf-editor-completion" checked></div>
+        <div class="pfsec">Editor tooltips</div>
+        <div class="pfrow"><label>Show tooltips</label><input type="checkbox" id="pf-tip-enabled" checked></div>
+        <div class="pfrow"><label>Delay (ms)</label><input type="number" id="pf-tip-delay" min="0" max="3000" step="50" value="450"></div>
+        <div class="pfrow"><label>Place</label><select id="pf-tip-place"><option value="auto">Auto</option><option value="top">Top</option><option value="right">Right</option><option value="bottom">Bottom</option><option value="left">Left</option></select></div>
+        <div class="pfrow"><label>Max width</label><input type="text" id="pf-tip-maxwidth" value="320px" placeholder="320px" oninput="updatePrefTipPreview()"></div>
+        <div class="pfrow"><label>Font size</label><input type="number" id="pf-tip-fontsize" min="9" max="20" step="1" value="12" oninput="updatePrefTipPreview()"></div>
+        <div class="pfrow"><label>Background</label><input type="color" id="pf-tip-bg" value="#1d2129" oninput="updatePrefTipPreview()"></div>
+        <div class="pfrow"><label>Text color</label><input type="color" id="pf-tip-fg" value="#e6e6ef" oninput="updatePrefTipPreview()"></div>
+        <div class="pfrow"><label>Border color</label><input type="color" id="pf-tip-border" value="#3a4152" oninput="updatePrefTipPreview()"></div>
+        <div class="pfrow"><label>Radius</label><input type="text" id="pf-tip-radius" value="6px" placeholder="6px" oninput="updatePrefTipPreview()"></div>
+        <div class="hint">Tooltips describe buttons, fields and toolbar actions of the editor. They are not part of the generated app.</div>
+        <div id="pf-tip-preview">Editor tooltip preview</div>
+      </section>
+      <section class="pref-pane" id="pref-pane-sui" role="tabpanel" aria-labelledby="pref-tab-sui">
+        <div class="pfsec">SUI code appearance</div>
+        <div class="pfrow"><label>Syntax colors</label><input type="checkbox" id="pf-editor-syntax" checked></div>
+        <div class="pfrow"><label>Bracket match</label><input type="checkbox" id="pf-editor-brackets" checked></div>
+        <div class="pfrow"><label>Selected line</label><input type="checkbox" id="pf-editor-linehl" checked></div>
+        <div class="hint">Functions and calls are gold; states, parameters and loop variables are cyan. Colours apply to declarations, references and interpolations without changing character metrics.</div>
+      </section>
+      <section class="pref-pane" id="pref-pane-shortcuts" role="tabpanel" aria-labelledby="pref-tab-shortcuts">
+        <div class="pfrow"><label>Search</label><input type="text" id="pf-shortcut-search" placeholder="Filter shortcuts..." oninput="renderShortcutList()"></div>
+        <div class="hint">Read-only reference for the current editor shortcuts.</div>
+        <div id="pf-shortcut-list"></div>
+      </section>
+      <section class="pref-pane" id="pref-pane-history" role="tabpanel" aria-labelledby="pref-tab-history">
+        <div class="pfsec">Snapshots</div>
+        <div class="pfrow"><label>Automatic snapshots</label><input type="checkbox" id="pf-hist-auto" checked></div>
+        <div class="pfrow"><label>Interval (seconds)</label><input type="number" id="pf-hist-interval" min="15" max="3600" step="15" value="60"></div>
+        <div class="pfrow"><label>Versions kept</label><input type="number" id="pf-hist-keep" min="5" max="500" step="5" value="30"></div>
+        <div class="hint">Automatic snapshots are throttled to the interval while the project is saved. Manual snapshots are always kept.</div>
+        <div class="pf-actions">
+          <button class="btn" type="button" onclick="snapshotNow()">Snapshot now</button>
+          <button class="btn" type="button" onclick="openHistoryFromPrefs()">Open project history</button>
+          <button class="btn" type="button" onclick="clearProjectHistory()">Clear history</button>
+        </div>
+        <div class="pfsec">Files</div>
+        <div class="pfrow"><label>Data folder</label><input type="text" id="pf-data-dir" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-data-dir')">Copy</button></div>
+        <div class="pfrow"><label>Preferences file</label><input type="text" id="pf-prefs-path" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-prefs-path')">Copy</button></div>
+        <div class="pfrow"><label>Project file</label><input type="text" id="pf-project-path" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-project-path')">Copy</button></div>
+      </section>
+    </div>
     <div class="pfbtns">
-      <button class="btn" onclick="resetPrefs()">Reset defaults</button>
+      <button class="btn" type="button" onclick="resetPrefs()">Reset defaults</button>
       <span style="flex:1"></span>
-      <button class="btn" onclick="closePrefs()">Cancel</button>
-      <button class="btn" onclick="applyPrefs()">Apply</button>
+      <button class="btn" type="button" onclick="closePrefs()">Cancel</button>
+      <button class="btn" type="button" onclick="applyPrefs()">Apply</button>
     </div>
   </div>
 </div>
+<div id="edtip" role="tooltip" aria-hidden="true"></div>
 <div id="ttcfg">
   <div id="ttcfgbox">
-    <h2>Tooltip settings</h2>
-    <div class="hint">Global defaults for every element with a tooltip property.</div>
+    <h2>Project preferences</h2>
+    <div class="hint">Global defaults for every element of the generated app with a tooltip property. These values are written into the project CSS, not into the editor preferences.</div>
+    <div class="pfsec">Tooltip settings</div>
     <div class="pfrow"><label>Place</label><select id="tt-place">
       <option value="top">top</option><option value="right">right</option><option value="bottom">bottom</option><option value="left">left</option>
     </select></div>
@@ -1402,7 +1489,13 @@ var PREF_DEFAULTS = {
   editorFont: "ui-monospace, Consolas, Menlo, monospace",
   editorSize: 16, editorLineHeight: 1.6, editorTabSize: 4,
   editorWrap: false, editorLineNumbers: true,
-  editorSyntaxColors: true, editorBracketMatch: true, editorSelectedLine: false
+  editorSyntaxColors: true, editorBracketMatch: true, editorSelectedLine: false,
+  editorAutoClose: true, editorSmartIndent: true, editorCompletion: true,
+  editorTipEnabled: true, editorTipDelay: 450, editorTipPlace: "auto",
+  editorTipMaxWidth: "320px", editorTipFontSize: 12,
+  editorTipBg: "#1d2129", editorTipFg: "#e6e6ef",
+  editorTipBorder: "#3a4152", editorTipRadius: "6px",
+  historyAuto: true, historyInterval: 60, historyKeep: 30
 };
 var prefs = Object.assign({}, PREF_DEFAULTS);
 
@@ -10310,7 +10403,23 @@ function loadRemotePrefs() {
     prefs.editorSyntaxColors = p.editorSyntaxColors !== undefined ? p.editorSyntaxColors : PREF_DEFAULTS.editorSyntaxColors;
     prefs.editorBracketMatch = p.editorBracketMatch !== undefined ? p.editorBracketMatch : PREF_DEFAULTS.editorBracketMatch;
     prefs.editorSelectedLine = p.editorSelectedLine !== undefined ? p.editorSelectedLine : PREF_DEFAULTS.editorSelectedLine;
+    prefs.editorAutoClose = p.editorAutoClose !== undefined ? !!p.editorAutoClose : PREF_DEFAULTS.editorAutoClose;
+    prefs.editorSmartIndent = p.editorSmartIndent !== undefined ? !!p.editorSmartIndent : PREF_DEFAULTS.editorSmartIndent;
+    prefs.editorCompletion = p.editorCompletion !== undefined ? !!p.editorCompletion : PREF_DEFAULTS.editorCompletion;
+    prefs.editorTipEnabled = p.editorTipEnabled !== undefined ? !!p.editorTipEnabled : PREF_DEFAULTS.editorTipEnabled;
+    prefs.editorTipDelay = prefNumber(p.editorTipDelay, PREF_DEFAULTS.editorTipDelay, 0, 3000);
+    prefs.editorTipPlace = ["auto", "top", "right", "bottom", "left"].indexOf(p.editorTipPlace) >= 0 ? p.editorTipPlace : PREF_DEFAULTS.editorTipPlace;
+    prefs.editorTipMaxWidth = normLen(p.editorTipMaxWidth) || PREF_DEFAULTS.editorTipMaxWidth;
+    prefs.editorTipFontSize = prefNumber(p.editorTipFontSize, PREF_DEFAULTS.editorTipFontSize, 9, 20);
+    prefs.editorTipBg = prefColor(p.editorTipBg, PREF_DEFAULTS.editorTipBg);
+    prefs.editorTipFg = prefColor(p.editorTipFg, PREF_DEFAULTS.editorTipFg);
+    prefs.editorTipBorder = prefColor(p.editorTipBorder, PREF_DEFAULTS.editorTipBorder);
+    prefs.editorTipRadius = normLen(p.editorTipRadius) || PREF_DEFAULTS.editorTipRadius;
+    prefs.historyAuto = p.historyAuto !== undefined ? !!p.historyAuto : PREF_DEFAULTS.historyAuto;
+    prefs.historyInterval = prefNumber(p.historyInterval, PREF_DEFAULTS.historyInterval, 15, 3600);
+    prefs.historyKeep = prefNumber(p.historyKeep, PREF_DEFAULTS.historyKeep, 5, 500);
     applyEditorPrefs();
+    applyEditorTipPrefs();
     prefs.palette = (p.palette && p.palette.length) ? p.palette.slice() : [];
     palColors = prefs.palette;
     renderPalStrips();
@@ -11309,7 +11418,8 @@ function applyTooltipCfg() {
   setOut();
   autoPreview();
 }
-function openPrefs() {
+var prefActiveTab = "interface";
+function fillPrefsForm() {
   var p = prefs;
   document.getElementById("pf-theme").value = p.theme;
   document.getElementById("pf-size").value = p.font;
@@ -11332,12 +11442,86 @@ function openPrefs() {
   document.getElementById("pf-editor-tab").value = String(p.editorTabSize);
   document.getElementById("pf-editor-wrap").checked = !!p.editorWrap;
   document.getElementById("pf-editor-lines").checked = p.editorLineNumbers !== false;
+  document.getElementById("pf-editor-autoclose").checked = p.editorAutoClose !== false;
+  document.getElementById("pf-editor-smartindent").checked = p.editorSmartIndent !== false;
+  document.getElementById("pf-editor-completion").checked = p.editorCompletion !== false;
   document.getElementById("pf-editor-syntax").checked = p.editorSyntaxColors !== false;
   document.getElementById("pf-editor-brackets").checked = p.editorBracketMatch !== false;
   document.getElementById("pf-editor-linehl").checked = p.editorSelectedLine !== false;
-  document.getElementById("pref").classList.add("on");
+  document.getElementById("pf-tip-enabled").checked = p.editorTipEnabled !== false;
+  document.getElementById("pf-tip-delay").value = p.editorTipDelay;
+  document.getElementById("pf-tip-place").value = p.editorTipPlace;
+  document.getElementById("pf-tip-maxwidth").value = p.editorTipMaxWidth;
+  document.getElementById("pf-tip-fontsize").value = p.editorTipFontSize;
+  document.getElementById("pf-tip-bg").value = p.editorTipBg;
+  document.getElementById("pf-tip-fg").value = p.editorTipFg;
+  document.getElementById("pf-tip-border").value = p.editorTipBorder;
+  document.getElementById("pf-tip-radius").value = p.editorTipRadius;
+  document.getElementById("pf-hist-auto").checked = p.historyAuto !== false;
+  document.getElementById("pf-hist-interval").value = p.historyInterval;
+  document.getElementById("pf-hist-keep").value = p.historyKeep;
+  updatePrefTipPreview();
 }
-function closePrefs() { document.getElementById("pref").classList.remove("on"); }
+function openPrefs() {
+  fillPrefsForm();
+  renderShortcutList();
+  showPrefTab(prefActiveTab || "interface");
+  loadPrefsPaths();
+  document.getElementById("pref").classList.add("on");
+  var active = document.getElementById("pref-tab-" + (prefActiveTab || "interface"));
+  if (active) active.focus();
+}
+function closePrefs() {
+  document.getElementById("pref").classList.remove("on");
+  editorTipHide();
+}
+function showPrefTab(name) {
+  var ids = ["interface", "editor", "sui", "shortcuts", "history"];
+  if (ids.indexOf(name) < 0) name = "interface";
+  prefActiveTab = name;
+  for (var i = 0; i < ids.length; i++) {
+    var on = ids[i] === name;
+    var tab = document.getElementById("pref-tab-" + ids[i]);
+    var pane = document.getElementById("pref-pane-" + ids[i]);
+    if (tab) {
+      tab.classList.toggle("on", on);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+      tab.tabIndex = on ? 0 : -1;
+    }
+    if (pane) pane.classList.toggle("on", on);
+  }
+  if (name === "shortcuts") renderShortcutList();
+  if (name === "history") loadPrefsPaths();
+}
+(function wirePrefTabs() {
+  var tabs = document.getElementById("pref-tabs");
+  var pref = document.getElementById("pref");
+  if (pref) pref.addEventListener("mousedown", function(ev) {
+    if (ev.target === pref) closePrefs();
+  });
+  if (tabs) tabs.addEventListener("keydown", function(ev) {
+    var ids = ["interface", "editor", "sui", "shortcuts", "history"];
+    var current = ev.target && ev.target.closest ? ev.target.closest(".pref-tab") : null;
+    var idx = current ? ids.indexOf(current.id.replace("pref-tab-", "")) : ids.indexOf(prefActiveTab);
+    if (idx < 0) idx = 0;
+    if (ev.key === "ArrowRight") idx = (idx + 1) % ids.length;
+    else if (ev.key === "ArrowLeft") idx = (idx - 1 + ids.length) % ids.length;
+    else if (ev.key === "Home") idx = 0;
+    else if (ev.key === "End") idx = ids.length - 1;
+    else return;
+    ev.preventDefault();
+    showPrefTab(ids[idx]);
+    var tab = document.getElementById("pref-tab-" + ids[idx]);
+    if (tab) tab.focus();
+  });
+  document.addEventListener("keydown", function(ev) {
+    if (ev.key !== "Escape") return;
+    var box = document.getElementById("pref");
+    if (!box || !box.classList.contains("on")) return;
+    if (ev.target && ev.target.closest && ev.target.closest(".cpop")) return;
+    closePrefs();
+  });
+})();
 
 // ---- styled prompt modal --------------------------------------------------
 // askPrompt replaces window.prompt so editor-facing questions (rename, new
@@ -11436,38 +11620,311 @@ function applyPrefs() {
   prefs.editorTabSize = parseInt(document.getElementById("pf-editor-tab").value, 10) || 4;
   prefs.editorWrap = document.getElementById("pf-editor-wrap").checked;
   prefs.editorLineNumbers = document.getElementById("pf-editor-lines").checked;
+  prefs.editorAutoClose = document.getElementById("pf-editor-autoclose").checked;
+  prefs.editorSmartIndent = document.getElementById("pf-editor-smartindent").checked;
+  prefs.editorCompletion = document.getElementById("pf-editor-completion").checked;
   prefs.editorSyntaxColors = document.getElementById("pf-editor-syntax").checked;
   prefs.editorBracketMatch = document.getElementById("pf-editor-brackets").checked;
   prefs.editorSelectedLine = document.getElementById("pf-editor-linehl").checked;
+  prefs.editorTipEnabled = document.getElementById("pf-tip-enabled").checked;
+  prefs.editorTipDelay = prefNumber(document.getElementById("pf-tip-delay").value, 450, 0, 3000);
+  var tipPlace = document.getElementById("pf-tip-place").value;
+  prefs.editorTipPlace = ["auto", "top", "right", "bottom", "left"].indexOf(tipPlace) >= 0 ? tipPlace : "auto";
+  prefs.editorTipMaxWidth = normLen(document.getElementById("pf-tip-maxwidth").value) || "320px";
+  prefs.editorTipFontSize = prefNumber(document.getElementById("pf-tip-fontsize").value, 12, 9, 20);
+  prefs.editorTipBg = prefColor(document.getElementById("pf-tip-bg").value, "#1d2129");
+  prefs.editorTipFg = prefColor(document.getElementById("pf-tip-fg").value, "#e6e6ef");
+  prefs.editorTipBorder = prefColor(document.getElementById("pf-tip-border").value, "#3a4152");
+  prefs.editorTipRadius = normLen(document.getElementById("pf-tip-radius").value) || "6px";
+  prefs.historyAuto = document.getElementById("pf-hist-auto").checked;
+  prefs.historyInterval = prefNumber(document.getElementById("pf-hist-interval").value, 60, 15, 3600);
+  prefs.historyKeep = prefNumber(document.getElementById("pf-hist-keep").value, 30, 5, 500);
   savePrefs();
   closePrefs();
   applyTheme();
   applyPanelVisibility();
+  applyEditorTipPrefs();
 }
 
 function resetPrefs() {
   prefs = Object.assign({}, PREF_DEFAULTS);
   savePrefs();
-  document.getElementById("pf-theme").value = prefs.theme;
-  document.getElementById("pf-size").value = prefs.font;
-  document.getElementById("pf-density").value = prefs.density;
-  document.getElementById("pf-accent").value = prefs.accent;
-  document.getElementById("pf-left").checked = prefs.showLeft;
-  document.getElementById("pf-right").checked = prefs.showRight;
-  document.getElementById("pf-bottom").checked = prefs.showBottom;
-  document.getElementById("pf-editor-font").value = "__custom__";
-  document.getElementById("pf-editor-font-custom").value = prefs.editorFont;
-  document.getElementById("pf-editor-size").value = prefs.editorSize;
-  document.getElementById("pf-editor-lh").value = prefs.editorLineHeight;
-  document.getElementById("pf-editor-tab").value = String(prefs.editorTabSize);
-  document.getElementById("pf-editor-wrap").checked = prefs.editorWrap;
-  document.getElementById("pf-editor-lines").checked = prefs.editorLineNumbers;
-  document.getElementById("pf-editor-syntax").checked = prefs.editorSyntaxColors;
-  document.getElementById("pf-editor-brackets").checked = prefs.editorBracketMatch;
-  document.getElementById("pf-editor-linehl").checked = prefs.editorSelectedLine;
+  fillPrefsForm();
   applyTheme();
   applyPanelVisibility();
+  applyBarOrder();
+  applyEditorTipPrefs();
 }
+
+function resetBarOrder() {
+  prefs.barOrder = PREF_DEFAULTS.barOrder.slice();
+  savePrefs();
+  applyBarOrder();
+  setStatus("toolbar order reset");
+}
+
+var EDITOR_SHORTCUTS = [
+  { g: "General", k: "Ctrl+Z / Ctrl+U", d: "Undo the last designer change" },
+  { g: "General", k: "Ctrl+Y / Ctrl+Shift+Z", d: "Redo the last undone change" },
+  { g: "General", k: "Ctrl+C", d: "Copy the selected element" },
+  { g: "General", k: "Ctrl+X", d: "Cut the selected element" },
+  { g: "General", k: "Ctrl+V", d: "Paste an element" },
+  { g: "General", k: "Delete / Backspace", d: "Delete the selected element" },
+  { g: "General", k: "Type a character", d: "Edit the selected element text" },
+  { g: "General", k: "Escape", d: "Close a popup, menu or dialog" },
+  { g: "SUI editor", k: "Ctrl+Space", d: "Open the completion list" },
+  { g: "SUI editor", k: "Ctrl+/", d: "Toggle a line comment" },
+  { g: "SUI editor", k: "Arrow Up / Arrow Down", d: "Move in the completion list" },
+  { g: "SUI editor", k: "Enter / Tab", d: "Insert the highlighted completion" },
+  { g: "SUI editor", k: "Escape", d: "Close completion or snippet menu" },
+  { g: "SUI editor", k: "Tab", d: "Indent the selection" },
+  { g: "Structure", k: "F2", d: "Rename the selected tree item" },
+  { g: "Structure", k: "Enter / Escape", d: "Confirm or cancel an inline rename" },
+  { g: "Menus", k: "Arrow Up / Arrow Down", d: "Move through the open menu" },
+  { g: "Menus", k: "Arrow Right / Arrow Left", d: "Enter or leave a submenu" },
+  { g: "Chart data", k: "Ctrl+Enter", d: "Apply the chart data overlay" },
+  { g: "Chart data", k: "Tab", d: "Insert two spaces in the data editor" }
+];
+function renderShortcutList() {
+  var box = document.getElementById("pf-shortcut-list");
+  if (!box) return;
+  var search = document.getElementById("pf-shortcut-search");
+  var q = (search && search.value ? search.value : "").toLowerCase();
+  box.textContent = "";
+  var groups = [], map = {};
+  for (var i = 0; i < EDITOR_SHORTCUTS.length; i++) {
+    var item = EDITOR_SHORTCUTS[i];
+    var hay = (item.g + " " + item.k + " " + item.d).toLowerCase();
+    if (q && hay.indexOf(q) < 0) continue;
+    if (!map[item.g]) { map[item.g] = []; groups.push(item.g); }
+    map[item.g].push(item);
+  }
+  if (!groups.length) {
+    var empty = document.createElement("div");
+    empty.className = "sc-empty";
+    empty.textContent = "No shortcuts match.";
+    box.appendChild(empty);
+    return;
+  }
+  for (var gi = 0; gi < groups.length; gi++) {
+    var group = document.createElement("div");
+    group.className = "sc-group";
+    var head = document.createElement("h4");
+    head.textContent = groups[gi];
+    group.appendChild(head);
+    var items = map[groups[gi]];
+    for (var ii = 0; ii < items.length; ii++) {
+      var row = document.createElement("div");
+      row.className = "sc-row";
+      var keys = document.createElement("kbd");
+      keys.textContent = items[ii].k;
+      row.appendChild(keys);
+      var desc = document.createElement("span");
+      desc.textContent = items[ii].d;
+      row.appendChild(desc);
+      group.appendChild(row);
+    }
+    box.appendChild(group);
+  }
+}
+
+function applyEditorTipPrefs() {
+  if (prefs.editorTipEnabled === false) editorTipHide();
+  var r = document.documentElement.style;
+  r.setProperty("--edtip-bg", prefColor(prefs.editorTipBg, "#1d2129"));
+  r.setProperty("--edtip-fg", prefColor(prefs.editorTipFg, "#e6e6ef"));
+  r.setProperty("--edtip-border", prefColor(prefs.editorTipBorder, "#3a4152"));
+  r.setProperty("--edtip-radius", normLen(prefs.editorTipRadius) || "6px");
+  r.setProperty("--edtip-max-width", normLen(prefs.editorTipMaxWidth) || "320px");
+  r.setProperty("--edtip-font-size", prefNumber(prefs.editorTipFontSize, 12, 9, 20) + "px");
+}
+function updatePrefTipPreview() {
+  var pv = document.getElementById("pf-tip-preview");
+  if (!pv) return;
+  var bg = document.getElementById("pf-tip-bg");
+  var fg = document.getElementById("pf-tip-fg");
+  var bd = document.getElementById("pf-tip-border");
+  var rd = document.getElementById("pf-tip-radius");
+  var mw = document.getElementById("pf-tip-maxwidth");
+  var fs = document.getElementById("pf-tip-fontsize");
+  pv.style.background = bg ? bg.value : "#1d2129";
+  pv.style.color = fg ? fg.value : "#e6e6ef";
+  pv.style.borderColor = bd ? bd.value : "#3a4152";
+  pv.style.borderRadius = normLen(rd ? rd.value : "6px") || "6px";
+  pv.style.maxWidth = normLen(mw ? mw.value : "320px") || "320px";
+  pv.style.fontSize = prefNumber(fs ? fs.value : 12, 12, 9, 20) + "px";
+}
+function loadPrefsPaths() {
+  fetch("/__gui__/data").then(function(r){ return r.json(); }).then(function(j){
+    if (!j || !j.ok) return;
+    var d = document.getElementById("pf-data-dir");
+    var p = document.getElementById("pf-prefs-path");
+    var f = document.getElementById("pf-project-path");
+    if (d) d.value = j.data || "";
+    if (p) p.value = j.prefs || "";
+    if (f) f.value = j.project || "";
+  }).catch(function(){});
+}
+function copyPrefsPath(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var value = el.value || "";
+  if (!value) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(value).then(function(){ setStatus("path copied"); }).catch(function(){});
+    return;
+  }
+  el.select();
+  try { document.execCommand("copy"); setStatus("path copied"); } catch (e) {}
+}
+function openHistoryFromPrefs() {
+  closePrefs();
+  openHistory();
+}
+function clearProjectHistory() {
+  confirmBox("Clear project history", "Delete all saved project versions? This cannot be undone.", function(){
+    fetch("/__gui__/history/clear", { method: "POST" }).then(function(r){ return r.json(); }).then(function(j){
+      setStatus("removed " + ((j && j.removed) || 0) + " project versions");
+    }).catch(function(){ setStatus("could not clear project history"); });
+  });
+}
+
+var __edTipTimer = 0, __edTipEl = null;
+function editorTipText(el) {
+  if (!el) return "";
+  var text = el.getAttribute("data-tip");
+  if (!text) text = el.getAttribute("title");
+  return text ? String(text).trim() : "";
+}
+function editorTipTarget(node) {
+  while (node && node.nodeType === 1) {
+    if (node.id === "edtip") return null;
+    if (editorTipText(node)) return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+function editorTipA11yNode(node) {
+  if (!node || node.nodeType !== 1) return;
+  var nodes = [node];
+  if (node.querySelectorAll) nodes = nodes.concat(Array.prototype.slice.call(node.querySelectorAll("[title],[data-tip]")));
+  for (var i = 0; i < nodes.length; i++) {
+    var el = nodes[i];
+    if (!el || el.nodeType !== 1 || el.__edTipA11y) continue;
+    var tip = el.getAttribute("data-tip") || el.getAttribute("title");
+    if (!tip) continue;
+    el.__edTipA11y = true;
+    if (!el.getAttribute("aria-label") && !(el.textContent || "").trim()) el.setAttribute("aria-label", tip);
+  }
+}
+function initEditorTips() {
+  editorTipA11yNode(document.body);
+  if (window.MutationObserver && !window.__edTipObserver) {
+    window.__edTipObserver = new MutationObserver(function(list){
+      for (var i = 0; i < list.length; i++) {
+        var added = list[i].addedNodes;
+        for (var j = 0; j < added.length; j++) editorTipA11yNode(added[j]);
+      }
+    });
+    window.__edTipObserver.observe(document.body, { childList: true, subtree: true });
+  }
+}
+function editorTipSuppress(el) {
+  if (!el || el.getAttribute("data-tip")) return;
+  var title = el.getAttribute("title");
+  if (title === null) return;
+  el.setAttribute("data-tip", title);
+  el.removeAttribute("title");
+  el.__edTipHadTitle = true;
+}
+function editorTipRestore(el) {
+  if (!el || !el.__edTipHadTitle) return;
+  var title = el.getAttribute("data-tip");
+  if (title !== null) el.setAttribute("title", title);
+  el.__edTipHadTitle = false;
+}
+function editorTipHide() {
+  if (__edTipTimer) { clearTimeout(__edTipTimer); __edTipTimer = 0; }
+  var tip = document.getElementById("edtip");
+  if (tip) {
+    tip.classList.remove("on");
+    tip.setAttribute("aria-hidden", "true");
+  }
+  if (__edTipEl) {
+    editorTipRestore(__edTipEl);
+    __edTipEl = null;
+  }
+}
+function editorTipShow(el, text) {
+  if (!el || !text) return;
+  var tip = document.getElementById("edtip");
+  if (!tip) return;
+  tip.textContent = text;
+  tip.setAttribute("aria-hidden", "false");
+  tip.classList.remove("on");
+  tip.style.visibility = "hidden";
+  tip.style.left = "0px";
+  tip.style.top = "0px";
+  var r = el.getBoundingClientRect();
+  var tw = tip.offsetWidth, th = tip.offsetHeight;
+  var place = prefs.editorTipPlace || "auto";
+  if (place === "auto") place = (r.top - th - 8 >= 4) ? "top" : "bottom";
+  var x = 0, y = 0;
+  if (place === "top") { x = r.left + r.width / 2 - tw / 2; y = r.top - th - 8; }
+  else if (place === "bottom") { x = r.left + r.width / 2 - tw / 2; y = r.bottom + 8; }
+  else if (place === "left") { x = r.left - tw - 8; y = r.top + r.height / 2 - th / 2; }
+  else { x = r.right + 8; y = r.top + r.height / 2 - th / 2; }
+  x = Math.max(4, Math.min(window.innerWidth - tw - 4, x));
+  y = Math.max(4, Math.min(window.innerHeight - th - 4, y));
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+  tip.style.visibility = "visible";
+  tip.classList.add("on");
+}
+document.addEventListener("mouseover", function(ev) {
+  if (prefs.editorTipEnabled === false) {
+    var offEl = editorTipTarget(ev.target);
+    if (!offEl) { editorTipHide(); return; }
+    if (ev.relatedTarget && offEl.contains(ev.relatedTarget)) return;
+    editorTipHide();
+    editorTipSuppress(offEl);
+    __edTipEl = offEl;
+    return;
+  }
+  var el = editorTipTarget(ev.target);
+  if (!el) { editorTipHide(); return; }
+  if (ev.relatedTarget && el.contains(ev.relatedTarget)) return;
+  editorTipHide();
+  editorTipSuppress(el);
+  __edTipEl = el;
+  var text = editorTipText(el);
+  var delay = Math.max(0, parseInt(prefs.editorTipDelay, 10) || 0);
+  __edTipTimer = setTimeout(function() { editorTipShow(el, text); }, delay);
+});
+document.addEventListener("mouseout", function(ev) {
+  if (!__edTipEl) return;
+  var el = editorTipTarget(ev.target);
+  if (el !== __edTipEl) return;
+  if (ev.relatedTarget && __edTipEl.contains(ev.relatedTarget)) return;
+  editorTipHide();
+});
+document.addEventListener("focusin", function(ev) {
+  if (prefs.editorTipEnabled === false) return;
+  var el = editorTipTarget(ev.target);
+  if (!el) return;
+  editorTipHide();
+  editorTipSuppress(el);
+  __edTipEl = el;
+  editorTipShow(el, editorTipText(el));
+});
+document.addEventListener("focusout", function(ev) {
+  if (!__edTipEl) return;
+  if (ev.relatedTarget && __edTipEl.contains(ev.relatedTarget)) return;
+  editorTipHide();
+});
+document.addEventListener("scroll", function(){ editorTipHide(); }, true);
+window.addEventListener("resize", function(){ editorTipHide(); });
+document.addEventListener("click", function(){ editorTipHide(); });
 
 function applyPanelVisibility() {
   document.getElementById("left").style.display = prefs.showLeft ? "" : "none";
@@ -11476,6 +11933,14 @@ function applyPanelVisibility() {
   if (prefs.showBottom) b.classList.add("on"); else b.classList.remove("on");
 }
 
+function prefNumber(value, fallback, min, max) {
+  var n = parseFloat(value);
+  if (!isFinite(n)) n = fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+function prefColor(value, fallback) {
+  return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? String(value) : fallback;
+}
 function safeEditorFont(v) {
   var s = String(v || "").replace(/[;{}<>]/g, "").trim().slice(0, 200);
   return s || PREF_DEFAULTS.editorFont;
@@ -12256,6 +12721,7 @@ function suiSuggestionItems(ctx, src, decls) {
 function suiSuggest(force) {
   var ta = document.getElementById("out");
   if (!ta) return;
+  if (!force && prefs.editorCompletion === false) { hideSuiAc(); return; }
   var val = ta.value, pos = ta.selectionStart;
   var ctx = suiContext(val, pos);
   if (ctx.kind === "none") { hideSuiAc(); return; }
@@ -12563,7 +13029,7 @@ function editorKeydown(ev) {
   var start = ta.selectionStart, end = ta.selectionEnd, val = ta.value;
 
   // Auto-close brackets and quotes when a single character is typed.
-  if (BR_OPEN[ev.key] && start === end) {
+  if (prefs.editorAutoClose !== false && BR_OPEN[ev.key] && start === end) {
     ev.preventDefault();
     var close = BR_OPEN[ev.key];
     var sel = val.slice(start, end);
@@ -12574,7 +13040,7 @@ function editorKeydown(ev) {
     onSuiEdit();
     return;
   }
-  if ((ev.key === '"' || ev.key === "'") && start === end) {
+  if (prefs.editorAutoClose !== false && (ev.key === '"' || ev.key === "'") && start === end) {
     var next = val[start];
     // Skip over an existing identical quote instead of doubling it.
     if (next === ev.key) {
@@ -12596,7 +13062,7 @@ function editorKeydown(ev) {
 
   // Smart Enter: keep the current indentation; add a level after an opening
   // bracket and dedent a lone closing bracket typed on its own line.
-  if (ev.key === 'Enter' && !ev.shiftKey) {
+  if (prefs.editorSmartIndent !== false && ev.key === 'Enter' && !ev.shiftKey) {
     var lineStart = val.lastIndexOf("\n", start - 1) + 1;
     var indent = (/^[ \t]*/.exec(val.slice(lineStart, start)) || [""])[0];
     var before = val.slice(0, start).replace(/[ \t]+$/, "");
@@ -12628,7 +13094,7 @@ function editorKeydown(ev) {
   }
 
   // Backspace between an empty pair deletes both halves.
-  if (ev.key === 'Backspace' && start === end && start > 0) {
+  if (prefs.editorAutoClose !== false && ev.key === 'Backspace' && start === end && start > 0) {
     var a = val[start - 1], b = val[start];
     if (BR_OPEN[a] && BR_OPEN[a] === b) {
       ev.preventDefault();
@@ -13133,6 +13599,8 @@ renderTemplates();
 applyTheme();
 applyPanelVisibility();
 loadRemotePrefs();
+applyEditorTipPrefs();
+initEditorTips();
 loadRemoteFonts();
 loadCurrentProject();
 setupEditorScroll();

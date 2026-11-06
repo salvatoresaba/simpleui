@@ -74,7 +74,7 @@ func TestTooltipPropertyDesignerRoundTrip(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		"tooltipPropertyControls", "Tooltip settings...", "openTooltipCfg",
+		"tooltipPropertyControls", "Tooltip settings", "openTooltipCfg",
 		"applyTooltipCfg", "--sui-tooltip-place", "Global defaults",
 	} {
 		if !strings.Contains(guiHTML, want) {

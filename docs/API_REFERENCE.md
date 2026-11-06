@@ -446,9 +446,9 @@ button "Delete" tooltip: "Delete permanently" onClick: remove
   works for void controls such as `input`;
 - with a tooltip open, the bubble is moved inside the viewport when possible.
 
-### Global tooltip settings
+### Project tooltip settings
 
-The designer has **Preferences > Tooltip settings** for global defaults:
+The designer has **Preferences → Project preferences** for global defaults:
 place (`top`, `right`, `bottom`, `left`), delay, background, text color, border
 color, radius and maximum width. These are written into the project CSS as
 `:root` custom properties, so they apply to every element with a tooltip:

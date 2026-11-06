@@ -30,22 +30,38 @@ Nell'inspector a destra la sezione **Drag & drop** usa queste etichette:
 `dropFiles` (drop files into state), `pickFiles` (choose files into state) e
 `pickMode` (picker API mode). Il gestore `onDrop` si seleziona in **Events**.
 
-## Preferenze dell'editor di codice
+## Preferenze dell'editor
 
-Aprire **Preferences → Editor settings…** per personalizzare l'editor SUI.
+Aprire **Preferences → Editor preferences.** Il pannello è diviso in tab, così
+la shell dell'editor, il code editor, la sintassi SUI, le scorciatoie e i file
+del progetto restano separati.
 
-### Editor generale
+### Interface
+
+| Impostazione | Default | Effetto |
+|---|---|---|
+| Theme | Dark | Interfaccia Dark, Light o High contrast |
+| Font size | 14 | Scala l'intera interfaccia dell'editor |
+| Density | Comfortable | Spaziatura comfortable o compact |
+| Accent color | #4c5cf7 | Focus, selezione e azioni principali |
+| Panels | tutti visibili tranne history | Mostra o nasconde Structure/Tokens, Inspector e Problems/History |
+| Reset toolbar order | - | Ripristina il layout predefinito delle toolbar |
+
+### General editor
 
 | Impostazione | Default | Effetto |
 |---|---|---|
 | Font family | Monospace di sistema | Stack integrato o famiglia CSS personalizzata |
-| Editor size | 16px | Dimensione del codice, indipendente dallo zoom generale dell'interfaccia |
+| Editor size | 16px | Dimensione del codice, indipendente dallo zoom generale |
 | Line height | 1.6 | Spaziatura verticale e allineamento dei numeri di riga |
 | Tab size | 4 | Larghezza dei tab nell'overlay e nella textarea |
 | Word wrap | off | Va a capo nelle righe lunghe in entrambi i livelli |
 | Line numbers | on | Mostra il gutter |
+| Auto-close pairs | on | Inserisce la parentesi o la virgoletta di chiusura |
+| Smart indent | on | Mantiene l'indentazione su Enter e dopo una parentesi aperta |
+| Auto suggestions | on | Apre il popup di completamento mentre si scrive; Ctrl+Space funziona sempre |
 
-### Aspetto del codice SUI
+### SUI code
 
 | Impostazione | Default | Effetto |
 |---|---|---|
@@ -65,10 +81,47 @@ nell'overlay colorato e nella textarea trasparente, così cursore e caratteri
 visibili restano allineati. I token cambiano solo colore: non vengono applicati
 grassetto o corsivo al codice.
 
+### Editor tooltips
+
+I tooltip che descrivono pulsanti, campi e azioni delle toolbar dell'editor si
+configurano in **General editor → Editor tooltips**. Fanno parte dell'interfaccia
+dell'editor e non modificano mai l'app generata.
+
+| Impostazione | Default | Effetto |
+|---|---|---|
+| Show tooltips | on | Abilita il fumetto personalizzato dell'editor |
+| Delay | 450 ms | Ritardo hover prima di mostrare il fumetto |
+| Place | Auto | Top, right, bottom, left o posizionamento automatico |
+| Max width | 320px | Larghezza massima del fumetto |
+| Font size | 12px | Dimensione del testo |
+| Background / text / border | palette scura | Colori del fumetto |
+| Radius | 6px | Raggio del bordo |
+
+### Shortcuts
+
+La tab **Shortcuts** è un riferimento in sola lettura. Il campo di ricerca filtra
+per azione, tasto o gruppo. Elenca le scorciatoie di designer, editor SUI, menu,
+struttura e dati dei chart; le scorciatoie non sono ancora riassegnabili.
+
+### Files & history
+
+| Impostazione | Default | Effetto |
+|---|---|---|
+| Automatic snapshots | on | Salva una versione del progetto durante il salvataggio |
+| Interval | 60 s | Tempo minimo tra snapshot automatici |
+| Versions kept | 30 | Limite di conservazione automatica |
+| Snapshot now | - | Crea subito una versione |
+| Open project history | - | Apre il pannello di ripristino |
+| Clear history | - | Elimina tutte le versioni salvate dopo conferma |
+
+La tab mostra anche la cartella dati, il file delle preferenze e il file del
+progetto, con un pulsante Copia per ogni percorso. Le impostazioni degli
+snapshot automatici sono salvate nelle preferenze dell'editor; i file delle
+versioni restano nella cartella dati.
+
 Le preferenze vengono salvate con le altre impostazioni del designer e restano
 dopo il reload. **Font size** generale scala l'interfaccia, mentre **Editor size**
 controlla il codice in modo indipendente.
-
 ## Completamento e indentazione
 
 Premere **Ctrl+Space** nell'editor SUI per aprire l'elenco dei suggerimenti
@@ -1317,8 +1370,10 @@ Il target riceve `aria-describedby` mentre il fumetto è visibile; il fumetto us
 `role="tooltip"` e testo escapato. Focus da tastiera e chiusura con `Escape`
 funzionano automaticamente per i target focusabili.
 
-L'aspetto e il comportamento globali si gestiscono da **Preferences > Tooltip
-settings**:
+Lo stile dei tooltip dell'app generata si gestisce da **Preferences → Project
+preferences.** Il pannello scrive `--sui-tooltip-*` nel CSS del progetto. I
+tooltip dell'editor sono separati e si trovano in **Preferences → Editor
+preferences → General editor**.
 
 | Impostazione | Significato |
 |---|---|

@@ -215,6 +215,20 @@ func CmdGui(args []string) {
 		saveGuiPrefs(r.PostFormValue("prefs"))
 		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true}`)
 	})
+	mux.HandleFunc("GET /__gui__/data", func(w http.ResponseWriter, r *http.Request) {
+		payload := `{"ok":true,"data":` + StringifyJson(JStr(guiDataDir())) +
+			`,"versions":` + StringifyJson(JStr(guiVersionsDir())) +
+			`,"project":` + StringifyJson(JStr(guiProjectPath())) +
+			`,"prefs":` + StringifyJson(JStr(guiPrefsPath())) + `}`
+		writeRawHandler(w, "application/json; charset=utf-8", payload)
+	})
+	mux.HandleFunc("POST /__gui__/history/clear", func(w http.ResponseWriter, r *http.Request) {
+		removed := guiClearVersions()
+		guiSnapshotMu.Lock()
+		guiLastSnapshot = time.Time{}
+		guiSnapshotMu.Unlock()
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"removed":`+strconv.Itoa(removed)+`}`)
+	})
 	// ---- project autosave / version history ---------------------------------
 	mux.HandleFunc("GET /__gui__/history", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"versions":`+StringifyJson(guiListVersions())+`}`)
@@ -228,10 +242,7 @@ func CmdGui(args []string) {
 		src := currentSrc
 		srcMu.Unlock()
 		if src != "" {
-			guiSnapshotMu.Lock()
-			guiLastSnapshot = time.Time{}
-			guiSnapshotMu.Unlock()
-			guiSaveProject(src)
+			guiSnapshotProject(src)
 		}
 		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true}`)
 	})
@@ -1079,15 +1090,73 @@ var (
 	guiVersionKeep  = 30
 )
 
-// guiSaveProject writes the current source to disk and, at most once a minute,
-// stores a timestamped snapshot so the user can recover older versions.
+// guiHistorySettings reads the editor preferences so the snapshot throttle and
+// retention follow the Files & history tab. Defaults stay safe when the file is
+// missing or malformed.
+func guiHistorySettings() (bool, time.Duration, int) {
+	return parseGuiHistorySettings(loadGuiPrefs())
+}
+
+func parseGuiHistorySettings(raw string) (bool, time.Duration, int) {
+	auto := true
+	interval := time.Minute
+	keep := guiVersionKeep
+	v, err := ParseJson(raw)
+	if err != nil || v.kind != "obj" {
+		return auto, interval, keep
+	}
+	if b := get(v, "historyAuto"); b.kind == "bool" {
+		auto = b.b
+	}
+	if n := get(v, "historyInterval"); n.kind == "int" {
+		interval = time.Duration(n.i) * time.Second
+	} else if n.kind == "float" {
+		interval = time.Duration(n.f * float64(time.Second))
+	}
+	if n := get(v, "historyKeep"); n.kind == "int" {
+		keep = n.i
+	} else if n.kind == "float" {
+		keep = int(n.f)
+	}
+	if interval < 15*time.Second {
+		interval = 15 * time.Second
+	}
+	if interval > 3600*time.Second {
+		interval = 3600 * time.Second
+	}
+	if keep < 5 {
+		keep = 5
+	}
+	if keep > 500 {
+		keep = 500
+	}
+	return auto, interval, keep
+}
+
+// guiSaveProject writes the current source to disk and, when automatic
+// snapshots are enabled and the configured interval has elapsed, stores a
+// timestamped snapshot so the user can recover older versions.
 func guiSaveProject(src string) {
+	guiWriteProject(src, false)
+}
+
+// guiSnapshotProject writes the project and always stores a version. Manual
+// snapshots ignore the automatic-snapshot switch and interval.
+func guiSnapshotProject(src string) {
+	guiWriteProject(src, true)
+}
+
+func guiWriteProject(src string, forceSnapshot bool) {
 	p := guiProjectPath()
 	_ = os.MkdirAll(filepath.Dir(p), 0o755)
 	_ = os.WriteFile(p, []byte(src), 0o644)
+	automatic, interval, keep := guiHistorySettings()
+	if !automatic && !forceSnapshot {
+		return
+	}
 	guiSnapshotMu.Lock()
 	defer guiSnapshotMu.Unlock()
-	if time.Since(guiLastSnapshot) < time.Minute {
+	if !forceSnapshot && time.Since(guiLastSnapshot) < interval {
 		return
 	}
 	guiLastSnapshot = time.Now()
@@ -1095,10 +1164,10 @@ func guiSaveProject(src string) {
 	_ = os.MkdirAll(dir, 0o755)
 	name := "project-" + time.Now().Format("20060102-150405") + ".sui"
 	_ = os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644)
-	guiPruneVersions(dir)
+	guiPruneVersions(dir, keep)
 }
 
-func guiPruneVersions(dir string) {
+func guiPruneVersions(dir string, keep int) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return
@@ -1110,10 +1179,29 @@ func guiPruneVersions(dir string) {
 		}
 	}
 	sort.Strings(names)
-	for len(names) > guiVersionKeep {
+	for len(names) > keep {
 		_ = os.Remove(filepath.Join(dir, names[0]))
 		names = names[1:]
 	}
+}
+
+// guiClearVersions removes every saved project snapshot and reports how many
+// files were deleted.
+func guiClearVersions() int {
+	entries, err := os.ReadDir(guiVersionsDir())
+	if err != nil {
+		return 0
+	}
+	removed := 0
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".sui") {
+			continue
+		}
+		if os.Remove(filepath.Join(guiVersionsDir(), e.Name())) == nil {
+			removed++
+		}
+	}
+	return removed
 }
 
 func guiListVersions() JVal {

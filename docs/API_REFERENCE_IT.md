@@ -419,9 +419,9 @@ button "Elimina" tooltip: "Elimina definitivamente" onClick: remove
   anche con controlli void come `input`;
 - quando possibile il fumetto viene mantenuto dentro il viewport.
 
-### Impostazioni globali Tooltip
+### Impostazioni tooltip del progetto
 
-Il designer offre **Preferences > Tooltip settings** per i default globali:
+Il designer offre **Preferences → Project preferences** per i default globali:
 posizione (`top`, `right`, `bottom`, `left`), ritardo, sfondo, colore testo,
 colore bordo, raggio e larghezza massima. Sono scritti nel CSS del progetto come
 custom properties su `:root`, quindi valgono per tutti gli elementi con tooltip:

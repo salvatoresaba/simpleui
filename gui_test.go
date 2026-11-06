@@ -1,10 +1,14 @@
 package main
 
+import "fmt"
 import "net"
 import "net/http"
 import "net/url"
+import "os"
+import "path/filepath"
 import "strings"
 import "testing"
+import "time"
 
 // gui_test.go - the visual design tool server: editor page + in-process
 // compile-and-preview endpoint.
@@ -64,6 +68,75 @@ func TestGuiEditorPage(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("editor page missing %q", want)
 		}
+	}
+}
+
+func TestGuiEditorPreferencesPanel(t *testing.T) {
+	for _, want := range []string{
+		`id="pref-tab-interface"`,
+		`id="pref-tab-editor"`,
+		`id="pref-tab-sui"`,
+		`id="pref-tab-shortcuts"`,
+		`id="pref-tab-history"`,
+		`id="pf-tip-enabled"`,
+		`id="pf-tip-delay"`,
+		`id="pf-tip-place"`,
+		`id="pf-shortcut-list"`,
+		`id="pf-hist-interval"`,
+		`id="pf-hist-keep"`,
+		`id="pf-data-dir"`,
+		`id="edtip"`,
+		`Editor preferences.`,
+		`Project preferences.`,
+		`EDITOR_SHORTCUTS`,
+		`function renderShortcutList`,
+		`function clearProjectHistory`,
+		`function applyEditorTipPrefs`,
+		`editorTipPlace`,
+		`historyInterval`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("editor preferences panel missing %q", want)
+		}
+	}
+}
+
+func TestGuiHistorySettingsParsing(t *testing.T) {
+	auto, interval, keep := parseGuiHistorySettings(`{}`)
+	if !auto || interval != time.Minute || keep != guiVersionKeep {
+		t.Fatalf("defaults = %v %v %d", auto, interval, keep)
+	}
+	auto, interval, keep = parseGuiHistorySettings(`{"historyAuto":false,"historyInterval":120,"historyKeep":12}`)
+	if auto || interval != 2*time.Minute || keep != 12 {
+		t.Fatalf("custom = %v %v %d", auto, interval, keep)
+	}
+	_, interval, keep = parseGuiHistorySettings(`{"historyInterval":1,"historyKeep":9999}`)
+	if interval != 15*time.Second || keep != 500 {
+		t.Fatalf("clamped = %v %d", interval, keep)
+	}
+}
+
+func TestGuiPruneVersionsKeepsNewest(t *testing.T) {
+	dir := t.TempDir()
+	for i := 1; i <= 8; i++ {
+		name := fmt.Sprintf("project-2026010%d-000000.sui", i)
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("view main {}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	guiPruneVersions(dir, 5)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 5 {
+		t.Fatalf("kept %d versions, want 5", len(entries))
+	}
+	if _, err := os.Stat(filepath.Join(dir, "project-20260108-000000.sui")); err != nil {
+		t.Error("newest version was removed")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "project-20260101-000000.sui")); !os.IsNotExist(err) {
+		t.Error("oldest version was not removed")
 	}
 }
 
