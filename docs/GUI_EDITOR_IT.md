@@ -398,7 +398,10 @@ a **Custom** per rendere esplicita la personalizzazione.
 
 Sopra l'anteprima, **Preview background** passa tra **Dark** e **Light**. La
 scelta viene ricordata e permette di controllare il componente sia su una shell
-scura sia su una pagina chiara o simile alla carta.
+scura sia su una pagina chiara o simile alla carta. Selezionando uno stile
+condiviso viene scelto automaticamente anche uno sfondo consigliato (chiaro per
+Sketch e Brutalist, scuro per gli altri); i pulsanti permettono comunque di
+controllare l'altro sfondo.
 
 I preset coprono tutti e venti i pannelli componente, per esempio **Neon glow**
 e **Barber pole** per Progress, **Dual ring**, **Gradient ring** e **Coin flip**

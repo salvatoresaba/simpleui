@@ -11978,7 +11978,7 @@ var COMPONENT_PREVIEW_BASE = ".sui-checkbox-wrap,.sui-radio-wrap,.sui-switch-wra
   ".sui-modal-title,.sui-modal-body,.sui-modal-actions{box-sizing:border-box}" +
   ".sui-menu{position:relative;display:inline-block}" +
   ".sui-menu-popup{display:block;position:static;margin-top:4px;padding:4px;min-width:190px}" +
-  ".sui-menuitem{display:block;width:100%;border:0;font:inherit;text-align:left;cursor:pointer}" +
+  ".sui-menuitem{display:block;width:100%;border:0;background:transparent;font:inherit;text-align:left;cursor:pointer}" +
   "table.suitbl{border-collapse:collapse;width:100%}" +
   "table.suitbl th,table.suitbl td{border:1px solid var(--sui-table-border,#2c3444)}";
 function componentPreviewHTML(def) {
@@ -12012,6 +12012,11 @@ function setComponentPreviewTheme(theme) {
   __compPreviewTheme = theme === "light" ? "light" : "dark";
   try { localStorage.setItem("sui.componentPreviewTheme", __compPreviewTheme); } catch (e) {}
   applyComponentPreviewTheme();
+}
+function applyRecommendedPreviewTheme(presetId) {
+  var theme = SHARED_STYLE_THEMES[presetId];
+  if (!theme) return;
+  setComponentPreviewTheme(theme);
 }
 function applyComponentPreviewTheme() {
   var pv = document.getElementById("compcfg-preview");
@@ -13518,7 +13523,7 @@ var SHARED_STYLES = [
     fontSize: "12px", buttonFontWeight: "700", badgeFontWeight: "700",
     badgeTransform: "uppercase", badgeTracking: "0.6px",
     tableHeadFg: "#ffe066", tableRowBg: "#ffffff", tableStripedBg: "#fff8db", tableHover: "#ffe066",
-    checkBg: "#ffe066"
+    checkBg: "#ffe066", treeTitle: "#111111"
   }, {
     badge: { "--sui-badge-bg": "#111111", "--sui-badge-fg": "#ffe066" },
     tabs: { "--sui-tablist-bg": "#111111", "--sui-tab-fg": "#ffe066", "--sui-tab-active-bg": "#ffe066", "--sui-tab-active-fg": "#111111", "--sui-tab-accent": "#ff4d4d" },
@@ -13630,6 +13635,11 @@ var SHARED_STYLES = [
   }) }
 ];
 var SHARED_STYLE_IDS = { sketch: 1, wire: 1, terminal: 1, glassmorphism: 1, brutalist: 1, blueprint: 1, neumorphic: 1, contrast: 1, editorial: 1, cyberpunk: 1, geometric: 1 };
+var SHARED_STYLE_THEMES = {
+  sketch: "light", wire: "dark", terminal: "dark", glassmorphism: "dark",
+  brutalist: "light", blueprint: "dark", neumorphic: "dark", contrast: "dark",
+  editorial: "dark", cyberpunk: "dark", geometric: "dark"
+};
 COMPONENT_DEFS.forEach(function(def){
   SHARED_STYLES.forEach(function(style){
     if (!style.vars[def.id]) return;
@@ -13785,6 +13795,7 @@ function applyComponentPreset(id) {
   var p = null;
   (s.def.presets || []).forEach(function(x){ if (x.id === id) p = x; });
   if (!p) return;
+  applyRecommendedPreviewTheme(p.id);
   componentAllKeys(s.def).forEach(function(k){
     var base = componentPresetBaseValue(s.def, k);
     if (base === undefined) delete s.values[k];
@@ -13815,6 +13826,9 @@ function openComponentSettings(def, node) {
   });
   if (node && !componentNodeHasOverrides(def, node)) __compSettings.presetId = "inherit";
   else __compSettings.presetId = componentPresetMatch(def, __compSettings.values, node);
+  if (SHARED_STYLE_THEMES[__compSettings.presetId]) {
+    applyRecommendedPreviewTheme(__compSettings.presetId);
+  }
   document.getElementById("compcfg-title").textContent = def.label;
   document.getElementById("compcfg-scope").textContent = node
     ? "This element only" + (node.text ? " · " + node.text : "") + ". Leave values here to override the project default."

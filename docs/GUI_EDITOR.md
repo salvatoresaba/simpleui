@@ -382,7 +382,10 @@ explicit.
 
 Above the preview, **Preview background** switches between **Dark** and
 **Light**. The choice is remembered and makes it easy to check a component
-against both a dark application shell and a light or paper-like page.
+against both a dark application shell and a light or paper-like page. Selecting a
+shared style also chooses a recommended background automatically (light for
+Sketch and Brutalist, dark for the others); the buttons still let you inspect
+the other one.
 
 The presets cover all twenty component panels, for example **Neon glow** and
 **Barber pole** for Progress, **Dual ring**, **Gradient ring** and **Coin flip**
