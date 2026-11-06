@@ -867,13 +867,13 @@ body {
 .sui-chart-state-waypoint { fill: var(--sui-chart-bg, #14171c); stroke: var(--sui-chart-state-selection, #f59e0b); stroke-width: 1.5; cursor: move; opacity: 0; pointer-events: none; transition: opacity .12s ease; }
 .sui-chart-state-waypoint.sui-chart-state-handle-visible { opacity: 1; pointer-events: auto; }
 .sui-chart-state-waypoint:hover, .sui-chart-state-waypoint:focus { fill: var(--sui-chart-state-selection, #f59e0b); }
-.sui-chart-state-table-tabs { display: flex; gap: 4px; margin: 0 0 6px; padding: 3px; width: fit-content; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 7px; background: var(--sui-chart-control-bg, var(--sui-chart-bg, #14171c)); }
+.sui-chart-state-table-tabs { display: flex; gap: 4px; align-items: center; margin: 0 0 6px; padding: 3px; width: 100%; box-sizing: border-box; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 7px; background: var(--sui-chart-control-bg, var(--sui-chart-bg, #14171c)); }
+.sui-chart-state-table-tablist { display: flex; gap: 4px; align-items: center; }
 .sui-chart-state-table-tabs button { border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--sui-chart-muted, #8fa0b8); font: inherit; font-size: 11px; padding: 4px 9px; height: 28px; min-height: 28px; box-sizing: border-box; cursor: pointer; }
 .sui-chart-state-table-tabs button:hover, .sui-chart-state-table-tabs button:focus-visible { border-color: var(--sui-chart-control-border, #475569); color: var(--sui-chart-fg, #e6e6ef); outline: none; }
 .sui-chart-state-table-tabs button.active { border-color: var(--sui-chart-state-selection, #f59e0b); background: rgba(245,158,11,.14); color: var(--sui-chart-fg, #e6e6ef); }
 .sui-chart-state-tab-panel[hidden] { display: none; }
 .sui-chart-table.sui-chart-state-table-scroll { display: flex; flex-direction: column; overflow: hidden; }
-.sui-chart-state-table-scroll .sui-chart-state-table-tools,
 .sui-chart-state-table-scroll .sui-chart-state-table-tabs { flex: none; }
 .sui-chart-state-table-scroll .sui-chart-state-tab-panel {
   flex: 1 1 auto;
@@ -881,9 +881,8 @@ body {
   overflow: auto;
 }
 .sui-chart-state-table-scroll .sui-chart-state-table th { z-index: 3; }
-.sui-chart-state-table-tools { display: flex; gap: 6px; align-items: center; margin: 14px 0 6px; }
-.sui-chart-state-table-tools button { border: 1px solid var(--sui-chart-control-border, #475569); background: var(--sui-chart-control-bg, var(--sui-chart-bg, #14171c)); color: var(--sui-chart-fg, #e6e6ef); border-radius: 4px; padding: 3px 7px; font: inherit; font-size: 11px; height: 28px; min-height: 28px; box-sizing: border-box; cursor: pointer; }
-.sui-chart-state-table-tools .sui-chart-state-table-settings { margin-left: auto; font-size: 14px; padding: 1px 6px; }
+.sui-chart-state-table-tabs .sui-chart-state-add-row { margin-left: auto; border: 1px solid var(--sui-chart-control-border, #475569); background: var(--sui-chart-control-bg, var(--sui-chart-bg, #14171c)); color: var(--sui-chart-fg, #e6e6ef); border-radius: 4px; padding: 3px 7px; font: inherit; font-size: 11px; font-weight: 650; height: 28px; min-height: 28px; box-sizing: border-box; cursor: pointer; }
+.sui-chart-state-table-tabs .sui-chart-state-add-row:hover, .sui-chart-state-table-tabs .sui-chart-state-add-row:focus-visible { border-color: var(--sui-chart-control-hover-border, var(--sui-chart-series-1, #4c5cf7)); color: var(--sui-chart-fg, #e6e6ef); outline: none; }
 .sui-chart-state-create-tools { margin-left: auto; display: flex; flex: none; align-items: center; position: static; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .sui-chart-state-create-tools { display: flex; align-items: center; gap: 3px; flex: none; margin-left: auto; }
 .sui-chart-state-create-tools + .sui-chart-menu-btn { margin-left: 0; }
@@ -903,8 +902,6 @@ body {
 .sui-chart-state-cursor-crosshair { cursor: crosshair !important; }
 .sui-chart-state-panning .sui-chart-svg { cursor: grabbing !important; }
 .sui-chart-state-tooltip-hint { position: absolute; background: var(--sui-chart-control-bg, #14171c); color: var(--sui-chart-fg, #e6e6ef); border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 4px; padding: 4px 8px; font-size: 11px; pointer-events: none; z-index: 100; white-space: nowrap; }
-.sui-chart-state-table-tools .sui-chart-state-icon-btn { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; }
-.sui-chart-state-table-tools .sui-chart-state-add-row { font-weight: 650; }
 .sui-chart-state-actions-header, .sui-chart-state-actions { width: 88px !important; min-width: 88px !important; max-width: 88px !important; padding: 2px 3px !important; text-align: center; white-space: nowrap; }
 .sui-chart-state-actions { text-align: center; vertical-align: middle; }
 .sui-chart-state-actions .sui-chart-state-icon-btn + .sui-chart-state-icon-btn { margin-left: 2px; }

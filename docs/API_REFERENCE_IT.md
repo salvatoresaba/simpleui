@@ -1169,10 +1169,12 @@ nell'altra. Eliminando una forma vengono eliminati anche i link collegati.
 Selezionando un elemento nel grafico si apre
 automaticamente la scheda corrispondente e la riga viene portata nell'area
 visibile della tabella. L'area del grafico e quella delle tabelle sono separate
-da 10 px. La toolbar e le schede Shapes/Links restano fisse; scorrono solo le
-righe dei dati, con le intestazioni sticky. I pulsanti di toolbar, schede e zoom
-hanno tutti la stessa altezza di 28 px. Un solo pulsante
-**Add row** apre la scelta Shape/Link; Event/guard/action restano nel pannello
+da 10 px. La barra delle schede Shapes/Links resta fissa; scorrono solo le
+righe dei dati, con le intestazioni sticky. Il pulsante **Add row** è nella
+barra delle schede, allineato a destra, e apre la scelta Shape/Link. La tabella
+non ha pulsanti propri di impostazioni o undo/redo: import/export sono in **Graph
+settings** e i pulsanti undo/redo del grafico coprono diagramma e tabella.
+Event/guard/action restano nel pannello
 proprietà del link. Il pulsante compatto **+** nell'intestazione del grafico apre un unico
 menu con le sette forme e **New link**, quindi non copre i nodi. Tooltip e
 `aria-keyshortcuts` indicano `+`/`N`; `L` crea direttamente un link.

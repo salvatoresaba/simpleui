@@ -215,6 +215,37 @@ func TestGraphStateTableDeleteIcon(t *testing.T) {
 	}
 }
 
+func TestGraphStateTableToolbar(t *testing.T) {
+	for _, gone := range []string{
+		"openStateTableMenu",
+		"sui-chart-state-table-settings",
+		"sui-chart-state-table-tools",
+	} {
+		if strings.Contains(suiChartRuntime, gone) {
+			t.Errorf("state table toolbar still contains %q", gone)
+		}
+	}
+	if got := strings.Count(suiChartRuntime, `"Undo (Ctrl+Z)"`); got != 1 {
+		t.Errorf("expected one undo button (graph toolbar), found %d", got)
+	}
+	for _, want := range []string{
+		"sui-chart-state-table-tablist",
+		"tabBar.appendChild(addRow)",
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("state table toolbar missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		".sui-chart-state-table-tabs .sui-chart-state-add-row { margin-left: auto;",
+		".sui-chart-state-table-tablist { display: flex;",
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("state table toolbar CSS missing %q", want)
+		}
+	}
+}
+
 func TestGraphDesignerModel(t *testing.T) {
 	prog, dl := ParseSource(graphTestSource, "graph.sui")
 	if dl.HasErrors() {

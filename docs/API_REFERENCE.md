@@ -1226,7 +1226,11 @@ Rendering:
 - the table is split into **Shapes** and **Links** tabs. Shapes use `Element`,
   `Tag`, `Type` and actions; links use `Element`, `Tag`, `Type`, `From`, `To` and
   actions. Element is first and contains the color picker, Tag is second, and
-  Type selects the geometry/line variant. A single **Add row** button opens the Shape/Link choice;
+  Type selects the geometry/line variant. The table tab bar holds a single
+  **Add row** button aligned to the right; it opens the Shape/Link choice. The
+  table has no settings or undo/redo buttons: imports and exports live in the
+  Graph settings panel, and the graph undo/redo buttons cover both diagram and
+  table edits.
   Event/guard/action fields remain available in the link properties panel.
   The diagram and the tables are two views of the same model: adding, editing,
   moving, resizing, retagging or deleting in either view updates the shared

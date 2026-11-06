@@ -903,9 +903,11 @@ style, width, corner radius, dash length/gap for dashed/dotted) are on the left,
 subtype and the fill/border/highlight colors on the right, with a live shape
 preview at the bottom; **Position** holds rotation, X/Y, width and height in two
 top-aligned columns. The label stays in the table and text styling is in Tag
-settings. One **Add row**
-button opens the Shape/Link
-choice. A compact **+** button in the chart header opens one create menu with the
+settings. The table tab bar holds one **Add row**
+button at its right edge; it opens the Shape/Link
+choice. The table has no own settings or undo/redo buttons: import/export live in
+**Graph settings**, and the graph undo/redo buttons cover both diagram and table
+edits. A compact **+** button in the chart header opens one create menu with the
 six shape subtypes and **New link**, so it cannot cover diagram nodes; its tooltip
 shows `+`/`N`, and `L` creates a link directly.
 Selection is synchronized between graph and table with an amber selection color.

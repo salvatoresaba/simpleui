@@ -19514,36 +19514,6 @@ const suiChartRuntime = `(function(){
     var first = dialog.querySelector("input,select,button,textarea");
     if (first) first.focus();
   }
-  function openStateTableMenu(root, button) {
-    if (root.__suiStateTableMenu && root.__suiStateTableMenu.parentNode) root.__suiStateTableMenu.parentNode.removeChild(root.__suiStateTableMenu);
-    var menu = document.createElement("div");
-    menu.className = "sui-chart-gantt-link-menu";
-    menu.setAttribute("role", "menu");
-    copyChartThemeVars(root, menu);
-    var add = function(label, fn) {
-      var item = document.createElement("button");
-      item.type = "button";
-      item.setAttribute("role", "menuitem");
-      item.textContent = label;
-      item.addEventListener("click", function() { close(); fn(); });
-      menu.appendChild(item);
-    };
-    var close = function() {
-      document.removeEventListener("click", outside, true);
-      if (menu.parentNode) menu.parentNode.removeChild(menu);
-      if (root.__suiStateTableMenu === menu) root.__suiStateTableMenu = null;
-    };
-    var outside = function(ev) { if (!menu.contains(ev.target)) close(); };
-    add("Import state data...", function() { stateImport(root); });
-    add("Export JSON", function() { stateExport(root, "json"); });
-    add("Export CSV", function() { stateExport(root, "csv"); });
-    document.body.appendChild(menu);
-    root.__suiStateTableMenu = menu;
-    var box = button.getBoundingClientRect();
-    menu.style.left = Math.max(4, Math.min(window.innerWidth - menu.offsetWidth - 4, box.left)) + "px";
-    menu.style.top = Math.min(window.innerHeight - menu.offsetHeight - 4, box.bottom + 4) + "px";
-    document.addEventListener("click", outside, true);
-  }
   function stateResolveColor(value) {
     var hex = colorToHex(value, "");
     if (hex) return hex;
@@ -20169,9 +20139,6 @@ const suiChartRuntime = `(function(){
   function renderStateTable(container, data, title, root) {
     clear(container);
     container.classList.add("sui-chart-state-table-scroll");
-    if (root && root.__suiStateTableMenu && root.__suiStateTableMenu.parentNode) root.__suiStateTableMenu.parentNode.removeChild(root.__suiStateTableMenu);
-    var tools = document.createElement("div");
-    tools.className = "sui-chart-state-table-tools";
     var addRow = document.createElement("button");
     addRow.type = "button";
     addRow.className = "sui-chart-state-add-row";
@@ -20179,35 +20146,12 @@ const suiChartRuntime = `(function(){
     addRow.setAttribute("aria-haspopup", "menu");
     addRow.setAttribute("title", "Add a shape or link row");
     addRow.addEventListener("click", function(ev) { ev.stopPropagation(); openStateAddRowMenu(root, addRow); });
-    var undoBtn = stateIconButton("sui-chart-state-icon-btn", "Undo (Ctrl+Z)", ["M9 14l-4-4 4-4", "M5 10h7a4 4 0 0 1 0 8h-1"]);
-    var redoBtn = stateIconButton("sui-chart-state-icon-btn", "Redo (Ctrl+U)", ["M15 14l4-4-4-4", "M19 10h-7a4 4 0 0 0 0 8h1"]);
-    if (root) {
-      var stateHist = stateHistory(root);
-      undoBtn.disabled = !stateHist.stateUndo.length;
-      redoBtn.disabled = !stateHist.stateRedo.length;
-      undoBtn.addEventListener("click", function() { undoState(root); });
-      redoBtn.addEventListener("click", function() { redoState(root); });
-    } else {
-      undoBtn.disabled = true;
-      redoBtn.disabled = true;
-    }
-    var settings = document.createElement("button");
-    settings.type = "button";
-    settings.className = "sui-chart-state-table-settings";
-    settings.textContent = "⚙";
-    settings.setAttribute("aria-label", "State table settings");
-    settings.setAttribute("title", "Table settings");
-    settings.setAttribute("aria-haspopup", "menu");
-    settings.addEventListener("click", function(ev) { ev.stopPropagation(); openStateTableMenu(root, settings); });
-    tools.appendChild(addRow);
-    tools.appendChild(undoBtn);
-    tools.appendChild(redoBtn);
-    tools.appendChild(settings);
-    container.appendChild(tools);
     var tabBar = document.createElement("div");
     tabBar.className = "sui-chart-state-table-tabs";
-    tabBar.setAttribute("role", "tablist");
-    tabBar.setAttribute("aria-label", "Diagram tables");
+    var tabList = document.createElement("div");
+    tabList.className = "sui-chart-state-table-tablist";
+    tabList.setAttribute("role", "tablist");
+    tabList.setAttribute("aria-label", "Diagram tables");
     var shapeTab = document.createElement("button");
     shapeTab.type = "button";
     shapeTab.setAttribute("role", "tab");
@@ -20216,8 +20160,10 @@ const suiChartRuntime = `(function(){
     linkTab.type = "button";
     linkTab.setAttribute("role", "tab");
     linkTab.setAttribute("data-sui-chart-state-tab-button", "links");
-    tabBar.appendChild(shapeTab);
-    tabBar.appendChild(linkTab);
+    tabList.appendChild(shapeTab);
+    tabList.appendChild(linkTab);
+    tabBar.appendChild(tabList);
+    tabBar.appendChild(addRow);
     container.appendChild(tabBar);
     var shapePanel = document.createElement("div");
     shapePanel.className = "sui-chart-state-tab-panel";
@@ -20416,7 +20362,7 @@ const suiChartRuntime = `(function(){
     if (root && root.__suiStateSelected && root.__suiStateSelected.indexOf("edge:") === 0) activateTab("links");
     else activateTab(root && root.__suiStateTableTab ? root.__suiStateTableTab : "shapes");
     if (root && !stateEditingMode(root)) {
-      tools.hidden = true;
+      addRow.hidden = true;
       container.querySelectorAll("input,select,textarea,.sui-chart-state-icon-btn").forEach(function(el) {
         el.disabled = true;
       });

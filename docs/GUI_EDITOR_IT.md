@@ -913,8 +913,11 @@ scheda corrispondente e la riga viene portata nell'area visibile. Cliccare
 l'elemento o il suo tag produce la stessa selezione. Con una forma selezionata,
 le frecce la spostano di una cella, Shift+frecce la ridimensionano (Left/Right
 larghezza, Up/Down altezza) mantenendo l'angolo superiore sinistro e
-Delete/Backspace la elimina. Un solo
-pulsante **Add row** apre la scelta Shape/Link. Il pulsante compatto **+**
+Delete/Backspace la elimina. La barra dei tab della tabella contiene un solo
+pulsante **Add row** allineato a destra, che apre la scelta Shape/Link. La
+tabella non ha pulsanti propri di impostazioni o undo/redo: import/export sono in
+**Graph settings** e i pulsanti undo/redo del grafico coprono sia il diagramma
+sia la tabella. Il pulsante compatto **+**
 nell'intestazione apre un unico menu con i sei tipi e **New link**, senza coprire
 i nodi; il tooltip indica `+`/`N` e `L` crea direttamente un link.
 La selezione è sincronizzata grafico/tabella con colore ambra.
