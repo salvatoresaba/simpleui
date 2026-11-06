@@ -114,7 +114,7 @@ func TestGuiEditorPreferencesPanel(t *testing.T) {
 		}
 	}
 	if strings.Contains(guiHTML, `id="pref-tab-sui"`) {
-		t.Error("SUI code must be merged into the General editor tab")
+		t.Error("SUI code must be merged into the Code editor tab")
 	}
 }
 

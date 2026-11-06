@@ -53,7 +53,7 @@ Appearance and layout of the editor shell.
 | Panels | all visible except history | Show or hide Structure/Tokens, Inspector and Problems/History |
 | Reset toolbar order | - | Restores the default toolbar layout |
 
-### General editor
+### Code editor
 
 Everything about writing SUI: typography, editing behaviour, syntax colours and
 editor tooltips. The settings are grouped in accordions and a single preview at

@@ -54,7 +54,7 @@ Aspetto e layout della shell dell'editor.
 | Panels | tutti visibili tranne history | Mostra o nasconde Structure/Tokens, Inspector e Problems/History |
 | Reset toolbar order | - | Ripristina il layout predefinito delle toolbar |
 
-### General editor
+### Code editor
 
 Tutto ciò che riguarda la scrittura in SUI: tipografia, comportamento di editing,
 colori della sintassi e tooltip dell'editor. Le impostazioni sono raggruppate in
@@ -1401,7 +1401,7 @@ funzionano automaticamente per i target focusabili.
 Lo stile dei tooltip dell'app generata si gestisce da **Preferences → Project
 preferences.** Il pannello scrive `--sui-tooltip-*` nel CSS del progetto. I
 tooltip dell'editor sono separati e si trovano in **Preferences → Editor
-preferences → General editor**.
+preferences → Code editor**.
 
 | Impostazione | Significato |
 |---|---|

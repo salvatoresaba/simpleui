@@ -929,7 +929,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     </div>
     <div class="pref-tabs" id="pref-tabs" role="tablist" aria-label="Editor preferences">
       <button class="pref-tab on" type="button" role="tab" id="pref-tab-interface" aria-controls="pref-pane-interface" aria-selected="true" onclick="showPrefTab('interface')">Interface</button>
-      <button class="pref-tab" type="button" role="tab" id="pref-tab-editor" aria-controls="pref-pane-editor" aria-selected="false" tabindex="-1" onclick="showPrefTab('editor')">General editor</button>
+      <button class="pref-tab" type="button" role="tab" id="pref-tab-editor" aria-controls="pref-pane-editor" aria-selected="false" tabindex="-1" onclick="showPrefTab('editor')">Code editor</button>
       <button class="pref-tab" type="button" role="tab" id="pref-tab-shortcuts" aria-controls="pref-pane-shortcuts" aria-selected="false" tabindex="-1" onclick="showPrefTab('shortcuts')">Shortcuts</button>
       <button class="pref-tab" type="button" role="tab" id="pref-tab-history" aria-controls="pref-pane-history" aria-selected="false" tabindex="-1" onclick="showPrefTab('history')">Files &amp; history</button>
     </div>
