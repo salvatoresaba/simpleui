@@ -34,9 +34,13 @@ In the right-hand inspector the **Drag & drop** section uses these labels:
 
 Open **Preferences → Editor preferences.** The panel is divided into tabs so the
 editor shell, the code editor, the SUI syntax, shortcuts and project files stay
-separate.
+separate. Tabs with many controls use a two-column grid (label and control in
+each column), numeric settings use a slider plus a value box, and grouped tabs
+use accordions that show one section at a time.
 
 ### Interface
+
+Appearance and layout of the editor shell.
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -49,25 +53,65 @@ separate.
 
 ### General editor
 
+How the editor behaves as a text editor. SUI token colours are in the **SUI
+code** tab, so the two tabs never duplicate the same setting.
+
+#### Font & metrics
+
 | Setting | Default | Effect |
 |---|---|---|
-| Font family | System monospace | Choose a bundled stack or enter a custom CSS font family |
+| Font family | System monospace | Combo box with bundled stacks or a custom CSS family |
+| Custom font | - | CSS family used when **Custom** is selected |
 | Editor size | 16px | Code size, independent of the general UI zoom |
 | Line height | 1.6 | Vertical spacing and line-number alignment |
 | Tab size | 4 | Tab width in the overlay and textarea |
 | Word wrap | off | Wrap long lines in both layers |
 | Line numbers | on | Show the gutter |
+
+The preview under the settings renders a short SUI snippet with the current
+font, size, line height, tab size and syntax colours, so the effect is visible
+before **Apply**.
+
+#### Editing
+
+| Setting | Default | Effect |
+|---|---|---|
 | Auto-close pairs | on | Insert the closing bracket or quote while typing |
 | Smart indent | on | Keep indentation on Enter and indent after an opening bracket |
 | Auto suggestions | on | Open the completion popup while typing; Ctrl+Space always works |
 
+#### Editor tooltips
+
+Tooltips that describe buttons, fields and toolbar actions of the editor. They
+are part of the editor chrome and never affect the generated app. The preview
+shows a code snippet with a bubble using the selected colours, size, radius and
+maximum width.
+
+| Setting | Default | Effect |
+|---|---|---|
+| Show tooltips | on | Enable the custom editor tooltip bubble |
+| Delay | 450 ms | Hover delay before the bubble appears |
+| Place | Auto | Top, right, bottom, left or automatic placement |
+| Max width | 320px | Maximum bubble width |
+| Font size | 12px | Bubble text size |
+| Background / text / border | dark palette | Bubble colours |
+| Radius | 6px | Bubble border radius |
+
 ### SUI code
+
+How SUI source is coloured. These options do not change editing behaviour; use
+**General editor** for font, indentation and completion.
+
+#### Syntax highlighting
 
 | Setting | Default | Effect |
 |---|---|---|
 | Syntax colors | on | Colour SUI keywords, strings, numbers and comments |
 | Bracket match | on | Highlight the matching bracket |
 | Selected line | off | Optional background for the selected element line |
+
+The preview renders sample SUI code with the current font and metrics, applies
+the token colours and shows the selected-line highlight when enabled.
 
 With **Syntax colors** enabled, declared functions and their calls are shown in
 gold, while states, function parameters, `let` bindings and loop variables are
@@ -80,22 +124,6 @@ syntax-highlight overlay and the transparent textarea, so the caret and the
 visible characters stay aligned. Syntax tokens only change colour; bold/italic
 styles are not applied to code tokens.
 
-### Editor tooltips
-
-Tooltips that describe buttons, fields and toolbar actions of the editor are
-configured in **General editor → Editor tooltips**. They are part of the editor
-chrome and never affect the generated app.
-
-| Setting | Default | Effect |
-|---|---|---|
-| Show tooltips | on | Enable the custom editor tooltip bubble |
-| Delay | 450 ms | Hover delay before the bubble appears |
-| Place | Auto | Top, right, bottom, left or automatic placement |
-| Max width | 320px | Maximum bubble width |
-| Font size | 12px | Bubble text size |
-| Background / text / border | dark palette | Bubble colours |
-| Radius | 6px | Bubble border radius |
-
 ### Shortcuts
 
 The **Shortcuts** tab is a read-only reference. Use the search field to filter
@@ -104,18 +132,20 @@ chart data shortcuts; shortcuts are not rebindable yet.
 
 ### Files & history
 
+Snapshots and file locations are grouped in accordions.
+
 | Setting | Default | Effect |
 |---|---|---|
 | Automatic snapshots | on | Store a project version while the designer saves |
-| Interval | 60 s | Minimum time between automatic snapshots |
-| Versions kept | 30 | Automatic retention limit |
+| Interval | 60 s | Minimum time between automatic snapshots, with slider and value box |
+| Versions kept | 30 | Automatic retention limit, with slider and value box |
 | Snapshot now | - | Force a version immediately |
 | Open project history | - | Open the restore panel |
 | Clear history | - | Delete every saved version after confirmation |
 
-The tab also shows the data folder, the preferences file and the project file,
-with a copy button for each path. Automatic snapshot settings are stored in the
-editor preferences; the version files live under the data folder.
+The **Files** section shows the data folder, the preferences file and the
+project file, with a copy button for each path. Automatic snapshot settings are
+stored in the editor preferences; the version files live under the data folder.
 
 Preferences are saved with the other designer preferences and persist across
 reloads. The general **Font size** setting scales the UI, while **Editor size**

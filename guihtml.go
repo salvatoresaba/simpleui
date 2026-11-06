@@ -373,15 +373,39 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .pfrow select, .pfrow input[type=range] { flex:1; font-size:13px; }
 .pfrow input[type=checkbox] { flex:none; }
 #prefbox .pfsec:first-child { margin-top:0; padding-top:0; border-top:0; }
-#prefbox .pfrow label { width:150px; }
-#prefbox .pfrow input[type=text], #prefbox .pfrow input[type=number] { flex:1; min-width:0; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
-#prefbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; flex:none; }
-#prefbox .pfrow input[readonly] { color:var(--muted); }
+#prefbox select { appearance:none; -webkit-appearance:none; flex:1; min-width:0; font-size:13px; padding:6px 26px 6px 8px; color:var(--fg); background-color:var(--input-bg); border:1px solid var(--border2); border-radius:6px; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position:calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
+.pref-acc-head { display:flex; align-items:center; gap:8px; width:100%; padding:10px 2px; margin:0; border:0; border-top:1px solid var(--border); background:transparent; color:var(--fg); font:inherit; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; cursor:pointer; text-align:left; }
+.pref-acc-head:first-child { border-top:0; }
+.pref-acc-head:before { content:"\25B8"; color:var(--muted); font-size:10px; width:10px; }
+.pref-acc-head.on:before { content:"\25BE"; color:var(--accent); }
+.pref-acc-head:hover { color:var(--accent); }
+.pref-acc-head:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.pref-acc-body { display:none; padding:2px 0 12px; }
+.pref-acc-body.on { display:block; }
+.pref-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px 24px; align-items:start; }
+.pf-field { display:grid; grid-template-columns:minmax(92px,128px) minmax(0,1fr); gap:8px; align-items:center; min-width:0; }
+.pf-field.wide { grid-column:1 / -1; }
+.pf-field > label { font-size:12.5px; color:var(--muted); min-width:0; }
+.pf-field input[type=text], .pf-field input[type=number] { width:100%; min-width:0; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
+.pf-field input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; }
+.pf-field input[type=checkbox] { justify-self:start; margin:0; }
+.pf-num { display:grid; grid-template-columns:minmax(0, 1fr) 66px; gap:6px; align-items:center; min-width:0; }
+.pf-num input[type=range] { width:100%; min-width:0; accent-color:var(--accent); }
+.pf-num input[type=number] { width:100%; text-align:right; font-variant-numeric:tabular-nums; }
+.pf-checks { display:flex; flex-direction:column; gap:4px; font-size:12px; }
+.pf-checks label { display:flex; align-items:center; gap:6px; color:var(--fg); font-size:12px; width:auto; }
+.pf-path { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:6px; align-items:center; min-width:0; }
+.pf-path input { width:100%; min-width:0; }
+.pf-code-preview { margin:0; padding:10px 12px; border:1px solid var(--border2); border-radius:7px; background:var(--editorbg); color:var(--editorfg); font-family:ui-monospace, Consolas, monospace; font-size:13px; line-height:1.55; overflow:auto; max-height:190px; white-space:pre; tab-size:4; }
+.pf-preview-line-selected { display:inline-block; width:100%; background:rgba(148,163,184,.16); box-shadow:inset 2px 0 0 var(--accent); }
+.pf-tip-demo { display:flex; flex-direction:column; align-items:flex-start; }
+.pf-tip-bubble { margin:14px 0 4px 42px; max-width:320px; padding:6px 8px; border:1px solid #3a4152; border-radius:6px; background:#1d2129; color:#e6e6ef; font-size:12px; line-height:1.4; white-space:pre-line; box-shadow:0 6px 20px rgba(0,0,0,.3); position:relative; }
+.pf-tip-bubble:before { content:""; position:absolute; top:-5px; left:18px; width:8px; height:8px; background:inherit; transform:rotate(45deg); }
+@media (max-width: 760px) { .pref-grid { grid-template-columns:1fr; } }
 .pfbtns { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
 #prefbox .pfbtns { margin:0; padding:12px 20px 16px; border-top:1px solid var(--border); }
 .pf-actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; }
 .pf-actions .btn { font-size:12px; }
-.pf-tip-preview { margin:12px 0 4px; max-width:320px; padding:6px 8px; border:1px solid var(--edtip-border,#3a4152); border-radius:var(--edtip-radius,6px); background:var(--edtip-bg,#1d2129); color:var(--edtip-fg,#e6e6ef); font-size:var(--edtip-font-size,12px); line-height:1.4; white-space:pre-line; box-shadow:0 6px 20px rgba(0,0,0,.3); }
 .sc-group { margin:0 0 14px; }
 .sc-group h4 { margin:0 0 6px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
 .sc-row { display:flex; align-items:baseline; gap:12px; padding:5px 0; border-top:1px solid var(--border); font-size:12.5px; }
@@ -911,85 +935,137 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     </div>
     <div class="pref-body">
       <section class="pref-pane on" id="pref-pane-interface" role="tabpanel" aria-labelledby="pref-tab-interface">
-        <div class="pfsec">Appearance</div>
-        <div class="pfrow"><label>Theme</label><select id="pf-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></div>
-        <div class="pfrow"><label>Font size</label><input type="range" id="pf-size" min="12" max="20" value="14"></div>
-        <div class="pfrow"><label>Density</label><select id="pf-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>
-        <div class="pfrow"><label>Accent color</label><input type="color" id="pf-accent" value="#4c5cf7"></div>
-        <div class="pfsec">Layout</div>
-        <div class="pfrow"><label>Panels</label>
-          <span style="display:flex;flex-direction:column;gap:4px;font-size:12px">
-            <label style="display:flex;align-items:center;gap:6px;width:auto"><input type="checkbox" id="pf-left"> Structure / Tokens</label>
-            <label style="display:flex;align-items:center;gap:6px;width:auto"><input type="checkbox" id="pf-right"> Inspector</label>
-            <label style="display:flex;align-items:center;gap:6px;width:auto"><input type="checkbox" id="pf-bottom"> Problems / History</label>
-          </span>
+        <div class="pref-acc">
+          <button class="pref-acc-head on" type="button" aria-expanded="true" onclick="togglePrefAcc(this)">Appearance</button>
+          <div class="pref-acc-body on">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Theme</label><select id="pf-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></div>
+              <div class="pf-field"><label>Font size</label><div class="pf-num"><input type="range" id="pf-size-range" min="12" max="20" step="1" value="14" oninput="syncPrefNum('pf-size', this.value)"><input type="number" id="pf-size" min="12" max="20" step="1" value="14" oninput="syncPrefNum('pf-size', this.value)"></div></div>
+              <div class="pf-field"><label>Density</label><select id="pf-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>
+              <div class="pf-field"><label>Accent color</label><input type="color" id="pf-accent" value="#4c5cf7"></div>
+            </div>
+          </div>
+          <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Layout</button>
+          <div class="pref-acc-body">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Panels</label>
+                <span class="pf-checks">
+                  <label><input type="checkbox" id="pf-left"> Structure / Tokens</label>
+                  <label><input type="checkbox" id="pf-right"> Inspector</label>
+                  <label><input type="checkbox" id="pf-bottom"> Problems / History</label>
+                </span>
+              </div>
+              <div class="pf-field"><label>Toolbars</label><button class="btn" type="button" style="font-size:12px" onclick="resetBarOrder()">Reset toolbar order</button></div>
+            </div>
+          </div>
         </div>
-        <div class="pfrow"><label>Toolbars</label><button class="btn" type="button" style="font-size:12px" onclick="resetBarOrder()">Reset toolbar order</button></div>
       </section>
       <section class="pref-pane" id="pref-pane-editor" role="tabpanel" aria-labelledby="pref-tab-editor">
-        <div class="pfsec">Code editor</div>
-        <div class="pfrow"><label>Font family</label>
-          <select id="pf-editor-font">
-            <option value="ui-monospace, Consolas, Menlo, monospace">System monospace</option>
-            <option value="'Cascadia Code', 'Cascadia Mono', Consolas, monospace">Cascadia Code</option>
-            <option value="'Fira Code', Consolas, monospace">Fira Code</option>
-            <option value="'JetBrains Mono', Consolas, monospace">JetBrains Mono</option>
-            <option value="Consolas, 'Courier New', monospace">Consolas</option>
-            <option value="'Courier New', Courier, monospace">Courier New</option>
-            <option value="monospace">Browser monospace</option>
-            <option value="__custom__">Custom.</option>
-          </select>
+        <div class="hint" style="margin-top:0">Editor behaviour and typography. SUI token colours are in the SUI code tab.</div>
+        <div class="pref-acc">
+          <button class="pref-acc-head on" type="button" aria-expanded="true" onclick="togglePrefAcc(this)">Font &amp; metrics</button>
+          <div class="pref-acc-body on">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Font family</label>
+                <select id="pf-editor-font" onchange="updateAllPreviews()">
+                  <option value="ui-monospace, Consolas, Menlo, monospace">System monospace</option>
+                  <option value="'Cascadia Code', 'Cascadia Mono', Consolas, monospace">Cascadia Code</option>
+                  <option value="'Fira Code', Consolas, monospace">Fira Code</option>
+                  <option value="'JetBrains Mono', Consolas, monospace">JetBrains Mono</option>
+                  <option value="Consolas, 'Courier New', monospace">Consolas</option>
+                  <option value="'Courier New', Courier, monospace">Courier New</option>
+                  <option value="monospace">Browser monospace</option>
+                  <option value="__custom__">Custom.</option>
+                </select>
+              </div>
+              <div class="pf-field"><label>Custom font</label><input type="text" id="pf-editor-font-custom" placeholder="'My Mono', monospace" oninput="updateAllPreviews()"></div>
+              <div class="pf-field"><label>Editor size</label><div class="pf-num"><input type="range" id="pf-editor-size-range" min="12" max="28" step="1" value="16" oninput="syncPrefNum('pf-editor-size', this.value)"><input type="number" id="pf-editor-size" min="12" max="28" step="1" value="16" oninput="syncPrefNum('pf-editor-size', this.value)"></div></div>
+              <div class="pf-field"><label>Line height</label><div class="pf-num"><input type="range" id="pf-editor-lh-range" min="1.2" max="2.1" step="0.05" value="1.6" oninput="syncPrefNum('pf-editor-lh', this.value)"><input type="number" id="pf-editor-lh" min="1.2" max="2.1" step="0.05" value="1.6" oninput="syncPrefNum('pf-editor-lh', this.value)"></div></div>
+              <div class="pf-field"><label>Tab size</label><div class="pf-num"><input type="range" id="pf-editor-tab-range" min="1" max="12" step="1" value="4" oninput="syncPrefNum('pf-editor-tab', this.value)"><input type="number" id="pf-editor-tab" min="1" max="12" step="1" value="4" oninput="syncPrefNum('pf-editor-tab', this.value)"></div></div>
+              <div class="pf-field"><label>Word wrap</label><input type="checkbox" id="pf-editor-wrap" onchange="updateAllPreviews()"></div>
+              <div class="pf-field"><label>Line numbers</label><input type="checkbox" id="pf-editor-lines" checked></div>
+              <div class="pf-field wide"><label>Preview</label><pre id="pf-code-preview" class="pf-code-preview" aria-label="Code editor preview"></pre></div>
+            </div>
+          </div>
+          <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Editing</button>
+          <div class="pref-acc-body">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Auto-close pairs</label><input type="checkbox" id="pf-editor-autoclose" checked></div>
+              <div class="pf-field"><label>Smart indent</label><input type="checkbox" id="pf-editor-smartindent" checked></div>
+              <div class="pf-field"><label>Auto suggestions</label><input type="checkbox" id="pf-editor-completion" checked></div>
+            </div>
+            <div class="hint">Auto suggestions can be opened manually with Ctrl+Space even when the popup is disabled.</div>
+          </div>
+          <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Editor tooltips</button>
+          <div class="pref-acc-body">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Show tooltips</label><input type="checkbox" id="pf-tip-enabled" checked></div>
+              <div class="pf-field"><label>Place</label><select id="pf-tip-place"><option value="auto">Auto</option><option value="top">Top</option><option value="right">Right</option><option value="bottom">Bottom</option><option value="left">Left</option></select></div>
+              <div class="pf-field"><label>Delay</label><div class="pf-num"><input type="range" id="pf-tip-delay-range" min="0" max="3000" step="50" value="450" oninput="syncPrefNum('pf-tip-delay', this.value)"><input type="number" id="pf-tip-delay" min="0" max="3000" step="50" value="450" oninput="syncPrefNum('pf-tip-delay', this.value)"></div></div>
+              <div class="pf-field"><label>Font size</label><div class="pf-num"><input type="range" id="pf-tip-fontsize-range" min="9" max="20" step="1" value="12" oninput="syncPrefNum('pf-tip-fontsize', this.value)"><input type="number" id="pf-tip-fontsize" min="9" max="20" step="1" value="12" oninput="syncPrefNum('pf-tip-fontsize', this.value)"></div></div>
+              <div class="pf-field"><label>Max width</label><input type="text" id="pf-tip-maxwidth" value="320px" placeholder="320px" oninput="updatePrefTipPreview()"></div>
+              <div class="pf-field"><label>Background</label><input type="color" id="pf-tip-bg" value="#1d2129" oninput="updatePrefTipPreview()"></div>
+              <div class="pf-field"><label>Text color</label><input type="color" id="pf-tip-fg" value="#e6e6ef" oninput="updatePrefTipPreview()"></div>
+              <div class="pf-field"><label>Border color</label><input type="color" id="pf-tip-border" value="#3a4152" oninput="updatePrefTipPreview()"></div>
+              <div class="pf-field"><label>Radius</label><input type="text" id="pf-tip-radius" value="6px" placeholder="6px" oninput="updatePrefTipPreview()"></div>
+              <div class="pf-field wide"><label>Preview</label>
+                <div class="pf-tip-demo">
+                  <pre id="pf-tip-code" class="pf-code-preview" aria-label="Editor tooltip preview code"></pre>
+                  <div id="pf-tip-preview" class="pf-tip-bubble">Save project</div>
+                </div>
+              </div>
+            </div>
+            <div class="hint">These tooltips describe the editor controls. They do not change the generated app; use Project preferences for app tooltips.</div>
+          </div>
         </div>
-        <div class="pfrow"><label>Custom font</label><input type="text" id="pf-editor-font-custom" placeholder="'My Mono', monospace"></div>
-        <div class="pfrow"><label>Editor size</label><input type="range" id="pf-editor-size" min="12" max="28" value="16"></div>
-        <div class="pfrow"><label>Line height</label><input type="range" id="pf-editor-lh" min="1.2" max="2.1" step="0.05" value="1.6"></div>
-        <div class="pfrow"><label>Tab size</label><select id="pf-editor-tab"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></div>
-        <div class="pfrow"><label>Word wrap</label><input type="checkbox" id="pf-editor-wrap"></div>
-        <div class="pfrow"><label>Line numbers</label><input type="checkbox" id="pf-editor-lines" checked></div>
-        <div class="pfsec">Editing</div>
-        <div class="pfrow"><label>Auto-close pairs</label><input type="checkbox" id="pf-editor-autoclose" checked></div>
-        <div class="pfrow"><label>Smart indent</label><input type="checkbox" id="pf-editor-smartindent" checked></div>
-        <div class="pfrow"><label>Auto suggestions</label><input type="checkbox" id="pf-editor-completion" checked></div>
-        <div class="pfsec">Editor tooltips</div>
-        <div class="pfrow"><label>Show tooltips</label><input type="checkbox" id="pf-tip-enabled" checked></div>
-        <div class="pfrow"><label>Delay (ms)</label><input type="number" id="pf-tip-delay" min="0" max="3000" step="50" value="450"></div>
-        <div class="pfrow"><label>Place</label><select id="pf-tip-place"><option value="auto">Auto</option><option value="top">Top</option><option value="right">Right</option><option value="bottom">Bottom</option><option value="left">Left</option></select></div>
-        <div class="pfrow"><label>Max width</label><input type="text" id="pf-tip-maxwidth" value="320px" placeholder="320px" oninput="updatePrefTipPreview()"></div>
-        <div class="pfrow"><label>Font size</label><input type="number" id="pf-tip-fontsize" min="9" max="20" step="1" value="12" oninput="updatePrefTipPreview()"></div>
-        <div class="pfrow"><label>Background</label><input type="color" id="pf-tip-bg" value="#1d2129" oninput="updatePrefTipPreview()"></div>
-        <div class="pfrow"><label>Text color</label><input type="color" id="pf-tip-fg" value="#e6e6ef" oninput="updatePrefTipPreview()"></div>
-        <div class="pfrow"><label>Border color</label><input type="color" id="pf-tip-border" value="#3a4152" oninput="updatePrefTipPreview()"></div>
-        <div class="pfrow"><label>Radius</label><input type="text" id="pf-tip-radius" value="6px" placeholder="6px" oninput="updatePrefTipPreview()"></div>
-        <div class="hint">Tooltips describe buttons, fields and toolbar actions of the editor. They are not part of the generated app.</div>
-        <div id="pf-tip-preview">Editor tooltip preview</div>
       </section>
       <section class="pref-pane" id="pref-pane-sui" role="tabpanel" aria-labelledby="pref-tab-sui">
-        <div class="pfsec">SUI code appearance</div>
-        <div class="pfrow"><label>Syntax colors</label><input type="checkbox" id="pf-editor-syntax" checked></div>
-        <div class="pfrow"><label>Bracket match</label><input type="checkbox" id="pf-editor-brackets" checked></div>
-        <div class="pfrow"><label>Selected line</label><input type="checkbox" id="pf-editor-linehl" checked></div>
-        <div class="hint">Functions and calls are gold; states, parameters and loop variables are cyan. Colours apply to declarations, references and interpolations without changing character metrics.</div>
+        <div class="hint" style="margin-top:0">How SUI source is coloured. These options do not change editing behaviour.</div>
+        <div class="pref-acc">
+          <button class="pref-acc-head on" type="button" aria-expanded="true" onclick="togglePrefAcc(this)">Syntax highlighting</button>
+          <div class="pref-acc-body on">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Syntax colors</label><input type="checkbox" id="pf-editor-syntax" checked onchange="updateAllPreviews()"></div>
+              <div class="pf-field"><label>Bracket match</label><input type="checkbox" id="pf-editor-brackets" checked onchange="updateSuiPreview()"></div>
+              <div class="pf-field"><label>Selected line</label><input type="checkbox" id="pf-editor-linehl" checked onchange="updateSuiPreview()"></div>
+              <div class="pf-field wide"><label>Preview</label><pre id="pf-sui-preview" class="pf-code-preview" aria-label="SUI syntax preview"></pre></div>
+            </div>
+            <div class="hint">Functions and calls are gold; states, parameters and loop variables are cyan. Colours apply to declarations, references and interpolations without changing character metrics.</div>
+          </div>
+        </div>
       </section>
       <section class="pref-pane" id="pref-pane-shortcuts" role="tabpanel" aria-labelledby="pref-tab-shortcuts">
-        <div class="pfrow"><label>Search</label><input type="text" id="pf-shortcut-search" placeholder="Filter shortcuts..." oninput="renderShortcutList()"></div>
-        <div class="hint">Read-only reference for the current editor shortcuts.</div>
-        <div id="pf-shortcut-list"></div>
+        <div class="pref-grid">
+          <div class="pf-field wide"><label>Search</label><input type="text" id="pf-shortcut-search" placeholder="Filter shortcuts..." oninput="renderShortcutList()"></div>
+          <div class="hint" style="grid-column:1 / -1">Read-only reference for the current editor shortcuts.</div>
+          <div id="pf-shortcut-list" style="grid-column:1 / -1"></div>
+        </div>
       </section>
       <section class="pref-pane" id="pref-pane-history" role="tabpanel" aria-labelledby="pref-tab-history">
-        <div class="pfsec">Snapshots</div>
-        <div class="pfrow"><label>Automatic snapshots</label><input type="checkbox" id="pf-hist-auto" checked></div>
-        <div class="pfrow"><label>Interval (seconds)</label><input type="number" id="pf-hist-interval" min="15" max="3600" step="15" value="60"></div>
-        <div class="pfrow"><label>Versions kept</label><input type="number" id="pf-hist-keep" min="5" max="500" step="5" value="30"></div>
-        <div class="hint">Automatic snapshots are throttled to the interval while the project is saved. Manual snapshots are always kept.</div>
-        <div class="pf-actions">
-          <button class="btn" type="button" onclick="snapshotNow()">Snapshot now</button>
-          <button class="btn" type="button" onclick="openHistoryFromPrefs()">Open project history</button>
-          <button class="btn" type="button" onclick="clearProjectHistory()">Clear history</button>
+        <div class="pref-acc">
+          <button class="pref-acc-head on" type="button" aria-expanded="true" onclick="togglePrefAcc(this)">Snapshots</button>
+          <div class="pref-acc-body on">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Automatic snapshots</label><input type="checkbox" id="pf-hist-auto" checked></div>
+              <div class="pf-field"><label>Interval</label><div class="pf-num"><input type="range" id="pf-hist-interval-range" min="15" max="3600" step="15" value="60" oninput="syncPrefNum('pf-hist-interval', this.value)"><input type="number" id="pf-hist-interval" min="15" max="3600" step="15" value="60" oninput="syncPrefNum('pf-hist-interval', this.value)"></div></div>
+              <div class="pf-field"><label>Versions kept</label><div class="pf-num"><input type="range" id="pf-hist-keep-range" min="5" max="500" step="5" value="30" oninput="syncPrefNum('pf-hist-keep', this.value)"><input type="number" id="pf-hist-keep" min="5" max="500" step="5" value="30" oninput="syncPrefNum('pf-hist-keep', this.value)"></div></div>
+              <div class="pf-field wide"><label>Actions</label><div class="pf-actions">
+                <button class="btn" type="button" onclick="snapshotNow()">Snapshot now</button>
+                <button class="btn" type="button" onclick="openHistoryFromPrefs()">Open project history</button>
+                <button class="btn" type="button" onclick="clearProjectHistory()">Clear history</button>
+              </div></div>
+              <div class="hint" style="grid-column:1 / -1">Automatic snapshots are throttled to the interval while the project is saved. Manual snapshots are always kept.</div>
+            </div>
+          </div>
+          <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Files</button>
+          <div class="pref-acc-body">
+            <div class="pref-grid">
+              <div class="pf-field wide"><label>Data folder</label><div class="pf-path"><input type="text" id="pf-data-dir" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-data-dir')">Copy</button></div></div>
+              <div class="pf-field wide"><label>Preferences file</label><div class="pf-path"><input type="text" id="pf-prefs-path" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-prefs-path')">Copy</button></div></div>
+              <div class="pf-field wide"><label>Project file</label><div class="pf-path"><input type="text" id="pf-project-path" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-project-path')">Copy</button></div></div>
+            </div>
+          </div>
         </div>
-        <div class="pfsec">Files</div>
-        <div class="pfrow"><label>Data folder</label><input type="text" id="pf-data-dir" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-data-dir')">Copy</button></div>
-        <div class="pfrow"><label>Preferences file</label><input type="text" id="pf-prefs-path" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-prefs-path')">Copy</button></div>
-        <div class="pfrow"><label>Project file</label><input type="text" id="pf-project-path" readonly><button class="btn" type="button" style="font-size:12px" onclick="copyPrefsPath('pf-project-path')">Copy</button></div>
       </section>
     </div>
     <div class="pfbtns">
@@ -999,8 +1075,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       <button class="btn" type="button" onclick="applyPrefs()">Apply</button>
     </div>
   </div>
-</div>
-<div id="edtip" role="tooltip" aria-hidden="true"></div>
+</div><div id="edtip" role="tooltip" aria-hidden="true"></div>
 <div id="ttcfg">
   <div id="ttcfgbox">
     <h2>Project preferences</h2>
@@ -11418,11 +11493,103 @@ function applyTooltipCfg() {
   setOut();
   autoPreview();
 }
+var PREF_CODE_SAMPLE = 'state count = 0\n\nview main {\n\th1 "Counter {count}"\n\tbutton "Increment" onClick: inc\n}';
+var PREF_TIP_SAMPLE = 'state saved = false\n\nview main {\n\tbutton "Save" onClick: save\n}';
+function setPrefNum(id, value) {
+  var n = document.getElementById(id);
+  var r = document.getElementById(id + "-range");
+  if (n) n.value = value;
+  if (r) r.value = value;
+}
+function syncPrefNum(id, value) {
+  var n = document.getElementById(id);
+  var r = document.getElementById(id + "-range");
+  var v = parseFloat(value);
+  if (!isFinite(v)) return;
+  if (n) n.value = String(v);
+  if (r) r.value = String(v);
+  if (id === "pf-editor-size" || id === "pf-editor-lh" || id === "pf-editor-tab") {
+    updateCodePreview();
+    updateSuiPreview();
+    updatePrefTipPreview();
+  } else if (id === "pf-tip-fontsize" || id === "pf-tip-delay") {
+    updatePrefTipPreview();
+  }
+}
+function togglePrefAcc(btn) {
+  var acc = btn ? btn.parentElement : null;
+  if (!acc) return;
+  var open = !btn.classList.contains("on");
+  var heads = acc.querySelectorAll(".pref-acc-head");
+  var bodies = acc.querySelectorAll(".pref-acc-body");
+  if (!open && heads.length === 1) return;
+  for (var i = 0; i < heads.length; i++) {
+    heads[i].classList.remove("on");
+    heads[i].setAttribute("aria-expanded", "false");
+  }
+  for (var j = 0; j < bodies.length; j++) bodies[j].classList.remove("on");
+  if (!open) return;
+  btn.classList.add("on");
+  btn.setAttribute("aria-expanded", "true");
+  var body = btn.nextElementSibling;
+  if (body && body.classList.contains("pref-acc-body")) body.classList.add("on");
+}
+function prefPreviewFont() {
+  var fsel = document.getElementById("pf-editor-font");
+  var custom = document.getElementById("pf-editor-font-custom");
+  if (!fsel) return PREF_DEFAULTS.editorFont;
+  return safeEditorFont(fsel.value === "__custom__" ? ((custom && custom.value) || PREF_DEFAULTS.editorFont) : fsel.value);
+}
+function applyCodePreviewStyle(pv) {
+  if (!pv) return;
+  var size = document.getElementById("pf-editor-size");
+  var lh = document.getElementById("pf-editor-lh");
+  var tab = document.getElementById("pf-editor-tab");
+  var lineHeight = parseFloat(lh && lh.value);
+  if (!isFinite(lineHeight)) lineHeight = 1.6;
+  lineHeight = Math.max(1.2, Math.min(2.1, lineHeight));
+  pv.style.fontFamily = prefPreviewFont();
+  pv.style.fontSize = prefNumber(size && size.value, 16, 12, 28) + "px";
+  pv.style.lineHeight = String(lineHeight);
+  pv.style.tabSize = String(parseInt(tab && tab.value, 10) || 4);
+  var wrap = document.getElementById("pf-editor-wrap");
+  pv.style.whiteSpace = wrap && wrap.checked ? "pre-wrap" : "pre";
+  pv.style.overflowWrap = "anywhere";
+}
+function prefSyntaxEnabled() {
+  var syntax = document.getElementById("pf-editor-syntax");
+  return !syntax || syntax.checked;
+}
+function updateCodePreview() {
+  var pv = document.getElementById("pf-code-preview");
+  if (!pv) return;
+  applyCodePreviewStyle(pv);
+  pv.innerHTML = prefSyntaxEnabled() ? highlight(PREF_CODE_SAMPLE, "sui") : escHtml(PREF_CODE_SAMPLE);
+}
+function updateSuiPreview() {
+  var pv = document.getElementById("pf-sui-preview");
+  if (!pv) return;
+  applyCodePreviewStyle(pv);
+  var selected = document.getElementById("pf-editor-linehl");
+  var lines = PREF_CODE_SAMPLE.split("\n");
+  var out = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = prefSyntaxEnabled() ? highlight(lines[i], "sui") : escHtml(lines[i]);
+    if (selected && selected.checked && i === 3) out.push('<span class="pf-preview-line-selected">' + line + '</span>');
+    else out.push(line);
+  }
+  pv.innerHTML = out.join("\n");
+}
+function updateAllPreviews() {
+  updateCodePreview();
+  updateSuiPreview();
+  updatePrefTipPreview();
+}
 var prefActiveTab = "interface";
 function fillPrefsForm() {
   var p = prefs;
   document.getElementById("pf-theme").value = p.theme;
-  document.getElementById("pf-size").value = p.font;
+  setPrefNum("pf-size", p.font);
   document.getElementById("pf-density").value = p.density;
   document.getElementById("pf-accent").value = p.accent;
   document.getElementById("pf-left").checked = p.showLeft;
@@ -11437,9 +11604,9 @@ function fillPrefsForm() {
   }
   fsel.value = known ? p.editorFont : "__custom__";
   fcustom.value = known ? "" : (p.editorFont || "");
-  document.getElementById("pf-editor-size").value = p.editorSize;
-  document.getElementById("pf-editor-lh").value = p.editorLineHeight;
-  document.getElementById("pf-editor-tab").value = String(p.editorTabSize);
+  setPrefNum("pf-editor-size", p.editorSize);
+  setPrefNum("pf-editor-lh", p.editorLineHeight);
+  setPrefNum("pf-editor-tab", p.editorTabSize);
   document.getElementById("pf-editor-wrap").checked = !!p.editorWrap;
   document.getElementById("pf-editor-lines").checked = p.editorLineNumbers !== false;
   document.getElementById("pf-editor-autoclose").checked = p.editorAutoClose !== false;
@@ -11449,17 +11616,19 @@ function fillPrefsForm() {
   document.getElementById("pf-editor-brackets").checked = p.editorBracketMatch !== false;
   document.getElementById("pf-editor-linehl").checked = p.editorSelectedLine !== false;
   document.getElementById("pf-tip-enabled").checked = p.editorTipEnabled !== false;
-  document.getElementById("pf-tip-delay").value = p.editorTipDelay;
+  setPrefNum("pf-tip-delay", p.editorTipDelay);
   document.getElementById("pf-tip-place").value = p.editorTipPlace;
   document.getElementById("pf-tip-maxwidth").value = p.editorTipMaxWidth;
-  document.getElementById("pf-tip-fontsize").value = p.editorTipFontSize;
+  setPrefNum("pf-tip-fontsize", p.editorTipFontSize);
   document.getElementById("pf-tip-bg").value = p.editorTipBg;
   document.getElementById("pf-tip-fg").value = p.editorTipFg;
   document.getElementById("pf-tip-border").value = p.editorTipBorder;
   document.getElementById("pf-tip-radius").value = p.editorTipRadius;
   document.getElementById("pf-hist-auto").checked = p.historyAuto !== false;
-  document.getElementById("pf-hist-interval").value = p.historyInterval;
-  document.getElementById("pf-hist-keep").value = p.historyKeep;
+  setPrefNum("pf-hist-interval", p.historyInterval);
+  setPrefNum("pf-hist-keep", p.historyKeep);
+  updateCodePreview();
+  updateSuiPreview();
   updatePrefTipPreview();
 }
 function openPrefs() {
@@ -11740,6 +11909,11 @@ function applyEditorTipPrefs() {
 }
 function updatePrefTipPreview() {
   var pv = document.getElementById("pf-tip-preview");
+  var code = document.getElementById("pf-tip-code");
+  if (code) {
+    applyCodePreviewStyle(code);
+    code.innerHTML = prefSyntaxEnabled() ? highlight(PREF_TIP_SAMPLE, "sui") : escHtml(PREF_TIP_SAMPLE);
+  }
   if (!pv) return;
   var bg = document.getElementById("pf-tip-bg");
   var fg = document.getElementById("pf-tip-fg");

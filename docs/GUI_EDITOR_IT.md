@@ -34,9 +34,14 @@ Nell'inspector a destra la sezione **Drag & drop** usa queste etichette:
 
 Aprire **Preferences → Editor preferences.** Il pannello è diviso in tab, così
 la shell dell'editor, il code editor, la sintassi SUI, le scorciatoie e i file
-del progetto restano separati.
+del progetto restano separati. I tab con molti controlli usano una griglia a due
+colonne (etichetta e controllo in ogni colonna), i valori numerici usano uno
+slider con un riquadro valore e i tab con gruppi usano accordion che mostrano una
+sezione alla volta.
 
 ### Interface
+
+Aspetto e layout della shell dell'editor.
 
 | Impostazione | Default | Effetto |
 |---|---|---|
@@ -49,25 +54,66 @@ del progetto restano separati.
 
 ### General editor
 
+Come si comporta l'editor come editor di testo. I colori dei token SUI sono nel
+tab **SUI code**, quindi i due tab non duplicano le stesse impostazioni.
+
+#### Font & metrics
+
 | Impostazione | Default | Effetto |
 |---|---|---|
-| Font family | Monospace di sistema | Stack integrato o famiglia CSS personalizzata |
+| Font family | Monospace di sistema | Combo box con stack integrati o famiglia CSS personalizzata |
+| Custom font | - | Famiglia CSS usata quando è selezionato **Custom** |
 | Editor size | 16px | Dimensione del codice, indipendente dallo zoom generale |
 | Line height | 1.6 | Spaziatura verticale e allineamento dei numeri di riga |
 | Tab size | 4 | Larghezza dei tab nell'overlay e nella textarea |
 | Word wrap | off | Va a capo nelle righe lunghe in entrambi i livelli |
 | Line numbers | on | Mostra il gutter |
+
+L'anteprima sotto le impostazioni mostra un breve snippet SUI con font,
+dimensione, line-height, tab size e colori correnti, così l'effetto è visibile
+prima di **Apply**.
+
+#### Editing
+
+| Impostazione | Default | Effetto |
+|---|---|---|
 | Auto-close pairs | on | Inserisce la parentesi o la virgoletta di chiusura |
 | Smart indent | on | Mantiene l'indentazione su Enter e dopo una parentesi aperta |
 | Auto suggestions | on | Apre il popup di completamento mentre si scrive; Ctrl+Space funziona sempre |
 
+#### Editor tooltips
+
+Tooltip che descrivono pulsanti, campi e azioni delle toolbar dell'editor. Fanno
+parte dell'interfaccia dell'editor e non modificano mai l'app generata.
+L'anteprima mostra uno snippet di codice con un fumetto che usa colori,
+dimensione, raggio e larghezza massima selezionati.
+
+| Impostazione | Default | Effetto |
+|---|---|---|
+| Show tooltips | on | Abilita il fumetto personalizzato dell'editor |
+| Delay | 450 ms | Ritardo hover prima di mostrare il fumetto |
+| Place | Auto | Top, right, bottom, left o posizionamento automatico |
+| Max width | 320px | Larghezza massima del fumetto |
+| Font size | 12px | Dimensione del testo |
+| Background / text / border | palette scura | Colori del fumetto |
+| Radius | 6px | Raggio del bordo |
+
 ### SUI code
+
+Come viene colorato il sorgente SUI. Queste opzioni non cambiano il
+comportamento di editing; per font, indentazione e completamento usare
+**General editor**.
+
+#### Syntax highlighting
 
 | Impostazione | Default | Effetto |
 |---|---|---|
 | Syntax colors | on | Colora keyword, stringhe, numeri e commenti SUI |
 | Bracket match | on | Evidenzia la parentesi corrispondente |
 | Selected line | off | Sfondo opzionale per la riga dell'elemento selezionato |
+
+L'anteprima mostra codice SUI di esempio con font e metriche correnti, applica i
+colori dei token e mostra l'evidenziazione della riga selezionata quando attiva.
 
 Con **Syntax colors** attivo, le funzioni dichiarate e le loro chiamate sono
 mostrate in giallo, mentre stati, parametri di funzione, binding `let` e
@@ -81,22 +127,6 @@ nell'overlay colorato e nella textarea trasparente, così cursore e caratteri
 visibili restano allineati. I token cambiano solo colore: non vengono applicati
 grassetto o corsivo al codice.
 
-### Editor tooltips
-
-I tooltip che descrivono pulsanti, campi e azioni delle toolbar dell'editor si
-configurano in **General editor → Editor tooltips**. Fanno parte dell'interfaccia
-dell'editor e non modificano mai l'app generata.
-
-| Impostazione | Default | Effetto |
-|---|---|---|
-| Show tooltips | on | Abilita il fumetto personalizzato dell'editor |
-| Delay | 450 ms | Ritardo hover prima di mostrare il fumetto |
-| Place | Auto | Top, right, bottom, left o posizionamento automatico |
-| Max width | 320px | Larghezza massima del fumetto |
-| Font size | 12px | Dimensione del testo |
-| Background / text / border | palette scura | Colori del fumetto |
-| Radius | 6px | Raggio del bordo |
-
 ### Shortcuts
 
 La tab **Shortcuts** è un riferimento in sola lettura. Il campo di ricerca filtra
@@ -105,17 +135,19 @@ struttura e dati dei chart; le scorciatoie non sono ancora riassegnabili.
 
 ### Files & history
 
+Snapshot e percorsi dei file sono raggruppati in accordion.
+
 | Impostazione | Default | Effetto |
 |---|---|---|
 | Automatic snapshots | on | Salva una versione del progetto durante il salvataggio |
-| Interval | 60 s | Tempo minimo tra snapshot automatici |
-| Versions kept | 30 | Limite di conservazione automatica |
+| Interval | 60 s | Tempo minimo tra snapshot automatici, con slider e riquadro valore |
+| Versions kept | 30 | Limite di conservazione automatica, con slider e riquadro valore |
 | Snapshot now | - | Crea subito una versione |
 | Open project history | - | Apre il pannello di ripristino |
 | Clear history | - | Elimina tutte le versioni salvate dopo conferma |
 
-La tab mostra anche la cartella dati, il file delle preferenze e il file del
-progetto, con un pulsante Copia per ogni percorso. Le impostazioni degli
+La sezione **Files** mostra la cartella dati, il file delle preferenze e il file
+del progetto, con un pulsante Copia per ogni percorso. Le impostazioni degli
 snapshot automatici sono salvate nelle preferenze dell'editor; i file delle
 versioni restano nella cartella dati.
 
