@@ -929,7 +929,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <div class="pref-tabs" id="pref-tabs" role="tablist" aria-label="Editor preferences">
       <button class="pref-tab on" type="button" role="tab" id="pref-tab-interface" aria-controls="pref-pane-interface" aria-selected="true" onclick="showPrefTab('interface')">Interface</button>
       <button class="pref-tab" type="button" role="tab" id="pref-tab-editor" aria-controls="pref-pane-editor" aria-selected="false" tabindex="-1" onclick="showPrefTab('editor')">General editor</button>
-      <button class="pref-tab" type="button" role="tab" id="pref-tab-sui" aria-controls="pref-pane-sui" aria-selected="false" tabindex="-1" onclick="showPrefTab('sui')">SUI code</button>
       <button class="pref-tab" type="button" role="tab" id="pref-tab-shortcuts" aria-controls="pref-pane-shortcuts" aria-selected="false" tabindex="-1" onclick="showPrefTab('shortcuts')">Shortcuts</button>
       <button class="pref-tab" type="button" role="tab" id="pref-tab-history" aria-controls="pref-pane-history" aria-selected="false" tabindex="-1" onclick="showPrefTab('history')">Files &amp; history</button>
     </div>
@@ -961,7 +960,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
         </div>
       </section>
       <section class="pref-pane" id="pref-pane-editor" role="tabpanel" aria-labelledby="pref-tab-editor">
-        <div class="hint" style="margin-top:0">Editor behaviour and typography. SUI token colours are in the SUI code tab.</div>
+        <div class="hint" style="margin-top:0">Everything about writing SUI: typography, editing behaviour, syntax colours and editor tooltips. The preview below reflects all of them.</div>
         <div class="pref-acc">
           <button class="pref-acc-head on" type="button" aria-expanded="true" onclick="togglePrefAcc(this)">Font &amp; metrics</button>
           <div class="pref-acc-body on">
@@ -984,7 +983,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
               <div class="pf-field"><label>Tab size</label><div class="pf-num"><input type="range" id="pf-editor-tab-range" min="1" max="12" step="1" value="4" oninput="syncPrefNum('pf-editor-tab', this.value)"><input type="number" id="pf-editor-tab" min="1" max="12" step="1" value="4" oninput="syncPrefNum('pf-editor-tab', this.value)"></div></div>
               <div class="pf-field"><label>Word wrap</label><input type="checkbox" id="pf-editor-wrap" onchange="updateAllPreviews()"></div>
               <div class="pf-field"><label>Line numbers</label><input type="checkbox" id="pf-editor-lines" checked></div>
-              <div class="pf-field wide"><label>Preview</label><pre id="pf-code-preview" class="pf-code-preview" aria-label="Code editor preview"></pre></div>
             </div>
           </div>
           <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Editing</button>
@@ -996,10 +994,19 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
             </div>
             <div class="hint">Auto suggestions can be opened manually with Ctrl+Space even when the popup is disabled.</div>
           </div>
+          <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Syntax highlighting</button>
+          <div class="pref-acc-body">
+            <div class="pref-grid">
+              <div class="pf-field"><label>Syntax colors</label><input type="checkbox" id="pf-editor-syntax" checked onchange="updateAllPreviews()"></div>
+              <div class="pf-field"><label>Bracket match</label><input type="checkbox" id="pf-editor-brackets" checked onchange="updateAllPreviews()"></div>
+              <div class="pf-field"><label>Selected line</label><input type="checkbox" id="pf-editor-linehl" checked onchange="updateAllPreviews()"></div>
+            </div>
+            <div class="hint">Functions and calls are gold; states, parameters and loop variables are cyan. Colours apply to declarations, references and interpolations without changing character metrics.</div>
+          </div>
           <button class="pref-acc-head" type="button" aria-expanded="false" onclick="togglePrefAcc(this)">Editor tooltips</button>
           <div class="pref-acc-body">
             <div class="pref-grid">
-              <div class="pf-field"><label>Show tooltips</label><input type="checkbox" id="pf-tip-enabled" checked></div>
+              <div class="pf-field"><label>Show tooltips</label><input type="checkbox" id="pf-tip-enabled" checked onchange="updatePrefTipPreview()"></div>
               <div class="pf-field"><label>Place</label><select id="pf-tip-place"><option value="auto">Auto</option><option value="top">Top</option><option value="right">Right</option><option value="bottom">Bottom</option><option value="left">Left</option></select></div>
               <div class="pf-field"><label>Delay</label><div class="pf-num"><input type="range" id="pf-tip-delay-range" min="0" max="3000" step="50" value="450" oninput="syncPrefNum('pf-tip-delay', this.value)"><input type="number" id="pf-tip-delay" min="0" max="3000" step="50" value="450" oninput="syncPrefNum('pf-tip-delay', this.value)"></div></div>
               <div class="pf-field"><label>Font size</label><div class="pf-num"><input type="range" id="pf-tip-fontsize-range" min="9" max="20" step="1" value="12" oninput="syncPrefNum('pf-tip-fontsize', this.value)"><input type="number" id="pf-tip-fontsize" min="9" max="20" step="1" value="12" oninput="syncPrefNum('pf-tip-fontsize', this.value)"></div></div>
@@ -1008,29 +1015,15 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
               <div class="pf-field"><label>Text color</label><input type="color" id="pf-tip-fg" value="#e6e6ef" oninput="updatePrefTipPreview()"></div>
               <div class="pf-field"><label>Border color</label><input type="color" id="pf-tip-border" value="#3a4152" oninput="updatePrefTipPreview()"></div>
               <div class="pf-field"><label>Radius</label><input type="text" id="pf-tip-radius" value="6px" placeholder="6px" oninput="updatePrefTipPreview()"></div>
-              <div class="pf-field wide"><label>Preview</label>
-                <div class="pf-tip-demo">
-                  <pre id="pf-tip-code" class="pf-code-preview" aria-label="Editor tooltip preview code"></pre>
-                  <div id="pf-tip-preview" class="pf-tip-bubble">Save project</div>
-                </div>
-              </div>
             </div>
             <div class="hint">These tooltips describe the editor controls. They do not change the generated app; use Project preferences for app tooltips.</div>
           </div>
         </div>
-      </section>
-      <section class="pref-pane" id="pref-pane-sui" role="tabpanel" aria-labelledby="pref-tab-sui">
-        <div class="hint" style="margin-top:0">How SUI source is coloured. These options do not change editing behaviour.</div>
-        <div class="pref-acc">
-          <button class="pref-acc-head on" type="button" aria-expanded="true" onclick="togglePrefAcc(this)">Syntax highlighting</button>
-          <div class="pref-acc-body on">
-            <div class="pref-grid">
-              <div class="pf-field"><label>Syntax colors</label><input type="checkbox" id="pf-editor-syntax" checked onchange="updateAllPreviews()"></div>
-              <div class="pf-field"><label>Bracket match</label><input type="checkbox" id="pf-editor-brackets" checked onchange="updateSuiPreview()"></div>
-              <div class="pf-field"><label>Selected line</label><input type="checkbox" id="pf-editor-linehl" checked onchange="updateSuiPreview()"></div>
-              <div class="pf-field wide"><label>Preview</label><pre id="pf-sui-preview" class="pf-code-preview" aria-label="SUI syntax preview"></pre></div>
-            </div>
-            <div class="hint">Functions and calls are gold; states, parameters and loop variables are cyan. Colours apply to declarations, references and interpolations without changing character metrics.</div>
+        <div class="pf-field wide" style="margin-top:12px">
+          <label>Preview</label>
+          <div class="pf-tip-demo">
+            <pre id="pf-code-preview" class="pf-code-preview" aria-label="Editor preview"></pre>
+            <div id="pf-tip-preview" class="pf-tip-bubble">Save project</div>
           </div>
         </div>
       </section>
@@ -11493,8 +11486,7 @@ function applyTooltipCfg() {
   setOut();
   autoPreview();
 }
-var PREF_CODE_SAMPLE = 'state count = 0\n\nview main {\n\th1 "Counter {count}"\n\tbutton "Increment" onClick: inc\n}';
-var PREF_TIP_SAMPLE = 'state saved = false\n\nview main {\n\tbutton "Save" onClick: save\n}';
+var PREF_CODE_SAMPLE = 'state count = 0\nstate saved = false\n\nview main {\n\th1 "Counter {count}"\n\tbutton "Save" onClick: save\n}';
 function setPrefNum(id, value) {
   var n = document.getElementById(id);
   var r = document.getElementById(id + "-range");
@@ -11510,7 +11502,6 @@ function syncPrefNum(id, value) {
   if (r) r.value = String(v);
   if (id === "pf-editor-size" || id === "pf-editor-lh" || id === "pf-editor-tab") {
     updateCodePreview();
-    updateSuiPreview();
     updatePrefTipPreview();
   } else if (id === "pf-tip-fontsize" || id === "pf-tip-delay") {
     updatePrefTipPreview();
@@ -11564,25 +11555,18 @@ function updateCodePreview() {
   var pv = document.getElementById("pf-code-preview");
   if (!pv) return;
   applyCodePreviewStyle(pv);
-  pv.innerHTML = prefSyntaxEnabled() ? highlight(PREF_CODE_SAMPLE, "sui") : escHtml(PREF_CODE_SAMPLE);
-}
-function updateSuiPreview() {
-  var pv = document.getElementById("pf-sui-preview");
-  if (!pv) return;
-  applyCodePreviewStyle(pv);
   var selected = document.getElementById("pf-editor-linehl");
   var lines = PREF_CODE_SAMPLE.split("\n");
   var out = [];
   for (var i = 0; i < lines.length; i++) {
     var line = prefSyntaxEnabled() ? highlight(lines[i], "sui") : escHtml(lines[i]);
-    if (selected && selected.checked && i === 3) out.push('<span class="pf-preview-line-selected">' + line + '</span>');
+    if (selected && selected.checked && i === 5) out.push('<span class="pf-preview-line-selected">' + line + '</span>');
     else out.push(line);
   }
   pv.innerHTML = out.join("\n");
 }
 function updateAllPreviews() {
   updateCodePreview();
-  updateSuiPreview();
   updatePrefTipPreview();
 }
 var prefActiveTab = "interface";
@@ -11628,7 +11612,6 @@ function fillPrefsForm() {
   setPrefNum("pf-hist-interval", p.historyInterval);
   setPrefNum("pf-hist-keep", p.historyKeep);
   updateCodePreview();
-  updateSuiPreview();
   updatePrefTipPreview();
 }
 function openPrefs() {
@@ -11645,7 +11628,7 @@ function closePrefs() {
   editorTipHide();
 }
 function showPrefTab(name) {
-  var ids = ["interface", "editor", "sui", "shortcuts", "history"];
+  var ids = ["interface", "editor", "shortcuts", "history"];
   if (ids.indexOf(name) < 0) name = "interface";
   prefActiveTab = name;
   for (var i = 0; i < ids.length; i++) {
@@ -11669,7 +11652,7 @@ function showPrefTab(name) {
     if (ev.target === pref) closePrefs();
   });
   if (tabs) tabs.addEventListener("keydown", function(ev) {
-    var ids = ["interface", "editor", "sui", "shortcuts", "history"];
+    var ids = ["interface", "editor", "shortcuts", "history"];
     var current = ev.target && ev.target.closest ? ev.target.closest(".pref-tab") : null;
     var idx = current ? ids.indexOf(current.id.replace("pref-tab-", "")) : ids.indexOf(prefActiveTab);
     if (idx < 0) idx = 0;
@@ -11909,11 +11892,6 @@ function applyEditorTipPrefs() {
 }
 function updatePrefTipPreview() {
   var pv = document.getElementById("pf-tip-preview");
-  var code = document.getElementById("pf-tip-code");
-  if (code) {
-    applyCodePreviewStyle(code);
-    code.innerHTML = prefSyntaxEnabled() ? highlight(PREF_TIP_SAMPLE, "sui") : escHtml(PREF_TIP_SAMPLE);
-  }
   if (!pv) return;
   var bg = document.getElementById("pf-tip-bg");
   var fg = document.getElementById("pf-tip-fg");
@@ -11921,6 +11899,8 @@ function updatePrefTipPreview() {
   var rd = document.getElementById("pf-tip-radius");
   var mw = document.getElementById("pf-tip-maxwidth");
   var fs = document.getElementById("pf-tip-fontsize");
+  var enabled = document.getElementById("pf-tip-enabled");
+  pv.style.opacity = enabled && !enabled.checked ? "0.35" : "1";
   pv.style.background = bg ? bg.value : "#1d2129";
   pv.style.color = fg ? fg.value : "#e6e6ef";
   pv.style.borderColor = bd ? bd.value : "#3a4152";

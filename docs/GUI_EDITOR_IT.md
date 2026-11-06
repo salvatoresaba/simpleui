@@ -33,7 +33,7 @@ Nell'inspector a destra la sezione **Drag & drop** usa queste etichette:
 ## Preferenze dell'editor
 
 Aprire **Preferences → Editor preferences.** Il pannello è diviso in tab, così
-la shell dell'editor, il code editor, la sintassi SUI, le scorciatoie e i file
+la shell dell'editor, il code editor, le scorciatoie e i file
 del progetto restano separati. I tab con molti controlli usano una griglia a due
 colonne (etichetta e controllo in ogni colonna), i valori numerici usano uno
 slider con un riquadro valore e i tab con gruppi usano accordion che mostrano una
@@ -54,8 +54,9 @@ Aspetto e layout della shell dell'editor.
 
 ### General editor
 
-Come si comporta l'editor come editor di testo. I colori dei token SUI sono nel
-tab **SUI code**, quindi i due tab non duplicano le stesse impostazioni.
+Tutto ciò che riguarda la scrittura in SUI: tipografia, comportamento di editing,
+colori della sintassi e tooltip dell'editor. Le impostazioni sono raggruppate in
+accordion e un'unica anteprima in fondo al tab riflette tutte le scelte.
 
 #### Font & metrics
 
@@ -69,10 +70,6 @@ tab **SUI code**, quindi i due tab non duplicano le stesse impostazioni.
 | Word wrap | off | Va a capo nelle righe lunghe in entrambi i livelli |
 | Line numbers | on | Mostra il gutter |
 
-L'anteprima sotto le impostazioni mostra un breve snippet SUI con font,
-dimensione, line-height, tab size e colori correnti, così l'effetto è visibile
-prima di **Apply**.
-
 #### Editing
 
 | Impostazione | Default | Effetto |
@@ -81,29 +78,6 @@ prima di **Apply**.
 | Smart indent | on | Mantiene l'indentazione su Enter e dopo una parentesi aperta |
 | Auto suggestions | on | Apre il popup di completamento mentre si scrive; Ctrl+Space funziona sempre |
 
-#### Editor tooltips
-
-Tooltip che descrivono pulsanti, campi e azioni delle toolbar dell'editor. Fanno
-parte dell'interfaccia dell'editor e non modificano mai l'app generata.
-L'anteprima mostra uno snippet di codice con un fumetto che usa colori,
-dimensione, raggio e larghezza massima selezionati.
-
-| Impostazione | Default | Effetto |
-|---|---|---|
-| Show tooltips | on | Abilita il fumetto personalizzato dell'editor |
-| Delay | 450 ms | Ritardo hover prima di mostrare il fumetto |
-| Place | Auto | Top, right, bottom, left o posizionamento automatico |
-| Max width | 320px | Larghezza massima del fumetto |
-| Font size | 12px | Dimensione del testo |
-| Background / text / border | palette scura | Colori del fumetto |
-| Radius | 6px | Raggio del bordo |
-
-### SUI code
-
-Come viene colorato il sorgente SUI. Queste opzioni non cambiano il
-comportamento di editing; per font, indentazione e completamento usare
-**General editor**.
-
 #### Syntax highlighting
 
 | Impostazione | Default | Effetto |
@@ -111,9 +85,6 @@ comportamento di editing; per font, indentazione e completamento usare
 | Syntax colors | on | Colora keyword, stringhe, numeri e commenti SUI |
 | Bracket match | on | Evidenzia la parentesi corrispondente |
 | Selected line | off | Sfondo opzionale per la riga dell'elemento selezionato |
-
-L'anteprima mostra codice SUI di esempio con font e metriche correnti, applica i
-colori dei token e mostra l'evidenziazione della riga selezionata quando attiva.
 
 Con **Syntax colors** attivo, le funzioni dichiarate e le loro chiamate sono
 mostrate in giallo, mentre stati, parametri di funzione, binding `let` e
@@ -127,6 +98,27 @@ nell'overlay colorato e nella textarea trasparente, così cursore e caratteri
 visibili restano allineati. I token cambiano solo colore: non vengono applicati
 grassetto o corsivo al codice.
 
+#### Editor tooltips
+
+Tooltip che descrivono pulsanti, campi e azioni delle toolbar dell'editor. Fanno
+parte dell'interfaccia dell'editor e non modificano mai l'app generata.
+
+| Impostazione | Default | Effetto |
+|---|---|---|
+| Show tooltips | on | Abilita il fumetto personalizzato dell'editor |
+| Delay | 450 ms | Ritardo hover prima di mostrare il fumetto |
+| Place | Auto | Top, right, bottom, left o posizionamento automatico |
+| Max width | 320px | Larghezza massima del fumetto |
+| Font size | 12px | Dimensione del testo |
+| Background / text / border | palette scura | Colori del fumetto |
+| Radius | 6px | Raggio del bordo |
+
+#### Preview
+
+L'anteprima in fondo al tab mostra codice SUI di esempio con font, dimensione,
+line-height, tab size, wrapping, colori della sintassi e riga selezionata
+correnti. Mostra anche un fumetto con lo stile tooltip dell'editor. Si aggiorna
+mentre modifichi i controlli, prima di **Apply**.
 ### Shortcuts
 
 La tab **Shortcuts** è un riferimento in sola lettura. Il campo di ricerca filtra

@@ -33,10 +33,10 @@ In the right-hand inspector the **Drag & drop** section uses these labels:
 ## Editor preferences
 
 Open **Preferences → Editor preferences.** The panel is divided into tabs so the
-editor shell, the code editor, the SUI syntax, shortcuts and project files stay
-separate. Tabs with many controls use a two-column grid (label and control in
-each column), numeric settings use a slider plus a value box, and grouped tabs
-use accordions that show one section at a time.
+editor shell, the code editor, shortcuts and project files stay separate. Tabs
+with many controls use a two-column grid (label and control in each column),
+numeric settings use a slider plus a value box, and grouped tabs use accordions
+that show one section at a time.
 
 ### Interface
 
@@ -53,8 +53,9 @@ Appearance and layout of the editor shell.
 
 ### General editor
 
-How the editor behaves as a text editor. SUI token colours are in the **SUI
-code** tab, so the two tabs never duplicate the same setting.
+Everything about writing SUI: typography, editing behaviour, syntax colours and
+editor tooltips. The settings are grouped in accordions and a single preview at
+the bottom of the tab reflects all of them.
 
 #### Font & metrics
 
@@ -68,10 +69,6 @@ code** tab, so the two tabs never duplicate the same setting.
 | Word wrap | off | Wrap long lines in both layers |
 | Line numbers | on | Show the gutter |
 
-The preview under the settings renders a short SUI snippet with the current
-font, size, line height, tab size and syntax colours, so the effect is visible
-before **Apply**.
-
 #### Editing
 
 | Setting | Default | Effect |
@@ -80,28 +77,6 @@ before **Apply**.
 | Smart indent | on | Keep indentation on Enter and indent after an opening bracket |
 | Auto suggestions | on | Open the completion popup while typing; Ctrl+Space always works |
 
-#### Editor tooltips
-
-Tooltips that describe buttons, fields and toolbar actions of the editor. They
-are part of the editor chrome and never affect the generated app. The preview
-shows a code snippet with a bubble using the selected colours, size, radius and
-maximum width.
-
-| Setting | Default | Effect |
-|---|---|---|
-| Show tooltips | on | Enable the custom editor tooltip bubble |
-| Delay | 450 ms | Hover delay before the bubble appears |
-| Place | Auto | Top, right, bottom, left or automatic placement |
-| Max width | 320px | Maximum bubble width |
-| Font size | 12px | Bubble text size |
-| Background / text / border | dark palette | Bubble colours |
-| Radius | 6px | Bubble border radius |
-
-### SUI code
-
-How SUI source is coloured. These options do not change editing behaviour; use
-**General editor** for font, indentation and completion.
-
 #### Syntax highlighting
 
 | Setting | Default | Effect |
@@ -109,9 +84,6 @@ How SUI source is coloured. These options do not change editing behaviour; use
 | Syntax colors | on | Colour SUI keywords, strings, numbers and comments |
 | Bracket match | on | Highlight the matching bracket |
 | Selected line | off | Optional background for the selected element line |
-
-The preview renders sample SUI code with the current font and metrics, applies
-the token colours and shows the selected-line highlight when enabled.
 
 With **Syntax colors** enabled, declared functions and their calls are shown in
 gold, while states, function parameters, `let` bindings and loop variables are
@@ -124,6 +96,27 @@ syntax-highlight overlay and the transparent textarea, so the caret and the
 visible characters stay aligned. Syntax tokens only change colour; bold/italic
 styles are not applied to code tokens.
 
+#### Editor tooltips
+
+Tooltips that describe buttons, fields and toolbar actions of the editor. They
+are part of the editor chrome and never affect the generated app.
+
+| Setting | Default | Effect |
+|---|---|---|
+| Show tooltips | on | Enable the custom editor tooltip bubble |
+| Delay | 450 ms | Hover delay before the bubble appears |
+| Place | Auto | Top, right, bottom, left or automatic placement |
+| Max width | 320px | Maximum bubble width |
+| Font size | 12px | Bubble text size |
+| Background / text / border | dark palette | Bubble colours |
+| Radius | 6px | Bubble border radius |
+
+#### Preview
+
+The preview at the bottom of the tab renders sample SUI code with the current
+font, size, line height, tab size, wrapping, syntax colours and selected line.
+It also shows a tooltip bubble using the current editor tooltip style. It
+updates while you edit the controls, before **Apply**.
 ### Shortcuts
 
 The **Shortcuts** tab is a read-only reference. Use the search field to filter

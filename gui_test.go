@@ -75,7 +75,6 @@ func TestGuiEditorPreferencesPanel(t *testing.T) {
 	for _, want := range []string{
 		`id="pref-tab-interface"`,
 		`id="pref-tab-editor"`,
-		`id="pref-tab-sui"`,
 		`id="pref-tab-shortcuts"`,
 		`id="pref-tab-history"`,
 		`class="pref-acc-head on"`,
@@ -84,14 +83,13 @@ func TestGuiEditorPreferencesPanel(t *testing.T) {
 		`id="pf-editor-tab-range"`,
 		`id="pf-tip-delay-range"`,
 		`id="pf-code-preview"`,
-		`id="pf-tip-code"`,
-		`id="pf-sui-preview"`,
 		`function togglePrefAcc`,
 		`function syncPrefNum`,
 		`function updateAllPreviews`,
 		`id="pf-tip-enabled"`,
 		`id="pf-tip-delay"`,
 		`id="pf-tip-place"`,
+		`id="pf-tip-preview"`,
 		`id="pf-shortcut-list"`,
 		`id="pf-hist-interval"`,
 		`id="pf-hist-keep"`,
@@ -109,6 +107,9 @@ func TestGuiEditorPreferencesPanel(t *testing.T) {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("editor preferences panel missing %q", want)
 		}
+	}
+	if strings.Contains(guiHTML, `id="pref-tab-sui"`) {
+		t.Error("SUI code must be merged into the General editor tab")
 	}
 }
 
