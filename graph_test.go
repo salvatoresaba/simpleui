@@ -190,6 +190,7 @@ func TestGraphRuntimeThemePresets(t *testing.T) {
 		"applyStateThemeOverrides", "STATE_THEME_FIELDS", "Title size", "Stripe opacity",
 		"stateTagFieldNumber", "Preset", "Theme editor", "openStateThemeEditor",
 		"Bar height", "Title shadow", "Thumb radius", "Control",
+		`themeGrid.section.classList.add("sui-chart-tag-field-wide")`,
 	} {
 		if !strings.Contains(suiChartRuntime, want) {
 			t.Errorf("chart runtime theme support missing %q", want)

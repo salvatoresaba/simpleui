@@ -17031,6 +17031,7 @@ const suiChartRuntime = `(function(){
     addSubAction("HINTS", function() { openSub(function() { openStateHintSettings(root); }, true); });
     generic.appendChild(subRow);
     var themeGrid = stateTagSection(generic, "Theme");
+    themeGrid.section.classList.add("sui-chart-tag-field-wide");
     var presetOptions = STATE_THEME_PRESETS.map(function(preset) { return [preset.key, preset.label]; });
     presetOptions.push(["custom", "Custom"]);
     var presetSelect = stateTagFieldSelect(presetOptions, root.__suiStateThemeKey || "custom");
