@@ -1127,8 +1127,9 @@ axis, grid, legend and value labels, tooltips/hints and error/critical accents.
 Shapes, links, tags, hints and grid style keep their own panels, which override
 the theme defaults. The editor starts from the currently applied values, so
 after choosing a preset its fields show that preset, not the defaults. Fields
-are arranged in two columns, each with its label above the control; color fields
-open a picker panel with a Transparent checkbox. Changes
+are arranged in two columns, each with its label on the same row as the control;
+color fields show a hex value, an alpha text field and a picker panel with an
+alpha slider. Changes
 apply immediately, are stored per chart, and the same control and button styles
 are used by the settings panels inside the graph. **Reset theme** in the editor
 (or **Reset settings**) clears them.

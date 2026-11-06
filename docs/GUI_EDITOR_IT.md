@@ -1163,8 +1163,9 @@ tooltip/hint e accenti error/critical. Forme, link, tag, hint e griglia hanno i
 loro pannelli dedicati, che sovrascrivono i default del tema. L'editor parte dai
 valori attualmente applicati: dopo aver scelto un preset i campi mostrano quel
 preset, non i default. I campi sono disposti su due colonne, ciascuna con
-l'etichetta sopra il controllo; i campi colore aprono un pannello di selezione
-con la casella Transparent. Le modifiche sono immediate, salvate per chart, e gli
+l'etichetta sulla stessa riga del controllo; i campi colore mostrano il valore
+hex, un campo alfa e un pannello di selezione con slider alfa. Le modifiche sono
+immediate, salvate per chart, e gli
 stessi stili di controllo e pulsanti sono usati dai pannelli interni al grafico.
 **Reset theme** nell'editor (o **Reset settings**) li cancella.
 

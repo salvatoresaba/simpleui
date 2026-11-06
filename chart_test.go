@@ -822,6 +822,8 @@ func TestStateDiagramMovableTagsAndEditableRoutes(t *testing.T) {
 		"linkMaskId",
 		"sui-chart-color-text",
 		"sui-chart-color-picker",
+		"sui-chart-color-alpha-input",
+		"sui-chart-color-picker-alpha",
 		"Box padding",
 		"tagPadding",
 		"stateTagPadding",
