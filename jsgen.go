@@ -46,7 +46,7 @@ var SuiPrelude = "\"use strict\";\n" +
     }
     if (!target) continue;
     var old = saved[s].node, diff = false;
-    var redrawAttr = /^data-sui-chart-(data|type|format|x|y|width|height|overflow|zoom|point-width|point-size|bins|min|max|table-view|table-filters|table-add-row|table-delete-row|table-steppers|table-context-menu|table-selection|critical-path|holidays|weekend|timezone|show-non-working-days|progress-column|interactive|state-mode|grid|legend|values|title)$/;
+    var redrawAttr = /^data-sui-chart-(data|type|format|x|y|width|height|overflow|zoom|point-width|point-size|bins|min|max|table-view|table-filters|table-add-row|table-delete-row|table-steppers|table-context-menu|table-selection|table-edit|critical-path|holidays|weekend|timezone|show-non-working-days|progress-column|interactive|state-mode|grid|legend|values|title)$/;
     for (var k = 0; k < target.attributes.length; k++) {
       var attr = target.attributes[k];
       if (attr.name === 'class') {
@@ -2831,6 +2831,8 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString(chartFlagValue(e, "tableContextMenu", false))
 	b.WriteString("\" data-sui-chart-table-selection=\"")
 	b.WriteString(chartAttrValue(e, "tableSelection", "row"))
+	b.WriteString("\" data-sui-chart-table-edit=\"")
+	b.WriteString(chartFlagValue(e, "tableEdit", false))
 	b.WriteString("\" data-sui-chart-critical-path=\"")
 	b.WriteString(chartFlagValue(e, "criticalPath", false))
 	b.WriteString("\" data-sui-chart-holidays=\"")

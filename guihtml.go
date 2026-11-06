@@ -1793,6 +1793,7 @@ function newGraphNode() {
   n.chartWidth = "100%";
   n.chartHeight = "100%";
   n.chartTableView = "chart";
+  n.chartTableEdit = false;
   return n;
 }
 function newNodeForKind(kind) {
@@ -5674,6 +5675,10 @@ function graphControls(n) {
     value: n.chartTableView === "both" || n.chartTableView === "table",
     set: function(on){ n.chartTableView = on ? "both" : "chart"; }
   });
+  boolRow("edit table", "chartTableEdit", "Allow editing table cells, colors, shape types, element settings and deleting rows.", {
+    value: n.chartTableEdit === true,
+    set: function(on){ n.chartTableEdit = on; }
+  });
   boolRow("settings button", "chartSettingsButton", "Show the gear that opens the graph settings panel.", {
     value: n.chartSettingsButton !== false,
     set: function(on){ n.chartSettingsButton = on; }
@@ -8668,6 +8673,7 @@ function attrsOf(n) {
     a += chartParamAttr(n, "pointWidth", "chartPointWidth", n.chartPointWidth, "48", false);
     a += chartParamAttr(n, "pointSize", "chartPointSize", n.chartPointSize, "3", false);
     a += chartParamAttr(n, "tableView", "chartTableView", n.chartTableView, "chart", true);
+    a += chartBoolAttr(n, "tableEdit", "chartTableEdit", n.chartTableEdit, false);
     a += chartBoolAttr(n, "tableFilters", "chartTableFilters", n.chartTableFilters, true);
     a += chartBoolAttr(n, "tableAddRow", "chartTableAddRow", n.chartTableAddRow, false);
     a += chartBoolAttr(n, "tableDeleteRow", "chartTableDeleteRow", n.chartTableDeleteRow, false);

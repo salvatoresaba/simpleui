@@ -14,6 +14,9 @@ inspector instead of the chart type menu.
 - Grid, tag/link styling and a synchronized accessible table (`tableView: "both"`).
 - A fixed-height table docked at the bottom of the graph: drag the separator to
   resize it, and only the rows scroll while the header stays fixed.
+- An editable table (`tableEdit: true`): change colors, text, shape type and
+  element settings or delete rows. Turn the switch off to show plain read-only
+  data with no actions column.
 - Theme and chart CSS variables applied through `style: cssSafe(...)`.
 
 ## Run it
@@ -31,8 +34,8 @@ simpleui build examples/graph/app.sui --single --out examples/graph/app.html
    plus GRID, SHAPES, LINKS, TAGS and HINTS).
 3. Use **Styles** for a color preset or **Edit styles...** to change the title,
    frame, buttons, table and scrollbars.
-4. Toggle the table, settings button, zoom, + Add and undo/redo with their
-   switches; drag the separator above the table to set its height.
+4. Toggle the table, **edit table**, settings button, zoom, + Add and undo/redo
+   with their switches; drag the separator above the table to set its height.
 5. Use **Edit data...** (right below the switches) to change JSON, CSV or XML.
 
 The graph inspector has no type selector: the control always renders the block
@@ -61,7 +64,7 @@ view main {
 		}
 
 		card class: "graph-card" {
-			graph "Order approval flow" name: "order_flow" class: "graph-canvas" data: orderFlow stateRouting: "curved" stateTagLink: "line" stateShapeTagStyle: "pill" stateShapeTagLink: "arrow" stateLinkTagStyle: "box" stateLinkTagLink: "line" stateTagFontSize: 11 stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" tableView: "both" tableFilters: false showGrid: false showLegend: false showValues: true interactive: true theme: "light" style: cssSafe("--sui-chart-series-1: #0284c7; --sui-chart-series-2: #16a34a; --sui-chart-series-3: #d97706; --sui-chart-series-4: #9333ea; --sui-chart-gantt-dependency: #64748b; --sui-chart-fg: #102a43; --sui-chart-muted: #64748b; --sui-chart-bg: #ffffff;")
+			graph "Order approval flow" name: "order_flow" class: "graph-canvas" data: orderFlow stateRouting: "curved" stateTagLink: "line" stateShapeTagStyle: "pill" stateShapeTagLink: "arrow" stateLinkTagStyle: "box" stateLinkTagLink: "line" stateTagFontSize: 11 stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" tableView: "both" tableEdit: true tableFilters: false showGrid: false showLegend: false showValues: true interactive: true theme: "light" style: cssSafe("--sui-chart-series-1: #0284c7; --sui-chart-series-2: #16a34a; --sui-chart-series-3: #d97706; --sui-chart-series-4: #9333ea; --sui-chart-gantt-dependency: #64748b; --sui-chart-fg: #102a43; --sui-chart-muted: #64748b; --sui-chart-bg: #ffffff;")
 		}
 
 		row class: "graph-help" {

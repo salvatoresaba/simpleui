@@ -1134,6 +1134,7 @@ L'inspector del graph è ordinato così:
 | Graph settings | primo pulsante; apre lo stesso pannello runtime dell'ingranaggio (Generale più GRID, SHAPES, LINKS, TAGS e HINTS) |
 | Styles | preset colore e **Edit styles...**, che apre il Graph style editor con i tab Title, Frame, Buttons, Table e Scrollbars |
 | show table | mostra o nasconde la tabella sincronizzata |
+| edit table | abilita la modifica delle celle, dei colori, del tipo di forma, delle impostazioni degli elementi e la cancellazione delle righe; se disattivato la tabella è in sola lettura e la colonna azioni non compare |
 | settings button | mostra o nasconde l'ingranaggio che apre Graph settings |
 | zoom buttons | mostra o nasconde i pulsanti zoom, reset e fit |
 | add element button | mostra o nasconde il pulsante + Add per forme e link |
@@ -1166,9 +1167,17 @@ Trascinando il separatore tra loro si imposta l'altezza della tabella; l'altezza
 viene salvata per chart. Aggiungendo righe scorre solo il corpo della tabella,
 mentre l'intestazione e i pulsanti sopra di essa restano fissi. Ridimensionando il
 contenitore l'altezza della tabella resta costante e lo spazio in più va al
-grafico. I Graph partono in modalità statica nel designer; gli oggetti esistenti
-si modificano dal Graph settings panel, mentre il pulsante + Add può essere
-mostrato dal relativo switch.
+grafico.
+
+**edit table** abilita la modifica nella tabella: la cella Element mostra color
+picker e campo testo, Tag e Hint sono modificabili, Type diventa una select e
+l'ultima colonna espone impostazioni testo, proprietà elemento e cancellazione
+riga. Se è disattivato la tabella è in sola lettura: le celle mostrano testo
+semplice, la colonna azioni non compare e il pulsante Add row sparisce. Mentre si
+scrive in una cella il suo tooltip viene nascosto. Anche **Edit mode** in Graph
+settings abilita la modifica della tabella. I Graph partono in modalità statica
+nel designer; gli oggetti esistenti si modificano dal Graph settings panel,
+mentre il pulsante + Add può essere mostrato dal relativo switch.
 
 ## Controllo Date/Time picker
 

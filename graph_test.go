@@ -254,7 +254,7 @@ func TestGraphTableCellTooltip(t *testing.T) {
 		`stateCellTip(labelCell, node.label)`,
 		`stateCellTip(descCell, node.tag || node.description || "")`,
 		`stateCellTip(hintCell, node.hint || "")`,
-		`stateCellTip(fromCell, labels[ids.indexOf(edge.from)] || edge.from)`,
+		`stateCellTip(fromCell, fromLabel)`,
 		`ev.target.closest(".sui-chart-table")`,
 		`sui-chart-table-cell-tip`,
 	} {
@@ -268,6 +268,58 @@ func TestGraphTableCellTooltip(t *testing.T) {
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("state table tooltip CSS missing %q", want)
+		}
+	}
+}
+
+func TestGraphTableEditSwitch(t *testing.T) {
+	src := `view main {
+	graph "G" tableView: "both" tableEdit: true
+}`
+	prog, dl := ParseSource(src, "graph_table_edit.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, `data-sui-chart-table-edit="1"`) {
+		t.Error("graph JS missing tableEdit attribute")
+	}
+	html := GenerateHtmlPage(prog)
+	if !strings.Contains(html, `data-sui-chart-table-edit="1"`) {
+		t.Error("static graph HTML missing tableEdit attribute")
+	}
+	model := StringifyJson(guiModelJson(prog))
+	if !strings.Contains(model, `"chartTableEdit":true`) {
+		t.Errorf("designer model missing chartTableEdit: %s", model)
+	}
+	for _, want := range []string{
+		`function stateTableEditing(root)`,
+		`stateEditingMode(root) || flag(root, "table-edit")`,
+		`function stateReadonlyColor(value, label)`,
+		`function stateReadonlyText(value)`,
+		`sui-chart-state-color-readonly`,
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("table edit runtime missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		".sui-chart-state-color-readonly",
+		".sui-chart-state-cell-text",
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("table edit CSS missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`boolRow("edit table", "chartTableEdit"`,
+		`chartBoolAttr(n, "tableEdit", "chartTableEdit"`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("graph inspector missing %q", want)
 		}
 	}
 }
@@ -287,6 +339,7 @@ func TestGraphDesignerModel(t *testing.T) {
 		`"chartData":"flow"`,
 		`"chartDataExpr":true`,
 		`"chartTableView":"both"`,
+		`"chartTableEdit":false`,
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("designer model missing %q: %s", want, model)

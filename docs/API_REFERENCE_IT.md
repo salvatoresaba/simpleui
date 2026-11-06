@@ -1247,6 +1247,11 @@ il grafo una superficie di presentazione: niente selezione, drag/resize o
 modifica di route/tag, mentre pan e zoom restano disponibili. La modalità si
 cambia dal sorgente/stato reattivo, dalle impostazioni del chart nel designer o
 dalla tab **General** delle impostazioni runtime.
+`tableEdit: true` abilita la modifica delle tabelle Shapes/Links anche con
+`stateMode: "static"`: colore, testo, tipo di forma, impostazioni elemento e
+cancellazione riga. Senza l'attributo, in modalità statica la tabella è in sola
+lettura: celle in testo semplice, colonna azioni e pulsante Add row nascosti,
+tooltip di cella soppresso durante la scrittura.
 Le interazioni static vengono accodate dal chart e consumate con
 `chart.pollEvents` / `chart.nextEvent`. Ogni evento contiene `event`, `kind`,
 `part`, `id`, `label`, `tag`, `from`, `to`, coordinate e modificatori; il

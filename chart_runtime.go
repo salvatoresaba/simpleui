@@ -32,6 +32,10 @@ const suiChartRuntime = `(function(){
     if (!root || !root.getAttribute) return true;
     return String(root.getAttribute("data-sui-chart-state-mode") || "editing").toLowerCase() !== "static";
   }
+  function stateTableEditing(root) {
+    if (!root || !root.getAttribute) return true;
+    return stateEditingMode(root) || flag(root, "table-edit");
+  }
   function stateHintsEnabled(root) {
     if (!root || !root.getAttribute) return true;
     var raw = String(root.getAttribute("data-sui-chart-state-hints") || "").toLowerCase();
@@ -19563,6 +19567,20 @@ const suiChartRuntime = `(function(){
     input.addEventListener("change", function() { onChange(input.value); });
     return input;
   }
+  function stateReadonlyColor(value, label) {
+    var chip = document.createElement("span");
+    chip.className = "sui-chart-state-color-readonly";
+    var css = colorToHex(value, "");
+    if (css) chip.style.background = css;
+    if (label) chip.title = label;
+    return chip;
+  }
+  function stateReadonlyText(value) {
+    var span = document.createElement("span");
+    span.className = "sui-chart-state-cell-text";
+    span.textContent = value === null || value === undefined ? "" : String(value);
+    return span;
+  }
   function stateIconButton(className, label, paths) {
     var button = document.createElement("button");
     button.type = "button";
@@ -20184,9 +20202,14 @@ const suiChartRuntime = `(function(){
   function stateBindTableTips(root, container) {
     if (!root || !container || container.__suiStateTipsBound) return;
     container.__suiStateTipsBound = true;
+    var cellIsEditing = function(cell) {
+      var active = document.activeElement;
+      return !!(cell && active && cell.contains(active) &&
+        (active.tagName === "INPUT" || active.tagName === "SELECT" || active.tagName === "TEXTAREA"));
+    };
     container.addEventListener("mouseover", function(ev) {
       var cell = ev.target && ev.target.closest ? ev.target.closest("td[data-sui-chart-cell-tip]") : null;
-      if (!cell) { stateHideTableTip(root); return; }
+      if (!cell || cellIsEditing(cell)) { stateHideTableTip(root); return; }
       stateShowTableTip(root, cell, ev.clientX, ev.clientY);
     });
     container.addEventListener("mousemove", function(ev) {
@@ -20200,6 +20223,10 @@ const suiChartRuntime = `(function(){
       if (to && cell.contains(to)) return;
       stateHideTableTip(root);
     });
+    container.addEventListener("focusin", function() { stateHideTableTip(root); });
+    container.addEventListener("mousedown", function() { stateHideTableTip(root); }, true);
+    container.addEventListener("keydown", function() { stateHideTableTip(root); }, true);
+    container.addEventListener("input", function() { stateHideTableTip(root); });
     container.addEventListener("scroll", function() { stateHideTableTip(root); }, true);
     document.addEventListener("click", function() { stateHideTableTip(root); }, true);
   }
@@ -20207,6 +20234,7 @@ const suiChartRuntime = `(function(){
     clear(container);
     container.classList.add("sui-chart-state-table-scroll");
     stateBindTableTips(root, container);
+    var editable = root ? stateTableEditing(root) : true;
     var addRow = document.createElement("button");
     addRow.type = "button";
     addRow.className = "sui-chart-state-add-row";
@@ -20250,6 +20278,7 @@ const suiChartRuntime = `(function(){
       var hr = document.createElement("tr");
       var widths = root && root.__suiStateColumnWidths ? root.__suiStateColumnWidths[group] : null;
       for (var hi = 0; hi < headers.length; hi++) {
+        if (!editable && hi === headers.length - 1) continue;
         var th = document.createElement("th");
         th.scope = "col";
         th.textContent = headers[hi];
@@ -20295,15 +20324,20 @@ const suiChartRuntime = `(function(){
         if (nodeHighlight) tr.style.setProperty("--sui-chart-table-selection-bg", nodeHighlight + "38");
       }
       tr.addEventListener("click", function(ev) { stateSelect(root, "state:" + node.id, ev.ctrlKey || ev.metaKey || ev.shiftKey); });
-      tr.addEventListener("contextmenu", function(ev) {
+      if (editable) tr.addEventListener("contextmenu", function(ev) {
         ev.preventDefault();
         ev.stopPropagation();
         stateSelect(root, "state:" + node.id);
         openStateNodeMenu(root, data, "state:" + node.id, ev.clientX, ev.clientY);
       });
       var labelCell = document.createElement("td");
-      labelCell.appendChild(stateColorControl(stateNodeDisplayColor(root, node, index), "Color for state " + node.label, function(v) { node.color = v; stateRefresh(root, data, "state:" + node.id); }));
-      labelCell.appendChild(stateFieldInput(node.label, function(v) { node.label = v || node.id; stateRefresh(root, data, "state:" + node.id); }));
+      if (editable) {
+        labelCell.appendChild(stateColorControl(stateNodeDisplayColor(root, node, index), "Color for state " + node.label, function(v) { node.color = v; stateRefresh(root, data, "state:" + node.id); }));
+        labelCell.appendChild(stateFieldInput(node.label, function(v) { node.label = v || node.id; stateRefresh(root, data, "state:" + node.id); }));
+      } else {
+        labelCell.appendChild(stateReadonlyColor(stateNodeDisplayColor(root, node, index), "Color for state " + node.label));
+        labelCell.appendChild(stateReadonlyText(node.label));
+      }
       var shapeMeta = document.createElement("span");
       shapeMeta.hidden = true;
       shapeMeta.className = "sui-chart-state-hidden-meta";
@@ -20320,29 +20354,34 @@ const suiChartRuntime = `(function(){
       stateCellTip(labelCell, node.label);
       tr.appendChild(labelCell);
       var descCell = document.createElement("td");
-      descCell.appendChild(stateFieldInput(stateLineText(node.tag || node.description || ""), function(v) { node.tag = stateLineText(v); stateRefresh(root, data, "state:" + node.id); }));
+      if (editable) descCell.appendChild(stateFieldInput(stateLineText(node.tag || node.description || ""), function(v) { node.tag = stateLineText(v); stateRefresh(root, data, "state:" + node.id); }));
+      else descCell.appendChild(stateReadonlyText(stateLineText(node.tag || node.description || "")));
       stateCellTip(descCell, node.tag || node.description || "");
       tr.appendChild(descCell);
       var hintCell = document.createElement("td");
-      hintCell.appendChild(stateFieldInput(stateLineText(node.hint || ""), function(v) { node.hint = stateLineText(v); stateRefresh(root, data, "state:" + node.id); }));
+      if (editable) hintCell.appendChild(stateFieldInput(stateLineText(node.hint || ""), function(v) { node.hint = stateLineText(v); stateRefresh(root, data, "state:" + node.id); }));
+      else hintCell.appendChild(stateReadonlyText(stateLineText(node.hint || "")));
       stateCellTip(hintCell, node.hint || "");
       tr.appendChild(hintCell);
       var subtypeCell = document.createElement("td");
       var shapeOptions = ["rectangle", "square", "circle", "stadium", "ellipse", "rhombus", "triangle", "parallelogram", "hexagon", "trapezoid", "pentagon", "note"];
-      subtypeCell.appendChild(stateSelectInput(shapeOptions, stateShapeKind(node), null, function(v) { node.shape = v; stateRefresh(root, data, "state:" + node.id); }));
+      if (editable) subtypeCell.appendChild(stateSelectInput(shapeOptions, stateShapeKind(node), null, function(v) { node.shape = v; stateRefresh(root, data, "state:" + node.id); }));
+      else subtypeCell.appendChild(stateReadonlyText(stateShapeKind(node)));
       stateCellTip(subtypeCell, stateShapeKind(node));
       tr.appendChild(subtypeCell);
-      var delCell = document.createElement("td");
-      delCell.className = "sui-chart-state-actions";
-      var textSettings = stateIconButton("sui-chart-state-icon-btn", "Text settings " + node.label, ["M5 6h14", "M12 6v12"]);
-      textSettings.addEventListener("click", function(ev) { ev.stopPropagation(); openStateTagSettings(root, data, "state:" + node.id, "Text"); });
-      delCell.appendChild(textSettings);
-      var props = stateIconButton("sui-chart-state-icon-btn", "Shape properties " + node.label, ["M5 12h.01", "M12 12h.01", "M19 12h.01"]);
-      props.addEventListener("click", function(ev) { ev.stopPropagation(); openStateElementProperties(root, data, "state:" + node.id); });
-      delCell.appendChild(props);
-      var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete sui-chart-table-row-delete", "Delete row " + node.label, ["M6 6l12 12", "M18 6L6 18"]);
-      del.addEventListener("click", function(ev) { ev.stopPropagation(); stateDeleteNode(root, index); });
-      delCell.appendChild(del); tr.appendChild(delCell);
+      if (editable) {
+        var delCell = document.createElement("td");
+        delCell.className = "sui-chart-state-actions";
+        var textSettings = stateIconButton("sui-chart-state-icon-btn", "Text settings " + node.label, ["M5 6h14", "M12 6v12"]);
+        textSettings.addEventListener("click", function(ev) { ev.stopPropagation(); openStateTagSettings(root, data, "state:" + node.id, "Text"); });
+        delCell.appendChild(textSettings);
+        var props = stateIconButton("sui-chart-state-icon-btn", "Shape properties " + node.label, ["M5 12h.01", "M12 12h.01", "M19 12h.01"]);
+        props.addEventListener("click", function(ev) { ev.stopPropagation(); openStateElementProperties(root, data, "state:" + node.id); });
+        delCell.appendChild(props);
+        var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete sui-chart-table-row-delete", "Delete row " + node.label, ["M6 6l12 12", "M18 6L6 18"]);
+        del.addEventListener("click", function(ev) { ev.stopPropagation(); stateDeleteNode(root, index); });
+        delCell.appendChild(del); tr.appendChild(delCell);
+      }
       shapeBody.appendChild(tr);
     };
     var appendTransitionRow = function(edge, index) {
@@ -20362,15 +20401,20 @@ const suiChartRuntime = `(function(){
         if (edgeHighlight) tr.style.setProperty("--sui-chart-table-selection-bg", edgeHighlight + "38");
       }
       tr.addEventListener("click", function(ev) { stateSelect(root, "edge:" + index, ev.ctrlKey || ev.metaKey || ev.shiftKey); });
-      tr.addEventListener("contextmenu", function(ev) {
+      if (editable) tr.addEventListener("contextmenu", function(ev) {
         ev.preventDefault();
         ev.stopPropagation();
         stateSelect(root, "edge:" + index);
         openStateEdgeMenu(root, data, index, ev.clientX, ev.clientY);
       });
       var labelCell = document.createElement("td");
-      labelCell.appendChild(stateColorControl(stateEdgeDisplayColor(root, edge), "Color for link " + (edge.label || edge.from + " to " + edge.to), function(v) { edge.color = v; stateRefresh(root, data, "edge:" + index); }));
-      labelCell.appendChild(stateFieldInput(edge.label || "", function(v) { edge.label = v; stateRefresh(root, data, "edge:" + index); }));
+      if (editable) {
+        labelCell.appendChild(stateColorControl(stateEdgeDisplayColor(root, edge), "Color for link " + (edge.label || edge.from + " to " + edge.to), function(v) { edge.color = v; stateRefresh(root, data, "edge:" + index); }));
+        labelCell.appendChild(stateFieldInput(edge.label || "", function(v) { edge.label = v; stateRefresh(root, data, "edge:" + index); }));
+      } else {
+        labelCell.appendChild(stateReadonlyColor(stateEdgeDisplayColor(root, edge), "Color for link " + (edge.label || edge.from + " to " + edge.to)));
+        labelCell.appendChild(stateReadonlyText(edge.label || ""));
+      }
       var sourceNodeForMeta = (data.stateNodes || []).filter(function(n) { return n.id === edge.from; })[0];
       var targetNodeForMeta = (data.stateNodes || []).filter(function(n) { return n.id === edge.to; })[0];
       var sourceAnchorForMeta = sourceNodeForMeta ? stateAnchorById(sourceNodeForMeta, edge.fromAnchor) : null;
@@ -20388,35 +20432,48 @@ const suiChartRuntime = `(function(){
       stateCellTip(labelCell, edge.label || "");
       tr.appendChild(labelCell);
       var descCell = document.createElement("td");
-      descCell.appendChild(stateFieldInput(stateLineText(edge.tag || edge.description || ""), function(v) { edge.tag = stateLineText(v); stateRefresh(root, data, "edge:" + index); }));
+      if (editable) descCell.appendChild(stateFieldInput(stateLineText(edge.tag || edge.description || ""), function(v) { edge.tag = stateLineText(v); stateRefresh(root, data, "edge:" + index); }));
+      else descCell.appendChild(stateReadonlyText(stateLineText(edge.tag || edge.description || "")));
       stateCellTip(descCell, edge.tag || edge.description || "");
       tr.appendChild(descCell);
       var hintCell = document.createElement("td");
-      hintCell.appendChild(stateFieldInput(stateLineText(edge.hint || ""), function(v) { edge.hint = stateLineText(v); stateRefresh(root, data, "edge:" + index); }));
+      if (editable) hintCell.appendChild(stateFieldInput(stateLineText(edge.hint || ""), function(v) { edge.hint = stateLineText(v); stateRefresh(root, data, "edge:" + index); }));
+      else hintCell.appendChild(stateReadonlyText(stateLineText(edge.hint || "")));
       stateCellTip(hintCell, edge.hint || "");
       tr.appendChild(hintCell);
       var subtypeCell = document.createElement("td");
-      subtypeCell.appendChild(stateSelectInput(["auto", "straight", "arc", "bezier", "orthogonal", "circular"], stateLinkSubtype(edge), null, function(v) {
+      if (editable) subtypeCell.appendChild(stateSelectInput(["auto", "straight", "arc", "bezier", "orthogonal", "circular"], stateLinkSubtype(edge), null, function(v) {
         var chosen = v === "bezier" ? "curved" : v;
         if (v === "auto" || chosen === stateLinkDefaults(root).routing) delete edge.routing;
         else edge.routing = chosen;
         stateRefresh(root, data, "edge:" + index);
       }));
+      else subtypeCell.appendChild(stateReadonlyText(stateLinkSubtype(edge)));
       stateCellTip(subtypeCell, stateLinkSubtype(edge));
       tr.appendChild(subtypeCell);
-      var fromCell = document.createElement("td"); fromCell.appendChild(stateSelectInput(ids, edge.from, labels, function(v) { edge.from = v; stateRefresh(root, data, "edge:" + index); })); stateCellTip(fromCell, labels[ids.indexOf(edge.from)] || edge.from); tr.appendChild(fromCell);
-      var toCell = document.createElement("td"); toCell.appendChild(stateSelectInput(ids, edge.to, labels, function(v) { edge.to = v; stateRefresh(root, data, "edge:" + index); })); stateCellTip(toCell, labels[ids.indexOf(edge.to)] || edge.to); tr.appendChild(toCell);
-      var delCell = document.createElement("td");
-      delCell.className = "sui-chart-state-actions";
-      var textSettings = stateIconButton("sui-chart-state-icon-btn", "Text settings " + edge.from + " to " + edge.to, ["M5 6h14", "M12 6v12"]);
-      textSettings.addEventListener("click", function(ev) { ev.stopPropagation(); openStateTagSettings(root, data, "edge:" + index, "Text"); });
-      delCell.appendChild(textSettings);
-      var props = stateIconButton("sui-chart-state-icon-btn", "Link properties " + edge.from + " to " + edge.to, ["M5 12h.01", "M12 12h.01", "M19 12h.01"]);
-      props.addEventListener("click", function(ev) { ev.stopPropagation(); openStateElementProperties(root, data, "edge:" + index); });
-      delCell.appendChild(props);
-      var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete sui-chart-table-row-delete", "Delete row " + edge.from + " to " + edge.to, ["M6 6l12 12", "M18 6L6 18"]);
-      del.addEventListener("click", function(ev) { ev.stopPropagation(); stateDeleteTransition(root, index); });
-      delCell.appendChild(del); tr.appendChild(delCell);
+      var fromLabel = labels[ids.indexOf(edge.from)] || edge.from;
+      var toLabel = labels[ids.indexOf(edge.to)] || edge.to;
+      var fromCell = document.createElement("td");
+      if (editable) fromCell.appendChild(stateSelectInput(ids, edge.from, labels, function(v) { edge.from = v; stateRefresh(root, data, "edge:" + index); }));
+      else fromCell.appendChild(stateReadonlyText(fromLabel));
+      stateCellTip(fromCell, fromLabel); tr.appendChild(fromCell);
+      var toCell = document.createElement("td");
+      if (editable) toCell.appendChild(stateSelectInput(ids, edge.to, labels, function(v) { edge.to = v; stateRefresh(root, data, "edge:" + index); }));
+      else toCell.appendChild(stateReadonlyText(toLabel));
+      stateCellTip(toCell, toLabel); tr.appendChild(toCell);
+      if (editable) {
+        var delCell = document.createElement("td");
+        delCell.className = "sui-chart-state-actions";
+        var textSettings = stateIconButton("sui-chart-state-icon-btn", "Text settings " + edge.from + " to " + edge.to, ["M5 6h14", "M12 6v12"]);
+        textSettings.addEventListener("click", function(ev) { ev.stopPropagation(); openStateTagSettings(root, data, "edge:" + index, "Text"); });
+        delCell.appendChild(textSettings);
+        var props = stateIconButton("sui-chart-state-icon-btn", "Link properties " + edge.from + " to " + edge.to, ["M5 12h.01", "M12 12h.01", "M19 12h.01"]);
+        props.addEventListener("click", function(ev) { ev.stopPropagation(); openStateElementProperties(root, data, "edge:" + index); });
+        delCell.appendChild(props);
+        var del = stateIconButton("sui-chart-state-icon-btn sui-chart-state-delete sui-chart-table-row-delete", "Delete row " + edge.from + " to " + edge.to, ["M6 6l12 12", "M18 6L6 18"]);
+        del.addEventListener("click", function(ev) { ev.stopPropagation(); stateDeleteTransition(root, index); });
+        delCell.appendChild(del); tr.appendChild(delCell);
+      }
       linkBody.appendChild(tr);
     };
     for (var ni = 0; ni < nodes.length; ni++) appendStateRow(nodes[ni], ni);
@@ -20437,12 +20494,7 @@ const suiChartRuntime = `(function(){
     linkTab.addEventListener("click", function() { activateTab("links"); });
     if (root && root.__suiStateSelected && root.__suiStateSelected.indexOf("edge:") === 0) activateTab("links");
     else activateTab(root && root.__suiStateTableTab ? root.__suiStateTableTab : "shapes");
-    if (root && !stateEditingMode(root)) {
-      addRow.hidden = true;
-      container.querySelectorAll("input,select,textarea,.sui-chart-state-icon-btn").forEach(function(el) {
-        el.disabled = true;
-      });
-    }
+    if (!editable) addRow.hidden = true;
     if (root) {
       stateApplySelection(root);
       stateRevealSelectedRow(root);

@@ -46,8 +46,8 @@ func TestGuiStateHintPanelMarkup(t *testing.T) {
 		"function graphControls", "openGraphStyleEditor", "applyGraphStyleEditor", "closeGraphStyleEditor",
 		`id="gstyle"`, "Graph style editor", "gs-head-bg", "gs-title-font", "gs-title-weight",
 		"showGraphStyleTab", `data-gtab="title"`,
-		"show table", "zoom buttons", "add element button", "undo/redo buttons", "edit data",
-		"showZoom", "showAdd", "showHistory", "settingsButton",
+		"show table", "edit table", "zoom buttons", "add element button", "undo/redo buttons", "edit data",
+		"showZoom", "showAdd", "showHistory", "settingsButton", "chartTableEdit",
 		"gs-border-width", "gs-btn-shadow", "gs-table-headfg", "gs-scroll-thumb",
 		"updateGraphStylePreview", "graphStyleInputValues",
 	} {

@@ -1457,6 +1457,11 @@ Rendering:
   editing and creation tools are disabled, while pan/zoom stay available. The
   mode can be changed from source/reactive state, from the designer chart
   settings, or from the runtime Settings **General** tab;
+- `tableEdit: true` enables editing in the Shapes/Links table even when
+  `stateMode: "static"`: color, text, shape type, element settings and row
+  deletion. Without it, in static mode, the table is read-only: cells show plain
+  text, the actions column and the Add row button are hidden, and the cell
+  tooltip is suppressed while typing;
 - static-mode interactions are queued by the chart and consumed with
   `chart.pollEvents` / `chart.nextEvent`. Each event carries `event`, `kind`,
   `part`, `id`, `label`, `tag`, `from`, `to`, pointer coordinates and

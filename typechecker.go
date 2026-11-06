@@ -2982,7 +2982,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "stateHintBg" || key == "stateHintOpacity" || key == "stateHintTextColor" || key == "stateHintBorderColor" ||
 		key == "stateHintFont" || key == "stateHintFontSize" || key == "stateHintBorderWidth" || key == "stateHintPadding" || key == "stateHintRadius" ||
 		key == "tableView" || key == "tableFilters" || key == "tableAddRow" || key == "tableDeleteRow" ||
-		key == "tableSteppers" || key == "tableContextMenu" || key == "tableSelection" ||
+		key == "tableSteppers" || key == "tableContextMenu" || key == "tableSelection" || key == "tableEdit" ||
 		key == "criticalPath" || key == "holidays" || key == "weekend" || key == "timezone" || key == "showNonWorkingDays" || key == "progressColumn" ||
 		key == "showGrid" || key == "showLegend" || key == "showValues" ||
 		key == "showResources" || key == "showProgress" ||
@@ -3559,7 +3559,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 				c.diagAt(a.span, a.key+" must be one of: "+strings.Join(allowed, ", "))
 			}
 			return
-		case "showGrid", "showLegend", "showValues", "tableFilters", "tableAddRow", "tableDeleteRow", "tableSteppers", "tableContextMenu", "criticalPath", "colorPicker", "settingsButton", "showZoom", "showAdd", "showHistory",
+		case "showGrid", "showLegend", "showValues", "tableFilters", "tableAddRow", "tableDeleteRow", "tableSteppers", "tableContextMenu", "tableEdit", "criticalPath", "colorPicker", "settingsButton", "showZoom", "showAdd", "showHistory",
 			"showResources", "showProgress", "showSlack", "showCosts", "statusColors", "autoSchedule", "showNonWorkingDays", "progressColumn",
 			"stateTagsMovable", "stateRoutesEditable", "stateHandles", "stateStartArrow":
 			if a.hasExpr {

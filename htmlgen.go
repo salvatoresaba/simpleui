@@ -583,6 +583,8 @@ body {
 .sui-chart-state-tag-underline { stroke: var(--sui-chart-control-border, #64748b); stroke-width: 1.2; pointer-events: none; }
 .sui-chart-state-tag-arrow { fill: var(--sui-chart-muted, #8fa0b8); pointer-events: none; }
 .sui-chart-state-color { width: 18px; height: 18px; padding: 0; margin: 0 5px 0 0; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 4px; background: transparent; cursor: pointer; vertical-align: middle; }
+.sui-chart-state-color-readonly { display: inline-block; width: 18px; height: 18px; margin: 0 5px 0 0; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 4px; vertical-align: middle; }
+.sui-chart-state-cell-text { vertical-align: middle; }
 .sui-chart-state-color::-webkit-color-swatch-wrapper { padding: 2px; }
 .sui-chart-state-color::-webkit-color-swatch { border: 0; border-radius: 2px; }
 .sui-chart-state-color::-moz-color-swatch { border: 0; border-radius: 2px; }
@@ -3476,6 +3478,7 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 		"\" data-sui-chart-table-steppers=\"" + boolAttr01(chartStaticFlag(e, "tableSteppers", false)) +
 		"\" data-sui-chart-table-context-menu=\"" + boolAttr01(chartStaticFlag(e, "tableContextMenu", false)) +
 		"\" data-sui-chart-table-selection=\"" + htmlEscape(chartStaticValue(e, "tableSelection", "row")) +
+		"\" data-sui-chart-table-edit=\"" + boolAttr01(chartStaticFlag(e, "tableEdit", false)) +
 		"\" data-sui-chart-critical-path=\"" + boolAttr01(chartStaticFlag(e, "criticalPath", false)) +
 		"\" data-sui-chart-holidays=\"" + htmlEscape(chartStaticValue(e, "holidays", "")) +
 		"\" data-sui-chart-weekend=\"" + htmlEscape(chartStaticValue(e, "weekend", "")) +

@@ -1099,6 +1099,7 @@ The graph inspector is ordered as follows:
 | Graph settings | first button; opens the same runtime panel as the chart gear (General plus GRID, SHAPES, LINKS, TAGS and HINTS) |
 | Styles | color preset and **Edit styles...**, which opens the Graph style editor with Title, Frame, Buttons, Table and Scrollbars tabs |
 | show table | shows or hides the synchronized data table |
+| edit table | allows editing table cells, colors, shape types, element settings and deleting rows; when off the table is read-only and the actions column is hidden |
 | settings button | shows or hides the gear that opens Graph settings |
 | zoom buttons | shows or hides zoom, reset and fit buttons |
 | add element button | shows or hides the + Add shape/link button |
@@ -1130,9 +1131,17 @@ diagram shrinks, so chart and table share the available height. Drag the
 separator between them to set the table height; the height is stored per chart.
 Adding rows scrolls only the table body, while the header and the buttons above
 it stay fixed. Resizing the container keeps the table height and gives the extra
-space to the chart. Graphs default to static editing in the designer; existing
-shapes and links are edited from the Graph settings panel, while the + Add button
-can still be shown with its switch.
+space to the chart.
+
+**edit table** enables editing in the table: the Element cell shows a color
+picker and text field, Tag and Hint are editable, Type becomes a select, and the
+last column exposes text settings, element properties and row deletion. With it
+off, the table is read-only: cells show plain text, the actions column is hidden
+and the Add row button disappears. While typing in a cell its tooltip is
+suppressed. **Edit mode** in Graph settings also enables table editing. Graphs
+default to static editing in the designer; existing shapes and links are edited
+from the Graph settings panel, while the + Add button can still be shown with
+its switch.
 
 ## Date/Time picker control
 

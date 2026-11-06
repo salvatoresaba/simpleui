@@ -1826,6 +1826,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		o.obj["chartTableSteppers"] = JBool(false)
 		o.obj["chartTableContextMenu"] = JBool(false)
 		o.obj["chartTableSelection"] = JStr("row")
+		o.obj["chartTableEdit"] = JBool(false)
 		o.obj["chartCriticalPath"] = JBool(false)
 		o.obj["chartHolidays"] = JStr("")
 		o.obj["chartWeekend"] = JStr("")
@@ -1933,7 +1934,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if chartTag(e.tag) && a.key == "interactive" {
 			o.obj["chartInteractive"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
-		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "criticalPath" || a.key == "colorPicker" || a.key == "settingsButton" ||
+		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableEdit" || a.key == "criticalPath" || a.key == "colorPicker" || a.key == "settingsButton" ||
 			a.key == "showResources" || a.key == "showProgress" || a.key == "showSlack" || a.key == "showCosts" || a.key == "statusColors" || a.key == "autoSchedule" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "stateHints" ||
 			a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory") {
 			field := "chart" + strings.ToUpper(a.key[4:5]) + a.key[5:]
@@ -1975,6 +1976,9 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 			if a.key == "tableContextMenu" {
 				field = "chartTableContextMenu"
+			}
+			if a.key == "tableEdit" {
+				field = "chartTableEdit"
 			}
 			if a.key == "criticalPath" {
 				field = "chartCriticalPath"
