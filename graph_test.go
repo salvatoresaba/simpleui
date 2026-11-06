@@ -159,6 +159,9 @@ func TestGraphTableHeightLayout(t *testing.T) {
 		"max-height: calc(100% - var(--sui-chart-head-height, 38px) - 80px)",
 		".sui-chart-table-both .sui-chart-viewport { flex: 1 1 auto;",
 		".sui-chart-state-table thead th { position: sticky; top: 0;",
+		"> .sui-chart-table-tools",
+		"--sui-chart-table-head-top",
+		"> .sui-chart-gantt-group-toggles",
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("table layout CSS missing %q", want)
@@ -169,6 +172,10 @@ func TestGraphTableHeightLayout(t *testing.T) {
 		`dragStartHeight + (dragStartY - clientY)`,
 		`if (tableView === "both") applyChartTableHeight(root);`,
 		`height = Math.max(80, Math.min(chartTableHeightMax(root), height));`,
+		`function syncChartTableSticky(root)`,
+		`"--sui-chart-table-tools-top"`,
+		`--sui-chart-table-head-top`,
+		`syncChartTableSticky(root);`,
 	} {
 		if !strings.Contains(suiChartRuntime, want) {
 			t.Errorf("table height runtime missing %q", want)

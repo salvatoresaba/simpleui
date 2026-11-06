@@ -1535,8 +1535,13 @@ dell'ultimo task e viene mostrata dentro quel gruppo. Lo stesso vale per i
 espanderli o collassarli senza usare il grafico.
 gli altri tipi espongono Label più le serie, oppure colonne specifiche come
 Open/High/Low/Close, Min/Q1/Median/Q3/Max e X/Y/Value per la heatmap.
-`"table"` nasconde il grafico; `"both"` mostra grafico e tabella insieme. Ogni
-cella di intestazione contiene un pulsante filtro che apre un popup in stile
+`"table"` nasconde il grafico; `"both"` mostra grafico e tabella insieme. In
+modalità `"both"` la tabella è agganciata al bordo inferiore con altezza fissa
+per ogni tipo di grafico: il grafico si riduce, un separatore trascinabile sopra
+la tabella ne imposta l'altezza (salvata per chart), scorre solo il corpo mentre
+intestazione e pulsanti restano fissi, e ridimensionando il contenitore
+l'altezza della tabella resta costante mentre il grafico prende lo spazio extra.
+Ogni cella di intestazione contiene un pulsante filtro che apre un popup in stile
 Excel, indipendente per colonna. Il popup combina ricerca testuale, elenco dei
 valori (fino a 40 valori distinti) e, per colonne numeriche o date ISO, campi
 minimo/massimo. Un click sull'intestazione (non sul filtro) ordina in modo

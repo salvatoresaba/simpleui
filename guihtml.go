@@ -1716,8 +1716,8 @@ function newChartNode() {
   n.chartFormat = "auto";
   n.chartX = "";
   n.chartY = "";
-  n.chartWidth = "640px";
-  n.chartHeight = "320px";
+  n.chartWidth = "100%";
+  n.chartHeight = "100%";
   n.chartOverflow = "scroll";
   n.chartZoom = "1";
   n.chartPointWidth = "48";

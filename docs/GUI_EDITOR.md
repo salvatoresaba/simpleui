@@ -647,7 +647,9 @@ See [API reference: tree](API_REFERENCE.md#tree) and the
 ## Chart control
 
 Insert **Chart** from **Controls**. A new chart starts as a bar chart with
-sample CSV data, `640px` by `320px` and `overflow: "scroll"`.
+sample CSV data, fills its container (`width: "100%"`, `height: "100%"`) and
+uses `overflow: "scroll"`. New charts keep the table hidden until **table view**
+is set to `table` or `both`.
 
 The dedicated **Chart** inspector exposes:
 
@@ -772,6 +774,14 @@ working-day count using weekend, holidays and timezone. The Constraint combo and
 its column filter always show all seven types with descriptive labels, even
 when every row currently uses `ASAP`; other types use Label plus their series or
 type-specific columns.
+
+With **table view** set to **both**, every chart docks a fixed-height table at
+the bottom: the chart shrinks, the table spans the full width and stays aligned
+with the bottom edge of the control. Drag the separator above the table to set
+its height; the value is stored per chart. Adding or scrolling rows moves only
+the table body, while the header row and the table tools above it stay fixed.
+Resizing the container keeps the table height and gives the extra space to the
+chart. The Graph control follows the same rules.
 
 **Block diagrams** use the dedicated **Graph** control (`graph "..." data: ...`),
 inserted from **Controls**. It uses a generic shapes/links model instead of

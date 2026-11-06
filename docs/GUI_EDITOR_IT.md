@@ -671,7 +671,9 @@ tree](../examples/tree/README.md).
 ## Controllo Chart
 
 Inserire **Chart** da **Controls**. Un nuovo grafico parte come barre con dati
-CSV di esempio, `640px` per `320px` e `overflow: "scroll"`.
+CSV di esempio, riempie il contenitore (`width: "100%"`, `height: "100%"`) e usa
+`overflow: "scroll"`. La tabella resta nascosta finché **table view** non viene
+impostata su `table` o `both`.
 
 L'inspector dedicato **Chart** espone:
 
@@ -802,7 +804,18 @@ Duration è la differenza di calendario end-start; Effective duration conta
 i giorni lavorativi usando weekend, festivi e timezone. Il
 combo Constraint e il suo filtro mostrano sempre tutti i sette tipi con etichette
 descrittive, anche quando tutte le righe usano `ASAP`; gli altri tipi usano Label più le serie o colonne
-specifiche. I **diagrammi a blocchi** usano il controllo dedicato **Graph**
+specifiche.
+
+Con **table view** impostata su **both**, ogni grafico aggancia una tabella di
+altezza fissa in basso: il grafico si riduce, la tabella occupa tutta la
+larghezza e resta allineata al bordo inferiore del controllo. Trascinando il
+separatore sopra la tabella si imposta l'altezza; il valore è salvato per chart.
+Aggiungendo o scorrendo righe si muove solo il corpo della tabella, mentre
+l'intestazione e i pulsanti sopra di essa restano fissi. Ridimensionando il
+contenitore l'altezza della tabella resta costante e lo spazio in più va al
+grafico. Il controllo Graph segue le stesse regole.
+
+I **diagrammi a blocchi** usano il controllo dedicato **Graph**
 (`graph "..." data: ...`), inserito da **Controls**: un modello generico
 forme/link con `initial`, `states` e `transitions`, array di stati con transizioni
 annidate, edge list CSV o XML. Le forme hanno `shape` (rectangle, square, circle,

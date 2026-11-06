@@ -17,6 +17,27 @@ const chartLiteralSource = `view main {
 }
 `
 
+func TestChartDesignerDefaultsFillContainer(t *testing.T) {
+	start := strings.Index(guiHTML, "function newChartNode() {")
+	if start < 0 {
+		t.Fatal("newChartNode not found in designer HTML")
+	}
+	end := strings.Index(guiHTML[start:], "function newGraphNode() {")
+	if end < 0 {
+		t.Fatal("newGraphNode boundary not found after newChartNode")
+	}
+	block := guiHTML[start : start+end]
+	for _, want := range []string{
+		`n.chartWidth = "100%"`,
+		`n.chartHeight = "100%"`,
+		`n.chartTableView = "chart"`,
+	} {
+		if !strings.Contains(block, want) {
+			t.Errorf("new chart node missing %q", want)
+		}
+	}
+}
+
 func TestChartRender(t *testing.T) {
 	prog, dl := ParseSource(chartTestSource, "chart.sui")
 	if dl.HasErrors() {
@@ -48,6 +69,7 @@ func TestChartRender(t *testing.T) {
 		`data-sui-chart-values="1"`,
 		`data-sui-chart-data="${__sui_esc(chartData)}"`,
 		`class="sui-chart-viewport"`,
+		`class="sui-chart-splitter"`,
 		`class="sui-chart-stage"`,
 		`sui-chart-menu-btn`,
 		`data-zoom="in"`,
@@ -71,6 +93,7 @@ func TestChartRender(t *testing.T) {
 		`data-sui-chart-table-view="both"`,
 		`data-sui-chart-table-filters="0"`,
 		`class="sui-chart-viewport"`,
+		`class="sui-chart-splitter"`,
 		`class="sui-chart-table"`,
 		`class="sui-chart-error"`,
 	} {

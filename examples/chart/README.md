@@ -36,7 +36,10 @@ counts together, and part-to-whole charts together.
   timezone for Gantt dates.
 - Visible Gantt resize handles on the left/right edge of each task bar.
 - Accessible data tables for every chart type through `tableView: "table"` or
-  `"both"`. Gantt tables include Task, Start, End, Progress, Group and Depends
+  `"both"`. In `"both"` mode the table docks to the bottom with a draggable
+  separator; it keeps its height when the container resizes and only the rows
+  scroll while the header and table tools stay fixed. Gantt tables include Task,
+  Start, End, Progress, Group and Depends
   on; other pages show Label plus series or type-specific columns.
 - Optional Excel-style per-column filter popups (`tableFilters: false` disables
   them) with contains search, value checklists and numeric/date min-max ranges;

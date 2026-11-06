@@ -1583,7 +1583,12 @@ Progress, Milestone, Status, Group, Resource, Depends on, Link, Lag, Constraint,
 Constraint date, Slack and Cost; other types expose Label
 plus their series, or type-specific columns
 such as Open/High/Low/Close, Min/Q1/Median/Q3/Max and heatmap X/Y/Value.
-`"table"` hides the chart; `"both"` shows chart and table together. Each header
+`"table"` hides the chart; `"both"` shows chart and table together. In `"both"`
+mode the table is docked to the bottom edge with a fixed height shared by every
+chart type: the chart shrinks, a draggable separator above the table sets its
+height (stored per chart), only the table body scrolls while the header and the
+table tools stay fixed, and resizing the container keeps the table height while
+the chart takes the extra space. Each header
 cell has a filter button that opens an Excel-style popup filter, so columns are filtered independently. The popup
 combines a contains search, a value checklist (up to 40 distinct values) and,
 for numeric or ISO-date columns, minimum/maximum range fields. Click a header

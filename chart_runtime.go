@@ -10931,6 +10931,9 @@ const suiChartRuntime = `(function(){
       if (isFinite(value) && value > 0) return value;
     } catch (e) {}
     if (!create) return null;
+    // A chart drawn inside a hidden view has no height yet: leave the default
+    // to the CSS fallback and create it on the first draw with a real size.
+    if (!root.clientHeight) return null;
     var height = Math.max(120, Math.round(root.clientHeight * 0.32));
     chartTableHeightWrite(root, height);
     return height;
@@ -10950,6 +10953,29 @@ const suiChartRuntime = `(function(){
     if (height === null) return;
     height = Math.max(80, Math.min(chartTableHeightMax(root), height));
     root.style.setProperty("--sui-chart-table-height", Math.round(height) + "px");
+  }
+  function syncChartTableSticky(root) {
+    var tableEl = root ? root.querySelector(".sui-chart-table") : null;
+    if (!tableEl) return;
+    if (!root.classList.contains("sui-chart-table-both") || tableEl.classList.contains("sui-chart-state-table-scroll")) {
+      tableEl.style.removeProperty("--sui-chart-table-tools-top");
+      tableEl.style.removeProperty("--sui-chart-table-group-top");
+      tableEl.style.removeProperty("--sui-chart-table-head-top");
+      return;
+    }
+    var tabs = null, group = null, tools = null;
+    for (var i = 0; i < tableEl.children.length; i++) {
+      var child = tableEl.children[i];
+      if (child.classList.contains("sui-chart-table-tabs")) tabs = child;
+      else if (child.classList.contains("sui-chart-gantt-group-toggles")) group = child;
+      else if (child.classList.contains("sui-chart-table-tools")) tools = child;
+    }
+    var top = tabs ? tabs.offsetHeight : 0;
+    tableEl.style.setProperty("--sui-chart-table-group-top", top + "px");
+    if (group) top += group.offsetHeight;
+    tableEl.style.setProperty("--sui-chart-table-tools-top", top + "px");
+    if (tools) top += tools.offsetHeight;
+    tableEl.style.setProperty("--sui-chart-table-head-top", top + "px");
   }
   function bindChartSplitter(root) {
     if (!root || root.__suiChartSplitBound) return;
@@ -14189,6 +14215,7 @@ const suiChartRuntime = `(function(){
     if (!skipTools) appendGanttTableTabs(container, data, title, editable, root, skipTools);
     if (activeTab === "resources") {
       renderGanttResourceTable(container, data, editable, root);
+      syncChartTableSticky(root);
       return;
     }
     var tasks = data.ganttTasks || [];
@@ -14469,6 +14496,7 @@ const suiChartRuntime = `(function(){
       if (flag(root, "table-add-row")) tableOptions.addRow = function() { addGanttTask(root, data); };
       decorateTable(container, table, root, tableOptions);
     }
+    syncChartTableSticky(root);
   }
   function chartTableValue(v) {
     return v === null || v === undefined ? "" : (isFinite(v) ? formatNumber(v) : text(v));
@@ -21653,6 +21681,7 @@ const suiChartRuntime = `(function(){
       (head || root).appendChild(status);
     }
     container.insertBefore(tools, table);
+    syncChartTableSticky(root);
     var selectionOutline = document.createElement("div");
     selectionOutline.className = "sui-chart-table-selection-outline";
     selectionOutline.hidden = true;
@@ -23045,6 +23074,7 @@ const suiChartRuntime = `(function(){
       } else {
         clear(tableEl);
       }
+      syncChartTableSticky(root);
     }
     if (root.__suiChartGhost && root.__suiChartGhost.parentNode) root.__suiChartGhost.parentNode.removeChild(root.__suiChartGhost);
     root.__suiChartGhost = null;
