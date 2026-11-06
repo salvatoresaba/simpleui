@@ -10918,32 +10918,38 @@ const suiChartRuntime = `(function(){
     root.__suiStateThemeKey = "custom";
     root.__suiStateThemeApplied = true;
   }
-  function chartSplitStorageKey(root) { return "sui.chart.split." + ganttUiKey(root); }
-  function chartSplitRead(root) {
-    try {
-      var raw = window.localStorage && window.localStorage.getItem(chartSplitStorageKey(root));
-      var value = raw ? parseFloat(raw) : NaN;
-      return isFinite(value) ? Math.max(0.2, Math.min(1, value)) : 1;
-    } catch (e) { return 1; }
-  }
-  function chartSplitWrite(root, value) {
-    try { if (window.localStorage) window.localStorage.setItem(chartSplitStorageKey(root), String(value)); } catch (e) {}
-  }
-  function chartSplitMetrics(root) {
+  function chartTableHeightStorageKey(root) { return "sui.chart.table.height." + ganttUiKey(root); }
+  function chartTableHeightMax(root) {
     var head = root.querySelector(".sui-chart-head");
-    var legend = root.querySelector(".sui-chart-legend");
-    var splitter = root.querySelector(".sui-chart-splitter");
     var headH = head ? head.offsetHeight : 0;
-    var legendH = legend && !legend.hidden ? legend.offsetHeight : 0;
-    var splitterH = splitter ? splitter.offsetHeight : 0;
-    var available = Math.max(40, root.clientHeight - headH - legendH - splitterH);
-    return { headH: headH, legendH: legendH, splitterH: splitterH, available: available };
+    return Math.max(80, root.clientHeight - headH - 80);
   }
-  function applyChartSplit(root) {
+  function chartTableHeightRead(root, create) {
+    try {
+      var raw = window.localStorage && window.localStorage.getItem(chartTableHeightStorageKey(root));
+      var value = raw ? parseFloat(raw) : NaN;
+      if (isFinite(value) && value > 0) return value;
+    } catch (e) {}
+    if (!create) return null;
+    var height = Math.max(120, Math.round(root.clientHeight * 0.32));
+    chartTableHeightWrite(root, height);
+    return height;
+  }
+  function chartTableHeightWrite(root, value) {
+    try {
+      if (window.localStorage) window.localStorage.setItem(chartTableHeightStorageKey(root), String(Math.round(value)));
+    } catch (e) {}
+  }
+  function applyChartTableHeight(root) {
     if (!root) return;
-    var pct = chartSplitRead(root);
-    var m = chartSplitMetrics(root);
-    root.style.setProperty("--sui-chart-split-height", Math.max(40, Math.round(m.available * pct)) + "px");
+    if (!root.classList.contains("sui-chart-table-both")) {
+      root.style.removeProperty("--sui-chart-table-height");
+      return;
+    }
+    var height = chartTableHeightRead(root, true);
+    if (height === null) return;
+    height = Math.max(80, Math.min(chartTableHeightMax(root), height));
+    root.style.setProperty("--sui-chart-table-height", Math.round(height) + "px");
   }
   function bindChartSplitter(root) {
     if (!root || root.__suiChartSplitBound) return;
@@ -10951,20 +10957,26 @@ const suiChartRuntime = `(function(){
     if (!splitter) return;
     root.__suiChartSplitBound = true;
     var dragging = false;
+    var dragStartY = 0;
+    var dragStartHeight = 0;
     var update = function(clientY) {
-      var rect = root.getBoundingClientRect();
-      var m = chartSplitMetrics(root);
-      var y = clientY - rect.top - m.headH - m.legendH - m.splitterH / 2;
-      var pct = Math.max(0.2, Math.min(1, y / m.available));
-      root.style.setProperty("--sui-chart-split-height", Math.max(40, Math.round(m.available * pct)) + "px");
-      chartSplitWrite(root, pct);
+      var height = dragStartHeight + (dragStartY - clientY);
+      height = Math.max(80, Math.min(chartTableHeightMax(root), height));
+      root.style.setProperty("--sui-chart-table-height", Math.round(height) + "px");
+      chartTableHeightWrite(root, height);
     };
     splitter.addEventListener("pointerdown", function(ev) {
       dragging = true;
+      dragStartY = ev.clientY;
+      var current = parseFloat(getComputedStyle(root).getPropertyValue("--sui-chart-table-height"));
+      if (!isFinite(current) || current <= 0) {
+        var tableEl = root.querySelector(".sui-chart-table");
+        current = tableEl ? tableEl.getBoundingClientRect().height : 180;
+      }
+      dragStartHeight = current;
       splitter.classList.add("sui-chart-splitter-active");
       try { splitter.setPointerCapture(ev.pointerId); } catch (e) {}
       ev.preventDefault();
-      update(ev.clientY);
     });
     splitter.addEventListener("pointermove", function(ev) {
       if (!dragging) return;
@@ -22681,8 +22693,8 @@ const suiChartRuntime = `(function(){
     root.classList.toggle("sui-chart-table-only", tableOnly);
     root.classList.toggle("sui-chart-table-both", tableView === "both");
     bindChartSplitter(root);
-    if (tableView === "both") applyChartSplit(root);
-    else root.style.removeProperty("--sui-chart-split-height");
+    if (tableView === "both") applyChartTableHeight(root);
+    else root.style.removeProperty("--sui-chart-table-height");
     viewport.hidden = tableOnly;
     var series;
     try {
@@ -23528,6 +23540,7 @@ const suiChartRuntime = `(function(){
             if (chartType === "state" && !stateEditingMode(root) &&
                 previousW > 0 && previousH > 0 &&
                 Math.abs(rootW - previousW) <= 40 && Math.abs(rootH - previousH) <= 40) return;
+            applyChartTableHeight(root);
             draw(root);
           }, 0);
         });
@@ -23568,6 +23581,7 @@ const suiChartRuntime = `(function(){
         if (resizeType === "state" && !stateEditingMode(resizeRoot) &&
             previousW > 0 && previousH > 0 &&
             Math.abs(rootW - previousW) <= 40 && Math.abs(rootH - previousH) <= 40) continue;
+        applyChartTableHeight(resizeRoot);
         draw(resizeRoot);
       }
     }, 80);

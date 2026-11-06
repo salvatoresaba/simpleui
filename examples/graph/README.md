@@ -12,6 +12,8 @@ inspector instead of the chart type menu.
 - Visible tags on shapes and links, including a `|` line break.
 - Automatic links plus explicit layout coordinates.
 - Grid, tag/link styling and a synchronized accessible table (`tableView: "both"`).
+- A fixed-height table docked at the bottom of the graph: drag the separator to
+  resize it, and only the rows scroll while the header stays fixed.
 - Theme and chart CSS variables applied through `style: cssSafe(...)`.
 
 ## Run it
@@ -25,10 +27,13 @@ simpleui build examples/graph/app.sui --single --out examples/graph/app.html
 ## Designer workflow
 
 1. Open the designer and insert **Graph** from **Controls** (it is a leaf control).
-2. Select the graph and use **Edit data...** to change JSON, CSV or XML data.
-3. Use **Element hints...** to edit the tag and hint of every state and link.
-4. Use **Chart settings...** for appearance, tooltip, table, interactions and data.
-5. **Chart attributes...** edits grid/routing/tag/link attributes preserved verbatim.
+2. Select the graph and open **Graph settings** for the runtime panel (General
+   plus GRID, SHAPES, LINKS, TAGS and HINTS).
+3. Use **Styles** for a color preset or **Edit styles...** to change the title,
+   frame, buttons, table and scrollbars.
+4. Toggle the table, settings button, zoom, + Add and undo/redo with their
+   switches; drag the separator above the table to set its height.
+5. Use **Edit data...** (right below the switches) to change JSON, CSV or XML.
 
 The graph inspector has no type selector: the control always renders the block
 diagram geometry. Existing documents that still use

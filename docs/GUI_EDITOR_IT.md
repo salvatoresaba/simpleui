@@ -1105,15 +1105,16 @@ chart](../examples/chart/README.md).
 ## Controllo Graph
 
 Inserire **Graph** da **Controls**. Un nuovo graph parte come diagramma a blocchi
-con dati JSON di esempio (stati e transizioni) e `overflow: "scroll"`. È un
-controllo foglia: non può contenere elementi figli.
+con dati JSON di esempio (stati e transizioni) e riempie il contenitore
+(`width: "100%"`, `height: "100%"`). È un controllo foglia: non può contenere
+elementi figli.
 
 L'inspector del graph è ordinato così:
 
 | Campo | Significato |
 |---|---|
 | Graph settings | primo pulsante; apre lo stesso pannello runtime dell'ingranaggio (Generale più GRID, SHAPES, LINKS, TAGS e HINTS) |
-| Styles | preset colore e **Edit styles...**, che apre il Graph style editor per sfondo, testo, titolo, muted, griglia, asse e colori dei componenti |
+| Styles | preset colore e **Edit styles...**, che apre il Graph style editor con i tab Title, Frame, Buttons, Table e Scrollbars |
 | show table | mostra o nasconde la tabella sincronizzata |
 | settings button | mostra o nasconde l'ingranaggio che apre Graph settings |
 | zoom buttons | mostra o nasconde i pulsanti zoom, reset e fit |
@@ -1140,16 +1141,16 @@ Il **Graph style editor** del designer usa le stesse categorie Title, Frame,
 Buttons, Table e Scrollbars. Le modifiche sono mostrate in anteprima dal vivo e
 diventano valori del sorgente solo con **Apply**.
 
-Con **show table** attivo la tabella viene aggiunta sotto il diagramma senza
-ridurne l'altezza. Il contenitore del grafico cresce come contenuto scrollabile:
-le scrollbar indicano che c'è la tabella sotto e ingrandendo il contenitore la
-tabella diventa visibile. Un separatore trascinabile tra grafico e tabella cambia
-la percentuale dell'altezza del Graph assegnata al grafico; il valore viene
-salvato per chart. I nuovi controlli Graph partono con `width: "100%"` e
-`height: "100%"`, riempiono il contenitore e hanno la tabella nascosta. I Graph
-partono in modalità statica nel designer; gli oggetti esistenti si modificano dal
-Graph settings panel, mentre il pulsante + Add può essere mostrato dal relativo
-switch.
+Il graph riempie il contenitore e parte con la tabella nascosta. Con **show
+table** attivo la tabella occupa tutta la larghezza in basso nel controllo e il
+diagramma si riduce, così grafico e tabella si dividono l'altezza disponibile.
+Trascinando il separatore tra loro si imposta l'altezza della tabella; l'altezza
+viene salvata per chart. Aggiungendo righe scorre solo il corpo della tabella,
+mentre l'intestazione e i pulsanti sopra di essa restano fissi. Ridimensionando il
+contenitore l'altezza della tabella resta costante e lo spazio in più va al
+grafico. I Graph partono in modalità statica nel designer; gli oggetti esistenti
+si modificano dal Graph settings panel, mentre il pulsante + Add può essere
+mostrato dal relativo switch.
 
 ## Controllo Date/Time picker
 

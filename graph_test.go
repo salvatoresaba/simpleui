@@ -152,6 +152,30 @@ func TestGraphFullSizeAndSplitterMarkup(t *testing.T) {
 	}
 }
 
+func TestGraphTableHeightLayout(t *testing.T) {
+	for _, want := range []string{
+		".sui-chart-table-both > .sui-chart-table",
+		"--sui-chart-table-height",
+		"max-height: calc(100% - var(--sui-chart-head-height, 38px) - 80px)",
+		".sui-chart-table-both .sui-chart-viewport { flex: 1 1 auto;",
+		".sui-chart-state-table thead th { position: sticky; top: 0;",
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("table layout CSS missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`"sui.chart.table.height."`,
+		`dragStartHeight + (dragStartY - clientY)`,
+		`if (tableView === "both") applyChartTableHeight(root);`,
+		`height = Math.max(80, Math.min(chartTableHeightMax(root), height));`,
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("table height runtime missing %q", want)
+		}
+	}
+}
+
 func TestGraphRuntimeThemePresets(t *testing.T) {
 	for _, want := range []string{
 		"STATE_THEME_PRESETS", "stateThemePreset(\"midnight\"", "stateThemePreset(\"paper\"",

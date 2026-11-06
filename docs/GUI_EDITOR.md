@@ -1076,14 +1076,14 @@ See [API reference: chart](API_REFERENCE.md#chart) and the
 ## Graph control
 
 Insert **Graph** from **Controls**. A new graph starts as a block diagram with
-sample JSON states and transitions and `overflow: "scroll"`. It is a leaf
-control: it cannot contain child elements.
+sample JSON states and transitions and fills its container (`width: "100%"`,
+`height: "100%"`). It is a leaf control: it cannot contain child elements.
 
 The graph inspector is ordered as follows:
 | Field | Meaning |
 |---|---|
 | Graph settings | first button; opens the same runtime panel as the chart gear (General plus GRID, SHAPES, LINKS, TAGS and HINTS) |
-| Styles | color preset and **Edit styles...**, which opens the Graph style editor for background, text, title, muted, grid, axis and component colors |
+| Styles | color preset and **Edit styles...**, which opens the Graph style editor with Title, Frame, Buttons, Table and Scrollbars tabs |
 | show table | shows or hides the synchronized data table |
 | settings button | shows or hides the gear that opens Graph settings |
 | zoom buttons | shows or hides zoom, reset and fit buttons |
@@ -1110,15 +1110,15 @@ The designer **Graph style editor** uses the same component categories in Title,
 Frame, Buttons, Table and Scrollbars tabs. Changes are previewed live on the
 graph and become source values only when **Apply** is pressed.
 
-With **show table** on, the table is added below the diagram without reducing the
-diagram height. The chart container grows scroll content instead: scrollbars
-show that the table is available below, and enlarging the container reveals it.
-A draggable separator between chart and table changes the percentage of the
-Graph height assigned to the chart; the value is stored per chart. New Graph
-controls default to `width: "100%"` and `height: "100%"`, fill their container,
-and start with the table hidden. Graphs default to static editing in the
-designer; existing shapes and links are edited from the Graph settings panel,
-while the + Add button can still be shown with its switch.
+The graph fills its container and starts with the table hidden. With **show
+table** on, the table spans the full width at the bottom of the control and the
+diagram shrinks, so chart and table share the available height. Drag the
+separator between them to set the table height; the height is stored per chart.
+Adding rows scrolls only the table body, while the header and the buttons above
+it stay fixed. Resizing the container keeps the table height and gives the extra
+space to the chart. Graphs default to static editing in the designer; existing
+shapes and links are edited from the Graph settings panel, while the + Add button
+can still be shown with its switch.
 
 ## Date/Time picker control
 
