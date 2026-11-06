@@ -1162,7 +1162,9 @@ definiscono anche default leggibili per axis, grid, legenda ed etichette valori,
 tooltip/hint e accenti error/critical. Forme, link, tag, hint e griglia hanno i
 loro pannelli dedicati, che sovrascrivono i default del tema. L'editor parte dai
 valori attualmente applicati: dopo aver scelto un preset i campi mostrano quel
-preset, non i default. Le modifiche sono immediate, salvate per chart, e gli
+preset, non i default. I campi sono disposti su due colonne, ciascuna con
+l'etichetta sopra il controllo; i campi colore aprono un pannello di selezione
+con la casella Transparent. Le modifiche sono immediate, salvate per chart, e gli
 stessi stili di controllo e pulsanti sono usati dai pannelli interni al grafico.
 **Reset theme** nell'editor (o **Reset settings**) li cancella.
 

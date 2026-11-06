@@ -16984,6 +16984,7 @@ const suiChartRuntime = `(function(){
       return button;
     };
     var generic = tabs.add("General");
+    generic.classList.add("sui-chart-two-col-fields");
     var addField = function(labelText, control, grid) {
       var row = document.createElement("label");
       row.className = "sui-chart-setting-row";
@@ -18354,12 +18355,14 @@ const suiChartRuntime = `(function(){
     wrap.setValue = function(value) { input.checked = !!value; sync(); };
     return wrap;
   }
+  var activeColorPicker = null;
   function stateTagFieldColor(value, fallback, allowTransparent) {
     var wrap = document.createElement("span");
-    wrap.className = "sui-chart-color-field" + (allowTransparent ? " sui-chart-color-with-transparent" : "");
-    var swatch = document.createElement("input");
-    swatch.type = "color";
+    wrap.className = "sui-chart-color-field";
+    var swatch = document.createElement("button");
+    swatch.type = "button";
     swatch.className = "sui-chart-color-swatch";
+    swatch.setAttribute("aria-label", "Open color picker");
     var text = document.createElement("input");
     text.type = "text";
     text.className = "sui-chart-state-cell-input sui-chart-color-text";
@@ -18367,71 +18370,141 @@ const suiChartRuntime = `(function(){
     var fallbackHex = colorToHex(fallback, "#64748b") || "#64748b";
     var initial = value === null || value === undefined ? "" : String(value);
     var initialHex = colorToHex(initial, fallbackHex) || fallbackHex;
-    swatch.value = initialHex;
     text.value = initial || initialHex;
     var lastValid = initialHex;
-    var transparentButton = null;
-    var syncTransparent = function() {
-      if (!transparentButton) return;
-      var on = text.value.trim() === "transparent" || text.value.trim() === "none";
-      transparentButton.setAttribute("aria-pressed", on ? "true" : "false");
-      transparentButton.classList.toggle("sui-chart-color-transparent-active", on);
+    var isTransparent = function() {
+      var v = text.value.trim().toLowerCase();
+      return v === "transparent" || v === "none";
     };
-    if (allowTransparent) {
-      transparentButton = document.createElement("button");
-      transparentButton.type = "button";
-      transparentButton.className = "sui-chart-color-transparent";
-      transparentButton.textContent = "Transparent";
-      transparentButton.title = "Use a transparent background";
-      transparentButton.addEventListener("click", function(ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        var on = text.value.trim() === "transparent" || text.value.trim() === "none";
-        text.value = on ? lastValid : "transparent";
+    var currentHex = function() {
+      var hex = colorToHex(text.value.trim(), "");
+      return hex || lastValid || fallbackHex;
+    };
+    var updateSwatch = function() {
+      var transparent = isTransparent();
+      swatch.classList.toggle("sui-chart-color-transparent-preview", transparent);
+      swatch.style.background = transparent ? "" : currentHex();
+      if (wrap.__pickerCheckbox) wrap.__pickerCheckbox.checked = transparent;
+      if (wrap.__pickerInput) wrap.__pickerInput.value = currentHex();
+    };
+    var emit = function() {
+      text.dispatchEvent(new Event("input", { bubbles: true }));
+      text.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    var setTransparent = function(on) {
+      text.value = on ? "transparent" : (lastValid || fallbackHex);
+      updateSwatch();
+      emit();
+    };
+    var closePicker = function() {
+      if (activeColorPicker && activeColorPicker.__close) activeColorPicker.__close();
+      activeColorPicker = null;
+    };
+    swatch.addEventListener("click", function(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (activeColorPicker && activeColorPicker.__owner === wrap) { closePicker(); return; }
+      closePicker();
+      var panel = document.createElement("div");
+      panel.className = "sui-chart-color-picker";
+      panel.setAttribute("role", "dialog");
+      panel.setAttribute("aria-label", "Color picker");
+      var input = document.createElement("input");
+      input.type = "color";
+      input.className = "sui-chart-color-picker-input";
+      input.value = currentHex();
+      input.setAttribute("aria-label", "Color");
+      var checkLabel = document.createElement("label");
+      checkLabel.className = "sui-chart-color-picker-check";
+      var check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = isTransparent();
+      var checkText = document.createElement("span");
+      checkText.textContent = "Transparent";
+      checkLabel.appendChild(check);
+      checkLabel.appendChild(checkText);
+      var closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "sui-chart-color-picker-close";
+      closeBtn.textContent = "Close";
+      panel.appendChild(input);
+      panel.appendChild(checkLabel);
+      panel.appendChild(closeBtn);
+      document.body.appendChild(panel);
+      var chartRoot = wrap.closest ? wrap.closest("[data-sui-chart]") : null;
+      if (chartRoot) copyChartThemeVars(chartRoot, panel);
+      var rect = swatch.getBoundingClientRect();
+      var left = Math.max(8, Math.min(window.innerWidth - panel.offsetWidth - 8, rect.left));
+      var top = rect.bottom + 6;
+      if (top + panel.offsetHeight > window.innerHeight - 8) top = Math.max(8, rect.top - panel.offsetHeight - 6);
+      panel.style.left = Math.round(left) + "px";
+      panel.style.top = Math.round(top) + "px";
+      wrap.__pickerCheckbox = check;
+      wrap.__pickerInput = input;
+      var close = function() {
+        document.removeEventListener("click", onDocClick, true);
+        document.removeEventListener("keydown", onKey, true);
+        if (panel.parentNode) panel.parentNode.removeChild(panel);
+        wrap.__pickerCheckbox = null;
+        wrap.__pickerInput = null;
+        if (activeColorPicker && activeColorPicker.__owner === wrap) activeColorPicker = null;
+      };
+      var onDocClick = function(e) {
+        if (!panel.contains(e.target) && e.target !== swatch) close();
+      };
+      var onKey = function(e) { if (e.key === "Escape") close(); };
+      panel.__owner = wrap;
+      panel.__close = close;
+      activeColorPicker = panel;
+      input.addEventListener("input", function() {
+        text.value = input.value;
+        lastValid = input.value;
+        check.checked = false;
+        updateSwatch();
         text.dispatchEvent(new Event("input", { bubbles: true }));
-        text.dispatchEvent(new Event("change", { bubbles: true }));
-        syncTransparent();
       });
-    }
-    swatch.addEventListener("input", function() {
-      text.value = swatch.value;
-      lastValid = swatch.value;
-      syncTransparent();
+      input.addEventListener("change", function() {
+        text.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      check.addEventListener("change", function() {
+        setTransparent(check.checked);
+        updateSwatch();
+      });
+      closeBtn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+      });
+      document.addEventListener("click", onDocClick, true);
+      document.addEventListener("keydown", onKey, true);
+      input.focus();
     });
     text.addEventListener("input", function() {
-      var typed = text.value.trim();
-      var hex = colorToHex(typed, "");
-      if (hex) {
-        swatch.value = hex;
-        lastValid = hex;
-      }
-      syncTransparent();
+      var hex = colorToHex(text.value.trim(), "");
+      if (hex) lastValid = hex;
+      updateSwatch();
     });
     text.addEventListener("change", function() {
       var typed = text.value.trim();
-      if (typed === "transparent" || typed === "none") { syncTransparent(); return; }
+      if (typed === "transparent" || typed === "none") { updateSwatch(); return; }
       var hex = colorToHex(typed, "");
       if (!hex) text.value = lastValid;
-      else {
-        swatch.value = hex;
-        lastValid = hex;
-      }
-      syncTransparent();
+      else lastValid = hex;
+      updateSwatch();
     });
     wrap.appendChild(swatch);
     wrap.appendChild(text);
-    if (transparentButton) wrap.appendChild(transparentButton);
-    wrap.inputs = [swatch, text];
+    wrap.inputs = [text];
     wrap.getValue = function() { return text.value.trim() || lastValid; };
     wrap.setValue = function(next) {
       var typed = next === null || next === undefined ? "" : String(next);
       text.value = typed;
       var hex = colorToHex(typed, "");
-      if (hex) { swatch.value = hex; lastValid = hex; }
-      else if (!typed) { swatch.value = fallbackHex; lastValid = fallbackHex; }
-      syncTransparent();
+      if (hex) lastValid = hex;
+      else if (!typed) { text.value = fallbackHex; lastValid = fallbackHex; }
+      updateSwatch();
     };
-    syncTransparent();
+    updateSwatch();
     return wrap;
   }
   function stateTagFieldColorAlpha(value, opacity, fallback) {

@@ -803,6 +803,10 @@ body {
   color: var(--sui-chart-muted, #8fa0b8);
 }
 .sui-chart-setting-label { min-width: 0; overflow-wrap: anywhere; }
+.sui-chart-state-theme-dialog .sui-chart-tag-grid label.sui-chart-setting-row { grid-column: auto; display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.sui-chart-state-theme-dialog .sui-chart-setting-control { justify-content: flex-start; }
+.sui-chart-two-col-fields label.sui-chart-setting-row { grid-column: auto; display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.sui-chart-two-col-fields .sui-chart-setting-control { justify-content: flex-start; }
 .sui-chart-setting-control { display: flex; align-items: center; justify-content: flex-end; min-width: 0; }
 .sui-chart-setting-control > * { width: 100%; min-width: 0; }
 .sui-chart-setting-control > .sui-chart-switch { width: auto; margin-left: 0; margin-right: auto; }
@@ -822,14 +826,14 @@ body {
 .sui-chart-color-alpha-field { display: grid; grid-template-columns: 30px minmax(0, 1fr) 32px; gap: 6px; align-items: center; width: 100%; box-sizing: border-box; }
 .sui-chart-color-alpha-range { width: 100%; min-width: 0; accent-color: var(--sui-chart-series-1, #38bdf8); }
 .sui-chart-color-alpha-label { font-size: 10px; text-align: right; color: var(--sui-chart-muted, #8fa0b8); font-variant-numeric: tabular-nums; }
-.sui-chart-color-swatch { width: 30px; height: 26px; padding: 2px; box-sizing: border-box; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 6px; background: transparent; cursor: pointer; }
-.sui-chart-color-swatch::-webkit-color-swatch-wrapper { padding: 2px; }
-.sui-chart-color-swatch::-webkit-color-swatch { border: 0; border-radius: 4px; }
-.sui-chart-color-swatch::-moz-color-swatch { border: 0; border-radius: 4px; }
+.sui-chart-color-swatch { width: 30px; height: 26px; padding: 0; box-sizing: border-box; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 6px; background: transparent; cursor: pointer; }
+.sui-chart-color-swatch.sui-chart-color-transparent-preview { background-image: linear-gradient(45deg, #cbd5e1 25%, transparent 25%), linear-gradient(-45deg, #cbd5e1 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #cbd5e1 75%), linear-gradient(-45deg, transparent 75%, #cbd5e1 75%); background-size: 8px 8px; background-position: 0 0, 0 4px, 4px -4px, -4px 0; }
 .sui-chart-color-text { width: 100%; min-width: 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10.5px; }
-.sui-chart-color-transparent { grid-column: 1 / -1; justify-self: stretch; height: 20px; padding: 0 8px; border: 1px dashed var(--sui-chart-control-border, #475569); border-radius: 6px; background: transparent; color: var(--sui-chart-muted, #8fa0b8); font-size: 9px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
-.sui-chart-color-transparent:hover, .sui-chart-color-transparent:focus-visible { border-color: var(--sui-chart-series-1, #38bdf8); color: var(--sui-chart-fg, #e6e6ef); outline: none; }
-.sui-chart-color-transparent-active { border-style: solid; border-color: var(--sui-chart-series-1, #38bdf8); background: rgba(56,189,248,.16); color: var(--sui-chart-fg, #e6e6ef); }
+.sui-chart-color-picker { position: fixed; z-index: 10060; width: 220px; box-sizing: border-box; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--sui-chart-control-bg, #1e293b); color: var(--sui-chart-control-fg, #f8fafc); border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 10px; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+.sui-chart-color-picker-input { width: 100%; height: 36px; padding: 2px; box-sizing: border-box; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 8px; background: transparent; cursor: pointer; }
+.sui-chart-color-picker-check { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; color: var(--sui-chart-control-fg, #f8fafc); cursor: pointer; }
+.sui-chart-color-picker-check input { accent-color: var(--sui-chart-series-1, #38bdf8); }
+.sui-chart-color-picker-close { align-self: flex-end; height: 24px; padding: 0 10px; border: 1px solid var(--sui-chart-control-border, #475569); border-radius: 6px; background: var(--sui-chart-control-bg, #1e293b); color: var(--sui-chart-control-fg, #f8fafc); font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
 .sui-chart-number-field { display: grid; grid-template-columns: minmax(0, 1fr) 54px; gap: 6px; align-items: center; }
 .sui-chart-number-range { width: 100%; min-width: 0; box-sizing: border-box; accent-color: var(--sui-chart-series-1, #38bdf8); }
 .sui-chart-number-input { min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
