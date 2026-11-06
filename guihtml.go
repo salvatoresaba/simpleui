@@ -137,9 +137,13 @@ main { flex:1; display:flex; min-height:0; }
 #toolbar.drop-hot, #elementbar.drop-hot { outline:2px dashed var(--accent); outline-offset:-2px; }
 
 /* left panel (structure tree) */
-#left { width:248px; min-width:190px; border-right:1px solid var(--border); display:flex; flex-direction:column; background: var(--panel); position:relative; }
-#left-grip { position:absolute; right:-3px; top:0; bottom:0; width:6px; cursor:col-resize; z-index:6; }
-#left-grip:hover, #left-grip.drag { background:rgba(76,92,247,.35); }
+#left { width:248px; min-width:190px; flex:none; border-right:1px solid var(--border); display:flex; flex-direction:column; background: var(--panel); position:relative; }
+#left-grip { position:absolute; right:-6px; top:0; bottom:0; width:12px; cursor:col-resize; z-index:7; touch-action:none; }
+#left-grip::after, #right-grip::after { content:""; position:absolute; top:0; bottom:0; width:1px; background:var(--border2); opacity:.65; }
+#left-grip::after { left:5px; }
+#right-grip::after { right:5px; }
+#left-grip:hover, #left-grip.drag, #right-grip:hover, #right-grip.drag { background:rgba(76,92,247,.18); }
+#left-grip:hover::after, #left-grip.drag::after, #right-grip:hover::after, #right-grip.drag::after { background:var(--accent); width:2px; opacity:1; }
 .tabs { display:flex; border-bottom:1px solid var(--border); }
 .tab { flex:1; text-align:center; padding:8px 4px; font-size:12px; color:var(--muted); cursor:pointer; border-right:1px solid var(--border); }
 .tab.on { color:var(--fg); background:var(--panel3); border-bottom:2px solid var(--accent); }
@@ -271,8 +275,7 @@ main { flex:1; display:flex; min-height:0; }
 
 /* right inspector */
 #right { width:272px; min-width:210px; border-left:1px solid var(--border); display:flex; flex-direction:column; background: var(--panel); position:relative; }
-#right-grip { position:absolute; left:-3px; top:0; bottom:0; width:6px; cursor:col-resize; z-index:6; }
-#right-grip:hover, #right-grip.drag { background:rgba(76,92,247,.35); }
+#right-grip { position:absolute; left:-6px; top:0; bottom:0; width:12px; cursor:col-resize; z-index:7; touch-action:none; }
 #inspector { flex:1; overflow-y:auto; padding:10px 12px; }
 .states { display:flex; gap:4px; margin-bottom:7px; }
 .states .btn { font-size:12px; padding:4px 8px; }
@@ -352,7 +355,11 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .palbtn:hover { background:var(--btn-hover); }
 
 /* bottom panel */
-#bottom { display:none; height:190px; border-top:1px solid var(--border); background:var(--panel); flex-direction:column; }
+#bottom { display:none; height:190px; min-height:90px; border-top:1px solid var(--border); background:var(--panel); flex-direction:column; flex:none; position:relative; }
+#bottom-grip { position:absolute; top:-6px; left:0; right:0; height:12px; cursor:row-resize; z-index:7; touch-action:none; }
+#bottom-grip::after { content:""; position:absolute; left:0; right:0; top:5px; height:1px; background:var(--border2); opacity:.65; }
+#bottom-grip:hover, #bottom-grip.drag { background:rgba(76,92,247,.18); }
+#bottom-grip:hover::after, #bottom-grip.drag::after { background:var(--accent); height:2px; opacity:1; }
 /* project color palette — visible color bar + selection popup per field */
 .colorbar { display:block; width:100%; height:26px; border:1px solid var(--border2); border-radius:6px; cursor:pointer; padding:0; position:relative; background:#000; }
 .colorbar.unset { background: repeating-linear-gradient(45deg, var(--input-bg), var(--input-bg) 6px, var(--panel3) 6px, var(--panel3) 12px); }
@@ -902,6 +909,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     </div>
 </main>
 <div id="bottom">
+  <div id="bottom-grip" title="Drag to resize the problems panel"></div>
   <div id="btabs">
     <div class="tab on" data-tab="problems" onclick="switchB('problems')">Problems</div>
     <div class="tab" data-tab="history" onclick="switchB('history')">History</div>
@@ -14913,6 +14921,41 @@ setBp("desktop");
     }
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", up);
+  });
+})();
+// Problems/History panel resize: drag the top edge. The height is stored in
+// localStorage and restored across reloads.
+(function(){
+  var bottom = document.getElementById("bottom"), grip = document.getElementById("bottom-grip");
+  if (!bottom || !grip) return;
+  function maxH(){ return Math.max(120, Math.min(700, Math.round(window.innerHeight * 0.65))); }
+  try {
+    var st = parseInt(localStorage.getItem("sui.bottomH") || "", 10);
+    if (st >= 90) bottom.style.height = Math.min(st, maxH()) + "px";
+  } catch (e) {}
+  grip.addEventListener("mousedown", function(e){
+    e.preventDefault();
+    grip.classList.add("drag");
+    var startY = e.clientY, startH = bottom.offsetHeight;
+    function move(ev){
+      var h = Math.max(90, Math.min(maxH(), startH - (ev.clientY - startY)));
+      bottom.style.height = h + "px";
+    }
+    function up(){
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      grip.classList.remove("drag");
+      try { localStorage.setItem("sui.bottomH", String(bottom.offsetHeight)); } catch (e) {}
+    }
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  });
+  grip.addEventListener("dblclick", function(){
+    bottom.style.height = "190px";
+    try { localStorage.setItem("sui.bottomH", "190"); } catch (e) {}
+  });
+  window.addEventListener("resize", function(){
+    if (bottom.offsetHeight > maxH()) bottom.style.height = maxH() + "px";
   });
 })();
 document.getElementById("prev").onload = function() { postHighlight(); updateGuides(); };

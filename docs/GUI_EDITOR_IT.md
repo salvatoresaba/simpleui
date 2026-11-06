@@ -293,9 +293,16 @@ prompt e delle modali mantengono l'undo nativo.
 
 ## Pannello sinistro e design token
 
+### Pannelli ridimensionabili
+
 Trascinando il bordo destro del pannello sinistro lo si ridimensiona, esattamente
-come l'inspector. La larghezza resta tra 190 e 600 px e viene ricordata tra i
-reload.
+come l'inspector. Il divisore ha un'area di presa più ampia (12 px) e una linea
+visibile, quindi è più facile da afferrare. La larghezza resta tra 190 e 600 px
+e viene ricordata tra i reload.
+
+Il pannello **Problems/History** in basso si ridimensiona trascinando il bordo
+superiore. L'altezza resta tra 90 px e il 65% della finestra, viene ricordata tra
+i reload e un doppio click sul divisore ripristina i 190 px predefiniti.
 
 ### Design token
 

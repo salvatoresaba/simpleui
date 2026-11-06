@@ -285,8 +285,15 @@ the designer history; prompt and modal text fields keep their native undo.
 
 ## Left panel and design tokens
 
+### Resizable panels
+
 Drag the right edge of the left panel to resize it, exactly like the inspector.
-The width stays between 190 and 600 px and is remembered across reloads.
+The divider has a widened 12 px hit area and a visible line, so it is easier to
+grab. The width stays between 190 and 600 px and is remembered across reloads.
+
+The **Problems/History** panel at the bottom is resized by dragging its top
+edge. Its height stays between 90 px and 65% of the window, is remembered across
+reloads, and a double-click on the divider restores the default 190 px.
 
 ### Design tokens
 
