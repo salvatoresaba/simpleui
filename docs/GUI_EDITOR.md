@@ -346,11 +346,13 @@ interface, and plain values for one-off declarations.
 ## Project component defaults
 
 Open **Preferences → Project preferences.** to set defaults for every instance
-of a component in the project. The panel has a **Theme** combo above the
-category tabs. Tabs are **All**, **Feedback**, **Layout**, **Form**,
-**Navigation**, **Data**, **Overlay**, **Charts** and **General**. Inside each
-tab the components are normal editor buttons arranged in compact rows; each
-button shows only the control name and opens its settings subpanel. The Theme
+of a component in the project. The panel has a **Theme** combo and a **Name**
+field above the category tabs; both follow the editor theme. Tabs are **All**,
+**Feedback**, **Layout**, **Form**, **Navigation**, **Data**, **Overlay**,
+**Charts** and **General**. Components are grouped by category into cards: the
+**All** tab lays the cards out in a two-column table grid, while a single
+category tab uses one full-width card. Each component remains a normal editor
+button showing only the control name and opens its settings subpanel. The Theme
 combo applies a shared style to every control at once, including scrollbars,
 instead of setting each component by hand. Choosing **Custom** leaves the current
 values untouched.
