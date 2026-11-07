@@ -597,6 +597,41 @@ tree "File progetto"
   `localStorage`.
 - `onCheck` viene chiamata dopo il click su una checkbox; non riceve argomenti.
   Usare `tree.exportJson(name)` per leggere i campi `checked` risultanti.
+- `multiSelect: true` abilita Ctrl/Command click per il toggle e Shift click per
+  l'intervallo. `selection` collega uno stato stringa che riceve un array JSON
+  delle key selezionate; `value` conserva l'ultima key. Lo stato `selection`
+  fornisce anche la selezione iniziale.
+- `search: true` aggiunge una casella di ricerca inline. Filtra le righe, espande
+  i rami con match, evidenzia tutte le occorrenze e mostra conteggio o empty
+  state. Ctrl/Command+F la focalizza; Escape la pulisce. Il termine sopravvive ai
+  re-render reattivi nella sessione della pagina.
+- `drag: true` abilita drag and drop con indicatori sopra/sotto/dentro. I drop
+  nel nodo trascinato o in un suo discendente vengono rifiutati. `onMove` viene
+  chiamata dopo uno spostamento valido; usare `tree.exportJson(name)` per
+  persistere il nuovo ordine.
+- `contextMenu: true` aggiunge il menu contestuale integrato (rinomina,
+  espandi/comprimi sottoalbero, copia key, espandi/comprimi tutto).
+  `onContextMenu` viene chiamata al click destro dopo la selezione, per menu
+  applicativi.
+- `columns: "size,date,status"` mostra l'intestazione tree-grid e le celle.
+  Le colonne supportate sono `size`, `date` e `status`; ogni `treeitem` fornisce
+  i testi `size`, `date` e `status`.
+- `treeitem lazy: true` mostra la freccia senza figli. L'espansione chiama
+  `onLoad` e scrive la key nello stato collegato a `loadKey`. Caricare i dati con
+  `tree.setChildren(name, key, jsonText)`, oppure mostrare un errore con
+  `tree.setChildrenError(name, key, message)`. Un indicatore di caricamento resta
+  visibile finché i figli non arrivano.
+- `tree.expandAll`, `tree.collapseAll` e `tree.expandTo(name, level)` controllano
+  l'espansione da codice. `tree.selectedKeys(name)` e `tree.checkedKeys(name)`
+  restituiscono array JSON. `tree.search(name, term)` pilota il filtro da codice.
+- `virtual: true` applica `content-visibility: auto` alle righe per far saltare
+  al browser layout/paint fuori schermo. È un'ottimizzazione di rendering, non
+  virtualizzazione del DOM: alberi molto grandi costruiscono comunque il DOM una
+  volta.
+- Le interazioni del tree (espansione, selezione, check, ricerca, riordino)
+  aggiornano il DOM esistente in modo incrementale; un cambio di stato SUI
+  ri-renderizza comunque la view dal sorgente, con lo stato del tree ripristinato
+  da binding e localStorage.
 - `editable: true` abilita la rinomina inline; `editableDepth: 2` consente i
   livelli 1-2. `0` significa tutti.
 - `treeitem editable: true|false` sovrascrive il default. `false` blocca il nodo
@@ -615,11 +650,14 @@ tree "File progetto"
   localmente per albero/percorso.
 - Tastiera: Up/Down sui visibili; Right espande o entra; Left comprime o torna
   al genitore; Enter seleziona; Spazio seleziona oppure, con `checkbox: true`,
-  attiva la checkbox dell'elemento; F2 rinomina; Home/End saltano.
+  attiva la checkbox; Shift+Up/Down e Shift+Home/End estendono una
+  multi-selezione; Ctrl/Command+A seleziona i visibili; Ctrl/Command+F focalizza
+  la ricerca; F2 rinomina; Home/End saltano.
 - ARIA: `role="tree"`, `role="treeitem"`, `role="group"`, `aria-level`,
   `aria-expanded`, `aria-selected`, `aria-readonly` e, con `checkbox: true`,
-  `aria-multiselectable` più `aria-checked="true|false|mixed"`. Un solo elemento
-  è nel tab order.
+  `aria-multiselectable` più `aria-checked="true|false|mixed"`. La
+  multi-selezione usa `aria-selected` su ogni elemento selezionato. Un solo
+  elemento è nel tab order.
 - Lo stile visivo è trasportato da `style expr` come proprietà CSS custom sul
   nodo radice dell'albero. Preset del tree: **Default**, **Compact**,
   **Comfortable**, **Dense**, **Bordered**, **Soft rounded**, **Minimal**,
@@ -647,11 +685,15 @@ tree "File progetto"
   `tree.importJsonFile`/`tree.importXmlFile` leggono un file selezionato;
   `tree.exportJson`/`tree.exportXml` restituiscono il testo; `tree.downloadJson`/
   `tree.downloadXml` scaricano un file; `tree.clear` rimuove tutti i nodi.
+  Espansione: `tree.expandAll`, `tree.collapseAll`, `tree.expandTo`. Dati lazy:
+  `tree.setChildren`, `tree.setChildrenError`. Selezione:
+  `tree.selectedKeys`, `tree.checkedKeys`; filtro: `tree.search`.
   Schema e limiti in [`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
 - I dati importati vengono applicati al tree con il `name` corrispondente;
   sopravvivono ai re-render e sostituiscono solo la struttura dei nodi (titolo,
-  stile e binding restano). Etichette, key, icone, badge e metadata sono testo,
-  mai HTML; `checked` viene preservato; le dichiarazioni DTD/entità XML vengono
+  stile e binding restano). Etichette, key, icone, badge, metadata e celle grid
+  sono testo, mai HTML; `checked`, `lazy` e le modifiche da selezione/drag sono
+  preservate nel modello runtime; le dichiarazioni DTD/entità XML vengono
   rifiutate.
 - Etichette, key e testo sono escapati; nessun HTML raw.
 

@@ -192,7 +192,9 @@ The **Tree** inspector exposes dedicated buttons:
 - `rename key state`;
 - `rename value state`;
 - `indent guides`, `truncate labels`, `hierarchical checkboxes`, `child counts`;
-- `row height`, `default icon` and `open icon`.
+- `row height`, `default icon` and `open icon`;
+- `multi-select`, `selection state`, `search box`, `drag and drop`,
+  `context menu`, `grid columns` and `load key state`.
 
 The right-click menu on the tree row offers **Edit tree data**, **Tree
 settings**, **Add root item**, **Import JSON/XML** and **Export JSON/XML**.
@@ -206,15 +208,19 @@ Selecting an item in the live preview opens the per-item **Tree item** panel:
 - `badge` / `badge type` - status pill and its colour family;
 - `metadata` - right-aligned text such as a size or date;
 - `checked` - initial hierarchical checkbox state;
+- `lazy children` - load children on first expansion;
+- `size` / `date` / `status` - tree-grid cells;
 - label text via **Content**.
 
-`onChange`, `onRename` and `onCheck` are available in **Events**.
+`onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` and `onContextMenu` are
+available in **Events**.
 
 ```sui
-tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 icon: "📁" iconOpen: "📂" onCheck: checked {
-	treeitem "src" open: true icon: "📁" iconOpen: "📂" badge: "12" badgeType: "info" meta: "2 KB" checked: true {
+tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 icon: "📁" iconOpen: "📂" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onCheck: checked onMove: moved onLoad: loaded {
+	treeitem "src" open: true icon: "📁" iconOpen: "📂" badge: "12" badgeType: "info" meta: "2 KB" size: "2 KB" date: "today" status: "ok" checked: true {
 		treeitem "main.go" icon: "📄" meta: "1 KB"
 	}
+	treeitem "remote" lazy: true
 }
 ```
 
@@ -223,9 +229,26 @@ mixed when only some children are checked; clicking it updates the whole
 subtree. `onCheck` runs after the click and `tree.exportJson(name)` includes the
 resulting `checked` flags.
 
+`multiSelect` enables Ctrl/Command and Shift selection; `selection` receives a
+JSON array of keys. `search` adds a filter box, `drag` enables reordering with
+cycle checks, and `contextMenu` adds a built-in right-click menu. `columns`
+renders a tree-grid from each item's `size`, `date` and `status`. `virtual`
+enables browser offscreen rendering (`content-visibility`) for large trees. Lazy
+items call `onLoad`, write their key to `loadKey`, and receive children through
+`tree.setChildren(name, key, json)`. `tree.expandAll`, `tree.collapseAll`,
+`tree.expandTo`, `tree.selectedKeys` and `tree.checkedKeys` are available from
+application code.
+
 ## Behavior
 
 - Clicking a row selects it; clicking the disclosure arrow only toggles it.
+- Ctrl/Command click toggles a row; Shift click selects a range.
+- Shift+Up/Down and Shift+Home/End extend a multi-selection.
+- Ctrl/Command+F focuses the search box; Escape clears it.
+- Search expands matching branches and highlights every occurrence.
+- Right-click selects the item and opens the context menu when enabled.
+- Dragging moves nodes between before/after/inside targets; invalid cycles are
+  rejected.
 - Selection is stored in the bound state and announced with `aria-selected`.
 - Expansion is independent from selection and persisted per tree path in
   `localStorage`.

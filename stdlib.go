@@ -198,6 +198,14 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "tree", name: "downloadJson", params: []string{"string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_downloadjson", async: false},
 	StdFunc{mod: "tree", name: "downloadXml", params: []string{"string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_downloadxml", async: false},
 	StdFunc{mod: "tree", name: "clear", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "tree_clear", async: false},
+	StdFunc{mod: "tree", name: "expandAll", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "tree_expandall", async: false},
+	StdFunc{mod: "tree", name: "collapseAll", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "tree_collapseall", async: false},
+	StdFunc{mod: "tree", name: "expandTo", params: []string{"string", "int"}, ret0: "int", ret1: "string", jsKey: "tree_expandto", async: false},
+	StdFunc{mod: "tree", name: "setChildren", params: []string{"string", "string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_setchildren", async: false},
+	StdFunc{mod: "tree", name: "setChildrenError", params: []string{"string", "string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_setchildrenerror", async: false},
+	StdFunc{mod: "tree", name: "selectedKeys", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "tree_selectedkeys", async: false},
+	StdFunc{mod: "tree", name: "checkedKeys", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "tree_checkedkeys", async: false},
+	StdFunc{mod: "tree", name: "search", params: []string{"string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_search", async: false},
 }
 
 // IsStdModule reports whether a module name can be imported from "std".

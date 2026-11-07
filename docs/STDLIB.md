@@ -321,6 +321,14 @@ the tree with the matching `name:` attribute (`name: "files"`). Functions return
 | `tree.downloadJson(name, filename)` | string, string | (int, string) | no | Download current nodes as a JSON file (`1` = success) |
 | `tree.downloadXml(name, filename)` | string, string | (int, string) | no | Download current nodes as an XML file (`1` = success) |
 | `tree.clear(name)` | string | (int, string) | no | Remove all nodes |
+| `tree.expandAll(name)` | string | (int, string) | no | Expand every parent; returns the number of parents |
+| `tree.collapseAll(name)` | string | (int, string) | no | Collapse every parent |
+| `tree.expandTo(name, level)` | string, int | (int, string) | no | Expand parents above `level`; collapse deeper ones |
+| `tree.setChildren(name, key, json)` | string, string, string | (int, string) | no | Add/replace children of an item from JSON; returns node count |
+| `tree.setChildrenError(name, key, message)` | string, string, string | (int, string) | no | Show a lazy-load error on an item |
+| `tree.selectedKeys(name)` | string | (string, string) | no | JSON array of selected keys |
+| `tree.checkedKeys(name)` | string | (string, string) | no | JSON array of checked keys |
+| `tree.search(name, term)` | string, string | (int, string) | no | Apply or clear the inline filter |
 
 ### JSON format
 
@@ -343,6 +351,10 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
     "meta": "2 KB",
     "checked": true,
     "tooltip": "Source directory",
+    "lazy": false,
+    "size": "2 KB",
+    "date": "today",
+    "status": "ok",
     "children": [
       { "label": "main.go", "key": "main" }
     ]
@@ -355,8 +367,11 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
   unique.
 - `open`, `editable`, `showRenameIcon` and `checked` accept booleans or
   `true`/`false`/`1`/`0` strings.
-- `icon`, `iconOpen`, `badge`, `badgeType`, `meta` and `tooltip` are inert text.
-  `badgeType` is `neutral`, `info`, `success`, `warning` or `danger`.
+- `icon`, `iconOpen`, `badge`, `badgeType`, `meta`, `tooltip`, `size`, `date`
+  and `status` are inert text. `badgeType` is `neutral`, `info`, `success`,
+  `warning` or `danger`.
+- `lazy: true` marks an item whose children are loaded later with
+  `tree.setChildren`.
 - Strings and numbers are accepted as leaf labels.
 
 ### XML format
@@ -374,7 +389,33 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
 
 `<tree>` is the container; any element is accepted as a node, so `<item>`,
 `<node>` or application-specific tags work. The element text is used as the
-label when no `label`/`text`/`name`/`title` attribute is present.
+label when no `label`/`text`/`name`/`title` attribute is present. XML attributes
+`icon`, `iconOpen`, `badge`, `badgeType`, `meta`, `tooltip`, `lazy`, `size`,
+`date`, `status` and `checked` are preserved.
+
+### Lazy loading
+
+An item marked `lazy: true` has no children and shows a disclosure arrow.
+Expanding it writes its key to the state bound by `loadKey` and calls `onLoad`.
+The handler can append children later:
+
+```sui
+state loadKey = ""
+
+fn loaded() -> null {
+	// start an async request using loadKey
+}
+
+async fn finishLoad() -> null {
+	n, e = tree.setChildren("files", loadKey, "[{\"label\":\"child\"}]")
+	if e != null {
+		tree.setChildrenError("files", loadKey, e)
+	}
+}
+```
+
+Use `tree.selectedKeys`/`tree.checkedKeys` to read selection and checkbox state;
+both return JSON arrays.
 
 ### File helpers
 

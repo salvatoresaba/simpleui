@@ -1061,6 +1061,14 @@ L'inspector **Tree** espone:
 | child counts | pill con il numero di figli sulle righe padre |
 | row height | altezza minima riga in pixel (12-120) |
 | default icon / open icon | glifi di fallback per righe chiuse e aperte |
+| multi-select | toggle Ctrl/Command e intervallo con Shift |
+| selection state | stato stringa che riceve un array JSON di key selezionate |
+| search box | filtro inline con evidenziazione ed espansione automatica |
+| drag and drop | riordino con indicatori sopra/sotto/dentro |
+| context menu | azioni integrate al click destro |
+| grid columns | lista separata da virgole: `size`, `date`, `status` |
+| virtualize offscreen rows | ottimizzazione browser `content-visibility` per alberi grandi |
+| load key state | stato che riceve la key dell'elemento lazy in espansione |
 | editable | abilita la rinomina inline |
 | editable depth | livello massimo editabile; `0` = tutti |
 | rename key state | stato che riceve la key rinominata |
@@ -1074,12 +1082,13 @@ dimensione toggle, dimensione/peso testo, letter spacing e font family. I preset
 con nome sono nello stesso pannello.
 
 **Edit tree data** apre un editor dedicato con una riga per elemento: etichetta,
-key opzionale, icona, badge, metadata, stato open/check/edit e azioni compatte
-per aggiungere figlio, aggiungere fratello, spostare su/giù ed eliminare. La
-toolbar aggiunge elementi radice e importa/esporta JSON o XML. **Apply** scrive
-gli elementi nel tree; Cancel non modifica il modello. Le stesse azioni sono nel
-menu contestuale del tree (**Edit tree data**, **Tree settings**,
-**Add root item**, **Import JSON/XML**, **Export JSON/XML**).
+key opzionale, icona, badge, metadata, celle grid size/date/status, stato
+open/check/edit e azioni compatte per aggiungere figlio, aggiungere fratello,
+spostare su/giù ed eliminare. La toolbar aggiunge elementi radice e
+importa/esporta JSON o XML. **Apply** scrive gli elementi nel tree; Cancel non
+modifica il modello. Le stesse azioni sono nel menu contestuale del tree
+(**Edit tree data**, **Tree settings**, **Add root item**,
+**Import JSON/XML**, **Export JSON/XML**).
 
 Selezionando un elemento nella preview si apre ancora il pannello **Tree item**:
 
@@ -1095,10 +1104,13 @@ Selezionando un elemento nella preview si apre ancora il pannello **Tree item**:
 | badge type | neutral / info / success / warning / danger |
 | metadata | testo allineato a destra, ad esempio dimensione o data |
 | checked | stato iniziale; i padri derivano true, false o mixed |
+| lazy children | l'elemento carica i figli alla prima espansione |
+| size / date / status | testo delle celle tree-grid |
 | editable | inherit / yes / read-only |
 | Text | etichetta visibile (sezione Content) |
-`onChange`, `onRename` e `onCheck` sono disponibili in **Events**. Il sorgente
-generato mantiene i `treeitem` annidati con key, open ed editable.
+`onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` e `onContextMenu` sono
+disponibili in **Events**. Il sorgente generato mantiene i `treeitem` annidati
+con key, open ed editable.
 
 Il menu **style preset** del tree scrive lo stile visivo nel campo **style expr**
 dell'elemento (sezione **Appearance**). I preset sono **Default**, **Compact**,
@@ -1128,13 +1140,15 @@ dell'applicazione usare il modulo core `tree` (`tree.importJson`,
 file e un pulsante di download. Schema JSON/XML in
 [`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
 
-La preview supporta selezione riga, toggle di espansione, guide, icone, badge,
-metadata, checkbox tristato gerarchico, navigazione con frecce, Home/End e
-rinomina inline (doppio click, F2 o matita; Enter/Escape). Espansione, stato
-checked ed etichette rinominate vengono ripristinati dopo un re-render. Il
+La preview supporta selezione riga, multi-selezione, toggle di espansione,
+guide, icone, badge, metadata, colonne tree-grid, ricerca/filtro, checkbox
+tristato gerarchico, drag and drop, menu contestuale, navigazione con frecce,
+Home/End e rinomina inline (doppio click, F2 o matita; Enter/Escape). Espansione,
+stato checked ed etichette rinominate vengono ripristinati dopo un re-render;
+termini di ricerca e ancore di selezione restano per la sessione della pagina. Il
 runtime usa `localStorage` per stato aperto/checked e override locali delle
-etichette; etichette, key, icone, badge e metadata sono escapati e resi come
-testo.
+etichette; etichette, key, icone, badge, metadata e celle grid sono escapati e
+resi come testo.
 
 Vedere [API reference: tree](API_REFERENCE_IT.md#tree) e l'[esempio
 tree](../examples/tree/README.md).

@@ -787,6 +787,9 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .td-row .td-icon { width:54px; }
 .td-row .td-badge { width:74px; }
 .td-row .td-meta { width:110px; }
+.td-row .td-size { width:64px; }
+.td-row .td-date { width:76px; }
+.td-row .td-status { width:72px; }
 .td-row .td-label { min-width:140px; }
 .td-row .td-check { display:flex; align-items:center; gap:3px; font-size:11px; color:var(--muted); white-space:nowrap; }
 .td-row .td-acts { display:flex; gap:3px; flex:none; }
@@ -1861,8 +1864,8 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "onChange", "onRename", "onCheck"],
-  treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "loadKey", "virtual", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
+  treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
   modal: ["text", "name"],
@@ -2122,6 +2125,10 @@ function newTreeItemNode(label) {
   n.badge = "";
   n.badgeType = "neutral";
   n.meta = "";
+  n.lazy = false;
+  n.size = "";
+  n.date = "";
+  n.status = "";
   return n;
 }
 function newTreeNode() {
@@ -2141,6 +2148,14 @@ function newTreeNode() {
   n.rowHeight = "";
   n.icon = "";
   n.iconOpen = "";
+  n.multiSelect = false;
+  n.selection = "";
+  n.search = false;
+  n.drag = false;
+  n.contextMenu = false;
+  n.columns = "";
+  n.loadKey = "";
+  n.virtual = false;
   n.styleExpr = treePresetStyleExpr("default");
   return n;
 }
@@ -4252,7 +4267,7 @@ var ELEMENT_EVENTS = {
   select:   ["onChange", "onFocus", "onBlur", "onClick"],
   combobox: ["onChange"],
   datepicker: ["onChange"],
-  tree:     ["onChange", "onRename", "onCheck"],
+  tree:     ["onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
   chart:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
              "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
              "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
@@ -4288,7 +4303,7 @@ Object.keys(ELEMENT_EVENTS).forEach(function(k){
 var EVENT_LABELS = {
   onClick: "onClick", onDoubleClick: "onDoubleClick", onMouseEnter: "onMouseEnter", onMouseLeave: "onMouseLeave",
   onFocus: "onFocus", onBlur: "onBlur", onInput: "onInput", onChange: "onChange",
-  onRename: "onRename", onCheck: "onCheck", onTaskChange: "onTaskChange", onDataChange: "onDataChange", onCalendarChange: "onCalendarChange", onResourceChange: "onResourceChange", onCommit: "onCommit",
+  onRename: "onRename", onCheck: "onCheck", onMove: "onMove", onLoad: "onLoad", onContextMenu: "onContextMenu", onTaskChange: "onTaskChange", onDataChange: "onDataChange", onCalendarChange: "onCalendarChange", onResourceChange: "onResourceChange", onCommit: "onCommit",
   onKeyDown: "onKeyDown", onKeyUp: "onKeyUp", onSubmit: "onSubmit", onReset: "onReset",
   onDragStart: "onDragStart", onDragEnter: "onDragEnter", onDragOver: "onDragOver",
   onDragLeave: "onDragLeave", onDrop: "onDrop", onDragEnd: "onDragEnd"
@@ -4724,6 +4739,11 @@ function treeControls(n) {
   treeSwitch("truncate labels", n.truncate !== false, "truncate", "Ellipsis for long labels; the full label is available as a tooltip");
   treeSwitch("hierarchical checkboxes", !!n.checkbox, "checkbox", "Tri-state checkboxes with parent/child propagation");
   treeSwitch("child counts", !!n.counts, "counts", "Show the number of children on parent rows");
+  treeSwitch("multi-select", !!n.multiSelect, "multiSelect", "Ctrl/Command click toggles, Shift click selects a range");
+  treeSwitch("search box", !!n.search, "search", "Inline filter with match highlighting and automatic expansion");
+  treeSwitch("drag and drop", !!n.drag, "drag", "Reorder nodes with before/after/inside drop indicators and cycle checks");
+  treeSwitch("context menu", !!n.contextMenu, "contextMenu", "Right-click actions: rename, expand/collapse, copy key, expand/collapse all");
+  treeSwitch("virtualize offscreen rows", !!n.virtual, "virtual", "Browser content-visibility optimization for very large trees");
   var rhRow = document.createElement("div"); rhRow.className = "rowline";
   var rhLabel = document.createElement("label"); rhLabel.textContent = "row height"; rhRow.appendChild(rhLabel);
   var rhInput = document.createElement("input"); rhInput.type = "number"; rhInput.min = "12"; rhInput.max = "120"; rhInput.step = "1";
@@ -4735,6 +4755,12 @@ function treeControls(n) {
   var iconHint = document.createElement("div"); iconHint.className = "hint";
   iconHint.textContent = "Icons are inert text or emoji; each tree item can override them. Badges, metadata and checked state are edited in Tree data.";
   rows.push(iconHint);
+  stateField("selection state", n.selection, "state name (JSON array)", "selection");
+  stateField("load key state", n.loadKey, "state name for lazy loading", "loadKey");
+  stateField("grid columns", n.columns, "size,date,status", "columns");
+  var gridHint = document.createElement("div"); gridHint.className = "hint";
+  gridHint.textContent = "Grid columns add right-aligned cells; supported columns are size, date and status. Per-item values are edited in Tree data or the Tree item panel.";
+  rows.push(gridHint);
   function stateField(label, value, placeholder, key) {
     var r = document.createElement("div"); r.className = "rowline";
     var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
@@ -4846,6 +4872,10 @@ function treeDataModel(raw, path, depth, ctx) {
     if (obj.meta !== undefined) n.meta = String(obj.meta);
     if (obj.tooltip !== undefined) n.tooltip = String(obj.tooltip);
     if (obj.checked !== undefined) n.checked = treeBool(obj.checked, false);
+    if (obj.lazy !== undefined) n.lazy = treeBool(obj.lazy, false);
+    if (obj.size !== undefined) n.size = String(obj.size);
+    if (obj.date !== undefined) n.date = String(obj.date);
+    if (obj.status !== undefined) n.status = String(obj.status);
     var kids = obj.children !== undefined ? obj.children : obj.items;
     if (kids !== undefined && kids !== null && !Array.isArray(kids)) throw new Error("children must be an array");
     if (kids) {
@@ -4867,7 +4897,7 @@ function treeXmlToRaw(el) {
   if (label) o.label = label;
   var key = el.getAttribute("key");
   if (key) o.key = key;
-  var attrs = ["open", "editable", "showRenameIcon", "renameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "tooltip", "checked"];
+  var attrs = ["open", "editable", "showRenameIcon", "renameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "tooltip", "checked", "lazy", "size", "date", "status"];
   for (var i = 0; i < attrs.length; i++) {
     var v = el.getAttribute(attrs[i]);
     if (v !== null) o[attrs[i]] = v;
@@ -4955,6 +4985,10 @@ function treeModelNode(n) {
   if (n.meta) o.meta = n.meta;
   if (n.tooltip) o.tooltip = n.tooltip;
   if (n.checked === true || n.checked === false) o.checked = n.checked;
+  if (n.lazy) o.lazy = true;
+  if (n.size) o.size = n.size;
+  if (n.date) o.date = n.date;
+  if (n.status) o.status = n.status;
   return o;
 }
 function treeXmlEscape(v) {
@@ -4977,6 +5011,10 @@ function treeModelXml(items, indent) {
     }
     if (n.meta) attrs += " meta=\"" + treeXmlEscape(n.meta) + "\"";
     if (n.tooltip) attrs += " tooltip=\"" + treeXmlEscape(n.tooltip) + "\"";
+    if (n.size) attrs += " size=\"" + treeXmlEscape(n.size) + "\"";
+    if (n.date) attrs += " date=\"" + treeXmlEscape(n.date) + "\"";
+    if (n.status) attrs += " status=\"" + treeXmlEscape(n.status) + "\"";
+    if (n.lazy) attrs += " lazy=\"true\"";
     if (n.checked !== undefined) attrs += " checked=\"" + (n.checked ? "true" : "false") + "\"";
     if (n.children && n.children.length) {
       out.push(indent + "<item" + attrs + ">");
@@ -5074,6 +5112,9 @@ function renderTreeDataRows() {
     smallInput("td-icon", item.icon, "icon", 32, function(v){ item.icon = v; });
     smallInput("td-badge", item.badge, "badge", 64, function(v){ item.badge = v; });
     smallInput("td-meta", item.meta, "metadata", 160, function(v){ item.meta = v; });
+    smallInput("td-size", item.size, "size", 64, function(v){ item.size = v; });
+    smallInput("td-date", item.date, "date", 64, function(v){ item.date = v; });
+    smallInput("td-status", item.status, "status", 64, function(v){ item.status = v; });
     if (item.children && item.children.length) {
       var openLabel = document.createElement("label");
       openLabel.className = "td-check";
@@ -6920,6 +6961,18 @@ function treeItemControls(n) {
   bts.onchange = function() { snap("treeitem badge type"); n.badgeType = bts.value; setOut(); autoPreview(); };
   btr.appendChild(bts); rows.push(btr);
   itemField("metadata", n.meta, "right-aligned text", "meta", 160);
+  itemField("size", n.size, "grid size cell", "size", 80);
+  itemField("date", n.date, "grid date cell", "date", 80);
+  itemField("status", n.status, "grid status cell", "status", 80);
+  var lzr = document.createElement("div"); lzr.className = "rowline";
+  var lzl = document.createElement("label"); lzl.textContent = "lazy children"; lzr.appendChild(lzl);
+  lzr.appendChild(mkSwitch(!!n.lazy, false, function(on){
+    snap("treeitem lazy"); n.lazy = on; setOut(); autoPreview();
+  }));
+  rows.push(lzr);
+  var lzHint = document.createElement("div"); lzHint.className = "hint";
+  lzHint.textContent = "Lazy items show a toggle without children. Expanding calls onLoad and writes the item key to loadKey; use tree.setChildren(name, key, json) to add children.";
+  rows.push(lzHint);
   var ckr = document.createElement("div"); ckr.className = "rowline";
   var ckl = document.createElement("label"); ckl.textContent = "checked"; ckr.appendChild(ckl);
   ckr.appendChild(mkSwitch(!!n.checked, false, function(on){
@@ -9913,6 +9966,10 @@ function attrsOf(n) {
   if (n.kind === "treeitem" && n.badge) a += " badge: \"" + esc(n.badge) + "\"";
   if (n.kind === "treeitem" && n.badge && n.badgeType && n.badgeType !== "neutral") a += " badgeType: \"" + esc(n.badgeType) + "\"";
   if (n.kind === "treeitem" && n.meta) a += " meta: \"" + esc(n.meta) + "\"";
+  if (n.kind === "treeitem" && n.size) a += " size: \"" + esc(n.size) + "\"";
+  if (n.kind === "treeitem" && n.date) a += " date: \"" + esc(n.date) + "\"";
+  if (n.kind === "treeitem" && n.status) a += " status: \"" + esc(n.status) + "\"";
+  if (n.kind === "treeitem" && n.lazy) a += " lazy: true";
   if (n.kind === "treeitem" && (n.checked === true || n.checked === false)) a += " checked: " + (n.checked ? "true" : "false");
   if (n.kind === "treeitem" && n.showRenameIcon !== undefined && n.showRenameIcon !== null) {
     a += " showRenameIcon: " + (n.showRenameIcon ? "true" : "false");
@@ -9930,6 +9987,14 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.rowHeight && /^\d+$/.test(String(n.rowHeight))) a += " rowHeight: " + n.rowHeight;
   if (n.kind === "tree" && n.icon) a += " icon: \"" + esc(n.icon) + "\"";
   if (n.kind === "tree" && n.iconOpen) a += " iconOpen: \"" + esc(n.iconOpen) + "\"";
+  if (n.kind === "tree" && n.multiSelect) a += " multiSelect: true";
+  if (n.kind === "tree" && n.selection) a += " selection: " + n.selection;
+  if (n.kind === "tree" && n.search) a += " search: true";
+  if (n.kind === "tree" && n.drag) a += " drag: true";
+  if (n.kind === "tree" && n.contextMenu) a += " contextMenu: true";
+  if (n.kind === "tree" && n.virtual) a += " virtual: true";
+  if (n.kind === "tree" && n.columns) a += " columns: \"" + esc(n.columns) + "\"";
+  if (n.kind === "tree" && n.loadKey) a += " loadKey: " + n.loadKey;
   if (n.onClick) a += " onClick: " + n.onClick;
   if (n.onDoubleClick) a += " onDoubleClick: " + n.onDoubleClick;
   if (n.onMouseEnter) a += " onMouseEnter: " + n.onMouseEnter;
@@ -9940,6 +10005,9 @@ function attrsOf(n) {
   if (n.onChange) a += " onChange: " + n.onChange;
   if (n.onRename) a += " onRename: " + n.onRename;
   if (n.onCheck) a += " onCheck: " + n.onCheck;
+  if (n.onMove) a += " onMove: " + n.onMove;
+  if (n.onLoad) a += " onLoad: " + n.onLoad;
+  if (n.onContextMenu) a += " onContextMenu: " + n.onContextMenu;
   if (n.onKeyDown) a += " onKeyDown: " + n.onKeyDown;
   if (n.onKeyUp) a += " onKeyUp: " + n.onKeyUp;
   if (n.onSubmit) a += " onSubmit: " + n.onSubmit;

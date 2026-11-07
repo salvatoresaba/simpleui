@@ -2917,7 +2917,7 @@ func isAllowedTag(tag string) bool {
 func eventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
-		"onRename", "onCheck", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
@@ -2971,12 +2971,15 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tree" && (key == "name" || key == "value" || key == "editable" || key == "editableDepth" ||
 		key == "renameKey" || key == "renameValue" || key == "renameIcon" || key == "showRenameIcon" ||
 		key == "guides" || key == "truncate" || key == "checkbox" || key == "counts" || key == "rowHeight" ||
-		key == "icon" || key == "iconOpen") {
+		key == "icon" || key == "iconOpen" || key == "multiSelect" || key == "selection" ||
+		key == "search" || key == "drag" || key == "contextMenu" || key == "columns" || key == "loadKey" ||
+		key == "virtual") {
 		return true
 	}
 	if tag == "treeitem" && (key == "key" || key == "open" || key == "editable" ||
 		key == "renameIcon" || key == "showRenameIcon" || key == "icon" || key == "iconOpen" ||
-		key == "badge" || key == "badgeType" || key == "meta" || key == "checked") {
+		key == "badge" || key == "badgeType" || key == "meta" || key == "checked" ||
+		key == "lazy" || key == "size" || key == "date" || key == "status") {
 		return true
 	}
 	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
@@ -3481,12 +3484,49 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
-	if tag == "tree" && (a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts") {
+	if tag == "tree" && (a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" ||
+		a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "virtual") {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)
 			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
 				c.diagAt(a.span, a.key+" must be a bool, got "+typeStr(t))
 			}
+		}
+		return
+	}
+	if tag == "treeitem" && a.key == "lazy" {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, "lazy must be a bool, got "+typeStr(t))
+			}
+		}
+		return
+	}
+	if tag == "tree" && (a.key == "selection" || a.key == "loadKey") {
+		if !a.hasExpr || a.expr == nil || a.expr.kind != "ident" || c.states[a.expr.name] == nil {
+			c.diagAt(a.span, a.key+" must name a declared state")
+			return
+		}
+		st := c.states[a.expr.name]
+		if st.kind != "string" && st.kind != "any" && st.kind != "unknown" && st.kind != "error" {
+			c.diagAt(a.span, a.key+" state must be a string, got "+typeStr(st))
+		}
+		return
+	}
+	if tag == "tree" && a.key == "columns" {
+		if a.hasExpr {
+			c.inferExpr(a.expr)
+		} else {
+			c.checkViewParts(a.text)
+		}
+		return
+	}
+	if tag == "treeitem" && (a.key == "size" || a.key == "date" || a.key == "status") {
+		if a.hasExpr {
+			c.inferExpr(a.expr)
+		} else {
+			c.checkViewParts(a.text)
 		}
 		return
 	}

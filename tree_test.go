@@ -115,6 +115,8 @@ func TestTreeDataAPI(t *testing.T) {
 	for _, full := range []string{
 		"tree.importJson", "tree.importXml", "tree.importJsonFile", "tree.importXmlFile",
 		"tree.exportJson", "tree.exportXml", "tree.downloadJson", "tree.downloadXml", "tree.clear",
+		"tree.expandAll", "tree.collapseAll", "tree.expandTo", "tree.setChildren", "tree.setChildrenError",
+		"tree.selectedKeys", "tree.checkedKeys", "tree.search",
 	} {
 		if _, ok := StdLookup(full); !ok {
 			t.Errorf("missing core tree intrinsic %s", full)
@@ -301,6 +303,130 @@ fn checked() -> null {
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer phase A support missing %q", want)
+		}
+	}
+}
+
+func TestTreePhaseBCDFeatures(t *testing.T) {
+	src := `state selected = ""
+state selectedKeys = "[]"
+state loadKey = ""
+fn moved() -> null {
+}
+fn loaded() -> null {
+}
+fn menu() -> null {
+}
+view main {
+	tree "Files" name: "files" value: selected selection: selectedKeys multiSelect: true search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onMove: moved onLoad: loaded onContextMenu: menu virtual: true {
+		treeitem "remote" key: "remote" lazy: true size: "2 KB" date: "today" status: "ok"
+	}
+}
+`
+	prog, dl := ParseSource(src, "tree_bcd.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`data-sui-tree-multi="1"`, `data-sui-tree-search="1"`,
+		`data-sui-tree-drag="1"`, `data-sui-tree-context-menu="1"`,
+		`data-sui-tree-virtual="1"`,
+		`data-sui-tree-columns="size,date,status"`,
+		`data-sui-tree-selection-setter="setSelectedKeys"`,
+		`data-sui-tree-load-key-setter="setLoadKey"`,
+		`data-sui-tree-onmove="moved"`, `data-sui-tree-onload="loaded"`,
+		`data-sui-tree-oncontextmenu="menu"`,
+		`sui-tree-search-input`, `sui-tree-grid-head`,
+		`sui-tree-cell-size`, `sui-tree-cell-date`, `sui-tree-cell-status`,
+		`data-sui-size="2 KB"`, `data-sui-date="today"`, `data-sui-status="ok"`,
+		`data-sui-lazy="1"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("phase B/C/D tree markup missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`applySearch`, `subtreeMatches`, `sui-tree-match`,
+		`canDrop`, `syncTreeStore`, `sui-tree-drop-inside`,
+		`setChildren`, `setChildrenError`, `loadLazy`, `sui-tree-loading`,
+		`selectedKeys`, `checkedKeys`, `expandAll`, `collapseAll`, `expandTo`,
+		`sui-tree-context`, `aria-multiselectable`, `data-sui-tree-selection-setter`,
+	} {
+		if !strings.Contains(suiTreeRuntime, want) {
+			t.Errorf("phase B/C/D runtime missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`.sui-tree-search`, `.sui-tree-grid-head`, `.sui-tree-cell`,
+		`.sui-tree-context`, `.sui-tree-drop-before`, `.sui-tree-drop-after`,
+		`.sui-tree-drop-inside`, `.sui-tree-loading`, `.sui-tree-match`,
+		`content-visibility: auto`,
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("phase B/C/D CSS missing %q", want)
+		}
+	}
+	html := GenerateHtmlPage(prog)
+	for _, want := range []string{
+		`sui-tree-search-input`, `sui-tree-grid-head`, `sui-tree-cell-size`,
+		`data-sui-size="2 KB"`, `data-sui-lazy="1"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("static phase B/C/D markup missing %q", want)
+		}
+	}
+}
+
+func TestTreePhaseBCDesigner(t *testing.T) {
+	src := `state selectedKeys = "[]"
+state loadKey = ""
+fn moved() -> null {
+}
+view main {
+	tree "Files" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onMove: moved {
+		treeitem "remote" lazy: true size: "2 KB" date: "today" status: "ok"
+	}
+}
+`
+	prog, dl := ParseSource(src, "tree_bcd_designer.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	model := StringifyJson(guiModelJson(prog))
+	for _, want := range []string{
+		`"multiSelect":true`, `"selection":"selectedKeys"`, `"search":true`,
+		`"drag":true`, `"contextMenu":true`, `"columns":"size,date,status"`,
+		`"loadKey":"loadKey"`, `"onMove":"moved"`, `"lazy":true`,
+		`"size":"2 KB"`, `"date":"today"`, `"status":"ok"`,
+	} {
+		if !strings.Contains(model, want) {
+			t.Errorf("designer phase B/C model missing %q: %s", want, model)
+		}
+	}
+	out := viewNodesSource(prog.views[0].body, 1)
+	for _, want := range []string{
+		`multiSelect: true`, `selection: selectedKeys`, `search: true`,
+		`drag: true`, `contextMenu: true`, `columns: "size,date,status"`,
+		`loadKey: loadKey`, `onMove: moved`, `lazy: true`,
+		`size: "2 KB"`, `date: "today"`, `status: "ok"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("designer phase B/C source missing %q:\n%s", want, out)
+		}
+	}
+	for _, want := range []string{
+		`"multi-select"`, `"search box"`, `"drag and drop"`, `"context menu"`,
+		`"grid columns"`, `"lazy children"`, `.td-row .td-size`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("designer phase B/C support missing %q", want)
 		}
 	}
 }

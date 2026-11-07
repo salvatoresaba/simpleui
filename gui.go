@@ -1897,7 +1897,7 @@ func guiElementsFromNodes(nodes []ViewNode, viewNames map[string]bool) JVal {
 func isEventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
-		"onRename", "onCheck", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
@@ -2144,8 +2144,21 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			o.obj["placeholder"] = JStr(partsLiteral(a.text))
 		} else if a.key == "empty" {
 			o.obj["empty"] = JStr(partsLiteral(a.text))
-		} else if a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" {
+		} else if a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" ||
+			a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "lazy" || a.key == "virtual" {
 			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if a.key == "selection" || a.key == "loadKey" {
+			if a.hasExpr && a.expr != nil {
+				o.obj[a.key] = JStr(exprSource(a.expr))
+			} else {
+				o.obj[a.key] = JStr(partsLiteral(a.text))
+			}
+		} else if a.key == "columns" || a.key == "size" || a.key == "date" || a.key == "status" {
+			if a.hasExpr && a.expr != nil {
+				o.obj[a.key] = JStr(exprSource(a.expr))
+			} else {
+				o.obj[a.key] = JStr(partsLiteral(a.text))
+			}
 		} else if a.key == "rowHeight" {
 			if a.hasExpr && a.expr != nil {
 				o.obj[a.key] = JStr(exprSource(a.expr))

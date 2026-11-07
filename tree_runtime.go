@@ -8,6 +8,8 @@ package main
 // + onChange handler. Open state is persisted per tree path in localStorage.
 const suiTreeRuntime = `(function(){
   var lastDown = { tree: '', key: '', time: 0 };
+  var lastSelection = { tree: '', key: '', keys: [] };
+  var treeSearchTerms = Object.create(null);
   // Imported tree models survive reactive re-renders: store[name] is applied
   // to every freshly rendered tree with the same data-sui-tree-name.
   var store = Object.create(null);
@@ -84,6 +86,11 @@ const suiTreeRuntime = `(function(){
     var guides = root.getAttribute('data-sui-tree-guides') === '1';
     var checkboxes = root.getAttribute('data-sui-tree-checkbox') === '1';
     var counts = root.getAttribute('data-sui-tree-counts') === '1';
+    var multiSelect = root.getAttribute('data-sui-tree-multi') === '1';
+    var searchEnabled = root.getAttribute('data-sui-tree-search') === '1';
+    var dragEnabled = root.getAttribute('data-sui-tree-drag') === '1';
+    var contextMenuEnabled = root.getAttribute('data-sui-tree-context-menu') === '1';
+    var treeColumns = (root.getAttribute('data-sui-tree-columns') || '').split(',').filter(Boolean);
     var treeIcon = root.getAttribute('data-sui-tree-icon') || '';
     var treeIconOpen = root.getAttribute('data-sui-tree-icon-open') || '';
     var rowHeight = parseInt(root.getAttribute('data-sui-tree-row-height') || '', 10);
@@ -94,7 +101,7 @@ const suiTreeRuntime = `(function(){
     if (imported) {
       renderNodes(root, imported, {
         guides: guides, checkbox: checkboxes, counts: counts,
-        icon: treeIcon, iconOpen: treeIconOpen
+        icon: treeIcon, iconOpen: treeIconOpen, columns: treeColumns
       });
     }
     root.__suiTree = true;
@@ -103,6 +110,11 @@ const suiTreeRuntime = `(function(){
     var setter = root.getAttribute('data-sui-tree-setter') || '';
     var handler = root.getAttribute('data-sui-tree-onchange') || '';
     var checkHandler = root.getAttribute('data-sui-tree-oncheck') || '';
+    var loadHandler = root.getAttribute('data-sui-tree-onload') || '';
+    var moveHandler = root.getAttribute('data-sui-tree-onmove') || '';
+    var contextHandler = root.getAttribute('data-sui-tree-oncontextmenu') || '';
+    var selectionSetter = root.getAttribute('data-sui-tree-selection-setter') || '';
+    var loadKeySetter = root.getAttribute('data-sui-tree-load-key-setter') || '';
     var renameKeySetter = root.getAttribute('data-sui-tree-rename-key-setter') || '';
     var renameValueSetter = root.getAttribute('data-sui-tree-rename-value-setter') || '';
     var renameHandler = root.getAttribute('data-sui-tree-onrename') || '';
@@ -114,6 +126,11 @@ const suiTreeRuntime = `(function(){
     var items = Array.prototype.slice.call(root.querySelectorAll('[data-sui-tree-item]'));
     if (!items.length) return;
     var current = hidden.value || '';
+    var selectionHidden = multiSelect ? root.querySelector('.sui-tree-selection') : null;
+    var selectedItems = [];
+    var selectionAnchor = null;
+    var searchSnapshot = null;
+    var contextMenuBound = false;
     var editing = null;
     var selectionTimer = null;
     var pendingItem = null;
@@ -126,7 +143,7 @@ const suiTreeRuntime = `(function(){
       } catch (e) { checkedStore = {}; }
     }
     if (!root.getAttribute('aria-label')) root.setAttribute('aria-label', treeKey);
-    if (checkboxes) root.setAttribute('aria-multiselectable', 'true');
+    if (checkboxes || multiSelect) root.setAttribute('aria-multiselectable', 'true');
 
     function itemLabelEl(item) {
       return item.querySelector('.sui-tree-label');
@@ -173,6 +190,8 @@ const suiTreeRuntime = `(function(){
       }
       editing = null;
       old.label.textContent = value;
+      old.item.__suiLabel = value;
+      old.label.title = value;
       old.label.hidden = false;
       if (old.input.parentNode) old.input.parentNode.removeChild(old.input);
       var key = old.item.getAttribute('data-sui-key') || '';
@@ -225,8 +244,10 @@ const suiTreeRuntime = `(function(){
       if (persist) saveOpen(root, item.getAttribute('data-sui-path') || '', open);
     }
     function visible(item) {
+      if (item.hidden) return false;
       var p = item.parentElement;
       while (p && p !== root) {
+        if (p.hidden) return false;
         if (p.classList && p.classList.contains('sui-tree-group') && p.hidden) return false;
         p = p.parentElement;
       }
@@ -237,19 +258,80 @@ const suiTreeRuntime = `(function(){
       item.tabIndex = 0;
       item.focus();
     }
-    function select(item, notify) {
-      current = item.getAttribute('data-sui-key') || '';
-      hidden.value = current;
+    function selectionJSON() {
+      var keys = [];
+      for (var i = 0; i < selectedItems.length; i++) keys.push(selectedItems[i].getAttribute('data-sui-key') || '');
+      return JSON.stringify(keys);
+    }
+    function setSelection(list, notify, sync) {
+      var uniq = [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] && uniq.indexOf(list[i]) < 0) uniq.push(list[i]);
+      }
+      selectedItems = uniq;
+      if (sync !== false) {
+        lastSelection.tree = treeKey;
+        lastSelection.keys = [];
+        for (var lk = 0; lk < uniq.length; lk++) lastSelection.keys.push(uniq[lk].getAttribute('data-sui-key') || '');
+      }
+      var last = uniq.length ? uniq[uniq.length - 1] : null;
       items.forEach(function(x) {
-        var on = x === item;
+        var on = uniq.indexOf(x) >= 0;
         x.classList.toggle('selected', on);
         x.setAttribute('aria-selected', on ? 'true' : 'false');
-        x.tabIndex = on ? 0 : -1;
+        x.tabIndex = -1;
       });
+      if (last) last.tabIndex = 0;
+      else {
+        for (var f = 0; f < items.length; f++) {
+          if (visible(items[f])) { items[f].tabIndex = 0; break; }
+        }
+      }
+      current = last ? (last.getAttribute('data-sui-key') || '') : '';
+      hidden.value = current;
+      if (selectionHidden) selectionHidden.value = selectionJSON();
+      if (sync !== false) {
+        if (selectionSetter && typeof window[selectionSetter] === 'function') window[selectionSetter](selectionJSON());
+      }
       if (notify) {
         if (setter && typeof window[setter] === 'function') window[setter](current);
         if (handler && typeof window[handler] === 'function') window[handler]();
       }
+    }
+    function select(item, notify, mods) {
+      mods = mods || {};
+      if (!item) return;
+      if (!multiSelect) {
+        setSelection([item], notify);
+        selectionAnchor = item;
+        lastSelection.tree = treeKey;
+        lastSelection.key = item.getAttribute('data-sui-key') || '';
+        return;
+      }
+      var vis = items.filter(visible);
+      if (mods.shift && selectionAnchor) {
+        var a = vis.indexOf(selectionAnchor), b = vis.indexOf(item);
+        if (a >= 0 && b >= 0) {
+          var start = Math.min(a, b), end = Math.max(a, b);
+          setSelection(vis.slice(start, end + 1), notify);
+          return;
+        }
+      }
+      if (mods.ctrl || mods.meta) {
+        var idx = selectedItems.indexOf(item);
+        var next = selectedItems.slice();
+        if (idx >= 0) next.splice(idx, 1);
+        else next.push(item);
+        setSelection(next, notify);
+        selectionAnchor = item;
+        lastSelection.tree = treeKey;
+        lastSelection.key = item.getAttribute('data-sui-key') || '';
+        return;
+      }
+      setSelection([item], notify);
+      selectionAnchor = item;
+      lastSelection.tree = treeKey;
+      lastSelection.key = item.getAttribute('data-sui-key') || '';
     }
     function itemCheck(item) {
       var row = itemRow(item);
@@ -342,6 +424,421 @@ const suiTreeRuntime = `(function(){
         if (!parentItem(items[j], root)) recomputeUp(items[j]);
       }
     }
+    function findItemByKey(key) {
+      for (var i = 0; i < items.length; i++) {
+        if ((items[i].getAttribute('data-sui-key') || '') === String(key)) return items[i];
+      }
+      return null;
+    }
+    function renderOpts() {
+      return { guides: guides, checkbox: checkboxes, counts: counts, icon: treeIcon, iconOpen: treeIconOpen, columns: treeColumns };
+    }
+    function ensureGroup(item) {
+      var group = itemGroup(item);
+      if (group) return group;
+      group = document.createElement('ul');
+      group.className = 'sui-tree-group';
+      group.setAttribute('role', 'group');
+      item.appendChild(group);
+      return group;
+    }
+    function ensureToggle(item) {
+      var row = itemRow(item);
+      if (!row) return null;
+      var toggle = itemToggle(item);
+      if (toggle) return toggle;
+      for (var i = 0; i < row.children.length; i++) {
+        if (row.children[i].classList && row.children[i].classList.contains('sui-tree-spacer')) {
+          toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'sui-tree-toggle';
+          toggle.tabIndex = -1;
+          toggle.setAttribute('aria-label', 'Toggle ' + itemLabel(item));
+          toggle.textContent = '\u25b8';
+          row.replaceChild(toggle, row.children[i]);
+          return toggle;
+        }
+      }
+      return null;
+    }
+    function renumberItem(item, level, path) {
+      item.setAttribute('data-level', String(level));
+      item.setAttribute('data-path', path);
+      item.setAttribute('aria-level', String(level));
+      var group = itemGroup(item);
+      if (!group) return;
+      var n = 0;
+      for (var i = 0; i < group.children.length; i++) {
+        var child = group.children[i];
+        if (child.hasAttribute && child.hasAttribute('data-sui-tree-item')) {
+          renumberItem(child, level + 1, path + '.' + n);
+          n++;
+        }
+      }
+    }
+    function renumberItems() {
+      var group = rootGroup(root), n = 0;
+      for (var i = 0; i < group.children.length; i++) {
+        var item = group.children[i];
+        if (item.hasAttribute && item.hasAttribute('data-sui-tree-item')) {
+          renumberItem(item, 1, String(n));
+          n++;
+        }
+      }
+    }
+    function expandAll() {
+      var n = 0;
+      for (var i = 0; i < items.length; i++) {
+        if (itemGroup(items[i])) { setOpen(items[i], true, true); n++; }
+      }
+      return n;
+    }
+    function collapseAll() {
+      var n = 0;
+      for (var i = 0; i < items.length; i++) {
+        if (itemGroup(items[i])) { setOpen(items[i], false, true); n++; }
+      }
+      return n;
+    }
+    function expandTo(level) {
+      level = Math.max(0, parseInt(level, 10) || 0);
+      var n = 0;
+      for (var i = 0; i < items.length; i++) {
+        if (!itemGroup(items[i])) continue;
+        var itemLevel = parseInt(items[i].getAttribute('data-sui-level') || '1', 10);
+        setOpen(items[i], itemLevel < level, true);
+        n++;
+      }
+      return n;
+    }
+    function selectedKeys() {
+      var out = [];
+      for (var i = 0; i < selectedItems.length; i++) out.push(selectedItems[i].getAttribute('data-sui-key') || '');
+      return out;
+    }
+    function checkedKeys() {
+      var out = [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].getAttribute('aria-checked') === 'true') out.push(items[i].getAttribute('data-sui-key') || '');
+      }
+      return out;
+    }
+    function searchLabelText(item) {
+      var label = itemLabelEl(item);
+      return label ? label.textContent : '';
+    }
+    function subtreeMatches(item, term) {
+      if (searchLabelText(item).toLowerCase().indexOf(term) >= 0) return true;
+      var kids = childItems(item);
+      for (var i = 0; i < kids.length; i++) {
+        if (subtreeMatches(kids[i], term)) return true;
+      }
+      return false;
+    }
+    function computeMatches(item, term, cache) {
+      var key = item.getAttribute('data-sui-path') || '';
+      if (cache[key] !== undefined) return cache[key];
+      var sub = searchLabelText(item).toLowerCase().indexOf(term) >= 0;
+      var kids = childItems(item);
+      for (var i = 0; i < kids.length; i++) {
+        if (computeMatches(kids[i], term, cache)) sub = true;
+      }
+      cache[key] = sub;
+      return sub;
+    }
+    function highlightLabel(item, term) {
+      var label = itemLabelEl(item);
+      if (!label) return;
+      var text = item.__suiLabel !== undefined ? item.__suiLabel : label.textContent;
+      if (!term) {
+        label.textContent = text;
+        return;
+      }
+      label.textContent = '';
+      var lower = text.toLowerCase();
+      var pos = 0, idx = lower.indexOf(term, pos);
+      while (idx >= 0) {
+        if (idx > pos) label.appendChild(document.createTextNode(text.slice(pos, idx)));
+        var mark = document.createElement('mark');
+        mark.className = 'sui-tree-match';
+        mark.textContent = text.slice(idx, idx + term.length);
+        label.appendChild(mark);
+        pos = idx + term.length;
+        idx = lower.indexOf(term, pos);
+      }
+      if (pos < text.length) label.appendChild(document.createTextNode(text.slice(pos)));
+    }
+    function searchEmpty() {
+      var el = root.querySelector('.sui-tree-empty');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'sui-tree-empty';
+        el.setAttribute('role', 'status');
+        el.textContent = 'No results';
+        root.appendChild(el);
+      }
+      return el;
+    }
+    function applySearch(value) {
+      if (!searchEnabled) return;
+      var term = String(value || '').trim().toLowerCase();
+      var searchName = treeName(root);
+      if (!term) delete treeSearchTerms[searchName];
+      else treeSearchTerms[searchName] = String(value || '');
+      var input = root.querySelector('.sui-tree-search-input');
+      var countEl = root.querySelector('.sui-tree-search-count');
+      if (!term) {
+        for (var i = 0; i < items.length; i++) {
+          items[i].hidden = false;
+          highlightLabel(items[i], '');
+        }
+        if (searchSnapshot) {
+          for (var j = 0; j < searchSnapshot.length; j++) {
+            var snap = searchSnapshot[j];
+            var item = findItemByKey(snap.key);
+            if (item && itemGroup(item)) setOpen(item, snap.open, false);
+          }
+        }
+        searchSnapshot = null;
+        var empty = root.querySelector('.sui-tree-empty');
+        if (empty) empty.hidden = true;
+        if (countEl) countEl.textContent = '';
+        return;
+      }
+      if (!searchSnapshot) {
+        searchSnapshot = [];
+        for (var s = 0; s < items.length; s++) {
+          searchSnapshot.push({ key: items[s].getAttribute('data-sui-key') || '', open: !!items[s].__suiTreeOpen });
+        }
+      }
+      var matches = 0;
+      var matchCache = {};
+      for (var k = 0; k < items.length; k++) computeMatches(items[k], term, matchCache);
+      for (var j2 = 0; j2 < items.length; j2++) {
+        var it = items[j2];
+        var own = searchLabelText(it).toLowerCase().indexOf(term) >= 0;
+        var sub = matchCache[it.getAttribute('data-sui-path') || ''] === true;
+        it.hidden = !sub;
+        highlightLabel(it, term);
+        if (own) matches++;
+      }
+      for (var e = 0; e < items.length; e++) {
+        var node = items[e];
+        if (!node.hidden && itemGroup(node) && matchCache[node.getAttribute('data-sui-path') || '']) setOpen(node, true, false);
+      }
+      var emptyEl = searchEmpty();
+      emptyEl.hidden = matches > 0;
+      if (countEl) countEl.textContent = matches > 0 ? matches + (matches === 1 ? ' match' : ' matches') : '';
+      if (input && input.value !== value) input.value = value;
+    }
+    function focusSearch() {
+      var input = root.querySelector('.sui-tree-search-input');
+      if (input) { input.focus(); input.select(); }
+    }
+    function loadLazy(item) {
+      if (!item || item.__suiLoading) return;
+      if (itemGroup(item)) { setOpen(item, true, true); return; }
+      item.__suiLoading = true;
+      item.setAttribute('data-sui-loading', '1');
+      item.setAttribute('aria-busy', 'true');
+      item.removeAttribute('aria-invalid');
+      var row = itemRow(item);
+      if (row) {
+        var oldError = row.querySelector('.sui-tree-error');
+        if (oldError && oldError.parentNode) oldError.parentNode.removeChild(oldError);
+        var existing = row.querySelector('.sui-tree-loading');
+        if (!existing) {
+          var loading = document.createElement('span');
+          loading.className = 'sui-tree-loading';
+          loading.textContent = 'Loading\u2026';
+          row.appendChild(loading);
+        }
+      }
+      var key = item.getAttribute('data-sui-key') || '';
+      if (loadKeySetter && typeof window[loadKeySetter] === 'function') window[loadKeySetter](key);
+      if (loadHandler && typeof window[loadHandler] === 'function') window[loadHandler]();
+      else setChildrenError(key, 'No onLoad handler');
+    }
+    function setChildrenError(key, message) {
+      var item = findItemByKey(key);
+      if (!item) return false;
+      item.__suiLoading = false;
+      item.removeAttribute('data-sui-loading');
+      item.removeAttribute('aria-busy');
+      var loading = itemRow(item) ? itemRow(item).querySelector('.sui-tree-loading') : null;
+      if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
+      var row = itemRow(item);
+      if (row) {
+        var err = row.querySelector('.sui-tree-error');
+        if (!err) {
+          err = document.createElement('span');
+          err.className = 'sui-tree-error';
+          err.setAttribute('role', 'alert');
+          row.appendChild(err);
+        }
+        err.textContent = String(message || 'Load failed');
+      }
+      item.setAttribute('aria-invalid', 'true');
+      return true;
+    }
+    function collectNodeKeys(nodes, set) {
+      for (var i = 0; i < nodes.length; i++) {
+        var key = nodes[i].key;
+        if (set[key]) return false;
+        set[key] = true;
+        if (nodes[i].children && !collectNodeKeys(nodes[i].children, set)) return false;
+      }
+      return true;
+    }
+    function setChildren(key, text) {
+      var item = findItemByKey(key);
+      if (!item) return { error: 'tree item not found: ' + key };
+      var nodes;
+      try { nodes = parseJson(String(text || '')); } catch (e) { return { error: (e && e.message) ? e.message : String(e) }; }
+      var usedKeys = {};
+      for (var u = 0; u < items.length; u++) usedKeys[items[u].getAttribute('data-sui-key') || ''] = true;
+      if (!collectNodeKeys(nodes, usedKeys)) return { error: 'duplicate key in loaded children' };
+      if (items.length + countNodes(nodes) > MAX_NODES) return { error: 'too many nodes (limit ' + MAX_NODES + ')' };
+      var group = ensureGroup(item);
+      while (group.firstChild) group.removeChild(group.firstChild);
+      var opts = renderOpts();
+      for (var i = 0; i < nodes.length; i++) group.appendChild(makeNode(nodes[i], key + '.' + i, parseInt(item.getAttribute('data-sui-level') || '1', 10) + 1, opts));
+      item.__suiLoading = false;
+      item.removeAttribute('data-sui-loading');
+      item.setAttribute('data-sui-lazy', '0');
+      item.removeAttribute('aria-invalid');
+      item.removeAttribute('aria-busy');
+      var loading = itemRow(item) ? itemRow(item).querySelector('.sui-tree-loading') : null;
+      if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
+      ensureToggle(item);
+      setOpen(item, true, true);
+      renumberItems();
+      syncTreeStore();
+      root.__suiTree = false;
+      init(root);
+      return { count: countNodes(nodes) };
+    }
+    function clearDropClasses() {
+      var all = root.querySelectorAll('.sui-tree-drop-before, .sui-tree-drop-after, .sui-tree-drop-inside, .sui-tree-drop-invalid, .sui-tree-dragging');
+      for (var i = 0; i < all.length; i++) {
+        all[i].classList.remove('sui-tree-drop-before', 'sui-tree-drop-after', 'sui-tree-drop-inside', 'sui-tree-drop-invalid', 'sui-tree-dragging');
+      }
+    }
+    function dropMode(row, ev) {
+      var rect = row.getBoundingClientRect();
+      var y = ev.clientY - rect.top;
+      if (y < rect.height * 0.25) return 'before';
+      if (y > rect.height * 0.75) return 'after';
+      return 'inside';
+    }
+    function canDrop(source, target) {
+      return !!source && !!target && source !== target && !source.contains(target);
+    }
+    function syncTreeStore() {
+      var name = treeName(root);
+      try {
+        var text = exportJson(name)[0];
+        if (text) store[name] = parseJson(text);
+      } catch (e) {}
+    }
+    var draggedItem = null;
+    function moveItem(source, target, mode) {
+      if (!canDrop(source, target)) return false;
+      if (mode === 'inside') {
+        var group = ensureGroup(target);
+        ensureToggle(target);
+        group.appendChild(source);
+        target.setAttribute('aria-expanded', 'true');
+        setOpen(target, true, true);
+      } else {
+        var parentGroup = target.parentElement;
+        if (!parentGroup || !parentGroup.classList || !parentGroup.classList.contains('sui-tree-group')) return false;
+        if (mode === 'before') parentGroup.insertBefore(source, target);
+        else parentGroup.insertBefore(source, target.nextSibling);
+      }
+      renumberItems();
+      syncTreeStore();
+      if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
+      root.__suiTree = false;
+      init(root);
+      return true;
+    }
+    function closeTreeMenu() {
+      var old = document.getElementById('sui-tree-context');
+      if (old) old.remove();
+      if (contextMenuBound) {
+        document.removeEventListener('click', closeTreeMenu);
+        document.removeEventListener('scroll', closeTreeMenu, true);
+        contextMenuBound = false;
+      }
+    }
+    function openTreeMenu(ev, item) {
+      closeTreeMenu();
+      var menu = document.createElement('div');
+      menu.id = 'sui-tree-context';
+      menu.className = 'sui-tree-context';
+      menu.setAttribute('role', 'menu');
+      menu.setAttribute('aria-label', 'Tree actions');
+      function add(label, fn, disabled) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sui-tree-context-item';
+        b.setAttribute('role', 'menuitem');
+        b.textContent = label;
+        b.disabled = !!disabled;
+        b.addEventListener('click', function(e) { e.stopPropagation(); closeTreeMenu(); fn(); });
+        menu.appendChild(b);
+      }
+      if (item.__suiEditable) add('Rename', function() { startRename(item); });
+      if (itemGroup(item)) {
+        add(item.__suiTreeOpen ? 'Collapse subtree' : 'Expand subtree', function() { setOpen(item, !item.__suiTreeOpen, true); });
+      } else if (item.getAttribute('data-sui-lazy') === '1') {
+        add('Load children', function() { loadLazy(item); });
+      }
+      add('Copy key', function() {
+        var key = item.getAttribute('data-sui-key') || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          var p = navigator.clipboard.writeText(key);
+          if (p && p.catch) p.catch(function() {});
+        }
+      });
+      add('Expand all', function() { expandAll(); });
+      add('Collapse all', function() { collapseAll(); });
+      document.body.appendChild(menu);
+      var x = ev.clientX, y = ev.clientY;
+      var rect = menu.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth - 8) x = Math.max(8, window.innerWidth - rect.width - 8);
+      if (y + rect.height > window.innerHeight - 8) y = Math.max(8, window.innerHeight - rect.height - 8);
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      var buttons = menu.querySelectorAll('button');
+      if (buttons.length) buttons[0].focus();
+      menu.addEventListener('keydown', function(e) {
+        var list = Array.prototype.slice.call(menu.querySelectorAll('button'));
+        var at = list.indexOf(document.activeElement);
+        if (e.key === 'Escape') { e.preventDefault(); closeTreeMenu(); focusItem(item); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); if (list.length) list[Math.min(list.length - 1, at + 1)].focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); if (list.length) list[Math.max(0, at - 1)].focus(); }
+      });
+      setTimeout(function() {
+        if (menu.parentNode) {
+          document.addEventListener('click', closeTreeMenu);
+          document.addEventListener('scroll', closeTreeMenu, true);
+          contextMenuBound = true;
+        }
+      }, 0);
+    }
+    if (searchEnabled) {
+      var searchInput = root.querySelector('.sui-tree-search-input');
+      if (searchInput) {
+        var storedSearch = treeSearchTerms[treeName(root)] || '';
+        if (storedSearch && !searchInput.value) searchInput.value = storedSearch;
+        searchInput.addEventListener('input', function() { applySearch(searchInput.value); });
+        searchInput.addEventListener('keydown', function(ev) {
+          if (ev.key === 'Escape') { ev.preventDefault(); searchInput.value = ''; applySearch(''); }
+        });
+      }
+    }
     function renameIconFor(item) {
       var itemShow = item.getAttribute('data-sui-show-rename-icon') || 'inherit';
       var show = itemShow === '1' ? true : itemShow === '0' ? false : showTreeRenameIcon;
@@ -360,6 +857,7 @@ const suiTreeRuntime = `(function(){
       var stored = storedLabel(root, item.getAttribute('data-sui-path') || '');
       if (labelEl && stored !== null) labelEl.textContent = stored;
       if (labelEl) {
+        item.__suiLabel = labelEl.textContent;
         var tip = item.getAttribute('data-sui-tooltip') || '';
         labelEl.title = tip || labelEl.textContent;
       }
@@ -389,6 +887,13 @@ const suiTreeRuntime = `(function(){
           ev.stopPropagation();
           setOpen(item, !item.__suiTreeOpen, true);
         });
+      } else if (item.getAttribute('data-sui-lazy') === '1') {
+        var lazyToggle = itemToggle(item);
+        if (lazyToggle) lazyToggle.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          loadLazy(item);
+        });
       }
       if (row) row.addEventListener('mousedown', function(ev) {
         if (ev.target && ev.target.closest && ev.target.closest('.sui-tree-toggle')) return;
@@ -406,6 +911,8 @@ const suiTreeRuntime = `(function(){
       });
       if (row) row.addEventListener('click', function(ev) {
         if (ev.target && ev.target.closest && ev.target.closest('.sui-tree-toggle')) return;
+        if (ev.target && ev.target.closest && ev.target.closest('.sui-tree-check')) return;
+        var mods = { ctrl: ev.ctrlKey || ev.metaKey, shift: ev.shiftKey };
         if (selectionTimer) { clearTimeout(selectionTimer); selectionTimer = null; }
         if (pendingItem) { pendingItem.classList.remove('sui-tree-pending'); pendingItem = null; }
         if (item.__suiDouble && item.__suiEditable) {
@@ -416,7 +923,7 @@ const suiTreeRuntime = `(function(){
           return;
         }
         item.__suiDouble = false;
-        if (item.__suiEditable) {
+        if (item.__suiEditable && !multiSelect) {
           // Keep the row in the DOM briefly so a double-click can start rename
           // before the reactive re-render replaces it. The pending class gives
           // immediate visual feedback for a single click.
@@ -426,11 +933,11 @@ const suiTreeRuntime = `(function(){
             selectionTimer = null;
             if (pendingItem) pendingItem.classList.remove('sui-tree-pending');
             pendingItem = null;
-            select(item, true);
+            select(item, true, mods);
             focusItem(item);
           }, 500);
         } else {
-          select(item, true);
+          select(item, true, mods);
           focusItem(item);
         }
       });
@@ -444,6 +951,63 @@ const suiTreeRuntime = `(function(){
           setTimeout(function() { if (item.isConnected) startRename(item); }, 0);
         }
       });
+      if (row && (contextMenuEnabled || contextHandler)) {
+        row.addEventListener('contextmenu', function(ev) {
+          ev.preventDefault();
+          var contextKey = item.getAttribute('data-sui-key') || '';
+          select(item, true);
+          focusItem(item);
+          setTimeout(function() {
+            var fresh = findItemByKey(contextKey) || item;
+            if (contextHandler && typeof window[contextHandler] === 'function') window[contextHandler]();
+            if (contextMenuEnabled) openTreeMenu(ev, fresh);
+          }, 0);
+        });
+      }
+      if (row && dragEnabled) {
+        row.draggable = true;
+        row.addEventListener('dragstart', function(ev) {
+          draggedItem = item;
+          item.classList.add('sui-tree-dragging');
+          if (ev.dataTransfer) {
+            ev.dataTransfer.effectAllowed = 'move';
+            try { ev.dataTransfer.setData('text/plain', item.getAttribute('data-sui-key') || ''); } catch (e) {}
+          }
+        });
+        row.addEventListener('dragend', function() {
+          draggedItem = null;
+          clearDropClasses();
+        });
+        row.addEventListener('dragover', function(ev) {
+          if (!draggedItem) return;
+          ev.preventDefault();
+          clearDropClasses();
+          draggedItem.classList.add('sui-tree-dragging');
+          if (!canDrop(draggedItem, item)) {
+            if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'none';
+            row.parentElement.classList.add('sui-tree-drop-invalid');
+            return;
+          }
+          var mode = dropMode(row, ev);
+          if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+          row.parentElement.classList.add(mode === 'before' ? 'sui-tree-drop-before' : mode === 'after' ? 'sui-tree-drop-after' : 'sui-tree-drop-inside');
+        });
+        row.addEventListener('dragleave', function(ev) {
+          if (!row.contains(ev.relatedTarget) && item.parentElement) {
+            item.parentElement.classList.remove('sui-tree-drop-before', 'sui-tree-drop-after', 'sui-tree-drop-inside', 'sui-tree-drop-invalid');
+          }
+        });
+        row.addEventListener('drop', function(ev) {
+          if (!draggedItem) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          var mode = dropMode(row, ev);
+          var source = draggedItem;
+          draggedItem = null;
+          clearDropClasses();
+          moveItem(source, item, mode);
+        });
+      }
       var editIcon = renameIconFor(item);
       if (row && item.__suiEditable && editIcon) {
         var editBtn = document.createElement('button');
@@ -467,25 +1031,51 @@ const suiTreeRuntime = `(function(){
       item.addEventListener('keydown', function(ev) {
         var vis = items.filter(visible);
         var idx = vis.indexOf(item);
+        if (searchEnabled && (ev.ctrlKey || ev.metaKey) && (ev.key === 'f' || ev.key === 'F')) {
+          ev.preventDefault();
+          focusSearch();
+          return;
+        }
+        if (multiSelect && (ev.ctrlKey || ev.metaKey) && (ev.key === 'a' || ev.key === 'A')) {
+          ev.preventDefault();
+          setSelection(vis, true);
+          selectionAnchor = vis.length ? vis[0] : null;
+          return;
+        }
         if (ev.key === 'F2' && item.__suiEditable) {
           ev.preventDefault();
           startRename(item);
         } else if (ev.key === 'ArrowDown') {
           ev.preventDefault();
-          if (idx >= 0 && idx + 1 < vis.length) focusItem(vis[idx + 1]);
+          if (idx >= 0 && idx + 1 < vis.length) {
+            focusItem(vis[idx + 1]);
+            if (multiSelect && ev.shiftKey) select(vis[idx + 1], true, { shift: true });
+          }
         } else if (ev.key === 'ArrowUp') {
           ev.preventDefault();
-          if (idx > 0) focusItem(vis[idx - 1]);
+          if (idx > 0) {
+            focusItem(vis[idx - 1]);
+            if (multiSelect && ev.shiftKey) select(vis[idx - 1], true, { shift: true });
+          }
         } else if (ev.key === 'Home') {
           ev.preventDefault();
-          if (vis.length) focusItem(vis[0]);
+          if (vis.length) {
+            focusItem(vis[0]);
+            if (multiSelect && ev.shiftKey) select(vis[0], true, { shift: true });
+          }
         } else if (ev.key === 'End') {
           ev.preventDefault();
-          if (vis.length) focusItem(vis[vis.length - 1]);
+          if (vis.length) {
+            var lastVis = vis[vis.length - 1];
+            focusItem(lastVis);
+            if (multiSelect && ev.shiftKey) select(lastVis, true, { shift: true });
+          }
         } else if (ev.key === 'ArrowRight') {
           ev.preventDefault();
           var group = itemGroup(item);
-          if (group && !item.__suiTreeOpen) setOpen(item, true, true);
+          if (!group && item.getAttribute('data-sui-lazy') === '1' && !item.__suiLoading) {
+            loadLazy(item);
+          } else if (group && !item.__suiTreeOpen) setOpen(item, true, true);
           else if (group && item.__suiTreeOpen) {
             var first = null;
             for (var i = 0; i < group.children.length; i++) {
@@ -502,29 +1092,68 @@ const suiTreeRuntime = `(function(){
         } else if (ev.key === 'Enter' || ev.key === ' ') {
           ev.preventDefault();
           if (ev.key === ' ' && checkboxes) toggleCheck(item);
+          else if (ev.key === ' ' && multiSelect && (ev.ctrlKey || ev.metaKey)) select(item, true, { ctrl: true });
           else select(item, true);
         }
       });
     });
     initChecks();
-    var selected = null;
-    items.forEach(function(item) {
-      if ((item.getAttribute('data-sui-key') || '') === current) selected = item;
-    });
-    if (selected) {
-      items.forEach(function(item) {
-        var on = item === selected;
-        item.classList.toggle('selected', on);
-        item.setAttribute('aria-selected', on ? 'true' : 'false');
-        item.tabIndex = on ? 0 : -1;
-      });
+    var initialSelection = [];
+    if (multiSelect && selectionHidden && selectionHidden.value) {
+      try {
+        var parsedSelection = JSON.parse(selectionHidden.value);
+        if (Array.isArray(parsedSelection)) {
+          for (var s = 0; s < parsedSelection.length; s++) {
+            for (var k = 0; k < items.length; k++) {
+              if ((items[k].getAttribute('data-sui-key') || '') === String(parsedSelection[s])) {
+                initialSelection.push(items[k]);
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    if (!initialSelection.length && lastSelection.tree === treeKey && lastSelection.keys.length) {
+      for (var g = 0; g < lastSelection.keys.length; g++) {
+        var gk = findItemByKey(lastSelection.keys[g]);
+        if (gk) initialSelection.push(gk);
+      }
+    }
+    if (!initialSelection.length && current) {
+      for (var i = 0; i < items.length; i++) {
+        if ((items[i].getAttribute('data-sui-key') || '') === current) {
+          initialSelection.push(items[i]);
+          break;
+        }
+      }
+    }
+    if (initialSelection.length) {
+      setSelection(initialSelection, false, false);
+      var anchorItem = lastSelection.tree === treeKey ? findItemByKey(lastSelection.key) : null;
+      selectionAnchor = anchorItem || initialSelection[0];
     } else {
       // No selected value: keep the first visible row focusable without
       // selecting it or writing a synthetic value into the bound state.
-      for (var i = 0; i < items.length; i++) {
-        if (visible(items[i])) { items[i].tabIndex = 0; break; }
+      for (var i2 = 0; i2 < items.length; i2++) {
+        if (visible(items[i2])) { items[i2].tabIndex = 0; break; }
       }
     }
+    if (searchEnabled) {
+      var searchNow = root.querySelector('.sui-tree-search-input');
+      if (searchNow && searchNow.value) applySearch(searchNow.value);
+    }
+    root.__suiTreeApi = {
+      expandAll: expandAll,
+      collapseAll: collapseAll,
+      expandTo: expandTo,
+      setChildren: setChildren,
+      setChildrenError: setChildrenError,
+      selectedKeys: selectedKeys,
+      checkedKeys: checkedKeys,
+      search: applySearch,
+      focusSearch: focusSearch
+    };
   }
   // ---- JSON/XML data import and export -----------------------------------
   function cleanLabel(v) {
@@ -614,6 +1243,10 @@ const suiTreeRuntime = `(function(){
         if (metaText.length > MAX_META) throw new Error("meta is too long (limit " + MAX_META + ")");
         node.meta = metaText;
       }
+      if (obj.lazy !== undefined) node.lazy = boolValue(obj.lazy, false);
+      if (obj.size !== undefined) node.size = treeText(obj.size);
+      if (obj.date !== undefined) node.date = treeText(obj.date);
+      if (obj.status !== undefined) node.status = treeText(obj.status);
       if (obj.tooltip !== undefined) {
         var tooltipText = treeText(obj.tooltip);
         if (tooltipText.length > MAX_LABEL) throw new Error("tooltip is too long (limit " + MAX_LABEL + ")");
@@ -667,7 +1300,7 @@ const suiTreeRuntime = `(function(){
     if (label) o.label = label;
     var key = el.getAttribute("key");
     if (key) o.key = key;
-    var attrs = ["open", "editable", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "tooltip"];
+    var attrs = ["open", "editable", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "tooltip", "lazy", "size", "date", "status"];
     for (var i = 0; i < attrs.length; i++) {
       var v = el.getAttribute(attrs[i]);
       if (v !== null) o[attrs[i]] = v;
@@ -719,6 +1352,10 @@ const suiTreeRuntime = `(function(){
     li.setAttribute("data-sui-badge", node.badge || "");
     li.setAttribute("data-sui-badge-type", node.badgeType || "neutral");
     li.setAttribute("data-sui-meta", node.meta || "");
+    li.setAttribute("data-sui-size", node.size || "");
+    li.setAttribute("data-sui-date", node.date || "");
+    li.setAttribute("data-sui-status", node.status || "");
+    li.setAttribute("data-sui-lazy", node.lazy ? "1" : "0");
     li.setAttribute("data-sui-checked", node.checked === true ? "1" : node.checked === false ? "0" : "");
     if (node.tooltip) li.setAttribute("data-sui-tooltip", node.tooltip);
     li.setAttribute("role", "treeitem");
@@ -735,7 +1372,7 @@ const suiTreeRuntime = `(function(){
         row.appendChild(guide);
       }
     }
-    if (node.children && node.children.length) {
+    if ((node.children && node.children.length) || node.lazy) {
       var toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "sui-tree-toggle";
@@ -791,6 +1428,15 @@ const suiTreeRuntime = `(function(){
       meta.className = "sui-tree-meta";
       meta.textContent = node.meta;
       row.appendChild(meta);
+    }
+    if (opts.columns && opts.columns.length) {
+      for (var c = 0; c < opts.columns.length; c++) {
+        var col = opts.columns[c];
+        var cell = document.createElement("span");
+        cell.className = "sui-tree-cell sui-tree-cell-" + col;
+        cell.textContent = node[col] || "";
+        row.appendChild(cell);
+      }
     }
     li.appendChild(row);
     if (node.children && node.children.length) {
@@ -876,6 +1522,13 @@ const suiTreeRuntime = `(function(){
     }
     var meta = li.getAttribute("data-sui-meta") || "";
     if (meta) out.meta = meta;
+    var size = li.getAttribute("data-sui-size") || "";
+    if (size) out.size = size;
+    var date = li.getAttribute("data-sui-date") || "";
+    if (date) out.date = date;
+    var status = li.getAttribute("data-sui-status") || "";
+    if (status) out.status = status;
+    if (li.getAttribute("data-sui-lazy") === "1") out.lazy = true;
     var tooltip = li.getAttribute("data-sui-tooltip") || "";
     if (tooltip) out.tooltip = tooltip;
     if (li.hasAttribute("aria-checked")) out.checked = li.getAttribute("aria-checked") === "true";
@@ -918,6 +1571,10 @@ const suiTreeRuntime = `(function(){
         if (n.badgeType) attrs += " badgeType=\"" + xmlEscape(n.badgeType) + "\"";
       }
       if (n.meta) attrs += " meta=\"" + xmlEscape(n.meta) + "\"";
+      if (n.size) attrs += " size=\"" + xmlEscape(n.size) + "\"";
+      if (n.date) attrs += " date=\"" + xmlEscape(n.date) + "\"";
+      if (n.status) attrs += " status=\"" + xmlEscape(n.status) + "\"";
+      if (n.lazy) attrs += " lazy=\"true\"";
       if (n.tooltip) attrs += " tooltip=\"" + xmlEscape(n.tooltip) + "\"";
       if (n.checked !== undefined) attrs += " checked=\"" + (n.checked ? "true" : "false") + "\"";
       if (n.children && n.children.length) {
@@ -1020,6 +1677,64 @@ const suiTreeRuntime = `(function(){
     exportXml: exportXml,
     downloadJson: function(name, filename) { return downloadText(name, filename, "json"); },
     downloadXml: function(name, filename) { return downloadText(name, filename, "xml"); },
+    expandAll: function(name) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      return [root.__suiTreeApi.expandAll(), null];
+    },
+    collapseAll: function(name) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      return [root.__suiTreeApi.collapseAll(), null];
+    },
+    expandTo: function(name, level) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      return [root.__suiTreeApi.expandTo(level), null];
+    },
+    setChildren: function(name, key, text) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      var res = root.__suiTreeApi.setChildren(key, text);
+      return res.error ? [0, res.error] : [res.count, null];
+    },
+    setChildrenError: function(name, key, message) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      return root.__suiTreeApi.setChildrenError(key, message) ? [1, null] : [0, "tree item not found: " + key];
+    },
+    selectedKeys: function(name) {
+      var root = treeTarget(name);
+      if (!root) return ["", "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return ["", "tree is empty: " + name];
+      return [JSON.stringify(root.__suiTreeApi.selectedKeys()), null];
+    },
+    checkedKeys: function(name) {
+      var root = treeTarget(name);
+      if (!root) return ["", "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return ["", "tree is empty: " + name];
+      return [JSON.stringify(root.__suiTreeApi.checkedKeys()), null];
+    },
+    search: function(name, term) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      root.__suiTreeApi.search(term);
+      return [1, null];
+    },
     clear: function(name) {
       var root = treeTarget(name);
       if (!root) return [0, "tree not found: " + name];

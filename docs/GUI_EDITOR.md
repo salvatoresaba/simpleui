@@ -1021,6 +1021,14 @@ The **Tree** inspector exposes:
 | child counts | child-count pill on parent rows |
 | row height | minimum row height in pixels (12-120) |
 | default icon / open icon | fallback glyphs for collapsed and expanded rows |
+| multi-select | Ctrl/Command toggle and Shift range selection |
+| selection state | string state receiving a JSON array of selected keys |
+| search box | inline filter with highlighting and automatic expansion |
+| drag and drop | reorder nodes with before/after/inside indicators |
+| context menu | built-in right-click actions |
+| grid columns | comma list: `size`, `date`, `status` |
+| virtualize offscreen rows | browser `content-visibility` optimization for large trees |
+| load key state | state receiving the key of a lazy item being expanded |
 | editable | enable inline rename |
 | editable depth | maximum editable level; `0` = all |
 | rename key state | state receiving the renamed node key |
@@ -1034,12 +1042,12 @@ size/weight, letter spacing and font family. Named presets are available in the
 same panel.
 
 **Edit tree data** opens a dedicated editor with one row per item. The row shows
-the label, an optional stable key, icon, badge, metadata, open/check/edit state
-and compact actions: add child, add sibling, move up, move down and delete. The
-toolbar adds root items and imports/exports JSON or XML. **Apply** writes the
-items into the tree; Cancel leaves the model unchanged. The same actions are
-available from the tree context menu (**Edit tree data**, **Tree settings**,
-**Add root item**, **Import JSON/XML**, **Export JSON/XML**).
+the label, an optional stable key, icon, badge, metadata, size/date/status grid
+cells, open/check/edit state and compact actions: add child, add sibling, move
+up, move down and delete. The toolbar adds root items and imports/exports JSON or
+XML. **Apply** writes the items into the tree; Cancel leaves the model unchanged.
+The same actions are available from the tree context menu (**Edit tree data**,
+**Tree settings**, **Add root item**, **Import JSON/XML**, **Export JSON/XML**).
 
 Selecting an item in the live preview still opens the per-node **Tree item**
 panel:
@@ -1056,10 +1064,13 @@ panel:
 | badge type | neutral / info / success / warning / danger |
 | metadata | right-aligned text such as a size or date |
 | checked | initial checkbox state; parents derive true, false or mixed |
+| lazy children | item loads children on first expansion |
+| size / date / status | tree-grid cell text |
 | editable | inherit / yes / read-only |
 | Text | visible item label (Content section) |
-`onChange`, `onRename` and `onCheck` are available in **Events**. The generated
-source keeps nested `treeitem` children and their keys/open/editable flags.
+`onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` and `onContextMenu` are
+available in **Events**. The generated source keeps nested `treeitem` children
+and their keys/open/editable flags.
 
 The tree **style preset** menu writes the component's visual CSS into the tree
 element's **style expr** field (in **Appearance**). It offers **Default**,
@@ -1088,12 +1099,15 @@ Design-time import does not store data at runtime; use the core `tree` module
 combines a `pickFiles` button with the file helpers and a download button. See
 [`STDLIB.md`](STDLIB.md#tree-module-tree-core) for the JSON/XML schema.
 
-The preview supports row selection, disclosure toggles, guide lines, icons,
-badges, metadata, hierarchical tri-state checkboxes, arrow-key navigation,
+The preview supports row selection, multi-selection, disclosure toggles, guide
+lines, icons, badges, metadata, tree-grid columns, search/filter, hierarchical
+tri-state checkboxes, drag and drop, a right-click menu, arrow-key navigation,
 Home/End and inline rename (double-click, F2 or pencil; Enter/Escape). Expansion,
-checked state and renamed labels are restored after a state-driven re-render.
-The runtime uses `localStorage` for open/checked state and local label overrides;
-labels, keys, icons, badges and metadata are escaped and rendered as text.
+checked state and renamed labels are restored after a state-driven re-render;
+search terms and selection anchors are retained for the page session. The
+runtime uses `localStorage` for open/checked state and local label overrides;
+labels, keys, icons, badges, metadata and grid cells are escaped and rendered as
+text.
 
 See [API reference: tree](API_REFERENCE.md#tree) and the
 [tree example](../examples/tree/README.md).

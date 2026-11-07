@@ -271,6 +271,85 @@ body {
   background: #fff;
 }
 .sui-tree-check:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+.sui-tree-search { display: flex; align-items: center; gap: 8px; padding: 0 0 6px; }
+.sui-tree-search-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--input-bg, #1d2129);
+  color: var(--sui-fg, #e6e6ef);
+  border: 1px solid var(--sui-tree-border, #3d4556);
+  border-radius: var(--sui-tree-radius, 5px);
+  padding: 6px 8px;
+  font: inherit;
+}
+.sui-tree-search-input:focus { outline: 2px solid #4c5cf7; outline-offset: 1px; }
+.sui-tree-search-count { flex: none; color: var(--sui-tree-meta-color, #94a3b8); font-size: 11px; }
+.sui-tree-empty { padding: 16px 8px; color: var(--sui-tree-meta-color, #94a3b8); font-size: 12px; text-align: center; }
+.sui-tree-empty[hidden] { display: none; }
+.sui-tree-match { background: rgba(245, 158, 11, .28); color: inherit; border-radius: 2px; }
+.sui-tree-item.sui-tree-drop-before > .sui-tree-row { box-shadow: inset 0 2px 0 #4c5cf7; }
+.sui-tree-item.sui-tree-drop-after > .sui-tree-row { box-shadow: inset 0 -2px 0 #4c5cf7; }
+.sui-tree-item.sui-tree-drop-inside > .sui-tree-row { outline: 2px solid #4c5cf7; outline-offset: -2px; }
+.sui-tree-item.sui-tree-drop-invalid > .sui-tree-row { outline: 2px dashed #f87171; outline-offset: -2px; }
+.sui-tree-item.sui-tree-dragging > .sui-tree-row { opacity: .45; }
+.sui-tree-item[data-sui-lazy="1"] > .sui-tree-row .sui-tree-toggle { color: var(--sui-tree-toggle-color, #94a3b8); }
+.sui-tree-loading { margin-left: auto; color: var(--sui-tree-meta-color, #94a3b8); font-size: 11px; }
+.sui-tree-error { margin-left: auto; color: #f87171; font-size: 11px; }
+.sui-tree-context {
+  position: fixed;
+  z-index: 1000;
+  min-width: 170px;
+  padding: 4px;
+  background: var(--sui-panel, #1d2129);
+  color: var(--sui-fg, #e6e6ef);
+  border: 1px solid var(--sui-border, #3d4556);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+}
+.sui-tree-context-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sui-tree-context-item:hover,
+.sui-tree-context-item:focus { background: rgba(76, 92, 247, .28); outline: none; }
+.sui-tree-context-item:disabled { opacity: .45; cursor: default; }
+.sui-tree-grid-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--sui-tree-row-padding, 2px 5px);
+  color: var(--sui-tree-meta-color, #94a3b8);
+  border-bottom: 1px solid var(--sui-tree-guide-color, rgba(143, 160, 184, .30));
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.sui-tree-grid-name { flex: 1; min-width: 0; }
+.sui-tree-cell {
+  flex: none;
+  width: 104px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sui-tree-meta-color, #94a3b8);
+  font-size: 11px;
+}
+.sui-tree-cell-size { font-variant-numeric: tabular-nums; }
+.sui-tree[data-sui-tree-columns] .sui-tree-meta { margin-left: 0; }
+.sui-tree[data-sui-tree-columns] .sui-tree-label { flex: 1; }
+.sui-tree[data-sui-tree-virtual="1"] .sui-tree-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--sui-tree-row-height, 28px);
+}
 .sui-tree-rename-btn {
   border: 0;
   background: transparent;
@@ -3452,6 +3531,42 @@ func treeBadgeType(e *Element) string {
 	return "neutral"
 }
 
+// treeColumns returns the supported tree-grid columns in display order.
+func treeColumns(e *Element) []string {
+	v := treeTextAttr(e, "columns")
+	if strings.TrimSpace(v) == "" {
+		return nil
+	}
+	allowed := map[string]bool{"size": true, "date": true, "status": true}
+	var out []string
+	for _, part := range strings.Split(v, ",") {
+		name := strings.ToLower(strings.TrimSpace(part))
+		if allowed[name] {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+func treeColumnLabel(name string) string {
+	switch name {
+	case "size":
+		return "Size"
+	case "date":
+		return "Date"
+	case "status":
+		return "Status"
+	}
+	return name
+}
+
+func boolFlag(v bool) string {
+	if v {
+		return "1"
+	}
+	return "0"
+}
+
 func treeChildren(e *Element) []*Element {
 	var out []*Element
 	for i := 0; i < len(e.children); i++ {
@@ -3491,6 +3606,7 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	}
 	checkbox := datepickerBool(e, "checkbox")
 	counts := datepickerBool(e, "counts")
+	virtual := datepickerBool(e, "virtual")
 	rowHeight := comboboxAttrNumber(e, "rowHeight")
 	treeIcon := treeTextAttr(e, "icon")
 	treeIconOpen := treeTextAttr(e, "iconOpen")
@@ -3498,6 +3614,23 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if a := findAttr(e, "onCheck"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		onCheck = a.expr.name
 	}
+	onLoad := ""
+	if a := findAttr(e, "onLoad"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onLoad = a.expr.name
+	}
+	onMove := ""
+	if a := findAttr(e, "onMove"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onMove = a.expr.name
+	}
+	onContextMenu := ""
+	if a := findAttr(e, "onContextMenu"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onContextMenu = a.expr.name
+	}
+	multiSelect := datepickerBool(e, "multiSelect")
+	search := datepickerBool(e, "search")
+	drag := datepickerBool(e, "drag")
+	contextMenu := datepickerBool(e, "contextMenu")
+	columns := treeColumns(e)
 	sb.WriteString(ind)
 	sb.WriteString("<div class=\"sui-tree")
 	staticClassSuffix(sb, e)
@@ -3526,6 +3659,9 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if counts {
 		sb.WriteString(" data-sui-tree-counts=\"1\"")
 	}
+	if virtual {
+		sb.WriteString(" data-sui-tree-virtual=\"1\"")
+	}
 	if rowHeight != "" {
 		sb.WriteString(" data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\"")
 	}
@@ -3538,6 +3674,30 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if onCheck != "" {
 		sb.WriteString(" data-sui-tree-oncheck=\"" + htmlEscape(onCheck) + "\"")
 	}
+	if onLoad != "" {
+		sb.WriteString(" data-sui-tree-onload=\"" + htmlEscape(onLoad) + "\"")
+	}
+	if onMove != "" {
+		sb.WriteString(" data-sui-tree-onmove=\"" + htmlEscape(onMove) + "\"")
+	}
+	if onContextMenu != "" {
+		sb.WriteString(" data-sui-tree-oncontextmenu=\"" + htmlEscape(onContextMenu) + "\"")
+	}
+	if multiSelect {
+		sb.WriteString(" data-sui-tree-multi=\"1\"")
+	}
+	if search {
+		sb.WriteString(" data-sui-tree-search=\"1\"")
+	}
+	if drag {
+		sb.WriteString(" data-sui-tree-drag=\"1\"")
+	}
+	if contextMenu {
+		sb.WriteString(" data-sui-tree-context-menu=\"1\"")
+	}
+	if len(columns) > 0 {
+		sb.WriteString(" data-sui-tree-columns=\"" + htmlEscape(strings.Join(columns, ",")) + "\"")
+	}
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	indent := ind + "  "
@@ -3545,18 +3705,29 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString(indent + "<div class=\"sui-tree-title\">" + htmlEscape(title) + "</div>\n")
 	}
 	sb.WriteString(indent + "<input type=\"hidden\" class=\"sui-tree-value\" value=\"" + htmlEscape(value) + "\">\n")
+	if search {
+		sb.WriteString(indent + "<div class=\"sui-tree-search\"><input type=\"search\" class=\"sui-tree-search-input\" placeholder=\"Search tree\" aria-label=\"Search tree\"><span class=\"sui-tree-search-count\" aria-live=\"polite\"></span></div>\n")
+	}
+	if len(columns) > 0 {
+		sb.WriteString(indent + "<div class=\"sui-tree-grid-head\" role=\"presentation\"><span class=\"sui-tree-grid-name\">Name</span>")
+		for _, col := range columns {
+			sb.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">" + treeColumnLabel(col) + "</span>")
+		}
+		sb.WriteString("</div>\n")
+	}
 	sb.WriteString(indent + "<ul class=\"sui-tree-group\" role=\"group\">\n")
-	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen)
+	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen, columns)
 	sb.WriteString(indent + "</ul>\n")
 	sb.WriteString(ind + "</div>\n")
 }
 
-func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string) {
+func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string) {
 	for i, it := range items {
 		path := pathPrefix + "." + strconv.Itoa(i)
 		key := treeKey(it, path)
 		kids := treeChildren(it)
 		open := treeOpen(it)
+		lazy := datepickerBool(it, "lazy")
 		label := partsContent(it.text)
 		icon := treeTextAttr(it, "icon")
 		if icon == "" {
@@ -3572,6 +3743,9 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		badge := treeTextAttr(it, "badge")
 		meta := treeTextAttr(it, "meta")
 		checked := treeChecked(it)
+		size := treeTextAttr(it, "size")
+		date := treeTextAttr(it, "date")
+		status := treeTextAttr(it, "status")
 		sb.WriteString(ind)
 		sb.WriteString("<li class=\"sui-tree-item")
 		staticClassSuffix(sb, it)
@@ -3584,6 +3758,10 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 			"\" data-sui-badge=\"" + htmlEscape(badge) +
 			"\" data-sui-badge-type=\"" + htmlEscape(treeBadgeType(it)) +
 			"\" data-sui-meta=\"" + htmlEscape(meta) +
+			"\" data-sui-size=\"" + htmlEscape(size) +
+			"\" data-sui-date=\"" + htmlEscape(date) +
+			"\" data-sui-status=\"" + htmlEscape(status) +
+			"\" data-sui-lazy=\"" + boolFlag(lazy) +
 			"\" data-sui-checked=\"" + htmlEscape(checked) + "\" data-sui-open=\"")
 		if open {
 			sb.WriteString("1")
@@ -3598,7 +3776,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 			}
 			sb.WriteString(" aria-checked=\"" + st + "\"")
 		}
-		if len(kids) > 0 {
+		if len(kids) > 0 || lazy {
 			sb.WriteString(" aria-expanded=\"")
 			if open {
 				sb.WriteString("true")
@@ -3615,7 +3793,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 				sb.WriteString("<span class=\"sui-tree-guide\" aria-hidden=\"true\"></span>")
 			}
 		}
-		if len(kids) > 0 {
+		if len(kids) > 0 || lazy {
 			sb.WriteString("<button type=\"button\" class=\"sui-tree-toggle\" tabindex=\"-1\" aria-label=\"Toggle " + htmlEscape(label) + "\">")
 			if open {
 				sb.WriteString("\u25be")
@@ -3646,6 +3824,20 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		if meta != "" {
 			sb.WriteString("<span class=\"sui-tree-meta\">" + htmlEscape(meta) + "</span>")
 		}
+		if len(columns) > 0 {
+			for _, col := range columns {
+				val := ""
+				switch col {
+				case "size":
+					val = size
+				case "date":
+					val = date
+				case "status":
+					val = status
+				}
+				sb.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">" + htmlEscape(val) + "</span>")
+			}
+		}
 		sb.WriteString("</div>\n")
 		if len(kids) > 0 {
 			sb.WriteString(ind + "  <ul class=\"sui-tree-group\" role=\"group\"")
@@ -3653,7 +3845,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 				sb.WriteString(" hidden")
 			}
 			sb.WriteString(">\n")
-			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen)
+			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen, columns)
 			sb.WriteString(ind + "  </ul>\n")
 		}
 		sb.WriteString(ind + "</li>\n")
@@ -4168,11 +4360,14 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "tree" && (a.key == "value" || a.key == "editable" || a.key == "editableDepth" ||
 			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
-			a.key == "icon" || a.key == "iconOpen") {
+			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
+			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
+			a.key == "virtual" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
-			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked") {
+			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
+			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status") {
 			continue
 		}
 		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" ||

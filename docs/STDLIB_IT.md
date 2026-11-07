@@ -313,6 +313,14 @@ restituiscono `(valore, errore)`.
 | `tree.downloadJson(name, filename)` | string, string | (int, string) | no | Scarica il JSON (`1` = successo) |
 | `tree.downloadXml(name, filename)` | string, string | (int, string) | no | Scarica l'XML (`1` = successo) |
 | `tree.clear(name)` | string | (int, string) | no | Rimuove tutti i nodi |
+| `tree.expandAll(name)` | string | (int, string) | no | Espande tutti i genitori; restituisce il numero |
+| `tree.collapseAll(name)` | string | (int, string) | no | Comprime tutti i genitori |
+| `tree.expandTo(name, level)` | string, int | (int, string) | no | Espande sopra `level` e comprime i livelli più profondi |
+| `tree.setChildren(name, key, json)` | string, string, string | (int, string) | no | Aggiunge/sostituisce i figli di un elemento da JSON |
+| `tree.setChildrenError(name, key, message)` | string, string, string | (int, string) | no | Mostra un errore di caricamento lazy |
+| `tree.selectedKeys(name)` | string | (string, string) | no | Array JSON delle key selezionate |
+| `tree.checkedKeys(name)` | string | (string, string) | no | Array JSON delle key checked |
+| `tree.search(name, term)` | string, string | (int, string) | no | Applica o pulisce il filtro inline |
 
 ### Formato JSON
 
@@ -335,6 +343,10 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
     "meta": "2 KB",
     "checked": true,
     "tooltip": "Cartella sorgente",
+    "lazy": false,
+    "size": "2 KB",
+    "date": "oggi",
+    "status": "ok",
     "children": [
       { "label": "main.go", "key": "main" }
     ]
@@ -347,8 +359,11 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
   uniche.
 - `open`, `editable`, `showRenameIcon` e `checked` accettano booleani o stringhe
   `true`/`false`/`1`/`0`.
-- `icon`, `iconOpen`, `badge`, `badgeType`, `meta` e `tooltip` sono testo inerte.
-  `badgeType` è `neutral`, `info`, `success`, `warning` o `danger`.
+- `icon`, `iconOpen`, `badge`, `badgeType`, `meta`, `tooltip`, `size`, `date` e
+  `status` sono testo inerte. `badgeType` è `neutral`, `info`, `success`,
+  `warning` o `danger`.
+- `lazy: true` indica un elemento i cui figli vengono caricati dopo con
+  `tree.setChildren`.
 - Stringhe e numeri sono accettati come etichette foglia.
 
 ### Formato XML
@@ -366,7 +381,33 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
 
 `<tree>` è il contenitore; qualsiasi elemento è accettato come nodo, quindi
 vanno bene `<item>`, `<node>` o tag applicativi. Se non ci sono attributi
-`label`/`text`/`name`/`title`, viene usato il testo diretto dell'elemento.
+`label`/`text`/`name`/`title`, viene usato il testo diretto dell'elemento. Gli
+attributi XML `icon`, `iconOpen`, `badge`, `badgeType`, `meta`, `tooltip`,
+`lazy`, `size`, `date`, `status` e `checked` vengono preservati.
+
+### Lazy loading
+
+Un elemento con `lazy: true` non ha figli e mostra la freccia. L'espansione
+scrive la key nello stato collegato a `loadKey` e chiama `onLoad`. Il gestore può
+aggiungere i figli in seguito:
+
+```sui
+state loadKey = ""
+
+fn loaded() -> null {
+	// avvia una richiesta asincrona usando loadKey
+}
+
+async fn finishLoad() -> null {
+	n, e = tree.setChildren("files", loadKey, "[{\"label\":\"figlio\"}]")
+	if e != null {
+		tree.setChildrenError("files", loadKey, e)
+	}
+}
+```
+
+Usare `tree.selectedKeys`/`tree.checkedKeys` per leggere selezione e checkbox:
+restituiscono array JSON.
 
 ### File
 

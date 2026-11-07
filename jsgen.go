@@ -1695,6 +1695,30 @@ func stdBodyJs(key string, target string) string {
 	if key == "tree_clear" {
 		return "(name) => __SUI_TREE.clear(name)"
 	}
+	if key == "tree_expandall" {
+		return "(name) => __SUI_TREE.expandAll(name)"
+	}
+	if key == "tree_collapseall" {
+		return "(name) => __SUI_TREE.collapseAll(name)"
+	}
+	if key == "tree_expandto" {
+		return "(name, level) => __SUI_TREE.expandTo(name, level)"
+	}
+	if key == "tree_setchildren" {
+		return "(name, key, text) => __SUI_TREE.setChildren(name, key, text)"
+	}
+	if key == "tree_setchildrenerror" {
+		return "(name, key, message) => __SUI_TREE.setChildrenError(name, key, message)"
+	}
+	if key == "tree_selectedkeys" {
+		return "(name) => __SUI_TREE.selectedKeys(name)"
+	}
+	if key == "tree_checkedkeys" {
+		return "(name) => __SUI_TREE.checkedKeys(name)"
+	}
+	if key == "tree_search" {
+		return "(name, term) => __SUI_TREE.search(name, term)"
+	}
 	return "async () => [null, null]"
 }
 
@@ -2308,11 +2332,14 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "tree" && (a.key == "value" || a.key == "editable" || a.key == "editableDepth" ||
 			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
-			a.key == "icon" || a.key == "iconOpen" || a.key == "onCheck") {
+			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
+			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
+			a.key == "virtual" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
-			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked") {
+			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
+			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status") {
 			continue
 		}
 		if a.key == "head" || a.key == "options" || a.key == "link" || a.key == "srcAllow" ||
@@ -3170,6 +3197,10 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if a := findAttr(e, "value"); a != nil {
 		valueJs = htmlAttrValue(a, false)
 	}
+	selectionJs := ""
+	if a := findAttr(e, "selection"); a != nil {
+		selectionJs = htmlAttrValue(a, false)
+	}
 	handler := ""
 	if a := findAttr(e, "onChange"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		handler = a.expr.name
@@ -3229,6 +3260,10 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if a := findAttr(e, "counts"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
 		counts = a.expr.b
 	}
+	virtual := false
+	if a := findAttr(e, "virtual"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		virtual = a.expr.b
+	}
 	rowHeight := ""
 	if a := findAttr(e, "rowHeight"); a != nil {
 		if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
@@ -3247,6 +3282,45 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	onCheck := ""
 	if a := findAttr(e, "onCheck"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		onCheck = a.expr.name
+	}
+	onLoad := ""
+	if a := findAttr(e, "onLoad"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onLoad = a.expr.name
+	}
+	onMove := ""
+	if a := findAttr(e, "onMove"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onMove = a.expr.name
+	}
+	onContextMenu := ""
+	if a := findAttr(e, "onContextMenu"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onContextMenu = a.expr.name
+	}
+	multiSelect := false
+	if a := findAttr(e, "multiSelect"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		multiSelect = a.expr.b
+	}
+	search := false
+	if a := findAttr(e, "search"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		search = a.expr.b
+	}
+	dragEnabled := false
+	if a := findAttr(e, "drag"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		dragEnabled = a.expr.b
+	}
+	contextMenu := false
+	if a := findAttr(e, "contextMenu"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		contextMenu = a.expr.b
+	}
+	columns := treeColumns(e)
+	selectionSetter := ""
+	if a := findAttr(e, "selection"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" &&
+		ctxIsState(ctx, a.expr.name) {
+		selectionSetter = setterName(a.expr.name)
+	}
+	loadKeySetter := ""
+	if a := findAttr(e, "loadKey"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" &&
+		ctxIsState(ctx, a.expr.name) {
+		loadKeySetter = setterName(a.expr.name)
 	}
 	if strings.HasSuffix(open, ">") {
 		open = strings.TrimSuffix(open, ">")
@@ -3275,6 +3349,9 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		if counts {
 			open += " data-sui-tree-counts=\"1\""
 		}
+		if virtual {
+			open += " data-sui-tree-virtual=\"1\""
+		}
 		if rowHeight != "" {
 			open += " data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\""
 		}
@@ -3292,6 +3369,36 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		}
 		if onCheck != "" {
 			open += " data-sui-tree-oncheck=\"" + onCheck + "\""
+		}
+		if onLoad != "" {
+			open += " data-sui-tree-onload=\"" + onLoad + "\""
+		}
+		if onMove != "" {
+			open += " data-sui-tree-onmove=\"" + onMove + "\""
+		}
+		if onContextMenu != "" {
+			open += " data-sui-tree-oncontextmenu=\"" + onContextMenu + "\""
+		}
+		if multiSelect {
+			open += " data-sui-tree-multi=\"1\""
+		}
+		if search {
+			open += " data-sui-tree-search=\"1\""
+		}
+		if dragEnabled {
+			open += " data-sui-tree-drag=\"1\""
+		}
+		if contextMenu {
+			open += " data-sui-tree-context-menu=\"1\""
+		}
+		if len(columns) > 0 {
+			open += " data-sui-tree-columns=\"" + htmlEscape(strings.Join(columns, ",")) + "\""
+		}
+		if selectionSetter != "" {
+			open += " data-sui-tree-selection-setter=\"" + selectionSetter + "\""
+		}
+		if loadKeySetter != "" {
+			open += " data-sui-tree-load-key-setter=\"" + loadKeySetter + "\""
 		}
 		if renameKeySetter != "" {
 			open += " data-sui-tree-rename-key-setter=\"" + renameKeySetter + "\""
@@ -3314,20 +3421,40 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	}
 	b.WriteString("<input type=\"hidden\" class=\"sui-tree-value\" value=\"")
 	b.WriteString(valueJs)
-	b.WriteString("\"><ul class=\"sui-tree-group\" role=\"group\">")
+	b.WriteString("\">")
+	if multiSelect {
+		b.WriteString("<input type=\"hidden\" class=\"sui-tree-selection\" value=\"")
+		b.WriteString(selectionJs)
+		b.WriteString("\">")
+	}
+	if search {
+		b.WriteString("<div class=\"sui-tree-search\"><input type=\"search\" class=\"sui-tree-search-input\" placeholder=\"Search tree\" aria-label=\"Search tree\"><span class=\"sui-tree-search-count\" aria-live=\"polite\"></span></div>")
+	}
+	if len(columns) > 0 {
+		b.WriteString("<div class=\"sui-tree-grid-head\" role=\"presentation\"><span class=\"sui-tree-grid-name\">Name</span>")
+		for _, col := range columns {
+			b.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">" + treeColumnLabel(col) + "</span>")
+		}
+		b.WriteString("</div>")
+	}
+	b.WriteString("<ul class=\"sui-tree-group\" role=\"group\">")
 	seq := 0
 	for _, child := range treeChildren(e) {
-		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, treeIcon, treeIconOpen))
+		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, treeIcon, treeIconOpen, columns))
 		seq++
 	}
 	b.WriteString("</ul></div>`")
 	return b.String()
 }
 
-func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, treeIcon, treeIconOpen string) string {
+func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string) string {
 	open := openTagHtml(it, "li", false, itemID, ctx)
 	kids := treeChildren(it)
 	isOpen := treeOpen(it)
+	lazy := false
+	if a := findAttr(it, "lazy"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		lazy = a.expr.b
+	}
 	key := treeKey(it, path)
 	icon := treeTextAttr(it, "icon")
 	if icon == "" {
@@ -3342,6 +3469,9 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 	}
 	badge := treeTextAttr(it, "badge")
 	meta := treeTextAttr(it, "meta")
+	size := treeTextAttr(it, "size")
+	date := treeTextAttr(it, "date")
+	status := treeTextAttr(it, "status")
 	badgeType := strings.ToLower(strings.TrimSpace(treeTextAttr(it, "badgeType")))
 	switch badgeType {
 	case "info", "success", "warning", "danger", "neutral":
@@ -3376,6 +3506,10 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 			"\" data-sui-badge=\"" + htmlEscape(badge) +
 			"\" data-sui-badge-type=\"" + htmlEscape(badgeType) +
 			"\" data-sui-meta=\"" + htmlEscape(meta) +
+			"\" data-sui-size=\"" + htmlEscape(size) +
+			"\" data-sui-date=\"" + htmlEscape(date) +
+			"\" data-sui-status=\"" + htmlEscape(status) +
+			"\" data-sui-lazy=\"" + boolFlag(lazy) +
 			"\" data-sui-checked=\"" + htmlEscape(checked) + "\" data-sui-open=\""
 		if isOpen {
 			open += "1"
@@ -3390,7 +3524,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 			}
 			open += " aria-checked=\"" + st + "\""
 		}
-		if len(kids) > 0 {
+		if len(kids) > 0 || lazy {
 			if isOpen {
 				open += " aria-expanded=\"true\""
 			} else {
@@ -3407,7 +3541,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 			b.WriteString("<span class=\"sui-tree-guide\" aria-hidden=\"true\"></span>")
 		}
 	}
-	if len(kids) > 0 {
+	if len(kids) > 0 || lazy {
 		b.WriteString("<button type=\"button\" class=\"sui-tree-toggle\" tabindex=\"-1\" aria-label=\"Toggle item\">")
 		if isOpen {
 			b.WriteString("\u25be")
@@ -3449,6 +3583,22 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		b.WriteString(htmlEscape(meta))
 		b.WriteString("</span>")
 	}
+	if len(columns) > 0 {
+		for _, col := range columns {
+			val := ""
+			switch col {
+			case "size":
+				val = size
+			case "date":
+				val = date
+			case "status":
+				val = status
+			}
+			b.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">")
+			b.WriteString(htmlEscape(val))
+			b.WriteString("</span>")
+		}
+	}
 	b.WriteString("</div>")
 	if len(kids) > 0 {
 		b.WriteString("<ul class=\"sui-tree-group\" role=\"group\"")
@@ -3457,7 +3607,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		}
 		b.WriteString(">")
 		for i, child := range kids {
-			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, treeIcon, treeIconOpen))
+			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, treeIcon, treeIconOpen, columns))
 		}
 		b.WriteString("</ul>")
 	}
