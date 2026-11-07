@@ -180,28 +180,22 @@ parent item and a child. **Tree item** is not offered in the palette or Insert
 menu: items are created and edited from **Edit tree data** or the tree context
 menu. The structure list shows only the `tree` row, not its internal items.
 
-The **Tree** inspector exposes dedicated buttons:
+The **Tree** inspector exposes only two actions:
 
-- **Tree settings...** - General, Colors, Title, Shape, Icons and Tooltip tabs
-  plus presets;
+- **Tree settings...** - style selector, General, Bindings, Columns, Colors,
+  Title, Shape, Icons and Tooltip;
 - **Edit tree data...** - labels, keys, nesting, open/editable flags and
-  JSON/XML import/export;
-- `value state`;
-- `editable depth`;
-- `rename key state`;
-- `rename value state`;
-- `row height`;
-- `selection state`;
-- `load key state`;
-- `grid columns`, `column labels`, `column widths` and `sort children`.
+  JSON/XML import/export.
 
 The **General** tab holds the visible **Title**, the **Runtime name** (target
 for `tree.*`, not the title), and all behavior switches: indent guides, truncate
 labels, hierarchical checkboxes, child counts, multi-select, search box, drag and
 drop, context menu, virtualize offscreen rows, persist selection, editable and
-show rename icon. The **Icons** tab chooses default, open and rename icons. The
-**Tooltip** tab enables styled tooltips and controls their colors, padding, max
-width, font size, delay and placement.
+show rename icon. **Bindings** holds the state bindings. **Columns** enables and
+configures the tree-grid. **Icons** chooses default, open and rename icons. The
+**Tooltip** tab enables styled tooltips and controls their appearance. The
+**Style** selector includes the shared styles and the 16 tree themes; **Apply**
+writes the chosen style to the tree preview.
 
 The right-click menu on the tree row offers **Edit tree data**, **Tree
 settings**, **Add root item**, **Import JSON/XML** and **Export JSON/XML**.

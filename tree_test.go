@@ -187,7 +187,7 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 			t.Errorf("designer source missing %q:\n%s", want, src)
 		}
 	}
-	for _, want := range []string{"treeControls", "treeItemControls", "initially open", "stable item key", "editable depth", "rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "node style preset", "show rename icon", "rename icon", "Runtime name", "Tooltip", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
+	for _, want := range []string{"treeControls", "treeItemControls", "initially open", "stable item key", "Editable depth", "Rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "node style preset", "show rename icon", "rename icon", "Runtime name", "Tooltip", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer tree support missing %q", want)
 		}
@@ -436,13 +436,34 @@ view main {
 	}
 	for _, want := range []string{
 		`"Multi-select"`, `"Search box"`, `"Drag and drop"`, `"Context menu"`,
-		`"grid columns"`, `"column labels"`, `"column widths"`, `"sort children"`,
+		`"Show columns"`, `"Sort children"`, `"Columns"`,
 		`"Persist selection"`, `"lazy children"`, `.td-row .td-size`,
 		`name: "General"`, `name: "Icons"`, `name: "Tooltip"`, `"Runtime name"`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer phase B/C support missing %q", want)
 		}
+	}
+}
+
+func TestTreeColumnsDisabled(t *testing.T) {
+	src := "view main {\n\ttree \"Files\" columns: \"size,date,status\" columnsEnabled: false {\n\t\ttreeitem \"a\" size: \"1 KB\" date: \"today\" status: \"ok\"\n\t}\n}\n"
+	prog, dl := ParseSource(src, "tree_columns.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	html := GenerateHtmlPage(prog)
+	if strings.Contains(html, "sui-tree-grid-head") {
+		t.Error("disabled columns must not render the grid header")
+	}
+	if strings.Contains(html, "sui-tree-cell-size") {
+		t.Error("disabled columns must not render grid cells")
+	}
+	if !strings.Contains(html, `data-sui-tree-columns-enabled="0"`) {
+		t.Error("disabled columns must expose the disabled flag")
 	}
 }
 

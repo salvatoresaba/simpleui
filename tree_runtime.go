@@ -94,6 +94,7 @@ const suiTreeRuntime = `(function(){
     var contextMenuEnabled = root.getAttribute('data-sui-tree-context-menu') === '1';
     var customTooltips = root.getAttribute('data-sui-tree-tooltips') === '1';
     var treeColumns = (root.getAttribute('data-sui-tree-columns') || '').split(',').filter(Boolean);
+    if (root.getAttribute('data-sui-tree-columns-enabled') === '0') treeColumns = [];
     var treeColumnWidths = (root.getAttribute('data-sui-tree-column-widths') || '').split(',').map(function(v) { return parseInt(v, 10) || 0; });
     var sortDir = (root.getAttribute('data-sui-tree-sort') || '').toLowerCase();
     var persistSelection = root.getAttribute('data-sui-tree-persist-selection') === '1';

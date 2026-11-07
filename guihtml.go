@@ -1863,7 +1863,7 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
   treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
@@ -2153,6 +2153,7 @@ function newTreeNode() {
   n.drag = false;
   n.contextMenu = false;
   n.columns = "";
+  n.columnsEnabled = false;
   n.columnLabels = "";
   n.columnWidths = "";
   n.sort = "";
@@ -2160,7 +2161,6 @@ function newTreeNode() {
   n.loadKey = "";
   n.virtual = false;
   n.tooltips = false;
-  n.styleExpr = treePresetStyleExpr("default");
   return n;
 }
 function newChartNode(skipDefaults) {
@@ -4677,22 +4677,30 @@ var TREE_STYLE_PRESETS = [
   { key: "candy", label: "Candy", css: "--sui-tree-gap: 3px; --sui-tree-row-padding: 4px 9px; --sui-tree-row-radius: 999px; --sui-tree-hover-bg: #4a1d54; --sui-tree-selected-bg: #db2777; --sui-tree-selected-fg: #fdf2f8; --sui-tree-title-color: #f9a8d4; --sui-tree-panel-bg: #2a1033; --sui-tree-panel-border: 1px solid #6b21a8; --sui-tree-panel-radius: 16px; --sui-tree-panel-padding: 10px; --sui-tree-indent: 20px;" },
   { key: "cards", label: "Cards", css: "--sui-tree-gap: 6px; --sui-tree-row-padding: 7px 10px; --sui-tree-row-radius: 9px; --sui-tree-row-bg: #202838; --sui-tree-hover-bg: #2b3549; --sui-tree-selected-bg: #4c5cf7; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: transparent; --sui-tree-panel-border: 0; --sui-tree-panel-padding: 0px; --sui-tree-indent: 20px;" }
 ];
-function treePresetCss(key) {
-  for (var i = 0; i < TREE_STYLE_PRESETS.length; i++) {
-    if (TREE_STYLE_PRESETS[i].key === key) return TREE_STYLE_PRESETS[i].css;
-  }
-  return "";
+function treeStyleExprMap(expr) {
+  if (!expr) return {};
+  var m = String(expr).match(/^cssSafe\(\s*("(?:[^"\\]|\\.)*")\s*\)\s*$/);
+  if (!m) return {};
+  try { return styleDeclMap(JSON.parse(m[1])); } catch (e) { return {}; }
 }
-function treePresetStyleExpr(key) {
-  var css = treePresetCss(key);
-  return css ? "cssSafe(" + JSON.stringify(css) + ")" : "";
-}
-function treePresetKey(n) {
-  var cur = n && n.styleExpr ? String(n.styleExpr) : "";
-  for (var i = 0; i < TREE_STYLE_PRESETS.length; i++) {
-    if (cur === treePresetStyleExpr(TREE_STYLE_PRESETS[i].key)) return TREE_STYLE_PRESETS[i].key;
+function componentNodeCssMap(def, node) {
+  var map = node ? styleDeclMap(node.style || "") : {};
+  if (node && def && def.id === "tree") {
+    var exprMap = treeStyleExprMap(node.styleExpr);
+    Object.keys(exprMap).forEach(function(k){ if (map[k] === undefined) map[k] = exprMap[k]; });
   }
-  return "custom";
+  return map;
+}
+function writeComponentNodeStyle(def, node, map) {
+  if (!node) return;
+  var css = styleDeclStr(map);
+  if (def && def.id === "tree") {
+    if (css) node.styleExpr = "cssSafe(" + JSON.stringify(css) + ")";
+    else delete node.styleExpr;
+    delete node.style;
+  } else {
+    node.style = css;
+  }
 }
 function treeControls(n) {
   var rows = [];
@@ -4704,59 +4712,8 @@ function treeControls(n) {
     b.onclick = fn;
     r.appendChild(b); rows.push(r);
   }
-  actionRow("settings", "Tree settings...", "General, colors, title, shape, icons, tooltip and presets", function(){ openComponentSettings(componentDefById("tree"), n); });
+  actionRow("settings", "Tree settings...", "General, bindings, columns, colors, title, shape, icons, tooltip and presets", function(){ openComponentSettings(componentDefById("tree"), n); });
   actionRow("data", "Edit tree data...", "Add, rename, move, delete, import and export tree items", function(){ openTreeDataEditor(n); });
-  function stateField(label, value, placeholder, key, hint) {
-    var r = document.createElement("div"); r.className = "rowline";
-    var l = document.createElement("label"); l.textContent = label; l.title = hint || ""; r.appendChild(l);
-    var i = document.createElement("input"); i.value = value || ""; i.placeholder = placeholder || ""; i.spellcheck = false; i.title = hint || "";
-    i.oninput = function(ev) { snap("set tree " + key); n[key] = ev.target.value; setOut(); autoPreview(); };
-    r.appendChild(i); rows.push(r);
-  }
-  stateField("value state", n.value, "state name", "value", "String state receiving the selected item key.");
-  var styleRow = document.createElement("div"); styleRow.className = "rowline";
-  var styleLabel = document.createElement("label"); styleLabel.textContent = "style preset"; styleLabel.title = "Presets write CSS variables into style expr."; styleRow.appendChild(styleLabel);
-  var styleSel = document.createElement("select");
-  TREE_STYLE_PRESETS.forEach(function(p) {
-    var o = document.createElement("option"); o.value = p.key; o.textContent = p.label;
-    if (treePresetKey(n) === p.key) o.selected = true;
-    styleSel.appendChild(o);
-  });
-  var customOpt = document.createElement("option"); customOpt.value = "custom"; customOpt.textContent = "Custom / edit style expr";
-  if (treePresetKey(n) === "custom") customOpt.selected = true;
-  styleSel.appendChild(customOpt);
-  styleSel.onchange = function() {
-    if (styleSel.value === "custom") {
-      styleSel.value = treePresetKey(n);
-      return;
-    }
-    snap("tree style preset");
-    n.styleExpr = treePresetStyleExpr(styleSel.value);
-    setOut();
-    renderInspector();
-    autoPreview();
-  };
-  styleRow.appendChild(styleSel); rows.push(styleRow);
-  var rhRow = document.createElement("div"); rhRow.className = "rowline";
-  var rhLabel = document.createElement("label"); rhLabel.textContent = "row height"; rhLabel.title = "Minimum row height in pixels (12-120)."; rhRow.appendChild(rhLabel);
-  var rhInput = document.createElement("input"); rhInput.type = "number"; rhInput.min = "12"; rhInput.max = "120"; rhInput.step = "1";
-  rhInput.value = n.rowHeight || ""; rhInput.placeholder = "28"; rhInput.title = "Minimum row height in pixels (12-120).";
-  rhInput.oninput = function(ev) { snap("tree row height"); n.rowHeight = ev.target.value; setOut(); autoPreview(); };
-  rhRow.appendChild(rhInput); rows.push(rhRow);
-  stateField("selection state", n.selection, "state name (JSON array)", "selection", "String state receiving a JSON array of selected keys.");
-  stateField("load key state", n.loadKey, "state name for lazy loading", "loadKey", "State receiving the key of a lazy item being expanded.");
-  stateField("grid columns", n.columns, "size,date,status", "columns", "Comma list of size, date and status.");
-  stateField("column labels", n.columnLabels, "Size,Date,Status", "columnLabels", "Positional header labels for the grid columns.");
-  stateField("column widths", n.columnWidths, "104,104,104", "columnWidths", "Positional pixel widths for the grid columns.");
-  stateField("sort children", n.sort, "asc or desc", "sort", "Sort children by label; empty keeps manual order.");
-  var dr = document.createElement("div"); dr.className = "rowline";
-  var dl = document.createElement("label"); dl.textContent = "editable depth"; dl.title = "Maximum editable level; 0 = all levels."; dr.appendChild(dl);
-  var di = document.createElement("input"); di.type = "number"; di.min = "0"; di.step = "1"; di.title = dl.title;
-  di.value = n.editableDepth || ""; di.placeholder = "0 = all";
-  di.oninput = function(ev) { snap("tree editable depth"); n.editableDepth = ev.target.value; setOut(); autoPreview(); };
-  dr.appendChild(di); rows.push(dr);
-  stateField("rename key state", n.renameKey, "state name", "renameKey", "State receiving the renamed node key.");
-  stateField("rename value state", n.renameValue, "state name", "renameValue", "State receiving the new label.");
   return acc("Tree", rows);
 }
 function treeRawLabel(raw) {
@@ -9923,6 +9880,8 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.virtual) a += " virtual: true";
   if (n.kind === "tree" && n.tooltips) a += " tooltips: true";
   if (n.kind === "tree" && n.columns) a += " columns: \"" + esc(n.columns) + "\"";
+  if (n.kind === "tree" && n.columnsEnabled === false) a += " columnsEnabled: false";
+  if (n.kind === "tree" && n.columnsEnabled) a += " columnsEnabled: true";
   if (n.kind === "tree" && n.columnLabels) a += " columnLabels: \"" + esc(n.columnLabels) + "\"";
   if (n.kind === "tree" && n.columnWidths) a += " columnWidths: \"" + esc(n.columnWidths) + "\"";
   if (n.kind === "tree" && n.sort) a += " sort: \"" + esc(n.sort) + "\"";
@@ -13472,6 +13431,19 @@ var COMPONENT_DEFS = [
         { key: "@editable", label: "Editable", type: "attrSwitch", attr: "editable", def: false },
         { key: "@showRenameIcon", label: "Show rename icon", type: "attrSwitch", attr: "showRenameIcon", def: true }
       ]},
+      { name: "Bindings", fields: [
+        { key: "@value", label: "Value state", type: "attrText", attr: "value", def: "" },
+        { key: "@selection", label: "Selection state", type: "attrText", attr: "selection", def: "" },
+        { key: "@loadKey", label: "Load key state", type: "attrText", attr: "loadKey", def: "" },
+        { key: "@editableDepth", label: "Editable depth", type: "attrText", attr: "editableDepth", def: "" },
+        { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "" },
+        { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "" }
+      ]},
+      { name: "Columns", fields: [
+        { key: "@columnsEnabled", label: "Show columns", type: "attrSwitch", attr: "columnsEnabled", def: false },
+        { key: "@columnsCfg", label: "Columns", type: "columns", attr: "columns" },
+        { key: "@sort", label: "Sort children", type: "attrText", attr: "sort", def: "" }
+      ]},
       { name: "Colors", fields: [
         { key: "--sui-tree-fg", label: "Text", type: "color", def: "#e6e6ef" },
         { key: "--sui-tree-title", label: "Title", type: "color", def: "#e6e6ef" },
@@ -14995,6 +14967,7 @@ function ensureComponentRules(def) {
 function componentFieldDefault(field) {
   if (field.type === "switch") return field.on;
   if (field.type === "attrSwitch") return !!field.def;
+  if (field.type === "columns") return { size: true, date: true, status: true, labels: { size: "Size", date: "Date", status: "Status" }, widths: { size: 104, date: 104, status: 104 } };
   if (field.type === "attrText" || field.type === "icon" || field.type === "title") return field.def === undefined ? "" : String(field.def);
   if (field.type === "number") return String(field.def) + (field.unit || "");
   return String(field.def);
@@ -15024,17 +14997,34 @@ function componentIsAttrKey(def, key) {
 }
 function componentKeyBaseValue(def, key, node) {
   var field = componentFieldByKey(def, key);
+  if (field && field.type === "columns") return componentColumnsValue(node);
   if (field && field.attr) {
+    if (field.attr === "columnsEnabled" && node && (node.columnsEnabled === undefined || node.columnsEnabled === null)) {
+      return !!(node.columns && String(node.columns).trim());
+    }
     if (node && node[field.attr] !== undefined && node[field.attr] !== null) return node[field.attr];
     return field.def;
   }
   if (node) {
-    var m = styleDeclMap(node.style || "");
+    var m = componentNodeCssMap(def, node);
     if (m[key] !== undefined) return m[key];
   }
   var vars = readComponentVars();
   if (vars[key] !== undefined) return vars[key];
   return field ? componentFieldDefault(field) : undefined;
+}
+function componentColumnsValue(node) {
+  var defs = componentFieldDefault({ type: "columns" });
+  var columns = node && node.columns ? String(node.columns).split(",").map(function(v){ return v.trim(); }).filter(Boolean) : [];
+  var labels = node && node.columnLabels ? String(node.columnLabels).split(",") : [];
+  var widths = node && node.columnWidths ? String(node.columnWidths).split(",") : [];
+  var out = { size: columns.length ? columns.indexOf("size") >= 0 : true, date: columns.length ? columns.indexOf("date") >= 0 : true, status: columns.length ? columns.indexOf("status") >= 0 : true, labels: {}, widths: {} };
+  ["size", "date", "status"].forEach(function(f, i){
+    out.labels[f] = labels[i] !== undefined && labels[i] !== "" ? labels[i].trim() : defs.labels[f];
+    var w = parseInt(widths[i], 10);
+    out.widths[f] = isFinite(w) && w > 0 ? w : defs.widths[f];
+  });
+  return out;
 }
 function componentPresetBaseValue(def, key) {
   var field = componentFieldByKey(def, key);
@@ -15051,7 +15041,7 @@ function componentResetValue(def, key, node) {
 }
 function componentNodeHasOverrides(def, node) {
   if (!node) return false;
-  var map = styleDeclMap(node.style || ""), keys = componentAllKeys(def);
+  var map = componentNodeCssMap(def, node), keys = componentAllKeys(def);
   for (var i = 0; i < keys.length; i++) if (!componentIsAttrKey(def, keys[i]) && map[keys[i]] !== undefined) return true;
   return false;
 }
@@ -15121,6 +15111,17 @@ function applyComponentPreset(id) {
   s.presetId = p.id;
   renderComponentSettings();
 }
+function componentColumnsDiffer(a, b) {
+  if (!a || !b) return true;
+  if (!!a.size !== !!b.size || !!a.date !== !!b.date || !!a.status !== !!b.status) return true;
+  var fields = ["size", "date", "status"];
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    if (String((a.labels || {})[f] || "") !== String((b.labels || {})[f] || "")) return true;
+    if (parseInt((a.widths || {})[f], 10) !== parseInt((b.widths || {})[f], 10)) return true;
+  }
+  return false;
+}
 function componentAttrsCustom(def, values) {
   for (var i = 0; i < def.categories.length; i++) {
     var fields = def.categories[i].fields;
@@ -15128,6 +15129,11 @@ function componentAttrsCustom(def, values) {
       var f = fields[j];
       if (!f.attr) continue;
       var actual = values[f.key];
+      if (f.type === "columns") {
+        var expectedCols = componentFieldDefault(f);
+        if (JSON.stringify(actual) !== JSON.stringify(expectedCols) && componentColumnsDiffer(actual, expectedCols)) return true;
+        continue;
+      }
       var expected = f.def === undefined ? "" : f.def;
       if (String(actual === undefined ? "" : actual) !== String(expected)) return true;
     }
@@ -15149,6 +15155,12 @@ function markComponentCustom() {
 var __compSettings = null;
 function openComponentSettings(def, node) {
   if (!def) return;
+  if (def.id === "tree" && !def.__treeThemesAdded) {
+    def.__treeThemesAdded = true;
+    TREE_STYLE_PRESETS.forEach(function(p){
+      def.presets.push({ id: "tree-" + p.key, label: p.label, desc: "Tree theme preset.", vars: styleDeclMap(p.css) });
+    });
+  }
   __compSettings = { def: def, node: node || null, tab: def.categories[0].name, values: {}, presetId: "custom" };
   componentAllKeys(def).forEach(function(k){
     var v = componentKeyBaseValue(def, k, node);
@@ -15188,9 +15200,9 @@ function clearComponentOverrides() {
   var s = __compSettings;
   if (!s || !s.node) return;
   snap("clear component overrides");
-  var map = styleDeclMap(s.node.style || "");
+  var map = componentNodeCssMap(s.def, s.node);
   componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete map[k]; });
-  s.node.style = styleDeclStr(map);
+  writeComponentNodeStyle(s.def, s.node, map);
   applyComponentAttrValues(s.def, s.node, s.values, true);
   setOut(); renderTree(); renderView(); renderInspector(); closeComponentSettings();
 }
@@ -15332,6 +15344,43 @@ function componentFieldRow(field) {
       markComponentCustom();
     };
     row.appendChild(sel);
+  } else if (field.type === "columns") {
+    var cfg = value || componentFieldDefault(field);
+    var colWrap = document.createElement("div");
+    colWrap.style.cssText = "display:flex;flex-direction:column;gap:4px;flex:1;min-width:0";
+    ["size", "date", "status"].forEach(function(col){
+      var line = document.createElement("div");
+      line.style.cssText = "display:flex;align-items:center;gap:5px;min-width:0";
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = !!cfg[col];
+      var lab = document.createElement("span");
+      lab.textContent = col.charAt(0).toUpperCase() + col.slice(1);
+      lab.style.cssText = "font-size:11px;min-width:38px";
+      var li = document.createElement("input");
+      li.type = "text"; li.value = (cfg.labels && cfg.labels[col]) || ""; li.placeholder = "label"; li.style.cssText = "flex:1;min-width:40px";
+      var wi = document.createElement("input");
+      wi.type = "number"; wi.min = "20"; wi.max = "600"; wi.step = "1"; wi.value = (cfg.widths && cfg.widths[col]) || 104; wi.style.cssText = "width:60px";
+      cb.onchange = function(){
+        cfg[col] = cb.checked;
+        s.values[field.key] = cfg;
+        markComponentCustom();
+      };
+      li.oninput = function(){
+        cfg.labels = cfg.labels || {};
+        cfg.labels[col] = li.value;
+        s.values[field.key] = cfg;
+        markComponentCustom();
+      };
+      wi.oninput = function(){
+        cfg.widths = cfg.widths || {};
+        cfg.widths[col] = parseInt(wi.value, 10) || 104;
+        s.values[field.key] = cfg;
+        markComponentCustom();
+      };
+      line.appendChild(cb); line.appendChild(lab); line.appendChild(li); line.appendChild(wi);
+      colWrap.appendChild(line);
+    });
+    row.appendChild(colWrap);
   } else if (field.type === "attrSwitch") {
     row.appendChild(mkSwitch(value === true, false, function(on){
       s.values[field.key] = on;
@@ -15382,6 +15431,33 @@ function applyComponentAttrValues(def, node, values, reset) {
   def.categories.forEach(function(cat){
     cat.fields.forEach(function(f){
       if (!f.attr) return;
+      if (f.type === "columns") {
+        if (reset) {
+          delete node.columns;
+          delete node.columnLabels;
+          delete node.columnWidths;
+          return;
+        }
+        if (values["@columnsEnabled"] === false) {
+          if (!node.columns) {
+            delete node.columnLabels;
+            delete node.columnWidths;
+          }
+          return;
+        }
+        var cfg = values[f.key] || componentFieldDefault(f);
+        var fields = [], labels = [], widths = [];
+        ["size", "date", "status"].forEach(function(col){
+          if (!cfg[col]) return;
+          fields.push(col);
+          labels.push((cfg.labels && cfg.labels[col]) || col);
+          widths.push((cfg.widths && cfg.widths[col]) || 104);
+        });
+        node.columns = fields.join(",");
+        node.columnLabels = labels.join(",");
+        node.columnWidths = widths.map(String).join(",");
+        return;
+      }
       if (reset) {
         if (f.def === undefined || f.def === "" || f.def === false) delete node[f.attr];
         else node[f.attr] = f.def;
@@ -15397,10 +15473,10 @@ function applyComponentSettings() {
   var values = s.values;
   if (s.node) {
     snap("component settings " + s.def.label);
-    var map = styleDeclMap(s.node.style || "");
+    var map = componentNodeCssMap(s.def, s.node);
     if (s.presetId === "inherit") {
       componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete map[k]; });
-      s.node.style = styleDeclStr(map);
+      writeComponentNodeStyle(s.def, s.node, map);
       applyComponentAttrValues(s.def, s.node, values, true);
       ensureComponentRules(s.def);
       setOut(); renderTree(); renderView(); renderInspector(); autoPreview(); closeComponentSettings();
@@ -15408,7 +15484,7 @@ function applyComponentSettings() {
     }
     componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete map[k]; });
     Object.keys(values).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) map[k] = values[k]; });
-    s.node.style = styleDeclStr(map);
+    writeComponentNodeStyle(s.def, s.node, map);
     applyComponentAttrValues(s.def, s.node, values, false);
     ensureComponentRules(s.def);
     setOut(); renderTree(); renderView(); renderInspector(); autoPreview();

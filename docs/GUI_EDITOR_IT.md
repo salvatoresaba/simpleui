@@ -1043,36 +1043,29 @@ nella palette: gli elementi si creano e modificano da **Tree data** o dal menu
 contestuale del tree. La struttura a sinistra mostra solo la riga **tree**, non
 gli item interni.
 
-L'inspector **Tree** espone:
+L'inspector **Tree** espone solo:
 
 | Campo | Significato |
 |---|---|
-| settings | apre **Tree settings** (General, Colors, Title, Shape, Icons e Tooltip) |
-| data | apre **Edit tree data** (etichette, key, annidamento, import/export) |
-| value state | stato stringa che riceve la key selezionata |
-| style preset | 16 preset da Default e Compact a Neon, Forest, High contrast e Cards; custom modifica style expr |
-| row height | altezza minima riga in pixel (12-120) |
-| selection state | stato stringa che riceve un array JSON di key selezionate |
-| load key state | stato che riceve la key dell'elemento lazy in espansione |
-| grid columns | lista separata da virgole: `size`, `date`, `status` |
-| column labels / widths | intestazioni posizionali e larghezze in pixel |
-| sort children | `asc` o `desc`; vuoto mantiene l'ordine manuale |
-| editable depth | livello massimo editabile; `0` = tutti |
-| rename key state | stato che riceve la key rinominata |
-| rename value state | stato che riceve la nuova etichetta |
+| settings | apre **Tree settings** |
+| data | apre **Edit tree data** |
 
 **Tree settings** apre il pannello componente con queste tab:
 
-- **General** - `Title` (il titolo visibile dell'albero) e `Runtime name` (target
-  usato dalle funzioni `tree.*`; non è il titolo visibile), più tutti gli switch:
-  indent guides, truncate labels, hierarchical checkboxes, child counts,
-  multi-select, search box, drag and drop, context menu, virtualize offscreen
-  rows, persist selection, editable e show rename icon.
+- **General** - `Title` (il titolo visibile), `Runtime name` (target usato dalle
+  funzioni `tree.*`; non è il titolo visibile) e tutti gli switch: indent guides,
+  truncate labels, hierarchical checkboxes, child counts, multi-select, search
+  box, drag and drop, context menu, virtualize offscreen rows, persist selection,
+  editable e show rename icon.
+- **Bindings** - value state, selection state, load key state, editable depth,
+  rename key state e rename value state.
+- **Columns** - `Show columns`, editor colonne (size, date, status con etichetta
+  e larghezza) e ordinamento figli. Le colonne restano nascoste finché **Show
+  columns** non è attivo.
 - **Colors** - colori di testo, titolo, riga, hover, selezione, toggle, bordo,
   guida, badge, metadata e checkbox.
 - **Title** - dimensione, peso, font, spaziatura, allineamento, posizione
-  alto/basso e padding del titolo. Questi valori si applicano al campo **Title**
-  in General.
+  alto/basso e padding del titolo. Si applicano al campo **Title** in General.
 - **Shape** - indent, padding/altezza riga, raggio, bordo, dimensione toggle,
   dimensione/peso testo, letter spacing e font family.
 - **Icons** - default icon, open icon e rename icon, scelti da una lista di glifi
@@ -1080,7 +1073,11 @@ L'inspector **Tree** espone:
 - **Tooltip** - switch tooltip personalizzati più sfondo, testo, bordo, raggio,
   padding, larghezza massima, dimensione font, ritardo e posizione.
 
-I preset con nome sono nello stesso pannello.
+Il selettore **Style** in alto in Tree settings contiene gli stili condivisi più
+i 16 temi Tree (Default, Compact, Comfortable, Dense, Bordered, Soft rounded,
+Minimal, Neon, Forest, Amber, Ocean, High contrast, Outline, Mono, Candy,
+Cards). Selezionando uno stile si vede l'anteprima; **Apply** lo scrive nel tree
+e aggiorna la preview dell'editor. I preset con nome sono nello stesso pannello.
 
 **Edit tree data** apre un editor dedicato con una riga per elemento: etichetta,
 key opzionale, icona, badge, metadata, celle grid size/date/status, stato

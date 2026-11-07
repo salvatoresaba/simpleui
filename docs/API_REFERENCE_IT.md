@@ -619,11 +619,13 @@ tree "File progetto"
   `onContextMenu` viene chiamata al click destro dopo la selezione, per menu
   applicativi.
 - `columns: "size,date,status"` mostra l'intestazione tree-grid e le celle.
-  Le colonne supportate sono `size`, `date` e `status`; ogni `treeitem` fornisce
-  i testi `size`, `date` e `status`. `columnLabels: "Size,Modified,State"` imposta
-  le intestazioni in ordine e `columnWidths: "120,90,80"` imposta le larghezze.
-  `sort: "asc"`/`"desc"` ordina i figli per etichetta dopo gli import; ometterlo
-  per mantenere l'ordine manuale.
+  `columnsEnabled: false` mantiene la configurazione ma nasconde intestazione e
+  celle; il designer lo espone come **Show columns**. Le colonne supportate sono
+  `size`, `date` e `status`; ogni `treeitem` fornisce i testi `size`, `date` e
+  `status`. `columnLabels: "Size,Modified,State"` imposta le intestazioni in
+  ordine e `columnWidths: "120,90,80"` imposta le larghezze. `sort: "asc"`/`"desc"`
+  ordina i figli per etichetta dopo gli import; ometterlo per mantenere l'ordine
+  manuale.
 - `persistSelection: true` ripristina le key selezionate da `localStorage` dopo
   un reload quando non è collegato uno stato `selection`.
 - `treeitem lazy: true` mostra la freccia senza figli. L'espansione chiama

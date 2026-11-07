@@ -2344,7 +2344,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
-			a.key == "tooltips" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
@@ -3326,6 +3326,13 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		contextMenu = a.expr.b
 	}
 	columns := treeColumns(e)
+	columnsEnabled := true
+	if a := findAttr(e, "columnsEnabled"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		columnsEnabled = a.expr.b
+	}
+	if !columnsEnabled {
+		columns = nil
+	}
 	columnLabels := splitTreeColumnText(treeTextAttr(e, "columnLabels"))
 	columnWidths := splitTreeColumnWidths(treeTextAttr(e, "columnWidths"))
 	sortDir := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "sort")))
@@ -3417,6 +3424,9 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		}
 		if len(columns) > 0 {
 			open += " data-sui-tree-columns=\"" + htmlEscape(strings.Join(columns, ",")) + "\""
+		}
+		if !columnsEnabled {
+			open += " data-sui-tree-columns-enabled=\"0\""
 		}
 		if strings.TrimSpace(strings.Join(columnLabels, "")) != "" {
 			open += " data-sui-tree-column-labels=\"" + htmlEscape(strings.Join(columnLabels, ",")) + "\""

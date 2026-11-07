@@ -1003,31 +1003,25 @@ child item. **Tree item** is not offered in the Insert menu or palette: items
 are created and edited from **Tree data** or the tree context menu. The element
 list shows only the **tree** row, not its internal items.
 
-The **Tree** inspector exposes:
+The **Tree** inspector exposes only:
 
 | Field | Meaning |
 |---|---|
-| settings | opens **Tree settings** (General, Colors, Title, Shape, Icons and Tooltip) |
-| data | opens **Edit tree data** (labels, keys, nesting, import/export) |
-| value state | string state receiving the selected item key |
-| style preset | 16 tree presets from Default and Compact to Neon, Forest, High contrast and Cards; custom edits style expr |
-| row height | minimum row height in pixels (12-120) |
-| selection state | string state receiving a JSON array of selected keys |
-| load key state | state receiving the key of a lazy item being expanded |
-| grid columns | comma list: `size`, `date`, `status` |
-| column labels / widths | positional header text and pixel widths |
-| sort children | `asc` or `desc`; empty keeps manual order |
-| editable depth | maximum editable level; `0` = all |
-| rename key state | state receiving the renamed node key |
-| rename value state | state receiving the new label |
+| settings | opens **Tree settings** |
+| data | opens **Edit tree data** |
 
 **Tree settings** opens the component panel with these tabs:
 
-- **General** - `Title` (the visible tree title) and `Runtime name` (the target
-  used by `tree.*` functions; it is not the visible title), plus every behavior
-  switch: indent guides, truncate labels, hierarchical checkboxes, child counts,
-  multi-select, search box, drag and drop, context menu, virtualize offscreen
-  rows, persist selection, editable and show rename icon.
+- **General** - `Title` (the visible tree title), `Runtime name` (the target used
+  by `tree.*`; not the visible title) and every behavior switch: indent guides,
+  truncate labels, hierarchical checkboxes, child counts, multi-select, search
+  box, drag and drop, context menu, virtualize offscreen rows, persist selection,
+  editable and show rename icon.
+- **Bindings** - value state, selection state, load key state, editable depth,
+  rename key state and rename value state.
+- **Columns** - `Show columns`, the column picker/editor (size, date, status
+  with label and width), and child sorting. Columns stay hidden until **Show
+  columns** is on.
 - **Colors** - text, title, row, hover, selected, toggle, border, guide, badge,
   metadata and checkbox colors.
 - **Title** - title size, weight, font, spacing, alignment, top/bottom position
@@ -1039,7 +1033,11 @@ The **Tree** inspector exposes:
 - **Tooltip** - custom tooltip switch plus background, text, border, radius,
   padding, max width, font size, delay and placement.
 
-Named presets are available in the same panel.
+The **Style** selector at the top of Tree settings contains the shared styles
+plus the 16 tree themes (Default, Compact, Comfortable, Dense, Bordered, Soft
+rounded, Minimal, Neon, Forest, Amber, Ocean, High contrast, Outline, Mono,
+Candy, Cards). Selecting a style previews it; **Apply** writes it to the tree and
+updates the editor preview. Named presets are available in the same panel.
 
 **Edit tree data** opens a dedicated editor with one row per item. The row shows
 the label, an optional stable key, icon, badge, metadata, size/date/status grid

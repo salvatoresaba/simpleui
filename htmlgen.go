@@ -3705,10 +3705,17 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	drag := datepickerBool(e, "drag")
 	contextMenu := datepickerBool(e, "contextMenu")
 	columns := treeColumns(e)
+	columnsEnabled := true
+	if a := findAttr(e, "columnsEnabled"); a != nil {
+		columnsEnabled = datepickerBool(e, "columnsEnabled")
+	}
 	columnLabels := splitTreeColumnText(treeTextAttr(e, "columnLabels"))
 	columnWidths := splitTreeColumnWidths(treeTextAttr(e, "columnWidths"))
 	sortDir := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "sort")))
 	persistSelection := datepickerBool(e, "persistSelection")
+	if !columnsEnabled {
+		columns = nil
+	}
 	sb.WriteString(ind)
 	sb.WriteString("<div class=\"sui-tree")
 	staticClassSuffix(sb, e)
@@ -3778,6 +3785,9 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	}
 	if len(columns) > 0 {
 		sb.WriteString(" data-sui-tree-columns=\"" + htmlEscape(strings.Join(columns, ",")) + "\"")
+	}
+	if !columnsEnabled {
+		sb.WriteString(" data-sui-tree-columns-enabled=\"0\"")
 	}
 	if strings.TrimSpace(strings.Join(columnLabels, "")) != "" {
 		sb.WriteString(" data-sui-tree-column-labels=\"" + htmlEscape(strings.Join(columnLabels, ",")) + "\"")
@@ -4473,7 +4483,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
-			a.key == "tooltips" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||

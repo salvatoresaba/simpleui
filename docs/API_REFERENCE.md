@@ -637,9 +637,11 @@ tree "Project files"
   subtree, copy key, expand/collapse all). `onContextMenu` runs on right-click
   after the item is selected, for application-specific menus.
 - `columns: "size,date,status"` renders a tree-grid header and matching cells.
-  Supported columns are `size`, `date` and `status`; each `treeitem` supplies
-  `size`, `date` and `status` text. `columnLabels: "Size,Modified,State"` sets
-  the header text positionally and `columnWidths: "120,90,80"` sets cell widths.
+  `columnsEnabled: false` keeps the column configuration but hides the header and
+  cells; the designer exposes this as **Show columns**. Supported columns are
+  `size`, `date` and `status`; each `treeitem` supplies `size`, `date` and
+  `status` text. `columnLabels: "Size,Modified,State"` sets the header text
+  positionally and `columnWidths: "120,90,80"` sets cell widths.
   `sort: "asc"`/`"desc"` sorts children by label after imports; omit it to keep
   manual order.
 - `persistSelection: true` restores selected keys from `localStorage` after a
