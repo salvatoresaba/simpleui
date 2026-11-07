@@ -236,6 +236,10 @@ regular-expression mode the replacement supports capture groups such as `$1`.
 Quick Fix proposes actions for the diagnostic under the cursor, including
 declaring a missing state, defining a missing handler/function and making the
 enclosing function `async`. Diagnostics remain clickable in the Problems panel.
+CSS analysis filters generated noise: runtime classes (`sui-*`, `suitbl` and
+state classes), keyframe steps, layered `:root` variable blocks, and
+hover/focus/checked or pseudo-element rules are not reported as problems.
+Author classes that are genuinely unused are still listed.
 
 ### Status bar
 
@@ -385,11 +389,13 @@ the page and the controls to light defaults.
 
 **Export theme** in the project preferences downloads a `simpleui-theme.json`
 file containing the page palette, every component default, tooltip settings and
-the chart/graph project defaults. **Import theme** loads that file back after a
-strict validation: unknown fields, invalid custom-property names and CSS values
-that could add declarations or rules are rejected. The import replaces the
-current project theme and refreshes the preview; undo restores the previous
-values.
+the chart/graph project defaults. The **Name** field sets the theme name and the
+downloaded file name. **Import theme** loads that file back after a strict
+validation: unknown fields, invalid custom-property names and CSS values that
+could add declarations or rules are rejected. The import replaces the current
+project theme, reapplies the imported chart/graph defaults to the existing chart
+and graph elements, restores the theme name and refreshes the preview; undo
+returns to the previous values.
 
 ### Scrollbars
 
@@ -1487,7 +1493,9 @@ shared style family, in both **Light** and **Dark** variants (Standard, Sketch,
 Wireframe, Terminal, Glassmorphism, Brutalist, Blueprint, Neumorphic, High
 contrast, Editorial, Cyberpunk and Geometric). Choosing **Custom** leaves the
 current expression untouched; edit it directly for series colors, grid/axis
-colors, spacing, line width and scrollbar colors.
+colors, spacing, line width and scrollbar colors. The selected preset name is
+kept after **Apply**, because the panel recognises a preset even when tooltip
+and table overrides are appended to its style expression.
 
 A data-expression chart is reactive: changing the bound state re-renders the
 chart. Malformed data or an empty payload shows a text error inside the chart,

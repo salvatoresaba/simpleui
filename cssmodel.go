@@ -694,6 +694,7 @@ type cssRuleAt struct {
 }
 
 // flattenRules returns every rule in source order (including nested at-rules).
+// Keyframe steps (0%, to, ...) are not selectors and are intentionally skipped.
 func flattenRules(s *CssSheet) []cssRuleAt {
 	var out []cssRuleAt
 	idx := 0
@@ -705,6 +706,9 @@ func flattenRules(s *CssSheet) []cssRuleAt {
 				idx++
 			}
 			if len(n.nodes) > 0 {
+				if n.kind == "at" && strings.HasSuffix(strings.ToLower(n.name), "keyframes") {
+					continue
+				}
 				walk(n.nodes)
 			}
 		}
@@ -713,6 +717,82 @@ func flattenRules(s *CssSheet) []cssRuleAt {
 		walk(s.nodes)
 	}
 	return out
+}
+
+// onlyCustomProps reports whether a rule declares only CSS custom properties.
+// Repeated :root blocks with custom properties are a normal layering technique,
+// not a duplicate-selector mistake.
+func onlyCustomProps(n *CssNode) bool {
+	if n == nil || len(n.decls) == 0 {
+		return false
+	}
+	for _, d := range n.decls {
+		if !strings.HasPrefix(d.prop, "--") {
+			return false
+		}
+	}
+	return true
+}
+
+// sameSelectorOverlap reports whether two rules for the same selector set at
+// least one of the same properties. Repeating a selector to add unrelated
+// properties (for example media sizing after media colour rules) is normal.
+func sameSelectorOverlap(a, b *CssNode) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	props := map[string]bool{}
+	for _, d := range a.decls {
+		props[d.prop] = true
+	}
+	for _, d := range b.decls {
+		if props[d.prop] {
+			return true
+		}
+	}
+	return false
+}
+
+// runtimeCssClass lists classes driven by the generated app runtime. They are
+// not authored markup and should not be reported as unused.
+func runtimeCssClass(cls string) bool {
+	if strings.HasPrefix(cls, "sui-") {
+		return true
+	}
+	switch cls {
+	case "active", "selected", "open", "on", "off", "checked", "disabled", "enabled", "hidden", "show", "suitbl":
+		return true
+	}
+	return false
+}
+
+// runtimeSelector reports whether a selector targets a runtime-generated class
+// or state class. Such rules intentionally layer on top of base rules.
+func runtimeSelector(sel string) bool {
+	for _, cls := range selectorClasses(sel) {
+		if runtimeCssClass(cls) {
+			return true
+		}
+	}
+	return false
+}
+
+// interactiveSelector reports whether a selector targets a state or generated
+// pseudo-element. Hover/focus/checked/pseudo-element rules intentionally layer
+// on top of the base rule; reporting them as overrides is noise.
+func interactiveSelector(sel string) bool {
+	if strings.Contains(sel, "::") {
+		return true
+	}
+	for _, state := range []string{
+		":hover", ":focus", ":focus-visible", ":focus-within", ":active",
+		":checked", ":disabled", ":enabled", ":invalid", ":valid", ":target", ":open",
+	} {
+		if strings.Contains(sel, state) {
+			return true
+		}
+	}
+	return false
 }
 
 // AnalyzeCss reports problems: unused classes, overridden declarations,
@@ -741,14 +821,19 @@ func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
 		for _, sel := range r.node.selectors {
 			key := strings.TrimSpace(sel)
 			if first, ok := seen[key]; ok {
-				probs = append(probs, CssProblem{kind: "duplicate", message: "selector " + key + " is defined more than once (see line " + strconv.Itoa(rules[first].node.span.line) + ")", line: r.node.span.line, sel: key})
+				layeredRoot := key == ":root" && onlyCustomProps(r.node) && onlyCustomProps(rules[first].node)
+				if !layeredRoot && sameSelectorOverlap(r.node, rules[first].node) {
+					probs = append(probs, CssProblem{kind: "duplicate", message: "selector " + key + " is defined more than once (see line " + strconv.Itoa(rules[first].node.span.line) + ")", line: r.node.span.line, sel: key})
+				}
 			} else {
 				seen[key] = r.idx
 			}
 
-			// unused classes
+			// unused classes. Runtime `sui-*` and state classes are generated
+			// by the designer theme and may be used by controls not present
+			// yet, so they are not actionable author warnings.
 			for _, cls := range selectorClasses(sel) {
-				if !usedClasses[cls] && !strings.HasPrefix(cls, "class") {
+				if !usedClasses[cls] && !strings.HasPrefix(cls, "class") && !runtimeCssClass(cls) {
 					probs = append(probs, CssProblem{kind: "unused", message: "class ." + cls + " is never used by any element", line: r.node.span.line, sel: key})
 				}
 			}
@@ -769,6 +854,12 @@ func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
 		for j := i + 1; j < len(byProp); j++ {
 			other := byProp[j]
 			if other.decl.prop != rec.decl.prop {
+				continue
+			}
+			if interactiveSelector(rec.sel) || interactiveSelector(other.sel) {
+				continue
+			}
+			if runtimeSelector(rec.sel) || runtimeSelector(other.sel) {
 				continue
 			}
 			if !overlapSelectors(rec.sel, other.sel, classesA) {

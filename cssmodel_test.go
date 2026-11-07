@@ -95,6 +95,53 @@ func TestAnalyzeUnusedAndOverride(t *testing.T) {
 	}
 }
 
+func TestAnalyzeSkipsKeyframesAndLayeredRoot(t *testing.T) {
+	src := ":root { --a: 1; }\n" +
+		":root { --b: 2; }\n" +
+		"@keyframes one { 0% { opacity: 0; } 100% { opacity: 1; } }\n" +
+		"@keyframes two { 0% { opacity: 1; } 100% { opacity: 0; } }\n" +
+		".sui-progress { color: red; }\n" +
+		".active { color: green; }\n" +
+		".base { color: red; }\n" +
+		".base:hover { color: blue; }\n" +
+		".sui-tab { color: red; }\n" +
+		".sui-tab.active { color: blue; }\n" +
+		"table.suitbl { color: red; }\n" +
+		"table.suitbl thead th { color: blue; }\n" +
+		"img, video { background: red; }\n" +
+		"img, video { object-fit: cover; }\n" +
+		".author-unused { color: blue; }\n"
+	probs := AnalyzeCss(ParseCss(src), map[string]bool{})
+	var duplicate, override, runtimeUnused, authorUnused bool
+	for _, p := range probs {
+		switch p.kind {
+		case "duplicate":
+			duplicate = true
+		case "override":
+			override = true
+		case "unused":
+			if strings.Contains(p.message, "sui-progress") || strings.Contains(p.message, ".active") {
+				runtimeUnused = true
+			}
+			if strings.Contains(p.message, "author-unused") {
+				authorUnused = true
+			}
+		}
+	}
+	if duplicate {
+		t.Errorf("duplicate reported for layered :root, keyframes or additive selectors: %+v", probs)
+	}
+	if override {
+		t.Errorf("state/pseudo override reported as actionable: %+v", probs)
+	}
+	if runtimeUnused {
+		t.Errorf("runtime class reported as unused: %+v", probs)
+	}
+	if !authorUnused {
+		t.Errorf("author unused class was not reported: %+v", probs)
+	}
+}
+
 func TestExtractTokens(t *testing.T) {
 	src := ":root {\n  --primary: #ff0000;\n  --gap: 12px;\n}\n.card { color: var(--primary); }\n"
 	s := ParseCss(src)

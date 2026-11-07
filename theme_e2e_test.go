@@ -1,26 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"image/png"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
 
-// theme_e2e_test.go drives the real designer in a headless browser and checks
-// the rendered theme through computed styles and CSS variables. It covers the
-// light/dark page bodies, base elements, tooltips, media, hover presets, chart
-// theme presets and the custom theme export/import payload.
-func TestGuiThemeVisualE2E(t *testing.T) {
-	browser := findHeadlessBrowser()
-	if browser == "" {
-		t.Skip("no Chrome/Edge found; skipping theme visual regression test")
-	}
-
-	const source = `view main {
+const themeE2ESource = `view main {
 	menubar {
 		menu "File" {
 			menuitem "Open"
@@ -34,6 +28,18 @@ func TestGuiThemeVisualE2E(t *testing.T) {
 	spinner
 	img src: "logo.png"
 }`
+
+// theme_e2e_test.go drives the real designer in a headless browser and checks
+// the rendered theme through computed styles and CSS variables. It covers the
+// light/dark page bodies, base elements, tooltips, media, hover presets, chart
+// theme presets and the custom theme export/import payload.
+func TestGuiThemeVisualE2E(t *testing.T) {
+	browser := findHeadlessBrowser()
+	if browser == "" {
+		t.Skip("no Chrome/Edge found; skipping theme visual regression test")
+	}
+
+	const source = themeE2ESource
 
 	page := strings.Replace(guiHTML, "</body>", themeE2EScript+"</body>", 1)
 	if page == guiHTML {
@@ -217,8 +223,21 @@ const themeE2EScript = `<script>
       var key = 'theme-' + v.id;
       return chartPresetKey({ styleExpr: chartPresetStyleExpr(key) }) === key;
     });
+    var nameInput = document.getElementById('projprefs-theme-name');
+    if (nameInput) nameInput.value = 'QA theme';
     var payload = buildProjectThemePayload();
     applyImportedThemeObject(JSON.parse(JSON.stringify(payload)));
+    var importedName = normalizeThemePayload(payload).name;
+    var fuzzyKey = chartPresetKey({ styleExpr: 'cssSafe(' + JSON.stringify(chartPresetCss('theme-standard-light') + '; --sui-chart-extra-check: 1') + ')' });
+    newSui();
+    await wait(80);
+    addEl('chart');
+    await wait(200);
+    var chartNode = byPath(selPath, root.children);
+    var chartPayload = JSON.parse(JSON.stringify(payload));
+    chartPayload.charts = { chart: { chartTheme: 'light', styleExpr: chartPresetStyleExpr('theme-standard-light') }, graph: null };
+    applyImportedThemeObject(chartPayload);
+    var chartReapplied = !!chartNode && chartNode.chartTheme === 'light' && chartNode.styleExpr === chartPayload.charts.chart.styleExpr;
     var invalidRejected = false;
     try {
       normalizeThemePayload({ format: 'simpleui-theme', version: 1, page: { 'color': 'red' } });
@@ -253,6 +272,9 @@ const themeE2EScript = `<script>
       mediaRadius: light.imgRadius !== '',
       themePresetCount: themePresets.length === STYLE_VARIANT_DEFS.length && themePresets.length >= 24,
       themePresetRoundtrip: roundtrip,
+      themePresetFuzzy: fuzzyKey === 'theme-standard-light',
+      importReappliesCharts: chartReapplied,
+      themeName: importedName === 'QA theme',
       exportPayload: !!(payload.page && payload.page['--sui-bg'] && payload.components && payload.tooltip && payload.charts),
       importRejectsUnknownKey: invalidRejected,
       importRejectsUnknownVariable: unknownRejected,
@@ -266,6 +288,226 @@ const themeE2EScript = `<script>
     result(true, '');
   } catch (e) {
     result(false, (e && (e.stack || e.message)) || String(e));
+  }
+})();
+</script>`
+
+// TestGuiThemeScreenshotGolden captures a deterministic palette grid for the
+// Standard Light and Dark themes and compares it with checked-in golden PNGs.
+// The grid uses solid theme colours only (no text or animation), so the result
+// is stable across machines. Set SUI_UPDATE_THEME_GOLDEN=1 to regenerate.
+func TestGuiThemeScreenshotGolden(t *testing.T) {
+	browser := findHeadlessBrowser()
+	if browser == "" {
+		t.Skip("no Chrome/Edge found; skipping theme screenshot test")
+	}
+
+	themes := []string{"standard-light", "standard-dark"}
+	pages := map[string]string{}
+	for _, id := range themes {
+		script := strings.ReplaceAll(themeShotScriptTemplate, "__THEME__", id)
+		page := strings.Replace(guiHTML, "</body>", script+"</body>", 1)
+		if page == guiHTML {
+			t.Fatal("designer page has no closing body")
+		}
+		pages[id] = page
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+
+	var lastHTML string
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /__gui__/current", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"sui":`+StringifyJson(JStr(themeE2ESource))+`}`)
+	})
+	mux.HandleFunc("POST /__gui__/render", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		ok, html, msgs := renderSui(r.PostFormValue("sui"))
+		if ok {
+			lastHTML = html
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true}`)
+			return
+		}
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"diagnostics":`+StringifyJson(msgs)+`}`)
+	})
+	mux.HandleFunc("POST /__gui__/open", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		model, msgs, ok := guiOpen(r.PostFormValue("sui"))
+		if !ok {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"diagnostics":`+StringifyJson(msgs)+`}`)
+			return
+		}
+		body := StringifyJson(model)
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,`+body[1:])
+	})
+	mux.HandleFunc("GET /__gui__/preview", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "text/html; charset=utf-8", lastHTML)
+	})
+	for _, id := range themes {
+		theme := id
+		mux.HandleFunc("GET /"+theme, func(w http.ResponseWriter, r *http.Request) {
+			writeRawHandler(w, "text/html; charset=utf-8", pages[theme])
+		})
+	}
+	go func() { _ = http.Serve(ln, mux) }()
+
+	baseURL := "http://" + ln.Addr().String() + "/"
+	time.Sleep(50 * time.Millisecond)
+
+	goldenDir := filepath.Join("testdata", "theme_golden")
+	update := os.Getenv("SUI_UPDATE_THEME_GOLDEN") == "1"
+	if update {
+		if err := os.MkdirAll(goldenDir, 0o755); err != nil {
+			t.Fatalf("create golden dir: %v", err)
+		}
+	}
+
+	for _, id := range themes {
+		actual := filepath.Join(t.TempDir(), id+".png")
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		args := []string{
+			"--headless=new",
+			"--disable-gpu",
+			"--no-sandbox",
+			"--disable-dev-shm-usage",
+			"--no-first-run",
+			"--no-default-browser-check",
+			"--user-data-dir=" + t.TempDir(),
+			"--force-device-scale-factor=1",
+			"--force-color-profile=srgb",
+			"--hide-scrollbars",
+			"--window-size=480,320",
+			"--virtual-time-budget=20000",
+			"--screenshot=" + actual,
+			baseURL + id,
+		}
+		out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
+		cancel()
+		if err != nil {
+			t.Fatalf("%s: headless screenshot failed: %v\n%s", id, err, string(out))
+		}
+		got, err := os.ReadFile(actual)
+		if err != nil {
+			t.Fatalf("%s: screenshot was not written: %v\n%s", id, err, string(out))
+		}
+		golden := filepath.Join(goldenDir, id+".png")
+		if update {
+			if err := os.WriteFile(golden, got, 0o644); err != nil {
+				t.Fatalf("%s: write golden: %v", id, err)
+			}
+			continue
+		}
+		want, err := os.ReadFile(golden)
+		if err != nil {
+			t.Fatalf("%s: golden %s missing; run with SUI_UPDATE_THEME_GOLDEN=1", id, golden)
+		}
+		compareThemePNG(t, id, golden, want, got)
+	}
+}
+
+// compareThemePNG allows tiny antialiasing/color-profile differences while
+// still catching real theme regressions.
+func compareThemePNG(t *testing.T, name, goldenPath string, want, got []byte) {
+	t.Helper()
+	wantImg, err := png.Decode(bytes.NewReader(want))
+	if err != nil {
+		t.Fatalf("%s: decode golden: %v", name, err)
+	}
+	gotImg, err := png.Decode(bytes.NewReader(got))
+	if err != nil {
+		t.Fatalf("%s: decode screenshot: %v", name, err)
+	}
+	wb, gb := wantImg.Bounds(), gotImg.Bounds()
+	if wb != gb {
+		t.Fatalf("%s: screenshot size %v, golden size %v", name, gb, wb)
+	}
+	const channelTolerance = 4
+	diff := 0
+	for y := wb.Min.Y; y < wb.Max.Y; y++ {
+		for x := wb.Min.X; x < wb.Max.X; x++ {
+			r1, g1, b1, a1 := wantImg.At(x, y).RGBA()
+			r2, g2, b2, a2 := gotImg.At(x, y).RGBA()
+			d := absInt(int(r1>>8) - int(r2>>8))
+			if v := absInt(int(g1>>8) - int(g2>>8)); v > d {
+				d = v
+			}
+			if v := absInt(int(b1>>8) - int(b2>>8)); v > d {
+				d = v
+			}
+			if v := absInt(int(a1>>8) - int(a2>>8)); v > d {
+				d = v
+			}
+			if d > channelTolerance {
+				diff++
+			}
+		}
+	}
+	limit := (wb.Dx() * wb.Dy()) / 200 // 0.5% of pixels
+	if diff > limit {
+		t.Fatalf("%s: %d pixels differ from %s (limit %d)", name, diff, goldenPath, limit)
+	}
+}
+
+func absInt(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
+const themeShotScriptTemplate = `<script>
+(async function () {
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  function previewDoc() {
+    var f = document.getElementById('prev');
+    return f && f.contentDocument ? f.contentDocument : null;
+  }
+  async function waitPreview() {
+    for (var i = 0; i < 160; i++) {
+      var doc = previewDoc();
+      if (doc && doc.querySelector('.sui-view')) return doc;
+      await wait(100);
+    }
+    return null;
+  }
+  try {
+    for (var i = 0; i < 160 && !document.getElementById('projprefs-list'); i++) await wait(100);
+    await wait(300);
+    openProjectPreferences();
+    await wait(120);
+    var sel = document.getElementById('projprefs-theme');
+    sel.value = '__THEME__';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(900);
+    closeProjectPreferences();
+    var doc = await waitPreview();
+    if (!doc) throw new Error('preview missing');
+    var cs = doc.defaultView.getComputedStyle(doc.documentElement);
+    var names = [
+      '--sui-bg', '--sui-fg', '--sui-panel', '--sui-panel2', '--sui-border', '--sui-accent',
+      '--sui-hover', '--sui-table-hover-bg', '--sui-tooltip-bg', '--sui-tooltip-fg',
+      '--sui-media-bg', '--sui-divider-hover-color'
+    ];
+    var values = names.map(function (n) { return String(cs.getPropertyValue(n) || '').trim(); });
+    document.documentElement.style.cssText = 'margin:0;padding:0;background:#000;';
+    document.body.innerHTML = '';
+    document.body.style.cssText = 'margin:0;padding:0;overflow:hidden;background:#000;';
+    var grid = document.createElement('div');
+    grid.style.cssText = 'position:fixed;inset:0;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(2,1fr);';
+    values.forEach(function (v) {
+      var cell = document.createElement('div');
+      cell.style.cssText = 'background:' + (v || 'transparent') + ';';
+      grid.appendChild(cell);
+    });
+    document.body.appendChild(grid);
+    document.title = 'THEME_SHOT_READY';
+  } catch (e) {
+    document.title = 'THEME_SHOT_FAIL';
+    document.body.textContent = '';
   }
 })();
 </script>`

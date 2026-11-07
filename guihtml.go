@@ -487,6 +487,9 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #projprefs-theme-row { display:flex; align-items:center; gap:10px; padding:0 20px 8px; }
 #projprefs-theme-row label { font-size:12px; color:var(--muted); min-width:48px; }
 #projprefs-theme-row select { min-width:280px; max-width:100%; }
+#projprefs-theme-name-row { display:flex; align-items:center; gap:10px; padding:0 20px 8px; }
+#projprefs-theme-name-row label { font-size:12px; color:var(--muted); min-width:48px; }
+#projprefs-theme-name-row input { flex:0 1 360px; min-width:180px; }
 #projprefs-tabs { padding:0 20px; }
 .pp-groups { display:block; }
 .pp-groups.single { display:block; }
@@ -1254,6 +1257,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       <button class="btn" type="button" onclick="exportProjectTheme()">Export theme</button>
       <button class="btn" type="button" onclick="requestProjectThemeImport()">Import theme</button>
       <input type="file" id="projprefs-theme-file" accept=".json,application/json" style="display:none" onchange="handleProjectThemeFile(this)">
+    </div>
+    <div id="projprefs-theme-name-row">
+      <label for="projprefs-theme-name">Name</label>
+      <input type="text" id="projprefs-theme-name" maxlength="80" value="SimpleUI theme" placeholder="Theme name">
     </div>
     <div class="pref-tabs" id="projprefs-tabs" role="tablist"></div>
     <div class="pref-body"><div id="projprefs-list"></div></div>
@@ -4974,12 +4981,38 @@ function chartPresetStyleExpr(key) {
   var css = chartPresetCss(key);
   return "cssSafe(" + JSON.stringify(css) + ")";
 }
+function chartStyleDeclMap(css) {
+  var out = {};
+  String(css || "").split(";").forEach(function(part){
+    var i = part.indexOf(":");
+    if (i < 0) return;
+    var k = part.slice(0, i).trim();
+    var v = part.slice(i + 1).trim();
+    if (k) out[k] = v;
+  });
+  return out;
+}
 function chartPresetKey(n) {
   var cur = n && n.styleExpr ? String(n.styleExpr) : "";
   for (var i = 0; i < CHART_STYLE_PRESETS.length; i++) {
     if (cur === chartPresetStyleExpr(CHART_STYLE_PRESETS[i].key)) return CHART_STYLE_PRESETS[i].key;
   }
-  return "custom";
+  var css = chartStyleCss(n);
+  if (css === null) return "custom";
+  var curMap = chartStyleDeclMap(css);
+  var best = "custom", bestCount = 0;
+  for (var p = 0; p < CHART_STYLE_PRESETS.length; p++) {
+    var preset = CHART_STYLE_PRESETS[p];
+    var pMap = chartStyleDeclMap(preset.css);
+    var keys = Object.keys(pMap);
+    if (!keys.length || keys.length <= bestCount) continue;
+    var ok = true;
+    for (var k = 0; k < keys.length; k++) {
+      if (curMap[keys[k]] !== pMap[keys[k]]) { ok = false; break; }
+    }
+    if (ok) { best = preset.key; bestCount = keys.length; }
+  }
+  return best;
 }
 function appendChartPresetOptions(sel, current) {
   var classic = [], themes = [];
@@ -11898,7 +11931,8 @@ function applyChartProjectDefaultsToNodes(kind, defs) {
       if (n.children) walk(n.children);
     });
   }
-  walk(root.children || []);
+  if (root && root.pages && root.pages.length) root.pages.forEach(function(p){ walk(p.children || []); });
+  else walk((root && root.children) || []);
 }
 function showChartSettingsTab(name) {
   document.querySelectorAll(".cset-tab").forEach(function(b) { b.classList.toggle("on", b.getAttribute("data-cset") === name); });
@@ -14989,6 +15023,8 @@ function applyProjectTheme(id) {
   writeComponentVars(vars);
   applyTooltipTheme(v);
   COMPONENT_DEFS.forEach(function(def){ ensureComponentRules(def); });
+  var themeName = document.getElementById("projprefs-theme-name");
+  if (themeName) themeName.value = v.label;
   setOut(); autoPreview(); scheduleCssSync();
   setComponentPreviewTheme(v.mode);
   renderProjectPreferences();
@@ -15011,10 +15047,12 @@ function buildProjectThemePayload() {
   var page = {}, components = {};
   PAGE_KEYS.forEach(function(k){ if (vars[k] !== undefined) page[k] = vars[k]; });
   Object.keys(vars).forEach(function(k){ if (PAGE_KEYS.indexOf(k) < 0) components[k] = vars[k]; });
+  var nameInput = document.getElementById("projprefs-theme-name");
+  var name = nameInput && nameInput.value ? String(nameInput.value).trim() : "";
   return {
     format: "simpleui-theme",
     version: 1,
-    name: "SimpleUI project theme",
+    name: name.slice(0, 80) || "SimpleUI project theme",
     page: page,
     components: components,
     tooltip: projectThemeTooltipValues(),
@@ -15088,7 +15126,12 @@ function normalizeThemePayload(raw) {
       charts[kind] = clean;
     });
   }
-  return { page: page, components: components, tooltip: tooltip, charts: charts };
+  var name = "Imported theme";
+  if (raw.name !== undefined) {
+    if (typeof raw.name !== "string" || raw.name.length > 80 || /[\r\n<>]/.test(raw.name)) throw new Error("invalid theme name");
+    name = raw.name.trim().slice(0, 80) || "Imported theme";
+  }
+  return { name: name, page: page, components: components, tooltip: tooltip, charts: charts };
 }
 function applyImportedThemeObject(raw) {
   var data = normalizeThemePayload(raw);
@@ -15100,7 +15143,13 @@ function applyImportedThemeObject(raw) {
   writeComponentVars(vars);
   COMPONENT_DEFS.forEach(function(def){ ensureComponentRules(def); });
   if (data.tooltip) writeTooltipSettings(data.tooltip);
-  if (data.charts) saveChartProjectDefaults(data.charts);
+  if (data.charts) {
+    saveChartProjectDefaults(data.charts);
+    if (data.charts.chart) applyChartProjectDefaultsToNodes("chart", data.charts.chart);
+    if (data.charts.graph) applyChartProjectDefaultsToNodes("graph", data.charts.graph);
+  }
+  var nameInput = document.getElementById("projprefs-theme-name");
+  if (nameInput) nameInput.value = data.name;
   setOut(); autoPreview(); scheduleCssSync();
   renderProjectPreferences();
   setStatus("theme imported");
@@ -15112,7 +15161,8 @@ function exportProjectTheme() {
   var blob = new Blob([text], { type: "application/json" });
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
-  a.href = url; a.download = "simpleui-theme.json";
+  var base = String(payload.name || "simpleui-theme").replace(/[^\w .-]+/g, "-").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^[-.]+|[-.]+$/g, "");
+  a.href = url; a.download = (base || "simpleui-theme") + ".json";
   document.body.appendChild(a);
   a.click();
   a.remove();

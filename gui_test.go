@@ -455,6 +455,8 @@ func TestGuiChartThemePresetsAndThemeIO(t *testing.T) {
 	for _, want := range []string{
 		`function chartThemePresetForVariant(v)`,
 		`CHART_STYLE_PRESETS.push(chartThemePresetForVariant(v));`,
+		`function chartStyleDeclMap(css)`,
+		`if (curMap[keys[k]] !== pMap[keys[k]])`,
 		`function appendChartPresetOptions(sel, current)`,
 		`function syncChartSettingsPresetFields(key)`,
 		`preset.onchange = function(){ syncChartSettingsPresetFields(preset.value); };`,
@@ -469,6 +471,9 @@ func TestGuiChartThemePresetsAndThemeIO(t *testing.T) {
 		`onclick="exportProjectTheme()"`,
 		`onclick="requestProjectThemeImport()"`,
 		`id="projprefs-theme-file"`,
+		`id="projprefs-theme-name"`,
+		`applyChartProjectDefaultsToNodes("chart", data.charts.chart)`,
+		`invalid theme name`,
 		`simpleui-theme`,
 		`function validThemeCssValue(v)`,
 		`CHART_PROJECT_DEFAULT_KEYS.forEach`,

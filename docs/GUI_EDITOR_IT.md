@@ -241,7 +241,10 @@ i gruppi di cattura come `$1`.
 Quick Fix propone azioni per il diagnostico sotto il cursore, tra cui dichiarare
 uno stato mancante, definire un handler/funzione mancante e rendere `async` la
 funzione che contiene la chiamata. I diagnostici restano cliccabili nel pannello
-Problems.
+Problems. L'analisi CSS filtra il rumore generato: classi runtime (`sui-*`,
+`suitbl` e classi di stato), passi delle keyframe, blocchi `:root` stratificati e
+regole hover/focus/checked o pseudo-elementi non vengono segnalati come
+problemi. Le classi dell'autore realmente inutilizzate restano elencate.
 
 ### Status bar
 
@@ -401,10 +404,13 @@ stile chiaro sia la pagina sia i controlli.
 **Export theme** nelle preferenze di progetto scarica un file
 `simpleui-theme.json` con la palette della pagina, tutti i default dei
 componenti, le impostazioni dei tooltip e i default di progetto di chart e
-graph. **Import theme** ricarica quel file dopo una validazione rigorosa: campi
+graph. Il campo **Name** imposta il nome del tema e del file scaricato.
+**Import theme** ricarica quel file dopo una validazione rigorosa: campi
 sconosciuti, nomi di custom property non validi e valori CSS che potrebbero
 aggiungere dichiarazioni o regole vengono rifiutati. L'import sostituisce il tema
-corrente e aggiorna la preview; l'undo ripristina i valori precedenti.
+corrente, riapplica i default chart/graph importati ai chart e graph gia
+esistenti, ripristina il nome del tema e aggiorna la preview; l'undo ripristina i
+valori precedenti.
 
 ### Scrollbar
 
@@ -1537,7 +1543,10 @@ dell'elemento (sezione **Appearance**). I preset **Classic** sono **Default**,
 famiglia di stile condivisa, in variante **Light** e **Dark** (Standard, Sketch,
 Wireframe, Terminal, Glassmorphism, Brutalist, Blueprint, Neumorphic, High
 contrast, Editorial, Cyberpunk e Geometric). Scegliendo **Custom**
-l'espressione resta invariata e si puo modificare direttamente.
+l'espressione resta invariata e si puo modificare direttamente. Il nome del
+preset selezionato resta visibile dopo **Apply**, perche il pannello riconosce
+un preset anche quando tooltip e tabella aggiungono override alla sua style
+expression.
 
 Un grafico in modalita espressione e reattivo: cambiando lo stato collegato
 viene ridisegnato. Dati non validi o vuoti mostrano un messaggio testuale dentro
