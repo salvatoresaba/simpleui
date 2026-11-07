@@ -1172,6 +1172,7 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
   padding: var(--sui-chart-tooltip-padding, 6px 8px);
   font-family: var(--sui-chart-tooltip-font-family, system-ui, sans-serif);
   font-size: var(--sui-chart-tooltip-font-size, 11px);
+  text-align: var(--sui-chart-tooltip-text-align, left);
   line-height: 1.4; white-space: pre-line;
   box-shadow: var(--sui-chart-tooltip-shadow, 0 6px 18px rgba(0,0,0,.35));
 }

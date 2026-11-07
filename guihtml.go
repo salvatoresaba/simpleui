@@ -555,6 +555,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #chintscfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:780px; max-width:94vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #chintscfgbox h2 { font-size:15px; margin:0 0 8px; }
 #chintscfgbox .pfrow input[type=text], #chintscfgbox .pfrow input[type=number] { flex:1; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
+#chintscfgbox .pfrow select { flex:1; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
 #chintscfgbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; }
 #chints-groups { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; align-items:start; }
 .chints-group { min-width:0; padding:8px 10px 10px; border:1px solid var(--border2); border-radius:10px; background:rgba(148,163,184,.045); }
@@ -768,6 +769,26 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   position:absolute; right:0; bottom:0; width:18px; height:18px; cursor:nwse-resize; z-index:3;
   background:linear-gradient(135deg, transparent 0 44%, var(--border2) 44% 54%, transparent 54% 68%, var(--border2) 68% 78%, transparent 78%);
 }
+#treedata { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:14; }
+#treedata.on { display:flex; }
+#treedatabox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:780px; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 14px 50px rgba(0,0,0,.6); overflow:hidden; }
+#treedata .pref-head { padding:10px 14px; }
+#treedata .td-hint { padding:0 14px 8px; }
+#treedata .td-body { padding:0 14px; display:flex; flex-direction:column; gap:8px; min-height:0; }
+#treedata .td-toolbar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+#treedata .td-toolbar .hint { margin-left:auto; }
+#treedata-rows { flex:1; min-height:220px; max-height:55vh; overflow:auto; border:1px solid var(--border); border-radius:8px; background:var(--panel); }
+.td-row { display:flex; align-items:center; gap:6px; padding:4px 6px; border-bottom:1px solid var(--border); }
+.td-row:last-child { border-bottom:0; }
+.td-row .td-indent { flex:none; width:0; }
+.td-row input[type=text] { background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:4px 6px; font-size:12px; min-width:0; }
+.td-row .td-label { flex:1; }
+.td-row .td-key { width:120px; }
+.td-row .td-check { display:flex; align-items:center; gap:3px; font-size:11px; color:var(--muted); white-space:nowrap; }
+.td-row .td-acts { display:flex; gap:3px; flex:none; }
+.td-row .td-acts button { min-width:24px; height:24px; padding:0 5px; font-size:11px; border:1px solid var(--border2); border-radius:5px; background:var(--input-bg); color:var(--fg); cursor:pointer; }
+.td-row .td-acts button:hover { border-color:var(--accent); }
+.td-empty { padding:18px; color:var(--muted); font-size:12px; text-align:center; }
 </style>
 </head>
 <body>
@@ -1053,6 +1074,31 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     </div>
     <div class="cd-resize" id="cd-resize" title="Drag to resize"></div>
     <input type="file" id="cd-fileinput" accept=".json,.xml,.csv,.txt,application/json,text/xml,text/csv,text/plain" hidden>
+  </div>
+</div>
+<div id="treedata" role="dialog" aria-modal="true" aria-labelledby="treedata-title">
+  <div id="treedatabox">
+    <div class="pref-head">
+      <h2 id="treedata-title">Tree data</h2>
+      <button class="btn" type="button" onclick="closeTreeDataEditor()" aria-label="Close tree data" title="Close">&#10005;</button>
+    </div>
+    <div class="hint td-hint">Edit labels, keys, nesting and item state. Import or export JSON/XML; Apply writes the items into this tree.</div>
+    <div class="td-body">
+      <div class="td-toolbar">
+        <button class="btn" type="button" onclick="treeDataAddRoot()">Add root item</button>
+        <button class="btn" type="button" onclick="treeDataImport('json')">Import JSON</button>
+        <button class="btn" type="button" onclick="treeDataImport('xml')">Import XML</button>
+        <button class="btn" type="button" onclick="treeDataExport('json')">Export JSON</button>
+        <button class="btn" type="button" onclick="treeDataExport('xml')">Export XML</button>
+        <span class="hint" id="treedata-count"></span>
+      </div>
+      <div id="treedata-rows"></div>
+      <div id="treedata-status" class="hint"></div>
+    </div>
+    <div class="pfbtns">
+      <button class="btn" type="button" onclick="closeTreeDataEditor()">Cancel</button>
+      <button class="btn" type="button" onclick="applyTreeDataEditor()">Apply</button>
+    </div>
   </div>
 </div>
 <div id="pref">
@@ -1366,6 +1412,7 @@ value: 12</div>
         <div class="pfrow"><label>Text color</label><input type="text" id="chints-text" placeholder="#rrggbb" oninput="updateChartHintsPreview()"></div>
         <div class="pfrow"><label>Border color</label><input type="text" id="chints-border" placeholder="#rrggbb" oninput="updateChartHintsPreview()"></div>
         <div class="pfrow"><label>Font</label><input type="text" id="chints-font" placeholder="system-ui, sans-serif" oninput="updateChartHintsPreview()"></div>
+    <div class="pfrow"><label>Text align</label><select id="chints-align" onchange="updateChartHintsPreview()"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>
       </div>
       <div class="chints-group">
         <div class="chints-group-title">Size and spacing</div>
@@ -1715,7 +1762,7 @@ var PALETTE = [
   { group: "Overlay", tags: ["modal", "modalbutton", "toast"] },
   { group: "Text", tags: ["h1", "h2", "h3", "p", "text", "hr", "blockquote", "pre"],
     subs: [ { name: "Lists", tags: ["list", "ul", "ol"] } ] },
-  { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "treeitem", "chart", "graph"],
+  { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "chart", "graph"],
     subs: [ { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] } ] },
   { group: "Tables", tags: ["table"] },
   { group: "Media", tags: ["img", "video", "audio", "iframe"] }
@@ -2118,6 +2165,7 @@ function newChartNode(skipDefaults) {
   n.chartStateHintBg = "";
   n.chartStateHintOpacity = "";
   n.chartStateHintTextColor = "";
+  n.chartStateHintTextAlign = "";
   n.chartStateHintBorderColor = "";
   n.chartStateHintFont = "";
   n.chartStateHintFontSize = "";
@@ -2616,7 +2664,7 @@ function renderNodes(children, depth, parent, path) {
     row.style.paddingLeft = (4 + depth * 12) + "px";
     row.setAttribute("data-path", p.join(","));
     bindRowEvents(row, p, node, children, i);
-    var hasChildren = !!(node.children && node.children.length);
+    var hasChildren = node.kind !== "tree" && !!(node.children && node.children.length);
     var collapsed = hasChildren && isTreeCollapsed(p);
     var twist = document.createElement("span");
     twist.className = "node twist";
@@ -2801,6 +2849,21 @@ function nodeContextActions(p, node) {
     sep();
   } else if (node.kind === "accordionitem") {
     add("Add item below", function() { insertAccordionItem(p, node); });
+    sep();
+  } else if (node.kind === "tree") {
+    add("Edit tree data...", function() { openTreeDataEditor(node); });
+    add("Tree settings...", function() { openComponentSettings(componentDefById("tree"), node); });
+    add("Add root item", function() {
+      snap("add tree item");
+      node.children = node.children || [];
+      node.children.push(newTreeItemNode("Item"));
+      setOut(); renderTree(); renderView(); renderInspector(); autoPreview();
+    });
+    sep();
+    add("Import JSON...", function() { treePickData(node, "json"); });
+    add("Import XML...", function() { treePickData(node, "xml"); });
+    add("Export JSON", function() { treeDownloadData(node, "json"); });
+    add("Export XML", function() { treeDownloadData(node, "xml"); });
     sep();
   } else if (node.kind === "menubar") {
     add("Add menu", function() { insertMenuNode(p, node, "menu"); });
@@ -4599,7 +4662,7 @@ function treePresetKey(n) {
 function treeControls(n) {
   var rows = [];
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Selecting a treeitem writes its key to value state. Editable items can be renamed with double-click or F2; the key is never changed.";
+  hint.textContent = "Edit items from Tree data. Selecting an item at runtime writes its key to value state; editable items rename with double-click or F2.";
   rows.push(hint);
   var nameRow = document.createElement("div"); nameRow.className = "rowline";
   var nameLabel = document.createElement("label"); nameLabel.textContent = "tree name"; nameRow.appendChild(nameLabel);
@@ -4609,17 +4672,29 @@ function treeControls(n) {
   var nameHint = document.createElement("div"); nameHint.className = "hint";
   nameHint.textContent = "Runtime target used by tree.importJson/importXml/exportJson/exportXml and the file helpers.";
   rows.push(nameHint);
-  var ioRow = document.createElement("div"); ioRow.className = "rowline";
-  var ioLabel = document.createElement("label"); ioLabel.textContent = "JSON/XML data"; ioRow.appendChild(ioLabel);
-  [["Import JSON", "json", 1], ["Import XML", "xml", 1], ["Export JSON", "json", 0], ["Export XML", "xml", 0]].forEach(function(cfg) {
-    var b = document.createElement("button"); b.className = "btn"; b.textContent = cfg[0]; b.style.fontSize = "10px"; b.style.padding = "2px 5px";
-    b.onclick = function() { if (cfg[2]) treePickData(n, cfg[1]); else treeDownloadData(n, cfg[1]); };
-    ioRow.appendChild(b);
-  });
-  rows.push(ioRow);
-  var ioHint = document.createElement("div"); ioHint.className = "hint";
-  ioHint.textContent = "Design-time import replaces the tree items in this source. Runtime import/export is available through the tree.* core module.";
-  rows.push(ioHint);
+  var settingsRow = document.createElement("div"); settingsRow.className = "rowline";
+  var settingsLabel = document.createElement("label"); settingsLabel.textContent = "settings"; settingsRow.appendChild(settingsLabel);
+  var settingsBtn = document.createElement("button"); settingsBtn.type = "button"; settingsBtn.className = "btn"; settingsBtn.style.fontSize = "11px";
+  settingsBtn.textContent = "Tree settings...";
+  settingsBtn.title = "Colors, shape, text, title appearance and style presets";
+  settingsBtn.onclick = function(){ openComponentSettings(componentDefById("tree"), n); };
+  settingsRow.appendChild(settingsBtn); rows.push(settingsRow);
+  var dataRow = document.createElement("div"); dataRow.className = "rowline";
+  var dataLabel = document.createElement("label"); dataLabel.textContent = "data"; dataRow.appendChild(dataLabel);
+  var dataBtn = document.createElement("button"); dataBtn.type = "button"; dataBtn.className = "btn"; dataBtn.style.fontSize = "11px";
+  dataBtn.textContent = "Edit tree data...";
+  dataBtn.title = "Add, rename, move, delete, import and export tree items";
+  dataBtn.onclick = function(){ openTreeDataEditor(n); };
+  dataRow.appendChild(dataBtn); rows.push(dataRow);
+  var tooltipRow = document.createElement("div"); tooltipRow.className = "rowline";
+  var tooltipLabel = document.createElement("label"); tooltipLabel.textContent = "tooltip"; tooltipRow.appendChild(tooltipLabel);
+  var tooltipBtn = document.createElement("button"); tooltipBtn.type = "button"; tooltipBtn.className = "btn"; tooltipBtn.style.fontSize = "11px";
+  tooltipBtn.textContent = "Tooltip settings...";
+  tooltipBtn.onclick = function(){ openTooltipCfg(); };
+  tooltipRow.appendChild(tooltipBtn); rows.push(tooltipRow);
+  var dataHint = document.createElement("div"); dataHint.className = "hint";
+  dataHint.textContent = "Edit data opens the tree item editor with JSON/XML import and export. Settings controls colors, shapes, text, title appearance and presets.";
+  rows.push(dataHint);
   function stateField(label, value, placeholder, key) {
     var r = document.createElement("div"); r.className = "rowline";
     var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
@@ -4771,21 +4846,25 @@ function treeDataFromXml(text) {
   }
   return raw;
 }
+function treeNodesFromText(fmt, text) {
+  var raw;
+  if (fmt === "xml") raw = treeDataFromXml(text);
+  else {
+    var data = JSON.parse(text);
+    raw = treeDataRoot(data);
+  }
+  var ctx = { count: 0 };
+  var nodes = [];
+  for (var i = 0; i < raw.length; i++) nodes.push(treeDataModel(raw[i], String(i), 0, ctx));
+  return { nodes: nodes, count: ctx.count };
+}
 function treeImportData(n, fmt, text) {
   try {
-    var raw;
-    if (fmt === "xml") raw = treeDataFromXml(text);
-    else {
-      var data = JSON.parse(text);
-      raw = treeDataRoot(data);
-    }
-    var ctx = { count: 0 };
-    var nodes = [];
-    for (var i = 0; i < raw.length; i++) nodes.push(treeDataModel(raw[i], String(i), 0, ctx));
+    var parsed = treeNodesFromText(fmt, text);
     snap("import tree " + fmt);
-    n.children = nodes;
+    n.children = parsed.nodes;
     setOut(); renderTree(); renderView(); renderInspector(); autoPreview();
-    setStatus("imported " + ctx.count + " tree nodes from " + fmt.toUpperCase());
+    setStatus("imported " + parsed.count + " tree nodes from " + fmt.toUpperCase());
   } catch (e) {
     showMsg("Tree import failed", (e && e.message) ? e.message : String(e));
   }
@@ -4865,7 +4944,173 @@ function treeDownloadData(n, fmt) {
     showMsg("Tree export failed", String(e));
   }
 }
-var TREE_ITEM_STYLE_PRESETS = [
+var treeDataEditorNode = null;
+var treeDataDraft = [];
+function treeDataCountItems(nodes) {
+  var count = 0;
+  (nodes || []).forEach(function(item){ count += 1 + treeDataCountItems(item.children || []); });
+  return count;
+}
+function treeDataStatus(text, cls) {
+  var el = document.getElementById("treedata-status");
+  if (!el) return;
+  el.textContent = text || "";
+  el.className = "hint" + (cls ? " " + cls : "");
+}
+function renderTreeDataRows() {
+  var box = document.getElementById("treedata-rows");
+  if (!box) return;
+  box.textContent = "";
+  var total = treeDataCountItems(treeDataDraft);
+  var count = document.getElementById("treedata-count");
+  if (count) count.textContent = total + " item" + (total === 1 ? "" : "s");
+  if (!treeDataDraft.length) {
+    var empty = document.createElement("div");
+    empty.className = "td-empty";
+    empty.textContent = "No items. Add a root item or import JSON/XML.";
+    box.appendChild(empty);
+    return;
+  }
+  function row(item, parent, index, depth) {
+    var r = document.createElement("div");
+    r.className = "td-row";
+    var indent = document.createElement("span");
+    indent.className = "td-indent";
+    indent.style.width = (depth * 18) + "px";
+    r.appendChild(indent);
+    var label = document.createElement("input");
+    label.type = "text";
+    label.className = "td-label";
+    label.value = item.text || "";
+    label.placeholder = "label";
+    label.oninput = function(){ item.text = label.value; };
+    r.appendChild(label);
+    var key = document.createElement("input");
+    key.type = "text";
+    key.className = "td-key";
+    key.value = item.key || "";
+    key.placeholder = "key (optional)";
+    key.oninput = function(){ item.key = key.value; };
+    r.appendChild(key);
+    if (item.children && item.children.length) {
+      var openLabel = document.createElement("label");
+      openLabel.className = "td-check";
+      var open = document.createElement("input");
+      open.type = "checkbox";
+      open.checked = !!item.open;
+      open.onchange = function(){ item.open = open.checked; };
+      openLabel.appendChild(open);
+      openLabel.appendChild(document.createTextNode("open"));
+      r.appendChild(openLabel);
+    }
+    var editLabel = document.createElement("label");
+    editLabel.className = "td-check";
+    var edit = document.createElement("input");
+    edit.type = "checkbox";
+    edit.checked = item.editable === true;
+    edit.onchange = function(){ item.editable = edit.checked; };
+    editLabel.appendChild(edit);
+    editLabel.appendChild(document.createTextNode("edit"));
+    r.appendChild(editLabel);
+    var acts = document.createElement("span");
+    acts.className = "td-acts";
+    function act(text, title, fn) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = text;
+      b.title = title;
+      b.onclick = fn;
+      acts.appendChild(b);
+    }
+    act("+", "Add child item", function(){
+      item.children = item.children || [];
+      item.children.push(newTreeItemNode("Item"));
+      renderTreeDataRows();
+    });
+    act("\u21b3", "Add sibling after this item", function(){
+      parent.splice(index + 1, 0, newTreeItemNode("Item"));
+      renderTreeDataRows();
+    });
+    act("\u2191", "Move up", function(){
+      if (index <= 0) return;
+      var tmp = parent[index - 1]; parent[index - 1] = parent[index]; parent[index] = tmp;
+      renderTreeDataRows();
+    });
+    act("\u2193", "Move down", function(){
+      if (index >= parent.length - 1) return;
+      var tmp = parent[index + 1]; parent[index + 1] = parent[index]; parent[index] = tmp;
+      renderTreeDataRows();
+    });
+    act("\u00d7", "Delete item and children", function(){
+      parent.splice(index, 1);
+      renderTreeDataRows();
+    });
+    r.appendChild(acts);
+    box.appendChild(r);
+    (item.children || []).forEach(function(child, i){ row(child, item.children, i, depth + 1); });
+  }
+  treeDataDraft.forEach(function(item, i){ row(item, treeDataDraft, i, 0); });
+}
+function openTreeDataEditor(n) {
+  if (!n || n.kind !== "tree") return;
+  treeDataEditorNode = n;
+  try { treeDataDraft = JSON.parse(JSON.stringify(n.children || [])); } catch (e) { treeDataDraft = []; }
+  renderTreeDataRows();
+  treeDataStatus("Edit labels, keys and nesting, then Apply.");
+  document.getElementById("treedata").classList.add("on");
+}
+function closeTreeDataEditor() {
+  document.getElementById("treedata").classList.remove("on");
+  treeDataEditorNode = null;
+  treeDataDraft = [];
+}
+function treeDataAddRoot() {
+  treeDataDraft.push(newTreeItemNode("Item"));
+  renderTreeDataRows();
+}
+function treeDataImport(fmt) {
+  var inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = fmt === "xml" ? ".xml,application/xml,text/xml" : ".json,application/json";
+  inp.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0";
+  inp.onchange = function() {
+    var f = inp.files && inp.files[0];
+    if (!f) { if (inp.parentNode) inp.parentNode.removeChild(inp); return; }
+    var r = new FileReader();
+    r.onload = function() {
+      try {
+        var parsed = treeNodesFromText(fmt, String(r.result || ""));
+        treeDataDraft = parsed.nodes;
+        renderTreeDataRows();
+        treeDataStatus("Imported " + parsed.count + " items from " + fmt.toUpperCase() + ".");
+      } catch (e) {
+        treeDataStatus("Import failed: " + (e && e.message ? e.message : e), "err");
+      }
+    };
+    r.onerror = function(){ treeDataStatus("Cannot read the selected file.", "err"); };
+    r.readAsText(f);
+    if (inp.parentNode) inp.parentNode.removeChild(inp);
+  };
+  document.body.appendChild(inp);
+  inp.click();
+}
+function treeDataExport(fmt) {
+  if (!treeDataEditorNode) return;
+  treeDownloadData({ children: treeDataDraft, name: treeDataEditorNode.name, text: treeDataEditorNode.text }, fmt);
+}
+function applyTreeDataEditor() {
+  var n = treeDataEditorNode;
+  if (!n) return;
+  snap("edit tree data");
+  n.children = treeDataDraft;
+  closeTreeDataEditor();
+  setOut();
+  renderTree();
+  renderView();
+  renderInspector();
+  autoPreview();
+  setStatus("tree data updated");
+}var TREE_ITEM_STYLE_PRESETS = [
   { key: "inherit", label: "Inherit tree style", css: "" },
   { key: "muted", label: "Muted", css: "--sui-tree-row-bg: #1b2130; --sui-tree-selected-bg: #334155; --sui-tree-selected-fg: #e2e8f0;" },
   { key: "accent", label: "Accent", css: "--sui-tree-hover-bg: #26346b; --sui-tree-selected-bg: #4c5cf7; --sui-tree-selected-fg: #ffffff;" },
@@ -9489,6 +9734,7 @@ function attrsOf(n) {
   a += chartParamAttr(n, "stateHintBg", "chartStateHintBg", n.chartStateHintBg, "", true);
   a += chartParamAttr(n, "stateHintOpacity", "chartStateHintOpacity", n.chartStateHintOpacity, "", true);
   a += chartParamAttr(n, "stateHintTextColor", "chartStateHintTextColor", n.chartStateHintTextColor, "", true);
+  a += chartParamAttr(n, "stateHintTextAlign", "chartStateHintTextAlign", n.chartStateHintTextAlign, "", true);
   a += chartParamAttr(n, "stateHintBorderColor", "chartStateHintBorderColor", n.chartStateHintBorderColor, "", true);
   a += chartParamAttr(n, "stateHintFont", "chartStateHintFont", n.chartStateHintFont, "", true);
   a += chartParamAttr(n, "stateHintFontSize", "chartStateHintFontSize", n.chartStateHintFontSize, "", true);
@@ -11396,6 +11642,8 @@ function updateChartHintsPreview() {
   var fg = chartHintsPreviewColor(document.getElementById("chints-text").value, 1, "#e6e6e6");
   var border = chartHintsPreviewColor(document.getElementById("chints-border").value, 1, "#3d4556");
   var font = chartHintsColor(document.getElementById("chints-font").value, "system-ui, sans-serif");
+  var align = document.getElementById("chints-align") ? document.getElementById("chints-align").value : "left";
+  if (["left", "center", "right"].indexOf(align) < 0) align = "left";
   var size = Number(document.getElementById("chints-fontsize").value);
   if (!isFinite(size) || size < 8) size = 11;
   var bw = Number(document.getElementById("chints-borderwidth").value);
@@ -11412,6 +11660,7 @@ function updateChartHintsPreview() {
   el.style.borderRadius = radius + "px";
   el.style.fontFamily = font;
   el.style.fontSize = size + "px";
+  el.style.textAlign = align;
   el.style.opacity = document.getElementById("chints-enabled").checked ? "1" : ".45";
   el.textContent = "Process\nRUNNING";
 }
@@ -11433,6 +11682,7 @@ function openChartHintsCfg(n) {
   document.getElementById("chints-text").value = node.chartStateHintTextColor || "";
   document.getElementById("chints-border").value = node.chartStateHintBorderColor || "";
   document.getElementById("chints-font").value = node.chartStateHintFont || "";
+  document.getElementById("chints-align").value = ["left", "center", "right"].indexOf(node.chartStateHintTextAlign) >= 0 ? node.chartStateHintTextAlign : "left";
   document.getElementById("chints-fontsize").value = node.chartStateHintFontSize || "";
   document.getElementById("chints-borderwidth").value = node.chartStateHintBorderWidth || "";
   document.getElementById("chints-padding").value = node.chartStateHintPadding || "";
@@ -11465,6 +11715,7 @@ function applyChartHintsCfg() {
     n.chartStateHintBg = "";
     n.chartStateHintOpacity = "";
     n.chartStateHintTextColor = "";
+    n.chartStateHintTextAlign = "";
     n.chartStateHintBorderColor = "";
     n.chartStateHintFont = "";
     n.chartStateHintFontSize = "";
@@ -11475,6 +11726,7 @@ function applyChartHintsCfg() {
     n.chartStateHintBg = document.getElementById("chints-bg").value || "";
     n.chartStateHintOpacity = String(Number(document.getElementById("chints-opacity").value));
     n.chartStateHintTextColor = chartHintsField("chints-text");
+    n.chartStateHintTextAlign = document.getElementById("chints-align").value || "";
     n.chartStateHintBorderColor = chartHintsField("chints-border");
     n.chartStateHintFont = chartHintsField("chints-font");
     n.chartStateHintFontSize = chartHintsField("chints-fontsize");
@@ -11495,6 +11747,7 @@ function resetChartHintsCfg() {
     document.getElementById(id).value = "";
   });
   document.getElementById("chints-fontsize").value = "11";
+  document.getElementById("chints-align").value = "left";
   document.getElementById("chints-borderwidth").value = "1";
   document.getElementById("chints-padding").value = "6";
   document.getElementById("chints-radius").value = "6";
@@ -11808,7 +12061,7 @@ var chartSettingsNode = null;
 var chartSettingsProjectKind = null;
 var CHART_PROJECT_DEFAULT_KEYS = [
   "styleExpr", "chartTheme", "chartColorPicker", "chartPointSize", "chartPointWidth", "chartInteractive",
-  "chartStateMode", "chartStateHints", "chartShowResources", "chartShowProgress",
+  "chartStateMode", "chartStateHints", "chartStateHintTextAlign", "chartShowResources", "chartShowProgress",
   "chartProgressColumn", "chartShowSlack", "chartShowCosts", "chartShowNonWorkingDays",
   "chartStatusColors", "chartAutoSchedule", "chartGanttScale", "chartLinkColor",
   "chartLinkWidth", "chartLinkGap", "chartLinkStyle", "chartArrowType", "chartArrowSize",
@@ -13073,14 +13326,32 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-row-bg", label: "Row", type: "color", def: "#1d2129" },
         { key: "--sui-tree-hover", label: "Hover", type: "color", def: "#2a3143" },
         { key: "--sui-tree-selected-bg", label: "Selected", type: "color", def: "#2a3560" },
-        { key: "--sui-tree-selected-fg", label: "Selected text", type: "color", def: "#ffffff" }
+        { key: "--sui-tree-selected-fg", label: "Selected text", type: "color", def: "#ffffff" },
+        { key: "--sui-tree-toggle-color", label: "Toggle", type: "color", def: "#94a3b8" },
+        { key: "--sui-tree-border", label: "Border", type: "color", def: "#3d4556" }
+      ]},
+      { name: "Title", fields: [
+        { key: "--sui-tree-title-size", label: "Title size", type: "number", def: 14, min: 8, max: 40, step: 1, unit: "px" },
+        { key: "--sui-tree-title-weight", label: "Title weight", type: "select", def: "600", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"], ["800", "800"]] },
+        { key: "--sui-tree-title-font", label: "Title font", type: "font", def: "inherit" },
+        { key: "--sui-tree-title-tracking", label: "Title spacing", type: "number", def: 0, min: -2, max: 10, step: 0.1, unit: "px" },
+        { key: "--sui-tree-title-align", label: "Title align", type: "select", def: "left", opts: [["Left", "left"], ["Center", "center"], ["Right", "right"]] },
+        { key: "--sui-tree-title-position", label: "Title position", type: "select", def: "top", opts: [
+          ["Top", "top", { "--sui-tree-title-order": "0", "--sui-tree-group-order": "1" }],
+          ["Bottom", "bottom", { "--sui-tree-title-order": "2", "--sui-tree-group-order": "1" }]
+        ] },
+        { key: "--sui-tree-title-padding", label: "Title padding", type: "text", def: "0 0 6px" }
       ]},
       { name: "Shape", fields: [
         { key: "--sui-tree-indent", label: "Indent", type: "number", def: 16, min: 4, max: 48, step: 1, unit: "px" },
         { key: "--sui-tree-padding", label: "Row padding", type: "text", def: "2px 5px" },
         { key: "--sui-tree-row-height", label: "Row height", type: "number", def: 28, min: 18, max: 64, step: 1, unit: "px" },
         { key: "--sui-tree-radius", label: "Radius", type: "number", def: 5, min: 0, max: 30, step: 1, unit: "px" },
+        { key: "--sui-tree-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 8, step: 1, unit: "px" },
+        { key: "--sui-tree-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },
+        { key: "--sui-tree-toggle-size", label: "Toggle size", type: "number", def: 12, min: 8, max: 24, step: 1, unit: "px" },
         { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" },
+        { key: "--sui-tree-font-weight", label: "Text weight", type: "select", def: "400", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"]] },
         { key: "--sui-tree-tracking", label: "Letter spacing", type: "number", def: 0, min: -2, max: 10, step: 0.1, unit: "px" },
         { key: "--sui-tree-font-family", label: "Font", type: "font", def: "inherit" }
       ]}
@@ -13110,7 +13381,7 @@ var COMPONENT_DEFS = [
         "--sui-tree-indent": "16px", "--sui-tree-padding": "2px 5px", "--sui-tree-row-height": "28px",
         "--sui-tree-radius": "5px", "--sui-tree-font": "13px", "--sui-tree-font-family": "inherit" } }
     ],
-    css: ".sui-tree { color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); font-family: var(--sui-tree-font-family, inherit); letter-spacing: var(--sui-tree-tracking, normal); }\n.sui-tree-title { color: var(--sui-tree-title, #e6e6ef); }\n.sui-tree-group { padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); color: var(--sui-tree-hover-fg, var(--sui-tree-fg, #e6e6ef)); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); box-shadow: inset 0 0 0 1px var(--sui-tree-selected-border, transparent); }"
+    css: ".sui-tree { display:flex; flex-direction:column; color: var(--sui-tree-fg, #e6e6ef); font-size: var(--sui-tree-font, 13px); font-family: var(--sui-tree-font-family, inherit); font-weight: var(--sui-tree-font-weight, 400); letter-spacing: var(--sui-tree-tracking, normal); background: var(--sui-tree-panel-bg, transparent); border-width: var(--sui-tree-border-width, 0); border-style: var(--sui-tree-border-style, solid); border-color: var(--sui-tree-border, #3d4556); border-radius: var(--sui-tree-panel-radius, var(--sui-tree-radius, 5px)); padding: var(--sui-tree-panel-padding, 0px); }\n.sui-tree-title { color: var(--sui-tree-title, var(--sui-tree-title-color, #e6e6ef)); font-size: var(--sui-tree-title-size, 14px); font-weight: var(--sui-tree-title-weight, 600); font-family: var(--sui-tree-title-font, inherit); letter-spacing: var(--sui-tree-title-tracking, normal); text-align: var(--sui-tree-title-align, left); padding: var(--sui-tree-title-padding, 0 0 6px); order: var(--sui-tree-title-order, 0); }\n.sui-tree-group { order: var(--sui-tree-group-order, 1); padding-left: var(--sui-tree-indent, 16px); }\n.sui-tree-toggle { color: var(--sui-tree-toggle-color, #94a3b8); font-size: var(--sui-tree-toggle-size, 12px); }\n.sui-tree-row { background: var(--sui-tree-row-bg, transparent); border-radius: var(--sui-tree-radius, 5px); padding: var(--sui-tree-padding, 2px 5px); min-height: var(--sui-tree-row-height, 28px); }\n.sui-tree-row:hover { background: var(--sui-tree-hover, #2a3143); color: var(--sui-tree-hover-fg, var(--sui-tree-fg, #e6e6ef)); }\n.sui-tree-item.selected > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76,92,247,.28)); color: var(--sui-tree-selected-fg, #fff); box-shadow: inset 0 0 0 1px var(--sui-tree-selected-border, transparent); }"
   },
   { id: "table", label: "Table", group: "Data", kinds: ["table"],
     categories: [
@@ -15329,7 +15600,9 @@ document.addEventListener("keydown", function(ev) {
   var cc = document.getElementById("compcfg");
   if (cc && cc.classList.contains("on")) { ev.preventDefault(); closeComponentSettings(); return; }
   var pp = document.getElementById("projprefs");
-  if (pp && pp.classList.contains("on")) { ev.preventDefault(); closeProjectPreferences(); }
+  if (pp && pp.classList.contains("on")) { ev.preventDefault(); closeProjectPreferences(); return; }
+  var td = document.getElementById("treedata");
+  if (td && td.classList.contains("on")) { ev.preventDefault(); closeTreeDataEditor(); }
 });
 function tooltipCssValue(name, fallback) {
   var re = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:\\s*([^;]+);");

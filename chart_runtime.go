@@ -10582,6 +10582,7 @@ const suiChartRuntime = `(function(){
     "data-sui-chart-state-hint-bg",
     "data-sui-chart-state-hint-opacity",
     "data-sui-chart-state-hint-text-color",
+    "data-sui-chart-state-hint-text-align",
     "data-sui-chart-state-hint-border-color",
     "data-sui-chart-state-hint-font",
     "data-sui-chart-state-hint-font-size",
@@ -10752,6 +10753,9 @@ const suiChartRuntime = `(function(){
     var textColor = stateHintSafeColor(attr(root, "state-hint-text-color"), "");
     if (textColor) root.style.setProperty("--sui-chart-tooltip-fg", textColor);
     else root.style.removeProperty("--sui-chart-tooltip-fg");
+    var textAlign = String(attr(root, "state-hint-text-align") || "").toLowerCase();
+    if (["left", "center", "right"].indexOf(textAlign) >= 0) root.style.setProperty("--sui-chart-tooltip-text-align", textAlign);
+    else root.style.removeProperty("--sui-chart-tooltip-text-align");
     var borderColor = stateHintSafeColor(attr(root, "state-hint-border-color"), "");
     if (borderColor) root.style.setProperty("--sui-chart-tooltip-border", borderColor);
     else root.style.removeProperty("--sui-chart-tooltip-border");
@@ -17600,6 +17604,8 @@ const suiChartRuntime = `(function(){
     for (var fi = 0; fi < fontOptions.length; fi++) if (fontOptions[fi][0] === currentFont) fontKnown = true;
     if (!fontKnown) fontOptions.push([currentFont, currentFont]);
     var fontControl = addField("Hint font", stateTagFieldSelect(fontOptions, currentFont), leftGroup);
+    var alignOptions = [["left", "Left"], ["center", "Center"], ["right", "Right"]];
+    var alignControl = addField("Text align", stateTagFieldSelect(alignOptions, hintAttr("text-align", "left")), rightGroup);
     var fontSizeControl = addField("Font size", stateTagFieldNumber(Number(hintAttr("font-size", 11)), 8, 32, 1), rightGroup);
     var borderWidthControl = addField("Border width", stateTagFieldNumber(Number(hintAttr("border-width", 1)), 0, 6, 0.5), rightGroup);
     var paddingControl = addField("Text padding", stateTagFieldNumber(Number(hintAttr("padding", 6)), 0, 24, 1), rightGroup);
@@ -17626,9 +17632,10 @@ const suiChartRuntime = `(function(){
       previewBox.style.borderRadius = Math.max(0, Number(stateTagFieldValue(radiusControl)) || 0) + "px";
       previewBox.style.fontFamily = stateTagFieldValue(fontControl);
       previewBox.style.fontSize = Math.max(8, Number(stateTagFieldValue(fontSizeControl)) || 11) + "px";
+      previewBox.style.textAlign = stateTagFieldValue(alignControl) || "left";
       previewBox.style.boxShadow = bg === "transparent" ? "none" : "0 6px 18px rgba(0,0,0,.35)";
     };
-    [bgControl, textControl, borderColorControl, fontControl, fontSizeControl, borderWidthControl, paddingControl, radiusControl].forEach(function(control) {
+    [bgControl, textControl, borderColorControl, fontControl, alignControl, fontSizeControl, borderWidthControl, paddingControl, radiusControl].forEach(function(control) {
       stateTagFieldInputs(control).forEach(function(input) { input.addEventListener("input", updatePreview); });
     });
     stateTagFieldInputs(hintsControl).forEach(function(input) {
@@ -17651,6 +17658,7 @@ const suiChartRuntime = `(function(){
       root.setAttribute("data-sui-chart-state-hint-bg", stateTagFieldValue(bgControl));
       root.setAttribute("data-sui-chart-state-hint-opacity", String(Number(bgControl.getOpacity())));
       root.setAttribute("data-sui-chart-state-hint-text-color", stateTagFieldValue(textControl));
+      root.setAttribute("data-sui-chart-state-hint-text-align", stateTagFieldValue(alignControl) || "left");
       root.setAttribute("data-sui-chart-state-hint-border-color", stateTagFieldValue(borderColorControl));
       root.setAttribute("data-sui-chart-state-hint-font", stateTagFieldValue(fontControl));
       root.setAttribute("data-sui-chart-state-hint-font-size", String(Number(stateTagFieldValue(fontSizeControl))));

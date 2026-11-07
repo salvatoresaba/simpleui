@@ -92,6 +92,25 @@ func TestTreeRender(t *testing.T) {
 	}
 }
 
+func TestTreeDesignerUX(t *testing.T) {
+	for _, want := range []string{
+		`node.kind !== "tree" && !!(node.children`,
+		`"Edit tree data..."`, `"Tree settings..."`, `openTreeDataEditor`,
+		`function treeNodesFromText`, `function treeDataAddRoot`,
+		`function treeDataImport`, `function treeDataExport`,
+		`id="treedata"`, `id="treedata-rows"`,
+		`--sui-tree-title-size`, `--sui-tree-title-position`,
+		`--sui-tree-toggle-color`, `--sui-tree-border-width`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("tree designer support missing %q", want)
+		}
+	}
+	if strings.Contains(guiHTML, `"tree", "treeitem", "chart"`) {
+		t.Errorf("treeitem must not be offered as a separate insert control")
+	}
+}
+
 func TestTreeDataAPI(t *testing.T) {
 	for _, full := range []string{
 		"tree.importJson", "tree.importXml", "tree.importJsonFile", "tree.importXmlFile",
@@ -165,7 +184,7 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 			t.Errorf("designer source missing %q:\n%s", want, src)
 		}
 	}
-	for _, want := range []string{"treeControls", "treeItemControls", "initially open", "stable item key", "editable depth", "rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "node style preset", "show rename icon", "rename icon", "tree name", "tree.importJson", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "treeitem"`, `tree: '<rect`} {
+	for _, want := range []string{"treeControls", "treeItemControls", "initially open", "stable item key", "editable depth", "rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "node style preset", "show rename icon", "rename icon", "tree name", "tree.importJson", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer tree support missing %q", want)
 		}

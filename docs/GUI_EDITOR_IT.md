@@ -1037,27 +1037,44 @@ l'[esempio combobox](../examples/combobox/README.md).
 
 ## Controllo Tree
 
-Inserire **Tree** dalla sezione **Controls** (la palette dei componenti),
-accanto agli altri controlli. Un nuovo albero parte con un elemento genitore e
-un figlio. Aggiungere nodi **Tree item** dalla stessa palette o duplicare righe
-esistenti.
+Inserire **Tree** dalla sezione **Controls**. Un nuovo albero parte con un
+elemento genitore e un figlio. **Tree item** non è più offerto nel menu Insert o
+nella palette: gli elementi si creano e modificano da **Tree data** o dal menu
+contestuale del tree. La struttura a sinistra mostra solo la riga **tree**, non
+gli item interni.
 
 L'inspector **Tree** espone:
 
 | Campo | Significato |
 |---|---|
+| settings | apre **Tree settings** (colori, forme, tipografia, titolo e preset) |
+| data | apre **Edit tree data** (etichette, key, annidamento, import/export) |
+| tooltip | apre il pannello globale dello stile tooltip |
 | tree name | target runtime per import/export del modulo core `tree`; default = titolo |
-| JSON/XML data | import/export dei tree item nel sorgente di design |
 | value state | stato stringa che riceve la key selezionata |
 | style preset | 16 preset da Default e Compact a Neon, Forest, High contrast e Cards; custom modifica style expr |
-| rename icon | simbolo matita (ad esempio `✏️`); vuoto usa `✎` |
+| rename icon | simbolo matita; vuoto usa quello predefinito |
 | show rename icon | nasconde o mostra la matita per tutto il tree |
 | editable | abilita la rinomina inline |
 | editable depth | livello massimo editabile; `0` = tutti |
 | rename key state | stato che riceve la key rinominata |
 | rename value state | stato che riceve la nuova etichetta |
 
-L'inspector **Tree item** espone:
+**Tree settings** apre il pannello componente con tab Colors, Title e Shape:
+colori di testo, titolo, riga, hover, selezione, toggle e bordo; dimensione,
+peso, font, spaziatura, allineamento e posizione alto/basso del titolo; indent,
+padding/altezza riga, raggio, bordo, dimensione toggle, dimensione/peso testo,
+letter spacing e font family. I preset con nome sono nello stesso pannello.
+
+**Edit tree data** apre un editor dedicato con una riga per elemento: etichetta,
+key opzionale, stato open/editable e azioni compatte per aggiungere figlio,
+aggiungere fratello, spostare su/giù ed eliminare. La toolbar aggiunge elementi
+radice e importa/esporta JSON o XML. **Apply** scrive gli elementi nel tree;
+Cancel non modifica il modello. Le stesse azioni sono nel menu contestuale del
+tree (**Edit tree data**, **Tree settings**, **Add root item**,
+**Import JSON/XML**, **Export JSON/XML**).
+
+Selezionando un elemento nella preview si apre ancora il pannello **Tree item**:
 
 | Campo | Significato |
 |---|---|
@@ -1068,7 +1085,6 @@ L'inspector **Tree item** espone:
 | rename icon | simbolo per nodo; vuoto eredita quello del tree |
 | editable | inherit / yes / read-only |
 | Text | etichetta visibile (sezione Content) |
-
 `onChange` e `onRename` sono disponibili in **Events**. Il sorgente generato
 mantiene i `treeitem` annidati con key, open ed editable.
 
@@ -1089,10 +1105,9 @@ Il campo **rename icon** cambia il simbolo della matita; **show rename icon** la
 nasconde. Sul tree item gli stessi campi possono ereditare, mostrare o nascondere
 l'icona per nodo. Nascondere il pulsante non disabilita F2 o doppio click.
 
-Il campo **tree name** rende il tree un target runtime. I pulsanti **JSON/XML
-data** importano/esportano i tree item nel sorgente di design: l'import
-sostituisce i figli `treeitem` del tree selezionato, l'export scarica il modello
-corrente. L'import di design non memorizza dati a runtime; per i dati
+Il campo **tree name** rende il tree un target runtime. Il pannello **Edit tree
+data** importa/esporta i tree item nel sorgente di design: l'import sostituisce
+i figli `treeitem` del tree selezionato, l'export scarica il modello corrente.L'import di design non memorizza dati a runtime; per i dati
 dell'applicazione usare il modulo core `tree` (`tree.importJson`,
 `tree.importXml`, `tree.importJsonFile`, `tree.importXmlFile`,
 `tree.exportJson`, `tree.exportXml`, `tree.downloadJson`,
@@ -1294,7 +1309,8 @@ e univoci; il designer segnala id mancanti o duplicati come errore di import.
 **Hover hints** nella tab Interactions corrisponde a `stateHints`; disattivarlo
 nasconde tutti i tooltip. Il pulsante **HINTS...** apre il pannello globale dello
 stile tooltip con due gruppi: switch/colori a sinistra e slider di
-dimensione/spaziatura a destra. Il campione dello sfondo include il proprio
+dimensione/spaziatura a destra. Include anche **Text align** (left, center,
+right) per i tooltip su più righe. Il campione dello sfondo include il proprio
 slider di opacità, quindi non serve un pulsante trasparente separato; scrive gli
 attributi chart `stateHint*`. Ogni forma/link
 accetta un campo `hint`, modificabile dalla colonna **Hint** della tabella o dal

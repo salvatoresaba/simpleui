@@ -998,26 +998,44 @@ See [API reference: combobox](API_REFERENCE.md#combobox) and the
 
 ## Tree control
 
-Insert **Tree** from **Controls** (the component palette), next to the other
-controls. A new tree starts with a parent item and a child item. Add **Tree item**
-nodes from the same palette or duplicate existing rows.
+Insert **Tree** from **Controls**. A new tree starts with a parent item and a
+child item. **Tree item** is not offered in the Insert menu or palette: items
+are created and edited from **Tree data** or the tree context menu. The element
+list shows only the **tree** row, not its internal items.
 
 The **Tree** inspector exposes:
 
 | Field | Meaning |
 |---|---|
+| settings | opens **Tree settings** (colors, shape, typography, title and presets) |
+| data | opens **Edit tree data** (labels, keys, nesting, import/export) |
+| tooltip | opens the global tooltip style panel |
 | tree name | runtime target for the core `tree` import/export functions; defaults to the title |
-| JSON/XML data | import/export the tree items in the design source |
 | value state | string state receiving the selected item key |
 | style preset | 16 tree presets from Default and Compact to Neon, Forest, High contrast and Cards; custom edits style expr |
-| rename icon | pencil glyph (for example `✏️`); empty uses `✎` |
+| rename icon | pencil glyph; empty uses the default pencil |
 | show rename icon | hide or show the pencil for the whole tree |
 | editable | enable inline rename |
 | editable depth | maximum editable level; `0` = all |
 | rename key state | state receiving the renamed node key |
 | rename value state | state receiving the new label |
 
-The **Tree item** inspector exposes:
+**Tree settings** opens the component panel with Colors, Title and Shape tabs:
+text, title, row, hover, selected, toggle and border colors; title size, weight,
+font, spacing, alignment and top/bottom position; indent, row padding/height,
+radius, border, toggle size, font size/weight, letter spacing and font family.
+Named presets are available in the same panel.
+
+**Edit tree data** opens a dedicated editor with one row per item. The row shows
+the label, an optional stable key, open/editable state and compact actions:
+add child, add sibling, move up, move down and delete. The toolbar adds root
+items and imports/exports JSON or XML. **Apply** writes the items into the tree;
+Cancel leaves the model unchanged. The same actions are available from the tree
+context menu (**Edit tree data**, **Tree settings**, **Add root item**,
+**Import JSON/XML**, **Export JSON/XML**).
+
+Selecting an item in the live preview still opens the per-node **Tree item**
+panel:
 
 | Field | Meaning |
 |---|---|
@@ -1028,7 +1046,6 @@ The **Tree item** inspector exposes:
 | rename icon | per-node glyph; empty inherits the tree icon |
 | editable | inherit / yes / read-only |
 | Text | visible item label (Content section) |
-
 `onChange` and `onRename` are available in **Events**. The generated source keeps
 nested `treeitem` children and their keys/open/editable flags.
 
@@ -1049,9 +1066,9 @@ The **rename icon** field changes the pencil glyph; **show rename icon** hides
 it. On a Tree item the same fields can inherit, show or hide the icon per node.
 Hiding the button does not disable F2 or double-click rename.
 
-The **tree name** field makes the tree a runtime target. The **JSON/XML data**
-buttons import or export the tree items in the design source: import replaces the
-selected tree's `treeitem` children, export downloads the current model.
+The **tree name** field makes the tree a runtime target. The **Edit tree data**
+panel imports or exports the tree items in the design source: import replaces
+the selected tree's `treeitem` children, export downloads the current model.
 Design-time import does not store data at runtime; use the core `tree` module
 (`tree.importJson`, `tree.importXml`, `tree.importJsonFile`,
 `tree.importXmlFile`, `tree.exportJson`, `tree.exportXml`,
@@ -1246,7 +1263,8 @@ unique; the designer reports missing or duplicate ids as an import error.
 **Hover hints** in the Interactions tab maps to `stateHints`; turn it off to hide
 all tooltips. The **HINTS...** button opens the global tooltip style panel
 with two groups: switches/colors on the left and size/spacing sliders on the
-right. The background swatch includes its own opacity slider, so no separate
+right. It also has a **Text align** option (left, center or right) for hints
+whose text spans multiple lines. The background swatch includes its own opacity slider, so no separate
 transparent button is needed; it writes the `stateHint*` chart attributes. Each
 shape/link also accepts a `hint` field, editable from the table **Hint** column
 or the context menu **Hint settings...**; use `|` for a line break and `\|` for a

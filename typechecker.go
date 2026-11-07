@@ -2979,7 +2979,7 @@ func attrAllowed(key string, tag string) bool {
 	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
 		key == "x" || key == "y" || key == "width" || key == "height" || key == "overflow" ||
 		key == "zoom" || key == "pointWidth" || key == "pointSize" || key == "bins" || key == "min" || key == "max" || key == "interactive" || key == "stateMode" || key == "stateHints" ||
-		key == "stateHintBg" || key == "stateHintOpacity" || key == "stateHintTextColor" || key == "stateHintBorderColor" ||
+		key == "stateHintBg" || key == "stateHintOpacity" || key == "stateHintTextColor" || key == "stateHintTextAlign" || key == "stateHintBorderColor" ||
 		key == "stateHintFont" || key == "stateHintFontSize" || key == "stateHintBorderWidth" || key == "stateHintPadding" || key == "stateHintRadius" ||
 		key == "tableView" || key == "tableFilters" || key == "tableAddRow" || key == "tableDeleteRow" ||
 		key == "tableSteppers" || key == "tableContextMenu" || key == "tableSelection" || key == "tableEdit" ||
