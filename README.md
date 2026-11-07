@@ -29,14 +29,15 @@ Key features:
 - **Modal dialogs**: configurable dialogs with preset primary/danger buttons and `modal.open()` / `modal.close()`
 - **Components**: create reusable components with parameters, slots, and per-instance state
 - **Typed**: static type checking with inference for `state` and `let`
-- **Multi-target**: produces web apps or standalone desktop executables
-- **Zero dependencies**: generated code works everywhere (modern browser)
+- **Multi-target**: web apps, browser-launched desktop executables and native-window desktop executables with an embedded WebView
+- **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
 - **Secure for desktop**: native bridge with capability-based permission system and native file/folder dialogs
 
 ## Requirements
 
 - [Go 1.24.2+](https://go.dev/dl/) to compile the compiler and desktop builds
 - A modern browser to run web apps
+- `desktop-webview` also needs CGO, a C toolchain and the platform WebView runtime (WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux)
 - Windows/Linux/macOS for desktop builds
 
 ## Compiling the compiler

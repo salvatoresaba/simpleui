@@ -12,10 +12,10 @@ import (
 //   simpleui version
 //   simpleui help
 //   simpleui parse <file.sui>
-//   simpleui build <file.sui> [--target web] [--out <dir>]
+//   simpleui build <file.sui> [--target web|desktop|desktop-webview] [--out <dir>]
 //
-// The only supported target in this iteration is `web`. The desktop wrapper
-// (DESIGN.md §3.2/§4, SPEC.md §8) is stubbed with an explicit message.
+// The desktop targets wrap the generated app in a native executable:
+// desktop opens the system browser, desktop-webview opens an embedded WebView.
 
 func main() {
 	// A panic in any phase is a compiler bug: never dump a stack trace on the

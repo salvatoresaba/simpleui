@@ -1,7 +1,7 @@
 # SimpleUI TODO List
 
 **Status:** 0.1.0-alpha  
-**Last review:** 2026-10-25  
+**Last review:** 2026-11-07
 **Legend:** `[x]` implemented and verified · `[~]` partial / documented-only · `[ ]` missing
 
 This file tracks the remaining work. A checked item must exist in the
@@ -35,6 +35,17 @@ Recently completed:
 - [x] Single-file web export (`--single`) and conservative `--minify`.
 - [x] Designer desktop-build dialog with preflight, capabilities, log, local
       output path and optional token-authenticated download.
+- [x] Embedded desktop WebView target (`desktop-webview`) with WebView2 /
+      WKWebView / WebKitGTK, same bridge and capability model as `desktop`.
+- [x] Designer target selector for browser vs embedded WebView, plus
+      start-from-file (`simpleui gui app.sui`) and Windows `.sui` association.
+- [x] Shared project theme system (Light/Dark families, page and base-element
+      theming, tooltips, media, hover states, chart/graph theme presets, theme
+      export/import and automatic contrast correction).
+- [x] Theme regression coverage: computed-style contrast audit for all variants
+      and golden screenshots for Standard Light/Dark.
+- [x] Problems-panel filtering for generated runtime classes, keyframe steps,
+      layered `:root` blocks and intentional state/pseudo overrides.
 
 Known accuracy corrections from the previous TODO:
 
@@ -152,9 +163,10 @@ Known accuracy corrections from the previous TODO:
 - [x] **Conservative minify** — `--single --minify` removes CSS comments/
       whitespace and JS full-line comments/indentation
 - [x] **Designer single-file export** — `File → Export single HTML…`
-- [x] **Designer desktop build** — dialog, preflight, capabilities, log, local
-      output, optional download
-- [x] **CSP/frame headers** — `serve` and desktop send
+- [x] **Designer desktop build** - dialog, preflight, capabilities, log, local
+      output, optional download, browser/WebView target selector
+- [x] **Embedded WebView desktop target** - WebView2 / WKWebView / WebKitGTK
+- [x] **CSP/frame headers** - `serve` and desktop send
       `X-Frame-Options: DENY` + `frame-ancestors 'none'`
 
 ### 4.2 To do
@@ -169,8 +181,13 @@ Known accuracy corrections from the previous TODO:
 - [ ] **SSR/SSG** — optional static generation
 - [ ] **WASM target** — long-term
 - [ ] **`--csp` build option** — emit a CSP policy for the single-file build
-- [ ] **Single-file asset policy** — document/validate external URLs in user CSS
+- [ ] **Single-file asset policy** - document/validate external URLs in user CSS
       and remote data (inline build is not automatically offline)
+- [ ] **Desktop packaging/installers** - MSI/DMG/AppImage/deb, app icon and
+      bundle metadata, Windows code signing and macOS notarization
+- [ ] **WebView2 runtime bootstrap/fallback** - detect or install the runtime
+      and fall back to the browser target with a clear message
+- [ ] **macOS/Linux file association** - double-click `.sui` outside Windows
 
 ## 5. Tooling (LSP, GUI, CLI)
 
@@ -178,6 +195,8 @@ Known accuracy corrections from the previous TODO:
 
 - [x] `parse`, `fmt`, `check --json`, `build`, `build --single --minify`,
       `serve`, `gui`, `lsp`, `mcp`, `docs`
+- [x] `gui [file.sui]` start-from-file and `simpleui <file.sui>` shortcut
+- [x] `associate` Windows `.sui` file association with `--uninstall`/`--dry-run`
 - [x] `--security` and strict security config
 - [x] `--allow-dir`/`--allow-exec` for desktop builds
 - [x] `docs --agent/--json/--list/--full/--read/--search`
@@ -202,7 +221,12 @@ Known accuracy corrections from the previous TODO:
 - [x] **Iframe designer** — `src`, `srcAllow`, `sandbox`, `allow`,
       `referrerpolicy`, `loading`, dimensions; runtime error UI
 - [x] **Export `.sui`, `.zip`, single HTML**
-- [x] **Desktop build dialog** — preflight, capabilities, log, download
+- [x] **Desktop build dialog** - preflight, capabilities, log, download,
+      browser/WebView target selector
+- [x] **Project themes and contrast** - Light/Dark families, page/base elements,
+      tooltips, media, hover, chart/graph presets, theme export/import
+- [x] **Start from file** - `simpleui gui app.sui`, title, Save back to path
+- [x] **Windows `.sui` association** - double-click launches the designer
 - [ ] **Component library** — load a folder as a reusable palette
 - [ ] **Theme/Design Tokens JSON** — export/import tokens
 - [ ] **Multi-device preview** — side-by-side mobile/tablet/desktop
@@ -239,8 +263,13 @@ Known accuracy corrections from the previous TODO:
       docs links/anchors, iframe, desktop GUI preflight, single-file/minify
 - [x] **Compile-time security tests** — escaping, URL, CSS, classes, iframe
 - [x] **Documentation tests** — manifest coverage, embedded sync, links/anchors
-- [x] **Manual browser checks** — single-file/minified apps, table, iframe,
+- [x] **Manual browser checks** - single-file/minified apps, table, iframe,
       designer desktop build
+- [x] **Theme contrast audit** - all Light/Dark variants and component text pairs
+- [x] **Golden screenshots** - Standard Light/Dark palette grids; refresh with
+      `SUI_UPDATE_THEME_GOLDEN=1`
+- [x] **Headless desktop/server checks** - WebView target browser test and
+      `--no-open` loopback check
 - [ ] **`simpleui test`** — language-level test blocks/assertions
 - [ ] **Headless runner** — deterministic DOM/browser test environment
 - [ ] **Coverage** reporting
@@ -272,10 +301,9 @@ Known accuracy corrections from the previous TODO:
 - [ ] **Exec timeouts + output cap + process kill**
 - [ ] **`build --csp`** — configurable CSP for web deployments
 - [ ] **Allowlist globs** — `--allow-dir-glob` with explicit warnings
-- [ ] **Permission prompts** — per-operation consent UI
-- [ ] **`postMessage` helper** — origin/source validation for iframe apps
-- [ ] **Desktop WebView** — native window instead of system browser
-- [ ] **Signed desktop builds** — optional code signing/notarization pipeline
+- [ ] **Permission prompts** - per-operation consent UI
+- [ ] **`postMessage` helper** - origin/source validation for iframe apps
+- [ ] **Signed desktop builds** - optional code signing/notarization pipeline
 
 ## 8. Documentation & Ecosystem
 
@@ -323,12 +351,33 @@ Suggested order (security and agent workflows first):
    blockers and misleading documentation.
 3. **LSP advanced features** — hover, definition, references, symbols, rename;
    reuse the GUI implementations.
-4. **Source maps + full minifier decision** — improve debuggability and make
+4. **Source maps + full minifier decision** - improve debuggability and make
    `--minify` behavior explicit.
-5. **Native WebView** — complete the desktop product experience.
-6. **`simpleui test` + cross-platform CI** — make agent-generated interfaces
+5. **Desktop packaging/signing** - installers, app icon/metadata, WebView2
+   runtime bootstrap and signed/notarized builds.
+6. **`simpleui test` + cross-platform CI** - make agent-generated interfaces
    continuously verifiable.
-7. **User modules/imports** — the largest language feature still missing.
+7. **User modules/imports** - the largest language feature still missing.
+8. **Theme completeness** - link project themes to chart/graph nodes
+   automatically and add per-element scrollbar overrides.
+9. **Cross-platform file associations** - macOS/Linux double-click support.
+
+## 10. Known product gaps
+
+- **Project theme → chart/graph** is still manual: switching the project theme
+  does not rewrite chart/graph `styleExpr` or `chartTheme`. Use the chart
+  **Theme presets** or the unified chart settings panel.
+- **Per-element scrollbar overrides** are not exposed; scrollbars are configured
+  per project only.
+- **Desktop WebView** still needs the platform web engine (WebView2, WKWebView
+  or WebKitGTK); it is not a native widget toolkit.
+- **No installer/signing/auto-update** yet: the desktop targets emit a bare
+  executable.
+- **Golden screenshots** cover Standard Light/Dark. All 24 theme variants are
+  covered by the computed-style contrast audit, but not by pixel goldens.
+- **File association** is implemented for Windows only.
+- **Chart/graph project defaults** apply to existing nodes on import, but a
+  project theme change still leaves chart styling untouched.
 
 **Rule for future updates:** when an item is checked, add (or point to) a test
 and update the relevant docs/manifest anchors in the same change. Canonical docs

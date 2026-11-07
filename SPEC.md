@@ -4,8 +4,8 @@ This is the living engineering contract for the SimpleUI compiler, written in
 Go. It fixes the source-language grammar, the compiler's phase interface, and
 the *generated code* so every contributor builds against the same contracts.
 
-Version: **0.1.0-alpha** · Target of this iteration: **web** (desktop wrapper
-is scoped out and stubbed by the CLI).
+Version: **0.1.0-alpha** - Targets: **web**, **desktop** (system browser) and
+**desktop-webview** (embedded native WebView).
 
 ---
 
@@ -1306,9 +1306,10 @@ carrying `__SUI_TOKEN`; `http.*`, `ws.*` and `json.*` keep their web
 implementations. On the `web` target `exec.run` and `dialog.pick*` stay disabled
 and `fs.*` keeps targeting the user backend (`/api/fs/...`).
 
-Open follow-ups: native WebView2/WebKit window embedding; a bridge manifest
-file (`simpleui.json`) replacing flag-only grants; command-argument validation
-beyond the name allow-list; platform-specific picker filters.
+Open follow-ups: signed/notarized desktop builds, optional WebView2 runtime
+bootstrap and packaging/installers; a bridge manifest file (`simpleui.json`)
+replacing flag-only grants; command-argument validation beyond the name
+allow-list; platform-specific picker filters.
 
 ---
 
