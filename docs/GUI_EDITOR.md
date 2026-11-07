@@ -338,10 +338,11 @@ Open **Preferences → Project preferences.** to set defaults for every instance
 of a component in the project. The panel has a **Theme** combo above the
 category tabs. Tabs are **All**, **Feedback**, **Layout**, **Form**,
 **Navigation**, **Data**, **Overlay**, **Charts** and **General**. Inside each
-tab the component buttons are arranged as a compact table grid, sized to their
-text. The Theme combo applies a shared style to every control at once, including
-scrollbars, instead of setting each component by hand. Choosing **Custom** leaves
-the current values untouched.
+tab the components are normal editor buttons arranged in compact rows; each
+button shows only the control name and opens its settings subpanel. The Theme
+combo applies a shared style to every control at once, including scrollbars,
+instead of setting each component by hand. Choosing **Custom** leaves the current
+values untouched.
 
 Each component opens the same configuration panel used by its element settings.
 The panel follows the editor preferences layout:

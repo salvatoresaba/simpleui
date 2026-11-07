@@ -492,10 +492,8 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .pp-groups.single { display:block; }
 .pp-group { margin:0 0 14px; }
 .pp-group h3 { margin:0 0 6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
-.pp-items { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 220px)); gap:6px; justify-content:start; }
-.pp-item { display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; min-width:0; padding:7px 9px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--fg); font:inherit; font-size:12.5px; text-align:left; cursor:pointer; margin:0; }
-.pp-item:hover { background:var(--btn-hover); border-color:var(--border2); }
-.pp-item .pp-kind { margin-left:0; font-size:9.5px; line-height:1.2; color:var(--muted); font-family:ui-monospace, Consolas, monospace; white-space:normal; overflow-wrap:anywhere; }
+.pp-items { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.pp-item { flex:0 0 auto; width:auto; min-width:0; margin:0; }
 .pp-note { color:var(--muted); font-size:11.5px; line-height:1.5; }
 #compcfg { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #compcfg.on { display:flex; }
@@ -14767,10 +14765,8 @@ function applyProjectTheme(id) {
 }
 function appendProjectItem(parent, def) {
   var b = document.createElement("button");
-  b.type = "button"; b.className = "pp-item";
-  var l = document.createElement("span"); l.textContent = def.label;
-  var k = document.createElement("span"); k.className = "pp-kind"; k.textContent = def.kinds.join(" / ");
-  b.appendChild(l); b.appendChild(k);
+  b.type = "button"; b.className = "pp-item btn";
+  b.textContent = def.label;
   b.onclick = function(){ openComponentSettings(def, null); };
   parent.appendChild(b);
 }
@@ -14823,10 +14819,8 @@ function renderProjectPreferences() {
       var items = document.createElement("div"); items.className = "pp-items";
       [["chart", "Chart"], ["graph", "Graph"]].forEach(function(pair){
         var b = document.createElement("button");
-        b.type = "button"; b.className = "pp-item";
-        var l = document.createElement("span"); l.textContent = pair[1] + " defaults";
-        var k = document.createElement("span"); k.className = "pp-kind"; k.textContent = pair[0];
-        b.appendChild(l); b.appendChild(k);
+        b.type = "button"; b.className = "pp-item btn";
+        b.textContent = pair[1];
         b.onclick = function(){ openChartProjectSettings(pair[0]); };
         items.appendChild(b);
       });
@@ -14841,10 +14835,8 @@ function renderProjectPreferences() {
       var items = document.createElement("div"); items.className = "pp-items";
       COMPONENT_DEFS.filter(function(d){ return d.group === "General"; }).forEach(function(def){ appendProjectItem(items, def); });
       var tb = document.createElement("button");
-      tb.type = "button"; tb.className = "pp-item";
-      var tl = document.createElement("span"); tl.textContent = "Tooltips";
-      var tk = document.createElement("span"); tk.className = "pp-kind"; tk.textContent = "global";
-      tb.appendChild(tl); tb.appendChild(tk);
+      tb.type = "button"; tb.className = "pp-item btn";
+      tb.textContent = "Tooltips";
       tb.onclick = function(){ openTooltipCfg(); };
       items.appendChild(tb);
       sec.appendChild(items);

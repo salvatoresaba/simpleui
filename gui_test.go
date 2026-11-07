@@ -399,8 +399,9 @@ func TestGuiProjectThemeBodies(t *testing.T) {
 		`label: "Standard"`,
 		`pageBg`,
 		`pageFg`,
-		`.pp-items { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 220px));`,
+		`.pp-items { display:flex; flex-wrap:wrap;`,
 		`var items = document.createElement("div"); items.className = "pp-items";`,
+		`"pp-item btn"`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("project theme body support missing %q", want)

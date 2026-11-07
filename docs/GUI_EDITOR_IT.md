@@ -350,8 +350,9 @@ Aprire **Preferences → Project preferences.** per impostare i default di ogni
 istanza di un componente nel progetto. Il pannello ha un combo **Theme** sopra le
 tab delle categorie. Le tab sono **All**, **Feedback**, **Layout**, **Form**,
 **Navigation**, **Data**, **Overlay**, **Charts** e **General**. In ogni tab i
-pulsanti dei componenti sono disposti come una tabella compatta, dimensionata
-sul testo. Il combo Theme applica uno stile condiviso a tutti i controlli in una
+componenti sono pulsanti normali dell'editor disposti in righe compatte; ogni
+pulsante mostra solo il nome del controllo e apre il suo sottopannello di
+settings. Il combo Theme applica uno stile condiviso a tutti i controlli in una
 sola volta, incluse le scrollbar, invece di configurare ogni componente a mano.
 Scegliendo **Custom** i valori correnti restano invariati.
 
