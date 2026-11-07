@@ -2146,7 +2146,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			o.obj["empty"] = JStr(partsLiteral(a.text))
 		} else if a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" ||
 			a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "lazy" || a.key == "virtual" ||
-			a.key == "persistSelection" {
+			a.key == "persistSelection" || a.key == "tooltips" {
 			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "selection" || a.key == "loadKey" {
 			if a.hasExpr && a.expr != nil {

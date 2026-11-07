@@ -1047,42 +1047,40 @@ L'inspector **Tree** espone:
 
 | Campo | Significato |
 |---|---|
-| settings | apre **Tree settings** (colori, forme, tipografia, titolo e preset) |
+| settings | apre **Tree settings** (General, Colors, Title, Shape, Icons e Tooltip) |
 | data | apre **Edit tree data** (etichette, key, annidamento, import/export) |
-| tooltip | apre il pannello globale dello stile tooltip |
-| tree name | target runtime per import/export del modulo core `tree`; default = titolo |
 | value state | stato stringa che riceve la key selezionata |
 | style preset | 16 preset da Default e Compact a Neon, Forest, High contrast e Cards; custom modifica style expr |
-| rename icon | simbolo matita; vuoto usa quello predefinito |
-| show rename icon | nasconde o mostra la matita per tutto il tree |
-| indent guides | guide sottili per livello e indentazione (default attivo) |
-| truncate labels | ellissi più tooltip con testo completo; disattivato va a capo |
-| hierarchical checkboxes | checkbox tristato con propagazione padre/figli |
-| child counts | pill con il numero di figli sulle righe padre |
 | row height | altezza minima riga in pixel (12-120) |
-| default icon / open icon | glifi di fallback per righe chiuse e aperte |
-| multi-select | toggle Ctrl/Command e intervallo con Shift |
 | selection state | stato stringa che riceve un array JSON di key selezionate |
-| search box | filtro inline con evidenziazione ed espansione automatica |
-| drag and drop | riordino con indicatori sopra/sotto/dentro |
-| context menu | azioni integrate al click destro |
+| load key state | stato che riceve la key dell'elemento lazy in espansione |
 | grid columns | lista separata da virgole: `size`, `date`, `status` |
 | column labels / widths | intestazioni posizionali e larghezze in pixel |
 | sort children | `asc` o `desc`; vuoto mantiene l'ordine manuale |
-| persist selection | ripristina le key selezionate da local storage |
-| virtualize offscreen rows | ottimizzazione browser `content-visibility` per alberi grandi |
-| load key state | stato che riceve la key dell'elemento lazy in espansione |
-| editable | abilita la rinomina inline |
 | editable depth | livello massimo editabile; `0` = tutti |
 | rename key state | stato che riceve la key rinominata |
 | rename value state | stato che riceve la nuova etichetta |
 
-**Tree settings** apre il pannello componente con tab Colors, Title e Shape:
-colori di testo, titolo, riga, hover, selezione, toggle, bordo, guida, badge,
-metadata e checkbox; dimensione, peso, font, spaziatura, allineamento e
-posizione alto/basso del titolo; indent, padding/altezza riga, raggio, bordo,
-dimensione toggle, dimensione/peso testo, letter spacing e font family. I preset
-con nome sono nello stesso pannello.
+**Tree settings** apre il pannello componente con queste tab:
+
+- **General** - `Title` (il titolo visibile dell'albero) e `Runtime name` (target
+  usato dalle funzioni `tree.*`; non è il titolo visibile), più tutti gli switch:
+  indent guides, truncate labels, hierarchical checkboxes, child counts,
+  multi-select, search box, drag and drop, context menu, virtualize offscreen
+  rows, persist selection, editable e show rename icon.
+- **Colors** - colori di testo, titolo, riga, hover, selezione, toggle, bordo,
+  guida, badge, metadata e checkbox.
+- **Title** - dimensione, peso, font, spaziatura, allineamento, posizione
+  alto/basso e padding del titolo. Questi valori si applicano al campo **Title**
+  in General.
+- **Shape** - indent, padding/altezza riga, raggio, bordo, dimensione toggle,
+  dimensione/peso testo, letter spacing e font family.
+- **Icons** - default icon, open icon e rename icon, scelti da una lista di glifi
+  o digitati come testo/emoji personalizzato.
+- **Tooltip** - switch tooltip personalizzati più sfondo, testo, bordo, raggio,
+  padding, larghezza massima, dimensione font, ritardo e posizione.
+
+I preset con nome sono nello stesso pannello.
 
 **Edit tree data** apre un editor dedicato con una riga per elemento: etichetta,
 key opzionale, icona, badge, metadata, celle grid size/date/status, stato

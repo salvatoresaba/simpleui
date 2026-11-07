@@ -287,6 +287,24 @@ body {
 .sui-tree-empty { padding: 16px 8px; color: var(--sui-tree-meta-color, #94a3b8); font-size: 12px; text-align: center; }
 .sui-tree-empty[hidden] { display: none; }
 .sui-tree-match { background: rgba(245, 158, 11, .28); color: inherit; border-radius: 2px; }
+.sui-tree-tooltip {
+  position: fixed;
+  z-index: 1001;
+  max-width: var(--sui-tree-tooltip-max-width, 260px);
+  background: var(--sui-tree-tooltip-bg, #111827);
+  color: var(--sui-tree-tooltip-fg, #f8fafc);
+  border: 1px solid var(--sui-tree-tooltip-border, #475569);
+  border-radius: var(--sui-tree-tooltip-radius, 6px);
+  padding: var(--sui-tree-tooltip-padding, 6px 8px);
+  font-size: var(--sui-tree-tooltip-font-size, 11px);
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s ease;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.sui-tree-tooltip.on { opacity: 1; }
 .sui-tree-item.sui-tree-drop-before > .sui-tree-row { box-shadow: inset 0 2px 0 #4c5cf7; }
 .sui-tree-item.sui-tree-drop-after > .sui-tree-row { box-shadow: inset 0 -2px 0 #4c5cf7; }
 .sui-tree-item.sui-tree-drop-inside > .sui-tree-row { outline: 2px solid #4c5cf7; outline-offset: -2px; }
@@ -3662,6 +3680,7 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	checkbox := datepickerBool(e, "checkbox")
 	counts := datepickerBool(e, "counts")
 	virtual := datepickerBool(e, "virtual")
+	tooltips := datepickerBool(e, "tooltips")
 	rowHeight := comboboxAttrNumber(e, "rowHeight")
 	treeIcon := treeTextAttr(e, "icon")
 	treeIconOpen := treeTextAttr(e, "iconOpen")
@@ -3720,6 +3739,9 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	}
 	if virtual {
 		sb.WriteString(" data-sui-tree-virtual=\"1\"")
+	}
+	if tooltips {
+		sb.WriteString(" data-sui-tree-tooltips=\"1\"")
 	}
 	if rowHeight != "" {
 		sb.WriteString(" data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\"")
@@ -4451,7 +4473,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
-			a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "tooltips" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||

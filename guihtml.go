@@ -1089,7 +1089,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
       <h2 id="treedata-title">Tree data</h2>
       <button class="btn" type="button" onclick="closeTreeDataEditor()" aria-label="Close tree data" title="Close">&#10005;</button>
     </div>
-    <div class="hint td-hint">Edit labels, keys, nesting and item state. Import or export JSON/XML; Apply writes the items into this tree.</div>
     <div class="td-body">
       <div class="td-toolbar">
         <button class="btn" type="button" onclick="treeDataAddRoot()">Add root item</button>
@@ -1864,7 +1863,7 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
   treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
@@ -2160,6 +2159,7 @@ function newTreeNode() {
   n.persistSelection = false;
   n.loadKey = "";
   n.virtual = false;
+  n.tooltips = false;
   n.styleExpr = treePresetStyleExpr("default");
   return n;
 }
@@ -4118,7 +4118,7 @@ function renderInspector() {
   if (nodes.length === 1 && n && isChartKind(n)) {
     box.appendChild(chartControls(n));
   }
-  if (nodes.length === 1 && n && !n.raw && n.kind !== "toast" && n.kind !== "text") {
+  if (nodes.length === 1 && n && !n.raw && n.kind !== "toast" && n.kind !== "text" && n.kind !== "tree" && n.kind !== "treeitem") {
     box.appendChild(tooltipPropertyControls(n));
   }
   if (nodes.length === 1 && n && n.kind === "toast") {
@@ -4696,89 +4696,26 @@ function treePresetKey(n) {
 }
 function treeControls(n) {
   var rows = [];
-  var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Edit items from Tree data. Selecting an item at runtime writes its key to value state; editable items rename with double-click or F2.";
-  rows.push(hint);
-  var nameRow = document.createElement("div"); nameRow.className = "rowline";
-  var nameLabel = document.createElement("label"); nameLabel.textContent = "tree name"; nameRow.appendChild(nameLabel);
-  var nameInput = document.createElement("input"); nameInput.value = n.name || ""; nameInput.placeholder = "files"; nameInput.spellcheck = false;
-  nameInput.oninput = function(ev) { snap("tree name"); n.name = ev.target.value.trim(); setOut(); autoPreview(); };
-  nameRow.appendChild(nameInput); rows.push(nameRow);
-  var nameHint = document.createElement("div"); nameHint.className = "hint";
-  nameHint.textContent = "Runtime target used by tree.importJson/importXml/exportJson/exportXml and the file helpers.";
-  rows.push(nameHint);
-  var settingsRow = document.createElement("div"); settingsRow.className = "rowline";
-  var settingsLabel = document.createElement("label"); settingsLabel.textContent = "settings"; settingsRow.appendChild(settingsLabel);
-  var settingsBtn = document.createElement("button"); settingsBtn.type = "button"; settingsBtn.className = "btn"; settingsBtn.style.fontSize = "11px";
-  settingsBtn.textContent = "Tree settings...";
-  settingsBtn.title = "Colors, shape, text, title appearance and style presets";
-  settingsBtn.onclick = function(){ openComponentSettings(componentDefById("tree"), n); };
-  settingsRow.appendChild(settingsBtn); rows.push(settingsRow);
-  var dataRow = document.createElement("div"); dataRow.className = "rowline";
-  var dataLabel = document.createElement("label"); dataLabel.textContent = "data"; dataRow.appendChild(dataLabel);
-  var dataBtn = document.createElement("button"); dataBtn.type = "button"; dataBtn.className = "btn"; dataBtn.style.fontSize = "11px";
-  dataBtn.textContent = "Edit tree data...";
-  dataBtn.title = "Add, rename, move, delete, import and export tree items";
-  dataBtn.onclick = function(){ openTreeDataEditor(n); };
-  dataRow.appendChild(dataBtn); rows.push(dataRow);
-  var tooltipRow = document.createElement("div"); tooltipRow.className = "rowline";
-  var tooltipLabel = document.createElement("label"); tooltipLabel.textContent = "tooltip"; tooltipRow.appendChild(tooltipLabel);
-  var tooltipBtn = document.createElement("button"); tooltipBtn.type = "button"; tooltipBtn.className = "btn"; tooltipBtn.style.fontSize = "11px";
-  tooltipBtn.textContent = "Tooltip settings...";
-  tooltipBtn.onclick = function(){ openTooltipCfg(); };
-  tooltipRow.appendChild(tooltipBtn); rows.push(tooltipRow);
-  var dataHint = document.createElement("div"); dataHint.className = "hint";
-  dataHint.textContent = "Edit data opens the tree item editor with JSON/XML import and export. Settings controls colors, shapes, text, title appearance and presets.";
-  rows.push(dataHint);
-  function treeSwitch(label, value, key, title) {
+  function actionRow(label, text, title, fn) {
     var r = document.createElement("div"); r.className = "rowline";
-    var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
-    r.appendChild(mkSwitch(!!value, false, function(on){
-      snap("tree " + key); n[key] = on; setOut(); autoPreview();
-    }));
-    if (title) l.title = title;
-    rows.push(r);
+    var l = document.createElement("label"); l.textContent = label; l.title = title || ""; r.appendChild(l);
+    var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.style.fontSize = "11px";
+    b.textContent = text; b.title = title || "";
+    b.onclick = fn;
+    r.appendChild(b); rows.push(r);
   }
-  treeSwitch("indent guides", n.guides !== false, "guides", "Thin vertical lines and indentation per level");
-  treeSwitch("truncate labels", n.truncate !== false, "truncate", "Ellipsis for long labels; the full label is available as a tooltip");
-  treeSwitch("hierarchical checkboxes", !!n.checkbox, "checkbox", "Tri-state checkboxes with parent/child propagation");
-  treeSwitch("child counts", !!n.counts, "counts", "Show the number of children on parent rows");
-  treeSwitch("multi-select", !!n.multiSelect, "multiSelect", "Ctrl/Command click toggles, Shift click selects a range");
-  treeSwitch("search box", !!n.search, "search", "Inline filter with match highlighting and automatic expansion");
-  treeSwitch("drag and drop", !!n.drag, "drag", "Reorder nodes with before/after/inside drop indicators and cycle checks");
-  treeSwitch("context menu", !!n.contextMenu, "contextMenu", "Right-click actions: rename, expand/collapse, copy key, expand/collapse all");
-  treeSwitch("virtualize offscreen rows", !!n.virtual, "virtual", "Browser content-visibility optimization for very large trees");
-  var rhRow = document.createElement("div"); rhRow.className = "rowline";
-  var rhLabel = document.createElement("label"); rhLabel.textContent = "row height"; rhRow.appendChild(rhLabel);
-  var rhInput = document.createElement("input"); rhInput.type = "number"; rhInput.min = "12"; rhInput.max = "120"; rhInput.step = "1";
-  rhInput.value = n.rowHeight || ""; rhInput.placeholder = "28";
-  rhInput.oninput = function(ev) { snap("tree row height"); n.rowHeight = ev.target.value; setOut(); autoPreview(); };
-  rhRow.appendChild(rhInput); rows.push(rhRow);
-  stateField("default icon", n.icon, "e.g. \u{1F4C1}", "icon");
-  stateField("open icon", n.iconOpen, "e.g. \u{1F4C2}", "iconOpen");
-  var iconHint = document.createElement("div"); iconHint.className = "hint";
-  iconHint.textContent = "Icons are inert text or emoji; each tree item can override them. Badges, metadata and checked state are edited in Tree data.";
-  rows.push(iconHint);
-  stateField("selection state", n.selection, "state name (JSON array)", "selection");
-  stateField("load key state", n.loadKey, "state name for lazy loading", "loadKey");
-  stateField("grid columns", n.columns, "size,date,status", "columns");
-  stateField("column labels", n.columnLabels, "Size,Date,Status", "columnLabels");
-  stateField("column widths", n.columnWidths, "104,104,104", "columnWidths");
-  stateField("sort children", n.sort, "asc or desc", "sort");
-  treeSwitch("persist selection", !!n.persistSelection, "persistSelection", "Restore selected keys after reload");
-  var gridHint = document.createElement("div"); gridHint.className = "hint";
-  gridHint.textContent = "Grid columns add right-aligned cells; supported columns are size, date and status. Column labels and widths are positional. Per-item values are edited in Tree data or the Tree item panel.";
-  rows.push(gridHint);
-  function stateField(label, value, placeholder, key) {
+  actionRow("settings", "Tree settings...", "General, colors, title, shape, icons, tooltip and presets", function(){ openComponentSettings(componentDefById("tree"), n); });
+  actionRow("data", "Edit tree data...", "Add, rename, move, delete, import and export tree items", function(){ openTreeDataEditor(n); });
+  function stateField(label, value, placeholder, key, hint) {
     var r = document.createElement("div"); r.className = "rowline";
-    var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
-    var i = document.createElement("input"); i.value = value || ""; i.placeholder = placeholder || ""; i.spellcheck = false;
+    var l = document.createElement("label"); l.textContent = label; l.title = hint || ""; r.appendChild(l);
+    var i = document.createElement("input"); i.value = value || ""; i.placeholder = placeholder || ""; i.spellcheck = false; i.title = hint || "";
     i.oninput = function(ev) { snap("set tree " + key); n[key] = ev.target.value; setOut(); autoPreview(); };
     r.appendChild(i); rows.push(r);
   }
-  stateField("value state", n.value, "state name", "value");
+  stateField("value state", n.value, "state name", "value", "String state receiving the selected item key.");
   var styleRow = document.createElement("div"); styleRow.className = "rowline";
-  var styleLabel = document.createElement("label"); styleLabel.textContent = "style preset"; styleRow.appendChild(styleLabel);
+  var styleLabel = document.createElement("label"); styleLabel.textContent = "style preset"; styleLabel.title = "Presets write CSS variables into style expr."; styleRow.appendChild(styleLabel);
   var styleSel = document.createElement("select");
   TREE_STYLE_PRESETS.forEach(function(p) {
     var o = document.createElement("option"); o.value = p.key; o.textContent = p.label;
@@ -4800,32 +4737,26 @@ function treeControls(n) {
     autoPreview();
   };
   styleRow.appendChild(styleSel); rows.push(styleRow);
-  var styleHint = document.createElement("div"); styleHint.className = "hint";
-  styleHint.textContent = "Presets write CSS variables into style expr. Edit the style expr field in Appearance for full control.";
-  rows.push(styleHint);
-  var iconRow = document.createElement("div"); iconRow.className = "rowline";
-  var iconLabel = document.createElement("label"); iconLabel.textContent = "rename icon"; iconRow.appendChild(iconLabel);
-  var iconInput = document.createElement("input"); iconInput.value = n.renameIcon || ""; iconInput.placeholder = "\u270e (default)"; iconInput.maxLength = 16;
-  iconInput.oninput = function(ev) { snap("tree rename icon"); n.renameIcon = ev.target.value; setOut(); autoPreview(); };
-  iconRow.appendChild(iconInput); rows.push(iconRow);
-  var iconShow = document.createElement("div"); iconShow.className = "rowline";
-  var iconShowLabel = document.createElement("label"); iconShowLabel.textContent = "show rename icon"; iconShow.appendChild(iconShowLabel);
-  iconShow.appendChild(mkSwitch(n.showRenameIcon !== false, false, function(on){
-    snap("tree show rename icon"); n.showRenameIcon = on; setOut(); autoPreview();
-  }));
-  rows.push(iconShow);
-  var er = document.createElement("div"); er.className = "rowline";
-  var el = document.createElement("label"); el.textContent = "editable"; er.appendChild(el);
-  er.appendChild(mkSwitch(!!n.editable, false, function(on){ snap("tree editable"); n.editable = on; setOut(); autoPreview(); }));
-  rows.push(er);
+  var rhRow = document.createElement("div"); rhRow.className = "rowline";
+  var rhLabel = document.createElement("label"); rhLabel.textContent = "row height"; rhLabel.title = "Minimum row height in pixels (12-120)."; rhRow.appendChild(rhLabel);
+  var rhInput = document.createElement("input"); rhInput.type = "number"; rhInput.min = "12"; rhInput.max = "120"; rhInput.step = "1";
+  rhInput.value = n.rowHeight || ""; rhInput.placeholder = "28"; rhInput.title = "Minimum row height in pixels (12-120).";
+  rhInput.oninput = function(ev) { snap("tree row height"); n.rowHeight = ev.target.value; setOut(); autoPreview(); };
+  rhRow.appendChild(rhInput); rows.push(rhRow);
+  stateField("selection state", n.selection, "state name (JSON array)", "selection", "String state receiving a JSON array of selected keys.");
+  stateField("load key state", n.loadKey, "state name for lazy loading", "loadKey", "State receiving the key of a lazy item being expanded.");
+  stateField("grid columns", n.columns, "size,date,status", "columns", "Comma list of size, date and status.");
+  stateField("column labels", n.columnLabels, "Size,Date,Status", "columnLabels", "Positional header labels for the grid columns.");
+  stateField("column widths", n.columnWidths, "104,104,104", "columnWidths", "Positional pixel widths for the grid columns.");
+  stateField("sort children", n.sort, "asc or desc", "sort", "Sort children by label; empty keeps manual order.");
   var dr = document.createElement("div"); dr.className = "rowline";
-  var dl = document.createElement("label"); dl.textContent = "editable depth"; dr.appendChild(dl);
-  var di = document.createElement("input"); di.type = "number"; di.min = "0"; di.step = "1";
-  di.value = n.editableDepth || ""; di.placeholder = "0 = all levels";
+  var dl = document.createElement("label"); dl.textContent = "editable depth"; dl.title = "Maximum editable level; 0 = all levels."; dr.appendChild(dl);
+  var di = document.createElement("input"); di.type = "number"; di.min = "0"; di.step = "1"; di.title = dl.title;
+  di.value = n.editableDepth || ""; di.placeholder = "0 = all";
   di.oninput = function(ev) { snap("tree editable depth"); n.editableDepth = ev.target.value; setOut(); autoPreview(); };
   dr.appendChild(di); rows.push(dr);
-  stateField("rename key state", n.renameKey, "state name", "renameKey");
-  stateField("rename value state", n.renameValue, "state name", "renameValue");
+  stateField("rename key state", n.renameKey, "state name", "renameKey", "State receiving the renamed node key.");
+  stateField("rename value state", n.renameValue, "state name", "renameValue", "State receiving the new label.");
   return acc("Tree", rows);
 }
 function treeRawLabel(raw) {
@@ -5196,7 +5127,7 @@ function openTreeDataEditor(n) {
   treeDataEditorNode = n;
   try { treeDataDraft = JSON.parse(JSON.stringify(n.children || [])); } catch (e) { treeDataDraft = []; }
   renderTreeDataRows();
-  treeDataStatus("Edit labels, keys and nesting, then Apply.");
+  treeDataStatus("");
   document.getElementById("treedata").classList.add("on");
 }
 function closeTreeDataEditor() {
@@ -6878,12 +6809,9 @@ function treeItemPresetKey(n) {
 }
 function treeItemControls(n) {
   var rows = [];
-  var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Keys identify selected items and persist expansion/rename state. Leave empty to use the item path.";
-  rows.push(hint);
   var r = document.createElement("div"); r.className = "rowline";
-  var l = document.createElement("label"); l.textContent = "key"; r.appendChild(l);
-  var i = document.createElement("input"); i.value = n.key || ""; i.placeholder = "stable item key"; i.spellcheck = false;
+  var l = document.createElement("label"); l.textContent = "key"; l.title = "Stable item key; empty uses the item path."; r.appendChild(l);
+  var i = document.createElement("input"); i.value = n.key || ""; i.placeholder = "stable item key"; i.spellcheck = false; i.title = l.title;
   i.oninput = function(ev) { snap("set treeitem key"); n.key = ev.target.value; setOut(); autoPreview(); };
   r.appendChild(i); rows.push(r);
   var or = document.createElement("div"); or.className = "rowline";
@@ -6908,9 +6836,6 @@ function treeItemControls(n) {
     setOut(); renderInspector(); autoPreview();
   };
   nsr.appendChild(nss); rows.push(nsr);
-  var nodeStyleHint = document.createElement("div"); nodeStyleHint.className = "hint";
-  nodeStyleHint.textContent = "Node presets override row colors, hover/selected colors, padding or radius through style expr.";
-  rows.push(nodeStyleHint);
   var er = document.createElement("div"); er.className = "rowline";
   var el = document.createElement("label"); el.textContent = "editable"; er.appendChild(el);
   var es = document.createElement("select");
@@ -6969,27 +6894,22 @@ function treeItemControls(n) {
   bts.onchange = function() { snap("treeitem badge type"); n.badgeType = bts.value; setOut(); autoPreview(); };
   btr.appendChild(bts); rows.push(btr);
   itemField("metadata", n.meta, "right-aligned text", "meta", 160);
+  itemField("tooltip", n.tooltip, "text on hover/focus", "tooltip", 200);
   itemField("size", n.size, "grid size cell", "size", 80);
   itemField("date", n.date, "grid date cell", "date", 80);
   itemField("status", n.status, "grid status cell", "status", 80);
   var lzr = document.createElement("div"); lzr.className = "rowline";
-  var lzl = document.createElement("label"); lzl.textContent = "lazy children"; lzr.appendChild(lzl);
+  var lzl = document.createElement("label"); lzl.textContent = "lazy children"; lzl.title = "Load children on first expansion through onLoad and loadKey."; lzr.appendChild(lzl);
   lzr.appendChild(mkSwitch(!!n.lazy, false, function(on){
     snap("treeitem lazy"); n.lazy = on; setOut(); autoPreview();
   }));
   rows.push(lzr);
-  var lzHint = document.createElement("div"); lzHint.className = "hint";
-  lzHint.textContent = "Lazy items show a toggle without children. Expanding calls onLoad and writes the item key to loadKey; use tree.setChildren(name, key, json) to add children.";
-  rows.push(lzHint);
   var ckr = document.createElement("div"); ckr.className = "rowline";
-  var ckl = document.createElement("label"); ckl.textContent = "checked"; ckr.appendChild(ckl);
+  var ckl = document.createElement("label"); ckl.textContent = "checked"; ckl.title = "Initial hierarchical checkbox state."; ckr.appendChild(ckl);
   ckr.appendChild(mkSwitch(!!n.checked, false, function(on){
     snap("treeitem checked"); n.checked = on; setOut(); autoPreview();
   }));
   rows.push(ckr);
-  var ckHint = document.createElement("div"); ckHint.className = "hint";
-  ckHint.textContent = "Checked state is effective when the tree enables hierarchical checkboxes. Parents derive true, false or mixed from their children.";
-  rows.push(ckHint);
   return acc("Tree item", rows);
 }
 
@@ -10001,6 +9921,7 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.drag) a += " drag: true";
   if (n.kind === "tree" && n.contextMenu) a += " contextMenu: true";
   if (n.kind === "tree" && n.virtual) a += " virtual: true";
+  if (n.kind === "tree" && n.tooltips) a += " tooltips: true";
   if (n.kind === "tree" && n.columns) a += " columns: \"" + esc(n.columns) + "\"";
   if (n.kind === "tree" && n.columnLabels) a += " columnLabels: \"" + esc(n.columnLabels) + "\"";
   if (n.kind === "tree" && n.columnWidths) a += " columnWidths: \"" + esc(n.columnWidths) + "\"";
@@ -13535,6 +13456,22 @@ var COMPONENT_DEFS = [
   },
   { id: "tree", label: "Tree", group: "Data", kinds: ["tree", "treeitem"],
     categories: [
+      { name: "General", fields: [
+        { key: "@title", label: "Title", type: "title", attr: "text", def: "Tree" },
+        { key: "@name", label: "Runtime name", type: "attrText", attr: "name", def: "" },
+        { key: "@guides", label: "Indent guides", type: "attrSwitch", attr: "guides", def: true },
+        { key: "@truncate", label: "Truncate labels", type: "attrSwitch", attr: "truncate", def: true },
+        { key: "@checkbox", label: "Hierarchical checkboxes", type: "attrSwitch", attr: "checkbox", def: false },
+        { key: "@counts", label: "Child counts", type: "attrSwitch", attr: "counts", def: false },
+        { key: "@multiSelect", label: "Multi-select", type: "attrSwitch", attr: "multiSelect", def: false },
+        { key: "@search", label: "Search box", type: "attrSwitch", attr: "search", def: false },
+        { key: "@drag", label: "Drag and drop", type: "attrSwitch", attr: "drag", def: false },
+        { key: "@contextMenu", label: "Context menu", type: "attrSwitch", attr: "contextMenu", def: false },
+        { key: "@virtual", label: "Virtualize offscreen rows", type: "attrSwitch", attr: "virtual", def: false },
+        { key: "@persistSelection", label: "Persist selection", type: "attrSwitch", attr: "persistSelection", def: false },
+        { key: "@editable", label: "Editable", type: "attrSwitch", attr: "editable", def: false },
+        { key: "@showRenameIcon", label: "Show rename icon", type: "attrSwitch", attr: "showRenameIcon", def: true }
+      ]},
       { name: "Colors", fields: [
         { key: "--sui-tree-fg", label: "Text", type: "color", def: "#e6e6ef" },
         { key: "--sui-tree-title", label: "Title", type: "color", def: "#e6e6ef" },
@@ -13574,6 +13511,23 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-font-weight", label: "Text weight", type: "select", def: "400", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"]] },
         { key: "--sui-tree-tracking", label: "Letter spacing", type: "number", def: 0, min: -2, max: 10, step: 0.1, unit: "px" },
         { key: "--sui-tree-font-family", label: "Font", type: "font", def: "inherit" }
+      ]},
+      { name: "Icons", fields: [
+        { key: "@icon", label: "Default icon", type: "icon", attr: "icon", def: "" },
+        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" },
+        { key: "@renameIcon", label: "Rename icon", type: "icon", attr: "renameIcon", def: "" }
+      ]},
+      { name: "Tooltip", fields: [
+        { key: "@tooltips", label: "Custom tooltips", type: "attrSwitch", attr: "tooltips", def: false },
+        { key: "--sui-tree-tooltip-bg", label: "Background", type: "color", def: "#111827" },
+        { key: "--sui-tree-tooltip-fg", label: "Text", type: "color", def: "#f8fafc" },
+        { key: "--sui-tree-tooltip-border", label: "Border", type: "color", def: "#475569" },
+        { key: "--sui-tree-tooltip-radius", label: "Radius", type: "text", def: "6px" },
+        { key: "--sui-tree-tooltip-padding", label: "Padding", type: "text", def: "6px 8px" },
+        { key: "--sui-tree-tooltip-max-width", label: "Max width", type: "text", def: "260px" },
+        { key: "--sui-tree-tooltip-font-size", label: "Font size", type: "text", def: "11px" },
+        { key: "--sui-tree-tooltip-delay", label: "Delay (ms)", type: "number", def: 140, min: 0, max: 2000, step: 20 },
+        { key: "--sui-tree-tooltip-placement", label: "Placement", type: "select", def: "top", opts: [["Top", "top"], ["Right", "right"], ["Bottom", "bottom"], ["Left", "left"]] }
       ]}
     ],
     presets: [
@@ -15040,6 +14994,8 @@ function ensureComponentRules(def) {
 }
 function componentFieldDefault(field) {
   if (field.type === "switch") return field.on;
+  if (field.type === "attrSwitch") return !!field.def;
+  if (field.type === "attrText" || field.type === "icon" || field.type === "title") return field.def === undefined ? "" : String(field.def);
   if (field.type === "number") return String(field.def) + (field.unit || "");
   return String(field.def);
 }
@@ -15062,14 +15018,22 @@ function componentAllKeys(def) {
   (def.presets || []).forEach(function(p){ Object.keys(p.vars || {}).forEach(add); });
   return out;
 }
+function componentIsAttrKey(def, key) {
+  var f = componentFieldByKey(def, key);
+  return !!(f && f.attr);
+}
 function componentKeyBaseValue(def, key, node) {
+  var field = componentFieldByKey(def, key);
+  if (field && field.attr) {
+    if (node && node[field.attr] !== undefined && node[field.attr] !== null) return node[field.attr];
+    return field.def;
+  }
   if (node) {
     var m = styleDeclMap(node.style || "");
     if (m[key] !== undefined) return m[key];
   }
   var vars = readComponentVars();
   if (vars[key] !== undefined) return vars[key];
-  var field = componentFieldByKey(def, key);
   return field ? componentFieldDefault(field) : undefined;
 }
 function componentPresetBaseValue(def, key) {
@@ -15077,17 +15041,18 @@ function componentPresetBaseValue(def, key) {
   return field ? componentFieldDefault(field) : undefined;
 }
 function componentResetValue(def, key, node) {
+  var field = componentFieldByKey(def, key);
+  if (field && field.attr) return field.def;
   if (node) {
     var vars = readComponentVars();
     if (vars[key] !== undefined) return vars[key];
   }
-  var field = componentFieldByKey(def, key);
   return field ? componentFieldDefault(field) : undefined;
 }
 function componentNodeHasOverrides(def, node) {
   if (!node) return false;
   var map = styleDeclMap(node.style || ""), keys = componentAllKeys(def);
-  for (var i = 0; i < keys.length; i++) if (map[keys[i]] !== undefined) return true;
+  for (var i = 0; i < keys.length; i++) if (!componentIsAttrKey(def, keys[i]) && map[keys[i]] !== undefined) return true;
   return false;
 }
 function componentValuesMatchProject(def, values, node) {
@@ -15095,6 +15060,7 @@ function componentValuesMatchProject(def, values, node) {
   var keys = componentAllKeys(def);
   for (var i = 0; i < keys.length; i++) {
     var k = keys[i];
+    if (componentIsAttrKey(def, k)) continue;
     var expected = componentResetValue(def, k, node);
     var actual = values[k];
     if (String(expected === undefined ? "" : expected) !== String(actual === undefined ? "" : actual)) return false;
@@ -15110,6 +15076,7 @@ function componentPresetMatch(def, values, node) {
     var p = presets[i], ok = true;
     for (var j = 0; j < keys.length; j++) {
       var k = keys[j];
+      if (componentIsAttrKey(def, k)) continue;
       var expected = (p.vars && p.vars[k] !== undefined) ? p.vars[k] : componentPresetBaseValue(def, k);
       var actual = values[k];
       if (String(expected === undefined ? "" : expected) !== String(actual === undefined ? "" : actual)) { ok = false; break; }
@@ -15131,6 +15098,7 @@ function applyComponentPreset(id) {
   if (id === "custom") { s.presetId = "custom"; renderComponentSettings(); return; }
   if (id === "inherit" && s.node) {
     componentAllKeys(s.def).forEach(function(k){
+      if (componentIsAttrKey(s.def, k)) return;
       var base = componentResetValue(s.def, k, s.node);
       if (base === undefined) delete s.values[k];
       else s.values[k] = base;
@@ -15144,6 +15112,7 @@ function applyComponentPreset(id) {
   if (!p) return;
   applyRecommendedPreviewTheme(p.id);
   componentAllKeys(s.def).forEach(function(k){
+    if (componentIsAttrKey(s.def, k)) return;
     var base = componentPresetBaseValue(s.def, k);
     if (base === undefined) delete s.values[k];
     else s.values[k] = base;
@@ -15152,10 +15121,24 @@ function applyComponentPreset(id) {
   s.presetId = p.id;
   renderComponentSettings();
 }
+function componentAttrsCustom(def, values) {
+  for (var i = 0; i < def.categories.length; i++) {
+    var fields = def.categories[i].fields;
+    for (var j = 0; j < fields.length; j++) {
+      var f = fields[j];
+      if (!f.attr) continue;
+      var actual = values[f.key];
+      var expected = f.def === undefined ? "" : f.def;
+      if (String(actual === undefined ? "" : actual) !== String(expected)) return true;
+    }
+  }
+  return false;
+}
 function markComponentCustom() {
   var s = __compSettings;
   if (!s) return;
-  if (s.node && componentValuesMatchProject(s.def, s.values, s.node)) s.presetId = "inherit";
+  if (componentAttrsCustom(s.def, s.values)) s.presetId = "custom";
+  else if (s.node && componentValuesMatchProject(s.def, s.values, s.node)) s.presetId = "inherit";
   else s.presetId = componentPresetMatch(s.def, s.values, s.node);
   var sel = document.getElementById("compcfg-preset");
   if (sel) sel.value = s.presetId;
@@ -15171,7 +15154,8 @@ function openComponentSettings(def, node) {
     var v = componentKeyBaseValue(def, k, node);
     if (v !== undefined) __compSettings.values[k] = v;
   });
-  if (node && !componentNodeHasOverrides(def, node)) __compSettings.presetId = "inherit";
+  if (componentAttrsCustom(def, __compSettings.values)) __compSettings.presetId = "custom";
+  else if (node && !componentNodeHasOverrides(def, node)) __compSettings.presetId = "inherit";
   else __compSettings.presetId = componentPresetMatch(def, __compSettings.values, node);
   if (SHARED_STYLE_THEMES[__compSettings.presetId]) {
     applyRecommendedPreviewTheme(__compSettings.presetId);
@@ -15205,9 +15189,10 @@ function clearComponentOverrides() {
   if (!s || !s.node) return;
   snap("clear component overrides");
   var map = styleDeclMap(s.node.style || "");
-  componentAllKeys(s.def).forEach(function(k){ delete map[k]; });
+  componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete map[k]; });
   s.node.style = styleDeclStr(map);
-  setOut(); autoPreview(); renderInspector(); closeComponentSettings();
+  applyComponentAttrValues(s.def, s.node, s.values, true);
+  setOut(); renderTree(); renderView(); renderInspector(); closeComponentSettings();
 }
 function renderComponentSettings() {
   var s = __compSettings;
@@ -15347,6 +15332,43 @@ function componentFieldRow(field) {
       markComponentCustom();
     };
     row.appendChild(sel);
+  } else if (field.type === "attrSwitch") {
+    row.appendChild(mkSwitch(value === true, false, function(on){
+      s.values[field.key] = on;
+      markComponentCustom();
+    }));
+  } else if (field.type === "icon") {
+    var iconWrap = document.createElement("div");
+    iconWrap.style.cssText = "display:flex;gap:6px;align-items:center;flex:1;min-width:0";
+    var iconSel = document.createElement("select");
+    var customOpt = document.createElement("option");
+    customOpt.value = ""; customOpt.textContent = "Custom";
+    iconSel.appendChild(customOpt);
+    ["📁", "📂", "📄", "📃", "📝", "📦", "🗂️", "⚙️", "🔒", "🔑", "⭐", "✅", "⚠️", "❌", "👤", "🔍"].forEach(function(ic){
+      var o = document.createElement("option"); o.value = ic; o.textContent = ic; iconSel.appendChild(o);
+    });
+    var iconInput = document.createElement("input");
+    iconInput.type = "text"; iconInput.value = value || ""; iconInput.maxLength = 32; iconInput.spellcheck = false;
+    iconInput.style.cssText = "flex:1;min-width:64px";
+    iconSel.value = iconInput.value;
+    iconSel.onchange = function(){
+      if (!iconSel.value) return;
+      iconInput.value = iconSel.value;
+      s.values[field.key] = iconSel.value;
+      markComponentCustom();
+    };
+    iconInput.oninput = function(){
+      s.values[field.key] = iconInput.value;
+      iconSel.value = iconInput.value;
+      markComponentCustom();
+    };
+    iconWrap.appendChild(iconSel); iconWrap.appendChild(iconInput);
+    row.appendChild(iconWrap);
+  } else if (field.type === "attrText" || field.type === "title") {
+    var aInp = document.createElement("input");
+    aInp.type = "text"; aInp.value = value || ""; aInp.spellcheck = false;
+    aInp.oninput = function(){ s.values[field.key] = aInp.value; markComponentCustom(); };
+    row.appendChild(aInp);
   } else {
     var inp = document.createElement("input");
     inp.type = "text"; inp.value = value; inp.spellcheck = false;
@@ -15354,6 +15376,20 @@ function componentFieldRow(field) {
     row.appendChild(inp);
   }
   return row;
+}
+function applyComponentAttrValues(def, node, values, reset) {
+  if (!node) return;
+  def.categories.forEach(function(cat){
+    cat.fields.forEach(function(f){
+      if (!f.attr) return;
+      if (reset) {
+        if (f.def === undefined || f.def === "" || f.def === false) delete node[f.attr];
+        else node[f.attr] = f.def;
+      } else if (Object.prototype.hasOwnProperty.call(values, f.key)) {
+        node[f.attr] = values[f.key];
+      }
+    });
+  });
 }
 function applyComponentSettings() {
   var s = __compSettings;
@@ -15363,22 +15399,24 @@ function applyComponentSettings() {
     snap("component settings " + s.def.label);
     var map = styleDeclMap(s.node.style || "");
     if (s.presetId === "inherit") {
-      componentAllKeys(s.def).forEach(function(k){ delete map[k]; });
+      componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete map[k]; });
       s.node.style = styleDeclStr(map);
+      applyComponentAttrValues(s.def, s.node, values, true);
       ensureComponentRules(s.def);
-      setOut(); autoPreview(); renderInspector(); closeComponentSettings();
+      setOut(); renderTree(); renderView(); renderInspector(); autoPreview(); closeComponentSettings();
       return;
     }
-    componentAllKeys(s.def).forEach(function(k){ delete map[k]; });
-    Object.keys(values).forEach(function(k){ map[k] = values[k]; });
+    componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete map[k]; });
+    Object.keys(values).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) map[k] = values[k]; });
     s.node.style = styleDeclStr(map);
+    applyComponentAttrValues(s.def, s.node, values, false);
     ensureComponentRules(s.def);
-    setOut(); autoPreview(); renderInspector();
+    setOut(); renderTree(); renderView(); renderInspector(); autoPreview();
   } else {
     snap("project " + s.def.label + " defaults");
     var vars = readComponentVars();
-    componentAllKeys(s.def).forEach(function(k){ delete vars[k]; });
-    Object.keys(values).forEach(function(k){ vars[k] = values[k]; });
+    componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete vars[k]; });
+    Object.keys(values).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) vars[k] = values[k]; });
     writeComponentVars(vars);
     ensureComponentRules(s.def);
     setOut(); autoPreview(); scheduleCssSync();

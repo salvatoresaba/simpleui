@@ -594,8 +594,9 @@ tree "Project files"
 }
 ```
 
-- `name` is the runtime target used by the core `tree` module. It defaults to
-  the visible tree title; set a unique name for data import/export.
+- The tree element text is the visible title. `name` is the runtime target used
+  by the core `tree` module; it defaults to the title but is not displayed. Set a
+  unique name for data import/export without changing the title.
 - `value` binds the selected item key to a string state.
 - `onChange` runs after the selected state has been updated.
 - `treeitem key`: stable value stored in the state. If omitted, the item path is
@@ -605,6 +606,9 @@ tree "Project files"
 - `truncate: false` wraps long labels instead of truncating them with an ellipsis.
   Truncated labels always expose the full text as a native tooltip; set
   `treeitem tooltip: "..."` for a custom text.
+- `tooltips: true` uses the styled tree tooltip instead of the native title.
+  Style it with `--sui-tree-tooltip-bg`, `-fg`, `-border`, `-radius`, `-padding`,
+  `-max-width`, `-font-size`, `-delay` and `-placement`.
 - `rowHeight: 32` sets the row minimum height (12-120). The default is `28`.
 - `icon`, `iconOpen` on the tree are fallback glyphs; `treeitem icon`/`iconOpen`
   override them. Icons are inert text or emoji, never markup.
@@ -703,7 +707,11 @@ tree "Project files"
   `--sui-tree-panel-padding`, `--sui-tree-indent`, `--sui-tree-guide-color`,
   `--sui-tree-icon-color`, `--sui-tree-badge-bg`, `--sui-tree-badge-fg`,
   `--sui-tree-meta-color`, `--sui-tree-check-on`, `--sui-tree-check-border`,
-  `--sui-tree-check-bg` and `--sui-tree-row-height`.
+  `--sui-tree-check-bg`, `--sui-tree-row-height`, `--sui-tree-tooltip-bg`,
+  `--sui-tree-tooltip-fg`, `--sui-tree-tooltip-border`,
+  `--sui-tree-tooltip-radius`, `--sui-tree-tooltip-padding`,
+  `--sui-tree-tooltip-max-width`, `--sui-tree-tooltip-font-size`,
+  `--sui-tree-tooltip-delay` and `--sui-tree-tooltip-placement`.
 - Edit the generated `style: cssSafe("...")` expression directly for custom
   values. Dynamic style stays under the normal `cssSafe` policy. Because
   `cssSafe` accepts comma-free declarations, use 8-digit hex colors such as

@@ -187,7 +187,7 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 			t.Errorf("designer source missing %q:\n%s", want, src)
 		}
 	}
-	for _, want := range []string{"treeControls", "treeItemControls", "initially open", "stable item key", "editable depth", "rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "node style preset", "show rename icon", "rename icon", "tree name", "tree.importJson", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
+	for _, want := range []string{"treeControls", "treeItemControls", "initially open", "stable item key", "editable depth", "rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "node style preset", "show rename icon", "rename icon", "Runtime name", "Tooltip", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer tree support missing %q", want)
 		}
@@ -298,8 +298,8 @@ fn checked() -> null {
 		}
 	}
 	for _, want := range []string{
-		`"indent guides"`, `"hierarchical checkboxes"`, `"child counts"`,
-		`"default icon"`, `"open icon"`, `"badge type"`, `"metadata"`,
+		`"Indent guides"`, `"Hierarchical checkboxes"`, `"Child counts"`,
+		`"Default icon"`, `"Open icon"`, `"badge type"`, `"metadata"`,
 		`--sui-tree-guide-color`, `.td-row .td-icon`,
 	} {
 		if !strings.Contains(guiHTML, want) {
@@ -319,7 +319,7 @@ fn loaded() -> null {
 fn menu() -> null {
 }
 view main {
-	tree "Files" name: "files" value: selected selection: selectedKeys multiSelect: true search: true drag: true contextMenu: true columns: "size,date,status" columnLabels: "Size,Modified,State" columnWidths: "120,90,80" sort: "asc" persistSelection: true loadKey: loadKey onMove: moved onLoad: loaded onContextMenu: menu virtual: true {
+	tree "Files" name: "files" value: selected selection: selectedKeys multiSelect: true search: true drag: true contextMenu: true columns: "size,date,status" columnLabels: "Size,Modified,State" columnWidths: "120,90,80" sort: "asc" persistSelection: true loadKey: loadKey onMove: moved onLoad: loaded onContextMenu: menu virtual: true tooltips: true {
 		treeitem "remote" key: "remote" lazy: true size: "2 KB" date: "today" status: "ok"
 	}
 }
@@ -336,6 +336,7 @@ view main {
 		`data-sui-tree-multi="1"`, `data-sui-tree-search="1"`,
 		`data-sui-tree-drag="1"`, `data-sui-tree-context-menu="1"`,
 		`data-sui-tree-virtual="1"`,
+		`data-sui-tree-tooltips="1"`,
 		`data-sui-tree-columns="size,date,status"`,
 		`data-sui-tree-column-labels="Size,Modified,State"`,
 		`data-sui-tree-column-widths="120,90,80"`,
@@ -361,6 +362,7 @@ view main {
 		`selectedKeys`, `checkedKeys`, `expandAll`, `collapseAll`, `expandTo`,
 		`sui-tree-context`, `aria-multiselectable`, `data-sui-tree-selection-setter`,
 		`sortNodes`, `pushUndo`, `undoMove`, `lastMove`, `retryChildren`, `sui-tree-retry`,
+		`sui-tree-tooltip`, `showTooltip`, `aria-describedby`,
 	} {
 		if !strings.Contains(suiTreeRuntime, want) {
 			t.Errorf("phase B/C/D runtime missing %q", want)
@@ -370,7 +372,7 @@ view main {
 		`.sui-tree-search`, `.sui-tree-grid-head`, `.sui-tree-cell`,
 		`.sui-tree-context`, `.sui-tree-drop-before`, `.sui-tree-drop-after`,
 		`.sui-tree-drop-inside`, `.sui-tree-loading`, `.sui-tree-match`,
-		`content-visibility: auto`, `.sui-tree-retry`,
+		`content-visibility: auto`, `.sui-tree-retry`, `.sui-tree-tooltip`,
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("phase B/C/D CSS missing %q", want)
@@ -433,9 +435,10 @@ view main {
 		}
 	}
 	for _, want := range []string{
-		`"multi-select"`, `"search box"`, `"drag and drop"`, `"context menu"`,
+		`"Multi-select"`, `"Search box"`, `"Drag and drop"`, `"Context menu"`,
 		`"grid columns"`, `"column labels"`, `"column widths"`, `"sort children"`,
-		`"persist selection"`, `"lazy children"`, `.td-row .td-size`,
+		`"Persist selection"`, `"lazy children"`, `.td-row .td-size`,
+		`name: "General"`, `name: "Icons"`, `name: "Tooltip"`, `"Runtime name"`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer phase B/C support missing %q", want)

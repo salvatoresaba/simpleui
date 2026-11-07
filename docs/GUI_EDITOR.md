@@ -1007,42 +1007,39 @@ The **Tree** inspector exposes:
 
 | Field | Meaning |
 |---|---|
-| settings | opens **Tree settings** (colors, shape, typography, title and presets) |
+| settings | opens **Tree settings** (General, Colors, Title, Shape, Icons and Tooltip) |
 | data | opens **Edit tree data** (labels, keys, nesting, import/export) |
-| tooltip | opens the global tooltip style panel |
-| tree name | runtime target for the core `tree` import/export functions; defaults to the title |
 | value state | string state receiving the selected item key |
 | style preset | 16 tree presets from Default and Compact to Neon, Forest, High contrast and Cards; custom edits style expr |
-| rename icon | pencil glyph; empty uses the default pencil |
-| show rename icon | hide or show the pencil for the whole tree |
-| indent guides | thin per-level guides and indentation (default on) |
-| truncate labels | ellipsis plus full-text tooltip; off wraps the label |
-| hierarchical checkboxes | tri-state checkboxes with parent/child propagation |
-| child counts | child-count pill on parent rows |
 | row height | minimum row height in pixels (12-120) |
-| default icon / open icon | fallback glyphs for collapsed and expanded rows |
-| multi-select | Ctrl/Command toggle and Shift range selection |
 | selection state | string state receiving a JSON array of selected keys |
-| search box | inline filter with highlighting and automatic expansion |
-| drag and drop | reorder nodes with before/after/inside indicators |
-| context menu | built-in right-click actions |
+| load key state | state receiving the key of a lazy item being expanded |
 | grid columns | comma list: `size`, `date`, `status` |
 | column labels / widths | positional header text and pixel widths |
 | sort children | `asc` or `desc`; empty keeps manual order |
-| persist selection | restore selected keys from local storage |
-| virtualize offscreen rows | browser `content-visibility` optimization for large trees |
-| load key state | state receiving the key of a lazy item being expanded |
-| editable | enable inline rename |
 | editable depth | maximum editable level; `0` = all |
 | rename key state | state receiving the renamed node key |
 | rename value state | state receiving the new label |
 
-**Tree settings** opens the component panel with Colors, Title and Shape tabs:
-text, title, row, hover, selected, toggle, border, guide, badge, metadata and
-checkbox colors; title size, weight, font, spacing, alignment and top/bottom
-position; indent, row padding/height, radius, border, toggle size, font
-size/weight, letter spacing and font family. Named presets are available in the
-same panel.
+**Tree settings** opens the component panel with these tabs:
+
+- **General** - `Title` (the visible tree title) and `Runtime name` (the target
+  used by `tree.*` functions; it is not the visible title), plus every behavior
+  switch: indent guides, truncate labels, hierarchical checkboxes, child counts,
+  multi-select, search box, drag and drop, context menu, virtualize offscreen
+  rows, persist selection, editable and show rename icon.
+- **Colors** - text, title, row, hover, selected, toggle, border, guide, badge,
+  metadata and checkbox colors.
+- **Title** - title size, weight, font, spacing, alignment, top/bottom position
+  and padding. These values apply to the **Title** field in General.
+- **Shape** - indent, row padding/height, radius, border, toggle size, font
+  size/weight, letter spacing and font family.
+- **Icons** - default icon, open icon and rename icon, chosen from a glyph list
+  or typed as custom text/emoji.
+- **Tooltip** - custom tooltip switch plus background, text, border, radius,
+  padding, max width, font size, delay and placement.
+
+Named presets are available in the same panel.
 
 **Edit tree data** opens a dedicated editor with one row per item. The row shows
 the label, an optional stable key, icon, badge, metadata, size/date/status grid

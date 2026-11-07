@@ -2973,7 +2973,8 @@ func attrAllowed(key string, tag string) bool {
 		key == "guides" || key == "truncate" || key == "checkbox" || key == "counts" || key == "rowHeight" ||
 		key == "icon" || key == "iconOpen" || key == "multiSelect" || key == "selection" ||
 		key == "search" || key == "drag" || key == "contextMenu" || key == "columns" || key == "loadKey" ||
-		key == "virtual" || key == "columnLabels" || key == "columnWidths" || key == "sort" || key == "persistSelection") {
+		key == "virtual" || key == "columnLabels" || key == "columnWidths" || key == "sort" || key == "persistSelection" ||
+		key == "tooltips") {
 		return true
 	}
 	if tag == "treeitem" && (key == "key" || key == "open" || key == "editable" ||
@@ -3486,7 +3487,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 	}
 	if tag == "tree" && (a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" ||
 		a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "virtual" ||
-		a.key == "persistSelection") {
+		a.key == "persistSelection" || a.key == "tooltips") {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)
 			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {

@@ -2344,7 +2344,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
-			a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "tooltips" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
@@ -3274,6 +3274,10 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if a := findAttr(e, "virtual"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
 		virtual = a.expr.b
 	}
+	tooltips := false
+	if a := findAttr(e, "tooltips"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		tooltips = a.expr.b
+	}
 	rowHeight := ""
 	if a := findAttr(e, "rowHeight"); a != nil {
 		if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
@@ -3368,6 +3372,9 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		}
 		if virtual {
 			open += " data-sui-tree-virtual=\"1\""
+		}
+		if tooltips {
+			open += " data-sui-tree-tooltips=\"1\""
 		}
 		if rowHeight != "" {
 			open += " data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\""

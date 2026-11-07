@@ -574,8 +574,9 @@ tree "File progetto"
 }
 ```
 
-- `name` è il target runtime usato dal modulo core `tree`. Se assente usa il
-  titolo visibile dell'albero; usare un nome unico per import/export dati.
+- Il testo dell'elemento tree è il titolo visibile. `name` è il target runtime
+  usato dal modulo core `tree`; usa il titolo come default ma non viene mostrato.
+  Impostare un nome univoco per import/export senza cambiare il titolo.
 - `value` collega la key dell'elemento selezionato a uno stato stringa.
 - `onChange` viene chiamata dopo l'aggiornamento dello stato.
 - `treeitem key`: valore stabile salvato nello stato. Se assente viene usato il
@@ -585,6 +586,9 @@ tree "File progetto"
 - `truncate: false` manda a capo le etichette lunghe invece di troncarle. Le
   etichette troncate espongono sempre il testo completo come tooltip nativo;
   `treeitem tooltip: "..."` imposta un testo personalizzato.
+- `tooltips: true` usa il tooltip stilizzato del tree invece del title nativo.
+  Stile tramite `--sui-tree-tooltip-bg`, `-fg`, `-border`, `-radius`, `-padding`,
+  `-max-width`, `-font-size`, `-delay` e `-placement`.
 - `rowHeight: 32` imposta l'altezza minima di riga (12-120). Default `28`.
 - `icon`, `iconOpen` sul tree sono glifi di fallback; `treeitem icon`/`iconOpen`
   li sovrascrivono. Le icone sono testo o emoji inerte, mai markup.
@@ -688,7 +692,11 @@ tree "File progetto"
   `--sui-tree-panel-padding`, `--sui-tree-indent`, `--sui-tree-guide-color`,
   `--sui-tree-icon-color`, `--sui-tree-badge-bg`, `--sui-tree-badge-fg`,
   `--sui-tree-meta-color`, `--sui-tree-check-on`, `--sui-tree-check-border`,
-  `--sui-tree-check-bg` e `--sui-tree-row-height`.
+  `--sui-tree-check-bg`, `--sui-tree-row-height`, `--sui-tree-tooltip-bg`,
+  `--sui-tree-tooltip-fg`, `--sui-tree-tooltip-border`,
+  `--sui-tree-tooltip-radius`, `--sui-tree-tooltip-padding`,
+  `--sui-tree-tooltip-max-width`, `--sui-tree-tooltip-font-size`,
+  `--sui-tree-tooltip-delay` e `--sui-tree-tooltip-placement`.
 - Modificare direttamente l'espressione `style: cssSafe("...")` per valori
   personalizzati. Lo stile dinamico resta soggetto alla policy `cssSafe`.
   Poiché `cssSafe` accetta dichiarazioni senza virgole, nello `style expr` usare

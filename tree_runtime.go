@@ -92,6 +92,7 @@ const suiTreeRuntime = `(function(){
     var searchEnabled = root.getAttribute('data-sui-tree-search') === '1';
     var dragEnabled = root.getAttribute('data-sui-tree-drag') === '1';
     var contextMenuEnabled = root.getAttribute('data-sui-tree-context-menu') === '1';
+    var customTooltips = root.getAttribute('data-sui-tree-tooltips') === '1';
     var treeColumns = (root.getAttribute('data-sui-tree-columns') || '').split(',').filter(Boolean);
     var treeColumnWidths = (root.getAttribute('data-sui-tree-column-widths') || '').split(',').map(function(v) { return parseInt(v, 10) || 0; });
     var sortDir = (root.getAttribute('data-sui-tree-sort') || '').toLowerCase();
@@ -671,6 +672,60 @@ const suiTreeRuntime = `(function(){
       var input = root.querySelector('.sui-tree-search-input');
       if (input) { input.focus(); input.select(); }
     }
+    var tooltipTimer = null;
+    var tooltipEl = null;
+    function ensureTooltip() {
+      if (tooltipEl && tooltipEl.parentNode) return tooltipEl;
+      tooltipEl = root.querySelector('.sui-tree-tooltip');
+      if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.className = 'sui-tree-tooltip';
+        tooltipEl.setAttribute('role', 'tooltip');
+        tooltipEl.id = 'sui-tree-tip-' + treeKey.replace(/[^A-Za-z0-9_-]/g, '-');
+        root.appendChild(tooltipEl);
+      }
+      return tooltipEl;
+    }
+    function tooltipDelay() {
+      var raw = getComputedStyle(root).getPropertyValue('--sui-tree-tooltip-delay').trim();
+      var n = parseFloat(raw);
+      return isFinite(n) ? Math.max(0, Math.min(2000, n)) : 140;
+    }
+    function hideTooltip() {
+      if (tooltipTimer) { clearTimeout(tooltipTimer); tooltipTimer = null; }
+      if (tooltipEl) tooltipEl.classList.remove('on');
+    }
+    function positionTooltip(anchor) {
+      if (!tooltipEl || !anchor) return;
+      var placement = getComputedStyle(root).getPropertyValue('--sui-tree-tooltip-placement').trim().toLowerCase();
+      if (["top", "right", "bottom", "left"].indexOf(placement) < 0) placement = "top";
+      var r = anchor.getBoundingClientRect();
+      var tw = tooltipEl.offsetWidth, th = tooltipEl.offsetHeight;
+      var gap = 6;
+      var x = r.left, y = r.bottom + gap;
+      if (placement === "top") { x = r.left; y = r.top - th - gap; }
+      else if (placement === "right") { x = r.right + gap; y = r.top + (r.height - th) / 2; }
+      else if (placement === "bottom") { x = r.left; y = r.bottom + gap; }
+      else if (placement === "left") { x = r.left - tw - gap; y = r.top + (r.height - th) / 2; }
+      x = Math.max(4, Math.min(window.innerWidth - tw - 4, x));
+      y = Math.max(4, Math.min(window.innerHeight - th - 4, y));
+      tooltipEl.style.left = x + 'px';
+      tooltipEl.style.top = y + 'px';
+    }
+    function showTooltip(item, anchor, immediate) {
+      if (!customTooltips || !anchor) return;
+      var text = item.getAttribute('data-sui-tooltip') || (anchor.textContent || '');
+      if (!text) return;
+      hideTooltip();
+      function reveal() {
+        var el = ensureTooltip();
+        el.textContent = text;
+        el.classList.add('on');
+        positionTooltip(anchor);
+      }
+      if (immediate) reveal();
+      else tooltipTimer = setTimeout(reveal, tooltipDelay());
+    }
     function loadLazy(item) {
       if (!item || item.__suiLoading) return;
       if (itemGroup(item)) { setOpen(item, true, true); return; }
@@ -1000,6 +1055,12 @@ const suiTreeRuntime = `(function(){
         }
       }, 0);
     }
+    if (customTooltips && !root.__suiTooltipBound) {
+      root.__suiTooltipBound = true;
+      var hideTipOnScroll = function() { hideTooltip(); };
+      root.addEventListener('scroll', hideTipOnScroll, true);
+      window.addEventListener('scroll', hideTipOnScroll, true);
+    }
     if (searchEnabled) {
       var searchInput = root.querySelector('.sui-tree-search-input');
       if (searchInput) {
@@ -1031,7 +1092,12 @@ const suiTreeRuntime = `(function(){
       if (labelEl) {
         item.__suiLabel = labelEl.textContent;
         var tip = item.getAttribute('data-sui-tooltip') || '';
-        labelEl.title = tip || labelEl.textContent;
+        if (customTooltips) {
+          labelEl.removeAttribute('title');
+          item.setAttribute('aria-describedby', 'sui-tree-tip-' + treeKey.replace(/[^A-Za-z0-9_-]/g, '-'));
+        } else {
+          labelEl.title = tip || labelEl.textContent;
+        }
       }
       item.__suiEditable = editableFor(item);
       item.classList.toggle('sui-tree-editable', item.__suiEditable);
@@ -1081,6 +1147,14 @@ const suiTreeRuntime = `(function(){
           lastDown.time = now;
         }
       });
+      if (row && customTooltips) {
+        row.addEventListener('mouseenter', function() { showTooltip(item, itemLabelEl(item)); });
+        row.addEventListener('mouseleave', hideTooltip);
+      }
+      if (customTooltips) {
+        item.addEventListener('focusin', function() { showTooltip(item, itemLabelEl(item), true); });
+        item.addEventListener('focusout', hideTooltip);
+      }
       if (row) row.addEventListener('click', function(ev) {
         if (ev.target && ev.target.closest && ev.target.closest('.sui-tree-toggle')) return;
         if (ev.target && ev.target.closest && ev.target.closest('.sui-tree-check')) return;
@@ -1199,6 +1273,10 @@ const suiTreeRuntime = `(function(){
       }
       item.addEventListener('focus', function() {
         items.forEach(function(x) { x.tabIndex = x === item ? 0 : -1; });
+        if (customTooltips) showTooltip(item, itemLabelEl(item), true);
+      });
+      item.addEventListener('blur', function() {
+        if (customTooltips) hideTooltip();
       });
       item.addEventListener('keydown', function(ev) {
         var vis = items.filter(visible);

@@ -361,8 +361,8 @@ func TestGuiComponentPresets(t *testing.T) {
 		`--sui-modal-font`,
 		`--sui-menu-font`,
 		`if (re.test(root.css)) root.css = root.css.replace(re, block);`,
-		`componentAllKeys(s.def).forEach(function(k){ delete map[k]; });`,
-		`componentAllKeys(s.def).forEach(function(k){ delete vars[k]; });`,
+		`componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete map[k]; });`,
+		`componentAllKeys(s.def).forEach(function(k){ if (!componentIsAttrKey(s.def, k)) delete vars[k]; });`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("component preset support missing %q", want)
