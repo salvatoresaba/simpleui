@@ -1506,6 +1506,15 @@ colors, spacing, line width and scrollbar colors. The selected preset name is
 kept after **Apply**, because the panel recognises a preset even when tooltip
 and table overrides are appended to its style expression.
 
+The chart **Theme** combo is independent from the project theme. With the
+**Default** preset, a dark chart on a light page keeps a solid dark surface and
+light text, and its header, zoom and settings buttons use chart-specific
+foreground, background and border colours instead of the light page palette.
+Choosing the light chart theme with **Default** switches to the light default
+palette. Older default style expressions are recognised as **Default** and are
+upgraded on Apply, so a dark chart no longer turns its buttons into an
+unreadable dark block.
+
 A data-expression chart is reactive: changing the bound state re-renders the
 chart. Malformed data or an empty payload shows a text error inside the chart,
 not a broken preview. JSON literal braces must be written `\{` and `\}` in

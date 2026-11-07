@@ -333,9 +333,22 @@ const themeE2EScript = `<script>
     var fuzzyKey = chartPresetKey({ styleExpr: 'cssSafe(' + JSON.stringify(chartPresetCss('theme-standard-light') + '; --sui-chart-extra-check: 1') + ')' });
     newSui();
     await wait(80);
+    applyProjectTheme('standard-light');
+    await wait(300);
     addEl('chart');
     await wait(200);
     var chartNode = byPath(selPath, root.children);
+    chartNode.chartTheme = 'dark';
+    chartNode.styleExpr = chartPresetStyleExpr('default');
+    setOut();
+    autoPreview();
+    await wait(900);
+    var chartDoc = frame();
+    var chartCtrlBg = docStyle(chartDoc, '.sui-chart-menu-btn', 'backgroundColor');
+    var chartCtrlFg = docStyle(chartDoc, '.sui-chart-menu-btn', 'color');
+    var chartBgVar = chartDoc && chartDoc.querySelector('.sui-chart') ? chartDoc.defaultView.getComputedStyle(chartDoc.querySelector('.sui-chart')).getPropertyValue('--sui-chart-bg').trim() : '';
+    var chartControlContrast = !!(chartCtrlBg && chartCtrlFg && contrastRatio(rgb(chartCtrlFg), blendRgb(rgb(chartCtrlBg), rgb('#14171c'))) >= 4.5);
+    var chartDarkOnLight = chartControlContrast && chartBgVar === '#14171c';
     var chartPayload = JSON.parse(JSON.stringify(payload));
     chartPayload.charts = { chart: { chartTheme: 'light', styleExpr: chartPresetStyleExpr('theme-standard-light') }, graph: null };
     applyImportedThemeObject(chartPayload);
@@ -375,6 +388,7 @@ const themeE2EScript = `<script>
       themePresetCount: themePresets.length === STYLE_VARIANT_DEFS.length && themePresets.length >= 24,
       themePresetRoundtrip: roundtrip,
       contrastAudit: contrastFailures.length === 0,
+      chartDarkOnLight: chartDarkOnLight,
       themePresetFuzzy: fuzzyKey === 'theme-standard-light',
       importReappliesCharts: chartReapplied,
       themeName: importedName === 'QA theme',

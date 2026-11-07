@@ -258,9 +258,9 @@ body {
   --sui-chart-grid: var(--sui-border, #3d4556);
   --sui-chart-axis: #6b7280;
   --sui-chart-control-bg: #1d2129;
-  --sui-chart-control-border: var(--sui-border, #3d4556);
-  --sui-chart-control-fg: var(--sui-fg, #e6e6e6);
-  --sui-chart-control-hover-bg: var(--sui-hover, #2d3340);
+  --sui-chart-control-border: #3d4556;
+  --sui-chart-control-fg: var(--sui-chart-fg, #e6e6e6);
+  --sui-chart-control-hover-bg: #2d3340;
   --sui-chart-control-hover-border: #556075;
   --sui-chart-control-hover-fg: #ffffff;
   --sui-chart-control-muted: #8fa0b8;

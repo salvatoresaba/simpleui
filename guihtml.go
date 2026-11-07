@@ -4894,7 +4894,7 @@ var TREE_ITEM_STYLE_PRESETS = [
   { key: "compactrow", label: "Compact row", css: "--sui-tree-row-padding: 0px 4px; --sui-tree-row-radius: 3px;" }
 ];
 var CHART_STYLE_PRESETS = [
-  { key: "default", label: "Default", css: "--sui-chart-bg: transparent; --sui-chart-fg: #e6e6ef; --sui-chart-title-color: #e6e6ef; --sui-chart-muted: #8fa0b8; --sui-chart-grid: #2c3444; --sui-chart-axis: #3a4152; --sui-chart-series-1: #4c5cf7; --sui-chart-series-2: #22c55e; --sui-chart-series-3: #f59e0b; --sui-chart-series-4: #ef4444; --sui-chart-series-5: #06b6d4; --sui-chart-series-6: #a855f7; --sui-chart-series-7: #84cc16; --sui-chart-series-8: #ec4899;" },
+  { key: "default", label: "Default", css: "--sui-chart-bg: #14171c; --sui-chart-fg: #e6e6ef; --sui-chart-title-color: #e6e6ef; --sui-chart-muted: #8fa0b8; --sui-chart-grid: #2c3444; --sui-chart-axis: #3a4152; --sui-chart-series-1: #4c5cf7; --sui-chart-series-2: #22c55e; --sui-chart-series-3: #f59e0b; --sui-chart-series-4: #ef4444; --sui-chart-series-5: #06b6d4; --sui-chart-series-6: #a855f7; --sui-chart-series-7: #84cc16; --sui-chart-series-8: #ec4899; --sui-chart-control-bg: #1d2129; --sui-chart-control-fg: #e6e6ef; --sui-chart-control-border: #3d4556; --sui-chart-control-hover-bg: #2d3340; --sui-chart-control-hover-border: #556075; --sui-chart-tooltip-bg: #1d2129; --sui-chart-tooltip-fg: #e6e6ef; --sui-chart-tooltip-border: #3d4556; --sui-chart-tooltip-radius: 6px; --sui-chart-tooltip-max-width: 240px; --sui-chart-tooltip-font-size: 11px; --sui-chart-tooltip-delay: 0ms; --sui-chart-table-head-bg: #1d2129; --sui-chart-table-head-fg: #e6e6ef; --sui-chart-table-row-bg: #14171c; --sui-chart-table-row-border: #2c3444; --sui-chart-table-font-size: 11px; --sui-chart-table-cell-padding: 4px 6px; --sui-chart-table-stripe-opacity: 0.06; --sui-chart-table-caption-display: block; --sui-chart-table-header-position: sticky;" },
   { key: "ocean", label: "Ocean", css: "--sui-chart-bg: #0b1f33; --sui-chart-fg: #ecfeff; --sui-chart-title-color: #a5f3fc; --sui-chart-muted: #7dd3fc; --sui-chart-grid: #164e63; --sui-chart-axis: #0e7490; --sui-chart-series-1: #22d3ee; --sui-chart-series-2: #38bdf8; --sui-chart-series-3: #2dd4bf; --sui-chart-series-4: #818cf8; --sui-chart-series-5: #67e8f9; --sui-chart-series-6: #a5b4fc; --sui-chart-series-7: #14b8a6; --sui-chart-series-8: #7dd3fc; --sui-chart-border: 1px solid #164e63; --sui-chart-radius: 10px; --sui-chart-padding: 8px;" },
   { key: "forest", label: "Forest", css: "--sui-chart-bg: #0f241a; --sui-chart-fg: #ecfdf5; --sui-chart-title-color: #bbf7d0; --sui-chart-muted: #86efac; --sui-chart-grid: #24543a; --sui-chart-axis: #2f6b49; --sui-chart-series-1: #22c55e; --sui-chart-series-2: #84cc16; --sui-chart-series-3: #14b8a6; --sui-chart-series-4: #eab308; --sui-chart-series-5: #10b981; --sui-chart-series-6: #65a30d; --sui-chart-series-7: #4ade80; --sui-chart-series-8: #a3e635; --sui-chart-border: 1px solid #24543a; --sui-chart-radius: 10px; --sui-chart-padding: 8px;" },
   { key: "sunset", label: "Sunset", css: "--sui-chart-bg: #2a1420; --sui-chart-fg: #fff1f2; --sui-chart-title-color: #fecdd3; --sui-chart-muted: #fda4af; --sui-chart-grid: #5c243b; --sui-chart-axis: #7f2947; --sui-chart-series-1: #fb7185; --sui-chart-series-2: #fb923c; --sui-chart-series-3: #f59e0b; --sui-chart-series-4: #e879f9; --sui-chart-series-5: #f97316; --sui-chart-series-6: #f43f5e; --sui-chart-series-7: #facc15; --sui-chart-series-8: #d946ef; --sui-chart-border: 1px solid #5c243b; --sui-chart-radius: 12px; --sui-chart-padding: 8px;" },
@@ -4905,7 +4905,7 @@ var CHART_STYLE_PRESETS = [
   { key: "amber", label: "Amber", css: "--sui-chart-bg: #241a0c; --sui-chart-fg: #fffbeb; --sui-chart-title-color: #fde68a; --sui-chart-muted: #fcd34d; --sui-chart-grid: #5a4218; --sui-chart-axis: #7c5a1e; --sui-chart-series-1: #f59e0b; --sui-chart-series-2: #fbbf24; --sui-chart-series-3: #ea580c; --sui-chart-series-4: #d97706; --sui-chart-series-5: #facc15; --sui-chart-series-6: #b45309; --sui-chart-series-7: #fde047; --sui-chart-series-8: #fb923c; --sui-chart-border: 1px solid #5a4218; --sui-chart-radius: 10px; --sui-chart-padding: 8px;" },
   { key: "candy", label: "Candy", css: "--sui-chart-bg: #2a1033; --sui-chart-fg: #fdf2f8; --sui-chart-title-color: #f9a8d4; --sui-chart-muted: #f0abfc; --sui-chart-grid: #6b21a8; --sui-chart-axis: #86198f; --sui-chart-series-1: #ec4899; --sui-chart-series-2: #a855f7; --sui-chart-series-3: #38bdf8; --sui-chart-series-4: #f472b6; --sui-chart-series-5: #c084fc; --sui-chart-series-6: #22d3ee; --sui-chart-series-7: #fb7185; --sui-chart-series-8: #d946ef; --sui-chart-border: 1px solid #6b21a8; --sui-chart-radius: 16px; --sui-chart-padding: 10px;" },
   { key: "slate", label: "Slate", css: "--sui-chart-bg: #1e293b; --sui-chart-fg: #f1f5f9; --sui-chart-title-color: #e2e8f0; --sui-chart-muted: #94a3b8; --sui-chart-grid: #334155; --sui-chart-axis: #475569; --sui-chart-series-1: #60a5fa; --sui-chart-series-2: #34d399; --sui-chart-series-3: #fbbf24; --sui-chart-series-4: #f87171; --sui-chart-series-5: #a78bfa; --sui-chart-series-6: #22d3ee; --sui-chart-series-7: #a3e635; --sui-chart-series-8: #fb7185; --sui-chart-border: 1px solid #334155; --sui-chart-radius: 9px; --sui-chart-padding: 8px;" },
-  { key: "light", label: "Light", css: "--sui-chart-bg: #ffffff; --sui-chart-fg: #1f2937; --sui-chart-title-color: #111827; --sui-chart-muted: #6b7280; --sui-chart-grid: #e5e7eb; --sui-chart-axis: #9ca3af; --sui-chart-series-1: #2563eb; --sui-chart-series-2: #16a34a; --sui-chart-series-3: #d97706; --sui-chart-series-4: #dc2626; --sui-chart-series-5: #0891b2; --sui-chart-series-6: #7c3aed; --sui-chart-series-7: #65a30d; --sui-chart-series-8: #db2777; --sui-chart-border: 1px solid #e5e7eb; --sui-chart-radius: 10px; --sui-chart-padding: 10px; --sui-chart-scroll-thumb: #9ca3af; --sui-chart-scroll-track: #f3f4f6; --sui-chart-control-bg: #f3f4f6; --sui-chart-control-fg: #111827; --sui-chart-control-border: #9ca3af; --sui-chart-control-hover-bg: #e5e7eb; --sui-chart-control-hover-border: #2563eb; --sui-chart-error: #b91c1c;" },
+  { key: "light", label: "Light", css: "--sui-chart-bg: #ffffff; --sui-chart-fg: #1f2937; --sui-chart-title-color: #111827; --sui-chart-muted: #6b7280; --sui-chart-grid: #e5e7eb; --sui-chart-axis: #9ca3af; --sui-chart-series-1: #2563eb; --sui-chart-series-2: #16a34a; --sui-chart-series-3: #d97706; --sui-chart-series-4: #dc2626; --sui-chart-series-5: #0891b2; --sui-chart-series-6: #7c3aed; --sui-chart-series-7: #65a30d; --sui-chart-series-8: #db2777; --sui-chart-border: 1px solid #e5e7eb; --sui-chart-radius: 10px; --sui-chart-padding: 10px; --sui-chart-scroll-thumb: #9ca3af; --sui-chart-scroll-track: #f3f4f6; --sui-chart-control-bg: #f3f4f6; --sui-chart-control-fg: #111827; --sui-chart-control-border: #9ca3af; --sui-chart-control-hover-bg: #e5e7eb; --sui-chart-control-hover-border: #2563eb; --sui-chart-tooltip-bg: #ffffff; --sui-chart-tooltip-fg: #111827; --sui-chart-tooltip-border: #9ca3af; --sui-chart-tooltip-radius: 6px; --sui-chart-tooltip-max-width: 240px; --sui-chart-tooltip-font-size: 11px; --sui-chart-tooltip-delay: 0ms; --sui-chart-table-head-bg: #f3f4f6; --sui-chart-table-head-fg: #111827; --sui-chart-table-row-bg: #ffffff; --sui-chart-table-row-border: #e5e7eb; --sui-chart-table-font-size: 11px; --sui-chart-table-cell-padding: 4px 6px; --sui-chart-table-stripe-opacity: 0.06; --sui-chart-table-caption-display: block; --sui-chart-table-header-position: sticky; --sui-chart-error: #b91c1c;" },
   { key: "outline", label: "Outline", css: "--sui-chart-bg: transparent; --sui-chart-fg: #dbe4ff; --sui-chart-title-color: #93c5fd; --sui-chart-muted: #93c5fd; --sui-chart-grid: #2c3444; --sui-chart-axis: #93c5fd; --sui-chart-series-1: #93c5fd; --sui-chart-series-2: #86efac; --sui-chart-series-3: #fde68a; --sui-chart-series-4: #fca5a5; --sui-chart-series-5: #67e8f9; --sui-chart-series-6: #c4b5fd; --sui-chart-series-7: #bef264; --sui-chart-series-8: #f9a8d4; --sui-chart-border: 1px solid #3a4152; --sui-chart-radius: 8px; --sui-chart-padding: 8px;" },
   { key: "minimal", label: "Minimal", css: "--sui-chart-bg: transparent; --sui-chart-fg: #e6e6ef; --sui-chart-title-color: #aab4c8; --sui-chart-muted: #7b879c; --sui-chart-grid: transparent; --sui-chart-axis: #3a4152; --sui-chart-series-1: #93c5fd; --sui-chart-series-2: #86efac; --sui-chart-series-3: #fde68a; --sui-chart-series-4: #fca5a5; --sui-chart-series-5: #67e8f9; --sui-chart-series-6: #c4b5fd; --sui-chart-series-7: #bef264; --sui-chart-series-8: #f9a8d4; --sui-chart-line-width: 1.5; --sui-chart-bar-opacity: .75; --sui-chart-padding: 0;" }
 ];
@@ -4992,6 +4992,13 @@ function chartStyleDeclMap(css) {
   });
   return out;
 }
+function isLegacyDefaultChartCss(map) {
+  return map["--sui-chart-bg"] === "transparent" &&
+    map["--sui-chart-fg"] === "#e6e6ef" &&
+    map["--sui-chart-grid"] === "#2c3444" &&
+    map["--sui-chart-axis"] === "#3a4152" &&
+    map["--sui-chart-series-1"] === "#4c5cf7";
+}
 function chartPresetKey(n) {
   var cur = n && n.styleExpr ? String(n.styleExpr) : "";
   for (var i = 0; i < CHART_STYLE_PRESETS.length; i++) {
@@ -5000,6 +5007,7 @@ function chartPresetKey(n) {
   var css = chartStyleCss(n);
   if (css === null) return "custom";
   var curMap = chartStyleDeclMap(css);
+  if (isLegacyDefaultChartCss(curMap)) return "default";
   var best = "custom", bestCount = 0;
   for (var p = 0; p < CHART_STYLE_PRESETS.length; p++) {
     var preset = CHART_STYLE_PRESETS[p];
@@ -5032,14 +5040,19 @@ function appendChartPresetOptions(sel, current) {
   sel.appendChild(custom);
   sel.value = current || "custom";
 }
+function chartSettingsBaseCss(key, themeValue) {
+  if (key === "default" && themeValue === "light") return chartPresetCss("light");
+  return chartPresetCss(key);
+}
 function syncChartSettingsPresetFields(key) {
   if (!key || key === "custom") return;
-  var tmp = { styleExpr: "cssSafe(" + JSON.stringify(chartPresetCss(key)) + ")" };
   var themeSel = document.getElementById("cs-theme");
   if (themeSel) {
     if (/-light$/.test(key)) themeSel.value = "light";
     else if (/-dark$/.test(key)) themeSel.value = "dark";
   }
+  var themeValue = themeSel && themeSel.value === "light" ? "light" : "dark";
+  var tmp = { styleExpr: "cssSafe(" + JSON.stringify(chartSettingsBaseCss(key, themeValue)) + ")" };
   function setColor(id, name, fallback) {
     var el = document.getElementById(id);
     if (el) el.value = chartTooltipColor(tmp, name, fallback);
@@ -11987,6 +12000,8 @@ function openChartSettings(n, projectKind) {
   preset.innerHTML = "";
   appendChartPresetOptions(preset, chartPresetKey(n));
   preset.onchange = function(){ syncChartSettingsPresetFields(preset.value); };
+  var chartThemeSel = document.getElementById("cs-theme");
+  if (chartThemeSel) chartThemeSel.onchange = function(){ syncChartSettingsPresetFields(preset.value); };
   var tv = document.getElementById("cs-tableview");
   tv.innerHTML = "";
   var gantt = (n.chartType || "bar") === "gantt";
@@ -12095,7 +12110,8 @@ function chartSettingsValues(n) {
   var css = chartStyleCss(n);
   if (css === null) return null;
   var presetKey = document.getElementById("cs-preset").value;
-  var base = presetKey === "custom" ? css : chartPresetCss(presetKey);
+  var themeValue = document.getElementById("cs-theme").value === "light" ? "light" : "dark";
+  var base = presetKey === "custom" ? css : chartSettingsBaseCss(presetKey, themeValue);
   var v = {};
   v.styleExpr = "cssSafe(" + JSON.stringify(chartSettingsStyleCss(n, base)) + ")";
   v.chartTheme = document.getElementById("cs-theme").value === "light" ? "light" : "dark";

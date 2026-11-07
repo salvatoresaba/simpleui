@@ -1558,6 +1558,15 @@ preset selezionato resta visibile dopo **Apply**, perche il pannello riconosce
 un preset anche quando tooltip e tabella aggiungono override alla sua style
 expression.
 
+Il combo **Theme** del chart e indipendente dal tema di progetto. Con il preset
+**Default**, un chart scuro su una pagina chiara mantiene una superficie scura
+solida e testo chiaro, e i pulsanti di intestazione, zoom e impostazioni usano
+colori chart-specifici per testo, sfondo e bordo invece della palette chiara
+della pagina. Scegliendo il tema chiaro con **Default** si passa alla palette
+chiara predefinita. Le vecchie style expression Default vengono riconosciute
+come **Default** e aggiornate con Apply, quindi un chart scuro non trasforma piu
+i pulsanti in un blocco nero illeggibile.
+
 Un grafico in modalita espressione e reattivo: cambiando lo stato collegato
 viene ridisegnato. Dati non validi o vuoti mostrano un messaggio testuale dentro
 il grafico. Le graffe JSON letterali vanno scritte `\{` e `\}`; l'overlay dati

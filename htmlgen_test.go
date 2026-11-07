@@ -66,6 +66,20 @@ func TestBaseElementsUseThemeVariables(t *testing.T) {
 	}
 }
 
+func TestChartDarkThemeControlsUseChartForeground(t *testing.T) {
+	for _, want := range []string{
+		`--sui-chart-control-bg: #1d2129;`,
+		`--sui-chart-control-border: #3d4556;`,
+		`--sui-chart-control-fg: var(--sui-chart-fg, #e6e6e6);`,
+		`--sui-chart-control-hover-bg: #2d3340;`,
+		`--sui-chart-control-hover-fg: #ffffff;`,
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("dark chart control theme missing %q", want)
+		}
+	}
+}
+
 func TestHtmlPageTitle(t *testing.T) {
 	prog, dl := ParseSource(htmlSampleSrc(), "t.sui")
 	if dl.Count() != 0 {
