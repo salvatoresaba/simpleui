@@ -142,7 +142,20 @@ Linux install `libgtk-3-dev` and `libwebkit2gtk-4.0-dev` (or the equivalents
 for your distribution). On Windows WebView2 Runtime is normally already present
 on Windows 10/11.
 
-### 4. Development mode
+### 4. Visual designer
+
+Open an empty designer, or start directly from an existing `.sui` file:
+
+```bash
+./simpleui gui
+./simpleui gui examples/counter.sui
+```
+
+With a file argument the editor opens that file immediately and **Save** writes
+back to the same path. Use `--port N` for a fixed editor port and
+`--security <file>` for an explicit policy.
+
+### 5. Development mode
 
 Use the dev server with live reload:
 
@@ -152,7 +165,7 @@ Use the dev server with live reload:
 
 Open the URL shown in the terminal to see the app with automatic updates on every `.sui` file change.
 
-### 5. Additional tools
+### 6. Additional tools
 
 ```bash
 # Check parse + typecheck (--json for agents/CI)

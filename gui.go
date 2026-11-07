@@ -47,6 +47,7 @@ var (
 func CmdGui(args []string) {
 	port := 0
 	security := ""
+	inputFile := ""
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		if strings.HasPrefix(a, "--") {
@@ -71,13 +72,19 @@ func CmdGui(args []string) {
 			} else {
 				UsageError("unknown flag --" + name)
 			}
+		} else if inputFile == "" {
+			inputFile = a
 		} else {
 			UsageError("unexpected argument " + a)
 		}
 	}
 	cfgPath := security
 	if cfgPath == "" {
-		cfgPath = SecurityPathFor(".")
+		if inputFile != "" {
+			cfgPath = SecurityPathFor(dirOf(inputFile))
+		} else {
+			cfgPath = SecurityPathFor(".")
+		}
 	}
 	if _, statErr := os.Stat(cfgPath); statErr == nil || security != "" {
 		cfg, warns, err := LoadSecurityFile(cfgPath)
@@ -94,9 +101,27 @@ func CmdGui(args []string) {
 		os.Exit(1)
 	}
 
+	var initialSrc, initialDir, initialName string
+	if inputFile != "" {
+		abs, err := filepath.Abs(inputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v: cannot resolve %q: %v\n", AppName, inputFile, err)
+			os.Exit(1)
+		}
+		data, err := os.ReadFile(abs)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v: cannot read %q: %v\n", AppName, abs, err)
+			os.Exit(1)
+		}
+		initialSrc = string(data)
+		initialDir = filepath.Dir(abs)
+		initialName = filepath.Base(abs)
+	}
+
 	var lastHtml string
 	var srcMu sync.Mutex
-	var currentSrc string
+	var currentSrc = initialSrc
+	srcSet := inputFile != ""
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", guiPage)
@@ -104,11 +129,20 @@ func CmdGui(args []string) {
 	mux.HandleFunc("GET /__gui__/current", func(w http.ResponseWriter, r *http.Request) {
 		srcMu.Lock()
 		src := currentSrc
+		loaded := srcSet
 		srcMu.Unlock()
-		if src == "" {
+		if src == "" && !loaded {
 			src = loadGuiProject() // survive a server restart
 		}
-		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"sui":`+StringifyJson(JStr(src))+`}`)
+		payload := `{"ok":true,"sui":` + StringifyJson(JStr(src))
+		if initialDir != "" {
+			payload += `,"dir":` + StringifyJson(JStr(initialDir))
+		}
+		if initialName != "" {
+			payload += `,"name":` + StringifyJson(JStr(initialName))
+		}
+		payload += `}`
+		writeRawHandler(w, "application/json; charset=utf-8", payload)
 	})
 	mux.HandleFunc("POST /__gui__/render", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
@@ -117,6 +151,7 @@ func CmdGui(args []string) {
 		if ok {
 			srcMu.Lock()
 			currentSrc = src
+			srcSet = true
 			srcMu.Unlock()
 			lastHtml = html
 			go guiSaveProject(src)

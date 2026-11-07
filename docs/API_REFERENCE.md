@@ -2166,6 +2166,7 @@ simpleui build examples/counter.sui --target desktop-webview --out dist \
   --allow-exec cmd --allow-dir "C:/logs"
 simpleui serve examples/counter.sui --watch
 simpleui gui
+simpleui gui examples/counter.sui
 simpleui lsp
 simpleui mcp
 ```
@@ -2190,3 +2191,6 @@ simpleui mcp
   build downloads `github.com/webview/webview_go`; the target needs CGO and a C
   toolchain (Xcode Command Line Tools on macOS; on Linux install GTK 3 and
   WebKitGTK 4.0 development packages).
+- **gui [file.sui]**: opens the visual designer. With a file argument it loads
+  that source immediately and **Save** writes back to the same path. `--port N`
+  fixes the editor port; `--security <file>` selects the policy.

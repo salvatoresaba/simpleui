@@ -248,7 +248,7 @@ func PrintHelp() {
 	fmt.Printf("  %v check <file.sui>     parse + typecheck; --json for structured diagnostics\n", AppName)
 	fmt.Printf("  %v fmt <file.sui>       canonical format (--write to update in place)\n", AppName)
 	fmt.Printf("  %v docs                 documentation index (also: --agent, --json, --read, --search)\n", AppName)
-	fmt.Printf("  %v gui                   visual design tool (palette + live preview + .sui export)\n", AppName)
+	fmt.Printf("  %v gui [file.sui]       visual design tool (palette + live preview + .sui export)\n", AppName)
 	fmt.Printf("         --security <f>   strict/relaxed policy file (default: ./simpleui.security.json)\n")
 	fmt.Printf("  %v mcp                   Model Context Protocol server (for AI agents)\n", AppName)
 	fmt.Printf("  %v serve <file.sui>     build + serve with browser hot-reload\n", AppName)

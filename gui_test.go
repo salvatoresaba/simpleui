@@ -493,6 +493,17 @@ func TestGuiChartThemePresetsAndThemeIO(t *testing.T) {
 	}
 }
 
+func TestGuiStartsFromFile(t *testing.T) {
+	for _, want := range []string{
+		`if (j.dir) currentDir = j.dir;`,
+		`if (j.name) { currentFilename = j.name; document.title = j.name + " - SimpleUI"; }`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("gui startup-from-file support missing %q", want)
+		}
+	}
+}
+
 func TestGuiChartProjectDefaults(t *testing.T) {
 	for _, want := range []string{
 		`id="csettings-scope"`,

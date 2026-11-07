@@ -18871,6 +18871,8 @@ window.addEventListener("unhandledrejection", function(e) { setStatus("PROMISE E
 function loadCurrentProject() {
   fetch("/__gui__/current").then(function(r){ return r.json(); }).then(function(j){
     if (j && j.ok && j.sui) {
+      if (j.dir) currentDir = j.dir;
+      if (j.name) { currentFilename = j.name; document.title = j.name + " - SimpleUI"; }
       var fd = new URLSearchParams(); fd.set("sui", j.sui);
       fetch("/__gui__/open", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(m){
         if (m && m.ok) { loadTree(m); autoPreview(); scheduleLiveCheck(); }

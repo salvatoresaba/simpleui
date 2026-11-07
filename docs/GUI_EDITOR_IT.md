@@ -10,6 +10,11 @@ Questa guida spiega i due sistemi di drag and drop indipendenti di SimpleUI:
 Condividono le primitive del browser ma hanno regole diverse. Abilitare uno non
 abilita l'altro.
 
+Avviare il designer con un file esistente tramite `simpleui gui path/app.sui`:
+l'editor apre subito quel sorgente e **Save** riscrive lo stesso percorso.
+Eseguire `simpleui gui` senza file per partire dall'ultimo progetto o da uno
+vuoto.
+
 ## Risposta rapida
 
 | Obiettivo | Cosa impostare |
