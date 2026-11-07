@@ -1,7 +1,11 @@
 package main
 
-import "strings"
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
 // desktop_test.go - the desktop target: JS generation variants and the
 // end-to-end Bridge test against a real compiled desktop executable.
@@ -52,5 +56,44 @@ func TestDesktopMainSourceAllowLists(t *testing.T) {
 	}
 	if strings.Contains(src, "%%ALLOW") {
 		t.Errorf("placeholder left unexpanded")
+	}
+}
+
+func TestDesktopWebviewMainSource(t *testing.T) {
+	src := DesktopWebviewMainSource([]string{"git"}, []string{`C:\data`}, `My "App"`)
+	for _, want := range []string{
+		`webview "github.com/webview/webview_go"`,
+		`if noOpen {`,
+		`w := webview.New(false)`,
+		`w.SetTitle("My \"App\"")`,
+		`w.SetSize(1200, 800, webview.HintNone)`,
+		`w.Navigate(url)`,
+		`w.Run()`,
+		`var allowExec = []string{"git"}`,
+		`var allowDirs = []string{"C:\\data"}`,
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("webview main source missing %q", want)
+		}
+	}
+	if strings.Contains(src, "if !noOpen") || strings.Contains(src, "%%ALLOW") {
+		t.Errorf("webview main source still contains browser launch or placeholders")
+	}
+}
+
+func TestDesktopWebviewBuild(t *testing.T) {
+	if os.Getenv("SUI_TEST_WEBVIEW") != "1" {
+		t.Skip("set SUI_TEST_WEBVIEW=1 to compile the embedded-WebView target")
+	}
+	prog, dl := ParseSource("view main {\n\th1 \"Hello WebView\"\n}\n", "app.sui")
+	if dl.Count() != 0 {
+		t.Fatalf("parse diagnostics: %v", dl.String())
+	}
+	dir := t.TempDir()
+	if err := RunDesktopWebviewBuild(prog, dir, nil, nil); err != nil {
+		t.Fatalf("webview build failed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, desktopOutName())); err != nil {
+		t.Fatalf("webview executable missing: %v", err)
 	}
 }

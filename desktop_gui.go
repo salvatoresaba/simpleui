@@ -233,6 +233,20 @@ func guiDesktopBuildHandler(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	src := r.PostFormValue("sui")
 	out := r.PostFormValue("out")
+	target := r.PostFormValue("target")
+	if target == "" {
+		target = "desktop-webview"
+	}
+	if target != "desktop" && target != "desktop-webview" {
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(JObj(
+			"ok", JBool(false),
+			"stage", JStr("preflight"),
+			"error", JStr("unknown desktop target "+target),
+			"diagnostics", JArr(),
+			"log", JStr(""),
+		)))
+		return
+	}
 	dirs := splitDesktopList(r.PostFormValue("allowDirs"))
 	execs := splitDesktopList(r.PostFormValue("allowExec"))
 
@@ -261,6 +275,7 @@ func guiDesktopBuildHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var log strings.Builder
+	fmt.Fprintf(&log, "Target: %s\n", target)
 	fmt.Fprintf(&log, "Go: %s (%s/%s)\n", res.GoVersion, runtime.GOOS, runtime.GOARCH)
 	fmt.Fprintf(&log, "Output: %s\n", res.OutDir)
 	if len(res.AllowDirs) == 0 {
@@ -275,13 +290,19 @@ func guiDesktopBuildHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.WriteString("Writing assets and running go build…\n")
 
-	if err := RunDesktopBuild(res.Prog, res.OutDir, res.AllowExec, res.AllowDirs); err != nil {
-		log.WriteString(err.Error())
+	var buildErr error
+	if target == "desktop-webview" {
+		buildErr = RunDesktopWebviewBuild(res.Prog, res.OutDir, res.AllowExec, res.AllowDirs)
+	} else {
+		buildErr = RunDesktopBuild(res.Prog, res.OutDir, res.AllowExec, res.AllowDirs)
+	}
+	if buildErr != nil {
+		log.WriteString(buildErr.Error())
 		log.WriteString("\n")
 		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(JObj(
 			"ok", JBool(false),
 			"stage", JStr("build"),
-			"error", JStr(err.Error()),
+			"error", JStr(buildErr.Error()),
 			"diagnostics", guiDiags(res.Diags),
 			"log", JStr(log.String()),
 		)))

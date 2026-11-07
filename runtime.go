@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // runtime.go — the desktop runtime template.
 //
@@ -30,6 +33,24 @@ func DesktopMainSource(allowExec []string, allowDirs []string) string {
 	src := desktopRuntimeTemplate
 	src = strings.ReplaceAll(src, "%%ALLOW_EXEC%%", joinGoStrings(allowExec))
 	src = strings.ReplaceAll(src, "%%ALLOW_DIRS%%", joinGoStrings(allowDirs))
+	return src
+}
+
+// DesktopWebviewMainSource returns the main.go source for the embedded-WebView
+// target. It reuses the desktop runtime (loopback server, token and bridge) and
+// replaces the browser launch with a native WebView window.
+func DesktopWebviewMainSource(allowExec []string, allowDirs []string, title string) string {
+	src := DesktopMainSource(allowExec, allowDirs)
+	src = strings.Replace(src, "\t\"time\"\n)", "\t\"time\"\n\n\twebview \"github.com/webview/webview_go\"\n)", 1)
+	const openBlock = "\tif !noOpen {\n\t\topenBrowser(url)\n\t}\n\tselect {}\n"
+	webviewBlock := "\tif noOpen {\n\t\tselect {}\n\t}\n" +
+		"\tw := webview.New(false)\n" +
+		"\tdefer w.Destroy()\n" +
+		"\tw.SetTitle(" + strconv.Quote(title) + ")\n" +
+		"\tw.SetSize(1200, 800, webview.HintNone)\n" +
+		"\tw.Navigate(url)\n" +
+		"\tw.Run()\n"
+	src = strings.Replace(src, openBlock, webviewBlock, 1)
 	return src
 }
 

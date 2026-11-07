@@ -103,7 +103,7 @@ func CmdBuild(args []string) {
 			}
 			if name == "target" {
 				if !hasValue {
-					UsageError("--target needs a value (web|desktop)")
+					UsageError("--target needs a value (web|desktop|desktop-webview)")
 				}
 				target = value
 			} else if name == "out" {
@@ -143,14 +143,14 @@ func CmdBuild(args []string) {
 	if input == "" {
 		UsageError("missing input file")
 	}
-	if target != "web" && target != "desktop" {
+	if target != "web" && target != "desktop" && target != "desktop-webview" {
 		UsageError("unknown target " + target)
 	}
 	if minify && !single {
 		UsageError("--minify requires --single")
 	}
-	if single && target == "desktop" {
-		UsageError("--single is for web builds; the desktop target is already one executable")
+	if single && (target == "desktop" || target == "desktop-webview") {
+		UsageError("--single is for web builds; the desktop targets are already one executable")
 	}
 	if !single && (strings.HasSuffix(strings.ToLower(out), ".html") || strings.HasSuffix(strings.ToLower(out), ".htm")) {
 		UsageError("--out ending in .html requires --single")
@@ -175,6 +175,10 @@ func CmdBuild(args []string) {
 
 	if target == "desktop" {
 		BuildDesktop(prog, out, allowExec, allowDirs)
+		return
+	}
+	if target == "desktop-webview" {
+		BuildDesktopWebview(prog, out, allowExec, allowDirs)
 		return
 	}
 	if single {
@@ -253,7 +257,8 @@ func PrintHelp() {
 	fmt.Printf("         --security <f>   policy file (default: next to the .sui)\n")
 	fmt.Printf("  %v build <file.sui>     compile a .sui app to a web or desktop app\n", AppName)
 	fmt.Printf("         --target web     generate index.html, style.css, app.js (default)\n")
-	fmt.Printf("         --target desktop generate and compile a desktop executable\n")
+	fmt.Printf("         --target desktop generate a desktop executable that opens the browser\n")
+	fmt.Printf("         --target desktop-webview generate a desktop executable with an embedded WebView\n")
 	fmt.Printf("         --out <dir>      output directory (default: ./dist)\n")
 	fmt.Printf("         --single         web: emit one self-contained app.html\n")
 	fmt.Printf("         --minify         with --single: strip comments/indentation\n")

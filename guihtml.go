@@ -1623,6 +1623,10 @@ RUNNING</div>
 <div id="deskdlg">
   <div id="deskbox">
     <h2>Build desktop executable</h2>
+    <div class="pfrow"><label>Target</label><select id="desk-target">
+      <option value="desktop-webview">Desktop WebView (native window)</option>
+      <option value="desktop">Desktop (default browser)</option>
+    </select></div>
     <div class="pfrow"><label>Output directory</label><input type="text" id="desk-out" value="dist/desktop" spellcheck="false"></div>
     <div class="pfrow"><label>Allowed dirs</label><textarea id="desk-dirs" placeholder="One directory per line; leave empty for no filesystem access." spellcheck="false"></textarea></div>
     <div class="pfrow"><label>Allowed commands</label><textarea id="desk-exec" placeholder="One command name or path per line; leave empty for no exec access." spellcheck="false"></textarea></div>
@@ -10865,6 +10869,7 @@ function startDesktopBuild() {
   log.textContent = "Preflight: checking source, Go toolchain, output directory and capabilities…\n";
   var fd = new URLSearchParams();
   fd.set("sui", suiSource || generate());
+  fd.set("target", document.getElementById("desk-target").value || "desktop-webview");
   fd.set("out", out);
   fd.set("allowDirs", document.getElementById("desk-dirs").value || "");
   fd.set("allowExec", document.getElementById("desk-exec").value || "");

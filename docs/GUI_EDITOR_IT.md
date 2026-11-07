@@ -1786,6 +1786,22 @@ runtime posiziona il fumetto nel viewport, anche per controlli void come
 Vedere [API reference: tooltip](API_REFERENCE_IT.md#proprietà-tooltip) e
 l'[esempio tooltip](../examples/tooltip/README.md).
 
+## Finestra di build desktop
+
+**File → Build desktop executable.** apre la finestra di build. Il selettore
+**Target** sceglie il tipo di finestra:
+
+- **Desktop WebView (native window)** - WebView2 incorporata su Windows,
+  WKWebView su macOS e WebKitGTK su Linux; nessuna finestra browser separata.
+- **Desktop (default browser)** - l'eseguibile avvia il server loopback e apre
+  il browser di sistema.
+
+La finestra verifica Go e la directory di output, incorpora i permessi
+`--allow-dir` e `--allow-exec`, mostra il log e permette di scaricare
+l'eseguibile. Le build WebView richiedono anche CGO e un compilatore C; su Linux
+installare i pacchetti di sviluppo GTK 3 e WebKitGTK 4.0. La prima build scarica
+`github.com/webview/webview_go`. Le opzioni runtime sono `--no-open` e `--port N`.
+
 ## Dialoghi nativi per file e cartelle
 
 Usare `pickFiles` per un dialogo invece del trascinamento:

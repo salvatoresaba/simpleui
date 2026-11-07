@@ -115,13 +115,32 @@ With `--out dist` the file becomes `dist/app.html`. `--minify` is conservative: 
 
 ### 3. Build for desktop
 
+Browser renderer:
+
 ```bash
 ./simpleui build counter.sui --target desktop --out dist
 ./dist/app.exe  # Windows
 # or ./dist/app on Linux/macOS
 ```
 
-The app opens automatically in the default browser; use `--no-open` for headless mode.
+Opens the app in the default browser; use `--no-open` for headless mode.
+
+Embedded native WebView (no separate browser window):
+
+```bash
+./simpleui build counter.sui --target desktop-webview --out dist
+./dist/app.exe  # Windows
+```
+
+This produces a native window using WebView2 on Windows, WKWebView on macOS
+and WebKitGTK on Linux. The same localhost bridge and `--allow-exec` /
+`--allow-dir` grants apply. Runtime options are `--no-open` and `--port N`.
+
+The first build downloads `github.com/webview/webview_go`; the WebView target
+needs CGO and a C toolchain. On macOS install the Xcode Command Line Tools. On
+Linux install `libgtk-3-dev` and `libwebkit2gtk-4.0-dev` (or the equivalents
+for your distribution). On Windows WebView2 Runtime is normally already present
+on Windows 10/11.
 
 ### 4. Development mode
 

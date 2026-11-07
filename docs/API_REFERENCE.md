@@ -2162,6 +2162,8 @@ simpleui build examples/counter.sui --single --out app.html
 simpleui build examples/counter.sui --single --minify --out app.html
 simpleui build examples/counter.sui --target desktop --out dist \
   --allow-exec cmd --allow-dir "C:/logs"
+simpleui build examples/counter.sui --target desktop-webview --out dist \
+  --allow-exec cmd --allow-dir "C:/logs"
 simpleui serve examples/counter.sui --watch
 simpleui gui
 simpleui lsp
@@ -2181,3 +2183,10 @@ simpleui mcp
 - **desktop**: emits one self-contained executable with a native bridge
   (`exec`/`fs`), a localhost micro-server and browser launch. Supports
   `--no-open`, `--port N`. Not combinable with `--single`.
+- **desktop-webview**: emits one self-contained executable with the same bridge
+  and localhost server, but opens an embedded native WebView window instead of
+  a browser: WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux.
+  Supports `--no-open`, `--port N`. Not combinable with `--single`. The first
+  build downloads `github.com/webview/webview_go`; the target needs CGO and a C
+  toolchain (Xcode Command Line Tools on macOS; on Linux install GTK 3 and
+  WebKitGTK 4.0 development packages).

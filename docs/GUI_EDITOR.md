@@ -1732,6 +1732,23 @@ positions the bubble in the viewport, including for void controls such as
 See [API reference: tooltip](API_REFERENCE.md#tooltip-property) and the
 [tooltip example](../examples/tooltip/README.md).
 
+## Desktop build dialog
+
+**File → Build desktop executable.** opens the build dialog. The **Target**
+selector chooses the window host:
+
+- **Desktop WebView (native window)** - embedded WebView2 on Windows, WKWebView
+  on macOS and WebKitGTK on Linux; no separate browser window.
+- **Desktop (default browser)** - the executable starts the loopback server and
+  opens the system browser.
+
+The dialog preflights the Go toolchain and output directory, bakes the
+`--allow-dir` and `--allow-exec` grants into the executable, shows the build log
+and can download the result. WebView builds also need CGO and a C compiler; on
+Linux install GTK 3 and WebKitGTK 4.0 development packages. The first build
+downloads `github.com/webview/webview_go`. Runtime options are `--no-open` and
+`--port N`.
+
 ## Native file and folder dialogs
 
 Use `pickFiles` for a dialog instead of dragging:

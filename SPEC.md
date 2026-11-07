@@ -1020,7 +1020,7 @@ simpleui serve <file.sui> [--port <n>] [--watch]
 simpleui gui [--port <n>]
 simpleui lsp
 simpleui mcp
-simpleui build <file.sui> [--target web] [--out <dir>]
+simpleui build <file.sui> [--target web|desktop|desktop-webview] [--out <dir>]
 simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
 ```
 
@@ -1177,8 +1177,11 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
 - `build`: default target `web`, default out `./dist`. Creates the output
   directory if missing, writes the three assets, prints a summary. Missing
   input file: error + exit 1.
-- `--target desktop`: **not implemented in this iteration**; print an explicit
-  message pointing at the roadmap, exit 1.
+- `--target desktop` builds a single executable that serves the app on
+  localhost and opens the system browser. `--target desktop-webview` builds the
+  same executable with an embedded native WebView window (WebView2 on Windows,
+  WKWebView on macOS, WebKitGTK on Linux). Both accept `--allow-exec` and
+  `--allow-dir`, and support `--no-open` / `--port N` at runtime.
 - Every unexpected panic is caught and reported as `internal error` (exit 2),
   never a stack trace.
 - `serve`: builds the web assets into a temp dir, serves them same-origin
@@ -1247,13 +1250,13 @@ type error: cannot assign a value of type string to "counter" of type int
 | 1 lexer + parser               | this iteration |
 | 2 codegen HTML/CSS             | this iteration |
 | 3 codegen JS + reactivity      | this iteration |
-| 4 desktop wrapper + bridge     | this iteration (bridge complete; interim browser window, native WebView is the follow-up) |
+| 4 desktop wrapper + bridge     | this iteration (browser desktop and embedded WebView targets) |
 | 5 modules + stdlib             | minimal stdlib + import merging this iteration |
 | 6 examples + E2E               | examples/ + go tests this iteration (web + desktop) |
 
 ### 9. Desktop target contract
 
-`simpleui build app.sui --target desktop [--allow-exec <cmd>] [--allow-dir <dir>]`
+`simpleui build app.sui --target desktop|desktop-webview [--allow-exec <cmd>] [--allow-dir <dir>]`
 writes a disposable module (go.mod `desktopapp`) into `--out`:
 
 ```
@@ -1289,9 +1292,11 @@ Runtime behaviour of the compiled executable:
 - Capability grants are **baked into the binary at build time** (no runtime
   prompt): a build without `--allow-exec` disables exec entirely; without
   `--allow-dir` disables fs entirely (capability-based security, DESIGN §5.3).
-- Opened in the system default browser via `open`/`xdg-open`/`cmd start`;
-  `--no-open` runs headless (used by tests). The server is identical under a
-  future native WebView — only `openBrowser()` changes.
+- `desktop` opens the system default browser via `open`/`xdg-open`/`cmd start`;
+  `desktop-webview` opens an embedded native WebView window (WebView2,
+  WKWebView, WebKitGTK) with the same server and bridge. `--no-open` runs
+  headless (used by tests). The server and capability model are identical for
+  both targets; only the window host changes.
 - The *compiler build step* requires a Go toolchain on the build machine, but
   the produced executable has zero runtimes/dependencies for end users.
 

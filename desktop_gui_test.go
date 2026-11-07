@@ -1,11 +1,35 @@
 package main
 
 import (
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestDesktopWebviewDialogTarget(t *testing.T) {
+	for _, want := range []string{
+		`id="desk-target"`,
+		`value="desktop-webview"`,
+		`Desktop WebView (native window)`,
+		`fd.set("target"`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("desktop build dialog missing %q", want)
+		}
+	}
+}
+
+func TestDesktopBuildHandlerRejectsUnknownTarget(t *testing.T) {
+	req := httptest.NewRequest("POST", "/__gui__/build-desktop", strings.NewReader("sui=view%20main%20%7B%7D&target=unknown&out=dist"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	guiDesktopBuildHandler(rec, req)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "unknown desktop target") {
+		t.Fatalf("unknown target response = %d %s", rec.Code, rec.Body.String())
+	}
+}
 
 func TestGoVersionHelpers(t *testing.T) {
 	if got := parseGoVersionOutput("go version go1.24.2 windows/amd64"); got != "1.24.2" {

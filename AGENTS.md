@@ -134,6 +134,10 @@ For desktop capabilities:
 ```bash
 ./simpleui.exe build app.sui --target desktop --out dist \
   --allow-dir C:/data --allow-exec helper.exe
+
+# Embedded native window (WebView2 / WKWebView / WebKitGTK)
+./simpleui.exe build app.sui --target desktop-webview --out dist \
+  --allow-dir C:/data --allow-exec helper.exe
 ```
 
 ## Task routing
