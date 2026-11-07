@@ -1126,7 +1126,7 @@ L'inspector dedicato **Chart** è ordinato per accesso rapido:
 | interactive | abilita tooltip, hover/selezione e modifica Gantt |
 | show grid / show legend / show values | toggle di presentazione |
 | preset | 14 preset colore classici più un preset per ogni famiglia di tema (Light/Dark) che scrivono variabili CSS in `style expr` |
-| x field / y field | colonne label e numerica; vuote = rilevamento automatico. Un hint mostra righe e serie rilevate |
+| x field / y field | colonne label e numerica; vuote = rilevamento automatico. I campi suggeriscono i nomi reali delle colonne e l'hint mostra righe/serie rilevate o segnala un nome mancante |
 | edit data | pulsante in fondo che apre il pannello overlay spostabile e ridimensionabile dei dati |
 
 **Point size** e **point width** sono in **Chart settings → Points**.

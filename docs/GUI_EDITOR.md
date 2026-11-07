@@ -1085,7 +1085,7 @@ The dedicated **Chart** inspector is ordered for quick access:
 | interactive | enable tooltips, hover/selection and Gantt editing |
 | show grid / show legend / show values | chart presentation toggles |
 | preset | 14 classic color presets plus one preset for every theme family (Light/Dark) that write CSS variables into `style expr` |
-| x field / y field | label and numeric columns in object/CSV data; empty auto-detects. A hint reports how many rows/series were detected |
+| x field / y field | label and numeric columns in object/CSV data; empty auto-detects. The fields suggest the actual column names and the hint reports detected rows/series or warns when a name is missing |
 | edit data | button that opens the movable, resizable chart-data overlay at the bottom of the inspector |
 
 **Point size** and **point width** live in **Chart settings → Points**.

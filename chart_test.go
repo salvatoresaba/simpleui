@@ -498,6 +498,8 @@ func TestChartDesignerRoundTrip(t *testing.T) {
 		"chartControls", "newChartNode", "CHART_STYLE_PRESETS", "Style presets",
 		"chart-data-btn", "chartDataButtonText", "openChartDataEditor", "cs-theme", "chartTheme", "cs-colorpicker", "chartColorPicker",
 		"chartDataValidateText", "chartDataCompatibility", "chartDataProfile",
+		"chartDataColumnInfo", "chart-x-columns", "chart-y-columns", "cs-x-columns", "cs-y-columns",
+		"updateChartSettingsDataColumns",
 		"chartDataApply", "chartDataSaveGeom",
 		"Mode", "show grid", "Chart settings...", "Edit hints...",
 		"chartPresetStyleExpr", "chart: '<path", `"date", "time", "tree", "treeitem", "chart"`,

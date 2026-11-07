@@ -1478,9 +1478,11 @@ RUNNING</div>
       <div class="pfrow"><label>Timezone</label><input type="text" id="cs-timezone" placeholder="UTC or Europe/Rome"></div>
     </div>
     <div class="cset-pane" data-pane="data">
-      <div class="cset-hint">The data button in the inspector opens the full JSON/XML/CSV editor. Element hints edit per-state and per-link tag text.</div>
-      <div class="pfrow"><label>X field</label><input type="text" id="cs-x" placeholder="auto"></div>
-      <div class="pfrow"><label>Y field</label><input type="text" id="cs-y" placeholder="auto"></div>
+      <div class="cset-hint" id="cs-data-hint">The data button in the inspector opens the full JSON/XML/CSV editor. Element hints edit per-state and per-link tag text.</div>
+      <div class="pfrow"><label>X field</label><input type="text" id="cs-x" placeholder="auto" list="cs-x-columns"></div>
+      <datalist id="cs-x-columns"></datalist>
+      <div class="pfrow"><label>Y field</label><input type="text" id="cs-y" placeholder="auto" list="cs-y-columns"></div>
+      <datalist id="cs-y-columns"></datalist>
       <div class="pfrow"><label>Element hints</label><button class="btn" onclick="openChartElementHintsFromSettings()">Edit hints...</button></div>
       <div class="pfbtns"><button class="btn" onclick="openDataFromChartSettings()">Open data editor...</button></div>
     </div>
@@ -5766,7 +5768,73 @@ function chartDataJsonRows(data) {
   }
   return 0;
 }
-function chartDataValidateText(text, fmt) {
+function chartDataColumnInfo(text, format) {
+  var t = String(text || "").trim();
+  if (!t) return null;
+  var fmt = String(format || "auto").toLowerCase();
+  if (fmt === "auto") fmt = chartDataDetectFormat(t);
+  if (fmt === "xml") return null;
+  function numericColumn(rows, idx, key) {
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var v = key !== undefined ? (row && row[key]) : (row && row[idx]);
+      if (v === undefined || v === null || String(v).trim() === "") continue;
+      if (looksNumeric(v)) return true;
+    }
+    return false;
+  }
+  function describe(columns, rows) {
+    var all = [], numeric = [];
+    (columns || []).forEach(function(name, idx) {
+      var n = String(name || "").trim();
+      if (!n || all.indexOf(n) >= 0) return;
+      all.push(n);
+      if (numericColumn(rows, idx)) numeric.push(n);
+    });
+    return { all: all, numeric: numeric, fixed: false };
+  }
+  function describeObjects(rows) {
+    var keys = [], numeric = [];
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+      for (var k in row) if (Object.prototype.hasOwnProperty.call(row, k) && keys.indexOf(k) < 0) keys.push(k);
+    }
+    keys.forEach(function(key) {
+      if (numericColumn(rows, -1, key)) numeric.push(key);
+    });
+    return { all: keys, numeric: numeric, fixed: false };
+  }
+  try {
+    if (fmt === "csv") {
+      var csv = chartDataCsvRows(t);
+      if (!csv.length) return null;
+      var head = csv[0];
+      var data = csv.slice(1);
+      if (!head.length || head.every(function(v) { return looksNumeric(v); })) return { all: [], numeric: [], fixed: true };
+      return describe(head, data);
+    }
+    if (fmt !== "json") return null;
+    var value = JSON.parse(t);
+    if (Array.isArray(value)) {
+      if (!value.length) return null;
+      if (Array.isArray(value[0])) {
+        if (value.length > 1 && value[0].every(function(v) { return !looksNumeric(v); })) return describe(value[0], value.slice(1));
+        return { all: [], numeric: [], fixed: true };
+      }
+      if (value[0] && typeof value[0] === "object") return describeObjects(value);
+      return { all: [], numeric: [], fixed: true };
+    }
+    if (value && typeof value === "object") {
+      if (Array.isArray(value.rows) && Array.isArray(value.columns)) return describe(value.columns, value.rows);
+      if (Array.isArray(value.data)) return chartDataColumnInfo(JSON.stringify(value.data), "json");
+      return { all: [], numeric: [], fixed: true };
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}function chartDataValidateText(text, fmt) {
   var t = String(text || "");
   if (!t.trim()) {
     return { ok: true, level: "warn", format: fmt === "auto" || fmt === "__expr__" ? "auto" : fmt,
@@ -6359,6 +6427,16 @@ function chartControls(n) {
   b.appendChild(dataLabel);
   fields.x = textField("x field", "chartX", "month", "Object/CSV column used for labels. Empty auto-detects.", updateDataStatus);
   fields.y = textField("y field", "chartY", "value", "Object/CSV column used for numeric values. Empty auto-detects.", updateDataStatus);
+  var xColumns = document.createElement("datalist");
+  xColumns.id = "chart-x-columns";
+  b.appendChild(xColumns);
+  var yColumns = document.createElement("datalist");
+  yColumns.id = "chart-y-columns";
+  b.appendChild(yColumns);
+  var xInput = fields.x.querySelector("input");
+  var yInput = fields.y.querySelector("input");
+  if (xInput) xInput.setAttribute("list", "chart-x-columns");
+  if (yInput) yInput.setAttribute("list", "chart-y-columns");
   var dataBtn = document.createElement("button");
   dataBtn.type = "button";
   dataBtn.className = "btn chart-data-btn";
@@ -6371,6 +6449,18 @@ function chartControls(n) {
   dataHint.className = "hint";
   b.appendChild(dataHint);
   function updateDataStatus() {
+    var xl = xColumns;
+    var yl = yColumns;
+    if (xl) xl.textContent = "";
+    if (yl) yl.textContent = "";
+    function fill(list, names) {
+      if (!list) return;
+      names.forEach(function(name) {
+        var o = document.createElement("option");
+        o.value = name;
+        list.appendChild(o);
+      });
+    }
     if (n.chartDataExpr) {
       dataHint.textContent = "Data is a reactive expression; x/y fields are applied at runtime.";
       return;
@@ -6389,10 +6479,36 @@ function chartControls(n) {
       dataHint.textContent = "Gantt data uses task rows; edit them with the data button.";
       return;
     }
+    var info = chartDataColumnInfo(text, n.chartFormat || "auto");
+    if (info) {
+      fill(xl, info.all);
+      fill(yl, info.numeric);
+      if (info.fixed) {
+        dataHint.textContent = "This dataset has fixed labels/values; X/Y fields do not apply.";
+        return;
+      }
+      var xName = String(n.chartX || "").trim();
+      var ySpecs = chartDataSplitFields(n.chartY || "");
+      var problems = [];
+      if (xName && info.all.indexOf(xName) < 0) problems.push("X \"" + xName + "\" not found");
+      var badY = [];
+      ySpecs.forEach(function(spec) {
+        if (info.all.indexOf(spec) < 0) badY.push("\"" + spec + "\" not found");
+        else if (info.numeric.indexOf(spec) < 0) badY.push("\"" + spec + "\" is not numeric");
+      });
+      if (badY.length) problems.push("Y " + badY.join(", "));
+      if (problems.length) {
+        dataHint.textContent = problems.join("; ") + ". Columns: " + (info.all.length ? info.all.join(", ") : "none") + ".";
+        return;
+      }
+      var bits = ["Columns: " + info.all.join(", "), xName ? "X=" + xName : "X=auto", ySpecs.length ? "Y=" + ySpecs.join("+") : "Y=auto"];
+      dataHint.textContent = bits.join(" · ") + ".";
+      return;
+    }
     try {
       var profile = chartDataProfile(text, n.chartFormat || "auto", n.chartX || "", n.chartY || "");
       if (profile.labels && profile.seriesCount) {
-        dataHint.textContent = "Detected " + profile.labels + " rows and " + profile.seriesCount + " numeric series." + ((n.chartX || n.chartY) ? " X/Y fields are applied." : " X/Y columns are auto-detected.");
+        dataHint.textContent = "Detected " + profile.labels + " rows and " + profile.seriesCount + " numeric series.";
       } else if (n.chartX || n.chartY) {
         dataHint.textContent = "No rows match the x/y fields; use a column name from the data or leave them empty.";
       } else {
@@ -6474,8 +6590,8 @@ function chartControls(n) {
     tableSel.options[2].textContent = gantt ? "Timeline + table" : "Chart + table";
   };
   applyChartTypeVisibility();
-
   a.appendChild(b);
+  updateDataStatus();
   return a;
 }
 function treeItemPresetCss(key) {
@@ -11946,6 +12062,7 @@ function openChartSettings(n, projectKind) {
   document.getElementById("cs-timezone").value = n.chartTimezone || "";
   document.getElementById("cs-x").value = n.chartX || "";
   document.getElementById("cs-y").value = n.chartY || "";
+  updateChartSettingsDataColumns(n);
   document.getElementById("cs-tt-bg").value = chartTooltipColor(n, "--sui-chart-tooltip-bg", "#111827");
   document.getElementById("cs-tt-fg").value = chartTooltipColor(n, "--sui-chart-tooltip-fg", "#f8fafc");
   document.getElementById("cs-tt-border").value = chartTooltipColor(n, "--sui-chart-tooltip-border", "#475569");
@@ -11991,6 +12108,38 @@ function openChartElementHintsFromSettings() {
   var n = chartSettingsNode;
   if (!n) return;
   openChartElementHints(n);
+}
+function updateChartSettingsDataColumns(n) {
+  var xl = document.getElementById("cs-x-columns");
+  var yl = document.getElementById("cs-y-columns");
+  var hint = document.getElementById("cs-data-hint");
+  if (xl) xl.textContent = "";
+  if (yl) yl.textContent = "";
+  if (!hint) return;
+  function fill(list, names) {
+    if (!list) return;
+    names.forEach(function(name) {
+      var o = document.createElement("option");
+      o.value = name;
+      list.appendChild(o);
+    });
+  }
+  if (!n || n.chartDataExpr || !String(n.chartData || "").trim()) {
+    hint.textContent = "The data button in the inspector opens the full JSON/XML/CSV editor. Element hints edit per-state and per-link tag text.";
+    return;
+  }
+  var info = chartDataColumnInfo(n.chartData, n.chartFormat || "auto");
+  if (!info) {
+    hint.textContent = "X/Y fields apply to CSV and JSON object/row data. Element hints edit per-state and per-link tag text.";
+    return;
+  }
+  fill(xl, info.all);
+  fill(yl, info.numeric);
+  if (info.fixed) {
+    hint.textContent = "This dataset has fixed labels/values; X/Y fields do not apply.";
+    return;
+  }
+  hint.textContent = "Columns: " + info.all.join(", ") + ". X uses a label column; Y uses numeric columns.";
 }
 function chartSettingsStyleCss(n, base) {
   var parts = chartTableCssWithoutVars(chartTooltipCssWithoutVars(base).join("; "));
