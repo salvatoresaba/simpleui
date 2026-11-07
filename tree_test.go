@@ -117,6 +117,7 @@ func TestTreeDataAPI(t *testing.T) {
 		"tree.exportJson", "tree.exportXml", "tree.downloadJson", "tree.downloadXml", "tree.clear",
 		"tree.expandAll", "tree.collapseAll", "tree.expandTo", "tree.setChildren", "tree.setChildrenError",
 		"tree.retryChildren", "tree.lastMove", "tree.undoMove",
+		"tree.setColumns", "tree.getColumns", "tree.moveColumn", "tree.setCell",
 		"tree.selectedKeys", "tree.checkedKeys", "tree.search",
 	} {
 		if _, ok := StdLookup(full); !ok {
@@ -319,7 +320,7 @@ fn loaded() -> null {
 fn menu() -> null {
 }
 view main {
-	tree "Files" name: "files" value: selected selection: selectedKeys multiSelect: true search: true drag: true contextMenu: true columns: "size,date,status" columnLabels: "Size,Modified,State" columnWidths: "120,90,80" sort: "asc" persistSelection: true loadKey: loadKey onMove: moved onLoad: loaded onContextMenu: menu virtual: true tooltips: true {
+	tree "Files" name: "files" value: selected selection: selectedKeys multiSelect: true search: true drag: true contextMenu: true columns: "size,date,status" columnLabels: "Size,Modified,State" columnWidths: "120,90,80" sort: "asc" persistSelection: true loadKey: loadKey onMove: moved onLoad: loaded onContextMenu: menu virtual: true tooltips: true fontStep: 1 {
 		treeitem "remote" key: "remote" lazy: true size: "2 KB" date: "today" status: "ok"
 	}
 }
@@ -336,7 +337,7 @@ view main {
 		`data-sui-tree-multi="1"`, `data-sui-tree-search="1"`,
 		`data-sui-tree-drag="1"`, `data-sui-tree-context-menu="1"`,
 		`data-sui-tree-virtual="1"`,
-		`data-sui-tree-tooltips="1"`,
+		`data-sui-tree-tooltips="1"`, `data-sui-tree-font-step="1"`,
 		`data-sui-tree-columns="size,date,status"`,
 		`data-sui-tree-column-labels="Size,Modified,State"`,
 		`data-sui-tree-column-widths="120,90,80"`,
@@ -464,6 +465,52 @@ func TestTreeColumnsDisabled(t *testing.T) {
 	}
 	if !strings.Contains(html, `data-sui-tree-columns-enabled="0"`) {
 		t.Error("disabled columns must expose the disabled flag")
+	}
+}
+
+func TestTreeCustomColumnsAndFontStep(t *testing.T) {
+	src := `view main {
+	tree "Files" columns: "owner,size" columnLabels: "Owner,Size" columnWidths: "90,70" fontStep: 1 {
+		treeitem "src" size: "2 KB" cells: "owner=Anna" {
+			treeitem "main.go" size: "1 KB" cells: "owner=Luca"
+		}
+	}
+}
+`
+	prog, dl := ParseSource(src, "tree_custom_columns.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	html := GenerateHtmlPage(prog)
+	for _, want := range []string{
+		`Owner`, `Size`, `Anna`, `Luca`, `2 KB`, `1 KB`,
+		`data-sui-cells="owner=Anna"`,
+		`font-size:calc(var(--sui-tree-font, 13px) - 1px)`,
+		`data-sui-tree-font-step="1"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("custom columns/font step missing %q", want)
+		}
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`data-sui-tree-font-step="1"`, `data-sui-cells="owner=Anna"`,
+		`data-sui-tree-columns="owner,size"`, `data-sui-tree-column-labels="Owner,Size"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("dynamic custom columns missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`setColumnsFor`, `moveColumn`, `setCellFor`,
+		`treeColumnOverrides`, `treeCellOverrides`, `itemCells`,
+	} {
+		if !strings.Contains(suiTreeRuntime, want) {
+			t.Errorf("runtime columns support missing %q", want)
+		}
 	}
 }
 

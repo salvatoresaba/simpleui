@@ -1719,6 +1719,18 @@ func stdBodyJs(key string, target string) string {
 	if key == "tree_undomove" {
 		return "(name) => __SUI_TREE.undoMove(name)"
 	}
+	if key == "tree_setcolumns" {
+		return "(name, json) => __SUI_TREE.setColumns(name, json)"
+	}
+	if key == "tree_getcolumns" {
+		return "(name) => __SUI_TREE.getColumns(name)"
+	}
+	if key == "tree_movecolumn" {
+		return "(name, from, to) => __SUI_TREE.moveColumn(name, from, to)"
+	}
+	if key == "tree_setcell" {
+		return "(name, key, column, value) => __SUI_TREE.setCell(name, key, column, value)"
+	}
 	if key == "tree_selectedkeys" {
 		return "(name) => __SUI_TREE.selectedKeys(name)"
 	}
@@ -2344,12 +2356,12 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
-			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "fontStep" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
-			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status") {
+			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status" || a.key == "cells") {
 			continue
 		}
 		if a.key == "head" || a.key == "options" || a.key == "link" || a.key == "srcAllow" ||
@@ -3340,6 +3352,7 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if a := findAttr(e, "persistSelection"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
 		persistSelection = a.expr.b
 	}
+	fontStep := treeFontStep(e)
 	selectionSetter := ""
 	if a := findAttr(e, "selection"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" &&
 		ctxIsState(ctx, a.expr.name) {
@@ -3444,6 +3457,9 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		if persistSelection {
 			open += " data-sui-tree-persist-selection=\"1\""
 		}
+		if fontStep > 0 {
+			open += " data-sui-tree-font-step=\"" + strconv.FormatFloat(fontStep, 'g', -1, 64) + "\""
+		}
 		if selectionSetter != "" {
 			open += " data-sui-tree-selection-setter=\"" + selectionSetter + "\""
 		}
@@ -3498,14 +3514,14 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	b.WriteString("<ul class=\"sui-tree-group\" role=\"group\">")
 	seq := 0
 	for _, child := range sortTreeElements(treeChildren(e), sortDir) {
-		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir))
+		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep))
 		seq++
 	}
 	b.WriteString("</ul></div>`")
 	return b.String()
 }
 
-func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string) string {
+func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string, fontStep float64) string {
 	open := openTagHtml(it, "li", false, itemID, ctx)
 	kids := sortTreeElements(treeChildren(it), sortDir)
 	isOpen := treeOpen(it)
@@ -3530,6 +3546,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 	size := treeTextAttr(it, "size")
 	date := treeTextAttr(it, "date")
 	status := treeTextAttr(it, "status")
+	cells := treeTextAttr(it, "cells")
 	badgeType := strings.ToLower(strings.TrimSpace(treeTextAttr(it, "badgeType")))
 	switch badgeType {
 	case "info", "success", "warning", "danger", "neutral":
@@ -3567,6 +3584,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 			"\" data-sui-size=\"" + htmlEscape(size) +
 			"\" data-sui-date=\"" + htmlEscape(date) +
 			"\" data-sui-status=\"" + htmlEscape(status) +
+			"\" data-sui-cells=\"" + htmlEscape(cells) +
 			"\" data-sui-lazy=\"" + boolFlag(lazy) +
 			"\" data-sui-checked=\"" + htmlEscape(checked) + "\" data-sui-open=\""
 		if isOpen {
@@ -3623,17 +3641,17 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		b.WriteString("</span>")
 	}
 	labelText := partsContent(it.text)
-	b.WriteString("<span class=\"sui-tree-label\" title=\"" + htmlEscape(labelText) + "\">")
+	b.WriteString("<span class=\"sui-tree-label\"" + treeFontStyle(level, fontStep) + " title=\"" + htmlEscape(labelText) + "\">")
 	b.WriteString(htmlTextParts(it.text))
 	b.WriteString("</span>")
-	if badge != "" {
-		b.WriteString("<span class=\"sui-tree-badge sui-tree-badge-" + htmlEscape(badgeType) + "\">")
-		b.WriteString(htmlEscape(badge))
-		b.WriteString("</span>")
-	}
 	if counts && len(kids) > 0 {
 		b.WriteString("<span class=\"sui-tree-badge sui-tree-badge-count\">")
 		b.WriteString(strconv.Itoa(len(kids)))
+		b.WriteString("</span>")
+	}
+	if badge != "" {
+		b.WriteString("<span class=\"sui-tree-badge sui-tree-badge-" + htmlEscape(badgeType) + "\">")
+		b.WriteString(htmlEscape(badge))
 		b.WriteString("</span>")
 	}
 	if meta != "" {
@@ -3643,15 +3661,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 	}
 	if len(columns) > 0 {
 		for ci, col := range columns {
-			val := ""
-			switch col {
-			case "size":
-				val = size
-			case "date":
-				val = date
-			case "status":
-				val = status
-			}
+			val := treeCellValue(it, col)
 			b.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\"")
 			if w := treeColumnWidth(columnWidths, ci); w > 0 {
 				b.WriteString(" style=\"width:" + strconv.Itoa(w) + "px\"")
@@ -3669,7 +3679,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		}
 		b.WriteString(">")
 		for i, child := range kids {
-			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir))
+			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep))
 		}
 		b.WriteString("</ul>")
 	}

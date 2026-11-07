@@ -618,14 +618,22 @@ tree "File progetto"
   espandi/comprimi sottoalbero, copia key, espandi/comprimi tutto).
   `onContextMenu` viene chiamata al click destro dopo la selezione, per menu
   applicativi.
-- `columns: "size,date,status"` mostra l'intestazione tree-grid e le celle.
-  `columnsEnabled: false` mantiene la configurazione ma nasconde intestazione e
-  celle; il designer lo espone come **Show columns**. Le colonne supportate sono
-  `size`, `date` e `status`; ogni `treeitem` fornisce i testi `size`, `date` e
-  `status`. `columnLabels: "Size,Modified,State"` imposta le intestazioni in
-  ordine e `columnWidths: "120,90,80"` imposta le larghezze. `sort: "asc"`/`"desc"`
-  ordina i figli per etichetta dopo gli import; ometterlo per mantenere l'ordine
-  manuale.
+- `columns: "owner,size"` mostra intestazione tree-grid e celle per key di
+  colonna arbitrarie. `columnsEnabled: false` mantiene la configurazione ma
+  nasconde intestazione e celle; il designer lo espone come **Show columns**.
+  `columnLabels: "Owner,Size"` imposta le intestazioni in ordine e
+  `columnWidths: "120,90"` le larghezze. `treeitem size`, `date` e `status` sono
+  campi di comodo; qualsiasi altra colonna legge `treeitem cells`, una lista
+  `key=value` come `cells: "owner=Anna; role=Admin"` (il runtime import accetta
+  anche JSON). `sort: "asc"`/`"desc"` ordina i figli per etichetta; ometterlo per
+  mantenere l'ordine manuale.
+- API colonne runtime: `tree.setColumns(name, json)` crea, rinomina, ridimensiona
+  o riordina le colonne; `tree.getColumns(name)` restituisce la lista corrente;
+  `tree.moveColumn(name, from, to)` riordina; `tree.setCell(name, key, column,
+  value)` aggiorna una cella. Le override runtime sopravvivono ai re-render
+  reattivi nella sessione della pagina.
+- `fontStep: 1.5` riduce la dimensione del font di 1.5px per ogni livello sotto
+  la radice. Il default `0` mantiene la stessa dimensione per tutti i livelli.
 - `persistSelection: true` ripristina le key selezionate da `localStorage` dopo
   un reload quando non è collegato uno stato `selection`.
 - `treeitem lazy: true` mostra la freccia senza figli. L'espansione chiama
@@ -710,7 +718,8 @@ tree "File progetto"
   Espansione: `tree.expandAll`, `tree.collapseAll`, `tree.expandTo`. Dati lazy:
   `tree.setChildren`, `tree.setChildrenError`. Selezione:
   `tree.selectedKeys`, `tree.checkedKeys`; filtro: `tree.search`. Cronologia:
-  `tree.lastMove`, `tree.undoMove`; retry lazy: `tree.retryChildren`.
+  `tree.lastMove`, `tree.undoMove`; retry lazy: `tree.retryChildren`; colonne:
+  `tree.setColumns`, `tree.getColumns`, `tree.moveColumn`, `tree.setCell`.
   Schema e limiti in [`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
 - I dati importati vengono applicati al tree con il `name` corrispondente;
   sopravvivono ai re-render e sostituiscono solo la struttura dei nodi (titolo,

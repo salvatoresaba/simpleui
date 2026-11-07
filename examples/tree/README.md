@@ -188,14 +188,16 @@ The **Tree** inspector exposes only two actions:
   JSON/XML import/export.
 
 The **General** tab holds the visible **Title**, the **Runtime name** (target
-for `tree.*`, not the title), and all behavior switches: indent guides, truncate
-labels, hierarchical checkboxes, child counts, multi-select, search box, drag and
-drop, context menu, virtualize offscreen rows, persist selection, editable and
-show rename icon. **Bindings** holds the state bindings. **Columns** enables and
-configures the tree-grid. **Icons** chooses default, open and rename icons. The
-**Tooltip** tab enables styled tooltips and controls their appearance. The
-**Style** selector includes the shared styles and the 16 tree themes; **Apply**
-writes the chosen style to the tree preview.
+for `tree.*`, not the title), and the behavior switches. **Bindings** holds the
+optional state bindings and only shows selection/rename fields when the related
+behavior is enabled. **Columns** enables and configures an arbitrary column list
+(add, rename, resize, remove, reorder) plus child sorting. **Icons** chooses
+default/open icons. **Name** controls child counts and the edit icon next to the
+node name. **Shape** includes **Font step**, which reduces the font size for each
+level below the root. The **Tooltip** tab enables styled tooltips. The **Style**
+selector includes the shared styles and the 16 tree themes; **Apply** writes the
+chosen style to the tree preview. There is no separate Hover tab: hover colors
+are in **Colors**.
 
 The right-click menu on the tree row offers **Edit tree data**, **Tree
 settings**, **Add root item**, **Import JSON/XML** and **Export JSON/XML**.
@@ -242,7 +244,11 @@ trees. Lazy items call `onLoad`, write their key to `loadKey`, and receive
 children through `tree.setChildren(name, key, json)`; errors offer a Retry
 button and `tree.retryChildren`. `tree.expandAll`, `tree.collapseAll`,
 `tree.expandTo`, `tree.selectedKeys`, `tree.checkedKeys`, `tree.lastMove` and
-`tree.undoMove` are available from application code.
+`tree.undoMove` are available from application code. Runtime columns can be
+created, renamed, resized and reordered with `tree.setColumns(name, json)`,
+inspected with `tree.getColumns(name)`, reordered with
+`tree.moveColumn(name, from, to)` and updated cell-by-cell with
+`tree.setCell(name, key, column, value)`.
 
 ## Behavior
 

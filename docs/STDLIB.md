@@ -332,6 +332,10 @@ the tree with the matching `name:` attribute (`name: "files"`). Functions return
 | `tree.selectedKeys(name)` | string | (string, string) | no | JSON array of selected keys |
 | `tree.checkedKeys(name)` | string | (string, string) | no | JSON array of checked keys |
 | `tree.search(name, term)` | string, string | (int, string) | no | Apply or clear the inline filter |
+| `tree.setColumns(name, json)` | string, string | (int, string) | no | Create/replace columns from a JSON array |
+| `tree.getColumns(name)` | string | (string, string) | no | Current columns as a JSON array |
+| `tree.moveColumn(name, from, to)` | string, int, int | (int, string) | no | Reorder a column |
+| `tree.setCell(name, key, column, value)` | string, string, string, string | (int, string) | no | Set one cell value |
 
 ### JSON format
 
@@ -358,6 +362,7 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
     "size": "2 KB",
     "date": "today",
     "status": "ok",
+    "cells": { "owner": "Anna" },
     "children": [
       { "label": "main.go", "key": "main" }
     ]
@@ -375,6 +380,8 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
   `warning` or `danger`.
 - `lazy: true` marks an item whose children are loaded later with
   `tree.setChildren`.
+- `cells` is an object of custom column values (`{ "owner": "Anna" }`); the
+  SUI attribute also accepts `key=value` text.
 - Strings and numbers are accepted as leaf labels.
 
 ### XML format

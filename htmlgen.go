@@ -1,5 +1,6 @@
 package main
 
+import "encoding/json"
 import "sort"
 import "strconv"
 import "strings"
@@ -174,6 +175,10 @@ body {
   flex-direction: column;
   gap: var(--sui-tree-gap, 2px);
   color: var(--sui-fg, #e6e6ef);
+  font-size: var(--sui-tree-font, 13px);
+  font-family: var(--sui-tree-font-family, inherit);
+  font-weight: var(--sui-tree-font-weight, 400);
+  letter-spacing: var(--sui-tree-tracking, normal);
   background: var(--sui-tree-panel-bg, transparent);
   border: var(--sui-tree-panel-border, 0);
   border-radius: var(--sui-tree-panel-radius, 0);
@@ -225,7 +230,12 @@ body {
 .sui-tree-badge-success { background: rgba(34, 197, 94, .20); color: #86efac; }
 .sui-tree-badge-warning { background: rgba(245, 158, 11, .22); color: #fcd34d; }
 .sui-tree-badge-danger { background: rgba(239, 68, 68, .22); color: #fca5a5; }
-.sui-tree-badge-count { background: rgba(148, 163, 184, .14); color: var(--sui-tree-meta-color, #94a3b8); }
+.sui-tree-badge-count {
+  background: var(--sui-tree-count-bg, rgba(148, 163, 184, .14));
+  color: var(--sui-tree-count-fg, var(--sui-tree-meta-color, #94a3b8));
+  border-radius: var(--sui-tree-count-radius, 999px);
+  font-size: var(--sui-tree-count-size, 10px);
+}
 .sui-tree-meta {
   flex: none;
   margin-left: auto;
@@ -382,9 +392,9 @@ body {
 .sui-tree-rename-btn {
   border: 0;
   background: transparent;
-  color: var(--sui-muted, #8fa0b8);
+  color: var(--sui-tree-rename-color, var(--sui-muted, #8fa0b8));
   font: inherit;
-  font-size: 13px;
+  font-size: var(--sui-tree-rename-size, 13px);
   line-height: 1;
   cursor: pointer;
   padding: 1px 4px;
@@ -392,7 +402,7 @@ body {
 }
 .sui-tree-row:hover .sui-tree-rename-btn,
 .sui-tree-rename-btn:focus { opacity: 1; }
-.sui-tree-rename-btn:hover { color: #a5b4fc; }
+.sui-tree-rename-btn:hover { color: var(--sui-tree-rename-hover, #a5b4fc); }
 .sui-tree-group[hidden] { display: none; }
 .sui-tree-value { display: none; }
 .sui-tree-editable > .sui-tree-row { cursor: text; }
@@ -3560,18 +3570,28 @@ func treeBadgeType(e *Element) string {
 	return "neutral"
 }
 
-// treeColumns returns the supported tree-grid columns in display order.
+// treeColumns returns the configured tree-grid columns in display order.
+// Column keys are free-form identifiers; size, date and status are only
+// convenience names with built-in item attributes.
 func treeColumns(e *Element) []string {
 	v := treeTextAttr(e, "columns")
 	if strings.TrimSpace(v) == "" {
 		return nil
 	}
-	allowed := map[string]bool{"size": true, "date": true, "status": true}
 	var out []string
 	for _, part := range strings.Split(v, ",") {
-		name := strings.ToLower(strings.TrimSpace(part))
-		if allowed[name] {
-			out = append(out, name)
+		name := strings.TrimSpace(part)
+		if name == "" {
+			continue
+		}
+		var clean strings.Builder
+		for _, r := range name {
+			if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+				clean.WriteRune(r)
+			}
+		}
+		if clean.Len() > 0 {
+			out = append(out, clean.String())
 		}
 	}
 	return out
@@ -3586,7 +3606,102 @@ func treeColumnLabel(name string) string {
 	case "status":
 		return "Status"
 	}
-	return name
+	parts := strings.FieldsFunc(name, func(r rune) bool { return r == '_' || r == '-' })
+	for i, part := range parts {
+		if part == "" {
+			continue
+		}
+		parts[i] = strings.ToUpper(part[:1]) + part[1:]
+	}
+	if len(parts) == 0 {
+		return name
+	}
+	return strings.Join(parts, " ")
+}
+
+func treeCellValue(it *Element, col string) string {
+	switch col {
+	case "size", "date", "status":
+		return treeTextAttr(it, col)
+	}
+	raw := strings.TrimSpace(treeTextAttr(it, "cells"))
+	if raw == "" {
+		return ""
+	}
+	cells := treeCellsMap(raw)
+	return cells[col]
+}
+
+func treeCellsMap(raw string) map[string]string {
+	out := map[string]string{}
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return out
+	}
+	if strings.HasPrefix(raw, "{") {
+		var obj map[string]any
+		if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+			for k, v := range obj {
+				switch x := v.(type) {
+				case string:
+					out[k] = x
+				case float64:
+					out[k] = strconv.FormatFloat(x, 'g', -1, 64)
+				case bool:
+					if x {
+						out[k] = "true"
+					} else {
+						out[k] = "false"
+					}
+				}
+			}
+		}
+		return out
+	}
+	sep := ";"
+	if strings.Contains(raw, "|") && !strings.Contains(raw, ";") {
+		sep = "|"
+	}
+	for _, pair := range strings.Split(raw, sep) {
+		i := strings.Index(pair, "=")
+		if i <= 0 {
+			continue
+		}
+		k := strings.TrimSpace(pair[:i])
+		if k != "" {
+			out[k] = strings.TrimSpace(pair[i+1:])
+		}
+	}
+	return out
+}
+
+func treeFontStep(e *Element) float64 {
+	a := findAttr(e, "fontStep")
+	if a == nil {
+		return 0
+	}
+	if a.hasExpr && a.expr != nil {
+		if a.expr.kind == "int" {
+			return float64(a.expr.i)
+		}
+		if a.expr.kind == "float" {
+			return a.expr.f
+		}
+		return 0
+	}
+	n, err := strconv.ParseFloat(strings.TrimSpace(partsContent(a.text)), 64)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+func treeFontStyle(level int, step float64) string {
+	if step <= 0 || level <= 1 {
+		return ""
+	}
+	offset := float64(level-1) * step
+	return " style=\"font-size:calc(var(--sui-tree-font, 13px) - " + strconv.FormatFloat(offset, 'g', -1, 64) + "px)\""
 }
 
 func splitTreeColumnText(v string) []string {
@@ -3713,6 +3828,7 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	columnWidths := splitTreeColumnWidths(treeTextAttr(e, "columnWidths"))
 	sortDir := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "sort")))
 	persistSelection := datepickerBool(e, "persistSelection")
+	fontStep := treeFontStep(e)
 	if !columnsEnabled {
 		columns = nil
 	}
@@ -3805,6 +3921,9 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if persistSelection {
 		sb.WriteString(" data-sui-tree-persist-selection=\"1\"")
 	}
+	if fontStep > 0 {
+		sb.WriteString(" data-sui-tree-font-step=\"" + strconv.FormatFloat(fontStep, 'g', -1, 64) + "\"")
+	}
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	indent := ind + "  "
@@ -3831,12 +3950,12 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString("</div>\n")
 	}
 	sb.WriteString(indent + "<ul class=\"sui-tree-group\" role=\"group\">\n")
-	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir)
+	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep)
 	sb.WriteString(indent + "</ul>\n")
 	sb.WriteString(ind + "</div>\n")
 }
 
-func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string) {
+func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string, fontStep float64) {
 	items = sortTreeElements(items, sortDir)
 	for i, it := range items {
 		path := pathPrefix + "." + strconv.Itoa(i)
@@ -3862,6 +3981,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		size := treeTextAttr(it, "size")
 		date := treeTextAttr(it, "date")
 		status := treeTextAttr(it, "status")
+		cells := treeTextAttr(it, "cells")
 		sb.WriteString(ind)
 		sb.WriteString("<li class=\"sui-tree-item")
 		staticClassSuffix(sb, it)
@@ -3877,6 +3997,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 			"\" data-sui-size=\"" + htmlEscape(size) +
 			"\" data-sui-date=\"" + htmlEscape(date) +
 			"\" data-sui-status=\"" + htmlEscape(status) +
+			"\" data-sui-cells=\"" + htmlEscape(cells) +
 			"\" data-sui-lazy=\"" + boolFlag(lazy) +
 			"\" data-sui-checked=\"" + htmlEscape(checked) + "\" data-sui-open=\"")
 		if open {
@@ -3930,27 +4051,19 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		if icon != "" {
 			sb.WriteString("<span class=\"sui-tree-icon\" aria-hidden=\"true\">" + htmlEscape(icon) + "</span>")
 		}
-		sb.WriteString("<span class=\"sui-tree-label\" title=\"" + htmlEscape(label) + "\">" + htmlEscape(label) + "</span>")
-		if badge != "" {
-			sb.WriteString("<span class=\"sui-tree-badge sui-tree-badge-" + treeBadgeType(it) + "\">" + htmlEscape(badge) + "</span>")
-		}
+		sb.WriteString("<span class=\"sui-tree-label\"" + treeFontStyle(level, fontStep) + " title=\"" + htmlEscape(label) + "\">" + htmlEscape(label) + "</span>")
 		if counts && len(kids) > 0 {
 			sb.WriteString("<span class=\"sui-tree-badge sui-tree-badge-count\">" + strconv.Itoa(len(kids)) + "</span>")
+		}
+		if badge != "" {
+			sb.WriteString("<span class=\"sui-tree-badge sui-tree-badge-" + treeBadgeType(it) + "\">" + htmlEscape(badge) + "</span>")
 		}
 		if meta != "" {
 			sb.WriteString("<span class=\"sui-tree-meta\">" + htmlEscape(meta) + "</span>")
 		}
 		if len(columns) > 0 {
 			for ci, col := range columns {
-				val := ""
-				switch col {
-				case "size":
-					val = size
-				case "date":
-					val = date
-				case "status":
-					val = status
-				}
+				val := treeCellValue(it, col)
 				sb.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\"")
 				if w := treeColumnWidth(columnWidths, ci); w > 0 {
 					sb.WriteString(" style=\"width:" + strconv.Itoa(w) + "px\"")
@@ -3965,7 +4078,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 				sb.WriteString(" hidden")
 			}
 			sb.WriteString(">\n")
-			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir)
+			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep)
 			sb.WriteString(ind + "  </ul>\n")
 		}
 		sb.WriteString(ind + "</li>\n")
@@ -4483,12 +4596,12 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
-			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "fontStep" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
-			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status") {
+			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status" || a.key == "cells") {
 			continue
 		}
 		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" ||

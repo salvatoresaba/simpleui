@@ -2155,7 +2155,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 				o.obj[a.key] = JStr(partsLiteral(a.text))
 			}
 		} else if a.key == "columns" || a.key == "size" || a.key == "date" || a.key == "status" ||
-			a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" {
+			a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "cells" || a.key == "fontStep" {
 			if a.hasExpr && a.expr != nil {
 				o.obj[a.key] = JStr(exprSource(a.expr))
 			} else {

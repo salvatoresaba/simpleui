@@ -2974,13 +2974,13 @@ func attrAllowed(key string, tag string) bool {
 		key == "icon" || key == "iconOpen" || key == "multiSelect" || key == "selection" ||
 		key == "search" || key == "drag" || key == "contextMenu" || key == "columns" || key == "loadKey" ||
 		key == "virtual" || key == "columnLabels" || key == "columnWidths" || key == "sort" || key == "persistSelection" ||
-		key == "tooltips" || key == "columnsEnabled") {
+		key == "tooltips" || key == "columnsEnabled" || key == "fontStep") {
 		return true
 	}
 	if tag == "treeitem" && (key == "key" || key == "open" || key == "editable" ||
 		key == "renameIcon" || key == "showRenameIcon" || key == "icon" || key == "iconOpen" ||
 		key == "badge" || key == "badgeType" || key == "meta" || key == "checked" ||
-		key == "lazy" || key == "size" || key == "date" || key == "status") {
+		key == "lazy" || key == "size" || key == "date" || key == "status" || key == "cells") {
 		return true
 	}
 	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
@@ -3474,6 +3474,17 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
+	if tag == "tree" && a.key == "fontStep" {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "int" && t.kind != "float" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, "fontStep must be a number, got "+typeStr(t))
+			}
+		} else if n, err := strconv.ParseFloat(strings.TrimSpace(partsContent(a.text)), 64); err != nil || n < 0 {
+			c.diagAt(a.span, "fontStep must be a non-negative number")
+		}
+		return
+	}
 	if tag == "tree" && a.key == "rowHeight" {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)
@@ -3557,7 +3568,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
-	if tag == "treeitem" && (a.key == "size" || a.key == "date" || a.key == "status") {
+	if tag == "treeitem" && (a.key == "size" || a.key == "date" || a.key == "status" || a.key == "cells") {
 		if a.hasExpr {
 			c.inferExpr(a.expr)
 		} else {

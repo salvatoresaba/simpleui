@@ -1013,23 +1013,30 @@ The **Tree** inspector exposes only:
 **Tree settings** opens the component panel with these tabs:
 
 - **General** - `Title` (the visible tree title), `Runtime name` (the target used
-  by `tree.*`; not the visible title) and every behavior switch: indent guides,
-  truncate labels, hierarchical checkboxes, child counts, multi-select, search
-  box, drag and drop, context menu, virtualize offscreen rows, persist selection,
-  editable and show rename icon.
-- **Bindings** - value state, selection state, load key state, editable depth,
-  rename key state and rename value state.
-- **Columns** - `Show columns`, the column picker/editor (size, date, status
-  with label and width), and child sorting. Columns stay hidden until **Show
-  columns** is on.
+  by `tree.*`; not the visible title) and behavior switches: indent guides,
+  truncate labels, hierarchical checkboxes, multi-select, search box, drag and
+  drop, context menu, virtualize offscreen rows, persist selection and editable.
+- **Bindings** - value state, selection state (shown for multi-select), load key
+  state, editable depth, rename key state and rename value state (shown when
+  editable). These are optional app-state bindings; leave them empty when the app
+  does not need the corresponding behavior.
+- **Columns** - `Show columns` and a column editor where rows can be added,
+  renamed, resized, removed and reordered. Column keys are free-form; `size`,
+  `date` and `status` have convenience item attributes, other keys use the item
+  `cells` values. Columns stay hidden until **Show columns** is on. Child sorting
+  is in the same tab.
 - **Colors** - text, title, row, hover, selected, toggle, border, guide, badge,
   metadata and checkbox colors.
 - **Title** - title size, weight, font, spacing, alignment, top/bottom position
   and padding. These values apply to the **Title** field in General.
 - **Shape** - indent, row padding/height, radius, border, toggle size, font
-  size/weight, letter spacing and font family.
-- **Icons** - default icon, open icon and rename icon, chosen from a glyph list
-  or typed as custom text/emoji.
+  size/weight, font step, letter spacing and font family. **Font step** reduces
+  the font size for each level below the root; default `0`.
+- **Icons** - default icon and open icon, chosen from a glyph list or typed as
+  custom text/emoji.
+- **Name** - child count switch and count badge colors, radius and font size,
+  plus edit-icon visibility, glyph, color, size and hover color. Counts and the
+  edit icon render next to the node name.
 - **Tooltip** - custom tooltip switch plus background, text, border, radius,
   padding, max width, font size, delay and placement.
 
@@ -1037,7 +1044,8 @@ The **Style** selector at the top of Tree settings contains the shared styles
 plus the 16 tree themes (Default, Compact, Comfortable, Dense, Bordered, Soft
 rounded, Minimal, Neon, Forest, Amber, Ocean, High contrast, Outline, Mono,
 Candy, Cards). Selecting a style previews it; **Apply** writes it to the tree and
-updates the editor preview. Named presets are available in the same panel.
+updates the editor preview. Tree settings have no separate **Hover** tab: hover
+colors are in **Colors**. Named presets are available in the same panel.
 
 **Edit tree data** opens a dedicated editor with one row per item. The row shows
 the label, an optional stable key, icon, badge, metadata, size/date/status grid

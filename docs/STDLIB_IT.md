@@ -324,6 +324,10 @@ restituiscono `(valore, errore)`.
 | `tree.selectedKeys(name)` | string | (string, string) | no | Array JSON delle key selezionate |
 | `tree.checkedKeys(name)` | string | (string, string) | no | Array JSON delle key checked |
 | `tree.search(name, term)` | string, string | (int, string) | no | Applica o pulisce il filtro inline |
+| `tree.setColumns(name, json)` | string, string | (int, string) | no | Crea/sostituisce le colonne da un array JSON |
+| `tree.getColumns(name)` | string | (string, string) | no | Colonne correnti come array JSON |
+| `tree.moveColumn(name, from, to)` | string, int, int | (int, string) | no | Riordina una colonna |
+| `tree.setCell(name, key, column, value)` | string, string, string, string | (int, string) | no | Imposta il valore di una cella |
 
 ### Formato JSON
 
@@ -350,6 +354,7 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
     "size": "2 KB",
     "date": "oggi",
     "status": "ok",
+    "cells": { "owner": "Anna" },
     "children": [
       { "label": "main.go", "key": "main" }
     ]
@@ -367,6 +372,8 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
   `warning` o `danger`.
 - `lazy: true` indica un elemento i cui figli vengono caricati dopo con
   `tree.setChildren`.
+- `cells` è un oggetto di valori per colonne personalizzate
+  (`{ "owner": "Anna" }`); l'attributo SUI accetta anche testo `key=value`.
 - Stringhe e numeri sono accettati come etichette foglia.
 
 ### Formato XML

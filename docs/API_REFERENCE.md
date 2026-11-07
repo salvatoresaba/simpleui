@@ -636,14 +636,22 @@ tree "Project files"
 - `contextMenu: true` adds a built-in right-click menu (rename, expand/collapse
   subtree, copy key, expand/collapse all). `onContextMenu` runs on right-click
   after the item is selected, for application-specific menus.
-- `columns: "size,date,status"` renders a tree-grid header and matching cells.
-  `columnsEnabled: false` keeps the column configuration but hides the header and
-  cells; the designer exposes this as **Show columns**. Supported columns are
-  `size`, `date` and `status`; each `treeitem` supplies `size`, `date` and
-  `status` text. `columnLabels: "Size,Modified,State"` sets the header text
-  positionally and `columnWidths: "120,90,80"` sets cell widths.
-  `sort: "asc"`/`"desc"` sorts children by label after imports; omit it to keep
-  manual order.
+- `columns: "owner,size"` renders a tree-grid header and matching cells for
+  arbitrary column keys. `columnsEnabled: false` keeps the configuration but
+  hides header and cells; the designer exposes this as **Show columns**.
+  `columnLabels: "Owner,Size"` sets header text positionally and
+  `columnWidths: "120,90"` sets cell widths. `treeitem size`, `date` and `status`
+  are convenience fields; any other column reads `treeitem cells`, a
+  `key=value` list such as `cells: "owner=Anna; role=Admin"` (JSON is also
+  accepted by the runtime import). `sort: "asc"`/`"desc"` sorts children by
+  label; omit it to keep manual order.
+- Runtime column APIs: `tree.setColumns(name, json)` creates, renames, resizes or
+  reorders the column list; `tree.getColumns(name)` returns the current list;
+  `tree.moveColumn(name, from, to)` reorders; `tree.setCell(name, key, column,
+  value)` updates a cell. Runtime overrides survive reactive re-renders in the
+  current page session.
+- `fontStep: 1.5` decreases the label font size by 1.5px for each level below
+  the root. The default `0` keeps one size for every level.
 - `persistSelection: true` restores selected keys from `localStorage` after a
   reload when no `selection` state is bound.
 - `treeitem lazy: true` renders a disclosure arrow without children. Expanding
@@ -725,7 +733,8 @@ tree "Project files"
   `tree.expandAll`, `tree.collapseAll`, `tree.expandTo`. Lazy data:
   `tree.setChildren`, `tree.setChildrenError`. Selection:
   `tree.selectedKeys`, `tree.checkedKeys`; filter: `tree.search`. History:
-  `tree.lastMove`, `tree.undoMove`; lazy retry: `tree.retryChildren`. See
+  `tree.lastMove`, `tree.undoMove`; lazy retry: `tree.retryChildren`; columns:
+  `tree.setColumns`, `tree.getColumns`, `tree.moveColumn`, `tree.setCell`. See
   [`STDLIB.md`](STDLIB.md#tree-module-tree-core) for schemas and limits.
 - Imported data is applied to the tree with the matching `name`; it survives
   re-renders and replaces only the node structure (title/style/bindings stay).

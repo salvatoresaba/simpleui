@@ -12,6 +12,8 @@ const suiTreeRuntime = `(function(){
   var treeSearchTerms = Object.create(null);
   var treeUndo = Object.create(null);
   var treeLastMove = Object.create(null);
+  var treeColumnOverrides = Object.create(null);
+  var treeCellOverrides = Object.create(null);
   // Imported tree models survive reactive re-renders: store[name] is applied
   // to every freshly rendered tree with the same data-sui-tree-name.
   var store = Object.create(null);
@@ -23,6 +25,31 @@ const suiTreeRuntime = `(function(){
   var MAX_BADGE = 128;
   var MAX_META = 256;
   function treeText(v) { return v === null || v === undefined ? '' : String(v); }
+  function parseCellsText(raw) {
+    var out = {};
+    var s = treeText(raw).trim();
+    if (!s) return out;
+    if (s.charCodeAt(0) === 123) {
+      try {
+        var obj = JSON.parse(s);
+        if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+          Object.keys(obj).forEach(function(k){
+            var v = obj[k];
+            if (v !== null && typeof v === 'object') return;
+            out[k] = treeText(v);
+          });
+        }
+      } catch (e) {}
+      return out;
+    }
+    var sep = s.indexOf(';') >= 0 ? ';' : '|';
+    s.split(sep).forEach(function(pair){
+      var i = pair.indexOf('=');
+      if (i <= 0) return;
+      out[pair.slice(0, i).trim()] = pair.slice(i + 1).trim();
+    });
+    return out;
+  }
   function treeName(root) {
     return root.getAttribute('data-sui-tree-name') || root.getAttribute('data-sui-tree-key') || 'tree';
   }
@@ -94,9 +121,13 @@ const suiTreeRuntime = `(function(){
     var contextMenuEnabled = root.getAttribute('data-sui-tree-context-menu') === '1';
     var customTooltips = root.getAttribute('data-sui-tree-tooltips') === '1';
     var treeColumns = (root.getAttribute('data-sui-tree-columns') || '').split(',').filter(Boolean);
-    if (root.getAttribute('data-sui-tree-columns-enabled') === '0') treeColumns = [];
+    var treeColumnsEnabled = root.getAttribute('data-sui-tree-columns-enabled') !== '0';
+    if (!treeColumnsEnabled) treeColumns = [];
     var treeColumnWidths = (root.getAttribute('data-sui-tree-column-widths') || '').split(',').map(function(v) { return parseInt(v, 10) || 0; });
+    var treeColumnLabels = (root.getAttribute('data-sui-tree-column-labels') || '').split(',');
     var sortDir = (root.getAttribute('data-sui-tree-sort') || '').toLowerCase();
+    var fontStep = parseFloat(root.getAttribute('data-sui-tree-font-step') || '0');
+    if (!isFinite(fontStep) || fontStep < 0) fontStep = 0;
     var persistSelection = root.getAttribute('data-sui-tree-persist-selection') === '1';
     var treeIcon = root.getAttribute('data-sui-tree-icon') || '';
     var treeIconOpen = root.getAttribute('data-sui-tree-icon-open') || '';
@@ -109,7 +140,7 @@ const suiTreeRuntime = `(function(){
       renderNodes(root, imported, {
         guides: guides, checkbox: checkboxes, counts: counts,
         icon: treeIcon, iconOpen: treeIconOpen, columns: treeColumns,
-        columnWidths: treeColumnWidths, sort: sortDir
+        columnWidths: treeColumnWidths, sort: sortDir, fontStep: fontStep
       });
     }
     root.__suiTree = true;
@@ -163,6 +194,135 @@ const suiTreeRuntime = `(function(){
 
     function itemLabelEl(item) {
       return item.querySelector('.sui-tree-label');
+    }
+    function itemCells(item) {
+      var raw = item.getAttribute('data-sui-cells') || '';
+      if (!raw) return {};
+      try {
+        var obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object' && !Array.isArray(obj)) return obj;
+      } catch (e) {}
+      var out = {};
+      var sep = raw.indexOf(';') >= 0 ? ';' : '|';
+      raw.split(sep).forEach(function(pair){
+        var i = pair.indexOf('=');
+        if (i <= 0) return;
+        out[pair.slice(0, i).trim()] = pair.slice(i + 1).trim();
+      });
+      return out;
+    }
+    function itemCellValue(item, col) {
+      if (col === 'size' || col === 'date' || col === 'status') return item.getAttribute('data-sui-' + col) || '';
+      var cells = itemCells(item);
+      return cells[col] === undefined ? '' : String(cells[col]);
+    }
+    function columnLabel(col, index) {
+      if (treeColumnLabels[index] && treeColumnLabels[index].trim()) return treeColumnLabels[index].trim();
+      var parts = String(col).split(/[_-]+/).filter(Boolean);
+      for (var i = 0; i < parts.length; i++) parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].slice(1);
+      return parts.length ? parts.join(' ') : col;
+    }
+    function rebuildHeader() {
+      var old = root.querySelector('.sui-tree-grid-head');
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      if (!treeColumnsEnabled || !treeColumns.length) return;
+      var head = document.createElement('div');
+      head.className = 'sui-tree-grid-head';
+      head.setAttribute('role', 'presentation');
+      var name = document.createElement('span');
+      name.className = 'sui-tree-grid-name';
+      name.textContent = 'Name';
+      head.appendChild(name);
+      for (var i = 0; i < treeColumns.length; i++) {
+        var col = treeColumns[i];
+        var cell = document.createElement('span');
+        cell.className = 'sui-tree-cell sui-tree-cell-' + col;
+        cell.textContent = columnLabel(col, i);
+        if (treeColumnWidths[i] > 0) cell.style.width = treeColumnWidths[i] + 'px';
+        head.appendChild(cell);
+      }
+      var group = root.querySelector('.sui-tree-group');
+      if (group && group.parentNode === root) root.insertBefore(head, group);
+      else root.appendChild(head);
+    }
+    function rebuildRowCells(item) {
+      var row = itemRow(item);
+      if (!row) return;
+      var old = row.querySelectorAll('.sui-tree-cell');
+      for (var i = 0; i < old.length; i++) old[i].remove();
+      if (!treeColumnsEnabled || !treeColumns.length) return;
+      for (var c = 0; c < treeColumns.length; c++) {
+        var col = treeColumns[c];
+        var cell = document.createElement('span');
+        cell.className = 'sui-tree-cell sui-tree-cell-' + col;
+        cell.textContent = itemCellValue(item, col);
+        if (treeColumnWidths[c] > 0) cell.style.width = treeColumnWidths[c] + 'px';
+        row.appendChild(cell);
+      }
+    }
+    function applyRuntimeColumns() {
+      var override = treeColumnOverrides[treeName(root)];
+      if (override) {
+        treeColumns = override.fields.slice();
+        treeColumnLabels = override.labels.slice();
+        treeColumnWidths = override.widths.slice();
+        treeColumnsEnabled = true;
+      }
+      rebuildHeader();
+      for (var i = 0; i < items.length; i++) rebuildRowCells(items[i]);
+    }
+    function applyRuntimeCells() {
+      var overrides = treeCellOverrides[treeName(root)];
+      if (!overrides) return;
+      for (var i = 0; i < items.length; i++) {
+        var key = items[i].getAttribute('data-sui-key') || '';
+        if (!overrides[key]) continue;
+        var cells = itemCells(items[i]);
+        Object.keys(overrides[key]).forEach(function(col){ cells[col] = overrides[key][col]; });
+        items[i].setAttribute('data-sui-cells', JSON.stringify(cells));
+      }
+    }
+    function setColumnsFor(list) {
+      if (!Array.isArray(list)) throw new Error('columns must be an array');
+      if (list.length > 12) throw new Error('too many columns (limit 12)');
+      var fields = [], labels = [], widths = [];
+      for (var i = 0; i < list.length; i++) {
+        var entry = list[i];
+        if (typeof entry === 'string') entry = { key: entry };
+        if (!entry || typeof entry !== 'object') throw new Error('invalid column');
+        var key = String(entry.key || entry.field || entry.name || '').trim().replace(/[^A-Za-z0-9_-]/g, '');
+        if (!key) throw new Error('column key is required');
+        var width = parseInt(entry.width, 10);
+        if (!isFinite(width) || width <= 0) width = 104;
+        fields.push(key);
+        labels.push(entry.label === undefined ? columnLabel(key, i) : String(entry.label));
+        widths.push(Math.max(20, Math.min(600, width)));
+      }
+      treeColumnOverrides[treeName(root)] = { fields: fields, labels: labels, widths: widths };
+      treeColumns = fields; treeColumnLabels = labels; treeColumnWidths = widths; treeColumnsEnabled = true;
+      applyRuntimeColumns();
+      return fields.length;
+    }
+    function getColumnsFor() {
+      var out = [];
+      for (var i = 0; i < treeColumns.length; i++) {
+        out.push({ key: treeColumns[i], label: columnLabel(treeColumns[i], i), width: treeColumnWidths[i] || 104 });
+      }
+      return out;
+    }
+    function setCellFor(key, column, value) {
+      var item = findItemByKey(key);
+      if (!item) throw new Error('tree item not found: ' + key);
+      var col = String(column || '').replace(/[^A-Za-z0-9_-]/g, '');
+      if (!col) throw new Error('column key is required');
+      var cells = itemCells(item);
+      cells[col] = String(value === null || value === undefined ? '' : value);
+      item.setAttribute('data-sui-cells', JSON.stringify(cells));
+      var map = treeCellOverrides[treeName(root)] || (treeCellOverrides[treeName(root)] = {});
+      map[key] = map[key] || {};
+      map[key][col] = cells[col];
+      rebuildRowCells(item);
+      return true;
     }
     function labelStorageKey(root, path) {
       return 'sui.tree.label.' + treeKey + '.' + path;
@@ -459,7 +619,7 @@ const suiTreeRuntime = `(function(){
       return null;
     }
     function renderOpts() {
-      return { guides: guides, checkbox: checkboxes, counts: counts, icon: treeIcon, iconOpen: treeIconOpen, columns: treeColumns, columnWidths: treeColumnWidths, sort: sortDir };
+      return { guides: guides, checkbox: checkboxes, counts: counts, icon: treeIcon, iconOpen: treeIconOpen, columns: treeColumns, columnWidths: treeColumnWidths, sort: sortDir, fontStep: fontStep };
     }
     function ensureGroup(item) {
       var group = itemGroup(item);
@@ -1270,7 +1430,12 @@ const suiTreeRuntime = `(function(){
           focusItem(item);
           setTimeout(function() { if (item.isConnected) startRename(item); }, 0);
         });
-        row.appendChild(editBtn);
+        var renameAnchor = labelEl || itemLabelEl(item);
+        if (renameAnchor && renameAnchor.nextSibling && renameAnchor.nextSibling.classList && renameAnchor.nextSibling.classList.contains('sui-tree-badge-count')) {
+          renameAnchor = renameAnchor.nextSibling;
+        }
+        if (renameAnchor && renameAnchor.parentNode) row.insertBefore(editBtn, renameAnchor.nextSibling);
+        else row.appendChild(editBtn);
       }
       item.addEventListener('focus', function() {
         items.forEach(function(x) { x.tabIndex = x === item ? 0 : -1; });
@@ -1400,6 +1565,8 @@ const suiTreeRuntime = `(function(){
       var searchNow = root.querySelector('.sui-tree-search-input');
       if (searchNow && searchNow.value) applySearch(searchNow.value);
     }
+    applyRuntimeCells();
+    applyRuntimeColumns();
     root.__suiTreeApi = {
       expandAll: expandAll,
       collapseAll: collapseAll,
@@ -1422,6 +1589,18 @@ const suiTreeRuntime = `(function(){
       },
       lastMove: function() { return treeLastMove[treeName(root)] || null; },
       undoMove: undoMove,
+      setColumns: function(list) { return setColumnsFor(list); },
+      getColumns: function() { return getColumnsFor(); },
+      moveColumn: function(from, to) {
+        var list = getColumnsFor();
+        from = parseInt(from, 10); to = parseInt(to, 10);
+        if (!isFinite(from) || !isFinite(to) || from < 0 || from >= list.length || to < 0 || to >= list.length) return false;
+        var moved = list.splice(from, 1)[0];
+        list.splice(to, 0, moved);
+        setColumnsFor(list);
+        return true;
+      },
+      setCell: function(key, column, value) { return setCellFor(key, column, value); },
       selectedKeys: selectedKeys,
       checkedKeys: checkedKeys,
       search: applySearch,
@@ -1520,6 +1699,20 @@ const suiTreeRuntime = `(function(){
       if (obj.size !== undefined) node.size = treeText(obj.size);
       if (obj.date !== undefined) node.date = treeText(obj.date);
       if (obj.status !== undefined) node.status = treeText(obj.status);
+      if (obj.cells !== undefined) {
+        if (typeof obj.cells === "string") {
+          node.cells = parseCellsText(obj.cells);
+        } else {
+          if (!obj.cells || typeof obj.cells !== "object" || Array.isArray(obj.cells)) throw new Error("cells must be an object or key=value text");
+          var cleanCells = {};
+          Object.keys(obj.cells).forEach(function(k){
+            var v = obj.cells[k];
+            if (v !== null && typeof v === "object") return;
+            cleanCells[k] = treeText(v);
+          });
+          node.cells = cleanCells;
+        }
+      }
       if (obj.tooltip !== undefined) {
         var tooltipText = treeText(obj.tooltip);
         if (tooltipText.length > MAX_LABEL) throw new Error("tooltip is too long (limit " + MAX_LABEL + ")");
@@ -1578,6 +1771,13 @@ const suiTreeRuntime = `(function(){
       var v = el.getAttribute(attrs[i]);
       if (v !== null) o[attrs[i]] = v;
     }
+    var cellsAttr = el.getAttribute("cells");
+    if (cellsAttr !== null) {
+      try {
+        var cellsObj = JSON.parse(cellsAttr);
+        if (cellsObj && typeof cellsObj === "object" && !Array.isArray(cellsObj)) o.cells = cellsObj;
+      } catch (e) {}
+    }
     var icon = el.getAttribute("renameIcon");
     if (icon !== null) o.renameIcon = icon;
     var kids = elementKids(el);
@@ -1628,6 +1828,7 @@ const suiTreeRuntime = `(function(){
     li.setAttribute("data-sui-size", node.size || "");
     li.setAttribute("data-sui-date", node.date || "");
     li.setAttribute("data-sui-status", node.status || "");
+    if (node.cells) li.setAttribute("data-sui-cells", JSON.stringify(node.cells));
     li.setAttribute("data-sui-lazy", node.lazy ? "1" : "0");
     li.setAttribute("data-sui-checked", node.checked === true ? "1" : node.checked === false ? "0" : "");
     if (node.tooltip) li.setAttribute("data-sui-tooltip", node.tooltip);
@@ -1681,20 +1882,23 @@ const suiTreeRuntime = `(function(){
     }
     var label = document.createElement("span");
     label.className = "sui-tree-label";
+    if (opts.fontStep > 0 && level > 1) {
+      label.style.fontSize = "calc(var(--sui-tree-font, 13px) - " + ((level - 1) * opts.fontStep) + "px)";
+    }
     label.textContent = node.label;
     label.title = node.tooltip || node.label;
     row.appendChild(label);
-    if (node.badge) {
-      var badge = document.createElement("span");
-      badge.className = "sui-tree-badge sui-tree-badge-" + (node.badgeType || "neutral");
-      badge.textContent = node.badge;
-      row.appendChild(badge);
-    }
     if (opts.counts && node.children && node.children.length) {
       var countBadge = document.createElement("span");
       countBadge.className = "sui-tree-badge sui-tree-badge-count";
       countBadge.textContent = String(node.children.length);
       row.appendChild(countBadge);
+    }
+    if (node.badge) {
+      var badge = document.createElement("span");
+      badge.className = "sui-tree-badge sui-tree-badge-" + (node.badgeType || "neutral");
+      badge.textContent = node.badge;
+      row.appendChild(badge);
     }
     if (node.meta) {
       var meta = document.createElement("span");
@@ -1707,7 +1911,7 @@ const suiTreeRuntime = `(function(){
         var col = opts.columns[c];
         var cell = document.createElement("span");
         cell.className = "sui-tree-cell sui-tree-cell-" + col;
-        cell.textContent = node[col] || "";
+        cell.textContent = node[col] !== undefined ? node[col] : ((node.cells && node.cells[col] !== undefined) ? node.cells[col] : "");
         if (opts.columnWidths && opts.columnWidths[c] > 0) cell.style.width = opts.columnWidths[c] + "px";
         row.appendChild(cell);
       }
@@ -1818,6 +2022,13 @@ const suiTreeRuntime = `(function(){
     if (date) out.date = date;
     var status = li.getAttribute("data-sui-status") || "";
     if (status) out.status = status;
+    var cellsRaw = li.getAttribute("data-sui-cells") || "";
+    if (cellsRaw) {
+      try {
+        var cellsObj = JSON.parse(cellsRaw);
+        if (cellsObj && typeof cellsObj === "object" && !Array.isArray(cellsObj)) out.cells = cellsObj;
+      } catch (e) {}
+    }
     if (li.getAttribute("data-sui-lazy") === "1") out.lazy = true;
     var tooltip = li.getAttribute("data-sui-tooltip") || "";
     if (tooltip) out.tooltip = tooltip;
@@ -1864,6 +2075,7 @@ const suiTreeRuntime = `(function(){
       if (n.size) attrs += " size=\"" + xmlEscape(n.size) + "\"";
       if (n.date) attrs += " date=\"" + xmlEscape(n.date) + "\"";
       if (n.status) attrs += " status=\"" + xmlEscape(n.status) + "\"";
+      if (n.cells) attrs += " cells=\"" + xmlEscape(JSON.stringify(n.cells)) + "\"";
       if (n.lazy) attrs += " lazy=\"true\"";
       if (n.tooltip) attrs += " tooltip=\"" + xmlEscape(n.tooltip) + "\"";
       if (n.checked !== undefined) attrs += " checked=\"" + (n.checked ? "true" : "false") + "\"";
@@ -2024,6 +2236,38 @@ const suiTreeRuntime = `(function(){
       if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
       var res = root.__suiTreeApi.undoMove();
       return res.error ? [0, res.error] : [res.count, null];
+    },
+    setColumns: function(name, json) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      try {
+        var list = typeof json === "string" ? JSON.parse(json) : json;
+        return [root.__suiTreeApi.setColumns(list), null];
+      } catch (e) { return [0, (e && e.message) ? e.message : String(e)]; }
+    },
+    getColumns: function(name) {
+      var root = treeTarget(name);
+      if (!root) return ["", "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return ["", "tree is empty: " + name];
+      return [JSON.stringify(root.__suiTreeApi.getColumns()), null];
+    },
+    moveColumn: function(name, from, to) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      return [root.__suiTreeApi.moveColumn(from, to) ? 1 : 0, null];
+    },
+    setCell: function(name, key, column, value) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      try { return [root.__suiTreeApi.setCell(key, column, value) ? 1 : 0, null]; }
+      catch (e) { return [0, (e && e.message) ? e.message : String(e)]; }
     },
     selectedKeys: function(name) {
       var root = treeTarget(name);

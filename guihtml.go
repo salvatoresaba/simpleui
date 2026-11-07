@@ -1863,7 +1863,7 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
   treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
@@ -2128,6 +2128,7 @@ function newTreeItemNode(label) {
   n.size = "";
   n.date = "";
   n.status = "";
+  n.cells = "";
   return n;
 }
 function newTreeNode() {
@@ -2161,6 +2162,7 @@ function newTreeNode() {
   n.loadKey = "";
   n.virtual = false;
   n.tooltips = false;
+  n.fontStep = 0;
   return n;
 }
 function newChartNode(skipDefaults) {
@@ -4772,6 +4774,7 @@ function treeDataModel(raw, path, depth, ctx) {
     if (obj.size !== undefined) n.size = String(obj.size);
     if (obj.date !== undefined) n.date = String(obj.date);
     if (obj.status !== undefined) n.status = String(obj.status);
+    if (obj.cells !== undefined) n.cells = typeof obj.cells === "string" ? obj.cells : JSON.stringify(obj.cells);
     var kids = obj.children !== undefined ? obj.children : obj.items;
     if (kids !== undefined && kids !== null && !Array.isArray(kids)) throw new Error("children must be an array");
     if (kids) {
@@ -4793,7 +4796,7 @@ function treeXmlToRaw(el) {
   if (label) o.label = label;
   var key = el.getAttribute("key");
   if (key) o.key = key;
-  var attrs = ["open", "editable", "showRenameIcon", "renameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "tooltip", "checked", "lazy", "size", "date", "status"];
+  var attrs = ["open", "editable", "showRenameIcon", "renameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "tooltip", "checked", "lazy", "size", "date", "status", "cells"];
   for (var i = 0; i < attrs.length; i++) {
     var v = el.getAttribute(attrs[i]);
     if (v !== null) o[attrs[i]] = v;
@@ -4885,6 +4888,9 @@ function treeModelNode(n) {
   if (n.size) o.size = n.size;
   if (n.date) o.date = n.date;
   if (n.status) o.status = n.status;
+  if (n.cells) {
+    try { o.cells = typeof n.cells === "string" ? JSON.parse(n.cells) : n.cells; } catch (e) {}
+  }
   return o;
 }
 function treeXmlEscape(v) {
@@ -4910,6 +4916,7 @@ function treeModelXml(items, indent) {
     if (n.size) attrs += " size=\"" + treeXmlEscape(n.size) + "\"";
     if (n.date) attrs += " date=\"" + treeXmlEscape(n.date) + "\"";
     if (n.status) attrs += " status=\"" + treeXmlEscape(n.status) + "\"";
+    if (n.cells) attrs += " cells=\"" + treeXmlEscape(n.cells) + "\"";
     if (n.lazy) attrs += " lazy=\"true\"";
     if (n.checked !== undefined) attrs += " checked=\"" + (n.checked ? "true" : "false") + "\"";
     if (n.children && n.children.length) {
@@ -6855,6 +6862,7 @@ function treeItemControls(n) {
   itemField("size", n.size, "grid size cell", "size", 80);
   itemField("date", n.date, "grid date cell", "date", 80);
   itemField("status", n.status, "grid status cell", "status", 80);
+  itemField("cells", n.cells, "owner=Anna; size=1 KB", "cells", 2000);
   var lzr = document.createElement("div"); lzr.className = "rowline";
   var lzl = document.createElement("label"); lzl.textContent = "lazy children"; lzl.title = "Load children on first expansion through onLoad and loadKey."; lzr.appendChild(lzl);
   lzr.appendChild(mkSwitch(!!n.lazy, false, function(on){
@@ -9854,6 +9862,7 @@ function attrsOf(n) {
   if (n.kind === "treeitem" && n.size) a += " size: \"" + esc(n.size) + "\"";
   if (n.kind === "treeitem" && n.date) a += " date: \"" + esc(n.date) + "\"";
   if (n.kind === "treeitem" && n.status) a += " status: \"" + esc(n.status) + "\"";
+  if (n.kind === "treeitem" && n.cells) a += " cells: \"" + esc(n.cells) + "\"";
   if (n.kind === "treeitem" && n.lazy) a += " lazy: true";
   if (n.kind === "treeitem" && (n.checked === true || n.checked === false)) a += " checked: " + (n.checked ? "true" : "false");
   if (n.kind === "treeitem" && n.showRenameIcon !== undefined && n.showRenameIcon !== null) {
@@ -9879,6 +9888,7 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.contextMenu) a += " contextMenu: true";
   if (n.kind === "tree" && n.virtual) a += " virtual: true";
   if (n.kind === "tree" && n.tooltips) a += " tooltips: true";
+  if (n.kind === "tree" && n.fontStep && Number(n.fontStep) > 0) a += " fontStep: " + n.fontStep;
   if (n.kind === "tree" && n.columns) a += " columns: \"" + esc(n.columns) + "\"";
   if (n.kind === "tree" && n.columnsEnabled === false) a += " columnsEnabled: false";
   if (n.kind === "tree" && n.columnsEnabled) a += " columnsEnabled: true";
@@ -13421,23 +13431,21 @@ var COMPONENT_DEFS = [
         { key: "@guides", label: "Indent guides", type: "attrSwitch", attr: "guides", def: true },
         { key: "@truncate", label: "Truncate labels", type: "attrSwitch", attr: "truncate", def: true },
         { key: "@checkbox", label: "Hierarchical checkboxes", type: "attrSwitch", attr: "checkbox", def: false },
-        { key: "@counts", label: "Child counts", type: "attrSwitch", attr: "counts", def: false },
         { key: "@multiSelect", label: "Multi-select", type: "attrSwitch", attr: "multiSelect", def: false },
         { key: "@search", label: "Search box", type: "attrSwitch", attr: "search", def: false },
         { key: "@drag", label: "Drag and drop", type: "attrSwitch", attr: "drag", def: false },
         { key: "@contextMenu", label: "Context menu", type: "attrSwitch", attr: "contextMenu", def: false },
         { key: "@virtual", label: "Virtualize offscreen rows", type: "attrSwitch", attr: "virtual", def: false },
         { key: "@persistSelection", label: "Persist selection", type: "attrSwitch", attr: "persistSelection", def: false },
-        { key: "@editable", label: "Editable", type: "attrSwitch", attr: "editable", def: false },
-        { key: "@showRenameIcon", label: "Show rename icon", type: "attrSwitch", attr: "showRenameIcon", def: true }
+        { key: "@editable", label: "Editable", type: "attrSwitch", attr: "editable", def: false }
       ]},
       { name: "Bindings", fields: [
-        { key: "@value", label: "Value state", type: "attrText", attr: "value", def: "" },
-        { key: "@selection", label: "Selection state", type: "attrText", attr: "selection", def: "" },
-        { key: "@loadKey", label: "Load key state", type: "attrText", attr: "loadKey", def: "" },
-        { key: "@editableDepth", label: "Editable depth", type: "attrText", attr: "editableDepth", def: "" },
-        { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "" },
-        { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "" }
+        { key: "@value", label: "Value state", type: "attrText", attr: "value", def: "", hint: "String state receiving the selected node key." },
+        { key: "@selection", label: "Selection state", type: "attrText", attr: "selection", def: "", showIf: "@multiSelect", hint: "String state receiving a JSON array of selected keys." },
+        { key: "@loadKey", label: "Load key state", type: "attrText", attr: "loadKey", def: "", hint: "State receiving the key of a lazy node while its children load." },
+        { key: "@editableDepth", label: "Editable depth", type: "attrText", attr: "editableDepth", def: "", showIf: "@editable", hint: "Maximum editable level; 0 = all levels." },
+        { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "", showIf: "@editable", hint: "State receiving the renamed node key." },
+        { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "", showIf: "@editable", hint: "State receiving the new label." }
       ]},
       { name: "Columns", fields: [
         { key: "@columnsEnabled", label: "Show columns", type: "attrSwitch", attr: "columnsEnabled", def: false },
@@ -13480,14 +13488,26 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },
         { key: "--sui-tree-toggle-size", label: "Toggle size", type: "number", def: 12, min: 8, max: 24, step: 1, unit: "px" },
         { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" },
+        { key: "@fontStep", label: "Font step", type: "attrNumber", attr: "fontStep", def: 0, min: 0, max: 10, step: 0.5 },
         { key: "--sui-tree-font-weight", label: "Text weight", type: "select", def: "400", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"]] },
         { key: "--sui-tree-tracking", label: "Letter spacing", type: "number", def: 0, min: -2, max: 10, step: 0.1, unit: "px" },
         { key: "--sui-tree-font-family", label: "Font", type: "font", def: "inherit" }
       ]},
       { name: "Icons", fields: [
         { key: "@icon", label: "Default icon", type: "icon", attr: "icon", def: "" },
-        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" },
-        { key: "@renameIcon", label: "Rename icon", type: "icon", attr: "renameIcon", def: "" }
+        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" }
+      ]},
+      { name: "Name", fields: [
+        { key: "@counts", label: "Child counts", type: "attrSwitch", attr: "counts", def: false },
+        { key: "--sui-tree-count-bg", label: "Count background", type: "color", def: "#2a3143" },
+        { key: "--sui-tree-count-fg", label: "Count text", type: "color", def: "#94a3b8" },
+        { key: "--sui-tree-count-radius", label: "Count radius", type: "text", def: "999px" },
+        { key: "--sui-tree-count-size", label: "Count font size", type: "number", def: 10, min: 8, max: 20, step: 1, unit: "px" },
+        { key: "@showRenameIcon", label: "Show edit icon", type: "attrSwitch", attr: "showRenameIcon", def: true },
+        { key: "@renameIcon", label: "Edit icon", type: "icon", attr: "renameIcon", def: "" },
+        { key: "--sui-tree-rename-color", label: "Edit icon color", type: "color", def: "#8fa0b8" },
+        { key: "--sui-tree-rename-size", label: "Edit icon size", type: "number", def: 13, min: 8, max: 28, step: 1, unit: "px" },
+        { key: "--sui-tree-rename-hover", label: "Edit icon hover", type: "color", def: "#a5b4fc" }
       ]},
       { name: "Tooltip", fields: [
         { key: "@tooltips", label: "Custom tooltips", type: "attrSwitch", attr: "tooltips", def: false },
@@ -14903,7 +14923,7 @@ var HOVER_FIELDS = {
   ]
 };
 COMPONENT_DEFS.forEach(function(def){
-  if (HOVER_FIELDS[def.id]) def.categories.push({ name: "Hover", fields: HOVER_FIELDS[def.id] });
+  if (def.id !== "tree" && HOVER_FIELDS[def.id]) def.categories.push({ name: "Hover", fields: HOVER_FIELDS[def.id] });
 });
 var THEME_FAMILIES = [
   { id: "standard", label: "Standard", light: "standard-light", dark: "standard-dark" },
@@ -14967,7 +14987,7 @@ function ensureComponentRules(def) {
 function componentFieldDefault(field) {
   if (field.type === "switch") return field.on;
   if (field.type === "attrSwitch") return !!field.def;
-  if (field.type === "columns") return { size: true, date: true, status: true, labels: { size: "Size", date: "Date", status: "Status" }, widths: { size: 104, date: 104, status: 104 } };
+  if (field.type === "columns") return { list: [{ key: "size", label: "Size", width: 104 }, { key: "date", label: "Date", width: 104 }, { key: "status", label: "Status", width: 104 }] };
   if (field.type === "attrText" || field.type === "icon" || field.type === "title") return field.def === undefined ? "" : String(field.def);
   if (field.type === "number") return String(field.def) + (field.unit || "");
   return String(field.def);
@@ -15016,15 +15036,19 @@ function componentKeyBaseValue(def, key, node) {
 function componentColumnsValue(node) {
   var defs = componentFieldDefault({ type: "columns" });
   var columns = node && node.columns ? String(node.columns).split(",").map(function(v){ return v.trim(); }).filter(Boolean) : [];
+  if (!columns.length) return defs;
   var labels = node && node.columnLabels ? String(node.columnLabels).split(",") : [];
   var widths = node && node.columnWidths ? String(node.columnWidths).split(",") : [];
-  var out = { size: columns.length ? columns.indexOf("size") >= 0 : true, date: columns.length ? columns.indexOf("date") >= 0 : true, status: columns.length ? columns.indexOf("status") >= 0 : true, labels: {}, widths: {} };
-  ["size", "date", "status"].forEach(function(f, i){
-    out.labels[f] = labels[i] !== undefined && labels[i] !== "" ? labels[i].trim() : defs.labels[f];
+  var list = [];
+  columns.forEach(function(key, i){
     var w = parseInt(widths[i], 10);
-    out.widths[f] = isFinite(w) && w > 0 ? w : defs.widths[f];
+    list.push({
+      key: key,
+      label: labels[i] !== undefined && labels[i] !== "" ? labels[i].trim() : key,
+      width: isFinite(w) && w > 0 ? w : 104
+    });
   });
-  return out;
+  return { list: list };
 }
 function componentPresetBaseValue(def, key) {
   var field = componentFieldByKey(def, key);
@@ -15112,13 +15136,12 @@ function applyComponentPreset(id) {
   renderComponentSettings();
 }
 function componentColumnsDiffer(a, b) {
-  if (!a || !b) return true;
-  if (!!a.size !== !!b.size || !!a.date !== !!b.date || !!a.status !== !!b.status) return true;
-  var fields = ["size", "date", "status"];
-  for (var i = 0; i < fields.length; i++) {
-    var f = fields[i];
-    if (String((a.labels || {})[f] || "") !== String((b.labels || {})[f] || "")) return true;
-    if (parseInt((a.widths || {})[f], 10) !== parseInt((b.widths || {})[f], 10)) return true;
+  var al = (a && a.list) || [], bl = (b && b.list) || [];
+  if (al.length !== bl.length) return true;
+  for (var i = 0; i < al.length; i++) {
+    if (String(al[i].key || "") !== String(bl[i].key || "")) return true;
+    if (String(al[i].label || "") !== String(bl[i].label || "")) return true;
+    if (parseInt(al[i].width, 10) !== parseInt(bl[i].width, 10)) return true;
   }
   return false;
 }
@@ -15275,7 +15298,10 @@ function renderComponentSettings() {
   var cat = s.def.categories.filter(function(c){ return c.name === s.tab; })[0] || s.def.categories[0];
   var grid = document.createElement("div");
   grid.className = "pref-grid";
-  cat.fields.forEach(function(f){ grid.appendChild(componentFieldRow(f)); });
+  cat.fields.forEach(function(f){
+    if (f.showIf && !s.values[f.showIf]) return;
+    grid.appendChild(componentFieldRow(f));
+  });
   body.appendChild(grid);
   updateComponentPreview();
 }
@@ -15285,6 +15311,7 @@ function componentFieldRow(field) {
   row.className = "pf-field" + (field.type === "text" && field.label === "Padding" ? " wide" : "");
   var lab = document.createElement("label");
   lab.textContent = field.label;
+  if (field.hint) lab.title = field.hint;
   row.appendChild(lab);
   var value = s.values[field.key];
   if (field.type === "number") {
@@ -15346,45 +15373,61 @@ function componentFieldRow(field) {
     row.appendChild(sel);
   } else if (field.type === "columns") {
     var cfg = value || componentFieldDefault(field);
+    cfg.list = cfg.list || [];
     var colWrap = document.createElement("div");
     colWrap.style.cssText = "display:flex;flex-direction:column;gap:4px;flex:1;min-width:0";
-    ["size", "date", "status"].forEach(function(col){
-      var line = document.createElement("div");
-      line.style.cssText = "display:flex;align-items:center;gap:5px;min-width:0";
-      var cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = !!cfg[col];
-      var lab = document.createElement("span");
-      lab.textContent = col.charAt(0).toUpperCase() + col.slice(1);
-      lab.style.cssText = "font-size:11px;min-width:38px";
-      var li = document.createElement("input");
-      li.type = "text"; li.value = (cfg.labels && cfg.labels[col]) || ""; li.placeholder = "label"; li.style.cssText = "flex:1;min-width:40px";
-      var wi = document.createElement("input");
-      wi.type = "number"; wi.min = "20"; wi.max = "600"; wi.step = "1"; wi.value = (cfg.widths && cfg.widths[col]) || 104; wi.style.cssText = "width:60px";
-      cb.onchange = function(){
-        cfg[col] = cb.checked;
-        s.values[field.key] = cfg;
-        markComponentCustom();
-      };
-      li.oninput = function(){
-        cfg.labels = cfg.labels || {};
-        cfg.labels[col] = li.value;
-        s.values[field.key] = cfg;
-        markComponentCustom();
-      };
-      wi.oninput = function(){
-        cfg.widths = cfg.widths || {};
-        cfg.widths[col] = parseInt(wi.value, 10) || 104;
-        s.values[field.key] = cfg;
-        markComponentCustom();
-      };
-      line.appendChild(cb); line.appendChild(lab); line.appendChild(li); line.appendChild(wi);
-      colWrap.appendChild(line);
-    });
+    function columnSync() {
+      s.values[field.key] = cfg;
+      markComponentCustom();
+    }
+    function renderColumnRows() {
+      colWrap.textContent = "";
+      cfg.list.forEach(function(entry, index){
+        var line = document.createElement("div");
+        line.style.cssText = "display:flex;align-items:center;gap:4px;min-width:0";
+        var keyIn = document.createElement("input");
+        keyIn.type = "text"; keyIn.value = entry.key || ""; keyIn.placeholder = "key"; keyIn.style.cssText = "width:70px";
+        var labIn = document.createElement("input");
+        labIn.type = "text"; labIn.value = entry.label || ""; labIn.placeholder = "label"; labIn.style.cssText = "flex:1;min-width:48px";
+        var widthIn = document.createElement("input");
+        widthIn.type = "number"; widthIn.min = "20"; widthIn.max = "600"; widthIn.step = "1"; widthIn.value = entry.width || 104; widthIn.style.cssText = "width:58px";
+        function btn(text, title, fn) {
+          var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = text; b.title = title;
+          b.style.cssText = "font-size:10px;padding:1px 4px;min-width:22px";
+          b.onclick = fn; line.appendChild(b);
+        }
+        keyIn.oninput = function(){ entry.key = keyIn.value; columnSync(); };
+        labIn.oninput = function(){ entry.label = labIn.value; columnSync(); };
+        widthIn.oninput = function(){ entry.width = parseInt(widthIn.value, 10) || 104; columnSync(); };
+        btn("\u2191", "Move column up", function(){ if (index <= 0) return; var t = cfg.list[index - 1]; cfg.list[index - 1] = entry; cfg.list[index] = t; columnSync(); renderColumnRows(); });
+        btn("\u2193", "Move column down", function(){ if (index >= cfg.list.length - 1) return; var t = cfg.list[index + 1]; cfg.list[index + 1] = entry; cfg.list[index] = t; columnSync(); renderColumnRows(); });
+        btn("\u00d7", "Remove column", function(){ cfg.list.splice(index, 1); columnSync(); renderColumnRows(); });
+        line.appendChild(keyIn); line.appendChild(labIn); line.appendChild(widthIn);
+        colWrap.appendChild(line);
+      });
+      var add = document.createElement("button");
+      add.type = "button"; add.className = "btn"; add.textContent = "+ Add column";
+      add.style.cssText = "font-size:10px;padding:2px 6px;align-self:flex-start";
+      add.onclick = function(){ cfg.list.push({ key: "column", label: "Column", width: 104 }); columnSync(); renderColumnRows(); };
+      colWrap.appendChild(add);
+    }
+    renderColumnRows();
     row.appendChild(colWrap);
+  } else if (field.type === "attrNumber") {
+    var nInp = document.createElement("input");
+    nInp.type = "number"; nInp.min = field.min; nInp.max = field.max; nInp.step = field.step || 1;
+    nInp.value = value === undefined ? field.def : value;
+    nInp.oninput = function(){
+      var n = parseFloat(nInp.value);
+      s.values[field.key] = isFinite(n) ? n : field.def;
+      markComponentCustom();
+    };
+    row.appendChild(nInp);
   } else if (field.type === "attrSwitch") {
     row.appendChild(mkSwitch(value === true, false, function(on){
       s.values[field.key] = on;
       markComponentCustom();
+      renderComponentSettings();
     }));
   } else if (field.type === "icon") {
     var iconWrap = document.createElement("div");
@@ -15446,16 +15489,27 @@ function applyComponentAttrValues(def, node, values, reset) {
           return;
         }
         var cfg = values[f.key] || componentFieldDefault(f);
+        var list = cfg.list || [];
         var fields = [], labels = [], widths = [];
-        ["size", "date", "status"].forEach(function(col){
-          if (!cfg[col]) return;
-          fields.push(col);
-          labels.push((cfg.labels && cfg.labels[col]) || col);
-          widths.push((cfg.widths && cfg.widths[col]) || 104);
+        list.forEach(function(entry){
+          var key = String(entry.key || "").trim().replace(/[^A-Za-z0-9_-]/g, "");
+          if (!key) return;
+          fields.push(key);
+          labels.push(entry.label === undefined || entry.label === "" ? key : entry.label);
+          widths.push(parseInt(entry.width, 10) || 104);
         });
         node.columns = fields.join(",");
         node.columnLabels = labels.join(",");
         node.columnWidths = widths.map(String).join(",");
+        return;
+      }
+      if (f.type === "attrNumber") {
+        if (reset) {
+          if (Number(f.def) === 0) delete node[f.attr];
+          else node[f.attr] = f.def;
+        } else {
+          node[f.attr] = Number(values[f.key]) || 0;
+        }
         return;
       }
       if (reset) {
