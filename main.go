@@ -33,6 +33,12 @@ func main() {
 	if len(args) > 1 {
 		cmd = args[1]
 	}
+	if len(args) > 1 && looksLikeSuiFile(args[1]) {
+		// Windows "Open with" and file associations pass the .sui path as the
+		// first argument: open the designer on it directly.
+		CmdGui(args[1:])
+		return
+	}
 	if cmd == "version" || cmd == "--version" || cmd == "-v" {
 		fmt.Printf("%v %v\n", AppName, AppVersion)
 	} else if cmd == "help" || cmd == "-h" || cmd == "--help" || cmd == "" {
@@ -53,6 +59,8 @@ func main() {
 		CmdLsp(ArgsAfter(args, 2))
 	} else if cmd == "gui" {
 		CmdGui(ArgsAfter(args, 2))
+	} else if cmd == "associate" {
+		CmdAssociate(ArgsAfter(args, 2))
 	} else if cmd == "mcp" {
 		CmdMcp(ArgsAfter(args, 2))
 	} else {
@@ -249,6 +257,10 @@ func PrintHelp() {
 	fmt.Printf("  %v fmt <file.sui>       canonical format (--write to update in place)\n", AppName)
 	fmt.Printf("  %v docs                 documentation index (also: --agent, --json, --read, --search)\n", AppName)
 	fmt.Printf("  %v gui [file.sui]       visual design tool (palette + live preview + .sui export)\n", AppName)
+	fmt.Printf("  %v <file.sui>           open the visual designer on that file\n", AppName)
+	fmt.Printf("  %v associate            associate .sui files with the editor (Windows, HKCU)\n", AppName)
+	fmt.Printf("         --uninstall       remove the .sui association\n")
+	fmt.Printf("         --dry-run         print the registry commands without changing anything\n")
 	fmt.Printf("         --security <f>   strict/relaxed policy file (default: ./simpleui.security.json)\n")
 	fmt.Printf("  %v mcp                   Model Context Protocol server (for AI agents)\n", AppName)
 	fmt.Printf("  %v serve <file.sui>     build + serve with browser hot-reload\n", AppName)

@@ -155,6 +155,20 @@ With a file argument the editor opens that file immediately and **Save** writes
 back to the same path. Use `--port N` for a fixed editor port and
 `--security <file>` for an explicit policy.
 
+On Windows you can associate `.sui` files with the editor once:
+
+```bash
+./simpleui associate
+./simpleui associate --dry-run     # show the registry commands only
+./simpleui associate --uninstall
+```
+
+The association is written under `HKEY_CURRENT_USER`, so it needs no
+administrator rights and is reversible. Double-clicking a `.sui` file then opens
+the designer on that file. If Windows already had a different default app for
+the extension, choose SimpleUI once from **Open with** or reset it in Windows
+Settings.
+
 ### 5. Development mode
 
 Use the dev server with live reload:

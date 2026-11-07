@@ -2167,6 +2167,7 @@ simpleui build examples/counter.sui --target desktop-webview --out dist \
 simpleui serve examples/counter.sui --watch
 simpleui gui
 simpleui gui examples/counter.sui
+simpleui associate
 simpleui lsp
 simpleui mcp
 ```
@@ -2194,3 +2195,7 @@ simpleui mcp
 - **gui [file.sui]**: opens the visual designer. With a file argument it loads
   that source immediately and **Save** writes back to the same path. `--port N`
   fixes the editor port; `--security <file>` selects the policy.
+- **associate**: on Windows, associates `.sui` files with the editor under
+  `HKEY_CURRENT_USER` (no administrator rights). `--uninstall` removes the
+  association and `--dry-run` prints the registry commands only. Double-clicking
+  a `.sui` file then opens `simpleui gui <file>`.

@@ -13,6 +13,9 @@ enable the other.
 Start the designer with an existing file with `simpleui gui path/app.sui`: the
 editor opens that source immediately and **Save** writes back to the same path.
 Run `simpleui gui` with no file to start from the last project or a blank one.
+On Windows, `simpleui associate` registers `.sui` files with the editor under
+`HKEY_CURRENT_USER`; `--uninstall` reverses it and `--dry-run` shows the registry
+commands.
 
 ## Quick answer
 

@@ -13,7 +13,9 @@ abilita l'altro.
 Avviare il designer con un file esistente tramite `simpleui gui path/app.sui`:
 l'editor apre subito quel sorgente e **Save** riscrive lo stesso percorso.
 Eseguire `simpleui gui` senza file per partire dall'ultimo progetto o da uno
-vuoto.
+vuoto. Su Windows, `simpleui associate` associa i file `.sui` all'editor sotto
+`HKEY_CURRENT_USER`; `--uninstall` annulla e `--dry-run` mostra i comandi di
+registro.
 
 ## Risposta rapida
 

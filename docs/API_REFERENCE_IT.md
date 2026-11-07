@@ -2051,6 +2051,7 @@ simpleui build examples/counter.sui --target desktop-webview --out dist \
 simpleui serve examples/counter.sui --watch
 simpleui gui
 simpleui gui examples/counter.sui
+simpleui associate
 simpleui lsp
 simpleui mcp
 ```
@@ -2063,5 +2064,6 @@ simpleui mcp
 - **desktop**: genera eseguibile single-file con bridge nativo (exec/fs) + micro-server localhost + apertura browser predefinito. Supporta `--no-open`, `--port N`. Non combinabile con `--single`.
 - **desktop-webview**: genera eseguibile single-file con lo stesso bridge e server localhost, ma apre una finestra WebView nativa invece del browser: WebView2 su Windows, WKWebView su macOS, WebKitGTK su Linux. Supporta `--no-open`, `--port N`. Non combinabile con `--single`. La prima build scarica `github.com/webview/webview_go`; il target richiede CGO e un toolchain C (Xcode Command Line Tools su macOS; su Linux installare i pacchetti di sviluppo GTK 3 e WebKitGTK 4.0).
 - **gui [file.sui]**: apre il designer visuale. Con un file lo carica subito e **Save** riscrive lo stesso percorso. `--port N` fissa la porta dell'editor; `--security <file>` seleziona la policy.
+- **associate**: su Windows associa i file `.sui` all'editor sotto `HKEY_CURRENT_USER` (senza diritti amministratore). `--uninstall` rimuove l'associazione e `--dry-run` stampa solo i comandi di registro. Un doppio clic su un file `.sui` apre `simpleui gui <file>`.
 
 

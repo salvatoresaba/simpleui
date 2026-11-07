@@ -138,6 +138,10 @@ For desktop capabilities:
 # Embedded native window (WebView2 / WKWebView / WebKitGTK)
 ./simpleui.exe build app.sui --target desktop-webview --out dist \
   --allow-dir C:/data --allow-exec helper.exe
+
+# Windows: double-click .sui files in the editor (HKCU, reversible)
+./simpleui.exe associate
+./simpleui.exe associate --uninstall
 ```
 
 ## Task routing
