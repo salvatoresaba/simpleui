@@ -1424,6 +1424,36 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
   margin: 16px 0;
 }
 
+/* Optional hover states for non-interactive controls. */
+.sui-progress:hover { background: var(--sui-progress-hover-track, var(--sui-progress-track, #374151)); filter: var(--sui-progress-hover-filter, none); }
+.sui-progress:hover::-webkit-progress-bar { background: var(--sui-progress-hover-track, var(--sui-progress-track, #374151)); }
+.sui-progress:hover::-webkit-progress-value { background: var(--sui-progress-hover-fill, var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1)))); }
+.sui-progress:hover::-moz-progress-bar { background: var(--sui-progress-hover-fill, var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1)))); }
+.sui-spinner:hover {
+  border-color: var(--sui-spinner-hover-track, var(--sui-spinner-track, #4b5563));
+  border-top-color: var(--sui-spinner-hover-color, var(--sui-spinner-color, #4c5cf7));
+  border-bottom-color: var(--sui-spinner-hover-color2, var(--sui-spinner-color2, transparent));
+  filter: var(--sui-spinner-hover-filter, none);
+}
+.sui-divider:hover {
+  border-top-color: var(--sui-divider-hover-color, var(--sui-divider-color, #3d4556));
+  border-top-width: var(--sui-divider-hover-thickness, var(--sui-divider-thickness, 1px));
+}
+
+/* Media controls follow the project theme like every other control. */
+img, video, audio, iframe {
+  max-width: 100%;
+  background: var(--sui-media-bg, var(--sui-panel, #1d2129));
+  border: var(--sui-media-border-width, 0) var(--sui-media-border-style, solid) var(--sui-media-border, var(--sui-border, #3d4556));
+  border-radius: var(--sui-media-radius, var(--sui-radius, 8px));
+  box-shadow: var(--sui-media-shadow, none);
+  box-sizing: border-box;
+  padding: var(--sui-media-padding, 0px);
+}
+img, video { object-fit: var(--sui-media-fit, cover); }
+iframe { display: block; width: var(--sui-media-width, 100%); }
+audio { width: var(--sui-media-width, 100%); }
+
 .sui-view {
   width: 100%;
   margin: 0 auto;
@@ -1834,6 +1864,7 @@ table[data-sui-editable] ::selection { background: rgba(76,92,247,.22); color: i
   color: var(--sui-tooltip-fg, var(--sui-fg, #e6e6ef));
   box-shadow: var(--sui-ac-shadow, 0 8px 24px rgba(0,0,0,.45));
   font: inherit;
+  letter-spacing: var(--sui-tooltip-tracking, normal);
   font-size: 12px;
   line-height: 1.35;
   text-align: left;

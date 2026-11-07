@@ -358,7 +358,9 @@ Project values are stored as CSS custom properties in a managed
 `/* sui-component-defaults */` block and consumed by a per-component rule block.
 Applying a component from project preferences writes both blocks and refreshes
 the preview. **Tooltips** in the same panel opens the existing global tooltip
-settings; closing it returns to the project list.
+settings; closing it returns to the project list. The tooltip panel follows the
+project theme, so a light theme gets a light bubble and a dark theme a dark one,
+and it also exposes a **Letter spacing** field.
 
 ### Project themes
 
@@ -370,12 +372,24 @@ styles the scrollbars and sets the **page starting point** (`--sui-bg`,
 `--sui-fg`, base border and hover colours). A light theme therefore starts from a
 light body, and a dark theme from a dark body. Base elements follow the same
 variables too: the view surface, headings, links, code blocks, table headers, the
-menu bar and plain buttons switch with the theme. The **Standard** family provides
+menu bar and plain buttons switch with the theme. Tooltips, images, video, audio
+and iframes use the same page palette, and the chart/graph theme presets use the
+same family names. The **Standard** family provides
 **Standard Light** and **Standard Dark**, which keep the default shape of every
 control. Editing one component afterwards changes the Theme combo to **Custom**,
 so it is always clear whether the project still follows a single theme. A new
 project starts on **Standard Dark**; choosing **Standard Light** switches both
 the page and the controls to light defaults.
+
+### Export and import a theme
+
+**Export theme** in the project preferences downloads a `simpleui-theme.json`
+file containing the page palette, every component default, tooltip settings and
+the chart/graph project defaults. **Import theme** loads that file back after a
+strict validation: unknown fields, invalid custom-property names and CSS values
+that could add declarations or rules are rejected. The import replaces the
+current project theme and refreshes the preview; undo restores the previous
+values.
 
 ### Scrollbars
 
@@ -406,11 +420,11 @@ defaults. **Clear overrides** removes those inline values and restores the
 project defaults for that element. Closing the panel returns to the inspector.
 
 Implemented component panels: **Progress bar**, **Badge**, **Alert**, **Spinner**,
-**Card**, **Divider**, **Button**, **Input / Textarea / Select**, **Combobox**,
-**Date / Time picker**, **Checkbox / Radio**, **Switch**, **Slider**, **Tabs**,
-**Accordion**, **Menu**, **Tree**, **Table**, **Toast**, **Modal** and
-**Scrollbars** (global). Chart, Graph and media controls keep their specialised
-inspectors for now.
+**Card**, **Divider**, **Images & media**, **Button**, **Input / Textarea /
+Select**, **Combobox**, **Date / Time picker**, **Checkbox / Radio**, **Switch**,
+**Slider**, **Tabs**, **Accordion**, **Menu**, **Tree**, **Table**, **Toast**,
+**Modal** and **Scrollbars** (global). Chart and Graph keep their specialised
+inspectors.
 
 Each panel shows a live preview above the fields. The preview uses the current
 draft values, not the saved ones, so colours, sizes and states can be checked
@@ -420,6 +434,12 @@ Text-bearing controls expose a **Letter spacing** field. Interactive controls
 have a **Hover** tab with the colours used while the pointer is over them:
 background, text, border, option, row or thumb depending on the component. This
 makes hover feedback part of the same theme instead of an extra CSS edit.
+**Progress bar**, **Spinner** and **Divider** also expose a **Hover** tab, so
+non-interactive controls can still react to the pointer.
+
+The **Images & media** panel themes the image, video, audio and iframe elements:
+background, border, radius, shadow, object fit and padding. It participates in
+project themes and in per-element overrides like the other component panels.
 
 ### Style presets and animations
 
@@ -427,7 +447,7 @@ Every component panel starts with a **Style** selector. **Custom** is the raw
 default, and each named preset applies a coordinated set of colours, shapes and
 effects in one step. Presets are optional: they never run unless selected, and
 editing any field switches the selector to **Custom** so fine-tuning stays
-explicit. Every shared family exists in **Light** and **Dark** versions, for 22
+explicit. Every shared family exists in **Light** and **Dark** versions, for 24
 shared variants in total. The Style selector lists them under **Shared styles**;
 the project Theme combo selects the same variants for all components at once.
 
@@ -438,7 +458,7 @@ shared style also chooses a recommended background automatically (light for
 Sketch and Brutalist, dark for the others); the buttons still let you inspect
 the other one.
 
-The presets cover all twenty component panels, for example **Neon glow** and
+The presets cover all twenty-one component panels, for example **Neon glow** and
 **Barber pole** for Progress, **Dual ring**, **Gradient ring** and **Coin flip**
 for Spinner, **Glass** for Card and Toast, **Pill** for Button and Input, and
 **Striped**, **Borderless** and **Rounded** for Table. Several presets include a
@@ -1047,7 +1067,7 @@ The dedicated **Chart** inspector exposes:
 | initial zoom | starting zoom for zoom mode (0.5-4; Gantt timeline 0.5-24) |
 | overflow | Scrollbars, Zoom controls or Fit to frame |
 | show grid / show legend / show values | chart presentation toggles |
-| preset | 14 color presets that write CSS variables into `style expr` |
+| preset | 14 classic color presets plus one preset for every theme family (Light/Dark) that write CSS variables into `style expr` |
 
 The **Chart** inspector is type-aware: irrelevant fields are hidden when the
 selected type cannot use them.
@@ -1459,11 +1479,15 @@ the drawing and exposes scrollbars. **Fit to frame** keeps the drawing inside
 the frame without controls.
 
 The **preset** menu writes `--sui-chart-*` variables into the element's
-**style expr** field under **Appearance**. Presets: **Default**, **Ocean**,
-**Forest**, **Sunset**, **Neon**, **Mono**, **Pastel**, **High contrast**,
-**Amber**, **Candy**, **Slate**, **Light**, **Outline** and **Minimal**. Choosing **Custom**
-leaves the current expression untouched; edit it directly for series colors,
-grid/axis colors, spacing, line width and scrollbar colors.
+**style expr** field under **Appearance**. **Classic** presets are **Default**,
+**Ocean**, **Forest**, **Sunset**, **Neon**, **Mono**, **Pastel**,
+**High contrast**, **Amber**, **Candy**, **Slate**, **Light**, **Outline** and
+**Minimal**. **Theme presets** add one coordinated chart palette for every
+shared style family, in both **Light** and **Dark** variants (Standard, Sketch,
+Wireframe, Terminal, Glassmorphism, Brutalist, Blueprint, Neumorphic, High
+contrast, Editorial, Cyberpunk and Geometric). Choosing **Custom** leaves the
+current expression untouched; edit it directly for series colors, grid/axis
+colors, spacing, line width and scrollbar colors.
 
 A data-expression chart is reactive: changing the bound state re-renders the
 chart. Malformed data or an empty payload shows a text error inside the chart,

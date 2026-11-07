@@ -409,6 +409,77 @@ func TestGuiProjectThemeBodies(t *testing.T) {
 	}
 }
 
+func TestGuiThemeTooltipsHoverAndMedia(t *testing.T) {
+	for _, want := range []string{
+		`function tooltipThemeVars(v)`,
+		`function applyTooltipTheme(v)`,
+		`applyTooltipTheme(v);`,
+		`--sui-tooltip-tracking`,
+		`id="tt-tracking"`,
+		`progress: [`,
+		`--sui-progress-hover-track`,
+		`--sui-progress-hover-filter`,
+		`spinner: [`,
+		`--sui-spinner-hover-track`,
+		`--sui-spinner-hover-filter`,
+		`divider: [`,
+		`--sui-divider-hover-color`,
+		`--sui-divider-hover-thickness`,
+		`.sui-progress:hover`,
+		`.sui-spinner:hover`,
+		`.sui-divider:hover`,
+		`{ id: "media", label: "Images & media"`,
+		`"--sui-media-bg"`,
+		`"--sui-media-radius"`,
+		`"--sui-media-fit"`,
+		`img, video, audio, iframe {`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("theme tooltip/hover/media support missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`.sui-progress:hover::-webkit-progress-value`,
+		`.sui-spinner:hover`,
+		`.sui-divider:hover`,
+		`img, video, audio, iframe {`,
+		`letter-spacing: var(--sui-tooltip-tracking, normal);`,
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("base CSS theme support missing %q", want)
+		}
+	}
+}
+
+func TestGuiChartThemePresetsAndThemeIO(t *testing.T) {
+	for _, want := range []string{
+		`function chartThemePresetForVariant(v)`,
+		`CHART_STYLE_PRESETS.push(chartThemePresetForVariant(v));`,
+		`function appendChartPresetOptions(sel, current)`,
+		`function syncChartSettingsPresetFields(key)`,
+		`preset.onchange = function(){ syncChartSettingsPresetFields(preset.value); };`,
+		`og2.label = "Theme presets"`,
+		`--sui-chart-series-`,
+		`function buildProjectThemePayload()`,
+		`function normalizeThemePayload(raw)`,
+		`function applyImportedThemeObject(raw)`,
+		`function exportProjectTheme()`,
+		`function requestProjectThemeImport()`,
+		`function handleProjectThemeFile(input)`,
+		`onclick="exportProjectTheme()"`,
+		`onclick="requestProjectThemeImport()"`,
+		`id="projprefs-theme-file"`,
+		`simpleui-theme`,
+		`function validThemeCssValue(v)`,
+		`CHART_PROJECT_DEFAULT_KEYS.forEach`,
+		`chartTableCssWithoutVars(chartTooltipCssWithoutVars(base).join("; "))`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("chart theme/export/import support missing %q", want)
+		}
+	}
+}
+
 func TestGuiChartProjectDefaults(t *testing.T) {
 	for _, want := range []string{
 		`id="csettings-scope"`,

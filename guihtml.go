@@ -1250,6 +1250,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <div id="projprefs-theme-row">
       <label for="projprefs-theme">Theme</label>
       <select id="projprefs-theme" onchange="applyProjectTheme(this.value)"></select>
+      <span style="flex:1"></span>
+      <button class="btn" type="button" onclick="exportProjectTheme()">Export theme</button>
+      <button class="btn" type="button" onclick="requestProjectThemeImport()">Import theme</button>
+      <input type="file" id="projprefs-theme-file" accept=".json,application/json" style="display:none" onchange="handleProjectThemeFile(this)">
     </div>
     <div class="pref-tabs" id="projprefs-tabs" role="tablist"></div>
     <div class="pref-body"><div id="projprefs-list"></div></div>
@@ -1300,6 +1304,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <div class="pfrow"><label>Border color</label><input type="color" id="tt-border" value="#3a4152"></div>
     <div class="pfrow"><label>Radius</label><input type="text" id="tt-radius" value="6px" placeholder="6px"></div>
     <div class="pfrow"><label>Max width</label><input type="text" id="tt-maxwidth" value="260px" placeholder="260px"></div>
+    <div class="pfrow"><label>Letter spacing</label><input type="text" id="tt-tracking" value="0px" placeholder="0px"></div>
     <div class="pfbtns">
       <button class="btn" onclick="closeTooltipCfg()">Cancel</button>
       <button class="btn" onclick="applyTooltipCfg()">Apply</button>
@@ -4901,6 +4906,70 @@ function chartPresetCss(key) {
   for (var i = 0; i < CHART_STYLE_PRESETS.length; i++) if (CHART_STYLE_PRESETS[i].key === key) return CHART_STYLE_PRESETS[i].css;
   return CHART_STYLE_PRESETS[0].css;
 }
+function hexToHsl(hex) {
+  var s = String(hex || "").trim().replace("#", "");
+  if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+  if (!/^[0-9a-f]{6}$/i.test(s)) return null;
+  var r = parseInt(s.slice(0, 2), 16) / 255, g = parseInt(s.slice(2, 4), 16) / 255, b = parseInt(s.slice(4, 6), 16) / 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  var h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+  }
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
+  var l = (max + min) / 2;
+  var sat = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+  return { h: h, s: Math.round(sat * 100), l: Math.round(l * 100) };
+}
+function hslToHex(h, s, l) {
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+  var c = (1 - Math.abs(2 * l - 1)) * s;
+  var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  var m = l - c / 2;
+  var r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else { r = c; b = x; }
+  function part(v) { var n = Math.round((v + m) * 255); return (n < 16 ? "0" : "") + n.toString(16); }
+  return "#" + part(r) + part(g) + part(b);
+}
+function chartThemeSeriesColors(accent, mode) {
+  var base = hexToHsl(accent) || { h: 232, s: 82, l: 63 };
+  var out = [];
+  for (var i = 0; i < 8; i++) {
+    var h = (base.h + i * 45) % 360;
+    var s = mode === "light" ? Math.max(46, Math.min(78, base.s)) : Math.max(56, Math.min(88, base.s));
+    var l = mode === "light" ? 40 : 64;
+    out.push(hslToHex(h, s, l));
+  }
+  return out;
+}
+function chartThemePresetForVariant(v) {
+  var page = (v && (v.page || (v.vars && v.vars.page))) || {};
+  var accent = page["--sui-accent"] || "#4c5cf7";
+  var fg = page["--sui-fg"] || (v.mode === "light" ? "#0f172a" : "#e6e6ef");
+  var bg = page["--sui-panel"] || page["--sui-bg"] || "transparent";
+  var panel2 = page["--sui-panel2"] || bg;
+  var muted = page["--sui-muted"] || fg;
+  var grid = page["--sui-border"] || "transparent";
+  var axis = page["--sui-border2"] || grid;
+  var series = chartThemeSeriesColors(accent, v.mode);
+  return {
+    key: "theme-" + v.id,
+    label: v.label,
+    group: "theme",
+    css: "--sui-chart-bg: " + bg + "; --sui-chart-fg: " + fg + "; --sui-chart-title-color: " + fg + "; --sui-chart-muted: " + muted + "; --sui-chart-grid: " + grid + "; --sui-chart-axis: " + axis + "; " +
+      series.map(function(c, i){ return "--sui-chart-series-" + (i + 1) + ": " + c + ";"; }).join(" ") +
+      " --sui-chart-control-bg: " + bg + "; --sui-chart-control-fg: " + fg + "; --sui-chart-control-border: " + grid + "; --sui-chart-control-hover-bg: " + (page["--sui-hover"] || panel2) + "; --sui-chart-control-hover-fg: " + fg + "; --sui-chart-control-hover-border: " + axis + "; --sui-chart-table-head-bg: " + panel2 + "; --sui-chart-table-head-fg: " + fg + "; --sui-chart-table-row-bg: " + bg + "; --sui-chart-table-row-border: " + grid + "; --sui-chart-table-font-size: 11px; --sui-chart-table-cell-padding: 4px 6px; --sui-chart-table-stripe-opacity: 0.06; --sui-chart-table-caption-display: block; --sui-chart-table-header-position: sticky; --sui-chart-tooltip-bg: " + bg + "; --sui-chart-tooltip-fg: " + fg + "; --sui-chart-tooltip-border: " + axis + "; --sui-chart-tooltip-radius: " + (page["--sui-radius"] || "6px") + "; --sui-chart-tooltip-max-width: 240px; --sui-chart-tooltip-font-size: 11px; --sui-chart-tooltip-delay: 0ms; --sui-chart-scroll-track: " + panel2 + "; --sui-chart-scroll-thumb: " + axis + "; --sui-chart-border: 1px solid " + grid + "; --sui-chart-radius: " + (page["--sui-radius"] || "8px") + "; --sui-chart-padding: 8px;"
+  };
+}
 function chartPresetStyleExpr(key) {
   var css = chartPresetCss(key);
   return "cssSafe(" + JSON.stringify(css) + ")";
@@ -4911,6 +4980,58 @@ function chartPresetKey(n) {
     if (cur === chartPresetStyleExpr(CHART_STYLE_PRESETS[i].key)) return CHART_STYLE_PRESETS[i].key;
   }
   return "custom";
+}
+function appendChartPresetOptions(sel, current) {
+  var classic = [], themes = [];
+  CHART_STYLE_PRESETS.forEach(function(p){ if (p.group === "theme") themes.push(p); else classic.push(p); });
+  if (classic.length) {
+    var og1 = document.createElement("optgroup"); og1.label = "Classic";
+    classic.forEach(function(p){ var o = document.createElement("option"); o.value = p.key; o.textContent = p.label; og1.appendChild(o); });
+    sel.appendChild(og1);
+  }
+  if (themes.length) {
+    var og2 = document.createElement("optgroup"); og2.label = "Theme presets";
+    themes.forEach(function(p){ var o = document.createElement("option"); o.value = p.key; o.textContent = p.label; og2.appendChild(o); });
+    sel.appendChild(og2);
+  }
+  var custom = document.createElement("option");
+  custom.value = "custom"; custom.textContent = "Custom (keep style expr)";
+  sel.appendChild(custom);
+  sel.value = current || "custom";
+}
+function syncChartSettingsPresetFields(key) {
+  if (!key || key === "custom") return;
+  var tmp = { styleExpr: "cssSafe(" + JSON.stringify(chartPresetCss(key)) + ")" };
+  var themeSel = document.getElementById("cs-theme");
+  if (themeSel) {
+    if (/-light$/.test(key)) themeSel.value = "light";
+    else if (/-dark$/.test(key)) themeSel.value = "dark";
+  }
+  function setColor(id, name, fallback) {
+    var el = document.getElementById(id);
+    if (el) el.value = chartTooltipColor(tmp, name, fallback);
+  }
+  function setLen(id, name, fallback) {
+    var el = document.getElementById(id);
+    if (el) el.value = chartTooltipLength(tmp, name, fallback);
+  }
+  setColor("cs-tt-bg", "--sui-chart-tooltip-bg", "#111827");
+  setColor("cs-tt-fg", "--sui-chart-tooltip-fg", "#f8fafc");
+  setColor("cs-tt-border", "--sui-chart-tooltip-border", "#475569");
+  setLen("cs-tt-radius", "--sui-chart-tooltip-radius", "6px");
+  setLen("cs-tt-maxwidth", "--sui-chart-tooltip-max-width", "240px");
+  setLen("cs-tt-fontsize", "--sui-chart-tooltip-font-size", "11px");
+  setColor("cs-tb-headbg", "--sui-chart-table-head-bg", "#14171c");
+  var fs = document.getElementById("cs-tb-fontsize");
+  if (fs) fs.value = chartTableCssValue(tmp, "--sui-chart-table-font-size", "11px");
+  var pad = document.getElementById("cs-tb-padding");
+  if (pad) pad.value = chartTableCssValue(tmp, "--sui-chart-table-cell-padding", "4px 6px");
+  var stripe = document.getElementById("cs-tb-stripe");
+  if (stripe) stripe.value = chartTableCssValue(tmp, "--sui-chart-table-stripe-opacity", "0.06");
+  var caption = document.getElementById("cs-tb-caption");
+  if (caption) caption.checked = chartTableCssValue(tmp, "--sui-chart-table-caption-display", "block") !== "none";
+  var sticky = document.getElementById("cs-tb-sticky");
+  if (sticky) sticky.checked = chartTableCssValue(tmp, "--sui-chart-table-header-position", "sticky") !== "static";
 }
 var GRAPH_STYLE_FIELDS = [
   { id: "gs-head-bg", name: "--sui-chart-head-bg", transparent: "gs-head-transparent" },
@@ -6028,15 +6149,7 @@ function graphControls(n) {
   styleLabel.textContent = "Styles";
   b.appendChild(styleLabel);
   var styleSel = document.createElement("select");
-  CHART_STYLE_PRESETS.forEach(function(p){
-    var o = document.createElement("option"); o.value = p.key; o.textContent = p.label;
-    if (chartPresetKey(n) === p.key) o.selected = true;
-    styleSel.appendChild(o);
-  });
-  var customOpt = document.createElement("option");
-  customOpt.value = "custom"; customOpt.textContent = "Custom (edit style expr)";
-  if (chartPresetKey(n) === "custom") customOpt.selected = true;
-  styleSel.appendChild(customOpt);
+  appendChartPresetOptions(styleSel, chartPresetKey(n));
   styleSel.onchange = function(){
     if (styleSel.value === "custom") { styleSel.value = chartPresetKey(n); return; }
     snap("graph style preset");
@@ -6254,15 +6367,7 @@ function chartControls(n) {
   presetLabel.textContent = "Style presets";
   b.appendChild(presetLabel);
   var styleSel = document.createElement("select");
-  CHART_STYLE_PRESETS.forEach(function(p){
-    var o = document.createElement("option"); o.value = p.key; o.textContent = p.label;
-    if (chartPresetKey(n) === p.key) o.selected = true;
-    styleSel.appendChild(o);
-  });
-  var customOpt = document.createElement("option");
-  customOpt.value = "custom"; customOpt.textContent = "Custom (edit style expr)";
-  if (chartPresetKey(n) === "custom") customOpt.selected = true;
-  styleSel.appendChild(customOpt);
+  appendChartPresetOptions(styleSel, chartPresetKey(n));
   styleSel.onchange = function(){
     if (styleSel.value === "custom") { styleSel.value = chartPresetKey(n); return; }
     snap("chart style preset");
@@ -11846,11 +11951,8 @@ function openChartSettings(n, projectKind) {
   document.getElementById("cs-colorpicker").checked = n.chartColorPicker !== false;
   var preset = document.getElementById("cs-preset");
   preset.innerHTML = "";
-  CHART_STYLE_PRESETS.forEach(function(p) {
-    var o = document.createElement("option"); o.value = p.key; o.textContent = p.label; preset.appendChild(o);
-  });
-  var custom = document.createElement("option"); custom.value = "custom"; custom.textContent = "Custom (keep style expr)"; preset.appendChild(custom);
-  preset.value = chartPresetKey(n);
+  appendChartPresetOptions(preset, chartPresetKey(n));
+  preset.onchange = function(){ syncChartSettingsPresetFields(preset.value); };
   var tv = document.getElementById("cs-tableview");
   tv.innerHTML = "";
   var gantt = (n.chartType || "bar") === "gantt";
@@ -11927,7 +12029,7 @@ function openDataFromChartSettings() {
   openChartDataEditor(n);
 }
 function chartSettingsStyleCss(n, base) {
-  var parts = chartTableCssWithoutVars(chartTooltipCssWithoutVars(base));
+  var parts = chartTableCssWithoutVars(chartTooltipCssWithoutVars(base).join("; "));
   var ttBg = document.getElementById("cs-tt-bg").value || "#111827";
   var ttFg = document.getElementById("cs-tt-fg").value || "#f8fafc";
   var ttBorder = document.getElementById("cs-tt-border").value || "#475569";
@@ -12043,7 +12145,7 @@ function resetChartSettings() {
     alert("This chart uses a custom style expression. Edit it manually in Appearance.");
     return;
   }
-  var parts = chartTableCssWithoutVars(chartTooltipCssWithoutVars(css));
+  var parts = chartTableCssWithoutVars(chartTooltipCssWithoutVars(css).join("; "));
   snap("reset chart styles");
   n.styleExpr = parts.length ? "cssSafe(" + JSON.stringify(parts.join("; ")) + ")" : "";
   closeChartSettings();
@@ -12267,6 +12369,10 @@ var COMPONENT_DEFS = [
       ".sui-progress::-webkit-progress-bar { background: var(--sui-progress-track, #374151); }\n" +
       ".sui-progress::-webkit-progress-value { background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))); background-size: var(--sui-progress-fill-size, auto); border-radius: var(--sui-progress-radius, 999px); animation: var(--sui-progress-animation, none); }\n" +
       ".sui-progress::-moz-progress-bar { background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #4c5cf7), var(--sui-progress-value-end, #6366f1))); background-size: var(--sui-progress-fill-size, auto); border-radius: var(--sui-progress-radius, 999px); animation: var(--sui-progress-animation, none); }\n" +
+      ".sui-progress:hover { background: var(--sui-progress-hover-track, var(--sui-progress-track, #374151)); filter: var(--sui-progress-hover-filter, none); }\n" +
+      ".sui-progress:hover::-webkit-progress-bar { background: var(--sui-progress-hover-track, var(--sui-progress-track, #374151)); }\n" +
+      ".sui-progress:hover::-webkit-progress-value { background: var(--sui-progress-hover-fill, linear-gradient(90deg, var(--sui-progress-hover-value, var(--sui-progress-value, #4c5cf7)), var(--sui-progress-hover-value-end, var(--sui-progress-value-end, #6366f1)))); }\n" +
+      ".sui-progress:hover::-moz-progress-bar { background: var(--sui-progress-hover-fill, linear-gradient(90deg, var(--sui-progress-hover-value, var(--sui-progress-value, #4c5cf7)), var(--sui-progress-hover-value-end, var(--sui-progress-value-end, #6366f1)))); }\n" +
       "@keyframes sui-progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .62; } }\n" +
       "@keyframes sui-progress-stripes { to { background-position: 40px 0; } }\n" +
       "@keyframes sui-progress-shimmer { from { background-position: 220% 0; } to { background-position: -220% 0; } }\n" +
@@ -12458,7 +12564,7 @@ var COMPONENT_DEFS = [
         "--sui-spinner-animation": "sui-spin", "--sui-spinner-speed": "1s", "--sui-spinner-easing": "linear",
         "--sui-spinner-play": "running", "--sui-spinner-shadow": "0 0 14px rgba(56,189,248,.35)" } }
     ],
-    css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) var(--sui-spinner-border-style, solid) var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-bottom-color: var(--sui-spinner-color2, transparent); background: var(--sui-spinner-bg, transparent); border-radius: var(--sui-spinner-radius, 50%); box-shadow: var(--sui-spinner-shadow, none); mask: var(--sui-spinner-mask, none); -webkit-mask: var(--sui-spinner-mask, none); animation-name: var(--sui-spinner-animation, sui-spin); animation-duration: var(--sui-spinner-speed, .8s); animation-timing-function: var(--sui-spinner-easing, linear); animation-iteration-count: infinite; animation-play-state: var(--sui-spinner-play, running); }\n@keyframes sui-spinner-pulse { 0%, 100% { transform: scale(.68); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }\n@keyframes sui-spinner-flip { to { transform: rotateY(360deg); } }"
+    css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) var(--sui-spinner-border-style, solid) var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-bottom-color: var(--sui-spinner-color2, transparent); background: var(--sui-spinner-bg, transparent); border-radius: var(--sui-spinner-radius, 50%); box-shadow: var(--sui-spinner-shadow, none); mask: var(--sui-spinner-mask, none); -webkit-mask: var(--sui-spinner-mask, none); animation-name: var(--sui-spinner-animation, sui-spin); animation-duration: var(--sui-spinner-speed, .8s); animation-timing-function: var(--sui-spinner-easing, linear); animation-iteration-count: infinite; animation-play-state: var(--sui-spinner-play, running); }\n.sui-spinner:hover { border-color: var(--sui-spinner-hover-track, var(--sui-spinner-track, #4b5563)); border-top-color: var(--sui-spinner-hover-color, var(--sui-spinner-color, #4c5cf7)); border-bottom-color: var(--sui-spinner-hover-color2, var(--sui-spinner-color2, transparent)); filter: var(--sui-spinner-hover-filter, none); }\n@keyframes sui-spinner-pulse { 0%, 100% { transform: scale(.68); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }\n@keyframes sui-spinner-flip { to { transform: rotateY(360deg); } }"
   },
   { id: "card", label: "Card", group: "Layout", kinds: ["card"],
     categories: [
@@ -12538,7 +12644,40 @@ var COMPONENT_DEFS = [
         "--sui-divider-thickness": "1px", "--sui-divider-style": "dashed",
         "--sui-divider-margin": "12px 0", "--sui-divider-color": SUI_WIRE.line } }
     ],
-    css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) var(--sui-divider-style, solid) var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }"
+    css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) var(--sui-divider-style, solid) var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }\n.sui-divider:hover { border-top-color: var(--sui-divider-hover-color, var(--sui-divider-color, #3d4556)); border-top-width: var(--sui-divider-hover-thickness, var(--sui-divider-thickness, 1px)); }"
+  },
+  { id: "media", label: "Images & media", group: "Layout", kinds: ["img", "video", "audio", "iframe"],
+    categories: [
+      { name: "Colors", fields: [
+        { key: "--sui-media-bg", label: "Background", type: "color", def: "#1d2129" },
+        { key: "--sui-media-border", label: "Border", type: "color", def: "#3d4556" }
+      ]},
+      { name: "Shape", fields: [
+        { key: "--sui-media-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 12, step: 1, unit: "px" },
+        { key: "--sui-media-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },
+        { key: "--sui-media-radius", label: "Radius", type: "number", def: 8, min: 0, max: 60, step: 1, unit: "px" },
+        { key: "--sui-media-shadow", label: "Shadow", type: "select", def: "none", opts: [
+          ["None", "none"], ["Soft", "0 2px 8px rgba(0,0,0,.28)"],
+          ["Strong", "0 6px 18px rgba(0,0,0,.45)"], ["Sketch", SUI_SKETCH.shadow],
+          ["Wireframe", SUI_WIRE.shadowSoft]
+        ] }
+      ]},
+      { name: "Fit", fields: [
+        { key: "--sui-media-fit", label: "Object fit", type: "select", def: "cover", opts: [["Cover", "cover"], ["Contain", "contain"], ["Fill", "fill"], ["None", "none"], ["Scale down", "scale-down"]] },
+        { key: "--sui-media-padding", label: "Padding", type: "text", def: "0px" }
+      ]}
+    ],
+    presets: [
+      { id: "plain", label: "Plain", desc: "No frame: the media blends with the page.", vars: {} },
+      { id: "framed", label: "Framed", desc: "Thin border and medium radius.", vars: {
+        "--sui-media-border-width": "1px", "--sui-media-radius": "8px" } },
+      { id: "rounded", label: "Rounded", desc: "Soft card-like corners.", vars: {
+        "--sui-media-border-width": "1px", "--sui-media-radius": "16px", "--sui-media-bg": "#10131a" } },
+      { id: "shadow", label: "Shadow", desc: "Floating media with a soft shadow.", vars: {
+        "--sui-media-border-width": "0px", "--sui-media-radius": "12px",
+        "--sui-media-shadow": "0 6px 18px rgba(0,0,0,.45)" } }
+    ],
+    css: "img, video, audio, iframe { max-width: 100%; background: var(--sui-media-bg, var(--sui-panel, #1d2129)); border: var(--sui-media-border-width, 0) var(--sui-media-border-style, solid) var(--sui-media-border, var(--sui-border, #3d4556)); border-radius: var(--sui-media-radius, var(--sui-radius, 8px)); box-shadow: var(--sui-media-shadow, none); box-sizing: border-box; padding: var(--sui-media-padding, 0px); }\nimg, video { object-fit: var(--sui-media-fit, cover); }\niframe { display: block; width: var(--sui-media-width, 100%); }\naudio { width: var(--sui-media-width, 100%); }"
   },
   { id: "form", label: "Input / Textarea / Select", group: "Form", kinds: ["input", "textarea", "select"],
     categories: [
@@ -13368,7 +13507,11 @@ function sharedStyleVars(p, overrides) {
       "--sui-progress-animation": progressAnimation,
       "--sui-progress-border-width": borderWidth,
       "--sui-progress-border": border,
-      "--sui-progress-shadow": shadowSoft
+      "--sui-progress-shadow": shadowSoft,
+      "--sui-progress-hover-track": p.progressHoverTrack || hover,
+      "--sui-progress-hover-value": p.progressHoverValue || accent2,
+      "--sui-progress-hover-value-end": p.progressHoverValueEnd || accent,
+      "--sui-progress-hover-filter": p.progressHoverFilter || "none"
     },
     badge: {
       "--sui-badge-bg": badgeBg,
@@ -13418,7 +13561,11 @@ function sharedStyleVars(p, overrides) {
       "--sui-spinner-speed": p.spinnerSpeed || "1s",
       "--sui-spinner-easing": spinnerEasing,
       "--sui-spinner-play": "running",
-      "--sui-spinner-shadow": spinnerShadow
+      "--sui-spinner-shadow": spinnerShadow,
+      "--sui-spinner-hover-track": p.spinnerHoverTrack || track,
+      "--sui-spinner-hover-color": p.spinnerHoverColor || accent2,
+      "--sui-spinner-hover-color2": p.spinnerHoverColor2 || accent,
+      "--sui-spinner-hover-filter": p.spinnerHoverFilter || "none"
     },
     card: {
       "--sui-card-bg": bg,
@@ -13440,7 +13587,19 @@ function sharedStyleVars(p, overrides) {
       "--sui-divider-thickness": p.dividerThickness || "1px",
       "--sui-divider-style": p.dividerStyle || borderStyle,
       "--sui-divider-margin": "12px 0",
-      "--sui-divider-color": border
+      "--sui-divider-color": border,
+      "--sui-divider-hover-color": p.dividerHoverColor || accent,
+      "--sui-divider-hover-thickness": p.dividerHoverThickness || p.dividerThickness || "1px"
+    },
+    media: {
+      "--sui-media-bg": p.mediaBg || panel,
+      "--sui-media-border": p.mediaBorder || border,
+      "--sui-media-border-width": p.mediaBorderWidth || "0px",
+      "--sui-media-border-style": borderStyle,
+      "--sui-media-radius": p.mediaRadius || radius,
+      "--sui-media-shadow": p.mediaShadow || "none",
+      "--sui-media-fit": p.mediaFit || "cover",
+      "--sui-media-padding": p.mediaPadding || "0px"
     },
     form: {
       "--sui-field-bg": inputBg,
@@ -14159,6 +14318,9 @@ SHARED_STYLE_EXTRAS.forEach(function(style){
 });
 STYLE_VARIANT_DEFS.push({ id: "standard-light", label: "Standard Light", mode: "light", desc: "Default component shapes on a light page.", projectOnly: true, vars: STANDARD_LIGHT_VARS });
 STYLE_VARIANT_DEFS.push({ id: "standard-dark", label: "Standard Dark", mode: "dark", desc: "Default component shapes on a dark page.", projectOnly: true, vars: { page: STANDARD_DARK_PAGE } });
+STYLE_VARIANT_DEFS.forEach(function(v){
+  CHART_STYLE_PRESETS.push(chartThemePresetForVariant(v));
+});
 var SHARED_STYLE_IDS = {}, SHARED_STYLE_THEMES = {};
 STYLE_VARIANT_DEFS.forEach(function(v){ SHARED_STYLE_IDS[v.id] = 1; SHARED_STYLE_THEMES[v.id] = v.mode; });
 COMPONENT_DEFS.forEach(function(def){
@@ -14231,6 +14393,28 @@ var HOVER_FIELDS = {
   ],
   menu: [
     { key: "--sui-menu-hover-fg", label: "Hover text", type: "color", def: "#e6e6ef" }
+  ],
+  progress: [
+    { key: "--sui-progress-hover-track", label: "Hover track", type: "color", def: "#435067" },
+    { key: "--sui-progress-hover-fill", label: "Hover fill", type: "color", def: "#6366f1" },
+    { key: "--sui-progress-hover-filter", label: "Hover effect", type: "select", def: "none", opts: [
+      ["None", "none"], ["Brighten", "brightness(1.18)"],
+      ["Glow", "brightness(1.2) saturate(1.15)"],
+      ["Drop shadow", "drop-shadow(0 0 6px rgba(76,92,247,.55))"]
+    ] }
+  ],
+  spinner: [
+    { key: "--sui-spinner-hover-track", label: "Hover track", type: "color", def: "#4b5563" },
+    { key: "--sui-spinner-hover-color", label: "Hover active", type: "color", def: "#6366f1" },
+    { key: "--sui-spinner-hover-color2", label: "Hover active end", type: "color", def: "transparent" },
+    { key: "--sui-spinner-hover-filter", label: "Hover effect", type: "select", def: "none", opts: [
+      ["None", "none"], ["Brighten", "brightness(1.18)"],
+      ["Glow", "drop-shadow(0 0 7px rgba(76,92,247,.6))"]
+    ] }
+  ],
+  divider: [
+    { key: "--sui-divider-hover-color", label: "Hover color", type: "color", def: "#4c5cf7" },
+    { key: "--sui-divider-hover-thickness", label: "Hover thickness", type: "number", def: 2, min: 1, max: 12, step: 1, unit: "px" }
   ]
 };
 COMPONENT_DEFS.forEach(function(def){
@@ -14710,6 +14894,46 @@ function themeVariantById(id) {
   for (var i = 0; i < STYLE_VARIANT_DEFS.length; i++) if (STYLE_VARIANT_DEFS[i].id === id) return STYLE_VARIANT_DEFS[i];
   return null;
 }
+function tooltipThemeVars(v) {
+  var page = (v && (v.page || (v.vars && v.vars.page))) || {};
+  return {
+    "--sui-tooltip-bg": page["--sui-panel"] || "#1d2129",
+    "--sui-tooltip-fg": page["--sui-fg"] || "#e6e6ef",
+    "--sui-tooltip-border": page["--sui-border2"] || page["--sui-border"] || "#3a4152"
+  };
+}
+function writeTooltipSettings(vals) {
+  var place = vals.place;
+  if (["top", "right", "bottom", "left"].indexOf(place) < 0) place = "top";
+  var delay = parseInt(vals.delay, 10);
+  if (isNaN(delay) || delay < 0) delay = 140;
+  if (delay > 5000) delay = 5000;
+  var clean = String(root.css || "").replace(/\/\* sui-tooltip-settings \*\/\s*:root\s*\{[^}]*\}\s*/g, "").trim();
+  var block = "/* sui-tooltip-settings */\n:root {\n" +
+    "  --sui-tooltip-place: " + place + ";\n" +
+    "  --sui-tooltip-delay: " + delay + "ms;\n" +
+    "  --sui-tooltip-bg: " + vals.bg + ";\n" +
+    "  --sui-tooltip-fg: " + vals.fg + ";\n" +
+    "  --sui-tooltip-border: " + vals.border + ";\n" +
+    "  --sui-tooltip-radius: " + vals.radius + ";\n" +
+    "  --sui-tooltip-max-width: " + vals.maxWidth + ";\n" +
+    "  --sui-tooltip-tracking: " + vals.tracking + ";\n" +
+    "}";
+  root.css = block + (clean ? "\n" + clean : "");
+}
+function applyTooltipTheme(v) {
+  var want = tooltipThemeVars(v);
+  writeTooltipSettings({
+    place: tooltipCssValue("--sui-tooltip-place", "top"),
+    delay: tooltipCssValue("--sui-tooltip-delay", "140"),
+    bg: want["--sui-tooltip-bg"],
+    fg: want["--sui-tooltip-fg"],
+    border: want["--sui-tooltip-border"],
+    radius: tooltipCssValue("--sui-tooltip-radius", "6px"),
+    maxWidth: tooltipCssValue("--sui-tooltip-max-width", "260px"),
+    tracking: tooltipCssValue("--sui-tooltip-tracking", "normal")
+  });
+}
 function projectThemeMatch() {
   var vars = readComponentVars();
   for (var i = 0; i < STYLE_VARIANT_DEFS.length; i++) {
@@ -14732,6 +14956,12 @@ function projectThemeMatch() {
         var pa = vars[pk];
         if (String(pe === undefined ? "" : pe) !== String(pa === undefined ? "" : pa)) { ok = false; break; }
       }
+      var tt = tooltipThemeVars(v);
+      Object.keys(tt).forEach(function(k){
+        if (!ok) return;
+        var actual = tooltipCssValue(k, "");
+        if (actual && actual !== tt[k]) ok = false;
+      });
     }
     if (ok) return v.id;
   }
@@ -14757,11 +14987,157 @@ function applyProjectTheme(id) {
     Object.keys(map).forEach(function(k){ vars[k] = map[k]; });
   });
   writeComponentVars(vars);
+  applyTooltipTheme(v);
   COMPONENT_DEFS.forEach(function(def){ ensureComponentRules(def); });
   setOut(); autoPreview(); scheduleCssSync();
   setComponentPreviewTheme(v.mode);
   renderProjectPreferences();
   setStatus("theme " + v.label);
+}
+function projectThemeTooltipValues() {
+  return {
+    place: tooltipCssValue("--sui-tooltip-place", "top"),
+    delay: parseInt(tooltipCssValue("--sui-tooltip-delay", "140"), 10) || 140,
+    bg: tooltipCssValue("--sui-tooltip-bg", "#1d2129"),
+    fg: tooltipCssValue("--sui-tooltip-fg", "#e6e6ef"),
+    border: tooltipCssValue("--sui-tooltip-border", "#3a4152"),
+    radius: tooltipCssValue("--sui-tooltip-radius", "6px"),
+    maxWidth: tooltipCssValue("--sui-tooltip-max-width", "260px"),
+    tracking: tooltipCssValue("--sui-tooltip-tracking", "normal")
+  };
+}
+function buildProjectThemePayload() {
+  var vars = readComponentVars();
+  var page = {}, components = {};
+  PAGE_KEYS.forEach(function(k){ if (vars[k] !== undefined) page[k] = vars[k]; });
+  Object.keys(vars).forEach(function(k){ if (PAGE_KEYS.indexOf(k) < 0) components[k] = vars[k]; });
+  return {
+    format: "simpleui-theme",
+    version: 1,
+    name: "SimpleUI project theme",
+    page: page,
+    components: components,
+    tooltip: projectThemeTooltipValues(),
+    charts: readChartProjectDefaults()
+  };
+}
+function validThemeCssValue(v) {
+  if (typeof v !== "string") return false;
+  if (v.length < 1 || v.length > 800) return false;
+  if (/[{};<>\r\n\\]/.test(v)) return false;
+  if (/(javascript:|expression\s*\(|@import|url\s*\()/i.test(v)) return false;
+  return true;
+}
+function validThemeVarBag(obj, label, allowed) {
+  if (obj === undefined || obj === null) return {};
+  if (typeof obj !== "object" || Array.isArray(obj)) throw new Error(label + " must be an object");
+  var out = {};
+  Object.keys(obj).forEach(function(k){
+    if (!/^--sui-[a-z0-9-]+$/i.test(k)) throw new Error("invalid theme variable name: " + k);
+    if (allowed && !allowed[k]) throw new Error("unknown theme variable: " + k);
+    if (!validThemeCssValue(obj[k])) throw new Error("invalid value for " + k);
+    out[k] = obj[k];
+  });
+  return out;
+}
+function normalizeThemePayload(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("theme file must contain a JSON object");
+  if (raw.format !== "simpleui-theme") throw new Error("not a SimpleUI theme file");
+  var version = Number(raw.version);
+  if (version !== 1) throw new Error("unsupported theme version");
+  var allowedPage = {};
+  PAGE_KEYS.forEach(function(k){ allowedPage[k] = 1; });
+  var allowedComponents = {};
+  COMPONENT_DEFS.forEach(function(def){ componentAllKeys(def).forEach(function(k){ allowedComponents[k] = 1; }); });
+  var page = validThemeVarBag(raw.page, "page", allowedPage);
+  var components = validThemeVarBag(raw.components, "components", allowedComponents);
+  var tooltip = null;
+  if (raw.tooltip !== undefined && raw.tooltip !== null) {
+    if (typeof raw.tooltip !== "object" || Array.isArray(raw.tooltip)) throw new Error("tooltip must be an object");
+    var t = raw.tooltip;
+    var place = ["top", "right", "bottom", "left"].indexOf(t.place) >= 0 ? t.place : "top";
+    var delay = parseInt(t.delay, 10);
+    if (isNaN(delay) || delay < 0) delay = 140;
+    if (delay > 5000) delay = 5000;
+    var tt = {
+      place: place, delay: delay,
+      bg: t.bg, fg: t.fg, border: t.border,
+      radius: t.radius, maxWidth: t.maxWidth, tracking: t.tracking
+    };
+    ["bg", "fg", "border", "radius", "maxWidth", "tracking"].forEach(function(k){
+      if (!validThemeCssValue(tt[k])) throw new Error("invalid tooltip " + k);
+    });
+    tooltip = tt;
+  }
+  var charts = null;
+  if (raw.charts !== undefined && raw.charts !== null) {
+    if (typeof raw.charts !== "object" || Array.isArray(raw.charts)) throw new Error("charts must be an object");
+    charts = {};
+    ["chart", "graph"].forEach(function(kind){
+      var defs = raw.charts[kind];
+      if (defs === undefined || defs === null) { charts[kind] = null; return; }
+      if (typeof defs !== "object" || Array.isArray(defs)) throw new Error("invalid " + kind + " defaults");
+      var clean = {};
+      CHART_PROJECT_DEFAULT_KEYS.forEach(function(key){
+        if (defs[key] === undefined) return;
+        var value = defs[key];
+        if (!(typeof value === "string" || typeof value === "number" || typeof value === "boolean")) throw new Error("invalid " + kind + " value: " + key);
+        if (typeof value === "string" && value.length > 5000) throw new Error("invalid " + kind + " value: " + key);
+        clean[key] = value;
+      });
+      charts[kind] = clean;
+    });
+  }
+  return { page: page, components: components, tooltip: tooltip, charts: charts };
+}
+function applyImportedThemeObject(raw) {
+  var data = normalizeThemePayload(raw);
+  snap("import project theme");
+  var vars = readComponentVars();
+  Object.keys(vars).forEach(function(k){ delete vars[k]; });
+  Object.keys(data.page).forEach(function(k){ vars[k] = data.page[k]; });
+  Object.keys(data.components).forEach(function(k){ vars[k] = data.components[k]; });
+  writeComponentVars(vars);
+  COMPONENT_DEFS.forEach(function(def){ ensureComponentRules(def); });
+  if (data.tooltip) writeTooltipSettings(data.tooltip);
+  if (data.charts) saveChartProjectDefaults(data.charts);
+  setOut(); autoPreview(); scheduleCssSync();
+  renderProjectPreferences();
+  setStatus("theme imported");
+  return data;
+}
+function exportProjectTheme() {
+  var payload = buildProjectThemePayload();
+  var text = JSON.stringify(payload, null, 2);
+  var blob = new Blob([text], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = "simpleui-theme.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  setStatus("theme exported");
+}
+function requestProjectThemeImport() {
+  var input = document.getElementById("projprefs-theme-file");
+  if (input) input.click();
+}
+function handleProjectThemeFile(input) {
+  var file = input && input.files && input.files[0];
+  if (input) input.value = "";
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try {
+      applyImportedThemeObject(JSON.parse(String(reader.result || "")));
+    } catch (e) {
+      setStatus("theme import failed");
+      alert("Cannot import theme: " + (e && e.message ? e.message : "invalid file"));
+    }
+  };
+  reader.onerror = function(){ setStatus("theme import failed"); alert("Cannot read the theme file."); };
+  reader.readAsText(file);
 }
 function appendProjectItem(parent, def) {
   var b = document.createElement("button");
@@ -14883,6 +15259,7 @@ function openTooltipCfg() {
   document.getElementById("tt-border").value = /^#[0-9a-f]{6}$/i.test(tooltipCssValue("--sui-tooltip-border", "#3a4152")) ? tooltipCssValue("--sui-tooltip-border", "#3a4152") : "#3a4152";
   document.getElementById("tt-radius").value = tooltipCssValue("--sui-tooltip-radius", "6px");
   document.getElementById("tt-maxwidth").value = tooltipCssValue("--sui-tooltip-max-width", "260px");
+  document.getElementById("tt-tracking").value = tooltipCssValue("--sui-tooltip-tracking", "normal");
   document.getElementById("ttcfg").classList.add("on");
 }
 function closeTooltipCfg() {
@@ -14899,6 +15276,7 @@ function applyTooltipCfg() {
   var border = document.getElementById("tt-border").value || "#3a4152";
   var radius = normLen(document.getElementById("tt-radius").value) || "6px";
   var maxWidth = normLen(document.getElementById("tt-maxwidth").value) || "260px";
+  var tracking = normLen(document.getElementById("tt-tracking").value) || "normal";
   snap("tooltip settings");
   var clean = String(root.css || "").replace(/\/\* sui-tooltip-settings \*\/\s*:root\s*\{[^}]*\}\s*/g, "").trim();
   var block = "/* sui-tooltip-settings */\n:root {\n" +
@@ -14909,6 +15287,7 @@ function applyTooltipCfg() {
     "  --sui-tooltip-border: " + border + ";\n" +
     "  --sui-tooltip-radius: " + radius + ";\n" +
     "  --sui-tooltip-max-width: " + maxWidth + ";\n" +
+    "  --sui-tooltip-tracking: " + tracking + ";\n" +
     "}";
   root.css = block + (clean ? "\n" + clean : "");
   closeTooltipCfg();

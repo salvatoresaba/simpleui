@@ -372,7 +372,9 @@ gestito `/* sui-component-defaults */` e consumati da un blocco di regole per
 componente. Applicando un componente dalle preferenze di progetto vengono
 scritti entrambi i blocchi e la preview viene aggiornata. **Tooltips** nello
 stesso pannello apre le impostazioni globali dei tooltip; chiudendole si torna
-alla lista di progetto.
+alla lista di progetto. Il pannello dei tooltip segue il tema di progetto: un
+tema chiaro usa un fumetto chiaro e un tema scuro un fumetto scuro, e offre
+anche un campo **Letter spacing**.
 
 ### Temi di progetto
 
@@ -384,13 +386,25 @@ regole delle scrollbar e impostato il **punto di partenza della pagina**
 (`--sui-bg`, `--sui-fg`, bordi e hover di base). Un tema chiaro parte quindi da
 un body chiaro e un tema scuro da un body scuro. Anche gli elementi base seguono
 le stesse variabili: superficie della view, titoli, link, blocchi di codice,
-intestazioni delle tabelle, menu bar e pulsanti semplici cambiano con il tema. La
+intestazioni delle tabelle, menu bar e pulsanti semplici cambiano con il tema.
+Anche tooltip, immagini, video, audio e iframe usano la palette della pagina, e i
+preset chart/graph dei temi usano gli stessi nomi delle famiglie. La
 famiglia **Standard** offre **Standard Light** e **Standard Dark**, che mantengono
 la forma di default di ogni controllo. Modificando poi un componente il combo
 Theme passa a **Custom**, quindi e sempre chiaro se il progetto segue ancora un
 unico tema. Un nuovo
 progetto parte da **Standard Dark**; scegliendo **Standard Light** passano allo
 stile chiaro sia la pagina sia i controlli.
+
+### Esportare e importare un tema
+
+**Export theme** nelle preferenze di progetto scarica un file
+`simpleui-theme.json` con la palette della pagina, tutti i default dei
+componenti, le impostazioni dei tooltip e i default di progetto di chart e
+graph. **Import theme** ricarica quel file dopo una validazione rigorosa: campi
+sconosciuti, nomi di custom property non validi e valori CSS che potrebbero
+aggiungere dichiarazioni o regole vengono rifiutati. L'import sostituisce il tema
+corrente e aggiorna la preview; l'undo ripristina i valori precedenti.
 
 ### Scrollbar
 
@@ -422,11 +436,11 @@ inline e ripristina i default di progetto per quell'elemento. Chiudendo il
 pannello si torna all'inspector.
 
 Pannelli componente implementati: **Progress bar**, **Badge**, **Alert**,
-**Spinner**, **Card**, **Divider**, **Button**, **Input / Textarea / Select**,
-**Combobox**, **Date / Time picker**, **Checkbox / Radio**, **Switch**,
-**Slider**, **Tabs**, **Accordion**, **Menu**, **Tree**, **Table**, **Toast**,
-**Modal** e **Scrollbars** (globale). Chart, Graph e i controlli media
-mantengono per ora i loro inspector specializzati.
+**Spinner**, **Card**, **Divider**, **Images & media**, **Button**,
+**Input / Textarea / Select**, **Combobox**, **Date / Time picker**,
+**Checkbox / Radio**, **Switch**, **Slider**, **Tabs**, **Accordion**,
+**Menu**, **Tree**, **Table**, **Toast**, **Modal** e **Scrollbars** (globale).
+Chart e Graph mantengono i loro inspector specializzati.
 
 Ogni pannello mostra un'anteprima dal vivo sopra i campi. L'anteprima usa i
 valori in modifica, non quelli salvati, quindi colori, dimensioni e stati si
@@ -436,6 +450,12 @@ I controlli con testo espongono un campo **Letter spacing**. I controlli
 interattivi hanno una tab **Hover** con i colori usati mentre il puntatore è
 sopra il controllo: sfondo, testo, bordo, opzione, riga o thumb a seconda del
 componente. In questo modo lo stato hover fa parte dello stesso tema.
+Anche **Progress bar**, **Spinner** e **Divider** espongono una tab **Hover**,
+quindi i controlli non interattivi possono comunque reagire al puntatore.
+
+Il pannello **Images & media** applica il tema a immagini, video, audio e
+iframe: sfondo, bordo, raggio, ombra, object fit e padding. Partecipa ai temi di
+progetto e agli override del singolo elemento come gli altri pannelli.
 
 ### Preset grafici e animazioni
 
@@ -444,7 +464,7 @@ valore predefinito grezzo, mentre ogni preset con nome applica in un solo passo
 un insieme coordinato di colori, forme ed effetti. I preset sono opzionali: non
 vengono mai usati se non selezionati, e modificando un campo il selettore passa
 a **Custom** per rendere esplicita la personalizzazione. Ogni famiglia condivisa
-esiste in versione **Light** e **Dark**, per 22 varianti condivise. Il selettore
+esiste in versione **Light** e **Dark**, per 24 varianti condivise. Il selettore
 Style le elenca sotto **Shared styles**; il combo Theme di progetto seleziona le
 stesse varianti per tutti i componenti in una volta.
 
@@ -455,7 +475,7 @@ condiviso viene scelto automaticamente anche uno sfondo consigliato (chiaro per
 Sketch e Brutalist, scuro per gli altri); i pulsanti permettono comunque di
 controllare l'altro sfondo.
 
-I preset coprono tutti e venti i pannelli componente, per esempio **Neon glow**
+I preset coprono tutti e ventuno i pannelli componente, per esempio **Neon glow**
 e **Barber pole** per Progress, **Dual ring**, **Gradient ring** e **Coin flip**
 per Spinner, **Glass** per Card e Toast, **Pill** per Button e Input, e
 **Striped**, **Borderless** e **Rounded** per Table. Diversi preset includono
@@ -1087,7 +1107,7 @@ L'inspector dedicato **Chart** espone:
 | initial zoom | zoom iniziale della modalita zoom (0.5-4; timeline Gantt 0.5-24) |
 | overflow | Scrollbars, Zoom controls o Fit to frame |
 | show grid / show legend / show values | toggle di presentazione |
-| preset | 14 preset colore che scrivono variabili CSS in `style expr` |
+| preset | 14 preset colore classici piu un preset per ogni famiglia di tema (Light/Dark) che scrivono variabili CSS in `style expr` |
 
 L'inspector **Chart** dipende dal tipo: i campi non utilizzabili vengono nascosti.
 
@@ -1510,9 +1530,13 @@ percentuale; ingrandendo compaiono le scrollbar. **Fit to frame** comprime il
 disegno nella cornice senza controlli.
 
 Il menu **preset** scrive variabili `--sui-chart-*` nel campo **style expr**
-dell'elemento (sezione **Appearance**). I preset sono **Default**, **Ocean**,
-**Forest**, **Sunset**, **Neon**, **Mono**, **Pastel**, **High contrast**,
-**Amber**, **Candy**, **Slate**, **Light**, **Outline** e **Minimal**. Scegliendo **Custom**
+dell'elemento (sezione **Appearance**). I preset **Classic** sono **Default**,
+**Ocean**, **Forest**, **Sunset**, **Neon**, **Mono**, **Pastel**,
+**High contrast**, **Amber**, **Candy**, **Slate**, **Light**, **Outline** e
+**Minimal**. I **Theme presets** aggiungono una palette chart coordinata per ogni
+famiglia di stile condivisa, in variante **Light** e **Dark** (Standard, Sketch,
+Wireframe, Terminal, Glassmorphism, Brutalist, Blueprint, Neumorphic, High
+contrast, Editorial, Cyberpunk e Geometric). Scegliendo **Custom**
 l'espressione resta invariata e si puo modificare direttamente.
 
 Un grafico in modalita espressione e reattivo: cambiando lo stato collegato
