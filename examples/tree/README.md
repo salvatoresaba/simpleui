@@ -176,18 +176,26 @@ view main {
 ## Designer
 
 Insert **Tree** from **Controls** (the component palette). It starts with a
-parent item and a child. Add `treeitem` nodes from the same palette or duplicate
-existing items.
+parent item and a child. **Tree item** is not offered in the palette or Insert
+menu: items are created and edited from **Edit tree data** or the tree context
+menu. The structure list shows only the `tree` row, not its internal items.
 
-The **Tree** inspector exposes:
+The **Tree** inspector exposes dedicated buttons:
 
+- **Tree settings...** - Colors, Title and Shape tabs plus presets;
+- **Edit tree data...** - labels, keys, nesting, open/editable flags and
+  JSON/XML import/export;
+- **Tooltip settings...** - global tooltip style;
 - `value state`;
 - `editable`;
 - `editable depth`;
 - `rename key state`;
 - `rename value state`.
 
-The **Tree item** inspector exposes:
+The right-click menu on the tree row offers **Edit tree data**, **Tree
+settings**, **Add root item**, **Import JSON/XML** and **Export JSON/XML**.
+
+Selecting an item in the live preview opens the per-item **Tree item** panel:
 
 - `key` - stable string written to the selected state;
 - `initially open` - default expansion state;
@@ -251,7 +259,10 @@ The Tree inspector has a **style preset** menu:
 - Custom / edit style expr
 
 A preset writes CSS custom properties (`--sui-tree-*`) into the tree element's
-**style expr** field. Each Tree item also has a **node style preset** menu
+**style expr** field. **Tree settings** exposes the same colors, typography and
+title options as structured fields (Colors, Title, Shape); the title can be
+left/center/right aligned and placed above or below the items. Each Tree item
+also has a **node style preset** menu
 (Inherit, Muted, Accent, Success, Warning, Danger, Folder, Compact row or
 Custom); node presets write row variables into that item's own `style expr`.
 The example uses the **Soft rounded** tree preset and the **Folder** node preset
