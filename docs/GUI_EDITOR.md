@@ -1070,40 +1070,40 @@ See [API reference: tree](API_REFERENCE.md#tree) and the
 
 Insert **Chart** from **Controls**. A new chart starts as a bar chart with
 sample CSV data, fills its container (`width: "100%"`, `height: "100%"`) and
-uses `overflow: "scroll"`. New charts keep the table hidden until **table view**
-is set to `table` or `both`.
+uses `overflow: "scroll"`. New charts keep the table hidden until **Mode** is
+set to `table` or `both`.
 
-The dedicated **Chart** inspector exposes:
+The dedicated **Chart** inspector is ordered for quick access:
 
 | Field | Meaning |
 |---|---|
 | type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell or Gantt; the source attribute is `chartType` because `type` is reserved. Block diagrams use the separate **Graph** control |
-| data | button that opens the movable, resizable chart-data overlay |
-| x field / y field | label and numeric columns in object/CSV data; empty auto-detects |
-| point width | horizontal pixels reserved per point in scroll mode |
-| point size | radius of data points in pixels (1-24, default 3) |
+| Mode | chart only, accessible data table only, or both; formerly **table view** and available for every type |
+| settings | opens the unified **Chart settings** panel (appearance, points, tooltip, table, interactions, element hints and data fields) |
 | bins | histogram bucket count (1-100) |
 | min / max | gauge range (default 0-100) |
 | interactive | enable tooltips, hover/selection and Gantt editing |
-| table view | chart only, accessible data table only, or both; available for every type |
-| initial zoom | starting zoom for zoom mode (0.5-4; Gantt timeline 0.5-24) |
-| overflow | Scrollbars, Zoom controls or Fit to frame |
 | show grid / show legend / show values | chart presentation toggles |
 | preset | 14 classic color presets plus one preset for every theme family (Light/Dark) that write CSS variables into `style expr` |
+| x field / y field | label and numeric columns in object/CSV data; empty auto-detects. A hint reports how many rows/series were detected |
+| edit data | button that opens the movable, resizable chart-data overlay at the bottom of the inspector |
+
+**Point size** and **point width** live in **Chart settings → Points**.
+**Element hints** and the X/Y fields also appear in **Chart settings → Data**.
+The separate **Chart attributes** button has been removed; unknown attributes
+already present in a source are still preserved when the designer rewrites it.
+`overflow` and `initial zoom` are no longer inspector fields: normal scrollbars
+appear when the frame is smaller than the chart.
 
 The **Chart** inspector is type-aware: irrelevant fields are hidden when the
 selected type cannot use them.
 
 - **bins** only for histogram;
 - **min/max** only for gauge;
-- **x field** hidden for gauge and histogram;
-- **y field** hidden for gauge;
-- **point width** hidden for pie, donut, radar, gauge, funnel, treemap, bullet, dumbbell and Gantt;
-- **point size** shown only for line, step, smooth, area, scatter, combo, radar and dumbbell;
-- **table view** is available for every chart type;
-- **show grid** hidden for pie, donut, radar, gauge, funnel, heatmap, treemap and bullet;
-- **show legend** hidden for gauge and funnel;
-- **show values** hidden for pie, donut, scatter, gauge and radar.
+- **x/y fields** hidden for gauge, histogram, Gantt and state charts;
+- **show grid** hidden for pie, donut, radar, gauge, funnel, heatmap, treemap, bullet and state;
+- **show legend** hidden for gauge, funnel and state;
+- **show values** hidden for pie, donut, scatter, gauge, radar and state.
 
 Changing **type** updates the visible fields immediately. If the current data is
 not compatible with the selected type, a confirmation dialog warns that the
@@ -1169,7 +1169,7 @@ the chart. Dependency cycles are rejected. Critical path, auto schedule, holiday
 recurrences; weekend accepts weekday names/numbers or `none`; timezone accepts an
 IANA zone such as `Europe/Rome` (default `UTC`). The chart menu's **Calendar...**
 overlay adds holidays and closure ranges; the calendar is stored per chart and
-immediately recalculates effective duration. **table view** is available for
+immediately recalculates effective duration. **Mode** is available for
 every chart and can show a native accessible data table, or display the table
 under the chart. Gantt tables use Task, WBS parent, Start, End, Deadline, Actual
 start/end, Duration, Effective duration, Remaining, Progress, Work, Work done,
@@ -1197,7 +1197,7 @@ its column filter always show all seven types with descriptive labels, even
 when every row currently uses `ASAP`; other types use Label plus their series or
 type-specific columns.
 
-With **table view** set to **both**, every chart docks a fixed-height table at
+With **Mode** set to **both**, every chart docks a fixed-height table at
 the bottom: the chart shrinks, the table spans the full width and stays aligned
 with the bottom edge of the control. Drag the separator above the table to set
 its height; the value is stored per chart. The separator is keyboard focusable:
@@ -1249,16 +1249,16 @@ transparent button is needed; it writes the `stateHint*` chart attributes. Each
 shape/link also accepts a `hint` field, editable from the table **Hint** column
 or the context menu **Hint settings...**; use `|` for a line break and `\|` for a
 literal pipe.
-**Element hints...** in the chart inspector lists every state and link found in
+**Element hints** in **Chart settings → Data** lists every state and link found in
 JSON, CSV or XML chart data (including a literal document held by a simple state
 such as `data`) and edits their tag and hint text in single-line fields (`|`
 breaks a line, `\|` a literal pipe). It writes the data back; CSV needs a header
 row with `id`/`label` or `from`/`to` plus `tag`/`hint` columns, which are added
 when missing. Computed expressions still use the data editor.
-Chart attributes that the inspector does not expose yet (grid, routing, tag or
-link styles, ...) are preserved verbatim when the document is opened and saved;
-use **Chart attributes...** in the chart inspector to edit them without leaving
-the designer.
+Chart attributes not exposed by the inspector (grid, routing, tag or link
+styles, ...) are preserved verbatim when the document is opened and saved. The
+separate **Chart attributes** panel has been removed; use the chart settings
+panel for the supported options.
 With the table visible, selecting an element in the diagram focuses and
 highlights its row (the **Links** tab for edges).
 
@@ -1432,11 +1432,12 @@ a chart mark selects its row, and a row highlights all marks for that label
 
 **Chart settings.** The **Chart settings** button opens the unified panel with
 tabs: Appearance, Points, Tooltip, Table, Interactions and Data. It controls the
-dark/light theme, **Editable colors** (color picker on/off), style preset, point size, tooltip colors/width/font/delay, table view, **Column
+dark/light theme, **Editable colors** (color picker on/off), style preset, point size and point width, tooltip colors/width/font/delay, **Mode**, **Column
 filters** on/off and table typography, interactive mode, **Critical path**, **Auto schedule**,
 **Holidays**, **Weekend**, **Timezone**, **Link color**, **Link width** (default
 `1px`), **Min link gap** (default `4px`), **Line style**, **Arrow**, **Arrow
-size**, **Bar border** and **Bar border color**, and x/y fields. Apply writes attributes and
+size**, **Bar border** and **Bar border color**; the Data tab has x/y fields and
+**Element hints**. Apply writes attributes and
 `--sui-chart-tooltip-*` / `--sui-chart-table-*` variables together. Dark and
 light themes use explicit chart tokens; selection colors are shared and focus
 tones adapt to the theme background. Click a series swatch in a table header or
@@ -1493,12 +1494,10 @@ and grows with it; the table follows the container width while keeping its
 fixed height. In a container without a definite height the chart keeps at least
 240 px (`--sui-chart-min-height` overrides the fallback).
 
-When `overflow` is **Scrollbars**, the chart draws at its natural width inside
-the configured frame and the viewport scrolls horizontally when the points need
-more space.
-**Zoom controls** adds `-`, `+`, `Reset` and a percentage label; zooming in grows
-the drawing and exposes scrollbars. **Fit to frame** keeps the drawing inside
-the frame without controls.
+The inspector no longer exposes `overflow` or `initial zoom`: new charts use
+scrollbars automatically when the frame is smaller than the chart. Legacy
+`overflow`/`zoom` attributes already present in a source are preserved and still
+work in the generated app.
 
 The **preset** menu writes `--sui-chart-*` variables into the element's
 **style expr** field under **Appearance**. **Classic** presets are **Default**,

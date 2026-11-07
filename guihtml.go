@@ -426,7 +426,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .pfrow select, .pfrow input[type=range] { flex:1; font-size:13px; }
 .pfrow input[type=checkbox] { flex:none; }
 #prefbox .pfsec:first-child { margin-top:0; padding-top:0; border-top:0; }
-#prefbox select, #compcfg select { appearance:none; -webkit-appearance:none; flex:1; min-width:0; font-size:13px; padding:6px 26px 6px 8px; color:var(--fg); background-color:var(--input-bg); border:1px solid var(--border2); border-radius:6px; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position:calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
+#prefbox select, #compcfg select, #projprefs select { appearance:none; -webkit-appearance:none; flex:1; min-width:0; font-size:13px; padding:6px 26px 6px 8px; color:var(--fg); background-color:var(--input-bg); border:1px solid var(--border2); border-radius:6px; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position:calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
 .pref-acc-head { display:flex; align-items:center; gap:8px; width:100%; padding:10px 2px; margin:0; border:0; border-top:1px solid var(--border); background:transparent; color:var(--fg); font:inherit; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; cursor:pointer; text-align:left; }
 .pref-acc-head:first-child { border-top:0; }
 .pref-acc-head:before { content:"\25B8"; color:var(--muted); font-size:10px; width:10px; }
@@ -489,15 +489,16 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #projprefs-theme-row select { min-width:280px; max-width:100%; }
 #projprefs-theme-name-row { display:flex; align-items:center; gap:10px; padding:0 20px 8px; }
 #projprefs-theme-name-row label { font-size:12px; color:var(--muted); min-width:48px; }
-#projprefs-theme-name-row input { flex:0 1 360px; min-width:180px; }
+#projprefs-theme-name-row input { flex:0 1 360px; min-width:180px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; padding:6px 8px; font-size:13px; }
 #projprefs-tabs { padding:0 20px; }
-.pp-groups { display:block; }
-.pp-groups.single { display:block; }
-.pp-group { margin:0 0 14px; }
-.pp-group h3 { margin:0 0 6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+.pp-groups { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 18px; align-items:start; }
+.pp-groups.single { grid-template-columns:minmax(0,1fr); }
+.pp-group { margin:0; padding:10px 12px 12px; border:1px solid var(--border); border-radius:8px; background:var(--panel); }
+.pp-group h3 { margin:0 0 8px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
 .pp-items { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 .pp-item { flex:0 0 auto; width:auto; min-width:0; margin:0; }
 .pp-note { color:var(--muted); font-size:11.5px; line-height:1.5; }
+@media (max-width: 760px) { .pp-groups { grid-template-columns:minmax(0,1fr); } }
 #compcfg { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #compcfg.on { display:flex; }
 #compcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:700px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -579,16 +580,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .celemhints-head { background:var(--input-bg); font-size:11px; font-weight:600; color:var(--muted); position:sticky; top:0; z-index:1; }
 .celemhints-row .lbl { font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .celemhints-input { width:100%; box-sizing:border-box; font-size:12px; padding:5px 7px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
-#cextrattrs { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:13; }
-#cextrattrs.on { display:flex; }
-#cextrattrsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:640px; max-width:94vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
-#cextrattrsbox h2 { font-size:15px; margin:0 0 8px; }
-#cextrattrs-rows { overflow:auto; max-height:50vh; margin:8px 0; border:1px solid var(--border); border-radius:8px; }
-.cextra-row { display:grid; grid-template-columns:180px minmax(0,1fr) 28px; gap:6px; align-items:center; padding:5px 7px; border-bottom:1px solid var(--border); }
-.cextra-row:last-child { border-bottom:0; }
-.cextra-row input { width:100%; box-sizing:border-box; font-size:12px; padding:5px 7px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
-.cextra-remove { width:26px; height:26px; padding:0; border:1px solid var(--border2); border-radius:6px; background:transparent; color:var(--muted); cursor:pointer; }
-.cextra-remove:hover { color:var(--fg); border-color:var(--accent); }
+
 
 /* unified chart settings panel */
 #csettings { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
@@ -1407,20 +1399,6 @@ RUNNING</div>
     </div>
   </div>
 </div>
-<div id="cextrattrs">
-  <div id="cextrattrsbox">
-    <h2>Chart attributes</h2>
-    <div class="hint">Attributes not exposed by the inspector. Values use SUI source syntax: strings in quotes, numbers and booleans bare. Example: <b>"orthogonal"</b>, <b>24</b>, <b>true</b>.</div>
-    <div id="cextrattrs-msg" class="hint"></div>
-    <div id="cextrattrs-rows"></div>
-    <div class="pfbtns">
-      <button class="btn" onclick="addChartExtraRow()">Add attribute</button>
-      <span style="flex:1"></span>
-      <button class="btn" onclick="closeChartExtraCfg()">Cancel</button>
-      <button class="btn" onclick="applyChartExtraCfg()">Apply</button>
-    </div>
-  </div>
-</div>
 <div id="csettings">
   <div id="csettingsbox">
     <h2 id="csettings-title">Chart settings</h2>
@@ -1440,8 +1418,9 @@ RUNNING</div>
       <div class="pfrow"><label>Style preset</label><select id="cs-preset"></select></div>
     </div>
     <div class="cset-pane" data-pane="points">
-      <div class="cset-hint">Point size applies to line, step, smooth, area, scatter, combo, radar and dumbbell.</div>
+      <div class="cset-hint">Point size applies to line, step, smooth, area, scatter, combo, radar and dumbbell. Point width is the horizontal space reserved per point in scroll mode.</div>
       <div class="pfrow"><label>Point size</label><input type="text" id="cs-pointsize" value="3" placeholder="3"></div>
+      <div class="pfrow"><label>Point width</label><input type="text" id="cs-pointwidth" value="48" placeholder="48"></div>
     </div>
     <div class="cset-pane" data-pane="tooltip">
       <div class="cset-hint">The tooltip is shown when interactive is on.</div>
@@ -1455,7 +1434,7 @@ RUNNING</div>
     </div>
     <div class="cset-pane" data-pane="table">
       <div class="cset-hint">The accessible table is available for every chart type. Gantt cells are editable when interactive is on.</div>
-      <div class="pfrow"><label>Table view</label><select id="cs-tableview"></select></div>
+      <div class="pfrow"><label>Mode</label><select id="cs-tableview"></select></div>
       <div class="pfrow"><label>Column filters</label><input type="checkbox" id="cs-tb-filters" checked></div>
       <div class="pfrow"><label>Add row button</label><input type="checkbox" id="cs-tb-addrow"></div>
       <div class="pfrow"><label>Delete row button</label><input type="checkbox" id="cs-tb-deleterow"></div>
@@ -1499,9 +1478,10 @@ RUNNING</div>
       <div class="pfrow"><label>Timezone</label><input type="text" id="cs-timezone" placeholder="UTC or Europe/Rome"></div>
     </div>
     <div class="cset-pane" data-pane="data">
-      <div class="cset-hint">The data button in the inspector opens the full JSON/XML/CSV editor.</div>
+      <div class="cset-hint">The data button in the inspector opens the full JSON/XML/CSV editor. Element hints edit per-state and per-link tag text.</div>
       <div class="pfrow"><label>X field</label><input type="text" id="cs-x" placeholder="auto"></div>
       <div class="pfrow"><label>Y field</label><input type="text" id="cs-y" placeholder="auto"></div>
+      <div class="pfrow"><label>Element hints</label><button class="btn" onclick="openChartElementHintsFromSettings()">Edit hints...</button></div>
       <div class="pfbtns"><button class="btn" onclick="openDataFromChartSettings()">Open data editor...</button></div>
     </div>
     <div class="pfbtns">
@@ -6277,90 +6257,59 @@ function chartControls(n) {
   a.className = "acc open";
   var h = document.createElement("div");
   h.className = "acchead";
-  var graph = isGraphKind(n);
-  h.innerHTML = '<span>' + (graph ? "Graph" : "Chart") + '</span><span>\u25BE</span>';
+  h.innerHTML = '<span>Chart</span><span>\u25BE</span>';
   h.onclick = function(){ a.classList.toggle("open"); };
   a.appendChild(h);
   var b = document.createElement("div");
   b.className = "accbody";
+  var fields = {};
 
-  var hint = document.createElement("div");
-  hint.className = "hint";
-  hint.textContent = graph
-    ? "Block diagram data: states as boxes and transitions as links. JSON, XML or CSV; use Element hints for shapes and links."
-    : "Data can be JSON, XML or CSV. Width/height define the frame; scroll shows bars, zoom adds +/- controls when the chart is larger than its frame.";
-  b.appendChild(hint);
-
+  // 1. type
   var typeSel = document.createElement("select");
   chartTypeMenuOptions(n).forEach(function(v){
     var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1]; typeSel.appendChild(o);
   });
   typeSel.value = n.chartType || "bar";
   if (!typeSel.value) typeSel.value = "bar";
-  var typeRow = chartFieldRow("type", typeSel, "Chart geometry. Fields below follow the selected type.");
-  if (!graph) b.appendChild(typeRow);
+  b.appendChild(chartFieldRow("type", typeSel, "Chart geometry. Fields below follow the selected type."));
   var typeHint = document.createElement("div");
   typeHint.className = "hint";
-  if (!graph) b.appendChild(typeHint);
+  b.appendChild(typeHint);
 
-  var dataBtn = document.createElement("button");
-  dataBtn.type = "button";
-  dataBtn.className = "btn chart-data-btn";
-  dataBtn.style.cssText = "flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
-  dataBtn.textContent = chartDataButtonText(n);
-  dataBtn.title = "Open the resizable chart data editor";
-  dataBtn.onclick = function(){ openChartDataEditor(n); };
-  b.appendChild(chartFieldRow("data", dataBtn, "Open the overlay editor for JSON, XML or CSV data, or a reactive state expression."));
-  var dataHint = document.createElement("div");
-  dataHint.className = "hint";
-  dataHint.textContent = "The data button opens a movable, resizable editor with format detection, validation, file loading and samples.";
-  b.appendChild(dataHint);
-
-  var fields = {};
-  function textField(label, key, placeholder, hintText) {
-    var input = document.createElement("input");
-    var ex = chartParamExpr(n, key);
-    input.placeholder = ex ? "expression: " + ex : (placeholder || "");
-    input.value = n[key] || "";
-    input.oninput = function(ev){ snap("chart " + label); chartClearParam(n, key); n[key] = ev.target.value; setOut(); autoPreview(); };
-    var row = chartFieldRow(label, input, hintText);
-    b.appendChild(row);
-    return row;
-  }
-  fields.x = textField("x field", "chartX", "month", "Object/CSV column used for labels. Empty auto-detects.");
-  fields.y = textField("y field", "chartY", "value", "Object/CSV column used for numeric values. Empty auto-detects.");
-  fields.pointWidth = textField("point width", "chartPointWidth", "48", "Horizontal pixels reserved per point in scroll mode.");
-  fields.pointSize = textField("point size", "chartPointSize", "3", "Radius of data points in pixels (1-24). Used by point-based charts.");
+  // 2. Mode (formerly table view)
   var tableSel = document.createElement("select");
   [["chart", "Chart only"], ["table", "Table only"], ["both", "Chart + table"]].forEach(function(v){
     var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1]; tableSel.appendChild(o);
   });
   tableSel.value = n.chartTableView === "gantt" ? "chart" : (n.chartTableView || "chart");
-  tableSel.onchange = function(){ snap("chart table view"); chartClearParam(n, "chartTableView"); n.chartTableView = tableSel.value; setOut(); autoPreview(); };
-  fields.tableView = chartFieldRow("table view", tableSel, "Chart only, accessible data table only, or both.");
+  tableSel.onchange = function(){ snap("chart mode"); chartClearParam(n, "chartTableView"); n.chartTableView = tableSel.value; setOut(); autoPreview(); };
+  fields.tableView = chartFieldRow("Mode", tableSel, "Chart only, accessible data table only, or both.");
   b.appendChild(fields.tableView);
-  fields.setTableLabels = function(type) {
-    var gantt = type === "gantt";
-    tableSel.options[0].textContent = gantt ? "Timeline" : "Chart only";
-    tableSel.options[1].textContent = "Table only";
-    tableSel.options[2].textContent = gantt ? "Timeline + table" : "Chart + table";
-  };
-  fields.zoom = textField("initial zoom", "chartZoom", "1", "Starting zoom for zoom mode (0.5 to 4; Gantt timeline 0.5 to 24).");
+
+  // 3. unified chart settings
+  var settingsBtn = document.createElement("button");
+  settingsBtn.type = "button";
+  settingsBtn.className = "btn";
+  settingsBtn.style.fontSize = "11px";
+  settingsBtn.textContent = "Chart settings...";
+  settingsBtn.title = "Open the unified chart configuration panel";
+  settingsBtn.onclick = function(){ openChartSettings(n); };
+  fields.chartSettings = chartFieldRow("settings", settingsBtn, "Appearance, points, tooltip, table, interactions, element hints and data fields in one panel.");
+  b.appendChild(fields.chartSettings);
+
+  function textField(label, key, placeholder, hintText, after) {
+    var input = document.createElement("input");
+    var ex = chartParamExpr(n, key);
+    input.placeholder = ex ? "expression: " + ex : (placeholder || "");
+    input.value = n[key] || "";
+    input.oninput = function(ev){ snap("chart " + label); chartClearParam(n, key); n[key] = ev.target.value; setOut(); autoPreview(); if (after) after(); };
+    var row = chartFieldRow(label, input, hintText);
+    b.appendChild(row);
+    return row;
+  }
   fields.bins = textField("bins", "chartBins", "10", "Histogram bins (1-100). Ignored by other chart types.");
   fields.min = textField("min", "chartMin", "0", "Gauge minimum. Empty uses 0.");
   fields.max = textField("max", "chartMax", "100", "Gauge maximum. Empty uses 100 or the value.");
-
-  var ovSel = document.createElement("select");
-  [["scroll", "Scrollbars"], ["zoom", "Zoom controls"], ["fit", "Fit to frame"]].forEach(function(v){
-    var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1]; ovSel.appendChild(o);
-  });
-  ovSel.value = n.chartOverflow || "scroll";
-  ovSel.onchange = function(){ snap("chart overflow"); chartClearParam(n, "chartOverflow"); n.chartOverflow = ovSel.value; setOut(); autoPreview(); };
-  b.appendChild(chartFieldRow("overflow", ovSel, "Scroll: grow and scroll. Zoom: add zoom controls. Fit: squeeze into the frame."));
-  var sizeHint = document.createElement("div");
-  sizeHint.className = "hint";
-  sizeHint.textContent = "Use the standard Size section for width and height. The chart frame follows the component size.";
-  b.appendChild(sizeHint);
 
   function boolRow(label, key, hintText) {
     var row = document.createElement("div");
@@ -6378,36 +6327,6 @@ function chartControls(n) {
   fields.values = boolRow("show values", "chartValues", "Print numeric values on bars/lines.");
   fields.interactive = boolRow("interactive", "chartInteractive", "Enable Gantt drag/resize and editable Gantt table cells. Tooltips and selection stay available.");
   fields.interactive.title = "Enable chart hover/selection and Gantt editing when a task-change handler is set.";
-
-  var settingsBtn = document.createElement("button");
-  settingsBtn.type = "button";
-  settingsBtn.className = "btn";
-  settingsBtn.style.fontSize = "11px";
-  settingsBtn.textContent = graph ? "Graph settings..." : "Chart settings...";
-  settingsBtn.title = graph ? "Open the unified graph configuration panel" : "Open the unified chart configuration panel";
-  settingsBtn.onclick = function(){ if (graph) openGraphRuntimeSettings(n); else openChartSettings(n); };
-  fields.chartSettings = chartFieldRow("settings", settingsBtn, "Appearance, points, tooltip, table, interactions and data fields in one panel.");
-  b.appendChild(fields.chartSettings);
-
-  var elemHintsBtn = document.createElement("button");
-  elemHintsBtn.type = "button";
-  elemHintsBtn.className = "btn";
-  elemHintsBtn.style.fontSize = "11px";
-  elemHintsBtn.textContent = "Element hints...";
-  elemHintsBtn.title = "Edit tag and hint text for each state and link";
-  elemHintsBtn.onclick = function(){ openChartElementHints(n); };
-  fields.chartElementHints = chartFieldRow("element hints", elemHintsBtn, "Per-element tag and hint text. Uses | for line breaks in JSON, CSV or XML state data.");
-  b.appendChild(fields.chartElementHints);
-
-  var extraAttrsBtn = document.createElement("button");
-  extraAttrsBtn.type = "button";
-  extraAttrsBtn.className = "btn";
-  extraAttrsBtn.style.fontSize = "11px";
-  extraAttrsBtn.textContent = "Chart attributes...";
-  extraAttrsBtn.title = "Edit chart attributes that the inspector does not expose";
-  extraAttrsBtn.onclick = function(){ openChartExtraCfg(n); };
-  fields.chartExtraAttrs = chartFieldRow("attributes", extraAttrsBtn, "Grid, routing, tag/link style and other chart attributes preserved by the designer.");
-  b.appendChild(fields.chartExtraAttrs);
 
   var sep = document.createElement("div");
   sep.style.cssText = "border-top:1px solid var(--border);margin:8px 0 6px";
@@ -6429,6 +6348,61 @@ function chartControls(n) {
   styleHint.className = "hint";
   styleHint.textContent = "Presets set --sui-chart-series-1..8, --sui-chart-bg, --sui-chart-grid and related variables. Edit them in Appearance > style expr.";
   b.appendChild(styleHint);
+
+  // 4. data at the bottom
+  var dataSep = document.createElement("div");
+  dataSep.style.cssText = "border-top:1px solid var(--border);margin:8px 0 6px";
+  b.appendChild(dataSep);
+  var dataLabel = document.createElement("div");
+  dataLabel.className = "rowth";
+  dataLabel.textContent = "Data";
+  b.appendChild(dataLabel);
+  fields.x = textField("x field", "chartX", "month", "Object/CSV column used for labels. Empty auto-detects.", updateDataStatus);
+  fields.y = textField("y field", "chartY", "value", "Object/CSV column used for numeric values. Empty auto-detects.", updateDataStatus);
+  var dataBtn = document.createElement("button");
+  dataBtn.type = "button";
+  dataBtn.className = "btn chart-data-btn";
+  dataBtn.style.cssText = "flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+  dataBtn.textContent = chartDataButtonText(n);
+  dataBtn.title = "Open the resizable chart data editor";
+  dataBtn.onclick = function(){ openChartDataEditor(n); };
+  b.appendChild(chartFieldRow("edit data", dataBtn, "Open the overlay editor for JSON, XML or CSV data, or a reactive state expression."));
+  var dataHint = document.createElement("div");
+  dataHint.className = "hint";
+  b.appendChild(dataHint);
+  function updateDataStatus() {
+    if (n.chartDataExpr) {
+      dataHint.textContent = "Data is a reactive expression; x/y fields are applied at runtime.";
+      return;
+    }
+    var text = String(n.chartData || "");
+    if (!text.trim()) {
+      dataHint.textContent = "Edit data opens the JSON, XML or CSV editor.";
+      return;
+    }
+    var type = n.chartType || "bar";
+    if (type === "state") {
+      dataHint.textContent = "State data: edit states and transitions with the data button.";
+      return;
+    }
+    if (type === "gantt") {
+      dataHint.textContent = "Gantt data uses task rows; edit them with the data button.";
+      return;
+    }
+    try {
+      var profile = chartDataProfile(text, n.chartFormat || "auto", n.chartX || "", n.chartY || "");
+      if (profile.labels && profile.seriesCount) {
+        dataHint.textContent = "Detected " + profile.labels + " rows and " + profile.seriesCount + " numeric series." + ((n.chartX || n.chartY) ? " X/Y fields are applied." : " X/Y columns are auto-detected.");
+      } else if (n.chartX || n.chartY) {
+        dataHint.textContent = "No rows match the x/y fields; use a column name from the data or leave them empty.";
+      } else {
+        dataHint.textContent = "No numeric series detected; check the data or set the y field.";
+      }
+    } catch (e) {
+      dataHint.textContent = "Data preview unavailable: " + (e && e.message ? e.message : e);
+    }
+  }
+  updateDataStatus();
 
   var TYPE_HINTS = {
     bar: "Data: one numeric series.",
@@ -6461,32 +6435,25 @@ function chartControls(n) {
     if (row) row.style.display = show ? "" : "none";
   }
   function applyChartTypeVisibility() {
-    var type = graph ? "state" : (typeSel.value || "bar");
+    var type = typeSel.value || "bar";
     var all = !!chartParamExpr(n, "chartType");
-    var noPoint = ["pie", "donut", "radar", "gauge", "funnel", "treemap", "bullet", "dumbbell", "gantt", "state"].indexOf(type) >= 0;
-    var hasPoints = ["line", "step", "smooth", "area", "scatter", "combo", "radar", "dumbbell"].indexOf(type) >= 0;
-    var noGrid = ["pie", "donut", "radar", "gauge", "funnel", "heatmap", "treemap", "bullet"].indexOf(type) >= 0;
-    var noValues = ["pie", "donut", "scatter", "gauge", "radar"].indexOf(type) >= 0;
-    setRowVisible(fields.x, !graph && (all || (type !== "gauge" && type !== "histogram")));
-    setRowVisible(fields.y, !graph && (all || type !== "gauge"));
-    setRowVisible(fields.pointWidth, !graph && (all || !noPoint));
-    setRowVisible(fields.pointSize, !graph && (all || hasPoints));
+    var noXY = ["gauge", "histogram", "gantt", "state"].indexOf(type) >= 0;
+    var noGrid = ["pie", "donut", "radar", "gauge", "funnel", "heatmap", "treemap", "bullet", "state"].indexOf(type) >= 0;
+    var noValues = ["pie", "donut", "scatter", "gauge", "radar", "state"].indexOf(type) >= 0;
+    setRowVisible(fields.x, all || !noXY);
+    setRowVisible(fields.y, all || !noXY);
     if (fields.setTableLabels) fields.setTableLabels(type);
-    setRowVisible(fields.tableView, true);
-    setRowVisible(fields.zoom, true);
-    setRowVisible(fields.bins, !graph && (all || type === "histogram"));
-    setRowVisible(fields.min, !graph && (all || type === "gauge"));
-    setRowVisible(fields.max, !graph && (all || type === "gauge"));
-    setRowVisible(fields.grid, !graph && (all || !noGrid));
-    setRowVisible(fields.legend, !graph && (all || (type !== "gauge" && type !== "funnel")));
-    setRowVisible(fields.values, !graph && (all || !noValues));
-    if (graph) typeHint.textContent = "Block diagram: states and links.";
-    else typeHint.textContent = all
+    setRowVisible(fields.bins, all || type === "histogram");
+    setRowVisible(fields.min, all || type === "gauge");
+    setRowVisible(fields.max, all || type === "gauge");
+    setRowVisible(fields.grid, all || !noGrid);
+    setRowVisible(fields.legend, all || (type !== "gauge" && type !== "funnel" && type !== "state"));
+    setRowVisible(fields.values, all || !noValues);
+    typeHint.textContent = all
       ? "Chart type is an expression; all parameters are shown and compatibility is checked at runtime."
       : (TYPE_HINTS[type] || "Configure the fields relevant to the selected chart type.");
   }
   typeSel.onchange = function(){
-    if (graph) return;
     var newType = typeSel.value;
     var oldType = n.chartType || "bar";
     if (newType === oldType) return;
@@ -6500,12 +6467,17 @@ function chartControls(n) {
     }
     chartApplyTypeChange(n, newType, plan);
   };
+  fields.setTableLabels = function(type) {
+    var gantt = type === "gantt";
+    tableSel.options[0].textContent = gantt ? "Timeline" : "Chart only";
+    tableSel.options[1].textContent = "Table only";
+    tableSel.options[2].textContent = gantt ? "Timeline + table" : "Chart + table";
+  };
   applyChartTypeVisibility();
 
   a.appendChild(b);
   return a;
 }
-
 function treeItemPresetCss(key) {
   for (var i = 0; i < TREE_ITEM_STYLE_PRESETS.length; i++) {
     if (TREE_ITEM_STYLE_PRESETS[i].key === key) return TREE_ITEM_STYLE_PRESETS[i].css;
@@ -11837,78 +11809,10 @@ function applyChartElementHints() {
   autoPreview();
   renderInspector();
 }
-var chartExtraNode = null;
-function addChartExtraRow(key, value) {
-  var rows = document.getElementById("cextrattrs-rows");
-  if (!rows) return;
-  var row = document.createElement("div");
-  row.className = "cextra-row";
-  var name = document.createElement("input");
-  name.type = "text";
-  name.className = "cextra-key";
-  name.placeholder = "attribute name";
-  name.value = key || "";
-  var val = document.createElement("input");
-  val.type = "text";
-  val.className = "cextra-value";
-  val.placeholder = '"text", 24, true';
-  val.value = value || "";
-  var remove = document.createElement("button");
-  remove.type = "button";
-  remove.className = "cextra-remove";
-  remove.textContent = "\u00d7";
-  remove.title = "Remove attribute";
-  remove.addEventListener("click", function() { if (row.parentNode) row.parentNode.removeChild(row); });
-  row.appendChild(name);
-  row.appendChild(val);
-  row.appendChild(remove);
-  rows.appendChild(row);
-}
-function openChartExtraCfg(n) {
-  var node = n || chartSettingsNode;
-  if (!node) return;
-  chartExtraNode = node;
-  var rows = document.getElementById("cextrattrs-rows");
-  var msg = document.getElementById("cextrattrs-msg");
-  rows.textContent = "";
-  msg.textContent = "";
-  var extra = node.chartExtra && typeof node.chartExtra === "object" ? node.chartExtra : {};
-  Object.keys(extra).sort().forEach(function(key) { addChartExtraRow(key, extra[key]); });
-  document.getElementById("cextrattrs").classList.add("on");
-}
-function closeChartExtraCfg() {
-  document.getElementById("cextrattrs").classList.remove("on");
-  chartExtraNode = null;
-}
-function applyChartExtraCfg() {
-  var n = chartExtraNode;
-  if (!n) return;
-  var rows = document.querySelectorAll("#cextrattrs-rows .cextra-row");
-  var extra = {};
-  var error = "";
-  for (var i = 0; i < rows.length; i++) {
-    var keyInput = rows[i].querySelector(".cextra-key");
-    var valueInput = rows[i].querySelector(".cextra-value");
-    var key = keyInput ? keyInput.value.trim() : "";
-    var value = valueInput ? valueInput.value.trim() : "";
-    if (!key && !value) continue;
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) { error = "Invalid attribute name: " + key; break; }
-    if (!value) { error = "Attribute '" + key + "' has no value."; break; }
-    extra[key] = value;
-  }
-  var msg = document.getElementById("cextrattrs-msg");
-  if (error) { msg.textContent = error; return; }
-  snap("chart attributes");
-  n.chartExtra = extra;
-  closeChartExtraCfg();
-  setOut();
-  autoPreview();
-  renderInspector();
-}
 var chartSettingsNode = null;
 var chartSettingsProjectKind = null;
 var CHART_PROJECT_DEFAULT_KEYS = [
-  "styleExpr", "chartTheme", "chartColorPicker", "chartPointSize", "chartInteractive",
+  "styleExpr", "chartTheme", "chartColorPicker", "chartPointSize", "chartPointWidth", "chartInteractive",
   "chartStateMode", "chartStateHints", "chartShowResources", "chartShowProgress",
   "chartProgressColumn", "chartShowSlack", "chartShowCosts", "chartShowNonWorkingDays",
   "chartStatusColors", "chartAutoSchedule", "chartGanttScale", "chartLinkColor",
@@ -12015,6 +11919,7 @@ function openChartSettings(n, projectKind) {
   });
   tv.value = n.chartTableView === "gantt" ? "chart" : (n.chartTableView || "chart");
   document.getElementById("cs-pointsize").value = n.chartPointSize || "3";
+  document.getElementById("cs-pointwidth").value = n.chartPointWidth || "48";
   document.getElementById("cs-interactive").checked = !!n.chartInteractive;
   document.getElementById("cs-state-edit").checked = n.chartStateMode !== "static";
   document.getElementById("cs-state-hints").checked = n.chartStateHints !== false;
@@ -12082,6 +11987,11 @@ function openDataFromChartSettings() {
   closeChartSettings();
   openChartDataEditor(n);
 }
+function openChartElementHintsFromSettings() {
+  var n = chartSettingsNode;
+  if (!n) return;
+  openChartElementHints(n);
+}
 function chartSettingsStyleCss(n, base) {
   var parts = chartTableCssWithoutVars(chartTooltipCssWithoutVars(base).join("; "));
   var ttBg = document.getElementById("cs-tt-bg").value || "#111827";
@@ -12122,6 +12032,7 @@ function chartSettingsValues(n) {
   v.chartTheme = document.getElementById("cs-theme").value === "light" ? "light" : "dark";
   v.chartColorPicker = document.getElementById("cs-colorpicker").checked;
   v.chartPointSize = document.getElementById("cs-pointsize").value || "3";
+  v.chartPointWidth = document.getElementById("cs-pointwidth").value || "48";
   v.chartInteractive = document.getElementById("cs-interactive").checked;
   v.chartStateMode = document.getElementById("cs-state-edit").checked ? "editing" : "static";
   v.chartStateHints = document.getElementById("cs-state-hints").checked;

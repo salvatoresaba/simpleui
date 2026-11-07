@@ -180,10 +180,12 @@ const guiE2EScript = `<script>
     apply.click();
     await wait(1000);
     if (document.getElementById('out').value.indexOf('stateHintOpacity: "0.4"') < 0) throw new Error('hint opacity not applied');
-    var cancel = Array.prototype.slice.call(document.querySelectorAll('#csettings .pfbtns button')).filter(function (b) { return b.textContent.trim() === 'Cancel'; })[0];
-    if (cancel) cancel.click();
-    await wait(400);
-    var elementButton = Array.prototype.slice.call(document.querySelectorAll('#inspector button')).filter(function (b) { return b.textContent.trim() === 'Element hints...'; })[0];
+    // Element hints now live in Chart settings -> Data.
+    var dataTab = document.querySelector('#csettings .cset-tab[data-cset="data"]');
+    if (!dataTab) throw new Error('chart settings data tab missing');
+    dataTab.click();
+    await wait(150);
+    var elementButton = Array.prototype.slice.call(document.querySelectorAll('#csettings button')).filter(function (b) { return b.textContent.trim() === 'Edit hints...'; })[0];
     if (!elementButton) throw new Error('Element hints button not found');
     elementButton.click();
     await wait(400);
@@ -196,6 +198,9 @@ const guiE2EScript = `<script>
     elementApply.click();
     await wait(1000);
     if (document.getElementById('out').value.indexOf('E2E|LINE') < 0) throw new Error('element hint not applied');
+    var settingsCancel = Array.prototype.slice.call(document.querySelectorAll('#csettings .pfbtns button')).filter(function (b) { return b.textContent.trim() === 'Cancel'; })[0];
+    if (settingsCancel) settingsCancel.click();
+    await wait(400);
     var typeSelect = null;
     var selects = document.querySelectorAll('#inspector select');
     for (var s = 0; s < selects.length; s++) {

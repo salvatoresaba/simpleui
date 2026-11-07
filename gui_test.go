@@ -404,6 +404,10 @@ func TestGuiProjectThemeBodies(t *testing.T) {
 		`"--sui-link"`,
 		`"--sui-accordion-hover-bg"`,
 		`.pp-items { display:flex; flex-wrap:wrap;`,
+		`.pp-groups { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));`,
+		`.pp-group { margin:0; padding:10px 12px 12px; border:1px solid var(--border);`,
+		`#prefbox select, #compcfg select, #projprefs select {`,
+		`#projprefs-theme-name-row input {`,
 		`var items = document.createElement("div"); items.className = "pp-items";`,
 		`"pp-item btn"`,
 	} {

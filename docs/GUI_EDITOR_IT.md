@@ -1111,40 +1111,40 @@ tree](../examples/tree/README.md).
 
 Inserire **Chart** da **Controls**. Un nuovo grafico parte come barre con dati
 CSV di esempio, riempie il contenitore (`width: "100%"`, `height: "100%"`) e usa
-`overflow: "scroll"`. La tabella resta nascosta finché **table view** non viene
+`overflow: "scroll"`. La tabella resta nascosta finché **Mode** non viene
 impostata su `table` o `both`.
 
-L'inspector dedicato **Chart** espone:
+L'inspector dedicato **Chart** è ordinato per accesso rapido:
 
 | Campo | Significato |
 |---|---|
-| type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell o Gantt; nel sorgente l'attributo e `chartType` perche `type` e riservato. I diagrammi a blocchi usano il controllo separato **Graph** |
-| data | pulsante che apre il pannello overlay spostabile e ridimensionabile dei dati |
-| x field / y field | colonne label e numerica; vuote = rilevamento automatico |
-| point width | pixel orizzontali per punto in modalita scroll |
-| point size | raggio dei punti dati in pixel (1-24, default 3) |
+| type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell o Gantt; nel sorgente l'attributo è `chartType` perché `type` è riservato. I diagrammi a blocchi usano il controllo separato **Graph** |
+| Mode | solo grafico, tabella accessibile, oppure entrambi; ex **table view**, disponibile per ogni tipo |
+| settings | apre il pannello unificato **Chart settings** (aspetto, punti, tooltip, tabella, interazioni, element hints e campi dati) |
 | bins | numero bucket dell'istogramma (1-100) |
 | min / max | intervallo gauge (default 0-100) |
 | interactive | abilita tooltip, hover/selezione e modifica Gantt |
-| table view | solo grafico, tabella accessibile, oppure entrambi; ogni tipo |
-| initial zoom | zoom iniziale della modalita zoom (0.5-4; timeline Gantt 0.5-24) |
-| overflow | Scrollbars, Zoom controls o Fit to frame |
 | show grid / show legend / show values | toggle di presentazione |
-| preset | 14 preset colore classici piu un preset per ogni famiglia di tema (Light/Dark) che scrivono variabili CSS in `style expr` |
+| preset | 14 preset colore classici più un preset per ogni famiglia di tema (Light/Dark) che scrivono variabili CSS in `style expr` |
+| x field / y field | colonne label e numerica; vuote = rilevamento automatico. Un hint mostra righe e serie rilevate |
+| edit data | pulsante in fondo che apre il pannello overlay spostabile e ridimensionabile dei dati |
+
+**Point size** e **point width** sono in **Chart settings → Points**.
+**Element hints** e i campi X/Y sono anche in **Chart settings → Data**.
+Il pulsante separato **Chart attributes** è stato rimosso; gli attributi
+sconosciuti già presenti nel sorgente vengono comunque preservati quando il
+designer riscrive il file. `overflow` e `initial zoom` non sono più campi
+dell'inspector: le scrollbar compaiono normalmente quando la cornice è più
+piccola del grafico.
 
 L'inspector **Chart** dipende dal tipo: i campi non utilizzabili vengono nascosti.
 
 - **bins** solo per histogram;
 - **min/max** solo per gauge;
-- **x field** nascosto per gauge e histogram;
-- **y field** nascosto per gauge;
-- **point width** nascosto per pie, donut, radar, gauge, funnel, treemap, bullet, dumbbell e Gantt;
-- **point size** visibile solo per line, step, smooth, area, scatter, combo, radar e dumbbell;
-- **table view** disponibile per ogni tipo di grafico;
-- **show grid** nascosto per pie, donut, radar, gauge, funnel, heatmap, treemap e bullet;
-- **show legend** nascosto per gauge e funnel;
-- **show values** nascosto per pie, donut, scatter, gauge e radar.
-
+- **x/y field** nascosti per gauge, histogram, Gantt e state;
+- **show grid** nascosto per pie, donut, radar, gauge, funnel, heatmap, treemap, bullet e state;
+- **show legend** nascosto per gauge, funnel e state;
+- **show values** nascosto per pie, donut, scatter, gauge, radar e state.
 Cambiando **type** i campi visibili si aggiornano subito. Se `chartType` �
 un'espressione, tutti i campi restano visibili e la compatibilit� viene
 controllata a runtime.
@@ -1217,7 +1217,7 @@ weekend/festivi; la validazione delle date resta attiva. L'overlay
 **Calendar...** nel menu del grafico aggiunge festività e intervalli di chiusura;
 il calendario è salvato per grafico e ricalcola subito la durata effettiva.
 
-**table view** è disponibile per ogni grafico e mostra una tabella nativa
+**Mode** è disponibile per ogni grafico e mostra una tabella nativa
 accessibile, oppure la affianca al grafico. Il Gantt usa Task, WBS parent, Start,
 End, Deadline, Actual start/end, Duration, Effective duration, Remaining,
 Progress, Work, Work done, Milestone, Status, Group, Resources, Depends on, Link,
@@ -1245,7 +1245,7 @@ combo Constraint e il suo filtro mostrano sempre tutti i sette tipi con etichett
 descrittive, anche quando tutte le righe usano `ASAP`; gli altri tipi usano Label più le serie o colonne
 specifiche.
 
-Con **table view** impostata su **both**, ogni grafico aggancia una tabella di
+Con **Mode** impostata su **both**, ogni grafico aggancia una tabella di
 altezza fissa in basso: il grafico si riduce, la tabella occupa tutta la
 larghezza e resta allineata al bordo inferiore del controllo. Trascinando il
 separatore sopra la tabella si imposta l'altezza; il valore è salvato per chart.
@@ -1297,17 +1297,16 @@ slider di opacità, quindi non serve un pulsante trasparente separato; scrive gl
 attributi chart `stateHint*`. Ogni forma/link
 accetta un campo `hint`, modificabile dalla colonna **Hint** della tabella o dal
 menu contestuale **Hint settings...**; usare `|` per andare a capo e `\|` per una
-pipe letterale. **Element hints...** nell'inspector del chart elenca tutti gli stati e link nei
+pipe letterale. **Element hints** in **Chart settings → Data** elenca tutti gli stati e link nei
 dati JSON, CSV o XML (incluso un documento letterale contenuto in uno state
 semplice come `data`) e modifica tag e hint con campi a riga singola (`|` va a
 capo, `\|` è una pipe letterale). Riscrive i dati; il CSV richiede una riga di
 intestazione con `id`/`label` oppure `from`/`to` più le colonne `tag`/`hint`, che
 vengono aggiunte se mancanti. Le espressioni calcolate usano ancora l'editor dati.
 Gli attributi chart non esposti dall'inspector (griglia, routing, stili tag/link,
-...) vengono preservati alla lettera quando il documento viene aperto e salvato;
-usa **Chart attributes...** nell'inspector del chart per modificarli senza
-lasciare il designer.
-Con la tabella visibile, selezionando un elemento nel diagramma la
+...) vengono preservati alla lettera quando il documento viene aperto e salvato.
+Il pannello separato **Chart attributes** è stato rimosso; usare le opzioni
+supportate del pannello chart settings.Con la tabella visibile, selezionando un elemento nel diagramma la
 riga corrispondente riceve focus ed evidenziazione (tab **Links** per i link).
 
 La griglia usa `stateGridGap` come lato cella e distanza minima tra linee, con
@@ -1467,12 +1466,12 @@ grafico include tutte le righe; Settings esporta le righe e colonne visibili.
 
 **Chart settings** apre il pannello unificato con tab Appearance, Points, Tooltip,
 Table, Interactions e Data. Controlla tema dark/light, **Editable colors**
-(color picker on/off), preset, point size, tooltip, tabella, **Column filters**
+(color picker on/off), preset, point size e point width, tooltip, tabella, **Column filters**
 on/off, modalità interactive, **Critical path**, **Auto schedule**, **Holidays**, **Weekend**,
 **Timezone**, **Link color**, **Link width** (default `1px`), **Min link gap**
 (default `4px`), **Line style**,
-**Arrow**, **Arrow size**, **Bar border** e **Bar border color**, oltre ai campi
-x/y. Apply scrive attributi e variabili
+**Arrow**, **Arrow size**, **Bar border** e **Bar border color**; la tab Data
+contiene i campi x/y e **Element hints**. Apply scrive attributi e variabili
 `--sui-chart-tooltip-*` / `--sui-chart-table-*` insieme. I temi dark e light
 usano token espliciti; i colori di selezione sono condivisi e le tonalità focus
 si adattano allo sfondo del tema. Un click sul campione colore di una serie
