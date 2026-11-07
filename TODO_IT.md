@@ -46,6 +46,11 @@ Completati di recente:
       Standard Light/Dark.
 - [x] Filtro del pannello Problems per classi runtime, keyframe, blocchi `:root`
       e override di stato/pseudo-elementi.
+- [x] Inspector chart semplificato: type, Mode e Chart settings in alto, dati in
+      fondo, point width nelle impostazioni, pannello attributes rimosso e campi
+      X/Y rimossi a favore della modifica diretta dei dati.
+- [x] Controlli delle preferenze di progetto a tema e card per categoria in una
+      griglia a due colonne.
 
 ## Correzioni di accuratezza
 

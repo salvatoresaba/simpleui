@@ -46,6 +46,11 @@ Recently completed:
       and golden screenshots for Standard Light/Dark.
 - [x] Problems-panel filtering for generated runtime classes, keyframe steps,
       layered `:root` blocks and intentional state/pseudo overrides.
+- [x] Streamlined chart inspector: type, Mode and Chart settings first, data at
+      the bottom, point width in Chart settings, attributes panel removed and
+      X/Y fields removed in favor of editing the data directly.
+- [x] Project preferences themed controls and category cards in a two-column
+      grid.
 
 Known accuracy corrections from the previous TODO:
 
