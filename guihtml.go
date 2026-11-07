@@ -1412,6 +1412,7 @@ RUNNING</div>
 <div id="csettings">
   <div id="csettingsbox">
     <h2 id="csettings-title">Chart settings</h2>
+    <div class="cset-hint" id="csettings-scope" style="display:none"></div>
     <div class="cset-tabs">
       <button class="cset-tab on" data-cset="appearance" onclick="showChartSettingsTab('appearance')">Appearance</button>
       <button class="cset-tab" data-cset="points" onclick="showChartSettingsTab('points')">Points</button>
@@ -2086,7 +2087,7 @@ function newTreeNode() {
   n.styleExpr = treePresetStyleExpr("default");
   return n;
 }
-function newChartNode() {
+function newChartNode(skipDefaults) {
   var n = newNode("chart");
   n.text = "Chart";
   n.chartType = "bar";
@@ -2153,6 +2154,7 @@ function newChartNode() {
   n.chartLegend = true;
   n.chartValues = false;
   n.styleExpr = chartPresetStyleExpr("default");
+  if (!skipDefaults) applyChartDefaultsToNode(n, "chart");
   return n;
 }
 function isChartKind(n) {
@@ -2161,8 +2163,8 @@ function isChartKind(n) {
 function isGraphKind(n) {
   return !!n && n.kind === "graph";
 }
-function newGraphNode() {
-  var n = newChartNode();
+function newGraphNode(skipDefaults) {
+  var n = newChartNode(true);
   n.kind = "graph";
   n.text = "Graph";
   n.chartType = "state";
@@ -2174,6 +2176,7 @@ function newGraphNode() {
   n.chartHeight = "100%";
   n.chartTableView = "chart";
   n.chartTableEdit = false;
+  if (!skipDefaults) applyChartDefaultsToNode(n, "graph");
   return n;
 }
 function newNodeForKind(kind) {
@@ -11747,6 +11750,51 @@ function applyChartExtraCfg() {
   renderInspector();
 }
 var chartSettingsNode = null;
+var chartSettingsProjectKind = null;
+var CHART_PROJECT_DEFAULT_KEYS = [
+  "styleExpr", "chartTheme", "chartColorPicker", "chartPointSize", "chartInteractive",
+  "chartStateMode", "chartStateHints", "chartShowResources", "chartShowProgress",
+  "chartProgressColumn", "chartShowSlack", "chartShowCosts", "chartShowNonWorkingDays",
+  "chartStatusColors", "chartAutoSchedule", "chartGanttScale", "chartLinkColor",
+  "chartLinkWidth", "chartLinkGap", "chartLinkStyle", "chartArrowType", "chartArrowSize",
+  "chartBarBorderColor", "chartTableView", "chartTableFilters", "chartTableAddRow",
+  "chartTableDeleteRow", "chartTableSteppers", "chartTableContextMenu", "chartTableSelection",
+  "chartCriticalPath", "chartHolidays", "chartWeekend", "chartTimezone"
+];
+function readChartProjectDefaults() {
+  if (typeof root === "undefined" || !root) return { chart: null, graph: null };
+  var m = String(root.css || "").match(/\/\* sui-chart-defaults ([\s\S]*?) \*\//);
+  if (!m) return { chart: null, graph: null };
+  try {
+    var v = JSON.parse(decodeURIComponent(m[1]));
+    return { chart: v.chart || null, graph: v.graph || null };
+  } catch (e) {
+    return { chart: null, graph: null };
+  }
+}
+function saveChartProjectDefaults(all) {
+  var clean = String(root.css || "").replace(/\/\* sui-chart-defaults [\s\S]*? \*\//g, "").trim();
+  var payload = encodeURIComponent(JSON.stringify({ chart: all.chart || null, graph: all.graph || null }));
+  root.css = (clean ? clean + "\n" : "") + "/* sui-chart-defaults " + payload + " */";
+}
+function applyChartDefaultsToNode(n, kind) {
+  var all = readChartProjectDefaults();
+  var defs = all[kind];
+  if (!defs) return;
+  CHART_PROJECT_DEFAULT_KEYS.forEach(function(k){ if (defs[k] !== undefined) n[k] = defs[k]; });
+}
+function applyChartProjectDefaultsToNodes(kind, defs) {
+  if (!defs) return;
+  function walk(nodes) {
+    (nodes || []).forEach(function(n){
+      if ((kind === "graph" && n.kind === "graph") || (kind === "chart" && n.kind === "chart")) {
+        CHART_PROJECT_DEFAULT_KEYS.forEach(function(k){ if (defs[k] !== undefined) n[k] = defs[k]; });
+      }
+      if (n.children) walk(n.children);
+    });
+  }
+  walk(root.children || []);
+}
 function showChartSettingsTab(name) {
   document.querySelectorAll(".cset-tab").forEach(function(b) { b.classList.toggle("on", b.getAttribute("data-cset") === name); });
   document.querySelectorAll("#csettings .cset-pane").forEach(function(p) { p.classList.toggle("on", p.getAttribute("data-pane") === name); });
@@ -11771,9 +11819,28 @@ function openGraphRuntimeSettings(n) {
   // fallback so the button is never inert.
   openChartSettings(n);
 }
-function openChartSettings(n) {
+function openChartProjectSettings(kind) {
+  var n = kind === "graph" ? newGraphNode() : newChartNode();
+  openChartSettings(n, kind);
+}
+function openChartSettings(n, projectKind) {
   chartSettingsNode = n;
-  document.getElementById("csettings-title").textContent = isGraphKind(n) ? "Graph settings" : "Chart settings";
+  chartSettingsProjectKind = projectKind || null;
+  var projectMode = !!chartSettingsProjectKind;
+  document.getElementById("csettings-title").textContent = projectMode
+    ? (chartSettingsProjectKind === "graph" ? "Project graph defaults" : "Project chart defaults")
+    : (isGraphKind(n) ? "Graph settings" : "Chart settings");
+  var scope = document.getElementById("csettings-scope");
+  if (scope) {
+    scope.style.display = projectMode ? "" : "none";
+    scope.textContent = projectMode
+      ? "Applies appearance and interaction settings to every " + (chartSettingsProjectKind === "graph" ? "graph" : "chart") + " in the project. Chart data and type stay per element."
+      : "";
+  }
+  var dataTab = document.querySelector('.cset-tab[data-cset="data"]');
+  var dataPane = document.querySelector('.cset-pane[data-pane="data"]');
+  if (dataTab) dataTab.style.display = projectMode ? "none" : "";
+  if (dataPane) dataPane.style.display = projectMode ? "none" : "";
   var theme = document.getElementById("cs-theme");
   theme.value = n.chartTheme === "light" ? "light" : "dark";
   document.getElementById("cs-colorpicker").checked = n.chartColorPicker !== false;
@@ -11845,6 +11912,13 @@ function openChartSettings(n) {
 function closeChartSettings() {
   document.getElementById("csettings").classList.remove("on");
   chartSettingsNode = null;
+  chartSettingsProjectKind = null;
+  var scope = document.getElementById("csettings-scope");
+  if (scope) scope.style.display = "none";
+  var dataTab = document.querySelector('.cset-tab[data-cset="data"]');
+  var dataPane = document.querySelector('.cset-pane[data-pane="data"]');
+  if (dataTab) dataTab.style.display = "";
+  if (dataPane) dataPane.style.display = "";
 }
 function openDataFromChartSettings() {
   var n = chartSettingsNode;
@@ -11881,53 +11955,75 @@ function chartSettingsStyleCss(n, base) {
   parts.push("--sui-chart-table-header-position: " + (document.getElementById("cs-tb-sticky").checked ? "sticky" : "static"));
   return parts.join("; ");
 }
+function chartSettingsValues(n) {
+  var css = chartStyleCss(n);
+  if (css === null) return null;
+  var presetKey = document.getElementById("cs-preset").value;
+  var base = presetKey === "custom" ? css : chartPresetCss(presetKey);
+  var v = {};
+  v.styleExpr = "cssSafe(" + JSON.stringify(chartSettingsStyleCss(n, base)) + ")";
+  v.chartTheme = document.getElementById("cs-theme").value === "light" ? "light" : "dark";
+  v.chartColorPicker = document.getElementById("cs-colorpicker").checked;
+  v.chartPointSize = document.getElementById("cs-pointsize").value || "3";
+  v.chartInteractive = document.getElementById("cs-interactive").checked;
+  v.chartStateMode = document.getElementById("cs-state-edit").checked ? "editing" : "static";
+  v.chartStateHints = document.getElementById("cs-state-hints").checked;
+  v.chartShowResources = document.getElementById("cs-gantt-resources").checked;
+  v.chartShowProgress = document.getElementById("cs-gantt-progress").checked;
+  v.chartProgressColumn = document.getElementById("cs-gantt-progress-column").checked;
+  v.chartShowSlack = document.getElementById("cs-gantt-slack").checked;
+  v.chartShowCosts = document.getElementById("cs-gantt-costs").checked;
+  v.chartShowNonWorkingDays = document.getElementById("cs-gantt-shownonworking").checked;
+  v.chartStatusColors = document.getElementById("cs-gantt-statuscolors").checked;
+  v.chartAutoSchedule = document.getElementById("cs-gantt-autoschedule").checked;
+  v.chartGanttScale = document.getElementById("cs-gantt-scale").value || "auto";
+  v.chartLinkColor = document.getElementById("cs-gantt-linkcolor").value || "#94a3b8";
+  v.chartLinkWidth = document.getElementById("cs-gantt-linkwidth").value || "1";
+  v.chartLinkGap = document.getElementById("cs-gantt-linkgap").value || "4";
+  v.chartLinkStyle = document.getElementById("cs-gantt-linkstyle").value || "auto";
+  v.chartArrowType = document.getElementById("cs-gantt-arrowtype").value || "triangle";
+  v.chartArrowSize = document.getElementById("cs-gantt-arrowsize").value || "5";
+  v.chartBarBorderColor = document.getElementById("cs-gantt-barborder-enable").checked ? document.getElementById("cs-gantt-barborder").value : "";
+  v.chartTableView = document.getElementById("cs-tableview").value || "chart";
+  v.chartTableFilters = document.getElementById("cs-tb-filters").checked;
+  v.chartTableAddRow = document.getElementById("cs-tb-addrow").checked;
+  v.chartTableDeleteRow = document.getElementById("cs-tb-deleterow").checked;
+  v.chartTableSteppers = document.getElementById("cs-tb-steppers").checked;
+  v.chartTableContextMenu = document.getElementById("cs-tb-contextmenu").checked;
+  v.chartTableSelection = document.getElementById("cs-tb-selection").value || "row";
+  v.chartCriticalPath = document.getElementById("cs-critical").checked;
+  v.chartHolidays = document.getElementById("cs-holidays").value.trim();
+  v.chartWeekend = document.getElementById("cs-weekend").value.trim();
+  v.chartTimezone = document.getElementById("cs-timezone").value.trim();
+  v.chartX = document.getElementById("cs-x").value || "";
+  v.chartY = document.getElementById("cs-y").value || "";
+  return v;
+}
 function applyChartSettings() {
   var n = chartSettingsNode;
   if (!n) return;
-  var css = chartStyleCss(n);
-  if (css === null) {
+  var values = chartSettingsValues(n);
+  if (!values) {
     alert("This chart uses a custom style expression. Edit it manually in Appearance.");
     return;
   }
-  var presetKey = document.getElementById("cs-preset").value;
-  var base = presetKey === "custom" ? css : chartPresetCss(presetKey);
+  var projectKind = chartSettingsProjectKind;
+  if (projectKind) {
+    var defs = {};
+    CHART_PROJECT_DEFAULT_KEYS.forEach(function(k){ if (values[k] !== undefined) defs[k] = values[k]; });
+    var all = readChartProjectDefaults();
+    all[projectKind] = defs;
+    saveChartProjectDefaults(all);
+    applyChartProjectDefaultsToNodes(projectKind, defs);
+    closeChartSettings();
+    setOut();
+    autoPreview();
+    renderInspector();
+    setStatus("project " + projectKind + " defaults applied");
+    return;
+  }
   snap("chart settings");
-  n.styleExpr = "cssSafe(" + JSON.stringify(chartSettingsStyleCss(n, base)) + ")";
-  n.chartTheme = document.getElementById("cs-theme").value === "light" ? "light" : "dark";
-  n.chartColorPicker = document.getElementById("cs-colorpicker").checked;
-  n.chartPointSize = document.getElementById("cs-pointsize").value || "3";
-  n.chartInteractive = document.getElementById("cs-interactive").checked;
-  n.chartStateMode = document.getElementById("cs-state-edit").checked ? "editing" : "static";
-  n.chartStateHints = document.getElementById("cs-state-hints").checked;
-  n.chartShowResources = document.getElementById("cs-gantt-resources").checked;
-  n.chartShowProgress = document.getElementById("cs-gantt-progress").checked;
-  n.chartProgressColumn = document.getElementById("cs-gantt-progress-column").checked;
-  n.chartShowSlack = document.getElementById("cs-gantt-slack").checked;
-  n.chartShowCosts = document.getElementById("cs-gantt-costs").checked;
-  n.chartShowNonWorkingDays = document.getElementById("cs-gantt-shownonworking").checked;
-  n.chartStatusColors = document.getElementById("cs-gantt-statuscolors").checked;
-  n.chartAutoSchedule = document.getElementById("cs-gantt-autoschedule").checked;
-  n.chartGanttScale = document.getElementById("cs-gantt-scale").value || "auto";
-  n.chartLinkColor = document.getElementById("cs-gantt-linkcolor").value || "#94a3b8";
-  n.chartLinkWidth = document.getElementById("cs-gantt-linkwidth").value || "1";
-  n.chartLinkGap = document.getElementById("cs-gantt-linkgap").value || "4";
-  n.chartLinkStyle = document.getElementById("cs-gantt-linkstyle").value || "auto";
-  n.chartArrowType = document.getElementById("cs-gantt-arrowtype").value || "triangle";
-  n.chartArrowSize = document.getElementById("cs-gantt-arrowsize").value || "5";
-  n.chartBarBorderColor = document.getElementById("cs-gantt-barborder-enable").checked ? document.getElementById("cs-gantt-barborder").value : "";
-  n.chartTableView = document.getElementById("cs-tableview").value || "chart";
-  n.chartTableFilters = document.getElementById("cs-tb-filters").checked;
-  n.chartTableAddRow = document.getElementById("cs-tb-addrow").checked;
-  n.chartTableDeleteRow = document.getElementById("cs-tb-deleterow").checked;
-  n.chartTableSteppers = document.getElementById("cs-tb-steppers").checked;
-  n.chartTableContextMenu = document.getElementById("cs-tb-contextmenu").checked;
-  n.chartTableSelection = document.getElementById("cs-tb-selection").value || "row";
-  n.chartCriticalPath = document.getElementById("cs-critical").checked;
-  n.chartHolidays = document.getElementById("cs-holidays").value.trim();
-  n.chartWeekend = document.getElementById("cs-weekend").value.trim();
-  n.chartTimezone = document.getElementById("cs-timezone").value.trim();
-  n.chartX = document.getElementById("cs-x").value || "";
-  n.chartY = document.getElementById("cs-y").value || "";
+  Object.keys(values).forEach(function(k){ n[k] = values[k]; });
   closeChartSettings();
   setOut();
   autoPreview();
@@ -11936,6 +12032,12 @@ function applyChartSettings() {
 function resetChartSettings() {
   var n = chartSettingsNode;
   if (!n) return;
+  if (chartSettingsProjectKind) {
+    var kind = chartSettingsProjectKind;
+    var fresh = kind === "graph" ? newGraphNode(true) : newChartNode(true);
+    openChartSettings(fresh, kind);
+    return;
+  }
   var css = chartStyleCss(n);
   if (css === null) {
     alert("This chart uses a custom style expression. Edit it manually in Appearance.");
@@ -14496,6 +14598,7 @@ function projectThemeGroups() {
   COMPONENT_GROUPS.forEach(function(g){
     if (COMPONENT_DEFS.some(function(d){ return d.group === g; }) && out.indexOf(g) < 0) out.push(g);
   });
+  if (out.indexOf("Charts") < 0) out.push("Charts");
   if (out.indexOf("General") < 0) out.push("General");
   return out;
 }
@@ -14590,6 +14693,22 @@ function renderProjectPreferences() {
   var groups = __projPrefsGroup === "All" ? projectThemeGroups().filter(function(g){ return g !== "All"; }) : [__projPrefsGroup];
   if (groups.length === 1) grid.className += " single";
   groups.forEach(function(group){
+    if (group === "Charts") {
+      var sec = document.createElement("div");
+      sec.className = "pp-group";
+      var h = document.createElement("h3"); h.textContent = "Charts"; sec.appendChild(h);
+      [["chart", "Chart"], ["graph", "Graph"]].forEach(function(pair){
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "pp-item";
+        var l = document.createElement("span"); l.textContent = pair[1] + " defaults";
+        var k = document.createElement("span"); k.className = "pp-kind"; k.textContent = pair[0];
+        b.appendChild(l); b.appendChild(k);
+        b.onclick = function(){ openChartProjectSettings(pair[0]); };
+        sec.appendChild(b);
+      });
+      grid.appendChild(sec);
+      return;
+    }
     if (group === "General") {
       var sec = document.createElement("div");
       sec.className = "pp-group";
@@ -14615,7 +14734,7 @@ function renderProjectPreferences() {
   });
   var note = document.createElement("div");
   note.className = "pp-note";
-  note.textContent = "Component defaults apply to every instance. Themes apply a shared style to all controls at once. Element settings override them for one element. Chart, graph and media controls keep their specialised inspectors.";
+  note.textContent = "Component defaults apply to every instance. Themes apply a shared style to all controls at once. Chart and graph defaults use their own settings panel; media controls keep specialised inspectors. Element settings override project values for one element.";
   grid.appendChild(note);
   box.appendChild(grid);
 }

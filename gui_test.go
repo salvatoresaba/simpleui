@@ -385,6 +385,30 @@ func TestGuiComponentPresets(t *testing.T) {
 	}
 }
 
+func TestGuiChartProjectDefaults(t *testing.T) {
+	for _, want := range []string{
+		`id="csettings-scope"`,
+		`CHART_PROJECT_DEFAULT_KEYS`,
+		`function readChartProjectDefaults`,
+		`function saveChartProjectDefaults`,
+		`function applyChartDefaultsToNode`,
+		`function applyChartProjectDefaultsToNodes`,
+		`function openChartProjectSettings`,
+		`function chartSettingsValues`,
+		`function openChartSettings(n, projectKind)`,
+		`Project chart defaults`,
+		`Project graph defaults`,
+		`sui-chart-defaults`,
+		`h.textContent = "Charts"`,
+		`openChartProjectSettings(pair[0])`,
+		`data-cset="data"`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("chart project defaults support missing %q", want)
+		}
+	}
+}
+
 func TestGuiHistorySettingsParsing(t *testing.T) {
 	auto, interval, keep := parseGuiHistorySettings(`{}`)
 	if !auto || interval != time.Minute || keep != guiVersionKeep {

@@ -376,6 +376,17 @@ track, thumb, thumb hover and border. The shared themes set the scrollbar palett
 consistently with the other components, and the panel preview contains a
 scrollable sample.
 
+### Chart and graph project defaults
+
+**Project preferences → Charts** contains **Chart defaults** and **Graph
+defaults**. They open the same unified chart/graph settings panel used by the
+inspector, with project scope. Applying writes the appearance and interaction
+settings to every chart or graph in the project and to newly inserted ones:
+theme, style preset, point size, tooltip, table, Gantt, links and interaction
+options. Chart data, type and X/Y bindings stay per element, and the Data tab is
+hidden in this mode. The defaults are stored in a managed
+`/* sui-chart-defaults ... */` comment in the project CSS.
+
 ### Element overrides
 
 Select an element and press **Settings...** in the inspector banner. The same

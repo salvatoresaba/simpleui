@@ -391,6 +391,17 @@ Firefox, track, thumb, hover del thumb e bordo. I temi condivisi impostano la
 palette delle scrollbar in modo coerente con gli altri componenti e l'anteprima
 del pannello contiene un esempio scorrevole.
 
+### Default di progetto per chart e graph
+
+**Project preferences → Charts** contiene **Chart defaults** e **Graph
+defaults**. Aprono lo stesso pannello unificato di chart/graph usato
+dall'inspector, con ambito di progetto. Applicando vengono scritti aspetto e
+interazione su ogni chart o graph del progetto e su quelli inseriti in seguito:
+tema, preset, dimensione punti, tooltip, tabella, Gantt, link e interazioni. I
+dati, il tipo e i binding X/Y restano per singolo elemento, e la tab Data è
+nascosta in questa modalità. I default sono salvati in un commento gestito
+`/* sui-chart-defaults ... */` nel CSS di progetto.
+
 ### Override dell'elemento
 
 Selezionare un elemento e premere **Settings...** nel banner dell'inspector. Si

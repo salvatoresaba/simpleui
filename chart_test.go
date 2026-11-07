@@ -18,11 +18,11 @@ const chartLiteralSource = `view main {
 `
 
 func TestChartDesignerDefaultsFillContainer(t *testing.T) {
-	start := strings.Index(guiHTML, "function newChartNode() {")
+	start := strings.Index(guiHTML, "function newChartNode(")
 	if start < 0 {
 		t.Fatal("newChartNode not found in designer HTML")
 	}
-	end := strings.Index(guiHTML[start:], "function newGraphNode() {")
+	end := strings.Index(guiHTML[start:], "function newGraphNode(")
 	if end < 0 {
 		t.Fatal("newGraphNode boundary not found after newChartNode")
 	}
