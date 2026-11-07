@@ -1427,14 +1427,15 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
 .sui-view {
   width: 100%;
   margin: 0 auto;
-  background: #1b1f27;
+  background: var(--sui-panel, #1b1f27);
+  color: var(--sui-fg, #e6e6e6);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--sui-ac-shadow, 0 4px 18px rgba(0, 0, 0, 0.45));
 }
 
-h1, h2, h3 {
-  color: #f2f4f6;
+h1, h2, h3, h4, h5, h6 {
+  color: var(--sui-fg, #f2f4f6);
   line-height: 1.3;
 }
 
@@ -1460,16 +1461,16 @@ p { line-height: 1.6; }
 .spacer { height: 16px; }
 
 button {
-  background: #2d3340;
-  color: #e6e6e6;
-  border: 1px solid #3d4556;
+  background: var(--sui-button-bg, #2d3340);
+  color: var(--sui-button-fg, #e6e6e6);
+  border: 1px solid var(--sui-button-border, #3d4556);
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
 }
 
-:where(button):hover { background: #3a4356; }
+:where(button):hover { background: var(--sui-button-hover, #3a4356); }
 
 input {
   background: var(--sui-bg);
@@ -1500,7 +1501,7 @@ input {
 .sui-ac-item:hover, .sui-ac-item.active { background: var(--sui-hover); }
 
 a {
-  color: #7db3ff;
+  color: var(--sui-accent, #7db3ff);
   text-decoration: none;
 }
 
@@ -1508,7 +1509,8 @@ a {
 
 code, pre {
   font-family: ui-monospace, "SF Mono", Consolas, Menlo, monospace;
-  background: #10131a;
+  background: var(--sui-panel2, #10131a);
+  color: var(--sui-fg, #e6e6e6);
   border-radius: 6px;
   padding: 2px 6px;
 }
@@ -1529,16 +1531,16 @@ table {
 
 thead th {
   text-align: left;
-  color: #f2f4f6;
-  background: #202732;
-  border-bottom: 2px solid #3d4556;
+  color: var(--sui-fg, #f2f4f6);
+  background: var(--sui-panel, #202732);
+  border-bottom: 2px solid var(--sui-border, #3d4556);
 }
 
 th, td {
   padding: 10px 14px;
   min-width: 90px;
   min-height: 36px;
-  border: 1px solid #262c38;
+  border: 1px solid var(--sui-border, #262c38);
   vertical-align: middle;
 }
 
@@ -1553,7 +1555,7 @@ table[data-sui-editable] td, table[data-sui-editable] th { cursor: text; }
 table[data-sui-editable] td:focus, table[data-sui-editable] th:focus { outline: 2px solid #4c5cf7; outline-offset: -2px; background: var(--sui-table-focus-bg, rgba(76,92,247,.10)); }
 table[data-sui-editable] td, table[data-sui-editable] th { -webkit-tap-highlight-color: transparent; }
 table[data-sui-editable] ::selection { background: rgba(76,92,247,.22); color: inherit; }
-.sui-cell-pop { position: fixed; z-index: 9999; max-width: 420px; background: #202732; color: #f2f4f6; border: 1px solid #3d4556; border-radius: 8px; padding: 8px 10px; box-shadow: 0 8px 22px rgba(0,0,0,.45); font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.sui-cell-pop { position: fixed; z-index: 9999; max-width: 420px; background: var(--sui-panel, #202732); color: var(--sui-fg, #f2f4f6); border: 1px solid var(--sui-border, #3d4556); border-radius: 8px; padding: 8px 10px; box-shadow: var(--sui-ac-shadow, 0 8px 22px rgba(0,0,0,.45)); font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
 .sui-iframe-error { padding: 10px 14px; border: 1px solid #a33; border-radius: 8px; background: #2b1719; color: #ffb4b4; font-size: 13px; line-height: 1.4; }
 /* Drag and drop: the runtime toggles these classes on the current source and
    drop target. The error is inserted as a sibling with textContent. */
@@ -1569,7 +1571,7 @@ table[data-sui-editable] ::selection { background: rgba(76,92,247,.22); color: i
   flex-wrap: wrap;
   gap: 2px;
   padding: 4px;
-  background: #1d2129;
+  background: var(--sui-panel, #1d2129);
   border: 1px solid var(--sui-border);
   border-radius: var(--sui-radius);
   position: relative;
@@ -1633,7 +1635,7 @@ table[data-sui-editable] ::selection { background: rgba(76,92,247,.22); color: i
 }
 .sui-menu-popup .sui-menu > .sui-menu-button::after {
   content: "\25B8";
-  color: #8fa0b8;
+  color: var(--sui-muted, #8fa0b8);
   font-size: 10px;
   margin-left: 12px;
 }

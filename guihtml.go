@@ -488,13 +488,15 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #projprefs-theme-row label { font-size:12px; color:var(--muted); min-width:48px; }
 #projprefs-theme-row select { min-width:280px; max-width:100%; }
 #projprefs-tabs { padding:0 20px; }
-.pp-groups { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px 22px; }
-.pp-groups.single { grid-template-columns:1fr; }
-.pp-group h3 { margin:0 0 5px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
-.pp-item { display:flex; align-items:center; gap:8px; width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--fg); font:inherit; font-size:12.5px; text-align:left; cursor:pointer; margin:0 0 4px; }
+.pp-groups { display:block; }
+.pp-groups.single { display:block; }
+.pp-group { margin:0 0 14px; }
+.pp-group h3 { margin:0 0 6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+.pp-items { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 220px)); gap:6px; justify-content:start; }
+.pp-item { display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; min-width:0; padding:7px 9px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--fg); font:inherit; font-size:12.5px; text-align:left; cursor:pointer; margin:0; }
 .pp-item:hover { background:var(--btn-hover); border-color:var(--border2); }
-.pp-item .pp-kind { margin-left:auto; font-size:10px; color:var(--muted); font-family:ui-monospace, Consolas, monospace; }
-.pp-note { grid-column:1 / -1; color:var(--muted); font-size:11.5px; line-height:1.5; }
+.pp-item .pp-kind { margin-left:0; font-size:9.5px; line-height:1.2; color:var(--muted); font-family:ui-monospace, Consolas, monospace; white-space:normal; overflow-wrap:anywhere; }
+.pp-note { color:var(--muted); font-size:11.5px; line-height:1.5; }
 #compcfg { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #compcfg.on { display:flex; }
 #compcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:700px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -14818,6 +14820,7 @@ function renderProjectPreferences() {
       var sec = document.createElement("div");
       sec.className = "pp-group";
       var h = document.createElement("h3"); h.textContent = "Charts"; sec.appendChild(h);
+      var items = document.createElement("div"); items.className = "pp-items";
       [["chart", "Chart"], ["graph", "Graph"]].forEach(function(pair){
         var b = document.createElement("button");
         b.type = "button"; b.className = "pp-item";
@@ -14825,8 +14828,9 @@ function renderProjectPreferences() {
         var k = document.createElement("span"); k.className = "pp-kind"; k.textContent = pair[0];
         b.appendChild(l); b.appendChild(k);
         b.onclick = function(){ openChartProjectSettings(pair[0]); };
-        sec.appendChild(b);
+        items.appendChild(b);
       });
+      sec.appendChild(items);
       grid.appendChild(sec);
       return;
     }
@@ -14834,14 +14838,16 @@ function renderProjectPreferences() {
       var sec = document.createElement("div");
       sec.className = "pp-group";
       var h = document.createElement("h3"); h.textContent = "General"; sec.appendChild(h);
-      COMPONENT_DEFS.filter(function(d){ return d.group === "General"; }).forEach(function(def){ appendProjectItem(sec, def); });
+      var items = document.createElement("div"); items.className = "pp-items";
+      COMPONENT_DEFS.filter(function(d){ return d.group === "General"; }).forEach(function(def){ appendProjectItem(items, def); });
       var tb = document.createElement("button");
       tb.type = "button"; tb.className = "pp-item";
       var tl = document.createElement("span"); tl.textContent = "Tooltips";
       var tk = document.createElement("span"); tk.className = "pp-kind"; tk.textContent = "global";
       tb.appendChild(tl); tb.appendChild(tk);
       tb.onclick = function(){ openTooltipCfg(); };
-      sec.appendChild(tb);
+      items.appendChild(tb);
+      sec.appendChild(items);
       grid.appendChild(sec);
       return;
     }
@@ -14850,7 +14856,9 @@ function renderProjectPreferences() {
     var sec = document.createElement("div");
     sec.className = "pp-group";
     var h = document.createElement("h3"); h.textContent = group; sec.appendChild(h);
-    defs.forEach(function(def){ appendProjectItem(sec, def); });
+    var items = document.createElement("div"); items.className = "pp-items";
+    defs.forEach(function(def){ appendProjectItem(items, def); });
+    sec.appendChild(items);
     grid.appendChild(sec);
   });
   var note = document.createElement("div");

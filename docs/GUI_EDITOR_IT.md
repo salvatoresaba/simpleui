@@ -349,10 +349,11 @@ nell'interfaccia e valori espliciti per le dichiarazioni una tantum.
 Aprire **Preferences → Project preferences.** per impostare i default di ogni
 istanza di un componente nel progetto. Il pannello ha un combo **Theme** sopra le
 tab delle categorie. Le tab sono **All**, **Feedback**, **Layout**, **Form**,
-**Navigation**, **Data**, **Overlay** e **General**. Il combo Theme applica uno
-stile condiviso a tutti i controlli in una sola volta, incluse le scrollbar,
-invece di configurare ogni componente a mano. Scegliendo **Custom** i valori
-correnti restano invariati.
+**Navigation**, **Data**, **Overlay**, **Charts** e **General**. In ogni tab i
+pulsanti dei componenti sono disposti come una tabella compatta, dimensionata
+sul testo. Il combo Theme applica uno stile condiviso a tutti i controlli in una
+sola volta, incluse le scrollbar, invece di configurare ogni componente a mano.
+Scegliendo **Custom** i valori correnti restano invariati.
 
 Ogni componente apre lo stesso pannello di configurazione usato dalle
 impostazioni dell'elemento. Il pannello segue il layout delle preferenze
@@ -380,10 +381,13 @@ Light/Dark e Geometric Light/Dark. Applicando un tema vengono scritti tutti i
 default di tutti i controlli, aggiornati i blocchi CSS gestiti, applicate le
 regole delle scrollbar e impostato il **punto di partenza della pagina**
 (`--sui-bg`, `--sui-fg`, bordi e hover di base). Un tema chiaro parte quindi da
-un body chiaro e un tema scuro da un body scuro. La famiglia **Standard** offre
-**Standard Light** e **Standard Dark**, che mantengono la forma di default di
-ogni controllo. Modificando poi un componente il combo Theme passa a **Custom**,
-quindi e sempre chiaro se il progetto segue ancora un unico tema. Un nuovo
+un body chiaro e un tema scuro da un body scuro. Anche gli elementi base seguono
+le stesse variabili: superficie della view, titoli, link, blocchi di codice,
+intestazioni delle tabelle, menu bar e pulsanti semplici cambiano con il tema. La
+famiglia **Standard** offre **Standard Light** e **Standard Dark**, che mantengono
+la forma di default di ogni controllo. Modificando poi un componente il combo
+Theme passa a **Custom**, quindi e sempre chiaro se il progetto segue ancora un
+unico tema. Un nuovo
 progetto parte da **Standard Dark**; scegliendo **Standard Light** passano allo
 stile chiaro sia la pagina sia i controlli.
 

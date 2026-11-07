@@ -40,6 +40,32 @@ func htmlSampleSrc() string {
 		"}\n"
 }
 
+func TestBaseElementsUseThemeVariables(t *testing.T) {
+	for _, want := range []string{
+		`.sui-view {`,
+		`background: var(--sui-panel, #1b1f27);`,
+		`color: var(--sui-fg, #e6e6e6);`,
+		`h1, h2, h3, h4, h5, h6 {`,
+		`color: var(--sui-fg, #f2f4f6);`,
+		`button {`,
+		`background: var(--sui-button-bg, #2d3340);`,
+		`color: var(--sui-button-fg, #e6e6e6);`,
+		`:where(button):hover { background: var(--sui-button-hover, #3a4356); }`,
+		`a {`,
+		`color: var(--sui-accent, #7db3ff);`,
+		`code, pre {`,
+		`background: var(--sui-panel2, #10131a);`,
+		`thead th {`,
+		`background: var(--sui-panel, #202732);`,
+		`.sui-menubar {`,
+		`background: var(--sui-panel, #1d2129);`,
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("base theme variable missing %q", want)
+		}
+	}
+}
+
 func TestHtmlPageTitle(t *testing.T) {
 	prog, dl := ParseSource(htmlSampleSrc(), "t.sui")
 	if dl.Count() != 0 {
