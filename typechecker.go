@@ -2917,7 +2917,7 @@ func isAllowedTag(tag string) bool {
 func eventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
-		"onRename", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onRename", "onCheck", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
@@ -2969,11 +2969,14 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "tree" && (key == "name" || key == "value" || key == "editable" || key == "editableDepth" ||
-		key == "renameKey" || key == "renameValue" || key == "renameIcon" || key == "showRenameIcon") {
+		key == "renameKey" || key == "renameValue" || key == "renameIcon" || key == "showRenameIcon" ||
+		key == "guides" || key == "truncate" || key == "checkbox" || key == "counts" || key == "rowHeight" ||
+		key == "icon" || key == "iconOpen") {
 		return true
 	}
 	if tag == "treeitem" && (key == "key" || key == "open" || key == "editable" ||
-		key == "renameIcon" || key == "showRenameIcon") {
+		key == "renameIcon" || key == "showRenameIcon" || key == "icon" || key == "iconOpen" ||
+		key == "badge" || key == "badgeType" || key == "meta" || key == "checked") {
 		return true
 	}
 	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
@@ -3463,6 +3466,57 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 			t := c.inferExpr(a.expr)
 			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
 				c.diagAt(a.span, "editable must be a bool, got "+typeStr(t))
+			}
+		}
+		return
+	}
+	if tag == "tree" && a.key == "rowHeight" {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "int" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, "rowHeight must be an integer, got "+typeStr(t))
+			}
+		} else if n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text))); err != nil || n < 12 || n > 120 {
+			c.diagAt(a.span, "rowHeight must be an integer between 12 and 120")
+		}
+		return
+	}
+	if tag == "tree" && (a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts") {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, a.key+" must be a bool, got "+typeStr(t))
+			}
+		}
+		return
+	}
+	if tag == "treeitem" && a.key == "checked" {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, "checked must be a bool, got "+typeStr(t))
+			}
+		}
+		return
+	}
+	if (tag == "tree" || tag == "treeitem") && (a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "meta") {
+		if a.hasExpr {
+			c.inferExpr(a.expr)
+		} else {
+			c.checkViewParts(a.text)
+		}
+		return
+	}
+	if tag == "treeitem" && a.key == "badgeType" {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "string" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, "badgeType must be a string, got "+typeStr(t))
+			}
+		} else {
+			v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+			if v != "neutral" && v != "info" && v != "success" && v != "warning" && v != "danger" {
+				c.diagAt(a.span, "badgeType must be neutral, info, success, warning or danger")
 			}
 		}
 		return

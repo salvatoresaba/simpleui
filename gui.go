@@ -1897,7 +1897,7 @@ func guiElementsFromNodes(nodes []ViewNode, viewNames map[string]bool) JVal {
 func isEventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
-		"onRename", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onRename", "onCheck", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
@@ -2144,6 +2144,22 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			o.obj["placeholder"] = JStr(partsLiteral(a.text))
 		} else if a.key == "empty" {
 			o.obj["empty"] = JStr(partsLiteral(a.text))
+		} else if a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" {
+			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if a.key == "rowHeight" {
+			if a.hasExpr && a.expr != nil {
+				o.obj[a.key] = JStr(exprSource(a.expr))
+			} else {
+				o.obj[a.key] = JStr(partsLiteral(a.text))
+			}
+		} else if a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" {
+			if a.hasExpr && a.expr != nil {
+				o.obj[a.key] = JStr(exprSource(a.expr))
+			} else {
+				o.obj[a.key] = JStr(partsLiteral(a.text))
+			}
+		} else if a.key == "checked" && e.tag == "treeitem" {
+			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "key" {
 			o.obj["key"] = JStr(partsLiteral(a.text))
 		} else if a.key == "open" {

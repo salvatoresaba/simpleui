@@ -16,6 +16,8 @@ const suiTreeRuntime = `(function(){
   var MAX_LABEL = 2000;
   var MAX_KEY = 512;
   var MAX_ICON = 64;
+  var MAX_BADGE = 128;
+  var MAX_META = 256;
   function treeText(v) { return v === null || v === undefined ? '' : String(v); }
   function treeName(root) {
     return root.getAttribute('data-sui-tree-name') || root.getAttribute('data-sui-tree-key') || 'tree';
@@ -78,13 +80,29 @@ const suiTreeRuntime = `(function(){
   }
   function init(root) {
     if (!root || root.__suiTree) return;
+    var treeKey = root.getAttribute('data-sui-tree-key') || 'tree';
+    var guides = root.getAttribute('data-sui-tree-guides') === '1';
+    var checkboxes = root.getAttribute('data-sui-tree-checkbox') === '1';
+    var counts = root.getAttribute('data-sui-tree-counts') === '1';
+    var treeIcon = root.getAttribute('data-sui-tree-icon') || '';
+    var treeIconOpen = root.getAttribute('data-sui-tree-icon-open') || '';
+    var rowHeight = parseInt(root.getAttribute('data-sui-tree-row-height') || '', 10);
+    if (!isNaN(rowHeight) && rowHeight >= 12 && rowHeight <= 120) {
+      root.style.setProperty('--sui-tree-row-height', rowHeight + 'px');
+    }
     var imported = store[treeName(root)];
-    if (imported) renderNodes(root, imported);
+    if (imported) {
+      renderNodes(root, imported, {
+        guides: guides, checkbox: checkboxes, counts: counts,
+        icon: treeIcon, iconOpen: treeIconOpen
+      });
+    }
     root.__suiTree = true;
     var hidden = root.querySelector('.sui-tree-value');
     if (!hidden) return;
     var setter = root.getAttribute('data-sui-tree-setter') || '';
     var handler = root.getAttribute('data-sui-tree-onchange') || '';
+    var checkHandler = root.getAttribute('data-sui-tree-oncheck') || '';
     var renameKeySetter = root.getAttribute('data-sui-tree-rename-key-setter') || '';
     var renameValueSetter = root.getAttribute('data-sui-tree-rename-value-setter') || '';
     var renameHandler = root.getAttribute('data-sui-tree-onrename') || '';
@@ -96,11 +114,19 @@ const suiTreeRuntime = `(function(){
     var items = Array.prototype.slice.call(root.querySelectorAll('[data-sui-tree-item]'));
     if (!items.length) return;
     var current = hidden.value || '';
-    var treeKey = root.getAttribute('data-sui-tree-key') || 'tree';
     var editing = null;
     var selectionTimer = null;
     var pendingItem = null;
+    var checkedStore = {};
+    if (checkboxes) {
+      try {
+        var rawChecked = localStorage.getItem('sui.tree.checked.' + treeKey);
+        var parsedChecked = rawChecked ? JSON.parse(rawChecked) : null;
+        if (parsedChecked && typeof parsedChecked === 'object' && !Array.isArray(parsedChecked)) checkedStore = parsedChecked;
+      } catch (e) { checkedStore = {}; }
+    }
     if (!root.getAttribute('aria-label')) root.setAttribute('aria-label', treeKey);
+    if (checkboxes) root.setAttribute('aria-multiselectable', 'true');
 
     function itemLabelEl(item) {
       return item.querySelector('.sui-tree-label');
@@ -225,6 +251,97 @@ const suiTreeRuntime = `(function(){
         if (handler && typeof window[handler] === 'function') window[handler]();
       }
     }
+    function itemCheck(item) {
+      var row = itemRow(item);
+      if (!row) return null;
+      for (var i = 0; i < row.children.length; i++) {
+        if (row.children[i].classList && row.children[i].classList.contains('sui-tree-check')) return row.children[i];
+      }
+      return null;
+    }
+    function childItems(item) {
+      var group = itemGroup(item);
+      var out = [];
+      if (!group) return out;
+      for (var i = 0; i < group.children.length; i++) {
+        var ch = group.children[i];
+        if (ch.hasAttribute && ch.hasAttribute('data-sui-tree-item')) out.push(ch);
+      }
+      return out;
+    }
+    function checkStateText(v) {
+      return v === true ? 'true' : v === 'mixed' ? 'mixed' : 'false';
+    }
+    function applyCheckState(item, state) {
+      item.__suiChecked = state;
+      var txt = checkStateText(state);
+      item.setAttribute('aria-checked', txt);
+      var box = itemCheck(item);
+      if (box) box.setAttribute('aria-checked', txt);
+    }
+    function recomputeUp(item) {
+      var kids = childItems(item);
+      if (!kids.length) {
+        if (item.__suiChecked === undefined) item.__suiChecked = item.getAttribute('data-sui-checked') === '1';
+        applyCheckState(item, item.__suiChecked === true);
+        return item.__suiChecked === true;
+      }
+      var all = true, none = true;
+      for (var i = 0; i < kids.length; i++) {
+        var v = recomputeUp(kids[i]);
+        if (v !== true) all = false;
+        if (v !== false) none = false;
+      }
+      var state = all ? true : (none ? false : 'mixed');
+      applyCheckState(item, state);
+      return state === true;
+    }
+    function setCheckedDeep(item, value) {
+      applyCheckState(item, value === true);
+      var kids = childItems(item);
+      for (var i = 0; i < kids.length; i++) setCheckedDeep(kids[i], value);
+    }
+    function saveCheckedState() {
+      var data = {};
+      for (var i = 0; i < items.length; i++) {
+        var p = items[i].getAttribute('data-sui-path') || '';
+        data[p] = items[i].__suiChecked === true ? 1 : 0;
+      }
+      try { localStorage.setItem('sui.tree.checked.' + treeKey, JSON.stringify(data)); } catch (e) {}
+    }
+    function notifyCheck() {
+      if (checkHandler && typeof window[checkHandler] === 'function') window[checkHandler]();
+    }
+    function toggleCheck(item) {
+      if (!checkboxes) return;
+      var next = item.__suiChecked !== true;
+      setCheckedDeep(item, next);
+      var parent = parentItem(item, root);
+      while (parent) {
+        recomputeUp(parent);
+        parent = parentItem(parent, root);
+      }
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].__suiChecked === undefined) recomputeUp(items[i]);
+      }
+      saveCheckedState();
+      notifyCheck();
+    }
+    function initChecks() {
+      if (!checkboxes) return;
+      for (var i = 0; i < items.length; i++) {
+        var p = items[i].getAttribute('data-sui-path') || '';
+        if (Object.prototype.hasOwnProperty.call(checkedStore, p)) {
+          items[i].__suiChecked = checkedStore[p] === 1 || checkedStore[p] === true || checkedStore[p] === '1';
+        } else {
+          items[i].__suiChecked = items[i].getAttribute('data-sui-checked') === '1';
+        }
+      }
+      // Recompute every root so parents derive their state from children.
+      for (var j = 0; j < items.length; j++) {
+        if (!parentItem(items[j], root)) recomputeUp(items[j]);
+      }
+    }
     function renameIconFor(item) {
       var itemShow = item.getAttribute('data-sui-show-rename-icon') || 'inherit';
       var show = itemShow === '1' ? true : itemShow === '0' ? false : showTreeRenameIcon;
@@ -242,9 +359,24 @@ const suiTreeRuntime = `(function(){
       var labelEl = itemLabelEl(item);
       var stored = storedLabel(root, item.getAttribute('data-sui-path') || '');
       if (labelEl && stored !== null) labelEl.textContent = stored;
+      if (labelEl) {
+        var tip = item.getAttribute('data-sui-tooltip') || '';
+        labelEl.title = tip || labelEl.textContent;
+      }
       item.__suiEditable = editableFor(item);
       item.classList.toggle('sui-tree-editable', item.__suiEditable);
       item.setAttribute('aria-readonly', item.__suiEditable ? 'false' : 'true');
+      if (checkboxes) {
+        var checkBox = itemCheck(item);
+        if (checkBox) {
+          checkBox.addEventListener('mousedown', function(ev) { ev.stopPropagation(); });
+          checkBox.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            toggleCheck(item);
+          });
+        }
+      }
       var group = itemGroup(item);
       if (group) {
         var path = item.getAttribute('data-sui-path') || '';
@@ -369,10 +501,12 @@ const suiTreeRuntime = `(function(){
           else if (parent) focusItem(parent);
         } else if (ev.key === 'Enter' || ev.key === ' ') {
           ev.preventDefault();
-          select(item, true);
+          if (ev.key === ' ' && checkboxes) toggleCheck(item);
+          else select(item, true);
         }
       });
     });
+    initChecks();
     var selected = null;
     items.forEach(function(item) {
       if ((item.getAttribute('data-sui-key') || '') === current) selected = item;
@@ -452,6 +586,39 @@ const suiTreeRuntime = `(function(){
         node.renameIcon = icon;
       }
       if (obj.showRenameIcon !== undefined) node.showRenameIcon = triValue(obj.showRenameIcon, "showRenameIcon");
+      if (obj.checked !== undefined) node.checked = boolValue(obj.checked, false);
+      if (obj.icon !== undefined) {
+        var iconText = treeText(obj.icon);
+        if (iconText.length > MAX_ICON) throw new Error("icon is too long (limit " + MAX_ICON + ")");
+        node.icon = iconText;
+      }
+      if (obj.iconOpen !== undefined) {
+        var iconOpenText = treeText(obj.iconOpen);
+        if (iconOpenText.length > MAX_ICON) throw new Error("iconOpen is too long (limit " + MAX_ICON + ")");
+        node.iconOpen = iconOpenText;
+      }
+      if (obj.badge !== undefined) {
+        var badgeText = treeText(obj.badge);
+        if (badgeText.length > MAX_BADGE) throw new Error("badge is too long (limit " + MAX_BADGE + ")");
+        node.badge = badgeText;
+      }
+      if (obj.badgeType !== undefined) {
+        var badgeType = treeText(obj.badgeType).toLowerCase();
+        if (badgeType !== "" && ["neutral", "info", "success", "warning", "danger"].indexOf(badgeType) < 0) {
+          throw new Error("badgeType must be neutral, info, success, warning or danger");
+        }
+        node.badgeType = badgeType;
+      }
+      if (obj.meta !== undefined) {
+        var metaText = treeText(obj.meta);
+        if (metaText.length > MAX_META) throw new Error("meta is too long (limit " + MAX_META + ")");
+        node.meta = metaText;
+      }
+      if (obj.tooltip !== undefined) {
+        var tooltipText = treeText(obj.tooltip);
+        if (tooltipText.length > MAX_LABEL) throw new Error("tooltip is too long (limit " + MAX_LABEL + ")");
+        node.tooltip = tooltipText;
+      }
     } else if (raw !== null && raw !== undefined && typeof raw === "object") {
       throw new Error("node must be a string or an object");
     }
@@ -500,7 +667,7 @@ const suiTreeRuntime = `(function(){
     if (label) o.label = label;
     var key = el.getAttribute("key");
     if (key) o.key = key;
-    var attrs = ["open", "editable", "showRenameIcon"];
+    var attrs = ["open", "editable", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "tooltip"];
     for (var i = 0; i < attrs.length; i++) {
       var v = el.getAttribute(attrs[i]);
       if (v !== null) o[attrs[i]] = v;
@@ -536,7 +703,8 @@ const suiTreeRuntime = `(function(){
     var ctx = { count: 0, keys: Object.create(null) };
     return normalizeNodes(raw, "", 0, ctx);
   }
-  function makeNode(node, path, level) {
+  function makeNode(node, path, level, opts) {
+    opts = opts || {};
     var li = document.createElement("li");
     li.className = "sui-tree-item";
     li.setAttribute("data-sui-tree-item", "1");
@@ -547,12 +715,26 @@ const suiTreeRuntime = `(function(){
     li.setAttribute("data-sui-show-rename-icon", node.showRenameIcon || "inherit");
     li.setAttribute("data-sui-rename-icon", node.renameIcon || "");
     li.setAttribute("data-sui-open", node.open ? "1" : "0");
+    li.setAttribute("data-sui-icon", node.icon || "");
+    li.setAttribute("data-sui-badge", node.badge || "");
+    li.setAttribute("data-sui-badge-type", node.badgeType || "neutral");
+    li.setAttribute("data-sui-meta", node.meta || "");
+    li.setAttribute("data-sui-checked", node.checked === true ? "1" : node.checked === false ? "0" : "");
+    if (node.tooltip) li.setAttribute("data-sui-tooltip", node.tooltip);
     li.setAttribute("role", "treeitem");
     li.setAttribute("aria-level", String(level));
     li.setAttribute("aria-selected", "false");
     li.setAttribute("tabindex", "-1");
     var row = document.createElement("div");
     row.className = "sui-tree-row";
+    if (opts.guides) {
+      for (var g = 1; g < level; g++) {
+        var guide = document.createElement("span");
+        guide.className = "sui-tree-guide";
+        guide.setAttribute("aria-hidden", "true");
+        row.appendChild(guide);
+      }
+    }
     if (node.children && node.children.length) {
       var toggle = document.createElement("button");
       toggle.type = "button";
@@ -567,10 +749,49 @@ const suiTreeRuntime = `(function(){
       spacer.className = "sui-tree-spacer";
       row.appendChild(spacer);
     }
+    if (opts.checkbox) {
+      var check = document.createElement("span");
+      check.className = "sui-tree-check";
+      check.setAttribute("role", "checkbox");
+      check.setAttribute("aria-checked", node.checked === true ? "true" : "false");
+      check.setAttribute("tabindex", "-1");
+      check.setAttribute("aria-label", "Toggle " + node.label);
+      row.appendChild(check);
+      li.setAttribute("aria-checked", node.checked === true ? "true" : "false");
+    }
+    var icon = node.icon || opts.icon || "";
+    if (node.open && node.iconOpen) icon = node.iconOpen;
+    else if (node.open && opts.iconOpen) icon = opts.iconOpen;
+    if (icon) {
+      var iconEl = document.createElement("span");
+      iconEl.className = "sui-tree-icon";
+      iconEl.setAttribute("aria-hidden", "true");
+      iconEl.textContent = icon;
+      row.appendChild(iconEl);
+    }
     var label = document.createElement("span");
     label.className = "sui-tree-label";
     label.textContent = node.label;
+    label.title = node.tooltip || node.label;
     row.appendChild(label);
+    if (node.badge) {
+      var badge = document.createElement("span");
+      badge.className = "sui-tree-badge sui-tree-badge-" + (node.badgeType || "neutral");
+      badge.textContent = node.badge;
+      row.appendChild(badge);
+    }
+    if (opts.counts && node.children && node.children.length) {
+      var countBadge = document.createElement("span");
+      countBadge.className = "sui-tree-badge sui-tree-badge-count";
+      countBadge.textContent = String(node.children.length);
+      row.appendChild(countBadge);
+    }
+    if (node.meta) {
+      var meta = document.createElement("span");
+      meta.className = "sui-tree-meta";
+      meta.textContent = node.meta;
+      row.appendChild(meta);
+    }
     li.appendChild(row);
     if (node.children && node.children.length) {
       var group = document.createElement("ul");
@@ -578,7 +799,7 @@ const suiTreeRuntime = `(function(){
       group.setAttribute("role", "group");
       if (!node.open) group.hidden = true;
       for (var i = 0; i < node.children.length; i++) {
-        group.appendChild(makeNode(node.children[i], path + "." + i, level + 1));
+        group.appendChild(makeNode(node.children[i], path + "." + i, level + 1, opts));
       }
       li.appendChild(group);
     }
@@ -594,14 +815,14 @@ const suiTreeRuntime = `(function(){
     root.appendChild(group);
     return group;
   }
-  function renderNodes(root, nodes) {
+  function renderNodes(root, nodes, opts) {
     var group = rootGroup(root);
     while (group.firstChild) group.removeChild(group.firstChild);
-    for (var i = 0; i < nodes.length; i++) group.appendChild(makeNode(nodes[i], String(i), 1));
+    for (var i = 0; i < nodes.length; i++) group.appendChild(makeNode(nodes[i], String(i), 1, opts || {}));
   }
   function clearTreeStorage(root) {
     var key = root.getAttribute("data-sui-tree-key") || "tree";
-    var prefixes = ["sui.tree." + key + ".", "sui.tree.label." + key + "."];
+    var prefixes = ["sui.tree." + key + ".", "sui.tree.label." + key + ".", "sui.tree.checked." + key];
     try {
       var remove = [];
       for (var i = 0; i < localStorage.length; i++) {
@@ -645,6 +866,19 @@ const suiTreeRuntime = `(function(){
     if (show === "1" || show === "0") out.showRenameIcon = show === "1";
     var icon = li.getAttribute("data-sui-rename-icon") || "";
     if (icon) out.renameIcon = icon;
+    var itemIcon = li.getAttribute("data-sui-icon") || "";
+    if (itemIcon) out.icon = itemIcon;
+    var badge = li.getAttribute("data-sui-badge") || "";
+    if (badge) {
+      out.badge = badge;
+      var badgeType = li.getAttribute("data-sui-badge-type") || "neutral";
+      if (badgeType !== "neutral") out.badgeType = badgeType;
+    }
+    var meta = li.getAttribute("data-sui-meta") || "";
+    if (meta) out.meta = meta;
+    var tooltip = li.getAttribute("data-sui-tooltip") || "";
+    if (tooltip) out.tooltip = tooltip;
+    if (li.hasAttribute("aria-checked")) out.checked = li.getAttribute("aria-checked") === "true";
     if (group) {
       out.children = [];
       for (var i = 0; i < group.children.length; i++) {
@@ -677,6 +911,15 @@ const suiTreeRuntime = `(function(){
       if (n.editable !== undefined) attrs += " editable=\"" + (n.editable ? "true" : "false") + "\"";
       if (n.showRenameIcon !== undefined) attrs += " showRenameIcon=\"" + (n.showRenameIcon ? "true" : "false") + "\"";
       if (n.renameIcon) attrs += " renameIcon=\"" + xmlEscape(n.renameIcon) + "\"";
+      if (n.icon) attrs += " icon=\"" + xmlEscape(n.icon) + "\"";
+      if (n.iconOpen) attrs += " iconOpen=\"" + xmlEscape(n.iconOpen) + "\"";
+      if (n.badge) {
+        attrs += " badge=\"" + xmlEscape(n.badge) + "\"";
+        if (n.badgeType) attrs += " badgeType=\"" + xmlEscape(n.badgeType) + "\"";
+      }
+      if (n.meta) attrs += " meta=\"" + xmlEscape(n.meta) + "\"";
+      if (n.tooltip) attrs += " tooltip=\"" + xmlEscape(n.tooltip) + "\"";
+      if (n.checked !== undefined) attrs += " checked=\"" + (n.checked ? "true" : "false") + "\"";
       if (n.children && n.children.length) {
         out.push(indent + "<item" + attrs + ">");
         var kids = xmlNodeLines(n.children, indent + "  ");

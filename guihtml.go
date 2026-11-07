@@ -771,7 +771,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 }
 #treedata { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:14; }
 #treedata.on { display:flex; }
-#treedatabox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:780px; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 14px 50px rgba(0,0,0,.6); overflow:hidden; }
+#treedatabox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:1040px; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 14px 50px rgba(0,0,0,.6); overflow:hidden; }
 #treedata .pref-head { padding:10px 14px; }
 #treedata .td-hint { padding:0 14px 8px; }
 #treedata .td-body { padding:0 14px; display:flex; flex-direction:column; gap:8px; min-height:0; }
@@ -784,6 +784,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .td-row input[type=text] { background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:4px 6px; font-size:12px; min-width:0; }
 .td-row .td-label { flex:1; }
 .td-row .td-key { width:120px; }
+.td-row .td-icon { width:54px; }
+.td-row .td-badge { width:74px; }
+.td-row .td-meta { width:110px; }
+.td-row .td-label { min-width:140px; }
 .td-row .td-check { display:flex; align-items:center; gap:3px; font-size:11px; color:var(--muted); white-space:nowrap; }
 .td-row .td-acts { display:flex; gap:3px; flex:none; }
 .td-row .td-acts button { min-width:24px; height:24px; padding:0 5px; font-size:11px; border:1px solid var(--border2); border-radius:5px; background:var(--input-bg); color:var(--fg); cursor:pointer; }
@@ -1857,8 +1861,8 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "onChange", "onRename"],
-  treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "onChange", "onRename", "onCheck"],
+  treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked"],
   chart: ["text", "name"],
   graph: ["text", "name"],
   modal: ["text", "name"],
@@ -2113,6 +2117,11 @@ function newTreeItemNode(label) {
   n.text = label || "Item";
   n.key = "";
   n.open = false;
+  n.icon = "";
+  n.iconOpen = "";
+  n.badge = "";
+  n.badgeType = "neutral";
+  n.meta = "";
   return n;
 }
 function newTreeNode() {
@@ -2125,6 +2134,13 @@ function newTreeNode() {
   n.value = "";
   n.editable = false;
   n.editableDepth = 0;
+  n.guides = true;
+  n.truncate = true;
+  n.checkbox = false;
+  n.counts = false;
+  n.rowHeight = "";
+  n.icon = "";
+  n.iconOpen = "";
   n.styleExpr = treePresetStyleExpr("default");
   return n;
 }
@@ -4236,7 +4252,7 @@ var ELEMENT_EVENTS = {
   select:   ["onChange", "onFocus", "onBlur", "onClick"],
   combobox: ["onChange"],
   datepicker: ["onChange"],
-  tree:     ["onChange", "onRename"],
+  tree:     ["onChange", "onRename", "onCheck"],
   chart:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
              "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
              "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
@@ -4272,7 +4288,7 @@ Object.keys(ELEMENT_EVENTS).forEach(function(k){
 var EVENT_LABELS = {
   onClick: "onClick", onDoubleClick: "onDoubleClick", onMouseEnter: "onMouseEnter", onMouseLeave: "onMouseLeave",
   onFocus: "onFocus", onBlur: "onBlur", onInput: "onInput", onChange: "onChange",
-  onRename: "onRename", onTaskChange: "onTaskChange", onDataChange: "onDataChange", onCalendarChange: "onCalendarChange", onResourceChange: "onResourceChange", onCommit: "onCommit",
+  onRename: "onRename", onCheck: "onCheck", onTaskChange: "onTaskChange", onDataChange: "onDataChange", onCalendarChange: "onCalendarChange", onResourceChange: "onResourceChange", onCommit: "onCommit",
   onKeyDown: "onKeyDown", onKeyUp: "onKeyUp", onSubmit: "onSubmit", onReset: "onReset",
   onDragStart: "onDragStart", onDragEnter: "onDragEnter", onDragOver: "onDragOver",
   onDragLeave: "onDragLeave", onDrop: "onDrop", onDragEnd: "onDragEnd"
@@ -4695,6 +4711,30 @@ function treeControls(n) {
   var dataHint = document.createElement("div"); dataHint.className = "hint";
   dataHint.textContent = "Edit data opens the tree item editor with JSON/XML import and export. Settings controls colors, shapes, text, title appearance and presets.";
   rows.push(dataHint);
+  function treeSwitch(label, value, key, title) {
+    var r = document.createElement("div"); r.className = "rowline";
+    var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
+    r.appendChild(mkSwitch(!!value, false, function(on){
+      snap("tree " + key); n[key] = on; setOut(); autoPreview();
+    }));
+    if (title) l.title = title;
+    rows.push(r);
+  }
+  treeSwitch("indent guides", n.guides !== false, "guides", "Thin vertical lines and indentation per level");
+  treeSwitch("truncate labels", n.truncate !== false, "truncate", "Ellipsis for long labels; the full label is available as a tooltip");
+  treeSwitch("hierarchical checkboxes", !!n.checkbox, "checkbox", "Tri-state checkboxes with parent/child propagation");
+  treeSwitch("child counts", !!n.counts, "counts", "Show the number of children on parent rows");
+  var rhRow = document.createElement("div"); rhRow.className = "rowline";
+  var rhLabel = document.createElement("label"); rhLabel.textContent = "row height"; rhRow.appendChild(rhLabel);
+  var rhInput = document.createElement("input"); rhInput.type = "number"; rhInput.min = "12"; rhInput.max = "120"; rhInput.step = "1";
+  rhInput.value = n.rowHeight || ""; rhInput.placeholder = "28";
+  rhInput.oninput = function(ev) { snap("tree row height"); n.rowHeight = ev.target.value; setOut(); autoPreview(); };
+  rhRow.appendChild(rhInput); rows.push(rhRow);
+  stateField("default icon", n.icon, "e.g. \u{1F4C1}", "icon");
+  stateField("open icon", n.iconOpen, "e.g. \u{1F4C2}", "iconOpen");
+  var iconHint = document.createElement("div"); iconHint.className = "hint";
+  iconHint.textContent = "Icons are inert text or emoji; each tree item can override them. Badges, metadata and checked state are edited in Tree data.";
+  rows.push(iconHint);
   function stateField(label, value, placeholder, key) {
     var r = document.createElement("div"); r.className = "rowline";
     var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
@@ -4796,6 +4836,16 @@ function treeDataModel(raw, path, depth, ctx) {
     if (obj.editable !== undefined) n.editable = treeBool(obj.editable, false);
     if (obj.showRenameIcon !== undefined) n.showRenameIcon = treeBool(obj.showRenameIcon, false);
     if (obj.renameIcon !== undefined) n.renameIcon = String(obj.renameIcon);
+    if (obj.icon !== undefined) n.icon = String(obj.icon);
+    if (obj.iconOpen !== undefined) n.iconOpen = String(obj.iconOpen);
+    if (obj.badge !== undefined) n.badge = String(obj.badge);
+    if (obj.badgeType !== undefined) {
+      var bt = String(obj.badgeType).toLowerCase();
+      n.badgeType = ["neutral", "info", "success", "warning", "danger"].indexOf(bt) >= 0 ? bt : "neutral";
+    }
+    if (obj.meta !== undefined) n.meta = String(obj.meta);
+    if (obj.tooltip !== undefined) n.tooltip = String(obj.tooltip);
+    if (obj.checked !== undefined) n.checked = treeBool(obj.checked, false);
     var kids = obj.children !== undefined ? obj.children : obj.items;
     if (kids !== undefined && kids !== null && !Array.isArray(kids)) throw new Error("children must be an array");
     if (kids) {
@@ -4817,7 +4867,7 @@ function treeXmlToRaw(el) {
   if (label) o.label = label;
   var key = el.getAttribute("key");
   if (key) o.key = key;
-  var attrs = ["open", "editable", "showRenameIcon", "renameIcon"];
+  var attrs = ["open", "editable", "showRenameIcon", "renameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "tooltip", "checked"];
   for (var i = 0; i < attrs.length; i++) {
     var v = el.getAttribute(attrs[i]);
     if (v !== null) o[attrs[i]] = v;
@@ -4896,6 +4946,15 @@ function treeModelNode(n) {
   if (n.editable === true || n.editable === false) o.editable = n.editable;
   if (n.showRenameIcon === true || n.showRenameIcon === false) o.showRenameIcon = n.showRenameIcon;
   if (n.renameIcon) o.renameIcon = n.renameIcon;
+  if (n.icon) o.icon = n.icon;
+  if (n.iconOpen) o.iconOpen = n.iconOpen;
+  if (n.badge) {
+    o.badge = n.badge;
+    if (n.badgeType && n.badgeType !== "neutral") o.badgeType = n.badgeType;
+  }
+  if (n.meta) o.meta = n.meta;
+  if (n.tooltip) o.tooltip = n.tooltip;
+  if (n.checked === true || n.checked === false) o.checked = n.checked;
   return o;
 }
 function treeXmlEscape(v) {
@@ -4910,6 +4969,15 @@ function treeModelXml(items, indent) {
     if (n.editable !== undefined) attrs += " editable=\"" + (n.editable ? "true" : "false") + "\"";
     if (n.showRenameIcon !== undefined) attrs += " showRenameIcon=\"" + (n.showRenameIcon ? "true" : "false") + "\"";
     if (n.renameIcon) attrs += " renameIcon=\"" + treeXmlEscape(n.renameIcon) + "\"";
+    if (n.icon) attrs += " icon=\"" + treeXmlEscape(n.icon) + "\"";
+    if (n.iconOpen) attrs += " iconOpen=\"" + treeXmlEscape(n.iconOpen) + "\"";
+    if (n.badge) {
+      attrs += " badge=\"" + treeXmlEscape(n.badge) + "\"";
+      if (n.badgeType) attrs += " badgeType=\"" + treeXmlEscape(n.badgeType) + "\"";
+    }
+    if (n.meta) attrs += " meta=\"" + treeXmlEscape(n.meta) + "\"";
+    if (n.tooltip) attrs += " tooltip=\"" + treeXmlEscape(n.tooltip) + "\"";
+    if (n.checked !== undefined) attrs += " checked=\"" + (n.checked ? "true" : "false") + "\"";
     if (n.children && n.children.length) {
       out.push(indent + "<item" + attrs + ">");
       out = out.concat(treeModelXml(n.children, indent + "  "));
@@ -4992,6 +5060,20 @@ function renderTreeDataRows() {
     key.placeholder = "key (optional)";
     key.oninput = function(){ item.key = key.value; };
     r.appendChild(key);
+    function smallInput(cls, value, placeholder, max, setter) {
+      var inp = document.createElement("input");
+      inp.type = "text";
+      inp.className = cls;
+      inp.value = value || "";
+      inp.placeholder = placeholder || "";
+      inp.maxLength = max || 64;
+      inp.oninput = function(){ setter(inp.value); };
+      r.appendChild(inp);
+      return inp;
+    }
+    smallInput("td-icon", item.icon, "icon", 32, function(v){ item.icon = v; });
+    smallInput("td-badge", item.badge, "badge", 64, function(v){ item.badge = v; });
+    smallInput("td-meta", item.meta, "metadata", 160, function(v){ item.meta = v; });
     if (item.children && item.children.length) {
       var openLabel = document.createElement("label");
       openLabel.className = "td-check";
@@ -5003,6 +5085,15 @@ function renderTreeDataRows() {
       openLabel.appendChild(document.createTextNode("open"));
       r.appendChild(openLabel);
     }
+    var checkLabel = document.createElement("label");
+    checkLabel.className = "td-check";
+    var check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = item.checked === true;
+    check.onchange = function(){ item.checked = check.checked; };
+    checkLabel.appendChild(check);
+    checkLabel.appendChild(document.createTextNode("check"));
+    r.appendChild(checkLabel);
     var editLabel = document.createElement("label");
     editLabel.className = "td-check";
     var edit = document.createElement("input");
@@ -6808,6 +6899,36 @@ function treeItemControls(n) {
   var ii2 = document.createElement("input"); ii2.value = n.renameIcon || ""; ii2.placeholder = "inherit / e.g. \u270e"; ii2.maxLength = 16;
   ii2.oninput = function(ev) { snap("treeitem rename icon"); n.renameIcon = ev.target.value; setOut(); autoPreview(); };
   ir2.appendChild(ii2); rows.push(ir2);
+  function itemField(label, value, placeholder, key, max) {
+    var r = document.createElement("div"); r.className = "rowline";
+    var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
+    var i = document.createElement("input"); i.value = value || ""; i.placeholder = placeholder || ""; i.maxLength = max || 128;
+    i.oninput = function(ev) { snap("treeitem " + key); n[key] = ev.target.value; setOut(); autoPreview(); };
+    r.appendChild(i); rows.push(r);
+  }
+  itemField("icon", n.icon, "e.g. \u{1F4C4}", "icon", 32);
+  itemField("open icon", n.iconOpen, "parent icon when open", "iconOpen", 32);
+  itemField("badge", n.badge, "e.g. 12, new, !", "badge", 64);
+  var btr = document.createElement("div"); btr.className = "rowline";
+  var btl = document.createElement("label"); btl.textContent = "badge type"; btr.appendChild(btl);
+  var bts = document.createElement("select");
+  [["neutral", "neutral"], ["info", "info"], ["success", "success"], ["warning", "warning"], ["danger", "danger"]].forEach(function(v) {
+    var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1];
+    if ((n.badgeType || "neutral") === v[0]) o.selected = true;
+    bts.appendChild(o);
+  });
+  bts.onchange = function() { snap("treeitem badge type"); n.badgeType = bts.value; setOut(); autoPreview(); };
+  btr.appendChild(bts); rows.push(btr);
+  itemField("metadata", n.meta, "right-aligned text", "meta", 160);
+  var ckr = document.createElement("div"); ckr.className = "rowline";
+  var ckl = document.createElement("label"); ckl.textContent = "checked"; ckr.appendChild(ckl);
+  ckr.appendChild(mkSwitch(!!n.checked, false, function(on){
+    snap("treeitem checked"); n.checked = on; setOut(); autoPreview();
+  }));
+  rows.push(ckr);
+  var ckHint = document.createElement("div"); ckHint.className = "hint";
+  ckHint.textContent = "Checked state is effective when the tree enables hierarchical checkboxes. Parents derive true, false or mixed from their children.";
+  rows.push(ckHint);
   return acc("Tree item", rows);
 }
 
@@ -9787,6 +9908,12 @@ function attrsOf(n) {
     a += " editable: " + (n.editable ? "true" : "false");
   }
   if (n.kind === "treeitem" && n.renameIcon) a += " renameIcon: \"" + esc(n.renameIcon) + "\"";
+  if (n.kind === "treeitem" && n.icon) a += " icon: \"" + esc(n.icon) + "\"";
+  if (n.kind === "treeitem" && n.iconOpen) a += " iconOpen: \"" + esc(n.iconOpen) + "\"";
+  if (n.kind === "treeitem" && n.badge) a += " badge: \"" + esc(n.badge) + "\"";
+  if (n.kind === "treeitem" && n.badge && n.badgeType && n.badgeType !== "neutral") a += " badgeType: \"" + esc(n.badgeType) + "\"";
+  if (n.kind === "treeitem" && n.meta) a += " meta: \"" + esc(n.meta) + "\"";
+  if (n.kind === "treeitem" && (n.checked === true || n.checked === false)) a += " checked: " + (n.checked ? "true" : "false");
   if (n.kind === "treeitem" && n.showRenameIcon !== undefined && n.showRenameIcon !== null) {
     a += " showRenameIcon: " + (n.showRenameIcon ? "true" : "false");
   }
@@ -9796,6 +9923,13 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.editableDepth) a += " editableDepth: " + n.editableDepth;
   if (n.kind === "tree" && n.renameKey) a += " renameKey: " + n.renameKey;
   if (n.kind === "tree" && n.renameValue) a += " renameValue: " + n.renameValue;
+  if (n.kind === "tree" && n.guides === false) a += " guides: false";
+  if (n.kind === "tree" && n.truncate === false) a += " truncate: false";
+  if (n.kind === "tree" && n.checkbox) a += " checkbox: true";
+  if (n.kind === "tree" && n.counts) a += " counts: true";
+  if (n.kind === "tree" && n.rowHeight && /^\d+$/.test(String(n.rowHeight))) a += " rowHeight: " + n.rowHeight;
+  if (n.kind === "tree" && n.icon) a += " icon: \"" + esc(n.icon) + "\"";
+  if (n.kind === "tree" && n.iconOpen) a += " iconOpen: \"" + esc(n.iconOpen) + "\"";
   if (n.onClick) a += " onClick: " + n.onClick;
   if (n.onDoubleClick) a += " onDoubleClick: " + n.onDoubleClick;
   if (n.onMouseEnter) a += " onMouseEnter: " + n.onMouseEnter;
@@ -9805,6 +9939,7 @@ function attrsOf(n) {
   if (n.onInput) a += " onInput: " + n.onInput;
   if (n.onChange) a += " onChange: " + n.onChange;
   if (n.onRename) a += " onRename: " + n.onRename;
+  if (n.onCheck) a += " onCheck: " + n.onCheck;
   if (n.onKeyDown) a += " onKeyDown: " + n.onKeyDown;
   if (n.onKeyUp) a += " onKeyUp: " + n.onKeyUp;
   if (n.onSubmit) a += " onSubmit: " + n.onSubmit;
@@ -13328,7 +13463,12 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-selected-bg", label: "Selected", type: "color", def: "#2a3560" },
         { key: "--sui-tree-selected-fg", label: "Selected text", type: "color", def: "#ffffff" },
         { key: "--sui-tree-toggle-color", label: "Toggle", type: "color", def: "#94a3b8" },
-        { key: "--sui-tree-border", label: "Border", type: "color", def: "#3d4556" }
+        { key: "--sui-tree-border", label: "Border", type: "color", def: "#3d4556" },
+        { key: "--sui-tree-guide-color", label: "Guide", type: "color", def: "#475569" },
+        { key: "--sui-tree-badge-bg", label: "Badge", type: "color", def: "#2a3143" },
+        { key: "--sui-tree-badge-fg", label: "Badge text", type: "color", def: "#cbd5e1" },
+        { key: "--sui-tree-meta-color", label: "Metadata", type: "color", def: "#94a3b8" },
+        { key: "--sui-tree-check-on", label: "Checkbox", type: "color", def: "#4c5cf7" }
       ]},
       { name: "Title", fields: [
         { key: "--sui-tree-title-size", label: "Title size", type: "number", def: 14, min: 8, max: 40, step: 1, unit: "px" },
@@ -13345,7 +13485,7 @@ var COMPONENT_DEFS = [
       { name: "Shape", fields: [
         { key: "--sui-tree-indent", label: "Indent", type: "number", def: 16, min: 4, max: 48, step: 1, unit: "px" },
         { key: "--sui-tree-padding", label: "Row padding", type: "text", def: "2px 5px" },
-        { key: "--sui-tree-row-height", label: "Row height", type: "number", def: 28, min: 18, max: 64, step: 1, unit: "px" },
+        { key: "--sui-tree-row-height", label: "Row height", type: "number", def: 28, min: 18, max: 120, step: 1, unit: "px" },
         { key: "--sui-tree-radius", label: "Radius", type: "number", def: 5, min: 0, max: 30, step: 1, unit: "px" },
         { key: "--sui-tree-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 8, step: 1, unit: "px" },
         { key: "--sui-tree-border-style", label: "Border style", type: "select", def: "solid", opts: [["Solid", "solid"], ["Dashed", "dashed"], ["Dotted", "dotted"], ["None", "none"]] },

@@ -191,8 +191,122 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 	}
 }
 
+func TestTreePhaseAFeatures(t *testing.T) {
+	src := `state selected = ""
+state checkedCount = 0
+fn checked() -> null {
+}
+view main {
+	tree "Files" name: "files" value: selected checkbox: true counts: true guides: true truncate: true rowHeight: 32 icon: "D" iconOpen: "O" onCheck: checked {
+		treeitem "src" key: "src" open: true icon: "F" iconOpen: "O" badge: "12" badgeType: "info" meta: "2 KB" checked: true {
+			treeitem "main.go" key: "main" icon: "f" badge: "new" badgeType: "success" meta: "1 KB" checked: true
+		}
+		treeitem "README.md" key: "readme" meta: "4 KB"
+	}
+}
+`
+	prog, dl := ParseSource(src, "tree_phase_a.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`data-sui-tree-guides="1"`, `data-sui-tree-checkbox="1"`,
+		`data-sui-tree-counts="1"`, `data-sui-tree-row-height="32"`,
+		`data-sui-tree-icon="D"`, `data-sui-tree-icon-open="O"`,
+		`data-sui-tree-oncheck="checked"`, `data-sui-icon="O"`,
+		`data-sui-badge="12"`, `data-sui-badge-type="info"`,
+		`data-sui-meta="2 KB"`, `data-sui-checked="1"`,
+		`sui-tree-guide`, `sui-tree-check`, `aria-checked="true"`,
+		`sui-tree-badge-info`, `class="sui-tree-meta"`, `title="src"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("phase A tree markup missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`sui-tree-check`, `aria-checked`, `sui.tree.checked.`,
+		`recomputeUp`, `setCheckedDeep`, `sui-tree-guide`,
+		`MAX_BADGE`, `badgeType must be neutral`,
+	} {
+		if !strings.Contains(suiTreeRuntime, want) {
+			t.Errorf("phase A runtime missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`--sui-tree-row-height`, `--sui-tree-guide-color`,
+		`--sui-tree-badge-bg`, `--sui-tree-check-on`,
+		`.sui-tree-badge-info`, `.sui-tree-meta`,
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("phase A tree CSS missing %q", want)
+		}
+	}
+}
+
+func TestTreePhaseABadges(t *testing.T) {
+	bad := "view main {\n\ttreeitem \"Bad\" badgeType: \"loud\"\n}\n"
+	prog, dl := ParseSource(bad, "tree_badge.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); !cd.HasErrors() {
+		t.Fatalf("invalid badgeType must be rejected")
+	}
+}
+
+func TestTreePhaseADesigner(t *testing.T) {
+	src := `view main {
+	tree "Files" guides: false truncate: false checkbox: true counts: true rowHeight: 30 icon: "D" iconOpen: "O" onCheck: checked {
+		treeitem "src" icon: "F" iconOpen: "O" badge: "2" badgeType: "warning" meta: "1 KB" checked: true
+	}
+}
+fn checked() -> null {
+}
+`
+	prog, dl := ParseSource(src, "tree_designer.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	model := StringifyJson(guiModelJson(prog))
+	for _, want := range []string{
+		`"guides":false`, `"truncate":false`, `"checkbox":true`, `"counts":true`,
+		`"rowHeight":"30"`, `"icon":"D"`, `"iconOpen":"O"`, `"onCheck":"checked"`,
+		`"badge":"2"`, `"badgeType":"warning"`, `"meta":"1 KB"`, `"checked":true`,
+	} {
+		if !strings.Contains(model, want) {
+			t.Errorf("designer model missing %q: %s", want, model)
+		}
+	}
+	out := viewNodesSource(prog.views[0].body, 1)
+	for _, want := range []string{
+		`guides: false`, `truncate: false`, `checkbox: true`, `counts: true`,
+		`rowHeight: 30`, `icon: "D"`, `iconOpen: "O"`, `onCheck: checked`,
+		`badge: "2"`, `badgeType: "warning"`, `meta: "1 KB"`, `checked: true`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("designer source missing %q:\n%s", want, out)
+		}
+	}
+	for _, want := range []string{
+		`"indent guides"`, `"hierarchical checkboxes"`, `"child counts"`,
+		`"default icon"`, `"open icon"`, `"badge type"`, `"metadata"`,
+		`--sui-tree-guide-color`, `.td-row .td-icon`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("designer phase A support missing %q", want)
+		}
+	}
+}
+
 func TestTreeTextIsEscaped(t *testing.T) {
-	src := "view main {\n\ttree \"<b>Files</b>\" {\n\t\ttreeitem \"<i>src</i>\" key: \"src\"\n\t}\n}\n"
+	src := "view main {\n\ttree \"<b>Files</b>\" {\n\t\ttreeitem \"<i>src</i>\" key: \"src\" icon: \"<img src=x onerror=alert(1)>\" badge: \"<b>12</b>\" meta: \"<i>meta</i>\"\n\t}\n}\n"
 	prog, dl := ParseSource(src, "tree.sui")
 	if dl.HasErrors() {
 		t.Fatalf("parse: %s", dl.String())
@@ -201,10 +315,14 @@ func TestTreeTextIsEscaped(t *testing.T) {
 		t.Fatalf("check: %s", cd.String())
 	}
 	html := GenerateHtmlPage(prog)
-	if strings.Contains(html, "<b>Files</b>") || strings.Contains(html, "<i>src</i>") {
-		t.Errorf("tree text must be escaped")
+	for _, raw := range []string{"<b>Files</b>", "<i>src</i>", "<img src=x", "<b>12</b>", "<i>meta</i>"} {
+		if strings.Contains(html, raw) {
+			t.Errorf("tree text must be escaped: %q", raw)
+		}
 	}
-	if !strings.Contains(html, "&lt;b&gt;Files&lt;/b&gt;") || !strings.Contains(html, "&lt;i&gt;src&lt;/i&gt;") {
-		t.Errorf("escaped tree text missing")
+	for _, escaped := range []string{"&lt;b&gt;Files&lt;/b&gt;", "&lt;i&gt;src&lt;/i&gt;", "&lt;img src=x", "&lt;b&gt;12&lt;/b&gt;", "&lt;i&gt;meta&lt;/i&gt;"} {
+		if !strings.Contains(html, escaped) {
+			t.Errorf("escaped tree text missing %q", escaped)
+		}
 	}
 }

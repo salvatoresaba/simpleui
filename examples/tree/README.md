@@ -190,7 +190,9 @@ The **Tree** inspector exposes dedicated buttons:
 - `editable`;
 - `editable depth`;
 - `rename key state`;
-- `rename value state`.
+- `rename value state`;
+- `indent guides`, `truncate labels`, `hierarchical checkboxes`, `child counts`;
+- `row height`, `default icon` and `open icon`.
 
 The right-click menu on the tree row offers **Edit tree data**, **Tree
 settings**, **Add root item**, **Import JSON/XML** and **Export JSON/XML**.
@@ -200,9 +202,26 @@ Selecting an item in the live preview opens the per-item **Tree item** panel:
 - `key` - stable string written to the selected state;
 - `initially open` - default expansion state;
 - `editable` - inherit / yes / read-only;
+- `icon` / `open icon` - per-node glyphs;
+- `badge` / `badge type` - status pill and its colour family;
+- `metadata` - right-aligned text such as a size or date;
+- `checked` - initial hierarchical checkbox state;
 - label text via **Content**.
 
-`onChange` and `onRename` are available in **Events**.
+`onChange`, `onRename` and `onCheck` are available in **Events**.
+
+```sui
+tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 icon: "📁" iconOpen: "📂" onCheck: checked {
+	treeitem "src" open: true icon: "📁" iconOpen: "📂" badge: "12" badgeType: "info" meta: "2 KB" checked: true {
+		treeitem "main.go" icon: "📄" meta: "1 KB"
+	}
+}
+```
+
+`treeitem badge` and `meta` render as inert text. A parent checkbox becomes
+mixed when only some children are checked; clicking it updates the whole
+subtree. `onCheck` runs after the click and `tree.exportJson(name)` includes the
+resulting `checked` flags.
 
 ## Behavior
 

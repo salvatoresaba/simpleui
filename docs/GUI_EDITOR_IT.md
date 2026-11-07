@@ -1055,24 +1055,31 @@ L'inspector **Tree** espone:
 | style preset | 16 preset da Default e Compact a Neon, Forest, High contrast e Cards; custom modifica style expr |
 | rename icon | simbolo matita; vuoto usa quello predefinito |
 | show rename icon | nasconde o mostra la matita per tutto il tree |
+| indent guides | guide sottili per livello e indentazione (default attivo) |
+| truncate labels | ellissi più tooltip con testo completo; disattivato va a capo |
+| hierarchical checkboxes | checkbox tristato con propagazione padre/figli |
+| child counts | pill con il numero di figli sulle righe padre |
+| row height | altezza minima riga in pixel (12-120) |
+| default icon / open icon | glifi di fallback per righe chiuse e aperte |
 | editable | abilita la rinomina inline |
 | editable depth | livello massimo editabile; `0` = tutti |
 | rename key state | stato che riceve la key rinominata |
 | rename value state | stato che riceve la nuova etichetta |
 
 **Tree settings** apre il pannello componente con tab Colors, Title e Shape:
-colori di testo, titolo, riga, hover, selezione, toggle e bordo; dimensione,
-peso, font, spaziatura, allineamento e posizione alto/basso del titolo; indent,
-padding/altezza riga, raggio, bordo, dimensione toggle, dimensione/peso testo,
-letter spacing e font family. I preset con nome sono nello stesso pannello.
+colori di testo, titolo, riga, hover, selezione, toggle, bordo, guida, badge,
+metadata e checkbox; dimensione, peso, font, spaziatura, allineamento e
+posizione alto/basso del titolo; indent, padding/altezza riga, raggio, bordo,
+dimensione toggle, dimensione/peso testo, letter spacing e font family. I preset
+con nome sono nello stesso pannello.
 
 **Edit tree data** apre un editor dedicato con una riga per elemento: etichetta,
-key opzionale, stato open/editable e azioni compatte per aggiungere figlio,
-aggiungere fratello, spostare su/giù ed eliminare. La toolbar aggiunge elementi
-radice e importa/esporta JSON o XML. **Apply** scrive gli elementi nel tree;
-Cancel non modifica il modello. Le stesse azioni sono nel menu contestuale del
-tree (**Edit tree data**, **Tree settings**, **Add root item**,
-**Import JSON/XML**, **Export JSON/XML**).
+key opzionale, icona, badge, metadata, stato open/check/edit e azioni compatte
+per aggiungere figlio, aggiungere fratello, spostare su/giù ed eliminare. La
+toolbar aggiunge elementi radice e importa/esporta JSON o XML. **Apply** scrive
+gli elementi nel tree; Cancel non modifica il modello. Le stesse azioni sono nel
+menu contestuale del tree (**Edit tree data**, **Tree settings**,
+**Add root item**, **Import JSON/XML**, **Export JSON/XML**).
 
 Selezionando un elemento nella preview si apre ancora il pannello **Tree item**:
 
@@ -1083,10 +1090,15 @@ Selezionando un elemento nella preview si apre ancora il pannello **Tree item**:
 | node style preset | Inherit / Muted / Accent / Success / Warning / Danger / Folder / Compact row / custom |
 | show rename icon | inherit / show / hide |
 | rename icon | simbolo per nodo; vuoto eredita quello del tree |
+| icon / open icon | glifo per nodo chiuso/aperto |
+| badge | testo breve della pill di stato |
+| badge type | neutral / info / success / warning / danger |
+| metadata | testo allineato a destra, ad esempio dimensione o data |
+| checked | stato iniziale; i padri derivano true, false o mixed |
 | editable | inherit / yes / read-only |
 | Text | etichetta visibile (sezione Content) |
-`onChange` e `onRename` sono disponibili in **Events**. Il sorgente generato
-mantiene i `treeitem` annidati con key, open ed editable.
+`onChange`, `onRename` e `onCheck` sono disponibili in **Events**. Il sorgente
+generato mantiene i `treeitem` annidati con key, open ed editable.
 
 Il menu **style preset** del tree scrive lo stile visivo nel campo **style expr**
 dell'elemento (sezione **Appearance**). I preset sono **Default**, **Compact**,
@@ -1107,7 +1119,8 @@ l'icona per nodo. Nascondere il pulsante non disabilita F2 o doppio click.
 
 Il campo **tree name** rende il tree un target runtime. Il pannello **Edit tree
 data** importa/esporta i tree item nel sorgente di design: l'import sostituisce
-i figli `treeitem` del tree selezionato, l'export scarica il modello corrente.L'import di design non memorizza dati a runtime; per i dati
+i figli `treeitem` del tree selezionato, l'export scarica il modello corrente.
+L'import di design non memorizza dati a runtime; per i dati
 dell'applicazione usare il modulo core `tree` (`tree.importJson`,
 `tree.importXml`, `tree.importJsonFile`, `tree.importXmlFile`,
 `tree.exportJson`, `tree.exportXml`, `tree.downloadJson`,
@@ -1115,11 +1128,13 @@ dell'applicazione usare il modulo core `tree` (`tree.importJson`,
 file e un pulsante di download. Schema JSON/XML in
 [`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
 
-La preview supporta selezione riga, toggle di espansione, navigazione con frecce,
-Home/End e rinomina inline (doppio click, F2 o matita; Enter/Escape). Espansione
-ed etichette rinominate vengono ripristinate dopo un re-render. Il runtime usa
-`localStorage` per stato aperto e override locali delle etichette; etichette e
-key sono escapate.
+La preview supporta selezione riga, toggle di espansione, guide, icone, badge,
+metadata, checkbox tristato gerarchico, navigazione con frecce, Home/End e
+rinomina inline (doppio click, F2 o matita; Enter/Escape). Espansione, stato
+checked ed etichette rinominate vengono ripristinati dopo un re-render. Il
+runtime usa `localStorage` per stato aperto/checked e override locali delle
+etichette; etichette, key, icone, badge e metadata sono escapati e resi come
+testo.
 
 Vedere [API reference: tree](API_REFERENCE_IT.md#tree) e l'[esempio
 tree](../examples/tree/README.md).

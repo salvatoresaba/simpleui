@@ -328,6 +328,13 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
     "editable": true,
     "renameIcon": "A",
     "showRenameIcon": false,
+    "icon": "📁",
+    "iconOpen": "📂",
+    "badge": "12",
+    "badgeType": "info",
+    "meta": "2 KB",
+    "checked": true,
+    "tooltip": "Cartella sorgente",
     "children": [
       { "label": "main.go", "key": "main" }
     ]
@@ -338,8 +345,10 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
 - `label` è preferito; sono accettati anche `text`, `name` e `title`.
 - `key` è opzionale; se manca viene usato un path generato. Le key devono essere
   uniche.
-- `open`, `editable` e `showRenameIcon` accettano booleani o stringhe
+- `open`, `editable`, `showRenameIcon` e `checked` accettano booleani o stringhe
   `true`/`false`/`1`/`0`.
+- `icon`, `iconOpen`, `badge`, `badgeType`, `meta` e `tooltip` sono testo inerte.
+  `badgeType` è `neutral`, `info`, `success`, `warning` o `danger`.
 - Stringhe e numeri sono accettati come etichette foglia.
 
 ### Formato XML
@@ -347,7 +356,7 @@ La radice può essere un array oppure un oggetto con `nodes`, `items`, `tree` o
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <tree name="files">
-  <item label="src" key="src" open="true">
+  <item label="src" key="src" open="true" icon="📁" iconOpen="📂" badge="12" badgeType="info" meta="2 KB" checked="true">
     <item label="main.go" key="main"/>
     <item label="README.md" key="readme" renameIcon="📝"/>
   </item>
@@ -381,9 +390,11 @@ sanitizzato e l'estensione aggiunta se manca.
 
 ### Limiti e sicurezza
 
-- limiti: 10.000 nodi, profondità 64, 2.000 caratteri per etichetta e 512 per
-  key; il testo usa il limite globale `maxText` (default 20 MB);
-- etichette, key e icone sono scritte con `textContent`/attributi, mai HTML;
+- limiti: 10.000 nodi, profondità 64, 2.000 caratteri per etichetta e tooltip,
+  512 per key, 64 per icona e 128/256 per badge/metadata; il testo usa il limite
+  globale `maxText` (default 20 MB);
+- etichette, key, icone, badge e metadata sono scritti con
+  `textContent`/attributi, mai HTML;
 - dichiarazioni DTD ed entità XML vengono rifiutate prima del parsing;
 - l'import sostituisce solo la struttura dei nodi: titolo, stile, `name` e
   binding del tree restano invariati;

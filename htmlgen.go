@@ -183,7 +183,7 @@ body {
 .sui-tree-group { list-style: none; margin: 0; padding-left: var(--sui-tree-indent, 16px); }
 .sui-tree > .sui-tree-group { padding-left: 0; }
 .sui-tree-item { margin: 1px 0; }
-.sui-tree-row { display: flex; align-items: center; gap: 4px; min-height: 28px; border-radius: var(--sui-tree-row-radius, 5px); padding: var(--sui-tree-row-padding, 2px 5px); background: var(--sui-tree-row-bg, transparent); cursor: pointer; }
+.sui-tree-row { display: flex; align-items: center; gap: 4px; min-height: var(--sui-tree-row-height, 28px); border-radius: var(--sui-tree-row-radius, 5px); padding: var(--sui-tree-row-padding, 2px 5px); background: var(--sui-tree-row-bg, transparent); cursor: pointer; }
 .sui-tree-row:hover { background: var(--sui-tree-hover-bg, var(--sui-hover, #2a3143)); }
 .sui-tree-item.selected > .sui-tree-row,
 .sui-tree-item.sui-tree-pending > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76, 92, 247, .28)); color: var(--sui-tree-selected-fg, inherit); }
@@ -192,7 +192,85 @@ body {
 .sui-tree-toggle, .sui-tree-spacer { width: 20px; height: 20px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
 .sui-tree-toggle { border: 0; background: transparent; color: var(--sui-muted, #8fa0b8); padding: 0; cursor: pointer; font: inherit; }
 .sui-tree-toggle:hover { color: var(--sui-fg, #e6e6ef); }
-.sui-tree-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sui-tree-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sui-tree[data-sui-tree-truncate="0"] .sui-tree-label { white-space: normal; overflow: visible; text-overflow: clip; }
+.sui-tree[data-sui-tree-guides="1"] .sui-tree-group { padding-left: 0; }
+.sui-tree-guide {
+  flex: none;
+  align-self: stretch;
+  width: max(1px, calc(var(--sui-tree-indent, 16px) - 4px));
+  border-left: 1px solid var(--sui-tree-guide-color, rgba(143, 160, 184, .30));
+  pointer-events: none;
+}
+.sui-tree-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1em;
+  color: var(--sui-tree-icon-color, inherit);
+}
+.sui-tree-badge {
+  flex: none;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  background: var(--sui-tree-badge-bg, rgba(148, 163, 184, .18));
+  color: var(--sui-tree-badge-fg, #cbd5e1);
+}
+.sui-tree-badge-info { background: rgba(56, 189, 248, .20); color: #7dd3fc; }
+.sui-tree-badge-success { background: rgba(34, 197, 94, .20); color: #86efac; }
+.sui-tree-badge-warning { background: rgba(245, 158, 11, .22); color: #fcd34d; }
+.sui-tree-badge-danger { background: rgba(239, 68, 68, .22); color: #fca5a5; }
+.sui-tree-badge-count { background: rgba(148, 163, 184, .14); color: var(--sui-tree-meta-color, #94a3b8); }
+.sui-tree-meta {
+  flex: none;
+  margin-left: auto;
+  padding-left: 6px;
+  color: var(--sui-tree-meta-color, #94a3b8);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.sui-tree-check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--sui-tree-check-border, #64748b);
+  border-radius: 3px;
+  background: var(--sui-tree-check-bg, transparent);
+  position: relative;
+  cursor: pointer;
+}
+.sui-tree-check[aria-checked="true"],
+.sui-tree-check[aria-checked="mixed"] {
+  background: var(--sui-tree-check-on, #4c5cf7);
+  border-color: var(--sui-tree-check-on, #4c5cf7);
+}
+.sui-tree-check[aria-checked="true"]::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 3px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.sui-tree-check[aria-checked="mixed"]::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 7px;
+  height: 2px;
+  border-radius: 1px;
+  background: #fff;
+}
+.sui-tree-check:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
 .sui-tree-rename-btn {
   border: 0;
   background: transparent;
@@ -3337,6 +3415,43 @@ func treeOpen(e *Element) bool {
 	return a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b
 }
 
+// treeTextAttr returns a literal text attribute, or "" when absent/dynamic.
+// Icons, badges and metadata are rendered as inert text, never as markup.
+func treeTextAttr(e *Element, key string) string {
+	a := findAttr(e, key)
+	if a == nil || a.hasExpr {
+		return ""
+	}
+	return partsContent(a.text)
+}
+
+func treeChecked(e *Element) string {
+	a := findAttr(e, "checked")
+	if a == nil {
+		return ""
+	}
+	on := false
+	if a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		on = a.expr.b
+	} else {
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		on = v == "true" || v == "yes" || v == "1" || v == "on"
+	}
+	if on {
+		return "1"
+	}
+	return "0"
+}
+
+func treeBadgeType(e *Element) string {
+	v := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "badgeType")))
+	switch v {
+	case "info", "success", "warning", "danger", "neutral":
+		return v
+	}
+	return "neutral"
+}
+
 func treeChildren(e *Element) []*Element {
 	var out []*Element
 	for i := 0; i < len(e.children); i++ {
@@ -3366,6 +3481,23 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if a := findAttr(e, "showRenameIcon"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
 		showRenameIcon = a.expr.b
 	}
+	guides := true
+	if a := findAttr(e, "guides"); a != nil {
+		guides = datepickerBool(e, "guides")
+	}
+	truncate := true
+	if a := findAttr(e, "truncate"); a != nil {
+		truncate = datepickerBool(e, "truncate")
+	}
+	checkbox := datepickerBool(e, "checkbox")
+	counts := datepickerBool(e, "counts")
+	rowHeight := comboboxAttrNumber(e, "rowHeight")
+	treeIcon := treeTextAttr(e, "icon")
+	treeIconOpen := treeTextAttr(e, "iconOpen")
+	onCheck := ""
+	if a := findAttr(e, "onCheck"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onCheck = a.expr.name
+	}
 	sb.WriteString(ind)
 	sb.WriteString("<div class=\"sui-tree")
 	staticClassSuffix(sb, e)
@@ -3382,6 +3514,30 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if !showRenameIcon {
 		sb.WriteString(" data-sui-tree-show-rename-icon=\"0\"")
 	}
+	if guides {
+		sb.WriteString(" data-sui-tree-guides=\"1\"")
+	}
+	if !truncate {
+		sb.WriteString(" data-sui-tree-truncate=\"0\"")
+	}
+	if checkbox {
+		sb.WriteString(" data-sui-tree-checkbox=\"1\"")
+	}
+	if counts {
+		sb.WriteString(" data-sui-tree-counts=\"1\"")
+	}
+	if rowHeight != "" {
+		sb.WriteString(" data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\"")
+	}
+	if treeIcon != "" {
+		sb.WriteString(" data-sui-tree-icon=\"" + htmlEscape(treeIcon) + "\"")
+	}
+	if treeIconOpen != "" {
+		sb.WriteString(" data-sui-tree-icon-open=\"" + htmlEscape(treeIconOpen) + "\"")
+	}
+	if onCheck != "" {
+		sb.WriteString(" data-sui-tree-oncheck=\"" + htmlEscape(onCheck) + "\"")
+	}
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	indent := ind + "  "
@@ -3390,18 +3546,32 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	}
 	sb.WriteString(indent + "<input type=\"hidden\" class=\"sui-tree-value\" value=\"" + htmlEscape(value) + "\">\n")
 	sb.WriteString(indent + "<ul class=\"sui-tree-group\" role=\"group\">\n")
-	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0")
+	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen)
 	sb.WriteString(indent + "</ul>\n")
 	sb.WriteString(ind + "</div>\n")
 }
 
-func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string) {
+func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string) {
 	for i, it := range items {
 		path := pathPrefix + "." + strconv.Itoa(i)
 		key := treeKey(it, path)
 		kids := treeChildren(it)
 		open := treeOpen(it)
 		label := partsContent(it.text)
+		icon := treeTextAttr(it, "icon")
+		if icon == "" {
+			icon = treeIcon
+		}
+		if open {
+			if v := treeTextAttr(it, "iconOpen"); v != "" {
+				icon = v
+			} else if treeIconOpen != "" {
+				icon = treeIconOpen
+			}
+		}
+		badge := treeTextAttr(it, "badge")
+		meta := treeTextAttr(it, "meta")
+		checked := treeChecked(it)
 		sb.WriteString(ind)
 		sb.WriteString("<li class=\"sui-tree-item")
 		staticClassSuffix(sb, it)
@@ -3409,13 +3579,25 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 			"\" data-sui-path=\"" + htmlEscape(path) + "\" data-sui-level=\"" + strconv.Itoa(level) +
 			"\" data-sui-editable=\"" + htmlEscape(treeItemEditable(it)) +
 			"\" data-sui-show-rename-icon=\"" + htmlEscape(treeItemShowRenameIcon(it)) +
-			"\" data-sui-rename-icon=\"" + htmlEscape(treeItemRenameIcon(it)) + "\" data-sui-open=\"")
+			"\" data-sui-rename-icon=\"" + htmlEscape(treeItemRenameIcon(it)) +
+			"\" data-sui-icon=\"" + htmlEscape(icon) +
+			"\" data-sui-badge=\"" + htmlEscape(badge) +
+			"\" data-sui-badge-type=\"" + htmlEscape(treeBadgeType(it)) +
+			"\" data-sui-meta=\"" + htmlEscape(meta) +
+			"\" data-sui-checked=\"" + htmlEscape(checked) + "\" data-sui-open=\"")
 		if open {
 			sb.WriteString("1")
 		} else {
 			sb.WriteString("0")
 		}
 		sb.WriteString("\" role=\"treeitem\" aria-level=\"" + strconv.Itoa(level) + "\" aria-selected=\"false\" tabindex=\"-1\"")
+		if checkbox {
+			st := "false"
+			if checked == "1" {
+				st = "true"
+			}
+			sb.WriteString(" aria-checked=\"" + st + "\"")
+		}
 		if len(kids) > 0 {
 			sb.WriteString(" aria-expanded=\"")
 			if open {
@@ -3428,6 +3610,11 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		staticUserAttrsNoClass(sb, it, "")
 		sb.WriteString(">\n")
 		sb.WriteString(ind + "  <div class=\"sui-tree-row\">")
+		if guides {
+			for g := 1; g < level; g++ {
+				sb.WriteString("<span class=\"sui-tree-guide\" aria-hidden=\"true\"></span>")
+			}
+		}
 		if len(kids) > 0 {
 			sb.WriteString("<button type=\"button\" class=\"sui-tree-toggle\" tabindex=\"-1\" aria-label=\"Toggle " + htmlEscape(label) + "\">")
 			if open {
@@ -3439,14 +3626,34 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		} else {
 			sb.WriteString("<span class=\"sui-tree-spacer\"></span>")
 		}
-		sb.WriteString("<span class=\"sui-tree-label\">" + htmlEscape(label) + "</span></div>\n")
+		if checkbox {
+			st := "false"
+			if checked == "1" {
+				st = "true"
+			}
+			sb.WriteString("<span class=\"sui-tree-check\" role=\"checkbox\" aria-checked=\"" + st + "\" tabindex=\"-1\" aria-label=\"Toggle " + htmlEscape(label) + "\"></span>")
+		}
+		if icon != "" {
+			sb.WriteString("<span class=\"sui-tree-icon\" aria-hidden=\"true\">" + htmlEscape(icon) + "</span>")
+		}
+		sb.WriteString("<span class=\"sui-tree-label\" title=\"" + htmlEscape(label) + "\">" + htmlEscape(label) + "</span>")
+		if badge != "" {
+			sb.WriteString("<span class=\"sui-tree-badge sui-tree-badge-" + treeBadgeType(it) + "\">" + htmlEscape(badge) + "</span>")
+		}
+		if counts && len(kids) > 0 {
+			sb.WriteString("<span class=\"sui-tree-badge sui-tree-badge-count\">" + strconv.Itoa(len(kids)) + "</span>")
+		}
+		if meta != "" {
+			sb.WriteString("<span class=\"sui-tree-meta\">" + htmlEscape(meta) + "</span>")
+		}
+		sb.WriteString("</div>\n")
 		if len(kids) > 0 {
 			sb.WriteString(ind + "  <ul class=\"sui-tree-group\" role=\"group\"")
 			if !open {
 				sb.WriteString(" hidden")
 			}
 			sb.WriteString(">\n")
-			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path)
+			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen)
 			sb.WriteString(ind + "  </ul>\n")
 		}
 		sb.WriteString(ind + "</li>\n")
@@ -3959,10 +4166,13 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			continue
 		}
 		if e.tag == "tree" && (a.key == "value" || a.key == "editable" || a.key == "editableDepth" ||
-			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon") {
+			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
+			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
+			a.key == "icon" || a.key == "iconOpen") {
 			continue
 		}
-		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon") {
+		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
+			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked") {
 			continue
 		}
 		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" ||
@@ -3985,6 +4195,9 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 				sb.WriteString(htmlEscape(partsContent(a.text)))
 				sb.WriteString("\"")
 			}
+			continue
+		}
+		if a.key == "onCheck" {
 			continue
 		}
 		if a.key == "head" || a.key == "options" || a.key == "link" ||

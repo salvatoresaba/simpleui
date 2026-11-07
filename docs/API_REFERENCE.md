@@ -601,6 +601,22 @@ tree "Project files"
 - `treeitem key`: stable value stored in the state. If omitted, the item path is
   used.
 - `treeitem open: true`: initial expansion state for a parent.
+- `guides: false` disables the thin per-level indentation guides (default on).
+- `truncate: false` wraps long labels instead of truncating them with an ellipsis.
+  Truncated labels always expose the full text as a native tooltip; set
+  `treeitem tooltip: "..."` for a custom text.
+- `rowHeight: 32` sets the row minimum height (12-120). The default is `28`.
+- `icon`, `iconOpen` on the tree are fallback glyphs; `treeitem icon`/`iconOpen`
+  override them. Icons are inert text or emoji, never markup.
+- `treeitem badge: "12"` shows a pill; `badgeType` is `neutral`, `info`,
+  `success`, `warning` or `danger`. `meta` shows right-aligned text such as a
+  size or date. `counts: true` adds the child count to parent rows.
+- `checkbox: true` renders hierarchical checkboxes. `treeitem checked: true`
+  sets the initial state; a parent derives `true`, `false` or mixed from its
+  children. Clicking a box updates its descendants and recomputes ancestors.
+  Checked state is persisted in `localStorage`.
+- `onCheck` runs after a checkbox click; it takes no arguments. Use
+  `tree.exportJson(name)` to read the resulting `checked` fields.
 - `editable: true` enables inline rename; `editableDepth: 2` allows levels 1-2.
   `0` means all levels.
 - `treeitem editable: true|false` overrides the tree default. `false` locks the
@@ -618,11 +634,13 @@ tree "Project files"
 - Expansion is independent from selection and is persisted per tree path in
   `localStorage`. Renamed labels are also stored locally per tree/path.
 - Keyboard: Up/Down move through visible items; Right expands or enters a
-  parent; Left collapses or returns to the parent; Enter/Space selects; F2
-  renames an editable item; Home/End jump.
+  parent; Left collapses or returns to the parent; Enter selects; Space selects
+  or, when `checkbox: true`, toggles the focused item; F2 renames an editable
+  item; Home/End jump.
 - ARIA: `role="tree"`, `role="treeitem"`, `role="group"`, `aria-level`,
-  `aria-expanded`, `aria-selected` and `aria-readonly`. Only one item is in the
-  tab order.
+  `aria-expanded`, `aria-selected`, `aria-readonly` and, with `checkbox: true`,
+  `aria-multiselectable` plus `aria-checked="true|false|mixed"`. Only one item
+  is in the tab order.
 - Visual styling is carried by `style expr` as CSS custom properties on the tree
   root. Tree presets: **Default**, **Compact**, **Comfortable**, **Dense**,
   **Bordered**, **Soft rounded**, **Minimal**, **Neon**, **Forest**, **Amber**,
@@ -637,7 +655,10 @@ tree "Project files"
   `--sui-tree-selected-bg`, `--sui-tree-selected-fg`, `--sui-tree-title-color`,
   `--sui-tree-title-size`, `--sui-tree-panel-bg`,
   `--sui-tree-panel-border`, `--sui-tree-panel-radius`,
-  `--sui-tree-panel-padding` and `--sui-tree-indent`.
+  `--sui-tree-panel-padding`, `--sui-tree-indent`, `--sui-tree-guide-color`,
+  `--sui-tree-icon-color`, `--sui-tree-badge-bg`, `--sui-tree-badge-fg`,
+  `--sui-tree-meta-color`, `--sui-tree-check-on`, `--sui-tree-check-border`,
+  `--sui-tree-check-bg` and `--sui-tree-row-height`.
 - Edit the generated `style: cssSafe("...")` expression directly for custom
   values. Dynamic style stays under the normal `cssSafe` policy. Because
   `cssSafe` accepts comma-free declarations, use 8-digit hex colors such as
@@ -649,8 +670,8 @@ tree "Project files"
   [`STDLIB.md`](STDLIB.md#tree-module-tree-core) for schemas and limits.
 - Imported data is applied to the tree with the matching `name`; it survives
   re-renders and replaces only the node structure (title/style/bindings stay).
-  Labels, keys and icons are written as text, never HTML. XML DTD/entities are
-  rejected.
+  Labels, keys, icons, badges and metadata are written as text, never HTML.
+  `checked` is preserved; XML DTD/entities are rejected.
 - Labels, keys and item text are escaped text; no raw HTML.
 
 Keys should be unique within a tree. The selected key is plain application data;

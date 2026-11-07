@@ -581,6 +581,22 @@ tree "File progetto"
 - `treeitem key`: valore stabile salvato nello stato. Se assente viene usato il
   percorso dell'elemento.
 - `treeitem open: true`: stato di espansione iniziale per un genitore.
+- `guides: false` disattiva le guide sottili di indentazione (default attive).
+- `truncate: false` manda a capo le etichette lunghe invece di troncarle. Le
+  etichette troncate espongono sempre il testo completo come tooltip nativo;
+  `treeitem tooltip: "..."` imposta un testo personalizzato.
+- `rowHeight: 32` imposta l'altezza minima di riga (12-120). Default `28`.
+- `icon`, `iconOpen` sul tree sono glifi di fallback; `treeitem icon`/`iconOpen`
+  li sovrascrivono. Le icone sono testo o emoji inerte, mai markup.
+- `treeitem badge: "12"` mostra una pill; `badgeType` è `neutral`, `info`,
+  `success`, `warning` o `danger`. `meta` mostra testo allineato a destra.
+  `counts: true` aggiunge il numero di figli alle righe padre.
+- `checkbox: true` mostra checkbox gerarchiche. `treeitem checked: true` imposta
+  lo stato iniziale; un padre deriva true, false o mixed dai figli. Il click
+  aggiorna i discendenti e ricalcola gli antenati. Lo stato è persistito in
+  `localStorage`.
+- `onCheck` viene chiamata dopo il click su una checkbox; non riceve argomenti.
+  Usare `tree.exportJson(name)` per leggere i campi `checked` risultanti.
 - `editable: true` abilita la rinomina inline; `editableDepth: 2` consente i
   livelli 1-2. `0` significa tutti.
 - `treeitem editable: true|false` sovrascrive il default. `false` blocca il nodo
@@ -598,10 +614,12 @@ tree "File progetto"
   percorso in `localStorage`. Anche le etichette rinominate sono salvate
   localmente per albero/percorso.
 - Tastiera: Up/Down sui visibili; Right espande o entra; Left comprime o torna
-  al genitore; Enter/Spazio seleziona; F2 rinomina; Home/End saltano.
+  al genitore; Enter seleziona; Spazio seleziona oppure, con `checkbox: true`,
+  attiva la checkbox dell'elemento; F2 rinomina; Home/End saltano.
 - ARIA: `role="tree"`, `role="treeitem"`, `role="group"`, `aria-level`,
-  `aria-expanded`, `aria-selected` e `aria-readonly`. Un solo elemento è nel tab
-  order.
+  `aria-expanded`, `aria-selected`, `aria-readonly` e, con `checkbox: true`,
+  `aria-multiselectable` più `aria-checked="true|false|mixed"`. Un solo elemento
+  è nel tab order.
 - Lo stile visivo è trasportato da `style expr` come proprietà CSS custom sul
   nodo radice dell'albero. Preset del tree: **Default**, **Compact**,
   **Comfortable**, **Dense**, **Bordered**, **Soft rounded**, **Minimal**,
@@ -617,7 +635,10 @@ tree "File progetto"
   `--sui-tree-selected-bg`, `--sui-tree-selected-fg`, `--sui-tree-title-color`,
   `--sui-tree-title-size`, `--sui-tree-panel-bg`,
   `--sui-tree-panel-border`, `--sui-tree-panel-radius`,
-  `--sui-tree-panel-padding` e `--sui-tree-indent`.
+  `--sui-tree-panel-padding`, `--sui-tree-indent`, `--sui-tree-guide-color`,
+  `--sui-tree-icon-color`, `--sui-tree-badge-bg`, `--sui-tree-badge-fg`,
+  `--sui-tree-meta-color`, `--sui-tree-check-on`, `--sui-tree-check-border`,
+  `--sui-tree-check-bg` e `--sui-tree-row-height`.
 - Modificare direttamente l'espressione `style: cssSafe("...")` per valori
   personalizzati. Lo stile dinamico resta soggetto alla policy `cssSafe`.
   Poiché `cssSafe` accetta dichiarazioni senza virgole, nello `style expr` usare
@@ -629,8 +650,9 @@ tree "File progetto"
   Schema e limiti in [`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
 - I dati importati vengono applicati al tree con il `name` corrispondente;
   sopravvivono ai re-render e sostituiscono solo la struttura dei nodi (titolo,
-  stile e binding restano). Etichette, key e icone sono testo, mai HTML. Le
-  dichiarazioni DTD/entità XML vengono rifiutate.
+  stile e binding restano). Etichette, key, icone, badge e metadata sono testo,
+  mai HTML; `checked` viene preservato; le dichiarazioni DTD/entità XML vengono
+  rifiutate.
 - Etichette, key e testo sono escapati; nessun HTML raw.
 
 Le key dovrebbero essere uniche nell'albero. La key selezionata è dato

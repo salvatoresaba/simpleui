@@ -336,6 +336,13 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
     "editable": true,
     "renameIcon": "A",
     "showRenameIcon": false,
+    "icon": "📁",
+    "iconOpen": "📂",
+    "badge": "12",
+    "badgeType": "info",
+    "meta": "2 KB",
+    "checked": true,
+    "tooltip": "Source directory",
     "children": [
       { "label": "main.go", "key": "main" }
     ]
@@ -346,8 +353,10 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
 - `label` is preferred; `text`, `name` and `title` are accepted aliases.
 - `key` is optional; a generated path is used when it is missing. Keys must be
   unique.
-- `open`, `editable` and `showRenameIcon` accept booleans or
+- `open`, `editable`, `showRenameIcon` and `checked` accept booleans or
   `true`/`false`/`1`/`0` strings.
+- `icon`, `iconOpen`, `badge`, `badgeType`, `meta` and `tooltip` are inert text.
+  `badgeType` is `neutral`, `info`, `success`, `warning` or `danger`.
 - Strings and numbers are accepted as leaf labels.
 
 ### XML format
@@ -355,7 +364,7 @@ The root can be an array, or an object with `nodes`, `items`, `tree` or
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <tree name="files">
-  <item label="src" key="src" open="true">
+  <item label="src" key="src" open="true" icon="📁" iconOpen="📂" badge="12" badgeType="info" meta="2 KB" checked="true">
     <item label="main.go" key="main"/>
     <item label="README.md" key="readme" renameIcon="📝"/>
   </item>
@@ -389,9 +398,11 @@ sanitized and the extension is added when missing.
 
 ### Limits and safety
 
-- limits: 10,000 nodes, nesting depth 64, 2,000 characters per label and 512 per
-  key; input text uses the global `maxText` limit (default 20 MB);
-- labels, keys and icons are written with `textContent`/attributes, never HTML;
+- limits: 10,000 nodes, nesting depth 64, 2,000 characters per label and
+  tooltip, 512 per key, 64 per icon and 128/256 per badge/metadata; input text
+  uses the global `maxText` limit (default 20 MB);
+- labels, keys, icons, badges and metadata are written with
+  `textContent`/attributes, never HTML;
 - XML DTD and entity declarations are rejected before parsing;
 - imported data replaces only the node structure: the tree title, style,
   `name` and runtime bindings are preserved;

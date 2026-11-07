@@ -1015,24 +1015,31 @@ The **Tree** inspector exposes:
 | style preset | 16 tree presets from Default and Compact to Neon, Forest, High contrast and Cards; custom edits style expr |
 | rename icon | pencil glyph; empty uses the default pencil |
 | show rename icon | hide or show the pencil for the whole tree |
+| indent guides | thin per-level guides and indentation (default on) |
+| truncate labels | ellipsis plus full-text tooltip; off wraps the label |
+| hierarchical checkboxes | tri-state checkboxes with parent/child propagation |
+| child counts | child-count pill on parent rows |
+| row height | minimum row height in pixels (12-120) |
+| default icon / open icon | fallback glyphs for collapsed and expanded rows |
 | editable | enable inline rename |
 | editable depth | maximum editable level; `0` = all |
 | rename key state | state receiving the renamed node key |
 | rename value state | state receiving the new label |
 
 **Tree settings** opens the component panel with Colors, Title and Shape tabs:
-text, title, row, hover, selected, toggle and border colors; title size, weight,
-font, spacing, alignment and top/bottom position; indent, row padding/height,
-radius, border, toggle size, font size/weight, letter spacing and font family.
-Named presets are available in the same panel.
+text, title, row, hover, selected, toggle, border, guide, badge, metadata and
+checkbox colors; title size, weight, font, spacing, alignment and top/bottom
+position; indent, row padding/height, radius, border, toggle size, font
+size/weight, letter spacing and font family. Named presets are available in the
+same panel.
 
 **Edit tree data** opens a dedicated editor with one row per item. The row shows
-the label, an optional stable key, open/editable state and compact actions:
-add child, add sibling, move up, move down and delete. The toolbar adds root
-items and imports/exports JSON or XML. **Apply** writes the items into the tree;
-Cancel leaves the model unchanged. The same actions are available from the tree
-context menu (**Edit tree data**, **Tree settings**, **Add root item**,
-**Import JSON/XML**, **Export JSON/XML**).
+the label, an optional stable key, icon, badge, metadata, open/check/edit state
+and compact actions: add child, add sibling, move up, move down and delete. The
+toolbar adds root items and imports/exports JSON or XML. **Apply** writes the
+items into the tree; Cancel leaves the model unchanged. The same actions are
+available from the tree context menu (**Edit tree data**, **Tree settings**,
+**Add root item**, **Import JSON/XML**, **Export JSON/XML**).
 
 Selecting an item in the live preview still opens the per-node **Tree item**
 panel:
@@ -1044,10 +1051,15 @@ panel:
 | node style preset | Inherit / Muted / Accent / Success / Warning / Danger / Folder / Compact row / custom |
 | show rename icon | inherit / show / hide |
 | rename icon | per-node glyph; empty inherits the tree icon |
+| icon / open icon | per-node glyph for collapsed/expanded state |
+| badge | short status pill text |
+| badge type | neutral / info / success / warning / danger |
+| metadata | right-aligned text such as a size or date |
+| checked | initial checkbox state; parents derive true, false or mixed |
 | editable | inherit / yes / read-only |
 | Text | visible item label (Content section) |
-`onChange` and `onRename` are available in **Events**. The generated source keeps
-nested `treeitem` children and their keys/open/editable flags.
+`onChange`, `onRename` and `onCheck` are available in **Events**. The generated
+source keeps nested `treeitem` children and their keys/open/editable flags.
 
 The tree **style preset** menu writes the component's visual CSS into the tree
 element's **style expr** field (in **Appearance**). It offers **Default**,
@@ -1076,11 +1088,12 @@ Design-time import does not store data at runtime; use the core `tree` module
 combines a `pickFiles` button with the file helpers and a download button. See
 [`STDLIB.md`](STDLIB.md#tree-module-tree-core) for the JSON/XML schema.
 
-The preview supports row selection, disclosure toggles, arrow-key navigation,
-Home/End and inline rename (double-click, F2 or pencil; Enter/Escape). Expansion
-and renamed labels are restored after a state-driven re-render. The runtime uses
-`localStorage` for open state and local label overrides; labels and keys are
-escaped.
+The preview supports row selection, disclosure toggles, guide lines, icons,
+badges, metadata, hierarchical tri-state checkboxes, arrow-key navigation,
+Home/End and inline rename (double-click, F2 or pencil; Enter/Escape). Expansion,
+checked state and renamed labels are restored after a state-driven re-render.
+The runtime uses `localStorage` for open/checked state and local label overrides;
+labels, keys, icons, badges and metadata are escaped and rendered as text.
 
 See [API reference: tree](API_REFERENCE.md#tree) and the
 [tree example](../examples/tree/README.md).
