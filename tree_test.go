@@ -116,6 +116,7 @@ func TestTreeDataAPI(t *testing.T) {
 		"tree.importJson", "tree.importXml", "tree.importJsonFile", "tree.importXmlFile",
 		"tree.exportJson", "tree.exportXml", "tree.downloadJson", "tree.downloadXml", "tree.clear",
 		"tree.expandAll", "tree.collapseAll", "tree.expandTo", "tree.setChildren", "tree.setChildrenError",
+		"tree.retryChildren", "tree.lastMove", "tree.undoMove",
 		"tree.selectedKeys", "tree.checkedKeys", "tree.search",
 	} {
 		if _, ok := StdLookup(full); !ok {
@@ -318,7 +319,7 @@ fn loaded() -> null {
 fn menu() -> null {
 }
 view main {
-	tree "Files" name: "files" value: selected selection: selectedKeys multiSelect: true search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onMove: moved onLoad: loaded onContextMenu: menu virtual: true {
+	tree "Files" name: "files" value: selected selection: selectedKeys multiSelect: true search: true drag: true contextMenu: true columns: "size,date,status" columnLabels: "Size,Modified,State" columnWidths: "120,90,80" sort: "asc" persistSelection: true loadKey: loadKey onMove: moved onLoad: loaded onContextMenu: menu virtual: true {
 		treeitem "remote" key: "remote" lazy: true size: "2 KB" date: "today" status: "ok"
 	}
 }
@@ -336,6 +337,10 @@ view main {
 		`data-sui-tree-drag="1"`, `data-sui-tree-context-menu="1"`,
 		`data-sui-tree-virtual="1"`,
 		`data-sui-tree-columns="size,date,status"`,
+		`data-sui-tree-column-labels="Size,Modified,State"`,
+		`data-sui-tree-column-widths="120,90,80"`,
+		`data-sui-tree-sort="asc"`, `data-sui-tree-persist-selection="1"`,
+		`sui-tree-grid-head`, `>Size</span>`, `style="width:120px"`,
 		`data-sui-tree-selection-setter="setSelectedKeys"`,
 		`data-sui-tree-load-key-setter="setLoadKey"`,
 		`data-sui-tree-onmove="moved"`, `data-sui-tree-onload="loaded"`,
@@ -355,6 +360,7 @@ view main {
 		`setChildren`, `setChildrenError`, `loadLazy`, `sui-tree-loading`,
 		`selectedKeys`, `checkedKeys`, `expandAll`, `collapseAll`, `expandTo`,
 		`sui-tree-context`, `aria-multiselectable`, `data-sui-tree-selection-setter`,
+		`sortNodes`, `pushUndo`, `undoMove`, `lastMove`, `retryChildren`, `sui-tree-retry`,
 	} {
 		if !strings.Contains(suiTreeRuntime, want) {
 			t.Errorf("phase B/C/D runtime missing %q", want)
@@ -364,7 +370,7 @@ view main {
 		`.sui-tree-search`, `.sui-tree-grid-head`, `.sui-tree-cell`,
 		`.sui-tree-context`, `.sui-tree-drop-before`, `.sui-tree-drop-after`,
 		`.sui-tree-drop-inside`, `.sui-tree-loading`, `.sui-tree-match`,
-		`content-visibility: auto`,
+		`content-visibility: auto`, `.sui-tree-retry`,
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("phase B/C/D CSS missing %q", want)
@@ -373,6 +379,7 @@ view main {
 	html := GenerateHtmlPage(prog)
 	for _, want := range []string{
 		`sui-tree-search-input`, `sui-tree-grid-head`, `sui-tree-cell-size`,
+		`>Size</span>`, `style="width:120px"`,
 		`data-sui-size="2 KB"`, `data-sui-lazy="1"`,
 	} {
 		if !strings.Contains(html, want) {
@@ -387,7 +394,7 @@ state loadKey = ""
 fn moved() -> null {
 }
 view main {
-	tree "Files" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onMove: moved {
+	tree "Files" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" columnLabels: "Size,Modified,State" columnWidths: "120,90,80" sort: "asc" persistSelection: true loadKey: loadKey onMove: moved {
 		treeitem "remote" lazy: true size: "2 KB" date: "today" status: "ok"
 	}
 }
@@ -403,6 +410,8 @@ view main {
 	for _, want := range []string{
 		`"multiSelect":true`, `"selection":"selectedKeys"`, `"search":true`,
 		`"drag":true`, `"contextMenu":true`, `"columns":"size,date,status"`,
+		`"columnLabels":"Size,Modified,State"`, `"columnWidths":"120,90,80"`,
+		`"sort":"asc"`, `"persistSelection":true`,
 		`"loadKey":"loadKey"`, `"onMove":"moved"`, `"lazy":true`,
 		`"size":"2 KB"`, `"date":"today"`, `"status":"ok"`,
 	} {
@@ -414,6 +423,8 @@ view main {
 	for _, want := range []string{
 		`multiSelect: true`, `selection: selectedKeys`, `search: true`,
 		`drag: true`, `contextMenu: true`, `columns: "size,date,status"`,
+		`columnLabels: "Size,Modified,State"`, `columnWidths: "120,90,80"`,
+		`sort: "asc"`, `persistSelection: true`,
 		`loadKey: loadKey`, `onMove: moved`, `lazy: true`,
 		`size: "2 KB"`, `date: "today"`, `status: "ok"`,
 	} {
@@ -423,7 +434,8 @@ view main {
 	}
 	for _, want := range []string{
 		`"multi-select"`, `"search box"`, `"drag and drop"`, `"context menu"`,
-		`"grid columns"`, `"lazy children"`, `.td-row .td-size`,
+		`"grid columns"`, `"column labels"`, `"column widths"`, `"sort children"`,
+		`"persist selection"`, `"lazy children"`, `.td-row .td-size`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer phase B/C support missing %q", want)

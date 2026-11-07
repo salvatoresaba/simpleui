@@ -1067,6 +1067,9 @@ L'inspector **Tree** espone:
 | drag and drop | riordino con indicatori sopra/sotto/dentro |
 | context menu | azioni integrate al click destro |
 | grid columns | lista separata da virgole: `size`, `date`, `status` |
+| column labels / widths | intestazioni posizionali e larghezze in pixel |
+| sort children | `asc` o `desc`; vuoto mantiene l'ordine manuale |
+| persist selection | ripristina le key selezionate da local storage |
 | virtualize offscreen rows | ottimizzazione browser `content-visibility` per alberi grandi |
 | load key state | stato che riceve la key dell'elemento lazy in espansione |
 | editable | abilita la rinomina inline |

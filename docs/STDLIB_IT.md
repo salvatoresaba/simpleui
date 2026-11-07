@@ -318,6 +318,9 @@ restituiscono `(valore, errore)`.
 | `tree.expandTo(name, level)` | string, int | (int, string) | no | Espande sopra `level` e comprime i livelli più profondi |
 | `tree.setChildren(name, key, json)` | string, string, string | (int, string) | no | Aggiunge/sostituisce i figli di un elemento da JSON |
 | `tree.setChildrenError(name, key, message)` | string, string, string | (int, string) | no | Mostra un errore di caricamento lazy |
+| `tree.retryChildren(name, key)` | string, string | (int, string) | no | Riprova un caricamento lazy tramite `onLoad` |
+| `tree.lastMove(name)` | string | (string, string) | no | JSON `{key, parent, index}` dell'ultimo riordino |
+| `tree.undoMove(name)` | string | (int, string) | no | Ripristina l'albero precedente dallo stack undo |
 | `tree.selectedKeys(name)` | string | (string, string) | no | Array JSON delle key selezionate |
 | `tree.checkedKeys(name)` | string | (string, string) | no | Array JSON delle key checked |
 | `tree.search(name, term)` | string, string | (int, string) | no | Applica o pulisce il filtro inline |

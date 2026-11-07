@@ -603,7 +603,8 @@ tree "File progetto"
   fornisce anche la selezione iniziale.
 - `search: true` aggiunge una casella di ricerca inline. Filtra le righe, espande
   i rami con match, evidenzia tutte le occorrenze e mostra conteggio o empty
-  state. Ctrl/Command+F la focalizza; Escape la pulisce. Il termine sopravvive ai
+  state. La ricerca include anche badge, metadata, size, date e status.
+  Ctrl/Command+F la focalizza; Escape la pulisce. Il termine sopravvive ai
   re-render reattivi nella sessione della pagina.
 - `drag: true` abilita drag and drop con indicatori sopra/sotto/dentro. I drop
   nel nodo trascinato o in un suo discendente vengono rifiutati. `onMove` viene
@@ -615,12 +616,23 @@ tree "File progetto"
   applicativi.
 - `columns: "size,date,status"` mostra l'intestazione tree-grid e le celle.
   Le colonne supportate sono `size`, `date` e `status`; ogni `treeitem` fornisce
-  i testi `size`, `date` e `status`.
+  i testi `size`, `date` e `status`. `columnLabels: "Size,Modified,State"` imposta
+  le intestazioni in ordine e `columnWidths: "120,90,80"` imposta le larghezze.
+  `sort: "asc"`/`"desc"` ordina i figli per etichetta dopo gli import; ometterlo
+  per mantenere l'ordine manuale.
+- `persistSelection: true` ripristina le key selezionate da `localStorage` dopo
+  un reload quando non è collegato uno stato `selection`.
 - `treeitem lazy: true` mostra la freccia senza figli. L'espansione chiama
   `onLoad` e scrive la key nello stato collegato a `loadKey`. Caricare i dati con
   `tree.setChildren(name, key, jsonText)`, oppure mostrare un errore con
   `tree.setChildrenError(name, key, message)`. Un indicatore di caricamento resta
-  visibile finché i figli non arrivano.
+  visibile finché i figli non arrivano; la riga di errore ha **Retry** e
+  `tree.retryChildren(name, key)` riprova da codice.
+- `tree.lastMove(name)` restituisce JSON `{key, parent, index}` dell'ultimo
+  drag/riordino/duplica/elimina; `tree.undoMove(name)` ripristina l'albero
+  precedente da uno stack in memoria di 20 passi.
+- Il menu contestuale integrato offre anche **Duplicate item** e **Delete item**
+  (entrambi annullabili con `tree.undoMove`).
 - `tree.expandAll`, `tree.collapseAll` e `tree.expandTo(name, level)` controllano
   l'espansione da codice. `tree.selectedKeys(name)` e `tree.checkedKeys(name)`
   restituiscono array JSON. `tree.search(name, term)` pilota il filtro da codice.
@@ -687,7 +699,8 @@ tree "File progetto"
   `tree.downloadXml` scaricano un file; `tree.clear` rimuove tutti i nodi.
   Espansione: `tree.expandAll`, `tree.collapseAll`, `tree.expandTo`. Dati lazy:
   `tree.setChildren`, `tree.setChildrenError`. Selezione:
-  `tree.selectedKeys`, `tree.checkedKeys`; filtro: `tree.search`.
+  `tree.selectedKeys`, `tree.checkedKeys`; filtro: `tree.search`. Cronologia:
+  `tree.lastMove`, `tree.undoMove`; retry lazy: `tree.retryChildren`.
   Schema e limiti in [`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
 - I dati importati vengono applicati al tree con il `name` corrispondente;
   sopravvivono ai re-render e sostituiscono solo la struttura dei nodi (titolo,

@@ -326,6 +326,9 @@ the tree with the matching `name:` attribute (`name: "files"`). Functions return
 | `tree.expandTo(name, level)` | string, int | (int, string) | no | Expand parents above `level`; collapse deeper ones |
 | `tree.setChildren(name, key, json)` | string, string, string | (int, string) | no | Add/replace children of an item from JSON; returns node count |
 | `tree.setChildrenError(name, key, message)` | string, string, string | (int, string) | no | Show a lazy-load error on an item |
+| `tree.retryChildren(name, key)` | string, string | (int, string) | no | Retry a lazy load through `onLoad` |
+| `tree.lastMove(name)` | string | (string, string) | no | JSON `{key, parent, index}` of the last reorder |
+| `tree.undoMove(name)` | string | (int, string) | no | Restore the previous tree from the in-memory undo stack |
 | `tree.selectedKeys(name)` | string | (string, string) | no | JSON array of selected keys |
 | `tree.checkedKeys(name)` | string | (string, string) | no | JSON array of checked keys |
 | `tree.search(name, term)` | string, string | (int, string) | no | Apply or clear the inline filter |

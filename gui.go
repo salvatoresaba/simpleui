@@ -2145,7 +2145,8 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		} else if a.key == "empty" {
 			o.obj["empty"] = JStr(partsLiteral(a.text))
 		} else if a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" ||
-			a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "lazy" || a.key == "virtual" {
+			a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "lazy" || a.key == "virtual" ||
+			a.key == "persistSelection" {
 			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "selection" || a.key == "loadKey" {
 			if a.hasExpr && a.expr != nil {
@@ -2153,7 +2154,8 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj[a.key] = JStr(partsLiteral(a.text))
 			}
-		} else if a.key == "columns" || a.key == "size" || a.key == "date" || a.key == "status" {
+		} else if a.key == "columns" || a.key == "size" || a.key == "date" || a.key == "status" ||
+			a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" {
 			if a.hasExpr && a.expr != nil {
 				o.obj[a.key] = JStr(exprSource(a.expr))
 			} else {

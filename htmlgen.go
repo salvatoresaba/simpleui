@@ -295,6 +295,17 @@ body {
 .sui-tree-item[data-sui-lazy="1"] > .sui-tree-row .sui-tree-toggle { color: var(--sui-tree-toggle-color, #94a3b8); }
 .sui-tree-loading { margin-left: auto; color: var(--sui-tree-meta-color, #94a3b8); font-size: 11px; }
 .sui-tree-error { margin-left: auto; color: #f87171; font-size: 11px; }
+.sui-tree-retry {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: #f87171;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 10px;
+  padding: 1px 5px;
+  cursor: pointer;
+}
+.sui-tree-retry:hover { background: rgba(248, 113, 113, .15); }
 .sui-tree-context {
   position: fixed;
   z-index: 1000;
@@ -3560,11 +3571,55 @@ func treeColumnLabel(name string) string {
 	return name
 }
 
+func splitTreeColumnText(v string) []string {
+	var out []string
+	for _, part := range strings.Split(v, ",") {
+		out = append(out, strings.TrimSpace(part))
+	}
+	return out
+}
+
+func splitTreeColumnWidths(v string) []int {
+	var out []int
+	for _, part := range strings.Split(v, ",") {
+		n, err := strconv.Atoi(strings.TrimSpace(part))
+		if err == nil && n >= 20 && n <= 600 {
+			out = append(out, n)
+		} else {
+			out = append(out, 0)
+		}
+	}
+	return out
+}
+
+func treeColumnWidth(widths []int, i int) int {
+	if i >= 0 && i < len(widths) {
+		return widths[i]
+	}
+	return 0
+}
+
 func boolFlag(v bool) string {
 	if v {
 		return "1"
 	}
 	return "0"
+}
+
+func sortTreeElements(items []*Element, dir string) []*Element {
+	if dir != "asc" && dir != "desc" {
+		return items
+	}
+	out := append([]*Element(nil), items...)
+	sort.SliceStable(out, func(i, j int) bool {
+		a := strings.ToLower(partsContent(out[i].text))
+		b := strings.ToLower(partsContent(out[j].text))
+		if dir == "asc" {
+			return a < b
+		}
+		return a > b
+	})
+	return out
 }
 
 func treeChildren(e *Element) []*Element {
@@ -3631,6 +3686,10 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	drag := datepickerBool(e, "drag")
 	contextMenu := datepickerBool(e, "contextMenu")
 	columns := treeColumns(e)
+	columnLabels := splitTreeColumnText(treeTextAttr(e, "columnLabels"))
+	columnWidths := splitTreeColumnWidths(treeTextAttr(e, "columnWidths"))
+	sortDir := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "sort")))
+	persistSelection := datepickerBool(e, "persistSelection")
 	sb.WriteString(ind)
 	sb.WriteString("<div class=\"sui-tree")
 	staticClassSuffix(sb, e)
@@ -3698,6 +3757,22 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if len(columns) > 0 {
 		sb.WriteString(" data-sui-tree-columns=\"" + htmlEscape(strings.Join(columns, ",")) + "\"")
 	}
+	if strings.TrimSpace(strings.Join(columnLabels, "")) != "" {
+		sb.WriteString(" data-sui-tree-column-labels=\"" + htmlEscape(strings.Join(columnLabels, ",")) + "\"")
+	}
+	if len(columnWidths) > 0 {
+		var ws []string
+		for _, w := range columnWidths {
+			ws = append(ws, strconv.Itoa(w))
+		}
+		sb.WriteString(" data-sui-tree-column-widths=\"" + htmlEscape(strings.Join(ws, ",")) + "\"")
+	}
+	if sortDir == "asc" || sortDir == "desc" {
+		sb.WriteString(" data-sui-tree-sort=\"" + sortDir + "\"")
+	}
+	if persistSelection {
+		sb.WriteString(" data-sui-tree-persist-selection=\"1\"")
+	}
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	indent := ind + "  "
@@ -3710,18 +3785,27 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	}
 	if len(columns) > 0 {
 		sb.WriteString(indent + "<div class=\"sui-tree-grid-head\" role=\"presentation\"><span class=\"sui-tree-grid-name\">Name</span>")
-		for _, col := range columns {
-			sb.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">" + treeColumnLabel(col) + "</span>")
+		for i, col := range columns {
+			label := treeColumnLabel(col)
+			if i < len(columnLabels) && columnLabels[i] != "" {
+				label = columnLabels[i]
+			}
+			sb.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\"")
+			if w := treeColumnWidth(columnWidths, i); w > 0 {
+				sb.WriteString(" style=\"width:" + strconv.Itoa(w) + "px\"")
+			}
+			sb.WriteString(">" + htmlEscape(label) + "</span>")
 		}
 		sb.WriteString("</div>\n")
 	}
 	sb.WriteString(indent + "<ul class=\"sui-tree-group\" role=\"group\">\n")
-	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen, columns)
+	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir)
 	sb.WriteString(indent + "</ul>\n")
 	sb.WriteString(ind + "</div>\n")
 }
 
-func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string) {
+func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string) {
+	items = sortTreeElements(items, sortDir)
 	for i, it := range items {
 		path := pathPrefix + "." + strconv.Itoa(i)
 		key := treeKey(it, path)
@@ -3825,7 +3909,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 			sb.WriteString("<span class=\"sui-tree-meta\">" + htmlEscape(meta) + "</span>")
 		}
 		if len(columns) > 0 {
-			for _, col := range columns {
+			for ci, col := range columns {
 				val := ""
 				switch col {
 				case "size":
@@ -3835,7 +3919,11 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 				case "status":
 					val = status
 				}
-				sb.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">" + htmlEscape(val) + "</span>")
+				sb.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\"")
+				if w := treeColumnWidth(columnWidths, ci); w > 0 {
+					sb.WriteString(" style=\"width:" + strconv.Itoa(w) + "px\"")
+				}
+				sb.WriteString(">" + htmlEscape(val) + "</span>")
 			}
 		}
 		sb.WriteString("</div>\n")
@@ -3845,7 +3933,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 				sb.WriteString(" hidden")
 			}
 			sb.WriteString(">\n")
-			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen, columns)
+			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir)
 			sb.WriteString(ind + "  </ul>\n")
 		}
 		sb.WriteString(ind + "</li>\n")
@@ -4362,7 +4450,8 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
-			a.key == "virtual" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
+			a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||

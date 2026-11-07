@@ -1864,7 +1864,7 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "loadKey", "virtual", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
   treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
@@ -2154,6 +2154,10 @@ function newTreeNode() {
   n.drag = false;
   n.contextMenu = false;
   n.columns = "";
+  n.columnLabels = "";
+  n.columnWidths = "";
+  n.sort = "";
+  n.persistSelection = false;
   n.loadKey = "";
   n.virtual = false;
   n.styleExpr = treePresetStyleExpr("default");
@@ -4758,8 +4762,12 @@ function treeControls(n) {
   stateField("selection state", n.selection, "state name (JSON array)", "selection");
   stateField("load key state", n.loadKey, "state name for lazy loading", "loadKey");
   stateField("grid columns", n.columns, "size,date,status", "columns");
+  stateField("column labels", n.columnLabels, "Size,Date,Status", "columnLabels");
+  stateField("column widths", n.columnWidths, "104,104,104", "columnWidths");
+  stateField("sort children", n.sort, "asc or desc", "sort");
+  treeSwitch("persist selection", !!n.persistSelection, "persistSelection", "Restore selected keys after reload");
   var gridHint = document.createElement("div"); gridHint.className = "hint";
-  gridHint.textContent = "Grid columns add right-aligned cells; supported columns are size, date and status. Per-item values are edited in Tree data or the Tree item panel.";
+  gridHint.textContent = "Grid columns add right-aligned cells; supported columns are size, date and status. Column labels and widths are positional. Per-item values are edited in Tree data or the Tree item panel.";
   rows.push(gridHint);
   function stateField(label, value, placeholder, key) {
     var r = document.createElement("div"); r.className = "rowline";
@@ -9994,6 +10002,10 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.contextMenu) a += " contextMenu: true";
   if (n.kind === "tree" && n.virtual) a += " virtual: true";
   if (n.kind === "tree" && n.columns) a += " columns: \"" + esc(n.columns) + "\"";
+  if (n.kind === "tree" && n.columnLabels) a += " columnLabels: \"" + esc(n.columnLabels) + "\"";
+  if (n.kind === "tree" && n.columnWidths) a += " columnWidths: \"" + esc(n.columnWidths) + "\"";
+  if (n.kind === "tree" && n.sort) a += " sort: \"" + esc(n.sort) + "\"";
+  if (n.kind === "tree" && n.persistSelection) a += " persistSelection: true";
   if (n.kind === "tree" && n.loadKey) a += " loadKey: " + n.loadKey;
   if (n.onClick) a += " onClick: " + n.onClick;
   if (n.onDoubleClick) a += " onDoubleClick: " + n.onDoubleClick;

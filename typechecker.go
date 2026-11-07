@@ -2973,7 +2973,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "guides" || key == "truncate" || key == "checkbox" || key == "counts" || key == "rowHeight" ||
 		key == "icon" || key == "iconOpen" || key == "multiSelect" || key == "selection" ||
 		key == "search" || key == "drag" || key == "contextMenu" || key == "columns" || key == "loadKey" ||
-		key == "virtual") {
+		key == "virtual" || key == "columnLabels" || key == "columnWidths" || key == "sort" || key == "persistSelection") {
 		return true
 	}
 	if tag == "treeitem" && (key == "key" || key == "open" || key == "editable" ||
@@ -3485,7 +3485,8 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		return
 	}
 	if tag == "tree" && (a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" ||
-		a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "virtual") {
+		a.key == "multiSelect" || a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "virtual" ||
+		a.key == "persistSelection") {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)
 			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
@@ -3519,6 +3520,39 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 			c.inferExpr(a.expr)
 		} else {
 			c.checkViewParts(a.text)
+		}
+		return
+	}
+	if tag == "tree" && (a.key == "columnLabels" || a.key == "columnWidths") {
+		if a.hasExpr {
+			c.inferExpr(a.expr)
+			return
+		}
+		v := partsContent(a.text)
+		if a.key == "columnWidths" {
+			for _, part := range strings.Split(v, ",") {
+				if strings.TrimSpace(part) == "" {
+					continue
+				}
+				n, err := strconv.Atoi(strings.TrimSpace(part))
+				if err != nil || n < 20 || n > 600 {
+					c.diagAt(a.span, "columnWidths must be comma-separated integers between 20 and 600")
+					break
+				}
+			}
+		} else {
+			c.checkViewParts(a.text)
+		}
+		return
+	}
+	if tag == "tree" && a.key == "sort" {
+		if a.hasExpr {
+			c.inferExpr(a.expr)
+			return
+		}
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		if v != "" && v != "asc" && v != "desc" {
+			c.diagAt(a.span, "sort must be asc or desc")
 		}
 		return
 	}

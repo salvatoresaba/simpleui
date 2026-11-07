@@ -1027,6 +1027,9 @@ The **Tree** inspector exposes:
 | drag and drop | reorder nodes with before/after/inside indicators |
 | context menu | built-in right-click actions |
 | grid columns | comma list: `size`, `date`, `status` |
+| column labels / widths | positional header text and pixel widths |
+| sort children | `asc` or `desc`; empty keeps manual order |
+| persist selection | restore selected keys from local storage |
 | virtualize offscreen rows | browser `content-visibility` optimization for large trees |
 | load key state | state receiving the key of a lazy item being expanded |
 | editable | enable inline rename |

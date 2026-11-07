@@ -1710,6 +1710,15 @@ func stdBodyJs(key string, target string) string {
 	if key == "tree_setchildrenerror" {
 		return "(name, key, message) => __SUI_TREE.setChildrenError(name, key, message)"
 	}
+	if key == "tree_retrychildren" {
+		return "(name, key) => __SUI_TREE.retryChildren(name, key)"
+	}
+	if key == "tree_lastmove" {
+		return "(name) => __SUI_TREE.lastMove(name)"
+	}
+	if key == "tree_undomove" {
+		return "(name) => __SUI_TREE.undoMove(name)"
+	}
 	if key == "tree_selectedkeys" {
 		return "(name) => __SUI_TREE.selectedKeys(name)"
 	}
@@ -2334,7 +2343,8 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
-			a.key == "virtual" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
+			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
+			a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
@@ -3312,6 +3322,13 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		contextMenu = a.expr.b
 	}
 	columns := treeColumns(e)
+	columnLabels := splitTreeColumnText(treeTextAttr(e, "columnLabels"))
+	columnWidths := splitTreeColumnWidths(treeTextAttr(e, "columnWidths"))
+	sortDir := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "sort")))
+	persistSelection := false
+	if a := findAttr(e, "persistSelection"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+		persistSelection = a.expr.b
+	}
 	selectionSetter := ""
 	if a := findAttr(e, "selection"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" &&
 		ctxIsState(ctx, a.expr.name) {
@@ -3394,6 +3411,22 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		if len(columns) > 0 {
 			open += " data-sui-tree-columns=\"" + htmlEscape(strings.Join(columns, ",")) + "\""
 		}
+		if strings.TrimSpace(strings.Join(columnLabels, "")) != "" {
+			open += " data-sui-tree-column-labels=\"" + htmlEscape(strings.Join(columnLabels, ",")) + "\""
+		}
+		if len(columnWidths) > 0 {
+			var ws []string
+			for _, w := range columnWidths {
+				ws = append(ws, strconv.Itoa(w))
+			}
+			open += " data-sui-tree-column-widths=\"" + htmlEscape(strings.Join(ws, ",")) + "\""
+		}
+		if sortDir == "asc" || sortDir == "desc" {
+			open += " data-sui-tree-sort=\"" + sortDir + "\""
+		}
+		if persistSelection {
+			open += " data-sui-tree-persist-selection=\"1\""
+		}
 		if selectionSetter != "" {
 			open += " data-sui-tree-selection-setter=\"" + selectionSetter + "\""
 		}
@@ -3432,24 +3465,32 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	}
 	if len(columns) > 0 {
 		b.WriteString("<div class=\"sui-tree-grid-head\" role=\"presentation\"><span class=\"sui-tree-grid-name\">Name</span>")
-		for _, col := range columns {
-			b.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">" + treeColumnLabel(col) + "</span>")
+		for i, col := range columns {
+			label := treeColumnLabel(col)
+			if i < len(columnLabels) && columnLabels[i] != "" {
+				label = columnLabels[i]
+			}
+			b.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\"")
+			if w := treeColumnWidth(columnWidths, i); w > 0 {
+				b.WriteString(" style=\"width:" + strconv.Itoa(w) + "px\"")
+			}
+			b.WriteString(">" + htmlEscape(label) + "</span>")
 		}
 		b.WriteString("</div>")
 	}
 	b.WriteString("<ul class=\"sui-tree-group\" role=\"group\">")
 	seq := 0
-	for _, child := range treeChildren(e) {
-		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, treeIcon, treeIconOpen, columns))
+	for _, child := range sortTreeElements(treeChildren(e), sortDir) {
+		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir))
 		seq++
 	}
 	b.WriteString("</ul></div>`")
 	return b.String()
 }
 
-func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string) string {
+func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string) string {
 	open := openTagHtml(it, "li", false, itemID, ctx)
-	kids := treeChildren(it)
+	kids := sortTreeElements(treeChildren(it), sortDir)
 	isOpen := treeOpen(it)
 	lazy := false
 	if a := findAttr(it, "lazy"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
@@ -3584,7 +3625,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		b.WriteString("</span>")
 	}
 	if len(columns) > 0 {
-		for _, col := range columns {
+		for ci, col := range columns {
 			val := ""
 			switch col {
 			case "size":
@@ -3594,7 +3635,11 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 			case "status":
 				val = status
 			}
-			b.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\">")
+			b.WriteString("<span class=\"sui-tree-cell sui-tree-cell-" + col + "\"")
+			if w := treeColumnWidth(columnWidths, ci); w > 0 {
+				b.WriteString(" style=\"width:" + strconv.Itoa(w) + "px\"")
+			}
+			b.WriteString(">")
 			b.WriteString(htmlEscape(val))
 			b.WriteString("</span>")
 		}
@@ -3607,7 +3652,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		}
 		b.WriteString(">")
 		for i, child := range kids {
-			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, treeIcon, treeIconOpen, columns))
+			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir))
 		}
 		b.WriteString("</ul>")
 	}

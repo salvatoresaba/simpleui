@@ -623,7 +623,8 @@ tree "Project files"
   provides the initial selection.
 - `search: true` adds an inline search box. It filters rows, expands matching
   branches, highlights every occurrence and shows a match count or an empty
-  state. Ctrl/Command+F focuses it; Escape clears it. The term survives reactive
+  state. Matching also includes badge, metadata, size, date and status text.
+  Ctrl/Command+F focuses it; Escape clears it. The term survives reactive
   re-renders for the current page session.
 - `drag: true` enables drag and drop with before/after/inside indicators. Drops
   into the dragged node or one of its descendants are rejected. `onMove` runs
@@ -633,12 +634,23 @@ tree "Project files"
   after the item is selected, for application-specific menus.
 - `columns: "size,date,status"` renders a tree-grid header and matching cells.
   Supported columns are `size`, `date` and `status`; each `treeitem` supplies
-  `size`, `date` and `status` text.
+  `size`, `date` and `status` text. `columnLabels: "Size,Modified,State"` sets
+  the header text positionally and `columnWidths: "120,90,80"` sets cell widths.
+  `sort: "asc"`/`"desc"` sorts children by label after imports; omit it to keep
+  manual order.
+- `persistSelection: true` restores selected keys from `localStorage` after a
+  reload when no `selection` state is bound.
 - `treeitem lazy: true` renders a disclosure arrow without children. Expanding
   it calls `onLoad` and writes the item key to the state bound by `loadKey`.
   Load data with `tree.setChildren(name, key, jsonText)`, or show an error with
   `tree.setChildrenError(name, key, message)`. A loading indicator is shown
-  until children arrive.
+  until children arrive; the error row has a **Retry** button, and
+  `tree.retryChildren(name, key)` retries from code.
+- `tree.lastMove(name)` returns JSON `{key, parent, index}` for the last
+  drag/reorder/duplicate/delete; `tree.undoMove(name)` restores the previous
+  tree from an in-memory 20-step stack.
+- The built-in context menu also offers **Duplicate item** and **Delete item**
+  (both undoable with `tree.undoMove`).
 - `tree.expandAll`, `tree.collapseAll` and `tree.expandTo(name, level)` control
   expansion from application code. `tree.selectedKeys(name)` and
   `tree.checkedKeys(name)` return JSON arrays. `tree.search(name, term)` drives
@@ -702,7 +714,8 @@ tree "Project files"
   `tree.downloadXml` download a file; `tree.clear` removes all nodes. Expansion:
   `tree.expandAll`, `tree.collapseAll`, `tree.expandTo`. Lazy data:
   `tree.setChildren`, `tree.setChildrenError`. Selection:
-  `tree.selectedKeys`, `tree.checkedKeys`; filter: `tree.search`. See
+  `tree.selectedKeys`, `tree.checkedKeys`; filter: `tree.search`. History:
+  `tree.lastMove`, `tree.undoMove`; lazy retry: `tree.retryChildren`. See
   [`STDLIB.md`](STDLIB.md#tree-module-tree-core) for schemas and limits.
 - Imported data is applied to the tree with the matching `name`; it survives
   re-renders and replaces only the node structure (title/style/bindings stay).

@@ -231,13 +231,17 @@ resulting `checked` flags.
 
 `multiSelect` enables Ctrl/Command and Shift selection; `selection` receives a
 JSON array of keys. `search` adds a filter box, `drag` enables reordering with
-cycle checks, and `contextMenu` adds a built-in right-click menu. `columns`
-renders a tree-grid from each item's `size`, `date` and `status`. `virtual`
-enables browser offscreen rendering (`content-visibility`) for large trees. Lazy
-items call `onLoad`, write their key to `loadKey`, and receive children through
-`tree.setChildren(name, key, json)`. `tree.expandAll`, `tree.collapseAll`,
-`tree.expandTo`, `tree.selectedKeys` and `tree.checkedKeys` are available from
-application code.
+cycle checks, and `contextMenu` adds a built-in right-click menu with rename,
+duplicate, delete, expand/collapse, copy key and expand/collapse all. `columns`
+renders a tree-grid from each item's `size`, `date` and `status`;
+`columnLabels`/`columnWidths` customize the header and widths, and `sort` orders
+children by label. `persistSelection` restores selected keys after reload.
+`virtual` enables browser offscreen rendering (`content-visibility`) for large
+trees. Lazy items call `onLoad`, write their key to `loadKey`, and receive
+children through `tree.setChildren(name, key, json)`; errors offer a Retry
+button and `tree.retryChildren`. `tree.expandAll`, `tree.collapseAll`,
+`tree.expandTo`, `tree.selectedKeys`, `tree.checkedKeys`, `tree.lastMove` and
+`tree.undoMove` are available from application code.
 
 ## Behavior
 
