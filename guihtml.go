@@ -13444,6 +13444,70 @@ var COMPONENT_DEFS = [
     previewCss: ".sui-scroll-preview { scrollbar-width: var(--sui-scrollbar-firefox-width, thin); scrollbar-color: var(--sui-scrollbar-thumb, #4b5563) var(--sui-scrollbar-track, #111827); }\n.sui-scroll-preview::-webkit-scrollbar { width: var(--sui-scrollbar-size, 10px); height: var(--sui-scrollbar-size, 10px); }\n.sui-scroll-preview::-webkit-scrollbar-track { background: var(--sui-scrollbar-track, #111827); border-radius: var(--sui-scrollbar-radius, 8px); }\n.sui-scroll-preview::-webkit-scrollbar-thumb { background: var(--sui-scrollbar-thumb, #4b5563); border-radius: var(--sui-scrollbar-radius, 8px); border: var(--sui-scrollbar-border-width, 0) solid var(--sui-scrollbar-border, transparent); }\n.sui-scroll-preview::-webkit-scrollbar-thumb:hover { background: var(--sui-scrollbar-hover, #6b7280); }\n.sui-scroll-preview::-webkit-scrollbar-corner { background: var(--sui-scrollbar-track, #111827); }"
   }
 ];
+function themeHexToRgb(hex) {
+  var s = String(hex || "").trim().replace("#", "");
+  if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+  if (!/^[0-9a-f]{6}$/i.test(s)) return null;
+  return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+}
+function themeRgbToHex(rgb) {
+  function part(v) { var n = Math.round(Math.max(0, Math.min(255, v))); return (n < 16 ? "0" : "") + n.toString(16); }
+  return "#" + part(rgb[0]) + part(rgb[1]) + part(rgb[2]);
+}
+function themeSolidHex(color, fallback) {
+  var c = String(color || "").trim();
+  if (/^#[0-9a-f]{3}$/i.test(c)) {
+    c = "#" + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+  }
+  if (/^#[0-9a-f]{6}$/i.test(c)) return c.toLowerCase();
+  var m = c.match(/^rgba?\(([^)]+)\)$/i);
+  if (m) {
+    var parts = m[1].split(",");
+    var r = parseFloat(parts[0]), g = parseFloat(parts[1]), b = parseFloat(parts[2]);
+    var a = parts.length > 3 ? parseFloat(parts[3]) : 1;
+    if (isFinite(r) && isFinite(g) && isFinite(b) && isFinite(a)) {
+      var fb = themeHexToRgb(fallback || "#ffffff") || [255, 255, 255];
+      return themeRgbToHex([r * a + fb[0] * (1 - a), g * a + fb[1] * (1 - a), b * a + fb[2] * (1 - a)]);
+    }
+  }
+  return fallback ? themeSolidHex(fallback, "#ffffff") : "";
+}
+function themeLuminanceHex(hex) {
+  var rgb = themeHexToRgb(hex);
+  if (!rgb) return 0;
+  function f(v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  return 0.2126 * f(rgb[0]) + 0.7152 * f(rgb[1]) + 0.0722 * f(rgb[2]);
+}
+function themeContrastHex(a, b) {
+  var l1 = themeLuminanceHex(a), l2 = themeLuminanceHex(b);
+  if (l2 > l1) { var t = l1; l1 = l2; l2 = t; }
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+function themeReadableColor(fg, bg, min, fallbackBg) {
+  var solidFg = themeSolidHex(fg, bg);
+  var solidBg = themeSolidHex(bg, fallbackBg || "#ffffff");
+  if (!solidFg || !solidBg) return fg;
+  if (themeContrastHex(solidFg, solidBg) >= min) return fg;
+  var hsl = hexToHsl(solidFg);
+  if (!hsl) return fg;
+  var lightBg = themeLuminanceHex(solidBg) > 0.5;
+  var best = lightBg ? "#000000" : "#ffffff";
+  for (var i = 1; i <= 100; i++) {
+    var l = lightBg ? hsl.l - i : hsl.l + i;
+    if (l < 0) l = 0;
+    if (l > 100) l = 100;
+    var candidate = hslToHex(hsl.h, hsl.s, l);
+    if (themeContrastHex(candidate, solidBg) >= min) { best = candidate; break; }
+    if (l === 0 || l === 100) break;
+  }
+  return best;
+}
+function themeFixText(map, fgKey, bgKey, min, fallback) {
+  if (!map || map[fgKey] === undefined) return;
+  var bg = map[bgKey] !== undefined ? map[bgKey] : fallback;
+  var adjusted = themeReadableColor(map[fgKey], bg, min, fallback);
+  if (adjusted !== map[fgKey]) map[fgKey] = adjusted;
+}
 function sharedStyleVars(p, overrides) {
   var bg = p.bg !== undefined ? p.bg : "transparent";
   var panel = p.panel || bg;
@@ -13904,6 +13968,52 @@ function sharedStyleVars(p, overrides) {
       Object.keys(overrides[id]).forEach(function(k){ v[id][k] = overrides[id][k]; });
     });
   }
+  // Keep interactive text readable even when a palette only overrides the
+  // base header/foreground colours. Derived hover values must follow them.
+  if (v.accordion) {
+    var accOverride = overrides && overrides.accordion ? overrides.accordion : {};
+    if (accOverride["--sui-accordion-hover-bg"] === undefined) v.accordion["--sui-accordion-hover-bg"] = v.accordion["--sui-accordion-head-bg"];
+    if (accOverride["--sui-accordion-hover-fg"] === undefined) v.accordion["--sui-accordion-hover-fg"] = v.accordion["--sui-accordion-fg"];
+  }
+  var pageBg = v.page["--sui-bg"];
+  var pagePanel = v.page["--sui-panel"] || pageBg;
+  v.page["--sui-link"] = themeReadableColor(accent, pageBg, 4.5, pagePanel);
+  themeFixText(v.page, "--sui-fg", "--sui-bg", 4.5, pageBg);
+  themeFixText(v.page, "--sui-fg", "--sui-panel", 4.5, pageBg);
+  themeFixText(v.page, "--sui-fg", "--sui-panel2", 4.5, pageBg);
+  themeFixText(v.page, "--sui-muted", "--sui-bg", 3, pageBg);
+  themeFixText(v.page, "--sui-muted", "--sui-panel", 3, pageBg);
+  themeFixText(v.button, "--sui-button-fg", "--sui-button-bg", 4.5, pagePanel);
+  themeFixText(v.button, "--sui-button-hover-fg", "--sui-button-hover", 4.5, pagePanel);
+  themeFixText(v.form, "--sui-field-fg", "--sui-field-bg", 4.5, pagePanel);
+  themeFixText(v.badge, "--sui-badge-fg", "--sui-badge-bg", 4.5, pagePanel);
+  themeFixText(v.badge, "--sui-badge-hover-fg", "--sui-badge-hover-bg", 4.5, pagePanel);
+  themeFixText(v.alert, "--sui-alert-fg", "--sui-alert-bg", 4.5, pagePanel);
+  themeFixText(v.alert, "--sui-alert-hover-fg", "--sui-alert-hover-bg", 4.5, pagePanel);
+  themeFixText(v.card, "--sui-card-fg", "--sui-card-bg", 4.5, pagePanel);
+  themeFixText(v.tabs, "--sui-tab-fg", "--sui-tablist-bg", 3, pagePanel);
+  themeFixText(v.tabs, "--sui-tab-active-fg", "--sui-tab-active-bg", 5, pagePanel);
+  themeFixText(v.tabs, "--sui-tab-hover-fg", "--sui-tab-hover-bg", 4.5, pagePanel);
+  themeFixText(v.accordion, "--sui-accordion-fg", "--sui-accordion-head-bg", 4.5, pagePanel);
+  themeFixText(v.accordion, "--sui-accordion-hover-fg", "--sui-accordion-hover-bg", 4.5, pagePanel);
+  themeFixText(v.combobox, "--sui-combobox-fg", "--sui-combobox-bg", 4.5, pagePanel);
+  themeFixText(v.combobox, "--sui-combobox-label", "--sui-combobox-bg", 3, pagePanel);
+  themeFixText(v.datepicker, "--sui-datepicker-fg", "--sui-datepicker-bg", 4.5, pagePanel);
+  themeFixText(v.datepicker, "--sui-datepicker-label", "--sui-datepicker-bg", 3, pagePanel);
+  themeFixText(v.tree, "--sui-tree-fg", "--sui-tree-row-bg", 4.5, pagePanel);
+  themeFixText(v.tree, "--sui-tree-selected-fg", "--sui-tree-selected-bg", 4.5, pagePanel);
+  themeFixText(v.table, "--sui-table-fg", "--sui-table-bg", 4.5, pagePanel);
+  themeFixText(v.table, "--sui-table-head-fg", "--sui-table-head-bg", 4.5, pagePanel);
+  themeFixText(v.table, "--sui-table-fg", "--sui-table-row-bg", 4.5, pagePanel);
+  themeFixText(v.table, "--sui-table-fg", "--sui-table-striped-bg", 4.5, pagePanel);
+  themeFixText(v.toast, "--sui-toast-fg", "--sui-toast-bg", 4.5, pagePanel);
+  themeFixText(v.toast, "--sui-toast-hover-fg", "--sui-toast-hover-bg", 4.5, pagePanel);
+  themeFixText(v.modal, "--sui-modal-fg", "--sui-modal-bg", 4.5, pagePanel);
+  themeFixText(v.modal, "--sui-modal-button-fg", "--sui-modal-button-bg", 4.5, pagePanel);
+  themeFixText(v.modal, "--sui-modal-button-hover-fg", "--sui-modal-button-hover", 4.5, pagePanel);
+  themeFixText(v.menu, "--sui-menu-fg", "--sui-menu-button-bg", 4.5, pagePanel);
+  themeFixText(v.menu, "--sui-menu-fg", "--sui-menu-popup-bg", 4.5, pagePanel);
+  themeFixText(v.menu, "--sui-menu-hover-fg", "--sui-menu-hover", 4.5, pagePanel);
   return v;
 }
 var SHARED_STYLES = [
@@ -13923,7 +14033,7 @@ var SHARED_STYLES = [
     pageBg: "#0b1220", pageFg: "#e2e8f0", pageMuted: "#94a3b8", pageBorder: "#334155",
     pageBorder2: "#475569", pageHover: "#1e293b", pagePanel: "#111827", pagePanel2: "#0b1220",
     pageShadow: "0 18px 48px rgba(2,6,23,.45)",
-    border: "rgba(255,255,255,.28)", accent: "#7dd3fc", accent2: "#c084fc", radius: "14px",
+    border: "rgba(255,255,255,.4)", accent: "#7dd3fc", accent2: "#c084fc", radius: "14px",
     font: "inherit", borderWidth: "1px", borderStyle: "solid",
     shadow: "0 18px 48px rgba(2,6,23,.45)", shadowSoft: "0 8px 24px rgba(2,6,23,.35)",
     hover: "rgba(255,255,255,.12)", selectedBg: "rgba(125,211,252,.22)", selectedFg: "#f0f9ff",
@@ -13932,7 +14042,7 @@ var SHARED_STYLES = [
     fill: SUI_PROGRESS_FILLS.gradient, fieldShadow: "0 8px 24px rgba(2,6,23,.28)",
     backdrop: "blur(12px)", progressAnimation: SUI_PROGRESS_ANIMS.glow,
     spinnerShadow: "0 0 18px rgba(125,211,252,.55)", badgeBg: "rgba(255,255,255,.12)",
-    modalButtonBg: "rgba(255,255,255,.10)", checkBg: "rgba(255,255,255,.10)"
+    modalButtonBg: "rgba(255,255,255,.10)", checkBg: "rgba(255,255,255,.10)", checkMark: "#0b1220"
   }, { card: { "--sui-card-backdrop": "blur(14px)" }, toast: { "--sui-toast-backdrop": "blur(12px)" } }) },
   { id: "brutalist-light", label: "Brutalist Light", mode: "light", desc: "Thick black outlines, flat yellow blocks and hard offset shadows.", vars: sharedStyleVars({
     bg: "#ffe066", panel: "#fff3bf", fg: "#111111", muted: "#4a3f00",
@@ -13978,7 +14088,7 @@ var SHARED_STYLES = [
     progressAnimation: SUI_PROGRESS_ANIMS.none,
     spinnerShadow: "3px 3px 8px #171b22, -3px -3px 8px #373f4f",
     buttonPadding: "10px 18px", inputPadding: "10px 14px", badgeRadius: "10px", tabRadius: "10px",
-    checkBg: "#272d39"
+    checkBg: "#272d39", checkMark: "#0f172a"
   }) },
   { id: "contrast-dark", label: "High contrast Dark", mode: "dark", desc: "Black and white with bold yellow outlines and cyan focus.", vars: sharedStyleVars({
     bg: "#000000", panel: "#000000", fg: "#ffffff", muted: "#ffff00",
@@ -14075,7 +14185,7 @@ var SHARED_STYLE_EXTRAS = [
     pageBg: "#e0f2fe", pageFg: "#0f172a", pageMuted: "#475569", pageBorder: "#cbd5e1",
     pageBorder2: "#94a3b8", pageHover: "#e2e8f0", pagePanel: "#ffffff", pagePanel2: "#f0f9ff",
     pageShadow: "0 18px 48px rgba(15,23,42,.18)",
-    border: "rgba(15,23,42,.18)", accent: "#0284c7", accent2: "#7c3aed", radius: "14px",
+    border: "rgba(15,23,42,.42)", accent: "#0369a1", accent2: "#7c3aed", radius: "14px",
     font: "inherit", borderWidth: "1px", borderStyle: "solid",
     shadow: "0 18px 48px rgba(15,23,42,.18)", shadowSoft: "0 8px 24px rgba(15,23,42,.14)",
     hover: "rgba(15,23,42,.06)", selectedBg: "rgba(2,132,199,.18)", selectedFg: "#0f172a",
@@ -14304,7 +14414,7 @@ function defaultShapeOverrides() {
 }
 var STANDARD_LIGHT_PALETTE = {
   bg: "#f8fafc", panel: "#ffffff", fg: "#0f172a", muted: "#64748b",
-  border: "#cbd5e1", accent: "#4c5cf7", accent2: "#6366f1", radius: "8px",
+  border: "#94a3b8", accent: "#4c5cf7", accent2: "#6366f1", radius: "8px",
   font: "inherit", borderWidth: "1px", borderStyle: "solid",
   shadow: "0 8px 24px rgba(15,23,42,.12)", shadowSoft: "0 2px 10px rgba(15,23,42,.10)",
   hover: "#e2e8f0", selectedBg: "rgba(76,92,247,.14)", selectedFg: "#1e293b",
@@ -14314,9 +14424,9 @@ var STANDARD_LIGHT_PALETTE = {
   pageBg: "#f8fafc", pageFg: "#0f172a", pageMuted: "#64748b", pageBorder: "#cbd5e1",
   pageBorder2: "#94a3b8", pageHover: "#e2e8f0", pagePanel: "#ffffff", pagePanel2: "#f1f5f9",
   pageShadow: "0 8px 24px rgba(15,23,42,.12)",
-  checkBg: "#ffffff", checkBorder: "#cbd5e1", checkChecked: "#4c5cf7",
+  checkBg: "#ffffff", checkBorder: "#94a3b8", checkChecked: "#4c5cf7",
   checkCheckedBorder: "#4c5cf7", checkMark: "#ffffff",
-  switchBg: "#e2e8f0", switchChecked: "#4c5cf7", switchThumb: "#ffffff",
+  switchBg: "#94a3b8", switchChecked: "#4c5cf7", switchThumb: "#ffffff",
   sliderBg: "#e2e8f0", sliderThumb: "#4c5cf7",
   tableHeadBg: "#f1f5f9", tableHeadFg: "#0f172a", tableRowBg: "#ffffff",
   tableStripedBg: "#f8fafc", tableHover: "#e2e8f0"
@@ -14326,6 +14436,7 @@ var STANDARD_DARK_PAGE = {
   "--sui-bg": "#14171c", "--sui-fg": "#e6e6e6", "--sui-muted": "#8fa0b8",
   "--sui-border": "#3d4556", "--sui-border2": "#475569", "--sui-hover": "#2d3340",
   "--sui-panel": "#1d2129", "--sui-panel2": "#181c24", "--sui-accent": "#4c5cf7",
+  "--sui-link": "#93c5fd",
   "--sui-table-hover-bg": "#20252e", "--sui-ac-shadow": "0 8px 24px rgba(0,0,0,.5)",
   "--sui-radius": "8px"
 };
@@ -14468,7 +14579,7 @@ var THEME_FAMILIES = [
   { id: "cyberpunk", label: "Cyberpunk", light: "cyberpunk-light", dark: "cyberpunk-dark" },
   { id: "geometric", label: "Geometric", light: "geometric-light", dark: "geometric-dark" }
 ];
-var PAGE_KEYS = ["--sui-bg", "--sui-fg", "--sui-muted", "--sui-border", "--sui-border2", "--sui-hover", "--sui-panel", "--sui-panel2", "--sui-accent", "--sui-table-hover-bg", "--sui-ac-shadow", "--sui-radius"];
+var PAGE_KEYS = ["--sui-bg", "--sui-fg", "--sui-muted", "--sui-border", "--sui-border2", "--sui-hover", "--sui-panel", "--sui-panel2", "--sui-accent", "--sui-link", "--sui-table-hover-bg", "--sui-ac-shadow", "--sui-radius"];
 var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation", "Data", "Overlay"];
 function componentDefForKind(kind) {
   for (var i = 0; i < COMPONENT_DEFS.length; i++) {
@@ -14988,6 +15099,7 @@ function projectThemeMatch() {
         var pk = PAGE_KEYS[p];
         var pe = page[pk] !== undefined ? page[pk] : undefined;
         var pa = vars[pk];
+        if (pk === "--sui-link" && pa === undefined) continue;
         if (String(pe === undefined ? "" : pe) !== String(pa === undefined ? "" : pa)) { ok = false; break; }
       }
       var tt = tooltipThemeVars(v);

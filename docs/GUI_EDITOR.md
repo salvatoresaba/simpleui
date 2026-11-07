@@ -385,6 +385,15 @@ so it is always clear whether the project still follows a single theme. A new
 project starts on **Standard Dark**; choosing **Standard Light** switches both
 the page and the controls to light defaults.
 
+Shared themes are also checked for readability: page text, panel text, muted
+text, links, buttons, badges, alerts, cards, tabs, accordions, form labels,
+trees, tables, toasts, modals and menus meet contrast thresholds against their
+own surfaces. Links use the dedicated `--sui-link` token, which is derived from
+the accent colour and darkened or lightened when needed, so an accent that works
+as a fill does not become unreadable as link text. Active tabs and derived hover
+colours are adjusted in the same way, and component borders stay visible on
+light glass and standard surfaces.
+
 ### Export and import a theme
 
 **Export theme** in the project preferences downloads a `simpleui-theme.json`

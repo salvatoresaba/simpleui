@@ -223,6 +223,108 @@ const themeE2EScript = `<script>
       var key = 'theme-' + v.id;
       return chartPresetKey({ styleExpr: chartPresetStyleExpr(key) }) === key;
     });
+    function rgb(c) {
+      c = String(c || '').trim().toLowerCase();
+      if (!c || c === 'transparent' || c === 'none' || c === 'inherit' || c === 'currentcolor') return null;
+      if (c[0] === '#') {
+        var h = c.slice(1);
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        if (!/^[0-9a-f]{6}$/.test(h)) return null;
+        return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), 1];
+      }
+      var m = c.match(/rgba?\(([^)]+)\)/);
+      if (m) {
+        var p = m[1].split(',').map(function (x) { return parseFloat(x.trim()); });
+        if (p.length >= 3) return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+      }
+      return null;
+    }
+    function blendRgb(fg, bg) {
+      var a = fg[3] === undefined ? 1 : fg[3];
+      if (a >= 1) return fg;
+      return [fg[0] * a + bg[0] * (1 - a), fg[1] * a + bg[1] * (1 - a), fg[2] * a + bg[2] * (1 - a), 1];
+    }
+    function luminanceRgb(c) {
+      function f(v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+      return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+    }
+    function contrastRatio(a, b) {
+      var x = luminanceRgb(a), y = luminanceRgb(b);
+      if (y > x) { var t = x; x = y; y = t; }
+      return (x + 0.05) / (y + 0.05);
+    }
+    var contrastFailures = [];
+    STYLE_VARIANT_DEFS.forEach(function (v) {
+      var page = v.page || (v.vars && v.vars.page) || {};
+      var pageBg = rgb(page['--sui-bg']) || [20, 23, 28, 1];
+      var panel = rgb(page['--sui-panel']) || pageBg;
+      function vars(id) { return (v.vars && v.vars[id]) || {}; }
+      function checkPair(label, fg, bg, min) {
+        var f = rgb(fg), b = rgb(bg) || panel;
+        if (!f || !b) return;
+        var solidBg = blendRgb(b, pageBg);
+        var solidFg = blendRgb(f, solidBg);
+        var r = contrastRatio(solidFg, solidBg);
+        if (r + 0.002 < min) contrastFailures.push(v.id + ':' + label + ' ' + r.toFixed(2) + '<' + min);
+      }
+      function width(map, key, def) { var w = parseFloat(map[key]); return isFinite(w) ? w : (def === undefined ? 1 : def); }
+      checkPair('page text', page['--sui-fg'], page['--sui-bg'], 4.5);
+      checkPair('panel text', page['--sui-fg'], page['--sui-panel'], 4.5);
+      checkPair('panel2 text', page['--sui-fg'], page['--sui-panel2'], 4.5);
+      checkPair('muted page', page['--sui-muted'], page['--sui-bg'], 3);
+      checkPair('muted panel', page['--sui-muted'], page['--sui-panel'], 3);
+      checkPair('link page', page['--sui-link'], page['--sui-bg'], 4.5);
+      checkPair('link panel', page['--sui-link'], page['--sui-panel'], 4.5);
+      var b = vars('button');
+      checkPair('button', b['--sui-button-fg'], b['--sui-button-bg'], 4.5);
+      checkPair('button hover', b['--sui-button-hover-fg'] || b['--sui-button-fg'], b['--sui-button-hover'] || b['--sui-button-bg'], 4.5);
+      var f = vars('form');
+      checkPair('field', f['--sui-field-fg'], f['--sui-field-bg'], 4.5);
+      if (width(f, '--sui-field-border-width', 1) > 0) checkPair('field border', f['--sui-field-border'], f['--sui-field-bg'], 1.8);
+      checkPair('field focus', f['--sui-field-focus'], f['--sui-field-bg'], 2.5);
+      var bd = vars('badge');
+      checkPair('badge', bd['--sui-badge-fg'], bd['--sui-badge-bg'], 4.5);
+      checkPair('badge hover', bd['--sui-badge-hover-fg'] || bd['--sui-badge-fg'], bd['--sui-badge-hover-bg'] || bd['--sui-badge-bg'], 4.5);
+      var al = vars('alert');
+      checkPair('alert', al['--sui-alert-fg'], al['--sui-alert-bg'], 4.5);
+      checkPair('alert hover', al['--sui-alert-hover-fg'] || al['--sui-alert-fg'], al['--sui-alert-hover-bg'] || al['--sui-alert-bg'], 4.5);
+      checkPair('card', vars('card')['--sui-card-fg'], vars('card')['--sui-card-bg'], 4.5);
+      var ck = vars('check');
+      checkPair('check mark', ck['--sui-check-mark'], ck['--sui-check-checked'], 3);
+      if (width(ck, '--sui-check-border-width', 1) > 0) checkPair('check border', ck['--sui-check-border'], ck['--sui-check-bg'] || page['--sui-panel'], 2.5);
+      var t = vars('tabs');
+      checkPair('tab', t['--sui-tab-fg'], t['--sui-tablist-bg'], 3);
+      checkPair('active tab', t['--sui-tab-active-fg'], t['--sui-tab-active-bg'] || t['--sui-tabs-bg'], 4.5);
+      checkPair('tab hover', t['--sui-tab-hover-fg'] || t['--sui-tab-fg'], t['--sui-tab-hover-bg'] || t['--sui-tablist-bg'], 4.5);
+      var ac = vars('accordion');
+      checkPair('accordion', ac['--sui-accordion-fg'], ac['--sui-accordion-head-bg'] || ac['--sui-accordion-bg'], 4.5);
+      checkPair('accordion hover', ac['--sui-accordion-hover-fg'] || ac['--sui-accordion-fg'], ac['--sui-accordion-hover-bg'] || ac['--sui-accordion-head-bg'] || ac['--sui-accordion-bg'], 4.5);
+      var cb = vars('combobox');
+      checkPair('combobox', cb['--sui-combobox-fg'], cb['--sui-combobox-bg'], 4.5);
+      checkPair('combobox label', cb['--sui-combobox-label'], cb['--sui-combobox-bg'], 3);
+      var dp = vars('datepicker');
+      checkPair('datepicker', dp['--sui-datepicker-fg'], dp['--sui-datepicker-bg'], 4.5);
+      checkPair('datepicker label', dp['--sui-datepicker-label'], dp['--sui-datepicker-bg'], 3);
+      var tr = vars('tree');
+      checkPair('tree', tr['--sui-tree-fg'], page['--sui-panel'], 4.5);
+      checkPair('tree selected', tr['--sui-tree-selected-fg'], tr['--sui-tree-selected-bg'] || page['--sui-panel'], 4.5);
+      var tb = vars('table');
+      checkPair('table', tb['--sui-table-fg'], tb['--sui-table-bg'], 4.5);
+      checkPair('table head', tb['--sui-table-head-fg'], tb['--sui-table-head-bg'], 4.5);
+      checkPair('table row', tb['--sui-table-fg'], tb['--sui-table-row-bg'], 4.5);
+      checkPair('table striped', tb['--sui-table-fg'], tb['--sui-table-striped-bg'], 4.5);
+      var to = vars('toast');
+      checkPair('toast', to['--sui-toast-fg'], to['--sui-toast-bg'], 4.5);
+      checkPair('toast hover', to['--sui-toast-hover-fg'] || to['--sui-toast-fg'], to['--sui-toast-hover-bg'] || to['--sui-toast-bg'], 4.5);
+      var mo = vars('modal');
+      checkPair('modal', mo['--sui-modal-fg'], mo['--sui-modal-bg'], 4.5);
+      checkPair('modal button', mo['--sui-modal-button-fg'], mo['--sui-modal-button-bg'], 4.5);
+      checkPair('modal button hover', mo['--sui-modal-button-hover-fg'] || mo['--sui-modal-button-fg'], mo['--sui-modal-button-hover'] || mo['--sui-modal-button-bg'], 4.5);
+      var me = vars('menu');
+      checkPair('menu', me['--sui-menu-fg'], me['--sui-menu-button-bg'] || page['--sui-panel'], 4.5);
+      checkPair('menu popup', me['--sui-menu-fg'], me['--sui-menu-popup-bg'] || page['--sui-panel'], 4.5);
+      checkPair('menu hover', me['--sui-menu-hover-fg'] || me['--sui-menu-fg'], me['--sui-menu-hover'] || me['--sui-menu-button-bg'] || page['--sui-panel'], 4.5);
+    });
     var nameInput = document.getElementById('projprefs-theme-name');
     if (nameInput) nameInput.value = 'QA theme';
     var payload = buildProjectThemePayload();
@@ -272,6 +374,7 @@ const themeE2EScript = `<script>
       mediaRadius: light.imgRadius !== '',
       themePresetCount: themePresets.length === STYLE_VARIANT_DEFS.length && themePresets.length >= 24,
       themePresetRoundtrip: roundtrip,
+      contrastAudit: contrastFailures.length === 0,
       themePresetFuzzy: fuzzyKey === 'theme-standard-light',
       importReappliesCharts: chartReapplied,
       themeName: importedName === 'QA theme',
@@ -282,7 +385,7 @@ const themeE2EScript = `<script>
     };
     var failed = Object.keys(checks).filter(function (k) { return !checks[k]; });
     if (failed.length) {
-      result(false, failed.join(',') + ' ' + JSON.stringify({ light: light, dark: dark, themePresets: themePresets.length, variants: STYLE_VARIANT_DEFS.length }));
+      result(false, failed.join(',') + ' ' + JSON.stringify({ light: light, dark: dark, themePresets: themePresets.length, variants: STYLE_VARIANT_DEFS.length, contrast: contrastFailures.slice(0, 30) }));
       return;
     }
     result(true, '');
@@ -490,7 +593,7 @@ const themeShotScriptTemplate = `<script>
     var names = [
       '--sui-bg', '--sui-fg', '--sui-panel', '--sui-panel2', '--sui-border', '--sui-accent',
       '--sui-hover', '--sui-table-hover-bg', '--sui-tooltip-bg', '--sui-tooltip-fg',
-      '--sui-media-bg', '--sui-divider-hover-color'
+      '--sui-media-bg', '--sui-link'
     ];
     var values = names.map(function (n) { return String(cs.getPropertyValue(n) || '').trim(); });
     document.documentElement.style.cssText = 'margin:0;padding:0;background:#000;';

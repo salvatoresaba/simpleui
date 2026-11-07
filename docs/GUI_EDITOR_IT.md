@@ -399,6 +399,16 @@ unico tema. Un nuovo
 progetto parte da **Standard Dark**; scegliendo **Standard Light** passano allo
 stile chiaro sia la pagina sia i controlli.
 
+I temi condivisi vengono controllati anche per leggibilita: testo di pagina e
+pannelli, testo attenuato, link, pulsanti, badge, alert, card, tab, accordion,
+label dei form, tree, tabelle, toast, modali e menu rispettano soglie di
+contrasto rispetto alle proprie superfici. I link usano il token dedicato
+`--sui-link`, derivato dall'accent e scurito o schiarito quando serve, cosi un
+accent adatto come riempimento non diventa illeggibile come testo. Anche le tab
+attive e i colori hover derivati vengono corretti allo stesso modo, mentre i
+bordi dei componenti restano visibili sulle superfici chiare di Glassmorphism e
+Standard.
+
 ### Esportare e importare un tema
 
 **Export theme** nelle preferenze di progetto scarica un file

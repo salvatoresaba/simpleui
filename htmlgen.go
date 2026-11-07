@@ -1531,7 +1531,7 @@ input {
 .sui-ac-item:hover, .sui-ac-item.active { background: var(--sui-hover); }
 
 a {
-  color: var(--sui-accent, #7db3ff);
+  color: var(--sui-link, var(--sui-accent, #7db3ff));
   text-decoration: none;
 }
 

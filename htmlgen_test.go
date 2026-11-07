@@ -52,7 +52,7 @@ func TestBaseElementsUseThemeVariables(t *testing.T) {
 		`color: var(--sui-button-fg, #e6e6e6);`,
 		`:where(button):hover { background: var(--sui-button-hover, #3a4356); }`,
 		`a {`,
-		`color: var(--sui-accent, #7db3ff);`,
+		`color: var(--sui-link, var(--sui-accent, #7db3ff));`,
 		`code, pre {`,
 		`background: var(--sui-panel2, #10131a);`,
 		`thead th {`,
