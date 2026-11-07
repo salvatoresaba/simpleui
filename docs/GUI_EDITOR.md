@@ -429,7 +429,7 @@ defaults**. They open the same unified chart/graph settings panel used by the
 inspector, with project scope. Applying writes the appearance and interaction
 settings to every chart or graph in the project and to newly inserted ones:
 theme, style preset, point size, tooltip, table, Gantt, links and interaction
-options. Chart data, type and X/Y bindings stay per element, and the Data tab is
+options. Chart data and type stay per element, and the Data tab is
 hidden in this mode. The defaults are stored in a managed
 `/* sui-chart-defaults ... */` comment in the project CSS.
 
@@ -1085,13 +1085,14 @@ The dedicated **Chart** inspector is ordered for quick access:
 | interactive | enable tooltips, hover/selection and Gantt editing |
 | show grid / show legend / show values | chart presentation toggles |
 | preset | 14 classic color presets plus one preset for every theme family (Light/Dark) that write CSS variables into `style expr` |
-| x field / y field | label and numeric columns in object/CSV data; empty auto-detects. The fields suggest the actual column names and the hint reports detected rows/series or warns when a name is missing |
-| edit data | button that opens the movable, resizable chart-data overlay at the bottom of the inspector |
+| edit data | button that opens the movable, resizable chart-data overlay at the bottom of the inspector. Data columns and numeric series are auto-detected |
 
 **Point size** and **point width** live in **Chart settings → Points**.
-**Element hints** and the X/Y fields also appear in **Chart settings → Data**.
+**Element hints** also appears in **Chart settings → Data**.
 The separate **Chart attributes** button has been removed; unknown attributes
 already present in a source are still preserved when the designer rewrites it.
+There are no X/Y inspector fields: edit the data itself and let the chart detect
+the label and numeric columns.
 `overflow` and `initial zoom` are no longer inspector fields: normal scrollbars
 appear when the frame is smaller than the chart.
 
@@ -1100,7 +1101,6 @@ selected type cannot use them.
 
 - **bins** only for histogram;
 - **min/max** only for gauge;
-- **x/y fields** hidden for gauge, histogram, Gantt and state charts;
 - **show grid** hidden for pie, donut, radar, gauge, funnel, heatmap, treemap, bullet and state;
 - **show legend** hidden for gauge, funnel and state;
 - **show values** hidden for pie, donut, scatter, gauge, radar and state.
@@ -1436,7 +1436,7 @@ dark/light theme, **Editable colors** (color picker on/off), style preset, point
 filters** on/off and table typography, interactive mode, **Critical path**, **Auto schedule**,
 **Holidays**, **Weekend**, **Timezone**, **Link color**, **Link width** (default
 `1px`), **Min link gap** (default `4px`), **Line style**, **Arrow**, **Arrow
-size**, **Bar border** and **Bar border color**; the Data tab has x/y fields and
+size**, **Bar border** and **Bar border color**; the Data tab has
 **Element hints**. Apply writes attributes and
 `--sui-chart-tooltip-*` / `--sui-chart-table-*` variables together. Dark and
 light themes use explicit chart tokens; selection colors are shared and focus

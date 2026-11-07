@@ -445,7 +445,7 @@ defaults**. Aprono lo stesso pannello unificato di chart/graph usato
 dall'inspector, con ambito di progetto. Applicando vengono scritti aspetto e
 interazione su ogni chart o graph del progetto e su quelli inseriti in seguito:
 tema, preset, dimensione punti, tooltip, tabella, Gantt, link e interazioni. I
-dati, il tipo e i binding X/Y restano per singolo elemento, e la tab Data è
+dati e il tipo restano per singolo elemento, e la tab Data è
 nascosta in questa modalità. I default sono salvati in un commento gestito
 `/* sui-chart-defaults ... */` nel CSS di progetto.
 
@@ -1126,14 +1126,15 @@ L'inspector dedicato **Chart** è ordinato per accesso rapido:
 | interactive | abilita tooltip, hover/selezione e modifica Gantt |
 | show grid / show legend / show values | toggle di presentazione |
 | preset | 14 preset colore classici più un preset per ogni famiglia di tema (Light/Dark) che scrivono variabili CSS in `style expr` |
-| x field / y field | colonne label e numerica; vuote = rilevamento automatico. I campi suggeriscono i nomi reali delle colonne e l'hint mostra righe/serie rilevate o segnala un nome mancante |
-| edit data | pulsante in fondo che apre il pannello overlay spostabile e ridimensionabile dei dati |
+| edit data | pulsante in fondo che apre il pannello overlay spostabile e ridimensionabile dei dati. Colonne e serie numeriche sono rilevate automaticamente |
 
 **Point size** e **point width** sono in **Chart settings → Points**.
-**Element hints** e i campi X/Y sono anche in **Chart settings → Data**.
+**Element hints** è anche in **Chart settings → Data**.
 Il pulsante separato **Chart attributes** è stato rimosso; gli attributi
 sconosciuti già presenti nel sorgente vengono comunque preservati quando il
-designer riscrive il file. `overflow` e `initial zoom` non sono più campi
+designer riscrive il file. Non ci sono campi X/Y nell'inspector: si modificano i
+dati e il grafico rileva automaticamente colonne label e numeriche.
+`overflow` e `initial zoom` non sono più campi
 dell'inspector: le scrollbar compaiono normalmente quando la cornice è più
 piccola del grafico.
 
@@ -1141,7 +1142,6 @@ L'inspector **Chart** dipende dal tipo: i campi non utilizzabili vengono nascost
 
 - **bins** solo per histogram;
 - **min/max** solo per gauge;
-- **x/y field** nascosti per gauge, histogram, Gantt e state;
 - **show grid** nascosto per pie, donut, radar, gauge, funnel, heatmap, treemap, bullet e state;
 - **show legend** nascosto per gauge, funnel e state;
 - **show values** nascosto per pie, donut, scatter, gauge, radar e state.
@@ -1471,7 +1471,7 @@ on/off, modalità interactive, **Critical path**, **Auto schedule**, **Holidays*
 **Timezone**, **Link color**, **Link width** (default `1px`), **Min link gap**
 (default `4px`), **Line style**,
 **Arrow**, **Arrow size**, **Bar border** e **Bar border color**; la tab Data
-contiene i campi x/y e **Element hints**. Apply scrive attributi e variabili
+contiene **Element hints**. Apply scrive attributi e variabili
 `--sui-chart-tooltip-*` / `--sui-chart-table-*` insieme. I temi dark e light
 usano token espliciti; i colori di selezione sono condivisi e le tonalità focus
 si adattano allo sfondo del tema. Un click sul campione colore di una serie
