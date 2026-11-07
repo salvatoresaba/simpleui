@@ -385,6 +385,27 @@ func TestGuiComponentPresets(t *testing.T) {
 	}
 }
 
+func TestGuiProjectThemeBodies(t *testing.T) {
+	for _, want := range []string{
+		`STANDARD_LIGHT_PALETTE`,
+		`STANDARD_DARK_PAGE`,
+		`defaultShapeOverrides`,
+		`projectOnly: true`,
+		`PAGE_KEYS`,
+		`"--sui-bg":`,
+		`"--sui-fg":`,
+		`standard-light`,
+		`standard-dark`,
+		`label: "Standard"`,
+		`pageBg`,
+		`pageFg`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("project theme body support missing %q", want)
+		}
+	}
+}
+
 func TestGuiChartProjectDefaults(t *testing.T) {
 	for _, want := range []string{
 		`id="csettings-scope"`,

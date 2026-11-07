@@ -13691,6 +13691,20 @@ function sharedStyleVars(p, overrides) {
       "--sui-menu-hover-fg": p.menuHoverFg || fg
     }
   };
+  v.page = {
+    "--sui-bg": p.pageBg || bg,
+    "--sui-fg": p.pageFg || fg,
+    "--sui-muted": p.pageMuted || muted,
+    "--sui-border": p.pageBorder || border,
+    "--sui-border2": p.pageBorder2 || border,
+    "--sui-hover": p.pageHover || hover,
+    "--sui-panel": p.pagePanel || panel,
+    "--sui-panel2": p.pagePanel2 || panel,
+    "--sui-accent": accent,
+    "--sui-table-hover-bg": p.pageHover || hover,
+    "--sui-ac-shadow": p.pageShadow || shadow,
+    "--sui-radius": radius
+  };
   if (overrides) {
     Object.keys(overrides).forEach(function(id){
       if (!v[id]) return;
@@ -13713,6 +13727,9 @@ var SHARED_STYLES = [
   }) },
   { id: "glassmorphism-dark", label: "Glassmorphism Dark", mode: "dark", desc: "Smoked translucent surfaces with blur, light edges and soft glow.", vars: sharedStyleVars({
     bg: "rgba(15,23,42,.55)", panel: "rgba(15,23,42,.55)", fg: "#e2e8f0", muted: "#94a3b8",
+    pageBg: "#0b1220", pageFg: "#e2e8f0", pageMuted: "#94a3b8", pageBorder: "#334155",
+    pageBorder2: "#475569", pageHover: "#1e293b", pagePanel: "#111827", pagePanel2: "#0b1220",
+    pageShadow: "0 18px 48px rgba(2,6,23,.45)",
     border: "rgba(255,255,255,.28)", accent: "#7dd3fc", accent2: "#c084fc", radius: "14px",
     font: "inherit", borderWidth: "1px", borderStyle: "solid",
     shadow: "0 18px 48px rgba(2,6,23,.45)", shadowSoft: "0 8px 24px rgba(2,6,23,.35)",
@@ -13862,6 +13879,9 @@ var SHARED_STYLE_EXTRAS = [
   }) },
   { id: "glassmorphism-light", label: "Glassmorphism Light", mode: "light", desc: "Bright frosted surfaces with blue and violet light.", vars: sharedStyleVars({
     bg: "rgba(255,255,255,.55)", panel: "rgba(255,255,255,.65)", fg: "#0f172a", muted: "#475569",
+    pageBg: "#e0f2fe", pageFg: "#0f172a", pageMuted: "#475569", pageBorder: "#cbd5e1",
+    pageBorder2: "#94a3b8", pageHover: "#e2e8f0", pagePanel: "#ffffff", pagePanel2: "#f0f9ff",
+    pageShadow: "0 18px 48px rgba(15,23,42,.18)",
     border: "rgba(15,23,42,.18)", accent: "#0284c7", accent2: "#7c3aed", radius: "14px",
     font: "inherit", borderWidth: "1px", borderStyle: "solid",
     shadow: "0 18px 48px rgba(15,23,42,.18)", shadowSoft: "0 8px 24px rgba(15,23,42,.14)",
@@ -14014,6 +14034,9 @@ var SHARED_STYLE_EXTRAS = [
   }) },
   { id: "wire-light", label: "Wireframe Light", mode: "light", desc: "Thin dark lines on a transparent light page.", vars: sharedStyleVars({
     bg: "transparent", panel: "transparent", fg: "#475569", muted: "#64748b",
+    pageBg: "#f8fafc", pageFg: "#334155", pageMuted: "#64748b", pageBorder: "#cbd5e1",
+    pageBorder2: "#94a3b8", pageHover: "#e2e8f0", pagePanel: "#ffffff", pagePanel2: "#f1f5f9",
+    pageShadow: "0 4px 14px rgba(15,23,42,.16)",
     border: "#64748b", accent: "#0284c7", accent2: "#7c3aed", radius: "6px",
     font: "inherit", borderWidth: "1px", borderStyle: "solid",
     shadow: "0 4px 14px rgba(15,23,42,.16)", shadowSoft: "0 2px 10px rgba(15,23,42,.12)",
@@ -14047,21 +14070,100 @@ function presetVarsForAll(presetId) {
   });
   return out;
 }
+function defaultShapeOverrides() {
+  var out = {};
+  COMPONENT_DEFS.forEach(function(def){
+    var map = {};
+    def.categories.forEach(function(cat){
+      cat.fields.forEach(function(f){
+        if (/(radius|padding|border-width|border-style|-size|width|height|thickness|track|thumb|indent|row-height|gap|margin|font-size|font-weight|transform|tracking)/.test(f.key)) {
+          map[f.key] = componentFieldDefault(f);
+        }
+      });
+    });
+    if (def.id === "progress") {
+      map["--sui-progress-border-width"] = "0px";
+      map["--sui-progress-shadow"] = "none";
+    }
+    if (def.id === "badge") map["--sui-badge-shadow"] = "none";
+    if (def.id === "alert") map["--sui-alert-shadow"] = "none";
+    if (def.id === "button") map["--sui-button-shadow"] = "none";
+    if (def.id === "form") map["--sui-field-shadow"] = "none";
+    if (def.id === "check") map["--sui-check-shadow"] = "none";
+    if (def.id === "switch") map["--sui-switch-shadow"] = "none";
+    if (def.id === "slider") map["--sui-slider-shadow"] = "none";
+    if (def.id === "menu") {
+      map["--sui-menu-button-border-width"] = "0px";
+      map["--sui-menu-shadow"] = "none";
+    }
+    if (def.id === "table") {
+      map["--sui-table-font"] = "14px";
+      map["--sui-table-shadow"] = "none";
+    }
+    if (def.id === "combobox") map["--sui-combobox-shadow"] = "none";
+    if (def.id === "datepicker") map["--sui-datepicker-shadow"] = "none";
+    if (def.id === "card") map["--sui-card-shadow"] = "0 4px 12px rgba(15,23,42,.14)";
+    if (def.id === "toast") map["--sui-toast-shadow"] = "0 8px 24px rgba(15,23,42,.16)";
+    if (def.id === "modal") map["--sui-modal-shadow"] = "0 24px 60px rgba(15,23,42,.2)";
+    out[def.id] = map;
+  });
+  return out;
+}
+var STANDARD_LIGHT_PALETTE = {
+  bg: "#f8fafc", panel: "#ffffff", fg: "#0f172a", muted: "#64748b",
+  border: "#cbd5e1", accent: "#4c5cf7", accent2: "#6366f1", radius: "8px",
+  font: "inherit", borderWidth: "1px", borderStyle: "solid",
+  shadow: "0 8px 24px rgba(15,23,42,.12)", shadowSoft: "0 2px 10px rgba(15,23,42,.10)",
+  hover: "#e2e8f0", selectedBg: "rgba(76,92,247,.14)", selectedFg: "#1e293b",
+  headBg: "#f1f5f9", buttonBg: "#ffffff", popupBg: "#ffffff", inputBg: "#ffffff",
+  track: "#e2e8f0", fill: SUI_PROGRESS_FILLS.gradient, fieldShadow: "none",
+  progressAnimation: SUI_PROGRESS_ANIMS.none, spinnerShadow: "none",
+  pageBg: "#f8fafc", pageFg: "#0f172a", pageMuted: "#64748b", pageBorder: "#cbd5e1",
+  pageBorder2: "#94a3b8", pageHover: "#e2e8f0", pagePanel: "#ffffff", pagePanel2: "#f1f5f9",
+  pageShadow: "0 8px 24px rgba(15,23,42,.12)",
+  checkBg: "#ffffff", checkBorder: "#cbd5e1", checkChecked: "#4c5cf7",
+  checkCheckedBorder: "#4c5cf7", checkMark: "#ffffff",
+  switchBg: "#e2e8f0", switchChecked: "#4c5cf7", switchThumb: "#ffffff",
+  sliderBg: "#e2e8f0", sliderThumb: "#4c5cf7",
+  tableHeadBg: "#f1f5f9", tableHeadFg: "#0f172a", tableRowBg: "#ffffff",
+  tableStripedBg: "#f8fafc", tableHover: "#e2e8f0"
+};
+var STANDARD_LIGHT_VARS = sharedStyleVars(STANDARD_LIGHT_PALETTE, defaultShapeOverrides());
+var STANDARD_DARK_PAGE = {
+  "--sui-bg": "#14171c", "--sui-fg": "#e6e6e6", "--sui-muted": "#8fa0b8",
+  "--sui-border": "#3d4556", "--sui-border2": "#475569", "--sui-hover": "#2d3340",
+  "--sui-panel": "#1d2129", "--sui-panel2": "#181c24", "--sui-accent": "#4c5cf7",
+  "--sui-table-hover-bg": "#20252e", "--sui-ac-shadow": "0 8px 24px rgba(0,0,0,.5)",
+  "--sui-radius": "8px"
+};
 var STYLE_VARIANT_DEFS = [];
 var sketchLightVars = presetVarsForAll("sketch-light");
 var wireDarkVars = presetVarsForAll("wire-dark");
-if (Object.keys(sketchLightVars).length) STYLE_VARIANT_DEFS.push({ id: "sketch-light", label: "Sketch Light", mode: "light", desc: "Warm paper and handwritten ink.", vars: sketchLightVars });
-if (Object.keys(wireDarkVars).length) STYLE_VARIANT_DEFS.push({ id: "wire-dark", label: "Wireframe Dark", mode: "dark", desc: "Thin slate lines with no fills.", vars: wireDarkVars });
+if (Object.keys(sketchLightVars).length) STYLE_VARIANT_DEFS.push({ id: "sketch-light", label: "Sketch Light", mode: "light", desc: "Warm paper and handwritten ink.", vars: sketchLightVars, page: {
+  "--sui-bg": SUI_SKETCH.paper, "--sui-fg": SUI_SKETCH.ink, "--sui-muted": SUI_SKETCH.inkSoft,
+  "--sui-border": SUI_SKETCH.ink, "--sui-border2": SUI_SKETCH.inkSoft, "--sui-hover": SUI_SKETCH.paperHover,
+  "--sui-panel": SUI_SKETCH.paperDeep, "--sui-panel2": SUI_SKETCH.paper, "--sui-accent": SUI_SKETCH.accent,
+  "--sui-table-hover-bg": SUI_SKETCH.paperHover, "--sui-ac-shadow": SUI_SKETCH.shadow, "--sui-radius": "6px"
+} });
+if (Object.keys(wireDarkVars).length) STYLE_VARIANT_DEFS.push({ id: "wire-dark", label: "Wireframe Dark", mode: "dark", desc: "Thin slate lines with no fills.", vars: wireDarkVars, page: {
+  "--sui-bg": "#14171c", "--sui-fg": "#e2e8f0", "--sui-muted": "#94a3b8",
+  "--sui-border": "#3d4556", "--sui-border2": "#475569", "--sui-hover": "#2a3143",
+  "--sui-panel": "#1d2129", "--sui-panel2": "#181c24", "--sui-accent": SUI_WIRE.accent,
+  "--sui-table-hover-bg": "#2a3143", "--sui-ac-shadow": SUI_WIRE.shadow, "--sui-radius": "6px"
+} });
 SHARED_STYLES.forEach(function(style){
   STYLE_VARIANT_DEFS.push({ id: style.id, label: style.label, mode: style.mode, desc: style.desc, vars: style.vars });
 });
 SHARED_STYLE_EXTRAS.forEach(function(style){
   STYLE_VARIANT_DEFS.push({ id: style.id, label: style.label, mode: style.mode, desc: style.desc, vars: style.vars });
 });
+STYLE_VARIANT_DEFS.push({ id: "standard-light", label: "Standard Light", mode: "light", desc: "Default component shapes on a light page.", projectOnly: true, vars: STANDARD_LIGHT_VARS });
+STYLE_VARIANT_DEFS.push({ id: "standard-dark", label: "Standard Dark", mode: "dark", desc: "Default component shapes on a dark page.", projectOnly: true, vars: { page: STANDARD_DARK_PAGE } });
 var SHARED_STYLE_IDS = {}, SHARED_STYLE_THEMES = {};
 STYLE_VARIANT_DEFS.forEach(function(v){ SHARED_STYLE_IDS[v.id] = 1; SHARED_STYLE_THEMES[v.id] = v.mode; });
 COMPONENT_DEFS.forEach(function(def){
   STYLE_VARIANT_DEFS.forEach(function(v){
+    if (v.projectOnly) return;
     if (!v.vars[def.id]) return;
     if (def.presets.some(function(p){ return p.id === v.id; })) return;
     def.presets.push({ id: v.id, label: v.label, desc: v.desc, vars: v.vars[def.id] });
@@ -14135,6 +14237,7 @@ COMPONENT_DEFS.forEach(function(def){
   if (HOVER_FIELDS[def.id]) def.categories.push({ name: "Hover", fields: HOVER_FIELDS[def.id] });
 });
 var THEME_FAMILIES = [
+  { id: "standard", label: "Standard", light: "standard-light", dark: "standard-dark" },
   { id: "sketch", label: "Sketch", light: "sketch-light", dark: "sketch-dark" },
   { id: "wire", label: "Wireframe", light: "wire-light", dark: "wire-dark" },
   { id: "terminal", label: "Terminal / CRT", light: "terminal-light", dark: "terminal-dark" },
@@ -14147,6 +14250,7 @@ var THEME_FAMILIES = [
   { id: "cyberpunk", label: "Cyberpunk", light: "cyberpunk-light", dark: "cyberpunk-dark" },
   { id: "geometric", label: "Geometric", light: "geometric-light", dark: "geometric-dark" }
 ];
+var PAGE_KEYS = ["--sui-bg", "--sui-fg", "--sui-muted", "--sui-border", "--sui-border2", "--sui-hover", "--sui-panel", "--sui-panel2", "--sui-accent", "--sui-table-hover-bg", "--sui-ac-shadow", "--sui-radius"];
 var COMPONENT_GROUPS = ["Feedback", "Layout", "Form", "Navigation", "Data", "Overlay"];
 function componentDefForKind(kind) {
   for (var i = 0; i < COMPONENT_DEFS.length; i++) {
@@ -14611,7 +14715,7 @@ function projectThemeMatch() {
   for (var i = 0; i < STYLE_VARIANT_DEFS.length; i++) {
     var v = STYLE_VARIANT_DEFS[i], ok = true;
     for (var j = 0; j < COMPONENT_DEFS.length && ok; j++) {
-      var def = COMPONENT_DEFS[j], map = v.vars[def.id] || {};
+      var def = COMPONENT_DEFS[j], map = (v.vars && v.vars[def.id]) || {};
       var keys = componentAllKeys(def);
       for (var k = 0; k < keys.length; k++) {
         var key = keys[k];
@@ -14620,8 +14724,22 @@ function projectThemeMatch() {
         if (String(expected === undefined ? "" : expected) !== String(actual === undefined ? "" : actual)) { ok = false; break; }
       }
     }
+    if (ok) {
+      var page = v.page || (v.vars && v.vars.page) || {};
+      for (var p = 0; p < PAGE_KEYS.length; p++) {
+        var pk = PAGE_KEYS[p];
+        var pe = page[pk] !== undefined ? page[pk] : undefined;
+        var pa = vars[pk];
+        if (String(pe === undefined ? "" : pe) !== String(pa === undefined ? "" : pa)) { ok = false; break; }
+      }
+    }
     if (ok) return v.id;
   }
+  var hasPage = PAGE_KEYS.some(function(k){ return vars[k] !== undefined; });
+  var hasComponent = COMPONENT_DEFS.some(function(def){
+    return componentAllKeys(def).some(function(k){ return vars[k] !== undefined; });
+  });
+  if (!hasPage && !hasComponent) return "standard-dark";
   return "custom";
 }
 function applyProjectTheme(id) {
@@ -14630,9 +14748,12 @@ function applyProjectTheme(id) {
   if (!v) return;
   snap("project theme " + v.label);
   var vars = readComponentVars();
+  PAGE_KEYS.forEach(function(k){ delete vars[k]; });
+  var page = v.page || (v.vars && v.vars.page) || {};
+  Object.keys(page).forEach(function(k){ vars[k] = page[k]; });
   COMPONENT_DEFS.forEach(function(def){
     componentAllKeys(def).forEach(function(k){ delete vars[k]; });
-    var map = v.vars[def.id] || {};
+    var map = (v.vars && v.vars[def.id]) || {};
     Object.keys(map).forEach(function(k){ vars[k] = map[k]; });
   });
   writeComponentVars(vars);

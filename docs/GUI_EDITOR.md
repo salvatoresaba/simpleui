@@ -360,12 +360,17 @@ settings; closing it returns to the project list.
 ### Project themes
 
 Every shared style has a **Light** and a **Dark** variant. The Theme combo lists
-them grouped by family, for example Sketch → Light/Dark, Terminal / CRT →
-Light/Dark and Geometric → Light/Dark. Applying a theme writes the complete set
-of component defaults for every control, updates the managed CSS rule blocks,
-styles the scrollbars and selects the matching preview background. Editing one
-component afterwards changes the Theme combo to **Custom**, so it is always
-clear whether the project still follows a single theme.
+them grouped by family, for example Sketch Light/Dark, Terminal / CRT
+Light/Dark and Geometric Light/Dark. Applying a theme writes the complete set of
+component defaults for every control, updates the managed CSS rule blocks,
+styles the scrollbars and sets the **page starting point** (`--sui-bg`,
+`--sui-fg`, base border and hover colours). A light theme therefore starts from a
+light body, and a dark theme from a dark body. The **Standard** family provides
+**Standard Light** and **Standard Dark**, which keep the default shape of every
+control. Editing one component afterwards changes the Theme combo to **Custom**,
+so it is always clear whether the project still follows a single theme. A new
+project starts on **Standard Dark**; choosing **Standard Light** switches both
+the page and the controls to light defaults.
 
 ### Scrollbars
 

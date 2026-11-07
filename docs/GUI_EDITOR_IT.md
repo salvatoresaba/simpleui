@@ -375,12 +375,17 @@ alla lista di progetto.
 ### Temi di progetto
 
 Ogni stile condiviso ha una versione **Light** e una **Dark**. Il combo Theme le
-elenca raggruppate per famiglia, per esempio Sketch → Light/Dark, Terminal / CRT
-→ Light/Dark e Geometric → Light/Dark. Applicando un tema vengono scritti tutti i
+elenca raggruppate per famiglia, per esempio Sketch Light/Dark, Terminal / CRT
+Light/Dark e Geometric Light/Dark. Applicando un tema vengono scritti tutti i
 default di tutti i controlli, aggiornati i blocchi CSS gestiti, applicate le
-regole delle scrollbar e selezionato lo sfondo di anteprima corrispondente.
-Modificando poi un componente il combo Theme passa a **Custom**, quindi è sempre
-chiaro se il progetto segue ancora un unico tema.
+regole delle scrollbar e impostato il **punto di partenza della pagina**
+(`--sui-bg`, `--sui-fg`, bordi e hover di base). Un tema chiaro parte quindi da
+un body chiaro e un tema scuro da un body scuro. La famiglia **Standard** offre
+**Standard Light** e **Standard Dark**, che mantengono la forma di default di
+ogni controllo. Modificando poi un componente il combo Theme passa a **Custom**,
+quindi e sempre chiaro se il progetto segue ancora un unico tema. Un nuovo
+progetto parte da **Standard Dark**; scegliendo **Standard Light** passano allo
+stile chiaro sia la pagina sia i controlli.
 
 ### Scrollbar
 
