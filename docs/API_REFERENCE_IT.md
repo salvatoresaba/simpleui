@@ -706,7 +706,11 @@ tree "File progetto"
   `--sui-tree-tooltip-fg`, `--sui-tree-tooltip-border`,
   `--sui-tree-tooltip-radius`, `--sui-tree-tooltip-padding`,
   `--sui-tree-tooltip-max-width`, `--sui-tree-tooltip-font-size`,
-  `--sui-tree-tooltip-delay` e `--sui-tree-tooltip-placement`.
+  `--sui-tree-tooltip-delay` e `--sui-tree-tooltip-placement`. I controlli Extra
+  usano `--sui-tree-rename-bg`, `-fg`, `-font`, `-size`, `-border`,
+  `-border-width`, `-radius`, `-padding`, `-hover-bg`, `-hover`,
+  `--sui-tree-count-bg`, `-fg`, `-font`, `-size`, `-weight`, `-padding`,
+  `-radius`, `-border`, `-border-width` e `-min-width`.
 - Modificare direttamente l'espressione `style: cssSafe("...")` per valori
   personalizzati. Lo stile dinamico resta soggetto alla policy `cssSafe`.
   Poiché `cssSafe` accetta dichiarazioni senza virgole, nello `style expr` usare

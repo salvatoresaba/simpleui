@@ -1013,13 +1013,14 @@ The **Tree** inspector exposes only:
 **Tree settings** opens the component panel with these tabs:
 
 - **General** - `Title` (the visible tree title), `Runtime name` (the target used
-  by `tree.*`; not the visible title) and behavior switches: indent guides,
-  truncate labels, hierarchical checkboxes, multi-select, search box, drag and
-  drop, context menu, virtualize offscreen rows, persist selection and editable.
-- **Bindings** - value state, selection state (shown for multi-select), load key
-  state, editable depth, rename key state and rename value state (shown when
-  editable). These are optional app-state bindings; leave them empty when the app
-  does not need the corresponding behavior.
+  by `tree.*`; not the visible title), default/open node icons and behavior
+  switches: indent guides, truncate labels, hierarchical checkboxes, multi-select,
+  search box, drag and drop, context menu, virtualize offscreen rows, persist
+  selection and editable.
+- **Bindings** - optional state bindings: value state, selection state (shown for
+  multi-select), load key state, editable depth and rename key/value (shown when
+  editable). State fields suggest declared project states from a datalist; leave
+  them empty when the app does not use the corresponding behavior.
 - **Columns** - `Show columns` and a column editor where rows can be added,
   renamed, resized, removed and reordered. Column keys are free-form; `size`,
   `date` and `status` have convenience item attributes, other keys use the item
@@ -1032,11 +1033,10 @@ The **Tree** inspector exposes only:
 - **Shape** - indent, row padding/height, radius, border, toggle size, font
   size/weight, font step, letter spacing and font family. **Font step** reduces
   the font size for each level below the root; default `0`.
-- **Icons** - default icon and open icon, chosen from a glyph list or typed as
-  custom text/emoji.
-- **Name** - child count switch and count badge colors, radius and font size,
-  plus edit-icon visibility, glyph, color, size and hover color. Counts and the
-  edit icon render next to the node name.
+- **Extra** - two sections: **Edit button** (visibility, icon, background, text
+  color, font, size, border, radius, padding and hover colors) and **Child
+  counts** (visibility, background, text color, font, size, weight, padding,
+  radius, border and minimum width). Both render next to the node name.
 - **Tooltip** - custom tooltip switch plus background, text, border, radius,
   padding, max width, font size, delay and placement.
 

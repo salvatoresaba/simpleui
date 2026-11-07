@@ -1053,13 +1053,14 @@ L'inspector **Tree** espone solo:
 **Tree settings** apre il pannello componente con queste tab:
 
 - **General** - `Title` (titolo visibile), `Runtime name` (target delle funzioni
-  `tree.*`; non è il titolo visibile) e gli switch: indent guides, truncate
-  labels, hierarchical checkboxes, multi-select, search box, drag and drop,
-  context menu, virtualize offscreen rows, persist selection ed editable.
-- **Bindings** - value state, selection state (mostrato con multi-select), load
-  key state, editable depth, rename key/value (mostrati quando editable). Sono
-  binding opzionali: lasciarli vuoti se l'app non usa il comportamento
-  corrispondente.
+  `tree.*`; non è il titolo visibile), icone default/open dei nodi e switch:
+  indent guides, truncate labels, hierarchical checkboxes, multi-select, search
+  box, drag and drop, context menu, virtualize offscreen rows, persist selection
+  ed editable.
+- **Bindings** - binding di stato opzionali: value state, selection state
+  (mostrato con multi-select), load key state, editable depth e rename key/value
+  (mostrati quando editable). I campi di stato suggeriscono gli stati dichiarati
+  del progetto tramite datalist; lasciarli vuoti se non servono.
 - **Columns** - `Show columns` ed editor colonne: aggiungi, rinomina,
   ridimensiona, rimuovi e riordina. Le key sono libere; `size`, `date` e `status`
   hanno attributi dedicati, le altre usano i valori `cells` dell'elemento. Le
@@ -1072,11 +1073,10 @@ L'inspector **Tree** espone solo:
 - **Shape** - indent, padding/altezza riga, raggio, bordo, dimensione toggle,
   dimensione/peso testo, font step, letter spacing e font family. **Font step**
   riduce il font per ogni livello sotto la radice; default `0`.
-- **Icons** - default icon e open icon, scelti da una lista di glifi o digitati
-  come testo/emoji personalizzato.
-- **Name** - switch child counts e colori/raggio/dimensione del badge conteggio,
-  più visibilità, glifo, colore, dimensione e hover dell'icona di modifica.
-  Conteggi e icona di modifica compaiono accanto al nome del nodo.
+- **Extra** - due sezioni: **Edit button** (visibilità, icona, sfondo, colore
+  testo, font, dimensione, bordo, raggio, padding e colori hover) e **Child
+  counts** (visibilità, sfondo, colore testo, font, dimensione, peso, padding,
+  raggio, bordo e larghezza minima). Entrambi compaiono accanto al nome del nodo.
 - **Tooltip** - switch tooltip personalizzati più sfondo, testo, bordo, raggio,
   padding, larghezza massima, dimensione font, ritardo e posizione.
 

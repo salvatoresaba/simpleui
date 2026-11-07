@@ -439,7 +439,7 @@ view main {
 		`"Multi-select"`, `"Search box"`, `"Drag and drop"`, `"Context menu"`,
 		`"Show columns"`, `"Sort children"`, `"Columns"`,
 		`"Persist selection"`, `"lazy children"`, `.td-row .td-size`,
-		`name: "General"`, `name: "Icons"`, `name: "Tooltip"`, `"Runtime name"`,
+		`name: "General"`, `name: "Extra"`, `name: "Tooltip"`, `"Runtime name"`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer phase B/C support missing %q", want)

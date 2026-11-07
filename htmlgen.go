@@ -233,8 +233,13 @@ body {
 .sui-tree-badge-count {
   background: var(--sui-tree-count-bg, rgba(148, 163, 184, .14));
   color: var(--sui-tree-count-fg, var(--sui-tree-meta-color, #94a3b8));
+  border: var(--sui-tree-count-border-width, 0) solid var(--sui-tree-count-border, transparent);
   border-radius: var(--sui-tree-count-radius, 999px);
+  padding: var(--sui-tree-count-padding, 0 6px);
+  min-width: var(--sui-tree-count-min-width, 18px);
+  font-family: var(--sui-tree-count-font, inherit);
   font-size: var(--sui-tree-count-size, 10px);
+  font-weight: var(--sui-tree-count-weight, 600);
 }
 .sui-tree-meta {
   flex: none;
@@ -390,19 +395,20 @@ body {
   contain-intrinsic-size: auto var(--sui-tree-row-height, 28px);
 }
 .sui-tree-rename-btn {
-  border: 0;
-  background: transparent;
-  color: var(--sui-tree-rename-color, var(--sui-muted, #8fa0b8));
-  font: inherit;
+  border: var(--sui-tree-rename-border-width, 0) solid var(--sui-tree-rename-border, transparent);
+  background: var(--sui-tree-rename-bg, transparent);
+  color: var(--sui-tree-rename-fg, var(--sui-tree-rename-color, var(--sui-muted, #8fa0b8)));
+  font-family: var(--sui-tree-rename-font, inherit);
   font-size: var(--sui-tree-rename-size, 13px);
   line-height: 1;
+  border-radius: var(--sui-tree-rename-radius, 4px);
   cursor: pointer;
-  padding: 1px 4px;
+  padding: var(--sui-tree-rename-padding, 1px 4px);
   opacity: .45;
 }
 .sui-tree-row:hover .sui-tree-rename-btn,
 .sui-tree-rename-btn:focus { opacity: 1; }
-.sui-tree-rename-btn:hover { color: var(--sui-tree-rename-hover, #a5b4fc); }
+.sui-tree-rename-btn:hover { background: var(--sui-tree-rename-hover-bg, transparent); color: var(--sui-tree-rename-hover, #a5b4fc); }
 .sui-tree-group[hidden] { display: none; }
 .sui-tree-value { display: none; }
 .sui-tree-editable > .sui-tree-row { cursor: text; }

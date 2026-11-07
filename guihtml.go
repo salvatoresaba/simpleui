@@ -13428,6 +13428,8 @@ var COMPONENT_DEFS = [
       { name: "General", fields: [
         { key: "@title", label: "Title", type: "title", attr: "text", def: "Tree" },
         { key: "@name", label: "Runtime name", type: "attrText", attr: "name", def: "" },
+        { key: "@icon", label: "Default icon", type: "icon", attr: "icon", def: "" },
+        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" },
         { key: "@guides", label: "Indent guides", type: "attrSwitch", attr: "guides", def: true },
         { key: "@truncate", label: "Truncate labels", type: "attrSwitch", attr: "truncate", def: true },
         { key: "@checkbox", label: "Hierarchical checkboxes", type: "attrSwitch", attr: "checkbox", def: false },
@@ -13440,12 +13442,12 @@ var COMPONENT_DEFS = [
         { key: "@editable", label: "Editable", type: "attrSwitch", attr: "editable", def: false }
       ]},
       { name: "Bindings", fields: [
-        { key: "@value", label: "Value state", type: "attrText", attr: "value", def: "", hint: "String state receiving the selected node key." },
-        { key: "@selection", label: "Selection state", type: "attrText", attr: "selection", def: "", showIf: "@multiSelect", hint: "String state receiving a JSON array of selected keys." },
-        { key: "@loadKey", label: "Load key state", type: "attrText", attr: "loadKey", def: "", hint: "State receiving the key of a lazy node while its children load." },
-        { key: "@editableDepth", label: "Editable depth", type: "attrText", attr: "editableDepth", def: "", showIf: "@editable", hint: "Maximum editable level; 0 = all levels." },
-        { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "", showIf: "@editable", hint: "State receiving the renamed node key." },
-        { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "", showIf: "@editable", hint: "State receiving the new label." }
+        { key: "@value", label: "Value state", type: "attrText", attr: "value", def: "", states: true, placeholder: "state name", hint: "String state receiving the selected node key." },
+        { key: "@selection", label: "Selection state", type: "attrText", attr: "selection", def: "", states: true, placeholder: "state name", showIf: "@multiSelect", hint: "String state receiving a JSON array of selected keys." },
+        { key: "@loadKey", label: "Load key state", type: "attrText", attr: "loadKey", def: "", states: true, placeholder: "state name", hint: "State receiving the key of a lazy node while its children load." },
+        { key: "@editableDepth", label: "Editable depth", type: "attrText", attr: "editableDepth", def: "", placeholder: "0 = all levels", showIf: "@editable", hint: "Maximum editable level; 0 = all levels." },
+        { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "", states: true, placeholder: "state name", showIf: "@editable", hint: "State receiving the renamed node key." },
+        { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "", states: true, placeholder: "state name", showIf: "@editable", hint: "State receiving the new label." }
       ]},
       { name: "Columns", fields: [
         { key: "@columnsEnabled", label: "Show columns", type: "attrSwitch", attr: "columnsEnabled", def: false },
@@ -13493,21 +13495,32 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-tracking", label: "Letter spacing", type: "number", def: 0, min: -2, max: 10, step: 0.1, unit: "px" },
         { key: "--sui-tree-font-family", label: "Font", type: "font", def: "inherit" }
       ]},
-      { name: "Icons", fields: [
-        { key: "@icon", label: "Default icon", type: "icon", attr: "icon", def: "" },
-        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" }
-      ]},
-      { name: "Name", fields: [
-        { key: "@counts", label: "Child counts", type: "attrSwitch", attr: "counts", def: false },
-        { key: "--sui-tree-count-bg", label: "Count background", type: "color", def: "#2a3143" },
-        { key: "--sui-tree-count-fg", label: "Count text", type: "color", def: "#94a3b8" },
-        { key: "--sui-tree-count-radius", label: "Count radius", type: "text", def: "999px" },
-        { key: "--sui-tree-count-size", label: "Count font size", type: "number", def: 10, min: 8, max: 20, step: 1, unit: "px" },
-        { key: "@showRenameIcon", label: "Show edit icon", type: "attrSwitch", attr: "showRenameIcon", def: true },
-        { key: "@renameIcon", label: "Edit icon", type: "icon", attr: "renameIcon", def: "" },
-        { key: "--sui-tree-rename-color", label: "Edit icon color", type: "color", def: "#8fa0b8" },
-        { key: "--sui-tree-rename-size", label: "Edit icon size", type: "number", def: 13, min: 8, max: 28, step: 1, unit: "px" },
-        { key: "--sui-tree-rename-hover", label: "Edit icon hover", type: "color", def: "#a5b4fc" }
+      { name: "Extra", fields: [
+        { key: "@secEdit", label: "Edit button", type: "section" },
+        { key: "@showRenameIcon", label: "Show edit button", type: "attrSwitch", attr: "showRenameIcon", def: true },
+        { key: "@renameIcon", label: "Icon", type: "icon", attr: "renameIcon", def: "" },
+        { key: "--sui-tree-rename-bg", label: "Background", type: "color", def: "transparent" },
+        { key: "--sui-tree-rename-fg", label: "Text color", type: "color", def: "#8fa0b8" },
+        { key: "--sui-tree-rename-font", label: "Font", type: "font", def: "inherit" },
+        { key: "--sui-tree-rename-size", label: "Font size", type: "number", def: 13, min: 8, max: 28, step: 1, unit: "px" },
+        { key: "--sui-tree-rename-border", label: "Border color", type: "color", def: "transparent" },
+        { key: "--sui-tree-rename-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 6, step: 1, unit: "px" },
+        { key: "--sui-tree-rename-radius", label: "Radius", type: "number", def: 4, min: 0, max: 24, step: 1, unit: "px" },
+        { key: "--sui-tree-rename-padding", label: "Padding", type: "text", def: "1px 4px" },
+        { key: "--sui-tree-rename-hover-bg", label: "Hover background", type: "color", def: "transparent" },
+        { key: "--sui-tree-rename-hover", label: "Hover text", type: "color", def: "#a5b4fc" },
+        { key: "@secCounts", label: "Child counts", type: "section" },
+        { key: "@counts", label: "Show child counts", type: "attrSwitch", attr: "counts", def: false },
+        { key: "--sui-tree-count-bg", label: "Background", type: "color", def: "#2a3143" },
+        { key: "--sui-tree-count-fg", label: "Text color", type: "color", def: "#94a3b8" },
+        { key: "--sui-tree-count-font", label: "Font", type: "font", def: "inherit" },
+        { key: "--sui-tree-count-size", label: "Font size", type: "number", def: 10, min: 8, max: 20, step: 1, unit: "px" },
+        { key: "--sui-tree-count-weight", label: "Font weight", type: "select", def: "600", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"], ["800", "800"]] },
+        { key: "--sui-tree-count-padding", label: "Padding", type: "text", def: "0 6px" },
+        { key: "--sui-tree-count-radius", label: "Radius", type: "text", def: "999px" },
+        { key: "--sui-tree-count-border", label: "Border color", type: "color", def: "transparent" },
+        { key: "--sui-tree-count-border-width", label: "Border width", type: "number", def: 0, min: 0, max: 6, step: 1, unit: "px" },
+        { key: "--sui-tree-count-min-width", label: "Min width", type: "number", def: 18, min: 10, max: 80, step: 1, unit: "px" }
       ]},
       { name: "Tooltip", fields: [
         { key: "@tooltips", label: "Custom tooltips", type: "attrSwitch", attr: "tooltips", def: false },
@@ -14987,6 +15000,7 @@ function ensureComponentRules(def) {
 function componentFieldDefault(field) {
   if (field.type === "switch") return field.on;
   if (field.type === "attrSwitch") return !!field.def;
+  if (field.type === "section") return "";
   if (field.type === "columns") return { list: [{ key: "size", label: "Size", width: 104 }, { key: "date", label: "Date", width: 104 }, { key: "status", label: "Status", width: 104 }] };
   if (field.type === "attrText" || field.type === "icon" || field.type === "title") return field.def === undefined ? "" : String(field.def);
   if (field.type === "number") return String(field.def) + (field.unit || "");
@@ -15013,7 +15027,7 @@ function componentAllKeys(def) {
 }
 function componentIsAttrKey(def, key) {
   var f = componentFieldByKey(def, key);
-  return !!(f && f.attr);
+  return !!(f && (f.attr || f.type === "section"));
 }
 function componentKeyBaseValue(def, key, node) {
   var field = componentFieldByKey(def, key);
@@ -15237,6 +15251,12 @@ function renderComponentSettings() {
   var presetBox = document.getElementById("compcfg-presets");
   tabs.textContent = "";
   body.textContent = "";
+  var stateList = document.createElement("datalist");
+  stateList.id = "compcfg-state-list";
+  (root.states || []).forEach(function(st){
+    var o = document.createElement("option"); o.value = st.name; stateList.appendChild(o);
+  });
+  body.appendChild(stateList);
   if (presetBox) {
     presetBox.textContent = "";
     if (s.def.presets && s.def.presets.length) {
@@ -15308,6 +15328,12 @@ function renderComponentSettings() {
 function componentFieldRow(field) {
   var s = __compSettings;
   var row = document.createElement("div");
+  if (field.type === "section") {
+    row.className = "pf-section";
+    row.style.cssText = "grid-column:1/-1;margin-top:8px;padding:4px 0 3px;border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)";
+    row.textContent = field.label;
+    return row;
+  }
   row.className = "pf-field" + (field.type === "text" && field.label === "Padding" ? " wide" : "");
   var lab = document.createElement("label");
   lab.textContent = field.label;
@@ -15431,34 +15457,44 @@ function componentFieldRow(field) {
     }));
   } else if (field.type === "icon") {
     var iconWrap = document.createElement("div");
-    iconWrap.style.cssText = "display:flex;gap:6px;align-items:center;flex:1;min-width:0";
-    var iconSel = document.createElement("select");
-    var customOpt = document.createElement("option");
-    customOpt.value = ""; customOpt.textContent = "Custom";
-    iconSel.appendChild(customOpt);
-    ["📁", "📂", "📄", "📃", "📝", "📦", "🗂️", "⚙️", "🔒", "🔑", "⭐", "✅", "⚠️", "❌", "👤", "🔍"].forEach(function(ic){
-      var o = document.createElement("option"); o.value = ic; o.textContent = ic; iconSel.appendChild(o);
-    });
+    iconWrap.style.cssText = "display:flex;flex-direction:column;gap:5px;flex:1;min-width:0";
+    var iconGrid = document.createElement("div");
+    iconGrid.style.cssText = "display:grid;grid-template-columns:repeat(8,minmax(24px,1fr));gap:3px;padding:4px;border:1px solid var(--border2);border-radius:6px;background:var(--input-bg)";
     var iconInput = document.createElement("input");
     iconInput.type = "text"; iconInput.value = value || ""; iconInput.maxLength = 32; iconInput.spellcheck = false;
-    iconInput.style.cssText = "flex:1;min-width:64px";
-    iconSel.value = iconInput.value;
-    iconSel.onchange = function(){
-      if (!iconSel.value) return;
-      iconInput.value = iconSel.value;
-      s.values[field.key] = iconSel.value;
+    iconInput.placeholder = "Custom icon";
+    iconInput.style.cssText = "font-size:12px;padding:4px 6px";
+    var iconButtons = [];
+    function selectIcon(ic) {
+      iconInput.value = ic;
+      s.values[field.key] = ic;
+      iconButtons.forEach(function(b){ b.style.outline = b.textContent === ic ? "2px solid var(--accent)" : "1px solid transparent"; });
       markComponentCustom();
-    };
+    }
+    ["📁", "📂", "📄", "📃", "📝", "📦", "🗂️", "🗃️", "📊", "📈", "📉", "🧾", "🔖", "🏷️", "⚙️", "🔧", "🔒", "🔓", "🔑", "⭐", "✅", "☑️", "⚠️", "❌", "ℹ️", "👤", "👥", "🔍", "➕", "➖", "✏️", "🖊️"].forEach(function(ic){
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = ic; b.title = ic;
+      b.style.cssText = "font-size:16px;line-height:1;height:26px;padding:0;border:1px solid transparent;border-radius:4px;background:transparent;color:inherit;cursor:pointer";
+      if (ic === value) b.style.outline = "2px solid var(--accent)";
+      b.onclick = function(){ selectIcon(ic); };
+      iconButtons.push(b);
+      iconGrid.appendChild(b);
+    });
     iconInput.oninput = function(){
       s.values[field.key] = iconInput.value;
-      iconSel.value = iconInput.value;
+      iconButtons.forEach(function(b){ b.style.outline = b.textContent === iconInput.value ? "2px solid var(--accent)" : "1px solid transparent"; });
       markComponentCustom();
     };
-    iconWrap.appendChild(iconSel); iconWrap.appendChild(iconInput);
+    iconWrap.appendChild(iconGrid);
+    iconWrap.appendChild(iconInput);
     row.appendChild(iconWrap);
   } else if (field.type === "attrText" || field.type === "title") {
     var aInp = document.createElement("input");
     aInp.type = "text"; aInp.value = value || ""; aInp.spellcheck = false;
+    if (field.states) {
+      aInp.setAttribute("list", "compcfg-state-list");
+      aInp.placeholder = field.placeholder || "state name";
+    }
     aInp.oninput = function(){ s.values[field.key] = aInp.value; markComponentCustom(); };
     row.appendChild(aInp);
   } else {

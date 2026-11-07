@@ -721,7 +721,11 @@ tree "Project files"
   `--sui-tree-tooltip-fg`, `--sui-tree-tooltip-border`,
   `--sui-tree-tooltip-radius`, `--sui-tree-tooltip-padding`,
   `--sui-tree-tooltip-max-width`, `--sui-tree-tooltip-font-size`,
-  `--sui-tree-tooltip-delay` and `--sui-tree-tooltip-placement`.
+  `--sui-tree-tooltip-delay` and `--sui-tree-tooltip-placement`. Extra controls
+  use `--sui-tree-rename-bg`, `-fg`, `-font`, `-size`, `-border`,
+  `-border-width`, `-radius`, `-padding`, `-hover-bg`, `-hover`,
+  `--sui-tree-count-bg`, `-fg`, `-font`, `-size`, `-weight`, `-padding`,
+  `-radius`, `-border`, `-border-width` and `-min-width`.
 - Edit the generated `style: cssSafe("...")` expression directly for custom
   values. Dynamic style stays under the normal `cssSafe` policy. Because
   `cssSafe` accepts comma-free declarations, use 8-digit hex colors such as
