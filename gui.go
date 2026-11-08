@@ -748,7 +748,7 @@ func fontMime(ext string) string {
 const guiPreviewPicker = `<script>
 (function () {
   var st = document.createElement('style');
-  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
+  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
   document.head.appendChild(st);
   var current = [];
   var handles = [];
@@ -758,40 +758,129 @@ const guiPreviewPicker = `<script>
   var marqueeOn = false;
   var mDown = null, mEl = null;
   var grid = document.createElement('div'); grid.className = 'sui-grid'; document.body.appendChild(grid);
-  // Width of the row/column border strip that can be clicked to select. The
-  // same value drives hit-testing and the hover overlay, so the highlighted
-  // area is exactly the clickable one.
+  // The row/column selection strips live just OUTSIDE the table, so they never
+  // overlap cells or the resize handles centred on the table border. The same
+  // values drive hit-testing and the hover overlay: what you see is clickable.
   var TABLE_BORDER_ZONE = 8;
+  var TABLE_CORNER = 14;
   var tableZoneEl = document.createElement('div'); tableZoneEl.className = 'sui-tzone'; document.body.appendChild(tableZoneEl);
-  function hideTableZone() { tableZoneEl.style.display = 'none'; }
-  function showTableZone(info, zone) {
-    if (!info || zone === 'cell') { hideTableZone(); return; }
-    var tableRect = info.table.getBoundingClientRect();
-    var cellRect = info.cell.getBoundingClientRect();
-    var rect;
-    if (zone === 'col') {
-      rect = { left: cellRect.left, top: cellRect.top, width: cellRect.width, height: TABLE_BORDER_ZONE };
-    } else {
-      var rowRect = info.cell.parentElement.getBoundingClientRect();
-      rect = { left: tableRect.left, top: rowRect.top, width: TABLE_BORDER_ZONE, height: rowRect.height };
-    }
-    // Keep the strip inside the scroll wrapper so it never paints over the
-    // designer canvas when the table is scrolled.
-    var wrap = info.table.closest ? info.table.closest('.tscroll') : null;
+  var tableCornerEl = document.createElement('div'); tableCornerEl.className = 'sui-tcorner'; document.body.appendChild(tableCornerEl);
+  function hideTableZone() { tableZoneEl.style.display = 'none'; tableCornerEl.style.display = 'none'; }
+  // Visible box of a table, clipped by its scroll wrapper when present.
+  function tableBox(table) {
+    var r = table.getBoundingClientRect();
+    var wrap = table.closest ? table.closest('.tscroll') : null;
     if (wrap) {
       var wr = wrap.getBoundingClientRect();
-      var left = Math.max(rect.left, wr.left);
-      var top = Math.max(rect.top, wr.top);
-      var right = Math.min(rect.left + rect.width, wr.right);
-      var bottom = Math.min(rect.top + rect.height, wr.bottom);
-      if (right - left <= 0 || bottom - top <= 0) { hideTableZone(); return; }
-      rect = { left: left, top: top, width: right - left, height: bottom - top };
+      r = { left: Math.max(r.left, wr.left), top: Math.max(r.top, wr.top),
+            right: Math.min(r.right, wr.right), bottom: Math.min(r.bottom, wr.bottom) };
     }
-    tableZoneEl.style.left = rect.left + 'px';
-    tableZoneEl.style.top = rect.top + 'px';
+    if (r.right - r.left <= 0 || r.bottom - r.top <= 0) return null;
+    return r;
+  }
+  function rowModelIndex(table, tr) {
+    var head = table.tHead;
+    if (head && tr.parentElement === head) {
+      return { row: tr.rowIndex, head: true, bodyRow: -1, headRow: tr.rowIndex };
+    }
+    return { row: tr.rowIndex, head: false, bodyRow: tr.rowIndex - (head ? head.rows.length : 0), headRow: -1 };
+  }
+  function rowAtY(table, y) {
+    var rows = [], head = table.tHead, tb = table.tBodies[0];
+    for (var i = 0; head && i < head.rows.length; i++) rows.push(head.rows[i]);
+    for (var j = 0; tb && j < tb.rows.length; j++) rows.push(tb.rows[j]);
+    var pick = null, best = Infinity;
+    for (var k = 0; k < rows.length; k++) {
+      var b = rows[k].getBoundingClientRect();
+      if (y >= b.top && y <= b.bottom) { pick = rows[k]; break; }
+      var d = y < b.top ? b.top - y : y - b.bottom;
+      if (d < best) { best = d; pick = rows[k]; }
+    }
+    if (!pick) return null;
+    var m = rowModelIndex(table, pick);
+    return { tr: pick, cell: pick.cells[0] || null, rect: pick.getBoundingClientRect(), row: m.row,
+             head: m.head, bodyRow: m.bodyRow, headRow: m.headRow, col: 0 };
+  }
+  function colAtX(table, x) {
+    var head = table.tHead, tb = table.tBodies[0];
+    var row = (head && head.rows.length) ? head.rows[0] : (tb && tb.rows.length ? tb.rows[0] : null);
+    if (!row) return null;
+    var pick = null, best = Infinity, pickIndex = 0, gridCol = 0;
+    for (var k = 0; k < row.cells.length; k++) {
+      var b = row.cells[k].getBoundingClientRect();
+      if (x >= b.left && x <= b.right) { pick = row.cells[k]; pickIndex = k; break; }
+      var d = x < b.left ? b.left - x : x - b.right;
+      if (d < best) { best = d; pick = row.cells[k]; pickIndex = k; }
+    }
+    if (!pick) return null;
+    for (var g = 0; g < pickIndex; g++) gridCol += row.cells[g].colSpan || 1;
+    var m = rowModelIndex(table, row);
+    return { cell: pick, rect: pick.getBoundingClientRect(), col: gridCol, row: m.row,
+             head: m.head, bodyRow: m.bodyRow, headRow: m.headRow };
+  }
+  // Geometry hit-test for the outer gutters and the select-all corner. It works
+  // outside the table, where elementFromPoint no longer finds a cell.
+  function gutterHit(x, y) {
+    var tables = document.querySelectorAll('table[data-sui-id]');
+    var best = null, bestDist = Infinity;
+    for (var i = 0; i < tables.length; i++) {
+      var table = tables[i];
+      var id = table.getAttribute('data-sui-id');
+      if (id === null || id === '-1') continue;
+      var box = tableBox(table);
+      if (!box) continue;
+      var kind = null, target = null, dist = Infinity;
+      if (x >= box.left - TABLE_CORNER && x < box.left && y >= box.top - TABLE_CORNER && y < box.top) {
+        kind = 'corner'; dist = Math.max(box.left - x, box.top - y);
+      } else if (y >= box.top - TABLE_BORDER_ZONE && y < box.top && x >= box.left && x < box.right) {
+        kind = 'col'; target = colAtX(table, x); dist = box.top - y;
+      } else if (x >= box.left - TABLE_BORDER_ZONE && x < box.left && y >= box.top && y < box.bottom) {
+        kind = 'row'; target = rowAtY(table, y); dist = box.left - x;
+      }
+      if (!kind || (best && dist >= bestDist)) continue;
+      var info = { kind: kind, table: table, tableId: Number(id), box: box, col: -1, row: -1,
+                   head: false, bodyRow: -1, headRow: -1, cell: null, rect: null };
+      if (target) {
+        info.col = target.col; info.row = target.row; info.head = target.head;
+        info.bodyRow = target.bodyRow; info.headRow = target.headRow;
+        info.cell = target.cell; info.rect = target.rect;
+      }
+      best = info; bestDist = dist;
+    }
+    return best;
+  }
+  function showTableZone(hit) {
+    hideTableZone();
+    if (!hit) return;
+    var box = hit.box;
+    if (hit.kind === 'corner') {
+      // The corner is its own select-all affordance; the strip would just sit
+      // underneath it.
+      tableCornerEl.style.left = Math.max(0, box.left - TABLE_CORNER) + 'px';
+      tableCornerEl.style.top = Math.max(0, box.top - TABLE_CORNER) + 'px';
+      tableCornerEl.style.width = TABLE_CORNER + 'px';
+      tableCornerEl.style.height = TABLE_CORNER + 'px';
+      tableCornerEl.style.display = 'block';
+      return;
+    }
+    var rect = null;
+    if (hit.kind === 'col' && hit.rect) {
+      rect = { left: hit.rect.left, top: box.top - TABLE_BORDER_ZONE, width: hit.rect.width, height: TABLE_BORDER_ZONE };
+    } else if (hit.kind === 'row' && hit.rect) {
+      rect = { left: box.left - TABLE_BORDER_ZONE, top: hit.rect.top, width: TABLE_BORDER_ZONE, height: hit.rect.height };
+    }
+    if (!rect) return;
+    tableZoneEl.style.left = Math.max(0, rect.left) + 'px';
+    tableZoneEl.style.top = Math.max(0, rect.top) + 'px';
     tableZoneEl.style.width = rect.width + 'px';
     tableZoneEl.style.height = rect.height + 'px';
     tableZoneEl.style.display = 'block';
+    // The select-all corner stays visible while any gutter is hovered.
+    tableCornerEl.style.left = Math.max(0, box.left - TABLE_CORNER) + 'px';
+    tableCornerEl.style.top = Math.max(0, box.top - TABLE_CORNER) + 'px';
+    tableCornerEl.style.width = TABLE_CORNER + 'px';
+    tableCornerEl.style.height = TABLE_CORNER + 'px';
+    tableCornerEl.style.display = 'block';
   }
   function applyGrid() {
     if (!guidesOn) { grid.style.display = 'none'; return; }
@@ -1064,14 +1153,6 @@ const guiPreviewPicker = `<script>
     }
     return { cell: cell, table: table, row: row, col: cell.cellIndex, head: head, bodyRow: bodyRow, headRow: headRow };
   }
-  function tableZone(info, e) {
-    var tr = info.table.getBoundingClientRect();
-    var cr = info.cell.getBoundingClientRect();
-    if (info.head && e.clientY <= cr.top + TABLE_BORDER_ZONE) return 'col';
-    if (!info.head && info.bodyRow === 0 && e.clientY <= tr.top + TABLE_BORDER_ZONE) return 'col';
-    if (e.clientX <= tr.left + TABLE_BORDER_ZONE) return 'row';
-    return 'cell';
-  }
   function postTableSel(phase, info, anchorRow, anchorCol) {
     if (!tableSelDrag || !info) return;
     parent.postMessage({
@@ -1092,10 +1173,22 @@ const guiPreviewPicker = `<script>
     var t = e.target;
     if (t && t.closest && t.closest('button,a,input,select,textarea,.sui-table-filter,.sui-table-pager,.sui-table-add')) return;
     var info = tableInfo(t);
+    // Inside a table every click selects a cell; the row/column gutters and the
+    // select-all corner live outside the table box.
+    var hit = info ? null : gutterHit(e.clientX, e.clientY);
+    if (hit && hit.kind === 'corner') {
+      hideTableZone();
+      tableSelSuppressClick = true;
+      parent.postMessage({ ty: 'sui', id: hit.tableId }, '*');
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (!info) info = hit;
     if (!info) return;
     var tableId = info.table.getAttribute('data-sui-id');
     if (tableId === null || tableId === '-1') return;
-    var kind = tableZone(info, e);
+    var kind = hit ? hit.kind : 'cell';
     if (kind === 'row' && info.row < 0) return;
     tableSelDrag = {
       tableId: Number(tableId), table: info.table, kind: kind,
@@ -1108,20 +1201,26 @@ const guiPreviewPicker = `<script>
     hideTableZone();
     postTableSel('start', info, tableSelDrag.anchorRow, tableSelDrag.anchorCol);
     e.preventDefault();
+    // Gutter clicks sit under the table's resize handles: stop the event so a
+    // click on the selection gutter never starts a row/column resize.
+    if (hit) e.stopPropagation();
   }, true);
   document.addEventListener('mousemove', function (e) {
     if (!tableSelDrag) {
       if (marqueeOn || e.altKey) { hideTableZone(); return; }
       var hoverInfo = tableInfo(document.elementFromPoint(e.clientX, e.clientY));
-      if (!hoverInfo) { hideTableZone(); return; }
-      showTableZone(hoverInfo, tableZone(hoverInfo, e));
+      if (hoverInfo) { hideTableZone(); return; }
+      showTableZone(gutterHit(e.clientX, e.clientY));
       return;
     }
     hideTableZone();
     var info = tableInfo(document.elementFromPoint(e.clientX, e.clientY));
-    if (!info || info.table !== tableSelDrag.table) return;
-    var row = tableSelDrag.kind === 'col' ? -1 : info.row;
-    var col = tableSelDrag.kind === 'row' ? -1 : info.col;
+    var moveHit = info ? null : gutterHit(e.clientX, e.clientY);
+    var source = info || moveHit;
+    if (!source || source.table !== tableSelDrag.table) return;
+    if (moveHit && moveHit.kind !== tableSelDrag.kind) return;
+    var row = tableSelDrag.kind === 'col' ? -1 : source.row;
+    var col = tableSelDrag.kind === 'row' ? -1 : source.col;
     if (row === tableSelDrag.lastRow && col === tableSelDrag.lastCol) return;
     tableSelDrag.lastRow = row;
     tableSelDrag.lastCol = col;
@@ -1131,8 +1230,7 @@ const guiPreviewPicker = `<script>
   document.addEventListener('mouseleave', hideTableZone, true);
   document.addEventListener('scroll', hideTableZone, true);
   document.addEventListener('mouseup', function () {
-    if (!tableSelDrag) return;
-    if (tableSelDrag.moved) {
+    if (tableSelDrag && tableSelDrag.moved) {
       postTableSel('end', { row: tableSelDrag.lastRow, col: tableSelDrag.lastCol },
         tableSelDrag.anchorRow, tableSelDrag.anchorCol);
     }

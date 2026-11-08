@@ -2043,7 +2043,7 @@ function newTableNode() {
   var n = newNode("table");
   n.cols = 3;
   n.header = 1;   // number of header rows
-  n.rows = 3;     // total rows (header + body)
+  n.rows = n.header + 2; // one header row + two empty body rows
   n.class = "suitbl"; // hooks the auto-managed table base rules (zebra, padding...)
   n.caption = "";
   n.capstyle = "";
@@ -2077,7 +2077,10 @@ function newTableNode() {
     n.cellStyles.push([]);
     n.rowStyles.push({ bg: "", color: "", extra: "" });
     for (var c = 0; c < n.cols; c++) {
-      n.cells[r].push("");
+      // New tables/sheets start with a labelled header row and empty body
+      // rows, so the sheet is immediately usable.
+      var label = r < n.header ? (c < 26 ? String.fromCharCode(65 + c) : "Col " + (c + 1)) : "";
+      n.cells[r].push(label);
       n.spans[r].push({ cs: 1, rs: 1 });
       n.cellStyles[r].push({ bg: "", color: "", extra: "" });
     }
@@ -11455,9 +11458,34 @@ function resizeById(id, w, h, l, t) {
   }
   var decls = [];
   if (n.kind === "table" && n.rows) {
-    // Distribute the requested height evenly across ALL rows (header too):
-    // the base rule gives td/th height from var(--t-rowh). No total height is
-    // set on the table (that would make the browser add the extra twice).
+    // A row or cell selection must never distribute its height across every
+    // row: that collapsed the whole table when a header row was selected and
+    // its handles were grabbed. Resize only the selected target instead.
+    if (pt.t === "row" && pt.r !== undefined && n.rowStyles && n.rowStyles[pt.r]) {
+      snap("resize row");
+      var rm = styleDeclMap(n.rowStyles[pt.r].extra || "");
+      var rh = px(h);
+      if (rh) rm["height"] = rh; else delete rm["height"];
+      n.rowStyles[pt.r].extra = styleDeclStr(rm);
+      setOut();
+      autoPreview();
+      return;
+    }
+    if (pt.t === "cell" && pt.r !== undefined && pt.c !== undefined &&
+        n.cellStyles && n.cellStyles[pt.r] && n.cellStyles[pt.r][pt.c]) {
+      snap("resize cell");
+      var cm = styleDeclMap(n.cellStyles[pt.r][pt.c].extra || "");
+      var cw = px(w), ch = px(h);
+      if (cw) cm["width"] = cw; else delete cm["width"];
+      if (ch) cm["height"] = ch; else delete cm["height"];
+      n.cellStyles[pt.r][pt.c].extra = styleDeclStr(cm);
+      setOut();
+      autoPreview();
+      return;
+    }
+    // Whole-table selection (table without a .tscroll wrapper): distribute the
+    // requested height evenly across ALL rows (header too): the base rule gives
+    // td/th height from var(--t-rowh). No total height is set on the table.
     var per = h > 0 ? Math.max(1, Math.round(h / n.rows)) : 0;
     decls.push({ prop: "width", value: px(w) });
     decls.push({ prop: "--t-rowh", value: per ? per + "px" : "" });

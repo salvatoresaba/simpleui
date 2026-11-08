@@ -1163,10 +1163,13 @@ new sheet to the existing workbook) and selects the new table.
 ### Table selection
 
 - Click a cell to select it.
-- Click the **top border of a column header** to select the column.
-- Click the **left border of a row** to select the row.
-- Hovering those borders shows a thin blue strip: it is the clickable zone
-  (slightly wider than the border itself) for the row or column.
+- Click in the gutter just **above a column header** (outside the table) to select the column.
+- Click in the gutter just **left of a row** (outside the table) to select the row.
+- Hovering those outer gutters shows a thin blue strip: it is the clickable
+  zone, and it never overlaps cells or the resize handles.
+- The highlighted square at the table's **top-left corner** selects the whole
+  table (all its cells).
+- New sheets start with a labelled header row and two empty body rows.
 - **Shift+click** extends a cell/row/column range from the previous anchor.
 - **Ctrl/Command+click** toggles individual cells, rows or columns.
 - Drag from the left border to add contiguous rows; drag from a column header's

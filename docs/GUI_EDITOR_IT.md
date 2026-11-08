@@ -1208,10 +1208,14 @@ un nuovo sheet) e seleziona la nuova tabella.
 ### Selezione tabella
 
 - Click su una cella per selezionarla.
-- Click sul **bordo superiore dell'header di una colonna** per selezionare la colonna.
-- Click sul **bordo sinistro di una riga** per selezionare la riga.
-- Al passaggio del mouse su questi bordi compare una sottile striscia blu: è la
-  zona cliccabile (leggermente più larga del bordo) per riga o colonna.
+- Click nella gutter appena **sopra l'header di una colonna** (fuori dalla tabella) per selezionare la colonna.
+- Click nella gutter appena **a sinistra di una riga** (fuori dalla tabella) per selezionare la riga.
+- Al passaggio del mouse su queste gutter esterne compare una sottile striscia
+  blu: è la zona cliccabile, e non si sovrappone mai alle celle né agli handle.
+- Il quadratino evidenziato nell'**angolo in alto a sinistra** della tabella
+  seleziona tutta la tabella (tutte le sue celle).
+- I nuovi fogli partono con una riga di intestazione etichettata e due righe
+  vuote.
 - **Shift+click** estende un intervallo di celle/righe/colonne dall'ancora precedente.
 - **Ctrl/Command+click** attiva/disattiva singole celle, righe o colonne.
 - Trascinare dal bordo sinistro aggiunge righe contigue; trascinare dal bordo

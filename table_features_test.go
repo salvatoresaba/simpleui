@@ -97,7 +97,7 @@ view main {
 	if !strings.Contains(guiPreviewPicker, `sui-hl-table`) {
 		t.Errorf("preview picker missing whole-table highlight")
 	}
-	if !strings.Contains(guiPreviewPicker, `sui-table-select`) || !strings.Contains(guiPreviewPicker, `tableZone`) {
+	if !strings.Contains(guiPreviewPicker, `sui-table-select`) || !strings.Contains(guiPreviewPicker, `gutterHit`) {
 		t.Errorf("preview picker missing table range selection")
 	}
 	// Body rows must map to the designer model, whose row indices include the
@@ -105,12 +105,16 @@ view main {
 	if !strings.Contains(guiPreviewPicker, `headCount + bodyRow`) {
 		t.Errorf("preview picker must offset body rows by the header row count")
 	}
-	if !strings.Contains(guiPreviewPicker, `bodyRow === 0`) {
-		t.Errorf("preview picker column zone must use the first body row")
-	}
-	// Hovering the row/column border must reveal the clickable strip.
+	// Row/column selection strips and the select-all corner must sit outside
+	// the table and be driven by geometry, not by the clicked element.
 	if !strings.Contains(guiPreviewPicker, `sui-tzone`) || !strings.Contains(guiPreviewPicker, `TABLE_BORDER_ZONE`) {
-		t.Errorf("preview picker must show the row/column border hover strip")
+		t.Errorf("preview picker must show the row/column gutter strip")
+	}
+	if !strings.Contains(guiPreviewPicker, `sui-tcorner`) || !strings.Contains(guiPreviewPicker, `TABLE_CORNER`) {
+		t.Errorf("preview picker must show the select-all corner")
+	}
+	if !strings.Contains(guiPreviewPicker, `rowAtY`) || !strings.Contains(guiPreviewPicker, `colAtX`) {
+		t.Errorf("preview picker must resolve gutter rows/columns geometrically")
 	}
 	for _, want := range []string{
 		`"Columns"`, `"Data view"`, `"from header"`, `"Use first row"`,
