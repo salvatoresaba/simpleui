@@ -110,13 +110,14 @@ body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; background: var(-
 
 /* docked toolbar */
 #topbars { display:flex; flex-direction:row; flex-wrap:wrap; align-items:stretch; }
-#toolbar { display:inline-flex; align-items:center; gap:3px; padding:5px 12px; border-bottom:1px solid var(--border); background:var(--panel); max-width:100%; vertical-align:top; }
+#toolbar { display:inline-flex; align-items:center; gap:3px; padding:5px 12px; border-bottom:1px solid var(--border); background:var(--panel); max-width:100%; width:100%; flex:1 1 100%; vertical-align:top; }
 .tbtn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--fg); cursor:pointer; }
 .tbtn:hover { background:var(--btn-hover); border-color:var(--border2); }
 .tbtn:disabled { opacity:.35; cursor:default; }
 .tbtn:disabled:hover { background:transparent; border-color:transparent; }
 .tbtn svg { width:17px; height:17px; }
 .tbtnsep { width:1px; height:18px; background:var(--border2); margin:0 4px; }
+.tbtn-grow { flex:1 1 auto; min-width:12px; }
 
 /* main 3-column workspace */
 main { flex:1; display:flex; min-height:0; }
@@ -486,6 +487,18 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .insert-item:hover { background:var(--btn-hover); border-color:var(--border2); }
 .insert-item .insert-kind { margin-left:auto; font-size:10px; color:var(--muted); font-family:ui-monospace, Consolas, monospace; }
 @media (max-width: 720px) { #insert-list { grid-template-columns:1fr; } }
+#iconpick { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:14; }
+#iconpick.on { display:flex; }
+#iconpickbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:640px; max-width:94vw; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 12px 44px rgba(0,0,0,.55); }
+#iconpickbox .pref-head { flex:none; }
+#iconpick-tabs { flex:none; margin:0 14px 8px; }
+#iconpick-grid { display:grid; grid-template-columns:repeat(10, minmax(30px, 1fr)); gap:4px; padding:4px 14px; overflow:auto; min-height:180px; }
+.iconpick-item { height:34px; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--fg); font-size:19px; line-height:1; cursor:pointer; }
+.iconpick-item:hover { background:var(--btn-hover); border-color:var(--border2); }
+.iconpick-item.on { outline:2px solid var(--accent); outline-offset:-2px; background:var(--btn-on); }
+#iconpick-foot { flex:none; display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:8px 14px 12px; border-top:1px solid var(--border); margin-top:8px; }
+#iconpick-custom { flex:1; min-width:120px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; padding:6px 8px; font:inherit; font-size:13px; }
+#iconpick-status { flex-basis:100%; min-height:14px; font-size:11px; color:var(--muted); }
 #projprefs { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
 #projprefs.on { display:flex; }
 #projprefsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:780px; max-width:94vw; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -865,12 +878,14 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   <span class="bar-grip" draggable="true" data-bar="toolbar" title="Drag to move">&#10495;</span>
   <button class="tbtn" id="tb-undo" title="Undo (Ctrl+Z)" aria-label="Undo" onclick="undo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
   <button class="tbtn" id="tb-redo" title="Redo (Ctrl+Y)" aria-label="Redo" onclick="redo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg></button>
-  <button class="tbtn" id="tb-theme" title="Toggle light/dark theme" aria-label="Toggle light/dark theme" onclick="toggleEditorTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg></button>
   <span class="tbtnsep"></span>
   <button class="tbtn" id="tb-dup" title="Duplicate" onclick="duplicateSelected()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
   <span class="tbtnsep"></span>
   <button class="tbtn" id="tb-preview" title="Build & preview in new window" onclick="openPreviewWindow()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
   <button class="tbtn" id="tb-desktop" title="Build desktop executable" onclick="openDesktopBuild()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="16" x2="12" y2="20"/></svg></button>
+  <span class="tbtn-grow"></span>
+  <span class="tbtnsep"></span>
+  <button class="tbtn" id="tb-theme" title="Toggle light/dark theme" aria-label="Toggle light/dark theme" onclick="toggleEditorTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg></button>
 </div>
 <div id="elementbar"></div>
 </div>
@@ -1293,6 +1308,23 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <div style="padding:0 18px 8px"><input id="insert-search" placeholder="Search components..." oninput="renderInsertList()" autocomplete="off" spellcheck="false"></div>
     <div class="pref-body"><div id="insert-list"></div></div>
     <div class="pfbtns"><button class="btn" type="button" onclick="closeInsertDialog()">Close</button></div>
+  </div>
+</div>
+<div id="iconpick" role="dialog" aria-modal="true" aria-labelledby="iconpick-title">
+  <div id="iconpickbox">
+    <div class="pref-head">
+      <h2 id="iconpick-title">Choose icon</h2>
+      <button class="btn" type="button" onclick="closeIconPicker()" aria-label="Close icon picker" title="Close">&#10005;</button>
+    </div>
+    <div class="cset-tabs" id="iconpick-tabs" role="tablist"></div>
+    <div id="iconpick-grid" role="listbox" aria-label="Icons"></div>
+    <div id="iconpick-foot">
+      <input type="text" id="iconpick-custom" maxlength="32" placeholder="Custom icon or emoji" aria-label="Custom icon">
+      <button class="btn" type="button" onclick="useCustomIconText()">Use</button>
+      <button class="btn" type="button" onclick="pickIconFile()" title="Load icons from a .txt or .json file">Add from file…</button>
+      <input type="file" id="iconpick-file" accept=".txt,.json,.csv,text/plain,application/json" style="display:none" onchange="handleIconFile(this)">
+      <div id="iconpick-status" aria-live="polite"></div>
+    </div>
   </div>
 </div>
 <div id="projprefs" role="dialog" aria-modal="true" aria-labelledby="projprefs-title">
@@ -4687,6 +4719,137 @@ var TREE_STYLE_PRESETS = [
   { key: "candy", label: "Candy", css: "--sui-tree-gap: 3px; --sui-tree-row-padding: 4px 9px; --sui-tree-row-radius: 999px; --sui-tree-hover-bg: #4a1d54; --sui-tree-selected-bg: #db2777; --sui-tree-selected-fg: #fdf2f8; --sui-tree-title-color: #f9a8d4; --sui-tree-panel-bg: #2a1033; --sui-tree-panel-border: 1px solid #6b21a8; --sui-tree-panel-radius: 16px; --sui-tree-panel-padding: 10px; --sui-tree-indent: 20px;" },
   { key: "cards", label: "Cards", css: "--sui-tree-gap: 6px; --sui-tree-row-padding: 7px 10px; --sui-tree-row-radius: 9px; --sui-tree-row-bg: #202838; --sui-tree-hover-bg: #2b3549; --sui-tree-selected-bg: #4c5cf7; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: transparent; --sui-tree-panel-border: 0; --sui-tree-panel-padding: 0px; --sui-tree-indent: 20px;" }
 ];
+var ICON_LIBRARY = [
+  { name: "Files", icons: ["📁","📂","📄","📃","📝","📦","🗂️","🗃️","📊","📈","📉","🧾","🔖","🏷️","📋","📌","📎","🔗","🗒️","📇","📑","📜","📰","🗞️"] },
+  { name: "Actions", icons: ["✏️","🖊️","🖋️","✂️","➕","➖","✖️","✔️","☑️","🔄","↩️","↪️","🔍","🔎","⚙️","🔧","🔨","🛠️","🗑️","💾","📥","📤","🔼","🔽","◀️","▶️","⏫","⏬","⏪","⏩"] },
+  { name: "Status", icons: ["✅","❌","⚠️","ℹ️","⛔","🚫","🔴","🟠","🟡","🟢","🔵","🟣","⚪","⚫","❗","❓","💡","🔔","🔕","🔒","🔓","🔑","🛡️","🏁","🚩","🎯","📣","📢"] },
+  { name: "People", icons: ["👤","👥","👨‍💻","👩‍💻","🧑‍💼","👷","🧑‍🔧","🧑‍🎨","🧑‍🏫","🧑‍⚕️","🧑‍🍳","🧑‍🌾","🧑‍🚀","🧑‍✈️","👨‍👩‍👧","👨‍👩‍👧‍👦","🙂","😀","😎","🤝","👍","👎","🙌","👏"] },
+  { name: "Media", icons: ["🖼️","🎨","🎬","🎥","📷","📸","🎵","🎶","🎧","📺","📻","📱","💻","🖥️","⌨️","🖱️","🖨️","💿","📀","🎮","🔊","🔇","🎤","🎙️"] },
+  { name: "Shapes", icons: ["⭐","🌟","✨","💠","🔷","🔶","🔸","🔹","🔺","🔻","◼️","◻️","◾","◽","▪️","▫️","🔲","🔳","⬛","⬜","🟥","🟦","🟩","🟨","🟧","🟪","🔘","🔴","🟤"] },
+  { name: "Symbols", icons: ["©️","®️","™️","§","¶","†","‡","•","…","—","–","∞","≈","≠","≤","≥","±","×","÷","√","∑","∏","µ","Ω","π","∆","→","←","↑","↓","↔","↕"] }
+];
+var ICON_CUSTOM_KEY = "sui.iconLibrary";
+var __iconPicker = null;
+function loadCustomIcons() {
+  try {
+    var v = JSON.parse(localStorage.getItem(ICON_CUSTOM_KEY) || "[]");
+    if (!Array.isArray(v)) return [];
+    return v.filter(function(x){ return typeof x === "string" && x.trim() && x.length <= 32; }).slice(0, 200);
+  } catch (e) { return []; }
+}
+function saveCustomIcons(list) {
+  try { localStorage.setItem(ICON_CUSTOM_KEY, JSON.stringify(list.slice(0, 200))); } catch (e) {}
+}
+function iconCategories() {
+  var out = ICON_LIBRARY.slice();
+  var custom = loadCustomIcons();
+  if (custom.length) out.push({ name: "Custom", icons: custom });
+  return out;
+}
+function closeIconPicker() {
+  var dlg = document.getElementById("iconpick");
+  if (dlg) dlg.classList.remove("on");
+  __iconPicker = null;
+}
+function openIconPicker(fieldKey, current, onPick) {
+  __iconPicker = { fieldKey: fieldKey || "", current: current || "", onPick: onPick || null, tab: iconCategories()[0].name };
+  var dlg = document.getElementById("iconpick");
+  if (!dlg) return;
+  dlg.classList.add("on");
+  renderIconPicker();
+}
+function chooseIcon(ic) {
+  var p = __iconPicker;
+  if (!p) return;
+  p.current = ic || "";
+  if (p.onPick) p.onPick(p.current);
+  closeIconPicker();
+}
+function renderIconPicker() {
+  var p = __iconPicker;
+  if (!p) return;
+  var cats = iconCategories();
+  if (!cats.some(function(c){ return c.name === p.tab; })) p.tab = cats[0].name;
+  var tabs = document.getElementById("iconpick-tabs");
+  var grid = document.getElementById("iconpick-grid");
+  var customInput = document.getElementById("iconpick-custom");
+  if (!tabs || !grid) return;
+  tabs.textContent = "";
+  cats.forEach(function(cat){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "cset-tab" + (cat.name === p.tab ? " on" : "");
+    b.textContent = cat.name;
+    b.onclick = function(){ p.tab = cat.name; renderIconPicker(); };
+    tabs.appendChild(b);
+  });
+  grid.textContent = "";
+  var cat = cats.filter(function(c){ return c.name === p.tab; })[0] || cats[0];
+  cat.icons.forEach(function(ic){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "iconpick-item" + (ic === p.current ? " on" : "");
+    b.textContent = ic;
+    b.title = ic;
+    b.onclick = function(){ chooseIcon(ic); };
+    grid.appendChild(b);
+  });
+  if (customInput) customInput.value = "";
+}
+function addCustomIconsFromText(text) {
+  var raw = String(text || "").trim();
+  var items = [];
+  if (!raw) return 0;
+  try {
+    var data = JSON.parse(raw);
+    if (Array.isArray(data)) items = data;
+    else if (data && Array.isArray(data.icons)) items = data.icons;
+    else if (typeof data === "string") items = [data];
+  } catch (e) {
+    raw.split(/\r?\n/).forEach(function(line){
+      line.split(",").forEach(function(part){ items.push(part); });
+    });
+  }
+  var list = loadCustomIcons();
+  var added = 0;
+  items.forEach(function(ic){
+    ic = String(ic === null || ic === undefined ? "" : ic).trim();
+    if (!ic || ic.length > 32 || list.indexOf(ic) >= 0) return;
+    if (list.length >= 200) return;
+    list.push(ic); added++;
+  });
+  if (added) { saveCustomIcons(list); if (__iconPicker) __iconPicker.tab = "Custom"; renderIconPicker(); }
+  return added;
+}
+function pickIconFile() {
+  var inp = document.getElementById("iconpick-file");
+  if (inp) inp.click();
+}
+function handleIconFile(input) {
+  var f = input && input.files && input.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    var n = addCustomIconsFromText(String(r.result || ""));
+    var status = document.getElementById("iconpick-status");
+    if (status) status.textContent = n ? ("Added " + n + " icon" + (n === 1 ? "" : "s")) : "No new icons found";
+    input.value = "";
+  };
+  r.onerror = function(){ var status = document.getElementById("iconpick-status"); if (status) status.textContent = "Cannot read the selected file"; };
+  r.readAsText(f);
+}
+function useCustomIconText() {
+  var inp = document.getElementById("iconpick-custom");
+  if (!inp) return;
+  var v = String(inp.value || "").trim();
+  if (!v) return;
+  chooseIcon(v);
+}
+(function wireIconPicker() {
+  var dlg = document.getElementById("iconpick");
+  if (!dlg) return;
+  dlg.addEventListener("mousedown", function(ev){ if (ev.target === dlg) closeIconPicker(); });
+})();
 function treeStyleExprMap(expr) {
   if (!expr) return {};
   var m = String(expr).match(/^cssSafe\(\s*("(?:[^"\\]|\\.)*")\s*\)\s*$/);
@@ -13557,8 +13720,6 @@ var COMPONENT_DEFS = [
       { name: "General", fields: [
         { key: "@title", label: "Title", type: "title", attr: "text", def: "Tree" },
         { key: "@name", label: "Runtime name", type: "attrText", attr: "name", def: "" },
-        { key: "@icon", label: "Default icon", type: "icon", attr: "icon", def: "" },
-        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" },
         { key: "@guides", label: "Indent guides", type: "attrSwitch", attr: "guides", def: true },
         { key: "@truncate", label: "Truncate labels", type: "attrSwitch", attr: "truncate", def: true },
         { key: "@checkbox", label: "Hierarchical checkboxes", type: "attrSwitch", attr: "checkbox", def: false },
@@ -13620,6 +13781,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-toggle-size", label: "Toggle size", type: "number", def: 12, min: 8, max: 24, step: 1, unit: "px" },
         { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" },
         { key: "@fontStep", label: "Font step", type: "attrNumber", attr: "fontStep", def: 0, min: 0, max: 10, step: 0.5 },
+        { key: "@icon", label: "Default icon", type: "icon", attr: "icon", def: "" },
+        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" },
         { key: "--sui-tree-font-weight", label: "Text weight", type: "select", def: "400", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"]] },
         { key: "--sui-tree-tracking", label: "Letter spacing", type: "number", def: 0, min: -2, max: 10, step: 0.1, unit: "px" },
         { key: "--sui-tree-font-family", label: "Font", type: "font", def: "inherit" }
@@ -15347,6 +15510,7 @@ function openComponentSettings(def, node) {
   renderComponentSettings();
 }
 function closeComponentSettings() {
+  closeIconPicker();
   document.getElementById("compcfg").classList.remove("on");
   __compSettings = null;
 }
@@ -15586,36 +15750,38 @@ function componentFieldRow(field) {
     }));
   } else if (field.type === "icon") {
     var iconWrap = document.createElement("div");
-    iconWrap.style.cssText = "display:flex;flex-direction:column;gap:5px;flex:1;min-width:0";
-    var iconGrid = document.createElement("div");
-    iconGrid.style.cssText = "display:grid;grid-template-columns:repeat(8,minmax(24px,1fr));gap:3px;padding:4px;border:1px solid var(--border2);border-radius:6px;background:var(--input-bg)";
-    var iconInput = document.createElement("input");
-    iconInput.type = "text"; iconInput.value = value || ""; iconInput.maxLength = 32; iconInput.spellcheck = false;
-    iconInput.placeholder = "Custom icon";
-    iconInput.style.cssText = "font-size:12px;padding:4px 6px";
-    var iconButtons = [];
-    function selectIcon(ic) {
-      iconInput.value = ic;
-      s.values[field.key] = ic;
-      iconButtons.forEach(function(b){ b.style.outline = b.textContent === ic ? "2px solid var(--accent)" : "1px solid transparent"; });
-      markComponentCustom();
-    }
-    ["📁", "📂", "📄", "📃", "📝", "📦", "🗂️", "🗃️", "📊", "📈", "📉", "🧾", "🔖", "🏷️", "⚙️", "🔧", "🔒", "🔓", "🔑", "⭐", "✅", "☑️", "⚠️", "❌", "ℹ️", "👤", "👥", "🔍", "➕", "➖", "✏️", "🖊️"].forEach(function(ic){
-      var b = document.createElement("button");
-      b.type = "button"; b.textContent = ic; b.title = ic;
-      b.style.cssText = "font-size:16px;line-height:1;height:26px;padding:0;border:1px solid transparent;border-radius:4px;background:transparent;color:inherit;cursor:pointer";
-      if (ic === value) b.style.outline = "2px solid var(--accent)";
-      b.onclick = function(){ selectIcon(ic); };
-      iconButtons.push(b);
-      iconGrid.appendChild(b);
-    });
-    iconInput.oninput = function(){
-      s.values[field.key] = iconInput.value;
-      iconButtons.forEach(function(b){ b.style.outline = b.textContent === iconInput.value ? "2px solid var(--accent)" : "1px solid transparent"; });
-      markComponentCustom();
+    iconWrap.style.cssText = "display:flex;align-items:center;gap:6px;flex:1;min-width:0";
+    var iconBtn = document.createElement("button");
+    iconBtn.type = "button";
+    iconBtn.className = "btn";
+    iconBtn.style.cssText = "min-width:52px;height:30px;padding:2px 8px;font-size:17px;line-height:1";
+    iconBtn.textContent = value || "Choose\u2026";
+    iconBtn.title = value ? ("Icon: " + value) : "Choose an icon";
+    iconBtn.onclick = function(){
+      openIconPicker(field.key, value || "", function(ic){
+        value = ic || "";
+        s.values[field.key] = value;
+        iconBtn.textContent = value || "Choose\u2026";
+        iconBtn.title = value ? ("Icon: " + value) : "Choose an icon";
+        markComponentCustom();
+      });
     };
-    iconWrap.appendChild(iconGrid);
-    iconWrap.appendChild(iconInput);
+    iconWrap.appendChild(iconBtn);
+    if (value) {
+      var iconClear = document.createElement("button");
+      iconClear.type = "button"; iconClear.className = "btn"; iconClear.textContent = "\u00d7";
+      iconClear.title = "Clear icon";
+      iconClear.style.cssText = "min-width:26px;height:30px;padding:0 6px";
+      iconClear.onclick = function(){
+        value = "";
+        s.values[field.key] = "";
+        iconBtn.textContent = "Choose\u2026";
+        iconBtn.title = "Choose an icon";
+        markComponentCustom();
+        renderComponentSettings();
+      };
+      iconWrap.appendChild(iconClear);
+    }
     row.appendChild(iconWrap);
   } else if (field.type === "attrText" || field.type === "title") {
     var aInp = document.createElement("input");
@@ -16148,6 +16314,8 @@ document.addEventListener("keydown", function(ev) {
   if (ev.key !== "Escape") return;
   var ins = document.getElementById("insertdlg");
   if (ins && ins.classList.contains("on")) { ev.preventDefault(); closeInsertDialog(); return; }
+  var ip = document.getElementById("iconpick");
+  if (ip && ip.classList.contains("on")) { ev.preventDefault(); closeIconPicker(); return; }
   var tt = document.getElementById("ttcfg");
   if (tt && tt.classList.contains("on")) { ev.preventDefault(); closeTooltipCfg(); return; }
   var cc = document.getElementById("compcfg");

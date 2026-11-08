@@ -1028,10 +1028,9 @@ The **Tree** inspector exposes only:
 **Tree settings** opens the component panel with these tabs:
 
 - **General** - `Title` (the visible tree title), `Runtime name` (the target used
-  by `tree.*`; not the visible title), default/open node icons and behavior
-  switches: indent guides, truncate labels, hierarchical checkboxes, multi-select,
-  search box, drag and drop, context menu, virtualize offscreen rows, persist
-  selection and editable.
+  by `tree.*`; not the visible title) and behavior switches: indent guides,
+  truncate labels, hierarchical checkboxes, multi-select, search box, drag and
+  drop, context menu, virtualize offscreen rows, persist selection and editable.
 - **Bindings** - optional state bindings: value state, selection state (shown for
   multi-select), load key state, editable depth and rename key/value (shown when
   editable). State fields suggest declared project states from a datalist; leave
@@ -1046,8 +1045,10 @@ The **Tree** inspector exposes only:
 - **Title** - title size, weight, font, spacing, alignment, top/bottom position
   and padding. These values apply to the **Title** field in General.
 - **Shape** - indent, row padding/height, radius, border, toggle size, font
-  size/weight, font step, letter spacing and font family. **Font step** reduces
-  the font size for each level below the root; default `0`.
+  size/weight, font step, letter spacing and font family, plus default/open node
+  icons. **Font step** reduces the font size for each level below the root;
+  default `0`. Icons open a categorized overlay with tabs, a large icon library
+  and an **Add from file…** action for `.txt`, `.json` or `.csv` lists.
 - **Extra** - two sections: **Edit button** (visibility, icon, background, text
   color, font, size, border, radius, padding and hover colors) and **Child
   counts** (visibility, background, text color, font, size, weight, padding,

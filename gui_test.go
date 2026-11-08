@@ -64,7 +64,7 @@ func TestGuiEditorPage(t *testing.T) {
 		t.Fatalf("get editor: %v", err)
 	}
 	body := readAllClose(t, resp)
-	for _, want := range []string{"SimpleUI Design Tool", "addEl", "__gui__/render", "generate()", "id=\"prev\"", "__gui__/open", "draggable", "addPageFlow", "saveBlockFlow", "pagetabs", "duplicatePage", "delPageFlow", "savePageTemplateFlow", "filein", "stateslist", "fnslist", "updStateName", "classlist", "renderPalette", "PALETTE", "openPrefs", "applyPrefs", "\"table\"", "\"section\"", "\"list\"", "\"textarea\"", "\"input\"", "listControls", "id=\"autosave\"", "id=\"autosave-restore\"", "id=\"tb-theme\"", "function toggleEditorTheme", "function initAutosave", "function writeAutosave", "function restoreAutosave", "markAutosaveSaved"} {
+	for _, want := range []string{"SimpleUI Design Tool", "addEl", "__gui__/render", "generate()", "id=\"prev\"", "__gui__/open", "draggable", "addPageFlow", "saveBlockFlow", "pagetabs", "duplicatePage", "delPageFlow", "savePageTemplateFlow", "filein", "stateslist", "fnslist", "updStateName", "classlist", "renderPalette", "PALETTE", "openPrefs", "applyPrefs", "\"table\"", "\"section\"", "\"list\"", "\"textarea\"", "\"input\"", "listControls", "id=\"autosave\"", "id=\"autosave-restore\"", "id=\"tb-theme\"", "function toggleEditorTheme", "function initAutosave", "function writeAutosave", "function restoreAutosave", "markAutosaveSaved", "id=\"iconpick\"", "ICON_LIBRARY", "openIconPicker", "addCustomIconsFromText", "id=\"iconpick-file\"", "tbtn-grow"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("editor page missing %q", want)
 		}

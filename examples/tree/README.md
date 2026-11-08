@@ -188,14 +188,15 @@ The **Tree** inspector exposes only two actions:
   JSON/XML import/export.
 
 The **General** tab holds the visible **Title**, the **Runtime name** (target
-for `tree.*`, not the title), default/open node icons, and the behavior switches.
+for `tree.*`, not the title), and the behavior switches.
 **Bindings** holds optional state bindings and suggests declared project states.
 **Columns** enables and configures an arbitrary column list (add, rename,
 resize, remove, reorder) plus child sorting. **Extra** has two sections: the edit
 button (icon, background, text, font, border, radius, padding, hover) and child
 counts (background, text, font, size, weight, padding, border, radius, minimum
 width). **Shape** includes **Font step**, which reduces the font size for each
-level below the root. The **Tooltip** tab enables styled tooltips. The **Style**
+level below the root, and the default/open node icons (categorized overlay with
+searchable tabs and `Add from file…`). The **Tooltip** tab enables styled tooltips. The **Style**
 selector includes the shared styles and the 16 tree themes; **Apply** writes the
 chosen style to the tree preview. There is no separate Hover tab: hover colors
 are in **Colors**.
