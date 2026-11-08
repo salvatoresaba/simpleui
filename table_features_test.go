@@ -127,10 +127,16 @@ view main {
 		`structureEditable`, `+ Table`, `sui-table-select`, `applyTableSelection`,
 		`tableSelCells`, `tableSelRows`, `tableSelCols`, `resize table`,
 		`uniqueTableName`, `tableNameTaken`,
+		`#tablesettings-body .acc.open > .accbody`, `grid-template-columns:repeat(2,minmax(0,1fr))`,
+		`width:720px`, `onlyTables`, `flex:0 1 auto`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table/tabs support missing %q", want)
 		}
+	}
+	// Direct preview selection replaced the inspector mode buttons.
+	if strings.Contains(guiHTML, "Table selectors") {
+		t.Errorf("inspector must not show the table selectors")
 	}
 }
 

@@ -58,6 +58,7 @@ Appearance and layout of the editor shell.
 | Density | Comfortable | Comfortable or compact spacing |
 | Accent color | #4c5cf7 | Focus rings, selection and primary actions |
 | Panels | all visible except history | Show or hide Structure/Tokens, Inspector and Problems/History |
+| Toolbar layout | side by side | Both top bars share one row when space allows; drag a grip to reorder |
 | Reset toolbar order | - | Restores the default toolbar layout |
 
 ### Code editor
@@ -597,7 +598,7 @@ the generated application; it does not control moving components in the editor.
 | Insert a component | Drag a palette item into the preview or tree |
 | Reorder a component | Drag a tree row above/below another row |
 | Reparent a component | Drop a tree row inside a container row |
-| Reorder toolbar sections | Drag the toolbar grip |
+| Reorder toolbar sections | Drag the toolbar grip; the two bars sit side by side when space allows |
 | Change table row/column size | Drag a table boundary grip |
 
 The editor uses the internal element model as the source of truth. A successful
@@ -1143,22 +1144,23 @@ See [API reference: tree](API_REFERENCE.md#tree) and the
 
 ## Table control
 
-Insert **Table** from **Controls**. The inspector starts with **Table selectors**
-(Table / Cell / Row / Column) and **Structure** buttons (`+ Col`, `− Col`,
-`+ Row`, `− Row`). Clicking a cell, row or column opens the related style group;
-the table itself exposes the full settings panel.
+Insert **Table** from **Controls**. The inspector starts with the **Structure**
+buttons (`+ Col`, `− Col`, `+ Row`, `− Row`). Cell, row and column selection
+happens directly in the preview: click a cell, use the outer gutters for rows and
+columns, or the top-left corner to select the whole table.
 
-The inspector keeps the **Table selectors** and **Structure** buttons, and adds
-**+ Table** / **− Table** for multiple tables. The **Table settings...** button
-opens a large overlay with every parameter group in tabs:
+The inspector keeps the **Structure** buttons and adds **+ Table** / **− Table**
+for multiple tables. The **Table settings...** button opens a narrower overlay
+with every parameter group in tabs; controls inside each tab are laid out in two
+columns with the same compact sizing as the rest of the inspector:
 
 **Appearance**, **Borders**, **Header**, **Caption**, **Behavior**, **Data**,
 **Columns**, **Data view**, **Events** and **Tooltip**. Every field in the overlay updates the
 preview immediately; the overlay stays open while editing.
 
-The table selector row and **− Table** appear only when more than one table
-exists. **+ Table** wraps a lone table in a bottom sheet-tab workbook (or adds a
-new sheet to the existing workbook) and selects the new table.
+The **− Table** button and the sheet selector appear only when more than one
+table exists. **+ Table** wraps a lone table in a bottom sheet-tab workbook (or
+adds a new sheet to the existing workbook) and selects the new table.
 
 New tables are named automatically (`table1`, `table2`, ...), so their runtime
 settings gear and `table.*` helpers are immediately available. The gear opens

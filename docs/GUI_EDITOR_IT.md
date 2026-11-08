@@ -59,6 +59,7 @@ Aspetto e layout della shell dell'editor.
 | Density | Comfortable | Spaziatura comfortable o compact |
 | Accent color | #4c5cf7 | Focus, selezione e azioni principali |
 | Panels | tutti visibili tranne history | Mostra o nasconde Structure/Tokens, Inspector e Problems/History |
+| Toolbar layout | affiancate | Le due barre superiori condividono una riga quando c'è spazio; trascina la maniglia per riordinarle |
 | Reset toolbar order | - | Ripristina il layout predefinito delle toolbar |
 
 ### Code editor
@@ -620,7 +621,7 @@ dei componenti nell'editor.
 | Inserire un componente | Trascinare una voce della palette nel preview o nell'albero |
 | Riordinare un componente | Trascinare una riga dell'albero sopra/sotto un'altra |
 | Cambiare padre a un componente | Trascinare una riga dentro una riga contenitore |
-| Riordinare le sezioni della toolbar | Trascinare la maniglia della toolbar |
+| Riordinare le sezioni della toolbar | Trascinare la maniglia; le due barre stanno affiancate quando c'è spazio |
 | Ridimensionare righe/colonne di una tabella | Trascinare il bordo della tabella |
 
 L'editor usa il modello interno degli elementi come fonte di verità. Un drop
@@ -1188,22 +1189,23 @@ tree](../examples/tree/README.md).
 
 ## Controllo Table
 
-Inserire **Table** da **Controls**. L'inspector mostra subito **Table selectors**
-(Table / Cell / Row / Column) e i pulsanti **Structure** (`+ Col`, `− Col`,
-`+ Row`, `− Row`). Selezionando una cella, riga o colonna si apre il gruppo di
-stile relativo; la tabella espone il pannello impostazioni completo.
+Inserire **Table** da **Controls**. L'inspector mostra subito i pulsanti
+**Structure** (`+ Col`, `− Col`, `+ Row`, `− Row`). La selezione di celle, righe e
+colonne avviene direttamente nella preview: click su una cella, gutter esterne
+per righe/colonne, oppure angolo in alto a sinistra per tutta la tabella.
 
-L'inspector mantiene **Table selectors**, **Structure** e aggiunge **+ Table** /
-**− Table** per più tabelle. Il pulsante **Table settings...** apre un overlay
-ampio con tutti i gruppi in tab:
+L'inspector mantiene **Structure** e aggiunge **+ Table** / **− Table** per più
+tabelle. Il pulsante **Table settings...** apre un overlay più stretto con tutti
+i gruppi in tab; dentro ogni tab i controlli sono disposti su due colonne con la
+stessa dimensione compatta del resto dell'inspector:
 
 **Appearance**, **Borders**, **Header**, **Caption**, **Behavior**, **Data**,
 **Columns**, **Data view**, **Events** e **Tooltip**. Ogni campo aggiorna subito
 la preview; l'overlay resta aperto durante le modifiche.
 
-Il selettore tabelle e **− Table** compaiono solo con più tabelle. **+ Table**
-avvolge una tabella singola in un workbook con sheet tab in basso (oppure aggiunge
-un nuovo sheet) e seleziona la nuova tabella.
+Il pulsante **− Table** e il selettore fogli compaiono solo con più tabelle.
+**+ Table** avvolge una tabella singola in un workbook con sheet tab in basso
+(oppure aggiunge un nuovo sheet) e seleziona la nuova tabella.
 
 Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
 l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito

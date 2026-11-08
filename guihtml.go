@@ -110,7 +110,7 @@ body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; background: var(-
 
 /* docked toolbar */
 #topbars { display:flex; flex-direction:row; flex-wrap:wrap; align-items:stretch; }
-#toolbar { display:inline-flex; align-items:center; gap:3px; padding:5px 12px; border-bottom:1px solid var(--border); background:var(--panel); max-width:100%; width:100%; flex:1 1 100%; vertical-align:top; }
+#toolbar { display:inline-flex; align-items:center; gap:3px; padding:5px 12px; border-bottom:1px solid var(--border); background:var(--panel); max-width:100%; width:auto; flex:0 1 auto; flex-wrap:wrap; vertical-align:top; }
 .tbtn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--fg); cursor:pointer; }
 .tbtn:hover { background:var(--btn-hover); border-color:var(--border2); }
 .tbtn:disabled { opacity:.35; cursor:default; }
@@ -123,7 +123,7 @@ body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; background: var(-
 main { flex:1; display:flex; min-height:0; }
 
 /* element insert toolbar (layout) */
-#elementbar { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-bottom:1px solid var(--border); background:var(--panel2); flex-wrap:wrap; max-width:100%; vertical-align:top; }
+#elementbar { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-bottom:1px solid var(--border); background:var(--panel2); flex-wrap:wrap; max-width:100%; flex:1 1 auto; min-width:0; vertical-align:top; }
 #elementbar .ebtn { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; border:1px solid var(--border2); border-radius:8px; background:var(--btn-bg); color:var(--fg); cursor:pointer; transition: all 0.15s ease; }
 #elementbar .ebtn:hover { background:var(--btn-hover); border-color:#4c5cf7; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(76, 92, 247, 0.25); }
 #elementbar .ebtn:active { transform: translateY(0); }
@@ -566,12 +566,15 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 /* unified table settings panel */
 #tablesettings { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:16; }
 #tablesettings.on { display:flex; }
-#tablesettingsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:11px; width:860px; max-width:96vw; height:82vh; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 16px 52px rgba(0,0,0,.6); }
+#tablesettingsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:11px; width:720px; max-width:96vw; height:82vh; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 16px 52px rgba(0,0,0,.6); }
 #tablesettingsbox .pref-head { flex:none; }
 #tablesettings-tabs { flex:none; margin:0 16px 8px; }
 #tablesettings-body { flex:1; min-height:0; overflow:auto; padding:2px 16px 14px; }
 #tablesettings-body .acc { margin-bottom:8px; }
 #tablesettings-body .accbody { padding-bottom:8px; }
+#tablesettings-body .acc.open > .accbody { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 14px; align-items:start; }
+#tablesettings-body .acc.open > .accbody > .rowline { min-width:0; }
+#tablesettings-body .acc.open > .accbody > :not(.rowline) { grid-column:1 / -1; }
 #tablesettings-close { flex:none; }
 #tablesettings-status { flex:1; min-width:0; font-size:11px; color:var(--muted); }
 #tablesettings-preview { display:none; }
@@ -1459,7 +1462,7 @@ value: 12</div>
       <h2 id="tablesettings-title">Table settings</h2>
       <button class="btn" type="button" onclick="closeTableSettings()" aria-label="Close table settings" title="Close">&#10005;</button>
     </div>
-    <div class="hint" style="padding:0 16px 6px">Every change updates the preview immediately. The inspector keeps the table selectors and row/column structure buttons.</div>
+    <div class="hint" style="padding:0 16px 6px">Every change updates the preview immediately. Select cells, rows and columns directly in the preview; the inspector keeps the row/column structure buttons.</div>
     <div class="cset-tabs" id="tablesettings-tabs" role="tablist"></div>
     <div id="tablesettings-body"></div>
     <div class="pfbtns">
@@ -4222,31 +4225,34 @@ function renderInspector() {
     if (exactTypes.indexOf(t) < 0) exactTypes.push(t);
   });
   if (exactTypes.length) {
-    var typeBar = document.createElement("div");
-    typeBar.className = "sel-type";
-    var typeLead = document.createElement("span");
-    typeLead.textContent = exactTypes.length === 1 ? "Selected element" : "Selected elements";
-    typeBar.appendChild(typeLead);
-    exactTypes.forEach(function(t){
-      var code = document.createElement("code");
-      code.textContent = t;
-      typeBar.appendChild(code);
-    });
-    if (!selBody && nodes.length === 1 && nodes[0].kind !== "table") {
-      var cdef = componentDefForKind(nodes[0].kind);
-      if (cdef) {
-        var sbtn = document.createElement("button");
-        sbtn.type = "button";
-        sbtn.className = "btn";
-        sbtn.style.cssText = "margin-left:auto;font-size:11px;padding:3px 8px";
-        sbtn.textContent = "Settings...";
-        sbtn.title = "Configure " + cdef.label + " for this element only";
-        sbtn.onclick = function(){ openComponentSettings(cdef, nodes[0]); };
-        typeBar.appendChild(sbtn);
+    var onlyTables = nodes.length > 0 && nodes.every(function(m){ return m && m.kind === "table"; });
+    if (!onlyTables) {
+      var typeBar = document.createElement("div");
+      typeBar.className = "sel-type";
+      var typeLead = document.createElement("span");
+      typeLead.textContent = exactTypes.length === 1 ? "Selected element" : "Selected elements";
+      typeBar.appendChild(typeLead);
+      exactTypes.forEach(function(t){
+        var code = document.createElement("code");
+        code.textContent = t;
+        typeBar.appendChild(code);
+      });
+      if (!selBody && nodes.length === 1 && nodes[0].kind !== "table") {
+        var cdef = componentDefForKind(nodes[0].kind);
+        if (cdef) {
+          var sbtn = document.createElement("button");
+          sbtn.type = "button";
+          sbtn.className = "btn";
+          sbtn.style.cssText = "margin-left:auto;font-size:11px;padding:3px 8px";
+          sbtn.textContent = "Settings...";
+          sbtn.title = "Configure " + cdef.label + " for this element only";
+          sbtn.onclick = function(){ openComponentSettings(cdef, nodes[0]); };
+          typeBar.appendChild(sbtn);
+        }
       }
+      typeBar.title = selPath ? "Path: " + selPath.join(".") : "Page body";
+      box.appendChild(typeBar);
     }
-    typeBar.title = selPath ? "Path: " + selPath.join(".") : "Page body";
-    box.appendChild(typeBar);
   }
 
   var states = ["", ":hover", ":focus", ":active"];
@@ -8733,35 +8739,8 @@ function tableControls(n, opts) {
   a.appendChild(h);
   var b = document.createElement("div"); b.className = "accbody";
 
-  var selLabel = document.createElement("div");
-  selLabel.className = "rowth";
-  selLabel.textContent = "Table selectors";
-  b.appendChild(selLabel);
-
-  // selection mode toggle
-  var mode = document.createElement("div");
-  mode.style.cssText = "display:flex;gap:4px;margin-bottom:6px";
-  [["Table", null], ["Cell", "cell"], ["Row", "row"], ["Column", "col"]].forEach(function(mt){
-    var mb = document.createElement("button");
-    // The active state follows the MODE only, so a selector stays highlighted
-    // right after being chosen (even before anything is picked in the preview).
-    var active = (mt[1] === null) ? (selMode === "table") : (selMode === mt[1]);
-    mb.className = "btn" + (active ? " on" : "");
-    mb.style.fontSize = "11px";
-    mb.textContent = mt[0];
-    mb.onclick = function(){
-      selMode = mt[1] ? mt[1] : "table";
-      selCell = null; selRow = null; selCol = null;
-      renderInspector();
-    };
-    mode.appendChild(mb);
-  });
-  b.appendChild(mode);
-
-  // structure buttons: visually separated from the selectors, on a single row
-  var ssep = document.createElement("div");
-  ssep.style.cssText = "border-top:1px solid var(--border);margin:8px 0 2px";
-  b.appendChild(ssep);
+  // Structure controls. Cell/row/column selection happens directly in the
+  // preview, so the old mode selector buttons are not needed here.
   var slabel = document.createElement("div"); slabel.className = "rowth"; slabel.textContent = "Structure";
   b.appendChild(slabel);
   var btns = document.createElement("div");
