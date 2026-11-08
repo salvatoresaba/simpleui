@@ -3104,6 +3104,13 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function decorateTable(tbl, st, cfg){
     var name = tableName(tbl);
+    // Cell input is internal to the table. Stop it at the table capture phase
+    // so application-level onInput handlers on the table or its ancestors do
+    // not re-render the view (and blur the edited cell) on every letter.
+    if (tbl && !tbl.__suiInputGuard) {
+      tbl.__suiInputGuard = true;
+      tbl.addEventListener('input', function(ev){ ev.stopPropagation(); }, true);
+    }
     if (st.filtersOn === null || st.filtersOn === undefined) st.filtersOn = !!cfg.filterable;
     if (st.sortOn === null || st.sortOn === undefined) st.sortOn = !!cfg.sortable;
     var headerRow = tbl.querySelector('thead tr');

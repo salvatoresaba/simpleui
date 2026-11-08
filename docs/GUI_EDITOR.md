@@ -1209,7 +1209,8 @@ Table settings groups:
   (single line, overflow hidden, full text in a hover overlay). Runtime cell and
   header edits stay in the table store across re-renders and sheet switches for
   the page session; typing never rebuilds the table, the value is finalized on
-  blur or after a short pause and change events run on blur.
+  blur or after a short pause and change events run on blur. Cell input events
+  stay inside the table, so ancestor `onInput` handlers are not triggered.
 - **Data** - runtime **table name** used by `table.display`, `table.data`,
   `table.json` and `table.exportText`.
 - **Columns** - declarative `columns`, labels, widths, alignment, cell types,

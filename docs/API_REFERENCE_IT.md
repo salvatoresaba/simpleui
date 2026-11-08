@@ -2236,8 +2236,10 @@ table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome"
   nello store della tabella tra re-render e cambio foglio per la sessione della
   pagina. La digitazione non ridisegna la tabella: il testo è salvato subito e il
   valore è finalizzato al blur o dopo una breve pausa. Gli eventi di cambio e la
-  validazione scattano al blur. Usa `storage.*` se i valori devono sopravvivere
-  a un reload completo.
+  validazione scattano al blur. Gli eventi `input` delle celle restano interni
+  alla tabella: gli handler `onInput` applicativi sulla tabella o sui suoi
+  antenati non vengono chiamati per le modifiche alle celle; usa `onCellChange`.
+  Usa `storage.*` se i valori devono sopravvivere a un reload completo.
 
 ## Sicurezza
 

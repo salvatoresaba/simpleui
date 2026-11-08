@@ -1257,7 +1257,9 @@ Gruppi del pannello:
   passaggio del mouse). Le modifiche runtime a celle e intestazioni restano nello
   store della tabella tra re-render e cambio foglio per la sessione della pagina;
   la digitazione non ridisegna la tabella, il valore è finalizzato al blur o dopo
-  una breve pausa e gli eventi di cambio scattano al blur.
+  una breve pausa e gli eventi di cambio scattano al blur. Gli eventi `input`
+  delle celle restano interni alla tabella, quindi gli handler `onInput` degli
+  antenati non vengono attivati.
 - **Data** - **table name** usato da `table.display`, `table.data`, `table.json`
   e `table.exportText`.
 - **Columns** - `columns`, labels, larghezze, allineamento, tipi, formati,
