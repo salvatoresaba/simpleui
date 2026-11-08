@@ -1193,6 +1193,18 @@ Inserire **Table** da **Controls**. L'inspector mostra subito **Table selectors*
 `+ Row`, `− Row`). Selezionando una cella, riga o colonna si apre il gruppo di
 stile relativo; la tabella espone il pannello impostazioni completo.
 
+L'inspector mantiene **Table selectors**, **Structure** e aggiunge **+ Table** /
+**− Table** per più tabelle. Il pulsante **Table settings...** apre un overlay
+ampio con tutti i gruppi in tab:
+
+**Appearance**, **Borders**, **Header**, **Caption**, **Behavior**, **Data**,
+**Columns**, **Data view** ed **Events**. Ogni campo aggiorna subito la preview;
+l'overlay resta aperto durante le modifiche.
+
+Il selettore tabelle e **− Table** compaiono solo con più tabelle. **+ Table**
+avvolge una tabella singola in un workbook con sheet tab in basso (oppure aggiunge
+un nuovo sheet) e seleziona la nuova tabella.
+
 Gruppi del pannello:
 
 - **Appearance** - padding celle, allineamento orizzontale/verticale, righe
@@ -1210,9 +1222,12 @@ Gruppi del pannello:
   opzioni select e **Use first row** per ricavare chiavi/label dall'header
   disegnato. Le colonne restano opzionali.
 - **Data view** - `sortable`, `filterable`, `multi-select`, `virtual rows`
-  (riservato), `page size` e modalità `selection` (row/column/cell).
+  (riservato), `show add table button` (`+ Table` runtime), `runtime structure
+  editing` (menu contestuale righe/colonne), `page size` e modalità `selection`
+  (row/column/cell). In modalità `column` il click sull'header seleziona la
+  colonna; **Alt+click** la ordina quando `sortable` è attivo.
 
-I nuovi eventi sono nella sezione **Events**:
+I nuovi eventi sono nella tab **Events** dell'overlay:
 `onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`, `onTableChange`,
 `onRowSelect` e `onSort`. I dettagli dell'ultima modifica sono in
 `table.lastChange(name)`.

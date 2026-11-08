@@ -2521,6 +2521,8 @@ func guiTableFrom(e *Element) (JVal, bool) {
 	selection := ""
 	multiSelect := false
 	virtual := false
+	showAddTable := false
+	structureEditable := false
 	for a := 0; a < len(e.attrs); a++ {
 		at := e.attrs[a]
 		switch at.key {
@@ -2536,6 +2538,10 @@ func guiTableFrom(e *Element) (JVal, bool) {
 			multiSelect = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
 		case "virtual":
 			virtual = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "showAddTable":
+			showAddTable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "structureEditable":
+			structureEditable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
 		case "columns":
 			columns = partsLiteral(at.text)
 		case "columnLabels":
@@ -2569,7 +2575,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
 		"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),
 		"pageSize", JStr(pageSize), "selection", JStr(selection), "multiSelect", JBool(multiSelect),
-		"virtual", JBool(virtual),
+		"virtual", JBool(virtual), "showAddTable", JBool(showAddTable), "structureEditable", JBool(structureEditable),
 	), true
 }
 

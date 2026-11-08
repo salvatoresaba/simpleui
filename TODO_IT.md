@@ -51,7 +51,8 @@ Completati di recente:
       picker icone filtrato, `onTreeChange` e `tree.lastChange`.
 - [x] Table control completo: colonne dichiarative, ordinamento, filtri,
       paginazione, selezione riga/colonna/cella, editing validato, eventi tabella,
-      `table.lastChange` e sheet tab in basso in stile Excel.
+      `table.lastChange`, overlay Table settings a tab, sheet tab in basso stile
+      Excel, creazione tabelle e modifica struttura righe/colonne a runtime.
 - [x] Inspector chart semplificato: type, Mode e Chart settings in alto, dati in
       fondo, point width nelle impostazioni, pannello attributes rimosso e campi
       X/Y rimossi a favore della modifica diretta dei dati.

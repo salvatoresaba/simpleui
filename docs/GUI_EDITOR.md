@@ -1148,6 +1148,18 @@ Insert **Table** from **Controls**. The inspector starts with **Table selectors*
 `+ Row`, `− Row`). Clicking a cell, row or column opens the related style group;
 the table itself exposes the full settings panel.
 
+The inspector keeps the **Table selectors** and **Structure** buttons, and adds
+**+ Table** / **− Table** for multiple tables. The **Table settings...** button
+opens a large overlay with every parameter group in tabs:
+
+**Appearance**, **Borders**, **Header**, **Caption**, **Behavior**, **Data**,
+**Columns**, **Data view** and **Events**. Every field in the overlay updates the
+preview immediately; the overlay stays open while editing.
+
+The table selector row and **− Table** appear only when more than one table
+exists. **+ Table** wraps a lone table in a bottom sheet-tab workbook (or adds a
+new sheet to the existing workbook) and selects the new table.
+
 Table settings groups:
 
 - **Appearance** - cell padding, horizontal/vertical alignment, zebra rows, hover
@@ -1167,9 +1179,12 @@ Table settings groups:
   designed header. Columns remain optional; without them the designed header and
   cells are used as-is.
 - **Data view** - `sortable`, `filterable`, `multi-select`, `virtual rows`
-  (reserved), `page size` and `selection` mode (row/column/cell).
+  (reserved), `show add table button` (runtime `+ Table`), `runtime structure
+  editing` (row/column context menu), `page size` and `selection` mode
+  (row/column/cell). In `column` selection mode a header click selects the
+  column; **Alt+click** sorts it when `sortable` is on.
 
-New table events are available in the generic **Events** section:
+New table events are available in the overlay **Events** tab:
 `onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`, `onTableChange`,
 `onRowSelect` and `onSort`. Details of the last change are available from
 `table.lastChange(name)`.

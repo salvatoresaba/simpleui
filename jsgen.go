@@ -2097,6 +2097,12 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 		if datepickerBool(e, "virtual") {
 			sb.WriteString(" data-sui-virtual=\"1\"")
 		}
+		if datepickerBool(e, "showAddTable") {
+			sb.WriteString(" data-sui-show-add-table=\"1\"")
+		}
+		if datepickerBool(e, "structureEditable") {
+			sb.WriteString(" data-sui-structure-editable=\"1\"")
+		}
 		if v := comboboxAttrNumber(e, "pageSize"); v != "" {
 			sb.WriteString(" data-sui-page-size=\"" + htmlEscape(v) + "\"")
 		}
@@ -2448,7 +2454,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
 			a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
-			a.key == "multiSelect" || a.key == "virtual" ||
+			a.key == "multiSelect" || a.key == "virtual" || a.key == "showAddTable" || a.key == "structureEditable" ||
 			a.key == "onCellChange" || a.key == "onRowChange" || a.key == "onTableChange" ||
 			a.key == "onRowSelect" || a.key == "onSort" || a.key == "onCellClick" || a.key == "onRowClick") {
 			continue

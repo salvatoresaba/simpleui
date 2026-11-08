@@ -1804,6 +1804,13 @@ tr.sui-table-row-selected > td, tr.sui-table-row-selected > th { background: var
 td.sui-table-cell-selected, th.sui-table-cell-selected { background: var(--sui-table-cell-selected-bg, rgba(76,92,247,.22)); }
 td.sui-table-col-selected, th.sui-table-col-selected { background: var(--sui-table-col-selected-bg, rgba(76,92,247,.10)); }
 td.sui-table-invalid, th.sui-table-invalid { background: rgba(239,68,68,.18); box-shadow: inset 0 0 0 1px #ef4444; }
+.sui-table-add { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 0; padding: 4px 9px; border: 1px dashed var(--sui-border, #3d4556); border-radius: 6px; background: transparent; color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 11px; cursor: pointer; }
+.sui-table-add:hover { color: var(--sui-fg, #f2f4f6); border-color: #4c5cf7; }
+.sui-table-struct-menu { position: fixed; z-index: 10045; min-width: 190px; padding: 4px; background: var(--sui-panel, #1d2129); border: 1px solid var(--sui-border, #475569); border-radius: 7px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+.sui-table-struct-item { display: block; width: 100%; text-align: left; border: 0; border-radius: 5px; background: transparent; color: var(--sui-fg, #e6e6ef); padding: 5px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+.sui-table-struct-item:hover, .sui-table-struct-item:focus { background: rgba(76,92,247,.25); outline: none; }
+.sui-table-struct-item:disabled { opacity: .45; cursor: default; }
+.sui-table-struct-sep { height: 1px; margin: 4px 3px; background: var(--sui-border, #3d4556); }
 .sui-cell-pop { position: fixed; z-index: 9999; max-width: 420px; background: var(--sui-panel, #202732); color: var(--sui-fg, #f2f4f6); border: 1px solid var(--sui-border, #3d4556); border-radius: 8px; padding: 8px 10px; box-shadow: var(--sui-ac-shadow, 0 8px 22px rgba(0,0,0,.45)); font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
 .sui-iframe-error { padding: 10px 14px; border: 1px solid #a33; border-radius: 8px; background: #2b1719; color: #ffb4b4; font-size: 13px; line-height: 1.4; }
 /* Drag and drop: the runtime toggles these classes on the current source and
@@ -2166,6 +2173,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   // re-renders: afterRender() re-applies it to the freshly rendered table.
   var store = Object.create(null);
   var changes = Object.create(null);
+  var tableClip = Object.create(null);
+  var tableBooks = Object.create(null);
   var tpls = new WeakMap(); // table element -> { heads, bodies } row templates
   // Resource limits: the table is a DOM widget, so huge payloads are refused
   // instead of freezing the page. Applications should paginate.
@@ -2203,7 +2212,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       selection: attr('selection') || 'none',
       multi: attr('multi') === '1',
       editable: attr('editable') === '1',
-      fixed: attr('fixed') === '1'
+      fixed: attr('fixed') === '1',
+      showAddTable: attr('show-add-table') === '1',
+      structureEditable: attr('structure-editable') === '1'
     };
     return cfg;
   }
@@ -2669,6 +2680,199 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     if (st.selectedCols[col]) delete st.selectedCols[col]; else st.selectedCols[col] = true;
     selectionChanged(name, { op: 'select-column', column: col });
   }
+  function structRowList(st, row){
+    var keys = [];
+    for (var k in st.selectedRows) if (st.selectedRows[k]) keys.push(parseInt(k, 10));
+    keys.sort(function(a,b){ return a-b; });
+    if (!keys.length && row >= 0) keys = [row];
+    return keys;
+  }
+  function structColList(st, col){
+    var keys = [];
+    for (var k in st.selectedCols) if (st.selectedCols[k]) keys.push(parseInt(k, 10));
+    keys.sort(function(a,b){ return a-b; });
+    if (!keys.length && col >= 0) keys = [col];
+    return keys;
+  }
+  function structApply(name, st, rec){
+    st.page = 0;
+    clearSelection(st);
+    recordChange(name, rec);
+    renderName(name);
+    fireTableEvent(name, 'ontablechange');
+  }
+  function structInsertRows(name, at, rows){
+    var st = tableStore(name);
+    var w = st.header.length;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i].slice();
+      while (r.length < w) r.push('');
+      st.allRows.splice(at + i, 0, r);
+    }
+    structApply(name, st, { op: 'row-insert', row: at, count: rows.length });
+  }
+  function structDeleteRows(name, indexes){
+    var st = tableStore(name);
+    indexes = indexes.slice().sort(function(a,b){ return b-a; });
+    for (var i = 0; i < indexes.length; i++) st.allRows.splice(indexes[i], 1);
+    structApply(name, st, { op: 'row-delete', row: indexes.length ? indexes[indexes.length-1] : 0, count: indexes.length });
+  }
+  function structInsertColumns(name, at, labels, values){
+    var st = tableStore(name);
+    for (var i = 0; i < labels.length; i++) st.header.splice(at + i, 0, labels[i]);
+    for (var r = 0; r < st.allRows.length; r++) {
+      for (var c = 0; c < labels.length; c++) st.allRows[r].splice(at + c, 0, values[r] && values[r][c] !== undefined ? values[r][c] : '');
+    }
+    st.__colStruct = true;
+    structApply(name, st, { op: 'column-insert', column: at, count: labels.length });
+  }
+  function structDeleteColumns(name, indexes){
+    var st = tableStore(name);
+    indexes = indexes.slice().sort(function(a,b){ return b-a; });
+    for (var i = 0; i < indexes.length; i++) {
+      var col = indexes[i];
+      if (st.header.length) st.header.splice(col, 1);
+      for (var r = 0; r < st.allRows.length; r++) st.allRows[r].splice(col, 1);
+    }
+    st.__colStruct = true;
+    structApply(name, st, { op: 'column-delete', column: indexes.length ? indexes[indexes.length-1] : 0, count: indexes.length });
+  }
+  function openTableStructMenu(ev, tbl, name, row, col, cfg){
+    var old = document.getElementById('sui-table-struct');
+    if (old) old.remove();
+    var st = tableStore(name);
+    var menu = document.createElement('div');
+    menu.id = 'sui-table-struct';
+    menu.className = 'sui-table-struct-menu';
+    menu.setAttribute('role', 'menu');
+    function add(label, fn, disabled) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'sui-table-struct-item'; b.textContent = label;
+      b.disabled = !!disabled;
+      b.addEventListener('click', function(e){ e.stopPropagation(); menu.remove(); fn(); });
+      menu.appendChild(b);
+    }
+    function sep(){ var d = document.createElement('div'); d.className = 'sui-table-struct-sep'; menu.appendChild(d); }
+    var rows = structRowList(st, row), cols = structColList(st, col);
+    if (row >= 0) {
+      add('Insert row above', function(){ structInsertRows(name, Math.min.apply(null, rows), [[]]); });
+      add('Insert row below', function(){ structInsertRows(name, Math.max.apply(null, rows) + 1, [[]]); });
+      add('Delete row' + (rows.length > 1 ? 's' : ''), function(){ structDeleteRows(name, rows); });
+      add('Copy row' + (rows.length > 1 ? 's' : ''), function(){
+        tableClip[name] = { kind: 'rows', rows: rows.map(function(i){ return (st.allRows[i] || []).slice(); }) };
+      });
+      add('Cut row' + (rows.length > 1 ? 's' : ''), function(){
+        tableClip[name] = { kind: 'rows', rows: rows.map(function(i){ return (st.allRows[i] || []).slice(); }) };
+        structDeleteRows(name, rows);
+      });
+      if (tableClip[name] && tableClip[name].kind === 'rows') add('Paste rows', function(){ structInsertRows(name, row, tableClip[name].rows); });
+      sep();
+    }
+    if (col >= 0) {
+      add('Insert column left', function(){ structInsertColumns(name, Math.min.apply(null, cols), ['Column'], []); });
+      add('Insert column right', function(){ structInsertColumns(name, Math.max.apply(null, cols) + 1, ['Column'], []); });
+      add('Delete column' + (cols.length > 1 ? 's' : ''), function(){ structDeleteColumns(name, cols); });
+      add('Copy column' + (cols.length > 1 ? 's' : ''), function(){
+        tableClip[name] = { kind: 'cols', labels: cols.map(function(c){ return st.header[c] || ''; }),
+          values: st.allRows.map(function(r){ return cols.map(function(c){ return r[c] === undefined ? '' : r[c]; }); }) };
+      });
+      add('Cut column' + (cols.length > 1 ? 's' : ''), function(){
+        tableClip[name] = { kind: 'cols', labels: cols.map(function(c){ return st.header[c] || ''; }),
+          values: st.allRows.map(function(r){ return cols.map(function(c){ return r[c] === undefined ? '' : r[c]; }); }) };
+        structDeleteColumns(name, cols);
+      });
+      if (tableClip[name] && tableClip[name].kind === 'cols') add('Paste columns', function(){ structInsertColumns(name, col, tableClip[name].labels, tableClip[name].values); });
+      sep();
+    }
+    add('Add row at end', function(){ structInsertRows(name, st.allRows.length, [[]]); });
+    add('Add column at end', function(){ structInsertColumns(name, st.header.length || (st.allRows[0] ? st.allRows[0].length : 0), ['Column'], []); });
+    var x = ev.clientX, y = ev.clientY;
+    document.body.appendChild(menu);
+    var rect = menu.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth - 8) x = Math.max(8, window.innerWidth - rect.width - 8);
+    if (y + rect.height > window.innerHeight - 8) y = Math.max(8, window.innerHeight - rect.height - 8);
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
+    var close = function(){ menu.remove(); document.removeEventListener('click', close); };
+    setTimeout(function(){ document.addEventListener('click', close); }, 0);
+  }
+  function tableBookKey(box){
+    return box.getAttribute('data-sui-tabs-key') || ('tabs:' + (box.getAttribute('aria-label') || '') + ':' + Array.prototype.indexOf.call(document.querySelectorAll('.sui-tabs'), box));
+  }
+  function addRuntimeTableDom(box, name, label, templatePanel){
+    var list = box.querySelector('.sui-tablist');
+    var panels = box.querySelector('.sui-tabpanels');
+    if (!list || !panels || !templatePanel) return null;
+    if (list.querySelector('[data-sui-table-sheet="' + name + '"]')) return null;
+    var clone = templatePanel.cloneNode(true);
+    clone.classList.remove('active');
+    clone.hidden = true;
+    clone.setAttribute('data-sui-table-sheet', name);
+    Array.prototype.forEach.call(clone.querySelectorAll('[' + 'data-' + 'sui-id' + ']'), function(el){ el.removeAttribute('data-' + 'sui-id'); });
+    Array.prototype.forEach.call(clone.querySelectorAll('.sui-table-filter, .sui-table-pager, .sui-table-add'), function(el){ if (el.parentNode) el.parentNode.removeChild(el); });
+    var newTable = clone.querySelector('table');
+    if (newTable) {
+      newTable.setAttribute('name', name);
+      var tb = newTable.tBodies && newTable.tBodies.length ? newTable.tBodies[0] : null;
+      if (tb) while (tb.firstChild) tb.removeChild(tb.firstChild);
+      if (newTable.getAttribute('data-sui-structure-editable') === '1') newTable.setAttribute('data-sui-editable', '1');
+    }
+    panels.appendChild(clone);
+    var tab = document.createElement('button');
+    tab.type = 'button'; tab.className = 'sui-tab';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', 'false');
+    tab.setAttribute('data-sui-table-sheet', name);
+    tab.tabIndex = -1;
+    tab.textContent = label;
+    list.appendChild(tab);
+    return { tab: tab, panel: clone, table: newTable };
+  }
+  function restoreTableBooks(){
+    var boxes = document.querySelectorAll('.sui-tabs');
+    for (var b = 0; b < boxes.length; b++) {
+      var box = boxes[b], key = tableBookKey(box), defs = tableBooks[key] || [];
+      if (!defs.length) continue;
+      var panels = box.querySelector('.sui-tabpanels');
+      var template = panels ? panels.querySelector('.sui-tabpanel') : null;
+      if (!template) continue;
+      for (var i = 0; i < defs.length; i++) {
+        var made = addRuntimeTableDom(box, defs[i].name, defs[i].label, template);
+        if (made && store[defs[i].name]) {
+          try { applyTo(made.table, store[defs[i].name]); } catch (e) {}
+        }
+      }
+    }
+  }
+  function ensureAddTableButton(tbl, name, st, cfg){
+    if (!cfg.showAddTable) return;
+    var box = tbl.closest ? tbl.closest('.sui-tabs') : null;
+    if (!box) return;
+    var old = tbl.parentNode ? tbl.parentNode.querySelector('.sui-table-add[data-sui-table-add-for="' + name + '"]') : null;
+    if (old) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sui-table-add';
+    btn.setAttribute('data-sui-table-add-for', name);
+    btn.textContent = '+ Table';
+    btn.addEventListener('click', function(){
+      var panel = tbl.closest('.sui-tabpanel');
+      if (!panel) return;
+      var n = 1, newName = 'table-' + n;
+      while (findTables(newName).length) { n++; newName = 'table-' + n; }
+      var label = 'Table ' + (box.querySelectorAll('.sui-tabpanel').length + 1);
+      var made = addRuntimeTableDom(box, newName, label, panel);
+      if (!made) return;
+      if (cfg.structureEditable && made.table) {
+        made.table.setAttribute('data-sui-editable', '1');
+        made.table.setAttribute('data-sui-structure-editable', '1');
+      }
+      var key = tableBookKey(box);
+      (tableBooks[key] || (tableBooks[key] = [])).push({ name: newName, label: label });
+      made.tab.click();
+      init();
+    });
+    if (tbl.parentNode) tbl.parentNode.insertBefore(btn, tbl.nextSibling);
+  }
   function decorateTable(tbl, st, cfg){
     var name = tableName(tbl);
     var headerRow = tbl.querySelector('thead tr');
@@ -2676,7 +2880,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     for (var h = 0; h < hrCells.length; h++) {
       var hc = hrCells[h];
       hc.setAttribute('data-col', String(h));
-      if (cfg.labels[h]) hc.textContent = cfg.labels[h];
+      if (cfg.labels[h] && !st.__colStruct) hc.textContent = cfg.labels[h];
       if (cfg.widths[h] > 0) { hc.style.width = cfg.widths[h] + 'px'; hc.style.minWidth = cfg.widths[h] + 'px'; }
       if (cfg.align[h]) hc.style.textAlign = cfg.align[h];
       if (cfg.sortable) {
@@ -2689,7 +2893,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
             var idx = parseInt(cell.getAttribute('data-col'), 10) || 0;
             var st2 = tableStore(name);
             var cfg2 = cfgOf(tbl);
-            if (cfg2.selection === 'column' && (ev.altKey || ev.ctrlKey || ev.metaKey || !cfg2.sortable)) {
+            if (cfg2.selection === 'column' && !ev.altKey) {
               selectColumn(name, idx, ev.shiftKey || ev.ctrlKey || ev.metaKey || cfg2.multi);
               return;
             }
@@ -2710,6 +2914,14 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       hc.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : sortDir === 'desc' ? 'descending' : 'none');
       hc.classList.toggle('sui-table-sort-asc', sortDir === 'asc');
       hc.classList.toggle('sui-table-sort-desc', sortDir === 'desc');
+      if (cfg.structureEditable && !hc.__suiStructBound) {
+        hc.__suiStructBound = true;
+        hc.addEventListener('contextmenu', function(ev){
+          ev.preventDefault();
+          var col = parseInt(ev.currentTarget.getAttribute('data-col'), 10) || 0;
+          openTableStructMenu(ev, tbl, name, -1, col, cfg);
+        });
+      }
     }
     var rows = bodyRows(tbl);
     for (var i = 0; i < rows.length; i++) {
@@ -2746,6 +2958,16 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
             recordChange(name, { op: 'click-cell', row: row, column: col });
             fireTableEvent(name, 'oncellclick');
             fireTableEvent(name, 'onrowclick');
+          });
+        }
+        if (cfg.structureEditable && !c.__suiStructBound) {
+          c.__suiStructBound = true;
+          c.addEventListener('contextmenu', function(ev){
+            ev.preventDefault();
+            var cell = ev.currentTarget;
+            var row = parseInt(cell.parentNode.getAttribute('data-row'), 10) || 0;
+            var col = parseInt(cell.getAttribute('data-col'), 10) || 0;
+            openTableStructMenu(ev, tbl, name, row, col, cfg);
           });
         }
         if (cfg.selection !== 'none' && !cfg.editable && !c.__suiSelectBound) {
@@ -2837,6 +3059,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       decorateTable(ts[i], st, cfg);
       ensureFilterInput(ts[i], name, st, cfg);
       ensurePager(ts[i], name, st, cfg);
+      ensureAddTableButton(ts[i], name, st, cfg);
     }
     init();
   }
@@ -2848,6 +3071,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     st.sep = ds.sep;
     st.page = 0;
     st.__fromDom = false;
+    st.__colStruct = false;
     clearSelection(st);
     store[name] = st;
     renderName(name);
@@ -3044,7 +3268,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     for (i = 0; i < rows.length; i++) lines.push(rows[i].map(esc).join(sep));
     return [lines.join('\n'), null];
   }
-  function afterRender(){ applyAll(); init(); }
+  function afterRender(){ restoreTableBooks(); applyAll(); init(); }
 
   // ---- editable / fixed behaviors -----------------------------------------
   function ensureDeclaredHeader(tbl, cfg){
@@ -3090,6 +3314,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var isEd = d.getAttribute('contenteditable') === 'true';
       if (!isEd) { var txt = d.textContent; if (d.getAttribute('data-full') !== txt) d.setAttribute('data-full', txt); }
     }
+    restoreTableBooks();
     var named = document.querySelectorAll('table[name]');
     for (var t = 0; t < named.length; t++) {
       var tbl = named[t], name = tableName(tbl);
@@ -3101,6 +3326,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       decorateTable(tbl, st, cfg);
       ensureFilterInput(tbl, name, st, cfg);
       ensurePager(tbl, name, st, cfg);
+      ensureAddTableButton(tbl, name, st, cfg);
     }
   }
   var pop=null, popCell=null;
@@ -3704,6 +3930,12 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		}
 		if datepickerBool(e, "virtual") {
 			sb.WriteString(" data-sui-virtual=\"1\"")
+		}
+		if datepickerBool(e, "showAddTable") {
+			sb.WriteString(" data-sui-show-add-table=\"1\"")
+		}
+		if datepickerBool(e, "structureEditable") {
+			sb.WriteString(" data-sui-structure-editable=\"1\"")
 		}
 		if v := comboboxAttrNumber(e, "pageSize"); v != "" {
 			sb.WriteString(" data-sui-page-size=\"" + htmlEscape(v) + "\"")
@@ -5308,7 +5540,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
 			a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
-			a.key == "multiSelect" || a.key == "virtual" ||
+			a.key == "multiSelect" || a.key == "virtual" || a.key == "showAddTable" || a.key == "structureEditable" ||
 			a.key == "onCellChange" || a.key == "onRowChange" || a.key == "onTableChange" ||
 			a.key == "onRowSelect" || a.key == "onSort" || a.key == "onCellClick" || a.key == "onRowClick") {
 			continue

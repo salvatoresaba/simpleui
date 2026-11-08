@@ -559,11 +559,22 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 
 /* per-chart table mini panel */
 #ctablecfg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
-#ctablecfg.on { display:flex; }
-#ctablecfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:390px; max-width:92vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#ctablecfg.on { display:flex; }#ctablecfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:390px; max-width:92vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #ctablecfgbox h2 { font-size:15px; margin:0 0 8px; }
 #ctablecfgbox .pfrow input[type=text], #ctablecfgbox .pfrow input[type=number] { flex:1; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
 #ctablecfgbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; }
+/* unified table settings panel */
+#tablesettings { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:16; }
+#tablesettings.on { display:flex; }
+#tablesettingsbox { background:var(--panel2); border:1px solid var(--border2); border-radius:11px; width:860px; max-width:96vw; height:82vh; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 16px 52px rgba(0,0,0,.6); }
+#tablesettingsbox .pref-head { flex:none; }
+#tablesettings-tabs { flex:none; margin:0 16px 8px; }
+#tablesettings-body { flex:1; min-height:0; overflow:auto; padding:2px 16px 14px; }
+#tablesettings-body .acc { margin-bottom:8px; }
+#tablesettings-body .accbody { padding-bottom:8px; }
+#tablesettings-close { flex:none; }
+#tablesettings-status { flex:1; min-width:0; font-size:11px; color:var(--muted); }
+#tablesettings-preview { display:none; }
 #ctable-preview { margin:10px 0 2px; border:1px solid var(--border2); border-radius:5px; overflow:hidden; font-size:11px; }
 #ctable-preview .hd { padding:4px 6px; background:#14171c; color:#e6e6ef; font-weight:600; }
 #ctable-preview .rw { padding:4px 6px; color:var(--fg); border-top:1px solid var(--border); }
@@ -1442,6 +1453,21 @@ value: 12</div>
     </div>
   </div>
 </div>
+<div id="tablesettings" role="dialog" aria-modal="true" aria-labelledby="tablesettings-title">
+  <div id="tablesettingsbox">
+    <div class="pref-head">
+      <h2 id="tablesettings-title">Table settings</h2>
+      <button class="btn" type="button" onclick="closeTableSettings()" aria-label="Close table settings" title="Close">&#10005;</button>
+    </div>
+    <div class="hint" style="padding:0 16px 6px">Every change updates the preview immediately. The inspector keeps the table selectors and row/column structure buttons.</div>
+    <div class="cset-tabs" id="tablesettings-tabs" role="tablist"></div>
+    <div id="tablesettings-body"></div>
+    <div class="pfbtns">
+      <span id="tablesettings-status"></span>
+      <button class="btn" type="button" onclick="closeTableSettings()">Close</button>
+    </div>
+  </div>
+</div>
 <div id="chintscfg">
   <div id="chintscfgbox">
     <h2>HINTS settings</h2>
@@ -2034,6 +2060,8 @@ function newTableNode() {
   n.selection = "";
   n.multiSelect = false;
   n.virtual = false;
+  n.showAddTable = false;
+  n.structureEditable = false;
   ensureTableBaseCss();
   n.cells = [];
   n.spans = [];
@@ -2732,6 +2760,8 @@ function selectByDfs(id) {
     if (selMode !== "table") selRow = t.r;
   } else {
     selPath = t.p; selCell = null; selRow = null; selCol = null;
+    var picked = byPath(t.p, root.children);
+    if (picked && picked.kind === "table") selMode = "table";
   }
   renderTree(); fillPanel(); renderInspector(); postHighlight();
   dbg("select id=" + id + " path=[" + (selPath ? selPath.join(",") : "?") + "] children=" + root.children.length);
@@ -2767,7 +2797,14 @@ function currentPeerIds() {
 function postHighlight() {
   var f = document.getElementById("prev");
   if (f && f.contentWindow) {
-    f.contentWindow.postMessage({ ty: "sui-hl", id: currentPeerIds(), mode: selMode }, "*");
+    // The effective highlight mode follows the actual sub-selection, not the
+    // last picker mode: selecting a table from the element tree while the Cell
+    // selector is active must still outline the whole table.
+    var mode = "el";
+    if (selCell) mode = "cell";
+    else if (selRow !== null && selRow !== undefined) mode = "row";
+    else if (selCol !== null && selCol !== undefined) mode = "col";
+    f.contentWindow.postMessage({ ty: "sui-hl", id: currentPeerIds(), mode: mode }, "*");
   }
   editorSyncFromSelection();
 }
@@ -2979,6 +3016,10 @@ function bindRowEvents(row, p, node, tray, i) {
     }
     multiSel = normalizeTreePaths(multiSel);
     selPath = selPath ? treeOwnerPath(selPath) : null;
+    if (selPath && !multiSel.length) {
+      var pickedNode = byPath(selPath, root.children);
+      if (pickedNode && pickedNode.kind === "table") selMode = "table";
+    }
     renderTree(); fillPanel(); renderInspector();
   };
   // Right-click opens the element-list context menu. It is also the quick
@@ -4289,11 +4330,10 @@ function renderInspector() {
   if (nodes.length && everyKind(nodes, function(k){ return k !== "table"; })) {
     var bc = bindingControls(nodes);
     if (bc) box.appendChild(bc);
-    // Tree, chart and graph own their event model (tree.onRename/onCheck/...,
-    // chart/graph shape+link+tag handlers): the generic Events panel would
-    // duplicate a partial list, so it is offered in their dedicated settings
-    // dialogs instead.
-    var ownsEvents = nodes.some(function(m){ return m.kind === "tree" || m.kind === "graph" || m.kind === "chart"; });
+    // Tree, table, chart and graph own their event model and expose it in
+    // their dedicated settings panels: the generic Events panel would
+    // duplicate a partial list.
+    var ownsEvents = nodes.some(function(m){ return m.kind === "tree" || m.kind === "graph" || m.kind === "chart" || m.kind === "table"; });
     var evSec = ownsEvents ? null : eventsControls(nodes);
     if (evSec) box.appendChild(evSec);
   }
@@ -4345,7 +4385,7 @@ function renderInspector() {
   // Node-internal structures (table cells, list items, rich-text runs) are
   // edited one node at a time: single-selection only.
   if (nodes.length === 1 && n && n.kind === "table" && n.cols) {
-    box.appendChild(tableControls(n));
+    box.appendChild(tableControls(n, { compact: true }));
   }
   if (nodes.length === 1 && n && n.kind === "tabs") {
     box.appendChild(tabsControls(n));
@@ -5044,6 +5084,11 @@ function useCustomIconText() {
   var dlg = document.getElementById("iconpick");
   if (!dlg) return;
   dlg.addEventListener("mousedown", function(ev){ if (ev.target === dlg) closeIconPicker(); });
+})();
+(function wireTableSettings() {
+  var dlg = document.getElementById("tablesettings");
+  if (!dlg) return;
+  dlg.addEventListener("mousedown", function(ev){ if (ev.target === dlg) closeTableSettings(); });
 })();
 function treeStyleExprMap(expr) {
   if (!expr) return {};
@@ -8453,23 +8498,24 @@ function tblApplyVars(n, map, label) {
   });
   if (!chg) return;
   var next = styleDeclStr(m);
-  withUndo(function(){
-    if (n.style === undefined) n.style = "";
-    n.style = next;
-    tblEnsureClass(n);
-    // Outer radius: mirror it on the scroll wrapper so the rounded corners
-    // actually clip the cell corners (collapsed tables ignore border-radius).
-    if (Object.prototype.hasOwnProperty.call(map, "--t-radius")) {
-      var wr = findTableWrap(n);
-      if (wr) {
-        var wm = styleDeclMap(wr.style || "");
-        var rv = map["--t-radius"];
-        if (rv) wm["border-radius"] = rv; else delete wm["border-radius"];
-        wr.style = styleDeclStr(wm);
-      }
+  snap(label || "table style");
+  if (n.style === undefined) n.style = "";
+  n.style = next;
+  tblEnsureClass(n);
+  // Outer radius: mirror it on the scroll wrapper so the rounded corners
+  // actually clip the cell corners (collapsed tables ignore border-radius).
+  if (Object.prototype.hasOwnProperty.call(map, "--t-radius")) {
+    var wr = findTableWrap(n);
+    if (wr) {
+      var wm = styleDeclMap(wr.style || "");
+      var rv = map["--t-radius"];
+      if (rv) wm["border-radius"] = rv; else delete wm["border-radius"];
+      wr.style = styleDeclStr(wm);
     }
-    ensureTableBaseCss();
-  }, label);
+  }
+  ensureTableBaseCss();
+  setOut();
+  autoPreview();
 }
 var TABLE_PRESETS = [
   ["None", { "--t-pad": "", "--t-align": "", "--t-valign": "", "--t-zebra": "", "--t-hover": "", "--t-grid": "", "--t-ring": "", "--t-radius": "", "--t-shadow": "", "--t-headbg": "", "--t-headfg": "", "--t-headfw": "", "--t-headtt": "", "--t-headbb": "" }],
@@ -8515,7 +8561,111 @@ function colExtraVal(n, col, key) {
   }
   return "";
 }
-function tableControls(n) {
+function tableSheetInfo() {
+  if (!selPath || !selPath.length) return null;
+  var table = byPath(selPath, root.children);
+  if (!table || table.kind !== "table") return null;
+  for (var i = selPath.length - 1; i > 0; i--) {
+    var tabPath = selPath.slice(0, i);
+    var tab = byPath(tabPath, root.children);
+    if (!tab || tab.kind !== "tab") continue;
+    var tabsPath = tabPath.slice(0, -1);
+    var tabs = byPath(tabsPath, root.children);
+    if (tabs && tabs.kind === "tabs") return { tablePath: selPath.slice(), tabPath: tabPath, tabsPath: tabsPath, tab: tab, tabs: tabs };
+  }
+  return null;
+}
+function firstTablePathIn(node, path) {
+  if (!node) return null;
+  if (node.kind === "table") return path;
+  if (!node.children) return null;
+  for (var i = 0; i < node.children.length; i++) {
+    var found = firstTablePathIn(node.children[i], path.concat([i]));
+    if (found) return found;
+  }
+  return null;
+}
+function tableSheetEntries(tabs, tabsPath) {
+  var out = [];
+  for (var i = 0; i < tabs.children.length; i++) {
+    var tab = tabs.children[i];
+    if (tab.kind !== "tab") continue;
+    var path = firstTablePathIn(tab, tabsPath.concat([i]));
+    if (!path) continue;
+    out.push({ tab: tab, tabIndex: i, table: byPath(path, root.children), path: path, label: tab.text || ("Table " + (out.length + 1)) });
+  }
+  return out;
+}
+function tableContainerPath(p) {
+  var parentPath = p.slice(0, -1);
+  var parent = parentPath.length ? byPath(parentPath, root.children) : null;
+  if (parent && parent.kind === "div" && (parent.class || "").split(/\s+/).indexOf("tscroll") >= 0) return parentPath;
+  return p;
+}
+function tableAddSheetAction() {
+  var info = tableSheetInfo();
+  withUndo(function() {
+    if (info) {
+      var entries = tableSheetEntries(info.tabs, info.tabsPath);
+      var tab = newTabNode("Table " + (entries.length + 1));
+      var tbl = newTableNode();
+      tbl.name = "";
+      tab.children = [tbl];
+      info.tabs.children.push(tab);
+      selPath = info.tabsPath.concat([info.tabs.children.length - 1, 0]);
+    } else {
+      var p = selPath.slice();
+      var containerPath = tableContainerPath(p);
+      var container = byPath(containerPath, root.children);
+      var parentPath = containerPath.slice(0, -1);
+      var arr = parentPath.length ? byPath(parentPath, root.children).children : root.children;
+      var idx = containerPath[containerPath.length - 1];
+      var tabs = newNode("tabs");
+      tabs.text = "Workbook";
+      tabs.position = "bottom";
+      tabs.variant = "sheets";
+      var tab1 = newTabNode("Table 1");
+      tab1.children = [container];
+      var tbl2 = newTableNode();
+      tbl2.name = "";
+      var tab2 = newTabNode("Table 2");
+      tab2.children = [tbl2];
+      tabs.children = [tab1, tab2];
+      arr.splice(idx, 1, tabs);
+      selPath = parentPath.concat([idx, 1, 0]);
+    }
+    multiSel = [];
+  }, "add table");
+  setStatus("table added");
+}
+function tableDeleteSheetAction() {
+  var info = tableSheetInfo();
+  if (!info) return;
+  var entries = tableSheetEntries(info.tabs, info.tabsPath);
+  if (entries.length <= 1) return;
+  var idx = info.tabPath[info.tabPath.length - 1];
+  withUndo(function() {
+    info.tabs.children.splice(idx, 1);
+    var after = tableSheetEntries(info.tabs, info.tabsPath);
+    var pick = after[Math.min(idx, after.length - 1)];
+    selPath = pick ? pick.path.slice() : null;
+    multiSel = [];
+  }, "delete table");
+  setStatus("table deleted");
+}
+function tableControls(n, opts) {
+  opts = opts || {};
+  var settingsOnly = !!opts.settingsOnly;
+  var compact = !!opts.compact;
+  // Live settings: mutate the model, regenerate source and refresh the
+  // preview without reparsing the whole project. This keeps the overlay open
+  // and preserves focus while every field updates the preview immediately.
+  var withUndo = function(fn, label) {
+    snap(label || "table settings");
+    fn();
+    setOut();
+    autoPreview();
+  };
   var a = document.createElement("div");
   a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
@@ -8570,6 +8720,59 @@ function tableControls(n) {
     btns.appendChild(x);
   });
   b.appendChild(btns);
+
+  if (settingsOnly) {
+    // settingsOnly renders just the parameter groups for the overlay.
+    b.textContent = "";
+  }
+  if (compact) {
+    var sheetInfo = tableSheetInfo();
+    var sheetEntries = sheetInfo ? tableSheetEntries(sheetInfo.tabs, sheetInfo.tabsPath) : [];
+    if (sheetEntries.length > 1) {
+      var sheetRow = document.createElement("div"); sheetRow.className = "rowline";
+      var sheetLbl = document.createElement("label"); sheetLbl.textContent = "table";
+      sheetRow.appendChild(sheetLbl);
+      var sheetBtns = document.createElement("div"); sheetBtns.style.cssText = "display:flex;gap:3px;flex-wrap:wrap;flex:1;min-width:0";
+      sheetEntries.forEach(function(entry) {
+        var sb = document.createElement("button"); sb.type = "button"; sb.className = "btn";
+        sb.style.cssText = "font-size:10.5px;padding:3px 7px";
+        sb.textContent = entry.label;
+        if (samePath(entry.path, selPath)) sb.classList.add("on");
+        sb.onclick = function(){ selectPaths([entry.path.slice()]); };
+        sheetBtns.appendChild(sb);
+      });
+      sheetRow.appendChild(sheetBtns);
+      b.appendChild(sheetRow);
+    }
+    var tableOps = document.createElement("div");
+    tableOps.style.cssText = "display:flex;gap:6px;margin-bottom:8px";
+    var addTableBtn = document.createElement("button"); addTableBtn.type = "button"; addTableBtn.className = "btn";
+    addTableBtn.style.cssText = "flex:1;font-size:11px;padding:6px 2px";
+    addTableBtn.textContent = "+ Table";
+    addTableBtn.title = "Add another table visible in a tab";
+    addTableBtn.onclick = function(){ tableAddSheetAction(); };
+    tableOps.appendChild(addTableBtn);
+    if (sheetEntries.length > 1) {
+      var delTableBtn = document.createElement("button"); delTableBtn.type = "button"; delTableBtn.className = "btn";
+      delTableBtn.style.cssText = "flex:1;font-size:11px;padding:6px 2px";
+      delTableBtn.textContent = "\u2212 Table";
+      delTableBtn.title = "Delete the current table";
+      delTableBtn.onclick = function(){ tableDeleteSheetAction(); };
+      tableOps.appendChild(delTableBtn);
+    }
+    b.appendChild(tableOps);
+    var openRow = document.createElement("div"); openRow.className = "rowline";
+    var openLbl = document.createElement("label"); openLbl.textContent = "settings";
+    openRow.appendChild(openLbl);
+    var openBtn = document.createElement("button"); openBtn.type = "button"; openBtn.className = "btn";
+    openBtn.textContent = "Table settings...";
+    openBtn.title = "Open the large tabbed table settings panel";
+    openBtn.onclick = function(){ openTableSettings(n); };
+    openRow.appendChild(openBtn);
+    b.appendChild(openRow);
+    a.appendChild(b);
+    return a;
+  }
 
   // ---- opzioni raggruppate in fisarmoniche ----------------------------------
   // ---- scale and scroll: table-specific controls ----------------------------
@@ -9038,6 +9241,8 @@ function tableControls(n) {
     boolRow("filterable", function(){ return n.filterable; }, function(v){ n.filterable = v; }, "Shows a text filter above the table."),
     boolRow("multi-select", function(){ return n.multiSelect; }, function(v){ n.multiSelect = v; }, "Ctrl/Command or Shift toggles multiple rows, columns or cells."),
     boolRow("virtual rows", function(){ return n.virtual; }, function(v){ n.virtual = v; }, "Reserved for large datasets; the runtime currently keeps the DOM model."),
+    boolRow("show add table button", function(){ return n.showAddTable; }, function(v){ n.showAddTable = v; }, "Shows a + Table button under the table so a new sheet can be created at runtime."),
+    boolRow("runtime structure editing", function(){ return n.structureEditable; }, function(v){ n.structureEditable = v; }, "Enables the runtime row/column context menu: insert, delete, copy, cut and paste."),
     cfgText("page size", "pageSize", "50", "Rows per page; empty shows all rows."),
   ];
   var selRow = document.createElement("div"); selRow.className = "rowline";
@@ -9149,6 +9354,54 @@ function tableControls(n) {
   a.appendChild(b);
   return a;
 }
+var __tableSettingsNode = null;
+var __tableSettingsTab = "Appearance";
+function openTableSettings(n) {
+  if (!n) return;
+  __tableSettingsNode = n;
+  var host = document.getElementById("tablesettings-body");
+  var tabs = document.getElementById("tablesettings-tabs");
+  if (!host || !tabs) return;
+  host.textContent = "";
+  tabs.textContent = "";
+  var def = tableControls(n, { settingsOnly: true });
+  var body = def.querySelector(".accbody");
+  var groups = body ? Array.from(body.children).filter(function(el){ return el.classList && el.classList.contains("acc"); }) : [];
+  groups.forEach(function(g){ g.classList.add("open"); });
+  var ev = eventsControls([n]);
+  if (ev) { ev.classList.add("open"); groups.push(ev); }
+  var names = groups.map(function(g){
+    var h = g.querySelector(".acchead span");
+    return h ? h.textContent.replace(/\s+/g, " ").trim() : "Section";
+  });
+  function show(name) {
+    __tableSettingsTab = name;
+    Array.from(tabs.querySelectorAll(".cset-tab")).forEach(function(b){ b.classList.toggle("on", b.textContent === name); });
+    Array.from(host.querySelectorAll(".tablesettings-pane")).forEach(function(p){ p.style.display = p.getAttribute("data-pane") === name ? "" : "none"; });
+  }
+  groups.forEach(function(g, i) {
+    var title = names[i] || ("Section " + (i + 1));
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "cset-tab"; b.textContent = title;
+    b.onclick = function(){ show(title); };
+    tabs.appendChild(b);
+    var pane = document.createElement("div");
+    pane.className = "tablesettings-pane";
+    pane.setAttribute("data-pane", title);
+    pane.style.display = "none";
+    pane.appendChild(g);
+    host.appendChild(pane);
+  });
+  var initial = names.indexOf(__tableSettingsTab) >= 0 ? __tableSettingsTab : names[0];
+  if (initial) show(initial);
+  document.getElementById("tablesettings-title").textContent = "Table settings" + (n.name ? " \u00b7 " + n.name : "");
+  document.getElementById("tablesettings").classList.add("on");
+}
+function closeTableSettings() {
+  var d = document.getElementById("tablesettings");
+  if (d) d.classList.remove("on");
+  __tableSettingsNode = null;
+}
 function tableAddCol(n) {
   withUndo(function(){
     n.cols++;
@@ -9237,21 +9490,21 @@ function combineCell(a, b) { if (a && b) return a + " " + b; return a || b; }
 // first row becomes body), "1" makes the first existing row the header, "new"
 // inserts a brand-new header row at the top.
 function tableSetHeader(n, mode) {
-  withUndo(function(){
-    if (mode === "0") { n.header = 0; return; }
-    if (mode === "1") { n.header = Math.min(1, n.rows); return; }
-    if (mode === "new") {
-      n.rows += 1;
-      var cr = [], sr = [], csr = [];
-      for (var c = 0; c < n.cols; c++) { cr.push(""); sr.push({ cs: 1, rs: 1 }); csr.push({ bg: "", color: "", extra: "" }); }
-      n.cells.unshift(cr); n.spans.unshift(sr); n.cellStyles.unshift(csr);
-      n.rowStyles.unshift({ bg: "", color: "", extra: "" });
-      n.header = 1;
-      clampSpans(n);
-      if (selCell) selCell = { r: selCell.r + 1, c: selCell.c };
-      if (selRow !== null) selRow = selRow + 1;
-    }
-  });
+  snap("set table header");
+  if (mode === "0") { n.header = 0; setOut(); autoPreview(); return; }
+  if (mode === "1") { n.header = Math.min(1, n.rows); setOut(); autoPreview(); return; }
+  if (mode === "new") {
+    n.rows += 1;
+    var cr = [], sr = [], csr = [];
+    for (var c = 0; c < n.cols; c++) { cr.push(""); sr.push({ cs: 1, rs: 1 }); csr.push({ bg: "", color: "", extra: "" }); }
+    n.cells.unshift(cr); n.spans.unshift(sr); n.cellStyles.unshift(csr);
+    n.rowStyles.unshift({ bg: "", color: "", extra: "" });
+    n.header = 1;
+    clampSpans(n);
+    if (selCell) selCell = { r: selCell.r + 1, c: selCell.c };
+    if (selRow !== null) selRow = selRow + 1;
+  }
+  setOut(); autoPreview();
 }
 function listControls(n) {
   var a = document.createElement("div"); a.className = "acc open";
@@ -10605,6 +10858,8 @@ function tableToSui(n, depth) {
   if (n.filterable) extra += " filterable: true";
   if (n.multiSelect) extra += " multiSelect: true";
   if (n.virtual) extra += " virtual: true";
+  if (n.showAddTable) extra += " showAddTable: true";
+  if (n.structureEditable) extra += " structureEditable: true";
   if (n.pageSize) extra += " pageSize: " + n.pageSize;
   if (n.selection) extra += " selection: \"" + esc(n.selection) + "\"";
   var line = ind(depth) + "table" + attrsOf(n) + extra + " {\n";
@@ -16825,6 +17080,8 @@ document.addEventListener("keydown", function(ev) {
   if (ins && ins.classList.contains("on")) { ev.preventDefault(); closeInsertDialog(); return; }
   var ip = document.getElementById("iconpick");
   if (ip && ip.classList.contains("on")) { ev.preventDefault(); closeIconPicker(); return; }
+  var ts = document.getElementById("tablesettings");
+  if (ts && ts.classList.contains("on")) { ev.preventDefault(); closeTableSettings(); return; }
   var tt = document.getElementById("ttcfg");
   if (tt && tt.classList.contains("on")) { ev.preventDefault(); closeTooltipCfg(); return; }
   var cc = document.getElementById("compcfg");

@@ -2292,6 +2292,34 @@ tabs "Workbook" position: "bottom" variant: "sheets" {
 The tab strip is rendered below the panels and styled as a compact sheet bar.
 `table.*` targets the table `name`, so each sheet keeps its own data and state.
 
+### Runtime tables and structure editing
+
+```sui
+table name: "users" columns: "id,name" columnLabels: "ID,Name"
+	showAddTable: true structureEditable: true {
+}
+```
+
+- `showAddTable` renders a **+ Table** button under the table when it is inside
+  a `tabs` control. Clicking it appends a new sheet/table; the new table gets a
+  generated name (`table-1`, `table-2`, …) and persists across reactive
+  re-renders for the current page session.
+- `structureEditable` enables the runtime row/column context menu. Right-click a
+  body cell or a header cell to:
+  - insert a row above/below or a column left/right;
+  - delete the selected row(s)/column(s);
+  - copy or cut rows/columns;
+  - paste the previous row/column selection;
+  - append a row or column at the end.
+- The menu acts on the current multi-selection when rows or columns are selected
+  (`selection: "row"`/`"column"` + `multiSelect: true`), otherwise on the
+  clicked row/column.
+- Structural operations update the visible grid immediately, fire
+  `onTableChange`, and record `row-insert`, `row-delete`, `column-insert` or
+  `column-delete` in `table.lastChange`.
+- A runtime-created table is editable when `structureEditable` is on, so its
+  cells and structure can be filled without leaving the app.
+
 ## Security
 
 Interpolated values and attributes are **escaped automatically**;

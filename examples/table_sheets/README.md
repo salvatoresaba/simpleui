@@ -16,6 +16,9 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - Editable order cells with number/currency validation.
 - `onTableChange`, `onCellChange` and `table.lastChange`.
 - CSV import through `table.importText`.
+- Runtime **+ Table** creation and row/column structure editing
+  (`showAddTable` / `structureEditable`).
+- The large tabbed **Table settings...** overlay in the designer.
 
 ## Run
 
@@ -71,7 +74,7 @@ view main {
 
 	tabs "Workbook" position: "bottom" variant: "sheets" {
 		tab "Users" {
-			table name: "users" columns: "id,name,status,amount" columnLabels: "ID,Name,Status,Amount" columnWidths: "60,180,110,120" columnAlign: "right,left,center,right" columnTypes: "number,text,select,number" columnFormats: "text,text,text,currency:EUR" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 5 selection: "row" multiSelect: true onTableChange: changed {
+			table name: "users" columns: "id,name,status,amount" columnLabels: "ID,Name,Status,Amount" columnWidths: "60,180,110,120" columnAlign: "right,left,center,right" columnTypes: "number,text,select,number" columnFormats: "text,text,text,currency:EUR" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 5 selection: "row" multiSelect: true showAddTable: true structureEditable: true onTableChange: changed {
 			}
 		}
 		tab "Orders" {

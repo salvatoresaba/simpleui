@@ -56,7 +56,8 @@ Recently completed:
       picker, `onTreeChange` and `tree.lastChange`.
 - [x] Table control end-to-end: declarative columns, sorting, filtering,
       pagination, row/column/cell selection, validated editing, table events,
-      `table.lastChange` and Excel-like bottom sheet tabs.
+      `table.lastChange`, a tabbed Table settings overlay, Excel-like bottom
+      sheet tabs, runtime table creation and row/column structure editing.
 
 Known accuracy corrections from the previous TODO:
 
@@ -230,7 +231,8 @@ Known accuracy corrections from the previous TODO:
       curated icon picker, `onTreeChange` and `tree.lastChange`
 - [x] **Table control end-to-end** — declarative columns, sorting, filtering,
       pagination, row/column/cell selection, validated editing, table events,
-      `table.lastChange` and Excel-like bottom sheet tabs
+      `table.lastChange`, a tabbed Table settings overlay, Excel-like bottom
+      sheet tabs, runtime table creation and row/column structure editing
 - [x] **Hover docs** — builtins/stdlib signatures/descriptions
 - [x] **Toggle comments**, **Outline/Document Symbols**
 - [x] **Table designer** — presets, selectors, grips, caption, editable/fixed,

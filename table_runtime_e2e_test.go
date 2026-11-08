@@ -86,6 +86,41 @@ const tableRuntimeE2EScript = `<script>
     if (window.__SUI_TBL.data('editable')[0][0][1] !== '10') throw new Error('invalid value was committed: ' + JSON.stringify(window.__SUI_TBL.data('editable')[0]));
     if (cellVersion() !== '1') throw new Error('invalid edit must not fire onCellChange');
 
+    // Runtime table creation and structure editing.
+    var tabsBefore = document.querySelectorAll('.sui-tablist .sui-tab').length;
+    var addBtn = document.querySelector('.sui-table-add');
+    if (!addBtn) throw new Error('add table button missing');
+    addBtn.click();
+    await wait(500);
+    if (document.querySelectorAll('.sui-tablist .sui-tab').length !== tabsBefore + 1) throw new Error('runtime table not created');
+    document.querySelectorAll('.sui-tablist .sui-tab')[0].click();
+    await wait(250);
+    var ucell = table('users').querySelector('tbody td');
+    var ur = ucell.getBoundingClientRect();
+    ucell.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: ur.left + 8, clientY: ur.top + 8 }));
+    await wait(200);
+    var sm = document.getElementById('sui-table-struct');
+    if (!sm) throw new Error('structure context menu missing');
+    var insRow = Array.prototype.slice.call(sm.querySelectorAll('button')).filter(function(b){ return b.textContent === 'Insert row above'; })[0];
+    if (!insRow) throw new Error('insert row action missing');
+    insRow.click();
+    await wait(500);
+    if (version() !== '2') throw new Error('row insert did not fire onTableChange: ' + version());
+    if (document.querySelectorAll('.sui-tablist .sui-tab').length !== tabsBefore + 1) throw new Error('runtime table lost after re-render');
+    document.querySelectorAll('.sui-tablist .sui-tab')[0].click();
+    await wait(250);
+    var th = table('users').querySelector('thead th');
+    var tr = th.getBoundingClientRect();
+    th.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: tr.left + 8, clientY: tr.top + 8 }));
+    await wait(200);
+    var sm2 = document.getElementById('sui-table-struct');
+    var insCol = sm2 ? Array.prototype.slice.call(sm2.querySelectorAll('button')).filter(function(b){ return b.textContent === 'Insert column right'; })[0] : null;
+    if (!insCol) throw new Error('insert column action missing');
+    insCol.click();
+    await wait(500);
+    if (table('users').querySelectorAll('thead th').length !== 5) throw new Error('column insert failed');
+    if (version() !== '3') throw new Error('column insert did not fire onTableChange: ' + version());
+
     result(true, '');
   } catch (error) {
     result(false, error && error.message ? error.message : String(error));
@@ -109,21 +144,25 @@ fn cellChanged() -> null {
 fn sorted() -> null {
 }
 view main {
-	table name: "users" columns: "id,name,status,amount" columnLabels: "ID,Name,Status,Amount" columnWidths: "60,160,100,110" columnAlign: "right,left,center,right" columnTypes: "number,text,select,number" columnFormats: "text,text,text,currency:EUR" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 2 selection: "row" multiSelect: true onTableChange: tableChanged onSort: sorted {
-		thead {
-			trow {
-				tcell "ID" head: true
-				tcell "Name" head: true
-				tcell "Status" head: true
-				tcell "Amount" head: true
-			}
-		}
-		tbody {
-			trow {
-				tcell ""
-				tcell ""
-				tcell ""
-				tcell ""
+	tabs "Book" position: "bottom" variant: "sheets" {
+		tab "Users" {
+			table name: "users" columns: "id,name,status,amount" columnLabels: "ID,Name,Status,Amount" columnWidths: "60,160,100,110" columnAlign: "right,left,center,right" columnTypes: "number,text,select,number" columnFormats: "text,text,text,currency:EUR" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 2 selection: "row" multiSelect: true showAddTable: true structureEditable: true onTableChange: tableChanged onSort: sorted {
+				thead {
+					trow {
+						tcell "ID" head: true
+						tcell "Name" head: true
+						tcell "Status" head: true
+						tcell "Amount" head: true
+					}
+				}
+				tbody {
+					trow {
+						tcell ""
+						tcell ""
+						tcell ""
+						tcell ""
+					}
+				}
 			}
 		}
 	}

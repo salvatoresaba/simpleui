@@ -3063,7 +3063,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "columns" || key == "columnLabels" || key == "columnWidths" ||
 		key == "columnAlign" || key == "columnTypes" || key == "columnFormats" || key == "columnOptions" ||
 		key == "sortable" || key == "filterable" || key == "pageSize" || key == "selection" ||
-		key == "multiSelect" || key == "virtual") {
+		key == "multiSelect" || key == "virtual" || key == "showAddTable" || key == "structureEditable") {
 		return true
 	}
 	if tag == "tabs" && (key == "position" || key == "variant") {

@@ -2168,6 +2168,34 @@ tabs "Workbook" position: "bottom" variant: "sheets" {
 La barra delle tab è sotto i pannelli e usa lo stile compatto “sheet”; ogni
 tabella mantiene dati, ordinamento, filtri, pagina ed eventi indipendenti.
 
+### Tabelle runtime e modifica struttura
+
+```sui
+table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome"
+	showAddTable: true structureEditable: true {
+}
+```
+
+- `showAddTable` mostra un pulsante **+ Table** sotto la tabella quando è dentro
+  un controllo `tabs`. Il click aggiunge un nuovo sheet/tabella; la nuova tabella
+  riceve un nome generato (`table-1`, `table-2`, …) e resta disponibile tra i
+  re-render reattivi della sessione.
+- `structureEditable` abilita il menu contestuale runtime di riga/colonna. Clic
+  destro su una cella o sull’header permette di:
+  - inserire riga sopra/sotto o colonna a sinistra/destra;
+  - eliminare le righe/colonne selezionate;
+  - copiare o tagliare righe/colonne;
+  - incollare la selezione precedente;
+  - aggiungere riga o colonna in fondo.
+- Il menu agisce sulla multi-selezione corrente quando sono selezionate righe o
+  colonne (`selection: "row"`/`"column"` + `multiSelect: true`), altrimenti sulla
+  riga/colonna cliccata.
+- Le operazioni strutturali aggiornano subito la griglia, chiamano
+  `onTableChange` e registrano `row-insert`, `row-delete`, `column-insert` o
+  `column-delete` in `table.lastChange`.
+- Una tabella creata a runtime è modificabile quando `structureEditable` è
+  attivo, quindi si può riempire senza uscire dall’app.
+
 ## Sicurezza
 
 Interpolazioni e attributi sono **escapati automaticamente**; `href`/`src`
