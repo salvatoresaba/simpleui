@@ -1177,7 +1177,7 @@ const guiPreviewPicker = `<script>
   document.addEventListener('mousedown', function (e) {
     if (e.button !== 0 || e.altKey || marqueeOn) return;
     var t = e.target;
-    if (t && t.closest && t.closest('button,a,input,select,textarea,.sui-table-filter,.sui-table-pager,.sui-table-add')) return;
+    if (t && t.closest && t.closest('button,a,input,select,textarea,.sui-table-filter,.sui-table-pager,.sui-table-add,.sui-table-topbar')) return;
     var info = tableInfo(t);
     // Inside a table every click selects a cell; the row/column gutters and the
     // select-all corner live outside the table box.
@@ -1273,7 +1273,7 @@ const guiPreviewPicker = `<script>
     }
     // The table's runtime settings gear/panel are app UI, not designer nodes:
     // interacting with them must not select the table in the inspector.
-    if (e.target && e.target.closest && e.target.closest('.sui-table-tools, .sui-table-settings, .sui-table-cfg')) return;
+    if (e.target && e.target.closest && e.target.closest('.sui-table-tools, .sui-table-settings, .sui-table-cfg, .sui-table-topbar')) return;
     var tabBtn = e.target && e.target.closest ? e.target.closest('.sui-tab') : null;
     if (tabBtn) {
       var tabBox = tabBtn.closest('.sui-tabs');

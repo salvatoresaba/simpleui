@@ -198,6 +198,18 @@ const tableRuntimeE2EScript = `<script>
     addBtn.click();
     await wait(500);
     if (document.querySelectorAll('.sui-tablist .sui-tab').length !== tabsBefore + 1) throw new Error('runtime table not created');
+    var createdTab = document.querySelectorAll('.sui-tablist .sui-tab')[tabsBefore];
+    createdTab.click();
+    await wait(300);
+    var createdPanel = document.querySelectorAll('.sui-tabpanel')[tabsBefore];
+    var createdTable = createdPanel ? createdPanel.querySelector('table') : null;
+    if (!createdTable) throw new Error('runtime sheet table missing');
+    var createdHead = Array.prototype.slice.call(createdTable.querySelectorAll('thead th')).map(function(th){
+      var l = th.querySelector('.sui-table-hlabel');
+      return (l ? l.textContent : th.textContent).trim();
+    });
+    if (createdHead.join(',') !== 'A,B,C,D') throw new Error('runtime sheet inherited header: ' + createdHead.join(','));
+    if (createdTable.querySelectorAll('tbody tr').length !== 2) throw new Error('runtime sheet must start with two empty rows');
     document.querySelectorAll('.sui-tablist .sui-tab')[0].click();
     await wait(250);
     var ucell = table('users').querySelector('tbody td');

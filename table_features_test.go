@@ -87,6 +87,8 @@ view main {
 		`columnValuePairs`, `colValueFilters`, `Filter on column headers`, `(Select All)`, `Clear Filter`,
 		`Sort levels`, `+ Add level`, `Clear filters`, `Clear sort`, `rowIds`, `headCells`,
 		`if (editCell) return;`, `c !== editCell`,
+		`sui-table-topbar`, `sui-table-title`, `data-sui-table-topbar-for`,
+		`bar.nextElementSibling !== anchor`, `function ensureHbtns`, `headLabel`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below

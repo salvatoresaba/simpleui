@@ -81,6 +81,10 @@ const suiTabsRuntime = `(function(){
   if (window.MutationObserver) {
     var pending = false;
     new MutationObserver(function() {
+      // Do not re-activate tabs while a table cell is being edited: toggling
+      // panel visibility during typing can steal focus or make the table flicker.
+      var ae = document.activeElement;
+      if (ae && ae.closest && ae.closest('td[contenteditable="true"], th[contenteditable="true"]')) return;
       if (pending) return;
       pending = true;
       var run = function() { pending = false; applyStored(); };

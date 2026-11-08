@@ -2277,7 +2277,8 @@ All handlers take no arguments; details come from `table.lastChange(name)`.
 
 ### Runtime table settings (Excel-like)
 
-A named table shows a small gear at its top-right. Clicking it opens the table
+A named table shows a small gear in a title row just above the table, aligned
+right on the same line as the caption/title. Clicking it opens the table
 settings panel:
 
 - **Filter on column headers**: each header gets a small funnel button aligned
@@ -2329,11 +2330,11 @@ table name: "users" columns: "id,name" columnLabels: "ID,Name"
 ```
 
 - `showAddTable` renders a **+ Table** button under the table when it is inside
-  a `tabs` control. Clicking it appends a new sheet/table with the same columns,
-  header, appearance and behavior as the source, plus two empty body rows. The
-  new table gets a generated name (`table-1`, `table-2`, …) and persists across
-  reactive re-renders for the current page session; the selected sheet stays
-  selected when the view refreshes.
+  a `tabs` control. Clicking it appends a new sheet/table with the same columns
+  and appearance/behavior as the source, its own generic header (`A`, `B`, ...)
+  and two empty body rows. The new table gets a generated name (`table-1`,
+  `table-2`, …) and persists across reactive re-renders for the current page
+  session; the selected sheet stays selected when the view refreshes.
 - `structureEditable` enables the runtime row/column context menu. Right-click a
   body cell or a header cell to:
   - insert a row above/below or a column left/right;

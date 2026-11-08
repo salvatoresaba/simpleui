@@ -1206,10 +1206,10 @@ la preview; l'overlay resta aperto durante le modifiche.
 Il pulsante **− Table** e il selettore fogli compaiono solo con più tabelle.
 **+ Table** avvolge una tabella singola in un workbook con sheet tab in basso
 (oppure aggiunge un nuovo sheet) e seleziona la nuova tabella. Un nuovo foglio
-copia dalla tabella di origine colonne, etichette di intestazione, aspetto e
-comportamento (editable, sortable, filterable, eventi) e parte con due righe
-corpo vuote. La preview mantiene il foglio selezionato mentre si modificano le
-impostazioni.
+copia dalla tabella di origine aspetto e comportamento (editable, sortable,
+filterable, eventi), mantiene una propria intestazione generica (`A`, `B`, `C`)
+e parte con due righe corpo vuote. La preview mantiene il foglio selezionato
+mentre si modificano le impostazioni.
 
 Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
 l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito
@@ -1248,7 +1248,9 @@ Gruppi del pannello:
   sticky e colori scrollbar; **scale** applica lo zoom all'intera tabella.
 - **Borders** - preset, griglia celle, bordo esterno e raggio.
 - **Header** - modalità riga header, colori, peso, maiuscole e header sticky.
-- **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore.
+- **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore. A
+  runtime la didascalia è mostrata nella riga titolo appena sopra la tabella,
+  sulla stessa riga dell'ingranaggio impostazioni.
 - **Behavior** - celle **editable** e **fixed sizes**. Le tabelle fixed troncano
   il testo lungo e lo mostrano in un overlay al passaggio del mouse.
 - **Data** - **table name** usato da `table.display`, `table.data`, `table.json`

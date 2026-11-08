@@ -8671,11 +8671,11 @@ function tableContainerPath(p) {
   if (parent && parent.kind === "div" && (parent.class || "").split(/\s+/).indexOf("tscroll") >= 0) return parentPath;
   return p;
 }
-// copyTableSheetLook makes a new sheet start with the same columns, header,
-// appearance and behavior as the source table. Body rows stay empty.
+// copyTableSheetLook gives a new sheet the same appearance and behavior as the
+// source table, but keeps its own header (the default A/B/C header and two
+// empty body rows built by newTableNode).
 function copyTableSheetLook(src, dst) {
   if (!src || !dst) return;
-  var keepName = dst.name;
   dst.style = src.style || "";
   dst.capstyle = src.capstyle || "";
   if (src.class) dst.class = src.class.indexOf("suitbl") >= 0 ? src.class : ("suitbl " + src.class);
@@ -8684,43 +8684,9 @@ function copyTableSheetLook(src, dst) {
   });
   dst.pageSize = src.pageSize || "";
   dst.selection = src.selection || "";
-  dst.columns = src.columns || "";
-  dst.columnLabels = src.columnLabels || "";
-  dst.columnWidths = src.columnWidths || "";
-  dst.columnAlign = src.columnAlign || "";
-  dst.columnTypes = src.columnTypes || "";
-  dst.columnFormats = src.columnFormats || "";
-  dst.columnOptions = src.columnOptions || "";
   ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"].forEach(function(k) {
     if (src[k]) dst[k] = src[k];
   });
-  dst.cols = src.cols || dst.cols;
-  dst.header = src.header || 1;
-  dst.rows = dst.header + 2;
-  dst.cells = [];
-  dst.spans = [];
-  dst.cellStyles = [];
-  dst.rowStyles = [];
-  for (var r = 0; r < dst.rows; r++) {
-    var rowCells = [], rowSpans = [], rowStyles = [];
-    for (var c = 0; c < dst.cols; c++) {
-      var isHead = r < dst.header;
-      rowCells.push(isHead && src.cells && src.cells[r] && src.cells[r][c] !== undefined ? src.cells[r][c] : "");
-      rowSpans.push({ cs: 1, rs: 1 });
-      var ss = null;
-      if (isHead && src.cellStyles && src.cellStyles[r] && src.cellStyles[r][c]) ss = src.cellStyles[r][c];
-      else if (!isHead && src.cellStyles && src.rows > src.header && src.cellStyles[src.rows - 1] && src.cellStyles[src.rows - 1][c]) ss = src.cellStyles[src.rows - 1][c];
-      rowStyles.push(ss ? { bg: ss.bg || "", color: ss.color || "", extra: ss.extra || "" } : { bg: "", color: "", extra: "" });
-    }
-    dst.cells.push(rowCells);
-    dst.spans.push(rowSpans);
-    dst.cellStyles.push(rowStyles);
-    var sr = null;
-    if (r < dst.header && src.rowStyles && src.rowStyles[r]) sr = src.rowStyles[r];
-    else if (r >= dst.header && src.rowStyles && src.rows > src.header && src.rowStyles[src.rows - 1]) sr = src.rowStyles[src.rows - 1];
-    dst.rowStyles.push(sr ? { bg: sr.bg || "", color: sr.color || "", extra: sr.extra || "" } : { bg: "", color: "", extra: "" });
-  }
-  dst.name = keepName;
 }
 function tableAddSheetAction() {
   var info = tableSheetInfo();

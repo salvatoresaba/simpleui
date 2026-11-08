@@ -1806,7 +1806,10 @@ td.sui-table-col-selected, th.sui-table-col-selected { background: var(--sui-tab
 td.sui-table-invalid, th.sui-table-invalid { background: rgba(239,68,68,.18); box-shadow: inset 0 0 0 1px #ef4444; }
 .sui-table-add { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 0; padding: 4px 9px; border: 1px dashed var(--sui-border, #3d4556); border-radius: 6px; background: transparent; color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 11px; cursor: pointer; }
 .sui-table-add:hover { color: var(--sui-fg, #f2f4f6); border-color: #4c5cf7; }
-.sui-table-tools { position: sticky; top: 6px; height: 0; text-align: right; z-index: 25; pointer-events: none; }
+.sui-table-topbar { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 26px; margin: 0 0 4px; }
+.sui-table-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; }
+.sui-table-tools { display: flex; justify-content: flex-end; flex: 0 0 auto; margin-left: auto; pointer-events: none; }
+.sui-table-tools .sui-table-settings { margin: 0; }
 .sui-table-settings { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin: 0 6px 0 0; padding: 0; border: 1px solid var(--sui-border, #3d4556); border-radius: 6px; background: var(--sui-panel, #202732); color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 14px; line-height: 1; cursor: pointer; opacity: .72; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 .sui-table-settings:hover, .sui-table-settings:focus, .sui-table-settings[aria-expanded="true"] { opacity: 1; color: var(--sui-fg, #f2f4f6); border-color: #4c5cf7; outline: none; }
 .sui-table-hwrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -2932,10 +2935,13 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     clone.hidden = true;
     clone.setAttribute('data-sui-table-sheet', name);
     Array.prototype.forEach.call(clone.querySelectorAll('[' + 'data-' + 'sui-id' + ']'), function(el){ el.removeAttribute('data-' + 'sui-id'); });
-    Array.prototype.forEach.call(clone.querySelectorAll('.sui-table-filter, .sui-table-pager, .sui-table-add'), function(el){ if (el.parentNode) el.parentNode.removeChild(el); });
-    var newTable = clone.querySelector('table');
+    Array.prototype.forEach.call(clone.querySelectorAll('.sui-table-filter, .sui-table-pager, .sui-table-add, .sui-table-topbar, .sui-table-tools'), function(el){ if (el.parentNode) el.parentNode.removeChild(el); });
+      var newTable = clone.querySelector('table');
     if (newTable) {
       newTable.setAttribute('name', name);
+      // A new sheet gets its own empty title row, not the source caption.
+      var clonedCaption = newTable.querySelector('caption');
+      if (clonedCaption && clonedCaption.parentNode) clonedCaption.parentNode.removeChild(clonedCaption);
       var tb = newTable.tBodies && newTable.tBodies.length ? newTable.tBodies[0] : null;
       // Keep a real body row as the template so the new sheet starts with two
       // styled empty rows (not header clones, which could look unstyled/white).
@@ -2956,6 +2962,21 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
             el.textContent = '';
           });
           tb.appendChild(tr);
+        }
+      }
+      // A new sheet keeps its own generic header instead of inheriting the
+      // source table's labels.
+      var headCells = newTable.querySelectorAll('thead tr:first-child th, thead tr:first-child td');
+      if (headCells.length) {
+        var headLabels = [];
+        for (var hi = 0; hi < headCells.length; hi++) {
+          var headLabel = hi < 26 ? String.fromCharCode(65 + hi) : ('Col ' + (hi + 1));
+          headLabels.push(headLabel);
+          headCells[hi].removeAttribute('data-sui-raw');
+          headCells[hi].textContent = headLabel;
+        }
+        if (newTable.hasAttribute('data-sui-column-labels')) {
+          newTable.setAttribute('data-sui-column-labels', headLabels.join(','));
         }
       }
       if (newTable.getAttribute('data-sui-structure-editable') === '1') newTable.setAttribute('data-sui-editable', '1');
@@ -3077,7 +3098,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         for (var mj = 0; mj < moveNodes.length; mj++) hlabel.appendChild(moveNodes[mj]);
         hwrap.insertBefore(hlabel, hwrap.firstChild);
       }
-      if (cfg.labels[h] && !st.__colStruct && hc !== editCell) hlabel.textContent = cfg.labels[h];
+      if (cfg.labels[h] && !st.__colStruct && hc !== editCell && hlabel.textContent !== cfg.labels[h]) hlabel.textContent = cfg.labels[h];
       if (cfg.widths[h] > 0) { hc.style.width = cfg.widths[h] + 'px'; hc.style.minWidth = cfg.widths[h] + 'px'; }
       hlabel.style.textAlign = cfg.align[h] || '';
       hc.classList.toggle('sui-table-sortable', !!st.sortOn);
@@ -3134,10 +3155,16 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         var raw = st.rows[i] && st.rows[i][j] !== undefined ? st.rows[i][j] : (c.getAttribute('data-sui-raw') || c.textContent || '');
         if (st.rows[i]) {
           c.setAttribute('data-sui-raw', raw);
-          if (c !== editCell) c.textContent = formatValue(raw, cfg.formats[j]);
+          if (c !== editCell) {
+            var fv = formatValue(raw, cfg.formats[j]);
+            if (c.textContent !== fv) c.textContent = fv;
+          }
         } else if (cfg.formats[j]) {
           c.setAttribute('data-sui-raw', raw);
-          if (c !== editCell) c.textContent = formatValue(raw, cfg.formats[j]);
+          if (c !== editCell) {
+            var fv2 = formatValue(raw, cfg.formats[j]);
+            if (c.textContent !== fv2) c.textContent = fv2;
+          }
         }
         var cellKey = i + ':' + j;
         var cellSel = !!st.selectedCells[cellKey];
@@ -3395,14 +3422,18 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function ensureHeaderTools(hc, hwrap, hlabel, tbl, name, col, st, cfg, sortDir){
     var hbtns = hwrap.querySelector('.sui-table-hbtns');
-    if (!hbtns) {
-      hbtns = document.createElement('span');
-      hbtns.className = 'sui-table-hbtns';
-      hwrap.appendChild(hbtns);
+    function ensureHbtns(){
+      if (!hbtns) {
+        hbtns = document.createElement('span');
+        hbtns.className = 'sui-table-hbtns';
+        hwrap.appendChild(hbtns);
+      }
+      return hbtns;
     }
-    var fbtn = hbtns.querySelector('.sui-table-filterbtn');
+    var fbtn = hbtns ? hbtns.querySelector('.sui-table-filterbtn') : null;
     if (st.filtersOn) {
       if (!fbtn) {
+        ensureHbtns();
         fbtn = document.createElement('button');
         fbtn.type = 'button';
         fbtn.className = 'sui-table-filterbtn';
@@ -3424,9 +3455,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       if (tableFilterPop && tableFilterPop.btn === fbtn) closeTableFilterPop();
       fbtn.parentNode.removeChild(fbtn);
     }
-    var sbtn = hbtns.querySelector('.sui-table-sortbtn');
+    var sbtn = hbtns ? hbtns.querySelector('.sui-table-sortbtn') : null;
     if (st.sortOn) {
       if (!sbtn) {
+        ensureHbtns();
         sbtn = document.createElement('button');
         sbtn.type = 'button';
         sbtn.className = 'sui-table-sortbtn';
@@ -3447,7 +3479,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     } else if (sbtn && sbtn.parentNode) {
       sbtn.parentNode.removeChild(sbtn);
     }
-    if (!hbtns.children.length && hbtns.parentNode) hbtns.parentNode.removeChild(hbtns);
+    if (hbtns && !hbtns.children.length && hbtns.parentNode) hbtns.parentNode.removeChild(hbtns);
     hc.classList.toggle('sui-table-filter-active', hasValueFilter(st, col));
   }
   function positionTableCfg(){
@@ -3661,18 +3693,58 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     window.addEventListener('scroll', resize, true);
   }
   function ensureTableTools(tbl, name){
-    var parent = tbl.parentNode;
+    var wrap = tbl.closest ? tbl.closest('.tscroll') : null;
+    var anchor = wrap || tbl;
+    var parent = anchor.parentNode;
     if (!parent) return;
-    var host = null, kids = parent.children;
+    var bar = null, kids = parent.children;
     for (var i = 0; i < kids.length; i++) {
-      if (kids[i].classList && kids[i].classList.contains('sui-table-tools') &&
-          kids[i].getAttribute('data-sui-table-tools-for') === name) { host = kids[i]; break; }
+      if (kids[i].classList && kids[i].classList.contains('sui-table-topbar') &&
+          kids[i].getAttribute('data-sui-table-topbar-for') === name) { bar = kids[i]; break; }
     }
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'sui-table-topbar';
+      bar.setAttribute('data-sui-table-topbar-for', name);
+      parent.insertBefore(bar, anchor);
+    } else if (bar.nextElementSibling !== anchor) {
+      parent.insertBefore(bar, anchor);
+    }
+    // The caption becomes the title row above the table, on the same line as
+    // the settings gear. The original <caption> is hidden to avoid duplicating
+    // the title inside the table.
+    var cap = tbl.querySelector('caption');
+    var title = bar.querySelector('.sui-table-title');
+    if (cap && (cap.textContent || '').trim()) {
+      if (!title) {
+        title = document.createElement('div');
+        title.className = 'sui-table-title';
+        bar.insertBefore(title, bar.firstChild);
+      }
+      var capText = cap.textContent;
+      if (title.textContent !== capText) title.textContent = capText;
+      if (cap.getAttribute('data-sui-caption-style') === null) {
+        cap.setAttribute('data-sui-caption-style', cap.getAttribute('style') || '');
+      }
+      var capStyle = cap.getAttribute('data-sui-caption-style') || '';
+      if ((title.getAttribute('style') || '') !== capStyle) {
+        if (capStyle) title.setAttribute('style', capStyle); else title.removeAttribute('style');
+        title.style.display = '';
+      }
+      if (cap.style.display !== 'none') cap.style.display = 'none';
+    } else {
+      if (title && title.parentNode) title.parentNode.removeChild(title);
+      if (cap && cap.style.display === 'none') cap.style.display = '';
+    }
+    var host = bar.querySelector('.sui-table-tools');
     if (!host) {
       host = document.createElement('div');
       host.className = 'sui-table-tools';
-      host.setAttribute('data-sui-table-tools-for', name);
-      var btn = document.createElement('button');
+      bar.appendChild(host);
+    }
+    var btn = host.querySelector('.sui-table-settings');
+    if (!btn) {
+      btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'sui-table-settings';
       btn.textContent = '\u2699';
@@ -3680,7 +3752,6 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       btn.setAttribute('aria-label', 'Table settings');
       btn.setAttribute('aria-expanded', 'false');
       host.appendChild(btn);
-      parent.insertBefore(host, tbl);
       btn.addEventListener('click', function(ev){
         ev.preventDefault();
         ev.stopPropagation();
@@ -3688,8 +3759,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         openTableCfg(tbl, name, btn);
       });
     }
-    var w = tbl.getBoundingClientRect().width;
-    if (w > 0 && Math.abs(host.offsetWidth - w) > 1) host.style.width = Math.round(w) + 'px';
+    var w = (wrap || tbl).getBoundingClientRect().width;
+    if (w > 0 && Math.abs(bar.offsetWidth - w) > 1) bar.style.width = Math.round(w) + 'px';
   }
   function ensurePager(tbl, name, st, cfg){
     var next = tbl.nextElementSibling;
@@ -3835,6 +3906,19 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     for (var i = 0; i < ts.length; i++) {
       var tb = ts[i].tBodies && ts[i].tBodies.length ? ts[i].tBodies[0] : null;
       if (tb) while (tb.firstChild) tb.removeChild(tb.firstChild);
+      var wrap = ts[i].closest ? ts[i].closest('.tscroll') : null;
+      var anchor = wrap || ts[i];
+      if (anchor.parentNode) {
+        var bar = null, kids = anchor.parentNode.children;
+        for (var b = 0; b < kids.length; b++) {
+          if (kids[b].classList && kids[b].classList.contains('sui-table-topbar') && kids[b].getAttribute('data-sui-table-topbar-for') === name) { bar = kids[b]; break; }
+        }
+        if (bar) {
+          var cap = ts[i].querySelector('caption');
+          if (cap) cap.style.display = '';
+          bar.parentNode.removeChild(bar);
+        }
+      }
       var prev = ts[i].previousElementSibling;
       if (prev && prev.classList && prev.classList.contains('sui-table-tools') && prev.getAttribute('data-sui-table-tools-for') === name) {
         var fprev = prev.previousElementSibling;
@@ -4117,7 +4201,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var st = store[name];
     var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
     if (col < 0) return;
-    c.setAttribute('data-sui-raw', c.textContent || '');
+    // Commit data-sui-raw on focusout. Updating it on every keystroke would
+    // spam the MutationObserver and make the table look like it is redrawing.
     if (tr.parentNode && tr.parentNode.tagName === 'THEAD') {
       if (!st.header) st.header = [];
       st.header[col] = c.textContent || '';
@@ -4206,7 +4291,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       // text or attributes on every keystroke would drop the caret after the
       // first character.
       if (editCell) return;
-      if(pending) return; pending=true; setTimeout(function(){ pending=false; init(); }, 60);
+      if(pending) return; pending=true; setTimeout(function(){ pending=false; if (!editCell) init(); }, 60);
     }).observe(document.body,{childList:true,subtree:true,characterData:true});
   }
   init();
