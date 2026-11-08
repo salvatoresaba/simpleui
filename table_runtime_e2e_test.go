@@ -200,9 +200,11 @@ const tableRuntimeE2EScript = `<script>
     if (onlyTab && getComputedStyle(onlyTab).display !== 'none') throw new Error('single workbook tab should be hidden');
     var addBtn = document.querySelector('.sui-tab-add');
     if (!addBtn) throw new Error('add table button missing');
+    if (getComputedStyle(addBtn).display !== 'none') throw new Error('runtime + must be hidden for a read-only workbook');
     addBtn.click();
     await wait(500);
     if (document.querySelectorAll('.sui-tablist .sui-tab').length !== tabsBefore + 1) throw new Error('runtime table not created');
+    if (getComputedStyle(addBtn).display === 'none') throw new Error('runtime + must appear for an editable workbook');
     if (bookBox.getAttribute('data-sui-tabcount') !== String(tabsBefore + 1)) throw new Error('workbook tab count not updated');
     if (getComputedStyle(document.querySelectorAll('.sui-tablist .sui-tab')[1]).display === 'none') throw new Error('sheet tabs should be visible with two workbooks');
     var createdTab = document.querySelectorAll('.sui-tablist .sui-tab')[tabsBefore];

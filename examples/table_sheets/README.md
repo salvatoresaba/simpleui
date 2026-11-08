@@ -33,9 +33,14 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - In the designer the elements panel shows a single **table** node for the whole
   workbook; clicking it outlines the outer control and shows the resize handles,
   while clicking a sheet tab only switches sheets (no extent box or handles).
-- A single-sheet workbook hides its sheet tab and keeps the **+**; with two or
+- A single-sheet workbook hides its sheet tab; the designer always keeps the
+  **+**, while a compiled app shows it only for an editable workbook. With two or
   more sheets the tabs appear. Double-click a tab or use its context menu to
   rename the workbook.
+- The row/column selection strips live in the control padding (default 10 px,
+  adjustable in **Table settings → Scroll & scale → control padding**), so they
+  never overlap cells or the control resize handles. The top-left corner selects
+  all cells (all rows and columns together).
 
 ## Run
 

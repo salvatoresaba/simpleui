@@ -2205,9 +2205,12 @@ tabs "Workbook" position: "bottom" variant: "sheets" {
 
 La barra delle tab è sotto i pannelli e usa lo stile compatto “sheet”; ogni
 tabella mantiene dati, ordinamento, filtri, pagina ed eventi indipendenti. Con un
-solo foglio la tab del foglio è nascosta e resta solo la **+**; dal secondo
-foglio in poi compaiono le tab del workbook. Doppio click su una tab o menu
-contestuale per rinominare il workbook. Nel
+solo foglio la tab del foglio è nascosta; la **+** è sempre visibile nella
+preview del designer e a runtime solo se il workbook ha un foglio editable. Dal
+secondo foglio in poi compaiono le tab del workbook. Doppio click su una tab o
+menu contestuale per rinominare il workbook. Il padding del controllo (default
+10 px) allontana il viewport del foglio dal bordo; le strisce di selezione
+riga/colonna stanno in questo padding, fuori dalle celle scrollabili. Nel
 designer visivo il workbook è un unico nodo `table`: i fogli senza una modalità
 `selection` esplicita sono editable, tutti condividono la dimensione visibile del
 controllo tabella e la tab **+** aggiunge un foglio reale al sorgente `.sui`, non

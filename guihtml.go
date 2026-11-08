@@ -8857,7 +8857,9 @@ function normalizeWorkbooks() {
               // A sheet that explicitly asks for row/column/cell selection is
               // not a data-entry sheet: keep it read-only so selection works.
               if (entry.table.editable || !entry.table.selection || entry.table.selection === "none") entry.table.editable = true;
-              entry.table.showAddTable = true;
+              // The runtime still creates the + for the designer preview; only
+              // editable workbooks keep it in a compiled app.
+              if (entry.table.editable) entry.table.showAddTable = true;
               if (!entry.table.name) entry.table.name = uniqueTableName();
             });
             normalizeWorkbookControl(n, entries);
@@ -9269,6 +9271,29 @@ function tableControls(n, opts) {
       });
       rr.appendChild(cp); lrows.push(rr);
     });
+  }
+  if (inWorkbook) {
+    var wbPad = workbookForTablePath(selPath);
+    if (wbPad) {
+      var padRow = document.createElement("div"); padRow.className = "rowline";
+      var padLbl = lbl("control padding");
+      padLbl.title = "Inset between the workbook viewport and the control border; the row/column selection strips live in this space.";
+      padRow.appendChild(padLbl);
+      var padIn = document.createElement("input");
+      padIn.value = styleDeclMap(wbPad.tabs.style || "")["--sui-workbook-pad"] || "";
+      padIn.placeholder = "10px";
+      padIn.spellcheck = false;
+      padIn.onchange = function() {
+        var v = padIn.value.trim();
+        withUndo(function() {
+          var wm = styleDeclMap(wbPad.tabs.style || "");
+          if (v) wm["--sui-workbook-pad"] = v; else delete wm["--sui-workbook-pad"];
+          wbPad.tabs.style = styleDeclStr(wm);
+        }, "workbook padding");
+      };
+      padRow.appendChild(padIn);
+      lrows.push(padRow);
+    }
   }
   var lgrp = acc("Scroll & scale", lrows);
   lgrp.classList.add("open");
@@ -11867,6 +11892,7 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-table-select") { applyTableSelection(ev.data); return; }
   if (ev.data.ty === "sui-table-add") { previewAddWorkbookSheet(ev.data); return; }
   if (ev.data.ty === "sui-table-tab") { selectWorkbookTab(Number(ev.data.id)); return; }
+  if (ev.data.ty === "sui-table-all") { selectAllTableCells(Number(ev.data.id)); return; }
   if (ev.data.ty === "sui-tab-rename") { renameWorkbookTab(Number(ev.data.index), Number(ev.data.tabIndex)); return; }
   if (ev.data.ty === "sui-tab-menu") { showWorkbookTabMenu(ev.data); return; }
   if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
@@ -12190,6 +12216,31 @@ function sameTableAnchor(a, tablePath, kind) {
 }
 // selectWorkbookTab follows a sheet-tab click: the table inspector switches to
 // that sheet, but no extent selection or resize handles are drawn.
+// The select-all corner selects every cell of the table, not the outer control:
+// this is the "all rows and columns together" action.
+function selectAllTableCells(id) {
+  var hit = pickMap[id];
+  if (!hit || hit.pg !== root.page) return;
+  var table = byPath(hit.p, root.children);
+  if (!table || table.kind !== "table") return;
+  var rows = Number(table.rows) || 0;
+  var cols = Number(table.cols) || 0;
+  if (!rows || !cols) return;
+  selBody = false;
+  multiSel = [];
+  clearTableSelection();
+  selNoBox = false;
+  selPath = hit.p.slice();
+  selMode = "cell";
+  selCell = { r: 0, c: 0 };
+  selRow = null;
+  selCol = null;
+  tableSelAnchor = { tablePath: hit.p.slice(), kind: "cell", r: 0, c: 0 };
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) tableSelCells.push({ r: r, c: c });
+  }
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+}
 function selectWorkbookTab(id) {
   var t = pickMap[id];
   if (!t || t.pg !== root.page) return;

@@ -1218,12 +1218,14 @@ editable, anche se la tabella di origine era di sola lettura o usava colonne
 numeriche. La preview mantiene il foglio selezionato mentre si modificano le
 impostazioni.
 
-La tab **+** nella preview aggiunge un foglio reale al modello del workbook, non
-una tabella runtime temporanea: sopravvive ai rebuild della preview e viene
-scritto nel sorgente `.sui`. Un workbook con un solo foglio non mostra la tab del
-foglio, ma solo la **+**; le tab dei fogli compaiono dal secondo foglio in poi.
-Doppio click su una tab, oppure menu contestuale e **Rename workbook**, per
-cambiare il nome del workbook scritto sulla tab. Il controllo tabella occupa il contenitore e ha una
+La tab **+** nella preview del designer è sempre visibile e aggiunge un foglio
+reale al modello del workbook, non una tabella runtime temporanea: sopravvive ai
+rebuild della preview e viene scritto nel sorgente `.sui`. In un'app compilata la
+**+** compare solo se il workbook ha un foglio editable. Un workbook con un solo
+foglio non mostra la tab del foglio, ma solo la **+** nel designer (a runtime,
+senza tab strip se il workbook è di sola lettura); le tab dei fogli compaiono dal
+secondo foglio in poi. Doppio click su una tab, oppure menu contestuale e
+**Rename workbook**, per cambiare il nome del workbook scritto sulla tab. Il controllo tabella occupa il contenitore e ha una
 dimensione minima di **640 × 300 px**: se il contenitore non ha una dimensione
 esplicita, vale quel minimo. L'area del workbook prende tutto lo spazio interno
 al bordo del controllo al netto della riga titolo/ingranaggio e della barra delle
@@ -1253,9 +1255,14 @@ ricercabile dei valori della colonna.
 - Click nella gutter appena **sopra l'header di una colonna** (fuori dalla tabella) per selezionare la colonna.
 - Click nella gutter appena **a sinistra di una riga** (fuori dalla tabella) per selezionare la riga.
 - Al passaggio del mouse su queste gutter esterne compare una sottile striscia
-  blu: è la zona cliccabile, e non si sovrappone mai alle celle né agli handle.
+  blu: è esattamente la zona cliccabile, e non si sovrappone mai alle celle né
+  agli handle del controllo. Le strisce stanno nel padding del controllo, fuori
+  dal contenuto scrollabile del foglio.
 - Il quadratino evidenziato nell'**angolo in alto a sinistra** della tabella
-  seleziona tutta la tabella (tutte le sue celle).
+  seleziona tutte le celle (tutte le righe e colonne insieme), non il controllo
+  esterno.
+- Selezionare il controllo esterno non ruba il click sulle gutter: la striscia
+  sotto il mouse ha la precedenza su una cella vicina.
 - Un click sulla tab di un foglio cambia il workbook senza riquadro né handle;
   un click sul nodo **table** nel pannello elementi seleziona l'intero controllo
   e mostra gli handle di ridimensionamento.
@@ -1267,9 +1274,10 @@ ricercabile dei valori della colonna.
   gutter superiore aggiunge colonne contigue; trascinare sulle celle seleziona
   un'area rettangolare.
 - Selezionando la tabella stessa (lista elementi o selettore **Table**) viene
-  mostrato solo il suo contorno. Gli handle ridimensionano il wrapper della
-  tabella, quindi le righe che superano l'altezza scelta producono una scrollbar.
-- Un click su una sheet tab seleziona la tabella di quel foglio.
+  evidenziato l'intero controllo. Gli handle ridimensionano il controllo; righe e
+  colonne che superano il viewport producono le scrollbar interne.
+- Un click su una sheet tab passa a quel foglio e aggiorna le impostazioni della
+  tabella senza disegnare riquadri o handle.
 
 Gruppi del pannello:
 
@@ -1277,7 +1285,10 @@ Gruppi del pannello:
   zebrate, hover e controlli scroll/scale. I colori zebra e hover sono applicati
   come tinta leggera, così restano leggibili su temi chiari e scuri. **Scroll**
   avvolge la tabella in un contenitore `tscroll` con altezza massima, header
-  sticky e colori scrollbar; **scale** applica lo zoom all'intera tabella.
+  sticky e colori scrollbar; **scale** applica lo zoom all'intera tabella. In un
+  workbook, **control padding** (gruppo Scroll & scale, default 10 px) allontana
+  il viewport dal bordo del controllo e crea lo spazio per le strisce di
+  selezione riga/colonna.
 - **Borders** - preset, griglia celle, bordo esterno e raggio.
 - **Header** - modalità riga header, colori, peso, maiuscole e header sticky.
 - **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore. A

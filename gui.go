@@ -673,7 +673,7 @@ func renderSui(src string) (bool, string, JVal) {
 	}
 	js := GenerateJs(prog)
 	css := GenerateCss(prog)
-	html := "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>" + guiFontFaceCss() + css + "</style></head><body><div id=\"app\"></div><script>" + js + "</script>" + guiPreviewPicker + "</body></html>"
+	html := "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>" + guiFontFaceCss() + css + "</style></head><body class=\"sui-designer-preview\"><div id=\"app\"></div><script>" + js + "</script>" + guiPreviewPicker + "</body></html>"
 	return true, html, diags
 }
 
@@ -762,21 +762,27 @@ const guiPreviewPicker = `<script>
   // overlap cells or the resize handles centred on the table border. The same
   // values drive hit-testing and the hover overlay: what you see is clickable.
   var TABLE_BORDER_ZONE = 8;
-  var TABLE_CORNER = 14;
+  var TABLE_CORNER = 8;
   var tableZoneEl = document.createElement('div'); tableZoneEl.className = 'sui-tzone'; document.body.appendChild(tableZoneEl);
   var tableCornerEl = document.createElement('div'); tableCornerEl.className = 'sui-tcorner'; document.body.appendChild(tableCornerEl);
   function hideTableZone() { tableZoneEl.style.display = 'none'; tableCornerEl.style.display = 'none'; }
-  // Visible box of a table, clipped by its scroll wrapper when present.
+  // Geometry for the outer gutters. Inside a scroll wrapper the gutter strips
+  // live in the wrapper padding, not over the cells: the column strip is at the
+  // viewport content top and the row strip follows the visible rows only.
   function tableBox(table) {
     var r = table.getBoundingClientRect();
     var wrap = table.closest ? table.closest('.tscroll') : null;
     if (wrap) {
       var wr = wrap.getBoundingClientRect();
-      r = { left: Math.max(r.left, wr.left), top: Math.max(r.top, wr.top),
-            right: Math.min(r.right, wr.right), bottom: Math.min(r.bottom, wr.bottom) };
+      var left = Math.max(r.left, wr.left), top = Math.max(r.top, wr.top);
+      var right = Math.min(r.right, wr.right), bottom = Math.min(r.bottom, wr.bottom);
+      if (right <= left || bottom <= top) return null;
+      return { left: left, top: top, right: right, bottom: bottom,
+               colLeft: left, colRight: right, rowTop: top, rowBottom: bottom };
     }
     if (r.right - r.left <= 0 || r.bottom - r.top <= 0) return null;
-    return r;
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom,
+             colLeft: r.left, colRight: r.right, rowTop: r.top, rowBottom: r.bottom };
   }
   function rowModelIndex(table, tr) {
     var head = table.tHead;
@@ -832,9 +838,9 @@ const guiPreviewPicker = `<script>
       var kind = null, target = null, dist = Infinity;
       if (x >= box.left - TABLE_CORNER && x < box.left && y >= box.top - TABLE_CORNER && y < box.top) {
         kind = 'corner'; dist = Math.max(box.left - x, box.top - y);
-      } else if (y >= box.top - TABLE_BORDER_ZONE && y < box.top && x >= box.left && x < box.right) {
+      } else if (y >= box.top - TABLE_BORDER_ZONE && y < box.top && x >= box.colLeft && x < box.colRight) {
         kind = 'col'; target = colAtX(table, x); dist = box.top - y;
-      } else if (x >= box.left - TABLE_BORDER_ZONE && x < box.left && y >= box.top && y < box.bottom) {
+      } else if (x >= box.left - TABLE_BORDER_ZONE && x < box.left && y >= box.rowTop && y < box.rowBottom) {
         kind = 'row'; target = rowAtY(table, y); dist = box.left - x;
       }
       if (!kind || (best && dist >= bestDist)) continue;
@@ -865,9 +871,13 @@ const guiPreviewPicker = `<script>
     }
     var rect = null;
     if (hit.kind === 'col' && hit.rect) {
-      rect = { left: hit.rect.left, top: box.top - TABLE_BORDER_ZONE, width: hit.rect.width, height: TABLE_BORDER_ZONE };
+      var colL = Math.max(box.colLeft, hit.rect.left);
+      var colR = Math.min(box.colRight, hit.rect.right);
+      if (colR > colL) rect = { left: colL, top: box.top - TABLE_BORDER_ZONE, width: colR - colL, height: TABLE_BORDER_ZONE };
     } else if (hit.kind === 'row' && hit.rect) {
-      rect = { left: box.left - TABLE_BORDER_ZONE, top: hit.rect.top, width: TABLE_BORDER_ZONE, height: hit.rect.height };
+      var rowT = Math.max(box.rowTop, hit.rect.top);
+      var rowB = Math.min(box.rowBottom, hit.rect.bottom);
+      if (rowB > rowT) rect = { left: box.left - TABLE_BORDER_ZONE, top: rowT, width: TABLE_BORDER_ZONE, height: rowB - rowT };
     }
     if (!rect) return;
     tableZoneEl.style.left = Math.max(0, rect.left) + 'px';
@@ -1200,13 +1210,15 @@ const guiPreviewPicker = `<script>
     var t = e.target;
     if (t && t.closest && t.closest('button,a,input,select,textarea,.sui-table-filter,.sui-table-pager,.sui-table-add,.sui-table-topbar')) return;
     var info = tableInfo(t);
-    // Inside a table every click selects a cell; the row/column gutters and the
-    // select-all corner live outside the table box.
-    var hit = info ? null : gutterHit(e.clientX, e.clientY);
-    if (hit && hit.kind === 'corner') {
+    // The visible gutter strip is the clickable area: when it belongs to the
+    // table under the pointer it wins over the cell hit, so the outer control
+    // selection cannot steal a row/column click near the border.
+    var hit = gutterHit(e.clientX, e.clientY);
+    if (hit && (!info || info.table === hit.table)) info = hit;
+    if (hit && hit.kind === 'corner' && (!info || info === hit)) {
       hideTableZone();
       tableSelSuppressClick = true;
-      parent.postMessage({ ty: 'sui', id: hit.tableId }, '*');
+      parent.postMessage({ ty: 'sui-table-all', id: hit.tableId }, '*');
       e.preventDefault();
       e.stopPropagation();
       return;

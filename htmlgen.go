@@ -2037,6 +2037,11 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* The viewport inset is outside the scroll container, so the row/column
+     gutter strips live in real padding instead of over scrolled cells. */
+  padding: var(--sui-workbook-pad, 10px) var(--sui-workbook-pad, 10px) 0;
+  gap: var(--sui-workbook-pad, 10px);
+  box-sizing: border-box;
 }
 .sui-tabs[data-sui-workbook="1"] .sui-tabpanel[hidden] { display: none; }
 .sui-tabs[data-sui-workbook="1"][data-sui-tabcount="1"] .sui-tablist .sui-tab { display: none; }
@@ -2048,6 +2053,7 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
   width: 100%;
   height: 100%;
   max-height: none;
+  box-sizing: border-box;
 }
 .sui-tabs[data-sui-workbook="1"] .tscroll > table { margin: 0; }
 .sui-tabs[data-sui-workbook="1"] .tscroll thead th {
@@ -2055,6 +2061,12 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
   top: 0;
   z-index: 2;
 }
+.sui-tabs[data-sui-workbook="1"][data-sui-workbook-editable="0"] .sui-tab-add { display: none; }
+.sui-tabs[data-sui-workbook="1"][data-sui-tabcount="1"][data-sui-workbook-editable="0"] .sui-tablist { display: none; }
+/* The designer preview always offers + to create a workbook, even when the
+   source table is read-only. */
+body.sui-designer-preview .sui-tabs[data-sui-workbook="1"] .sui-tab-add { display: inline-block; }
+body.sui-designer-preview .sui-tabs[data-sui-workbook="1"][data-sui-tabcount="1"] .sui-tablist { display: flex; }
 
 /* Accordion: stacked disclosure sections. The runtime keeps one panel open
    and preserves the open index across view re-renders when keyed. */
@@ -4244,6 +4256,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       // create the second sheet. Two or more sheets show their tabs.
       var tabBtns = boxes[b].querySelectorAll('.sui-tablist .sui-tab');
       boxes[b].setAttribute('data-sui-tabcount', String(tabBtns.length));
+      var anyEditable = false;
       for (var tj = 0; tj < tables.length; tj++) {
         var t2 = tables[tj];
         // Tables that explicitly request a selection mode stay read-only:
@@ -4252,6 +4265,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         if (!sel || sel === 'none' || t2.getAttribute('data-sui-editable') === '1') {
           t2.setAttribute('data-sui-editable', '1');
         }
+        if (t2.getAttribute('data-sui-editable') === '1') anyEditable = true;
         if (t2.getAttribute('name')) t2.setAttribute('data-sui-show-add-table', '1');
         var w2 = t2.parentElement;
         if (w2 && w2.classList && w2.classList.contains('tscroll')) {
@@ -4263,6 +4277,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
           w2.style.maxHeight = '';
         }
       }
+      // The runtime + is shown only for an editable workbook; the designer
+      // preview overrides this with its body class and always offers it.
+      boxes[b].setAttribute('data-sui-workbook-editable', anyEditable ? '1' : '0');
     }
   }
   function init(){

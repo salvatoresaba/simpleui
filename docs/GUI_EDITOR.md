@@ -1171,12 +1171,14 @@ with two empty body rows. The new sheet is always editable, even when the source
 table was read-only or used numeric columns. The preview keeps the selected sheet
 while settings are edited.
 
-The **+** tab in the preview adds a real sheet to the workbook model, not a
-temporary runtime table, so it survives preview rebuilds and is written to the
-`.sui` source. A workbook with a single sheet shows no sheet tab, only the **+**;
-the sheet tabs appear from the second sheet on. Double-click a sheet tab, or use
-its context menu and **Rename workbook**, to change the workbook name written on
-the tab. The table control fills its host and has a **640 × 300 px**
+The **+** tab in the designer preview is always visible and adds a real sheet to
+the workbook model, not a temporary runtime table, so it survives preview
+rebuilds and is written to the `.sui` source. In a compiled app the **+** is
+shown only when the workbook has an editable sheet. A workbook with a single
+sheet shows no sheet tab, only the **+** in the designer (and no tab strip at all
+at runtime when the workbook is read-only); the sheet tabs appear from the second
+sheet on. Double-click a sheet tab, or use its context menu and **Rename
+workbook**, to change the workbook name written on the tab. The table control fills its host and has a **640 × 300 px**
 minimum; when the host has no explicit size, that minimum is the default. The
 workbook sheet area takes all the space inside the control border after the
 title/gear row and the sheet tab strip, and it follows every control resize.
@@ -1203,10 +1205,13 @@ header that opens a searchable checklist of column values.
 - Click a cell to select it.
 - Click in the gutter just **above a column header** (outside the table) to select the column.
 - Click in the gutter just **left of a row** (outside the table) to select the row.
-- Hovering those outer gutters shows a thin blue strip: it is the clickable
-  zone, and it never overlaps cells or the resize handles.
-- The highlighted square at the table's **top-left corner** selects the whole
-  table (all its cells).
+- Hovering those outer gutters shows a thin blue strip: it is exactly the
+  clickable zone, and it never overlaps cells or the control resize handles. The
+  strips live in the control padding, outside the scrolling sheet content.
+- The highlighted square at the table's **top-left corner** selects all cells
+  (all rows and columns together), not the outer control.
+- Selecting the outer table control never steals a row/column gutter click: the
+  hovered strip wins over a nearby cell.
 - Clicking a sheet tab switches the workbook without drawing an extent box or
   resize handles; clicking the **table** node in the elements panel selects the
   whole control and shows its resize handles.
@@ -1215,10 +1220,11 @@ header that opens a searchable checklist of column values.
 - **Ctrl/Command+click** toggles individual cells, rows or columns.
 - Drag in the left gutter to add contiguous rows; drag in the top gutter to add
   contiguous columns; drag across cells to select a rectangular area.
-- Selecting the table itself (element list or **Table** selector) shows only its
-  outline. The resize handles adjust the table wrapper, so rows that exceed the
-  chosen height produce a scrollbar.
-- A click on a sheet tab selects the table of that sheet.
+- Selecting the table itself (element list or **Table** selector) outlines the
+  whole control. The resize handles adjust the control; rows and columns that
+  exceed the sheet viewport produce the internal scrollbars.
+- A click on a sheet tab switches to that sheet and updates the table settings
+  without drawing an extent box or handles.
 
 Table settings groups:
 
@@ -1226,7 +1232,10 @@ Table settings groups:
   row and the scroll/scale controls. Zebra and hover colors are applied as a
   subtle tint so they stay readable on dark and light themes. **Scroll** wraps
   the table in a `tscroll` container with an optional max height, sticky header
-  and custom scrollbar colors; **scale** zooms the whole table.
+  and custom scrollbar colors; **scale** zooms the whole table. In a workbook,
+  **control padding** (in the Scroll & scale group, default 10 px) insets the
+  viewport from the control border and provides the space for the row/column
+  selection strips.
 - **Borders** - preset, cell grid, outer border and radius.
 - **Header** - header row mode, background/text color, weight, uppercase and
   sticky header.
