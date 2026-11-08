@@ -102,7 +102,7 @@ view main {
 		`sheet tabs`, `"Bottom (Excel-like)"`, `function tabsControls`,
 		`onCellChange`, `table.lastChange`, `id="tablesettings"`, `Table settings...`,
 		`tableAddSheetAction`, `tableDeleteSheetAction`, `showAddTable`,
-		`structureEditable`, `+ Table`, `Table theme...`,
+		`structureEditable`, `+ Table`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table/tabs support missing %q", want)

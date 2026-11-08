@@ -2788,6 +2788,17 @@ function currentPeerIds() {
     if (ids.length) return ids;
   }
   if (selPath) {
+    var selNode = byPath(selPath, root.children);
+    if (selNode && selNode.kind === "table") {
+      // Selecting a table highlights its full area: table, thead/tbody, rows
+      // and every cell, not only the first row.
+      var tableIds = [];
+      for (var ti = 0; ti < pickMap.length; ti++) {
+        var entry = pickMap[ti];
+        if (entry.pg === root.page && samePath(entry.p, selPath) && (entry.t === "n" || entry.t === "sec" || entry.t === "row")) tableIds.push(ti);
+      }
+      if (tableIds.length) return tableIds;
+    }
     for (var i = 0; i < pickMap.length; i++) {
       if (pickMap[i].pg === root.page && pickMap[i].t === "n" && samePath(pickMap[i].p, selPath)) return [i];
     }
@@ -4179,15 +4190,15 @@ function renderInspector() {
       code.textContent = t;
       typeBar.appendChild(code);
     });
-    if (!selBody && nodes.length === 1) {
+    if (!selBody && nodes.length === 1 && nodes[0].kind !== "table") {
       var cdef = componentDefForKind(nodes[0].kind);
       if (cdef) {
         var sbtn = document.createElement("button");
         sbtn.type = "button";
         sbtn.className = "btn";
         sbtn.style.cssText = "margin-left:auto;font-size:11px;padding:3px 8px";
-        sbtn.textContent = nodes[0].kind === "table" ? "Table theme..." : "Settings...";
-        sbtn.title = nodes[0].kind === "table" ? "Configure table colors and theme presets" : "Configure " + cdef.label + " for this element only";
+        sbtn.textContent = "Settings...";
+        sbtn.title = "Configure " + cdef.label + " for this element only";
         sbtn.onclick = function(){ openComponentSettings(cdef, nodes[0]); };
         typeBar.appendChild(sbtn);
       }
