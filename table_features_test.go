@@ -97,6 +97,8 @@ view main {
 		`sui-table-topbar`, `sui-table-title`, `data-sui-table-topbar-for`,
 		`bar.nextElementSibling !== anchor`, `function ensureHbtns`, `headLabel`,
 		`st.header[col] = raw`, `targetLabel`, `runtimeLabelsStr`,
+		`if (cfg2.editable) return;`, `editTextOf`, `setCellEditText`, `syncHeaderLabelsAttr`,
+		`contenteditable', 'false`, `data-sui-editable', '1'`, `data-sui-columns', headKeys.join(',')`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below
@@ -249,5 +251,63 @@ func TestTabsBottomSheetStyle(t *testing.T) {
 	}
 	if !strings.Contains(guiHTML, `function tabsControls`) || !strings.Contains(guiHTML, `"Bottom (Excel-like)"`) {
 		t.Errorf("designer tabs settings missing")
+	}
+}
+
+func TestDesignerDataTablePreservesAttributes(t *testing.T) {
+	src := `view main {
+	table name: "orders" columns: "name,qty" columnLabels: "Product,Qty" columnTypes: "text,number" columnFormats: "text,number" editable: true sortable: true filterable: true showAddTable: true {
+	}
+}
+`
+	prog, dl := ParseSource(src, "data_table.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	model := StringifyJson(guiModelJson(prog))
+	for _, want := range []string{
+		`"dataTable":true`, `"editable":true`, `"columns":"name,qty"`,
+		`"columnLabels":"Product,Qty"`, `"columnTypes":"text,number"`,
+		`"sortable":true`, `"filterable":true`, `"showAddTable":true`,
+	} {
+		if !strings.Contains(model, want) {
+			t.Errorf("designer data-table model missing %q: %s", want, model)
+		}
+	}
+	// The designer must serialize a columns-declared table without a synthetic
+	// thead/tbody, and must not let the type-to-edit bridge reload the preview.
+	for _, want := range []string{"if (n.dataTable)", "n.dataTable || n.columns"} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("designer table handling missing %q", want)
+		}
+	}
+}
+
+func TestDesignerNestedTableIsNotDataTable(t *testing.T) {
+	src := `view main {
+	table name: "plain" {
+		thead {
+			trow {
+				tcell "A" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "x"
+			}
+		}
+	}
+}
+`
+	prog, dl := ParseSource(src, "nested_table.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	model := StringifyJson(guiModelJson(prog))
+	if !strings.Contains(model, `"dataTable":false`) {
+		t.Errorf("nested table must not be marked as a data table: %s", model)
 	}
 }

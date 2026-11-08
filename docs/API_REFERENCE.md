@@ -2242,8 +2242,9 @@ table name: "users" columns: "id,name,status,amount"
 - `cellText`: `auto` (default; columns can grow and text wraps), `wrap` (fixed
   width, text wraps and the row grows), `truncate` (single line, overflow hidden,
   full text in a hover overlay). `fixed: true` is the legacy truncate mode.
-- `sortable` enables header-click sorting (ascending, descending, original) and
-  seeds the runtime sort toggle.
+- `sortable` enables header sorting (ascending, descending, original) and seeds
+  the runtime sort toggle. On editable tables a header click places the caret in
+  the header label; use the header sort button so sorting cannot blur the edit.
 - `filterable` adds a global text filter above the table and seeds the
   per-column header filters.
 - `pageSize` paginates the visible rows and renders a pager.
@@ -2291,8 +2292,9 @@ settings panel:
   column filters combine with AND.
 - **Sort by clicking headers**: each header has a small sort button aligned
   right, on the same line as the label. It cycles ascending, descending and
-  original order. Clicking the header text does the same; Ctrl/Command/Shift
-  adds or toggles a sort level.
+  original order; Ctrl/Command/Shift adds or toggles a sort level. For
+  non-editable tables a click on the header text does the same. For editable
+  tables the header text is the rename field, so sorting uses only the button.
 - **Sort levels**: an ordered list of column/direction pairs. Rows are sorted by
   the first level, ties are broken by the next, like an Excel multi-column sort.
 - **Clear filters** and **Clear sort** reset the runtime state.
@@ -2334,11 +2336,13 @@ table name: "users" columns: "id,name" columnLabels: "ID,Name"
 
 - `showAddTable` renders a **+ tab** at the end of the sheet tab strip when the
   table is inside a `tabs` control. Clicking it appends a new sheet/table with
-  the same columns and appearance/behavior as the source, its own generic header
-  (`A`, `B`, ...) and two empty body rows. The new table gets a generated name
-  (`table-1`, `table-2`, …) and persists across reactive re-renders for the
-  current page session; the selected sheet stays selected when the view
-  refreshes.
+  the source appearance and behavior, its own generic header (`A`, `B`, ...),
+  generic text columns and two empty body rows. The new sheet is always
+  editable, even when the source table was read-only or used numeric columns, so
+  manual data entry never inherits validation from the source. The new table
+  gets a generated name (`table-1`, `table-2`, …) and persists across reactive
+  re-renders for the current page session; the selected sheet stays selected
+  when the view refreshes.
 - `structureEditable` enables the runtime row/column context menu. Right-click a
   body cell or a header cell to:
   - insert a row above/below or a column left/right;
@@ -2352,10 +2356,11 @@ table name: "users" columns: "id,name" columnLabels: "ID,Name"
 - Structural operations update the visible grid immediately, fire
   `onTableChange`, and record `row-insert`, `row-delete`, `column-insert` or
   `column-delete` in `table.lastChange`.
-- A runtime-created table is editable when `structureEditable` is on, so its
-  cells and structure can be filled without leaving the app.
+- A runtime-created table is always editable, so its cells can be filled without
+  leaving the app; `structureEditable` additionally exposes the row/column menu.
 - Runtime edits to body cells and header labels are kept in the table store
-  across re-renders and sheet switches for the page session. Typing never
+  across re-renders and sheet switches for the page session. Header edits use the
+  label span, so the sort/filter buttons keep working. Typing never
   rebuilds the table: the text is stored live and the value is finalized on blur
   or after a short idle pause. Change events and validation run on blur. Cell
   input events are internal to the table: application-level `onInput` handlers on

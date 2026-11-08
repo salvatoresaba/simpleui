@@ -2984,21 +2984,39 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         }
       }
       // A new sheet keeps its own generic header instead of inheriting the
-      // source table's labels.
+      // source table's labels, types and formats: a blank page must accept any
+      // text, even when it was cloned from a read-only or numeric table.
       var headCells = newTable.querySelectorAll('thead tr:first-child th, thead tr:first-child td');
-      if (headCells.length) {
-        var headLabels = [];
-        for (var hi = 0; hi < headCells.length; hi++) {
+      // On a re-render the template panel may not be decorated yet, so derive
+      // the column count from the declared columns when there are no th cells.
+      var colCount = headCells.length;
+      if (!colCount) {
+        var colAttr = newTable.getAttribute('data-sui-columns') || '';
+        if (colAttr) colCount = colAttr.split(',').filter(function(x){ return x.trim() !== ''; }).length;
+      }
+      // A runtime sheet may have gained columns before a re-render; keep the
+      // stored width so the header and the data stay aligned.
+      var existingStore = store[name];
+      if (existingStore && existingStore.header && existingStore.header.length > colCount) colCount = existingStore.header.length;
+      if (colCount) {
+        var headLabels = [], headKeys = [];
+        for (var hi = 0; hi < colCount; hi++) {
           var headLabel = hi < 26 ? String.fromCharCode(65 + hi) : ('Col ' + (hi + 1));
           headLabels.push(headLabel);
-          headCells[hi].removeAttribute('data-sui-raw');
-          headCells[hi].textContent = headLabel;
+          headKeys.push(String.fromCharCode(97 + (hi % 26)) + (hi >= 26 ? String(hi + 1) : ''));
+          if (headCells[hi]) {
+            headCells[hi].removeAttribute('data-sui-raw');
+            headCells[hi].textContent = headLabel;
+          }
         }
-        if (newTable.hasAttribute('data-sui-column-labels')) {
-          newTable.setAttribute('data-sui-column-labels', headLabels.join(','));
-        }
+        newTable.setAttribute('data-sui-column-labels', headLabels.join(','));
+        newTable.setAttribute('data-sui-columns', headKeys.join(','));
       }
-      if (newTable.getAttribute('data-sui-structure-editable') === '1') newTable.setAttribute('data-sui-editable', '1');
+      newTable.removeAttribute('data-sui-column-types');
+      newTable.removeAttribute('data-sui-column-formats');
+      newTable.removeAttribute('data-sui-column-options');
+      // A runtime sheet is for manual data entry, so it is always editable.
+      newTable.setAttribute('data-sui-editable', '1');
     }
     panels.appendChild(clone);
     var tab = document.createElement('button');
@@ -3156,6 +3174,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
           var idx = parseInt(cell.getAttribute('data-col'), 10) || 0;
           var st2 = tableStore(name);
           var cfg2 = cfgOf(tbl);
+          // Editable headers are text fields: a plain click places the caret.
+          // Sorting stays on the explicit header sort button so it cannot
+          // re-render the table (and blur the header) while editing.
+          if (cfg2.editable) return;
           if (cfg2.selection === 'column' && !ev.altKey) {
             selectColumn(name, idx, ev.shiftKey || ev.ctrlKey || ev.metaKey || cfg2.multi);
             return;
@@ -3479,11 +3501,15 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     search.focus();
   }
   function ensureHeaderTools(hc, hwrap, hlabel, tbl, name, col, st, cfg, sortDir){
+    // The header cell is contenteditable for renaming; its sort/filter controls
+    // must stay outside the editable text so a caret or Ctrl+A cannot eat them.
     var hbtns = hwrap.querySelector('.sui-table-hbtns');
+    if (hbtns) hbtns.setAttribute('contenteditable', 'false');
     function ensureHbtns(){
       if (!hbtns) {
         hbtns = document.createElement('span');
         hbtns.className = 'sui-table-hbtns';
+        hbtns.setAttribute('contenteditable', 'false');
         hwrap.appendChild(hbtns);
       }
       return hbtns;
@@ -4268,6 +4294,32 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   document.addEventListener('mouseup', function(){ if(drag){ drag=null; document.body.style.cursor=''; } }, true);
 
   // ---- keep edited cells in the store so re-renders do not lose them -------
+  // Header cells also contain sort/filter controls: the editable text is the
+  // .sui-table-hlabel span, never the whole th (which includes the controls).
+  function editTextOf(c){
+    var lbl = c && c.querySelector ? c.querySelector('.sui-table-hlabel') : null;
+    return lbl ? (lbl.textContent || '') : (c ? (c.textContent || '') : '');
+  }
+  function setCellEditText(c, txt){
+    var lbl = c && c.querySelector ? c.querySelector('.sui-table-hlabel') : null;
+    if (lbl) lbl.textContent = txt;
+    else if (c) c.textContent = txt;
+  }
+  function focusInside(c){
+    return !!(c && c.contains && document.activeElement && c.contains(document.activeElement));
+  }
+  // Keep the declarative label attribute in sync after a header edit so tools
+  // that read data-sui-column-labels see the new text before the next render.
+  function syncHeaderLabelsAttr(tbl){
+    if (!tbl || !tbl.hasAttribute('data-sui-column-labels')) return;
+    var cells = tbl.querySelectorAll('thead tr:first-child th, thead tr:first-child td');
+    var labels = [];
+    for (var i = 0; i < cells.length; i++) {
+      labels.push(editTextOf(cells[i]));
+    }
+    var str = labels.join(',');
+    if (tbl.getAttribute('data-sui-column-labels') !== str) tbl.setAttribute('data-sui-column-labels', str);
+  }
   document.addEventListener('input', function(ev){
     var c = ev.target;
     if (!c || !c.closest) return;
@@ -4280,24 +4332,25 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     if (editCell !== c) {
       editCell = c;
       var committed = c.getAttribute('data-sui-raw');
-      editOld = committed === null ? '' : committed;
+      editOld = committed === null ? editTextOf(c) : committed;
     }
     var st = store[name];
     var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
     if (col < 0) return;
+    var text = editTextOf(c);
     // Commit data-sui-raw on blur. Updating it on every keystroke would
     // spam the MutationObserver and make the table look like it is redrawing.
     if (tr.parentNode && tr.parentNode.tagName === 'THEAD') {
       if (!st.header) st.header = [];
       if (!st.headerEdits) st.headerEdits = {};
-      st.header[col] = c.textContent || '';
-      st.headerEdits[col] = c.textContent || '';
+      st.header[col] = text;
+      st.headerEdits[col] = text;
     } else {
       var tb = tr.parentNode, r = Array.prototype.indexOf.call(tb.rows, tr);
       if (r >= 0) {
         if (!st.allRows[r]) st.allRows[r] = [];
-        st.allRows[r][col] = c.textContent || '';
-        if (st.rows[r]) st.rows[r][col] = c.textContent || '';
+        st.allRows[r][col] = text;
+        if (st.rows[r]) st.rows[r][col] = text;
       }
     }
     // The insertion phase ends after a pause even if the cell stays focused.
@@ -4306,7 +4359,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       editTimer = null;
       if (!c.isConnected) { if (editCell === c) { editCell = null; editOld = ''; } return; }
       commitCellEdit(c, tbl, name, cfgOf(tbl), false);
-      if (editCell === c && (!c.isConnected || document.activeElement !== c)) { editCell = null; editOld = ''; }
+      if (editCell === c && (!c.isConnected || !focusInside(c))) { editCell = null; editOld = ''; }
     }, 900);
   }, true);
   var editCell = null, editOld = '', editTimer = null;
@@ -4322,7 +4375,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     }
     var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
     if (col < 0) return false;
-    var raw = (c.textContent || '').trim();
+    var raw = (editTextOf(c) || '').trim();
     var oldVal = editOld === null || editOld === undefined ? raw : String(editOld);
     var rowIdx = tr.parentNode && tr.parentNode.tagName === 'THEAD' ? -1 : Array.prototype.indexOf.call(tr.parentNode.rows, tr);
     var type = cfg.types[col] || 'text';
@@ -4330,7 +4383,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var st = store[name];
     if (err) {
       if (!finalize) return false;
-      c.textContent = oldVal;
+      setCellEditText(c, oldVal);
       c.classList.add('sui-table-invalid');
       c.setAttribute('aria-invalid', 'true');
       c.title = 'Invalid ' + err + ' value';
@@ -4381,6 +4434,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var fv = formatValue(raw, cfg.formats[col]);
       if (c.textContent !== fv) c.textContent = fv;
     }
+    if (rowIdx < 0) syncHeaderLabelsAttr(tbl);
     return true;
   }
   document.addEventListener('focusin', function(ev){
@@ -4392,8 +4446,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     clearEditTimer();
     editCell = c;
     editOld = c.getAttribute('data-sui-raw');
-    if (editOld === null) editOld = c.textContent || '';
-    else if ((c.textContent || '') !== editOld) c.textContent = editOld;
+    if (editOld === null) editOld = editTextOf(c);
+    else if ((editTextOf(c) || '') !== editOld) setCellEditText(c, editOld);
     c.classList.remove('sui-table-invalid');
     c.removeAttribute('aria-invalid');
     c.removeAttribute('title');

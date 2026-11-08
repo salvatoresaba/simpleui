@@ -9311,7 +9311,7 @@ function tableControls(n, opts) {
   fromHeaderBtn.title = "Fill columns and labels from the first designed row.";
   fromHeaderBtn.onclick = function(){
     var labels = [];
-    for (var c = 0; c < n.cols; c++) labels.push(String(n.cells[0][c] || "").trim());
+    if (n.cells && n.cells[0]) for (var c = 0; c < n.cols; c++) labels.push(String(n.cells[0][c] || "").trim());
     var keys = labels.map(function(v){ return v.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'col'; });
     withUndo(function(){
       n.columns = keys.join(",");
@@ -10957,6 +10957,19 @@ function tableToSui(n, depth) {
   if (n.structureEditable) extra += " structureEditable: true";
   if (n.pageSize) extra += " pageSize: " + n.pageSize;
   if (n.selection) extra += " selection: \"" + esc(n.selection) + "\"";
+  // A columns-declared data table has no designed thead/tbody: the runtime builds
+  // them from the column metadata. Emitting the synthetic header row would
+  // duplicate the declared header and change the table's data model.
+  if (n.dataTable) {
+    var dline = ind(depth) + "table" + attrsOf(n) + extra;
+    if (n.captionShow !== false && n.caption && n.caption.trim()) {
+      dline += " {\n" + ind(depth + 1) + "caption \"" + escText(n.caption) + "\"" +
+        (n.capstyle ? " style: \"" + esc(n.capstyle) + "\"" : "") + "\n" + ind(depth) + "}\n";
+    } else {
+      dline += "\n";
+    }
+    return dline;
+  }
   var line = ind(depth) + "table" + attrsOf(n) + extra + " {\n";
   if (n.captionShow !== false && n.caption && n.caption.trim()) {
     line += ind(depth + 1) + "caption \"" + escText(n.caption) + "\"" + (n.capstyle ? " style: \"" + esc(n.capstyle) + "\"" : "") + "\n";
@@ -11692,7 +11705,10 @@ function typeToEdit(key) {
   }
   // Table type-to-edit: when a cell is selected (table selection mode), typing
   // appends the keystroke to that cell's text (model cells are string matrices).
+  // Data tables (columns attr + runtime rows) have no designed cells: editing the
+  // model would reload the preview on each letter, so leave them alone.
   if (selMode === "cell" && selCell && n.kind === "table" && n.cells && n.cells[selCell.r]) {
+    if (n.dataTable || n.columns) return false;
     n.cells[selCell.r][selCell.c] = (n.cells[selCell.r][selCell.c] || "") + key;
     snap("type cell " + key);
     setOut();

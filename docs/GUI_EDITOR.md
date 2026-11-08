@@ -1161,10 +1161,11 @@ preview immediately; the overlay stays open while editing.
 The **− Table** button and the sheet selector appear only when more than one
 table exists. **+ Table** wraps a lone table in a bottom sheet-tab workbook (or
 adds a new sheet to the existing workbook) and selects the new table. A new sheet
-copies the source table's appearance and behavior (editable, sortable,
-filterable, events), keeps its own generic header (`A`, `B`, `C`) and starts
-with two empty body rows. The preview keeps the selected sheet while settings
-are edited.
+copies the source table's appearance and behavior (sortable, filterable, events),
+keeps its own generic header (`A`, `B`, `C`) with generic text columns and starts
+with two empty body rows. The new sheet is always editable, even when the source
+table was read-only or used numeric columns. The preview keeps the selected sheet
+while settings are edited.
 
 New tables are named automatically (`table1`, `table2`, ...), so their runtime
 settings gear and `table.*` helpers are immediately available. The gear opens
@@ -1212,7 +1213,8 @@ Table settings groups:
   blur or after a short pause and change events run on blur. Cell input events
   stay inside the table, so ancestor `onInput` handlers are not triggered.
   Editable cells can be typed directly in the preview: click the cell to focus
-  it, then type.
+  it, then type. Header labels are editable too: a click places the caret in the
+  label, while sorting uses the dedicated header sort button.
 - **Data** - runtime **table name** used by `table.display`, `table.data`,
   `table.json` and `table.exportText`.
 - **Columns** - declarative `columns`, labels, widths, alignment, cell types,
@@ -1223,7 +1225,8 @@ Table settings groups:
   (reserved), `show add table button` (runtime **+** tab), `runtime structure
   editing` (row/column context menu), `page size` and `selection` mode
   (row/column/cell). In `column` selection mode a header click selects the
-  column; **Alt+click** sorts it when `sortable` is on.
+  column; **Alt+click** sorts it when `sortable` is on. In editable tables a
+  header click edits the label and sorting uses only the header sort button.
 
 New table events are available in the overlay **Events** tab:
 `onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`, `onTableChange`,

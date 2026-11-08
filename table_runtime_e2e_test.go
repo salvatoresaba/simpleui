@@ -210,6 +210,10 @@ const tableRuntimeE2EScript = `<script>
     });
     if (createdHead.join(',') !== 'A,B,C,D') throw new Error('runtime sheet inherited header: ' + createdHead.join(','));
     if (createdTable.querySelectorAll('tbody tr').length !== 2) throw new Error('runtime sheet must start with two empty rows');
+    if (createdTable.getAttribute('data-sui-editable') !== '1') throw new Error('runtime sheet must be editable');
+    if (createdTable.getAttribute('data-sui-columns') !== 'a,b,c,d') throw new Error('runtime sheet inherited column keys: ' + createdTable.getAttribute('data-sui-columns'));
+    if (createdTable.getAttribute('data-sui-column-types')) throw new Error('runtime sheet inherited column types');
+    if (createdTable.querySelector('tbody td').getAttribute('contenteditable') !== 'true') throw new Error('runtime sheet cell is not editable');
     document.querySelectorAll('.sui-tablist .sui-tab')[0].click();
     await wait(250);
     var ucell = table('users').querySelector('tbody td');
@@ -264,28 +268,42 @@ const tableRuntimeE2EScript = `<script>
       throw new Error('runtime sheet cell edit lost after re-render: names=' + dbgNames.join(',') + ' tabs=' + Array.prototype.slice.call(document.querySelectorAll('.sui-tablist .sui-tab')).map(function(t){ return t.textContent; }).join(',') + ' data=' + JSON.stringify(dbgData));
     }
 
-    // Runtime header edits survive blur and reactive re-render.
+    // Clicking an editable header places the caret; it must not sort or rebuild
+    // the table, otherwise the first click steals the edit.
     var headCell = table('editable').querySelector('thead th');
+    var headLabel = headCell.querySelector('.sui-table-hlabel');
+    if (!headLabel) throw new Error('header label missing');
+    headCell.focus();
     headCell.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
-    headCell.textContent = 'RenamedHeader';
-    headCell.dispatchEvent(new Event('input', { bubbles: true }));
+    headCell.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    await wait(150);
+    if (headCell.closest('table') !== table('editable')) throw new Error('editable header click rebuilt the table');
+    if (headCell.getAttribute('aria-sort') === 'ascending' || headCell.getAttribute('aria-sort') === 'descending') throw new Error('editable header click sorted the table');
+    // Runtime header edits survive blur and reactive re-render. Editing the
+    // label span keeps the sort/filter controls intact.
+    headLabel.textContent = 'RenamedHeader';
+    headLabel.dispatchEvent(new Event('input', { bubbles: true }));
     headCell.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
     await wait(600);
     var headAfter = table('editable').querySelector('thead th');
-    if (!headAfter || headAfter.textContent.indexOf('RenamedHeader') < 0) throw new Error('runtime header edit lost: ' + (headAfter ? headAfter.textContent : 'missing'));
+    var headAfterLabel = headAfter ? headAfter.querySelector('.sui-table-hlabel') : null;
+    if (!headAfterLabel || headAfterLabel.textContent.indexOf('RenamedHeader') < 0) throw new Error('runtime header edit lost: ' + (headAfter ? headAfter.textContent : 'missing'));
+    if (!headAfter.querySelector('.sui-table-hbtns')) throw new Error('header controls lost during edit');
     if ((table('editable').getAttribute('data-sui-column-labels') || '').indexOf('RenamedHeader') < 0) throw new Error('runtime header edit not persisted');
     var editedHeader = window.__SUI_TBL.header('editable')[0];
     if (!editedHeader || editedHeader[0] !== 'RenamedHeader') throw new Error('header API lost runtime edit');
     // Headers are labels, not typed numbers: the second editable column is a
     // number column and must still accept a textual header label.
     var head2 = table('editable').querySelectorAll('thead th')[1];
+    var head2Label = head2.querySelector('.sui-table-hlabel');
     head2.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
-    head2.textContent = 'AmountRenamed';
-    head2.dispatchEvent(new Event('input', { bubbles: true }));
+    head2Label.textContent = 'AmountRenamed';
+    head2Label.dispatchEvent(new Event('input', { bubbles: true }));
     head2.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
     await wait(600);
     var head2After = table('editable').querySelectorAll('thead th')[1];
-    if (!head2After || head2After.textContent.indexOf('AmountRenamed') < 0) throw new Error('numeric-column header edit rejected');
+    var head2AfterLabel = head2After ? head2After.querySelector('.sui-table-hlabel') : null;
+    if (!head2AfterLabel || head2AfterLabel.textContent.indexOf('AmountRenamed') < 0) throw new Error('numeric-column header edit rejected');
     var editedHeader2 = window.__SUI_TBL.header('editable')[0];
     if (!editedHeader2 || editedHeader2[1] !== 'AmountRenamed') throw new Error('numeric-column header API lost runtime edit');
 
@@ -349,7 +367,7 @@ view main {
 			}
 		}
 	}
-	table name: "editable" editable: true columns: "name,amount" columnLabels: "Name,Amount" columnTypes: "text,number" columnFormats: "text,currency:EUR" onCellChange: cellChanged {
+	table name: "editable" editable: true columns: "name,amount" columnLabels: "Name,Amount" columnTypes: "text,number" columnFormats: "text,currency:EUR" sortable: true onCellChange: cellChanged {
 		thead {
 			trow {
 				tcell "Name" head: true

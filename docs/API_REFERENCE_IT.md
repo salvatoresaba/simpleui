@@ -2132,8 +2132,10 @@ table name: "utenti" columns: "id,nome,stato,importo"
   `wrap` (larghezza fissa, testo a capo e riga più alta), `truncate` (una riga,
   overflow nascosto, testo completo in overlay al passaggio del mouse).
   `fixed: true` equivale alla modalità legacy truncate.
-- `sortable` abilita l'ordinamento cliccando l'header (e inizializza il toggle
-  runtime); `filterable` aggiunge il filtro testo globale e inizializza i filtri
+- `sortable` abilita l'ordinamento dell'header (e inizializza il toggle runtime).
+  Nelle tabelle editable il click sull'header porta il cursore nell'etichetta;
+  per ordinare si usa il pulsante di sort nell'header, così l'edit non perde il
+  fuoco. `filterable` aggiunge il filtro testo globale e inizializza i filtri
   per colonna nell'header; `pageSize` pagina le righe; `selection` è `row`,
   `column` o `cell` e `multiSelect` abilita la selezione multipla.
 
@@ -2170,8 +2172,10 @@ click apre il pannello delle impostazioni:
   **Apply**. Più filtri di colonna si combinano in AND.
 - **Sort by clicking headers**: ogni intestazione ha un piccolo pulsante di
   ordinamento allineato a destra, sulla stessa riga del testo. Cicla crescente,
-  decrescente e ordine originale. Anche il click sul testo dell'header ordina;
-  Ctrl/Command/Shift aggiunge o attiva/disattiva un livello di ordinamento.
+  decrescente e ordine originale; Ctrl/Command/Shift aggiunge o attiva/disattiva
+  un livello di ordinamento. Nelle tabelle non editable anche il click sul testo
+  dell'header ordina; in quelle editable il testo è il campo di rinomina, quindi
+  si usa solo il pulsante.
 - **Sort levels**: elenco ordinato di coppie colonna/direzione. Le righe sono
   ordinate per il primo livello, i pareggi sono risolti dal successivo, come un
   ordinamento multi-colonna di Excel.
@@ -2212,11 +2216,13 @@ table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome"
 
 - `showAddTable` mostra una **tab +** alla fine della striscia degli sheet quando
   la tabella è dentro un controllo `tabs`. Il click aggiunge un nuovo
-  sheet/tabella con le stesse colonne e lo stesso aspetto/comportamento della
-  tabella di origine, una propria intestazione generica (`A`, `B`, ...) e due
-  righe corpo vuote. La nuova tabella riceve un nome generato (`table-1`,
-  `table-2`, …) e resta disponibile tra i re-render reattivi della sessione; il
-  foglio selezionato resta attivo quando la vista si aggiorna.
+  sheet/tabella con aspetto e comportamento della tabella di origine, una propria
+  intestazione generica (`A`, `B`, ...), colonne di testo generiche e due righe
+  corpo vuote. Il nuovo foglio è sempre editable, anche se la tabella di origine
+  era di sola lettura o usava colonne numeriche, così l'inserimento manuale non
+  eredita la validazione della sorgente. La nuova tabella riceve un nome generato
+  (`table-1`, `table-2`, …) e resta disponibile tra i re-render reattivi della
+  sessione; il foglio selezionato resta attivo quando la vista si aggiorna.
 - `structureEditable` abilita il menu contestuale runtime di riga/colonna. Clic
   destro su una cella o sull’header permette di:
   - inserire riga sopra/sotto o colonna a sinistra/destra;
@@ -2230,12 +2236,13 @@ table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome"
 - Le operazioni strutturali aggiornano subito la griglia, chiamano
   `onTableChange` e registrano `row-insert`, `row-delete`, `column-insert` o
   `column-delete` in `table.lastChange`.
-- Una tabella creata a runtime è modificabile quando `structureEditable` è
-  attivo, quindi si può riempire senza uscire dall’app.
+- Una tabella creata a runtime è sempre editable, quindi si può riempire senza
+  uscire dall’app; `structureEditable` abilita in più il menu riga/colonna.
 - Le modifiche runtime a celle del corpo e etichette di intestazione restano
   nello store della tabella tra re-render e cambio foglio per la sessione della
-  pagina. La digitazione non ridisegna la tabella: il testo è salvato subito e il
-  valore è finalizzato al blur o dopo una breve pausa. Gli eventi di cambio e la
+  pagina. Le etichette usano lo span del testo, quindi i pulsanti sort/filtro
+  continuano a funzionare. La digitazione non ridisegna la tabella: il testo è
+  salvato subito e il valore è finalizzato al blur o dopo una breve pausa. Gli eventi di cambio e la
   validazione scattano al blur. Gli eventi `input` delle celle restano interni
   alla tabella: gli handler `onInput` applicativi sulla tabella o sui suoi
   antenati non vengono chiamati per le modifiche alle celle; usa `onCellChange`.

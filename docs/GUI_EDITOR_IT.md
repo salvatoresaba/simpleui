@@ -1206,10 +1206,12 @@ la preview; l'overlay resta aperto durante le modifiche.
 Il pulsante **− Table** e il selettore fogli compaiono solo con più tabelle.
 **+ Table** avvolge una tabella singola in un workbook con sheet tab in basso
 (oppure aggiunge un nuovo sheet) e seleziona la nuova tabella. Un nuovo foglio
-copia dalla tabella di origine aspetto e comportamento (editable, sortable,
-filterable, eventi), mantiene una propria intestazione generica (`A`, `B`, `C`)
-e parte con due righe corpo vuote. La preview mantiene il foglio selezionato
-mentre si modificano le impostazioni.
+copia dalla tabella di origine aspetto e comportamento (sortable, filterable,
+eventi), mantiene una propria intestazione generica (`A`, `B`, `C`) con colonne
+di testo generiche e parte con due righe corpo vuote. Il nuovo foglio è sempre
+editable, anche se la tabella di origine era di sola lettura o usava colonne
+numeriche. La preview mantiene il foglio selezionato mentre si modificano le
+impostazioni.
 
 Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
 l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito
@@ -1261,6 +1263,8 @@ Gruppi del pannello:
   delle celle restano interni alla tabella, quindi gli handler `onInput` degli
   antenati non vengono attivati. Le celle editable si possono digitare
   direttamente nella preview: click sulla cella per focalizzarla, poi scrivere.
+  Anche le intestazioni sono modificabili: il click porta il cursore
+  nell'etichetta, mentre l'ordinamento usa il pulsante dedicato nell'header.
 - **Data** - **table name** usato da `table.display`, `table.data`, `table.json`
   e `table.exportText`.
 - **Columns** - `columns`, labels, larghezze, allineamento, tipi, formati,
@@ -1270,7 +1274,9 @@ Gruppi del pannello:
   (riservato), `show add table button` (runtime **+** tab), `runtime structure
   editing` (menu contestuale righe/colonne), `page size` e modalità `selection`
   (row/column/cell). In modalità `column` il click sull'header seleziona la
-  colonna; **Alt+click** la ordina quando `sortable` è attivo.
+  colonna; **Alt+click** la ordina quando `sortable` è attivo. Nelle tabelle
+  editable il click sull'header modifica l'etichetta e l'ordinamento usa solo il
+  pulsante di sort nell'header.
 
 I nuovi eventi sono nella tab **Events** dell'overlay:
 `onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`, `onTableChange`,

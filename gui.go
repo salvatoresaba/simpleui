@@ -1179,13 +1179,16 @@ const guiPreviewPicker = `<script>
   // type-to-edit bridge, which would reload the preview on every letter.
   function focusEditableCell(c) {
     if (!c || !c.isContentEditable) return;
+    // Header cells contain sort/filter controls outside the text; editing must
+    // start in the label span, not after the controls.
+    var target = c.querySelector ? (c.querySelector('.sui-table-hlabel') || c) : c;
     try {
       c.focus();
-      var doc = c.ownerDocument || document;
+      var doc = target.ownerDocument || document;
       var sel = doc.getSelection ? doc.getSelection() : null;
       if (!sel) return;
       var range = doc.createRange();
-      range.selectNodeContents(c);
+      range.selectNodeContents(target);
       range.collapse(false);
       sel.removeAllRanges();
       sel.addRange(range);
@@ -2655,6 +2658,73 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		header bool
 		style  string
 	}
+	// Table attributes describe the data-table model even when the table has no
+	// nested trow/tcell children (the `columns:` form). Parse them before the
+	// row scan so the designer never drops editable/labels/sortable on a
+	// header-only table.
+	editable := false
+	fixed := false
+	columns := ""
+	columnLabels := ""
+	columnWidths := ""
+	columnAlign := ""
+	columnTypes := ""
+	columnFormats := ""
+	columnOptions := ""
+	sortable := false
+	filterable := false
+	cellText := ""
+	pageSize := ""
+	selection := ""
+	multiSelect := false
+	virtual := false
+	showAddTable := false
+	structureEditable := false
+	for a := 0; a < len(e.attrs); a++ {
+		at := e.attrs[a]
+		switch at.key {
+		case "editable":
+			editable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "fixed":
+			fixed = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "cellText":
+			cellText = partsLiteral(at.text)
+		case "sortable":
+			sortable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "filterable":
+			filterable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "multiSelect":
+			multiSelect = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "virtual":
+			virtual = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "showAddTable":
+			showAddTable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "structureEditable":
+			structureEditable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "columns":
+			columns = partsLiteral(at.text)
+		case "columnLabels":
+			columnLabels = partsLiteral(at.text)
+		case "columnWidths":
+			columnWidths = partsLiteral(at.text)
+		case "columnAlign":
+			columnAlign = partsLiteral(at.text)
+		case "columnTypes":
+			columnTypes = partsLiteral(at.text)
+		case "columnFormats":
+			columnFormats = partsLiteral(at.text)
+		case "columnOptions":
+			columnOptions = partsLiteral(at.text)
+		case "selection":
+			selection = partsLiteral(at.text)
+		case "pageSize":
+			if at.hasExpr && at.expr != nil && at.expr.kind == "int" {
+				pageSize = strconv.Itoa(at.expr.i)
+			} else if !at.hasExpr {
+				pageSize = strings.TrimSpace(partsLiteral(at.text))
+			}
+		}
+	}
 	var src []srcRow
 	captionText := ""
 	captionStyle := ""
@@ -2700,7 +2770,50 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		}
 	}
 	if len(src) == 0 {
-		return JNull(), false
+		// A data table declared with `columns:` has no nested thead/tbody. Keep
+		// its attributes and build a synthetic header row so the designer
+		// inspector can still edit the column metadata; dataTable tells the
+		// serializer not to emit thead/tbody before the runtime fills them.
+		keys := guiColumnList(columns)
+		labels := guiColumnList(columnLabels)
+		count := len(keys)
+		if len(labels) > count {
+			count = len(labels)
+		}
+		if count == 0 {
+			return JNull(), false
+		}
+		labels2 := make([]string, count)
+		for i := 0; i < count; i++ {
+			if i < len(labels) {
+				labels2[i] = labels[i]
+			} else if i < len(keys) {
+				labels2[i] = keys[i]
+			}
+		}
+		cellRow := JArr()
+		spanRow := JArr()
+		styleRow := JArr()
+		for _, label := range labels2 {
+			cellRow = pushArr(cellRow, JStr(label))
+			spanRow = pushArr(spanRow, JObj("cs", JInt(1), "rs", JInt(1)))
+			styleRow = pushArr(styleRow, JObj("bg", JStr(""), "color", JStr(""), "extra", JStr("")))
+		}
+		return JObj(
+			"cols", JInt(count), "rows", JInt(1), "header", JInt(1),
+			"cells", JArr(cellRow), "spans", JArr(spanRow),
+			"cstyles", JArr(styleRow),
+			"rowstyles", JArr(JObj("bg", JStr(""), "color", JStr(""), "extra", JStr(""))),
+			"caption", JStr(captionText), "capstyle", JStr(captionStyle),
+			"editable", JBool(editable), "fixed", JBool(fixed),
+			"columns", JStr(columns), "columnLabels", JStr(columnLabels), "columnWidths", JStr(columnWidths),
+			"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
+			"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),
+			"cellText", JStr(cellText),
+			"pageSize", JStr(pageSize), "selection", JStr(selection), "multiSelect", JBool(multiSelect),
+			"virtual", JBool(virtual), "showAddTable", JBool(showAddTable), "structureEditable", JBool(structureEditable),
+			"dataTable", JBool(true),
+		), true
 	}
 	cols := 0
 	for _, r := range src {
@@ -2793,69 +2906,6 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		cells = pushArr(cells, cellRow)
 		spans = pushArr(spans, spanRow)
 	}
-	editable := false
-	fixed := false
-	columns := ""
-	columnLabels := ""
-	columnWidths := ""
-	columnAlign := ""
-	columnTypes := ""
-	columnFormats := ""
-	columnOptions := ""
-	sortable := false
-	filterable := false
-	cellText := ""
-	pageSize := ""
-	selection := ""
-	multiSelect := false
-	virtual := false
-	showAddTable := false
-	structureEditable := false
-	for a := 0; a < len(e.attrs); a++ {
-		at := e.attrs[a]
-		switch at.key {
-		case "editable":
-			editable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "fixed":
-			fixed = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "cellText":
-			cellText = partsLiteral(at.text)
-		case "sortable":
-			sortable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "filterable":
-			filterable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "multiSelect":
-			multiSelect = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "virtual":
-			virtual = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "showAddTable":
-			showAddTable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "structureEditable":
-			structureEditable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
-		case "columns":
-			columns = partsLiteral(at.text)
-		case "columnLabels":
-			columnLabels = partsLiteral(at.text)
-		case "columnWidths":
-			columnWidths = partsLiteral(at.text)
-		case "columnAlign":
-			columnAlign = partsLiteral(at.text)
-		case "columnTypes":
-			columnTypes = partsLiteral(at.text)
-		case "columnFormats":
-			columnFormats = partsLiteral(at.text)
-		case "columnOptions":
-			columnOptions = partsLiteral(at.text)
-		case "selection":
-			selection = partsLiteral(at.text)
-		case "pageSize":
-			if at.hasExpr && at.expr != nil && at.expr.kind == "int" {
-				pageSize = strconv.Itoa(at.expr.i)
-			} else if !at.hasExpr {
-				pageSize = strings.TrimSpace(partsLiteral(at.text))
-			}
-		}
-	}
 	return JObj(
 		"cols", JInt(cols), "rows", JInt(rows), "header", JInt(headerCount),
 		"cells", cells, "spans", spans, "cstyles", cstyles, "rowstyles", rowstyles,
@@ -2867,7 +2917,21 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		"cellText", JStr(cellText),
 		"pageSize", JStr(pageSize), "selection", JStr(selection), "multiSelect", JBool(multiSelect),
 		"virtual", JBool(virtual), "showAddTable", JBool(showAddTable), "structureEditable", JBool(structureEditable),
+		"dataTable", JBool(false),
 	), true
+}
+
+// guiColumnList splits a comma-separated column/label declaration, dropping
+// empty entries so `columns: "a,b,"` still counts two columns.
+func guiColumnList(s string) []string {
+	var out []string
+	for _, part := range strings.Split(s, ",") {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 // cssParts splits an inline style string into the designer's structured
