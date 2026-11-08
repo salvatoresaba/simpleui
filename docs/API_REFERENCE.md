@@ -2239,9 +2239,11 @@ table name: "users" columns: "id,name,status,amount"
 - `columnFormats`: `text`, `number`, `currency:EUR`, `percent` or `date`.
   Sorting and editing always use the raw value.
 - `columnOptions`: `column=value1|value2;other=...` for `select` validation.
-- `cellText`: `auto` (default; columns can grow and text wraps), `wrap` (fixed
-  width, text wraps and the row grows), `truncate` (single line, overflow hidden,
-  full text in a hover overlay). `fixed: true` is the legacy truncate mode.
+- `cellText`: `truncate` (default; the column width never grows with the text,
+  overflow is hidden with an ellipsis and the full text appears in a hover
+  overlay) or `wrap` (the column width stays fixed, the text wraps and the row
+  height grows). `fixed: true` is the legacy truncate mode. Column width changes
+  reflow the same cell text according to the chosen mode.
 - `sortable` enables header sorting (ascending, descending, original) and seeds
   the runtime sort toggle. On editable tables a header click places the caret in
   the header label; use the header sort button so sorting cannot blur the edit.
@@ -2328,9 +2330,10 @@ The tab strip is rendered below the panels and styled as a compact sheet bar.
 With a single sheet the sheet tab is hidden; the **+** tab is always shown in
 the designer preview and at runtime only when the workbook has an editable sheet.
 From the second sheet on the workbook tabs appear. Double-click a tab or use its
-context menu to rename the workbook. The control padding (default 10 px) insets
-the sheet viewport from the control border; the row/column selection strips live
-in that padding, outside the scrolling cells.
+context menu to rename the workbook; each tab has a small **×** and the context
+menu also deletes the workbook. The control padding (default 10 px) insets the
+sheet viewport from the control border; the row/column selection strips straddle
+the cell border in that padding and the first-cell triangle selects all cells.
 In the visual designer the workbook is one `table` node: sheets without an
 explicit `selection` mode are editable, all sheets share the table control's
 visible size, and the **+** tab adds a real sheet to the `.sui` source instead of

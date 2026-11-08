@@ -1178,7 +1178,9 @@ shown only when the workbook has an editable sheet. A workbook with a single
 sheet shows no sheet tab, only the **+** in the designer (and no tab strip at all
 at runtime when the workbook is read-only); the sheet tabs appear from the second
 sheet on. Double-click a sheet tab, or use its context menu and **Rename
-workbook**, to change the workbook name written on the tab. The table control fills its host and has a **640 × 300 px**
+workbook**, to change the workbook name written on the tab. Each tab also has a
+small **×**; clicking it, or choosing **Delete workbook** from the tab context
+menu, removes that workbook from the model and the `.sui` source. The table control fills its host and has a **640 × 300 px**
 minimum; when the host has no explicit size, that minimum is the default. The
 workbook sheet area takes all the space inside the control border after the
 title/gear row and the sheet tab strip, and it follows every control resize.
@@ -1205,11 +1207,12 @@ header that opens a searchable checklist of column values.
 - Click a cell to select it.
 - Click in the gutter just **above a column header** (outside the table) to select the column.
 - Click in the gutter just **left of a row** (outside the table) to select the row.
-- Hovering those outer gutters shows a thin blue strip: it is exactly the
-  clickable zone, and it never overlaps cells or the control resize handles. The
-  strips live in the control padding, outside the scrolling sheet content.
-- The highlighted square at the table's **top-left corner** selects all cells
-  (all rows and columns together), not the outer control.
+- Hovering those gutters shows a thin blue strip **straddling the cell border**
+  (half in the control padding, half over the cell edge). It is exactly the
+  clickable zone, and it never overlaps the control resize handles. The strips
+  live outside the scrolling sheet content.
+- The small blue **triangle in the top-left corner of the first cell** selects
+  all cells (all rows and columns together), not the outer control.
 - Selecting the outer table control never steals a row/column gutter click: the
   hovered strip wins over a nearby cell.
 - Clicking a sheet tab switches the workbook without drawing an extent box or
@@ -1242,9 +1245,10 @@ Table settings groups:
 - **Caption** - optional caption, size, weight, alignment and color. At runtime
   the caption is shown in the title row just above the table, on the same line
   as the settings gear.
-- **Behavior** - **editable** cells and **cell text** mode: **auto** (columns
-  grow and text wraps), **wrap** (fixed width, rows grow) or **truncate**
-  (single line, overflow hidden, full text in a hover overlay). Runtime cell and
+- **Behavior** - **editable** cells and **cell text** mode: **truncate**
+  (default; the column width never grows with the text, a single line with an
+  ellipsis and the full text in a hover overlay) or **wrap** (the column width
+  stays fixed, the text wraps and the row height grows). Runtime cell and
   header edits stay in the table store across re-renders and sheet switches for
   the page session; typing never rebuilds the table, the value is finalized on
   blur or after a short pause and change events run on blur. Cell input events

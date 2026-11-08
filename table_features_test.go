@@ -100,6 +100,7 @@ view main {
 		`if (cfg2.editable) return;`, `editTextOf`, `setCellEditText`, `syncHeaderLabelsAttr`,
 		`contenteditable', 'false`, `data-sui-editable', '1'`, `data-sui-columns', headKeys.join(',')`,
 		`normalizeWorkbookRuntime`, `data-sui-show-add-table`, `data-sui-selection`, `data-sui-workbook`, `data-sui-tabcount`, `data-sui-workbook-editable`,
+		`updateWorkbookTableWidth`, `data-sui-cell-text`, `sui-table-editing`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below
@@ -122,13 +123,13 @@ view main {
 	if !strings.Contains(guiPreviewPicker, `headCount + bodyRow`) {
 		t.Errorf("preview picker must offset body rows by the header row count")
 	}
-	// Row/column selection strips and the select-all corner must sit outside
-	// the table and be driven by geometry, not by the clicked element.
+	// Row/column selection strips straddle the cell border and the select-all
+	// triangle lives inside the first cell; both are geometry-driven.
 	if !strings.Contains(guiPreviewPicker, `sui-tzone`) || !strings.Contains(guiPreviewPicker, `TABLE_BORDER_ZONE`) {
 		t.Errorf("preview picker must show the row/column gutter strip")
 	}
-	if !strings.Contains(guiPreviewPicker, `sui-tcorner`) || !strings.Contains(guiPreviewPicker, `TABLE_CORNER`) {
-		t.Errorf("preview picker must show the select-all corner")
+	if !strings.Contains(guiPreviewPicker, `sui-tselect`) || !strings.Contains(guiPreviewPicker, `sui-table-all`) {
+		t.Errorf("preview picker must show the select-all triangle")
 	}
 	if !strings.Contains(guiPreviewPicker, `rowAtY`) || !strings.Contains(guiPreviewPicker, `colAtX`) {
 		t.Errorf("preview picker must resolve gutter rows/columns geometrically")
@@ -322,12 +323,14 @@ func TestDesignerWorkbookAuthoring(t *testing.T) {
 		"normalizeWorkbookControl", "selectWorkbookTab", "sui-table-tab",
 		"renameWorkbookTab", "showWorkbookTabMenu", "sui-tab-rename", "sui-tab-menu",
 		"selectAllTableCells", "sui-table-all", "control padding", "--sui-workbook-pad",
+		"deleteWorkbookTab", "sui-tab-delete",
+		`n.cellText === "auto"`, `n.cellText = "truncate"`, "truncate (ellipsis + hover)",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer workbook handling missing %q", want)
 		}
 	}
-	for _, want := range []string{"sui-table-add", "sui-table-tab", "sui-table-all", "sui-cell-edit", "postCellEdit", ".sui-tab-add", "sui-hl-control", "sui-tab-rename", "sui-tab-menu", "tabPickInfo"} {
+	for _, want := range []string{"sui-table-add", "sui-table-tab", "sui-table-all", "sui-cell-edit", "postCellEdit", ".sui-tab-add", "sui-hl-control", "sui-tab-rename", "sui-tab-menu", "sui-tab-delete", "sui-tab-x", "sui-tselect", "tabPickInfo", "ensureTableDecorations"} {
 		if !strings.Contains(guiPreviewPicker, want) {
 			t.Errorf("preview picker missing %q", want)
 		}
@@ -339,6 +342,7 @@ func TestDesignerWorkbookAuthoring(t *testing.T) {
 		`[data-sui-tabcount="1"] .sui-tablist .sui-tab`,
 		`[data-sui-workbook-editable="0"] .sui-tab-add`,
 		"body.sui-designer-preview", "--sui-workbook-pad, 10px",
+		"width: 160px", "min-width: 160px", ".sui-table-editing",
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("workbook CSS missing %q", want)

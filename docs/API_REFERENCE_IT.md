@@ -2128,10 +2128,11 @@ table name: "utenti" columns: "id,nome,stato,importo"
 - `columnFormats`: `text`, `number`, `currency:EUR`, `percent`, `date`; il valore
   raw resta disponibile per ordinamento, editing ed export.
 - `columnOptions`: `colonna=valore1|valore2;...` per `select`.
-- `cellText`: `auto` (default; le colonne possono crescere e il testo va a capo),
-  `wrap` (larghezza fissa, testo a capo e riga più alta), `truncate` (una riga,
-  overflow nascosto, testo completo in overlay al passaggio del mouse).
-  `fixed: true` equivale alla modalità legacy truncate.
+- `cellText`: `truncate` (default; la larghezza della colonna non cresce con il
+  testo, una riga con ellissi e testo completo in overlay al passaggio del
+  mouse) oppure `wrap` (larghezza colonna fissa, testo a capo e altezza riga che
+  cresce). `fixed: true` equivale alla modalità legacy truncate. Cambiando la
+  larghezza della colonna il testo si ridispone secondo la modalità scelta.
 - `sortable` abilita l'ordinamento dell'header (e inizializza il toggle runtime).
   Nelle tabelle editable il click sull'header porta il cursore nell'etichetta;
   per ordinare si usa il pulsante di sort nell'header, così l'edit non perde il
@@ -2208,9 +2209,11 @@ tabella mantiene dati, ordinamento, filtri, pagina ed eventi indipendenti. Con u
 solo foglio la tab del foglio è nascosta; la **+** è sempre visibile nella
 preview del designer e a runtime solo se il workbook ha un foglio editable. Dal
 secondo foglio in poi compaiono le tab del workbook. Doppio click su una tab o
-menu contestuale per rinominare il workbook. Il padding del controllo (default
-10 px) allontana il viewport del foglio dal bordo; le strisce di selezione
-riga/colonna stanno in questo padding, fuori dalle celle scrollabili. Nel
+menu contestuale per rinominare il workbook; ogni tab ha una piccola **×** e il
+menu contestuale permette anche di eliminare il workbook. Il padding del
+controllo (default 10 px) allontana il viewport del foglio dal bordo; le strisce
+di selezione riga/colonna sono a cavallo del bordo cella in questo padding e il
+triangolo nella prima cella seleziona tutte le celle. Nel
 designer visivo il workbook è un unico nodo `table`: i fogli senza una modalità
 `selection` esplicita sono editable, tutti condividono la dimensione visibile del
 controllo tabella e la tab **+** aggiunge un foglio reale al sorgente `.sui`, non

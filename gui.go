@@ -748,7 +748,7 @@ func fontMime(ext string) string {
 const guiPreviewPicker = `<script>
 (function () {
   var st = document.createElement('style');
-  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-control { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
+  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-control { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; } .sui-tselect-host { position: relative !important; } .sui-tselect { position: absolute; left: 0; top: 0; width: 10px; height: 10px; background: rgba(76,92,247,.9); clip-path: polygon(0 0, 100% 0, 0 100%); cursor: pointer; z-index: 4; } .sui-tselect:hover { background: #4c5cf7; } .sui-tab-x { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 3px; font-size: 12px; line-height: 1; opacity: .65; cursor: pointer; } .sui-tab-x:hover { opacity: 1; background: rgba(239,68,68,.25); }';
   document.head.appendChild(st);
   var current = [];
   var handles = [];
@@ -758,14 +758,59 @@ const guiPreviewPicker = `<script>
   var marqueeOn = false;
   var mDown = null, mEl = null;
   var grid = document.createElement('div'); grid.className = 'sui-grid'; document.body.appendChild(grid);
-  // The row/column selection strips live just OUTSIDE the table, so they never
-  // overlap cells or the resize handles centred on the table border. The same
-  // values drive hit-testing and the hover overlay: what you see is clickable.
+  // Row/column strips straddle the cell border: half in the control padding and
+  // half over the cell edge. The same geometry drives hit-testing and the hover
+  // overlay, so the visible strip is the clickable area.
   var TABLE_BORDER_ZONE = 8;
-  var TABLE_CORNER = 8;
+  var TABLE_BORDER_HALF = TABLE_BORDER_ZONE / 2;
   var tableZoneEl = document.createElement('div'); tableZoneEl.className = 'sui-tzone'; document.body.appendChild(tableZoneEl);
   var tableCornerEl = document.createElement('div'); tableCornerEl.className = 'sui-tcorner'; document.body.appendChild(tableCornerEl);
+  tableCornerEl.style.display = 'none';
   function hideTableZone() { tableZoneEl.style.display = 'none'; tableCornerEl.style.display = 'none'; }
+  // Designer-only authoring decorations: a small triangle in the first cell
+  // (select all cells) and a small x inside every workbook sheet tab.
+  function ensureTableDecorations() {
+    var tables = document.querySelectorAll('table[data-sui-id]');
+    for (var i = 0; i < tables.length; i++) {
+      var tbl = tables[i];
+      var first = (tbl.tHead && tbl.tHead.rows[0] && tbl.tHead.rows[0].cells[0]) ||
+        (tbl.rows[0] && tbl.rows[0].cells[0]);
+      if (!first) continue;
+      first.classList.add('sui-tselect-host');
+      if (!first.querySelector('.sui-tselect')) {
+        var tri = document.createElement('span');
+        tri.className = 'sui-tselect';
+        tri.contentEditable = 'false';
+        tri.title = 'Select all cells';
+        tri.setAttribute('aria-label', 'Select all cells');
+        first.appendChild(tri);
+      }
+    }
+    var boxes = document.querySelectorAll('.sui-tabs');
+    for (var b = 0; b < boxes.length; b++) {
+      var panels = boxes[b].querySelectorAll('.sui-tabpanels .sui-tabpanel');
+      var workbook = panels.length > 0;
+      for (var p = 0; p < panels.length; p++) {
+        if (!panels[p].querySelector('table')) { workbook = false; break; }
+      }
+      if (!workbook) continue;
+      var tabs = boxes[b].querySelectorAll('.sui-tablist .sui-tab');
+      for (var t = 0; t < tabs.length; t++) {
+        if (tabs[t].querySelector('.sui-tab-x')) continue;
+        var x = document.createElement('span');
+        x.className = 'sui-tab-x';
+        x.textContent = '\u00d7';
+        x.title = 'Delete workbook';
+        x.setAttribute('aria-label', 'Delete workbook');
+        x.contentEditable = 'false';
+        tabs[t].appendChild(x);
+      }
+    }
+  }
+  ensureTableDecorations();
+  if (window.MutationObserver) {
+    new MutationObserver(function() { ensureTableDecorations(); }).observe(document.body, { childList: true, subtree: true });
+  }
   // Geometry for the outer gutters. Inside a scroll wrapper the gutter strips
   // live in the wrapper padding, not over the cells: the column strip is at the
   // viewport content top and the row strip follows the visible rows only.
@@ -836,12 +881,10 @@ const guiPreviewPicker = `<script>
       var box = tableBox(table);
       if (!box) continue;
       var kind = null, target = null, dist = Infinity;
-      if (x >= box.left - TABLE_CORNER && x < box.left && y >= box.top - TABLE_CORNER && y < box.top) {
-        kind = 'corner'; dist = Math.max(box.left - x, box.top - y);
-      } else if (y >= box.top - TABLE_BORDER_ZONE && y < box.top && x >= box.colLeft && x < box.colRight) {
-        kind = 'col'; target = colAtX(table, x); dist = box.top - y;
-      } else if (x >= box.left - TABLE_BORDER_ZONE && x < box.left && y >= box.rowTop && y < box.rowBottom) {
-        kind = 'row'; target = rowAtY(table, y); dist = box.left - x;
+      if (y >= box.top - TABLE_BORDER_HALF && y < box.top + TABLE_BORDER_HALF && x >= box.colLeft && x < box.colRight) {
+        kind = 'col'; target = colAtX(table, x); dist = Math.abs(y - box.top);
+      } else if (x >= box.left - TABLE_BORDER_HALF && x < box.left + TABLE_BORDER_HALF && y >= box.rowTop && y < box.rowBottom) {
+        kind = 'row'; target = rowAtY(table, y); dist = Math.abs(x - box.left);
       }
       if (!kind || (best && dist >= bestDist)) continue;
       var info = { kind: kind, table: table, tableId: Number(id), box: box, col: -1, row: -1,
@@ -859,25 +902,15 @@ const guiPreviewPicker = `<script>
     hideTableZone();
     if (!hit) return;
     var box = hit.box;
-    if (hit.kind === 'corner') {
-      // The corner is its own select-all affordance; the strip would just sit
-      // underneath it.
-      tableCornerEl.style.left = Math.max(0, box.left - TABLE_CORNER) + 'px';
-      tableCornerEl.style.top = Math.max(0, box.top - TABLE_CORNER) + 'px';
-      tableCornerEl.style.width = TABLE_CORNER + 'px';
-      tableCornerEl.style.height = TABLE_CORNER + 'px';
-      tableCornerEl.style.display = 'block';
-      return;
-    }
     var rect = null;
     if (hit.kind === 'col' && hit.rect) {
       var colL = Math.max(box.colLeft, hit.rect.left);
       var colR = Math.min(box.colRight, hit.rect.right);
-      if (colR > colL) rect = { left: colL, top: box.top - TABLE_BORDER_ZONE, width: colR - colL, height: TABLE_BORDER_ZONE };
+      if (colR > colL) rect = { left: colL, top: box.top - TABLE_BORDER_HALF, width: colR - colL, height: TABLE_BORDER_ZONE };
     } else if (hit.kind === 'row' && hit.rect) {
       var rowT = Math.max(box.rowTop, hit.rect.top);
       var rowB = Math.min(box.rowBottom, hit.rect.bottom);
-      if (rowB > rowT) rect = { left: box.left - TABLE_BORDER_ZONE, top: rowT, width: TABLE_BORDER_ZONE, height: rowB - rowT };
+      if (rowB > rowT) rect = { left: box.left - TABLE_BORDER_HALF, top: rowT, width: TABLE_BORDER_ZONE, height: rowB - rowT };
     }
     if (!rect) return;
     tableZoneEl.style.left = Math.max(0, rect.left) + 'px';
@@ -885,12 +918,6 @@ const guiPreviewPicker = `<script>
     tableZoneEl.style.width = rect.width + 'px';
     tableZoneEl.style.height = rect.height + 'px';
     tableZoneEl.style.display = 'block';
-    // The select-all corner stays visible while any gutter is hovered.
-    tableCornerEl.style.left = Math.max(0, box.left - TABLE_CORNER) + 'px';
-    tableCornerEl.style.top = Math.max(0, box.top - TABLE_CORNER) + 'px';
-    tableCornerEl.style.width = TABLE_CORNER + 'px';
-    tableCornerEl.style.height = TABLE_CORNER + 'px';
-    tableCornerEl.style.display = 'block';
   }
   function applyGrid() {
     if (!guidesOn) { grid.style.display = 'none'; return; }
@@ -1208,6 +1235,19 @@ const guiPreviewPicker = `<script>
   document.addEventListener('mousedown', function (e) {
     if (e.button !== 0 || e.altKey || marqueeOn) return;
     var t = e.target;
+    var selectAll = t && t.closest ? t.closest('.sui-tselect') : null;
+    if (selectAll) {
+      var allTable = selectAll.closest('table');
+      var allId = allTable ? allTable.getAttribute('data-sui-id') : null;
+      if (allId !== null && allId !== '-1') {
+        hideTableZone();
+        tableSelSuppressClick = true;
+        parent.postMessage({ ty: 'sui-table-all', id: Number(allId) }, '*');
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (t && t.closest && t.closest('button,a,input,select,textarea,.sui-table-filter,.sui-table-pager,.sui-table-add,.sui-table-topbar')) return;
     var info = tableInfo(t);
     // The visible gutter strip is the clickable area: when it belongs to the
@@ -1215,14 +1255,6 @@ const guiPreviewPicker = `<script>
     // selection cannot steal a row/column click near the border.
     var hit = gutterHit(e.clientX, e.clientY);
     if (hit && (!info || info.table === hit.table)) info = hit;
-    if (hit && hit.kind === 'corner' && (!info || info === hit)) {
-      hideTableZone();
-      tableSelSuppressClick = true;
-      parent.postMessage({ ty: 'sui-table-all', id: hit.tableId }, '*');
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
     if (!info) info = hit;
     if (!info) return;
     var tableId = info.table.getAttribute('data-sui-id');
@@ -1249,16 +1281,18 @@ const guiPreviewPicker = `<script>
     if (!tableSelDrag) {
       if (marqueeOn || e.altKey) { hideTableZone(); return; }
       var hoverInfo = tableInfo(document.elementFromPoint(e.clientX, e.clientY));
+      var hoverGutter = gutterHit(e.clientX, e.clientY);
+      if (hoverGutter && (!hoverInfo || hoverInfo.table === hoverGutter.table)) { showTableZone(hoverGutter); return; }
       if (hoverInfo) { hideTableZone(); return; }
-      showTableZone(gutterHit(e.clientX, e.clientY));
+      showTableZone(hoverGutter);
       return;
     }
     hideTableZone();
     var info = tableInfo(document.elementFromPoint(e.clientX, e.clientY));
-    var moveHit = info ? null : gutterHit(e.clientX, e.clientY);
-    var source = info || moveHit;
+    var moveHit = gutterHit(e.clientX, e.clientY);
+    var source = (moveHit && (!info || info.table === moveHit.table)) ? moveHit : info;
     if (!source || source.table !== tableSelDrag.table) return;
-    if (moveHit && moveHit.kind !== tableSelDrag.kind) return;
+    if (moveHit && source === moveHit && moveHit.kind !== tableSelDrag.kind) return;
     var row = tableSelDrag.kind === 'col' ? -1 : source.row;
     var col = tableSelDrag.kind === 'row' ? -1 : source.col;
     if (row === tableSelDrag.lastRow && col === tableSelDrag.lastCol) return;
@@ -1292,7 +1326,9 @@ const guiPreviewPicker = `<script>
     }) : [];
     var tabIndex = Array.prototype.indexOf.call(tabs, tab);
     if (index < 0 || tabIndex < 0) return null;
-    return { index: index, tabIndex: tabIndex };
+    var active = -1;
+    for (var i = 0; i < tabs.length; i++) if (tabs[i].classList.contains('active')) { active = i; break; }
+    return { index: index, tabIndex: tabIndex, active: active };
   }
   // Double-click a sheet tab to rename that workbook.
   document.addEventListener('dblclick', function (e) {
@@ -1316,6 +1352,7 @@ const guiPreviewPicker = `<script>
         ty: 'sui-tab-menu',
         index: tabInfo.index,
         tabIndex: tabInfo.tabIndex,
+        active: tabInfo.active,
         x: e.clientX,
         y: e.clientY
       }, '*');
@@ -1341,6 +1378,20 @@ const guiPreviewPicker = `<script>
     // Any click inside the preview dismisses the designer's context menus,
     // including clicks on empty preview space that select no element.
     parent.postMessage({ ty: 'sui-dismiss' }, '*');
+    // The x inside a workbook tab deletes that workbook.
+    var delTab = e.target && e.target.closest ? e.target.closest('.sui-tab-x') : null;
+    if (delTab) {
+      if (!delTab.__suiDeleting) {
+        var delInfo = tabPickInfo(delTab.closest('.sui-tab'));
+        if (delInfo) {
+          delTab.__suiDeleting = true;
+          parent.postMessage({ ty: 'sui-tab-delete', index: delInfo.index, tabIndex: delInfo.tabIndex, active: delInfo.active }, '*');
+        }
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     // The + tab is an authoring action in the designer: add a real workbook
     // sheet to the model instead of a session-only runtime table that would
     // disappear on the next preview rebuild.
@@ -1369,6 +1420,17 @@ const guiPreviewPicker = `<script>
     }
     if (tableSelSuppressClick) {
       tableSelSuppressClick = false;
+      return;
+    }
+    var syntheticAll = e.target && e.target.closest ? e.target.closest('.sui-tselect') : null;
+    if (syntheticAll) {
+      var syntheticTable = syntheticAll.closest('table');
+      var syntheticId = syntheticTable ? syntheticTable.getAttribute('data-sui-id') : null;
+      if (syntheticId !== null && syntheticId !== '-1') {
+        parent.postMessage({ ty: 'sui-table-all', id: Number(syntheticId) }, '*');
+      }
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
     // The table's runtime settings gear/panel are app UI, not designer nodes:

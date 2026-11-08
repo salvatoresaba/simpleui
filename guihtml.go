@@ -2027,7 +2027,7 @@ function normalizeTables(nodes) {
       if (n.captionShow === undefined) n.captionShow = !!(n.caption && n.caption.trim());
       if (n.editable === undefined) n.editable = false;
       if (n.fixed === undefined) n.fixed = false;
-      if (n.cellText === undefined) n.cellText = n.fixed ? "truncate" : "auto";
+      if (n.cellText === undefined || n.cellText === "auto") n.cellText = "truncate";
       if (n.name === undefined) n.name = "";
       ensureTableBaseCss();
     }
@@ -2072,7 +2072,7 @@ function newTableNode() {
   n.captionShow = false;
   n.editable = false;
   n.fixed = false;
-  n.cellText = "auto";
+  n.cellText = "truncate";
   n.name = uniqueTableName();
   n.columns = "";
   n.columnLabels = "";
@@ -8957,7 +8957,8 @@ function copyTableSheetLook(src, dst) {
   // source table. Without this the second sheet opens non-editable and the
   // preview falls back to type-to-edit (which reloads it on each key).
   dst.editable = true;
-  dst.cellText = src.cellText || (src.fixed ? "truncate" : "auto");
+  dst.cellText = src.cellText || "truncate";
+  if (dst.cellText === "auto") dst.cellText = "truncate";
   if (dst.cellText === "truncate") dst.fixed = true;
   dst.pageSize = src.pageSize || "";
   dst.selection = src.selection || "";
@@ -9528,13 +9529,13 @@ function tableControls(n, opts) {
   ];
   var cellTextRow = document.createElement("div"); cellTextRow.className = "rowline";
   var cellTextLbl = lbl("cell text");
-  cellTextLbl.title = "Auto grows columns and wraps; Wrap keeps the width and grows the row; Truncate hides overflow and shows the full text on hover.";
+  cellTextLbl.title = "Truncate keeps the column width, shows the beginning with an ellipsis and the full text on hover; Wrap keeps the column width and grows the row height.";
   cellTextRow.appendChild(cellTextLbl);
   var cellTextSel = document.createElement("select");
-  [["auto (grow / wrap)", "auto"], ["wrap (fixed width)", "wrap"], ["truncate (hover overlay)", "truncate"]].forEach(function(o) {
+  [["truncate (ellipsis + hover)", "truncate"], ["wrap (row grows)", "wrap"]].forEach(function(o) {
     var eo = document.createElement("option"); eo.value = o[1]; eo.textContent = o[0]; cellTextSel.appendChild(eo);
   });
-  cellTextSel.value = n.cellText || (n.fixed ? "truncate" : "auto");
+  cellTextSel.value = (n.cellText === "wrap") ? "wrap" : "truncate";
   cellTextSel.onchange = function(){
     var v = cellTextSel.value;
     withUndo(function(){ n.cellText = v; n.fixed = v === "truncate"; });
@@ -9564,7 +9565,7 @@ function tableControls(n, opts) {
   behRows.push(popTextRow("overlay max width", "--pop-maxw", "420px"));
   behRows.push(popTextRow("overlay radius", "--pop-radius", "8px"));
   var bhint = document.createElement("div"); bhint.className = "hint";
-  bhint.textContent = "Auto: columns grow when possible and text wraps. Wrap: the width stays fixed, text wraps and the row grows. Truncate: text stays on one line, overflow is hidden and the full text appears in the overlay box on hover.";
+  bhint.textContent = "Truncate: the column width never grows; the beginning of the text is shown with an ellipsis and the full text appears in the overlay on hover. Wrap: the column width stays fixed, the text wraps and the row grows in height.";
   behRows.push(bhint);
   b.appendChild(group("Behavior", behRows, [], false));
 
@@ -11242,7 +11243,8 @@ function tcellToSui(n, r, c) {
 }
 function tableToSui(n, depth) {
   function ind(level) { var s = ""; for (var i = 0; i < level; i++) s += "\t"; return s; }
-  var cellText = n.cellText || (n.fixed ? "truncate" : "auto");
+  var cellText = n.cellText || "truncate";
+  if (cellText === "auto") cellText = "truncate";
   var fixedMode = n.fixed || cellText === "truncate";
   var extra = (n.editable ? " editable: true" : "") + (fixedMode ? " fixed: true" : "");
   if (cellText === "wrap") extra += ' cellText: "wrap"';
@@ -11894,6 +11896,7 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-table-tab") { selectWorkbookTab(Number(ev.data.id)); return; }
   if (ev.data.ty === "sui-table-all") { selectAllTableCells(Number(ev.data.id)); return; }
   if (ev.data.ty === "sui-tab-rename") { renameWorkbookTab(Number(ev.data.index), Number(ev.data.tabIndex)); return; }
+  if (ev.data.ty === "sui-tab-delete") { deleteWorkbookTab(Number(ev.data.index), Number(ev.data.tabIndex), Number(ev.data.active)); return; }
   if (ev.data.ty === "sui-tab-menu") { showWorkbookTabMenu(ev.data); return; }
   if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
@@ -12265,6 +12268,31 @@ function workbookTabTarget(index, tabIndex) {
   if (!tab) return null;
   return { tabsNode: target.node, tabsPath: target.path, tab: tab, tabIndex: tabIndex, tabs: tabs };
 }
+function deleteWorkbookTab(index, tabIndex, active) {
+  var target = workbookTabTarget(index, tabIndex);
+  if (!target || target.tabs.length <= 1) return;
+  var tabsNode = target.tabsNode;
+  var tabsPath = target.tabsPath;
+  var tab = target.tab;
+  var activeTab = (active >= 0 && target.tabs[active]) ? target.tabs[active] : target.tabs[0];
+  var remaining = target.tabs.filter(function(t) { return t !== tab; });
+  var newActiveTab = (activeTab === tab) ? remaining[Math.min(tabIndex, remaining.length - 1)] : activeTab;
+  var newActive = remaining.indexOf(newActiveTab);
+  if (newActive < 0) newActive = 0;
+  withUndo(function() {
+    var at = tabsNode.children.indexOf(tab);
+    if (at >= 0) tabsNode.children.splice(at, 1);
+    var path = firstTablePathIn(newActiveTab, tabsPath.concat([tabsNode.children.indexOf(newActiveTab)]));
+    if (path) {
+      selPath = path;
+      selMode = "table";
+      selNoBox = true;
+      selCell = null; selRow = null; selCol = null;
+    }
+    __forcePreviewActive = { index: Number(index), active: newActive };
+  }, "delete workbook");
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+}
 function renameWorkbookTab(index, tabIndex) {
   var target = workbookTabTarget(index, tabIndex);
   if (!target) return;
@@ -12292,6 +12320,19 @@ function showWorkbookTabMenu(d) {
     renameWorkbookTab(Number(d.index), Number(d.tabIndex));
   };
   m.appendChild(item);
+  if (target.tabs.length > 1) {
+    var sep = document.createElement("div");
+    sep.className = "ctx-sep";
+    m.appendChild(sep);
+    var del = document.createElement("div");
+    del.className = "sui-ac-item";
+    del.textContent = "Delete workbook";
+    del.onclick = function() {
+      m.remove();
+      deleteWorkbookTab(Number(d.index), Number(d.tabIndex), Number(d.active));
+    };
+    m.appendChild(del);
+  }
   document.body.appendChild(m);
   var frame = document.getElementById("prev");
   var fr = frame ? frame.getBoundingClientRect() : { left: 0, top: 0 };

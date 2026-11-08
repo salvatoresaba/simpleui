@@ -12,9 +12,9 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - Declarative `columns`, `columnLabels`, `columnWidths`, `columnAlign`,
   `columnTypes`, `columnFormats` and `columnOptions`.
 - `sortable` header sorting, `filterable` text filter and `pageSize`.
-- Cell text modes selectable in the designer: **auto** (grow/wrap), **wrap**
-  (fixed width, taller rows) and **truncate** (hidden overflow with hover
-  overlay).
+- Cell text modes selectable in the designer: **truncate** (default; stable
+  column width, ellipsis and full text in the hover overlay) and **wrap**
+  (stable column width, text wraps and the row grows).
 - The **gear at the table's top-right** opens the runtime settings panel:
   header sorting and multi-column sort levels. Each header also has a funnel
   button that opens a searchable checklist of column values (Select All,
@@ -36,7 +36,10 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - A single-sheet workbook hides its sheet tab; the designer always keeps the
   **+**, while a compiled app shows it only for an editable workbook. With two or
   more sheets the tabs appear. Double-click a tab or use its context menu to
-  rename the workbook.
+  rename the workbook; the small **×** on the tab (or **Delete workbook** in its
+  context menu) removes the workbook.
+- The small triangle in the first cell selects all cells; row/column selection
+  strips straddle the cell border and live in the control padding.
 - The row/column selection strips live in the control padding (default 10 px,
   adjustable in **Table settings → Scroll & scale → control padding**), so they
   never overlap cells or the control resize handles. The top-left corner selects

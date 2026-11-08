@@ -1225,7 +1225,9 @@ rebuild della preview e viene scritto nel sorgente `.sui`. In un'app compilata l
 foglio non mostra la tab del foglio, ma solo la **+** nel designer (a runtime,
 senza tab strip se il workbook è di sola lettura); le tab dei fogli compaiono dal
 secondo foglio in poi. Doppio click su una tab, oppure menu contestuale e
-**Rename workbook**, per cambiare il nome del workbook scritto sulla tab. Il controllo tabella occupa il contenitore e ha una
+**Rename workbook**, per cambiare il nome del workbook scritto sulla tab. Ogni
+tab ha anche una piccola **×**: un click, oppure **Delete workbook** dal menu
+contestuale della tab, rimuove quel workbook dal modello e dal sorgente `.sui`. Il controllo tabella occupa il contenitore e ha una
 dimensione minima di **640 × 300 px**: se il contenitore non ha una dimensione
 esplicita, vale quel minimo. L'area del workbook prende tutto lo spazio interno
 al bordo del controllo al netto della riga titolo/ingranaggio e della barra delle
@@ -1254,11 +1256,12 @@ ricercabile dei valori della colonna.
 - Click su una cella per selezionarla.
 - Click nella gutter appena **sopra l'header di una colonna** (fuori dalla tabella) per selezionare la colonna.
 - Click nella gutter appena **a sinistra di una riga** (fuori dalla tabella) per selezionare la riga.
-- Al passaggio del mouse su queste gutter esterne compare una sottile striscia
-  blu: è esattamente la zona cliccabile, e non si sovrappone mai alle celle né
-  agli handle del controllo. Le strisce stanno nel padding del controllo, fuori
-  dal contenuto scrollabile del foglio.
-- Il quadratino evidenziato nell'**angolo in alto a sinistra** della tabella
+- Al passaggio del mouse su queste gutter compare una sottile striscia blu **a
+  cavallo del bordo della cella** (metà nel padding del controllo, metà sopra il
+  bordo della cella). È esattamente la zona cliccabile e non si sovrappone agli
+  handle del controllo. Le strisce stanno fuori dal contenuto scrollabile del
+  foglio.
+- Il piccolo **triangolo blu nell'angolo in alto a sinistra della prima cella**
   seleziona tutte le celle (tutte le righe e colonne insieme), non il controllo
   esterno.
 - Selezionare il controllo esterno non ruba il click sulle gutter: la striscia
@@ -1294,10 +1297,10 @@ Gruppi del pannello:
 - **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore. A
   runtime la didascalia è mostrata nella riga titolo appena sopra la tabella,
   sulla stessa riga dell'ingranaggio impostazioni.
-- **Behavior** - celle **editable** e modalità **cell text**: **auto** (le colonne
-  crescono e il testo va a capo), **wrap** (larghezza fissa, righe più alte) o
-  **truncate** (una riga, overflow nascosto, testo completo in overlay al
-  passaggio del mouse). Le modifiche runtime a celle e intestazioni restano nello
+- **Behavior** - celle **editable** e modalità **cell text**: **truncate**
+  (default; la larghezza della colonna non cresce con il testo, una riga con
+  ellissi e testo completo in overlay al passaggio del mouse) oppure **wrap**
+  (larghezza colonna fissa, testo a capo e altezza riga che cresce). Le modifiche runtime a celle e intestazioni restano nello
   store della tabella tra re-render e cambio foglio per la sessione della pagina;
   la digitazione non ridisegna la tabella, il valore è finalizzato al blur o dopo
   una breve pausa e gli eventi di cambio scattano al blur. Gli eventi `input`

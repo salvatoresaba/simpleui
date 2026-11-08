@@ -2055,11 +2055,29 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
   max-height: none;
   box-sizing: border-box;
 }
-.sui-tabs[data-sui-workbook="1"] .tscroll > table { margin: 0; }
+.sui-tabs[data-sui-workbook="1"] .tscroll > table {
+  margin: 0;
+  table-layout: fixed;
+  width: 100%;
+}
+.sui-tabs[data-sui-workbook="1"] .tscroll th,
+.sui-tabs[data-sui-workbook="1"] .tscroll td {
+  width: 160px;
+  min-width: 160px;
+}
 .sui-tabs[data-sui-workbook="1"] .tscroll thead th {
   position: sticky;
   top: 0;
   z-index: 2;
+}
+/* While editing, a truncated cell shows its full text without changing size. */
+.sui-tabs[data-sui-workbook="1"] table[data-sui-fixed] td.sui-table-editing,
+.sui-tabs[data-sui-workbook="1"] table[data-sui-fixed] th.sui-table-editing {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  position: relative;
+  z-index: 3;
 }
 .sui-tabs[data-sui-workbook="1"][data-sui-workbook-editable="0"] .sui-tab-add { display: none; }
 .sui-tabs[data-sui-workbook="1"][data-sui-tabcount="1"][data-sui-workbook-editable="0"] .sui-tablist { display: none; }
@@ -3339,6 +3357,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         }
       }
     }
+    updateWorkbookTableWidth(tbl);
     ensureTableTools(tbl, name);
   }
   function ensureFilterInput(tbl, name, st, cfg){
@@ -4266,6 +4285,12 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
           t2.setAttribute('data-sui-editable', '1');
         }
         if (t2.getAttribute('data-sui-editable') === '1') anyEditable = true;
+        // Stable cell sizing: default/auto becomes truncate (ellipsis + hover
+        // overlay); wrap remains the explicit row-growing mode.
+        var cellText = t2.getAttribute('data-sui-cell-text') || '';
+        if (!cellText || cellText === 'auto') cellText = 'truncate';
+        t2.setAttribute('data-sui-cell-text', cellText);
+        if (cellText === 'truncate') t2.setAttribute('data-sui-fixed', '1');
         if (t2.getAttribute('name')) t2.setAttribute('data-sui-show-add-table', '1');
         var w2 = t2.parentElement;
         if (w2 && w2.classList && w2.classList.contains('tscroll')) {
@@ -4281,6 +4306,26 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       // preview overrides this with its body class and always offers it.
       boxes[b].setAttribute('data-sui-workbook-editable', anyEditable ? '1' : '0');
     }
+  }
+  // The workbook table width is driven by the declared/default column widths,
+  // never by cell text. When the sum exceeds the viewport the table overflows
+  // and the sheet area shows the horizontal scrollbar.
+  function updateWorkbookTableWidth(tbl){
+    if (!tbl || !tbl.closest) return;
+    var box = tbl.closest('.sui-tabs');
+    if (!box || box.getAttribute('data-sui-workbook') !== '1') return;
+    var row = (tbl.tHead && tbl.tHead.rows.length) ? tbl.tHead.rows[0] :
+      ((tbl.tBodies && tbl.tBodies.length && tbl.tBodies[0].rows.length) ? tbl.tBodies[0].rows[0] : null);
+    if (!row) return;
+    var sum = 0;
+    for (var i = 0; i < row.cells.length; i++) {
+      var c = row.cells[i];
+      var sw = (c.style && (c.style.width || c.style.minWidth)) || '';
+      var w = parseFloat(sw);
+      if (!isFinite(w) || sw.indexOf('%') >= 0) w = 160;
+      sum += w * (c.colSpan || 1);
+    }
+    if (sum > 0) tbl.style.minWidth = Math.round(sum) + 'px';
   }
   function init(){
     normalizeWorkbookRuntime();
@@ -4387,6 +4432,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var w=Math.max(24, drag.size + (ev.clientX - drag.start));
       var cells=columnCells(drag.cell);
       for(var i=0;i<cells.length;i++){ cells[i].style.width=w+'px'; cells[i].style.minWidth=w+'px'; }
+      updateWorkbookTableWidth(drag.cell.closest('table'));
     } else {
       var h=Math.max(18, drag.size + (ev.clientY - drag.start));
       var tr=drag.cell.parentNode;
@@ -4551,6 +4597,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     editOld = c.getAttribute('data-sui-raw');
     if (editOld === null) editOld = editTextOf(c);
     else if ((editTextOf(c) || '') !== editOld) setCellEditText(c, editOld);
+    c.classList.add('sui-table-editing');
     c.classList.remove('sui-table-invalid');
     c.removeAttribute('aria-invalid');
     c.removeAttribute('title');
@@ -4563,8 +4610,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     clearEditTimer();
     var tbl = c.closest('table[data-sui-editable]');
     var name = tbl ? tbl.getAttribute('name') : '';
-    if (!tbl || !name) { editCell = null; editOld = ''; return; }
+    if (!tbl || !name) { c.classList.remove('sui-table-editing'); editCell = null; editOld = ''; return; }
     commitCellEdit(c, tbl, name, cfgOf(tbl), true);
+    c.classList.remove('sui-table-editing');
     editCell = null; editOld = '';
   }, true);
 
