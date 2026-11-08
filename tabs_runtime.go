@@ -95,5 +95,6 @@ const suiTabsRuntime = `(function(){
       else run();
     }).observe(document.documentElement, { childList: true, subtree: true });
   }
+  window.__SUI_TABS = { restore: applyStored };
   applyStored();
 })();`

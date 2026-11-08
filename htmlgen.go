@@ -4061,7 +4061,14 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     for (i = 0; i < rows.length; i++) lines.push(rows[i].map(esc).join(sep));
     return [lines.join('\n'), null];
   }
-  function afterRender(){ restoreTableBooks(); applyAll(); init(); }
+  function afterRender(){
+    restoreTableBooks();
+    applyAll();
+    init();
+    // Restore the selected tab synchronously, before the browser can paint the
+    // regenerated view with the first tab active.
+    if (window.__SUI_TABS && window.__SUI_TABS.restore) window.__SUI_TABS.restore();
+  }
 
   // ---- editable / fixed behaviors -----------------------------------------
   function ensureDeclaredHeader(tbl, cfg){
@@ -4261,8 +4268,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
     var raw = (c.textContent || '').trim();
     var oldVal = editOld === null || editOld === undefined ? raw : String(editOld);
+    var rowIdx = tr.parentNode && tr.parentNode.tagName === 'THEAD' ? -1 : Array.prototype.indexOf.call(tr.parentNode.rows, tr);
+    // Header cells are labels, not typed data: never validate or format them.
     var type = cfg.types[col] || 'text';
-    var err = validValue(raw, type, colOpts(cfg, col));
+    var err = rowIdx < 0 ? '' : validValue(raw, type, colOpts(cfg, col));
     var st = store[name];
     if (err) {
       c.textContent = oldVal;
@@ -4283,7 +4292,6 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     c.classList.remove('sui-table-invalid');
     c.removeAttribute('aria-invalid');
     c.removeAttribute('title');
-    var rowIdx = tr.parentNode && tr.parentNode.tagName === 'THEAD' ? -1 : Array.prototype.indexOf.call(tr.parentNode.rows, tr);
     if (raw !== oldVal) {
       if (st) {
         if (rowIdx < 0) {

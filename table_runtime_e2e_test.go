@@ -238,6 +238,32 @@ const tableRuntimeE2EScript = `<script>
     if (table('users').querySelectorAll('thead th').length !== 5) throw new Error('column insert failed');
     if (version() !== '3') throw new Error('column insert did not fire onTableChange: ' + version());
 
+    // The selected runtime sheet must stay active synchronously after the
+    // reactive re-render triggered by a cell edit (no first-sheet flash).
+    var runtimeSheetTab = document.querySelectorAll('.sui-tablist .sui-tab')[tabsBefore];
+    runtimeSheetTab.click();
+    await wait(300);
+    var runtimePanel = document.querySelectorAll('.sui-tabpanel')[tabsBefore];
+    var runtimeCell = runtimePanel.querySelectorAll('tbody td')[1];
+    runtimeCell.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    runtimeCell.textContent = 'persisted';
+    runtimeCell.dispatchEvent(new Event('input', { bubbles: true }));
+    runtimeCell.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    var syncTabs = document.querySelectorAll('.sui-tablist .sui-tab');
+    if (!syncTabs[tabsBefore] || !syncTabs[tabsBefore].classList.contains('active')) {
+      throw new Error('selected sheet is not restored synchronously after re-render');
+    }
+    await wait(400);
+    var settledTabs = document.querySelectorAll('.sui-tablist .sui-tab');
+    if (!settledTabs[tabsBefore] || !settledTabs[tabsBefore].classList.contains('active')) {
+      throw new Error('selected sheet lost after re-render');
+    }
+    if (document.querySelectorAll('.sui-tabpanel')[tabsBefore].querySelectorAll('tbody td')[1].textContent !== 'persisted') {
+      var dbgNames = Array.prototype.slice.call(document.querySelectorAll('table[name]')).map(function(t){ return t.getAttribute('name'); });
+      var dbgData = window.__SUI_TBL.data('table-1');
+      throw new Error('runtime sheet cell edit lost after re-render: names=' + dbgNames.join(',') + ' tabs=' + Array.prototype.slice.call(document.querySelectorAll('.sui-tablist .sui-tab')).map(function(t){ return t.textContent; }).join(',') + ' data=' + JSON.stringify(dbgData));
+    }
+
     // Runtime header edits survive blur and reactive re-render.
     var headCell = table('editable').querySelector('thead th');
     headCell.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
@@ -250,6 +276,18 @@ const tableRuntimeE2EScript = `<script>
     if ((table('editable').getAttribute('data-sui-column-labels') || '').indexOf('RenamedHeader') < 0) throw new Error('runtime header edit not persisted');
     var editedHeader = window.__SUI_TBL.header('editable')[0];
     if (!editedHeader || editedHeader[0] !== 'RenamedHeader') throw new Error('header API lost runtime edit');
+    // Headers are labels, not typed numbers: the second editable column is a
+    // number column and must still accept a textual header label.
+    var head2 = table('editable').querySelectorAll('thead th')[1];
+    head2.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    head2.textContent = 'AmountRenamed';
+    head2.dispatchEvent(new Event('input', { bubbles: true }));
+    head2.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    await wait(600);
+    var head2After = table('editable').querySelectorAll('thead th')[1];
+    if (!head2After || head2After.textContent.indexOf('AmountRenamed') < 0) throw new Error('numeric-column header edit rejected');
+    var editedHeader2 = window.__SUI_TBL.header('editable')[0];
+    if (!editedHeader2 || editedHeader2[1] !== 'AmountRenamed') throw new Error('numeric-column header API lost runtime edit');
 
     result(true, '');
   } catch (error) {
