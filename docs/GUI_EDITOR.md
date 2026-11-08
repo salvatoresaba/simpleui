@@ -1211,6 +1211,8 @@ Table settings groups:
   the page session; typing never rebuilds the table, the value is finalized on
   blur or after a short pause and change events run on blur. Cell input events
   stay inside the table, so ancestor `onInput` handlers are not triggered.
+  Editable cells can be typed directly in the preview: click the cell to focus
+  it, then type.
 - **Data** - runtime **table name** used by `table.display`, `table.data`,
   `table.json` and `table.exportText`.
 - **Columns** - declarative `columns`, labels, widths, alignment, cell types,

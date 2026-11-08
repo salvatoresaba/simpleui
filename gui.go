@@ -1174,6 +1174,23 @@ const guiPreviewPicker = `<script>
       ctrl: tableSelDrag.ctrl
     }, '*');
   }
+  // Clicking an editable cell in the designer preview must focus it so typing
+  // happens in the preview (native editing) instead of the designer's
+  // type-to-edit bridge, which would reload the preview on every letter.
+  function focusEditableCell(c) {
+    if (!c || !c.isContentEditable) return;
+    try {
+      c.focus();
+      var doc = c.ownerDocument || document;
+      var sel = doc.getSelection ? doc.getSelection() : null;
+      if (!sel) return;
+      var range = doc.createRange();
+      range.selectNodeContents(c);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (e) {}
+  }
   document.addEventListener('mousedown', function (e) {
     if (e.button !== 0 || e.altKey || marqueeOn) return;
     var t = e.target;
@@ -1198,6 +1215,7 @@ const guiPreviewPicker = `<script>
     if (kind === 'row' && info.row < 0) return;
     tableSelDrag = {
       tableId: Number(tableId), table: info.table, kind: kind,
+      cell: info.cell || null,
       anchorRow: kind === 'col' ? -1 : info.row,
       anchorCol: kind === 'row' ? -1 : info.col,
       lastRow: info.row, lastCol: info.col,
@@ -1239,6 +1257,8 @@ const guiPreviewPicker = `<script>
     if (tableSelDrag && tableSelDrag.moved) {
       postTableSel('end', { row: tableSelDrag.lastRow, col: tableSelDrag.lastCol },
         tableSelDrag.anchorRow, tableSelDrag.anchorCol);
+    } else if (tableSelDrag && tableSelDrag.kind === 'cell') {
+      focusEditableCell(tableSelDrag.cell);
     }
     tableSelDrag = null;
     setTimeout(function () { tableSelSuppressClick = false; }, 0);

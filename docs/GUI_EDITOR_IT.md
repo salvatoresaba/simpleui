@@ -1259,7 +1259,8 @@ Gruppi del pannello:
   la digitazione non ridisegna la tabella, il valore è finalizzato al blur o dopo
   una breve pausa e gli eventi di cambio scattano al blur. Gli eventi `input`
   delle celle restano interni alla tabella, quindi gli handler `onInput` degli
-  antenati non vengono attivati.
+  antenati non vengono attivati. Le celle editable si possono digitare
+  direttamente nella preview: click sulla cella per focalizzarla, poi scrivere.
 - **Data** - **table name** usato da `table.display`, `table.data`, `table.json`
   e `table.exportText`.
 - **Columns** - `columns`, labels, larghezze, allineamento, tipi, formati,

@@ -130,6 +130,9 @@ view main {
 	if !strings.Contains(guiPreviewPicker, `rowAtY`) || !strings.Contains(guiPreviewPicker, `colAtX`) {
 		t.Errorf("preview picker must resolve gutter rows/columns geometrically")
 	}
+	if !strings.Contains(guiPreviewPicker, `focusEditableCell`) {
+		t.Errorf("preview picker must focus editable cells for in-preview typing")
+	}
 	for _, want := range []string{
 		`"Columns"`, `"Data view"`, `"from header"`, `"Use first row"`,
 		`sheet tabs`, `"Bottom (Excel-like)"`, `function tabsControls`,
