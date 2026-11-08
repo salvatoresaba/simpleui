@@ -1173,12 +1173,21 @@ while settings are edited.
 
 The **+** tab in the preview adds a real sheet to the workbook model, not a
 temporary runtime table, so it survives preview rebuilds and is written to the
-`.sui` source. All sheets of a workbook share one visible size: resizing any
-sheet resizes the table control for every sheet, regardless of its row or column
-count. Workbook sheets without an explicit `selection` mode are editable; a
-click on a cell, row, column or sheet tab keeps the inspector on the table
-settings. A sheet that asks for row/column/cell selection stays read-only so the
-selection interaction keeps working.
+`.sui` source. The table control fills its host and has a **640 × 300 px**
+minimum; when the host has no explicit size, that minimum is the default. The
+workbook sheet area takes all the space inside the control border after the
+title/gear row and the sheet tab strip, and it follows every control resize.
+Resizing the control, not an individual sheet, is what changes the shared sheet
+size. Workbook sheets without an explicit `selection` mode are editable; a click
+on a cell, row, column or sheet tab keeps the inspector on the table settings. A
+sheet that asks for row/column/cell selection stays read-only so the selection
+interaction keeps working. Clicking a sheet tab only switches the visible sheet:
+it does not draw a selection box or resize handles. Clicking the **table** node
+in the elements panel outlines the whole control (title, gear, sheet area and
+tabs) and shows the handles that resize it. If the columns are wider than the
+sheet area, a horizontal scrollbar appears at the bottom of the sheet area, just
+above the tabs; when rows exceed the height, only the body scrolls and the header
+row stays fixed.
 
 New tables are named automatically (`table1`, `table2`, ...), so their runtime
 settings gear and `table.*` helpers are immediately available. The gear opens
@@ -1195,6 +1204,9 @@ header that opens a searchable checklist of column values.
   zone, and it never overlaps cells or the resize handles.
 - The highlighted square at the table's **top-left corner** selects the whole
   table (all its cells).
+- Clicking a sheet tab switches the workbook without drawing an extent box or
+  resize handles; clicking the **table** node in the elements panel selects the
+  whole control and shows its resize handles.
 - New sheets start with a labelled header row and two empty body rows.
 - **Shift+click** extends a cell/row/column range from the previous anchor.
 - **Ctrl/Command+click** toggles individual cells, rows or columns.

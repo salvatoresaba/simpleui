@@ -27,6 +27,12 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - Runtime **+** tab creation and row/column structure editing
   (`showAddTable` / `structureEditable`).
 - The large tabbed **Table settings...** overlay in the designer.
+- One workbook control: it fills its host with a 640 × 300 px minimum, the
+  active sheet area follows the control size, the header stays sticky and wide
+  columns scroll horizontally just above the sheet tabs.
+- In the designer the elements panel shows a single **table** node for the whole
+  workbook; clicking it outlines the outer control and shows the resize handles,
+  while clicking a sheet tab only switches sheets (no extent box or handles).
 
 ## Run
 

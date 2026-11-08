@@ -2209,7 +2209,10 @@ designer visivo il workbook è un unico nodo `table`: i fogli senza una modalit�
 `selection` esplicita sono editable, tutti condividono la dimensione visibile del
 controllo tabella e la tab **+** aggiunge un foglio reale al sorgente `.sui`, non
 una tabella temporanea della preview. Un foglio che richiede la selezione
-riga/colonna/cella resta di sola lettura.
+riga/colonna/cella resta di sola lettura. Il controllo occupa il contenitore con
+un minimo di 640 × 300 px; l'area del foglio prende lo spazio rimasto dopo la riga
+titolo e le tab. Le colonne larghe scorrono in orizzontale in basso, appena sopra
+le tab, e le righe in eccesso scorrono in verticale con l'intestazione fissa.
 
 ### Tabelle runtime e modifica struttura
 

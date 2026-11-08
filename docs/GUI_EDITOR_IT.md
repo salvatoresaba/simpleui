@@ -1220,13 +1220,22 @@ impostazioni.
 
 La tab **+** nella preview aggiunge un foglio reale al modello del workbook, non
 una tabella runtime temporanea: sopravvive ai rebuild della preview e viene
-scritto nel sorgente `.sui`. Tutti i fogli di un workbook condividono la stessa
-dimensione visibile: ridimensionare un foglio ridimensiona il controllo tabella
-per tutti, indipendentemente dal numero di righe o colonne. I fogli senza una
-modalità `selection` esplicita sono editable; un click su cella, riga, colonna o
-tab del foglio mantiene l'inspector sui parametri della tabella. Un foglio che
-richiede la selezione riga/colonna/cella resta di sola lettura per non rompere
-l'interazione di selezione.
+scritto nel sorgente `.sui`. Il controllo tabella occupa il contenitore e ha una
+dimensione minima di **640 × 300 px**: se il contenitore non ha una dimensione
+esplicita, vale quel minimo. L'area del workbook prende tutto lo spazio interno
+al bordo del controllo al netto della riga titolo/ingranaggio e della barra delle
+tab; segue ogni ridimensionamento del controllo. È il controllo, non il singolo
+foglio, a determinare la dimensione condivisa. I fogli senza una modalità
+`selection` esplicita sono editable; un click su cella, riga, colonna o tab del
+foglio mantiene l'inspector sui parametri della tabella. Un foglio che richiede
+la selezione riga/colonna/cella resta di sola lettura per non rompere
+l'interazione di selezione. Un click sulla tab di un foglio cambia solo il foglio
+visibile: non disegna né un riquadro di selezione né gli handle. Un click sul nodo
+**table** nel pannello elementi evidenzia l'intero controllo (titolo,
+ingranaggio, area del foglio e tab) e mostra gli handle per ridimensionarlo. Se le
+colonne superano la larghezza dell'area, la scrollbar orizzontale compare in
+basso, appena sopra le tab; se le righe superano l'altezza, scorre solo il corpo e
+la riga di intestazione resta fissa.
 
 Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
 l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito
@@ -1244,6 +1253,9 @@ ricercabile dei valori della colonna.
   blu: è la zona cliccabile, e non si sovrappone mai alle celle né agli handle.
 - Il quadratino evidenziato nell'**angolo in alto a sinistra** della tabella
   seleziona tutta la tabella (tutte le sue celle).
+- Un click sulla tab di un foglio cambia il workbook senza riquadro né handle;
+  un click sul nodo **table** nel pannello elementi seleziona l'intero controllo
+  e mostra gli handle di ridimensionamento.
 - I nuovi fogli partono con una riga di intestazione etichettata e due righe
   vuote.
 - **Shift+click** estende un intervallo di celle/righe/colonne dall'ancora precedente.

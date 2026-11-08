@@ -1825,6 +1825,7 @@ var tableSelRows = [];  // [r] multi-row selection
 var tableSelCols = [];  // [c] multi-column selection
 var tableSelAnchor = null; // {kind, r, c} drag/shift anchor
 var selMode = "cell"; // "cell" | "row" | "col"
+var selNoBox = false; // table tab switch: keep table settings, no extent box/handles
 var selBody = false; // the virtual root "body" is selected
 var multiSel = [];   // extra selected paths (multi-select)
 var clipboard = [];  // cloned nodes for copy/paste
@@ -2784,6 +2785,7 @@ function selectByDfs(id) {
   selBody = false;
   multiSel = [];
   clearTableSelection();
+  selNoBox = false;
   if (t.t === "cell") {
     selPath = t.p; selCell = null; selRow = null; selCol = null;
     // "table" mode: clicking anywhere inside the table selects the whole table.
@@ -2849,9 +2851,22 @@ function currentPeerIds() {
   }
   return [];
 }
+function peerIdForPath(path) {
+  for (var i = 0; i < pickMap.length; i++) {
+    if (pickMap[i].pg === root.page && pickMap[i].t === "n" && samePath(pickMap[i].p, path)) return i;
+  }
+  return -1;
+}
 function postHighlight() {
   var f = document.getElementById("prev");
   if (f && f.contentWindow) {
+    // Switching a workbook tab shows the sheet and its table settings, but must
+    // not draw a selection or resize handles around the sheet area.
+    if (selNoBox) {
+      f.contentWindow.postMessage({ ty: "sui-hl", id: [], mode: "el" }, "*");
+      editorSyncFromSelection();
+      return;
+    }
     // The effective highlight mode follows the actual sub-selection, not the
     // last picker mode: selecting a table from the element tree while the Cell
     // selector is active must still outline the whole table.
@@ -2862,7 +2877,17 @@ function postHighlight() {
     else if (selCell) mode = "cell";
     else if (selRow !== null && selRow !== undefined) mode = "row";
     else if (selCol !== null && selCol !== undefined) mode = "col";
-    f.contentWindow.postMessage({ ty: "sui-hl", id: currentPeerIds(), mode: mode }, "*");
+    var ids = currentPeerIds();
+    // Selecting the table itself highlights the whole workbook control (title,
+    // icons, sheet area and tabs), which is the element that can be resized.
+    if (mode === "el" && selMode === "table" && selPath) {
+      var wb = workbookForTablePath(selPath);
+      if (wb) {
+        var controlId = peerIdForPath(wb.tabsPath);
+        if (controlId >= 0) { mode = "control"; ids = [controlId]; }
+      }
+    }
+    f.contentWindow.postMessage({ ty: "sui-hl", id: ids, mode: mode }, "*");
   }
   editorSyncFromSelection();
 }
@@ -2935,7 +2960,7 @@ function renderTree() {
   bl.className = "node" + (selBody ? " sel" : "");
   bl.style.cssText = "color:#8fa0b8;font-weight:600;cursor:pointer";
   bl.textContent = "body";
-  bl.onclick = function() { selBody = true; selPath = null; selCell = null; selRow = null; selCol = null; renderTree(); clearFields(); renderInspector(); postHighlight(); };
+  bl.onclick = function() { selBody = true; selNoBox = false; selPath = null; selCell = null; selRow = null; selCol = null; renderTree(); clearFields(); renderInspector(); postHighlight(); };
   bl.oncontextmenu = function(ev) {
     ev.preventDefault();
     ev.stopPropagation();
@@ -3008,6 +3033,7 @@ function renderWorkbookTreeRow(node, p, entries, parent, depth) {
     multiSel = [];
     clearTableSelection();
     selBody = false;
+    selNoBox = false;
     selPath = chosen.slice();
     selMode = "table";
     selCell = null; selRow = null; selCol = null;
@@ -8790,33 +8816,30 @@ function workbookForTablePath(tablePath) {
   }
   return null;
 }
-function setWrapperSize(node, width, height) {
-  if (!node) return;
-  var m = styleDeclMap(node.style || "");
-  if (width) m["width"] = width; else delete m["width"];
-  if (height) m["height"] = height; else delete m["height"];
-  node.style = styleDeclStr(m);
-}
-// syncWorkbookWrapperSize gives every sheet the same visible table size. The
-// workbook is one control, so resizing one sheet resizes all of them.
-function syncWorkbookWrapperSize(entries, width, height) {
-  if (!entries) return;
+// normalizeWorkbookControl moves the size from the old per-sheet wrappers to
+// the workbook control itself. By default the control fills its host with a
+// 640x300 minimum; an explicit user resize on the control is preserved.
+function normalizeWorkbookControl(tabsNode, entries) {
+  if (!tabsNode || !entries) return;
   entries.forEach(function(entry) {
     var wrap = pathOfTableWrapper(entry.path);
-    if (wrap) setWrapperSize(wrap.node, width, height);
+    if (!wrap) return;
+    var wm = styleDeclMap(wrap.node.style || "");
+    if (("width" in wm) || ("height" in wm) || ("max-width" in wm) || ("max-height" in wm)) {
+      delete wm["width"];
+      delete wm["height"];
+      delete wm["max-width"];
+      delete wm["max-height"];
+      wrap.node.style = styleDeclStr(wm);
+    }
   });
-}
-function normalizeWorkbookSizes(entries) {
-  if (!entries || entries.length < 2) return;
-  var width = "", height = "", found = false;
-  for (var i = 0; i < entries.length && !found; i++) {
-    var wrap = pathOfTableWrapper(entries[i].path);
-    if (!wrap) continue;
-    var m = styleDeclMap(wrap.node.style || "");
-    if (m["width"] || m["height"]) { width = m["width"] || ""; height = m["height"] || ""; found = true; }
-  }
-  if (!found) return;
-  syncWorkbookWrapperSize(entries, width, height);
+  var m = styleDeclMap(tabsNode.style || "");
+  if (!m["width"]) m["width"] = "100%";
+  if (!m["height"]) m["height"] = "100%";
+  if (!m["min-width"]) m["min-width"] = "640px";
+  if (!m["min-height"]) m["min-height"] = "300px";
+  if (!m["box-sizing"]) m["box-sizing"] = "border-box";
+  tabsNode.style = styleDeclStr(m);
 }
 // normalizeWorkbooks turns every sheet-tab table group into a data-entry
 // workbook with a shared size and a + tab. Sheets without an explicit
@@ -8837,7 +8860,7 @@ function normalizeWorkbooks() {
               entry.table.showAddTable = true;
               if (!entry.table.name) entry.table.name = uniqueTableName();
             });
-            normalizeWorkbookSizes(entries);
+            normalizeWorkbookControl(n, entries);
           }
         }
         if (n.children && n.children.length) walk(n.children, p);
@@ -8867,6 +8890,7 @@ function wrapTableInWorkbook(path) {
   tab.text = "Table 1";
   tab.children = [container];
   tabs.children = [tab];
+  tabs.style = "width:100%;height:100%;min-width:640px;min-height:300px;box-sizing:border-box;";
   arr.splice(idx, 1, tabs);
   ensureTableBaseCss();
   return firstTablePathIn(tabs, arrPath.concat([idx]));
@@ -8909,6 +8933,7 @@ function previewAddWorkbookSheet(d) {
     var newPath = firstTablePathIn(tab, target.path.concat([target.node.children.length - 1]));
     selPath = newPath;
     selMode = "table";
+    selNoBox = false;
     selCell = null; selRow = null; selCol = null;
     multiSel = [];
     __forcePreviewActive = { index: Number(d.index), active: target.node.children.length - 1 };
@@ -9062,7 +9087,11 @@ function tableControls(n, opts) {
         sb.style.cssText = "font-size:10.5px;padding:3px 7px";
         sb.textContent = entry.label;
         if (samePath(entry.path, selPath)) sb.classList.add("on");
-        sb.onclick = function(){ selectPaths([entry.path.slice()]); };
+        sb.onclick = function(){
+          selMode = "table";
+          selNoBox = false;
+          selectPaths([entry.path.slice()]);
+        };
         sheetBtns.appendChild(sb);
       });
       sheetRow.appendChild(sheetBtns);
@@ -9199,12 +9228,15 @@ function tableControls(n, opts) {
   scw.appendChild(lbl("scroll"));
   var scchk = document.createElement("input"); scchk.type = "checkbox"; scchk.style.flex = "none";
   var winfo = tableWrapInfo();
+  var inWorkbook = !!(selPath && workbookForTablePath(selPath));
   scchk.checked = !!winfo;
+  scchk.disabled = inWorkbook;
+  if (inWorkbook) scchk.title = "The workbook sheet area always scrolls inside the table control.";
   scchk.onchange = function(){ tableToggleScroll(n, scchk.checked); };
   scw.appendChild(scchk);
   var lrows = [scr, scw];
   var stickyRow = null;
-  if (winfo) {
+  if (winfo && !inWorkbook) {
     var mhr = document.createElement("div"); mhr.className = "rowline";
     mhr.appendChild(lbl("max height"));
     var mhi = document.createElement("input"); mhi.value = styleDeclMap(winfo.node.style || "")["max-height"] || ""; mhi.spellcheck = false; mhi.placeholder = "260px";
@@ -11408,7 +11440,10 @@ function restorePreviewTabs() {
         }
       }
       // Let the tabs runtime record the selection for later view re-renders.
+      // Suppress the picker's user-tab message: this is a restore, not a click.
+      try { d.defaultView.__suiSuppressTabPick = true; } catch (e) {}
       try { tabs[idx].click(); } catch (e) {}
+      try { d.defaultView.__suiSuppressTabPick = false; } catch (e) {}
     });
     // A sheet added from the preview must open selected after the reload. The
     // force stays pending until the rebuilt preview actually contains it.
@@ -11422,7 +11457,9 @@ function restorePreviewTabs() {
         var forceIdx = __forcePreviewActive.active;
         if (forceTabs[forceIdx]) {
           var appliedForce = __forcePreviewActive;
+          try { d.defaultView.__suiSuppressTabPick = true; } catch (e) {}
           try { forceTabs[forceIdx].click(); } catch (e) {}
+          try { d.defaultView.__suiSuppressTabPick = false; } catch (e) {}
           // Keep the forced sheet through the paired preview reloads triggered
           // by withUndo + reparse, then release it so the user can switch.
           setTimeout(function() {
@@ -11431,6 +11468,9 @@ function restorePreviewTabs() {
         }
       }
     }
+    // A preview rebuild keeps the selected control/cell outlined and its
+    // handles visible; typing itself never triggers this path.
+    try { postHighlight(); } catch (e) {}
   }
   apply();
   setTimeout(apply, 120);
@@ -11826,6 +11866,7 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-tree-ctx") { previewTreeContext(ev.data); return; }
   if (ev.data.ty === "sui-table-select") { applyTableSelection(ev.data); return; }
   if (ev.data.ty === "sui-table-add") { previewAddWorkbookSheet(ev.data); return; }
+  if (ev.data.ty === "sui-table-tab") { selectWorkbookTab(Number(ev.data.id)); return; }
   if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
@@ -11880,18 +11921,39 @@ function resizeById(id, w, h, l, t) {
   // Resizing the table wrapper controls the space dedicated to the table;
   // overflow stays auto so taller rows produce a scrollbar. Use inline style
   // because the shared .tscroll class must not resize every table wrapper.
+  // The workbook control is the outer tabs box: resizing it changes the space
+  // available to every sheet. Never store a per-sheet size.
+  if (n.kind === "tabs") {
+    snap("resize workbook");
+    var wm = styleDeclMap(n.style || "");
+    var ww = px(w > 0 ? Math.max(640, w) : w), wh = px(h > 0 ? Math.max(300, h) : h);
+    if (ww) wm["width"] = ww; else delete wm["width"];
+    if (wh) wm["height"] = wh; else delete wm["height"];
+    n.style = styleDeclStr(wm);
+    setOut();
+    autoPreview();
+    return;
+  }
   if (n.kind === "div" && (n.class || "").split(/\s+/).indexOf("tscroll") >= 0) {
+    var resizeTablePath = firstTablePathIn(n, pt.p);
+    var wb = resizeTablePath ? workbookForTablePath(resizeTablePath) : null;
+    if (wb) {
+      snap("resize workbook");
+      var wbm = styleDeclMap(wb.tabs.style || "");
+      var wbw = px(w > 0 ? Math.max(640, w) : w), wbh = px(h > 0 ? Math.max(300, h) : h);
+      if (wbw) wbm["width"] = wbw; else delete wbm["width"];
+      if (wbh) wbm["height"] = wbh; else delete wbm["height"];
+      wb.tabs.style = styleDeclStr(wbm);
+      setOut();
+      autoPreview();
+      return;
+    }
     snap("resize table");
     var m = styleDeclMap(n.style || "");
     var width = px(w), height = px(h);
     if (width) m["width"] = width; else delete m["width"];
     if (height) m["height"] = height; else delete m["height"];
     n.style = styleDeclStr(m);
-    // One workbook is one table control: the size chosen on any sheet applies
-    // to every sheet, regardless of its rows or columns.
-    var resizeTablePath = firstTablePathIn(n, pt.p);
-    var wb = resizeTablePath ? workbookForTablePath(resizeTablePath) : null;
-    if (wb) syncWorkbookWrapperSize(wb.entries, width, height);
     setOut();
     autoPreview();
     return;
@@ -12124,6 +12186,22 @@ function clearTableSelection() {
 function sameTableAnchor(a, tablePath, kind) {
   return a && samePath(a.tablePath, tablePath) && a.kind === kind;
 }
+// selectWorkbookTab follows a sheet-tab click: the table inspector switches to
+// that sheet, but no extent selection or resize handles are drawn.
+function selectWorkbookTab(id) {
+  var t = pickMap[id];
+  if (!t || t.pg !== root.page) return;
+  var node = byPath(t.p, root.children);
+  if (!node || node.kind !== "table") return;
+  selBody = false;
+  multiSel = [];
+  clearTableSelection();
+  selNoBox = true;
+  selPath = t.p.slice();
+  selMode = "table";
+  selCell = null; selRow = null; selCol = null;
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+}
 // applyPreviewCellEdit commits a preview table edit into the designer model.
 // It deliberately does not rebuild the preview: the cell already shows the
 // text, and a rebuild would steal the caret mid-edit. Only the source text is
@@ -12172,6 +12250,7 @@ function applyTableSelection(d) {
   }
   selBody = false;
   multiSel = [];
+  selNoBox = false;
   selPath = tablePath.slice();
   selMode = kind;
   if (kind === "cell") { selCell = { r: row, c: col }; selRow = null; selCol = null; }
@@ -12241,6 +12320,7 @@ function normalizeTreePaths(paths) {  var out = [];
 function selectPaths(paths) {
   paths = normalizeTreePaths(paths);
   clearTableSelection();
+  selNoBox = false;
   selCell = null; selRow = null; selCol = null; selBody = false;
   if (!paths.length) { multiSel = []; selPath = null; }
   else { multiSel = paths.map(function(p){ return p.slice(); }); selPath = paths[paths.length - 1].slice(); }

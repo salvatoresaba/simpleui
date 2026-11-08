@@ -748,7 +748,7 @@ func fontMime(ext string) string {
 const guiPreviewPicker = `<script>
 (function () {
   var st = document.createElement('style');
-  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
+  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-control { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
   document.head.appendChild(st);
   var current = [];
   var handles = [];
@@ -986,13 +986,14 @@ const guiPreviewPicker = `<script>
       el.classList.remove('sui-hl-row');
       el.classList.remove('sui-hl-col');
       el.classList.remove('sui-hl-cell');
+      el.classList.remove('sui-hl-control');
     });
     clearHandles();
     current = [];
     resizeEl = null;
     if (ids === null || ids === undefined) return;
     var arr = (typeof ids === 'number') ? [ids] : ids;
-    var cls = mode === 'row' ? 'sui-hl-row' : mode === 'col' ? 'sui-hl-col' : mode === 'cell' ? 'sui-hl-cell' : 'sui-hl';
+    var cls = mode === 'control' ? 'sui-hl-control' : mode === 'row' ? 'sui-hl-row' : mode === 'col' ? 'sui-hl-col' : mode === 'cell' ? 'sui-hl-cell' : 'sui-hl';
     (arr || []).forEach(function (id) {
       if (id < 0) return;
       var el = document.querySelector('[data-sui-id="' + id + '"]');
@@ -1333,7 +1334,12 @@ const guiPreviewPicker = `<script>
       if (tabTable) {
         var tabId = tabTable.getAttribute('data-sui-id');
         if (tabId !== null && tabId !== '-1') {
-          parent.postMessage({ ty: 'sui', id: Number(tabId) }, '*');
+          // A sheet tab switches the workbook and updates the table inspector;
+          // it does not draw a selection box or resize handles. Restore clicks
+          // from the designer itself are internal and must not reset selection.
+          if (!window.__suiSuppressTabPick) {
+            parent.postMessage({ ty: 'sui-table-tab', id: Number(tabId) }, '*');
+          }
           return;
         }
       }

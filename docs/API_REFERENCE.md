@@ -2329,7 +2329,10 @@ In the visual designer the workbook is one `table` node: sheets without an
 explicit `selection` mode are editable, all sheets share the table control's
 visible size, and the **+** tab adds a real sheet to the `.sui` source instead of
 a temporary preview table. A sheet that asks for row/column/cell selection stays
-read-only.
+read-only. The control fills its host with a 640 × 300 px minimum; its sheet area
+takes the space left by the title row and the sheet tabs. Wide columns scroll
+horizontally at the bottom of that area, just above the tabs, and tall row sets
+scroll vertically while the header row stays sticky.
 
 ### Runtime tables and structure editing
 

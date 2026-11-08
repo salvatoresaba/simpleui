@@ -2014,6 +2014,46 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 .sui-tabs[data-sui-tabs-variant="sheets"][data-sui-tabs-position="bottom"] .sui-tab { border-bottom: 0; border-top: 1px solid transparent; border-radius: 0 0 6px 6px; }
 .sui-tabs[data-sui-tabs-variant="sheets"] .sui-tab.active { background: var(--sui-panel, #1d2129); border-color: var(--sui-border); }
 .sui-tabs[data-sui-tabs-variant="sheets"] .sui-tabpanels { padding: 0; }
+/* Workbook: one table control. It fills the host (minimum 640x300) and the
+   active sheet takes all the space between the title row and the bottom tabs.
+   The sheet area scrolls horizontally at its bottom, just above the tabs; the
+   header row stays sticky while the body rows scroll vertically. */
+.sui-tabs[data-sui-workbook="1"] {
+  width: 100%;
+  height: 100%;
+  min-width: 640px;
+  min-height: 300px;
+  box-sizing: border-box;
+}
+.sui-tabs[data-sui-workbook="1"] .sui-tabpanels {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+.sui-tabs[data-sui-workbook="1"] .sui-tabpanel {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sui-tabs[data-sui-workbook="1"] .sui-tabpanel[hidden] { display: none; }
+.sui-tabs[data-sui-workbook="1"] .sui-table-topbar { flex: 0 0 auto; }
+.sui-tabs[data-sui-workbook="1"] .tscroll {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+.sui-tabs[data-sui-workbook="1"] .tscroll > table { margin: 0; }
+.sui-tabs[data-sui-workbook="1"] .tscroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
 
 /* Accordion: stacked disclosure sections. The runtime keeps one panel open
    and preserves the open index across view re-renders when keyed. */
@@ -4198,12 +4238,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         tables.push(t);
       }
       if (!all || !tables.length) continue;
-      var srcWrap = null;
-      for (var ti = 0; ti < tables.length; ti++) {
-        var tw = tables[ti].parentElement;
-        if (!tw || !tw.classList || !tw.classList.contains('tscroll')) continue;
-        if (!srcWrap && (tw.style.width || tw.style.height)) srcWrap = tw;
-      }
+      boxes[b].setAttribute('data-sui-workbook', '1');
       for (var tj = 0; tj < tables.length; tj++) {
         var t2 = tables[tj];
         // Tables that explicitly request a selection mode stay read-only:
@@ -4214,9 +4249,13 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         }
         if (t2.getAttribute('name')) t2.setAttribute('data-sui-show-add-table', '1');
         var w2 = t2.parentElement;
-        if (srcWrap && w2 && w2 !== srcWrap && w2.classList && w2.classList.contains('tscroll')) {
-          if (srcWrap.style.width) w2.style.width = srcWrap.style.width;
-          if (srcWrap.style.height) w2.style.height = srcWrap.style.height;
+        if (w2 && w2.classList && w2.classList.contains('tscroll')) {
+          // The sheet area follows the control size; per-sheet fixed sizes made
+          // the sheets diverge and broke the shared workbook layout.
+          w2.style.width = '';
+          w2.style.height = '';
+          w2.style.maxWidth = '';
+          w2.style.maxHeight = '';
         }
       }
     }
