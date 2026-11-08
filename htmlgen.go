@@ -2937,7 +2937,27 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     if (newTable) {
       newTable.setAttribute('name', name);
       var tb = newTable.tBodies && newTable.tBodies.length ? newTable.tBodies[0] : null;
+      // Keep a real body row as the template so the new sheet starts with two
+      // styled empty rows (not header clones, which could look unstyled/white).
+      var bodyTemplate = tb && tb.rows.length ? tb.rows[0].cloneNode(true) : null;
       if (tb) while (tb.firstChild) tb.removeChild(tb.firstChild);
+      if (tb) {
+        for (var rIdx = 0; rIdx < 2; rIdx++) {
+          var tr = bodyTemplate ? bodyTemplate.cloneNode(true) : document.createElement('tr');
+          if (!bodyTemplate) {
+            var colCount = newTable.querySelectorAll('thead th').length;
+            for (var cIdx = 0; cIdx < colCount; cIdx++) tr.appendChild(document.createElement('td'));
+          }
+          Array.prototype.forEach.call(tr.querySelectorAll('[' + TBL_ID_ATTR + ']'), function(el){ el.removeAttribute(TBL_ID_ATTR); });
+          tr.removeAttribute(TBL_ID_ATTR);
+          Array.prototype.forEach.call(tr.querySelectorAll('td,th'), function(el){
+            el.removeAttribute(TBL_ID_ATTR);
+            el.removeAttribute('data-sui-raw');
+            el.textContent = '';
+          });
+          tb.appendChild(tr);
+        }
+      }
       if (newTable.getAttribute('data-sui-structure-editable') === '1') newTable.setAttribute('data-sui-editable', '1');
     }
     panels.appendChild(clone);
@@ -4764,6 +4784,15 @@ func writeStaticModal(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString("</div>\n")
 }
 
+// tabsRuntimeKey returns the stable key shared by the static markup and the
+// dynamic re-render, so the tabs runtime keeps the selected tab across both.
+func tabsRuntimeKey(e *Element) string {
+	if e == nil {
+		return ""
+	}
+	return "sui-tabs-" + strconv.Itoa(e.span.line) + "-" + strconv.Itoa(e.span.col)
+}
+
 // writeStaticTabs emits a tablist plus tabpanels. The first tab is active in
 // static HTML; the runtime keeps the selected tab across app re-renders.
 func writeStaticTabs(sb *strings.Builder, e *Element, ind string) {
@@ -4776,6 +4805,11 @@ func writeStaticTabs(sb *strings.Builder, e *Element, ind string) {
 	}
 	if v := treeTextAttr(e, "variant"); v == "sheets" {
 		sb.WriteString(" data-sui-tabs-variant=\"sheets\"")
+	}
+	if key := tabsRuntimeKey(e); key != "" {
+		sb.WriteString(" data-sui-tabs-key=\"")
+		sb.WriteString(htmlEscape(key))
+		sb.WriteString("\"")
 	}
 	if label := partsContent(e.text); label != "" {
 		sb.WriteString(" aria-label=\"")

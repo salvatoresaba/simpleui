@@ -1160,7 +1160,10 @@ preview immediately; the overlay stays open while editing.
 
 The **− Table** button and the sheet selector appear only when more than one
 table exists. **+ Table** wraps a lone table in a bottom sheet-tab workbook (or
-adds a new sheet to the existing workbook) and selects the new table.
+adds a new sheet to the existing workbook) and selects the new table. A new sheet
+copies the source table's columns, header labels, appearance and behavior
+(editable, sortable, filterable, events) and starts with two empty body rows.
+The preview keeps the selected sheet while settings are edited.
 
 New tables are named automatically (`table1`, `table2`, ...), so their runtime
 settings gear and `table.*` helpers are immediately available. The gear opens

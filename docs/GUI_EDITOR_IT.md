@@ -1205,7 +1205,11 @@ la preview; l'overlay resta aperto durante le modifiche.
 
 Il pulsante **− Table** e il selettore fogli compaiono solo con più tabelle.
 **+ Table** avvolge una tabella singola in un workbook con sheet tab in basso
-(oppure aggiunge un nuovo sheet) e seleziona la nuova tabella.
+(oppure aggiunge un nuovo sheet) e seleziona la nuova tabella. Un nuovo foglio
+copia dalla tabella di origine colonne, etichette di intestazione, aspetto e
+comportamento (editable, sortable, filterable, eventi) e parte con due righe
+corpo vuote. La preview mantiene il foglio selezionato mentre si modificano le
+impostazioni.
 
 Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
 l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito

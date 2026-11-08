@@ -60,6 +60,7 @@ func TestTabsRender(t *testing.T) {
 	html := GenerateHtmlPage(prog)
 	for _, want := range []string{
 		`class="sui-tabs"`,
+		`data-sui-tabs-key="sui-tabs-`,
 		`class="sui-tablist"`,
 		`class="sui-tab active"`,
 		`class="sui-tabpanels"`,
@@ -71,6 +72,27 @@ func TestTabsRender(t *testing.T) {
 			t.Errorf("static HTML missing %q", want)
 		}
 	}
+	// The static markup and the dynamic re-render must agree on the key,
+	// otherwise the selected tab is lost on the first reactive render.
+	jsKey := tabsKeyIn(js)
+	htmlKey := tabsKeyIn(html)
+	if jsKey == "" || htmlKey == "" || jsKey != htmlKey {
+		t.Errorf("tabs key mismatch: dynamic=%q static=%q", jsKey, htmlKey)
+	}
+}
+
+func tabsKeyIn(s string) string {
+	const marker = `data-sui-tabs-key="`
+	i := strings.Index(s, marker)
+	if i < 0 {
+		return ""
+	}
+	i += len(marker)
+	j := strings.IndexByte(s[i:], '"')
+	if j < 0 {
+		return ""
+	}
+	return s[i : i+j]
 }
 
 func TestTabsDesignerRoundTrip(t *testing.T) {

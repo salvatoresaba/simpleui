@@ -2017,7 +2017,9 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 			sb.WriteString(" aria-label=\"" + htmlTextParts(e.text) + "\"")
 		}
 		if idx >= 0 {
-			sb.WriteString(" data-sui-tabs-key=\"sui-tabs-" + strconv.Itoa(idx) + "\"")
+			if key := tabsRuntimeKey(e); key != "" {
+				sb.WriteString(" data-sui-tabs-key=\"" + htmlEscape(key) + "\"")
+			}
 		}
 	} else if e.tag == "accordion" {
 		if len(e.text) > 0 {

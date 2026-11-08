@@ -129,6 +129,7 @@ view main {
 		`uniqueTableName`, `tableNameTaken`,
 		`#tablesettings-body .acc.open > .accbody`, `grid-template-columns:repeat(2,minmax(0,1fr))`,
 		`width:720px`, `onlyTables`, `flex:0 1 auto`,
+		`capturePreviewTabs`, `restorePreviewTabs`, `copyTableSheetLook`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table/tabs support missing %q", want)

@@ -2206,9 +2206,11 @@ table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome"
 ```
 
 - `showAddTable` mostra un pulsante **+ Table** sotto la tabella quando è dentro
-  un controllo `tabs`. Il click aggiunge un nuovo sheet/tabella; la nuova tabella
-  riceve un nome generato (`table-1`, `table-2`, …) e resta disponibile tra i
-  re-render reattivi della sessione.
+  un controllo `tabs`. Il click aggiunge un nuovo sheet/tabella con le stesse
+  colonne, intestazione, aspetto e comportamento della tabella di origine, più
+  due righe corpo vuote. La nuova tabella riceve un nome generato (`table-1`,
+  `table-2`, …) e resta disponibile tra i re-render reattivi della sessione; il
+  foglio selezionato resta attivo quando la vista si aggiorna.
 - `structureEditable` abilita il menu contestuale runtime di riga/colonna. Clic
   destro su una cella o sull’header permette di:
   - inserire riga sopra/sotto o colonna a sinistra/destra;

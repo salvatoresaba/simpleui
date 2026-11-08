@@ -8661,13 +8661,70 @@ function tableContainerPath(p) {
   if (parent && parent.kind === "div" && (parent.class || "").split(/\s+/).indexOf("tscroll") >= 0) return parentPath;
   return p;
 }
+// copyTableSheetLook makes a new sheet start with the same columns, header,
+// appearance and behavior as the source table. Body rows stay empty.
+function copyTableSheetLook(src, dst) {
+  if (!src || !dst) return;
+  var keepName = dst.name;
+  dst.style = src.style || "";
+  dst.capstyle = src.capstyle || "";
+  if (src.class) dst.class = src.class.indexOf("suitbl") >= 0 ? src.class : ("suitbl " + src.class);
+  ["editable", "fixed", "sortable", "filterable", "multiSelect", "virtual", "showAddTable", "structureEditable"].forEach(function(k) {
+    dst[k] = !!src[k];
+  });
+  dst.pageSize = src.pageSize || "";
+  dst.selection = src.selection || "";
+  dst.columns = src.columns || "";
+  dst.columnLabels = src.columnLabels || "";
+  dst.columnWidths = src.columnWidths || "";
+  dst.columnAlign = src.columnAlign || "";
+  dst.columnTypes = src.columnTypes || "";
+  dst.columnFormats = src.columnFormats || "";
+  dst.columnOptions = src.columnOptions || "";
+  ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"].forEach(function(k) {
+    if (src[k]) dst[k] = src[k];
+  });
+  dst.cols = src.cols || dst.cols;
+  dst.header = src.header || 1;
+  dst.rows = dst.header + 2;
+  dst.cells = [];
+  dst.spans = [];
+  dst.cellStyles = [];
+  dst.rowStyles = [];
+  for (var r = 0; r < dst.rows; r++) {
+    var rowCells = [], rowSpans = [], rowStyles = [];
+    for (var c = 0; c < dst.cols; c++) {
+      var isHead = r < dst.header;
+      rowCells.push(isHead && src.cells && src.cells[r] && src.cells[r][c] !== undefined ? src.cells[r][c] : "");
+      rowSpans.push({ cs: 1, rs: 1 });
+      var ss = null;
+      if (isHead && src.cellStyles && src.cellStyles[r] && src.cellStyles[r][c]) ss = src.cellStyles[r][c];
+      else if (!isHead && src.cellStyles && src.rows > src.header && src.cellStyles[src.rows - 1] && src.cellStyles[src.rows - 1][c]) ss = src.cellStyles[src.rows - 1][c];
+      rowStyles.push(ss ? { bg: ss.bg || "", color: ss.color || "", extra: ss.extra || "" } : { bg: "", color: "", extra: "" });
+    }
+    dst.cells.push(rowCells);
+    dst.spans.push(rowSpans);
+    dst.cellStyles.push(rowStyles);
+    var sr = null;
+    if (r < dst.header && src.rowStyles && src.rowStyles[r]) sr = src.rowStyles[r];
+    else if (r >= dst.header && src.rowStyles && src.rows > src.header && src.rowStyles[src.rows - 1]) sr = src.rowStyles[src.rows - 1];
+    dst.rowStyles.push(sr ? { bg: sr.bg || "", color: sr.color || "", extra: sr.extra || "" } : { bg: "", color: "", extra: "" });
+  }
+  dst.name = keepName;
+}
 function tableAddSheetAction() {
   var info = tableSheetInfo();
   withUndo(function() {
     if (info) {
       var entries = tableSheetEntries(info.tabs, info.tabsPath);
+      var srcTbl = null;
+      for (var ei = 0; ei < entries.length; ei++) {
+        if (samePath(entries[ei].path, selPath)) { srcTbl = entries[ei].table; break; }
+      }
+      if (!srcTbl && entries.length) srcTbl = entries[0].table;
       var tab = newTabNode("Table " + (entries.length + 1));
       var tbl = newTableNode();
+      copyTableSheetLook(srcTbl, tbl);
       var wrap = newNode("div");
       wrap.class = "tscroll";
       wrap.children = [tbl];
@@ -8690,6 +8747,7 @@ function tableAddSheetAction() {
       var tab1 = newTabNode("Table 1");
       tab1.children = [container];
       var tbl2 = newTableNode();
+      copyTableSheetLook(firstTbl, tbl2);
       var wrap2 = newNode("div");
       wrap2.class = "tscroll";
       wrap2.children = [tbl2];
@@ -11008,9 +11066,90 @@ function generate() {
   return src;
 }
 var pvSeq = 0;
+var __previewTabs = null;
+function capturePreviewTabs() {
+  var prev = document.getElementById("prev");
+  var d = null;
+  try { d = prev && prev.contentDocument; } catch (e) { return null; }
+  if (!d) return null;
+  var boxes = d.querySelectorAll(".sui-tabs");
+  if (!boxes.length) return null;
+  var out = [];
+  Array.prototype.forEach.call(boxes, function(box, bi) {
+    var list = box.querySelector(".sui-tablist");
+    var tabs = list ? Array.prototype.filter.call(list.children, function(el) {
+      return el.classList && el.classList.contains("sui-tab");
+    }) : [];
+    if (!tabs.length) return;
+    var active = -1;
+    for (var i = 0; i < tabs.length; i++) if (tabs[i].classList.contains("active")) { active = i; break; }
+    if (active < 0) return;
+    out.push({
+      key: box.getAttribute("data-sui-tabs-key") || "",
+      label: box.getAttribute("aria-label") || "",
+      index: bi,
+      active: active
+    });
+  });
+  return out.length ? out : null;
+}
+function restorePreviewTabs() {
+  var saved = __previewTabs;
+  __previewTabs = null;
+  if (!saved) return;
+  var prev = document.getElementById("prev");
+  var d = null;
+  try { d = prev && prev.contentDocument; } catch (e) { return; }
+  if (!d) return;
+  function apply() {
+    var boxes = d.querySelectorAll(".sui-tabs");
+    saved.forEach(function(rec) {
+      var box = null;
+      if (rec.key) {
+        for (var i = 0; i < boxes.length; i++) {
+          if (boxes[i].getAttribute("data-sui-tabs-key") === rec.key) { box = boxes[i]; break; }
+        }
+      }
+      if (!box && rec.label) {
+        for (var j = 0; j < boxes.length; j++) {
+          if ((boxes[j].getAttribute("aria-label") || "") === rec.label) { box = boxes[j]; break; }
+        }
+      }
+      if (!box) box = boxes[rec.index] || null;
+      if (!box) return;
+      var list = box.querySelector(".sui-tablist");
+      var panels = box.querySelector(".sui-tabpanels");
+      var tabs = list ? Array.prototype.filter.call(list.children, function(el) {
+        return el.classList && el.classList.contains("sui-tab");
+      }) : [];
+      var pnls = panels ? Array.prototype.filter.call(panels.children, function(el) {
+        return el.classList && el.classList.contains("sui-tabpanel");
+      }) : [];
+      if (!tabs.length) return;
+      var idx = rec.active;
+      if (idx >= tabs.length) idx = tabs.length - 1;
+      if (idx < 0) idx = 0;
+      for (var k = 0; k < tabs.length; k++) {
+        var on = k === idx;
+        tabs[k].classList.toggle("active", on);
+        tabs[k].setAttribute("aria-selected", on ? "true" : "false");
+        tabs[k].tabIndex = on ? 0 : -1;
+        if (pnls[k]) {
+          pnls[k].hidden = !on;
+          pnls[k].classList.toggle("active", on);
+        }
+      }
+      // Let the tabs runtime record the selection for later view re-renders.
+      try { tabs[idx].click(); } catch (e) {}
+    });
+  }
+  apply();
+  setTimeout(apply, 120);
+}
 function autoPreview() {
   var src = document.getElementById("out").value;
   if (!src) return;
+  __previewTabs = capturePreviewTabs();
   // Serialize preview loads: a stale render response must not reload the
   // iframe after a newer one (it would show an older version of the project).
   var mySeq = ++pvSeq;
@@ -11024,6 +11163,10 @@ function autoPreview() {
     if (mySeq === pvSeq) setStatus("preview failed: server unavailable");
   });
 }
+(function wirePreviewTabRestore() {
+  var prev = document.getElementById("prev");
+  if (prev) prev.addEventListener("load", restorePreviewTabs);
+})();
 function downloadSui() {
   var blob = new Blob([suiSource || generate()], { type: "text/plain" });
   var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "app.sui"; a.click();
