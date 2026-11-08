@@ -295,6 +295,12 @@ func TestTreeOnTreeChangeEvent(t *testing.T) {
 fn changed() -> null {
 	version = version + 1
 }
+fn snapshot() -> null {
+	text, err = tree.lastChange("files")
+	if err != null {
+		text = ""
+	}
+}
 view main {
 	tree "Files" name: "files" contextMenu: true onTreeChange: changed {
 		treeitem "src"
@@ -312,6 +318,9 @@ view main {
 	if !strings.Contains(js, `data-sui-tree-ontreechange="changed"`) {
 		t.Errorf("generated tree markup missing onTreeChange handler")
 	}
+	if !strings.Contains(js, `__SUI_TREE.lastChange`) {
+		t.Errorf("generated JS missing tree.lastChange mapping")
+	}
 	model := StringifyJson(guiModelJson(prog))
 	if !strings.Contains(model, `"onTreeChange":"changed"`) {
 		t.Errorf("designer model missing onTreeChange: %s", model)
@@ -322,7 +331,9 @@ view main {
 	}
 	for _, want := range []string{
 		`data-sui-tree-ontreechange`, `treeChangeHandler`, `notifyTreeChange`,
-		`notifyTreeChange();`,
+		`notifyTreeChange(`, `treeLastChange`, `changeInfo`, `lastChange`,
+		`changeInfo('delete'`, `changeInfo('cell'`, `refreshAfterEdit(li, 'add'`,
+		`op: 'import'`, `op: 'clear'`,
 	} {
 		if !strings.Contains(suiTreeRuntime, want) {
 			t.Errorf("tree runtime onTreeChange support missing %q", want)

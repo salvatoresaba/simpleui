@@ -654,6 +654,11 @@ tree "File progetto"
 - `tree.lastMove(name)` restituisce JSON `{key, parent, index}` dell'ultimo
   drag/riordino/duplica/elimina; `tree.undoMove(name)` ripristina l'albero
   precedente da uno stack in memoria di 20 passi.
+- `tree.lastChange(name)` restituisce il JSON dell'ultima modifica dati, con
+  `op` (`add`, `delete`, `duplicate`, `move`, `indent`, `outdent`, `rename`,
+  `check`, `load`, `cell`, `import`, `clear` o `undo`), `key`, `parent`,
+  `index` e campi specifici come `column`, `label`, `checked`, `count`,
+  `target` o `mode`.
 - Il menu contestuale integrato offre anche **Add child item**, **Add item
   below**, **Move up/down**, **Indent/Outdent** e **Delete item** (tutti
   annullabili con `tree.undoMove`).
@@ -732,7 +737,7 @@ tree "File progetto"
   Espansione: `tree.expandAll`, `tree.collapseAll`, `tree.expandTo`. Dati lazy:
   `tree.setChildren`, `tree.setChildrenError`. Selezione:
   `tree.selectedKeys`, `tree.checkedKeys`; filtro: `tree.search`. Cronologia:
-  `tree.lastMove`, `tree.undoMove`; retry lazy: `tree.retryChildren`; colonne:
+  `tree.lastMove`, `tree.lastChange`, `tree.undoMove`; retry lazy: `tree.retryChildren`; colonne:
   `tree.setColumns`, `tree.getColumns`, `tree.moveColumn`, `tree.setCell`.
   Schema e limiti in [`STDLIB_IT.md`](STDLIB_IT.md#tree-module-tree-core).
 - I dati importati vengono applicati al tree con il `name` corrispondente;

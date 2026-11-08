@@ -328,6 +328,7 @@ the tree with the matching `name:` attribute (`name: "files"`). Functions return
 | `tree.setChildrenError(name, key, message)` | string, string, string | (int, string) | no | Show a lazy-load error on an item |
 | `tree.retryChildren(name, key)` | string, string | (int, string) | no | Retry a lazy load through `onLoad` |
 | `tree.lastMove(name)` | string | (string, string) | no | JSON `{key, parent, index}` of the last reorder |
+| `tree.lastChange(name)` | string | (string, string) | no | JSON `{op, key, parent, index, ...}` of the last data change |
 | `tree.undoMove(name)` | string | (int, string) | no | Restore the previous tree from the in-memory undo stack |
 | `tree.selectedKeys(name)` | string | (string, string) | no | JSON array of selected keys |
 | `tree.checkedKeys(name)` | string | (string, string) | no | JSON array of checked keys |

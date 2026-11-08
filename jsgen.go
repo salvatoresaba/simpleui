@@ -1716,6 +1716,9 @@ func stdBodyJs(key string, target string) string {
 	if key == "tree_lastmove" {
 		return "(name) => __SUI_TREE.lastMove(name)"
 	}
+	if key == "tree_lastchange" {
+		return "(name) => __SUI_TREE.lastChange(name)"
+	}
 	if key == "tree_undomove" {
 		return "(name) => __SUI_TREE.undoMove(name)"
 	}

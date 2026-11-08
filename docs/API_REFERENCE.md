@@ -672,6 +672,11 @@ tree "Project files"
 - `tree.lastMove(name)` returns JSON `{key, parent, index}` for the last
   drag/reorder/duplicate/delete; `tree.undoMove(name)` restores the previous
   tree from an in-memory 20-step stack.
+- `tree.lastChange(name)` returns JSON for the last data change, including
+  `op` (`add`, `delete`, `duplicate`, `move`, `indent`, `outdent`, `rename`,
+  `check`, `load`, `cell`, `import`, `clear` or `undo`), `key`, `parent`,
+  `index` and operation-specific fields such as `column`, `label`, `checked`,
+  `count`, `target` or `mode`.
 - The built-in context menu also offers **Add child item**, **Add item below**,
   **Move up/down**, **Indent/Outdent** and **Delete item** (all undoable with
   `tree.undoMove`).
@@ -747,7 +752,7 @@ tree "Project files"
   `tree.expandAll`, `tree.collapseAll`, `tree.expandTo`. Lazy data:
   `tree.setChildren`, `tree.setChildrenError`. Selection:
   `tree.selectedKeys`, `tree.checkedKeys`; filter: `tree.search`. History:
-  `tree.lastMove`, `tree.undoMove`; lazy retry: `tree.retryChildren`; columns:
+  `tree.lastMove`, `tree.lastChange`, `tree.undoMove`; lazy retry: `tree.retryChildren`; columns:
   `tree.setColumns`, `tree.getColumns`, `tree.moveColumn`, `tree.setCell`. See
   [`STDLIB.md`](STDLIB.md#tree-module-tree-core) for schemas and limits.
 - Imported data is applied to the tree with the matching `name`; it survives

@@ -1140,7 +1140,8 @@ espandi/comprimi e copia key.
 disponibili in **Tree settings > Events** (la sezione Events generica
 dell'inspector è volutamente nascosta per i tree). `onTreeChange` viene chiamata
 quando i dati dell'albero cambiano: aggiunta/eliminazione, spostamento,
-indent/outdent, import/clear, rinomina, checkbox, figli lazy o celle grid. Il
+indent/outdent, import/clear, rinomina, checkbox, figli lazy o celle grid. Usare
+`tree.lastChange(name)` per leggere operazione, key, parent e indice. Il
 sorgente generato mantiene i `treeitem` annidati con key, open ed editable.
 
 Il menu **style preset** del tree scrive lo stile visivo nel campo **style expr**

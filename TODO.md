@@ -51,6 +51,9 @@ Recently completed:
       X/Y fields removed in favor of editing the data directly.
 - [x] Project preferences themed controls and category cards in a two-column
       grid.
+- [x] Tree control end-to-end: whole-tree selection, context-menu structural
+      editing, leaf/parent/open icons, open/closed branch symbols, curated icon
+      picker, `onTreeChange` and `tree.lastChange`.
 
 Known accuracy corrections from the previous TODO:
 
@@ -219,6 +222,9 @@ Known accuracy corrections from the previous TODO:
 - [x] **Find references** — Shift+F12
 - [x] **Rename symbol** — F2
 - [x] **Bidirectional tree/preview/editor sync**
+- [x] **Tree control end-to-end** — whole-tree selection, context-menu
+      structural editing, leaf/parent/open icons, open/closed branch symbols,
+      curated icon picker, `onTreeChange` and `tree.lastChange`
 - [x] **Hover docs** — builtins/stdlib signatures/descriptions
 - [x] **Toggle comments**, **Outline/Document Symbols**
 - [x] **Table designer** — presets, selectors, grips, caption, editable/fixed,

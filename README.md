@@ -19,7 +19,7 @@ Key features:
 - **Effective inspector styles**: width, height, colors and other fields reflect authored, inherited, inline and computed values
 - **Collapsible element tree**: container rows expand and collapse with a disclosure arrow
 - **Accordion control**: nested disclosure sections with keyboard-accessible headers and restored open state
-- **Tree control**: nested keyboard-accessible items with selection state and persisted expansion
+- **Tree control**: whole-tree selection, context-menu structural editing, leaf/parent/open icons, open/closed branch symbols, curated icon picker, tree-grid columns and `onTreeChange` with `tree.lastChange`
 - **Chart control**: SVG bar, horizontal/stacked/grouped bar, line/step/smooth, area, combo, pie/donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell, Gantt and state-machine charts from JSON/XML/CSV with compatibility checks, scroll/zoom, presets, a resizable data editor, synchronized accessible tables, optional row insertion/editing/deletion, row/column/cell selection, visible numeric steppers, context-menu copy/export, selected-region export and virtual scrolling, critical path, holidays, configurable weekends and IANA timezone
 - **Exact type badges**: every structure row shows its precise element type (`div`, `treeitem`, `chart`, ...)
 - **Toast notifications**: safe text feedback with info/success/warning/error variants, timeouts and an optional host

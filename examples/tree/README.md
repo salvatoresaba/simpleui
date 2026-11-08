@@ -229,6 +229,7 @@ inspector Events section is hidden for trees; charts and graphs expose their
 shape/link/tag handlers in **Chart/Graph settings > Events**.
 `onTreeChange` fires after any tree data change (add/delete, move,
 indent/outdent, import/clear, rename, checkbox, lazy children or grid cells).
+Use `tree.lastChange(name)` to read the operation, key, parent and index.
 
 ```sui
 tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onCheck: checked onMove: moved onLoad: loaded {

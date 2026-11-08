@@ -12,6 +12,7 @@ const suiTreeRuntime = `(function(){
   var treeSearchTerms = Object.create(null);
   var treeUndo = Object.create(null);
   var treeLastMove = Object.create(null);
+  var treeLastChange = Object.create(null);
   var treeColumnOverrides = Object.create(null);
   var treeCellOverrides = Object.create(null);
   // Imported tree models survive reactive re-renders: store[name] is applied
@@ -344,7 +345,7 @@ const suiTreeRuntime = `(function(){
       map[key] = map[key] || {};
       map[key][col] = cells[col];
       rebuildRowCells(item);
-      notifyTreeChange();
+      notifyTreeChange(changeInfo('cell', item, { column: col }));
       return true;
     }
     function labelStorageKey(root, path) {
@@ -399,7 +400,7 @@ const suiTreeRuntime = `(function(){
       if (renameKeySetter && typeof window[renameKeySetter] === 'function') window[renameKeySetter](key);
       if (renameValueSetter && typeof window[renameValueSetter] === 'function') window[renameValueSetter](value);
       if (renameHandler && typeof window[renameHandler] === 'function') window[renameHandler]();
-      notifyTreeChange();
+      notifyTreeChange(changeInfo('rename', old.item, { label: value }));
     }
     function startRename(item) {
       if (!item.__suiEditable || editing) return;
@@ -628,7 +629,21 @@ const suiTreeRuntime = `(function(){
     function notifyCheck() {
       if (checkHandler && typeof window[checkHandler] === 'function') window[checkHandler]();
     }
-    function notifyTreeChange() {
+    function changeInfo(op, item, extra) {
+      var rec = { op: op || 'change', key: '', parent: '', index: -1 };
+      if (item) {
+        rec.key = item.getAttribute('data-sui-key') || '';
+        var p = parentItem(item, root);
+        rec.parent = p ? (p.getAttribute('data-sui-key') || '') : '';
+        rec.index = runtimeSiblings(item).indexOf(item);
+      }
+      if (extra) Object.keys(extra).forEach(function(k) { rec[k] = extra[k]; });
+      return rec;
+    }
+    function notifyTreeChange(info) {
+      var rec = info || { op: 'change' };
+      rec.time = Date.now();
+      treeLastChange[treeName(root)] = rec;
       if (treeChangeHandler && typeof window[treeChangeHandler] === 'function') window[treeChangeHandler]();
     }
     function toggleCheck(item) {
@@ -645,7 +660,7 @@ const suiTreeRuntime = `(function(){
       }
       saveCheckedState();
       notifyCheck();
-      notifyTreeChange();
+      notifyTreeChange(changeInfo('check', item, { checked: next }));
     }
     function initChecks() {
       if (!checkboxes) return;
@@ -1046,7 +1061,7 @@ const suiTreeRuntime = `(function(){
       syncTreeStore();
       root.__suiTree = false;
       init(root);
-      notifyTreeChange();
+      notifyTreeChange(changeInfo('load', item, { count: countNodes(nodes) }));
       return { count: countNodes(nodes) };
     }
     function clearDropClasses() {
@@ -1140,7 +1155,7 @@ const suiTreeRuntime = `(function(){
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
-      notifyTreeChange();
+      notifyTreeChange(changeInfo('duplicate', clone));
       return true;
     }
     function runtimeSiblings(source) {
@@ -1163,14 +1178,15 @@ const suiTreeRuntime = `(function(){
       var at = sibs.indexOf(source);
       return at >= 0 && at < sibs.length - 1 ? sibs[at + 1] : null;
     }
-    function refreshAfterEdit(source) {
+    function refreshAfterEdit(source, op) {
       renumberItems();
+      var info = changeInfo(op || 'change', source);
       syncTreeStore();
       recordLastMove(source);
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
-      notifyTreeChange();
+      notifyTreeChange(info);
     }
     function addRuntimeItem(source, asChild) {
       if (!source) return false;
@@ -1187,7 +1203,7 @@ const suiTreeRuntime = `(function(){
       } else {
         pg.insertBefore(li, source.nextSibling);
       }
-      refreshAfterEdit(li);
+      refreshAfterEdit(li, 'add');
       return true;
     }
     function moveRuntimeItem(source, delta) {
@@ -1197,7 +1213,7 @@ const suiTreeRuntime = `(function(){
       var pg = source.parentElement;
       if (delta < 0) pg.insertBefore(source, target);
       else pg.insertBefore(source, target.nextSibling);
-      refreshAfterEdit(source);
+      refreshAfterEdit(source, 'move');
       return true;
     }
     function indentRuntimeItem(source) {
@@ -1208,7 +1224,7 @@ const suiTreeRuntime = `(function(){
       ensureToggle(prev);
       group.appendChild(source);
       setOpen(prev, true, true);
-      refreshAfterEdit(source);
+      refreshAfterEdit(source, 'indent');
       return true;
     }
     function outdentRuntimeItem(source) {
@@ -1216,20 +1232,21 @@ const suiTreeRuntime = `(function(){
       if (!source || !parent || !parent.parentElement) return false;
       pushUndo();
       parent.parentElement.insertBefore(source, parent.nextSibling);
-      refreshAfterEdit(source);
+      refreshAfterEdit(source, 'outdent');
       return true;
     }
     function deleteItem(source) {
       if (!source || !source.parentElement) return false;
       pushUndo();
       recordLastMove(source);
+      var info = changeInfo('delete', source);
       source.parentElement.removeChild(source);
       renumberItems();
       syncTreeStore();
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
-      notifyTreeChange();
+      notifyTreeChange(info);
       return true;
     }
     function undoMove() {
@@ -1242,7 +1259,7 @@ const suiTreeRuntime = `(function(){
         store[name] = nodes;
         root.__suiTree = false;
         init(root);
-        notifyTreeChange();
+        notifyTreeChange({ op: 'undo', count: countNodes(nodes) });
         return { count: countNodes(nodes), error: null };
       } catch (e) {
         return { count: 0, error: (e && e.message) ? e.message : String(e) };
@@ -1265,12 +1282,13 @@ const suiTreeRuntime = `(function(){
         else parentGroup.insertBefore(source, target.nextSibling);
       }
       renumberItems();
+      var info = changeInfo('move', source, { target: target.getAttribute('data-sui-key') || '', mode: mode });
       syncTreeStore();
       recordLastMove(source);
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
-      notifyTreeChange();
+      notifyTreeChange(info);
       return true;
     }
     function closeTreeMenu() {
@@ -1760,6 +1778,7 @@ const suiTreeRuntime = `(function(){
         return item ? deleteItem(item) : false;
       },
       lastMove: function() { return treeLastMove[treeName(root)] || null; },
+      lastChange: function() { return treeLastChange[treeName(root)] || null; },
       undoMove: undoMove,
       setColumns: function(list) { return setColumnsFor(list); },
       getColumns: function() { return getColumnsFor(); },
@@ -2169,7 +2188,7 @@ const suiTreeRuntime = `(function(){
     store[treeName(root)] = nodes;
     root.__suiTree = false;
     init(root);
-    if (root.__suiTreeApi && root.__suiTreeApi.notifyTreeChange) root.__suiTreeApi.notifyTreeChange();
+    if (root.__suiTreeApi && root.__suiTreeApi.notifyTreeChange) root.__suiTreeApi.notifyTreeChange({ op: 'import', count: countNodes(nodes) });
     return { count: countNodes(nodes) };
   }
   function exportNode(li) {
@@ -2186,8 +2205,12 @@ const suiTreeRuntime = `(function(){
     if (show === "1" || show === "0") out.showRenameIcon = show === "1";
     var icon = li.getAttribute("data-sui-rename-icon") || "";
     if (icon) out.renameIcon = icon;
-    var itemIcon = li.getAttribute("data-sui-icon") || "";
+    var itemIcon = li.hasAttribute("data-sui-icon-base")
+      ? (li.getAttribute("data-sui-icon-base") || "")
+      : (li.getAttribute("data-sui-icon") || "");
     if (itemIcon) out.icon = itemIcon;
+    var itemIconOpen = li.getAttribute("data-sui-icon-open-base") || "";
+    if (itemIconOpen) out.iconOpen = itemIconOpen;
     var badge = li.getAttribute("data-sui-badge") || "";
     if (badge) {
       out.badge = badge;
@@ -2409,6 +2432,13 @@ const suiTreeRuntime = `(function(){
       if (!root.__suiTreeApi) return ["", "tree is empty: " + name];
       return [JSON.stringify(root.__suiTreeApi.lastMove()), null];
     },
+    lastChange: function(name) {
+      var root = treeTarget(name);
+      if (!root) return ["", "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      var rec = root.__suiTreeApi ? root.__suiTreeApi.lastChange() : (treeLastChange[treeName(root)] || null);
+      return [JSON.stringify(rec), null];
+    },
     undoMove: function(name) {
       var root = treeTarget(name);
       if (!root) return [0, "tree not found: " + name];
@@ -2478,7 +2508,7 @@ const suiTreeRuntime = `(function(){
       clearTreeStorage(root);
       root.__suiTree = false;
       init(root);
-      if (root.__suiTreeApi && root.__suiTreeApi.notifyTreeChange) root.__suiTreeApi.notifyTreeChange();
+      if (root.__suiTreeApi && root.__suiTreeApi.notifyTreeChange) root.__suiTreeApi.notifyTreeChange({ op: 'clear' });
       return [0, null];
     }
   };

@@ -205,6 +205,7 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "tree", name: "setChildrenError", params: []string{"string", "string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_setchildrenerror", async: false},
 	StdFunc{mod: "tree", name: "retryChildren", params: []string{"string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_retrychildren", async: false},
 	StdFunc{mod: "tree", name: "lastMove", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "tree_lastmove", async: false},
+	StdFunc{mod: "tree", name: "lastChange", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "tree_lastchange", async: false},
 	StdFunc{mod: "tree", name: "undoMove", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "tree_undomove", async: false},
 	StdFunc{mod: "tree", name: "setColumns", params: []string{"string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_setcolumns", async: false},
 	StdFunc{mod: "tree", name: "getColumns", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "tree_getcolumns", async: false},

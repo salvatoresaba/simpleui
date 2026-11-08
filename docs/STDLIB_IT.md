@@ -320,6 +320,7 @@ restituiscono `(valore, errore)`.
 | `tree.setChildrenError(name, key, message)` | string, string, string | (int, string) | no | Mostra un errore di caricamento lazy |
 | `tree.retryChildren(name, key)` | string, string | (int, string) | no | Riprova un caricamento lazy tramite `onLoad` |
 | `tree.lastMove(name)` | string | (string, string) | no | JSON `{key, parent, index}` dell'ultimo riordino |
+| `tree.lastChange(name)` | string | (string, string) | no | JSON `{op, key, parent, index, ...}` dell'ultima modifica dati |
 | `tree.undoMove(name)` | string | (int, string) | no | Ripristina l'albero precedente dallo stack undo |
 | `tree.selectedKeys(name)` | string | (string, string) | no | Array JSON delle key selezionate |
 | `tree.checkedKeys(name)` | string | (string, string) | no | Array JSON delle key checked |
