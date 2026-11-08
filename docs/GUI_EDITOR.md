@@ -1153,7 +1153,7 @@ The inspector keeps the **Table selectors** and **Structure** buttons, and adds
 opens a large overlay with every parameter group in tabs:
 
 **Appearance**, **Borders**, **Header**, **Caption**, **Behavior**, **Data**,
-**Columns**, **Data view** and **Events**. Every field in the overlay updates the
+**Columns**, **Data view**, **Events** and **Tooltip**. Every field in the overlay updates the
 preview immediately; the overlay stays open while editing.
 
 The table selector row and **− Table** appear only when more than one table

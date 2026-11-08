@@ -1198,8 +1198,8 @@ L'inspector mantiene **Table selectors**, **Structure** e aggiunge **+ Table** /
 ampio con tutti i gruppi in tab:
 
 **Appearance**, **Borders**, **Header**, **Caption**, **Behavior**, **Data**,
-**Columns**, **Data view** ed **Events**. Ogni campo aggiorna subito la preview;
-l'overlay resta aperto durante le modifiche.
+**Columns**, **Data view**, **Events** e **Tooltip**. Ogni campo aggiorna subito
+la preview; l'overlay resta aperto durante le modifiche.
 
 Il selettore tabelle e **− Table** compaiono solo con più tabelle. **+ Table**
 avvolge una tabella singola in un workbook con sheet tab in basso (oppure aggiunge

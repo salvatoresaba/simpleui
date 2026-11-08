@@ -4385,7 +4385,7 @@ function renderInspector() {
   if (nodes.length === 1 && n && isChartKind(n)) {
     box.appendChild(chartControls(n));
   }
-  if (nodes.length === 1 && n && !n.raw && n.kind !== "toast" && n.kind !== "text" && n.kind !== "tree" && n.kind !== "treeitem") {
+  if (nodes.length === 1 && n && !n.raw && n.kind !== "toast" && n.kind !== "text" && n.kind !== "tree" && n.kind !== "treeitem" && n.kind !== "table") {
     box.appendChild(tooltipPropertyControls(n));
   }
   if (nodes.length === 1 && n && n.kind === "toast") {
@@ -9381,6 +9381,8 @@ function openTableSettings(n) {
   groups.forEach(function(g){ g.classList.add("open"); });
   var ev = eventsControls([n]);
   if (ev) { ev.classList.add("open"); groups.push(ev); }
+  var tip = tooltipPropertyControls(n);
+  if (tip) { tip.classList.add("open"); groups.push(tip); }
   var names = groups.map(function(g){
     var h = g.querySelector(".acchead span");
     return h ? h.textContent.replace(/\s+/g, " ").trim() : "Section";
