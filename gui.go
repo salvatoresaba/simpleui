@@ -998,6 +998,26 @@ const guiPreviewPicker = `<script>
     });
     parent.postMessage({ ty: 'sui-mselect', ids: ids }, '*');
   }, true);
+  // Right-click inside a tree opens the DESIGNER's structural menu, not the
+  // compiled app's runtime menu: the designer builds/edits the tree here.
+  document.addEventListener('contextmenu', function (e) {
+    var t = e.target;
+    var tree = t && t.closest ? t.closest('.sui-tree') : null;
+    if (!tree) return;
+    var id = tree.getAttribute('data-sui-id');
+    if (id === null || id === '-1') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var item = t.closest ? t.closest('.sui-tree-item') : null;
+    parent.postMessage({
+      ty: 'sui-tree-ctx',
+      id: Number(id),
+      key: item ? (item.getAttribute('data-sui-key') || '') : '',
+      path: item ? (item.getAttribute('data-sui-path') || '') : '',
+      x: e.clientX,
+      y: e.clientY
+    }, '*');
+  }, true);
   document.addEventListener('click', function (e) {
     // Any click inside the preview dismisses the designer's context menus,
     // including clicks on empty preview space that select no element.

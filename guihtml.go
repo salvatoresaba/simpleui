@@ -1502,6 +1502,7 @@ RUNNING</div>
       <button class="cset-tab" data-cset="tooltip" onclick="showChartSettingsTab('tooltip')">Tooltip</button>
       <button class="cset-tab" data-cset="table" onclick="showChartSettingsTab('table')">Table</button>
       <button class="cset-tab" data-cset="interactions" onclick="showChartSettingsTab('interactions')">Interactions</button>
+      <button class="cset-tab" data-cset="events" onclick="showChartSettingsTab('events')">Events</button>
       <button class="cset-tab" data-cset="data" onclick="showChartSettingsTab('data')">Data</button>
     </div>
     <div class="cset-pane on" data-pane="appearance">
@@ -1569,6 +1570,10 @@ RUNNING</div>
       <div class="pfrow"><label>Holidays</label><input type="text" id="cs-holidays" placeholder="2026-12-25, *-01-01, 2026-12-24..2026-12-26"></div>
       <div class="pfrow"><label>Weekend</label><input type="text" id="cs-weekend" placeholder="sat,sun or none"></div>
       <div class="pfrow"><label>Timezone</label><input type="text" id="cs-timezone" placeholder="UTC or Europe/Rome"></div>
+    </div>
+    <div class="cset-pane" data-pane="events">
+      <div class="cset-hint">Chart and graph elements have dedicated events for shapes, links, tags and Gantt editing. These handlers live here instead of the generic inspector Events panel.</div>
+      <div id="cs-events"></div>
     </div>
     <div class="cset-pane" data-pane="data">
       <div class="cset-hint" id="cs-data-hint">The data button in the inspector opens the full JSON/XML/CSV editor. Edit the data directly; labels and numeric series are detected automatically. Element hints edit per-state and per-link tag text.</div>
@@ -2336,6 +2341,113 @@ function byPath(path, arr) {
   for (var i = 0; i < path.length; i++) cur = cur.children[path[i]];
   return cur;
 }
+// Tree items are edited as part of their tree: selecting any item maps to the
+// owning tree so the inspector never exposes a separate tree-item panel.
+function treeOwnerPath(path, arr) {
+  if (!path || !path.length) return path;
+  arr = arr || root.children;
+  var node = byPath(path, arr);
+  if (!node || node.kind !== "treeitem") return path;
+  var probe = path.slice();
+  while (probe.length) {
+    probe.pop();
+    if (!probe.length) break;
+    var parent = byPath(probe, arr);
+    if (parent && parent.kind === "tree") return probe;
+  }
+  return path;
+}
+// ---- structural tree-item editing (context menu / preview) ----------------
+function treeItemArray(p) {
+  var parentPath = p.slice(0, -1);
+  return parentPath.length ? byPath(parentPath, root.children).children : root.children;
+}
+function treeSelectOwner(p) {
+  var owner = treeOwnerPath(p);
+  selPath = owner ? owner.slice() : null;
+  multiSel = [];
+}
+function treeInsertItem(p, mode) {
+  var parentPath = p.slice(0, -1);
+  var idx = p[p.length - 1];
+  var arr = treeItemArray(p);
+  var target = byPath(p, root.children);
+  if (mode === "child" ? !target : !arr) return;
+  withUndo(function() {
+    var node = newTreeItemNode(mode === "child" ? "New child" : "New item");
+    if (mode === "child") {
+      target.children = target.children || [];
+      target.children.push(node);
+      target.open = true;
+    } else {
+      arr.splice(idx + 1, 0, node);
+    }
+    treeSelectOwner(p);
+  }, mode === "child" ? "add tree child item" : "add tree item");
+  setStatus(mode === "child" ? "child item added" : "tree item added");
+}
+function treeDeleteItem(p) {
+  var arr = treeItemArray(p);
+  if (!arr) return;
+  var idx = p[p.length - 1];
+  withUndo(function() {
+    arr.splice(idx, 1);
+    treeSelectOwner(p);
+  }, "delete tree item");
+  setStatus("tree item deleted");
+}
+function treeDuplicateItem(p) {
+  var arr = treeItemArray(p);
+  var node = byPath(p, root.children);
+  if (!arr || !node) return;
+  var idx = p[p.length - 1];
+  withUndo(function() {
+    var clone = JSON.parse(JSON.stringify(node));
+    arr.splice(idx + 1, 0, clone);
+    treeSelectOwner(p);
+  }, "duplicate tree item");
+  setStatus("tree item duplicated");
+}
+function treeMoveItem(p, delta) {
+  var arr = treeItemArray(p);
+  if (!arr) return;
+  var idx = p[p.length - 1], to = idx + delta;
+  if (to < 0 || to >= arr.length) return;
+  withUndo(function() {
+    var node = arr.splice(idx, 1)[0];
+    arr.splice(to, 0, node);
+    treeSelectOwner(p);
+  }, "move tree item");
+}
+function treeIndentItem(p) {
+  var arr = treeItemArray(p);
+  if (!arr) return;
+  var idx = p[p.length - 1];
+  if (idx <= 0) return;
+  var prev = arr[idx - 1];
+  withUndo(function() {
+    var node = arr.splice(idx, 1)[0];
+    prev.children = prev.children || [];
+    prev.children.push(node);
+    prev.open = true;
+    treeSelectOwner(p);
+  }, "indent tree item");
+}
+function treeOutdentItem(p) {
+  if (p.length <= 2) return;
+  var parentPath = p.slice(0, -1);
+  var grandPath = parentPath.slice(0, -1);
+  var parentArr = byPath(parentPath, root.children).children;
+  var grandArr = grandPath.length ? byPath(grandPath, root.children).children : root.children;
+  if (!parentArr || !grandArr) return;
+  var idx = p[p.length - 1];
+  var parentIdx = parentPath[parentPath.length - 1];
+  withUndo(function() {
+    var node = parentArr.splice(idx, 1)[0];
+    grandArr.splice(parentIdx + 1, 0, node);
+    treeSelectOwner(p);
+  }, "outdent tree item");
+}
 function currentSourceForHistory() {
   var ta = document.getElementById("out");
   return ta ? ta.value : (suiSource || "");
@@ -2535,7 +2647,7 @@ function buildPickMap() {
   var pages = root.pages || [root];
   for (var pi = 0; pi < pages.length; pi++) {
     (function(pi) {
-      (function walk(nodes, path) {
+      (function walk(nodes, path, ownerTreePath) {
         for (var i = 0; i < nodes.length; i++) {
           var n = nodes[i];
           var p = path.concat([i]);
@@ -2544,7 +2656,8 @@ function buildPickMap() {
             // not consume a pickMap slot (keeps ids aligned with the preview)
             continue;
           }
-          pickMap.push({ t: "n", pg: pi, p: p });
+          var pickPath = (n.kind === "treeitem" && ownerTreePath) ? ownerTreePath : p;
+          pickMap.push({ t: "n", pg: pi, p: pickPath });
           if (n.kind === "list") {
             for (var k = 0; k < (n.items || []).length; k++) {
               pickMap.push({ t: "item", pg: pi, p: p, k: k });
@@ -2575,10 +2688,10 @@ function buildPickMap() {
               }
             }
           } else if (n.children && n.children.length) {
-            walk(n.children, p);
+            walk(n.children, p, n.kind === "tree" ? p : ownerTreePath);
           }
         }
-      })(pages[pi].children, []);
+      })(pages[pi].children, [], null);
     })(pi);
   }
 }
@@ -2831,18 +2944,21 @@ function bindRowEvents(row, p, node, tray, i) {
   row.onclick = function (ev) {
     ev.stopPropagation();
     selCell = null; selRow = null; selCol = null; selBody = false;
+    var sp = treeOwnerPath(p);
     if (ev.shiftKey) {
-      rangeSelect((selPath || p).slice(), p);
+      rangeSelect((selPath || sp).slice(), sp);
     } else if (ev.ctrlKey || ev.metaKey) {
       // Seed the current single selection into the multi-set before toggling.
-      if (!multiSel.length && selPath && !samePath(selPath, p)) multiAdd(selPath);
-      if (multiHas(p)) multiRemove(p); else multiAdd(p);
-      if (multiHas(p)) selPath = p.slice();
+      if (!multiSel.length && selPath && !samePath(selPath, sp)) multiAdd(selPath);
+      if (multiHas(sp)) multiRemove(sp); else multiAdd(sp);
+      if (multiHas(sp)) selPath = sp.slice();
       else selPath = multiSel.length ? multiSel[multiSel.length - 1].slice() : null;
     } else {
       multiSel = [];
-      selPath = p;
+      selPath = sp;
     }
+    multiSel = normalizeTreePaths(multiSel);
+    selPath = selPath ? treeOwnerPath(selPath) : null;
     renderTree(); fillPanel(); renderInspector();
   };
   // Right-click opens the element-list context menu. It is also the quick
@@ -2852,7 +2968,9 @@ function bindRowEvents(row, p, node, tray, i) {
     ev.stopPropagation();
     selCell = null; selRow = null; selCol = null; selBody = false;
     multiSel = [];
-    selPath = p.slice();
+    // Tree items are not selectable on their own, but the context menu still
+    // targets the clicked item so structural edits apply to that node.
+    selPath = treeOwnerPath(p);
     renderTree(); fillPanel(); renderInspector(); postHighlight();
     showNodeContextMenu(ev, p, node);
   };
@@ -2942,6 +3060,19 @@ function nodeContextActions(p, node) {
     add("Export JSON", function() { treeDownloadData(node, "json"); });
     add("Export XML", function() { treeDownloadData(node, "xml"); });
     sep();
+  } else if (node.kind === "treeitem") {
+    add("Add child item", function() { treeInsertItem(p, "child"); });
+    add("Add item below", function() { treeInsertItem(p, "sibling"); });
+    sep();
+    add("Edit item label...", function() {
+      var next = window.prompt("Item label", node.text || "");
+      if (next === null) return;
+      withUndo(function() {
+        node.text = String(next);
+        treeSelectOwner(p);
+      }, "rename tree item");
+    });
+    sep();
   } else if (node.kind === "menubar") {
     add("Add menu", function() { insertMenuNode(p, node, "menu"); });
     sep();
@@ -2956,7 +3087,7 @@ function nodeContextActions(p, node) {
   }
 
   var fields = TAG_FIELDS[node.kind] || [];
-  if (fields.indexOf("text") >= 0) {
+  if (fields.indexOf("text") >= 0 && node.kind !== "treeitem") {
     add("Edit label", function() {
       setTimeout(function() {
         var f = document.getElementById("f_text");
@@ -2964,16 +3095,31 @@ function nodeContextActions(p, node) {
       }, 0);
     });
   }
-  add("Duplicate", function() { selPath = p.slice(); multiSel = []; duplicateSelected(); });
+  if (node.kind === "treeitem") {
+    add("Duplicate", function() { treeDuplicateItem(p); });
+  } else {
+    add("Duplicate", function() { selPath = p.slice(); multiSel = []; duplicateSelected(); });
+  }
 
   var parentPath = p.slice(0, -1);
   var siblings = parentPath.length === 0 ? root.children : byPath(parentPath, root.children).children;
   var idx = p.length ? p[p.length - 1] : -1;
-  if (idx > 0) add("Move up", function() { moveNodeAt(p, -1); });
-  if (idx >= 0 && idx < siblings.length - 1) add("Move down", function() { moveNodeAt(p, 1); });
+  if (node.kind === "treeitem") {
+    if (idx > 0) add("Move up", function() { treeMoveItem(p, -1); });
+    if (idx >= 0 && idx < siblings.length - 1) add("Move down", function() { treeMoveItem(p, 1); });
+    if (idx > 0) add("Indent (under previous)", function() { treeIndentItem(p); });
+    if (p.length > 2) add("Outdent", function() { treeOutdentItem(p); });
+  } else {
+    if (idx > 0) add("Move up", function() { moveNodeAt(p, -1); });
+    if (idx >= 0 && idx < siblings.length - 1) add("Move down", function() { moveNodeAt(p, 1); });
+  }
 
   sep();
-  add("Delete", function() { selPath = p.slice(); multiSel = []; deleteSelected(); });
+  if (node.kind === "treeitem") {
+    add("Delete", function() { treeDeleteItem(p); });
+  } else {
+    add("Delete", function() { selPath = p.slice(); multiSel = []; deleteSelected(); });
+  }
   return out;
 }
 
@@ -3888,6 +4034,10 @@ function applyLiveStyleMessage(d) {
   renderInspector();
 }
 function renderInspector() {
+  if (selPath && (!multiSel || !multiSel.length)) {
+    var ownerPath = treeOwnerPath(selPath);
+    if (ownerPath && !samePath(ownerPath, selPath)) selPath = ownerPath;
+  }
   var box = document.getElementById("inspector");
   box.innerHTML = "";
   // Document section: the page title is a page-level property (the browser tab
@@ -4117,7 +4267,12 @@ function renderInspector() {
   if (nodes.length && everyKind(nodes, function(k){ return k !== "table"; })) {
     var bc = bindingControls(nodes);
     if (bc) box.appendChild(bc);
-    var evSec = eventsControls(nodes);
+    // Tree, chart and graph own their event model (tree.onRename/onCheck/...,
+    // chart/graph shape+link+tag handlers): the generic Events panel would
+    // duplicate a partial list, so it is offered in their dedicated settings
+    // dialogs instead.
+    var ownsEvents = nodes.some(function(m){ return m.kind === "tree" || m.kind === "graph" || m.kind === "chart"; });
+    var evSec = ownsEvents ? null : eventsControls(nodes);
     if (evSec) box.appendChild(evSec);
   }
 
@@ -4153,9 +4308,6 @@ function renderInspector() {
   }
   if (nodes.length === 1 && n && n.kind === "tree") {
     box.appendChild(treeControls(n));
-  }
-  if (nodes.length === 1 && n && n.kind === "treeitem") {
-    box.appendChild(treeItemControls(n));
   }
   if (nodes.length === 1 && n && isChartKind(n)) {
     box.appendChild(chartControls(n));
@@ -10716,6 +10868,69 @@ document.getElementById("filein").onchange = openFile;
 document.getElementById("fontfile").onchange = function(){ uploadFont(this.files[0]); };
 
 // preview click -> select node ----------------------------------------------
+// The compiled preview numbers items after sorting. Match an item by its
+// compiled key (explicit key or sorted path) so a right-click in the iframe
+// resolves to the exact model node the designer must edit.
+function treeCompiledChildren(node) {
+  var kids = [];
+  var all = node && node.children ? node.children : [];
+  for (var i = 0; i < all.length; i++) {
+    if (all[i] && all[i].kind === "treeitem") kids.push({ node: all[i], index: i });
+  }
+  var dir = String(node && node.sort || "").toLowerCase();
+  if (dir === "asc" || dir === "desc") {
+    kids.sort(function(a, b) {
+      var la = String(a.node.text || "").toLowerCase();
+      var lb = String(b.node.text || "").toLowerCase();
+      if (la < lb) return dir === "asc" ? -1 : 1;
+      if (la > lb) return dir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }
+  return kids;
+}
+function findPreviewTreeItem(treePath, key, compiledPath) {
+  var tree = byPath(treePath, root.children);
+  if (!tree) return null;
+  var found = null;
+  (function walk(entries, prefix) {
+    for (var i = 0; i < entries.length && !found; i++) {
+      var entry = entries[i];
+      var childPath = prefix + "." + i;
+      var explicit = String(entry.node.key || "").trim();
+      var itemKey = explicit || childPath;
+      if ((key && itemKey === key) || (!key && compiledPath && childPath === compiledPath)) {
+        found = treePath.concat([entry.index]);
+        return;
+      }
+      if (entry.node.children && entry.node.children.length) walk(treeCompiledChildren(entry.node), childPath);
+    }
+  })(treeCompiledChildren(tree), "0");
+  return found;
+}
+function previewTreeContext(data) {
+  var hit = pickMap[data.id];
+  if (!hit || hit.pg !== root.page) return;
+  var treePath = treeOwnerPath(hit.p);
+  var tree = byPath(treePath, root.children);
+  if (!tree || tree.kind !== "tree") return;
+  var itemPath = findPreviewTreeItem(treePath, String(data.key || ""), String(data.path || ""));
+  var targetPath = itemPath || treePath;
+  var targetNode = byPath(targetPath, root.children) || tree;
+  selCell = null; selRow = null; selCol = null; selBody = false;
+  multiSel = [];
+  selPath = treePath.slice();
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+  var frame = document.getElementById("prev");
+  var r = frame ? frame.getBoundingClientRect() : { left: 0, top: 0 };
+  var fake = {
+    pageX: r.left + Number(data.x || 0),
+    pageY: r.top + Number(data.y || 0),
+    preventDefault: function() {},
+    stopPropagation: function() {}
+  };
+  showNodeContextMenu(fake, targetPath, targetNode);
+}
 window.addEventListener("message", function(ev) {
   if (ev.source !== document.getElementById("prev").contentWindow) return;
   if (!ev.data) return;
@@ -10723,6 +10938,7 @@ window.addEventListener("message", function(ev) {
   // click elsewhere in the parent document.
   closeContextMenus();
   if (ev.data.ty === "sui-style") { applyLiveStyleMessage(ev.data); return; }
+  if (ev.data.ty === "sui-tree-ctx") { previewTreeContext(ev.data); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
   if (ev.data.ty === "sui-drop") { dropFromPalette(ev.data.id); return; }
@@ -10959,7 +11175,16 @@ function idsToPaths(ids) {
   });
   return out;
 }
+function normalizeTreePaths(paths) {
+  var out = [];
+  (paths || []).forEach(function(p) {
+    var q = treeOwnerPath(p);
+    if (q && !out.some(function(r){ return samePath(r, q); })) out.push(q);
+  });
+  return out;
+}
 function selectPaths(paths) {
+  paths = normalizeTreePaths(paths);
   selCell = null; selRow = null; selCol = null; selBody = false;
   if (!paths.length) { multiSel = []; selPath = null; }
   else { multiSel = paths.map(function(p){ return p.slice(); }); selPath = paths[paths.length - 1].slice(); }
@@ -12529,6 +12754,77 @@ function openChartProjectSettings(kind) {
   var n = kind === "graph" ? newGraphNode() : newChartNode();
   openChartSettings(n, kind);
 }
+var CHART_EVENT_FIELDS = [
+  "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
+  "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
+  "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
+  "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"
+];
+function chartEventSelect(node, ev) {
+  var sel = document.createElement("select");
+  sel.setAttribute("data-cs-event", ev);
+  var empty = document.createElement("option");
+  empty.value = ""; empty.textContent = "(no handler)";
+  sel.appendChild(empty);
+  (root.funcs || []).forEach(function(fn) {
+    if (!fn.name) return;
+    var o = document.createElement("option");
+    o.value = fn.name; o.textContent = fn.name;
+    if (String(node[ev] || "") === fn.name) o.selected = true;
+    sel.appendChild(o);
+  });
+  var add = document.createElement("option");
+  add.value = "__new__"; add.textContent = "+ new function\u2026";
+  sel.appendChild(add);
+  sel.onchange = function() {
+    if (sel.value === "__new__") {
+      askPrompt("New function", "Name", "handler", function(raw) {
+        var name = String(raw || "").replace(/[^A-Za-z0-9_]/g, "");
+        if (name && IDENT.test(name) && !RESERVED_NAME.test(name)) {
+          if (!hasFn(name)) { if (!root.funcs) root.funcs = []; root.funcs.push({ name: name, params: "", ret: "null" }); }
+          var keep = {};
+          document.querySelectorAll("#cs-events select[data-cs-event]").forEach(function(x) {
+            keep[x.getAttribute("data-cs-event")] = x.value;
+          });
+          renderChartEventControls(node);
+          document.querySelectorAll("#cs-events select[data-cs-event]").forEach(function(x) {
+            var ev = x.getAttribute("data-cs-event");
+            var want = ev === sel.getAttribute("data-cs-event") ? name : keep[ev];
+            if (want !== undefined && x.querySelector('option[value="' + want.replace(/"/g, '\\"') + '"]')) x.value = want;
+          });
+        }
+      });
+      sel.value = String(node[ev] || "");
+    }
+  };
+  sel.value = String(node[ev] || "");
+  return sel;
+}
+function renderChartEventControls(node) {
+  var box = document.getElementById("cs-events");
+  if (!box || !node) return;
+  box.textContent = "";
+  CHART_EVENT_FIELDS.forEach(function(ev) {
+    var row = document.createElement("div");
+    row.className = "pfrow";
+    var lab = document.createElement("label");
+    lab.textContent = ev;
+    row.appendChild(lab);
+    row.appendChild(chartEventSelect(node, ev));
+    box.appendChild(row);
+  });
+}
+function readChartEventValues(node) {
+  var out = {};
+  var sels = document.querySelectorAll("#cs-events select[data-cs-event]");
+  for (var i = 0; i < sels.length; i++) {
+    var ev = sels[i].getAttribute("data-cs-event");
+    if (!ev) continue;
+    if (sels[i].value === "__new__") continue;
+    out[ev] = sels[i].value;
+  }
+  return out;
+}
 function openChartSettings(n, projectKind) {
   chartSettingsNode = n;
   chartSettingsProjectKind = projectKind || null;
@@ -12547,6 +12843,11 @@ function openChartSettings(n, projectKind) {
   var dataPane = document.querySelector('.cset-pane[data-pane="data"]');
   if (dataTab) dataTab.style.display = projectMode ? "none" : "";
   if (dataPane) dataPane.style.display = projectMode ? "none" : "";
+  var eventsTab = document.querySelector('.cset-tab[data-cset="events"]');
+  var eventsPane = document.querySelector('.cset-pane[data-pane="events"]');
+  if (eventsTab) eventsTab.style.display = projectMode ? "none" : "";
+  if (eventsPane) eventsPane.style.display = projectMode ? "none" : "";
+  renderChartEventControls(n);
   var theme = document.getElementById("cs-theme");
   theme.value = n.chartTheme === "light" ? "light" : "dark";
   document.getElementById("cs-colorpicker").checked = n.chartColorPicker !== false;
@@ -12623,6 +12924,10 @@ function closeChartSettings() {
   var dataPane = document.querySelector('.cset-pane[data-pane="data"]');
   if (dataTab) dataTab.style.display = "";
   if (dataPane) dataPane.style.display = "";
+  var eventsTab = document.querySelector('.cset-tab[data-cset="events"]');
+  var eventsPane = document.querySelector('.cset-pane[data-pane="events"]');
+  if (eventsTab) eventsTab.style.display = "";
+  if (eventsPane) eventsPane.style.display = "";
 }
 function openDataFromChartSettings() {
   var n = chartSettingsNode;
@@ -12706,6 +13011,8 @@ function chartSettingsValues(n) {
   v.chartHolidays = document.getElementById("cs-holidays").value.trim();
   v.chartWeekend = document.getElementById("cs-weekend").value.trim();
   v.chartTimezone = document.getElementById("cs-timezone").value.trim();
+  var events = chartSettingsProjectKind ? {} : readChartEventValues(n);
+  Object.keys(events).forEach(function(k){ v[k] = events[k]; });
   return v;
 }
 function applyChartSettings() {
@@ -13738,6 +14045,14 @@ var COMPONENT_DEFS = [
         { key: "@editableDepth", label: "Editable depth", type: "attrText", attr: "editableDepth", def: "", placeholder: "0 = all levels", showIf: "@editable", hint: "Maximum editable level; 0 = all levels." },
         { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "", states: true, placeholder: "state name", showIf: "@editable", hint: "State receiving the renamed node key." },
         { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "", states: true, placeholder: "state name", showIf: "@editable", hint: "State receiving the new label." }
+      ]},
+      { name: "Events", fields: [
+        { key: "@onChange", label: "onChange", type: "event", attr: "onChange", def: "", hint: "Fired after the selected node changes." },
+        { key: "@onRename", label: "onRename", type: "event", attr: "onRename", def: "", hint: "Fired after a node is renamed (editable trees)." },
+        { key: "@onCheck", label: "onCheck", type: "event", attr: "onCheck", def: "", hint: "Fired when a hierarchical checkbox changes." },
+        { key: "@onMove", label: "onMove", type: "event", attr: "onMove", def: "", hint: "Fired after drag-and-drop or context-menu structural edits." },
+        { key: "@onLoad", label: "onLoad", type: "event", attr: "onLoad", def: "", hint: "Loads children for a lazy node (pair with Load key state)." },
+        { key: "@onContextMenu", label: "onContextMenu", type: "event", attr: "onContextMenu", def: "", hint: "Fired on right-click over a node; pair with the Context menu switch." }
       ]},
       { name: "Columns", fields: [
         { key: "@columnsEnabled", label: "Show columns", type: "attrSwitch", attr: "columnsEnabled", def: false },
@@ -15294,7 +15609,7 @@ function componentFieldDefault(field) {
   if (field.type === "attrSwitch") return !!field.def;
   if (field.type === "section") return "";
   if (field.type === "columns") return { list: [{ key: "size", label: "Size", width: 104 }, { key: "date", label: "Date", width: 104 }, { key: "status", label: "Status", width: 104 }] };
-  if (field.type === "attrText" || field.type === "icon" || field.type === "title") return field.def === undefined ? "" : String(field.def);
+  if (field.type === "attrText" || field.type === "icon" || field.type === "title" || field.type === "event") return field.def === undefined ? "" : String(field.def);
   if (field.type === "number") return String(field.def) + (field.unit || "");
   return String(field.def);
 }
@@ -15783,6 +16098,39 @@ function componentFieldRow(field) {
       iconWrap.appendChild(iconClear);
     }
     row.appendChild(iconWrap);
+  } else if (field.type === "event") {
+    var evSel = document.createElement("select");
+    var evEmpty = document.createElement("option");
+    evEmpty.value = ""; evEmpty.textContent = "(no handler)";
+    evSel.appendChild(evEmpty);
+    (root.funcs || []).forEach(function(fn) {
+      if (!fn.name) return;
+      var o = document.createElement("option");
+      o.value = fn.name; o.textContent = fn.name;
+      if (String(value || "") === fn.name) o.selected = true;
+      evSel.appendChild(o);
+    });
+    var evNew = document.createElement("option");
+    evNew.value = "__new__"; evNew.textContent = "+ new function\u2026";
+    evSel.appendChild(evNew);
+    evSel.onchange = function() {
+      if (evSel.value === "__new__") {
+        askPrompt("New function", "Name", "handler", function(raw) {
+          var name = String(raw || "").replace(/[^A-Za-z0-9_]/g, "");
+          if (name && IDENT.test(name) && !RESERVED_NAME.test(name)) {
+            if (!hasFn(name)) { if (!root.funcs) root.funcs = []; root.funcs.push({ name: name, params: "", ret: "null" }); }
+            s.values[field.key] = name;
+            markComponentCustom();
+            renderComponentSettings();
+          }
+        });
+        evSel.value = String(value || "");
+        return;
+      }
+      s.values[field.key] = evSel.value;
+      markComponentCustom();
+    };
+    row.appendChild(evSel);
   } else if (field.type === "attrText" || field.type === "title") {
     var aInp = document.createElement("input");
     aInp.type = "text"; aInp.value = value || ""; aInp.spellcheck = false;
@@ -19632,7 +19980,7 @@ function syncEditorToTree() {
   var line = before.split("\n").length - 1;
   var loc = elementBlockAtLine(line);
   if (loc) {
-    selPath = loc.path.slice(); selCell = null; selRow = null; selCol = null;
+    selPath = treeOwnerPath(loc.path.slice()); selCell = null; selRow = null; selCol = null;
     renderTree(); fillPanel(); renderInspector(); postHighlight();
   }
 }

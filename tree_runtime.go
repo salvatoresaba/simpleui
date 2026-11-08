@@ -110,7 +110,20 @@ const suiTreeRuntime = `(function(){
     try { localStorage.setItem(storageKey(root, path), open ? '1' : '0'); } catch (e) {}
   }
   function init(root) {
-    if (!root || root.__suiTree) return;
+    if (!root) return;
+    if (root.__suiTree) {
+      // A reactive re-render may replace the tree's rows while the root keeps
+      // its bound flag: re-init when any item is still unbound so new rows get
+      // their handlers instead of silently losing click/context-menu support.
+      var probe = root.querySelectorAll('[data-sui-tree-item]');
+      var lacksBind = false;
+      for (var pb = 0; pb < probe.length; pb++) {
+        if (!probe[pb].__suiBound) { lacksBind = true; break; }
+      }
+      if (!lacksBind) return;
+      root.__suiTree = false;
+      root.__suiTreeApi = null;
+    }
     var treeKey = root.getAttribute('data-sui-tree-key') || 'tree';
     var guides = root.getAttribute('data-sui-tree-guides') === '1';
     var checkboxes = root.getAttribute('data-sui-tree-checkbox') === '1';
@@ -1079,6 +1092,81 @@ const suiTreeRuntime = `(function(){
       init(root);
       return true;
     }
+    function runtimeSiblings(source) {
+      var out = [];
+      var pg = source ? source.parentElement : null;
+      if (!pg) return out;
+      for (var i = 0; i < pg.children.length; i++) {
+        var ch = pg.children[i];
+        if (ch.hasAttribute && ch.hasAttribute('data-sui-tree-item')) out.push(ch);
+      }
+      return out;
+    }
+    function previousSiblingItem(source) {
+      var sibs = runtimeSiblings(source);
+      var at = sibs.indexOf(source);
+      return at > 0 ? sibs[at - 1] : null;
+    }
+    function nextSiblingItem(source) {
+      var sibs = runtimeSiblings(source);
+      var at = sibs.indexOf(source);
+      return at >= 0 && at < sibs.length - 1 ? sibs[at + 1] : null;
+    }
+    function refreshAfterEdit(source) {
+      renumberItems();
+      syncTreeStore();
+      recordLastMove(source);
+      if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
+      root.__suiTree = false;
+      init(root);
+    }
+    function addRuntimeItem(source, asChild) {
+      if (!source) return false;
+      var pg = asChild ? ensureGroup(source) : source.parentElement;
+      if (!pg) return false;
+      pushUndo();
+      var level = parseInt(source.getAttribute('data-sui-level') || '1', 10) + (asChild ? 1 : 0);
+      var node = { key: uniqueTreeKey('item'), label: asChild ? 'New child' : 'New item', open: false };
+      var li = makeNode(node, '0', level, renderOpts());
+      if (asChild) {
+        ensureToggle(source);
+        pg.appendChild(li);
+        setOpen(source, true, true);
+      } else {
+        pg.insertBefore(li, source.nextSibling);
+      }
+      refreshAfterEdit(li);
+      return true;
+    }
+    function moveRuntimeItem(source, delta) {
+      var target = delta < 0 ? previousSiblingItem(source) : nextSiblingItem(source);
+      if (!source || !target) return false;
+      pushUndo();
+      var pg = source.parentElement;
+      if (delta < 0) pg.insertBefore(source, target);
+      else pg.insertBefore(source, target.nextSibling);
+      refreshAfterEdit(source);
+      return true;
+    }
+    function indentRuntimeItem(source) {
+      var prev = previousSiblingItem(source);
+      if (!source || !prev) return false;
+      pushUndo();
+      var group = ensureGroup(prev);
+      ensureToggle(prev);
+      group.appendChild(source);
+      setOpen(prev, true, true);
+      refreshAfterEdit(source);
+      return true;
+    }
+    function outdentRuntimeItem(source) {
+      var parent = parentItem(source, root);
+      if (!source || !parent || !parent.parentElement) return false;
+      pushUndo();
+      parent.parentElement.insertBefore(source, parent.nextSibling);
+      refreshAfterEdit(source);
+      return true;
+    }
     function deleteItem(source) {
       if (!source || !source.parentElement) return false;
       pushUndo();
@@ -1153,23 +1241,30 @@ const suiTreeRuntime = `(function(){
       menu.className = 'sui-tree-context';
       menu.setAttribute('role', 'menu');
       menu.setAttribute('aria-label', 'Tree actions');
-      function add(label, fn, disabled) {
+      function add(label, fn, disabled, act) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'sui-tree-context-item';
         b.setAttribute('role', 'menuitem');
         b.textContent = label;
         b.disabled = !!disabled;
+        if (act) b.setAttribute('data-act', act);
         b.addEventListener('click', function(e) { e.stopPropagation(); closeTreeMenu(); fn(); });
         menu.appendChild(b);
       }
       var initial = target();
       if (initial.__suiEditable) add('Rename', function() { startRename(target()); });
+      add('Add child item', function() { addRuntimeItem(target(), true); });
+      add('Add item below', function() { addRuntimeItem(target(), false); });
+      add('Move up', function() { moveRuntimeItem(target(), -1); }, !previousSiblingItem(initial), 'move-up');
+      add('Move down', function() { moveRuntimeItem(target(), 1); }, !nextSiblingItem(initial), 'move-down');
+      add('Indent', function() { indentRuntimeItem(target()); }, !previousSiblingItem(initial), 'indent');
+      add('Outdent', function() { outdentRuntimeItem(target()); }, !parentItem(initial, root), 'outdent');
       if (itemGroup(initial)) {
         add(initial.__suiTreeOpen ? 'Collapse subtree' : 'Expand subtree', function() {
           var t = target();
           setOpen(t, !t.__suiTreeOpen, true);
-        });
+        }, false, 'toggle-subtree');
       } else if (initial.getAttribute('data-sui-lazy') === '1') {
         add('Load children', function() { loadLazy(target()); });
       }
@@ -1209,6 +1304,26 @@ const suiTreeRuntime = `(function(){
         else if (e.key === 'ArrowUp') { e.preventDefault(); if (list.length) list[Math.max(0, at - 1)].focus(); }
       });
       setTimeout(function() {
+        if (!menu.parentNode) return;
+        // Reactive re-renders can replace the clicked node between selection
+        // and menu creation; recompute the structural availability from the
+        // live target so Move/Indent/Outdent never reflect a stale neighbor.
+        var t = target();
+        function setAct(act, disabled) {
+          var b = menu.querySelector('[data-act="' + act + '"]');
+          if (b) b.disabled = !!disabled;
+        }
+        setAct('move-up', !previousSiblingItem(t));
+        setAct('move-down', !nextSiblingItem(t));
+        setAct('indent', !previousSiblingItem(t));
+        setAct('outdent', !parentItem(t, root));
+        var tg = menu.querySelector('[data-act="toggle-subtree"]');
+        if (tg) {
+          if (itemGroup(t)) { tg.textContent = t.__suiTreeOpen ? 'Collapse subtree' : 'Expand subtree'; tg.style.display = ''; }
+          else tg.style.display = 'none';
+        }
+      }, 0);
+      setTimeout(function() {
         if (menu.parentNode) {
           document.addEventListener('click', closeTreeMenu);
           document.addEventListener('scroll', closeTreeMenu, true);
@@ -1240,6 +1355,8 @@ const suiTreeRuntime = `(function(){
       return show ? icon : '';
     }
     items.forEach(function(item) {
+      if (item.__suiBound) return;
+      item.__suiBound = true;
       var row = itemRow(item);
       if (row && item.hasAttribute('style')) {
         // Tree-item style expr belongs to this row only. Moving it off the

@@ -195,6 +195,38 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 	}
 }
 
+func TestTreeWholeSelectionAndContextEditing(t *testing.T) {
+	// The designer must select the whole tree, never an internal item, and the
+	// inspector must not invoke the per-item panel.
+	if strings.Contains(guiHTML, "box.appendChild(treeItemControls(n))") {
+		t.Fatalf("tree item inspector must not be invoked")
+	}
+	for _, want := range []string{
+		"function treeOwnerPath", "function normalizeTreePaths", "function previewTreeContext",
+		"function findPreviewTreeItem", "function treeInsertItem", "function treeDeleteItem",
+		"function treeDuplicateItem", "function treeMoveItem", "function treeIndentItem",
+		"function treeOutdentItem", "Add child item", "Add item below",
+		"Edit item label...", "Indent (under previous)", "Outdent",
+		"sui-tree-ctx", "ownsEvents", "CHART_EVENT_FIELDS", "renderChartEventControls",
+		`{ name: "Events", fields: [`, `type: "event"`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("designer whole-tree support missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		"addRuntimeItem", "moveRuntimeItem", "indentRuntimeItem", "outdentRuntimeItem",
+		"Add child item", "Add item below", "Outdent",
+	} {
+		if !strings.Contains(suiTreeRuntime, want) {
+			t.Errorf("runtime tree structural menu missing %q", want)
+		}
+	}
+	if !strings.Contains(guiPreviewPicker, ".sui-tree-item") || !strings.Contains(guiPreviewPicker, "sui-tree-ctx") {
+		t.Fatalf("preview picker must forward right-clicks on tree items")
+	}
+}
+
 func TestTreePhaseAFeatures(t *testing.T) {
 	src := `state selected = ""
 state checkedCount = 0

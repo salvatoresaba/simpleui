@@ -1114,27 +1114,27 @@ modifica il modello. Le stesse azioni sono nel menu contestuale del tree
 (**Edit tree data**, **Tree settings**, **Add root item**,
 **Import JSON/XML**, **Export JSON/XML**).
 
-Selezionando un elemento nella preview si apre ancora il pannello **Tree item**:
+Selezionando un nodo nella preview viene sempre selezionato l'**intero tree**:
+un tree item non è mai selezionabile da solo e l'inspector non apre un pannello
+per-item. Per modificare la struttura, fare clic destro su un nodo nella preview.
+Il menu offre **Add child item**, **Add item below**, **Edit item label...**,
+**Duplicate**, **Move up**, **Move down**, **Indent (under previous)**,
+**Outdent** e **Delete**. Il clic destro sullo spazio vuoto del tree (o sul tree
+nella lista elementi) offre **Add root item**, **Edit tree data**,
+**Tree settings** e le azioni di import/export JSON/XML.
 
-| Campo | Significato |
-|---|---|
-| key | valore stabile scritto nello stato selezionato |
-| initially open | stato di espansione iniziale |
-| node style preset | Inherit / Muted / Accent / Success / Warning / Danger / Folder / Compact row / custom |
-| show rename icon | inherit / show / hide |
-| rename icon | simbolo per nodo; vuoto eredita quello del tree |
-| icon / open icon | glifo per nodo chiuso/aperto |
-| badge | testo breve della pill di stato |
-| badge type | neutral / info / success / warning / danger |
-| metadata | testo allineato a destra, ad esempio dimensione o data |
-| checked | stato iniziale; i padri derivano true, false o mixed |
-| lazy children | l'elemento carica i figli alla prima espansione |
-| size / date / status | testo delle celle tree-grid |
-| editable | inherit / yes / read-only |
-| Text | etichetta visibile (sezione Content) |
+I campi solo-per-item (key, initially open, node style preset, rename icon,
+icon/open icon, badge, metadata, checked, lazy children, size/date/status e celle
+tree-grid) restano nel sorgente `treeitem` generato e si modificano da **Edit
+tree data** o direttamente nel SUI. A runtime la stessa struttura è disponibile
+dal menu contestuale del tree quando **Context menu** è attivo: aggiungi
+figlio/fratello, rinomina, duplica, sposta, indent/outdent, elimina,
+espandi/comprimi e copia key.
+
 `onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` e `onContextMenu` sono
-disponibili in **Events**. Il sorgente generato mantiene i `treeitem` annidati
-con key, open ed editable.
+disponibili in **Tree settings > Events** (la sezione Events generica
+dell'inspector è volutamente nascosta per i tree). Il sorgente generato mantiene
+i `treeitem` annidati con key, open ed editable.
 
 Il menu **style preset** del tree scrive lo stile visivo nel campo **style expr**
 dell'elemento (sezione **Appearance**). I preset sono **Default**, **Compact**,
@@ -1143,15 +1143,16 @@ dell'elemento (sezione **Appearance**). I preset sono **Default**, **Compact**,
 **Mono**, **Candy** e **Cards**. Modificando direttamente l'espressione
 `cssSafe("...")` si ottiene il controllo completo e il menu passa a **Custom**.
 
-Ogni tree item ha un menu **node style preset** (**Inherit**, **Muted**,
-**Accent**, **Success**, **Warning**, **Danger**, **Folder**, **Compact row** o
-**Custom**). I preset di nodo scrivono variabili `--sui-tree-*` di riga nello
-`style expr` del singolo item, quindi sovrascrivono solo quel nodo. Entrambi i
-livelli usano lo stesso campo **style expr** dell'inspector.
+Un tree item può comunque avere il proprio **node style preset** (`Inherit`,
+`Muted`, `Accent`, `Success`, `Warning`, `Danger`, `Folder`, `Compact row` o
+`Custom`) tramite `styleExpr` nel sorgente SUI. I preset di nodo scrivono
+variabili `--sui-tree-*` di riga nello style expression del singolo item, quindi
+sovrascrivono solo quel nodo.
 
-Il campo **rename icon** cambia il simbolo della matita; **show rename icon** la
-nasconde. Sul tree item gli stessi campi possono ereditare, mostrare o nascondere
-l'icona per nodo. Nascondere il pulsante non disabilita F2 o doppio click.
+Il campo **rename icon** del tree cambia il simbolo della matita; **show rename
+icon** la nasconde. Un tree item può ereditare, mostrare o nascondere l'icona per
+nodo tramite gli attributi generati `renameIcon` / `showRenameIcon`. Nascondere
+il pulsante non disabilita F2 o doppio click.
 
 Il campo **tree name** rende il tree un target runtime. Il pannello **Edit tree
 data** importa/esporta i tree item nel sorgente di design: l'import sostituisce
@@ -1190,7 +1191,7 @@ L'inspector dedicato **Chart** è ordinato per accesso rapido:
 |---|---|
 | type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell o Gantt; nel sorgente l'attributo è `chartType` perché `type` è riservato. I diagrammi a blocchi usano il controllo separato **Graph** |
 | Mode | solo grafico, tabella accessibile, oppure entrambi; ex **table view**, disponibile per ogni tipo |
-| settings | apre il pannello unificato **Chart settings** (aspetto, punti, tooltip, tabella, interazioni, element hints e campi dati) |
+| settings | apre il pannello unificato **Chart settings** (aspetto, punti, tooltip, tabella, interazioni, eventi, element hints e campi dati) |
 | bins | numero bucket dell'istogramma (1-100) |
 | min / max | intervallo gauge (default 0-100) |
 | interactive | abilita tooltip, hover/selezione e modifica Gantt |
@@ -1536,7 +1537,7 @@ JSONL, raggruppati nel sottomenu **Export** del menu del grafico. L'export dal
 grafico include tutte le righe; Settings esporta le righe e colonne visibili.
 
 **Chart settings** apre il pannello unificato con tab Appearance, Points, Tooltip,
-Table, Interactions e Data. Controlla tema dark/light, **Editable colors**
+Table, Interactions, Events e Data. Controlla tema dark/light, **Editable colors**
 (color picker on/off), preset, point size e point width, tooltip, tabella, **Column filters**
 on/off, modalità interactive, **Critical path**, **Auto schedule**, **Holidays**, **Weekend**,
 **Timezone**, **Link color**, **Link width** (default `1px`), **Min link gap**
@@ -1579,7 +1580,8 @@ drag/resize Gantt, gruppi collassabili e celle Gantt modificabili. Le modifiche
 sono autosalvate in una bozza locale e non diventano una versione finché non si
 preme **Commit** nell'intestazione. **Commit changes...** e **Version history...**
 nel menu del grafico creano e ispezionano versioni con audit per campo. Se il
-grafico ha `onTaskChange` in **Events**, l'handler riceve il JSON aggiornato;
+grafico ha `onTaskChange` in **Chart settings > Events**, l'handler riceve il
+JSON aggiornato;
 `onCommit` riceve la versione committata per la sincronizzazione host/server con
 `revision` e `baseRevision`.
 

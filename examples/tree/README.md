@@ -204,21 +204,19 @@ are in **Colors**.
 The right-click menu on the tree row offers **Edit tree data**, **Tree
 settings**, **Add root item**, **Import JSON/XML** and **Export JSON/XML**.
 
-Selecting an item in the live preview opens the per-item **Tree item** panel:
-
-- `key` - stable string written to the selected state;
-- `initially open` - default expansion state;
-- `editable` - inherit / yes / read-only;
-- `icon` / `open icon` - per-node glyphs;
-- `badge` / `badge type` - status pill and its colour family;
-- `metadata` - right-aligned text such as a size or date;
-- `checked` - initial hierarchical checkbox state;
-- `lazy children` - load children on first expansion;
-- `size` / `date` / `status` - tree-grid cells;
-- label text via **Content**.
+Selecting a node in the live preview always selects the whole tree; a tree item
+is never selected alone and no per-item inspector is shown. Right-click a node
+in the preview to edit the structure: **Add child item**, **Add item below**,
+**Edit item label...**, **Duplicate**, **Move up**, **Move down**, **Indent
+(under previous)**, **Outdent** and **Delete**. Item-only fields (key, initially
+open, per-node icon, badge, metadata, checked state, lazy children and tree-grid
+cells) stay in the generated `treeitem` source and are edited from **Edit tree
+data** or directly in the SUI.
 
 `onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` and `onContextMenu` are
-available in **Events**.
+available in **Tree settings > Events**. The generic inspector Events section is
+hidden for trees; charts and graphs expose their shape/link/tag handlers in
+**Chart/Graph settings > Events**.
 
 ```sui
 tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 icon: "📁" iconOpen: "📂" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onCheck: checked onMove: moved onLoad: loaded {
@@ -236,8 +234,9 @@ resulting `checked` flags.
 
 `multiSelect` enables Ctrl/Command and Shift selection; `selection` receives a
 JSON array of keys. `search` adds a filter box, `drag` enables reordering with
-cycle checks, and `contextMenu` adds a built-in right-click menu with rename,
-duplicate, delete, expand/collapse, copy key and expand/collapse all. `columns`
+cycle checks, and `contextMenu` adds a built-in right-click menu with add
+child/item, rename, duplicate, move, indent/outdent, delete, expand/collapse,
+copy key and expand/collapse all. `columns`
 renders a tree-grid from each item's `size`, `date` and `status`;
 `columnLabels`/`columnWidths` customize the header and widths, and `sort` orders
 children by label. `persistSelection` restores selected keys after reload.
@@ -316,12 +315,12 @@ The Tree inspector has a **style preset** menu:
 A preset writes CSS custom properties (`--sui-tree-*`) into the tree element's
 **style expr** field. **Tree settings** exposes the same colors, typography and
 title options as structured fields (Colors, Title, Shape); the title can be
-left/center/right aligned and placed above or below the items. Each Tree item
-also has a **node style preset** menu
+left/center/right aligned and placed above or below the items. A Tree item can
+still use a **node style preset**
 (Inherit, Muted, Accent, Success, Warning, Danger, Folder, Compact row or
-Custom); node presets write row variables into that item's own `style expr`.
-The example uses the **Soft rounded** tree preset and the **Folder** node preset
-directly in its source:
+Custom) through its own `style expr` in the SUI source: node presets write row
+variables into that item. The example uses the **Soft rounded** tree preset and
+the **Folder** node preset directly in its source:
 
 ```sui
 # Nested tree example.

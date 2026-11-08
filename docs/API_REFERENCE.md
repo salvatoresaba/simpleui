@@ -633,8 +633,9 @@ tree "Project files"
 - `drag: true` enables drag and drop with before/after/inside indicators. Drops
   into the dragged node or one of its descendants are rejected. `onMove` runs
   after a successful move; use `tree.exportJson(name)` to persist the new order.
-- `contextMenu: true` adds a built-in right-click menu (rename, expand/collapse
-  subtree, copy key, expand/collapse all). `onContextMenu` runs on right-click
+- `contextMenu: true` adds a built-in right-click menu (add child/item, rename,
+  duplicate, move up/down, indent/outdent, delete, expand/collapse subtree, copy
+  key, expand/collapse all). `onContextMenu` runs on right-click
   after the item is selected, for application-specific menus.
 - `columns: "owner,size"` renders a tree-grid header and matching cells for
   arbitrary column keys. `columnsEnabled: false` keeps the configuration but
@@ -663,8 +664,9 @@ tree "Project files"
 - `tree.lastMove(name)` returns JSON `{key, parent, index}` for the last
   drag/reorder/duplicate/delete; `tree.undoMove(name)` restores the previous
   tree from an in-memory 20-step stack.
-- The built-in context menu also offers **Duplicate item** and **Delete item**
-  (both undoable with `tree.undoMove`).
+- The built-in context menu also offers **Add child item**, **Add item below**,
+  **Move up/down**, **Indent/Outdent** and **Delete item** (all undoable with
+  `tree.undoMove`).
 - `tree.expandAll`, `tree.collapseAll` and `tree.expandTo(name, level)` control
   expansion from application code. `tree.selectedKeys(name)` and
   `tree.checkedKeys(name)` return JSON arrays. `tree.search(name, term)` drives

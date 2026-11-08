@@ -614,7 +614,8 @@ tree "File progetto"
   nel nodo trascinato o in un suo discendente vengono rifiutati. `onMove` viene
   chiamata dopo uno spostamento valido; usare `tree.exportJson(name)` per
   persistere il nuovo ordine.
-- `contextMenu: true` aggiunge il menu contestuale integrato (rinomina,
+- `contextMenu: true` aggiunge il menu contestuale integrato (aggiungi
+  figlio/fratello, rinomina, duplica, sposta su/giù, indent/outdent, elimina,
   espandi/comprimi sottoalbero, copia key, espandi/comprimi tutto).
   `onContextMenu` viene chiamata al click destro dopo la selezione, per menu
   applicativi.
@@ -645,8 +646,9 @@ tree "File progetto"
 - `tree.lastMove(name)` restituisce JSON `{key, parent, index}` dell'ultimo
   drag/riordino/duplica/elimina; `tree.undoMove(name)` ripristina l'albero
   precedente da uno stack in memoria di 20 passi.
-- Il menu contestuale integrato offre anche **Duplicate item** e **Delete item**
-  (entrambi annullabili con `tree.undoMove`).
+- Il menu contestuale integrato offre anche **Add child item**, **Add item
+  below**, **Move up/down**, **Indent/Outdent** e **Delete item** (tutti
+  annullabili con `tree.undoMove`).
 - `tree.expandAll`, `tree.collapseAll` e `tree.expandTo(name, level)` controllano
   l'espansione da codice. `tree.selectedKeys(name)` e `tree.checkedKeys(name)`
   restituiscono array JSON. `tree.search(name, term)` pilota il filtro da codice.

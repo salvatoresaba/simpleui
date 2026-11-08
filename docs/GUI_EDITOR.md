@@ -1071,28 +1071,27 @@ XML. **Apply** writes the items into the tree; Cancel leaves the model unchanged
 The same actions are available from the tree context menu (**Edit tree data**,
 **Tree settings**, **Add root item**, **Import JSON/XML**, **Export JSON/XML**).
 
-Selecting an item in the live preview still opens the per-node **Tree item**
-panel:
+Selecting a node in the live preview always selects the **whole tree**: a
+tree item is never selected on its own and the inspector never opens a
+per-item panel. To edit the tree's structure, right-click a node in the
+preview. The context menu offers **Add child item**, **Add item below**,
+**Edit item label...**, **Duplicate**, **Move up**, **Move down**,
+**Indent (under previous)**, **Outdent** and **Delete**. Right-clicking empty
+tree space (or the tree itself in the element list) offers **Add root item**,
+**Edit tree data**, **Tree settings** and the JSON/XML import/export actions.
 
-| Field | Meaning |
-|---|---|
-| key | stable value written to the selected state |
-| initially open | default expansion state |
-| node style preset | Inherit / Muted / Accent / Success / Warning / Danger / Folder / Compact row / custom |
-| show rename icon | inherit / show / hide |
-| rename icon | per-node glyph; empty inherits the tree icon |
-| icon / open icon | per-node glyph for collapsed/expanded state |
-| badge | short status pill text |
-| badge type | neutral / info / success / warning / danger |
-| metadata | right-aligned text such as a size or date |
-| checked | initial checkbox state; parents derive true, false or mixed |
-| lazy children | item loads children on first expansion |
-| size / date / status | tree-grid cell text |
-| editable | inherit / yes / read-only |
-| Text | visible item label (Content section) |
+Item-only fields (key, initially open, node style preset, rename icon,
+icon/open icon, badge, metadata, checked state, lazy children, size/date/status
+and tree-grid cells) remain part of the generated `treeitem` source and are
+edited from **Edit tree data** or directly in the SUI. At runtime the same
+structure is available from the tree context menu when **Context menu** is on:
+add child/item, rename, duplicate, move, indent/outdent, delete, expand/collapse
+and copy key.
+
 `onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` and `onContextMenu` are
-available in **Events**. The generated source keeps nested `treeitem` children
-and their keys/open/editable flags.
+available in **Tree settings > Events** (the generic inspector Events panel is
+intentionally hidden for trees). The generated source keeps nested `treeitem`
+children and their keys/open/editable flags.
 
 The tree **style preset** menu writes the component's visual CSS into the tree
 element's **style expr** field (in **Appearance**). It offers **Default**,
@@ -1101,15 +1100,16 @@ element's **style expr** field (in **Appearance**). It offers **Default**,
 **Outline**, **Mono**, **Candy** and **Cards**. Editing the `cssSafe("...")`
 expression directly gives full control and switches the menu to **Custom**.
 
-Every tree item has its own **node style preset** menu (**Inherit**, **Muted**,
-**Accent**, **Success**, **Warning**, **Danger**, **Folder**, **Compact row** or
-**Custom**). Node presets write row-level `--sui-tree-*` variables into that
-item's `style expr`, so they override only the selected node. Both levels use
-the same inspector **style expr** field.
+A tree item can still carry its own **node style preset** (`Inherit`, `Muted`,
+`Accent`, `Success`, `Warning`, `Danger`, `Folder`, `Compact row` or `Custom`)
+through `styleExpr` in the SUI source. Node presets write row-level
+`--sui-tree-*` variables into that item's style expression, so they override
+only that node.
 
-The **rename icon** field changes the pencil glyph; **show rename icon** hides
-it. On a Tree item the same fields can inherit, show or hide the icon per node.
-Hiding the button does not disable F2 or double-click rename.
+The tree **rename icon** field changes the pencil glyph; **show rename icon**
+hides it. A tree item can inherit, show or hide the icon per node through the
+generated `renameIcon` / `showRenameIcon` attributes. Hiding the button does not
+disable F2 or double-click rename.
 
 The **tree name** field makes the tree a runtime target. The **Edit tree data**
 panel imports or exports the tree items in the design source: import replaces
@@ -1147,7 +1147,7 @@ The dedicated **Chart** inspector is ordered for quick access:
 |---|---|
 | type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell or Gantt; the source attribute is `chartType` because `type` is reserved. Block diagrams use the separate **Graph** control |
 | Mode | chart only, accessible data table only, or both; formerly **table view** and available for every type |
-| settings | opens the unified **Chart settings** panel (appearance, points, tooltip, table, interactions, element hints and data fields) |
+| settings | opens the unified **Chart settings** panel (appearance, points, tooltip, table, interactions, events, element hints and data fields) |
 | bins | histogram bucket count (1-100) |
 | min / max | gauge range (default 0-100) |
 | interactive | enable tooltips, hover/selection and Gantt editing |
@@ -1500,7 +1500,7 @@ a chart mark selects its row, and a row highlights all marks for that label
 `localStorage` and restored after reload.
 
 **Chart settings.** The **Chart settings** button opens the unified panel with
-tabs: Appearance, Points, Tooltip, Table, Interactions and Data. It controls the
+tabs: Appearance, Points, Tooltip, Table, Interactions, Events and Data. It controls the
 dark/light theme, **Editable colors** (color picker on/off), style preset, point size and point width, tooltip colors/width/font/delay, **Mode**, **Column
 filters** on/off and table typography, interactive mode, **Critical path**, **Auto schedule**,
 **Holidays**, **Weekend**, **Timezone**, **Link color**, **Link width** (default
@@ -1527,7 +1527,8 @@ Focused dependency links support Enter/Shift+F10 to edit and Delete to remove.
 editable Gantt table cells. Task edits are auto-saved to a local draft and are
 not versioned until the header **Commit** button is pressed. **Commit changes...**
 and **Version history...** in the chart menu create and inspect versions with
-field-level audit details. If the chart has `onTaskChange` in **Events**, the
+field-level audit details. If the chart has `onTaskChange` in **Chart settings >
+Events**, the
 handler receives the updated task JSON; `onCommit` receives the committed version
 for host/server synchronization with `revision` and `baseRevision`.
 
