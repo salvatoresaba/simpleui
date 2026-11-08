@@ -294,6 +294,21 @@ and inspector. The history panel lists the recorded steps and can jump directly
 to an earlier state. When focus is in an inspector field, Ctrl+Z/Ctrl+U follow
 the designer history; prompt and modal text fields keep their native undo.
 
+### Autosave
+
+The editor writes a recovery copy to `localStorage` every 2 seconds. The
+topbar shows **Autosaved HH:MM:SS**, **Unsaved changes**, **Saving…** or
+**Autosave failed**. Autosave never overwrites the project file implicitly:
+**Save** / **Save As** remain explicit. When a recovery copy differs from the
+current editor content, the topbar shows **Restore autosave**; restoring
+replaces the editor content and reloads the model after confirmation.
+
+### Theme toggle
+
+The toolbar theme button cycles the editor between dark and light. The choice is
+saved in the editor preferences; the Preferences → Interface → Theme select
+stays in sync. High-contrast remains available from the same preferences select.
+
 ## Left panel and design tokens
 
 ### Resizable panels

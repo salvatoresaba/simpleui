@@ -301,6 +301,22 @@ tornare direttamente a uno stato precedente. Quando il focus è in un campo
 dell'inspector, Ctrl+Z/Ctrl+U usano la cronologia del designer; i campi dei
 prompt e delle modali mantengono l'undo nativo.
 
+### Autosave
+
+L'editor scrive una copia di recupero in `localStorage` ogni 2 secondi. La
+topbar mostra **Autosaved HH:MM:SS**, **Unsaved changes**, **Saving…** oppure
+**Autosave failed**. L'autosave non sovrascrive mai il file del progetto:
+**Save** / **Save As** restano espliciti. Quando la copia differisce dal
+contenuto corrente, la topbar mostra **Restore autosave**; il ripristino
+sostituisce il contenuto e ricarica il modello dopo conferma.
+
+### Theme toggle
+
+Il pulsante tema nella toolbar alterna l'editor tra dark e light. La scelta
+viene salvata nelle preferenze dell'editor; il select Preferences → Interface →
+Theme resta sincronizzato. L'alto contrasto resta disponibile nello stesso
+select delle preferenze.
+
 ## Pannello sinistro e design token
 
 ### Pannelli ridimensionabili

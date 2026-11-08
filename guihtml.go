@@ -101,6 +101,12 @@ body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; background: var(-
 .sep { width:1px; height:16px; background:var(--border2); margin:0 4px; }
 .bp { display:flex; align-items:center; gap:2px; }
 #status { font-size:12px; color:var(--muted); margin-left:auto; white-space:pre-wrap; max-width:40%; }
+#autosave { display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
+#autosave.saving { color:var(--accent); }
+#autosave.saved { color:#10b981; }
+#autosave.error { color:#f87171; }
+#autosave-restore { display:none; border:1px solid var(--border2); background:var(--panel); color:var(--fg); border-radius:5px; padding:2px 7px; font:inherit; font-size:11px; cursor:pointer; }
+#autosave-restore:hover { border-color:var(--accent); color:var(--accent); }
 
 /* docked toolbar */
 #topbars { display:flex; flex-direction:row; flex-wrap:wrap; align-items:stretch; }
@@ -850,13 +856,16 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     </div>
   </div>
   <span id="status"></span>
+  <span id="autosave" title="Autosave writes a recovery copy to local storage every 2 seconds"></span>
+  <button type="button" id="autosave-restore" onclick="restoreAutosave()" title="Restore the local autosave copy">Restore autosave</button>
   <span id="dbg" style="font-size:11px;color:#6b7690;margin-left:8px"></span>
 </div>
 <div id="topbars">
   <div id="toolbar">
   <span class="bar-grip" draggable="true" data-bar="toolbar" title="Drag to move">&#10495;</span>
-  <button class="tbtn" id="tb-undo" title="Undo" onclick="undo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
-  <button class="tbtn" id="tb-redo" title="Redo" onclick="redo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg></button>
+  <button class="tbtn" id="tb-undo" title="Undo (Ctrl+Z)" aria-label="Undo" onclick="undo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
+  <button class="tbtn" id="tb-redo" title="Redo (Ctrl+Y)" aria-label="Redo" onclick="redo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg></button>
+  <button class="tbtn" id="tb-theme" title="Toggle light/dark theme" aria-label="Toggle light/dark theme" onclick="toggleEditorTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg></button>
 <button class="tbtn" id="tb-insert" title="Insert component..." onclick="openInsertDialog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
   <span class="tbtnsep"></span>
   <button class="tbtn" id="tb-dup" title="Duplicate" onclick="duplicateSelected()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
@@ -2430,7 +2439,7 @@ function renderAll() {
   scheduleCssSync();
 }
 
-function setOut() { suiSource = generate(); setSuiEditor(); dbg("setOut children=" + root.children.length + " kinds=[" + root.children.map(function(n){ return n.kind; }).join(",") + "]"); }
+function setOut() { suiSource = generate(); setSuiEditor(); markAutosaveDirty(); dbg("setOut children=" + root.children.length + " kinds=[" + root.children.map(function(n){ return n.kind; }).join(",") + "]"); }
 
 // ---- panel switching ------------------------------------------------------
 function switchLeft(t) {
@@ -9432,6 +9441,117 @@ function editorCharWidthPx() {
   return w || 8.4;
 }
 function setStatus(s) { document.getElementById("status").textContent = s; }
+// ---- autosave -------------------------------------------------------------
+// Autosave keeps a recovery copy in localStorage. It never writes the project
+// file implicitly: the user still chooses Save / Save As. The topbar indicator
+// shows the last copy and offers a Restore button when the copy differs from
+// the current editor content.
+var AUTOSAVE_KEY = "sui.autosave.v1";
+var __autosave = { timer: null, last: null, stored: null, initialized: false };
+function currentEditorSource() {
+  var ta = document.getElementById("out");
+  return ta ? String(ta.value || "") : String(suiSource || "");
+}
+function readAutosave() {
+  try {
+    var raw = localStorage.getItem(AUTOSAVE_KEY);
+    if (!raw) return null;
+    var v = JSON.parse(raw);
+    if (!v || typeof v.source !== "string" || !v.source) return null;
+    return v;
+  } catch (e) { return null; }
+}
+function autosaveClock(ts) {
+  try {
+    return new Date(ts || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch (e) { return ""; }
+}
+function setAutosaveStatus(text, cls, title) {
+  var el = document.getElementById("autosave");
+  if (!el) return;
+  el.textContent = text || "";
+  el.className = cls || "";
+  el.title = title || "Autosave writes a recovery copy to local storage every 2 seconds";
+}
+function updateAutosaveRestore() {
+  var btn = document.getElementById("autosave-restore");
+  if (!btn) return;
+  var s = __autosave.stored;
+  var src = currentEditorSource();
+  var show = !!(s && s.source && s.source !== src);
+  btn.style.display = show ? "" : "none";
+  if (show) {
+    var name = s.filename || "untitled.sui";
+    var when = autosaveClock(s.ts);
+    btn.title = "Restore " + name + " autosaved at " + when;
+  }
+}
+function writeAutosave(force) {
+  var src = currentEditorSource();
+  if (!src) return;
+  if (!force && src === __autosave.last) return;
+  var now = Date.now();
+  var data = { source: src, filename: currentFilename || "app.sui", dir: currentDir || "", ts: now };
+  setAutosaveStatus("Saving\u2026", "saving");
+  try {
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    __autosave.stored = data;
+    __autosave.last = src;
+    setAutosaveStatus("Autosaved " + autosaveClock(now), "saved", "Local recovery copy saved at " + autosaveClock(now));
+  } catch (e) {
+    setAutosaveStatus("Autosave failed", "error", "Cannot write the local autosave copy: " + (e && e.message ? e.message : e));
+  }
+  updateAutosaveRestore();
+}
+function markAutosaveDirty() {
+  if (!__autosave.initialized) return;
+  var src = currentEditorSource();
+  if (src !== __autosave.last) setAutosaveStatus("Unsaved changes", "", "Autosave runs every 2 seconds");
+  updateAutosaveRestore();
+}
+function startAutosave() {
+  if (!__autosave.initialized || __autosave.timer) return;
+  __autosave.last = currentEditorSource();
+  setAutosaveStatus(__autosave.stored ? "Autosave ready" : "Autosave on", "", __autosave.stored ? "A local recovery copy is available" : "");
+  updateAutosaveRestore();
+  __autosave.timer = setInterval(function(){ writeAutosave(false); }, 2000);
+  window.addEventListener("pagehide", function(){ writeAutosave(true); });
+  window.addEventListener("beforeunload", function(){ writeAutosave(true); });
+}
+function initAutosave() {
+  if (__autosave.initialized) return;
+  __autosave.stored = readAutosave();
+  __autosave.last = null;
+  __autosave.initialized = true;
+  setAutosaveStatus(__autosave.stored ? "Autosave ready" : "Autosave on", "", __autosave.stored ? "A local recovery copy is available" : "");
+  updateAutosaveRestore();
+}
+function clearAutosave(savedLabel) {
+  try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+  __autosave.stored = null;
+  __autosave.last = currentEditorSource();
+  setAutosaveStatus(savedLabel || "Saved", "saved", "The project file is up to date");
+  updateAutosaveRestore();
+}
+function markAutosaveSaved() { clearAutosave("Saved"); }
+function restoreAutosave() {
+  var s = __autosave.stored || readAutosave();
+  if (!s || !s.source) return;
+  var name = s.filename || "untitled.sui";
+  confirmBox("Restore autosave?", "Replace the current editor content with the local autosave of \"" + name + "\" from " + autosaveClock(s.ts) + "?", function(){
+    if (s.filename) currentFilename = s.filename;
+    if (s.dir) currentDir = s.dir;
+    var ta = document.getElementById("out");
+    if (ta) ta.value = s.source;
+    suiSource = s.source;
+    setSuiEditor();
+    applySuiCommon(s.source, { keepUndo: false, quiet: false });
+    setStatus("autosave restored");
+    __autosave.last = s.source;
+    setAutosaveStatus("Autosaved " + autosaveClock(s.ts), "saved", "Restored local recovery copy");
+    updateAutosaveRestore();
+  });
+}
 function dbg(s) {
   var d = document.getElementById("dbg");
   if (d) d.textContent = s;
@@ -11015,6 +11135,7 @@ function fsWriteFile(dir, name, content) {
     if (!j.ok) { setStatus("save failed: " + (j.error || "")); return; }
     currentDir = dir;
     currentFilename = name;
+    markAutosaveSaved();
     setStatus("saved " + j.path);
   });
 }
@@ -11072,6 +11193,7 @@ function fsSelect(en) {
         loadTree(m);
         currentDir = fsPath;
         currentFilename = en.name;
+        clearAutosave("Opened " + en.name);
         closeFsDialog();
         setStatus("opened " + en.path);
       });
@@ -16754,6 +16876,22 @@ function applyEditorPrefs() {
   if (document.getElementById("sui_hl")) highlightSui();
 }
 
+function updateThemeToggle() {
+  var b = document.getElementById("tb-theme");
+  if (!b) return;
+  var next = prefs.theme === "dark" ? "light" : "dark";
+  b.title = "Switch to " + next + " theme";
+  b.setAttribute("aria-label", "Switch to " + next + " theme");
+}
+function toggleEditorTheme() {
+  prefs.theme = prefs.theme === "dark" ? "light" : "dark";
+  applyTheme();
+  savePrefs();
+  var sel = document.getElementById("pf-theme");
+  if (sel) sel.value = prefs.theme;
+  updateThemeToggle();
+  setStatus("theme: " + prefs.theme);
+}
 function applyTheme() {
   var r = document.documentElement.style;
   r.setProperty("--fs", prefs.font + "px");
@@ -16785,6 +16923,7 @@ function applyTheme() {
     for (var k in t) r.setProperty(k, t[k]);
   }
   applyEditorPrefs();
+  updateThemeToggle();
 }
 
 // ---- code editing: highlight + two-way sync -------------------------------
@@ -17561,6 +17700,7 @@ function captureTextHistoryBurst() {
 function onSuiEdit() {
   captureTextHistoryBurst();
   undoCaptureSoon();
+  markAutosaveDirty();
   highlightSui();
   updateApply();
   updateEditorStatus();
@@ -17610,6 +17750,7 @@ function applySuiCommon(src, o) {
     scheduleCssSync();
     suiSource = j.sui;
     setSuiEditor();
+    markAutosaveDirty();
     endTextHistoryBurst();
     updateApply();
     if (!o.quiet) setStatus("applied");
@@ -19354,6 +19495,7 @@ wireEditorTools();
 applyEditorTipPrefs();
 initEditorTips();
 loadRemoteFonts();
+initAutosave();
 loadCurrentProject();
 setupEditorScroll();
 initMenus();
@@ -19476,11 +19618,13 @@ function loadCurrentProject() {
       fetch("/__gui__/open", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(m){
         if (m && m.ok) { loadTree(m); autoPreview(); scheduleLiveCheck(); }
         else { renderAll(); scheduleLiveCheck(); }
-      }).catch(function(){ renderAll(); });
+        startAutosave();
+      }).catch(function(){ renderAll(); startAutosave(); });
     } else {
       renderAll();
+      startAutosave();
     }
-  }).catch(function(){ renderAll(); });
+  }).catch(function(){ renderAll(); startAutosave(); });
 }
 </script>
 </body>
