@@ -748,10 +748,11 @@ func fontMime(ext string) string {
 const guiPreviewPicker = `<script>
 (function () {
   var st = document.createElement('style');
-  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.35) !important; } .sui-hl-table td, .sui-hl-table th { background-image: linear-gradient(rgba(76,92,247,.08), rgba(76,92,247,.08)) !important; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
+  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
   document.head.appendChild(st);
   var current = [];
   var handles = [];
+  var resizeEl = null;
   var guidesOn = false;
   var step = 8;
   var marqueeOn = false;
@@ -809,7 +810,7 @@ const guiPreviewPicker = `<script>
   function startResize(e) {
     e.preventDefault();
     e.stopPropagation();
-    var target = current[current.length - 1];
+    var target = resizeEl || current[current.length - 1];
     if (!target) return;
     var id = Number(target.getAttribute('data-sui-id'));
     var dir = e.target.getAttribute('data-rsz');
@@ -864,6 +865,7 @@ const guiPreviewPicker = `<script>
     });
     clearHandles();
     current = [];
+    resizeEl = null;
     if (ids === null || ids === undefined) return;
     var arr = (typeof ids === 'number') ? [ids] : ids;
     var cls = mode === 'row' ? 'sui-hl-row' : mode === 'col' ? 'sui-hl-col' : mode === 'cell' ? 'sui-hl-cell' : 'sui-hl';
@@ -872,8 +874,13 @@ const guiPreviewPicker = `<script>
       var el = document.querySelector('[data-sui-id="' + id + '"]');
       if (el) { el.classList.add(cls); if (el.tagName === 'TABLE') el.classList.add('sui-hl-table'); current.push(el); }
     });
-    if (current.length === 1) showHandles(current[0]);
-    else if (current.length > 1) showHandles(unionRect(current));
+    if (current.length === 1) {
+      if (current[0].tagName === 'TABLE') {
+        var wrap = current[0].parentElement;
+        if (wrap && wrap.classList && wrap.classList.contains('tscroll')) resizeEl = wrap;
+      }
+      showHandles(resizeEl || current[0]);
+    } else if (current.length > 1) showHandles(unionRect(current));
   }
   function specOf(sel) {
     var id = (sel.match(/#[A-Za-z0-9_-]+/g) || []).length;
@@ -999,6 +1006,89 @@ const guiPreviewPicker = `<script>
     });
     parent.postMessage({ ty: 'sui-mselect', ids: ids }, '*');
   }, true);
+  // Table cell/row/column selection with shift, ctrl and drag.
+  var tableSelDrag = null;
+  var tableSelSuppressClick = false;
+  function tableInfo(t) {
+    var cell = t && t.closest ? t.closest('td,th') : null;
+    if (!cell) return null;
+    var table = cell.closest('table');
+    if (!table) return null;
+    var tr = cell.parentElement;
+    var head = !!(tr && tr.parentElement && tr.parentElement.tagName === 'THEAD');
+    var row = -1;
+    if (!head) {
+      var tb = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
+      if (!tb) return null;
+      row = Array.prototype.indexOf.call(tb.rows, tr);
+    }
+    return { cell: cell, table: table, row: row, col: cell.cellIndex, head: head };
+  }
+  function tableZone(info, e) {
+    var tr = info.table.getBoundingClientRect();
+    var cr = info.cell.getBoundingClientRect();
+    if (info.head && e.clientY <= cr.top + 6) return 'col';
+    if (!info.head && info.row === 0 && e.clientY <= tr.top + 6) return 'col';
+    if (e.clientX <= tr.left + 6) return 'row';
+    return 'cell';
+  }
+  function postTableSel(phase, info, anchorRow, anchorCol) {
+    if (!tableSelDrag || !info) return;
+    parent.postMessage({
+      ty: 'sui-table-select',
+      id: tableSelDrag.tableId,
+      kind: tableSelDrag.kind,
+      phase: phase,
+      row: info.row,
+      col: info.col,
+      anchorRow: anchorRow,
+      anchorCol: anchorCol,
+      shift: tableSelDrag.shift,
+      ctrl: tableSelDrag.ctrl
+    }, '*');
+  }
+  document.addEventListener('mousedown', function (e) {
+    if (e.button !== 0 || e.altKey || marqueeOn) return;
+    var t = e.target;
+    if (t && t.closest && t.closest('button,a,input,select,textarea,.sui-table-filter,.sui-table-pager,.sui-table-add')) return;
+    var info = tableInfo(t);
+    if (!info) return;
+    var tableId = info.table.getAttribute('data-sui-id');
+    if (tableId === null || tableId === '-1') return;
+    var kind = tableZone(info, e);
+    if (kind === 'row' && info.row < 0) return;
+    tableSelDrag = {
+      tableId: Number(tableId), table: info.table, kind: kind,
+      anchorRow: kind === 'col' ? -1 : info.row,
+      anchorCol: kind === 'row' ? -1 : info.col,
+      lastRow: info.row, lastCol: info.col,
+      shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey, moved: false
+    };
+    tableSelSuppressClick = true;
+    postTableSel('start', info, tableSelDrag.anchorRow, tableSelDrag.anchorCol);
+    e.preventDefault();
+  }, true);
+  document.addEventListener('mousemove', function (e) {
+    if (!tableSelDrag) return;
+    var info = tableInfo(document.elementFromPoint(e.clientX, e.clientY));
+    if (!info || info.table !== tableSelDrag.table) return;
+    var row = tableSelDrag.kind === 'col' ? -1 : info.row;
+    var col = tableSelDrag.kind === 'row' ? -1 : info.col;
+    if (row === tableSelDrag.lastRow && col === tableSelDrag.lastCol) return;
+    tableSelDrag.lastRow = row;
+    tableSelDrag.lastCol = col;
+    tableSelDrag.moved = true;
+    postTableSel('move', { row: row, col: col }, tableSelDrag.anchorRow, tableSelDrag.anchorCol);
+  }, true);
+  document.addEventListener('mouseup', function () {
+    if (!tableSelDrag) return;
+    if (tableSelDrag.moved) {
+      postTableSel('end', { row: tableSelDrag.lastRow, col: tableSelDrag.lastCol },
+        tableSelDrag.anchorRow, tableSelDrag.anchorCol);
+    }
+    tableSelDrag = null;
+    setTimeout(function () { tableSelSuppressClick = false; }, 0);
+  }, true);
   // Right-click inside a tree opens the DESIGNER's structural menu, not the
   // compiled app's runtime menu: the designer builds/edits the tree here.
   document.addEventListener('contextmenu', function (e) {
@@ -1023,6 +1113,25 @@ const guiPreviewPicker = `<script>
     // Any click inside the preview dismisses the designer's context menus,
     // including clicks on empty preview space that select no element.
     parent.postMessage({ ty: 'sui-dismiss' }, '*');
+    if (tableSelSuppressClick) {
+      tableSelSuppressClick = false;
+      return;
+    }
+    var tabBtn = e.target && e.target.closest ? e.target.closest('.sui-tab') : null;
+    if (tabBtn) {
+      var tabBox = tabBtn.closest('.sui-tabs');
+      var tabList = tabBox ? tabBox.querySelector('.sui-tablist') : null;
+      var tabPanels = tabBox ? tabBox.querySelector('.sui-tabpanels') : null;
+      var tabIndex = tabList ? Array.prototype.indexOf.call(tabList.children, tabBtn) : -1;
+      var tabTable = tabPanels && tabPanels.children[tabIndex] ? tabPanels.children[tabIndex].querySelector('table[data-sui-id]') : null;
+      if (tabTable) {
+        var tabId = tabTable.getAttribute('data-sui-id');
+        if (tabId !== null && tabId !== '-1') {
+          parent.postMessage({ ty: 'sui', id: Number(tabId) }, '*');
+          return;
+        }
+      }
+    }
     var n = e.target;
     var id = -1;
     var isLink = false;

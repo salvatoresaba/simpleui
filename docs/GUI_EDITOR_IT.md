@@ -1205,6 +1205,21 @@ Il selettore tabelle e **− Table** compaiono solo con più tabelle. **+ Table*
 avvolge una tabella singola in un workbook con sheet tab in basso (oppure aggiunge
 un nuovo sheet) e seleziona la nuova tabella.
 
+### Selezione tabella
+
+- Click su una cella per selezionarla.
+- Click sul **bordo superiore dell'header di una colonna** per selezionare la colonna.
+- Click sul **bordo sinistro di una riga** per selezionare la riga.
+- **Shift+click** estende un intervallo di celle/righe/colonne dall'ancora precedente.
+- **Ctrl/Command+click** attiva/disattiva singole celle, righe o colonne.
+- Trascinare dal bordo sinistro aggiunge righe contigue; trascinare dal bordo
+  superiore di un header aggiunge colonne contigue; trascinare sulle celle
+  seleziona un'area rettangolare.
+- Selezionando la tabella stessa (lista elementi o selettore **Table**) viene
+  mostrato solo il suo contorno. Gli handle ridimensionano il wrapper della
+  tabella, quindi le righe che superano l'altezza scelta producono una scrollbar.
+- Un click su una sheet tab seleziona la tabella di quel foglio.
+
 Gruppi del pannello:
 
 - **Appearance** - padding celle, allineamento orizzontale/verticale, righe

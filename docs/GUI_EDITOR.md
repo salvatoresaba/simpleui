@@ -1160,6 +1160,21 @@ The table selector row and **− Table** appear only when more than one table
 exists. **+ Table** wraps a lone table in a bottom sheet-tab workbook (or adds a
 new sheet to the existing workbook) and selects the new table.
 
+### Table selection
+
+- Click a cell to select it.
+- Click the **top border of a column header** to select the column.
+- Click the **left border of a row** to select the row.
+- **Shift+click** extends a cell/row/column range from the previous anchor.
+- **Ctrl/Command+click** toggles individual cells, rows or columns.
+- Drag from the left border to add contiguous rows; drag from a column header's
+  top border to add contiguous columns; drag across cells to select a
+  rectangular area.
+- Selecting the table itself (element list or **Table** selector) shows only its
+  outline. The resize handles adjust the table wrapper, so rows that exceed the
+  chosen height produce a scrollbar.
+- A click on a sheet tab selects the table of that sheet.
+
 Table settings groups:
 
 - **Appearance** - cell padding, horizontal/vertical alignment, zebra rows, hover

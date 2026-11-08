@@ -1814,9 +1814,13 @@ var tokens = [];
 var problems = [];
 var cssGen = "";
 var selState = "";   // "", ":hover", ":focus", ":active"
-var selCell = null;  // {r, c} selected cell inside a table
-var selRow = null;   // r selected row inside a table
-var selCol = null;   // c selected column inside a table
+var selCell = null;  // {r, c} primary selected cell inside a table
+var selRow = null;   // r primary selected row inside a table
+var selCol = null;   // c primary selected column inside a table
+var tableSelCells = []; // [{r,c}] multi-cell selection in the current table
+var tableSelRows = [];  // [r] multi-row selection
+var tableSelCols = [];  // [c] multi-column selection
+var tableSelAnchor = null; // {kind, r, c} drag/shift anchor
 var selMode = "cell"; // "cell" | "row" | "col"
 var selBody = false; // the virtual root "body" is selected
 var multiSel = [];   // extra selected paths (multi-select)
@@ -2705,7 +2709,12 @@ function buildPickMap() {
             continue;
           }
           var pickPath = (n.kind === "treeitem" && ownerTreePath) ? ownerTreePath : p;
-          pickMap.push({ t: "n", pg: pi, p: pickPath });
+          // Tab panels and accordion items are rendered by their parent
+          // control without a data-sui-id, so they must not consume a pickMap
+          // slot. Their children still do.
+          if (n.kind !== "tab" && n.kind !== "accordionitem") {
+            pickMap.push({ t: "n", pg: pi, p: pickPath });
+          }
           if (n.kind === "list") {
             for (var k = 0; k < (n.items || []).length; k++) {
               pickMap.push({ t: "item", pg: pi, p: p, k: k });
@@ -2748,6 +2757,7 @@ function selectByDfs(id) {
   if (!t || t.pg !== root.page) return; // ignore picks from other (hidden) pages
   selBody = false;
   multiSel = [];
+  clearTableSelection();
   if (t.t === "cell") {
     selPath = t.p; selCell = null; selRow = null; selCol = null;
     // "table" mode: clicking anywhere inside the table selects the whole table.
@@ -2767,6 +2777,25 @@ function selectByDfs(id) {
   dbg("select id=" + id + " path=[" + (selPath ? selPath.join(",") : "?") + "] children=" + root.children.length);
 }
 function currentPeerIds() {
+  function idsFor(pred) {
+    var out = [];
+    for (var i = 0; i < pickMap.length; i++) {
+      if (pickMap[i].pg === root.page && samePath(pickMap[i].p, selPath) && pred(pickMap[i])) out.push(i);
+    }
+    return out;
+  }
+  if (selPath && tableSelCells.length) {
+    var cells = idsFor(function(e){ return e.t === "cell" && tableSelCells.some(function(q){ return q.r === e.r && q.c === e.c; }); });
+    if (cells.length) return cells;
+  }
+  if (selPath && tableSelRows.length) {
+    var rows = idsFor(function(e){ return e.t === "row" && tableSelRows.indexOf(e.r) >= 0; });
+    if (rows.length) return rows;
+  }
+  if (selPath && tableSelCols.length) {
+    var cols = idsFor(function(e){ return e.t === "cell" && tableSelCols.indexOf(e.c) >= 0; });
+    if (cols.length) return cols;
+  }
   if (selCell && selPath) {
     for (var i = 0; i < pickMap.length; i++) {
       var e = pickMap[i];
@@ -2788,17 +2817,6 @@ function currentPeerIds() {
     if (ids.length) return ids;
   }
   if (selPath) {
-    var selNode = byPath(selPath, root.children);
-    if (selNode && selNode.kind === "table") {
-      // Selecting a table highlights its full area: table, thead/tbody, rows
-      // and every cell, not only the first row.
-      var tableIds = [];
-      for (var ti = 0; ti < pickMap.length; ti++) {
-        var entry = pickMap[ti];
-        if (entry.pg === root.page && samePath(entry.p, selPath) && (entry.t === "n" || entry.t === "sec" || entry.t === "row")) tableIds.push(ti);
-      }
-      if (tableIds.length) return tableIds;
-    }
     for (var i = 0; i < pickMap.length; i++) {
       if (pickMap[i].pg === root.page && pickMap[i].t === "n" && samePath(pickMap[i].p, selPath)) return [i];
     }
@@ -2812,7 +2830,10 @@ function postHighlight() {
     // last picker mode: selecting a table from the element tree while the Cell
     // selector is active must still outline the whole table.
     var mode = "el";
-    if (selCell) mode = "cell";
+    if (tableSelCells.length) mode = "cell";
+    else if (tableSelRows.length) mode = "row";
+    else if (tableSelCols.length) mode = "col";
+    else if (selCell) mode = "cell";
     else if (selRow !== null && selRow !== undefined) mode = "row";
     else if (selCol !== null && selCol !== undefined) mode = "col";
     f.contentWindow.postMessage({ ty: "sui-hl", id: currentPeerIds(), mode: mode }, "*");
@@ -3012,6 +3033,7 @@ function bindRowEvents(row, p, node, tray, i) {
   row.onclick = function (ev) {
     ev.stopPropagation();
     selCell = null; selRow = null; selCol = null; selBody = false;
+    clearTableSelection();
     var sp = treeOwnerPath(p);
     if (ev.shiftKey) {
       rangeSelect((selPath || sp).slice(), sp);
@@ -3042,6 +3064,7 @@ function bindRowEvents(row, p, node, tray, i) {
     multiSel = [];
     // Tree items are not selectable on their own, but the context menu still
     // targets the clicked item so structural edits apply to that node.
+    clearTableSelection();
     selPath = treeOwnerPath(p);
     renderTree(); fillPanel(); renderInspector(); postHighlight();
     showNodeContextMenu(ev, p, node);
@@ -8455,7 +8478,7 @@ function ensureScrollCss() {
   if (root.css.indexOf("::-webkit-scrollbar") >= 0) return;
   var block = [
     ".tscroll { overflow: auto; max-width: 100%; max-height: 100%; }",
-    ".tscroll > table { margin: 0; }",
+    ".tscroll > table { margin: 0; width: 100%; }",
     ".tscroll { scrollbar-width: thin; scrollbar-color: var(--sb-thumb, #3d4556) var(--sb-track, #14171c); }",
     ".tscroll::-webkit-scrollbar { width: var(--sb-size, 10px); height: var(--sb-size, 10px); }",
     ".tscroll::-webkit-scrollbar-track { background: var(--sb-track, #14171c); }",
@@ -8621,9 +8644,12 @@ function tableAddSheetAction() {
       var tab = newTabNode("Table " + (entries.length + 1));
       var tbl = newTableNode();
       tbl.name = "";
-      tab.children = [tbl];
+      var wrap = newNode("div");
+      wrap.class = "tscroll";
+      wrap.children = [tbl];
+      tab.children = [wrap];
       info.tabs.children.push(tab);
-      selPath = info.tabsPath.concat([info.tabs.children.length - 1, 0]);
+      selPath = info.tabsPath.concat([info.tabs.children.length - 1, 0, 0]);
     } else {
       var p = selPath.slice();
       var containerPath = tableContainerPath(p);
@@ -8639,11 +8665,14 @@ function tableAddSheetAction() {
       tab1.children = [container];
       var tbl2 = newTableNode();
       tbl2.name = "";
+      var wrap2 = newNode("div");
+      wrap2.class = "tscroll";
+      wrap2.children = [tbl2];
       var tab2 = newTabNode("Table 2");
-      tab2.children = [tbl2];
+      tab2.children = [wrap2];
       tabs.children = [tab1, tab2];
       arr.splice(idx, 1, tabs);
-      selPath = parentPath.concat([idx, 1, 0]);
+      selPath = parentPath.concat([idx, 1, 0, 0]);
     }
     multiSel = [];
   }, "add table");
@@ -11364,6 +11393,7 @@ window.addEventListener("message", function(ev) {
   closeContextMenus();
   if (ev.data.ty === "sui-style") { applyLiveStyleMessage(ev.data); return; }
   if (ev.data.ty === "sui-tree-ctx") { previewTreeContext(ev.data); return; }
+  if (ev.data.ty === "sui-table-select") { applyTableSelection(ev.data); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
   if (ev.data.ty === "sui-drop") { dropFromPalette(ev.data.id); return; }
@@ -11409,6 +11439,20 @@ function resizeById(id, w, h, l, t) {
     if (v > 0) return Math.round(v) + "px";
     return "";
   };
+  // Resizing the table wrapper controls the space dedicated to the table;
+  // overflow stays auto so taller rows produce a scrollbar. Use inline style
+  // because the shared .tscroll class must not resize every table wrapper.
+  if (n.kind === "div" && (n.class || "").split(/\s+/).indexOf("tscroll") >= 0) {
+    snap("resize table");
+    var m = styleDeclMap(n.style || "");
+    var width = px(w), height = px(h);
+    if (width) m["width"] = width; else delete m["width"];
+    if (height) m["height"] = height; else delete m["height"];
+    n.style = styleDeclStr(m);
+    setOut();
+    autoPreview();
+    return;
+  }
   var decls = [];
   if (n.kind === "table" && n.rows) {
     // Distribute the requested height evenly across ALL rows (header too):
@@ -11600,8 +11644,86 @@ function idsToPaths(ids) {
   });
   return out;
 }
-function normalizeTreePaths(paths) {
-  var out = [];
+function clearTableSelection() {
+  tableSelCells = [];
+  tableSelRows = [];
+  tableSelCols = [];
+  tableSelAnchor = null;
+}
+function sameTableAnchor(a, tablePath, kind) {
+  return a && samePath(a.tablePath, tablePath) && a.kind === kind;
+}
+function applyTableSelection(d) {
+  var hit = pickMap[d.id];
+  if (!hit || hit.pg !== root.page) return;
+  var tablePath = treeOwnerPath(hit.p);
+  var table = byPath(tablePath, root.children);
+  if (!table || table.kind !== "table") return;
+  var kind = d.kind === "row" ? "row" : d.kind === "col" ? "col" : "cell";
+  var row = Number(d.row), col = Number(d.col);
+  var aRow = Number(d.anchorRow), aCol = Number(d.anchorCol);
+  selBody = false;
+  multiSel = [];
+  selPath = tablePath.slice();
+  selMode = kind;
+  if (kind === "cell") { selCell = { r: row, c: col }; selRow = null; selCol = null; }
+  else if (kind === "row") { selRow = row; selCell = null; selCol = null; }
+  else { selCol = col; selCell = null; selRow = null; }
+  function setCellRange(r1, c1, r2, c2) {
+    tableSelCells = [];
+    for (var r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+      for (var c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) tableSelCells.push({ r: r, c: c });
+    }
+  }
+  function setRowRange(r1, r2) {
+    tableSelRows = [];
+    for (var r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) tableSelRows.push(r);
+  }
+  function setColRange(c1, c2) {
+    tableSelCols = [];
+    for (var c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) tableSelCols.push(c);
+  }
+  function toggleCell(r, c) {
+    var at = -1;
+    for (var i = 0; i < tableSelCells.length; i++) if (tableSelCells[i].r === r && tableSelCells[i].c === c) { at = i; break; }
+    if (at >= 0) tableSelCells.splice(at, 1); else tableSelCells.push({ r: r, c: c });
+  }
+  function toggleRow(r) {
+    var at = tableSelRows.indexOf(r);
+    if (at >= 0) tableSelRows.splice(at, 1); else tableSelRows.push(r);
+  }
+  function toggleCol(c) {
+    var at = tableSelCols.indexOf(c);
+    if (at >= 0) tableSelCols.splice(at, 1); else tableSelCols.push(c);
+  }
+  if (d.phase === "start") {
+    if (d.ctrl) {
+      if (kind === "cell") { tableSelRows = []; tableSelCols = []; toggleCell(row, col); }
+      else if (kind === "row") { tableSelCells = []; tableSelCols = []; toggleRow(row); }
+      else { tableSelCells = []; tableSelRows = []; toggleCol(col); }
+      tableSelAnchor = { tablePath: tablePath.slice(), kind: kind, r: row, c: col };
+    } else if (d.shift && sameTableAnchor(tableSelAnchor, tablePath, kind)) {
+      if (kind === "cell") setCellRange(tableSelAnchor.r, tableSelAnchor.c, row, col);
+      else if (kind === "row") setRowRange(tableSelAnchor.r, row);
+      else setColRange(tableSelAnchor.c, col);
+    } else {
+      tableSelCells = []; tableSelRows = []; tableSelCols = [];
+      if (kind === "cell") { tableSelCells = [{ r: row, c: col }]; }
+      else if (kind === "row") { tableSelRows = [row]; }
+      else { tableSelCols = [col]; }
+      tableSelAnchor = { tablePath: tablePath.slice(), kind: kind, r: row, c: col };
+    }
+  } else {
+    if (!sameTableAnchor(tableSelAnchor, tablePath, kind)) {
+      tableSelAnchor = { tablePath: tablePath.slice(), kind: kind, r: aRow, c: aCol };
+    }
+    if (kind === "cell") setCellRange(tableSelAnchor.r, tableSelAnchor.c, row, col);
+    else if (kind === "row") setRowRange(tableSelAnchor.r, row);
+    else setColRange(tableSelAnchor.c, col);
+  }
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+}
+function normalizeTreePaths(paths) {  var out = [];
   (paths || []).forEach(function(p) {
     var q = treeOwnerPath(p);
     if (q && !out.some(function(r){ return samePath(r, q); })) out.push(q);
@@ -11610,6 +11732,7 @@ function normalizeTreePaths(paths) {
 }
 function selectPaths(paths) {
   paths = normalizeTreePaths(paths);
+  clearTableSelection();
   selCell = null; selRow = null; selCol = null; selBody = false;
   if (!paths.length) { multiSel = []; selPath = null; }
   else { multiSel = paths.map(function(p){ return p.slice(); }); selPath = paths[paths.length - 1].slice(); }

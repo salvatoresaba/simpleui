@@ -97,12 +97,16 @@ view main {
 	if !strings.Contains(guiPreviewPicker, `sui-hl-table`) {
 		t.Errorf("preview picker missing whole-table highlight")
 	}
+	if !strings.Contains(guiPreviewPicker, `sui-table-select`) || !strings.Contains(guiPreviewPicker, `tableZone`) {
+		t.Errorf("preview picker missing table range selection")
+	}
 	for _, want := range []string{
 		`"Columns"`, `"Data view"`, `"from header"`, `"Use first row"`,
 		`sheet tabs`, `"Bottom (Excel-like)"`, `function tabsControls`,
 		`onCellChange`, `table.lastChange`, `id="tablesettings"`, `Table settings...`,
 		`tableAddSheetAction`, `tableDeleteSheetAction`, `showAddTable`,
-		`structureEditable`, `+ Table`,
+		`structureEditable`, `+ Table`, `sui-table-select`, `applyTableSelection`,
+		`tableSelCells`, `tableSelRows`, `tableSelCols`, `resize table`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table/tabs support missing %q", want)
