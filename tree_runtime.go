@@ -173,6 +173,7 @@ const suiTreeRuntime = `(function(){
     var loadHandler = root.getAttribute('data-sui-tree-onload') || '';
     var moveHandler = root.getAttribute('data-sui-tree-onmove') || '';
     var contextHandler = root.getAttribute('data-sui-tree-oncontextmenu') || '';
+    var treeChangeHandler = root.getAttribute('data-sui-tree-ontreechange') || '';
     var selectionSetter = root.getAttribute('data-sui-tree-selection-setter') || '';
     var loadKeySetter = root.getAttribute('data-sui-tree-load-key-setter') || '';
     var renameKeySetter = root.getAttribute('data-sui-tree-rename-key-setter') || '';
@@ -397,6 +398,7 @@ const suiTreeRuntime = `(function(){
       if (renameKeySetter && typeof window[renameKeySetter] === 'function') window[renameKeySetter](key);
       if (renameValueSetter && typeof window[renameValueSetter] === 'function') window[renameValueSetter](value);
       if (renameHandler && typeof window[renameHandler] === 'function') window[renameHandler]();
+      notifyTreeChange();
     }
     function startRename(item) {
       if (!item.__suiEditable || editing) return;
@@ -625,6 +627,9 @@ const suiTreeRuntime = `(function(){
     function notifyCheck() {
       if (checkHandler && typeof window[checkHandler] === 'function') window[checkHandler]();
     }
+    function notifyTreeChange() {
+      if (treeChangeHandler && typeof window[treeChangeHandler] === 'function') window[treeChangeHandler]();
+    }
     function toggleCheck(item) {
       if (!checkboxes) return;
       var next = item.__suiChecked !== true;
@@ -639,6 +644,7 @@ const suiTreeRuntime = `(function(){
       }
       saveCheckedState();
       notifyCheck();
+      notifyTreeChange();
     }
     function initChecks() {
       if (!checkboxes) return;
@@ -1039,6 +1045,7 @@ const suiTreeRuntime = `(function(){
       syncTreeStore();
       root.__suiTree = false;
       init(root);
+      notifyTreeChange();
       return { count: countNodes(nodes) };
     }
     function clearDropClasses() {
@@ -1132,6 +1139,7 @@ const suiTreeRuntime = `(function(){
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
+      notifyTreeChange();
       return true;
     }
     function runtimeSiblings(source) {
@@ -1161,6 +1169,7 @@ const suiTreeRuntime = `(function(){
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
+      notifyTreeChange();
     }
     function addRuntimeItem(source, asChild) {
       if (!source) return false;
@@ -1219,6 +1228,7 @@ const suiTreeRuntime = `(function(){
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
+      notifyTreeChange();
       return true;
     }
     function undoMove() {
@@ -1231,6 +1241,7 @@ const suiTreeRuntime = `(function(){
         store[name] = nodes;
         root.__suiTree = false;
         init(root);
+        notifyTreeChange();
         return { count: countNodes(nodes), error: null };
       } catch (e) {
         return { count: 0, error: (e && e.message) ? e.message : String(e) };
@@ -1258,6 +1269,7 @@ const suiTreeRuntime = `(function(){
       if (moveHandler && typeof window[moveHandler] === 'function') window[moveHandler]();
       root.__suiTree = false;
       init(root);
+      notifyTreeChange();
       return true;
     }
     function closeTreeMenu() {

@@ -1917,7 +1917,7 @@ func guiElementsFromNodes(nodes []ViewNode, viewNames map[string]bool) JVal {
 func isEventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
-		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",

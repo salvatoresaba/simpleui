@@ -31,6 +31,7 @@ used for that build.
 # open/closed state is persisted per tree path in localStorage.
 
 state selected = "main"
+state treeVersion = 0
 state renameKey = ""
 state renameValue = ""
 state importPath = ""
@@ -41,6 +42,10 @@ fn selectedChanged() -> null {
 }
 
 fn renamed() -> null {
+}
+
+fn treeChanged() -> null {
+	treeVersion = treeVersion + 1
 }
 
 async fn importJsonFile() -> null {
@@ -114,7 +119,7 @@ view main {
 	h1 "Nested tree"
 	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
 
-	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed onTreeChange: treeChanged {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "components" key: "components" open: true {
@@ -130,6 +135,7 @@ view main {
 	}
 
 	p "Selected key: {selected}"
+	p "Tree revision: {treeVersion}"
 	p "Last rename: {renameKey} -> {renameValue}"
 
 	card {
@@ -217,10 +223,12 @@ open, per-node icon, badge, metadata, checked state, lazy children and tree-grid
 cells) stay in the generated `treeitem` source and are edited from **Edit tree
 data** or directly in the SUI.
 
-`onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` and `onContextMenu` are
-available in **Tree settings > Events**. The generic inspector Events section is
-hidden for trees; charts and graphs expose their shape/link/tag handlers in
-**Chart/Graph settings > Events**.
+`onChange`, `onRename`, `onCheck`, `onMove`, `onLoad`, `onContextMenu` and
+`onTreeChange` are available in **Tree settings > Events**. The generic
+inspector Events section is hidden for trees; charts and graphs expose their
+shape/link/tag handlers in **Chart/Graph settings > Events**.
+`onTreeChange` fires after any tree data change (add/delete, move,
+indent/outdent, rename, checkbox or lazy children).
 
 ```sui
 tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onCheck: checked onMove: moved onLoad: loaded {
@@ -334,6 +342,7 @@ the **Folder** node preset directly in its source:
 # open/closed state is persisted per tree path in localStorage.
 
 state selected = "main"
+state treeVersion = 0
 state renameKey = ""
 state renameValue = ""
 state importPath = ""
@@ -344,6 +353,10 @@ fn selectedChanged() -> null {
 }
 
 fn renamed() -> null {
+}
+
+fn treeChanged() -> null {
+	treeVersion = treeVersion + 1
 }
 
 async fn importJsonFile() -> null {
@@ -417,7 +430,7 @@ view main {
 	h1 "Nested tree"
 	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
 
-	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed onTreeChange: treeChanged {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "components" key: "components" open: true {
@@ -433,6 +446,7 @@ view main {
 	}
 
 	p "Selected key: {selected}"
+	p "Tree revision: {treeVersion}"
 	p "Last rename: {renameKey} -> {renameValue}"
 
 	card {
@@ -518,6 +532,7 @@ The same API accepts text directly:
 # open/closed state is persisted per tree path in localStorage.
 
 state selected = "main"
+state treeVersion = 0
 state renameKey = ""
 state renameValue = ""
 state importPath = ""
@@ -528,6 +543,10 @@ fn selectedChanged() -> null {
 }
 
 fn renamed() -> null {
+}
+
+fn treeChanged() -> null {
+	treeVersion = treeVersion + 1
 }
 
 async fn importJsonFile() -> null {
@@ -601,7 +620,7 @@ view main {
 	h1 "Nested tree"
 	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
 
-	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed onTreeChange: treeChanged {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "components" key: "components" open: true {
@@ -617,6 +636,7 @@ view main {
 	}
 
 	p "Selected key: {selected}"
+	p "Tree revision: {treeVersion}"
 	p "Last rename: {renameKey} -> {renameValue}"
 
 	card {

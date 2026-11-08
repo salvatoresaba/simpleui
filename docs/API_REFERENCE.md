@@ -625,6 +625,9 @@ tree "Project files"
   Checked state is persisted in `localStorage`.
 - `onCheck` runs after a checkbox click; it takes no arguments. Use
   `tree.exportJson(name)` to read the resulting `checked` fields.
+- `onTreeChange` runs after the tree data changes: add/delete, move,
+  indent/outdent, rename, checkbox or lazy children. It takes no arguments and
+  fires after `onMove`/`onRename`/`onCheck` for the same operation.
 - `multiSelect: true` enables Ctrl/Command click toggling and Shift click range
   selection. `selection` binds a string state that receives a JSON array of
   selected keys; `value` keeps the last selected key. The `selection` state also

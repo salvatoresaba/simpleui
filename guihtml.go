@@ -1908,7 +1908,7 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
@@ -4160,9 +4160,11 @@ function renderInspector() {
   // Content section: only elements whose kind actually carries text show the
   // Text field (media elements get none, a rule has no label, ...); media
   // kinds show src instead. With a multi-selection the field appears only if
-  // EVERY selected element supports it, showing the shared value.
-  var capText = allKindsHave(nodes, TEXT_KINDS);
-  var capSrc = allKindsHave(nodes, SRC_KINDS);
+  // EVERY selected element supports it, showing the shared value. Trees own
+  // their title in Tree settings, so they never show the generic Content panel.
+  var ownsContent = nodes.some(function(m){ return m.kind === "tree"; });
+  var capText = !ownsContent && allKindsHave(nodes, TEXT_KINDS);
+  var capSrc = !ownsContent && allKindsHave(nodes, SRC_KINDS);
   if (capText || capSrc) {
     var sec1 = document.createElement("div"); sec1.className = "ins-sec"; sec1.innerHTML = '<div class="ins-sec-h">Content</div>';
     if (capText) {
@@ -4470,7 +4472,7 @@ var ELEMENT_EVENTS = {
   select:   ["onChange", "onFocus", "onBlur", "onClick"],
   combobox: ["onChange"],
   datepicker: ["onChange"],
-  tree:     ["onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu"],
+  tree:     ["onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   chart:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
              "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
              "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
@@ -4506,7 +4508,7 @@ Object.keys(ELEMENT_EVENTS).forEach(function(k){
 var EVENT_LABELS = {
   onClick: "onClick", onDoubleClick: "onDoubleClick", onMouseEnter: "onMouseEnter", onMouseLeave: "onMouseLeave",
   onFocus: "onFocus", onBlur: "onBlur", onInput: "onInput", onChange: "onChange",
-  onRename: "onRename", onCheck: "onCheck", onMove: "onMove", onLoad: "onLoad", onContextMenu: "onContextMenu", onTaskChange: "onTaskChange", onDataChange: "onDataChange", onCalendarChange: "onCalendarChange", onResourceChange: "onResourceChange", onCommit: "onCommit",
+  onRename: "onRename", onCheck: "onCheck", onMove: "onMove", onLoad: "onLoad", onContextMenu: "onContextMenu", onTreeChange: "onTreeChange", onTaskChange: "onTaskChange", onDataChange: "onDataChange", onCalendarChange: "onCalendarChange", onResourceChange: "onResourceChange", onCommit: "onCommit",
   onKeyDown: "onKeyDown", onKeyUp: "onKeyUp", onSubmit: "onSubmit", onReset: "onReset",
   onDragStart: "onDragStart", onDragEnter: "onDragEnter", onDragOver: "onDragOver",
   onDragLeave: "onDragLeave", onDrop: "onDrop", onDragEnd: "onDragEnd"
@@ -10371,6 +10373,7 @@ function attrsOf(n) {
   if (n.onMove) a += " onMove: " + n.onMove;
   if (n.onLoad) a += " onLoad: " + n.onLoad;
   if (n.onContextMenu) a += " onContextMenu: " + n.onContextMenu;
+  if (n.onTreeChange) a += " onTreeChange: " + n.onTreeChange;
   if (n.onKeyDown) a += " onKeyDown: " + n.onKeyDown;
   if (n.onKeyUp) a += " onKeyUp: " + n.onKeyUp;
   if (n.onSubmit) a += " onSubmit: " + n.onSubmit;
@@ -14078,6 +14081,7 @@ var COMPONENT_DEFS = [
         { key: "@onRename", label: "onRename", type: "event", attr: "onRename", def: "", hint: "Fired after a node is renamed (editable trees)." },
         { key: "@onCheck", label: "onCheck", type: "event", attr: "onCheck", def: "", hint: "Fired when a hierarchical checkbox changes." },
         { key: "@onMove", label: "onMove", type: "event", attr: "onMove", def: "", hint: "Fired after drag-and-drop or context-menu structural edits." },
+        { key: "@onTreeChange", label: "onTreeChange", type: "event", attr: "onTreeChange", def: "", hint: "Fired after the tree data changes: add, delete, move, indent/outdent, rename, check or lazy load." },
         { key: "@onLoad", label: "onLoad", type: "event", attr: "onLoad", def: "", hint: "Loads children for a lazy node (pair with Load key state)." },
         { key: "@onContextMenu", label: "onContextMenu", type: "event", attr: "onContextMenu", def: "", hint: "Fired on right-click over a node; pair with the Context menu switch." }
       ]},

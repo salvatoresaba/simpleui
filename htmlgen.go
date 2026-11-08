@@ -3887,6 +3887,10 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if a := findAttr(e, "onContextMenu"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		onContextMenu = a.expr.name
 	}
+	onTreeChange := ""
+	if a := findAttr(e, "onTreeChange"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onTreeChange = a.expr.name
+	}
 	multiSelect := datepickerBool(e, "multiSelect")
 	search := datepickerBool(e, "search")
 	drag := datepickerBool(e, "drag")
@@ -3969,6 +3973,9 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	}
 	if onContextMenu != "" {
 		sb.WriteString(" data-sui-tree-oncontextmenu=\"" + htmlEscape(onContextMenu) + "\"")
+	}
+	if onTreeChange != "" {
+		sb.WriteString(" data-sui-tree-ontreechange=\"" + htmlEscape(onTreeChange) + "\"")
 	}
 	if multiSelect {
 		sb.WriteString(" data-sui-tree-multi=\"1\"")

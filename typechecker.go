@@ -2917,7 +2917,7 @@ func isAllowedTag(tag string) bool {
 func eventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
-		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",

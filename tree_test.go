@@ -290,6 +290,49 @@ func TestTreeDefaultIconsAndBranchSymbols(t *testing.T) {
 	}
 }
 
+func TestTreeOnTreeChangeEvent(t *testing.T) {
+	src := `state version = 0
+fn changed() -> null {
+	version = version + 1
+}
+view main {
+	tree "Files" name: "files" contextMenu: true onTreeChange: changed {
+		treeitem "src"
+	}
+}
+`
+	prog, dl := ParseSource(src, "tree_change.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, `data-sui-tree-ontreechange="changed"`) {
+		t.Errorf("generated tree markup missing onTreeChange handler")
+	}
+	model := StringifyJson(guiModelJson(prog))
+	if !strings.Contains(model, `"onTreeChange":"changed"`) {
+		t.Errorf("designer model missing onTreeChange: %s", model)
+	}
+	out := viewNodesSource(prog.views[0].body, 1)
+	if !strings.Contains(out, `onTreeChange: changed`) {
+		t.Errorf("designer source missing onTreeChange:\n%s", out)
+	}
+	for _, want := range []string{
+		`data-sui-tree-ontreechange`, `treeChangeHandler`, `notifyTreeChange`,
+		`notifyTreeChange();`,
+	} {
+		if !strings.Contains(suiTreeRuntime, want) {
+			t.Errorf("tree runtime onTreeChange support missing %q", want)
+		}
+	}
+	if !strings.Contains(guiHTML, `onTreeChange`) || !strings.Contains(guiHTML, `ownsContent`) {
+		t.Errorf("designer tree events/content handling missing")
+	}
+}
+
 func TestTreePhaseAFeatures(t *testing.T) {
 	src := `state selected = ""
 state checkedCount = 0

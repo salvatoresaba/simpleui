@@ -3315,6 +3315,10 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if a := findAttr(e, "onContextMenu"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		onContextMenu = a.expr.name
 	}
+	onTreeChange := ""
+	if a := findAttr(e, "onTreeChange"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		onTreeChange = a.expr.name
+	}
 	multiSelect := false
 	if a := findAttr(e, "multiSelect"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
 		multiSelect = a.expr.b
@@ -3427,6 +3431,9 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		}
 		if onContextMenu != "" {
 			open += " data-sui-tree-oncontextmenu=\"" + onContextMenu + "\""
+		}
+		if onTreeChange != "" {
+			open += " data-sui-tree-ontreechange=\"" + onTreeChange + "\""
 		}
 		if multiSelect {
 			open += " data-sui-tree-multi=\"1\""

@@ -1092,10 +1092,12 @@ structure is available from the tree context menu when **Context menu** is on:
 add child/item, rename, duplicate, move, indent/outdent, delete, expand/collapse
 and copy key.
 
-`onChange`, `onRename`, `onCheck`, `onMove`, `onLoad` and `onContextMenu` are
+`onChange`, `onRename`, `onCheck`, `onMove`, `onLoad`, `onContextMenu` and
+`onTreeChange` are
 available in **Tree settings > Events** (the generic inspector Events panel is
-intentionally hidden for trees). The generated source keeps nested `treeitem`
-children and their keys/open/editable flags.
+intentionally hidden for trees). `onTreeChange` runs whenever the tree data
+changes: add/delete, move, indent/outdent, rename, checkbox or lazy children.
+The generated source keeps nested `treeitem` children and their keys/open/editable flags.
 
 The tree **style preset** menu writes the component's visual CSS into the tree
 element's **style expr** field (in **Appearance**). It offers **Default**,
