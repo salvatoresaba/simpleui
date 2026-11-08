@@ -289,6 +289,21 @@ const tableRuntimeE2EScript = `<script>
     var editedHeader2 = window.__SUI_TBL.header('editable')[0];
     if (!editedHeader2 || editedHeader2[1] !== 'AmountRenamed') throw new Error('numeric-column header API lost runtime edit');
 
+    // Typing must not fire change events or rebuild the table. After an idle
+    // pause the value is stored but events still wait for blur.
+    var idleCell = table('editable').querySelector('tbody td');
+    var idleVersion = cellVersion();
+    idleCell.focus();
+    idleCell.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    idleCell.textContent = 'IdleValue';
+    idleCell.dispatchEvent(new Event('input', { bubbles: true }));
+    await wait(1100);
+    if (cellVersion() !== idleVersion) throw new Error('typing fired onCellChange before blur');
+    if (!idleCell.isConnected) throw new Error('table rebuilt during typing');
+    idleCell.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    await wait(500);
+    if (cellVersion() === idleVersion) throw new Error('blur did not fire onCellChange');
+
     result(true, '');
   } catch (error) {
     result(false, error && error.message ? error.message : String(error));

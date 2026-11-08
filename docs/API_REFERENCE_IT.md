@@ -2234,9 +2234,10 @@ table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome"
   attivo, quindi si può riempire senza uscire dall’app.
 - Le modifiche runtime a celle del corpo e etichette di intestazione restano
   nello store della tabella tra re-render e cambio foglio per la sessione della
-  pagina. La digitazione non ridisegna la tabella: il testo è salvato subito e
-  gli eventi di cambio scattano al blur o dopo una breve pausa. Usa `storage.*`
-  se i valori devono sopravvivere a un reload completo.
+  pagina. La digitazione non ridisegna la tabella: il testo è salvato subito e il
+  valore è finalizzato al blur o dopo una breve pausa. Gli eventi di cambio e la
+  validazione scattano al blur. Usa `storage.*` se i valori devono sopravvivere
+  a un reload completo.
 
 ## Sicurezza
 

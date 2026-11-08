@@ -2356,9 +2356,9 @@ table name: "users" columns: "id,name" columnLabels: "ID,Name"
   cells and structure can be filled without leaving the app.
 - Runtime edits to body cells and header labels are kept in the table store
   across re-renders and sheet switches for the page session. Typing never
-  rebuilds the table: the text is stored live and the change events fire on blur
-  or after a short idle pause. Use `storage.*` if the values must survive a full
-  page reload.
+  rebuilds the table: the text is stored live and the value is finalized on blur
+  or after a short idle pause. Change events and validation run on blur. Use
+  `storage.*` if the values must survive a full page reload.
 
 ## Security
 

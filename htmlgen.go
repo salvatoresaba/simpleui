@@ -4282,7 +4282,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     // spam the MutationObserver and make the table look like it is redrawing.
     if (tr.parentNode && tr.parentNode.tagName === 'THEAD') {
       if (!st.header) st.header = [];
+      if (!st.headerEdits) st.headerEdits = {};
       st.header[col] = c.textContent || '';
+      st.headerEdits[col] = c.textContent || '';
     } else {
       var tb = tr.parentNode, r = Array.prototype.indexOf.call(tb.rows, tr);
       if (r >= 0) {
@@ -4352,7 +4354,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         }
       }
       c.setAttribute('data-sui-raw', raw);
-      if (rowIdx < 0) {
+      if (finalize && rowIdx < 0) {
         var labelEl = c.querySelector('.sui-table-hlabel');
         if (labelEl) {
           if (labelEl.textContent !== raw) labelEl.textContent = raw;
@@ -4360,11 +4362,13 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
           c.textContent = raw;
         }
       }
-      recordChange(name, { op: 'cell', row: rowIdx, column: col, old: oldVal, new: raw, value: raw });
-      fireTableEvent(name, 'oncellchange');
-      if (rowIdx >= 0) fireTableEvent(name, 'onrowchange');
-      fireTableEvent(name, 'ontablechange');
-      editOld = raw;
+      if (finalize) {
+        recordChange(name, { op: 'cell', row: rowIdx, column: col, old: oldVal, new: raw, value: raw });
+        fireTableEvent(name, 'oncellchange');
+        if (rowIdx >= 0) fireTableEvent(name, 'onrowchange');
+        fireTableEvent(name, 'ontablechange');
+        editOld = raw;
+      }
     }
     if (finalize && rowIdx >= 0) {
       var fv = formatValue(raw, cfg.formats[col]);
