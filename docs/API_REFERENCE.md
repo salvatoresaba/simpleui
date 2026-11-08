@@ -2239,8 +2239,10 @@ table name: "users" columns: "id,name,status,amount"
 - `columnFormats`: `text`, `number`, `currency:EUR`, `percent` or `date`.
   Sorting and editing always use the raw value.
 - `columnOptions`: `column=value1|value2;other=...` for `select` validation.
-- `sortable` enables header-click sorting (ascending, descending, original).
-- `filterable` adds a text filter above the table.
+- `sortable` enables header-click sorting (ascending, descending, original) and
+  seeds the runtime sort toggle.
+- `filterable` adds a global text filter above the table and seeds the
+  per-column header filters.
 - `pageSize` paginates the visible rows and renders a pager.
 - `selection` is `row`, `column` or `cell`; `multiSelect` enables Ctrl/Command
   toggling. Selection is intended for non-editable tables.
@@ -2272,6 +2274,27 @@ Table events:
 - `onSort`: after a header sort or `table.sort`.
 
 All handlers take no arguments; details come from `table.lastChange(name)`.
+
+### Runtime table settings (Excel-like)
+
+A named table shows a small gear at its top-right. Clicking it opens the table
+settings panel:
+
+- **Filter on column headers**: every header cell gets a text field; rows are
+  filtered by that column's value. Multiple column filters combine with AND.
+- **Sort by clicking headers**: click a header to cycle ascending, descending
+  and original order. Ctrl/Command/Shift+click adds or toggles a sort level.
+- **Sort levels**: an ordered list of column/direction pairs. Rows are sorted by
+  the first level, ties are broken by the next, like an Excel multi-column sort.
+- **Clear filters** and **Clear sort** reset the runtime state.
+
+The toggles start from `sortable` and `filterable`. The panel is keyed by the
+table's `name`, so a name is required; the visual designer names new tables
+automatically (`table1`, `table2`, ...). Runtime filter/sort state lives for the
+page session and is not written into the `.sui` source. `table.sort` sets a
+single level; the panel can add more. A sort change records
+`{ op: "sort", column, dir, keys: [{ column, dir }, ...] }` in
+`table.lastChange(name)`.
 
 ### Excel-like sheet tabs
 

@@ -1205,6 +1205,12 @@ Il selettore tabelle e **− Table** compaiono solo con più tabelle. **+ Table*
 avvolge una tabella singola in un workbook con sheet tab in basso (oppure aggiunge
 un nuovo sheet) e seleziona la nuova tabella.
 
+Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
+l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito
+disponibili. L'ingranaggio apre il pannello in stile Excel descritto in
+**API reference → Impostazioni tabella runtime**: filtri per colonna
+nell'header, ordinamento da header e livelli di ordinamento multi-colonna.
+
 ### Selezione tabella
 
 - Click su una cella per selezionarla.
@@ -1218,9 +1224,9 @@ un nuovo sheet) e seleziona la nuova tabella.
   vuote.
 - **Shift+click** estende un intervallo di celle/righe/colonne dall'ancora precedente.
 - **Ctrl/Command+click** attiva/disattiva singole celle, righe o colonne.
-- Trascinare dal bordo sinistro aggiunge righe contigue; trascinare dal bordo
-  superiore di un header aggiunge colonne contigue; trascinare sulle celle
-  seleziona un'area rettangolare.
+- Trascinare nella gutter sinistra aggiunge righe contigue; trascinare nella
+  gutter superiore aggiunge colonne contigue; trascinare sulle celle seleziona
+  un'area rettangolare.
 - Selezionando la tabella stessa (lista elementi o selettore **Table**) viene
   mostrato solo il suo contorno. Gli handle ridimensionano il wrapper della
   tabella, quindi le righe che superano l'altezza scelta producono una scrollbar.

@@ -83,6 +83,8 @@ view main {
 		`function sort(`, `function filter(`, `function filterText(`, `function page(`,
 		`function setPageSize(`, `function selectedRows(`, `function selectedCells(`,
 		`function lastChange(`, `sui-table-filter`, `sui-table-pager`, `sui-table-struct-menu`, `sui-table-add`, `table_sort`,
+		`sui-table-settings`, `sui-table-cfg`, `sui-table-colfilter`, `sortKeys`, `Filter on column headers`,
+		`Sort levels`, `+ Add level`, `Clear filters`, `Clear sort`, `rowIds`, `headCells`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below
@@ -123,6 +125,7 @@ view main {
 		`tableAddSheetAction`, `tableDeleteSheetAction`, `showAddTable`,
 		`structureEditable`, `+ Table`, `sui-table-select`, `applyTableSelection`,
 		`tableSelCells`, `tableSelRows`, `tableSelCols`, `resize table`,
+		`uniqueTableName`, `tableNameTaken`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table/tabs support missing %q", want)

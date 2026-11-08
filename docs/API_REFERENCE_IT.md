@@ -2128,9 +2128,10 @@ table name: "utenti" columns: "id,nome,stato,importo"
 - `columnFormats`: `text`, `number`, `currency:EUR`, `percent`, `date`; il valore
   raw resta disponibile per ordinamento, editing ed export.
 - `columnOptions`: `colonna=valore1|valore2;...` per `select`.
-- `sortable` abilita l'ordinamento cliccando l'header; `filterable` aggiunge il
-  filtro testo; `pageSize` pagina le righe; `selection` è `row`, `column` o
-  `cell` e `multiSelect` abilita la selezione multipla.
+- `sortable` abilita l'ordinamento cliccando l'header (e inizializza il toggle
+  runtime); `filterable` aggiunge il filtro testo globale e inizializza i filtri
+  per colonna nell'header; `pageSize` pagina le righe; `selection` è `row`,
+  `column` o `cell` e `multiSelect` abilita la selezione multipla.
 
 Helper runtime:
 
@@ -2151,6 +2152,31 @@ fn vista() -> null {
 Eventi: `onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`,
 `onTableChange`, `onRowSelect`, `onSort`. Gli handler non ricevono argomenti; i
 dettagli sono in `table.lastChange(name)`.
+
+### Impostazioni tabella runtime (stile Excel)
+
+Una tabella con `name` mostra un piccolo ingranaggio in alto a destra. Un click
+apre il pannello delle impostazioni:
+
+- **Filter on column headers**: ogni cella di intestazione ottiene un campo
+  testo; le righe vengono filtrate per il valore di quella colonna. Più filtri
+  di colonna si combinano in AND.
+- **Sort by clicking headers**: un click sull'header cicla crescente,
+  decrescente e ordine originale. Ctrl/Command/Shift+click aggiunge o attiva/
+  disattiva un livello di ordinamento.
+- **Sort levels**: elenco ordinato di coppie colonna/direzione. Le righe sono
+  ordinate per il primo livello, i pareggi sono risolti dal successivo, come un
+  ordinamento multi-colonna di Excel.
+- **Clear filters** e **Clear sort** azzerano lo stato runtime.
+
+I toggle partono da `sortable` e `filterable`. Il pannello è identificato dal
+`name` della tabella, quindi il nome è necessario; il designer assegna
+automaticamente `table1`, `table2`, ... alle nuove tabelle. Lo stato di filtro e
+ordinamento vive per la sessione della pagina e non viene scritto nel sorgente
+`.sui`. `table.sort` imposta un solo livello; il pannello può aggiungerne altri.
+Un cambio di ordinamento registra
+`{ op: "sort", column, dir, keys: [{ column, dir }, ...] }` in
+`table.lastChange(name)`.
 
 ### Sheet tabs in stile Excel
 

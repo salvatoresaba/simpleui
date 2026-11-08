@@ -1806,6 +1806,30 @@ td.sui-table-col-selected, th.sui-table-col-selected { background: var(--sui-tab
 td.sui-table-invalid, th.sui-table-invalid { background: rgba(239,68,68,.18); box-shadow: inset 0 0 0 1px #ef4444; }
 .sui-table-add { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 0; padding: 4px 9px; border: 1px dashed var(--sui-border, #3d4556); border-radius: 6px; background: transparent; color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 11px; cursor: pointer; }
 .sui-table-add:hover { color: var(--sui-fg, #f2f4f6); border-color: #4c5cf7; }
+.sui-table-tools { position: sticky; top: 6px; height: 0; text-align: right; z-index: 25; pointer-events: none; }
+.sui-table-settings { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin: 0 6px 0 0; padding: 0; border: 1px solid var(--sui-border, #3d4556); border-radius: 6px; background: var(--sui-panel, #202732); color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 14px; line-height: 1; cursor: pointer; opacity: .72; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.sui-table-settings:hover, .sui-table-settings:focus, .sui-table-settings[aria-expanded="true"] { opacity: 1; color: var(--sui-fg, #f2f4f6); border-color: #4c5cf7; outline: none; }
+.sui-table-hlabel { display: inline-block; }
+.sui-table-colfilter { display: block; box-sizing: border-box; width: 100%; margin-top: 4px; padding: 3px 6px; font: inherit; font-size: 11px; font-weight: 400; color: var(--sui-fg, #f2f4f6); background: var(--sui-input-bg, #14171c); border: 1px solid var(--sui-border, #3d4556); border-radius: 5px; }
+.sui-table-colfilter:focus { outline: 2px solid #4c5cf7; outline-offset: 1px; }
+th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
+th[data-sort-rank]::before { content: attr(data-sort-rank); display: inline-block; min-width: 12px; margin-right: 3px; padding: 0 3px; border-radius: 6px; background: #4c5cf7; color: #fff; font-size: 9px; line-height: 12px; text-align: center; vertical-align: middle; }
+.sui-table-cfg { position: fixed; z-index: 10050; width: 336px; max-width: calc(100vw - 16px); max-height: min(72vh, 540px); overflow: auto; padding: 10px 12px 12px; background: var(--sui-panel, #1d2129); color: var(--sui-fg, #e6e6ef); border: 1px solid var(--sui-border, #475569); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.5); font-size: 12px; }
+.sui-table-cfg-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.sui-table-cfg-title { font-size: 13px; font-weight: 700; }
+.sui-table-cfg-close { border: 0; background: transparent; color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 16px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+.sui-table-cfg-close:hover { color: var(--sui-fg, #f2f4f6); }
+.sui-table-cfg-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.sui-table-cfg-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.sui-table-cfg-sect { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--sui-border, #3d4556); }
+.sui-table-cfg-sec { margin-bottom: 6px; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: var(--sui-muted, #8fa0b8); }
+.sui-table-cfg-level { display: grid; grid-template-columns: minmax(0, 1fr) 84px 24px; gap: 6px; align-items: center; margin: 5px 0; }
+.sui-table-cfg select, .sui-table-cfg-btn { box-sizing: border-box; padding: 4px 6px; font: inherit; font-size: 11px; color: var(--sui-fg, #e6e6ef); background: var(--sui-input-bg, #14171c); border: 1px solid var(--sui-border, #3d4556); border-radius: 5px; }
+.sui-table-cfg select:focus, .sui-table-cfg-btn:focus { outline: 2px solid #4c5cf7; outline-offset: 1px; }
+.sui-table-cfg-btn { cursor: pointer; }
+.sui-table-cfg-btn:hover { border-color: #4c5cf7; }
+.sui-table-cfg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.sui-table-cfg-empty { margin: 4px 0; color: var(--sui-muted, #8fa0b8); font-size: 11px; }
 .sui-table-struct-menu { position: fixed; z-index: 10045; min-width: 190px; padding: 4px; background: var(--sui-panel, #1d2129); border: 1px solid var(--sui-border, #475569); border-radius: 7px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
 .sui-table-struct-item { display: block; width: 100%; text-align: left; border: 0; border-radius: 5px; background: transparent; color: var(--sui-fg, #e6e6ef); padding: 5px 8px; font: inherit; font-size: 12px; cursor: pointer; }
 .sui-table-struct-item:hover, .sui-table-struct-item:focus { background: rgba(76,92,247,.25); outline: none; }
@@ -2181,6 +2205,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   var MAX_ROWS = (__SUI_SEC && __SUI_SEC.maxRows) || 100000;
   var MAX_COLS = (__SUI_SEC && __SUI_SEC.maxCols) || 10000;
   var MAX_TEXT = (__SUI_SEC && __SUI_SEC.maxText) || 20000000;
+  // Split so the generated component JS never contains the literal attribute
+  // name; component-only apps rely on that (inline handlers, no query ids).
+  var TBL_ID_ATTR = 'data-' + 'sui-id';
 
   function splitList(v){ return String(v || '').split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s !== ''; }); }
   function intList(v){ return splitList(v).map(function(s){ return parseInt(s, 10) || 0; }); }
@@ -2240,10 +2267,22 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function tableStore(name){
     if (!store[name]) store[name] = { header: [], allRows: [], rows: [], page: 0,
-      sortCol: null, sortDir: '', filter: '', colFilter: null,
+      sortCol: null, sortDir: '', sortKeys: [], filter: '', colFilter: null,
+      colFilters: {}, filtersOn: null, sortOn: null,
       selectedRows: {}, selectedCells: {}, selectedCols: {} };
     return store[name];
   }
+  function sortKeysOf(st){
+    if (st.sortKeys && st.sortKeys.length) return st.sortKeys;
+    if (st.sortCol !== null && st.sortCol !== undefined && st.sortDir) return [{ col: st.sortCol, dir: st.sortDir }];
+    return [];
+  }
+  function setSortKeys(st, keys){
+    st.sortKeys = keys || [];
+    if (st.sortKeys.length) { st.sortCol = st.sortKeys[0].col; st.sortDir = st.sortKeys[0].dir; }
+    else { st.sortCol = null; st.sortDir = ''; }
+  }
+  function colFiltersOf(st){ return st.colFilters || (st.colFilters = {}); }
   function colIndex(cfg, key){
     var s = String(key === undefined || key === null ? '' : key).trim();
     if (s === '') return -1;
@@ -2293,6 +2332,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var st = tableStore(name);
     var tbl = firstTable(name);
     var cfg = tbl ? cfgOf(tbl) : { pageSize: 0, columns: [], labels: [] };
+    st.filtersOn = (st.filtersOn === null || st.filtersOn === undefined) ? !!cfg.filterable : !!st.filtersOn;
+    st.sortOn = (st.sortOn === null || st.sortOn === undefined) ? !!cfg.sortable : !!st.sortOn;
     var rows = st.allRows.slice();
     if (cfg.columns.length && !st.header.length) st.header = cfg.labels.length ? cfg.labels.slice() : cfg.columns.slice();
     if (st.filter) {
@@ -2304,14 +2345,34 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var cv = String(st.colFilter.value || '').toLowerCase();
       if (ci >= 0 && cv) rows = rows.filter(function(r){ return String(r[ci] === undefined ? '' : r[ci]).toLowerCase().indexOf(cv) >= 0; });
     }
-    if (st.sortCol !== null && st.sortDir) {
-      var sc = st.sortCol, sd = st.sortDir === 'desc' ? -1 : 1;
+    // Per-column filters (the Excel-like header filter row).
+    var cf = colFiltersOf(st);
+    for (var cfk in cf) {
+      if (!Object.prototype.hasOwnProperty.call(cf, cfk)) continue;
+      var cfIdx = parseInt(cfk, 10);
+      var cfv = String(cf[cfk] === undefined || cf[cfk] === null ? '' : cf[cfk]).toLowerCase();
+      if (cfIdx >= 0 && cfv) {
+        rows = rows.filter(function(r){ return String(r[cfIdx] === undefined ? '' : r[cfIdx]).toLowerCase().indexOf(cfv) >= 0; });
+      }
+    }
+    var keys = sortKeysOf(st);
+    if (keys.length) {
       rows.sort(function(a, b){
-        var av = a[sc] === undefined ? '' : a[sc], bv = b[sc] === undefined ? '' : b[sc];
-        var an = Number(av), bn = Number(bv);
-        if (isFinite(an) && isFinite(bn) && String(av).trim() !== '' && String(bv).trim() !== '') return (an - bn) * sd;
-        av = String(av).toLowerCase(); bv = String(bv).toLowerCase();
-        return av < bv ? -sd : av > bv ? sd : 0;
+        for (var k = 0; k < keys.length; k++) {
+          var key = keys[k];
+          if (!key || !key.dir) continue;
+          var sd = key.dir === 'desc' ? -1 : 1;
+          var av = a[key.col] === undefined ? '' : a[key.col], bv = b[key.col] === undefined ? '' : b[key.col];
+          var an = Number(av), bn = Number(bv);
+          var cmp = 0;
+          if (isFinite(an) && isFinite(bn) && String(av).trim() !== '' && String(bv).trim() !== '') cmp = an - bn;
+          else {
+            var as = String(av).toLowerCase(), bs = String(bv).toLowerCase();
+            cmp = as < bs ? -1 : as > bs ? 1 : 0;
+          }
+          if (cmp) return cmp * sd;
+        }
+        return 0;
       });
     }
     var pageSize = (st.pageSize !== undefined && st.pageSize !== null) ? st.pageSize : cfg.pageSize;
@@ -2575,7 +2636,19 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var hr = tbl.querySelector('thead tr');
     if (hr) heads.push(hr.cloneNode(true));
     if (!bodies.length) bodies.push(hr ? hr.cloneNode(true) : document.createElement('tr'));
-    t = { heads: heads, bodies: bodies };
+    // Keep the designed ids so a runtime re-render (sort/filter/settings) does
+    // not break the designer's preview picking.
+    var rowIds = [], headCells = [];
+    if (hr) {
+      var hcs = cellsOf(hr);
+      for (var hc = 0; hc < hcs.length; hc++) headCells.push(hcs[hc].getAttribute(TBL_ID_ATTR));
+    }
+    for (var b = 0; b < bodies.length; b++) {
+      var bcs = cellsOf(bodies[b]), ids = [];
+      for (var bi = 0; bi < bcs.length; bi++) ids.push(bcs[bi].getAttribute(TBL_ID_ATTR));
+      rowIds.push({ row: bodies[b].getAttribute(TBL_ID_ATTR), cells: ids });
+    }
+    t = { heads: heads, bodies: bodies, headCells: headCells, rowIds: rowIds };
     tpls.set(tbl, t);
     return t;
   }
@@ -2645,14 +2718,29 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         var orig = cellsOf(t.heads[0]);
         for (j = 0; j < hc.length; j++) hc[j].textContent = j < orig.length ? orig[j].textContent : '';
       }
+      for (j = 0; j < hc.length; j++) {
+        if (t.headCells && t.headCells[j]) hc[j].setAttribute(TBL_ID_ATTR, t.headCells[j]);
+      }
     }
     var tb = tbodyOf(tbl);
     while (tb.firstChild) tb.removeChild(tb.firstChild);
     for (i = 0; i < rows.length; i++) {
+      var origIdx = i;
+      if (ds.allRows) {
+        var found = ds.allRows.indexOf(rows[i]);
+        if (found >= 0) origIdx = found;
+      }
       var tr = t.bodies[i % t.bodies.length].cloneNode(true);
-      tr.removeAttribute('data-' + 'sui-id');
+      tr.removeAttribute(TBL_ID_ATTR);
       var cs = prepRow(tr, n, 'td');
       for (j = 0; j < cs.length; j++) cs[j].textContent = rows[i][j] !== undefined ? rows[i][j] : '';
+      var ids = t.rowIds && t.rowIds[origIdx];
+      if (ids) {
+        if (ids.row) tr.setAttribute(TBL_ID_ATTR, ids.row);
+        for (j = 0; j < cs.length; j++) {
+          if (ids.cells[j]) cs[j].setAttribute(TBL_ID_ATTR, ids.cells[j]);
+        }
+      }
       tb.appendChild(tr);
     }
   }
@@ -2875,45 +2963,78 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function decorateTable(tbl, st, cfg){
     var name = tableName(tbl);
+    if (st.filtersOn === null || st.filtersOn === undefined) st.filtersOn = !!cfg.filterable;
+    if (st.sortOn === null || st.sortOn === undefined) st.sortOn = !!cfg.sortable;
     var headerRow = tbl.querySelector('thead tr');
     var hrCells = headerRow ? cellsOf(headerRow) : [];
     for (var h = 0; h < hrCells.length; h++) {
       var hc = hrCells[h];
       hc.setAttribute('data-col', String(h));
-      if (cfg.labels[h] && !st.__colStruct) hc.textContent = cfg.labels[h];
+      var hlabel = hc.querySelector('.sui-table-hlabel');
+      if (!hlabel && hc.children.length === 0) {
+        var rawLabel = hc.textContent;
+        hc.textContent = '';
+        hlabel = document.createElement('span');
+        hlabel.className = 'sui-table-hlabel';
+        hlabel.textContent = rawLabel;
+        hc.appendChild(hlabel);
+      }
+      if (cfg.labels[h] && !st.__colStruct) {
+        if (hlabel) hlabel.textContent = cfg.labels[h];
+        else hc.textContent = cfg.labels[h];
+      }
       if (cfg.widths[h] > 0) { hc.style.width = cfg.widths[h] + 'px'; hc.style.minWidth = cfg.widths[h] + 'px'; }
       if (cfg.align[h]) hc.style.textAlign = cfg.align[h];
-      if (cfg.sortable) {
-        hc.classList.add('sui-table-sortable');
-        hc.setAttribute('tabindex', '0');
-        if (!hc.__suiSortBound) {
-          hc.__suiSortBound = true;
-          hc.addEventListener('click', function(ev){
-            var cell = ev.currentTarget;
-            var idx = parseInt(cell.getAttribute('data-col'), 10) || 0;
-            var st2 = tableStore(name);
-            var cfg2 = cfgOf(tbl);
-            if (cfg2.selection === 'column' && !ev.altKey) {
-              selectColumn(name, idx, ev.shiftKey || ev.ctrlKey || ev.metaKey || cfg2.multi);
-              return;
-            }
-            if (!cfg2.sortable) return;
-            if (st2.sortCol !== idx) { st2.sortCol = idx; st2.sortDir = 'asc'; }
-            else if (st2.sortDir === 'asc') st2.sortDir = 'desc';
-            else if (st2.sortDir === 'desc') { st2.sortCol = null; st2.sortDir = ''; }
-            else st2.sortDir = 'asc';
-            st2.page = 0; clearSelection(st2);
-            recordChange(name, { op: 'sort', column: idx, dir: st2.sortDir, label: cell.textContent });
-            renderName(name);
-            fireTableEvent(name, 'onsort');
-            fireTableEvent(name, 'ontablechange');
-          });
-        }
+      hc.classList.toggle('sui-table-sortable', !!st.sortOn);
+      if (st.sortOn) hc.setAttribute('tabindex', '0'); else hc.removeAttribute('tabindex');
+      if (!hc.__suiSortBound) {
+        hc.__suiSortBound = true;
+        hc.addEventListener('click', function(ev){
+          if (ev.target && ev.target.closest && ev.target.closest('.sui-table-colfilter')) return;
+          var cell = ev.currentTarget;
+          var idx = parseInt(cell.getAttribute('data-col'), 10) || 0;
+          var st2 = tableStore(name);
+          var cfg2 = cfgOf(tbl);
+          if (cfg2.selection === 'column' && !ev.altKey) {
+            selectColumn(name, idx, ev.shiftKey || ev.ctrlKey || ev.metaKey || cfg2.multi);
+            return;
+          }
+          if (!st2.sortOn) return;
+          var keys = sortKeysOf(st2).map(function(k){ return { col: k.col, dir: k.dir }; });
+          var addLevel = ev.ctrlKey || ev.metaKey || ev.shiftKey;
+          var pos = -1;
+          for (var q = 0; q < keys.length; q++) if (keys[q].col === idx) { pos = q; break; }
+          if (addLevel) {
+            if (pos >= 0) {
+              if (keys[pos].dir === 'asc') keys[pos].dir = 'desc';
+              else keys.splice(pos, 1);
+            } else keys.push({ col: idx, dir: 'asc' });
+          } else if (keys.length === 1 && pos === 0) {
+            keys = keys[0].dir === 'asc' ? [{ col: idx, dir: 'desc' }] : [];
+          } else {
+            keys = [{ col: idx, dir: 'asc' }];
+          }
+          setSortKeys(st2, keys);
+          st2.page = 0; clearSelection(st2);
+          var lbl = cell.querySelector('.sui-table-hlabel');
+          recordChange(name, { op: 'sort', column: idx, dir: keys.length ? keys[keys.length - 1].dir : '',
+            keys: keys.map(function(k){ return { column: k.col, dir: k.dir }; }),
+            label: lbl ? lbl.textContent : cell.textContent });
+          renderName(name);
+          fireTableEvent(name, 'onsort');
+          fireTableEvent(name, 'ontablechange');
+        });
       }
-      var sortDir = st.sortCol === h ? st.sortDir : '';
+      var sortKeys = sortKeysOf(st);
+      var sortDir = '', sortRank = -1;
+      for (var sk = 0; sk < sortKeys.length; sk++) {
+        if (sortKeys[sk].col === h) { sortDir = sortKeys[sk].dir; sortRank = sk; break; }
+      }
       hc.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : sortDir === 'desc' ? 'descending' : 'none');
       hc.classList.toggle('sui-table-sort-asc', sortDir === 'asc');
       hc.classList.toggle('sui-table-sort-desc', sortDir === 'desc');
+      if (sortRank >= 0 && sortKeys.length > 1) hc.setAttribute('data-sort-rank', String(sortRank + 1));
+      else hc.removeAttribute('data-sort-rank');
       if (cfg.structureEditable && !hc.__suiStructBound) {
         hc.__suiStructBound = true;
         hc.addEventListener('contextmenu', function(ev){
@@ -2984,10 +3105,14 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         }
       }
     }
+    ensureColumnFilters(tbl, name, st, cfg);
+    ensureTableTools(tbl, name);
   }
   function ensureFilterInput(tbl, name, st, cfg){
     if (!cfg.filterable) return;
-    var prev = tbl.previousElementSibling;
+    var host = tbl.previousElementSibling;
+    var toolsHost = (host && host.classList && host.classList.contains('sui-table-tools')) ? host : null;
+    var prev = toolsHost ? toolsHost.previousElementSibling : host;
     var inp = prev && prev.classList && prev.classList.contains('sui-table-filter') &&
       prev.getAttribute('data-sui-table-filter-for') === name ? prev : null;
     if (!inp) {
@@ -3005,10 +3130,311 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         clearSelection(st2);
         renderName(name);
       });
-      if (tbl.parentNode) tbl.parentNode.insertBefore(inp, tbl);
+      if (tbl.parentNode) tbl.parentNode.insertBefore(inp, toolsHost || tbl);
     } else if (document.activeElement !== inp && inp.value !== (st.filter || '')) {
       inp.value = st.filter || '';
     }
+  }
+  // ---- per-column filters and the runtime settings panel ------------------
+  var tableCfg = null;
+  function cfgEl(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function columnChoices(tbl, cfg){
+    var out = [], hr = tbl.querySelector('thead tr'), cells = hr ? cellsOf(hr) : [];
+    var n = Math.max(cells.length, cfg.columns.length, cfg.labels.length);
+    for (var i = 0; i < n; i++) {
+      var lbl = '';
+      if (cells[i]) {
+        var span = cells[i].querySelector('.sui-table-hlabel');
+        lbl = span ? span.textContent : (cells[i].getAttribute('data-sui-raw') || cells[i].textContent);
+      }
+      if (!lbl) lbl = cfg.labels[i] || cfg.columns[i] || ('Column ' + (i + 1));
+      out.push({ index: i, label: String(lbl).trim() || ('Column ' + (i + 1)) });
+    }
+    return out;
+  }
+  function ensureColumnFilters(tbl, name, st, cfg){
+    var hr = tbl.querySelector('thead tr');
+    if (!hr) return;
+    var cells = cellsOf(hr);
+    for (var i = 0; i < cells.length; i++) {
+      var c = cells[i];
+      var inp = c.querySelector('.sui-table-colfilter');
+      if (!st.filtersOn) {
+        if (inp && inp.parentNode) inp.parentNode.removeChild(inp);
+        c.classList.remove('sui-table-filter-active');
+        continue;
+      }
+      if (!inp) {
+        inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'sui-table-colfilter';
+        inp.setAttribute('placeholder', 'Filter');
+        inp.setAttribute('aria-label', 'Filter column ' + (i + 1));
+        inp.addEventListener('click', function(ev){ ev.stopPropagation(); });
+        inp.addEventListener('input', function(ev){
+          var input = ev.currentTarget;
+          var cell = input.parentNode;
+          var col = parseInt(cell.getAttribute('data-col'), 10) || 0;
+          var st2 = tableStore(name);
+          colFiltersOf(st2)[col] = input.value;
+          st2.page = 0;
+          clearSelection(st2);
+          renderName(name);
+        });
+        inp.addEventListener('keydown', function(ev){
+          if (ev.key === 'Escape') {
+            ev.currentTarget.value = '';
+            var cell = ev.currentTarget.parentNode;
+            var col = parseInt(cell.getAttribute('data-col'), 10) || 0;
+            var st2 = tableStore(name);
+            delete colFiltersOf(st2)[col];
+            renderName(name);
+          }
+        });
+        c.appendChild(inp);
+      }
+      var active = !!(colFiltersOf(st)[i] && String(colFiltersOf(st)[i]).length);
+      c.classList.toggle('sui-table-filter-active', active);
+      if (document.activeElement !== inp) inp.value = active ? String(colFiltersOf(st)[i]) : '';
+    }
+  }
+  function positionTableCfg(){
+    if (!tableCfg) return;
+    var btn = tableCfg.btn, el = tableCfg.el;
+    if (!btn || !el) return;
+    var r = btn.getBoundingClientRect();
+    el.style.left = Math.max(8, Math.min(window.innerWidth - el.offsetWidth - 8, r.right - el.offsetWidth)) + 'px';
+    var top = r.bottom + 6;
+    if (top + el.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - el.offsetHeight - 6);
+    el.style.top = top + 'px';
+  }
+  function closeTableCfg(){
+    if (!tableCfg) return;
+    if (tableCfg.el && tableCfg.el.parentNode) tableCfg.el.parentNode.removeChild(tableCfg.el);
+    if (tableCfg.btn) tableCfg.btn.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', tableCfg.outside, true);
+    document.removeEventListener('keydown', tableCfg.esc, true);
+    window.removeEventListener('resize', tableCfg.resize);
+    window.removeEventListener('scroll', tableCfg.resize, true);
+    tableCfg = null;
+  }
+  function sortKeysCopy(st){
+    return sortKeysOf(st).map(function(k){ return { col: k.col, dir: k.dir }; });
+  }
+  function renderTableCfg(){
+    if (!tableCfg) return;
+    var name = tableCfg.name, tbl = firstTable(name);
+    if (!tbl) { closeTableCfg(); return; }
+    var st = tableStore(name), cfg = cfgOf(tbl), box = tableCfg.el;
+    box.textContent = '';
+    var head = cfgEl('div', 'sui-table-cfg-head');
+    head.appendChild(cfgEl('span', 'sui-table-cfg-title', 'Table settings'));
+    var close = cfgEl('button', 'sui-table-cfg-close', '\u00d7');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close table settings');
+    close.addEventListener('click', closeTableCfg);
+    head.appendChild(close);
+    box.appendChild(head);
+
+    var frow = cfgEl('div', 'sui-table-cfg-row');
+    var fchk = document.createElement('input');
+    fchk.type = 'checkbox';
+    fchk.checked = !!st.filtersOn;
+    fchk.setAttribute('aria-label', 'Filter on column headers');
+    fchk.addEventListener('change', function(){
+      st.filtersOn = fchk.checked;
+      st.page = 0;
+      clearSelection(st);
+      renderName(name);
+      renderTableCfg();
+    });
+    frow.appendChild(fchk);
+    frow.appendChild(cfgEl('span', '', 'Filter on column headers'));
+    box.appendChild(frow);
+    box.appendChild(cfgEl('div', 'sui-table-cfg-empty', 'Type in the header fields to filter rows by that column.'));
+
+    var srow = cfgEl('div', 'sui-table-cfg-row');
+    var schk = document.createElement('input');
+    schk.type = 'checkbox';
+    schk.checked = !!st.sortOn;
+    schk.setAttribute('aria-label', 'Sort by clicking headers');
+    schk.addEventListener('change', function(){
+      st.sortOn = schk.checked;
+      st.page = 0;
+      clearSelection(st);
+      renderName(name);
+      renderTableCfg();
+    });
+    srow.appendChild(schk);
+    srow.appendChild(cfgEl('span', '', 'Sort by clicking headers'));
+    box.appendChild(srow);
+
+    var sect = cfgEl('div', 'sui-table-cfg-sect');
+    sect.appendChild(cfgEl('div', 'sui-table-cfg-sec', 'Sort levels'));
+    var keys = sortKeysCopy(st);
+    var choices = columnChoices(tbl, cfg);
+    if (!keys.length) sect.appendChild(cfgEl('div', 'sui-table-cfg-empty', 'No sort levels. Add one, or click a header (Ctrl/Shift+click adds a level).'));
+    keys.forEach(function(key, i){
+      var row = cfgEl('div', 'sui-table-cfg-level');
+      var colSel = document.createElement('select');
+      colSel.setAttribute('aria-label', 'Sort column ' + (i + 1));
+      choices.forEach(function(ch){
+        var o = document.createElement('option');
+        o.value = String(ch.index);
+        o.textContent = ch.label;
+        colSel.appendChild(o);
+      });
+      colSel.value = String(key.col);
+      colSel.addEventListener('change', function(){
+        key.col = parseInt(colSel.value, 10) || 0;
+        setSortKeys(st, keys);
+        st.page = 0;
+        clearSelection(st);
+        renderName(name);
+        renderTableCfg();
+      });
+      var dirSel = document.createElement('select');
+      dirSel.setAttribute('aria-label', 'Sort direction ' + (i + 1));
+      [['asc', 'Ascending'], ['desc', 'Descending']].forEach(function(d){
+        var o = document.createElement('option');
+        o.value = d[0];
+        o.textContent = d[1];
+        dirSel.appendChild(o);
+      });
+      dirSel.value = key.dir === 'desc' ? 'desc' : 'asc';
+      dirSel.addEventListener('change', function(){
+        key.dir = dirSel.value === 'desc' ? 'desc' : 'asc';
+        setSortKeys(st, keys);
+        st.page = 0;
+        clearSelection(st);
+        renderName(name);
+        renderTableCfg();
+      });
+      var rm = cfgEl('button', 'sui-table-cfg-btn', '\u00d7');
+      rm.type = 'button';
+      rm.title = 'Remove sort level';
+      rm.setAttribute('aria-label', 'Remove sort level ' + (i + 1));
+      rm.addEventListener('click', function(){
+        keys.splice(i, 1);
+        setSortKeys(st, keys);
+        st.page = 0;
+        clearSelection(st);
+        renderName(name);
+        renderTableCfg();
+      });
+      row.appendChild(colSel);
+      row.appendChild(dirSel);
+      row.appendChild(rm);
+      sect.appendChild(row);
+    });
+    var add = cfgEl('button', 'sui-table-cfg-btn', '+ Add level');
+    add.type = 'button';
+    add.addEventListener('click', function(){
+      var k2 = sortKeysCopy(st);
+      var used = {};
+      k2.forEach(function(k){ used[k.col] = 1; });
+      var pick = -1;
+      for (var c = 0; c < choices.length; c++) {
+        if (!used[choices[c].index]) { pick = choices[c].index; break; }
+      }
+      if (pick < 0 && choices.length) pick = choices[0].index;
+      if (pick < 0) return;
+      k2.push({ col: pick, dir: 'asc' });
+      setSortKeys(st, k2);
+      st.page = 0;
+      clearSelection(st);
+      renderName(name);
+      renderTableCfg();
+    });
+    sect.appendChild(add);
+    box.appendChild(sect);
+
+    var acts = cfgEl('div', 'sui-table-cfg-actions');
+    var clearF = cfgEl('button', 'sui-table-cfg-btn', 'Clear filters');
+    clearF.type = 'button';
+    clearF.addEventListener('click', function(){
+      st.colFilters = {};
+      st.colFilter = null;
+      st.filter = '';
+      st.page = 0;
+      clearSelection(st);
+      renderName(name);
+      renderTableCfg();
+    });
+    var clearS = cfgEl('button', 'sui-table-cfg-btn', 'Clear sort');
+    clearS.type = 'button';
+    clearS.addEventListener('click', function(){
+      setSortKeys(st, []);
+      st.page = 0;
+      clearSelection(st);
+      renderName(name);
+      renderTableCfg();
+    });
+    var done = cfgEl('button', 'sui-table-cfg-btn', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', closeTableCfg);
+    acts.appendChild(clearF);
+    acts.appendChild(clearS);
+    acts.appendChild(done);
+    box.appendChild(acts);
+    positionTableCfg();
+  }
+  function openTableCfg(tbl, name, btn){
+    closeTableCfg();
+    var el = cfgEl('div', 'sui-table-cfg');
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', 'Table settings');
+    document.body.appendChild(el);
+    var outside = function(ev){
+      if (!tableCfg) return;
+      if (el.contains(ev.target) || (btn && btn.contains(ev.target))) return;
+      closeTableCfg();
+    };
+    var esc = function(ev){ if (ev.key === 'Escape') closeTableCfg(); };
+    var resize = function(){ positionTableCfg(); };
+    tableCfg = { el: el, name: name, btn: btn, outside: outside, esc: esc, resize: resize };
+    btn.setAttribute('aria-expanded', 'true');
+    renderTableCfg();
+    setTimeout(function(){ document.addEventListener('click', outside, true); }, 0);
+    document.addEventListener('keydown', esc, true);
+    window.addEventListener('resize', resize);
+    window.addEventListener('scroll', resize, true);
+  }
+  function ensureTableTools(tbl, name){
+    var parent = tbl.parentNode;
+    if (!parent) return;
+    var host = null, kids = parent.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i].classList && kids[i].classList.contains('sui-table-tools') &&
+          kids[i].getAttribute('data-sui-table-tools-for') === name) { host = kids[i]; break; }
+    }
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'sui-table-tools';
+      host.setAttribute('data-sui-table-tools-for', name);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sui-table-settings';
+      btn.textContent = '\u2699';
+      btn.title = 'Table settings';
+      btn.setAttribute('aria-label', 'Table settings');
+      btn.setAttribute('aria-expanded', 'false');
+      host.appendChild(btn);
+      parent.insertBefore(host, tbl);
+      btn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (tableCfg && tableCfg.name === name && tableCfg.btn === btn) { closeTableCfg(); return; }
+        openTableCfg(tbl, name, btn);
+      });
+    }
+    var w = tbl.getBoundingClientRect().width;
+    if (w > 0 && Math.abs(host.offsetWidth - w) > 1) host.style.width = Math.round(w) + 'px';
   }
   function ensurePager(tbl, name, st, cfg){
     var next = tbl.nextElementSibling;
@@ -3148,11 +3574,17 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function clear(name){
     delete store[name];
+    if (tableCfg && tableCfg.name === name) closeTableCfg();
     var ts = findTables(name);
     for (var i = 0; i < ts.length; i++) {
       var tb = ts[i].tBodies && ts[i].tBodies.length ? ts[i].tBodies[0] : null;
       if (tb) while (tb.firstChild) tb.removeChild(tb.firstChild);
       var prev = ts[i].previousElementSibling;
+      if (prev && prev.classList && prev.classList.contains('sui-table-tools') && prev.getAttribute('data-sui-table-tools-for') === name) {
+        var fprev = prev.previousElementSibling;
+        prev.parentNode.removeChild(prev);
+        prev = fprev;
+      }
       if (prev && prev.classList && prev.classList.contains('sui-table-filter') && prev.getAttribute('data-sui-table-filter-for') === name) prev.parentNode.removeChild(prev);
       var next = ts[i].nextElementSibling;
       if (next && next.classList && next.classList.contains('sui-table-pager') && next.getAttribute('data-sui-table-pager-for') === name) next.parentNode.removeChild(next);
@@ -3168,8 +3600,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     if (idx < 0) return [0, 'table.sort: column not found'];
     var d = String(dir || '').toLowerCase();
     if (d !== 'asc' && d !== 'desc' && d !== '') return [0, 'table.sort: direction must be asc or desc'];
-    st.sortCol = d ? idx : null;
-    st.sortDir = d;
+    setSortKeys(st, d ? [{ col: idx, dir: d }] : []);
     st.page = 0;
     clearSelection(st);
     recordChange(name, { op: 'sort', column: idx, dir: d });
@@ -3182,10 +3613,13 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var tbl = firstTable(name), cfg = tbl ? cfgOf(tbl) : { columns: [], labels: [] };
     var idx = colIndex(cfg, column);
     if (idx < 0) return [0, 'table.filter: column not found'];
-    st.colFilter = { column: idx, value: String(value === undefined || value === null ? '' : value) };
+    var fv = String(value === undefined || value === null ? '' : value);
+    st.colFilters = {};
+    if (fv) st.colFilters[idx] = fv;
+    st.colFilter = { column: idx, value: fv };
     st.page = 0;
     clearSelection(st);
-    recordChange(name, { op: 'filter', column: idx, value: st.colFilter.value });
+    recordChange(name, { op: 'filter', column: idx, value: fv });
     renderName(name);
     return [1, null];
   }

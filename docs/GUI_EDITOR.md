@@ -1160,6 +1160,11 @@ The table selector row and **− Table** appear only when more than one table
 exists. **+ Table** wraps a lone table in a bottom sheet-tab workbook (or adds a
 new sheet to the existing workbook) and selects the new table.
 
+New tables are named automatically (`table1`, `table2`, ...), so their runtime
+settings gear and `table.*` helpers are immediately available. The gear opens
+the Excel-like panel described in **API reference → Runtime table settings**:
+per-column header filters, header sorting and multi-column sort levels.
+
 ### Table selection
 
 - Click a cell to select it.
@@ -1172,9 +1177,8 @@ new sheet to the existing workbook) and selects the new table.
 - New sheets start with a labelled header row and two empty body rows.
 - **Shift+click** extends a cell/row/column range from the previous anchor.
 - **Ctrl/Command+click** toggles individual cells, rows or columns.
-- Drag from the left border to add contiguous rows; drag from a column header's
-  top border to add contiguous columns; drag across cells to select a
-  rectangular area.
+- Drag in the left gutter to add contiguous rows; drag in the top gutter to add
+  contiguous columns; drag across cells to select a rectangular area.
 - Selecting the table itself (element list or **Table** selector) shows only its
   outline. The resize handles adjust the table wrapper, so rows that exceed the
   chosen height produce a scrollbar.

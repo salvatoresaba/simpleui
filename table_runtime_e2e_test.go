@@ -86,6 +86,62 @@ const tableRuntimeE2EScript = `<script>
     if (window.__SUI_TBL.data('editable')[0][0][1] !== '10') throw new Error('invalid value was committed: ' + JSON.stringify(window.__SUI_TBL.data('editable')[0]));
     if (cellVersion() !== '1') throw new Error('invalid edit must not fire onCellChange');
 
+    // Runtime settings panel: per-column header filters and multi-column sort.
+    var gear = document.querySelector('.sui-table-tools .sui-table-settings');
+    if (!gear) throw new Error('table settings gear missing');
+    gear.click();
+    await wait(300);
+    var cfgPanel = document.querySelector('.sui-table-cfg');
+    if (!cfgPanel) throw new Error('table settings panel missing');
+    var toggles = cfgPanel.querySelectorAll('input[type=checkbox]');
+    if (toggles.length !== 2) throw new Error('table settings toggles missing');
+    if (!toggles[0].checked) throw new Error('filter toggle must follow filterable');
+    if (!table('users').querySelector('.sui-table-colfilter')) throw new Error('header column filter missing');
+    cfgPanel.querySelector('.sui-table-cfg-close').click();
+    await wait(200);
+    if (document.querySelector('.sui-table-cfg')) throw new Error('settings panel did not close');
+
+    if (!window.__SUI_TBL.filter('users', 'status', 'paused')[0]) throw new Error('table.filter failed');
+    await wait(300);
+    if (rows('users').length !== 1) throw new Error('column filter rows wrong: ' + rows('users').length);
+    if (rows('users')[0].children[2].textContent !== 'paused') throw new Error('column filter selected wrong rows');
+    window.__SUI_TBL.filter('users', 'status', '');
+    await wait(250);
+
+    gear = document.querySelector('.sui-table-tools .sui-table-settings');
+    gear.click();
+    await wait(250);
+    cfgPanel = document.querySelector('.sui-table-cfg');
+    var addLevel = cfgPanel ? Array.prototype.slice.call(cfgPanel.querySelectorAll('button')).filter(function(b){ return b.textContent === '+ Add level'; })[0] : null;
+    if (!addLevel) throw new Error('sort level action missing');
+    var levelsBefore = cfgPanel.querySelectorAll('.sui-table-cfg-level').length;
+    addLevel.click();
+    await wait(450);
+    cfgPanel = document.querySelector('.sui-table-cfg');
+    var levelRows = cfgPanel ? cfgPanel.querySelectorAll('.sui-table-cfg-level') : [];
+    if (levelRows.length !== levelsBefore + 1) throw new Error('sort level not added: ' + (cfgPanel ? levelRows.length + ' vs ' + levelsBefore : 'panel closed'));
+    var lastSelects = levelRows[levelRows.length - 1].querySelectorAll('select');
+    if (lastSelects.length < 2) throw new Error('sort level selects missing');
+    var amountIdx = header('users').indexOf('Amount');
+    if (amountIdx < 0) throw new Error('amount column label missing: ' + header('users').join(','));
+    lastSelects[0].value = String(amountIdx);
+    lastSelects[0].dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(450);
+    // Existing level is Status asc; the new one is Amount asc: active rows first
+    // (Cara 99, Alice 1200.5), then the paused row.
+    if (rows('users').length < 2) throw new Error('sorted page too short');
+    if (rows('users')[0].children[1].textContent !== 'Cara' || rows('users')[1].children[1].textContent !== 'Alice') {
+      throw new Error('multi-sort levels not applied: ' + texts('users').map(function(r){ return r[1]; }).join(','));
+    }
+    cfgPanel = document.querySelector('.sui-table-cfg');
+    var clearSort = cfgPanel ? Array.prototype.slice.call(cfgPanel.querySelectorAll('button')).filter(function(b){ return b.textContent === 'Clear sort'; })[0] : null;
+    if (!clearSort) throw new Error('clear sort action missing');
+    clearSort.click();
+    await wait(450);
+    cfgPanel = document.querySelector('.sui-table-cfg');
+    if (cfgPanel) cfgPanel.querySelector('.sui-table-cfg-close').click();
+    await wait(200);
+
     // Runtime table creation and structure editing.
     var tabsBefore = document.querySelectorAll('.sui-tablist .sui-tab').length;
     var addBtn = document.querySelector('.sui-table-add');

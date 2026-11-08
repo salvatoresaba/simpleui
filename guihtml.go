@@ -2039,6 +2039,22 @@ function normalizeTables(nodes) {
     if (n.children && n.children.length) normalizeTables(n.children);
   });
 }
+function tableNameTaken(name) {
+  var found = false;
+  (function walk(nodes) {
+    for (var i = 0; i < (nodes || []).length; i++) {
+      var nd = nodes[i];
+      if (nd.kind === "table" && (nd.name || "") === name) { found = true; return; }
+      if (nd.children && nd.children.length) { walk(nd.children); if (found) return; }
+    }
+  })(root.children);
+  return found;
+}
+function uniqueTableName() {
+  var i = 1;
+  while (tableNameTaken("table" + i)) i++;
+  return "table" + i;
+}
 function newTableNode() {
   var n = newNode("table");
   n.cols = 3;
@@ -2050,7 +2066,7 @@ function newTableNode() {
   n.captionShow = false;
   n.editable = false;
   n.fixed = false;
-  n.name = "";
+  n.name = uniqueTableName();
   n.columns = "";
   n.columnLabels = "";
   n.columnWidths = "";
@@ -8646,7 +8662,6 @@ function tableAddSheetAction() {
       var entries = tableSheetEntries(info.tabs, info.tabsPath);
       var tab = newTabNode("Table " + (entries.length + 1));
       var tbl = newTableNode();
-      tbl.name = "";
       var wrap = newNode("div");
       wrap.class = "tscroll";
       wrap.children = [tbl];
@@ -8664,10 +8679,11 @@ function tableAddSheetAction() {
       tabs.text = "Workbook";
       tabs.position = "bottom";
       tabs.variant = "sheets";
+      var firstTbl = container.kind === "table" ? container : (container.children && container.children[0] && container.children[0].kind === "table" ? container.children[0] : null);
+      if (firstTbl && !firstTbl.name) firstTbl.name = uniqueTableName();
       var tab1 = newTabNode("Table 1");
       tab1.children = [container];
       var tbl2 = newTableNode();
-      tbl2.name = "";
       var wrap2 = newNode("div");
       wrap2.class = "tscroll";
       wrap2.children = [tbl2];
@@ -11690,6 +11706,18 @@ function applyTableSelection(d) {
   var kind = d.kind === "row" ? "row" : d.kind === "col" ? "col" : "cell";
   var row = Number(d.row), col = Number(d.col);
   var aRow = Number(d.anchorRow), aCol = Number(d.anchorCol);
+  // A runtime re-render keeps the designed data-sui-id on each row/cell; use
+  // the clicked cell's id when present so filtering/sorting cannot shift the
+  // model coordinates. Fall back to the DOM row/column geometry otherwise.
+  if (d.cellId !== undefined && d.cellId !== null && Number(d.cellId) >= 0) {
+    var byId = pickMap[Number(d.cellId)];
+    if (byId && byId.pg === root.page &&
+        (byId.t === "cell" || byId.t === "row") &&
+        samePath(treeOwnerPath(byId.p), tablePath)) {
+      if (byId.t === "cell") { row = byId.r; col = byId.c; }
+      else { row = byId.r; }
+    }
+  }
   selBody = false;
   multiSel = [];
   selPath = tablePath.slice();

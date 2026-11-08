@@ -1155,6 +1155,11 @@ const guiPreviewPicker = `<script>
   }
   function postTableSel(phase, info, anchorRow, anchorCol) {
     if (!tableSelDrag || !info) return;
+    var cellId = -1;
+    if (info.cell && info.cell.getAttribute) {
+      var cid = info.cell.getAttribute('data-sui-id');
+      if (cid !== null && cid !== '-1') cellId = Number(cid);
+    }
     parent.postMessage({
       ty: 'sui-table-select',
       id: tableSelDrag.tableId,
@@ -1162,6 +1167,7 @@ const guiPreviewPicker = `<script>
       phase: phase,
       row: info.row,
       col: info.col,
+      cellId: cellId,
       anchorRow: anchorRow,
       anchorCol: anchorCol,
       shift: tableSelDrag.shift,
@@ -1265,6 +1271,9 @@ const guiPreviewPicker = `<script>
       tableSelSuppressClick = false;
       return;
     }
+    // The table's runtime settings gear/panel are app UI, not designer nodes:
+    // interacting with them must not select the table in the inspector.
+    if (e.target && e.target.closest && e.target.closest('.sui-table-tools, .sui-table-settings, .sui-table-cfg')) return;
     var tabBtn = e.target && e.target.closest ? e.target.closest('.sui-tab') : null;
     if (tabBtn) {
       var tabBox = tabBtn.closest('.sui-tabs');
