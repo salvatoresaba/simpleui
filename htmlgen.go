@@ -4238,10 +4238,15 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     if (!tbl) return;
     var name = tbl.getAttribute('name');
     if (!name || !store[name]) return;
+    if (editCell !== c) {
+      editCell = c;
+      var committed = c.getAttribute('data-sui-raw');
+      editOld = committed === null ? '' : committed;
+    }
     var st = store[name];
     var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
     if (col < 0) return;
-    // Commit data-sui-raw on focusout. Updating it on every keystroke would
+    // Commit data-sui-raw on blur. Updating it on every keystroke would
     // spam the MutationObserver and make the table look like it is redrawing.
     if (tr.parentNode && tr.parentNode.tagName === 'THEAD') {
       if (!st.header) st.header = [];
@@ -4254,40 +4259,36 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         if (st.rows[r]) st.rows[r][col] = c.textContent || '';
       }
     }
+    // The insertion phase ends after a pause even if the cell stays focused.
+    clearEditTimer();
+    editTimer = setTimeout(function(){
+      editTimer = null;
+      if (!c.isConnected) { if (editCell === c) { editCell = null; editOld = ''; } return; }
+      commitCellEdit(c, tbl, name, cfgOf(tbl), false);
+      if (editCell === c && (!c.isConnected || document.activeElement !== c)) { editCell = null; editOld = ''; }
+    }, 900);
   }, true);
-  var editCell = null, editOld = '';
-  document.addEventListener('focusin', function(ev){
-    var c = ev.target;
-    if (!c || !c.closest) return;
-    c = c.closest('td,th');
-    var tbl = c && c.closest ? c.closest('table[data-sui-editable]') : null;
-    if (!tbl) return;
-    editCell = c;
-    editOld = c.getAttribute('data-sui-raw');
-    if (editOld === null) editOld = c.textContent || '';
-    else if ((c.textContent || '') !== editOld) c.textContent = editOld;
-    c.classList.remove('sui-table-invalid');
-    c.removeAttribute('aria-invalid');
-    c.removeAttribute('title');
-  }, true);
-  document.addEventListener('focusout', function(ev){
-    var c = ev.target;
-    if (!c || !c.closest) return;
-    c = c.closest('td,th');
-    if (!c || c !== editCell) return;
-    var tbl = c.closest('table[data-sui-editable]');
-    var name = tbl ? tbl.getAttribute('name') : '';
-    if (!tbl || !name) { editCell = null; editOld = ''; return; }
-    var cfg = cfgOf(tbl);
+  var editCell = null, editOld = '', editTimer = null;
+  function clearEditTimer(){ if (editTimer) { clearTimeout(editTimer); editTimer = null; } }
+  // commitCellEdit stores the current cell text and fires the change events.
+  // finalize=true (blur) also validates, restores invalid values and formats
+  // the cell. finalize=false (idle timeout) commits valid text without moving
+  // the caret or re-formatting the focused cell.
+  function commitCellEdit(c, tbl, name, cfg, finalize){
+    if (!c || !c.isConnected) {
+      if (editCell === c) { editCell = null; editOld = ''; }
+      return false;
+    }
     var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
+    if (col < 0) return false;
     var raw = (c.textContent || '').trim();
     var oldVal = editOld === null || editOld === undefined ? raw : String(editOld);
     var rowIdx = tr.parentNode && tr.parentNode.tagName === 'THEAD' ? -1 : Array.prototype.indexOf.call(tr.parentNode.rows, tr);
-    // Header cells are labels, not typed data: never validate or format them.
     var type = cfg.types[col] || 'text';
     var err = rowIdx < 0 ? '' : validValue(raw, type, colOpts(cfg, col));
     var st = store[name];
     if (err) {
+      if (!finalize) return false;
       c.textContent = oldVal;
       c.classList.add('sui-table-invalid');
       c.setAttribute('aria-invalid', 'true');
@@ -4300,8 +4301,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
           if (r0 >= 0) { if (!st.allRows[r0]) st.allRows[r0] = []; st.allRows[r0][col] = oldVal; if (st.rows[r0]) st.rows[r0][col] = oldVal; }
         }
       }
-      editCell = null; editOld = '';
-      return;
+      return false;
     }
     c.classList.remove('sui-table-invalid');
     c.removeAttribute('aria-invalid');
@@ -4321,8 +4321,6 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       }
       c.setAttribute('data-sui-raw', raw);
       if (rowIdx < 0) {
-        // Header cells contain the label span plus the filter/sort buttons:
-        // update only the label instead of replacing the whole cell text.
         var labelEl = c.querySelector('.sui-table-hlabel');
         if (labelEl) {
           if (labelEl.textContent !== raw) labelEl.textContent = raw;
@@ -4334,19 +4332,53 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       fireTableEvent(name, 'oncellchange');
       if (rowIdx >= 0) fireTableEvent(name, 'onrowchange');
       fireTableEvent(name, 'ontablechange');
-      if (rowIdx >= 0) c.textContent = formatValue(raw, cfg.formats[col]);
+      editOld = raw;
     }
+    if (finalize && rowIdx >= 0) {
+      var fv = formatValue(raw, cfg.formats[col]);
+      if (c.textContent !== fv) c.textContent = fv;
+    }
+    return true;
+  }
+  document.addEventListener('focusin', function(ev){
+    var c = ev.target;
+    if (!c || !c.closest) return;
+    c = c.closest('td,th');
+    var tbl = c && c.closest ? c.closest('table[data-sui-editable]') : null;
+    if (!tbl) return;
+    clearEditTimer();
+    editCell = c;
+    editOld = c.getAttribute('data-sui-raw');
+    if (editOld === null) editOld = c.textContent || '';
+    else if ((c.textContent || '') !== editOld) c.textContent = editOld;
+    c.classList.remove('sui-table-invalid');
+    c.removeAttribute('aria-invalid');
+    c.removeAttribute('title');
+  }, true);
+  document.addEventListener('focusout', function(ev){
+    var c = ev.target;
+    if (!c || !c.closest) return;
+    c = c.closest('td,th');
+    if (!c || c !== editCell) return;
+    clearEditTimer();
+    var tbl = c.closest('table[data-sui-editable]');
+    var name = tbl ? tbl.getAttribute('name') : '';
+    if (!tbl || !name) { editCell = null; editOld = ''; return; }
+    commitCellEdit(c, tbl, name, cfgOf(tbl), true);
     editCell = null; editOld = '';
   }, true);
 
   if(window.MutationObserver){
     var pending=false;
     new MutationObserver(function(){
-      // Never re-decorate while an editable cell is focused: rewriting its
-      // text or attributes on every keystroke would drop the caret after the
-      // first character.
-      if (editCell) return;
-      if(pending) return; pending=true; setTimeout(function(){ pending=false; if (!editCell) init(); }, 60);
+      if (editCell && !editCell.isConnected) { editCell = null; editOld = ''; }
+      var ae = document.activeElement;
+      if (editCell || (ae && ae.closest && ae.closest('td[contenteditable="true"], th[contenteditable="true"]'))) return;
+      if(pending) return; pending=true; setTimeout(function(){
+        pending=false;
+        var a2 = document.activeElement;
+        if (!editCell && !(a2 && a2.closest && a2.closest('td[contenteditable="true"], th[contenteditable="true"]'))) init();
+      }, 60);
     }).observe(document.body,{childList:true,subtree:true,characterData:true});
   }
   init();

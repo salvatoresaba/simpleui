@@ -93,7 +93,7 @@ view main {
 		`sui-table-settings`, `sui-table-cfg`, `sui-table-filterbtn`, `sui-table-sortbtn`, `sui-table-fpop`, `sortKeys`,
 		`columnValuePairs`, `colValueFilters`, `Filter on column headers`, `(Select All)`, `Clear Filter`,
 		`Sort levels`, `+ Add level`, `Clear filters`, `Clear sort`, `rowIds`, `headCells`, `sui-table-sort-rank`,
-		`if (editCell) return;`, `c !== editCell`,
+		`if (editCell ||`, `c !== editCell`, `commitCellEdit`, `editTimer`,
 		`sui-table-topbar`, `sui-table-title`, `data-sui-table-topbar-for`,
 		`bar.nextElementSibling !== anchor`, `function ensureHbtns`, `headLabel`,
 		`st.header[col] = raw`, `targetLabel`, `runtimeLabelsStr`,

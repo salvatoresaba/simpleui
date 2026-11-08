@@ -1255,7 +1255,9 @@ Gruppi del pannello:
   crescono e il testo va a capo), **wrap** (larghezza fissa, righe più alte) o
   **truncate** (una riga, overflow nascosto, testo completo in overlay al
   passaggio del mouse). Le modifiche runtime a celle e intestazioni restano nello
-  store della tabella tra re-render e cambio foglio per la sessione della pagina.
+  store della tabella tra re-render e cambio foglio per la sessione della pagina;
+  la digitazione non ridisegna la tabella e il commit avviene al blur o dopo una
+  breve pausa.
 - **Data** - **table name** usato da `table.display`, `table.data`, `table.json`
   e `table.exportText`.
 - **Columns** - `columns`, labels, larghezze, allineamento, tipi, formati,
