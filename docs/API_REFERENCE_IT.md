@@ -2228,6 +2228,9 @@ table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome"
   `column-delete` in `table.lastChange`.
 - Una tabella creata a runtime è modificabile quando `structureEditable` è
   attivo, quindi si può riempire senza uscire dall’app.
+- Le modifiche runtime a celle del corpo e etichette di intestazione restano
+  nello store della tabella tra re-render e cambio foglio per la sessione della
+  pagina. Usa `storage.*` se i valori devono sopravvivere a un reload completo.
 
 ## Sicurezza
 

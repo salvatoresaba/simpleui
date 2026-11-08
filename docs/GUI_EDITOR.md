@@ -1205,7 +1205,9 @@ Table settings groups:
   the caption is shown in the title row just above the table, on the same line
   as the settings gear.
 - **Behavior** - **editable** cells and **fixed sizes**. Fixed tables truncate
-  long text and show it in an overlay on hover.
+  long text and show it in an overlay on hover. Runtime cell and header edits
+  stay in the table store across re-renders and sheet switches for the page
+  session.
 - **Data** - runtime **table name** used by `table.display`, `table.data`,
   `table.json` and `table.exportText`.
 - **Columns** - declarative `columns`, labels, widths, alignment, cell types,

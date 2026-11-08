@@ -89,6 +89,7 @@ view main {
 		`if (editCell) return;`, `c !== editCell`,
 		`sui-table-topbar`, `sui-table-title`, `data-sui-table-topbar-for`,
 		`bar.nextElementSibling !== anchor`, `function ensureHbtns`, `headLabel`,
+		`st.header[col] = raw`, `targetLabel`, `runtimeLabelsStr`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below

@@ -238,6 +238,19 @@ const tableRuntimeE2EScript = `<script>
     if (table('users').querySelectorAll('thead th').length !== 5) throw new Error('column insert failed');
     if (version() !== '3') throw new Error('column insert did not fire onTableChange: ' + version());
 
+    // Runtime header edits survive blur and reactive re-render.
+    var headCell = table('editable').querySelector('thead th');
+    headCell.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    headCell.textContent = 'RenamedHeader';
+    headCell.dispatchEvent(new Event('input', { bubbles: true }));
+    headCell.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    await wait(600);
+    var headAfter = table('editable').querySelector('thead th');
+    if (!headAfter || headAfter.textContent.indexOf('RenamedHeader') < 0) throw new Error('runtime header edit lost: ' + (headAfter ? headAfter.textContent : 'missing'));
+    if ((table('editable').getAttribute('data-sui-column-labels') || '').indexOf('RenamedHeader') < 0) throw new Error('runtime header edit not persisted');
+    var editedHeader = window.__SUI_TBL.header('editable')[0];
+    if (!editedHeader || editedHeader[0] !== 'RenamedHeader') throw new Error('header API lost runtime edit');
+
     result(true, '');
   } catch (error) {
     result(false, error && error.message ? error.message : String(error));

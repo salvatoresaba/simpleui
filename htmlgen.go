@@ -2294,7 +2294,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   function tableStore(name){
     if (!store[name]) store[name] = { header: [], allRows: [], rows: [], page: 0,
       sortCol: null, sortDir: '', sortKeys: [], filter: '', colFilter: null,
-      colFilters: {}, colValueFilters: {}, filtersOn: null, sortOn: null,
+      colFilters: {}, colValueFilters: {}, headerEdits: {}, filtersOn: null, sortOn: null,
       selectedRows: {}, selectedCells: {}, selectedCols: {} };
     return store[name];
   }
@@ -3098,7 +3098,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         for (var mj = 0; mj < moveNodes.length; mj++) hlabel.appendChild(moveNodes[mj]);
         hwrap.insertBefore(hlabel, hwrap.firstChild);
       }
-      if (cfg.labels[h] && !st.__colStruct && hc !== editCell && hlabel.textContent !== cfg.labels[h]) hlabel.textContent = cfg.labels[h];
+      var editedLabel = st.headerEdits && Object.prototype.hasOwnProperty.call(st.headerEdits, h);
+      var targetLabel = editedLabel ? st.headerEdits[h] : (cfg.labels[h] !== undefined && cfg.labels[h] !== '' ? cfg.labels[h] : (st.header && st.header[h] !== undefined ? st.header[h] : ""));
+      if (targetLabel === undefined || targetLabel === null) targetLabel = "";
+      if (!st.__colStruct && hc !== editCell && hlabel.textContent !== targetLabel) hlabel.textContent = targetLabel;
       if (cfg.widths[h] > 0) { hc.style.width = cfg.widths[h] + 'px'; hc.style.minWidth = cfg.widths[h] + 'px'; }
       hlabel.style.textAlign = cfg.align[h] || '';
       hc.classList.toggle('sui-table-sortable', !!st.sortOn);
@@ -3137,6 +3140,19 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
           var col = parseInt(ev.currentTarget.getAttribute('data-col'), 10) || 0;
           openTableStructMenu(ev, tbl, name, -1, col, cfg);
         });
+      }
+    }
+    // Keep cfgOf/header()/column pickers aligned with runtime header edits.
+    var hasHeaderEdits = st.headerEdits && Object.keys(st.headerEdits).length > 0;
+    if (hrCells.length && (tbl.hasAttribute('data-sui-column-labels') || hasHeaderEdits)) {
+      var runtimeLabels = [];
+      for (var rl = 0; rl < hrCells.length; rl++) {
+        var rlLabel = hrCells[rl].querySelector('.sui-table-hlabel');
+        runtimeLabels.push(rlLabel ? (rlLabel.textContent || '') : (hrCells[rl].textContent || '').trim());
+      }
+      var runtimeLabelsStr = runtimeLabels.join(',');
+      if ((tbl.getAttribute('data-sui-column-labels') || '') !== runtimeLabelsStr) {
+        tbl.setAttribute('data-sui-column-labels', runtimeLabelsStr);
       }
     }
     var rows = bodyRows(tbl);
@@ -4267,19 +4283,33 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var rowIdx = tr.parentNode && tr.parentNode.tagName === 'THEAD' ? -1 : Array.prototype.indexOf.call(tr.parentNode.rows, tr);
     if (raw !== oldVal) {
       if (st) {
-        if (rowIdx < 0) { if (!st.header) st.header = []; st.header[col] = raw; }
-        else {
+        if (rowIdx < 0) {
+          if (!st.header) st.header = [];
+          if (!st.headerEdits) st.headerEdits = {};
+          st.header[col] = raw;
+          st.headerEdits[col] = raw;
+        } else {
           if (!st.allRows[rowIdx]) st.allRows[rowIdx] = [];
           st.allRows[rowIdx][col] = raw;
           if (st.rows[rowIdx]) st.rows[rowIdx][col] = raw;
         }
       }
       c.setAttribute('data-sui-raw', raw);
+      if (rowIdx < 0) {
+        // Header cells contain the label span plus the filter/sort buttons:
+        // update only the label instead of replacing the whole cell text.
+        var labelEl = c.querySelector('.sui-table-hlabel');
+        if (labelEl) {
+          if (labelEl.textContent !== raw) labelEl.textContent = raw;
+        } else if (c.textContent !== raw) {
+          c.textContent = raw;
+        }
+      }
       recordChange(name, { op: 'cell', row: rowIdx, column: col, old: oldVal, new: raw, value: raw });
       fireTableEvent(name, 'oncellchange');
       if (rowIdx >= 0) fireTableEvent(name, 'onrowchange');
       fireTableEvent(name, 'ontablechange');
-      c.textContent = formatValue(raw, cfg.formats[col]);
+      if (rowIdx >= 0) c.textContent = formatValue(raw, cfg.formats[col]);
     }
     editCell = null; editOld = '';
   }, true);
