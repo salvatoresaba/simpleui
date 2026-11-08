@@ -2027,6 +2027,7 @@ function normalizeTables(nodes) {
       if (n.editable === undefined) n.editable = false;
       if (n.fixed === undefined) n.fixed = false;
       if (n.name === undefined) n.name = "";
+      ensureTableBaseCss();
     }
     if (n.kind === "list") {
       if (!Array.isArray(n.items)) n.items = [];
@@ -8483,13 +8484,22 @@ function tblEnsureClass(n) {
 // ensureTableBaseCss: inserts the base rule set once (checked by selector, not
 // by a comment marker: the css round-trip regenerates text without comments).
 function ensureTableBaseCss() {
-  if (root.css.indexOf("table.suitbl") >= 0) return;
+  var zebraRule = "table.suitbl tbody tr:nth-child(even) td { background: var(--t-zebra, transparent); background: color-mix(in srgb, var(--t-zebra, transparent) 14%, transparent); }";
+  var hoverRule = "table.suitbl tbody tr:hover td { background: var(--t-hover, transparent); background: color-mix(in srgb, var(--t-hover, transparent) 14%, transparent); }";
+  if (root.css.indexOf("table.suitbl") >= 0) {
+    // Migrate tables saved with the old solid zebra/hover rules: a light
+    // default (for example #f0f2f8) would paint a white row in a dark theme.
+    if (root.css.indexOf("color-mix(") < 0) {
+      root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + zebraRule + "\n" + hoverRule + "\n";
+    }
+    return;
+  }
   var block = [
     "table.suitbl { border-collapse: collapse; }",
     "table.suitbl th, table.suitbl td { padding: var(--t-pad, 6px 10px); text-align: var(--t-align, left); vertical-align: var(--t-valign, middle); height: var(--t-rowh, 34px); }",
     "table.suitbl thead th { background: var(--t-headbg, #202732); color: var(--t-headfg, #f2f4f6); font-weight: var(--t-headfw, 700); text-transform: var(--t-headtt, none); border-bottom: var(--t-headbb, 2px solid #3d4556); }",
-    "table.suitbl tbody tr:nth-child(even) td { background: var(--t-zebra, transparent); }",
-    "table.suitbl tbody tr:hover td { background: var(--t-hover, transparent); }",
+    zebraRule,
+    hoverRule,
     "table.suitbl td, table.suitbl th { border: var(--t-grid, 1px solid #262c38); }",
     "table.suitbl { border: var(--t-ring, none); border-radius: var(--t-radius, 0); }",
     "table.suitbl { box-shadow: var(--t-shadow, none); }"
@@ -9146,8 +9156,8 @@ function tableControls(n, opts) {
     textRow("cell padding", "--t-pad", "6px 10px"),
     mkSelRowUI("align", "--t-align", [["default", ""], ["left", "left"], ["center", "center"], ["right", "right"], ["justify", "justify"]]),
     mkSelRowUI("vertical", "--t-valign", [["default", ""], ["top", "top"], ["middle", "middle"], ["bottom", "bottom"]]),
-    toggleRow("zebra rows", "--t-zebra", "#f0f2f8"),
-    toggleRow("hover row", "--t-hover", "#eef1fa"),
+    toggleRow("zebra rows", "--t-zebra", "#94a3b8"),
+    toggleRow("hover row", "--t-hover", "#4c5cf7"),
     lgrp
   ], ASPECTO_KEYS, !anythingActive));
   var radiusRow = textRow("outer radius", "--t-radius", "8px");

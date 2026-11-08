@@ -3077,7 +3077,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         for (var mj = 0; mj < moveNodes.length; mj++) hlabel.appendChild(moveNodes[mj]);
         hwrap.insertBefore(hlabel, hwrap.firstChild);
       }
-      if (cfg.labels[h] && !st.__colStruct) hlabel.textContent = cfg.labels[h];
+      if (cfg.labels[h] && !st.__colStruct && hc !== editCell) hlabel.textContent = cfg.labels[h];
       if (cfg.widths[h] > 0) { hc.style.width = cfg.widths[h] + 'px'; hc.style.minWidth = cfg.widths[h] + 'px'; }
       hlabel.style.textAlign = cfg.align[h] || '';
       hc.classList.toggle('sui-table-sortable', !!st.sortOn);
@@ -3134,10 +3134,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         var raw = st.rows[i] && st.rows[i][j] !== undefined ? st.rows[i][j] : (c.getAttribute('data-sui-raw') || c.textContent || '');
         if (st.rows[i]) {
           c.setAttribute('data-sui-raw', raw);
-          c.textContent = formatValue(raw, cfg.formats[j]);
+          if (c !== editCell) c.textContent = formatValue(raw, cfg.formats[j]);
         } else if (cfg.formats[j]) {
           c.setAttribute('data-sui-raw', raw);
-          c.textContent = formatValue(raw, cfg.formats[j]);
+          if (c !== editCell) c.textContent = formatValue(raw, cfg.formats[j]);
         }
         var cellKey = i + ':' + j;
         var cellSel = !!st.selectedCells[cellKey];
@@ -4201,7 +4201,13 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
 
   if(window.MutationObserver){
     var pending=false;
-    new MutationObserver(function(){ if(pending) return; pending=true; setTimeout(function(){ pending=false; init(); }, 60); }).observe(document.body,{childList:true,subtree:true,characterData:true});
+    new MutationObserver(function(){
+      // Never re-decorate while an editable cell is focused: rewriting its
+      // text or attributes on every keystroke would drop the caret after the
+      // first character.
+      if (editCell) return;
+      if(pending) return; pending=true; setTimeout(function(){ pending=false; init(); }, 60);
+    }).observe(document.body,{childList:true,subtree:true,characterData:true});
   }
   init();
   return {
@@ -4298,7 +4304,27 @@ func GenerateCss(p *Prog) string {
 			sb.WriteString("\n")
 		}
 	}
-	return sb.String()
+	return applyTableTint(sb.String())
+}
+
+// applyTableTint keeps the designer-managed zebra/hover colors readable in
+// dark themes. Older generated sources stored a solid light color (for example
+// #f0f2f8) that painted a white row on a dark background; tint it instead.
+func applyTableTint(css string) string {
+	if !strings.Contains(css, "var(--t-zebra") && !strings.Contains(css, "var(--t-hover") {
+		return css
+	}
+	if strings.Contains(css, "color-mix(in srgb, var(--t-zebra") || strings.Contains(css, "color-mix(in srgb, var(--t-hover") {
+		return css
+	}
+	var b strings.Builder
+	b.WriteString(css)
+	if !strings.HasSuffix(css, "\n") {
+		b.WriteString("\n")
+	}
+	b.WriteString("table.suitbl tbody tr:nth-child(even) td { background: var(--t-zebra, transparent); background: color-mix(in srgb, var(--t-zebra, transparent) 14%, transparent); }\n")
+	b.WriteString("table.suitbl tbody tr:hover td { background: var(--t-hover, transparent); background: color-mix(in srgb, var(--t-hover, transparent) 14%, transparent); }\n")
+	return b.String()
 }
 
 // collectClassesInView walks the (dereferenced) nodes of a view body.

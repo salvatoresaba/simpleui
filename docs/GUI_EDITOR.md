@@ -1193,9 +1193,10 @@ header that opens a searchable checklist of column values.
 Table settings groups:
 
 - **Appearance** - cell padding, horizontal/vertical alignment, zebra rows, hover
-  row and the scroll/scale controls. **Scroll** wraps the table in a
-  `tscroll` container with an optional max height, sticky header and custom
-  scrollbar colors; **scale** zooms the whole table.
+  row and the scroll/scale controls. Zebra and hover colors are applied as a
+  subtle tint so they stay readable on dark and light themes. **Scroll** wraps
+  the table in a `tscroll` container with an optional max height, sticky header
+  and custom scrollbar colors; **scale** zooms the whole table.
 - **Borders** - preset, cell grid, outer border and radius.
 - **Header** - header row mode, background/text color, weight, uppercase and
   sticky header.

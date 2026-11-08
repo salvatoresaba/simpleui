@@ -1242,9 +1242,10 @@ ricercabile dei valori della colonna.
 Gruppi del pannello:
 
 - **Appearance** - padding celle, allineamento orizzontale/verticale, righe
-  zebrate, hover e controlli scroll/scale. **Scroll** avvolge la tabella in un
-  contenitore `tscroll` con altezza massima, header sticky e colori scrollbar;
-  **scale** applica lo zoom all'intera tabella.
+  zebrate, hover e controlli scroll/scale. I colori zebra e hover sono applicati
+  come tinta leggera, così restano leggibili su temi chiari e scuri. **Scroll**
+  avvolge la tabella in un contenitore `tscroll` con altezza massima, header
+  sticky e colori scrollbar; **scale** applica lo zoom all'intera tabella.
 - **Borders** - preset, griglia celle, bordo esterno e raggio.
 - **Header** - modalità riga header, colori, peso, maiuscole e header sticky.
 - **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore.

@@ -86,6 +86,7 @@ view main {
 		`sui-table-settings`, `sui-table-cfg`, `sui-table-filterbtn`, `sui-table-sortbtn`, `sui-table-fpop`, `sortKeys`,
 		`columnValuePairs`, `colValueFilters`, `Filter on column headers`, `(Select All)`, `Clear Filter`,
 		`Sort levels`, `+ Add level`, `Clear filters`, `Clear sort`, `rowIds`, `headCells`,
+		`if (editCell) return;`, `c !== editCell`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below
@@ -130,6 +131,7 @@ view main {
 		`#tablesettings-body .acc.open > .accbody`, `grid-template-columns:repeat(2,minmax(0,1fr))`,
 		`width:720px`, `onlyTables`, `flex:0 1 auto`,
 		`capturePreviewTabs`, `restorePreviewTabs`, `copyTableSheetLook`,
+		`color-mix(in srgb, var(--t-zebra, transparent) 14%, transparent)`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table/tabs support missing %q", want)
@@ -138,6 +140,29 @@ view main {
 	// Direct preview selection replaced the inspector mode buttons.
 	if strings.Contains(guiHTML, "Table selectors") {
 		t.Errorf("inspector must not show the table selectors")
+	}
+}
+
+func TestTableZebraTintCSS(t *testing.T) {
+	const src = `css "table.suitbl tbody tr:nth-child(even) td \{ background: var(--t-zebra, transparent); \}"
+view main {
+	table name: "t" columns: "a,b" {
+	}
+}
+`
+	prog, dl := ParseSource(src, "zebra.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	css := GenerateCss(prog)
+	if !strings.Contains(css, "color-mix(in srgb, var(--t-zebra, transparent) 14%, transparent)") {
+		t.Errorf("generated CSS must tint legacy zebra colors:\n%s", css)
+	}
+	if !strings.Contains(css, "color-mix(in srgb, var(--t-hover, transparent) 14%, transparent)") {
+		t.Errorf("generated CSS must tint legacy hover colors")
 	}
 }
 
