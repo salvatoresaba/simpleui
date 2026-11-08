@@ -100,6 +100,14 @@ view main {
 	if !strings.Contains(guiPreviewPicker, `sui-table-select`) || !strings.Contains(guiPreviewPicker, `tableZone`) {
 		t.Errorf("preview picker missing table range selection")
 	}
+	// Body rows must map to the designer model, whose row indices include the
+	// header rows; otherwise a click selects the cell above the pointer.
+	if !strings.Contains(guiPreviewPicker, `headCount + bodyRow`) {
+		t.Errorf("preview picker must offset body rows by the header row count")
+	}
+	if !strings.Contains(guiPreviewPicker, `bodyRow === 0`) {
+		t.Errorf("preview picker column zone must use the first body row")
+	}
 	for _, want := range []string{
 		`"Columns"`, `"Data view"`, `"from header"`, `"Use first row"`,
 		`sheet tabs`, `"Bottom (Excel-like)"`, `function tabsControls`,

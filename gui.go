@@ -1016,19 +1016,24 @@ const guiPreviewPicker = `<script>
     if (!table) return null;
     var tr = cell.parentElement;
     var head = !!(tr && tr.parentElement && tr.parentElement.tagName === 'THEAD');
-    var row = -1;
-    if (!head) {
+    var headCount = table.tHead ? table.tHead.rows.length : 0;
+    var row = -1, bodyRow = -1, headRow = -1;
+    if (head) {
+      headRow = Array.prototype.indexOf.call(tr.parentElement.rows, tr);
+      row = headRow;
+    } else {
       var tb = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
       if (!tb) return null;
-      row = Array.prototype.indexOf.call(tb.rows, tr);
+      bodyRow = Array.prototype.indexOf.call(tb.rows, tr);
+      row = headCount + bodyRow;
     }
-    return { cell: cell, table: table, row: row, col: cell.cellIndex, head: head };
+    return { cell: cell, table: table, row: row, col: cell.cellIndex, head: head, bodyRow: bodyRow, headRow: headRow };
   }
   function tableZone(info, e) {
     var tr = info.table.getBoundingClientRect();
     var cr = info.cell.getBoundingClientRect();
     if (info.head && e.clientY <= cr.top + 6) return 'col';
-    if (!info.head && info.row === 0 && e.clientY <= tr.top + 6) return 'col';
+    if (!info.head && info.bodyRow === 0 && e.clientY <= tr.top + 6) return 'col';
     if (e.clientX <= tr.left + 6) return 'row';
     return 'cell';
   }
