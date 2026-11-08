@@ -2074,8 +2074,16 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-editable=\"1\"")
 		}
+		fixedAttr := false
 		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-fixed=\"1\"")
+			fixedAttr = true
+		}
+		if v := treeTextAttr(e, "cellText"); v != "" {
+			sb.WriteString(" data-sui-cell-text=\"" + htmlEscape(v) + "\"")
+			if v == "truncate" && !fixedAttr {
+				sb.WriteString(" data-sui-fixed=\"1\"")
+			}
 		}
 		for _, pair := range [][2]string{
 			{"columns", "data-sui-columns"}, {"columnLabels", "data-sui-column-labels"},
@@ -2455,7 +2463,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "fixed" ||
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
-			a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
+			a.key == "cellText" || a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
 			a.key == "multiSelect" || a.key == "virtual" || a.key == "showAddTable" || a.key == "structureEditable" ||
 			a.key == "onCellChange" || a.key == "onRowChange" || a.key == "onTableChange" ||
 			a.key == "onRowSelect" || a.key == "onSort" || a.key == "onCellClick" || a.key == "onRowClick") {

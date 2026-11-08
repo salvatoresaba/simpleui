@@ -12,6 +12,9 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - Declarative `columns`, `columnLabels`, `columnWidths`, `columnAlign`,
   `columnTypes`, `columnFormats` and `columnOptions`.
 - `sortable` header sorting, `filterable` text filter and `pageSize`.
+- Cell text modes selectable in the designer: **auto** (grow/wrap), **wrap**
+  (fixed width, taller rows) and **truncate** (hidden overflow with hover
+  overlay).
 - The **gear at the table's top-right** opens the runtime settings panel:
   header sorting and multi-column sort levels. Each header also has a funnel
   button that opens a searchable checklist of column values (Select All,

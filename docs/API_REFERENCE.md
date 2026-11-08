@@ -2239,6 +2239,9 @@ table name: "users" columns: "id,name,status,amount"
 - `columnFormats`: `text`, `number`, `currency:EUR`, `percent` or `date`.
   Sorting and editing always use the raw value.
 - `columnOptions`: `column=value1|value2;other=...` for `select` validation.
+- `cellText`: `auto` (default; columns can grow and text wraps), `wrap` (fixed
+  width, text wraps and the row grows), `truncate` (single line, overflow hidden,
+  full text in a hover overlay). `fixed: true` is the legacy truncate mode.
 - `sortable` enables header-click sorting (ascending, descending, original) and
   seeds the runtime sort toggle.
 - `filterable` adds a global text filter above the table and seeds the

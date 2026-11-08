@@ -2784,6 +2784,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 	columnOptions := ""
 	sortable := false
 	filterable := false
+	cellText := ""
 	pageSize := ""
 	selection := ""
 	multiSelect := false
@@ -2797,6 +2798,8 @@ func guiTableFrom(e *Element) (JVal, bool) {
 			editable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
 		case "fixed":
 			fixed = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "cellText":
+			cellText = partsLiteral(at.text)
 		case "sortable":
 			sortable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
 		case "filterable":
@@ -2841,6 +2844,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		"columns", JStr(columns), "columnLabels", JStr(columnLabels), "columnWidths", JStr(columnWidths),
 		"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
 		"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),
+		"cellText", JStr(cellText),
 		"pageSize", JStr(pageSize), "selection", JStr(selection), "multiSelect", JBool(multiSelect),
 		"virtual", JBool(virtual), "showAddTable", JBool(showAddTable), "structureEditable", JBool(structureEditable),
 	), true

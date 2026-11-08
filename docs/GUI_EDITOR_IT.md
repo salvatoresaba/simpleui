@@ -1251,10 +1251,11 @@ Gruppi del pannello:
 - **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore. A
   runtime la didascalia è mostrata nella riga titolo appena sopra la tabella,
   sulla stessa riga dell'ingranaggio impostazioni.
-- **Behavior** - celle **editable** e **fixed sizes**. Le tabelle fixed troncano
-  il testo lungo e lo mostrano in un overlay al passaggio del mouse. Le modifiche
-  runtime a celle e intestazioni restano nello store della tabella tra re-render
-  e cambio foglio per la sessione della pagina.
+- **Behavior** - celle **editable** e modalità **cell text**: **auto** (le colonne
+  crescono e il testo va a capo), **wrap** (larghezza fissa, righe più alte) o
+  **truncate** (una riga, overflow nascosto, testo completo in overlay al
+  passaggio del mouse). Le modifiche runtime a celle e intestazioni restano nello
+  store della tabella tra re-render e cambio foglio per la sessione della pagina.
 - **Data** - **table name** usato da `table.display`, `table.data`, `table.json`
   e `table.exportText`.
 - **Columns** - `columns`, labels, larghezze, allineamento, tipi, formati,

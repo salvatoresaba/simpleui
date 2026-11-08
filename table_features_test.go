@@ -16,7 +16,7 @@ fn tableApi() -> null {
 	c, cerr = table.lastChange("users")
 }
 view main {
-	table name: "users" columns: "id,name,status" columnLabels: "ID,Name,Status" columnWidths: "50,120,90" columnAlign: "right,left,center" columnTypes: "number,text,select" columnFormats: "text,text,text" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 2 selection: "row" multiSelect: true showAddTable: true structureEditable: true onCellChange: changed onRowChange: changed onTableChange: changed onRowSelect: changed onSort: changed {
+	table name: "users" columns: "id,name,status" columnLabels: "ID,Name,Status" columnWidths: "50,120,90" columnAlign: "right,left,center" columnTypes: "number,text,select" columnFormats: "text,text,text" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 2 selection: "row" multiSelect: true showAddTable: true structureEditable: true cellText: "wrap" onCellChange: changed onRowChange: changed onTableChange: changed onRowSelect: changed onSort: changed {
 		thead {
 			trow {
 				tcell "ID" head: true
@@ -48,7 +48,7 @@ view main {
 		`data-sui-column-types="number,text,select"`, `data-sui-column-options="status=active|paused"`,
 		`data-sui-sortable="1"`, `data-sui-filterable="1"`, `data-sui-page-size="2"`,
 		`data-sui-selection="row"`, `data-sui-multi="1"`,
-		`data-sui-show-add-table="1"`, `data-sui-structure-editable="1"`,
+		`data-sui-show-add-table="1"`, `data-sui-structure-editable="1"`, `data-sui-cell-text="wrap"`,
 		`data-sui-table-oncellchange="changed"`, `data-sui-table-onrowchange="changed"`,
 		`data-sui-table-ontablechange="changed"`, `data-sui-table-onrowselect="changed"`,
 		`data-sui-table-onsort="changed"`,
@@ -61,7 +61,7 @@ view main {
 	for _, want := range []string{
 		`"columns":"id,name,status"`, `"columnLabels":"ID,Name,Status"`, `"sortable":true`,
 		`"filterable":true`, `"pageSize":"2"`, `"selection":"row"`, `"multiSelect":true`,
-		`"showAddTable":true`, `"structureEditable":true`,
+		`"showAddTable":true`, `"structureEditable":true`, `"cellText":"wrap"`,
 		`"onCellChange":"changed"`, `"onTableChange":"changed"`,
 	} {
 		if !strings.Contains(model, want) {
@@ -72,12 +72,16 @@ view main {
 	for _, want := range []string{
 		`columns: "id,name,status"`, `columnLabels: "ID,Name,Status"`, `sortable: true`,
 		`filterable: true`, `pageSize: 2`, `selection: "row"`, `multiSelect: true`,
-		`showAddTable: true`, `structureEditable: true`,
+		`showAddTable: true`, `structureEditable: true`, `cellText: "wrap"`,
 		`onCellChange: changed`, `onTableChange: changed`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("table source missing %q:\n%s", want, out)
 		}
+	}
+	css := GenerateCss(prog)
+	if !strings.Contains(css, `table[data-sui-cell-text="wrap"]`) {
+		t.Errorf("generated CSS missing wrapping cell text mode")
 	}
 	for _, want := range []string{
 		`function sort(`, `function filter(`, `function filterText(`, `function page(`,

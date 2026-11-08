@@ -3059,7 +3059,7 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tcell" && (key == "head" || key == "colspan" || key == "rowspan") {
 		return true
 	}
-	if tag == "table" && (key == "name" || key == "editable" || key == "fixed" ||
+	if tag == "table" && (key == "name" || key == "editable" || key == "fixed" || key == "cellText" ||
 		key == "columns" || key == "columnLabels" || key == "columnWidths" ||
 		key == "columnAlign" || key == "columnTypes" || key == "columnFormats" || key == "columnOptions" ||
 		key == "sortable" || key == "filterable" || key == "pageSize" || key == "selection" ||

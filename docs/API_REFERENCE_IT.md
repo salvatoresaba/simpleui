@@ -2128,6 +2128,10 @@ table name: "utenti" columns: "id,nome,stato,importo"
 - `columnFormats`: `text`, `number`, `currency:EUR`, `percent`, `date`; il valore
   raw resta disponibile per ordinamento, editing ed export.
 - `columnOptions`: `colonna=valore1|valore2;...` per `select`.
+- `cellText`: `auto` (default; le colonne possono crescere e il testo va a capo),
+  `wrap` (larghezza fissa, testo a capo e riga più alta), `truncate` (una riga,
+  overflow nascosto, testo completo in overlay al passaggio del mouse).
+  `fixed: true` equivale alla modalità legacy truncate.
 - `sortable` abilita l'ordinamento cliccando l'header (e inizializza il toggle
   runtime); `filterable` aggiunge il filtro testo globale e inizializza i filtri
   per colonna nell'header; `pageSize` pagina le righe; `selection` è `row`,

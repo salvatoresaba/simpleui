@@ -2026,6 +2026,7 @@ function normalizeTables(nodes) {
       if (n.captionShow === undefined) n.captionShow = !!(n.caption && n.caption.trim());
       if (n.editable === undefined) n.editable = false;
       if (n.fixed === undefined) n.fixed = false;
+      if (n.cellText === undefined) n.cellText = n.fixed ? "truncate" : "auto";
       if (n.name === undefined) n.name = "";
       ensureTableBaseCss();
     }
@@ -2070,6 +2071,7 @@ function newTableNode() {
   n.captionShow = false;
   n.editable = false;
   n.fixed = false;
+  n.cellText = "auto";
   n.name = uniqueTableName();
   n.columns = "";
   n.columnLabels = "";
@@ -8682,6 +8684,8 @@ function copyTableSheetLook(src, dst) {
   ["editable", "fixed", "sortable", "filterable", "multiSelect", "virtual", "showAddTable", "structureEditable"].forEach(function(k) {
     dst[k] = !!src[k];
   });
+  dst.cellText = src.cellText || (src.fixed ? "truncate" : "auto");
+  if (dst.cellText === "truncate") dst.fixed = true;
   dst.pageSize = src.pageSize || "";
   dst.selection = src.selection || "";
   ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"].forEach(function(k) {
@@ -9215,10 +9219,23 @@ function tableControls(n, opts) {
   }
   var behRows = [
     boolRow("editable", function(){ return n.editable; }, function(v){ n.editable = v; },
-      "Cells can be edited by the end user in the rendered app."),
-    boolRow("fixed sizes", function(){ return n.fixed; }, function(v){ n.fixed = v; },
-      "Rows and columns keep their size; long cell text is truncated and shown in full in an overlay when hovering.")
+      "Cells can be edited by the end user in the rendered app.")
   ];
+  var cellTextRow = document.createElement("div"); cellTextRow.className = "rowline";
+  var cellTextLbl = lbl("cell text");
+  cellTextLbl.title = "Auto grows columns and wraps; Wrap keeps the width and grows the row; Truncate hides overflow and shows the full text on hover.";
+  cellTextRow.appendChild(cellTextLbl);
+  var cellTextSel = document.createElement("select");
+  [["auto (grow / wrap)", "auto"], ["wrap (fixed width)", "wrap"], ["truncate (hover overlay)", "truncate"]].forEach(function(o) {
+    var eo = document.createElement("option"); eo.value = o[1]; eo.textContent = o[0]; cellTextSel.appendChild(eo);
+  });
+  cellTextSel.value = n.cellText || (n.fixed ? "truncate" : "auto");
+  cellTextSel.onchange = function(){
+    var v = cellTextSel.value;
+    withUndo(function(){ n.cellText = v; n.fixed = v === "truncate"; });
+  };
+  cellTextRow.appendChild(cellTextSel);
+  behRows.push(cellTextRow);
   // overlay box look (shown while hovering a truncated cell in fixed mode)
   function popTextRow(labelText, key, ph) {
     var row = document.createElement("div"); row.className = "rowline";
@@ -9242,7 +9259,7 @@ function tableControls(n, opts) {
   behRows.push(popTextRow("overlay max width", "--pop-maxw", "420px"));
   behRows.push(popTextRow("overlay radius", "--pop-radius", "8px"));
   var bhint = document.createElement("div"); bhint.className = "hint";
-  bhint.textContent = "Flexible (off): cells adapt to their content. Fixed: sizes stay as set; overflowing text is shortened and shown in the overlay box on hover.";
+  bhint.textContent = "Auto: columns grow when possible and text wraps. Wrap: the width stays fixed, text wraps and the row grows. Truncate: text stays on one line, overflow is hidden and the full text appears in the overlay box on hover.";
   behRows.push(bhint);
   b.appendChild(group("Behavior", behRows, [], false));
 
@@ -10920,7 +10937,11 @@ function tcellToSui(n, r, c) {
 }
 function tableToSui(n, depth) {
   function ind(level) { var s = ""; for (var i = 0; i < level; i++) s += "\t"; return s; }
-  var extra = (n.editable ? " editable: true" : "") + (n.fixed ? " fixed: true" : "");
+  var cellText = n.cellText || (n.fixed ? "truncate" : "auto");
+  var fixedMode = n.fixed || cellText === "truncate";
+  var extra = (n.editable ? " editable: true" : "") + (fixedMode ? " fixed: true" : "");
+  if (cellText === "wrap") extra += ' cellText: "wrap"';
+  else if (cellText === "truncate") extra += ' cellText: "truncate"';
   if (n.columns) extra += " columns: \"" + esc(n.columns) + "\"";
   if (n.columnLabels) extra += " columnLabels: \"" + esc(n.columnLabels) + "\"";
   if (n.columnWidths) extra += " columnWidths: \"" + esc(n.columnWidths) + "\"";

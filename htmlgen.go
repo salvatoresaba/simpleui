@@ -1784,6 +1784,9 @@ tbody tr:hover { background: var(--sui-table-hover-bg, #20252e); }
 table[data-sui-fixed] { table-layout: fixed; }
 table[data-sui-fixed] th, table[data-sui-fixed] td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 table[data-sui-fixed] td:focus, table[data-sui-fixed] th:focus { outline: 2px solid #4c5cf7; outline-offset: -2px; }
+/* fixed-width wrapping: the column width stays stable, rows grow in height */
+table[data-sui-cell-text="wrap"] { table-layout: fixed; }
+table[data-sui-cell-text="wrap"] th, table[data-sui-cell-text="wrap"] td { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 /* editable tables: every cell can be edited by the end user */
 table[data-sui-editable] td, table[data-sui-editable] th { cursor: text; }
 table[data-sui-editable] td:focus, table[data-sui-editable] th:focus { outline: 2px solid #4c5cf7; outline-offset: -2px; background: var(--sui-table-focus-bg, rgba(76,92,247,.10)); }
@@ -1812,9 +1815,9 @@ td.sui-table-invalid, th.sui-table-invalid { background: rgba(239,68,68,.18); bo
 .sui-table-tools .sui-table-settings { margin: 0; }
 .sui-table-settings { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin: 0 6px 0 0; padding: 0; border: 1px solid var(--sui-border, #3d4556); border-radius: 6px; background: var(--sui-panel, #202732); color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 14px; line-height: 1; cursor: pointer; opacity: .72; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 .sui-table-settings:hover, .sui-table-settings:focus, .sui-table-settings[aria-expanded="true"] { opacity: 1; color: var(--sui-fg, #f2f4f6); border-color: #4c5cf7; outline: none; }
-.sui-table-hwrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.sui-table-hlabel { flex: 1 1 auto; min-width: 0; }
-.sui-table-hbtns { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.sui-table-hwrap { display: flex; align-items: flex-start; gap: 6px; min-width: 0; flex-wrap: nowrap; }
+.sui-table-hlabel { flex: 1 1 auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; overflow: hidden; text-overflow: ellipsis; }
+.sui-table-hbtns { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; align-self: flex-start; margin-top: 1px; }
 .sui-table-filterbtn, .sui-table-sortbtn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; opacity: .55; cursor: pointer; font: inherit; }
 .sui-table-filterbtn:hover, .sui-table-sortbtn:hover, .sui-table-filterbtn:focus, .sui-table-sortbtn:focus { opacity: 1; background: rgba(127,127,127,.18); outline: none; }
 .sui-table-filterbtn.active { opacity: 1; color: #4c5cf7; }
@@ -4737,8 +4740,16 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-editable=\"1\"")
 		}
+		fixedAttr := false
 		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-fixed=\"1\"")
+			fixedAttr = true
+		}
+		if v := treeTextAttr(e, "cellText"); v != "" {
+			sb.WriteString(" data-sui-cell-text=\"" + htmlEscape(v) + "\"")
+			if v == "truncate" && !fixedAttr {
+				sb.WriteString(" data-sui-fixed=\"1\"")
+			}
 		}
 		for _, pair := range [][2]string{
 			{"columns", "data-sui-columns"}, {"columnLabels", "data-sui-column-labels"},
@@ -6384,7 +6395,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "fixed" ||
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
-			a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
+			a.key == "cellText" || a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
 			a.key == "multiSelect" || a.key == "virtual" || a.key == "showAddTable" || a.key == "structureEditable" ||
 			a.key == "onCellChange" || a.key == "onRowChange" || a.key == "onTableChange" ||
 			a.key == "onRowSelect" || a.key == "onSort" || a.key == "onCellClick" || a.key == "onRowClick") {

@@ -87,9 +87,12 @@ const suiTabsRuntime = `(function(){
       if (ae && ae.closest && ae.closest('td[contenteditable="true"], th[contenteditable="true"]')) return;
       if (pending) return;
       pending = true;
+      // Restore before the browser paints the regenerated view. A setTimeout
+      // here made the first sheet visible for a frame before the stored tab
+      // was re-activated (visible flicker when editing a later sheet).
       var run = function() { pending = false; applyStored(); };
-      // setTimeout (not rAF): background/embedded previews may throttle frames.
-      setTimeout(run, 0);
+      if (typeof Promise !== 'undefined') Promise.resolve().then(run);
+      else run();
     }).observe(document.documentElement, { childList: true, subtree: true });
   }
   applyStored();
