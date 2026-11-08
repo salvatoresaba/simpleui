@@ -8681,9 +8681,13 @@ function copyTableSheetLook(src, dst) {
   dst.style = src.style || "";
   dst.capstyle = src.capstyle || "";
   if (src.class) dst.class = src.class.indexOf("suitbl") >= 0 ? src.class : ("suitbl " + src.class);
-  ["editable", "fixed", "sortable", "filterable", "multiSelect", "virtual", "showAddTable", "structureEditable"].forEach(function(k) {
+  ["fixed", "sortable", "filterable", "multiSelect", "virtual", "showAddTable", "structureEditable"].forEach(function(k) {
     dst[k] = !!src[k];
   });
+  // A new sheet is for manual data entry: never inherit read-only from the
+  // source table. Without this the second sheet opens non-editable and the
+  // preview falls back to type-to-edit (which reloads it on each key).
+  dst.editable = true;
   dst.cellText = src.cellText || (src.fixed ? "truncate" : "auto");
   if (dst.cellText === "truncate") dst.fixed = true;
   dst.pageSize = src.pageSize || "";
@@ -8705,6 +8709,7 @@ function tableAddSheetAction() {
       var tab = newTabNode("Table " + (entries.length + 1));
       var tbl = newTableNode();
       copyTableSheetLook(srcTbl, tbl);
+      tbl.editable = true;
       var wrap = newNode("div");
       wrap.class = "tscroll";
       wrap.children = [tbl];
@@ -8728,6 +8733,7 @@ function tableAddSheetAction() {
       tab1.children = [container];
       var tbl2 = newTableNode();
       copyTableSheetLook(firstTbl, tbl2);
+      tbl2.editable = true;
       var wrap2 = newNode("div");
       wrap2.class = "tscroll";
       wrap2.children = [tbl2];

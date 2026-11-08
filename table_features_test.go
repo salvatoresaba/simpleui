@@ -279,7 +279,7 @@ func TestDesignerDataTablePreservesAttributes(t *testing.T) {
 	}
 	// The designer must serialize a columns-declared table without a synthetic
 	// thead/tbody, and must not let the type-to-edit bridge reload the preview.
-	for _, want := range []string{"if (n.dataTable)", "n.dataTable || n.columns"} {
+	for _, want := range []string{"if (n.dataTable)", "n.dataTable || n.columns", "dst.editable = true"} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table handling missing %q", want)
 		}
