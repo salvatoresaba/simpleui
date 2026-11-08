@@ -2213,6 +2213,85 @@ fn save() -> null {
   `json`, `jsonl` and options `header`, `sep`, `quote`, `trim`, `formula`.
 - Details: [`STDLIB.md`](STDLIB.md#table-module-table-core).
 
+### Declarative columns and data view
+
+A named table can describe its columns instead of relying on the visual header:
+
+```sui
+table name: "users" columns: "id,name,status,amount"
+	columnLabels: "ID,Name,Status,Amount"
+	columnWidths: "60,160,100,110"
+	columnAlign: "right,left,center,right"
+	columnTypes: "number,text,select,number"
+	columnFormats: "text,text,text,currency:EUR"
+	columnOptions: "status=active|paused"
+	sortable: true filterable: true pageSize: 20
+	selection: "row" multiSelect: true {
+}
+```
+
+- `columns`: comma-separated keys used by sorting, filtering and data payloads.
+- `columnLabels`, `columnWidths`, `columnAlign`: positional header text, pixel
+  widths and alignment.
+- `columnTypes`: `text`, `number`, `date`, `boolean` or `select`; editable cells
+  are validated on commit. Invalid values are restored and marked with
+  `aria-invalid`.
+- `columnFormats`: `text`, `number`, `currency:EUR`, `percent` or `date`.
+  Sorting and editing always use the raw value.
+- `columnOptions`: `column=value1|value2;other=...` for `select` validation.
+- `sortable` enables header-click sorting (ascending, descending, original).
+- `filterable` adds a text filter above the table.
+- `pageSize` paginates the visible rows and renders a pager.
+- `selection` is `row`, `column` or `cell`; `multiSelect` enables Ctrl/Command
+  toggling. Selection is intended for non-editable tables.
+
+Runtime helpers:
+
+```sui
+fn view() -> null {
+  ok, e = table.sort("users", "name", "asc")
+  ok2, e2 = table.filter("users", "status", "active")
+  ok3, e3 = table.filterText("users", "anna")
+  ok4, e4 = table.page("users", 2)          # zero-based
+  ok5, e5 = table.setPageSize("users", 50)
+  rows, e6 = table.selectedRows("users")   # array of row indexes
+  cells, e7 = table.selectedCells("users") # JSON [{row,column}]
+  cols, e8 = table.selectedColumns("users")
+  info, e9 = table.lastChange("users")     # JSON {op,row,column,old,new,...}
+}
+```
+
+Table events:
+
+- `onCellClick`, `onRowClick`: a cell or row was clicked.
+- `onCellChange`: after an editable cell commits a valid value.
+- `onRowChange`: after a cell edit in a body row.
+- `onTableChange`: after `table.display`, `table.importText`, `table.clear` or a
+  cell edit.
+- `onRowSelect`: after row/column/cell selection changes.
+- `onSort`: after a header sort or `table.sort`.
+
+All handlers take no arguments; details come from `table.lastChange(name)`.
+
+### Excel-like sheet tabs
+
+Use a normal `tabs` control with `position: "bottom"` and `variant: "sheets"`
+and put one table inside each tab:
+
+```sui
+tabs "Workbook" position: "bottom" variant: "sheets" {
+	tab "Users" {
+		table name: "users" columns: "id,name" columnLabels: "ID,Name" sortable: true { }
+	}
+	tab "Orders" {
+		table name: "orders" columns: "id,total" columnLabels: "ID,Total" sortable: true { }
+	}
+}
+```
+
+The tab strip is rendered below the panels and styled as a compact sheet bar.
+`table.*` targets the table `name`, so each sheet keeps its own data and state.
+
 ## Security
 
 Interpolated values and attributes are **escaped automatically**;

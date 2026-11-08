@@ -1,0 +1,190 @@
+package main
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+)
+
+const tableRuntimeE2EScript = `<script>
+(async function () {
+  function result(ok, message) {
+    var el = document.getElementById('e2e-result');
+    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.appendChild(el); }
+    el.textContent = ok ? 'OK' : 'FAIL: ' + message;
+    document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
+  }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function table(name) { return document.querySelector('table[name="' + name + '"]'); }
+  function rows(name) { return Array.prototype.slice.call(table(name).querySelectorAll('tbody tr')); }
+  function texts(name) { return rows(name).map(function (tr) { return Array.prototype.slice.call(tr.children).map(function (c) { return c.textContent; }); }); }
+  function header(name) { return Array.prototype.slice.call(table(name).querySelectorAll('thead th')).map(function (c) { return c.textContent; }); }
+  function version() { var m = (document.body.textContent || '').match(/Version: (\d+)/); return m ? m[1] : 'none'; }
+  function cellVersion() { var m = (document.body.textContent || '').match(/Cell version: (\d+)/); return m ? m[1] : 'none'; }
+  function lastChange(name) { var p = window.__SUI_TBL.lastChange(name); if (!p || p[1]) throw new Error('lastChange failed'); return JSON.parse(p[0]); }
+  try {
+    for (var i = 0; i < 150 && !table('users'); i++) await wait(100);
+    if (!table('users')) throw new Error('tables did not render');
+    var d = window.__SUI_TBL.display('users', JSON.stringify([
+      { id: 1, name: 'Alice', status: 'active', amount: 1200.5 },
+      { id: 2, name: 'Bob', status: 'paused', amount: 300 },
+      { id: 3, name: 'Cara', status: 'active', amount: 99 }
+    ]));
+    if (!d || d[1]) throw new Error('display failed: ' + (d && d[1]));
+    await wait(400);
+    if (header('users').join(',') !== 'ID,Name,Status,Amount') throw new Error('declarative labels missing: ' + header('users').join(','));
+    if (rows('users').length !== 2) throw new Error('page size 2 not applied: ' + rows('users').length);
+    if (!document.querySelector('.sui-table-filter[data-sui-table-filter-for="users"]')) throw new Error('filter input missing');
+    if (!document.querySelector('.sui-table-pager[data-sui-table-pager-for="users"]')) throw new Error('pager missing');
+    if (version() !== '1') throw new Error('display did not fire onTableChange: ' + version());
+    if (texts('users')[0][3].indexOf('€') < 0) throw new Error('currency formatting missing: ' + texts('users')[0][3]);
+
+    if (!window.__SUI_TBL.sort('users', 'status', 'asc')[0]) throw new Error('sort failed');
+    await wait(300);
+    if (texts('users')[0][2] !== 'active' || texts('users')[1][2] !== 'active') throw new Error('sort order wrong: ' + JSON.stringify(texts('users')));
+    if (lastChange('users').op !== 'sort') throw new Error('sort lastChange missing');
+    if (version() !== '1') throw new Error('sort must not fire onTableChange');
+
+    if (!window.__SUI_TBL.filterText('users', 'active')[0]) throw new Error('filter failed');
+    await wait(300);
+    if (rows('users').length !== 2) throw new Error('filter rows wrong: ' + rows('users').length);
+    window.__SUI_TBL.filterText('users', '');
+    await wait(300);
+    if (!window.__SUI_TBL.page('users', 1)[0]) throw new Error('page failed');
+    await wait(300);
+    if (rows('users').length !== 1) throw new Error('page 2 rows wrong: ' + rows('users').length);
+    window.__SUI_TBL.page('users', 0);
+    await wait(300);
+
+    rows('users')[1].querySelectorAll('td')[1].click();
+    await wait(300);
+    var sel = window.__SUI_TBL.selectedRows('users')[0];
+    if (!sel || sel.length !== 1 || sel[0] !== 1) throw new Error('row selection wrong: ' + JSON.stringify(sel));
+
+    var ed = table('editable');
+    var nameCell = ed.querySelectorAll('tbody tr td')[0];
+    nameCell.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    nameCell.textContent = 'Alicia';
+    nameCell.dispatchEvent(new Event('input', { bubbles: true }));
+    nameCell.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    await wait(300);
+    if (cellVersion() !== '1') throw new Error('onCellChange did not fire: ' + cellVersion());
+    var lc = lastChange('editable');
+    if (lc.op !== 'cell' || lc.old !== 'Alice' || lc.new !== 'Alicia') throw new Error('cell lastChange wrong: ' + JSON.stringify(lc));
+
+    var amountCell = table('editable').querySelectorAll('tbody tr td')[1];
+    amountCell.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    amountCell.textContent = 'abc';
+    amountCell.dispatchEvent(new Event('input', { bubbles: true }));
+    amountCell.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    await wait(250);
+    if (amountCell.getAttribute('aria-invalid') !== 'true') throw new Error('invalid number not marked');
+    if (window.__SUI_TBL.data('editable')[0][0][1] !== '10') throw new Error('invalid value was committed: ' + JSON.stringify(window.__SUI_TBL.data('editable')[0]));
+    if (cellVersion() !== '1') throw new Error('invalid edit must not fire onCellChange');
+
+    result(true, '');
+  } catch (error) {
+    result(false, error && error.message ? error.message : String(error));
+  }
+})();
+</script>`
+
+func TestTableRuntimeE2E(t *testing.T) {
+	browser := findHeadlessBrowser()
+	if browser == "" {
+		t.Skip("no Chrome/Edge found; skipping table runtime end-to-end test")
+	}
+	const src = `state version = 0
+state cellVersion = 0
+fn tableChanged() -> null {
+	version = version + 1
+}
+fn cellChanged() -> null {
+	cellVersion = cellVersion + 1
+}
+fn sorted() -> null {
+}
+view main {
+	table name: "users" columns: "id,name,status,amount" columnLabels: "ID,Name,Status,Amount" columnWidths: "60,160,100,110" columnAlign: "right,left,center,right" columnTypes: "number,text,select,number" columnFormats: "text,text,text,currency:EUR" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 2 selection: "row" multiSelect: true onTableChange: tableChanged onSort: sorted {
+		thead {
+			trow {
+				tcell "ID" head: true
+				tcell "Name" head: true
+				tcell "Status" head: true
+				tcell "Amount" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell ""
+				tcell ""
+				tcell ""
+				tcell ""
+			}
+		}
+	}
+	table name: "editable" editable: true columns: "name,amount" columnLabels: "Name,Amount" columnTypes: "text,number" columnFormats: "text,currency:EUR" onCellChange: cellChanged {
+		thead {
+			trow {
+				tcell "Name" head: true
+				tcell "Amount" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "Alice"
+				tcell "10"
+			}
+		}
+	}
+	p "Version: {version}"
+	p "Cell version: {cellVersion}"
+}
+`
+	prog, dl := ParseSource(src, "table_runtime_e2e.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	html := "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>" + GenerateCss(prog) +
+		"</style></head><body><div id=\"app\"></div><script>" + GenerateJs(prog) + "</script>" +
+		tableRuntimeE2EScript + "</body></html>"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(html))
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	args := []string{
+		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+		"--no-first-run", "--no-default-browser-check",
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=25000", "--dump-dom",
+		srv.URL + "/",
+	}
+	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
+	text := string(out)
+	if err != nil {
+		t.Fatalf("headless browser failed: %v\n%s", err, text)
+	}
+	if strings.Contains(text, `id="e2e-result">OK<`) {
+		return
+	}
+	marker := strings.Index(text, `id="e2e-result"`)
+	detail := text
+	if marker >= 0 {
+		end := marker + 500
+		if end > len(text) {
+			end = len(text)
+		}
+		detail = text[marker:end]
+	}
+	t.Fatalf("table runtime e2e failed:\n%s", detail)
+}

@@ -140,6 +140,15 @@ targets the table with the matching `name:` attribute. Functions are synchronous
 | `table.header(name)` | string | (array[string], string) | Header labels |
 | `table.select(name, cols)` | string, array[int] | (array[array[string]], string) | Selected columns only |
 | `table.slice(name, from, count)` | string, int, int | (array[array[string]], string) | Row block (`count <= 0` = to the end) |
+| `table.sort(name, column, dir)` | string, string, string | (int, string) | Sort by column key/index; `asc`, `desc` or empty |
+| `table.filter(name, column, value)` | string, string, string | (int, string) | Filter one column by text |
+| `table.filterText(name, text)` | string, string | (int, string) | Global text filter |
+| `table.page(name, index)` | string, int | (int, string) | Zero-based page |
+| `table.setPageSize(name, size)` | string, int | (int, string) | Rows per page (`0` = all) |
+| `table.selectedRows(name)` | string | (array[int], string) | Selected row indexes |
+| `table.selectedCells(name)` | string | (string, string) | JSON `[{row,column}]` |
+| `table.selectedColumns(name)` | string | (string, string) | JSON array of column indexes |
+| `table.lastChange(name)` | string | (string, string) | JSON `{op,row,column,old,new,...}` of the last change |
 | `table.importText(name, text, spec)` | string, string, string | (int, string) | Explicit parse: `csv`, `tsv`, `ssv`, `psv`, `json`, `jsonl`, `auto` |
 | `table.exportText(name, spec)` | string, string | (string, string) | Serialize to CSV/TSV/SSV/PSV/JSON/JSONL |
 | `table.json(name)` | string | (string, string) | JSON (objects when a header exists) |

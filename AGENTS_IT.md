@@ -132,6 +132,7 @@ Per capability desktop:
 | Esigenza | Documento | Esempio |
 |---|---|---|
 | Form locale, stato, tabella | `docs/AGENT_RECIPES_IT.md`, `docs/API_REFERENCE_IT.md` | `examples/todo.sui`, `examples/table_data.sui` |
+| Workbook Excel con più tabelle in sheet tab in basso | `docs/API_REFERENCE_IT.md#sheet-tabs-in-stile-excel`, `docs/GUI_EDITOR_IT.md#sheet-tabs-in-stile-excel` | `examples/table_sheets/README.md` |
 | Menu bar / navigazione | `docs/API_REFERENCE_IT.md#menu-bar`, `docs/GUI_EDITOR_IT.md#menu-bar-control` | `examples/menu_bar.sui` |
 | Accordion / sezioni comprimibili | `docs/API_REFERENCE_IT.md#accordion`, `docs/GUI_EDITOR_IT.md#controllo-accordion` | `examples/accordion/README.md`, `examples/accordion/dist/app.exe` |
 | Notifiche toast / feedback | `docs/API_REFERENCE_IT.md#notifiche-toast`, `docs/GUI_EDITOR_IT.md#controllo-toast` | `examples/toast/README.md`, `examples/toast/dist/app.exe` |

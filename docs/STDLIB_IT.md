@@ -131,6 +131,15 @@ sono sincrone (solo DOM) e restituiscono `(valore, errore)`.
 | `table.header(name)` | string | (array[string], string) | Etichette dell'intestazione |
 | `table.select(name, cols)` | string, array[int] | (array[array[string]], string) | Solo le colonne indicate |
 | `table.slice(name, from, count)` | string, int, int | (array[array[string]], string) | Blocco di righe (`count <= 0` = fino alla fine) |
+| `table.sort(name, column, dir)` | string, string, string | (int, string) | Ordina per key/indice colonna; `asc`, `desc` o vuoto |
+| `table.filter(name, column, value)` | string, string, string | (int, string) | Filtra una colonna per testo |
+| `table.filterText(name, text)` | string, string | (int, string) | Filtro testo globale |
+| `table.page(name, index)` | string, int | (int, string) | Pagina zero-based |
+| `table.setPageSize(name, size)` | string, int | (int, string) | Righe per pagina (`0` = tutte) |
+| `table.selectedRows(name)` | string | (array[int], string) | Indici delle righe selezionate |
+| `table.selectedCells(name)` | string | (string, string) | JSON `[{row,column}]` |
+| `table.selectedColumns(name)` | string | (string, string) | Array JSON degli indici colonna |
+| `table.lastChange(name)` | string | (string, string) | JSON `{op,row,column,old,new,...}` dell'ultima modifica |
 | `table.importText(name, text, spec)` | string, string, string | (int, string) | Parse esplicito: `csv`, `tsv`, `ssv`, `psv`, `json`, `jsonl`, `auto` |
 | `table.exportText(name, spec)` | string, string | (string, string) | Serializza in CSV/TSV/SSV/PSV/JSON/JSONL |
 | `table.json(name)` | string | (string, string) | JSON con oggetti se c'è un'intestazione |

@@ -2105,6 +2105,69 @@ fn save() -> null {
   `json`, `jsonl` e le opzioni `header`, `sep`, `quote`, `trim`, `formula`.
 - Dettagli: [`STDLIB.md`](STDLIB.md#table-module-table-core).
 
+### Colonne dichiarative e vista dati
+
+```sui
+table name: "utenti" columns: "id,nome,stato,importo"
+	columnLabels: "ID,Nome,Stato,Importo"
+	columnWidths: "60,160,100,110"
+	columnAlign: "right,left,center,right"
+	columnTypes: "number,text,select,number"
+	columnFormats: "text,text,text,currency:EUR"
+	columnOptions: "stato=attivo|sospeso"
+	sortable: true filterable: true pageSize: 20
+	selection: "row" multiSelect: true {
+}
+```
+
+- `columns`, `columnLabels`, `columnWidths`, `columnAlign`: chiavi, testi,
+  larghezze e allineamenti posizionali.
+- `columnTypes`: `text`, `number`, `date`, `boolean`, `select`; le celle editable
+  vengono validate al commit e i valori non validi sono ripristinati con
+  `aria-invalid`.
+- `columnFormats`: `text`, `number`, `currency:EUR`, `percent`, `date`; il valore
+  raw resta disponibile per ordinamento, editing ed export.
+- `columnOptions`: `colonna=valore1|valore2;...` per `select`.
+- `sortable` abilita l'ordinamento cliccando l'header; `filterable` aggiunge il
+  filtro testo; `pageSize` pagina le righe; `selection` è `row`, `column` o
+  `cell` e `multiSelect` abilita la selezione multipla.
+
+Helper runtime:
+
+```sui
+fn vista() -> null {
+  ok, e = table.sort("utenti", "nome", "asc")
+  ok2, e2 = table.filter("utenti", "stato", "attivo")
+  ok3, e3 = table.filterText("utenti", "anna")
+  ok4, e4 = table.page("utenti", 2)
+  ok5, e5 = table.setPageSize("utenti", 50)
+  righe, e6 = table.selectedRows("utenti")
+  celle, e7 = table.selectedCells("utenti")
+  colonne, e8 = table.selectedColumns("utenti")
+  info, e9 = table.lastChange("utenti")
+}
+```
+
+Eventi: `onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`,
+`onTableChange`, `onRowSelect`, `onSort`. Gli handler non ricevono argomenti; i
+dettagli sono in `table.lastChange(name)`.
+
+### Sheet tabs in stile Excel
+
+```sui
+tabs "Workbook" position: "bottom" variant: "sheets" {
+	tab "Utenti" {
+		table name: "utenti" columns: "id,nome" columnLabels: "ID,Nome" sortable: true { }
+	}
+	tab "Ordini" {
+		table name: "ordini" columns: "id,totale" columnLabels: "ID,Totale" sortable: true { }
+	}
+}
+```
+
+La barra delle tab è sotto i pannelli e usa lo stile compatto “sheet”; ogni
+tabella mantiene dati, ordinamento, filtri, pagina ed eventi indipendenti.
+
 ## Sicurezza
 
 Interpolazioni e attributi sono **escapati automaticamente**; `href`/`src`

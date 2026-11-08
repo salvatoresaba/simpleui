@@ -2918,6 +2918,7 @@ func eventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
 		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort", "onCellClick", "onRowClick",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
@@ -3058,7 +3059,14 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tcell" && (key == "head" || key == "colspan" || key == "rowspan") {
 		return true
 	}
-	if tag == "table" && (key == "editable" || key == "fixed") {
+	if tag == "table" && (key == "name" || key == "editable" || key == "fixed" ||
+		key == "columns" || key == "columnLabels" || key == "columnWidths" ||
+		key == "columnAlign" || key == "columnTypes" || key == "columnFormats" || key == "columnOptions" ||
+		key == "sortable" || key == "filterable" || key == "pageSize" || key == "selection" ||
+		key == "multiSelect" || key == "virtual") {
+		return true
+	}
+	if tag == "tabs" && (key == "position" || key == "variant") {
 		return true
 	}
 	return false

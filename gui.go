@@ -1918,6 +1918,7 @@ func isEventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
 		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort", "onCellClick", "onRowClick",
 		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
 		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
 		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
@@ -2219,6 +2220,20 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj[a.key] = JStr(partsLiteral(a.text))
 			}
+		} else if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "table" && (a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
+			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" ||
+			a.key == "columnOptions" || a.key == "selection") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "table" && (a.key == "sortable" || a.key == "filterable" || a.key == "multiSelect" || a.key == "virtual") {
+			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if e.tag == "table" && a.key == "pageSize" {
+			if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
+				o.obj[a.key] = JStr(strconv.Itoa(a.expr.i))
+			} else {
+				o.obj[a.key] = JStr(strings.TrimSpace(partsLiteral(a.text)))
+			}
 		} else if a.key == "options" {
 			// A combobox list can be literal or a state/expression. Preserve the
 			// expression so a runtime state change can replace the options.
@@ -2493,13 +2508,56 @@ func guiTableFrom(e *Element) (JVal, bool) {
 	}
 	editable := false
 	fixed := false
+	columns := ""
+	columnLabels := ""
+	columnWidths := ""
+	columnAlign := ""
+	columnTypes := ""
+	columnFormats := ""
+	columnOptions := ""
+	sortable := false
+	filterable := false
+	pageSize := ""
+	selection := ""
+	multiSelect := false
+	virtual := false
 	for a := 0; a < len(e.attrs); a++ {
 		at := e.attrs[a]
-		if at.key == "editable" && at.hasExpr && at.expr != nil && at.expr.kind == "bool" {
-			editable = at.expr.b
-		}
-		if at.key == "fixed" && at.hasExpr && at.expr != nil && at.expr.kind == "bool" {
-			fixed = at.expr.b
+		switch at.key {
+		case "editable":
+			editable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "fixed":
+			fixed = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "sortable":
+			sortable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "filterable":
+			filterable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "multiSelect":
+			multiSelect = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "virtual":
+			virtual = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "columns":
+			columns = partsLiteral(at.text)
+		case "columnLabels":
+			columnLabels = partsLiteral(at.text)
+		case "columnWidths":
+			columnWidths = partsLiteral(at.text)
+		case "columnAlign":
+			columnAlign = partsLiteral(at.text)
+		case "columnTypes":
+			columnTypes = partsLiteral(at.text)
+		case "columnFormats":
+			columnFormats = partsLiteral(at.text)
+		case "columnOptions":
+			columnOptions = partsLiteral(at.text)
+		case "selection":
+			selection = partsLiteral(at.text)
+		case "pageSize":
+			if at.hasExpr && at.expr != nil && at.expr.kind == "int" {
+				pageSize = strconv.Itoa(at.expr.i)
+			} else if !at.hasExpr {
+				pageSize = strings.TrimSpace(partsLiteral(at.text))
+			}
 		}
 	}
 	return JObj(
@@ -2507,6 +2565,11 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		"cells", cells, "spans", spans, "cstyles", cstyles, "rowstyles", rowstyles,
 		"caption", JStr(captionText), "capstyle", JStr(captionStyle),
 		"editable", JBool(editable), "fixed", JBool(fixed),
+		"columns", JStr(columns), "columnLabels", JStr(columnLabels), "columnWidths", JStr(columnWidths),
+		"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
+		"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),
+		"pageSize", JStr(pageSize), "selection", JStr(selection), "multiSelect", JBool(multiSelect),
+		"virtual", JBool(virtual),
 	), true
 }
 

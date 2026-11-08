@@ -49,6 +49,9 @@ Completati di recente:
 - [x] Tree control completo: selezione dell'intero albero, modifica strutturale
       da menu contestuale, icone leaf/parent/open, simboli di ramo aperto/chiuso,
       picker icone filtrato, `onTreeChange` e `tree.lastChange`.
+- [x] Table control completo: colonne dichiarative, ordinamento, filtri,
+      paginazione, selezione riga/colonna/cella, editing validato, eventi tabella,
+      `table.lastChange` e sheet tab in basso in stile Excel.
 - [x] Inspector chart semplificato: type, Mode e Chart settings in alto, dati in
       fondo, point width nelle impostazioni, pannello attributes rimosso e campi
       X/Y rimossi a favore della modifica diretta dei dati.

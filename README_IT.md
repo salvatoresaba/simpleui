@@ -20,6 +20,7 @@ Le principali caratteristiche:
 - **Albero elementi comprimibile**: le righe contenitore si espandono e comprimono con una freccia
 - **Controllo Accordion**: sezioni espandibili annidate con intestazioni accessibili e stato aperto ripristinato
 - **Controllo Tree**: selezione dell'intero albero, modifica strutturale da menu contestuale, icone leaf/parent/open, simboli di ramo aperto/chiuso, picker icone filtrato, colonne tree-grid e `onTreeChange` con `tree.lastChange`
+- **Controllo Table**: colonne dichiarative, ordinamento, filtri, paginazione, selezione riga/colonna/cella, celle editable validate, eventi tabella e sheet tab in basso in stile Excel
 - **Controllo Chart**: grafici SVG barre, barre orizzontali/stacked/grouped, linee/step/smooth, area, combo, torta/ciambella, scatter, istogramma, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell e Gantt da JSON/XML/CSV con controllo compatibilita, scroll/zoom, preset, editor dati ridimensionabile, tabelle accessibili sincronizzate, inserimento/modifica/eliminazione righe, selezione righe/colonne/celle, stepper numerici visibili, menu contestuale copia/export, export della selezione e scrolling virtuale, critical path, festivi, weekend configurabili e timezone IANA
 - **Badge tipo esatto**: ogni riga della struttura mostra il tipo preciso dell'elemento (`div`, `treeitem`, `chart`, ...)
 - **Notifiche toast**: feedback testuale sicuro con varianti info/success/warning/error, timeout e host opzionale

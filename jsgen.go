@@ -1590,6 +1590,33 @@ func stdBodyJs(key string, target string) string {
 	if key == "table_select" {
 		return "(name, cols) => __SUI_TBL.select(name, cols)"
 	}
+	if key == "table_sort" {
+		return "(name, column, dir) => __SUI_TBL.sort(name, column, dir)"
+	}
+	if key == "table_filter" {
+		return "(name, column, value) => __SUI_TBL.filter(name, column, value)"
+	}
+	if key == "table_filtertext" {
+		return "(name, text) => __SUI_TBL.filterText(name, text)"
+	}
+	if key == "table_page" {
+		return "(name, page) => __SUI_TBL.page(name, page)"
+	}
+	if key == "table_setpagesize" {
+		return "(name, size) => __SUI_TBL.setPageSize(name, size)"
+	}
+	if key == "table_selectedrows" {
+		return "(name) => __SUI_TBL.selectedRows(name)"
+	}
+	if key == "table_selectedcells" {
+		return "(name) => __SUI_TBL.selectedCells(name)"
+	}
+	if key == "table_selectedcolumns" {
+		return "(name) => __SUI_TBL.selectedColumns(name)"
+	}
+	if key == "table_lastchange" {
+		return "(name) => __SUI_TBL.lastChange(name)"
+	}
 	if key == "table_slice" {
 		return "(name, from, count) => __SUI_TBL.slice(name, from, count)"
 	}
@@ -1980,6 +2007,12 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 	if e.tag == "modal" {
 		sb.WriteString(" data-sui-modal=\"" + htmlEscape(modalNameOf(e)) + "\" aria-hidden=\"true\" hidden")
 	} else if e.tag == "tabs" {
+		if v := treeTextAttr(e, "position"); v == "bottom" {
+			sb.WriteString(" data-sui-tabs-position=\"bottom\"")
+		}
+		if v := treeTextAttr(e, "variant"); v == "sheets" {
+			sb.WriteString(" data-sui-tabs-variant=\"sheets\"")
+		}
 		if len(e.text) > 0 {
 			sb.WriteString(" aria-label=\"" + htmlTextParts(e.text) + "\"")
 		}
@@ -2033,11 +2066,52 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 	// Table behavior flags: rendered as data attributes so the base CSS and the
 	// small runtime script can make cells editable / truncate long content.
 	if e.tag == "table" {
+		if v := treeTextAttr(e, "name"); v != "" {
+			sb.WriteString(" name=\"" + htmlEscape(v) + "\"")
+		}
 		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-editable=\"1\"")
 		}
 		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-fixed=\"1\"")
+		}
+		for _, pair := range [][2]string{
+			{"columns", "data-sui-columns"}, {"columnLabels", "data-sui-column-labels"},
+			{"columnWidths", "data-sui-column-widths"}, {"columnAlign", "data-sui-column-align"},
+			{"columnTypes", "data-sui-column-types"}, {"columnFormats", "data-sui-column-formats"},
+			{"columnOptions", "data-sui-column-options"},
+		} {
+			if v := treeTextAttr(e, pair[0]); v != "" {
+				sb.WriteString(" " + pair[1] + "=\"" + htmlEscape(v) + "\"")
+			}
+		}
+		if datepickerBool(e, "sortable") {
+			sb.WriteString(" data-sui-sortable=\"1\"")
+		}
+		if datepickerBool(e, "filterable") {
+			sb.WriteString(" data-sui-filterable=\"1\"")
+		}
+		if datepickerBool(e, "multiSelect") {
+			sb.WriteString(" data-sui-multi=\"1\"")
+		}
+		if datepickerBool(e, "virtual") {
+			sb.WriteString(" data-sui-virtual=\"1\"")
+		}
+		if v := comboboxAttrNumber(e, "pageSize"); v != "" {
+			sb.WriteString(" data-sui-page-size=\"" + htmlEscape(v) + "\"")
+		}
+		if v := treeTextAttr(e, "selection"); v != "" {
+			sb.WriteString(" data-sui-selection=\"" + htmlEscape(v) + "\"")
+		}
+		for _, pair := range [][2]string{
+			{"onCellChange", "data-sui-table-oncellchange"}, {"onRowChange", "data-sui-table-onrowchange"},
+			{"onTableChange", "data-sui-table-ontablechange"}, {"onRowSelect", "data-sui-table-onrowselect"},
+			{"onSort", "data-sui-table-onsort"}, {"onCellClick", "data-sui-table-oncellclick"},
+			{"onRowClick", "data-sui-table-onrowclick"},
+		} {
+			if name := eventIdentOf(e, pair[0]); name != "" {
+				sb.WriteString(" " + pair[1] + "=\"" + htmlEscape(name) + "\"")
+			}
 		}
 	}
 	// `input "text"` uses the element text as its placeholder (see SPEC §2.5).
@@ -2365,6 +2439,18 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
 			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status" || a.key == "cells") {
+			continue
+		}
+		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
+			continue
+		}
+		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "fixed" ||
+			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
+			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
+			a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
+			a.key == "multiSelect" || a.key == "virtual" ||
+			a.key == "onCellChange" || a.key == "onRowChange" || a.key == "onTableChange" ||
+			a.key == "onRowSelect" || a.key == "onSort" || a.key == "onCellClick" || a.key == "onRowClick") {
 			continue
 		}
 		if a.key == "head" || a.key == "options" || a.key == "link" || a.key == "srcAllow" ||

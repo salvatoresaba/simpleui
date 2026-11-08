@@ -1904,7 +1904,7 @@ var TAG_FIELDS = {
   date: ["value", "required"],
   time: ["value", "required"],
   card: ["text"],
-  tabs: ["text"],
+  tabs: ["text", "position", "variant"],
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
@@ -2021,6 +2021,19 @@ function newTableNode() {
   n.editable = false;
   n.fixed = false;
   n.name = "";
+  n.columns = "";
+  n.columnLabels = "";
+  n.columnWidths = "";
+  n.columnAlign = "";
+  n.columnTypes = "";
+  n.columnFormats = "";
+  n.columnOptions = "";
+  n.sortable = false;
+  n.filterable = false;
+  n.pageSize = "";
+  n.selection = "";
+  n.multiSelect = false;
+  n.virtual = false;
   ensureTableBaseCss();
   n.cells = [];
   n.spans = [];
@@ -2080,6 +2093,8 @@ function newTabNode(label) {
 function newTabsNode() {
   var n = newNode("tabs");
   n.text = "Tabs";  // accessible name (aria-label)
+  n.position = "";
+  n.variant = "";
   n.children = [newTabNode("Tab 1"), newTabNode("Tab 2")];
   return n;
 }
@@ -4332,6 +4347,9 @@ function renderInspector() {
   if (nodes.length === 1 && n && n.kind === "table" && n.cols) {
     box.appendChild(tableControls(n));
   }
+  if (nodes.length === 1 && n && n.kind === "tabs") {
+    box.appendChild(tabsControls(n));
+  }
   if (nodes.length === 1 && n && n.kind === "list") {
     box.appendChild(listControls(n));
   }
@@ -4473,6 +4491,7 @@ var ELEMENT_EVENTS = {
   combobox: ["onChange"],
   datepicker: ["onChange"],
   tree:     ["onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
+  table:    ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"],
   chart:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
              "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
              "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
@@ -5064,6 +5083,27 @@ function treeControls(n) {
   actionRow("settings", "Tree settings...", "General, bindings, columns, colors, title, shape, icons, tooltip and presets", function(){ openComponentSettings(componentDefById("tree"), n); });
   actionRow("data", "Edit tree data...", "Add, rename, move, delete, import and export tree items", function(){ openTreeDataEditor(n); });
   return acc("Tree", rows);
+}
+function tabsControls(n) {
+  var rows = [];
+  function choice(labelText, key, opts, titleText) {
+    var r = document.createElement("div"); r.className = "rowline";
+    var l = document.createElement("label"); l.textContent = labelText; l.title = titleText || ""; r.appendChild(l);
+    var s = document.createElement("select");
+    opts.forEach(function(o) {
+      var eo = document.createElement("option"); eo.value = o[1]; eo.textContent = o[0];
+      if ((n[key] || "") === o[1]) eo.selected = true;
+      s.appendChild(eo);
+    });
+    s.onchange = function(){ withUndo(function(){ n[key] = s.value; }); };
+    r.appendChild(s); rows.push(r);
+  }
+  choice("tab position", "position", [["Top", ""], ["Bottom (Excel-like)", "bottom"]], "Bottom places the tab strip under the panels.");
+  choice("style", "variant", [["Standard tabs", ""], ["Sheet tabs", "sheets"]], "Sheet tabs use a compact spreadsheet-style strip.");
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "Put one table in each tab to build an Excel-like workbook with bottom sheet tabs.";
+  rows.push(hint);
+  return acc("Tabs", rows);
 }
 function treeRawLabel(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw === null || raw === undefined ? "" : String(raw);
@@ -8946,10 +8986,78 @@ function tableControls(n) {
   var dh = document.createElement("div"); dh.className = "hint";
   dh.textContent = "Fill from code: n, err = table.display(\"users\", data) - data can be JSON, CSV/TSV text, arrays or objects. Read back: table.data, table.json, table.exportText(\"users\", \"csv\"). For HTTP data add the std imports http, json.";
   dataRows.push(dh);
+  var dh2 = document.createElement("div"); dh2.className = "hint";
+  dh2.textContent = "Table events: onCellClick, onRowClick, onCellChange, onRowChange, onTableChange, onRowSelect, onSort. Read the last operation with table.lastChange(\"users\").";
+  dataRows.push(dh2);
   b.appendChild(group("Data", dataRows, [], false));
 
+  // ---- columns and data-view options --------------------------------------
+  function cfgText(labelText, key, ph, titleText) {
+    var row = document.createElement("div"); row.className = "rowline";
+    var lb = lbl(labelText); if (titleText) lb.title = titleText;
+    row.appendChild(lb);
+    var inp = document.createElement("input");
+    inp.value = n[key] || ""; inp.spellcheck = false; inp.placeholder = ph || "";
+    inp.onchange = function(){ var v = inp.value.trim(); withUndo(function(){ n[key] = v; }); };
+    row.appendChild(inp);
+    return row;
+  }
+  var colRows = [
+    cfgText("columns", "columns", "id,name,status", "Comma-separated column keys used by data, sorting and filtering."),
+    cfgText("labels", "columnLabels", "ID,Name,Status", "Header labels, positionally aligned with columns."),
+    cfgText("widths", "columnWidths", "70,220,100", "Pixel widths, positionally aligned with columns."),
+    cfgText("align", "columnAlign", "right,left,center", "left / center / right for each column."),
+    cfgText("types", "columnTypes", "number,text,select", "text / number / date / boolean / select validation for editable cells."),
+    cfgText("formats", "columnFormats", "number,text,currency:EUR", "number / currency:EUR / percent / date display formatting."),
+    cfgText("options", "columnOptions", "status=active|paused|closed", "Select values by column key or index.")
+  ];
+  var fromHeaderRow = document.createElement("div"); fromHeaderRow.className = "rowline";
+  var fromHeaderLbl = document.createElement("label"); fromHeaderLbl.textContent = "from header";
+  fromHeaderRow.appendChild(fromHeaderLbl);
+  var fromHeaderBtn = document.createElement("button"); fromHeaderBtn.type = "button"; fromHeaderBtn.className = "btn";
+  fromHeaderBtn.textContent = "Use first row";
+  fromHeaderBtn.title = "Fill columns and labels from the first designed row.";
+  fromHeaderBtn.onclick = function(){
+    var labels = [];
+    for (var c = 0; c < n.cols; c++) labels.push(String(n.cells[0][c] || "").trim());
+    var keys = labels.map(function(v){ return v.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'col'; });
+    withUndo(function(){
+      n.columns = keys.join(",");
+      n.columnLabels = labels.join(",");
+    });
+  };
+  fromHeaderRow.appendChild(fromHeaderBtn);
+  colRows.push(fromHeaderRow);
+  var colHint = document.createElement("div"); colHint.className = "hint";
+  colHint.textContent = "Columns stay optional: without them the designed table header and cells are used as-is.";
+  colRows.push(colHint);
+  b.appendChild(group("Columns", colRows, [], false));
+
+  var viewRows = [
+    boolRow("sortable", function(){ return n.sortable; }, function(v){ n.sortable = v; }, "Click a header to cycle ascending / descending / original order."),
+    boolRow("filterable", function(){ return n.filterable; }, function(v){ n.filterable = v; }, "Shows a text filter above the table."),
+    boolRow("multi-select", function(){ return n.multiSelect; }, function(v){ n.multiSelect = v; }, "Ctrl/Command or Shift toggles multiple rows, columns or cells."),
+    boolRow("virtual rows", function(){ return n.virtual; }, function(v){ n.virtual = v; }, "Reserved for large datasets; the runtime currently keeps the DOM model."),
+    cfgText("page size", "pageSize", "50", "Rows per page; empty shows all rows."),
+  ];
+  var selRow = document.createElement("div"); selRow.className = "rowline";
+  selRow.appendChild(lbl("selection"));
+  var selSelect = document.createElement("select");
+  [["none", ""], ["row", "row"], ["column", "column"], ["cell", "cell"]].forEach(function(o){
+    var eo = document.createElement("option"); eo.value = o[1]; eo.textContent = o[0];
+    if ((n.selection || "") === o[1]) eo.selected = true;
+    selSelect.appendChild(eo);
+  });
+  selSelect.onchange = function(){ withUndo(function(){ n.selection = selSelect.value; }); };
+  selRow.appendChild(selSelect); viewRows.push(selRow);
+  var viewHint = document.createElement("div"); viewHint.className = "hint";
+  viewHint.textContent = "Selection is for non-editable tables. Editable tables keep cell focus and editing.";
+  viewRows.push(viewHint);
+  b.appendChild(group("Data view", viewRows, [], false));
+
   var selCellRowText = [];
-  if (selCell && !cellCovered(n, selCell.r, selCell.c)) {
+  if (selCell && (selCell.r < 0 || selCell.r >= n.rows || selCell.c < 0 || selCell.c >= n.cols)) selCell = null;
+  if (selCell && !cellCovered(n, selCell.r, selCell.c) && n.cellStyles[selCell.r] && n.cellStyles[selCell.r][selCell.c]) {
     var tr = document.createElement("div"); tr.className = "rowline";
     var tl = document.createElement("label"); tl.textContent = "text"; tr.appendChild(tl);
     var ti = document.createElement("input"); ti.value = n.cells[selCell.r][selCell.c];
@@ -8999,6 +9107,7 @@ function tableControls(n) {
     b.appendChild(group("Selected cell: r" + (selCell.r + 1) + " c" + (selCell.c + 1), selCellRowText, [], true));
   }
   var selRowRows = [];
+  if (selRow !== null && selRow !== undefined && (selRow < 0 || selRow >= n.rows || !n.rowStyles[selRow])) selRow = null;
   if (selRow !== null && selRow !== undefined) {
     var headerRow = selRow < n.header;
     var rs = n.rowStyles[selRow];
@@ -9011,6 +9120,7 @@ function tableControls(n) {
     b.appendChild(group("Selected row: " + (selRow + 1) + (headerRow ? " (header)" : ""), selRowRows, [], true));
   }
   var selColRows = [];
+  if (selCol !== null && selCol !== undefined && (selCol < 0 || selCol >= n.cols || !n.cellStyles[0] || !n.cellStyles[0][selCol])) selCol = null;
   if (selCol !== null && selCol !== undefined) {
     var colBg = n.cellStyles[0][selCol] ? n.cellStyles[0][selCol].bg : "";
     var c6 = colorPicker("bg", colBg, function(v){ snap(); for (var rr=0; rr<n.rows; rr++) { var s = n.spans[rr][selCol]; if (s && s.cs !== 0) n.cellStyles[rr][selCol].bg = v; } setOut(); autoPreview(); renderInspector(); });
@@ -10205,6 +10315,7 @@ function attrsOf(n) {
   if (n.disabled) a += " disabled: " + bondOut(n.disabled);
   if (n.name) a += " name: " + nameOut(n.name);
   if (n.variant) a += " variant: \"" + esc(n.variant) + "\"";
+  if (n.kind === "tabs" && n.position) a += " position: \"" + esc(n.position) + "\"";
   if (n.close === false) a += " close: false";
   if (n.min) a += " min: " + (n.kind === "datepicker" ? "\"" + esc(n.min) + "\"" : bondOut(n.min));
   if (n.max) a += " max: " + (n.kind === "datepicker" ? "\"" + esc(n.max) + "\"" : bondOut(n.max));
@@ -10374,6 +10485,9 @@ function attrsOf(n) {
   if (n.onLoad) a += " onLoad: " + n.onLoad;
   if (n.onContextMenu) a += " onContextMenu: " + n.onContextMenu;
   if (n.onTreeChange) a += " onTreeChange: " + n.onTreeChange;
+  ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"].forEach(function(k) {
+    if (n[k]) a += " " + k + ": " + n[k];
+  });
   if (n.onKeyDown) a += " onKeyDown: " + n.onKeyDown;
   if (n.onKeyUp) a += " onKeyUp: " + n.onKeyUp;
   if (n.onSubmit) a += " onSubmit: " + n.onSubmit;
@@ -10480,6 +10594,19 @@ function tcellToSui(n, r, c) {
 function tableToSui(n, depth) {
   function ind(level) { var s = ""; for (var i = 0; i < level; i++) s += "\t"; return s; }
   var extra = (n.editable ? " editable: true" : "") + (n.fixed ? " fixed: true" : "");
+  if (n.columns) extra += " columns: \"" + esc(n.columns) + "\"";
+  if (n.columnLabels) extra += " columnLabels: \"" + esc(n.columnLabels) + "\"";
+  if (n.columnWidths) extra += " columnWidths: \"" + esc(n.columnWidths) + "\"";
+  if (n.columnAlign) extra += " columnAlign: \"" + esc(n.columnAlign) + "\"";
+  if (n.columnTypes) extra += " columnTypes: \"" + esc(n.columnTypes) + "\"";
+  if (n.columnFormats) extra += " columnFormats: \"" + esc(n.columnFormats) + "\"";
+  if (n.columnOptions) extra += " columnOptions: \"" + esc(n.columnOptions) + "\"";
+  if (n.sortable) extra += " sortable: true";
+  if (n.filterable) extra += " filterable: true";
+  if (n.multiSelect) extra += " multiSelect: true";
+  if (n.virtual) extra += " virtual: true";
+  if (n.pageSize) extra += " pageSize: " + n.pageSize;
+  if (n.selection) extra += " selection: \"" + esc(n.selection) + "\"";
   var line = ind(depth) + "table" + attrsOf(n) + extra + " {\n";
   if (n.captionShow !== false && n.caption && n.caption.trim()) {
     line += ind(depth + 1) + "caption \"" + escText(n.caption) + "\"" + (n.capstyle ? " style: \"" + esc(n.capstyle) + "\"" : "") + "\n";

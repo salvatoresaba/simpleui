@@ -1789,6 +1789,21 @@ table[data-sui-editable] td, table[data-sui-editable] th { cursor: text; }
 table[data-sui-editable] td:focus, table[data-sui-editable] th:focus { outline: 2px solid #4c5cf7; outline-offset: -2px; background: var(--sui-table-focus-bg, rgba(76,92,247,.10)); }
 table[data-sui-editable] td, table[data-sui-editable] th { -webkit-tap-highlight-color: transparent; }
 table[data-sui-editable] ::selection { background: rgba(76,92,247,.22); color: inherit; }
+.sui-table-filter { display: block; box-sizing: border-box; width: 100%; margin: 0 0 6px; padding: 6px 9px; font: inherit; font-size: 12px; color: var(--sui-fg, #f2f4f6); background: var(--sui-input-bg, #14171c); border: 1px solid var(--sui-border, #3d4556); border-radius: 6px; }
+.sui-table-filter:focus { outline: 2px solid #4c5cf7; outline-offset: 1px; }
+.sui-table-pager { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--sui-muted, #8fa0b8); }
+.sui-table-page-btn { appearance: none; border: 1px solid var(--sui-border, #3d4556); border-radius: 5px; background: var(--sui-panel, #202732); color: var(--sui-fg, #f2f4f6); padding: 3px 8px; font: inherit; font-size: 11px; cursor: pointer; }
+.sui-table-page-btn:hover:not(:disabled) { border-color: #4c5cf7; }
+.sui-table-page-btn:disabled { opacity: .45; cursor: default; }
+.sui-table-page-info { min-width: 74px; text-align: center; }
+th.sui-table-sortable { cursor: pointer; user-select: none; }
+th.sui-table-sortable:hover { color: var(--sui-fg, #f2f4f6); }
+th.sui-table-sort-asc::after { content: " \25B2"; font-size: 9px; opacity: .75; }
+th.sui-table-sort-desc::after { content: " \25BC"; font-size: 9px; opacity: .75; }
+tr.sui-table-row-selected > td, tr.sui-table-row-selected > th { background: var(--sui-table-selected-bg, rgba(76,92,247,.18)); }
+td.sui-table-cell-selected, th.sui-table-cell-selected { background: var(--sui-table-cell-selected-bg, rgba(76,92,247,.22)); }
+td.sui-table-col-selected, th.sui-table-col-selected { background: var(--sui-table-col-selected-bg, rgba(76,92,247,.10)); }
+td.sui-table-invalid, th.sui-table-invalid { background: rgba(239,68,68,.18); box-shadow: inset 0 0 0 1px #ef4444; }
 .sui-cell-pop { position: fixed; z-index: 9999; max-width: 420px; background: var(--sui-panel, #202732); color: var(--sui-fg, #f2f4f6); border: 1px solid var(--sui-border, #3d4556); border-radius: 8px; padding: 8px 10px; box-shadow: var(--sui-ac-shadow, 0 8px 22px rgba(0,0,0,.45)); font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
 .sui-iframe-error { padding: 10px 14px; border: 1px solid #a33; border-radius: 8px; background: #2b1719; color: #ffb4b4; font-size: 13px; line-height: 1.4; }
 /* Drag and drop: the runtime toggles these classes on the current source and
@@ -1880,6 +1895,8 @@ table[data-sui-editable] ::selection { background: rgba(76,92,247,.22); color: i
 /* Tabs: tablist + panels. The runtime toggles active/hidden and restores the
    selected tab after a view re-render when data-sui-tabs-key is present. */
 .sui-tabs {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--sui-border);
   border-radius: var(--sui-radius);
   overflow: hidden;
@@ -1912,6 +1929,15 @@ table[data-sui-editable] ::selection { background: rgba(76,92,247,.22); color: i
 }
 .sui-tabpanels { padding: 12px; }
 .sui-tabpanel[hidden] { display: none; }
+.sui-tabs[data-sui-tabs-position="bottom"] .sui-tablist { order: 2; border-bottom: 0; border-top: 1px solid var(--sui-border); padding: 4px 4px 0; }
+.sui-tabs[data-sui-tabs-position="bottom"] .sui-tabpanels { order: 1; }
+.sui-tabs[data-sui-tabs-position="bottom"] .sui-tab { border-radius: 0 0 6px 6px; }
+.sui-tabs[data-sui-tabs-position="bottom"] .sui-tab.active { box-shadow: inset 0 2px 0 #4c5cf7; }
+.sui-tabs[data-sui-tabs-variant="sheets"] .sui-tablist { gap: 1px; background: #14171c; padding: 4px 6px 0; }
+.sui-tabs[data-sui-tabs-variant="sheets"] .sui-tab { border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; padding: 5px 12px; font-size: 12px; }
+.sui-tabs[data-sui-tabs-variant="sheets"][data-sui-tabs-position="bottom"] .sui-tab { border-bottom: 0; border-top: 1px solid transparent; border-radius: 0 0 6px 6px; }
+.sui-tabs[data-sui-tabs-variant="sheets"] .sui-tab.active { background: var(--sui-panel, #1d2129); border-color: var(--sui-border); }
+.sui-tabs[data-sui-tabs-variant="sheets"] .sui-tabpanels { padding: 0; }
 
 /* Accordion: stacked disclosure sections. The runtime keeps one panel open
    and preserves the open index across view re-renders when keyed. */
@@ -2139,12 +2165,153 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   // store[name] = { header: [] | null, rows: [[...]] }. It survives view
   // re-renders: afterRender() re-applies it to the freshly rendered table.
   var store = Object.create(null);
+  var changes = Object.create(null);
   var tpls = new WeakMap(); // table element -> { heads, bodies } row templates
   // Resource limits: the table is a DOM widget, so huge payloads are refused
   // instead of freezing the page. Applications should paginate.
   var MAX_ROWS = (__SUI_SEC && __SUI_SEC.maxRows) || 100000;
   var MAX_COLS = (__SUI_SEC && __SUI_SEC.maxCols) || 10000;
   var MAX_TEXT = (__SUI_SEC && __SUI_SEC.maxText) || 20000000;
+
+  function splitList(v){ return String(v || '').split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s !== ''; }); }
+  function intList(v){ return splitList(v).map(function(s){ return parseInt(s, 10) || 0; }); }
+  function parseColumnOptions(v){
+    var out = {};
+    var parts = String(v || '').split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var eq = parts[i].indexOf('=');
+      if (eq <= 0) continue;
+      var k = parts[i].slice(0, eq).trim();
+      var vals = parts[i].slice(eq + 1).split('|').map(function(s){ return s.trim(); });
+      if (k) out[k] = vals;
+    }
+    return out;
+  }
+  function cfgOf(tbl){
+    function attr(k){ return tbl.getAttribute('data-sui-' + k) || ''; }
+    var cfg = {
+      columns: splitList(attr('columns')),
+      labels: splitList(attr('column-labels')),
+      widths: intList(attr('column-widths')),
+      align: splitList(attr('column-align')),
+      types: splitList(attr('column-types')),
+      formats: splitList(attr('column-formats')),
+      options: parseColumnOptions(attr('column-options')),
+      sortable: attr('sortable') === '1',
+      filterable: attr('filterable') === '1',
+      pageSize: parseInt(attr('page-size'), 10) || 0,
+      selection: attr('selection') || 'none',
+      multi: attr('multi') === '1',
+      editable: attr('editable') === '1',
+      fixed: attr('fixed') === '1'
+    };
+    return cfg;
+  }
+  function tableName(tbl){ return tbl.getAttribute('name') || ''; }
+  function firstTable(name){ var ts = findTables(name); return ts.length ? ts[0] : null; }
+  function tableValue(tbl, key){
+    var a = tbl.getAttribute('data-sui-table-' + key) || '';
+    return a;
+  }
+  function fireTableEvent(name, key){
+    var tbl = firstTable(name);
+    if (!tbl) return;
+    var fn = tableValue(tbl, key);
+    if (fn && typeof window[fn] === 'function') window[fn]();
+  }
+  function recordChange(name, rec){
+    rec.time = Date.now();
+    changes[name] = rec;
+  }
+  function notifyTable(name, key, rec){
+    if (rec) recordChange(name, rec);
+    fireTableEvent(name, key);
+  }
+  function tableStore(name){
+    if (!store[name]) store[name] = { header: [], allRows: [], rows: [], page: 0,
+      sortCol: null, sortDir: '', filter: '', colFilter: null,
+      selectedRows: {}, selectedCells: {}, selectedCols: {} };
+    return store[name];
+  }
+  function colIndex(cfg, key){
+    var s = String(key === undefined || key === null ? '' : key).trim();
+    if (s === '') return -1;
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    for (var i = 0; i < cfg.columns.length; i++) if (cfg.columns[i] === s) return i;
+    for (var j = 0; j < cfg.labels.length; j++) if (cfg.labels[j] === s) return j;
+    return -1;
+  }
+  function colOpts(cfg, col){
+    if (!cfg.options) return null;
+    return cfg.options[col] || cfg.options[String(col)] || null;
+  }
+  function validValue(v, type, opts){
+    var s = String(v === undefined || v === null ? '' : v).trim();
+    if (s === '') return '';
+    type = String(type || 'text').toLowerCase();
+    if (type === 'number') return isFinite(Number(s.replace(',', '.'))) ? '' : 'number';
+    if (type === 'date') return isNaN(Date.parse(s)) ? 'date' : '';
+    if (type === 'boolean') {
+      var low = s.toLowerCase();
+      return (low === 'true' || low === 'false' || low === 'yes' || low === 'no' || low === '1' || low === '0') ? '' : 'boolean';
+    }
+    if (type === 'select' && opts && opts.length) return opts.indexOf(s) >= 0 ? '' : 'select';
+    return '';
+  }
+  function formatValue(v, fmt){
+    var s = String(v === undefined || v === null ? '' : v);
+    if (!fmt || fmt === 'text' || s === '') return s;
+    var n = Number(s.replace(',', '.'));
+    if (fmt === 'number') return isFinite(n) ? n.toLocaleString() : s;
+    if (fmt === 'percent') return isFinite(n) ? n.toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 2 }) : s;
+    if (fmt.indexOf('currency') === 0) {
+      var cur = fmt.split(':')[1] || 'USD';
+      return isFinite(n) ? n.toLocaleString(undefined, { style: 'currency', currency: cur }) : s;
+    }
+    if (fmt === 'date') {
+      var d = new Date(s);
+      return isNaN(d.getTime()) ? s : d.toLocaleDateString();
+    }
+    return s;
+  }
+  function clearSelection(st){
+    st.selectedRows = {}; st.selectedCells = {}; st.selectedCols = {};
+  }
+  function rowText(row){ return (row || []).join(' ').toLowerCase(); }
+  function applyView(name){
+    var st = tableStore(name);
+    var tbl = firstTable(name);
+    var cfg = tbl ? cfgOf(tbl) : { pageSize: 0, columns: [], labels: [] };
+    var rows = st.allRows.slice();
+    if (cfg.columns.length && !st.header.length) st.header = cfg.labels.length ? cfg.labels.slice() : cfg.columns.slice();
+    if (st.filter) {
+      var term = String(st.filter).toLowerCase();
+      rows = rows.filter(function(r){ return rowText(r).indexOf(term) >= 0; });
+    }
+    if (st.colFilter) {
+      var ci = colIndex(cfg, st.colFilter.column);
+      var cv = String(st.colFilter.value || '').toLowerCase();
+      if (ci >= 0 && cv) rows = rows.filter(function(r){ return String(r[ci] === undefined ? '' : r[ci]).toLowerCase().indexOf(cv) >= 0; });
+    }
+    if (st.sortCol !== null && st.sortDir) {
+      var sc = st.sortCol, sd = st.sortDir === 'desc' ? -1 : 1;
+      rows.sort(function(a, b){
+        var av = a[sc] === undefined ? '' : a[sc], bv = b[sc] === undefined ? '' : b[sc];
+        var an = Number(av), bn = Number(bv);
+        if (isFinite(an) && isFinite(bn) && String(av).trim() !== '' && String(bv).trim() !== '') return (an - bn) * sd;
+        av = String(av).toLowerCase(); bv = String(bv).toLowerCase();
+        return av < bv ? -sd : av > bv ? sd : 0;
+      });
+    }
+    var pageSize = (st.pageSize !== undefined && st.pageSize !== null) ? st.pageSize : cfg.pageSize;
+    pageSize = pageSize > 0 ? pageSize : 0;
+    var pageCount = pageSize > 0 ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+    if (st.page >= pageCount) st.page = pageCount - 1;
+    if (st.page < 0) st.page = 0;
+    st.pageCount = pageCount;
+    st.rows = pageSize > 0 ? rows.slice(st.page * pageSize, st.page * pageSize + pageSize) : rows;
+    return { st: st, cfg: cfg };
+  }
 
   function isObj(v){ return v !== null && typeof v === 'object' && !Array.isArray(v); }
   function cellStr(v){
@@ -2433,6 +2600,12 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var t = templates(tbl);
     var n = 0, i, j;
     var hr = tbl.querySelector('thead tr');
+    if (!hr && ds.header && ds.header.length) {
+      var thead = tbl.querySelector('thead');
+      if (!thead) { thead = document.createElement('thead'); tbl.insertBefore(thead, tbl.firstChild); }
+      hr = document.createElement('tr');
+      thead.appendChild(hr);
+    }
     var rows = ds.rows;
     // Delimited text always carries its first row as the header. When the
     // designed table has no <thead>, keep that row visible as the first body
@@ -2472,48 +2645,251 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       tb.appendChild(tr);
     }
   }
-  function storeApply(name, ds){
-    store[name] = ds;
+  function selectionChanged(name, rec){
+    recordChange(name, rec);
+    renderName(name);
+    fireTableEvent(name, 'onrowselect');
+  }
+  function selectRow(name, row, multi){
+    var st = tableStore(name);
+    if (!multi) clearSelection(st);
+    if (st.selectedRows[row]) delete st.selectedRows[row]; else st.selectedRows[row] = true;
+    selectionChanged(name, { op: 'select-row', row: row });
+  }
+  function selectCell(name, row, col, multi){
+    var st = tableStore(name);
+    if (!multi) clearSelection(st);
+    var key = row + ':' + col;
+    if (st.selectedCells[key]) delete st.selectedCells[key]; else st.selectedCells[key] = true;
+    selectionChanged(name, { op: 'select-cell', row: row, column: col });
+  }
+  function selectColumn(name, col, multi){
+    var st = tableStore(name);
+    if (!multi) clearSelection(st);
+    if (st.selectedCols[col]) delete st.selectedCols[col]; else st.selectedCols[col] = true;
+    selectionChanged(name, { op: 'select-column', column: col });
+  }
+  function decorateTable(tbl, st, cfg){
+    var name = tableName(tbl);
+    var headerRow = tbl.querySelector('thead tr');
+    var hrCells = headerRow ? cellsOf(headerRow) : [];
+    for (var h = 0; h < hrCells.length; h++) {
+      var hc = hrCells[h];
+      hc.setAttribute('data-col', String(h));
+      if (cfg.labels[h]) hc.textContent = cfg.labels[h];
+      if (cfg.widths[h] > 0) { hc.style.width = cfg.widths[h] + 'px'; hc.style.minWidth = cfg.widths[h] + 'px'; }
+      if (cfg.align[h]) hc.style.textAlign = cfg.align[h];
+      if (cfg.sortable) {
+        hc.classList.add('sui-table-sortable');
+        hc.setAttribute('tabindex', '0');
+        if (!hc.__suiSortBound) {
+          hc.__suiSortBound = true;
+          hc.addEventListener('click', function(ev){
+            var cell = ev.currentTarget;
+            var idx = parseInt(cell.getAttribute('data-col'), 10) || 0;
+            var st2 = tableStore(name);
+            var cfg2 = cfgOf(tbl);
+            if (cfg2.selection === 'column' && (ev.altKey || ev.ctrlKey || ev.metaKey || !cfg2.sortable)) {
+              selectColumn(name, idx, ev.shiftKey || ev.ctrlKey || ev.metaKey || cfg2.multi);
+              return;
+            }
+            if (!cfg2.sortable) return;
+            if (st2.sortCol !== idx) { st2.sortCol = idx; st2.sortDir = 'asc'; }
+            else if (st2.sortDir === 'asc') st2.sortDir = 'desc';
+            else if (st2.sortDir === 'desc') { st2.sortCol = null; st2.sortDir = ''; }
+            else st2.sortDir = 'asc';
+            st2.page = 0; clearSelection(st2);
+            recordChange(name, { op: 'sort', column: idx, dir: st2.sortDir, label: cell.textContent });
+            renderName(name);
+            fireTableEvent(name, 'onsort');
+            fireTableEvent(name, 'ontablechange');
+          });
+        }
+      }
+      var sortDir = st.sortCol === h ? st.sortDir : '';
+      hc.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : sortDir === 'desc' ? 'descending' : 'none');
+      hc.classList.toggle('sui-table-sort-asc', sortDir === 'asc');
+      hc.classList.toggle('sui-table-sort-desc', sortDir === 'desc');
+    }
+    var rows = bodyRows(tbl);
+    for (var i = 0; i < rows.length; i++) {
+      var tr = rows[i];
+      tr.setAttribute('data-row', String(i));
+      var rowSelected = !!st.selectedRows[i];
+      tr.classList.toggle('sui-table-row-selected', rowSelected);
+      tr.setAttribute('aria-selected', rowSelected ? 'true' : 'false');
+      var cs = cellsOf(tr);
+      for (var j = 0; j < cs.length; j++) {
+        var c = cs[j];
+        c.setAttribute('data-col', String(j));
+        if (cfg.widths[j] > 0) { c.style.width = cfg.widths[j] + 'px'; c.style.minWidth = cfg.widths[j] + 'px'; }
+        if (cfg.align[j]) c.style.textAlign = cfg.align[j];
+        var raw = st.rows[i] && st.rows[i][j] !== undefined ? st.rows[i][j] : (c.getAttribute('data-sui-raw') || c.textContent || '');
+        if (st.rows[i]) {
+          c.setAttribute('data-sui-raw', raw);
+          c.textContent = formatValue(raw, cfg.formats[j]);
+        } else if (cfg.formats[j]) {
+          c.setAttribute('data-sui-raw', raw);
+          c.textContent = formatValue(raw, cfg.formats[j]);
+        }
+        var cellKey = i + ':' + j;
+        var cellSel = !!st.selectedCells[cellKey];
+        c.classList.toggle('sui-table-cell-selected', cellSel);
+        c.classList.toggle('sui-table-col-selected', !!st.selectedCols[j]);
+        c.setAttribute('aria-selected', (rowSelected || cellSel || !!st.selectedCols[j]) ? 'true' : 'false');
+        if (!c.__suiClickBound) {
+          c.__suiClickBound = true;
+          c.addEventListener('click', function(ev){
+            var cell = ev.currentTarget;
+            var row = parseInt(cell.parentNode.getAttribute('data-row'), 10) || 0;
+            var col = parseInt(cell.getAttribute('data-col'), 10) || 0;
+            recordChange(name, { op: 'click-cell', row: row, column: col });
+            fireTableEvent(name, 'oncellclick');
+            fireTableEvent(name, 'onrowclick');
+          });
+        }
+        if (cfg.selection !== 'none' && !cfg.editable && !c.__suiSelectBound) {
+          c.__suiSelectBound = true;
+          c.addEventListener('click', function(ev){
+            var cell = ev.currentTarget;
+            var cfg2 = cfgOf(tbl);
+            var row = parseInt(cell.parentNode.getAttribute('data-row'), 10) || 0;
+            var col = parseInt(cell.getAttribute('data-col'), 10) || 0;
+            if (cfg2.selection === 'row') selectRow(name, row, cfg2.multi && (ev.ctrlKey || ev.metaKey || ev.shiftKey));
+            else if (cfg2.selection === 'cell') selectCell(name, row, col, cfg2.multi && (ev.ctrlKey || ev.metaKey || ev.shiftKey));
+            else if (cfg2.selection === 'column') selectColumn(name, col, cfg2.multi && (ev.ctrlKey || ev.metaKey || ev.shiftKey));
+          });
+        }
+      }
+    }
+  }
+  function ensureFilterInput(tbl, name, st, cfg){
+    if (!cfg.filterable) return;
+    var prev = tbl.previousElementSibling;
+    var inp = prev && prev.classList && prev.classList.contains('sui-table-filter') &&
+      prev.getAttribute('data-sui-table-filter-for') === name ? prev : null;
+    if (!inp) {
+      inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'sui-table-filter';
+      inp.setAttribute('data-sui-table-filter-for', name);
+      inp.setAttribute('placeholder', 'Filter table\u2026');
+      inp.setAttribute('aria-label', 'Filter table ' + (name || ''));
+      inp.value = st.filter || '';
+      inp.addEventListener('input', function(){
+        var st2 = tableStore(name);
+        st2.filter = inp.value;
+        st2.page = 0;
+        clearSelection(st2);
+        renderName(name);
+      });
+      if (tbl.parentNode) tbl.parentNode.insertBefore(inp, tbl);
+    } else if (document.activeElement !== inp && inp.value !== (st.filter || '')) {
+      inp.value = st.filter || '';
+    }
+  }
+  function ensurePager(tbl, name, st, cfg){
+    var next = tbl.nextElementSibling;
+    var pager = next && next.classList && next.classList.contains('sui-table-pager') &&
+      next.getAttribute('data-sui-table-pager-for') === name ? next : null;
+    var pages = st.pageCount || 1;
+    if (!cfg.pageSize || pages <= 1) {
+      if (pager) pager.style.display = 'none';
+      return;
+    }
+    if (!pager) {
+      pager = document.createElement('div');
+      pager.className = 'sui-table-pager';
+      pager.setAttribute('data-sui-table-pager-for', name);
+      if (tbl.parentNode) tbl.parentNode.insertBefore(pager, tbl.nextSibling);
+    }
+    pager.style.display = '';
+    pager.textContent = '';
+    function btn(label, delta, disabled) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sui-table-page-btn';
+      b.textContent = label;
+      b.disabled = !!disabled;
+      b.addEventListener('click', function(){
+        var st2 = tableStore(name);
+        var p = (st2.page || 0) + delta;
+        if (p < 0 || p >= (st2.pageCount || 1)) return;
+        st2.page = p;
+        clearSelection(st2);
+        renderName(name);
+      });
+      pager.appendChild(b);
+    }
+    btn('\u2039 Prev', -1, (st.page || 0) <= 0);
+    var info = document.createElement('span');
+    info.className = 'sui-table-page-info';
+    info.textContent = 'Page ' + ((st.page || 0) + 1) + ' / ' + pages;
+    pager.appendChild(info);
+    btn('Next \u203a', 1, (st.page || 0) >= pages - 1);
+  }
+  function renderName(name){
     var ts = findTables(name);
+    if (!ts.length) return;
+    var view = applyView(name), st = view.st, cfg = view.cfg;
     for (var i = 0; i < ts.length; i++) {
-      try { applyTo(ts[i], ds); } catch(e) { return { error: String(e) }; }
+      applyTo(ts[i], st);
+      decorateTable(ts[i], st, cfg);
+      ensureFilterInput(ts[i], name, st, cfg);
+      ensurePager(ts[i], name, st, cfg);
     }
     init();
-    return { n: ds.rows.length };
+  }
+  function storeApply(name, ds){
+    var st = tableStore(name);
+    st.header = ds.header ? ds.header.map(function(v){ return String(v); }) : [];
+    st.allRows = ds.rows ? ds.rows.map(function(r){ return r.slice(); }) : [];
+    st.textHeader = ds.textHeader;
+    st.sep = ds.sep;
+    st.page = 0;
+    st.__fromDom = false;
+    clearSelection(st);
+    store[name] = st;
+    renderName(name);
+    return { n: st.allRows.length };
   }
   function display(name, data){
     var ds = norm(data);
     if (ds.error) return [0, ds.error];
     var r = storeApply(name, ds);
-    return r.error ? [0, r.error] : [r.n, null];
+    if (r.error) return [0, r.error];
+    recordChange(name, { op: 'display', count: r.n });
+    fireTableEvent(name, 'ontablechange');
+    return [r.n, null];
   }
   // importText parses text explicitly: see parseSpec for the spec syntax.
   function importText(name, text, spec){
     var ds = normText(text, spec);
     if (ds.error) return [0, ds.error];
     var r = storeApply(name, ds);
-    return r.error ? [0, r.error] : [r.n, null];
+    if (r.error) return [0, r.error];
+    recordChange(name, { op: 'import', count: r.n });
+    fireTableEvent(name, 'ontablechange');
+    return [r.n, null];
   }
   function data(name){
+    var st = store[name];
+    if (st) return [st.rows.map(function(r){ return r.slice(); }), null];
     var ts = findTables(name);
-    if (!ts.length) {
-      var st = store[name];
-      return [st ? st.rows.map(function(r){ return r.slice(); }) : [], null];
-    }
+    if (!ts.length) return [[], null];
     var out = [], rows = bodyRows(ts[0]);
     for (var i = 0; i < rows.length; i++) {
       var cs = cellsOf(rows[i]), r = [];
-      for (var j = 0; j < cs.length; j++) r.push((cs[j].textContent || '').trim());
+      for (var j = 0; j < cs.length; j++) r.push(cs[j].hasAttribute('data-sui-raw') ? (cs[j].getAttribute('data-sui-raw') || '') : (cs[j].textContent || '').trim());
       out.push(r);
     }
     return [out, null];
   }
   function header(name){
+    var st = store[name];
+    if (st && st.header && st.header.length) return [st.header.slice(), null];
     var ts = findTables(name), out = [];
-    if (!ts.length) {
-      var st = store[name];
-      return [st && st.header ? st.header.slice() : [], null];
-    }
+    if (!ts.length) return [out, null];
     var hr = ts[0].querySelector('thead tr');
     if (hr) {
       var cs = cellsOf(hr);
@@ -2552,8 +2928,78 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     for (var i = 0; i < ts.length; i++) {
       var tb = ts[i].tBodies && ts[i].tBodies.length ? ts[i].tBodies[0] : null;
       if (tb) while (tb.firstChild) tb.removeChild(tb.firstChild);
+      var prev = ts[i].previousElementSibling;
+      if (prev && prev.classList && prev.classList.contains('sui-table-filter') && prev.getAttribute('data-sui-table-filter-for') === name) prev.parentNode.removeChild(prev);
+      var next = ts[i].nextElementSibling;
+      if (next && next.classList && next.classList.contains('sui-table-pager') && next.getAttribute('data-sui-table-pager-for') === name) next.parentNode.removeChild(next);
     }
+    recordChange(name, { op: 'clear' });
+    fireTableEvent(name, 'ontablechange');
     return [0, null];
+  }
+  function sort(name, column, dir){
+    var st = tableStore(name);
+    var tbl = firstTable(name), cfg = tbl ? cfgOf(tbl) : { columns: [], labels: [] };
+    var idx = colIndex(cfg, column);
+    if (idx < 0) return [0, 'table.sort: column not found'];
+    var d = String(dir || '').toLowerCase();
+    if (d !== 'asc' && d !== 'desc' && d !== '') return [0, 'table.sort: direction must be asc or desc'];
+    st.sortCol = d ? idx : null;
+    st.sortDir = d;
+    st.page = 0;
+    clearSelection(st);
+    recordChange(name, { op: 'sort', column: idx, dir: d });
+    renderName(name);
+    fireTableEvent(name, 'onsort');
+    return [1, null];
+  }
+  function filter(name, column, value){
+    var st = tableStore(name);
+    var tbl = firstTable(name), cfg = tbl ? cfgOf(tbl) : { columns: [], labels: [] };
+    var idx = colIndex(cfg, column);
+    if (idx < 0) return [0, 'table.filter: column not found'];
+    st.colFilter = { column: idx, value: String(value === undefined || value === null ? '' : value) };
+    st.page = 0;
+    clearSelection(st);
+    recordChange(name, { op: 'filter', column: idx, value: st.colFilter.value });
+    renderName(name);
+    return [1, null];
+  }
+  function filterText(name, text){
+    var st = tableStore(name);
+    st.filter = String(text === undefined || text === null ? '' : text);
+    st.page = 0;
+    clearSelection(st);
+    recordChange(name, { op: 'filter', column: '', value: st.filter });
+    renderName(name);
+    return [1, null];
+  }
+  function page(name, index){
+    var st = tableStore(name);
+    var p = parseInt(index, 10);
+    if (!isFinite(p) || p < 0) return [0, 'table.page: invalid page'];
+    st.page = p;
+    clearSelection(st);
+    renderName(name);
+    return [1, null];
+  }
+  function setPageSize(name, size){
+    var st = tableStore(name);
+    var n = parseInt(size, 10);
+    if (!isFinite(n) || n < 0) return [0, 'table.setPageSize: invalid size'];
+    st.pageSize = n;
+    st.page = 0;
+    renderName(name);
+    return [1, null];
+  }
+  function selectedRows(name){ var st = tableStore(name), out = []; for (var k in st.selectedRows) if (st.selectedRows[k]) out.push(parseInt(k, 10)); return [out, null]; }
+  function selectedCells(name){ var st = tableStore(name), out = []; for (var k in st.selectedCells) if (st.selectedCells[k]) { var p = k.split(':'); out.push({ row: parseInt(p[0], 10), column: parseInt(p[1], 10) }); } return [JSON.stringify(out), null]; }
+  function selectedColumns(name){ var st = tableStore(name), out = []; for (var k in st.selectedCols) if (st.selectedCols[k]) out.push(parseInt(k, 10)); return [JSON.stringify(out), null]; }
+  function lastChange(name){ return [JSON.stringify(changes[name] || null), null]; }
+  function applyAll(){
+    for (var k in store) {
+      try { renderName(k); } catch(e) {}
+    }
   }
   function slice(name, from, count){
     var rows = data(name)[0];
@@ -2598,15 +3044,42 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     for (i = 0; i < rows.length; i++) lines.push(rows[i].map(esc).join(sep));
     return [lines.join('\n'), null];
   }
-  function applyAll(){
-    for (var k in store) {
-      var ts = findTables(k);
-      for (var i = 0; i < ts.length; i++) { try { applyTo(ts[i], store[k]); } catch(e) {} }
-    }
-  }
   function afterRender(){ applyAll(); init(); }
 
   // ---- editable / fixed behaviors -----------------------------------------
+  function ensureDeclaredHeader(tbl, cfg){
+    if (tbl.querySelector('thead tr')) return;
+    var labels = cfg.labels.length ? cfg.labels : cfg.columns;
+    if (!labels.length) return;
+    var thead = tbl.querySelector('thead');
+    if (!thead) { thead = document.createElement('thead'); tbl.insertBefore(thead, tbl.firstChild); }
+    var tr = document.createElement('tr');
+    for (var i = 0; i < labels.length; i++) {
+      var th = document.createElement('th');
+      th.textContent = labels[i];
+      if (cfg.widths[i] > 0) { th.style.width = cfg.widths[i] + 'px'; th.style.minWidth = cfg.widths[i] + 'px'; }
+      if (cfg.align[i]) th.style.textAlign = cfg.align[i];
+      tr.appendChild(th);
+    }
+    thead.appendChild(tr);
+  }
+  function syncStoreFromDom(tbl, name){
+    var st = tableStore(name);
+    if (st.__fromDom || st.allRows.length) return;
+    st.__fromDom = true;
+    st.header = [];
+    st.allRows = [];
+    var hr = tbl.querySelector('thead tr');
+    if (hr) cellsOf(hr).forEach(function(c){ st.header.push(c.getAttribute('data-sui-raw') || c.textContent || ''); });
+    var rows = bodyRows(tbl);
+    for (var i = 0; i < rows.length; i++) {
+      var cs = cellsOf(rows[i]), r = [];
+      for (var j = 0; j < cs.length; j++) r.push(cs[j].getAttribute('data-sui-raw') || cs[j].textContent || '');
+      st.allRows.push(r);
+    }
+    st.rows = st.allRows;
+    store[name] = st;
+  }
   function init(){
     var eds = document.querySelectorAll('table[data-sui-editable] td, table[data-sui-editable] th');
     for (var i=0;i<eds.length;i++){ var c=eds[i]; if (c.getAttribute('contenteditable') !== 'true') { c.setAttribute('contenteditable','true'); c.spellcheck=false; } }
@@ -2616,6 +3089,18 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       if (!d.hasAttribute('tabindex')) d.tabIndex=0;
       var isEd = d.getAttribute('contenteditable') === 'true';
       if (!isEd) { var txt = d.textContent; if (d.getAttribute('data-full') !== txt) d.setAttribute('data-full', txt); }
+    }
+    var named = document.querySelectorAll('table[name]');
+    for (var t = 0; t < named.length; t++) {
+      var tbl = named[t], name = tableName(tbl);
+      if (!name) continue;
+      var cfg = cfgOf(tbl);
+      ensureDeclaredHeader(tbl, cfg);
+      syncStoreFromDom(tbl, name);
+      var st = store[name];
+      decorateTable(tbl, st, cfg);
+      ensureFilterInput(tbl, name, st, cfg);
+      ensurePager(tbl, name, st, cfg);
     }
   }
   var pop=null, popCell=null;
@@ -2713,17 +3198,89 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     if (!tbl) return;
     var name = tbl.getAttribute('name');
     if (!name || !store[name]) return;
+    var st = store[name];
     var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
     if (col < 0) return;
+    c.setAttribute('data-sui-raw', c.textContent || '');
     if (tr.parentNode && tr.parentNode.tagName === 'THEAD') {
-      if (store[name].header) store[name].header[col] = c.textContent || '';
+      if (!st.header) st.header = [];
+      st.header[col] = c.textContent || '';
     } else {
       var tb = tr.parentNode, r = Array.prototype.indexOf.call(tb.rows, tr);
       if (r >= 0) {
-        if (!store[name].rows[r]) store[name].rows[r] = [];
-        store[name].rows[r][col] = c.textContent || '';
+        if (!st.allRows[r]) st.allRows[r] = [];
+        st.allRows[r][col] = c.textContent || '';
+        if (st.rows[r]) st.rows[r][col] = c.textContent || '';
       }
     }
+  }, true);
+  var editCell = null, editOld = '';
+  document.addEventListener('focusin', function(ev){
+    var c = ev.target;
+    if (!c || !c.closest) return;
+    c = c.closest('td,th');
+    var tbl = c && c.closest ? c.closest('table[data-sui-editable]') : null;
+    if (!tbl) return;
+    editCell = c;
+    editOld = c.getAttribute('data-sui-raw');
+    if (editOld === null) editOld = c.textContent || '';
+    else if ((c.textContent || '') !== editOld) c.textContent = editOld;
+    c.classList.remove('sui-table-invalid');
+    c.removeAttribute('aria-invalid');
+    c.removeAttribute('title');
+  }, true);
+  document.addEventListener('focusout', function(ev){
+    var c = ev.target;
+    if (!c || !c.closest) return;
+    c = c.closest('td,th');
+    if (!c || c !== editCell) return;
+    var tbl = c.closest('table[data-sui-editable]');
+    var name = tbl ? tbl.getAttribute('name') : '';
+    if (!tbl || !name) { editCell = null; editOld = ''; return; }
+    var cfg = cfgOf(tbl);
+    var tr = c.parentNode, col = Array.prototype.indexOf.call(tr.children, c);
+    var raw = (c.textContent || '').trim();
+    var oldVal = editOld === null || editOld === undefined ? raw : String(editOld);
+    var type = cfg.types[col] || 'text';
+    var err = validValue(raw, type, colOpts(cfg, col));
+    var st = store[name];
+    if (err) {
+      c.textContent = oldVal;
+      c.classList.add('sui-table-invalid');
+      c.setAttribute('aria-invalid', 'true');
+      c.title = 'Invalid ' + err + ' value';
+      if (st) {
+        if (tr.parentNode && tr.parentNode.tagName === 'THEAD') {
+          if (st.header) st.header[col] = oldVal;
+        } else {
+          var r0 = Array.prototype.indexOf.call(tr.parentNode.rows, tr);
+          if (r0 >= 0) { if (!st.allRows[r0]) st.allRows[r0] = []; st.allRows[r0][col] = oldVal; if (st.rows[r0]) st.rows[r0][col] = oldVal; }
+        }
+      }
+      editCell = null; editOld = '';
+      return;
+    }
+    c.classList.remove('sui-table-invalid');
+    c.removeAttribute('aria-invalid');
+    c.removeAttribute('title');
+    var rowIdx = tr.parentNode && tr.parentNode.tagName === 'THEAD' ? -1 : Array.prototype.indexOf.call(tr.parentNode.rows, tr);
+    if (raw !== oldVal) {
+      if (st) {
+        if (rowIdx < 0) { if (!st.header) st.header = []; st.header[col] = raw; }
+        else {
+          if (!st.allRows[rowIdx]) st.allRows[rowIdx] = [];
+          st.allRows[rowIdx][col] = raw;
+          if (st.rows[rowIdx]) st.rows[rowIdx][col] = raw;
+        }
+      }
+      c.setAttribute('data-sui-raw', raw);
+      recordChange(name, { op: 'cell', row: rowIdx, column: col, old: oldVal, new: raw, value: raw });
+      fireTableEvent(name, 'oncellchange');
+      if (rowIdx >= 0) fireTableEvent(name, 'onrowchange');
+      fireTableEvent(name, 'ontablechange');
+      c.textContent = formatValue(raw, cfg.formats[col]);
+    }
+    editCell = null; editOld = '';
   }, true);
 
   if(window.MutationObserver){
@@ -2734,7 +3291,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   return {
     display: display, data: data, header: header, json: json,
     select: select, slice: slice, clear: clear, importText: importText,
-    exportText: exportText, applyAll: applyAll, afterRender: afterRender
+    exportText: exportText, applyAll: applyAll, afterRender: afterRender,
+    sort: sort, filter: filter, filterText: filterText, page: page, setPageSize: setPageSize,
+    selectedRows: selectedRows, selectedCells: selectedCells, selectedColumns: selectedColumns,
+    lastChange: lastChange
   };
 })();
 window.__SUI_TBL = __SUI_TBL;`
@@ -3114,11 +3674,52 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		staticUserAttrsNoClass(sb, e, dlId)
 	}
 	if e.tag == "table" {
+		if v := treeTextAttr(e, "name"); v != "" {
+			sb.WriteString(" name=\"" + htmlEscape(v) + "\"")
+		}
 		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-editable=\"1\"")
 		}
 		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
 			sb.WriteString(" data-sui-fixed=\"1\"")
+		}
+		for _, pair := range [][2]string{
+			{"columns", "data-sui-columns"}, {"columnLabels", "data-sui-column-labels"},
+			{"columnWidths", "data-sui-column-widths"}, {"columnAlign", "data-sui-column-align"},
+			{"columnTypes", "data-sui-column-types"}, {"columnFormats", "data-sui-column-formats"},
+			{"columnOptions", "data-sui-column-options"},
+		} {
+			if v := treeTextAttr(e, pair[0]); v != "" {
+				sb.WriteString(" " + pair[1] + "=\"" + htmlEscape(v) + "\"")
+			}
+		}
+		if datepickerBool(e, "sortable") {
+			sb.WriteString(" data-sui-sortable=\"1\"")
+		}
+		if datepickerBool(e, "filterable") {
+			sb.WriteString(" data-sui-filterable=\"1\"")
+		}
+		if datepickerBool(e, "multiSelect") {
+			sb.WriteString(" data-sui-multi=\"1\"")
+		}
+		if datepickerBool(e, "virtual") {
+			sb.WriteString(" data-sui-virtual=\"1\"")
+		}
+		if v := comboboxAttrNumber(e, "pageSize"); v != "" {
+			sb.WriteString(" data-sui-page-size=\"" + htmlEscape(v) + "\"")
+		}
+		if v := treeTextAttr(e, "selection"); v != "" {
+			sb.WriteString(" data-sui-selection=\"" + htmlEscape(v) + "\"")
+		}
+		for _, pair := range [][2]string{
+			{"onCellChange", "data-sui-table-oncellchange"}, {"onRowChange", "data-sui-table-onrowchange"},
+			{"onTableChange", "data-sui-table-ontablechange"}, {"onRowSelect", "data-sui-table-onrowselect"},
+			{"onSort", "data-sui-table-onsort"}, {"onCellClick", "data-sui-table-oncellclick"},
+			{"onRowClick", "data-sui-table-onrowclick"},
+		} {
+			if name := eventIdentOf(e, pair[0]); name != "" {
+				sb.WriteString(" " + pair[1] + "=\"" + htmlEscape(name) + "\"")
+			}
 		}
 	}
 	sb.WriteString(">")
@@ -3268,6 +3869,12 @@ func writeStaticTabs(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString("<div class=\"sui-tabs")
 	staticClassSuffix(sb, e)
 	sb.WriteString("\"")
+	if v := treeTextAttr(e, "position"); v == "bottom" {
+		sb.WriteString(" data-sui-tabs-position=\"bottom\"")
+	}
+	if v := treeTextAttr(e, "variant"); v == "sheets" {
+		sb.WriteString(" data-sui-tabs-variant=\"sheets\"")
+	}
 	if label := partsContent(e.text); label != "" {
 		sb.WriteString(" aria-label=\"")
 		sb.WriteString(htmlEscape(label))
@@ -3483,6 +4090,15 @@ func treeKey(e *Element, path string) string {
 		}
 	}
 	return path
+}
+
+// eventIdentOf returns the function name named by a handler attribute, or "".
+func eventIdentOf(e *Element, key string) string {
+	a := findAttr(e, key)
+	if a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		return a.expr.name
+	}
+	return ""
 }
 
 // treeVisualOpts carries the tree-wide default glyphs through the recursive
@@ -4683,6 +5299,18 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
 			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status" || a.key == "cells") {
+			continue
+		}
+		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
+			continue
+		}
+		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "fixed" ||
+			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
+			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
+			a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
+			a.key == "multiSelect" || a.key == "virtual" ||
+			a.key == "onCellChange" || a.key == "onRowChange" || a.key == "onTableChange" ||
+			a.key == "onRowSelect" || a.key == "onSort" || a.key == "onCellClick" || a.key == "onRowClick") {
 			continue
 		}
 		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" ||

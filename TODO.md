@@ -54,6 +54,9 @@ Recently completed:
 - [x] Tree control end-to-end: whole-tree selection, context-menu structural
       editing, leaf/parent/open icons, open/closed branch symbols, curated icon
       picker, `onTreeChange` and `tree.lastChange`.
+- [x] Table control end-to-end: declarative columns, sorting, filtering,
+      pagination, row/column/cell selection, validated editing, table events,
+      `table.lastChange` and Excel-like bottom sheet tabs.
 
 Known accuracy corrections from the previous TODO:
 
@@ -225,6 +228,9 @@ Known accuracy corrections from the previous TODO:
 - [x] **Tree control end-to-end** — whole-tree selection, context-menu
       structural editing, leaf/parent/open icons, open/closed branch symbols,
       curated icon picker, `onTreeChange` and `tree.lastChange`
+- [x] **Table control end-to-end** — declarative columns, sorting, filtering,
+      pagination, row/column/cell selection, validated editing, table events,
+      `table.lastChange` and Excel-like bottom sheet tabs
 - [x] **Hover docs** — builtins/stdlib signatures/descriptions
 - [x] **Toggle comments**, **Outline/Document Symbols**
 - [x] **Table designer** — presets, selectors, grips, caption, editable/fixed,

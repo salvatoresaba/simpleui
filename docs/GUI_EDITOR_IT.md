@@ -1186,6 +1186,67 @@ resi come testo.
 Vedere [API reference: tree](API_REFERENCE_IT.md#tree) e l'[esempio
 tree](../examples/tree/README.md).
 
+## Controllo Table
+
+Inserire **Table** da **Controls**. L'inspector mostra subito **Table selectors**
+(Table / Cell / Row / Column) e i pulsanti **Structure** (`+ Col`, `− Col`,
+`+ Row`, `− Row`). Selezionando una cella, riga o colonna si apre il gruppo di
+stile relativo; la tabella espone il pannello impostazioni completo.
+
+Gruppi del pannello:
+
+- **Appearance** - padding celle, allineamento orizzontale/verticale, righe
+  zebrate, hover e controlli scroll/scale. **Scroll** avvolge la tabella in un
+  contenitore `tscroll` con altezza massima, header sticky e colori scrollbar;
+  **scale** applica lo zoom all'intera tabella.
+- **Borders** - preset, griglia celle, bordo esterno e raggio.
+- **Header** - modalità riga header, colori, peso, maiuscole e header sticky.
+- **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore.
+- **Behavior** - celle **editable** e **fixed sizes**. Le tabelle fixed troncano
+  il testo lungo e lo mostrano in un overlay al passaggio del mouse.
+- **Data** - **table name** usato da `table.display`, `table.data`, `table.json`
+  e `table.exportText`.
+- **Columns** - `columns`, labels, larghezze, allineamento, tipi, formati,
+  opzioni select e **Use first row** per ricavare chiavi/label dall'header
+  disegnato. Le colonne restano opzionali.
+- **Data view** - `sortable`, `filterable`, `multi-select`, `virtual rows`
+  (riservato), `page size` e modalità `selection` (row/column/cell).
+
+I nuovi eventi sono nella sezione **Events**:
+`onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`, `onTableChange`,
+`onRowSelect` e `onSort`. I dettagli dell'ultima modifica sono in
+`table.lastChange(name)`.
+
+Le celle editable confermano su blur/Enter. `columnTypes` valida `number`,
+`date`, `boolean` e `select`; i valori non validi vengono ripristinati e
+marcati con `aria-invalid`. `columnFormats` visualizza `number`, `currency:EUR`,
+`percent` e `date` mantenendo il valore raw per ordinamento, editing ed export.
+
+### Sheet tabs in stile Excel
+
+Per un workbook con più tabelle usare il normale controllo **Tabs**:
+
+```sui
+tabs "Workbook" position: "bottom" variant: "sheets" {
+	tab "Users" {
+		table name: "users" columns: "id,name" columnLabels: "ID,Name" sortable: true {
+		}
+	}
+	tab "Orders" {
+		table name: "orders" columns: "id,total" columnLabels: "ID,Total" sortable: true {
+		}
+	}
+}
+```
+
+L'inspector **Tabs** offre **tab position** (Top / Bottom) e **style**
+(Standard / Sheet tabs). Bottom + Sheet tabs creano una barra compatta sotto i
+pannelli, simile a un foglio di calcolo. Ogni tabella mantiene `name`, dati,
+stato sort/filter/page ed eventi indipendenti.
+
+Vedere [API reference: tabelle](API_REFERENCE_IT.md#tabelle-e-dati-non-fidati) e
+l'[esempio sheet tabs](../examples/table_sheets/README.md).
+
 ## Controllo Chart
 
 Inserire **Chart** da **Controls**. Un nuovo grafico parte come barre con dati

@@ -1141,6 +1141,69 @@ text.
 See [API reference: tree](API_REFERENCE.md#tree) and the
 [tree example](../examples/tree/README.md).
 
+## Table control
+
+Insert **Table** from **Controls**. The inspector starts with **Table selectors**
+(Table / Cell / Row / Column) and **Structure** buttons (`+ Col`, `− Col`,
+`+ Row`, `− Row`). Clicking a cell, row or column opens the related style group;
+the table itself exposes the full settings panel.
+
+Table settings groups:
+
+- **Appearance** - cell padding, horizontal/vertical alignment, zebra rows, hover
+  row and the scroll/scale controls. **Scroll** wraps the table in a
+  `tscroll` container with an optional max height, sticky header and custom
+  scrollbar colors; **scale** zooms the whole table.
+- **Borders** - preset, cell grid, outer border and radius.
+- **Header** - header row mode, background/text color, weight, uppercase and
+  sticky header.
+- **Caption** - optional caption, size, weight, alignment and color.
+- **Behavior** - **editable** cells and **fixed sizes**. Fixed tables truncate
+  long text and show it in an overlay on hover.
+- **Data** - runtime **table name** used by `table.display`, `table.data`,
+  `table.json` and `table.exportText`.
+- **Columns** - declarative `columns`, labels, widths, alignment, cell types,
+  formats, select options and **Use first row** to derive keys/labels from the
+  designed header. Columns remain optional; without them the designed header and
+  cells are used as-is.
+- **Data view** - `sortable`, `filterable`, `multi-select`, `virtual rows`
+  (reserved), `page size` and `selection` mode (row/column/cell).
+
+New table events are available in the generic **Events** section:
+`onCellClick`, `onRowClick`, `onCellChange`, `onRowChange`, `onTableChange`,
+`onRowSelect` and `onSort`. Details of the last change are available from
+`table.lastChange(name)`.
+
+Editable cells commit on blur/Enter. `columnTypes` validates `number`, `date`,
+`boolean` and `select` values; invalid commits are restored and marked with
+`aria-invalid`. `columnFormats` renders `number`, `currency:EUR`, `percent` and
+`date` values while keeping the raw value for sorting, editing and export.
+
+### Excel-like sheet tabs
+
+For a workbook with several tables, use the normal **Tabs** control:
+
+```sui
+tabs "Workbook" position: "bottom" variant: "sheets" {
+	tab "Users" {
+		table name: "users" columns: "id,name" columnLabels: "ID,Name" sortable: true {
+		}
+	}
+	tab "Orders" {
+		table name: "orders" columns: "id,total" columnLabels: "ID,Total" sortable: true {
+		}
+	}
+}
+```
+
+The **Tabs** inspector offers **tab position** (Top / Bottom) and **style**
+(Standard / Sheet tabs). Bottom + Sheet tabs produce a compact Excel-like strip
+under the panels. Each table keeps its own `name`, data, sort/filter/page state
+and events.
+
+See [API reference: tables](API_REFERENCE.md#tables-and-untrusted-data) and the
+[sheet tabs example](../examples/table_sheets/README.md).
+
 ## Chart control
 
 Insert **Chart** from **Controls**. A new chart starts as a bar chart with
