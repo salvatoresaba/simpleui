@@ -33,6 +33,9 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - In the designer the elements panel shows a single **table** node for the whole
   workbook; clicking it outlines the outer control and shows the resize handles,
   while clicking a sheet tab only switches sheets (no extent box or handles).
+- A single-sheet workbook hides its sheet tab and keeps the **+**; with two or
+  more sheets the tabs appear. Double-click a tab or use its context menu to
+  rename the workbook.
 
 ## Run
 

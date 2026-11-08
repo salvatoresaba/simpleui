@@ -1267,10 +1267,48 @@ const guiPreviewPicker = `<script>
     tableSelDrag = null;
     setTimeout(function () { tableSelSuppressClick = false; }, 0);
   }, true);
+  // Map a preview sheet tab to the tab index used by the designer model.
+  function tabPickInfo(tab) {
+    if (!tab || !tab.closest) return null;
+    var box = tab.closest('.sui-tabs');
+    if (!box) return null;
+    var boxes = document.querySelectorAll('.sui-tabs');
+    var index = Array.prototype.indexOf.call(boxes, box);
+    var list = box.querySelector('.sui-tablist');
+    var tabs = list ? Array.prototype.filter.call(list.children, function(el) {
+      return el.classList && el.classList.contains('sui-tab');
+    }) : [];
+    var tabIndex = Array.prototype.indexOf.call(tabs, tab);
+    if (index < 0 || tabIndex < 0) return null;
+    return { index: index, tabIndex: tabIndex };
+  }
+  // Double-click a sheet tab to rename that workbook.
+  document.addEventListener('dblclick', function (e) {
+    var tab = e.target && e.target.closest ? e.target.closest('.sui-tab') : null;
+    var info = tabPickInfo(tab);
+    if (!info) return;
+    e.preventDefault();
+    e.stopPropagation();
+    parent.postMessage({ ty: 'sui-tab-rename', index: info.index, tabIndex: info.tabIndex }, '*');
+  }, true);
   // Right-click inside a tree opens the DESIGNER's structural menu, not the
   // compiled app's runtime menu: the designer builds/edits the tree here.
   document.addEventListener('contextmenu', function (e) {
     var t = e.target;
+    var tab = t && t.closest ? t.closest('.sui-tab') : null;
+    var tabInfo = tabPickInfo(tab);
+    if (tabInfo) {
+      e.preventDefault();
+      e.stopPropagation();
+      parent.postMessage({
+        ty: 'sui-tab-menu',
+        index: tabInfo.index,
+        tabIndex: tabInfo.tabIndex,
+        x: e.clientX,
+        y: e.clientY
+      }, '*');
+      return;
+    }
     var tree = t && t.closest ? t.closest('.sui-tree') : null;
     if (!tree) return;
     var id = tree.getAttribute('data-sui-id');

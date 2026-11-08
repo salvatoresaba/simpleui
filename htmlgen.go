@@ -2039,6 +2039,7 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
   flex-direction: column;
 }
 .sui-tabs[data-sui-workbook="1"] .sui-tabpanel[hidden] { display: none; }
+.sui-tabs[data-sui-workbook="1"][data-sui-tabcount="1"] .sui-tablist .sui-tab { display: none; }
 .sui-tabs[data-sui-workbook="1"] .sui-table-topbar { flex: 0 0 auto; }
 .sui-tabs[data-sui-workbook="1"] .tscroll {
   flex: 1 1 0;
@@ -4239,6 +4240,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       }
       if (!all || !tables.length) continue;
       boxes[b].setAttribute('data-sui-workbook', '1');
+      // A single workbook has no sheet tabs; the + tab remains available to
+      // create the second sheet. Two or more sheets show their tabs.
+      var tabBtns = boxes[b].querySelectorAll('.sui-tablist .sui-tab');
+      boxes[b].setAttribute('data-sui-tabcount', String(tabBtns.length));
       for (var tj = 0; tj < tables.length; tj++) {
         var t2 = tables[tj];
         // Tables that explicitly request a selection mode stay read-only:
@@ -4272,6 +4277,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       if (!isEd) { var txt = d.textContent; if (d.getAttribute('data-full') !== txt) d.setAttribute('data-full', txt); }
     }
     restoreTableBooks();
+    // Restored runtime sheets change the tab count: update the workbook tab
+    // visibility before decorating the restored tables.
+    normalizeWorkbookRuntime();
     var named = document.querySelectorAll('table[name]');
     for (var t = 0; t < named.length; t++) {
       var tbl = named[t], name = tableName(tbl);

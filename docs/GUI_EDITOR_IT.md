@@ -1220,7 +1220,10 @@ impostazioni.
 
 La tab **+** nella preview aggiunge un foglio reale al modello del workbook, non
 una tabella runtime temporanea: sopravvive ai rebuild della preview e viene
-scritto nel sorgente `.sui`. Il controllo tabella occupa il contenitore e ha una
+scritto nel sorgente `.sui`. Un workbook con un solo foglio non mostra la tab del
+foglio, ma solo la **+**; le tab dei fogli compaiono dal secondo foglio in poi.
+Doppio click su una tab, oppure menu contestuale e **Rename workbook**, per
+cambiare il nome del workbook scritto sulla tab. Il controllo tabella occupa il contenitore e ha una
 dimensione minima di **640 × 300 px**: se il contenitore non ha una dimensione
 esplicita, vale quel minimo. L'area del workbook prende tutto lo spazio interno
 al bordo del controllo al netto della riga titolo/ingranaggio e della barra delle

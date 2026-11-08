@@ -1173,7 +1173,10 @@ while settings are edited.
 
 The **+** tab in the preview adds a real sheet to the workbook model, not a
 temporary runtime table, so it survives preview rebuilds and is written to the
-`.sui` source. The table control fills its host and has a **640 × 300 px**
+`.sui` source. A workbook with a single sheet shows no sheet tab, only the **+**;
+the sheet tabs appear from the second sheet on. Double-click a sheet tab, or use
+its context menu and **Rename workbook**, to change the workbook name written on
+the tab. The table control fills its host and has a **640 × 300 px**
 minimum; when the host has no explicit size, that minimum is the default. The
 workbook sheet area takes all the space inside the control border after the
 title/gear row and the sheet tab strip, and it follows every control resize.

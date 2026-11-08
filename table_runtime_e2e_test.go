@@ -191,13 +191,20 @@ const tableRuntimeE2EScript = `<script>
     if (cfgPanel) cfgPanel.querySelector('.sui-table-cfg-close').click();
     await wait(200);
 
-    // Runtime table creation and structure editing.
+    // Runtime table creation and structure editing. A single workbook shows no
+    // sheet tab (only the + tab); adding the second sheet reveals the tab strip.
+    var bookBox = document.querySelector('.sui-tabs');
     var tabsBefore = document.querySelectorAll('.sui-tablist .sui-tab').length;
+    if (bookBox.getAttribute('data-sui-tabcount') !== '1') throw new Error('single workbook tab count wrong');
+    var onlyTab = bookBox.querySelector('.sui-tablist .sui-tab');
+    if (onlyTab && getComputedStyle(onlyTab).display !== 'none') throw new Error('single workbook tab should be hidden');
     var addBtn = document.querySelector('.sui-tab-add');
     if (!addBtn) throw new Error('add table button missing');
     addBtn.click();
     await wait(500);
     if (document.querySelectorAll('.sui-tablist .sui-tab').length !== tabsBefore + 1) throw new Error('runtime table not created');
+    if (bookBox.getAttribute('data-sui-tabcount') !== String(tabsBefore + 1)) throw new Error('workbook tab count not updated');
+    if (getComputedStyle(document.querySelectorAll('.sui-tablist .sui-tab')[1]).display === 'none') throw new Error('sheet tabs should be visible with two workbooks');
     var createdTab = document.querySelectorAll('.sui-tablist .sui-tab')[tabsBefore];
     createdTab.click();
     await wait(300);

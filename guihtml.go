@@ -11867,6 +11867,8 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-table-select") { applyTableSelection(ev.data); return; }
   if (ev.data.ty === "sui-table-add") { previewAddWorkbookSheet(ev.data); return; }
   if (ev.data.ty === "sui-table-tab") { selectWorkbookTab(Number(ev.data.id)); return; }
+  if (ev.data.ty === "sui-tab-rename") { renameWorkbookTab(Number(ev.data.index), Number(ev.data.tabIndex)); return; }
+  if (ev.data.ty === "sui-tab-menu") { showWorkbookTabMenu(ev.data); return; }
   if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
@@ -12201,6 +12203,55 @@ function selectWorkbookTab(id) {
   selMode = "table";
   selCell = null; selRow = null; selCol = null;
   renderTree(); fillPanel(); renderInspector(); postHighlight();
+}
+function workbookTabTarget(index, tabIndex) {
+  var boxes = collectTabsModelNodes(curPage().children || [], [], []);
+  var target = boxes[index];
+  if (!target) return null;
+  var tabs = [];
+  target.node.children.forEach(function(kid) { if (kid.kind === "tab") tabs.push(kid); });
+  var tab = tabs[tabIndex];
+  if (!tab) return null;
+  return { tabsNode: target.node, tabsPath: target.path, tab: tab, tabIndex: tabIndex, tabs: tabs };
+}
+function renameWorkbookTab(index, tabIndex) {
+  var target = workbookTabTarget(index, tabIndex);
+  if (!target) return;
+  askPrompt("Rename workbook", "Name", target.tab.text || ("Table " + (tabIndex + 1)), function(raw) {
+    var name = String(raw === undefined || raw === null ? "" : raw).trim();
+    if (!name) name = "Table " + (tabIndex + 1);
+    withUndo(function() { target.tab.text = name; }, "rename workbook");
+    renderTree(); renderInspector();
+  });
+}
+function showWorkbookTabMenu(d) {
+  var target = workbookTabTarget(Number(d.index), Number(d.tabIndex));
+  if (!target) return;
+  closeContextMenus();
+  var m = document.createElement("div");
+  m.id = "tab-menu";
+  m.className = "sui-ac";
+  m.style.display = "block";
+  m.style.minWidth = "190px";
+  var item = document.createElement("div");
+  item.className = "sui-ac-item";
+  item.textContent = "Rename workbook\u2026";
+  item.onclick = function() {
+    m.remove();
+    renameWorkbookTab(Number(d.index), Number(d.tabIndex));
+  };
+  m.appendChild(item);
+  document.body.appendChild(m);
+  var frame = document.getElementById("prev");
+  var fr = frame ? frame.getBoundingClientRect() : { left: 0, top: 0 };
+  var z = menuZoom();
+  m.style.left = ((fr.left + window.pageXOffset + Number(d.x || 0)) / z) + "px";
+  m.style.top = ((fr.top + window.pageYOffset + Number(d.y || 0)) / z) + "px";
+  var close = function() {
+    m.remove();
+    document.removeEventListener("click", close);
+  };
+  setTimeout(function() { document.addEventListener("click", close); }, 0);
 }
 // applyPreviewCellEdit commits a preview table edit into the designer model.
 // It deliberately does not rebuild the preview: the cell already shows the
@@ -12562,6 +12613,7 @@ function initMenus() {
 function closeContextMenus() {
   var ed = document.getElementById('ed-menu'); if (ed) ed.remove();
   var nm = document.getElementById('node-menu'); if (nm) nm.remove();
+  var tm = document.getElementById('tab-menu'); if (tm) tm.remove();
 }
 function closeMenus() {
   document.querySelectorAll('#topbar .menu').forEach(function(m){ m.classList.remove('open'); });
@@ -12573,9 +12625,9 @@ function closeMenus() {
 // which used to leave the editor/tree menu on screen after clicking elsewhere.
 (function wireContextMenus() {
   document.addEventListener("pointerdown", function(ev) {
-    if (!document.getElementById("ed-menu") && !document.getElementById("node-menu")) return;
+    if (!document.getElementById("ed-menu") && !document.getElementById("node-menu") && !document.getElementById("tab-menu")) return;
     var t = ev.target;
-    if (t && t.closest && (t.closest("#ed-menu") || t.closest("#node-menu"))) return;
+    if (t && t.closest && (t.closest("#ed-menu") || t.closest("#node-menu") || t.closest("#tab-menu"))) return;
     closeContextMenus();
   }, true);
   document.addEventListener("keydown", function(ev) {

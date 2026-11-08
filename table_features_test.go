@@ -99,7 +99,7 @@ view main {
 		`st.header[col] = raw`, `targetLabel`, `runtimeLabelsStr`,
 		`if (cfg2.editable) return;`, `editTextOf`, `setCellEditText`, `syncHeaderLabelsAttr`,
 		`contenteditable', 'false`, `data-sui-editable', '1'`, `data-sui-columns', headKeys.join(',')`,
-		`normalizeWorkbookRuntime`, `data-sui-show-add-table`, `data-sui-selection`, `data-sui-workbook`,
+		`normalizeWorkbookRuntime`, `data-sui-show-add-table`, `data-sui-selection`, `data-sui-workbook`, `data-sui-tabcount`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below
@@ -320,12 +320,13 @@ func TestDesignerWorkbookAuthoring(t *testing.T) {
 		"previewAddWorkbookSheet", "applyPreviewCellEdit", "sui-table-add",
 		"sui-cell-edit", "__forcePreviewActive", "dst.editable = true",
 		"normalizeWorkbookControl", "selectWorkbookTab", "sui-table-tab",
+		"renameWorkbookTab", "showWorkbookTabMenu", "sui-tab-rename", "sui-tab-menu",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer workbook handling missing %q", want)
 		}
 	}
-	for _, want := range []string{"sui-table-add", "sui-table-tab", "sui-cell-edit", "postCellEdit", ".sui-tab-add", "sui-hl-control"} {
+	for _, want := range []string{"sui-table-add", "sui-table-tab", "sui-cell-edit", "postCellEdit", ".sui-tab-add", "sui-hl-control", "sui-tab-rename", "sui-tab-menu", "tabPickInfo"} {
 		if !strings.Contains(guiPreviewPicker, want) {
 			t.Errorf("preview picker missing %q", want)
 		}
@@ -334,6 +335,7 @@ func TestDesignerWorkbookAuthoring(t *testing.T) {
 		`.sui-tabs[data-sui-workbook="1"]`,
 		"min-width: 640px", "min-height: 300px", "flex: 1 1 0",
 		".sui-tabs[data-sui-workbook=\"1\"] .tscroll thead th",
+		`[data-sui-tabcount="1"] .sui-tablist .sui-tab`,
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("workbook CSS missing %q", want)
