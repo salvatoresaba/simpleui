@@ -4183,7 +4183,46 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     st.rows = st.allRows;
     store[name] = st;
   }
+  // A tabs control whose panels all hold a table is a workbook: every sheet is
+  // a data-entry surface, shares one visible table size and offers the + tab.
+  // This also upgrades sources built before the designer normalized workbooks.
+  function normalizeWorkbookRuntime(){
+    var boxes = document.querySelectorAll('.sui-tabs');
+    for (var b = 0; b < boxes.length; b++) {
+      var panels = boxes[b].querySelectorAll('.sui-tabpanels .sui-tabpanel');
+      if (!panels.length) continue;
+      var tables = [], all = true;
+      for (var p = 0; p < panels.length; p++) {
+        var t = panels[p].querySelector('table');
+        if (!t) { all = false; break; }
+        tables.push(t);
+      }
+      if (!all || !tables.length) continue;
+      var srcWrap = null;
+      for (var ti = 0; ti < tables.length; ti++) {
+        var tw = tables[ti].parentElement;
+        if (!tw || !tw.classList || !tw.classList.contains('tscroll')) continue;
+        if (!srcWrap && (tw.style.width || tw.style.height)) srcWrap = tw;
+      }
+      for (var tj = 0; tj < tables.length; tj++) {
+        var t2 = tables[tj];
+        // Tables that explicitly request a selection mode stay read-only:
+        // selection is the intended interaction for those sheets.
+        var sel = t2.getAttribute('data-sui-selection') || '';
+        if (!sel || sel === 'none' || t2.getAttribute('data-sui-editable') === '1') {
+          t2.setAttribute('data-sui-editable', '1');
+        }
+        if (t2.getAttribute('name')) t2.setAttribute('data-sui-show-add-table', '1');
+        var w2 = t2.parentElement;
+        if (srcWrap && w2 && w2 !== srcWrap && w2.classList && w2.classList.contains('tscroll')) {
+          if (srcWrap.style.width) w2.style.width = srcWrap.style.width;
+          if (srcWrap.style.height) w2.style.height = srcWrap.style.height;
+        }
+      }
+    }
+  }
   function init(){
+    normalizeWorkbookRuntime();
     var eds = document.querySelectorAll('table[data-sui-editable] td, table[data-sui-editable] th');
     for (var i=0;i<eds.length;i++){ var c=eds[i]; if (c.getAttribute('contenteditable') !== 'true') { c.setAttribute('contenteditable','true'); c.spellcheck=false; } }
     var fix = document.querySelectorAll('table[data-sui-fixed] td, table[data-sui-fixed] th');

@@ -2204,7 +2204,12 @@ tabs "Workbook" position: "bottom" variant: "sheets" {
 ```
 
 La barra delle tab è sotto i pannelli e usa lo stile compatto “sheet”; ogni
-tabella mantiene dati, ordinamento, filtri, pagina ed eventi indipendenti.
+tabella mantiene dati, ordinamento, filtri, pagina ed eventi indipendenti. Nel
+designer visivo il workbook è un unico nodo `table`: i fogli senza una modalità
+`selection` esplicita sono editable, tutti condividono la dimensione visibile del
+controllo tabella e la tab **+** aggiunge un foglio reale al sorgente `.sui`, non
+una tabella temporanea della preview. Un foglio che richiede la selezione
+riga/colonna/cella resta di sola lettura.
 
 ### Tabelle runtime e modifica struttura
 

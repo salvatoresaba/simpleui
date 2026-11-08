@@ -1189,10 +1189,15 @@ tree](../examples/tree/README.md).
 
 ## Controllo Table
 
-Inserire **Table** da **Controls**. L'inspector mostra subito i pulsanti
-**Structure** (`+ Col`, `− Col`, `+ Row`, `− Row`). La selezione di celle, righe e
-colonne avviene direttamente nella preview: click su una cella, gutter esterne
-per righe/colonne, oppure angolo in alto a sinistra per tutta la tabella.
+Inserire **Table** da **Controls**: crea un workbook con un foglio e una tab **+**
+per impostazione predefinita. Il pannello degli elementi mostra un solo nodo
+**table** per l'intero workbook; tab, wrapper di scroll e celle sono dettagli
+interni. Un click su quel nodo seleziona il foglio visibile e mostra gli handle di
+ridimensionamento attorno al controllo tabella. L'inspector mostra subito i
+pulsanti **Structure** (`+ Col`, `− Col`, `+ Row`, `− Row`). La selezione di
+celle, righe e colonne avviene direttamente nella preview: click su una cella,
+gutter esterne per righe/colonne, oppure angolo in alto a sinistra per tutta la
+tabella.
 
 L'inspector mantiene **Structure** e aggiunge **+ Table** / **− Table** per più
 tabelle. Il pulsante **Table settings...** apre un overlay più stretto con tutti
@@ -1212,6 +1217,16 @@ di testo generiche e parte con due righe corpo vuote. Il nuovo foglio è sempre
 editable, anche se la tabella di origine era di sola lettura o usava colonne
 numeriche. La preview mantiene il foglio selezionato mentre si modificano le
 impostazioni.
+
+La tab **+** nella preview aggiunge un foglio reale al modello del workbook, non
+una tabella runtime temporanea: sopravvive ai rebuild della preview e viene
+scritto nel sorgente `.sui`. Tutti i fogli di un workbook condividono la stessa
+dimensione visibile: ridimensionare un foglio ridimensiona il controllo tabella
+per tutti, indipendentemente dal numero di righe o colonne. I fogli senza una
+modalità `selection` esplicita sono editable; un click su cella, riga, colonna o
+tab del foglio mantiene l'inspector sui parametri della tabella. Un foglio che
+richiede la selezione riga/colonna/cella resta di sola lettura per non rompere
+l'interazione di selezione.
 
 Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
 l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito
@@ -1263,8 +1278,11 @@ Gruppi del pannello:
   delle celle restano interni alla tabella, quindi gli handler `onInput` degli
   antenati non vengono attivati. Le celle editable si possono digitare
   direttamente nella preview: click sulla cella per focalizzarla, poi scrivere.
-  Anche le intestazioni sono modificabili: il click porta il cursore
-  nell'etichetta, mentre l'ordinamento usa il pulsante dedicato nell'header.
+  Nel designer il valore confermato viene anche scritto nel modello e nel
+  sorgente `.sui` al blur o dopo la pausa di idle, senza ricostruire la preview,
+  quindi sopravvive a un ridimensionamento o a un reload successivo. Anche le
+  intestazioni sono modificabili: il click porta il cursore nell'etichetta,
+  mentre l'ordinamento usa il pulsante dedicato nell'header.
 - **Data** - **table name** usato da `table.display`, `table.data`, `table.json`
   e `table.exportText`.
 - **Columns** - `columns`, labels, larghezze, allineamento, tipi, formati,

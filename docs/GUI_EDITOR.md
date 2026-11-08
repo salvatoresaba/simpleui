@@ -1144,10 +1144,14 @@ See [API reference: tree](API_REFERENCE.md#tree) and the
 
 ## Table control
 
-Insert **Table** from **Controls**. The inspector starts with the **Structure**
-buttons (`+ Col`, `− Col`, `+ Row`, `− Row`). Cell, row and column selection
-happens directly in the preview: click a cell, use the outer gutters for rows and
-columns, or the top-left corner to select the whole table.
+Insert **Table** from **Controls**: it creates a workbook with one sheet and a
+**+** tab by default. The elements panel shows a single **table** node for the
+whole workbook; the tabs, scroll wrapper and cells are internal. Clicking that
+node selects the visible sheet and shows the resize handles around the table
+control. The inspector starts with the **Structure** buttons (`+ Col`, `− Col`,
+`+ Row`, `− Row`). Cell, row and column selection happens directly in the
+preview: click a cell, use the outer gutters for rows and columns, or the
+top-left corner to select the whole table.
 
 The inspector keeps the **Structure** buttons and adds **+ Table** / **− Table**
 for multiple tables. The **Table settings...** button opens a narrower overlay
@@ -1166,6 +1170,15 @@ keeps its own generic header (`A`, `B`, `C`) with generic text columns and start
 with two empty body rows. The new sheet is always editable, even when the source
 table was read-only or used numeric columns. The preview keeps the selected sheet
 while settings are edited.
+
+The **+** tab in the preview adds a real sheet to the workbook model, not a
+temporary runtime table, so it survives preview rebuilds and is written to the
+`.sui` source. All sheets of a workbook share one visible size: resizing any
+sheet resizes the table control for every sheet, regardless of its row or column
+count. Workbook sheets without an explicit `selection` mode are editable; a
+click on a cell, row, column or sheet tab keeps the inspector on the table
+settings. A sheet that asks for row/column/cell selection stays read-only so the
+selection interaction keeps working.
 
 New tables are named automatically (`table1`, `table2`, ...), so their runtime
 settings gear and `table.*` helpers are immediately available. The gear opens
@@ -1213,8 +1226,11 @@ Table settings groups:
   blur or after a short pause and change events run on blur. Cell input events
   stay inside the table, so ancestor `onInput` handlers are not triggered.
   Editable cells can be typed directly in the preview: click the cell to focus
-  it, then type. Header labels are editable too: a click places the caret in the
-  label, while sorting uses the dedicated header sort button.
+  it, then type. In the designer, the committed value is also written back to the
+  model and `.sui` source on blur or after the idle pause, without rebuilding the
+  preview, so it survives a later resize or preview reload. Header labels are
+  editable too: a click places the caret in the label, while sorting uses the
+  dedicated header sort button.
 - **Data** - runtime **table name** used by `table.display`, `table.data`,
   `table.json` and `table.exportText`.
 - **Columns** - declarative `columns`, labels, widths, alignment, cell types,

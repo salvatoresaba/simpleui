@@ -2325,6 +2325,11 @@ tabs "Workbook" position: "bottom" variant: "sheets" {
 
 The tab strip is rendered below the panels and styled as a compact sheet bar.
 `table.*` targets the table `name`, so each sheet keeps its own data and state.
+In the visual designer the workbook is one `table` node: sheets without an
+explicit `selection` mode are editable, all sheets share the table control's
+visible size, and the **+** tab adds a real sheet to the `.sui` source instead of
+a temporary preview table. A sheet that asks for row/column/cell selection stays
+read-only.
 
 ### Runtime tables and structure editing
 

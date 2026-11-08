@@ -1290,6 +1290,32 @@ const guiPreviewPicker = `<script>
     // Any click inside the preview dismisses the designer's context menus,
     // including clicks on empty preview space that select no element.
     parent.postMessage({ ty: 'sui-dismiss' }, '*');
+    // The + tab is an authoring action in the designer: add a real workbook
+    // sheet to the model instead of a session-only runtime table that would
+    // disappear on the next preview rebuild.
+    var addSheet = e.target && e.target.closest ? e.target.closest('.sui-tab-add') : null;
+    if (addSheet) {
+      var addBox = addSheet.closest('.sui-tabs');
+      var addPanels = addBox ? addBox.querySelectorAll('.sui-tabpanels .sui-tabpanel') : [];
+      var addWorkbook = addPanels.length > 0;
+      for (var pi = 0; pi < addPanels.length; pi++) {
+        if (!addPanels[pi].querySelector('table')) { addWorkbook = false; break; }
+      }
+      if (addWorkbook) {
+        var addBoxes = document.querySelectorAll('.sui-tabs');
+        var addIndex = Array.prototype.indexOf.call(addBoxes, addBox);
+        var addList = addBox.querySelector('.sui-tablist');
+        var addTabs = Array.prototype.filter.call(addList.children, function(el) {
+          return el.classList && el.classList.contains('sui-tab');
+        });
+        var addActive = -1;
+        for (var ai = 0; ai < addTabs.length; ai++) if (addTabs[ai].classList.contains('active')) { addActive = ai; break; }
+        parent.postMessage({ ty: 'sui-table-add', index: addIndex, active: addActive }, '*');
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }
     if (tableSelSuppressClick) {
       tableSelSuppressClick = false;
       return;
@@ -1308,6 +1334,26 @@ const guiPreviewPicker = `<script>
         var tabId = tabTable.getAttribute('data-sui-id');
         if (tabId !== null && tabId !== '-1') {
           parent.postMessage({ ty: 'sui', id: Number(tabId) }, '*');
+          return;
+        }
+      }
+    }
+    // The whole area above the sheet tabs belongs to the active workbook: a
+    // click on its wrapper, caption or empty space selects the table control
+    // (not the internal scroll div), so the inspector stays on table settings.
+    var sheetBox = e.target && e.target.closest ? e.target.closest('.sui-tabs') : null;
+    if (sheetBox) {
+      var sheetPanels = sheetBox.querySelector('.sui-tabpanels');
+      var sheetPanel = sheetPanels ? sheetPanels.querySelector('.sui-tabpanel.active') : null;
+      var sheetTable = sheetPanel ? sheetPanel.querySelector('table[data-sui-id]') : null;
+      if (!sheetTable) {
+        var anyTable = sheetBox.querySelector('table[data-sui-id]');
+        if (anyTable) sheetTable = anyTable;
+      }
+      if (sheetTable) {
+        var sheetId = sheetTable.getAttribute('data-sui-id');
+        if (sheetId !== null && sheetId !== '-1') {
+          parent.postMessage({ ty: 'sui', id: Number(sheetId) }, '*');
           return;
         }
       }
@@ -1350,6 +1396,34 @@ const guiPreviewPicker = `<script>
     if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
     if (!e.key || e.key.length !== 1) return;
     parent.postMessage({ ty: 'sui-key', key: e.key }, '*');
+  }, true);
+  // Designer table edits are written back to the model on blur or after an
+  // idle pause, without reloading the preview. That keeps typing continuous
+  // and makes the entered data survive a later resize or preview rebuild.
+  function postCellEdit(c) {
+    if (!c || !c.isConnected) return;
+    var id = c.getAttribute('data-sui-id');
+    if (id === null || id === '-1') return;
+    var label = c.querySelector('.sui-table-hlabel');
+    // Prefer the runtime raw value so formatted cells (currency, dates) keep
+    // their source value instead of the displayed formatting.
+    var raw = c.getAttribute('data-sui-raw');
+    var text = raw !== null ? raw : (label ? (label.textContent || '') : (c.textContent || ''));
+    if (c.__suiPostedText === text) return;
+    c.__suiPostedText = text;
+    parent.postMessage({ ty: 'sui-cell-edit', id: Number(id), text: text }, '*');
+  }
+  document.addEventListener('input', function (e) {
+    var c = e.target && e.target.closest ? e.target.closest('td[data-sui-id],th[data-sui-id]') : null;
+    if (!c) return;
+    if (c.__suiEditTimer) clearTimeout(c.__suiEditTimer);
+    c.__suiEditTimer = setTimeout(function () { postCellEdit(c); }, 1100);
+  }, true);
+  document.addEventListener('focusout', function (e) {
+    var c = e.target && e.target.closest ? e.target.closest('td[data-sui-id],th[data-sui-id]') : null;
+    if (!c) return;
+    if (c.__suiEditTimer) { clearTimeout(c.__suiEditTimer); c.__suiEditTimer = null; }
+    postCellEdit(c);
   }, true);
   var overEl = null;
   document.addEventListener('dragover', function (e) {

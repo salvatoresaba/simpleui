@@ -99,6 +99,7 @@ view main {
 		`st.header[col] = raw`, `targetLabel`, `runtimeLabelsStr`,
 		`if (cfg2.editable) return;`, `editTextOf`, `setCellEditText`, `syncHeaderLabelsAttr`,
 		`contenteditable', 'false`, `data-sui-editable', '1'`, `data-sui-columns', headKeys.join(',')`,
+		`normalizeWorkbookRuntime`, `data-sui-show-add-table`, `data-sui-selection`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below
@@ -309,5 +310,23 @@ func TestDesignerNestedTableIsNotDataTable(t *testing.T) {
 	model := StringifyJson(guiModelJson(prog))
 	if !strings.Contains(model, `"dataTable":false`) {
 		t.Errorf("nested table must not be marked as a data table: %s", model)
+	}
+}
+
+func TestDesignerWorkbookAuthoring(t *testing.T) {
+	for _, want := range []string{
+		"workbookEntriesForTabs", "renderWorkbookTreeRow", "workbookChosenTablePath",
+		"wrapTableInWorkbook", "normalizeWorkbooks", "syncWorkbookWrapperSize",
+		"previewAddWorkbookSheet", "applyPreviewCellEdit", "sui-table-add",
+		"sui-cell-edit", "__forcePreviewActive", "dst.editable = true",
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("designer workbook handling missing %q", want)
+		}
+	}
+	for _, want := range []string{"sui-table-add", "sui-cell-edit", "postCellEdit", ".sui-tab-add"} {
+		if !strings.Contains(guiPreviewPicker, want) {
+			t.Errorf("preview picker missing %q", want)
+		}
 	}
 }

@@ -2633,6 +2633,7 @@ function reparseSui() {
       root.pages.forEach(function(p){ normalizeTables(p.children); });
       for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
       remount();
+      normalizeWorkbooks();
       computeElementLines();
       renderAll();
       renderPages();
@@ -2953,11 +2954,86 @@ function unusedClasses() {
   problems.forEach(function(p){ if (p.kind === "unused") set[p.sel.replace(/^\./,"")] = true; });
   return set;
 }
+// workbookChosenTablePath picks the sheet the workbook row acts on: the sheet
+// visible in the preview, otherwise the currently selected table when it
+// belongs to the workbook, otherwise the first one.
+function workbookChosenTablePath(tabsPath, entries) {
+  // The visible sheet wins: the tab strip can be switched with the keyboard
+  // without changing the model selection.
+  var all = collectTabsModelNodes(curPage().children || [], [], []);
+  var idx = -1;
+  for (var j = 0; j < all.length; j++) if (samePath(all[j].path, tabsPath)) { idx = j; break; }
+  var recs = capturePreviewTabs();
+  if (idx >= 0 && recs) {
+    for (var k = 0; k < recs.length; k++) {
+      if (recs[k].index === idx && entries[recs[k].active]) return entries[recs[k].active].path;
+    }
+  }
+  if (selPath) {
+    for (var i = 0; i < entries.length; i++) {
+      if (samePath(selPath, entries[i].path)) return entries[i].path;
+    }
+  }
+  return entries[0].path;
+}
+// A workbook is represented in the elements panel as a single table row: the
+// tabs, tab, scroll wrapper and cells are implementation details of one table
+// control. Clicking it selects the visible sheet and shows table settings.
+function renderWorkbookTreeRow(node, p, entries, parent, depth) {
+  var chosen = workbookChosenTablePath(p, entries);
+  var selected = false;
+  for (var i = 0; i < entries.length; i++) if (selPath && samePath(selPath, entries[i].path)) selected = true;
+  var row = document.createElement("div");
+  row.className = "node" + (selected ? " sel" : "");
+  row.style.paddingLeft = (4 + depth * 12) + "px";
+  row.setAttribute("data-path", chosen.join(","));
+  row.title = "Workbook table";
+  var twist = document.createElement("span");
+  twist.className = "node twist";
+  twist.textContent = " ";
+  row.appendChild(twist);
+  var typeChip = document.createElement("span");
+  typeChip.className = "node-type";
+  typeChip.textContent = "table";
+  row.appendChild(typeChip);
+  var lab = document.createElement("span");
+  lab.textContent = "table";
+  row.appendChild(lab);
+  var ops = document.createElement("span");
+  ops.style.marginLeft = "auto";
+  ops.innerHTML = '<span class="btn" style="font-size:9px;padding:0 4px" onclick="event.stopPropagation();delSelPath(\'' + p.join(",") + '\')">&#215;</span>';
+  row.appendChild(ops);
+  row.onclick = function(ev) {
+    ev.stopPropagation();
+    multiSel = [];
+    clearTableSelection();
+    selBody = false;
+    selPath = chosen.slice();
+    selMode = "table";
+    selCell = null; selRow = null; selCol = null;
+    renderTree(); fillPanel(); renderInspector(); postHighlight();
+  };
+  row.oncontextmenu = function(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    selPath = chosen.slice();
+    selMode = "table";
+    multiSel = [];
+    clearTableSelection();
+    renderTree(); fillPanel(); renderInspector(); postHighlight();
+    showNodeContextMenu(ev, chosen, byPath(chosen, root.children));
+  };
+  parent.appendChild(row);
+}
 function renderNodes(children, depth, parent, path) {
   var unused = unusedClasses();
   for (var i = 0; i < children.length; i++) {
     var p = path.concat([i]);
     var node = children[i];
+    if (node.kind === "tabs") {
+      var wbEntries = workbookEntriesForTabs(node, p);
+      if (wbEntries) { renderWorkbookTreeRow(node, p, wbEntries, parent, depth); continue; }
+    }
     var row = document.createElement("div");
     var cls = node.class ? node.class.trim().split(/\s+/)[0] : "";
     var isUnused = cls && unused[cls];
@@ -3525,8 +3601,14 @@ function addEl(kind) {
       insPath = [root.children.length - 1];
     }
     // Tables are wrapped in a scroll container so a fixed-size parent shows
-    // scrollbars only when rows/columns are actually hidden.
-    selPath = (kind === "table") ? wrapTableInScroll(insPath) : insPath;
+    // scrollbars only when rows/columns are actually hidden. A table inserted
+    // from the palette is a workbook by default: one sheet plus a + tab.
+    if (kind === "table") {
+      var tablePath = wrapTableInScroll(insPath);
+      selPath = wrapTableInWorkbook(tablePath);
+    } else {
+      selPath = insPath;
+    }
   }, "insert " + kind);
 }
 
@@ -8673,6 +8755,166 @@ function tableContainerPath(p) {
   if (parent && parent.kind === "div" && (parent.class || "").split(/\s+/).indexOf("tscroll") >= 0) return parentPath;
   return p;
 }
+function isTscrollNode(n) {
+  return !!n && n.kind === "div" && (n.class || "").split(/\s+/).indexOf("tscroll") >= 0;
+}
+// pathOfTableWrapper returns the scroll div that holds a table, when present.
+function pathOfTableWrapper(tablePath) {
+  if (!tablePath || !tablePath.length) return null;
+  var pp = tablePath.slice(0, -1);
+  var par = pp.length ? byPath(pp, root.children) : null;
+  if (isTscrollNode(par)) return { path: pp, node: par };
+  return null;
+}
+// workbookEntriesForTabs returns one entry per tab only when every tab holds a
+// table. That is the designer's workbook shape: one logical table control.
+function workbookEntriesForTabs(node, tabsPath) {
+  if (!node || node.kind !== "tabs" || !node.children) return null;
+  var tabCount = 0;
+  for (var i = 0; i < node.children.length; i++) if (node.children[i].kind === "tab") tabCount++;
+  if (!tabCount) return null;
+  var entries = tableSheetEntries(node, tabsPath);
+  if (entries.length !== tabCount) return null;
+  return entries;
+}
+function workbookForTablePath(tablePath) {
+  if (!tablePath || !tablePath.length) return null;
+  for (var i = tablePath.length - 1; i > 0; i--) {
+    var tabPath = tablePath.slice(0, i);
+    var tab = byPath(tabPath, root.children);
+    if (!tab || tab.kind !== "tab") continue;
+    var tabsPath = tabPath.slice(0, -1);
+    var tabs = tabsPath.length ? byPath(tabsPath, root.children) : null;
+    var entries = workbookEntriesForTabs(tabs, tabsPath);
+    if (entries) return { tabsPath: tabsPath, tabs: tabs, entries: entries };
+  }
+  return null;
+}
+function setWrapperSize(node, width, height) {
+  if (!node) return;
+  var m = styleDeclMap(node.style || "");
+  if (width) m["width"] = width; else delete m["width"];
+  if (height) m["height"] = height; else delete m["height"];
+  node.style = styleDeclStr(m);
+}
+// syncWorkbookWrapperSize gives every sheet the same visible table size. The
+// workbook is one control, so resizing one sheet resizes all of them.
+function syncWorkbookWrapperSize(entries, width, height) {
+  if (!entries) return;
+  entries.forEach(function(entry) {
+    var wrap = pathOfTableWrapper(entry.path);
+    if (wrap) setWrapperSize(wrap.node, width, height);
+  });
+}
+function normalizeWorkbookSizes(entries) {
+  if (!entries || entries.length < 2) return;
+  var width = "", height = "", found = false;
+  for (var i = 0; i < entries.length && !found; i++) {
+    var wrap = pathOfTableWrapper(entries[i].path);
+    if (!wrap) continue;
+    var m = styleDeclMap(wrap.node.style || "");
+    if (m["width"] || m["height"]) { width = m["width"] || ""; height = m["height"] || ""; found = true; }
+  }
+  if (!found) return;
+  syncWorkbookWrapperSize(entries, width, height);
+}
+// normalizeWorkbooks turns every sheet-tab table group into a data-entry
+// workbook with a shared size and a + tab. Sheets without an explicit
+// selection mode become editable; selection sheets stay read-only.
+function normalizeWorkbooks() {
+  root.pages.forEach(function(pg) {
+    (function walk(nodes, path) {
+      for (var i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        var p = path.concat([i]);
+        if (n.kind === "tabs") {
+          var entries = workbookEntriesForTabs(n, p);
+          if (entries) {
+            entries.forEach(function(entry) {
+              // A sheet that explicitly asks for row/column/cell selection is
+              // not a data-entry sheet: keep it read-only so selection works.
+              if (entry.table.editable || !entry.table.selection || entry.table.selection === "none") entry.table.editable = true;
+              entry.table.showAddTable = true;
+              if (!entry.table.name) entry.table.name = uniqueTableName();
+            });
+            normalizeWorkbookSizes(entries);
+          }
+        }
+        if (n.children && n.children.length) walk(n.children, p);
+      }
+    })(pg.children, []);
+  });
+}
+// wrapTableInWorkbook turns a freshly inserted table (already inside its
+// tscroll wrapper) into a one-sheet workbook with a + tab.
+function wrapTableInWorkbook(path) {
+  var table = byPath(path, root.children);
+  if (!table || table.kind !== "table") return path;
+  table.editable = true;
+  table.showAddTable = true;
+  var wrap = pathOfTableWrapper(path);
+  var containerPath = wrap ? wrap.path : path;
+  var container = wrap ? wrap.node : table;
+  var arrPath = containerPath.slice(0, -1);
+  var arr = arrPath.length ? byPath(arrPath, root.children).children : root.children;
+  var idx = containerPath[containerPath.length - 1];
+  var tabs = newNode("tabs");
+  tabs.text = "Workbook";
+  tabs.variant = "sheets";
+  tabs.position = "bottom";
+  tabs.class = "workbook";
+  var tab = newNode("tab");
+  tab.text = "Table 1";
+  tab.children = [container];
+  tabs.children = [tab];
+  arr.splice(idx, 1, tabs);
+  ensureTableBaseCss();
+  return firstTablePathIn(tabs, arrPath.concat([idx]));
+}
+function collectTabsModelNodes(nodes, path, out) {
+  for (var i = 0; i < nodes.length; i++) {
+    var n = nodes[i], p = path.concat([i]);
+    if (n.kind === "tabs") out.push({ node: n, path: p });
+    if (n.children && n.children.length) collectTabsModelNodes(n.children, p, out);
+  }
+  return out;
+}
+function previewAddWorkbookSheet(d) {
+  var boxes = collectTabsModelNodes(curPage().children || [], [], []);
+  var target = boxes[Number(d.index)];
+  if (!target) {
+    for (var b = 0; b < boxes.length; b++) {
+      if (workbookEntriesForTabs(boxes[b].node, boxes[b].path)) { target = boxes[b]; break; }
+    }
+  }
+  if (!target) return;
+  var entries = workbookEntriesForTabs(target.node, target.path);
+  if (!entries) return;
+  var tabIndex = Number(d.active);
+  if (isNaN(tabIndex) || tabIndex < 0 || tabIndex >= entries.length) tabIndex = 0;
+  var src = entries[tabIndex] ? entries[tabIndex].table : entries[0].table;
+  var tabCount = 0;
+  target.node.children.forEach(function(kid) { if (kid.kind === "tab") tabCount++; });
+  withUndo(function() {
+    var tab = newTabNode("Table " + (tabCount + 1));
+    var tbl = newTableNode();
+    copyTableSheetLook(src, tbl);
+    tbl.editable = true;
+    tbl.showAddTable = true;
+    var wrap = newNode("div");
+    wrap.class = "tscroll";
+    wrap.children = [tbl];
+    tab.children = [wrap];
+    target.node.children.push(tab);
+    var newPath = firstTablePathIn(tab, target.path.concat([target.node.children.length - 1]));
+    selPath = newPath;
+    selMode = "table";
+    selCell = null; selRow = null; selCol = null;
+    multiSel = [];
+    __forcePreviewActive = { index: Number(d.index), active: target.node.children.length - 1 };
+  }, "add workbook sheet");
+  fillPanel(); renderInspector(); postHighlight();
+}
 // copyTableSheetLook gives a new sheet the same appearance and behavior as the
 // source table, but keeps its own header (the default A/B/C header and two
 // empty body rows built by newTableNode).
@@ -11083,6 +11325,7 @@ function generate() {
 }
 var pvSeq = 0;
 var __previewTabs = null;
+var __forcePreviewActive = null;
 function capturePreviewTabs() {
   var prev = document.getElementById("prev");
   var d = null;
@@ -11104,9 +11347,18 @@ function capturePreviewTabs() {
       key: box.getAttribute("data-sui-tabs-key") || "",
       label: box.getAttribute("aria-label") || "",
       index: bi,
-      active: active
+      active: active,
+      count: tabs.length
     });
   });
+  // A newly added sheet must open selected even while the source/model is still
+  // catching up through a reparse.
+  if (__forcePreviewActive) {
+    var force = __forcePreviewActive;
+    out.forEach(function(rec) {
+      if (rec.index === force.index && rec.count > force.active) rec.active = force.active;
+    });
+  }
   return out.length ? out : null;
 }
 function restorePreviewTabs() {
@@ -11158,6 +11410,27 @@ function restorePreviewTabs() {
       // Let the tabs runtime record the selection for later view re-renders.
       try { tabs[idx].click(); } catch (e) {}
     });
+    // A sheet added from the preview must open selected after the reload. The
+    // force stays pending until the rebuilt preview actually contains it.
+    if (__forcePreviewActive) {
+      var forceBox = d.querySelectorAll(".sui-tabs")[__forcePreviewActive.index];
+      if (forceBox) {
+        var forceList = forceBox.querySelector(".sui-tablist");
+        var forceTabs = forceList ? Array.prototype.filter.call(forceList.children, function(el) {
+          return el.classList && el.classList.contains("sui-tab");
+        }) : [];
+        var forceIdx = __forcePreviewActive.active;
+        if (forceTabs[forceIdx]) {
+          var appliedForce = __forcePreviewActive;
+          try { forceTabs[forceIdx].click(); } catch (e) {}
+          // Keep the forced sheet through the paired preview reloads triggered
+          // by withUndo + reparse, then release it so the user can switch.
+          setTimeout(function() {
+            if (__forcePreviewActive === appliedForce) __forcePreviewActive = null;
+          }, 1500);
+        }
+      }
+    }
   }
   apply();
   setTimeout(apply, 120);
@@ -11192,6 +11465,7 @@ function loadTree(model) {
     pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", onLoad: p.onLoad || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", onLoad: model.onLoad || "", children: model.elements || [] }]) };
   root.pages.forEach(function(p){ normalizeTables(p.children); });
   remount();
+  normalizeWorkbooks();
   computeElementLines();
   selPath = null; past = []; future = []; selState = ""; selCell = null; selRow = null;
   __treeCollapsed = Object.create(null);
@@ -11551,6 +11825,8 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-style") { applyLiveStyleMessage(ev.data); return; }
   if (ev.data.ty === "sui-tree-ctx") { previewTreeContext(ev.data); return; }
   if (ev.data.ty === "sui-table-select") { applyTableSelection(ev.data); return; }
+  if (ev.data.ty === "sui-table-add") { previewAddWorkbookSheet(ev.data); return; }
+  if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
   if (ev.data.ty === "sui-drop") { dropFromPalette(ev.data.id); return; }
@@ -11584,7 +11860,12 @@ function dropFromPalette(targetId) {
       arr.splice(pos, 0, n);
       insPath = par.concat([pos]);
     }
-    selPath = (kind === "table") ? wrapTableInScroll(insPath) : insPath;
+    if (kind === "table") {
+      var tablePath = wrapTableInScroll(insPath);
+      selPath = wrapTableInWorkbook(tablePath);
+    } else {
+      selPath = insPath;
+    }
   }, "insert " + kind);
   dragKind = null;
 }
@@ -11606,6 +11887,11 @@ function resizeById(id, w, h, l, t) {
     if (width) m["width"] = width; else delete m["width"];
     if (height) m["height"] = height; else delete m["height"];
     n.style = styleDeclStr(m);
+    // One workbook is one table control: the size chosen on any sheet applies
+    // to every sheet, regardless of its rows or columns.
+    var resizeTablePath = firstTablePathIn(n, pt.p);
+    var wb = resizeTablePath ? workbookForTablePath(resizeTablePath) : null;
+    if (wb) syncWorkbookWrapperSize(wb.entries, width, height);
     setOut();
     autoPreview();
     return;
@@ -11837,6 +12123,31 @@ function clearTableSelection() {
 }
 function sameTableAnchor(a, tablePath, kind) {
   return a && samePath(a.tablePath, tablePath) && a.kind === kind;
+}
+// applyPreviewCellEdit commits a preview table edit into the designer model.
+// It deliberately does not rebuild the preview: the cell already shows the
+// text, and a rebuild would steal the caret mid-edit. Only the source text is
+// regenerated, so the value survives the next resize or preview reload.
+function applyPreviewCellEdit(d) {
+  if (!d || d.id === undefined || d.id === null) return;
+  var hit = pickMap[Number(d.id)];
+  if (!hit || hit.pg !== root.page || hit.t !== "cell") return;
+  var table = byPath(hit.p, root.children);
+  if (!table || table.kind !== "table" || !table.cells || !table.cells[hit.r]) return;
+  var text = String(d.text === undefined || d.text === null ? "" : d.text);
+  if (table.cells[hit.r][hit.c] === text) return;
+  snap("edit table cell");
+  table.cells[hit.r][hit.c] = text;
+  // The designer header row is n.cells[0]; keep the declarative columnLabels
+  // attribute aligned when the table uses one.
+  if (hit.r === 0 && table.header && table.columnLabels) {
+    var labels = String(table.columnLabels).split(",");
+    if (hit.c < labels.length) {
+      labels[hit.c] = text;
+      table.columnLabels = labels.join(",");
+    }
+  }
+  setOut();
 }
 function applyTableSelection(d) {
   var hit = pickMap[d.id];
@@ -19007,6 +19318,7 @@ function applySuiCommon(src, o) {
     root.pages.forEach(function(p){ normalizeTables(p.children); });
     for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
     remount();
+    normalizeWorkbooks();
     computeElementLines();
     if (!o.keepUndo) { selPath = null; selCell = null; selRow = null; selCol = null; selState = ""; past = []; future = []; }
     buildPickMap(); renderTree(); renderPages();
