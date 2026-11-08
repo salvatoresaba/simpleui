@@ -866,7 +866,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   <button class="tbtn" id="tb-undo" title="Undo (Ctrl+Z)" aria-label="Undo" onclick="undo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
   <button class="tbtn" id="tb-redo" title="Redo (Ctrl+Y)" aria-label="Redo" onclick="redo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg></button>
   <button class="tbtn" id="tb-theme" title="Toggle light/dark theme" aria-label="Toggle light/dark theme" onclick="toggleEditorTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg></button>
-<button class="tbtn" id="tb-insert" title="Insert component..." onclick="openInsertDialog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
   <span class="tbtnsep"></span>
   <button class="tbtn" id="tb-dup" title="Duplicate" onclick="duplicateSelected()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
   <span class="tbtnsep"></span>
@@ -11063,6 +11062,14 @@ function closeMenus() {
 function renderInsertMenu() {
   var drop = document.getElementById('drop-insert');
   drop.innerHTML = '';
+  var searchItem = document.createElement('div');
+  searchItem.className = 'mi';
+  searchItem.textContent = 'Search components\u2026';
+  searchItem.onclick = function(){ closeMenus(); openInsertDialog(); };
+  drop.appendChild(searchItem);
+  var searchSep = document.createElement('div');
+  searchSep.className = 'dropsep';
+  drop.appendChild(searchSep);
   // The top level shows only GROUP rows; hovering a row opens its flyout to
   // the right. Sub-groups (Navigation, Lists, Feedback) cascade the same way
   // one level deeper.

@@ -222,7 +222,7 @@ func TestGuiComponentDefaults(t *testing.T) {
 		`id="insertdlg"`,
 		`id="insert-search"`,
 		`id="insert-list"`,
-		`id="tb-insert"`,
+		`Search components`,
 		`function openInsertDialog`,
 		`function renderInsertList`,
 		`function componentDefForKind`,
