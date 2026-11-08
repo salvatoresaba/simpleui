@@ -606,9 +606,9 @@ tree "File progetto"
 - `onCheck` viene chiamata dopo il click su una checkbox; non riceve argomenti.
   Usare `tree.exportJson(name)` per leggere i campi `checked` risultanti.
 - `onTreeChange` viene chiamata quando i dati dell'albero cambiano:
-  aggiunta/eliminazione, spostamento, indent/outdent, rinomina, checkbox o figli
-  lazy. Non riceve argomenti e scatta dopo `onMove`/`onRename`/`onCheck` per la
-  stessa operazione.
+  aggiunta/eliminazione, spostamento, indent/outdent, import/clear, rinomina,
+  checkbox, figli lazy o celle grid. Non riceve argomenti e scatta dopo
+  `onMove`/`onRename`/`onCheck` per la stessa operazione.
 - `multiSelect: true` abilita Ctrl/Command click per il toggle e Shift click per
   l'intervallo. `selection` collega uno stato stringa che riceve un array JSON
   delle key selezionate; `value` conserva l'ultima key. Lo stato `selection`

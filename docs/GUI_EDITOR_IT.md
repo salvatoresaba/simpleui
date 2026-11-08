@@ -1140,8 +1140,8 @@ espandi/comprimi e copia key.
 disponibili in **Tree settings > Events** (la sezione Events generica
 dell'inspector è volutamente nascosta per i tree). `onTreeChange` viene chiamata
 quando i dati dell'albero cambiano: aggiunta/eliminazione, spostamento,
-indent/outdent, rinomina, checkbox o figli lazy. Il sorgente generato mantiene
-i `treeitem` annidati con key, open ed editable.
+indent/outdent, import/clear, rinomina, checkbox, figli lazy o celle grid. Il
+sorgente generato mantiene i `treeitem` annidati con key, open ed editable.
 
 Il menu **style preset** del tree scrive lo stile visivo nel campo **style expr**
 dell'elemento (sezione **Appearance**). I preset sono **Default**, **Compact**,

@@ -344,6 +344,7 @@ const suiTreeRuntime = `(function(){
       map[key] = map[key] || {};
       map[key][col] = cells[col];
       rebuildRowCells(item);
+      notifyTreeChange();
       return true;
     }
     function labelStorageKey(root, path) {
@@ -1774,6 +1775,7 @@ const suiTreeRuntime = `(function(){
       setCell: function(key, column, value) { return setCellFor(key, column, value); },
       selectedKeys: selectedKeys,
       checkedKeys: checkedKeys,
+      notifyTreeChange: notifyTreeChange,
       search: applySearch,
       focusSearch: focusSearch
     };
@@ -2167,6 +2169,7 @@ const suiTreeRuntime = `(function(){
     store[treeName(root)] = nodes;
     root.__suiTree = false;
     init(root);
+    if (root.__suiTreeApi && root.__suiTreeApi.notifyTreeChange) root.__suiTreeApi.notifyTreeChange();
     return { count: countNodes(nodes) };
   }
   function exportNode(li) {
@@ -2475,6 +2478,7 @@ const suiTreeRuntime = `(function(){
       clearTreeStorage(root);
       root.__suiTree = false;
       init(root);
+      if (root.__suiTreeApi && root.__suiTreeApi.notifyTreeChange) root.__suiTreeApi.notifyTreeChange();
       return [0, null];
     }
   };

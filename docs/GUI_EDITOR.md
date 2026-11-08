@@ -1096,7 +1096,8 @@ and copy key.
 `onTreeChange` are
 available in **Tree settings > Events** (the generic inspector Events panel is
 intentionally hidden for trees). `onTreeChange` runs whenever the tree data
-changes: add/delete, move, indent/outdent, rename, checkbox or lazy children.
+changes: add/delete, move, indent/outdent, import/clear, rename, checkbox, lazy
+children or grid cells.
 The generated source keeps nested `treeitem` children and their keys/open/editable flags.
 
 The tree **style preset** menu writes the component's visual CSS into the tree
