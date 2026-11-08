@@ -748,7 +748,7 @@ func fontMime(ext string) string {
 const guiPreviewPicker = `<script>
 (function () {
   var st = document.createElement('style');
-  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
+  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.35) !important; } .sui-hl-table td, .sui-hl-table th { background-image: linear-gradient(rgba(76,92,247,.08), rgba(76,92,247,.08)) !important; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
   document.head.appendChild(st);
   var current = [];
   var handles = [];
@@ -857,6 +857,7 @@ const guiPreviewPicker = `<script>
     currentMode = mode || 'el';
     current.forEach(function (el) {
       el.classList.remove('sui-hl');
+      el.classList.remove('sui-hl-table');
       el.classList.remove('sui-hl-row');
       el.classList.remove('sui-hl-col');
       el.classList.remove('sui-hl-cell');
@@ -869,7 +870,7 @@ const guiPreviewPicker = `<script>
     (arr || []).forEach(function (id) {
       if (id < 0) return;
       var el = document.querySelector('[data-sui-id="' + id + '"]');
-      if (el) { el.classList.add(cls); current.push(el); }
+      if (el) { el.classList.add(cls); if (el.tagName === 'TABLE') el.classList.add('sui-hl-table'); current.push(el); }
     });
     if (current.length === 1) showHandles(current[0]);
     else if (current.length > 1) showHandles(unionRect(current));
@@ -924,7 +925,7 @@ const guiPreviewPicker = `<script>
     // real background, then restore the visual highlight immediately.
     var saved = el.className;
     if (el.classList) {
-      ['sui-hl', 'sui-hl-cell', 'sui-hl-row', 'sui-hl-col'].forEach(function (c) { el.classList.remove(c); });
+      ['sui-hl', 'sui-hl-table', 'sui-hl-cell', 'sui-hl-row', 'sui-hl-col'].forEach(function (c) { el.classList.remove(c); });
     }
     var cs = getComputedStyle(el), out = {};
     props.forEach(function (prop) {

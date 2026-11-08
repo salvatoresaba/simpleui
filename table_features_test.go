@@ -94,12 +94,15 @@ view main {
 	if !strings.Contains(js, `__SUI_TBL.sort`) && !strings.Contains(js, `table_sort`) {
 		t.Errorf("generated JS missing table.sort mapping")
 	}
+	if !strings.Contains(guiPreviewPicker, `sui-hl-table`) {
+		t.Errorf("preview picker missing whole-table highlight")
+	}
 	for _, want := range []string{
 		`"Columns"`, `"Data view"`, `"from header"`, `"Use first row"`,
 		`sheet tabs`, `"Bottom (Excel-like)"`, `function tabsControls`,
 		`onCellChange`, `table.lastChange`, `id="tablesettings"`, `Table settings...`,
 		`tableAddSheetAction`, `tableDeleteSheetAction`, `showAddTable`,
-		`structureEditable`, `+ Table`,
+		`structureEditable`, `+ Table`, `Table theme...`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table/tabs support missing %q", want)

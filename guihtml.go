@@ -4186,8 +4186,8 @@ function renderInspector() {
         sbtn.type = "button";
         sbtn.className = "btn";
         sbtn.style.cssText = "margin-left:auto;font-size:11px;padding:3px 8px";
-        sbtn.textContent = "Settings...";
-        sbtn.title = "Configure " + cdef.label + " for this element only";
+        sbtn.textContent = nodes[0].kind === "table" ? "Table theme..." : "Settings...";
+        sbtn.title = nodes[0].kind === "table" ? "Configure table colors and theme presets" : "Configure " + cdef.label + " for this element only";
         sbtn.onclick = function(){ openComponentSettings(cdef, nodes[0]); };
         typeBar.appendChild(sbtn);
       }
