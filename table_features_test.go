@@ -83,13 +83,16 @@ view main {
 	if !strings.Contains(css, `table[data-sui-cell-text="wrap"]`) {
 		t.Errorf("generated CSS missing wrapping cell text mode")
 	}
+	if !strings.Contains(css, `.sui-table-sort-rank`) || strings.Contains(css, `th[data-sort-rank]::before`) {
+		t.Errorf("sort rank must live in the header toolbar, not in a th pseudo-element")
+	}
 	for _, want := range []string{
 		`function sort(`, `function filter(`, `function filterText(`, `function page(`,
 		`function setPageSize(`, `function selectedRows(`, `function selectedCells(`,
 		`function lastChange(`, `sui-table-filter`, `sui-table-pager`, `sui-table-struct-menu`, `sui-table-add`, `table_sort`,
 		`sui-table-settings`, `sui-table-cfg`, `sui-table-filterbtn`, `sui-table-sortbtn`, `sui-table-fpop`, `sortKeys`,
 		`columnValuePairs`, `colValueFilters`, `Filter on column headers`, `(Select All)`, `Clear Filter`,
-		`Sort levels`, `+ Add level`, `Clear filters`, `Clear sort`, `rowIds`, `headCells`,
+		`Sort levels`, `+ Add level`, `Clear filters`, `Clear sort`, `rowIds`, `headCells`, `sui-table-sort-rank`,
 		`if (editCell) return;`, `c !== editCell`,
 		`sui-table-topbar`, `sui-table-title`, `data-sui-table-topbar-for`,
 		`bar.nextElementSibling !== anchor`, `function ensureHbtns`, `headLabel`,
