@@ -24,7 +24,7 @@ columns, sorting, filtering, pagination, selection and validated editing.
 - Editable order cells with number/currency validation.
 - `onTableChange`, `onCellChange` and `table.lastChange`.
 - CSV import through `table.importText`.
-- Runtime **+ Table** creation and row/column structure editing
+- Runtime **+** tab creation and row/column structure editing
   (`showAddTable` / `structureEditable`).
 - The large tabbed **Table settings...** overlay in the designer.
 

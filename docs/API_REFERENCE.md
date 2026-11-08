@@ -2332,12 +2332,13 @@ table name: "users" columns: "id,name" columnLabels: "ID,Name"
 }
 ```
 
-- `showAddTable` renders a **+ Table** button under the table when it is inside
-  a `tabs` control. Clicking it appends a new sheet/table with the same columns
-  and appearance/behavior as the source, its own generic header (`A`, `B`, ...)
-  and two empty body rows. The new table gets a generated name (`table-1`,
-  `table-2`, …) and persists across reactive re-renders for the current page
-  session; the selected sheet stays selected when the view refreshes.
+- `showAddTable` renders a **+ tab** at the end of the sheet tab strip when the
+  table is inside a `tabs` control. Clicking it appends a new sheet/table with
+  the same columns and appearance/behavior as the source, its own generic header
+  (`A`, `B`, ...) and two empty body rows. The new table gets a generated name
+  (`table-1`, `table-2`, …) and persists across reactive re-renders for the
+  current page session; the selected sheet stays selected when the view
+  refreshes.
 - `structureEditable` enables the runtime row/column context menu. Right-click a
   body cell or a header cell to:
   - insert a row above/below or a column left/right;

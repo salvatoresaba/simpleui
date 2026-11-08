@@ -1985,6 +1985,24 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
   background: #14171c;
   box-shadow: inset 0 -2px 0 #4c5cf7;
 }
+.sui-tab-add {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #9aa7b8;
+  border-radius: 6px 6px 0 0;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sui-tab-add:hover,
+.sui-tab-add:focus-visible { background: var(--sui-hover); color: var(--sui-fg); outline: none; }
+.sui-tabs[data-sui-tabs-position="bottom"] .sui-tab-add { border-radius: 0 0 6px 6px; }
+.sui-tabs[data-sui-tabs-variant="sheets"] .sui-tab-add { border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; padding: 5px 12px; font-size: 15px; }
+.sui-tabs[data-sui-tabs-variant="sheets"][data-sui-tabs-position="bottom"] .sui-tab-add { border-bottom: 0; border-top: 1px solid transparent; border-radius: 0 0 6px 6px; }
 .sui-tabpanels { padding: 12px; }
 .sui-tabpanel[hidden] { display: none; }
 .sui-tabs[data-sui-tabs-position="bottom"] .sui-tablist { order: 2; border-bottom: 0; border-top: 1px solid var(--sui-border); padding: 4px 4px 0; }
@@ -2990,7 +3008,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     tab.setAttribute('data-sui-table-sheet', name);
     tab.tabIndex = -1;
     tab.textContent = label;
-    list.appendChild(tab);
+    var addTab = list.querySelector('.sui-tab-add');
+    if (addTab) list.insertBefore(tab, addTab); else list.appendChild(tab);
     return { tab: tab, panel: clone, table: newTable };
   }
   function restoreTableBooks(){
@@ -3013,31 +3032,44 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     if (!cfg.showAddTable) return;
     var box = tbl.closest ? tbl.closest('.sui-tabs') : null;
     if (!box) return;
-    var old = tbl.parentNode ? tbl.parentNode.querySelector('.sui-table-add[data-sui-table-add-for="' + name + '"]') : null;
-    if (old) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'sui-table-add';
-    btn.setAttribute('data-sui-table-add-for', name);
-    btn.textContent = '+ Table';
-    btn.addEventListener('click', function(){
-      var panel = tbl.closest('.sui-tabpanel');
-      if (!panel) return;
-      var n = 1, newName = 'table-' + n;
-      while (findTables(newName).length) { n++; newName = 'table-' + n; }
-      var label = 'Table ' + (box.querySelectorAll('.sui-tabpanel').length + 1);
-      var made = addRuntimeTableDom(box, newName, label, panel);
-      if (!made) return;
-      if (cfg.structureEditable && made.table) {
-        made.table.setAttribute('data-sui-editable', '1');
-        made.table.setAttribute('data-sui-structure-editable', '1');
-      }
-      var key = tableBookKey(box);
-      (tableBooks[key] || (tableBooks[key] = [])).push({ name: newName, label: label });
-      made.tab.click();
-      init();
-    });
-    if (tbl.parentNode) tbl.parentNode.insertBefore(btn, tbl.nextSibling);
+    var list = box.querySelector('.sui-tablist');
+    if (!list) return;
+    var btn = list.querySelector('.sui-tab-add');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sui-tab-add';
+      btn.setAttribute('data-sui-tab-add', '1');
+      btn.textContent = '+';
+      btn.title = 'Add table';
+      btn.setAttribute('aria-label', 'Add table');
+      btn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        var panels = box.querySelector('.sui-tabpanels');
+        var panel = panels ? (panels.querySelector('.sui-tabpanel.active') || panels.querySelector('.sui-tabpanel:not([hidden])')) : null;
+        if (!panel) panel = tbl.closest('.sui-tabpanel');
+        if (!panel) return;
+        var activeTable = panel.querySelector('table');
+        var activeCfg = activeTable ? cfgOf(activeTable) : cfg;
+        var n = 1, newName = 'table-' + n;
+        while (findTables(newName).length) { n++; newName = 'table-' + n; }
+        var label = 'Table ' + (box.querySelectorAll('.sui-tabpanel').length + 1);
+        var made = addRuntimeTableDom(box, newName, label, panel);
+        if (!made) return;
+        if (activeCfg.structureEditable && made.table) {
+          made.table.setAttribute('data-sui-editable', '1');
+          made.table.setAttribute('data-sui-structure-editable', '1');
+        }
+        var key = tableBookKey(box);
+        (tableBooks[key] || (tableBooks[key] = [])).push({ name: newName, label: label });
+        made.tab.click();
+        init();
+      });
+      list.appendChild(btn);
+    } else if (list.lastElementChild !== btn) {
+      list.appendChild(btn);
+    }
   }
   function applyHeaderSort(name, tbl, idx, cell, addLevel){
     var st = tableStore(name);

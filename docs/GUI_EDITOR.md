@@ -1217,7 +1217,7 @@ Table settings groups:
   designed header. Columns remain optional; without them the designed header and
   cells are used as-is.
 - **Data view** - `sortable`, `filterable`, `multi-select`, `virtual rows`
-  (reserved), `show add table button` (runtime `+ Table`), `runtime structure
+  (reserved), `show add table button` (runtime **+** tab), `runtime structure
   editing` (row/column context menu), `page size` and `selection` mode
   (row/column/cell). In `column` selection mode a header click selects the
   column; **Alt+click** sorts it when `sortable` is on.

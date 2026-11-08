@@ -193,7 +193,7 @@ const tableRuntimeE2EScript = `<script>
 
     // Runtime table creation and structure editing.
     var tabsBefore = document.querySelectorAll('.sui-tablist .sui-tab').length;
-    var addBtn = document.querySelector('.sui-table-add');
+    var addBtn = document.querySelector('.sui-tab-add');
     if (!addBtn) throw new Error('add table button missing');
     addBtn.click();
     await wait(500);

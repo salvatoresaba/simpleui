@@ -9330,7 +9330,7 @@ function tableControls(n, opts) {
     boolRow("filterable", function(){ return n.filterable; }, function(v){ n.filterable = v; }, "Shows a text filter above the table."),
     boolRow("multi-select", function(){ return n.multiSelect; }, function(v){ n.multiSelect = v; }, "Ctrl/Command or Shift toggles multiple rows, columns or cells."),
     boolRow("virtual rows", function(){ return n.virtual; }, function(v){ n.virtual = v; }, "Reserved for large datasets; the runtime currently keeps the DOM model."),
-    boolRow("show add table button", function(){ return n.showAddTable; }, function(v){ n.showAddTable = v; }, "Shows a + Table button under the table so a new sheet can be created at runtime."),
+    boolRow("show add table button", function(){ return n.showAddTable; }, function(v){ n.showAddTable = v; }, "Shows a + tab at the end of the sheet strip so a new sheet can be created at runtime."),
     boolRow("runtime structure editing", function(){ return n.structureEditable; }, function(v){ n.structureEditable = v; }, "Enables the runtime row/column context menu: insert, delete, copy, cut and paste."),
     cfgText("page size", "pageSize", "50", "Rows per page; empty shows all rows."),
   ];

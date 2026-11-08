@@ -1264,7 +1264,7 @@ Gruppi del pannello:
   opzioni select e **Use first row** per ricavare chiavi/label dall'header
   disegnato. Le colonne restano opzionali.
 - **Data view** - `sortable`, `filterable`, `multi-select`, `virtual rows`
-  (riservato), `show add table button` (`+ Table` runtime), `runtime structure
+  (riservato), `show add table button` (runtime **+** tab), `runtime structure
   editing` (menu contestuale righe/colonne), `page size` e modalità `selection`
   (row/column/cell). In modalità `column` il click sull'header seleziona la
   colonna; **Alt+click** la ordina quando `sortable` è attivo.
