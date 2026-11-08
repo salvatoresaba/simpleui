@@ -227,6 +227,69 @@ func TestTreeWholeSelectionAndContextEditing(t *testing.T) {
 	}
 }
 
+func TestTreeDefaultIconsAndBranchSymbols(t *testing.T) {
+	src := `view main {
+	tree "Files" iconLeaf: "L" iconParent: "P" iconParentOpen: "PO" toggleClosed: "+" toggleOpen: "-" {
+		treeitem "folder" open: true {
+			treeitem "child"
+		}
+		treeitem "file"
+	}
+}
+`
+	prog, dl := ParseSource(src, "tree_icons.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`data-sui-tree-icon-leaf="L"`, `data-sui-tree-icon-parent="P"`,
+		`data-sui-tree-icon-parent-open="PO"`, `data-sui-tree-toggle-closed="+"`,
+		`data-sui-tree-toggle-open="-"`, `data-sui-icon="PO"`, `data-sui-icon="L"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("default icon/branch markup missing %q", want)
+		}
+	}
+	model := StringifyJson(guiModelJson(prog))
+	for _, want := range []string{`"iconLeaf":"L"`, `"iconParent":"P"`, `"iconParentOpen":"PO"`, `"toggleClosed":"+"`, `"toggleOpen":"-"`} {
+		if !strings.Contains(model, want) {
+			t.Errorf("designer model missing %q: %s", want, model)
+		}
+	}
+	out := viewNodesSource(prog.views[0].body, 1)
+	for _, want := range []string{`iconLeaf: "L"`, `iconParent: "P"`, `iconParentOpen: "PO"`, `toggleClosed: "+"`, `toggleOpen: "-"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("designer source missing %q:\n%s", want, out)
+		}
+	}
+	for _, want := range []string{
+		`treeIconLeaf`, `treeIconParent`, `treeIconParentOpen`,
+		`treeToggleClosed`, `treeToggleOpen`, `data-sui-tree-icon-leaf`,
+		`iconLeaf: treeIconLeaf`, `toggleClosed: treeToggleClosed`,
+	} {
+		if !strings.Contains(suiTreeRuntime, want) {
+			t.Errorf("tree runtime defaults missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`name: "Leaf"`, `name: "Folders"`, `name: "Structure"`,
+		`name: "Branches"`, `name: "Editing"`, `iconSetForField`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("icon picker missing %q", want)
+		}
+	}
+	for _, unwanted := range []string{`name: "People"`, `name: "Symbols"`, `name: "Media"`} {
+		if strings.Contains(guiHTML, unwanted) {
+			t.Errorf("icon picker still exposes unrelated category %q", unwanted)
+		}
+	}
+}
+
 func TestTreePhaseAFeatures(t *testing.T) {
 	src := `state selected = ""
 state checkedCount = 0
@@ -332,7 +395,8 @@ fn checked() -> null {
 	}
 	for _, want := range []string{
 		`"Indent guides"`, `"Hierarchical checkboxes"`, `"Child counts"`,
-		`"Default icon"`, `"Open icon"`, `"badge type"`, `"metadata"`,
+		`"Item icon (no children)"`, `"Parent icon (closed)"`, `"Parent icon (open)"`,
+		`"Closed branch symbol"`, `"Open branch symbol"`, `"badge type"`, `"metadata"`,
 		`--sui-tree-guide-color`, `.td-row .td-icon`,
 	} {
 		if !strings.Contains(guiHTML, want) {

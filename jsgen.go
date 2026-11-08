@@ -3298,13 +3298,7 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			rowHeight = strings.TrimSpace(partsContent(a.text))
 		}
 	}
-	treeIcon, treeIconOpen := "", ""
-	if a := findAttr(e, "icon"); a != nil && !a.hasExpr {
-		treeIcon = partsContent(a.text)
-	}
-	if a := findAttr(e, "iconOpen"); a != nil && !a.hasExpr {
-		treeIconOpen = partsContent(a.text)
-	}
+	tv := treeVisualOptions(e)
 	onCheck := ""
 	if a := findAttr(e, "onCheck"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		onCheck = a.expr.name
@@ -3399,12 +3393,23 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		if rowHeight != "" {
 			open += " data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\""
 		}
-		if treeIcon != "" {
-			open += " data-sui-tree-icon=\"" + htmlEscape(treeIcon) + "\""
+		if tv.Icon != "" {
+			open += " data-sui-tree-icon=\"" + htmlEscape(tv.Icon) + "\""
 		}
-		if treeIconOpen != "" {
-			open += " data-sui-tree-icon-open=\"" + htmlEscape(treeIconOpen) + "\""
+		if tv.IconOpen != "" {
+			open += " data-sui-tree-icon-open=\"" + htmlEscape(tv.IconOpen) + "\""
 		}
+		if tv.IconLeaf != "" {
+			open += " data-sui-tree-icon-leaf=\"" + htmlEscape(tv.IconLeaf) + "\""
+		}
+		if tv.IconParent != "" {
+			open += " data-sui-tree-icon-parent=\"" + htmlEscape(tv.IconParent) + "\""
+		}
+		if tv.IconParentOpen != "" {
+			open += " data-sui-tree-icon-parent-open=\"" + htmlEscape(tv.IconParentOpen) + "\""
+		}
+		open += " data-sui-tree-toggle-closed=\"" + htmlEscape(tv.ToggleClosed) + "\""
+		open += " data-sui-tree-toggle-open=\"" + htmlEscape(tv.ToggleOpen) + "\""
 		if setter != "" {
 			open += " data-sui-tree-setter=\"" + setter + "\""
 		}
@@ -3514,14 +3519,14 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	b.WriteString("<ul class=\"sui-tree-group\" role=\"group\">")
 	seq := 0
 	for _, child := range sortTreeElements(treeChildren(e), sortDir) {
-		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep))
+		b.WriteString(treeItemElemJs(child, ctx, idx*1000+seq+1, 1, "0."+strconv.Itoa(seq), guides, checkbox, counts, tv, columns, columnWidths, sortDir, fontStep))
 		seq++
 	}
 	b.WriteString("</ul></div>`")
 	return b.String()
 }
 
-func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string, fontStep float64) string {
+func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string, guides, checkbox, counts bool, tv treeVisualOpts, columns []string, columnWidths []int, sortDir string, fontStep float64) string {
 	open := openTagHtml(it, "li", false, itemID, ctx)
 	kids := sortTreeElements(treeChildren(it), sortDir)
 	isOpen := treeOpen(it)
@@ -3530,17 +3535,10 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		lazy = a.expr.b
 	}
 	key := treeKey(it, path)
-	icon := treeTextAttr(it, "icon")
-	if icon == "" {
-		icon = treeIcon
-	}
-	if isOpen {
-		if v := treeTextAttr(it, "iconOpen"); v != "" {
-			icon = v
-		} else if treeIconOpen != "" {
-			icon = treeIconOpen
-		}
-	}
+	parent := len(kids) > 0 || lazy
+	explicitIcon := treeTextAttr(it, "icon")
+	explicitIconOpen := treeTextAttr(it, "iconOpen")
+	icon := treeItemIcon(it, parent, isOpen, tv)
 	badge := treeTextAttr(it, "badge")
 	meta := treeTextAttr(it, "meta")
 	size := treeTextAttr(it, "size")
@@ -3577,6 +3575,8 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 			"\" data-sui-editable=\"" + htmlEscape(treeItemEditable(it)) +
 			"\" data-sui-show-rename-icon=\"" + htmlEscape(treeItemShowRenameIcon(it)) +
 			"\" data-sui-rename-icon=\"" + htmlEscape(treeItemRenameIcon(it)) +
+			"\" data-sui-icon-base=\"" + htmlEscape(explicitIcon) +
+			"\" data-sui-icon-open-base=\"" + htmlEscape(explicitIconOpen) +
 			"\" data-sui-icon=\"" + htmlEscape(icon) +
 			"\" data-sui-badge=\"" + htmlEscape(badge) +
 			"\" data-sui-badge-type=\"" + htmlEscape(badgeType) +
@@ -3619,11 +3619,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 	}
 	if len(kids) > 0 || lazy {
 		b.WriteString("<button type=\"button\" class=\"sui-tree-toggle\" tabindex=\"-1\" aria-label=\"Toggle item\">")
-		if isOpen {
-			b.WriteString("\u25be")
-		} else {
-			b.WriteString("\u25b8")
-		}
+		b.WriteString(htmlEscape(treeToggleText(isOpen, tv)))
 		b.WriteString("</button>")
 	} else {
 		b.WriteString("<span class=\"sui-tree-spacer\"></span>")
@@ -3679,7 +3675,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		}
 		b.WriteString(">")
 		for i, child := range kids {
-			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep))
+			b.WriteString(treeItemElemJs(child, ctx, itemID*1000+i+1, level+1, path+"."+strconv.Itoa(i), guides, checkbox, counts, tv, columns, columnWidths, sortDir, fontStep))
 		}
 		b.WriteString("</ul>")
 	}

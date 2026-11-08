@@ -2187,7 +2187,9 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj[a.key] = JStr(partsLiteral(a.text))
 			}
-		} else if a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" {
+		} else if a.key == "icon" || a.key == "iconOpen" || a.key == "iconLeaf" || a.key == "iconParent" ||
+			a.key == "iconParentOpen" || a.key == "toggleClosed" || a.key == "toggleOpen" ||
+			a.key == "badge" || a.key == "badgeType" || a.key == "meta" {
 			if a.hasExpr && a.expr != nil {
 				o.obj[a.key] = JStr(exprSource(a.expr))
 			} else {

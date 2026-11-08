@@ -1045,10 +1045,14 @@ The **Tree** inspector exposes only:
 - **Title** - title size, weight, font, spacing, alignment, top/bottom position
   and padding. These values apply to the **Title** field in General.
 - **Shape** - indent, row padding/height, radius, border, toggle size, font
-  size/weight, font step, letter spacing and font family, plus default/open node
-  icons. **Font step** reduces the font size for each level below the root;
-  default `0`. Icons open a categorized overlay with tabs, a large icon library
-  and an **Add from file…** action for `.txt`, `.json` or `.csv` lists.
+  size/weight, font step, letter spacing and font family, plus the curated node
+  icons and branch symbols: **Item icon (no children)**, **Parent icon
+  (closed)**, **Parent icon (open)**, **Closed branch symbol** and **Open branch
+  symbol**. **Font step** reduces the font size for each level below the root;
+  default `0`. Icon fields open a categorized overlay with only the relevant
+  families: leaf icons for files/documents, folder/structure icons for parents,
+  disclosure arrows for branches and editing tools for the rename button; an
+  **Add from file…** action still accepts `.txt`, `.json` or `.csv` lists.
 - **Extra** - two sections: **Edit button** (visibility, icon, background, text
   color, font, size, border, radius, padding and hover colors) and **Child
   counts** (visibility, background, text color, font, size, weight, padding,

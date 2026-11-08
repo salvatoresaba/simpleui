@@ -2971,7 +2971,9 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tree" && (key == "name" || key == "value" || key == "editable" || key == "editableDepth" ||
 		key == "renameKey" || key == "renameValue" || key == "renameIcon" || key == "showRenameIcon" ||
 		key == "guides" || key == "truncate" || key == "checkbox" || key == "counts" || key == "rowHeight" ||
-		key == "icon" || key == "iconOpen" || key == "multiSelect" || key == "selection" ||
+		key == "icon" || key == "iconOpen" || key == "iconLeaf" || key == "iconParent" ||
+		key == "iconParentOpen" || key == "toggleClosed" || key == "toggleOpen" ||
+		key == "multiSelect" || key == "selection" ||
 		key == "search" || key == "drag" || key == "contextMenu" || key == "columns" || key == "loadKey" ||
 		key == "virtual" || key == "columnLabels" || key == "columnWidths" || key == "sort" || key == "persistSelection" ||
 		key == "tooltips" || key == "columnsEnabled" || key == "fontStep") {
@@ -3586,6 +3588,14 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		return
 	}
 	if (tag == "tree" || tag == "treeitem") && (a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "meta") {
+		if a.hasExpr {
+			c.inferExpr(a.expr)
+		} else {
+			c.checkViewParts(a.text)
+		}
+		return
+	}
+	if tag == "tree" && (a.key == "iconLeaf" || a.key == "iconParent" || a.key == "iconParentOpen" || a.key == "toggleClosed" || a.key == "toggleOpen") {
 		if a.hasExpr {
 			c.inferExpr(a.expr)
 		} else {

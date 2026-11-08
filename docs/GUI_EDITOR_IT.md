@@ -1087,9 +1087,13 @@ L'inspector **Tree** espone solo:
   alto/basso e padding del titolo. Si applicano al campo **Title** in General.
 - **Shape** - indent, padding/altezza riga, raggio, bordo, dimensione toggle,
   dimensione/peso testo, font step, letter spacing e font family, più icone
-  default/open dei nodi. **Font step** riduce il font per ogni livello sotto la
-  radice; default `0`. Le icone aprono un overlay categorizzato con tab, ampia
-  libreria e **Add from file…** per liste `.txt`, `.json` o `.csv`.
+  curate dei nodi e simboli di ramo: **Item icon (no children)**, **Parent icon
+  (closed)**, **Parent icon (open)**, **Closed branch symbol** e **Open branch
+  symbol**. **Font step** riduce il font per ogni livello sotto la radice;
+  default `0`. I campi icona aprono un overlay categorizzato con solo le famiglie
+  pertinenti: icone file/documento per le foglie, cartelle/struttura per i padri,
+  frecce di espansione per i rami e strumenti di modifica per il pulsante rinomina.
+  **Add from file…** accetta ancora liste `.txt`, `.json` o `.csv`.
 - **Extra** - due sezioni: **Edit button** (visibilità, icona, sfondo, colore
   testo, font, dimensione, bordo, raggio, padding e colori hover) e **Child
   counts** (visibilità, sfondo, colore testo, font, dimensione, peso, padding,

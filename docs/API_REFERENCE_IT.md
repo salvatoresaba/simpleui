@@ -590,8 +590,12 @@ tree "File progetto"
   Stile tramite `--sui-tree-tooltip-bg`, `-fg`, `-border`, `-radius`, `-padding`,
   `-max-width`, `-font-size`, `-delay` e `-placement`.
 - `rowHeight: 32` imposta l'altezza minima di riga (12-120). Default `28`.
-- `icon`, `iconOpen` sul tree sono glifi di fallback; `treeitem icon`/`iconOpen`
-  li sovrascrivono. Le icone sono testo o emoji inerte, mai markup.
+- `icon`, `iconOpen` sul tree sono glifi di fallback legacy; `iconLeaf`,
+  `iconParent` e `iconParentOpen` scelgono il glifo predefinito per elementi
+  senza figli, padri chiusi e padri aperti. `toggleClosed` e `toggleOpen`
+  sostituiscono i simboli di espansione del ramo. `treeitem icon`/`iconOpen`
+  sovrascrivono i default. Icone e simboli di ramo sono testo o emoji inerte,
+  mai markup.
 - `treeitem badge: "12"` mostra una pill; `badgeType` è `neutral`, `info`,
   `success`, `warning` o `danger`. `meta` mostra testo allineato a destra.
   `counts: true` aggiunge il numero di figli alle righe padre.

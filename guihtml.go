@@ -2193,6 +2193,11 @@ function newTreeNode() {
   n.rowHeight = "";
   n.icon = "";
   n.iconOpen = "";
+  n.iconLeaf = "";
+  n.iconParent = "";
+  n.iconParentOpen = "";
+  n.toggleClosed = "";
+  n.toggleOpen = "";
   n.multiSelect = false;
   n.selection = "";
   n.search = false;
@@ -4872,14 +4877,26 @@ var TREE_STYLE_PRESETS = [
   { key: "cards", label: "Cards", css: "--sui-tree-gap: 6px; --sui-tree-row-padding: 7px 10px; --sui-tree-row-radius: 9px; --sui-tree-row-bg: #202838; --sui-tree-hover-bg: #2b3549; --sui-tree-selected-bg: #4c5cf7; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: transparent; --sui-tree-panel-border: 0; --sui-tree-panel-padding: 0px; --sui-tree-indent: 20px;" }
 ];
 var ICON_LIBRARY = [
-  { name: "Files", icons: ["📁","📂","📄","📃","📝","📦","🗂️","🗃️","📊","📈","📉","🧾","🔖","🏷️","📋","📌","📎","🔗","🗒️","📇","📑","📜","📰","🗞️"] },
-  { name: "Actions", icons: ["✏️","🖊️","🖋️","✂️","➕","➖","✖️","✔️","☑️","🔄","↩️","↪️","🔍","🔎","⚙️","🔧","🔨","🛠️","🗑️","💾","📥","📤","🔼","🔽","◀️","▶️","⏫","⏬","⏪","⏩"] },
-  { name: "Status", icons: ["✅","❌","⚠️","ℹ️","⛔","🚫","🔴","🟠","🟡","🟢","🔵","🟣","⚪","⚫","❗","❓","💡","🔔","🔕","🔒","🔓","🔑","🛡️","🏁","🚩","🎯","📣","📢"] },
-  { name: "People", icons: ["👤","👥","👨‍💻","👩‍💻","🧑‍💼","👷","🧑‍🔧","🧑‍🎨","🧑‍🏫","🧑‍⚕️","🧑‍🍳","🧑‍🌾","🧑‍🚀","🧑‍✈️","👨‍👩‍👧","👨‍👩‍👧‍👦","🙂","😀","😎","🤝","👍","👎","🙌","👏"] },
-  { name: "Media", icons: ["🖼️","🎨","🎬","🎥","📷","📸","🎵","🎶","🎧","📺","📻","📱","💻","🖥️","⌨️","🖱️","🖨️","💿","📀","🎮","🔊","🔇","🎤","🎙️"] },
-  { name: "Shapes", icons: ["⭐","🌟","✨","💠","🔷","🔶","🔸","🔹","🔺","🔻","◼️","◻️","◾","◽","▪️","▫️","🔲","🔳","⬛","⬜","🟥","🟦","🟩","🟨","🟧","🟪","🔘","🔴","🟤"] },
-  { name: "Symbols", icons: ["©️","®️","™️","§","¶","†","‡","•","…","—","–","∞","≈","≠","≤","≥","±","×","÷","√","∑","∏","µ","Ω","π","∆","→","←","↑","↓","↔","↕"] }
+  { name: "Leaf", icons: ["📄","📃","📝","📑","📋","📇","📊","📈","📉","🧾","📜","📰","🗞️","🔖","🏷️","📌","📎","🔗","🗒️","🖹","🖻","🧮","💾","💿","📀"] },
+  { name: "Folders", icons: ["📁","📂","🗂️","🗃️","🗄️","📦","🧰","📚","🗄️","🏠","🏢","🏬","🏭","🏗️","🧱","🏫","🏥","🏦","🏨","🏪","🏛️"] },
+  { name: "Structure", icons: ["🧩","🔗","🧱","🏗️","🏢","🏬","🏭","🏠","🗂️","🗃️","🗄️","📦","🧰","📚","📊","⚙️"] },
+  { name: "Branches", icons: ["▸","▾","▹","▿","▶","▼","◀","◁","◂","◃","▷","›","‹","»","«","➤","➣","➢","➔","→","↓","↳","↴","⤷","⤵","⊕","⊖","+","-","−","⌄","⌃"] },
+  { name: "Editing", icons: ["✏️","🖊️","🖋️","✒️","🖌️","🖍️","📝","✂️","🔧","⚙️","🛠️","🔍","🔎","💾","📋","📌","📎","🔗"] }
 ];
+var ICON_SETS = {
+  leaf: ["Leaf"],
+  parent: ["Folders","Structure"],
+  branch: ["Branches"],
+  edit: ["Editing"],
+  full: ["Leaf","Folders","Structure","Branches","Editing"]
+};
+function iconSetForField(key) {
+  if (key === "@iconLeaf") return "leaf";
+  if (key === "@iconParent" || key === "@iconParentOpen" || key === "@icon" || key === "@iconOpen") return "parent";
+  if (key === "@toggleClosed" || key === "@toggleOpen") return "branch";
+  if (key === "@renameIcon") return "edit";
+  return "full";
+}
 var ICON_CUSTOM_KEY = "sui.iconLibrary";
 var __iconPicker = null;
 function loadCustomIcons() {
@@ -4893,7 +4910,10 @@ function saveCustomIcons(list) {
   try { localStorage.setItem(ICON_CUSTOM_KEY, JSON.stringify(list.slice(0, 200))); } catch (e) {}
 }
 function iconCategories() {
-  var out = ICON_LIBRARY.slice();
+  var active = __iconPicker && __iconPicker.set ? __iconPicker.set : "full";
+  var names = ICON_SETS[active] || ICON_SETS.full;
+  var out = ICON_LIBRARY.filter(function(cat){ return names.indexOf(cat.name) >= 0; })
+    .map(function(cat){ return { name: cat.name, icons: cat.icons.slice() }; });
   var custom = loadCustomIcons();
   if (custom.length) out.push({ name: "Custom", icons: custom });
   return out;
@@ -4903,8 +4923,10 @@ function closeIconPicker() {
   if (dlg) dlg.classList.remove("on");
   __iconPicker = null;
 }
-function openIconPicker(fieldKey, current, onPick) {
-  __iconPicker = { fieldKey: fieldKey || "", current: current || "", onPick: onPick || null, tab: iconCategories()[0].name };
+function openIconPicker(fieldKey, current, onPick, setKey) {
+  __iconPicker = { fieldKey: fieldKey || "", current: current || "", onPick: onPick || null,
+    set: setKey || iconSetForField(fieldKey), tab: "" };
+  __iconPicker.tab = iconCategories()[0].name;
   var dlg = document.getElementById("iconpick");
   if (!dlg) return;
   dlg.classList.add("on");
@@ -10315,6 +10337,11 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.rowHeight && /^\d+$/.test(String(n.rowHeight))) a += " rowHeight: " + n.rowHeight;
   if (n.kind === "tree" && n.icon) a += " icon: \"" + esc(n.icon) + "\"";
   if (n.kind === "tree" && n.iconOpen) a += " iconOpen: \"" + esc(n.iconOpen) + "\"";
+  if (n.kind === "tree" && n.iconLeaf) a += " iconLeaf: \"" + esc(n.iconLeaf) + "\"";
+  if (n.kind === "tree" && n.iconParent) a += " iconParent: \"" + esc(n.iconParent) + "\"";
+  if (n.kind === "tree" && n.iconParentOpen) a += " iconParentOpen: \"" + esc(n.iconParentOpen) + "\"";
+  if (n.kind === "tree" && n.toggleClosed) a += " toggleClosed: \"" + esc(n.toggleClosed) + "\"";
+  if (n.kind === "tree" && n.toggleOpen) a += " toggleOpen: \"" + esc(n.toggleOpen) + "\"";
   if (n.kind === "tree" && n.multiSelect) a += " multiSelect: true";
   if (n.kind === "tree" && n.selection) a += " selection: " + n.selection;
   if (n.kind === "tree" && n.search) a += " search: true";
@@ -14096,8 +14123,11 @@ var COMPONENT_DEFS = [
         { key: "--sui-tree-toggle-size", label: "Toggle size", type: "number", def: 12, min: 8, max: 24, step: 1, unit: "px" },
         { key: "--sui-tree-font", label: "Font size", type: "number", def: 13, min: 9, max: 24, step: 1, unit: "px" },
         { key: "@fontStep", label: "Font step", type: "attrNumber", attr: "fontStep", def: 0, min: 0, max: 10, step: 0.5 },
-        { key: "@icon", label: "Default icon", type: "icon", attr: "icon", def: "" },
-        { key: "@iconOpen", label: "Open icon", type: "icon", attr: "iconOpen", def: "" },
+        { key: "@iconLeaf", label: "Item icon (no children)", type: "icon", attr: "iconLeaf", def: "", iconSet: "leaf" },
+        { key: "@iconParent", label: "Parent icon (closed)", type: "icon", attr: "iconParent", def: "", iconSet: "parent" },
+        { key: "@iconParentOpen", label: "Parent icon (open)", type: "icon", attr: "iconParentOpen", def: "", iconSet: "parent" },
+        { key: "@toggleClosed", label: "Closed branch symbol", type: "icon", attr: "toggleClosed", def: "", iconSet: "branch" },
+        { key: "@toggleOpen", label: "Open branch symbol", type: "icon", attr: "toggleOpen", def: "", iconSet: "branch" },
         { key: "--sui-tree-font-weight", label: "Text weight", type: "select", def: "400", opts: [["400", "400"], ["500", "500"], ["600", "600"], ["700", "700"]] },
         { key: "--sui-tree-tracking", label: "Letter spacing", type: "number", def: 0, min: -2, max: 10, step: 0.1, unit: "px" },
         { key: "--sui-tree-font-family", label: "Font", type: "font", def: "inherit" }
@@ -14105,7 +14135,7 @@ var COMPONENT_DEFS = [
       { name: "Extra", fields: [
         { key: "@secEdit", label: "Edit button", type: "section" },
         { key: "@showRenameIcon", label: "Show edit button", type: "attrSwitch", attr: "showRenameIcon", def: true },
-        { key: "@renameIcon", label: "Icon", type: "icon", attr: "renameIcon", def: "" },
+        { key: "@renameIcon", label: "Icon", type: "icon", attr: "renameIcon", def: "", iconSet: "edit" },
         { key: "--sui-tree-rename-bg", label: "Background", type: "color", def: "transparent" },
         { key: "--sui-tree-rename-fg", label: "Text color", type: "color", def: "#8fa0b8" },
         { key: "--sui-tree-rename-font", label: "Font", type: "font", def: "inherit" },
@@ -16079,7 +16109,7 @@ function componentFieldRow(field) {
         iconBtn.textContent = value || "Choose\u2026";
         iconBtn.title = value ? ("Icon: " + value) : "Choose an icon";
         markComponentCustom();
-      });
+      }, field.iconSet);
     };
     iconWrap.appendChild(iconBtn);
     if (value) {

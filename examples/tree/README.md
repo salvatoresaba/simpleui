@@ -114,7 +114,7 @@ view main {
 	h1 "Nested tree"
 	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
 
-	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "components" key: "components" open: true {
@@ -195,8 +195,12 @@ resize, remove, reorder) plus child sorting. **Extra** has two sections: the edi
 button (icon, background, text, font, border, radius, padding, hover) and child
 counts (background, text, font, size, weight, padding, border, radius, minimum
 width). **Shape** includes **Font step**, which reduces the font size for each
-level below the root, and the default/open node icons (categorized overlay with
-searchable tabs and `Add from file…`). The **Tooltip** tab enables styled tooltips. The **Style**
+level below the root, plus curated node icons and branch symbols: **Item icon
+(no children)**, **Parent icon (closed/open)**, **Closed branch symbol** and
+**Open branch symbol**. Each icon field opens only its relevant families
+(files for leaves, folders/structure for parents, disclosure arrows for branches,
+editing tools for the rename button) and still supports `Add from file…`. The
+**Tooltip** tab enables styled tooltips. The **Style**
 selector includes the shared styles and the 16 tree themes; **Apply** writes the
 chosen style to the tree preview. There is no separate Hover tab: hover colors
 are in **Colors**.
@@ -219,7 +223,7 @@ hidden for trees; charts and graphs expose their shape/link/tag handlers in
 **Chart/Graph settings > Events**.
 
 ```sui
-tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 icon: "📁" iconOpen: "📂" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onCheck: checked onMove: moved onLoad: loaded {
+tree "Files" name: "files" guides: true truncate: true checkbox: true counts: true rowHeight: 30 iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" multiSelect: true selection: selectedKeys search: true drag: true contextMenu: true columns: "size,date,status" loadKey: loadKey onCheck: checked onMove: moved onLoad: loaded {
 	treeitem "src" open: true icon: "📁" iconOpen: "📂" badge: "12" badgeType: "info" meta: "2 KB" size: "2 KB" date: "today" status: "ok" checked: true {
 		treeitem "main.go" icon: "📄" meta: "1 KB"
 	}
@@ -413,7 +417,7 @@ view main {
 	h1 "Nested tree"
 	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
 
-	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "components" key: "components" open: true {
@@ -597,7 +601,7 @@ view main {
 	h1 "Nested tree"
 	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
 
-	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "components" key: "components" open: true {

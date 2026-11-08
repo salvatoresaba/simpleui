@@ -144,6 +144,11 @@ const suiTreeRuntime = `(function(){
     var persistSelection = root.getAttribute('data-sui-tree-persist-selection') === '1';
     var treeIcon = root.getAttribute('data-sui-tree-icon') || '';
     var treeIconOpen = root.getAttribute('data-sui-tree-icon-open') || '';
+    var treeIconLeaf = root.getAttribute('data-sui-tree-icon-leaf') || '';
+    var treeIconParent = root.getAttribute('data-sui-tree-icon-parent') || '';
+    var treeIconParentOpen = root.getAttribute('data-sui-tree-icon-parent-open') || '';
+    var treeToggleClosed = root.getAttribute('data-sui-tree-toggle-closed') || '\u25b8';
+    var treeToggleOpen = root.getAttribute('data-sui-tree-toggle-open') || '\u25be';
     var rowHeight = parseInt(root.getAttribute('data-sui-tree-row-height') || '', 10);
     if (!isNaN(rowHeight) && rowHeight >= 12 && rowHeight <= 120) {
       root.style.setProperty('--sui-tree-row-height', rowHeight + 'px');
@@ -152,7 +157,10 @@ const suiTreeRuntime = `(function(){
     if (imported) {
       renderNodes(root, imported, {
         guides: guides, checkbox: checkboxes, counts: counts,
-        icon: treeIcon, iconOpen: treeIconOpen, columns: treeColumns,
+        icon: treeIcon, iconOpen: treeIconOpen, iconLeaf: treeIconLeaf,
+        iconParent: treeIconParent, iconParentOpen: treeIconParentOpen,
+        toggleClosed: treeToggleClosed, toggleOpen: treeToggleOpen,
+        columns: treeColumns,
         columnWidths: treeColumnWidths, sort: sortDir, fontStep: fontStep
       });
     }
@@ -419,6 +427,36 @@ const suiTreeRuntime = `(function(){
       input.focus();
       input.select();
     }
+    function refreshTreeItemIcon(item, open) {
+      if (!item) return;
+      var row = itemRow(item);
+      if (!row) return;
+      var isParent = itemGroup(item) || item.getAttribute('data-sui-lazy') === '1';
+      var base = item.getAttribute('data-sui-icon-base') || '';
+      var baseOpen = item.getAttribute('data-sui-icon-open-base') || '';
+      var icon = base;
+      if (icon === '') icon = isParent ? (treeIconParent || treeIcon) : (treeIconLeaf || treeIcon);
+      if (open && isParent) {
+        if (baseOpen) icon = baseOpen;
+        else if (treeIconParentOpen) icon = treeIconParentOpen;
+        else if (treeIconOpen) icon = treeIconOpen;
+      }
+      var iconEl = row.querySelector('.sui-tree-icon');
+      if (icon) {
+        if (!iconEl) {
+          iconEl = document.createElement('span');
+          iconEl.className = 'sui-tree-icon';
+          iconEl.setAttribute('aria-hidden', 'true');
+          var anchor = itemLabelEl(item);
+          if (anchor && anchor.parentNode === row) row.insertBefore(iconEl, anchor);
+          else row.appendChild(iconEl);
+        }
+        if (iconEl.textContent !== icon) iconEl.textContent = icon;
+      } else if (iconEl && iconEl.parentNode) {
+        iconEl.parentNode.removeChild(iconEl);
+      }
+      item.setAttribute('data-sui-icon', icon || '');
+    }
     function setOpen(item, open, persist) {
       var group = itemGroup(item);
       if (!group) return;
@@ -426,9 +464,10 @@ const suiTreeRuntime = `(function(){
       item.setAttribute('aria-expanded', open ? 'true' : 'false');
       var toggle = itemToggle(item);
       if (toggle) {
-        toggle.textContent = open ? '\u25be' : '\u25b8';
+        toggle.textContent = open ? treeToggleOpen : treeToggleClosed;
         toggle.setAttribute('aria-label', (open ? 'Collapse ' : 'Expand ') + itemLabel(item));
       }
+      refreshTreeItemIcon(item, open);
       item.__suiTreeOpen = open;
       if (persist) saveOpen(root, item.getAttribute('data-sui-path') || '', open);
     }
@@ -632,7 +671,10 @@ const suiTreeRuntime = `(function(){
       return null;
     }
     function renderOpts() {
-      return { guides: guides, checkbox: checkboxes, counts: counts, icon: treeIcon, iconOpen: treeIconOpen, columns: treeColumns, columnWidths: treeColumnWidths, sort: sortDir, fontStep: fontStep };
+      return { guides: guides, checkbox: checkboxes, counts: counts, icon: treeIcon, iconOpen: treeIconOpen,
+        iconLeaf: treeIconLeaf, iconParent: treeIconParent, iconParentOpen: treeIconParentOpen,
+        toggleClosed: treeToggleClosed, toggleOpen: treeToggleOpen,
+        columns: treeColumns, columnWidths: treeColumnWidths, sort: sortDir, fontStep: fontStep };
     }
     function ensureGroup(item) {
       var group = itemGroup(item);
@@ -655,7 +697,7 @@ const suiTreeRuntime = `(function(){
           toggle.className = 'sui-tree-toggle';
           toggle.tabIndex = -1;
           toggle.setAttribute('aria-label', 'Toggle ' + itemLabel(item));
-          toggle.textContent = '\u25b8';
+          toggle.textContent = treeToggleClosed;
           row.replaceChild(toggle, row.children[i]);
           return toggle;
         }
@@ -1938,6 +1980,8 @@ const suiTreeRuntime = `(function(){
     li.setAttribute("data-sui-show-rename-icon", node.showRenameIcon || "inherit");
     li.setAttribute("data-sui-rename-icon", node.renameIcon || "");
     li.setAttribute("data-sui-open", node.open ? "1" : "0");
+    li.setAttribute("data-sui-icon-base", node.icon || "");
+    li.setAttribute("data-sui-icon-open-base", node.iconOpen || "");
     li.setAttribute("data-sui-icon", node.icon || "");
     li.setAttribute("data-sui-badge", node.badge || "");
     li.setAttribute("data-sui-badge-type", node.badgeType || "neutral");
@@ -1963,13 +2007,14 @@ const suiTreeRuntime = `(function(){
         row.appendChild(guide);
       }
     }
-    if ((node.children && node.children.length) || node.lazy) {
+    var runtimeParent = (node.children && node.children.length) || node.lazy;
+    if (runtimeParent) {
       var toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "sui-tree-toggle";
       toggle.tabIndex = -1;
       toggle.setAttribute("aria-label", "Toggle item");
-      toggle.textContent = node.open ? "\u25be" : "\u25b8";
+      toggle.textContent = node.open ? (opts.toggleOpen || "\u25be") : (opts.toggleClosed || "\u25b8");
       row.appendChild(toggle);
       li.setAttribute("aria-expanded", node.open ? "true" : "false");
     } else {
@@ -1987,9 +2032,12 @@ const suiTreeRuntime = `(function(){
       row.appendChild(check);
       li.setAttribute("aria-checked", node.checked === true ? "true" : "false");
     }
-    var icon = node.icon || opts.icon || "";
-    if (node.open && node.iconOpen) icon = node.iconOpen;
-    else if (node.open && opts.iconOpen) icon = opts.iconOpen;
+    var icon = node.icon || (runtimeParent ? (opts.iconParent || opts.icon) : (opts.iconLeaf || opts.icon)) || "";
+    if (node.open && runtimeParent) {
+      if (node.iconOpen) icon = node.iconOpen;
+      else if (opts.iconParentOpen) icon = opts.iconParentOpen;
+      else if (opts.iconOpen) icon = opts.iconOpen;
+    }
     if (icon) {
       var iconEl = document.createElement("span");
       iconEl.className = "sui-tree-icon";

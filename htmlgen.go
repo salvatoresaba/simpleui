@@ -194,8 +194,9 @@ body {
 .sui-tree-item.sui-tree-pending > .sui-tree-row { background: var(--sui-tree-selected-bg, rgba(76, 92, 247, .28)); color: var(--sui-tree-selected-fg, inherit); }
 .sui-tree-item:focus { outline: none; }
 .sui-tree-item:focus-visible > .sui-tree-row { outline: 2px solid #4c5cf7; outline-offset: -2px; }
-.sui-tree-toggle, .sui-tree-spacer { width: 20px; height: 20px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
-.sui-tree-toggle { border: 0; background: transparent; color: var(--sui-muted, #8fa0b8); padding: 0; cursor: pointer; font: inherit; }
+.sui-tree-toggle, .sui-tree-spacer { height: 20px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
+.sui-tree-spacer { width: 20px; }
+.sui-tree-toggle { min-width: 20px; border: 0; background: transparent; color: var(--sui-muted, #8fa0b8); padding: 0 1px; cursor: pointer; font: inherit; }
 .sui-tree-toggle:hover { color: var(--sui-fg, #e6e6ef); }
 .sui-tree-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .sui-tree[data-sui-tree-truncate="0"] .sui-tree-label { white-space: normal; overflow: visible; text-overflow: clip; }
@@ -3484,6 +3485,72 @@ func treeKey(e *Element, path string) string {
 	return path
 }
 
+// treeVisualOpts carries the tree-wide default glyphs through the recursive
+// static/dynamic tree renderers. Per-item icon/iconOpen still win, then the
+// parent/leaf default, then the legacy icon fallback.
+type treeVisualOpts struct {
+	Icon           string
+	IconOpen       string
+	IconLeaf       string
+	IconParent     string
+	IconParentOpen string
+	ToggleClosed   string
+	ToggleOpen     string
+}
+
+func treeVisualOptions(e *Element) treeVisualOpts {
+	tv := treeVisualOpts{
+		Icon:           treeTextAttr(e, "icon"),
+		IconOpen:       treeTextAttr(e, "iconOpen"),
+		IconLeaf:       treeTextAttr(e, "iconLeaf"),
+		IconParent:     treeTextAttr(e, "iconParent"),
+		IconParentOpen: treeTextAttr(e, "iconParentOpen"),
+		ToggleClosed:   treeTextAttr(e, "toggleClosed"),
+		ToggleOpen:     treeTextAttr(e, "toggleOpen"),
+	}
+	if tv.ToggleClosed == "" {
+		tv.ToggleClosed = "\u25b8"
+	}
+	if tv.ToggleOpen == "" {
+		tv.ToggleOpen = "\u25be"
+	}
+	return tv
+}
+
+func treeItemIcon(it *Element, isParent, open bool, tv treeVisualOpts) string {
+	icon := treeTextAttr(it, "icon")
+	if icon == "" {
+		if isParent {
+			icon = tv.IconParent
+			if icon == "" {
+				icon = tv.Icon
+			}
+		} else {
+			icon = tv.IconLeaf
+			if icon == "" {
+				icon = tv.Icon
+			}
+		}
+	}
+	if open && isParent {
+		if v := treeTextAttr(it, "iconOpen"); v != "" {
+			icon = v
+		} else if tv.IconParentOpen != "" {
+			icon = tv.IconParentOpen
+		} else if tv.IconOpen != "" {
+			icon = tv.IconOpen
+		}
+	}
+	return icon
+}
+
+func treeToggleText(open bool, tv treeVisualOpts) string {
+	if open {
+		return tv.ToggleOpen
+	}
+	return tv.ToggleClosed
+}
+
 func treeItemEditable(e *Element) string {
 	a := findAttr(e, "editable")
 	if a == nil {
@@ -3803,8 +3870,7 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	virtual := datepickerBool(e, "virtual")
 	tooltips := datepickerBool(e, "tooltips")
 	rowHeight := comboboxAttrNumber(e, "rowHeight")
-	treeIcon := treeTextAttr(e, "icon")
-	treeIconOpen := treeTextAttr(e, "iconOpen")
+	tv := treeVisualOptions(e)
 	onCheck := ""
 	if a := findAttr(e, "onCheck"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		onCheck = a.expr.name
@@ -3875,12 +3941,23 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if rowHeight != "" {
 		sb.WriteString(" data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\"")
 	}
-	if treeIcon != "" {
-		sb.WriteString(" data-sui-tree-icon=\"" + htmlEscape(treeIcon) + "\"")
+	if tv.Icon != "" {
+		sb.WriteString(" data-sui-tree-icon=\"" + htmlEscape(tv.Icon) + "\"")
 	}
-	if treeIconOpen != "" {
-		sb.WriteString(" data-sui-tree-icon-open=\"" + htmlEscape(treeIconOpen) + "\"")
+	if tv.IconOpen != "" {
+		sb.WriteString(" data-sui-tree-icon-open=\"" + htmlEscape(tv.IconOpen) + "\"")
 	}
+	if tv.IconLeaf != "" {
+		sb.WriteString(" data-sui-tree-icon-leaf=\"" + htmlEscape(tv.IconLeaf) + "\"")
+	}
+	if tv.IconParent != "" {
+		sb.WriteString(" data-sui-tree-icon-parent=\"" + htmlEscape(tv.IconParent) + "\"")
+	}
+	if tv.IconParentOpen != "" {
+		sb.WriteString(" data-sui-tree-icon-parent-open=\"" + htmlEscape(tv.IconParentOpen) + "\"")
+	}
+	sb.WriteString(" data-sui-tree-toggle-closed=\"" + htmlEscape(tv.ToggleClosed) + "\"")
+	sb.WriteString(" data-sui-tree-toggle-open=\"" + htmlEscape(tv.ToggleOpen) + "\"")
 	if onCheck != "" {
 		sb.WriteString(" data-sui-tree-oncheck=\"" + htmlEscape(onCheck) + "\"")
 	}
@@ -3956,12 +4033,12 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString("</div>\n")
 	}
 	sb.WriteString(indent + "<ul class=\"sui-tree-group\" role=\"group\">\n")
-	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep)
+	writeStaticTreeItems(sb, treeChildren(e), indent+"  ", 1, "0", guides, checkbox, counts, tv, columns, columnWidths, sortDir, fontStep)
 	sb.WriteString(indent + "</ul>\n")
 	sb.WriteString(ind + "</div>\n")
 }
 
-func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, treeIcon, treeIconOpen string, columns []string, columnWidths []int, sortDir string, fontStep float64) {
+func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, level int, pathPrefix string, guides, checkbox, counts bool, tv treeVisualOpts, columns []string, columnWidths []int, sortDir string, fontStep float64) {
 	items = sortTreeElements(items, sortDir)
 	for i, it := range items {
 		path := pathPrefix + "." + strconv.Itoa(i)
@@ -3969,18 +4046,11 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		kids := treeChildren(it)
 		open := treeOpen(it)
 		lazy := datepickerBool(it, "lazy")
+		parent := len(kids) > 0 || lazy
 		label := partsContent(it.text)
-		icon := treeTextAttr(it, "icon")
-		if icon == "" {
-			icon = treeIcon
-		}
-		if open {
-			if v := treeTextAttr(it, "iconOpen"); v != "" {
-				icon = v
-			} else if treeIconOpen != "" {
-				icon = treeIconOpen
-			}
-		}
+		explicitIcon := treeTextAttr(it, "icon")
+		explicitIconOpen := treeTextAttr(it, "iconOpen")
+		icon := treeItemIcon(it, parent, open, tv)
 		badge := treeTextAttr(it, "badge")
 		meta := treeTextAttr(it, "meta")
 		checked := treeChecked(it)
@@ -3996,6 +4066,8 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 			"\" data-sui-editable=\"" + htmlEscape(treeItemEditable(it)) +
 			"\" data-sui-show-rename-icon=\"" + htmlEscape(treeItemShowRenameIcon(it)) +
 			"\" data-sui-rename-icon=\"" + htmlEscape(treeItemRenameIcon(it)) +
+			"\" data-sui-icon-base=\"" + htmlEscape(explicitIcon) +
+			"\" data-sui-icon-open-base=\"" + htmlEscape(explicitIconOpen) +
 			"\" data-sui-icon=\"" + htmlEscape(icon) +
 			"\" data-sui-badge=\"" + htmlEscape(badge) +
 			"\" data-sui-badge-type=\"" + htmlEscape(treeBadgeType(it)) +
@@ -4038,11 +4110,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		}
 		if len(kids) > 0 || lazy {
 			sb.WriteString("<button type=\"button\" class=\"sui-tree-toggle\" tabindex=\"-1\" aria-label=\"Toggle " + htmlEscape(label) + "\">")
-			if open {
-				sb.WriteString("\u25be")
-			} else {
-				sb.WriteString("\u25b8")
-			}
+			sb.WriteString(htmlEscape(treeToggleText(open, tv)))
 			sb.WriteString("</button>")
 		} else {
 			sb.WriteString("<span class=\"sui-tree-spacer\"></span>")
@@ -4084,7 +4152,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 				sb.WriteString(" hidden")
 			}
 			sb.WriteString(">\n")
-			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, treeIcon, treeIconOpen, columns, columnWidths, sortDir, fontStep)
+			writeStaticTreeItems(sb, kids, ind+"    ", level+1, path, guides, checkbox, counts, tv, columns, columnWidths, sortDir, fontStep)
 			sb.WriteString(ind + "  </ul>\n")
 		}
 		sb.WriteString(ind + "</li>\n")
