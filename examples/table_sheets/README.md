@@ -13,9 +13,10 @@ columns, sorting, filtering, pagination, selection and validated editing.
   `columnTypes`, `columnFormats` and `columnOptions`.
 - `sortable` header sorting, `filterable` text filter and `pageSize`.
 - The **gear at the table's top-right** opens the runtime settings panel:
-  per-column header filters, header sorting and multi-column sort levels.
-  Toggle filters on, type in a header field, then add several sort levels in
-  the panel to reproduce Excel's filter and multi-sort behavior.
+  header sorting and multi-column sort levels. Each header also has a funnel
+  button that opens a searchable checklist of column values (Select All,
+  Clear Filter, Apply). Toggle filters on, pick values, then add several sort
+  levels in the panel to reproduce Excel's filter and multi-sort behavior.
 - Row selection with `selection: "row"` and `multiSelect: true`.
 - Editable order cells with number/currency validation.
 - `onTableChange`, `onCellChange` and `table.lastChange`.

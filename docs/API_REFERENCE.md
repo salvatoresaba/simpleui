@@ -2280,10 +2280,15 @@ All handlers take no arguments; details come from `table.lastChange(name)`.
 A named table shows a small gear at its top-right. Clicking it opens the table
 settings panel:
 
-- **Filter on column headers**: every header cell gets a text field; rows are
-  filtered by that column's value. Multiple column filters combine with AND.
-- **Sort by clicking headers**: click a header to cycle ascending, descending
-  and original order. Ctrl/Command/Shift+click adds or toggles a sort level.
+- **Filter on column headers**: each header gets a small funnel button aligned
+  right, on the same line as the label. It opens an Excel-like panel with a
+  search box, a **(Select All)** checkbox, the unique column values in
+  alphabetical order with checkboxes, and **Clear Filter** / **Apply**. Multiple
+  column filters combine with AND.
+- **Sort by clicking headers**: each header has a small sort button aligned
+  right, on the same line as the label. It cycles ascending, descending and
+  original order. Clicking the header text does the same; Ctrl/Command/Shift
+  adds or toggles a sort level.
 - **Sort levels**: an ordered list of column/direction pairs. Rows are sorted by
   the first level, ties are broken by the next, like an Excel multi-column sort.
 - **Clear filters** and **Clear sort** reset the runtime state.

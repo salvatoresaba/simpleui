@@ -96,7 +96,8 @@ const tableRuntimeE2EScript = `<script>
     var toggles = cfgPanel.querySelectorAll('input[type=checkbox]');
     if (toggles.length !== 2) throw new Error('table settings toggles missing');
     if (!toggles[0].checked) throw new Error('filter toggle must follow filterable');
-    if (!table('users').querySelector('.sui-table-colfilter')) throw new Error('header column filter missing');
+    if (!table('users').querySelector('.sui-table-filterbtn')) throw new Error('header filter button missing');
+    if (!table('users').querySelector('.sui-table-sortbtn')) throw new Error('header sort button missing');
     cfgPanel.querySelector('.sui-table-cfg-close').click();
     await wait(200);
     if (document.querySelector('.sui-table-cfg')) throw new Error('settings panel did not close');
@@ -107,6 +108,54 @@ const tableRuntimeE2EScript = `<script>
     if (rows('users')[0].children[2].textContent !== 'paused') throw new Error('column filter selected wrong rows');
     window.__SUI_TBL.filter('users', 'status', '');
     await wait(250);
+
+    // Excel-like value filter popup: search, Select All, value checkboxes,
+    // Clear Filter and Apply.
+    var statusTh = Array.prototype.slice.call(table('users').querySelectorAll('thead th')).filter(function(th){
+      var l = th.querySelector('.sui-table-hlabel');
+      return (l ? l.textContent : th.textContent) === 'Status';
+    })[0];
+    if (!statusTh) throw new Error('status header missing');
+    var fbtn = statusTh.querySelector('.sui-table-filterbtn');
+    if (!fbtn) throw new Error('status filter button missing');
+    fbtn.click();
+    await wait(300);
+    var fpop = document.querySelector('.sui-table-fpop');
+    if (!fpop) throw new Error('filter popup missing');
+    if (fpop.querySelectorAll('.sui-table-fpop-item').length < 3) throw new Error('filter values missing');
+    var fsearch = fpop.querySelector('.sui-table-fpop-search');
+    if (!fsearch) throw new Error('filter search missing');
+    fsearch.value = 'pau';
+    fsearch.dispatchEvent(new Event('input', { bubbles: true }));
+    await wait(150);
+    var visibleValues = Array.prototype.slice.call(fpop.querySelectorAll('.sui-table-fpop-item')).filter(function(r){ return r.style.display !== 'none'; });
+    if (visibleValues.length !== 2) throw new Error('filter search did not narrow: ' + visibleValues.length);
+    fsearch.value = '';
+    fsearch.dispatchEvent(new Event('input', { bubbles: true }));
+    await wait(150);
+    var fitems = Array.prototype.slice.call(fpop.querySelectorAll('.sui-table-fpop-item'));
+    var activeRow = fitems.filter(function(r){ var l = r.querySelector('.sui-table-fpop-lbl'); return l && l.textContent === 'active'; })[0];
+    if (!activeRow) throw new Error('active filter value missing');
+    var activeChk = activeRow.querySelector('input');
+    activeChk.checked = false;
+    activeChk.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(100);
+    var applyBtn = Array.prototype.slice.call(fpop.querySelectorAll('button')).filter(function(b){ return b.textContent === 'Apply'; })[0];
+    if (!applyBtn) throw new Error('filter apply missing');
+    applyBtn.click();
+    await wait(400);
+    if (document.querySelector('.sui-table-fpop')) throw new Error('filter popup did not close');
+    if (rows('users').length !== 1) throw new Error('value filter rows wrong: ' + rows('users').length);
+    if (rows('users')[0].children[2].textContent !== 'paused') throw new Error('value filter selected wrong rows');
+    fbtn = table('users').querySelector('thead th:nth-child(3) .sui-table-filterbtn');
+    fbtn.click();
+    await wait(250);
+    fpop = document.querySelector('.sui-table-fpop');
+    var clearFilter = fpop ? Array.prototype.slice.call(fpop.querySelectorAll('button')).filter(function(b){ return b.textContent === 'Clear Filter'; })[0] : null;
+    if (!clearFilter) throw new Error('filter clear missing');
+    clearFilter.click();
+    await wait(400);
+    if (rows('users').length !== 2) throw new Error('value filter clear failed: ' + rows('users').length);
 
     gear = document.querySelector('.sui-table-tools .sui-table-settings');
     gear.click();

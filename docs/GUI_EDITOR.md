@@ -1163,7 +1163,8 @@ new sheet to the existing workbook) and selects the new table.
 New tables are named automatically (`table1`, `table2`, ...), so their runtime
 settings gear and `table.*` helpers are immediately available. The gear opens
 the Excel-like panel described in **API reference → Runtime table settings**:
-per-column header filters, header sorting and multi-column sort levels.
+header sorting, multi-column sort levels and a funnel filter button in each
+header that opens a searchable checklist of column values.
 
 ### Table selection
 

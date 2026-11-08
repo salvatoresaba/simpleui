@@ -1208,8 +1208,9 @@ un nuovo sheet) e seleziona la nuova tabella.
 Le nuove tabelle sono nominate automaticamente (`table1`, `table2`, ...), quindi
 l'ingranaggio delle impostazioni runtime e gli helper `table.*` sono subito
 disponibili. L'ingranaggio apre il pannello in stile Excel descritto in
-**API reference → Impostazioni tabella runtime**: filtri per colonna
-nell'header, ordinamento da header e livelli di ordinamento multi-colonna.
+**API reference → Impostazioni tabella runtime**: ordinamento da header, livelli
+multi-colonna e un pulsante a imbuto in ogni header che apre una checklist
+ricercabile dei valori della colonna.
 
 ### Selezione tabella
 

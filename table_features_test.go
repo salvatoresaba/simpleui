@@ -83,7 +83,8 @@ view main {
 		`function sort(`, `function filter(`, `function filterText(`, `function page(`,
 		`function setPageSize(`, `function selectedRows(`, `function selectedCells(`,
 		`function lastChange(`, `sui-table-filter`, `sui-table-pager`, `sui-table-struct-menu`, `sui-table-add`, `table_sort`,
-		`sui-table-settings`, `sui-table-cfg`, `sui-table-colfilter`, `sortKeys`, `Filter on column headers`,
+		`sui-table-settings`, `sui-table-cfg`, `sui-table-filterbtn`, `sui-table-sortbtn`, `sui-table-fpop`, `sortKeys`,
+		`columnValuePairs`, `colValueFilters`, `Filter on column headers`, `(Select All)`, `Clear Filter`,
 		`Sort levels`, `+ Add level`, `Clear filters`, `Clear sort`, `rowIds`, `headCells`,
 	} {
 		if want == "table_sort" {

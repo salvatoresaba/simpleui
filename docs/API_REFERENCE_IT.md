@@ -2158,12 +2158,15 @@ dettagli sono in `table.lastChange(name)`.
 Una tabella con `name` mostra un piccolo ingranaggio in alto a destra. Un click
 apre il pannello delle impostazioni:
 
-- **Filter on column headers**: ogni cella di intestazione ottiene un campo
-  testo; le righe vengono filtrate per il valore di quella colonna. Più filtri
-  di colonna si combinano in AND.
-- **Sort by clicking headers**: un click sull'header cicla crescente,
-  decrescente e ordine originale. Ctrl/Command/Shift+click aggiunge o attiva/
-  disattiva un livello di ordinamento.
+- **Filter on column headers**: ogni intestazione ha un piccolo pulsante a
+  imbuto allineato a destra, sulla stessa riga del testo. Apre un pannello in
+  stile Excel con search box, checkbox **(Select All)**, i valori unici della
+  colonna in ordine alfabetico con checkbox e i pulsanti **Clear Filter** /
+  **Apply**. Più filtri di colonna si combinano in AND.
+- **Sort by clicking headers**: ogni intestazione ha un piccolo pulsante di
+  ordinamento allineato a destra, sulla stessa riga del testo. Cicla crescente,
+  decrescente e ordine originale. Anche il click sul testo dell'header ordina;
+  Ctrl/Command/Shift aggiunge o attiva/disattiva un livello di ordinamento.
 - **Sort levels**: elenco ordinato di coppie colonna/direzione. Le righe sono
   ordinate per il primo livello, i pareggi sono risolti dal successivo, come un
   ordinamento multi-colonna di Excel.

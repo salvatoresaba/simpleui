@@ -1809,9 +1809,18 @@ td.sui-table-invalid, th.sui-table-invalid { background: rgba(239,68,68,.18); bo
 .sui-table-tools { position: sticky; top: 6px; height: 0; text-align: right; z-index: 25; pointer-events: none; }
 .sui-table-settings { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin: 0 6px 0 0; padding: 0; border: 1px solid var(--sui-border, #3d4556); border-radius: 6px; background: var(--sui-panel, #202732); color: var(--sui-muted, #8fa0b8); font: inherit; font-size: 14px; line-height: 1; cursor: pointer; opacity: .72; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 .sui-table-settings:hover, .sui-table-settings:focus, .sui-table-settings[aria-expanded="true"] { opacity: 1; color: var(--sui-fg, #f2f4f6); border-color: #4c5cf7; outline: none; }
-.sui-table-hlabel { display: inline-block; }
-.sui-table-colfilter { display: block; box-sizing: border-box; width: 100%; margin-top: 4px; padding: 3px 6px; font: inherit; font-size: 11px; font-weight: 400; color: var(--sui-fg, #f2f4f6); background: var(--sui-input-bg, #14171c); border: 1px solid var(--sui-border, #3d4556); border-radius: 5px; }
-.sui-table-colfilter:focus { outline: 2px solid #4c5cf7; outline-offset: 1px; }
+.sui-table-hwrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sui-table-hlabel { flex: 1 1 auto; min-width: 0; }
+.sui-table-hbtns { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.sui-table-filterbtn, .sui-table-sortbtn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; opacity: .55; cursor: pointer; font: inherit; }
+.sui-table-filterbtn:hover, .sui-table-sortbtn:hover, .sui-table-filterbtn:focus, .sui-table-sortbtn:focus { opacity: 1; background: rgba(127,127,127,.18); outline: none; }
+.sui-table-filterbtn.active { opacity: 1; color: #4c5cf7; }
+.sui-table-filterbtn::before { content: ""; display: block; width: 11px; height: 9px; background: currentColor; clip-path: polygon(0 0, 100% 0, 62% 46%, 62% 100%, 38% 80%, 38% 46%); }
+.sui-table-sortbtn { font-size: 9px; line-height: 1; }
+.sui-table-sortbtn::before { display: block; font-size: 9px; line-height: 1; }
+.sui-table-sortbtn.asc::before { content: "\25B2"; }
+.sui-table-sortbtn.desc::before { content: "\25BC"; }
+.sui-table-sortbtn.none::before { content: "\21C5"; }
 th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 th[data-sort-rank]::before { content: attr(data-sort-rank); display: inline-block; min-width: 12px; margin-right: 3px; padding: 0 3px; border-radius: 6px; background: #4c5cf7; color: #fff; font-size: 9px; line-height: 12px; text-align: center; vertical-align: middle; }
 .sui-table-cfg { position: fixed; z-index: 10050; width: 336px; max-width: calc(100vw - 16px); max-height: min(72vh, 540px); overflow: auto; padding: 10px 12px 12px; background: var(--sui-panel, #1d2129); color: var(--sui-fg, #e6e6ef); border: 1px solid var(--sui-border, #475569); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.5); font-size: 12px; }
@@ -1830,6 +1839,20 @@ th[data-sort-rank]::before { content: attr(data-sort-rank); display: inline-bloc
 .sui-table-cfg-btn:hover { border-color: #4c5cf7; }
 .sui-table-cfg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .sui-table-cfg-empty { margin: 4px 0; color: var(--sui-muted, #8fa0b8); font-size: 11px; }
+.sui-table-fpop { position: fixed; z-index: 10060; width: 240px; max-width: calc(100vw - 16px); max-height: 380px; display: flex; flex-direction: column; padding: 10px; background: var(--sui-panel, #1d2129); color: var(--sui-fg, #e6e6ef); border: 1px solid var(--sui-border, #475569); border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.45); font-size: 12px; }
+.sui-table-fpop-title { font-weight: 700; margin-bottom: 6px; }
+.sui-table-fpop-search { box-sizing: border-box; width: 100%; margin-bottom: 6px; padding: 5px 7px; font: inherit; font-size: 12px; color: var(--sui-fg, #e6e6ef); background: var(--sui-input-bg, #14171c); border: 1px solid var(--sui-border, #3d4556); border-radius: 4px; }
+.sui-table-fpop-search:focus { outline: 2px solid #4c5cf7; outline-offset: 1px; }
+.sui-table-fpop-list { flex: 1 1 auto; min-height: 48px; max-height: 240px; overflow: auto; padding: 4px 0; border-top: 1px solid var(--sui-border, #3d4556); border-bottom: 1px solid var(--sui-border, #3d4556); }
+.sui-table-fpop-item { display: flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 4px; cursor: pointer; user-select: none; }
+.sui-table-fpop-item:hover { background: rgba(76,92,247,.14); }
+.sui-table-fpop-item input { flex: 0 0 auto; margin: 0; }
+.sui-table-fpop-lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sui-table-fpop-empty { padding: 4px; color: var(--sui-muted, #8fa0b8); }
+.sui-table-fpop-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.sui-table-fpop-btn { box-sizing: border-box; padding: 4px 8px; font: inherit; font-size: 11px; color: var(--sui-fg, #e6e6ef); background: var(--sui-input-bg, #14171c); border: 1px solid var(--sui-border, #3d4556); border-radius: 5px; cursor: pointer; }
+.sui-table-fpop-btn:hover { border-color: #4c5cf7; }
+.sui-table-fpop-btn:focus { outline: 2px solid #4c5cf7; outline-offset: 1px; }
 .sui-table-struct-menu { position: fixed; z-index: 10045; min-width: 190px; padding: 4px; background: var(--sui-panel, #1d2129); border: 1px solid var(--sui-border, #475569); border-radius: 7px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
 .sui-table-struct-item { display: block; width: 100%; text-align: left; border: 0; border-radius: 5px; background: transparent; color: var(--sui-fg, #e6e6ef); padding: 5px 8px; font: inherit; font-size: 12px; cursor: pointer; }
 .sui-table-struct-item:hover, .sui-table-struct-item:focus { background: rgba(76,92,247,.25); outline: none; }
@@ -2268,7 +2291,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   function tableStore(name){
     if (!store[name]) store[name] = { header: [], allRows: [], rows: [], page: 0,
       sortCol: null, sortDir: '', sortKeys: [], filter: '', colFilter: null,
-      colFilters: {}, filtersOn: null, sortOn: null,
+      colFilters: {}, colValueFilters: {}, filtersOn: null, sortOn: null,
       selectedRows: {}, selectedCells: {}, selectedCols: {} };
     return store[name];
   }
@@ -2353,6 +2376,18 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var cfv = String(cf[cfk] === undefined || cf[cfk] === null ? '' : cf[cfk]).toLowerCase();
       if (cfIdx >= 0 && cfv) {
         rows = rows.filter(function(r){ return String(r[cfIdx] === undefined ? '' : r[cfIdx]).toLowerCase().indexOf(cfv) >= 0; });
+      }
+    }
+    // Excel-like value filters from the header filter popup: exact membership.
+    var cvf = st.colValueFilters || {};
+    for (var cvk in cvf) {
+      if (!Object.prototype.hasOwnProperty.call(cvf, cvk)) continue;
+      var cvIdx = parseInt(cvk, 10);
+      var selected = cvf[cvk] || [];
+      if (cvIdx >= 0) {
+        rows = rows.filter(function(r){
+          return selected.indexOf(String(r[cvIdx] === undefined ? '' : r[cvIdx])) >= 0;
+        });
       }
     }
     var keys = sortKeysOf(st);
@@ -2681,6 +2716,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     return cells;
   }
   function applyTo(tbl, ds){
+    if (tableFilterPop && tableFilterPop.name === tableName(tbl)) closeTableFilterPop();
     var t = templates(tbl);
     var n = 0, i, j;
     var hr = tbl.querySelector('thead tr');
@@ -2961,6 +2997,37 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     });
     if (tbl.parentNode) tbl.parentNode.insertBefore(btn, tbl.nextSibling);
   }
+  function applyHeaderSort(name, tbl, idx, cell, addLevel){
+    var st = tableStore(name);
+    var cfg = cfgOf(tbl);
+    if (cfg.selection === 'column') {
+      // The caller already handled plain column selection clicks.
+    }
+    if (!st.sortOn) return;
+    var keys = sortKeysOf(st).map(function(k){ return { col: k.col, dir: k.dir }; });
+    var pos = -1;
+    for (var q = 0; q < keys.length; q++) if (keys[q].col === idx) { pos = q; break; }
+    if (addLevel) {
+      if (pos >= 0) {
+        if (keys[pos].dir === 'asc') keys[pos].dir = 'desc';
+        else keys.splice(pos, 1);
+      } else keys.push({ col: idx, dir: 'asc' });
+    } else if (keys.length === 1 && pos === 0) {
+      keys = keys[0].dir === 'asc' ? [{ col: idx, dir: 'desc' }] : [];
+    } else {
+      keys = [{ col: idx, dir: 'asc' }];
+    }
+    setSortKeys(st, keys);
+    st.page = 0;
+    clearSelection(st);
+    var lbl = cell.querySelector('.sui-table-hlabel');
+    recordChange(name, { op: 'sort', column: idx, dir: keys.length ? keys[keys.length - 1].dir : '',
+      keys: keys.map(function(k){ return { column: k.col, dir: k.dir }; }),
+      label: lbl ? lbl.textContent : cell.textContent });
+    renderName(name);
+    fireTableEvent(name, 'onsort');
+    fireTableEvent(name, 'ontablechange');
+  }
   function decorateTable(tbl, st, cfg){
     var name = tableName(tbl);
     if (st.filtersOn === null || st.filtersOn === undefined) st.filtersOn = !!cfg.filterable;
@@ -2970,27 +3037,35 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     for (var h = 0; h < hrCells.length; h++) {
       var hc = hrCells[h];
       hc.setAttribute('data-col', String(h));
-      var hlabel = hc.querySelector('.sui-table-hlabel');
-      if (!hlabel && hc.children.length === 0) {
-        var rawLabel = hc.textContent;
-        hc.textContent = '';
+      var hwrap = hc.querySelector('.sui-table-hwrap');
+      if (!hwrap) {
+        hwrap = document.createElement('div');
+        hwrap.className = 'sui-table-hwrap';
+        while (hc.firstChild) hwrap.appendChild(hc.firstChild);
+        hc.appendChild(hwrap);
+      }
+      var hlabel = hwrap.querySelector('.sui-table-hlabel');
+      if (!hlabel) {
         hlabel = document.createElement('span');
         hlabel.className = 'sui-table-hlabel';
-        hlabel.textContent = rawLabel;
-        hc.appendChild(hlabel);
+        var moveNodes = [];
+        for (var mi = 0; mi < hwrap.childNodes.length; mi++) {
+          var mn = hwrap.childNodes[mi];
+          if (mn.classList && mn.classList.contains('sui-table-hbtns')) continue;
+          moveNodes.push(mn);
+        }
+        for (var mj = 0; mj < moveNodes.length; mj++) hlabel.appendChild(moveNodes[mj]);
+        hwrap.insertBefore(hlabel, hwrap.firstChild);
       }
-      if (cfg.labels[h] && !st.__colStruct) {
-        if (hlabel) hlabel.textContent = cfg.labels[h];
-        else hc.textContent = cfg.labels[h];
-      }
+      if (cfg.labels[h] && !st.__colStruct) hlabel.textContent = cfg.labels[h];
       if (cfg.widths[h] > 0) { hc.style.width = cfg.widths[h] + 'px'; hc.style.minWidth = cfg.widths[h] + 'px'; }
-      if (cfg.align[h]) hc.style.textAlign = cfg.align[h];
+      hlabel.style.textAlign = cfg.align[h] || '';
       hc.classList.toggle('sui-table-sortable', !!st.sortOn);
       if (st.sortOn) hc.setAttribute('tabindex', '0'); else hc.removeAttribute('tabindex');
       if (!hc.__suiSortBound) {
         hc.__suiSortBound = true;
         hc.addEventListener('click', function(ev){
-          if (ev.target && ev.target.closest && ev.target.closest('.sui-table-colfilter')) return;
+          if (ev.target && ev.target.closest && ev.target.closest('.sui-table-hbtns')) return;
           var cell = ev.currentTarget;
           var idx = parseInt(cell.getAttribute('data-col'), 10) || 0;
           var st2 = tableStore(name);
@@ -3000,29 +3075,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
             return;
           }
           if (!st2.sortOn) return;
-          var keys = sortKeysOf(st2).map(function(k){ return { col: k.col, dir: k.dir }; });
-          var addLevel = ev.ctrlKey || ev.metaKey || ev.shiftKey;
-          var pos = -1;
-          for (var q = 0; q < keys.length; q++) if (keys[q].col === idx) { pos = q; break; }
-          if (addLevel) {
-            if (pos >= 0) {
-              if (keys[pos].dir === 'asc') keys[pos].dir = 'desc';
-              else keys.splice(pos, 1);
-            } else keys.push({ col: idx, dir: 'asc' });
-          } else if (keys.length === 1 && pos === 0) {
-            keys = keys[0].dir === 'asc' ? [{ col: idx, dir: 'desc' }] : [];
-          } else {
-            keys = [{ col: idx, dir: 'asc' }];
-          }
-          setSortKeys(st2, keys);
-          st2.page = 0; clearSelection(st2);
-          var lbl = cell.querySelector('.sui-table-hlabel');
-          recordChange(name, { op: 'sort', column: idx, dir: keys.length ? keys[keys.length - 1].dir : '',
-            keys: keys.map(function(k){ return { column: k.col, dir: k.dir }; }),
-            label: lbl ? lbl.textContent : cell.textContent });
-          renderName(name);
-          fireTableEvent(name, 'onsort');
-          fireTableEvent(name, 'ontablechange');
+          applyHeaderSort(name, tbl, idx, cell, ev.ctrlKey || ev.metaKey || ev.shiftKey);
         });
       }
       var sortKeys = sortKeysOf(st);
@@ -3035,6 +3088,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       hc.classList.toggle('sui-table-sort-desc', sortDir === 'desc');
       if (sortRank >= 0 && sortKeys.length > 1) hc.setAttribute('data-sort-rank', String(sortRank + 1));
       else hc.removeAttribute('data-sort-rank');
+      ensureHeaderTools(hc, hwrap, hlabel, tbl, name, h, st, cfg, sortDir);
       if (cfg.structureEditable && !hc.__suiStructBound) {
         hc.__suiStructBound = true;
         hc.addEventListener('contextmenu', function(ev){
@@ -3105,7 +3159,6 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         }
       }
     }
-    ensureColumnFilters(tbl, name, st, cfg);
     ensureTableTools(tbl, name);
   }
   function ensureFilterInput(tbl, name, st, cfg){
@@ -3157,51 +3210,225 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     }
     return out;
   }
-  function ensureColumnFilters(tbl, name, st, cfg){
-    var hr = tbl.querySelector('thead tr');
-    if (!hr) return;
-    var cells = cellsOf(hr);
-    for (var i = 0; i < cells.length; i++) {
-      var c = cells[i];
-      var inp = c.querySelector('.sui-table-colfilter');
-      if (!st.filtersOn) {
-        if (inp && inp.parentNode) inp.parentNode.removeChild(inp);
-        c.classList.remove('sui-table-filter-active');
-        continue;
-      }
-      if (!inp) {
-        inp = document.createElement('input');
-        inp.type = 'text';
-        inp.className = 'sui-table-colfilter';
-        inp.setAttribute('placeholder', 'Filter');
-        inp.setAttribute('aria-label', 'Filter column ' + (i + 1));
-        inp.addEventListener('click', function(ev){ ev.stopPropagation(); });
-        inp.addEventListener('input', function(ev){
-          var input = ev.currentTarget;
-          var cell = input.parentNode;
-          var col = parseInt(cell.getAttribute('data-col'), 10) || 0;
-          var st2 = tableStore(name);
-          colFiltersOf(st2)[col] = input.value;
-          st2.page = 0;
-          clearSelection(st2);
-          renderName(name);
-        });
-        inp.addEventListener('keydown', function(ev){
-          if (ev.key === 'Escape') {
-            ev.currentTarget.value = '';
-            var cell = ev.currentTarget.parentNode;
-            var col = parseInt(cell.getAttribute('data-col'), 10) || 0;
-            var st2 = tableStore(name);
-            delete colFiltersOf(st2)[col];
-            renderName(name);
-          }
-        });
-        c.appendChild(inp);
-      }
-      var active = !!(colFiltersOf(st)[i] && String(colFiltersOf(st)[i]).length);
-      c.classList.toggle('sui-table-filter-active', active);
-      if (document.activeElement !== inp) inp.value = active ? String(colFiltersOf(st)[i]) : '';
+  function hasValueFilter(st, col){
+    return Object.prototype.hasOwnProperty.call(st.colValueFilters || {}, String(col));
+  }
+  function columnValuePairs(tbl, name, col, cfg){
+    var st = tableStore(name), seen = {}, out = [];
+    function add(v){
+      var raw = String(v === undefined || v === null ? '' : v);
+      if (Object.prototype.hasOwnProperty.call(seen, raw)) return;
+      seen[raw] = 1;
+      var label = raw === '' ? '(Blanks)' : formatValue(raw, cfg.formats[col]);
+      out.push({ raw: raw, label: label === '' ? '(Blanks)' : label });
     }
+    var rows = st.allRows && st.allRows.length ? st.allRows : null;
+    if (rows) {
+      for (var i = 0; i < rows.length; i++) add(rows[i][col]);
+    } else {
+      var tb = tbl.tBodies && tbl.tBodies[0];
+      if (tb) {
+        for (var r = 0; r < tb.rows.length; r++) {
+          var c = tb.rows[r].cells[col];
+          if (!c) continue;
+          var rawAttr = c.getAttribute('data-sui-raw');
+          add(rawAttr !== null ? rawAttr : c.textContent);
+        }
+      }
+    }
+    out.sort(function(a, b){
+      if (a.raw === '') return 1;
+      if (b.raw === '') return -1;
+      return a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    return out;
+  }
+  var tableFilterPop = null;
+  function closeTableFilterPop(){
+    if (!tableFilterPop) return;
+    if (tableFilterPop.el && tableFilterPop.el.parentNode) tableFilterPop.el.parentNode.removeChild(tableFilterPop.el);
+    if (tableFilterPop.btn) tableFilterPop.btn.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', tableFilterPop.outside, true);
+    document.removeEventListener('keydown', tableFilterPop.esc, true);
+    window.removeEventListener('resize', tableFilterPop.resize);
+    window.removeEventListener('scroll', tableFilterPop.resize, true);
+    tableFilterPop = null;
+  }
+  function openTableFilterPop(btn, tbl, name, col){
+    closeTableFilterPop();
+    var st = tableStore(name), cfg = cfgOf(tbl);
+    if (!st.colValueFilters) st.colValueFilters = {};
+    var pairs = columnValuePairs(tbl, name, col, cfg);
+    var allValues = pairs.map(function(p){ return p.raw; });
+    var active = hasValueFilter(st, col);
+    var selected = active ? (st.colValueFilters[String(col)] || []).slice() : null;
+    var el = cfgEl('div', 'sui-table-fpop');
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', 'Filter column');
+    el.appendChild(cfgEl('div', 'sui-table-fpop-title', 'Filter'));
+    var search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'sui-table-fpop-search';
+    search.setAttribute('placeholder', 'Search');
+    search.setAttribute('aria-label', 'Search filter values');
+    el.appendChild(search);
+    var list = cfgEl('div', 'sui-table-fpop-list');
+    el.appendChild(list);
+    var allRow = cfgEl('div', 'sui-table-fpop-item');
+    var allChk = document.createElement('input');
+    allChk.type = 'checkbox';
+    allChk.setAttribute('aria-label', 'Select all');
+    allRow.appendChild(allChk);
+    allRow.appendChild(cfgEl('span', 'sui-table-fpop-lbl', '(Select All)'));
+    list.appendChild(allRow);
+    var rows = [];
+    pairs.forEach(function(pair){
+      var row = cfgEl('div', 'sui-table-fpop-item');
+      var chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.setAttribute('aria-label', 'Filter value ' + pair.label);
+      chk.checked = !active || selected.indexOf(pair.raw) >= 0;
+      var lbl = cfgEl('span', 'sui-table-fpop-lbl', pair.label);
+      lbl.title = pair.label;
+      row.appendChild(chk);
+      row.appendChild(lbl);
+      row.__pair = pair;
+      row.__chk = chk;
+      row.addEventListener('click', function(ev){
+        if (ev.target !== chk) chk.checked = !chk.checked;
+        updateAll();
+      });
+      chk.addEventListener('change', updateAll);
+      list.appendChild(row);
+      rows.push(row);
+    });
+    if (!pairs.length) list.appendChild(cfgEl('div', 'sui-table-fpop-empty', '(No values)'));
+    function visibleRows(){
+      return rows.filter(function(row){ return row.style.display !== 'none'; });
+    }
+    function updateAll(){
+      var vis = visibleRows(), checked = 0;
+      vis.forEach(function(row){ if (row.__chk.checked) checked++; });
+      allChk.checked = vis.length > 0 && checked === vis.length;
+      allChk.indeterminate = checked > 0 && checked < vis.length;
+    }
+    allChk.addEventListener('change', function(){
+      var target = allChk.checked;
+      visibleRows().forEach(function(row){ row.__chk.checked = target; });
+      updateAll();
+    });
+    search.addEventListener('input', function(){
+      var q = search.value.toLowerCase();
+      rows.forEach(function(row){
+        var match = !q || row.__pair.label.toLowerCase().indexOf(q) >= 0;
+        row.style.display = match ? '' : 'none';
+      });
+      updateAll();
+    });
+    var actions = cfgEl('div', 'sui-table-fpop-actions');
+    var clear = cfgEl('button', 'sui-table-fpop-btn', 'Clear Filter');
+    clear.type = 'button';
+    clear.addEventListener('click', function(){
+      var st2 = tableStore(name);
+      delete st2.colValueFilters[String(col)];
+      st2.page = 0;
+      clearSelection(st2);
+      closeTableFilterPop();
+      renderName(name);
+    });
+    var apply = cfgEl('button', 'sui-table-fpop-btn', 'Apply');
+    apply.type = 'button';
+    apply.addEventListener('click', function(){
+      var st2 = tableStore(name), chosen = [];
+      rows.forEach(function(row){ if (row.__chk.checked) chosen.push(row.__pair.raw); });
+      if (chosen.length === allValues.length) delete st2.colValueFilters[String(col)];
+      else st2.colValueFilters[String(col)] = chosen;
+      st2.page = 0;
+      clearSelection(st2);
+      closeTableFilterPop();
+      renderName(name);
+    });
+    actions.appendChild(clear);
+    actions.appendChild(apply);
+    el.appendChild(actions);
+    document.body.appendChild(el);
+    var outside = function(ev){
+      if (!tableFilterPop) return;
+      if (el.contains(ev.target) || btn.contains(ev.target)) return;
+      closeTableFilterPop();
+    };
+    var esc = function(ev){ if (ev.key === 'Escape') closeTableFilterPop(); };
+    var resize = function(){ closeTableFilterPop(); };
+    tableFilterPop = { el: el, btn: btn, name: name, col: col, outside: outside, esc: esc, resize: resize };
+    btn.setAttribute('aria-expanded', 'true');
+    updateAll();
+    var r = btn.getBoundingClientRect();
+    el.style.left = Math.max(8, Math.min(window.innerWidth - el.offsetWidth - 8, r.right - el.offsetWidth)) + 'px';
+    var top = r.bottom + 4;
+    if (top + el.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - el.offsetHeight - 4);
+    el.style.top = top + 'px';
+    setTimeout(function(){ document.addEventListener('click', outside, true); }, 0);
+    document.addEventListener('keydown', esc, true);
+    window.addEventListener('resize', resize);
+    window.addEventListener('scroll', resize, true);
+    search.focus();
+  }
+  function ensureHeaderTools(hc, hwrap, hlabel, tbl, name, col, st, cfg, sortDir){
+    var hbtns = hwrap.querySelector('.sui-table-hbtns');
+    if (!hbtns) {
+      hbtns = document.createElement('span');
+      hbtns.className = 'sui-table-hbtns';
+      hwrap.appendChild(hbtns);
+    }
+    var fbtn = hbtns.querySelector('.sui-table-filterbtn');
+    if (st.filtersOn) {
+      if (!fbtn) {
+        fbtn = document.createElement('button');
+        fbtn.type = 'button';
+        fbtn.className = 'sui-table-filterbtn';
+        fbtn.addEventListener('click', function(ev){
+          ev.preventDefault();
+          ev.stopPropagation();
+          var c = parseInt(hc.getAttribute('data-col'), 10) || 0;
+          if (tableFilterPop && tableFilterPop.btn === fbtn) { closeTableFilterPop(); return; }
+          openTableFilterPop(fbtn, tbl, name, c);
+        });
+        hbtns.appendChild(fbtn);
+      }
+      var active = hasValueFilter(st, col);
+      fbtn.classList.toggle('active', active);
+      fbtn.title = active ? 'Filter (active)' : 'Filter';
+      fbtn.setAttribute('aria-label', 'Filter column ' + (col + 1));
+      fbtn.setAttribute('aria-expanded', (tableFilterPop && tableFilterPop.btn === fbtn) ? 'true' : 'false');
+    } else if (fbtn && fbtn.parentNode) {
+      if (tableFilterPop && tableFilterPop.btn === fbtn) closeTableFilterPop();
+      fbtn.parentNode.removeChild(fbtn);
+    }
+    var sbtn = hbtns.querySelector('.sui-table-sortbtn');
+    if (st.sortOn) {
+      if (!sbtn) {
+        sbtn = document.createElement('button');
+        sbtn.type = 'button';
+        sbtn.className = 'sui-table-sortbtn';
+        sbtn.addEventListener('click', function(ev){
+          ev.preventDefault();
+          ev.stopPropagation();
+          var c = parseInt(hc.getAttribute('data-col'), 10) || 0;
+          applyHeaderSort(name, tbl, c, hc, ev.ctrlKey || ev.metaKey || ev.shiftKey);
+        });
+        hbtns.appendChild(sbtn);
+      }
+      sbtn.textContent = '';
+      sbtn.classList.toggle('asc', sortDir === 'asc');
+      sbtn.classList.toggle('desc', sortDir === 'desc');
+      sbtn.classList.toggle('none', sortDir !== 'asc' && sortDir !== 'desc');
+      sbtn.title = sortDir === 'asc' ? 'Sorted ascending' : sortDir === 'desc' ? 'Sorted descending' : 'Sort column';
+      sbtn.setAttribute('aria-label', (sortDir === 'asc' ? 'Sort column descending' : sortDir === 'desc' ? 'Clear sort' : 'Sort column ascending') + ' (' + (col + 1) + ')');
+    } else if (sbtn && sbtn.parentNode) {
+      sbtn.parentNode.removeChild(sbtn);
+    }
+    if (!hbtns.children.length && hbtns.parentNode) hbtns.parentNode.removeChild(hbtns);
+    hc.classList.toggle('sui-table-filter-active', hasValueFilter(st, col));
   }
   function positionTableCfg(){
     if (!tableCfg) return;
@@ -3248,6 +3475,12 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     fchk.setAttribute('aria-label', 'Filter on column headers');
     fchk.addEventListener('change', function(){
       st.filtersOn = fchk.checked;
+      if (!st.filtersOn) {
+        st.colFilters = {};
+        st.colValueFilters = {};
+        st.colFilter = null;
+        closeTableFilterPop();
+      }
       st.page = 0;
       clearSelection(st);
       renderName(name);
@@ -3256,7 +3489,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     frow.appendChild(fchk);
     frow.appendChild(cfgEl('span', '', 'Filter on column headers'));
     box.appendChild(frow);
-    box.appendChild(cfgEl('div', 'sui-table-cfg-empty', 'Type in the header fields to filter rows by that column.'));
+    box.appendChild(cfgEl('div', 'sui-table-cfg-empty', 'Use the funnel button in each header to pick column values.'));
 
     var srow = cfgEl('div', 'sui-table-cfg-row');
     var schk = document.createElement('input');
@@ -3359,10 +3592,12 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     clearF.type = 'button';
     clearF.addEventListener('click', function(){
       st.colFilters = {};
+      st.colValueFilters = {};
       st.colFilter = null;
       st.filter = '';
       st.page = 0;
       clearSelection(st);
+      closeTableFilterPop();
       renderName(name);
       renderTableCfg();
     });
@@ -3575,6 +3810,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   function clear(name){
     delete store[name];
     if (tableCfg && tableCfg.name === name) closeTableCfg();
+    if (tableFilterPop && tableFilterPop.name === name) closeTableFilterPop();
     var ts = findTables(name);
     for (var i = 0; i < ts.length; i++) {
       var tb = ts[i].tBodies && ts[i].tBodies.length ? ts[i].tBodies[0] : null;
