@@ -108,6 +108,10 @@ view main {
 	if !strings.Contains(guiPreviewPicker, `bodyRow === 0`) {
 		t.Errorf("preview picker column zone must use the first body row")
 	}
+	// Hovering the row/column border must reveal the clickable strip.
+	if !strings.Contains(guiPreviewPicker, `sui-tzone`) || !strings.Contains(guiPreviewPicker, `TABLE_BORDER_ZONE`) {
+		t.Errorf("preview picker must show the row/column border hover strip")
+	}
 	for _, want := range []string{
 		`"Columns"`, `"Data view"`, `"from header"`, `"Use first row"`,
 		`sheet tabs`, `"Bottom (Excel-like)"`, `function tabsControls`,

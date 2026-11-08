@@ -1165,6 +1165,8 @@ new sheet to the existing workbook) and selects the new table.
 - Click a cell to select it.
 - Click the **top border of a column header** to select the column.
 - Click the **left border of a row** to select the row.
+- Hovering those borders shows a thin blue strip: it is the clickable zone
+  (slightly wider than the border itself) for the row or column.
 - **Shift+click** extends a cell/row/column range from the previous anchor.
 - **Ctrl/Command+click** toggles individual cells, rows or columns.
 - Drag from the left border to add contiguous rows; drag from a column header's

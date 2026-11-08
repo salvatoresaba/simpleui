@@ -1210,6 +1210,8 @@ un nuovo sheet) e seleziona la nuova tabella.
 - Click su una cella per selezionarla.
 - Click sul **bordo superiore dell'header di una colonna** per selezionare la colonna.
 - Click sul **bordo sinistro di una riga** per selezionare la riga.
+- Al passaggio del mouse su questi bordi compare una sottile striscia blu: è la
+  zona cliccabile (leggermente più larga del bordo) per riga o colonna.
 - **Shift+click** estende un intervallo di celle/righe/colonne dall'ancora precedente.
 - **Ctrl/Command+click** attiva/disattiva singole celle, righe o colonne.
 - Trascinare dal bordo sinistro aggiunge righe contigue; trascinare dal bordo

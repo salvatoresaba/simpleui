@@ -748,7 +748,7 @@ func fontMime(ext string) string {
 const guiPreviewPicker = `<script>
 (function () {
   var st = document.createElement('style');
-  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
+  st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; }';
   document.head.appendChild(st);
   var current = [];
   var handles = [];
@@ -758,6 +758,41 @@ const guiPreviewPicker = `<script>
   var marqueeOn = false;
   var mDown = null, mEl = null;
   var grid = document.createElement('div'); grid.className = 'sui-grid'; document.body.appendChild(grid);
+  // Width of the row/column border strip that can be clicked to select. The
+  // same value drives hit-testing and the hover overlay, so the highlighted
+  // area is exactly the clickable one.
+  var TABLE_BORDER_ZONE = 8;
+  var tableZoneEl = document.createElement('div'); tableZoneEl.className = 'sui-tzone'; document.body.appendChild(tableZoneEl);
+  function hideTableZone() { tableZoneEl.style.display = 'none'; }
+  function showTableZone(info, zone) {
+    if (!info || zone === 'cell') { hideTableZone(); return; }
+    var tableRect = info.table.getBoundingClientRect();
+    var cellRect = info.cell.getBoundingClientRect();
+    var rect;
+    if (zone === 'col') {
+      rect = { left: cellRect.left, top: cellRect.top, width: cellRect.width, height: TABLE_BORDER_ZONE };
+    } else {
+      var rowRect = info.cell.parentElement.getBoundingClientRect();
+      rect = { left: tableRect.left, top: rowRect.top, width: TABLE_BORDER_ZONE, height: rowRect.height };
+    }
+    // Keep the strip inside the scroll wrapper so it never paints over the
+    // designer canvas when the table is scrolled.
+    var wrap = info.table.closest ? info.table.closest('.tscroll') : null;
+    if (wrap) {
+      var wr = wrap.getBoundingClientRect();
+      var left = Math.max(rect.left, wr.left);
+      var top = Math.max(rect.top, wr.top);
+      var right = Math.min(rect.left + rect.width, wr.right);
+      var bottom = Math.min(rect.top + rect.height, wr.bottom);
+      if (right - left <= 0 || bottom - top <= 0) { hideTableZone(); return; }
+      rect = { left: left, top: top, width: right - left, height: bottom - top };
+    }
+    tableZoneEl.style.left = rect.left + 'px';
+    tableZoneEl.style.top = rect.top + 'px';
+    tableZoneEl.style.width = rect.width + 'px';
+    tableZoneEl.style.height = rect.height + 'px';
+    tableZoneEl.style.display = 'block';
+  }
   function applyGrid() {
     if (!guidesOn) { grid.style.display = 'none'; return; }
     grid.style.display = 'block';
@@ -1032,9 +1067,9 @@ const guiPreviewPicker = `<script>
   function tableZone(info, e) {
     var tr = info.table.getBoundingClientRect();
     var cr = info.cell.getBoundingClientRect();
-    if (info.head && e.clientY <= cr.top + 6) return 'col';
-    if (!info.head && info.bodyRow === 0 && e.clientY <= tr.top + 6) return 'col';
-    if (e.clientX <= tr.left + 6) return 'row';
+    if (info.head && e.clientY <= cr.top + TABLE_BORDER_ZONE) return 'col';
+    if (!info.head && info.bodyRow === 0 && e.clientY <= tr.top + TABLE_BORDER_ZONE) return 'col';
+    if (e.clientX <= tr.left + TABLE_BORDER_ZONE) return 'row';
     return 'cell';
   }
   function postTableSel(phase, info, anchorRow, anchorCol) {
@@ -1070,11 +1105,19 @@ const guiPreviewPicker = `<script>
       shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey, moved: false
     };
     tableSelSuppressClick = true;
+    hideTableZone();
     postTableSel('start', info, tableSelDrag.anchorRow, tableSelDrag.anchorCol);
     e.preventDefault();
   }, true);
   document.addEventListener('mousemove', function (e) {
-    if (!tableSelDrag) return;
+    if (!tableSelDrag) {
+      if (marqueeOn || e.altKey) { hideTableZone(); return; }
+      var hoverInfo = tableInfo(document.elementFromPoint(e.clientX, e.clientY));
+      if (!hoverInfo) { hideTableZone(); return; }
+      showTableZone(hoverInfo, tableZone(hoverInfo, e));
+      return;
+    }
+    hideTableZone();
     var info = tableInfo(document.elementFromPoint(e.clientX, e.clientY));
     if (!info || info.table !== tableSelDrag.table) return;
     var row = tableSelDrag.kind === 'col' ? -1 : info.row;
@@ -1085,6 +1128,8 @@ const guiPreviewPicker = `<script>
     tableSelDrag.moved = true;
     postTableSel('move', { row: row, col: col }, tableSelDrag.anchorRow, tableSelDrag.anchorCol);
   }, true);
+  document.addEventListener('mouseleave', hideTableZone, true);
+  document.addEventListener('scroll', hideTableZone, true);
   document.addEventListener('mouseup', function () {
     if (!tableSelDrag) return;
     if (tableSelDrag.moved) {
