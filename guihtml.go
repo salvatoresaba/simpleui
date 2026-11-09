@@ -2765,7 +2765,9 @@ function selectLayoutCell(tableId, row, col) {
   selNoBox = false;
   selCell = null; selRow = null; selCol = null;
   selPath = t.p.slice();
-  selLayoutCell = { row: Number(row), col: Number(col) };
+  var lg = layoutGridInfo(n);
+  var ci = lg.starts[Number(row) + "," + Number(col)];
+  selLayoutCell = { row: Number(row), col: Number(col), childIndex: ci === undefined ? -1 : ci };
   renderTree(); fillPanel(); renderInspector(); postHighlight();
   setStatus("table layout cell " + (Number(row) + 1) + "," + (Number(col) + 1));
 }
@@ -4561,7 +4563,12 @@ function renderInspector() {
   }
   if (nodes.length === 1 && n && n.kind === "tablelayout") {
     box.appendChild(layoutTableControls(n));
-    if (selLayoutCell) box.appendChild(layoutEmptyCellControls(n, selLayoutCell));
+    if (selLayoutCell) {
+      box.appendChild(layoutCellPositionControls(n, selLayoutCell));
+      if (selLayoutCell.childIndex >= 0 && n.children && n.children[selLayoutCell.childIndex]) {
+        box.appendChild(layoutCellControls(n.children[selLayoutCell.childIndex]));
+      }
+    }
   }
   if (nodes.length === 1 && n && !n.raw && layoutCellParentPath(selPath)) {
     box.appendChild(layoutCellControls(n));
@@ -9199,32 +9206,48 @@ function layoutCellControls(n) {
   a.appendChild(b);
   return a;
 }
-function layoutEmptyCellControls(n, cell) {
+function layoutCellPositionControls(n, cell) {
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
-  h.innerHTML = '<span>Empty cell</span><span>\u25BE</span>';
+  h.innerHTML = '<span>Table layout cell</span><span>\u25BE</span>';
   h.onclick = function(){ a.classList.toggle("open"); };
   a.appendChild(h);
   var b = document.createElement("div"); b.className = "accbody";
+  var child = cell.childIndex >= 0 && n.children ? n.children[cell.childIndex] : null;
   var info = document.createElement("div"); info.className = "rowth";
-  info.textContent = "Row " + (cell.row + 1) + ", column " + (cell.col + 1) + ". Drag an element here or add a block.";
+  info.textContent = "Row " + (cell.row + 1) + ", column " + (cell.col + 1) + ".";
   b.appendChild(info);
   var ar = document.createElement("div"); ar.className = "rowline";
   ar.appendChild(lbl("cell"));
-  var ab = document.createElement("button"); ab.type = "button"; ab.className = "btn";
-  ab.textContent = "Add block";
-  ab.title = "Insert a container in this cell, then drop elements inside it.";
-  ab.onclick = function(){
-    withUndo(function(){
-      var idx = layoutInsertIndex(n, cell.row, cell.col);
-      if (idx < 0) return;
-      var node = newNodeForKind("div");
-      n.children.splice(idx, 0, node);
-      selPath = (selPath || []).concat([idx]);
+  if (child) {
+    var cb = document.createElement("button"); cb.type = "button"; cb.className = "btn";
+    cb.textContent = "Select content (" + child.kind + ")";
+    cb.onclick = function(){
+      selPath = (selPath || []).concat([cell.childIndex]);
       selLayoutCell = null;
-    }, "add layout block");
-  };
-  ar.appendChild(ab); b.appendChild(ar);
+      renderTree(); fillPanel(); renderInspector(); postHighlight();
+    };
+    ar.appendChild(cb);
+  } else {
+    var ab = document.createElement("button"); ab.type = "button"; ab.className = "btn";
+    ab.textContent = "Add block";
+    ab.title = "Insert a container in this cell, then drop elements inside it.";
+    ab.onclick = function(){
+      withUndo(function(){
+        var idx = layoutInsertIndex(n, cell.row, cell.col);
+        if (idx < 0) return;
+        var node = newNodeForKind("div");
+        n.children.splice(idx, 0, node);
+        selPath = (selPath || []).concat([idx]);
+        selLayoutCell = null;
+      }, "add layout block");
+    };
+    ar.appendChild(ab);
+  }
+  b.appendChild(ar);
+  var note = document.createElement("div"); note.className = "rowth";
+  note.textContent = "Alt+click an occupied cell to select the cell itself; empty cells select with a normal click.";
+  b.appendChild(note);
   a.appendChild(b);
   return a;
 }

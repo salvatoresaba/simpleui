@@ -1488,13 +1488,16 @@ const guiPreviewPicker = `<script>
       }
     }
     var layoutCell = e.target && e.target.closest ? e.target.closest('.sui-layout-cell') : null;
-    if (layoutCell && !layoutCell.querySelector('[data-sui-id]')) {
-      var layoutTable = layoutCell.closest('table.sui-layout-table');
-      var layoutId = layoutTable ? layoutTable.getAttribute('data-sui-id') : null;
-      if (layoutId !== null && layoutId !== '-1') {
-        parent.postMessage({ ty: 'sui-layout-cell', table: Number(layoutId), row: Number(layoutCell.getAttribute('data-sui-layout-row')), col: Number(layoutCell.getAttribute('data-sui-layout-col')) }, '*');
-        e.preventDefault();
-        return;
+    if (layoutCell) {
+      var hasLayoutChild = !!layoutCell.querySelector('[data-sui-id]');
+      if (!hasLayoutChild || e.altKey) {
+        var layoutTable = layoutCell.closest('table.sui-layout-table');
+        var layoutId = layoutTable ? layoutTable.getAttribute('data-sui-id') : null;
+        if (layoutId !== null && layoutId !== '-1') {
+          parent.postMessage({ ty: 'sui-layout-cell', table: Number(layoutId), row: Number(layoutCell.getAttribute('data-sui-layout-row')), col: Number(layoutCell.getAttribute('data-sui-layout-col')) }, '*');
+          e.preventDefault();
+          return;
+        }
       }
     }
     var n = e.target;

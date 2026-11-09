@@ -147,7 +147,7 @@ func TestTableLayoutPaletteEntry(t *testing.T) {
 	if !strings.Contains(guiPreviewPicker, `sui-layout-table > tbody > tr > td`) {
 		t.Errorf("designer preview must outline table layout cells")
 	}
-	if !strings.Contains(guiHTML, `function layoutEmptyCellControls`) || !strings.Contains(guiHTML, `dropFromPaletteLayout`) {
+	if !strings.Contains(guiHTML, `function layoutCellPositionControls`) || !strings.Contains(guiHTML, `dropFromPaletteLayout`) {
 		t.Errorf("designer must support empty-cell selection and direct drops")
 	}
 	if !strings.Contains(suiCssBase, "@media (max-width: 640px)") {
