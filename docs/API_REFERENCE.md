@@ -10,6 +10,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 - [Tabs](#tabs)
 - [Pages and navigation](#pages-and-navigation)
 - [Modal dialogs](#modal-dialogs)
+- [Table layout](#table-layout)
 - [Tables and untrusted data](#tables-and-untrusted-data)
 - [Security](#security)
 - [Iframe](#iframe)
@@ -2195,6 +2196,40 @@ Cancel/OK buttons. Right-click the `modal` row for **Add modal button**, or a
 **Move up/down** and **Delete**. The **Modal** inspector section edits the
 stable `name`; select a button to edit its variant and close behaviour. See the
 [modal example](../examples/modal.sui).
+
+## Table layout
+
+`tablelayout` is a **structural** container, not the data `table` control. It
+renders a real HTML `<table>` and places each direct child in its own cell,
+flowing left to right into a fixed number of columns:
+
+```sui
+tablelayout columns: 2 class: "layout" {
+  card "Header"
+  card "Actions"
+  col {
+    input "Name" value: name
+    button "Save" onClick: save
+  }
+  p "Each direct child fills one cell."
+}
+```
+
+- `columns` is an integer from `1` to `6` (default `2`).
+- Children keep their normal behavior and styling. Wrap several elements in a
+  `col`/`div`/`card` to keep them together in one cell.
+- The layout table uses `--sui-layout-gap` for cell spacing (default `12px`);
+  set it through a static `style` or a project CSS class.
+- It has no `name`, `editMode`, data API, sorting, filtering or persisted data.
+  The rendered table uses `role="presentation"` because it is a layout aid, not
+  a semantic data table. Use the `table` control for data grids and `table.*`
+  runtime functions.
+- Prefer real HTML table semantics for two-dimensional page structure; for
+  simple one-direction flows use `row` and `col`.
+
+The designer exposes it in **Layout → Table layout**. The inspector edits the
+column count and can append an empty cell container. See
+[examples/table_layout](../examples/table_layout/README.md).
 
 ## Tables and untrusted data
 

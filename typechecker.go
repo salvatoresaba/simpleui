@@ -2890,7 +2890,7 @@ func isAllowedTag(tag string) bool {
 	switch tag {
 	// layout & containers
 	case "body", "div", "section", "article", "main", "header", "footer", "nav", "aside", "span",
-		"row", "col", "spacer", "card",
+		"row", "col", "spacer", "card", "tablelayout",
 		// headings & text
 		"h1", "h2", "h3", "h4", "h5", "h6", "p", "text", "blockquote", "pre", "code",
 		"mark", "strong", "em", "small",
@@ -3054,6 +3054,9 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "tcell" && (key == "head" || key == "colspan" || key == "rowspan") {
+		return true
+	}
+	if tag == "tablelayout" && key == "columns" {
 		return true
 	}
 	if tag == "table" && (key == "name" || key == "editMode" || key == "cellText" ||
@@ -3651,6 +3654,23 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 	if tag == "tree" && (a.key == "renameKey" || a.key == "renameValue") {
 		if !a.hasExpr || a.expr == nil || a.expr.kind != "ident" || c.states[a.expr.name] == nil {
 			c.diagAt(a.span, a.key+" must name a declared state")
+		}
+		return
+	}
+	if tag == "tablelayout" && a.key == "columns" {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "int" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, a.key+" must be an int, got "+typeStr(t))
+			}
+			if a.expr != nil && a.expr.kind == "int" && (a.expr.i < 1 || a.expr.i > 6) {
+				c.diagAt(a.span, "columns must be an integer between 1 and 6")
+			}
+			return
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
+		if err != nil || n < 1 || n > 6 {
+			c.diagAt(a.span, "columns must be an integer between 1 and 6")
 		}
 		return
 	}

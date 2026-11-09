@@ -1786,7 +1786,7 @@ var RESERVED_NAME = /^(?:true|false|null)$/;
 // Palette grouped by HTML category.
 var PALETTE = [
   { group: "Page", tags: [], newpage: true },
-  { group: "Layout", tags: ["div", "header", "footer", "section", "row", "col", "spacer", "card"],
+  { group: "Layout", tags: ["div", "header", "footer", "section", "row", "col", "spacer", "card", "tablelayout"],
     subs: [ { name: "Navigation", tags: ["menubar", "menu", "menuitem", "tabs", "tab", "accordion", "accordionitem", "divider"] } ] },
   { group: "Overlay", tags: ["modal", "modalbutton", "toast"] },
   { group: "Text", tags: ["h1", "h2", "h3", "p", "text", "hr", "blockquote", "pre"],
@@ -1804,6 +1804,7 @@ var PALETTE_LABEL = {
   number: "Number input", slider: "Slider/Range", file: "File input",
   color: "Color picker", date: "Date", time: "Time", button: "Button",
   card: "Card", tabs: "Tabs", tab: "Tab", accordion: "Accordion", accordionitem: "Accordion item",
+  tablelayout: "Table layout",
   tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph",
   menubar: "Menu bar", menu: "Menu", menuitem: "Menu item", modal: "Modal", modalbutton: "Modal button", toast: "Toast host",
   progress: "Progress",
@@ -2011,6 +2012,12 @@ function uniqueTableName() {
   var i = 1;
   while (tableNameTaken("table" + i)) i++;
   return "table" + i;
+}
+function newTableLayoutNode() {
+  var n = newNode("tablelayout");
+  n.layoutColumns = "2";
+  n.children = [];
+  return n;
 }
 function newTableNode() {
   var n = newNode("table");
@@ -2341,6 +2348,7 @@ function newNodeForKind(kind) {
   if (kind === "chart") return newChartNode();
   if (kind === "graph") return newGraphNode();
   if (kind === "table") return newTableNode();
+  if (kind === "tablelayout") return newTableLayoutNode();
   if (kind === "modal") return newModalNode();
   if (kind === "modalbutton") return newModalButtonNode("Button");
   if (kind === "list") return newListNode();
@@ -4508,6 +4516,9 @@ function renderInspector() {
   // edited one node at a time: single-selection only.
   if (nodes.length === 1 && n && n.kind === "table" && n.cols) {
     box.appendChild(tableControls(n, { compact: true }));
+  }
+  if (nodes.length === 1 && n && n.kind === "tablelayout") {
+    box.appendChild(layoutTableControls(n));
   }
   if (nodes.length === 1 && n && n.kind === "tabs") {
     box.appendChild(tabsControls(n));
@@ -8935,6 +8946,45 @@ function tableDeleteSheetAction() {
   }, "delete table");
   setStatus("table deleted");
 }
+function layoutTableControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Table layout</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var cr = document.createElement("div"); cr.className = "rowline";
+  cr.appendChild(lbl("columns"));
+  var ci = document.createElement("input");
+  ci.type = "number"; ci.min = "1"; ci.max = "6"; ci.step = "1";
+  ci.value = String(Math.max(1, Math.min(6, parseInt(n.layoutColumns || "2", 10) || 2)));
+  ci.onchange = function(){
+    var v = Math.max(1, Math.min(6, parseInt(ci.value, 10) || 2));
+    withUndo(function(){ n.layoutColumns = String(v); }, "table layout columns");
+  };
+  cr.appendChild(ci);
+  b.appendChild(cr);
+  var ar = document.createElement("div"); ar.className = "rowline";
+  ar.appendChild(lbl("cell"));
+  var ab = document.createElement("button"); ab.type = "button"; ab.className = "btn";
+  ab.textContent = "Add cell";
+  ab.title = "Append a cell container; drop elements inside it to keep them in the same column.";
+  ab.onclick = function(){
+    withUndo(function(){
+      var cell = newNodeForKind("col");
+      cell.style = "min-height:72px";
+      n.children.push(cell);
+      selPath = (selPath || []).concat([n.children.length - 1]);
+    }, "add layout cell");
+  };
+  ar.appendChild(ab);
+  b.appendChild(ar);
+  var note = document.createElement("div"); note.className = "rowth";
+  note.textContent = "Children fill cells left to right. Wrap multiple elements in a column.";
+  b.appendChild(note);
+  a.appendChild(b);
+  return a;
+}
 function tableControls(n, opts) {
   opts = opts || {};
   var settingsOnly = !!opts.settingsOnly;
@@ -11078,6 +11128,7 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.sort) a += " sort: \"" + esc(n.sort) + "\"";
   if (n.kind === "tree" && n.persistSelection) a += " persistSelection: true";
   if (n.kind === "tree" && n.loadKey) a += " loadKey: " + n.loadKey;
+  if (n.kind === "tablelayout" && n.layoutColumns) a += " columns: \"" + esc(String(n.layoutColumns)) + "\"";
   if (n.onClick) a += " onClick: " + n.onClick;
   if (n.onDoubleClick) a += " onDoubleClick: " + n.onDoubleClick;
   if (n.onMouseEnter) a += " onMouseEnter: " + n.onMouseEnter;
@@ -12443,6 +12494,7 @@ var PAL_ICON = {
   ul: '<line x1="9" y1="7" x2="19" y2="7"/><line x1="9" y1="12" x2="19" y2="12"/><line x1="9" y1="17" x2="19" y2="17"/><circle cx="5.5" cy="7" r="1"/><circle cx="5.5" cy="12" r="1"/><circle cx="5.5" cy="17" r="1"/>',
   ol: '<line x1="9" y1="7" x2="19" y2="7"/><line x1="9" y1="12" x2="19" y2="12"/><line x1="9" y1="17" x2="19" y2="17"/><text x="3.5" y="9.2" font-size="6" fill="currentColor" stroke="none">1</text><text x="3.5" y="14.2" font-size="6" fill="currentColor" stroke="none">2</text><text x="3.5" y="19.2" font-size="6" fill="currentColor" stroke="none">3</text>',
   table: '<rect x="4" y="5" width="16" height="14" rx="1"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="4" y1="14" x2="20" y2="14"/><line x1="12" y1="5" x2="12" y2="19"/>',
+  tablelayout: '<rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="7" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/>',
   img: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="8.5" cy="10" r="1.5"/><path d="M4 17l5-5 4 4 3-3 4 4"/>',
   video: '<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M10 9.5l5 2.5-5 2.5z"/>',
   audio: '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a3 3 0 0 1 0 6"/>',

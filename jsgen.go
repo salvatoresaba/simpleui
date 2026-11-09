@@ -1788,6 +1788,26 @@ func chartTag(tag string) bool {
 	return tag == "chart" || tag == "graph"
 }
 
+// layoutTableColumns returns the requested number of structural table columns.
+// The value is a static integer clamped to the supported 1..6 range.
+func layoutTableColumns(e *Element) int {
+	a := findAttr(e, "columns")
+	if a == nil {
+		return 2
+	}
+	if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
+		if a.expr.i >= 1 && a.expr.i <= 6 {
+			return a.expr.i
+		}
+		return 2
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
+	if err != nil || n < 1 || n > 6 {
+		return 2
+	}
+	return n
+}
+
 func elemHtmlTag(tag string) string {
 	if tag == "text" {
 		return "span"
@@ -1797,6 +1817,9 @@ func elemHtmlTag(tag string) string {
 	}
 	if tag == "row" || tag == "col" || tag == "spacer" || tag == "card" || tag == "tabs" || tag == "accordion" || tag == "accordionitem" || tag == "toast" {
 		return "div"
+	}
+	if tag == "tablelayout" {
+		return "table"
 	}
 	if tag == "menubar" {
 		return "nav"
@@ -2006,6 +2029,8 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 	}
 	if e.tag == "modal" {
 		sb.WriteString(" data-sui-modal=\"" + htmlEscape(modalNameOf(e)) + "\" aria-hidden=\"true\" hidden")
+	} else if e.tag == "tablelayout" {
+		sb.WriteString(" role=\"presentation\"")
 	} else if e.tag == "tabs" {
 		if v := treeTextAttr(e, "position"); v == "bottom" {
 			sb.WriteString(" data-sui-tabs-position=\"bottom\"")
@@ -2216,6 +2241,7 @@ var newControlClass = map[string]string{
 	"alert":         "sui-alert",
 	"spinner":       "sui-spinner",
 	"card":          "sui-card",
+	"tablelayout":   "sui-layout-table",
 	"divider":       "sui-divider",
 	"tabs":          "sui-tabs",
 	"tab":           "sui-tabpanel",
@@ -2455,6 +2481,9 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			continue
 		}
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
+			continue
+		}
+		if e.tag == "tablelayout" && a.key == "columns" {
 			continue
 		}
 		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||
@@ -2727,6 +2756,9 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	if e.tag == "tree" {
 		return treeElemJs(e, g, ctx, idx)
 	}
+	if e.tag == "tablelayout" {
+		return tableLayoutElemJs(e, g, ctx, idx)
+	}
 	if chartTag(e.tag) {
 		return chartElemJs(e, g, ctx, idx)
 	}
@@ -2797,6 +2829,46 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 
 // modalElemJs renders a hidden modal with a title, body content and a footer
 // of modalbutton children. The runtime opens it by data-sui-modal name.
+// tableLayoutElemJs renders a structural HTML table whose cells host the
+// element's children. Children flow left-to-right, top-to-bottom in fixed
+// columns; wrappers are static markup while every child goes through the
+// normal escaped element renderer.
+func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	open := openTagHtml(e, "table", false, idx, ctx)
+	cols := layoutTableColumns(e)
+	total := len(e.children)
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	b.WriteString("<tbody>")
+	for i := 0; i < total; i++ {
+		if i%cols == 0 {
+			b.WriteString("<tr>")
+		}
+		b.WriteString("<td class=\"sui-layout-cell\">` + (")
+		b.WriteString(viewNodesJs([]*ViewNode{&e.children[i]}, g, ctx))
+		b.WriteString(") + `</td>")
+		if (i+1)%cols == 0 {
+			b.WriteString("</tr>")
+		}
+	}
+	if total == 0 {
+		b.WriteString("<tr>")
+		for j := 0; j < cols; j++ {
+			b.WriteString("<td class=\"sui-layout-cell\"></td>")
+		}
+		b.WriteString("</tr>")
+	}
+	if rem := total % cols; rem != 0 {
+		for j := rem; j < cols; j++ {
+			b.WriteString("<td class=\"sui-layout-cell\"></td>")
+		}
+		b.WriteString("</tr>")
+	}
+	b.WriteString("</tbody></table>`")
+	return b.String()
+}
+
 func modalElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	open := openTagHtml(e, "div", false, idx, ctx)
 	label := htmlTextParts(e.text)

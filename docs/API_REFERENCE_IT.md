@@ -8,6 +8,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 - [Tabs](#tabs)
 - [Pagine e navigazione](#pagine-e-navigazione)
 - [Dialoghi modali](#dialoghi-modali)
+- [Table layout](#table-layout)
 - [Tabelle e dati non fidati](#tabelle-e-dati-non-fidati)
 - [Sicurezza](#sicurezza)
 - [Builtins](BUILTINS_IT.md)
@@ -2085,6 +2086,39 @@ button**, oppure su una riga `modalbutton` per **Add button below**,
 dell'inspector modifica il `name` stabile; selezionando un pulsante si modificano
 variant e comportamento di chiusura. Vedere l'[esempio
 modal](../examples/modal.sui).
+
+## Table layout
+
+`tablelayout` è un contenitore **strutturale**, non il controllo dati `table`.
+Genera una vera `<table>` HTML e inserisce ogni figlio diretto in una cella,
+scorrendo da sinistra a destra su un numero fisso di colonne:
+
+```sui
+tablelayout columns: 2 class: "layout" {
+  card "Header"
+  card "Actions"
+  col {
+    input "Name" value: name
+    button "Save" onClick: save
+  }
+  p "Ogni figlio diretto occupa una cella."
+}
+```
+
+- `columns` è un intero da `1` a `6` (default `2`).
+- I figli mantengono comportamento e stile normali. Usa `col`/`div`/`card` per
+  tenere più elementi nella stessa cella.
+- La spaziatura usa `--sui-layout-gap` (default `12px`), impostabile con uno
+  `style` statico o una classe CSS di progetto.
+- Non ha `name`, `editMode`, API dati, ordinamento, filtri o persistenza. La
+  tabella generata usa `role="presentation"` perché è un ausilio di layout, non
+  una tabella dati semantica. Per le griglie dati usa il controllo `table` e le
+  funzioni `table.*`.
+- Per flussi a una dimensione preferisci `row` e `col`.
+
+Nel designer è in **Layout → Table layout**. L'inspector modifica il numero di
+colonne e può aggiungere una cella contenitore. Vedi
+[examples/table_layout](../examples/table_layout/README.md).
 
 ## Tabelle e dati non fidati
 

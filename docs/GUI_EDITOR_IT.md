@@ -1187,6 +1187,25 @@ resi come testo.
 Vedere [API reference: tree](API_REFERENCE_IT.md#tree) e l'[esempio
 tree](../examples/tree/README.md).
 
+## Controllo Table layout
+
+**Layout → Table layout** inserisce una tabella HTML strutturale, distinta dal
+controllo dati **Table**. Non ha nome dati, ordinamento, filtri, editing o
+persistenza: dispone soltanto altri elementi in righe e colonne.
+
+- `columns` (1-6, default 2) imposta quante celle contiene ogni riga.
+- Ogni figlio diretto occupa una cella, da sinistra a destra. Raggruppa più
+  elementi in un `col`, `div` o `card` per tenerli nella stessa cella.
+- La spaziatura usa la variabile CSS `--sui-layout-gap` (default `12px`).
+- L'inspector ha una sezione **Table layout** con il numero di colonne e un
+  pulsante **Add cell** che aggiunge una cella contenitore vuota. Il drag and
+  drop dalla palette funziona come in qualsiasi altro contenitore.
+- Usa il controllo dati **Table** quando servono `table.display`,
+  `table.importText`, ordinamento, filtri o modifiche persistenti.
+
+Vedi [API reference: table layout](API_REFERENCE_IT.md#table-layout) e
+[l'esempio table layout](../examples/table_layout/README.md).
+
 ## Controllo Table
 
 Inserire **Table** da **Controls**: crea un workbook con un foglio e una tab **+**

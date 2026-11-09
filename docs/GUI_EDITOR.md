@@ -1141,6 +1141,25 @@ text.
 See [API reference: tree](API_REFERENCE.md#tree) and the
 [tree example](../examples/tree/README.md).
 
+## Table layout control
+
+**Layout → Table layout** inserts a structural HTML table, distinct from the
+data **Table** control. It has no data name, sorting, filtering, editing or
+persistence: it only arranges other elements in rows and columns.
+
+- `columns` (1-6, default 2) sets how many cells each row contains.
+- Each direct child becomes one cell, left to right. Wrap several elements in a
+  `col`, `div` or `card` to keep them in the same cell.
+- Cell spacing uses the `--sui-layout-gap` CSS variable (default `12px`).
+- The inspector has a **Table layout** section with the column count and an
+  **Add cell** button that appends an empty column container. Palette drops
+  inside the layout table work like any other container.
+- Use the data **Table** control when you need `table.display`,
+  `table.importText`, sorting, filtering or persistent edits.
+
+See [API reference: table layout](API_REFERENCE.md#table-layout) and the
+[table layout example](../examples/table_layout/README.md).
+
 ## Table control
 
 Insert **Table** from **Controls**: it creates a workbook with one sheet and a

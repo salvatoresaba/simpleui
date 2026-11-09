@@ -1694,6 +1694,28 @@ p { line-height: 1.6; }
 
 .spacer { height: 16px; }
 
+/* Structural layout table: real <table>/<tr>/<td> wrappers but no data-table
+   styling. Children flow into fixed columns. */
+.sui-layout-table {
+  width: 100%;
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: var(--sui-layout-gap, 12px);
+  table-layout: fixed;
+}
+.sui-layout-table > tbody > tr > .sui-layout-cell {
+  padding: 0;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  vertical-align: top;
+}
+.sui-layout-table > tbody > tr > .sui-layout-cell:empty {
+  height: var(--sui-layout-cell-min-height, 72px);
+}
+.sui-layout-table > tbody > tr:hover { background: transparent; }
+.sui-layout-table > tbody > tr > .sui-layout-cell > * { min-width: 0; }
+
 button {
   background: var(--sui-button-bg, #2d3340);
   color: var(--sui-button-fg, #e6e6e6);
@@ -5346,6 +5368,10 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		writeStaticTree(sb, e, ind)
 		return
 	}
+	if e.tag == "tablelayout" {
+		writeStaticTableLayout(sb, e, ind)
+		return
+	}
 	if chartTag(e.tag) {
 		writeStaticChart(sb, e, ind)
 		return
@@ -5619,6 +5645,58 @@ func modalButtonCloses(e *Element) bool {
 		return a.expr.b
 	}
 	return strings.TrimSpace(strings.ToLower(partsContent(a.text))) != "false"
+}
+
+// writeStaticTableLayout renders a structural table: each direct child is
+// placed in its own <td>, flowing in a fixed number of columns.
+func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
+	cols := layoutTableColumns(e)
+	sb.WriteString(ind)
+	sb.WriteString("<table class=\"sui-layout-table")
+	staticClassSuffix(sb, e)
+	sb.WriteString("\" role=\"presentation\"")
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString(">\n")
+	sb.WriteString(ind)
+	sb.WriteString("  <tbody>\n")
+	total := len(e.children)
+	for i := 0; i < total; i++ {
+		if i%cols == 0 {
+			sb.WriteString(ind)
+			sb.WriteString("    <tr>\n")
+		}
+		sb.WriteString(ind)
+		sb.WriteString("      <td class=\"sui-layout-cell\">\n")
+		writeStaticNodes(sb, []ViewNode{e.children[i]}, ind+"        ")
+		sb.WriteString(ind)
+		sb.WriteString("      </td>\n")
+		if (i+1)%cols == 0 {
+			sb.WriteString(ind)
+			sb.WriteString("    </tr>\n")
+		}
+	}
+	if total == 0 {
+		sb.WriteString(ind)
+		sb.WriteString("    <tr>\n")
+		for j := 0; j < cols; j++ {
+			sb.WriteString(ind)
+			sb.WriteString("      <td class=\"sui-layout-cell\"></td>\n")
+		}
+		sb.WriteString(ind)
+		sb.WriteString("    </tr>\n")
+	}
+	if rem := total % cols; rem != 0 {
+		for j := rem; j < cols; j++ {
+			sb.WriteString(ind)
+			sb.WriteString("      <td class=\"sui-layout-cell\"></td>\n")
+		}
+		sb.WriteString(ind)
+		sb.WriteString("    </tr>\n")
+	}
+	sb.WriteString(ind)
+	sb.WriteString("  </tbody>\n")
+	sb.WriteString(ind)
+	sb.WriteString("</table>\n")
 }
 
 func writeStaticModal(sb *strings.Builder, e *Element, ind string) {
@@ -7108,6 +7186,9 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			continue
 		}
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
+			continue
+		}
+		if e.tag == "tablelayout" && a.key == "columns" {
 			continue
 		}
 		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||

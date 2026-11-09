@@ -2486,6 +2486,9 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		}
 	}
+	if e.tag == "tablelayout" {
+		o.obj["layoutColumns"] = JStr(strconv.Itoa(layoutTableColumns(e)))
+	}
 	if e.tag == "ul" || e.tag == "ol" {
 		if lst, ok := guiListFrom(e); ok {
 			for k, v := range lst.obj {
@@ -2696,6 +2699,12 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "tablelayout" && a.key == "columns" {
+			if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
+				o.obj["layoutColumns"] = JStr(strconv.Itoa(a.expr.i))
+			} else {
+				o.obj["layoutColumns"] = JStr(strings.TrimSpace(partsLiteral(a.text)))
+			}
 		} else if e.tag == "table" && (a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" ||
 			a.key == "columnOptions" || a.key == "selection") {

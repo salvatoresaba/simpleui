@@ -22,6 +22,7 @@ func TestHtmlTagsAllowedAndRendered(t *testing.T) {
 		{"menubar", "<nav"}, {"menu", "<div"}, {"menuitem", "<div"},
 		{"tabs", "<div"}, {"tab", "<div"}, {"modal", "<div"}, {"modalbutton", "<button"},
 		{"tbody", "<tbody"}, {"tfoot", "<tfoot"},
+		{"tablelayout", "<table"},
 		{"video", "<video"}, {"audio", "<audio"}, {"iframe", "<iframe"},
 		{"hr", "<hr"}, {"br", "<br"},
 	}

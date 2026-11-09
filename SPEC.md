@@ -277,7 +277,7 @@ If       := 'if' Expr '{' ViewBody '}' [ 'else' '{' ViewBody '}' ]
 List     := 'list' ident 'in' Expr '{' ViewBody '}'
 Tag      := h1 | h2 | h3 | p | text | button | input | img | row | col | spacer | a
           | table | thead | trow | tcell | tabs | tab | modal | modalbutton
-          | menubar | menu | menuitem
+          | tablelayout | menubar | menu | menuitem
 ```
 
 `onLoad: fn` (anywhere in a view, at most once) makes the compiled app call
@@ -297,6 +297,7 @@ Elements and their supported attributes (v0.1):
 | row, col | no   | class                                    | yes      |
 | spacer   | no   | class                                    | no       |
 | table    | no   | class, name, editable, fixed             | yes      |
+| tablelayout | no | class, style, columns (1-6)             | yes      |
 | thead    | no   | class                                    | yes      |
 | trow     | no   | class                                    | yes      |
 | tcell    | yes  | class, head (bool)                       | no       |

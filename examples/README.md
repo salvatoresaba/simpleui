@@ -19,6 +19,7 @@ For an agent-oriented walkthrough see
 | [`contacts.sui`](contacts.sui) | Local records and table-like layout. |
 | [`table_data.sui`](table_data.sui) | `table.display` with arrays, objects, JSON, CSV, TSV and export. |
 | [`table_sheets/`](table_sheets/README.md) | Excel-like workbook: bottom sheet tabs, declarative columns, sorting, filtering, pagination, selection, validated editing, runtime table creation and row/column structure editing. |
+| [`table_layout/`](table_layout/README.md) | Structural HTML table for arranging cards and controls in columns; separate from the data `table` control. |
 | [`chart/app.sui`](chart/app.sui) | Reactive JSON/XML/CSV charts, advanced types, compatibility checks, presets, scroll and zoom. |
 | [`graph/`](graph/README.md) | Dedicated Graph control for block diagrams, with layout, tags, links, grid and synchronized table. |
 | [`state_machine/`](state_machine/README.md) | Legacy `chartType: "state"` shape/link diagram with events, guards, actions, self-loop and synchronized shape/transition table. |
