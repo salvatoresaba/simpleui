@@ -26,7 +26,8 @@ Alpha values are overlays: the final color depends on the underlying cell/theme 
 | Riga hover | `rgba(100,116,139,.14)` | `#f1f5f9` | `--sui-chart-table-focus-row-bg` | solo se non selezionata |
 | Cella hover | `rgba(100,116,139,.22)` | `#e2e8f0` | `--sui-chart-table-focus-cell-bg` | con outline 1px |
 | Outline hover/focus | `#64748b` | `#64748b` | `--sui-chart-table-focus-color` | 1px su celle/righe/colonne |
-| Riga selezionata / multi / colonna / cella | `rgba(56,189,248,.22)` | `#e0f2fe` | `--sui-chart-table-selection-bg` | fallback legacy: --sui-chart-table-selected-bg |
+| Riga selezionata / multi / colonna / cella | `rgba(56,189,248,.22)` | `#e0f2fe` | `--sui-chart-table-selection-bg` | |
+
 | Riga selezionata in modalità cella | `transparent` | `transparent` | `table.sui-chart-table-mode-cell ... row-selected td` | solo la cella selezionata viene riempita |
 | Riga summary | `rgba(56,189,248,.07)` | `#f2f8ff` | `--sui-chart-table-summary-bg` | testo in grassetto |
 | Warning: bordo sinistro | `#f87171` | `#dc2626` | `--sui-chart-error` | 3px sulla prima cella |
@@ -101,4 +102,3 @@ Alpha values are overlays: the final color depends on the underlying cell/theme 
 | `--sui-chart-table-head-bg` | `#14171c (fallback)` | `#eef3fa` |
 | `--sui-chart-table-sticky-bg` | `#14171c (fallback)` | `#eef3fa` |
 | `--sui-chart-table-input-bg` | `rgba(127,127,127,.08) on focus` | `#ffffff` |
-| `--sui-chart-table-selected-bg (legacy)` | `rgba(56,189,248,.22)` | `#e0f2fe` |

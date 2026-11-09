@@ -1182,7 +1182,7 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
 .sui-chart-table tbody tr.sui-chart-table-row-multi td,
 .sui-chart-table th.sui-chart-table-col-multi,
 .sui-chart-table td.sui-chart-table-col-multi,
-.sui-chart-table td.sui-chart-table-cell-multi { background: var(--sui-chart-table-selection-bg, var(--sui-chart-table-selected-row-bg, var(--sui-chart-table-selected-bg, rgba(56,189,248,.22)))) !important; }
+.sui-chart-table td.sui-chart-table-cell-multi { background: var(--sui-chart-table-selection-bg, var(--sui-chart-table-selected-row-bg, rgba(56,189,248,.22))) !important; }
 .sui-chart-table-stepper { display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px; width: 100%; }
 .sui-chart-table-stepper .sui-chart-table-input { width: auto; flex: 1 1 auto; min-width: 0; }
 .sui-chart-table-step-btn { flex: none; width: 18px; height: 18px; padding: 0; border: 1px solid var(--sui-chart-axis, #475569); border-radius: 3px; background: var(--sui-chart-control-bg, var(--sui-chart-bg, #14171c)); color: var(--sui-chart-fg, #e6e6ef); font: inherit; line-height: 16px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .12s ease; }
@@ -1281,9 +1281,9 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
 .sui-chart-table tbody tr.sui-chart-table-row-multi td[data-col="0"],
 .sui-chart-table th[data-col="0"].sui-chart-table-col-multi,
 .sui-chart-table td[data-col="0"].sui-chart-table-col-multi,
-.sui-chart-table td[data-col="0"].sui-chart-table-cell-multi { background: var(--sui-chart-table-selection-bg, var(--sui-chart-table-selected-row-bg, var(--sui-chart-table-selected-bg, rgba(56,189,248,.22)))) !important; }
+.sui-chart-table td[data-col="0"].sui-chart-table-cell-multi { background: var(--sui-chart-table-selection-bg, var(--sui-chart-table-selected-row-bg, rgba(56,189,248,.22))) !important; }
 .sui-chart-table table.sui-chart-table-mode-cell tbody tr.sui-chart-table-row-selected td { background: transparent !important; }
-.sui-chart-table table.sui-chart-table-mode-cell tbody tr.sui-chart-table-row-selected td.sui-chart-table-cell-multi { background: var(--sui-chart-table-selection-bg, var(--sui-chart-table-selected-row-bg, var(--sui-chart-table-selected-bg, rgba(56,189,248,.22)))) !important; }
+.sui-chart-table table.sui-chart-table-mode-cell tbody tr.sui-chart-table-row-selected td.sui-chart-table-cell-multi { background: var(--sui-chart-table-selection-bg, var(--sui-chart-table-selected-row-bg, rgba(56,189,248,.22))) !important; }
 .sui-chart-table th { cursor: pointer; }
 .sui-chart-table th:focus-visible, .sui-chart-table tbody tr:focus-visible,
 .sui-chart-table tbody td:focus-visible,
