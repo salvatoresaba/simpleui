@@ -548,21 +548,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #ttcfgbox .pfrow input[type=text], #ttcfgbox .pfrow input[type=number] { flex:1; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
 #ttcfgbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; }
 
-/* per-chart tooltip mini panel */
-#cttcfg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
-#cttcfg.on { display:flex; }
-#cttcfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:390px; max-width:92vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
-#cttcfgbox h2 { font-size:15px; margin:0 0 8px; }
-#cttcfgbox .pfrow input[type=text], #cttcfgbox .pfrow input[type=number] { flex:1; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
-#cttcfgbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; }
-#ctt-preview { margin:10px 0 2px; padding:6px 8px; background:#111827; color:#f8fafc; border:1px solid #475569; border-radius:6px; max-width:240px; font-size:11px; line-height:1.4; white-space:pre-line; box-sizing:border-box; }
-
-/* per-chart table mini panel */
-#ctablecfg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:10; }
-#ctablecfg.on { display:flex; }#ctablecfgbox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:16px 18px; width:390px; max-width:92vw; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.5); }
-#ctablecfgbox h2 { font-size:15px; margin:0 0 8px; }
-#ctablecfgbox .pfrow input[type=text], #ctablecfgbox .pfrow input[type=number] { flex:1; font-size:13px; padding:6px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; }
-#ctablecfgbox .pfrow input[type=color] { width:52px; height:28px; padding:2px; background:var(--input-bg); border:1px solid var(--border2); border-radius:6px; }
 /* unified table settings panel */
 #tablesettings { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:16; }
 #tablesettings.on { display:flex; }
@@ -1416,46 +1401,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     </div>
   </div>
 </div>
-<div id="cttcfg">
-  <div id="cttcfgbox">
-    <h2>Chart tooltip</h2>
-    <div class="hint">Appearance for the selected chart only. Enable <b>interactive</b> to show tooltips.</div>
-    <div id="ctt-preview">Jan
-value: 12</div>
-    <div class="pfrow"><label>Background</label><input type="color" id="ctt-bg" value="#111827" oninput="updateChartTooltipPreview()"></div>
-    <div class="pfrow"><label>Text</label><input type="color" id="ctt-fg" value="#f8fafc" oninput="updateChartTooltipPreview()"></div>
-    <div class="pfrow"><label>Border</label><input type="color" id="ctt-border" value="#475569" oninput="updateChartTooltipPreview()"></div>
-    <div class="pfrow"><label>Radius</label><input type="text" id="ctt-radius" value="6px" placeholder="6px" oninput="updateChartTooltipPreview()"></div>
-    <div class="pfrow"><label>Max width</label><input type="text" id="ctt-maxwidth" value="240px" placeholder="240px" oninput="updateChartTooltipPreview()"></div>
-    <div class="pfrow"><label>Font size</label><input type="text" id="ctt-fontsize" value="11px" placeholder="11px" oninput="updateChartTooltipPreview()"></div>
-    <div class="pfrow"><label>Delay</label><input type="number" id="ctt-delay" min="0" max="5000" step="20" value="0" oninput="updateChartTooltipPreview()"></div>
-    <div class="pfbtns">
-      <button class="btn" onclick="resetChartTooltipCfg()">Reset</button>
-      <span style="flex:1"></span>
-      <button class="btn" onclick="closeChartTooltipCfg()">Cancel</button>
-      <button class="btn" onclick="applyChartTooltipCfg()">Apply</button>
-    </div>
-  </div>
-</div>
-<div id="ctablecfg">
-  <div id="ctablecfgbox">
-    <h2>Chart table</h2>
-    <div class="hint">Table options for the selected chart. Gantt cells are editable when <b>interactive</b> is on.</div>
-    <div id="ctable-preview"><div class="hd">Task &nbsp; Start &nbsp; End &nbsp; Progress</div><div class="rw">Design &nbsp; 2026-11-02 &nbsp; 2026-11-06 &nbsp; 80%</div></div>
-    <div class="pfrow"><label>Font size</label><input type="text" id="ctb-fontsize" value="11px" placeholder="11px" oninput="updateChartTablePreview()"></div>
-    <div class="pfrow"><label>Cell padding</label><input type="text" id="ctb-padding" value="4px 6px" placeholder="4px 6px" oninput="updateChartTablePreview()"></div>
-    <div class="pfrow"><label>Header background</label><input type="color" id="ctb-headbg" value="#14171c" oninput="updateChartTablePreview()"></div>
-    <div class="pfrow"><label>Stripe opacity</label><input type="number" id="ctb-stripe" min="0" max="1" step="0.01" value="0.06" oninput="updateChartTablePreview()"></div>
-    <div class="pfrow"><label>Show caption</label><input type="checkbox" id="ctb-caption" checked onchange="updateChartTablePreview()"></div>
-    <div class="pfrow"><label>Sticky header</label><input type="checkbox" id="ctb-sticky" checked onchange="updateChartTablePreview()"></div>
-    <div class="pfbtns">
-      <button class="btn" onclick="resetChartTableCfg()">Reset</button>
-      <span style="flex:1"></span>
-      <button class="btn" onclick="closeChartTableCfg()">Cancel</button>
-      <button class="btn" onclick="applyChartTableCfg()">Apply</button>
-    </div>
-  </div>
-</div>
 <div id="tablesettings" role="dialog" aria-modal="true" aria-labelledby="tablesettings-title">
   <div id="tablesettingsbox">
     <div class="pref-head">
@@ -1941,8 +1886,8 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
-  treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
+  tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
+  treeitem: ["text", "key", "open", "rename", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
   modal: ["text", "name"],
@@ -1987,7 +1932,6 @@ function newNode(kind) {
 // "Leaf" tags cannot contain children; everything else can nest.
 var LEAF = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, button:1, input:1, textarea:1, img:1, video:1, audio:1, iframe:1, a:1, br:1, hr:1, spacer:1, text:1, code:1, mark:1, strong:1, em:1, small:1, legend:1, option:1, list:1, checkbox:1, radio:1, switch:1, select:1, combobox:1, datepicker:1, number:1, slider:1, file:1, color:1, date:1, time:1, progress:1, badge:1, spinner:1, divider:1, menuitem:1, modalbutton:1, toast:1, chart:1, graph:1 };
 function canNest(k) { return !LEAF[k]; }
-function isContainer(k) { return k === "row" || k === "col"; }
 function normalizeTables(nodes) {
   // inheritMatrix: when the parsed model carries style matrices (cstyles /
   // rowstyles), adopt them so cell styling survives every reparse.
@@ -2263,8 +2207,8 @@ function newTreeNode() {
   parent.children = [newTreeItemNode("Child")];
   n.children = [parent];
   n.value = "";
-  n.editable = false;
-  n.editableDepth = 0;
+  n.editMode = "none";
+  n.editDepth = 0;
   n.guides = true;
   n.truncate = true;
   n.checkbox = false;
@@ -4709,14 +4653,8 @@ var ELEMENT_EVENTS = {
   datepicker: ["onChange"],
   tree:     ["onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   table:    ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"],
-  chart:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
-             "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-             "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-             "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"],
-  graph:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
-             "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-             "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-             "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"],
+  chart:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit"],
+  graph:    ["onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit"],
   slider:   ["onInput", "onChange", "onFocus", "onBlur"],
   number:   ["onInput", "onChange", "onFocus", "onBlur"],
   file:     ["onChange", "onFocus", "onBlur"],
@@ -4778,11 +4716,6 @@ function capGrid(kind) { return !!BOX_KINDS[kind]; }
 function capTypography(kind) { return !!(BOX_KINDS[kind] || LEX_KINDS[kind] || TEXTWIDGET_KINDS[kind]); }
 function capAlign(kind) { return !(RULE_KINDS[kind] || kind === "thead" || kind === "tbody" || kind === "tfoot" || kind === "trow"); }
 // everyKind / allKindsHave evaluate a capability across the (multi-)selection.
-function selNodes() {
-  var paths = multiSel.slice();
-  if (selPath && !paths.some(function(q){ return samePath(q, selPath); })) paths.push(selPath);
-  return paths.map(function(p){ return byPath(p, root.children); }).filter(Boolean);
-}
 function everyKind(nodes, fn) { return nodes.every(function(m){ return fn(m.kind); }); }
 function allKindsHave(nodes, table) {
   if (!nodes.length) return false;
@@ -5366,7 +5299,7 @@ function treeDataModel(raw, path, depth, ctx) {
   n.key = key;
   if (obj) {
     n.open = treeBool(obj.open, false);
-    if (obj.editable !== undefined) n.editable = treeBool(obj.editable, false);
+    if (obj.rename !== undefined) n.rename = treeBool(obj.rename, false);
     if (obj.showRenameIcon !== undefined) n.showRenameIcon = treeBool(obj.showRenameIcon, false);
     if (obj.renameIcon !== undefined) n.renameIcon = String(obj.renameIcon);
     if (obj.icon !== undefined) n.icon = String(obj.icon);
@@ -5405,7 +5338,7 @@ function treeXmlToRaw(el) {
   if (label) o.label = label;
   var key = el.getAttribute("key");
   if (key) o.key = key;
-  var attrs = ["open", "editable", "showRenameIcon", "renameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "tooltip", "checked", "lazy", "size", "date", "status", "cells"];
+  var attrs = ["open", "rename", "showRenameIcon", "renameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "tooltip", "checked", "lazy", "size", "date", "status", "cells"];
   for (var i = 0; i < attrs.length; i++) {
     var v = el.getAttribute(attrs[i]);
     if (v !== null) o[attrs[i]] = v;
@@ -5481,7 +5414,7 @@ function treeModelNode(n) {
     o.children = [];
     for (var i = 0; i < n.children.length; i++) o.children.push(treeModelNode(n.children[i]));
   }
-  if (n.editable === true || n.editable === false) o.editable = n.editable;
+  if (n.rename === true || n.rename === false) o.rename = n.rename;
   if (n.showRenameIcon === true || n.showRenameIcon === false) o.showRenameIcon = n.showRenameIcon;
   if (n.renameIcon) o.renameIcon = n.renameIcon;
   if (n.icon) o.icon = n.icon;
@@ -5511,7 +5444,7 @@ function treeModelXml(items, indent) {
   for (var i = 0; i < items.length; i++) {
     var n = items[i], attrs = " label=\"" + treeXmlEscape(n.label) + "\" key=\"" + treeXmlEscape(n.key) + "\"";
     if (n.open !== undefined) attrs += " open=\"" + (n.open ? "true" : "false") + "\"";
-    if (n.editable !== undefined) attrs += " editable=\"" + (n.editable ? "true" : "false") + "\"";
+    if (n.rename !== undefined) attrs += " rename=\"" + (n.rename ? "true" : "false") + "\"";
     if (n.showRenameIcon !== undefined) attrs += " showRenameIcon=\"" + (n.showRenameIcon ? "true" : "false") + "\"";
     if (n.renameIcon) attrs += " renameIcon=\"" + treeXmlEscape(n.renameIcon) + "\"";
     if (n.icon) attrs += " icon=\"" + treeXmlEscape(n.icon) + "\"";
@@ -7368,113 +7301,6 @@ function treeItemPresetKey(n) {
   }
   return "custom";
 }
-function treeItemControls(n) {
-  var rows = [];
-  var r = document.createElement("div"); r.className = "rowline";
-  var l = document.createElement("label"); l.textContent = "key"; l.title = "Stable item key; empty uses the item path."; r.appendChild(l);
-  var i = document.createElement("input"); i.value = n.key || ""; i.placeholder = "stable item key"; i.spellcheck = false; i.title = l.title;
-  i.oninput = function(ev) { snap("set treeitem key"); n.key = ev.target.value; setOut(); autoPreview(); };
-  r.appendChild(i); rows.push(r);
-  var or = document.createElement("div"); or.className = "rowline";
-  var ol = document.createElement("label"); ol.textContent = "initially open"; or.appendChild(ol);
-  or.appendChild(mkSwitch(!!n.open, false, function(on){ snap("treeitem open"); n.open = on; setOut(); autoPreview(); }));
-  rows.push(or);
-  var nsr = document.createElement("div"); nsr.className = "rowline";
-  var nsl = document.createElement("label"); nsl.textContent = "node style preset"; nsr.appendChild(nsl);
-  var nss = document.createElement("select");
-  TREE_ITEM_STYLE_PRESETS.forEach(function(p) {
-    var o = document.createElement("option"); o.value = p.key; o.textContent = p.label;
-    if (treeItemPresetKey(n) === p.key) o.selected = true;
-    nss.appendChild(o);
-  });
-  var customItem = document.createElement("option"); customItem.value = "custom"; customItem.textContent = "Custom / edit style expr";
-  if (treeItemPresetKey(n) === "custom") customItem.selected = true;
-  nss.appendChild(customItem);
-  nss.onchange = function() {
-    if (nss.value === "custom") { nss.value = treeItemPresetKey(n); return; }
-    snap("treeitem style preset");
-    n.styleExpr = treeItemPresetStyleExpr(nss.value);
-    setOut(); renderInspector(); autoPreview();
-  };
-  nsr.appendChild(nss); rows.push(nsr);
-  var er = document.createElement("div"); er.className = "rowline";
-  var el = document.createElement("label"); el.textContent = "editable"; er.appendChild(el);
-  var es = document.createElement("select");
-  [["inherit", "inherit"], ["yes", "yes"], ["no", "read-only"]].forEach(function(v) {
-    var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1];
-    var cur = n.editable === true ? "yes" : n.editable === false ? "no" : "inherit";
-    if (cur === v[0]) o.selected = true;
-    es.appendChild(o);
-  });
-  es.onchange = function() {
-    snap("treeitem editable");
-    if (es.value === "inherit") delete n.editable;
-    else n.editable = es.value === "yes";
-    setOut(); autoPreview();
-  };
-  er.appendChild(es); rows.push(er);
-  var ir = document.createElement("div"); ir.className = "rowline";
-  var il = document.createElement("label"); il.textContent = "show rename icon"; ir.appendChild(il);
-  var is = document.createElement("select");
-  [["inherit", "inherit"], ["yes", "show"], ["no", "hide"]].forEach(function(v) {
-    var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1];
-    var cur = n.showRenameIcon === true ? "yes" : n.showRenameIcon === false ? "no" : "inherit";
-    if (cur === v[0]) o.selected = true;
-    is.appendChild(o);
-  });
-  is.onchange = function() {
-    snap("treeitem show rename icon");
-    if (is.value === "inherit") delete n.showRenameIcon;
-    else n.showRenameIcon = is.value === "yes";
-    setOut(); autoPreview();
-  };
-  ir.appendChild(is); rows.push(ir);
-  var ir2 = document.createElement("div"); ir2.className = "rowline";
-  var il2 = document.createElement("label"); il2.textContent = "rename icon"; ir2.appendChild(il2);
-  var ii2 = document.createElement("input"); ii2.value = n.renameIcon || ""; ii2.placeholder = "inherit / e.g. \u270e"; ii2.maxLength = 16;
-  ii2.oninput = function(ev) { snap("treeitem rename icon"); n.renameIcon = ev.target.value; setOut(); autoPreview(); };
-  ir2.appendChild(ii2); rows.push(ir2);
-  function itemField(label, value, placeholder, key, max) {
-    var r = document.createElement("div"); r.className = "rowline";
-    var l = document.createElement("label"); l.textContent = label; r.appendChild(l);
-    var i = document.createElement("input"); i.value = value || ""; i.placeholder = placeholder || ""; i.maxLength = max || 128;
-    i.oninput = function(ev) { snap("treeitem " + key); n[key] = ev.target.value; setOut(); autoPreview(); };
-    r.appendChild(i); rows.push(r);
-  }
-  itemField("icon", n.icon, "e.g. \u{1F4C4}", "icon", 32);
-  itemField("open icon", n.iconOpen, "parent icon when open", "iconOpen", 32);
-  itemField("badge", n.badge, "e.g. 12, new, !", "badge", 64);
-  var btr = document.createElement("div"); btr.className = "rowline";
-  var btl = document.createElement("label"); btl.textContent = "badge type"; btr.appendChild(btl);
-  var bts = document.createElement("select");
-  [["neutral", "neutral"], ["info", "info"], ["success", "success"], ["warning", "warning"], ["danger", "danger"]].forEach(function(v) {
-    var o = document.createElement("option"); o.value = v[0]; o.textContent = v[1];
-    if ((n.badgeType || "neutral") === v[0]) o.selected = true;
-    bts.appendChild(o);
-  });
-  bts.onchange = function() { snap("treeitem badge type"); n.badgeType = bts.value; setOut(); autoPreview(); };
-  btr.appendChild(bts); rows.push(btr);
-  itemField("metadata", n.meta, "right-aligned text", "meta", 160);
-  itemField("tooltip", n.tooltip, "text on hover/focus", "tooltip", 200);
-  itemField("size", n.size, "grid size cell", "size", 80);
-  itemField("date", n.date, "grid date cell", "date", 80);
-  itemField("status", n.status, "grid status cell", "status", 80);
-  itemField("cells", n.cells, "owner=Anna; size=1 KB", "cells", 2000);
-  var lzr = document.createElement("div"); lzr.className = "rowline";
-  var lzl = document.createElement("label"); lzl.textContent = "lazy children"; lzl.title = "Load children on first expansion through onLoad and loadKey."; lzr.appendChild(lzl);
-  lzr.appendChild(mkSwitch(!!n.lazy, false, function(on){
-    snap("treeitem lazy"); n.lazy = on; setOut(); autoPreview();
-  }));
-  rows.push(lzr);
-  var ckr = document.createElement("div"); ckr.className = "rowline";
-  var ckl = document.createElement("label"); ckl.textContent = "checked"; ckl.title = "Initial hierarchical checkbox state."; ckr.appendChild(ckl);
-  ckr.appendChild(mkSwitch(!!n.checked, false, function(on){
-    snap("treeitem checked"); n.checked = on; setOut(); autoPreview();
-  }));
-  rows.push(ckr);
-  return acc("Tree item", rows);
-}
-
 function datepickerControls(n) {
   var rows = [];
   var hint = document.createElement("div"); hint.className = "hint";
@@ -11058,11 +10884,6 @@ function attrsOf(n) {
     if (n.onCalendarChange) a += " onCalendarChange: " + n.onCalendarChange;
     if (n.onResourceChange) a += " onResourceChange: " + n.onResourceChange;
     if (n.onCommit) a += " onCommit: " + n.onCommit;
-    ["onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-     "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-     "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"].forEach(function(k) {
-      if (n[k]) a += " " + k + ": " + n[k];
-    });
     a += chartBoolAttr(n, "showGrid", "chartGrid", n.chartGrid, true);
     a += chartBoolAttr(n, "showLegend", "chartLegend", n.chartLegend, true);
     a += chartBoolAttr(n, "showValues", "chartValues", n.chartValues, false);
@@ -11076,8 +10897,8 @@ function attrsOf(n) {
   }
   if (n.kind === "treeitem" && n.key) a += " key: \"" + esc(n.key) + "\"";
   if (n.kind === "treeitem" && n.open) a += " open: true";
-  if (n.kind === "treeitem" && n.editable !== undefined && n.editable !== null && n.editable !== "inherit") {
-    a += " editable: " + (n.editable ? "true" : "false");
+  if (n.kind === "treeitem" && n.rename !== undefined && n.rename !== null && n.rename !== "inherit") {
+    a += " rename: " + (n.rename ? "true" : "false");
   }
   if (n.kind === "treeitem" && n.renameIcon) a += " renameIcon: \"" + esc(n.renameIcon) + "\"";
   if (n.kind === "treeitem" && n.icon) a += " icon: \"" + esc(n.icon) + "\"";
@@ -11094,10 +10915,10 @@ function attrsOf(n) {
   if (n.kind === "treeitem" && n.showRenameIcon !== undefined && n.showRenameIcon !== null) {
     a += " showRenameIcon: " + (n.showRenameIcon ? "true" : "false");
   }
-  if (n.kind === "tree" && n.editable) a += " editable: true";
+  if (n.kind === "tree" && n.editMode && n.editMode !== "none") a += " editMode: \"" + esc(n.editMode) + "\"";
   if (n.kind === "tree" && n.renameIcon) a += " renameIcon: \"" + esc(n.renameIcon) + "\"";
   if (n.kind === "tree" && n.showRenameIcon === false) a += " showRenameIcon: false";
-  if (n.kind === "tree" && n.editableDepth) a += " editableDepth: " + n.editableDepth;
+  if (n.kind === "tree" && n.editDepth) a += " editDepth: " + n.editDepth;
   if (n.kind === "tree" && n.renameKey) a += " renameKey: " + n.renameKey;
   if (n.kind === "tree" && n.renameValue) a += " renameValue: " + n.renameValue;
   if (n.kind === "tree" && n.guides === false) a += " guides: false";
@@ -11801,7 +11622,6 @@ function previewPageSync() {
 // the current tree, validated inside the project environment.
 function h(kind, text) { var n = newNode(kind); n.text = text; return n; }
 function tx(text, tag) { var n = newTextNode(); n.tag = tag || "p"; n.runs = [{ text: text || "", b: false, i: false, u: false, color: "", bg: "", font: "" }]; return n; }
-function nodeWith(kind, text) { return h(kind, text); }
 function nodeIn(kind, children, cls) { var n = newNode(kind); n.children = children.slice(); if (cls) n.class = cls; return n; }
 function b(text, onClick) { var n = newNode("button"); n.text = text; n.onClick = onClick; return n; }
 function bindInp(state) { var n = newNode("input"); n.value = state; n.placeholder = state; return n; }
@@ -13284,7 +13104,6 @@ function loadRemotePrefs() {
   }).catch(function(){});
 }
 
-var chartTooltipNode = null;
 var CHART_TOOLTIP_VARS = [
   "--sui-chart-tooltip-bg", "--sui-chart-tooltip-fg", "--sui-chart-tooltip-border",
   "--sui-chart-tooltip-radius", "--sui-chart-tooltip-max-width",
@@ -13312,39 +13131,6 @@ function chartTooltipLength(n, name, fallback) {
   var v = chartTooltipCssValue(n, name, fallback).trim();
   return /^(0|(?:\d*\.)?\d+(?:px|rem|em|%))$/.test(v) ? v : fallback;
 }
-function updateChartTooltipPreview() {
-  var p = document.getElementById("ctt-preview");
-  if (!p) return;
-  var bg = document.getElementById("ctt-bg").value || "#111827";
-  var fg = document.getElementById("ctt-fg").value || "#f8fafc";
-  var border = document.getElementById("ctt-border").value || "#475569";
-  var radius = normLen(document.getElementById("ctt-radius").value) || "6px";
-  var maxWidth = normLen(document.getElementById("ctt-maxwidth").value) || "240px";
-  var fontSize = normLen(document.getElementById("ctt-fontsize").value) || "11px";
-  p.style.background = bg;
-  p.style.color = fg;
-  p.style.borderColor = border;
-  p.style.borderRadius = radius;
-  p.style.maxWidth = maxWidth;
-  p.style.fontSize = fontSize;
-}
-function openChartTooltipCfg(n) {
-  chartTooltipNode = n;
-  document.getElementById("ctt-bg").value = chartTooltipColor(n, "--sui-chart-tooltip-bg", "#111827");
-  document.getElementById("ctt-fg").value = chartTooltipColor(n, "--sui-chart-tooltip-fg", "#f8fafc");
-  document.getElementById("ctt-border").value = chartTooltipColor(n, "--sui-chart-tooltip-border", "#475569");
-  document.getElementById("ctt-radius").value = chartTooltipLength(n, "--sui-chart-tooltip-radius", "6px");
-  document.getElementById("ctt-maxwidth").value = chartTooltipLength(n, "--sui-chart-tooltip-max-width", "240px");
-  document.getElementById("ctt-fontsize").value = chartTooltipLength(n, "--sui-chart-tooltip-font-size", "11px");
-  var delay = parseInt(chartTooltipCssValue(n, "--sui-chart-tooltip-delay", "0ms"), 10);
-  document.getElementById("ctt-delay").value = isNaN(delay) ? 0 : Math.max(0, Math.min(5000, delay));
-  updateChartTooltipPreview();
-  document.getElementById("cttcfg").classList.add("on");
-}
-function closeChartTooltipCfg() {
-  document.getElementById("cttcfg").classList.remove("on");
-  chartTooltipNode = null;
-}
 function chartTooltipCssWithoutVars(css) {
   var out = [];
   String(css || "").split(";").forEach(function(part) {
@@ -13357,55 +13143,6 @@ function chartTooltipCssWithoutVars(css) {
   });
   return out;
 }
-function applyChartTooltipCfg() {
-  var n = chartTooltipNode;
-  if (!n) return;
-  var css = chartStyleCss(n);
-  if (css === null) {
-    alert("This chart uses a custom style expression. Edit it manually in Appearance.");
-    return;
-  }
-  var bg = document.getElementById("ctt-bg").value || "#111827";
-  var fg = document.getElementById("ctt-fg").value || "#f8fafc";
-  var border = document.getElementById("ctt-border").value || "#475569";
-  var radius = normLen(document.getElementById("ctt-radius").value) || "6px";
-  var maxWidth = normLen(document.getElementById("ctt-maxwidth").value) || "240px";
-  var fontSize = normLen(document.getElementById("ctt-fontsize").value) || "11px";
-  var delay = parseInt(document.getElementById("ctt-delay").value, 10);
-  if (isNaN(delay) || delay < 0) delay = 0;
-  if (delay > 5000) delay = 5000;
-  var parts = chartTooltipCssWithoutVars(css);
-  parts.push("--sui-chart-tooltip-bg: " + bg);
-  parts.push("--sui-chart-tooltip-fg: " + fg);
-  parts.push("--sui-chart-tooltip-border: " + border);
-  parts.push("--sui-chart-tooltip-radius: " + radius);
-  parts.push("--sui-chart-tooltip-max-width: " + maxWidth);
-  parts.push("--sui-chart-tooltip-font-size: " + fontSize);
-  parts.push("--sui-chart-tooltip-delay: " + delay + "ms");
-  snap("chart tooltip settings");
-  n.styleExpr = "cssSafe(" + JSON.stringify(parts.join("; ")) + ")";
-  closeChartTooltipCfg();
-  setOut();
-  autoPreview();
-  renderInspector();
-}
-function resetChartTooltipCfg() {
-  var n = chartTooltipNode;
-  if (!n) return;
-  var css = chartStyleCss(n);
-  if (css === null) {
-    alert("This chart uses a custom style expression. Edit it manually in Appearance.");
-    return;
-  }
-  var parts = chartTooltipCssWithoutVars(css);
-  snap("reset chart tooltip settings");
-  n.styleExpr = parts.length ? "cssSafe(" + JSON.stringify(parts.join("; ")) + ")" : "";
-  closeChartTooltipCfg();
-  setOut();
-  autoPreview();
-  renderInspector();
-}
-var chartTableNode = null;
 var CHART_TABLE_VARS = [
   "--sui-chart-table-font-size", "--sui-chart-table-cell-padding",
   "--sui-chart-table-head-bg", "--sui-chart-table-stripe-opacity",
@@ -13413,36 +13150,6 @@ var CHART_TABLE_VARS = [
 ];
 function chartTableCssValue(n, name, fallback) {
   return chartTooltipCssValue(n, name, fallback);
-}
-function updateChartTablePreview() {
-  var p = document.getElementById("ctable-preview");
-  if (!p) return;
-  var fontSize = normLen(document.getElementById("ctb-fontsize").value) || "11px";
-  var padding = document.getElementById("ctb-padding").value || "4px 6px";
-  var headBg = document.getElementById("ctb-headbg").value || "#14171c";
-  var stripe = parseFloat(document.getElementById("ctb-stripe").value);
-  if (!isFinite(stripe) || stripe < 0) stripe = 0;
-  if (stripe > 1) stripe = 1;
-  p.style.fontSize = fontSize;
-  var hd = p.querySelector(".hd"), rw = p.querySelector(".rw");
-  if (hd) { hd.style.background = headBg; hd.style.padding = padding; }
-  if (rw) { rw.style.padding = padding; rw.style.background = "rgba(127,127,127," + stripe + ")"; }
-}
-function openChartTableCfg(n) {
-  chartTableNode = n;
-  document.getElementById("ctb-fontsize").value = chartTableCssValue(n, "--sui-chart-table-font-size", "11px");
-  document.getElementById("ctb-padding").value = chartTableCssValue(n, "--sui-chart-table-cell-padding", "4px 6px");
-  document.getElementById("ctb-headbg").value = chartTooltipColor(n, "--sui-chart-table-head-bg", "#14171c");
-  var stripe = parseFloat(chartTableCssValue(n, "--sui-chart-table-stripe-opacity", "0.06"));
-  document.getElementById("ctb-stripe").value = isFinite(stripe) ? stripe : 0.06;
-  document.getElementById("ctb-caption").checked = chartTableCssValue(n, "--sui-chart-table-caption-display", "block") !== "none";
-  document.getElementById("ctb-sticky").checked = chartTableCssValue(n, "--sui-chart-table-header-position", "sticky") !== "static";
-  updateChartTablePreview();
-  document.getElementById("ctablecfg").classList.add("on");
-}
-function closeChartTableCfg() {
-  document.getElementById("ctablecfg").classList.remove("on");
-  chartTableNode = null;
 }
 function chartTableCssWithoutVars(css) {
   var out = [];
@@ -13455,50 +13162,6 @@ function chartTableCssWithoutVars(css) {
     out.push(t);
   });
   return out;
-}
-function applyChartTableCfg() {
-  var n = chartTableNode;
-  if (!n) return;
-  var css = chartStyleCss(n);
-  if (css === null) {
-    alert("This chart uses a custom style expression. Edit it manually in Appearance.");
-    return;
-  }
-  var fontSize = normLen(document.getElementById("ctb-fontsize").value) || "11px";
-  var padding = document.getElementById("ctb-padding").value.trim() || "4px 6px";
-  var headBg = document.getElementById("ctb-headbg").value || "#14171c";
-  var stripe = parseFloat(document.getElementById("ctb-stripe").value);
-  if (!isFinite(stripe) || stripe < 0) stripe = 0;
-  if (stripe > 1) stripe = 1;
-  var parts = chartTableCssWithoutVars(css);
-  parts.push("--sui-chart-table-font-size: " + fontSize);
-  parts.push("--sui-chart-table-cell-padding: " + padding);
-  parts.push("--sui-chart-table-head-bg: " + headBg);
-  parts.push("--sui-chart-table-stripe-opacity: " + stripe);
-  parts.push("--sui-chart-table-caption-display: " + (document.getElementById("ctb-caption").checked ? "block" : "none"));
-  parts.push("--sui-chart-table-header-position: " + (document.getElementById("ctb-sticky").checked ? "sticky" : "static"));
-  snap("chart table settings");
-  n.styleExpr = "cssSafe(" + JSON.stringify(parts.join("; ")) + ")";
-  closeChartTableCfg();
-  setOut();
-  autoPreview();
-  renderInspector();
-}
-function resetChartTableCfg() {
-  var n = chartTableNode;
-  if (!n) return;
-  var css = chartStyleCss(n);
-  if (css === null) {
-    alert("This chart uses a custom style expression. Edit it manually in Appearance.");
-    return;
-  }
-  var parts = chartTableCssWithoutVars(css);
-  snap("reset chart table settings");
-  n.styleExpr = parts.length ? "cssSafe(" + JSON.stringify(parts.join("; ")) + ")" : "";
-  closeChartTableCfg();
-  setOut();
-  autoPreview();
-  renderInspector();
 }
 var chartHintsNode = null;
 var chartHintsUseDefaults = false;
@@ -14039,10 +13702,7 @@ function openChartProjectSettings(kind) {
   openChartSettings(n, kind);
 }
 var CHART_EVENT_FIELDS = [
-  "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit",
-  "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-  "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-  "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"
+  "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit"
 ];
 function chartEventSelect(node, ev) {
   var sel = document.createElement("select");
@@ -15319,19 +14979,19 @@ var COMPONENT_DEFS = [
         { key: "@contextMenu", label: "Context menu", type: "attrSwitch", attr: "contextMenu", def: false },
         { key: "@virtual", label: "Virtualize offscreen rows", type: "attrSwitch", attr: "virtual", def: false },
         { key: "@persistSelection", label: "Persist selection", type: "attrSwitch", attr: "persistSelection", def: false },
-        { key: "@editable", label: "Editable", type: "attrSwitch", attr: "editable", def: false }
+        { key: "@editMode", label: "Edit mode", type: "select", attr: "editMode", def: "none", hint: "Non-editable, editable for the page session, or editable persistent across reload/restart.", opts: [["Non-editable", "none"], ["Editable", "editable"], ["Editable persistent", "persistent"]] }
       ]},
       { name: "Bindings", fields: [
         { key: "@value", label: "Value state", type: "attrText", attr: "value", def: "", states: true, placeholder: "state name", hint: "String state receiving the selected node key." },
         { key: "@selection", label: "Selection state", type: "attrText", attr: "selection", def: "", states: true, placeholder: "state name", showIf: "@multiSelect", hint: "String state receiving a JSON array of selected keys." },
         { key: "@loadKey", label: "Load key state", type: "attrText", attr: "loadKey", def: "", states: true, placeholder: "state name", hint: "State receiving the key of a lazy node while its children load." },
-        { key: "@editableDepth", label: "Editable depth", type: "attrText", attr: "editableDepth", def: "", placeholder: "0 = all levels", showIf: "@editable", hint: "Maximum editable level; 0 = all levels." },
-        { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "", states: true, placeholder: "state name", showIf: "@editable", hint: "State receiving the renamed node key." },
-        { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "", states: true, placeholder: "state name", showIf: "@editable", hint: "State receiving the new label." }
+        { key: "@editDepth", label: "Edit depth", type: "attrText", attr: "editDepth", def: "", placeholder: "0 = all levels", hint: "Maximum editable level; 0 = all levels." },
+        { key: "@renameKey", label: "Rename key state", type: "attrText", attr: "renameKey", def: "", states: true, placeholder: "state name", hint: "State receiving the renamed node key." },
+        { key: "@renameValue", label: "Rename value state", type: "attrText", attr: "renameValue", def: "", states: true, placeholder: "state name", hint: "State receiving the new label." }
       ]},
       { name: "Events", fields: [
         { key: "@onChange", label: "onChange", type: "event", attr: "onChange", def: "", hint: "Fired after the selected node changes." },
-        { key: "@onRename", label: "onRename", type: "event", attr: "onRename", def: "", hint: "Fired after a node is renamed (editable trees)." },
+        { key: "@onRename", label: "onRename", type: "event", attr: "onRename", def: "", hint: "Fired after a node is renamed in a tree with an edit mode." },
         { key: "@onCheck", label: "onCheck", type: "event", attr: "onCheck", def: "", hint: "Fired when a hierarchical checkbox changes." },
         { key: "@onMove", label: "onMove", type: "event", attr: "onMove", def: "", hint: "Fired after drag-and-drop or context-menu structural edits." },
         { key: "@onTreeChange", label: "onTreeChange", type: "event", attr: "onTreeChange", def: "", hint: "Fired after the tree data changes: add, delete, move, indent/outdent, rename, check or lazy load." },
@@ -16988,9 +16648,6 @@ function componentValuesMatchProject(def, values, node) {
     if (String(expected === undefined ? "" : expected) !== String(actual === undefined ? "" : actual)) return false;
   }
   return true;
-}
-function componentFieldValue(def, field, node) {
-  return componentKeyBaseValue(def, field.key, node);
 }
 function componentPresetMatch(def, values, node) {
   var keys = componentAllKeys(def), presets = def.presets || [];

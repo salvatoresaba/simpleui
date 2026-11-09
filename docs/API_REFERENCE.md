@@ -578,8 +578,8 @@ tree "Project files"
 	name: "files"
 	value: selected
 	onChange: selectedChanged
-	editable: true
-	editableDepth: 2
+	editMode: "editable"
+	editDepth: 2
 	renameKey: renameKey
 	renameValue: renameValue
 	onRename: renamed {
@@ -590,7 +590,7 @@ tree "Project files"
 		}
 	}
 	treeitem "README.md" key: "readme"
-	treeitem "generated" key: "generated" editable: false
+	treeitem "generated" key: "generated" rename: false
 }
 ```
 
@@ -690,9 +690,10 @@ tree "Project files"
 - Tree interactions (expand, select, check, search, reorder) update the existing
   DOM incrementally; a SUI state change still re-renders the view from source,
   with tree runtime state restored from bindings and local storage.
-- `editable: true` enables inline rename; `editableDepth: 2` allows levels 1-2.
-  `0` means all levels.
-- `treeitem editable: true|false` overrides the tree default. `false` locks the
+- `editMode: "none" | "editable" | "persistent"` controls inline rename;
+  `"persistent"` keeps renames in `localStorage` across reload/restart.
+  `editDepth: 2` allows levels 1-2; `0` means all levels.
+- `treeitem rename: true|false` overrides the tree default. `false` locks the
   node and its descendants. No attribute means inherit.
 - `renameIcon: "✏️"` changes the pencil glyph; `showRenameIcon: false` hides it.
   Both are text, never HTML. `treeitem renameIcon`/`showRenameIcon` override the
@@ -763,8 +764,9 @@ tree "Project files"
 - Labels, keys and item text are escaped text; no raw HTML.
 
 Keys should be unique within a tree. The selected key is plain application data;
-validate it before using it to access server resources. `editable` is a UI hint,
-not an authorization boundary. Rename labels are stored in `localStorage`; use
+validate it before using it to access server resources. `editMode` is a UI hint,
+not an authorization boundary. In `persistent` mode rename labels are stored in
+`localStorage`; in `editable` mode they last for the page session. Use
 `renameKey`/`renameValue` and `onRename` to persist them in the application or
 server model.
 
@@ -1600,13 +1602,9 @@ Rendering:
   modifiers; SUI code decides which external function to call. Use
   `chart.clearEvents` and `chart.eventCount` to manage the queue.
   `chart.focusRow` highlights, scrolls to and focuses a table row (also in
-  static mode). Legacy direct callbacks are still available:
-  `chart.on(chart, element, event, handler)`, per-element data fields
-  (`onClick`, `onDoubleClick`, `onMouseOver`, `onMouseOut`, `onContextMenu`, the
-  `onShape*`/`onLink*` aliases and `onTag*`) and chart-level attributes
-  (`onShapeClick`, ...). These call SUI functions from inside the chart runtime
-  and are resolved only against `window.__SUI_USER_FUNCS`, so imported data
-  cannot call arbitrary browser globals.
+  non-editable mode). Direct function callbacks are not available: the chart is
+  event-source only and application code decides what to do with each queued
+  event.
 
 Right-click a transition for Link properties, Tag settings, waypoint commands,
 Duplicate and Delete. Link subtype/routing is selected in the **Line** tab of

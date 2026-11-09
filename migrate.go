@@ -1,5 +1,7 @@
 package main
 
+import "strconv"
+
 // migrate.go rewrites deprecated source syntax into its current equivalent.
 // It runs after parsing and before type checking, so old .sui files keep
 // compiling while the compiler, generators and runtime only implement the
@@ -139,12 +141,42 @@ func migrateLegacyElement(e *Element) {
 		migrateLegacyWorkbook(e)
 	case "tree":
 		migrateLegacyTree(e)
+	case "treeitem":
+		migrateLegacyTreeItem(e)
 	}
+}
+
+func migrateLegacyTreeItem(e *Element) {
+	if editable, ok := attrBoolValue(findAttr(e, "editable")); ok {
+		setBoolAttr(e, "rename", editable)
+	}
+	removeAttr(e, "editable")
 }
 
 // migrateLegacyTree replaces the old tree-level icon/iconOpen defaults with the
 // explicit leaf/parent icons introduced later.
 func migrateLegacyTree(e *Element) {
+	if mode, ok := attrText(findAttr(e, "editMode")); !ok || mode == "" {
+		if editable, hasEditable := attrBoolValue(findAttr(e, "editable")); hasEditable {
+			if editable {
+				setLiteralAttr(e, "editMode", "editable")
+			} else {
+				setLiteralAttr(e, "editMode", "none")
+			}
+		}
+	}
+	removeAttr(e, "editable")
+	if depth, ok := attrValueSource(findAttr(e, "editableDepth")); ok && depth != "" {
+		if v, _ := attrValueSource(findAttr(e, "editDepth")); v == "" {
+			if n, err := strconv.Atoi(depth); err == nil {
+				setIntAttr(e, "editDepth", n)
+			} else {
+				setLiteralAttr(e, "editDepth", depth)
+			}
+		}
+	}
+	removeAttr(e, "editableDepth")
+
 	icon, hasIcon := attrText(findAttr(e, "icon"))
 	iconOpen, hasOpen := attrText(findAttr(e, "iconOpen"))
 	removeAttr(e, "icon")
@@ -307,6 +339,48 @@ func attrBoolValue(a *Attr) (bool, bool) {
 		return false, false
 	}
 	return a.expr.b, true
+}
+
+// attrValueSource returns the source text of a literal or scalar expression
+// attribute (for example an integer depth).
+func attrValueSource(a *Attr) (string, bool) {
+	if a == nil {
+		return "", false
+	}
+	if a.hasExpr && a.expr != nil {
+		return exprSource(a.expr), true
+	}
+	return partsLiteral(a.text), true
+}
+
+func setIntAttr(e *Element, key string, value int) {
+	if a := findAttr(e, key); a != nil {
+		a.hasExpr = true
+		a.text = nil
+		a.expr = &Expr{kind: "int", i: value, span: a.span}
+		return
+	}
+	e.attrs = append(e.attrs, Attr{
+		key:     key,
+		hasExpr: true,
+		expr:    &Expr{kind: "int", i: value, span: e.span},
+		span:    e.span,
+	})
+}
+
+func setBoolAttr(e *Element, key string, value bool) {
+	if a := findAttr(e, key); a != nil {
+		a.hasExpr = true
+		a.text = nil
+		a.expr = &Expr{kind: "bool", b: value, span: a.span}
+		return
+	}
+	e.attrs = append(e.attrs, Attr{
+		key:     key,
+		hasExpr: true,
+		expr:    &Expr{kind: "bool", b: value, span: e.span},
+		span:    e.span,
+	})
 }
 
 // setLiteralAttr replaces an attribute with a plain string literal. It keeps the

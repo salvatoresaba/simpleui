@@ -1031,10 +1031,9 @@ The **Tree** inspector exposes only:
 - **General** - `Title` (the visible tree title), `Runtime name` (the target used
   by `tree.*`; not the visible title) and behavior switches: indent guides,
   truncate labels, hierarchical checkboxes, multi-select, search box, drag and
-  drop, context menu, virtualize offscreen rows, persist selection and editable.
+  drop, context menu, virtualize offscreen rows, persist selection and edit mode.
 - **Bindings** - optional state bindings: value state, selection state (shown for
-  multi-select), load key state, editable depth and rename key/value (shown when
-  editable). State fields suggest declared project states from a datalist; leave
+  multi-select), load key state, edit depth and rename key/value. State fields suggest declared project states from a datalist; leave
   them empty when the app does not use the corresponding behavior.
 - **Columns** - `Show columns` and a column editor where rows can be added,
   renamed, resized, removed and reordered. Column keys are free-form; `size`,
@@ -1099,7 +1098,7 @@ available in **Tree settings > Events** (the generic inspector Events panel is
 intentionally hidden for trees). `onTreeChange` runs whenever the tree data
 changes: add/delete, move, indent/outdent, import/clear, rename, checkbox, lazy
 children or grid cells. Use `tree.lastChange(name)` to read the operation, key,
-parent and index. The generated source keeps nested `treeitem` children and their keys/open/editable flags.
+parent and index. The generated source keeps nested `treeitem` children and their keys/open/rename flags.
 
 The tree **style preset** menu writes the component's visual CSS into the tree
 element's **style expr** field (in **Appearance**). It offers **Default**,
@@ -1495,10 +1494,9 @@ geometry/style changes across reload/restart. In non-editable mode every
 interaction is queued by the chart; SUI consumes the queue with
 `chart.pollEvents` / `chart.nextEvent` and decides which external function to
 call. The queue item contains `event`, `kind`, `part`,
-`id`, `label`, `tag` and pointer/modifier state. Legacy direct callbacks
-are still available (`chart.on`, element data fields, chart-level `onShapeClick`
-etc.) but the event list is the recommended model. Shape ids are mandatory and
-unique; the designer reports missing or duplicate ids as an import error.
+`id`, `label`, `tag` and pointer/modifier state. Direct callbacks are not
+supported: the event list is the only interaction model. Shape ids are mandatory
+and unique; the designer reports missing or duplicate ids as an import error.
 **Hover hints** in the Interactions tab maps to `stateHints`; turn it off to hide
 all tooltips. The **HINTS...** button opens the global tooltip style panel
 with two groups: switches/colors on the left and size/spacing sliders on the

@@ -300,89 +300,12 @@ Every event has the same payload used by the legacy callbacks:
 The queue is capped at the 200 most recent events. Polling is the recommended
 model because the chart only produces data; SUI owns all state changes.
 
-### Legacy direct callbacks
+### Direct callbacks removed
 
-For backward compatibility the chart still supports direct callbacks through
-`chart.on`, element data fields (`onClick`, ...) and chart-level attributes
-(`onShapeClick`, ...). These call a SUI function from inside the chart runtime.
-Prefer the event list for new code: it keeps the chart independent from SUI
-state and makes the function association explicit in `pumpChartEvents`.
-
-## Static event callbacks
-
-Legacy model: in static mode the chart can call SUI functions directly for
-shape, link and tag events. Chart-level callbacks are declared as chart
-attributes in source and act as the fallback when an element has no handler of
-its own. New code should prefer the event list above.
-
-| Group | Callbacks |
-|---|---|
-| Shape body | `onShapeClick`, `onShapeDoubleClick`, `onShapeMouseOver`, `onShapeMouseOut`, `onShapeContextMenu` |
-| Link body | `onLinkClick`, `onLinkDoubleClick`, `onLinkMouseOver`, `onLinkMouseOut`, `onLinkContextMenu` |
-| Tags (shape and link) | `onTagClick`, `onTagDoubleClick`, `onTagMouseOver`, `onTagMouseOut`, `onTagContextMenu` |
-
-Example:
-
-```sui
-chart "Monitor" name: "monitor" data: data chartType: "state" stateMode: "static"
-	onShapeClick: shapeClicked
-	onTagClick: tagClicked
-	onShapeMouseOver: shapeHovered
-```
-
-Events fire only in static mode. In editing mode clicks select/edit elements as
-usual. `chart.on` bindings and per-element handlers take precedence over these
-chart-level callbacks.
-
-### Payload
-
-Every callback receives one JSON string:
-
-```json
-{
-  "chart": "monitor",
-  "kind": "shape",
-  "part": "body",
-  "target": "shape",
-  "event": "click",
-  "id": "process",
-  "label": "Process",
-  "tag": "RUNNING",
-  "from": "",
-  "to": "",
-  "clientX": 420,
-  "clientY": 260,
-  "button": 0,
-  "altKey": false,
-  "ctrlKey": false,
-  "metaKey": false,
-  "shiftKey": false
-}
-```
-
-Fields:
-
-- `kind`: `shape` or `link`;
-- `part`: `body` or `tag`;
-- `target`: `shape`, `link` or `tag`;
-- `id`, `label`, `tag`;
-- `from` and `to` for links;
-- pointer coordinates and modifier keys.
-
-Parse it with `json.parse` in an async handler:
-
-```sui
-import { json } from "std"
-
-state status = ""
-
-async fn shapeClicked(eventJson: string) -> null {
-	event, err = json.parse(eventJson)
-	if err == null {
-		status = "Clicked " + str(event["label"]) + " (" + str(event["id"]) + ")"
-	}
-}
-```
+The legacy direct callback model (`chart.on`, element handler fields and
+chart-level `onShape*`/`onLink*`/`onTag*` attributes) has been removed. Charts are
+event-source only: use `chart.pollEvents` / `chart.peekEvents` / `chart.nextEvent`
+and dispatch the event to your application functions.
 
 ## Runtime chart API
 
@@ -515,51 +438,6 @@ Unsupported fields return an error.
 ```sui
 ok, err = chart.setAttr("monitor", "process", "text", "RUNNING")
 ok2, err2 = chart.setAttr("monitor", "process", "tagColor", "#f59e0b")
-```
-
-### `chart.on`
-
-```sui
-ok, err = chart.on(name, id, event, handler)
-```
-
-Binds one SUI function to one element event. It can be called from `onLoad`
-before the chart finishes drawing; the binding is applied as soon as the element
-exists.
-
-```sui
-fn bindEvents() -> null {
-	ok, err = chart.on("monitor", "process", "click", "processClicked")
-	if err != null {
-		status = "Binding failed: " + err
-	}
-}
-```
-
-Events: `click`, `dblclick`, `mouseover`, `mouseout`, `contextmenu` for the
-element body; `tagClick`, `tagDoubleClick`, `tagMouseOver`, `tagMouseOut`,
-`tagContextMenu` for its tag.
-
-### `chart.off`
-
-```sui
-ok, err = chart.off(name, id, event)
-```
-
-Removes one binding, or all bindings of the element when `event` is empty.
-
-### `chart.bindings`
-
-```sui
-jsonText, err = chart.bindings(name)
-```
-
-Returns the active `chart.on` bindings as JSON:
-
-```json
-[
-  { "element": "process", "event": "body:click", "handler": "processClicked" }
-]
 ```
 
 ### `chart.focusRow`
@@ -846,7 +724,7 @@ Element identifiers come from the chart data:
 - shape geometry: `shape`, `w`, `h`, `x`, `y`, `rotation`;
 - shape tag: `tag`, `tagTextColor`, `tagBoxColor`, `tagBorderColor`;
 - shape color: `color`;
-- shape handlers: event-list entries (`chart.pollEvents`) or legacy `chart.on` bindings;
+- shape events: queued entries read with `chart.pollEvents`;
 - link id: `id` (`edge_1`);
 - link tag: `tag`, colors, `routing`, `waypoints`.
 
@@ -1004,10 +882,8 @@ combines all of the above:
 - Colors are validated; invalid colors return an error and are not applied.
 - The chart only queues plain data; it does not need to call SUI functions. SUI
   code decides which external function receives each queued event.
-- Legacy `chart.on`, per-element and chart-level handler names are still
-  resolved only against `window.__SUI_USER_FUNCS`.
 - Shape ids are validated for presence and uniqueness before the graph is drawn.
-- Static mode makes the table read-only and removes editing controls.
+- Non-editable mode makes the table read-only and removes editing controls.
 - Tag/color updates are applied in place to the existing SVG; structural changes
   (shape, routing, tag kind/box/font, geometry) fall back to a full redraw.
 - A short draw-suppression window prevents unrelated SUI re-renders or resize

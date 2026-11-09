@@ -178,8 +178,10 @@ const suiTreeRuntime = `(function(){
     var renameKeySetter = root.getAttribute('data-sui-tree-rename-key-setter') || '';
     var renameValueSetter = root.getAttribute('data-sui-tree-rename-value-setter') || '';
     var renameHandler = root.getAttribute('data-sui-tree-onrename') || '';
-    var treeEditable = root.getAttribute('data-sui-tree-editable') === '1';
-    var editableDepth = parseInt(root.getAttribute('data-sui-tree-editable-depth') || '0', 10);
+    var treeEditMode = String(root.getAttribute('data-sui-tree-edit-mode') || 'none').toLowerCase();
+    if (treeEditMode !== 'editable' && treeEditMode !== 'persistent') treeEditMode = 'none';
+    var treeEditable = treeEditMode !== 'none';
+    var editableDepth = parseInt(root.getAttribute('data-sui-tree-edit-depth') || '0', 10);
     if (isNaN(editableDepth) || editableDepth < 0) editableDepth = 0;
     var treeRenameIcon = root.getAttribute('data-sui-tree-rename-icon') || '\u270e';
     var showTreeRenameIcon = root.getAttribute('data-sui-tree-show-rename-icon') !== '0';
@@ -350,18 +352,45 @@ const suiTreeRuntime = `(function(){
       return 'sui.tree.label.' + treeKey + '.' + path;
     }
     function storedLabel(root, path) {
-      try { return localStorage.getItem(labelStorageKey(root, path)); } catch (e) { return null; }
+      if (!treeEditable) return null;
+      try {
+        if (treeEditMode === 'persistent') return localStorage.getItem(labelStorageKey(root, path));
+        var memo = window.__SUI_TREE_LABELS || (window.__SUI_TREE_LABELS = {});
+        return memo[labelStorageKey(root, path)] !== undefined ? memo[labelStorageKey(root, path)] : null;
+      } catch (e) { return null; }
     }
     function saveLabel(root, path, value) {
-      try { localStorage.setItem(labelStorageKey(root, path), value); } catch (e) {}
+      if (!treeEditable) return;
+      try {
+        if (treeEditMode === 'persistent') localStorage.setItem(labelStorageKey(root, path), value);
+        else {
+          var memo = window.__SUI_TREE_LABELS || (window.__SUI_TREE_LABELS = {});
+          memo[labelStorageKey(root, path)] = value;
+        }
+      } catch (e) {}
+    }
+    function clearPersisted(root) {
+      var name = treeName(root || document.body);
+      if (!name) return [0, 'tree.clearPersisted: name is required'];
+      var prefix = 'sui.tree.label.' + name + '.';
+      var removed = 0;
+      try {
+        for (var i = localStorage.length - 1; i >= 0; i--) {
+          var key = localStorage.key(i);
+          if (key && key.indexOf(prefix) === 0) { localStorage.removeItem(key); removed++; }
+        }
+      } catch (e) {}
+      var memo = window.__SUI_TREE_LABELS || {};
+      for (var k in memo) if (Object.prototype.hasOwnProperty.call(memo, k) && k.indexOf(prefix) === 0) delete memo[k];
+      return [removed > 0 ? 1 : 0, null];
     }
     function editableFor(item) {
       var p = parentItem(item, root);
       while (p) {
-        if (p.getAttribute('data-sui-editable') === '0') return false;
+        if (p.getAttribute('data-sui-rename') === '0') return false;
         p = parentItem(p, root);
       }
-      var own = item.getAttribute('data-sui-editable') || 'inherit';
+      var own = item.getAttribute('data-sui-rename') || 'inherit';
       if (own === '0') return false;
       if (own === '1') return true;
       if (!treeEditable) return false;
@@ -1793,7 +1822,8 @@ const suiTreeRuntime = `(function(){
       checkedKeys: checkedKeys,
       notifyTreeChange: notifyTreeChange,
       search: applySearch,
-      focusSearch: focusSearch
+      focusSearch: focusSearch,
+      clearPersisted: function() { return clearPersisted(root); }
     };
   }
   // ---- JSON/XML data import and export -----------------------------------
@@ -1849,7 +1879,7 @@ const suiTreeRuntime = `(function(){
       if (kids !== undefined && kids !== null && !Array.isArray(kids)) throw new Error("children must be an array");
       if (kids) node.children = normalizeNodes(kids, path, depth + 1, ctx);
       if (obj.open !== undefined) node.open = boolValue(obj.open, false);
-      if (obj.editable !== undefined) node.editable = triValue(obj.editable, "editable");
+      if (obj.rename !== undefined) node.rename = triValue(obj.rename, "rename");
       if (obj.renameIcon !== undefined) {
         var icon = treeText(obj.renameIcon);
         if (icon.length > MAX_ICON) throw new Error("renameIcon is too long (limit " + MAX_ICON + ")");
@@ -1955,7 +1985,7 @@ const suiTreeRuntime = `(function(){
     if (label) o.label = label;
     var key = el.getAttribute("key");
     if (key) o.key = key;
-    var attrs = ["open", "editable", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "tooltip", "lazy", "size", "date", "status"];
+    var attrs = ["open", "rename", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "tooltip", "lazy", "size", "date", "status"];
     for (var i = 0; i < attrs.length; i++) {
       var v = el.getAttribute(attrs[i]);
       if (v !== null) o[attrs[i]] = v;
@@ -2006,7 +2036,7 @@ const suiTreeRuntime = `(function(){
     li.setAttribute("data-sui-key", node.key);
     li.setAttribute("data-sui-path", path);
     li.setAttribute("data-sui-level", String(level));
-    li.setAttribute("data-sui-editable", node.editable || "inherit");
+    li.setAttribute("data-sui-rename", node.rename || "inherit");
     li.setAttribute("data-sui-show-rename-icon", node.showRenameIcon || "inherit");
     li.setAttribute("data-sui-rename-icon", node.renameIcon || "");
     li.setAttribute("data-sui-open", node.open ? "1" : "0");
@@ -2195,8 +2225,8 @@ const suiTreeRuntime = `(function(){
     if (group) {
       out.open = li.__suiTreeOpen !== undefined ? !!li.__suiTreeOpen : li.getAttribute("data-sui-open") === "1";
     }
-    var editable = li.getAttribute("data-sui-editable");
-    if (editable === "1" || editable === "0") out.editable = editable === "1";
+    var rename = li.getAttribute("data-sui-rename");
+    if (rename === "1" || rename === "0") out.rename = rename === "1";
     var show = li.getAttribute("data-sui-show-rename-icon");
     if (show === "1" || show === "0") out.showRenameIcon = show === "1";
     var icon = li.getAttribute("data-sui-rename-icon") || "";
@@ -2261,7 +2291,7 @@ const suiTreeRuntime = `(function(){
       var n = nodes[i];
       var attrs = " label=\"" + xmlEscape(n.label) + "\" key=\"" + xmlEscape(n.key) + "\"";
       if (n.open !== undefined) attrs += " open=\"" + (n.open ? "true" : "false") + "\"";
-      if (n.editable !== undefined) attrs += " editable=\"" + (n.editable ? "true" : "false") + "\"";
+      if (n.rename !== undefined) attrs += " rename=\"" + (n.rename ? "true" : "false") + "\"";
       if (n.showRenameIcon !== undefined) attrs += " showRenameIcon=\"" + (n.showRenameIcon ? "true" : "false") + "\"";
       if (n.renameIcon) attrs += " renameIcon=\"" + xmlEscape(n.renameIcon) + "\"";
       if (n.icon) attrs += " icon=\"" + xmlEscape(n.icon) + "\"";
@@ -2371,6 +2401,13 @@ const suiTreeRuntime = `(function(){
     importXml: function(name, text) {
       var res = importedNodes(name, text, "xml");
       return res.error ? [0, res.error] : [res.count, null];
+    },
+    clearPersisted: function(name) {
+      var root = treeTarget(name);
+      if (!root) return [0, "tree not found: " + name];
+      if (!root.__suiTreeApi) init(root);
+      if (!root.__suiTreeApi) return [0, "tree is empty: " + name];
+      return root.__suiTreeApi.clearPersisted();
     },
     importJsonFile: function(name, path) { return importFile(name, path, "json"); },
     importXmlFile: function(name, path) { return importFile(name, path, "xml"); },

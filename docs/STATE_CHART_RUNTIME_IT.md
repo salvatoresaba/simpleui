@@ -268,7 +268,7 @@ view main {
 | `chart.clearEvents(name)` | svuota la lista |
 | `chart.eventCount(name)` | numero di eventi pendenti |
 
-Ogni evento ha lo stesso payload dei callback legacy:
+Ogni evento ha questo payload:
 
 ```json
 {
@@ -303,73 +303,12 @@ La lista conserva al massimo gli ultimi 200 eventi. Il polling è il modello
 consigliato perché il chart produce solo dati; SUI possiede tutte le modifiche
 di stato.
 
-### Callback diretti legacy
+### Callback diretti rimossi
 
-Per compatibilità il chart supporta ancora i callback diretti con `chart.on`, i
-campi dati (`onClick`, ...) e gli attributi chart-level (`onShapeClick`, ...).
-Questi chiamano una funzione SUI dall’interno del runtime del chart. Per il nuovo
-codice preferire la lista eventi: mantiene il chart indipendente dallo stato SUI
-e rende esplicita l’associazione funzione-evento in `pumpChartEvents`.
-
-## Eventi statici
-
-Modello legacy: in modalità static il chart può chiamare direttamente funzioni
-SUI per eventi su forme, link e tag. I callback chart-level sono dichiarati come
-attributi nel sorgente e fungono da fallback quando un elemento non ha un proprio
-gestore. Per il nuovo codice preferire la lista eventi qui sopra.
-
-| Gruppo | Callback |
-|---|---|
-| Corpo forma | `onShapeClick`, `onShapeDoubleClick`, `onShapeMouseOver`, `onShapeMouseOut`, `onShapeContextMenu` |
-| Corpo link | `onLinkClick`, `onLinkDoubleClick`, `onLinkMouseOver`, `onLinkMouseOut`, `onLinkContextMenu` |
-| Tag (forme e link) | `onTagClick`, `onTagDoubleClick`, `onTagMouseOver`, `onTagMouseOut`, `onTagContextMenu` |
-
-Gli eventi scattano solo in static. In editing il click seleziona/modifica come
-al solito. I binding `chart.on` e i gestori per-elemento hanno precedenza sui
-callback chart-level.
-
-### Payload
-
-Ogni callback riceve una stringa JSON:
-
-```json
-{
-  "chart": "monitor",
-  "kind": "shape",
-  "part": "body",
-  "target": "shape",
-  "event": "click",
-  "id": "process",
-  "label": "Process",
-  "tag": "RUNNING",
-  "from": "",
-  "to": "",
-  "clientX": 420,
-  "clientY": 260,
-  "button": 0,
-  "altKey": false,
-  "ctrlKey": false,
-  "metaKey": false,
-  "shiftKey": false
-}
-```
-
-Campi: `kind` (`shape`/`link`), `part`
-(`body`/`tag`), `target`, `id`, `label`, `tag`, `from`/`to` per i link,
-coordinate e modificatori.
-
-```sui
-import { json } from "std"
-
-state status = ""
-
-async fn shapeClicked(eventJson: string) -> null {
-	event, err = json.parse(eventJson)
-	if err == null {
-		status = "Click su " + str(event["label"]) + " (" + str(event["id"]) + ")"
-	}
-}
-```
+Il modello a callback diretti (`chart.on`, campi handler sugli elementi e
+attributi chart-level `onShape*`/`onLink*`/`onTag*`) e stato rimosso. Il chart e
+solo una sorgente di eventi: usare `chart.pollEvents` / `chart.peekEvents` /
+`chart.nextEvent` e smistare l'evento alle funzioni applicative.
 
 ## API runtime del chart
 
@@ -503,51 +442,6 @@ supportati restituiscono errore.
 ```sui
 ok, err = chart.setAttr("monitor", "process", "text", "RUNNING")
 ok2, err2 = chart.setAttr("monitor", "process", "tagColor", "#f59e0b")
-```
-
-### `chart.on`
-
-```sui
-ok, err = chart.on(name, id, event, handler)
-```
-
-Associa una funzione SUI a un evento di un elemento. Può essere chiamato da
-`onLoad` prima che il chart completi il disegno; il binding viene applicato
-appena l’elemento esiste.
-
-```sui
-fn bindEvents() -> null {
-	ok, err = chart.on("monitor", "process", "click", "processClicked")
-	if err != null {
-		status = "Binding failed: " + err
-	}
-}
-```
-
-Eventi: `click`, `dblclick`, `mouseover`, `mouseout`, `contextmenu` per il corpo;
-`tagClick`, `tagDoubleClick`, `tagMouseOver`, `tagMouseOut`, `tagContextMenu`
-per il tag.
-
-### `chart.off`
-
-```sui
-ok, err = chart.off(name, id, event)
-```
-
-Rimuove un binding, oppure tutti i binding dell’elemento se `event` è vuoto.
-
-### `chart.bindings`
-
-```sui
-jsonText, err = chart.bindings(name)
-```
-
-Restituisce i binding `chart.on` attivi in JSON:
-
-```json
-[
-  { "element": "process", "event": "body:click", "handler": "processClicked" }
-]
 ```
 
 ### `chart.focusRow`
@@ -987,10 +881,8 @@ combina tutte le funzionalità:
 - I colori sono validati; quelli non validi restituiscono errore.
 - Il chart accoda solo dati; non deve chiamare funzioni SUI. È il codice SUI a
   decidere quale funzione esterna riceve ogni evento.
-- I callback legacy `chart.on`/per-elemento/chart-level restano limitati a
-  `window.__SUI_USER_FUNCS`.
 - Gli id delle forme sono validati per presenza e unicità prima del disegno.
-- Static rende la tabella in sola lettura e rimuove i controlli di editing.
+- La modalità non-editable rende la tabella in sola lettura e rimuove i controlli di editing.
 - Gli aggiornamenti tag/colori sono applicati in place all’SVG esistente; le
   modifiche strutturali (forma, routing, tipo/box/font tag, geometria) usano un
   ridisegno completo.

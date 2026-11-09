@@ -204,15 +204,6 @@ const suiChartRuntime = `(function(){
     return isFinite(n) ? n : null;
   }
   function seriesClass(i) { return "sui-chart-series-" + ((i % SERIES_CLASSES) + 1); }
-  function finishPoint(label, value, x, index) {
-    var y = num(value);
-    if (y === null) return null;
-    var s = text(label).trim();
-    if (s.length > MAX_LABEL) s = s.slice(0, MAX_LABEL);
-    if (!s) s = String(index + 1);
-    var xv = num(x);
-    return { label: s, value: y, x: xv === null ? index : xv };
-  }
   function cleanLabel(v, index) {
     var s = text(v).trim();
     if (s.length > MAX_LABEL) s = s.slice(0, MAX_LABEL);
@@ -668,14 +659,14 @@ const suiChartRuntime = `(function(){
     if (Array.isArray(value)) {
       for (var i = 0; i < value.length; i++) {
         var item = value[i] && typeof value[i] === "object"
-          ? text(ganttField(value[i], ["name", "resource", "label"])).trim()
+          ? text(ganttField(value[i], ["name", "label"])).trim()
           : text(value[i]).trim();
         if (item && list.indexOf(item) < 0) list.push(item);
       }
       return list;
     }
     if (value && typeof value === "object") {
-      var ownName = text(ganttField(value, ["name", "resource", "label"])).trim();
+      var ownName = text(ganttField(value, ["name", "label"])).trim();
       if (ownName) return [ownName];
       for (var key in value) {
         if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
@@ -706,7 +697,7 @@ const suiChartRuntime = `(function(){
       for (var a = 0; a < value.length; a++) {
         var item = value[a];
         if (!item || typeof item !== "object") continue;
-        var itemName = text(ganttField(item, ["name", "resource", "label"])).trim();
+        var itemName = text(ganttField(item, ["name", "label"])).trim();
         if (!itemName) continue;
         map[itemName] = ganttUnitValue(ganttField(item, ["units", "quantity", "people", "count", "headcount"]));
       }
@@ -723,7 +714,7 @@ const suiChartRuntime = `(function(){
   }
   function ganttTaskResources(task) {
     if (!task) return [];
-    return ganttResourceNames(task.resources !== undefined && task.resources !== null ? task.resources : task.resource);
+    return ganttResourceNames(task.resources);
   }
   function ganttTaskResourceUnits(task, name) {
     if (!task) return 1;
@@ -735,28 +726,11 @@ const suiChartRuntime = `(function(){
     }
     return 1;
   }
-  function ganttNormalizeTaskResourceUnits(task) {
-    if (!task) return {};
-    var names = ganttTaskResources(task);
-    var source = task.resourceUnits && typeof task.resourceUnits === "object" ? task.resourceUnits : {};
-    var out = {};
-    for (var i = 0; i < names.length; i++) {
-      var value = source[names[i]];
-      if (value === undefined) {
-        for (var key in source) {
-          if (Object.prototype.hasOwnProperty.call(source, key) && key.toLowerCase() === names[i].toLowerCase()) { value = source[key]; break; }
-        }
-      }
-      out[names[i]] = ganttUnitValue(value);
-    }
-    task.resourceUnits = out;
-    return out;
-  }
   function ganttResourceEntry(value) {
     if (value === null || value === undefined) return null;
     if (typeof value === "string") value = { name: value };
     if (typeof value !== "object") return null;
-    var name = text(ganttField(value, ["name", "resource", "label", "id"])).trim();
+    var name = text(ganttField(value, ["name", "label", "id"])).trim();
     if (!name) return null;
     var maxPeople = num(ganttField(value, ["maxPeople", "maxPersonnel", "people", "headcount", "max"]));
     if (maxPeople === null || !isFinite(maxPeople)) maxPeople = 0;
@@ -981,7 +955,7 @@ const suiChartRuntime = `(function(){
     var milestone = ganttBool(ganttField(o, ["milestone"])) || st.value === en.value;
     var id = text(ganttField(o, ["id", "key"]) || label);
     var group = text(ganttField(o, ["group", "phase", "category"]));
-    var resourceValue = ganttField(o, ["resources", "resource", "owner", "assignee", "assignedTo"]);
+    var resourceValue = ganttField(o, ["resources"]);
     var resources = ganttResourceNames(resourceValue);
     var resourceUnits = ganttResourceUnitMap(resourceValue, resources);
     var explicitUnits = ganttField(o, ["resourceUnits", "resourceQuantities", "resourcePeople"]);
@@ -990,7 +964,7 @@ const suiChartRuntime = `(function(){
         for (var eu = 0; eu < explicitUnits.length; eu++) {
           var euItem = explicitUnits[eu];
           if (!euItem || typeof euItem !== "object") continue;
-          var euName = text(ganttField(euItem, ["name", "resource", "label"])).trim();
+          var euName = text(ganttField(euItem, ["name", "label"])).trim();
           if (euName) resourceUnits[euName] = ganttUnitValue(ganttField(euItem, ["units", "quantity", "people", "count", "headcount"]));
         }
       } else {
@@ -1131,12 +1105,6 @@ const suiChartRuntime = `(function(){
     var s = value === null || value === undefined ? "" : String(value);
     return s.replace(/\r\n?|\n/g, "|");
   }
-  // Version 1 documents predate the "|" line-break model: every existing pipe
-  // was literal text, so escape it and keep real newlines as the only breaks.
-  function stateLegacyLineText(value) {
-    var s = value === null || value === undefined ? "" : String(value);
-    return s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r\n?|\n/g, "|");
-  }
   function stateLineParts(value, maxLines) {
     var s = value === null || value === undefined ? "" : String(value);
     var limit = Number(maxLines) > 0 ? Math.floor(Number(maxLines)) : 0;
@@ -1170,12 +1138,11 @@ const suiChartRuntime = `(function(){
     var n = num(value);
     return n === null ? null : n;
   }
-  function parseStateData(textValue, format, options) {
+  function parseStateData(textValue, format) {
     textValue = text(textValue).replace(/^\uFEFF/, "");
     if (!textValue.trim()) throw new Error("state data is empty");
-    var legacyLines = !!(options && options.legacyLines);
     var normalizeLineText = function(value) {
-      return legacyLines ? stateLegacyLineText(value) : stateLineText(value);
+      return stateLineText(value);
     };
     var fmt = (format || "auto").toLowerCase();
     if (fmt === "auto") {
@@ -1185,15 +1152,6 @@ const suiChartRuntime = `(function(){
     var nodes = [], transitions = [], initialRef = "", i;
     var importedSettings = null;
     var byId = {}, byLabel = {};
-    var stateEventFields = function(obj) {
-      var fields = {};
-      for (var ei = 0; ei < STATE_CHART_EVENT_FIELDS.length; ei++) {
-        var eventField = STATE_CHART_EVENT_FIELDS[ei];
-        var value = stateFieldText(obj, [eventField]);
-        if (value) fields[eventField] = value;
-      }
-      return fields;
-    };
     var addTransition = function(from, to, label, event, guard, action, description, color) {
       from = text(from).trim(); to = text(to).trim();
       if (!from || !to) return;
@@ -1288,10 +1246,6 @@ const suiChartRuntime = `(function(){
         tagOffset: nodeTagOffset,
         rotation: stateNumber(stateFieldValue(obj, ["rotation", "rotate", "angle"]))
       };
-      var nodeEvents = stateEventFields(obj);
-      for (var nodeEventName in nodeEvents) {
-        if (Object.prototype.hasOwnProperty.call(nodeEvents, nodeEventName)) node[nodeEventName] = nodeEvents[nodeEventName];
-      }
       nodes.push(node);
       byId[id] = node;
       byLabel[node.label.toLowerCase()] = node;
@@ -1443,19 +1397,11 @@ const suiChartRuntime = `(function(){
             return wx === null || wy === null ? null : { x: wx, y: wy };
           }).filter(function(point) { return !!point; });
         }
-        var linkEvents = stateEventFields(obj);
-        for (var linkEventName in linkEvents) {
-          if (Object.prototype.hasOwnProperty.call(linkEvents, linkEventName)) lastTransition[linkEventName] = linkEvents[linkEventName];
-        }
       }
     };
     if (fmt === "json") {
       var parsed;
       try { parsed = JSON.parse(textValue); } catch (e) { throw new Error("invalid JSON: " + e.message); }
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        if (parsed.version === 1) legacyLines = true;
-        else if (parsed.version >= 2) legacyLines = false;
-      }
       var stateRows = [], transitionRows = [];
       if (Array.isArray(parsed)) {
         var transitionArray = parsed.length > 0 && parsed.every(function(row) {
@@ -1704,7 +1650,7 @@ const suiChartRuntime = `(function(){
             group: r[ganttHeaderIndex(head, ["group", "phase"], -1)],
             dependsOn: r[ganttHeaderIndex(head, ["dependsOn", "dependencies"], -1)],
             color: r[ganttHeaderIndex(head, ["color", "colour"], -1)],
-            resource: r[ganttHeaderIndex(head, ["resources", "resource", "owner", "assignee"], -1)],
+            resource: r[ganttHeaderIndex(head, ["resources"], -1)],
             status: r[ganttHeaderIndex(head, ["status", "state"], -1)],
             dependencyType: r[ganttHeaderIndex(head, ["dependencyType", "linkType", "depType"], -1)],
             lag: r[ganttHeaderIndex(head, ["lag", "lead"], -1)],
@@ -1747,7 +1693,7 @@ const suiChartRuntime = `(function(){
         group: ganttHeaderIndex(header, ["group", "phase"], -1),
         dependsOn: ganttHeaderIndex(header, ["dependsOn", "dependencies"], -1),
         color: ganttHeaderIndex(header, ["color", "colour"], -1),
-        resource: ganttHeaderIndex(header, ["resources", "resource", "owner", "assignee"], -1),
+        resource: ganttHeaderIndex(header, ["resources"], -1),
         status: ganttHeaderIndex(header, ["status", "state"], -1),
         dependencyType: ganttHeaderIndex(header, ["dependencyType", "linkType", "depType"], -1),
         lag: ganttHeaderIndex(header, ["lag", "lead"], -1),
@@ -1798,7 +1744,7 @@ const suiChartRuntime = `(function(){
           group: ganttXmlField(el, ["group", "phase"]),
           dependsOn: ganttXmlField(el, ["dependsOn", "dependencies"]),
           color: ganttXmlField(el, ["color", "colour"]),
-          resource: ganttXmlField(el, ["resources", "resource", "owner", "assignee"]),
+          resource: ganttXmlField(el, ["resources"]),
           status: ganttXmlField(el, ["status", "state"]),
           dependencyType: ganttXmlField(el, ["dependencyType", "linkType", "depType"]),
           lag: ganttXmlField(el, ["lag", "lead"]),
@@ -3165,10 +3111,6 @@ const suiChartRuntime = `(function(){
       end = dateMode ? ganttShiftWorkingDays(start, completed, weekendSet, isHoliday, timeZone, true) : start + completed;
     }
     return { start: Math.min(start, end), end: Math.max(start, end) };
-  }
-  function ganttActualText(task, field, dateMode, timeZone) {
-    var value = task ? task[field] : null;
-    return value === null || value === undefined ? "" : ganttDateText(value, dateMode, false, timeZone);
   }
   function ganttIsWorkingMoment(ms, weekendSet, isHoliday, timeZone) {
     var p = ganttDateParts(ms, timeZone);
@@ -4933,9 +4875,6 @@ const suiChartRuntime = `(function(){
       svg.__suiGanttSticky = null;
     }
   }
-  function stateBoxesIntersect(a, b) {
-    return a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
-  }
   function stateSimplifyOrthogonal(points) {
     if (!points || points.length < 3) return points || [];
     var out = [points[0]];
@@ -6090,10 +6029,6 @@ const suiChartRuntime = `(function(){
       return shape === "diamond" ? "rhombus" : shape;
     }
     return "rectangle";
-  }
-  function stateShapeExplicit(node) {
-    var shape = (node && node.shape ? String(node.shape) : "").toLowerCase();
-    return ["rectangle", "square", "circle", "stadium", "ellipse", "rhombus", "triangle", "parallelogram", "hexagon", "trapezoid", "pentagon", "note", "diamond"].indexOf(shape) >= 0;
   }
   function stateLinkSubtype(edge) {
     var routing = (edge && edge.routing ? String(edge.routing) : "auto").toLowerCase();
@@ -11328,15 +11263,6 @@ const suiChartRuntime = `(function(){
     }
     return stateTagFieldValue(control);
   }
-  function stateThemeSetPreset(root, overlay, key, presetSelect, themeControls, refresh) {
-    if (key === "custom") return;
-    var preset = stateThemePresetByKey(key);
-    if (!preset) return;
-    stateThemeApplyPreset(root, preset);
-    copyChartThemeVars(root, overlay);
-    if (refresh) refresh();
-    draw(root);
-  }
   function statePayloadData(data) {
     return {
       initial: data.stateInitial || "",
@@ -11394,7 +11320,6 @@ const suiChartRuntime = `(function(){
         if (n.y !== null && n.y !== undefined && n.y !== "" && isFinite(Number(n.y))) out.y = Number(n.y);
         if (n.w !== null && n.w !== undefined && n.w !== "" && isFinite(Number(n.w)) && Number(n.w) > 0) out.w = Number(n.w);
         if (n.h !== null && n.h !== undefined && n.h !== "" && isFinite(Number(n.h)) && Number(n.h) > 0) out.h = Number(n.h);
-        stateChartCopyEventFields(n, out);
         return out;
       }),
       transitions: (data.stateTransitions || []).map(function(t) {
@@ -11462,7 +11387,6 @@ const suiChartRuntime = `(function(){
         else if (t.arcLarge === "0" || t.arcLarge === "1") out.arcLarge = Number(t.arcLarge);
         if (t.routing) out.routing = t.routing;
         if (Array.isArray(t.waypoints) && t.waypoints.length) out.waypoints = t.waypoints.map(function(point) { return { x: Number(point.x), y: Number(point.y) }; });
-        stateChartCopyEventFields(t, out);
         return out;
       })
     };
@@ -12649,12 +12573,6 @@ const suiChartRuntime = `(function(){
   function hasTableSelection(root) {
     return !!(Object.keys(tableMultiSet(root)).length || Object.keys(tableColSet(root)).length || Object.keys(tableCellSet(root)).length);
   }
-  function bringSelectedIntoView(root) {
-    var rows = selectedTableRows(root);
-    if (rows.length && rows[rows.length - 1].scrollIntoView) {
-      try { rows[rows.length - 1].scrollIntoView({ block: "nearest" }); } catch (e) {}
-    }
-  }
   function focusTableElement(el) {
     if (!el || !el.focus) return;
     try { el.focus({ preventScroll: true }); } catch (e) {}
@@ -13790,14 +13708,6 @@ const suiChartRuntime = `(function(){
     }
     if (!wrap.childNodes.length) wrap.appendChild(document.createTextNode("None"));
     return wrap;
-  }
-  function ganttResourceUniverse(tasks) {
-    var names = [];
-    for (var i = 0; i < (tasks || []).length; i++) {
-      var list = ganttTaskResources(tasks[i]);
-      for (var j = 0; j < list.length; j++) if (names.indexOf(list[j]) < 0) names.push(list[j]);
-    }
-    return names;
   }
   function commitGanttResources(root, data, task, nextNames, index, nextUnitsOverride) {
     var before = cloneGanttTasks(data.ganttTasks);
@@ -15743,123 +15653,6 @@ const suiChartRuntime = `(function(){
     }
     return stateInsertClones(root, selection.nodes, selection.edges, stateKeyboardStep(root));
   }
-  var STATE_CHART_EVENT_FIELDS = [
-    "onClick", "onDoubleClick", "onMouseOver", "onMouseOut", "onContextMenu",
-    "onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-    "onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-    "onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu"
-  ];
-  var STATE_CHART_BINDING_EVENTS = {
-    click: { part: "body", event: "click" },
-    dblclick: { part: "body", event: "dblclick" },
-    doubleclick: { part: "body", event: "dblclick" },
-    mouseover: { part: "body", event: "mouseover" },
-    mouseenter: { part: "body", event: "mouseover" },
-    hover: { part: "body", event: "mouseover" },
-    mouseout: { part: "body", event: "mouseout" },
-    mouseleave: { part: "body", event: "mouseout" },
-    contextmenu: { part: "body", event: "contextmenu" },
-    rightclick: { part: "body", event: "contextmenu" },
-    tagclick: { part: "tag", event: "click" },
-    tagdblclick: { part: "tag", event: "dblclick" },
-    tagdoubleclick: { part: "tag", event: "dblclick" },
-    tagmouseover: { part: "tag", event: "mouseover" },
-    tagmouseenter: { part: "tag", event: "mouseover" },
-    taghover: { part: "tag", event: "mouseover" },
-    tagmouseout: { part: "tag", event: "mouseout" },
-    tagmouseleave: { part: "tag", event: "mouseout" },
-    tagcontextmenu: { part: "tag", event: "contextmenu" },
-    tagrightclick: { part: "tag", event: "contextmenu" }
-  };
-  function stateChartNormalizeBinding(eventName) {
-    var raw = String(eventName === null || eventName === undefined ? "" : eventName).trim().toLowerCase().replace(/[\s_-]/g, "");
-    if (raw.indexOf("on") === 0) raw = raw.slice(2);
-    var spec = STATE_CHART_BINDING_EVENTS[raw];
-    if (!spec) return null;
-    return { part: spec.part, event: spec.event, key: spec.part + ":" + spec.event };
-  }
-  function stateChartBindingChartKey(root) {
-    var name = root && root.getAttribute ? (root.getAttribute("data-sui-chart-name") || "") : "";
-    if (name) return "n:" + name;
-    var title = root && root.getAttribute ? (root.getAttribute("data-sui-chart-title") || "") : "";
-    return title ? "t:" + title : "__chart__";
-  }
-  function stateChartBindingsStore() {
-    if (!window.__SUI_CHART_BINDINGS || typeof window.__SUI_CHART_BINDINGS !== "object") {
-      window.__SUI_CHART_BINDINGS = Object.create(null);
-    }
-    return window.__SUI_CHART_BINDINGS;
-  }
-  function stateChartCopyEventFields(source, target) {
-    if (!source || !target) return;
-    for (var i = 0; i < STATE_CHART_EVENT_FIELDS.length; i++) {
-      var name = STATE_CHART_EVENT_FIELDS[i];
-      if (source[name]) target[name] = source[name];
-    }
-  }
-  function stateChartMergeEventFields(target, source) {
-    if (!target || !source) return;
-    var mergeList = function(targetList, sourceList) {
-      var byId = Object.create(null);
-      for (var i = 0; i < sourceList.length; i++) byId[String(sourceList[i].id)] = sourceList[i];
-      for (var j = 0; j < targetList.length; j++) {
-        var original = byId[String(targetList[j].id)];
-        if (original) stateChartCopyEventFields(original, targetList[j]);
-      }
-    };
-    mergeList(target.stateNodes || [], source.stateNodes || []);
-    mergeList(target.stateTransitions || [], source.stateTransitions || []);
-  }
-  function stateChartEventSuffix(eventName) {
-    if (eventName === "dblclick") return "DoubleClick";
-    if (eventName === "mouseover") return "MouseOver";
-    if (eventName === "mouseout") return "MouseOut";
-    if (eventName === "contextmenu") return "ContextMenu";
-    return "Click";
-  }
-  function stateChartHandlerName(root, kind, part, eventName) {
-    var suffix = stateChartEventSuffix(eventName);
-    var prefix = part === "tag" ? "Tag" : (kind === "link" ? "Link" : "Shape");
-    return root.getAttribute("data-sui-chart-on" + prefix.toLowerCase() + suffix.toLowerCase()) || "";
-  }
-  function stateChartHandlerAllowed(name) {
-    if (!name || typeof window[name] !== "function") return false;
-    var registry = window.__SUI_USER_FUNCS;
-    if (registry && typeof registry === "object") return registry[name] === 1 || registry[name] === true;
-    return true;
-  }
-  function stateChartElementHandler(root, item, kind, part, eventName) {
-    if (!item) return "";
-    var elementId = item.id !== undefined && item.id !== null ? String(item.id) : "";
-    var candidateKeys = [];
-    if (elementId) {
-      candidateKeys.push(kind + ":" + elementId);
-      candidateKeys.push(elementId);
-    }
-    if (candidateKeys.length) {
-      var chartBindings = stateChartBindingsStore()[stateChartBindingChartKey(root)];
-      if (chartBindings) {
-        for (var ki = 0; ki < candidateKeys.length; ki++) {
-          var elementBindings = chartBindings[candidateKeys[ki]];
-          var bound = elementBindings && elementBindings[part + ":" + eventName];
-          if (bound) return bound;
-        }
-      }
-    }
-    var suffix = stateChartEventSuffix(eventName);
-    var candidates = [];
-    if (part === "tag") {
-      candidates.push("onTag" + suffix);
-    } else {
-      candidates.push("on" + suffix);
-      candidates.push((kind === "link" ? "onLink" : "onShape") + suffix);
-    }
-    for (var hi = 0; hi < candidates.length; hi++) {
-      var value = stateFieldText(item, [candidates[hi]]);
-      if (value) return value;
-    }
-    return "";
-  }
   function stateChartFireEvent(root, kind, item, part, eventName, ev) {
     if (stateEditingMode(root)) return false;
     var payload = {
@@ -15884,19 +15677,12 @@ const suiChartRuntime = `(function(){
       payload.shiftKey = !!ev.shiftKey;
     }
     // The chart is event-source only: every interaction is appended to a
-    // per-chart queue that SUI code drains with chart.pollEvents. Direct
-    // function callbacks remain available for backward compatibility, but the
-    // recommended model is to consume the queue and update external state from
-    // SUI itself.
+    // per-chart queue that SUI code drains with chart.pollEvents.
     payload.time = Date.now();
     var queue = root.__suiChartEvents;
     if (!Array.isArray(queue)) queue = root.__suiChartEvents = [];
     queue.push(payload);
     if (queue.length > 200) queue.splice(0, queue.length - 200);
-    var handler = stateChartElementHandler(root, item, kind, part, eventName) || stateChartHandlerName(root, kind, part, eventName);
-    if (stateChartHandlerAllowed(handler)) {
-      try { window[handler](JSON.stringify(payload)); } catch (e) {}
-    }
     return true;
   }
   function stateChartBindStaticEvents(root, kind, item, element, part) {
@@ -15904,8 +15690,6 @@ const suiChartRuntime = `(function(){
     element.__suiStaticEventPart = part;
     element.__suiStaticPointerDown = false;
     element.__suiStaticSuppressClick = 0;
-    var clickHandler = stateChartElementHandler(root, item, kind, part, "click") || stateChartHandlerName(root, kind, part, "click");
-    if (!stateEditingMode(root) && stateChartHandlerAllowed(clickHandler)) element.style.cursor = "pointer";
     var handle = function(eventName, ev, stop) {
       if (stateEditingMode(root)) return false;
       if (part !== "tag" && ev && ev.target && ev.target.closest && ev.target.closest(".sui-chart-state-tag")) return false;
@@ -16433,8 +16217,7 @@ const suiChartRuntime = `(function(){
       out.push({
         kind: "shape", id: node.id, label: node.label, tag: node.tag || "", hint: node.hint || "",
         shape: node.shape || "rectangle", color: node.color || "",
-        tagTextColor: node.tagTextColor || "", tagBoxColor: node.tagBoxColor || "",
-        onClick: node.onClick || "", onTagClick: node.onTagClick || ""
+        tagTextColor: node.tagTextColor || "", tagBoxColor: node.tagBoxColor || ""
       });
     }
     var edges = data.stateTransitions || [];
@@ -16443,8 +16226,7 @@ const suiChartRuntime = `(function(){
       out.push({
         kind: "link", id: edge.id || ("edge_" + (e + 1)), from: edge.from, to: edge.to,
         label: edge.label || "", tag: edge.tag || "", routing: edge.routing || "auto", hint: edge.hint || "",
-        color: edge.color || "", tagTextColor: edge.tagTextColor || "", tagBoxColor: edge.tagBoxColor || "",
-        onClick: edge.onClick || "", onTagClick: edge.onTagClick || ""
+        color: edge.color || "", tagTextColor: edge.tagTextColor || "", tagBoxColor: edge.tagBoxColor || ""
       });
     }
     return [JSON.stringify(out), null];
@@ -16549,80 +16331,6 @@ const suiChartRuntime = `(function(){
   function stateChartGetKind(name, id) { return stateChartGetField(name, id, "kind"); }
   function stateChartGetFrom(name, id) { return stateChartGetField(name, id, "from"); }
   function stateChartGetTo(name, id) { return stateChartGetField(name, id, "to"); }
-  function stateChartOn(name, id, eventName, handler) {
-    var root = stateChartRootByName(name);
-    var data = root && root.__suiChartSeries;
-    var found = data ? stateChartFindElement(data, id) : null;
-    var ref = String(id === null || id === undefined ? "" : id).trim();
-    if (!ref) return [false, "element is required"];
-    var spec = stateChartNormalizeBinding(eventName);
-    if (!spec) return [false, "unsupported event: " + String(eventName || "")];
-    var handlerName = String(handler === null || handler === undefined ? "" : handler).trim();
-    if (!handlerName) return [false, "handler is required"];
-    if (!stateChartHandlerAllowed(handlerName)) return [false, "handler must be a registered SUI function"];
-    var store = stateChartBindingsStore();
-    var chartKey = root ? stateChartBindingChartKey(root) : ("n:" + String(name === null || name === undefined ? "" : name).trim());
-    var chartBindings = store[chartKey] || (store[chartKey] = Object.create(null));
-    var elementKey = found ? (found.kind + ":" + found.item.id) : ref;
-    var elementBindings = chartBindings[elementKey] || (chartBindings[elementKey] = Object.create(null));
-    elementBindings[spec.key] = handlerName;
-    return [true, null];
-  }
-  function stateChartOff(name, id, eventName) {
-    var root = stateChartRootByName(name);
-    var data = root && root.__suiChartSeries;
-    var found = data ? stateChartFindElement(data, id) : null;
-    var ref = String(id === null || id === undefined ? "" : id).trim();
-    if (!ref) return [false, "element is required"];
-    var store = stateChartBindingsStore();
-    var chartKey = root ? stateChartBindingChartKey(root) : ("n:" + String(name === null || name === undefined ? "" : name).trim());
-    var chartBindings = store[chartKey];
-    if (!chartBindings) return [false, null];
-    var keys = [];
-    if (found) {
-      var foundId = found.item.id !== undefined && found.item.id !== null ? String(found.item.id) : "";
-      if (foundId) {
-        keys.push(found.kind + ":" + foundId);
-        keys.push(foundId);
-      }
-    }
-    keys.push(ref);
-    var removed = false;
-    for (var ki = 0; ki < keys.length; ki++) {
-      var elementKey = keys[ki];
-      var elementBindings = chartBindings[elementKey];
-      if (!elementBindings) continue;
-      if (eventName === undefined || eventName === null || String(eventName).trim() === "") {
-        delete chartBindings[elementKey];
-        removed = true;
-        continue;
-      }
-      var spec = stateChartNormalizeBinding(eventName);
-      if (!spec) return [false, "unsupported event: " + String(eventName)];
-      if (Object.prototype.hasOwnProperty.call(elementBindings, spec.key)) {
-        delete elementBindings[spec.key];
-        removed = true;
-      }
-      if (!Object.keys(elementBindings).length) delete chartBindings[elementKey];
-    }
-    return [removed, null];
-  }
-  function stateChartBindings(name) {
-    var root = stateChartRootByName(name);
-    var chartKey = root ? stateChartBindingChartKey(root) : ("n:" + String(name === null || name === undefined ? "" : name).trim());
-    var store = stateChartBindingsStore();
-    var chartBindings = store[chartKey] || {};
-    var out = [];
-    for (var elementKey in chartBindings) {
-      if (!Object.prototype.hasOwnProperty.call(chartBindings, elementKey)) continue;
-      var events = chartBindings[elementKey];
-      for (var eventKey in events) {
-        if (!Object.prototype.hasOwnProperty.call(events, eventKey)) continue;
-        out.push({ element: String(elementKey).replace(/^(shape|link):/, ""), event: eventKey, handler: events[eventKey] });
-      }
-    }
-    return [JSON.stringify(out), null];
-  }
   function stateChartEventQueue(root) {
     var queue = root && root.__suiChartEvents;
     if (!Array.isArray(queue)) {
@@ -21203,11 +20911,6 @@ const suiChartRuntime = `(function(){
     var label = th && th.querySelector ? th.querySelector(".sui-chart-table-head-label") : null;
     return label ? label.textContent.trim() : (th ? th.textContent.trim() : "");
   }
-  function tableRowText(row) {
-    var out = [];
-    for (var i = 0; i < row.cells.length; i++) out.push(tableCellText(row.cells[i]));
-    return out.join(" ");
-  }
   function placeRowDeleteButtons(table) {
     var rows = table.querySelectorAll("tbody tr");
     for (var i = 0; i < rows.length; i++) {
@@ -23316,7 +23019,6 @@ const suiChartRuntime = `(function(){
       applyStateHintSettings(root);
     }
     var tableView = (attr(root, "table-view") || "chart").toLowerCase();
-    if (tableView === "gantt") tableView = "chart";
     if (["chart", "table", "both"].indexOf(tableView) < 0) tableView = "chart";
     var showTable = tableView !== "chart";
     var tableOnly = tableView === "table";
@@ -23343,7 +23045,6 @@ const suiChartRuntime = `(function(){
     }
     if (type === "state") {
       var rawState = attr(root, "data");
-      var sourceSeries = series;
       var localState = root.__suiStateLocal;
       if (localState && localState.data && (root.__suiStateForceLocal || localState.raw === rawState)) {
         series = localState.data;
@@ -23351,15 +23052,12 @@ const suiChartRuntime = `(function(){
         var savedState = loadStateData(root);
         if (savedState && savedState.raw === rawState && savedState.data) {
           try {
-            series = parseStateData(JSON.stringify(savedState.data), "json", { legacyLines: savedState.version !== 2 });
+            series = parseStateData(JSON.stringify(savedState.data), "json");
             if (savedState.baseline) root.__suiStateCommitBaseline = savedState.baseline;
           } catch (savedStateError) {}
         }
         root.__suiStateLocal = { raw: rawState, data: series };
       }
-      // Event handler fields are code, not chart state. Merge them from the
-      // current source data so saved/imported documents never lose bindings.
-      stateChartMergeEventFields(series, sourceSeries);
       if (!root.__suiStateCommitBaseline) {
         var stateVersions = loadStateVersions(root);
         root.__suiStateCommitBaseline = stateVersions.length
@@ -24308,9 +24006,6 @@ const suiChartRuntime = `(function(){
     getKind: stateChartGetKind,
     getFrom: stateChartGetFrom,
     getTo: stateChartGetTo,
-    on: stateChartOn,
-    off: stateChartOff,
-    bindings: stateChartBindings,
     focusRow: stateChartFocusRow,
     peekEvents: stateChartPeekEvents,
     pollEvents: stateChartPollEvents,

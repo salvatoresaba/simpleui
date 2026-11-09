@@ -2919,9 +2919,6 @@ func eventAttr(key string) bool {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
 		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort", "onCellClick", "onRowClick",
-		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
 		"onDragStart", "onDragEnter", "onDragOver", "onDragLeave", "onDrop", "onDragEnd":
 		return true
 	}
@@ -2969,7 +2966,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "step" || key == "disabled" || key == "required") {
 		return true
 	}
-	if tag == "tree" && (key == "name" || key == "value" || key == "editable" || key == "editableDepth" ||
+	if tag == "tree" && (key == "name" || key == "value" || key == "editMode" || key == "editDepth" ||
 		key == "renameKey" || key == "renameValue" || key == "renameIcon" || key == "showRenameIcon" ||
 		key == "guides" || key == "truncate" || key == "checkbox" || key == "counts" || key == "rowHeight" ||
 		key == "iconLeaf" || key == "iconParent" ||
@@ -2980,7 +2977,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "tooltips" || key == "columnsEnabled" || key == "fontStep") {
 		return true
 	}
-	if tag == "treeitem" && (key == "key" || key == "open" || key == "editable" ||
+	if tag == "treeitem" && (key == "key" || key == "open" || key == "rename" ||
 		key == "renameIcon" || key == "showRenameIcon" || key == "icon" || key == "iconOpen" ||
 		key == "badge" || key == "badgeType" || key == "meta" || key == "checked" ||
 		key == "lazy" || key == "size" || key == "date" || key == "status" || key == "cells") {
@@ -3440,7 +3437,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		c.diagAt(a.span, a.key+" must name a declared function")
 		return
 	}
-	if a.key == "editMode" && (tag == "table" || tag == "chart" || tag == "graph") {
+	if a.key == "editMode" && (tag == "table" || tag == "chart" || tag == "graph" || tag == "tree") {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)
 			if t.kind != "string" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
@@ -3490,11 +3487,11 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
-	if (tag == "tree" || tag == "treeitem") && a.key == "editable" {
+	if tag == "treeitem" && a.key == "rename" {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)
 			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
-				c.diagAt(a.span, "editable must be a bool, got "+typeStr(t))
+				c.diagAt(a.span, "rename must be a bool, got "+typeStr(t))
 			}
 		}
 		return
@@ -3640,14 +3637,14 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
-	if tag == "tree" && a.key == "editableDepth" {
+	if tag == "tree" && a.key == "editDepth" {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)
 			if t.kind != "int" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
-				c.diagAt(a.span, "editableDepth must be an integer, got "+typeStr(t))
+				c.diagAt(a.span, "editDepth must be an integer, got "+typeStr(t))
 			}
 		} else if n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text))); err != nil || n < 0 {
-			c.diagAt(a.span, "editableDepth must be a non-negative integer")
+			c.diagAt(a.span, "editDepth must be a non-negative integer")
 		}
 		return
 	}

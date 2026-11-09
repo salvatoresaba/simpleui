@@ -160,7 +160,7 @@ fn changed() -> null {
 	version = version + 1
 }
 view main {
-	tree "T" name: "t" contextMenu: true editable: true onTreeChange: changed iconLeaf: "L" iconParent: "P" iconParentOpen: "PO" toggleClosed: "+" toggleOpen: "-" {
+	tree "T" name: "t" contextMenu: true editMode: "editable" onTreeChange: changed iconLeaf: "L" iconParent: "P" iconParentOpen: "PO" toggleClosed: "+" toggleOpen: "-" {
 		treeitem "A" key: "a" open: true {
 			treeitem "A1" key: "a1"
 		}

@@ -133,9 +133,6 @@ ok(api.stateChartHint(onRoot, { hint: 'A\\|B' }, 'default') === 'A|B', 'escaped 
 const piped = api.parseStateData(JSON.stringify({ states: [{ id: 'p', label: 'P', hint: 'H1\nH2', tag: 'T1\nT2' }] }), 'json');
 ok(piped.stateNodes[0].hint === 'H1|H2', 'parsed hint normalises newlines');
 ok(piped.stateNodes[0].tag === 'T1|T2', 'parsed tag normalises newlines');
-const legacyPiped = api.parseStateData(JSON.stringify({ version: 1, states: [{ id: 'p', label: 'P', hint: 'A | B\nC' }] }), 'json');
-ok(legacyPiped.stateNodes[0].hint === 'A \\| B|C', 'version 1 keeps literal pipes and converts newlines');
-ok(api.stateLineParts(legacyPiped.stateNodes[0].hint).join('/') === 'A | B/C', 'legacy literal pipe renders literally');
 const modernPiped = api.parseStateData(JSON.stringify({ version: 2, states: [{ id: 'p', label: 'P', hint: 'A|B' }] }), 'json');
 ok(modernPiped.stateNodes[0].hint === 'A|B', 'version 2 keeps pipe line breaks');
 const pipedPatch = api.stateChartApplyPatch({ kind: 'shape', item: shape, index: 0 }, { hint: 'P1\nP2', tag: 'T1\nT2' }, data);

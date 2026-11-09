@@ -1670,15 +1670,6 @@ func stdBodyJs(key string, target string) string {
 			return fmt.Sprintf("(name, id, value) => __SUI_CHART.setAttr(name, id, %q, value)", field)
 		}
 	}
-	if key == "chart_on" {
-		return "(name, id, event, handler) => __SUI_CHART.on(name, id, event, handler)"
-	}
-	if key == "chart_off" {
-		return "(name, id, event) => __SUI_CHART.off(name, id, event)"
-	}
-	if key == "chart_bindings" {
-		return "(name) => __SUI_CHART.bindings(name)"
-	}
 	if key == "chart_focusrow" {
 		return "(name, id) => __SUI_CHART.focusRow(name, id)"
 	}
@@ -1724,6 +1715,9 @@ func stdBodyJs(key string, target string) string {
 	}
 	if key == "tree_downloadxml" {
 		return "(name, filename) => __SUI_TREE.downloadXml(name, filename)"
+	}
+	if key == "tree_clearpersisted" {
+		return "(name) => __SUI_TREE.clearPersisted(name)"
 	}
 	if key == "tree_clear" {
 		return "(name) => __SUI_TREE.clear(name)"
@@ -2439,16 +2433,14 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "stateHints" || a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintTextAlign" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius" ||
 			a.key == "colorPicker" || a.key == "settingsButton" || a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||
-			a.key == "onShapeClick" || a.key == "onShapeDoubleClick" || a.key == "onShapeMouseOver" || a.key == "onShapeMouseOut" || a.key == "onShapeContextMenu" ||
-			a.key == "onLinkClick" || a.key == "onLinkDoubleClick" || a.key == "onLinkMouseOver" || a.key == "onLinkMouseOut" || a.key == "onLinkContextMenu" ||
-			a.key == "onTagClick" || a.key == "onTagDoubleClick" || a.key == "onTagMouseOver" || a.key == "onTagMouseOut" || a.key == "onTagContextMenu" || a.key == "stateRouting" || a.key == "stateTagStyle" || a.key == "stateTagLink" || a.key == "stateLinkTagStyle" || a.key == "stateLinkTagLink" || a.key == "stateShapeTagStyle" || a.key == "stateShapeTagLink" || a.key == "stateTagFont" || a.key == "stateTagFontSize" || a.key == "stateShapeTagFont" || a.key == "stateShapeTagFontSize" || a.key == "stateLinkTagFont" || a.key == "stateLinkTagFontSize" || a.key == "stateRouteAlgorithm" || a.key == "stateLinkArcRadius" || a.key == "stateGrid" || a.key == "stateGridGap" || a.key == "stateGridColor" ||
+			a.key == "stateRouting" || a.key == "stateTagStyle" || a.key == "stateTagLink" || a.key == "stateLinkTagStyle" || a.key == "stateLinkTagLink" || a.key == "stateShapeTagStyle" || a.key == "stateShapeTagLink" || a.key == "stateTagFont" || a.key == "stateTagFontSize" || a.key == "stateShapeTagFont" || a.key == "stateShapeTagFontSize" || a.key == "stateLinkTagFont" || a.key == "stateLinkTagFontSize" || a.key == "stateRouteAlgorithm" || a.key == "stateLinkArcRadius" || a.key == "stateGrid" || a.key == "stateGridGap" || a.key == "stateGridColor" ||
 			a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" ||
 			a.key == "showResources" || a.key == "showProgress" ||
 			a.key == "showSlack" || a.key == "showCosts" || a.key == "statusColors" || a.key == "ganttScale" || a.key == "autoSchedule" ||
 			a.key == "linkColor" || a.key == "linkWidth" || a.key == "linkGap" || a.key == "linkStyle" || a.key == "arrowType" || a.key == "arrowSize" || a.key == "barBorderColor") {
 			continue
 		}
-		if e.tag == "tree" && (a.key == "value" || a.key == "editable" || a.key == "editableDepth" ||
+		if e.tag == "tree" && (a.key == "value" || a.key == "editMode" || a.key == "editDepth" ||
 			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
 			a.key == "multiSelect" || a.key == "selection" ||
@@ -2457,7 +2449,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "fontStep" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
-		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
+		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "rename" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
 			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status" || a.key == "cells") {
 			continue
@@ -3250,12 +3242,6 @@ func chartDataAttrs(e *Element) string {
 		b.WriteString("\" data-sui-chart-ondatachange=\"")
 		b.WriteString(htmlEscape(a.expr.name))
 	}
-	for _, eventName := range stateChartEventAttrs {
-		if a := findAttr(e, eventName); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
-			b.WriteString("\" data-sui-chart-" + strings.ToLower(eventName) + "=\"")
-			b.WriteString(htmlEscape(a.expr.name))
-		}
-	}
 	if a := findAttr(e, "onResourceChange"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		b.WriteString("\" data-sui-chart-onresourcechange=\"")
 		b.WriteString(htmlEscape(a.expr.name))
@@ -3348,9 +3334,9 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		ctxIsState(ctx, a.expr.name) {
 		setter = setterName(a.expr.name)
 	}
-	editable := false
-	if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
-		editable = a.expr.b
+	editMode := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "editMode")))
+	if editMode != "editable" && editMode != "persistent" {
+		editMode = "none"
 	}
 	renameIcon := ""
 	if a := findAttr(e, "renameIcon"); a != nil && !a.hasExpr {
@@ -3361,7 +3347,7 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		showRenameIcon = a.expr.b
 	}
 	depth := ""
-	if a := findAttr(e, "editableDepth"); a != nil {
+	if a := findAttr(e, "editDepth"); a != nil {
 		if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
 			depth = strconv.Itoa(a.expr.i)
 		} else if !a.hasExpr {
@@ -3466,11 +3452,11 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if strings.HasSuffix(open, ">") {
 		open = strings.TrimSuffix(open, ">")
 		open += " data-sui-tree=\"1\" data-sui-tree-name=\"" + htmlEscape(treeName) + "\" data-sui-tree-key=\"" + htmlEscape(treeKeyName) + "\" role=\"tree\""
-		if editable {
-			open += " data-sui-tree-editable=\"1\""
+		if editMode != "none" {
+			open += " data-sui-tree-edit-mode=\"" + htmlEscape(editMode) + "\""
 		}
 		if depth != "" {
-			open += " data-sui-tree-editable-depth=\"" + htmlEscape(depth) + "\""
+			open += " data-sui-tree-edit-depth=\"" + htmlEscape(depth) + "\""
 		}
 		if renameIcon != "" {
 			open += " data-sui-tree-rename-icon=\"" + htmlEscape(renameIcon) + "\""
@@ -3676,7 +3662,7 @@ func treeItemElemJs(it *Element, ctx *JsCtx, itemID int, level int, path string,
 		open = strings.TrimSuffix(open, ">")
 		open += " data-sui-tree-item=\"1\" data-sui-key=\"" + htmlEscape(key) +
 			"\" data-sui-path=\"" + htmlEscape(path) + "\" data-sui-level=\"" + strconv.Itoa(level) +
-			"\" data-sui-editable=\"" + htmlEscape(treeItemEditable(it)) +
+			"\" data-sui-rename=\"" + htmlEscape(treeItemRename(it)) +
 			"\" data-sui-show-rename-icon=\"" + htmlEscape(treeItemShowRenameIcon(it)) +
 			"\" data-sui-rename-icon=\"" + htmlEscape(treeItemRenameIcon(it)) +
 			"\" data-sui-icon-base=\"" + htmlEscape(explicitIcon) +

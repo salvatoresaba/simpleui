@@ -19,9 +19,6 @@ func TestChartApiTypechecksAndGenerates(t *testing.T) {
 	found, e6 = chart.find("monitor", "tag:Running")
 	attr, e7 = chart.getAttr("monitor", "a", "tag")
 	ok6, e8 = chart.setAttr("monitor", "a", "text", "Running")
-	bound, e9 = chart.on("monitor", "a", "click", "paint")
-	unbound, e10 = chart.off("monitor", "a", "click")
-	list, e11 = chart.bindings("monitor")
 	events, e12 = chart.pollEvents("monitor")
 	peek, e13 = chart.peekEvents("monitor")
 	one, e14 = chart.nextEvent("monitor")
@@ -79,9 +76,6 @@ view main {
 		"chart_find:",
 		"chart_getattr:",
 		"chart_setattr:",
-		"chart_on:",
-		"chart_off:",
-		"chart_bindings:",
 		"chart_pollevents:",
 		"chart_peekevents:",
 		"chart_nextevent:",
@@ -130,9 +124,6 @@ view main {
 		"__SUI_CHART.find(",
 		"__SUI_CHART.getAttr(",
 		"__SUI_CHART.setAttr(",
-		"__SUI_CHART.on(",
-		"__SUI_CHART.off(",
-		"__SUI_CHART.bindings(",
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("generated app.js missing %q", want)
@@ -148,7 +139,7 @@ func TestStateModeAndEventAttributes(t *testing.T) {
 }
 
 view main {
-	chart "Monitor" name: "monitor" data: "" chartType: "state" stateMode: "static" onShapeClick: clicked onTagClick: clicked onShapeMouseOver: clicked
+	chart "Monitor" name: "monitor" data: "" chartType: "state" stateMode: "static"
 }
 `
 	prog, pdl := ParseSource(src, "state_mode.sui")
@@ -161,9 +152,8 @@ view main {
 	js := GenerateJs(prog)
 	for _, want := range []string{
 		`data-sui-chart-edit-mode="none"`,
-		`data-sui-chart-onshapeclick="clicked"`,
-		`data-sui-chart-ontagclick="clicked"`,
-		`data-sui-chart-onshapemouseover="clicked"`,
+		`function stateChartPollEvents(name)`,
+		`stateChartEventQueue(root)`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("generated app.js missing %q", want)
@@ -176,7 +166,7 @@ func TestStateModeDesignerRoundTrip(t *testing.T) {
 }
 
 view main {
-	chart "Monitor" name: "monitor" data: "" chartType: "state" stateMode: "static" onShapeClick: clicked
+	chart "Monitor" name: "monitor" data: "" chartType: "state" stateMode: "static"
 }
 `
 	prog, pdl := ParseSource(src, "state_mode_designer.sui")
@@ -190,7 +180,6 @@ view main {
 	for _, want := range []string{
 		`"chartEditMode":"none"`,
 		`"kind":"graph"`,
-		`"onShapeClick":"clicked"`,
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("designer model missing %q: %s", want, model)
@@ -217,19 +206,14 @@ view main {
 	for _, want := range []string{
 		"window.__SUI_USER_FUNCS",
 		`window.__SUI_USER_FUNCS["processClicked"] = 1;`,
-		"STATE_CHART_EVENT_FIELDS",
-		`stateFieldText(obj, [eventField])`,
-		`"onClick", "onDoubleClick"`,
-		`"onTagClick", "onTagDoubleClick"`,
 		"every state needs an explicit unique",
 		"duplicate state id",
 		"shape and link ids must be unique",
-		"function stateChartElementHandler(root, item, kind, part, eventName)",
-		"stateChartBindingsStore()",
-		"function stateChartOn(name, id, eventName, handler)",
-		"stateChartMergeEventFields(series, sourceSeries)",
-		"stateChartCopyEventFields(n, out)",
-		"stateChartHandlerAllowed(handler)",
+		"function stateChartFireEvent(root, kind, item, part, eventName, ev)",
+		"stateChartEventQueue(root)",
+		"function stateChartPollEvents(name)",
+		"function stateChartNextEvent(name)",
+		"function stateChartClearEvents(name)",
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("generated app.js missing %q", want)

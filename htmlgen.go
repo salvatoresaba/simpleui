@@ -2583,10 +2583,6 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       return Array.isArray(defs) ? defs : [];
     } catch (e) { return []; }
   }
-  function notifyTable(name, key, rec){
-    if (rec) recordChange(name, rec);
-    fireTableEvent(name, key);
-  }
   function tableStore(name){
     if (!store[name]) store[name] = { header: [], allRows: [], rows: [], page: 0,
       sortCol: null, sortDir: '', sortKeys: [], filter: '', colFilter: null,
@@ -5997,8 +5993,8 @@ func treeToggleText(open bool, tv treeVisualOpts) string {
 	return tv.ToggleClosed
 }
 
-func treeItemEditable(e *Element) string {
-	a := findAttr(e, "editable")
+func treeItemRename(e *Element) string {
+	a := findAttr(e, "rename")
 	if a == nil {
 		return "inherit"
 	}
@@ -6296,8 +6292,11 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if strings.TrimSpace(treeName) == "" {
 		treeName = treeKeyName
 	}
-	editable := datepickerBool(e, "editable")
-	depth := comboboxAttrNumber(e, "editableDepth")
+	editMode := strings.ToLower(strings.TrimSpace(treeTextAttr(e, "editMode")))
+	if editMode != "editable" && editMode != "persistent" {
+		editMode = "none"
+	}
+	depth := comboboxAttrNumber(e, "editDepth")
 	renameIcon := comboboxAttrValue(e, "renameIcon")
 	showRenameIcon := true
 	if a := findAttr(e, "showRenameIcon"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
@@ -6358,11 +6357,11 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString("<div class=\"sui-tree")
 	staticClassSuffix(sb, e)
 	sb.WriteString("\" data-sui-tree=\"1\" data-sui-tree-name=\"" + htmlEscape(treeName) + "\" data-sui-tree-key=\"" + htmlEscape(treeKeyName) + "\" role=\"tree\"")
-	if editable {
-		sb.WriteString(" data-sui-tree-editable=\"1\"")
+	if editMode != "none" {
+		sb.WriteString(" data-sui-tree-edit-mode=\"" + htmlEscape(editMode) + "\"")
 	}
 	if depth != "" {
-		sb.WriteString(" data-sui-tree-editable-depth=\"" + htmlEscape(depth) + "\"")
+		sb.WriteString(" data-sui-tree-edit-depth=\"" + htmlEscape(depth) + "\"")
 	}
 	if renameIcon != "" {
 		sb.WriteString(" data-sui-tree-rename-icon=\"" + htmlEscape(renameIcon) + "\"")
@@ -6511,7 +6510,7 @@ func writeStaticTreeItems(sb *strings.Builder, items []*Element, ind string, lev
 		staticClassSuffix(sb, it)
 		sb.WriteString("\" data-sui-tree-item=\"1\" data-sui-key=\"" + htmlEscape(key) +
 			"\" data-sui-path=\"" + htmlEscape(path) + "\" data-sui-level=\"" + strconv.Itoa(level) +
-			"\" data-sui-editable=\"" + htmlEscape(treeItemEditable(it)) +
+			"\" data-sui-rename=\"" + htmlEscape(treeItemRename(it)) +
 			"\" data-sui-show-rename-icon=\"" + htmlEscape(treeItemShowRenameIcon(it)) +
 			"\" data-sui-rename-icon=\"" + htmlEscape(treeItemRenameIcon(it)) +
 			"\" data-sui-icon-base=\"" + htmlEscape(explicitIcon) +
@@ -6643,12 +6642,6 @@ func chartStaticFlag(e *Element, key string, def bool) bool {
 		return false
 	}
 	return def
-}
-
-var stateChartEventAttrs = []string{
-	"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-	"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-	"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
 }
 
 func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
@@ -6817,11 +6810,6 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 	}
 	if a := findAttr(e, "onDataChange"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		sb.WriteString(" data-sui-chart-ondatachange=\"" + htmlEscape(a.expr.name) + "\"")
-	}
-	for _, eventName := range stateChartEventAttrs {
-		if a := findAttr(e, eventName); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
-			sb.WriteString(" data-sui-chart-" + strings.ToLower(eventName) + "=\"" + htmlEscape(a.expr.name) + "\"")
-		}
 	}
 	if a := findAttr(e, "onCommit"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		sb.WriteString(" data-sui-chart-oncommit=\"" + htmlEscape(a.expr.name) + "\"")
@@ -7105,7 +7093,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "max" || a.key == "step" || a.key == "disabled" || a.key == "required") {
 			continue
 		}
-		if e.tag == "tree" && (a.key == "value" || a.key == "editable" || a.key == "editableDepth" ||
+		if e.tag == "tree" && (a.key == "value" || a.key == "editMode" || a.key == "editDepth" ||
 			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
 			a.key == "multiSelect" || a.key == "selection" ||
@@ -7114,7 +7102,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "fontStep" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
 			continue
 		}
-		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "editable" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
+		if e.tag == "treeitem" && (a.key == "key" || a.key == "open" || a.key == "rename" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "icon" || a.key == "iconOpen" || a.key == "badge" || a.key == "badgeType" || a.key == "meta" || a.key == "checked" ||
 			a.key == "lazy" || a.key == "size" || a.key == "date" || a.key == "status" || a.key == "cells") {
 			continue
@@ -7135,9 +7123,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "settingsButton" || a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory" || a.key == "stateHints" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||
-			a.key == "onShapeClick" || a.key == "onShapeDoubleClick" || a.key == "onShapeMouseOver" || a.key == "onShapeMouseOut" || a.key == "onShapeContextMenu" ||
-			a.key == "onLinkClick" || a.key == "onLinkDoubleClick" || a.key == "onLinkMouseOver" || a.key == "onLinkMouseOut" || a.key == "onLinkContextMenu" ||
-			a.key == "onTagClick" || a.key == "onTagDoubleClick" || a.key == "onTagMouseOver" || a.key == "onTagMouseOut" || a.key == "onTagContextMenu" ||
+
 			a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" ||
 			a.key == "showResources" || a.key == "showProgress" ||
 			a.key == "showSlack" || a.key == "showCosts" || a.key == "statusColors" ||

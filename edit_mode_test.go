@@ -75,11 +75,15 @@ func TestClearPersistedStdlibWiring(t *testing.T) {
 	src := `fn reset() -> null {
 	n, e = table.clearPersisted("users")
 	m, e2 = chart.clearPersisted("flow")
+	t, e3 = tree.clearPersisted("files")
 }
 view main {
 	table name: "users" columns: "a" editMode: "persistent" {
 	}
 	graph "Flow" name: "flow" editMode: "persistent"
+	tree "Files" name: "files" editMode: "persistent" {
+		treeitem "src" key: "src"
+	}
 }`
 	prog, dl := ParseSource(src, "clear_persisted.sui")
 	if dl.HasErrors() {
@@ -90,8 +94,8 @@ view main {
 	}
 	js := GenerateJs(prog)
 	for _, want := range []string{
-		`table_clearpersisted`, `chart_clearpersisted`,
-		`__SUI_TBL.clearPersisted`, `__SUI_CHART.clearPersisted`,
+		`table_clearpersisted`, `chart_clearpersisted`, `tree_clearpersisted`,
+		`__SUI_TBL.clearPersisted`, `__SUI_CHART.clearPersisted`, `__SUI_TREE.clearPersisted`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("clearPersisted wiring missing %q", want)

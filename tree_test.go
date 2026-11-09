@@ -13,7 +13,7 @@ fn changed() -> null {
 fn renamed() -> null {
 }
 view main {
-	tree "Files" name: "files" value: selected onChange: changed editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "E" showRenameIcon: false onRename: renamed style: cssSafe("--sui-tree-gap: 1px; --sui-tree-selected-bg: #3949d6;") {
+	tree "Files" name: "files" value: selected onChange: changed editMode: "editable" editDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "E" showRenameIcon: false onRename: renamed style: cssSafe("--sui-tree-gap: 1px; --sui-tree-selected-bg: #3949d6;") {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "util.go" key: "util"
@@ -38,8 +38,8 @@ func TestTreeRender(t *testing.T) {
 		`role="tree"`,
 		`data-sui-tree-setter="setSelected"`,
 		`data-sui-tree-onchange="changed"`,
-		`data-sui-tree-editable="1"`,
-		`data-sui-tree-editable-depth="2"`,
+		`data-sui-tree-edit-mode="editable"`,
+		`data-sui-tree-edit-depth="2"`,
 		`data-sui-tree-rename-key-setter="setRenameKey"`,
 		`data-sui-tree-rename-value-setter="setRenameValue"`,
 		`data-sui-tree-name="files"`,
@@ -49,7 +49,7 @@ func TestTreeRender(t *testing.T) {
 		`data-sui-rename-icon="R"`,
 		`--sui-tree-row-bg: #1a253b`,
 		`data-sui-tree-onrename="renamed"`,
-		`data-sui-editable="inherit"`,
+		`data-sui-rename="inherit"`,
 		`data-sui-key="src"`,
 		`data-sui-key="main"`,
 		`aria-level="2"`,
@@ -66,15 +66,15 @@ func TestTreeRender(t *testing.T) {
 	for _, want := range []string{
 		`class="sui-tree"`,
 		`data-sui-tree="1"`,
-		`data-sui-tree-editable="1"`,
-		`data-sui-tree-editable-depth="2"`,
+		`data-sui-tree-edit-mode="editable"`,
+		`data-sui-tree-edit-depth="2"`,
 		`data-sui-tree-name="files"`,
 		`data-sui-tree-rename-icon="E"`,
 		`data-sui-tree-show-rename-icon="0"`,
 		`data-sui-show-rename-icon="0"`,
 		`role="tree"`,
 		`data-sui-key="src"`,
-		`data-sui-editable="inherit"`,
+		`data-sui-rename="inherit"`,
 		`role="treeitem"`,
 		`data-sui-open="1"`,
 		`Files`,
@@ -150,8 +150,8 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 		`"key":"src"`,
 		`"open":true`,
 		`"value":"selected"`,
-		`"editable":true`,
-		`"editableDepth":"2"`,
+		`"editMode":"editable"`,
+		`"editDepth":"2"`,
 		`"renameKey":"renameKey"`,
 		`"renameValue":"renameValue"`,
 		`"onRename":"renamed"`,
@@ -173,8 +173,8 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 		`open: true`,
 		`value: selected`,
 		`onChange: changed`,
-		`editable: true`,
-		`editableDepth: 2`,
+		`editMode: "editable"`,
+		`editDepth: 2`,
 		`renameKey: renameKey`,
 		`renameValue: renameValue`,
 		`renameIcon: "E"`,
@@ -188,7 +188,7 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 			t.Errorf("designer source missing %q:\n%s", want, src)
 		}
 	}
-	for _, want := range []string{"treeControls", "treeItemControls", "initially open", "stable item key", "Editable depth", "Rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "node style preset", "show rename icon", "rename icon", "Runtime name", "Tooltip", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
+	for _, want := range []string{"treeControls", "Edit depth", "Rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "Runtime name", "Tooltip", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer tree support missing %q", want)
 		}
@@ -451,7 +451,7 @@ fn checked() -> null {
 	for _, want := range []string{
 		`"Indent guides"`, `"Hierarchical checkboxes"`, `"Child counts"`,
 		`"Item icon (no children)"`, `"Parent icon (closed)"`, `"Parent icon (open)"`,
-		`"Closed branch symbol"`, `"Open branch symbol"`, `"badge type"`, `"metadata"`,
+		`"Closed branch symbol"`, `"Open branch symbol"`, `"metadata"`,
 		`--sui-tree-guide-color`, `.td-row .td-icon`,
 	} {
 		if !strings.Contains(guiHTML, want) {
@@ -589,7 +589,7 @@ view main {
 	for _, want := range []string{
 		`"Multi-select"`, `"Search box"`, `"Drag and drop"`, `"Context menu"`,
 		`"Show columns"`, `"Sort children"`, `"Columns"`,
-		`"Persist selection"`, `"lazy children"`, `.td-row .td-size`,
+		`"Persist selection"`, `.td-row .td-size`,
 		`name: "General"`, `name: "Extra"`, `name: "Tooltip"`, `"Runtime name"`,
 	} {
 		if !strings.Contains(guiHTML, want) {

@@ -558,8 +558,8 @@ tree "File progetto"
 	name: "files"
 	value: selected
 	onChange: selectedChanged
-	editable: true
-	editableDepth: 2
+	editMode: "editable"
+	editDepth: 2
 	renameKey: renameKey
 	renameValue: renameValue
 	onRename: renamed {
@@ -570,7 +570,7 @@ tree "File progetto"
 		}
 	}
 	treeitem "README.md" key: "readme"
-	treeitem "generated" key: "generated" editable: false
+	treeitem "generated" key: "generated" rename: false
 }
 ```
 
@@ -673,9 +673,10 @@ tree "File progetto"
   aggiornano il DOM esistente in modo incrementale; un cambio di stato SUI
   ri-renderizza comunque la view dal sorgente, con lo stato del tree ripristinato
   da binding e localStorage.
-- `editable: true` abilita la rinomina inline; `editableDepth: 2` consente i
-  livelli 1-2. `0` significa tutti.
-- `treeitem editable: true|false` sovrascrive il default. `false` blocca il nodo
+- `editMode: "none" | "editable" | "persistent"` controlla la rinomina inline;
+  `"persistent"` salva le rinomine in `localStorage` tra reload/riavvio.
+  `editDepth: 2` consente i livelli 1-2. `0` significa tutti.
+- `treeitem rename: true|false` sovrascrive il default. `false` blocca il nodo
   e i suoi discendenti. Attributo assente = eredita.
 - `renameIcon: "✏️"` cambia il simbolo della matita; `showRenameIcon: false`
   la nasconde. Sono testo, mai HTML. `treeitem renameIcon`/`showRenameIcon`
@@ -750,8 +751,9 @@ tree "File progetto"
 
 Le key dovrebbero essere uniche nell'albero. La key selezionata è dato
 applicativo normale: validarla prima di usarla per accedere a risorse server.
-`editable` è un'indicazione UI, non un'autorizzazione. Le etichette rinominate
-sono in `localStorage`; usare `renameKey`/`renameValue` e `onRename` per
+`editMode` è un'indicazione UI, non un'autorizzazione. In modalità `persistent`
+le etichette rinominate sono in `localStorage`; in modalità `editable` durano per
+la sessione della pagina. Usare `renameKey`/`renameValue` e `onRename` per
 persistenza applicativa/server.
 
 ## Chart
@@ -1395,13 +1397,9 @@ Le interazioni non editabili vengono accodate dal chart e consumate con
 `part`, `id`, `label`, `tag`, `from`, `to`, coordinate e modificatori; il
 codice SUI decide quale funzione esterna chiamare. Usare `chart.clearEvents` e
 `chart.eventCount` per gestire la lista. `chart.focusRow` evidenzia, porta in
-vista e focalizza una riga tabella (anche in static). I callback diretti legacy
-sono ancora disponibili: `chart.on(chart, element, event, handler)`, i campi dati
-(`onClick`, `onDoubleClick`, `onMouseOver`, `onMouseOut`, `onContextMenu`, gli
-alias `onShape*`/`onLink*` e `onTag*`) e gli attributi chart-level
-(`onShapeClick`, ...). Questi chiamano funzioni SUI dall'interno del runtime del
-chart e sono risolti solo contro `window.__SUI_USER_FUNCS`, quindi i dati
-importati non possono chiamare global arbitrari del browser.
+vista e focalizza una riga tabella (anche non-editable). I callback diretti non
+sono disponibili: il chart è solo una sorgente di eventi e il codice applicativo
+decide cosa fare con ciascun evento.
 
 `stateRouting` sceglie `curved`, `arc`, `circular`, `orthogonal` o `straight`;
 i link ortogonali usano sempre il router a percorso minimo che evita gli ostacoli

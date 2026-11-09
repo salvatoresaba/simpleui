@@ -1072,10 +1072,10 @@ L'inspector **Tree** espone solo:
 - **General** - `Title` (titolo visibile), `Runtime name` (target delle funzioni
   `tree.*`; non è il titolo visibile) e switch: indent guides, truncate labels,
   hierarchical checkboxes, multi-select, search box, drag and drop, context menu,
-  virtualize offscreen rows, persist selection ed editable.
+  virtualize offscreen rows, persist selection ed edit mode.
 - **Bindings** - binding di stato opzionali: value state, selection state
-  (mostrato con multi-select), load key state, editable depth e rename key/value
-  (mostrati quando editable). I campi di stato suggeriscono gli stati dichiarati
+  (mostrato con multi-select), load key state, edit depth e rename key/value.
+  I campi di stato suggeriscono gli stati dichiarati
   del progetto tramite datalist; lasciarli vuoti se non servono.
 - **Columns** - `Show columns` ed editor colonne: aggiungi, rinomina,
   ridimensiona, rimuovi e riordina. Le key sono libere; `size`, `date` e `status`
@@ -1143,7 +1143,7 @@ dell'inspector è volutamente nascosta per i tree). `onTreeChange` viene chiamat
 quando i dati dell'albero cambiano: aggiunta/eliminazione, spostamento,
 indent/outdent, import/clear, rinomina, checkbox, figli lazy o celle grid. Usare
 `tree.lastChange(name)` per leggere operazione, key, parent e indice. Il
-sorgente generato mantiene i `treeitem` annidati con key, open ed editable.
+sorgente generato mantiene i `treeitem` annidati con key, open e rename.
 
 Il menu **style preset** del tree scrive lo stile visivo nel campo **style expr**
 dell'elemento (sezione **Appearance**). I preset sono **Default**, **Compact**,
@@ -1554,10 +1554,10 @@ compresi dati importati e controlli inizialmente vuoti riempiti dall'utente).
 In modalità non-editable ogni interazione viene accodata dal chart; SUI consuma la
 lista con `chart.pollEvents` / `chart.nextEvent` e decide quale funzione esterna
 chiamare. L'elemento della lista contiene `event`, `kind`, `part`, `id`,
-`label`, `tag`, coordinate e modificatori. I callback diretti legacy restano
-disponibili (`chart.on`, campi dati, attributi chart-level `onShapeClick`, ...),
-ma la lista eventi è il modello consigliato. Gli id delle forme sono obbligatori
-e univoci; il designer segnala id mancanti o duplicati come errore di import.
+`label`, `tag`, coordinate e modificatori. I callback diretti non sono
+supportati: la lista eventi è l'unico modello di interazione. Gli id delle forme
+sono obbligatori e univoci; il designer segnala id mancanti o duplicati come
+errore di import.
 **Hover hints** nella tab Interactions corrisponde a `stateHints`; disattivarlo
 nasconde tutti i tooltip. Il pulsante **HINTS...** apre il pannello globale dello
 stile tooltip con due gruppi: switch/colori a sinistra e slider di

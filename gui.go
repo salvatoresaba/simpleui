@@ -2401,9 +2401,6 @@ func isEventAttr(key string) bool {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
 		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
 		"onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort", "onCellClick", "onRowClick",
-		"onShapeClick", "onShapeDoubleClick", "onShapeMouseOver", "onShapeMouseOut", "onShapeContextMenu",
-		"onLinkClick", "onLinkDoubleClick", "onLinkMouseOver", "onLinkMouseOut", "onLinkContextMenu",
-		"onTagClick", "onTagDoubleClick", "onTagMouseOver", "onTagMouseOut", "onTagContextMenu",
 		"onDragStart", "onDragEnter", "onDragOver", "onDragLeave", "onDrop", "onDragEnd":
 		return true
 	}
@@ -2679,17 +2676,17 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			o.obj["key"] = JStr(partsLiteral(a.text))
 		} else if a.key == "open" {
 			o.obj["open"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
-		} else if a.key == "editable" {
-			o.obj["editable"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if a.key == "rename" {
+			o.obj["rename"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "showRenameIcon" {
 			o.obj["showRenameIcon"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "renameIcon" {
 			o.obj["renameIcon"] = JStr(partsLiteral(a.text))
-		} else if a.key == "editableDepth" {
+		} else if a.key == "editMode" || a.key == "editDepth" {
 			if a.hasExpr && a.expr != nil {
-				o.obj["editableDepth"] = JStr(exprSource(a.expr))
+				o.obj[a.key] = JStr(exprSource(a.expr))
 			} else {
-				o.obj["editableDepth"] = JStr(partsLiteral(a.text))
+				o.obj[a.key] = JStr(partsLiteral(a.text))
 			}
 		} else if a.key == "renameKey" || a.key == "renameValue" {
 			if a.hasExpr && a.expr != nil {

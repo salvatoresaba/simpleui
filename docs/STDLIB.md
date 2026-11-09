@@ -206,10 +206,7 @@ chart never needs to call SUI state-changing functions directly.
 | `chart.find(name, query)` | string, string | (string, string) | Search elements by `field:value` or any field |
 | `chart.getAttr(name, id, field)` | string, string, string | (string, string) | Read one attribute as a string |
 | `chart.setAttr(name, id, field, value)` | string, string, string, any | (bool, string) | Write one validated attribute |
-| `chart.on(name, id, event, handler)` | string, string, string, string | (bool, string) | Bind a SUI function to one element event |
-| `chart.off(name, id, event)` | string, string, string | (bool, string) | Remove one or all element bindings |
-| `chart.bindings(name)` | string | (string, string) | Active `chart.on` bindings as JSON |
-| `chart.focusRow(name, id)` | string, string | (bool, string) | Highlight, scroll to and focus a table row (works in static too) |
+| `chart.focusRow(name, id)` | string, string | (bool, string) | Highlight, scroll to and focus a table row (works in non-editable mode too) |
 | `chart.pollEvents(name)` | string | (string, string) | All pending events as JSON and empties the queue |
 | `chart.peekEvents(name)` | string | (string, string) | Pending events as JSON without emptying |
 | `chart.nextEvent(name)` | string | (string, string) | Oldest pending event as JSON and removes it |
@@ -261,29 +258,11 @@ The queue payload includes `event`, `kind`, `part`, `id`, `label`, `tag`,
 `chart.peekEvents` (read without draining), `chart.nextEvent` (one event),
 `chart.clearEvents` and `chart.eventCount`.
 
-Legacy direct callbacks are still available with `chart.on` (or element data
-fields / chart-level attributes) but they call a SUI function from inside the
-chart runtime. Prefer the event list for new code:
-
-```sui
-ok, err = chart.on("monitor", "process", "click", "processClicked")
-```
-
-Event names: `click`, `dblclick`, `mouseover`, `mouseout`, `contextmenu`, and
-`tagClick`, `tagDoubleClick`, `tagMouseOver`, `tagMouseOut`, `tagContextMenu`.
-Use `chart.off` to remove bindings and `chart.bindings` to inspect them.
-
-Element data can also carry declarative handlers as a fallback:
-
-```json
-{ "id": "process", "label": "Process", "onClick": "processClicked" }
-```
-
-Supported fields: `onClick`, `onDoubleClick`, `onMouseOver`, `onMouseOut`,
-`onContextMenu`, the `onShape*`/`onLink*` aliases, and `onTagClick`,
-`onTagDoubleClick`, `onTagMouseOver`, `onTagMouseOut`, `onTagContextMenu`.
-Resolution order: `chart.on` binding, element data field, chart-level attribute.
-Handlers must be SUI functions.
+Charts are event-source only. Interactions are consumed from the queue with
+`chart.pollEvents` / `chart.peekEvents` / `chart.nextEvent`; the SUI code decides
+which application function to call. Direct function callbacks (`chart.on`,
+element handler fields and chart-level `onShape*`/`onLink*`/`onTag*`) are not
+available.
 
 
 Patch fields for tags: `tag`/`text`, `tagTextColor`/`textColor`,

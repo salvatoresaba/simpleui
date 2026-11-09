@@ -93,7 +93,7 @@ view main {
 	h1 "Nested tree"
 	p "Click a row to select it. Use the disclosure buttons or arrow keys to expand and collapse."
 
-	tree "Project files" name: "files" value: selected onChange: selectedChanged editable: true editableDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed onTreeChange: treeChanged {
+	tree "Project files" name: "files" value: selected onChange: selectedChanged editMode: "editable" editDepth: 2 renameKey: renameKey renameValue: renameValue renameIcon: "✏️" iconLeaf: "📄" iconParent: "📁" iconParentOpen: "📂" toggleClosed: "▸" toggleOpen: "▾" style: cssSafe("--sui-tree-gap: 2px; --sui-tree-row-padding: 4px 8px; --sui-tree-row-radius: 9px; --sui-tree-hover-bg: #4c5cf724; --sui-tree-selected-bg: #4c5cf761; --sui-tree-selected-fg: #ffffff; --sui-tree-title-color: #dbe4ff; --sui-tree-panel-bg: #1c2230; --sui-tree-panel-border: 1px solid #303b55; --sui-tree-panel-radius: 12px; --sui-tree-panel-padding: 8px; --sui-tree-indent: 18px;") onRename: renamed onTreeChange: treeChanged {
 		treeitem "src" key: "src" open: true style: cssSafe("--sui-tree-row-bg: #1a253b; --sui-tree-row-radius: 7px; --sui-tree-selected-bg: #2a3a5f; --sui-tree-selected-fg: #dbeafe;") {
 			treeitem "main.go" key: "main" showRenameIcon: false
 			treeitem "components" key: "components" open: true {
@@ -105,7 +105,7 @@ view main {
 			treeitem "README.md" key: "readme" renameIcon: "📝"
 		}
 		treeitem "go.mod" key: "gomod"
-		treeitem "generated" key: "generated" editable: false
+		treeitem "generated" key: "generated" rename: false
 	}
 
 	p "Selected key: {selected}"

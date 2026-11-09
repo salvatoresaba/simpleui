@@ -133,6 +133,36 @@ func TestLegacyTreeIconsMigrate(t *testing.T) {
 	}
 }
 
+func TestLegacyTreeEditParametersMigrate(t *testing.T) {
+	src := `view main {
+	tree "Files" name: "files" editable: true editableDepth: 2 {
+		treeitem "src" key: "src" editable: false
+	}
+}`
+	prog, dl := ParseSource(src, "legacy_tree_edit.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	out := viewNodesSource(prog.views[0].body, 1)
+	for _, want := range []string{`editMode: "editable"`, `editDepth: 2`, `rename: false`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("tree edit migration missing %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, " editable:") || strings.Contains(out, "editableDepth:") {
+		t.Errorf("legacy tree edit parameters were not removed:\n%s", out)
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{`data-sui-tree-edit-mode="editable"`, `data-sui-tree-edit-depth="2"`, `data-sui-rename="0"`} {
+		if !strings.Contains(js, want) {
+			t.Errorf("tree edit markup missing %q", want)
+		}
+	}
+}
+
 func TestEditModeRejectsInvalidValue(t *testing.T) {
 	src := `view main {
 	table name: "t" columns: "a" editMode: "persistant" {
