@@ -2331,7 +2331,10 @@ With a single sheet the sheet tab is hidden; the **+** tab is always shown in
 the designer preview and at runtime only when the workbook has an editable sheet.
 From the second sheet on the workbook tabs appear. Double-click a tab or use its
 context menu to rename the workbook; each tab has a small **×** and the context
-menu also deletes the workbook. The control padding (default 10 px) insets the
+menu also deletes the workbook. In a compiled app the runtime adds the **×** to
+tabs whose table is editable and the tab context menu also offers **Delete
+workbook**; deleting removes that source/runtime sheet from the workbook for the
+page session, including across reactive re-renders. The control padding (default 10 px) insets the
 sheet viewport from the control border; the row/column selection strips straddle
 the cell border in that padding and the first-cell triangle selects all cells.
 In the visual designer the workbook is one `table` node: sheets without an

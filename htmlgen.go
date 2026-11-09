@@ -2000,6 +2000,8 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 }
 .sui-tab-add:hover,
 .sui-tab-add:focus-visible { background: var(--sui-hover); color: var(--sui-fg); outline: none; }
+.sui-tab-x { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 3px; font-size: 12px; line-height: 1; opacity: .65; cursor: pointer; }
+.sui-tab-x:hover { opacity: 1; background: rgba(239,68,68,.25); }
 .sui-tabs[data-sui-tabs-position="bottom"] .sui-tab-add { border-radius: 0 0 6px 6px; }
 .sui-tabs[data-sui-tabs-variant="sheets"] .sui-tab-add { border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; padding: 5px 12px; font-size: 15px; }
 .sui-tabs[data-sui-tabs-variant="sheets"][data-sui-tabs-position="bottom"] .sui-tab-add { border-bottom: 0; border-top: 1px solid transparent; border-radius: 0 0 6px 6px; }
@@ -3151,6 +3153,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
           made.table.setAttribute('data-sui-structure-editable', '1');
         }
         var key = tableBookKey(box);
+        // A runtime sheet name may be recycled after a deletion.
+        if (deletedWorkbookSheets[key]) delete deletedWorkbookSheets[key]['n:' + newName];
         (tableBooks[key] || (tableBooks[key] = [])).push({ name: newName, label: label });
         made.tab.click();
         init();
@@ -4255,6 +4259,162 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     st.rows = st.allRows;
     store[name] = st;
   }
+  // Runtime workbook sheet deletion is kept for the page session. Source sheets
+  // removed at runtime stay hidden across view re-renders; runtime sheets are
+  // also dropped from tableBooks so restoreTableBooks cannot recreate them.
+  var deletedWorkbookSheets = {};
+  function workbookTabList(box){
+    var list = box ? box.querySelector('.sui-tablist') : null;
+    return list ? Array.prototype.filter.call(list.children, function(el){
+      return el.classList && el.classList.contains('sui-tab');
+    }) : [];
+  }
+  function workbookPanelList(box){
+    var panels = box ? box.querySelector('.sui-tabpanels') : null;
+    return panels ? Array.prototype.filter.call(panels.children, function(el){
+      return el.classList && el.classList.contains('sui-tabpanel');
+    }) : [];
+  }
+  function workbookSheetLabel(tab){
+    return (tab.getAttribute('data-sui-sheet-label') || tab.textContent.replace(/\u00d7\s*$/,'').trim());
+  }
+  function workbookSheetKey(table, label){
+    var name = table ? (table.getAttribute('name') || '') : '';
+    return name ? ('n:' + name) : ('l:' + label);
+  }
+  function ensureWorkbookSheetLabels(box){
+    var tabs = workbookTabList(box);
+    for (var i = 0; i < tabs.length; i++) {
+      if (!tabs[i].hasAttribute('data-sui-sheet-label')) {
+        tabs[i].setAttribute('data-sui-sheet-label', workbookSheetLabel(tabs[i]));
+      }
+    }
+  }
+  function applyWorkbookDeletions(box){
+    var dkey = tableBookKey(box);
+    var marks = deletedWorkbookSheets[dkey];
+    if (!marks) return;
+    var tabs = workbookTabList(box), panels = workbookPanelList(box);
+    var activeRemoved = false;
+    for (var i = tabs.length - 1; i >= 0; i--) {
+      var panel = panels[i];
+      var table = panel ? panel.querySelector('table') : null;
+      var key = workbookSheetKey(table, workbookSheetLabel(tabs[i]));
+      if (!marks[key]) continue;
+      if (tabs[i].classList.contains('active')) activeRemoved = true;
+      if (tabs[i].parentNode) tabs[i].parentNode.removeChild(tabs[i]);
+      if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+    }
+    if (activeRemoved) {
+      var rest = workbookTabList(box);
+      if (rest.length) { try { rest[0].click(); } catch (e) {} }
+    }
+  }
+  function deleteWorkbookSheet(box, index){
+    var tabs = workbookTabList(box);
+    if (tabs.length <= 1) return;
+    var tab = tabs[index];
+    if (!tab) return;
+    ensureWorkbookSheetLabels(box);
+    var panels = workbookPanelList(box);
+    var panel = panels[index];
+    var table = panel ? panel.querySelector('table') : null;
+    var key = workbookSheetKey(table, workbookSheetLabel(tab));
+    var dkey = tableBookKey(box);
+    var marks = deletedWorkbookSheets[dkey] || (deletedWorkbookSheets[dkey] = {});
+    marks[key] = true;
+    var name = table ? (table.getAttribute('name') || '') : '';
+    if (name && tableBooks[dkey]) {
+      tableBooks[dkey] = tableBooks[dkey].filter(function(def){ return def.name !== name; });
+    }
+    var wasActive = tab.classList.contains('active');
+    if (tab.parentNode) tab.parentNode.removeChild(tab);
+    if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+    // Update the visible tab count, editable + state and the x buttons.
+    normalizeWorkbookRuntime();
+    var rest = workbookTabList(box);
+    if (rest.length) {
+      var active = -1;
+      for (var i = 0; i < rest.length; i++) if (rest[i].classList.contains('active')) { active = i; break; }
+      if (active < 0) active = wasActive ? Math.min(index, rest.length - 1) : 0;
+      // Re-click the active tab so the tabs runtime stores the shifted index.
+      try { rest[active].click(); } catch (e) {}
+    }
+  }
+  function ensureWorkbookDeleteButtons(box){
+    var designer = !!(document.body && document.body.classList && document.body.classList.contains('sui-designer-preview'));
+    var tabs = workbookTabList(box), panels = workbookPanelList(box);
+    ensureWorkbookSheetLabels(box);
+    for (var i = 0; i < tabs.length; i++) {
+      var panel = panels[i];
+      var table = panel ? panel.querySelector('table') : null;
+      var editable = !!(table && table.getAttribute('data-sui-editable') === '1');
+      var x = tabs[i].querySelector('.sui-tab-x');
+      if (!editable && !designer) {
+        if (x && x.parentNode) x.parentNode.removeChild(x);
+        continue;
+      }
+      if (x) continue;
+      x = document.createElement('span');
+      x.className = 'sui-tab-x';
+      x.textContent = '\u00d7';
+      x.title = 'Delete workbook';
+      x.setAttribute('aria-label', 'Delete workbook');
+      x.contentEditable = 'false';
+      x.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        var tab = this.parentNode;
+        var book = tab && tab.closest ? tab.closest('.sui-tabs') : null;
+        if (!book) return;
+        var list = workbookTabList(book);
+        var idx = Array.prototype.indexOf.call(list, tab);
+        if (idx >= 0) deleteWorkbookSheet(book, idx);
+      });
+      tabs[i].appendChild(x);
+    }
+  }
+  // Runtime tab context menu: Delete workbook on an editable sheet. The
+  // designer picker intercepts the contextmenu event first in its own preview.
+  document.addEventListener('contextmenu', function(ev){
+    var tab = ev.target && ev.target.closest ? ev.target.closest('.sui-tab') : null;
+    if (!tab) return;
+    var box = tab.closest('.sui-tabs');
+    if (!box) return;
+    var tabs = workbookTabList(box);
+    if (tabs.length <= 1) return;
+    var idx = Array.prototype.indexOf.call(tabs, tab);
+    var panels = workbookPanelList(box);
+    var table = panels[idx] ? panels[idx].querySelector('table') : null;
+    if (!table || table.getAttribute('data-sui-editable') !== '1') return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    var old = document.getElementById('sui-tab-menu-runtime');
+    if (old) old.remove();
+    var menu = document.createElement('div');
+    menu.id = 'sui-tab-menu-runtime';
+    menu.className = 'sui-table-struct-menu';
+    menu.setAttribute('role', 'menu');
+    var item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'sui-table-struct-item';
+    item.textContent = 'Delete workbook';
+    item.addEventListener('click', function(e){
+      e.stopPropagation();
+      menu.remove();
+      deleteWorkbookSheet(box, idx);
+    });
+    menu.appendChild(item);
+    document.body.appendChild(menu);
+    var x = ev.clientX, y = ev.clientY;
+    var rect = menu.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth - 8) x = Math.max(8, window.innerWidth - rect.width - 8);
+    if (y + rect.height > window.innerHeight - 8) y = Math.max(8, window.innerHeight - rect.height - 8);
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    var close = function(){ menu.remove(); document.removeEventListener('click', close); };
+    setTimeout(function(){ document.addEventListener('click', close); }, 0);
+  });
   // A tabs control whose panels all hold a table is a workbook: every sheet is
   // a data-entry surface, shares one visible table size and offers the + tab.
   // This also upgrades sources built before the designer normalized workbooks.
@@ -4262,6 +4422,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var boxes = document.querySelectorAll('.sui-tabs');
     for (var b = 0; b < boxes.length; b++) {
       var panels = boxes[b].querySelectorAll('.sui-tabpanels .sui-tabpanel');
+      if (!panels.length) continue;
+      applyWorkbookDeletions(boxes[b]);
+      panels = boxes[b].querySelectorAll('.sui-tabpanels .sui-tabpanel');
       if (!panels.length) continue;
       var tables = [], all = true;
       for (var p = 0; p < panels.length; p++) {
@@ -4305,6 +4468,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       // The runtime + is shown only for an editable workbook; the designer
       // preview overrides this with its body class and always offers it.
       boxes[b].setAttribute('data-sui-workbook-editable', anyEditable ? '1' : '0');
+      ensureWorkbookDeleteButtons(boxes[b]);
     }
   }
   // The workbook table width is driven by the declared/default column widths,

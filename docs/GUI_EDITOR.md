@@ -1180,7 +1180,10 @@ at runtime when the workbook is read-only); the sheet tabs appear from the secon
 sheet on. Double-click a sheet tab, or use its context menu and **Rename
 workbook**, to change the workbook name written on the tab. Each tab also has a
 small **×**; clicking it, or choosing **Delete workbook** from the tab context
-menu, removes that workbook from the model and the `.sui` source. The table control fills its host and has a **640 × 300 px**
+menu, removes that workbook from the model and the `.sui` source. In a compiled
+app the **×** is added by the runtime to the tabs of editable sheets and removes
+that sheet from the runtime workbook for the page session; the runtime tab
+context menu offers the same **Delete workbook** action. The table control fills its host and has a **640 × 300 px**
 minimum; when the host has no explicit size, that minimum is the default. The
 workbook sheet area takes all the space inside the control border after the
 title/gear row and the sheet tab strip, and it follows every control resize.

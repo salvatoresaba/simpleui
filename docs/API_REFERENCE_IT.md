@@ -2210,7 +2210,11 @@ solo foglio la tab del foglio è nascosta; la **+** è sempre visibile nella
 preview del designer e a runtime solo se il workbook ha un foglio editable. Dal
 secondo foglio in poi compaiono le tab del workbook. Doppio click su una tab o
 menu contestuale per rinominare il workbook; ogni tab ha una piccola **×** e il
-menu contestuale permette anche di eliminare il workbook. Il padding del
+menu contestuale permette anche di eliminare il workbook. Nell'app compilata il
+runtime aggiunge la **×** alle tab la cui tabella è editable e il menu contestuale
+della tab offre **Delete workbook**; l'eliminazione rimuove il foglio
+sorgente/runtime dal workbook per la sessione della pagina, anche attraverso i
+re-render reattivi. Il padding del
 controllo (default 10 px) allontana il viewport del foglio dal bordo; le strisce
 di selezione riga/colonna sono a cavallo del bordo cella in questo padding e il
 triangolo nella prima cella seleziona tutte le celle. Nel

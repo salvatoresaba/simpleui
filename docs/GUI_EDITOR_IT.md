@@ -1227,7 +1227,10 @@ senza tab strip se il workbook è di sola lettura); le tab dei fogli compaiono d
 secondo foglio in poi. Doppio click su una tab, oppure menu contestuale e
 **Rename workbook**, per cambiare il nome del workbook scritto sulla tab. Ogni
 tab ha anche una piccola **×**: un click, oppure **Delete workbook** dal menu
-contestuale della tab, rimuove quel workbook dal modello e dal sorgente `.sui`. Il controllo tabella occupa il contenitore e ha una
+contestuale della tab, rimuove quel workbook dal modello e dal sorgente `.sui`.
+Nell'app compilata la **×** viene aggiunta dal runtime alle tab dei fogli
+editable e rimuove quel foglio dal workbook runtime per la sessione della pagina;
+il menu contestuale runtime della tab offre la stessa azione **Delete workbook**. Il controllo tabella occupa il contenitore e ha una
 dimensione minima di **640 × 300 px**: se il contenitore non ha una dimensione
 esplicita, vale quel minimo. L'area del workbook prende tutto lo spazio interno
 al bordo del controllo al netto della riga titolo/ingranaggio e della barra delle

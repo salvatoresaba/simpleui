@@ -37,7 +37,9 @@ columns, sorting, filtering, pagination, selection and validated editing.
   **+**, while a compiled app shows it only for an editable workbook. With two or
   more sheets the tabs appear. Double-click a tab or use its context menu to
   rename the workbook; the small **×** on the tab (or **Delete workbook** in its
-  context menu) removes the workbook.
+  context menu) removes the workbook. In the compiled app the runtime adds the
+  **×** to editable-sheet tabs and keeps the sheet removed for the page session,
+  including across reactive re-renders.
 - The small triangle in the first cell selects all cells; row/column selection
   strips straddle the cell border and live in the control padding.
 - The row/column selection strips live in the control padding (default 10 px,

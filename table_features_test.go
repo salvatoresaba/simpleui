@@ -101,6 +101,7 @@ view main {
 		`contenteditable', 'false`, `data-sui-editable', '1'`, `data-sui-columns', headKeys.join(',')`,
 		`normalizeWorkbookRuntime`, `data-sui-show-add-table`, `data-sui-selection`, `data-sui-workbook`, `data-sui-tabcount`, `data-sui-workbook-editable`,
 		`updateWorkbookTableWidth`, `data-sui-cell-text`, `sui-table-editing`,
+		`ensureWorkbookDeleteButtons`, `deletedWorkbookSheets`, `applyWorkbookDeletions`, `deleteWorkbookSheet`, `sui-tab-x`, `sui-tab-menu-runtime`,
 	} {
 		if want == "table_sort" {
 			continue // jsKey mapping lives in jsgen, checked below
@@ -342,7 +343,7 @@ func TestDesignerWorkbookAuthoring(t *testing.T) {
 		`[data-sui-tabcount="1"] .sui-tablist .sui-tab`,
 		`[data-sui-workbook-editable="0"] .sui-tab-add`,
 		"body.sui-designer-preview", "--sui-workbook-pad, 10px",
-		"width: 160px", "min-width: 160px", ".sui-table-editing",
+		"width: 160px", "min-width: 160px", ".sui-table-editing", ".sui-tab-x",
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("workbook CSS missing %q", want)
