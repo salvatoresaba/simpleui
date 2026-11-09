@@ -2451,6 +2451,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   function applyPersistedTable(st, p){
     st.header = Array.isArray(p.header) ? p.header.map(function(v){ return String(v); }) : [];
     st.allRows = p.rows.map(function(r){ return Array.isArray(r) ? r.slice() : []; });
+    st.rows = st.allRows;
     st.textHeader = !!p.textHeader;
     st.__fromDom = false;
     st.__colStruct = false;
@@ -2525,6 +2526,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       if (st.__sourceRows) {
         st.header = (st.__sourceHeader || []).slice();
         st.allRows = (st.__sourceRows || []).map(function(r){ return r.slice(); });
+        st.rows = st.allRows;
         st.textHeader = false;
         st.persistWidths = (st.__sourceWidths || []).slice();
         st.persistRowHeights = [];
@@ -4788,7 +4790,9 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         st.__persistLoaded = true;
       }
       applyPersistedTableAttrs(tbl, st);
-      cfg = cfgOf(tbl);
+      var view = applyView(name);
+      cfg = view.cfg;
+      st = view.st;
       decorateTable(tbl, st, cfg);
       ensureFilterInput(tbl, name, st, cfg);
       ensurePager(tbl, name, st, cfg);
