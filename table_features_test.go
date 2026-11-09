@@ -325,7 +325,7 @@ func TestDesignerWorkbookAuthoring(t *testing.T) {
 		"renameWorkbookTab", "showWorkbookTabMenu", "sui-tab-rename", "sui-tab-menu",
 		"selectAllTableCells", "sui-table-all", "control padding", "--sui-workbook-pad",
 		"deleteWorkbookTab", "sui-tab-delete",
-		`n.cellText === "auto"`, `n.cellText = "truncate"`, "truncate (ellipsis + hover)",
+		`n.cellText = "truncate"`, "truncate (ellipsis + hover)",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer workbook handling missing %q", want)

@@ -227,7 +227,7 @@
       "audience": ["human", "agent"],
       "priority": 2,
       "tags": ["chart", "state", "runtime", "process-monitor", "events", "event-list", "static-mode", "modal", "chart-api", "element-id", "hint", "hint-style", "hint-settings", "tooltip", "multiline", "line-break", "designer", "source", "table-view", "focus-row", "csv", "xml", "geometry"],
-      "sections": ["Overview", "Chart identity", "Element identity", "Hover hints and table view", "Editing and static mode", "Event list", "Direct callbacks removed", "Runtime chart API", "Examples", "Process monitor example", "Security and performance notes", "Troubleshooting"]
+      "sections": ["Overview", "Chart identity", "Element identity", "Hover hints and table view", "Edit mode", "Event list", "Direct callbacks removed", "Runtime chart API", "Examples", "Process monitor example", "Security and performance notes", "Troubleshooting"]
     },
     {
       "id": "state_chart_runtime_it",

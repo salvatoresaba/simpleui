@@ -465,7 +465,6 @@ func TestGuiChartThemePresetsAndThemeIO(t *testing.T) {
 		`CHART_STYLE_PRESETS.push(chartThemePresetForVariant(v));`,
 		`function chartStyleDeclMap(css)`,
 		`if (curMap[keys[k]] !== pMap[keys[k]])`,
-		`function isLegacyDefaultChartCss(map)`,
 		`function chartSettingsBaseCss(key, themeValue)`,
 		`var chartThemeSel = document.getElementById("cs-theme");`,
 		`chartThemeSel.onchange = function(){ syncChartSettingsPresetFields(preset.value); };`,

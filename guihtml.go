@@ -1491,7 +1491,7 @@ RUNNING</div>
       <div class="pfrow"><label>Point width</label><input type="text" id="cs-pointwidth" value="48" placeholder="48"></div>
     </div>
     <div class="cset-pane" data-pane="tooltip">
-      <div class="cset-hint">The tooltip is shown when interactive is on.</div>
+      <div class="cset-hint">The tooltip is shown for chart data views.</div>
       <div class="pfrow"><label>Background</label><input type="color" id="cs-tt-bg" value="#111827"></div>
       <div class="pfrow"><label>Text</label><input type="color" id="cs-tt-fg" value="#f8fafc"></div>
       <div class="pfrow"><label>Border</label><input type="color" id="cs-tt-border" value="#475569"></div>
@@ -1501,7 +1501,7 @@ RUNNING</div>
       <div class="pfrow"><label>Delay (ms)</label><input type="number" id="cs-tt-delay" min="0" max="5000" step="20" value="0"></div>
     </div>
     <div class="cset-pane" data-pane="table">
-      <div class="cset-hint">The accessible table is available for every chart type. Gantt cells are editable when interactive is on.</div>
+      <div class="cset-hint">The accessible table is available for every chart type. Gantt cells are editable when the edit mode allows editing.</div>
       <div class="pfrow"><label>Mode</label><select id="cs-tableview"></select></div>
       <div class="pfrow"><label>Column filters</label><input type="checkbox" id="cs-tb-filters" checked></div>
       <div class="pfrow"><label>Add row button</label><input type="checkbox" id="cs-tb-addrow"></div>
@@ -1972,7 +1972,7 @@ function normalizeTables(nodes) {
       if (n.editMode !== "none" && n.editMode !== "editable" && n.editMode !== "persistent") {
         n.editMode = "none";
       }
-      if (n.cellText === undefined || n.cellText === "auto") n.cellText = "truncate";
+      if (n.cellText === undefined) n.cellText = "truncate";
       if (n.name === undefined) n.name = "";
       ensureTableBaseCss();
     }
@@ -5796,13 +5796,6 @@ function chartStyleDeclMap(css) {
   });
   return out;
 }
-function isLegacyDefaultChartCss(map) {
-  return map["--sui-chart-bg"] === "transparent" &&
-    map["--sui-chart-fg"] === "#e6e6ef" &&
-    map["--sui-chart-grid"] === "#2c3444" &&
-    map["--sui-chart-axis"] === "#3a4152" &&
-    map["--sui-chart-series-1"] === "#4c5cf7";
-}
 function chartPresetKey(n) {
   var cur = n && n.styleExpr ? String(n.styleExpr) : "";
   for (var i = 0; i < CHART_STYLE_PRESETS.length; i++) {
@@ -5811,7 +5804,6 @@ function chartPresetKey(n) {
   var css = chartStyleCss(n);
   if (css === null) return "custom";
   var curMap = chartStyleDeclMap(css);
-  if (isLegacyDefaultChartCss(curMap)) return "default";
   var best = "custom", bestCount = 0;
   for (var p = 0; p < CHART_STYLE_PRESETS.length; p++) {
     var preset = CHART_STYLE_PRESETS[p];
@@ -8190,9 +8182,9 @@ function palSwatchTone(v) {
   var h = v.replace("#", "");
   if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
   if (h.length >= 6) {
-    var r = parseInt(h.substr(0, 2), 16) || 0;
-    var g = parseInt(h.substr(2, 2), 16) || 0;
-    var b = parseInt(h.substr(4, 2), 16) || 0;
+    var r = parseInt(h.substring(0, 2), 16) || 0;
+    var g = parseInt(h.substring(2, 4), 16) || 0;
+    var b = parseInt(h.substring(4, 6), 16) || 0;
     return (0.299 * r + 0.587 * g + 0.114 * b) > 150;
   }
   return false;
@@ -8781,7 +8773,6 @@ function copyTableSheetLook(src, dst) {
   // preview falls back to type-to-edit (which reloads it on each key).
   dst.editMode = "editable";
   dst.cellText = src.cellText || "truncate";
-  if (dst.cellText === "auto") dst.cellText = "truncate";
   dst.pageSize = src.pageSize || "";
   dst.selection = src.selection || "";
   ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"].forEach(function(k) {
@@ -18750,7 +18741,7 @@ var DOCS = {
   indexOf: { sig: "indexOf(s, sub)", ret: "int", desc: "Index of the first occurrence (-1 if absent)." },
   lastIndexOf: { sig: "lastIndexOf(s, sub)", ret: "int", desc: "Index of the last occurrence (-1 if absent)." },
   slice: { sig: "slice(s, start, end)", ret: "string", desc: "Extracts a slice of the string." },
-  substr: { sig: "substr(s, start, len)", ret: "string", desc: "Substring (legacy)." },
+  substring: { sig: "substring(s, start, len)", ret: "string", desc: "Extract len characters from start." },
   repeat: { sig: "repeat(s, count)", ret: "string", desc: "Repeats the string n times." },
   padLeft: { sig: "padLeft(s, len, pad)", ret: "string", desc: "Left padding." },
   padRight: { sig: "padRight(s, len, pad)", ret: "string", desc: "Right padding." },

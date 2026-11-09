@@ -5940,8 +5940,8 @@ func eventIdentOf(e *Element, key string) string {
 }
 
 // treeVisualOpts carries the tree-wide default glyphs through the recursive
-// static/dynamic tree renderers. Per-item icon/iconOpen still win, then the
-// parent/leaf default, then the legacy icon fallback.
+// static/dynamic tree renderers. Per-item icon/iconOpen wins, then the
+// parent/leaf default from the tree element.
 type treeVisualOpts struct {
 	IconLeaf       string
 	IconParent     string

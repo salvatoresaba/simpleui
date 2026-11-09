@@ -2955,7 +2955,7 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString(chartAttrValue(e, "y", ""))
 	b.WriteString("\"")
 	// Width/height are the standard component size in the designer. Keep the
-	// legacy chart attributes only when an existing source explicitly has them.
+	// explicit chart attributes only when the source declares them.
 	if findAttr(e, "width") != nil {
 		b.WriteString(" data-sui-chart-width=\"")
 		b.WriteString(chartAttrValue(e, "width", "640px"))

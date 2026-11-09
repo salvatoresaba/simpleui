@@ -160,8 +160,8 @@ espone da **Chart settings → Interactions → HINTS...**; le modifiche runtime
 restano in `localStorage`, mentre **Reset settings** torna ai valori sorgente.
 
 Anche la tab General è disposta come una tabella a due colonne: etichette a
-sinistra, input a destra e tutti gli switch sulla destra. L’opzione `stateMode`
-è lo switch **Edit mode** (`On` = editing, `Off` = static).
+sinistra e input a destra. Non c'è più uno switch static separato: scegli
+`editMode` (`none`, `editable` o `persistent`) nel sorgente o nel designer.
 
 La tabella è controllata da `tableView`:
 
@@ -176,42 +176,26 @@ visibile e si seleziona un elemento nel diagramma, la riga corrispondente viene
 evidenziata, portata in vista e riceve il focus. Selezionando un link si attiva
 automaticamente la tab **Links**.
 
-## Modalità editing e static
+## Modalità di editing
 
-`stateMode` accetta due valori:
+`editMode` accetta tre valori:
 
 | Valore | Comportamento |
 |---|---|
-| `editing` | Editor normale: selezione, drag/resize, maniglie route/tag, strumenti di aggiunta e tabella modificabile |
-| `static` | Superficie di presentazione: niente selezione, drag/resize o chrome di editing, tabella in sola lettura; restano pan/zoom ed eventi static |
+| `none` | Superficie di presentazione: niente selezione, drag/resize, chrome di editing o modifiche tabella; pan/zoom e coda eventi restano attivi |
+| `editable` | Editor: selezione, drag/resize, maniglie route/tag, strumenti add/delete e tabella modificabile, per la sessione della pagina |
+| `persistent` | Come editable, ma geometria/stile/attributi sopravvivono a reload e riavvio |
 
-Il default è `editing`. La modalità può essere impostata da sorgente o da stato
-reattivo:
+Imposta la modalità dal sorgente o da uno stato reattivo:
 
 ```sui
-state staticMode = false
-state chartMode = "editing"
+state chartMode = "editable"
 
-fn toggleMode() -> null {
-	staticMode = staticMode == true ? false : true
-	chartMode = staticMode ? "static" : "editing"
-}
-
-switch checked: staticMode onChange: toggleMode
-
-chart "Monitor" name: "monitor" data: data chartType: "state" stateMode: chartMode
+chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
 ```
 
-La modalità è modificabile anche da:
-
-- **Settings → General → Mode** a runtime;
-- impostazioni chart del designer, campo **State mode**;
-- `stateMode: "static"` direttamente nel sorgente.
-
-Static mantiene pan e zoom, ma disabilita strumenti, maniglie, selezione,
-modifica di route/tag e tabella. L’ingranaggio resta disponibile per tornare in
-editing.
-
+La modalità non-editable mantiene pan e zoom, disabilita strumenti, maniglie,
+selezione, editing route/tag e tabella, e lascia attiva la coda eventi.
 ## Lista eventi
 
 Il chart è una **sorgente di eventi**, non un dispatcher. Non deve chiamare
@@ -254,7 +238,7 @@ fn processClicked(ev: any) -> null {
 view main {
 	onLoad: startEvents
 	chart "Monitor" name: "monitor" data: data chartType: "state"
-		stateMode: "static"
+		editMode: "none"
 }
 ```
 
@@ -689,7 +673,7 @@ fn processClicked(ev: any) -> null {
 view main {
 	onLoad: startEvents
 	chart "Monitor" name: "monitor" data: data chartType: "state"
-		stateMode: "static"
+		editMode: "none"
 }
 ```
 
@@ -753,23 +737,23 @@ async fn shapeClicked(eventJson: string) -> null {
 }
 ```
 
-### Switch editing/static
+### Switch editable/non-editable
 
 ```sui
 state staticMode = false
-state chartMode = "editing"
+state chartMode = "editable"
 
 fn toggleMode() -> null {
 	staticMode = staticMode == true ? false : true
-	chartMode = staticMode ? "static" : "editing"
+	chartMode = staticMode ? "none" : "editable"
 }
 
 view main {
 	row {
 		switch checked: staticMode onChange: toggleMode
-		text "Static mode"
+		text "Non-editable mode"
 	}
-	chart "Monitor" name: "monitor" data: data chartType: "state" stateMode: chartMode
+	chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
 }
 ```
 
@@ -810,7 +794,7 @@ async fn pumpChartEvents() -> null {
 view main {
 	onLoad: startEvents
 	chart "Monitor" name: "monitor" data: data chartType: "state"
-		stateMode: "static"
+		editMode: "none"
 
 	modal "Process details" name: "process-details" {
 		p "Shape: {selectedLabel}"
@@ -869,11 +853,11 @@ combina tutte le funzionalità:
 - il click su **Process** nella lista eventi chiama `processClicked`, che aggiorna
   la forma **Output** e apre il modal **Process details**;
 - pulsanti Waiting / Running / Done con `chart.update`;
-- switch collegato a `stateMode`;
+- switch collegato a `editMode`;
 - click su tag e hover gestiti dalla stessa lista eventi;
 - hint personalizzati su forme e link mostrati al posto del tooltip predefinito;
 - `tableView: "both"` e `chart.focusRow`, quindi un click evidenzia la riga
-  tabella corrispondente anche in static mode.
+  tabella corrispondente anche in modalità non-editable.
 
 ## Sicurezza e prestazioni
 
@@ -888,7 +872,7 @@ combina tutte le funzionalità:
   ridisegno completo.
 - Una breve finestra di soppressione del draw evita che rerender SUI o
   ResizeObserver ricostruiscano subito il chart dopo un aggiornamento in place.
-- Static disabilita il refit automatico e ignora piccole variazioni del viewport
+- La modalità non-editable disabilita il refit automatico e ignora piccole variazioni del viewport
   (per esempio la scrollbar nascosta da un modal aperto), così le forme non
   saltano quando una finestra appare o si chiude.
 - La lista eventi conserva al massimo gli ultimi 200 eventi; interrogarla
@@ -896,7 +880,7 @@ combina tutte le funzionalità:
 
 ## Risoluzione problemi
 
-- **Nessun evento nella lista:** il chart deve essere in `stateMode: "static"`.
+- **Nessun evento nella lista:** il chart deve essere in `editMode: "none"`.
   La modalità editing è un editor e non emette eventi static.
 - **La lista cresce:** chiamare regolarmente `chart.pollEvents` (per esempio con
   `interval`) oppure `chart.clearEvents`.
@@ -914,4 +898,7 @@ combina tutte le funzionalità:
 - **Testo aggiornato ma box non perfetto:** l’updater in place ricostruisce il
   box; per testi molto lunghi o modifiche font usare una patch strutturale
   (`tagFontSize`, `tagBox`, ecc.).
-- **La modalità non cambia:** `stateMode` deve essere `editing` o `static`.
+- **La modalità non cambia:** `editMode` deve essere `none`, `editable` o `persistent`.
+
+
+

@@ -943,7 +943,7 @@ const suiChartRuntime = `(function(){
     for (var i = 0; i < snapshot.length; i++) tasks.push(snapshot[i]);
   }
   function ganttObjTask(o, index) {
-    var label = text(ganttField(o, ["task", "label", "name", "title"]) || ganttField(o, ["id", "key"]) || "Task " + (index + 1));
+    var label = text(ganttField(o, ["task"]) || ganttField(o, ["id"]) || "Task " + (index + 1));
     var start = ganttField(o, ["start", "from", "begin"]);
     var end = ganttField(o, ["end", "to", "finish"]);
     var duration = ganttField(o, ["duration"]);
@@ -1098,7 +1098,7 @@ const suiChartRuntime = `(function(){
   }
   // Tags and hints are single-line fields. "|" starts a new line, "\|" is a
   // literal pipe and "\\" a literal backslash. Real newlines are accepted as
-  // legacy input and normalised to the canonical "|" form. Both helpers are
+  // input and normalised to the canonical "|" form. Both helpers are
   // linear scans: no regex backtracking and no markup interpretation.
   var MAX_TAG_LINES = 100;
   function stateLineText(value) {
@@ -1167,7 +1167,7 @@ const suiChartRuntime = `(function(){
     };
     var addNode = function(obj, fallbackIndex) {
       var rawId = stateFieldText(obj, ["id", "key"]);
-      var label = stateFieldText(obj, ["label", "name", "task", "title", "state"]);
+      var label = stateFieldText(obj, ["label"]);
       if (!rawId) {
         var missing = label ? 'state "' + label + '"' : "state #" + (fallbackIndex + 1);
         throw new Error(missing + ': every state needs an explicit unique "id"');
@@ -1200,8 +1200,8 @@ const suiChartRuntime = `(function(){
         final: final,
         x: stateNumber(stateFieldValue(obj, ["x", "left"])),
         y: stateNumber(stateFieldValue(obj, ["y", "top"])),
-        w: stateNumber(stateFieldValue(obj, ["w", "width"])),
-        h: stateNumber(stateFieldValue(obj, ["h", "height"])),
+        w: stateNumber(stateFieldValue(obj, ["w"])),
+        h: stateNumber(stateFieldValue(obj, ["h"])),
         description: stateFieldText(obj, ["description", "desc", "note"]),
         hint: normalizeLineText(stateFieldText(obj, ["hint", "tooltip", "tip"])),
         color: stateFieldText(obj, ["color", "colour"]),
@@ -1268,7 +1268,7 @@ const suiChartRuntime = `(function(){
       addTransition(
         stateFieldValue(obj, ["from", "source", "sourceState", "fromState"]) || fromFallback,
         stateFieldValue(obj, ["to", "target", "targetState", "toState"]),
-        stateFieldValue(obj, ["label", "name", "transition", "event"]),
+        stateFieldValue(obj, ["label"]),
         stateFieldValue(obj, ["event", "trigger"]),
         stateFieldValue(obj, ["guard", "condition"]),
         stateFieldValue(obj, ["action", "effect"]),
@@ -1525,7 +1525,7 @@ const suiChartRuntime = `(function(){
         };
         var nodeObj = {
           id: attrs.id || attrs.key || childText(["id", "key"]),
-          label: attrs.label || attrs.name || childText(["label", "name"]),
+          label: attrs.label || childText(["label"]),
           type: attrs.type || attrs.kind || childText(["type", "kind"]),
           initial: attrs.initial || childText(["initial"]),
           final: attrs.final || childText(["final"]),
@@ -1641,7 +1641,7 @@ const suiChartRuntime = `(function(){
         for (i = 0; i < body.length; i++) {
           var r = body[i] || [];
           var t = ganttObjTask({
-            task: r[ganttHeaderIndex(head, ["task", "label", "name"], 0)],
+            task: r[ganttHeaderIndex(head, ["task"], 0)],
             start: r[ganttHeaderIndex(head, ["start", "from"], 1)],
             end: r[ganttHeaderIndex(head, ["end", "to"], 2)],
             progress: r[ganttHeaderIndex(head, ["progress", "percent"], 3)],
@@ -1684,7 +1684,7 @@ const suiChartRuntime = `(function(){
       });
       if (!hasHeader) { header = ["Task", "Start", "End", "Progress", "Milestone", "Group", "DependsOn"]; bodyRows = cr; }
       var ix = {
-        task: ganttHeaderIndex(header, ["task", "label", "name"], 0),
+        task: ganttHeaderIndex(header, ["task"], 0),
         start: ganttHeaderIndex(header, ["start", "from"], 1),
         end: ganttHeaderIndex(header, ["end", "to"], 2),
         progress: ganttHeaderIndex(header, ["progress", "percent"], 3),
@@ -1735,7 +1735,7 @@ const suiChartRuntime = `(function(){
       for (i = 0; i < nodes.length; i++) {
         var el = nodes[i];
         var xt = ganttObjTask({
-          task: ganttXmlField(el, ["task", "label", "name"]),
+          task: ganttXmlField(el, ["task"]),
           start: ganttXmlField(el, ["start", "from"]),
           end: ganttXmlField(el, ["end", "to"]),
           progress: ganttXmlField(el, ["progress", "percent"]),

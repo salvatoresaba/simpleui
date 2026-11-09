@@ -1,16 +1,15 @@
 # State chart runtime guide
 
 This guide covers the runtime side of the `state` chart: updating tags and
-colors from SUI code, switching between editing and static mode, and handling
-shape/link/tag events in static mode. The complete worked example is
+colors from SUI code, switching between editable and non-editable mode, and
+handling shape/link/tag events in non-editable mode. The complete worked example is
 [`examples/process_monitor`](../examples/process_monitor/README.md).
 
 ## Overview
 
 A state chart is identified by its `name:` attribute. Runtime code can use the
-core `chart` module (no import required) to update the rendered graph, or switch
-the chart to static mode and receive events when the user interacts with shapes
-and tags.
+core `chart` module (no import required) to update the rendered graph, or set a
+non-editable mode and receive events when the user interacts with shapes and tags.
 
 The chart module is synchronous and returns `(value, error)` like the rest of
 the standard library.
@@ -158,9 +157,9 @@ The same defaults can be written in the `.sui` source as chart attributes:
 exposes them from **Chart settings → Interactions → HINTS...**; runtime edits
 stay in `localStorage`, while **Reset settings** returns to the source values.
 
-The General tab is also laid out as a two-column table: labels on the left,
-inputs on the right, with every switch on the right. The `stateMode` option is
-the **Edit mode** switch (`On` = editing, `Off` = static).
+The General tab is also laid out as a two-column table: labels on the left and
+inputs on the right. There is no separate static switch: choose `editMode`
+(`none`, `editable` or `persistent`) in the source or in the designer.
 
 The state table is controlled by `tableView`:
 
@@ -175,41 +174,26 @@ visible and an element is selected in the diagram, the matching table row is
 highlighted, scrolled into view and focused. Selecting an edge activates the
 **Links** tab automatically.
 
-## Editing and static mode
+## Edit mode
 
-`stateMode` has two values:
+`editMode` has three values:
 
 | Value | Behavior |
 |---|---|
-| `editing` | Normal editor: selection, drag/resize, route/tag handles, add/delete tools and editable table |
-| `static` | Presentation surface: no selection, no drag/resize, no editing chrome, read-only table; pan/zoom and static events remain |
+| `none` | Presentation surface: no selection, drag/resize, editing chrome or table edits; pan/zoom and the event queue remain |
+| `editable` | Editor: selection, drag/resize, route/tag handles, add/delete tools and editable table, for the page session |
+| `persistent` | Same editor, and geometry/style/attribute changes survive reload and restart |
 
-`editing` is the default. Set the mode from source or from reactive state:
+Set the mode from source or from reactive state:
 
 ```sui
-state staticMode = false
-state chartMode = "editing"
+state chartMode = "editable"
 
-fn toggleMode() -> null {
-	staticMode = staticMode == true ? false : true
-	chartMode = staticMode ? "static" : "editing"
-}
-
-switch checked: staticMode onChange: toggleMode
-
-chart "Monitor" name: "monitor" data: data chartType: "state" stateMode: chartMode
+chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
 ```
 
-The mode can also be changed from:
-
-- the runtime **Settings → General → Mode** selector;
-- the designer chart settings, field **State mode**;
-- `stateMode: "static"` directly in the source.
-
-Static mode keeps pan and zoom. It disables editing tools, handles, selection,
-route/tag editing and table editing. The gear button remains available so the
-user can return to editing mode.
-
+Non-editable mode keeps pan and zoom, disables editing tools, handles, selection,
+route/tag editing and table editing, and leaves the event queue active.
 ## Event list
 
 The chart is an **event source**, not a dispatcher. It never needs to call a
@@ -252,7 +236,7 @@ fn processClicked(ev: any) -> null {
 view main {
 	onLoad: startEvents
 	chart "Monitor" name: "monitor" data: data chartType: "state"
-		stateMode: "static"
+		editMode: "none"
 }
 ```
 
@@ -687,7 +671,7 @@ fn processClicked(ev: any) -> null {
 view main {
 	onLoad: startEvents
 	chart "Monitor" name: "monitor" data: data chartType: "state"
-		stateMode: "static"
+		editMode: "none"
 }
 ```
 
@@ -768,9 +752,9 @@ fn toggleMode() -> null {
 view main {
 	row {
 		switch checked: staticMode onChange: toggleMode
-		text "Static mode"
+		text "Non-editable mode"
 	}
-	chart "Monitor" name: "monitor" data: data chartType: "state" stateMode: chartMode
+	chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
 }
 ```
 
@@ -811,7 +795,7 @@ async fn pumpChartEvents() -> null {
 view main {
 	onLoad: startEvents
 	chart "Monitor" name: "monitor" data: data chartType: "state"
-		stateMode: "static"
+		editMode: "none"
 
 	modal "Process details" name: "process-details" {
 		p "Shape: {selectedLabel}"
@@ -870,11 +854,11 @@ combines all of the above:
 - the **Process** click in the event list calls `processClicked`, which updates
   the **Output** shape and opens the **Process details** modal;
 - Waiting / Running / Done buttons using `chart.update`;
-- a switch bound to `stateMode`;
+- a switch bound to `editMode`;
 - tag click and hover handled from the same event list;
 - custom `hint` values on shapes and links shown instead of the default tooltip;
 - `tableView: "both"` and `chart.focusRow`, so a click highlights the matching
-  table row even in static mode.
+  table row even in non-editable mode.
 
 ## Security and performance notes
 
@@ -895,7 +879,7 @@ combines all of the above:
 
 ## Troubleshooting
 
-- **No event in the list:** the chart must be in `stateMode: "static"`. Editing
+- **No event in the list:** the chart must be in `editMode: "none"`. Editing
   mode is an editor and does not emit static events.
 - **Events accumulate:** call `chart.pollEvents` regularly (for example with
   `interval`) or `chart.clearEvents`.
@@ -912,4 +896,5 @@ combines all of the above:
 - **Text changes but the box looks stale:** the in-place updater rebuilds the
   text box; for complex wrapped text or font changes, use a structural patch
   (`tagFontSize`, `tagBox`, etc.) or reload the chart so a full layout pass runs.
-- **Mode changes are ignored:** `stateMode` must be `editing` or `static`.
+- **Mode changes are ignored:** `editMode` must be `none`, `editable` or `persistent`.
+

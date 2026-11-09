@@ -7,7 +7,7 @@ import (
 
 // graph_test.go covers the dedicated Graph control: it compiles through the
 // shared chart runtime, always renders the block-diagram geometry, rejects the
-// legacy chartType attribute and survives the designer round trip.
+// chartType attribute and survives the designer round trip.
 
 const graphTestSource = `state flow = "\{\"states\":[\{\"id\":\"a\",\"label\":\"Alpha\"\},\{\"id\":\"b\",\"label\":\"Beta\"\}],\"transitions\":[\{\"from\":\"a\",\"to\":\"b\",\"label\":\"go\"\}]\}"
 

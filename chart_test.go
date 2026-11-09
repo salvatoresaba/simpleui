@@ -600,7 +600,7 @@ view main {
 	chart "Box" data: box format: "csv" chartType: "boxplot" x: "Name"
 	chart "Bullet" data: bullet format: "csv" chartType: "bullet" x: "Team"
 	chart "Dumb" data: dumbbell format: "csv" chartType: "dumbbell" x: "Team"
-	chart "Gantt" data: gantt format: "csv" chartType: "gantt" x: "Task" tableView: "both" tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true tableSelection: "cell" criticalPath: true holidays: "*-11-16, 2026-11-20..2026-11-21" weekend: "fri,sat" timezone: "Europe/Rome" interactive: true
+	chart "Gantt" data: gantt format: "csv" chartType: "gantt" x: "Task" tableView: "both" tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true tableSelection: "cell" criticalPath: true holidays: "*-11-16, 2026-11-20..2026-11-21" weekend: "fri,sat" timezone: "Europe/Rome" editMode: "persistent"
 }`
 	prog, dl := ParseSource(src, "chart_types.sui")
 	if dl.HasErrors() {
