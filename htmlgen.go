@@ -1705,7 +1705,8 @@ p { line-height: 1.6; }
 }
 .sui-layout-table > tbody > tr > .sui-layout-cell {
   padding: 0;
-  min-width: 0;
+  min-width: var(--sui-layout-min-cell-width, 40px);
+  min-height: var(--sui-layout-min-cell-height, 24px);
   border: 0;
   background: transparent;
   vertical-align: top;
