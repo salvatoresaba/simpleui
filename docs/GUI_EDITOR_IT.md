@@ -1365,9 +1365,11 @@ l'[esempio sheet tabs](../examples/table_sheets/README.md).
 
 ## Controllo Chart
 
-Inserire **Chart** da **Controls**. Un nuovo grafico parte come barre con dati
-CSV di esempio, riempie il contenitore (`width: "100%"`, `height: "100%"`) e usa
-`overflow: "scroll"`. La tabella resta nascosta finché **Mode** non viene
+Inserire **Chart** da **Controls**. Un nuovo grafico parte **vuoto** come barre:
+i controlli dati sono contenitori, quindi nessun dataset dimostrativo viene
+scritto a meno che non si usi esplicitamente **Insert sample** o si colleghi uno
+stato/espressione. Riempie il contenitore (`width: "100%"`, `height: "100%"`) e
+usa `overflow: "scroll"`. La tabella resta nascosta finché **Mode** non viene
 impostata su `table` o `both`.
 
 L'inspector dedicato **Chart** è ordinato per accesso rapido:
@@ -1407,8 +1409,9 @@ controllata a runtime.
 
 Se i dati correnti non sono compatibili con il tipo scelto, una finestra di
 conferma avvisa che i dati esistenti verranno ignorati e sostituiti da un dataset
-di esempio adatto al nuovo tipo; annullando si torna al tipo precedente. I dati
-compatibili vengono mantenuti.
+di esempio adatto al nuovo tipo; annullando si torna al tipo precedente. Un
+grafico vuoto resta vuoto quando cambia tipo: nessun campione viene inserito
+implicitamente. I dati compatibili vengono mantenuti.
 
 Il Gantt usa lo stesso overlay ma legge righe pi� ricche: `task`, `start`, `end`
 (o `duration`), `progress`, `milestone`, `group`, `parent`, `dependsOn`,
@@ -1842,8 +1845,9 @@ chart](../examples/chart/README.md).
 ## Controllo Graph
 
 Inserire **Graph** da **Controls**. Un nuovo graph parte come diagramma a blocchi
-con dati JSON di esempio (stati e transizioni) e riempie il contenitore
-(`width: "100%"`, `height: "100%"`). È un controllo foglia: non può contenere
+**vuoto**: stati e transizioni sono dati e non vengono inseriti come contenuto
+dimostrativo; usa **Edit data** o collega uno stato/espressione. Riempie il
+contenitore (`width: "100%"`, `height: "100%"`). È un controllo foglia: non può contenere
 elementi figli.
 
 L'inspector del graph è ordinato così:

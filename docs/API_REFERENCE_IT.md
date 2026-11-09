@@ -759,6 +759,10 @@ persistenza applicativa/server.
 `chart` visualizza dati JSON, XML o CSV come grafico SVG a barre, linee, area,
 torta, ciambella o scatter. Il testo dell'elemento � il titolo visibile. I dati
 sono testo, mai markup, e ogni etichetta SVG viene scritta con `textContent`.
+Senza dati il controllo resta vuoto ("No data"): i dati arrivano di solito da uno
+stato, un'espressione o un'API. Se un sorgente SUI preimposta dei dati è una
+scelta intenzionale e vengono mostrati di nuovo a ogni caricamento dell'app; le
+modifiche runtime durano per la sessione della pagina salvo persistenza esplicita.
 
 ```sui
 state sales = "[\{\"month\":\"Jan\",\"value\":12\},\{\"month\":\"Feb\",\"value\":18\}]"
@@ -1034,7 +1038,10 @@ stringa.
 ### Controllo Graph (diagrammi a blocchi)
 
 Il controllo dedicato `graph` disegna un diagramma a blocchi/stati. Usa sempre
-la geometria forme/link, quindi non scrive `chartType`:
+la geometria forme/link, quindi non scrive `chartType`. Un graph vuoto è un
+contenitore valido; stati e transizioni preimpostati nel sorgente vengono mostrati
+di nuovo a ogni caricamento dell'app, mentre le modifiche runtime durano per la
+sessione della pagina.
 
 ```sui
 state flow = "\{\"states\":[\{\"id\":\"input\",\"label\":\"Input\"\},\{\"id\":\"process\",\"label\":\"Process\"\},\{\"id\":\"output\",\"label\":\"Output\"\}],\"transitions\":[\{\"from\":\"input\",\"to\":\"process\"\},\{\"from\":\"process\",\"to\":\"output\"\}]\}"

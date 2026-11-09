@@ -772,7 +772,11 @@ server model.
 
 `chart` renders JSON, XML or CSV data as an SVG bar, line, area, pie, donut or
 scatter chart. The optional element text is the visible title. Data is text,
-never markup, and every SVG label is written with `textContent`.
+never markup, and every SVG label is written with `textContent`. Omitting data
+leaves the control empty ("No data"): data usually comes from a state, an
+expression or an API. When a SUI source presets data it is intentional and is
+rendered again on every application load; runtime chart edits live for the page
+session unless the app persists them explicitly.
 
 ```sui
 state sales = "[\{\"month\":\"Jan\",\"value\":12\},\{\"month\":\"Feb\",\"value\":18\}]"
@@ -1052,7 +1056,9 @@ summary tasks, collapsed summary bars, auto scheduling and dependency cycles.
 ### Graph control (block diagrams)
 
 The dedicated `graph` control renders a block/state diagram. It always uses the
-shapes/links geometry, so no `chartType` attribute is written:
+shapes/links geometry, so no `chartType` attribute is written. An empty graph is
+a valid empty container; states and transitions preset in the source are shown
+again on every application load, while runtime graph edits are page-session only.
 
 ```sui
 state flow = "\{\"states\":[\{\"id\":\"input\",\"label\":\"Input\"\},\{\"id\":\"process\",\"label\":\"Process\"\},\{\"id\":\"output\",\"label\":\"Output\"\}],\"transitions\":[\{\"from\":\"input\",\"to\":\"process\"\},\{\"from\":\"process\",\"to\":\"output\"\}]\}"

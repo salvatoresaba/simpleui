@@ -31,10 +31,29 @@ func TestChartDesignerDefaultsFillContainer(t *testing.T) {
 		`n.chartWidth = "100%"`,
 		`n.chartHeight = "100%"`,
 		`n.chartTableView = "chart"`,
+		`n.chartData = ""`,
 	} {
 		if !strings.Contains(block, want) {
 			t.Errorf("new chart node missing %q", want)
 		}
+	}
+	if strings.Contains(block, "Month,Revenue") {
+		t.Error("new chart node must start empty, without implicit demo data")
+	}
+	if !strings.Contains(guiHTML, `if (!source.trim()) return { needsReplace: false, fillSample: false`) {
+		t.Error("changing the type of an empty chart must not inject a sample dataset")
+	}
+	gstart := strings.Index(guiHTML, "function newGraphNode(")
+	gend := strings.Index(guiHTML[gstart:], "function newNodeForKind(")
+	if gstart < 0 || gend < 0 {
+		t.Fatal("newGraphNode block not found")
+	}
+	gblock := guiHTML[gstart : gstart+gend]
+	if !strings.Contains(gblock, `n.chartData = ""`) {
+		t.Error("new graph node must start empty")
+	}
+	if strings.Contains(gblock, "CHART_GRAPH_SAMPLE_JSON") {
+		t.Error("new graph node must not inject sample graph data")
 	}
 }
 

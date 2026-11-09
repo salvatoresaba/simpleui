@@ -1312,10 +1312,11 @@ See [API reference: tables](API_REFERENCE.md#tables-and-untrusted-data) and the
 
 ## Chart control
 
-Insert **Chart** from **Controls**. A new chart starts as a bar chart with
-sample CSV data, fills its container (`width: "100%"`, `height: "100%"`) and
-uses `overflow: "scroll"`. New charts keep the table hidden until **Mode** is
-set to `table` or `both`.
+Insert **Chart** from **Controls**. A new chart starts empty as a bar chart: data
+controls are containers, so no demo dataset is written unless you load it
+explicitly with **Insert sample** or bind a state/expression. The chart fills its
+container (`width: "100%"`, `height: "100%"`) and uses `overflow: "scroll"`. New
+charts keep the table hidden until **Mode** is set to `table` or `both`.
 
 The dedicated **Chart** inspector is ordered for quick access:
 
@@ -1352,7 +1353,8 @@ selected type cannot use them.
 Changing **type** updates the visible fields immediately. If the current data is
 not compatible with the selected type, a confirmation dialog warns that the
 existing data will be ignored and replaced by a sample dataset suited to the new
-type; cancelling restores the previous type. Compatible data is kept. If
+type; cancelling restores the previous type. An empty chart stays empty when the
+type changes: no sample is injected implicitly. Compatible data is kept. If
 `chartType` is an expression, all fields stay visible and compatibility is
 checked at runtime.
 
@@ -1777,9 +1779,11 @@ See [API reference: chart](API_REFERENCE.md#chart) and the
 
 ## Graph control
 
-Insert **Graph** from **Controls**. A new graph starts as a block diagram with
-sample JSON states and transitions and fills its container (`width: "100%"`,
-`height: "100%"`). It is a leaf control: it cannot contain child elements.
+Insert **Graph** from **Controls**. A new graph starts as an empty block diagram:
+states and transitions are data, so they are not injected as demo content; use
+**Edit data** or bind a state/expression. It fills its container (`width:
+"100%"`, `height: "100%"`). It is a leaf control: it cannot contain child
+elements.
 
 The graph inspector is ordered as follows:
 | Field | Meaning |

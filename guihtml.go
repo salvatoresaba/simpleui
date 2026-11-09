@@ -2293,7 +2293,9 @@ function newChartNode(skipDefaults) {
   n.text = "Chart";
   n.chartType = "bar";
   n.chartTheme = "dark";
-  n.chartData = "Month,Revenue\nJan,12\nFeb,18\nMar,15\nApr,24\nMay,21\nJun,29";
+  // Data controls start empty: the source (or a state expression) supplies the
+  // data. Preset data in a SUI file is intentional and is restored on each load.
+  n.chartData = "";
   n.chartDataExpr = false;
   n.chartFormat = "auto";
   n.chartX = "";
@@ -2370,7 +2372,8 @@ function newGraphNode(skipDefaults) {
   n.kind = "graph";
   n.text = "Graph";
   n.chartType = "state";
-  n.chartData = CHART_GRAPH_SAMPLE_JSON;
+  // Empty by default; use Edit data or a state expression for real content.
+  n.chartData = "";
   n.chartDataExpr = false;
   n.chartFormat = "auto";
   n.chartStateMode = "static";
@@ -6573,7 +6576,9 @@ function chartTypeChangePlan(n, newType) {
   var appliedFormat = sampleFormat === "json" ? "auto" : sampleFormat;
   if (n.chartDataExpr) return { needsReplace: false, fillSample: false, sample: "", format: "", reason: "" };
   var source = String(n.chartData || "");
-  if (!source.trim()) return { needsReplace: false, fillSample: true, sample: sample, format: appliedFormat, reason: "" };
+  // An empty data control stays empty when the type changes: never inject demo
+  // data implicitly. The data editor offers an explicit sample action instead.
+  if (!source.trim()) return { needsReplace: false, fillSample: false, sample: "", format: "", reason: "" };
   var check = chartTypeCompatibilityForData(
     source,
     sourceFormat === "__expr__" ? "auto" : sourceFormat,
