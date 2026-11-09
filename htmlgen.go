@@ -5683,6 +5683,11 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString(htmlEscape(style))
 		sb.WriteString("\"")
 	}
+	sb.WriteString(" data-sui-layout-cols=\"")
+	sb.WriteString(strconv.Itoa(grid.cols))
+	sb.WriteString("\" data-sui-layout-rows=\"")
+	sb.WriteString(strconv.Itoa(grid.rows))
+	sb.WriteString("\"")
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	if colgroup := layoutColgroupHTML(e, grid.cols); colgroup != "" {
@@ -5717,7 +5722,7 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 			sb.WriteString(layoutCellPosAttrs(r, c))
 			sb.WriteString(layoutCellAttrs(cell, e))
 			sb.WriteString(">\n")
-			writeStaticNodes(sb, []ViewNode{*cell.node}, ind+"        ")
+			writeStaticNodes(sb, cell.content, ind+"        ")
 			sb.WriteString(ind)
 			sb.WriteString("      </td>\n")
 		}

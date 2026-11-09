@@ -1750,6 +1750,9 @@ var root = pagesModelEmpty();
 var suiSource = "";   // the canonical SUI source text (shown in the SUI tab)
 var selPath = null;
 var selLayoutCell = null;
+var selLayoutCells = [];
+var selLayoutSplit = null;
+var selLayoutSplits = [];
 var past = [];
 var pastLabels = [];
 var future = [];
@@ -1806,6 +1809,7 @@ var PALETTE_LABEL = {
   color: "Color picker", date: "Date", time: "Time", button: "Button",
   card: "Card", tabs: "Tabs", tab: "Tab", accordion: "Accordion", accordionitem: "Accordion item",
   tablelayout: "Table layout",
+  layoutcell: "Layout cell",
   tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph",
   menubar: "Menu bar", menu: "Menu", menuitem: "Menu item", modal: "Modal", modalbutton: "Modal button", toast: "Toast host",
   progress: "Progress",
@@ -2014,10 +2018,19 @@ function uniqueTableName() {
   while (tableNameTaken("table" + i)) i++;
   return "table" + i;
 }
+function newLayoutCellNode(row, col) {
+  var n = newNode("layoutcell");
+  n.layoutRow = String(row || 0);
+  n.layoutCol = String(col || 0);
+  n.layoutRowspan = "1";
+  n.layoutColspan = "1";
+  n.children = [];
+  return n;
+}
 function newTableLayoutNode() {
   var n = newNode("tablelayout");
-  n.layoutRows = "2";
-  n.layoutColumns = "2";
+  n.layoutRows = "1";
+  n.layoutColumns = "1";
   n.layoutWidth = "100%";
   n.layoutHeight = "";
   n.layoutColumnWidths = "";
@@ -2031,7 +2044,7 @@ function newTableLayoutNode() {
   n.layoutResponsive = false;
   n.layoutSemantic = false;
   n.layoutLabel = "";
-  n.children = [];
+  n.children = [newLayoutCellNode(0, 0)];
   return n;
 }
 function newTableNode() {
@@ -2364,6 +2377,7 @@ function newNodeForKind(kind) {
   if (kind === "graph") return newGraphNode();
   if (kind === "table") return newTableNode();
   if (kind === "tablelayout") return newTableLayoutNode();
+  if (kind === "layoutcell") return newLayoutCellNode(0, 0);
   if (kind === "modal") return newModalNode();
   if (kind === "modalbutton") return newModalButtonNode("Button");
   if (kind === "list") return newListNode();
@@ -2754,7 +2768,119 @@ function buildPickMap() {
     })(pi);
   }
 }
-function selectLayoutCell(tableId, row, col) {
+function selectLayoutSplit(tableId, axis, index, add) {
+  var t = pickMap[tableId];
+  if (!t || t.pg !== root.page) return;
+  var n = byPath(t.p, root.children);
+  if (!n || n.kind !== "tablelayout") return;
+  selBody = false; multiSel = []; clearTableSelection();
+  selNoBox = false; selCell = null; selRow = null; selCol = null;
+  var sameTable = selPath && samePath(selPath, t.p) && selLayoutSplits.length > 0;
+  selPath = t.p.slice();
+  selLayoutCell = null; selLayoutCells = [];
+  var item = { axis: axis, index: index };
+  if (add && sameTable) {
+    var found = -1;
+    for (var i = 0; i < selLayoutSplits.length; i++) {
+      if (selLayoutSplits[i].axis === axis && selLayoutSplits[i].index === index) { found = i; break; }
+    }
+    if (found >= 0) selLayoutSplits.splice(found, 1);
+    else selLayoutSplits.push(item);
+  } else {
+    selLayoutSplits = [item];
+  }
+  selLayoutSplit = selLayoutSplits.length ? selLayoutSplits[selLayoutSplits.length - 1] : null;
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+  setStatus(selLayoutSplits.length > 1 ? (selLayoutSplits.length + " layout splits selected") : ("table layout " + (axis === "x" ? "column" : "row") + " split " + (index + 1)));
+}
+function layoutMergeOverlaps(n) {
+  function overlap(a, b) {
+    var ar = Number(a.layoutRow || 0), ac = Number(a.layoutCol || 0);
+    var ars = Number(a.layoutRowspan || 1), acs = Number(a.layoutColspan || 1);
+    var br = Number(b.layoutRow || 0), bc = Number(b.layoutCol || 0);
+    var brs = Number(b.layoutRowspan || 1), bcs = Number(b.layoutColspan || 1);
+    return ar < br + brs && ar + ars > br && ac < bc + bcs && ac + acs > bc;
+  }
+  var changed = true;
+  while (changed) {
+    changed = false;
+    for (var i = 0; i < n.children.length && !changed; i++) {
+      for (var j = i + 1; j < n.children.length; j++) {
+        var a = n.children[i], b = n.children[j];
+        if (!a || !b || a.kind !== "layoutcell" || b.kind !== "layoutcell" || !overlap(a, b)) continue;
+        var r = Math.min(Number(a.layoutRow || 0), Number(b.layoutRow || 0));
+        var c = Math.min(Number(a.layoutCol || 0), Number(b.layoutCol || 0));
+        var rr = Math.max(Number(a.layoutRow || 0) + Number(a.layoutRowspan || 1), Number(b.layoutRow || 0) + Number(b.layoutRowspan || 1));
+        var cc = Math.max(Number(a.layoutCol || 0) + Number(a.layoutColspan || 1), Number(b.layoutCol || 0) + Number(b.layoutColspan || 1));
+        a.layoutRow = String(r); a.layoutCol = String(c);
+        a.layoutRowspan = String(rr - r); a.layoutColspan = String(cc - c);
+        a.children = (a.children || []).concat(b.children || []);
+        n.children.splice(j, 1);
+        changed = true;
+        break;
+      }
+    }
+  }
+}
+function layoutRemoveSplit(n, axis, index) {
+  if (axis === "x") {
+    if (index <= 0 || index >= layoutClampInt(n.layoutColumns, 1, 12, 1)) return;
+    n.children.forEach(function(cell){
+      var c = Number(cell.layoutCol || 0), cs = Number(cell.layoutColspan || 1);
+      if (c > index) cell.layoutCol = String(c - 1);
+      else if (c === index) cell.layoutCol = String(index - 1);
+      else if (c + cs > index) cell.layoutColspan = String(Math.max(1, cs - 1));
+    });
+    n.layoutColumns = String(layoutClampInt(n.layoutColumns, 1, 12, 1) - 1);
+  } else {
+    if (index <= 0 || index >= layoutClampInt(n.layoutRows, 1, 50, 1)) return;
+    n.children.forEach(function(cell){
+      var r = Number(cell.layoutRow || 0), rs = Number(cell.layoutRowspan || 1);
+      if (r > index) cell.layoutRow = String(r - 1);
+      else if (r === index) cell.layoutRow = String(index - 1);
+      else if (r + rs > index) cell.layoutRowspan = String(Math.max(1, rs - 1));
+    });
+    n.layoutRows = String(layoutClampInt(n.layoutRows, 1, 50, 1) - 1);
+  }
+}
+function layoutFinishSplits(n) {
+  layoutMergeOverlaps(n);
+  layoutSortCells(n);
+  layoutSyncCounts(n);
+  selLayoutSplit = null; selLayoutSplits = [];
+  selLayoutSplits = [];
+  selLayoutCell = null; selLayoutCells = [];
+}
+function layoutDeleteSplit(n, axis, index) {
+  withUndo(function(){
+    materializeLayoutCells(n);
+    layoutRemoveSplit(n, axis, index);
+    layoutFinishSplits(n);
+  }, "delete layout split");
+}
+function layoutDeleteSplits(n, splits) {
+  withUndo(function(){
+    materializeLayoutCells(n);
+    var list = (splits || []).slice().sort(function(a,b){
+      if (a.axis !== b.axis) return a.axis === "x" ? -1 : 1;
+      return b.index - a.index;
+    });
+    for (var i = 0; i < list.length; i++) layoutRemoveSplit(n, list[i].axis, list[i].index);
+    layoutFinishSplits(n);
+  }, "delete layout splits");
+}
+function applyLayoutResize(tableId, axis, sizes) {
+  var t = pickMap[tableId];
+  if (!t || t.pg !== root.page || !sizes.length) return;
+  var n = byPath(t.p, root.children);
+  if (!n || n.kind !== "tablelayout") return;
+  withUndo(function(){
+    var value = sizes.map(function(v){ return Math.max(8, Math.round(Number(v))) + "px"; }).join(", ");
+    if (axis === "y") n.layoutRowHeights = value;
+    else n.layoutColumnWidths = value;
+  }, "table layout resize");
+}
+function selectLayoutCell(tableId, row, col, add) {
   var t = pickMap[tableId];
   if (!t || t.pg !== root.page) return;
   var n = byPath(t.p, root.children);
@@ -2764,18 +2890,32 @@ function selectLayoutCell(tableId, row, col) {
   clearTableSelection();
   selNoBox = false;
   selCell = null; selRow = null; selCol = null;
+  selLayoutSplit = null; selLayoutSplits = [];
+  var sameTable = selPath && samePath(selPath, t.p) && selLayoutCells.length > 0;
   selPath = t.p.slice();
   var lg = layoutGridInfo(n);
-  var ci = lg.starts[Number(row) + "," + Number(col)];
-  selLayoutCell = { row: Number(row), col: Number(col), childIndex: ci === undefined ? -1 : ci };
+  var key = Number(row) + "," + Number(col);
+  var ci = lg.starts[key];
+  var item = { row: Number(row), col: Number(col), childIndex: ci === undefined ? -1 : ci };
+  if (add && sameTable) {
+    var found = -1;
+    for (var i = 0; i < selLayoutCells.length; i++) {
+      if (selLayoutCells[i].row === item.row && selLayoutCells[i].col === item.col) { found = i; break; }
+    }
+    if (found >= 0) selLayoutCells.splice(found, 1);
+    else selLayoutCells.push(item);
+  } else {
+    selLayoutCells = [item];
+  }
+  selLayoutCell = selLayoutCells.length ? selLayoutCells[selLayoutCells.length - 1] : null; selLayoutSplit = null; selLayoutSplits = [];
   renderTree(); fillPanel(); renderInspector(); postHighlight();
-  setStatus("table layout cell " + (Number(row) + 1) + "," + (Number(col) + 1));
+  setStatus(selLayoutCells.length > 1 ? (selLayoutCells.length + " table layout cells selected") : ("table layout cell " + (Number(row) + 1) + "," + (Number(col) + 1)));
 }
 function selectByDfs(id) {
   var t = pickMap[id];
   if (!t || t.pg !== root.page) return; // ignore picks from other (hidden) pages
   selBody = false;
-  selLayoutCell = null;
+  selLayoutCell = null; selLayoutCells = []; selLayoutSplit = null; selLayoutSplits = [];
   multiSel = [];
   clearTableSelection();
   selNoBox = false;
@@ -2888,8 +3028,7 @@ function postHighlight() {
     f.contentWindow.postMessage({
       ty: "sui-layout-hl",
       table: layoutTableId,
-      row: selLayoutCell ? selLayoutCell.row : -1,
-      col: selLayoutCell ? selLayoutCell.col : -1
+      cells: selLayoutCells.map(function(c){ return { row: c.row, col: c.col }; })
     }, "*");
   }
   editorSyncFromSelection();
@@ -3163,7 +3302,7 @@ function bindRowEvents(row, p, node, tray, i) {
   row.onclick = function (ev) {
     ev.stopPropagation();
     selCell = null; selRow = null; selCol = null; selBody = false;
-    selLayoutCell = null;
+    selLayoutCell = null; selLayoutCells = [];
     clearTableSelection();
     var sp = treeOwnerPath(p);
     if (ev.shiftKey) {
@@ -4563,6 +4702,7 @@ function renderInspector() {
   }
   if (nodes.length === 1 && n && n.kind === "tablelayout") {
     box.appendChild(layoutTableControls(n));
+    if (selLayoutSplit) box.appendChild(layoutSplitControls(n, selLayoutSplit));
     if (selLayoutCell) {
       box.appendChild(layoutCellPositionControls(n, selLayoutCell));
       if (selLayoutCell.childIndex >= 0 && n.children && n.children[selLayoutCell.childIndex]) {
@@ -9047,8 +9187,36 @@ function layoutTableControls(n) {
     inp.onchange = function(){ withUndo(function(){ n[field] = !!inp.checked; }, "table layout " + labelText); };
     row.appendChild(inp); b.appendChild(row);
   }
-  numberRow("rows", "layoutRows", 1, 50);
-  numberRow("columns", "layoutColumns", 1, 12);
+  function countRow(labelText, axis, field, min, max) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var inp = document.createElement("input");
+    inp.type = "number"; inp.min = String(min); inp.max = String(max); inp.step = "1";
+    var cur = parseInt(n[field] || String(min), 10);
+    inp.value = String(Math.max(min, Math.min(max, isNaN(cur) ? min : cur)));
+    inp.onchange = function(){
+      var v = Math.max(min, Math.min(max, parseInt(inp.value, 10) || min));
+      layoutSetCount(n, axis, v);
+    };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  countRow("rows", "rows", "layoutRows", 1, 50);
+  countRow("columns", "columns", "layoutColumns", 1, 12);
+  var splitRow = document.createElement("div"); splitRow.className = "rowline";
+  splitRow.appendChild(lbl("split"));
+  var splitWrap = document.createElement("div");
+  splitWrap.style.cssText = "display:flex;gap:4px;flex:1;min-width:0;flex-wrap:wrap";
+  [["Vertical", "vertical"], ["Horizontal", "horizontal"]].forEach(function(pair){
+    var sb = document.createElement("button"); sb.type = "button"; sb.className = "btn";
+    sb.style.fontSize = "10px"; sb.textContent = pair[0];
+    sb.onclick = function(){ splitLayoutSelection(n, pair[1]); };
+    splitWrap.appendChild(sb);
+  });
+  var mb = document.createElement("button"); mb.type = "button"; mb.className = "btn";
+  mb.style.fontSize = "10px"; mb.textContent = "Merge selected";
+  mb.onclick = function(){ layoutMergeSelection(n); };
+  splitWrap.appendChild(mb);
+  splitRow.appendChild(splitWrap); b.appendChild(splitRow);
   var presets = [
     { label: "2 x 2", rows: 2, columns: 2, widths: "", heights: "", gapX: "12px", gapY: "12px" },
     { label: "Sidebar + content", rows: 1, columns: 2, widths: "260px, auto", heights: "", gapX: "16px", gapY: "12px" },
@@ -9116,7 +9284,7 @@ function layoutTableControls(n) {
   boolRow("semantic table", "layoutSemantic");
   textRow("aria label", "layoutLabel", "Layout table");
   var note = document.createElement("div"); note.className = "rowth";
-  note.textContent = "Children fill cells row by row. Select a child to span/merge its cell.";
+  note.textContent = "Ctrl+click cells to add them to the selection, then split or merge. Children fill cells row by row.";
   b.appendChild(note);
   var g = layoutGridInfo(n);
   var clamped = false;
@@ -9206,6 +9374,28 @@ function layoutCellControls(n) {
   a.appendChild(b);
   return a;
 }
+function layoutSplitControls(n, split) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Layout split</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var info = document.createElement("div"); info.className = "rowth";
+  info.textContent = (selLayoutSplits.length > 1 ? (selLayoutSplits.length + " layout splits selected.") : ((split.axis === "x" ? "Vertical column split " : "Horizontal row split ") + (split.index + 1) + "."));
+  b.appendChild(info);
+  var row = document.createElement("div"); row.className = "rowline";
+  row.appendChild(lbl("split"));
+  var del = document.createElement("button"); del.type = "button"; del.className = "btn";
+  del.textContent = "Delete split";
+  del.onclick = function(){ layoutDeleteSplits(n, selLayoutSplits.length ? selLayoutSplits : [split]); };
+  row.appendChild(del); b.appendChild(row);
+  var note = document.createElement("div"); note.className = "rowth";
+  note.textContent = "Deleting a split merges adjacent cells and keeps their content. Ctrl+click split handles to select several.";
+  b.appendChild(note);
+  a.appendChild(b);
+  return a;
+}
 function layoutCellPositionControls(n, cell) {
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
@@ -9215,16 +9405,19 @@ function layoutCellPositionControls(n, cell) {
   var b = document.createElement("div"); b.className = "accbody";
   var child = cell.childIndex >= 0 && n.children ? n.children[cell.childIndex] : null;
   var info = document.createElement("div"); info.className = "rowth";
-  info.textContent = "Row " + (cell.row + 1) + ", column " + (cell.col + 1) + ".";
+  info.textContent = (selLayoutCells.length > 1 ? (selLayoutCells.length + " cells selected. Primary: row " + (cell.row + 1) + ", column " + (cell.col + 1) + ".") : ("Row " + (cell.row + 1) + ", column " + (cell.col + 1) + "."));
   b.appendChild(info);
   var ar = document.createElement("div"); ar.className = "rowline";
   ar.appendChild(lbl("cell"));
-  if (child) {
+  var cellNode = child && child.kind === "layoutcell" ? child : null;
+  var content = cellNode ? (cellNode.children || []) : (child ? [child] : []);
+  if (content.length) {
     var cb = document.createElement("button"); cb.type = "button"; cb.className = "btn";
-    cb.textContent = "Select content (" + child.kind + ")";
+    cb.textContent = "Select content (" + content[0].kind + (content.length > 1 ? " +" + (content.length - 1) : "") + ")";
     cb.onclick = function(){
       selPath = (selPath || []).concat([cell.childIndex]);
-      selLayoutCell = null;
+      if (cellNode) selPath = selPath.concat([0]);
+      selLayoutCell = null; selLayoutCells = [];
       renderTree(); fillPanel(); renderInspector(); postHighlight();
     };
     ar.appendChild(cb);
@@ -9234,12 +9427,18 @@ function layoutCellPositionControls(n, cell) {
     ab.title = "Insert a container in this cell, then drop elements inside it.";
     ab.onclick = function(){
       withUndo(function(){
-        var idx = layoutInsertIndex(n, cell.row, cell.col);
-        if (idx < 0) return;
         var node = newNodeForKind("div");
-        n.children.splice(idx, 0, node);
-        selPath = (selPath || []).concat([idx]);
-        selLayoutCell = null;
+        if (cellNode) {
+          cellNode.children = cellNode.children || [];
+          cellNode.children.push(node);
+          selPath = (selPath || []).concat([cell.childIndex, cellNode.children.length - 1]);
+        } else {
+          var idx = layoutInsertIndex(n, cell.row, cell.col);
+          if (idx < 0) return;
+          n.children.splice(idx, 0, node);
+          selPath = (selPath || []).concat([idx]);
+        }
+        selLayoutCell = null; selLayoutCells = [];
       }, "add layout block");
     };
     ar.appendChild(ab);
@@ -11418,6 +11617,10 @@ function attrsOf(n) {
     if (n.layoutSemantic) a += " semantic: true";
     if (n.layoutLabel) a += " label: \"" + esc(n.layoutLabel) + "\"";
   }
+  if (n.kind === "layoutcell") {
+    a += " row: " + (Number(n.layoutRow) || 0);
+    a += " col: " + (Number(n.layoutCol) || 0);
+  }
   if (n.layoutColspan && Number(n.layoutColspan) > 1) a += " colspan: " + Number(n.layoutColspan);
   if (n.layoutRowspan && Number(n.layoutRowspan) > 1) a += " rowspan: " + Number(n.layoutRowspan);
   if (n.layoutCellPadding) a += " cellPadding: \"" + esc(String(n.layoutCellPadding)) + "\"";
@@ -11506,7 +11709,7 @@ function toSui(n, depth) {
   var ind = ""; for (var i = 0; i < depth; i++) ind += "\t";
   var line = ind + n.kind;
   // A toast host has no visible text and is emitted as toast class: ...
-  if (n.kind !== "tablelayout" && !(n.kind === "toast" && !n.text)) line += " \"" + escText(n.text) + "\"";
+  if (n.kind !== "tablelayout" && n.kind !== "layoutcell" && !(n.kind === "toast" && !n.text)) line += " \"" + escText(n.text) + "\"";
   line += attrsOf(n);
   if (n.children && n.children.length) {
     line += " {\n";
@@ -12202,7 +12405,9 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-tab-delete") { deleteWorkbookTab(Number(ev.data.index), Number(ev.data.tabIndex), Number(ev.data.active)); return; }
   if (ev.data.ty === "sui-tab-menu") { showWorkbookTabMenu(ev.data); return; }
   if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
-  if (ev.data.ty === "sui-layout-cell") { selectLayoutCell(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
+  if (ev.data.ty === "sui-layout-cell") { selectLayoutCell(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col), !!ev.data.add); return; }
+  if (ev.data.ty === "sui-layout-resize") { applyLayoutResize(Number(ev.data.table), String(ev.data.axis || "x"), ev.data.sizes || []); return; }
+  if (ev.data.ty === "sui-layout-split-select") { selectLayoutSplit(Number(ev.data.table), String(ev.data.axis || "x"), Number(ev.data.index), !!ev.data.add); return; }
   if (ev.data.ty === "sui-drop-layout") { dropFromPaletteLayout(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
@@ -12223,35 +12428,305 @@ function layoutClampInt(v, min, max, def) {
   if (isNaN(n)) n = def;
   return Math.max(min, Math.min(max, n));
 }
+function layoutIsCellNode(c) { return !!(c && c.kind === "layoutcell"); }
 function layoutGridInfo(n) {
   var cols = layoutClampInt(n.layoutColumns, 1, 12, 2);
   var explicitRows = layoutClampInt(n.layoutRows, 0, 50, 0);
+  var children = n.children || [];
+  var explicit = children.filter(layoutIsCellNode);
   var occ = [], cells = [], starts = {};
   function ensure(count) { while (occ.length < count) occ.push(new Array(cols)); }
+  if (explicit.length) {
+    for (var ei = 0; ei < explicit.length; ei++) {
+      var ec = explicit[ei];
+      var er = layoutClampInt(ec.layoutRow, 0, 49, 0);
+      var ecol = layoutClampInt(ec.layoutCol, 0, 11, 0);
+      var ecs = layoutClampInt(ec.layoutColspan, 1, 12, 1);
+      var ers = layoutClampInt(ec.layoutRowspan, 1, 50, 1);
+      cols = Math.max(cols, ecol + ecs);
+      explicitRows = Math.max(explicitRows, er + ers);
+    }
+  }
   if (explicitRows > 0) ensure(explicitRows);
   ensure(1);
+  function place(index, child, row, col, cs, rs) {
+    ensure(row + rs);
+    for (var rr = 0; rr < rs; rr++) for (var cc = 0; cc < cs; cc++) occ[row + rr][col + cc] = true;
+    starts[row + "," + col] = index;
+    cells.push({ index: index, row: row, col: col, colspan: cs, rowspan: rs });
+  }
+  if (explicit.length) {
+    for (var xi = 0; xi < children.length; xi++) {
+      var child = children[xi];
+      if (!layoutIsCellNode(child)) continue;
+      var row = layoutClampInt(child.layoutRow, 0, 49, 0);
+      var col = layoutClampInt(child.layoutCol, 0, 11, 0);
+      var cs = layoutClampInt(child.layoutColspan, 1, cols - col, 1);
+      var rs = layoutClampInt(child.layoutRowspan, 1, 50, 1);
+      place(xi, child, row, col, cs, rs);
+    }
+  }
   var r = 0, c = 0;
-  for (var i = 0; i < (n.children || []).length; i++) {
-    var child = n.children[i];
+  for (var i = 0; i < children.length; i++) {
+    if (layoutIsCellNode(children[i])) continue;
     for (;;) {
       ensure(r + 1);
       if (c >= cols) { r++; c = 0; continue; }
       if (occ[r][c]) { c++; continue; }
       break;
     }
-    var cs = layoutClampInt(child.layoutColspan, 1, cols - c, 1);
-    var rs = layoutClampInt(child.layoutRowspan, 1, 50, 1);
-    if (explicitRows > 0 && r + rs > explicitRows) rs = Math.max(1, explicitRows - r);
-    ensure(r + rs);
-    for (var rr = 0; rr < rs; rr++) for (var cc = 0; cc < cs; cc++) occ[r + rr][c + cc] = true;
-    starts[r + "," + c] = i;
-    cells.push({ index: i, row: r, col: c, colspan: cs, rowspan: rs });
-    c += cs;
+    var ics = layoutClampInt(children[i].layoutColspan, 1, cols - c, 1);
+    var irs = layoutClampInt(children[i].layoutRowspan, 1, 50, 1);
+    if (explicitRows > 0 && r + irs > explicitRows) irs = Math.max(1, explicitRows - r);
+    place(i, children[i], r, c, ics, irs);
+    c += ics;
   }
   if (explicitRows > occ.length) ensure(explicitRows);
   return { rows: occ.length, cols: cols, occupied: occ, cells: cells, starts: starts };
 }
-function layoutInsertIndex(n, row, col) {
+function layoutCellNodeAt(n, row, col) {
+  var g = layoutGridInfo(n);
+  var key = row + "," + col;
+  if (g.starts[key] === undefined) return null;
+  var index = g.starts[key];
+  return { index: index, node: n.children[index], grid: g, cell: g.cells.filter(function(c){ return c.index === index; })[0] };
+}
+function layoutCopyCellFields(src, dst) {
+  ["layoutColspan", "layoutRowspan", "layoutCellPadding", "layoutCellAlign", "layoutCellValign",
+   "layoutCellBackground", "layoutCellBorderStyle", "layoutCellBorderWidth", "layoutCellBorderColor"
+  ].forEach(function(k){ if (src[k] !== undefined) dst[k] = src[k]; });
+}
+function materializeLayoutCells(n) {
+  if ((n.children || []).some(layoutIsCellNode)) return false;
+  var g = layoutGridInfo(n);
+  var out = [];
+  for (var ci = 0; ci < g.cells.length; ci++) {
+    var c = g.cells[ci];
+    var src = n.children[c.index];
+    var cell = newLayoutCellNode(c.row, c.col);
+    cell.layoutRowspan = String(c.rowspan);
+    cell.layoutColspan = String(c.colspan);
+    if (src) { layoutCopyCellFields(src, cell); ["layoutColspan", "layoutRowspan", "layoutCellPadding", "layoutCellAlign", "layoutCellValign", "layoutCellBackground", "layoutCellBorderStyle", "layoutCellBorderWidth", "layoutCellBorderColor"].forEach(function(k){ delete src[k]; }); cell.children = [src]; }
+    if (c.colspan > 1) cell.layoutColspan = String(c.colspan);
+    if (c.rowspan > 1) cell.layoutRowspan = String(c.rowspan);
+    out.push(cell);
+  }
+  for (var r = 0; r < g.rows; r++) {
+    for (var col = 0; col < g.cols; col++) {
+      if (g.occupied[r] && g.occupied[r][col]) continue;
+      out.push(newLayoutCellNode(r, col));
+    }
+  }
+  out.sort(function(a,b){ return Number(a.layoutRow) - Number(b.layoutRow) || Number(a.layoutCol) - Number(b.layoutCol); });
+  n.layoutRows = String(g.rows);
+  n.layoutColumns = String(g.cols);
+  n.children = out;
+  return true;
+}
+function layoutSelectedNodes(n) {
+  var g = layoutGridInfo(n);
+  var out = [];
+  for (var i = 0; i < selLayoutCells.length; i++) {
+    var s = selLayoutCells[i];
+    var idx = g.starts[s.row + "," + s.col];
+    if (idx === undefined) continue;
+    var node = n.children[idx];
+    if (node && node.kind === "layoutcell") out.push(node);
+  }
+  return out;
+}
+function layoutSortCells(n) {
+  n.children.sort(function(a,b){
+    return Number(a.layoutRow || 0) - Number(b.layoutRow || 0) || Number(a.layoutCol || 0) - Number(b.layoutCol || 0);
+  });
+}
+function layoutSyncCounts(n) {
+  var g = layoutGridInfo(n);
+  n.layoutRows = String(g.rows);
+  n.layoutColumns = String(g.cols);
+}
+function layoutSplitColumnSize(n, index) {
+  if (!n.layoutColumnWidths) return;
+  var vals = String(n.layoutColumnWidths).split(",").map(function(v){ return v.trim(); });
+  var m = /^([0-9.]+)(px|%)$/.exec(vals[index] || "");
+  if (m) {
+    var half = (Number(m[1]) / 2);
+    vals[index] = half + m[2];
+    vals.splice(index + 1, 0, half + m[2]);
+  } else {
+    vals.splice(index + 1, 0, "auto");
+  }
+  n.layoutColumnWidths = vals.join(", ");
+}
+function layoutSplitRowSize(n, index) {
+  if (!n.layoutRowHeights) return;
+  var vals = String(n.layoutRowHeights).split(",").map(function(v){ return v.trim(); });
+  var m = /^([0-9.]+)(px|%)$/.exec(vals[index] || "");
+  if (m) {
+    var half = (Number(m[1]) / 2);
+    vals[index] = half + m[2];
+    vals.splice(index + 1, 0, half + m[2]);
+  } else {
+    vals.splice(index + 1, 0, "auto");
+  }
+  n.layoutRowHeights = vals.join(", ");
+}
+function layoutSplitOne(n, node, axis) {
+  var row = Number(node.layoutRow || 0);
+  var col = Number(node.layoutCol || 0);
+  var rs = layoutClampInt(node.layoutRowspan, 1, 50, 1);
+  var cs = layoutClampInt(node.layoutColspan, 1, 12, 1);
+  if (axis === "vertical") {
+    var leftSpan, rightSpan, boundary;
+    if (cs <= 1) {
+      boundary = col + 1;
+      leftSpan = 1; rightSpan = 1;
+      for (var i = 0; i < n.children.length; i++) {
+        var other = n.children[i];
+        if (other === node || other.kind !== "layoutcell") continue;
+        var oc = Number(other.layoutCol || 0), ocs = Number(other.layoutColspan || 1);
+        if (oc >= boundary) other.layoutCol = String(oc + 1);
+        else if (oc + ocs > boundary) other.layoutColspan = String(ocs + 1);
+      }
+      n.layoutColumns = String(layoutClampInt(n.layoutColumns, 1, 12, 1) + 1);
+      layoutSplitColumnSize(n, boundary - 1);
+    } else {
+      leftSpan = Math.floor(cs / 2);
+      rightSpan = cs - leftSpan;
+      boundary = col + leftSpan;
+    }
+    node.layoutColspan = String(leftSpan);
+    node.layoutRowspan = String(rs);
+    var right = newLayoutCellNode(row, boundary);
+    layoutCopyCellFields(node, right);
+    right.layoutRow = String(row);
+    right.layoutCol = String(boundary);
+    right.layoutRowspan = String(rs);
+    right.layoutColspan = String(rightSpan);
+    right.children = [];
+    n.children.push(right);
+    return right;
+  }
+  var topSpan, bottomSpan, rboundary;
+  if (rs <= 1) {
+    rboundary = row + 1;
+    topSpan = 1; bottomSpan = 1;
+    for (var j = 0; j < n.children.length; j++) {
+      var o = n.children[j];
+      if (o === node || o.kind !== "layoutcell") continue;
+      var orow = Number(o.layoutRow || 0), ors = Number(o.layoutRowspan || 1);
+      if (orow >= rboundary) o.layoutRow = String(orow + 1);
+      else if (orow + ors > rboundary) o.layoutRowspan = String(ors + 1);
+    }
+    n.layoutRows = String(layoutClampInt(n.layoutRows, 1, 50, 1) + 1);
+    layoutSplitRowSize(n, rboundary - 1);
+  } else {
+    topSpan = Math.floor(rs / 2);
+    bottomSpan = rs - topSpan;
+    rboundary = row + topSpan;
+  }
+  node.layoutRowspan = String(topSpan);
+  node.layoutColspan = String(cs);
+  var bottom = newLayoutCellNode(rboundary, col);
+  layoutCopyCellFields(node, bottom);
+  bottom.layoutRow = String(rboundary);
+  bottom.layoutCol = String(col);
+  bottom.layoutRowspan = String(bottomSpan);
+  bottom.layoutColspan = String(cs);
+  bottom.children = [];
+  n.children.push(bottom);
+  return bottom;
+}
+function splitLayoutSelection(n, axis) {
+  withUndo(function(){
+    materializeLayoutCells(n);
+    var nodes = layoutSelectedNodes(n);
+    if (!nodes.length) { setStatus("select one or more layout cells first"); return; }
+    var selected = [];
+    for (var i = 0; i < nodes.length; i++) {
+      var half = layoutSplitOne(n, nodes[i], axis);
+      selected.push(nodes[i]);
+      if (half) selected.push(half);
+    }
+    layoutSyncCounts(n);
+    layoutSortCells(n);
+    var g = layoutGridInfo(n);
+    selLayoutCells = [];
+    for (var s = 0; s < selected.length; s++) {
+      var node = selected[s];
+      var found = g.cells.filter(function(c){ return n.children[c.index] === node; })[0];
+      if (found) selLayoutCells.push({ row: found.row, col: found.col, childIndex: found.index });
+    }
+    selLayoutCell = selLayoutCells.length ? selLayoutCells[selLayoutCells.length - 1] : null; selLayoutSplit = null; selLayoutSplits = [];
+  }, "split layout cells");
+}
+function layoutMergeSelection(n) {
+  withUndo(function(){
+    materializeLayoutCells(n);
+    var nodes = layoutSelectedNodes(n);
+    if (nodes.length < 2) { setStatus("select at least two layout cells"); return; }
+    var minR = 49, minC = 11, maxR = 0, maxC = 0;
+    for (var i = 0; i < nodes.length; i++) {
+      var r = Number(nodes[i].layoutRow || 0), c = Number(nodes[i].layoutCol || 0);
+      var rs = layoutClampInt(nodes[i].layoutRowspan, 1, 50, 1), cs = layoutClampInt(nodes[i].layoutColspan, 1, 12, 1);
+      minR = Math.min(minR, r); minC = Math.min(minC, c);
+      maxR = Math.max(maxR, r + rs - 1); maxC = Math.max(maxC, c + cs - 1);
+    }
+    var area = (maxR - minR + 1) * (maxC - minC + 1), covered = 0;
+    for (var k = 0; k < nodes.length; k++) covered += layoutClampInt(nodes[k].layoutRowspan, 1, 50, 1) * layoutClampInt(nodes[k].layoutColspan, 1, 12, 1);
+    if (covered !== area) { setStatus("selected cells must form a rectangle"); return; }
+    var merged = newLayoutCellNode(minR, minC);
+    layoutCopyCellFields(nodes[0], merged);
+    merged.layoutRow = String(minR); merged.layoutCol = String(minC);
+    merged.layoutRowspan = String(maxR - minR + 1);
+    merged.layoutColspan = String(maxC - minC + 1);
+    merged.children = [];
+    for (var m = 0; m < nodes.length; m++) {
+      if (nodes[m].children) merged.children = merged.children.concat(nodes[m].children);
+    }
+    n.children = n.children.filter(function(c){ return nodes.indexOf(c) < 0; });
+    n.children.push(merged);
+    layoutSortCells(n);
+    layoutSyncCounts(n);
+    selLayoutCells = [{ row: minR, col: minC, childIndex: n.children.indexOf(merged) }];
+    selLayoutCell = selLayoutCells[0];
+  }, "merge layout cells");
+}
+function layoutSetCount(n, axis, value) {
+  withUndo(function(){
+    materializeLayoutCells(n);
+    var g = layoutGridInfo(n);
+    var target = axis === "rows" ? layoutClampInt(value, 1, 50, 1) : layoutClampInt(value, 1, 12, 1);
+    if (axis === "rows") {
+      if (target > g.rows) {
+        for (var r = g.rows; r < target; r++) for (var c = 0; c < g.cols; c++) n.children.push(newLayoutCellNode(r, c));
+      } else {
+        n.children = n.children.filter(function(cell){ return Number(cell.layoutRow || 0) < target; });
+        n.children.forEach(function(cell){
+          var rr = Number(cell.layoutRow || 0), rs = Number(cell.layoutRowspan || 1);
+          if (rr + rs > target) cell.layoutRowspan = String(Math.max(1, target - rr));
+        });
+      }
+      n.layoutRows = String(target);
+      n.layoutColumns = String(g.cols);
+    } else {
+      if (target > g.cols) {
+        for (var cc = g.cols; cc < target; cc++) for (var rr2 = 0; rr2 < g.rows; rr2++) n.children.push(newLayoutCellNode(rr2, cc));
+      } else {
+        n.children = n.children.filter(function(cell){ return Number(cell.layoutCol || 0) < target; });
+        n.children.forEach(function(cell){
+          var c0 = Number(cell.layoutCol || 0), cs = Number(cell.layoutColspan || 1);
+          if (c0 + cs > target) cell.layoutColspan = String(Math.max(1, target - c0));
+        });
+      }
+      n.layoutColumns = String(target);
+      n.layoutRows = String(g.rows);
+    }
+    layoutSortCells(n);
+    selLayoutCells = [];
+    selLayoutCell = null;
+  }, "table layout " + axis);
+}function layoutInsertIndex(n, row, col) {
   var g = layoutGridInfo(n);
   if (g.occupied[row] && g.occupied[row][col]) return -1;
   var index = 0;
@@ -12268,13 +12743,25 @@ function dropFromPaletteLayout(tableId, row, col) {
   if (!t || !t.p || t.pg !== root.page) { setStatus("cannot drop here"); return; }
   var n = byPath(t.p, root.children);
   if (!n || n.kind !== "tablelayout") { setStatus("cannot drop here"); return; }
+  var at = layoutCellNodeAt(n, row, col);
+  if (at && at.node && at.node.kind === "layoutcell") {
+    withUndo(function() {
+      var node = newNodeForKind(kind);
+      at.node.children = at.node.children || [];
+      at.node.children.push(node);
+      selPath = t.p.concat([at.index, at.node.children.length - 1]);
+      selLayoutCell = null; selLayoutCells = [];
+    }, "insert " + kind);
+    dragKind = null;
+    return;
+  }
   var index = layoutInsertIndex(n, row, col);
   if (index < 0) { setStatus("cell is not empty"); return; }
   withUndo(function() {
     var node = newNodeForKind(kind);
     n.children.splice(index, 0, node);
     selPath = t.p.concat([index]);
-    selLayoutCell = null;
+    selLayoutCell = null; selLayoutCells = [];
   }, "insert " + kind);
   dragKind = null;
 }
@@ -12828,7 +13315,7 @@ function normalizeTreePaths(paths) {  var out = [];
 function selectPaths(paths) {
   paths = normalizeTreePaths(paths);
   clearTableSelection();
-  selLayoutCell = null;
+  selLayoutCell = null; selLayoutCells = []; selLayoutSplit = null; selLayoutSplits = [];
   selNoBox = false;
   selCell = null; selRow = null; selCol = null; selBody = false;
   if (!paths.length) { multiSel = []; selPath = null; }

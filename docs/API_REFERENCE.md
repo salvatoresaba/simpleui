@@ -2242,6 +2242,30 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
 - It has no `name`, `editMode`, data API, sorting, filtering or persisted data.
   Use the `table` control for data grids and `table.*` runtime functions.
 
+Designer-generated structure uses explicit cells:
+
+```sui
+tablelayout rows: 2 columns: 2 {
+  layoutcell row: 0 col: 0 colspan: 2 { card "Header" }
+  layoutcell row: 1 col: 0 { card "Left" }
+  layoutcell row: 1 col: 1
+}
+```
+
+`layoutcell` accepts `row`, `col`, `rowspan`, `colspan` and the per-cell style
+attributes above. Direct children without `layoutcell` keep the legacy
+auto-flow behavior.
+
+In the designer, **Split vertical** / **Split horizontal** halve the selected
+cells, add the required global row/column boundaries and update the counters.
+Ctrl+click adds cells to the selection; **Merge selected** joins a rectangular
+selection. Rows/columns set through the counters append/remove cells at the
+right/bottom edge. Drag the thin split handles in the preview to resize columns
+or rows; the inspector column-width and row-height fields update with the new
+pixel sizes. Empty cells select with a normal click, occupied cells with
+Alt+click, the small bottom-left triangle, or **Select content** from the cell
+inspector. The top-left triangle of the first cell selects the whole table.
+
 The designer exposes it in **Layout > Table layout**. The inspector includes
 presets, rows/columns, table/column/row sizes, separate gaps, cell borders,
 empty-cell height, responsive stacking and semantic/accessibility options.

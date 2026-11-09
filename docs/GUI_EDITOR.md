@@ -1160,10 +1160,19 @@ The **Table layout** inspector section controls:
 - **semantic table** (`role="table"` instead of `role="presentation"`) and an
   **aria label**.
 
+A new layout table starts as a single empty cell. Use **Split vertical** /
+**Split horizontal** in the inspector to halve the selected cells; Ctrl+click
+adds cells to the selection and **Merge selected** joins a rectangular selection.
+Changing **rows** appends/removes complete rows at the bottom (one cell per
+column); changing **columns** appends/removes cells on the right. Drag the thin
+vertical/horizontal split handles in the preview to resize columns or rows; the
+matching **column widths** / **row heights** fields update in pixels. Click a\nsplit handle without dragging to select the split; Ctrl+click adds more splits\nand **Delete split** merges the adjacent cells while keeping their content.
+
 Each direct child fills the next free cell, row by row. Click an empty cell in
 the preview to select it and see its row/column; use **Add block** or drag a
-palette item directly into the cell. **Alt+click** an occupied cell to select the
-cell itself instead of its content, then use **Select content** to drill in.
+palette item directly into the cell. **Alt+click** an occupied cell, click its
+small bottom-left triangle, or use **Select content** to work with its content.
+The triangle in the top-left corner of the first cell selects the whole table.
 Select a direct child to open the **Layout cell** section and set `column span` /
 `row span` to merge it with the cells on its right or below. The same section
 edits cell padding, horizontal/vertical

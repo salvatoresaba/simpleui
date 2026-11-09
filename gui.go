@@ -750,7 +750,7 @@ const guiPreviewPicker = `<script>
   var st = document.createElement('style');
   st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-control { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; } .sui-tselect-host { position: relative !important; } .sui-tselect { position: absolute; left: 0; top: 0; width: 10px; height: 10px; background: rgba(76,92,247,.9); clip-path: polygon(0 0, 100% 0, 0 100%); cursor: pointer; z-index: 4; } .sui-tselect:hover { background: #4c5cf7; } .sui-tab-x { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 3px; font-size: 12px; line-height: 1; opacity: .65; cursor: pointer; } .sui-tab-x:hover { opacity: 1; background: rgba(239,68,68,.25); }';
   document.head.appendChild(st);
-  st.textContent += ' .sui-layout-table > tbody > tr > td { outline: 1px dashed rgba(76,92,247,.55) !important; outline-offset: -1px; } .sui-layout-table > tbody > tr > td:hover { outline-color: #4c5cf7; background: rgba(76,92,247,.08); }';
+  st.textContent += ' .sui-layout-table > tbody > tr > td { outline: 1px dashed rgba(76,92,247,.55) !important; outline-offset: -1px; } .sui-layout-table > tbody > tr > td:hover { outline-color: #4c5cf7; background: rgba(76,92,247,.08); } .sui-layout-cell { position: relative !important; } .sui-layout-cell::after { content: ""; position: absolute; left: 0; bottom: 0; width: 0; height: 0; border-left: 12px solid rgba(76,92,247,.85); border-top: 12px solid transparent; opacity: 0; pointer-events: none; } .sui-layout-cell:hover::after { opacity: 1; } .sui-layout-table > tbody > tr:first-child > .sui-layout-cell:first-child::before { content: ""; position: absolute; left: 0; top: 0; width: 0; height: 0; border-left: 14px solid rgba(52,211,153,.95); border-bottom: 14px solid transparent; opacity: 0; pointer-events: none; } .sui-layout-table > tbody > tr:first-child > .sui-layout-cell:first-child:hover::before { opacity: 1; } .sui-layout-split-v, .sui-layout-split-h { position: fixed; z-index: 9002; background: transparent; border-radius: 3px; } .sui-layout-split-v { width: 8px; cursor: ew-resize; } .sui-layout-split-h { height: 8px; cursor: ns-resize; } .sui-layout-split-v:hover, .sui-layout-split-h:hover { background: rgba(76,92,247,.35); }';
   var current = [];
   var layoutHl = null;
   var handles = [];
@@ -1112,8 +1112,11 @@ const guiPreviewPicker = `<script>
       if (layoutHl) { layoutHl.classList.remove('sui-hl-cell'); layoutHl = null; }
       if (e.data.table >= 0) {
         var lt = document.querySelector('[data-sui-id="' + e.data.table + '"]');
-        var lc = lt ? lt.querySelector('.sui-layout-cell[data-sui-layout-row="' + e.data.row + '"][data-sui-layout-col="' + e.data.col + '"]') : null;
-        if (lc) { lc.classList.add('sui-hl-cell'); layoutHl = lc; }
+        var wanted = e.data.cells || [];
+        for (var li = 0; li < wanted.length; li++) {
+          var lc = lt ? lt.querySelector('.sui-layout-cell[data-sui-layout-row="' + wanted[li].row + '"][data-sui-layout-col="' + wanted[li].col + '"]') : null;
+          if (lc) { lc.classList.add('sui-hl-cell'); layoutHl = lc; }
+        }
       }
     }
     if (e.data && e.data.ty === 'sui-style-req') {
@@ -1385,6 +1388,85 @@ const guiPreviewPicker = `<script>
       y: e.clientY
     }, '*');
   }, true);
+  // Layout table cell/split editing affordances.
+  var layoutSplitEls = [];
+  var layoutResize = null;
+  function clearLayoutSplits() {
+    for (var i = 0; i < layoutSplitEls.length; i++) { if (layoutSplitEls[i].parentNode) layoutSplitEls[i].parentNode.removeChild(layoutSplitEls[i]); }
+    layoutSplitEls = [];
+  }
+  function uniqueSorted(vals) {
+    vals.sort(function(a,b){ return a - b; });
+    var out = [];
+    for (var i = 0; i < vals.length; i++) {
+      if (!out.length || Math.abs(out[out.length - 1] - vals[i]) > 1.5) out.push(vals[i]);
+    }
+    return out;
+  }
+  function layoutScales(t) {
+    var rect = t.getBoundingClientRect();
+    var cols = Number(t.getAttribute('data-sui-layout-cols') || 0);
+    var rows = Number(t.getAttribute('data-sui-layout-rows') || 0);
+    var xs = [], ys = [];
+    t.querySelectorAll('.sui-layout-cell').forEach(function(c){
+      var r = c.getBoundingClientRect();
+      xs.push(r.left, r.right); ys.push(r.top, r.bottom);
+    });
+    xs = uniqueSorted(xs); ys = uniqueSorted(ys);
+    if (!cols || xs.length !== cols + 1) {
+      xs = []; for (var i = 0; i <= cols; i++) xs.push(rect.left + rect.width * i / Math.max(1, cols));
+    }
+    if (!rows || ys.length !== rows + 1) {
+      ys = []; for (var j = 0; j <= rows; j++) ys.push(rect.top + rect.height * j / Math.max(1, rows));
+    }
+    return { rect: rect, xs: xs, ys: ys, cols: cols, rows: rows };
+  }
+  function startLayoutResize(e, t, axis, index, scales) {
+    e.preventDefault(); e.stopPropagation();
+    layoutResize = { t: t, axis: axis, index: index, start: axis === 'x' ? e.clientX : e.clientY, scales: scales, sizes: null, add: !!(e.ctrlKey || e.metaKey) };
+  }
+  function syncLayoutSplits() {
+    clearLayoutSplits();
+    document.querySelectorAll('table.sui-layout-table[data-sui-id]').forEach(function(t){
+      var sc = layoutScales(t);
+      for (var i = 1; i < sc.cols; i++) {
+        var v = document.createElement('div'); v.className = 'sui-layout-split-v';
+        v.style.left = (sc.xs[i] - 4) + 'px'; v.style.top = sc.rect.top + 'px'; v.style.height = sc.rect.height + 'px';
+        (function(idx, scales){ v.addEventListener('mousedown', function(ev){ startLayoutResize(ev, t, 'x', idx, scales); }); })(i, sc);
+        document.body.appendChild(v); layoutSplitEls.push(v);
+      }
+      for (var j = 1; j < sc.rows; j++) {
+        var h = document.createElement('div'); h.className = 'sui-layout-split-h';
+        h.style.top = (sc.ys[j] - 4) + 'px'; h.style.left = sc.rect.left + 'px'; h.style.width = sc.rect.width + 'px';
+        (function(idx, scales){ h.addEventListener('mousedown', function(ev){ startLayoutResize(ev, t, 'y', idx, scales); }); })(j, sc);
+        document.body.appendChild(h); layoutSplitEls.push(h);
+      }
+    });
+  }
+  document.addEventListener('mousemove', function(e){
+    if (!layoutResize) return;
+    var sc = layoutResize.scales, idx = layoutResize.index;
+    var edges = (layoutResize.axis === 'x' ? sc.xs : sc.ys).slice();
+    var delta = (layoutResize.axis === 'x' ? e.clientX : e.clientY) - layoutResize.start;
+    var min = 12;
+    edges[idx] = Math.max(edges[idx - 1] + min, Math.min(edges[idx + 1] - min, edges[idx] + delta));
+    var sizes = [];
+    for (var i = 0; i < edges.length - 1; i++) sizes.push(Math.max(min, Math.round(edges[i + 1] - edges[i])));
+    layoutResize.sizes = sizes;
+  }, true);
+  document.addEventListener('mouseup', function(){
+    if (!layoutResize) return;
+    var r = layoutResize; layoutResize = null;
+    if (r.sizes && r.sizes.length) {
+      parent.postMessage({ ty: 'sui-layout-resize', table: Number(r.t.getAttribute('data-sui-id')), axis: r.axis, sizes: r.sizes }, '*');
+    } else {
+      parent.postMessage({ ty: 'sui-layout-split-select', table: Number(r.t.getAttribute('data-sui-id')), axis: r.axis, index: r.index, add: !!r.add }, '*');
+    }
+    syncLayoutSplits();
+  }, true);
+  window.addEventListener('resize', syncLayoutSplits);
+  window.addEventListener('scroll', syncLayoutSplits, true);
+  setTimeout(syncLayoutSplits, 0);
   document.addEventListener('click', function (e) {
     // Any click inside the preview dismisses the designer's context menus,
     // including clicks on empty preview space that select no element.
@@ -1488,13 +1570,30 @@ const guiPreviewPicker = `<script>
       }
     }
     var layoutCell = e.target && e.target.closest ? e.target.closest('.sui-layout-cell') : null;
+    var layoutTableEl = e.target && e.target.closest ? e.target.closest('table.sui-layout-table') : null;
+    if (layoutTableEl) {
+      var firstCell = layoutTableEl.querySelector('.sui-layout-cell');
+      if (firstCell && layoutCell === firstCell) {
+        var firstRect = firstCell.getBoundingClientRect();
+        if (e.clientX - firstRect.left <= 16 && e.clientY - firstRect.top <= 16) {
+          var tableCornerId = layoutTableEl.getAttribute('data-sui-id');
+          if (tableCornerId !== null && tableCornerId !== '-1') {
+            parent.postMessage({ ty: 'sui', id: Number(tableCornerId) }, '*');
+            e.preventDefault();
+            return;
+          }
+        }
+      }
+    }
     if (layoutCell) {
       var hasLayoutChild = !!layoutCell.querySelector('[data-sui-id]');
-      if (!hasLayoutChild || e.altKey) {
+      var cellRect = layoutCell.getBoundingClientRect();
+      var cellTriangle = e.clientX - cellRect.left <= 16 && cellRect.bottom - e.clientY <= 16;
+      if (!hasLayoutChild || e.altKey || e.ctrlKey || e.metaKey || cellTriangle) {
         var layoutTable = layoutCell.closest('table.sui-layout-table');
         var layoutId = layoutTable ? layoutTable.getAttribute('data-sui-id') : null;
         if (layoutId !== null && layoutId !== '-1') {
-          parent.postMessage({ ty: 'sui-layout-cell', table: Number(layoutId), row: Number(layoutCell.getAttribute('data-sui-layout-row')), col: Number(layoutCell.getAttribute('data-sui-layout-col')) }, '*');
+          parent.postMessage({ ty: 'sui-layout-cell', table: Number(layoutId), row: Number(layoutCell.getAttribute('data-sui-layout-row')), col: Number(layoutCell.getAttribute('data-sui-layout-col')), add: !!(e.ctrlKey || e.metaKey) }, '*');
           e.preventDefault();
           return;
         }
@@ -2563,6 +2662,10 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		o.obj["layoutSemantic"] = JBool(datepickerBool(e, "semantic"))
 		o.obj["layoutLabel"] = JStr(layoutTableTextAttr(e, "label", ""))
 	}
+	if e.tag == "layoutcell" {
+		o.obj["layoutRow"] = JStr(strconv.Itoa(layoutTableIntAttr(e, "row", 0, 0, 49)))
+		o.obj["layoutCol"] = JStr(strconv.Itoa(layoutTableIntAttr(e, "col", 0, 0, 11)))
+	}
 	if e.tag == "ul" || e.tag == "ol" {
 		if lst, ok := guiListFrom(e); ok {
 			for k, v := range lst.obj {
@@ -2773,6 +2876,12 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "layoutcell" && (a.key == "row" || a.key == "col") {
+			field := "layoutRow"
+			if a.key == "col" {
+				field = "layoutCol"
+			}
+			o.obj[field] = JStr(strconv.Itoa(layoutTableIntAttr(e, a.key, 0, 0, 49)))
 		} else if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan" ||
 			a.key == "cellPadding" || a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBackground" ||
 			a.key == "cellBorderStyle" || a.key == "cellBorderWidth" || a.key == "cellBorderColor") {

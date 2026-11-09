@@ -24,7 +24,7 @@ data `table` control:
 
 ## Complete source
 
-```sui
+`sui
 # Table layout is a structural container, not the data table control.
 # It renders a real <table> and places each direct child in its own cell.
 # Use `tablelayout` to arrange interface regions in rows/columns; use `table`
@@ -48,27 +48,38 @@ view main {
 		h1 "Table layout"
 		p "A structural HTML table that hosts cards, text and controls. It is not a data table."
 		tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%" rowHeights: "auto, auto, 90px" gapX: "18px" gapY: "14px" borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" responsive: true semantic: true label: "Table layout demo" class: "layout-demo" {
-			card "Structural table" colspan: 2 {
-				h2 "Cells, not data rows"
-				p "Rows, columns, merged cells and spacing are configured in the Table layout inspector."
+			layoutcell row: 0 col: 0 colspan: 2 {
+				card "Structural table" {
+					h2 "Cells, not data rows"
+					p "Rows, columns, merged cells and spacing are configured in the Table layout inspector."
+				}
 			}
-			card "Host any control" {
-				h2 "Composable"
-				p "Buttons, inputs and other layout containers keep their normal behavior."
+			layoutcell row: 1 col: 0 {
+				card "Host any control" {
+					h2 "Composable"
+					p "Buttons, inputs and other layout containers keep their normal behavior."
+				}
 			}
-			col class: "layout-stack" {
-				input "Your name" value: name placeholder: "Type a name"
-				button "Say hello" onClick: greet
+			layoutcell row: 1 col: 1 {
+				col class: "layout-stack" {
+					input "Your name" value: name placeholder: "Type a name"
+					button "Say hello" onClick: greet
+				}
 			}
-			card "Result" cellPadding: "10px" cellAlign: "left" {
-				h2 "Interactive"
-				p "Hello {name}."
-				p "Button clicks: {clicks}"
+			layoutcell row: 2 col: 0 cellPadding: "10px" cellAlign: "left" {
+				card "Result" {
+					h2 "Interactive"
+					p "Hello {name}."
+					p "Button clicks: {clicks}"
+				}
 			}
-			p "Wrap several elements in a col to keep them inside a single cell." class: "layout-note"
+			layoutcell row: 2 col: 1 {
+				p "Wrap several elements in a col to keep them inside a single cell." class: "layout-note"
+			}
 		}
 	}
 }
+
 ```
 
 ## Use it
@@ -105,13 +116,15 @@ tablelayout rows: 2 columns: 3
 - `responsive: true` stacks cells on screens up to 640px.
 - `semantic: true` uses `role="table"`; `label` sets `aria-label`.
 - Wrap multiple elements in `col`, `div` or `card` to share a cell.
+- Designer-generated layouts use explicit `layoutcell` wrappers with `row`,
+  `col`, `rowspan` and `colspan`; direct children remain supported.
 - `tablelayout` has no `name`, `editMode`, sorting, filtering or persisted data.
 
 ## Designer workflow
 
 1. Open this folder's `app.sui` with `simpleui gui app.sui`.
 2. Choose **Layout > Table layout** from the palette.
-3. Select the layout table and use the **Table layout** inspector:
+3. Select the layout table and use the **Table layout** inspector, including\n   **Split vertical** / **Split horizontal** and **Merge selected**:
    - preset;
    - rows and columns;
    - table, column and row sizes;
@@ -124,7 +137,7 @@ tablelayout rows: 2 columns: 3
    you can see its row/column, use **Add block**, or drop a palette item into it.
    **Alt+click** an occupied cell to select the cell itself; **Select content**
    then drills into the child element.
-5. Select a direct child and use **Layout cell** to set `column span` /
+5. Drag the thin split handles in the preview to resize columns/rows; the\n   inspector size fields update in pixels. Click a split handle without dragging\n   to select it; Ctrl+click adds more splits and **Delete split** merges the\n   adjacent cells. Ctrl+click cells to add them to a multi-cell split or merge. Select a direct child and use\n   **Layout cell** to set `column span` /
    `row span`, padding, alignment, background and a per-cell border.
    **Reset to 1 x 1** splits the cell again.
 6. Cells are outlined in the designer preview, including empty and merged cells,

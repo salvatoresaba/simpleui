@@ -1944,6 +1944,8 @@ func layoutTableStyleAttrValue(e *Element) string {
 
 type layoutGridCell struct {
 	node             *ViewNode
+	content          []ViewNode
+	explicit         bool
 	row, col         int
 	rowspan, colspan int
 }
@@ -1954,6 +1956,17 @@ type layoutGrid struct {
 	cells    []layoutGridCell
 	starts   map[[2]int]int
 	occupied [][]bool
+}
+
+func isLayoutCellNode(n *ViewNode) bool {
+	return n != nil && n.kind == "element" && n.elem != nil && n.elem.tag == "layoutcell"
+}
+
+func layoutCellElement(cell layoutGridCell) *Element {
+	if cell.node != nil && cell.node.kind == "element" {
+		return cell.node.elem
+	}
+	return nil
 }
 
 func layoutSpanValue(e *Element, key string, max int) int {
@@ -1967,6 +1980,33 @@ func layoutSpanValue(e *Element, key string, max int) int {
 func layoutTableGrid(e *Element) layoutGrid {
 	cols := layoutTableColumns(e)
 	explicitRows := layoutTableRows(e)
+	explicitCells := []int{}
+	for i := range e.children {
+		if isLayoutCellNode(&e.children[i]) {
+			explicitCells = append(explicitCells, i)
+		}
+	}
+	if len(explicitCells) > 0 {
+		maxCol, maxRow := cols, explicitRows
+		for _, i := range explicitCells {
+			cell := e.children[i].elem
+			row := layoutTableIntAttr(cell, "row", 0, 0, 49)
+			col := layoutTableIntAttr(cell, "col", 0, 0, 11)
+			rs := layoutSpanValue(cell, "rowspan", 50)
+			cs := layoutSpanValue(cell, "colspan", 12)
+			if col+cs > maxCol {
+				maxCol = col + cs
+			}
+			if row+rs > maxRow {
+				maxRow = row + rs
+			}
+		}
+		cols = maxCol
+		if maxRow < 1 {
+			maxRow = 1
+		}
+		explicitRows = maxRow
+	}
 	occ := [][]bool{}
 	ensure := func(n int) {
 		for len(occ) < n {
@@ -1978,8 +2018,42 @@ func layoutTableGrid(e *Element) layoutGrid {
 	}
 	ensure(1)
 	g := layoutGrid{cols: cols, starts: map[[2]int]int{}}
+	place := func(node *ViewNode, explicit bool, row, col, cs, rs int) {
+		ensure(row + rs)
+		for rr := 0; rr < rs; rr++ {
+			for cc := 0; cc < cs; cc++ {
+				occ[row+rr][col+cc] = true
+			}
+		}
+		g.starts[[2]int{row, col}] = len(g.cells)
+		cell := layoutGridCell{node: node, explicit: explicit, row: row, col: col, rowspan: rs, colspan: cs}
+		if explicit && node != nil && node.elem != nil {
+			cell.content = node.elem.children
+		} else if node != nil {
+			cell.content = []ViewNode{*node}
+		}
+		g.cells = append(g.cells, cell)
+	}
+	for _, i := range explicitCells {
+		node := &e.children[i]
+		cell := node.elem
+		row := layoutTableIntAttr(cell, "row", 0, 0, 49)
+		col := layoutTableIntAttr(cell, "col", 0, 0, 11)
+		if col >= cols {
+			col = cols - 1
+		}
+		cs := layoutSpanValue(cell, "colspan", cols-col)
+		rs := layoutSpanValue(cell, "rowspan", 50)
+		if _, exists := g.starts[[2]int{row, col}]; exists {
+			continue
+		}
+		place(node, true, row, col, cs, rs)
+	}
 	r, c := 0, 0
 	for i := range e.children {
+		if isLayoutCellNode(&e.children[i]) {
+			continue
+		}
 		node := &e.children[i]
 		for {
 			ensure(r + 1)
@@ -2005,14 +2079,7 @@ func layoutTableGrid(e *Element) layoutGrid {
 				rs = 1
 			}
 		}
-		ensure(r + rs)
-		for rr := 0; rr < rs; rr++ {
-			for cc := 0; cc < cs; cc++ {
-				occ[r+rr][c+cc] = true
-			}
-		}
-		g.starts[[2]int{r, c}] = len(g.cells)
-		g.cells = append(g.cells, layoutGridCell{node: node, row: r, col: c, rowspan: rs, colspan: cs})
+		place(node, false, r, c, cs, rs)
 		c += cs
 	}
 	if explicitRows > len(occ) {
@@ -2924,6 +2991,8 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		sb.WriteString(" style=\"")
 		sb.WriteString(layoutTableStyleAttrValue(e))
 		sb.WriteString("\"")
+		grid := layoutTableGrid(e)
+		sb.WriteString(" data-sui-layout-cols=\"" + strconv.Itoa(grid.cols) + "\" data-sui-layout-rows=\"" + strconv.Itoa(grid.rows) + "\"")
 	}
 }
 
@@ -3221,7 +3290,7 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			b.WriteString(layoutCellPosAttrs(r, c))
 			b.WriteString(layoutCellAttrs(cell, e))
 			b.WriteString(">` + (")
-			b.WriteString(viewNodesJs([]*ViewNode{cell.node}, g, ctx))
+			b.WriteString(viewNodesJs(childPtrs(cell.content), g, ctx))
 			b.WriteString(") + `</td>")
 		}
 		b.WriteString("</tr>")

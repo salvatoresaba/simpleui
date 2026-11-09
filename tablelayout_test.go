@@ -131,6 +131,42 @@ func TestTableLayoutGridSpansSizesAndBorders(t *testing.T) {
 	}
 }
 
+func TestTableLayoutExplicitCells(t *testing.T) {
+	src := `view main {
+	tablelayout rows: 2 columns: 2 {
+		layoutcell row: 0 col: 0 {
+			card "A"
+		}
+		layoutcell row: 0 col: 1 rowspan: 2
+		layoutcell row: 1 col: 1 {
+			card "B"
+		}
+	}
+}`
+	prog, dl := ParseSource(src, "table_layout.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`<td class="sui-layout-cell" data-sui-layout-row="0" data-sui-layout-col="1" rowspan="2"`,
+		`<td class="sui-layout-cell" data-sui-layout-row="1" data-sui-layout-col="1"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("explicit table layout JS missing %q", want)
+		}
+	}
+	model := StringifyJson(guiModelJson(prog))
+	for _, want := range []string{`"kind":"layoutcell"`, `"layoutRow":"0"`, `"layoutCol":"1"`} {
+		if !strings.Contains(model, want) {
+			t.Errorf("designer model missing %q: %s", want, model)
+		}
+	}
+}
+
 func TestTableLayoutPaletteEntry(t *testing.T) {
 	for _, want := range []string{
 		`"tablelayout"`,
@@ -139,6 +175,10 @@ func TestTableLayoutPaletteEntry(t *testing.T) {
 		`function layoutTableControls`,
 		`function layoutCellControls`,
 		`layoutCellParentPath`,
+		`function materializeLayoutCells`,
+		`function splitLayoutSelection`,
+		`function layoutMergeSelection`,
+		`function layoutSetCount`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table layout integration missing %q", want)
@@ -146,6 +186,9 @@ func TestTableLayoutPaletteEntry(t *testing.T) {
 	}
 	if !strings.Contains(guiPreviewPicker, `sui-layout-table > tbody > tr > td`) {
 		t.Errorf("designer preview must outline table layout cells")
+	}
+	if !strings.Contains(guiPreviewPicker, `sui-layout-split-v`) || !strings.Contains(guiPreviewPicker, `sui-layout-resize`) {
+		t.Errorf("designer preview must expose draggable split handles")
 	}
 	if !strings.Contains(guiHTML, `function layoutCellPositionControls`) || !strings.Contains(guiHTML, `dropFromPaletteLayout`) {
 		t.Errorf("designer must support empty-cell selection and direct drops")

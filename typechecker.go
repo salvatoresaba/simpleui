@@ -2890,7 +2890,7 @@ func isAllowedTag(tag string) bool {
 	switch tag {
 	// layout & containers
 	case "body", "div", "section", "article", "main", "header", "footer", "nav", "aside", "span",
-		"row", "col", "spacer", "card", "tablelayout",
+		"row", "col", "spacer", "card", "tablelayout", "layoutcell",
 		// headings & text
 		"h1", "h2", "h3", "h4", "h5", "h6", "p", "text", "blockquote", "pre", "code",
 		"mark", "strong", "em", "small",
@@ -3054,6 +3054,9 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "tcell" && (key == "head" || key == "colspan" || key == "rowspan") {
+		return true
+	}
+	if tag == "layoutcell" && (key == "row" || key == "col") {
 		return true
 	}
 	if tag == "tablelayout" && (key == "rows" || key == "columns" ||
@@ -3723,6 +3726,31 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
 				c.diagAt(a.span, a.key+" must be a bool, got "+typeStr(t))
 			}
+		}
+		return
+	}
+	if tag == "layoutcell" && (a.key == "row" || a.key == "col") {
+		n := 0
+		if a.hasExpr {
+			if a.expr == nil || a.expr.kind != "int" {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
+			}
+			n = a.expr.i
+		} else {
+			v, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
+			if err != nil {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
+			}
+			n = v
+		}
+		max := 49
+		if a.key == "col" {
+			max = 11
+		}
+		if n < 0 || n > max {
+			c.diagAt(a.span, a.key+" must be an integer between 0 and "+strconv.Itoa(max))
 		}
 		return
 	}

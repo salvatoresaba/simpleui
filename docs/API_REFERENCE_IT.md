@@ -2132,6 +2132,30 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
 - Non ha `name`, `editMode`, API dati, ordinamento, filtri o persistenza. Per le
   griglie dati usa il controllo `table` e le funzioni `table.*`.
 
+Le tabelle generate dal designer usano celle esplicite:
+
+```sui
+tablelayout rows: 2 columns: 2 {
+  layoutcell row: 0 col: 0 colspan: 2 { card "Header" }
+  layoutcell row: 1 col: 0 { card "Left" }
+  layoutcell row: 1 col: 1
+}
+```
+
+`layoutcell` accetta `row`, `col`, `rowspan`, `colspan` e gli attributi di stile
+per cella indicati sopra. I figli diretti senza `layoutcell` mantengono il
+comportamento automatico precedente.
+
+Nel designer **Split vertical** / **Split horizontal** dividono a metà le celle
+selezionate, aggiungono i confini globali necessari e aggiornano i contatori.
+Ctrl+click aggiunge celle alla selezione; **Merge selected** unisce una selezione
+rettangolare. I contatori di righe/colonne aggiungono o rimuovono celle sul bordo
+destro/inferiore. Trascina le sottili maniglie dei separatori nella preview per
+ridimensionare colonne o righe: i campi column widths e row heights
+dell'inspector si aggiornano con le nuove misure in pixel. Clicca una maniglia\nsenza trascinarla per selezionare lo split; Ctrl+click aggiunge altri split e\n**Delete split** unisce le celle adiacenti mantenendone il contenuto. Le celle vuote si
+selezionano con un click normale, quelle occupate con Alt+click, con il piccolo
+triangolo in basso a sinistra o con **Select content**. Il triangolo in alto a
+sinistra della prima cella seleziona l'intera tabella.
 Nel designer è in **Layout > Table layout**. L'inspector include preset, righe e
 colonne, dimensioni della tabella/colonne/righe, spazi separati, bordi delle
 celle, altezza delle celle vuote, impilamento responsive e opzioni

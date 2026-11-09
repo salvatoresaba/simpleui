@@ -1206,15 +1206,25 @@ La sezione **Table layout** dell'inspector controlla:
 - **semantic table** (`role="table"` invece di `role="presentation"`) e
   **aria label**.
 
+Una nuova tabella layout parte come un'unica cella vuota. Usa **Split vertical** /
+**Split horizontal** nell'inspector per dividere a metà le celle selezionate;
+Ctrl+click aggiunge celle alla selezione e **Merge selected** unisce una
+selezione rettangolare. Cambiando **rows** si aggiungono/rimuovono righe complete
+in basso (una cella per colonna); cambiando **columns** si aggiungono/rimuovono
+celle a destra. Trascina le sottili maniglie verticali/orizzontali nella preview
+per ridimensionare colonne o righe: i campi **column widths** / **row heights**
+si aggiornano in pixel. Clicca una maniglia senza trascinarla per selezionare lo\nsplit; Ctrl+click aggiunge altri split e **Delete split** unisce le celle\nadiacenti mantenendone il contenuto.
+
 Ogni figlio diretto occupa la successiva cella libera, riga per riga. Clicca una
 cella vuota nella preview per selezionarla e vedere riga/colonna; usa **Add
 block** oppure trascina un elemento dalla palette direttamente nella cella.
-**Alt+click** su una cella occupata seleziona la cella stessa invece del suo
-contenuto; **Select content** permette poi di entrare nell'elemento.
-Seleziona un figlio diretto per aprire **Layout cell** e impostare `column span`
-/ `row span`, unendo la cella con quelle a destra o in basso. La stessa sezione
-modifica padding, allineamento orizzontale/verticale, sfondo e bordo della
-singola cella. **Reset to 1 x 1** la divide di nuovo.
+**Alt+click** su una cella occupata, il triangolino in basso a sinistra o
+**Select content** permettono di gestire il contenuto. Il triangolo in alto a
+sinistra della prima cella seleziona l'intera tabella. Seleziona un figlio
+diretto per aprire **Layout cell** e impostare `column span` / `row span`,
+unendo la cella con quelle a destra o in basso. La stessa sezione modifica
+padding, allineamento orizzontale/verticale, sfondo e bordo della singola cella.
+**Reset to 1 x 1** la divide di nuovo.
 
 Le frecce spostano la selezione tra le celle vuote. Le celle sono evidenziate nella preview del designer, comprese quelle vuote e
 unite, così la griglia è visibile anche senza bordi applicativi. Raggruppa più
