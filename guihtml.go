@@ -1749,6 +1749,7 @@ function curPage() { remount(); return root.pages[root.page]; }
 var root = pagesModelEmpty();
 var suiSource = "";   // the canonical SUI source text (shown in the SUI tab)
 var selPath = null;
+var selLayoutCell = null;
 var past = [];
 var pastLabels = [];
 var future = [];
@@ -2027,6 +2028,9 @@ function newTableLayoutNode() {
   n.layoutBorderWidth = "1px";
   n.layoutBorderColor = "var(--sui-border, #3d4556)";
   n.layoutCellMinHeight = "72px";
+  n.layoutResponsive = false;
+  n.layoutSemantic = false;
+  n.layoutLabel = "";
   n.children = [];
   return n;
 }
@@ -2750,10 +2754,26 @@ function buildPickMap() {
     })(pi);
   }
 }
+function selectLayoutCell(tableId, row, col) {
+  var t = pickMap[tableId];
+  if (!t || t.pg !== root.page) return;
+  var n = byPath(t.p, root.children);
+  if (!n || n.kind !== "tablelayout") return;
+  selBody = false;
+  multiSel = [];
+  clearTableSelection();
+  selNoBox = false;
+  selCell = null; selRow = null; selCol = null;
+  selPath = t.p.slice();
+  selLayoutCell = { row: Number(row), col: Number(col) };
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+  setStatus("table layout cell " + (Number(row) + 1) + "," + (Number(col) + 1));
+}
 function selectByDfs(id) {
   var t = pickMap[id];
   if (!t || t.pg !== root.page) return; // ignore picks from other (hidden) pages
   selBody = false;
+  selLayoutCell = null;
   multiSel = [];
   clearTableSelection();
   selNoBox = false;
@@ -2859,6 +2879,16 @@ function postHighlight() {
       }
     }
     f.contentWindow.postMessage({ ty: "sui-hl", id: ids, mode: mode }, "*");
+    var layoutTableId = -1;
+    if (selLayoutCell && selPath && byPath(selPath, root.children) && byPath(selPath, root.children).kind === "tablelayout") {
+      layoutTableId = peerIdForPath(selPath);
+    }
+    f.contentWindow.postMessage({
+      ty: "sui-layout-hl",
+      table: layoutTableId,
+      row: selLayoutCell ? selLayoutCell.row : -1,
+      col: selLayoutCell ? selLayoutCell.col : -1
+    }, "*");
   }
   editorSyncFromSelection();
 }
@@ -3131,6 +3161,7 @@ function bindRowEvents(row, p, node, tray, i) {
   row.onclick = function (ev) {
     ev.stopPropagation();
     selCell = null; selRow = null; selCol = null; selBody = false;
+    selLayoutCell = null;
     clearTableSelection();
     var sp = treeOwnerPath(p);
     if (ev.shiftKey) {
@@ -4530,6 +4561,7 @@ function renderInspector() {
   }
   if (nodes.length === 1 && n && n.kind === "tablelayout") {
     box.appendChild(layoutTableControls(n));
+    if (selLayoutCell) box.appendChild(layoutEmptyCellControls(n, selLayoutCell));
   }
   if (nodes.length === 1 && n && !n.raw && layoutCellParentPath(selPath)) {
     box.appendChild(layoutCellControls(n));
@@ -8998,12 +9030,66 @@ function layoutTableControls(n) {
     b.appendChild(row);
     return inp;
   }
+  function boolRow(labelText, field) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var inp = document.createElement("input");
+    inp.type = "checkbox";
+    inp.checked = !!n[field];
+    inp.style.flex = "none";
+    inp.onchange = function(){ withUndo(function(){ n[field] = !!inp.checked; }, "table layout " + labelText); };
+    row.appendChild(inp); b.appendChild(row);
+  }
   numberRow("rows", "layoutRows", 1, 50);
   numberRow("columns", "layoutColumns", 1, 12);
+  var presets = [
+    { label: "2 x 2", rows: 2, columns: 2, widths: "", heights: "", gapX: "12px", gapY: "12px" },
+    { label: "Sidebar + content", rows: 1, columns: 2, widths: "260px, auto", heights: "", gapX: "16px", gapY: "12px" },
+    { label: "Header + 2 columns", rows: 2, columns: 2, widths: "50%, 50%", heights: "auto, auto", gapX: "14px", gapY: "14px" },
+    { label: "Dashboard 3 x 2", rows: 2, columns: 3, widths: "33%, 34%, 33%", heights: "auto, auto", gapX: "14px", gapY: "14px" }
+  ];
+  var pr = document.createElement("div"); pr.className = "rowline";
+  pr.appendChild(lbl("preset"));
+  var psel = document.createElement("select");
+  var ph = document.createElement("option"); ph.value = ""; ph.textContent = "Custom"; psel.appendChild(ph);
+  presets.forEach(function(p, i){ var o = document.createElement("option"); o.value = String(i); o.textContent = p.label; psel.appendChild(o); });
+  psel.onchange = function(){
+    if (psel.value === "") return;
+    var p = presets[Number(psel.value)];
+    withUndo(function(){
+      n.layoutRows = String(p.rows); n.layoutColumns = String(p.columns);
+      n.layoutColumnWidths = p.widths; n.layoutRowHeights = p.heights;
+      n.layoutGapX = p.gapX; n.layoutGapY = p.gapY;
+    }, "table layout preset");
+  };
+  pr.appendChild(psel); b.appendChild(pr);
   textRow("width", "layoutWidth", "100% or 640px");
   textRow("height", "layoutHeight", "auto");
-  textRow("column widths", "layoutColumnWidths", "30%, 70%", "Comma-separated sizes, one per column. Supports px and %.");
-  textRow("row heights", "layoutRowHeights", "80px, auto", "Comma-separated sizes, one per row. Supports px and %.");
+  function sizeListEditor(labelText, field, count) {
+    var head = document.createElement("div"); head.className = "rowth"; head.textContent = labelText;
+    b.appendChild(head);
+    var vals = String(n[field] || "").split(",").map(function(s){ return s.trim(); });
+    for (var i = 0; i < count; i++) {
+      (function(idx){
+        var row = document.createElement("div"); row.className = "rowline";
+        row.appendChild(lbl((labelText === "column widths" ? "col " : "row ") + (idx + 1)));
+        var inp = document.createElement("input");
+        inp.value = vals[idx] || "";
+        inp.placeholder = "auto";
+        inp.spellcheck = false;
+        inp.onchange = function(){
+          vals[idx] = inp.value.trim();
+          var out = [];
+          for (var j = 0; j < vals.length; j++) { if (j < count) out.push(vals[j]); }
+          var joined = out.join(", ").replace(/(,\s*)+$/, "");
+          withUndo(function(){ n[field] = joined; }, "table layout " + labelText);
+        };
+        row.appendChild(inp); b.appendChild(row);
+      })(i);
+    }
+  }
+  sizeListEditor("column widths", "layoutColumnWidths", layoutClampInt(n.layoutColumns, 1, 12, 2));
+  sizeListEditor("row heights", "layoutRowHeights", layoutClampInt(n.layoutRows, 1, 50, 2));
   textRow("column gap", "layoutGapX", "12px");
   textRow("row gap", "layoutGapY", "12px");
   var bs = document.createElement("div"); bs.className = "rowline";
@@ -9019,9 +9105,33 @@ function layoutTableControls(n) {
   textRow("border width", "layoutBorderWidth", "1px");
   textRow("border color", "layoutBorderColor", "var(--sui-border, #3d4556)");
   textRow("empty cell height", "layoutCellMinHeight", "72px");
+  boolRow("stack on small screens", "layoutResponsive");
+  boolRow("semantic table", "layoutSemantic");
+  textRow("aria label", "layoutLabel", "Layout table");
   var note = document.createElement("div"); note.className = "rowth";
   note.textContent = "Children fill cells row by row. Select a child to span/merge its cell.";
   b.appendChild(note);
+  var g = layoutGridInfo(n);
+  var clamped = false;
+  for (var gi = 0; gi < g.cells.length; gi++) {
+    var gc = g.cells[gi], child = n.children[gc.index];
+    if (!child) continue;
+    var wantC = layoutClampInt(child.layoutColspan, 1, 50, 1);
+    var wantR = layoutClampInt(child.layoutRowspan, 1, 50, 1);
+    if (wantC > gc.colspan || wantR > gc.rowspan) clamped = true;
+  }
+  if (clamped) {
+    var warn = document.createElement("div"); warn.className = "rowth";
+    warn.style.color = "#f59e0b";
+    warn.textContent = "Some spans were clamped to fit the remaining rows/columns.";
+    b.appendChild(warn);
+  }
+  var declaredRows = layoutClampInt(n.layoutRows, 1, 50, 1);
+  if (g.rows > declaredRows) {
+    var grow = document.createElement("div"); grow.className = "rowth";
+    grow.textContent = "Children require " + g.rows + " rows; the grid expands automatically.";
+    b.appendChild(grow);
+  }
   a.appendChild(b);
   return a;
 }
@@ -9048,6 +9158,35 @@ function layoutCellControls(n) {
   }
   spanRow("column span", "layoutColspan", 1, 12);
   spanRow("row span", "layoutRowspan", 1, 50);
+  function cellTextRow(labelText, field, placeholder) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var inp = document.createElement("input");
+    inp.value = n[field] === undefined || n[field] === null ? "" : String(n[field]);
+    inp.placeholder = placeholder || "";
+    inp.spellcheck = false;
+    inp.onchange = function(){ var v = inp.value.trim(); withUndo(function(){ n[field] = v; }, "layout cell " + labelText); };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  function cellSelectRow(labelText, field, opts) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var sel = document.createElement("select");
+    opts.forEach(function(o){
+      var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+      if ((n[field] || "") === o[0]) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = function(){ withUndo(function(){ n[field] = sel.value; }, "layout cell " + labelText); };
+    row.appendChild(sel); b.appendChild(row);
+  }
+  cellTextRow("padding", "layoutCellPadding", "8px 12px");
+  cellSelectRow("align", "layoutCellAlign", [["", "inherit"], ["left", "left"], ["center", "center"], ["right", "right"], ["justify", "justify"]]);
+  cellSelectRow("vertical", "layoutCellValign", [["", "inherit"], ["top", "top"], ["middle", "middle"], ["bottom", "bottom"], ["baseline", "baseline"]]);
+  cellTextRow("background", "layoutCellBackground", "#1d2129");
+  cellSelectRow("border", "layoutCellBorderStyle", [["", "inherit"], ["none", "none"], ["solid", "solid"], ["dashed", "dashed"], ["dotted", "dotted"], ["double", "double"]]);
+  cellTextRow("border width", "layoutCellBorderWidth", "1px");
+  cellTextRow("border color", "layoutCellBorderColor", "inherit");
   var sr = document.createElement("div"); sr.className = "rowline";
   sr.appendChild(lbl("split"));
   var sb = document.createElement("button"); sb.type = "button"; sb.className = "btn";
@@ -9057,6 +9196,35 @@ function layoutCellControls(n) {
   var note = document.createElement("div"); note.className = "rowth";
   note.textContent = "A column/row span greater than 1 merges this cell with the cells to its right/below.";
   b.appendChild(note);
+  a.appendChild(b);
+  return a;
+}
+function layoutEmptyCellControls(n, cell) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Empty cell</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var info = document.createElement("div"); info.className = "rowth";
+  info.textContent = "Row " + (cell.row + 1) + ", column " + (cell.col + 1) + ". Drag an element here or add a block.";
+  b.appendChild(info);
+  var ar = document.createElement("div"); ar.className = "rowline";
+  ar.appendChild(lbl("cell"));
+  var ab = document.createElement("button"); ab.type = "button"; ab.className = "btn";
+  ab.textContent = "Add block";
+  ab.title = "Insert a container in this cell, then drop elements inside it.";
+  ab.onclick = function(){
+    withUndo(function(){
+      var idx = layoutInsertIndex(n, cell.row, cell.col);
+      if (idx < 0) return;
+      var node = newNodeForKind("div");
+      n.children.splice(idx, 0, node);
+      selPath = (selPath || []).concat([idx]);
+      selLayoutCell = null;
+    }, "add layout block");
+  };
+  ar.appendChild(ab); b.appendChild(ar);
   a.appendChild(b);
   return a;
 }
@@ -11223,9 +11391,19 @@ function attrsOf(n) {
       if (n.layoutBorderColor && n.layoutBorderColor !== "var(--sui-border, #3d4556)") a += " borderColor: \"" + esc(n.layoutBorderColor) + "\"";
     }
     if (n.layoutCellMinHeight && n.layoutCellMinHeight !== "72px") a += " cellMinHeight: \"" + esc(n.layoutCellMinHeight) + "\"";
+    if (n.layoutResponsive) a += " responsive: true";
+    if (n.layoutSemantic) a += " semantic: true";
+    if (n.layoutLabel) a += " label: \"" + esc(n.layoutLabel) + "\"";
   }
   if (n.layoutColspan && Number(n.layoutColspan) > 1) a += " colspan: " + Number(n.layoutColspan);
   if (n.layoutRowspan && Number(n.layoutRowspan) > 1) a += " rowspan: " + Number(n.layoutRowspan);
+  if (n.layoutCellPadding) a += " cellPadding: \"" + esc(String(n.layoutCellPadding)) + "\"";
+  if (n.layoutCellAlign) a += " cellAlign: \"" + esc(String(n.layoutCellAlign)) + "\"";
+  if (n.layoutCellValign) a += " cellValign: \"" + esc(String(n.layoutCellValign)) + "\"";
+  if (n.layoutCellBackground) a += " cellBackground: \"" + esc(String(n.layoutCellBackground)) + "\"";
+  if (n.layoutCellBorderStyle) a += " cellBorderStyle: \"" + esc(String(n.layoutCellBorderStyle)) + "\"";
+  if (n.layoutCellBorderWidth) a += " cellBorderWidth: \"" + esc(String(n.layoutCellBorderWidth)) + "\"";
+  if (n.layoutCellBorderColor) a += " cellBorderColor: \"" + esc(String(n.layoutCellBorderColor)) + "\"";
   if (n.onClick) a += " onClick: " + n.onClick;
   if (n.onDoubleClick) a += " onDoubleClick: " + n.onDoubleClick;
   if (n.onMouseEnter) a += " onMouseEnter: " + n.onMouseEnter;
@@ -12001,6 +12179,8 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-tab-delete") { deleteWorkbookTab(Number(ev.data.index), Number(ev.data.tabIndex), Number(ev.data.active)); return; }
   if (ev.data.ty === "sui-tab-menu") { showWorkbookTabMenu(ev.data); return; }
   if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
+  if (ev.data.ty === "sui-layout-cell") { selectLayoutCell(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
+  if (ev.data.ty === "sui-drop-layout") { dropFromPaletteLayout(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
   if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
   if (ev.data.ty === "sui-drop") { dropFromPalette(ev.data.id); return; }
@@ -12015,6 +12195,66 @@ window.addEventListener("message", function(ev) {
     return;
   }
 });
+function layoutClampInt(v, min, max, def) {
+  var n = parseInt(v, 10);
+  if (isNaN(n)) n = def;
+  return Math.max(min, Math.min(max, n));
+}
+function layoutGridInfo(n) {
+  var cols = layoutClampInt(n.layoutColumns, 1, 12, 2);
+  var explicitRows = layoutClampInt(n.layoutRows, 0, 50, 0);
+  var occ = [], cells = [], starts = {};
+  function ensure(count) { while (occ.length < count) occ.push(new Array(cols)); }
+  if (explicitRows > 0) ensure(explicitRows);
+  ensure(1);
+  var r = 0, c = 0;
+  for (var i = 0; i < (n.children || []).length; i++) {
+    var child = n.children[i];
+    for (;;) {
+      ensure(r + 1);
+      if (c >= cols) { r++; c = 0; continue; }
+      if (occ[r][c]) { c++; continue; }
+      break;
+    }
+    var cs = layoutClampInt(child.layoutColspan, 1, cols - c, 1);
+    var rs = layoutClampInt(child.layoutRowspan, 1, 50, 1);
+    if (explicitRows > 0 && r + rs > explicitRows) rs = Math.max(1, explicitRows - r);
+    ensure(r + rs);
+    for (var rr = 0; rr < rs; rr++) for (var cc = 0; cc < cs; cc++) occ[r + rr][c + cc] = true;
+    starts[r + "," + c] = i;
+    cells.push({ index: i, row: r, col: c, colspan: cs, rowspan: rs });
+    c += cs;
+  }
+  if (explicitRows > occ.length) ensure(explicitRows);
+  return { rows: occ.length, cols: cols, occupied: occ, cells: cells, starts: starts };
+}
+function layoutInsertIndex(n, row, col) {
+  var g = layoutGridInfo(n);
+  if (g.occupied[row] && g.occupied[row][col]) return -1;
+  var index = 0;
+  for (var i = 0; i < g.cells.length; i++) {
+    var c = g.cells[i];
+    if (c.row < row || (c.row === row && c.col < col)) index++;
+  }
+  return index;
+}
+function dropFromPaletteLayout(tableId, row, col) {
+  if (!dragKind) return;
+  var kind = dragKind;
+  var t = pickMap[tableId];
+  if (!t || !t.p || t.pg !== root.page) { setStatus("cannot drop here"); return; }
+  var n = byPath(t.p, root.children);
+  if (!n || n.kind !== "tablelayout") { setStatus("cannot drop here"); return; }
+  var index = layoutInsertIndex(n, row, col);
+  if (index < 0) { setStatus("cell is not empty"); return; }
+  withUndo(function() {
+    var node = newNodeForKind(kind);
+    n.children.splice(index, 0, node);
+    selPath = t.p.concat([index]);
+    selLayoutCell = null;
+  }, "insert " + kind);
+  dragKind = null;
+}
 function dropFromPalette(targetId) {
   if (!dragKind) return;
   var kind = dragKind;
@@ -12565,6 +12805,7 @@ function normalizeTreePaths(paths) {  var out = [];
 function selectPaths(paths) {
   paths = normalizeTreePaths(paths);
   clearTableSelection();
+  selLayoutCell = null;
   selNoBox = false;
   selCell = null; selRow = null; selCol = null; selBody = false;
   if (!paths.length) { multiSel = []; selPath = null; }

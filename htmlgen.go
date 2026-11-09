@@ -1715,6 +1715,14 @@ p { line-height: 1.6; }
 }
 .sui-layout-table > tbody > tr:hover { background: transparent; }
 .sui-layout-table > tbody > tr > .sui-layout-cell > * { min-width: 0; }
+@media (max-width: 640px) {
+  .sui-layout-responsive { display: block; border-spacing: 0; }
+  .sui-layout-responsive > colgroup { display: none; }
+  .sui-layout-responsive > tbody,
+  .sui-layout-responsive > tbody > tr,
+  .sui-layout-responsive > tbody > tr > .sui-layout-cell { display: block; width: 100% !important; }
+  .sui-layout-responsive > tbody > tr > .sui-layout-cell { margin-bottom: var(--sui-layout-gap-y, 12px); }
+}
 
 button {
   background: var(--sui-button-bg, #2d3340);
@@ -5655,7 +5663,21 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString(ind)
 	sb.WriteString("<table class=\"sui-layout-table")
 	staticClassSuffix(sb, e)
-	sb.WriteString("\" role=\"presentation\"")
+	if datepickerBool(e, "responsive") {
+		sb.WriteString(" sui-layout-responsive")
+	}
+	sb.WriteString("\" role=\"")
+	if datepickerBool(e, "semantic") {
+		sb.WriteString("table")
+	} else {
+		sb.WriteString("presentation")
+	}
+	sb.WriteString("\"")
+	if label := layoutTableTextAttr(e, "label", ""); label != "" {
+		sb.WriteString(" aria-label=\"")
+		sb.WriteString(htmlEscape(label))
+		sb.WriteString("\"")
+	}
 	if style != "" {
 		sb.WriteString(" style=\"")
 		sb.WriteString(htmlEscape(style))
@@ -5680,6 +5702,7 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 			if !grid.occupied[r][c] {
 				sb.WriteString(ind)
 				sb.WriteString("      <td class=\"sui-layout-cell\"")
+				sb.WriteString(layoutCellPosAttrs(r, c))
 				sb.WriteString(layoutEmptyCellAttrs(e))
 				sb.WriteString("></td>\n")
 				continue
@@ -5691,6 +5714,7 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 			cell := grid.cells[ci]
 			sb.WriteString(ind)
 			sb.WriteString("      <td class=\"sui-layout-cell\"")
+			sb.WriteString(layoutCellPosAttrs(r, c))
 			sb.WriteString(layoutCellAttrs(cell, e))
 			sb.WriteString(">\n")
 			writeStaticNodes(sb, []ViewNode{*cell.node}, ind+"        ")
@@ -7200,7 +7224,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "columnWidths" || a.key == "rowHeights" ||
 			a.key == "gapX" || a.key == "gapY" ||
 			a.key == "borderStyle" || a.key == "borderWidth" || a.key == "borderColor" ||
-			a.key == "cellMinHeight" || a.key == "style") {
+			a.key == "cellMinHeight" || a.key == "responsive" || a.key == "semantic" || a.key == "label" || a.key == "style") {
 			continue
 		}
 		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||
@@ -7240,6 +7264,10 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			continue
 		}
 		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
+			continue
+		}
+		if a.key == "cellPadding" || a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBackground" ||
+			a.key == "cellBorderStyle" || a.key == "cellBorderWidth" || a.key == "cellBorderColor" {
 			continue
 		}
 		if a.key == "required" {

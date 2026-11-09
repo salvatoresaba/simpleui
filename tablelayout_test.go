@@ -24,8 +24,8 @@ func TestTableLayoutRendersStructuralCells(t *testing.T) {
 	for _, want := range []string{
 		"sui-layout-table layout",
 		`role="presentation"`,
-		`<tbody><tr><td class="sui-layout-cell">`,
-		`</td><td class="sui-layout-cell">`,
+		`<tbody><tr><td class="sui-layout-cell" data-sui-layout-row="0"`,
+		`</td><td class="sui-layout-cell" data-sui-layout-row="0"`,
 		`</tr><tr>`,
 	} {
 		if !strings.Contains(js, want) {
@@ -35,7 +35,7 @@ func TestTableLayoutRendersStructuralCells(t *testing.T) {
 	html := GenerateHtmlPage(prog)
 	for _, want := range []string{
 		`<table class="sui-layout-table layout"`,
-		`<td class="sui-layout-cell">`,
+		`<td class="sui-layout-cell" data-sui-layout-row="0"`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("table layout static HTML missing %q", want)
@@ -79,10 +79,10 @@ func TestTableLayoutColumnsValidation(t *testing.T) {
 
 func TestTableLayoutGridSpansSizesAndBorders(t *testing.T) {
 	src := `view main {
-	tablelayout rows: 3 columns: 3 width: "80%" height: "300px" columnWidths: "120px, 30%, auto" rowHeights: "80px, 120px" gapX: "10px" gapY: "14px" borderStyle: "solid" borderWidth: "2px" borderColor: "#ff0000" style: "outline:1px solid red" {
+	tablelayout rows: 3 columns: 3 width: "80%" height: "300px" columnWidths: "120px, 30%, auto" rowHeights: "80px, 120px" gapX: "10px" gapY: "14px" borderStyle: "solid" borderWidth: "2px" borderColor: "#ff0000" style: "outline:1px solid red" responsive: true semantic: true label: "Main grid" {
 		card "A" colspan: 2
 		card "B"
-		card "C" rowspan: 2
+		card "C" rowspan: 2 cellPadding: "8px" cellAlign: "center" cellValign: "middle" cellBackground: "#112233" cellBorderStyle: "dotted" cellBorderWidth: "3px" cellBorderColor: "#00ff00"
 	}
 }`
 	prog, dl := ParseSource(src, "table_layout.sui")
@@ -99,7 +99,7 @@ func TestTableLayoutGridSpansSizesAndBorders(t *testing.T) {
 		`style="width:120px"`,
 		`style="height:80px"`,
 		`border:2px solid #ff0000;`,
-		`border-spacing:10px 14px`, `outline:1px solid red`,
+		`border-spacing:10px 14px`, `outline:1px solid red`, `sui-layout-responsive`, `role="table"`, `aria-label="Main grid"`, `padding:8px`, `text-align:center`, `background:#112233`, `border:3px dotted #00ff00;`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("table layout JS missing %q", want)
@@ -146,5 +146,11 @@ func TestTableLayoutPaletteEntry(t *testing.T) {
 	}
 	if !strings.Contains(guiPreviewPicker, `sui-layout-table > tbody > tr > td`) {
 		t.Errorf("designer preview must outline table layout cells")
+	}
+	if !strings.Contains(guiHTML, `function layoutEmptyCellControls`) || !strings.Contains(guiHTML, `dropFromPaletteLayout`) {
+		t.Errorf("designer must support empty-cell selection and direct drops")
+	}
+	if !strings.Contains(suiCssBase, "@media (max-width: 640px)") {
+		t.Errorf("table layout responsive CSS missing")
 	}
 }

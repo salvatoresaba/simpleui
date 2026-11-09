@@ -1149,16 +1149,23 @@ persistence: it only arranges other elements in an explicit row/column grid.
 
 The **Table layout** inspector section controls:
 
+- **preset** (2 x 2, sidebar + content, header + 2 columns, 3 x 2 dashboard);
 - **rows** (1-50) and **columns** (1-12);
 - **width** / **height** of the whole table in px or %;
-- **column widths** and **row heights**, comma-separated per column/row;
+- **column widths** and **row heights** with one input per column/row;
 - **column gap** and **row gap**;
 - **cell border** style (none, solid, dashed, dotted, double), width and color;
-- **empty cell height** so empty cells stay visible and droppable.
+- **empty cell height** so empty cells stay visible and droppable;
+- **stack on small screens** (responsive stacking below 640px);
+- **semantic table** (`role="table"` instead of `role="presentation"`) and an
+  **aria label**.
 
-Each direct child fills the next free cell, row by row. Select a direct child to
-open the **Layout cell** section and set `column span` / `row span` to merge it
-with the cells on its right or below. **Reset to 1 x 1** splits it again.
+Each direct child fills the next free cell, row by row. Click an empty cell in
+the preview to select it and see its row/column; use **Add block** or drag a
+palette item directly into the cell. Select a direct child to open the **Layout
+cell** section and set `column span` / `row span` to merge it with the cells on
+its right or below. The same section edits cell padding, horizontal/vertical
+alignment, background and a per-cell border. **Reset to 1 x 1** splits it again.
 
 Cells are outlined in the designer preview, including empty and merged cells, so
 the grid is visible even without application borders. Wrap several elements in a

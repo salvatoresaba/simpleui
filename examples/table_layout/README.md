@@ -12,11 +12,12 @@ data `table` control:
 
 ## What it demonstrates
 
-- an explicit `rows` x `columns` grid;
-- a merged full-width header with `colspan: 2`;
+- an explicit `3 x 2` grid with a merged full-width header (`colspan: 2`);
 - column widths in `%` and row heights in `auto`/`px`;
 - separate horizontal and vertical gaps;
 - dashed cell borders with custom width and color;
+- per-cell padding and alignment on the result card;
+- responsive stacking below 640px and a semantic table with `aria-label`;
 - cards, text, inputs and buttons inside cells;
 - a `col` wrapper that keeps an input and a button in the same cell;
 - reactive state changes through normal `input` and `button` bindings.
@@ -46,7 +47,7 @@ view main {
 	col class: "layout-page" {
 		h1 "Table layout"
 		p "A structural HTML table that hosts cards, text and controls. It is not a data table."
-		tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%" rowHeights: "auto, auto, 90px" gapX: "18px" gapY: "14px" borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" class: "layout-demo" {
+		tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%" rowHeights: "auto, auto, 90px" gapX: "18px" gapY: "14px" borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" responsive: true semantic: true label: "Table layout demo" class: "layout-demo" {
 			card "Structural table" colspan: 2 {
 				h2 "Cells, not data rows"
 				p "Rows, columns, merged cells and spacing are configured in the Table layout inspector."
@@ -59,7 +60,7 @@ view main {
 				input "Your name" value: name placeholder: "Type a name"
 				button "Say hello" onClick: greet
 			}
-			card "Result" {
+			card "Result" cellPadding: "10px" cellAlign: "left" {
 				h2 "Interactive"
 				p "Hello {name}."
 				p "Button clicks: {clicks}"
@@ -78,7 +79,8 @@ tablelayout rows: 2 columns: 3
   columnWidths: "200px, 40%, auto"
   rowHeights: "80px, auto"
   gapX: "16px" gapY: "12px"
-  borderStyle: "solid" borderWidth: "1px" borderColor: "#475569" {
+  borderStyle: "solid" borderWidth: "1px" borderColor: "#475569"
+  responsive: true semantic: true label: "Project dashboard" {
   card "A" colspan: 2
   card "B"
   card "C" rowspan: 2
@@ -92,12 +94,16 @@ tablelayout rows: 2 columns: 3
 - Each direct child fills the next free cell, row by row.
 - `colspan` / `rowspan` merge a cell right/down. Spans are clamped to the
   remaining grid.
-- `columnWidths` / `rowHeights` use comma-separated `px`, `%`, `em`, `rem`,
-  `vw`, `vh`, `pt` or `auto`.
+- `columnWidths` / `rowHeights` use one size per column/row: `px`, `%`, `em`,
+  `rem`, `vw`, `vh`, `pt` or `auto`.
 - `gapX` / `gapY` set column/row spacing.
 - `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`), `borderWidth`
   and `borderColor` style every cell.
+- Per-cell `cellPadding`, `cellAlign`, `cellValign`, `cellBackground`,
+  `cellBorderStyle`, `cellBorderWidth` and `cellBorderColor` override the cell.
 - `cellMinHeight` keeps empty cells visible and droppable (default `72px`).
+- `responsive: true` stacks cells on screens up to 640px.
+- `semantic: true` uses `role="table"`; `label` sets `aria-label`.
 - Wrap multiple elements in `col`, `div` or `card` to share a cell.
 - `tablelayout` has no `name`, `editMode`, sorting, filtering or persisted data.
 
@@ -105,11 +111,20 @@ tablelayout rows: 2 columns: 3
 
 1. Open this folder's `app.sui` with `simpleui gui app.sui`.
 2. Choose **Layout > Table layout** from the palette.
-3. Select the layout table and set **rows**, **columns**, table/column/row sizes,
-   gaps, borders and empty-cell height in the **Table layout** inspector.
-4. Drag cards or controls inside it. Each direct child fills the next cell.
+3. Select the layout table and use the **Table layout** inspector:
+   - preset;
+   - rows and columns;
+   - table, column and row sizes;
+   - separate column/row gaps;
+   - cell border style/width/color;
+   - empty-cell height;
+   - responsive stacking;
+   - semantic role and aria label.
+4. Drag cards or controls inside it. An empty cell can be clicked directly, so
+   you can see its row/column, use **Add block**, or drop a palette item into it.
 5. Select a direct child and use **Layout cell** to set `column span` /
-   `row span`; **Reset to 1 x 1** splits the cell again.
+   `row span`, padding, alignment, background and a per-cell border.
+   **Reset to 1 x 1** splits the cell again.
 6. Cells are outlined in the designer preview, including empty and merged cells,
    so the grid is visible even when application borders are set to none.
 

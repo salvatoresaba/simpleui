@@ -2120,18 +2120,27 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
 - `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`),
   `borderWidth` e `borderColor` stilano ogni cella del layout.
 - `cellMinHeight` imposta l'altezza visibile delle celle vuote (default `72px`).
+- Attributi per cella su un figlio diretto: `cellPadding`, `cellAlign`
+  (`left`/`center`/`right`/`justify`), `cellValign`
+  (`top`/`middle`/`bottom`/`baseline`), `cellBackground` e
+  `cellBorderStyle`/`cellBorderWidth`/`cellBorderColor`.
+- `responsive: true` impila le celle sotto i 640px di larghezza.
+- `semantic: true` usa `role="table"` invece di `role="presentation"`; `label`
+  aggiunge un `aria-label` accessibile.
 - I figli mantengono comportamento e stile normali. Usa `col`/`div`/`card` per
   tenere più elementi nella stessa cella.
-- Non ha `name`, `editMode`, API dati, ordinamento, filtri o persistenza. La
-  tabella generata usa `role="presentation"` perché è un ausilio di layout, non
-  una tabella dati semantica. Per le griglie dati usa il controllo `table` e le
-  funzioni `table.*`.
+- Non ha `name`, `editMode`, API dati, ordinamento, filtri o persistenza. Per le
+  griglie dati usa il controllo `table` e le funzioni `table.*`.
 
-Nel designer è in **Layout > Table layout**. L'inspector modifica righe, colonne,
-dimensioni della tabella/colonne/righe, spazi, bordi e altezza delle celle vuote.
-Seleziona un figlio diretto della tabella per modificare `column span` e
-`row span` (unione/divisione celle). Le celle sono evidenziate nella preview
-durante la progettazione. Vedi
+Nel designer è in **Layout > Table layout**. L'inspector include preset, righe e
+colonne, dimensioni della tabella/colonne/righe, spazi separati, bordi delle
+celle, altezza delle celle vuote, impilamento responsive e opzioni
+semantiche/accessibilità. Le celle vuote sono cliccabili nella preview:
+selezionale per vedere la posizione e aggiungere un blocco, oppure trascina un
+elemento dalla palette direttamente dentro la cella. Seleziona un figlio diretto
+per modificare la sezione **Layout cell**: span, padding, allineamento, sfondo e
+bordo della singola cella. Le celle sono evidenziate nella preview durante la
+progettazione. Vedi
 [examples/table_layout](../examples/table_layout/README.md).
 
 ## Tabelle e dati non fidati

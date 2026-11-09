@@ -2230,18 +2230,26 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
 - `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`),
   `borderWidth` and `borderColor` style every layout cell.
 - `cellMinHeight` sets the visible height of empty cells (default `72px`).
+- Per-cell attributes on a direct child: `cellPadding`, `cellAlign`
+  (`left`/`center`/`right`/`justify`), `cellValign`
+  (`top`/`middle`/`bottom`/`baseline`), `cellBackground`, and
+  `cellBorderStyle`/`cellBorderWidth`/`cellBorderColor`.
+- `responsive: true` stacks the cells on screens up to 640px wide.
+- `semantic: true` uses `role="table"` instead of `role="presentation"`;
+  `label` adds an accessible `aria-label`.
 - Children keep their normal behavior and styling. Wrap several elements in a
   `col`/`div`/`card` to keep them together in one cell.
 - It has no `name`, `editMode`, data API, sorting, filtering or persisted data.
-  The rendered table uses `role="presentation"` because it is a layout aid, not
-  a semantic data table. Use the `table` control for data grids and `table.*`
-  runtime functions.
+  Use the `table` control for data grids and `table.*` runtime functions.
 
-The designer exposes it in **Layout > Table layout**. The inspector edits rows,
-columns, table/column/row sizes, gaps, borders and empty-cell height. Select a
-direct child of the layout table to edit its `column span` and `row span`
-(merge/split cells). Cells are outlined in the preview while designing. See
-[examples/table_layout](../examples/table_layout/README.md).
+The designer exposes it in **Layout > Table layout**. The inspector includes
+presets, rows/columns, table/column/row sizes, separate gaps, cell borders,
+empty-cell height, responsive stacking and semantic/accessibility options.
+Empty cells are clickable in the preview; select one to see its position and add
+a block, or drag a palette item directly into it. Select a direct child to edit
+its **Layout cell** properties: spans, padding, alignment, background and
+per-cell border. Cells are outlined in the preview while designing.
+See [examples/table_layout](../examples/table_layout/README.md).
 
 ## Tables and untrusted data
 

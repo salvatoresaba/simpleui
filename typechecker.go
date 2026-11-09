@@ -3061,10 +3061,14 @@ func attrAllowed(key string, tag string) bool {
 		key == "columnWidths" || key == "rowHeights" ||
 		key == "gapX" || key == "gapY" ||
 		key == "borderStyle" || key == "borderWidth" || key == "borderColor" ||
-		key == "cellMinHeight") {
+		key == "cellMinHeight" || key == "responsive" || key == "semantic" || key == "label") {
 		return true
 	}
 	if key == "colspan" || key == "rowspan" {
+		return true
+	}
+	if key == "cellPadding" || key == "cellAlign" || key == "cellValign" || key == "cellBackground" ||
+		key == "cellBorderStyle" || key == "cellBorderWidth" || key == "cellBorderColor" {
 		return true
 	}
 	if tag == "table" && (key == "name" || key == "editMode" || key == "cellText" ||
@@ -3706,9 +3710,19 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 	if tag == "tablelayout" && (a.key == "width" || a.key == "height" ||
 		a.key == "columnWidths" || a.key == "rowHeights" ||
 		a.key == "gapX" || a.key == "gapY" ||
-		a.key == "borderWidth" || a.key == "borderColor" || a.key == "cellMinHeight") {
+		a.key == "borderWidth" || a.key == "borderColor" || a.key == "cellMinHeight" ||
+		a.key == "label") {
 		if a.hasExpr {
 			c.diagAt(a.span, a.key+" must be a literal value")
+		}
+		return
+	}
+	if tag == "tablelayout" && (a.key == "responsive" || a.key == "semantic") {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "bool" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, a.key+" must be a bool, got "+typeStr(t))
+			}
 		}
 		return
 	}
@@ -3730,6 +3744,35 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		if n < 1 || n > 50 {
 			c.diagAt(a.span, a.key+" must be an integer between 1 and 50")
+		}
+		return
+	}
+	if a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBorderStyle" {
+		if a.hasExpr {
+			c.diagAt(a.span, a.key+" must be a literal value")
+			return
+		}
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		allowed := map[string][]string{
+			"cellAlign":       {"left", "center", "right", "justify"},
+			"cellValign":      {"top", "middle", "bottom", "baseline"},
+			"cellBorderStyle": {"none", "solid", "dashed", "dotted", "double"},
+		}[a.key]
+		ok := false
+		for _, want := range allowed {
+			if v == want {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			c.diagAt(a.span, a.key+" must be one of: "+strings.Join(allowed, ", "))
+		}
+		return
+	}
+	if a.key == "cellPadding" || a.key == "cellBackground" || a.key == "cellBorderWidth" || a.key == "cellBorderColor" {
+		if a.hasExpr {
+			c.diagAt(a.span, a.key+" must be a literal value")
 		}
 		return
 	}

@@ -20,7 +20,7 @@ view main {
 	col class: "layout-page" {
 		h1 "Table layout"
 		p "A structural HTML table that hosts cards, text and controls. It is not a data table."
-		tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%" rowHeights: "auto, auto, 90px" gapX: "18px" gapY: "14px" borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" class: "layout-demo" {
+		tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%" rowHeights: "auto, auto, 90px" gapX: "18px" gapY: "14px" borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" responsive: true semantic: true label: "Table layout demo" class: "layout-demo" {
 			card "Structural table" colspan: 2 {
 				h2 "Cells, not data rows"
 				p "Rows, columns, merged cells and spacing are configured in the Table layout inspector."
@@ -33,7 +33,7 @@ view main {
 				input "Your name" value: name placeholder: "Type a name"
 				button "Say hello" onClick: greet
 			}
-			card "Result" {
+			card "Result" cellPadding: "10px" cellAlign: "left" {
 				h2 "Interactive"
 				p "Hello {name}."
 				p "Button clicks: {clicks}"

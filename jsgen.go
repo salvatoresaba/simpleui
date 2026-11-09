@@ -2023,6 +2023,66 @@ func layoutTableGrid(e *Element) layoutGrid {
 	return g
 }
 
+func layoutCellPosAttrs(row, col int) string {
+	return " data-sui-layout-row=\"" + strconv.Itoa(row) + "\" data-sui-layout-col=\"" + strconv.Itoa(col) + "\""
+}
+
+func layoutCellBorderCSS(child, table *Element) string {
+	style := layoutTableTextAttr(child, "cellBorderStyle", "")
+	width := layoutTableTextAttr(child, "cellBorderWidth", "")
+	color := layoutTableTextAttr(child, "cellBorderColor", "")
+	if style == "" && width == "" && color == "" {
+		return layoutBorderCSS(table)
+	}
+	if style == "" {
+		style = layoutTableTextAttr(table, "borderStyle", "none")
+	}
+	switch strings.ToLower(style) {
+	case "solid", "dashed", "dotted", "double":
+	default:
+		return ""
+	}
+	if width == "" {
+		width = layoutTableTextAttr(table, "borderWidth", "1px")
+	}
+	width = layoutSafeSize(width)
+	if width == "" {
+		width = "1px"
+	}
+	if color == "" {
+		color = layoutTableTextAttr(table, "borderColor", "var(--sui-border, #3d4556)")
+	}
+	color = layoutSafeCSSValue(color)
+	if color == "" {
+		color = "var(--sui-border, #3d4556)"
+	}
+	return "border:" + width + " " + strings.ToLower(style) + " " + color + ";"
+}
+
+func layoutCellStyle(cell layoutGridCell, table *Element) string {
+	if cell.node == nil || cell.node.kind != "element" || cell.node.elem == nil {
+		return layoutBorderCSS(table)
+	}
+	child := cell.node.elem
+	var parts []string
+	if v := layoutSafeCSSValue(layoutTableTextAttr(child, "cellPadding", "")); v != "" {
+		parts = append(parts, "padding:"+v)
+	}
+	if v := strings.ToLower(layoutTableTextAttr(child, "cellAlign", "")); v == "left" || v == "center" || v == "right" || v == "justify" {
+		parts = append(parts, "text-align:"+v)
+	}
+	if v := strings.ToLower(layoutTableTextAttr(child, "cellValign", "")); v == "top" || v == "middle" || v == "bottom" || v == "baseline" {
+		parts = append(parts, "vertical-align:"+v)
+	}
+	if v := layoutSafeCSSValue(layoutTableTextAttr(child, "cellBackground", "")); v != "" {
+		parts = append(parts, "background:"+v)
+	}
+	if border := layoutCellBorderCSS(child, table); border != "" {
+		parts = append(parts, border)
+	}
+	return strings.Join(parts, ";")
+}
+
 func layoutCellAttrs(cell layoutGridCell, e *Element) string {
 	var b strings.Builder
 	if cell.colspan > 1 {
@@ -2035,9 +2095,9 @@ func layoutCellAttrs(cell layoutGridCell, e *Element) string {
 		b.WriteString(strconv.Itoa(cell.rowspan))
 		b.WriteString("\"")
 	}
-	if border := layoutBorderCSS(e); border != "" {
+	if style := layoutCellStyle(cell, e); style != "" {
 		b.WriteString(" style=\"")
-		b.WriteString(htmlEscape(border))
+		b.WriteString(htmlEscape(style))
 		b.WriteString("\"")
 	}
 	return b.String()
@@ -2302,7 +2362,14 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 	if e.tag == "modal" {
 		sb.WriteString(" data-sui-modal=\"" + htmlEscape(modalNameOf(e)) + "\" aria-hidden=\"true\" hidden")
 	} else if e.tag == "tablelayout" {
-		sb.WriteString(" role=\"presentation\"")
+		role := "presentation"
+		if datepickerBool(e, "semantic") {
+			role = "table"
+		}
+		sb.WriteString(" role=\"" + role + "\"")
+		if label := layoutTableTextAttr(e, "label", ""); label != "" {
+			sb.WriteString(" aria-label=\"" + htmlEscape(label) + "\"")
+		}
 	} else if e.tag == "tabs" {
 		if v := treeTextAttr(e, "position"); v == "bottom" {
 			sb.WriteString(" data-sui-tabs-position=\"bottom\"")
@@ -2693,6 +2760,9 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 				base += " " + pc
 			}
 		}
+		if e.tag == "tablelayout" && datepickerBool(e, "responsive") {
+			base += " sui-layout-responsive"
+		}
 		writeContainerClass(sb, e, ctx, base)
 	} else {
 		// Plain elements (p, div, span, ...): emit the class attribute from the
@@ -2760,7 +2830,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "columnWidths" || a.key == "rowHeights" ||
 			a.key == "gapX" || a.key == "gapY" ||
 			a.key == "borderStyle" || a.key == "borderWidth" || a.key == "borderColor" ||
-			a.key == "cellMinHeight" || a.key == "style") {
+			a.key == "cellMinHeight" || a.key == "responsive" || a.key == "semantic" || a.key == "label" || a.key == "style") {
 			continue
 		}
 		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||
@@ -2778,6 +2848,10 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			continue
 		}
 		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
+			continue
+		}
+		if a.key == "cellPadding" || a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBackground" ||
+			a.key == "cellBorderStyle" || a.key == "cellBorderWidth" || a.key == "cellBorderColor" {
 			continue
 		}
 		if e.tag != "file" && findAttr(e, "pickFiles") != nil &&
@@ -3133,6 +3207,7 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		for c := 0; c < grid.cols; c++ {
 			if !grid.occupied[r][c] {
 				b.WriteString("<td class=\"sui-layout-cell\"")
+				b.WriteString(layoutCellPosAttrs(r, c))
 				b.WriteString(layoutEmptyCellAttrs(e))
 				b.WriteString("></td>")
 				continue
@@ -3143,6 +3218,7 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			}
 			cell := grid.cells[ci]
 			b.WriteString("<td class=\"sui-layout-cell\"")
+			b.WriteString(layoutCellPosAttrs(r, c))
 			b.WriteString(layoutCellAttrs(cell, e))
 			b.WriteString(">` + (")
 			b.WriteString(viewNodesJs([]*ViewNode{cell.node}, g, ctx))

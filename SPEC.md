@@ -297,7 +297,7 @@ Elements and their supported attributes (v0.1):
 | row, col | no   | class                                    | yes      |
 | spacer   | no   | class                                    | no       |
 | table    | no   | class, name, editable, fixed             | yes      |
-| tablelayout | no | class, style, rows, columns, width, height, columnWidths, rowHeights, gapX, gapY, borderStyle, borderWidth, borderColor, cellMinHeight | yes      |
+| tablelayout | no | class, style, rows, columns, width, height, columnWidths, rowHeights, gapX, gapY, borderStyle, borderWidth, borderColor, cellMinHeight, responsive, semantic, label | yes      |
 | thead    | no   | class                                    | yes      |
 | trow     | no   | class                                    | yes      |
 | tcell    | yes  | class, head (bool)                       | no       |

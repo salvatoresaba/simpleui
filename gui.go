@@ -752,6 +752,7 @@ const guiPreviewPicker = `<script>
   document.head.appendChild(st);
   st.textContent += ' .sui-layout-table > tbody > tr > td { outline: 1px dashed rgba(76,92,247,.55) !important; outline-offset: -1px; } .sui-layout-table > tbody > tr > td:hover { outline-color: #4c5cf7; background: rgba(76,92,247,.08); }';
   var current = [];
+  var layoutHl = null;
   var handles = [];
   var resizeEl = null;
   var guidesOn = false;
@@ -1018,6 +1019,7 @@ const guiPreviewPicker = `<script>
   }
   function hl(ids, mode) {
     currentMode = mode || 'el';
+    if (layoutHl) { layoutHl.classList.remove('sui-hl-cell'); layoutHl = null; }
     current.forEach(function (el) {
       el.classList.remove('sui-hl');
       el.classList.remove('sui-hl-table');
@@ -1106,6 +1108,14 @@ const guiPreviewPicker = `<script>
   }
   window.addEventListener('message', function (e) {
     if (e.data && e.data.ty === 'sui-hl') hl(e.data.id, e.data.mode);
+    if (e.data && e.data.ty === 'sui-layout-hl') {
+      if (layoutHl) { layoutHl.classList.remove('sui-hl-cell'); layoutHl = null; }
+      if (e.data.table >= 0) {
+        var lt = document.querySelector('[data-sui-id="' + e.data.table + '"]');
+        var lc = lt ? lt.querySelector('.sui-layout-cell[data-sui-layout-row="' + e.data.row + '"][data-sui-layout-col="' + e.data.col + '"]') : null;
+        if (lc) { lc.classList.add('sui-hl-cell'); layoutHl = lc; }
+      }
+    }
     if (e.data && e.data.ty === 'sui-style-req') {
       var el = e.data.id === -1 ? document.body : document.querySelector('[data-sui-id="' + e.data.id + '"]');
       if (!el) {
@@ -1477,6 +1487,16 @@ const guiPreviewPicker = `<script>
         }
       }
     }
+    var layoutCell = e.target && e.target.closest ? e.target.closest('.sui-layout-cell') : null;
+    if (layoutCell && !layoutCell.querySelector('[data-sui-id]')) {
+      var layoutTable = layoutCell.closest('table.sui-layout-table');
+      var layoutId = layoutTable ? layoutTable.getAttribute('data-sui-id') : null;
+      if (layoutId !== null && layoutId !== '-1') {
+        parent.postMessage({ ty: 'sui-layout-cell', table: Number(layoutId), row: Number(layoutCell.getAttribute('data-sui-layout-row')), col: Number(layoutCell.getAttribute('data-sui-layout-col')) }, '*');
+        e.preventDefault();
+        return;
+      }
+    }
     var n = e.target;
     var id = -1;
     var isLink = false;
@@ -1546,6 +1566,14 @@ const guiPreviewPicker = `<script>
   }, true);
   var overEl = null;
   document.addEventListener('dragover', function (e) {
+    var lc = e.target && e.target.closest ? e.target.closest('.sui-layout-cell') : null;
+    if (lc && !lc.querySelector('[data-sui-id]')) {
+      if (overEl && overEl !== lc) overEl.classList.remove('sui-drag-over');
+      overEl = lc;
+      overEl.classList.add('sui-drag-over');
+      e.preventDefault();
+      return;
+    }
     var n = e.target;
     while (n && n.nodeType === 1) {
       var d = n.getAttribute ? n.getAttribute('data-sui-id') : null;
@@ -1560,8 +1588,16 @@ const guiPreviewPicker = `<script>
   document.addEventListener('drop', function (e) {
     if (overEl) {
       e.preventDefault();
-      var id = Number(overEl.getAttribute('data-sui-id'));
-      parent.postMessage({ ty: 'sui-drop', id: id }, '*');
+      if (overEl.classList && overEl.classList.contains('sui-layout-cell')) {
+        var layoutTable = overEl.closest('table');
+        var layoutId = layoutTable ? layoutTable.getAttribute('data-sui-id') : null;
+        if (layoutId !== null && layoutId !== '-1') {
+          parent.postMessage({ ty: 'sui-drop-layout', table: Number(layoutId), row: Number(overEl.getAttribute('data-sui-layout-row')), col: Number(overEl.getAttribute('data-sui-layout-col')) }, '*');
+        }
+      } else {
+        var id = Number(overEl.getAttribute('data-sui-id'));
+        parent.postMessage({ ty: 'sui-drop', id: id }, '*');
+      }
       overEl.classList.remove('sui-drag-over');
       overEl = null;
     }
@@ -2501,6 +2537,9 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		o.obj["layoutBorderWidth"] = JStr(layoutTableTextAttr(e, "borderWidth", "1px"))
 		o.obj["layoutBorderColor"] = JStr(layoutTableTextAttr(e, "borderColor", "var(--sui-border, #3d4556)"))
 		o.obj["layoutCellMinHeight"] = JStr(layoutTableTextAttr(e, "cellMinHeight", "72px"))
+		o.obj["layoutResponsive"] = JBool(datepickerBool(e, "responsive"))
+		o.obj["layoutSemantic"] = JBool(datepickerBool(e, "semantic"))
+		o.obj["layoutLabel"] = JStr(layoutTableTextAttr(e, "label", ""))
 	}
 	if e.tag == "ul" || e.tag == "ol" {
 		if lst, ok := guiListFrom(e); ok {
@@ -2712,15 +2751,28 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			o.obj[a.key] = JStr(partsLiteral(a.text))
-		} else if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
-			field := "layoutColspan"
-			if a.key == "rowspan" {
-				field = "layoutRowspan"
-			}
+		} else if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan" ||
+			a.key == "cellPadding" || a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBackground" ||
+			a.key == "cellBorderStyle" || a.key == "cellBorderWidth" || a.key == "cellBorderColor") {
+			field := map[string]string{
+				"colspan":         "layoutColspan",
+				"rowspan":         "layoutRowspan",
+				"cellPadding":     "layoutCellPadding",
+				"cellAlign":       "layoutCellAlign",
+				"cellValign":      "layoutCellValign",
+				"cellBackground":  "layoutCellBackground",
+				"cellBorderStyle": "layoutCellBorderStyle",
+				"cellBorderWidth": "layoutCellBorderWidth",
+				"cellBorderColor": "layoutCellBorderColor",
+			}[a.key]
+			val := ""
 			if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
-				o.obj[field] = JStr(strconv.Itoa(a.expr.i))
+				val = strconv.Itoa(a.expr.i)
 			} else {
-				o.obj[field] = JStr(strings.TrimSpace(partsLiteral(a.text)))
+				val = strings.TrimSpace(partsLiteral(a.text))
+			}
+			if field != "" {
+				o.obj[field] = JStr(val)
 			}
 		} else if e.tag == "table" && (a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" ||

@@ -1195,24 +1195,30 @@ persistenza: dispone altri elementi in una griglia esplicita di righe e colonne.
 
 La sezione **Table layout** dell'inspector controlla:
 
+- **preset** (2 x 2, sidebar + contenuto, header + 2 colonne, dashboard 3 x 2);
 - **rows** (1-50) e **columns** (1-12);
 - **width** / **height** dell'intera tabella in px o %;
-- **column widths** e **row heights**, separate da virgola per colonna/riga;
+- **column widths** e **row heights** con un campo per colonna/riga;
 - **column gap** e **row gap**;
 - **cell border** (none, solid, dashed, dotted, double), spessore e colore;
-- **empty cell height** per mantenere visibili e utilizzabili le celle vuote.
+- **empty cell height** per mantenere visibili e utilizzabili le celle vuote;
+- **stack on small screens** (impilamento responsive sotto 640px);
+- **semantic table** (`role="table"` invece di `role="presentation"`) e
+  **aria label**.
 
-Ogni figlio diretto occupa la successiva cella libera, riga per riga. Seleziona
-un figlio diretto per aprire la sezione **Layout cell** e impostare
-`column span` / `row span`, unendo la cella con quelle a destra o in basso.
-**Reset to 1 x 1** la divide di nuovo.
+Ogni figlio diretto occupa la successiva cella libera, riga per riga. Clicca una
+cella vuota nella preview per selezionarla e vedere riga/colonna; usa **Add
+block** oppure trascina un elemento dalla palette direttamente nella cella.
+Seleziona un figlio diretto per aprire **Layout cell** e impostare `column span`
+/ `row span`, unendo la cella con quelle a destra o in basso. La stessa sezione
+modifica padding, allineamento orizzontale/verticale, sfondo e bordo della
+singola cella. **Reset to 1 x 1** la divide di nuovo.
 
 Le celle sono evidenziate nella preview del designer, comprese quelle vuote e
 unite, così la griglia è visibile anche senza bordi applicativi. Raggruppa più
 elementi in un `col`, `div` o `card` per tenerli nella stessa cella. Usa il
 controllo dati **Table** quando servono `table.display`, `table.importText`,
 ordinamento, filtri o modifiche persistenti.
-
 Vedi [API reference: table layout](API_REFERENCE_IT.md#table-layout) e
 [l'esempio table layout](../examples/table_layout/README.md).
 
