@@ -27,23 +27,14 @@ const suiChartRuntime = `(function(){
   }
   // Edit mode is the 3-state data-control setting: "none" is read-only,
   // "editable" keeps user changes for the page session and "persistent"
-  // survives reload/restart. Legacy sources without the attribute derive it
-  // from interactive (and diagrams remain editable as before).
+  // survives reload/restart. A missing attribute is read-only.
   function chartEditMode(root) {
-    if (!root || !root.getAttribute) return "editable";
+    if (!root || !root.getAttribute) return "none";
     var raw = String(root.getAttribute("data-sui-chart-edit-mode") || "").toLowerCase();
-    if (raw === "none" || raw === "editable" || raw === "persistent") return raw;
-    var type = String(attr(root, "type") || "").toLowerCase();
-    var diagram = type === "state" || type === "statemachine";
-    // Legacy compatibility: diagrams and Gantt kept their edits in
-    // localStorage, so they behave as persistent; interactive regular charts
-    // kept local edits for the page session.
-    if (flag(root, "interactive")) return (diagram || type === "gantt") ? "persistent" : "editable";
-    if (diagram) return "persistent";
+    if (raw === "editable" || raw === "persistent") return raw;
     return "none";
   }
   function chartEditingAllowed(root) { return chartEditMode(root) !== "none"; }
-  function chartPersists(root) { return chartEditMode(root) === "persistent"; }
   // Editable keeps data for the page session (window map, survives re-renders);
   // persistent writes it to localStorage so it survives reload/restart.
   var CHART_SESSION = window.__SUI_CHART_SESSION || (window.__SUI_CHART_SESSION = {});
@@ -70,18 +61,97 @@ const suiChartRuntime = `(function(){
     delete CHART_SESSION[key];
     try { if (window.localStorage) window.localStorage.removeItem(key); } catch (e) {}
   }
+  // Persistent controls keep runtime attribute/theme changes as a diff against
+  // the design-time baseline. Only keys the user actually changed are stored,
+  // so a later source update still wins for untouched attributes.
+  function chartOverrideKey(root) { return "sui.chart.overrides." + ganttUiKey(root); }
+  function collectChartOverrides(root) {
+    var out = { attrs: {}, css: {} };
+    if (!root) return out;
+    for (var i = 0; i < root.attributes.length; i++) {
+      var a = root.attributes[i];
+      if (a.name.indexOf("data-sui-chart-") !== 0) continue;
+      if (a.name === "data-sui-chart-data" || a.name === "data-sui-chart-name" || a.name === "data-sui-chart-title") continue;
+      out.attrs[a.name] = a.value;
+    }
+    for (var j = 0; j < root.style.length; j++) {
+      var prop = root.style[j];
+      if (prop.indexOf("--sui-chart-") === 0) out.css[prop] = root.style.getPropertyValue(prop);
+    }
+    return out;
+  }
+  function applyChartOverrides(root) {
+    if (!root || !chartEditingAllowed(root)) return;
+    var base = collectChartOverrides(root);
+    root.__suiChartBaseOverrides = base;
+    var saved = chartStoreGet(root, chartOverrideKey(root));
+    if (!saved) return;
+    root.__suiChartApplyingOverrides = true;
+    try {
+      var attrs = saved.attrs || {};
+      for (var name in attrs) {
+        if (!Object.prototype.hasOwnProperty.call(attrs, name)) continue;
+        if (attrs[name] === null || attrs[name] === undefined) root.removeAttribute(name);
+        else root.setAttribute(name, String(attrs[name]));
+      }
+      var css = saved.css || {};
+      for (var prop in css) {
+        if (!Object.prototype.hasOwnProperty.call(css, prop)) continue;
+        if (css[prop] === null || css[prop] === undefined) root.style.removeProperty(prop);
+        else root.style.setProperty(prop, String(css[prop]));
+      }
+    } finally {
+      root.__suiChartApplyingOverrides = false;
+    }
+    root.__suiChartOverridesApplied = true;
+  }
+  function saveChartOverrides(root) {
+    if (!root || root.__suiChartApplyingOverrides || !chartEditingAllowed(root)) return;
+    var base = root.__suiChartBaseOverrides || collectChartOverrides(root);
+    var cur = collectChartOverrides(root);
+    var diff = { attrs: {}, css: {} }, changed = false;
+    var k;
+    for (k in cur.attrs) {
+      if (!Object.prototype.hasOwnProperty.call(cur.attrs, k)) continue;
+      if (base.attrs[k] !== cur.attrs[k]) { diff.attrs[k] = cur.attrs[k]; changed = true; }
+    }
+    for (k in base.attrs) {
+      if (!Object.prototype.hasOwnProperty.call(base.attrs, k)) continue;
+      if (!Object.prototype.hasOwnProperty.call(cur.attrs, k)) { diff.attrs[k] = null; changed = true; }
+    }
+    for (k in cur.css) {
+      if (!Object.prototype.hasOwnProperty.call(cur.css, k)) continue;
+      if (base.css[k] !== cur.css[k]) { diff.css[k] = cur.css[k]; changed = true; }
+    }
+    for (k in base.css) {
+      if (!Object.prototype.hasOwnProperty.call(base.css, k)) continue;
+      if (!Object.prototype.hasOwnProperty.call(cur.css, k)) { diff.css[k] = null; changed = true; }
+    }
+    if (!changed) { chartStoreRemove(root, chartOverrideKey(root)); return; }
+    chartStoreSet(root, chartOverrideKey(root), diff);
+  }
+  function bindChartOverridePersistence(root) {
+    if (!root || root.__suiChartOverrideBound) return;
+    root.__suiChartOverrideBound = true;
+    var touched = function() { root.__suiChartUserTouched = true; };
+    root.addEventListener("pointerdown", touched, true);
+    root.addEventListener("keydown", touched, true);
+    root.addEventListener("change", touched, true);
+    if (!window.MutationObserver) return;
+    var timer = 0;
+    new MutationObserver(function() {
+      if (!root.__suiChartUserTouched || root.__suiChartApplyingOverrides) return;
+      clearTimeout(timer);
+      timer = setTimeout(function() { saveChartOverrides(root); }, 120);
+    }).observe(root, { attributes: true });
+  }
   // Editing chrome (anchors, resize/rotation grips, tag and route handles) is
-  // optional: a missing value keeps it enabled, so existing editable diagrams
-  // are unchanged; stateHandles: false turns the diagram into a view-only chart.
+  // fully controlled by the data-control edit mode.
   function stateEditingMode(root) {
-    if (!root || !root.getAttribute) return true;
-    if (!chartEditingAllowed(root)) return false;
-    return String(root.getAttribute("data-sui-chart-state-mode") || "editing").toLowerCase() !== "static";
+    return chartEditingAllowed(root);
   }
   function stateTableEditing(root) {
-    if (!root || !root.getAttribute) return true;
-    if (!chartEditingAllowed(root)) return false;
-    return stateEditingMode(root) || flag(root, "table-edit");
+    return chartEditingAllowed(root);
   }
   function stateHintsEnabled(root) {
     if (!root || !root.getAttribute) return true;
@@ -3295,9 +3365,7 @@ const suiChartRuntime = `(function(){
     root.__suiGanttCalendarLoaded = true;
     root.__suiGanttCalendar = null;
     try {
-      var raw = window.localStorage && window.localStorage.getItem(ganttCalendarStorageKey(root));
-      if (!raw) return null;
-      var parsed = JSON.parse(raw);
+      var parsed = chartStoreGet(root, ganttCalendarStorageKey(root));
       if (parsed && typeof parsed === "object") {
         root.__suiGanttCalendar = {
           weekend: ganttWeekendString(parsed.weekend),
@@ -3311,13 +3379,13 @@ const suiChartRuntime = `(function(){
     root.__suiGanttCalendarLoaded = true;
     root.__suiGanttCalendar = { weekend: ganttWeekendString(calendar.weekend), holidays: ganttHolidayString(calendar.holidays) };
     try {
-      if (window.localStorage) window.localStorage.setItem(ganttCalendarStorageKey(root), JSON.stringify(root.__suiGanttCalendar));
+      if (chartEditingAllowed(root)) chartStoreSet(root, ganttCalendarStorageKey(root), root.__suiGanttCalendar);
     } catch (e) {}
   }
   function resetGanttCalendar(root) {
     root.__suiGanttCalendarLoaded = true;
     root.__suiGanttCalendar = null;
-    try { if (window.localStorage) window.localStorage.removeItem(ganttCalendarStorageKey(root)); } catch (e) {}
+    chartStoreRemove(root, ganttCalendarStorageKey(root));
   }
   function ganttEffectiveCalendar(root, data) {
     var local = loadGanttCalendar(root);
@@ -10597,8 +10665,7 @@ const suiChartRuntime = `(function(){
     var value = Number(root.__suiGanttNameWidth);
     if (!isFinite(value) || value <= 0) {
       try {
-        var raw = window.localStorage && window.localStorage.getItem(ganttNameWidthStorageKey(root));
-        var saved = Number(raw);
+        var saved = Number(chartStoreGet(root, ganttNameWidthStorageKey(root)));
         if (isFinite(saved) && saved > 0) value = saved;
       } catch (e) {}
     }
@@ -10609,7 +10676,7 @@ const suiChartRuntime = `(function(){
   function saveGanttNameColumnWidth(root, width) {
     root.__suiGanttNameWidth = width;
     try {
-      if (window.localStorage) window.localStorage.setItem(ganttNameWidthStorageKey(root), String(width));
+      if (chartEditingAllowed(root)) chartStoreSet(root, ganttNameWidthStorageKey(root), width);
     } catch (e) {}
   }
   var GANTT_AUDIT_FIELDS = [
@@ -10623,7 +10690,6 @@ const suiChartRuntime = `(function(){
   function stateSettingsDefaultStorageKey() { return "sui.chart.state.settings.default"; }
   var STATE_SETTINGS_ATTRIBUTES = [
     "data-sui-chart-title",
-    "data-sui-chart-state-mode",
     "data-sui-chart-state-hints",
     "data-sui-chart-state-hint-bg",
     "data-sui-chart-state-hint-opacity",
@@ -10748,7 +10814,11 @@ const suiChartRuntime = `(function(){
       else root.removeAttribute(name);
     }
   }
-  function stateReadSettings(key) {
+  function stateReadSettings(root, key) {
+    var value = chartStoreGet(root, key);
+    return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+  }
+  function stateReadDefaultSettings(key) {
     try {
       var raw = window.localStorage && window.localStorage.getItem(key);
       if (!raw) return null;
@@ -10761,7 +10831,7 @@ const suiChartRuntime = `(function(){
     if (!root.__suiStateSettingsBase) root.__suiStateSettingsBase = stateSettingsSnapshot(root);
     if (root.__suiStateSettingsApplied) return;
     var base = root.__suiStateSettingsBase || {};
-    var saved = stateReadSettings(stateSettingsStorageKey(root)) || stateReadSettings(stateSettingsDefaultStorageKey());
+    var saved = stateReadSettings(root, stateSettingsStorageKey(root)) || stateReadDefaultSettings(stateSettingsDefaultStorageKey());
     if (!saved) {
       stateSettingsApply(root, base);
     } else {
@@ -10825,10 +10895,8 @@ const suiChartRuntime = `(function(){
     if (!root) return;
     var values = stateSettingsSnapshot(root);
     try {
-      if (window.localStorage) {
-        window.localStorage.setItem(stateSettingsStorageKey(root), JSON.stringify(values));
-        if (asDefault) window.localStorage.setItem(stateSettingsDefaultStorageKey(), JSON.stringify(values));
-      }
+      if (chartEditingAllowed(root)) chartStoreSet(root, stateSettingsStorageKey(root), values);
+      if (asDefault && window.localStorage) window.localStorage.setItem(stateSettingsDefaultStorageKey(), JSON.stringify(values));
     } catch (e) {}
     root.__suiStateSettingsApplied = true;
   }
@@ -10951,15 +11019,11 @@ const suiChartRuntime = `(function(){
   }
   function stateThemeStorageKey(root) { return "sui.chart.state.theme." + ganttUiKey(root); }
   function stateThemeRead(root) {
-    try {
-      var raw = window.localStorage && window.localStorage.getItem(stateThemeStorageKey(root));
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
+    return chartStoreGet(root, stateThemeStorageKey(root));
   }
   function stateThemeWrite(root, key, vars) {
     try {
-      if (!window.localStorage) return;
-      window.localStorage.setItem(stateThemeStorageKey(root), JSON.stringify({ key: key, vars: vars || {} }));
+      if (chartEditingAllowed(root)) chartStoreSet(root, stateThemeStorageKey(root), { key: key, vars: vars || {} });
     } catch (e) {}
   }
   function stateThemeBase(root) {
@@ -11012,7 +11076,7 @@ const suiChartRuntime = `(function(){
   }
   function resetStateTheme(root) {
     if (!root) return;
-    try { if (window.localStorage) window.localStorage.removeItem(stateThemeStorageKey(root)); } catch (e) {}
+    chartStoreRemove(root, stateThemeStorageKey(root));
     stateThemeApplyVars(root, stateThemeBase(root));
     root.__suiStateThemeKey = "custom";
     root.__suiStateThemeApplied = true;
@@ -11025,8 +11089,7 @@ const suiChartRuntime = `(function(){
   }
   function chartTableHeightRead(root, create) {
     try {
-      var raw = window.localStorage && window.localStorage.getItem(chartTableHeightStorageKey(root));
-      var value = raw ? parseFloat(raw) : NaN;
+      var value = parseFloat(chartStoreGet(root, chartTableHeightStorageKey(root)));
       if (isFinite(value) && value > 0) return value;
     } catch (e) {}
     if (!create) return null;
@@ -11039,7 +11102,7 @@ const suiChartRuntime = `(function(){
   }
   function chartTableHeightWrite(root, value) {
     try {
-      if (window.localStorage) window.localStorage.setItem(chartTableHeightStorageKey(root), String(Math.round(value)));
+      if (chartEditingAllowed(root)) chartStoreSet(root, chartTableHeightStorageKey(root), Math.round(value));
     } catch (e) {}
   }
   function chartTableHeightCurrent(root) {
@@ -12003,11 +12066,11 @@ const suiChartRuntime = `(function(){
   }
   function selectionStorageKey(root) { return "sui.chart.selected." + ganttUiKey(root); }
   function saveSelection(root, index) {
-    try { if (window.localStorage) window.localStorage.setItem(selectionStorageKey(root), String(index)); } catch (e) {}
+    try { if (chartEditingAllowed(root)) chartStoreSet(root, selectionStorageKey(root), index); } catch (e) {}
   }
   function loadSelection(root) {
     try {
-      var raw = window.localStorage && window.localStorage.getItem(selectionStorageKey(root));
+      var raw = chartStoreGet(root, selectionStorageKey(root));
       if (raw === null || raw === "") return undefined;
       var n = Number(raw);
       return isFinite(n) ? n : undefined;
@@ -12029,8 +12092,7 @@ const suiChartRuntime = `(function(){
     if (root.__suiSeriesColors) return root.__suiSeriesColors;
     var out = {};
     try {
-      var raw = window.localStorage && window.localStorage.getItem(seriesColorStorageKey(root));
-      var parsed = raw ? JSON.parse(raw) : null;
+      var parsed = chartStoreGet(root, seriesColorStorageKey(root));
       if (parsed && typeof parsed === "object") {
         for (var key in parsed) {
           if (!Object.prototype.hasOwnProperty.call(parsed, key) || !/^\d+$/.test(key)) continue;
@@ -12043,7 +12105,7 @@ const suiChartRuntime = `(function(){
     return out;
   }
   function saveSeriesColors(root) {
-    try { if (window.localStorage) window.localStorage.setItem(seriesColorStorageKey(root), JSON.stringify(loadSeriesColors(root))); } catch (e) {}
+    try { if (chartEditingAllowed(root)) chartStoreSet(root, seriesColorStorageKey(root), loadSeriesColors(root)); } catch (e) {}
   }
   function restoreSeriesColors(root) {
     var colors = loadSeriesColors(root);
@@ -12063,8 +12125,7 @@ const suiChartRuntime = `(function(){
     if (root.__suiGanttColors) return root.__suiGanttColors;
     var out = {};
     try {
-      var raw = window.localStorage && window.localStorage.getItem(ganttColorStorageKey(root));
-      var parsed = raw ? JSON.parse(raw) : null;
+      var parsed = chartStoreGet(root, ganttColorStorageKey(root));
       if (parsed && typeof parsed === "object") {
         for (var key in parsed) {
           if (!Object.prototype.hasOwnProperty.call(parsed, key)) continue;
@@ -12077,7 +12138,7 @@ const suiChartRuntime = `(function(){
     return out;
   }
   function saveGanttTaskColors(root) {
-    try { if (window.localStorage) window.localStorage.setItem(ganttColorStorageKey(root), JSON.stringify(loadGanttTaskColors(root))); } catch (e) {}
+    try { if (chartEditingAllowed(root)) chartStoreSet(root, ganttColorStorageKey(root), loadGanttTaskColors(root)); } catch (e) {}
   }
   function restoreGanttTaskColors(root, tasks) {
     var colors = loadGanttTaskColors(root);
@@ -17150,14 +17211,6 @@ const suiChartRuntime = `(function(){
     var highlightControl = addField("Highlight color", stateTagFieldColor(attr(root, "state-selection-color") || "#f59e0b", "#f59e0b"));
     var handlesDefault = attr(root, "state-handles") === "" ? true : flag(root, "state-handles");
     var handlesControl = addField("Show anchors and handles", stateTagFieldSwitch(handlesDefault));
-    var editModeControl = addField("Edit mode", stateTagFieldSwitch(stateEditingMode(root)));
-    stateTagFieldInputs(editModeControl).forEach(function(input) {
-      input.addEventListener("change", function() {
-        var editing = !!stateTagFieldValue(editModeControl);
-        setStateOption(root, "state-mode", editing ? "editing" : "static");
-        if (!editing) stateClearSelection(root);
-      });
-    });
     var persistDiagramField = function(name, value) {
       root.setAttribute("data-sui-chart-" + name, value);
       saveStateSettings(root, false);
@@ -17233,6 +17286,13 @@ const suiChartRuntime = `(function(){
       ganttAnnounce(root, "Diagram settings reset to the source values.");
       close();
     });
+    if (chartEditMode(root) === "persistent") {
+      addAction(generic, "Reset saved data", function() {
+        if (!window.confirm("Discard saved diagram data and restore the design-time diagram?")) return;
+        clearPersisted(root.getAttribute("data-sui-chart-name") || root.getAttribute("data-sui-chart-title") || "");
+        window.location.reload();
+      });
+    }
     var versions = tabs.add("Versions");
     var pending = statePendingChanges(root).length;
     var pendingHint = document.createElement("p");
@@ -21098,26 +21158,23 @@ const suiChartRuntime = `(function(){
   }
   function tableStateKey(root) { return "sui.chart.table." + ganttUiKey(root); }
   function loadTableState(root) {
-    try {
-      var raw = window.localStorage && window.localStorage.getItem(tableStateKey(root));
-      if (!raw) return null;
-      var state = JSON.parse(raw);
-      if (!state || typeof state !== "object") return null;
-      if (!Array.isArray(state.hidden)) state.hidden = [];
-      if (!Array.isArray(state.sorts)) state.sorts = state.sort ? [state.sort] : [];
-      if (!state.filters || typeof state.filters !== "object") state.filters = {};
-      if (!Array.isArray(state.order)) state.order = [];
-      if (!state.widths || typeof state.widths !== "object") state.widths = {};
-      return state;
-    } catch (e) { return null; }
+    if (!chartEditingAllowed(root)) return null;
+    var state = chartStoreGet(root, tableStateKey(root));
+    if (!state || typeof state !== "object") return null;
+    if (!Array.isArray(state.hidden)) state.hidden = [];
+    if (!Array.isArray(state.sorts)) state.sorts = state.sort ? [state.sort] : [];
+    if (!state.filters || typeof state.filters !== "object") state.filters = {};
+    if (!Array.isArray(state.order)) state.order = [];
+    if (!state.widths || typeof state.widths !== "object") state.widths = {};
+    return state;
   }
   function saveTableState(root, state) {
+    if (root.__suiTableSkipSave || !chartEditingAllowed(root)) return;
     try {
-      if (root.__suiTableSkipSave || !window.localStorage) return;
-      window.localStorage.setItem(tableStateKey(root), JSON.stringify({
+      chartStoreSet(root, tableStateKey(root), {
         hidden: state.hidden || [], sorts: state.sorts || [], filters: state.filters || {},
         order: state.order || [], widths: state.widths || {}
-      }));
+      });
     } catch (e) {}
   }
   function chartTableState(root) {
@@ -23194,6 +23251,13 @@ const suiChartRuntime = `(function(){
         ["JSON", function() { chartExportData(root, "json"); }],
         ["JSONL", function() { chartExportData(root, "jsonl"); }]
       ]);
+      if (chartEditMode(root) === "persistent") {
+        add("Reset saved data", function() {
+          if (!window.confirm("Discard saved chart data and restore the design-time chart?")) return;
+          clearPersisted(root.getAttribute("data-sui-chart-name") || root.getAttribute("data-sui-chart-title") || "");
+          window.location.reload();
+        });
+      }
       menu.hidden = false;
       menu.style.left = Math.min(window.innerWidth - 190, Math.max(4, x)) + "px";
       menu.style.top = Math.min(window.innerHeight - 220, Math.max(4, y)) + "px";
@@ -23243,7 +23307,6 @@ const suiChartRuntime = `(function(){
     var err = root.querySelector(".sui-chart-error");
     if (!viewport || !stage || !svg) return;
     var type = (attr(root, "type") || "bar").toLowerCase();
-    if (type === "statemachine") type = "state";
     if (["bar", "barhorizontal", "barstacked", "bargrouped", "line", "step", "smooth", "area", "combo", "pie", "donut", "scatter", "histogram", "waterfall", "radar", "gauge", "funnel", "heatmap", "candlestick", "treemap", "boxplot", "bullet", "dumbbell", "gantt", "state"].map(function(x) { return x.toLowerCase(); }).indexOf(type) < 0) type = "bar";
     var overflow = (attr(root, "overflow") || "scroll").toLowerCase();
     if (["scroll", "zoom", "fit"].indexOf(overflow) < 0) overflow = "scroll";
@@ -23328,7 +23391,7 @@ const suiChartRuntime = `(function(){
             }
           } catch (draftError) {}
         } else if (storedDraft) {
-          try { if (window.localStorage) window.localStorage.removeItem(ganttDraftStorageKey(root)); } catch (removeDraftError) {}
+          try { chartStoreRemove(root, ganttDraftStorageKey(root)); } catch (removeDraftError) {}
         }
       }
       var localGantt = root.__suiGanttLocal;
@@ -23812,7 +23875,7 @@ const suiChartRuntime = `(function(){
     bindChartKeyboard(root);
     bindChartMenu(root);
     bindChartInteractions(root);
-    root.classList.toggle("sui-chart-interactive", flag(root, "interactive") || chartEditingAllowed(root));
+    root.classList.toggle("sui-chart-interactive", chartEditingAllowed(root));
     if (chartEditingAllowed(root)) { bindGanttDrag(root); bindGanttDeadlineDrag(root); bindGanttLinkDrag(root); }
     if (type === "gantt") {
       bindGanttNameResize(root);
@@ -24092,6 +24155,8 @@ const suiChartRuntime = `(function(){
   function init(root) {
     if (!root || root.__suiChart) return;
     root.__suiChart = true;
+    applyChartOverrides(root);
+    bindChartOverridePersistence(root);
     bindZoom(root);
     // Hidden tabs and responsive containers can expose a chart with a zero
     // or stale viewport. Redraw when the root itself changes size; observe the
@@ -24124,6 +24189,46 @@ const suiChartRuntime = `(function(){
       } catch (e) {}
     }
     draw(root);
+  }
+  var CHART_PERSIST_PREFIXES = [
+    "sui.chart.data.", "sui.chart.state.", "sui.chart.state.versions.",
+    "sui.chart.state.settings.", "sui.chart.state.theme.",
+    "sui.chart.gantt.draft.", "sui.chart.gantt.versions.", "sui.chart.resources.",
+    "sui.chart.calendar.", "sui.chart.gantt.nameWidth.", "sui.chart.gantt.colors.",
+    "sui.chart.table.", "sui.chart.table.height.", "sui.chart.overrides.",
+    "sui.chart.selected.", "sui.chart.colors."
+  ];
+  function clearPersisted(name) {
+    var label = String(name || "");
+    var root = null, key = label ? ("n:" + label) : "";
+    var all = document.querySelectorAll("[data-sui-chart]");
+    for (var i = 0; i < all.length; i++) {
+      if (label && (all[i].getAttribute("data-sui-chart-name") === label || all[i].getAttribute("data-sui-chart-title") === label)) {
+        root = all[i];
+        key = ganttUiKey(root);
+        break;
+      }
+    }
+    if (!key) return [0, "chart.clearPersisted: chart not found"];
+    var removed = 0;
+    for (var p = 0; p < CHART_PERSIST_PREFIXES.length; p++) {
+      var full = CHART_PERSIST_PREFIXES[p] + key;
+      try {
+        if (window.localStorage && window.localStorage.getItem(full) !== null) {
+          window.localStorage.removeItem(full);
+          removed++;
+        }
+      } catch (e) {}
+      delete CHART_SESSION[full];
+    }
+    if (root) {
+      delete root.__suiChartLocal;
+      delete root.__suiStateLocal;
+      delete root.__suiGanttLocal;
+      delete root.__suiChartBaseOverrides;
+      root.__suiChartOverridesApplied = false;
+    }
+    return [removed > 0 ? 1 : 0, null];
   }
   function redrawAll() {
     var all = document.querySelectorAll("[data-sui-chart]");
@@ -24163,6 +24268,7 @@ const suiChartRuntime = `(function(){
   });
   window.__SUI_CHART = {
     redraw: redrawAll,
+    clearPersisted: clearPersisted,
     redrawRoot: function(root) { if (root) draw(root); },
     parse: parseData,
     setTag: stateChartSetTag,

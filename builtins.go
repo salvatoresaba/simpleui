@@ -27,7 +27,7 @@ var Builtins = []Builtin{
 	Builtin{name: "contains", js: "{0}.includes({1})"},
 	Builtin{name: "split", js: "{0}.split({1})"},
 	Builtin{name: "join", js: "{0}.join({1})"},
-	Builtin{name: "substr", js: "{0}.substring({1}, {1}+{2})"},
+	Builtin{name: "substring", js: "{0}.substring({1}, {1}+{2})"},
 	Builtin{name: "str", js: "String({0})"},
 	Builtin{name: "int", js: "Math.trunc({0})"},
 	Builtin{name: "float", js: "Number({0})"},
@@ -89,7 +89,6 @@ var Builtins = []Builtin{
 	// ---- timers ----
 	Builtin{name: "after", js: "setTimeout(() => {1}(), {0})"},
 	Builtin{name: "interval", js: "setInterval(() => {1}(), {0})"},
-	Builtin{name: "timers.clear", js: "clearTimeout({0})"},
 	Builtin{name: "timers.cancel", js: "clearTimeout({0})"},
 	Builtin{name: "timers.debounce", js: "__sui_timers_debounce({0}, {1})"},
 	Builtin{name: "timers.throttle", js: "__sui_timers_throttle({0}, {1})"},

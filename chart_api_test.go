@@ -160,7 +160,7 @@ view main {
 	}
 	js := GenerateJs(prog)
 	for _, want := range []string{
-		`data-sui-chart-state-mode="static"`,
+		`data-sui-chart-edit-mode="none"`,
 		`data-sui-chart-onshapeclick="clicked"`,
 		`data-sui-chart-ontagclick="clicked"`,
 		`data-sui-chart-onshapemouseover="clicked"`,
@@ -188,7 +188,8 @@ view main {
 	}
 	model := StringifyJson(guiModelJson(prog))
 	for _, want := range []string{
-		`"chartStateMode":"static"`,
+		`"chartEditMode":"none"`,
+		`"kind":"graph"`,
 		`"onShapeClick":"clicked"`,
 	} {
 		if !strings.Contains(model, want) {

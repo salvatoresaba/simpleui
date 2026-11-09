@@ -1388,7 +1388,7 @@ L'inspector dedicato **Chart** è ordinato per accesso rapido:
 | settings | apre il pannello unificato **Chart settings** (aspetto, punti, tooltip, tabella, interazioni, eventi, element hints e campi dati) |
 | bins | numero bucket dell'istogramma (1-100) |
 | min / max | intervallo gauge (default 0-100) |
-| interactive | abilita tooltip, hover/selezione e modifica Gantt |
+| edit mode | non-editable, editable per la sessione o editable persistent tra reload/riavvio |
 | show grid / show legend / show values | toggle di presentazione |
 | preset | 14 preset colore classici più un preset per ogni famiglia di tema (Light/Dark) che scrivono variabili CSS in `style expr` |
 | edit data | pulsante in fondo che apre il pannello overlay spostabile e ridimensionabile dei dati. Colonne e serie numeriche sono rilevate automaticamente |
@@ -1532,9 +1532,9 @@ espliciti: nomi, etichette e descrizioni restano nella tabella e nell'inspector.
 I link hanno tipo linea (straight, arc, bezier, orthogonal,
 circular), spessore, tratteggio, colore, marker iniziale/finale e tag/nota. Il
 layout è automatico per livelli, con `x`/`y` espliciti per posizioni manuali.
-I documenti legacy con `chartType: "state"` (alias `statemachine`) continuano ad
-aprirsi e disegnarsi; il vecchio tipo compare come **Block diagram (legacy
-chart)** solo per quei chart.
+I documenti con `chartType: "state"` (o `statemachine`) vengono migrati al
+controllo **Graph** durante il parsing; il menu dei tipi non offre più il
+diagramma a blocchi.
 
 Il pulsante a ingranaggio nell'intestazione apre un pannello **Settings** a tab:
 **General** (titolo, colori bordo forme/evidenziazione, tema, switch ancore e
@@ -1545,15 +1545,13 @@ GRID/SHAPES/LINKS/TAGS ricompare il pannello General. I default SHAPES usano due
 colonne allineate con righe di pari altezza. Il grafo mantiene solo diagramma,
 tabella forme/link e controlli di aggiunta. **Export JSON** include forme, link e
 impostazioni complete: reimportandolo il diagramma viene ricostruito identico.
-Lo switch **Diagram edit mode** nella tab Interactions passa tra **Editing** e
-**Static**. Static rimuove selezione, drag/resize e maniglie mantenendo pan/zoom;
-lo stesso valore è disponibile come `stateMode` e nelle impostazioni chart del
-designer. La select **Edit mode** della stessa tab è invece l'impostazione a 3
-stati dei controlli dati: **non-editable** (sola visualizzazione, con tooltip e
-selezione), **editable** (modifiche per la sessione della pagina, dati del
-sorgente ripristinati al reload) ed **editable persistent** (modifiche salvate in
-`localStorage` e mantenute dopo reload/riavvio, compresi dati importati e
-controlli inizialmente vuoti riempiti dall'utente). In modalità statica ogni interazione viene accodata dal chart; SUI consuma la
+La select **Edit mode** nella tab Interactions è l'impostazione a 3 stati:
+**non-editable** (sola visualizzazione, con tooltip, selezione e coda eventi),
+**editable** (modifiche per la sessione della pagina, dati del sorgente
+ripristinati al reload) ed **editable persistent** (dati, geometria, stile e
+attributi runtime salvati in `localStorage` e mantenuti dopo reload/riavvio,
+compresi dati importati e controlli inizialmente vuoti riempiti dall'utente).
+In modalità non-editable ogni interazione viene accodata dal chart; SUI consuma la
 lista con `chart.pollEvents` / `chart.nextEvent` e decide quale funzione esterna
 chiamare. L'elemento della lista contiene `event`, `kind`, `part`, `id`,
 `label`, `tag`, coordinate e modificatori. I callback diretti legacy restano
@@ -1739,7 +1737,7 @@ grafico include tutte le righe; Settings esporta le righe e colonne visibili.
 **Chart settings** apre il pannello unificato con tab Appearance, Points, Tooltip,
 Table, Interactions, Events e Data. Controlla tema dark/light, **Editable colors**
 (color picker on/off), preset, point size e point width, tooltip, tabella, **Column filters**
-on/off, modalità interactive, **Edit mode** (**non-editable**, **editable** o **editable persistent**), **Critical path**, **Auto schedule**, **Holidays**, **Weekend**,
+on/off, **Edit mode** (**non-editable**, **editable** o **editable persistent**), **Critical path**, **Auto schedule**, **Holidays**, **Weekend**,
 **Timezone**, **Link color**, **Link width** (default `1px`), **Min link gap**
 (default `4px`), **Line style**,
 **Arrow**, **Arrow size**, **Bar border** e **Bar border color**; la tab Data
@@ -1754,7 +1752,7 @@ nuovo, salvo richiesta di movimento ridotto.
 I grafici ricevono il focus da tastiera: frecce per spostarsi tra gli elementi,
 Home/End per saltare, Enter/Spazio per selezionare, Escape per chiudere il tooltip.
 
-Con **interactive** attivo, le celle Task, WBS parent, Start, End, Progress, Group e Depends on sono modificabili;
+Con **edit mode** editable o persistent, le celle Task, WBS parent, Start, End, Progress, Group e Depends on sono modificabili;
 anche le celle Label/X/serie non Gantt sono modificabili e chiamano `onDataChange`
 (i bin dell'istogramma restano read-only).
 Con **tableAddRow** attivo, **+ Row** aggiunge un task, lo seleziona, cancella i
@@ -1775,7 +1773,7 @@ disponibili su ogni grafico. Le righe Gantt sono target da tastiera: Left/Right
 spostano, Shift+Left/Right ridimensionano la fine, Alt+Left/Right l'inizio,
 Enter apre il menu attività e il connettore dipendenze apre con Enter il
 selettore destinazione. Una dipendenza focalizzata supporta Enter/Shift+F10 per
-la modifica e Delete per la rimozione. **interactive** abilita inoltre
+la modifica e Delete per la rimozione. **edit mode** editable/persistent abilita inoltre
 drag/resize Gantt, gruppi collassabili e celle Gantt modificabili. Le modifiche
 sono autosalvate in una bozza locale e non diventano una versione finché non si
 preme **Commit** nell'intestazione. **Commit changes...** e **Version history...**
@@ -1862,8 +1860,8 @@ dimostrativo; usa **Edit data** o collega uno stato/espressione. Riempie il
 contenitore (`width: "100%"`, `height: "100%"`). È un controllo foglia: non può contenere
 elementi figli. La select **Edit mode** in **Graph settings → Interactions** rende
 il diagramma non-editable, editable per la sessione o editable persistent
-(`localStorage` tra reload/riavvio); lo switch separato **Diagram edit mode**
-continua a scegliere tra chrome Editing e Static.
+(`localStorage` tra reload/riavvio). Controlla anche la modifica della tabella e
+le maniglie: non c'è più uno switch separato.
 
 L'inspector del graph è ordinato così:
 
@@ -1872,7 +1870,6 @@ L'inspector del graph è ordinato così:
 | Graph settings | primo pulsante; apre lo stesso pannello runtime dell'ingranaggio (Generale più GRID, SHAPES, LINKS, TAGS e HINTS) |
 | Styles | preset colore e **Edit styles...**, che apre il Graph style editor con i tab Title, Frame, Buttons, Table e Scrollbars |
 | show table | mostra o nasconde la tabella sincronizzata |
-| edit table | abilita la modifica delle celle, dei colori, del tipo di forma, delle impostazioni degli elementi e la cancellazione delle righe; se disattivato la tabella è in sola lettura e la colonna azioni non compare |
 | settings button | mostra o nasconde l'ingranaggio che apre Graph settings |
 | zoom buttons | mostra o nasconde i pulsanti zoom, reset e fit |
 | add element button | mostra o nasconde il pulsante + Add per forme e link |
@@ -1881,8 +1878,8 @@ L'inspector del graph è ordinato così:
 
 Il selettore del tipo non compare: `graph` disegna sempre la geometria a blocchi
 e non scrive `chartType` nel sorgente. Per lo stesso motivo il tipo è disabilitato
-nell'editor dati. L'inspector non mostra più zoom iniziale, interactive, element
-hints o attributi chart per Graph.
+nell'editor dati. L'inspector non mostra più zoom iniziale, element hints o
+attributi chart per Graph.
 
 Il pannello runtime **Graph settings** aperto dall'ingranaggio (o dal pulsante
 Graph settings dell'inspector) non ha più un tab **Style**. Il tab **General**
@@ -1924,15 +1921,14 @@ mentre l'intestazione e i pulsanti sopra di essa restano fissi. Ridimensionando 
 contenitore l'altezza della tabella resta costante e lo spazio in più va al
 grafico.
 
-**edit table** abilita la modifica nella tabella: la cella Element mostra color
-picker e campo testo, Tag e Hint sono modificabili, Type diventa una select e
-l'ultima colonna espone impostazioni testo, proprietà elemento e cancellazione
-riga. Se è disattivato la tabella è in sola lettura: le celle mostrano testo
-semplice, la colonna azioni non compare e il pulsante Add row sparisce. Mentre si
-scrive in una cella il suo tooltip viene nascosto. Anche **Edit mode** in Graph
-settings abilita la modifica della tabella. I Graph partono in modalità statica
-nel designer; gli oggetti esistenti si modificano dal Graph settings panel,
-mentre il pulsante + Add può essere mostrato dal relativo switch.
+Con **edit mode** editable o persistent la tabella è modificabile: la cella
+Element mostra color picker e campo testo, Tag e Hint sono modificabili, Type
+diventa una select e l'ultima colonna espone impostazioni testo, proprietà
+elemento e cancellazione riga. In modalità non-editable la tabella è in sola
+lettura: le celle mostrano testo semplice, la colonna azioni non compare e il
+pulsante Add row sparisce. Mentre si scrive in una cella il suo tooltip viene
+nascosto. I nuovi Graph partono non-editable; la modalità si sceglie in Graph
+settings.
 
 ## Controllo Date/Time picker
 

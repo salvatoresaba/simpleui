@@ -2452,14 +2452,12 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		o.obj["chartTableSteppers"] = JBool(false)
 		o.obj["chartTableContextMenu"] = JBool(false)
 		o.obj["chartTableSelection"] = JStr("row")
-		o.obj["chartTableEdit"] = JBool(false)
 		o.obj["chartCriticalPath"] = JBool(false)
 		o.obj["chartHolidays"] = JStr("")
 		o.obj["chartWeekend"] = JStr("")
 		o.obj["chartTimezone"] = JStr("")
 		o.obj["chartShowNonWorkingDays"] = JBool(true)
 		o.obj["chartBins"] = JStr("10")
-		o.obj["chartInteractive"] = JBool(false)
 		o.obj["chartColorPicker"] = JBool(true)
 		o.obj["chartSettingsButton"] = JBool(true)
 		o.obj["chartShowZoom"] = JBool(true)
@@ -2534,7 +2532,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if chartTag(e.tag) && (a.key == "chartType" || a.key == "theme" || a.key == "ganttScale" || a.key == "linkColor" || a.key == "linkWidth" || a.key == "linkGap" || a.key == "linkStyle" || a.key == "arrowType" || a.key == "arrowSize" || a.key == "barBorderColor" || a.key == "format" || a.key == "x" ||
 			a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
-			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "tableView" || a.key == "tableSelection" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "bins" || a.key == "min" || a.key == "max" || a.key == "stateMode" ||
+			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "tableView" || a.key == "tableSelection" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius") {
 			// Chart parameters are literal text in the designer. A reactive
 			// expression is preserved verbatim in chartExprs so round-tripping
@@ -2560,9 +2558,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if chartTag(e.tag) && a.key == "editMode" {
 			o.obj["chartEditMode"] = JStr(partsLiteral(a.text))
-		} else if chartTag(e.tag) && a.key == "interactive" {
-			o.obj["chartInteractive"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
-		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableEdit" || a.key == "criticalPath" || a.key == "colorPicker" || a.key == "settingsButton" ||
+		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "criticalPath" || a.key == "colorPicker" || a.key == "settingsButton" ||
 			a.key == "showResources" || a.key == "showProgress" || a.key == "showSlack" || a.key == "showCosts" || a.key == "statusColors" || a.key == "autoSchedule" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "stateHints" ||
 			a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory") {
 			field := "chart" + strings.ToUpper(a.key[4:5]) + a.key[5:]
@@ -2604,9 +2600,6 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 			if a.key == "tableContextMenu" {
 				field = "chartTableContextMenu"
-			}
-			if a.key == "tableEdit" {
-				field = "chartTableEdit"
 			}
 			if a.key == "criticalPath" {
 				field = "chartCriticalPath"
@@ -2856,9 +2849,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 	// nested trow/tcell children (the `columns:` form). Parse them before the
 	// row scan so the designer never drops editable/labels/sortable on a
 	// header-only table.
-	editable := false
 	editMode := ""
-	fixed := false
 	columns := ""
 	columnLabels := ""
 	columnWidths := ""
@@ -2878,12 +2869,8 @@ func guiTableFrom(e *Element) (JVal, bool) {
 	for a := 0; a < len(e.attrs); a++ {
 		at := e.attrs[a]
 		switch at.key {
-		case "editable":
-			editable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
 		case "editMode":
 			editMode = partsLiteral(at.text)
-		case "fixed":
-			fixed = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
 		case "cellText":
 			cellText = partsLiteral(at.text)
 		case "sortable":
@@ -3002,7 +2989,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 			"cstyles", JArr(styleRow),
 			"rowstyles", JArr(JObj("bg", JStr(""), "color", JStr(""), "extra", JStr(""))),
 			"caption", JStr(captionText), "capstyle", JStr(captionStyle),
-			"editable", JBool(editable), "editMode", JStr(editMode), "fixed", JBool(fixed),
+			"editMode", JStr(editMode),
 			"columns", JStr(columns), "columnLabels", JStr(columnLabels), "columnWidths", JStr(columnWidths),
 			"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
 			"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),
@@ -3107,7 +3094,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		"cols", JInt(cols), "rows", JInt(rows), "header", JInt(headerCount),
 		"cells", cells, "spans", spans, "cstyles", cstyles, "rowstyles", rowstyles,
 		"caption", JStr(captionText), "capstyle", JStr(captionStyle),
-		"editable", JBool(editable), "editMode", JStr(editMode), "fixed", JBool(fixed),
+		"editMode", JStr(editMode),
 		"columns", JStr(columns), "columnLabels", JStr(columnLabels), "columnWidths", JStr(columnWidths),
 		"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
 		"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),

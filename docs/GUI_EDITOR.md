@@ -1255,10 +1255,13 @@ Table settings groups:
   returns on reload) and **editable persistent** (edits, imported data and
   runtime-created workbook sheets are stored in `localStorage` and survive
   reload/restart; if the table starts empty the data created by the user is
-  kept). The cell text mode is **truncate** (default; the column width never
-  grows with the text, a single line with an ellipsis and the full text in a
-  hover overlay) or **wrap** (the column width stays fixed, the text wraps and
-  the row height grows). Runtime cell and
+  kept). In persistent mode the runtime column widths, row heights, header
+  labels, sort/filter/page state and cell text mode are saved too. The runtime
+  table settings panel shows **Reset saved data** to discard them and restore the
+  design-time table. The cell text mode is **truncate** (default; the column
+  width never grows with the text, a single line with an ellipsis and the full
+  text in a hover overlay) or **wrap** (the column width stays fixed, the text
+  wraps and the row height grows). Runtime cell and
   header edits stay in the table store across re-renders and sheet switches for
   the page session; typing never rebuilds the table, the value is finalized on
   blur or after a short pause and change events run on blur. Cell input events
@@ -1334,7 +1337,7 @@ The dedicated **Chart** inspector is ordered for quick access:
 | settings | opens the unified **Chart settings** panel (appearance, points, tooltip, table, interactions, events, element hints and data fields) |
 | bins | histogram bucket count (1-100) |
 | min / max | gauge range (default 0-100) |
-| interactive | enable tooltips, hover/selection and Gantt editing |
+| edit mode | non-editable, editable for the page session, or editable persistent across reload/restart |
 | show grid / show legend / show values | chart presentation toggles |
 | preset | 14 classic color presets plus one preset for every theme family (Light/Dark) that write CSS variables into `style expr` |
 | edit data | button that opens the movable, resizable chart-data overlay at the bottom of the inspector. Data columns and numeric series are auto-detected |
@@ -1471,9 +1474,10 @@ Only explicit tags are rendered on the diagram; shape names, labels and
 descriptions stay in the table and inspector. Links have a line subtype
 (straight, arc, bezier, orthogonal, circular), width, dash, color, start/end
 markers and an optional visible tag/note. The diagram is laid out automatically by level,
-with explicit `x`/`y` coordinates available for manual placement. Legacy
-documents using `chartType: "state"` (`statemachine` alias) still open and render;
-the old type is shown as **Block diagram (legacy chart)** only for those charts.
+with explicit `x`/`y` coordinates available for manual placement. Documents
+using `chartType: "state"` (`statemachine` alias) are migrated to the dedicated
+**Graph** control when parsed; the chart type menu no longer offers the block
+diagram.
 
 The gear button in the chart header opens a tabbed **Settings** panel: **General**
 (chart title, shape border/highlight colors, theme, show-anchors switch plus one
@@ -1484,13 +1488,13 @@ sub-panel restores the General panel. The SHAPES defaults use two aligned
 columns with matching row heights. The graph itself keeps only the diagram,
 the shapes/links table and the add controls. **Export JSON** embeds the full
 shapes, links and settings so re-importing it reconstructs the diagram exactly.
-The **Diagram edit mode** switch in the Interactions tab toggles between
-**Editing** and **Static**. Static mode removes selection, drag/resize and
-editing handles while keeping pan/zoom; the same value is available as
-`stateMode` and in the designer
-chart settings. In static mode every interaction is queued by the chart; SUI
-consumes the queue with `chart.pollEvents` / `chart.nextEvent` and decides which
-external function to call. The queue item contains `event`, `kind`, `part`,
+The **Edit mode** select in the Interactions tab controls the diagram:
+**non-editable** removes selection, drag/resize and editing handles while keeping
+pan/zoom; **editable** keeps them for the page session; **persistent** also saves
+geometry/style changes across reload/restart. In non-editable mode every
+interaction is queued by the chart; SUI consumes the queue with
+`chart.pollEvents` / `chart.nextEvent` and decides which external function to
+call. The queue item contains `event`, `kind`, `part`,
 `id`, `label`, `tag` and pointer/modifier state. Legacy direct callbacks
 are still available (`chart.on`, element data fields, chart-level `onShapeClick`
 etc.) but the event list is the recommended model. Shape ids are mandatory and
@@ -1670,8 +1674,9 @@ Right-click a chart, or use its **⚙** button, for SVG, PNG, CSV, TSV, JSON or
 JSONL export, grouped in the **Export** submenu of the chart menu. Chart export
 includes all rows; table Settings exports the visible rows and columns.
 
-When **interactive** is on, Gantt Task, WBS parent, Start, End, Progress, Group and
-Depends on cells are editable; non-Gantt Label/X/series cells are also editable and call
+When **edit mode** is editable or persistent, Gantt Task, WBS parent, Start, End,
+Progress, Group and Depends on cells are editable; non-Gantt Label/X/series cells
+are also editable and call
 `onDataChange` (histogram bins remain read-only). With **tableAddRow** enabled, **+ Row** appends a new
 task, selects it, clears active filters, redraws the timeline and calls
 `onTaskChange`. Gantt and non-Gantt table edits can be undone/redone with
@@ -1705,8 +1710,11 @@ The **Edit mode** select in **Interactions** is the 3-state data-control
 setting: **non-editable** lets the user read data and use tooltips/selection but
 blocks table edits, imports, Gantt drag/resize and diagram edits; **editable**
 allows those changes for the page session and restores the source data on reload;
-**editable persistent** stores the changes (including imported data and empty
-tables filled by the user) in `localStorage` so they survive reload and restart.
+**editable persistent** stores the changes (including imported data, empty
+tables filled by the user, table layout, chart attributes and CSS variables) in
+`localStorage` so they survive reload and restart. The gear menu and the diagram
+settings panel expose **Reset saved data** to discard the persistent state and
+return to the design-time source.
 
 Charts can receive keyboard focus; use `ArrowLeft`/`ArrowRight` (or up/down) to
 move through data marks, `Home`/`End` to jump, `Enter`/`Space` to select, and
@@ -1717,7 +1725,7 @@ every chart. Gantt task rows are keyboard targets: Left/Right move,
 Shift+Left/Right resize the finish, Alt+Left/Right resize the start, Enter opens
 the task menu, and the dependency connector opens the target picker with Enter.
 Focused dependency links support Enter/Shift+F10 to edit and Delete to remove.
-**interactive** additionally enables Gantt drag/resize, collapsible groups and
+**edit mode** editable/persistent additionally enables Gantt drag/resize, collapsible groups and
 editable Gantt table cells. Task edits are auto-saved to a local draft and are
 not versioned until the header **Commit** button is pressed. **Commit changes...**
 and **Version history...** in the chart menu create and inspect versions with
@@ -1801,8 +1809,8 @@ states and transitions are data, so they are not injected as demo content; use
 "100%"`, `height: "100%"`). It is a leaf control: it cannot contain child
 elements. The **Edit mode** select in **Graph settings  Interactions** makes
 the diagram non-editable, editable for the page session, or editable persistent
-(`localStorage` across reload/restart); the separate **Diagram edit mode**
-switch still chooses between Editing and Static chrome.
+(`localStorage` across reload/restart). It also controls table editing and the
+editing handles, so there is no separate diagram editing switch.
 
 The graph inspector is ordered as follows:
 | Field | Meaning |
@@ -1810,7 +1818,6 @@ The graph inspector is ordered as follows:
 | Graph settings | first button; opens the same runtime panel as the chart gear (General plus GRID, SHAPES, LINKS, TAGS and HINTS) |
 | Styles | color preset and **Edit styles...**, which opens the Graph style editor with Title, Frame, Buttons, Table and Scrollbars tabs |
 | show table | shows or hides the synchronized data table |
-| edit table | allows editing table cells, colors, shape types, element settings and deleting rows; when off the table is read-only and the actions column is hidden |
 | settings button | shows or hides the gear that opens Graph settings |
 | zoom buttons | shows or hides zoom, reset and fit buttons |
 | add element button | shows or hides the + Add shape/link button |
@@ -1861,15 +1868,13 @@ PageUp/PageDown, Home and End). Adding rows scrolls only the table body, while t
 it stay fixed. Resizing the container keeps the table height and gives the extra
 space to the chart.
 
-**edit table** enables editing in the table: the Element cell shows a color
-picker and text field, Tag and Hint are editable, Type becomes a select, and the
-last column exposes text settings, element properties and row deletion. With it
-off, the table is read-only: cells show plain text, the actions column is hidden
-and the Add row button disappears. While typing in a cell its tooltip is
-suppressed. **Edit mode** in Graph settings also enables table editing. Graphs
-default to static editing in the designer; existing shapes and links are edited
-from the Graph settings panel, while the + Add button can still be shown with
-its switch.
+When **edit mode** is editable or persistent, the table is editable: the Element
+cell shows a color picker and text field, Tag and Hint are editable, Type becomes
+a select, and the last column exposes text settings, element properties and row
+deletion. In non-editable mode the table is read-only: cells show plain text, the
+actions column is hidden and the Add row button disappears. While typing in a
+cell its tooltip is suppressed. New graphs default to non-editable; choose the
+mode in Graph settings.
 
 ## Date/Time picker control
 

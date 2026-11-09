@@ -20,7 +20,7 @@ func TestGuiDesignerE2E(t *testing.T) {
 	}
 
 	const source = `view main {
-	chart "C" name: "c" data: "\{\"states\":[\{\"id\":\"a\",\"label\":\"Alpha\",\"hint\":\"H1\"\},\{\"id\":\"b\",\"label\":\"Beta\"\}]\}" chartType: "state"
+	chart "Bars" name: "b" data: "Month,Value\nJan,12\nFeb,18" chartType: "bar"
 }`
 
 	page := strings.Replace(guiHTML, "</body>", guiE2EScript+"</body>", 1)
@@ -150,12 +150,15 @@ const guiE2EScript = `<script>
   try {
     for (var i = 0; i < 120 && !document.querySelector('#nodes .node'); i++) await wait(100);
     var chartNode = Array.prototype.slice.call(document.querySelectorAll('#nodes .node')).filter(function (el) {
-      return (el.textContent || '').replace(/\s+/g, ' ').indexOf('chart') >= 0;
+      return (el.textContent || '').replace(/\s+/g, ' ').indexOf('Bars') >= 0;
     })[0];
     if (!chartNode) throw new Error('chart node not found');
     chartNode.click();
     await wait(400);
-    var settings = Array.prototype.slice.call(document.querySelectorAll('#inspector button')).filter(function (b) { return b.textContent.trim() === 'Chart settings...'; })[0];
+    var settings = Array.prototype.slice.call(document.querySelectorAll('#inspector button')).filter(function (b) {
+      var t = b.textContent.trim();
+      return t === 'Graph settings...' || t === 'Chart settings...';
+    })[0];
     if (!settings) throw new Error('chart settings button not found');
     settings.click();
     await wait(400);
@@ -180,24 +183,6 @@ const guiE2EScript = `<script>
     apply.click();
     await wait(1000);
     if (document.getElementById('out').value.indexOf('stateHintOpacity: "0.4"') < 0) throw new Error('hint opacity not applied');
-    // Element hints now live in Chart settings -> Data.
-    var dataTab = document.querySelector('#csettings .cset-tab[data-cset="data"]');
-    if (!dataTab) throw new Error('chart settings data tab missing');
-    dataTab.click();
-    await wait(150);
-    var elementButton = Array.prototype.slice.call(document.querySelectorAll('#csettings button')).filter(function (b) { return b.textContent.trim() === 'Edit hints...'; })[0];
-    if (!elementButton) throw new Error('Element hints button not found');
-    elementButton.click();
-    await wait(400);
-    var rows = document.querySelectorAll('#celemhints-rows .celemhints-row[data-elem-index]');
-    if (rows.length < 2) throw new Error('element hint rows missing');
-    var hintInput = rows[0].querySelectorAll('input')[1];
-    hintInput.value = 'E2E|LINE';
-    var elementApply = Array.prototype.slice.call(document.querySelectorAll('#celemhints .pfbtns button')).filter(function (b) { return b.textContent.trim() === 'Apply'; })[0];
-    if (!elementApply) throw new Error('element hints Apply missing');
-    elementApply.click();
-    await wait(1000);
-    if (document.getElementById('out').value.indexOf('E2E|LINE') < 0) throw new Error('element hint not applied');
     var settingsCancel = Array.prototype.slice.call(document.querySelectorAll('#csettings .pfbtns button')).filter(function (b) { return b.textContent.trim() === 'Cancel'; })[0];
     if (settingsCancel) settingsCancel.click();
     await wait(400);

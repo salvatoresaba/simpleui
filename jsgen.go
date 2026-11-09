@@ -46,7 +46,7 @@ var SuiPrelude = "\"use strict\";\n" +
     }
     if (!target) continue;
     var old = saved[s].node, diff = false;
-    var redrawAttr = /^data-sui-chart-(data|type|format|x|y|width|height|overflow|zoom|point-width|point-size|bins|min|max|table-view|table-filters|table-add-row|table-delete-row|table-steppers|table-context-menu|table-selection|table-edit|critical-path|holidays|weekend|timezone|show-non-working-days|progress-column|interactive|state-mode|grid|legend|values|title)$/;
+    var redrawAttr = /^data-sui-chart-(data|type|format|x|y|width|height|overflow|zoom|point-width|point-size|bins|min|max|table-view|table-filters|table-add-row|table-delete-row|table-steppers|table-context-menu|table-selection|critical-path|holidays|weekend|timezone|show-non-working-days|progress-column|grid|legend|values|title)$/;
     for (var k = 0; k < target.attributes.length; k++) {
       var attr = target.attributes[k];
       if (attr.name === 'class') {
@@ -1632,6 +1632,9 @@ func stdBodyJs(key string, target string) string {
 	if key == "table_clear" {
 		return "(name) => __SUI_TBL.clear(name)"
 	}
+	if key == "table_clearpersisted" {
+		return "(name) => __SUI_TBL.clearPersisted(name)"
+	}
 	// Core chart helpers: update rendered state-chart tags and element styles.
 	if key == "chart_settag" {
 		return "(name, id, text, color, textColor) => __SUI_CHART.setTag(name, id, text, color, textColor)"
@@ -1690,6 +1693,9 @@ func stdBodyJs(key string, target string) string {
 	}
 	if key == "chart_clearevents" {
 		return "(name) => __SUI_CHART.clearEvents(name)"
+	}
+	if key == "chart_clearpersisted" {
+		return "(name) => __SUI_CHART.clearPersisted(name)"
 	}
 	if key == "chart_eventcount" {
 		return "(name) => __SUI_CHART.eventCount(name)"
@@ -2072,29 +2078,15 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 			sb.WriteString(" name=\"" + htmlEscape(v) + "\"")
 		}
 		tableEditMode := treeTextAttr(e, "editMode")
-		tableEditable := false
-		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
-			tableEditable = true
-		}
 		if tableEditMode == "editable" || tableEditMode == "persistent" {
-			tableEditable = true
-		} else if tableEditMode == "none" {
-			tableEditable = false
-		}
-		if tableEditable {
 			sb.WriteString(" data-sui-editable=\"1\"")
 		}
 		if tableEditMode != "" {
 			sb.WriteString(" data-sui-edit-mode=\"" + htmlEscape(tableEditMode) + "\"")
 		}
-		fixedAttr := false
-		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
-			sb.WriteString(" data-sui-fixed=\"1\"")
-			fixedAttr = true
-		}
 		if v := treeTextAttr(e, "cellText"); v != "" {
 			sb.WriteString(" data-sui-cell-text=\"" + htmlEscape(v) + "\"")
-			if v == "truncate" && !fixedAttr {
+			if v == "truncate" {
 				sb.WriteString(" data-sui-fixed=\"1\"")
 			}
 		}
@@ -2445,7 +2437,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "editMode" || a.key == "chartType" || a.key == "format" || a.key == "theme" ||
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
-			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "interactive" || a.key == "stateMode" || a.key == "stateHints" || a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintTextAlign" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius" ||
+			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "stateHints" || a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintTextAlign" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius" ||
 			a.key == "colorPicker" || a.key == "settingsButton" || a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||
 			a.key == "onShapeClick" || a.key == "onShapeDoubleClick" || a.key == "onShapeMouseOver" || a.key == "onShapeMouseOut" || a.key == "onShapeContextMenu" ||
 			a.key == "onLinkClick" || a.key == "onLinkDoubleClick" || a.key == "onLinkMouseOver" || a.key == "onLinkMouseOut" || a.key == "onLinkContextMenu" ||
@@ -2473,7 +2465,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			continue
 		}
-		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "editMode" || a.key == "fixed" ||
+		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
 			a.key == "cellText" || a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
@@ -3004,8 +2996,6 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString(chartFlagValue(e, "tableContextMenu", false))
 	b.WriteString("\" data-sui-chart-table-selection=\"")
 	b.WriteString(chartAttrValue(e, "tableSelection", "row"))
-	b.WriteString("\" data-sui-chart-table-edit=\"")
-	b.WriteString(chartFlagValue(e, "tableEdit", false))
 	b.WriteString("\" data-sui-chart-critical-path=\"")
 	b.WriteString(chartFlagValue(e, "criticalPath", false))
 	b.WriteString("\" data-sui-chart-holidays=\"")
@@ -3024,8 +3014,6 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString(chartAttrValue(e, "min", ""))
 	b.WriteString("\" data-sui-chart-max=\"")
 	b.WriteString(chartAttrValue(e, "max", ""))
-	b.WriteString("\" data-sui-chart-interactive=\"")
-	b.WriteString(chartFlagValue(e, "interactive", false))
 	b.WriteString("\" data-sui-chart-color-picker=\"")
 	b.WriteString(chartFlagValue(e, "colorPicker", true))
 	b.WriteString("\" data-sui-chart-settings-button=\"")
@@ -3222,12 +3210,6 @@ func chartDataAttrs(e *Element) string {
 	b.WriteString(chartAttrValue(e, "stateGridGap", "24"))
 	b.WriteString("\" data-sui-chart-state-grid-color=\"")
 	b.WriteString(chartAttrValue(e, "stateGridColor", ""))
-	b.WriteString("\" data-sui-chart-state-mode=\"")
-	stateModeDefault := "editing"
-	if e.tag == "graph" {
-		stateModeDefault = "static"
-	}
-	b.WriteString(chartAttrValue(e, "stateMode", stateModeDefault))
 	b.WriteString("\" data-sui-chart-state-hints=\"")
 	b.WriteString(chartFlagValue(e, "stateHints", true))
 	b.WriteString("\" data-sui-chart-state-hint-bg=\"")

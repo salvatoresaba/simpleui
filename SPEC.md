@@ -171,7 +171,7 @@ ReturnStmt:= 'return' [ Expr ]
 | contains | `(string, string) -> bool` | |
 | split   | `(string, string) -> array[string]` | separator string |
 | join    | `(array[string], string) -> string` | |
-| substr  | `(string, int, int) -> string` | start index + count |
+| substring | `(string, int, int) -> string` | start index + count |
 | str     | `(any) -> string` | |
 | int     | `(number) -> int` | truncates (`Math.trunc`) |
 | float   | `(number) -> float` | |

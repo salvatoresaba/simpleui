@@ -1572,10 +1572,8 @@ RUNNING</div>
       <div class="pfrow"><label>Sticky header</label><input type="checkbox" id="cs-tb-sticky" checked></div>
     </div>
     <div class="cset-pane" data-pane="interactions">
-      <div class="cset-hint">Edit mode: non-editable only displays data; editable allows page-session edits; editable persistent keeps user changes after reload/restart. Interactive enables tooltips, selection and hover.</div>
+      <div class="cset-hint">Edit mode: non-editable only displays data and keeps tooltips/selection; editable allows page-session edits; editable persistent keeps data, layout and style changes after reload/restart.</div>
       <div class="pfrow"><label>Edit mode</label><select id="cs-edit-mode"><option value="none">Non-editable</option><option value="editable">Editable</option><option value="persistent">Editable persistent</option></select></div>
-      <div class="pfrow"><label>Interactive</label><input type="checkbox" id="cs-interactive"></div>
-      <div class="pfrow"><label>Diagram edit mode</label><input type="checkbox" id="cs-state-edit" checked></div>
       <div class="pfrow"><label>Hover hints</label><input type="checkbox" id="cs-state-hints" checked></div>
       <div class="pfrow"><label>Hint style</label><button class="btn" onclick="openChartHintsCfg()">HINTS...</button></div>
       <div class="pfrow"><label>Show resources</label><input type="checkbox" id="cs-gantt-resources"></div>
@@ -2026,32 +2024,18 @@ function normalizeTables(nodes) {
       if (n.caption === undefined) n.caption = "";
       if (n.capstyle === undefined) n.capstyle = "";
       if (n.captionShow === undefined) n.captionShow = !!(n.caption && n.caption.trim());
-      // Keep "" when the source did not ask for a mode: legacy tables and
-      // workbook sheets keep their previous data-entry behavior. An explicit
-      // "none" is a real read-only request and must be preserved.
-      if (n.editMode === undefined) n.editMode = n.editable ? "editable" : "";
-      if (n.editMode !== "" && n.editMode !== "none" && n.editMode !== "editable" && n.editMode !== "persistent") {
-        n.editMode = n.editable ? "editable" : "";
+      if (n.editMode === undefined || n.editMode === "") n.editMode = "none";
+      if (n.editMode !== "none" && n.editMode !== "editable" && n.editMode !== "persistent") {
+        n.editMode = "none";
       }
-      n.editable = n.editMode === "editable" || n.editMode === "persistent";
-      if (n.fixed === undefined) n.fixed = false;
       if (n.cellText === undefined || n.cellText === "auto") n.cellText = "truncate";
       if (n.name === undefined) n.name = "";
       ensureTableBaseCss();
     }
     if (n.kind === "chart" || n.kind === "graph") {
-      // Keep "" when the source did not ask for a mode: legacy charts derive
-      // it at runtime from interactive/state mode. Explicit values win.
-      if (n.chartEditMode === undefined) n.chartEditMode = "";
-      if (n.chartEditMode !== "" && n.chartEditMode !== "none" && n.chartEditMode !== "editable" && n.chartEditMode !== "persistent") {
-        n.chartEditMode = "";
-      }
-      if (n.chartEditMode === "") {
-        // Materialize the legacy effective mode so the settings select shows
-        // it and a save keeps the previous behavior.
-        var diagram = n.kind === "graph" || n.chartType === "state" || n.chartType === "statemachine";
-        if (n.chartInteractive) n.chartEditMode = (diagram || n.chartType === "gantt") ? "persistent" : "editable";
-        else if (diagram) n.chartEditMode = "persistent";
+      if (n.chartEditMode === undefined || n.chartEditMode === "") n.chartEditMode = "none";
+      if (n.chartEditMode !== "none" && n.chartEditMode !== "editable" && n.chartEditMode !== "persistent") {
+        n.chartEditMode = "none";
       }
     }
     if (n.kind === "list") {
@@ -2093,9 +2077,7 @@ function newTableNode() {
   n.caption = "";
   n.capstyle = "";
   n.captionShow = false;
-  n.editable = false;
   n.editMode = "none";
-  n.fixed = false;
   n.cellText = "truncate";
   n.name = uniqueTableName();
   n.columns = "";
@@ -2345,12 +2327,9 @@ function newChartNode(skipDefaults) {
   n.chartBins = "10";
   n.chartMin = "";
   n.chartMax = "";
-  n.chartInteractive = false;
   // Data-control edit mode: none (read-only), editable (page session) or
-  // persistent (survives reload/restart). Legacy sources without this field
-  // derive it from interactive/state mode.
+  // persistent (survives reload/restart).
   n.chartEditMode = "none";
-  n.chartStateMode = "editing";
   n.chartStateHints = true;
   n.chartStateHintBg = "";
   n.chartStateHintOpacity = "";
@@ -2405,11 +2384,9 @@ function newGraphNode(skipDefaults) {
   n.chartDataExpr = false;
   n.chartFormat = "auto";
   n.chartEditMode = "none";
-  n.chartStateMode = "static";
   n.chartWidth = "100%";
   n.chartHeight = "100%";
   n.chartTableView = "chart";
-  n.chartTableEdit = false;
   if (!skipDefaults) applyChartDefaultsToNode(n, "graph");
   return n;
 }
@@ -6220,7 +6197,7 @@ var CHART_TYPE_SAMPLE_FAMILY = {
   heatmap: "heatmap", candlestick: "ohlc", boxplot: "boxplot",
   bullet: "bullet", dumbbell: "dumbbell", gantt: "gantt",
   histogram: "histogram", waterfall: "waterfall",
-  state: "state", statemachine: "state"
+  state: "state"
 };
 function chartSampleDataset(type, format) {
   var family = CHART_TYPE_SAMPLE_FAMILY[type] || "single";
@@ -6247,10 +6224,9 @@ var CHART_TYPE_OPTIONS = [
 ];
 var CHART_TYPE_LABEL = {};
 CHART_TYPE_OPTIONS.forEach(function(v){ CHART_TYPE_LABEL[v[0]] = v[1]; });
-// The block-diagram geometry is now the dedicated Graph control. Keep the
-// labels for legacy chartType sources so existing documents stay editable.
+// The block-diagram geometry is the dedicated Graph control; the internal
+// chart type remains "state" for its renderer.
 CHART_TYPE_LABEL.state = "Block diagram";
-CHART_TYPE_LABEL.statemachine = "Block diagram";
 function looksNumeric(v) {
   if (typeof v === "number") return isFinite(v);
   var s = String(v === null || v === undefined ? "" : v).trim().replace(/\s+/g, "").replace(",", ".");
@@ -6531,7 +6507,7 @@ function chartDataStateProfile(text, format) {
 }
 function chartDataCompatibility(profile, type) {
   if (!profile || type === "__expr__") return { ok: true, level: "warn", msg: "Chart type is an expression; compatibility is checked at runtime." };
-  if (type === "state" || type === "statemachine") {
+  if (type === "state") {
     if (profile.stateCount || profile.transitionCount) return { ok: true, level: "ok", msg: "Compatible with block diagram (" + profile.stateCount + " states, " + profile.transitionCount + " transitions)." };
     return { ok: false, level: "err", msg: "Block diagram data needs at least one state or transition." };
   }
@@ -6577,7 +6553,7 @@ function chartDataCompatibility(profile, type) {
 // shapes/links document, not a numeric series, and Gantt has its own date
 // profile, so a plain chart profile would report a false mismatch.
 function chartDataProfileForType(text, format, type, xField, yField) {
-  if (type === "state" || type === "statemachine") return chartDataStateProfile(text, format);
+  if (type === "state") return chartDataStateProfile(text, format);
   if (type === "gantt") return chartDataGanttProfile(text, format);
   return chartDataProfile(text, format, xField, yField);
 }
@@ -6585,15 +6561,8 @@ function chartTypeCompatibilityForData(text, format, type, xField, yField) {
   var profile = chartDataProfileForType(text, format, type, xField, yField);
   return { profile: profile, compat: chartDataCompatibility(profile, type) };
 }
-// Legacy chartType values stay selectable only on documents that already use
-// them, so the normal chart type menu no longer offers "State machine".
 function chartTypeMenuOptions(n) {
-  var out = CHART_TYPE_OPTIONS.slice();
-  var current = n && n.chartType ? String(n.chartType) : "";
-  if (current === "state" || current === "statemachine") {
-    out.push([current, "Block diagram (legacy chart)"]);
-  }
-  return out;
+  return CHART_TYPE_OPTIONS.slice();
 }
 // Decide what a chart type change implies for the current dataset. Numeric
 // types keep compatible data; an incompatible or empty dataset gets the
@@ -6787,7 +6756,7 @@ function chartDataUpdateStatus() {
     if (r.ok && String(chartDataDraft.literal || "").trim() !== "") {
       profile = chartDataDraft.type === "gantt"
         ? chartDataGanttProfile(chartDataDraft.literal, fmt === "__expr__" ? "auto" : fmt)
-        : (chartDataDraft.type === "state" || chartDataDraft.type === "statemachine"
+        : (chartDataDraft.type === "state"
           ? chartDataStateProfile(chartDataDraft.literal, fmt === "__expr__" ? "auto" : fmt)
           : chartDataProfile(chartDataDraft.literal, fmt === "__expr__" ? "auto" : fmt, chartDataDraft.xField, chartDataDraft.yField));
       compat = chartDataCompatibility(profile, chartDataDraft.type);
@@ -7133,10 +7102,6 @@ function graphControls(n) {
     value: n.chartTableView === "both" || n.chartTableView === "table",
     set: function(on){ n.chartTableView = on ? "both" : "chart"; }
   });
-  boolRow("edit table", "chartTableEdit", "Allow editing table cells, colors, shape types, element settings and deleting rows.", {
-    value: n.chartTableEdit === true,
-    set: function(on){ n.chartTableEdit = on; }
-  });
   boolRow("settings button", "chartSettingsButton", "Show the gear that opens the graph settings panel.", {
     value: n.chartSettingsButton !== false,
     set: function(on){ n.chartSettingsButton = on; }
@@ -7243,8 +7208,6 @@ function chartControls(n) {
   fields.grid = boolRow("show grid", "chartGrid", "Draw horizontal grid lines.");
   fields.legend = boolRow("show legend", "chartLegend", "Show a legend under the chart.");
   fields.values = boolRow("show values", "chartValues", "Print numeric values on bars/lines.");
-  fields.interactive = boolRow("interactive", "chartInteractive", "Legacy switch: when no edit mode is set it behaves like editable. Use Edit mode in Chart/Graph settings for the explicit 3-state choice.");
-  fields.interactive.title = "Legacy editing switch; edit modes are chosen in Chart/Graph settings.";
 
   var sep = document.createElement("div");
   sep.style.cssText = "border-top:1px solid var(--border);margin:8px 0 6px";
@@ -8888,19 +8851,14 @@ function normalizeWorkbooks() {
           var entries = workbookEntriesForTabs(n, p);
           if (entries) {
             entries.forEach(function(entry) {
-              var mode = entry.table.editMode;
+              var mode = entry.table.editMode || "none";
               if (mode === "none") {
-                // Explicit read-only workbook sheet: never force editability.
-                entry.table.editable = false;
                 entry.table.showAddTable = false;
                 entry.table.structureEditable = false;
               } else {
-                // A sheet that explicitly asks for row/column/cell selection is
-                // not a data-entry sheet: keep it read-only so selection works.
-                if (entry.table.editable || !entry.table.selection || entry.table.selection === "none") entry.table.editable = true;
                 // The runtime still creates the + for the designer preview; only
                 // editable workbooks keep it in a compiled app.
-                if (entry.table.editable) entry.table.showAddTable = true;
+                entry.table.showAddTable = true;
               }
               if (!entry.table.name) entry.table.name = uniqueTableName();
             });
@@ -8917,7 +8875,6 @@ function normalizeWorkbooks() {
 function wrapTableInWorkbook(path) {
   var table = byPath(path, root.children);
   if (!table || table.kind !== "table") return path;
-  table.editable = true;
   table.editMode = "editable";
   table.showAddTable = true;
   var wrap = pathOfTableWrapper(path);
@@ -8968,7 +8925,6 @@ function previewAddWorkbookSheet(d) {
     var tab = newTabNode("Table " + (tabCount + 1));
     var tbl = newTableNode();
     copyTableSheetLook(src, tbl);
-    tbl.editable = true;
     tbl.showAddTable = true;
     var wrap = newNode("div");
     wrap.class = "tscroll";
@@ -8993,17 +8949,15 @@ function copyTableSheetLook(src, dst) {
   dst.style = src.style || "";
   dst.capstyle = src.capstyle || "";
   if (src.class) dst.class = src.class.indexOf("suitbl") >= 0 ? src.class : ("suitbl " + src.class);
-  ["fixed", "sortable", "filterable", "multiSelect", "virtual", "showAddTable", "structureEditable"].forEach(function(k) {
+  ["sortable", "filterable", "multiSelect", "virtual", "showAddTable", "structureEditable"].forEach(function(k) {
     dst[k] = !!src[k];
   });
   // A new sheet is for manual data entry: never inherit read-only from the
   // source table. Without this the second sheet opens non-editable and the
   // preview falls back to type-to-edit (which reloads it on each key).
-  dst.editable = true;
   dst.editMode = "editable";
   dst.cellText = src.cellText || "truncate";
   if (dst.cellText === "auto") dst.cellText = "truncate";
-  if (dst.cellText === "truncate") dst.fixed = true;
   dst.pageSize = src.pageSize || "";
   dst.selection = src.selection || "";
   ["onCellClick", "onRowClick", "onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort"].forEach(function(k) {
@@ -9023,7 +8977,6 @@ function tableAddSheetAction() {
       var tab = newTabNode("Table " + (entries.length + 1));
       var tbl = newTableNode();
       copyTableSheetLook(srcTbl, tbl);
-      tbl.editable = true;
       var wrap = newNode("div");
       wrap.class = "tscroll";
       wrap.children = [tbl];
@@ -9047,7 +9000,6 @@ function tableAddSheetAction() {
       tab1.children = [container];
       var tbl2 = newTableNode();
       copyTableSheetLook(firstTbl, tbl2);
-      tbl2.editable = true;
       var wrap2 = newNode("div");
       wrap2.class = "tscroll";
       wrap2.children = [tbl2];
@@ -9580,7 +9532,6 @@ function tableControls(n, opts) {
     var v = editModeSel.value;
     withUndo(function(){
       n.editMode = v;
-      n.editable = v !== "none";
       if (v === "none") { n.showAddTable = false; n.structureEditable = false; }
     });
   };
@@ -9597,7 +9548,7 @@ function tableControls(n, opts) {
   cellTextSel.value = (n.cellText === "wrap") ? "wrap" : "truncate";
   cellTextSel.onchange = function(){
     var v = cellTextSel.value;
-    withUndo(function(){ n.cellText = v; n.fixed = v === "truncate"; });
+    withUndo(function(){ n.cellText = v; });
   };
   cellTextRow.appendChild(cellTextSel);
   behRows.push(cellTextRow);
@@ -11059,7 +11010,6 @@ function attrsOf(n) {
     a += chartParamAttr(n, "pointWidth", "chartPointWidth", n.chartPointWidth, "48", false);
     a += chartParamAttr(n, "pointSize", "chartPointSize", n.chartPointSize, "3", false);
     a += chartParamAttr(n, "tableView", "chartTableView", n.chartTableView, "chart", true);
-    a += chartBoolAttr(n, "tableEdit", "chartTableEdit", n.chartTableEdit, false);
     a += chartBoolAttr(n, "tableFilters", "chartTableFilters", n.chartTableFilters, true);
     a += chartBoolAttr(n, "tableAddRow", "chartTableAddRow", n.chartTableAddRow, false);
     a += chartBoolAttr(n, "tableDeleteRow", "chartTableDeleteRow", n.chartTableDeleteRow, false);
@@ -11075,8 +11025,6 @@ function attrsOf(n) {
     a += chartParamAttr(n, "bins", "chartBins", n.chartBins, "10", false);
     a += chartParamAttr(n, "min", "chartMin", n.chartMin, "", false);
     a += chartParamAttr(n, "max", "chartMax", n.chartMax, "", false);
-    if (n.chartInteractive) a += " interactive: true";
-    if (n.chartStateMode && n.chartStateMode !== "editing") a += " stateMode: \"" + esc(n.chartStateMode) + "\"";
     a += chartBoolAttr(n, "stateHints", "chartStateHints", n.chartStateHints, true);
   a += chartParamAttr(n, "stateHintBg", "chartStateHintBg", n.chartStateHintBg, "", true);
   a += chartParamAttr(n, "stateHintOpacity", "chartStateHintOpacity", n.chartStateHintOpacity, "", true);
@@ -11304,13 +11252,10 @@ function tcellToSui(n, r, c) {
 }
 function tableToSui(n, depth) {
   function ind(level) { var s = ""; for (var i = 0; i < level; i++) s += "\t"; return s; }
-  var cellText = n.cellText || "truncate";
-  if (cellText === "auto") cellText = "truncate";
-  var fixedMode = n.fixed || cellText === "truncate";
-  var tableMode = (n.editMode === "editable" || n.editMode === "persistent" || n.editMode === "none") ? n.editMode : (n.editable ? "editable" : "");
-  var extra = (n.editable ? " editable: true" : "") + (tableMode ? " editMode: \"" + esc(tableMode) + "\"" : "") + (fixedMode ? " fixed: true" : "");
-  if (cellText === "wrap") extra += ' cellText: "wrap"';
-  else if (cellText === "truncate") extra += ' cellText: "truncate"';
+  var cellText = n.cellText === "wrap" ? "wrap" : "truncate";
+  var tableMode = (n.editMode === "editable" || n.editMode === "persistent") ? n.editMode : "none";
+  var extra = " editMode: \"" + esc(tableMode) + "\"";
+  extra += cellText === "wrap" ? ' cellText: "wrap"' : ' cellText: "truncate"';
   if (n.columns) extra += " columns: \"" + esc(n.columns) + "\"";
   if (n.columnLabels) extra += " columnLabels: \"" + esc(n.columnLabels) + "\"";
   if (n.columnWidths) extra += " columnWidths: \"" + esc(n.columnWidths) + "\"";
@@ -14024,8 +13969,8 @@ function applyChartElementHints() {
 var chartSettingsNode = null;
 var chartSettingsProjectKind = null;
 var CHART_PROJECT_DEFAULT_KEYS = [
-  "styleExpr", "chartTheme", "chartColorPicker", "chartPointSize", "chartPointWidth", "chartInteractive",
-  "chartEditMode", "chartStateMode", "chartStateHints", "chartStateHintTextAlign", "chartShowResources", "chartShowProgress",
+  "styleExpr", "chartTheme", "chartColorPicker", "chartPointSize", "chartPointWidth",
+  "chartEditMode", "chartStateHints", "chartStateHintTextAlign", "chartShowResources", "chartShowProgress",
   "chartProgressColumn", "chartShowSlack", "chartShowCosts", "chartShowNonWorkingDays",
   "chartStatusColors", "chartAutoSchedule", "chartGanttScale", "chartLinkColor",
   "chartLinkWidth", "chartLinkGap", "chartLinkStyle", "chartArrowType", "chartArrowSize",
@@ -14209,8 +14154,6 @@ function openChartSettings(n, projectKind) {
   document.getElementById("cs-pointsize").value = n.chartPointSize || "3";
   document.getElementById("cs-pointwidth").value = n.chartPointWidth || "48";
   document.getElementById("cs-edit-mode").value = (n.chartEditMode === "editable" || n.chartEditMode === "persistent") ? n.chartEditMode : "none";
-  document.getElementById("cs-interactive").checked = !!n.chartInteractive;
-  document.getElementById("cs-state-edit").checked = n.chartStateMode !== "static";
   document.getElementById("cs-state-hints").checked = n.chartStateHints !== false;
   document.getElementById("cs-gantt-resources").checked = !!n.chartShowResources;
   document.getElementById("cs-gantt-progress").checked = !!n.chartShowProgress;
@@ -14326,8 +14269,6 @@ function chartSettingsValues(n) {
   v.chartPointWidth = document.getElementById("cs-pointwidth").value || "48";
   v.chartEditMode = document.getElementById("cs-edit-mode").value || "none";
   if (v.chartEditMode !== "none" && v.chartEditMode !== "editable" && v.chartEditMode !== "persistent") v.chartEditMode = "none";
-  v.chartInteractive = document.getElementById("cs-interactive").checked;
-  v.chartStateMode = document.getElementById("cs-state-edit").checked ? "editing" : "static";
   v.chartStateHints = document.getElementById("cs-state-hints").checked;
   v.chartShowResources = document.getElementById("cs-gantt-resources").checked;
   v.chartShowProgress = document.getElementById("cs-gantt-progress").checked;

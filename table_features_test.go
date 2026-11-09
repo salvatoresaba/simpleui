@@ -99,7 +99,7 @@ view main {
 		`st.header[col] = raw`, `targetLabel`, `runtimeLabelsStr`,
 		`if (cfg2.editable) return;`, `editTextOf`, `setCellEditText`, `syncHeaderLabelsAttr`,
 		`contenteditable', 'false`, `data-sui-editable', '1'`, `data-sui-columns', headKeys.join(',')`,
-		`normalizeWorkbookRuntime`, `data-sui-show-add-table`, `data-sui-selection`, `data-sui-workbook`, `data-sui-tabcount`, `data-sui-workbook-editable`,
+		`normalizeWorkbookRuntime`, `data-sui-show-add-table`, `data-sui-workbook`, `data-sui-tabcount`, `data-sui-workbook-editable`,
 		`updateWorkbookTableWidth`, `data-sui-cell-text`, `sui-table-editing`,
 		`ensureWorkbookDeleteButtons`, `deletedWorkbookSheets`, `applyWorkbookDeletions`, `deleteWorkbookSheet`, `sui-tab-x`, `sui-tab-menu-runtime`,
 	} {
@@ -259,7 +259,7 @@ func TestTabsBottomSheetStyle(t *testing.T) {
 
 func TestDesignerDataTablePreservesAttributes(t *testing.T) {
 	src := `view main {
-	table name: "orders" columns: "name,qty" columnLabels: "Product,Qty" columnTypes: "text,number" columnFormats: "text,number" editable: true sortable: true filterable: true showAddTable: true {
+	table name: "orders" columns: "name,qty" columnLabels: "Product,Qty" columnTypes: "text,number" columnFormats: "text,number" editMode: "editable" sortable: true filterable: true showAddTable: true {
 	}
 }
 `
@@ -272,7 +272,7 @@ func TestDesignerDataTablePreservesAttributes(t *testing.T) {
 	}
 	model := StringifyJson(guiModelJson(prog))
 	for _, want := range []string{
-		`"dataTable":true`, `"editable":true`, `"columns":"name,qty"`,
+		`"dataTable":true`, `"editMode":"editable"`, `"columns":"name,qty"`,
 		`"columnLabels":"Product,Qty"`, `"columnTypes":"text,number"`,
 		`"sortable":true`, `"filterable":true`, `"showAddTable":true`,
 	} {
@@ -282,7 +282,7 @@ func TestDesignerDataTablePreservesAttributes(t *testing.T) {
 	}
 	// The designer must serialize a columns-declared table without a synthetic
 	// thead/tbody, and must not let the type-to-edit bridge reload the preview.
-	for _, want := range []string{"if (n.dataTable)", "n.dataTable || n.columns", "dst.editable = true"} {
+	for _, want := range []string{"if (n.dataTable)", "n.dataTable || n.columns", "dst.editMode = \"editable\""} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table handling missing %q", want)
 		}
@@ -320,7 +320,7 @@ func TestDesignerWorkbookAuthoring(t *testing.T) {
 		"workbookEntriesForTabs", "renderWorkbookTreeRow", "workbookChosenTablePath",
 		"wrapTableInWorkbook", "normalizeWorkbooks", "normalizeWorkbookControl",
 		"previewAddWorkbookSheet", "applyPreviewCellEdit", "sui-table-add",
-		"sui-cell-edit", "__forcePreviewActive", "dst.editable = true",
+		"sui-cell-edit", "__forcePreviewActive", "dst.editMode = \"editable\"",
 		"normalizeWorkbookControl", "selectWorkbookTab", "sui-table-tab",
 		"renameWorkbookTab", "showWorkbookTabMenu", "sui-tab-rename", "sui-tab-menu",
 		"selectAllTableCells", "sui-table-all", "control padding", "--sui-workbook-pad",

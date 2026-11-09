@@ -294,20 +294,20 @@ func TestGraphTableEditSwitch(t *testing.T) {
 		t.Fatalf("check: %s", cd.String())
 	}
 	js := GenerateJs(prog)
-	if !strings.Contains(js, `data-sui-chart-table-edit="1"`) {
-		t.Error("graph JS missing tableEdit attribute")
+	if !strings.Contains(js, `data-sui-chart-edit-mode="persistent"`) {
+		t.Error("graph JS missing edit mode attribute")
 	}
 	html := GenerateHtmlPage(prog)
-	if !strings.Contains(html, `data-sui-chart-table-edit="1"`) {
-		t.Error("static graph HTML missing tableEdit attribute")
+	if !strings.Contains(html, `data-sui-chart-edit-mode="persistent"`) {
+		t.Error("static graph HTML missing edit mode attribute")
 	}
 	model := StringifyJson(guiModelJson(prog))
-	if !strings.Contains(model, `"chartTableEdit":true`) {
-		t.Errorf("designer model missing chartTableEdit: %s", model)
+	if !strings.Contains(model, `"chartEditMode":"persistent"`) {
+		t.Errorf("designer model missing chartEditMode: %s", model)
 	}
 	for _, want := range []string{
 		`function stateTableEditing(root)`,
-		`stateEditingMode(root) || flag(root, "table-edit")`,
+		`return chartEditingAllowed(root);`,
 		`function stateReadonlyColor(value, label)`,
 		`function stateReadonlyText(value)`,
 		`sui-chart-state-color-readonly`,
@@ -324,13 +324,8 @@ func TestGraphTableEditSwitch(t *testing.T) {
 			t.Errorf("table edit CSS missing %q", want)
 		}
 	}
-	for _, want := range []string{
-		`boolRow("edit table", "chartTableEdit"`,
-		`chartBoolAttr(n, "tableEdit", "chartTableEdit"`,
-	} {
-		if !strings.Contains(guiHTML, want) {
-			t.Errorf("graph inspector missing %q", want)
-		}
+	if !strings.Contains(guiHTML, `id="cs-edit-mode"`) {
+		t.Error("graph inspector missing the 3-state edit mode control")
 	}
 }
 
@@ -349,7 +344,7 @@ func TestGraphDesignerModel(t *testing.T) {
 		`"chartData":"flow"`,
 		`"chartDataExpr":true`,
 		`"chartTableView":"both"`,
-		`"chartTableEdit":false`,
+		`"chartEditMode":"persistent"`,
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("designer model missing %q: %s", want, model)

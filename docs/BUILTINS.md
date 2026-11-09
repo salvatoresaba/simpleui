@@ -20,7 +20,7 @@ This page lists the built-in functions available in SimpleUI (no import required
 | `indexOf(s, sub)` | string, string (or array, any) | int | Index of the first occurrence (-1 if absent) |
 | `lastIndexOf(s, sub)` | string, string | int | Index of the last occurrence (-1 if absent) |
 | `slice(s, start, end)` | string, int, int | string | Extract a substring range |
-| `substr(s, start, len)` | string, int, int | string | Substring (legacy) |
+| `substring(s, start, len)` | string, int, int | string | Extract `len` characters starting at `start` |
 | `repeat(s, count)` | string, int | string | Repeat a string N times |
 | `padLeft(s, len, pad)` | string, int, string | string | Left padding |
 | `padRight(s, len, pad)` | string, int, string | string | Right padding |
@@ -84,7 +84,6 @@ This page lists the built-in functions available in SimpleUI (no import required
 |---|---|---|---|
 | `after(ms, fn)` | number, fn() | null | Run a declared function after a delay |
 | `interval(ms, fn)` | number, fn() | null | Run a declared function periodically |
-| `timers.clear(id)` | number | null | Clear a timeout/interval (alias of cancel) |
 | `timers.cancel(id)` | number | null | Clear a timeout/interval |
 | `timers.debounce(fn, ms)` | fn(), number | int | Create a debounced wrapper; returns the timer id |
 | `timers.throttle(fn, ms)` | fn(), number | int | Create a throttled wrapper; returns the timer id |

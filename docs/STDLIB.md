@@ -153,6 +153,7 @@ targets the table with the matching `name:` attribute. Functions are synchronous
 | `table.exportText(name, spec)` | string, string | (string, string) | Serialize to CSV/TSV/SSV/PSV/JSON/JSONL |
 | `table.json(name)` | string | (string, string) | JSON (objects when a header exists) |
 | `table.clear(name)` | string | (int, string) | Clear the body |
+| `table.clearPersisted(name)` | string | (int, string) | Discard saved persistent data/layout and restore the design-time table |
 
 `importText`/`exportText` spec: format plus options separated by `;`:
 
@@ -213,6 +214,7 @@ chart never needs to call SUI state-changing functions directly.
 | `chart.peekEvents(name)` | string | (string, string) | Pending events as JSON without emptying |
 | `chart.nextEvent(name)` | string | (string, string) | Oldest pending event as JSON and removes it |
 | `chart.clearEvents(name)` | string | (bool, string) | Empty the event queue |
+| `chart.clearPersisted(name)` | string | (int, string) | Discard saved persistent chart/graph state and restore the design-time source |
 | `chart.eventCount(name)` | string | (int, string) | Number of pending events |
 
 Element ids:

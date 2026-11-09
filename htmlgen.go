@@ -2343,14 +2343,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function cfgOf(tbl){
     function attr(k){ return tbl.getAttribute('data-sui-' + k) || ''; }
-    // Edit mode is authoritative. Legacy tables without it fall back to the
-    // editable attribute; workbook sheets may be upgraded to data entry at
-    // runtime through data-sui-editable.
-    var rawMode = attr('edit-mode');
-    var mode = rawMode;
-    if (mode !== 'editable' && mode !== 'persistent' && mode !== 'none') {
-      mode = attr('editable') === '1' ? 'editable' : 'none';
-    }
+    var mode = attr('edit-mode');
+    if (mode !== 'editable' && mode !== 'persistent') mode = 'none';
     var editable = mode !== 'none';
     var cfg = {
       columns: splitList(attr('columns')),
@@ -2366,14 +2360,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       selection: attr('selection') || 'none',
       multi: attr('multi') === '1',
       editMode: mode,
-      explicitEditMode: rawMode,
       editable: editable,
       fixed: attr('fixed') === '1',
-      // Explicit read-only sheets cannot change structure or create sheets.
-      // Legacy tables keep their structure/show-add settings (a selection-only
-      // table is still allowed to insert rows via the context menu).
-      showAddTable: rawMode === 'none' ? false : attr('show-add-table') === '1',
-      structureEditable: rawMode === 'none' ? false : attr('structure-editable') === '1'
+      showAddTable: editable && attr('show-add-table') === '1',
+      structureEditable: editable && attr('structure-editable') === '1'
     };
     return cfg;
   }
@@ -2402,15 +2392,45 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var path = (window.location && window.location.pathname) || '';
     return 'sui.table.persist.' + path + '.' + name;
   }
+  function captureColumnWidths(tbl){
+    var out = [];
+    if (!tbl) return out;
+    var row = tbl.querySelector('thead tr') || (tbl.tBodies && tbl.tBodies[0] ? tbl.tBodies[0].rows[0] : null);
+    if (!row) return out;
+    for (var i = 0; i < row.cells.length; i++) {
+      var w = parseFloat(row.cells[i].style.width || row.cells[i].style.minWidth || '');
+      out.push(isFinite(w) ? Math.round(w) : 0);
+    }
+    return out;
+  }
+  function captureRowHeights(tbl){
+    var out = [];
+    if (!tbl) return out;
+    var rows = bodyRows(tbl);
+    for (var i = 0; i < rows.length; i++) {
+      var h = parseFloat(rows[i].style.height || '');
+      out.push(isFinite(h) ? Math.round(h) : 0);
+    }
+    return out;
+  }
   function persistTableState(name, st, cfg){
     if (!cfg || cfg.editMode !== 'persistent') return;
     if (!window.localStorage) return;
+    var tbl = firstTable(name);
     try {
       window.localStorage.setItem(tablePersistKey(name), JSON.stringify({
-        version: 1,
+        version: 2,
         header: st && st.header ? st.header : [],
         rows: st && st.allRows ? st.allRows : [],
-        textHeader: !!(st && st.textHeader)
+        textHeader: !!(st && st.textHeader),
+        columnWidths: captureColumnWidths(tbl),
+        rowHeights: captureRowHeights(tbl),
+        cellText: tbl ? (tbl.getAttribute('data-sui-cell-text') || '') : '',
+        sortKeys: st ? sortKeysOf(st) : [],
+        filter: st ? (st.filter || '') : '',
+        colFilters: st ? (st.colFilters || {}) : {},
+        colValueFilters: st ? (st.colValueFilters || {}) : {},
+        page: st ? (st.page || 0) : 0
       }));
     } catch (e) {}
   }
@@ -2434,8 +2454,46 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     st.textHeader = !!p.textHeader;
     st.__fromDom = false;
     st.__colStruct = false;
-    st.page = 0;
+    st.persistWidths = Array.isArray(p.columnWidths) ? p.columnWidths.slice() : [];
+    st.persistRowHeights = Array.isArray(p.rowHeights) ? p.rowHeights.slice() : [];
+    st.persistCellText = p.cellText || '';
+    setSortKeys(st, Array.isArray(p.sortKeys) ? p.sortKeys : []);
+    st.filter = p.filter || '';
+    st.colFilters = p.colFilters && typeof p.colFilters === 'object' ? p.colFilters : {};
+    st.colValueFilters = p.colValueFilters && typeof p.colValueFilters === 'object' ? p.colValueFilters : {};
+    st.page = p.page || 0;
     clearSelection(st);
+  }
+  function applyPersistedTableAttrs(tbl, st){
+    if (!tbl || !st) return;
+    if (st.persistWidths && st.persistWidths.length) {
+      tbl.setAttribute('data-sui-column-widths', st.persistWidths.join(','));
+    }
+    if (st.persistCellText === 'truncate' || st.persistCellText === 'wrap') {
+      tbl.setAttribute('data-sui-cell-text', st.persistCellText);
+      if (st.persistCellText === 'truncate') tbl.setAttribute('data-sui-fixed', '1');
+    }
+  }
+  function captureTableSource(tbl, st){
+    if (!st || st.__sourceRows) return;
+    st.__sourceHeader = (st.header || []).slice();
+    st.__sourceRows = (st.allRows || []).map(function(r){ return r.slice(); });
+    st.__sourceWidthsAttr = tbl ? (tbl.getAttribute('data-sui-column-widths') || '') : '';
+    st.__sourceCellText = tbl ? (tbl.getAttribute('data-sui-cell-text') || '') : '';
+    if (!st.__sourceWidths) st.__sourceWidths = captureColumnWidths(tbl);
+  }
+  function restoreTableSourceAttrs(tbl, st){
+    if (!tbl || !st) return;
+    if (st.__sourceWidthsAttr) tbl.setAttribute('data-sui-column-widths', st.__sourceWidthsAttr);
+    else tbl.removeAttribute('data-sui-column-widths');
+    if (st.__sourceCellText) {
+      tbl.setAttribute('data-sui-cell-text', st.__sourceCellText);
+      if (st.__sourceCellText === 'truncate') tbl.setAttribute('data-sui-fixed', '1');
+      else tbl.removeAttribute('data-sui-fixed');
+    } else {
+      tbl.removeAttribute('data-sui-cell-text');
+      tbl.removeAttribute('data-sui-fixed');
+    }
   }
   // During the initial boot a script-driven table.display/importText must not
   // overwrite saved persistent data: the user's saved rows win on reload.
@@ -2450,7 +2508,43 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   function recordChange(name, rec){
     rec.time = Date.now();
     changes[name] = rec;
-    if (rec && /^(cell|display|import|clear|row-|column-)/.test(String(rec.op || ''))) persistTable(name);
+    if (rec && /^(cell|display|import|clear|row-|column-|sort|filter|page|resize)/.test(String(rec.op || ''))) persistTable(name);
+  }
+  function clearPersisted(name){
+    if (!name) return [0, 'table.clearPersisted: name is required'];
+    var removed = 0;
+    try {
+      if (window.localStorage && window.localStorage.getItem(tablePersistKey(name)) !== null) {
+        window.localStorage.removeItem(tablePersistKey(name));
+        removed = 1;
+      }
+    } catch (e) {}
+    var st = store[name];
+    var tbl = firstTable(name);
+    if (st) {
+      if (st.__sourceRows) {
+        st.header = (st.__sourceHeader || []).slice();
+        st.allRows = (st.__sourceRows || []).map(function(r){ return r.slice(); });
+        st.textHeader = false;
+        st.persistWidths = (st.__sourceWidths || []).slice();
+        st.persistRowHeights = [];
+        st.persistCellText = st.__sourceCellText || '';
+        st.filter = '';
+        st.colFilters = {};
+        st.colValueFilters = {};
+        st.colFilter = null;
+        setSortKeys(st, []);
+        st.page = 0;
+        clearSelection(st);
+        restoreTableSourceAttrs(tbl, st);
+        renderName(name);
+      }
+      delete st.__persistLoaded;
+      delete st.persistWidths;
+      delete st.persistRowHeights;
+      delete st.persistCellText;
+    }
+    return [removed, null];
   }
   // Workbooks in persistent mode also keep the runtime-created sheet list.
   function tableBookPersistKey(box){
@@ -3263,17 +3357,11 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         var made = addRuntimeTableDom(box, newName, label, panel);
         if (!made) return;
         if (made.table) {
-          if (activeCfg.explicitEditMode === 'none') {
-            made.table.removeAttribute('data-sui-editable');
-            made.table.removeAttribute('data-sui-show-add-table');
-          } else {
-            // A new sheet inherits the workbook edit mode: persistent sheets
-            // keep their data after a reload, editable ones stay per session.
-            // Legacy workbooks without a mode create editable sheets.
-            made.table.setAttribute('data-sui-edit-mode', activeCfg.explicitEditMode || 'editable');
-            made.table.setAttribute('data-sui-editable', '1');
-            made.table.setAttribute('data-sui-show-add-table', '1');
-          }
+          // A new sheet inherits the workbook edit mode: persistent sheets
+          // keep their data after a reload, editable ones stay per session.
+          made.table.setAttribute('data-sui-edit-mode', activeCfg.editMode);
+          made.table.setAttribute('data-sui-editable', '1');
+          made.table.setAttribute('data-sui-show-add-table', '1');
         }
         if (activeCfg.structureEditable && made.table) {
           made.table.setAttribute('data-sui-editable', '1');
@@ -3489,6 +3577,15 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         }
       }
     }
+    if (st.persistRowHeights && st.persistRowHeights.length) {
+      var heightRows = bodyRows(tbl);
+      for (var hr2 = 0; hr2 < heightRows.length && hr2 < st.persistRowHeights.length; hr2++) {
+        var ph = st.persistRowHeights[hr2];
+        if (!(ph > 0)) continue;
+        heightRows[hr2].style.height = ph + 'px';
+        for (var hc2 = 0; hc2 < heightRows[hr2].children.length; hc2++) heightRows[hr2].children[hc2].style.height = ph + 'px';
+      }
+    }
     updateWorkbookTableWidth(tbl);
     ensureTableTools(tbl, name);
   }
@@ -3664,6 +3761,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       delete st2.colValueFilters[String(col)];
       st2.page = 0;
       clearSelection(st2);
+      recordChange(name, { op: 'filter', column: col });
       closeTableFilterPop();
       renderName(name);
     });
@@ -3676,6 +3774,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       else st2.colValueFilters[String(col)] = chosen;
       st2.page = 0;
       clearSelection(st2);
+      recordChange(name, { op: 'filter', column: col });
       closeTableFilterPop();
       renderName(name);
     });
@@ -3969,6 +4068,16 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     done.addEventListener('click', closeTableCfg);
     acts.appendChild(clearF);
     acts.appendChild(clearS);
+    if (cfg.editMode === 'persistent') {
+      var reset = cfgEl('button', 'sui-table-cfg-btn', 'Reset saved data');
+      reset.type = 'button';
+      reset.addEventListener('click', function(){
+        if (!window.confirm('Discard saved table data and restore the design-time table?')) return;
+        clearPersisted(name);
+        closeTableCfg();
+      });
+      acts.appendChild(reset);
+    }
     acts.appendChild(done);
     box.appendChild(acts);
     positionTableCfg();
@@ -4584,31 +4693,22 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var anyEditable = false;
       for (var tj = 0; tj < tables.length; tj++) {
         var t2 = tables[tj];
-        var sheetMode = t2.getAttribute('data-sui-edit-mode') || '';
+        var sheetMode = t2.getAttribute('data-sui-edit-mode') || 'none';
         if (sheetMode === 'none') {
-          // Explicit non-editable sheet: keep it read-only even inside a
-          // workbook that is otherwise editable.
+          // Non-editable sheet: keep it read-only even inside a workbook that is
+          // otherwise editable.
           t2.removeAttribute('data-sui-editable');
           t2.removeAttribute('data-sui-show-add-table');
         } else {
-          if (sheetMode === 'editable' || sheetMode === 'persistent' || t2.getAttribute('data-sui-editable') === '1') {
-            t2.setAttribute('data-sui-editable', '1');
-          } else {
-            // Tables that explicitly request a selection mode stay read-only:
-            // selection is the intended interaction for those sheets.
-            var sel = t2.getAttribute('data-sui-selection') || '';
-            if (!sel || sel === 'none') t2.setAttribute('data-sui-editable', '1');
-          }
+          t2.setAttribute('data-sui-editable', '1');
           // Keep the + in the DOM for workbooks: CSS hides it when no sheet is
-          // editable (the designer preview shows it). Explicit read-only
-          // sheets removed it above.
+          // editable (the designer preview shows it).
           if (t2.getAttribute('name')) t2.setAttribute('data-sui-show-add-table', '1');
         }
         if (t2.getAttribute('data-sui-editable') === '1') anyEditable = true;
-        // Stable cell sizing: default/auto becomes truncate (ellipsis + hover
-        // overlay); wrap remains the explicit row-growing mode.
+        // Stable cell sizing: truncate is the default, wrap is explicit.
         var cellText = t2.getAttribute('data-sui-cell-text') || '';
-        if (!cellText || cellText === 'auto') cellText = 'truncate';
+        if (!cellText) cellText = 'truncate';
         t2.setAttribute('data-sui-cell-text', cellText);
         if (cellText === 'truncate') t2.setAttribute('data-sui-fixed', '1');
         var w2 = t2.parentElement;
@@ -4681,11 +4781,14 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       ensureDeclaredHeader(tbl, cfg);
       syncStoreFromDom(tbl, name);
       var st = store[name];
+      captureTableSource(tbl, st);
       if (cfg.editMode === 'persistent' && !st.__persistLoaded) {
         var savedTable = loadPersistedTable(name);
         if (savedTable) applyPersistedTable(st, savedTable);
         st.__persistLoaded = true;
       }
+      applyPersistedTableAttrs(tbl, st);
+      cfg = cfgOf(tbl);
       decorateTable(tbl, st, cfg);
       ensureFilterInput(tbl, name, st, cfg);
       ensurePager(tbl, name, st, cfg);
@@ -4776,7 +4879,17 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       for(var j=0;j<tr.children.length;j++){ tr.children[j].style.height=h+'px'; }
     }
   }, true);
-  document.addEventListener('mouseup', function(){ if(drag){ drag=null; document.body.style.cursor=''; } }, true);
+  document.addEventListener('mouseup', function(){
+    if (!drag) return;
+    var dragTable = drag.cell && drag.cell.closest ? drag.cell.closest('table') : null;
+    var dragName = dragTable ? (dragTable.getAttribute('name') || '') : '';
+    drag = null;
+    document.body.style.cursor = '';
+    if (dragName) {
+      recordChange(dragName, { op: 'resize' });
+      persistTable(dragName);
+    }
+  }, true);
 
   // ---- keep edited cells in the store so re-renders do not lose them -------
   // Header cells also contain sort/filter controls: the editable text is the
@@ -4972,7 +5085,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     exportText: exportText, applyAll: applyAll, afterRender: afterRender,
     sort: sort, filter: filter, filterText: filterText, page: page, setPageSize: setPageSize,
     selectedRows: selectedRows, selectedCells: selectedCells, selectedColumns: selectedColumns,
-    lastChange: lastChange
+    lastChange: lastChange, clearPersisted: clearPersisted
   };
 })();
 window.__SUI_TBL = __SUI_TBL;`
@@ -5376,29 +5489,15 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 			sb.WriteString(" name=\"" + htmlEscape(v) + "\"")
 		}
 		tableEditMode := treeTextAttr(e, "editMode")
-		tableEditable := false
-		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
-			tableEditable = true
-		}
 		if tableEditMode == "editable" || tableEditMode == "persistent" {
-			tableEditable = true
-		} else if tableEditMode == "none" {
-			tableEditable = false
-		}
-		if tableEditable {
 			sb.WriteString(" data-sui-editable=\"1\"")
 		}
 		if tableEditMode != "" {
 			sb.WriteString(" data-sui-edit-mode=\"" + htmlEscape(tableEditMode) + "\"")
 		}
-		fixedAttr := false
-		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
-			sb.WriteString(" data-sui-fixed=\"1\"")
-			fixedAttr = true
-		}
 		if v := treeTextAttr(e, "cellText"); v != "" {
 			sb.WriteString(" data-sui-cell-text=\"" + htmlEscape(v) + "\"")
-			if v == "truncate" && !fixedAttr {
+			if v == "truncate" {
 				sb.WriteString(" data-sui-fixed=\"1\"")
 			}
 		}
@@ -6609,7 +6708,6 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 		"\" data-sui-chart-table-steppers=\"" + boolAttr01(chartStaticFlag(e, "tableSteppers", false)) +
 		"\" data-sui-chart-table-context-menu=\"" + boolAttr01(chartStaticFlag(e, "tableContextMenu", false)) +
 		"\" data-sui-chart-table-selection=\"" + htmlEscape(chartStaticValue(e, "tableSelection", "row")) +
-		"\" data-sui-chart-table-edit=\"" + boolAttr01(chartStaticFlag(e, "tableEdit", false)) +
 		"\" data-sui-chart-critical-path=\"" + boolAttr01(chartStaticFlag(e, "criticalPath", false)) +
 		"\" data-sui-chart-holidays=\"" + htmlEscape(chartStaticValue(e, "holidays", "")) +
 		"\" data-sui-chart-weekend=\"" + htmlEscape(chartStaticValue(e, "weekend", "")) +
@@ -6619,7 +6717,6 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 		"\" data-sui-chart-bins=\"" + htmlEscape(chartStaticValue(e, "bins", "10")) +
 		"\" data-sui-chart-min=\"" + htmlEscape(chartStaticValue(e, "min", "")) +
 		"\" data-sui-chart-max=\"" + htmlEscape(chartStaticValue(e, "max", "")) +
-		"\" data-sui-chart-interactive=\"" + boolAttr01(chartStaticFlag(e, "interactive", false)) +
 		"\" data-sui-chart-color-picker=\"" + boolAttr01(chartStaticFlag(e, "colorPicker", true)) +
 		"\" data-sui-chart-settings-button=\"" + boolAttr01(chartStaticFlag(e, "settingsButton", true)) +
 		"\" data-sui-chart-show-zoom=\"" + boolAttr01(chartStaticFlag(e, "showZoom", true)) +
@@ -6718,12 +6815,6 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 		"\" data-sui-chart-state-grid=\"" + boolAttr01(chartStaticFlag(e, "stateGrid", true)) +
 		"\" data-sui-chart-state-grid-gap=\"" + htmlEscape(chartStaticValue(e, "stateGridGap", "24")) +
 		"\" data-sui-chart-state-grid-color=\"" + htmlEscape(chartStaticValue(e, "stateGridColor", "")) +
-		"\" data-sui-chart-state-mode=\"" + htmlEscape(chartStaticValue(e, "stateMode", func() string {
-		if e.tag == "graph" {
-			return "static"
-		}
-		return "editing"
-	}())) +
 		"\" data-sui-chart-state-hints=\"" + boolAttr01(chartStaticFlag(e, "stateHints", true)) +
 		"\" data-sui-chart-state-handles=\"" + boolAttr01(chartStaticFlag(e, "stateHandles", true)) +
 		"\" data-sui-chart-state-tags-movable=\"" + boolAttr01(chartStaticFlag(e, "stateTagsMovable", false)) +
@@ -7044,7 +7135,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			continue
 		}
-		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "editMode" || a.key == "fixed" ||
+		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
 			a.key == "cellText" || a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
@@ -7056,7 +7147,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "editMode" || a.key == "chartType" || a.key == "format" ||
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
-			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "interactive" || a.key == "settingsButton" || a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory" || a.key == "stateMode" || a.key == "stateHints" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||
+			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "settingsButton" || a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory" || a.key == "stateHints" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||
 			a.key == "onShapeClick" || a.key == "onShapeDoubleClick" || a.key == "onShapeMouseOver" || a.key == "onShapeMouseOut" || a.key == "onShapeContextMenu" ||
 			a.key == "onLinkClick" || a.key == "onLinkDoubleClick" || a.key == "onLinkMouseOver" || a.key == "onLinkMouseOut" || a.key == "onLinkContextMenu" ||
 			a.key == "onTagClick" || a.key == "onTagDoubleClick" || a.key == "onTagMouseOver" || a.key == "onTagMouseOut" || a.key == "onTagContextMenu" ||

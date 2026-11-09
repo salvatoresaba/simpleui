@@ -26,7 +26,6 @@ func TestEditModeRuntimeSupportsSessionAndPersistent(t *testing.T) {
 	for _, want := range []string{
 		`function chartEditMode(root)`,
 		`function chartEditingAllowed(root)`,
-		`function chartPersists(root)`,
 		`window.__SUI_CHART_SESSION`,
 		`function chartStoreGet(root, key)`,
 		`function chartStoreSet(root, key, value)`,
@@ -38,6 +37,64 @@ func TestEditModeRuntimeSupportsSessionAndPersistent(t *testing.T) {
 	} {
 		if !strings.Contains(suiTableRuntime+suiChartRuntime, want) {
 			t.Errorf("runtime missing edit-mode support %q", want)
+		}
+	}
+}
+
+func TestPersistentAttributeSnapshotAndReset(t *testing.T) {
+	for _, want := range []string{
+		`function captureColumnWidths(tbl)`,
+		`function captureRowHeights(tbl)`,
+		`columnWidths: captureColumnWidths(tbl)`,
+		`rowHeights: captureRowHeights(tbl)`,
+		`function applyPersistedTableAttrs(tbl, st)`,
+		`function clearPersisted(name)`,
+		`lastChange: lastChange, clearPersisted: clearPersisted`,
+		`Reset saved data`,
+	} {
+		if !strings.Contains(suiTableRuntime, want) {
+			t.Errorf("table persistence missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`function collectChartOverrides(root)`,
+		`function applyChartOverrides(root)`,
+		`function saveChartOverrides(root)`,
+		`function bindChartOverridePersistence(root)`,
+		`function clearPersisted(name)`,
+		`clearPersisted: clearPersisted`,
+		`Reset saved data`,
+	} {
+		if !strings.Contains(suiChartRuntime, want) {
+			t.Errorf("chart persistence missing %q", want)
+		}
+	}
+}
+
+func TestClearPersistedStdlibWiring(t *testing.T) {
+	src := `fn reset() -> null {
+	n, e = table.clearPersisted("users")
+	m, e2 = chart.clearPersisted("flow")
+}
+view main {
+	table name: "users" columns: "a" editMode: "persistent" {
+	}
+	graph "Flow" name: "flow" editMode: "persistent"
+}`
+	prog, dl := ParseSource(src, "clear_persisted.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`table_clearpersisted`, `chart_clearpersisted`,
+		`__SUI_TBL.clearPersisted`, `__SUI_CHART.clearPersisted`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("clearPersisted wiring missing %q", want)
 		}
 	}
 }

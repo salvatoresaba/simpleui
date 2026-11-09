@@ -60,9 +60,9 @@ const tableRuntimeE2EScript = `<script>
     window.__SUI_TBL.page('users', 0);
     await wait(300);
 
-    rows('users')[1].querySelectorAll('td')[1].click();
+    rows('selector')[1].querySelectorAll('td')[1].click();
     await wait(300);
-    var sel = window.__SUI_TBL.selectedRows('users')[0];
+    var sel = window.__SUI_TBL.selectedRows('selector')[0];
     if (!sel || sel.length !== 1 || sel[0] !== 1) throw new Error('row selection wrong: ' + JSON.stringify(sel));
 
     var ed = table('editable');
@@ -200,7 +200,7 @@ const tableRuntimeE2EScript = `<script>
     if (onlyTab && getComputedStyle(onlyTab).display !== 'none') throw new Error('single workbook tab should be hidden');
     var addBtn = document.querySelector('.sui-tab-add');
     if (!addBtn) throw new Error('add table button missing');
-    if (getComputedStyle(addBtn).display !== 'none') throw new Error('runtime + must be hidden for a read-only workbook');
+    if (getComputedStyle(addBtn).display === 'none') throw new Error('runtime + must appear for an editable workbook');
     addBtn.click();
     await wait(500);
     if (document.querySelectorAll('.sui-tablist .sui-tab').length !== tabsBefore + 1) throw new Error('runtime table not created');
@@ -356,7 +356,7 @@ fn sorted() -> null {
 view main {
 	tabs "Book" position: "bottom" variant: "sheets" {
 		tab "Users" {
-			table name: "users" columns: "id,name,status,amount" columnLabels: "ID,Name,Status,Amount" columnWidths: "60,160,100,110" columnAlign: "right,left,center,right" columnTypes: "number,text,select,number" columnFormats: "text,text,text,currency:EUR" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 2 selection: "row" multiSelect: true showAddTable: true structureEditable: true onTableChange: tableChanged onSort: sorted {
+			table name: "users" columns: "id,name,status,amount" columnLabels: "ID,Name,Status,Amount" columnWidths: "60,160,100,110" columnAlign: "right,left,center,right" columnTypes: "number,text,select,number" columnFormats: "text,text,text,currency:EUR" columnOptions: "status=active|paused" sortable: true filterable: true pageSize: 2 multiSelect: true showAddTable: true structureEditable: true editMode: "editable" onTableChange: tableChanged onSort: sorted {
 				thead {
 					trow {
 						tcell "ID" head: true
@@ -376,7 +376,7 @@ view main {
 			}
 		}
 	}
-	table name: "editable" editable: true columns: "name,amount" columnLabels: "Name,Amount" columnTypes: "text,number" columnFormats: "text,currency:EUR" sortable: true onCellChange: cellChanged {
+	table name: "editable" editMode: "editable" columns: "name,amount" columnLabels: "Name,Amount" columnTypes: "text,number" columnFormats: "text,currency:EUR" sortable: true onCellChange: cellChanged {
 		thead {
 			trow {
 				tcell "Name" head: true
@@ -387,6 +387,24 @@ view main {
 			trow {
 				tcell "Alice"
 				tcell "10"
+			}
+		}
+	}
+	table name: "selector" columns: "a,b" selection: "row" multiSelect: true {
+		thead {
+			trow {
+				tcell "A" head: true
+				tcell "B" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "one"
+				tcell "1"
+			}
+			trow {
+				tcell "two"
+				tcell "2"
 			}
 		}
 	}

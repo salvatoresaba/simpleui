@@ -144,6 +144,7 @@ sono sincrone (solo DOM) e restituiscono `(valore, errore)`.
 | `table.exportText(name, spec)` | string, string | (string, string) | Serializza in CSV/TSV/SSV/PSV/JSON/JSONL |
 | `table.json(name)` | string | (string, string) | JSON con oggetti se c'è un'intestazione |
 | `table.clear(name)` | string | (int, string) | Svuota il corpo |
+| `table.clearPersisted(name)` | string | (int, string) | Cancella dati/layout persistenti e ripristina la tabella di design |
 
 Spec di `importText`/`exportText`: `formato` + opzioni separate da `;`:
 
@@ -205,6 +206,7 @@ SUI che modificano stato.
 | `chart.peekEvents(name)` | string | (string, string) | Eventi pendenti in JSON senza svuotare |
 | `chart.nextEvent(name)` | string | (string, string) | Evento più vecchio in JSON e lo rimuove |
 | `chart.clearEvents(name)` | string | (bool, string) | Svuota la lista eventi |
+| `chart.clearPersisted(name)` | string | (int, string) | Cancella lo stato persistente di chart/graph e ripristina il sorgente di design |
 | `chart.eventCount(name)` | string | (int, string) | Numero di eventi pendenti |
 
 Id elemento: `id` forma (`"a"`), obbligatorio e univoco; `id` link

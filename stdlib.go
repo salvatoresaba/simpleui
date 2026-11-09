@@ -112,6 +112,7 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "table", name: "exportText", params: []string{"string", "string"}, ret0: "string", ret1: "string", jsKey: "table_exporttext", async: false},
 	StdFunc{mod: "table", name: "json", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "table_json", async: false},
 	StdFunc{mod: "table", name: "clear", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "table_clear", async: false},
+	StdFunc{mod: "table", name: "clearPersisted", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "table_clearpersisted", async: false},
 	// chart (core: always available, acts on the rendered state chart named with `name:`)
 	StdFunc{mod: "chart", name: "setTag", params: []string{"string", "string", "string", "string", "string"}, ret0: "bool", ret1: "string", jsKey: "chart_settag", async: false},
 	StdFunc{mod: "chart", name: "update", params: []string{"string", "string", "any"}, ret0: "bool", ret1: "string", jsKey: "chart_update", async: false},
@@ -196,6 +197,7 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "chart", name: "pollEvents", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "chart_pollevents", async: false},
 	StdFunc{mod: "chart", name: "nextEvent", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "chart_nextevent", async: false},
 	StdFunc{mod: "chart", name: "clearEvents", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "chart_clearevents", async: false},
+	StdFunc{mod: "chart", name: "clearPersisted", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "chart_clearpersisted", async: false},
 	StdFunc{mod: "chart", name: "eventCount", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "chart_eventcount", async: false},
 	// tree (core: always available, acts on the rendered tree named with `name:`)
 	StdFunc{mod: "tree", name: "importJson", params: []string{"string", "string"}, ret0: "int", ret1: "string", jsKey: "tree_importjson", async: false},

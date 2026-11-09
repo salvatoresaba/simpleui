@@ -1767,19 +1767,19 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 		}
 		return NewSType("string")
 	}
-	if name == "substr" {
+	if name == "substring" {
 		if !want(3) {
 			return NewSType("error")
 		}
 		s := c.inferExpr(args[0])
 		if s.kind != "string" && s.kind != "any" && s.kind != "unknown" && s.kind != "error" {
-			c.diagAt(e.span, "substr expects a string, got "+typeStr(s))
+			c.diagAt(e.span, "substring expects a string, got "+typeStr(s))
 			return NewSType("error")
 		}
 		for i := 1; i <= 2; i++ {
 			t := c.inferExpr(args[i])
 			if t.kind != "int" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
-				c.diagAt(e.span, "substr offsets must be ints, got "+typeStr(t))
+				c.diagAt(e.span, "substring offsets must be ints, got "+typeStr(t))
 				return NewSType("error")
 			}
 		}
@@ -1904,7 +1904,7 @@ func (c *Checker) inferMoveItem(e *Expr) *SType {
 }
 
 func isTimerMath(name string) bool {
-	if name == "after" || name == "interval" || name == "timers.clear" || name == "timers.cancel" || name == "timers.debounce" || name == "timers.throttle" {
+	if name == "after" || name == "interval" || name == "timers.cancel" || name == "timers.debounce" || name == "timers.throttle" {
 		return true
 	}
 	if name == "min" || name == "max" || name == "abs" || name == "round" || name == "floor" ||
@@ -1949,7 +1949,7 @@ func (c *Checker) inferTimersMath(e *Expr, name string) *SType {
 		_ = c.inferExpr(h)
 		return NewSType("null")
 	}
-	if name == "timers.clear" || name == "timers.cancel" {
+	if name == "timers.cancel" {
 		if !want(1) {
 			return NewSType("error")
 		}
@@ -2771,7 +2771,7 @@ func (c *Checker) inferIndex(e *Expr) *SType {
 		return ot.val
 	}
 	if ot.kind == "string" {
-		c.diagAt(e.span, "cannot index a string value; use substr or chars")
+		c.diagAt(e.span, "cannot index a string value; use substring or chars")
 		return NewSType("error")
 	}
 	if it.kind == "error" || it.kind == "unknown" || ot.kind == "any" {
@@ -2988,11 +2988,11 @@ func attrAllowed(key string, tag string) bool {
 	}
 	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "editMode" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
 		key == "x" || key == "y" || key == "width" || key == "height" || key == "overflow" ||
-		key == "zoom" || key == "pointWidth" || key == "pointSize" || key == "bins" || key == "min" || key == "max" || key == "interactive" || key == "stateMode" || key == "stateHints" ||
+		key == "zoom" || key == "pointWidth" || key == "pointSize" || key == "bins" || key == "min" || key == "max" || key == "stateHints" ||
 		key == "stateHintBg" || key == "stateHintOpacity" || key == "stateHintTextColor" || key == "stateHintTextAlign" || key == "stateHintBorderColor" ||
 		key == "stateHintFont" || key == "stateHintFontSize" || key == "stateHintBorderWidth" || key == "stateHintPadding" || key == "stateHintRadius" ||
 		key == "tableView" || key == "tableFilters" || key == "tableAddRow" || key == "tableDeleteRow" ||
-		key == "tableSteppers" || key == "tableContextMenu" || key == "tableSelection" || key == "tableEdit" ||
+		key == "tableSteppers" || key == "tableContextMenu" || key == "tableSelection" ||
 		key == "criticalPath" || key == "holidays" || key == "weekend" || key == "timezone" || key == "showNonWorkingDays" || key == "progressColumn" ||
 		key == "showGrid" || key == "showLegend" || key == "showValues" ||
 		key == "showResources" || key == "showProgress" ||
@@ -3059,7 +3059,7 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tcell" && (key == "head" || key == "colspan" || key == "rowspan") {
 		return true
 	}
-	if tag == "table" && (key == "name" || key == "editable" || key == "editMode" || key == "fixed" || key == "cellText" ||
+	if tag == "table" && (key == "name" || key == "editMode" || key == "cellText" ||
 		key == "columns" || key == "columnLabels" || key == "columnWidths" ||
 		key == "columnAlign" || key == "columnTypes" || key == "columnFormats" || key == "columnOptions" ||
 		key == "sortable" || key == "filterable" || key == "pageSize" || key == "selection" ||
@@ -3440,6 +3440,21 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		c.diagAt(a.span, a.key+" must name a declared function")
 		return
 	}
+	if a.key == "editMode" && (tag == "table" || tag == "chart" || tag == "graph") {
+		if a.hasExpr {
+			t := c.inferExpr(a.expr)
+			if t.kind != "string" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(a.span, "editMode must be a string, got "+typeStr(t))
+			}
+			return
+		}
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		v = strings.Trim(v, "\"'")
+		if v != "none" && v != "editable" && v != "persistent" {
+			c.diagAt(a.span, "editMode must be one of: none, editable, persistent")
+		}
+		return
+	}
 	if a.key == "dropFiles" || a.key == "pickFiles" {
 		// These bind an element to a state that receives dropped/selected
 		// paths. The runtime calls the state setter, so the target must be a
@@ -3659,7 +3674,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 			"stateTagTextShadow", "stateShapeTagTextShadow", "stateLinkTagTextShadow",
 			"stateTagBorderStyle", "stateShapeTagBorderStyle", "stateLinkTagBorderStyle":
 			allowed := map[string][]string{
-				"chartType":                   {"bar", "barhorizontal", "barstacked", "bargrouped", "line", "step", "smooth", "area", "combo", "pie", "donut", "scatter", "histogram", "waterfall", "radar", "gauge", "funnel", "heatmap", "candlestick", "treemap", "boxplot", "bullet", "dumbbell", "gantt", "state", "statemachine"},
+				"chartType":                   {"bar", "barhorizontal", "barstacked", "bargrouped", "line", "step", "smooth", "area", "combo", "pie", "donut", "scatter", "histogram", "waterfall", "radar", "gauge", "funnel", "heatmap", "candlestick", "treemap", "boxplot", "bullet", "dumbbell", "gantt"},
 				"format":                      {"auto", "json", "xml", "csv"},
 				"overflow":                    {"scroll", "zoom", "fit"},
 				"theme":                       {"dark", "light"},
@@ -3717,7 +3732,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 				c.diagAt(a.span, a.key+" must be one of: "+strings.Join(allowed, ", "))
 			}
 			return
-		case "showGrid", "showLegend", "showValues", "tableFilters", "tableAddRow", "tableDeleteRow", "tableSteppers", "tableContextMenu", "tableEdit", "criticalPath", "colorPicker", "settingsButton", "showZoom", "showAdd", "showHistory",
+		case "showGrid", "showLegend", "showValues", "tableFilters", "tableAddRow", "tableDeleteRow", "tableSteppers", "tableContextMenu", "criticalPath", "colorPicker", "settingsButton", "showZoom", "showAdd", "showHistory",
 			"showResources", "showProgress", "showSlack", "showCosts", "statusColors", "autoSchedule", "showNonWorkingDays", "progressColumn",
 			"stateTagsMovable", "stateRoutesEditable", "stateHandles", "stateStartArrow":
 			if a.hasExpr {

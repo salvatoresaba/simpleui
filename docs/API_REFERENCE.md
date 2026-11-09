@@ -782,11 +782,11 @@ session unless the app persists them explicitly.
 the diagram read-only while still rendering tooltips, selection and data;
 `"editable"` allows table edits, imports, Gantt drag/resize and diagram edits
 for the page session; `"persistent"` stores those changes in `localStorage` so
-they survive reload and restart. Legacy sources without `editMode` keep their
-previous behavior: an interactive regular chart behaves like `"editable"`, while
-an interactive Gantt or a diagram behaves like `"persistent"` (their edits were
-already stored in `localStorage`). Tooltips and selection remain display features
-and are not disabled by `editMode: "none"`.
+they survive reload and restart. In `"persistent"` mode runtime changes to the
+chart attributes, CSS variables, table layout, series colors and diagram data
+are stored together with the data. A missing `editMode` means `"none"`. Tooltips
+and selection remain display features and are not disabled by
+`editMode: "none"`.
 
 ```sui
 state sales = "[\{\"month\":\"Jan\",\"value\":12\},\{\"month\":\"Feb\",\"value\":18\}]"
@@ -867,7 +867,7 @@ and table DOM and redraw only charts whose chart attributes changed.
 | `bullet` | KPI value against a target and optional max. | two or three: value, target, max |
 | `dumbbell` | Before/after dots connected per category. | exactly two |
 | `gantt` | Horizontal start/end tasks. | exactly two: start, end |
-| `state` | Legacy block-diagram geometry (`statemachine` alias); prefer the dedicated `graph` control. | states/transitions object or edge list |
+| `state` | Internal block-diagram geometry used by the `graph` control; a `chart` with a literal `state`/`statemachine` type is migrated to `graph`. | states/transitions object or edge list |
 
 ### Data
 
@@ -1083,11 +1083,12 @@ view main {
 ```
 
 `graph` accepts the same data, layout, grid, tag/link styling, table and runtime
-attributes as the block-diagram chart geometry. The legacy
-`chart "..." chartType: "state"` form (alias `statemachine`) keeps working for
-existing documents, but the designer no longer lists it in the chart type menu.
-Changing a chart to a type whose data shape is incompatible shows a confirmation
-dialog and, if accepted, replaces the data with a sample suited to the new type.
+attributes as the block-diagram chart geometry. A legacy
+`chart "..." chartType: "state"` (or `statemachine`) source is migrated to a
+`graph` element when it is parsed; the designer chart type menu only offers the
+numeric/geometric chart types. Changing a chart to a type whose data shape is
+incompatible shows a confirmation dialog and, if accepted, replaces the data
+with a sample suited to the new type.
 
 The primary JSON form is:
 
@@ -1588,17 +1589,12 @@ Rendering:
   Up/Down height) while keeping the top-left corner anchored.
   **Delete**/**Backspace** deletes the selected shapes and links; deleting a
   shape also deletes its connected links;
-- `stateMode: "editing"` (default) keeps the editor chrome. `stateMode: "static"`
-  turns the graph into a presentation surface: selection, drag/resize, route/tag
-  editing and creation tools are disabled, while pan/zoom stay available. The
-  mode can be changed from source/reactive state, from the designer chart
-  settings, or from the runtime Settings **General** tab;
-- `tableEdit: true` enables editing in the Shapes/Links table even when
-  `stateMode: "static"`: color, text, shape type, element settings and row
-  deletion. Without it, in static mode, the table is read-only: cells show plain
-  text, the actions column and the Add row button are hidden, and the cell
-  tooltip is suppressed while typing;
-- static-mode interactions are queued by the chart and consumed with
+- `editMode: "editable"` keeps the editor chrome; `"persistent"` also stores
+  geometry, style and runtime attribute changes across reload/restart;
+  `editMode: "none"` turns the graph into a presentation surface: selection,
+  drag/resize, route/tag editing and creation tools are disabled, while pan/zoom
+  stay available. Tooltips and the event queue remain active;
+- non-editable interactions are queued by the chart and consumed with
   `chart.pollEvents` / `chart.nextEvent`. Each event carries `event`, `kind`,
   `part`, `id`, `label`, `tag`, `from`, `to`, pointer coordinates and
   modifiers; SUI code decides which external function to call. Use
@@ -1823,8 +1819,9 @@ therefore read-only and not individually deletable. Tables above 300 rows use
 windowed virtual scrolling while filters and exports still cover all filtered
 rows, not only the visible window.
 
-With `interactive: true`, Gantt Task, WBS parent, Start, End, Progress, Group and
-Depends on cells are editable, and non-Gantt Label/X/series cells are editable in place
+With `editMode: "editable"` or `"persistent"`, Gantt Task, WBS parent, Start, End,
+Progress, Group and Depends on cells are editable, and non-Gantt
+Label/X/series cells are editable in place
 (histogram bins remain read-only). Non-Gantt edits update the local chart data
 and call `onDataChange`. The **+ Row** table button appends a new task with a unique
 id, a default one-day range after the last task, the last group and no
@@ -1928,8 +1925,8 @@ links. The calculation uses each link's type/lag, task constraints, working-day
 durations and the active weekend/holiday calendar. `holidays: "*-11-16, 2026-11-20..2026-11-21"` shades exact, range and
 yearly recurring non-working days. `weekend` and `timezone` configure the
 calendar used by shading, ticks and table dates.
-`interactive: true` additionally enables Gantt task drag/resize, collapsible
-groups and editable Gantt table cells. Gantt edits can be undone/redone with
+`editMode: "editable"` or `"persistent"` additionally enables Gantt task
+drag/resize, collapsible groups and editable Gantt table cells. Gantt edits can be undone/redone with
 `Ctrl+Z`, `Ctrl+Shift+Z` / `Ctrl+Y`, or from the chart menu. Hover a task bar to reveal
 its start/end resize handles; dragging the body moves the task, dragging an edge
 changes only that date. The whole task row is also a keyboard target:
@@ -1952,7 +1949,7 @@ A Gantt can call a handler when a task changes:
 chart "Plan"
 	data: ganttData
 	chartType: "gantt"
-	interactive: true
+	editMode: "persistent"
 	onTaskChange: ganttChanged
 ```
 
@@ -1975,7 +1972,7 @@ the committed version to an application or server:
 chart "Plan"
 	data: ganttData
 	chartType: "gantt"
-	interactive: true
+	editMode: "persistent"
 	onCommit: ganttCommitted
 ```
 
@@ -1996,7 +1993,7 @@ application as well:
 chart "Plan"
 	data: ganttData
 	chartType: "gantt"
-	interactive: true
+	editMode: "persistent"
 	onResourceChange: resourcesChanged
 ```
 
@@ -2262,8 +2259,9 @@ table name: "users" columns: "id,name,status,amount"
 - `cellText`: `truncate` (default; the column width never grows with the text,
   overflow is hidden with an ellipsis and the full text appears in a hover
   overlay) or `wrap` (the column width stays fixed, the text wraps and the row
-  height grows). `fixed: true` is the legacy truncate mode. Column width changes
-  reflow the same cell text according to the chosen mode.
+  height grows). Column width changes reflow the same cell text according to the
+  chosen mode. In `persistent` mode the runtime column widths, row heights and
+  header labels are saved with the data.
 - `sortable` enables header sorting (ascending, descending, original) and seeds
   the runtime sort toggle. On editable tables a header click places the caret in
   the header label; use the header sort button so sorting cannot blur the edit.
@@ -2275,13 +2273,16 @@ table name: "users" columns: "id,name,status,amount"
 - `editMode` is the 3-state data-control setting:
   - `"none"`: the user cannot edit, insert rows, import or change structure; the
     table still loads and displays data.
-  - `"editable"` (or legacy `editable: true`): the user can edit cells, import
-    or create data for the page session. A reload restores the source data.
-  - `"persistent"`: user edits, imported data and runtime-created workbook sheets
-    are stored in `localStorage` and survive reload and restart. If the control
-    starts empty, the data created by the user is kept. Saved data takes
-    precedence over source-scripted `table.display`/`table.importText` during
-    the initial boot, so a preset dataset is not restored over the user's work.
+  - `"editable"`: the user can edit cells, import or create data for the page
+    session. A reload restores the source data.
+  - `"persistent"`: user edits, imported data, runtime-created workbook sheets,
+    column widths, row heights, header labels, sort/filter/page state and the
+    cell text mode are stored in `localStorage` and survive reload and restart.
+    If the control starts empty, the data created by the user is kept. Saved data
+    takes precedence over source-scripted `table.display`/`table.importText`
+    during the initial boot, so a preset dataset is not restored over the user's
+    work. Use `table.clearPersisted(name)` to discard the saved state and
+    restore the design-time table.
 
 `editMode` controls cell editing and data entry; `showAddTable` and
 `structureEditable` remain the explicit workbook/sheet options and are ignored
@@ -2300,8 +2301,12 @@ fn view() -> null {
   cells, e7 = table.selectedCells("users") # JSON [{row,column}]
   cols, e8 = table.selectedColumns("users")
   info, e9 = table.lastChange("users")     # JSON {op,row,column,old,new,...}
+  n, e10 = table.clearPersisted("users")  # discard localStorage state
 }
 ```
+
+`chart.clearPersisted(name)` discards the saved data, layout, style and Gantt
+state of a persistent chart (or graph) and restores the design-time source.
 
 Table events:
 
