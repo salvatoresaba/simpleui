@@ -2058,6 +2058,7 @@ function newTableNode() {
       n.cellStyles[r].push({ bg: "", color: "", extra: "" });
     }
   }
+  applyTableProjectDefaultsToNode(n);
   return n;
 }
 function newListNode() {
@@ -8419,13 +8420,13 @@ function ensureTableBaseCss() {
   }
   var block = [
     "table.suitbl { border-collapse: collapse; }",
-    "table.suitbl th, table.suitbl td { padding: var(--t-pad, 6px 10px); text-align: var(--t-align, left); vertical-align: var(--t-valign, middle); height: var(--t-rowh, 34px); }",
-    "table.suitbl thead th { background: var(--t-headbg, #202732); color: var(--t-headfg, #f2f4f6); font-weight: var(--t-headfw, 700); text-transform: var(--t-headtt, none); border-bottom: var(--t-headbb, 2px solid #3d4556); }",
+    "table.suitbl th, table.suitbl td { padding: var(--t-pad, var(--sui-table-padding, 6px 10px)); text-align: var(--t-align, left); vertical-align: var(--t-valign, middle); height: var(--t-rowh, 34px); }",
+    "table.suitbl thead th { background: var(--t-headbg, var(--sui-table-head-bg, #202732)); color: var(--t-headfg, var(--sui-table-head-fg, #f2f4f6)); font-weight: var(--t-headfw, 700); text-transform: var(--t-headtt, none); border-bottom: var(--t-headbb, 2px solid var(--sui-table-border, #3d4556)); }",
     zebraRule,
     hoverRule,
-    "table.suitbl td, table.suitbl th { border: var(--t-grid, 1px solid #262c38); }",
-    "table.suitbl { border: var(--t-ring, none); border-radius: var(--t-radius, 0); }",
-    "table.suitbl { box-shadow: var(--t-shadow, none); }"
+    "table.suitbl td, table.suitbl th { border: var(--t-grid, 1px solid var(--sui-table-border, #262c38)); }",
+    "table.suitbl { border: var(--t-ring, var(--sui-table-border-width, 0) var(--sui-table-border-style, solid) var(--sui-table-border, transparent)); border-radius: var(--t-radius, var(--sui-table-radius, 0)); }",
+    "table.suitbl { box-shadow: var(--t-shadow, var(--sui-table-shadow, none)); }"
   ].join("\n");
   root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
 }
@@ -8509,16 +8510,87 @@ function tblApplyVars(n, map, label) {
   setOut();
   autoPreview();
 }
+var TABLE_THEME_KEYS = [
+  "--sui-table-bg", "--sui-table-fg", "--sui-table-head-bg", "--sui-table-head-fg",
+  "--sui-table-row-bg", "--sui-table-striped-bg", "--sui-table-hover", "--sui-table-border",
+  "--sui-table-border-width", "--sui-table-border-style", "--sui-table-radius",
+  "--sui-table-padding", "--sui-table-font", "--sui-table-font-family",
+  "--sui-table-tracking", "--sui-table-shadow", "--sui-table-hover-fg"
+];
+var STANDARD_DARK_TABLE_VARS = {
+  "--sui-table-bg": "#1d2129", "--sui-table-fg": "#e6e6ef",
+  "--sui-table-head-bg": "#202732", "--sui-table-head-fg": "#f2f4f6",
+  "--sui-table-row-bg": "#1d2129", "--sui-table-striped-bg": "#20252e",
+  "--sui-table-hover": "#2d3340", "--sui-table-border": "#3d4556",
+  "--sui-table-border-width": "1px", "--sui-table-border-style": "solid",
+  "--sui-table-radius": "8px", "--sui-table-padding": "6px 10px",
+  "--sui-table-font": "14px", "--sui-table-font-family": "inherit",
+  "--sui-table-tracking": "normal", "--sui-table-shadow": "0 2px 10px rgba(0,0,0,.25)",
+  "--sui-table-hover-fg": "#ffffff"
+};
+function tableThemeVars(id) {
+  if (id === "standard-dark") return STANDARD_DARK_TABLE_VARS;
+  var v = themeVariantById(id);
+  return v && v.vars && v.vars.table ? v.vars.table : null;
+}
+function tableThemeCurrent(nn) {
+  var any = false;
+  for (var i = 0; i < TABLE_THEME_KEYS.length; i++) if (tblVar(nn, TABLE_THEME_KEYS[i]) !== "") { any = true; break; }
+  if (!any) return "inherit";
+  for (var j = 0; j < STYLE_VARIANT_DEFS.length; j++) {
+    var v = STYLE_VARIANT_DEFS[j], tv = tableThemeVars(v.id);
+    if (!tv) continue;
+    var ok = true;
+    for (var k in tv) {
+      if (k.indexOf("--sui-table-") !== 0) continue;
+      if (tblVar(nn, k) !== String(tv[k])) { ok = false; break; }
+    }
+    if (ok) return v.id;
+  }
+  return "custom";
+}
+function readTableProjectDefaults() {
+  if (typeof root === "undefined" || !root) return { theme: "inherit" };
+  var m = String(root.css || "").match(/\/\* sui-table-defaults ([\s\S]*?) \*\//);
+  if (!m) return { theme: "inherit" };
+  try {
+    var v = JSON.parse(decodeURIComponent(m[1]));
+    return { theme: v && v.theme ? String(v.theme) : "inherit" };
+  } catch (e) {
+    return { theme: "inherit" };
+  }
+}
+function saveTableProjectDefaults(defs) {
+  if (typeof root === "undefined" || !root) return;
+  var clean = String(root.css || "").replace(/\/\* sui-table-defaults [\s\S]*? \*\//g, "").trim();
+  var payload = encodeURIComponent(JSON.stringify({ theme: defs && defs.theme ? defs.theme : "inherit" }));
+  root.css = (clean ? clean + "\n" : "") + "/* sui-table-defaults " + payload + " */";
+}
+function applyTableProjectDefaultsToNode(nn) {
+  var d = readTableProjectDefaults();
+  if (nn && d.theme && d.theme !== "inherit") tableThemeApply(nn, d.theme);
+}
+function tableThemeApply(nn, id) {
+  var m = styleDeclMap(nn.style || "");
+  TABLE_THEME_KEYS.forEach(function(k){ delete m[k]; });
+  if (id !== "inherit" && id !== "custom") {
+    var tv = tableThemeVars(id);
+    if (tv) Object.keys(tv).forEach(function(k){
+      if (k.indexOf("--sui-table-") === 0) m[k] = String(tv[k]);
+    });
+  }
+  nn.style = styleDeclStr(m);
+}
 var TABLE_PRESETS = [
   ["None", { "--t-pad": "", "--t-align": "", "--t-valign": "", "--t-zebra": "", "--t-hover": "", "--t-grid": "", "--t-ring": "", "--t-radius": "", "--t-shadow": "", "--t-headbg": "", "--t-headfg": "", "--t-headfw": "", "--t-headtt": "", "--t-headbb": "" }],
   ["Minimal", { "--t-pad": "8px 10px", "--t-grid": "", "--t-ring": "", "--t-radius": "", "--t-shadow": "", "--t-headbb": "" }],
-  ["Lines",   { "--t-pad": "8px 10px", "--t-grid": "", "--t-ring": "", "--t-radius": "", "--t-shadow": "", "--t-headbb": "2px solid #c9cfe0" }],
-  ["Grid", { "--t-pad": "6px 10px", "--t-grid": "1px solid #d3d7e2", "--t-ring": "1px solid #b9c0d4", "--t-radius": "", "--t-shadow": "", "--t-headbb": "" }],
-  ["Card",    { "--t-pad": "9px 12px", "--t-grid": "", "--t-ring": "1px solid #e3e6ef", "--t-radius": "10px", "--t-shadow": "0 2px 12px rgba(20,25,55,.16)", "--t-headbb": "" }],
-  ["Dotted",  { "--t-pad": "7px 11px", "--t-grid": "1px dotted #9aa4bb", "--t-ring": "1px dotted #9aa4bb", "--t-radius": "", "--t-shadow": "", "--t-headbb": "" }],
-  ["Bold",    { "--t-pad": "9px 12px", "--t-grid": "2px solid #b9c0d4", "--t-ring": "2px solid #9aa4bb", "--t-radius": "", "--t-shadow": "", "--t-headbb": "" }],
-  ["Rounded", { "--t-pad": "8px 12px", "--t-grid": "", "--t-ring": "1px solid #c9cfe0", "--t-radius": "12px", "--t-shadow": "", "--t-headbb": "" }],
-  ["Shadow",  { "--t-pad": "9px 12px", "--t-grid": "", "--t-ring": "1px solid #e3e6ef", "--t-radius": "10px", "--t-shadow": "0 6px 18px rgba(20,25,55,.20)", "--t-headbb": "" }]
+  ["Lines",   { "--t-pad": "8px 10px", "--t-grid": "", "--t-ring": "", "--t-radius": "", "--t-shadow": "", "--t-headbb": "2px solid var(--sui-table-border, #c9cfe0)" }],
+  ["Grid", { "--t-pad": "6px 10px", "--t-grid": "1px solid var(--sui-table-border, #d3d7e2)", "--t-ring": "1px solid var(--sui-table-border, #b9c0d4)", "--t-radius": "", "--t-shadow": "", "--t-headbb": "" }],
+  ["Card",    { "--t-pad": "9px 12px", "--t-grid": "", "--t-ring": "1px solid var(--sui-table-border, #e3e6ef)", "--t-radius": "10px", "--t-shadow": "0 2px 12px rgba(20,25,55,.16)", "--t-headbb": "" }],
+  ["Dotted",  { "--t-pad": "7px 11px", "--t-grid": "1px dotted var(--sui-table-border, #9aa4bb)", "--t-ring": "1px dotted var(--sui-table-border, #9aa4bb)", "--t-radius": "", "--t-shadow": "", "--t-headbb": "" }],
+  ["Bold",    { "--t-pad": "9px 12px", "--t-grid": "2px solid var(--sui-table-border, #b9c0d4)", "--t-ring": "2px solid var(--sui-table-border, #9aa4bb)", "--t-radius": "", "--t-shadow": "", "--t-headbb": "" }],
+  ["Rounded", { "--t-pad": "8px 12px", "--t-grid": "", "--t-ring": "1px solid var(--sui-table-border, #c9cfe0)", "--t-radius": "12px", "--t-shadow": "", "--t-headbb": "" }],
+  ["Shadow",  { "--t-pad": "9px 12px", "--t-grid": "", "--t-ring": "1px solid var(--sui-table-border, #e3e6ef)", "--t-radius": "10px", "--t-shadow": "0 6px 18px rgba(20,25,55,.20)", "--t-headbb": "" }]
 ];
 // cellExtraWrite: structured per-cell declarations (padding, alignment) that
 // join the cell's bg/color in the inline style string.
@@ -9238,8 +9310,55 @@ function tableControls(n, opts) {
   var ASPECTO_KEYS = ["--t-pad", "--t-align", "--t-valign", "--t-zebra", "--t-hover"];
   var BORDI_KEYS = ["--t-grid", "--t-ring", "--t-radius", "--t-shadow"];
   var HEAD_KEYS = ["--t-headbg", "--t-headfg", "--t-headfw", "--t-headtt", "--t-headbb"];
+  function tableThemeRow(nn) {
+    var row = document.createElement("div"); row.className = "rowline";
+    var lb = lbl("theme");
+    lb.title = "Inherit uses the project theme. A forced theme applies that theme's table colors only to this table.";
+    row.appendChild(lb);
+    var sel = document.createElement("select");
+    var cur = tableThemeCurrent(nn);
+    var inherit = document.createElement("option");
+    inherit.value = "inherit"; inherit.textContent = "Inherit global";
+    sel.appendChild(inherit);
+    THEME_FAMILIES.forEach(function(f){
+      var og = document.createElement("optgroup");
+      og.label = f.label;
+      [["light", "Light"], ["dark", "Dark"]].forEach(function(mode){
+        var id = f[mode[0]];
+        if (!id) return;
+        var o = document.createElement("option");
+        o.value = id; o.textContent = mode[1];
+        og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+    if (cur === "custom") {
+      var custom = document.createElement("option");
+      custom.value = "custom"; custom.textContent = "Custom";
+      sel.appendChild(custom);
+    }
+    sel.value = cur;
+    sel.onchange = function(){
+      if (sel.value === "custom") return;
+      withUndo(function(){ tableThemeApply(nn, sel.value); }, "table theme");
+      setOut();
+      autoPreview();
+    };
+    row.appendChild(sel);
+    var defBtn = document.createElement("button");
+    defBtn.type = "button"; defBtn.className = "btn"; defBtn.style.fontSize = "10px";
+    defBtn.textContent = "Set default";
+    defBtn.title = "Use the current table theme for newly inserted tables in this project.";
+    defBtn.onclick = function(){
+      saveTableProjectDefaults({ theme: tableThemeCurrent(nn) });
+      setStatus("table theme default saved");
+    };
+    row.appendChild(defBtn);
+    return row;
+  }
   var anythingActive = !noGroupActive(ASPECTO_KEYS.concat(BORDI_KEYS, HEAD_KEYS));
   b.appendChild(group("Appearance", [
+    tableThemeRow(n),
     textRow("cell padding", "--t-pad", "6px 10px"),
     mkSelRowUI("align", "--t-align", [["default", ""], ["left", "left"], ["center", "center"], ["right", "right"], ["justify", "justify"]]),
     mkSelRowUI("vertical", "--t-valign", [["default", ""], ["top", "top"], ["middle", "middle"], ["bottom", "bottom"]]),

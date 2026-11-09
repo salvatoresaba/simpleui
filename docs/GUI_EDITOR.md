@@ -1233,9 +1233,14 @@ header that opens a searchable checklist of column values.
 
 Table settings groups:
 
-- **Appearance** - cell padding, horizontal/vertical alignment, zebra rows, hover
-  row and the scroll/scale controls. Zebra and hover colors are applied as a
-  subtle tint so they stay readable on dark and light themes. **Scroll** wraps
+- **Appearance** - **theme** (Inherit global, or a Light/Dark variant from the
+  same families as the general project themes), cell padding, horizontal/vertical
+  alignment, zebra rows, hover row and the scroll/scale controls. **Inherit
+  global** leaves the table on the active project theme; a forced theme writes
+  that variant's `--sui-table-*` tokens on this table only. **Set default**
+  stores the current choice for newly inserted tables. Zebra and hover colors
+  are applied as a subtle tint so they stay readable on dark and light themes.
+  **Scroll** wraps
   the table in a `tscroll` container with an optional max height, sticky header
   and custom scrollbar colors; **scale** zooms the whole table. In a workbook,
   **control padding** (in the Scroll & scale group, default 10 px) insets the

@@ -2148,6 +2148,13 @@ table name: "utenti" columns: "id,nome,stato,importo"
   cresce). Cambiando la larghezza della colonna il testo si ridispone secondo la
   modalità scelta. In modalità `persistent` vengono salvati con i dati anche
   larghezze colonne/righe ed etichette header.
+- Tema: la tabella eredita il tema attivo del progetto tramite `--sui-table-*`
+  (`bg`, `fg`, `head-bg`, `head-fg`, `row-bg`, `striped-bg`, `hover`, `border`,
+  radius, padding, font e shadow). **Table settings → Appearance → theme** può
+  forzare una variante Light/Dark di una famiglia generale solo su quella
+  tabella; **Set default** salva la scelta per le nuove tabelle. I preset
+  strutturali (Lines, Grid, Card, …) usano lo stesso token `--sui-table-border`,
+  quindi seguono il tema attivo o forzato.
 - `sortable` abilita l'ordinamento dell'header (e inizializza il toggle runtime).
   Nelle tabelle editable il click sull'header porta il cursore nell'etichetta;
   per ordinare si usa il pulsante di sort nell'header, così l'edit non perde il

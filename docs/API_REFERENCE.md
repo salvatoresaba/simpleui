@@ -2260,6 +2260,13 @@ table name: "users" columns: "id,name,status,amount"
   height grows). Column width changes reflow the same cell text according to the
   chosen mode. In `persistent` mode the runtime column widths, row heights and
   header labels are saved with the data.
+- Theme: the table inherits the active project theme through `--sui-table-*`
+  (`bg`, `fg`, `head-bg`, `head-fg`, `row-bg`, `striped-bg`, `hover`, `border`,
+  radius, padding, font and shadow). **Table settings → Appearance → theme** can
+  force a Light/Dark variant of any general theme family for that table only;
+  **Set default** stores the choice for new tables. The structural presets
+  (Lines, Grid, Card, …) use the same `--sui-table-border` token, so they follow
+  the active or forced theme.
 - `sortable` enables header sorting (ascending, descending, original) and seeds
   the runtime sort toggle. On editable tables a header click places the caret in
   the header label; use the header sort button so sorting cannot blur the edit.

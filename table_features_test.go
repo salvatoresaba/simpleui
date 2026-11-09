@@ -257,6 +257,30 @@ func TestTabsBottomSheetStyle(t *testing.T) {
 	}
 }
 
+func TestTableThemeSelectorAndProjectDefaults(t *testing.T) {
+	for _, want := range []string{
+		"function tableThemeRow",
+		"TABLE_THEME_KEYS",
+		"Inherit global",
+		"Set default",
+		"function tableThemeApply",
+		"function readTableProjectDefaults",
+		"function saveTableProjectDefaults",
+		"function applyTableProjectDefaultsToNode",
+		"sui-table-defaults",
+		"applyTableProjectDefaultsToNode(n)",
+		`var(--sui-table-border`,
+		`--sui-table-head-bg, #202732`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("table theme integration missing %q", want)
+		}
+	}
+	if strings.Contains(guiHTML, `["Grid", { "--t-pad": "6px 10px", "--t-grid": "1px solid #d3d7e2"`) {
+		t.Error("table preset still uses hard-coded grid colors")
+	}
+}
+
 func TestDesignerDataTablePreservesAttributes(t *testing.T) {
 	src := `view main {
 	table name: "orders" columns: "name,qty" columnLabels: "Product,Qty" columnTypes: "text,number" columnFormats: "text,number" editMode: "editable" sortable: true filterable: true showAddTable: true {

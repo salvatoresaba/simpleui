@@ -1287,8 +1287,12 @@ ricercabile dei valori della colonna.
 
 Gruppi del pannello:
 
-- **Appearance** - padding celle, allineamento orizzontale/verticale, righe
-  zebrate, hover e controlli scroll/scale. I colori zebra e hover sono applicati
+- **Appearance** - **tema** (Inherit global, oppure una variante Light/Dark
+  delle stesse famiglie dei temi generali del progetto), padding celle,
+  allineamento orizzontale/verticale, righe zebrate, hover e controlli
+  scroll/scale. **Inherit global** lascia la tabella sul tema attivo; un tema
+  forzato scrive i token `--sui-table-*` solo su questa tabella. **Set default**
+  salva la scelta per le nuove tabelle. I colori zebra e hover sono applicati
   come tinta leggera, così restano leggibili su temi chiari e scuri. **Scroll**
   avvolge la tabella in un contenitore `tscroll` con altezza massima, header
   sticky e colori scrollbar; **scale** applica lo zoom all'intera tabella. In un
