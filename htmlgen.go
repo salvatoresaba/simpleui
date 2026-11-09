@@ -1700,7 +1700,7 @@ p { line-height: 1.6; }
   width: 100%;
   margin: 0;
   border-collapse: separate;
-  border-spacing: var(--sui-layout-gap, 12px);
+  border-spacing: var(--sui-layout-gap-x, var(--sui-layout-gap, 12px)) var(--sui-layout-gap-y, var(--sui-layout-gap, 12px));
   table-layout: fixed;
 }
 .sui-layout-table > tbody > tr > .sui-layout-cell {
@@ -5650,45 +5650,52 @@ func modalButtonCloses(e *Element) bool {
 // writeStaticTableLayout renders a structural table: each direct child is
 // placed in its own <td>, flowing in a fixed number of columns.
 func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
-	cols := layoutTableColumns(e)
+	grid := layoutTableGrid(e)
+	style := layoutTableStyleWithUser(e)
 	sb.WriteString(ind)
 	sb.WriteString("<table class=\"sui-layout-table")
 	staticClassSuffix(sb, e)
 	sb.WriteString("\" role=\"presentation\"")
+	if style != "" {
+		sb.WriteString(" style=\"")
+		sb.WriteString(htmlEscape(style))
+		sb.WriteString("\"")
+	}
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
+	if colgroup := layoutColgroupHTML(e, grid.cols); colgroup != "" {
+		sb.WriteString(ind)
+		sb.WriteString("  ")
+		sb.WriteString(colgroup)
+		sb.WriteString("\n")
+	}
 	sb.WriteString(ind)
 	sb.WriteString("  <tbody>\n")
-	total := len(e.children)
-	for i := 0; i < total; i++ {
-		if i%cols == 0 {
-			sb.WriteString(ind)
-			sb.WriteString("    <tr>\n")
-		}
+	for r := 0; r < grid.rows; r++ {
 		sb.WriteString(ind)
-		sb.WriteString("      <td class=\"sui-layout-cell\">\n")
-		writeStaticNodes(sb, []ViewNode{e.children[i]}, ind+"        ")
-		sb.WriteString(ind)
-		sb.WriteString("      </td>\n")
-		if (i+1)%cols == 0 {
+		sb.WriteString("    <tr")
+		sb.WriteString(layoutRowStyle(e, r))
+		sb.WriteString(">\n")
+		for c := 0; c < grid.cols; c++ {
+			if !grid.occupied[r][c] {
+				sb.WriteString(ind)
+				sb.WriteString("      <td class=\"sui-layout-cell\"")
+				sb.WriteString(layoutEmptyCellAttrs(e))
+				sb.WriteString("></td>\n")
+				continue
+			}
+			ci, ok := grid.starts[[2]int{r, c}]
+			if !ok {
+				continue
+			}
+			cell := grid.cells[ci]
 			sb.WriteString(ind)
-			sb.WriteString("    </tr>\n")
-		}
-	}
-	if total == 0 {
-		sb.WriteString(ind)
-		sb.WriteString("    <tr>\n")
-		for j := 0; j < cols; j++ {
+			sb.WriteString("      <td class=\"sui-layout-cell\"")
+			sb.WriteString(layoutCellAttrs(cell, e))
+			sb.WriteString(">\n")
+			writeStaticNodes(sb, []ViewNode{*cell.node}, ind+"        ")
 			sb.WriteString(ind)
-			sb.WriteString("      <td class=\"sui-layout-cell\"></td>\n")
-		}
-		sb.WriteString(ind)
-		sb.WriteString("    </tr>\n")
-	}
-	if rem := total % cols; rem != 0 {
-		for j := rem; j < cols; j++ {
-			sb.WriteString(ind)
-			sb.WriteString("      <td class=\"sui-layout-cell\"></td>\n")
+			sb.WriteString("      </td>\n")
 		}
 		sb.WriteString(ind)
 		sb.WriteString("    </tr>\n")
@@ -7188,7 +7195,12 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			continue
 		}
-		if e.tag == "tablelayout" && a.key == "columns" {
+		if e.tag == "tablelayout" && (a.key == "columns" || a.key == "rows" ||
+			a.key == "width" || a.key == "height" ||
+			a.key == "columnWidths" || a.key == "rowHeights" ||
+			a.key == "gapX" || a.key == "gapY" ||
+			a.key == "borderStyle" || a.key == "borderWidth" || a.key == "borderColor" ||
+			a.key == "cellMinHeight" || a.key == "style") {
 			continue
 		}
 		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||
@@ -7225,6 +7237,9 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		}
 		if a.key == "head" || a.key == "options" || a.key == "link" ||
 			a.key == "dropFiles" || a.key == "pickFiles" || a.key == "pickMode" || a.key == "dragKey" || a.key == "dropKey" {
+			continue
+		}
+		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
 			continue
 		}
 		if a.key == "required" {

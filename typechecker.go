@@ -3056,7 +3056,15 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tcell" && (key == "head" || key == "colspan" || key == "rowspan") {
 		return true
 	}
-	if tag == "tablelayout" && key == "columns" {
+	if tag == "tablelayout" && (key == "rows" || key == "columns" ||
+		key == "width" || key == "height" ||
+		key == "columnWidths" || key == "rowHeights" ||
+		key == "gapX" || key == "gapY" ||
+		key == "borderStyle" || key == "borderWidth" || key == "borderColor" ||
+		key == "cellMinHeight") {
+		return true
+	}
+	if key == "colspan" || key == "rowspan" {
 		return true
 	}
 	if tag == "table" && (key == "name" || key == "editMode" || key == "cellText" ||
@@ -3657,20 +3665,71 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
-	if tag == "tablelayout" && a.key == "columns" {
+	if tag == "tablelayout" && (a.key == "rows" || a.key == "columns") {
+		n := 0
 		if a.hasExpr {
-			t := c.inferExpr(a.expr)
-			if t.kind != "int" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
-				c.diagAt(a.span, a.key+" must be an int, got "+typeStr(t))
+			if a.expr == nil || a.expr.kind != "int" {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
 			}
-			if a.expr != nil && a.expr.kind == "int" && (a.expr.i < 1 || a.expr.i > 6) {
-				c.diagAt(a.span, "columns must be an integer between 1 and 6")
+			n = a.expr.i
+		} else {
+			v, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
+			if err != nil {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
 			}
+			n = v
+		}
+		min, max := 1, 12
+		if a.key == "rows" {
+			max = 50
+		}
+		if n < min || n > max {
+			c.diagAt(a.span, a.key+" must be an integer between "+strconv.Itoa(min)+" and "+strconv.Itoa(max))
+		}
+		return
+	}
+	if tag == "tablelayout" && a.key == "borderStyle" {
+		if a.hasExpr {
+			c.diagAt(a.span, "borderStyle must be a literal value")
 			return
 		}
-		n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
-		if err != nil || n < 1 || n > 6 {
-			c.diagAt(a.span, "columns must be an integer between 1 and 6")
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		switch v {
+		case "none", "solid", "dashed", "dotted", "double":
+		default:
+			c.diagAt(a.span, "borderStyle must be one of: none, solid, dashed, dotted, double")
+		}
+		return
+	}
+	if tag == "tablelayout" && (a.key == "width" || a.key == "height" ||
+		a.key == "columnWidths" || a.key == "rowHeights" ||
+		a.key == "gapX" || a.key == "gapY" ||
+		a.key == "borderWidth" || a.key == "borderColor" || a.key == "cellMinHeight") {
+		if a.hasExpr {
+			c.diagAt(a.span, a.key+" must be a literal value")
+		}
+		return
+	}
+	if a.key == "colspan" || a.key == "rowspan" {
+		n := 0
+		if a.hasExpr {
+			if a.expr == nil || a.expr.kind != "int" {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
+			}
+			n = a.expr.i
+		} else {
+			v, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
+			if err != nil {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
+			}
+			n = v
+		}
+		if n < 1 || n > 50 {
+			c.diagAt(a.span, a.key+" must be an integer between 1 and 50")
 		}
 		return
 	}

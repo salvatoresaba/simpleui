@@ -2015,7 +2015,18 @@ function uniqueTableName() {
 }
 function newTableLayoutNode() {
   var n = newNode("tablelayout");
+  n.layoutRows = "2";
   n.layoutColumns = "2";
+  n.layoutWidth = "100%";
+  n.layoutHeight = "";
+  n.layoutColumnWidths = "";
+  n.layoutRowHeights = "";
+  n.layoutGapX = "12px";
+  n.layoutGapY = "12px";
+  n.layoutBorderStyle = "none";
+  n.layoutBorderWidth = "1px";
+  n.layoutBorderColor = "var(--sui-border, #3d4556)";
+  n.layoutCellMinHeight = "72px";
   n.children = [];
   return n;
 }
@@ -4519,6 +4530,9 @@ function renderInspector() {
   }
   if (nodes.length === 1 && n && n.kind === "tablelayout") {
     box.appendChild(layoutTableControls(n));
+  }
+  if (nodes.length === 1 && n && !n.raw && layoutCellParentPath(selPath)) {
+    box.appendChild(layoutCellControls(n));
   }
   if (nodes.length === 1 && n && n.kind === "tabs") {
     box.appendChild(tabsControls(n));
@@ -8953,37 +8967,103 @@ function layoutTableControls(n) {
   h.onclick = function(){ a.classList.toggle("open"); };
   a.appendChild(h);
   var b = document.createElement("div"); b.className = "accbody";
-  var cr = document.createElement("div"); cr.className = "rowline";
-  cr.appendChild(lbl("columns"));
-  var ci = document.createElement("input");
-  ci.type = "number"; ci.min = "1"; ci.max = "6"; ci.step = "1";
-  ci.value = String(Math.max(1, Math.min(6, parseInt(n.layoutColumns || "2", 10) || 2)));
-  ci.onchange = function(){
-    var v = Math.max(1, Math.min(6, parseInt(ci.value, 10) || 2));
-    withUndo(function(){ n.layoutColumns = String(v); }, "table layout columns");
-  };
-  cr.appendChild(ci);
-  b.appendChild(cr);
-  var ar = document.createElement("div"); ar.className = "rowline";
-  ar.appendChild(lbl("cell"));
-  var ab = document.createElement("button"); ab.type = "button"; ab.className = "btn";
-  ab.textContent = "Add cell";
-  ab.title = "Append a cell container; drop elements inside it to keep them in the same column.";
-  ab.onclick = function(){
-    withUndo(function(){
-      var cell = newNodeForKind("col");
-      cell.style = "min-height:72px";
-      n.children.push(cell);
-      selPath = (selPath || []).concat([n.children.length - 1]);
-    }, "add layout cell");
-  };
-  ar.appendChild(ab);
-  b.appendChild(ar);
+  function textRow(labelText, field, placeholder, title) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var inp = document.createElement("input");
+    inp.value = n[field] === undefined || n[field] === null ? "" : String(n[field]);
+    inp.placeholder = placeholder || "";
+    if (title) inp.title = title;
+    inp.spellcheck = false;
+    inp.onchange = function(){
+      var v = inp.value.trim();
+      withUndo(function(){ n[field] = v; }, "table layout " + labelText);
+    };
+    row.appendChild(inp);
+    b.appendChild(row);
+    return inp;
+  }
+  function numberRow(labelText, field, min, max) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var inp = document.createElement("input");
+    inp.type = "number"; inp.min = String(min); inp.max = String(max); inp.step = "1";
+    var cur = parseInt(n[field] || String(min), 10);
+    inp.value = String(Math.max(min, Math.min(max, isNaN(cur) ? min : cur)));
+    inp.onchange = function(){
+      var v = Math.max(min, Math.min(max, parseInt(inp.value, 10) || min));
+      withUndo(function(){ n[field] = String(v); }, "table layout " + labelText);
+    };
+    row.appendChild(inp);
+    b.appendChild(row);
+    return inp;
+  }
+  numberRow("rows", "layoutRows", 1, 50);
+  numberRow("columns", "layoutColumns", 1, 12);
+  textRow("width", "layoutWidth", "100% or 640px");
+  textRow("height", "layoutHeight", "auto");
+  textRow("column widths", "layoutColumnWidths", "30%, 70%", "Comma-separated sizes, one per column. Supports px and %.");
+  textRow("row heights", "layoutRowHeights", "80px, auto", "Comma-separated sizes, one per row. Supports px and %.");
+  textRow("column gap", "layoutGapX", "12px");
+  textRow("row gap", "layoutGapY", "12px");
+  var bs = document.createElement("div"); bs.className = "rowline";
+  bs.appendChild(lbl("cell border"));
+  var bsel = document.createElement("select");
+  [["none", "None"], ["solid", "Solid"], ["dashed", "Dashed"], ["dotted", "Dotted"], ["double", "Double"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.layoutBorderStyle || "none") === o[0]) opt.selected = true;
+    bsel.appendChild(opt);
+  });
+  bsel.onchange = function(){ withUndo(function(){ n.layoutBorderStyle = bsel.value; }, "table layout border"); };
+  bs.appendChild(bsel); b.appendChild(bs);
+  textRow("border width", "layoutBorderWidth", "1px");
+  textRow("border color", "layoutBorderColor", "var(--sui-border, #3d4556)");
+  textRow("empty cell height", "layoutCellMinHeight", "72px");
   var note = document.createElement("div"); note.className = "rowth";
-  note.textContent = "Children fill cells left to right. Wrap multiple elements in a column.";
+  note.textContent = "Children fill cells row by row. Select a child to span/merge its cell.";
   b.appendChild(note);
   a.appendChild(b);
   return a;
+}
+function layoutCellControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Layout cell</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  function spanRow(labelText, field, min, max) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var inp = document.createElement("input");
+    inp.type = "number"; inp.min = String(min); inp.max = String(max); inp.step = "1";
+    var cur = parseInt(n[field] || "1", 10);
+    inp.value = String(Math.max(min, Math.min(max, isNaN(cur) ? 1 : cur)));
+    inp.onchange = function(){
+      var v = Math.max(min, Math.min(max, parseInt(inp.value, 10) || 1));
+      withUndo(function(){ n[field] = String(v); }, "layout " + labelText);
+    };
+    row.appendChild(inp);
+    b.appendChild(row);
+  }
+  spanRow("column span", "layoutColspan", 1, 12);
+  spanRow("row span", "layoutRowspan", 1, 50);
+  var sr = document.createElement("div"); sr.className = "rowline";
+  sr.appendChild(lbl("split"));
+  var sb = document.createElement("button"); sb.type = "button"; sb.className = "btn";
+  sb.textContent = "Reset to 1 x 1";
+  sb.onclick = function(){ withUndo(function(){ n.layoutColspan = "1"; n.layoutRowspan = "1"; }, "layout split cell"); };
+  sr.appendChild(sb); b.appendChild(sr);
+  var note = document.createElement("div"); note.className = "rowth";
+  note.textContent = "A column/row span greater than 1 merges this cell with the cells to its right/below.";
+  b.appendChild(note);
+  a.appendChild(b);
+  return a;
+}
+function layoutCellParentPath(p) {
+  if (!p || p.length < 2) return null;
+  var par = byPath(p.slice(0, -1), root.children);
+  return par && par.kind === "tablelayout" ? par : null;
 }
 function tableControls(n, opts) {
   opts = opts || {};
@@ -11128,7 +11208,24 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.sort) a += " sort: \"" + esc(n.sort) + "\"";
   if (n.kind === "tree" && n.persistSelection) a += " persistSelection: true";
   if (n.kind === "tree" && n.loadKey) a += " loadKey: " + n.loadKey;
-  if (n.kind === "tablelayout" && n.layoutColumns) a += " columns: \"" + esc(String(n.layoutColumns)) + "\"";
+  if (n.kind === "tablelayout") {
+    a += " rows: \"" + esc(String(n.layoutRows || "2")) + "\"";
+    a += " columns: \"" + esc(String(n.layoutColumns || "2")) + "\"";
+    if (n.layoutWidth && n.layoutWidth !== "100%") a += " width: \"" + esc(n.layoutWidth) + "\"";
+    if (n.layoutHeight) a += " height: \"" + esc(n.layoutHeight) + "\"";
+    if (n.layoutColumnWidths) a += " columnWidths: \"" + esc(n.layoutColumnWidths) + "\"";
+    if (n.layoutRowHeights) a += " rowHeights: \"" + esc(n.layoutRowHeights) + "\"";
+    if (n.layoutGapX && n.layoutGapX !== "12px") a += " gapX: \"" + esc(n.layoutGapX) + "\"";
+    if (n.layoutGapY && n.layoutGapY !== "12px") a += " gapY: \"" + esc(n.layoutGapY) + "\"";
+    if (n.layoutBorderStyle && n.layoutBorderStyle !== "none") {
+      a += " borderStyle: \"" + esc(n.layoutBorderStyle) + "\"";
+      if (n.layoutBorderWidth && n.layoutBorderWidth !== "1px") a += " borderWidth: \"" + esc(n.layoutBorderWidth) + "\"";
+      if (n.layoutBorderColor && n.layoutBorderColor !== "var(--sui-border, #3d4556)") a += " borderColor: \"" + esc(n.layoutBorderColor) + "\"";
+    }
+    if (n.layoutCellMinHeight && n.layoutCellMinHeight !== "72px") a += " cellMinHeight: \"" + esc(n.layoutCellMinHeight) + "\"";
+  }
+  if (n.layoutColspan && Number(n.layoutColspan) > 1) a += " colspan: " + Number(n.layoutColspan);
+  if (n.layoutRowspan && Number(n.layoutRowspan) > 1) a += " rowspan: " + Number(n.layoutRowspan);
   if (n.onClick) a += " onClick: " + n.onClick;
   if (n.onDoubleClick) a += " onDoubleClick: " + n.onDoubleClick;
   if (n.onMouseEnter) a += " onMouseEnter: " + n.onMouseEnter;
@@ -11208,7 +11305,7 @@ function toSui(n, depth) {
   var ind = ""; for (var i = 0; i < depth; i++) ind += "\t";
   var line = ind + n.kind;
   // A toast host has no visible text and is emitted as toast class: ...
-  if (!(n.kind === "toast" && !n.text)) line += " \"" + escText(n.text) + "\"";
+  if (n.kind !== "tablelayout" && !(n.kind === "toast" && !n.text)) line += " \"" + escText(n.text) + "\"";
   line += attrsOf(n);
   if (n.children && n.children.length) {
     line += " {\n";

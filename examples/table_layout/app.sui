@@ -20,10 +20,10 @@ view main {
 	col class: "layout-page" {
 		h1 "Table layout"
 		p "A structural HTML table that hosts cards, text and controls. It is not a data table."
-		tablelayout columns: 2 class: "layout-demo" style: "--sui-layout-gap:18px" {
-			card "Structural table" {
+		tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%" rowHeights: "auto, auto, 90px" gapX: "18px" gapY: "14px" borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" class: "layout-demo" {
+			card "Structural table" colspan: 2 {
 				h2 "Cells, not data rows"
-				p "Each direct child of tablelayout fills one cell, left to right."
+				p "Rows, columns, merged cells and spacing are configured in the Table layout inspector."
 			}
 			card "Host any control" {
 				h2 "Composable"
@@ -38,7 +38,7 @@ view main {
 				p "Hello {name}."
 				p "Button clicks: {clicks}"
 			}
+			p "Wrap several elements in a col to keep them inside a single cell." class: "layout-note"
 		}
-		p "Wrap several elements in a col to keep them inside a single cell." class: "layout-note"
 	}
 }

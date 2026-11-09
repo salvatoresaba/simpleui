@@ -1788,24 +1788,296 @@ func chartTag(tag string) bool {
 	return tag == "chart" || tag == "graph"
 }
 
-// layoutTableColumns returns the requested number of structural table columns.
-// The value is a static integer clamped to the supported 1..6 range.
-func layoutTableColumns(e *Element) int {
-	a := findAttr(e, "columns")
+// layoutTableIntAttr reads a static integer attribute, clamped to [min,max].
+func layoutTableIntAttr(e *Element, key string, def, min, max int) int {
+	a := findAttr(e, key)
 	if a == nil {
-		return 2
+		return def
 	}
+	n := 0
 	if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
-		if a.expr.i >= 1 && a.expr.i <= 6 {
-			return a.expr.i
+		n = a.expr.i
+	} else {
+		v, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
+		if err != nil {
+			return def
 		}
-		return 2
+		n = v
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
-	if err != nil || n < 1 || n > 6 {
-		return 2
+	if n < min {
+		return min
+	}
+	if n > max {
+		return max
 	}
 	return n
+}
+
+func layoutTableColumns(e *Element) int {
+	return layoutTableIntAttr(e, "columns", 2, 1, 12)
+}
+
+// layoutTableRows returns the explicit rows attribute, or 0 when rows are
+// derived from the children.
+func layoutTableRows(e *Element) int {
+	return layoutTableIntAttr(e, "rows", 0, 0, 50)
+}
+
+func layoutTableTextAttr(e *Element, key, def string) string {
+	a := findAttr(e, key)
+	if a == nil || a.hasExpr {
+		return def
+	}
+	v := strings.TrimSpace(partsContent(a.text))
+	if v == "" {
+		return def
+	}
+	return v
+}
+
+// layoutSafeSize keeps CSS length values written by the developer. Only
+// straightforward lengths, percentages and intrinsic keywords are accepted.
+func layoutSafeSize(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return ""
+	}
+	switch v {
+	case "auto", "fit-content", "min-content", "max-content":
+		return v
+	}
+	if regexp.MustCompile(`^\d+(\.\d+)?$`).MatchString(v) {
+		return v + "px"
+	}
+	if regexp.MustCompile(`^\d+(\.\d+)?(px|%|em|rem|vw|vh|pt)$`).MatchString(v) {
+		return v
+	}
+	return ""
+}
+
+func layoutSafeCSSValue(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" || strings.ContainsAny(v, ";{}<>\"'\n\r") {
+		return ""
+	}
+	return v
+}
+
+func layoutSizeList(e *Element, key string) []string {
+	a := findAttr(e, key)
+	if a == nil || a.hasExpr {
+		return nil
+	}
+	raw := strings.Split(partsContent(a.text), ",")
+	out := make([]string, 0, len(raw))
+	for _, item := range raw {
+		out = append(out, layoutSafeSize(item))
+	}
+	return out
+}
+
+func layoutBorderCSS(e *Element) string {
+	style := strings.ToLower(layoutTableTextAttr(e, "borderStyle", "none"))
+	switch style {
+	case "solid", "dashed", "dotted", "double":
+	default:
+		return ""
+	}
+	width := layoutSafeSize(layoutTableTextAttr(e, "borderWidth", "1px"))
+	if width == "" {
+		width = "1px"
+	}
+	color := layoutSafeCSSValue(layoutTableTextAttr(e, "borderColor", "var(--sui-border, #3d4556)"))
+	if color == "" {
+		color = "var(--sui-border, #3d4556)"
+	}
+	return "border:" + width + " " + style + " " + color + ";"
+}
+
+func layoutTableStyle(e *Element) string {
+	var parts []string
+	if v := layoutSafeSize(layoutTableTextAttr(e, "width", "100%")); v != "" {
+		parts = append(parts, "width:"+v)
+	}
+	if v := layoutSafeSize(layoutTableTextAttr(e, "height", "")); v != "" {
+		parts = append(parts, "height:"+v)
+	}
+	gapX := layoutSafeSize(layoutTableTextAttr(e, "gapX", "12px"))
+	if gapX == "" {
+		gapX = "12px"
+	}
+	gapY := layoutSafeSize(layoutTableTextAttr(e, "gapY", gapX))
+	if gapY == "" {
+		gapY = gapX
+	}
+	parts = append(parts, "border-spacing:"+gapX+" "+gapY)
+	if v := layoutSafeSize(layoutTableTextAttr(e, "cellMinHeight", "72px")); v != "" {
+		parts = append(parts, "--sui-layout-cell-min-height:"+v)
+	}
+	return strings.Join(parts, ";") + ";"
+}
+
+func layoutTableStyleWithUser(e *Element) string {
+	base := layoutTableStyle(e)
+	a := findAttr(e, "style")
+	if a == nil || a.hasExpr {
+		return base
+	}
+	user := strings.TrimSpace(partsContent(a.text))
+	if user == "" {
+		return base
+	}
+	return base + user + ";"
+}
+
+func layoutTableStyleAttrValue(e *Element) string {
+	base := htmlEscape(layoutTableStyle(e))
+	a := findAttr(e, "style")
+	if a == nil {
+		return base
+	}
+	if a.hasExpr {
+		return base + "${__sui_esc(" + ExprToJs(a.expr) + ")}"
+	}
+	return base + htmlTextParts(a.text)
+}
+
+type layoutGridCell struct {
+	node             *ViewNode
+	row, col         int
+	rowspan, colspan int
+}
+
+type layoutGrid struct {
+	rows     int
+	cols     int
+	cells    []layoutGridCell
+	starts   map[[2]int]int
+	occupied [][]bool
+}
+
+func layoutSpanValue(e *Element, key string, max int) int {
+	n := layoutTableIntAttr(e, key, 1, 1, 50)
+	if max > 0 && n > max {
+		n = max
+	}
+	return n
+}
+
+func layoutTableGrid(e *Element) layoutGrid {
+	cols := layoutTableColumns(e)
+	explicitRows := layoutTableRows(e)
+	occ := [][]bool{}
+	ensure := func(n int) {
+		for len(occ) < n {
+			occ = append(occ, make([]bool, cols))
+		}
+	}
+	if explicitRows > 0 {
+		ensure(explicitRows)
+	}
+	ensure(1)
+	g := layoutGrid{cols: cols, starts: map[[2]int]int{}}
+	r, c := 0, 0
+	for i := range e.children {
+		node := &e.children[i]
+		for {
+			ensure(r + 1)
+			if c >= cols {
+				r++
+				c = 0
+				continue
+			}
+			if occ[r][c] {
+				c++
+				continue
+			}
+			break
+		}
+		cs, rs := 1, 1
+		if node.kind == "element" && node.elem != nil {
+			cs = layoutSpanValue(node.elem, "colspan", cols-c)
+			rs = layoutSpanValue(node.elem, "rowspan", 50)
+		}
+		if explicitRows > 0 && r+rs > explicitRows {
+			rs = explicitRows - r
+			if rs < 1 {
+				rs = 1
+			}
+		}
+		ensure(r + rs)
+		for rr := 0; rr < rs; rr++ {
+			for cc := 0; cc < cs; cc++ {
+				occ[r+rr][c+cc] = true
+			}
+		}
+		g.starts[[2]int{r, c}] = len(g.cells)
+		g.cells = append(g.cells, layoutGridCell{node: node, row: r, col: c, rowspan: rs, colspan: cs})
+		c += cs
+	}
+	if explicitRows > len(occ) {
+		ensure(explicitRows)
+	}
+	g.rows = len(occ)
+	g.occupied = occ
+	return g
+}
+
+func layoutCellAttrs(cell layoutGridCell, e *Element) string {
+	var b strings.Builder
+	if cell.colspan > 1 {
+		b.WriteString(" colspan=\"")
+		b.WriteString(strconv.Itoa(cell.colspan))
+		b.WriteString("\"")
+	}
+	if cell.rowspan > 1 {
+		b.WriteString(" rowspan=\"")
+		b.WriteString(strconv.Itoa(cell.rowspan))
+		b.WriteString("\"")
+	}
+	if border := layoutBorderCSS(e); border != "" {
+		b.WriteString(" style=\"")
+		b.WriteString(htmlEscape(border))
+		b.WriteString("\"")
+	}
+	return b.String()
+}
+
+func layoutEmptyCellAttrs(e *Element) string {
+	if border := layoutBorderCSS(e); border != "" {
+		return " style=\"" + htmlEscape(border) + "\""
+	}
+	return ""
+}
+
+func layoutColgroupHTML(e *Element, cols int) string {
+	widths := layoutSizeList(e, "columnWidths")
+	if len(widths) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("<colgroup>")
+	for i := 0; i < cols; i++ {
+		w := ""
+		if i < len(widths) {
+			w = widths[i]
+		}
+		if w != "" {
+			b.WriteString("<col style=\"width:" + htmlEscape(w) + "\">")
+		} else {
+			b.WriteString("<col>")
+		}
+	}
+	b.WriteString("</colgroup>")
+	return b.String()
+}
+
+func layoutRowStyle(e *Element, row int) string {
+	heights := layoutSizeList(e, "rowHeights")
+	if row < len(heights) && heights[row] != "" {
+		return " style=\"height:" + htmlEscape(heights[row]) + "\""
+	}
+	return ""
 }
 
 func elemHtmlTag(tag string) string {
@@ -2483,7 +2755,12 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			continue
 		}
-		if e.tag == "tablelayout" && a.key == "columns" {
+		if e.tag == "tablelayout" && (a.key == "columns" || a.key == "rows" ||
+			a.key == "width" || a.key == "height" ||
+			a.key == "columnWidths" || a.key == "rowHeights" ||
+			a.key == "gapX" || a.key == "gapY" ||
+			a.key == "borderStyle" || a.key == "borderWidth" || a.key == "borderColor" ||
+			a.key == "cellMinHeight" || a.key == "style") {
 			continue
 		}
 		if e.tag == "table" && (a.key == "name" || a.key == "editMode" ||
@@ -2498,6 +2775,9 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if a.key == "head" || a.key == "options" || a.key == "link" || a.key == "srcAllow" ||
 			a.key == "draggable" || a.key == "directory" || a.key == "dragKey" ||
 			a.key == "dropKey" || a.key == "dropFiles" || a.key == "pickFiles" || a.key == "pickMode" {
+			continue
+		}
+		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
 			continue
 		}
 		if e.tag != "file" && findAttr(e, "pickFiles") != nil &&
@@ -2565,6 +2845,11 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		urlAttr := a.key == "href" || a.key == "src"
 		sb.WriteString(htmlAttrValue(&a, urlAttr))
 		sb.WriteByte('"')
+	}
+	if e.tag == "tablelayout" {
+		sb.WriteString(" style=\"")
+		sb.WriteString(layoutTableStyleAttrValue(e))
+		sb.WriteString("\"")
 	}
 }
 
@@ -2835,33 +3120,33 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 // normal escaped element renderer.
 func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	open := openTagHtml(e, "table", false, idx, ctx)
-	cols := layoutTableColumns(e)
-	total := len(e.children)
+	grid := layoutTableGrid(e)
 	var b strings.Builder
 	b.WriteString("`")
 	b.WriteString(open)
+	b.WriteString(layoutColgroupHTML(e, grid.cols))
 	b.WriteString("<tbody>")
-	for i := 0; i < total; i++ {
-		if i%cols == 0 {
-			b.WriteString("<tr>")
-		}
-		b.WriteString("<td class=\"sui-layout-cell\">` + (")
-		b.WriteString(viewNodesJs([]*ViewNode{&e.children[i]}, g, ctx))
-		b.WriteString(") + `</td>")
-		if (i+1)%cols == 0 {
-			b.WriteString("</tr>")
-		}
-	}
-	if total == 0 {
-		b.WriteString("<tr>")
-		for j := 0; j < cols; j++ {
-			b.WriteString("<td class=\"sui-layout-cell\"></td>")
-		}
-		b.WriteString("</tr>")
-	}
-	if rem := total % cols; rem != 0 {
-		for j := rem; j < cols; j++ {
-			b.WriteString("<td class=\"sui-layout-cell\"></td>")
+	for r := 0; r < grid.rows; r++ {
+		b.WriteString("<tr")
+		b.WriteString(layoutRowStyle(e, r))
+		b.WriteString(">")
+		for c := 0; c < grid.cols; c++ {
+			if !grid.occupied[r][c] {
+				b.WriteString("<td class=\"sui-layout-cell\"")
+				b.WriteString(layoutEmptyCellAttrs(e))
+				b.WriteString("></td>")
+				continue
+			}
+			ci, ok := grid.starts[[2]int{r, c}]
+			if !ok {
+				continue // covered by a rowspan from an earlier row
+			}
+			cell := grid.cells[ci]
+			b.WriteString("<td class=\"sui-layout-cell\"")
+			b.WriteString(layoutCellAttrs(cell, e))
+			b.WriteString(">` + (")
+			b.WriteString(viewNodesJs([]*ViewNode{cell.node}, g, ctx))
+			b.WriteString(") + `</td>")
 		}
 		b.WriteString("</tr>")
 	}

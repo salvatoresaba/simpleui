@@ -1,21 +1,25 @@
 # Table layout
 
-`tablelayout` is a **structural** HTML table. It places existing interface
-elements in cells and is intentionally separate from the data `table` control:
+`tablelayout` is a **structural** HTML table. It arranges existing interface
+elements in an explicit row/column grid and is intentionally separate from the
+data `table` control:
 
 | Need | Use |
 |---|---|
 | Arrange cards, text and controls in rows/columns | `tablelayout` |
+| Merge cells, set column/row sizes, gaps and borders | `tablelayout` settings |
 | Show data, sort, filter, edit and persist rows | `table` with `name:` and `table.*` |
 
 ## What it demonstrates
 
-- a real `<table>`/`<tbody>`/`<tr>`/`<td>` structure;
-- a fixed `columns` count with children flowing left to right;
-- cards, text, inputs and buttons inside separate cells;
+- an explicit `rows` x `columns` grid;
+- a merged full-width header with `colspan: 2`;
+- column widths in `%` and row heights in `auto`/`px`;
+- separate horizontal and vertical gaps;
+- dashed cell borders with custom width and color;
+- cards, text, inputs and buttons inside cells;
 - a `col` wrapper that keeps an input and a button in the same cell;
-- reactive state changes through normal `input` and `button` bindings;
-- `--sui-layout-gap` for spacing between cells.
+- reactive state changes through normal `input` and `button` bindings.
 
 ## Complete source
 
@@ -42,10 +46,10 @@ view main {
 	col class: "layout-page" {
 		h1 "Table layout"
 		p "A structural HTML table that hosts cards, text and controls. It is not a data table."
-		tablelayout columns: 2 class: "layout-demo" style: "--sui-layout-gap:18px" {
-			card "Structural table" {
+		tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%" rowHeights: "auto, auto, 90px" gapX: "18px" gapY: "14px" borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" class: "layout-demo" {
+			card "Structural table" colspan: 2 {
 				h2 "Cells, not data rows"
-				p "Each direct child of tablelayout fills one cell, left to right."
+				p "Rows, columns, merged cells and spacing are configured in the Table layout inspector."
 			}
 			card "Host any control" {
 				h2 "Composable"
@@ -60,8 +64,8 @@ view main {
 				p "Hello {name}."
 				p "Button clicks: {clicks}"
 			}
+			p "Wrap several elements in a col to keep them inside a single cell." class: "layout-note"
 		}
-		p "Wrap several elements in a col to keep them inside a single cell." class: "layout-note"
 	}
 }
 ```
@@ -69,27 +73,45 @@ view main {
 ## Use it
 
 ```sui
-tablelayout columns: 3 {
-  card "Left"
-  card "Center"
-  card "Right"
+tablelayout rows: 2 columns: 3
+  width: "100%"
+  columnWidths: "200px, 40%, auto"
+  rowHeights: "80px, auto"
+  gapX: "16px" gapY: "12px"
+  borderStyle: "solid" borderWidth: "1px" borderColor: "#475569" {
+  card "A" colspan: 2
+  card "B"
+  card "C" rowspan: 2
+  card "D"
 }
 ```
 
-- `columns` accepts `1` to `6` (default `2`).
-- Each direct child becomes one cell.
-- Wrap multiple elements in `col`, `div` or `card` to keep them together.
-- Set `--sui-layout-gap` with a static `style` or a project CSS class.
+- `rows` accepts `1`-`50`, `columns` accepts `1`-`12`.
+- If `rows` is omitted it is derived from the children. Explicit rows are a
+  minimum; extra children expand the grid.
+- Each direct child fills the next free cell, row by row.
+- `colspan` / `rowspan` merge a cell right/down. Spans are clamped to the
+  remaining grid.
+- `columnWidths` / `rowHeights` use comma-separated `px`, `%`, `em`, `rem`,
+  `vw`, `vh`, `pt` or `auto`.
+- `gapX` / `gapY` set column/row spacing.
+- `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`), `borderWidth`
+  and `borderColor` style every cell.
+- `cellMinHeight` keeps empty cells visible and droppable (default `72px`).
+- Wrap multiple elements in `col`, `div` or `card` to share a cell.
 - `tablelayout` has no `name`, `editMode`, sorting, filtering or persisted data.
 
 ## Designer workflow
 
 1. Open this folder's `app.sui` with `simpleui gui app.sui`.
-2. Choose **Layout → Table layout** from the palette.
-3. Drop cards or controls inside it. Each direct child fills one cell.
-4. Select the layout table and use its **Table layout** inspector section to
-   change the column count or append an empty cell container.
-5. Use `col` wrappers if several controls must share one cell.
+2. Choose **Layout > Table layout** from the palette.
+3. Select the layout table and set **rows**, **columns**, table/column/row sizes,
+   gaps, borders and empty-cell height in the **Table layout** inspector.
+4. Drag cards or controls inside it. Each direct child fills the next cell.
+5. Select a direct child and use **Layout cell** to set `column span` /
+   `row span`; **Reset to 1 x 1** splits the cell again.
+6. Cells are outlined in the designer preview, including empty and merged cells,
+   so the grid is visible even when application borders are set to none.
 
 ## Build
 

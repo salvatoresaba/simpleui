@@ -2090,12 +2090,14 @@ modal](../examples/modal.sui).
 ## Table layout
 
 `tablelayout` è un contenitore **strutturale**, non il controllo dati `table`.
-Genera una vera `<table>` HTML e inserisce ogni figlio diretto in una cella,
-scorrendo da sinistra a destra su un numero fisso di colonne:
+Genera una vera `<table>` HTML con una griglia esplicita di righe, colonne, celle
+unite, dimensioni e bordi:
 
 ```sui
-tablelayout columns: 2 class: "layout" {
-  card "Header"
+tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
+  gapX: "18px" gapY: "14px"
+  borderStyle: "dashed" borderWidth: "1px" borderColor: "#475569" {
+  card "Header" colspan: 2
   card "Actions"
   col {
     input "Name" value: name
@@ -2105,19 +2107,31 @@ tablelayout columns: 2 class: "layout" {
 }
 ```
 
-- `columns` è un intero da `1` a `6` (default `2`).
+- `rows` va da `1` a `50` e `columns` da `1` a `12`. Se `rows` è omesso viene
+  ricavato dai figli; le righe esplicite sono un minimo perché figli aggiuntivi
+  espandono la griglia.
+- Ogni figlio diretto occupa la successiva cella libera, riga per riga.
+- `colspan` e `rowspan` su un figlio diretto uniscono la cella verso destra o
+  verso il basso. Gli span vengono limitati alle righe/colonne rimanenti.
+- `width` / `height` impostano la dimensione della tabella (`"80%"`, `"640px"`).
+- `columnWidths` e `rowHeights` accettano misure separate da virgola in `px`,
+  `%`, `em`/`rem`, `vw`/`vh`, `pt` o `auto`.
+- `gapX` / `gapY` impostano lo spazio tra colonne e righe (default `12px`).
+- `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`),
+  `borderWidth` e `borderColor` stilano ogni cella del layout.
+- `cellMinHeight` imposta l'altezza visibile delle celle vuote (default `72px`).
 - I figli mantengono comportamento e stile normali. Usa `col`/`div`/`card` per
   tenere più elementi nella stessa cella.
-- La spaziatura usa `--sui-layout-gap` (default `12px`), impostabile con uno
-  `style` statico o una classe CSS di progetto.
 - Non ha `name`, `editMode`, API dati, ordinamento, filtri o persistenza. La
   tabella generata usa `role="presentation"` perché è un ausilio di layout, non
   una tabella dati semantica. Per le griglie dati usa il controllo `table` e le
   funzioni `table.*`.
-- Per flussi a una dimensione preferisci `row` e `col`.
 
-Nel designer è in **Layout → Table layout**. L'inspector modifica il numero di
-colonne e può aggiungere una cella contenitore. Vedi
+Nel designer è in **Layout > Table layout**. L'inspector modifica righe, colonne,
+dimensioni della tabella/colonne/righe, spazi, bordi e altezza delle celle vuote.
+Seleziona un figlio diretto della tabella per modificare `column span` e
+`row span` (unione/divisione celle). Le celle sono evidenziate nella preview
+durante la progettazione. Vedi
 [examples/table_layout](../examples/table_layout/README.md).
 
 ## Tabelle e dati non fidati

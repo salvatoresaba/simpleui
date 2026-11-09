@@ -51,23 +51,82 @@ func TestTableLayoutRendersStructuralCells(t *testing.T) {
 
 func TestTableLayoutColumnsValidation(t *testing.T) {
 	for _, tc := range []struct {
-		columns string
-		ok      bool
+		attr  string
+		value string
+		ok    bool
 	}{
-		{"1", true},
-		{"6", true},
-		{"0", false},
-		{"7", false},
-		{"two", false},
+		{"columns", "1", true},
+		{"columns", "12", true},
+		{"columns", "0", false},
+		{"columns", "13", false},
+		{"rows", "1", true},
+		{"rows", "50", true},
+		{"rows", "0", false},
+		{"rows", "51", false},
+		{"columns", "two", false},
 	} {
-		src := `view main { tablelayout columns: ` + tc.columns + ` }`
+		src := `view main { tablelayout ` + tc.attr + `: ` + tc.value + ` }`
 		prog, pdl := ParseSource(src, "table_layout.sui")
 		if pdl.HasErrors() {
-			t.Fatalf("columns %s parse: %s", tc.columns, pdl.String())
+			t.Fatalf("%s %s parse: %s", tc.attr, tc.value, pdl.String())
 		}
 		dl := Check(prog)
 		if gotOK := !dl.HasErrors(); gotOK != tc.ok {
-			t.Errorf("columns %s: check ok=%v, want %v", tc.columns, gotOK, tc.ok)
+			t.Errorf("%s %s: check ok=%v, want %v", tc.attr, tc.value, gotOK, tc.ok)
+		}
+	}
+}
+
+func TestTableLayoutGridSpansSizesAndBorders(t *testing.T) {
+	src := `view main {
+	tablelayout rows: 3 columns: 3 width: "80%" height: "300px" columnWidths: "120px, 30%, auto" rowHeights: "80px, 120px" gapX: "10px" gapY: "14px" borderStyle: "solid" borderWidth: "2px" borderColor: "#ff0000" style: "outline:1px solid red" {
+		card "A" colspan: 2
+		card "B"
+		card "C" rowspan: 2
+	}
+}`
+	prog, dl := ParseSource(src, "table_layout.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`colspan="2"`,
+		`rowspan="2"`,
+		`style="width:120px"`,
+		`style="height:80px"`,
+		`border:2px solid #ff0000;`,
+		`border-spacing:10px 14px`, `outline:1px solid red`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("table layout JS missing %q", want)
+		}
+	}
+	html := GenerateHtmlPage(prog)
+	for _, want := range []string{
+		`colspan="2"`,
+		`rowspan="2"`,
+		`style="width:120px"`,
+		`style="height:80px"`,
+		`border:2px solid #ff0000;`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("table layout static HTML missing %q", want)
+		}
+	}
+	model := StringifyJson(guiModelJson(prog))
+	for _, want := range []string{
+		`"layoutRows":"3"`, `"layoutColumns":"3"`,
+		`"layoutColumnWidths":"120px, 30%, auto"`,
+		`"layoutRowHeights":"80px, 120px"`,
+		`"layoutGapX":"10px"`, `"layoutGapY":"14px"`,
+		`"layoutBorderStyle":"solid"`, `"layoutBorderWidth":"2px"`,
+	} {
+		if !strings.Contains(model, want) {
+			t.Errorf("designer model missing %q: %s", want, model)
 		}
 	}
 }
@@ -78,9 +137,14 @@ func TestTableLayoutPaletteEntry(t *testing.T) {
 		`tablelayout: "Table layout"`,
 		`function newTableLayoutNode`,
 		`function layoutTableControls`,
+		`function layoutCellControls`,
+		`layoutCellParentPath`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer table layout integration missing %q", want)
 		}
+	}
+	if !strings.Contains(guiPreviewPicker, `sui-layout-table > tbody > tr > td`) {
+		t.Errorf("designer preview must outline table layout cells")
 	}
 }

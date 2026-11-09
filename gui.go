@@ -750,6 +750,7 @@ const guiPreviewPicker = `<script>
   var st = document.createElement('style');
   st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-control { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; } .sui-tselect-host { position: relative !important; } .sui-tselect { position: absolute; left: 0; top: 0; width: 10px; height: 10px; background: rgba(76,92,247,.9); clip-path: polygon(0 0, 100% 0, 0 100%); cursor: pointer; z-index: 4; } .sui-tselect:hover { background: #4c5cf7; } .sui-tab-x { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 3px; font-size: 12px; line-height: 1; opacity: .65; cursor: pointer; } .sui-tab-x:hover { opacity: 1; background: rgba(239,68,68,.25); }';
   document.head.appendChild(st);
+  st.textContent += ' .sui-layout-table > tbody > tr > td { outline: 1px dashed rgba(76,92,247,.55) !important; outline-offset: -1px; } .sui-layout-table > tbody > tr > td:hover { outline-color: #4c5cf7; background: rgba(76,92,247,.08); }';
   var current = [];
   var handles = [];
   var resizeEl = null;
@@ -2487,7 +2488,19 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		}
 	}
 	if e.tag == "tablelayout" {
-		o.obj["layoutColumns"] = JStr(strconv.Itoa(layoutTableColumns(e)))
+		grid := layoutTableGrid(e)
+		o.obj["layoutRows"] = JStr(strconv.Itoa(grid.rows))
+		o.obj["layoutColumns"] = JStr(strconv.Itoa(grid.cols))
+		o.obj["layoutWidth"] = JStr(layoutTableTextAttr(e, "width", "100%"))
+		o.obj["layoutHeight"] = JStr(layoutTableTextAttr(e, "height", ""))
+		o.obj["layoutColumnWidths"] = JStr(layoutTableTextAttr(e, "columnWidths", ""))
+		o.obj["layoutRowHeights"] = JStr(layoutTableTextAttr(e, "rowHeights", ""))
+		o.obj["layoutGapX"] = JStr(layoutTableTextAttr(e, "gapX", "12px"))
+		o.obj["layoutGapY"] = JStr(layoutTableTextAttr(e, "gapY", "12px"))
+		o.obj["layoutBorderStyle"] = JStr(layoutTableTextAttr(e, "borderStyle", "none"))
+		o.obj["layoutBorderWidth"] = JStr(layoutTableTextAttr(e, "borderWidth", "1px"))
+		o.obj["layoutBorderColor"] = JStr(layoutTableTextAttr(e, "borderColor", "var(--sui-border, #3d4556)"))
+		o.obj["layoutCellMinHeight"] = JStr(layoutTableTextAttr(e, "cellMinHeight", "72px"))
 	}
 	if e.tag == "ul" || e.tag == "ol" {
 		if lst, ok := guiListFrom(e); ok {
@@ -2699,11 +2712,15 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		} else if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			o.obj[a.key] = JStr(partsLiteral(a.text))
-		} else if e.tag == "tablelayout" && a.key == "columns" {
+		} else if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
+			field := "layoutColspan"
+			if a.key == "rowspan" {
+				field = "layoutRowspan"
+			}
 			if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
-				o.obj["layoutColumns"] = JStr(strconv.Itoa(a.expr.i))
+				o.obj[field] = JStr(strconv.Itoa(a.expr.i))
 			} else {
-				o.obj["layoutColumns"] = JStr(strings.TrimSpace(partsLiteral(a.text)))
+				o.obj[field] = JStr(strings.TrimSpace(partsLiteral(a.text)))
 			}
 		} else if e.tag == "table" && (a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" ||
