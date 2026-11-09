@@ -2246,9 +2246,11 @@ The designer exposes it in **Layout > Table layout**. The inspector includes
 presets, rows/columns, table/column/row sizes, separate gaps, cell borders,
 empty-cell height, responsive stacking and semantic/accessibility options.
 Empty cells are clickable in the preview; select one to see its position and add
-a block, or drag a palette item directly into it. Select a direct child to edit
-its **Layout cell** properties: spans, padding, alignment, background and
-per-cell border. Cells are outlined in the preview while designing.
+a block, or drag a palette item directly into it. **Alt+click** an occupied cell
+to select the cell itself instead of its content; **Select content** drills into
+the child. Select a direct child to edit its **Layout cell** properties: spans,
+padding, alignment, background and per-cell border. Cells are outlined in the
+preview while designing.
 See [examples/table_layout](../examples/table_layout/README.md).
 
 ## Tables and untrusted data

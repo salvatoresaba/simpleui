@@ -122,6 +122,8 @@ tablelayout rows: 2 columns: 3
    - semantic role and aria label.
 4. Drag cards or controls inside it. An empty cell can be clicked directly, so
    you can see its row/column, use **Add block**, or drop a palette item into it.
+   **Alt+click** an occupied cell to select the cell itself; **Select content**
+   then drills into the child element.
 5. Select a direct child and use **Layout cell** to set `column span` /
    `row span`, padding, alignment, background and a per-cell border.
    **Reset to 1 x 1** splits the cell again.

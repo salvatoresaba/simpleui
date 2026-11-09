@@ -2137,10 +2137,11 @@ colonne, dimensioni della tabella/colonne/righe, spazi separati, bordi delle
 celle, altezza delle celle vuote, impilamento responsive e opzioni
 semantiche/accessibilità. Le celle vuote sono cliccabili nella preview:
 selezionale per vedere la posizione e aggiungere un blocco, oppure trascina un
-elemento dalla palette direttamente dentro la cella. Seleziona un figlio diretto
-per modificare la sezione **Layout cell**: span, padding, allineamento, sfondo e
-bordo della singola cella. Le celle sono evidenziate nella preview durante la
-progettazione. Vedi
+elemento dalla palette direttamente dentro la cella. **Alt+click** su una cella
+occupata seleziona la cella stessa invece del contenuto; **Select content** entra
+nell'elemento. Seleziona un figlio diretto per modificare la sezione
+**Layout cell**: span, padding, allineamento, sfondo e bordo della singola cella.
+Le celle sono evidenziate nella preview durante la progettazione. Vedi
 [examples/table_layout](../examples/table_layout/README.md).
 
 ## Tabelle e dati non fidati

@@ -1209,6 +1209,8 @@ La sezione **Table layout** dell'inspector controlla:
 Ogni figlio diretto occupa la successiva cella libera, riga per riga. Clicca una
 cella vuota nella preview per selezionarla e vedere riga/colonna; usa **Add
 block** oppure trascina un elemento dalla palette direttamente nella cella.
+**Alt+click** su una cella occupata seleziona la cella stessa invece del suo
+contenuto; **Select content** permette poi di entrare nell'elemento.
 Seleziona un figlio diretto per aprire **Layout cell** e impostare `column span`
 / `row span`, unendo la cella con quelle a destra o in basso. La stessa sezione
 modifica padding, allineamento orizzontale/verticale, sfondo e bordo della

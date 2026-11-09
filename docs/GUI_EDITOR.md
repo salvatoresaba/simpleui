@@ -1162,9 +1162,11 @@ The **Table layout** inspector section controls:
 
 Each direct child fills the next free cell, row by row. Click an empty cell in
 the preview to select it and see its row/column; use **Add block** or drag a
-palette item directly into the cell. Select a direct child to open the **Layout
-cell** section and set `column span` / `row span` to merge it with the cells on
-its right or below. The same section edits cell padding, horizontal/vertical
+palette item directly into the cell. **Alt+click** an occupied cell to select the
+cell itself instead of its content, then use **Select content** to drill in.
+Select a direct child to open the **Layout cell** section and set `column span` /
+`row span` to merge it with the cells on its right or below. The same section
+edits cell padding, horizontal/vertical
 alignment, background and a per-cell border. **Reset to 1 x 1** splits it again.
 
 Arrow keys move selection between empty cells. Cells are outlined in the designer preview, including empty and merged cells, so
