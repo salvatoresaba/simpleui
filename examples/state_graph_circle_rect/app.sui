@@ -10,7 +10,7 @@ view main {
 		}
 
 		card class: "state-card" {
-			chart "Circle, rectangle and triangle" name: "circle_rect_demo" class: "state-chart" data: stateGraph chartType: "state" stateShapeTagStyle: "rectangle" stateShapeTagLink: "bezier-arrow" stateLinkTagStyle: "ellipse" stateLinkTagLink: "bezier-arrow" stateTagFontSize: 11 stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateTagsMovable: true stateRoutesEditable: true tableView: "both" tableFilters: false showGrid: false showLegend: false showValues: true interactive: true theme: "light"
+			graph "Circle, rectangle and triangle" name: "circle_rect_demo" class: "state-chart" data: stateGraph stateShapeTagStyle: "rectangle" stateShapeTagLink: "bezier-arrow" stateLinkTagStyle: "ellipse" stateLinkTagLink: "bezier-arrow" stateTagFontSize: 11 stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateTagsMovable: true stateRoutesEditable: true tableView: "both" tableFilters: false showGrid: false showLegend: false showValues: true editMode: "persistent" theme: "light"
 		}
 	}
 }

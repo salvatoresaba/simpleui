@@ -611,8 +611,9 @@ tree "Project files"
   `-max-width`, `-font-size`, `-delay` and `-placement`.
 - `rowHeight: 32` sets the row minimum height (12-120). The default is `28`.
 - `iconLeaf`, `iconParent` and `iconParentOpen` select the default glyph for
-  items without children, closed parent items and open parent items. Old tree
-  documents using `icon`/`iconOpen` are migrated automatically. `toggleClosed`
+  items without children, closed parent items and open parent items. Use
+  `iconLeaf`/`iconParent`/`iconParentOpen`; the old `icon`/`iconOpen` names are
+  rejected with a diagnostic. `toggleClosed`
   and `toggleOpen` replace the disclosure branch symbols. `treeitem
   icon`/`iconOpen` override the defaults. Icons and branch symbols are inert text or emoji, never
   markup.
@@ -869,7 +870,7 @@ and table DOM and redraw only charts whose chart attributes changed.
 | `bullet` | KPI value against a target and optional max. | two or three: value, target, max |
 | `dumbbell` | Before/after dots connected per category. | exactly two |
 | `gantt` | Horizontal start/end tasks. | exactly two: start, end |
-| `state` | Internal block-diagram geometry used by the `graph` control; a `chart` with a literal `state`/`statemachine` type is migrated to `graph`. | states/transitions object or edge list |
+| `state` | Block-diagram geometry used by the `graph` control. The `graph` tag is the only way to declare it. | states/transitions object or edge list |
 
 ### Data
 
@@ -905,15 +906,14 @@ Heatmap rows use the label column as x, the first numeric series as the numeric
 row (y) and the second numeric series as the cell value. Candlestick rows need
 the four numeric columns in this order: `open`, `high`, `low`, `close`.
 
-Gantt data can use numeric positions or ISO dates and these fields:
-`id`, `task` (or `label`/`name`), `start`, `end`, `duration`, `progress`,
-`milestone`, `group`, `parent`, `dependsOn`/`dependencies`, `dependencyType`,
-`lag`, `constraint`, `constraintDate`, `deadline`, `resource`/`resources`, `status`, `color`, `cost`,
+Gantt start/end values must be ISO dates or date-times. Supported fields:
+`id`, `task`, `start`, `end`, `duration`, `progress`,
+`milestone`, `group`, `parent`, `dependsOn`, `dependencyType`,
+`lag`, `constraint`, `constraintDate`, `deadline`, `resources`, `status`, `color`, `cost`,
 `actualStart`, `actualEnd`, `remaining`, `work`, `workDone` and `resourceUnits`.
 `resources` accepts an array or a comma/semicolon separated list; array entries
 may be strings or `{ "name": "...", "units": N }` objects. `resourceUnits` is an
-optional name-to-quantity map. The legacy `resource` string is split into the
-same list, with quantity `1` by default. Date axes choose hour, day, week, month or
+optional name-to-quantity map. Date axes choose hour, day, week, month or
 year ticks automatically; weekends and holidays are shaded and a `Today` line
 appears when the current date is in range. `progress` draws an inner completion
 bar, `milestone` renders a diamond and `dependsOn` draws dependency arrows.
@@ -1085,10 +1085,10 @@ view main {
 ```
 
 `graph` accepts the same data, layout, grid, tag/link styling, table and runtime
-attributes as the block-diagram chart geometry. A legacy
-`chart "..." chartType: "state"` (or `statemachine`) source is migrated to a
-`graph` element when it is parsed; the designer chart type menu only offers the
-numeric/geometric chart types. Changing a chart to a type whose data shape is
+attributes as the block-diagram chart geometry. Use the dedicated `graph` tag:
+`chart "..." chartType: "state"` (and the `statemachine` alias) is rejected with
+a diagnostic. The designer chart type menu only offers the numeric/geometric
+chart types. Changing a chart to a type whose data shape is
 incompatible shows a confirmation dialog and, if accepted, replaces the data
 with a sample suited to the new type.
 
@@ -1113,12 +1113,12 @@ Missing or duplicate ids stop parsing with a clear error. Link ids are optional
 and default to `edge_1`, `edge_2`, ...; the runtime still checks that they do not
 collide with shape ids. Runtime functions accept only the explicit `id`.
 
-State fields are `id`, `label`/`name`, optional `description`, `hint`, `color`,
+State fields are `id`, `label`, optional `description`, `hint`, `color`,
 `shape`, border/text-tag settings and normalized/pixel `x`/`y`/`w`/`h`. A
 non-empty `hint` replaces the default hover tooltip; `"none"`, `"off"` or `"-"`
 hides it for that element. In `hint` and `tag`, `|` starts a new line and `\|` is
 a literal pipe (`\\` a literal backslash); the editors are single-line. Real
-newlines are accepted as legacy input and normalised to `|`. The chart attribute
+newlines are normalised to `|`. The chart attribute
 `stateHints: false` hides all hover hints. The **Hint** column in the state table
 and the context menu **Hint settings...** edit the same field. The chart settings
 panel has a standalone **HINTS** panel that styles every tooltip globally
@@ -1128,9 +1128,9 @@ border width, padding, radius) with a live preview. Source defaults use
 `stateHintFont`, `stateHintFontSize`, `stateHintBorderWidth`, `stateHintPadding`
 and `stateHintRadius`. `tableView` selects `chart`,
 `table` or `both`; when the table is visible, selecting an element in the diagram
-focuses and highlights its row. Legacy `type` values are accepted as metadata
-but do not change geometry or add role markers; use `shape` for the visible
-geometry.
+focuses and highlights its row. `type` values `initial`, `final`, `choice` and
+`normal` are metadata but do not change geometry or add role markers; use
+`shape` for the visible geometry.
 
 Shape fields:
 
@@ -1718,7 +1718,7 @@ size (`width` and `height` in the inspector **Size** section, or CSS in
 `pointSize` and `zoom` accept reactive expressions as well as literals.
 
 `tableView` is available for every chart: `"chart"` (default), `"table"` or
-`"both"`. `"gantt"` remains an alias for `"chart"` on Gantt charts. The table is
+`"both"`. The table is
 a native accessible table. Gantt uses Task, WBS parent, Start, End, Duration,
 Progress, Milestone, Status, Group, Resource, Depends on, Link, Lag, Constraint,
 Constraint date, Slack and Cost; other types expose Label

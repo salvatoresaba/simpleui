@@ -350,7 +350,7 @@ state checkedCount = 0
 fn checked() -> null {
 }
 view main {
-	tree "Files" name: "files" value: selected checkbox: true counts: true guides: true truncate: true rowHeight: 32 icon: "D" iconOpen: "O" onCheck: checked {
+	tree "Files" name: "files" value: selected checkbox: true counts: true guides: true truncate: true rowHeight: 32 iconLeaf: "D" iconParent: "D" iconParentOpen: "O" onCheck: checked {
 		treeitem "src" key: "src" open: true icon: "F" iconOpen: "O" badge: "12" badgeType: "info" meta: "2 KB" checked: true {
 			treeitem "main.go" key: "main" icon: "f" badge: "new" badgeType: "success" meta: "1 KB" checked: true
 		}
@@ -414,7 +414,7 @@ func TestTreePhaseABadges(t *testing.T) {
 
 func TestTreePhaseADesigner(t *testing.T) {
 	src := `view main {
-	tree "Files" guides: false truncate: false checkbox: true counts: true rowHeight: 30 icon: "D" iconOpen: "O" onCheck: checked {
+	tree "Files" guides: false truncate: false checkbox: true counts: true rowHeight: 30 iconLeaf: "D" iconParent: "D" iconParentOpen: "O" onCheck: checked {
 		treeitem "src" icon: "F" iconOpen: "O" badge: "2" badgeType: "warning" meta: "1 KB" checked: true
 	}
 }

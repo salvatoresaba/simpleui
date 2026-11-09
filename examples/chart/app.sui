@@ -74,9 +74,9 @@ view main {
 			button "Time" onClick: goTime
 		}
 		row class: "chart-grid" {
-			chart "Monthly revenue" name: "revenue" class: "chart-wide" data: chartData chartType: "bar" format: "auto" x: "month" y: "value" overflow: "scroll" pointWidth: "58" showGrid: true showLegend: true showValues: true interactive: true style: cssSafe("--sui-chart-bg: #0b1f33; --sui-chart-fg: #ecfeff; --sui-chart-title-color: #a5f3fc; --sui-chart-muted: #7dd3fc; --sui-chart-grid: #164e63; --sui-chart-axis: #0e7490; --sui-chart-series-1: #22d3ee; --sui-chart-series-2: #38bdf8; --sui-chart-series-3: #2dd4bf; --sui-chart-series-4: #818cf8; --sui-chart-series-5: #67e8f9; --sui-chart-series-6: #a5b4fc; --sui-chart-series-7: #14b8a6; --sui-chart-series-8: #7dd3fc; --sui-chart-border: 1px solid #164e63; --sui-chart-radius: 10px; --sui-chart-padding: 8px;")
-			chart "Revenue trend" class: "chart-tile" data: chartData chartType: "line" x: "month" y: "value" overflow: "zoom" showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #22c55e; --sui-chart-grid: #2c3444; --sui-chart-axis: #3a4152;") interactive: true
-			chart "Share" class: "chart-tile" data: chartData chartType: "donut" overflow: "fit" showLegend: true style: cssSafe("--sui-chart-bg: #2a1033; --sui-chart-fg: #fdf2f8; --sui-chart-title-color: #f9a8d4; --sui-chart-muted: #f0abfc; --sui-chart-grid: #6b21a8; --sui-chart-axis: #86198f; --sui-chart-series-1: #ec4899; --sui-chart-series-2: #a855f7; --sui-chart-series-3: #38bdf8; --sui-chart-series-4: #f472b6; --sui-chart-series-5: #c084fc; --sui-chart-series-6: #22d3ee; --sui-chart-series-7: #fb7185; --sui-chart-series-8: #d946ef; --sui-chart-border: 1px solid #6b21a8; --sui-chart-radius: 16px; --sui-chart-padding: 10px;") interactive: true
+			chart "Monthly revenue" name: "revenue" class: "chart-wide" data: chartData chartType: "bar" format: "auto" x: "month" y: "value" overflow: "scroll" pointWidth: "58" showGrid: true showLegend: true showValues: true editMode: "editable" style: cssSafe("--sui-chart-bg: #0b1f33; --sui-chart-fg: #ecfeff; --sui-chart-title-color: #a5f3fc; --sui-chart-muted: #7dd3fc; --sui-chart-grid: #164e63; --sui-chart-axis: #0e7490; --sui-chart-series-1: #22d3ee; --sui-chart-series-2: #38bdf8; --sui-chart-series-3: #2dd4bf; --sui-chart-series-4: #818cf8; --sui-chart-series-5: #67e8f9; --sui-chart-series-6: #a5b4fc; --sui-chart-series-7: #14b8a6; --sui-chart-series-8: #7dd3fc; --sui-chart-border: 1px solid #164e63; --sui-chart-radius: 10px; --sui-chart-padding: 8px;")
+			chart "Revenue trend" class: "chart-tile" data: chartData chartType: "line" x: "month" y: "value" overflow: "zoom" showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #22c55e; --sui-chart-grid: #2c3444; --sui-chart-axis: #3a4152;") editMode: "editable"
+			chart "Share" class: "chart-tile" data: chartData chartType: "donut" overflow: "fit" showLegend: true style: cssSafe("--sui-chart-bg: #2a1033; --sui-chart-fg: #fdf2f8; --sui-chart-title-color: #f9a8d4; --sui-chart-muted: #f0abfc; --sui-chart-grid: #6b21a8; --sui-chart-axis: #86198f; --sui-chart-series-1: #ec4899; --sui-chart-series-2: #a855f7; --sui-chart-series-3: #38bdf8; --sui-chart-series-4: #f472b6; --sui-chart-series-5: #c084fc; --sui-chart-series-6: #22d3ee; --sui-chart-series-7: #fb7185; --sui-chart-series-8: #d946ef; --sui-chart-border: 1px solid #6b21a8; --sui-chart-radius: 16px; --sui-chart-padding: 10px;") editMode: "editable"
 		}
 	}
 }
@@ -101,9 +101,9 @@ view data {
 			button "XML" onClick: useXml
 		}
 		row class: "chart-grid" {
-			chart "Same data, JSON/CSV/XML" class: "chart-wide" data: chartData chartType: "bar" tableView: "both" tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true tableSelection: "cell" onDataChange: chartDataChanged x: "month" y: "value" overflow: "scroll" showGrid: true showLegend: true showValues: true interactive: true
-			chart "Long series: scroll mode" class: "chart-tile" data: longData chartType: "area" format: "csv" x: "Day" y: "Value" overflow: "scroll" pointWidth: "34" showGrid: true showLegend: true interactive: true
-			chart "Long series: zoom mode" class: "chart-tile" data: longData chartType: "line" format: "csv" x: "Day" y: "Value" overflow: "zoom" pointWidth: "34" showGrid: true showLegend: true interactive: true
+			chart "Same data, JSON/CSV/XML" class: "chart-wide" data: chartData chartType: "bar" tableView: "both" tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true tableSelection: "cell" onDataChange: chartDataChanged x: "month" y: "value" overflow: "scroll" showGrid: true showLegend: true showValues: true editMode: "editable"
+			chart "Long series: scroll mode" class: "chart-tile" data: longData chartType: "area" format: "csv" x: "Day" y: "Value" overflow: "scroll" pointWidth: "34" showGrid: true showLegend: true editMode: "editable"
+			chart "Long series: zoom mode" class: "chart-tile" data: longData chartType: "line" format: "csv" x: "Day" y: "Value" overflow: "zoom" pointWidth: "34" showGrid: true showLegend: true editMode: "editable"
 		}
 	}
 }
@@ -123,12 +123,12 @@ view bars {
 		}
 		p "The same category/value data shown as vertical, horizontal, grouped, stacked, combo and waterfall." style: "margin:0;color:#8fa0b8"
 		row class: "chart-grid" {
-			chart "Vertical bars" class: "chart-tile" data: chartData chartType: "bar" x: "month" y: "value" showGrid: true showLegend: true showValues: false interactive: true
-			chart "Horizontal bars" class: "chart-tile" data: chartData chartType: "barhorizontal" x: "month" y: "value" showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #22c55e;") interactive: true
-			chart "Grouped bars" class: "chart-tile" data: multiData chartType: "bargrouped" x: "month" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b;") interactive: true
-			chart "Stacked bars" class: "chart-tile" data: multiData chartType: "barstacked" x: "month" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b;") interactive: true
-			chart "Combo bar + line" class: "chart-tile" data: multiData chartType: "combo" x: "month" pointSize: "4" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-1: #4c5cf7; --sui-chart-series-2: #f59e0b;") interactive: true
-			chart "Waterfall" class: "chart-tile" data: waterfallData chartType: "waterfall" x: "Step" y: "Delta" showGrid: true showLegend: true showValues: true style: cssSafe("--sui-chart-series-2: #22c55e; --sui-chart-series-4: #ef4444;") interactive: true
+			chart "Vertical bars" class: "chart-tile" data: chartData chartType: "bar" x: "month" y: "value" showGrid: true showLegend: true showValues: false editMode: "editable"
+			chart "Horizontal bars" class: "chart-tile" data: chartData chartType: "barhorizontal" x: "month" y: "value" showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #22c55e;") editMode: "editable"
+			chart "Grouped bars" class: "chart-tile" data: multiData chartType: "bargrouped" x: "month" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b;") editMode: "editable"
+			chart "Stacked bars" class: "chart-tile" data: multiData chartType: "barstacked" x: "month" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b;") editMode: "editable"
+			chart "Combo bar + line" class: "chart-tile" data: multiData chartType: "combo" x: "month" pointSize: "4" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-1: #4c5cf7; --sui-chart-series-2: #f59e0b;") editMode: "editable"
+			chart "Waterfall" class: "chart-tile" data: waterfallData chartType: "waterfall" x: "Step" y: "Delta" showGrid: true showLegend: true showValues: true style: cssSafe("--sui-chart-series-2: #22c55e; --sui-chart-series-4: #ef4444;") editMode: "editable"
 		}
 	}
 }
@@ -148,12 +148,12 @@ view lines {
 		}
 		p "The same monthly series rendered with line, step, smooth, area, zoom and long-scroll modes." style: "margin:0;color:#8fa0b8"
 		row class: "chart-grid" {
-			chart "Line" class: "chart-tile" data: chartData chartType: "line" x: "month" y: "value" pointSize: "5" showGrid: true showLegend: true showValues: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-tooltip-bg: #0b1f33; --sui-chart-tooltip-fg: #ecfeff; --sui-chart-tooltip-border: #22d3ee; --sui-chart-tooltip-radius: 12px; --sui-chart-tooltip-max-width: 260px; --sui-chart-tooltip-font-size: 12px; --sui-chart-tooltip-delay: 120ms;") interactive: true
-			chart "Step" class: "chart-tile" data: chartData chartType: "step" x: "month" y: "value" showGrid: true showLegend: false showValues: false style: cssSafe("--sui-chart-series-1: #a855f7;") interactive: true
-			chart "Smooth" class: "chart-tile" data: chartData chartType: "smooth" x: "month" y: "value" showGrid: true showLegend: false showValues: false style: cssSafe("--sui-chart-series-1: #22d3ee;") interactive: true
-			chart "Area" class: "chart-tile" data: chartData chartType: "area" x: "month" y: "value" showGrid: true showLegend: false style: cssSafe("--sui-chart-series-1: #22c55e;") interactive: true
-			chart "Zoom mode" class: "chart-tile" data: chartData chartType: "line" x: "month" y: "value" overflow: "zoom" showGrid: true showLegend: false style: cssSafe("--sui-chart-series-1: #f59e0b;") interactive: true
-			chart "Long series, scroll" class: "chart-tile" data: longData chartType: "area" format: "csv" x: "Day" y: "Value" overflow: "scroll" pointWidth: "30" showGrid: true showLegend: false interactive: true
+			chart "Line" class: "chart-tile" data: chartData chartType: "line" x: "month" y: "value" pointSize: "5" showGrid: true showLegend: true showValues: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-tooltip-bg: #0b1f33; --sui-chart-tooltip-fg: #ecfeff; --sui-chart-tooltip-border: #22d3ee; --sui-chart-tooltip-radius: 12px; --sui-chart-tooltip-max-width: 260px; --sui-chart-tooltip-font-size: 12px; --sui-chart-tooltip-delay: 120ms;") editMode: "editable"
+			chart "Step" class: "chart-tile" data: chartData chartType: "step" x: "month" y: "value" showGrid: true showLegend: false showValues: false style: cssSafe("--sui-chart-series-1: #a855f7;") editMode: "editable"
+			chart "Smooth" class: "chart-tile" data: chartData chartType: "smooth" x: "month" y: "value" showGrid: true showLegend: false showValues: false style: cssSafe("--sui-chart-series-1: #22d3ee;") editMode: "editable"
+			chart "Area" class: "chart-tile" data: chartData chartType: "area" x: "month" y: "value" showGrid: true showLegend: false style: cssSafe("--sui-chart-series-1: #22c55e;") editMode: "editable"
+			chart "Zoom mode" class: "chart-tile" data: chartData chartType: "line" x: "month" y: "value" overflow: "zoom" showGrid: true showLegend: false style: cssSafe("--sui-chart-series-1: #f59e0b;") editMode: "editable"
+			chart "Long series, scroll" class: "chart-tile" data: longData chartType: "area" format: "csv" x: "Day" y: "Value" overflow: "scroll" pointWidth: "30" showGrid: true showLegend: false editMode: "editable"
 		}
 	}
 }
@@ -173,10 +173,10 @@ view distributions {
 		}
 		p "Histogram bin sizes, box plot, heatmap and treemap shown side by side." style: "margin:0;color:#8fa0b8"
 		row class: "chart-grid" {
-			chart "Histogram, 4 bins" class: "chart-tile" data: histogramData chartType: "histogram" bins: 4 showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #f97316;") interactive: true
-			chart "Histogram, 12 bins" class: "chart-tile" data: histogramData chartType: "histogram" bins: 12 showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #ef4444;") interactive: true
-			chart "Box plot" class: "chart-tile" data: boxData format: "csv" chartType: "boxplot" x: "Name" showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #38bdf8;") interactive: true
-			chart "Heatmap" class: "chart-tile" data: heatData format: "csv" chartType: "heatmap" x: "Day" showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #06b6d4;") interactive: true
+			chart "Histogram, 4 bins" class: "chart-tile" data: histogramData chartType: "histogram" bins: 4 showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #f97316;") editMode: "editable"
+			chart "Histogram, 12 bins" class: "chart-tile" data: histogramData chartType: "histogram" bins: 12 showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #ef4444;") editMode: "editable"
+			chart "Box plot" class: "chart-tile" data: boxData format: "csv" chartType: "boxplot" x: "Name" showGrid: true showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #38bdf8;") editMode: "editable"
+			chart "Heatmap" class: "chart-tile" data: heatData format: "csv" chartType: "heatmap" x: "Day" showLegend: false showValues: true style: cssSafe("--sui-chart-series-1: #06b6d4;") editMode: "editable"
 		}
 	}
 }
@@ -196,12 +196,12 @@ view parts {
 		}
 		p "Pie, donut, funnel, gauge, bullet and treemap share the same label/value data where possible." style: "margin:0;color:#8fa0b8"
 		row class: "chart-grid" {
-			chart "Pie" class: "chart-tile" data: chartData chartType: "pie" overflow: "fit" showLegend: true style: cssSafe("--sui-chart-series-1: #ec4899; --sui-chart-series-2: #f59e0b; --sui-chart-series-3: #22c55e; --sui-chart-series-4: #38bdf8;") interactive: true
-			chart "Donut" class: "chart-tile" data: chartData chartType: "donut" overflow: "fit" showLegend: true style: cssSafe("--sui-chart-bg: #2a1033; --sui-chart-fg: #fdf2f8; --sui-chart-title-color: #f9a8d4; --sui-chart-muted: #f0abfc; --sui-chart-series-1: #ec4899; --sui-chart-series-2: #a855f7; --sui-chart-series-3: #38bdf8; --sui-chart-series-4: #f472b6;") interactive: true
-			chart "Funnel" class: "chart-tile" data: chartData chartType: "funnel" x: "month" y: "value" showValues: true showLegend: false style: cssSafe("--sui-chart-series-1: #ec4899;") interactive: true
-			chart "Gauge" class: "chart-tile" data: kpiData format: "csv" chartType: "gauge" min: 0 max: 100 showLegend: false style: cssSafe("--sui-chart-series-1: #22c55e;") interactive: true
-			chart "Bullet" class: "chart-tile" data: bulletData format: "csv" chartType: "bullet" x: "Team" showValues: true style: cssSafe("--sui-chart-series-1: #22c55e; --sui-chart-series-4: #ef4444;") interactive: true
-			chart "Treemap" class: "chart-tile" data: chartData chartType: "treemap" x: "month" y: "value" showValues: true showLegend: false style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b; --sui-chart-series-3: #22c55e; --sui-chart-series-4: #a855f7;") interactive: true
+			chart "Pie" class: "chart-tile" data: chartData chartType: "pie" overflow: "fit" showLegend: true style: cssSafe("--sui-chart-series-1: #ec4899; --sui-chart-series-2: #f59e0b; --sui-chart-series-3: #22c55e; --sui-chart-series-4: #38bdf8;") editMode: "editable"
+			chart "Donut" class: "chart-tile" data: chartData chartType: "donut" overflow: "fit" showLegend: true style: cssSafe("--sui-chart-bg: #2a1033; --sui-chart-fg: #fdf2f8; --sui-chart-title-color: #f9a8d4; --sui-chart-muted: #f0abfc; --sui-chart-series-1: #ec4899; --sui-chart-series-2: #a855f7; --sui-chart-series-3: #38bdf8; --sui-chart-series-4: #f472b6;") editMode: "editable"
+			chart "Funnel" class: "chart-tile" data: chartData chartType: "funnel" x: "month" y: "value" showValues: true showLegend: false style: cssSafe("--sui-chart-series-1: #ec4899;") editMode: "editable"
+			chart "Gauge" class: "chart-tile" data: kpiData format: "csv" chartType: "gauge" min: 0 max: 100 showLegend: false style: cssSafe("--sui-chart-series-1: #22c55e;") editMode: "editable"
+			chart "Bullet" class: "chart-tile" data: bulletData format: "csv" chartType: "bullet" x: "Team" showValues: true style: cssSafe("--sui-chart-series-1: #22c55e; --sui-chart-series-4: #ef4444;") editMode: "editable"
+			chart "Treemap" class: "chart-tile" data: chartData chartType: "treemap" x: "month" y: "value" showValues: true showLegend: false style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b; --sui-chart-series-3: #22c55e; --sui-chart-series-4: #a855f7;") editMode: "editable"
 		}
 	}
 }
@@ -221,9 +221,9 @@ view relationships {
 		}
 		p "Scatter, radar and dumbbell expose correlation and before/after comparisons." style: "margin:0;color:#8fa0b8"
 		row class: "chart-grid" {
-			chart "Scatter" class: "chart-tile" data: scatterData chartType: "scatter" x: "x" y: "y" pointSize: "6" showGrid: true showLegend: true showValues: true style: cssSafe("--sui-chart-series-1: #38bdf8;") interactive: true
-			chart "Radar" class: "chart-tile" data: multiData chartType: "radar" x: "month" pointSize: "4" showLegend: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b;") interactive: true
-			chart "Dumbbell" class: "chart-tile" data: dumbbellData format: "csv" chartType: "dumbbell" x: "Team" pointSize: "5" showValues: true showGrid: true style: cssSafe("--sui-chart-series-1: #f59e0b; --sui-chart-series-2: #22c55e;") interactive: true
+			chart "Scatter" class: "chart-tile" data: scatterData chartType: "scatter" x: "x" y: "y" pointSize: "6" showGrid: true showLegend: true showValues: true style: cssSafe("--sui-chart-series-1: #38bdf8;") editMode: "editable"
+			chart "Radar" class: "chart-tile" data: multiData chartType: "radar" x: "month" pointSize: "4" showLegend: true style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #f59e0b;") editMode: "editable"
+			chart "Dumbbell" class: "chart-tile" data: dumbbellData format: "csv" chartType: "dumbbell" x: "Team" pointSize: "5" showValues: true showGrid: true style: cssSafe("--sui-chart-series-1: #f59e0b; --sui-chart-series-2: #22c55e;") editMode: "editable"
 		}
 	}
 }
@@ -242,10 +242,10 @@ view time {
 			button "Relationships" onClick: goRelationships
 		}
 		p "Candlestick and interactive Gantt: drag tasks, hover a bar to show the resize handles, and click a group header to collapse its task rows. The table view exposes task, start, end and progress for assistive technology." style: "margin:0;color:#8fa0b8"
-		chart "Interactive Gantt" class: "chart-time" data: ganttData chartType: "gantt" tableView: "both" tableAddRow: true criticalPath: true holidays: "*-11-16, 2026-11-20..2026-11-21" weekend: "sat,sun" timezone: "Europe/Rome" showValues: true interactive: true onTaskChange: ganttChanged style: cssSafe("--sui-chart-series-1: #a855f7; --sui-chart-gantt-weekend: #6b7280; --sui-chart-gantt-holiday: #ef4444; --sui-chart-gantt-today: #f59e0b; --sui-chart-gantt-dependency: #94a3b8; --sui-chart-critical: #f59e0b;")
+		chart "Interactive Gantt" class: "chart-time" data: ganttData chartType: "gantt" tableView: "both" tableAddRow: true criticalPath: true holidays: "*-11-16, 2026-11-20..2026-11-21" weekend: "sat,sun" timezone: "Europe/Rome" showValues: true editMode: "persistent" onTaskChange: ganttChanged style: cssSafe("--sui-chart-series-1: #a855f7; --sui-chart-gantt-weekend: #6b7280; --sui-chart-gantt-holiday: #ef4444; --sui-chart-gantt-today: #f59e0b; --sui-chart-gantt-dependency: #94a3b8; --sui-chart-critical: #f59e0b;")
 		row class: "chart-grid" {
-			chart "Candlestick" class: "chart-tile" data: ohlcData chartType: "candlestick" x: "date" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-2: #22c55e; --sui-chart-series-4: #ef4444;") interactive: true
-			chart "Long series" class: "chart-tile" data: longData chartType: "area" format: "csv" x: "Day" y: "Value" overflow: "zoom" showGrid: true showLegend: false style: cssSafe("--sui-chart-series-1: #38bdf8;") interactive: true
+			chart "Candlestick" class: "chart-tile" data: ohlcData chartType: "candlestick" x: "date" showGrid: true showLegend: true style: cssSafe("--sui-chart-series-2: #22c55e; --sui-chart-series-4: #ef4444;") editMode: "editable"
+			chart "Long series" class: "chart-tile" data: longData chartType: "area" format: "csv" x: "Day" y: "Value" overflow: "zoom" showGrid: true showLegend: false style: cssSafe("--sui-chart-series-1: #38bdf8;") editMode: "editable"
 		}
 	}
 }

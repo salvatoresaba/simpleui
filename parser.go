@@ -272,7 +272,6 @@ func ParseSource(source string, file string) (*Prog, DiagList) {
 		}
 		skipNewlines(p)
 	}
-	migrateLegacyProgram(&prog)
 	return &prog, dl
 }
 

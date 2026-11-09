@@ -591,8 +591,9 @@ tree "File progetto"
   `-max-width`, `-font-size`, `-delay` e `-placement`.
 - `rowHeight: 32` imposta l'altezza minima di riga (12-120). Default `28`.
 - `iconLeaf`, `iconParent` e `iconParentOpen` scelgono il glifo predefinito per
-  elementi senza figli, padri chiusi e padri aperti. I vecchi documenti con
-  `icon`/`iconOpen` sul tree vengono migrati automaticamente. `toggleClosed` e
+  elementi senza figli, padri chiusi e padri aperti. Usa
+  `iconLeaf`/`iconParent`/`iconParentOpen`; i vecchi nomi `icon`/`iconOpen`
+  vengono rifiutati con una diagnostica. `toggleClosed` e
   `toggleOpen` sostituiscono i simboli di espansione del ramo. `treeitem
   icon`/`iconOpen` sovrascrivono i default. Icone e simboli di ramo sono testo o emoji inerte,
   mai markup.
@@ -829,8 +830,8 @@ attributi modificati.
 **`chartType`**: `bar` (default), `barhorizontal`, `barstacked`, `bargrouped`,
 `line`, `step`, `smooth`, `area`, `combo`, `pie`, `donut`, `scatter`,
 `histogram`, `waterfall`, `radar`, `gauge`, `funnel`, `heatmap`, `candlestick`,
-`treemap`, `boxplot`, `bullet`, `dumbbell`, `gantt`, `state` (alias
-`statemachine`, interno: un chart con tipo literal `state`/`statemachine` viene migrato al controllo `graph`).
+`treemap`, `boxplot`, `bullet`, `dumbbell`, `gantt`, `state` (la geometria
+a blocchi si dichiara solo con il controllo `graph`).
 
 I tipi `barstacked`, `bargrouped` e `combo` richiedono almeno due serie
 numeriche; `radar` ne accetta una o pi�. `heatmap` richiede due serie (y e
@@ -865,15 +866,14 @@ La heatmap usa la colonna label come x, la prima serie numerica come riga y e la
 seconda come valore della cella. Il candlestick richiede le quattro colonne
 numeriche nell'ordine `open`, `high`, `low`, `close`.
 
-Il Gantt accetta posizioni numeriche o date ISO e i campi `id`, `task` (o
-`label`/`name`), `start`, `end`, `duration`, `progress`, `milestone`, `group`,
-`parent`, `dependsOn`/`dependencies`, `dependencyType`, `lag`, `constraint`,
-`constraintDate`, `deadline`, `resource`/`resources`, `status`, `color`, `cost`, `actualStart`,
+Il Gantt accetta solo date ISO o date-time e i campi `id`, `task`, `start`,
+`end`, `duration`, `progress`, `milestone`, `group`,
+`parent`, `dependsOn`, `dependencyType`, `lag`, `constraint`,
+`constraintDate`, `deadline`, `resources`, `status`, `color`, `cost`, `actualStart`,
 `actualEnd`, `remaining`, `work`, `workDone` e `resourceUnits`. `resources` accetta
 un array o una lista separata da virgole/punto e virgola; gli elementi dell'array
 possono essere stringhe o oggetti `{ "name": "...", "units": N }`. `resourceUnits`
-è una mappa opzionale nome → quantità. Il vecchio campo `resource` viene diviso
-nella stessa lista, con quantità `1` predefinita. L'asse data
+è una mappa opzionale nome → quantità. L'asse data
 sceglie automaticamente tick orari, giornalieri,
 settimanali, mensili o annuali; weekend e festivi sono evidenziati e la linea
 `Today` appare se la data corrente rientra nell'intervallo. `progress` disegna
@@ -973,8 +973,7 @@ attività e può elencare più predecessori. Ogni voce può essere una stringa
 (`"A"`, `"A[SS+2]"`) o un oggetto (`{"id":"A","type":"SS","lag":2}`), così ogni
 link può avere tipo e lag propri; `dependencyType`/`lag` restano il fallback.
 Il runtime risolve i nomi in id, rifiuta i cicli durante la modifica e mostra un
-errore esplicito per dati importati già ciclici. I vecchi dati numerici a due
-colonne restano supportati. Con `autoSchedule: true` il runtime ricalcola gli
+errore esplicito per dati importati già ciclici. Con `autoSchedule: true` il runtime ricalcola gli
 inizi dal tipo/lag di ogni link e da constraint/data. In modalità data, lag e
 spostamenti usano i giorni lavorativi del calendario attivo (weekend, festivi e
 chiusure); le durate dei task sono interpretate in giorni lavorativi e le date
@@ -1067,9 +1066,9 @@ view main {
 ```
 
 `graph` accetta gli stessi attributi di dati, layout, griglia, stile tag/link,
-tabella e runtime della geometria a blocchi. Un sorgente legacy
-`chart "..." chartType: "state"` (o `statemachine`) viene migrato a un elemento
-`graph` durante il parsing; il menu dei tipi del designer offre solo i tipi
+tabella e runtime della geometria a blocchi. Usa il tag dedicato `graph`:
+`chart "..." chartType: "state"` (e l'alias `statemachine`) viene rifiutato con
+una diagnostica. Il menu dei tipi del designer offre solo i tipi
 numerici/geometrici.
 Quando si cambia un chart verso un tipo con struttura dati incompatibile appare
 una conferma e, se accettata, i dati vengono sostituiti con un esempio adatto al
@@ -1082,7 +1081,7 @@ può avere `label`, `description`, `hint`, `color`, `shape`, proprietà bordo/te
 `"none"`, `"off"` o `"-"` lo nasconde per quel singolo elemento. In `hint` e
 `tag`, `|` inizia una nuova riga e `\|` è una pipe letterale (`\\` un backslash
 letterale); i campi di modifica sono a riga singola. I ritorni a capo reali sono
-accettati come input legacy e normalizzati in `|`.
+normalizzati in `|`.
 L'attributo chart `stateHints: false` nasconde tutti gli hint. La colonna **Hint**
 della tabella e il menu contestuale **Hint settings...** modificano lo stesso
 campo. Il pannello impostazioni del chart ha un pannello autonomo **HINTS** che
@@ -1095,8 +1094,8 @@ vivo. I default sorgente usano `stateHintBg`, `stateHintOpacity`,
 selezionando un elemento nel diagramma la riga corrispondente riceve focus ed
 evidenziazione. Gli id dei link sono opzionali e diventano `edge_1`,
 `edge_2`, ... con verifica di non collisione con gli id delle forme. Le funzioni
-runtime accettano solo l'`id` esplicito. I vecchi valori `type` sono
-accettati come metadati ma non cambiano la geometria né aggiungono indicatori di
+runtime accettano solo l'`id` esplicito. I valori `type` `initial`, `final`,
+`choice` e `normal` sono metadati ma non cambiano la geometria né aggiungono indicatori di
 ruolo. I campi forma sono
 `shape` (`rectangle`, `square`, `circle`, `stadium`, `ellipse`, `rhombus`,
 `triangle`, `parallelogram`, `hexagon`, `trapezoid`, `pentagon`, `note`),
@@ -1609,7 +1608,7 @@ predefinita � 640 x 320 px.
 `pointSize` e `zoom` accettano espressioni reattive.
 
 `tableView` è disponibile per ogni grafico: `"chart"` (default), `"table"` o
-`"both"`. `"gantt"` resta un alias di `"chart"` per i Gantt. La tabella è
+`"both"`. La tabella è
 nativa e accessibile. Il Gantt usa Task, WBS parent, Start, End, Deadline, Actual
 start/end, Duration, Effective duration, Remaining, Progress, Work, Work done,
 Milestone, Status, Group, Resources, Depends on, Link, Lag, Constraint,

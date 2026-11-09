@@ -10,7 +10,7 @@ view main {
 		}
 
 		card class: "state-card" {
-			chart "State Graph Demo" name: "state_graph_demo" class: "state-chart" data: stateGraph chartType: "state" stateTagLink: "line" stateShapeTagStyle: "pill" stateShapeTagLink: "arrow" stateLinkTagStyle: "box" stateLinkTagLink: "line" stateTagFontSize: 11 stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateTagsMovable: true stateRoutesEditable: true tableView: "both" tableFilters: false showGrid: false showLegend: false showValues: true interactive: true theme: "light" style: cssSafe("--sui-chart-series-1: #0284c7; --sui-chart-series-2: #16a34a; --sui-chart-series-3: #d97706; --sui-chart-series-4: #9333ea; --sui-chart-gantt-dependency: #64748b; --sui-chart-fg: #102a43; --sui-chart-muted: #64748b; --sui-chart-bg: #ffffff;")
+			graph "State Graph Demo" name: "state_graph_demo" class: "state-chart" data: stateGraph stateTagLink: "line" stateShapeTagStyle: "pill" stateShapeTagLink: "arrow" stateLinkTagStyle: "box" stateLinkTagLink: "line" stateTagFontSize: 11 stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateTagsMovable: true stateRoutesEditable: true tableView: "both" tableFilters: false showGrid: false showLegend: false showValues: true editMode: "persistent" theme: "light" style: cssSafe("--sui-chart-series-1: #0284c7; --sui-chart-series-2: #16a34a; --sui-chart-series-3: #d97706; --sui-chart-series-4: #9333ea; --sui-chart-gantt-dependency: #64748b; --sui-chart-fg: #102a43; --sui-chart-muted: #64748b; --sui-chart-bg: #ffffff;")
 		}
 
 		row class: "state-help" {

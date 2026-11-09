@@ -533,10 +533,9 @@ const suiChartRuntime = `(function(){
     throw new Error("unknown format: " + fmt);
   }
   function ganttDate(v) {
-    if (typeof v === "number") return { value: v, date: false, hasTime: false };
+    if (typeof v === "number") return null;
     var s = text(v).trim();
-    if (!s) return null;
-    if (/^-?\d+(\.\d+)?$/.test(s)) return { value: Number(s), date: false, hasTime: false };
+    if (!s || /^-?\d+(\.\d+)?$/.test(s)) return null;
     var m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(s);
     if (m) return { value: Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)), date: true, hasTime: !!(m[4] || m[5] || m[6]) };
     var d = Date.parse(s);
@@ -558,10 +557,10 @@ const suiChartRuntime = `(function(){
     var push = function(value) {
       if (value === null || value === undefined) return;
       if (typeof value === "object" && !Array.isArray(value)) {
-        var oid = text(ganttField(value, ["id", "task", "dependsOn", "dependency"])).trim();
+        var oid = text(ganttField(value, ["id"])).trim();
         if (!oid) return;
-        var otype = ganttField(value, ["type", "link", "dependencyType"]);
-        var olag = ganttField(value, ["lag", "lead"]);
+        var otype = ganttField(value, ["type"]);
+        var olag = ganttField(value, ["lag"]);
         out.push({
           id: oid,
           type: otype === undefined || otype === null || text(otype).trim() === "" ? null : ganttLinkType(otype),
@@ -659,14 +658,14 @@ const suiChartRuntime = `(function(){
     if (Array.isArray(value)) {
       for (var i = 0; i < value.length; i++) {
         var item = value[i] && typeof value[i] === "object"
-          ? text(ganttField(value[i], ["name", "label"])).trim()
+          ? text(ganttField(value[i], ["name"])).trim()
           : text(value[i]).trim();
         if (item && list.indexOf(item) < 0) list.push(item);
       }
       return list;
     }
     if (value && typeof value === "object") {
-      var ownName = text(ganttField(value, ["name", "label"])).trim();
+      var ownName = text(ganttField(value, ["name"])).trim();
       if (ownName) return [ownName];
       for (var key in value) {
         if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
@@ -697,9 +696,9 @@ const suiChartRuntime = `(function(){
       for (var a = 0; a < value.length; a++) {
         var item = value[a];
         if (!item || typeof item !== "object") continue;
-        var itemName = text(ganttField(item, ["name", "label"])).trim();
+        var itemName = text(ganttField(item, ["name"])).trim();
         if (!itemName) continue;
-        map[itemName] = ganttUnitValue(ganttField(item, ["units", "quantity", "people", "count", "headcount"]));
+        map[itemName] = ganttUnitValue(ganttField(item, ["units"]));
       }
       return map;
     }
@@ -730,18 +729,18 @@ const suiChartRuntime = `(function(){
     if (value === null || value === undefined) return null;
     if (typeof value === "string") value = { name: value };
     if (typeof value !== "object") return null;
-    var name = text(ganttField(value, ["name", "label", "id"])).trim();
+    var name = text(ganttField(value, ["name"])).trim();
     if (!name) return null;
-    var maxPeople = num(ganttField(value, ["maxPeople", "maxPersonnel", "people", "headcount", "max"]));
+    var maxPeople = num(ganttField(value, ["maxPeople"]));
     if (maxPeople === null || !isFinite(maxPeople)) maxPeople = 0;
-    var dailyCost = num(ganttField(value, ["dailyCost", "costPerDay", "dayRate", "rate"]));
+    var dailyCost = num(ganttField(value, ["dailyCost"]));
     if (dailyCost !== null && (!isFinite(dailyCost) || dailyCost < 0)) dailyCost = null;
     return {
       name: name,
-      role: text(ganttField(value, ["role", "discipline", "team"])).trim(),
+      role: text(ganttField(value, ["role"])).trim(),
       maxPeople: Math.max(0, Math.min(9999, Math.round(maxPeople))),
       dailyCost: dailyCost,
-      notes: text(ganttField(value, ["notes", "note", "description"])).trim()
+      notes: text(ganttField(value, ["notes"])).trim()
     };
   }
   function ganttResourceRegistry(data) {
@@ -944,28 +943,28 @@ const suiChartRuntime = `(function(){
   }
   function ganttObjTask(o, index) {
     var label = text(ganttField(o, ["task"]) || ganttField(o, ["id"]) || "Task " + (index + 1));
-    var start = ganttField(o, ["start", "from", "begin"]);
-    var end = ganttField(o, ["end", "to", "finish"]);
+    var start = ganttField(o, ["start"]);
+    var end = ganttField(o, ["end"]);
     var duration = ganttField(o, ["duration"]);
     var st = ganttDate(start), en = ganttDate(end);
     if (!en && st && num(duration) !== null) en = { value: st.value + num(duration) * 86400000, date: st.date };
     if (!st || !en) return null;
     if (en.value < st.value) throw new Error("task " + label + " ends before it starts");
-    var progress = ganttProgress(ganttField(o, ["progress", "percent", "complete"]));
+    var progress = ganttProgress(ganttField(o, ["progress"]));
     var milestone = ganttBool(ganttField(o, ["milestone"])) || st.value === en.value;
-    var id = text(ganttField(o, ["id", "key"]) || label);
-    var group = text(ganttField(o, ["group", "phase", "category"]));
+    var id = text(ganttField(o, ["id"]) || label);
+    var group = text(ganttField(o, ["group"]));
     var resourceValue = ganttField(o, ["resources"]);
     var resources = ganttResourceNames(resourceValue);
     var resourceUnits = ganttResourceUnitMap(resourceValue, resources);
-    var explicitUnits = ganttField(o, ["resourceUnits", "resourceQuantities", "resourcePeople"]);
+    var explicitUnits = ganttField(o, ["resourceUnits"]);
     if (explicitUnits && typeof explicitUnits === "object") {
       if (Array.isArray(explicitUnits)) {
         for (var eu = 0; eu < explicitUnits.length; eu++) {
           var euItem = explicitUnits[eu];
           if (!euItem || typeof euItem !== "object") continue;
-          var euName = text(ganttField(euItem, ["name", "label"])).trim();
-          if (euName) resourceUnits[euName] = ganttUnitValue(ganttField(euItem, ["units", "quantity", "people", "count", "headcount"]));
+          var euName = text(ganttField(euItem, ["name"])).trim();
+          if (euName) resourceUnits[euName] = ganttUnitValue(ganttField(euItem, ["units"]));
         }
       } else {
         for (var unitName in explicitUnits) {
@@ -973,18 +972,18 @@ const suiChartRuntime = `(function(){
         }
       }
     }
-    var dependsValue = ganttField(o, ["dependsOn", "dependencies", "depends"]);
+    var dependsValue = ganttField(o, ["dependsOn"]);
     var depends = ganttDepends(dependsValue);
     var links = ganttLinkSpecs(dependsValue);
-    var linkDetails = ganttField(o, ["links", "linkDetails"]);
+    var linkDetails = ganttField(o, ["links"]);
     if (linkDetails !== undefined && linkDetails !== null) links = ganttLinkSpecs(linkDetails);
-    var color = colorToHex(ganttField(o, ["color", "colour"]), "");
-    var constraintDate = ganttDate(ganttField(o, ["constraintDate", "constraint_date"]));
-    var deadline = ganttDate(ganttField(o, ["deadline", "dueDate", "due"]));
-    var actualStart = ganttDate(ganttField(o, ["actualStart", "actual_start", "actualFrom"]));
-    var actualEnd = ganttDate(ganttField(o, ["actualEnd", "actual_end", "actualTo"]));
+    var color = colorToHex(ganttField(o, ["color"]), "");
+    var constraintDate = ganttDate(ganttField(o, ["constraintDate"]));
+    var deadline = ganttDate(ganttField(o, ["deadline"]));
+    var actualStart = ganttDate(ganttField(o, ["actualStart"]));
+    var actualEnd = ganttDate(ganttField(o, ["actualEnd"]));
     if (actualStart && actualEnd && actualEnd.value < actualStart.value) throw new Error("task " + label + " has actual end before actual start");
-    var parent = text(ganttField(o, ["parent", "parentId", "parent_id"])).trim();
+    var parent = text(ganttField(o, ["parent"])).trim();
     return {
       id: id, label: label, start: st.value, end: en.value, date: st.date || en.date,
       parent: parent || "",
@@ -993,18 +992,18 @@ const suiChartRuntime = `(function(){
       resource: resources.join(", "),
       resources: resources,
       resourceUnits: resourceUnits,
-      status: ganttStatus(ganttField(o, ["status", "state"])),
-      dependencyType: ganttLinkType(ganttField(o, ["dependencyType", "linkType", "depType"])),
-      lag: ganttLag(ganttField(o, ["lag", "lead"])),
-      constraint: ganttConstraint(ganttField(o, ["constraint", "constraintType"])),
+      status: ganttStatus(ganttField(o, ["status"])),
+      dependencyType: ganttLinkType(ganttField(o, ["dependencyType"])),
+      lag: ganttLag(ganttField(o, ["lag"])),
+      constraint: ganttConstraint(ganttField(o, ["constraint"])),
       constraintDate: constraintDate ? constraintDate.value : null,
       deadline: deadline ? deadline.value : null,
       actualStart: actualStart ? actualStart.value : null,
       actualEnd: actualEnd ? actualEnd.value : null,
-      remaining: num(ganttField(o, ["remaining", "remainingDuration", "remaining_duration"])),
-      work: num(ganttField(o, ["work", "effort", "totalWork"])),
-      workDone: num(ganttField(o, ["workDone", "work_done", "completedWork", "effortDone"])),
-      cost: num(ganttField(o, ["cost", "budget", "price"]))
+      remaining: num(ganttField(o, ["remaining"])),
+      work: num(ganttField(o, ["work"])),
+      workDone: num(ganttField(o, ["workDone"])),
+      cost: num(ganttField(o, ["cost"]))
     };
   }
   function ganttHeaderIndex(head, names, fallback) {
@@ -1057,8 +1056,7 @@ const suiChartRuntime = `(function(){
   function makeGanttData(tasks) {
     if (!tasks.length) throw new Error("gantt needs tasks with start and end fields");
     ganttNormalizeDependencies(tasks);
-    var dateCount = tasks.filter(function(t) { return t.date; }).length;
-    if (dateCount && dateCount !== tasks.length) throw new Error("gantt data cannot mix date strings and numeric positions");
+    if (tasks.some(function(t) { return !t.date; })) throw new Error("gantt start and end must be date values");
     var data = makeData(
       tasks.map(function(t) { return t.label; }),
       [{ name: "Start", values: tasks.map(function(t) { return t.start; }) },
@@ -1066,7 +1064,7 @@ const suiChartRuntime = `(function(){
       tasks.map(function(t) { return t.start; })
     );
     data.ganttTasks = tasks;
-    data.ganttDateMode = !!dateCount;
+    data.ganttDateMode = true;
     data.ganttHasTime = tasks.some(function(t) { return !!t.timed; });
     return data;
   }
@@ -1087,9 +1085,9 @@ const suiChartRuntime = `(function(){
   }
   function stateNodeType(value, initial, final) {
     var s = text(value).trim().toLowerCase();
-    if (initial || s === "initial" || s === "start" || s === "begin") return "initial";
-    if (final || s === "final" || s === "end" || s === "done") return "final";
-    if (s === "choice" || s === "decision" || s === "junction") return "choice";
+    if (initial || s === "initial") return "initial";
+    if (final || s === "final") return "final";
+    if (s === "choice") return "choice";
     return "normal";
   }
   function stateFieldText(obj, names) {
@@ -1166,7 +1164,7 @@ const suiChartRuntime = `(function(){
       });
     };
     var addNode = function(obj, fallbackIndex) {
-      var rawId = stateFieldText(obj, ["id", "key"]);
+      var rawId = stateFieldText(obj, ["id"]);
       var label = stateFieldText(obj, ["label"]);
       if (!rawId) {
         var missing = label ? 'state "' + label + '"' : "state #" + (fallbackIndex + 1);
@@ -1174,77 +1172,77 @@ const suiChartRuntime = `(function(){
       }
       var id = rawId;
       if (byId[id] !== undefined) throw new Error('duplicate state id "' + id + '": ids must be unique inside a chart');
-      var initial = stateBoolValue(stateFieldValue(obj, ["initial", "isInitial", "start"]));
-      var final = stateBoolValue(stateFieldValue(obj, ["final", "isFinal", "accepting"]));
-      var nodeTagOffsetRaw = stateFieldValue(obj, ["tagOffset", "tag_offset"]);
+      var initial = stateBoolValue(stateFieldValue(obj, ["initial"]));
+      var final = stateBoolValue(stateFieldValue(obj, ["final"]));
+      var nodeTagOffsetRaw = stateFieldValue(obj, ["tagOffset"]);
       var nodeTagOffset = null;
       if (nodeTagOffsetRaw && typeof nodeTagOffsetRaw === "object") {
-        var tagOffsetX = stateNumber(stateFieldValue(nodeTagOffsetRaw, ["x", "left"]));
-        var tagOffsetY = stateNumber(stateFieldValue(nodeTagOffsetRaw, ["y", "top"]));
+        var tagOffsetX = stateNumber(stateFieldValue(nodeTagOffsetRaw, ["x"]));
+        var tagOffsetY = stateNumber(stateFieldValue(nodeTagOffsetRaw, ["y"]));
         if (tagOffsetX !== null && tagOffsetY !== null) nodeTagOffset = { x: tagOffsetX, y: tagOffsetY };
       }
-      var nodeTagAnchorRaw = stateFieldValue(obj, ["tagAnchor", "tag_anchor"]);
+      var nodeTagAnchorRaw = stateFieldValue(obj, ["tagAnchor"]);
       var nodeTagAnchor = null;
       if (nodeTagAnchorRaw && typeof nodeTagAnchorRaw === "object") {
-        var tagAnchorX = stateNumber(stateFieldValue(nodeTagAnchorRaw, ["rx", "x"]));
-        var tagAnchorY = stateNumber(stateFieldValue(nodeTagAnchorRaw, ["ry", "y"]));
+        var tagAnchorX = stateNumber(stateFieldValue(nodeTagAnchorRaw, ["rx"]));
+        var tagAnchorY = stateNumber(stateFieldValue(nodeTagAnchorRaw, ["ry"]));
         if (tagAnchorX !== null && tagAnchorY !== null) nodeTagAnchor = { rx: tagAnchorX, ry: tagAnchorY };
       }
-      var snapRaw = stateFieldValue(obj, ["snap", "snapToGrid", "snap_to_grid"]);
+      var snapRaw = stateFieldValue(obj, ["snap"]);
       var node = {
         id: id,
         label: label || id,
         snap: snapRaw === undefined || snapRaw === null || snapRaw === "" ? true : stateBoolValue(snapRaw),
-        type: stateNodeType(stateFieldValue(obj, ["type", "kind", "shape"]), initial, final),
+        type: stateNodeType(stateFieldValue(obj, ["type"]), initial, final),
         initial: initial,
         final: final,
-        x: stateNumber(stateFieldValue(obj, ["x", "left"])),
-        y: stateNumber(stateFieldValue(obj, ["y", "top"])),
+        x: stateNumber(stateFieldValue(obj, ["x"])),
+        y: stateNumber(stateFieldValue(obj, ["y"])),
         w: stateNumber(stateFieldValue(obj, ["w"])),
         h: stateNumber(stateFieldValue(obj, ["h"])),
-        description: stateFieldText(obj, ["description", "desc", "note"]),
-        hint: normalizeLineText(stateFieldText(obj, ["hint", "tooltip", "tip"])),
-        color: stateFieldText(obj, ["color", "colour"]),
-        shape: stateFieldText(obj, ["shape", "figure", "geometry"]).toLowerCase(),
-        borderStyle: stateFieldText(obj, ["borderStyle", "border_style", "strokeStyle", "stroke_style"]).toLowerCase(),
-        borderWidth: stateNumber(stateFieldValue(obj, ["borderWidth", "border_width", "strokeWidth", "stroke_width"])),
-        borderDashLength: stateNumber(stateFieldValue(obj, ["borderDashLength", "border_dash_length", "borderDash", "border_dash"])),
-        borderDashGap: stateNumber(stateFieldValue(obj, ["borderDashGap", "border_dash_gap", "borderGap", "border_gap"])),
-        borderColor: stateFieldText(obj, ["borderColor", "border_color", "strokeColor", "stroke_color"]),
-        highlightColor: stateFieldText(obj, ["highlightColor", "highlight_color", "selectionColor", "selection_color"]),
-        cornerRadius: stateNumber(stateFieldValue(obj, ["cornerRadius", "corner_radius", "radius", "rx"])),
-        textPlacement: stateFieldText(obj, ["textPlacement", "text_placement", "labelPlacement", "label_placement"]).toLowerCase(),
-        tag: normalizeLineText(stateFieldText(obj, ["tag", "note", "comment"])),
-        tagSide: stateFieldText(obj, ["tagSide", "tag_side"]).toLowerCase(),
-        tagKind: stateFieldText(obj, ["tagKind", "tag_kind"]).toLowerCase(),
-        tagBox: stateFieldText(obj, ["tagBox", "tag_box", "tagStyle", "tag_style"]).toLowerCase(),
-        tagAlign: stateFieldText(obj, ["tagAlign", "tag_align"]).toLowerCase(),
-        tagLeader: stateFieldText(obj, ["tagLeader", "tag_leader"]).toLowerCase(),
-        tagArrow: stateBoolValue(stateFieldValue(obj, ["tagArrow", "tag_arrow"])),
-        tagArrowSize: stateNumber(stateFieldValue(obj, ["tagArrowSize", "tag_arrow_size"])),
-        tagRotation: stateNumber(stateFieldValue(obj, ["tagRotation", "tag_rotation"])),
-        tagFont: stateFieldText(obj, ["tagFont", "tag_font"]),
-        tagFontSize: stateNumber(stateFieldValue(obj, ["tagFontSize", "tag_font_size"])),
-        tagFontWeight: stateFieldText(obj, ["tagFontWeight", "tag_font_weight"]),
-        tagFontStyle: stateFieldText(obj, ["tagFontStyle", "tag_font_style"]).toLowerCase(),
-        tagTextDecoration: stateFieldText(obj, ["tagTextDecoration", "tag_text_decoration"]).toLowerCase(),
-        tagTextAlign: stateFieldText(obj, ["tagTextAlign", "tag_text_align"]).toLowerCase(),
-        tagLetterSpacing: stateNumber(stateFieldValue(obj, ["tagLetterSpacing", "tag_letter_spacing"])),
-        tagLineSpacing: stateNumber(stateFieldValue(obj, ["tagLineSpacing", "tag_line_spacing"])),
-        tagTextTransform: stateFieldText(obj, ["tagTextTransform", "tag_text_transform"]).toLowerCase(),
-        tagTextShadow: stateFieldText(obj, ["tagTextShadow", "tag_text_shadow"]).toLowerCase(),
-        tagTextShadowColor: stateFieldText(obj, ["tagTextShadowColor", "tag_text_shadow_color"]),
-        tagTextColor: stateFieldText(obj, ["tagTextColor", "tag_text_color"]),
-        tagBoxColor: stateFieldText(obj, ["tagBoxColor", "tag_box_color"]),
-        tagBorderColor: stateFieldText(obj, ["tagBorderColor", "tag_border_color", "tagBoxBorderColor", "tag_box_border_color"]),
-        tagBorderWidth: stateNumber(stateFieldValue(obj, ["tagBorderWidth", "tag_border_width", "tagBoxBorderWidth", "tag_box_border_width"])),
-        tagBorderStyle: stateFieldText(obj, ["tagBorderStyle", "tag_border_style", "tagBoxBorderStyle", "tag_box_border_style"]).toLowerCase(),
-        tagPadding: stateNumber(stateFieldValue(obj, ["tagPadding", "tag_padding", "tagBoxPadding", "tag_box_padding"])),
-        tagLeaderColor: stateFieldText(obj, ["tagLeaderColor", "tag_leader_color"]),
-        tagArrowShape: stateFieldText(obj, ["tagArrowShape", "tag_arrow_shape"]).toLowerCase(),
+        description: stateFieldText(obj, ["description"]),
+        hint: normalizeLineText(stateFieldText(obj, ["hint"])),
+        color: stateFieldText(obj, ["color"]),
+        shape: stateFieldText(obj, ["shape"]).toLowerCase(),
+        borderStyle: stateFieldText(obj, ["borderStyle"]).toLowerCase(),
+        borderWidth: stateNumber(stateFieldValue(obj, ["borderWidth"])),
+        borderDashLength: stateNumber(stateFieldValue(obj, ["borderDashLength"])),
+        borderDashGap: stateNumber(stateFieldValue(obj, ["borderDashGap"])),
+        borderColor: stateFieldText(obj, ["borderColor"]),
+        highlightColor: stateFieldText(obj, ["highlightColor"]),
+        cornerRadius: stateNumber(stateFieldValue(obj, ["cornerRadius"])),
+        textPlacement: stateFieldText(obj, ["textPlacement"]).toLowerCase(),
+        tag: normalizeLineText(stateFieldText(obj, ["tag"])),
+        tagSide: stateFieldText(obj, ["tagSide"]).toLowerCase(),
+        tagKind: stateFieldText(obj, ["tagKind"]).toLowerCase(),
+        tagBox: stateFieldText(obj, ["tagBox"]).toLowerCase(),
+        tagAlign: stateFieldText(obj, ["tagAlign"]).toLowerCase(),
+        tagLeader: stateFieldText(obj, ["tagLeader"]).toLowerCase(),
+        tagArrow: stateBoolValue(stateFieldValue(obj, ["tagArrow"])),
+        tagArrowSize: stateNumber(stateFieldValue(obj, ["tagArrowSize"])),
+        tagRotation: stateNumber(stateFieldValue(obj, ["tagRotation"])),
+        tagFont: stateFieldText(obj, ["tagFont"]),
+        tagFontSize: stateNumber(stateFieldValue(obj, ["tagFontSize"])),
+        tagFontWeight: stateFieldText(obj, ["tagFontWeight"]),
+        tagFontStyle: stateFieldText(obj, ["tagFontStyle"]).toLowerCase(),
+        tagTextDecoration: stateFieldText(obj, ["tagTextDecoration"]).toLowerCase(),
+        tagTextAlign: stateFieldText(obj, ["tagTextAlign"]).toLowerCase(),
+        tagLetterSpacing: stateNumber(stateFieldValue(obj, ["tagLetterSpacing"])),
+        tagLineSpacing: stateNumber(stateFieldValue(obj, ["tagLineSpacing"])),
+        tagTextTransform: stateFieldText(obj, ["tagTextTransform"]).toLowerCase(),
+        tagTextShadow: stateFieldText(obj, ["tagTextShadow"]).toLowerCase(),
+        tagTextShadowColor: stateFieldText(obj, ["tagTextShadowColor"]),
+        tagTextColor: stateFieldText(obj, ["tagTextColor"]),
+        tagBoxColor: stateFieldText(obj, ["tagBoxColor"]),
+        tagBorderColor: stateFieldText(obj, ["tagBorderColor"]),
+        tagBorderWidth: stateNumber(stateFieldValue(obj, ["tagBorderWidth"])),
+        tagBorderStyle: stateFieldText(obj, ["tagBorderStyle"]).toLowerCase(),
+        tagPadding: stateNumber(stateFieldValue(obj, ["tagPadding"])),
+        tagLeaderColor: stateFieldText(obj, ["tagLeaderColor"]),
+        tagArrowShape: stateFieldText(obj, ["tagArrowShape"]).toLowerCase(),
         tagAnchor: nodeTagAnchor,
         tagOffset: nodeTagOffset,
-        rotation: stateNumber(stateFieldValue(obj, ["rotation", "rotate", "angle"]))
+        rotation: stateNumber(stateFieldValue(obj, ["rotation"]))
       };
       nodes.push(node);
       byId[id] = node;
@@ -1266,134 +1264,134 @@ const suiChartRuntime = `(function(){
       if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
       var beforeCount = transitions.length;
       addTransition(
-        stateFieldValue(obj, ["from", "source", "sourceState", "fromState"]) || fromFallback,
-        stateFieldValue(obj, ["to", "target", "targetState", "toState"]),
+        stateFieldValue(obj, ["from"]) || fromFallback,
+        stateFieldValue(obj, ["to"]),
         stateFieldValue(obj, ["label"]),
-        stateFieldValue(obj, ["event", "trigger"]),
-        stateFieldValue(obj, ["guard", "condition"]),
-        stateFieldValue(obj, ["action", "effect"]),
-        stateFieldValue(obj, ["description", "desc", "note"]),
-        stateFieldValue(obj, ["color", "colour"])
+        stateFieldValue(obj, ["event"]),
+        stateFieldValue(obj, ["guard"]),
+        stateFieldValue(obj, ["action"]),
+        stateFieldValue(obj, ["description"]),
+        stateFieldValue(obj, ["color"])
       );
       if (transitions.length > beforeCount) {
         var lastTransition = transitions[transitions.length - 1];
-        var transitionId = stateFieldText(obj, ["id", "key"]);
-        var linkHighlight = stateFieldText(obj, ["highlightColor", "highlight_color", "selectionColor", "selection_color"]);
+        var transitionId = stateFieldText(obj, ["id"]);
+        var linkHighlight = stateFieldText(obj, ["highlightColor"]);
         if (linkHighlight) lastTransition.highlightColor = linkHighlight;
-        var linkHint = normalizeLineText(stateFieldText(obj, ["hint", "tooltip", "tip"]));
+        var linkHint = normalizeLineText(stateFieldText(obj, ["hint"]));
         if (linkHint) lastTransition.hint = linkHint;
         if (transitionId) lastTransition.id = transitionId;
-        var bx = stateNumber(stateFieldValue(obj, ["bendX", "bend_x"]));
-        var by = stateNumber(stateFieldValue(obj, ["bendY", "bend_y"]));
+        var bx = stateNumber(stateFieldValue(obj, ["bendX"]));
+        var by = stateNumber(stateFieldValue(obj, ["bendY"]));
         if (bx !== null) lastTransition.bendX = bx;
         if (by !== null) lastTransition.bendY = by;
-        var b1x = stateNumber(stateFieldValue(obj, ["bend1X", "bend1_x", "control1X", "control1_x"]));
-        var b1y = stateNumber(stateFieldValue(obj, ["bend1Y", "bend1_y", "control1Y", "control1_y"]));
-        var b2x = stateNumber(stateFieldValue(obj, ["bend2X", "bend2_x", "control2X", "control2_x"]));
-        var b2y = stateNumber(stateFieldValue(obj, ["bend2Y", "bend2_y", "control2Y", "control2_y"]));
+        var b1x = stateNumber(stateFieldValue(obj, ["bend1X"]));
+        var b1y = stateNumber(stateFieldValue(obj, ["bend1Y"]));
+        var b2x = stateNumber(stateFieldValue(obj, ["bend2X"]));
+        var b2y = stateNumber(stateFieldValue(obj, ["bend2Y"]));
         if (b1x !== null) lastTransition.bend1X = b1x;
         if (b1y !== null) lastTransition.bend1Y = b1y;
         if (b2x !== null) lastTransition.bend2X = b2x;
         if (b2y !== null) lastTransition.bend2Y = b2y;
-        var route = text(stateFieldValue(obj, ["routing", "routeStyle", "route_style", "linkType", "link_type", "lineType", "line_type"])).trim().toLowerCase();
+        var route = text(stateFieldValue(obj, ["routing"])).trim().toLowerCase();
         if (route === "bezier") route = "curved";
         if (route) lastTransition.routing = route;
-        var arcSweepValue = stateNumber(stateFieldValue(obj, ["arcSweep", "arc_sweep", "sweep"]));
+        var arcSweepValue = stateNumber(stateFieldValue(obj, ["arcSweep"]));
         if (arcSweepValue !== null) lastTransition.arcSweep = arcSweepValue >= 0.5 ? 1 : 0;
-        var arcLargeValue = stateNumber(stateFieldValue(obj, ["arcLarge", "arc_large", "largeArc", "large_arc"]));
+        var arcLargeValue = stateNumber(stateFieldValue(obj, ["arcLarge"]));
         if (arcLargeValue !== null) lastTransition.arcLarge = arcLargeValue >= 0.5 ? 1 : 0;
-        var linkWidth = stateNumber(stateFieldValue(obj, ["width", "linkWidth", "link_width", "strokeWidth", "stroke_width"]));
+        var linkWidth = stateNumber(stateFieldValue(obj, ["width"]));
         if (linkWidth !== null) lastTransition.width = linkWidth;
-        var dashStyle = stateFieldText(obj, ["dash", "dashStyle", "dash_style", "strokeStyle", "stroke_style"]).toLowerCase();
+        var dashStyle = stateFieldText(obj, ["dash"]).toLowerCase();
         if (dashStyle) lastTransition.dashStyle = dashStyle;
-        var dashLengthValue = stateNumber(stateFieldValue(obj, ["dashLength", "dash_length", "dashSize", "dash_size"]));
+        var dashLengthValue = stateNumber(stateFieldValue(obj, ["dashLength"]));
         if (dashLengthValue !== null) lastTransition.dashLength = dashLengthValue;
-        var dashGapValue = stateNumber(stateFieldValue(obj, ["dashGap", "dash_gap", "dashSpacing", "dash_spacing"]));
+        var dashGapValue = stateNumber(stateFieldValue(obj, ["dashGap"]));
         if (dashGapValue !== null) lastTransition.dashGap = dashGapValue;
-        var edgeArrowSize = stateNumber(stateFieldValue(obj, ["arrowSize", "arrow_size", "markerSize", "marker_size"]));
+        var edgeArrowSize = stateNumber(stateFieldValue(obj, ["arrowSize"]));
         if (edgeArrowSize !== null) lastTransition.arrowSize = edgeArrowSize;
-        var startMarker = stateFieldText(obj, ["startMarker", "start_marker", "startArrow", "start_arrow"]).toLowerCase();
-        var endMarker = stateFieldText(obj, ["endMarker", "end_marker", "endArrow", "end_arrow"]).toLowerCase();
+        var startMarker = stateFieldText(obj, ["startMarker"]).toLowerCase();
+        var endMarker = stateFieldText(obj, ["endMarker"]).toLowerCase();
         if (startMarker) lastTransition.startMarker = startMarker;
         if (endMarker) lastTransition.endMarker = endMarker;
-        var fromPort = stateFieldText(obj, ["fromPort", "from_port", "sourcePort", "source_port"]).toLowerCase();
-        var toPort = stateFieldText(obj, ["toPort", "to_port", "targetPort", "target_port"]).toLowerCase();
+        var fromPort = stateFieldText(obj, ["fromPort"]).toLowerCase();
+        var toPort = stateFieldText(obj, ["toPort"]).toLowerCase();
         if (fromPort) lastTransition.fromPort = fromPort;
         if (toPort) lastTransition.toPort = toPort;
-        var fromAnchor = stateFieldText(obj, ["fromAnchor", "from_anchor", "sourceAnchor", "source_anchor"]);
-        var toAnchor = stateFieldText(obj, ["toAnchor", "to_anchor", "targetAnchor", "target_anchor"]);
+        var fromAnchor = stateFieldText(obj, ["fromAnchor"]);
+        var toAnchor = stateFieldText(obj, ["toAnchor"]);
         if (fromAnchor) lastTransition.fromAnchor = fromAnchor;
         if (toAnchor) lastTransition.toAnchor = toAnchor;
-        var tagText = normalizeLineText(stateFieldText(obj, ["tag", "note", "comment"]));
+        var tagText = normalizeLineText(stateFieldText(obj, ["tag"]));
         if (tagText) lastTransition.tag = tagText;
-        var linkTagKind = stateFieldText(obj, ["tagKind", "tag_kind"]).toLowerCase();
+        var linkTagKind = stateFieldText(obj, ["tagKind"]).toLowerCase();
         if (linkTagKind) lastTransition.tagKind = linkTagKind;
-        var linkTagBox = stateFieldText(obj, ["tagBox", "tag_box", "tagStyle", "tag_style"]).toLowerCase();
+        var linkTagBox = stateFieldText(obj, ["tagBox"]).toLowerCase();
         if (linkTagBox) lastTransition.tagBox = linkTagBox;
-        var linkTagAlign = stateFieldText(obj, ["tagAlign", "tag_align"]).toLowerCase();
+        var linkTagAlign = stateFieldText(obj, ["tagAlign"]).toLowerCase();
         if (linkTagAlign) lastTransition.tagAlign = linkTagAlign;
-        var linkTagLeader = stateFieldText(obj, ["tagLeader", "tag_leader"]).toLowerCase();
+        var linkTagLeader = stateFieldText(obj, ["tagLeader"]).toLowerCase();
         if (linkTagLeader) lastTransition.tagLeader = linkTagLeader;
-        var linkTagArrow = stateBoolValue(stateFieldValue(obj, ["tagArrow", "tag_arrow"]));
+        var linkTagArrow = stateBoolValue(stateFieldValue(obj, ["tagArrow"]));
         if (linkTagArrow) lastTransition.tagArrow = linkTagArrow;
-        var linkTagArrowSize = stateNumber(stateFieldValue(obj, ["tagArrowSize", "tag_arrow_size"]));
+        var linkTagArrowSize = stateNumber(stateFieldValue(obj, ["tagArrowSize"]));
         if (linkTagArrowSize !== null) lastTransition.tagArrowSize = linkTagArrowSize;
-        var linkTagRotation = stateNumber(stateFieldValue(obj, ["tagRotation", "tag_rotation"]));
+        var linkTagRotation = stateNumber(stateFieldValue(obj, ["tagRotation"]));
         if (linkTagRotation !== null) lastTransition.tagRotation = linkTagRotation;
-        var linkTagFont = stateFieldText(obj, ["tagFont", "tag_font"]);
+        var linkTagFont = stateFieldText(obj, ["tagFont"]);
         if (linkTagFont) lastTransition.tagFont = linkTagFont;
-        var linkTagFontSize = stateNumber(stateFieldValue(obj, ["tagFontSize", "tag_font_size"]));
+        var linkTagFontSize = stateNumber(stateFieldValue(obj, ["tagFontSize"]));
         if (linkTagFontSize !== null) lastTransition.tagFontSize = linkTagFontSize;
-        var linkTagFontWeight = stateFieldText(obj, ["tagFontWeight", "tag_font_weight"]);
+        var linkTagFontWeight = stateFieldText(obj, ["tagFontWeight"]);
         if (linkTagFontWeight) lastTransition.tagFontWeight = linkTagFontWeight;
-        var linkTagFontStyle = stateFieldText(obj, ["tagFontStyle", "tag_font_style"]).toLowerCase();
+        var linkTagFontStyle = stateFieldText(obj, ["tagFontStyle"]).toLowerCase();
         if (linkTagFontStyle) lastTransition.tagFontStyle = linkTagFontStyle;
-        var linkTagTextDecoration = stateFieldText(obj, ["tagTextDecoration", "tag_text_decoration"]).toLowerCase();
+        var linkTagTextDecoration = stateFieldText(obj, ["tagTextDecoration"]).toLowerCase();
         if (linkTagTextDecoration) lastTransition.tagTextDecoration = linkTagTextDecoration;
-        var linkTagTextAlign = stateFieldText(obj, ["tagTextAlign", "tag_text_align"]).toLowerCase();
+        var linkTagTextAlign = stateFieldText(obj, ["tagTextAlign"]).toLowerCase();
         if (linkTagTextAlign) lastTransition.tagTextAlign = linkTagTextAlign;
-        var linkTagLetterSpacing = stateNumber(stateFieldValue(obj, ["tagLetterSpacing", "tag_letter_spacing"]));
+        var linkTagLetterSpacing = stateNumber(stateFieldValue(obj, ["tagLetterSpacing"]));
         if (linkTagLetterSpacing !== null) lastTransition.tagLetterSpacing = linkTagLetterSpacing;
-        var linkTagLineSpacing = stateNumber(stateFieldValue(obj, ["tagLineSpacing", "tag_line_spacing"]));
+        var linkTagLineSpacing = stateNumber(stateFieldValue(obj, ["tagLineSpacing"]));
         if (linkTagLineSpacing !== null) lastTransition.tagLineSpacing = linkTagLineSpacing;
-        var linkTagTextTransform = stateFieldText(obj, ["tagTextTransform", "tag_text_transform"]).toLowerCase();
+        var linkTagTextTransform = stateFieldText(obj, ["tagTextTransform"]).toLowerCase();
         if (linkTagTextTransform) lastTransition.tagTextTransform = linkTagTextTransform;
-        var linkTagTextShadow = stateFieldText(obj, ["tagTextShadow", "tag_text_shadow"]).toLowerCase();
+        var linkTagTextShadow = stateFieldText(obj, ["tagTextShadow"]).toLowerCase();
         if (linkTagTextShadow) lastTransition.tagTextShadow = linkTagTextShadow;
-        var linkTagTextShadowColor = stateFieldText(obj, ["tagTextShadowColor", "tag_text_shadow_color"]);
+        var linkTagTextShadowColor = stateFieldText(obj, ["tagTextShadowColor"]);
         if (linkTagTextShadowColor) lastTransition.tagTextShadowColor = linkTagTextShadowColor;
-        var linkTagTextColor = stateFieldText(obj, ["tagTextColor", "tag_text_color"]);
+        var linkTagTextColor = stateFieldText(obj, ["tagTextColor"]);
         if (linkTagTextColor) lastTransition.tagTextColor = linkTagTextColor;
-        var linkTagBoxColor = stateFieldText(obj, ["tagBoxColor", "tag_box_color"]);
+        var linkTagBoxColor = stateFieldText(obj, ["tagBoxColor"]);
         if (linkTagBoxColor) lastTransition.tagBoxColor = linkTagBoxColor;
-        var linkTagBorderColor = stateFieldText(obj, ["tagBorderColor", "tag_border_color", "tagBoxBorderColor", "tag_box_border_color"]);
+        var linkTagBorderColor = stateFieldText(obj, ["tagBorderColor"]);
         if (linkTagBorderColor) lastTransition.tagBorderColor = linkTagBorderColor;
-        var linkTagBorderWidth = stateNumber(stateFieldValue(obj, ["tagBorderWidth", "tag_border_width", "tagBoxBorderWidth", "tag_box_border_width"]));
+        var linkTagBorderWidth = stateNumber(stateFieldValue(obj, ["tagBorderWidth"]));
         if (linkTagBorderWidth !== null) lastTransition.tagBorderWidth = linkTagBorderWidth;
-        var linkTagBorderStyle = stateFieldText(obj, ["tagBorderStyle", "tag_border_style", "tagBoxBorderStyle", "tag_box_border_style"]).toLowerCase();
+        var linkTagBorderStyle = stateFieldText(obj, ["tagBorderStyle"]).toLowerCase();
         if (linkTagBorderStyle) lastTransition.tagBorderStyle = linkTagBorderStyle;
-        var linkTagPadding = stateNumber(stateFieldValue(obj, ["tagPadding", "tag_padding", "tagBoxPadding", "tag_box_padding"]));
+        var linkTagPadding = stateNumber(stateFieldValue(obj, ["tagPadding"]));
         if (linkTagPadding !== null) lastTransition.tagPadding = linkTagPadding;
-        var linkTagLeaderColor = stateFieldText(obj, ["tagLeaderColor", "tag_leader_color"]);
+        var linkTagLeaderColor = stateFieldText(obj, ["tagLeaderColor"]);
         if (linkTagLeaderColor) lastTransition.tagLeaderColor = linkTagLeaderColor;
-        var linkTagArrowShape = stateFieldText(obj, ["tagArrowShape", "tag_arrow_shape"]).toLowerCase();
+        var linkTagArrowShape = stateFieldText(obj, ["tagArrowShape"]).toLowerCase();
         if (linkTagArrowShape) lastTransition.tagArrowShape = linkTagArrowShape;
-        var linkTagAnchorT = stateNumber(stateFieldValue(obj, ["tagAnchorT", "tag_anchor_t", "tagAt", "tag_at"]));
+        var linkTagAnchorT = stateNumber(stateFieldValue(obj, ["tagAnchorT"]));
         if (linkTagAnchorT !== null) lastTransition.tagAnchorT = Math.max(0, Math.min(1, linkTagAnchorT));
-        var linkTagOffsetRaw = stateFieldValue(obj, ["tagOffset", "tag_offset"]);
+        var linkTagOffsetRaw = stateFieldValue(obj, ["tagOffset"]);
         if (linkTagOffsetRaw && typeof linkTagOffsetRaw === "object") {
-          var linkTagOffsetX = stateNumber(stateFieldValue(linkTagOffsetRaw, ["x", "left"]));
-          var linkTagOffsetY = stateNumber(stateFieldValue(linkTagOffsetRaw, ["y", "top"]));
+          var linkTagOffsetX = stateNumber(stateFieldValue(linkTagOffsetRaw, ["x"]));
+          var linkTagOffsetY = stateNumber(stateFieldValue(linkTagOffsetRaw, ["y"]));
           if (linkTagOffsetX !== null && linkTagOffsetY !== null) lastTransition.tagOffset = { x: linkTagOffsetX, y: linkTagOffsetY };
         }
-        var arcRadiusValue = stateNumber(stateFieldValue(obj, ["arcRadius", "arc_radius", "radius"]));
+        var arcRadiusValue = stateNumber(stateFieldValue(obj, ["arcRadius"]));
         if (arcRadiusValue !== null) lastTransition.arcRadius = arcRadiusValue;
-        var waypoints = stateFieldValue(obj, ["waypoints", "wayPoints", "points"]);
+        var waypoints = stateFieldValue(obj, ["waypoints"]);
         if (Array.isArray(waypoints)) {
           lastTransition.waypoints = waypoints.map(function(point) {
             if (!point || typeof point !== "object") return null;
-            var wx = stateNumber(stateFieldValue(point, ["x", "left"]));
-            var wy = stateNumber(stateFieldValue(point, ["y", "top"]));
+            var wx = stateNumber(stateFieldValue(point, ["x"]));
+            var wy = stateNumber(stateFieldValue(point, ["y"]));
             return wx === null || wy === null ? null : { x: wx, y: wy };
           }).filter(function(point) { return !!point; });
         }
@@ -1405,12 +1403,12 @@ const suiChartRuntime = `(function(){
       var stateRows = [], transitionRows = [];
       if (Array.isArray(parsed)) {
         var transitionArray = parsed.length > 0 && parsed.every(function(row) {
-          return row && typeof row === "object" && stateFieldValue(row, ["to", "target", "targetState", "toState"]) !== undefined;
+          return row && typeof row === "object" && stateFieldValue(row, ["to"]) !== undefined;
         });
         if (transitionArray) transitionRows = parsed;
         else stateRows = parsed;
       } else if (parsed && typeof parsed === "object") {
-        initialRef = stateFieldText(parsed, ["initial", "start", "initialState"]);
+        initialRef = stateFieldText(parsed, ["initial"]);
         if (parsed.settings && typeof parsed.settings === "object" && !Array.isArray(parsed.settings)) importedSettings = parsed.settings;
         var sr = parsed.states !== undefined ? parsed.states : parsed.nodes;
         if (Array.isArray(sr)) stateRows = sr;
@@ -1437,39 +1435,39 @@ const suiChartRuntime = `(function(){
       var head = rows[0], body = rows.slice(1);
       var hasHeader = head.some(function(c) {
         var s = text(c).trim().toLowerCase();
-        return ["from", "source", "fromstate", "to", "target", "tostate", "id", "state", "type"].indexOf(s) >= 0;
+        return ["from", "to", "id", "type"].indexOf(s) >= 0;
       });
-      var fromHeader = head.some(function(c) { return ["from", "source", "fromstate", "from_state"].indexOf(text(c).trim().toLowerCase()) >= 0; });
-      var toHeader = head.some(function(c) { return ["to", "target", "tostate", "to_state"].indexOf(text(c).trim().toLowerCase()) >= 0; });
+      var fromHeader = head.some(function(c) { return text(c).trim().toLowerCase() === "from"; });
+      var toHeader = head.some(function(c) { return text(c).trim().toLowerCase() === "to"; });
       var explicitHeader = hasHeader;
       if (!hasHeader) {
         head = ["From", "To", "Label", "Event", "Guard", "Action"];
         body = rows;
       }
       var ix = {
-        from: ganttHeaderIndex(head, ["from", "source", "fromState", "from_state"], 0),
-        to: ganttHeaderIndex(head, ["to", "target", "toState", "to_state"], 1),
-        label: ganttHeaderIndex(head, ["label", "transition", "name"], 2),
-        event: ganttHeaderIndex(head, ["event", "trigger"], -1),
-        guard: ganttHeaderIndex(head, ["guard", "condition"], -1),
-        action: ganttHeaderIndex(head, ["action", "effect"], -1),
-        id: ganttHeaderIndex(head, ["id", "state", "key"], -1),
-        type: ganttHeaderIndex(head, ["type", "kind", "shape"], -1),
-        x: ganttHeaderIndex(head, ["x", "left"], -1),
-        y: ganttHeaderIndex(head, ["y", "top"], -1),
-        description: ganttHeaderIndex(head, ["description", "desc", "note"], -1),
-        hint: ganttHeaderIndex(head, ["hint", "tooltip", "tip"], -1),
-        color: ganttHeaderIndex(head, ["color", "colour"], -1),
-        routing: ganttHeaderIndex(head, ["routing", "route", "routestyle", "route_style"], -1),
-        width: ganttHeaderIndex(head, ["width", "linkwidth", "stroke_width"], -1),
-        dash: ganttHeaderIndex(head, ["dash", "dashstyle", "stroke_style"], -1),
-        startMarker: ganttHeaderIndex(head, ["startmarker", "start_marker", "start_arrow"], -1),
-        endMarker: ganttHeaderIndex(head, ["endmarker", "end_marker", "end_arrow"], -1),
-        fromPort: ganttHeaderIndex(head, ["fromport", "from_port", "source_port"], -1),
-        toPort: ganttHeaderIndex(head, ["toport", "to_port", "target_port"], -1),
-        fromAnchor: ganttHeaderIndex(head, ["fromanchor", "from_anchor", "source_anchor"], -1),
-        toAnchor: ganttHeaderIndex(head, ["toanchor", "to_anchor", "target_anchor"], -1),
-        tag: ganttHeaderIndex(head, ["tag", "comment"], -1)
+        from: ganttHeaderIndex(head, ["from"], 0),
+        to: ganttHeaderIndex(head, ["to"], 1),
+        label: ganttHeaderIndex(head, ["label"], 2),
+        event: ganttHeaderIndex(head, ["event"], -1),
+        guard: ganttHeaderIndex(head, ["guard"], -1),
+        action: ganttHeaderIndex(head, ["action"], -1),
+        id: ganttHeaderIndex(head, ["id"], -1),
+        type: ganttHeaderIndex(head, ["type"], -1),
+        x: ganttHeaderIndex(head, ["x"], -1),
+        y: ganttHeaderIndex(head, ["y"], -1),
+        description: ganttHeaderIndex(head, ["description"], -1),
+        hint: ganttHeaderIndex(head, ["hint"], -1),
+        color: ganttHeaderIndex(head, ["color"], -1),
+        routing: ganttHeaderIndex(head, ["routing"], -1),
+        width: ganttHeaderIndex(head, ["width"], -1),
+        dash: ganttHeaderIndex(head, ["dash"], -1),
+        startMarker: ganttHeaderIndex(head, ["startMarker"], -1),
+        endMarker: ganttHeaderIndex(head, ["endMarker"], -1),
+        fromPort: ganttHeaderIndex(head, ["fromPort"], -1),
+        toPort: ganttHeaderIndex(head, ["toPort"], -1),
+        fromAnchor: ganttHeaderIndex(head, ["fromAnchor"], -1),
+        toAnchor: ganttHeaderIndex(head, ["toAnchor"], -1),
+        tag: ganttHeaderIndex(head, ["tag"], -1)
       };
       var transitionMode = explicitHeader ? (fromHeader && toHeader) : true;
       for (i = 0; i < body.length; i++) {
@@ -1524,52 +1522,52 @@ const suiChartRuntime = `(function(){
           return "";
         };
         var nodeObj = {
-          id: attrs.id || attrs.key || childText(["id", "key"]),
+          id: attrs.id || childText(["id"]),
           label: attrs.label || childText(["label"]),
-          type: attrs.type || attrs.kind || childText(["type", "kind"]),
+          type: attrs.type || childText(["type"]),
           initial: attrs.initial || childText(["initial"]),
           final: attrs.final || childText(["final"]),
           x: attrs.x || childText(["x"]),
           y: attrs.y || childText(["y"]),
-          description: attrs.description || childText(["description", "note"]),
-          hint: attrs.hint || attrs.tooltip || childText(["hint", "tooltip", "tip"]),
-          tag: attrs.tag || attrs.note || childText(["tag", "note", "comment"]),
-          color: attrs.color || attrs.colour || childText(["color", "colour"])
+          description: attrs.description || childText(["description"]),
+          hint: attrs.hint || childText(["hint"]),
+          tag: attrs.tag || childText(["tag"]),
+          color: attrs.color || childText(["color"])
         };
         var node = addNode(nodeObj, fallbackIndex);
         for (var ci2 = 0; ci2 < el.childNodes.length; ci2++) {
           var c2 = el.childNodes[ci2];
           if (c2.nodeType !== 1) continue;
           var tag2 = (c2.localName || c2.nodeName || "").toLowerCase();
-          if (tag2 !== "transition" && tag2 !== "edge") continue;
+          if (tag2 !== "transition") continue;
           var ca = {};
           for (var cai = 0; cai < c2.attributes.length; cai++) ca[c2.attributes[cai].name] = c2.attributes[cai].value;
-          addTransition(ca.from || ca.source || node.id, ca.to || ca.target, ca.label || ca.event, ca.event || ca.trigger, ca.guard || ca.condition, ca.action || ca.effect, ca.description, ca.color);
+          addTransition(ca.from || node.id, ca.to, ca.label, ca.event, ca.guard, ca.action, ca.description, ca.color);
           var xmlEdge = transitions[transitions.length - 1];
-          if (xmlEdge && (ca.hint || ca.tooltip)) xmlEdge.hint = normalizeLineText(ca.hint || ca.tooltip);
-          if (xmlEdge && (ca.tag || ca.note)) xmlEdge.tag = normalizeLineText(ca.tag || ca.note);
+          if (xmlEdge && ca.hint) xmlEdge.hint = normalizeLineText(ca.hint);
+          if (xmlEdge && ca.tag) xmlEdge.tag = normalizeLineText(ca.tag);
         }
         return node;
       };
       for (i = 0; i < xmlNodes.length; i++) {
         var xe = xmlNodes[i], xtag = (xe.localName || xe.nodeName || "").toLowerCase();
-        if (xtag === "state" || xtag === "node") xmlState(xe, i);
-        else if (xtag === "transition" || xtag === "edge") {
+        if (xtag === "state") xmlState(xe, i);
+        else if (xtag === "transition") {
           var xa = {};
           for (var xai = 0; xai < xe.attributes.length; xai++) xa[xe.attributes[xai].name] = xe.attributes[xai].value;
-          addTransition(xa.from || xa.source, xa.to || xa.target, xa.label || xa.event, xa.event || xa.trigger, xa.guard || xa.condition, xa.action || xa.effect, xa.description, xa.color);
+          addTransition(xa.from, xa.to, xa.label, xa.event, xa.guard, xa.action, xa.description, xa.color);
           var xmlTopEdge = transitions[transitions.length - 1];
-          if (xmlTopEdge && (xa.hint || xa.tooltip)) xmlTopEdge.hint = normalizeLineText(xa.hint || xa.tooltip);
-          if (xmlTopEdge && (xa.tag || xa.note)) xmlTopEdge.tag = normalizeLineText(xa.tag || xa.note);
+          if (xmlTopEdge && xa.hint) xmlTopEdge.hint = normalizeLineText(xa.hint);
+          if (xmlTopEdge && xa.tag) xmlTopEdge.tag = normalizeLineText(xa.tag);
         }
       }
       if (root && (root.localName || root.nodeName || "").toLowerCase() === "transition" && !transitions.length) {
         var ra = {};
         for (var rai = 0; rai < root.attributes.length; rai++) ra[root.attributes[rai].name] = root.attributes[rai].value;
-        addTransition(ra.from || ra.source, ra.to || ra.target, ra.label || ra.event, ra.event || ra.trigger, ra.guard || ra.condition, ra.action || ra.effect, ra.description, ra.color);
+        addTransition(ra.from, ra.to, ra.label, ra.event, ra.guard, ra.action, ra.description, ra.color);
         var xmlRootEdge = transitions[transitions.length - 1];
-        if (xmlRootEdge && (ra.hint || ra.tooltip)) xmlRootEdge.hint = normalizeLineText(ra.hint || ra.tooltip);
-        if (xmlRootEdge && (ra.tag || ra.note)) xmlRootEdge.tag = normalizeLineText(ra.tag || ra.note);
+        if (xmlRootEdge && ra.hint) xmlRootEdge.hint = normalizeLineText(ra.hint);
+        if (xmlRootEdge && ra.tag) xmlRootEdge.tag = normalizeLineText(ra.tag);
       }
     } else {
       throw new Error("unknown format: " + fmt);
@@ -1642,28 +1640,28 @@ const suiChartRuntime = `(function(){
           var r = body[i] || [];
           var t = ganttObjTask({
             task: r[ganttHeaderIndex(head, ["task"], 0)],
-            start: r[ganttHeaderIndex(head, ["start", "from"], 1)],
-            end: r[ganttHeaderIndex(head, ["end", "to"], 2)],
-            progress: r[ganttHeaderIndex(head, ["progress", "percent"], 3)],
+            start: r[ganttHeaderIndex(head, ["start"], 1)],
+            end: r[ganttHeaderIndex(head, ["end"], 2)],
+            progress: r[ganttHeaderIndex(head, ["progress"], 3)],
             milestone: r[ganttHeaderIndex(head, ["milestone"], -1)],
-            id: r[ganttHeaderIndex(head, ["id", "key"], -1)],
-            group: r[ganttHeaderIndex(head, ["group", "phase"], -1)],
-            dependsOn: r[ganttHeaderIndex(head, ["dependsOn", "dependencies"], -1)],
-            color: r[ganttHeaderIndex(head, ["color", "colour"], -1)],
+            id: r[ganttHeaderIndex(head, ["id"], -1)],
+            group: r[ganttHeaderIndex(head, ["group"], -1)],
+            dependsOn: r[ganttHeaderIndex(head, ["dependsOn"], -1)],
+            color: r[ganttHeaderIndex(head, ["color"], -1)],
             resource: r[ganttHeaderIndex(head, ["resources"], -1)],
-            status: r[ganttHeaderIndex(head, ["status", "state"], -1)],
-            dependencyType: r[ganttHeaderIndex(head, ["dependencyType", "linkType", "depType"], -1)],
-            lag: r[ganttHeaderIndex(head, ["lag", "lead"], -1)],
+            status: r[ganttHeaderIndex(head, ["status"], -1)],
+            dependencyType: r[ganttHeaderIndex(head, ["dependencyType"], -1)],
+            lag: r[ganttHeaderIndex(head, ["lag"], -1)],
             constraint: r[ganttHeaderIndex(head, ["constraint"], -1)],
-            parent: r[ganttHeaderIndex(head, ["parent", "parentId", "parent_id"], -1)],
-            constraintDate: r[ganttHeaderIndex(head, ["constraintDate", "constraint_date"], -1)],
-            deadline: r[ganttHeaderIndex(head, ["deadline", "dueDate", "due"], -1)],
-            actualStart: r[ganttHeaderIndex(head, ["actualStart", "actual_start"], -1)],
-            actualEnd: r[ganttHeaderIndex(head, ["actualEnd", "actual_end"], -1)],
-            remaining: r[ganttHeaderIndex(head, ["remaining", "remainingDuration"], -1)],
-            work: r[ganttHeaderIndex(head, ["work", "effort"], -1)],
-            workDone: r[ganttHeaderIndex(head, ["workDone", "work_done", "completedWork"], -1)],
-            cost: r[ganttHeaderIndex(head, ["cost", "budget"], -1)]
+            parent: r[ganttHeaderIndex(head, ["parent"], -1)],
+            constraintDate: r[ganttHeaderIndex(head, ["constraintDate"], -1)],
+            deadline: r[ganttHeaderIndex(head, ["deadline"], -1)],
+            actualStart: r[ganttHeaderIndex(head, ["actualStart"], -1)],
+            actualEnd: r[ganttHeaderIndex(head, ["actualEnd"], -1)],
+            remaining: r[ganttHeaderIndex(head, ["remaining"], -1)],
+            work: r[ganttHeaderIndex(head, ["work"], -1)],
+            workDone: r[ganttHeaderIndex(head, ["workDone"], -1)],
+            cost: r[ganttHeaderIndex(head, ["cost"], -1)]
           }, i);
           if (t) tasks.push(t);
         }
@@ -1680,33 +1678,33 @@ const suiChartRuntime = `(function(){
       var header = cr[0], bodyRows = cr.slice(1);
       var hasHeader = header.some(function(c) {
         var s = text(c).trim().toLowerCase();
-        return s === "task" || s === "label" || s === "name" || s === "start" || s === "end";
+        return s === "task" || s === "start" || s === "end";
       });
       if (!hasHeader) { header = ["Task", "Start", "End", "Progress", "Milestone", "Group", "DependsOn"]; bodyRows = cr; }
       var ix = {
         task: ganttHeaderIndex(header, ["task"], 0),
-        start: ganttHeaderIndex(header, ["start", "from"], 1),
-        end: ganttHeaderIndex(header, ["end", "to"], 2),
-        progress: ganttHeaderIndex(header, ["progress", "percent"], 3),
+        start: ganttHeaderIndex(header, ["start"], 1),
+        end: ganttHeaderIndex(header, ["end"], 2),
+        progress: ganttHeaderIndex(header, ["progress"], 3),
         milestone: ganttHeaderIndex(header, ["milestone"], -1),
-        id: ganttHeaderIndex(header, ["id", "key"], -1),
-        group: ganttHeaderIndex(header, ["group", "phase"], -1),
-        dependsOn: ganttHeaderIndex(header, ["dependsOn", "dependencies"], -1),
-        color: ganttHeaderIndex(header, ["color", "colour"], -1),
+        id: ganttHeaderIndex(header, ["id"], -1),
+        group: ganttHeaderIndex(header, ["group"], -1),
+        dependsOn: ganttHeaderIndex(header, ["dependsOn"], -1),
+        color: ganttHeaderIndex(header, ["color"], -1),
         resource: ganttHeaderIndex(header, ["resources"], -1),
-        status: ganttHeaderIndex(header, ["status", "state"], -1),
-        dependencyType: ganttHeaderIndex(header, ["dependencyType", "linkType", "depType"], -1),
-        lag: ganttHeaderIndex(header, ["lag", "lead"], -1),
+        status: ganttHeaderIndex(header, ["status"], -1),
+        dependencyType: ganttHeaderIndex(header, ["dependencyType"], -1),
+        lag: ganttHeaderIndex(header, ["lag"], -1),
         constraint: ganttHeaderIndex(header, ["constraint"], -1),
-        parent: ganttHeaderIndex(header, ["parent", "parentId", "parent_id"], -1),
-        constraintDate: ganttHeaderIndex(header, ["constraintDate", "constraint_date"], -1),
-        deadline: ganttHeaderIndex(header, ["deadline", "dueDate", "due"], -1),
-        actualStart: ganttHeaderIndex(header, ["actualStart", "actual_start"], -1),
-        actualEnd: ganttHeaderIndex(header, ["actualEnd", "actual_end"], -1),
-        remaining: ganttHeaderIndex(header, ["remaining", "remainingDuration"], -1),
-        work: ganttHeaderIndex(header, ["work", "effort"], -1),
-        workDone: ganttHeaderIndex(header, ["workDone", "work_done", "completedWork"], -1),
-        cost: ganttHeaderIndex(header, ["cost", "budget"], -1)
+        parent: ganttHeaderIndex(header, ["parent"], -1),
+        constraintDate: ganttHeaderIndex(header, ["constraintDate"], -1),
+        deadline: ganttHeaderIndex(header, ["deadline"], -1),
+        actualStart: ganttHeaderIndex(header, ["actualStart"], -1),
+        actualEnd: ganttHeaderIndex(header, ["actualEnd"], -1),
+        remaining: ganttHeaderIndex(header, ["remaining"], -1),
+        work: ganttHeaderIndex(header, ["work"], -1),
+        workDone: ganttHeaderIndex(header, ["workDone"], -1),
+        cost: ganttHeaderIndex(header, ["cost"], -1)
       };
       for (i = 0; i < bodyRows.length; i++) {
         var row = bodyRows[i] || [];
@@ -1736,28 +1734,28 @@ const suiChartRuntime = `(function(){
         var el = nodes[i];
         var xt = ganttObjTask({
           task: ganttXmlField(el, ["task"]),
-          start: ganttXmlField(el, ["start", "from"]),
-          end: ganttXmlField(el, ["end", "to"]),
-          progress: ganttXmlField(el, ["progress", "percent"]),
+          start: ganttXmlField(el, ["start"]),
+          end: ganttXmlField(el, ["end"]),
+          progress: ganttXmlField(el, ["progress"]),
           milestone: ganttXmlField(el, ["milestone"]),
-          id: ganttXmlField(el, ["id", "key"]),
-          group: ganttXmlField(el, ["group", "phase"]),
-          dependsOn: ganttXmlField(el, ["dependsOn", "dependencies"]),
-          color: ganttXmlField(el, ["color", "colour"]),
+          id: ganttXmlField(el, ["id"]),
+          group: ganttXmlField(el, ["group"]),
+          dependsOn: ganttXmlField(el, ["dependsOn"]),
+          color: ganttXmlField(el, ["color"]),
           resource: ganttXmlField(el, ["resources"]),
-          status: ganttXmlField(el, ["status", "state"]),
-          dependencyType: ganttXmlField(el, ["dependencyType", "linkType", "depType"]),
-          lag: ganttXmlField(el, ["lag", "lead"]),
+          status: ganttXmlField(el, ["status"]),
+          dependencyType: ganttXmlField(el, ["dependencyType"]),
+          lag: ganttXmlField(el, ["lag"]),
           constraint: ganttXmlField(el, ["constraint"]),
-          parent: ganttXmlField(el, ["parent", "parentId", "parent_id"]),
-          constraintDate: ganttXmlField(el, ["constraintDate", "constraint_date"]),
-          deadline: ganttXmlField(el, ["deadline", "dueDate", "due"]),
-          actualStart: ganttXmlField(el, ["actualStart", "actual_start"]),
-          actualEnd: ganttXmlField(el, ["actualEnd", "actual_end"]),
-          remaining: ganttXmlField(el, ["remaining", "remainingDuration"]),
-          work: ganttXmlField(el, ["work", "effort"]),
-          workDone: ganttXmlField(el, ["workDone", "work_done", "completedWork"]),
-          cost: ganttXmlField(el, ["cost", "budget"])
+          parent: ganttXmlField(el, ["parent"]),
+          constraintDate: ganttXmlField(el, ["constraintDate"]),
+          deadline: ganttXmlField(el, ["deadline"]),
+          actualStart: ganttXmlField(el, ["actualStart"]),
+          actualEnd: ganttXmlField(el, ["actualEnd"]),
+          remaining: ganttXmlField(el, ["remaining"]),
+          work: ganttXmlField(el, ["work"]),
+          workDone: ganttXmlField(el, ["workDone"]),
+          cost: ganttXmlField(el, ["cost"])
         }, i);
         if (xt) tasks.push(xt);
       }

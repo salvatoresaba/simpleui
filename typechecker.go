@@ -3788,7 +3788,7 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 				return
 			}
 			v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
-			if v != "chart" && v != "gantt" && v != "table" && v != "both" {
+			if v != "chart" && v != "table" && v != "both" {
 				c.diagAt(a.span, a.key+" must be one of: chart, table, both")
 			}
 			return

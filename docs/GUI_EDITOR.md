@@ -1376,7 +1376,7 @@ Gantt uses the same data overlay but reads richer rows: `task`, `start`, `end`
 (or `duration`), `progress`, `milestone`, `group`, `parent`, `dependsOn`,
 `dependencyType`, `lag`, `constraint`, `constraintDate`, `resource`, `status`,
 `color`, `cost`, `actualStart`, `actualEnd`, `remaining`, `work`, `workDone` and
-`resources` (an array or a comma/semicolon list; legacy `resource` is accepted).
+`resources` (an array or a comma/semicolon list).
 Dates, progress bars, dependency arrows, weekends and the today marker need no
 extra inspector fields.
 `parent` builds a WBS outline: an expanded summary is a header row, and only a
@@ -1478,10 +1478,10 @@ Only explicit tags are rendered on the diagram; shape names, labels and
 descriptions stay in the table and inspector. Links have a line subtype
 (straight, arc, bezier, orthogonal, circular), width, dash, color, start/end
 markers and an optional visible tag/note. The diagram is laid out automatically by level,
-with explicit `x`/`y` coordinates available for manual placement. Documents
-using `chartType: "state"` (`statemachine` alias) are migrated to the dedicated
-**Graph** control when parsed; the chart type menu no longer offers the block
-diagram.
+with explicit `x`/`y` coordinates available for manual placement. Use the
+dedicated **Graph** control: `chartType: "state"` (and the `statemachine`
+alias) is rejected with a diagnostic; the chart type menu does not offer the
+block diagram.
 
 The gear button in the chart header opens a tabbed **Settings** panel: **General**
 (chart title, shape border/highlight colors, theme, show-anchors switch plus one
@@ -1696,7 +1696,7 @@ a chart mark selects its row, and a row highlights all marks for that label
 **Chart settings.** The **Chart settings** button opens the unified panel with
 tabs: Appearance, Points, Tooltip, Table, Interactions, Events and Data. It controls the
 dark/light theme, **Editable colors** (color picker on/off), style preset, point size and point width, tooltip colors/width/font/delay, **Mode**, **Column
-filters** on/off and table typography, interactive mode, **Edit mode**
+filters** on/off and table typography, **Edit mode**
 (**non-editable**, **editable** or **editable persistent**), **Critical path**, **Auto schedule**,
 **Holidays**, **Weekend**, **Timezone**, **Link color**, **Link width** (default
 `1px`), **Min link gap** (default `4px`), **Line style**, **Arrow**, **Arrow

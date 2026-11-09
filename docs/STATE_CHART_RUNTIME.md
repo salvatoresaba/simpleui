@@ -15,7 +15,7 @@ The chart module is synchronous and returns `(value, error)` like the rest of
 the standard library.
 
 ```sui
-chart "Process monitor" name: "monitor" data: data chartType: "state"
+graph "Process monitor" name: "monitor" data: data
 ```
 
 ## Chart identity
@@ -71,8 +71,8 @@ Every shape and link accepts a `hint` field:
 The `hint` field is imported from every supported format:
 
 - JSON: `hint` property;
-- CSV: `hint` (or `tooltip`/`tip`) column;
-- XML: `hint`/`tooltip` attribute or `<hint>` child on a state, and `hint`/`tooltip`
+- CSV: `hint` column;
+- XML: `hint` attribute or `<hint>` child on a state, and `hint`
   attribute on a transition.
 
 The hint can be edited:
@@ -189,7 +189,7 @@ Set the mode from source or from reactive state:
 ```sui
 state chartMode = "editable"
 
-chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
+graph "Monitor" name: "monitor" data: data editMode: chartMode
 ```
 
 Non-editable mode keeps pan and zoom, disables editing tools, handles, selection,
@@ -235,7 +235,7 @@ fn processClicked(ev: any) -> null {
 
 view main {
 	onLoad: startEvents
-	chart "Monitor" name: "monitor" data: data chartType: "state"
+	graph "Monitor" name: "monitor" data: data
 		editMode: "none"
 }
 ```
@@ -250,7 +250,7 @@ view main {
 | `chart.clearEvents(name)` | empties the queue |
 | `chart.eventCount(name)` | number of pending events |
 
-Every event has the same payload used by the legacy callbacks:
+Every event uses this payload:
 
 ```json
 {
@@ -589,7 +589,7 @@ Element fields:
 Shape geometry:
 
 - `x`, `y` (center coordinates), `w`, `h`, `rotation`
-- `width` / `height` are accepted as aliases for `w` / `h`
+- `width` / `height` are link aliases; shape geometry uses `w` / `h`
 
 Link fields:
 
@@ -620,7 +620,7 @@ fn setRunning() -> null {
 view main {
 	col {
 		button "Running" onClick: setRunning
-		chart "Process monitor" name: "monitor" data: data chartType: "state"
+		graph "Process monitor" name: "monitor" data: data
 	}
 }
 ```
@@ -670,7 +670,7 @@ fn processClicked(ev: any) -> null {
 
 view main {
 	onLoad: startEvents
-	chart "Monitor" name: "monitor" data: data chartType: "state"
+	graph "Monitor" name: "monitor" data: data
 		editMode: "none"
 }
 ```
@@ -754,7 +754,7 @@ view main {
 		switch checked: staticMode onChange: toggleMode
 		text "Non-editable mode"
 	}
-	chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
+	graph "Monitor" name: "monitor" data: data editMode: chartMode
 }
 ```
 
@@ -794,7 +794,7 @@ async fn pumpChartEvents() -> null {
 
 view main {
 	onLoad: startEvents
-	chart "Monitor" name: "monitor" data: data chartType: "state"
+	graph "Monitor" name: "monitor" data: data
 		editMode: "none"
 
 	modal "Process details" name: "process-details" {

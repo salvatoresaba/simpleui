@@ -21,8 +21,8 @@ view App {
   title "Reactive demo"
   col {
     h1 "Reactive binding (no element id)"
-    card "Click me to change colour and size" class: active ? "on" : "" style: "background:" + bg onClick: toggle
-    p "Size: {size}px" style: "font-size:" + str(size) + "px"
+    card "Click me to change colour and size" class: active ? "on" : "" style: cssSafe("background:" + bg) onClick: toggle
+    p "Size: {size}px" style: cssSafe("font-size:" + str(size) + "px")
     badge "{label}" class: active ? "sui-badge on" : "sui-badge off"
     button "Toggle" onClick: toggle
   }

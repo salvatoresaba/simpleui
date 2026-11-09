@@ -71,7 +71,7 @@ view main {
 		data: plan
 		chartType: "gantt"
 		tableView: "both"
-		interactive: true
+		editMode: "persistent"
 		tableAddRow: true
 		tableDeleteRow: true
 		tableSelection: "row"
@@ -132,16 +132,16 @@ or an object with tasks, resources and calendar:
 
 ### CSV
 
-The CSV/TSV reader accepts a header row. Common headers and aliases are
-recognized, including `task`/`label`/`name`, `start`, `end`, `duration`,
+The CSV/TSV reader accepts a header row with these canonical headers:
+`task`, `start`, `end`, `duration`,
 `progress`, `milestone`, `group`, `parent`, `dependsOn`, `dependencyType`,
 `lag`, `constraint`, `constraintDate`, `deadline`, `actualStart`, `actualEnd`,
-`remaining`, `work`, `workDone`, `resource`, `resources`, `resourceUnits`,
+`remaining`, `work`, `workDone`, `resources`, `resourceUnits`,
 `cost`, `color`, `status` and `id`.
 
 ### XML
 
-XML rows are read by element/field name with the same aliases. Keep values as
+XML rows are read by element/field name with the same canonical names. Keep values as
 text content; the runtime escapes and validates them before rendering.
 
 ### Task fields
@@ -149,8 +149,8 @@ text content; the runtime escapes and validates them before rendering.
 | Field | Meaning |
 |---|---|
 | `id` | Stable task identity. Dependencies, parents, summaries and audit entries use it. |
-| `task`, `label`, `name` | Visible task label. |
-| `start`, `end` | Time value. ISO date, ISO date-time or a numeric position in legacy mode. |
+| `task` | Visible task label. |
+| `start`, `end` | ISO date or ISO date-time value. Numeric positions are rejected. |
 | `duration` | Length used when an end value is not supplied. |
 | `progress` | Completion percentage, clamped to 0–100. |
 | `milestone` | Renders a diamond; a milestone has no usable bar duration. |
@@ -158,7 +158,7 @@ text content; the runtime escapes and validates them before rendering.
 | `parent` | Parent task id. A parent with children becomes a WBS summary. |
 | `dependsOn`, `dependencies` | Predecessor ids or names, comma/semicolon lists, or arrays. |
 | `dependencyType` | Task-level fallback link type: `FS`, `SS`, `FF`, `SF`. |
-| `lag` | Task-level fallback lag in working days when date mode is active. |
+| `lag` | Task-level fallback lag in working days. |
 | `links` | Per-predecessor objects with `id`, `type`, `lag`. |
 | `constraint` | `ASAP`, `SNET`, `SNLT`, `FNET`, `FNLT`, `MSO`, `MFO`. |
 | `constraintDate` | Date used by the selected constraint. |
@@ -176,14 +176,6 @@ Dependency entries may be strings (`"A"`, `"A[SS+2]"`) or objects
 (`{"id":"A","type":"SS","lag":2}`). A missing per-link type falls back to the
 task `dependencyType`; a missing per-link lag falls back to task `lag`.
 
-### Numeric legacy mode
-
-Older Gantt data may use numeric `start` and `end` positions, effectively the
-two numeric series required by the legacy Gantt compatibility check. In numeric
-mode, the runtime does not perform working-day calendar calculations,
-effective-duration dates or milestone date snapping. Date mode is the normal
-mode for project planning.
-
 ### Date and time values
 
 Date-only values are calendar dates. Date-time values retain time of day and
@@ -199,7 +191,7 @@ Date-only values remain stable calendar dates regardless of the host time zone.
 - `duration` is the planned length when an end is absent.
 - Effective duration counts working days between start and finish using the
   active calendar.
-- Dependency lags and auto-scheduling use working days in date mode.
+- Dependency lags and auto-scheduling use working days.
 - Moves, resizes and milestone edits snap to working dates.
 - A non-working date typed into a table cell is rejected with an inline error
   and status line.
@@ -343,7 +335,7 @@ A task can have multiple resources. Each assignment has a people quantity:
 
 - `{ "name": "Marta", "units": 2 }` inside `resources`;
 - `"resourceUnits": { "Marta": 2 }`;
-- legacy `resource: "Marta, Luca"` defaults every quantity to `1`.
+- `resource: "Marta, Luca"` is not accepted; use `resources`.
 
 The Resources table cell shows removable chips with `×N` quantities. A small
 plus button opens a resource-type combo and a quantity field. Confirming adds
@@ -438,7 +430,7 @@ The table below lists the main Gantt-facing attributes. Component-level `class`,
 | `format` | Optional data format hint. |
 | `name` | Stable chart key for local persistence. Falls back to the title. |
 | `theme` | `dark` or `light`; drives structural chart/table tokens. |
-| `interactive` | Enables task editing, drag/resize, link handles, group actions and table editing. |
+| `editMode` | `none` is view-only, `editable` allows edits for the page session and `persistent` keeps task/resource/calendar edits across reloads. |
 | `overflow` | `scroll` keeps the frame fixed and scrolls content; `fit` squeezes; normal chart zoom controls apply to non-Gantt charts. |
 | `zoom` | Initial Gantt timeline zoom, `0.5`–`24`, default `1`. |
 | `ganttScale` | `auto`, `day`, `week`, `month`, `year`. |
@@ -470,7 +462,7 @@ The table below lists the main Gantt-facing attributes. Component-level `class`,
 | `tableSteppers` | Show visible numeric steppers in focused numeric cells. |
 | `tableContextMenu` | Enable table context menu copy/paste/delete/export. |
 | `tableSelection` | `row`, `column`, `cell` or `none`; default `row`. |
-| `tableView` | `chart`, `table` or `both`; Gantt `"gantt"` is an alias for chart. |
+| `tableView` | `chart`, `table` or `both`. |
 | `onTaskChange` | Optional callback receiving the current task payload after an edit. |
 | `onCalendarChange` | Optional callback receiving the saved calendar JSON. |
 | `onResourceChange` | Optional callback receiving the resource registry JSON. |
@@ -916,7 +908,7 @@ The Chart inspector is type-aware and hides irrelevant fields. Gantt settings
 cover:
 
 - data overlay;
-- interactive mode;
+- edit mode (none, editable or persistent);
 - table view and table actions;
 - critical path;
 - auto schedule;

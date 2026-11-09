@@ -55,7 +55,7 @@ func TestChartApiTypechecksAndGenerates(t *testing.T) {
 }
 
 view main {
-	chart "Monitor" name: "monitor" data: "" chartType: "state"
+	graph "Monitor" name: "monitor" data: ""
 }
 `
 	prog, pdl := ParseSource(src, "chart_api.sui")
@@ -139,7 +139,7 @@ func TestStateModeAndEventAttributes(t *testing.T) {
 }
 
 view main {
-	chart "Monitor" name: "monitor" data: "" chartType: "state" stateMode: "static"
+	graph "Monitor" name: "monitor" data: "" editMode: "none"
 }
 `
 	prog, pdl := ParseSource(src, "state_mode.sui")
@@ -166,7 +166,7 @@ func TestStateModeDesignerRoundTrip(t *testing.T) {
 }
 
 view main {
-	chart "Monitor" name: "monitor" data: "" chartType: "state" stateMode: "static"
+	graph "Monitor" name: "monitor" data: "" editMode: "none"
 }
 `
 	prog, pdl := ParseSource(src, "state_mode_designer.sui")
@@ -192,7 +192,7 @@ func TestStateElementHandlersAndUniqueIds(t *testing.T) {
 }
 
 view main {
-	chart "Monitor" name: "monitor" data: "" chartType: "state"
+	graph "Monitor" name: "monitor" data: ""
 }
 `
 	prog, pdl := ParseSource(src, "state_element_handlers.sui")
@@ -223,7 +223,7 @@ view main {
 
 func TestStateHintsDesignerAndHtml(t *testing.T) {
 	src := `view main {
-	chart "C" name: "c" data: "" chartType: "state" stateHints: false stateHintBg: "#112233" stateHintOpacity: 0.4 stateHintTextColor: "#aabbcc" stateHintBorderColor: "#00ff99" stateHintFont: "Georgia, serif" stateHintFontSize: 15 stateHintBorderWidth: 2 stateHintPadding: 9 stateHintRadius: 12 stateGridGap: 40 stateRouting: "orthogonal" stateTagFont: "Georgia, serif" stateGridColor: "#cbd5e1"
+	graph "C" name: "c" data: "" stateHints: false stateHintBg: "#112233" stateHintOpacity: 0.4 stateHintTextColor: "#aabbcc" stateHintBorderColor: "#00ff99" stateHintFont: "Georgia, serif" stateHintFontSize: 15 stateHintBorderWidth: 2 stateHintPadding: 9 stateHintRadius: 12 stateGridGap: 40 stateRouting: "orthogonal" stateTagFont: "Georgia, serif" stateGridColor: "#cbd5e1"
 }
 `
 	prog, pdl := ParseSource(src, "state_hints.sui")

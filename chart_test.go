@@ -290,7 +290,7 @@ func TestChartRuntimeDataParsers(t *testing.T) {
 		"sui-chart-state-cell-input", "sui-chart-tag-field-wide", "Description: ",
 		"[\"Element\", \"Tag\", \"Hint\", \"Type\", \"\"]",
 		"[\"Element\", \"Tag\", \"Hint\", \"Type\", \"From\", \"To\", \"\"]",
-		"hint: normalizeLineText(stateFieldText(obj, [\"hint\", \"tooltip\", \"tip\"]))",
+		"hint: normalizeLineText(stateFieldText(obj, [\"hint\"]))",
 		"if (n.hint) out.hint = n.hint;",
 		"stateHintsEnabled",
 		"data-sui-chart-state-hints",
@@ -581,7 +581,7 @@ state ohlc = "[\{\"date\":\"D1\",\"open\":10,\"high\":15,\"low\":8,\"close\":13\
 state box = "Name,Min,Q1,Median,Q3,Max\nA,2,4,6,8,12"
 state bullet = "Team,Value,Target,Max\nA,72,80,100"
 state dumbbell = "Team,Before,After\nA,40,72"
-state gantt = "Task,Start,End\nDesign,0,5\nBuild,5,14"
+state gantt = "Task,Start,End\nDesign,2026-01-05,2026-01-10\nBuild,2026-01-10,2026-01-19"
 view main {
 	chart "H" data: single format: "csv" chartType: "barhorizontal" x: "Month" y: "Value"
 	chart "S" data: multi chartType: "barstacked" x: "month"
@@ -708,7 +708,7 @@ func TestGanttWbsExample(t *testing.T) {
 
 func TestStateMachineChartType(t *testing.T) {
 	src := `view main {
-	chart "State" data: "From,To,Label\nIdle,Running,start" chartType: "state" stateTagsMovable: true stateRoutesEditable: true tableView: "both"
+	graph "State" data: "From,To,Label\nIdle,Running,start" stateTagsMovable: true stateRoutesEditable: true tableView: "both"
 }`
 	prog, dl := ParseSource(src, "state.sui")
 	if dl.HasErrors() {
@@ -730,7 +730,7 @@ func TestStateMachineChartType(t *testing.T) {
 
 func TestStateDiagramViewOnlyHandles(t *testing.T) {
 	src := `view main {
-	chart "State" data: "From,To,Label\nIdle,Running,start" chartType: "state" stateGrid: false stateHandles: false tableView: "both"
+	graph "State" data: "From,To,Label\nIdle,Running,start" stateGrid: false stateHandles: false tableView: "both"
 }`
 	prog, dl := ParseSource(src, "state.sui")
 	if dl.HasErrors() {

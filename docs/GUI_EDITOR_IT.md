@@ -1426,10 +1426,9 @@ implicitamente. I dati compatibili vengono mantenuti.
 
 Il Gantt usa lo stesso overlay ma legge righe pi� ricche: `task`, `start`, `end`
 (o `duration`), `progress`, `milestone`, `group`, `parent`, `dependsOn`,
-`dependencyType`, `lag`, `constraint`, `constraintDate`, `resource`, `status`,
+`dependencyType`, `lag`, `constraint`, `constraintDate`, `status`,
 `color`, `cost`, `actualStart`, `actualEnd`, `remaining`, `work`, `workDone` e
-`resources` (array o lista separata da virgole/punto e virgola; il vecchio
-`resource` è accettato). Date, barre di avanzamento, frecce di dipendenza,
+`resources` (array o lista separata da virgole/punto e virgola). Date, barre di avanzamento, frecce di dipendenza,
 weekend e marcatore oggi non richiedono campi inspector aggiuntivi. `group` è diverso: è una fase visiva che lascia il task come task reale, con la
 sua barra e i suoi link. Usa la cella **Group** della tabella per un singolo task,
 oppure il menu contestuale **Assign to group...** per assegnare una o più righe
@@ -1536,8 +1535,8 @@ espliciti: nomi, etichette e descrizioni restano nella tabella e nell'inspector.
 I link hanno tipo linea (straight, arc, bezier, orthogonal,
 circular), spessore, tratteggio, colore, marker iniziale/finale e tag/nota. Il
 layout è automatico per livelli, con `x`/`y` espliciti per posizioni manuali.
-I documenti con `chartType: "state"` (o `statemachine`) vengono migrati al
-controllo **Graph** durante il parsing; il menu dei tipi non offre più il
+Usa il controllo dedicato **Graph**: `chartType: "state"` (o `statemachine`)
+viene rifiutato con una diagnostica; il menu dei tipi non offre più il
 diagramma a blocchi.
 
 Il pulsante a ingranaggio nell'intestazione apre un pannello **Settings** a tab:

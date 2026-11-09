@@ -15,7 +15,7 @@ forme e tag.
 Il modulo è sincrono e restituisce `(valore, errore)`.
 
 ```sui
-chart "Process monitor" name: "monitor" data: data chartType: "state"
+graph "Process monitor" name: "monitor" data: data
 ```
 
 ## Identità del chart
@@ -72,9 +72,9 @@ Ogni forma e link accetta un campo `hint`:
 Il campo `hint` viene importato da tutti i formati:
 
 - JSON: proprietà `hint`;
-- CSV: colonna `hint` (o `tooltip`/`tip`);
-- XML: attributo `hint`/`tooltip` o figlio `<hint>` su uno stato, e attributo
-  `hint`/`tooltip` su una transizione.
+- CSV: colonna `hint`;
+- XML: attributo `hint` o figlio `<hint>` su uno stato, e attributo
+  `hint` su una transizione.
 
 L’hint si può modificare:
 
@@ -191,7 +191,7 @@ Imposta la modalità dal sorgente o da uno stato reattivo:
 ```sui
 state chartMode = "editable"
 
-chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
+graph "Monitor" name: "monitor" data: data editMode: chartMode
 ```
 
 La modalità non-editable mantiene pan e zoom, disabilita strumenti, maniglie,
@@ -237,7 +237,7 @@ fn processClicked(ev: any) -> null {
 
 view main {
 	onLoad: startEvents
-	chart "Monitor" name: "monitor" data: data chartType: "state"
+	graph "Monitor" name: "monitor" data: data
 		editMode: "none"
 }
 ```
@@ -591,7 +591,7 @@ Elemento:
 Geometria forme:
 
 - `x`, `y` (coordinate del centro), `w`, `h`, `rotation`
-- `width` / `height` sono alias di `w` / `h`
+- `width` / `height` sono alias dei link; la geometria delle forme usa `w` / `h`
 
 Campi link:
 
@@ -622,7 +622,7 @@ fn setRunning() -> null {
 view main {
 	col {
 		button "Running" onClick: setRunning
-		chart "Process monitor" name: "monitor" data: data chartType: "state"
+		graph "Process monitor" name: "monitor" data: data
 	}
 }
 ```
@@ -672,7 +672,7 @@ fn processClicked(ev: any) -> null {
 
 view main {
 	onLoad: startEvents
-	chart "Monitor" name: "monitor" data: data chartType: "state"
+	graph "Monitor" name: "monitor" data: data
 		editMode: "none"
 }
 ```
@@ -753,7 +753,7 @@ view main {
 		switch checked: staticMode onChange: toggleMode
 		text "Non-editable mode"
 	}
-	chart "Monitor" name: "monitor" data: data chartType: "state" editMode: chartMode
+	graph "Monitor" name: "monitor" data: data editMode: chartMode
 }
 ```
 
@@ -793,7 +793,7 @@ async fn pumpChartEvents() -> null {
 
 view main {
 	onLoad: startEvents
-	chart "Monitor" name: "monitor" data: data chartType: "state"
+	graph "Monitor" name: "monitor" data: data
 		editMode: "none"
 
 	modal "Process details" name: "process-details" {

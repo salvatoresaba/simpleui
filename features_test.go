@@ -19,7 +19,7 @@ func TestBuiltinsTypecheckAndJs(t *testing.T) {
 		"\tlet joined = join(parts, \"|\")\n" +
 		"\tlet n = len(s) + len(parts)\n" +
 		"\tlet ok = contains(s, \"HI\")\n" +
-		"\tlet sub = substr(s, 0, 1)\n" +
+		"\tlet sub = substring(s, 0, 1)\n" +
 		"\tlet c = str(3.5)\n" +
 		"\tlet i = int(3.9)\n" +
 		"\tlet f = float(3)\n" +
@@ -64,7 +64,7 @@ func TestBuiltinsTypeErrors(t *testing.T) {
 		{"fn f() -> string { return upper(3) }", "upper expects a string"},
 		{"fn f() -> bool { return contains(1, \"a\") }", "contains expects strings"},
 		{"fn f() -> string { return join([1], \",\") }", "join expects an array of strings"},
-		{"fn f() -> int { return substr(\"abc\", 0, 0.5) }", "offsets must be ints"},
+		{"fn f() -> int { return substring(\"abc\", 0, 0.5) }", "offsets must be ints"},
 		{"fn f() -> int { return int(\"abc\") }", "int expects a number"},
 	}
 	for _, tc := range cases {

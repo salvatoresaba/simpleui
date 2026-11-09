@@ -3,7 +3,7 @@ import { json } from "std"
 state data = "\{\"states\":[\{\"id\":\"intake\",\"label\":\"Intake\",\"shape\":\"stadium\",\"w\":150,\"h\":64,\"tag\":\"WAITING\",\"tagBox\":\"rounded\",\"tagBoxColor\":\"#e2e8f0\",\"tagTextColor\":\"#0f172a\",\"hint\":\"Waiting for a new item\"\},\{\"id\":\"process\",\"label\":\"Process\",\"shape\":\"rectangle\",\"w\":160,\"h\":76,\"tag\":\"IDLE\",\"tagBox\":\"rounded\",\"tagBoxColor\":\"#fef3c7\",\"tagTextColor\":\"#78350f\",\"hint\":\"Processing the order; click|to mark the output.\"\},\{\"id\":\"output\",\"label\":\"Output\",\"shape\":\"circle\",\"w\":96,\"h\":96,\"tag\":\"OUTPUT\",\"tagBox\":\"rounded\",\"tagBoxColor\":\"#dcfce7\",\"tagTextColor\":\"#14532d\",\"hint\":\"Completed item\"\}],\"transitions\":[\{\"id\":\"edge_1\",\"from\":\"intake\",\"to\":\"process\",\"tag\":\"start\",\"hint\":\"Start processing\"\},\{\"id\":\"edge_2\",\"from\":\"process\",\"to\":\"output\",\"tag\":\"done\",\"hint\":\"Processing finished\"\}]\}"
 
 state staticMode = true
-state chartMode = "static"
+state chartMode = "none"
 state status = "Static mode: click a shape or tag. Events are read from the chart event list."
 state selectedShape = ""
 state selectedTag = ""
@@ -65,7 +65,7 @@ fn setDone() -> null {
 
 fn toggleMode() -> null {
 	staticMode = staticMode == true ? false : true
-	chartMode = staticMode ? "static" : "editing"
+	chartMode = staticMode ? "none" : "editable"
 	status = staticMode ? "Static mode: click shapes or tags." : "Editing mode."
 }
 
@@ -123,7 +123,7 @@ view main {
 			text "Static mode"
 		}
 		p "Status: {status}"
-		chart "Process monitor" name: "monitor" data: data chartType: "state" width: "100%" height: "620px" stateMode: chartMode stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateShapeTagStyle: "rounded" stateShapeTagKind: "external" stateShapeTagLink: "line" stateLinkTagStyle: "rounded" stateLinkTagKind: "external" stateLinkTagLink: "line" tableView: "both" interactive: true theme: "dark" style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #22c55e; --sui-chart-series-3: #f59e0b; --sui-chart-bg: #0f172a;")
+		graph "Process monitor" name: "monitor" data: data width: "100%" height: "620px" editMode: chartMode stateGrid: true stateGridGap: 24 stateGridColor: "#cbd5e1" stateShapeTagStyle: "rounded" stateShapeTagKind: "external" stateShapeTagLink: "line" stateLinkTagStyle: "rounded" stateLinkTagKind: "external" stateLinkTagLink: "line" tableView: "both" theme: "dark" style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #22c55e; --sui-chart-series-3: #f59e0b; --sui-chart-bg: #0f172a;")
 	}
 
 	modal "Process details" name: "process-details" {

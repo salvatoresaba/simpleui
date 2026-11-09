@@ -12,7 +12,7 @@ import (
 const graphTestSource = `state flow = "\{\"states\":[\{\"id\":\"a\",\"label\":\"Alpha\"\},\{\"id\":\"b\",\"label\":\"Beta\"\}],\"transitions\":[\{\"from\":\"a\",\"to\":\"b\",\"label\":\"go\"\}]\}"
 
 view main {
-	graph "Flow" name: "flow" data: flow stateGrid: true stateGridGap: 24 tableView: "both"
+	graph "Flow" name: "flow" data: flow editMode: "persistent" stateGrid: true stateGridGap: 24 tableView: "both"
 }
 `
 
@@ -284,7 +284,7 @@ func TestGraphTableCellTooltip(t *testing.T) {
 
 func TestGraphTableEditSwitch(t *testing.T) {
 	src := `view main {
-	graph "G" tableView: "both" tableEdit: true
+	graph "G" tableView: "both" editMode: "persistent"
 }`
 	prog, dl := ParseSource(src, "graph_table_edit.sui")
 	if dl.HasErrors() {

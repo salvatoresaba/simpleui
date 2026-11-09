@@ -68,7 +68,7 @@ view main {
 			p "{lastChange}" class: "selection-status"
 		}
 
-		chart "10x10 selection matrix" name: "selection_table" class: "selection-table" data: data chartType: "barstacked" theme: themeMode tableView: "both" showGrid: true showLegend: false tableFilters: true tableSelection: selectionMode tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true interactive: true onDataChange: dataChanged style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #a855f7;")
+		chart "10x10 selection matrix" name: "selection_table" class: "selection-table" data: data chartType: "barstacked" theme: themeMode tableView: "both" showGrid: true showLegend: false tableFilters: true tableSelection: selectionMode tableAddRow: true tableDeleteRow: true tableSteppers: true tableContextMenu: true editMode: "editable" onDataChange: dataChanged style: cssSafe("--sui-chart-series-1: #38bdf8; --sui-chart-series-2: #a855f7;")
 
 		card {
 			p "How to try it:" style: "margin:0 0 6px;font-weight:600;color:#e2e8f0"
