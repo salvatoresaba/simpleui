@@ -2972,7 +2972,7 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tree" && (key == "name" || key == "value" || key == "editable" || key == "editableDepth" ||
 		key == "renameKey" || key == "renameValue" || key == "renameIcon" || key == "showRenameIcon" ||
 		key == "guides" || key == "truncate" || key == "checkbox" || key == "counts" || key == "rowHeight" ||
-		key == "icon" || key == "iconOpen" || key == "iconLeaf" || key == "iconParent" ||
+		key == "iconLeaf" || key == "iconParent" ||
 		key == "iconParentOpen" || key == "toggleClosed" || key == "toggleOpen" ||
 		key == "multiSelect" || key == "selection" ||
 		key == "search" || key == "drag" || key == "contextMenu" || key == "columns" || key == "loadKey" ||

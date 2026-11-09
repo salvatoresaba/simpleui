@@ -143,8 +143,6 @@ const suiTreeRuntime = `(function(){
     var fontStep = parseFloat(root.getAttribute('data-sui-tree-font-step') || '0');
     if (!isFinite(fontStep) || fontStep < 0) fontStep = 0;
     var persistSelection = root.getAttribute('data-sui-tree-persist-selection') === '1';
-    var treeIcon = root.getAttribute('data-sui-tree-icon') || '';
-    var treeIconOpen = root.getAttribute('data-sui-tree-icon-open') || '';
     var treeIconLeaf = root.getAttribute('data-sui-tree-icon-leaf') || '';
     var treeIconParent = root.getAttribute('data-sui-tree-icon-parent') || '';
     var treeIconParentOpen = root.getAttribute('data-sui-tree-icon-parent-open') || '';
@@ -158,7 +156,7 @@ const suiTreeRuntime = `(function(){
     if (imported) {
       renderNodes(root, imported, {
         guides: guides, checkbox: checkboxes, counts: counts,
-        icon: treeIcon, iconOpen: treeIconOpen, iconLeaf: treeIconLeaf,
+        iconLeaf: treeIconLeaf,
         iconParent: treeIconParent, iconParentOpen: treeIconParentOpen,
         toggleClosed: treeToggleClosed, toggleOpen: treeToggleOpen,
         columns: treeColumns,
@@ -439,11 +437,10 @@ const suiTreeRuntime = `(function(){
       var base = item.getAttribute('data-sui-icon-base') || '';
       var baseOpen = item.getAttribute('data-sui-icon-open-base') || '';
       var icon = base;
-      if (icon === '') icon = isParent ? (treeIconParent || treeIcon) : (treeIconLeaf || treeIcon);
+      if (icon === '') icon = isParent ? treeIconParent : treeIconLeaf;
       if (open && isParent) {
         if (baseOpen) icon = baseOpen;
         else if (treeIconParentOpen) icon = treeIconParentOpen;
-        else if (treeIconOpen) icon = treeIconOpen;
       }
       var iconEl = row.querySelector('.sui-tree-icon');
       if (icon) {
@@ -693,7 +690,7 @@ const suiTreeRuntime = `(function(){
       return null;
     }
     function renderOpts() {
-      return { guides: guides, checkbox: checkboxes, counts: counts, icon: treeIcon, iconOpen: treeIconOpen,
+      return { guides: guides, checkbox: checkboxes, counts: counts,
         iconLeaf: treeIconLeaf, iconParent: treeIconParent, iconParentOpen: treeIconParentOpen,
         toggleClosed: treeToggleClosed, toggleOpen: treeToggleOpen,
         columns: treeColumns, columnWidths: treeColumnWidths, sort: sortDir, fontStep: fontStep };
@@ -2065,11 +2062,10 @@ const suiTreeRuntime = `(function(){
       row.appendChild(check);
       li.setAttribute("aria-checked", node.checked === true ? "true" : "false");
     }
-    var icon = node.icon || (runtimeParent ? (opts.iconParent || opts.icon) : (opts.iconLeaf || opts.icon)) || "";
+    var icon = node.icon || (runtimeParent ? opts.iconParent : opts.iconLeaf) || "";
     if (node.open && runtimeParent) {
       if (node.iconOpen) icon = node.iconOpen;
       else if (opts.iconParentOpen) icon = opts.iconParentOpen;
-      else if (opts.iconOpen) icon = opts.iconOpen;
     }
     if (icon) {
       var iconEl = document.createElement("span");

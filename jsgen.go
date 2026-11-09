@@ -2451,7 +2451,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "tree" && (a.key == "value" || a.key == "editable" || a.key == "editableDepth" ||
 			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
-			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
+			a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
 			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "fontStep" || a.key == "onCheck" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {
@@ -3499,12 +3499,7 @@ func treeElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		if rowHeight != "" {
 			open += " data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\""
 		}
-		if tv.Icon != "" {
-			open += " data-sui-tree-icon=\"" + htmlEscape(tv.Icon) + "\""
-		}
-		if tv.IconOpen != "" {
-			open += " data-sui-tree-icon-open=\"" + htmlEscape(tv.IconOpen) + "\""
-		}
+
 		if tv.IconLeaf != "" {
 			open += " data-sui-tree-icon-leaf=\"" + htmlEscape(tv.IconLeaf) + "\""
 		}

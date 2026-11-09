@@ -1941,7 +1941,7 @@ var TAG_FIELDS = {
   tab: ["text"],
   accordion: ["text"],
   accordionitem: ["text"],
-  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "icon", "iconOpen", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
+  tree: ["text", "name", "value", "editable", "editableDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   treeitem: ["text", "key", "open", "editable", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
   graph: ["text", "name"],
@@ -2270,8 +2270,6 @@ function newTreeNode() {
   n.checkbox = false;
   n.counts = false;
   n.rowHeight = "";
-  n.icon = "";
-  n.iconOpen = "";
   n.iconLeaf = "";
   n.iconParent = "";
   n.iconParentOpen = "";
@@ -5132,7 +5130,7 @@ var ICON_SETS = {
 };
 function iconSetForField(key) {
   if (key === "@iconLeaf") return "leaf";
-  if (key === "@iconParent" || key === "@iconParentOpen" || key === "@icon" || key === "@iconOpen") return "parent";
+  if (key === "@iconParent" || key === "@iconParentOpen") return "parent";
   if (key === "@toggleClosed" || key === "@toggleOpen") return "branch";
   if (key === "@renameIcon") return "edit";
   return "full";
@@ -11108,7 +11106,6 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.counts) a += " counts: true";
   if (n.kind === "tree" && n.rowHeight && /^\d+$/.test(String(n.rowHeight))) a += " rowHeight: " + n.rowHeight;
   if (n.kind === "tree" && n.icon) a += " icon: \"" + esc(n.icon) + "\"";
-  if (n.kind === "tree" && n.iconOpen) a += " iconOpen: \"" + esc(n.iconOpen) + "\"";
   if (n.kind === "tree" && n.iconLeaf) a += " iconLeaf: \"" + esc(n.iconLeaf) + "\"";
   if (n.kind === "tree" && n.iconParent) a += " iconParent: \"" + esc(n.iconParent) + "\"";
   if (n.kind === "tree" && n.iconParentOpen) a += " iconParentOpen: \"" + esc(n.iconParentOpen) + "\"";

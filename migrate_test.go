@@ -108,6 +108,31 @@ func TestLegacyWorkbookSheetsMigrate(t *testing.T) {
 	}
 }
 
+func TestLegacyTreeIconsMigrate(t *testing.T) {
+	src := `view main {
+	tree "Files" name: "files" icon: "D" iconOpen: "O" {
+		treeitem "src" icon: "F"
+	}
+}`
+	prog, dl := ParseSource(src, "legacy_tree.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	out := viewNodesSource(prog.views[0].body, 1)
+	for _, want := range []string{`iconLeaf: "D"`, `iconParent: "D"`, `iconParentOpen: "O"`, `icon: "F"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("tree icon migration missing %q:\n%s", want, out)
+		}
+	}
+	js := GenerateJs(prog)
+	if strings.Contains(js, `data-sui-tree-icon="`) || strings.Contains(js, `data-sui-tree-icon-open="`) {
+		t.Error("legacy tree icon attributes are still emitted")
+	}
+}
+
 func TestEditModeRejectsInvalidValue(t *testing.T) {
 	src := `view main {
 	table name: "t" columns: "a" editMode: "persistant" {

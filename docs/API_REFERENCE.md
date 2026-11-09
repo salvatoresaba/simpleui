@@ -610,11 +610,11 @@ tree "Project files"
   Style it with `--sui-tree-tooltip-bg`, `-fg`, `-border`, `-radius`, `-padding`,
   `-max-width`, `-font-size`, `-delay` and `-placement`.
 - `rowHeight: 32` sets the row minimum height (12-120). The default is `28`.
-- `icon`, `iconOpen` on the tree are legacy fallback glyphs; `iconLeaf`,
-  `iconParent` and `iconParentOpen` select the default glyph for items without
-  children, closed parent items and open parent items. `toggleClosed` and
-  `toggleOpen` replace the disclosure branch symbols. `treeitem icon`/`iconOpen`
-  override the defaults. Icons and branch symbols are inert text or emoji, never
+- `iconLeaf`, `iconParent` and `iconParentOpen` select the default glyph for
+  items without children, closed parent items and open parent items. Old tree
+  documents using `icon`/`iconOpen` are migrated automatically. `toggleClosed`
+  and `toggleOpen` replace the disclosure branch symbols. `treeitem
+  icon`/`iconOpen` override the defaults. Icons and branch symbols are inert text or emoji, never
   markup.
 - `treeitem badge: "12"` shows a pill; `badgeType` is `neutral`, `info`,
   `success`, `warning` or `danger`. `meta` shows right-aligned text such as a

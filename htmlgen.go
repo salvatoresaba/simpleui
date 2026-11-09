@@ -5947,8 +5947,6 @@ func eventIdentOf(e *Element, key string) string {
 // static/dynamic tree renderers. Per-item icon/iconOpen still win, then the
 // parent/leaf default, then the legacy icon fallback.
 type treeVisualOpts struct {
-	Icon           string
-	IconOpen       string
 	IconLeaf       string
 	IconParent     string
 	IconParentOpen string
@@ -5958,8 +5956,6 @@ type treeVisualOpts struct {
 
 func treeVisualOptions(e *Element) treeVisualOpts {
 	tv := treeVisualOpts{
-		Icon:           treeTextAttr(e, "icon"),
-		IconOpen:       treeTextAttr(e, "iconOpen"),
 		IconLeaf:       treeTextAttr(e, "iconLeaf"),
 		IconParent:     treeTextAttr(e, "iconParent"),
 		IconParentOpen: treeTextAttr(e, "iconParentOpen"),
@@ -5980,14 +5976,8 @@ func treeItemIcon(it *Element, isParent, open bool, tv treeVisualOpts) string {
 	if icon == "" {
 		if isParent {
 			icon = tv.IconParent
-			if icon == "" {
-				icon = tv.Icon
-			}
 		} else {
 			icon = tv.IconLeaf
-			if icon == "" {
-				icon = tv.Icon
-			}
 		}
 	}
 	if open && isParent {
@@ -5995,8 +5985,6 @@ func treeItemIcon(it *Element, isParent, open bool, tv treeVisualOpts) string {
 			icon = v
 		} else if tv.IconParentOpen != "" {
 			icon = tv.IconParentOpen
-		} else if tv.IconOpen != "" {
-			icon = tv.IconOpen
 		}
 	}
 	return icon
@@ -6403,12 +6391,7 @@ func writeStaticTree(sb *strings.Builder, e *Element, ind string) {
 	if rowHeight != "" {
 		sb.WriteString(" data-sui-tree-row-height=\"" + htmlEscape(rowHeight) + "\"")
 	}
-	if tv.Icon != "" {
-		sb.WriteString(" data-sui-tree-icon=\"" + htmlEscape(tv.Icon) + "\"")
-	}
-	if tv.IconOpen != "" {
-		sb.WriteString(" data-sui-tree-icon-open=\"" + htmlEscape(tv.IconOpen) + "\"")
-	}
+
 	if tv.IconLeaf != "" {
 		sb.WriteString(" data-sui-tree-icon-leaf=\"" + htmlEscape(tv.IconLeaf) + "\"")
 	}
@@ -7125,7 +7108,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "tree" && (a.key == "value" || a.key == "editable" || a.key == "editableDepth" ||
 			a.key == "name" || a.key == "renameKey" || a.key == "renameValue" || a.key == "renameIcon" || a.key == "showRenameIcon" ||
 			a.key == "guides" || a.key == "truncate" || a.key == "checkbox" || a.key == "counts" || a.key == "rowHeight" ||
-			a.key == "icon" || a.key == "iconOpen" || a.key == "multiSelect" || a.key == "selection" ||
+			a.key == "multiSelect" || a.key == "selection" ||
 			a.key == "search" || a.key == "drag" || a.key == "contextMenu" || a.key == "columns" || a.key == "loadKey" ||
 			a.key == "virtual" || a.key == "columnLabels" || a.key == "columnWidths" || a.key == "sort" || a.key == "persistSelection" ||
 			a.key == "columnsEnabled" || a.key == "tooltips" || a.key == "fontStep" || a.key == "onLoad" || a.key == "onMove" || a.key == "onContextMenu") {

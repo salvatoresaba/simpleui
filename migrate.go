@@ -137,6 +137,30 @@ func migrateLegacyElement(e *Element) {
 		migrateLegacyChart(e)
 	case "tabs":
 		migrateLegacyWorkbook(e)
+	case "tree":
+		migrateLegacyTree(e)
+	}
+}
+
+// migrateLegacyTree replaces the old tree-level icon/iconOpen defaults with the
+// explicit leaf/parent icons introduced later.
+func migrateLegacyTree(e *Element) {
+	icon, hasIcon := attrText(findAttr(e, "icon"))
+	iconOpen, hasOpen := attrText(findAttr(e, "iconOpen"))
+	removeAttr(e, "icon")
+	removeAttr(e, "iconOpen")
+	if hasIcon && icon != "" {
+		if v, _ := attrText(findAttr(e, "iconLeaf")); v == "" {
+			setLiteralAttr(e, "iconLeaf", icon)
+		}
+		if v, _ := attrText(findAttr(e, "iconParent")); v == "" {
+			setLiteralAttr(e, "iconParent", icon)
+		}
+	}
+	if hasOpen && iconOpen != "" {
+		if v, _ := attrText(findAttr(e, "iconParentOpen")); v == "" {
+			setLiteralAttr(e, "iconParentOpen", iconOpen)
+		}
 	}
 }
 

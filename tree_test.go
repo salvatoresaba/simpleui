@@ -369,7 +369,8 @@ view main {
 	for _, want := range []string{
 		`data-sui-tree-guides="1"`, `data-sui-tree-checkbox="1"`,
 		`data-sui-tree-counts="1"`, `data-sui-tree-row-height="32"`,
-		`data-sui-tree-icon="D"`, `data-sui-tree-icon-open="O"`,
+		`data-sui-tree-icon-leaf="D"`, `data-sui-tree-icon-parent="D"`,
+		`data-sui-tree-icon-parent-open="O"`,
 		`data-sui-tree-oncheck="checked"`, `data-sui-icon="O"`,
 		`data-sui-badge="12"`, `data-sui-badge-type="info"`,
 		`data-sui-meta="2 KB"`, `data-sui-checked="1"`,
@@ -430,7 +431,7 @@ fn checked() -> null {
 	model := StringifyJson(guiModelJson(prog))
 	for _, want := range []string{
 		`"guides":false`, `"truncate":false`, `"checkbox":true`, `"counts":true`,
-		`"rowHeight":"30"`, `"icon":"D"`, `"iconOpen":"O"`, `"onCheck":"checked"`,
+		`"rowHeight":"30"`, `"iconLeaf":"D"`, `"iconParent":"D"`, `"iconParentOpen":"O"`, `"icon":"F"`, `"iconOpen":"O"`, `"onCheck":"checked"`,
 		`"badge":"2"`, `"badgeType":"warning"`, `"meta":"1 KB"`, `"checked":true`,
 	} {
 		if !strings.Contains(model, want) {
@@ -440,7 +441,7 @@ fn checked() -> null {
 	out := viewNodesSource(prog.views[0].body, 1)
 	for _, want := range []string{
 		`guides: false`, `truncate: false`, `checkbox: true`, `counts: true`,
-		`rowHeight: 30`, `icon: "D"`, `iconOpen: "O"`, `onCheck: checked`,
+		`rowHeight: 30`, `iconLeaf: "D"`, `iconParent: "D"`, `iconParentOpen: "O"`, `icon: "F"`, `iconOpen: "O"`, `onCheck: checked`,
 		`badge: "2"`, `badgeType: "warning"`, `meta: "1 KB"`, `checked: true`,
 	} {
 		if !strings.Contains(out, want) {
