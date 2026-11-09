@@ -8409,17 +8409,28 @@ function tblEnsureClass(n) {
 // by a comment marker: the css round-trip regenerates text without comments).
 function ensureTableBaseCss() {
   var zebraRule = "table.suitbl tbody tr:nth-child(even) td { background: var(--t-zebra, transparent); background: color-mix(in srgb, var(--t-zebra, transparent) 14%, transparent); }";
-  var hoverRule = "table.suitbl tbody tr:hover td { background: var(--t-hover, transparent); background: color-mix(in srgb, var(--t-hover, transparent) 14%, transparent); }";
+  var hoverRule = "table.suitbl tbody tr:hover td { background: var(--t-hover, transparent); background: color-mix(in srgb, var(--t-hover, transparent) 14%, transparent); color: var(--sui-table-hover-fg, var(--sui-table-fg, inherit)); }";
+  var themeRule = "table.suitbl { background: var(--sui-table-bg, transparent); color: var(--sui-table-fg, inherit); }";
+  var rowRule = "table.suitbl tbody td { background: var(--sui-table-row-bg, transparent); color: var(--sui-table-fg, inherit); }";
   if (root.css.indexOf("table.suitbl") >= 0) {
     // Migrate tables saved with the old solid zebra/hover rules: a light
     // default (for example #f0f2f8) would paint a white row in a dark theme.
     if (root.css.indexOf("color-mix(") < 0) {
       root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + zebraRule + "\n" + hoverRule + "\n";
     }
+    // Older base blocks only themed headers and borders. Append the missing
+    // table/row token rules so a forced table theme also paints the body.
+    var missing = [];
+    if (root.css.indexOf("var(--sui-table-bg, transparent)") < 0) missing.push(themeRule);
+    if (root.css.indexOf("var(--sui-table-row-bg, transparent)") < 0) missing.push(rowRule);
+    if (root.css.indexOf("var(--sui-table-hover-fg") < 0) missing.push("table.suitbl tbody tr:hover td { color: var(--sui-table-hover-fg, var(--sui-table-fg, inherit)); }");
+    if (missing.length) root.css = root.css.trim() + "\n" + missing.join("\n") + "\n";
     return;
   }
   var block = [
     "table.suitbl { border-collapse: collapse; }",
+    themeRule,
+    rowRule,
     "table.suitbl th, table.suitbl td { padding: var(--t-pad, var(--sui-table-padding, 6px 10px)); text-align: var(--t-align, left); vertical-align: var(--t-valign, middle); height: var(--t-rowh, 34px); }",
     "table.suitbl thead th { background: var(--t-headbg, var(--sui-table-head-bg, #202732)); color: var(--t-headfg, var(--sui-table-head-fg, #f2f4f6)); font-weight: var(--t-headfw, 700); text-transform: var(--t-headtt, none); border-bottom: var(--t-headbb, 2px solid var(--sui-table-border, #3d4556)); }",
     zebraRule,
@@ -8580,6 +8591,15 @@ function tableThemeApply(nn, id) {
     });
   }
   nn.style = styleDeclStr(m);
+  tblEnsureClass(nn);
+  ensureTableBaseCss();
+  var wr = findTableWrap(nn);
+  if (wr) {
+    var wm = styleDeclMap(wr.style || "");
+    if (m["--sui-table-radius"]) wm["border-radius"] = m["--sui-table-radius"];
+    else delete wm["border-radius"];
+    wr.style = styleDeclStr(wm);
+  }
 }
 var TABLE_PRESETS = [
   ["None", { "--t-pad": "", "--t-align": "", "--t-valign": "", "--t-zebra": "", "--t-hover": "", "--t-grid": "", "--t-ring": "", "--t-radius": "", "--t-shadow": "", "--t-headbg": "", "--t-headfg": "", "--t-headfw": "", "--t-headtt": "", "--t-headbb": "" }],

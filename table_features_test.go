@@ -271,6 +271,10 @@ func TestTableThemeSelectorAndProjectDefaults(t *testing.T) {
 		"applyTableProjectDefaultsToNode(n)",
 		`var(--sui-table-border`,
 		`--sui-table-head-bg, #202732`,
+		"tblEnsureClass(nn);",
+		`var(--sui-table-bg, transparent)`,
+		`var(--sui-table-row-bg, transparent)`,
+		"table.suitbl tbody td",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("table theme integration missing %q", want)
