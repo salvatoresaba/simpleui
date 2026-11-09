@@ -25,15 +25,62 @@ const suiChartRuntime = `(function(){
     var value = root.getAttribute("data-sui-chart-" + name);
     return value === null ? def : value === "1";
   }
+  // Edit mode is the 3-state data-control setting: "none" is read-only,
+  // "editable" keeps user changes for the page session and "persistent"
+  // survives reload/restart. Legacy sources without the attribute derive it
+  // from interactive (and diagrams remain editable as before).
+  function chartEditMode(root) {
+    if (!root || !root.getAttribute) return "editable";
+    var raw = String(root.getAttribute("data-sui-chart-edit-mode") || "").toLowerCase();
+    if (raw === "none" || raw === "editable" || raw === "persistent") return raw;
+    var type = String(attr(root, "type") || "").toLowerCase();
+    var diagram = type === "state" || type === "statemachine";
+    // Legacy compatibility: diagrams and Gantt kept their edits in
+    // localStorage, so they behave as persistent; interactive regular charts
+    // kept local edits for the page session.
+    if (flag(root, "interactive")) return (diagram || type === "gantt") ? "persistent" : "editable";
+    if (diagram) return "persistent";
+    return "none";
+  }
+  function chartEditingAllowed(root) { return chartEditMode(root) !== "none"; }
+  function chartPersists(root) { return chartEditMode(root) === "persistent"; }
+  // Editable keeps data for the page session (window map, survives re-renders);
+  // persistent writes it to localStorage so it survives reload/restart.
+  var CHART_SESSION = window.__SUI_CHART_SESSION || (window.__SUI_CHART_SESSION = {});
+  function chartStoreGet(root, key) {
+    var mode = chartEditMode(root);
+    if (mode === "persistent") {
+      try {
+        var raw = window.localStorage && window.localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+    if (mode === "editable") return CHART_SESSION[key] !== undefined ? CHART_SESSION[key] : null;
+    return null;
+  }
+  function chartStoreSet(root, key, value) {
+    var mode = chartEditMode(root);
+    if (mode === "persistent") {
+      try { if (window.localStorage) window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    } else if (mode === "editable") {
+      CHART_SESSION[key] = value;
+    }
+  }
+  function chartStoreRemove(root, key) {
+    delete CHART_SESSION[key];
+    try { if (window.localStorage) window.localStorage.removeItem(key); } catch (e) {}
+  }
   // Editing chrome (anchors, resize/rotation grips, tag and route handles) is
   // optional: a missing value keeps it enabled, so existing editable diagrams
   // are unchanged; stateHandles: false turns the diagram into a view-only chart.
   function stateEditingMode(root) {
     if (!root || !root.getAttribute) return true;
+    if (!chartEditingAllowed(root)) return false;
     return String(root.getAttribute("data-sui-chart-state-mode") || "editing").toLowerCase() !== "static";
   }
   function stateTableEditing(root) {
     if (!root || !root.getAttribute) return true;
+    if (!chartEditingAllowed(root)) return false;
     return stateEditingMode(root) || flag(root, "table-edit");
   }
   function stateHintsEnabled(root) {
@@ -697,10 +744,9 @@ const suiChartRuntime = `(function(){
     return "sui.chart.resources." + ganttUiKey(root);
   }
   function loadStoredGanttResources(root) {
+    if (!chartEditingAllowed(root)) return [];
     try {
-      var raw = window.localStorage && window.localStorage.getItem(ganttResourceStorageKey(root));
-      if (!raw) return [];
-      var parsed = JSON.parse(raw);
+      var parsed = chartStoreGet(root, ganttResourceStorageKey(root));
       if (!Array.isArray(parsed)) return [];
       var out = [];
       for (var i = 0; i < parsed.length; i++) {
@@ -726,12 +772,12 @@ const suiChartRuntime = `(function(){
     return out;
   }
   function saveGanttResources(root, data) {
+    if (!chartEditingAllowed(root)) return;
     try {
-      if (!window.localStorage) return;
       var registry = ganttResourceRegistry(data);
-      window.localStorage.setItem(ganttResourceStorageKey(root), JSON.stringify(registry.map(function(entry) {
+      chartStoreSet(root, ganttResourceStorageKey(root), registry.map(function(entry) {
         return { name: entry.name, role: entry.role || "", maxPeople: entry.maxPeople || 0, dailyCost: entry.dailyCost === null || entry.dailyCost === undefined ? null : entry.dailyCost, notes: entry.notes || "" };
-      })));
+      }));
     } catch (e) {}
   }
   function notifyGanttResources(root, data) {
@@ -746,7 +792,7 @@ const suiChartRuntime = `(function(){
     notifyGanttResources(root, data);
   }
   function resetGanttResourceRegistry(root, data) {
-    try { if (window.localStorage) window.localStorage.removeItem(ganttResourceStorageKey(root)); } catch (e) {}
+    chartStoreRemove(root, ganttResourceStorageKey(root));
     var sourceResources = [];
     try {
       var source = parseGanttData(attr(root, "data"), attr(root, "format"));
@@ -4311,7 +4357,7 @@ const suiChartRuntime = `(function(){
         endHandle.setAttribute("data-sui-chart-tip", "Drag to resize end");
         item.appendChild(endHandle);
       }
-      if (flag(root, "interactive") && !isSummary) {
+      if (chartEditingAllowed(root) && !isSummary) {
         var linkHandle = svgEl("circle", {
           cx: rightEdge + 10, cy: y + bh / 2 + 8, r: 4.5,
           "class": "sui-chart-gantt-link-handle"
@@ -11359,28 +11405,25 @@ const suiChartRuntime = `(function(){
     };
   }
   function loadStateData(root) {
-    try {
-      var raw = window.localStorage && window.localStorage.getItem(stateDataStorageKey(root));
-      if (!raw) return null;
-      var saved = JSON.parse(raw);
-      return saved && saved.data ? saved : null;
-    } catch (e) { return null; }
+    if (!chartEditingAllowed(root)) return null;
+    var saved = chartStoreGet(root, stateDataStorageKey(root));
+    return saved && saved.data ? saved : null;
   }
   function saveStateData(root, data) {
+    if (!chartEditingAllowed(root)) return;
     try {
-      if (window.localStorage) window.localStorage.setItem(stateDataStorageKey(root), JSON.stringify({ version: 2, raw: attr(root, "data"), data: statePayloadData(data), baseline: root.__suiStateCommitBaseline || null }));
+      chartStoreSet(root, stateDataStorageKey(root), { version: 2, raw: attr(root, "data"), data: statePayloadData(data), baseline: root.__suiStateCommitBaseline || null });
     } catch (e) {}
   }
   function loadStateVersions(root) {
-    try {
-      var raw = window.localStorage && window.localStorage.getItem(stateVersionsStorageKey(root));
-      var versions = raw ? JSON.parse(raw) : [];
-      return Array.isArray(versions) ? versions : [];
-    } catch (e) { return []; }
+    if (!chartEditingAllowed(root)) return [];
+    var versions = chartStoreGet(root, stateVersionsStorageKey(root));
+    return Array.isArray(versions) ? versions : [];
   }
   function saveStateVersions(root, versions) {
+    if (!chartEditingAllowed(root)) return;
     try {
-      if (window.localStorage) window.localStorage.setItem(stateVersionsStorageKey(root), JSON.stringify((versions || []).slice(-40)));
+      chartStoreSet(root, stateVersionsStorageKey(root), (versions || []).slice(-40));
     } catch (e) {}
   }
   function stateAuditDiff(before, after) {
@@ -11619,10 +11662,9 @@ const suiChartRuntime = `(function(){
   function ganttDraftStorageKey(root) { return "sui.chart.gantt.draft." + ganttUiKey(root); }
   function ganttVersionsStorageKey(root) { return "sui.chart.gantt.versions." + ganttUiKey(root); }
   function loadGanttDraft(root) {
+    if (!chartEditingAllowed(root)) return null;
     try {
-      var raw = window.localStorage && window.localStorage.getItem(ganttDraftStorageKey(root));
-      if (!raw) return null;
-      var draft = JSON.parse(raw);
+      var draft = chartStoreGet(root, ganttDraftStorageKey(root));
       return draft && draft.payload ? draft : null;
     } catch (e) { return null; }
   }
@@ -11645,20 +11687,21 @@ const suiChartRuntime = `(function(){
       baselineResources: root.__suiGanttCommitBaselineResources || null
     };
     try {
-      if (window.localStorage) window.localStorage.setItem(ganttDraftStorageKey(root), JSON.stringify(draft));
-      root.__suiGanttDraftSavedAt = draft.savedAt;
+      if (chartEditingAllowed(root)) {
+        chartStoreSet(root, ganttDraftStorageKey(root), draft);
+        root.__suiGanttDraftSavedAt = draft.savedAt;
+      }
     } catch (e) {}
   }
   function loadGanttVersions(root) {
-    try {
-      var raw = window.localStorage && window.localStorage.getItem(ganttVersionsStorageKey(root));
-      var versions = raw ? JSON.parse(raw) : [];
-      return Array.isArray(versions) ? versions : [];
-    } catch (e) { return []; }
+    if (!chartEditingAllowed(root)) return [];
+    var versions = chartStoreGet(root, ganttVersionsStorageKey(root));
+    return Array.isArray(versions) ? versions : [];
   }
   function saveGanttVersions(root, versions) {
+    if (!chartEditingAllowed(root)) return;
     try {
-      if (window.localStorage) window.localStorage.setItem(ganttVersionsStorageKey(root), JSON.stringify((versions || []).slice(-40)));
+      chartStoreSet(root, ganttVersionsStorageKey(root), (versions || []).slice(-40));
     } catch (e) {}
   }
   function ganttAuditText(value) {
@@ -12828,7 +12871,26 @@ const suiChartRuntime = `(function(){
     }
     return rows;
   }
+  function chartDataStorageKey(root) { return "sui.chart.data." + ganttUiKey(root); }
+  function saveChartData(root, data) {
+    if (!root || !data || !chartEditingAllowed(root)) return;
+    try {
+      chartStoreSet(root, chartDataStorageKey(root), {
+        v: 1,
+        raw: attr(root, "data"),
+        type: attr(root, "type") || "bar",
+        data: cloneChartData(data),
+        savedAt: Date.now()
+      });
+    } catch (e) {}
+  }
+  function loadSavedChartData(root) {
+    if (!chartEditingAllowed(root)) return null;
+    var saved = chartStoreGet(root, chartDataStorageKey(root));
+    return saved && saved.data ? saved : null;
+  }
   function notifyChartData(root, data) {
+    saveChartData(root, data);
     var handler = root.getAttribute("data-sui-chart-ondatachange");
     if (handler && typeof window[handler] === "function") {
       var local = root.__suiChartLocal;
@@ -14625,13 +14687,14 @@ const suiChartRuntime = `(function(){
     setTimeout(function() { resizeGanttLabelInputs(root); }, 0);
     container.setAttribute("aria-label", title || "Gantt tasks");
     if (!skipTools) {
-      var tableOptions = {
-        deleteRows: function(indices) { deleteGanttRows(root, data, indices); },
-        pasteMatrix: function(matrix, startRow, startCol) { return pasteGanttMatrix(root, data, matrix, startRow, startCol); },
-        assignGroup: function(indices) { openGanttGroupDialog(root, data, indices); },
-        createGroup: function(indices) { createGanttGroup(root, data, indices); }
-      };
-      if (flag(root, "table-add-row")) tableOptions.addRow = function() { addGanttTask(root, data); };
+      var tableOptions = {};
+      if (editable) {
+        tableOptions.deleteRows = function(indices) { deleteGanttRows(root, data, indices); };
+        tableOptions.pasteMatrix = function(matrix, startRow, startCol) { return pasteGanttMatrix(root, data, matrix, startRow, startCol); };
+        tableOptions.assignGroup = function(indices) { openGanttGroupDialog(root, data, indices); };
+        tableOptions.createGroup = function(indices) { createGanttGroup(root, data, indices); };
+        if (flag(root, "table-add-row")) tableOptions.addRow = function() { addGanttTask(root, data); };
+      }
       decorateTable(container, table, root, tableOptions);
     }
     syncChartTableSticky(root);
@@ -20663,7 +20726,7 @@ const suiChartRuntime = `(function(){
     tabList.appendChild(shapeTab);
     tabList.appendChild(linkTab);
     tabBar.appendChild(tabList);
-    tabBar.appendChild(addRow);
+    if (editable) tabBar.appendChild(addRow);
     container.appendChild(tabBar);
     var shapePanel = document.createElement("div");
     shapePanel.className = "sui-chart-state-tab-panel";
@@ -20979,7 +21042,7 @@ const suiChartRuntime = `(function(){
     });
     thead.appendChild(headRow); table.appendChild(thead);
     var tbody = document.createElement("tbody");
-    var editable = flag(root, "interactive");
+    var editable = chartEditingAllowed(root);
     for (i = 0; i < rows.length; i++) {
       var tr = document.createElement("tr");
       tr.setAttribute("data-sui-chart-row", String(i));
@@ -21023,11 +21086,13 @@ const suiChartRuntime = `(function(){
     container.setAttribute("aria-label", title || "Chart data");
     if (!skipTools) {
       var tableOptions = {};
-      if (type !== "histogram") {
-        tableOptions.deleteRows = function(indices) { deleteChartRows(root, data, type, indices); };
-        tableOptions.pasteMatrix = function(matrix, startRow, startCol) { return pasteChartMatrix(root, data, type, matrix, startRow, startCol); };
+      if (editable) {
+        if (type !== "histogram") {
+          tableOptions.deleteRows = function(indices) { deleteChartRows(root, data, type, indices); };
+          tableOptions.pasteMatrix = function(matrix, startRow, startCol) { return pasteChartMatrix(root, data, type, matrix, startRow, startCol); };
+        }
+        if (flag(root, "table-add-row")) tableOptions.addRow = function() { addChartRow(root, data, type); };
       }
-      if (flag(root, "table-add-row")) tableOptions.addRow = function() { addChartRow(root, data, type); };
       decorateTable(container, table, root, tableOptions);
     }
   }
@@ -23340,6 +23405,10 @@ const suiChartRuntime = `(function(){
           localChart.pendingUntil = 0;
         }
       } else {
+        var savedChart = loadSavedChartData(root);
+        if (savedChart && savedChart.type === type && savedChart.data && savedChart.raw === rawChart) {
+          series = savedChart.data;
+        }
         root.__suiChartLocal = { raw: rawChart, type: type, data: series };
       }
     }
@@ -23544,7 +23613,7 @@ const suiChartRuntime = `(function(){
         var existingTable = tableEl.querySelector("table");
         if (keepTable && type !== "gantt" && existingTable) {
           applyTableState(existingTable, chartTableState(root), root);
-        } else if (type === "gantt") renderGanttTable(tableEl, series, title, flag(root, "interactive"), root);
+        } else if (type === "gantt") renderGanttTable(tableEl, series, title, chartEditingAllowed(root), root);
         else if (type === "state") renderStateTable(tableEl, series, title, root);
         else renderChartTable(tableEl, series, type, title, root);
       } else {
@@ -23743,8 +23812,8 @@ const suiChartRuntime = `(function(){
     bindChartKeyboard(root);
     bindChartMenu(root);
     bindChartInteractions(root);
-    root.classList.toggle("sui-chart-interactive", flag(root, "interactive"));
-    if (flag(root, "interactive")) { bindGanttDrag(root); bindGanttDeadlineDrag(root); bindGanttLinkDrag(root); }
+    root.classList.toggle("sui-chart-interactive", flag(root, "interactive") || chartEditingAllowed(root));
+    if (chartEditingAllowed(root)) { bindGanttDrag(root); bindGanttDeadlineDrag(root); bindGanttLinkDrag(root); }
     if (type === "gantt") {
       bindGanttNameResize(root);
       bindGanttKeyboard(root);

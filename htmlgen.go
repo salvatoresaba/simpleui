@@ -2343,6 +2343,15 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function cfgOf(tbl){
     function attr(k){ return tbl.getAttribute('data-sui-' + k) || ''; }
+    // Edit mode is authoritative. Legacy tables without it fall back to the
+    // editable attribute; workbook sheets may be upgraded to data entry at
+    // runtime through data-sui-editable.
+    var rawMode = attr('edit-mode');
+    var mode = rawMode;
+    if (mode !== 'editable' && mode !== 'persistent' && mode !== 'none') {
+      mode = attr('editable') === '1' ? 'editable' : 'none';
+    }
+    var editable = mode !== 'none';
     var cfg = {
       columns: splitList(attr('columns')),
       labels: splitList(attr('column-labels')),
@@ -2356,10 +2365,15 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       pageSize: parseInt(attr('page-size'), 10) || 0,
       selection: attr('selection') || 'none',
       multi: attr('multi') === '1',
-      editable: attr('editable') === '1',
+      editMode: mode,
+      explicitEditMode: rawMode,
+      editable: editable,
       fixed: attr('fixed') === '1',
-      showAddTable: attr('show-add-table') === '1',
-      structureEditable: attr('structure-editable') === '1'
+      // Explicit read-only sheets cannot change structure or create sheets.
+      // Legacy tables keep their structure/show-add settings (a selection-only
+      // table is still allowed to insert rows via the context menu).
+      showAddTable: rawMode === 'none' ? false : attr('show-add-table') === '1',
+      structureEditable: rawMode === 'none' ? false : attr('structure-editable') === '1'
     };
     return cfg;
   }
@@ -2375,9 +2389,103 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var fn = tableValue(tbl, key);
     if (fn && typeof window[fn] === 'function') window[fn]();
   }
+  // ---- persistent edit mode ------------------------------------------------
+  // Persistent tables store their header and rows in localStorage, keyed by
+  // table name and page. Editable (session) tables keep the in-memory store;
+  // they return to the source data on reload.
+  var tableBootAt = Date.now();
+  var tableUserTouched = false;
+  function markTableUserTouched(){ tableUserTouched = true; }
+  document.addEventListener('pointerdown', markTableUserTouched, true);
+  document.addEventListener('keydown', markTableUserTouched, true);
+  function tablePersistKey(name){
+    var path = (window.location && window.location.pathname) || '';
+    return 'sui.table.persist.' + path + '.' + name;
+  }
+  function persistTableState(name, st, cfg){
+    if (!cfg || cfg.editMode !== 'persistent') return;
+    if (!window.localStorage) return;
+    try {
+      window.localStorage.setItem(tablePersistKey(name), JSON.stringify({
+        version: 1,
+        header: st && st.header ? st.header : [],
+        rows: st && st.allRows ? st.allRows : [],
+        textHeader: !!(st && st.textHeader)
+      }));
+    } catch (e) {}
+  }
+  function persistTable(name){
+    var tbl = firstTable(name);
+    if (!tbl) return;
+    persistTableState(name, store[name], cfgOf(tbl));
+  }
+  function loadPersistedTable(name){
+    try {
+      var raw = window.localStorage && window.localStorage.getItem(tablePersistKey(name));
+      if (!raw) return null;
+      var p = JSON.parse(raw);
+      if (!p || !Array.isArray(p.rows)) return null;
+      return p;
+    } catch (e) { return null; }
+  }
+  function applyPersistedTable(st, p){
+    st.header = Array.isArray(p.header) ? p.header.map(function(v){ return String(v); }) : [];
+    st.allRows = p.rows.map(function(r){ return Array.isArray(r) ? r.slice() : []; });
+    st.textHeader = !!p.textHeader;
+    st.__fromDom = false;
+    st.__colStruct = false;
+    st.page = 0;
+    clearSelection(st);
+  }
+  // During the initial boot a script-driven table.display/importText must not
+  // overwrite saved persistent data: the user's saved rows win on reload.
+  function persistentBootBlocks(name){
+    var tbl = firstTable(name);
+    if (!tbl) return false;
+    var st = store[name];
+    if (!st || !st.__persistLoaded) return false;
+    if (cfgOf(tbl).editMode !== 'persistent') return false;
+    return !tableUserTouched && (Date.now() - tableBootAt) < 2000;
+  }
   function recordChange(name, rec){
     rec.time = Date.now();
     changes[name] = rec;
+    if (rec && /^(cell|display|import|clear|row-|column-)/.test(String(rec.op || ''))) persistTable(name);
+  }
+  // Workbooks in persistent mode also keep the runtime-created sheet list.
+  function tableBookPersistKey(box){
+    var path = (window.location && window.location.pathname) || '';
+    return 'sui.table.book.' + path + '.' + tableBookKey(box);
+  }
+  function workbookHasPersistentSheet(box){
+    var panels = box ? box.querySelectorAll('.sui-tabpanels .sui-tabpanel') : [];
+    for (var i = 0; i < panels.length; i++) {
+      var t = panels[i].querySelector('table');
+      if (t && cfgOf(t).editMode === 'persistent') return true;
+    }
+    return false;
+  }
+  function workbookPersistentMode(box){
+    return workbookHasPersistentSheet(box) ? 'persistent' : '';
+  }
+  function saveTableBookDefs(box){
+    if (!box || !window.localStorage) return;
+    try {
+      var key = tableBookPersistKey(box);
+      if (workbookHasPersistentSheet(box)) {
+        window.localStorage.setItem(key, JSON.stringify(tableBooks[tableBookKey(box)] || []));
+      } else if (window.localStorage.getItem(key)) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (e) {}
+  }
+  function loadTableBookDefs(box){
+    if (!box || !workbookHasPersistentSheet(box)) return [];
+    try {
+      var raw = window.localStorage && window.localStorage.getItem(tableBookPersistKey(box));
+      var defs = raw ? JSON.parse(raw) : [];
+      return Array.isArray(defs) ? defs : [];
+    } catch (e) { return []; }
   }
   function notifyTable(name, key, rec){
     if (rec) recordChange(name, rec);
@@ -3107,12 +3215,18 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var boxes = document.querySelectorAll('.sui-tabs');
     for (var b = 0; b < boxes.length; b++) {
       var box = boxes[b], key = tableBookKey(box), defs = tableBooks[key] || [];
+      if (!defs.length) {
+        var savedDefs = loadTableBookDefs(box);
+        if (savedDefs.length) { tableBooks[key] = savedDefs; defs = savedDefs; }
+      }
       if (!defs.length) continue;
       var panels = box.querySelector('.sui-tabpanels');
       var template = panels ? panels.querySelector('.sui-tabpanel') : null;
       if (!template) continue;
       for (var i = 0; i < defs.length; i++) {
         var made = addRuntimeTableDom(box, defs[i].name, defs[i].label, template);
+        var bookMode = workbookPersistentMode(box);
+        if (made && made.table && bookMode) made.table.setAttribute('data-sui-edit-mode', bookMode);
         if (made && store[defs[i].name]) {
           try { applyTo(made.table, store[defs[i].name]); } catch (e) {}
         }
@@ -3148,6 +3262,19 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         var label = 'Table ' + (box.querySelectorAll('.sui-tabpanel').length + 1);
         var made = addRuntimeTableDom(box, newName, label, panel);
         if (!made) return;
+        if (made.table) {
+          if (activeCfg.explicitEditMode === 'none') {
+            made.table.removeAttribute('data-sui-editable');
+            made.table.removeAttribute('data-sui-show-add-table');
+          } else {
+            // A new sheet inherits the workbook edit mode: persistent sheets
+            // keep their data after a reload, editable ones stay per session.
+            // Legacy workbooks without a mode create editable sheets.
+            made.table.setAttribute('data-sui-edit-mode', activeCfg.explicitEditMode || 'editable');
+            made.table.setAttribute('data-sui-editable', '1');
+            made.table.setAttribute('data-sui-show-add-table', '1');
+          }
+        }
         if (activeCfg.structureEditable && made.table) {
           made.table.setAttribute('data-sui-editable', '1');
           made.table.setAttribute('data-sui-structure-editable', '1');
@@ -3156,6 +3283,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         // A runtime sheet name may be recycled after a deletion.
         if (deletedWorkbookSheets[key]) delete deletedWorkbookSheets[key]['n:' + newName];
         (tableBooks[key] || (tableBooks[key] = [])).push({ name: newName, label: label });
+        saveTableBookDefs(box);
         made.tab.click();
         init();
       });
@@ -4004,6 +4132,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     return { n: st.allRows.length };
   }
   function display(name, data){
+    if (persistentBootBlocks(name)) {
+      var kept = store[name] ? store[name].allRows.length : 0;
+      return [kept, null];
+    }
     var ds = norm(data);
     if (ds.error) return [0, ds.error];
     var r = storeApply(name, ds);
@@ -4014,6 +4146,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   // importText parses text explicitly: see parseSpec for the spec syntax.
   function importText(name, text, spec){
+    if (persistentBootBlocks(name)) {
+      var keptImport = store[name] ? store[name].allRows.length : 0;
+      return [keptImport, null];
+    }
     var ds = normText(text, spec);
     if (ds.error) return [0, ds.error];
     var r = storeApply(name, ds);
@@ -4073,6 +4209,8 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     return [out, null];
   }
   function clear(name){
+    var clearTbl = firstTable(name);
+    var clearCfg = clearTbl ? cfgOf(clearTbl) : null;
     delete store[name];
     if (tableCfg && tableCfg.name === name) closeTableCfg();
     if (tableFilterPop && tableFilterPop.name === name) closeTableFilterPop();
@@ -4103,6 +4241,7 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var next = ts[i].nextElementSibling;
       if (next && next.classList && next.classList.contains('sui-table-pager') && next.getAttribute('data-sui-table-pager-for') === name) next.parentNode.removeChild(next);
     }
+    persistTableState(name, { header: [], allRows: [], textHeader: false }, clearCfg);
     recordChange(name, { op: 'clear' });
     fireTableEvent(name, 'ontablechange');
     return [0, null];
@@ -4330,6 +4469,10 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
     var wasActive = tab.classList.contains('active');
     if (tab.parentNode) tab.parentNode.removeChild(tab);
     if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+    if (name) {
+      try { if (window.localStorage) window.localStorage.removeItem(tablePersistKey(name)); } catch (e) {}
+    }
+    saveTableBookDefs(box);
     // Update the visible tab count, editable + state and the x buttons.
     normalizeWorkbookRuntime();
     var rest = workbookTabList(box);
@@ -4441,11 +4584,25 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       var anyEditable = false;
       for (var tj = 0; tj < tables.length; tj++) {
         var t2 = tables[tj];
-        // Tables that explicitly request a selection mode stay read-only:
-        // selection is the intended interaction for those sheets.
-        var sel = t2.getAttribute('data-sui-selection') || '';
-        if (!sel || sel === 'none' || t2.getAttribute('data-sui-editable') === '1') {
-          t2.setAttribute('data-sui-editable', '1');
+        var sheetMode = t2.getAttribute('data-sui-edit-mode') || '';
+        if (sheetMode === 'none') {
+          // Explicit non-editable sheet: keep it read-only even inside a
+          // workbook that is otherwise editable.
+          t2.removeAttribute('data-sui-editable');
+          t2.removeAttribute('data-sui-show-add-table');
+        } else {
+          if (sheetMode === 'editable' || sheetMode === 'persistent' || t2.getAttribute('data-sui-editable') === '1') {
+            t2.setAttribute('data-sui-editable', '1');
+          } else {
+            // Tables that explicitly request a selection mode stay read-only:
+            // selection is the intended interaction for those sheets.
+            var sel = t2.getAttribute('data-sui-selection') || '';
+            if (!sel || sel === 'none') t2.setAttribute('data-sui-editable', '1');
+          }
+          // Keep the + in the DOM for workbooks: CSS hides it when no sheet is
+          // editable (the designer preview shows it). Explicit read-only
+          // sheets removed it above.
+          if (t2.getAttribute('name')) t2.setAttribute('data-sui-show-add-table', '1');
         }
         if (t2.getAttribute('data-sui-editable') === '1') anyEditable = true;
         // Stable cell sizing: default/auto becomes truncate (ellipsis + hover
@@ -4454,7 +4611,6 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
         if (!cellText || cellText === 'auto') cellText = 'truncate';
         t2.setAttribute('data-sui-cell-text', cellText);
         if (cellText === 'truncate') t2.setAttribute('data-sui-fixed', '1');
-        if (t2.getAttribute('name')) t2.setAttribute('data-sui-show-add-table', '1');
         var w2 = t2.parentElement;
         if (w2 && w2.classList && w2.classList.contains('tscroll')) {
           // The sheet area follows the control size; per-sheet fixed sizes made
@@ -4493,8 +4649,19 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
   }
   function init(){
     normalizeWorkbookRuntime();
-    var eds = document.querySelectorAll('table[data-sui-editable] td, table[data-sui-editable] th');
-    for (var i=0;i<eds.length;i++){ var c=eds[i]; if (c.getAttribute('contenteditable') !== 'true') { c.setAttribute('contenteditable','true'); c.spellcheck=false; } }
+    var edTables = document.querySelectorAll('table[data-sui-editable]');
+    for (var et = 0; et < edTables.length; et++) {
+      var etMode = cfgOf(edTables[et]).editMode;
+      var etCells = edTables[et].querySelectorAll('td,th');
+      for (var ec = 0; ec < etCells.length; ec++) {
+        if (etMode === 'none') {
+          if (etCells[ec].getAttribute('contenteditable') === 'true') etCells[ec].removeAttribute('contenteditable');
+        } else if (etCells[ec].getAttribute('contenteditable') !== 'true') {
+          etCells[ec].setAttribute('contenteditable', 'true');
+          etCells[ec].spellcheck = false;
+        }
+      }
+    }
     var fix = document.querySelectorAll('table[data-sui-fixed] td, table[data-sui-fixed] th');
     for (var j=0;j<fix.length;j++){
       var d=fix[j];
@@ -4514,6 +4681,11 @@ const suiTableRuntime = `const __SUI_TBL = (function(){
       ensureDeclaredHeader(tbl, cfg);
       syncStoreFromDom(tbl, name);
       var st = store[name];
+      if (cfg.editMode === 'persistent' && !st.__persistLoaded) {
+        var savedTable = loadPersistedTable(name);
+        if (savedTable) applyPersistedTable(st, savedTable);
+        st.__persistLoaded = true;
+      }
       decorateTable(tbl, st, cfg);
       ensureFilterInput(tbl, name, st, cfg);
       ensurePager(tbl, name, st, cfg);
@@ -5203,8 +5375,21 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		if v := treeTextAttr(e, "name"); v != "" {
 			sb.WriteString(" name=\"" + htmlEscape(v) + "\"")
 		}
+		tableEditMode := treeTextAttr(e, "editMode")
+		tableEditable := false
 		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
+			tableEditable = true
+		}
+		if tableEditMode == "editable" || tableEditMode == "persistent" {
+			tableEditable = true
+		} else if tableEditMode == "none" {
+			tableEditable = false
+		}
+		if tableEditable {
 			sb.WriteString(" data-sui-editable=\"1\"")
+		}
+		if tableEditMode != "" {
+			sb.WriteString(" data-sui-edit-mode=\"" + htmlEscape(tableEditMode) + "\"")
 		}
 		fixedAttr := false
 		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
@@ -6402,6 +6587,7 @@ func writeStaticChart(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString(" data-sui-chart-type=\"" + htmlEscape(chartStaticValue(e, "chartType", "bar")) + "\"")
 	}
 	sb.WriteString(" data-sui-chart-theme=\"" + htmlEscape(chartStaticValue(e, "theme", "dark")) +
+		"\" data-sui-chart-edit-mode=\"" + htmlEscape(chartStaticValue(e, "editMode", "")) +
 		"\" data-sui-chart-data=\"" + htmlEscape(chartStaticValue(e, "data", "")) +
 		"\" data-sui-chart-format=\"" + htmlEscape(chartStaticValue(e, "format", "auto")) +
 		"\" data-sui-chart-x=\"" + htmlEscape(chartStaticValue(e, "x", "")) +
@@ -6858,7 +7044,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			continue
 		}
-		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "fixed" ||
+		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "editMode" || a.key == "fixed" ||
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
 			a.key == "cellText" || a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
@@ -6867,7 +7053,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "onRowSelect" || a.key == "onSort" || a.key == "onCellClick" || a.key == "onRowClick") {
 			continue
 		}
-		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" ||
+		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "editMode" || a.key == "chartType" || a.key == "format" ||
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "interactive" || a.key == "settingsButton" || a.key == "showZoom" || a.key == "showAdd" || a.key == "showHistory" || a.key == "stateMode" || a.key == "stateHints" || a.key == "onTaskChange" || a.key == "onDataChange" || a.key == "onCalendarChange" || a.key == "onResourceChange" || a.key == "onCommit" ||

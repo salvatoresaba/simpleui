@@ -37,7 +37,8 @@ view main {
 			}
 		}
 		tab "Orders" {
-			table name: "orders" columns: "name,qty,price" columnLabels: "Product,Qty,Price" columnWidths: "220,80,110" columnAlign: "left,right,right" columnTypes: "text,number,number" columnFormats: "text,number,currency:EUR" sortable: true filterable: true editable: true onCellChange: changed onTableChange: changed {
+			# Persistent edit mode: user edits to this sheet survive reload and restart.
+			table name: "orders" columns: "name,qty,price" columnLabels: "Product,Qty,Price" columnWidths: "220,80,110" columnAlign: "left,right,right" columnTypes: "text,number,number" columnFormats: "text,number,currency:EUR" sortable: true filterable: true editMode: "persistent" onCellChange: changed onTableChange: changed {
 			}
 		}
 	}

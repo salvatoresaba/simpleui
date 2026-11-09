@@ -2986,7 +2986,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "lazy" || key == "size" || key == "date" || key == "status" || key == "cells") {
 		return true
 	}
-	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
+	if (tag == "chart" || tag == "graph") && (key == "name" || key == "data" || key == "editMode" || key == "chartType" || key == "format" || key == "theme" || key == "colorPicker" || key == "settingsButton" || key == "showZoom" || key == "showAdd" || key == "showHistory" ||
 		key == "x" || key == "y" || key == "width" || key == "height" || key == "overflow" ||
 		key == "zoom" || key == "pointWidth" || key == "pointSize" || key == "bins" || key == "min" || key == "max" || key == "interactive" || key == "stateMode" || key == "stateHints" ||
 		key == "stateHintBg" || key == "stateHintOpacity" || key == "stateHintTextColor" || key == "stateHintTextAlign" || key == "stateHintBorderColor" ||
@@ -3059,7 +3059,7 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "tcell" && (key == "head" || key == "colspan" || key == "rowspan") {
 		return true
 	}
-	if tag == "table" && (key == "name" || key == "editable" || key == "fixed" || key == "cellText" ||
+	if tag == "table" && (key == "name" || key == "editable" || key == "editMode" || key == "fixed" || key == "cellText" ||
 		key == "columns" || key == "columnLabels" || key == "columnWidths" ||
 		key == "columnAlign" || key == "columnTypes" || key == "columnFormats" || key == "columnOptions" ||
 		key == "sortable" || key == "filterable" || key == "pageSize" || key == "selection" ||

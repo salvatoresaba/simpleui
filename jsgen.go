@@ -2071,8 +2071,21 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 		if v := treeTextAttr(e, "name"); v != "" {
 			sb.WriteString(" name=\"" + htmlEscape(v) + "\"")
 		}
+		tableEditMode := treeTextAttr(e, "editMode")
+		tableEditable := false
 		if a := findAttr(e, "editable"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
+			tableEditable = true
+		}
+		if tableEditMode == "editable" || tableEditMode == "persistent" {
+			tableEditable = true
+		} else if tableEditMode == "none" {
+			tableEditable = false
+		}
+		if tableEditable {
 			sb.WriteString(" data-sui-editable=\"1\"")
+		}
+		if tableEditMode != "" {
+			sb.WriteString(" data-sui-edit-mode=\"" + htmlEscape(tableEditMode) + "\"")
 		}
 		fixedAttr := false
 		if a := findAttr(e, "fixed"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b {
@@ -2429,7 +2442,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			a.key == "max" || a.key == "step" || a.key == "disabled" || a.key == "required") {
 			continue
 		}
-		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "chartType" || a.key == "format" || a.key == "theme" ||
+		if chartTag(e.tag) && (a.key == "name" || a.key == "data" || a.key == "editMode" || a.key == "chartType" || a.key == "format" || a.key == "theme" ||
 			a.key == "x" || a.key == "y" || a.key == "width" || a.key == "height" || a.key == "overflow" ||
 			a.key == "zoom" || a.key == "pointWidth" || a.key == "pointSize" || a.key == "bins" || a.key == "min" || a.key == "max" ||
 			a.key == "tableView" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableSelection" || a.key == "criticalPath" || a.key == "holidays" || a.key == "weekend" || a.key == "timezone" || a.key == "showNonWorkingDays" || a.key == "progressColumn" || a.key == "interactive" || a.key == "stateMode" || a.key == "stateHints" || a.key == "stateHintBg" || a.key == "stateHintOpacity" || a.key == "stateHintTextColor" || a.key == "stateHintTextAlign" || a.key == "stateHintBorderColor" || a.key == "stateHintFont" || a.key == "stateHintFontSize" || a.key == "stateHintBorderWidth" || a.key == "stateHintPadding" || a.key == "stateHintRadius" ||
@@ -2460,7 +2473,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			continue
 		}
-		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "fixed" ||
+		if e.tag == "table" && (a.key == "name" || a.key == "editable" || a.key == "editMode" || a.key == "fixed" ||
 			a.key == "columns" || a.key == "columnLabels" || a.key == "columnWidths" ||
 			a.key == "columnAlign" || a.key == "columnTypes" || a.key == "columnFormats" || a.key == "columnOptions" ||
 			a.key == "cellText" || a.key == "sortable" || a.key == "filterable" || a.key == "pageSize" || a.key == "selection" ||
@@ -2946,6 +2959,8 @@ func chartDataAttrs(e *Element) string {
 	}
 	b.WriteString("\" data-sui-chart-theme=\"")
 	b.WriteString(chartAttrValue(e, "theme", "dark"))
+	b.WriteString("\" data-sui-chart-edit-mode=\"")
+	b.WriteString(chartAttrValue(e, "editMode", ""))
 	b.WriteString("\" data-sui-chart-data=\"")
 	b.WriteString(chartAttrValue(e, "data", ""))
 	b.WriteString("\" data-sui-chart-format=\"")

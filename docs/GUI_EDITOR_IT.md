@@ -1300,10 +1300,17 @@ Gruppi del pannello:
 - **Caption** - didascalia opzionale, dimensione, peso, allineamento e colore. A
   runtime la didascalia è mostrata nella riga titolo appena sopra la tabella,
   sulla stessa riga dell'ingranaggio impostazioni.
-- **Behavior** - celle **editable** e modalità **cell text**: **truncate**
-  (default; la larghezza della colonna non cresce con il testo, una riga con
-  ellissi e testo completo in overlay al passaggio del mouse) oppure **wrap**
-  (larghezza colonna fissa, testo a capo e altezza riga che cresce). Le modifiche runtime a celle e intestazioni restano nello
+- **Behavior** - **edit mode** e modalità **cell text**. La select edit mode ha
+  tre stati: **non-editable** (l'utente può leggere, ordinare, filtrare e
+  selezionare ma non può modificare celle, importare dati o cambiare la
+  struttura), **editable** (modifiche, import e dati creati durano per la
+  sessione della pagina e i dati del sorgente tornano al reload) ed **editable
+  persistent** (modifiche, dati importati e fogli creati a runtime vengono
+  salvati in `localStorage` e sopravvivono a reload/riavvio; se la tabella parte
+  vuota i dati creati dall'utente restano). La modalità **cell text** è
+  **truncate** (default; la larghezza della colonna non cresce con il testo, una
+  riga con ellissi e testo completo in overlay al passaggio del mouse) oppure
+  **wrap** (larghezza colonna fissa, testo a capo e altezza riga che cresce). Le modifiche runtime a celle e intestazioni restano nello
   store della tabella tra re-render e cambio foglio per la sessione della pagina;
   la digitazione non ridisegna la tabella, il valore è finalizzato al blur o dopo
   una breve pausa e gli eventi di cambio scattano al blur. Gli eventi `input`
@@ -1538,10 +1545,15 @@ GRID/SHAPES/LINKS/TAGS ricompare il pannello General. I default SHAPES usano due
 colonne allineate con righe di pari altezza. Il grafo mantiene solo diagramma,
 tabella forme/link e controlli di aggiunta. **Export JSON** include forme, link e
 impostazioni complete: reimportandolo il diagramma viene ricostruito identico.
-Lo switch **Edit mode** nella tab Interactions passa tra **Editing** e
+Lo switch **Diagram edit mode** nella tab Interactions passa tra **Editing** e
 **Static**. Static rimuove selezione, drag/resize e maniglie mantenendo pan/zoom;
 lo stesso valore è disponibile come `stateMode` e nelle impostazioni chart del
-designer. In modalità statica ogni interazione viene accodata dal chart; SUI consuma la
+designer. La select **Edit mode** della stessa tab è invece l'impostazione a 3
+stati dei controlli dati: **non-editable** (sola visualizzazione, con tooltip e
+selezione), **editable** (modifiche per la sessione della pagina, dati del
+sorgente ripristinati al reload) ed **editable persistent** (modifiche salvate in
+`localStorage` e mantenute dopo reload/riavvio, compresi dati importati e
+controlli inizialmente vuoti riempiti dall'utente). In modalità statica ogni interazione viene accodata dal chart; SUI consuma la
 lista con `chart.pollEvents` / `chart.nextEvent` e decide quale funzione esterna
 chiamare. L'elemento della lista contiene `event`, `kind`, `part`, `id`,
 `label`, `tag`, coordinate e modificatori. I callback diretti legacy restano
@@ -1727,7 +1739,7 @@ grafico include tutte le righe; Settings esporta le righe e colonne visibili.
 **Chart settings** apre il pannello unificato con tab Appearance, Points, Tooltip,
 Table, Interactions, Events e Data. Controlla tema dark/light, **Editable colors**
 (color picker on/off), preset, point size e point width, tooltip, tabella, **Column filters**
-on/off, modalità interactive, **Critical path**, **Auto schedule**, **Holidays**, **Weekend**,
+on/off, modalità interactive, **Edit mode** (**non-editable**, **editable** o **editable persistent**), **Critical path**, **Auto schedule**, **Holidays**, **Weekend**,
 **Timezone**, **Link color**, **Link width** (default `1px`), **Min link gap**
 (default `4px`), **Line style**,
 **Arrow**, **Arrow size**, **Bar border** e **Bar border color**; la tab Data
@@ -1848,7 +1860,10 @@ Inserire **Graph** da **Controls**. Un nuovo graph parte come diagramma a blocch
 **vuoto**: stati e transizioni sono dati e non vengono inseriti come contenuto
 dimostrativo; usa **Edit data** o collega uno stato/espressione. Riempie il
 contenitore (`width: "100%"`, `height: "100%"`). È un controllo foglia: non può contenere
-elementi figli.
+elementi figli. La select **Edit mode** in **Graph settings → Interactions** rende
+il diagramma non-editable, editable per la sessione o editable persistent
+(`localStorage` tra reload/riavvio); lo switch separato **Diagram edit mode**
+continua a scegliere tra chrome Editing e Static.
 
 L'inspector del graph è ordinato così:
 

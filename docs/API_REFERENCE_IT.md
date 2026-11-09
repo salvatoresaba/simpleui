@@ -764,6 +764,17 @@ stato, un'espressione o un'API. Se un sorgente SUI preimposta dei dati è una
 scelta intenzionale e vengono mostrati di nuovo a ogni caricamento dell'app; le
 modifiche runtime durano per la sessione della pagina salvo persistenza esplicita.
 
+`editMode` è l'impostazione a 3 stati dei controlli dati: `"none"` rende tabella
+e diagramma di sola lettura ma continua a mostrare dati, tooltip e selezione;
+`"editable"` consente modifiche, import, drag/resize Gantt e editing del diagramma
+per la sessione della pagina; `"persistent"` salva le modifiche in `localStorage`
+e le mantiene dopo reload e riavvio. I sorgenti legacy senza `editMode` mantengono
+il comportamento precedente: un chart normale interactive equivale a
+`"editable"`, mentre un Gantt interactive o un diagramma equivale a
+`"persistent"` (le loro modifiche erano già salvate in `localStorage`). Tooltip e
+selezione restano funzioni di visualizzazione e non vengono disabilitati da
+`editMode: "none"`.
+
 ```sui
 state sales = "[\{\"month\":\"Jan\",\"value\":12\},\{\"month\":\"Feb\",\"value\":18\}]"
 
@@ -1041,7 +1052,10 @@ Il controllo dedicato `graph` disegna un diagramma a blocchi/stati. Usa sempre
 la geometria forme/link, quindi non scrive `chartType`. Un graph vuoto è un
 contenitore valido; stati e transizioni preimpostati nel sorgente vengono mostrati
 di nuovo a ogni caricamento dell'app, mentre le modifiche runtime durano per la
-sessione della pagina.
+sessione della pagina. Usa `editMode: "none" | "editable" | "persistent"` per
+governare l'editing del diagramma: `"none"` è sola visualizzazione, `"editable"`
+mantiene le modifiche per la sessione, `"persistent"` le mantiene dopo
+reload/riavvio (stati, transizioni, geometria e task Gantt).
 
 ```sui
 state flow = "\{\"states\":[\{\"id\":\"input\",\"label\":\"Input\"\},\{\"id\":\"process\",\"label\":\"Process\"\},\{\"id\":\"output\",\"label\":\"Output\"\}],\"transitions\":[\{\"from\":\"input\",\"to\":\"process\"\},\{\"from\":\"process\",\"to\":\"output\"\}]\}"
@@ -2146,6 +2160,21 @@ table name: "utenti" columns: "id,nome,stato,importo"
   fuoco. `filterable` aggiunge il filtro testo globale e inizializza i filtri
   per colonna nell'header; `pageSize` pagina le righe; `selection` è `row`,
   `column` o `cell` e `multiSelect` abilita la selezione multipla.
+- `editMode` è l'impostazione a 3 stati dei controlli dati:
+  - `"none"`: l'utente non può modificare celle, inserire righe, importare o
+    cambiare la struttura; la tabella continua a caricare e mostrare i dati.
+  - `"editable"` (o il legacy `editable: true`): l'utente può modificare,
+    importare o creare dati per la sessione della pagina. Un reload ripristina
+    i dati del sorgente.
+  - `"persistent"`: modifiche, dati importati e fogli creati a runtime vengono
+    salvati in `localStorage` e sopravvivono a reload e riavvio. Se il controllo
+    parte vuoto, i dati creati dall'utente restano. I dati salvati hanno la
+    precedenza su `table.display`/`table.importText` eseguiti durante il boot
+    iniziale, così il dataset preimpostato non sovrascrive il lavoro dell'utente.
+
+`editMode` governa editing e inserimento dati; `showAddTable` e
+`structureEditable` restano le opzioni esplicite del workbook e vengono ignorate
+con `editMode: "none"`.
 
 Helper runtime:
 

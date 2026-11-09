@@ -2558,6 +2558,8 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			} else {
 				o.obj[field] = JStr(partsLiteral(a.text))
 			}
+		} else if chartTag(e.tag) && a.key == "editMode" {
+			o.obj["chartEditMode"] = JStr(partsLiteral(a.text))
 		} else if chartTag(e.tag) && a.key == "interactive" {
 			o.obj["chartInteractive"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if chartTag(e.tag) && (a.key == "showGrid" || a.key == "showLegend" || a.key == "showValues" || a.key == "tableFilters" || a.key == "tableAddRow" || a.key == "tableDeleteRow" || a.key == "tableSteppers" || a.key == "tableContextMenu" || a.key == "tableEdit" || a.key == "criticalPath" || a.key == "colorPicker" || a.key == "settingsButton" ||
@@ -2855,6 +2857,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 	// row scan so the designer never drops editable/labels/sortable on a
 	// header-only table.
 	editable := false
+	editMode := ""
 	fixed := false
 	columns := ""
 	columnLabels := ""
@@ -2877,6 +2880,8 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		switch at.key {
 		case "editable":
 			editable = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
+		case "editMode":
+			editMode = partsLiteral(at.text)
 		case "fixed":
 			fixed = at.hasExpr && at.expr != nil && at.expr.kind == "bool" && at.expr.b
 		case "cellText":
@@ -2997,7 +3002,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 			"cstyles", JArr(styleRow),
 			"rowstyles", JArr(JObj("bg", JStr(""), "color", JStr(""), "extra", JStr(""))),
 			"caption", JStr(captionText), "capstyle", JStr(captionStyle),
-			"editable", JBool(editable), "fixed", JBool(fixed),
+			"editable", JBool(editable), "editMode", JStr(editMode), "fixed", JBool(fixed),
 			"columns", JStr(columns), "columnLabels", JStr(columnLabels), "columnWidths", JStr(columnWidths),
 			"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
 			"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),
@@ -3102,7 +3107,7 @@ func guiTableFrom(e *Element) (JVal, bool) {
 		"cols", JInt(cols), "rows", JInt(rows), "header", JInt(headerCount),
 		"cells", cells, "spans", spans, "cstyles", cstyles, "rowstyles", rowstyles,
 		"caption", JStr(captionText), "capstyle", JStr(captionStyle),
-		"editable", JBool(editable), "fixed", JBool(fixed),
+		"editable", JBool(editable), "editMode", JStr(editMode), "fixed", JBool(fixed),
 		"columns", JStr(columns), "columnLabels", JStr(columnLabels), "columnWidths", JStr(columnWidths),
 		"columnAlign", JStr(columnAlign), "columnTypes", JStr(columnTypes), "columnFormats", JStr(columnFormats),
 		"columnOptions", JStr(columnOptions), "sortable", JBool(sortable), "filterable", JBool(filterable),

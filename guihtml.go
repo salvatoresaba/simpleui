@@ -1572,9 +1572,10 @@ RUNNING</div>
       <div class="pfrow"><label>Sticky header</label><input type="checkbox" id="cs-tb-sticky" checked></div>
     </div>
     <div class="cset-pane" data-pane="interactions">
-      <div class="cset-hint">Interactive enables tooltips, selection, table editing and Gantt drag/resize. Keyboard: focus the chart and use arrow keys; Enter selects.</div>
+      <div class="cset-hint">Edit mode: non-editable only displays data; editable allows page-session edits; editable persistent keeps user changes after reload/restart. Interactive enables tooltips, selection and hover.</div>
+      <div class="pfrow"><label>Edit mode</label><select id="cs-edit-mode"><option value="none">Non-editable</option><option value="editable">Editable</option><option value="persistent">Editable persistent</option></select></div>
       <div class="pfrow"><label>Interactive</label><input type="checkbox" id="cs-interactive"></div>
-      <div class="pfrow"><label>Edit mode</label><input type="checkbox" id="cs-state-edit" checked></div>
+      <div class="pfrow"><label>Diagram edit mode</label><input type="checkbox" id="cs-state-edit" checked></div>
       <div class="pfrow"><label>Hover hints</label><input type="checkbox" id="cs-state-hints" checked></div>
       <div class="pfrow"><label>Hint style</label><button class="btn" onclick="openChartHintsCfg()">HINTS...</button></div>
       <div class="pfrow"><label>Show resources</label><input type="checkbox" id="cs-gantt-resources"></div>
@@ -2025,11 +2026,33 @@ function normalizeTables(nodes) {
       if (n.caption === undefined) n.caption = "";
       if (n.capstyle === undefined) n.capstyle = "";
       if (n.captionShow === undefined) n.captionShow = !!(n.caption && n.caption.trim());
-      if (n.editable === undefined) n.editable = false;
+      // Keep "" when the source did not ask for a mode: legacy tables and
+      // workbook sheets keep their previous data-entry behavior. An explicit
+      // "none" is a real read-only request and must be preserved.
+      if (n.editMode === undefined) n.editMode = n.editable ? "editable" : "";
+      if (n.editMode !== "" && n.editMode !== "none" && n.editMode !== "editable" && n.editMode !== "persistent") {
+        n.editMode = n.editable ? "editable" : "";
+      }
+      n.editable = n.editMode === "editable" || n.editMode === "persistent";
       if (n.fixed === undefined) n.fixed = false;
       if (n.cellText === undefined || n.cellText === "auto") n.cellText = "truncate";
       if (n.name === undefined) n.name = "";
       ensureTableBaseCss();
+    }
+    if (n.kind === "chart" || n.kind === "graph") {
+      // Keep "" when the source did not ask for a mode: legacy charts derive
+      // it at runtime from interactive/state mode. Explicit values win.
+      if (n.chartEditMode === undefined) n.chartEditMode = "";
+      if (n.chartEditMode !== "" && n.chartEditMode !== "none" && n.chartEditMode !== "editable" && n.chartEditMode !== "persistent") {
+        n.chartEditMode = "";
+      }
+      if (n.chartEditMode === "") {
+        // Materialize the legacy effective mode so the settings select shows
+        // it and a save keeps the previous behavior.
+        var diagram = n.kind === "graph" || n.chartType === "state" || n.chartType === "statemachine";
+        if (n.chartInteractive) n.chartEditMode = (diagram || n.chartType === "gantt") ? "persistent" : "editable";
+        else if (diagram) n.chartEditMode = "persistent";
+      }
     }
     if (n.kind === "list") {
       if (!Array.isArray(n.items)) n.items = [];
@@ -2071,6 +2094,7 @@ function newTableNode() {
   n.capstyle = "";
   n.captionShow = false;
   n.editable = false;
+  n.editMode = "none";
   n.fixed = false;
   n.cellText = "truncate";
   n.name = uniqueTableName();
@@ -2322,6 +2346,10 @@ function newChartNode(skipDefaults) {
   n.chartMin = "";
   n.chartMax = "";
   n.chartInteractive = false;
+  // Data-control edit mode: none (read-only), editable (page session) or
+  // persistent (survives reload/restart). Legacy sources without this field
+  // derive it from interactive/state mode.
+  n.chartEditMode = "none";
   n.chartStateMode = "editing";
   n.chartStateHints = true;
   n.chartStateHintBg = "";
@@ -2376,6 +2404,7 @@ function newGraphNode(skipDefaults) {
   n.chartData = "";
   n.chartDataExpr = false;
   n.chartFormat = "auto";
+  n.chartEditMode = "none";
   n.chartStateMode = "static";
   n.chartWidth = "100%";
   n.chartHeight = "100%";
@@ -7214,8 +7243,8 @@ function chartControls(n) {
   fields.grid = boolRow("show grid", "chartGrid", "Draw horizontal grid lines.");
   fields.legend = boolRow("show legend", "chartLegend", "Show a legend under the chart.");
   fields.values = boolRow("show values", "chartValues", "Print numeric values on bars/lines.");
-  fields.interactive = boolRow("interactive", "chartInteractive", "Enable Gantt drag/resize and editable Gantt table cells. Tooltips and selection stay available.");
-  fields.interactive.title = "Enable chart hover/selection and Gantt editing when a task-change handler is set.";
+  fields.interactive = boolRow("interactive", "chartInteractive", "Legacy switch: when no edit mode is set it behaves like editable. Use Edit mode in Chart/Graph settings for the explicit 3-state choice.");
+  fields.interactive.title = "Legacy editing switch; edit modes are chosen in Chart/Graph settings.";
 
   var sep = document.createElement("div");
   sep.style.cssText = "border-top:1px solid var(--border);margin:8px 0 6px";
@@ -8859,12 +8888,20 @@ function normalizeWorkbooks() {
           var entries = workbookEntriesForTabs(n, p);
           if (entries) {
             entries.forEach(function(entry) {
-              // A sheet that explicitly asks for row/column/cell selection is
-              // not a data-entry sheet: keep it read-only so selection works.
-              if (entry.table.editable || !entry.table.selection || entry.table.selection === "none") entry.table.editable = true;
-              // The runtime still creates the + for the designer preview; only
-              // editable workbooks keep it in a compiled app.
-              if (entry.table.editable) entry.table.showAddTable = true;
+              var mode = entry.table.editMode;
+              if (mode === "none") {
+                // Explicit read-only workbook sheet: never force editability.
+                entry.table.editable = false;
+                entry.table.showAddTable = false;
+                entry.table.structureEditable = false;
+              } else {
+                // A sheet that explicitly asks for row/column/cell selection is
+                // not a data-entry sheet: keep it read-only so selection works.
+                if (entry.table.editable || !entry.table.selection || entry.table.selection === "none") entry.table.editable = true;
+                // The runtime still creates the + for the designer preview; only
+                // editable workbooks keep it in a compiled app.
+                if (entry.table.editable) entry.table.showAddTable = true;
+              }
               if (!entry.table.name) entry.table.name = uniqueTableName();
             });
             normalizeWorkbookControl(n, entries);
@@ -8881,6 +8918,7 @@ function wrapTableInWorkbook(path) {
   var table = byPath(path, root.children);
   if (!table || table.kind !== "table") return path;
   table.editable = true;
+  table.editMode = "editable";
   table.showAddTable = true;
   var wrap = pathOfTableWrapper(path);
   var containerPath = wrap ? wrap.path : path;
@@ -8962,6 +9000,7 @@ function copyTableSheetLook(src, dst) {
   // source table. Without this the second sheet opens non-editable and the
   // preview falls back to type-to-edit (which reloads it on each key).
   dst.editable = true;
+  dst.editMode = "editable";
   dst.cellText = src.cellText || "truncate";
   if (dst.cellText === "auto") dst.cellText = "truncate";
   if (dst.cellText === "truncate") dst.fixed = true;
@@ -9528,10 +9567,25 @@ function tableControls(n, opts) {
     row.appendChild(chk);
     return row;
   }
-  var behRows = [
-    boolRow("editable", function(){ return n.editable; }, function(v){ n.editable = v; },
-      "Cells can be edited by the end user in the rendered app.")
-  ];
+  var editModeRow = document.createElement("div"); editModeRow.className = "rowline";
+  var editModeLbl = lbl("edit mode");
+  editModeLbl.title = "Non-editable: the user can only read, sort, filter and select. Editable: the user can edit data for the page session; source data returns on reload. Editable persistent: user changes (including imported data) survive reload and restart.";
+  editModeRow.appendChild(editModeLbl);
+  var editModeSel = document.createElement("select");
+  [["non-editable", "none"], ["editable", "editable"], ["editable persistent", "persistent"]].forEach(function(o) {
+    var eo = document.createElement("option"); eo.value = o[1]; eo.textContent = o[0]; editModeSel.appendChild(eo);
+  });
+  editModeSel.value = (n.editMode === "editable" || n.editMode === "persistent") ? n.editMode : "none";
+  editModeSel.onchange = function(){
+    var v = editModeSel.value;
+    withUndo(function(){
+      n.editMode = v;
+      n.editable = v !== "none";
+      if (v === "none") { n.showAddTable = false; n.structureEditable = false; }
+    });
+  };
+  editModeRow.appendChild(editModeSel);
+  var behRows = [editModeRow];
   var cellTextRow = document.createElement("div"); cellTextRow.className = "rowline";
   var cellTextLbl = lbl("cell text");
   cellTextLbl.title = "Truncate keeps the column width, shows the beginning with an ellipsis and the full text on hover; Wrap keeps the column width and grows the row height.";
@@ -10991,6 +11045,8 @@ function attrsOf(n) {
   if (n.maxOptions) a += " maxOptions: " + n.maxOptions;
   if (isChartKind(n)) {
     if (n.chartData) a += " data: " + (n.chartDataExpr ? n.chartData : "\"" + esc(n.chartData) + "\"");
+    var chartMode = (n.chartEditMode === "editable" || n.chartEditMode === "persistent" || n.chartEditMode === "none") ? n.chartEditMode : "";
+    if (chartMode) a += " editMode: \"" + esc(chartMode) + "\"";
     if (n.kind !== "graph") a += chartParamAttr(n, "chartType", "chartType", n.chartType, "bar", true);
     a += chartParamAttr(n, "theme", "chartTheme", n.chartTheme, "dark", true);
     a += chartParamAttr(n, "format", "chartFormat", n.chartFormat, "auto", true);
@@ -11251,7 +11307,8 @@ function tableToSui(n, depth) {
   var cellText = n.cellText || "truncate";
   if (cellText === "auto") cellText = "truncate";
   var fixedMode = n.fixed || cellText === "truncate";
-  var extra = (n.editable ? " editable: true" : "") + (fixedMode ? " fixed: true" : "");
+  var tableMode = (n.editMode === "editable" || n.editMode === "persistent" || n.editMode === "none") ? n.editMode : (n.editable ? "editable" : "");
+  var extra = (n.editable ? " editable: true" : "") + (tableMode ? " editMode: \"" + esc(tableMode) + "\"" : "") + (fixedMode ? " fixed: true" : "");
   if (cellText === "wrap") extra += ' cellText: "wrap"';
   else if (cellText === "truncate") extra += ' cellText: "truncate"';
   if (n.columns) extra += " columns: \"" + esc(n.columns) + "\"";
@@ -13968,7 +14025,7 @@ var chartSettingsNode = null;
 var chartSettingsProjectKind = null;
 var CHART_PROJECT_DEFAULT_KEYS = [
   "styleExpr", "chartTheme", "chartColorPicker", "chartPointSize", "chartPointWidth", "chartInteractive",
-  "chartStateMode", "chartStateHints", "chartStateHintTextAlign", "chartShowResources", "chartShowProgress",
+  "chartEditMode", "chartStateMode", "chartStateHints", "chartStateHintTextAlign", "chartShowResources", "chartShowProgress",
   "chartProgressColumn", "chartShowSlack", "chartShowCosts", "chartShowNonWorkingDays",
   "chartStatusColors", "chartAutoSchedule", "chartGanttScale", "chartLinkColor",
   "chartLinkWidth", "chartLinkGap", "chartLinkStyle", "chartArrowType", "chartArrowSize",
@@ -14151,6 +14208,7 @@ function openChartSettings(n, projectKind) {
   tv.value = n.chartTableView === "gantt" ? "chart" : (n.chartTableView || "chart");
   document.getElementById("cs-pointsize").value = n.chartPointSize || "3";
   document.getElementById("cs-pointwidth").value = n.chartPointWidth || "48";
+  document.getElementById("cs-edit-mode").value = (n.chartEditMode === "editable" || n.chartEditMode === "persistent") ? n.chartEditMode : "none";
   document.getElementById("cs-interactive").checked = !!n.chartInteractive;
   document.getElementById("cs-state-edit").checked = n.chartStateMode !== "static";
   document.getElementById("cs-state-hints").checked = n.chartStateHints !== false;
@@ -14266,6 +14324,8 @@ function chartSettingsValues(n) {
   v.chartColorPicker = document.getElementById("cs-colorpicker").checked;
   v.chartPointSize = document.getElementById("cs-pointsize").value || "3";
   v.chartPointWidth = document.getElementById("cs-pointwidth").value || "48";
+  v.chartEditMode = document.getElementById("cs-edit-mode").value || "none";
+  if (v.chartEditMode !== "none" && v.chartEditMode !== "editable" && v.chartEditMode !== "persistent") v.chartEditMode = "none";
   v.chartInteractive = document.getElementById("cs-interactive").checked;
   v.chartStateMode = document.getElementById("cs-state-edit").checked ? "editing" : "static";
   v.chartStateHints = document.getElementById("cs-state-hints").checked;

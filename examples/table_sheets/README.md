@@ -22,6 +22,10 @@ columns, sorting, filtering, pagination, selection and validated editing.
   levels in the panel to reproduce Excel's filter and multi-sort behavior.
 - Row selection with `selection: "row"` and `multiSelect: true`.
 - Editable order cells with number/currency validation.
+- `editMode: "persistent"` on the Orders sheet: user edits are stored in
+  `localStorage` and survive reload/restart. The Users sheet keeps the legacy
+  read-only/selection behavior; switch it to `editMode: "editable"` to make it
+  session-editable or `"persistent"` to keep its data across restarts.
 - `onTableChange`, `onCellChange` and `table.lastChange`.
 - CSV import through `table.importText`.
 - Runtime **+** tab creation and row/column structure editing
@@ -105,7 +109,8 @@ view main {
 			}
 		}
 		tab "Orders" {
-			table name: "orders" columns: "name,qty,price" columnLabels: "Product,Qty,Price" columnWidths: "220,80,110" columnAlign: "left,right,right" columnTypes: "text,number,number" columnFormats: "text,number,currency:EUR" sortable: true filterable: true editable: true onCellChange: changed onTableChange: changed {
+			# Persistent edit mode: user edits to this sheet survive reload and restart.
+			table name: "orders" columns: "name,qty,price" columnLabels: "Product,Qty,Price" columnWidths: "220,80,110" columnAlign: "left,right,right" columnTypes: "text,number,number" columnFormats: "text,number,currency:EUR" sortable: true filterable: true editMode: "persistent" onCellChange: changed onTableChange: changed {
 			}
 		}
 	}

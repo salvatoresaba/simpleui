@@ -778,6 +778,16 @@ expression or an API. When a SUI source presets data it is intentional and is
 rendered again on every application load; runtime chart edits live for the page
 session unless the app persists them explicitly.
 
+`editMode` is the 3-state data-control setting: `"none"` makes the table and
+the diagram read-only while still rendering tooltips, selection and data;
+`"editable"` allows table edits, imports, Gantt drag/resize and diagram edits
+for the page session; `"persistent"` stores those changes in `localStorage` so
+they survive reload and restart. Legacy sources without `editMode` keep their
+previous behavior: an interactive regular chart behaves like `"editable"`, while
+an interactive Gantt or a diagram behaves like `"persistent"` (their edits were
+already stored in `localStorage`). Tooltips and selection remain display features
+and are not disabled by `editMode: "none"`.
+
 ```sui
 state sales = "[\{\"month\":\"Jan\",\"value\":12\},\{\"month\":\"Feb\",\"value\":18\}]"
 
@@ -1059,6 +1069,10 @@ The dedicated `graph` control renders a block/state diagram. It always uses the
 shapes/links geometry, so no `chartType` attribute is written. An empty graph is
 a valid empty container; states and transitions preset in the source are shown
 again on every application load, while runtime graph edits are page-session only.
+Use `editMode: "none" | "editable" | "persistent"` to control whether the user
+can edit the diagram: `"none"` is view-only, `"editable"` keeps changes for the
+page session and `"persistent"` keeps them after reload/restart (states,
+transitions, geometry and Gantt task changes).
 
 ```sui
 state flow = "\{\"states\":[\{\"id\":\"input\",\"label\":\"Input\"\},\{\"id\":\"process\",\"label\":\"Process\"\},\{\"id\":\"output\",\"label\":\"Output\"\}],\"transitions\":[\{\"from\":\"input\",\"to\":\"process\"\},\{\"from\":\"process\",\"to\":\"output\"\}]\}"
@@ -2258,6 +2272,20 @@ table name: "users" columns: "id,name,status,amount"
 - `pageSize` paginates the visible rows and renders a pager.
 - `selection` is `row`, `column` or `cell`; `multiSelect` enables Ctrl/Command
   toggling. Selection is intended for non-editable tables.
+- `editMode` is the 3-state data-control setting:
+  - `"none"`: the user cannot edit, insert rows, import or change structure; the
+    table still loads and displays data.
+  - `"editable"` (or legacy `editable: true`): the user can edit cells, import
+    or create data for the page session. A reload restores the source data.
+  - `"persistent"`: user edits, imported data and runtime-created workbook sheets
+    are stored in `localStorage` and survive reload and restart. If the control
+    starts empty, the data created by the user is kept. Saved data takes
+    precedence over source-scripted `table.display`/`table.importText` during
+    the initial boot, so a preset dataset is not restored over the user's work.
+
+`editMode` controls cell editing and data entry; `showAddTable` and
+`structureEditable` remain the explicit workbook/sheet options and are ignored
+when `editMode` is `"none"`.
 
 Runtime helpers:
 

@@ -1248,10 +1248,17 @@ Table settings groups:
 - **Caption** - optional caption, size, weight, alignment and color. At runtime
   the caption is shown in the title row just above the table, on the same line
   as the settings gear.
-- **Behavior** - **editable** cells and **cell text** mode: **truncate**
-  (default; the column width never grows with the text, a single line with an
-  ellipsis and the full text in a hover overlay) or **wrap** (the column width
-  stays fixed, the text wraps and the row height grows). Runtime cell and
+- **Behavior** - **edit mode** and **cell text** mode. The edit mode select has
+  three states: **non-editable** (the user can read, sort, filter and select but
+  cannot edit cells, import data or change structure), **editable** (edits,
+  imports and runtime-created data last for the page session and the source data
+  returns on reload) and **editable persistent** (edits, imported data and
+  runtime-created workbook sheets are stored in `localStorage` and survive
+  reload/restart; if the table starts empty the data created by the user is
+  kept). The cell text mode is **truncate** (default; the column width never
+  grows with the text, a single line with an ellipsis and the full text in a
+  hover overlay) or **wrap** (the column width stays fixed, the text wraps and
+  the row height grows). Runtime cell and
   header edits stay in the table store across re-renders and sheet switches for
   the page session; typing never rebuilds the table, the value is finalized on
   blur or after a short pause and change events run on blur. Cell input events
@@ -1477,9 +1484,10 @@ sub-panel restores the General panel. The SHAPES defaults use two aligned
 columns with matching row heights. The graph itself keeps only the diagram,
 the shapes/links table and the add controls. **Export JSON** embeds the full
 shapes, links and settings so re-importing it reconstructs the diagram exactly.
-The **Edit mode** switch in the Interactions tab toggles between **Editing** and
-**Static**. Static mode removes selection, drag/resize and editing handles while
-keeping pan/zoom; the same value is available as `stateMode` and in the designer
+The **Diagram edit mode** switch in the Interactions tab toggles between
+**Editing** and **Static**. Static mode removes selection, drag/resize and
+editing handles while keeping pan/zoom; the same value is available as
+`stateMode` and in the designer
 chart settings. In static mode every interaction is queued by the chart; SUI
 consumes the queue with `chart.pollEvents` / `chart.nextEvent` and decides which
 external function to call. The queue item contains `event`, `kind`, `part`,
@@ -1680,7 +1688,8 @@ a chart mark selects its row, and a row highlights all marks for that label
 **Chart settings.** The **Chart settings** button opens the unified panel with
 tabs: Appearance, Points, Tooltip, Table, Interactions, Events and Data. It controls the
 dark/light theme, **Editable colors** (color picker on/off), style preset, point size and point width, tooltip colors/width/font/delay, **Mode**, **Column
-filters** on/off and table typography, interactive mode, **Critical path**, **Auto schedule**,
+filters** on/off and table typography, interactive mode, **Edit mode**
+(**non-editable**, **editable** or **editable persistent**), **Critical path**, **Auto schedule**,
 **Holidays**, **Weekend**, **Timezone**, **Link color**, **Link width** (default
 `1px`), **Min link gap** (default `4px`), **Line style**, **Arrow**, **Arrow
 size**, **Bar border** and **Bar border color**; the Data tab has
@@ -1691,6 +1700,13 @@ tones adapt to the theme background. Click a series swatch in a table header or
 legend to change that series color; the override is stored per chart. Chart
 updates crossfade the old SVG into the new one unless reduced motion is
 requested.
+
+The **Edit mode** select in **Interactions** is the 3-state data-control
+setting: **non-editable** lets the user read data and use tooltips/selection but
+blocks table edits, imports, Gantt drag/resize and diagram edits; **editable**
+allows those changes for the page session and restores the source data on reload;
+**editable persistent** stores the changes (including imported data and empty
+tables filled by the user) in `localStorage` so they survive reload and restart.
 
 Charts can receive keyboard focus; use `ArrowLeft`/`ArrowRight` (or up/down) to
 move through data marks, `Home`/`End` to jump, `Enter`/`Space` to select, and
@@ -1783,7 +1799,10 @@ Insert **Graph** from **Controls**. A new graph starts as an empty block diagram
 states and transitions are data, so they are not injected as demo content; use
 **Edit data** or bind a state/expression. It fills its container (`width:
 "100%"`, `height: "100%"`). It is a leaf control: it cannot contain child
-elements.
+elements. The **Edit mode** select in **Graph settings  Interactions** makes
+the diagram non-editable, editable for the page session, or editable persistent
+(`localStorage` across reload/restart); the separate **Diagram edit mode**
+switch still chooses between Editing and Static chrome.
 
 The graph inspector is ordered as follows:
 | Field | Meaning |
