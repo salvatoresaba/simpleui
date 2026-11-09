@@ -1167,7 +1167,7 @@ cell** section and set `column span` / `row span` to merge it with the cells on
 its right or below. The same section edits cell padding, horizontal/vertical
 alignment, background and a per-cell border. **Reset to 1 x 1** splits it again.
 
-Cells are outlined in the designer preview, including empty and merged cells, so
+Arrow keys move selection between empty cells. Cells are outlined in the designer preview, including empty and merged cells, so
 the grid is visible even without application borders. Wrap several elements in a
 `col`, `div` or `card` to keep them in the same cell. Use the data **Table**
 control when you need `table.display`, `table.importText`, sorting, filtering or

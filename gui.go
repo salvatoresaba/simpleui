@@ -1532,6 +1532,25 @@ const guiPreviewPicker = `<script>
     var t = e.target;
     var editing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
     if (editing) return;
+    if (layoutHl) {
+      var lr = Number(layoutHl.getAttribute('data-sui-layout-row'));
+      var lc = Number(layoutHl.getAttribute('data-sui-layout-col'));
+      var nr = lr, nc = lc;
+      if (e.key === 'ArrowLeft') nc--;
+      else if (e.key === 'ArrowRight') nc++;
+      else if (e.key === 'ArrowUp') nr--;
+      else if (e.key === 'ArrowDown') nr++;
+      else nr = -1;
+      if (nr >= 0 && nc >= 0) {
+        var lt = layoutHl.closest('table');
+        var next = lt ? lt.querySelector('.sui-layout-cell[data-sui-layout-row="' + nr + '"][data-sui-layout-col="' + nc + '"]') : null;
+        if (next && !next.querySelector('[data-sui-id]')) {
+          parent.postMessage({ ty: 'sui-layout-cell', table: Number(lt.getAttribute('data-sui-id')), row: nr, col: nc }, '*');
+          e.preventDefault();
+          return;
+        }
+      }
+    }
     if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
     if (!e.key || e.key.length !== 1) return;
     parent.postMessage({ ty: 'sui-key', key: e.key }, '*');

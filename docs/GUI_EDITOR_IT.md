@@ -1214,7 +1214,7 @@ Seleziona un figlio diretto per aprire **Layout cell** e impostare `column span`
 modifica padding, allineamento orizzontale/verticale, sfondo e bordo della
 singola cella. **Reset to 1 x 1** la divide di nuovo.
 
-Le celle sono evidenziate nella preview del designer, comprese quelle vuote e
+Le frecce spostano la selezione tra le celle vuote. Le celle sono evidenziate nella preview del designer, comprese quelle vuote e
 unite, così la griglia è visibile anche senza bordi applicativi. Raggruppa più
 elementi in un `col`, `div` o `card` per tenerli nella stessa cella. Usa il
 controllo dati **Table** quando servono `table.display`, `table.importText`,
