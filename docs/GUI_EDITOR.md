@@ -1178,7 +1178,8 @@ Select a direct child to open the **Layout cell** section and set `column span` 
 edits cell padding, horizontal/vertical
 alignment, background and a per-cell border. **Reset to 1 x 1** splits it again.
 
-Arrow keys move selection between empty cells. Cells are outlined in the designer preview, including empty and merged cells, so
+Arrow keys move selection between empty cells. In the designer preview responsive stacking is temporarily disabled so the grid
+and its split handles stay visible. Cells are outlined, including empty and merged cells, so
 the grid is visible even without application borders. Wrap several elements in a
 `col`, `div` or `card` to keep them in the same cell. Use the data **Table**
 control when you need `table.display`, `table.importText`, sorting, filtering or

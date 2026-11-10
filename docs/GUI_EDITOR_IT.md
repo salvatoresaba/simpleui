@@ -1226,7 +1226,7 @@ unendo la cella con quelle a destra o in basso. La stessa sezione modifica
 padding, allineamento orizzontale/verticale, sfondo e bordo della singola cella.
 **Reset to 1 x 1** la divide di nuovo.
 
-Le frecce spostano la selezione tra le celle vuote. Le celle sono evidenziate nella preview del designer, comprese quelle vuote e
+Le frecce spostano la selezione tra le celle vuote. Nella preview del designer l'impilamento responsive è temporaneamente disattivato per mantenere visibili griglia e maniglie. Le celle sono evidenziate, comprese quelle vuote e
 unite, così la griglia è visibile anche senza bordi applicativi. Raggruppa più
 elementi in un `col`, `div` o `card` per tenerli nella stessa cella. Usa il
 controllo dati **Table** quando servono `table.display`, `table.importText`,

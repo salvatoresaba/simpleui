@@ -750,7 +750,7 @@ const guiPreviewPicker = `<script>
   var st = document.createElement('style');
   st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-control { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; } .sui-tselect-host { position: relative !important; } .sui-tselect { position: absolute; left: 0; top: 0; width: 10px; height: 10px; background: rgba(76,92,247,.9); clip-path: polygon(0 0, 100% 0, 0 100%); cursor: pointer; z-index: 4; } .sui-tselect:hover { background: #4c5cf7; } .sui-tab-x { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 3px; font-size: 12px; line-height: 1; opacity: .65; cursor: pointer; } .sui-tab-x:hover { opacity: 1; background: rgba(239,68,68,.25); }';
   document.head.appendChild(st);
-  st.textContent += ' .sui-layout-table > tbody > tr > td { outline: 1px dashed rgba(76,92,247,.55) !important; outline-offset: -1px; } .sui-layout-table > tbody > tr > td:hover { outline-color: #4c5cf7; background: rgba(76,92,247,.08); } .sui-layout-cell { position: relative !important; } .sui-layout-split-v, .sui-layout-split-h { position: fixed; z-index: 9010; background: transparent; } .sui-layout-split-v { width: 12px; cursor: ew-resize; } .sui-layout-split-h { height: 12px; cursor: ns-resize; } .sui-layout-split-v::before { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: rgba(76,92,247,.35); } .sui-layout-split-h::before { content: ""; position: absolute; top: 5px; left: 0; right: 0; height: 2px; background: rgba(76,92,247,.35); } .sui-layout-split-v:hover::before, .sui-layout-split-h:hover::before, .sui-layout-split-on::before { background: #34d399 !important; } .sui-layout-cell::after, .sui-layout-table > tbody > tr:first-child > .sui-layout-cell:first-child::before { content: none !important; } .sui-layout-pick-cell { position: absolute; left: 0; bottom: 0; width: 0; height: 0; border-left: 14px solid rgba(76,92,247,.9); border-top: 14px solid transparent; opacity: 0; cursor: pointer; z-index: 9004; pointer-events: auto; } .sui-layout-cell:hover > .sui-layout-pick-cell { opacity: 1; } .sui-layout-pick-table { position: absolute; left: 0; top: 0; width: 0; height: 0; border-left: 16px solid rgba(52,211,153,.95); border-bottom: 16px solid transparent; opacity: 0; cursor: pointer; z-index: 9005; pointer-events: auto; } .sui-layout-table > tbody > tr:first-child > .sui-layout-cell:first-child:hover > .sui-layout-pick-table { opacity: 1; } .sui-hl-cell { background: rgba(76,92,247,.26) !important; box-shadow: inset 0 0 0 2px #4c5cf7, inset 0 0 0 5px rgba(255,255,255,.28) !important; }';
+  st.textContent += ' .sui-layout-table > tbody > tr > td { outline: 1px dashed rgba(76,92,247,.55) !important; outline-offset: -1px; } .sui-layout-table > tbody > tr > td:hover { outline-color: #4c5cf7; background: rgba(76,92,247,.08); } .sui-layout-cell { position: relative !important; } .sui-layout-split-v, .sui-layout-split-h { position: fixed; z-index: 9010; background: transparent; } .sui-layout-split-v { width: 12px; cursor: ew-resize; } .sui-layout-split-h { height: 12px; cursor: ns-resize; } .sui-layout-split-v::before { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: rgba(76,92,247,.35); } .sui-layout-split-h::before { content: ""; position: absolute; top: 5px; left: 0; right: 0; height: 2px; background: rgba(76,92,247,.35); } .sui-layout-split-v:hover::before, .sui-layout-split-h:hover::before, .sui-layout-split-on::before { background: #34d399 !important; } .sui-layout-cell::after, .sui-layout-table > tbody > tr:first-child > .sui-layout-cell:first-child::before { content: none !important; } .sui-layout-pick-cell { position: absolute; left: 0; bottom: 0; width: 0; height: 0; border-left: 14px solid rgba(76,92,247,.9); border-top: 14px solid transparent; opacity: 0; cursor: pointer; z-index: 9004; pointer-events: auto; } .sui-layout-cell:hover > .sui-layout-pick-cell { opacity: 1; } .sui-layout-pick-table { position: absolute; left: 0; top: 0; width: 0; height: 0; border-left: 16px solid rgba(52,211,153,.95); border-bottom: 16px solid transparent; opacity: 0; cursor: pointer; z-index: 9005; pointer-events: auto; } .sui-layout-table > tbody > tr:first-child > .sui-layout-cell:first-child:hover > .sui-layout-pick-table { opacity: 1; } .sui-hl-cell { background: rgba(76,92,247,.26) !important; box-shadow: inset 0 0 0 2px #4c5cf7, inset 0 0 0 5px rgba(255,255,255,.28) !important; } .sui-layout-responsive { display: table !important; } .sui-layout-responsive > colgroup { display: table-column-group !important; } .sui-layout-responsive > tbody { display: table-row-group !important; } .sui-layout-responsive > tbody > tr { display: table-row !important; } .sui-layout-responsive > tbody > tr > .sui-layout-cell { display: table-cell !important; width: auto !important; margin-bottom: 0 !important; }';
   var current = [];
   var layoutHl = null;
   var handles = [];
@@ -1412,22 +1412,53 @@ const guiPreviewPicker = `<script>
     }
     return out;
   }
+  function layoutBounds(t, count, axis) {
+    var starts = [], ends = [];
+    for (var i = 0; i <= count; i++) { starts.push([]); ends.push([]); }
+    t.querySelectorAll('.sui-layout-cell').forEach(function(c){
+      var r = c.getBoundingClientRect();
+      var idx, span, a, b;
+      if (axis === 'x') {
+        idx = Number(c.getAttribute('data-sui-layout-col'));
+        span = Number(c.getAttribute('colspan') || 1);
+        a = r.left; b = r.right;
+      } else {
+        idx = Number(c.getAttribute('data-sui-layout-row'));
+        span = Number(c.getAttribute('rowspan') || 1);
+        a = r.top; b = r.bottom;
+      }
+      if (!isFinite(idx) || idx < 0 || idx > count) return;
+      span = Math.max(1, span);
+      starts[idx].push(a);
+      ends[Math.min(count, idx + span)].push(b);
+    });
+    var out = new Array(count + 1);
+    for (var k = 0; k <= count; k++) {
+      var lefts = ends[k], rights = starts[k];
+      if (lefts.length && rights.length) out[k] = (Math.max.apply(null, lefts) + Math.min.apply(null, rights)) / 2;
+      else if (lefts.length) out[k] = Math.max.apply(null, lefts);
+      else if (rights.length) out[k] = Math.min.apply(null, rights);
+      else out[k] = null;
+    }
+    var rect = t.getBoundingClientRect();
+    if (out[0] === null) out[0] = rect.left;
+    if (out[count] === null) out[count] = rect.right;
+    for (var m = 1; m < count; m++) {
+      if (out[m] !== null) continue;
+      var prev = m - 1, next = m + 1;
+      while (prev > 0 && out[prev] === null) prev--;
+      while (next < count && out[next] === null) next++;
+      if (out[prev] !== null && out[next] !== null) out[m] = out[prev] + (out[next] - out[prev]) * (m - prev) / (next - prev);
+      else out[m] = rect.left + rect.width * m / Math.max(1, count);
+    }
+    return out;
+  }
   function layoutScales(t) {
     var rect = t.getBoundingClientRect();
     var cols = Number(t.getAttribute('data-sui-layout-cols') || 0);
     var rows = Number(t.getAttribute('data-sui-layout-rows') || 0);
-    var xs = [], ys = [];
-    t.querySelectorAll('.sui-layout-cell').forEach(function(c){
-      var r = c.getBoundingClientRect();
-      xs.push(r.left, r.right); ys.push(r.top, r.bottom);
-    });
-    xs = uniqueSorted(xs); ys = uniqueSorted(ys);
-    if (!cols || xs.length !== cols + 1) {
-      xs = []; for (var i = 0; i <= cols; i++) xs.push(rect.left + rect.width * i / Math.max(1, cols));
-    }
-    if (!rows || ys.length !== rows + 1) {
-      ys = []; for (var j = 0; j <= rows; j++) ys.push(rect.top + rect.height * j / Math.max(1, rows));
-    }
+    var xs = cols > 0 ? layoutBounds(t, cols, 'x') : [rect.left, rect.right];
+    var ys = rows > 0 ? layoutBounds(t, rows, 'y') : [rect.top, rect.bottom];
     return { rect: rect, xs: xs, ys: ys, cols: cols, rows: rows };
   }
   function startLayoutResize(e, t, axis, index, scales) {
