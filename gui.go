@@ -1690,6 +1690,12 @@ const guiPreviewPicker = `<script>
         }
       }
     }
+    if (e.target && e.target.closest && e.target.closest('table.sui-layout-table')) {
+      // The table background/gap is not the whole-table selection target:
+      // use the green triangle outside the table for that.
+      e.preventDefault();
+      return;
+    }
     var n = e.target;
     var id = -1;
     var isLink = false;
