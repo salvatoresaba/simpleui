@@ -3022,13 +3022,18 @@ function postHighlight() {
     }
     f.contentWindow.postMessage({ ty: "sui-hl", id: ids, mode: mode }, "*");
     var layoutTableId = -1;
-    if (selLayoutCell && selPath && byPath(selPath, root.children) && byPath(selPath, root.children).kind === "tablelayout") {
+    if ((selLayoutCell || selLayoutSplits.length) && selPath && byPath(selPath, root.children) && byPath(selPath, root.children).kind === "tablelayout") {
       layoutTableId = peerIdForPath(selPath);
     }
     f.contentWindow.postMessage({
       ty: "sui-layout-hl",
       table: layoutTableId,
       cells: selLayoutCells.map(function(c){ return { row: c.row, col: c.col }; })
+    }, "*");
+    f.contentWindow.postMessage({
+      ty: "sui-layout-split-hl",
+      table: layoutTableId,
+      splits: selLayoutSplits.map(function(s){ return { axis: s.axis, index: s.index }; })
     }, "*");
   }
   editorSyncFromSelection();

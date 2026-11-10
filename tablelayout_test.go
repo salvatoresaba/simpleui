@@ -190,6 +190,9 @@ func TestTableLayoutPaletteEntry(t *testing.T) {
 	if !strings.Contains(guiPreviewPicker, `sui-layout-split-v`) || !strings.Contains(guiPreviewPicker, `sui-layout-resize`) {
 		t.Errorf("designer preview must expose draggable split handles")
 	}
+	if !strings.Contains(guiPreviewPicker, `sui-layout-pick-cell`) || !strings.Contains(guiPreviewPicker, `sui-layout-pick-table`) || !strings.Contains(guiPreviewPicker, `sui-layout-split-on`) {
+		t.Errorf("designer preview must expose cell/table pick triangles and split selection")
+	}
 	if !strings.Contains(guiHTML, `function layoutCellPositionControls`) || !strings.Contains(guiHTML, `dropFromPaletteLayout`) {
 		t.Errorf("designer must support empty-cell selection and direct drops")
 	}
