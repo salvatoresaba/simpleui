@@ -1120,13 +1120,9 @@ const guiPreviewPicker = `<script>
       }
     }
     if (e.data && e.data.ty === 'sui-layout-split-hl') {
-      document.querySelectorAll('.sui-layout-split-on').forEach(function(x){ x.classList.remove('sui-layout-split-on'); });
-      if (e.data.table >= 0) {
-        var splits = e.data.splits || [];
-        for (var si = 0; si < splits.length; si++) {
-          document.querySelectorAll('.sui-layout-split-v[data-sui-split-axis="' + splits[si].axis + '"][data-sui-split-index="' + splits[si].index + '"], .sui-layout-split-h[data-sui-split-axis="' + splits[si].axis + '"][data-sui-split-index="' + splits[si].index + '"]').forEach(function(x){ x.classList.add('sui-layout-split-on'); });
-        }
-      }
+      layoutSplitTable = e.data.table;
+      layoutSplitSel = e.data.splits || [];
+      applyLayoutSplitHighlight();
     }
     if (e.data && e.data.ty === 'sui-style-req') {
       var el = e.data.id === -1 ? document.body : document.querySelector('[data-sui-id="' + e.data.id + '"]');
@@ -1400,6 +1396,9 @@ const guiPreviewPicker = `<script>
   // Layout table cell/split editing affordances.
   var layoutSplitEls = [];
   var layoutResize = null;
+  var lastLayoutKey = '';
+  var layoutSplitSel = [];
+  var layoutSplitTable = -1;
   function clearLayoutSplits() {
     for (var i = 0; i < layoutSplitEls.length; i++) { if (layoutSplitEls[i].parentNode) layoutSplitEls[i].parentNode.removeChild(layoutSplitEls[i]); }
     layoutSplitEls = [];
@@ -1465,7 +1464,23 @@ const guiPreviewPicker = `<script>
     e.preventDefault(); e.stopPropagation();
     layoutResize = { t: t, axis: axis, index: index, start: axis === 'x' ? e.clientX : e.clientY, scales: scales, sizes: null, add: !!(e.ctrlKey || e.metaKey), el: e.currentTarget, moved: false, sx: window.scrollX || document.documentElement.scrollLeft || 0, sy: window.scrollY || document.documentElement.scrollTop || 0 };
   }
+  function layoutRectsKey() {
+    var parts = [];
+    document.querySelectorAll('table.sui-layout-table[data-sui-id]').forEach(function(t){
+      var r = t.getBoundingClientRect();
+      parts.push([t.getAttribute('data-sui-id'), Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)].join(':'));
+    });
+    return parts.join('|');
+  }
+  function applyLayoutSplitHighlight() {
+    document.querySelectorAll('.sui-layout-split-on').forEach(function(x){ x.classList.remove('sui-layout-split-on'); });
+    if (layoutSplitTable < 0) return;
+    for (var i = 0; i < layoutSplitSel.length; i++) {
+      document.querySelectorAll('.sui-layout-split-v[data-sui-split-axis="' + layoutSplitSel[i].axis + '"][data-sui-split-index="' + layoutSplitSel[i].index + '"], .sui-layout-split-h[data-sui-split-axis="' + layoutSplitSel[i].axis + '"][data-sui-split-index="' + layoutSplitSel[i].index + '"]').forEach(function(x){ x.classList.add('sui-layout-split-on'); });
+    }
+  }
   function syncLayoutSplits() {
+    if (layoutResize) return;
     clearLayoutSplits();
     document.querySelectorAll('table.sui-layout-table[data-sui-id]').forEach(function(t){
       var sc = layoutScales(t);
@@ -1526,8 +1541,8 @@ const guiPreviewPicker = `<script>
         })(cells[ci], ci);
       }
       var tablePick = document.createElement('div'); tablePick.className = 'sui-layout-pick-table'; tablePick.title = 'Select table';
-      tablePick.style.left = (sc.rect.left + sx - 16) + 'px';
-      tablePick.style.top = (sc.rect.top + sy - 16) + 'px';
+      tablePick.style.left = (sc.rect.left + sx - 24) + 'px';
+      tablePick.style.top = (sc.rect.top + sy - 24) + 'px';
       tablePick.addEventListener('mousedown', function(ev){ ev.stopPropagation(); });
       tablePick.addEventListener('click', function(ev){
         ev.preventDefault(); ev.stopPropagation();
@@ -1535,6 +1550,8 @@ const guiPreviewPicker = `<script>
       });
       document.body.appendChild(tablePick); layoutSplitEls.push(tablePick);
     });
+    lastLayoutKey = layoutRectsKey();
+    applyLayoutSplitHighlight();
   }
   document.addEventListener('mousemove', function(e){
     if (!layoutResize) return;
@@ -1568,6 +1585,12 @@ const guiPreviewPicker = `<script>
   }, true);
   window.addEventListener('resize', syncLayoutSplits);
   window.addEventListener('scroll', syncLayoutSplits, true);
+  document.addEventListener('scroll', syncLayoutSplits, true);
+  setInterval(function(){
+    if (layoutResize) return;
+    var key = layoutRectsKey();
+    if (key !== lastLayoutKey) syncLayoutSplits();
+  }, 300);
   setTimeout(syncLayoutSplits, 0);
   document.addEventListener('click', function (e) {
     // Any click inside the preview dismisses the designer's context menus,
@@ -1692,11 +1715,13 @@ const guiPreviewPicker = `<script>
         }
       }
     }
-    if (e.target && e.target.closest && e.target.closest('table.sui-layout-table')) {
-      // The table background/gap is not the whole-table selection target:
-      // use the green triangle outside the table for that.
-      e.preventDefault();
-      return;
+    var layoutOnlyTable = e.target && e.target.closest ? e.target.closest('table.sui-layout-table') : null;
+    if (layoutOnlyTable) {
+      var onlyInner = e.target.closest('[data-sui-id]');
+      if (!onlyInner || onlyInner === layoutOnlyTable) {
+        e.preventDefault();
+        return;
+      }
     }
     var n = e.target;
     var id = -1;
