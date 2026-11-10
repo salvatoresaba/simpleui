@@ -2156,8 +2156,9 @@ dell'inspector si aggiornano con le nuove misure in pixel. Clicca una maniglia
 senza trascinarla per selezionare lo split; Ctrl+click aggiunge altri split e
 **Delete split** unisce le celle adiacenti mantenendone il contenuto. Le celle vuote si
 selezionano con un click normale, quelle occupate con Alt+click, con il piccolo
-triangolo in basso a sinistra o con **Select content**. Il triangolo in alto a
-sinistra della prima cella seleziona l'intera tabella.
+triangolo in basso a sinistra o con **Select content**. Il triangolo verde appena
+fuori dall'angolo in alto a sinistra seleziona l'intera tabella; un click dentro
+la prima cella seleziona la cella o il suo contenuto.
 Nel designer è in **Layout > Table layout**. L'inspector include preset, righe e
 colonne, dimensioni della tabella/colonne/righe, spazi separati, bordi delle
 celle, altezza delle celle vuote, impilamento responsive e opzioni

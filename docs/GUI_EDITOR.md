@@ -1177,7 +1177,8 @@ Each direct child fills the next free cell, row by row. Click an empty cell in
 the preview to select it and see its row/column; use **Add block** or drag a
 palette item directly into the cell. **Alt+click** an occupied cell, click its
 small bottom-left triangle, or use **Select content** to work with its content.
-The triangle in the top-left corner of the first cell selects the whole table.
+The green triangle just outside the table's top-left corner selects the whole
+table; clicking inside the first cell selects that cell or its content.
 Select a direct child to open the **Layout cell** section and set `column span` /
 `row span` to merge it with the cells on its right or below. The same section
 edits cell padding, horizontal/vertical

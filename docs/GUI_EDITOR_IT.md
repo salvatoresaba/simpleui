@@ -1224,8 +1224,9 @@ Ogni figlio diretto occupa la successiva cella libera, riga per riga. Clicca una
 cella vuota nella preview per selezionarla e vedere riga/colonna; usa **Add
 block** oppure trascina un elemento dalla palette direttamente nella cella.
 **Alt+click** su una cella occupata, il triangolino in basso a sinistra o
-**Select content** permettono di gestire il contenuto. Il triangolo in alto a
-sinistra della prima cella seleziona l'intera tabella. Seleziona un figlio
+**Select content** permettono di gestire il contenuto. Il triangolo verde
+appena fuori dall'angolo in alto a sinistra seleziona l'intera tabella; un click
+dentro la prima cella seleziona la cella o il suo contenuto. Seleziona un figlio
 diretto per aprire **Layout cell** e impostare `column span` / `row span`,
 unendo la cella con quelle a destra o in basso. La stessa sezione modifica
 padding, allineamento orizzontale/verticale, sfondo e bordo della singola cella.

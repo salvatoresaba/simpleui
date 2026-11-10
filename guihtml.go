@@ -2728,7 +2728,7 @@ function buildPickMap() {
           // Tab panels and accordion items are rendered by their parent
           // control without a data-sui-id, so they must not consume a pickMap
           // slot. Their children still do.
-          if (n.kind !== "tab" && n.kind !== "accordionitem") {
+          if (n.kind !== "tab" && n.kind !== "accordionitem" && n.kind !== "layoutcell") {
             pickMap.push({ t: "n", pg: pi, p: pickPath });
           }
           if (n.kind === "list") {
