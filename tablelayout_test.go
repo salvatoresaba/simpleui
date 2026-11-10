@@ -152,8 +152,8 @@ func TestTableLayoutExplicitCells(t *testing.T) {
 	}
 	js := GenerateJs(prog)
 	for _, want := range []string{
-		`<td class="sui-layout-cell" data-sui-layout-row="0" data-sui-layout-col="1" rowspan="2"`,
-		`<td class="sui-layout-cell" data-sui-layout-row="1" data-sui-layout-col="1"`,
+		`data-sui-layout-row="0" data-sui-layout-col="1" rowspan="2"`,
+		`data-sui-layout-row="1" data-sui-layout-col="1"`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("explicit table layout JS missing %q", want)

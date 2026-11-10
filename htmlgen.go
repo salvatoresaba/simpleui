@@ -1711,7 +1711,7 @@ p { line-height: 1.6; }
   background: transparent;
   vertical-align: top;
 }
-.sui-layout-table > tbody > tr > .sui-layout-cell:empty {
+.sui-layout-table > tbody > tr > .sui-layout-cell-empty {
   height: var(--sui-layout-cell-min-height, 72px);
 }
 .sui-layout-table > tbody > tr:hover { background: transparent; }
@@ -5707,7 +5707,7 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 		for c := 0; c < grid.cols; c++ {
 			if !grid.occupied[r][c] {
 				sb.WriteString(ind)
-				sb.WriteString("      <td class=\"sui-layout-cell\"")
+				sb.WriteString("      <td class=\"sui-layout-cell sui-layout-cell-empty\"")
 				sb.WriteString(layoutCellPosAttrs(r, c))
 				sb.WriteString(layoutEmptyCellAttrs(e))
 				sb.WriteString("></td>\n")
@@ -5720,6 +5720,7 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 			cell := grid.cells[ci]
 			sb.WriteString(ind)
 			sb.WriteString("      <td class=\"sui-layout-cell\"")
+			sb.WriteString(layoutCellClass(cell))
 			sb.WriteString(layoutCellPosAttrs(r, c))
 			sb.WriteString(layoutCellAttrs(cell, e))
 			sb.WriteString(">\n")

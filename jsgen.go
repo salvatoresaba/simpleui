@@ -2150,6 +2150,13 @@ func layoutCellStyle(cell layoutGridCell, table *Element) string {
 	return strings.Join(parts, ";")
 }
 
+func layoutCellClass(cell layoutGridCell) string {
+	if len(cell.content) == 0 {
+		return " sui-layout-cell-empty"
+	}
+	return ""
+}
+
 func layoutCellAttrs(cell layoutGridCell, e *Element) string {
 	var b strings.Builder
 	if cell.colspan > 1 {
@@ -3275,7 +3282,7 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		b.WriteString(">")
 		for c := 0; c < grid.cols; c++ {
 			if !grid.occupied[r][c] {
-				b.WriteString("<td class=\"sui-layout-cell\"")
+				b.WriteString("<td class=\"sui-layout-cell sui-layout-cell-empty\"")
 				b.WriteString(layoutCellPosAttrs(r, c))
 				b.WriteString(layoutEmptyCellAttrs(e))
 				b.WriteString("></td>")
@@ -3287,6 +3294,7 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			}
 			cell := grid.cells[ci]
 			b.WriteString("<td class=\"sui-layout-cell\"")
+			b.WriteString(layoutCellClass(cell))
 			b.WriteString(layoutCellPosAttrs(r, c))
 			b.WriteString(layoutCellAttrs(cell, e))
 			b.WriteString(">` + (")
