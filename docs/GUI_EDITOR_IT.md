@@ -1213,7 +1213,12 @@ selezione rettangolare. Cambiando **rows** si aggiungono/rimuovono righe complet
 in basso (una cella per colonna); cambiando **columns** si aggiungono/rimuovono
 celle a destra. Trascina le sottili maniglie verticali/orizzontali nella preview
 per ridimensionare colonne o righe: i campi **column widths** / **row heights**
-si aggiornano in pixel. Clicca una maniglia senza trascinarla per selezionare lo\nsplit; Ctrl+click aggiunge altri split e **Delete split** unisce le celle\nadiacenti mantenendone il contenuto.
+si aggiornano in pixel. Clicca una maniglia senza trascinarla per selezionare lo
+split; Ctrl+click aggiunge altri split e **Delete split** unisce le celle
+adiacenti mantenendone il contenuto. I segmenti pieni separano due celle; quelli
+tratteggiati sono solo un prolungamento attraverso una cella unita. Un click
+altrove deseleziona cella o split; Ctrl+click è l'unico modo per aggiungere una
+seconda cella.
 
 Ogni figlio diretto occupa la successiva cella libera, riga per riga. Clicca una
 cella vuota nella preview per selezionarla e vedere riga/colonna; usa **Add

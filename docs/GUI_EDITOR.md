@@ -1166,7 +1166,12 @@ adds cells to the selection and **Merge selected** joins a rectangular selection
 Changing **rows** appends/removes complete rows at the bottom (one cell per
 column); changing **columns** appends/removes cells on the right. Drag the thin
 vertical/horizontal split handles in the preview to resize columns or rows; the
-matching **column widths** / **row heights** fields update in pixels. Click a\nsplit handle without dragging to select the split; Ctrl+click adds more splits\nand **Delete split** merges the adjacent cells while keeping their content.
+matching **column widths** / **row heights** fields update in pixels. Click a
+split handle without dragging to select the split; Ctrl+click adds more splits
+and **Delete split** merges the adjacent cells while keeping their content.
+Solid split segments separate two cells; dashed segments are only a
+prolongation across a merged cell. Clicking elsewhere clears the cell or split
+selection; Ctrl+click is the only way to add a second cell.
 
 Each direct child fills the next free cell, row by row. Click an empty cell in
 the preview to select it and see its row/column; use **Add block** or drag a

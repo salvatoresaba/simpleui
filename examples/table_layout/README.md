@@ -124,7 +124,8 @@ tablelayout rows: 2 columns: 3
 
 1. Open this folder's `app.sui` with `simpleui gui app.sui`.
 2. Choose **Layout > Table layout** from the palette.
-3. Select the layout table and use the **Table layout** inspector, including\n   **Split vertical** / **Split horizontal** and **Merge selected**:
+3. Select the layout table and use the **Table layout** inspector, including
+   **Split vertical** / **Split horizontal** and **Merge selected**:
    - preset;
    - rows and columns;
    - table, column and row sizes;
@@ -137,7 +138,10 @@ tablelayout rows: 2 columns: 3
    you can see its row/column, use **Add block**, or drop a palette item into it.
    **Alt+click** an occupied cell to select the cell itself; **Select content**
    then drills into the child element.
-5. Drag the thin split handles in the preview to resize columns/rows; the\n   inspector size fields update in pixels. Click a split handle without dragging\n   to select it; Ctrl+click adds more splits and **Delete split** merges the\n   adjacent cells. Ctrl+click cells to add them to a multi-cell split or merge. Select a direct child and use\n   **Layout cell** to set `column span` /
+5. Drag the thin split handles in the preview to resize columns/rows; the
+   inspector size fields update in pixels. Click a split handle without dragging
+   to select it; Ctrl+click adds more splits and **Delete split** merges the
+   adjacent cells. Ctrl+click cells to add them to a multi-cell split or merge. Select a direct child and use\n   **Layout cell** to set `column span` /
    `row span`, padding, alignment, background and a per-cell border.
    **Reset to 1 x 1** splits the cell again.
 6. Cells are outlined in the designer preview, including empty and merged cells,

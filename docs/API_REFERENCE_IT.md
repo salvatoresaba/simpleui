@@ -2152,7 +2152,9 @@ Ctrl+click aggiunge celle alla selezione; **Merge selected** unisce una selezion
 rettangolare. I contatori di righe/colonne aggiungono o rimuovono celle sul bordo
 destro/inferiore. Trascina le sottili maniglie dei separatori nella preview per
 ridimensionare colonne o righe: i campi column widths e row heights
-dell'inspector si aggiornano con le nuove misure in pixel. Clicca una maniglia\nsenza trascinarla per selezionare lo split; Ctrl+click aggiunge altri split e\n**Delete split** unisce le celle adiacenti mantenendone il contenuto. Le celle vuote si
+dell'inspector si aggiornano con le nuove misure in pixel. Clicca una maniglia
+senza trascinarla per selezionare lo split; Ctrl+click aggiunge altri split e
+**Delete split** unisce le celle adiacenti mantenendone il contenuto. Le celle vuote si
 selezionano con un click normale, quelle occupate con Alt+click, con il piccolo
 triangolo in basso a sinistra o con **Select content**. Il triangolo in alto a
 sinistra della prima cella seleziona l'intera tabella.

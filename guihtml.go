@@ -12428,6 +12428,13 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-tab-menu") { showWorkbookTabMenu(ev.data); return; }
   if (ev.data.ty === "sui-cell-edit") { applyPreviewCellEdit(ev.data); return; }
   if (ev.data.ty === "sui-layout-cell") { selectLayoutCell(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col), !!ev.data.add); return; }
+  if (ev.data.ty === "sui-layout-clear") {
+    if (selLayoutCell || selLayoutCells.length || selLayoutSplit || selLayoutSplits.length) {
+      selLayoutCell = null; selLayoutCells = []; selLayoutSplit = null; selLayoutSplits = [];
+      renderInspector(); postHighlight();
+    }
+    return;
+  }
   if (ev.data.ty === "sui-layout-resize") { applyLayoutResize(Number(ev.data.table), String(ev.data.axis || "x"), ev.data.sizes || []); return; }
   if (ev.data.ty === "sui-layout-split-select") { selectLayoutSplit(Number(ev.data.table), String(ev.data.axis || "x"), Number(ev.data.index), !!ev.data.add); return; }
   if (ev.data.ty === "sui-drop-layout") { dropFromPaletteLayout(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
@@ -12723,8 +12730,10 @@ function layoutMergeSelection(n) {
     n.children.push(merged);
     layoutSortCells(n);
     layoutSyncCounts(n);
-    selLayoutCells = [{ row: minR, col: minC, childIndex: n.children.indexOf(merged) }];
-    selLayoutCell = selLayoutCells[0];
+    selLayoutCells = [];
+    selLayoutCell = null;
+    selLayoutSplit = null;
+    selLayoutSplits = [];
     setStatus("merged " + included.length + " layout cells");
   }, "merge layout cells");
 }
