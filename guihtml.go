@@ -9449,6 +9449,23 @@ function layoutCellPositionControls(n, cell) {
     ar.appendChild(ab);
   }
   b.appendChild(ar);
+  if (selLayoutCells.length > 1) {
+    var mr = document.createElement("div"); mr.className = "rowline";
+    mr.appendChild(lbl("selection"));
+    var mb = document.createElement("button"); mb.type = "button"; mb.className = "btn";
+    mb.textContent = "Merge selected";
+    mb.onclick = function(){ layoutMergeSelection(n); };
+    mr.appendChild(mb);
+    var sv = document.createElement("button"); sv.type = "button"; sv.className = "btn";
+    sv.textContent = "Split vertical"; sv.style.marginLeft = "4px";
+    sv.onclick = function(){ splitLayoutSelection(n, "vertical"); };
+    mr.appendChild(sv);
+    var sh = document.createElement("button"); sh.type = "button"; sh.className = "btn";
+    sh.textContent = "Split horizontal"; sh.style.marginLeft = "4px";
+    sh.onclick = function(){ splitLayoutSelection(n, "horizontal"); };
+    mr.appendChild(sh);
+    b.appendChild(mr);
+  }
   var note = document.createElement("div"); note.className = "rowth";
   note.textContent = "Alt+click an occupied cell to select the cell itself; empty cells select with a normal click.";
   b.appendChild(note);
@@ -12671,30 +12688,44 @@ function layoutMergeSelection(n) {
     var nodes = layoutSelectedNodes(n);
     if (nodes.length < 2) { setStatus("select at least two layout cells"); return; }
     var minR = 49, minC = 11, maxR = 0, maxC = 0;
-    for (var i = 0; i < nodes.length; i++) {
-      var r = Number(nodes[i].layoutRow || 0), c = Number(nodes[i].layoutCol || 0);
-      var rs = layoutClampInt(nodes[i].layoutRowspan, 1, 50, 1), cs = layoutClampInt(nodes[i].layoutColspan, 1, 12, 1);
+    function grow(node) {
+      var r = Number(node.layoutRow || 0), c = Number(node.layoutCol || 0);
+      var rs = layoutClampInt(node.layoutRowspan, 1, 50, 1), cs = layoutClampInt(node.layoutColspan, 1, 12, 1);
       minR = Math.min(minR, r); minC = Math.min(minC, c);
       maxR = Math.max(maxR, r + rs - 1); maxC = Math.max(maxC, c + cs - 1);
     }
-    var area = (maxR - minR + 1) * (maxC - minC + 1), covered = 0;
-    for (var k = 0; k < nodes.length; k++) covered += layoutClampInt(nodes[k].layoutRowspan, 1, 50, 1) * layoutClampInt(nodes[k].layoutColspan, 1, 12, 1);
-    if (covered !== area) { setStatus("selected cells must form a rectangle"); return; }
+    for (var i = 0; i < nodes.length; i++) grow(nodes[i]);
+    var included = nodes.slice(), grew = true;
+    while (grew) {
+      grew = false;
+      for (var j = 0; j < n.children.length; j++) {
+        var cell = n.children[j];
+        if (cell.kind !== "layoutcell" || included.indexOf(cell) >= 0) continue;
+        var cr = Number(cell.layoutRow || 0), cc = Number(cell.layoutCol || 0);
+        var crs = layoutClampInt(cell.layoutRowspan, 1, 50, 1), ccs = layoutClampInt(cell.layoutColspan, 1, 12, 1);
+        var overlaps = cr <= maxR && cr + crs - 1 >= minR && cc <= maxC && cc + ccs - 1 >= minC;
+        if (!overlaps) continue;
+        included.push(cell);
+        grow(cell);
+        grew = true;
+      }
+    }
     var merged = newLayoutCellNode(minR, minC);
     layoutCopyCellFields(nodes[0], merged);
     merged.layoutRow = String(minR); merged.layoutCol = String(minC);
     merged.layoutRowspan = String(maxR - minR + 1);
     merged.layoutColspan = String(maxC - minC + 1);
     merged.children = [];
-    for (var m = 0; m < nodes.length; m++) {
-      if (nodes[m].children) merged.children = merged.children.concat(nodes[m].children);
+    for (var m = 0; m < included.length; m++) {
+      if (included[m].children) merged.children = merged.children.concat(included[m].children);
     }
-    n.children = n.children.filter(function(c){ return nodes.indexOf(c) < 0; });
+    n.children = n.children.filter(function(c){ return included.indexOf(c) < 0; });
     n.children.push(merged);
     layoutSortCells(n);
     layoutSyncCounts(n);
     selLayoutCells = [{ row: minR, col: minC, childIndex: n.children.indexOf(merged) }];
     selLayoutCell = selLayoutCells[0];
+    setStatus("merged " + included.length + " layout cells");
   }, "merge layout cells");
 }
 function layoutSetCount(n, axis, value) {
