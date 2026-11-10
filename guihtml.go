@@ -12600,6 +12600,42 @@ function layoutSplitRowSize(n, index) {
   }
   n.layoutRowHeights = vals.join(", ");
 }
+function layoutCellCoversRow(cell, row) {
+  var r = Number(cell.layoutRow || 0), rs = layoutClampInt(cell.layoutRowspan, 1, 50, 1);
+  return r <= row && r + rs > row;
+}
+function layoutCellCoversCol(cell, col) {
+  var c = Number(cell.layoutCol || 0), cs = layoutClampInt(cell.layoutColspan, 1, 12, 1);
+  return c <= col && c + cs > col;
+}
+function layoutAbsorbColumn(n, boundary) {
+  var rows = layoutClampInt(n.layoutRows, 1, 50, 1);
+  for (var r = 0; r < rows; r++) {
+    var covered = false, left = null;
+    for (var i = 0; i < n.children.length; i++) {
+      var cell = n.children[i];
+      if (!cell || cell.kind !== "layoutcell" || !layoutCellCoversRow(cell, r)) continue;
+      var c = Number(cell.layoutCol || 0), cs = layoutClampInt(cell.layoutColspan, 1, 12, 1);
+      if (c <= boundary && c + cs > boundary) covered = true;
+      if (c + cs === boundary) left = cell;
+    }
+    if (!covered && left) left.layoutColspan = String(layoutClampInt(left.layoutColspan, 1, 12, 1) + 1);
+  }
+}
+function layoutAbsorbRow(n, boundary) {
+  var cols = layoutClampInt(n.layoutColumns, 1, 12, 1);
+  for (var c = 0; c < cols; c++) {
+    var covered = false, top = null;
+    for (var i = 0; i < n.children.length; i++) {
+      var cell = n.children[i];
+      if (!cell || cell.kind !== "layoutcell" || !layoutCellCoversCol(cell, c)) continue;
+      var r = Number(cell.layoutRow || 0), rs = layoutClampInt(cell.layoutRowspan, 1, 50, 1);
+      if (r <= boundary && r + rs > boundary) covered = true;
+      if (r + rs === boundary) top = cell;
+    }
+    if (!covered && top) top.layoutRowspan = String(layoutClampInt(top.layoutRowspan, 1, 50, 1) + 1);
+  }
+}
 function layoutSplitOne(n, node, axis) {
   var row = Number(node.layoutRow || 0);
   var col = Number(node.layoutCol || 0);
@@ -12634,6 +12670,7 @@ function layoutSplitOne(n, node, axis) {
     right.layoutColspan = String(rightSpan);
     right.children = [];
     n.children.push(right);
+    if (cs <= 1) layoutAbsorbColumn(n, boundary);
     return right;
   }
   var topSpan, bottomSpan, rboundary;
@@ -12664,6 +12701,7 @@ function layoutSplitOne(n, node, axis) {
   bottom.layoutColspan = String(cs);
   bottom.children = [];
   n.children.push(bottom);
+  if (rs <= 1) layoutAbsorbRow(n, rboundary);
   return bottom;
 }
 function splitLayoutSelection(n, axis) {
@@ -12673,9 +12711,8 @@ function splitLayoutSelection(n, axis) {
     if (!nodes.length) { setStatus("select one or more layout cells first"); return; }
     var selected = [];
     for (var i = 0; i < nodes.length; i++) {
-      var half = layoutSplitOne(n, nodes[i], axis);
+      layoutSplitOne(n, nodes[i], axis);
       selected.push(nodes[i]);
-      if (half) selected.push(half);
     }
     layoutSyncCounts(n);
     layoutSortCells(n);
