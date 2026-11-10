@@ -2845,6 +2845,7 @@ function layoutRemoveSplit(n, axis, index) {
 }
 function layoutFinishSplits(n) {
   layoutMergeOverlaps(n);
+  layoutPruneEmptyBoundaries(n);
   layoutSortCells(n);
   layoutSyncCounts(n);
   selLayoutSplit = null; selLayoutSplits = [];
@@ -12726,6 +12727,67 @@ function splitLayoutSelection(n, axis) {
     selLayoutCell = selLayoutCells.length ? selLayoutCells[selLayoutCells.length - 1] : null; selLayoutSplit = null; selLayoutSplits = [];
   }, "split layout cells");
 }
+function layoutHasColumnDivider(n, boundary) {
+  var rows = layoutClampInt(n.layoutRows, 1, 50, 1);
+  for (var r = 0; r < rows; r++) {
+    var left = false, right = false;
+    for (var i = 0; i < n.children.length; i++) {
+      var cell = n.children[i];
+      if (!cell || cell.kind !== "layoutcell" || !layoutCellCoversRow(cell, r)) continue;
+      var c = Number(cell.layoutCol || 0), cs = layoutClampInt(cell.layoutColspan, 1, 12, 1);
+      if (c + cs === boundary) left = true;
+      if (c === boundary) right = true;
+    }
+    if (left && right) return true;
+  }
+  return false;
+}
+function layoutHasRowDivider(n, boundary) {
+  var cols = layoutClampInt(n.layoutColumns, 1, 12, 1);
+  for (var c = 0; c < cols; c++) {
+    var top = false, bottom = false;
+    for (var i = 0; i < n.children.length; i++) {
+      var cell = n.children[i];
+      if (!cell || cell.kind !== "layoutcell" || !layoutCellCoversCol(cell, c)) continue;
+      var r = Number(cell.layoutRow || 0), rs = layoutClampInt(cell.layoutRowspan, 1, 50, 1);
+      if (r + rs === boundary) top = true;
+      if (r === boundary) bottom = true;
+    }
+    if (top && bottom) return true;
+  }
+  return false;
+}
+function layoutRemoveSizeAt(n, field, index) {
+  if (!n[field]) return;
+  var vals = String(n[field]).split(",").map(function(v){ return v.trim(); });
+  if (index >= 0 && index < vals.length) vals.splice(index, 1);
+  n[field] = vals.join(", ");
+}
+function layoutPruneEmptyBoundaries(n) {
+  var changed = true;
+  while (changed) {
+    changed = false;
+    var cols = layoutClampInt(n.layoutColumns, 1, 12, 1);
+    for (var i = 1; i < cols; i++) {
+      if (!layoutHasColumnDivider(n, i)) {
+        layoutRemoveSplit(n, "x", i);
+        layoutRemoveSizeAt(n, "layoutColumnWidths", i);
+        changed = true;
+        break;
+      }
+    }
+    if (changed) continue;
+    var rows = layoutClampInt(n.layoutRows, 1, 50, 1);
+    for (var j = 1; j < rows; j++) {
+      if (!layoutHasRowDivider(n, j)) {
+        layoutRemoveSplit(n, "y", j);
+        layoutRemoveSizeAt(n, "layoutRowHeights", j);
+        changed = true;
+        break;
+      }
+    }
+  }
+}
 function layoutMergeSelection(n) {
   withUndo(function(){
     materializeLayoutCells(n);
@@ -12765,6 +12827,7 @@ function layoutMergeSelection(n) {
     }
     n.children = n.children.filter(function(c){ return included.indexOf(c) < 0; });
     n.children.push(merged);
+    layoutPruneEmptyBoundaries(n);
     layoutSortCells(n);
     layoutSyncCounts(n);
     selLayoutCells = [];
