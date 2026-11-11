@@ -1506,6 +1506,10 @@ const guiPreviewPicker = `<script>
   }
   function syncLayoutSplits() {
     if (layoutResize) return;
+    // Responsive stacking is a runtime behavior; the designer preview keeps the
+    // real grid so cells stay editable. Removing the class also lets a cell
+    // class set display:flex for Alignment without the stacked-cell override.
+    document.querySelectorAll('table.sui-layout-table.sui-layout-responsive').forEach(function(t){ t.classList.remove('sui-layout-responsive'); });
     clearLayoutSplits();
     document.querySelectorAll('table.sui-layout-table[data-sui-id]').forEach(function(t){
       var sc = layoutScales(t);

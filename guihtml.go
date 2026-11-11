@@ -4255,11 +4255,35 @@ var ALIGN_POINTS = [
 function alignElement(dir) {
   if (!selPath) { setStatus("nothing selected"); return; }
   var parent = selPath.length >= 2 ? byPath(selPath.slice(0, -1), root.children) : null;
+  var selNode = byPath(selPath, root.children);
   // row => main axis horizontal; col/generic/body => main axis vertical.
   var mainH = parent && parent.kind === "row";
   var h = dir.charAt(1); // 'l', 'c', 'r'
   var v = dir.charAt(0); // 't', 'c', 'b'
   var map = {};
+  // A layout cell is a table-cell: forcing display:flex makes it stop
+  // stretching to the row height and breaks the grid. Align its content with
+  // vertical-align/text-align and auto margins on the child instead.
+  if (parent && parent.kind === "layoutcell") {
+    var cellCls = ensureClass(parent);
+    var inlineControl = ["input", "button", "select", "textarea"].indexOf(selNode && selNode.kind) >= 0;
+    var cellDecls = [
+      { prop: "display", value: "" },
+      { prop: "flex-direction", value: "" },
+      { prop: "vertical-align", value: v === "t" ? "top" : v === "b" ? "bottom" : "middle" }
+    ];
+    if (inlineControl) cellDecls.push({ prop: "text-align", value: h === "l" ? "left" : h === "r" ? "right" : "center" });
+    var childMap = {
+      "align-self": "",
+      "margin-left": h === "r" ? "auto" : (h === "c" ? "auto" : "0"),
+      "margin-right": h === "l" ? "auto" : (h === "c" ? "auto" : "0"),
+      "margin-top": "",
+      "margin-bottom": ""
+    };
+    if (selNode && selNode.kind === "text") childMap["text-align"] = h === "l" ? "left" : h === "r" ? "right" : "center";
+    setCssOnClass(cellCls, cellDecls, function(){ setCssProps(childMap); });
+    return;
+  }
   // Horizontal component: main axis uses auto margins, cross axis uses align-self.
   if (mainH) {
     map["margin-left"] = h === "r" ? "auto" : "0";
@@ -4290,6 +4314,19 @@ function alignElement(dir) {
 }
 function alignClear() {
   if (!selPath) { setStatus("nothing selected"); return; }
+  var parent = selPath.length >= 2 ? byPath(selPath.slice(0, -1), root.children) : null;
+  if (parent && parent.kind === "layoutcell") {
+    var cellCls = ensureClass(parent);
+    setCssOnClass(cellCls, [
+      { prop: "display", value: "" },
+      { prop: "flex-direction", value: "" },
+      { prop: "vertical-align", value: "" },
+      { prop: "text-align", value: "" }
+    ], function(){
+      setCssProps({ "align-self": "", "margin-left": "", "margin-right": "", "margin-top": "", "margin-bottom": "", "text-align": "" });
+    });
+    return;
+  }
   setCssProps({ "margin-left": "", "margin-right": "", "margin-top": "", "margin-bottom": "", "align-self": "" });
 }
 function alignControls() {

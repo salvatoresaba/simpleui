@@ -1247,7 +1247,9 @@ unendo la cella con quelle a destra o in basso; **Reset to 1 x 1** la divide di
 nuovo. Padding, sfondo, bordo, effetti e dimensioni si modificano nelle sezioni
 generiche dell'inspector, che agiscono direttamente sulla cella. L'allineamento
 riguarda gli elementi dentro la cella: selezionali e usa la loro sezione
-**Alignment**.
+**Alignment**. La cella resta una vera cella di tabella: l'allineamento verticale
+usa `vertical-align`, quello orizzontale usa i margini automatici; **Clear**
+ripristina la posizione in alto a sinistra.
 **Reset to 1 x 1** la divide di nuovo.
 
 Le frecce spostano la selezione tra le celle vuote. Nella preview del designer l'impilamento responsive è temporaneamente disattivato per mantenere visibili griglia e maniglie. Le celle sono evidenziate, comprese quelle vuote e

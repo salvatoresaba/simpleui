@@ -1195,6 +1195,9 @@ Select a cell to open the **Layout cell** section and set `column span` /
 splits it again. Padding, background, border, effects and size are edited in the
 generic inspector sections, which target the cell directly. Alignment belongs
 to the elements inside the cell: select them and use their **Alignment** section.
+The cell stays a real table cell, so vertical alignment uses `vertical-align`
+and horizontal alignment uses auto margins; **Clear** restores the top-left
+position.
 
 Arrow keys move selection between empty cells. In the designer preview responsive stacking is temporarily disabled so the grid
 and its split handles stay visible. Cells are outlined, including empty and merged cells, so

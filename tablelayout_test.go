@@ -258,6 +258,25 @@ func TestTableLayoutCellClassRendering(t *testing.T) {
 	}
 }
 
+func TestTableLayoutCellAlignment(t *testing.T) {
+	// Alignment inside a layout cell must not turn the <td> into a flex
+	// container: that collapses the cell and breaks the grid. It uses the
+	// cell's vertical-align / text-align and auto margins on the child.
+	for _, want := range []string{
+		`parent.kind === "layoutcell"`,
+		`"vertical-align"`,
+		`"text-align"`,
+		`"margin-left": h === "r" ? "auto"`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("layout cell alignment missing %q", want)
+		}
+	}
+	if !strings.Contains(guiPreviewPicker, "sui-layout-responsive") {
+		t.Errorf("designer preview must keep layout cells in grid mode")
+	}
+}
+
 func TestDesignerCssWritesAreSerialized(t *testing.T) {
 	// Rapid inspector edits (padding then margin, border style/width/color)
 	// must not overwrite each other with stale CSS: the writer is queued.
