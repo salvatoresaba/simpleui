@@ -3757,23 +3757,39 @@ function addEl(kind) {
     var node = newNodeForKind(kind);
     if (KIND_PLACEHOLDER[kind] && node.text === "") node.text = KIND_PLACEHOLDER[kind];
     var insPath = null;
-    if (selPath) {
-      var sel = byPath(selPath, root.children);
-      if (canNest(sel.kind)) {
-        sel.children.push(node);
-        insPath = selPath.concat([sel.children.length - 1]);
-      } else {
-        // leaf selected: insert as the next sibling
-        var par = selPath.slice(0, -1);
-        var arr = par.length === 0 ? root.children : byPath(par, root.children).children;
-        var pos = selPath[selPath.length - 1] + 1;
-        arr.splice(pos, 0, node);
-        insPath = par.concat([pos]);
+    var insertedIntoCell = false;
+    if (selLayoutCell && selPath) {
+      var tl = byPath(selPath, root.children);
+      if (tl && tl.kind === "tablelayout") {
+        materializeLayoutCells(tl);
+        var at = layoutCellNodeAt(tl, selLayoutCell.row, selLayoutCell.col);
+        if (at && at.node && at.node.kind === "layoutcell") {
+          at.node.children = at.node.children || [];
+          at.node.children.push(node);
+          insPath = selPath.concat([at.index, at.node.children.length - 1]);
+          insertedIntoCell = true;
+        }
       }
-    } else {
-      // no selection: append at the root (inside the virtual body)
-      root.children.push(node);
-      insPath = [root.children.length - 1];
+    }
+    if (!insertedIntoCell) {
+      if (selPath) {
+        var sel = byPath(selPath, root.children);
+        if (canNest(sel.kind)) {
+          sel.children.push(node);
+          insPath = selPath.concat([sel.children.length - 1]);
+        } else {
+          // leaf selected: insert as the next sibling
+          var par = selPath.slice(0, -1);
+          var arr = par.length === 0 ? root.children : byPath(par, root.children).children;
+          var pos = selPath[selPath.length - 1] + 1;
+          arr.splice(pos, 0, node);
+          insPath = par.concat([pos]);
+        }
+      } else {
+        // no selection: append at the root (inside the virtual body)
+        root.children.push(node);
+        insPath = [root.children.length - 1];
+      }
     }
     // Tables are wrapped in a scroll container so a fixed-size parent shows
     // scrollbars only when rows/columns are actually hidden. A table inserted
@@ -3784,6 +3800,10 @@ function addEl(kind) {
     } else {
       selPath = insPath;
     }
+    selLayoutCell = null;
+    selLayoutCells = [];
+    selLayoutSplit = null;
+    selLayoutSplits = [];
   }, "insert " + kind);
 }
 
@@ -12788,36 +12808,41 @@ function layoutPruneEmptyBoundaries(n) {
     }
   }
 }
+function layoutCellSideDirection(a, b) {
+  var ar = Number(a.layoutRow || 0), ac = Number(a.layoutCol || 0);
+  var br = Number(b.layoutRow || 0), bc = Number(b.layoutCol || 0);
+  var ars = layoutClampInt(a.layoutRowspan, 1, 50, 1), acs = layoutClampInt(a.layoutColspan, 1, 12, 1);
+  var brs = layoutClampInt(b.layoutRowspan, 1, 50, 1), bcs = layoutClampInt(b.layoutColspan, 1, 12, 1);
+  if (ar === br && ars === brs && (ac + acs === bc || bc + bcs === ac)) return "x";
+  if (ac === bc && acs === bcs && (ar + ars === br || br + brs === ar)) return "y";
+  return "";
+}
 function layoutMergeSelection(n) {
   withUndo(function(){
     materializeLayoutCells(n);
     var nodes = layoutSelectedNodes(n);
     if (nodes.length < 2) { setStatus("select at least two layout cells"); return; }
+    var direction = layoutCellSideDirection(nodes[0], nodes[1]);
+    if (!direction) { setStatus("the first two cells must share a full side"); return; }
+    var included = [nodes[0], nodes[1]];
+    for (var i = 2; i < nodes.length; i++) {
+      var ok = included.some(function(prev){ return layoutCellSideDirection(prev, nodes[i]) === direction; });
+      if (!ok) {
+        setStatus("cell " + (i + 1) + " must share a full side in the same merge direction");
+        return;
+      }
+      included.push(nodes[i]);
+    }
     var minR = 49, minC = 11, maxR = 0, maxC = 0;
-    function grow(node) {
-      var r = Number(node.layoutRow || 0), c = Number(node.layoutCol || 0);
-      var rs = layoutClampInt(node.layoutRowspan, 1, 50, 1), cs = layoutClampInt(node.layoutColspan, 1, 12, 1);
+    for (var j = 0; j < included.length; j++) {
+      var cell = included[j];
+      var r = Number(cell.layoutRow || 0), c = Number(cell.layoutCol || 0);
+      var rs = layoutClampInt(cell.layoutRowspan, 1, 50, 1), cs = layoutClampInt(cell.layoutColspan, 1, 12, 1);
       minR = Math.min(minR, r); minC = Math.min(minC, c);
       maxR = Math.max(maxR, r + rs - 1); maxC = Math.max(maxC, c + cs - 1);
     }
-    for (var i = 0; i < nodes.length; i++) grow(nodes[i]);
-    var included = nodes.slice(), grew = true;
-    while (grew) {
-      grew = false;
-      for (var j = 0; j < n.children.length; j++) {
-        var cell = n.children[j];
-        if (cell.kind !== "layoutcell" || included.indexOf(cell) >= 0) continue;
-        var cr = Number(cell.layoutRow || 0), cc = Number(cell.layoutCol || 0);
-        var crs = layoutClampInt(cell.layoutRowspan, 1, 50, 1), ccs = layoutClampInt(cell.layoutColspan, 1, 12, 1);
-        var overlaps = cr <= maxR && cr + crs - 1 >= minR && cc <= maxC && cc + ccs - 1 >= minC;
-        if (!overlaps) continue;
-        included.push(cell);
-        grow(cell);
-        grew = true;
-      }
-    }
     var merged = newLayoutCellNode(minR, minC);
-    layoutCopyCellFields(nodes[0], merged);
+    layoutCopyCellFields(included[0], merged);
     merged.layoutRow = String(minR); merged.layoutCol = String(minC);
     merged.layoutRowspan = String(maxR - minR + 1);
     merged.layoutColspan = String(maxC - minC + 1);

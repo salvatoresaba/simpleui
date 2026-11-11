@@ -1208,8 +1208,10 @@ La sezione **Table layout** dell'inspector controlla:
 
 Una nuova tabella layout parte come un'unica cella vuota. Usa **Split vertical** /
 **Split horizontal** nell'inspector per dividere a metà le celle selezionate;
-Ctrl+click aggiunge celle alla selezione e **Merge selected** unisce una
-selezione rettangolare. Cambiando **rows** si aggiungono/rimuovono righe complete
+Ctrl+click aggiunge celle alla selezione e **Merge selected** unisce le celle
+solo se le prime due condividono un lato intero; quel lato stabilisce la
+direzione del merge e ogni cella successiva deve continuare nella stessa
+direzione. Cambiando **rows** si aggiungono/rimuovono righe complete
 in basso (una cella per colonna); cambiando **columns** si aggiungono/rimuovono
 celle a destra. Trascina le sottili maniglie verticali/orizzontali nella preview
 per ridimensionare colonne o righe: i campi **column widths** / **row heights**
@@ -1221,10 +1223,12 @@ altrove deseleziona cella o split; Ctrl+click è l'unico modo per aggiungere una
 seconda cella.
 
 Ogni figlio diretto occupa la successiva cella libera, riga per riga. Clicca una
-cella vuota nella preview per selezionarla e vedere riga/colonna; usa **Add
-block** oppure trascina un elemento dalla palette direttamente nella cella.
-**Alt+click** su una cella occupata, il triangolino in basso a sinistra o
-**Select content** permettono di gestire il contenuto. Il triangolo verde
+cella vuota nella preview per selezionarla e vedere riga/colonna; la cella
+selezionata è il contenitore in cui viene inserito il prossimo elemento dalla
+palette o dal menu Insert. **Alt+click** su una cella occupata, il triangolino
+in basso a sinistra sempre visibile o **Select content** permettono di gestire
+il contenuto; cliccare un elemento interno seleziona l'elemento e deseleziona
+la cella. Il triangolo verde
 appena fuori dall'angolo in alto a sinistra seleziona l'intera tabella; un click
 dentro la prima cella seleziona la cella o il suo contenuto. Seleziona un figlio
 diretto per aprire **Layout cell** e impostare `column span` / `row span`,

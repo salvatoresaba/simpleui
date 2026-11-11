@@ -1162,8 +1162,9 @@ The **Table layout** inspector section controls:
 
 A new layout table starts as a single empty cell. Use **Split vertical** /
 **Split horizontal** in the inspector to halve the selected cells; Ctrl+click
-adds cells to the selection and **Merge selected** joins a rectangular selection.
-Changing **rows** appends/removes complete rows at the bottom (one cell per
+adds cells to the selection and **Merge selected** joins cells only when the
+first two share a full side; that side sets the merge direction and every
+additional cell must continue the same direction. Changing **rows** appends/removes complete rows at the bottom (one cell per
 column); changing **columns** appends/removes cells on the right. Drag the thin
 vertical/horizontal split handles in the preview to resize columns or rows; the
 matching **column widths** / **row heights** fields update in pixels. Click a
@@ -1174,9 +1175,11 @@ prolongation across a merged cell. Clicking elsewhere clears the cell or split
 selection; Ctrl+click is the only way to add a second cell.
 
 Each direct child fills the next free cell, row by row. Click an empty cell in
-the preview to select it and see its row/column; use **Add block** or drag a
-palette item directly into the cell. **Alt+click** an occupied cell, click its
-small bottom-left triangle, or use **Select content** to work with its content.
+the preview to select it and see its row/column; the selected cell is the
+insertion container for the next palette/Insert element. **Alt+click** an
+occupied cell, click its always-visible bottom-left triangle, or use
+**Select content** to work with its content; clicking a child selects that child
+and clears the cell selection.
 The green triangle just outside the table's top-left corner selects the whole
 table; clicking inside the first cell selects that cell or its content.
 Select a direct child to open the **Layout cell** section and set `column span` /
