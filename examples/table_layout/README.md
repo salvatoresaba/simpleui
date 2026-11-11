@@ -146,10 +146,11 @@ tablelayout rows: 2 columns: 3
    are shown and editable in **Structure table settings**. Click a split handle
    without dragging to select it; Ctrl+click adds more splits and **Delete
    split** merges the adjacent cells. Ctrl+click cells to add them to a
-   multi-cell split or merge. Select a direct child and use
-   **Layout cell** to set `column span` /
-   `row span`, padding, alignment, background and a per-cell border.
-   **Reset to 1 x 1** splits the cell again.
+   multi-cell split or merge. Select a cell and use
+   **Layout cell** to set `column span` / `row span`; padding, background,
+   border and effects are edited in the generic inspector sections, while
+   inner elements use their own **Alignment** section. **Reset to 1 x 1**
+   splits the cell again.
 6. Cells are outlined in the designer preview, including empty and merged cells,
    so the grid is visible even when application borders are set to none.
 

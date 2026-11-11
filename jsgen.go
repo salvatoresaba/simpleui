@@ -2157,6 +2157,16 @@ func layoutCellClass(cell layoutGridCell) string {
 	return ""
 }
 
+// layoutCellClassSuffix appends the user class assigned by the inspector to the
+// generated <td>, so generic sections (background, border, effects, ...) can
+// target the layout cell itself.
+func layoutCellClassSuffix(cell layoutGridCell) string {
+	if e := layoutCellElement(cell); e != nil {
+		return classSuffix(e)
+	}
+	return ""
+}
+
 func layoutCellAttrs(cell layoutGridCell, e *Element) string {
 	var b strings.Builder
 	if cell.colspan > 1 {
@@ -3293,8 +3303,10 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 				continue // covered by a rowspan from an earlier row
 			}
 			cell := grid.cells[ci]
-			b.WriteString("<td class=\"sui-layout-cell\"")
+			b.WriteString("<td class=\"sui-layout-cell")
 			b.WriteString(layoutCellClass(cell))
+			b.WriteString(layoutCellClassSuffix(cell))
+			b.WriteString("\"")
 			b.WriteString(layoutCellPosAttrs(r, c))
 			b.WriteString(layoutCellAttrs(cell, e))
 			b.WriteString(">` + (")

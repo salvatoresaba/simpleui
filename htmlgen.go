@@ -1703,7 +1703,7 @@ p { line-height: 1.6; }
   border-spacing: var(--sui-layout-gap-x, var(--sui-layout-gap, 12px)) var(--sui-layout-gap-y, var(--sui-layout-gap, 12px));
   table-layout: fixed;
 }
-.sui-layout-table > tbody > tr > .sui-layout-cell {
+:where(.sui-layout-table > tbody > tr > .sui-layout-cell) {
   padding: 0;
   min-width: var(--sui-layout-min-cell-width, 40px);
   min-height: var(--sui-layout-min-cell-height, 24px);
@@ -1711,11 +1711,11 @@ p { line-height: 1.6; }
   background: transparent;
   vertical-align: top;
 }
-.sui-layout-table > tbody > tr > .sui-layout-cell-empty {
+:where(.sui-layout-table > tbody > tr > .sui-layout-cell-empty) {
   height: var(--sui-layout-cell-min-height, 72px);
 }
 .sui-layout-table > tbody > tr:hover { background: transparent; }
-.sui-layout-table > tbody > tr > .sui-layout-cell > * { min-width: 0; }
+:where(.sui-layout-table > tbody > tr > .sui-layout-cell) > * { min-width: 0; }
 @media (max-width: 640px) {
   .sui-layout-responsive { display: block; border-spacing: 0; }
   .sui-layout-responsive > colgroup { display: none; }
@@ -5719,8 +5719,12 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 			}
 			cell := grid.cells[ci]
 			sb.WriteString(ind)
-			sb.WriteString("      <td class=\"sui-layout-cell\"")
+			sb.WriteString("      <td class=\"sui-layout-cell")
 			sb.WriteString(layoutCellClass(cell))
+			if cell.node != nil && cell.node.kind == "element" && cell.node.elem != nil {
+				staticClassSuffix(sb, cell.node.elem)
+			}
+			sb.WriteString("\"")
 			sb.WriteString(layoutCellPosAttrs(r, c))
 			sb.WriteString(layoutCellAttrs(cell, e))
 			sb.WriteString(">\n")

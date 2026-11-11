@@ -205,6 +205,9 @@ func TestTableLayoutInspectorStructurePanel(t *testing.T) {
 		"layoutstruct-rows",
 		"function layoutSizeRow",
 		"Reset to auto",
+		"LAYOUT_CELL_PROP_ATTR",
+		"function selectedLayoutCellNode",
+		"function layoutApplyCounts",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("table layout structure panel missing %q", want)
@@ -218,10 +221,40 @@ func TestTableLayoutInspectorStructurePanel(t *testing.T) {
 		`textRow("height", "layoutHeight"`,
 		`textRow("border width", "layoutBorderWidth"`,
 		`textRow("border color", "layoutBorderColor"`,
+		`cellTextRow("padding"`,
+		`cellSelectRow("align"`,
+		`cellSelectRow("vertical"`,
+		`cellTextRow("background"`,
+		`cellSelectRow("border"`,
 	} {
 		if strings.Contains(guiHTML, unwanted) {
 			t.Errorf("table layout panel duplicates %q", unwanted)
 		}
+	}
+}
+
+func TestTableLayoutCellClassRendering(t *testing.T) {
+	src := `view main {
+	tablelayout columns: 1 {
+		layoutcell row: 0 col: 0 class: "pad" {
+			card "A"
+		}
+	}
+}`
+	prog, dl := ParseSource(src, "layout_cell_class.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, `class="sui-layout-cell pad"`) {
+		t.Errorf("generated JS must carry the layout cell class: %s", js)
+	}
+	html := GenerateHtmlPage(prog)
+	if !strings.Contains(html, `class="sui-layout-cell pad"`) {
+		t.Errorf("generated HTML must carry the layout cell class: %s", html)
 	}
 }
 

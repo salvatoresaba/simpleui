@@ -6,7 +6,7 @@
 state name = ""
 state clicks = 0
 
-css ".layout-page \{ max-width: 980px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; \} .layout-demo \{ width: 100%; \} .layout-stack \{ display: flex; flex-direction: column; gap: 10px; padding: 4px; \} .layout-note \{ color: #8fa0b8; font-size: 13px; \}"
+css ".layout-page \{ max-width: 980px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; \} .layout-demo \{ width: 100%; \} .layout-stack \{ display: flex; flex-direction: column; gap: 10px; padding: 4px; \} .layout-note \{ color: #8fa0b8; font-size: 13px; \} .layout-cell-pad \{ padding: 10px; \}"
 
 fn greet() -> null {
 	if trim(name) == "" {
@@ -39,7 +39,7 @@ view main {
 					button "Say hello" onClick: greet
 				}
 			}
-			layoutcell row: 2 col: 0 cellPadding: "10px" cellAlign: "left" {
+			layoutcell row: 2 col: 0 class: "layout-cell-pad" {
 				card "Result" {
 					h2 "Interactive"
 					p "Hello {name}."

@@ -1190,10 +1190,11 @@ selected, the cell row when a cell is selected (Ctrl+click keeps the other
 selected cells highlighted), and the content row for an element inside a cell.
 The green triangle just outside the table's top-left corner selects the whole
 table; clicking inside the first cell selects that cell or its content.
-Select a direct child to open the **Layout cell** section and set `column span` /
-`row span` to merge it with the cells on its right or below. The same section
-edits cell padding, horizontal/vertical
-alignment, background and a per-cell border. **Reset to 1 x 1** splits it again.
+Select a cell to open the **Layout cell** section and set `column span` /
+`row span` to merge it with the cells on its right or below; **Reset to 1 x 1**
+splits it again. Padding, background, border, effects and size are edited in the
+generic inspector sections, which target the cell directly. Alignment belongs
+to the elements inside the cell: select them and use their **Alignment** section.
 
 Arrow keys move selection between empty cells. In the designer preview responsive stacking is temporarily disabled so the grid
 and its split handles stay visible. Cells are outlined, including empty and merged cells, so
