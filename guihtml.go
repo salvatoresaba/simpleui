@@ -4213,21 +4213,27 @@ function snapLabelFromMap(map) {
   if (!keys.length) return "clear style";
   return "set " + keys.join("/");
 }
+// CSS edits are serialized: each request applies to the root.css returned by
+// the previous one. Without the queue, editing two fields in quick succession
+// can post both with the same stale CSS and silently lose the first change.
+var __cssWriteQueue = Promise.resolve();
 function setCssOnClass(cls, decls, after) {
-  var fd = new URLSearchParams();
-  fd.set("css", root.css);
-  fd.set("class", cls);
-  fd.set("decls", JSON.stringify(decls));
-  fetch("/__css__/setbatch", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
-    if (!j.ok) return;
-    syncing = true;
-    root.css = j.css;
-    ast = j.ast || ast;
-    renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector();
-    syncing = false;
-    scheduleCssSync();
-    if (after) after();
-  });
+  __cssWriteQueue = __cssWriteQueue.then(function() {
+    var fd = new URLSearchParams();
+    fd.set("css", root.css);
+    fd.set("class", cls);
+    fd.set("decls", JSON.stringify(decls));
+    return fetch("/__css__/setbatch", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+      if (!j.ok) return;
+      syncing = true;
+      root.css = j.css;
+      ast = j.ast || ast;
+      renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector();
+      syncing = false;
+      scheduleCssSync();
+      if (after) after();
+    });
+  }).catch(function(){});
 }
 
 // ---- alignment toolbar -----------------------------------------------------

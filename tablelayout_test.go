@@ -258,6 +258,16 @@ func TestTableLayoutCellClassRendering(t *testing.T) {
 	}
 }
 
+func TestDesignerCssWritesAreSerialized(t *testing.T) {
+	// Rapid inspector edits (padding then margin, border style/width/color)
+	// must not overwrite each other with stale CSS: the writer is queued.
+	for _, want := range []string{"__cssWriteQueue", "Promise.resolve()"} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("designer CSS write queue missing %q", want)
+		}
+	}
+}
+
 func TestTableLayoutPaletteEntry(t *testing.T) {
 	for _, want := range []string{
 		`"tablelayout"`,
