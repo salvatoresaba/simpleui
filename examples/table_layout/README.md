@@ -128,20 +128,26 @@ tablelayout rows: 2 columns: 3
    **Split vertical** / **Split horizontal** and **Merge selected**:
    - preset;
    - rows and columns;
-   - table, column and row sizes;
+   - **Structure table settings** for per-column widths and per-row heights;
    - separate column/row gaps;
-   - cell border style/width/color;
    - empty-cell height;
    - responsive stacking;
    - semantic role and aria label.
+   The table width/height are in the generic **Size** section and the table
+   border in the generic **Border** section. **Structure table settings** opens
+   a panel with a scrollable column list and row list, so large grids stay
+   usable.
 4. Drag cards or controls inside it. An empty cell can be clicked directly, so
-   you can see its row/column, use **Add block**, or drop a palette item into it.
-   **Alt+click** an occupied cell to select the cell itself; **Select content**
-   then drills into the child element.
-5. Drag the thin split handles in the preview to resize columns/rows; the
-   inspector size fields update in pixels. Click a split handle without dragging
-   to select it; Ctrl+click adds more splits and **Delete split** merges the
-   adjacent cells. Ctrl+click cells to add them to a multi-cell split or merge. Select a direct child and use\n   **Layout cell** to set `column span` /
+   you can see its row/column; the next palette or Insert element goes inside
+   the selected cell. **Alt+click** an occupied cell or use its always-visible
+   bottom-left triangle to select the cell itself; clicking a child selects the
+   child.
+5. Drag the thin split handles in the preview to resize columns/rows; the sizes
+   are shown and editable in **Structure table settings**. Click a split handle
+   without dragging to select it; Ctrl+click adds more splits and **Delete
+   split** merges the adjacent cells. Ctrl+click cells to add them to a
+   multi-cell split or merge. Select a direct child and use
+   **Layout cell** to set `column span` /
    `row span`, padding, alignment, background and a per-cell border.
    **Reset to 1 x 1** splits the cell again.
 6. Cells are outlined in the designer preview, including empty and merged cells,

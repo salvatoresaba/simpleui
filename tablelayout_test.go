@@ -198,6 +198,33 @@ func TestTableLayoutExplicitCells(t *testing.T) {
 	}
 }
 
+func TestTableLayoutInspectorStructurePanel(t *testing.T) {
+	for _, want := range []string{
+		"Structure table settings",
+		"layoutstruct-cols",
+		"layoutstruct-rows",
+		"function layoutSizeRow",
+		"Reset to auto",
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("table layout structure panel missing %q", want)
+		}
+	}
+	// Width/height live in the generic Size section and the table border lives
+	// in the generic Border section: the table layout panel must not duplicate
+	// them.
+	for _, unwanted := range []string{
+		`textRow("width", "layoutWidth"`,
+		`textRow("height", "layoutHeight"`,
+		`textRow("border width", "layoutBorderWidth"`,
+		`textRow("border color", "layoutBorderColor"`,
+	} {
+		if strings.Contains(guiHTML, unwanted) {
+			t.Errorf("table layout panel duplicates %q", unwanted)
+		}
+	}
+}
+
 func TestTableLayoutPaletteEntry(t *testing.T) {
 	for _, want := range []string{
 		`"tablelayout"`,
@@ -224,7 +251,7 @@ func TestTableLayoutPaletteEntry(t *testing.T) {
 	if !strings.Contains(guiPreviewPicker, `sui-layout-pick-cell`) || !strings.Contains(guiPreviewPicker, `sui-layout-pick-table`) || !strings.Contains(guiPreviewPicker, `sui-layout-split-on`) {
 		t.Errorf("designer preview must expose cell/table pick triangles and split selection")
 	}
-	if !strings.Contains(guiHTML, `function layoutCellPositionControls`) || !strings.Contains(guiHTML, `dropFromPaletteLayout`) {
+	if !strings.Contains(guiHTML, `function openLayoutStructure`) || !strings.Contains(guiHTML, `dropFromPaletteLayout`) {
 		t.Errorf("designer must support empty-cell selection and direct drops")
 	}
 	if !strings.Contains(suiCssBase, "@media (max-width: 640px)") {

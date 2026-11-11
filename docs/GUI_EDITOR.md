@@ -1151,14 +1151,18 @@ The **Table layout** inspector section controls:
 
 - **preset** (2 x 2, sidebar + content, header + 2 columns, 3 x 2 dashboard);
 - **rows** (1-50) and **columns** (1-12);
-- **width** / **height** of the whole table in px or %;
-- **column widths** and **row heights** with one input per column/row;
+- **Structure table settings**, which opens a panel with one input per column
+  width and per row height; the two lists scroll independently so large grids
+  stay usable, and an empty field means `auto`;
 - **column gap** and **row gap**;
-- **cell border** style (none, solid, dashed, dotted, double), width and color;
 - **empty cell height** so empty cells stay visible and droppable;
 - **stack on small screens** (responsive stacking below 640px);
 - **semantic table** (`role="table"` instead of `role="presentation"`) and an
   **aria label**.
+
+The table **width** / **height** are edited in the generic **Size** section, and
+the table border in the generic **Border** section; the cell-level border stays
+in **Layout cell**.
 
 A new layout table starts as a single empty cell. Use **Split vertical** /
 **Split horizontal** in the inspector to halve the selected cells; Ctrl+click
@@ -1167,7 +1171,7 @@ first two share a full side; that side sets the merge direction and every
 additional cell must continue the same direction. Changing **rows** appends/removes complete rows at the bottom (one cell per
 column); changing **columns** appends/removes cells on the right. Drag the thin
 vertical/horizontal split handles in the preview to resize columns or rows; the
-matching **column widths** / **row heights** fields update in pixels. Click a
+matching sizes are shown and editable in **Structure table settings**. Click a
 split handle without dragging to select the split; Ctrl+click adds more splits
 and **Delete split** merges the adjacent cells while keeping their content.
 Solid split segments separate two cells; dashed segments are only a
@@ -1177,8 +1181,8 @@ selection; Ctrl+click is the only way to add a second cell.
 Each direct child fills the next free cell, row by row. Click an empty cell in
 the preview to select it and see its row/column; the selected cell is the
 insertion container for the next palette/Insert element. **Alt+click** an
-occupied cell, click its always-visible bottom-left triangle, or use
-**Select content** to work with its content; clicking a child selects that child
+occupied cell, click its always-visible bottom-left triangle, or click the
+content row in the element tree to work with its content; clicking a child selects that child
 and clears the cell selection. Clicking an edit box clears any cell selection;
 selecting a cell or another element blurs the edit box.
 The element tree follows the selection: the table row when the table is

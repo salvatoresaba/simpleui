@@ -1197,14 +1197,19 @@ La sezione **Table layout** dell'inspector controlla:
 
 - **preset** (2 x 2, sidebar + contenuto, header + 2 colonne, dashboard 3 x 2);
 - **rows** (1-50) e **columns** (1-12);
-- **width** / **height** dell'intera tabella in px o %;
-- **column widths** e **row heights** con un campo per colonna/riga;
+- **Structure table settings**, che apre un pannello con un campo per la
+  larghezza di ogni colonna e per l'altezza di ogni riga; le due liste
+  scorrono separatamente per gestire griglie grandi, e un campo vuoto
+  significa `auto`;
 - **column gap** e **row gap**;
-- **cell border** (none, solid, dashed, dotted, double), spessore e colore;
 - **empty cell height** per mantenere visibili e utilizzabili le celle vuote;
 - **stack on small screens** (impilamento responsive sotto 640px);
 - **semantic table** (`role="table"` invece di `role="presentation"`) e
   **aria label**.
+
+La **width** / **height** della tabella si modificano nella sezione generica
+**Size** e il bordo della tabella nella sezione generica **Border**; il bordo
+della singola cella resta in **Layout cell**.
 
 Una nuova tabella layout parte come un'unica cella vuota. Usa **Split vertical** /
 **Split horizontal** nell'inspector per dividere a metà le celle selezionate;
@@ -1214,8 +1219,8 @@ direzione del merge e ogni cella successiva deve continuare nella stessa
 direzione. Cambiando **rows** si aggiungono/rimuovono righe complete
 in basso (una cella per colonna); cambiando **columns** si aggiungono/rimuovono
 celle a destra. Trascina le sottili maniglie verticali/orizzontali nella preview
-per ridimensionare colonne o righe: i campi **column widths** / **row heights**
-si aggiornano in pixel. Clicca una maniglia senza trascinarla per selezionare lo
+per ridimensionare colonne o righe: le dimensioni si aggiornano e si modificano
+in **Structure table settings**. Clicca una maniglia senza trascinarla per selezionare lo
 split; Ctrl+click aggiunge altri split e **Delete split** unisce le celle
 adiacenti mantenendone il contenuto. I segmenti pieni separano due celle; quelli
 tratteggiati sono solo un prolungamento attraverso una cella unita. Un click
@@ -1226,8 +1231,9 @@ Ogni figlio diretto occupa la successiva cella libera, riga per riga. Clicca una
 cella vuota nella preview per selezionarla e vedere riga/colonna; la cella
 selezionata è il contenitore in cui viene inserito il prossimo elemento dalla
 palette o dal menu Insert. **Alt+click** su una cella occupata, il triangolino
-in basso a sinistra sempre visibile o **Select content** permettono di gestire
-il contenuto; cliccare un elemento interno seleziona l'elemento e deseleziona
+in basso a sinistra sempre visibile o la riga del contenuto nell'albero
+permettono di gestire il contenuto; cliccare un elemento interno seleziona
+l'elemento e deseleziona
 la cella. Cliccare un edit box cancella la selezione delle celle; selezionare
 una cella o un altro elemento toglie il focus all'edit box. L'albero degli
 elementi segue la selezione: la riga della tabella quando è selezionata la
