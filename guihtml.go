@@ -2909,6 +2909,7 @@ function selectLayoutCell(tableId, row, col, add) {
     selLayoutCells = [item];
   }
   selLayoutCell = selLayoutCells.length ? selLayoutCells[selLayoutCells.length - 1] : null; selLayoutSplit = null; selLayoutSplits = [];
+  if (selLayoutCell && selLayoutCell.childIndex >= 0) expandTreePath(t.p.concat([selLayoutCell.childIndex]));
   renderTree(); fillPanel(); renderInspector(); postHighlight();
   setStatus(selLayoutCells.length > 1 ? (selLayoutCells.length + " table layout cells selected") : ("table layout cell " + (Number(row) + 1) + "," + (Number(col) + 1)));
 }
@@ -2935,6 +2936,7 @@ function selectByDfs(id) {
     var picked = byPath(t.p, root.children);
     if (picked && picked.kind === "table") selMode = "table";
   }
+  expandTreePath(selPath);
   renderTree(); fillPanel(); renderInspector(); postHighlight();
   dbg("select id=" + id + " path=[" + (selPath ? selPath.join(",") : "?") + "] children=" + root.children.length);
 }
@@ -3012,6 +3014,10 @@ function postHighlight() {
     else if (selRow !== null && selRow !== undefined) mode = "row";
     else if (selCol !== null && selCol !== undefined) mode = "col";
     var ids = currentPeerIds();
+    // A selected layout cell owns the highlight: drop the table outline and
+    // resize handles so only the cell is shown (the layout message below
+    // paints it).
+    if (selLayoutCells.length) ids = [];
     // Selecting the table itself highlights the whole workbook control (title,
     // icons, sheet area and tabs), which is the element that can be resized.
     if (mode === "el" && selMode === "table" && selPath) {
@@ -3095,6 +3101,12 @@ function computeElementLines() {
 var __treeCollapsed = Object.create(null);
 function treeCollapseKey(path) { return String(root.page || 0) + ":" + path.join(","); }
 function isTreeCollapsed(path) { return !!__treeCollapsed[treeCollapseKey(path)]; }
+// Expanding every ancestor (including the path itself) keeps a selection made
+// in the preview visible in the element tree.
+function expandTreePath(path) {
+  if (!path || !path.length) return;
+  for (var i = 1; i <= path.length; i++) delete __treeCollapsed[treeCollapseKey(path.slice(0, i))];
+}
 function toggleTreeCollapsed(path) {
   var key = treeCollapseKey(path);
   if (__treeCollapsed[key]) delete __treeCollapsed[key];
@@ -3199,8 +3211,25 @@ function renderWorkbookTreeRow(node, p, entries, parent, depth) {
   };
   parent.appendChild(row);
 }
+function layoutSelectedTreePaths() {
+  if (!selPath || !selLayoutCells.length) return [];
+  var n = byPath(selPath, root.children);
+  if (!n || n.kind !== "tablelayout") return [];
+  var out = [];
+  for (var i = 0; i < selLayoutCells.length; i++) {
+    var ci = selLayoutCells[i].childIndex;
+    var cell = ci >= 0 && n.children ? n.children[ci] : null;
+    if (cell && cell.kind === "layoutcell") out.push(selPath.concat([ci]));
+  }
+  return out;
+}
 function renderNodes(children, depth, parent, path) {
   var unused = unusedClasses();
+  // A selected layout cell highlights its own row, not the table that owns it.
+  // selPath stays on the table for the inspector, so derive the row paths from
+  // the cell selection state.
+  var layoutSel = layoutSelectedTreePaths();
+  var layoutPrimary = layoutSel.length ? layoutSel[layoutSel.length - 1] : null;
   for (var i = 0; i < children.length; i++) {
     var p = path.concat([i]);
     var node = children[i];
@@ -3211,8 +3240,11 @@ function renderNodes(children, depth, parent, path) {
     var row = document.createElement("div");
     var cls = node.class ? node.class.trim().split(/\s+/)[0] : "";
     var isUnused = cls && unused[cls];
-    var isSel = samePath(selPath, p);
-    var isMulti = !isSel && multiHas(p);
+    var isCellSel = false;
+    for (var ls = 0; ls < layoutSel.length; ls++) if (samePath(layoutSel[ls], p)) { isCellSel = true; break; }
+    var isCellPrimary = isCellSel && samePath(layoutPrimary, p);
+    var isSel = (layoutSel.length ? false : samePath(selPath, p)) || isCellPrimary;
+    var isMulti = !isSel && (multiHas(p) || (isCellSel && !isCellPrimary));
     row.className = "node" + (isSel ? " sel" : "") + (isMulti ? " multi" : "") + (isUnused ? " unused" : "");
     row.draggable = true;
     row.style.paddingLeft = (4 + depth * 12) + "px";

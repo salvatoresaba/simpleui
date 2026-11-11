@@ -1181,6 +1181,9 @@ occupied cell, click its always-visible bottom-left triangle, or use
 **Select content** to work with its content; clicking a child selects that child
 and clears the cell selection. Clicking an edit box clears any cell selection;
 selecting a cell or another element blurs the edit box.
+The element tree follows the selection: the table row when the table is
+selected, the cell row when a cell is selected (Ctrl+click keeps the other
+selected cells highlighted), and the content row for an element inside a cell.
 The green triangle just outside the table's top-left corner selects the whole
 table; clicking inside the first cell selects that cell or its content.
 Select a direct child to open the **Layout cell** section and set `column span` /

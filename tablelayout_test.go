@@ -49,6 +49,21 @@ func TestTableLayoutRendersStructuralCells(t *testing.T) {
 	}
 }
 
+func TestTableLayoutSelectionSyncsElementTree(t *testing.T) {
+	// Preview cell selection must highlight the layoutcell row in the element
+	// tree, not the owning table, and the table outline must drop away.
+	for _, want := range []string{
+		"layoutSelectedTreePaths",
+		"isCellPrimary",
+		"if (selLayoutCells.length) ids = [];",
+		"expandTreePath",
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("layout selection tree sync missing %q", want)
+		}
+	}
+}
+
 func TestTableLayoutPreviewExcludesDataTableInteraction(t *testing.T) {
 	// Layout cells are design-time containers. The data-table cell/row/column
 	// selection must not run inside them: its mousedown handler suppresses the
