@@ -776,6 +776,16 @@ const guiPreviewPicker = `<script>
     var tables = document.querySelectorAll('table[data-sui-id]');
     for (var i = 0; i < tables.length; i++) {
       var tbl = tables[i];
+      // Layout tables are structural: they get designer cell handles, not the
+      // data-table select-all corner (which would cover their first cell).
+      if (tbl.classList && tbl.classList.contains('sui-layout-table')) {
+        // Defensive cleanup for previews rendered before this rule existed.
+        var staleAll = tbl.querySelectorAll('.sui-tselect');
+        for (var sa = 0; sa < staleAll.length; sa++) staleAll[sa].remove();
+        var staleHosts = tbl.querySelectorAll('.sui-tselect-host');
+        for (var sh = 0; sh < staleHosts.length; sh++) staleHosts[sh].classList.remove('sui-tselect-host');
+        continue;
+      }
       var first = (tbl.tHead && tbl.tHead.rows[0] && tbl.tHead.rows[0].cells[0]) ||
         (tbl.rows[0] && tbl.rows[0].cells[0]);
       if (!first) continue;
@@ -794,7 +804,7 @@ const guiPreviewPicker = `<script>
       var panels = boxes[b].querySelectorAll('.sui-tabpanels .sui-tabpanel');
       var workbook = panels.length > 0;
       for (var p = 0; p < panels.length; p++) {
-        if (!panels[p].querySelector('table')) { workbook = false; break; }
+        if (!panels[p].querySelector('table:not(.sui-layout-table)')) { workbook = false; break; }
       }
       if (!workbook) continue;
       var tabs = boxes[b].querySelectorAll('.sui-tablist .sui-tab');
@@ -881,6 +891,7 @@ const guiPreviewPicker = `<script>
       var table = tables[i];
       var id = table.getAttribute('data-sui-id');
       if (id === null || id === '-1') continue;
+      if (table.classList && table.classList.contains('sui-layout-table')) continue;
       var box = tableBox(table);
       if (!box) continue;
       var kind = null, target = null, dist = Infinity;
@@ -1203,6 +1214,10 @@ const guiPreviewPicker = `<script>
     if (!cell) return null;
     var table = cell.closest('table');
     if (!table) return null;
+    // Layout cells are designer containers: data-table cell/row/column
+    // selection must not run inside them or it would swallow their content
+    // clicks (tableSelSuppressClick) and hide the real children.
+    if (table.classList && table.classList.contains('sui-layout-table')) return null;
     var tr = cell.parentElement;
     var head = !!(tr && tr.parentElement && tr.parentElement.tagName === 'THEAD');
     var headCount = table.tHead ? table.tHead.rows.length : 0;
@@ -1275,6 +1290,8 @@ const guiPreviewPicker = `<script>
       e.stopPropagation();
       return;
     }
+    // Layout tables have their own cell/split interaction layer.
+    if (t && t.closest && t.closest('table.sui-layout-table')) return;
     if (t && t.closest && t.closest('button,a,input,select,textarea,.sui-table-filter,.sui-table-pager,.sui-table-add,.sui-table-topbar')) return;
     var info = tableInfo(t);
     // The visible gutter strip is the clickable area: when it belongs to the

@@ -49,6 +49,22 @@ func TestTableLayoutRendersStructuralCells(t *testing.T) {
 	}
 }
 
+func TestTableLayoutPreviewExcludesDataTableInteraction(t *testing.T) {
+	// Layout cells are design-time containers. The data-table cell/row/column
+	// selection must not run inside them: its mousedown handler suppresses the
+	// following click, which made cards and texts inside layout cells
+	// unselectable. The select-all corner must not be injected either.
+	for _, want := range []string{
+		`t.closest('table.sui-layout-table')`,
+		`table.classList.contains('sui-layout-table')`,
+		`table:not(.sui-layout-table)`,
+	} {
+		if !strings.Contains(guiPreviewPicker, want) {
+			t.Errorf("layout table preview guard missing %q", want)
+		}
+	}
+}
+
 func TestTableLayoutColumnsValidation(t *testing.T) {
 	for _, tc := range []struct {
 		attr  string
