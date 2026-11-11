@@ -1615,6 +1615,10 @@ const guiPreviewPicker = `<script>
     // Any click inside the preview dismisses the designer's context menus,
     // including clicks on empty preview space that select no element.
     parent.postMessage({ ty: 'sui-dismiss' }, '*');
+    var activePreview = document.activeElement;
+    if (activePreview && activePreview !== document.body && activePreview !== e.target && activePreview.blur && !(activePreview.contains && activePreview.contains(e.target))) {
+      activePreview.blur();
+    }
     if (e.target && e.target.closest && e.target.closest('.sui-layout-pick-cell, .sui-layout-pick-table')) return;
     if (!(e.target && e.target.closest && e.target.closest('.sui-layout-split-v, .sui-layout-split-h'))) {
       parent.postMessage({ ty: 'sui-layout-clear' }, '*');
@@ -1724,6 +1728,14 @@ const guiPreviewPicker = `<script>
       var clickedChild = !!(innerId && innerId !== layoutCell && layoutCell.contains(innerId));
       var cellRect = layoutCell.getBoundingClientRect();
       var cellTriangle = e.clientX - cellRect.left <= 16 && cellRect.bottom - e.clientY <= 16;
+      if (clickedChild && !e.altKey && !e.ctrlKey && !e.metaKey && !cellTriangle) {
+        var childPickId = Number(innerId.getAttribute('data-sui-id'));
+        if (isFinite(childPickId) && childPickId >= 0) {
+          parent.postMessage({ ty: 'sui', id: childPickId }, '*');
+          e.preventDefault();
+          return;
+        }
+      }
       if (!hasLayoutChild || clickedChild === false || e.altKey || e.ctrlKey || e.metaKey || cellTriangle) {
         var layoutTable = layoutCell.closest('table.sui-layout-table');
         var layoutId = layoutTable ? layoutTable.getAttribute('data-sui-id') : null;

@@ -1179,7 +1179,8 @@ the preview to select it and see its row/column; the selected cell is the
 insertion container for the next palette/Insert element. **Alt+click** an
 occupied cell, click its always-visible bottom-left triangle, or use
 **Select content** to work with its content; clicking a child selects that child
-and clears the cell selection.
+and clears the cell selection. Clicking an edit box clears any cell selection;
+selecting a cell or another element blurs the edit box.
 The green triangle just outside the table's top-left corner selects the whole
 table; clicking inside the first cell selects that cell or its content.
 Select a direct child to open the **Layout cell** section and set `column span` /

@@ -1228,7 +1228,8 @@ selezionata è il contenitore in cui viene inserito il prossimo elemento dalla
 palette o dal menu Insert. **Alt+click** su una cella occupata, il triangolino
 in basso a sinistra sempre visibile o **Select content** permettono di gestire
 il contenuto; cliccare un elemento interno seleziona l'elemento e deseleziona
-la cella. Il triangolo verde
+la cella. Cliccare un edit box cancella la selezione delle celle; selezionare
+una cella o un altro elemento toglie il focus all'edit box. Il triangolo verde
 appena fuori dall'angolo in alto a sinistra seleziona l'intera tabella; un click
 dentro la prima cella seleziona la cella o il suo contenuto. Seleziona un figlio
 diretto per aprire **Layout cell** e impostare `column span` / `row span`,
