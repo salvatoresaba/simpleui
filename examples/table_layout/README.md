@@ -126,7 +126,7 @@ tablelayout rows: 2 columns: 3
 2. Choose **Layout > Table layout** from the palette.
 3. Select the layout table and use the **Table layout** inspector, including
    **Split vertical** / **Split horizontal** and **Merge selected**:
-   - preset;
+   - preset (shown only while the table is empty);
    - rows and columns;
    - **Structure table settings** for per-column widths and per-row heights;
    - separate column/row gaps;
@@ -136,7 +136,9 @@ tablelayout rows: 2 columns: 3
    The table width/height are in the generic **Size** section and the table
    border in the generic **Border** section. **Structure table settings** opens
    a panel with a scrollable column list and row list, so large grids stay
-   usable.
+   usable. Reducing rows/columns when cells contain elements asks whether to
+   remove that content or move it into the nearest remaining cell; Cancel keeps
+   the grid unchanged.
 4. Drag cards or controls inside it. An empty cell can be clicked directly, so
    you can see its row/column; the next palette or Insert element goes inside
    the selected cell. **Alt+click** an occupied cell or use its always-visible

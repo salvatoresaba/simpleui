@@ -1169,7 +1169,11 @@ A new layout table starts as a single empty cell. Use **Split vertical** /
 adds cells to the selection and **Merge selected** joins cells only when the
 first two share a full side; that side sets the merge direction and every
 additional cell must continue the same direction. Changing **rows** appends/removes complete rows at the bottom (one cell per
-column); changing **columns** appends/removes cells on the right. Drag the thin
+column); changing **columns** appends/removes cells on the right. When a
+reduction would remove cells that contain elements, a dialog asks whether to
+**remove** that content or **move** it into the nearest remaining cell; Cancel
+keeps the grid unchanged. The **preset** list is shown only while the table is
+empty. Drag the thin
 vertical/horizontal split handles in the preview to resize columns or rows; the
 matching sizes are shown and editable in **Structure table settings**. Click a
 split handle without dragging to select the split; Ctrl+click adds more splits

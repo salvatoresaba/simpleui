@@ -1218,7 +1218,10 @@ solo se le prime due condividono un lato intero; quel lato stabilisce la
 direzione del merge e ogni cella successiva deve continuare nella stessa
 direzione. Cambiando **rows** si aggiungono/rimuovono righe complete
 in basso (una cella per colonna); cambiando **columns** si aggiungono/rimuovono
-celle a destra. Trascina le sottili maniglie verticali/orizzontali nella preview
+celle a destra. Se la riduzione eliminerebbe celle con elementi, un dialogo
+chiede se **rimuovere** il contenuto o **spostarlo** nella cella rimanente più
+vicina; Cancel lascia la griglia invariata. Il **preset** compare solo quando la
+tabella è vuota. Trascina le sottili maniglie verticali/orizzontali nella preview
 per ridimensionare colonne o righe: le dimensioni si aggiornano e si modificano
 in **Structure table settings**. Clicca una maniglia senza trascinarla per selezionare lo
 split; Ctrl+click aggiunge altri split e **Delete split** unisce le celle

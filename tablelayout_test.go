@@ -210,6 +210,13 @@ func TestTableLayoutInspectorStructurePanel(t *testing.T) {
 		"function layoutApplyCounts",
 		"function layoutSetCellSpans",
 		"span would cut through another cell",
+		"function layoutTableHasContent",
+		"function layoutCountsLoss",
+		"function confirmLayoutReduce",
+		"function layoutReduceChoose",
+		"layoutreducedlg",
+		"layoutreduce-move",
+		"layoutreduce-remove",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("table layout structure panel missing %q", want)

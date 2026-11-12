@@ -661,6 +661,12 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .lsd-row { display:flex; align-items:center; gap:8px; padding:2px 0; }
 .lsd-row label { width:52px; flex:none; color:var(--muted); font-size:11px; }
 .lsd-row input { flex:1; min-width:0; font-size:12px; padding:4px 6px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; }
+/* reduce grid confirmation: remove vs move the content */
+#layoutreducedlg { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:37; }
+#layoutreducedlg.on { display:flex; }
+#layoutreducebox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:18px 20px; width:470px; max-width:92vw; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#layoutreducebox h2 { font-size:15px; margin:0 0 10px; }
+#layoutreduce-text { font-size:13px; color:var(--fg); line-height:1.5; margin-bottom:14px; white-space:pre-wrap; }
 /* desktop build dialog */
 #deskdlg { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:35; }
 #deskdlg.on { display:flex; }
@@ -1683,6 +1689,17 @@ RUNNING</div>
       <button class="btn" type="button" onclick="resetLayoutStructure()">Reset to auto</button>
       <span style="flex:1"></span>
       <button class="btn" type="button" onclick="closeLayoutStructure()">Close</button>
+    </div>
+  </div>
+</div>
+<div id="layoutreducedlg" role="dialog" aria-modal="true" aria-labelledby="layoutreduce-title">
+  <div id="layoutreducebox">
+    <h2 id="layoutreduce-title">Reduce layout table</h2>
+    <div id="layoutreduce-text"></div>
+    <div class="pfbtns">
+      <button class="btn" type="button" id="layoutreduce-cancel">Cancel</button>
+      <button class="btn" type="button" id="layoutreduce-move">Move content</button>
+      <button class="btn" type="button" id="layoutreduce-remove">Remove content</button>
     </div>
   </div>
 </div>
@@ -9532,27 +9549,29 @@ function layoutTableControls(n) {
   mb.style.fontSize = "10px"; mb.textContent = "Merge selected";
   mb.onclick = function(){ layoutMergeSelection(n); };
   mergeRow.appendChild(mb); b.appendChild(mergeRow);
-  var presets = [
-    { label: "2 x 2", rows: 2, columns: 2, widths: "", heights: "", gapX: "12px", gapY: "12px" },
-    { label: "Sidebar + content", rows: 1, columns: 2, widths: "260px, auto", heights: "", gapX: "16px", gapY: "12px" },
-    { label: "Header + 2 columns", rows: 2, columns: 2, widths: "50%, 50%", heights: "auto, auto", gapX: "14px", gapY: "14px" },
-    { label: "Dashboard 3 x 2", rows: 2, columns: 3, widths: "33%, 34%, 33%", heights: "auto, auto", gapX: "14px", gapY: "14px" }
-  ];
-  var pr = document.createElement("div"); pr.className = "rowline";
-  pr.appendChild(lbl("preset"));
-  var psel = document.createElement("select");
-  var ph = document.createElement("option"); ph.value = ""; ph.textContent = "Custom"; psel.appendChild(ph);
-  presets.forEach(function(p, i){ var o = document.createElement("option"); o.value = String(i); o.textContent = p.label; psel.appendChild(o); });
-  psel.onchange = function(){
-    if (psel.value === "") return;
-    var p = presets[Number(psel.value)];
-    withUndo(function(){
-      layoutApplyCounts(n, p.rows, p.columns);
-      n.layoutColumnWidths = p.widths; n.layoutRowHeights = p.heights;
-      n.layoutGapX = p.gapX; n.layoutGapY = p.gapY;
-    }, "table layout preset");
-  };
-  pr.appendChild(psel); b.appendChild(pr);
+  if (!layoutTableHasContent(n)) {
+    var presets = [
+      { label: "2 x 2", rows: 2, columns: 2, widths: "", heights: "", gapX: "12px", gapY: "12px" },
+      { label: "Sidebar + content", rows: 1, columns: 2, widths: "260px, auto", heights: "", gapX: "16px", gapY: "12px" },
+      { label: "Header + 2 columns", rows: 2, columns: 2, widths: "50%, 50%", heights: "auto, auto", gapX: "14px", gapY: "14px" },
+      { label: "Dashboard 3 x 2", rows: 2, columns: 3, widths: "33%, 34%, 33%", heights: "auto, auto", gapX: "14px", gapY: "14px" }
+    ];
+    var pr = document.createElement("div"); pr.className = "rowline";
+    pr.appendChild(lbl("preset"));
+    var psel = document.createElement("select");
+    var ph = document.createElement("option"); ph.value = ""; ph.textContent = "Custom"; psel.appendChild(ph);
+    presets.forEach(function(p, i){ var o = document.createElement("option"); o.value = String(i); o.textContent = p.label; psel.appendChild(o); });
+    psel.onchange = function(){
+      if (psel.value === "") return;
+      var p = presets[Number(psel.value)];
+      withUndo(function(){
+        layoutApplyCounts(n, p.rows, p.columns, "remove");
+        n.layoutColumnWidths = p.widths; n.layoutRowHeights = p.heights;
+        n.layoutGapX = p.gapX; n.layoutGapY = p.gapY;
+      }, "table layout preset");
+    };
+    pr.appendChild(psel); b.appendChild(pr);
+  }
   textRow("column gap", "layoutGapX", "12px");
   textRow("row gap", "layoutGapY", "12px");
   textRow("empty cell height", "layoutCellMinHeight", "72px");
@@ -13110,10 +13129,58 @@ function layoutMergeSelection(n) {
     setStatus("merged " + included.length + " layout cells");
   }, "merge layout cells");
 }
-function layoutApplyCounts(n, targetRows, targetCols) {
+function layoutCellCovering(n, row, col) {
+  for (var i = 0; i < n.children.length; i++) {
+    var cell = n.children[i];
+    if (!layoutIsCellNode(cell)) continue;
+    if (layoutCellCoversRow(cell, row) && layoutCellCoversCol(cell, col)) return cell;
+  }
+  return null;
+}
+function layoutCountsLoss(n, targetRows, targetCols) {
+  var g = layoutGridInfo(n);
+  var rows = layoutClampInt(targetRows, 1, 50, 1);
+  var cols = layoutClampInt(targetCols, 1, 12, 1);
+  var elements = 0, cells = 0;
+  for (var i = 0; i < g.cells.length; i++) {
+    var c = g.cells[i];
+    if (c.row < rows && c.col < cols) continue;
+    var node = n.children[c.index];
+    var count = 0;
+    if (node) count = layoutIsCellNode(node) ? ((node.children || []).length) : 1;
+    if (count > 0) { elements += count; cells++; }
+  }
+  return { elements: elements, cells: cells };
+}
+function layoutTableHasContent(n) {
+  var g = layoutGridInfo(n);
+  for (var i = 0; i < g.cells.length; i++) {
+    var node = n.children[g.cells[i].index];
+    if (!node) continue;
+    if (layoutIsCellNode(node)) {
+      if (node.children && node.children.length) return true;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
+function layoutApplyCounts(n, targetRows, targetCols, mode) {
   materializeLayoutCells(n);
   var rows = layoutClampInt(targetRows, 1, 50, 1);
   var cols = layoutClampInt(targetCols, 1, 12, 1);
+  var moved = [];
+  if (mode === "move") {
+    for (var i = 0; i < n.children.length; i++) {
+      var cell = n.children[i];
+      if (!layoutIsCellNode(cell)) continue;
+      var rr = Number(cell.layoutRow || 0), cc = Number(cell.layoutCol || 0);
+      if (rr < rows && cc < cols) continue;
+      var content = (cell.children || []).slice();
+      if (content.length) moved.push({ row: Math.min(rr, rows - 1), col: Math.min(cc, cols - 1), content: content });
+    }
+    moved.sort(function(a, b){ return (a.row - b.row) || (a.col - b.col); });
+  }
   n.children = (n.children || []).filter(function(cell){
     return cell.kind === "layoutcell" && Number(cell.layoutRow || 0) < rows && Number(cell.layoutCol || 0) < cols;
   });
@@ -13131,19 +13198,47 @@ function layoutApplyCounts(n, targetRows, targetCols) {
       if (!g.occupied[r] || !g.occupied[r][c]) n.children.push(newLayoutCellNode(r, c));
     }
   }
+  var movedElements = 0;
+  for (var m = 0; m < moved.length; m++) {
+    var target = layoutCellCovering(n, moved[m].row, moved[m].col);
+    if (!target) {
+      target = newLayoutCellNode(moved[m].row, moved[m].col);
+      n.children.push(target);
+    }
+    target.children = (target.children || []).concat(moved[m].content);
+    movedElements += moved[m].content.length;
+  }
   layoutSortCells(n);
   layoutSyncCounts(n);
+  return movedElements;
 }
 function layoutSetCount(n, axis, value) {
-  var tablePath = layoutSelectedTablePath();
-  withUndo(function(){
-    var g = layoutGridInfo(n);
-    if (axis === "rows") layoutApplyCounts(n, value, g.cols);
-    else layoutApplyCounts(n, g.rows, value);
-    selLayoutCells = [];
-    selLayoutCell = null;
-    if (tablePath) selPath = tablePath.slice();
-  }, "table layout " + axis);
+  var g = layoutGridInfo(n);
+  var rows = axis === "rows" ? layoutClampInt(value, 1, 50, 1) : g.rows;
+  var cols = axis === "columns" ? layoutClampInt(value, 1, 12, 1) : g.cols;
+  var loss = layoutCountsLoss(n, rows, cols);
+  function apply(mode) {
+    var tablePath = layoutSelectedTablePath();
+    withUndo(function(){
+      var moved = layoutApplyCounts(n, rows, cols, mode);
+      selLayoutCells = [];
+      selLayoutCell = null;
+      if (tablePath) selPath = tablePath.slice();
+      if (loss.elements) {
+        setStatus(mode === "move"
+          ? ("moved " + moved + (moved === 1 ? " element" : " elements") + " into the remaining cells")
+          : ("removed " + loss.elements + (loss.elements === 1 ? " element" : " elements") + " from " + loss.cells + (loss.cells === 1 ? " cell" : " cells")));
+      } else {
+        setStatus("grid resized");
+      }
+    }, "table layout " + axis);
+  }
+  if (loss.elements > 0 && loss.cells > 0) {
+    renderInspector();
+    confirmLayoutReduce(rows, cols, loss, function(mode){ if (mode) apply(mode); });
+  } else {
+    apply("remove");
+  }
 }function layoutInsertIndex(n, row, col) {
   var g = layoutGridInfo(n);
   if (g.occupied[row] && g.occupied[row][col]) return -1;
@@ -19392,6 +19487,35 @@ function confOk() { var cb = __confCb; closeConf(); if (cb) cb(); }
   dlg.addEventListener("mousedown", function(ev){ if (ev.target === dlg) closeConf(); });
   dlg.addEventListener("keydown", function(ev){
     if (ev.key === "Escape") { ev.preventDefault(); closeConf(); }
+  });
+})();
+var __layoutReduceCb = null;
+function confirmLayoutReduce(rows, cols, loss, onChoice) {
+  __layoutReduceCb = onChoice || null;
+  var text = "Reducing the grid to " + rows + " " + (rows === 1 ? "row" : "rows") + " \u00d7 " + cols + " " + (cols === 1 ? "column" : "columns") + " affects "
+    + loss.elements + (loss.elements === 1 ? " element" : " elements") + " in " + loss.cells + (loss.cells === 1 ? " cell" : " cells") + ".\n\n"
+    + "Choose whether to remove that content or move it into the nearest remaining cell.";
+  document.getElementById("layoutreduce-text").textContent = text;
+  document.getElementById("layoutreducedlg").classList.add("on");
+  var cancel = document.getElementById("layoutreduce-cancel");
+  if (cancel) cancel.focus();
+}
+function layoutReduceChoose(mode) {
+  var cb = __layoutReduceCb;
+  __layoutReduceCb = null;
+  var dlg = document.getElementById("layoutreducedlg");
+  if (dlg) dlg.classList.remove("on");
+  if (cb) cb(mode);
+}
+(function wireLayoutReduceDialog() {
+  var dlg = document.getElementById("layoutreducedlg");
+  if (!dlg) return;
+  document.getElementById("layoutreduce-cancel").onclick = function(){ layoutReduceChoose(null); };
+  document.getElementById("layoutreduce-move").onclick = function(){ layoutReduceChoose("move"); };
+  document.getElementById("layoutreduce-remove").onclick = function(){ layoutReduceChoose("remove"); };
+  dlg.addEventListener("mousedown", function(ev){ if (ev.target === dlg) layoutReduceChoose(null); });
+  document.addEventListener("keydown", function(ev) {
+    if (ev.key === "Escape" && dlg.classList.contains("on")) { ev.preventDefault(); layoutReduceChoose(null); }
   });
 })();
 (function wireLayoutStructDialog() {
