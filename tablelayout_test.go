@@ -267,6 +267,7 @@ func TestTableLayoutCellAlignment(t *testing.T) {
 		`"vertical-align"`,
 		`"text-align"`,
 		`"margin-left": h === "r" ? "auto"`,
+		`sn.kind === "tablelayout" || sn.kind === "layoutcell"`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("layout cell alignment missing %q", want)

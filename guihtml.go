@@ -4254,8 +4254,12 @@ var ALIGN_POINTS = [
 ];
 function alignElement(dir) {
   if (!selPath) { setStatus("nothing selected"); return; }
-  var parent = selPath.length >= 2 ? byPath(selPath.slice(0, -1), root.children) : null;
   var selNode = byPath(selPath, root.children);
+  if (selNode && (selNode.kind === "tablelayout" || selNode.kind === "layoutcell")) {
+    setStatus("select an element inside the cell to align it");
+    return;
+  }
+  var parent = selPath.length >= 2 ? byPath(selPath.slice(0, -1), root.children) : null;
   // row => main axis horizontal; col/generic/body => main axis vertical.
   var mainH = parent && parent.kind === "row";
   var h = dir.charAt(1); // 'l', 'c', 'r'
@@ -4330,6 +4334,10 @@ function alignClear() {
   setCssProps({ "margin-left": "", "margin-right": "", "margin-top": "", "margin-bottom": "", "align-self": "" });
 }
 function alignControls() {
+  if (selPath) {
+    var sn = byPath(selPath, root.children);
+    if (sn && (sn.kind === "tablelayout" || sn.kind === "layoutcell")) return null;
+  }
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
   h.innerHTML = '<span>Alignment</span><span>\u25BE</span>';
