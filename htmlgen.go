@@ -1962,9 +1962,9 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 [data-sui-popover-position="left"] > .sui-popover-panel { right:calc(100% + 6px); top:0; }
 [data-sui-drawer] { position:fixed; inset:0; z-index:1200; pointer-events:none; }
 [data-sui-drawer][data-sui-drawer-open="1"] { pointer-events:auto; }
-.sui-drawer-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.45); opacity:0; transition:opacity .2s ease; }
+.sui-drawer-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.45); opacity:0; transition:opacity var(--sui-drawer-duration,.2s) var(--sui-drawer-easing,ease); }
 [data-sui-drawer][data-sui-drawer-open="1"] > .sui-drawer-backdrop { opacity:1; }
-.sui-drawer { position:absolute; top:0; bottom:0; width:var(--sui-drawer-width,320px); max-width:92vw; display:flex; flex-direction:column; background:var(--sui-panel,#1d2129); color:var(--sui-fg); border:1px solid var(--sui-border); box-shadow:0 14px 50px rgba(0,0,0,.55); transition:transform .2s ease; }
+.sui-drawer { position:absolute; top:0; bottom:0; width:var(--sui-drawer-width,320px); max-width:92vw; display:flex; flex-direction:column; background:var(--sui-panel,#1d2129); color:var(--sui-fg); border:1px solid var(--sui-border); box-shadow:0 14px 50px rgba(0,0,0,.55); transition:transform var(--sui-drawer-duration,.2s) var(--sui-drawer-easing,ease); }
 .sui-drawer-right { right:0; transform:translateX(100%); }
 .sui-drawer-left { left:0; transform:translateX(-100%); }
 [data-sui-drawer][data-sui-drawer-open="1"] > .sui-drawer { transform:none; }
@@ -2010,13 +2010,13 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 .sui-empty-compact { padding:16px 12px; }
 .sui-empty-compact .sui-empty-icon { font-size:22px; }
 .sui-skeleton { display:flex; flex-direction:column; gap:var(--sui-sk-gap,8px); width:var(--sui-sk-width,100%); }
-.sui-skeleton-line, .sui-skeleton-dot { display:block; width:100%; height:var(--sui-sk-height,12px); border-radius:6px; background:linear-gradient(90deg,rgba(148,163,184,.12) 25%,rgba(148,163,184,.28) 37%,rgba(148,163,184,.12) 63%); background-size:400% 100%; animation:sui-sk 1.4s ease infinite; }
+.sui-skeleton-line, .sui-skeleton-dot { display:block; width:100%; height:var(--sui-sk-height,12px); border-radius:6px; background:linear-gradient(90deg,rgba(148,163,184,.12) 25%,rgba(148,163,184,.28) 37%,rgba(148,163,184,.12) 63%); background-size:400% 100%; animation:sui-sk var(--sui-sk-duration,1.4s) ease infinite; }
 .sui-skeleton-dot { width:var(--sui-sk-height,48px); height:var(--sui-sk-height,48px); border-radius:50%; }
 .sui-skeleton-static .sui-skeleton-line, .sui-skeleton-static .sui-skeleton-dot { animation:none; }
 @keyframes sui-sk { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
 .sui-carousel { display:flex; flex-direction:column; gap:6px; width:100%; }
 .sui-carousel-frame { overflow:hidden; border:1px solid var(--sui-border); border-radius:8px; background:var(--sui-panel); }
-.sui-carousel-track { display:flex; transition:transform .28s ease; }
+.sui-carousel-track { display:flex; transition:transform var(--sui-carousel-duration,.28s) var(--sui-carousel-easing,ease); }
 .sui-carousel-slide { flex:0 0 100%; min-width:100%; min-height:var(--sui-carousel-height,160px); display:flex; flex-direction:column; gap:8px; padding:12px; }
 .sui-carousel-nav { display:flex; align-items:center; justify-content:center; gap:10px; }
 .sui-carousel-prev, .sui-carousel-next { border:1px solid var(--sui-border); background:var(--sui-panel); color:var(--sui-fg); border-radius:6px; padding:4px 10px; font:inherit; cursor:pointer; }
@@ -2052,6 +2052,18 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 .sui-commandbar-overlay[data-sui-commandbar-open="1"] { display:flex; }
 .sui-commandbar-overlay .sui-commandbar-panel { position:relative; z-index:1; width:min(520px,92vw); background:var(--sui-panel,#1d2129); }
 .sui-commandbar-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.5); }
+@keyframes sui-anim-fade { from { opacity:0; } to { opacity:1; } }
+@keyframes sui-anim-scale { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+@keyframes sui-anim-slide-down { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+@keyframes sui-anim-slide-up { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes sui-anim-slide-right { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:none; } }
+@keyframes sui-anim-slide-left { from { opacity:0; transform:translateX(6px); } to { opacity:1; transform:none; } }
+[data-sui-anim="fade"] { animation: sui-anim-fade var(--sui-anim-duration,140ms) var(--sui-anim-easing,ease-out) var(--sui-anim-delay,0ms); }
+[data-sui-anim="scale"] { animation: sui-anim-scale var(--sui-anim-duration,140ms) var(--sui-anim-easing,ease-out) var(--sui-anim-delay,0ms); }
+[data-sui-anim="slide"][data-sui-anim-shift="down"] { animation: sui-anim-slide-down var(--sui-anim-duration,140ms) var(--sui-anim-easing,ease-out) var(--sui-anim-delay,0ms); }
+[data-sui-anim="slide"][data-sui-anim-shift="up"] { animation: sui-anim-slide-up var(--sui-anim-duration,140ms) var(--sui-anim-easing,ease-out) var(--sui-anim-delay,0ms); }
+[data-sui-anim="slide"][data-sui-anim-shift="right"] { animation: sui-anim-slide-right var(--sui-anim-duration,140ms) var(--sui-anim-easing,ease-out) var(--sui-anim-delay,0ms); }
+[data-sui-anim="slide"][data-sui-anim-shift="left"] { animation: sui-anim-slide-left var(--sui-anim-duration,140ms) var(--sui-anim-easing,ease-out) var(--sui-anim-delay,0ms); }
 .sui-menu-popup > a { display: block; color: inherit; text-decoration: none; }
 .sui-menuitem {
   display: block;
@@ -2391,7 +2403,7 @@ body.sui-designer-preview .sui-tabs[data-sui-workbook="1"][data-sui-tabcount="1"
   pointer-events: none;
 }
 .sui-tooltip-bubble[hidden] { display: none; }
-.sui-tooltip-bubble.open { animation: sui-tooltip-in .12s ease-out; }
+.sui-tooltip-bubble.open:not([data-sui-anim]) { animation: sui-tooltip-in var(--sui-tooltip-duration,.12s) var(--sui-tooltip-easing,ease-out) var(--sui-tooltip-anim-delay,0ms); }
 @keyframes sui-tooltip-in { from { opacity: 0; } to { opacity: 1; } }
 /* Modal dialogs */
 .sui-modal {
@@ -7229,6 +7241,7 @@ func writeStaticCombobox(sb *strings.Builder, e *Element, ind string) {
 	if disabled {
 		sb.WriteString(" data-sui-disabled=\"1\"")
 	}
+	sb.WriteString(" data-sui-combobox-placement=\"" + attrChoice(e, "placement", []string{"auto", "bottom", "top", "left", "right"}, "auto") + "\"" + dataAnimAttrs(e, "fade"))
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	sb.WriteString(ind + "  <label class=\"sui-combobox-label\">")
@@ -7390,6 +7403,10 @@ func writeStaticSkeleton(sb *strings.Builder, e *Element, ind string) {
 	if gap == "" {
 		gap = "8px"
 	}
+	duration := animationSafeValue(attrLiteral(e, "duration"))
+	if duration == "" {
+		duration = "1.4s"
+	}
 	circle := attrBoolDefault(e, "circle", false)
 	animated := attrBoolDefault(e, "animated", true)
 	sb.WriteString(ind + "<div class=\"sui-skeleton")
@@ -7401,7 +7418,7 @@ func writeStaticSkeleton(sb *strings.Builder, e *Element, ind string) {
 	}
 	staticClassSuffix(sb, e)
 	staticUserAttrsNoClass(sb, e, "")
-	sb.WriteString("\" style=\"--sui-sk-width:" + htmlEscape(width) + ";--sui-sk-height:" + htmlEscape(height) + ";--sui-sk-gap:" + htmlEscape(gap) + "\">\n")
+	sb.WriteString("\" style=\"--sui-sk-width:" + htmlEscape(width) + ";--sui-sk-height:" + htmlEscape(height) + ";--sui-sk-gap:" + htmlEscape(gap) + ";--sui-sk-duration:" + htmlEscape(duration) + "\">\n")
 	if circle {
 		sb.WriteString(ind + "  <span class=\"sui-skeleton-dot\"></span>\n")
 	} else {
@@ -7563,7 +7580,7 @@ func writeStaticCommandbar(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString(" sui-commandbar-overlay")
 	}
 	staticClassSuffix(sb, e)
-	sb.WriteString("\" data-sui-commandbar")
+	sb.WriteString("\" data-sui-commandbar" + dataAnimAttrs(e, "fade"))
 	if overlay {
 		sb.WriteString(" data-sui-commandbar-overlay data-sui-commandbar-open=\"" + bool01(open) + "\"")
 		if hotkey != "" {
@@ -7735,13 +7752,7 @@ func writeStaticDrawer(sb *strings.Builder, e *Element, ind string) {
 }
 
 func writeStaticPopover(sb *strings.Builder, e *Element, ind string) {
-	pos := "top"
-	if a := findAttr(e, "position"); a != nil && !a.hasExpr {
-		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
-		if v == "top" || v == "right" || v == "bottom" || v == "left" {
-			pos = v
-		}
-	}
+	pos := attrChoice(e, "position", []string{"auto", "top", "right", "bottom", "left"}, "auto")
 	label := partsContent(e.text)
 	if strings.TrimSpace(label) == "" {
 		label = "Info"
@@ -7749,7 +7760,7 @@ func writeStaticPopover(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString(ind)
 	sb.WriteString("<span class=\"sui-popover")
 	staticClassSuffix(sb, e)
-	sb.WriteString("\" data-sui-popover data-sui-popover-position=\"" + pos + "\"")
+	sb.WriteString("\" data-sui-popover data-sui-popover-position=\"" + pos + "\"" + dataAnimAttrs(e, "scale"))
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	sb.WriteString(ind + "  <button type=\"button\" class=\"sui-popover-trigger\" data-sui-popover-trigger aria-haspopup=\"dialog\" aria-expanded=\"false\">")
@@ -7771,6 +7782,9 @@ func writeStaticMenu(sb *strings.Builder, e *Element, ind string) {
 		}
 	}
 	sb.WriteString("\" role=\"none\"")
+	if e.tag == "dropdown" {
+		sb.WriteString(" data-sui-dropdown-placement=\"" + attrChoice(e, "placement", []string{"auto", "bottom", "top", "left", "right"}, "auto") + "\"" + dataAnimAttrs(e, "fade"))
+	}
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	sb.WriteString(ind)
@@ -7907,6 +7921,27 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			continue
 		}
 		if e.tag == "command" && a.key == "shortcut" {
+			continue
+		}
+		if e.tag == "dropdown" && (a.key == "placement" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "popover" && (a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "combobox" && (a.key == "placement" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "drawer" && (a.key == "duration" || a.key == "easing") {
+			continue
+		}
+		if e.tag == "carousel" && (a.key == "duration" || a.key == "easing") {
+			continue
+		}
+		if e.tag == "commandbar" && (a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "skeleton" && a.key == "duration" {
 			continue
 		}
 		if e.tag == "tablelayout" && (a.key == "columns" || a.key == "rows" ||

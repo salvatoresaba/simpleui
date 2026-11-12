@@ -848,18 +848,28 @@ See [API reference: menu bar](API_REFERENCE.md#menu-bar) and the
 ## Dropdown and popover controls
 
 **Controls > Dropdown menu** inserts a button with an anchored list of
-`dropdownitem` children. Set the label from **Text** and the side in the
-**Dropdown** section; add items from the tree. Items support `onClick`,
-`disabled` and `separator`.
+`dropdownitem` children. Set the label from **Text**, the start/end alignment and
+the preferred `placement` in the **Dropdown** section; add items from the tree.
+Items support `onClick`, `disabled` and `separator`. The menu flips and clamps
+itself inside the viewport.
 
 **Controls > Popover** inserts a trigger with rich child content in an anchored
-panel. Set the trigger label from **Text** and the side in the **Popover**
-section. It closes on outside clicks and Escape.
+panel. Set the trigger label from **Text** and the preferred side in the
+**Popover** section. It closes on outside clicks and Escape. Auto placement keeps
+the panel inside the window.
 
 **Controls > Drawer** inserts a side panel. Set the heading from **Text**; the
-**Drawer** section controls the side (`left`/`right`), width, the `open` state
-and an optional `onClose` function. The state field creates the state when it is
-missing.
+**Drawer** section controls the side (`left`/`right`), width, the `open` state,
+an optional `onClose` function and the slide `duration`/`easing`. The state field
+creates the state when it is missing.
+
+### Animation settings
+
+Dropdown, popover, combobox and command palette inspectors expose an
+**animation** effect (`fade`, `scale`, `slide`, `none`), `duration`, `easing` and
+`delay`. Drawer and carousel expose `duration`/`easing`; skeleton exposes the
+shimmer `duration`. The same fields are available on the source attributes and
+are previewed live in the designer.
 
 **Controls > Split panes** inserts two `pane` children and a draggable divider.
 Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must
@@ -1034,6 +1044,9 @@ The **Combobox** inspector section contains:
 | max options | maximum number of items accepted when the list is formed |
 | required | require a selected value |
 | disabled | disable the control |
+| popup placement | preferred side (`auto`, `bottom`, `top`, `left`, `right`) |
+| animation | popup open effect (`fade`, `scale`, `slide`, `none`) |
+| duration / easing / delay | open effect timing |
 
 Adding a row updates the bound state's **initial value**. The generated source
 keeps `options: stateName`, so application code can assign a different

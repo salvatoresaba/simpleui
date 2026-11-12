@@ -883,18 +883,28 @@ bar](../examples/menu_bar.sui).
 ## Controlli dropdown e popover
 
 **Controls > Dropdown menu** inserisce un pulsante con un elenco ancorato di
-figli `dropdownitem`. Imposta l'etichetta da **Text** e il lato nella sezione
-**Dropdown**; aggiungi le voci dall'albero. Le voci supportano `onClick`,
-`disabled` e `separator`.
+figli `dropdownitem`. Imposta l'etichetta da **Text**, l'allineamento e il
+`placement` preferito nella sezione **Dropdown**; aggiungi le voci dall'albero.
+Le voci supportano `onClick`, `disabled` e `separator`. Il menu si ribalta e
+resta dentro la viewport.
 
 **Controls > Popover** inserisce un trigger con contenuto ricco in un pannello
-ancorato. Imposta l'etichetta del trigger da **Text** e il lato nella sezione
-**Popover**. Si chiude con un click fuori o con Esc.
+ancorato. Imposta l'etichetta del trigger da **Text** e il lato preferito nella
+sezione **Popover**. Si chiude con un click fuori o con Esc. Il posizionamento
+auto mantiene il pannello nella finestra.
 
 **Controls > Drawer** inserisce un pannello laterale. Imposta il titolo da
 **Text**; la sezione **Drawer** controlla il lato (`left`/`right`), la larghezza,
-lo stato `open` e una funzione `onClose` opzionale. Il campo dello stato crea lo
-stato se manca.
+lo stato `open`, una funzione `onClose` opzionale e `duration`/`easing` della
+transizione. Il campo dello stato crea lo stato se manca.
+
+### Impostazioni animazione
+
+Gli inspector di dropdown, popover, combobox e command palette espongono
+l'effetto **animation** (`fade`, `scale`, `slide`, `none`), `duration`, `easing` e
+`delay`. Drawer e carousel espongono `duration`/`easing`; skeleton espone
+`duration` per lo shimmer. Gli stessi campi sono disponibili come attributi nel
+sorgente e sono mostrati in anteprima dal designer.
 
 **Controls > Split panes** inserisce due figli `pane` e un divisore
 trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.
@@ -1074,6 +1084,9 @@ La sezione inspector **Combobox** contiene:
 | max options | numero massimo di elementi accettati quando si forma la lista |
 | required | richiede un valore selezionato |
 | disabled | disabilita il controllo |
+| popup placement | lato preferito (`auto`, `bottom`, `top`, `left`, `right`) |
+| animation | effetto di apertura (`fade`, `scale`, `slide`, `none`) |
+| duration / easing / delay | tempi ed easing dell'effetto |
 
 Aggiungere una riga aggiorna il **valore iniziale** dello stato collegato. Il
 sorgente generato mantiene `options: nomeStato`, quindi il codice applicativo può

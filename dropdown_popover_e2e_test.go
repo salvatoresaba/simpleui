@@ -112,6 +112,13 @@ const dropdownPopoverScript = `<script>
     if (rect.left < 0 || rect.top < 0 || rect.right > window.innerWidth || rect.bottom > window.innerHeight) {
       throw new Error('dropdown popup outside viewport: ' + JSON.stringify({ left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, vw: window.innerWidth, vh: window.innerHeight }));
     }
+    if (!popup.hasAttribute('data-sui-anim')) throw new Error('dropdown animation missing');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await wait(100);
+    if (menu.classList.contains('open')) throw new Error('dropdown did not close on Escape');
+    toggle.click();
+    await wait(100);
+    if (!menu.classList.contains('open')) throw new Error('dropdown did not reopen');
     var item = menu.querySelector('.sui-menuitem');
     item.click();
     await wait(300);
@@ -126,6 +133,11 @@ const dropdownPopoverScript = `<script>
     popTrigger.click();
     await wait(100);
     if (!pop.classList.contains('open') || panel.hidden) throw new Error('popover did not open');
+    var pr = panel.getBoundingClientRect();
+    if (pr.left < 0 || pr.top < 0 || pr.right > window.innerWidth || pr.bottom > window.innerHeight) {
+      throw new Error('popover outside viewport: ' + JSON.stringify({ left: pr.left, top: pr.top, right: pr.right, bottom: pr.bottom }));
+    }
+    if (!panel.hasAttribute('data-sui-anim')) throw new Error('popover animation missing');
     document.body.click();
     await wait(100);
     if (pop.classList.contains('open') || !panel.hidden) throw new Error('popover did not close on outside click');

@@ -3088,6 +3088,13 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			o.obj[a.key] = JStr(partsLiteral(a.text))
 		} else if e.tag == "command" && a.key == "shortcut" {
 			o.obj["shortcut"] = JStr(partsLiteral(a.text))
+		} else if (e.tag == "dropdown" || e.tag == "popover" || e.tag == "combobox" || e.tag == "commandbar") &&
+			(a.key == "placement" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if (e.tag == "drawer" || e.tag == "carousel") && (a.key == "duration" || a.key == "easing") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "skeleton" && a.key == "duration" {
+			o.obj["duration"] = JStr(partsLiteral(a.text))
 		} else if a.key == "open" {
 			o.obj["open"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "rename" {

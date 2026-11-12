@@ -650,6 +650,9 @@ func GenerateJsFor(p *Prog, target string) string {
 	sb.WriteString(suiDndRuntime)
 	// Menu bars use the same delegated runtime in every view and across
 	// rerenders; labels/actions are generated as normal elements, not HTML.
+	// Anchored overlays share viewport placement and animation helpers.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiOverlayRuntime)
 	sb.WriteString("\n\n")
 	sb.WriteString(suiMenuRuntime)
 	// Tabs share the same delegated/runtime approach and survive view rerenders
@@ -2603,6 +2606,8 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 		if pos != nil && !pos.hasExpr && strings.EqualFold(strings.TrimSpace(partsContent(pos.text)), "right") {
 			sb.WriteString(" data-sui-dropdown-right")
 		}
+		sb.WriteString(" data-sui-dropdown-placement=\"" + attrChoice(e, "placement", []string{"auto", "bottom", "top", "left", "right"}, "auto") + "\"")
+		sb.WriteString(dataAnimAttrs(e, "fade"))
 	} else if e.tag == "menuitem" || e.tag == "dropdownitem" {
 		sb.WriteString(" role=\"menuitem\" tabindex=\"-1\"")
 		if e.tag == "dropdownitem" && datepickerBool(e, "disabled") {
@@ -3057,6 +3062,27 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			continue
 		}
 		if e.tag == "command" && a.key == "shortcut" {
+			continue
+		}
+		if e.tag == "dropdown" && (a.key == "placement" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "popover" && (a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "combobox" && (a.key == "placement" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "drawer" && (a.key == "duration" || a.key == "easing") {
+			continue
+		}
+		if e.tag == "carousel" && (a.key == "duration" || a.key == "easing") {
+			continue
+		}
+		if e.tag == "commandbar" && (a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay") {
+			continue
+		}
+		if e.tag == "skeleton" && a.key == "duration" {
 			continue
 		}
 		if e.tag == "dropdownitem" && a.key == "separator" {
@@ -4592,6 +4618,7 @@ func datepickerElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 // binding and the optional onChange handler as data attributes.
 func comboboxElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	open := openTagHtml(e, "div", false, idx, ctx)
+	open = strings.TrimSuffix(open, ">") + " data-sui-combobox-placement=\"" + attrChoice(e, "placement", []string{"auto", "bottom", "top", "left", "right"}, "auto") + "\"" + dataAnimAttrs(e, "fade") + ">"
 	// options is a comma-separated string. A literal is embedded as-is; an
 	// expression (usually a state string) is evaluated on every render, so a
 	// function can replace the list at runtime without rebuilding the view.
@@ -4855,6 +4882,16 @@ func drawerElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		open += " data-sui-drawer-onclose=\"" + onClose + "\""
 	}
 	open += ">"
+	var drawerStyle strings.Builder
+	if v := animationSafeValue(attrLiteral(e, "duration")); v != "" {
+		drawerStyle.WriteString("--sui-drawer-duration:" + v + ";")
+	}
+	if v := animationSafeValue(attrLiteral(e, "easing")); v != "" {
+		drawerStyle.WriteString("--sui-drawer-easing:" + v + ";")
+	}
+	if drawerStyle.Len() > 0 {
+		open = addOpenTagStyle(open, drawerStyle.String())
+	}
 	kids := "''"
 	if len(e.children) > 0 {
 		kids = viewNodesJs(childPtrs(e.children), g, ctx)
@@ -5017,6 +5054,44 @@ func attrLiteral(e *Element, key string) string {
 	return ""
 }
 
+func attrChoice(e *Element, key string, allowed []string, def string) string {
+	v := strings.ToLower(attrLiteral(e, key))
+	for _, a := range allowed {
+		if v == a {
+			return v
+		}
+	}
+	return def
+}
+
+// animationSafeValue is layoutSafeCSSValue plus a check for characters that
+// would break the generated JavaScript template literal.
+func animationSafeValue(v string) string {
+	v = layoutSafeCSSValue(v)
+	if strings.ContainsAny(v, "`$") {
+		return ""
+	}
+	return v
+}
+
+// dataAnimAttrs emits the shared overlay animation parameters. Values are
+// sanitized by the compiler and applied by __SUI_OVERLAY.animate at runtime.
+func dataAnimAttrs(e *Element, defEffect string) string {
+	effect := attrChoice(e, "animation", []string{"fade", "scale", "slide", "none"}, defEffect)
+	var b strings.Builder
+	b.WriteString(" data-sui-animation=\"" + effect + "\"")
+	if v := animationSafeValue(attrLiteral(e, "duration")); v != "" {
+		b.WriteString(" data-sui-duration=\"" + htmlEscape(v) + "\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "easing")); v != "" {
+		b.WriteString(" data-sui-easing=\"" + htmlEscape(v) + "\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "delay")); v != "" {
+		b.WriteString(" data-sui-delay=\"" + htmlEscape(v) + "\"")
+	}
+	return b.String()
+}
+
 func attrBoolDefault(e *Element, key string, def bool) bool {
 	a := findAttr(e, key)
 	if a == nil {
@@ -5172,6 +5247,9 @@ func skeletonElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		open = addOpenTagClass(open, "sui-skeleton-static")
 	}
 	open = addOpenTagStyle(open, "--sui-sk-width:"+width+";--sui-sk-height:"+height+";--sui-sk-gap:"+gap)
+	if v := animationSafeValue(attrLiteral(e, "duration")); v != "" {
+		open = addOpenTagStyle(open, "--sui-sk-duration:"+v)
+	}
 	var b strings.Builder
 	b.WriteString("`")
 	b.WriteString(open)
@@ -5286,8 +5364,18 @@ func carouselElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		open += " data-sui-carousel-set=\"" + setter + "\""
 	}
 	open += ">"
+	var carouselStyle strings.Builder
 	if h := layoutSafeCSSValue(attrLiteral(e, "height")); h != "" {
-		open = addOpenTagStyle(open, "--sui-carousel-height:"+h)
+		carouselStyle.WriteString("--sui-carousel-height:" + h + ";")
+	}
+	if v := animationSafeValue(attrLiteral(e, "duration")); v != "" {
+		carouselStyle.WriteString("--sui-carousel-duration:" + v + ";")
+	}
+	if v := animationSafeValue(attrLiteral(e, "easing")); v != "" {
+		carouselStyle.WriteString("--sui-carousel-easing:" + v + ";")
+	}
+	if carouselStyle.Len() > 0 {
+		open = addOpenTagStyle(open, carouselStyle.String())
 	}
 	var b strings.Builder
 	b.WriteString("`")
@@ -5361,7 +5449,7 @@ func commandbarElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if overlay {
 		open = addOpenTagClass(open, "sui-commandbar-overlay")
 	}
-	open = strings.TrimSuffix(open, ">") + " data-sui-commandbar"
+	open = strings.TrimSuffix(open, ">") + " data-sui-commandbar" + dataAnimAttrs(e, "fade")
 	if overlay {
 		open += " data-sui-commandbar-overlay data-sui-commandbar-open=\"${(" + openExpr + ") ? \"1\" : \"0\"}\""
 		if setter != "" {
@@ -5423,14 +5511,8 @@ func dataBoolAttrValue(name string, a *Attr) string {
 func popoverElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	open := openTagHtml(e, "span", false, idx, ctx)
 	open = strings.TrimSuffix(open, ">") + " data-sui-popover"
-	pos := "top"
-	if a := findAttr(e, "position"); a != nil && !a.hasExpr {
-		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
-		if v == "top" || v == "right" || v == "bottom" || v == "left" {
-			pos = v
-		}
-	}
-	open += " data-sui-popover-position=\"" + pos + "\">"
+	pos := attrChoice(e, "position", []string{"auto", "top", "right", "bottom", "left"}, "auto")
+	open += " data-sui-popover-position=\"" + pos + "\"" + dataAnimAttrs(e, "scale") + ">"
 	label := htmlTextParts(e.text)
 	if strings.TrimSpace(partsContent(e.text)) == "" {
 		label = "Info"

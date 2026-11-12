@@ -285,6 +285,26 @@ scorrevole se è più alto della finestra. Nel designer scegliere **Controls >
 Dropdown menu**; modificare l'etichetta da **Text**, il lato dalla sezione
 **Dropdown** e aggiungere le voci dall'albero.
 
+### Posizionamento e animazione degli overlay
+
+Gli overlay ancorati condividono lo stesso motore di posizionamento. Il lato
+preferito viene invertito quando non c'è spazio e le coordinate vengono
+limitate alla viewport.
+
+| Attributo | Valori | Si applica a |
+|---|---|---|
+| `placement` | `auto` (default), `bottom`, `top`, `left`, `right` | dropdown, combobox |
+| `position` | `auto` (default), `top`, `right`, `bottom`, `left` | popover |
+| `animation` | `fade` (default), `scale`, `slide`, `none` | dropdown, popover, combobox, commandbar |
+| `duration` | tempo CSS o millisecondi, es. `180ms` | overlay, drawer, carousel, skeleton |
+| `easing` | funzione di timing CSS, es. `ease-out` | overlay, drawer, carousel |
+| `delay` | tempo CSS o millisecondi | dropdown, popover, combobox, commandbar |
+
+L'effetto `slide` segue il posizionamento finale (down, up, left o right).
+`drawer` e `carousel` usano `duration`/`easing` per le transizioni; `skeleton`
+usa `duration` per la velocità dello shimmer. I tooltip usano le impostazioni
+globali del progetto per posizione, effetto, durata, easing e ritardo.
+
 ## Popover
 
 `popover` è un trigger con contenuto ricco in un pannello ancorato. Il testo è
@@ -298,9 +318,11 @@ popover "Info" position: "bottom" {
 }
 ```
 
-`position` è `top` (default), `right`, `bottom` o `left`. Si apre al click e si
-chiude con un click fuori o Esc. Nel designer scegliere **Controls > Popover**;
-la sezione **Popover** imposta il lato.
+`position` è `auto` (default), `top`, `right`, `bottom` o `left`. Auto sceglie
+il lato con spazio sufficiente e limita il pannello nella viewport. Si apre al
+click e si chiude con un click fuori o Esc. Aggiungere `animation`, `duration`,
+`easing` e `delay` per l'effetto di apertura. Nel designer scegliere **Controls
+> Popover**; la sezione **Popover** imposta lato e animazione.
 
 ## Drawer
 
@@ -323,7 +345,9 @@ drawer "Filtri" side: "right" width: "320px" open: showFilters {
 `side` è `right` (default) o `left`. Quando `open` nomina uno stato, lo sfondo,
 il pulsante di chiusura ed Esc chiamano il setter con `false`. Altrimenti usare
 `onClose: <fn>`. Il pannello è fissato alla finestra con uno sfondo scurito e un
-`aside` con `role=dialog`. Nel designer scegliere **Controls > Drawer**.
+`aside` con `role=dialog`. `duration` ed `easing` controllano la transizione.
+Nel designer scegliere **Controls > Drawer**; la sezione **Drawer** espone lato,
+larghezza, open, onClose, duration ed easing.
 
 ## Split panes
 
@@ -423,6 +447,7 @@ skeleton circle: true height: "48px"
 | `gap` | Spazio tra le righe, default `8px`. |
 | `circle` | Mostra un cerchio invece delle righe. |
 | `animated` | `false` disabilita l'animazione. |
+| `duration` | Ciclo dello shimmer, default `1.4s`. |
 
 `simpleui check` rifiuta i figli di skeleton. Nel designer scegliere **Content >
 Skeleton loader**.
@@ -456,6 +481,8 @@ carousel value: slide height: "180px" {
 | `loop` | Ripartizione circolare, default true. |
 | `autoplay` | Avanzamento automatico, default false. |
 | `interval` | Ritardo autoplay in ms, default 4000. |
+| `duration` | Durata della transizione slide, default `.28s`. |
+| `easing` | Easing della transizione, default `ease`. |
 
 La `label` di ogni slide è il nome accessibile. Un carousel richiede almeno una
 slide e rifiuta altri figli. Nel designer scegliere **Content > Carousel**.
@@ -504,6 +531,10 @@ commandbar "Cerca comandi" open: showPalette hotkey: "k" {
 | `open` | Stato opzionale che controlla l'overlay. |
 | `hotkey` | Singolo tasto usato con Ctrl/Cmd, ad esempio `k`. |
 | `placeholder` | Placeholder di ricerca; default al testo dell'elemento. |
+| `animation` | `fade`, `scale`, `slide` o `none`, default `fade`. |
+| `duration` | Durata dell'effetto, default `140ms`. |
+| `easing` | Easing dell'effetto, default `ease-out`. |
+| `delay` | Ritardo dell'effetto, default `0ms`. |
 
 Ogni `command` richiede il testo; `shortcut` è solo visuale e `onClick` esegue
 l'azione. La digitazione filtra per etichetta e scorciatoia, e appare "No
@@ -666,19 +697,27 @@ button "Elimina" tooltip: "Elimina definitivamente" onClick: remove
 - il target riceve `aria-describedby` mentre il fumetto è visibile;
 - il fumetto usa `role="tooltip"` ed è posizionato nel viewport, quindi funziona
   anche con controlli void come `input`;
-- quando possibile il fumetto viene mantenuto dentro il viewport.
+- la posizione preferita può essere `auto` (default) o `top`, `right`, `bottom`,
+  `left`; auto sceglie il lato con spazio e limita il fumetto;
+- i tooltip usano le animazioni condivise (fade, scale, slide, none) con durata,
+  easing e ritardo configurabili.
 
 ### Impostazioni tooltip del progetto
 
 Il designer offre **Preferences → Project preferences** per i default globali:
-posizione (`top`, `right`, `bottom`, `left`), ritardo, sfondo, colore testo,
-colore bordo, raggio e larghezza massima. Sono scritti nel CSS del progetto come
-custom properties su `:root`, quindi valgono per tutti gli elementi con tooltip:
+posizione (`auto`, `top`, `right`, `bottom`, `left`), ritardo hover, effetto,
+durata, easing, ritardo animazione, sfondo, colore testo, colore bordo, raggio e
+larghezza massima. Sono scritti nel CSS del progetto come custom properties su
+`:root`, quindi valgono per tutti gli elementi con tooltip:
 
 ```css
 :root {
-  --sui-tooltip-place: top;
+  --sui-tooltip-place: auto;
   --sui-tooltip-delay: 140ms;
+  --sui-tooltip-animation: fade;
+  --sui-tooltip-duration: 140ms;
+  --sui-tooltip-easing: ease-out;
+  --sui-tooltip-anim-delay: 0ms;
   --sui-tooltip-bg: #1d2129;
   --sui-tooltip-fg: #e6e6ef;
   --sui-tooltip-border: #3a4152;
@@ -738,6 +777,10 @@ combobox "Paese"
 - `empty`: testo mostrato quando il filtro non trova risultati; default
   `No results`.
 - `disabled`: disabilita input e pulsante.
+- `placement` (`auto`, `bottom`, `top`, `left`, `right`) e `animation`
+  (`fade`, `scale`, `slide`, `none`), `duration`, `easing`, `delay`: il popup
+  si ribalta e resta nella viewport e usa l'effetto condiviso. La larghezza
+  segue il controllo.
 - La ricerca è case-insensitive. Senza wildcard cerca una sottostringa. `*`
   corrisponde a qualsiasi sequenza, `?` a un carattere e `\` protegge una
   wildcard per cercarla letteralmente (ad esempio `\*`).

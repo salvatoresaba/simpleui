@@ -17,6 +17,11 @@ const suiCommandbarRuntime = `(function(){
     el.setAttribute('data-sui-commandbar-open', value ? '1' : '0');
   }
   function inputOf(el) { return el ? el.querySelector('.sui-commandbar-input') : null; }
+  function animatePanel(el) {
+    var panel = el && el.querySelector('.sui-commandbar-panel');
+    if (!panel) return;
+    __SUI_OVERLAY.animate(panel, el.getAttribute('data-sui-animation') || 'fade', el.getAttribute('data-sui-duration'), el.getAttribute('data-sui-easing'), el.getAttribute('data-sui-delay'), 'bottom');
+  }
   function focusInput(el) {
     var inp = inputOf(el);
     if (!inp) return;
@@ -24,7 +29,7 @@ const suiCommandbarRuntime = `(function(){
   }
   function focusOpen() {
     var open = document.querySelectorAll('[data-sui-commandbar-overlay][data-sui-commandbar-open="1"]');
-    for (var i = 0; i < open.length; i++) focusInput(open[i]);
+    for (var i = 0; i < open.length; i++) { animatePanel(open[i]); focusInput(open[i]); }
   }
   function filter(el) {
     var inp = inputOf(el);
@@ -116,7 +121,7 @@ const suiCommandbarRuntime = `(function(){
       new MutationObserver(function(list) {
         for (var i = 0; i < list.length; i++) {
           var el = list[i].target;
-          if (list[i].attributeName === 'data-sui-commandbar-open' && el.getAttribute('data-sui-commandbar-open') === '1') focusInput(el);
+          if (list[i].attributeName === 'data-sui-commandbar-open' && el.getAttribute('data-sui-commandbar-open') === '1') { animatePanel(el); focusInput(el); }
         }
       }).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-sui-commandbar-open'] });
     }

@@ -28,8 +28,8 @@ const suiTooltipRuntime = `(function(){
     return isNaN(v) || v < 0 ? 140 : v;
   }
   function placeFor() {
-    var v = rootValue('--sui-tooltip-place', 'top').toLowerCase();
-    return ['top', 'right', 'bottom', 'left'].indexOf(v) >= 0 ? v : 'top';
+    var v = rootValue('--sui-tooltip-place', 'auto').toLowerCase();
+    return ['auto', 'top', 'right', 'bottom', 'left'].indexOf(v) >= 0 ? v : 'auto';
   }
   function ensureBubble() {
     if (bubble) return bubble;
@@ -42,28 +42,17 @@ const suiTooltipRuntime = `(function(){
   }
   function position(el, b) {
     var place = placeFor();
-    var r = el.getBoundingClientRect();
-    var gap = 8;
     b.style.visibility = 'hidden';
-    var bw = b.offsetWidth || 0;
-    var bh = b.offsetHeight || 0;
-    var left = r.left + (r.width - bw) / 2;
-    var top = r.top - bh - gap;
-    if (place === 'right') {
-      left = r.right + gap;
-      top = r.top + (r.height - bh) / 2;
-    } else if (place === 'bottom') {
-      left = r.left + (r.width - bw) / 2;
-      top = r.bottom + gap;
-    } else if (place === 'left') {
-      left = r.left - bw - gap;
-      top = r.top + (r.height - bh) / 2;
-    }
-    left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
-    top = Math.max(8, Math.min(top, window.innerHeight - bh - 8));
-    b.style.left = Math.round(left) + 'px';
-    b.style.top = Math.round(top) + 'px';
+    var placed = __SUI_OVERLAY.place(el, b, {
+      placement: place,
+      align: 'center',
+      gap: 8,
+      margin: 8,
+      preserveMaxWidth: true
+    });
+    b.setAttribute('data-sui-tooltip-placed', placed || '');
     b.style.visibility = '';
+    return placed;
   }
   function hide(el) {
     if (!el) return;
@@ -73,6 +62,7 @@ const suiTooltipRuntime = `(function(){
       if (bubble) {
         bubble.hidden = true;
         bubble.classList.remove('open');
+        __SUI_OVERLAY.reset(bubble);
       }
     }
     if (el.getAttribute('aria-describedby') && bubble && el.getAttribute('aria-describedby') === bubble.id) {
@@ -88,7 +78,15 @@ const suiTooltipRuntime = `(function(){
     b.classList.add('open');
     current = el;
     el.setAttribute('aria-describedby', b.id);
-    position(el, b);
+    var placed = position(el, b);
+    __SUI_OVERLAY.animate(
+      b,
+      rootValue('--sui-tooltip-animation', 'fade'),
+      rootValue('--sui-tooltip-duration', '140ms'),
+      rootValue('--sui-tooltip-easing', 'ease-out'),
+      rootValue('--sui-tooltip-anim-delay', '0ms'),
+      placed || 'top'
+    );
   }
   function schedule(el, immediate) {
     if (!el) return;
@@ -137,6 +135,4 @@ const suiTooltipRuntime = `(function(){
     current.__suiTooltipFocus = false;
     hide(current);
   });
-  window.addEventListener('scroll', function() { if (current) position(current, bubble); }, true);
-  window.addEventListener('resize', function() { if (current) position(current, bubble); });
 })();`

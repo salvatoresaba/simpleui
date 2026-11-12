@@ -314,6 +314,25 @@ than the window. In the designer choose **Controls > Dropdown menu**; edit the
 label from **Text**, the side from the **Dropdown** section and add items from
 the element tree.
 
+### Overlay placement and animation
+
+Anchored overlays share one placement engine. The preferred side is flipped
+when there is no space and coordinates are clamped to the viewport.
+
+| Attribute | Values | Applies to |
+|---|---|---|
+| `placement` | `auto` (default), `bottom`, `top`, `left`, `right` | dropdown, combobox |
+| `position` | `auto` (default), `top`, `right`, `bottom`, `left` | popover |
+| `animation` | `fade` (default), `scale`, `slide`, `none` | dropdown, popover, combobox, commandbar |
+| `duration` | CSS time or milliseconds, e.g. `180ms` | overlays, drawer, carousel, skeleton |
+| `easing` | CSS timing function, e.g. `ease-out` | overlays, drawer, carousel |
+| `delay` | CSS time or milliseconds | dropdown, popover, combobox, commandbar |
+
+The `slide` effect follows the final placement (down, up, left or right).
+`drawer` and `carousel` use `duration`/`easing` for their transitions;
+`skeleton` uses `duration` for the shimmer speed. Tooltips use the project
+tooltip settings for place, effect, duration, easing and delay.
+
 ## Popover
 
 `popover` is a trigger with rich content in an anchored panel. The element text
@@ -327,9 +346,12 @@ popover "Info" position: "bottom" {
 }
 ```
 
-`position` is `top` (default), `right`, `bottom` or `left`. It opens on click and
-closes on outside clicks or Escape. In the designer choose **Controls >
-Popover**; the **Popover** section sets the side.
+`position` is `auto` (default), `top`, `right`, `bottom` or `left`. Auto flips
+to the side with enough space and clamps the panel inside the viewport. It
+opens on click and closes on outside clicks or Escape. Add `animation`,
+`duration`, `easing` and `delay` to tune the opening effect. In the designer
+choose **Controls > Popover**; the **Popover** section sets the side and the
+animation parameters.
 
 ## Drawer
 
@@ -352,7 +374,9 @@ drawer "Filters" side: "right" width: "320px" open: showFilters {
 `side` is `right` (default) or `left`. When `open` names a state, the backdrop,
 the close button and Escape call its setter with `false`. Otherwise use
 `onClose: <fn>`. The panel is fixed to the viewport with a dimmed backdrop and a
-`role=dialog` aside. In the designer choose **Controls > Drawer**.
+`role=dialog` aside. `duration` and `easing` control the slide transition. In
+the designer choose **Controls > Drawer**; the **Drawer** section exposes side,
+width, open, onClose, duration and easing.
 
 ## Split panes
 
@@ -453,6 +477,7 @@ skeleton circle: true height: "48px"
 | `gap` | Space between lines, default `8px`. |
 | `circle` | Renders a single circle instead of lines. |
 | `animated` | Set `false` to disable the shimmer. |
+| `duration` | Shimmer cycle, default `1.4s`. |
 
 `simpleui check` rejects skeleton children. In the designer choose **Content >
 Skeleton loader**.
@@ -486,6 +511,8 @@ carousel value: slide height: "180px" {
 | `loop` | Wrap around, default true. |
 | `autoplay` | Advance automatically, default false. |
 | `interval` | Autoplay delay in ms, default 4000. |
+| `duration` | Slide transition duration, default `.28s`. |
+| `easing` | Slide transition easing, default `ease`. |
 
 Each slide's `label` is its accessible name. A carousel requires at least one
 `slide` child and rejects other children. In the designer choose **Content >
@@ -535,6 +562,10 @@ commandbar "Search commands" open: showPalette hotkey: "k" {
 | `open` | Optional state controlling the overlay. |
 | `hotkey` | Single key used with Ctrl/Cmd, for example `k`. |
 | `placeholder` | Search placeholder; defaults to the element text. |
+| `animation` | `fade`, `scale`, `slide` or `none`, default `fade`. |
+| `duration` | Open effect duration, default `140ms`. |
+| `easing` | Open effect easing, default `ease-out`. |
+| `delay` | Open effect delay, default `0ms`. |
 
 Each `command` needs its text label; `shortcut` is display-only and
 `onClick` runs the action. Typing filters by label and shortcut, and a
@@ -695,12 +726,16 @@ button "Delete" tooltip: "Delete permanently" onClick: remove
 - the target receives `aria-describedby` while the bubble is visible;
 - the bubble has `role="tooltip"` and is positioned in the viewport, so it also
   works for void controls such as `input`;
-- with a tooltip open, the bubble is moved inside the viewport when possible.
+- the preferred place can be `auto` (default) or `top`, `right`, `bottom`,
+  `left`; auto flips to the side with enough space and clamps the bubble;
+- tooltips use the shared animation settings (fade, scale, slide, none) with a
+  configurable duration, easing and delay.
 
 ### Project tooltip settings
 
 The designer has **Preferences → Project preferences** for global defaults:
-place (`top`, `right`, `bottom`, `left`), delay, background, text color, border
+place (`auto`, `top`, `right`, `bottom`, `left`), hover delay, animation effect,
+animation duration, easing, animation delay, background, text color, border
 color, radius and maximum width. These are written into the project CSS as
 `:root` custom properties, so they apply to every element with a tooltip:
 
@@ -761,6 +796,10 @@ combobox "Country"
 - `placeholder`: search/display placeholder; default `Search...`.
 - `empty`: text shown when filtering has no results; default `No results`.
 - `disabled`: disables the input and toggle.
+- `placement` (`auto`, `bottom`, `top`, `left`, `right`) and `animation`
+  (`fade`, `scale`, `slide`, `none`), `duration`, `easing`, `delay`: the popup
+  flips and clamps inside the viewport and uses the shared open effect. The
+  popup width follows the control.
 - Search is case-insensitive. Without wildcards it matches a substring. `*`
   matches any sequence, `?` matches one character, and `\` escapes a wildcard
   for a literal search (for example `\*`).

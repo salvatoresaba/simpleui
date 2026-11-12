@@ -5,6 +5,70 @@ import (
 	"testing"
 )
 
+func TestOverlayPlacementAndAnimationAttrs(t *testing.T) {
+	src := `state show = false
+
+view main {
+	dropdown "Azioni" position: "right" placement: "top" animation: "slide" duration: "220ms" easing: "ease-in-out" delay: "40ms" {
+		dropdownitem "Uno"
+	}
+	popover "Info" position: "auto" animation: "scale" duration: "180ms" easing: "ease-out" {
+		p "Contenuto"
+	}
+	combobox "Paese" options: "Italia,Francia" placement: "top" animation: "fade" duration: "200ms" {
+	}
+	drawer "Filtri" open: show duration: "350ms" easing: "ease-out" {
+		p "Filtri"
+	}
+	carousel value: 0 duration: "500ms" easing: "ease-in-out" {
+		slide { p "A" }
+		slide { p "B" }
+	}
+	skeleton lines: 2 duration: "2s"
+	commandbar "Cerca" open: show animation: "slide" duration: "200ms" {
+		command "Nuovo"
+	}
+}`
+	prog, dl := ParseSource(src, "overlay.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	html := GenerateHtmlPage(prog)
+	for _, want := range []string{
+		`data-sui-dropdown-placement="top"`,
+		`data-sui-animation="slide"`,
+		`data-sui-duration="220ms"`,
+		`data-sui-easing="ease-in-out"`,
+		`data-sui-delay="40ms"`,
+		`data-sui-popover-position="auto"`,
+		`data-sui-animation="scale"`,
+		`data-sui-combobox-placement="top"`,
+		`--sui-drawer-duration:350ms`,
+		`--sui-drawer-easing:ease-out`,
+		`--sui-carousel-duration:500ms`,
+		`--sui-carousel-easing:ease-in-out`,
+		`--sui-sk-duration:2s`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("overlay JS missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`data-sui-dropdown-placement="top"`,
+		`data-sui-popover-position="auto"`,
+		`data-sui-combobox-placement="top"`,
+		`--sui-sk-duration:2s`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("overlay static HTML missing %q", want)
+		}
+	}
+}
+
 func TestDrawerRender(t *testing.T) {
 	src := `state show = false
 

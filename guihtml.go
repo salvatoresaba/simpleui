@@ -1413,9 +1413,15 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
     <div class="hint">Global defaults for every element of the generated app with a tooltip property. These values are written into the project CSS, not into the editor preferences.</div>
     <div class="pfsec">Tooltip settings</div>
     <div class="pfrow"><label>Place</label><select id="tt-place">
-      <option value="top">top</option><option value="right">right</option><option value="bottom">bottom</option><option value="left">left</option>
+      <option value="auto">auto</option><option value="top">top</option><option value="right">right</option><option value="bottom">bottom</option><option value="left">left</option>
     </select></div>
     <div class="pfrow"><label>Delay (ms)</label><input type="number" id="tt-delay" min="0" max="5000" step="20" value="140"></div>
+    <div class="pfrow"><label>Animation</label><select id="tt-animation">
+      <option value="fade">fade</option><option value="scale">scale</option><option value="slide">slide</option><option value="none">none</option>
+    </select></div>
+    <div class="pfrow"><label>Duration</label><input type="text" id="tt-duration" value="140ms" placeholder="140ms"></div>
+    <div class="pfrow"><label>Easing</label><input type="text" id="tt-easing" value="ease-out" placeholder="ease-out"></div>
+    <div class="pfrow"><label>Anim. delay</label><input type="text" id="tt-anim-delay" value="0ms" placeholder="0ms"></div>
     <div class="pfrow"><label>Background</label><input type="color" id="tt-bg" value="#1d2129"></div>
     <div class="pfrow"><label>Text color</label><input type="color" id="tt-fg" value="#e6e6ef"></div>
     <div class="pfrow"><label>Border color</label><input type="color" id="tt-border" value="#3a4152"></div>
@@ -1948,7 +1954,7 @@ var TAG_FIELDS = {
   switch: ["label", "checked", "disabled"],
   radio: ["label", "value", "name", "checked", "disabled", "required"],
   select: ["value", "options", "disabled", "required"],
-  combobox: ["value", "options", "maxOptions", "maxOptionLength", "placeholder", "empty", "required"],
+  combobox: ["value", "options", "maxOptions", "maxOptionLength", "placeholder", "empty", "required", "placement", "animation", "duration", "easing", "delay"],
   datepicker: ["value", "mode", "min", "max", "step", "disabled", "required"],
   number: ["value", "placeholder", "min", "max", "step", "required"],
   slider: ["value", "min", "max", "step"],
@@ -1959,22 +1965,22 @@ var TAG_FIELDS = {
   card: ["text"],
   tabs: ["text", "position", "variant"],
   tab: ["text"],
-  dropdown: ["text", "position"],
+  dropdown: ["text", "position", "placement", "animation", "duration", "easing", "delay"],
   dropdownitem: ["text", "disabled", "separator"],
-  popover: ["text", "position"],
-  drawer: ["text", "side", "width", "open", "onClose"],
+  popover: ["text", "position", "animation", "duration", "easing", "delay"],
+  drawer: ["text", "side", "width", "open", "onClose", "duration", "easing"],
   splitter: ["direction", "initial", "min"],
   pane: [],
   dropzone: ["text", "dropFiles", "pickFiles", "accept", "multiple", "directory", "pickMode", "hint"],
   timeline: ["text"],
   timelineitem: ["text", "date", "status"],
   emptystate: ["text", "icon", "hint", "compact"],
-  skeleton: ["lines", "width", "height", "gap", "circle", "animated"],
-  carousel: ["text", "value", "autoplay", "interval", "loop", "controls", "indicators", "height"],
+  skeleton: ["lines", "width", "height", "gap", "circle", "animated", "duration"],
+  carousel: ["text", "value", "autoplay", "interval", "loop", "controls", "indicators", "height", "duration", "easing"],
   slide: ["label"],
   stepper: ["value", "clickable", "vertical"],
   step: ["text", "description", "icon"],
-  commandbar: ["text", "open", "hotkey", "placeholder"],
+  commandbar: ["text", "open", "hotkey", "placeholder", "animation", "duration", "easing", "delay"],
   command: ["text", "shortcut"],
   accordion: ["text"],
   accordionitem: ["text"],
@@ -2295,6 +2301,11 @@ function newComboboxNode() {
   n.optionsExpr = true;
   n.placeholder = "Search...";
   n.empty = "No results";
+  n.placement = "auto";
+  n.animation = "fade";
+  n.duration = "";
+  n.easing = "";
+  n.delay = "";
   return n;
 }
 function newDatepickerNode() {
@@ -2315,13 +2326,22 @@ function newDropdownNode() {
   var n = newNode("dropdown");
   n.text = "Actions";
   n.position = "left";
+  n.placement = "auto";
+  n.animation = "fade";
+  n.duration = "";
+  n.easing = "";
+  n.delay = "";
   n.children = [newDropdownItemNode("Item 1"), newDropdownItemNode("Item 2")];
   return n;
 }
 function newPopoverNode() {
   var n = newNode("popover");
   n.text = "Info";
-  n.position = "top";
+  n.position = "auto";
+  n.animation = "scale";
+  n.duration = "";
+  n.easing = "";
+  n.delay = "";
   var p = newNode("p");
   p.text = "Popover content";
   n.children = [p];
@@ -2334,6 +2354,8 @@ function newDrawerNode() {
   n.width = "320px";
   n.open = "false";
   n.onClose = "";
+  n.duration = ".2s";
+  n.easing = "ease";
   var p = newNode("p");
   p.text = "Drawer content";
   n.children = [p];
@@ -2397,6 +2419,7 @@ function newSkeletonNode() {
   n.width = "100%";
   n.height = "12px";
   n.gap = "8px";
+  n.duration = "1.4s";
   n.circle = false;
   n.animated = true;
   return n;
@@ -2418,6 +2441,8 @@ function newCarouselNode() {
   n.controls = true;
   n.indicators = true;
   n.height = "";
+  n.duration = "";
+  n.easing = "";
   n.children = [newSlideNode("Slide 1"), newSlideNode("Slide 2"), newSlideNode("Slide 3")];
   return n;
 }
@@ -2448,6 +2473,10 @@ function newCommandbarNode() {
   n.placeholder = "";
   n.open = "";
   n.hotkey = "k";
+  n.animation = "fade";
+  n.duration = "";
+  n.easing = "";
+  n.delay = "";
   n.children = [newCommandNode("New project", "Ctrl N"), newCommandNode("Open settings", "Ctrl ,"), newCommandNode("Help", "F1")];
   return n;
 }
@@ -5952,6 +5981,36 @@ function treeControls(n) {
   actionRow("data", "Edit tree data...", "Add, rename, move, delete, import and export tree items", function(){ openTreeDataEditor(n); });
   return acc("Tree", rows);
 }
+function overlayAnimationRows(n, body, includeEffect, effectDefault, scopeLabel) {
+  function selectRow(label, field, options, fallback) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var sel = document.createElement("select");
+    options.forEach(function(o){
+      var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+      if ((n[field] || fallback) === o[0]) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = function(){ withUndo(function(){ n[field] = sel.value; }, scopeLabel + " " + label); };
+    row.appendChild(sel); body.appendChild(row);
+  }
+  function textRow(label, field, placeholder) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var inp = document.createElement("input");
+    inp.value = n[field] || "";
+    inp.placeholder = placeholder || "";
+    inp.spellcheck = false;
+    inp.onchange = function(){ withUndo(function(){ n[field] = inp.value.trim(); }, scopeLabel + " " + label); };
+    row.appendChild(inp); body.appendChild(row);
+  }
+  if (includeEffect) {
+    selectRow("animation", "animation", [["fade", "fade"], ["scale", "scale"], ["slide", "slide"], ["none", "none"]], effectDefault || "fade");
+  }
+  textRow("duration", "duration", includeEffect ? "140ms" : ".2s");
+  textRow("easing", "easing", "ease-out");
+  if (includeEffect) textRow("delay", "delay", "0ms");
+}
 function dropdownControls(n) {
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
@@ -5969,8 +6028,19 @@ function dropdownControls(n) {
   });
   sel.onchange = function(){ withUndo(function(){ n.position = sel.value; }, "dropdown position"); };
   row.appendChild(sel); b.appendChild(row);
+  var prow = document.createElement("div"); prow.className = "rowline";
+  prow.appendChild(lbl("placement"));
+  var psel = document.createElement("select");
+  [["auto", "auto"], ["bottom", "bottom"], ["top", "top"], ["left", "left"], ["right", "right"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.placement || "auto") === o[0]) opt.selected = true;
+    psel.appendChild(opt);
+  });
+  psel.onchange = function(){ withUndo(function(){ n.placement = psel.value; }, "dropdown placement"); };
+  prow.appendChild(psel); b.appendChild(prow);
+  overlayAnimationRows(n, b, true, "fade", "dropdown");
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Items are dropdownitem children. Right-click this row in the element tree to add, duplicate or delete items.";
+  hint.textContent = "Items are dropdownitem children. The runtime keeps the menu inside the viewport and flips it when there is no space.";
   b.appendChild(hint);
   a.appendChild(b);
   return a;
@@ -5985,15 +6055,16 @@ function popoverControls(n) {
   var row = document.createElement("div"); row.className = "rowline";
   row.appendChild(lbl("position"));
   var sel = document.createElement("select");
-  [["top", "top"], ["right", "right"], ["bottom", "bottom"], ["left", "left"]].forEach(function(o){
+  [["auto", "auto"], ["top", "top"], ["right", "right"], ["bottom", "bottom"], ["left", "left"]].forEach(function(o){
     var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
-    if ((n.position || "top") === o[0]) opt.selected = true;
+    if ((n.position || "auto") === o[0]) opt.selected = true;
     sel.appendChild(opt);
   });
   sel.onchange = function(){ withUndo(function(){ n.position = sel.value; }, "popover position"); };
   row.appendChild(sel); b.appendChild(row);
+  overlayAnimationRows(n, b, true, "scale", "popover");
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "The popover label is the trigger text; child elements become the panel content.";
+  hint.textContent = "The popover label is the trigger text; child elements become the panel content. Auto placement keeps it inside the viewport.";
   b.appendChild(hint);
   a.appendChild(b);
   return a;
@@ -6100,6 +6171,7 @@ function block3Controls(n) {
     textRow("width", "width", "100%");
     textRow("height", "height", "12px");
     textRow("gap", "gap", "8px");
+    textRow("duration", "duration", "1.4s");
     checkRow("circle", "circle");
     checkRow("animated", "animated");
   }
@@ -6107,6 +6179,8 @@ function block3Controls(n) {
     textRow("value", "value", "state name or 0");
     textRow("height", "height", "160px");
     numberRow("interval", "interval");
+    textRow("duration", "duration", ".28s");
+    textRow("easing", "easing", "ease");
     checkRow("autoplay", "autoplay");
     checkRow("loop", "loop");
     checkRow("controls", "controls");
@@ -6125,6 +6199,7 @@ function block3Controls(n) {
     textRow("open", "open", "state name (empty = inline)");
     textRow("hotkey", "hotkey", "k");
     textRow("placeholder", "placeholder", "Type a command...");
+    overlayAnimationRows(n, b, true, "fade", "command palette");
   }
   if (n.kind === "command") {
     textRow("shortcut", "shortcut", "Ctrl N");
@@ -6202,6 +6277,8 @@ function drawerControls(n) {
   textRow("width", "width", "320px");
   textRow("open", "open", "state name or expression");
   textRow("onClose", "onClose", "function name");
+  textRow("duration", "duration", ".2s");
+  textRow("easing", "easing", "ease");
   var hint = document.createElement("div"); hint.className = "hint";
   hint.textContent = "open is a state/expression; closing sets it to false. If open is not a state, use onClose to clear it.";
   b.appendChild(hint);
@@ -8473,6 +8550,20 @@ function comboboxControls(n) {
     snap("combobox disabled"); n.disabled = on; setOut(); autoPreview();
   }));
   rows.push(dr);
+
+  var plr = document.createElement("div"); plr.className = "rowline";
+  var plb = document.createElement("label"); plb.textContent = "popup placement"; plr.appendChild(plb);
+  var pls = document.createElement("select");
+  [["auto", "auto"], ["bottom", "bottom"], ["top", "top"], ["left", "left"], ["right", "right"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.placement || "auto") === o[0]) opt.selected = true;
+    pls.appendChild(opt);
+  });
+  pls.onchange = function(){ withUndo(function(){ n.placement = pls.value; }, "combobox placement"); };
+  plr.appendChild(pls); rows.push(plr);
+  var animBody = document.createElement("div");
+  overlayAnimationRows(n, animBody, true, "fade", "combobox");
+  rows.push(animBody);
   return acc("Combobox", rows);
 }
 
@@ -12343,6 +12434,16 @@ function attrsOf(n) {
     if (n.min) a += " min: \"" + esc(n.min) + "\"";
   }
   if (n.kind === "dropdownitem" && n.separator) a += " separator: true";
+  if (n.kind === "dropdown" || n.kind === "popover" || n.kind === "combobox" || n.kind === "commandbar") {
+    if ((n.kind === "dropdown" || n.kind === "combobox") && n.placement) a += " placement: \"" + esc(n.placement) + "\"";
+    if (n.animation) a += " animation: \"" + esc(n.animation) + "\"";
+    if (n.duration) a += " duration: \"" + esc(n.duration) + "\"";
+    if (n.easing) a += " easing: \"" + esc(n.easing) + "\"";
+    if (n.delay) a += " delay: \"" + esc(n.delay) + "\"";
+  }
+  if ((n.kind === "drawer" || n.kind === "carousel") && n.duration) a += " duration: \"" + esc(n.duration) + "\"";
+  if ((n.kind === "drawer" || n.kind === "carousel") && n.easing) a += " easing: \"" + esc(n.easing) + "\"";
+  if (n.kind === "skeleton" && n.duration) a += " duration: \"" + esc(n.duration) + "\"";
   if (n.kind === "timelineitem") {
     if (n.date) a += " date: \"" + esc(n.date) + "\"";
     if (n.status) a += " status: \"" + esc(n.status) + "\"";
@@ -19588,16 +19689,35 @@ function tooltipThemeVars(v) {
     "--sui-tooltip-border": page["--sui-border2"] || page["--sui-border"] || "#3a4152"
   };
 }
+function tooltipAnimTime(v, fallback) {
+  var s = String(v == null ? '' : v).trim();
+  if (/^[0-9]+$/.test(s)) s += 'ms';
+  if (!/^[0-9]*\.?[0-9]+(ms|s)$/.test(s)) return fallback;
+  return s;
+}
+function tooltipAnimEase(v, fallback) {
+  var s = String(v == null ? '' : v).replace(/[;{}<>"']/g, '').trim();
+  return s || fallback;
+}
 function writeTooltipSettings(vals) {
   var place = vals.place;
-  if (["top", "right", "bottom", "left"].indexOf(place) < 0) place = "top";
+  if (["auto", "top", "right", "bottom", "left"].indexOf(place) < 0) place = "auto";
   var delay = parseInt(vals.delay, 10);
   if (isNaN(delay) || delay < 0) delay = 140;
   if (delay > 5000) delay = 5000;
+  var animation = String(vals.animation || 'fade').toLowerCase();
+  if (["fade", "scale", "slide", "none"].indexOf(animation) < 0) animation = 'fade';
+  var duration = tooltipAnimTime(vals.duration, '140ms');
+  var easing = tooltipAnimEase(vals.easing, 'ease-out');
+  var animDelay = tooltipAnimTime(vals.animDelay, '0ms');
   var clean = String(root.css || "").replace(/\/\* sui-tooltip-settings \*\/\s*:root\s*\{[^}]*\}\s*/g, "").trim();
   var block = "/* sui-tooltip-settings */\n:root {\n" +
     "  --sui-tooltip-place: " + place + ";\n" +
     "  --sui-tooltip-delay: " + delay + "ms;\n" +
+    "  --sui-tooltip-animation: " + animation + ";\n" +
+    "  --sui-tooltip-duration: " + duration + ";\n" +
+    "  --sui-tooltip-easing: " + easing + ";\n" +
+    "  --sui-tooltip-anim-delay: " + animDelay + ";\n" +
     "  --sui-tooltip-bg: " + vals.bg + ";\n" +
     "  --sui-tooltip-fg: " + vals.fg + ";\n" +
     "  --sui-tooltip-border: " + vals.border + ";\n" +
@@ -19610,8 +19730,12 @@ function writeTooltipSettings(vals) {
 function applyTooltipTheme(v) {
   var want = tooltipThemeVars(v);
   writeTooltipSettings({
-    place: tooltipCssValue("--sui-tooltip-place", "top"),
+    place: tooltipCssValue("--sui-tooltip-place", "auto"),
     delay: tooltipCssValue("--sui-tooltip-delay", "140"),
+    animation: tooltipCssValue("--sui-tooltip-animation", "fade"),
+    duration: tooltipCssValue("--sui-tooltip-duration", "140ms"),
+    easing: tooltipCssValue("--sui-tooltip-easing", "ease-out"),
+    animDelay: tooltipCssValue("--sui-tooltip-anim-delay", "0ms"),
     bg: want["--sui-tooltip-bg"],
     fg: want["--sui-tooltip-fg"],
     border: want["--sui-tooltip-border"],
@@ -19961,8 +20085,12 @@ function tooltipCssValue(name, fallback) {
   return m ? m[1].trim() : fallback;
 }
 function openTooltipCfg() {
-  document.getElementById("tt-place").value = tooltipCssValue("--sui-tooltip-place", "top");
+  document.getElementById("tt-place").value = tooltipCssValue("--sui-tooltip-place", "auto");
   document.getElementById("tt-delay").value = parseInt(tooltipCssValue("--sui-tooltip-delay", "140"), 10) || 0;
+  document.getElementById("tt-animation").value = tooltipCssValue("--sui-tooltip-animation", "fade");
+  document.getElementById("tt-duration").value = tooltipCssValue("--sui-tooltip-duration", "140ms");
+  document.getElementById("tt-easing").value = tooltipCssValue("--sui-tooltip-easing", "ease-out");
+  document.getElementById("tt-anim-delay").value = tooltipCssValue("--sui-tooltip-anim-delay", "0ms");
   document.getElementById("tt-bg").value = /^#[0-9a-f]{6}$/i.test(tooltipCssValue("--sui-tooltip-bg", "#1d2129")) ? tooltipCssValue("--sui-tooltip-bg", "#1d2129") : "#1d2129";
   document.getElementById("tt-fg").value = /^#[0-9a-f]{6}$/i.test(tooltipCssValue("--sui-tooltip-fg", "#e6e6ef")) ? tooltipCssValue("--sui-tooltip-fg", "#e6e6ef") : "#e6e6ef";
   document.getElementById("tt-border").value = /^#[0-9a-f]{6}$/i.test(tooltipCssValue("--sui-tooltip-border", "#3a4152")) ? tooltipCssValue("--sui-tooltip-border", "#3a4152") : "#3a4152";
@@ -19976,10 +20104,15 @@ function closeTooltipCfg() {
 }
 function applyTooltipCfg() {
   var place = document.getElementById("tt-place").value;
-  if (["top", "right", "bottom", "left"].indexOf(place) < 0) place = "top";
+  if (["auto", "top", "right", "bottom", "left"].indexOf(place) < 0) place = "auto";
   var delay = parseInt(document.getElementById("tt-delay").value, 10);
   if (isNaN(delay) || delay < 0) delay = 140;
   if (delay > 5000) delay = 5000;
+  var animation = document.getElementById("tt-animation").value;
+  if (["fade", "scale", "slide", "none"].indexOf(animation) < 0) animation = "fade";
+  var duration = tooltipAnimTime(document.getElementById("tt-duration").value, "140ms");
+  var easing = tooltipAnimEase(document.getElementById("tt-easing").value, "ease-out");
+  var animDelay = tooltipAnimTime(document.getElementById("tt-anim-delay").value, "0ms");
   var bg = document.getElementById("tt-bg").value || "#1d2129";
   var fg = document.getElementById("tt-fg").value || "#e6e6ef";
   var border = document.getElementById("tt-border").value || "#3a4152";
@@ -19991,6 +20124,10 @@ function applyTooltipCfg() {
   var block = "/* sui-tooltip-settings */\n:root {\n" +
     "  --sui-tooltip-place: " + place + ";\n" +
     "  --sui-tooltip-delay: " + delay + "ms;\n" +
+    "  --sui-tooltip-animation: " + animation + ";\n" +
+    "  --sui-tooltip-duration: " + duration + ";\n" +
+    "  --sui-tooltip-easing: " + easing + ";\n" +
+    "  --sui-tooltip-anim-delay: " + animDelay + ";\n" +
     "  --sui-tooltip-bg: " + bg + ";\n" +
     "  --sui-tooltip-fg: " + fg + ";\n" +
     "  --sui-tooltip-border: " + border + ";\n" +

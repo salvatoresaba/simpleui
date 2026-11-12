@@ -2965,7 +2965,8 @@ func attrAllowed(key string, tag string) bool {
 	}
 	if tag == "combobox" && (key == "value" || key == "options" || key == "placeholder" ||
 		key == "empty" || key == "disabled" || key == "required" ||
-		key == "maxOptionLength" || key == "maxOptions") {
+		key == "maxOptionLength" || key == "maxOptions" ||
+		key == "placement" || key == "animation" || key == "duration" || key == "easing" || key == "delay") {
 		return true
 	}
 	if tag == "datepicker" && (key == "value" || key == "mode" || key == "min" || key == "max" ||
@@ -3056,16 +3057,16 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "modalbutton" && (key == "variant" || key == "close") {
 		return true
 	}
-	if tag == "dropdown" && (key == "position" || key == "align") {
+	if tag == "dropdown" && (key == "position" || key == "align" || key == "placement" || key == "animation" || key == "duration" || key == "easing" || key == "delay") {
 		return true
 	}
 	if tag == "dropdownitem" && (key == "disabled" || key == "separator") {
 		return true
 	}
-	if tag == "popover" && key == "position" {
+	if tag == "popover" && (key == "position" || key == "animation" || key == "duration" || key == "easing" || key == "delay") {
 		return true
 	}
-	if tag == "drawer" && (key == "side" || key == "width" || key == "open" || key == "onClose") {
+	if tag == "drawer" && (key == "side" || key == "width" || key == "open" || key == "onClose" || key == "duration" || key == "easing") {
 		return true
 	}
 	if tag == "splitter" && (key == "direction" || key == "initial" || key == "min") {
@@ -3077,10 +3078,10 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "emptystate" && (key == "icon" || key == "hint" || key == "compact") {
 		return true
 	}
-	if tag == "skeleton" && (key == "lines" || key == "width" || key == "height" || key == "circle" || key == "animated" || key == "gap") {
+	if tag == "skeleton" && (key == "lines" || key == "width" || key == "height" || key == "circle" || key == "animated" || key == "gap" || key == "duration") {
 		return true
 	}
-	if tag == "carousel" && (key == "value" || key == "autoplay" || key == "interval" || key == "loop" || key == "controls" || key == "indicators" || key == "height") {
+	if tag == "carousel" && (key == "value" || key == "autoplay" || key == "interval" || key == "loop" || key == "controls" || key == "indicators" || key == "height" || key == "duration" || key == "easing") {
 		return true
 	}
 	if tag == "slide" && key == "label" {
@@ -3092,7 +3093,7 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "step" && (key == "description" || key == "icon") {
 		return true
 	}
-	if tag == "commandbar" && (key == "open" || key == "hotkey" || key == "placeholder") {
+	if tag == "commandbar" && (key == "open" || key == "hotkey" || key == "placeholder" || key == "animation" || key == "duration" || key == "easing" || key == "delay") {
 		return true
 	}
 	if tag == "command" && key == "shortcut" {

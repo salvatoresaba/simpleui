@@ -1,14 +1,18 @@
 # All prefabricated controls
 
 A single gallery app that uses every Block 2 and Block 3 control together:
-dropdown, popover, drawer, splitter, dropzone, timeline, empty state, skeleton,
-carousel, stepper and command palette.
+dropdown, popover, combobox, drawer, splitter, dropzone, timeline, empty state,
+skeleton, carousel, stepper and command palette.
 
 The states and handlers are wired so the controls can be exercised interactively:
 the dropdown records the last action, the drawer opens from a button, the
 dropzones fill string states, the carousel and stepper bind integer states, the
 empty state and skeleton react to counters/booleans, and the command palette
 opens with Ctrl+K or a button.
+
+The example also demonstrates the shared viewport placement and animation
+settings: dropdowns/popovers/comboboxes flip and clamp inside the window, and
+each open/transition uses configurable effect, duration, easing and delay.
 
 ## Complete source
 
@@ -105,11 +109,12 @@ view main {
 	col class: "prefab-page" {
 		h1 "Prefabricated controls"
 		p "Dropdown, popover, drawer, splitter, dropzone, timeline, empty state, skeleton, carousel, stepper and command palette together." class: "prefab-note"
+		badge "Tooltip" tooltip: "Questo tooltip si riposiziona da solo e usa un'animazione configurabile."
 
 		div class: "prefab-grid" {
 			card {
 				h3 "Dropdown"
-				dropdown "Azioni" position: "right" {
+				dropdown "Azioni" position: "right" placement: "auto" animation: "slide" duration: "180ms" easing: "ease-out" {
 					dropdownitem "Modifica" onClick: editAction
 					dropdownitem "Duplica" onClick: duplicateAction
 					dropdownitem separator: true
@@ -120,7 +125,7 @@ view main {
 
 			card {
 				h3 "Popover"
-				popover "Dettagli" position: "bottom" {
+				popover "Dettagli" position: "auto" animation: "scale" duration: "160ms" easing: "ease-out" {
 					h3 "Pannello ancorato"
 					p "Il popover può contenere testi, card e pulsanti."
 					p "Click interni: {popoverClicks}" class: "prefab-note"
@@ -130,10 +135,17 @@ view main {
 			}
 
 			card {
+				h3 "Combobox"
+				combobox "Paese" options: "Italia,Francia,Germania" placement: "auto" animation: "slide" duration: "180ms" {
+				}
+				p "Il popup si apre sopra o sotto in base allo spazio." class: "prefab-note"
+			}
+
+			card {
 				h3 "Drawer"
 				button "Apri filtri" onClick: openDrawer
 				p "Aperto: {showFilters}" class: "prefab-note"
-				drawer "Filtri" side: "right" width: "320px" open: showFilters {
+				drawer "Filtri" side: "right" width: "320px" open: showFilters duration: "280ms" easing: "ease-out" {
 					h3 "Filtri"
 					p "Scegli stato e intervallo di date."
 					button "Applica" onClick: closeDrawer
@@ -201,11 +213,11 @@ view main {
 			card {
 				h3 "Skeleton"
 				if loading {
-					skeleton lines: 2 width: "45%" height: "16px"
-					skeleton lines: 4 width: "100%" height: "10px"
+					skeleton lines: 2 width: "45%" height: "16px" duration: "1.6s"
+					skeleton lines: 4 width: "100%" height: "10px" duration: "1.6s"
 					row {
-						skeleton circle: true height: "48px"
-						skeleton lines: 3 width: "70%" height: "10px"
+						skeleton circle: true height: "48px" duration: "1.6s"
+						skeleton lines: 3 width: "70%" height: "10px" duration: "1.6s"
 					}
 				} else {
 					p "Contenuto caricato." class: "prefab-note"
@@ -216,7 +228,7 @@ view main {
 
 		card {
 			h3 "Carousel"
-			carousel value: slide height: "170px" class: "prefab-carousel" {
+			carousel value: slide height: "170px" duration: "350ms" easing: "ease" class: "prefab-carousel" {
 				slide label: "Uno" {
 					h3 "Slide 1" class: "prefab-slide-title"
 					p "Frecce, dots e tasti sinistra/destra cambiano slide."
@@ -254,7 +266,7 @@ view main {
 				button "Apri comandi" onClick: openPalette
 				p "Ultimo comando: {lastCommand}" class: "prefab-note"
 			}
-			commandbar "Cerca comandi" open: showPalette hotkey: "k" {
+			commandbar "Cerca comandi" open: showPalette hotkey: "k" animation: "scale" duration: "180ms" easing: "ease-out" {
 				command "Nuovo progetto" shortcut: "Ctrl N" onClick: newProjectCommand
 				command "Impostazioni" shortcut: "Ctrl ," onClick: settingsCommand
 				command "Aiuto" shortcut: "F1" onClick: helpCommand
@@ -268,22 +280,41 @@ view main {
 
 | Control | State / handler | Try it |
 |---|---|---|
-| dropdown | ction, ditAction, duplicateAction, deleteAction | Open **Azioni**, choose an item and read the last action. |
-| popover | popoverClicks, umpPopover | Open **Dettagli**, click the internal button, close with Esc or an outside click. |
-| drawer | showFilters, openDrawer, closeDrawer | Open **Apri filtri**; close with the backdrop, **Applica** or Esc. |
+| dropdown | ction, ditAction, duplicateAction, deleteAction | Open **Azioni**, choose an item and read the last action. The menu flips if it cannot open downward. |
+| popover | popoverClicks, umpPopover | Open **Dettagli**, click the internal button, close with Esc or an outside click. Placement is automatic. |
+| combobox | literal options | Open the **Paese** list; the popup matches the control width and flips when space is tight. |
+| drawer | showFilters, openDrawer, closeDrawer | Open **Apri filtri**; close with the backdrop, **Applica** or Esc. duration/asing control the slide. |
 | splitter | none | Drag the bar or focus it and use the arrow keys, Home/End. |
 | dropzone file | iles | Drop CSV files or click the zone; paths appear below. |
 | dropzone folder | older, pickMode: "auto" | Drop a folder or use the picker. |
 | 	imeline | none | Read the four dated events and their status colors. |
 | mptystate | projects, ddProject | Click **Crea progetto**; the empty state becomes a counter. |
-| skeleton | loading, 	oggleLoading | Toggle the loading placeholder off and on. |
-| carousel | slide | Use the arrows, dots, or Left/Right keys; the counter follows. |
+| skeleton | loading, 	oggleLoading | Toggle the loading placeholder off and on; duration controls the shimmer. |
+| carousel | slide | Use the arrows, dots, or Left/Right keys; duration/asing control the slide transition. |
 | stepper | step, previousStep, 
 extStep | Click a step or use **Indietro**/**Avanti**. |
 | commandbar | showPalette, lastCommand, three handlers | Press Ctrl+K or **Apri comandi**, filter, press Enter, close with Esc. |
+| tooltip | 	ooltip property | Hover/focus the **Tooltip** badge; the bubble flips and clamps itself. Project preferences set place, effect, duration, easing and delay. |
 
 All dynamic values are escaped by the runtime; file names and paths are data,
 never markup. The dropzones reuse the validated drag-and-drop/picker runtime.
+
+## Placement and animation settings
+
+Overlay controls accept:
+
+| Attribute | Values | Meaning |
+|---|---|---|
+| placement | uto, ottom, 	op, left, ight | Preferred side for dropdown/combobox popups. Auto flips when there is no space. |
+| position | uto, 	op, ight, ottom, left | Preferred side for popovers; position on dropdowns means start/end alignment. |
+| nimation | ade, scale, slide, 
+one | Open effect. |
+| duration | CSS time or milliseconds, e.g. 180ms | Effect/transition duration. |
+| asing | CSS timing function, e.g. ase-out | Effect/transition easing. |
+| delay | CSS time or milliseconds | Delay before the open effect. |
+
+drawer and carousel use duration/asing; skeleton uses duration for
+the shimmer speed. Tooltips read the same values from project preferences.
 
 ## Designer
 
@@ -293,8 +324,8 @@ Every control is available from the palette:
 - Block 3 under **Content**: Timeline, Empty state, Skeleton loader, Carousel, Stepper.
 - Command palette under **Overlay**.
 
-Open the example in the designer to inspect the dedicated sections and the
-standard style/binding panels, then edit the source or the element tree.
+Open the example in the designer to inspect the dedicated sections (placement,
+animation, duration, easing, delay) and the standard style/binding panels.
 
 ## Build
 

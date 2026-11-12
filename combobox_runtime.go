@@ -257,10 +257,31 @@ const suiComboboxRuntime = `(function(){
     }
     function close() {
       popup.hidden = true;
+      __SUI_OVERLAY.reset(popup);
       input.setAttribute('aria-expanded', 'false');
       if (toggle) toggle.setAttribute('aria-expanded', 'false');
       input.removeAttribute('aria-activedescendant');
       active = -1;
+    }
+    function positionPopup(withAnim) {
+      if (popup.hidden) return;
+      var placed = __SUI_OVERLAY.place(root, popup, {
+        placement: root.getAttribute('data-sui-combobox-placement') || 'auto',
+        align: 'start',
+        gap: 4,
+        margin: 8,
+        matchWidth: true
+      });
+      if (withAnim) {
+        __SUI_OVERLAY.animate(
+          popup,
+          root.getAttribute('data-sui-animation') || 'fade',
+          root.getAttribute('data-sui-duration'),
+          root.getAttribute('data-sui-easing'),
+          root.getAttribute('data-sui-delay'),
+          placed
+        );
+      }
     }
     function open() {
       if (disabled || configError) return;
@@ -268,6 +289,7 @@ const suiComboboxRuntime = `(function(){
       input.setAttribute('aria-expanded', 'true');
       if (toggle) toggle.setAttribute('aria-expanded', 'true');
       render('');
+      positionPopup(true);
     }
     function render(query) {
       if (configError) return;
@@ -281,6 +303,7 @@ const suiComboboxRuntime = `(function(){
         popup.appendChild(empty);
         active = -1;
         input.removeAttribute('aria-activedescendant');
+        positionPopup(false);
         return;
       }
       filtered.forEach(function(o, i) {
@@ -301,6 +324,7 @@ const suiComboboxRuntime = `(function(){
       }
       if (active < 0) active = 0;
       highlight();
+      positionPopup(false);
     }
     function highlight() {
       var rows = popup.querySelectorAll('.sui-combobox-option');

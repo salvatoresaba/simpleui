@@ -20,71 +20,32 @@ const suiMenuRuntime = `(function(){
     }
     return null;
   }
-  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   function resetPopup(popup) {
-    if (!popup) return;
-    popup.style.position = '';
-    popup.style.left = '';
-    popup.style.top = '';
-    popup.style.right = '';
-    popup.style.maxHeight = '';
-    popup.style.maxWidth = '';
-    popup.style.overflowY = '';
+    if (popup) __SUI_OVERLAY.reset(popup);
   }
-  // positionMenu measures the open popup and pins it with fixed coordinates so
-  // a dropdown never renders past the viewport edge. Right-aligned dropdowns
-  // align their right edge to the trigger, then shift back inside the viewport.
+  // positionMenu uses the shared overlay helper: it flips above when there is
+  // no space below, clamps at the viewport edges and scrolls when too tall.
   function positionMenu(menu) {
     if (!menu || !menu.classList.contains('open')) return;
     var popup = popupOf(menu);
     if (!popup) return;
-    var margin = 8, gap = 4;
-    var vw = window.innerWidth || document.documentElement.clientWidth || 0;
-    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
-    if (!vw || !vh) return;
-    popup.style.position = 'fixed';
-    popup.style.right = 'auto';
-    popup.style.left = '0px';
-    popup.style.top = '0px';
-    popup.style.maxWidth = Math.max(120, vw - margin * 2) + 'px';
-    popup.style.maxHeight = '';
-    popup.style.overflowY = '';
     var trigger = menu.querySelector('.sui-menu-button') || menu;
-    var tr = trigger.getBoundingClientRect();
-    var pr = popup.getBoundingClientRect();
-    var w = pr.width, h = pr.height;
-    var left, top;
-    if (isNested(menu)) {
-      var parentPopup = menu.parentNode;
-      var pp = parentPopup.getBoundingClientRect();
-      left = pp.right + gap;
-      if (left + w > vw - margin) left = pp.left - w - gap;
-      top = tr.top;
-    } else {
-      var rightAligned = menu.hasAttribute('data-sui-dropdown-right') || menu.classList.contains('sui-dropdown-right');
-      left = rightAligned ? tr.right - w : tr.left;
-      top = tr.bottom + gap;
-      var above = tr.top - gap - h;
-      if (top + h > vh - margin && above >= margin) top = above;
-    }
-    if (top + h > vh - margin) {
-      var avail = Math.max(60, vh - margin - Math.max(top, margin));
-      if (top < margin) {
-        top = margin;
-        avail = vh - margin * 2;
-      }
-      popup.style.maxHeight = avail + 'px';
-      popup.style.overflowY = 'auto';
-      h = Math.min(h, avail);
-    }
-    left = clamp(left, margin, Math.max(margin, vw - w - margin));
-    top = clamp(top, margin, Math.max(margin, vh - h - margin));
-    popup.style.left = Math.round(left) + 'px';
-    popup.style.top = Math.round(top) + 'px';
-  }
-  function repositionOpenMenus() {
-    var open = document.querySelectorAll('.sui-menu.open');
-    for (var i = 0; i < open.length; i++) positionMenu(open[i]);
+    var rightAligned = menu.hasAttribute('data-sui-dropdown-right') || menu.classList.contains('sui-dropdown-right');
+    var placement = isNested(menu) ? 'right' : (menu.getAttribute('data-sui-dropdown-placement') || 'auto');
+    var placed = __SUI_OVERLAY.place(trigger, popup, {
+      placement: placement,
+      align: rightAligned ? 'end' : 'start',
+      gap: 4,
+      margin: 8
+    });
+    __SUI_OVERLAY.animate(
+      popup,
+      menu.getAttribute('data-sui-animation') || 'fade',
+      menu.getAttribute('data-sui-duration'),
+      menu.getAttribute('data-sui-easing'),
+      menu.getAttribute('data-sui-delay'),
+      placed
+    );
   }
   function closeMenus(except) {
     var open = document.querySelectorAll('.sui-menu.open');
@@ -258,6 +219,4 @@ const suiMenuRuntime = `(function(){
       }
     }
   });
-  window.addEventListener('resize', repositionOpenMenus);
-  document.addEventListener('scroll', repositionOpenMenus, true);
 })();`
