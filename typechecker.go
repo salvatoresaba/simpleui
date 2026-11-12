@@ -3070,7 +3070,7 @@ func attrAllowed(key string, tag string) bool {
 	if key == "colspan" || key == "rowspan" {
 		return true
 	}
-	if key == "cellPadding" || key == "cellAlign" || key == "cellValign" || key == "cellBackground" ||
+	if key == "cellPadding" || key == "cellBackground" ||
 		key == "cellBorderStyle" || key == "cellBorderWidth" || key == "cellBorderColor" {
 		return true
 	}
@@ -3775,15 +3775,13 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		}
 		return
 	}
-	if a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBorderStyle" {
+	if a.key == "cellBorderStyle" {
 		if a.hasExpr {
 			c.diagAt(a.span, a.key+" must be a literal value")
 			return
 		}
 		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
 		allowed := map[string][]string{
-			"cellAlign":       {"left", "center", "right", "justify"},
-			"cellValign":      {"top", "middle", "bottom", "baseline"},
 			"cellBorderStyle": {"none", "solid", "dashed", "dotted", "double"},
 		}[a.key]
 		ok := false

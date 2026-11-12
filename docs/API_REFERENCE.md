@@ -2230,10 +2230,10 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
 - `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`),
   `borderWidth` and `borderColor` style every layout cell.
 - `cellMinHeight` sets the visible height of empty cells (default `72px`).
-- Per-cell attributes on a direct child: `cellPadding`, `cellAlign`
-  (`left`/`center`/`right`/`justify`), `cellValign`
-  (`top`/`middle`/`bottom`/`baseline`), `cellBackground`, and
+- Per-cell attributes: `cellPadding`, `cellBackground`, and
   `cellBorderStyle`/`cellBorderWidth`/`cellBorderColor`.
+- Align content by styling the child element (its Alignment section or CSS),
+  not the cell itself.
 - `responsive: true` stacks the cells on screens up to 640px wide.
 - `semantic: true` uses `role="table"` instead of `role="presentation"`;
   `label` adds an accessible `aria-label`.

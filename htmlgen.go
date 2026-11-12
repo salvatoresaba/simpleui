@@ -7277,7 +7277,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
 			continue
 		}
-		if a.key == "cellPadding" || a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBackground" ||
+		if a.key == "cellPadding" || a.key == "cellBackground" ||
 			a.key == "cellBorderStyle" || a.key == "cellBorderWidth" || a.key == "cellBorderColor" {
 			continue
 		}

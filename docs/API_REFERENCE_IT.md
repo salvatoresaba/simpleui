@@ -2120,10 +2120,10 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
 - `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`),
   `borderWidth` e `borderColor` stilano ogni cella del layout.
 - `cellMinHeight` imposta l'altezza visibile delle celle vuote (default `72px`).
-- Attributi per cella su un figlio diretto: `cellPadding`, `cellAlign`
-  (`left`/`center`/`right`/`justify`), `cellValign`
-  (`top`/`middle`/`bottom`/`baseline`), `cellBackground` e
+- Attributi per cella: `cellPadding`, `cellBackground` e
   `cellBorderStyle`/`cellBorderWidth`/`cellBorderColor`.
+- Per allineare il contenuto, applica lo stile all'elemento figlio (sezione
+  Alignment o CSS), non alla cella.
 - `responsive: true` impila le celle sotto i 640px di larghezza.
 - `semantic: true` usa `role="table"` invece di `role="presentation"`; `label`
   aggiunge un `aria-label` accessibile.

@@ -1255,10 +1255,14 @@ generiche dell'inspector, che agiscono direttamente sulla cella. L'allineamento
 riguarda gli elementi dentro la cella: selezionali e usa la loro sezione
 **Alignment**. La cella resta una vera cella di tabella: l'allineamento verticale
 usa `vertical-align`, quello orizzontale usa i margini automatici; **Clear**
-ripristina la posizione in alto a sinistra.
+ripristina la posizione in alto a sinistra. Con una cella selezionata
+l'inspector nasconde **Position**, **Size** e **Responsive**, e **Box model**
+mostra solo **padding** perché i margini non si applicano alle celle di tabella.
+**Drag & drop** resta disponibile: una cella può essere un'area di drop a
+runtime.
 **Reset to 1 x 1** la divide di nuovo.
 
-Le frecce spostano la selezione tra le celle vuote. Nella preview del designer l'impilamento responsive è temporaneamente disattivato per mantenere visibili griglia e maniglie. Le celle sono evidenziate, comprese quelle vuote e
+Le frecce spostano la selezione tra le celle vuote. Nella preview del designer l'impilamento responsive è temporaneamente disattivato per mantenere visibili griglia e maniglie; l'app compilata impila comunque sotto 640px. Le celle sono evidenziate, comprese quelle vuote e
 unite, così la griglia è visibile anche senza bordi applicativi. Raggruppa più
 elementi in un `col`, `div` o `card` per tenerli nella stessa cella. Usa il
 controllo dati **Table** quando servono `table.display`, `table.importText`,

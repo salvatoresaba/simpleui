@@ -1203,10 +1203,14 @@ generic inspector sections, which target the cell directly. Alignment belongs
 to the elements inside the cell: select them and use their **Alignment** section.
 The cell stays a real table cell, so vertical alignment uses `vertical-align`
 and horizontal alignment uses auto margins; **Clear** restores the top-left
-position.
+position. With a cell selected, the inspector hides **Position**, **Size** and
+**Responsive**, and **Box model** shows only **padding** because margins do not
+apply to table cells. **Drag & drop** stays available: a cell can be a runtime
+drop target.
 
 Arrow keys move selection between empty cells. In the designer preview responsive stacking is temporarily disabled so the grid
-and its split handles stay visible. Cells are outlined, including empty and merged cells, so
+and its split handles stay visible; the compiled app still stacks below 640px.
+Cells are outlined, including empty and merged cells, so
 the grid is visible even without application borders. Wrap several elements in a
 `col`, `div` or `card` to keep them in the same cell. Use the data **Table**
 control when you need `table.display`, `table.importText`, sorting, filtering or

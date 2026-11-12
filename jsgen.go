@@ -2135,12 +2135,6 @@ func layoutCellStyle(cell layoutGridCell, table *Element) string {
 	if v := layoutSafeCSSValue(layoutTableTextAttr(child, "cellPadding", "")); v != "" {
 		parts = append(parts, "padding:"+v)
 	}
-	if v := strings.ToLower(layoutTableTextAttr(child, "cellAlign", "")); v == "left" || v == "center" || v == "right" || v == "justify" {
-		parts = append(parts, "text-align:"+v)
-	}
-	if v := strings.ToLower(layoutTableTextAttr(child, "cellValign", "")); v == "top" || v == "middle" || v == "bottom" || v == "baseline" {
-		parts = append(parts, "vertical-align:"+v)
-	}
 	if v := layoutSafeCSSValue(layoutTableTextAttr(child, "cellBackground", "")); v != "" {
 		parts = append(parts, "background:"+v)
 	}
@@ -2934,7 +2928,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
 			continue
 		}
-		if a.key == "cellPadding" || a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBackground" ||
+		if a.key == "cellPadding" || a.key == "cellBackground" ||
 			a.key == "cellBorderStyle" || a.key == "cellBorderWidth" || a.key == "cellBorderColor" {
 			continue
 		}

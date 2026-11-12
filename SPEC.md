@@ -298,7 +298,7 @@ Elements and their supported attributes (v0.1):
 | spacer   | no   | class                                    | no       |
 | table    | no   | class, name, editable, fixed             | yes      |
 | tablelayout | no | class, style, rows, columns, width, height, columnWidths, rowHeights, gapX, gapY, borderStyle, borderWidth, borderColor, cellMinHeight, responsive, semantic, label | yes      |
-| layoutcell | no | row, col, rowspan, colspan, cellPadding, cellAlign, cellValign, cellBackground, cellBorderStyle, cellBorderWidth, cellBorderColor | yes      |
+| layoutcell | no | row, col, rowspan, colspan, cellPadding, cellBackground, cellBorderStyle, cellBorderWidth, cellBorderColor | yes      |
 | thead    | no   | class                                    | yes      |
 | trow     | no   | class                                    | yes      |
 | tcell    | yes  | class, head (bool)                       | no       |

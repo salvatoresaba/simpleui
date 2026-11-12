@@ -3059,14 +3059,12 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 			o.obj[field] = JStr(strconv.Itoa(layoutTableIntAttr(e, a.key, 0, 0, 49)))
 		} else if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan" ||
-			a.key == "cellPadding" || a.key == "cellAlign" || a.key == "cellValign" || a.key == "cellBackground" ||
+			a.key == "cellPadding" || a.key == "cellBackground" ||
 			a.key == "cellBorderStyle" || a.key == "cellBorderWidth" || a.key == "cellBorderColor") {
 			field := map[string]string{
 				"colspan":         "layoutColspan",
 				"rowspan":         "layoutRowspan",
 				"cellPadding":     "layoutCellPadding",
-				"cellAlign":       "layoutCellAlign",
-				"cellValign":      "layoutCellValign",
 				"cellBackground":  "layoutCellBackground",
 				"cellBorderStyle": "layoutCellBorderStyle",
 				"cellBorderWidth": "layoutCellBorderWidth",

@@ -33,7 +33,7 @@ data `table` control:
 state name = ""
 state clicks = 0
 
-css ".layout-page \{ max-width: 980px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; \} .layout-demo \{ width: 100%; \} .layout-stack \{ display: flex; flex-direction: column; gap: 10px; padding: 4px; \} .layout-note \{ color: #8fa0b8; font-size: 13px; \}"
+css ".layout-page \{ max-width: 980px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; \} .layout-demo \{ width: 100%; \} .layout-stack \{ display: flex; flex-direction: column; gap: 10px; padding: 4px; \} .layout-note \{ color: #8fa0b8; font-size: 13px; \} .layout-cell-pad \{ padding: 10px; \}"
 
 fn greet() -> null {
 	if trim(name) == "" {
@@ -66,7 +66,7 @@ view main {
 					button "Say hello" onClick: greet
 				}
 			}
-			layoutcell row: 2 col: 0 cellPadding: "10px" cellAlign: "left" {
+			layoutcell row: 2 col: 0 class: "layout-cell-pad" {
 				card "Result" {
 					h2 "Interactive"
 					p "Hello {name}."
@@ -110,8 +110,9 @@ tablelayout rows: 2 columns: 3
 - `gapX` / `gapY` set column/row spacing.
 - `borderStyle` (`none`, `solid`, `dashed`, `dotted`, `double`), `borderWidth`
   and `borderColor` style every cell.
-- Per-cell `cellPadding`, `cellAlign`, `cellValign`, `cellBackground`,
-  `cellBorderStyle`, `cellBorderWidth` and `cellBorderColor` override the cell.
+- Per-cell `cellPadding`, `cellBackground`, `cellBorderStyle`, `cellBorderWidth`
+  and `cellBorderColor` override the cell. Align content by styling the child
+  element.
 - `cellMinHeight` keeps empty cells visible and droppable (default `72px`).
 - `responsive: true` stacks cells on screens up to 640px.
 - `semantic: true` uses `role="table"`; `label` sets `aria-label`.
@@ -155,8 +156,12 @@ tablelayout rows: 2 columns: 3
    splits the cell again. Growing a span merges the fully covered cells and
    keeps their content; a partial overlap is rejected. Shrinking a span keeps
    the content in the cell and recreates the released area as empty cells.
+   With a cell selected, Position, Size, Responsive and margin are hidden;
+   padding, background, border, effects and Drag & drop stay available.
 6. Cells are outlined in the designer preview, including empty and merged cells,
    so the grid is visible even when application borders are set to none.
+   Responsive stacking is disabled in the preview; the compiled app still
+   stacks below 640px.
 
 ## Build
 

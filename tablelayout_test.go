@@ -113,7 +113,7 @@ func TestTableLayoutGridSpansSizesAndBorders(t *testing.T) {
 	tablelayout rows: 3 columns: 3 width: "80%" height: "300px" columnWidths: "120px, 30%, auto" rowHeights: "80px, 120px" gapX: "10px" gapY: "14px" borderStyle: "solid" borderWidth: "2px" borderColor: "#ff0000" style: "outline:1px solid red" responsive: true semantic: true label: "Main grid" {
 		card "A" colspan: 2
 		card "B"
-		card "C" rowspan: 2 cellPadding: "8px" cellAlign: "center" cellValign: "middle" cellBackground: "#112233" cellBorderStyle: "dotted" cellBorderWidth: "3px" cellBorderColor: "#00ff00"
+		card "C" rowspan: 2 cellPadding: "8px" cellBackground: "#112233" cellBorderStyle: "dotted" cellBorderWidth: "3px" cellBorderColor: "#00ff00"
 	}
 }`
 	prog, dl := ParseSource(src, "table_layout.sui")
@@ -130,7 +130,7 @@ func TestTableLayoutGridSpansSizesAndBorders(t *testing.T) {
 		`style="width:120px"`,
 		`style="height:80px"`,
 		`border:2px solid #ff0000;`,
-		`border-spacing:10px 14px`, `outline:1px solid red`, `sui-layout-responsive`, `role="table"`, `aria-label="Main grid"`, `padding:8px`, `text-align:center`, `background:#112233`, `border:3px dotted #00ff00;`,
+		`border-spacing:10px 14px`, `outline:1px solid red`, `sui-layout-responsive`, `role="table"`, `aria-label="Main grid"`, `padding:8px`, `background:#112233`, `border:3px dotted #00ff00;`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("table layout JS missing %q", want)
@@ -293,6 +293,44 @@ func TestDesignerCssWritesAreSerialized(t *testing.T) {
 	for _, want := range []string{"__cssWriteQueue", "Promise.resolve()"} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer CSS write queue missing %q", want)
+		}
+	}
+}
+
+func TestTableLayoutCellInspectorFiltersSections(t *testing.T) {
+	// A layout cell is a <td>: Position/Size/Responsive and margins would fight
+	// the table grid, so the inspector hides them. Padding and the other visual
+	// sections stay; drag & drop stays available for runtime drop targets.
+	for _, want := range []string{
+		"var layoutCellSelection",
+		`layoutCellSelection ? null : acc("Position"`,
+		`layoutCellSelection ? null : responsiveControls()`,
+		`layoutCellSelection ? null : acc("Size"`,
+		`layoutCellSelection ? [`,
+		`txt("margin", "margin")`,
+		`txt("padding", "padding")`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("layout cell inspector filtering missing %q", want)
+		}
+	}
+}
+
+func TestTableLayoutRejectsCellAlignAttributes(t *testing.T) {
+	for _, attr := range []string{`cellAlign: "center"`, `cellValign: "middle"`} {
+		src := `view main {
+	tablelayout {
+		layoutcell row: 0 col: 0 ` + attr + ` {
+			card "A"
+		}
+	}
+}`
+		prog, dl := ParseSource(src, "layout_cell_align.sui")
+		if dl.HasErrors() {
+			continue // parser errors are an acceptable rejection
+		}
+		if cd := Check(prog); !cd.HasErrors() {
+			t.Errorf("layoutcell %s must be rejected", attr)
 		}
 	}
 }

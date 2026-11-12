@@ -4957,6 +4957,7 @@ function renderInspector() {
     box.appendChild(modalControls(n));
   }
 
+  var layoutCellSelection = nodes.length === 1 && n && n.kind === "layoutcell";
   var controls = [
     (!selBody && nodes.length && everyKind(nodes, capAlign)) ? alignControls() : null,
     everyKind(nodes, capLayout) ? acc("Layout", (function(){
@@ -4987,7 +4988,7 @@ function renderInspector() {
       selBox("place-items", "place-items", ["", "start", "center", "end", "stretch"]),
       selBox("place-content", "place-content", ["", "start", "center", "end", "stretch", "space-between", "space-around"])
     ]) : null,
-    acc("Position", (function(){
+    layoutCellSelection ? null : acc("Position", (function(){
       var r = [
         selBox("position", "position", ["", "static", "relative", "absolute", "fixed", "sticky"]),
         txt("top", "top"),
@@ -5004,8 +5005,10 @@ function renderInspector() {
       }
       return r;
     })()),
-    responsiveControls(),
-    acc("Box model", [
+    layoutCellSelection ? null : responsiveControls(),
+    acc("Box model", layoutCellSelection ? [
+      txt("padding", "padding")
+    ] : [
       txt("margin", "margin"),
       txt("padding", "padding")
     ]),
@@ -5038,7 +5041,7 @@ function renderInspector() {
     acc("Effects", [
       shadowBox("box-shadow", "box-shadow")
     ]),
-    acc("Size", (function(){
+    layoutCellSelection ? null : acc("Size", (function(){
       var rows = [];
       if (nodes.length === 1 && n && n.kind === "tablelayout") {
         rows.push(layoutSizeRow(n, "width", "layoutWidth", "100% or 640px"));
@@ -11924,8 +11927,6 @@ function attrsOf(n) {
   if (n.layoutColspan && Number(n.layoutColspan) > 1) a += " colspan: " + Number(n.layoutColspan);
   if (n.layoutRowspan && Number(n.layoutRowspan) > 1) a += " rowspan: " + Number(n.layoutRowspan);
   if (n.layoutCellPadding) a += " cellPadding: \"" + esc(String(n.layoutCellPadding)) + "\"";
-  if (n.layoutCellAlign) a += " cellAlign: \"" + esc(String(n.layoutCellAlign)) + "\"";
-  if (n.layoutCellValign) a += " cellValign: \"" + esc(String(n.layoutCellValign)) + "\"";
   if (n.layoutCellBackground) a += " cellBackground: \"" + esc(String(n.layoutCellBackground)) + "\"";
   if (n.layoutCellBorderStyle) a += " cellBorderStyle: \"" + esc(String(n.layoutCellBorderStyle)) + "\"";
   if (n.layoutCellBorderWidth) a += " cellBorderWidth: \"" + esc(String(n.layoutCellBorderWidth)) + "\"";
@@ -12799,7 +12800,7 @@ function layoutCellNodeAt(n, row, col) {
   return { index: index, node: n.children[index], grid: g, cell: g.cells.filter(function(c){ return c.index === index; })[0] };
 }
 function layoutCopyCellFields(src, dst) {
-  ["layoutColspan", "layoutRowspan", "layoutCellPadding", "layoutCellAlign", "layoutCellValign",
+  ["layoutColspan", "layoutRowspan", "layoutCellPadding",
    "layoutCellBackground", "layoutCellBorderStyle", "layoutCellBorderWidth", "layoutCellBorderColor"
   ].forEach(function(k){ if (src[k] !== undefined) dst[k] = src[k]; });
 }
@@ -12813,7 +12814,7 @@ function materializeLayoutCells(n) {
     var cell = newLayoutCellNode(c.row, c.col);
     cell.layoutRowspan = String(c.rowspan);
     cell.layoutColspan = String(c.colspan);
-    if (src) { layoutCopyCellFields(src, cell); ["layoutColspan", "layoutRowspan", "layoutCellPadding", "layoutCellAlign", "layoutCellValign", "layoutCellBackground", "layoutCellBorderStyle", "layoutCellBorderWidth", "layoutCellBorderColor"].forEach(function(k){ delete src[k]; }); cell.children = [src]; }
+    if (src) { layoutCopyCellFields(src, cell); ["layoutColspan", "layoutRowspan", "layoutCellPadding", "layoutCellBackground", "layoutCellBorderStyle", "layoutCellBorderWidth", "layoutCellBorderColor"].forEach(function(k){ delete src[k]; }); cell.children = [src]; }
     if (c.colspan > 1) cell.layoutColspan = String(c.colspan);
     if (c.rowspan > 1) cell.layoutRowspan = String(c.rowspan);
     out.push(cell);
