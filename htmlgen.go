@@ -5726,7 +5726,7 @@ func writeStaticTableLayout(sb *strings.Builder, e *Element, ind string) {
 			}
 			sb.WriteString("\"")
 			sb.WriteString(layoutCellPosAttrs(r, c))
-			sb.WriteString(layoutCellAttrs(cell, e))
+			sb.WriteString(layoutCellAttrs(cell, e, false))
 			sb.WriteString(">\n")
 			writeStaticNodes(sb, cell.content, ind+"        ")
 			sb.WriteString(ind)

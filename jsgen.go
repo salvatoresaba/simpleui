@@ -2156,12 +2156,45 @@ func layoutCellClass(cell layoutGridCell) string {
 // target the layout cell itself.
 func layoutCellClassSuffix(cell layoutGridCell) string {
 	if e := layoutCellElement(cell); e != nil {
-		return classSuffix(e)
+		if a := findAttr(e, "class"); a != nil {
+			if a.hasExpr {
+				return " ${" + classExprJs(ExprToJs(a.expr)) + "}"
+			}
+			if c := classPartsJs(a.text); c != "" {
+				return " " + c
+			}
+		}
 	}
 	return ""
 }
 
-func layoutCellAttrs(cell layoutGridCell, e *Element) string {
+func layoutCellStyleAttrValue(cell layoutGridCell, table *Element, dynamic bool) string {
+	base := layoutCellStyle(cell, table)
+	if base != "" {
+		base += ";"
+	}
+	base = htmlEscape(base)
+	var child *Element
+	if cell.node != nil && cell.node.kind == "element" {
+		child = cell.node.elem
+	}
+	if child == nil {
+		return base
+	}
+	a := findAttr(child, "style")
+	if a == nil {
+		return base
+	}
+	if a.hasExpr {
+		if dynamic {
+			return base + "${__sui_esc(" + ExprToJs(a.expr) + ")}"
+		}
+		return base
+	}
+	return base + htmlTextParts(a.text)
+}
+
+func layoutCellAttrs(cell layoutGridCell, e *Element, dynamic bool) string {
 	var b strings.Builder
 	if cell.colspan > 1 {
 		b.WriteString(" colspan=\"")
@@ -2173,9 +2206,9 @@ func layoutCellAttrs(cell layoutGridCell, e *Element) string {
 		b.WriteString(strconv.Itoa(cell.rowspan))
 		b.WriteString("\"")
 	}
-	if style := layoutCellStyle(cell, e); style != "" {
+	if style := layoutCellStyleAttrValue(cell, e, dynamic); style != "" {
 		b.WriteString(" style=\"")
-		b.WriteString(htmlEscape(style))
+		b.WriteString(style)
 		b.WriteString("\"")
 	}
 	return b.String()
@@ -3302,7 +3335,7 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			b.WriteString(layoutCellClassSuffix(cell))
 			b.WriteString("\"")
 			b.WriteString(layoutCellPosAttrs(r, c))
-			b.WriteString(layoutCellAttrs(cell, e))
+			b.WriteString(layoutCellAttrs(cell, e, true))
 			b.WriteString(">` + (")
 			b.WriteString(viewNodesJs(childPtrs(cell.content), g, ctx))
 			b.WriteString(") + `</td>")

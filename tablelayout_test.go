@@ -342,6 +342,53 @@ func TestTableLayoutRejectsCellAlignAttributes(t *testing.T) {
 	}
 }
 
+func TestTableLayoutCellUserStyleRendering(t *testing.T) {
+	src := `view main {
+	tablelayout columns: 1 {
+		layoutcell row: 0 col: 0 style: "padding: 7px" {
+			card "A"
+		}
+	}
+}`
+	prog, dl := ParseSource(src, "layout_cell_style.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, "padding: 7px") {
+		t.Errorf("layout cell static style missing from generated JS")
+	}
+	html := GenerateHtmlPage(prog)
+	if !strings.Contains(html, "padding: 7px") {
+		t.Errorf("layout cell static style missing from generated HTML")
+	}
+}
+
+func TestTableLayoutCellClassExprRendering(t *testing.T) {
+	src := `state active = true
+view main {
+	tablelayout columns: 1 {
+		layoutcell row: 0 col: 0 class: active ? "on" : "" {
+			card "A"
+		}
+	}
+}`
+	prog, dl := ParseSource(src, "layout_cell_class_expr.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, "sui-layout-cell ${__sui_class") {
+		t.Errorf("layout cell class expression missing from generated JS")
+	}
+}
+
 func TestTableLayoutPaletteEntry(t *testing.T) {
 	for _, want := range []string{
 		`"tablelayout"`,

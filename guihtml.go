@@ -4879,12 +4879,14 @@ function renderInspector() {
     }
     sxs.appendChild(sxi);
     clsSec.appendChild(sxs);
+    if (!(nodes.length === 1 && n && n.kind === "layoutcell")) {
     var lk = document.createElement("div"); lk.className = "rowline";
     var ll = document.createElement("label"); ll.textContent = "link"; lk.appendChild(ll);
     var li = document.createElement("input"); li.id = "f_link"; li.value = commonVal(appearanceNodes, "link"); li.placeholder = "https://…";
     li.oninput = function(ev){ snap("set link"); appearanceNodes.forEach(function(m){ m.link = ev.target.value; m.linkExpr = false; }); setOut(); autoPreview(); };
     lk.appendChild(li);
     clsSec.appendChild(lk);
+    }
     box.appendChild(clsSec);
   }
 
