@@ -880,6 +880,31 @@ del `menuitem` è l'etichetta della voce.
 Vedere [API reference: menu bar](API_REFERENCE_IT.md#menu-bar) e l'[esempio menu
 bar](../examples/menu_bar.sui).
 
+## Controlli dropdown e popover
+
+**Controls > Dropdown menu** inserisce un pulsante con un elenco ancorato di
+figli `dropdownitem`. Imposta l'etichetta da **Text** e il lato nella sezione
+**Dropdown**; aggiungi le voci dall'albero. Le voci supportano `onClick`,
+`disabled` e `separator`.
+
+**Controls > Popover** inserisce un trigger con contenuto ricco in un pannello
+ancorato. Imposta l'etichetta del trigger da **Text** e il lato nella sezione
+**Popover**. Si chiude con un click fuori o con Esc.
+
+**Controls > Drawer** inserisce un pannello laterale. Imposta il titolo da
+**Text**; la sezione **Drawer** controlla il lato (`left`/`right`), la larghezza,
+lo stato `open` e una funzione `onClose` opzionale. Il campo dello stato crea lo
+stato se manca.
+
+**Controls > Split panes** inserisce due figli `pane` e un divisore
+trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.
+Uno splitter deve mantenere esattamente due pannelli.
+
+**Controls > File dropzone** inserisce un'area di drop che apre anche il picker.
+La sezione **Dropzone** imposta lo stato di destinazione (`dropFiles`), un
+eventuale stato separato `pickFiles`, `accept`, `multiple`, `directory`,
+`pickMode` e il suggerimento.
+
 ## Pagine
 
 Ogni progetto ha una o più pagine. I **chip pagina sopra il preview** sono il

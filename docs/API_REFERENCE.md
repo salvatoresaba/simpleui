@@ -291,6 +291,115 @@ for the menu editor: **Add menu**, **Add menu item**, **Add submenu**,
 **Menu item** into the bar/menu and edit **Text**, **link** and **onClick** in
 the inspector. See [GUI editor: menu bar](GUI_EDITOR.md#menu-bar-control).
 
+## Dropdown menu
+
+`dropdown` is a button with an anchored menu. Its text is the button label and
+its direct `dropdownitem` children become the menu entries:
+
+```sui
+dropdown "Actions" position: "right" {
+	dropdownitem "Edit" onClick: edit
+	dropdownitem "Duplicate" onClick: duplicate
+	dropdownitem separator: true
+	dropdownitem "Delete" onClick: delete
+}
+```
+
+`position` is `left` (default) or `right`. Items support `onClick`, `disabled`
+and `separator`; the menu closes on outside clicks, Escape or item selection.
+The runtime reuses the menu bar keyboard/focus behavior. In the designer choose
+**Controls > Dropdown menu**; edit the label from **Text**, the side from the
+**Dropdown** section and add items from the element tree.
+
+## Popover
+
+`popover` is a trigger with rich content in an anchored panel. The element text
+is the trigger label; child elements become the panel content:
+
+```sui
+popover "Info" position: "bottom" {
+	h3 "Details"
+	p "Anchored content."
+	button "Action"
+}
+```
+
+`position` is `top` (default), `right`, `bottom` or `left`. It opens on click and
+closes on outside clicks or Escape. In the designer choose **Controls >
+Popover**; the **Popover** section sets the side.
+
+## Drawer
+
+`drawer` is a side panel controlled by an `open` binding. The element text is
+the heading and children become the scrollable body:
+
+```sui
+state showFilters = false
+
+fn openDrawer() -> null {
+	showFilters = true
+}
+
+drawer "Filters" side: "right" width: "320px" open: showFilters {
+	h3 "Filters"
+	p "Choose a status."
+}
+```
+
+`side` is `right` (default) or `left`. When `open` names a state, the backdrop,
+the close button and Escape call its setter with `false`. Otherwise use
+`onClose: <fn>`. The panel is fixed to the viewport with a dimmed backdrop and a
+`role=dialog` aside. In the designer choose **Controls > Drawer**.
+
+## Split panes
+
+`splitter` lays out exactly two `pane` children with a draggable divider:
+
+```sui
+splitter direction: "horizontal" initial: "40%" min: "120px" {
+	pane {
+		p "List"
+	}
+	pane {
+		p "Detail"
+	}
+}
+```
+
+`direction` is `horizontal` (default) or `vertical`; `initial` is the first
+pane size and `min` the minimum size of either pane. Dragging the bar resizes
+the panes; the bar is focusable and the arrow keys, `Home` and `End` resize it
+without a pointer. `simpleui check` rejects any splitter that does not have
+exactly two `pane` children. In the designer choose **Controls > Split panes**.
+
+## File dropzone
+
+`dropzone` is a styled drop area that reuses the drag-and-drop and picker
+runtime:
+
+```sui
+state files = ""
+
+dropzone "CSV files" dropFiles: files accept: ".csv,text/csv" multiple: true {
+	p "Only CSV files."
+}
+```
+
+| Attribute | Meaning |
+|---|---|
+| `dropFiles` | String state that receives dropped paths. Also opens the picker when the zone is clicked. |
+| `pickFiles` | Optional separate picker state; defaults to `dropFiles`. |
+| `accept` | Picker filter such as `.csv` or `image/*`. |
+| `multiple` | Allows several files. |
+| `directory` | Enables the folder picker and folder drops. |
+| `pickMode` | `native`, `fs` or `auto`. |
+| `hint` | Secondary line under the title. |
+
+The title is the element text, children render inside the zone and a status
+line shows the bound state value while it is non-empty. Dropped and picked
+names are escaped as text by the runtime. In the designer choose **Controls >
+File dropzone**.
+
 ## Tabs
 
 `tabs` creates a tab bar; each direct `tab` child supplies the button label

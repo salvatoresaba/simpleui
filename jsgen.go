@@ -683,6 +683,15 @@ func GenerateJsFor(p *Prog, target string) string {
 	// Modal dialogs are opened by data-sui-modal name and use delegated events.
 	sb.WriteString("\n\n")
 	sb.WriteString(suiModalRuntime)
+	// Popovers toggle an anchored panel and close on outside click/Escape.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiPopoverRuntime)
+	// State-controlled drawers close through the state setter or onClose.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiDrawerRuntime)
+	// Splitters resize their two panes with pointer drags or arrow keys.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiSplitterRuntime)
 	// Class allow-list: dynamic class expressions are filtered to these names
 	// so untrusted data cannot activate arbitrary app classes.
 	sb.WriteString("\n\nconst __SUI_CLASSES = Object.create(null);\n")
@@ -2297,8 +2306,26 @@ func elemHtmlTag(tag string) string {
 	if tag == "combobox" || tag == "datepicker" || tag == "tree" || tag == "chart" || tag == "graph" {
 		return "div"
 	}
-	if tag == "menu" || tag == "menuitem" || tag == "tab" || tag == "modal" {
+	if tag == "menu" || tag == "menuitem" || tag == "tab" || tag == "modal" || tag == "dropdown" {
 		return "div"
+	}
+	if tag == "popover" {
+		return "span"
+	}
+	if tag == "drawer" {
+		return "div"
+	}
+	if tag == "splitter" {
+		return "div"
+	}
+	if tag == "pane" {
+		return "div"
+	}
+	if tag == "dropzone" {
+		return "div"
+	}
+	if tag == "dropdownitem" {
+		return "button"
 	}
 	if tag == "modalbutton" {
 		return "button"
@@ -2478,7 +2505,7 @@ func openTagHtml(e *Element, tag string, interactive bool, idx int, ctx *JsCtx) 
 func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *JsCtx, iframeSrc string) string {
 	var sb strings.Builder
 	sb.WriteString("<" + tag)
-	if e.tag == "button" {
+	if e.tag == "button" || e.tag == "dropdownitem" {
 		sb.WriteString(" type=\"button\"")
 	}
 	if e.tag == "row" {
@@ -2554,8 +2581,17 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 		}
 	} else if e.tag == "menu" {
 		sb.WriteString(" role=\"none\"")
-	} else if e.tag == "menuitem" {
+	} else if e.tag == "dropdown" {
+		sb.WriteString(" role=\"none\" data-sui-dropdown")
+		pos := findAttr(e, "position")
+		if pos != nil && !pos.hasExpr && strings.EqualFold(strings.TrimSpace(partsContent(pos.text)), "right") {
+			sb.WriteString(" data-sui-dropdown-right")
+		}
+	} else if e.tag == "menuitem" || e.tag == "dropdownitem" {
 		sb.WriteString(" role=\"menuitem\" tabindex=\"-1\"")
+		if e.tag == "dropdownitem" && datepickerBool(e, "disabled") {
+			sb.WriteString(" disabled")
+		}
 	}
 	if e.tag == "iframe" {
 		// Secure defaults: if the author omitted sandbox, deny scripts, forms,
@@ -2736,6 +2772,8 @@ var newControlClass = map[string]string{
 	"menubar":       "sui-menubar",
 	"menu":          "sui-menu",
 	"menuitem":      "sui-menuitem",
+	"dropdown":      "sui-menu",
+	"dropdownitem":  "sui-menuitem",
 }
 
 // newControlType maps a control tag to the HTML input type it renders with.
@@ -2963,6 +3001,27 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
 			continue
 		}
+		if e.tag == "dropdown" && a.key == "position" {
+			continue
+		}
+		if e.tag == "popover" && a.key == "position" {
+			continue
+		}
+		if e.tag == "drawer" && (a.key == "open" || a.key == "side" || a.key == "width" || a.key == "onClose") {
+			continue
+		}
+		if e.tag == "splitter" && (a.key == "direction" || a.key == "initial" || a.key == "min") {
+			continue
+		}
+		if e.tag == "dropzone" && (a.key == "accept" || a.key == "multiple" || a.key == "directory" || a.key == "hint") {
+			continue
+		}
+		if e.tag == "dropdownitem" && a.key == "separator" {
+			continue
+		}
+		if e.tag == "dropdownitem" && a.key == "disabled" {
+			continue
+		}
 		if e.tag == "tablelayout" && (a.key == "columns" || a.key == "rows" ||
 			a.key == "width" || a.key == "height" ||
 			a.key == "columnWidths" || a.key == "rowHeights" ||
@@ -3160,6 +3219,9 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	if e == nil {
 		return "''"
 	}
+	if e.tag == "dropdownitem" && datepickerBool(e, "separator") {
+		return "`<div class=\"sui-dropdown-sep\" role=\"separator\"></div>`"
+	}
 	// The `children` slot marker renders the caller-supplied block.
 	if e.tag == "children" {
 		return "`${children}`"
@@ -3269,6 +3331,21 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	}
 	if e.tag == "menu" {
 		return menuElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "dropdown" {
+		return menuElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "popover" {
+		return popoverElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "drawer" {
+		return drawerElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "splitter" {
+		return splitterElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "dropzone" {
+		return dropzoneElemJs(e, g, ctx, idx)
 	}
 	if e.tag == "menubar" {
 		open := openTagHtml(e, "nav", false, idx, ctx)
@@ -4680,6 +4757,226 @@ func accordionElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 // by CSS until the runtime adds the `open` class; the menu label remains
 // keyboard-focusable and the items keep their normal wiring (`onClick`,
 // `link`) and designer ids.
+func drawerElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	openExpr := "false"
+	if a := findAttr(e, "open"); a != nil {
+		if a.hasExpr && a.expr != nil {
+			openExpr = ExprToJs(a.expr)
+		} else {
+			v := strings.TrimSpace(strings.ToLower(partsContent(a.text)))
+			openExpr = strconv.FormatBool(v != "" && v != "false" && v != "0")
+		}
+	}
+	setter := ""
+	if a := findAttr(e, "open"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" && ctxIsState(ctx, a.expr.name) {
+		setter = setterName(a.expr.name)
+	}
+	onClose := eventIdentOf(e, "onClose")
+	side := "right"
+	if a := findAttr(e, "side"); a != nil && !a.hasExpr {
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		if v == "left" || v == "right" {
+			side = v
+		}
+	}
+	width := "320px"
+	if a := findAttr(e, "width"); a != nil && !a.hasExpr {
+		if v := layoutSafeCSSValue(partsContent(a.text)); v != "" {
+			width = v
+		}
+	}
+	open := openTagHtml(e, "div", false, idx, ctx)
+	open = strings.TrimSuffix(open, ">") + " data-sui-drawer data-sui-drawer-open=\"${(" + openExpr + ") ? \"1\" : \"0\"}\""
+	if setter != "" {
+		open += " data-sui-drawer-set=\"" + setter + "\""
+	}
+	if onClose != "" {
+		open += " data-sui-drawer-onclose=\"" + onClose + "\""
+	}
+	open += ">"
+	kids := "''"
+	if len(e.children) > 0 {
+		kids = viewNodesJs(childPtrs(e.children), g, ctx)
+	}
+	label := htmlTextParts(e.text)
+	var sb strings.Builder
+	sb.WriteString("`")
+	sb.WriteString(open)
+	sb.WriteString("<div class=\"sui-drawer-backdrop\" data-sui-drawer-backdrop></div>")
+	sb.WriteString("<aside class=\"sui-drawer sui-drawer-" + side + "\" role=\"dialog\" aria-modal=\"true\" style=\"--sui-drawer-width:" + htmlEscape(width) + "\">")
+	sb.WriteString("<div class=\"sui-drawer-head\"><b>")
+	sb.WriteString(label)
+	sb.WriteString("</b><button type=\"button\" class=\"sui-drawer-close\" data-sui-drawer-close aria-label=\"Close\">&#10005;</button></div>")
+	sb.WriteString("<div class=\"sui-drawer-body\">` + (")
+	sb.WriteString(kids)
+	sb.WriteString(") + `</div></aside></div>`")
+	return sb.String()
+}
+
+func addOpenTagClass(open, cls string) string {
+	if cls == "" || !strings.HasSuffix(open, ">") {
+		return open
+	}
+	body := strings.TrimSuffix(open, ">")
+	i := strings.Index(body, " class=\"")
+	if i >= 0 {
+		return body[:i+8] + cls + " " + body[i+8:] + ">"
+	}
+	j := strings.Index(body, " ")
+	if j < 0 {
+		j = len(body)
+	}
+	return body[:j] + " class=\"" + cls + "\"" + body[j:] + ">"
+}
+
+func splitterElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	direction := "horizontal"
+	if a := findAttr(e, "direction"); a != nil && !a.hasExpr {
+		if strings.ToLower(strings.TrimSpace(partsContent(a.text))) == "vertical" {
+			direction = "vertical"
+		}
+	}
+	initial := "50%"
+	if a := findAttr(e, "initial"); a != nil && !a.hasExpr {
+		if v := layoutSafeCSSValue(partsContent(a.text)); v != "" {
+			initial = v
+		}
+	}
+	min := "120px"
+	if a := findAttr(e, "min"); a != nil && !a.hasExpr {
+		if v := layoutSafeCSSValue(partsContent(a.text)); v != "" {
+			min = v
+		}
+	}
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-splitter sui-splitter-"+direction)
+	open = strings.TrimSuffix(open, ">") + " data-sui-splitter data-sui-splitter-direction=\"" + direction + "\" data-sui-splitter-min=\"" + htmlEscape(min) + "\">"
+	var panes []*Element
+	for i := 0; i < len(e.children); i++ {
+		ch := &e.children[i]
+		if ch.kind == "element" && ch.elem != nil && ch.elem.tag == "pane" {
+			panes = append(panes, ch.elem)
+		}
+	}
+	barOrientation := "vertical"
+	if direction == "vertical" {
+		barOrientation = "horizontal"
+	}
+	var sb strings.Builder
+	sb.WriteString("`")
+	sb.WriteString(open)
+	for i := 0; i < len(panes); i++ {
+		style := ""
+		if i == 0 {
+			style = " style=\"flex-basis:" + htmlEscape(initial) + "\""
+		}
+		sb.WriteString("<div class=\"sui-split-pane\"" + style + ">` + (")
+		sb.WriteString(viewNodesJs(childPtrs(panes[i].children), g, ctx))
+		sb.WriteString(") + `</div>")
+		if i == 0 && len(panes) > 1 {
+			sb.WriteString("<div class=\"sui-split-bar\" role=\"separator\" tabindex=\"0\" aria-orientation=\"" + barOrientation + "\"></div>")
+		}
+	}
+	sb.WriteString("</div>`")
+	return sb.String()
+}
+
+func dropzoneElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-dropzone")
+	if !strings.Contains(open, "data-sui-dropzone") {
+		open = strings.TrimSuffix(open, ">") + " data-sui-dropzone=\"1\">"
+	}
+	// A dropzone is also a picker target. When only dropFiles is set, clicking
+	// the area opens the picker into the same state.
+	if findAttr(e, "pickFiles") == nil {
+		if a := findAttr(e, "dropFiles"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" && ctxIsState(ctx, a.expr.name) {
+			extra := " data-sui-pickfiles=\"" + setterName(a.expr.name) + "\""
+			if acc := findAttr(e, "accept"); acc != nil {
+				extra += " data-sui-pick-accept=\"" + htmlAttrValue(acc, false) + "\""
+			}
+			extra += dataBoolAttrValue("data-sui-pick-multiple", findAttr(e, "multiple"))
+			extra += dataBoolAttrValue("data-sui-pick-directory", findAttr(e, "directory"))
+			open = strings.TrimSuffix(open, ">") + extra + ">"
+		}
+	}
+	stateRead := ""
+	if a := findAttr(e, "dropFiles"); a != nil && a.hasExpr && a.expr != nil {
+		stateRead = ExprToJs(a.expr)
+	} else if a := findAttr(e, "pickFiles"); a != nil && a.hasExpr && a.expr != nil {
+		stateRead = ExprToJs(a.expr)
+	}
+	label := htmlTextParts(e.text)
+	if strings.TrimSpace(partsContent(e.text)) == "" {
+		label = "Drop files here"
+	}
+	hint := "Drag files here or click to choose"
+	if a := findAttr(e, "hint"); a != nil && !a.hasExpr {
+		if v := strings.TrimSpace(partsContent(a.text)); v != "" {
+			hint = v
+		}
+	} else if datepickerBool(e, "directory") {
+		hint = "Drag a folder here or click to choose"
+	}
+	var sb strings.Builder
+	sb.WriteString("`")
+	sb.WriteString(open)
+	sb.WriteString("<span class=\"sui-dropzone-icon\" aria-hidden=\"true\">&#8681;</span>")
+	sb.WriteString("<span class=\"sui-dropzone-title\">")
+	sb.WriteString(label)
+	sb.WriteString("</span>")
+	sb.WriteString("<span class=\"sui-dropzone-hint\">")
+	sb.WriteString(htmlEscape(hint))
+	sb.WriteString("</span>")
+	if stateRead != "" {
+		sb.WriteString("<span class=\"sui-dropzone-status\">${__sui_esc(" + stateRead + ")}</span>")
+	}
+	if len(e.children) > 0 {
+		sb.WriteString("` + (")
+		sb.WriteString(viewNodesJs(childPtrs(e.children), g, ctx))
+		sb.WriteString(") + `")
+	}
+	sb.WriteString("</div>`")
+	return sb.String()
+}
+
+func dataBoolAttrValue(name string, a *Attr) string {
+	if a == nil {
+		return ""
+	}
+	var sb strings.Builder
+	writeDataBoolAttr(&sb, name, a)
+	return sb.String()
+}
+
+func popoverElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	open := openTagHtml(e, "span", false, idx, ctx)
+	open = strings.TrimSuffix(open, ">") + " data-sui-popover"
+	pos := "top"
+	if a := findAttr(e, "position"); a != nil && !a.hasExpr {
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		if v == "top" || v == "right" || v == "bottom" || v == "left" {
+			pos = v
+		}
+	}
+	open += " data-sui-popover-position=\"" + pos + "\">"
+	label := htmlTextParts(e.text)
+	if strings.TrimSpace(partsContent(e.text)) == "" {
+		label = "Info"
+	}
+	kids := "''"
+	if len(e.children) > 0 {
+		kids = viewNodesJs(childPtrs(e.children), g, ctx)
+	}
+	var sb strings.Builder
+	sb.WriteString("`")
+	sb.WriteString(open)
+	sb.WriteString("<button type=\"button\" class=\"sui-popover-trigger\" data-sui-popover-trigger aria-haspopup=\"dialog\" aria-expanded=\"false\">")
+	sb.WriteString(label)
+	sb.WriteString("</button><div class=\"sui-popover-panel\" role=\"dialog\" hidden>` + (")
+	sb.WriteString(kids)
+	sb.WriteString(") + `</div></span>`")
+	return sb.String()
+}
+
 func menuElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	open := openTagHtml(e, "div", false, idx, ctx)
 	kids := "''"

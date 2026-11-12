@@ -845,6 +845,30 @@ visible heading. The `menu` **Text** is the button label and the `menuitem`
 See [API reference: menu bar](API_REFERENCE.md#menu-bar) and the
 [menu bar example](../examples/menu_bar.sui).
 
+## Dropdown and popover controls
+
+**Controls > Dropdown menu** inserts a button with an anchored list of
+`dropdownitem` children. Set the label from **Text** and the side in the
+**Dropdown** section; add items from the tree. Items support `onClick`,
+`disabled` and `separator`.
+
+**Controls > Popover** inserts a trigger with rich child content in an anchored
+panel. Set the trigger label from **Text** and the side in the **Popover**
+section. It closes on outside clicks and Escape.
+
+**Controls > Drawer** inserts a side panel. Set the heading from **Text**; the
+**Drawer** section controls the side (`left`/`right`), width, the `open` state
+and an optional `onClose` function. The state field creates the state when it is
+missing.
+
+**Controls > Split panes** inserts two `pane` children and a draggable divider.
+Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must
+keep exactly two panes.
+
+**Controls > File dropzone** inserts a drop area that also opens the picker. The
+**Dropzone** section sets the target state (`dropFiles`), an optional separate
+`pickFiles` state, `accept`, `multiple`, `directory`, `pickMode` and the hint.
+
 ## Pages
 
 Every project has one or more pages. The **page chips above the preview** are

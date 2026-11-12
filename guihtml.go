@@ -1854,7 +1854,7 @@ var PALETTE = [
   { group: "Overlay", tags: ["modal", "modalbutton", "toast"] },
   { group: "Text", tags: ["h1", "h2", "h3", "p", "text", "hr", "blockquote", "pre"],
     subs: [ { name: "Lists", tags: ["list", "ul", "ol"] } ] },
-  { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "chart", "graph"],
+  { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "chart", "graph", "dropdown", "popover", "drawer", "splitter", "pane", "dropzone"],
     subs: [ { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] } ] },
   { group: "Tables", tags: ["table"] },
   { group: "Media", tags: ["img", "video", "audio", "iframe"] }
@@ -1865,8 +1865,12 @@ var PALETTE_LABEL = {
   textarea: "Textarea", input: "Text input", checkbox: "Checkbox", 
   radio: "Radio", switch: "Switch/Toggle", select: "Select", combobox: "Combobox", datepicker: "Date/Time picker",
   number: "Number input", slider: "Slider/Range", file: "File input",
-  color: "Color picker", date: "Date", time: "Time", button: "Button",
-  card: "Card", tabs: "Tabs", tab: "Tab", accordion: "Accordion", accordionitem: "Accordion item",
+  color: "Color picker", date: "Date", time: "Time", button: "Button",  card: "Card", tabs: "Tabs", tab: "Tab", accordion: "Accordion", accordionitem: "Accordion item",
+  dropdown: "Dropdown menu", dropdownitem: "Dropdown item",
+  popover: "Popover",
+  drawer: "Drawer",
+  splitter: "Split panes", pane: "Split pane",
+  dropzone: "File dropzone",
   tablelayout: "Table layout",
   layoutcell: "Layout cell",
   tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph",
@@ -1949,6 +1953,13 @@ var TAG_FIELDS = {
   card: ["text"],
   tabs: ["text", "position", "variant"],
   tab: ["text"],
+  dropdown: ["text", "position"],
+  dropdownitem: ["text", "disabled", "separator"],
+  popover: ["text", "position"],
+  drawer: ["text", "side", "width", "open", "onClose"],
+  splitter: ["direction", "initial", "min"],
+  pane: [],
+  dropzone: ["text", "dropFiles", "pickFiles", "accept", "multiple", "directory", "pickMode", "hint"],
   accordion: ["text"],
   accordionitem: ["text"],
   tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
@@ -2277,6 +2288,68 @@ function newDatepickerNode() {
   n.value = "";
   return n;
 }
+function newDropdownItemNode(label) {
+  var n = newNode("dropdownitem");
+  n.text = label || "Item";
+  n.disabled = false;
+  n.separator = false;
+  return n;
+}
+function newDropdownNode() {
+  var n = newNode("dropdown");
+  n.text = "Actions";
+  n.position = "left";
+  n.children = [newDropdownItemNode("Item 1"), newDropdownItemNode("Item 2")];
+  return n;
+}
+function newPopoverNode() {
+  var n = newNode("popover");
+  n.text = "Info";
+  n.position = "top";
+  var p = newNode("p");
+  p.text = "Popover content";
+  n.children = [p];
+  return n;
+}
+function newDrawerNode() {
+  var n = newNode("drawer");
+  n.text = "Filters";
+  n.side = "right";
+  n.width = "320px";
+  n.open = "false";
+  n.onClose = "";
+  var p = newNode("p");
+  p.text = "Drawer content";
+  n.children = [p];
+  return n;
+}
+function newPaneNode(label) {
+  var n = newNode("pane");
+  var p = newNode("p");
+  p.text = label || "Pane content";
+  n.children = [p];
+  return n;
+}
+function newSplitterNode() {
+  var n = newNode("splitter");
+  n.direction = "horizontal";
+  n.initial = "50%";
+  n.min = "120px";
+  n.children = [newPaneNode("Left pane"), newPaneNode("Right pane")];
+  return n;
+}
+function newDropzoneNode() {
+  var n = newNode("dropzone");
+  n.text = "Drop files here";
+  n.dropFiles = "";
+  n.pickFiles = "";
+  n.accept = "";
+  n.multiple = true;
+  n.directory = false;
+  n.pickMode = "native";
+  n.hint = "";
+  return n;
+}
 function newTreeItemNode(label) {
   var n = newNode("treeitem");
   n.text = label || "Item";
@@ -2430,6 +2503,13 @@ function newGraphNode(skipDefaults) {
 function newNodeForKind(kind) {
   if (kind === "combobox") return newComboboxNode();
   if (kind === "datepicker") return newDatepickerNode();
+  if (kind === "dropdown") return newDropdownNode();
+  if (kind === "dropdownitem") return newDropdownItemNode("Item");
+  if (kind === "popover") return newPopoverNode();
+  if (kind === "drawer") return newDrawerNode();
+  if (kind === "splitter") return newSplitterNode();
+  if (kind === "pane") return newPaneNode("Pane content");
+  if (kind === "dropzone") return newDropzoneNode();
   if (kind === "tree") return newTreeNode();
   if (kind === "treeitem") return newTreeItemNode("Item");
   if (kind === "chart") return newChartNode();
@@ -3951,6 +4031,8 @@ function upd(field, value) {
     }
     if (field === "onClick" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasFn(node[field])) root.funcs.push({ name: node[field], params: "", ret: "null" });
     if ((field === "dropFiles" || field === "pickFiles") && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "\"\"" });
+    if (field === "open" && node.kind === "drawer" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "false" });
+    if (field === "onClose" && node.kind === "drawer" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasFn(node[field])) root.funcs.push({ name: node[field], params: "", ret: "null" });
     if (field === "value" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "\"\"" });
     if (field === "checked" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "false" });
   });
@@ -4933,6 +5015,25 @@ function renderInspector() {
     menuHint.textContent = "Menu editor: right-click this row in the element tree for Add menu/item/submenu, Duplicate, Move and Delete.";
     box.appendChild(menuHint);
   }
+  if (nodes.length === 1 && n && (n.kind === "dropdown" || n.kind === "dropdownitem")) {
+    var ddHint = document.createElement("div");
+    ddHint.className = "hint";
+    ddHint.textContent = "Dropdown editor: right-click this row in the element tree to add items, duplicate, move or delete.";
+    box.appendChild(ddHint);
+    box.appendChild(n.kind === "dropdown" ? dropdownControls(n) : dropdownItemControls(n));
+  }
+  if (nodes.length === 1 && n && n.kind === "popover") {
+    box.appendChild(popoverControls(n));
+  }
+  if (nodes.length === 1 && n && n.kind === "drawer") {
+    box.appendChild(drawerControls(n));
+  }
+  if (nodes.length === 1 && n && n.kind === "splitter") {
+    box.appendChild(splitterControls(n));
+  }
+  if (nodes.length === 1 && n && n.kind === "dropzone") {
+    box.appendChild(dropzoneControls(n));
+  }
   if (nodes.length === 1 && n && (n.kind === "tabs" || n.kind === "tab")) {
     var tabsHint = document.createElement("div");
     tabsHint.className = "hint";
@@ -5193,13 +5294,14 @@ var TEXT_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:
   h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, blockquote:1, pre:1, code:1, mark:1, strong:1, em:1, small:1,
   li:1, legend:1, label:1, tcell:1, option:1, button:1, a:1, checkbox:1, switch:1, radio:1, card:1, badge:1, alert:1,
   tabs:1, tab:1, accordion:1, accordionitem:1, tree:1, treeitem:1, chart:1,
+  dropdown:1, dropdownitem:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1,
   modal:1, modalbutton:1, menubar:1, menu:1, menuitem:1 };
 var LINK_KINDS = { a:1 };
 var SRC_KINDS = { img:1, video:1, audio:1, iframe:1 };
 // Flow-level shaping (display/flex/grid internals) only makes sense on
 // containers and block/lexical elements.
-var BOX_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:1, aside:1, block:1, row:1, col:1, card:1, form:1, fieldset:1, tabs:1, tab:1, accordion:1, accordionitem:1, toast:1, modal:1, menubar:1, menu:1, ul:1, ol:1, list:1, body:1, chart:1 };
-var LEX_KINDS = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, pre:1, blockquote:1, code:1, mark:1, strong:1, em:1, small:1, span:1, legend:1, li:1, a:1, button:1, badge:1, alert:1, text:1, menuitem:1 };
+var BOX_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:1, aside:1, block:1, row:1, col:1, card:1, form:1, fieldset:1, tabs:1, tab:1, accordion:1, accordionitem:1, toast:1, modal:1, menubar:1, menu:1, ul:1, ol:1, list:1, body:1, chart:1, dropdown:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1 };
+var LEX_KINDS = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, pre:1, blockquote:1, code:1, mark:1, strong:1, em:1, small:1, span:1, legend:1, li:1, a:1, button:1, badge:1, alert:1, text:1, menuitem:1, dropdownitem:1 };
 var TEXTWIDGET_KINDS = { input:1, textarea:1, select:1, combobox:1, datepicker:1, number:1, date:1, time:1 };
 // Pure layout rules/spacers: their whole job is positioning, they cannot be
 // aligned inside a flow and their font/text settings are meaningless.
@@ -5731,6 +5833,186 @@ function treeControls(n) {
   actionRow("settings", "Tree settings...", "General, bindings, columns, colors, title, shape, icons, tooltip and presets", function(){ openComponentSettings(componentDefById("tree"), n); });
   actionRow("data", "Edit tree data...", "Add, rename, move, delete, import and export tree items", function(){ openTreeDataEditor(n); });
   return acc("Tree", rows);
+}
+function dropdownControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Dropdown</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var row = document.createElement("div"); row.className = "rowline";
+  row.appendChild(lbl("position"));
+  var sel = document.createElement("select");
+  [["left", "left"], ["right", "right"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.position || "left") === o[0]) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = function(){ withUndo(function(){ n.position = sel.value; }, "dropdown position"); };
+  row.appendChild(sel); b.appendChild(row);
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "Items are dropdownitem children. Right-click this row in the element tree to add, duplicate or delete items.";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function popoverControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Popover</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var row = document.createElement("div"); row.className = "rowline";
+  row.appendChild(lbl("position"));
+  var sel = document.createElement("select");
+  [["top", "top"], ["right", "right"], ["bottom", "bottom"], ["left", "left"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.position || "top") === o[0]) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = function(){ withUndo(function(){ n.position = sel.value; }, "popover position"); };
+  row.appendChild(sel); b.appendChild(row);
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "The popover label is the trigger text; child elements become the panel content.";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function dropzoneControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Dropzone</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  function textRow(label, field, placeholder, title) {
+    var row = document.createElement("div"); row.className = "rowline";
+    var lb = lbl(label); if (title) lb.title = title;
+    row.appendChild(lb);
+    var inp = document.createElement("input");
+    inp.value = n[field] || "";
+    inp.placeholder = placeholder || "";
+    inp.spellcheck = false;
+    inp.onchange = function(){ upd(field, inp.value.trim()); };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  textRow("dropFiles", "dropFiles", "string state", "State that receives the dropped file paths.");
+  textRow("pickFiles", "pickFiles", "string state (optional)", "State that receives files chosen from the picker; defaults to dropFiles.");
+  textRow("accept", "accept", ".csv,image/*");
+  textRow("hint", "hint", "Drag files here or click to choose");
+  [["multiple", "multiple"], ["directory", "directory"]].forEach(function(pair){
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(pair[1]));
+    var inp = document.createElement("input"); inp.type = "checkbox"; inp.checked = !!n[pair[0]];
+    inp.style.flex = "none";
+    inp.onchange = function(){ upd(pair[0], !!inp.checked); };
+    row.appendChild(inp); b.appendChild(row);
+  });
+  var row = document.createElement("div"); row.className = "rowline";
+  row.appendChild(lbl("pickMode"));
+  var sel = document.createElement("select");
+  [["native", "native"], ["fs", "fs"], ["auto", "auto"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.pickMode || "native") === o[0]) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = function(){ upd("pickMode", sel.value); };
+  row.appendChild(sel); b.appendChild(row);
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "dropFiles accepts dragged files/folders; clicking the zone opens the picker. Set a string state first (the field creates it).";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function splitterControls(n) {  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Splitter</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var row = document.createElement("div"); row.className = "rowline";
+  row.appendChild(lbl("direction"));
+  var sel = document.createElement("select");
+  [["horizontal", "horizontal"], ["vertical", "vertical"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.direction || "horizontal") === o[0]) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = function(){ withUndo(function(){ n.direction = sel.value; }, "splitter direction"); };
+  row.appendChild(sel); b.appendChild(row);
+  [["initial", "50%"], ["min", "120px"]].forEach(function(pair){
+    var r = document.createElement("div"); r.className = "rowline";
+    r.appendChild(lbl(pair[0]));
+    var inp = document.createElement("input");
+    inp.value = n[pair[0]] || pair[1];
+    inp.placeholder = pair[1];
+    inp.spellcheck = false;
+    inp.onchange = function(){ withUndo(function(){ n[pair[0]] = inp.value.trim(); }, "splitter " + pair[0]); };
+    r.appendChild(inp); b.appendChild(r);
+  });
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "Exactly two pane children. Drag the bar or focus it and use the arrow keys; initial is the first pane size and min is the minimum pane size.";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function drawerControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Drawer</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  function selectRow(label, field, options, fallback) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var sel = document.createElement("select");
+    options.forEach(function(o){
+      var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+      if ((n[field] || fallback) === o[0]) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = function(){ withUndo(function(){ n[field] = sel.value; }, "drawer " + label); };
+    row.appendChild(sel); b.appendChild(row);
+  }
+  function textRow(label, field, placeholder) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var inp = document.createElement("input");
+    inp.value = n[field] || "";
+    inp.placeholder = placeholder || "";
+    inp.spellcheck = false;
+    inp.onchange = function(){ withUndo(function(){ n[field] = inp.value.trim(); }, "drawer " + label); };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  selectRow("side", "side", [["left", "left"], ["right", "right"]], "right");
+  textRow("width", "width", "320px");
+  textRow("open", "open", "state name or expression");
+  textRow("onClose", "onClose", "function name");
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "open is a state/expression; closing sets it to false. If open is not a state, use onClose to clear it.";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function dropdownItemControls(n) {  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Dropdown item</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  [["disabled", "disabled"], ["separator", "separator"]].forEach(function(pair){
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(pair[1]));
+    var inp = document.createElement("input"); inp.type = "checkbox"; inp.checked = !!n[pair[0]];
+    inp.style.flex = "none";
+    inp.onchange = function(){ withUndo(function(){ n[pair[0]] = !!inp.checked; }, "dropdown item " + pair[1]); };
+    row.appendChild(inp); b.appendChild(row);
+  });
+  a.appendChild(b);
+  return a;
 }
 function tabsControls(n) {
   var rows = [];
@@ -11837,8 +12119,21 @@ function attrsOf(n) {
   if (n.name) a += " name: " + nameOut(n.name);
   if (n.variant) a += " variant: \"" + esc(n.variant) + "\"";
   if (n.kind === "tabs" && n.position) a += " position: \"" + esc(n.position) + "\"";
+  if ((n.kind === "dropdown" || n.kind === "popover") && n.position) a += " position: \"" + esc(n.position) + "\"";
+  if (n.kind === "drawer") {
+    if (n.side) a += " side: \"" + esc(n.side) + "\"";
+    if (n.width) a += " width: \"" + esc(n.width) + "\"";
+    if (n.kind === "drawer" && n.open) a += " open: " + n.open;
+    if (n.onClose) a += " onClose: " + n.onClose;
+  }
+  if (n.kind === "splitter") {
+    if (n.direction) a += " direction: \"" + esc(n.direction) + "\"";
+    if (n.initial) a += " initial: \"" + esc(n.initial) + "\"";
+    if (n.min) a += " min: \"" + esc(n.min) + "\"";
+  }
+  if (n.kind === "dropdownitem" && n.separator) a += " separator: true";
   if (n.close === false) a += " close: false";
-  if (n.min) a += " min: " + (n.kind === "datepicker" ? "\"" + esc(n.min) + "\"" : bondOut(n.min));
+  if (n.min && n.kind !== "splitter") a += " min: " + (n.kind === "datepicker" ? "\"" + esc(n.min) + "\"" : bondOut(n.min));
   if (n.max) a += " max: " + (n.kind === "datepicker" ? "\"" + esc(n.max) + "\"" : bondOut(n.max));
   if (n.step) a += " step: " + bondOut(n.step);
   if (n.kind === "datepicker" && n.mode) a += " mode: \"" + esc(n.mode) + "\"";
@@ -12051,6 +12346,7 @@ function attrsOf(n) {
   if (n.pickFiles) a += " pickFiles: " + n.pickFiles;
   if (n.pickMode && n.pickMode !== "native") a += " pickMode: \"" + esc(n.pickMode) + "\"";
   if (n.directory) a += " directory: true";
+  if (n.kind === "dropzone" && n.hint) a += " hint: \"" + esc(n.hint) + "\"";
   if (n.kind === "toast") {
     if (n.toastHAlign) a += " hAlign: \"" + esc(n.toastHAlign) + "\"";
     if (n.toastVAlign) a += " vAlign: \"" + esc(n.toastVAlign) + "\"";

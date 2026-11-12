@@ -1949,6 +1949,47 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
   z-index: 1000;
 }
 .sui-menu.open > .sui-menu-popup { display: block; }
+.sui-dropdown-right > .sui-menu-popup, [data-sui-dropdown-right] > .sui-menu-popup { left: auto; right: 0; }
+.sui-dropdown-sep { height: 1px; margin: 4px 6px; background: var(--sui-border, #3d4556); }
+[data-sui-popover] { position: relative; display: inline-block; }
+.sui-popover-trigger { appearance:none; border:1px solid var(--sui-border); background:var(--sui-panel); color:var(--sui-fg); border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
+.sui-popover-trigger:hover, [data-sui-popover].open > .sui-popover-trigger { border-color:var(--sui-accent, #4c5cf7); }
+.sui-popover-panel { position:absolute; z-index:1000; min-width:180px; max-width:min(360px, 92vw); padding:10px; background:var(--sui-panel, #1d2129); color:var(--sui-fg); border:1px solid var(--sui-border); border-radius:8px; box-shadow:var(--sui-ac-shadow, 0 10px 30px rgba(0,0,0,.45)); }
+.sui-popover-panel[hidden] { display:none; }
+[data-sui-popover-position="top"] > .sui-popover-panel { left:0; bottom:calc(100% + 6px); }
+[data-sui-popover-position="right"] > .sui-popover-panel { left:calc(100% + 6px); top:0; }
+[data-sui-popover-position="bottom"] > .sui-popover-panel { left:0; top:calc(100% + 6px); }
+[data-sui-popover-position="left"] > .sui-popover-panel { right:calc(100% + 6px); top:0; }
+[data-sui-drawer] { position:fixed; inset:0; z-index:1200; pointer-events:none; }
+[data-sui-drawer][data-sui-drawer-open="1"] { pointer-events:auto; }
+.sui-drawer-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.45); opacity:0; transition:opacity .2s ease; }
+[data-sui-drawer][data-sui-drawer-open="1"] > .sui-drawer-backdrop { opacity:1; }
+.sui-drawer { position:absolute; top:0; bottom:0; width:var(--sui-drawer-width,320px); max-width:92vw; display:flex; flex-direction:column; background:var(--sui-panel,#1d2129); color:var(--sui-fg); border:1px solid var(--sui-border); box-shadow:0 14px 50px rgba(0,0,0,.55); transition:transform .2s ease; }
+.sui-drawer-right { right:0; transform:translateX(100%); }
+.sui-drawer-left { left:0; transform:translateX(-100%); }
+[data-sui-drawer][data-sui-drawer-open="1"] > .sui-drawer { transform:none; }
+.sui-drawer-head { flex:none; display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--sui-border); }
+.sui-drawer-head b { flex:1; font-size:13px; }
+.sui-drawer-close { border:0; background:transparent; color:var(--sui-muted); font-size:16px; cursor:pointer; }
+.sui-drawer-close:hover { color:var(--sui-fg); }
+.sui-drawer-body { flex:1; min-height:0; overflow:auto; padding:12px; }
+.sui-splitter { display:flex; width:100%; min-height:0; overflow:hidden; border:1px solid var(--sui-border); border-radius:8px; background:var(--sui-panel); }
+.sui-splitter-vertical { flex-direction:column; }
+.sui-split-pane { flex:1 1 0; min-width:0; min-height:0; overflow:auto; padding:10px; }
+.sui-splitter-horizontal > .sui-split-pane { min-width:0; }
+.sui-splitter-vertical > .sui-split-pane { min-height:0; }
+.sui-split-bar { flex:0 0 8px; background:var(--sui-border); cursor:col-resize; position:relative; }
+.sui-split-bar:hover, .sui-split-bar:focus-visible { background:var(--sui-accent,#4c5cf7); outline:none; }
+.sui-splitter-vertical > .sui-split-bar { cursor:row-resize; }
+.sui-splitbar-active, .sui-splitbar-active * { cursor:col-resize !important; user-select:none; }
+.sui-splitter-vertical.sui-splitbar-active, .sui-splitter-vertical.sui-splitbar-active * { cursor:row-resize !important; }
+.sui-dropzone { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; width:100%; min-height:120px; padding:18px 14px; border:2px dashed var(--sui-border,#475569); border-radius:10px; background:var(--sui-panel); color:var(--sui-fg); text-align:center; cursor:pointer; transition:border-color .15s ease, background .15s ease; }
+.sui-dropzone:hover, .sui-dropzone:focus-visible, .sui-dropzone.sui-drop-active { border-color:var(--sui-accent,#4c5cf7); background:rgba(76,92,247,.08); outline:none; }
+.sui-dropzone-icon { font-size:24px; line-height:1; color:var(--sui-accent,#4c5cf7); }
+.sui-dropzone-title { font-size:13px; font-weight:600; }
+.sui-dropzone-hint { font-size:12px; color:var(--sui-muted,#8fa0b8); }
+.sui-dropzone-status { font:11px/1.4 ui-monospace,Consolas,monospace; color:var(--sui-fg); word-break:break-all; max-height:72px; overflow:auto; }
+.sui-dropzone-status:empty { display:none; }
 .sui-menu-popup > a { display: block; color: inherit; text-decoration: none; }
 .sui-menuitem {
   display: block;
@@ -5354,6 +5395,26 @@ func writeStaticNodes(sb *strings.Builder, nodes []ViewNode, ind string) {
 var staticDatalistSeq int64
 
 func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
+	if e.tag == "dropdownitem" && datepickerBool(e, "separator") {
+		sb.WriteString(ind + "<div class=\"sui-dropdown-sep\" role=\"separator\"></div>\n")
+		return
+	}
+	if e.tag == "popover" {
+		writeStaticPopover(sb, e, ind)
+		return
+	}
+	if e.tag == "drawer" {
+		writeStaticDrawer(sb, e, ind)
+		return
+	}
+	if e.tag == "splitter" {
+		writeStaticSplitter(sb, e, ind)
+		return
+	}
+	if e.tag == "dropzone" {
+		writeStaticDropzone(sb, e, ind)
+		return
+	}
 	if e.tag == "modal" {
 		writeStaticModal(sb, e, ind)
 		return
@@ -5395,6 +5456,14 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		return
 	}
 	if e.tag == "menu" {
+		writeStaticMenu(sb, e, ind)
+		return
+	}
+	if e.tag == "dropdown" {
+		writeStaticMenu(sb, e, ind)
+		return
+	}
+	if e.tag == "dropdown" {
 		writeStaticMenu(sb, e, ind)
 		return
 	}
@@ -5502,6 +5571,14 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString(" class=\"sui-menuitem\"")
 		staticClassSuffix(sb, e)
 		sb.WriteString(" role=\"menuitem\" tabindex=\"-1\"")
+		staticUserAttrsNoClass(sb, e, dlId)
+	case "dropdownitem":
+		sb.WriteString(" type=\"button\" class=\"sui-menuitem\"")
+		staticClassSuffix(sb, e)
+		sb.WriteString(" role=\"menuitem\" tabindex=\"-1\"")
+		if datepickerBool(e, "disabled") {
+			sb.WriteString(" disabled")
+		}
 		staticUserAttrsNoClass(sb, e, dlId)
 	case "tab":
 		sb.WriteString(" class=\"sui-tabpanel\"")
@@ -7140,10 +7217,181 @@ func writeStaticMenuBar(sb *strings.Builder, e *Element, ind string) {
 // writeStaticMenu emits the button/popup structure for one top-level menu.
 // The runtime adds the `open` class on click; without JavaScript the popup is
 // hidden and the label still documents the structure.
+func bool01(v bool) string {
+	if v {
+		return "1"
+	}
+	return "0"
+}
+
+func writeStaticDropzone(sb *strings.Builder, e *Element, ind string) {
+	label := partsContent(e.text)
+	if strings.TrimSpace(label) == "" {
+		label = "Drop files here"
+	}
+	hint := "Drag files here or click to choose"
+	if a := findAttr(e, "hint"); a != nil && !a.hasExpr {
+		if v := strings.TrimSpace(partsContent(a.text)); v != "" {
+			hint = v
+		}
+	} else if datepickerBool(e, "directory") {
+		hint = "Drag a folder here or click to choose"
+	}
+	sb.WriteString(ind)
+	sb.WriteString("<div class=\"sui-dropzone\" data-sui-dropzone=\"1\"")
+	if a := findAttr(e, "dropFiles"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		sb.WriteString(" data-sui-dropfiles=\"" + setterName(a.expr.name) + "\"")
+	}
+	if a := findAttr(e, "pickFiles"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		sb.WriteString(" data-sui-pickfiles=\"" + setterName(a.expr.name) + "\"")
+	} else if a := findAttr(e, "dropFiles"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		sb.WriteString(" data-sui-pickfiles=\"" + setterName(a.expr.name) + "\"")
+	}
+	if a := findAttr(e, "accept"); a != nil {
+		sb.WriteString(" data-sui-pick-accept=\"" + htmlAttrValue(a, false) + "\"")
+	}
+	if datepickerBool(e, "multiple") {
+		sb.WriteString(" data-sui-pick-multiple=\"1\"")
+	}
+	if datepickerBool(e, "directory") {
+		sb.WriteString(" data-sui-pick-directory=\"1\"")
+	}
+	if a := findAttr(e, "pickMode"); a != nil && !a.hasExpr {
+		if v := strings.ToLower(strings.TrimSpace(partsContent(a.text))); v != "" {
+			sb.WriteString(" data-sui-pick-mode=\"" + v + "\"")
+		}
+	}
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString(">\n")
+	sb.WriteString(ind + "  <span class=\"sui-dropzone-icon\" aria-hidden=\"true\">&#8681;</span>\n")
+	sb.WriteString(ind + "  <span class=\"sui-dropzone-title\">" + htmlEscape(label) + "</span>\n")
+	sb.WriteString(ind + "  <span class=\"sui-dropzone-hint\">" + htmlEscape(hint) + "</span>\n")
+	writeStaticNodes(sb, e.children, ind+"  ")
+	sb.WriteString(ind + "</div>\n")
+}
+
+func writeStaticSplitter(sb *strings.Builder, e *Element, ind string) {
+	direction := "horizontal"
+	if a := findAttr(e, "direction"); a != nil && !a.hasExpr {
+		if strings.ToLower(strings.TrimSpace(partsContent(a.text))) == "vertical" {
+			direction = "vertical"
+		}
+	}
+	initial := "50%"
+	if a := findAttr(e, "initial"); a != nil && !a.hasExpr {
+		if v := layoutSafeCSSValue(partsContent(a.text)); v != "" {
+			initial = v
+		}
+	}
+	min := "120px"
+	if a := findAttr(e, "min"); a != nil && !a.hasExpr {
+		if v := layoutSafeCSSValue(partsContent(a.text)); v != "" {
+			min = v
+		}
+	}
+	barOrientation := "vertical"
+	if direction == "vertical" {
+		barOrientation = "horizontal"
+	}
+	var panes []*Element
+	for i := 0; i < len(e.children); i++ {
+		ch := &e.children[i]
+		if ch.kind == "element" && ch.elem != nil && ch.elem.tag == "pane" {
+			panes = append(panes, ch.elem)
+		}
+	}
+	sb.WriteString(ind)
+	sb.WriteString("<div class=\"sui-splitter sui-splitter-" + direction + "\" data-sui-splitter data-sui-splitter-direction=\"" + direction + "\" data-sui-splitter-min=\"" + htmlEscape(min) + "\"")
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString(">\n")
+	for i := 0; i < len(panes); i++ {
+		sb.WriteString(ind + "  <div class=\"sui-split-pane\"")
+		if i == 0 {
+			sb.WriteString(" style=\"flex-basis:" + htmlEscape(initial) + "\"")
+		}
+		sb.WriteString(">\n")
+		writeStaticNodes(sb, panes[i].children, ind+"    ")
+		sb.WriteString(ind + "  </div>\n")
+		if i == 0 && len(panes) > 1 {
+			sb.WriteString(ind + "  <div class=\"sui-split-bar\" role=\"separator\" tabindex=\"0\" aria-orientation=\"" + barOrientation + "\"></div>\n")
+		}
+	}
+	sb.WriteString(ind + "</div>\n")
+}
+
+func writeStaticDrawer(sb *strings.Builder, e *Element, ind string) {
+	open := false
+	if a := findAttr(e, "open"); a != nil && !a.hasExpr {
+		v := strings.TrimSpace(strings.ToLower(partsContent(a.text)))
+		open = v != "" && v != "false" && v != "0"
+	}
+	side := "right"
+	if a := findAttr(e, "side"); a != nil && !a.hasExpr {
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		if v == "left" || v == "right" {
+			side = v
+		}
+	}
+	width := "320px"
+	if a := findAttr(e, "width"); a != nil && !a.hasExpr {
+		if v := layoutSafeCSSValue(partsContent(a.text)); v != "" {
+			width = v
+		}
+	}
+	sb.WriteString(ind)
+	sb.WriteString("<div data-sui-drawer data-sui-drawer-open=\"" + bool01(open) + "\"")
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString(">\n")
+	sb.WriteString(ind + "  <div class=\"sui-drawer-backdrop\" data-sui-drawer-backdrop></div>\n")
+	sb.WriteString(ind + "  <aside class=\"sui-drawer sui-drawer-" + side + "\" role=\"dialog\" aria-modal=\"true\" style=\"--sui-drawer-width:" + htmlEscape(width) + "\">\n")
+	sb.WriteString(ind + "    <div class=\"sui-drawer-head\"><b>")
+	sb.WriteString(htmlEscape(partsContent(e.text)))
+	sb.WriteString("</b><button type=\"button\" class=\"sui-drawer-close\" data-sui-drawer-close aria-label=\"Close\">&#10005;</button></div>\n")
+	sb.WriteString(ind + "    <div class=\"sui-drawer-body\">\n")
+	writeStaticNodes(sb, e.children, ind+"      ")
+	sb.WriteString(ind + "    </div>\n")
+	sb.WriteString(ind + "  </aside>\n")
+	sb.WriteString(ind + "</div>\n")
+}
+
+func writeStaticPopover(sb *strings.Builder, e *Element, ind string) {
+	pos := "top"
+	if a := findAttr(e, "position"); a != nil && !a.hasExpr {
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		if v == "top" || v == "right" || v == "bottom" || v == "left" {
+			pos = v
+		}
+	}
+	label := partsContent(e.text)
+	if strings.TrimSpace(label) == "" {
+		label = "Info"
+	}
+	sb.WriteString(ind)
+	sb.WriteString("<span class=\"sui-popover\" data-sui-popover data-sui-popover-position=\"" + pos + "\"")
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString(">\n")
+	sb.WriteString(ind + "  <button type=\"button\" class=\"sui-popover-trigger\" data-sui-popover-trigger aria-haspopup=\"dialog\" aria-expanded=\"false\">")
+	sb.WriteString(htmlEscape(label))
+	sb.WriteString("</button>\n")
+	sb.WriteString(ind + "  <div class=\"sui-popover-panel\" role=\"dialog\" hidden>\n")
+	writeStaticNodes(sb, e.children, ind+"    ")
+	sb.WriteString(ind + "  </div>\n")
+	sb.WriteString(ind + "</span>\n")
+}
+
 func writeStaticMenu(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString(ind)
 	sb.WriteString("<div class=\"sui-menu")
 	staticClassSuffix(sb, e)
+	if e.tag == "dropdown" {
+		if pos := findAttr(e, "position"); pos != nil && !pos.hasExpr && strings.EqualFold(strings.TrimSpace(partsContent(pos.text)), "right") {
+			sb.WriteString(" sui-dropdown-right")
+		}
+	}
 	sb.WriteString("\" role=\"none\"")
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
@@ -7233,6 +7481,27 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			continue
 		}
 		if e.tag == "tabs" && (a.key == "position" || a.key == "variant") {
+			continue
+		}
+		if e.tag == "dropdown" && a.key == "position" {
+			continue
+		}
+		if e.tag == "dropdownitem" && a.key == "separator" {
+			continue
+		}
+		if e.tag == "dropdownitem" && a.key == "disabled" {
+			continue
+		}
+		if e.tag == "popover" && a.key == "position" {
+			continue
+		}
+		if e.tag == "drawer" && (a.key == "open" || a.key == "side" || a.key == "width" || a.key == "onClose") {
+			continue
+		}
+		if e.tag == "splitter" && (a.key == "direction" || a.key == "initial" || a.key == "min") {
+			continue
+		}
+		if e.tag == "dropzone" && (a.key == "accept" || a.key == "multiple" || a.key == "directory" || a.key == "hint") {
 			continue
 		}
 		if e.tag == "tablelayout" && (a.key == "columns" || a.key == "rows" ||

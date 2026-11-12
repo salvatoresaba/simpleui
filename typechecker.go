@@ -2906,7 +2906,8 @@ func isAllowedTag(tag string) bool {
 		// feedback & nav
 		"progress", "badge", "alert", "spinner", "divider", "combobox", "datepicker",
 		"tabs", "tab", "accordion", "accordionitem", "tree", "treeitem", "chart", "graph", "toast",
-		"menubar", "menu", "menuitem", "modal", "modalbutton":
+		"menubar", "menu", "menuitem", "modal", "modalbutton",
+		"dropdown", "dropdownitem", "popover", "drawer", "splitter", "pane", "dropzone":
 		return true
 	}
 	return false
@@ -2934,6 +2935,9 @@ func attrAllowed(key string, tag string) bool {
 	}
 	if key == "draggable" || key == "dragKey" || key == "dropKey" ||
 		key == "dropFiles" || key == "pickFiles" || key == "pickMode" || key == "directory" {
+		return true
+	}
+	if tag == "dropzone" && key == "hint" {
 		return true
 	}
 	if tag == "button" && key == "onClick" {
@@ -3048,6 +3052,21 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "modalbutton" && (key == "variant" || key == "close") {
+		return true
+	}
+	if tag == "dropdown" && (key == "position" || key == "align") {
+		return true
+	}
+	if tag == "dropdownitem" && (key == "disabled" || key == "separator") {
+		return true
+	}
+	if tag == "popover" && key == "position" {
+		return true
+	}
+	if tag == "drawer" && (key == "side" || key == "width" || key == "open" || key == "onClose") {
+		return true
+	}
+	if tag == "splitter" && (key == "direction" || key == "initial" || key == "min") {
 		return true
 	}
 	if tag == "label" && key == "for" {
@@ -3295,6 +3314,22 @@ func (c *Checker) checkElement(e *Element) {
 			kind = "graph"
 		}
 		c.diagAt(e.span, kind+" cannot contain child elements")
+	}
+	if e.tag == "splitter" {
+		panes := 0
+		for i := 0; i < len(e.children); i++ {
+			ch := &e.children[i]
+			if ch.kind == "element" && ch.elem != nil {
+				if ch.elem.tag == "pane" {
+					panes++
+				} else {
+					c.diagAt(ch.elem.span, "splitter can only contain pane children")
+				}
+			}
+		}
+		if panes != 2 {
+			c.diagAt(e.span, "splitter requires exactly two pane children")
+		}
 	}
 	c.checkControlBinding(e)
 	if len(e.children) > 0 {

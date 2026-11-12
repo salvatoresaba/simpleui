@@ -3030,6 +3030,22 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "key" {
 			o.obj["key"] = JStr(partsLiteral(a.text))
+		} else if e.tag == "drawer" && (a.key == "open" || a.key == "side" || a.key == "width" || a.key == "onClose") {
+			if a.hasExpr && a.expr != nil {
+				o.obj[a.key] = JStr(exprSource(a.expr))
+			} else {
+				o.obj[a.key] = JStr(partsLiteral(a.text))
+			}
+		} else if e.tag == "dropdown" && a.key == "position" {
+			o.obj["position"] = JStr(partsLiteral(a.text))
+		} else if e.tag == "popover" && a.key == "position" {
+			o.obj["position"] = JStr(partsLiteral(a.text))
+		} else if e.tag == "splitter" && (a.key == "direction" || a.key == "initial" || a.key == "min") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "dropdownitem" && a.key == "separator" {
+			o.obj["separator"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if e.tag == "dropzone" && a.key == "hint" {
+			o.obj["hint"] = JStr(partsLiteral(a.text))
 		} else if a.key == "open" {
 			o.obj["open"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "rename" {

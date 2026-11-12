@@ -1,0 +1,30 @@
+state action = "none"
+
+fn editAction() -> null {
+	action = "edit"
+}
+
+fn duplicateAction() -> null {
+	action = "duplicate"
+}
+
+fn deleteAction() -> null {
+	action = "delete"
+}
+
+css ".dropdown-page \{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .dropdown-note \{ color: #8fa0b8; font-size: 13px; \}"
+
+view main {
+	title "Dropdown menu"
+	col class: "dropdown-page" {
+		h1 "Dropdown menu"
+		p "A compact button with an anchored action menu." class: "dropdown-note"
+		dropdown "Actions" position: "right" {
+			dropdownitem "Edit" onClick: editAction
+			dropdownitem "Duplicate" onClick: duplicateAction
+			dropdownitem separator: true
+			dropdownitem "Delete" onClick: deleteAction
+		}
+		p "Last action: {action}" class: "dropdown-note"
+	}
+}

@@ -33,6 +33,11 @@ Recommended order for an agent:
 | Local form with state and table | [local-form-table](AGENT_RECIPES.md#local-form--reactive-table) | [API](API_REFERENCE.md), [STDLIB](STDLIB.md) | `examples/todo.sui`, `examples/table_data.sui` |
 | Arrange UI regions in a structural table | [API: table layout](API_REFERENCE.md#table-layout) | [GUI editor: table layout](GUI_EDITOR.md#table-layout-control) | `examples/table_layout/README.md` |
 | Build a menu bar / navigation | [API: menu bar](API_REFERENCE.md#menu-bar) | [GUI editor: menu bar](GUI_EDITOR.md#menu-bar-control) | `examples/menu_bar.sui` |
+| Action menu on a button | [API: dropdown](API_REFERENCE.md#dropdown-menu) | [GUI editor: dropdown](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/dropdown/README.md` |
+| Rich anchored panel | [API: popover](API_REFERENCE.md#popover) | [GUI editor: popover](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/popover/README.md` |
+| Side panel with backdrop | [API: drawer](API_REFERENCE.md#drawer) | [GUI editor: drawer](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/drawer/README.md` |
+| Resizable two-pane layout | [API: split panes](API_REFERENCE.md#split-panes) | [GUI editor: splitter](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/splitter/README.md` |
+| File/folder drop area with picker | [API: dropzone](API_REFERENCE.md#file-dropzone) | [GUI editor: dropzone](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/dropzone/README.md` |
 | Tabbed content | [API: tabs](API_REFERENCE.md#tabs) | [GUI editor: tabs](GUI_EDITOR.md#tabs-control) | `examples/tabs.sui` |
 | Collapsible sections / FAQ | [API: accordion](API_REFERENCE.md#accordion) | [GUI editor: accordion](GUI_EDITOR.md#accordion-control) | `examples/accordion/README.md` |
 | Toast feedback | [API: toast](API_REFERENCE.md#toast-notifications) | [GUI editor: toast](GUI_EDITOR.md#toast-control) | `examples/toast/README.md` |

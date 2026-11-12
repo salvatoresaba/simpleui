@@ -1,0 +1,21 @@
+state files = ""
+state folder = ""
+
+css ".drop-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .drop-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+
+view main {
+	title "File dropzone"
+	col class: "drop-page" {
+		h1 "File dropzone"
+		p "Drag files or click to choose. The state receives the selected paths; drop the same zone into the same state." class: "drop-note"
+		dropzone "CSV files" dropFiles: files accept: ".csv,text/csv" multiple: true hint: "Drop CSV files or click to choose" {
+			p "The CSV paths are stored in the files state." class: "drop-note"
+		}
+		p "Files: {files}" class: "drop-note"
+		h2 "Folder picker"
+		dropzone "Folder" dropFiles: folder directory: true pickMode: "auto" hint: "Drop a folder or click to choose" {
+			p "Folder paths are stored in the folder state." class: "drop-note"
+		}
+		p "Folder: {folder}" class: "drop-note"
+	}
+}

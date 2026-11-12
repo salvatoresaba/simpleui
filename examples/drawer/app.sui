@@ -1,0 +1,26 @@
+state showFilters = false
+
+fn openDrawer() -> null {
+	showFilters = true
+}
+
+fn closeDrawer() -> null {
+	showFilters = false
+}
+
+css ".drawer-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .drawer-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+
+view main {
+	title "Drawer"
+	col class: "drawer-page" {
+		h1 "Drawer"
+		p "A side panel controlled by a state. The backdrop, the close button and Escape close it." class: "drawer-note"
+		button "Open filters" onClick: openDrawer
+		p "Open: {showFilters}" class: "drawer-note"
+		drawer "Filters" side: "right" width: "320px" open: showFilters {
+			h3 "Filters"
+			p "Choose a status and a date range."
+			button "Apply" onClick: closeDrawer
+		}
+	}
+}

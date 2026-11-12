@@ -262,6 +262,116 @@ per l'editor dei menu: **Add menu**, **Add menu item**, **Add submenu**,
 **Menu** o **Menu item** nella barra/menu e modificare **Text**, **link** e
 **onClick** nell'inspector. Vedere [Editor GUI: menu bar](GUI_EDITOR_IT.md#menu-bar-control).
 
+## Dropdown menu
+
+`dropdown` è un pulsante con un menu ancorato. Il testo è l'etichetta del
+pulsante e i figli diretti `dropdownitem` diventano le voci:
+
+```sui
+dropdown "Azioni" position: "right" {
+	dropdownitem "Modifica" onClick: edit
+	dropdownitem "Duplica" onClick: duplicate
+	dropdownitem separator: true
+	dropdownitem "Elimina" onClick: delete
+}
+```
+
+`position` è `left` (default) o `right`. Le voci supportano `onClick`,
+`disabled` e `separator`; il menu si chiude con un click fuori, Esc o la
+selezione di una voce. Il runtime riusa il comportamento tastiera/focus della
+menu bar. Nel designer scegliere **Controls > Dropdown menu**; modificare
+l'etichetta da **Text**, il lato dalla sezione **Dropdown** e aggiungere le voci
+dall'albero.
+
+## Popover
+
+`popover` è un trigger con contenuto ricco in un pannello ancorato. Il testo è
+l'etichetta del trigger; i figli diventano il contenuto:
+
+```sui
+popover "Info" position: "bottom" {
+	h3 "Dettagli"
+	p "Contenuto ancorato."
+	button "Azione"
+}
+```
+
+`position` è `top` (default), `right`, `bottom` o `left`. Si apre al click e si
+chiude con un click fuori o Esc. Nel designer scegliere **Controls > Popover**;
+la sezione **Popover** imposta il lato.
+
+## Drawer
+
+`drawer` è un pannello laterale controllato da un binding `open`. Il testo è il
+titolo e i figli diventano il corpo scorrevole:
+
+```sui
+state showFilters = false
+
+fn openDrawer() -> null {
+	showFilters = true
+}
+
+drawer "Filtri" side: "right" width: "320px" open: showFilters {
+	h3 "Filtri"
+	p "Scegli uno stato."
+}
+```
+
+`side` è `right` (default) o `left`. Quando `open` nomina uno stato, lo sfondo,
+il pulsante di chiusura ed Esc chiamano il setter con `false`. Altrimenti usare
+`onClose: <fn>`. Il pannello è fissato alla finestra con uno sfondo scurito e un
+`aside` con `role=dialog`. Nel designer scegliere **Controls > Drawer**.
+
+## Split panes
+
+`splitter` dispone esattamente due figli `pane` con un divisore trascinabile:
+
+```sui
+splitter direction: "horizontal" initial: "40%" min: "120px" {
+	pane {
+		p "Lista"
+	}
+	pane {
+		p "Dettaglio"
+	}
+}
+```
+
+`direction` è `horizontal` (default) o `vertical`; `initial` è la dimensione del
+primo pannello e `min` quella minima di entrambi. Trascinare la barra ridimensiona
+i pannelli; la barra è focalizzabile e le frecce, `Home` e `End` la ridimensionano
+senza puntatore. `simpleui check` rifiuta gli splitter senza esattamente due figli
+`pane`. Nel designer scegliere **Controls > Split panes**.
+
+## File dropzone
+
+`dropzone` è un'area di drop stilizzata che riusa il runtime drag-and-drop e il
+picker:
+
+```sui
+state files = ""
+
+dropzone "File CSV" dropFiles: files accept: ".csv,text/csv" multiple: true {
+	p "Solo file CSV."
+}
+```
+
+| Attributo | Significato |
+|---|---|
+| `dropFiles` | Stato stringa che riceve i percorsi trascinati. Apre anche il picker al click. |
+| `pickFiles` | Stato separato opzionale per il picker; default `dropFiles`. |
+| `accept` | Filtro del picker, ad esempio `.csv` o `image/*`. |
+| `multiple` | Consente più file. |
+| `directory` | Abilita il picker cartelle e il drop di cartelle. |
+| `pickMode` | `native`, `fs` o `auto`. |
+| `hint` | Riga secondaria sotto il titolo. |
+
+Il titolo è il testo dell'elemento, i figli vengono renderizzati dentro l'area e
+una riga di stato mostra il valore dello stato finché non è vuoto. Nomi e
+percorsi sono escapati come testo dal runtime. Nel designer scegliere
+**Controls > File dropzone**.
+
 ## Tabs
 
 `tabs` crea una barra di schede; ogni figlio diretto `tab` fornisce l'etichetta
