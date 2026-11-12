@@ -306,9 +306,16 @@ func TestTableLayoutCellInspectorFiltersSections(t *testing.T) {
 		`layoutCellSelection ? null : acc("Position"`,
 		`layoutCellSelection ? null : responsiveControls()`,
 		`layoutCellSelection ? null : acc("Size"`,
+		`layoutCellSelection ? null : (everyKind(nodes, capLayout)`,
+		`layoutCellSelection ? null : (everyKind(nodes, capGrid)`,
 		`layoutCellSelection ? [`,
 		`txt("margin", "margin")`,
 		`txt("padding", "padding")`,
+		`function selectedLayoutCellNodes`,
+		`function layoutSplitTooSmall`,
+		`Split below minimum`,
+		`idx + 1 > layoutClampInt(n.layoutRows`,
+		`idx + 1 > layoutClampInt(n.layoutColumns`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("layout cell inspector filtering missing %q", want)

@@ -1200,7 +1200,8 @@ La sezione **Table layout** dell'inspector controlla:
 - **Structure table settings**, che apre un pannello con un campo per la
   larghezza di ogni colonna e per l'altezza di ogni riga; le due liste
   scorrono separatamente per gestire griglie grandi, e un campo vuoto
-  significa `auto`;
+  significa `auto`. Modificando una misura oltre righe/colonne dichiarate, il
+  contatore corrispondente viene alzato;
 - **column gap** e **row gap**;
 - **empty cell height** per mantenere visibili e utilizzabili le celle vuote;
 - **stack on small screens** (impilamento responsive sotto 640px);
@@ -1208,8 +1209,10 @@ La sezione **Table layout** dell'inspector controlla:
   **aria label**.
 
 La **width** / **height** della tabella si modificano nella sezione generica
-**Size** e il bordo della tabella nella sezione generica **Border**; il bordo
-della singola cella resta in **Layout cell**.
+**Size** e la cornice della tabella nella sezione generica **Border**; seleziona
+una cella per modificarne il bordo nella stessa sezione **Border**. Il bordo
+globale delle celle (`borderStyle`/`borderWidth`/`borderColor`) resta
+source-level.
 
 Una nuova tabella layout parte come un'unica cella vuota. Usa **Split vertical** /
 **Split horizontal** nell'inspector per dividere a metà le celle selezionate;
@@ -1225,7 +1228,8 @@ tabella è vuota. Trascina le sottili maniglie verticali/orizzontali nella previ
 per ridimensionare colonne o righe: le dimensioni si aggiornano e si modificano
 in **Structure table settings**. Clicca una maniglia senza trascinarla per selezionare lo
 split; Ctrl+click aggiunge altri split e **Delete split** unisce le celle
-adiacenti mantenendone il contenuto. I segmenti pieni separano due celle; quelli
+adiacenti mantenendone il contenuto. Se uno split renderebbe una colonna più
+stretta di 40px o una riga più bassa di 24px, un dialogo chiede se continuare. I segmenti pieni separano due celle; quelli
 tratteggiati sono solo un prolungamento attraverso una cella unita. Un click
 altrove deseleziona cella o split; Ctrl+click è l'unico modo per aggiungere una
 seconda cella.
@@ -1256,11 +1260,13 @@ riguarda gli elementi dentro la cella: selezionali e usa la loro sezione
 **Alignment**. La cella resta una vera cella di tabella: l'allineamento verticale
 usa `vertical-align`, quello orizzontale usa i margini automatici; **Clear**
 ripristina la posizione in alto a sinistra. Con una cella selezionata
-l'inspector nasconde **Position**, **Size** e **Responsive**, e **Box model**
-mostra solo **padding** perché i margini non si applicano alle celle di tabella.
-**Drag & drop** resta disponibile: una cella può essere un'area di drop a
-runtime.
-**Reset to 1 x 1** la divide di nuovo.
+l'inspector nasconde **Position**, **Size**, **Responsive**, **Layout** e
+**Grid**, e **Box model** mostra solo **padding** perché i margini non si
+applicano alle celle di tabella. **Drag & drop** resta disponibile: una cella
+può essere un'area di drop a runtime. Con più celle selezionate, padding,
+sfondo, bordo e le altre proprietà CSS generiche vengono applicati a tutte le
+celle selezionate.
+
 
 Le frecce spostano la selezione tra le celle vuote. Nella preview del designer l'impilamento responsive è temporaneamente disattivato per mantenere visibili griglia e maniglie; l'app compilata impila comunque sotto 640px. Le celle sono evidenziate, comprese quelle vuote e
 unite, così la griglia è visibile anche senza bordi applicativi. Raggruppa più

@@ -1153,7 +1153,8 @@ The **Table layout** inspector section controls:
 - **rows** (1-50) and **columns** (1-12);
 - **Structure table settings**, which opens a panel with one input per column
   width and per row height; the two lists scroll independently so large grids
-  stay usable, and an empty field means `auto`;
+  stay usable, and an empty field means `auto`. Editing a size beyond the
+  declared rows/columns raises the matching counter;
 - **column gap** and **row gap**;
 - **empty cell height** so empty cells stay visible and droppable;
 - **stack on small screens** (responsive stacking below 640px);
@@ -1161,8 +1162,9 @@ The **Table layout** inspector section controls:
   **aria label**.
 
 The table **width** / **height** are edited in the generic **Size** section, and
-the table border in the generic **Border** section; the cell-level border stays
-in **Layout cell**.
+the table frame in the generic **Border** section. Select a cell to edit its own
+border in the same **Border** section. The global per-cell border
+(`borderStyle`/`borderWidth`/`borderColor`) remains source-level.
 
 A new layout table starts as a single empty cell. Use **Split vertical** /
 **Split horizontal** in the inspector to halve the selected cells; Ctrl+click
@@ -1178,6 +1180,8 @@ vertical/horizontal split handles in the preview to resize columns or rows; the
 matching sizes are shown and editable in **Structure table settings**. Click a
 split handle without dragging to select the split; Ctrl+click adds more splits
 and **Delete split** merges the adjacent cells while keeping their content.
+If a split would make a column narrower than 40px or a row shorter than 24px, a
+dialog asks whether to continue.
 Solid split segments separate two cells; dashed segments are only a
 prolongation across a merged cell. Clicking elsewhere clears the cell or split
 selection; Ctrl+click is the only way to add a second cell.
@@ -1203,10 +1207,12 @@ generic inspector sections, which target the cell directly. Alignment belongs
 to the elements inside the cell: select them and use their **Alignment** section.
 The cell stays a real table cell, so vertical alignment uses `vertical-align`
 and horizontal alignment uses auto margins; **Clear** restores the top-left
-position. With a cell selected, the inspector hides **Position**, **Size** and
-**Responsive**, and **Box model** shows only **padding** because margins do not
-apply to table cells. **Drag & drop** stays available: a cell can be a runtime
-drop target.
+position. With a cell selected, the inspector hides **Position**, **Size**,
+**Responsive**, **Layout** and **Grid**, and **Box model** shows only
+**padding** because margins do not apply to table cells. **Drag & drop** stays
+available: a cell can be a runtime drop target. With several cells selected,
+padding, background, border and the other generic CSS properties are applied to
+every selected cell.
 
 Arrow keys move selection between empty cells. In the designer preview responsive stacking is temporarily disabled so the grid
 and its split handles stay visible; the compiled app still stacks below 640px.

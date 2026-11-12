@@ -2260,7 +2260,8 @@ In the designer, **Split vertical** / **Split horizontal** halve the selected
 cells, add the required global row/column boundaries and update the counters.
 Ctrl+click adds cells to the selection; **Merge selected** joins cells only when
 the first two share a full side, and every further cell must continue that
-direction. Rows/columns set through the counters append/remove cells at the
+direction. A split that would create a column narrower than 40px or a row
+shorter than 24px asks for confirmation. Rows/columns set through the counters append/remove cells at the
 right/bottom edge; reducing them asks whether to remove or move the content of
 the affected cells. Drag the thin split handles in the preview to resize columns
 or rows; **Structure table settings** edits the resulting pixel sizes. Empty
@@ -2272,9 +2273,13 @@ The designer exposes it in **Layout > Table layout**. The inspector includes
 rows/columns, split/merge, presets (only while the table is empty),
 **Structure table settings**, gaps, empty-cell height, responsive stacking and
 semantic/accessibility options. Table width/height live in **Size** and the
-table border in **Border**. Select a cell to edit its span and position; padding,
+table frame in **Border**; select a cell to edit its own border. The global
+per-cell border attributes remain source-level. Select a cell to edit its span
+and position; padding,
 background, border and effects use the generic inspector sections, while
-alignment applies to the elements inside the cell. Cells are outlined in the
+alignment applies to the elements inside the cell. With a cell selected,
+Position/Size/Responsive/Layout/Grid are hidden; with several cells selected,
+the generic CSS sections apply to all of them. Cells are outlined in the
 preview while designing.
 See [examples/table_layout](../examples/table_layout/README.md).
 

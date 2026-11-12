@@ -4173,18 +4173,41 @@ function setCssProp(prop, value, after) {
 // Applies to every selected element (sequentially, to avoid racing writes).
 function setCssProps(map, after) {
   // Layout cells keep padding, background and border in their SUI attributes,
-  // so the generic Box model / Background / Border sections edit the cell
-  // directly instead of creating a redundant class rule.
-  var layoutCell = selectedLayoutCellNode();
-  if (layoutCell) {
-    var allMapped = true, anyMapped = false;
+  // so the generic sections edit the cell(s) directly instead of creating a
+  // redundant class rule. With multiple cells selected the same values are
+  // applied to every cell; other CSS properties are written to every cell class.
+  var layoutCells = selectedLayoutCellNodes();
+  if (layoutCells.length) {
+    var mapped = [];
+    var rest = {};
     for (var mk in map) {
-      if (layoutCellAttrForProp(mk)) anyMapped = true;
-      else { allMapped = false; break; }
+      var attr = layoutCellAttrForProp(mk);
+      if (attr) mapped.push({ prop: mk, attr: attr });
+      else rest[mk] = map[mk];
     }
-    if (anyMapped && allMapped) {
+    if (mapped.length) {
       snap(snapLabelFromMap(map));
-      for (var mk2 in map) layoutCell[layoutCellAttrForProp(mk2)] = map[mk2];
+      for (var li = 0; li < layoutCells.length; li++) {
+        for (var mi = 0; mi < mapped.length; mi++) layoutCells[li][mapped[mi].attr] = map[mapped[mi].prop];
+      }
+    }
+    if (Object.keys(rest).length) {
+      var restDecls = [];
+      for (var rk in rest) compatDecls(rk, rest[rk]).forEach(function(d){ restDecls.push(d); });
+      if (!mapped.length) snap(snapLabelFromMap(rest));
+      var pending = layoutCells.length;
+      var done = function(){
+        if (--pending > 0) return;
+        renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector(); scheduleCssSync();
+        if (after) after();
+      };
+      for (var ci = 0; ci < layoutCells.length; ci++) {
+        var cellCls = ensureClass(layoutCells[ci]) + selState;
+        setCssOnClass(cellCls, restDecls, done);
+      }
+      return;
+    }
+    if (mapped.length) {
       renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector(); scheduleCssSync();
       if (after) after();
       return;
@@ -4960,7 +4983,7 @@ function renderInspector() {
   var layoutCellSelection = nodes.length === 1 && n && n.kind === "layoutcell";
   var controls = [
     (!selBody && nodes.length && everyKind(nodes, capAlign)) ? alignControls() : null,
-    everyKind(nodes, capLayout) ? acc("Layout", (function(){
+    layoutCellSelection ? null : (everyKind(nodes, capLayout) ? acc("Layout", (function(){
       var rows = [
         selBox("display", "display", ["", "block", "flex", "grid", "inline", "none"]),
         containerSelBox("flex-direction", "flex-direction", ["", "row", "column", "row-reverse", "column-reverse"], nodes),
@@ -4978,8 +5001,8 @@ function renderInspector() {
         rows.push(ph);
       }
       return rows;
-    })()) : null,
-    everyKind(nodes, capGrid) ? acc("Grid", [
+    })()) : null),
+    layoutCellSelection ? null : (everyKind(nodes, capGrid) ? acc("Grid", [
       txt("grid-template-columns", "columns", "e.g. 1fr 1fr"),
       txt("grid-template-rows", "rows"),
       txt("grid-column", "grid-column", "e.g. 1 / 3"),
@@ -4987,7 +5010,7 @@ function renderInspector() {
       txt("grid-area", "grid-area"),
       selBox("place-items", "place-items", ["", "start", "center", "end", "stretch"]),
       selBox("place-content", "place-content", ["", "start", "center", "end", "stretch", "space-between", "space-around"])
-    ]) : null,
+    ]) : null),
     layoutCellSelection ? null : acc("Position", (function(){
       var r = [
         selBox("position", "position", ["", "static", "relative", "absolute", "fixed", "sticky"]),
@@ -8415,6 +8438,25 @@ function selectedLayoutCellNode() {
   var n = byPath(selPath, root.children);
   return n && n.kind === "layoutcell" ? n : null;
 }
+function selectedLayoutCellNodes() {
+  var out = [];
+  if (selLayoutCells.length) {
+    var tablePath = layoutSelectedTablePath();
+    var table = tablePath ? byPath(tablePath, root.children) : null;
+    if (table && table.kind === "tablelayout") {
+      for (var i = 0; i < selLayoutCells.length; i++) {
+        var ci = selLayoutCells[i].childIndex;
+        var cell = ci >= 0 && table.children ? table.children[ci] : null;
+        if (cell && cell.kind === "layoutcell" && out.indexOf(cell) < 0) out.push(cell);
+      }
+    }
+  }
+  if (!out.length) {
+    var single = selectedLayoutCellNode();
+    if (single) out.push(single);
+  }
+  return out;
+}
 function layoutCellAttrForProp(prop) {
   return LAYOUT_CELL_PROP_ATTR[prop] || "";
 }
@@ -9470,7 +9512,11 @@ function renderLayoutStructure() {
           for (var j = 0; j < count; j++) next.push(j === idx ? inp.value.trim() : (vals[j] || ""));
           vals = next;
           var joined = next.join(", ").replace(/(,\s*)+$/, "");
-          withUndo(function(){ n[field] = joined; }, "table layout " + field);
+          withUndo(function(){
+            if (field === "layoutRowHeights" && idx + 1 > layoutClampInt(n.layoutRows, 1, 50, 1)) n.layoutRows = String(idx + 1);
+            if (field === "layoutColumnWidths" && idx + 1 > layoutClampInt(n.layoutColumns, 1, 12, 1)) n.layoutColumns = String(idx + 1);
+            n[field] = joined;
+          }, "table layout " + field);
         };
         row.appendChild(inp);
         list.appendChild(row);
@@ -9585,7 +9631,7 @@ function layoutTableControls(n) {
   boolRow("semantic table", "layoutSemantic");
   textRow("aria label", "layoutLabel", "Layout table");
   var note = document.createElement("div"); note.className = "rowth";
-  note.textContent = "Ctrl+click cells to add them to the selection, then split or merge. Children fill cells row by row.";
+  note.textContent = "Ctrl+click cells to add them to the selection, then split or merge. Children fill cells row by row. The Border section styles the table frame; global cell border attributes remain source-level.";
   b.appendChild(note);
   var g = layoutGridInfo(n);
   var clamped = false;
@@ -12986,7 +13032,45 @@ function layoutSplitOne(n, node, axis) {
   if (rs <= 1) layoutAbsorbRow(n, rboundary);
   return bottom;
 }
+function layoutSplitTooSmall(n, axis) {
+  var tablePath = layoutSelectedTablePath();
+  if (!tablePath) return "";
+  var id = peerIdForPath(tablePath);
+  if (id < 0) return "";
+  var f = document.getElementById("prev");
+  var doc = f && f.contentDocument;
+  if (!doc) return "";
+  var table = doc.querySelector('[data-sui-id="' + id + '"]');
+  if (!table) return "";
+  var zoom = 1;
+  try {
+    var bz = parseFloat(doc.defaultView.getComputedStyle(doc.body).zoom || "1");
+    if (isFinite(bz) && bz > 0) zoom = bz;
+  } catch (e) {}
+  var nodes = layoutSelectedNodes(n);
+  var bad = 0;
+  for (var i = 0; i < nodes.length; i++) {
+    var row = Number(nodes[i].layoutRow || 0), col = Number(nodes[i].layoutCol || 0);
+    var td = table.querySelector('.sui-layout-cell[data-sui-layout-row="' + row + '"][data-sui-layout-col="' + col + '"]');
+    if (!td) continue;
+    var r = td.getBoundingClientRect();
+    var w = r.width / zoom, h = r.height / zoom;
+    if (axis === "vertical" && w / 2 < 40) bad++;
+    if (axis === "horizontal" && h / 2 < 24) bad++;
+  }
+  if (!bad) return "";
+  var limit = axis === "vertical" ? "a column narrower than 40px" : "a row shorter than 24px";
+  return "This split would create " + limit + (bad > 1 ? " in " + bad + " cells" : "") + ". Continue?";
+}
 function splitLayoutSelection(n, axis) {
+  var warning = layoutSplitTooSmall(n, axis);
+  if (warning) {
+    confirmBox("Split below minimum", warning, function(){ layoutSplitApply(n, axis); });
+    return;
+  }
+  layoutSplitApply(n, axis);
+}
+function layoutSplitApply(n, axis) {
   var tablePath = layoutSelectedTablePath();
   withUndo(function(){
     materializeLayoutCells(n);

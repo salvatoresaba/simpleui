@@ -130,6 +130,7 @@ tablelayout rows: 2 columns: 3
    - preset (shown only while the table is empty);
    - rows and columns;
    - **Structure table settings** for per-column widths and per-row heights;
+     editing a size beyond the declared rows/columns raises the counters;
    - separate column/row gaps;
    - empty-cell height;
    - responsive stacking;
@@ -149,15 +150,19 @@ tablelayout rows: 2 columns: 3
    are shown and editable in **Structure table settings**. Click a split handle
    without dragging to select it; Ctrl+click adds more splits and **Delete
    split** merges the adjacent cells. Ctrl+click cells to add them to a
-   multi-cell split or merge. Select a cell and use
+   multi-cell split or merge. If a split would make a column narrower than 40px
+   or a row shorter than 24px, a dialog asks whether to continue. Select a cell and use
    **Layout cell** to set `column span` / `row span`; padding, background,
    border and effects are edited in the generic inspector sections, while
    inner elements use their own **Alignment** section. **Reset to 1 x 1**
    splits the cell again. Growing a span merges the fully covered cells and
    keeps their content; a partial overlap is rejected. Shrinking a span keeps
    the content in the cell and recreates the released area as empty cells.
-   With a cell selected, Position, Size, Responsive and margin are hidden;
-   padding, background, border, effects and Drag & drop stay available.
+   With a cell selected, Position, Size, Responsive, Layout, Grid and margin are
+   hidden; padding, background, border, effects and Drag & drop stay available.
+   With several cells selected, the generic CSS sections apply to all of them.
+   The table frame is edited in **Border**; the global cell border attributes
+   remain source-level.
 6. Cells are outlined in the designer preview, including empty and merged cells,
    so the grid is visible even when application borders are set to none.
    Responsive stacking is disabled in the preview; the compiled app still

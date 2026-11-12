@@ -161,14 +161,15 @@ const tableLayoutE2EScript = `<script>
   function heads() {
     return Array.from(document.querySelectorAll('#inspector .acchead span:first-child')).map(function (h) { return h.textContent.trim(); });
   }
-  async function selectCell(row, col) {
+  async function selectCell(row, col, add) {
     var doc = frameDoc();
     var pick = Array.from(doc.querySelectorAll('.sui-layout-pick-cell')).find(function (p) {
       var c = p.parentElement;
       return c && c.getAttribute('data-sui-layout-row') === String(row) && c.getAttribute('data-sui-layout-col') === String(col);
     });
     if (!pick) throw new Error('cell pick ' + row + ',' + col + ' not found');
-    pick.click();
+    if (add) pick.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+    else pick.click();
     await wait(450);
   }
   async function selectTable() {
@@ -191,6 +192,8 @@ const tableLayoutE2EScript = `<script>
     if (h.indexOf('Size') >= 0) throw new Error('Size must be hidden for a layout cell');
     if (h.indexOf('Responsive') >= 0) throw new Error('Responsive must be hidden for a layout cell');
     if (h.indexOf('Alignment') >= 0) throw new Error('Alignment must be hidden for a layout cell');
+    if (h.indexOf('Layout') >= 0) throw new Error('Layout must be hidden for a layout cell');
+    if (h.indexOf('Grid') >= 0) throw new Error('Grid must be hidden for a layout cell');
     var box = secLabels('Box model');
     if (box.indexOf('margin') >= 0) throw new Error('margin must be hidden for a layout cell');
     if (box.indexOf('padding') < 0) throw new Error('padding must stay available for a layout cell');
@@ -243,6 +246,37 @@ const tableLayoutE2EScript = `<script>
     await wait(900);
     doc = frameDoc();
     if (doc.querySelectorAll('table.sui-layout-table td').length !== 4) throw new Error('span reset must recreate the released cell');
+
+    // Multi-cell generic styles must apply to every selected cell.
+    await selectCell(0, 0);
+    await selectCell(0, 1, true);
+    var padRow = Array.from(acc('Box model').querySelectorAll('.rowline')).find(function (r) {
+      var l = r.querySelector('label'); return l && l.textContent === 'padding';
+    });
+    if (!padRow) throw new Error('padding field missing on a multi-cell selection');
+    var pi = padRow.querySelector('input');
+    pi.value = '12px';
+    pi.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(900);
+    doc = frameDoc();
+    var mc0 = cell(0, 0), mc1 = cell(0, 1);
+    if (!mc0 || !mc1) throw new Error('cells missing after multi-selection edit');
+    if (!/padding:\s*12px/.test(mc0.getAttribute('style') || '')) throw new Error('padding was not applied to the primary cell');
+    if (!/padding:\s*12px/.test(mc1.getAttribute('style') || '')) throw new Error('padding was not applied to the secondary cell');
+    // Non-mapped generic CSS properties must reach every selected cell class too.
+    var radiusRow = Array.from(acc('Border').querySelectorAll('.rowline')).find(function (r) {
+      var l = r.querySelector('label'); return l && l.textContent === 'radius';
+    });
+    if (!radiusRow) throw new Error('border radius field missing');
+    var radiusInputs = radiusRow.querySelectorAll('input');
+    var ri = radiusInputs[radiusInputs.length - 1];
+    ri.value = '6px';
+    ri.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(900);
+    doc = frameDoc();
+    mc0 = cell(0, 0); mc1 = cell(0, 1);
+    if (doc.defaultView.getComputedStyle(mc0).borderTopLeftRadius !== '6px') throw new Error('radius was not applied to the primary cell');
+    if (doc.defaultView.getComputedStyle(mc1).borderTopLeftRadius !== '6px') throw new Error('radius was not applied to the secondary cell');
 
     // Split drag: the column widths must be written back.
     doc = frameDoc();

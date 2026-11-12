@@ -2150,7 +2150,9 @@ Nel designer **Split vertical** / **Split horizontal** dividono a metà le celle
 selezionate, aggiungono i confini globali necessari e aggiornano i contatori.
 Ctrl+click aggiunge celle alla selezione; **Merge selected** unisce le celle solo
 se le prime due condividono un lato intero, e ogni cella successiva deve
-continuare nella stessa direzione. I contatori di righe/colonne aggiungono o
+continuare nella stessa direzione. Uno split che renderebbe una colonna più
+stretta di 40px o una riga più bassa di 24px chiede conferma. I contatori di
+righe/colonne aggiungono o
 rimuovono celle sul bordo destro/inferiore; riducendoli viene chiesto se
 rimuovere o spostare il contenuto delle celle coinvolte. Trascina le sottili
 maniglie dei separatori nella preview per ridimensionare colonne o righe:
@@ -2163,10 +2165,14 @@ cella o il suo contenuto.
 Nel designer è in **Layout > Table layout**. L'inspector include righe e
 colonne, split/merge, preset (solo a tabella vuota), **Structure table
 settings**, spazi, altezza delle celle vuote, impilamento responsive e opzioni
-semantiche/accessibilità. Larghezza/altezza della tabella sono in **Size** e il
-bordo della tabella in **Border**. Seleziona una cella per modificarne span e
+semantiche/accessibilità. Larghezza/altezza della tabella sono in **Size** e la
+cornice della tabella in **Border**; seleziona una cella per modificarne il
+bordo. Gli attributi globali del bordo delle celle restano source-level.
+Seleziona una cella per modificarne span e
 posizione; padding, sfondo, bordo ed effetti usano le sezioni generiche
 dell'inspector, mentre l'allineamento riguarda gli elementi dentro la cella.
+Con una cella selezionata sono nascosti Position/Size/Responsive/Layout/Grid;
+con più celle selezionate le sezioni CSS generiche si applicano a tutte.
 Le celle sono evidenziate nella preview durante la progettazione. Vedi
 [examples/table_layout](../examples/table_layout/README.md).
 
