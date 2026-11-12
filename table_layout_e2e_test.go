@@ -12,7 +12,7 @@ import (
 
 const tableLayoutE2ESource = `view main {
 	title "Layout e2e"
-	tablelayout rows: 2 columns: 2 rowHeights: "200px, 200px" class: "lt" {
+	tablelayout rows: 2 columns: 2 width: "120px" rowHeights: "200px, 200px" class: "lt" {
 		layoutcell row: 0 col: 0 {
 			p "Hello"
 		}
@@ -311,6 +311,23 @@ const tableLayoutE2EScript = `<script>
     doc = frameDoc();
     if (doc.querySelectorAll('table.sui-layout-table tbody tr').length !== 1) throw new Error('grid reduction did not apply');
     if (doc.querySelectorAll('table.sui-layout-table .sui-card').length !== 3) throw new Error('move must keep all card content');
+
+    // A split that would go below the minimum asks first; Cancel keeps the grid.
+    await selectCell(0, 0);
+    var beforeSplit = frameDoc().querySelectorAll('table.sui-layout-table td').length;
+    var splitBtn = Array.from(acc('Table layout').querySelectorAll('button')).find(function (b) { return b.textContent.trim() === 'Vertical'; });
+    if (!splitBtn) throw new Error('split button missing');
+    splitBtn.click();
+    await wait(350);
+    var warning = document.getElementById('confdlg');
+    if (!warning || !warning.classList.contains('on')) {
+      var wdoc2 = frameDoc();
+      var selCell = wdoc2.querySelector('.sui-layout-cell[data-sui-layout-row="0"][data-sui-layout-col="0"]');
+      throw new Error('small split warning did not open (selected width ' + (selCell ? selCell.getBoundingClientRect().width : -1) + ')');
+    }
+    document.getElementById('conf-cancel').click();
+    await wait(400);
+    if (frameDoc().querySelectorAll('table.sui-layout-table td').length !== beforeSplit) throw new Error('cancelled split changed the grid');
 
     result(true);
   } catch (e) {

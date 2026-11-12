@@ -4841,12 +4841,15 @@ function renderInspector() {
   box.appendChild(sp);
 
   if (nodes.length) {
+    var appearanceNodes = nodes;
+    var appearanceCells = selectedLayoutCellNodes();
+    if (appearanceCells.length > 1) appearanceNodes = appearanceCells;
     var clsSec = document.createElement("div"); clsSec.className = "ins-sec"; clsSec.innerHTML = '<div class="ins-sec-h">Appearance</div>';
     var cls = document.createElement("div"); cls.className = "rowline";
     var cl = document.createElement("label"); cl.textContent = "class"; cls.appendChild(cl);
     var ci = document.createElement("input"); ci.id = "f_class"; ci.setAttribute("list", "classlist");
-    ci.value = commonVal(nodes, "class");
-    ci.oninput = function(ev){ snap(); nodes.forEach(function(m){ m.class = ev.target.value; }); renderTree(); setOut(); autoPreview(); buildDatalist(); };
+    ci.value = commonVal(appearanceNodes, "class");
+    ci.oninput = function(ev){ snap(); appearanceNodes.forEach(function(m){ m.class = ev.target.value; }); renderTree(); setOut(); autoPreview(); buildDatalist(); };
     cls.appendChild(ci);
     var dl = document.createElement("datalist"); dl.id = "classlist"; cls.appendChild(dl);
     clsSec.appendChild(cls);
@@ -4856,8 +4859,8 @@ function renderInspector() {
     var cxs = document.createElement("div"); cxs.className = "rowline";
     var cxl = document.createElement("label"); cxl.textContent = "class expr"; cxl.title = 'Reactive class expression, e.g. active ? "card on" : "card"'; cxs.appendChild(cxl);
     var cxi = document.createElement("input"); cxi.id = "f_classexpr"; cxi.placeholder = 'active ? "on" : ""';
-    cxi.value = commonVal(nodes, "classExpr");
-    cxi.oninput = function(ev){ snap("set class expr"); nodes.forEach(function(m){ m.classExpr = ev.target.value; }); setOut(); autoPreview(); };
+    cxi.value = commonVal(appearanceNodes, "classExpr");
+    cxi.oninput = function(ev){ snap("set class expr"); appearanceNodes.forEach(function(m){ m.classExpr = ev.target.value; }); setOut(); autoPreview(); };
     cxs.appendChild(cxi);
     clsSec.appendChild(cxs);
     // Reactive style: a SUI expression producing a CSS declaration string.
@@ -4871,15 +4874,15 @@ function renderInspector() {
       sxi.onchange = function(ev){ applyToastCardCss(n, ev.target.value); };
     } else {
       sxi.placeholder = '"background:" + bg';
-      sxi.value = n.styleExpr || "";
-      sxi.oninput = function(ev){ snap("set style expr"); n.styleExpr = ev.target.value; setOut(); autoPreview(); };
+      sxi.value = commonVal(appearanceNodes, "styleExpr");
+      sxi.oninput = function(ev){ snap("set style expr"); appearanceNodes.forEach(function(m){ m.styleExpr = ev.target.value; }); setOut(); autoPreview(); };
     }
     sxs.appendChild(sxi);
     clsSec.appendChild(sxs);
     var lk = document.createElement("div"); lk.className = "rowline";
     var ll = document.createElement("label"); ll.textContent = "link"; lk.appendChild(ll);
-    var li = document.createElement("input"); li.id = "f_link"; li.value = n.link || ""; li.placeholder = "https://…";
-    li.oninput = function(ev){ snap("set link"); n.link = ev.target.value; n.linkExpr = false; setOut(); autoPreview(); };
+    var li = document.createElement("input"); li.id = "f_link"; li.value = commonVal(appearanceNodes, "link"); li.placeholder = "https://…";
+    li.oninput = function(ev){ snap("set link"); appearanceNodes.forEach(function(m){ m.link = ev.target.value; m.linkExpr = false; }); setOut(); autoPreview(); };
     lk.appendChild(li);
     clsSec.appendChild(lk);
     box.appendChild(clsSec);
