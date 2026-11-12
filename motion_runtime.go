@@ -115,7 +115,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       for (var j = 0; j < STANDARD.length; j++) props[STANDARD[j]] = cs[STANDARD[j]];
     }
     var r = el.getBoundingClientRect();
-    var snap = { vars: vars, props: props, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, opts: optionsOf(el), clone: null };
+    var snap = { vars: vars, props: props, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, opts: optionsOf(el), el: el, clone: null };
     if (withClone !== false && !names.length && el.getAttribute('data-sui-motion-exit') === '1') {
       snap.clone = el.cloneNode(true);
       stripMotionClone(snap.clone);
@@ -266,6 +266,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
   function animateMovement(el, dx, dy, o, fromOpacity, toOpacity, fromScale, toScale, fromY, toY, done, size) {
     var has = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5 || fromOpacity !== toOpacity || fromScale !== toScale || fromY !== toY;
     var hasSize = !!(size && (Math.abs(size.fromW - size.toW) > 0.5 || Math.abs(size.fromH - size.toH) > 0.5));
+    var useOpacity = fromOpacity !== 1 || toOpacity !== 1;
     if (!has && !hasSize) { if (done) done(); return; }
     var start = performance.now() + o.delay;
     el.__suiMotionProps = true;
@@ -281,7 +282,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       if (Math.abs(sc - 1) > 0.001) tf += (tf ? ' ' : '') + 'scale(' + sc + ')';
       if (Math.abs(yy) > 0.01) tf += (tf ? ' ' : '') + 'translateY(' + yy + 'px)';
       el.style.transform = tf;
-      el.style.opacity = String(op);
+      if (useOpacity) el.style.opacity = String(op);
       if (hasSize) {
         el.style.width = (size.fromW + (size.toW - size.fromW) * e) + 'px';
         el.style.height = (size.fromH + (size.toH - size.fromH) * e) + 'px';
@@ -296,8 +297,8 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       } else {
         el.__suiMotionRaf = 0;
         el.__suiMotionRafType = '';
-        el.style.removeProperty('opacity');
         el.style.removeProperty('transform');
+        if (useOpacity) el.style.removeProperty('opacity');
         if (hasSize) {
           el.style.removeProperty('width');
           el.style.removeProperty('height');
@@ -444,7 +445,55 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
         var o = optionsOf(el);
         if (o.effect === 'none') continue;
         cancel(el);
-        animateElement(old, el, o);
+        var r = el.getBoundingClientRect();
+        var dx = old.rect.left - r.left;
+        var dy = old.rect.top - r.top;
+        var size = { fromW: old.rect.width, fromH: old.rect.height, toW: r.width, toH: r.height };
+        var clone = old.el ? old.el.cloneNode(true) : null;
+        if (!clone) {
+          animateElement(old, el, o);
+          delete sharedMap[k];
+          continue;
+        }
+        stripMotionClone(clone);
+        clone.classList.add('sui-motion-shared-clone');
+        clone.classList.add('sui-motion-crossfade');
+        clone.style.position = 'fixed';
+        clone.style.left = r.left + 'px';
+        clone.style.top = r.top + 'px';
+        clone.style.width = r.width + 'px';
+        clone.style.height = r.height + 'px';
+        clone.style.margin = '0';
+        clone.style.boxSizing = 'border-box';
+        clone.style.pointerEvents = 'none';
+        clone.style.zIndex = '9997';
+        clone.style.opacity = '1';
+        document.body.appendChild(clone);
+        el.classList.add('sui-motion-crossfade');
+        el.style.opacity = '0';
+        var fadeMs = Math.max(80, Math.round(o.duration * 0.3));
+        var switchDelay = o.delay + Math.max(0, o.duration - fadeMs);
+        el.style.setProperty('--sui-crossfade-duration', fadeMs + 'ms');
+        el.style.setProperty('--sui-crossfade-easing', o.easing);
+        clone.style.setProperty('--sui-crossfade-duration', fadeMs + 'ms');
+        clone.style.setProperty('--sui-crossfade-easing', o.easing);
+        animateMovement(clone, dx, dy, o, 1, 1, 1, 1, 0, 0, function() {
+          if (clone.parentNode) clone.remove();
+        }, size);
+        setTimeout(function() {
+          clone.style.opacity = '0';
+          el.style.opacity = '1';
+        }, switchDelay);
+        setTimeout(function() {
+          if (clone.parentNode) clone.remove();
+          el.classList.remove('sui-motion-crossfade');
+          el.style.removeProperty('opacity');
+          el.style.removeProperty('--sui-crossfade-duration');
+          el.style.removeProperty('--sui-crossfade-easing');
+        }, switchDelay + fadeMs + 100);
+        setTimeout(function() {
+          if (clone.parentNode) clone.remove();
+        }, o.delay + o.duration + 250);
         delete sharedMap[k];
       }
     }

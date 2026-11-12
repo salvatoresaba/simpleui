@@ -402,7 +402,10 @@ list → detail and filtered-list transitions.
 On a multi-page app, `navigate(page)` first captures the currently visible page,
 renders the new page, then flushes matching keys. The same `motionKey` on two
 pages therefore animates the element between pages, including its position and
-size. Content without a matching key simply appears with the new page.
+size. The old element is cloned into a fixed overlay and moved/resized to the new
+rectangle; the old content stays visible and cross-fades into the new content at
+the end, so text does not vanish at the start. Content without a matching key
+simply appears with the new page.
 
 ## Popover
 

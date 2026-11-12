@@ -1,9 +1,8 @@
 # Shared element transition across pages
 
-The same motionKey exists on the home and detail pages. When 
-avigate()
+The same `motionKey` exists on the home and detail pages. When `navigate()`
 switches page, the runtime captures the visible page's card, renders the new
-page, then FLIPs the new card from the old position and size to the new one.
+page, then moves and resizes the card from the old position to the new one.
 Navigating back plays the reverse transition.
 
 ## Complete source
@@ -59,26 +58,27 @@ view detail {
 
 ## How it works
 
-- 
-avigate(page) calls __SUI_MOTION.capturePage() before switching.
-- The visible page's [data-sui-motion] elements are snapshotted by
-  motionKey.
-- After every page is rendered, lushShared() matches keys in the newly visible
+- `navigate(page)` calls `__SUI_MOTION.capturePage()` before switching.
+- The visible page's `[data-sui-motion]` elements are snapshotted by
+  `motionKey`.
+- After every page is rendered, `flushShared()` matches keys in the newly visible
   page and animates them from the old rectangle to the new one, including
   width/height.
+- During the move the old page's element is cloned into a fixed overlay; the old
+  content stays visible while it grows/moves. At the end the clone cross-fades
+  into the new page content, so the text does not disappear at the start.
 - Non-shared content simply appears or disappears with the page.
-- The shared element keeps motion: "layout"; use the usual motionDuration,
-  motionEasing and motionDelay to tune it.
+- The shared element keeps `motion: "layout"`; use the usual `motionDuration`,
+  `motionEasing` and `motionDelay` to tune it.
 
-motionKey is required for shared elements. The same key on the same page is a
+`motionKey` is required for shared elements. The same key on the same page is a
 normal FLIP; the same key on different pages is a shared-element transition.
 
 ## Designer
 
 The **Motion (FLIP / enter / exit)** inspector sets effect, key, duration,
 easing and delay on the cards. Page navigation is added from the **Pages**
-palette and by calling 
-avigate(...) in a handler.
+palette and by calling `navigate(...)` in a handler.
 
 ## Build
 
@@ -88,4 +88,4 @@ simpleui build app.sui --out dist
 simpleui build app.sui --target desktop --out dist
 ```
 
-The un.ps1 / un.bat scripts rebuild the desktop demo and launch it.
+The `run.ps1` / `run.bat` scripts rebuild the desktop demo and launch it.

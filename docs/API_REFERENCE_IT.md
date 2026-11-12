@@ -376,8 +376,11 @@ diversi, abilitando transizioni lista → dettaglio e liste filtrate.
 In un'app multi-pagina, `navigate(page)` cattura prima la pagina visibile,
 renderizza la nuova pagina e poi applica le chiavi corrispondenti. Lo stesso
 `motionKey` su due pagine anima quindi l'elemento tra le pagine, inclusi
-posizione e dimensioni. Il contenuto senza chiave corrispondente appare
-semplicemente con la nuova pagina.
+posizione e dimensioni. Il vecchio elemento viene clonato in un overlay fisso e
+spostato/ridimensionato verso il nuovo rettangolo; il vecchio contenuto resta
+visibile e sfuma nel nuovo contenuto alla fine, quindi il testo non scompare
+all'inizio. Il contenuto senza chiave corrispondente appare semplicemente con la
+nuova pagina.
 
 ## Popover
 

@@ -161,22 +161,30 @@ const motionPagesScript = `<script>
     button('Open').click();
     await wait(120);
     var toDetail = hero();
+    var clone = document.querySelector('.sui-motion-shared-clone');
     if (!toDetail || toDetail.page !== 'detail') throw new Error('did not navigate to detail');
-    if (toDetail.transform === 'none') throw new Error('shared element did not FLIP');
-    if (!(toDetail.w > home.w && toDetail.w < 640)) throw new Error('shared width did not tween: ' + JSON.stringify(toDetail));
+    if (!clone) throw new Error('shared clone missing');
+    var cr = clone.getBoundingClientRect();
+    if (getComputedStyle(clone).transform === 'none') throw new Error('shared clone did not FLIP');
+    if (!(cr.width > home.w && cr.width < 640)) throw new Error('shared width did not tween: ' + JSON.stringify(cr));
+    if (toDetail.opacity > 0.05) throw new Error('new page content was not hidden during the move');
     await wait(500);
     var detail = hero();
-    if (!detail || detail.w !== 640 || detail.h !== 260 || detail.transform !== 'none') throw new Error('detail did not settle: ' + JSON.stringify(detail));
+    if (!detail || detail.w !== 640 || detail.h !== 260 || detail.transform !== 'none' || detail.opacity < 0.99) throw new Error('detail did not settle: ' + JSON.stringify(detail));
+    if (document.querySelector('.sui-motion-shared-clone')) throw new Error('shared clone was not removed');
 
     button('Back').click();
     await wait(120);
     var toHome = hero();
+    var clone2 = document.querySelector('.sui-motion-shared-clone');
     if (!toHome || toHome.page !== 'home') throw new Error('did not navigate home');
-    if (toHome.transform === 'none') throw new Error('reverse shared element did not FLIP');
-    if (!(toHome.w > 280 && toHome.w < 640)) throw new Error('reverse shared width did not tween: ' + JSON.stringify(toHome));
+    if (!clone2) throw new Error('reverse shared clone missing');
+    var cr2 = clone2.getBoundingClientRect();
+    if (getComputedStyle(clone2).transform === 'none') throw new Error('reverse shared clone did not FLIP');
+    if (!(cr2.width > 280 && cr2.width < 640)) throw new Error('reverse shared width did not tween: ' + JSON.stringify(cr2));
     await wait(500);
     var back = hero();
-    if (!back || back.w !== 280 || back.h !== 140 || back.transform !== 'none') throw new Error('home did not settle: ' + JSON.stringify(back));
+    if (!back || back.w !== 280 || back.h !== 140 || back.transform !== 'none' || back.opacity < 0.99) throw new Error('home did not settle: ' + JSON.stringify(back));
     result(true);
   } catch (e) {
     result(false, e && e.message ? e.message : String(e));

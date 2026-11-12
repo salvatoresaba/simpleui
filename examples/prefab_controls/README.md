@@ -280,21 +280,20 @@ view main {
 
 | Control | State / handler | Try it |
 |---|---|---|
-| dropdown | ction, ditAction, duplicateAction, deleteAction | Open **Azioni**, choose an item and read the last action. The menu flips if it cannot open downward. |
-| popover | popoverClicks, umpPopover | Open **Dettagli**, click the internal button, close with Esc or an outside click. Placement is automatic. |
-| combobox | literal options | Open the **Paese** list; the popup matches the control width and flips when space is tight. |
-| drawer | showFilters, openDrawer, closeDrawer | Open **Apri filtri**; close with the backdrop, **Applica** or Esc. duration/asing control the slide. |
-| splitter | none | Drag the bar or focus it and use the arrow keys, Home/End. |
-| dropzone file | iles | Drop CSV files or click the zone; paths appear below. |
-| dropzone folder | older, pickMode: "auto" | Drop a folder or use the picker. |
-| 	imeline | none | Read the four dated events and their status colors. |
-| mptystate | projects, ddProject | Click **Crea progetto**; the empty state becomes a counter. |
-| skeleton | loading, 	oggleLoading | Toggle the loading placeholder off and on; duration controls the shimmer. |
-| carousel | slide | Use the arrows, dots, or Left/Right keys; duration/asing control the slide transition. |
-| stepper | step, previousStep, 
-extStep | Click a step or use **Indietro**/**Avanti**. |
-| commandbar | showPalette, lastCommand, three handlers | Press Ctrl+K or **Apri comandi**, filter, press Enter, close with Esc. |
-| tooltip | 	ooltip property | Hover/focus the **Tooltip** badge; the bubble flips and clamps itself. Project preferences set place, effect, duration, easing and delay. |
+| `dropdown` | `action`, `editAction`, `duplicateAction`, `deleteAction` | Open **Azioni**, choose an item and read the last action. The menu flips if it cannot open downward. |
+| `popover` | `popoverClicks`, `bumpPopover` | Open **Dettagli**, click the internal button, close with Esc or an outside click. Placement is automatic. |
+| `combobox` | literal options | Open the **Paese** list; the popup matches the control width and flips when space is tight. |
+| `drawer` | `showFilters`, `openDrawer`, `closeDrawer` | Open **Apri filtri**; close with the backdrop, **Applica** or Esc. `duration`/`easing` control the slide. |
+| `splitter` | none | Drag the bar or focus it and use the arrow keys, Home/End. |
+| `dropzone` file | `files` | Drop CSV files or click the zone; paths appear below. |
+| `dropzone` folder | `folder`, `pickMode: "auto"` | Drop a folder or use the picker. |
+| `timeline` | none | Read the four dated events and their status colors. |
+| `emptystate` | `projects`, `addProject` | Click **Crea progetto**; the empty state becomes a counter. |
+| `skeleton` | `loading`, `toggleLoading` | Toggle the loading placeholder off and on; `duration` controls the shimmer. |
+| `carousel` | `slide` | Use the arrows, dots, or Left/Right keys; `duration`/`easing` control the slide transition. |
+| `stepper` | `step`, `previousStep`, `nextStep` | Click a step or use **Indietro**/**Avanti**. |
+| `commandbar` | `showPalette`, `lastCommand`, three handlers | Press Ctrl+K or **Apri comandi**, filter, press Enter, close with Esc. |
+| tooltip | `tooltip` property | Hover/focus the **Tooltip** badge; the bubble flips and clamps itself. Project preferences set place, effect, duration, easing and delay. |
 
 All dynamic values are escaped by the runtime; file names and paths are data,
 never markup. The dropzones reuse the validated drag-and-drop/picker runtime.
@@ -305,15 +304,14 @@ Overlay controls accept:
 
 | Attribute | Values | Meaning |
 |---|---|---|
-| placement | uto, ottom, 	op, left, ight | Preferred side for dropdown/combobox popups. Auto flips when there is no space. |
-| position | uto, 	op, ight, ottom, left | Preferred side for popovers; position on dropdowns means start/end alignment. |
-| nimation | ade, scale, slide, 
-one | Open effect. |
-| duration | CSS time or milliseconds, e.g. 180ms | Effect/transition duration. |
-| asing | CSS timing function, e.g. ase-out | Effect/transition easing. |
-| delay | CSS time or milliseconds | Delay before the open effect. |
+| `placement` | `auto`, `bottom`, `top`, `left`, `right` | Preferred side for dropdown/combobox popups. Auto flips when there is no space. |
+| `position` | `auto`, `top`, `right`, `bottom`, `left` | Preferred side for popovers; `position` on dropdowns means start/end alignment. |
+| `animation` | `fade`, `scale`, `slide`, `none` | Open effect. |
+| `duration` | CSS time or milliseconds, e.g. `180ms` | Effect/transition duration. |
+| `easing` | CSS timing function, e.g. `ease-out` | Effect/transition easing. |
+| `delay` | CSS time or milliseconds | Delay before the open effect. |
 
-drawer and carousel use duration/asing; skeleton uses duration for
+`drawer` and `carousel` use `duration`/`easing`; `skeleton` uses `duration` for
 the shimmer speed. Tooltips read the same values from project preferences.
 
 ## Designer
@@ -335,4 +333,4 @@ simpleui build app.sui --out dist
 simpleui build app.sui --target desktop --out dist
 ```
 
-The un.ps1 / un.bat scripts rebuild the desktop demo and launch it.
+The `run.ps1` / `run.bat` scripts rebuild the desktop demo and launch it.

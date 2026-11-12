@@ -1,12 +1,12 @@
 # FLIP + enter/exit motion with stable keys
 
 A filterable and reorderable card list. Cards are matched across renders by
-motionKey, so the runtime can:
+`motionKey`, so the runtime can:
 
 - FLIP cards to their new positions when the list is filtered or reordered;
 - fade out a card that disappears while the others move;
 - fade in a card that appears;
-- keep the same card identity across different if branches.
+- keep the same card identity across different `if` branches.
 
 ## Complete source
 
@@ -105,32 +105,30 @@ view main {
 
 | Attribute | Meaning |
 |---|---|
-| motion | layout (FLIP only), ade, scale, slide or 
-one. |
-| motionKey | Stable identity across renders. Required for list items and components. |
-| motionDuration | Transition duration, e.g. 420ms. |
-| motionEasing | CSS timing function, e.g. ase-out. |
-| motionDelay | Delay before the transition. |
-| motionExit | alse disables the exit clone for large lists. |
+| `motion` | `layout` (FLIP only), `fade`, `scale`, `slide` or `none`. |
+| `motionKey` | Stable identity across renders. Required for list items and components. |
+| `motionDuration` | Transition duration, e.g. `420ms`. |
+| `motionEasing` | CSS timing function, e.g. `ease-out`. |
+| `motionDelay` | Delay before the transition. |
+| `motionExit` | `false` disables the exit clone for large lists. |
 
-layout animates position changes with a translate and lets width/height/color
-changes animate separately. ade, scale and slide add the corresponding
+`layout` animates position changes with a translate and lets width/height/color
+changes animate separately. `fade`, `scale` and `slide` add the corresponding
 enter/exit effect. Cards that disappear are cloned into a fixed overlay, faded
 out and removed; new cards fade in.
 
 ## Why keys matter
 
-data-sui-id is assigned per element in the source tree, so every iteration of
-a list node shares the same id. motionKey supplies the per-item identity:
+`data-sui-id` is assigned per element in the source tree, so every iteration of
+a list node shares the same id. `motionKey` supplies the per-item identity:
 
-`sui
+```sui
 list project in projects {
 	card motion: "layout" motionKey: project.id { ... }
 }
-`
+```
 
-In this example the component receives 
-ame and uses motionKey: name.
+In this example the component receives `name` and uses `motionKey: name`.
 
 ## Designer
 
@@ -146,4 +144,4 @@ simpleui build app.sui --out dist
 simpleui build app.sui --target desktop --out dist
 ```
 
-The un.ps1 / un.bat scripts rebuild the desktop demo and launch it.
+The `run.ps1` / `run.bat` scripts rebuild the desktop demo and launch it.
