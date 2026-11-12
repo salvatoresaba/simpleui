@@ -1,0 +1,19 @@
+css ".timeline-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .timeline-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+
+view main {
+	title "Timeline"
+	col class: "timeline-page" {
+		h1 "Timeline"
+		p "Events with a date, a status and optional rich content." class: "timeline-note"
+		timeline {
+			timelineitem "Project created" date: "10 Nov, 09:12" status: "done"
+			timelineitem "Build completed" date: "10 Nov, 09:30" status: "done" {
+				p "Artifacts are ready for review."
+			}
+			timelineitem "Review" date: "11 Nov, 14:02" status: "active" {
+				p "Waiting for approval."
+			}
+			timelineitem "Deploy" date: "12 Nov, 08:00" status: "pending"
+		}
+	}
+}

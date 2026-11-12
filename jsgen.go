@@ -692,6 +692,15 @@ func GenerateJsFor(p *Prog, target string) string {
 	// Splitters resize their two panes with pointer drags or arrow keys.
 	sb.WriteString("\n\n")
 	sb.WriteString(suiSplitterRuntime)
+	// Steppers switch the bound step index.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiStepperRuntime)
+	// Carousels move a slide track and optionally bind the active slide.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiCarouselRuntime)
+	// Command palettes filter commands and handle their overlay/hotkey.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiCommandbarRuntime)
 	// Class allow-list: dynamic class expressions are filtered to these names
 	// so untrusted data cannot activate arbitrary app classes.
 	sb.WriteString("\n\nconst __SUI_CLASSES = Object.create(null);\n")
@@ -2324,6 +2333,13 @@ func elemHtmlTag(tag string) string {
 	if tag == "dropzone" {
 		return "div"
 	}
+	if tag == "timeline" || tag == "timelineitem" || tag == "emptystate" || tag == "skeleton" ||
+		tag == "carousel" || tag == "slide" || tag == "stepper" || tag == "step" || tag == "commandbar" {
+		return "div"
+	}
+	if tag == "command" {
+		return "button"
+	}
 	if tag == "dropdownitem" {
 		return "button"
 	}
@@ -2505,7 +2521,7 @@ func openTagHtml(e *Element, tag string, interactive bool, idx int, ctx *JsCtx) 
 func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *JsCtx, iframeSrc string) string {
 	var sb strings.Builder
 	sb.WriteString("<" + tag)
-	if e.tag == "button" || e.tag == "dropdownitem" {
+	if e.tag == "button" || e.tag == "dropdownitem" || e.tag == "command" {
 		sb.WriteString(" type=\"button\"")
 	}
 	if e.tag == "row" {
@@ -3016,6 +3032,33 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "dropzone" && (a.key == "accept" || a.key == "multiple" || a.key == "directory" || a.key == "hint") {
 			continue
 		}
+		if e.tag == "timelineitem" && (a.key == "date" || a.key == "status") {
+			continue
+		}
+		if e.tag == "emptystate" && (a.key == "icon" || a.key == "hint" || a.key == "compact") {
+			continue
+		}
+		if e.tag == "skeleton" && (a.key == "lines" || a.key == "width" || a.key == "height" || a.key == "circle" || a.key == "animated" || a.key == "gap") {
+			continue
+		}
+		if e.tag == "carousel" && (a.key == "value" || a.key == "autoplay" || a.key == "interval" || a.key == "loop" || a.key == "controls" || a.key == "indicators" || a.key == "height") {
+			continue
+		}
+		if e.tag == "slide" && a.key == "label" {
+			continue
+		}
+		if e.tag == "stepper" && (a.key == "value" || a.key == "clickable" || a.key == "vertical") {
+			continue
+		}
+		if e.tag == "step" && (a.key == "description" || a.key == "icon") {
+			continue
+		}
+		if e.tag == "commandbar" && (a.key == "open" || a.key == "hotkey" || a.key == "placeholder") {
+			continue
+		}
+		if e.tag == "command" && a.key == "shortcut" {
+			continue
+		}
 		if e.tag == "dropdownitem" && a.key == "separator" {
 			continue
 		}
@@ -3346,6 +3389,24 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	}
 	if e.tag == "dropzone" {
 		return dropzoneElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "timeline" {
+		return timelineElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "emptystate" {
+		return emptyStateElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "skeleton" {
+		return skeletonElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "carousel" {
+		return carouselElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "stepper" {
+		return stepperElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "commandbar" {
+		return commandbarElemJs(e, g, ctx, idx)
 	}
 	if e.tag == "menubar" {
 		open := openTagHtml(e, "nav", false, idx, ctx)
@@ -4936,6 +4997,418 @@ func dropzoneElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	}
 	sb.WriteString("</div>`")
 	return sb.String()
+}
+
+func childElemsByTag(e *Element, tag string) []*Element {
+	var out []*Element
+	for i := 0; i < len(e.children); i++ {
+		ch := &e.children[i]
+		if ch.kind == "element" && ch.elem != nil && ch.elem.tag == tag {
+			out = append(out, ch.elem)
+		}
+	}
+	return out
+}
+
+func attrLiteral(e *Element, key string) string {
+	if a := findAttr(e, key); a != nil && !a.hasExpr {
+		return strings.TrimSpace(partsContent(a.text))
+	}
+	return ""
+}
+
+func attrBoolDefault(e *Element, key string, def bool) bool {
+	a := findAttr(e, key)
+	if a == nil {
+		return def
+	}
+	if a.hasExpr && a.expr != nil {
+		if a.expr.kind == "bool" {
+			return a.expr.b
+		}
+		return def
+	}
+	v := strings.TrimSpace(strings.ToLower(partsContent(a.text)))
+	if v == "" {
+		return true
+	}
+	return v != "false" && v != "0"
+}
+
+func attrIntDefault(e *Element, key string, def int) int {
+	a := findAttr(e, key)
+	if a == nil {
+		return def
+	}
+	if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
+		return a.expr.i
+	}
+	if n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text))); err == nil {
+		return n
+	}
+	return def
+}
+
+func addOpenTagStyle(open, decl string) string {
+	if decl == "" || !strings.HasSuffix(open, ">") {
+		return open
+	}
+	body := strings.TrimSuffix(open, ">")
+	if i := strings.Index(body, " style=\""); i >= 0 {
+		if j := strings.Index(body[i+8:], "\""); j >= 0 {
+			k := i + 8 + j
+			return body[:k] + ";" + decl + body[k:] + ">"
+		}
+	}
+	j := strings.Index(body, " ")
+	if j < 0 {
+		j = len(body)
+	}
+	return body[:j] + " style=\"" + decl + "\"" + body[j:] + ">"
+}
+
+// renderElementOpen renders one child element with its normal DFS id and
+// wiring. Custom containers use it for interactive child elements that they
+// lay out themselves (for example command palette entries).
+func renderElementOpen(e *Element, tag string, interactive bool, g *ViewGen, ctx *JsCtx) string {
+	idx := -1
+	if !genCompBody {
+		idx = g.count
+		g.count = g.count + 1
+	}
+	addElemRefs(e, g)
+	if interactive && !genCompBody {
+		collectWiring(e, idx, g, ctx)
+	}
+	return openTagHtml(e, tag, interactive, idx, ctx)
+}
+
+func timelineElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-timeline")
+	items := childElemsByTag(e, "timelineitem")
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	for _, it := range items {
+		status := strings.ToLower(attrLiteral(it, "status"))
+		if status != "done" && status != "active" && status != "error" {
+			status = "pending"
+		}
+		b.WriteString("<div class=\"sui-timeline-item sui-tl-" + status)
+		b.WriteString(classSuffix(it))
+		b.WriteString("\"><span class=\"sui-timeline-dot\"></span><div class=\"sui-timeline-body\"><span class=\"sui-timeline-title\">")
+		b.WriteString(htmlTextParts(it.text))
+		b.WriteString("</span>")
+		if date := attrLiteral(it, "date"); date != "" {
+			b.WriteString("<span class=\"sui-timeline-date\">" + htmlEscape(date) + "</span>")
+		}
+		if len(it.children) > 0 {
+			b.WriteString("<div class=\"sui-timeline-content\">` + (")
+			b.WriteString(viewNodesJs(childPtrs(it.children), g, ctx))
+			b.WriteString(") + `</div>")
+		}
+		b.WriteString("</div></div>")
+	}
+	b.WriteString("</div>`")
+	return b.String()
+}
+
+func emptyStateElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	icon := attrLiteral(e, "icon")
+	if icon == "" {
+		icon = "▢"
+	}
+	hint := attrLiteral(e, "hint")
+	label := htmlTextParts(e.text)
+	if strings.TrimSpace(partsContent(e.text)) == "" {
+		label = "Nothing here"
+	}
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-empty")
+	if attrBoolDefault(e, "compact", false) {
+		open = addOpenTagClass(open, "sui-empty-compact")
+	}
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	b.WriteString("<span class=\"sui-empty-icon\" aria-hidden=\"true\">" + htmlEscape(icon) + "</span>")
+	b.WriteString("<span class=\"sui-empty-title\">" + label + "</span>")
+	if hint != "" {
+		b.WriteString("<span class=\"sui-empty-hint\">" + htmlEscape(hint) + "</span>")
+	}
+	if len(e.children) > 0 {
+		b.WriteString("<div class=\"sui-empty-body\">` + (")
+		b.WriteString(viewNodesJs(childPtrs(e.children), g, ctx))
+		b.WriteString(") + `</div>")
+	}
+	b.WriteString("</div>`")
+	return b.String()
+}
+
+func skeletonElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	lines := attrIntDefault(e, "lines", 3)
+	if lines < 1 {
+		lines = 1
+	}
+	if lines > 20 {
+		lines = 20
+	}
+	width := layoutSafeCSSValue(attrLiteral(e, "width"))
+	if width == "" {
+		width = "100%"
+	}
+	height := layoutSafeCSSValue(attrLiteral(e, "height"))
+	if height == "" {
+		height = "12px"
+	}
+	gap := layoutSafeCSSValue(attrLiteral(e, "gap"))
+	if gap == "" {
+		gap = "8px"
+	}
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-skeleton")
+	if attrBoolDefault(e, "circle", false) {
+		open = addOpenTagClass(open, "sui-skeleton-circle")
+	}
+	if !attrBoolDefault(e, "animated", true) {
+		open = addOpenTagClass(open, "sui-skeleton-static")
+	}
+	open = addOpenTagStyle(open, "--sui-sk-width:"+width+";--sui-sk-height:"+height+";--sui-sk-gap:"+gap)
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	if attrBoolDefault(e, "circle", false) {
+		b.WriteString("<span class=\"sui-skeleton-dot\"></span>")
+	} else {
+		for i := 0; i < lines; i++ {
+			b.WriteString("<span class=\"sui-skeleton-line\"></span>")
+		}
+	}
+	b.WriteString("</div>`")
+	return b.String()
+}
+
+func stepperElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	valueExpr := "0"
+	setter := ""
+	if a := findAttr(e, "value"); a != nil {
+		if a.hasExpr && a.expr != nil {
+			valueExpr = ExprToJs(a.expr)
+			if a.expr.kind == "ident" && ctxIsState(ctx, a.expr.name) {
+				setter = setterName(a.expr.name)
+			}
+		} else if n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text))); err == nil {
+			valueExpr = strconv.Itoa(n)
+		}
+	}
+	clickable := setter != "" && attrBoolDefault(e, "clickable", true)
+	vertical := attrBoolDefault(e, "vertical", false)
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-stepper")
+	if vertical {
+		open = addOpenTagClass(open, "sui-stepper-vertical")
+	}
+	if clickable {
+		open = strings.TrimSuffix(open, ">") + " data-sui-stepper data-sui-stepper-set=\"" + setter + "\">"
+	}
+	steps := childElemsByTag(e, "step")
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	for i, st := range steps {
+		b.WriteString("<div class=\"sui-step${(")
+		b.WriteString(valueExpr)
+		b.WriteString(") > ")
+		b.WriteString(strconv.Itoa(i))
+		b.WriteString(" ? \" done\" : ((")
+		b.WriteString(valueExpr)
+		b.WriteString(") === ")
+		b.WriteString(strconv.Itoa(i))
+		b.WriteString(" ? \" active\" : \"\")}")
+		b.WriteString(classSuffix(st))
+		b.WriteString("\"")
+		if clickable {
+			b.WriteString(" data-sui-step=\"1\" data-sui-step-index=\"" + strconv.Itoa(i) + "\" role=\"button\" tabindex=\"0\"")
+		}
+		b.WriteString("><span class=\"sui-step-num\">")
+		if icon := attrLiteral(st, "icon"); icon != "" {
+			b.WriteString(htmlEscape(icon))
+		} else {
+			b.WriteString("${(")
+			b.WriteString(valueExpr)
+			b.WriteString(") > ")
+			b.WriteString(strconv.Itoa(i))
+			b.WriteString(" ? \"✓\" : \"" + strconv.Itoa(i+1) + "\"}")
+		}
+		b.WriteString("</span><span class=\"sui-step-text\"><span class=\"sui-step-label\">")
+		b.WriteString(htmlTextParts(st.text))
+		b.WriteString("</span>")
+		if desc := attrLiteral(st, "description"); desc != "" {
+			b.WriteString("<span class=\"sui-step-desc\">" + htmlEscape(desc) + "</span>")
+		}
+		b.WriteString("</span></div>")
+		if i < len(steps)-1 {
+			b.WriteString("<span class=\"sui-step-line\"></span>")
+		}
+	}
+	b.WriteString("</div>`")
+	return b.String()
+}
+
+func carouselElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	slides := childElemsByTag(e, "slide")
+	valueExpr := "0"
+	setter := ""
+	if a := findAttr(e, "value"); a != nil {
+		if a.hasExpr && a.expr != nil {
+			valueExpr = ExprToJs(a.expr)
+			if a.expr.kind == "ident" && ctxIsState(ctx, a.expr.name) {
+				setter = setterName(a.expr.name)
+			}
+		} else if n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text))); err == nil {
+			valueExpr = strconv.Itoa(n)
+		}
+	}
+	loop := attrBoolDefault(e, "loop", true)
+	controls := attrBoolDefault(e, "controls", true)
+	indicators := attrBoolDefault(e, "indicators", true)
+	autoplay := attrBoolDefault(e, "autoplay", false)
+	interval := attrIntDefault(e, "interval", 4000)
+	if interval < 500 {
+		interval = 500
+	}
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-carousel")
+	open = strings.TrimSuffix(open, ">") + " data-sui-carousel data-sui-carousel-index=\"${(" + valueExpr + ")}\" data-sui-carousel-count=\"" + strconv.Itoa(len(slides)) + "\""
+	if loop {
+		open += " data-sui-carousel-loop=\"1\""
+	}
+	if autoplay {
+		open += " data-sui-carousel-autoplay=\"1\" data-sui-carousel-interval=\"" + strconv.Itoa(interval) + "\""
+	}
+	if setter != "" {
+		open += " data-sui-carousel-set=\"" + setter + "\""
+	}
+	open += ">"
+	if h := layoutSafeCSSValue(attrLiteral(e, "height")); h != "" {
+		open = addOpenTagStyle(open, "--sui-carousel-height:"+h)
+	}
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	b.WriteString("<div class=\"sui-carousel-frame\"><div class=\"sui-carousel-track\" style=\"transform:translateX(${(" + valueExpr + ") * -100}%)\">")
+	for i, sl := range slides {
+		label := attrLiteral(sl, "label")
+		if label == "" {
+			label = "Slide " + strconv.Itoa(i+1)
+		}
+		b.WriteString("<div class=\"sui-carousel-slide")
+		b.WriteString(classSuffix(sl))
+		b.WriteString("\" data-sui-slide-index=\"" + strconv.Itoa(i) + "\" role=\"group\" aria-label=\"" + htmlEscape(label) + "\">")
+		if len(sl.children) > 0 {
+			b.WriteString("` + (")
+			b.WriteString(viewNodesJs(childPtrs(sl.children), g, ctx))
+			b.WriteString(") + `")
+		}
+		b.WriteString("</div>")
+	}
+	b.WriteString("</div></div>")
+	if controls || indicators {
+		b.WriteString("<div class=\"sui-carousel-nav\">")
+		if controls {
+			b.WriteString("<button type=\"button\" class=\"sui-carousel-prev\" data-sui-carousel-prev aria-label=\"Previous slide\">&#8249;</button>")
+		}
+		if indicators {
+			b.WriteString("<div class=\"sui-carousel-dots\" role=\"tablist\" aria-label=\"Slides\">")
+			for i := range slides {
+				b.WriteString("<button type=\"button\" class=\"sui-carousel-dot${(" + valueExpr + ") === " + strconv.Itoa(i) + " ? \" active\" : \"\"}\" data-sui-carousel-dot=\"" + strconv.Itoa(i) + "\" aria-label=\"Slide " + strconv.Itoa(i+1) + "\"></button>")
+			}
+			b.WriteString("</div>")
+		}
+		if controls {
+			b.WriteString("<button type=\"button\" class=\"sui-carousel-next\" data-sui-carousel-next aria-label=\"Next slide\">&#8250;</button>")
+		}
+		b.WriteString("</div>")
+	}
+	b.WriteString("</div>`")
+	return b.String()
+}
+
+func commandbarElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	openAttr := findAttr(e, "open")
+	overlay := openAttr != nil
+	openExpr := "false"
+	setter := ""
+	if openAttr != nil {
+		if openAttr.hasExpr && openAttr.expr != nil {
+			openExpr = ExprToJs(openAttr.expr)
+			if openAttr.expr.kind == "ident" && ctxIsState(ctx, openAttr.expr.name) {
+				setter = setterName(openAttr.expr.name)
+			}
+		} else {
+			v := strings.TrimSpace(strings.ToLower(partsContent(openAttr.text)))
+			openExpr = strconv.FormatBool(v != "" && v != "false" && v != "0")
+		}
+	}
+	hotkey := strings.ToLower(attrLiteral(e, "hotkey"))
+	if len(hotkey) > 1 {
+		hotkey = hotkey[:1]
+	}
+	placeholder := attrLiteral(e, "placeholder")
+	if placeholder == "" {
+		placeholder = strings.TrimSpace(partsContent(e.text))
+	}
+	if placeholder == "" {
+		placeholder = "Type a command..."
+	}
+	open := addOpenTagClass(openTagHtml(e, "div", false, idx, ctx), "sui-commandbar")
+	if overlay {
+		open = addOpenTagClass(open, "sui-commandbar-overlay")
+	}
+	open = strings.TrimSuffix(open, ">") + " data-sui-commandbar"
+	if overlay {
+		open += " data-sui-commandbar-overlay data-sui-commandbar-open=\"${(" + openExpr + ") ? \"1\" : \"0\"}\""
+		if setter != "" {
+			open += " data-sui-commandbar-set=\"" + setter + "\""
+		}
+		if hotkey != "" {
+			open += " data-sui-commandbar-hotkey=\"" + htmlEscape(hotkey) + "\""
+		}
+	}
+	open += ">"
+	role := "search"
+	modal := "false"
+	if overlay {
+		role = "dialog"
+		modal = "true"
+	}
+	cmds := childElemsByTag(e, "command")
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	if overlay {
+		b.WriteString("<div class=\"sui-commandbar-backdrop\" data-sui-commandbar-close></div>")
+	}
+	b.WriteString("<div class=\"sui-commandbar-panel\" role=\"" + role + "\" aria-modal=\"" + modal + "\">")
+	b.WriteString("<input class=\"sui-commandbar-input\" type=\"text\" placeholder=\"" + htmlEscape(placeholder) + "\" aria-label=\"" + htmlEscape(placeholder) + "\" autocomplete=\"off\" spellcheck=\"false\">")
+	b.WriteString("<div class=\"sui-commandbar-list\" role=\"listbox\">")
+	for i, cmd := range cmds {
+		label := partsContent(cmd.text)
+		shortcut := attrLiteral(cmd, "shortcut")
+		search := strings.ToLower(label)
+		if shortcut != "" {
+			search += " " + strings.ToLower(shortcut)
+		}
+		cmdOpen := addOpenTagClass(renderElementOpen(cmd, "button", true, g, ctx), "sui-command")
+		if i == 0 {
+			cmdOpen = addOpenTagClass(cmdOpen, "active")
+		}
+		cmdOpen = strings.TrimSuffix(cmdOpen, ">") + " role=\"option\" data-sui-command-index=\"" + strconv.Itoa(i) + "\" data-sui-command-search=\"" + htmlEscape(search) + "\" data-sui-command-label=\"" + htmlEscape(label) + "\">"
+		b.WriteString(cmdOpen)
+		b.WriteString("<span class=\"sui-command-label\">" + htmlTextParts(cmd.text) + "</span>")
+		if shortcut != "" {
+			b.WriteString("<span class=\"sui-command-shortcut\">" + htmlEscape(shortcut) + "</span>")
+		}
+		b.WriteString("</button>")
+	}
+	b.WriteString("</div><div class=\"sui-commandbar-empty\" hidden>No matching commands</div></div></div>`")
+	return b.String()
 }
 
 func dataBoolAttrValue(name string, a *Attr) string {

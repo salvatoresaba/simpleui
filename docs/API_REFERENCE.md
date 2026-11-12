@@ -400,6 +400,144 @@ line shows the bound state value while it is non-empty. Dropped and picked
 names are escaped as text by the runtime. In the designer choose **Controls >
 File dropzone**.
 
+## Timeline
+
+`timeline` stacks `timelineitem` children. Each item shows a title (its text), an
+optional `date`, a status dot and optional rich content:
+
+```sui
+timeline {
+	timelineitem "Project created" date: "10 Nov, 09:12" status: "done"
+	timelineitem "Build completed" date: "10 Nov, 09:30" status: "active" {
+		p "Artifacts are ready."
+	}
+}
+```
+
+`status` is `pending` (default), `active`, `done` or `error`. Only direct
+`timelineitem` children are rendered. In the designer choose **Content >
+Timeline**.
+
+## Empty state
+
+`emptystate` is a centered placeholder with an icon, a title, a hint and
+optional child actions:
+
+```sui
+emptystate "No projects" icon: "▢" hint: "Create the first project." {
+	button "New project" onClick: newProject
+}
+```
+
+`icon` and `hint` are optional; `compact: true` reduces the padding. In the
+designer choose **Content > Empty state**.
+
+## Skeleton
+
+`skeleton` renders animated placeholder lines or one circle while content
+loads:
+
+```sui
+skeleton lines: 3 width: "80%" height: "12px" gap: "8px"
+skeleton circle: true height: "48px"
+```
+
+| Attribute | Meaning |
+|---|---|
+| `lines` | Number of lines, default 3 (1-20). |
+| `width` | Block width, default `100%`. |
+| `height` | Line/circle size, default `12px`. |
+| `gap` | Space between lines, default `8px`. |
+| `circle` | Renders a single circle instead of lines. |
+| `animated` | Set `false` to disable the shimmer. |
+
+`simpleui check` rejects skeleton children. In the designer choose **Content >
+Skeleton loader**.
+
+## Carousel
+
+`carousel` shows one `slide` at a time. The active slide can be bound to an
+integer state with `value`; arrows, dots and Left/Right keys update it:
+
+```sui
+state slide = 0
+
+carousel value: slide height: "180px" {
+	slide label: "Welcome" {
+		h2 "Welcome"
+		p "The first slide."
+	}
+	slide label: "Layout" {
+		h2 "Layout"
+		p "The second slide."
+	}
+}
+```
+
+| Attribute | Meaning |
+|---|---|
+| `value` | Active slide index (state or integer), default 0. |
+| `height` | Minimum slide height. |
+| `controls` | Previous/next buttons, default true. |
+| `indicators` | Dots, default true. |
+| `loop` | Wrap around, default true. |
+| `autoplay` | Advance automatically, default false. |
+| `interval` | Autoplay delay in ms, default 4000. |
+
+Each slide's `label` is its accessible name. A carousel requires at least one
+`slide` child and rejects other children. In the designer choose **Content >
+Carousel**.
+
+## Stepper
+
+`stepper` shows numbered steps and a current index. Bind `value` to an integer
+state; with `clickable: true` (the default when bound) clicking a step or
+pressing Enter/Space updates it:
+
+```sui
+state step = 1
+
+stepper value: step {
+	step "Details" description: "Name and owner"
+	step "Payment" description: "Method"
+	step "Confirm"
+}
+```
+
+Completed steps show a check mark, the current step is highlighted and the
+optional `description` appears under the label. `vertical: true` stacks the
+steps. A stepper requires at least one `step` child and rejects other children.
+In the designer choose **Content > Stepper**.
+
+## Command palette
+
+`commandbar` is a searchable command list. Without `open` it stays inline; with
+an `open` state it becomes an overlay that Ctrl/Cmd + `hotkey` toggles, Escape
+closes, the arrow keys move through and Enter invokes:
+
+```sui
+state showPalette = false
+
+fn newProject() -> null {
+}
+
+commandbar "Search commands" open: showPalette hotkey: "k" {
+	command "New project" shortcut: "Ctrl N" onClick: newProject
+	command "Open settings" shortcut: "Ctrl ," onClick: openSettings
+}
+```
+
+| Attribute | Meaning |
+|---|---|
+| `open` | Optional state controlling the overlay. |
+| `hotkey` | Single key used with Ctrl/Cmd, for example `k`. |
+| `placeholder` | Search placeholder; defaults to the element text. |
+
+Each `command` needs its text label; `shortcut` is display-only and
+`onClick` runs the action. Typing filters by label and shortcut, and a
+"No matching commands" row appears when nothing matches. In the designer choose
+**Overlay > Command palette**.
+
 ## Tabs
 
 `tabs` creates a tab bar; each direct `tab` child supplies the button label

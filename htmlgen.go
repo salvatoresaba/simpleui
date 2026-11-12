@@ -1990,6 +1990,68 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 .sui-dropzone-hint { font-size:12px; color:var(--sui-muted,#8fa0b8); }
 .sui-dropzone-status { font:11px/1.4 ui-monospace,Consolas,monospace; color:var(--sui-fg); word-break:break-all; max-height:72px; overflow:auto; }
 .sui-dropzone-status:empty { display:none; }
+.sui-timeline { display:flex; flex-direction:column; }
+.sui-timeline-item { position:relative; display:flex; gap:10px; padding:0 0 14px; }
+.sui-timeline-item::before { content:""; position:absolute; left:6px; top:16px; bottom:0; width:1px; background:var(--sui-border); }
+.sui-timeline-item:last-child::before { display:none; }
+.sui-timeline-dot { flex:none; width:13px; height:13px; border-radius:50%; background:var(--sui-panel); border:2px solid var(--sui-border); margin-top:2px; z-index:1; }
+.sui-tl-done .sui-timeline-dot { background:#34d399; border-color:#34d399; }
+.sui-tl-active .sui-timeline-dot { background:var(--sui-accent,#4c5cf7); border-color:var(--sui-accent,#4c5cf7); box-shadow:0 0 0 3px rgba(76,92,247,.25); }
+.sui-tl-error .sui-timeline-dot { background:#ef4444; border-color:#ef4444; }
+.sui-timeline-body { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.sui-timeline-title { font-size:13px; font-weight:600; color:var(--sui-fg); }
+.sui-timeline-date { font-size:11px; color:var(--sui-muted,#8fa0b8); }
+.sui-timeline-content { font-size:12px; color:var(--sui-muted,#8fa0b8); }
+.sui-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:28px 16px; text-align:center; color:var(--sui-muted,#8fa0b8); border:1px dashed var(--sui-border); border-radius:10px; background:var(--sui-panel); }
+.sui-empty-icon { font-size:32px; line-height:1; color:var(--sui-accent,#4c5cf7); }
+.sui-empty-title { font-size:14px; font-weight:600; color:var(--sui-fg); }
+.sui-empty-hint { font-size:12px; max-width:44ch; }
+.sui-empty-body { display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:4px; }
+.sui-empty-compact { padding:16px 12px; }
+.sui-empty-compact .sui-empty-icon { font-size:22px; }
+.sui-skeleton { display:flex; flex-direction:column; gap:var(--sui-sk-gap,8px); width:var(--sui-sk-width,100%); }
+.sui-skeleton-line, .sui-skeleton-dot { display:block; width:100%; height:var(--sui-sk-height,12px); border-radius:6px; background:linear-gradient(90deg,rgba(148,163,184,.12) 25%,rgba(148,163,184,.28) 37%,rgba(148,163,184,.12) 63%); background-size:400% 100%; animation:sui-sk 1.4s ease infinite; }
+.sui-skeleton-dot { width:var(--sui-sk-height,48px); height:var(--sui-sk-height,48px); border-radius:50%; }
+.sui-skeleton-static .sui-skeleton-line, .sui-skeleton-static .sui-skeleton-dot { animation:none; }
+@keyframes sui-sk { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+.sui-carousel { display:flex; flex-direction:column; gap:6px; width:100%; }
+.sui-carousel-frame { overflow:hidden; border:1px solid var(--sui-border); border-radius:8px; background:var(--sui-panel); }
+.sui-carousel-track { display:flex; transition:transform .28s ease; }
+.sui-carousel-slide { flex:0 0 100%; min-width:100%; min-height:var(--sui-carousel-height,160px); display:flex; flex-direction:column; gap:8px; padding:12px; }
+.sui-carousel-nav { display:flex; align-items:center; justify-content:center; gap:10px; }
+.sui-carousel-prev, .sui-carousel-next { border:1px solid var(--sui-border); background:var(--sui-panel); color:var(--sui-fg); border-radius:6px; padding:4px 10px; font:inherit; cursor:pointer; }
+.sui-carousel-prev:hover, .sui-carousel-next:hover { border-color:var(--sui-accent,#4c5cf7); }
+.sui-carousel-dots { display:flex; gap:4px; }
+.sui-carousel-dot { width:8px; height:8px; padding:0; border-radius:50%; border:1px solid var(--sui-border); background:transparent; cursor:pointer; }
+.sui-carousel-dot.active { background:var(--sui-accent,#4c5cf7); border-color:var(--sui-accent,#4c5cf7); }
+.sui-stepper { display:flex; align-items:center; gap:8px; width:100%; }
+.sui-stepper-vertical { flex-direction:column; align-items:stretch; gap:6px; }
+.sui-step { display:flex; align-items:center; gap:8px; color:var(--sui-muted,#8fa0b8); font-size:12px; }
+.sui-step-num { flex:none; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:1px solid var(--sui-border); border-radius:50%; font-size:11px; }
+.sui-step-text { display:flex; flex-direction:column; }
+.sui-step-label { font-weight:600; }
+.sui-step-desc { font-size:11px; }
+.sui-step.active { color:var(--sui-fg); }
+.sui-step.active .sui-step-num { background:var(--sui-accent,#4c5cf7); border-color:var(--sui-accent,#4c5cf7); color:#fff; }
+.sui-step.done .sui-step-num { background:rgba(52,211,153,.18); border-color:#34d399; color:#34d399; }
+.sui-step-line { flex:1 1 auto; min-width:12px; height:1px; background:var(--sui-border); }
+.sui-stepper-vertical .sui-step-line { flex:none; width:1px; height:12px; margin-left:12px; }
+[data-sui-step] { cursor:pointer; }
+[data-sui-step]:focus-visible { outline:2px solid var(--sui-accent,#4c5cf7); outline-offset:2px; border-radius:6px; }
+.sui-commandbar { position:relative; width:100%; }
+.sui-commandbar-panel { background:var(--sui-panel); border:1px solid var(--sui-border); border-radius:10px; overflow:hidden; box-shadow:0 12px 36px rgba(0,0,0,.35); }
+.sui-commandbar-input { width:100%; border:0; border-bottom:1px solid var(--sui-border); background:transparent; color:var(--sui-fg); padding:11px 12px; font:inherit; outline:none; }
+.sui-commandbar-list { max-height:320px; overflow:auto; padding:4px; }
+.sui-command { display:flex; width:100%; align-items:center; justify-content:space-between; gap:10px; border:0; background:transparent; color:var(--sui-fg); text-align:left; padding:8px 10px; border-radius:6px; font:inherit; cursor:pointer; }
+.sui-command:hover, .sui-command.active { background:var(--sui-hover,#2d3545); }
+.sui-command[hidden] { display:none; }
+.sui-command-shortcut { font:11px ui-monospace,Consolas,monospace; color:var(--sui-muted,#8fa0b8); border:1px solid var(--sui-border); border-radius:4px; padding:1px 5px; }
+.sui-commandbar-empty { padding:10px 12px; color:var(--sui-muted,#8fa0b8); font-size:12px; }
+.sui-commandbar-empty[hidden] { display:none; }
+.sui-commandbar-overlay { position:fixed; inset:0; z-index:1300; display:none; align-items:flex-start; justify-content:center; padding-top:12vh; }
+.sui-commandbar-overlay[data-sui-commandbar-open="1"] { display:flex; }
+.sui-commandbar-overlay .sui-commandbar-panel { position:relative; z-index:1; width:min(520px,92vw); background:var(--sui-panel,#1d2129); }
+.sui-commandbar-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.5); }
 .sui-menu-popup > a { display: block; color: inherit; text-decoration: none; }
 .sui-menuitem {
   display: block;
@@ -5415,6 +5477,30 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		writeStaticDropzone(sb, e, ind)
 		return
 	}
+	if e.tag == "timeline" {
+		writeStaticTimeline(sb, e, ind)
+		return
+	}
+	if e.tag == "emptystate" {
+		writeStaticEmptyState(sb, e, ind)
+		return
+	}
+	if e.tag == "skeleton" {
+		writeStaticSkeleton(sb, e, ind)
+		return
+	}
+	if e.tag == "carousel" {
+		writeStaticCarousel(sb, e, ind)
+		return
+	}
+	if e.tag == "stepper" {
+		writeStaticStepper(sb, e, ind)
+		return
+	}
+	if e.tag == "commandbar" {
+		writeStaticCommandbar(sb, e, ind)
+		return
+	}
 	if e.tag == "modal" {
 		writeStaticModal(sb, e, ind)
 		return
@@ -7224,6 +7310,294 @@ func bool01(v bool) string {
 	return "0"
 }
 
+func writeStaticTimeline(sb *strings.Builder, e *Element, ind string) {
+	sb.WriteString(ind + "<div class=\"sui-timeline")
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString("\">\n")
+	for _, it := range childElemsByTag(e, "timelineitem") {
+		status := strings.ToLower(attrLiteral(it, "status"))
+		if status != "done" && status != "active" && status != "error" {
+			status = "pending"
+		}
+		sb.WriteString(ind + "  <div class=\"sui-timeline-item sui-tl-" + status)
+		staticClassSuffix(sb, it)
+		sb.WriteString("\">\n")
+		sb.WriteString(ind + "    <span class=\"sui-timeline-dot\"></span>\n")
+		sb.WriteString(ind + "    <div class=\"sui-timeline-body\">\n")
+		sb.WriteString(ind + "      <span class=\"sui-timeline-title\">" + htmlEscape(partsContent(it.text)) + "</span>\n")
+		if date := attrLiteral(it, "date"); date != "" {
+			sb.WriteString(ind + "      <span class=\"sui-timeline-date\">" + htmlEscape(date) + "</span>\n")
+		}
+		if len(it.children) > 0 {
+			sb.WriteString(ind + "      <div class=\"sui-timeline-content\">\n")
+			writeStaticNodes(sb, it.children, ind+"        ")
+			sb.WriteString(ind + "      </div>\n")
+		}
+		sb.WriteString(ind + "    </div>\n")
+		sb.WriteString(ind + "  </div>\n")
+	}
+	sb.WriteString(ind + "</div>\n")
+}
+
+func writeStaticEmptyState(sb *strings.Builder, e *Element, ind string) {
+	icon := attrLiteral(e, "icon")
+	if icon == "" {
+		icon = "▢"
+	}
+	hint := attrLiteral(e, "hint")
+	label := partsContent(e.text)
+	if strings.TrimSpace(label) == "" {
+		label = "Nothing here"
+	}
+	sb.WriteString(ind + "<div class=\"sui-empty")
+	if attrBoolDefault(e, "compact", false) {
+		sb.WriteString(" sui-empty-compact")
+	}
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString("\">\n")
+	sb.WriteString(ind + "  <span class=\"sui-empty-icon\" aria-hidden=\"true\">" + htmlEscape(icon) + "</span>\n")
+	sb.WriteString(ind + "  <span class=\"sui-empty-title\">" + htmlEscape(label) + "</span>\n")
+	if hint != "" {
+		sb.WriteString(ind + "  <span class=\"sui-empty-hint\">" + htmlEscape(hint) + "</span>\n")
+	}
+	if len(e.children) > 0 {
+		sb.WriteString(ind + "  <div class=\"sui-empty-body\">\n")
+		writeStaticNodes(sb, e.children, ind+"    ")
+		sb.WriteString(ind + "  </div>\n")
+	}
+	sb.WriteString(ind + "</div>\n")
+}
+
+func writeStaticSkeleton(sb *strings.Builder, e *Element, ind string) {
+	lines := attrIntDefault(e, "lines", 3)
+	if lines < 1 {
+		lines = 1
+	}
+	if lines > 20 {
+		lines = 20
+	}
+	width := layoutSafeCSSValue(attrLiteral(e, "width"))
+	if width == "" {
+		width = "100%"
+	}
+	height := layoutSafeCSSValue(attrLiteral(e, "height"))
+	if height == "" {
+		height = "12px"
+	}
+	gap := layoutSafeCSSValue(attrLiteral(e, "gap"))
+	if gap == "" {
+		gap = "8px"
+	}
+	circle := attrBoolDefault(e, "circle", false)
+	animated := attrBoolDefault(e, "animated", true)
+	sb.WriteString(ind + "<div class=\"sui-skeleton")
+	if circle {
+		sb.WriteString(" sui-skeleton-circle")
+	}
+	if !animated {
+		sb.WriteString(" sui-skeleton-static")
+	}
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString("\" style=\"--sui-sk-width:" + htmlEscape(width) + ";--sui-sk-height:" + htmlEscape(height) + ";--sui-sk-gap:" + htmlEscape(gap) + "\">\n")
+	if circle {
+		sb.WriteString(ind + "  <span class=\"sui-skeleton-dot\"></span>\n")
+	} else {
+		for i := 0; i < lines; i++ {
+			sb.WriteString(ind + "  <span class=\"sui-skeleton-line\"></span>\n")
+		}
+	}
+	sb.WriteString(ind + "</div>\n")
+}
+
+func staticIntAttr(e *Element, key string, def int) int {
+	a := findAttr(e, key)
+	if a == nil {
+		return def
+	}
+	if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
+		return a.expr.i
+	}
+	if n, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text))); err == nil {
+		return n
+	}
+	return def
+}
+
+func writeStaticCarousel(sb *strings.Builder, e *Element, ind string) {
+	slides := childElemsByTag(e, "slide")
+	index := staticIntAttr(e, "value", 0)
+	if index < 0 || index >= len(slides) {
+		index = 0
+	}
+	controls := attrBoolDefault(e, "controls", true)
+	indicators := attrBoolDefault(e, "indicators", true)
+	loop := attrBoolDefault(e, "loop", true)
+	autoplay := attrBoolDefault(e, "autoplay", false)
+	interval := attrIntDefault(e, "interval", 4000)
+	sb.WriteString(ind + "<div class=\"sui-carousel")
+	staticClassSuffix(sb, e)
+	sb.WriteString("\" data-sui-carousel data-sui-carousel-index=\"" + strconv.Itoa(index) + "\" data-sui-carousel-count=\"" + strconv.Itoa(len(slides)) + "\"")
+	if loop {
+		sb.WriteString(" data-sui-carousel-loop=\"1\"")
+	}
+	if autoplay {
+		sb.WriteString(" data-sui-carousel-autoplay=\"1\" data-sui-carousel-interval=\"" + strconv.Itoa(interval) + "\"")
+	}
+	staticUserAttrsNoClass(sb, e, "")
+	style := ""
+	if h := layoutSafeCSSValue(attrLiteral(e, "height")); h != "" {
+		style = " style=\"--sui-carousel-height:" + htmlEscape(h) + "\""
+	}
+	sb.WriteString(style + ">\n")
+	sb.WriteString(ind + "  <div class=\"sui-carousel-frame\"><div class=\"sui-carousel-track\" style=\"transform:translateX(-" + strconv.Itoa(index*100) + "%)\">\n")
+	for i, sl := range slides {
+		label := attrLiteral(sl, "label")
+		if label == "" {
+			label = "Slide " + strconv.Itoa(i+1)
+		}
+		sb.WriteString(ind + "    <div class=\"sui-carousel-slide" + staticClassSuffixStr(sl) + "\" data-sui-slide-index=\"" + strconv.Itoa(i) + "\" role=\"group\" aria-label=\"" + htmlEscape(label) + "\">\n")
+		writeStaticNodes(sb, sl.children, ind+"      ")
+		sb.WriteString(ind + "    </div>\n")
+	}
+	sb.WriteString(ind + "  </div></div>\n")
+	if controls || indicators {
+		sb.WriteString(ind + "  <div class=\"sui-carousel-nav\">\n")
+		if controls {
+			sb.WriteString(ind + "    <button type=\"button\" class=\"sui-carousel-prev\" data-sui-carousel-prev aria-label=\"Previous slide\">&#8249;</button>\n")
+		}
+		if indicators {
+			sb.WriteString(ind + "    <div class=\"sui-carousel-dots\" role=\"tablist\" aria-label=\"Slides\">\n")
+			for i := range slides {
+				cls := "sui-carousel-dot"
+				if i == index {
+					cls += " active"
+				}
+				sb.WriteString(ind + "      <button type=\"button\" class=\"" + cls + "\" data-sui-carousel-dot=\"" + strconv.Itoa(i) + "\" aria-label=\"Slide " + strconv.Itoa(i+1) + "\"></button>\n")
+			}
+			sb.WriteString(ind + "    </div>\n")
+		}
+		if controls {
+			sb.WriteString(ind + "    <button type=\"button\" class=\"sui-carousel-next\" data-sui-carousel-next aria-label=\"Next slide\">&#8250;</button>\n")
+		}
+		sb.WriteString(ind + "  </div>\n")
+	}
+	sb.WriteString(ind + "</div>\n")
+}
+
+// staticClassSuffixStr returns the user class tokens for inline composition.
+func staticClassSuffixStr(e *Element) string {
+	a := findAttr(e, "class")
+	if a == nil || a.hasExpr {
+		return ""
+	}
+	v := strings.TrimSpace(partsContent(a.text))
+	if v == "" {
+		return ""
+	}
+	return " " + htmlEscape(v)
+}
+
+func writeStaticStepper(sb *strings.Builder, e *Element, ind string) {
+	value := staticIntAttr(e, "value", 0)
+	vertical := attrBoolDefault(e, "vertical", false)
+	steps := childElemsByTag(e, "step")
+	sb.WriteString(ind + "<div class=\"sui-stepper")
+	if vertical {
+		sb.WriteString(" sui-stepper-vertical")
+	}
+	staticClassSuffix(sb, e)
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString("\">\n")
+	for i, st := range steps {
+		cls := "sui-step"
+		if value > i {
+			cls += " done"
+		} else if value == i {
+			cls += " active"
+		}
+		sb.WriteString(ind + "  <div class=\"" + cls + staticClassSuffixStr(st) + "\" data-sui-step-index=\"" + strconv.Itoa(i) + "\">\n")
+		sb.WriteString(ind + "    <span class=\"sui-step-num\">")
+		if icon := attrLiteral(st, "icon"); icon != "" {
+			sb.WriteString(htmlEscape(icon))
+		} else if value > i {
+			sb.WriteString("&#10003;")
+		} else {
+			sb.WriteString(strconv.Itoa(i + 1))
+		}
+		sb.WriteString("</span>\n")
+		sb.WriteString(ind + "    <span class=\"sui-step-text\"><span class=\"sui-step-label\">" + htmlEscape(partsContent(st.text)) + "</span>")
+		if desc := attrLiteral(st, "description"); desc != "" {
+			sb.WriteString("<span class=\"sui-step-desc\">" + htmlEscape(desc) + "</span>")
+		}
+		sb.WriteString("</span>\n")
+		sb.WriteString(ind + "  </div>\n")
+		if i < len(steps)-1 {
+			sb.WriteString(ind + "  <span class=\"sui-step-line\"></span>\n")
+		}
+	}
+	sb.WriteString(ind + "</div>\n")
+}
+
+func writeStaticCommandbar(sb *strings.Builder, e *Element, ind string) {
+	overlay := findAttr(e, "open") != nil
+	open := false
+	if overlay {
+		if a := findAttr(e, "open"); a != nil && !a.hasExpr {
+			v := strings.TrimSpace(strings.ToLower(partsContent(a.text)))
+			open = v != "" && v != "false" && v != "0"
+		}
+	}
+	placeholder := attrLiteral(e, "placeholder")
+	if placeholder == "" {
+		placeholder = strings.TrimSpace(partsContent(e.text))
+	}
+	if placeholder == "" {
+		placeholder = "Type a command..."
+	}
+	hotkey := strings.ToLower(attrLiteral(e, "hotkey"))
+	sb.WriteString(ind + "<div class=\"sui-commandbar")
+	if overlay {
+		sb.WriteString(" sui-commandbar-overlay")
+	}
+	staticClassSuffix(sb, e)
+	sb.WriteString("\" data-sui-commandbar")
+	if overlay {
+		sb.WriteString(" data-sui-commandbar-overlay data-sui-commandbar-open=\"" + bool01(open) + "\"")
+		if hotkey != "" {
+			sb.WriteString(" data-sui-commandbar-hotkey=\"" + htmlEscape(hotkey[:1]) + "\"")
+		}
+	}
+	staticUserAttrsNoClass(sb, e, "")
+	sb.WriteString(">\n")
+	if overlay {
+		sb.WriteString(ind + "  <div class=\"sui-commandbar-backdrop\" data-sui-commandbar-close></div>\n")
+	}
+	sb.WriteString(ind + "  <div class=\"sui-commandbar-panel\" role=\"dialog\" aria-modal=\"" + bool01(overlay) + "\">\n")
+	sb.WriteString(ind + "    <input class=\"sui-commandbar-input\" type=\"text\" placeholder=\"" + htmlEscape(placeholder) + "\" aria-label=\"" + htmlEscape(placeholder) + "\" autocomplete=\"off\" spellcheck=\"false\">\n")
+	sb.WriteString(ind + "    <div class=\"sui-commandbar-list\" role=\"listbox\">\n")
+	for i, cmd := range childElemsByTag(e, "command") {
+		cls := "sui-command"
+		if i == 0 {
+			cls += " active"
+		}
+		label := partsContent(cmd.text)
+		shortcut := attrLiteral(cmd, "shortcut")
+		sb.WriteString(ind + "      <button type=\"button\" class=\"" + cls + staticClassSuffixStr(cmd) + "\" role=\"option\" data-sui-command-index=\"" + strconv.Itoa(i) + "\" data-sui-command-search=\"" + htmlEscape(strings.ToLower(label+" "+shortcut)) + "\" data-sui-command-label=\"" + htmlEscape(label) + "\">")
+		sb.WriteString("<span class=\"sui-command-label\">" + htmlEscape(label) + "</span>")
+		if shortcut != "" {
+			sb.WriteString("<span class=\"sui-command-shortcut\">" + htmlEscape(shortcut) + "</span>")
+		}
+		sb.WriteString("</button>\n")
+	}
+	sb.WriteString(ind + "    </div>\n")
+	sb.WriteString(ind + "    <div class=\"sui-commandbar-empty\" hidden>No matching commands</div>\n")
+	sb.WriteString(ind + "  </div>\n")
+	sb.WriteString(ind + "</div>\n")
+}
+
 func writeStaticDropzone(sb *strings.Builder, e *Element, ind string) {
 	label := partsContent(e.text)
 	if strings.TrimSpace(label) == "" {
@@ -7238,7 +7612,9 @@ func writeStaticDropzone(sb *strings.Builder, e *Element, ind string) {
 		hint = "Drag a folder here or click to choose"
 	}
 	sb.WriteString(ind)
-	sb.WriteString("<div class=\"sui-dropzone\" data-sui-dropzone=\"1\"")
+	sb.WriteString("<div class=\"sui-dropzone")
+	staticClassSuffix(sb, e)
+	sb.WriteString("\" data-sui-dropzone=\"1\"")
 	if a := findAttr(e, "dropFiles"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
 		sb.WriteString(" data-sui-dropfiles=\"" + setterName(a.expr.name) + "\"")
 	}
@@ -7261,7 +7637,6 @@ func writeStaticDropzone(sb *strings.Builder, e *Element, ind string) {
 			sb.WriteString(" data-sui-pick-mode=\"" + v + "\"")
 		}
 	}
-	staticClassSuffix(sb, e)
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	sb.WriteString(ind + "  <span class=\"sui-dropzone-icon\" aria-hidden=\"true\">&#8681;</span>\n")
@@ -7302,8 +7677,9 @@ func writeStaticSplitter(sb *strings.Builder, e *Element, ind string) {
 		}
 	}
 	sb.WriteString(ind)
-	sb.WriteString("<div class=\"sui-splitter sui-splitter-" + direction + "\" data-sui-splitter data-sui-splitter-direction=\"" + direction + "\" data-sui-splitter-min=\"" + htmlEscape(min) + "\"")
+	sb.WriteString("<div class=\"sui-splitter sui-splitter-" + direction)
 	staticClassSuffix(sb, e)
+	sb.WriteString("\" data-sui-splitter data-sui-splitter-direction=\"" + direction + "\" data-sui-splitter-min=\"" + htmlEscape(min) + "\"")
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	for i := 0; i < len(panes); i++ {
@@ -7341,8 +7717,9 @@ func writeStaticDrawer(sb *strings.Builder, e *Element, ind string) {
 		}
 	}
 	sb.WriteString(ind)
-	sb.WriteString("<div data-sui-drawer data-sui-drawer-open=\"" + bool01(open) + "\"")
+	sb.WriteString("<div class=\"sui-drawer-host")
 	staticClassSuffix(sb, e)
+	sb.WriteString("\" data-sui-drawer data-sui-drawer-open=\"" + bool01(open) + "\"")
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	sb.WriteString(ind + "  <div class=\"sui-drawer-backdrop\" data-sui-drawer-backdrop></div>\n")
@@ -7370,8 +7747,9 @@ func writeStaticPopover(sb *strings.Builder, e *Element, ind string) {
 		label = "Info"
 	}
 	sb.WriteString(ind)
-	sb.WriteString("<span class=\"sui-popover\" data-sui-popover data-sui-popover-position=\"" + pos + "\"")
+	sb.WriteString("<span class=\"sui-popover")
 	staticClassSuffix(sb, e)
+	sb.WriteString("\" data-sui-popover data-sui-popover-position=\"" + pos + "\"")
 	staticUserAttrsNoClass(sb, e, "")
 	sb.WriteString(">\n")
 	sb.WriteString(ind + "  <button type=\"button\" class=\"sui-popover-trigger\" data-sui-popover-trigger aria-haspopup=\"dialog\" aria-expanded=\"false\">")
@@ -7502,6 +7880,33 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			continue
 		}
 		if e.tag == "dropzone" && (a.key == "accept" || a.key == "multiple" || a.key == "directory" || a.key == "hint") {
+			continue
+		}
+		if e.tag == "timelineitem" && (a.key == "date" || a.key == "status") {
+			continue
+		}
+		if e.tag == "emptystate" && (a.key == "icon" || a.key == "hint" || a.key == "compact") {
+			continue
+		}
+		if e.tag == "skeleton" && (a.key == "lines" || a.key == "width" || a.key == "height" || a.key == "circle" || a.key == "animated" || a.key == "gap") {
+			continue
+		}
+		if e.tag == "carousel" && (a.key == "value" || a.key == "autoplay" || a.key == "interval" || a.key == "loop" || a.key == "controls" || a.key == "indicators" || a.key == "height") {
+			continue
+		}
+		if e.tag == "slide" && a.key == "label" {
+			continue
+		}
+		if e.tag == "stepper" && (a.key == "value" || a.key == "clickable" || a.key == "vertical") {
+			continue
+		}
+		if e.tag == "step" && (a.key == "description" || a.key == "icon") {
+			continue
+		}
+		if e.tag == "commandbar" && (a.key == "open" || a.key == "hotkey" || a.key == "placeholder") {
+			continue
+		}
+		if e.tag == "command" && a.key == "shortcut" {
 			continue
 		}
 		if e.tag == "tablelayout" && (a.key == "columns" || a.key == "rows" ||

@@ -905,6 +905,26 @@ La sezione **Dropzone** imposta lo stato di destinazione (`dropFiles`), un
 eventuale stato separato `pickFiles`, `accept`, `multiple`, `directory`,
 `pickMode` e il suggerimento.
 
+## Controlli contenuto e feedback
+
+Il gruppo **Content** della palette fornisce timeline, stato vuoto, skeleton,
+carousel e stepper; la command palette è sotto **Overlay**.
+
+- **Timeline** inserisce tre eventi `timelineitem`. Ogni voce espone **date** e
+  **status** (pending, active, done, error).
+- **Empty state** inserisce icona, titolo, suggerimento e corpo. La sezione
+  **Empty state** imposta icona, hint e modalità compatta.
+- **Skeleton loader** inserisce tre righe animate. Imposta `lines`, `width`,
+  `height`, `gap`, `circle` e `animated`.
+- **Carousel** inserisce slide con pulsanti precedente/successivo e dots. Lega
+  `value` a uno stato intero; la sezione **Carousel** imposta altezza, autoplay,
+  intervallo, loop, controlli e indicatori.
+- **Stepper** inserisce tre passi. Lega `value` a uno stato intero; ogni passo
+  espone una descrizione e un'icona opzionale.
+- **Command palette** inserisce un overlay legato a uno stato `open` con hotkey
+  `k`. Ogni `command` espone una scorciatoia e il suo handler `onClick`. Senza
+  `open` lo stesso controllo resta inline.
+
 ## Pagine
 
 Ogni progetto ha una o più pagine. I **chip pagina sopra il preview** sono il

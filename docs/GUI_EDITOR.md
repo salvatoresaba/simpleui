@@ -869,6 +869,26 @@ keep exactly two panes.
 **Dropzone** section sets the target state (`dropFiles`), an optional separate
 `pickFiles` state, `accept`, `multiple`, `directory`, `pickMode` and the hint.
 
+## Content and feedback controls
+
+The **Content** palette group provides timeline, empty state, skeleton, carousel
+and stepper; the command palette is under **Overlay**.
+
+- **Timeline** inserts three `timelineitem` events. Each item exposes **date**
+  and **status** (pending, active, done, error).
+- **Empty state** inserts an icon, title, hint and body. The **Empty state**
+  section sets the icon, hint and compact mode.
+- **Skeleton loader** inserts three animated lines. Set `lines`, `width`,
+  `height`, `gap`, `circle` and `animated`.
+- **Carousel** inserts slides with previous/next buttons and dots. Bind `value`
+  to an int state; the **Carousel** section sets height, autoplay, interval,
+  loop, controls and indicators.
+- **Stepper** inserts three steps. Bind `value` to an int state; each step
+  exposes a description and an optional icon.
+- **Command palette** inserts an overlay bound to an `open` state with a `k`
+  hotkey. Each `command` exposes a shortcut and its `onClick` handler. Without
+  `open`, the same control stays inline.
+
 ## Pages
 
 Every project has one or more pages. The **page chips above the preview** are

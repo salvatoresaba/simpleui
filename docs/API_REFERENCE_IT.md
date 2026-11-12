@@ -372,6 +372,142 @@ una riga di stato mostra il valore dello stato finché non è vuoto. Nomi e
 percorsi sono escapati come testo dal runtime. Nel designer scegliere
 **Controls > File dropzone**.
 
+## Timeline
+
+`timeline` impila figli `timelineitem`. Ogni voce mostra un titolo (il suo
+testo), una `date` opzionale, un punto di stato e contenuto ricco opzionale:
+
+```sui
+timeline {
+	timelineitem "Progetto creato" date: "10 nov, 09:12" status: "done"
+	timelineitem "Build completata" date: "10 nov, 09:30" status: "active" {
+		p "Gli artefatti sono pronti."
+	}
+}
+```
+
+`status` è `pending` (default), `active`, `done` o `error`. Vengono renderizzati
+solo i figli diretti `timelineitem`. Nel designer scegliere **Content >
+Timeline**.
+
+## Empty state
+
+`emptystate` è un segnaposto centrato con icona, titolo, suggerimento e azioni
+figlie opzionali:
+
+```sui
+emptystate "Nessun progetto" icon: "▢" hint: "Crea il primo progetto." {
+	button "Nuovo progetto" onClick: newProject
+}
+```
+
+`icon` e `hint` sono opzionali; `compact: true` riduce il padding. Nel designer
+scegliere **Content > Empty state**.
+
+## Skeleton
+
+`skeleton` mostra righe segnaposto animate o un cerchio durante il caricamento:
+
+```sui
+skeleton lines: 3 width: "80%" height: "12px" gap: "8px"
+skeleton circle: true height: "48px"
+```
+
+| Attributo | Significato |
+|---|---|
+| `lines` | Numero di righe, default 3 (1-20). |
+| `width` | Larghezza del blocco, default `100%`. |
+| `height` | Dimensione riga/cerchio, default `12px`. |
+| `gap` | Spazio tra le righe, default `8px`. |
+| `circle` | Mostra un cerchio invece delle righe. |
+| `animated` | `false` disabilita l'animazione. |
+
+`simpleui check` rifiuta i figli di skeleton. Nel designer scegliere **Content >
+Skeleton loader**.
+
+## Carousel
+
+`carousel` mostra una `slide` alla volta. La slide attiva può essere legata a
+uno stato intero con `value`; frecce, dots e tasti sinistra/destra lo aggiornano:
+
+```sui
+state slide = 0
+
+carousel value: slide height: "180px" {
+	slide label: "Benvenuto" {
+		h2 "Benvenuto"
+		p "La prima slide."
+	}
+	slide label: "Layout" {
+		h2 "Layout"
+		p "La seconda slide."
+	}
+}
+```
+
+| Attributo | Significato |
+|---|---|
+| `value` | Indice della slide attiva (stato o intero), default 0. |
+| `height` | Altezza minima della slide. |
+| `controls` | Pulsanti precedente/successivo, default true. |
+| `indicators` | Dots, default true. |
+| `loop` | Ripartizione circolare, default true. |
+| `autoplay` | Avanzamento automatico, default false. |
+| `interval` | Ritardo autoplay in ms, default 4000. |
+
+La `label` di ogni slide è il nome accessibile. Un carousel richiede almeno una
+slide e rifiuta altri figli. Nel designer scegliere **Content > Carousel**.
+
+## Stepper
+
+`stepper` mostra passi numerati e un indice corrente. Legare `value` a uno stato
+intero; con `clickable: true` (default quando è legato) il click su un passo o
+Invio/Spazio lo aggiorna:
+
+```sui
+state step = 1
+
+stepper value: step {
+	step "Dettagli" description: "Nome e proprietario"
+	step "Pagamento" description: "Metodo"
+	step "Conferma"
+}
+```
+
+I passi completati mostrano una spunta, quello corrente è evidenziato e la
+`description` opzionale appare sotto l'etichetta. `vertical: true` impila i
+passi. Uno stepper richiede almeno un figlio `step` e rifiuta gli altri. Nel
+designer scegliere **Content > Stepper**.
+
+## Command palette
+
+`commandbar` è un elenco di comandi ricercabile. Senza `open` resta inline; con
+uno stato `open` diventa un overlay che Ctrl/Cmd + `hotkey` apre, Esc chiude, le
+frecce scorrono e Invio esegue:
+
+```sui
+state showPalette = false
+
+fn newProject() -> null {
+}
+
+commandbar "Cerca comandi" open: showPalette hotkey: "k" {
+	command "Nuovo progetto" shortcut: "Ctrl N" onClick: newProject
+	command "Apri impostazioni" shortcut: "Ctrl ," onClick: openSettings
+}
+```
+
+| Attributo | Significato |
+|---|---|
+| `open` | Stato opzionale che controlla l'overlay. |
+| `hotkey` | Singolo tasto usato con Ctrl/Cmd, ad esempio `k`. |
+| `placeholder` | Placeholder di ricerca; default al testo dell'elemento. |
+
+Ogni `command` richiede il testo; `shortcut` è solo visuale e `onClick` esegue
+l'azione. La digitazione filtra per etichetta e scorciatoia, e appare "No
+matching commands" quando non c'è corrispondenza. Nel designer scegliere
+**Overlay > Command palette**.
+
 ## Tabs
 
 `tabs` crea una barra di schede; ogni figlio diretto `tab` fornisce l'etichetta

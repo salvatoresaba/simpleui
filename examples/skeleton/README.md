@@ -1,0 +1,56 @@
+# Skeleton loader
+
+Animated placeholder lines or a circle used while content loads. Set `lines`, `width`, `height`, `gap`, `circle` and `animated`.
+
+## Complete source
+
+```sui
+state loading = true
+
+fn toggleLoading() -> null {
+	if loading {
+		loading = false
+	} else {
+		loading = true
+	}
+}
+
+css ".skeleton-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .skeleton-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+
+view main {
+	title "Skeleton loader"
+	col class: "skeleton-page" {
+		h1 "Skeleton loader"
+		p "Placeholder lines shown while content loads." class: "skeleton-note"
+		if loading {
+			card {
+				skeleton lines: 2 width: "40%" height: "16px"
+				skeleton lines: 4 width: "100%" height: "10px"
+			}
+			row {
+				skeleton circle: true height: "48px"
+				skeleton lines: 3 width: "70%" height: "10px"
+			}
+		} else {
+			card {
+				h3 "Project Alpha"
+				p "Everything loaded. This card replaced the skeleton."
+			}
+		}
+		button "Toggle loading" onClick: toggleLoading
+	}
+}
+```
+
+## Designer
+
+Choose **Content > Skeleton loader** in the palette. The **Skeleton** section sets the line count, sizes, gap, circle and animation.
+
+## Build
+
+```bash
+simpleui check app.sui --json
+simpleui build app.sui --out dist
+simpleui build app.sui --target desktop --out dist
+```
+

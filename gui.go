@@ -3046,6 +3046,48 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			o.obj["separator"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if e.tag == "dropzone" && a.key == "hint" {
 			o.obj["hint"] = JStr(partsLiteral(a.text))
+		} else if e.tag == "timelineitem" && (a.key == "date" || a.key == "status") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "emptystate" && (a.key == "icon" || a.key == "hint") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "emptystate" && a.key == "compact" {
+			o.obj["compact"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if e.tag == "skeleton" && (a.key == "width" || a.key == "height" || a.key == "gap") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "skeleton" && (a.key == "lines" || a.key == "circle" || a.key == "animated") {
+			if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
+				o.obj[a.key] = JStr(strconv.Itoa(a.expr.i))
+			} else if a.key == "lines" {
+				o.obj[a.key] = JStr(partsLiteral(a.text))
+			} else {
+				o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+			}
+		} else if e.tag == "carousel" && (a.key == "autoplay" || a.key == "loop" || a.key == "controls" || a.key == "indicators") {
+			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if e.tag == "carousel" && a.key == "interval" {
+			if a.hasExpr && a.expr != nil && a.expr.kind == "int" {
+				o.obj["interval"] = JStr(strconv.Itoa(a.expr.i))
+			} else {
+				o.obj["interval"] = JStr(partsLiteral(a.text))
+			}
+		} else if e.tag == "carousel" && a.key == "height" {
+			o.obj["height"] = JStr(partsLiteral(a.text))
+		} else if e.tag == "slide" && a.key == "label" {
+			o.obj["label"] = JStr(partsLiteral(a.text))
+		} else if e.tag == "stepper" && (a.key == "clickable" || a.key == "vertical") {
+			o.obj[a.key] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
+		} else if e.tag == "step" && (a.key == "description" || a.key == "icon") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "commandbar" && a.key == "open" {
+			if a.hasExpr && a.expr != nil {
+				o.obj["open"] = JStr(exprSource(a.expr))
+			} else {
+				o.obj["open"] = JStr(partsLiteral(a.text))
+			}
+		} else if e.tag == "commandbar" && (a.key == "hotkey" || a.key == "placeholder") {
+			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if e.tag == "command" && a.key == "shortcut" {
+			o.obj["shortcut"] = JStr(partsLiteral(a.text))
 		} else if a.key == "open" {
 			o.obj["open"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "rename" {

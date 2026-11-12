@@ -1851,9 +1851,10 @@ var PALETTE = [
   { group: "Page", tags: [], newpage: true },
   { group: "Layout", tags: ["div", "header", "footer", "section", "row", "col", "spacer", "card", "tablelayout"],
     subs: [ { name: "Navigation", tags: ["menubar", "menu", "menuitem", "tabs", "tab", "accordion", "accordionitem", "divider"] } ] },
-  { group: "Overlay", tags: ["modal", "modalbutton", "toast"] },
+  { group: "Overlay", tags: ["modal", "modalbutton", "toast", "commandbar", "command"] },
   { group: "Text", tags: ["h1", "h2", "h3", "p", "text", "hr", "blockquote", "pre"],
     subs: [ { name: "Lists", tags: ["list", "ul", "ol"] } ] },
+  { group: "Content", tags: ["timeline", "timelineitem", "emptystate", "skeleton", "carousel", "slide", "stepper", "step"] },
   { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "chart", "graph", "dropdown", "popover", "drawer", "splitter", "pane", "dropzone"],
     subs: [ { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] } ] },
   { group: "Tables", tags: ["table"] },
@@ -1871,6 +1872,11 @@ var PALETTE_LABEL = {
   drawer: "Drawer",
   splitter: "Split panes", pane: "Split pane",
   dropzone: "File dropzone",
+  timeline: "Timeline", timelineitem: "Timeline event",
+  emptystate: "Empty state", skeleton: "Skeleton loader",
+  carousel: "Carousel", slide: "Carousel slide",
+  stepper: "Stepper", step: "Stepper step",
+  commandbar: "Command palette", command: "Command",
   tablelayout: "Table layout",
   layoutcell: "Layout cell",
   tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph",
@@ -1960,6 +1966,16 @@ var TAG_FIELDS = {
   splitter: ["direction", "initial", "min"],
   pane: [],
   dropzone: ["text", "dropFiles", "pickFiles", "accept", "multiple", "directory", "pickMode", "hint"],
+  timeline: ["text"],
+  timelineitem: ["text", "date", "status"],
+  emptystate: ["text", "icon", "hint", "compact"],
+  skeleton: ["lines", "width", "height", "gap", "circle", "animated"],
+  carousel: ["text", "value", "autoplay", "interval", "loop", "controls", "indicators", "height"],
+  slide: ["label"],
+  stepper: ["value", "clickable", "vertical"],
+  step: ["text", "description", "icon"],
+  commandbar: ["text", "open", "hotkey", "placeholder"],
+  command: ["text", "shortcut"],
   accordion: ["text"],
   accordionitem: ["text"],
   tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
@@ -2350,6 +2366,91 @@ function newDropzoneNode() {
   n.hint = "";
   return n;
 }
+function newTimelineItemNode(label) {
+  var n = newNode("timelineitem");
+  n.text = label || "Event";
+  n.date = "";
+  n.status = "pending";
+  return n;
+}
+function newTimelineNode() {
+  var n = newNode("timeline");
+  n.children = [newTimelineItemNode("Event 1"), newTimelineItemNode("Event 2"), newTimelineItemNode("Event 3")];
+  n.children[0].status = "done";
+  n.children[1].status = "active";
+  return n;
+}
+function newEmptyStateNode() {
+  var n = newNode("emptystate");
+  n.text = "Nothing here";
+  n.icon = "▢";
+  n.hint = "";
+  n.compact = false;
+  var p = newNode("p");
+  p.text = "Create the first item to get started.";
+  n.children = [p];
+  return n;
+}
+function newSkeletonNode() {
+  var n = newNode("skeleton");
+  n.lines = 3;
+  n.width = "100%";
+  n.height = "12px";
+  n.gap = "8px";
+  n.circle = false;
+  n.animated = true;
+  return n;
+}
+function newSlideNode(label) {
+  var n = newNode("slide");
+  n.label = label || "Slide";
+  var p = newNode("p");
+  p.text = label || "Slide content";
+  n.children = [p];
+  return n;
+}
+function newCarouselNode() {
+  var n = newNode("carousel");
+  n.value = "0";
+  n.autoplay = false;
+  n.interval = 4000;
+  n.loop = true;
+  n.controls = true;
+  n.indicators = true;
+  n.height = "";
+  n.children = [newSlideNode("Slide 1"), newSlideNode("Slide 2"), newSlideNode("Slide 3")];
+  return n;
+}
+function newStepNode(label, description) {
+  var n = newNode("step");
+  n.text = label || "Step";
+  n.description = description || "";
+  n.icon = "";
+  return n;
+}
+function newStepperNode() {
+  var n = newNode("stepper");
+  n.value = "0";
+  n.clickable = true;
+  n.vertical = false;
+  n.children = [newStepNode("Details"), newStepNode("Payment"), newStepNode("Confirm")];
+  return n;
+}
+function newCommandNode(label, shortcut) {
+  var n = newNode("command");
+  n.text = label || "Command";
+  n.shortcut = shortcut || "";
+  return n;
+}
+function newCommandbarNode() {
+  var n = newNode("commandbar");
+  n.text = "Type a command...";
+  n.placeholder = "";
+  n.open = "";
+  n.hotkey = "k";
+  n.children = [newCommandNode("New project", "Ctrl N"), newCommandNode("Open settings", "Ctrl ,"), newCommandNode("Help", "F1")];
+  return n;
+}
 function newTreeItemNode(label) {
   var n = newNode("treeitem");
   n.text = label || "Item";
@@ -2510,6 +2611,16 @@ function newNodeForKind(kind) {
   if (kind === "splitter") return newSplitterNode();
   if (kind === "pane") return newPaneNode("Pane content");
   if (kind === "dropzone") return newDropzoneNode();
+  if (kind === "timeline") return newTimelineNode();
+  if (kind === "timelineitem") return newTimelineItemNode("Event");
+  if (kind === "emptystate") return newEmptyStateNode();
+  if (kind === "skeleton") return newSkeletonNode();
+  if (kind === "carousel") return newCarouselNode();
+  if (kind === "slide") return newSlideNode("Slide");
+  if (kind === "stepper") return newStepperNode();
+  if (kind === "step") return newStepNode("Step");
+  if (kind === "commandbar") return newCommandbarNode();
+  if (kind === "command") return newCommandNode("Command");
   if (kind === "tree") return newTreeNode();
   if (kind === "treeitem") return newTreeItemNode("Item");
   if (kind === "chart") return newChartNode();
@@ -4031,9 +4142,12 @@ function upd(field, value) {
     }
     if (field === "onClick" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasFn(node[field])) root.funcs.push({ name: node[field], params: "", ret: "null" });
     if ((field === "dropFiles" || field === "pickFiles") && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "\"\"" });
-    if (field === "open" && node.kind === "drawer" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "false" });
+    if (field === "open" && (node.kind === "drawer" || node.kind === "commandbar") && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "false" });
     if (field === "onClose" && node.kind === "drawer" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasFn(node[field])) root.funcs.push({ name: node[field], params: "", ret: "null" });
-    if (field === "value" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "\"\"" });
+    if (field === "value" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) {
+      var vinit = (node.kind === "carousel" || node.kind === "stepper") ? "0" : "\"\"";
+      root.states.push({ name: node[field], init: vinit });
+    }
     if (field === "checked" && IDENT.test(node[field]) && !RESERVED_NAME.test(node[field]) && !hasState(node[field])) root.states.push({ name: node[field], init: "false" });
   });
   renderTree(); renderView(); setOut(); autoPreview();
@@ -5034,6 +5148,9 @@ function renderInspector() {
   if (nodes.length === 1 && n && n.kind === "dropzone") {
     box.appendChild(dropzoneControls(n));
   }
+  if (nodes.length === 1 && n && ["timelineitem", "emptystate", "skeleton", "carousel", "stepper", "step", "commandbar", "command"].indexOf(n.kind) >= 0) {
+    box.appendChild(block3Controls(n));
+  }
   if (nodes.length === 1 && n && (n.kind === "tabs" || n.kind === "tab")) {
     var tabsHint = document.createElement("div");
     tabsHint.className = "hint";
@@ -5295,13 +5412,14 @@ var TEXT_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:
   li:1, legend:1, label:1, tcell:1, option:1, button:1, a:1, checkbox:1, switch:1, radio:1, card:1, badge:1, alert:1,
   tabs:1, tab:1, accordion:1, accordionitem:1, tree:1, treeitem:1, chart:1,
   dropdown:1, dropdownitem:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1,
+  timeline:1, timelineitem:1, emptystate:1, carousel:1, slide:1, stepper:1, step:1, commandbar:1, command:1,
   modal:1, modalbutton:1, menubar:1, menu:1, menuitem:1 };
 var LINK_KINDS = { a:1 };
 var SRC_KINDS = { img:1, video:1, audio:1, iframe:1 };
 // Flow-level shaping (display/flex/grid internals) only makes sense on
 // containers and block/lexical elements.
-var BOX_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:1, aside:1, block:1, row:1, col:1, card:1, form:1, fieldset:1, tabs:1, tab:1, accordion:1, accordionitem:1, toast:1, modal:1, menubar:1, menu:1, ul:1, ol:1, list:1, body:1, chart:1, dropdown:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1 };
-var LEX_KINDS = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, pre:1, blockquote:1, code:1, mark:1, strong:1, em:1, small:1, span:1, legend:1, li:1, a:1, button:1, badge:1, alert:1, text:1, menuitem:1, dropdownitem:1 };
+var BOX_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:1, aside:1, block:1, row:1, col:1, card:1, form:1, fieldset:1, tabs:1, tab:1, accordion:1, accordionitem:1, toast:1, modal:1, menubar:1, menu:1, ul:1, ol:1, list:1, body:1, chart:1, dropdown:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1, timeline:1, timelineitem:1, emptystate:1, carousel:1, slide:1, stepper:1, step:1, commandbar:1 };
+var LEX_KINDS = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, pre:1, blockquote:1, code:1, mark:1, strong:1, em:1, small:1, span:1, legend:1, li:1, a:1, button:1, badge:1, alert:1, text:1, menuitem:1, dropdownitem:1, command:1 };
 var TEXTWIDGET_KINDS = { input:1, textarea:1, select:1, combobox:1, datepicker:1, number:1, date:1, time:1 };
 // Pure layout rules/spacers: their whole job is positioning, they cannot be
 // aligned inside a flow and their font/text settings are meaningless.
@@ -5922,6 +6040,99 @@ function dropzoneControls(n) {
   row.appendChild(sel); b.appendChild(row);
   var hint = document.createElement("div"); hint.className = "hint";
   hint.textContent = "dropFiles accepts dragged files/folders; clicking the zone opens the picker. Set a string state first (the field creates it).";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function block3Controls(n) {
+  var labels = { timelineitem: "Timeline event", emptystate: "Empty state", skeleton: "Skeleton", carousel: "Carousel", stepper: "Stepper", step: "Step", commandbar: "Command palette", command: "Command" };
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>' + (labels[n.kind] || "Component") + '</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  function textRow(label, field, placeholder) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var inp = document.createElement("input");
+    inp.value = n[field] !== undefined && n[field] !== null ? String(n[field]) : "";
+    inp.placeholder = placeholder || ""; inp.spellcheck = false;
+    inp.onchange = function(){ upd(field, inp.value.trim()); };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  function numberRow(label, field) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var inp = document.createElement("input"); inp.type = "number"; inp.value = n[field] !== undefined ? n[field] : "";
+    inp.style.flex = "none"; inp.style.width = "80px";
+    inp.onchange = function(){ upd(field, Number(inp.value) || 0); };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  function checkRow(label, field) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var inp = document.createElement("input"); inp.type = "checkbox"; inp.checked = !!n[field];
+    inp.style.flex = "none";
+    inp.onchange = function(){ upd(field, !!inp.checked); };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  if (n.kind === "timelineitem") {
+    textRow("date", "date", "10 Nov, 09:12");
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl("status"));
+    var sel = document.createElement("select");
+    [["pending", "pending"], ["active", "active"], ["done", "done"], ["error", "error"]].forEach(function(o){
+      var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+      if ((n.status || "pending") === o[0]) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = function(){ upd("status", sel.value); };
+    row.appendChild(sel); b.appendChild(row);
+  }
+  if (n.kind === "emptystate") {
+    textRow("icon", "icon", "▢");
+    textRow("hint", "hint", "Optional secondary text");
+    checkRow("compact", "compact");
+  }
+  if (n.kind === "skeleton") {
+    numberRow("lines", "lines");
+    textRow("width", "width", "100%");
+    textRow("height", "height", "12px");
+    textRow("gap", "gap", "8px");
+    checkRow("circle", "circle");
+    checkRow("animated", "animated");
+  }
+  if (n.kind === "carousel") {
+    textRow("value", "value", "state name or 0");
+    textRow("height", "height", "160px");
+    numberRow("interval", "interval");
+    checkRow("autoplay", "autoplay");
+    checkRow("loop", "loop");
+    checkRow("controls", "controls");
+    checkRow("indicators", "indicators");
+  }
+  if (n.kind === "stepper") {
+    textRow("value", "value", "state name or 0");
+    checkRow("clickable", "clickable");
+    checkRow("vertical", "vertical");
+  }
+  if (n.kind === "step") {
+    textRow("description", "description", "Optional description");
+    textRow("icon", "icon", "Optional icon/emoji");
+  }
+  if (n.kind === "commandbar") {
+    textRow("open", "open", "state name (empty = inline)");
+    textRow("hotkey", "hotkey", "k");
+    textRow("placeholder", "placeholder", "Type a command...");
+  }
+  if (n.kind === "command") {
+    textRow("shortcut", "shortcut", "Ctrl N");
+  }
+  var hint = document.createElement("div"); hint.className = "hint";
+  if (n.kind === "commandbar") hint.textContent = "Without open the palette stays inline. With a state, Ctrl/Cmd + hotkey opens the overlay and Escape closes it.";
+  else if (n.kind === "carousel" || n.kind === "stepper") hint.textContent = "Bind value to an int state so arrows, dots or steps update the app state.";
+  else hint.textContent = "Edit visible text from the Text field; this section exposes the component-specific options.";
   b.appendChild(hint);
   a.appendChild(b);
   return a;
@@ -12132,6 +12343,46 @@ function attrsOf(n) {
     if (n.min) a += " min: \"" + esc(n.min) + "\"";
   }
   if (n.kind === "dropdownitem" && n.separator) a += " separator: true";
+  if (n.kind === "timelineitem") {
+    if (n.date) a += " date: \"" + esc(n.date) + "\"";
+    if (n.status) a += " status: \"" + esc(n.status) + "\"";
+  }
+  if (n.kind === "emptystate") {
+    if (n.icon) a += " icon: \"" + esc(n.icon) + "\"";
+    if (n.hint) a += " hint: \"" + esc(n.hint) + "\"";
+    if (n.compact) a += " compact: true";
+  }
+  if (n.kind === "skeleton") {
+    if (n.lines) a += " lines: " + n.lines;
+    if (n.width) a += " width: \"" + esc(n.width) + "\"";
+    if (n.height) a += " height: \"" + esc(n.height) + "\"";
+    if (n.gap) a += " gap: \"" + esc(n.gap) + "\"";
+    if (n.circle) a += " circle: true";
+    if (n.animated === false) a += " animated: false";
+  }
+  if (n.kind === "carousel") {
+    if (n.autoplay) a += " autoplay: true";
+    if (n.interval) a += " interval: " + n.interval;
+    if (n.loop === false) a += " loop: false";
+    if (n.controls === false) a += " controls: false";
+    if (n.indicators === false) a += " indicators: false";
+    if (n.height) a += " height: \"" + esc(n.height) + "\"";
+  }
+  if (n.kind === "slide" && n.label) a += " label: \"" + esc(n.label) + "\"";
+  if (n.kind === "stepper") {
+    if (n.clickable === false) a += " clickable: false";
+    if (n.vertical) a += " vertical: true";
+  }
+  if (n.kind === "step") {
+    if (n.description) a += " description: \"" + esc(n.description) + "\"";
+    if (n.icon) a += " icon: \"" + esc(n.icon) + "\"";
+  }
+  if (n.kind === "commandbar") {
+    if (n.open) a += " open: " + n.open;
+    if (n.hotkey) a += " hotkey: \"" + esc(n.hotkey) + "\"";
+    if (n.placeholder) a += " placeholder: \"" + esc(n.placeholder) + "\"";
+  }
+  if (n.kind === "command" && n.shortcut) a += " shortcut: \"" + esc(n.shortcut) + "\"";
   if (n.close === false) a += " close: false";
   if (n.min && n.kind !== "splitter") a += " min: " + (n.kind === "datepicker" ? "\"" + esc(n.min) + "\"" : bondOut(n.min));
   if (n.max) a += " max: " + (n.kind === "datepicker" ? "\"" + esc(n.max) + "\"" : bondOut(n.max));

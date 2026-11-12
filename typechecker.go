@@ -2907,7 +2907,9 @@ func isAllowedTag(tag string) bool {
 		"progress", "badge", "alert", "spinner", "divider", "combobox", "datepicker",
 		"tabs", "tab", "accordion", "accordionitem", "tree", "treeitem", "chart", "graph", "toast",
 		"menubar", "menu", "menuitem", "modal", "modalbutton",
-		"dropdown", "dropdownitem", "popover", "drawer", "splitter", "pane", "dropzone":
+		"dropdown", "dropdownitem", "popover", "drawer", "splitter", "pane", "dropzone",
+		"timeline", "timelineitem", "emptystate", "skeleton", "carousel", "slide",
+		"stepper", "step", "commandbar", "command":
 		return true
 	}
 	return false
@@ -3067,6 +3069,33 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "splitter" && (key == "direction" || key == "initial" || key == "min") {
+		return true
+	}
+	if tag == "timelineitem" && (key == "date" || key == "status") {
+		return true
+	}
+	if tag == "emptystate" && (key == "icon" || key == "hint" || key == "compact") {
+		return true
+	}
+	if tag == "skeleton" && (key == "lines" || key == "width" || key == "height" || key == "circle" || key == "animated" || key == "gap") {
+		return true
+	}
+	if tag == "carousel" && (key == "value" || key == "autoplay" || key == "interval" || key == "loop" || key == "controls" || key == "indicators" || key == "height") {
+		return true
+	}
+	if tag == "slide" && key == "label" {
+		return true
+	}
+	if tag == "stepper" && (key == "value" || key == "clickable" || key == "vertical") {
+		return true
+	}
+	if tag == "step" && (key == "description" || key == "icon") {
+		return true
+	}
+	if tag == "commandbar" && (key == "open" || key == "hotkey" || key == "placeholder") {
+		return true
+	}
+	if tag == "command" && key == "shortcut" {
 		return true
 	}
 	if tag == "label" && key == "for" {
@@ -3330,6 +3359,32 @@ func (c *Checker) checkElement(e *Element) {
 		if panes != 2 {
 			c.diagAt(e.span, "splitter requires exactly two pane children")
 		}
+	}
+	if e.tag == "timeline" || e.tag == "carousel" || e.tag == "stepper" || e.tag == "commandbar" {
+		want := map[string]string{
+			"timeline":   "timelineitem",
+			"carousel":   "slide",
+			"stepper":    "step",
+			"commandbar": "command",
+		}[e.tag]
+		count := 0
+		for i := 0; i < len(e.children); i++ {
+			ch := &e.children[i]
+			if ch.kind != "element" || ch.elem == nil {
+				continue
+			}
+			if ch.elem.tag != want {
+				c.diagAt(ch.elem.span, e.tag+" can only contain "+want+" children")
+				continue
+			}
+			count++
+		}
+		if count == 0 && (e.tag == "carousel" || e.tag == "stepper") {
+			c.diagAt(e.span, e.tag+" requires at least one "+want+" child")
+		}
+	}
+	if e.tag == "skeleton" && len(e.children) > 0 {
+		c.diagAt(e.span, "skeleton cannot contain child elements")
 	}
 	c.checkControlBinding(e)
 	if len(e.children) > 0 {

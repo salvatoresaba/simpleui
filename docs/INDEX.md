@@ -38,6 +38,12 @@ Recommended order for an agent:
 | Side panel with backdrop | [API: drawer](API_REFERENCE.md#drawer) | [GUI editor: drawer](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/drawer/README.md` |
 | Resizable two-pane layout | [API: split panes](API_REFERENCE.md#split-panes) | [GUI editor: splitter](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/splitter/README.md` |
 | File/folder drop area with picker | [API: dropzone](API_REFERENCE.md#file-dropzone) | [GUI editor: dropzone](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/dropzone/README.md` |
+| Dated event history | [API: timeline](API_REFERENCE.md#timeline) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/timeline/README.md` |
+| Empty placeholder with action | [API: empty state](API_REFERENCE.md#empty-state) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/emptystate/README.md` |
+| Loading placeholder | [API: skeleton](API_REFERENCE.md#skeleton) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/skeleton/README.md` |
+| Slideshow with dots and keyboard | [API: carousel](API_REFERENCE.md#carousel) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/carousel/README.md` |
+| Wizard / progress steps | [API: stepper](API_REFERENCE.md#stepper) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/stepper/README.md` |
+| Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |
 | Tabbed content | [API: tabs](API_REFERENCE.md#tabs) | [GUI editor: tabs](GUI_EDITOR.md#tabs-control) | `examples/tabs.sui` |
 | Collapsible sections / FAQ | [API: accordion](API_REFERENCE.md#accordion) | [GUI editor: accordion](GUI_EDITOR.md#accordion-control) | `examples/accordion/README.md` |
 | Toast feedback | [API: toast](API_REFERENCE.md#toast-notifications) | [GUI editor: toast](GUI_EDITOR.md#toast-control) | `examples/toast/README.md` |
