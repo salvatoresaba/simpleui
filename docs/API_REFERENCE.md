@@ -2258,23 +2258,23 @@ auto-flow behavior.
 
 In the designer, **Split vertical** / **Split horizontal** halve the selected
 cells, add the required global row/column boundaries and update the counters.
-Ctrl+click adds cells to the selection; **Merge selected** joins a rectangular
-selection. Rows/columns set through the counters append/remove cells at the
-right/bottom edge. Drag the thin split handles in the preview to resize columns
-or rows; the inspector column-width and row-height fields update with the new
-pixel sizes. Empty cells select with a normal click, occupied cells with
-Alt+click, the small bottom-left triangle, or **Select content** from the cell
-inspector. The green triangle just outside the table's top-left corner selects
-the whole table.
+Ctrl+click adds cells to the selection; **Merge selected** joins cells only when
+the first two share a full side, and every further cell must continue that
+direction. Rows/columns set through the counters append/remove cells at the
+right/bottom edge; reducing them asks whether to remove or move the content of
+the affected cells. Drag the thin split handles in the preview to resize columns
+or rows; **Structure table settings** edits the resulting pixel sizes. Empty
+cells select with a normal click; occupied cells with Alt+click or the
+always-visible bottom-left triangle; clicking a child selects that child. The
+green triangle just outside the table's top-left corner selects the whole table.
 
 The designer exposes it in **Layout > Table layout**. The inspector includes
-presets, rows/columns, table/column/row sizes, separate gaps, cell borders,
-empty-cell height, responsive stacking and semantic/accessibility options.
-Empty cells are clickable in the preview; select one to see its position and add
-a block, or drag a palette item directly into it. **Alt+click** an occupied cell
-to select the cell itself instead of its content; **Select content** drills into
-the child. Select a direct child to edit its **Layout cell** properties: spans,
-padding, alignment, background and per-cell border. Cells are outlined in the
+rows/columns, split/merge, presets (only while the table is empty),
+**Structure table settings**, gaps, empty-cell height, responsive stacking and
+semantic/accessibility options. Table width/height live in **Size** and the
+table border in **Border**. Select a cell to edit its span and position; padding,
+background, border and effects use the generic inspector sections, while
+alignment applies to the elements inside the cell. Cells are outlined in the
 preview while designing.
 See [examples/table_layout](../examples/table_layout/README.md).
 

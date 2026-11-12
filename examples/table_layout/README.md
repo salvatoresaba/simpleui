@@ -24,7 +24,7 @@ data `table` control:
 
 ## Complete source
 
-`sui
+```sui
 # Table layout is a structural container, not the data table control.
 # It renders a real <table> and places each direct child in its own cell.
 # Use `tablelayout` to arrange interface regions in rows/columns; use `table`

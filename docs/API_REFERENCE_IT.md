@@ -2148,26 +2148,25 @@ comportamento automatico precedente.
 
 Nel designer **Split vertical** / **Split horizontal** dividono a metà le celle
 selezionate, aggiungono i confini globali necessari e aggiornano i contatori.
-Ctrl+click aggiunge celle alla selezione; **Merge selected** unisce una selezione
-rettangolare. I contatori di righe/colonne aggiungono o rimuovono celle sul bordo
-destro/inferiore. Trascina le sottili maniglie dei separatori nella preview per
-ridimensionare colonne o righe: i campi column widths e row heights
-dell'inspector si aggiornano con le nuove misure in pixel. Clicca una maniglia
-senza trascinarla per selezionare lo split; Ctrl+click aggiunge altri split e
-**Delete split** unisce le celle adiacenti mantenendone il contenuto. Le celle vuote si
-selezionano con un click normale, quelle occupate con Alt+click, con il piccolo
-triangolo in basso a sinistra o con **Select content**. Il triangolo verde appena
-fuori dall'angolo in alto a sinistra seleziona l'intera tabella; un click dentro
-la prima cella seleziona la cella o il suo contenuto.
-Nel designer è in **Layout > Table layout**. L'inspector include preset, righe e
-colonne, dimensioni della tabella/colonne/righe, spazi separati, bordi delle
-celle, altezza delle celle vuote, impilamento responsive e opzioni
-semantiche/accessibilità. Le celle vuote sono cliccabili nella preview:
-selezionale per vedere la posizione e aggiungere un blocco, oppure trascina un
-elemento dalla palette direttamente dentro la cella. **Alt+click** su una cella
-occupata seleziona la cella stessa invece del contenuto; **Select content** entra
-nell'elemento. Seleziona un figlio diretto per modificare la sezione
-**Layout cell**: span, padding, allineamento, sfondo e bordo della singola cella.
+Ctrl+click aggiunge celle alla selezione; **Merge selected** unisce le celle solo
+se le prime due condividono un lato intero, e ogni cella successiva deve
+continuare nella stessa direzione. I contatori di righe/colonne aggiungono o
+rimuovono celle sul bordo destro/inferiore; riducendoli viene chiesto se
+rimuovere o spostare il contenuto delle celle coinvolte. Trascina le sottili
+maniglie dei separatori nella preview per ridimensionare colonne o righe:
+**Structure table settings** modifica le misure in pixel risultanti. Le celle
+vuote si selezionano con un click normale, quelle occupate con Alt+click o con
+il triangolo in basso a sinistra sempre visibile; cliccando un figlio si
+seleziona il figlio. Il triangolo verde appena fuori dall'angolo in alto a
+sinistra seleziona l'intera tabella; un click dentro la prima cella seleziona la
+cella o il suo contenuto.
+Nel designer è in **Layout > Table layout**. L'inspector include righe e
+colonne, split/merge, preset (solo a tabella vuota), **Structure table
+settings**, spazi, altezza delle celle vuote, impilamento responsive e opzioni
+semantiche/accessibilità. Larghezza/altezza della tabella sono in **Size** e il
+bordo della tabella in **Border**. Seleziona una cella per modificarne span e
+posizione; padding, sfondo, bordo ed effetti usano le sezioni generiche
+dell'inspector, mentre l'allineamento riguarda gli elementi dentro la cella.
 Le celle sono evidenziate nella preview durante la progettazione. Vedi
 [examples/table_layout](../examples/table_layout/README.md).
 

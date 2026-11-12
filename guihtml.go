@@ -9443,8 +9443,8 @@ function renderLayoutStructure() {
   var n = __layoutStructNode;
   if (!n) return;
   var g = layoutGridInfo(n);
-  var cols = Math.max(1, layoutClampInt(n.layoutColumns, 1, 12, g.cols || 1));
-  var rows = Math.max(1, layoutClampInt(n.layoutRows, 1, 50, g.rows || 1));
+  var cols = Math.max(1, g.cols || 1, layoutClampInt(n.layoutColumns, 1, 12, 1));
+  var rows = Math.max(1, g.rows || 1, layoutClampInt(n.layoutRows, 1, 50, 1));
   var meta = document.getElementById("layoutstruct-meta");
   if (meta) {
     var extra = (g.rows > rows || g.cols > cols) ? ("  \u00b7  grid in use: " + g.rows + " rows \u00d7 " + g.cols + " columns") : "";
@@ -9568,6 +9568,9 @@ function layoutTableControls(n) {
       if (psel.value === "") return;
       var p = presets[Number(psel.value)];
       withUndo(function(){
+        (n.children || []).forEach(function(c){
+          if (layoutIsCellNode(c)) { c.layoutColspan = "1"; c.layoutRowspan = "1"; }
+        });
         layoutApplyCounts(n, p.rows, p.columns, "remove");
         n.layoutColumnWidths = p.widths; n.layoutRowHeights = p.heights;
         n.layoutGapX = p.gapX; n.layoutGapY = p.gapY;
