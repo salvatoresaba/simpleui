@@ -5738,9 +5738,14 @@ func rendererJs(p *Prog, v *ViewDecl, ctx *JsCtx, multi bool, base *int) string 
 	for i := 0; i < len(g.wires); i++ {
 		w := g.wires[i]
 		sb.WriteString("  const e" + strconv.Itoa(w.idx) + " = document.querySelector('[data-sui-id=\"" + strconv.Itoa(w.idx) + "\"]');\n")
+		// Conditional branches render only one side, so an element that belongs
+		// to the inactive branch is absent after a re-render. Guard the wiring
+		// instead of throwing and skipping every handler that follows it.
+		sb.WriteString("  if (e" + strconv.Itoa(w.idx) + ") {\n")
 		for j := 0; j < len(w.lines); j++ {
-			sb.WriteString("  " + w.lines[j] + "\n")
+			sb.WriteString("    " + w.lines[j] + "\n")
 		}
+		sb.WriteString("  }\n")
 	}
 	sb.WriteString("  __SUI_TBL.afterRender();\n")
 	sb.WriteString("  __SUI_DND.afterRender();\n")
