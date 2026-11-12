@@ -399,12 +399,14 @@ view main {
 }
 
 func TestTableLayoutCellRuntimeAttrs(t *testing.T) {
-	src := `fn hello() -> null {
+	src := `state picked = ""
+
+fn hello() -> null {
 }
 
 view main {
 	tablelayout columns: 1 {
-		layoutcell row: 0 col: 0 tooltip: "tip" dropKey: "item" onClick: hello onContextMenu: hello {
+		layoutcell row: 0 col: 0 tooltip: "tip" dropKey: "item" dropFiles: picked pickFiles: picked onClick: hello onContextMenu: hello {
 			card "A"
 		}
 	}
@@ -421,6 +423,8 @@ view main {
 		`data-sui-tooltip="tip"`,
 		`data-sui-drop-key="item"`,
 		`data-sui-dropzone="1"`,
+		`data-sui-dropfiles="`,
+		`data-sui-pickfiles="`,
 		`onclick="var __t=event.target.closest('[data-sui-id]'); if (!__t || !this.contains(__t)) hello()"`,
 		`oncontextmenu="var __t=event.target.closest('[data-sui-id]'); if (!__t || !this.contains(__t)) { event.preventDefault(); hello(); }"`,
 	} {

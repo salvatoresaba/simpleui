@@ -32,7 +32,7 @@ fn bumpChild() -> null {
 view main {
 	p "cell {cellClicks} child {childClicks}"
 	tablelayout rows: 1 columns: 1 rowHeights: "200px" {
-		layoutcell row: 0 col: 0 onClick: bumpCell {
+		layoutcell row: 0 col: 0 onClick: bumpCell tooltip: "Cell tip" {
 			button "Child" onClick: bumpChild
 		}
 	}
@@ -122,6 +122,12 @@ const tableLayoutEventsScript = `<script>
     var button = cell && cell.querySelector('button');
     if (!cell || !button) throw new Error('cell or child button not rendered');
     if (status() !== 'cell 0 child 0') throw new Error('unexpected initial state: ' + status());
+
+    cell.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+    await wait(350);
+    var tip = document.querySelector('.sui-tooltip-bubble');
+    if (!tip || tip.hidden || tip.textContent !== 'Cell tip') throw new Error('cell tooltip did not open');
+    cell.dispatchEvent(new PointerEvent('pointerout', { bubbles: true }));
 
     cell.click();
     await wait(350);
