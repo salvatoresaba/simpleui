@@ -46,6 +46,15 @@ colonne (etichetta e controllo in ogni colonna), i valori numerici usano uno
 slider con un riquadro valore e i tab con gruppi usano accordion che mostrano una
 sezione alla volta.
 
+Tutti i pannelli delle impostazioni sono spostabili dalla maniglia
+nell'intestazione e ripartono centrati a ogni apertura. I pannelli con preview
+interna mantengono il backdrop modale scuro (Preferences, Component settings,
+Hints, Insert, Icon picker, File browser, New page e Desktop build). I pannelli
+operativi senza preview sono flottanti, senza backdrop, così le modifiche
+restano visibili nell'editor (Project preferences, Tooltip, Table settings,
+Chart settings, Graph style, Structure table, Tree data, Media queries, Project
+history e Chart data).
+
 ### Interface
 
 Aspetto e layout della shell dell'editor.

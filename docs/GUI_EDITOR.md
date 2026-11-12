@@ -45,6 +45,14 @@ with many controls use a two-column grid (label and control in each column),
 numeric settings use a slider plus a value box, and grouped tabs use accordions
 that show one section at a time.
 
+All settings panels are draggable from the grip in their header and restart
+centered each time they open. Panels with an internal preview keep the dark
+modal backdrop (Preferences, Component settings, Hints, Insert, Icon picker, File
+browser, New page, Desktop build). Operational panels without a preview float
+without a backdrop so their changes stay visible in the editor (Project
+preferences, Tooltip, Table settings, Chart settings, Graph style, Structure
+table, Tree data, Media queries, Project history and Chart data).
+
 ### Interface
 
 Appearance and layout of the editor shell.

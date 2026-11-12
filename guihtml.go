@@ -667,6 +667,14 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #layoutreducebox { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; padding:18px 20px; width:470px; max-width:92vw; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #layoutreducebox h2 { font-size:15px; margin:0 0 10px; }
 #layoutreduce-text { font-size:13px; color:var(--fg); line-height:1.5; margin-bottom:14px; white-space:pre-wrap; }
+/* Draggable settings panels. Floating panels keep the editor interactive. */
+.settings-floating { background: transparent !important; pointer-events: none !important; }
+.settings-floating > * { pointer-events: auto; }
+.settings-grip { display:inline-flex; align-items:center; justify-content:center; flex:none;
+  width:16px; height:16px; margin-right:5px; color:var(--muted); font-size:14px; line-height:1;
+  cursor:move; user-select:none; }
+.settings-drag-head { cursor:move; user-select:none; }
+.settings-drag-head .settings-grip:hover { color:var(--fg); }
 /* desktop build dialog */
 #deskdlg { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:35; }
 #deskdlg.on { display:flex; }
@@ -13676,6 +13684,124 @@ function makeDraggable(el, handle){
   function closeDragElement(){ document.onmouseup = null; document.onmousemove = null; }
 }
 
+// ---- draggable settings panels --------------------------------------------
+// Panels with an internal preview stay modal (dark backdrop). Operational
+// panels without a preview float so their changes remain visible in the editor.
+// Every panel restarts centered when reopened; positions are not persisted.
+var SETTINGS_PANELS = [
+  { overlay: "pref", box: "prefbox", mode: "modal" },
+  { overlay: "insertdlg", box: "insertbox", mode: "modal" },
+  { overlay: "iconpick", box: "iconpickbox", mode: "modal" },
+  { overlay: "compcfg", box: "compcfgbox", mode: "modal" },
+  { overlay: "chintscfg", box: "chintscfgbox", mode: "modal" },
+  { overlay: "projprefs", box: "projprefsbox", mode: "floating" },
+  { overlay: "ttcfg", box: "ttcfgbox", mode: "floating" },
+  { overlay: "tablesettings", box: "tablesettingsbox", mode: "floating" },
+  { overlay: "csettings", box: "csettingsbox", mode: "floating" },
+  { overlay: "gstyle", box: "gstylebox", mode: "floating" },
+  { overlay: "layoutstruct", box: "layoutstructbox", mode: "floating" },
+  { overlay: "treedata", box: "treedatabox", mode: "floating" },
+  { overlay: "media-editor", box: "media-box", mode: "floating" },
+  { overlay: "hist-editor", box: "hist-box", mode: "floating" },
+  { overlay: "chart-data-layer", box: "cd-panel", mode: "floating", existingDrag: true },
+  { overlay: "fsdialog", box: "fsbox", mode: "modal" },
+  { overlay: "pagedlg", box: "pagebox", mode: "modal" },
+  { overlay: "deskdlg", box: "deskbox", mode: "modal" }
+];
+function settingsPanelHeader(box) {
+  var head = box.querySelector(".pref-head, #fshead, #media-head, #hist-head, #cd-head");
+  if (head) return head;
+  var h2 = box.querySelector("h2");
+  if (!h2) return null;
+  var parent = h2.parentElement;
+  return parent && parent !== box && parent.children.length <= 3 ? parent : h2;
+}
+function addSettingsGrip(head) {
+  if (!head || head.querySelector(".settings-grip")) return;
+  var grip = document.createElement("span");
+  grip.className = "settings-grip";
+  grip.textContent = "\u28ff";
+  grip.title = "Drag to move";
+  grip.setAttribute("aria-hidden", "true");
+  head.insertBefore(grip, head.firstChild);
+}
+function resetSettingsPanel(box, existingDrag) {
+  if (!box) return;
+  var props = existingDrag ? ["left", "top"] : ["position", "left", "top", "transform", "margin", "right", "bottom", "width"];
+  props.forEach(function(p){ box.style.removeProperty(p); });
+}
+function makeSettingsDraggable(box, head) {
+  if (!box || !head || head.__settingsDrag) return;
+  head.__settingsDrag = true;
+  head.classList.add("settings-drag-head");
+  head.addEventListener("pointerdown", function(e) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    var t = e.target;
+    if (t && t.closest && t.closest("button,input,select,textarea,a,[contenteditable='true']")) return;
+    e.preventDefault();
+    var r = box.getBoundingClientRect();
+    box.style.position = "fixed";
+    box.style.left = r.left + "px";
+    box.style.top = r.top + "px";
+    box.style.transform = "none";
+    box.style.margin = "0";
+    box.style.right = "auto";
+    box.style.bottom = "auto";
+    box.style.width = r.width + "px";
+    var sx = e.clientX, sy = e.clientY, ox = r.left, oy = r.top;
+    try { head.setPointerCapture(e.pointerId); } catch (err) {}
+    function move(ev) {
+      var maxX = Math.max(8, window.innerWidth - box.offsetWidth - 8);
+      var maxY = Math.max(8, window.innerHeight - box.offsetHeight - 8);
+      var nx = Math.max(8, Math.min(ox + ev.clientX - sx, maxX));
+      var ny = Math.max(8, Math.min(oy + ev.clientY - sy, maxY));
+      box.style.left = nx + "px";
+      box.style.top = ny + "px";
+    }
+    function end() {
+      head.removeEventListener("pointermove", move);
+      head.removeEventListener("pointerup", end);
+      head.removeEventListener("pointercancel", end);
+      head.removeEventListener("lostpointercapture", end);
+      try { head.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+    head.addEventListener("pointermove", move);
+    head.addEventListener("pointerup", end);
+    head.addEventListener("pointercancel", end);
+    head.addEventListener("lostpointercapture", end);
+  });
+}
+function watchSettingsPanel(overlay, box, existingDrag) {
+  function visible() { return overlay.classList.contains("on"); }
+  var was = visible();
+  if (was) resetSettingsPanel(box, existingDrag);
+  if (!window.MutationObserver) return;
+  new MutationObserver(function(records) {
+    var now = visible();
+    var reopened = false;
+    for (var i = 0; i < records.length; i++) {
+      if (records[i].oldValue && records[i].oldValue.split(/\s+/).indexOf("on") >= 0) reopened = true;
+    }
+    if (!now) resetSettingsPanel(box, existingDrag);
+    else if (!was || reopened) resetSettingsPanel(box, existingDrag);
+    was = now;
+  }).observe(overlay, { attributes: true, attributeFilter: ["class"], attributeOldValue: true });
+}
+function initSettingsPanels() {
+  SETTINGS_PANELS.forEach(function(d) {
+    var overlay = document.getElementById(d.overlay);
+    var box = document.getElementById(d.box);
+    if (!overlay || !box) return;
+    if (d.mode === "floating") overlay.classList.add("settings-floating");
+    var head = settingsPanelHeader(box);
+    if (head) {
+      addSettingsGrip(head);
+      if (!d.existingDrag) makeSettingsDraggable(box, head);
+    }
+    watchSettingsPanel(overlay, box, !!d.existingDrag);
+  });
+}
+
 function updateGuides() {
   var step = parseInt(document.getElementById("grid-step").value, 10) || 8;
   var f = document.getElementById("prev");
@@ -22669,6 +22795,7 @@ loadCurrentProject();
 setupEditorScroll();
 initMenus();
 initDraggableBars();
+initSettingsPanels();
 setBp("desktop");
 
   try { makeDraggable(document.getElementById('sf-panel'), document.getElementById('sf-hdr')); } catch(e) {}

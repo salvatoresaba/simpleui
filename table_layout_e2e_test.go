@@ -198,7 +198,25 @@ const tableLayoutE2EScript = `<script>
       var l = r.querySelector('label'); return l && l.textContent === 'rows';
     });
     if (!structRows || structRows.querySelector('input').value !== '2') throw new Error('structure open did not sync rows counter');
+    var structOverlay = document.getElementById('layoutstruct');
+    if (!structOverlay.classList.contains('settings-floating')) throw new Error('structure panel must float');
+    if (window.getComputedStyle(structOverlay).pointerEvents !== 'none') throw new Error('floating overlay must not block the editor');
+    var structBox = document.getElementById('layoutstructbox');
+    if (!structBox.querySelector('.settings-grip')) throw new Error('structure grip missing');
+    var structHead = structBox.querySelector('.settings-drag-head');
+    var structLeft = structBox.getBoundingClientRect().left;
+    structHead.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: 100, clientY: 100 }));
+    structHead.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX: 130, clientY: 130 }));
+    structHead.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX: 130, clientY: 130 }));
+    await wait(150);
+    if (structBox.getBoundingClientRect().left < structLeft + 10) throw new Error('structure panel did not move');
     var structClose = Array.from(document.querySelectorAll('#layoutstruct button')).find(function (b) { return b.textContent.trim() === 'Close'; });
+    if (structClose) structClose.click();
+    await wait(300);
+    structBtn.click();
+    await wait(500);
+    if (structBox.style.left !== '' || structBox.style.top !== '') throw new Error('structure panel must restart centered');
+    structClose = Array.from(document.querySelectorAll('#layoutstruct button')).find(function (b) { return b.textContent.trim() === 'Close'; });
     if (structClose) structClose.click();
     await wait(300);
 
@@ -379,6 +397,15 @@ const tableLayoutE2EScript = `<script>
     if (fcs.borderTopStyle !== 'solid') throw new Error('table frame border style not applied');
     if (fcs.borderTopColor !== 'rgb(255, 0, 0)') throw new Error('table frame border color not applied: ' + fcs.borderTopColor);
     if (parseFloat(fcs.borderTopWidth) <= 0) throw new Error('table frame border width not applied');
+
+    // Panels with an internal preview stay modal.
+    openPrefs();
+    await wait(300);
+    var pref = document.getElementById('pref');
+    if (pref.classList.contains('settings-floating')) throw new Error('Preferences must stay modal');
+    if (window.getComputedStyle(pref).pointerEvents !== 'auto') throw new Error('modal backdrop must block the editor');
+    if (!document.getElementById('prefbox').querySelector('.settings-grip')) throw new Error('Preferences grip missing');
+    closePrefs();
 
     result(true);
   } catch (e) {
