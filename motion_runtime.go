@@ -309,6 +309,24 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
     scheduleFrame(el, frame);
   }
+  function animateOpacity(el, from, to, duration, easing, done) {
+    var start = performance.now();
+    el.style.opacity = String(from);
+    function frame() {
+      var t = (performance.now() - start) / duration;
+      var e = ease(Math.max(0, Math.min(1, t)), easing);
+      el.style.opacity = String(from + (to - from) * e);
+      if (t < 1) {
+        scheduleFrame(el, frame);
+      } else {
+        el.__suiMotionRaf = 0;
+        el.__suiMotionRafType = '';
+        el.style.removeProperty('opacity');
+        if (done) done();
+      }
+    }
+    scheduleFrame(el, frame);
+  }
   function animateElement(old, el, o) {
     // Elements with custom-property presets run their whole transition in
     // tweenVars (including the fade/scale/slide effect), so it stays in sync
@@ -457,7 +475,6 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
         }
         stripMotionClone(clone);
         clone.classList.add('sui-motion-shared-clone');
-        clone.classList.add('sui-motion-crossfade');
         clone.style.position = 'fixed';
         clone.style.left = r.left + 'px';
         clone.style.top = r.top + 'px';
@@ -469,31 +486,36 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
         clone.style.zIndex = '9997';
         clone.style.opacity = '1';
         document.body.appendChild(clone);
-        el.classList.add('sui-motion-crossfade');
         el.style.opacity = '0';
-        var fadeMs = Math.max(80, Math.round(o.duration * 0.3));
-        var switchDelay = o.delay + Math.max(0, o.duration - fadeMs);
-        el.style.setProperty('--sui-crossfade-duration', fadeMs + 'ms');
-        el.style.setProperty('--sui-crossfade-easing', o.easing);
-        clone.style.setProperty('--sui-crossfade-duration', fadeMs + 'ms');
-        clone.style.setProperty('--sui-crossfade-easing', o.easing);
-        animateMovement(clone, dx, dy, o, 1, 1, 1, 1, 0, 0, function() {
+        // Evaluate the two geometries first: the old card grows/moves for 75%
+        // of the time, then the old and new content cross-fade while both are
+        // at exactly the final rectangle. This avoids swapping text while the
+        // box is still mid-size.
+        var geomMs = Math.max(100, Math.round(o.duration * 0.75));
+        var fadeMs = Math.max(60, o.duration - geomMs);
+        var cloneOpts = { effect: o.effect, duration: geomMs, easing: o.easing, delay: o.delay };
+        var fadeStarted = false;
+        function cleanupShared() {
           if (clone.parentNode) clone.remove();
-        }, size);
-        setTimeout(function() {
-          clone.style.opacity = '0';
-          el.style.opacity = '1';
-        }, switchDelay);
-        setTimeout(function() {
-          if (clone.parentNode) clone.remove();
-          el.classList.remove('sui-motion-crossfade');
           el.style.removeProperty('opacity');
-          el.style.removeProperty('--sui-crossfade-duration');
-          el.style.removeProperty('--sui-crossfade-easing');
-        }, switchDelay + fadeMs + 100);
-        setTimeout(function() {
-          if (clone.parentNode) clone.remove();
-        }, o.delay + o.duration + 250);
+        }
+        function startSharedFade() {
+          if (fadeStarted) return;
+          fadeStarted = true;
+          // Hold the final rectangle for the fade; stop the geometry loop.
+          cancel(clone);
+          clone.style.width = r.width + 'px';
+          clone.style.height = r.height + 'px';
+          clone.style.transform = 'none';
+          // Drive opacity from the same timer/rAF loop as the geometry so the
+          // fade also works when the tab is hidden or the compositor throttles
+          // CSS transitions.
+          animateOpacity(clone, 1, 0, fadeMs, o.easing, null);
+          animateOpacity(el, 0, 1, fadeMs, o.easing, cleanupShared);
+        }
+        animateMovement(clone, dx, dy, cloneOpts, 1, 1, 1, 1, 0, 0, startSharedFade, size);
+        setTimeout(startSharedFade, o.delay + geomMs + 120);
+        setTimeout(cleanupShared, o.delay + geomMs + fadeMs + 400);
         delete sharedMap[k];
       }
     }

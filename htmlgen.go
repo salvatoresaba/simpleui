@@ -1610,7 +1610,6 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
 [data-sui-motion] { will-change:transform, opacity, background-color, border-color, border-radius; }
 .sui-motion-exit { pointer-events:none !important; }
 .sui-motion-shared-clone { pointer-events:none !important; }
-.sui-motion-crossfade { transition: opacity var(--sui-crossfade-duration,200ms) var(--sui-crossfade-easing,ease-out) !important; }
 .sui-switch.sui-sw-shape-rounded { --sui-sw-w:44px; --sui-sw-h:26px; --sui-sw-radius:10px; --sui-sw-thumb-size:18px; --sui-sw-thumb-radius:6px; --sui-sw-thumb-x-off:4px; --sui-sw-thumb-x-on:22px; --sui-sw-thumb-y:4px; }
 .sui-switch.sui-sw-shape-square { --sui-sw-w:42px; --sui-sw-h:24px; --sui-sw-radius:3px; --sui-sw-thumb-size:16px; --sui-sw-thumb-radius:3px; --sui-sw-thumb-x-off:4px; --sui-sw-thumb-x-on:22px; --sui-sw-thumb-y:4px; }
 .sui-switch.sui-sw-shape-pill { --sui-sw-w:54px; --sui-sw-h:24px; --sui-sw-radius:999px; --sui-sw-thumb-size:16px; --sui-sw-thumb-radius:8px; --sui-sw-thumb-x-off:4px; --sui-sw-thumb-x-on:34px; --sui-sw-thumb-y:4px; }
