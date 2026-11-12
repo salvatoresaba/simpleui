@@ -342,6 +342,37 @@ data del motion: il runtime cattura proprietà CSS e custom properties scelte,
 poi genera i frame intermedi. Per i toggle nativi lo stato precedente viene
 catturato su `pointerdown`/`keydown`, prima che il browser cambi `checked`.
 
+### Motion di layout con FLIP e chiavi
+
+Qualsiasi elemento può usare il motion di layout con chiave:
+
+```sui
+card motion: "layout" motionKey: project.id motionDuration: "420ms" {
+	h3 "{project.name}"
+}
+```
+
+| Attributo | Significato |
+|---|---|
+| `motion` | `layout` (solo FLIP), `fade`, `scale`, `slide` o `none`. |
+| `motionKey` | Identità stabile tra i render. Obbligatoria per elementi di liste e componenti. |
+| `motionDuration` | Durata della transizione, es. `420ms`. |
+| `motionEasing` | Funzione di timing CSS. |
+| `motionDelay` | Ritardo prima della transizione. |
+| `motionExit` | `false` disabilita il clone di uscita per le liste grandi. |
+
+Prima del render il runtime salva rettangolo e stili di ogni elemento con chiave.
+Dopo il render abbina per `motionKey` e trasla l'elemento dalla vecchia posizione
+alla nuova. Le chiavi scomparse vengono clonate in un overlay fisso, dissolte e
+rimosse; le nuove chiavi entrano in dissolvenza. `layout` mantiene l'elemento
+opaco e lo sposta soltanto; `fade`, `scale` e `slide` aggiungono l'effetto di
+entrata/uscita corrispondente.
+
+`data-sui-id` non è univoco dentro un nodo `list`, quindi gli elementi ripetuti
+devono impostare `motionKey` (ad esempio `motionKey: item.id`). Card, pannelli e
+rami condizionali possono condividere la stessa chiave tra percorsi di render
+diversi, abilitando transizioni lista → dettaglio e liste filtrate.
+
 ## Popover
 
 `popover` è un trigger con contenuto ricco in un pannello ancorato. Il testo è

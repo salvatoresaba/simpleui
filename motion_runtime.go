@@ -113,7 +113,28 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       for (var j = 0; j < STANDARD.length; j++) props[STANDARD[j]] = cs[STANDARD[j]];
     }
     var r = el.getBoundingClientRect();
-    return { vars: vars, props: props, rect: { left: r.left, top: r.top, width: r.width, height: r.height } };
+    var snap = { vars: vars, props: props, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, opts: optionsOf(el), clone: null };
+    if (!names.length && el.getAttribute('data-sui-motion-exit') === '1') {
+      snap.clone = el.cloneNode(true);
+      stripMotionClone(snap.clone);
+    }
+    return snap;
+  }
+  function stripMotionClone(node) {
+    if (!node || node.nodeType !== 1) return;
+    node.setAttribute('aria-hidden', 'true');
+    var all = [node];
+    var found = node.querySelectorAll('*');
+    for (var i = 0; i < found.length; i++) all.push(found[i]);
+    for (var j = 0; j < all.length; j++) {
+      var n = all[j];
+      n.removeAttribute('id');
+      n.removeAttribute('data-sui-id');
+      var attrs = Array.prototype.slice.call(n.attributes || []);
+      for (var a = 0; a < attrs.length; a++) {
+        if (attrs[a].name.indexOf('data-sui-motion') === 0) n.removeAttribute(attrs[a].name);
+      }
+    }
   }
   function optionsOf(el) {
     return {
@@ -238,45 +259,102 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
     scheduleFrame(el, frame);
   }
+  function animateMovement(el, dx, dy, o, fromOpacity, toOpacity, fromScale, toScale, fromY, toY, done) {
+    var has = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5 || fromOpacity !== toOpacity || fromScale !== toScale || fromY !== toY;
+    if (!has) { if (done) done(); return; }
+    var start = performance.now() + o.delay;
+    el.__suiMotionProps = true;
+    function apply(t) {
+      var e = ease(Math.max(0, Math.min(1, t)), o.easing);
+      var tx = dx * (1 - e);
+      var ty = dy * (1 - e);
+      var sc = fromScale + (toScale - fromScale) * e;
+      var yy = fromY + (toY - fromY) * e;
+      var op = fromOpacity + (toOpacity - fromOpacity) * e;
+      var tf = '';
+      if (Math.abs(tx) > 0.01 || Math.abs(ty) > 0.01) tf += 'translate(' + tx + 'px,' + ty + 'px)';
+      if (Math.abs(sc - 1) > 0.001) tf += (tf ? ' ' : '') + 'scale(' + sc + ')';
+      if (Math.abs(yy) > 0.01) tf += (tf ? ' ' : '') + 'translateY(' + yy + 'px)';
+      el.style.transform = tf;
+      el.style.opacity = String(op);
+    }
+    apply(0);
+    function frame() {
+      var t = (performance.now() - start) / o.duration;
+      apply(t);
+      if (t < 1) {
+        scheduleFrame(el, frame);
+      } else {
+        el.__suiMotionRaf = 0;
+        el.__suiMotionRafType = '';
+        el.style.removeProperty('opacity');
+        el.style.removeProperty('transform');
+        el.__suiMotionProps = false;
+        if (done) done();
+      }
+    }
+    scheduleFrame(el, frame);
+  }
   function animateElement(old, el, o) {
     // Elements with custom-property presets run their whole transition in
     // tweenVars (including the fade/scale/slide effect), so it stays in sync
-    // with the geometry tween and does not depend on the WAAPI timeline.
+    // with the geometry tween.
     if (varList(el).length > 0) return;
-    var from = {};
-    var to = {};
     var r = el.getBoundingClientRect();
     var dx = old.rect.left - r.left;
     var dy = old.rect.top - r.top;
-    var sx = r.width ? old.rect.width / r.width : 1;
-    var sy = r.height ? old.rect.height / r.height : 1;
-    var transform = '';
-    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5 || Math.abs(sx - 1) > 0.01 || Math.abs(sy - 1) > 0.01) {
-      transform += ' translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
-    }
-    if (o.effect === 'scale') transform += ' scale(.96)';
-    if (o.effect === 'slide') transform += ' translateY(6px)';
-    if (transform) { from.transform = transform.trim(); to.transform = 'none'; }
+    var fromOpacity = 1, toOpacity = 1, fromScale = 1, toScale = 1, fromY = 0, toY = 0;
+    if (o.effect === 'fade') fromOpacity = 0;
+    else if (o.effect === 'scale') { fromOpacity = 0; fromScale = 0.96; }
+    else if (o.effect === 'slide') { fromOpacity = 0; fromY = 6; }
+    animateMovement(el, dx, dy, o, fromOpacity, toOpacity, fromScale, toScale, fromY, toY, null);
     if (old.props) {
       var ns = getComputedStyle(el);
+      var from = {}, to = {};
       for (var i = 0; i < STANDARD.length; i++) {
         var p = STANDARD[i];
+        if (p === 'opacity' || p === 'transform') continue;
         var nv = ns[p];
         if (nv === undefined) continue;
         if (String(old.props[p]) !== String(nv)) { from[p] = old.props[p]; to[p] = nv; }
       }
+      if (Object.keys(from).length) {
+        el.__suiMotionAnim = el.animate([from, to], { duration: o.duration, easing: o.easing, delay: o.delay, fill: 'none' });
+      }
     }
-    if (o.effect === 'fade' || o.effect === 'scale' || o.effect === 'slide') { from.opacity = 0; to.opacity = to.opacity || 1; }
-    if (!Object.keys(from).length) return;
-    el.__suiMotionAnim = el.animate([from, to], { duration: o.duration, easing: o.easing, delay: o.delay, fill: 'none' });
   }
   function enter(el, o) {
     if (o.effect === 'none') return;
-    var from = { opacity: 0 };
-    if (o.effect === 'scale') from.transform = 'scale(.96)';
-    if (o.effect === 'slide') from.transform = 'translateY(6px)';
-    var to = { opacity: 1, transform: 'none' };
-    el.__suiMotionAnim = el.animate([from, to], { duration: o.duration, easing: o.easing, delay: o.delay, fill: 'none' });
+    var fromScale = o.effect === 'scale' ? 0.96 : 1;
+    var fromY = o.effect === 'slide' ? 10 : 0;
+    animateMovement(el, 0, 0, o, 0, 1, fromScale, 1, fromY, 0, null);
+  }
+  function exitClone(snap) {
+    var clone = snap.clone;
+    if (!clone) return;
+    var o = snap.opts || { effect: 'layout', duration: 220, easing: 'ease-out', delay: 0 };
+    var r = snap.rect;
+    clone.classList.add('sui-motion-exit');
+    clone.style.position = 'fixed';
+    clone.style.left = r.left + 'px';
+    clone.style.top = r.top + 'px';
+    clone.style.width = r.width + 'px';
+    clone.style.height = r.height + 'px';
+    clone.style.margin = '0';
+    clone.style.boxSizing = 'border-box';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '9998';
+    clone.style.transform = 'none';
+    clone.style.opacity = '1';
+    document.body.appendChild(clone);
+    var toScale = o.effect === 'scale' ? 0.96 : 1;
+    var toY = o.effect === 'slide' ? 10 : 0;
+    animateMovement(clone, 0, 0, o, 1, 0, 1, toScale, 0, toY, function() {
+      if (clone.parentNode) clone.remove();
+    });
+    setTimeout(function() {
+      if (clone.parentNode) clone.remove();
+    }, o.duration + o.delay + 250);
   }
   function before(root) {
     beforeMap = {};
@@ -292,14 +370,16 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
   }
   function after(root) {
-    var els = root.querySelectorAll('[data-sui-motion]');
-    if (!els.length) { beforeMap = {}; return; }
     if (!hadSnapshot) { beforeMap = {}; return; }
+    var els = root.querySelectorAll('[data-sui-motion]');
+    var seen = {};
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
+      var k = keyOf(el);
+      if (k) seen[k] = 1;
       var o = optionsOf(el);
       if (o.effect === 'none') continue;
-      var old = beforeMap[keyOf(el)];
+      var old = beforeMap[k];
       cancel(el);
       if (old) {
         animateElement(old, el, o);
@@ -307,6 +387,11 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       } else {
         enter(el, o);
       }
+    }
+    for (var key in beforeMap) {
+      if (seen[key]) continue;
+      var snap = beforeMap[key];
+      if (snap && snap.clone) exitClone(snap);
     }
     beforeMap = {};
   }

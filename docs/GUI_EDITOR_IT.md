@@ -916,6 +916,17 @@ sono preset di variabili CSS; il runtime di motion interpola ogni parte tra i du
 stati, quindi thumb, track, spunta e bordi morfano invece di saltare. Questi
 attributi possono essere legati a stati e cambiati a runtime.
 
+### Motion di layout (FLIP)
+
+Selezionando una card, una voce di lista, un pannello o un contenitore si apre
+**Motion (FLIP / enter / exit)**. Imposta l'effetto (`layout`, `fade`, `scale`,
+`slide` o off), una **chiave** stabile, durata, easing, ritardo e se animare
+l'uscita. Il runtime abbina gli elementi per chiave tra i render, li FLIPpa nelle
+nuove posizioni e dissolve elementi mancanti/nuovi. Le voci di lista e i
+componenti ripetuti devono impostare `motionKey` (ad esempio `item.id` o il
+parametro del componente); `data-sui-id` non è univoco dentro una lista. Tabelle,
+tree, chart e toggle hanno sezioni motion dedicate.
+
 **Controls > Split panes** inserisce due figli `pane` e un divisore
 trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.
 Uno splitter deve mantenere esattamente due pannelli.

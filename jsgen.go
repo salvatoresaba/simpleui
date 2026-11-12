@@ -2228,6 +2228,7 @@ func layoutCellStyleAttrValue(cell layoutGridCell, table *Element, dynamic bool)
 func writeLayoutCellExtras(sb *strings.Builder, e *Element, ctx *JsCtx) {
 	writeDndAttrs(sb, e, ctx)
 	writePickerAttrs(sb, e, ctx)
+	writeMotionAttrs(sb, e, ctx)
 	if a := findAttr(e, "tooltip"); a != nil {
 		sb.WriteString(" data-sui-tooltip=\"")
 		sb.WriteString(htmlAttrValue(a, false))
@@ -2982,6 +2983,7 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 
 	writeDndAttrs(sb, e, ctx)
 	writePickerAttrs(sb, e, ctx)
+	writeMotionAttrs(sb, e, ctx)
 	for i := 0; i < len(e.attrs); i++ {
 		a := e.attrs[i]
 		if _, isEv := eventAttrJs[a.key]; isEv {
@@ -3128,6 +3130,9 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if a.key == "head" || a.key == "options" || a.key == "link" || a.key == "srcAllow" ||
 			a.key == "draggable" || a.key == "directory" || a.key == "dragKey" ||
 			a.key == "dropKey" || a.key == "dropFiles" || a.key == "pickFiles" || a.key == "pickMode" {
+			continue
+		}
+		if a.key == "motion" || a.key == "motionKey" || a.key == "motionDuration" || a.key == "motionEasing" || a.key == "motionDelay" || a.key == "motionExit" {
 			continue
 		}
 		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {
@@ -5210,6 +5215,52 @@ func toggleMotionAttrs(e *Element, idx int) string {
 		b.WriteString(" data-sui-motion-stagger=\"" + htmlEscape(v) + "\"")
 	}
 	return b.String()
+}
+
+// writeMotionAttrs opts any element into the shared FLIP/enter/exit engine.
+// motionKey is required for repeated list items because data-sui-id is the same
+// for every iteration of a list node.
+func writeMotionAttrs(sb *strings.Builder, e *Element, ctx *JsCtx) {
+	if e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio" {
+		return
+	}
+	a := findAttr(e, "motion")
+	if a == nil {
+		return
+	}
+	effectAttr := ""
+	if a.hasExpr && a.expr != nil {
+		effectAttr = " data-sui-motion-effect=\"${__sui_esc(" + ExprToJs(a.expr) + ")}\""
+	} else {
+		effect := attrChoice(e, "motion", []string{"layout", "fade", "scale", "slide", "none"}, "layout")
+		if effect == "none" {
+			return
+		}
+		effectAttr = " data-sui-motion-effect=\"" + effect + "\""
+	}
+	var b strings.Builder
+	b.WriteString(" data-sui-motion")
+	b.WriteString(effectAttr)
+	if k := findAttr(e, "motionKey"); k != nil {
+		if k.hasExpr && k.expr != nil {
+			b.WriteString(" data-sui-motion-key=\"${__sui_esc(" + ExprToJs(k.expr) + ")}\"")
+		} else if v := strings.TrimSpace(partsContent(k.text)); v != "" {
+			b.WriteString(" data-sui-motion-key=\"" + htmlEscape(v) + "\"")
+		}
+	}
+	if attrBoolDefault(e, "motionExit", true) {
+		b.WriteString(" data-sui-motion-exit=\"1\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "motionDuration")); v != "" {
+		b.WriteString(" data-sui-motion-duration=\"" + htmlEscape(v) + "\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "motionEasing")); v != "" {
+		b.WriteString(" data-sui-motion-easing=\"" + htmlEscape(v) + "\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "motionDelay")); v != "" {
+		b.WriteString(" data-sui-motion-delay=\"" + htmlEscape(v) + "\"")
+	}
+	sb.WriteString(b.String())
 }
 
 func attrBoolDefault(e *Element, key string, def bool) bool {

@@ -3098,6 +3098,20 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		} else if (e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio") &&
 			(a.key == "shape" || a.key == "theme" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay" || a.key == "stagger") {
 			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if a.key == "motion" || a.key == "motionKey" || a.key == "motionDuration" || a.key == "motionEasing" || a.key == "motionDelay" {
+			if a.hasExpr && a.expr != nil {
+				o.obj[a.key] = JStr(exprSource(a.expr))
+				if a.key == "motionKey" {
+					o.obj["motionKeyExpr"] = JBool(true)
+				}
+			} else {
+				o.obj[a.key] = JStr(partsLiteral(a.text))
+				if a.key == "motionKey" {
+					o.obj["motionKeyExpr"] = JBool(false)
+				}
+			}
+		} else if a.key == "motionExit" {
+			o.obj["motionExit"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "open" {
 			o.obj["open"] = JBool(a.hasExpr && a.expr != nil && a.expr.kind == "bool" && a.expr.b)
 		} else if a.key == "rename" {

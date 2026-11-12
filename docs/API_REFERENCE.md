@@ -369,6 +369,36 @@ attributes: the runtime captures selected CSS properties and custom properties,
 then generates the intermediate frames. For native toggles the old state is
 captured on `pointerdown`/`keydown`, before the browser changes `checked`.
 
+### Layout motion with FLIP and keys
+
+Any element can opt into keyed layout motion:
+
+```sui
+card motion: "layout" motionKey: project.id motionDuration: "420ms" {
+	h3 "{project.name}"
+}
+```
+
+| Attribute | Meaning |
+|---|---|
+| `motion` | `layout` (FLIP only), `fade`, `scale`, `slide` or `none`. |
+| `motionKey` | Stable identity across renders. Required for list items and components. |
+| `motionDuration` | Transition duration, e.g. `420ms`. |
+| `motionEasing` | CSS timing function. |
+| `motionDelay` | Delay before the transition. |
+| `motionExit` | `false` disables the exit clone for large lists. |
+
+Before a render the runtime snapshots each keyed element's rectangle and styles.
+After the render it matches by `motionKey` and translates the element from its
+old position to the new one. Missing keys are cloned into a fixed overlay, faded
+out and removed; new keys fade in. `layout` keeps the element opaque and only
+moves it; `fade`, `scale` and `slide` add the corresponding enter/exit effect.
+
+`data-sui-id` is not unique inside a `list` node, so repeated items must set
+`motionKey` (for example `motionKey: item.id`). Cards, panels and conditional
+branches can share the same key across different render paths, which enables
+list → detail and filtered-list transitions.
+
 ## Popover
 
 `popover` is a trigger with rich content in an anchored panel. The element text

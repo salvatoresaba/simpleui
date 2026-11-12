@@ -2025,7 +2025,7 @@ function compatDecls(prop, value) {
 }
 
 function newNode(kind) {
-  var n = { kind: kind, text: "", class: "", onClick: "", placeholder: "", value: "", src: "", name: "", variant: "", close: true, draggable: false, dragKey: "", dropKey: "", dropFiles: "", pickFiles: "", pickMode: "native", accept: "", multiple: false, directory: false, shape: "", theme: "", animation: "", duration: "", easing: "", delay: "", stagger: "", children: [] };
+  var n = { kind: kind, text: "", class: "", onClick: "", placeholder: "", value: "", src: "", name: "", variant: "", close: true, draggable: false, dragKey: "", dropKey: "", dropFiles: "", pickFiles: "", pickMode: "native", accept: "", multiple: false, directory: false, shape: "", theme: "", animation: "", duration: "", easing: "", delay: "", stagger: "", motion: "", motionKey: "", motionKeyExpr: false, motionDuration: "", motionEasing: "", motionDelay: "", motionExit: true, children: [] };
   if (kind === "checkbox" || kind === "switch" || kind === "radio") {
     n.animation = "morph";
     n.duration = "220ms";
@@ -5189,6 +5189,9 @@ function renderInspector() {
   if (nodes.length === 1 && n && (n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
     box.appendChild(toggleControls(n));
   }
+  if (nodes.length === 1 && n && ["table", "tablelayout", "tree", "chart", "graph", "toast", "checkbox", "switch", "radio"].indexOf(n.kind) < 0) {
+    box.appendChild(motionControls(n));
+  }
   if (nodes.length === 1 && n && (n.kind === "tabs" || n.kind === "tab")) {
     var tabsHint = document.createElement("div");
     tabsHint.className = "hint";
@@ -6217,6 +6220,65 @@ function block3Controls(n) {
   if (n.kind === "commandbar") hint.textContent = "Without open the palette stays inline. With a state, Ctrl/Cmd + hotkey opens the overlay and Escape closes it.";
   else if (n.kind === "carousel" || n.kind === "stepper") hint.textContent = "Bind value to an int state so arrows, dots or steps update the app state.";
   else hint.textContent = "Edit visible text from the Text field; this section exposes the component-specific options.";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function motionControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Motion (FLIP / enter / exit)</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var row = document.createElement("div"); row.className = "rowline";
+  row.appendChild(lbl("effect"));
+  var sel = document.createElement("select");
+  [["", "off"], ["layout", "layout (FLIP)"], ["fade", "fade"], ["scale", "scale"], ["slide", "slide"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.motion || "") === o[0]) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = function(){ withUndo(function(){ n.motion = sel.value; }, "motion effect"); };
+  row.appendChild(sel); b.appendChild(row);
+  function textRow(label, field, placeholder) {
+    var r = document.createElement("div"); r.className = "rowline";
+    r.appendChild(lbl(label));
+    var inp = document.createElement("input");
+    inp.value = n[field] || "";
+    inp.placeholder = placeholder || "";
+    inp.spellcheck = false;
+    inp.onchange = function(){ withUndo(function(){ n[field] = inp.value.trim(); }, "motion " + label); };
+    r.appendChild(inp); b.appendChild(r);
+  }
+  var kr = document.createElement("div"); kr.className = "rowline";
+  kr.appendChild(lbl("key"));
+  var ki = document.createElement("input");
+  ki.value = n.motionKey || "";
+  ki.placeholder = "e.g. item.id (required in lists)";
+  ki.spellcheck = false;
+  ki.onchange = function(){
+    var v = ki.value.trim();
+    var expr = false;
+    if ((v.charAt(0) === '"' && v.charAt(v.length - 1) === '"') || (v.charAt(0) === "'" && v.charAt(v.length - 1) === "'")) {
+      v = v.slice(1, -1);
+    } else {
+      expr = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(v);
+    }
+    withUndo(function(){ n.motionKey = v; n.motionKeyExpr = expr; }, "motion key");
+  };
+  kr.appendChild(ki); b.appendChild(kr);
+  textRow("duration", "motionDuration", "280ms");
+  textRow("easing", "motionEasing", "ease-out");
+  textRow("delay", "motionDelay", "0ms");
+  var er = document.createElement("div"); er.className = "rowline";
+  er.appendChild(lbl("animate exit"));
+  var ec = document.createElement("input"); ec.type = "checkbox"; ec.checked = n.motionExit !== false;
+  ec.style.flex = "none";
+  ec.onchange = function(){ withUndo(function(){ n.motionExit = !!ec.checked; }, "motion exit"); };
+  er.appendChild(ec); b.appendChild(er);
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "Elements are matched across renders by key. Use the item field (for example item.id) on repeated list items; without a key the runtime falls back to data-sui-id, which is not unique inside a list.";
   b.appendChild(hint);
   a.appendChild(b);
   return a;
@@ -12493,6 +12555,14 @@ function attrsOf(n) {
     if (n.min) a += " min: \"" + esc(n.min) + "\"";
   }
   if (n.kind === "dropdownitem" && n.separator) a += " separator: true";
+  if (n.motion && !(n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
+    a += " motion: \"" + esc(n.motion) + "\"";
+    if (n.motionKey) a += " motionKey: " + (n.motionKeyExpr ? n.motionKey : "\"" + esc(n.motionKey) + "\"");
+    if (n.motionDuration) a += " motionDuration: \"" + esc(n.motionDuration) + "\"";
+    if (n.motionEasing) a += " motionEasing: \"" + esc(n.motionEasing) + "\"";
+    if (n.motionDelay) a += " motionDelay: \"" + esc(n.motionDelay) + "\"";
+    if (n.motionExit === false) a += " motionExit: false";
+  }
   if (n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio") {
     if (n.shape) a += " shape: \"" + esc(n.shape) + "\"";
     if (n.theme) a += " theme: \"" + esc(n.theme) + "\"";

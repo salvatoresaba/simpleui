@@ -46,6 +46,7 @@ Recommended order for an agent:
 | Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |
 | All prefabricated controls together | [API: dropdown](API_REFERENCE.md#dropdown-menu), [API: timeline](API_REFERENCE.md#timeline), [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: prefab controls](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/prefab_controls/README.md` |
 | Morphing switch/checkbox structure, theme and motion | [API: state motion](API_REFERENCE.md#state-motion-and-toggle-presets) | [GUI editor: toggle motion](GUI_EDITOR.md#toggle-structure-theme-and-motion) | `examples/toggle_presets/README.md` |
+| FLIP card list, filter and reorder | [API: layout motion](API_REFERENCE.md#layout-motion-with-flip-and-keys) | [GUI editor: layout motion](GUI_EDITOR.md#layout-motion-flip) | `examples/motion_layout/README.md` |
 | Tabbed content | [API: tabs](API_REFERENCE.md#tabs) | [GUI editor: tabs](GUI_EDITOR.md#tabs-control) | `examples/tabs.sui` |
 | Collapsible sections / FAQ | [API: accordion](API_REFERENCE.md#accordion) | [GUI editor: accordion](GUI_EDITOR.md#accordion-control) | `examples/accordion/README.md` |
 | Toast feedback | [API: toast](API_REFERENCE.md#toast-notifications) | [GUI editor: toast](GUI_EDITOR.md#toast-control) | `examples/toast/README.md` |

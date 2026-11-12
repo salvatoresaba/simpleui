@@ -881,6 +881,17 @@ are CSS-variable presets; the motion runtime interpolates every part between the
 two states, so the switch thumb, track, check mark and borders morph instead of
 jumping. These attributes can be bound to states and changed at runtime.
 
+### Layout motion (FLIP)
+
+Select any card, list item, panel or container and open **Motion (FLIP / enter /
+exit)**. Set the effect (`layout`, `fade`, `scale`, `slide` or off), a stable
+**key**, duration, easing, delay and whether to animate the exit. The runtime
+matches elements by key across renders, FLIPs them to their new positions and
+fades missing/new elements. Repeated list items and components must set
+`motionKey` (for example `item.id` or the component parameter); `data-sui-id` is
+not unique inside a list. Tables, trees, charts and toggles have their own
+specialized motion sections.
+
 **Controls > Split panes** inserts two `pane` children and a draggable divider.
 Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must
 keep exactly two panes.
