@@ -871,6 +871,16 @@ Dropdown, popover, combobox and command palette inspectors expose an
 shimmer `duration`. The same fields are available on the source attributes and
 are previewed live in the designer.
 
+### Toggle structure, theme and motion
+
+Selecting a **checkbox**, **switch** or **radio** opens **structure & motion**.
+The **structure** selector picks a shape preset, **theme** picks a color preset
+and **animation** picks `auto`, `morph`, `fade`, `scale`, `slide` or `none`.
+`duration`, `easing`, `delay` and `stagger` tune the transition. Shape and theme
+are CSS-variable presets; the motion runtime interpolates every part between the
+two states, so the switch thumb, track, check mark and borders morph instead of
+jumping. These attributes can be bound to states and changed at runtime.
+
 **Controls > Split panes** inserts two `pane` children and a draggable divider.
 Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must
 keep exactly two panes.

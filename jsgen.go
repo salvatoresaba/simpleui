@@ -16,6 +16,12 @@ var SuiPrelude = "\"use strict\";\n" +
 	"function __sui_bindView(stateVar, viewName) {\n" +
 	"  (__SUI_bind[stateVar] ||= []).push(viewName);\n" +
 	"}\n" +
+	"function __sui_preset(value, prefix, allowed) {\n" +
+	"  var v = String(value == null ? '' : value);\n" +
+	"  if (v === 'default' || v === 'accent' || !v) return '';\n" +
+	"  for (var i = 0; i < allowed.length; i++) if (allowed[i] === v) return ' ' + prefix + v;\n" +
+	"  return '';\n" +
+	"}\n" +
 	"function __sui_react(stateVar) {\n" +
 	"  for (const v of (__SUI_bind[stateVar] || [])) __SUI_views[v]();\n" +
 	"}\n" +
@@ -33,7 +39,9 @@ var SuiPrelude = "\"use strict\";\n" +
   }
   var active = document.activeElement, activeInChart = null;
   if (active) for (var a = 0; a < saved.length; a++) if (saved[a].node.contains(active)) { activeInChart = active; break; }
+  if (typeof __SUI_MOTION !== 'undefined') __SUI_MOTION.before(el);
   el.innerHTML = html;
+  if (typeof __SUI_MOTION !== 'undefined') __SUI_MOTION.after(el);
   if (!saved.length) return;
   var fresh = Array.prototype.slice.call(el.querySelectorAll('[data-sui-chart]'));
   var used = [], changed = [];
@@ -651,6 +659,8 @@ func GenerateJsFor(p *Prog, target string) string {
 	// Menu bars use the same delegated runtime in every view and across
 	// rerenders; labels/actions are generated as normal elements, not HTML.
 	// Anchored overlays share viewport placement and animation helpers.
+	sb.WriteString("\n\n")
+	sb.WriteString(suiMotionRuntime)
 	sb.WriteString("\n\n")
 	sb.WriteString(suiOverlayRuntime)
 	sb.WriteString("\n\n")
@@ -2960,6 +2970,9 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if e.tag == "tablelayout" && datepickerBool(e, "responsive") {
 			base += " sui-layout-responsive"
 		}
+		if e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio" {
+			base += togglePresetClasses(e)
+		}
 		writeContainerClass(sb, e, ctx, base)
 	} else {
 		// Plain elements (p, div, span, ...): emit the class attribute from the
@@ -3083,6 +3096,10 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			continue
 		}
 		if e.tag == "skeleton" && a.key == "duration" {
+			continue
+		}
+		if (e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio") &&
+			(a.key == "shape" || a.key == "theme" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay" || a.key == "stagger") {
 			continue
 		}
 		if e.tag == "dropdownitem" && a.key == "separator" {
@@ -3452,7 +3469,9 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 		// click on the text selects the element too) and the wiring code below
 		// still finds it there — the input's DOM events bubble to the label.
 		var sb strings.Builder
-		sb.WriteString("`" + wrapLabelOpen(e, idx) + "` + (`" + openTagHtml(e, tag, interactive, -1, ctx) + "`")
+		inputOpen := openTagHtml(e, tag, interactive, -1, ctx)
+		inputOpen = strings.TrimSuffix(inputOpen, ">") + toggleMotionAttrs(e, idx) + ">"
+		sb.WriteString("`" + wrapLabelOpen(e, idx) + "` + (`" + inputOpen + "`")
 		if len(e.text) > 0 {
 			var tb strings.Builder
 			tb.WriteString(htmlTextParts(e.text))
@@ -5088,6 +5107,98 @@ func dataAnimAttrs(e *Element, defEffect string) string {
 	}
 	if v := animationSafeValue(attrLiteral(e, "delay")); v != "" {
 		b.WriteString(" data-sui-delay=\"" + htmlEscape(v) + "\"")
+	}
+	return b.String()
+}
+
+var toggleShapeChoices = map[string][]string{
+	"switch":   {"default", "rounded", "square", "pill", "ios", "material", "minimal", "soft"},
+	"checkbox": {"default", "rounded", "square", "circle", "ios", "minimal", "soft"},
+	"radio":    {"default", "compact", "large", "soft", "minimal"},
+}
+
+var toggleThemeChoices = []string{"default", "accent", "success", "warning", "danger", "mono", "dark", "light"}
+
+func jsStringList(items []string) string {
+	parts := make([]string, len(items))
+	for i := 0; i < len(items); i++ {
+		parts[i] = jsString(items[i])
+	}
+	return "[" + strings.Join(parts, ", ") + "]"
+}
+
+func togglePresetClasses(e *Element) string {
+	prefix := ""
+	switch e.tag {
+	case "switch":
+		prefix = "sui-sw"
+	case "checkbox":
+		prefix = "sui-cb"
+	case "radio":
+		prefix = "sui-rd"
+	default:
+		return ""
+	}
+	shapes := toggleShapeChoices[e.tag]
+	var b strings.Builder
+	if a := findAttr(e, "shape"); a != nil {
+		if a.hasExpr && a.expr != nil {
+			b.WriteString(" ${__sui_preset(" + ExprToJs(a.expr) + ", \"" + prefix + "-shape-\", " + jsStringList(shapes) + ")}")
+		} else {
+			shape := attrChoice(e, "shape", shapes, "default")
+			if shape != "" && shape != "default" {
+				b.WriteString(" " + prefix + "-shape-" + shape)
+			}
+		}
+	}
+	if a := findAttr(e, "theme"); a != nil {
+		if a.hasExpr && a.expr != nil {
+			b.WriteString(" ${__sui_preset(" + ExprToJs(a.expr) + ", \"" + prefix + "-theme-\", " + jsStringList(toggleThemeChoices) + ")}")
+		} else {
+			theme := attrChoice(e, "theme", toggleThemeChoices, "default")
+			if theme != "" && theme != "default" && theme != "accent" {
+				b.WriteString(" " + prefix + "-theme-" + theme)
+			}
+		}
+	}
+	return b.String()
+}
+
+func toggleMotionVars(tag string) string {
+	switch tag {
+	case "switch":
+		return "--sui-sw-w,--sui-sw-h,--sui-sw-radius,--sui-sw-color,--sui-sw-thumb-size,--sui-sw-thumb-radius,--sui-sw-thumb-color,--sui-sw-thumb-x,--sui-sw-thumb-y,--sui-sw-border-width,--sui-sw-border-color"
+	case "checkbox":
+		return "--sui-cb-size,--sui-cb-radius,--sui-cb-color,--sui-cb-border-width,--sui-cb-border-color,--sui-cb-mark-color,--sui-cb-mark-w,--sui-cb-mark-h,--sui-cb-mark-left,--sui-cb-mark-top,--sui-cb-mark-opacity,--sui-cb-mark-rotate"
+	case "radio":
+		return "--sui-rd-size,--sui-rd-color,--sui-rd-border-width,--sui-rd-border-color,--sui-rd-dot-size,--sui-rd-dot-color,--sui-rd-dot-opacity"
+	}
+	return ""
+}
+
+// toggleMotionAttrs emits the data attributes used by __SUI_MOTION. The key is
+// the DFS id of the enclosing label so the same control is matched across
+// renders even though the input itself has no data-sui-id.
+func toggleMotionAttrs(e *Element, idx int) string {
+	if findAttr(e, "animation") == nil || idx < 0 {
+		return ""
+	}
+	effect := attrChoice(e, "animation", []string{"auto", "morph", "fade", "scale", "slide", "none"}, "morph")
+	var b strings.Builder
+	b.WriteString(" data-sui-motion data-sui-motion-key=\"" + strconv.Itoa(idx) + "\"")
+	b.WriteString(" data-sui-motion-effect=\"" + effect + "\"")
+	b.WriteString(" data-sui-motion-vars=\"" + toggleMotionVars(e.tag) + "\"")
+	if v := animationSafeValue(attrLiteral(e, "duration")); v != "" {
+		b.WriteString(" data-sui-motion-duration=\"" + htmlEscape(v) + "\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "easing")); v != "" {
+		b.WriteString(" data-sui-motion-easing=\"" + htmlEscape(v) + "\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "delay")); v != "" {
+		b.WriteString(" data-sui-motion-delay=\"" + htmlEscape(v) + "\"")
+	}
+	if v := animationSafeValue(attrLiteral(e, "stagger")); v != "" {
+		b.WriteString(" data-sui-motion-stagger=\"" + htmlEscape(v) + "\"")
 	}
 	return b.String()
 }

@@ -1483,72 +1483,164 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
   gap: 8px;
   cursor: pointer;
 }
-.sui-checkbox, .sui-radio {
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--sui-border);
-  background: #1d2129;
-  border-radius: 4px;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.sui-checkbox {
+  --sui-cb-size:18px;
+  --sui-cb-radius:4px;
+  --sui-cb-off-bg:#1d2129;
+  --sui-cb-on-bg:#4c5cf7;
+  --sui-cb-color:var(--sui-cb-off-bg);
+  --sui-cb-border-width:1px;
+  --sui-cb-border-color:var(--sui-border);
+  --sui-cb-mark-color:#fff;
+  --sui-cb-mark-w:5px;
+  --sui-cb-mark-h:9px;
+  --sui-cb-mark-left:5px;
+  --sui-cb-mark-top:2px;
+  --sui-cb-mark-opacity:0;
+  --sui-cb-mark-rotate:45deg;
+  appearance:none;
+  width:var(--sui-cb-size);
+  height:var(--sui-cb-size);
+  border:var(--sui-cb-border-width) solid var(--sui-cb-border-color);
+  background:var(--sui-cb-color);
+  border-radius:var(--sui-cb-radius);
+  position:relative;
+  cursor:pointer;
+  transition:all 0.15s ease;
+}
+.sui-checkbox:checked {
+  --sui-cb-color:var(--sui-cb-on-bg);
+  --sui-cb-border-color:var(--sui-cb-on-bg);
+  --sui-cb-mark-opacity:1;
+}
+.sui-checkbox::after {
+  content:"";
+  position:absolute;
+  left:var(--sui-cb-mark-left);
+  top:var(--sui-cb-mark-top);
+  width:var(--sui-cb-mark-w);
+  height:var(--sui-cb-mark-h);
+  border:solid var(--sui-cb-mark-color);
+  border-width:0 2px 2px 0;
+  transform:rotate(var(--sui-cb-mark-rotate));
+  opacity:var(--sui-cb-mark-opacity);
 }
 .sui-radio {
-  border-radius: 50%;
+  --sui-rd-size:18px;
+  --sui-rd-off-bg:#1d2129;
+  --sui-rd-on-bg:#4c5cf7;
+  --sui-rd-color:var(--sui-rd-off-bg);
+  --sui-rd-border-width:1px;
+  --sui-rd-border-color:var(--sui-border);
+  --sui-rd-dot-size:6px;
+  --sui-rd-dot-color:#fff;
+  --sui-rd-dot-opacity:0;
+  appearance:none;
+  width:var(--sui-rd-size);
+  height:var(--sui-rd-size);
+  border:var(--sui-rd-border-width) solid var(--sui-rd-border-color);
+  background:var(--sui-rd-color);
+  border-radius:50%;
+  position:relative;
+  cursor:pointer;
+  transition:all 0.15s ease;
 }
-:where(.sui-checkbox):checked, :where(.sui-radio):checked {
-  background: #4c5cf7;
-  border-color: #4c5cf7;
+.sui-radio:checked {
+  --sui-rd-color:var(--sui-rd-on-bg);
+  --sui-rd-border-color:var(--sui-rd-on-bg);
+  --sui-rd-dot-opacity:1;
 }
-.sui-checkbox:checked::after {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 2px;
-  width: 5px;
-  height: 9px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-.sui-radio:checked::after {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 5px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: white;
+.sui-radio::after {
+  content:"";
+  position:absolute;
+  left:calc((var(--sui-rd-size) - var(--sui-rd-dot-size)) / 2);
+  top:calc((var(--sui-rd-size) - var(--sui-rd-dot-size)) / 2);
+  width:var(--sui-rd-dot-size);
+  height:var(--sui-rd-dot-size);
+  border-radius:50%;
+  background:var(--sui-rd-dot-color);
+  opacity:var(--sui-rd-dot-opacity);
 }
 .sui-switch {
-  appearance: none;
-  width: 42px;
-  height: 24px;
-  background: #374151;
-  border-radius: 999px;
-  position: relative;
-  cursor: pointer;
-  transition: background 0.2s ease;
+  --sui-sw-w:42px;
+  --sui-sw-h:24px;
+  --sui-sw-radius:999px;
+  --sui-sw-off-bg:#374151;
+  --sui-sw-on-bg:#4c5cf7;
+  --sui-sw-color:var(--sui-sw-off-bg);
+  --sui-sw-thumb-size:20px;
+  --sui-sw-thumb-radius:10px;
+  --sui-sw-thumb-off-bg:#fff;
+  --sui-sw-thumb-on-bg:#fff;
+  --sui-sw-thumb-color:var(--sui-sw-thumb-off-bg);
+  --sui-sw-thumb-x-off:2px;
+  --sui-sw-thumb-x-on:20px;
+  --sui-sw-thumb-x:var(--sui-sw-thumb-x-off);
+  --sui-sw-thumb-y:2px;
+  --sui-sw-border-width:0px;
+  --sui-sw-border-color:transparent;
+  appearance:none;
+  width:var(--sui-sw-w);
+  height:var(--sui-sw-h);
+  background:var(--sui-sw-color);
+  border:var(--sui-sw-border-width) solid var(--sui-sw-border-color);
+  border-radius:var(--sui-sw-radius);
+  position:relative;
+  cursor:pointer;
+  transition:background 0.2s ease;
 }
 .sui-switch::after {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  width: 20px;
-  height: 20px;
-  background: white;
-  border-radius: 50%;
-  transition: transform 0.2s ease;
+  content:"";
+  position:absolute;
+  left:var(--sui-sw-thumb-x);
+  top:var(--sui-sw-thumb-y);
+  width:var(--sui-sw-thumb-size);
+  height:var(--sui-sw-thumb-size);
+  background:var(--sui-sw-thumb-color);
+  border-radius:var(--sui-sw-thumb-radius);
+  transition:background 0.2s ease;
 }
-:where(.sui-switch):checked {
-  background: #4c5cf7;
+.sui-switch:checked {
+  --sui-sw-color:var(--sui-sw-on-bg);
+  --sui-sw-thumb-color:var(--sui-sw-thumb-on-bg);
+  --sui-sw-thumb-x:var(--sui-sw-thumb-x-on);
 }
-.sui-switch:checked::after {
-  transform: translateX(18px);
-}
+[data-sui-motion] { transition:none !important; }
+.sui-switch.sui-sw-shape-rounded { --sui-sw-w:44px; --sui-sw-h:26px; --sui-sw-radius:10px; --sui-sw-thumb-size:18px; --sui-sw-thumb-radius:6px; --sui-sw-thumb-x-off:4px; --sui-sw-thumb-x-on:22px; --sui-sw-thumb-y:4px; }
+.sui-switch.sui-sw-shape-square { --sui-sw-w:42px; --sui-sw-h:24px; --sui-sw-radius:3px; --sui-sw-thumb-size:16px; --sui-sw-thumb-radius:3px; --sui-sw-thumb-x-off:4px; --sui-sw-thumb-x-on:22px; --sui-sw-thumb-y:4px; }
+.sui-switch.sui-sw-shape-pill { --sui-sw-w:54px; --sui-sw-h:24px; --sui-sw-radius:999px; --sui-sw-thumb-size:16px; --sui-sw-thumb-radius:8px; --sui-sw-thumb-x-off:4px; --sui-sw-thumb-x-on:34px; --sui-sw-thumb-y:4px; }
+.sui-switch.sui-sw-shape-ios { --sui-sw-w:51px; --sui-sw-h:31px; --sui-sw-radius:999px; --sui-sw-thumb-size:27px; --sui-sw-thumb-radius:14px; --sui-sw-thumb-x-off:2px; --sui-sw-thumb-x-on:22px; --sui-sw-thumb-y:2px; }
+.sui-switch.sui-sw-shape-material { --sui-sw-w:36px; --sui-sw-h:14px; --sui-sw-radius:999px; --sui-sw-thumb-size:20px; --sui-sw-thumb-x-off:-2px; --sui-sw-thumb-x-on:18px; --sui-sw-thumb-y:-3px; }
+.sui-switch.sui-sw-shape-minimal { --sui-sw-w:38px; --sui-sw-h:20px; --sui-sw-radius:4px; --sui-sw-thumb-size:14px; --sui-sw-thumb-radius:7px; --sui-sw-thumb-x-off:3px; --sui-sw-thumb-x-on:21px; --sui-sw-thumb-y:3px; }
+.sui-switch.sui-sw-shape-soft { --sui-sw-w:46px; --sui-sw-h:26px; --sui-sw-radius:13px; --sui-sw-thumb-size:18px; --sui-sw-thumb-radius:9px; --sui-sw-thumb-x-off:4px; --sui-sw-thumb-x-on:24px; --sui-sw-thumb-y:4px; }
+.sui-switch.sui-sw-theme-success { --sui-sw-on-bg:#16a34a; }
+.sui-switch.sui-sw-theme-warning { --sui-sw-on-bg:#d97706; }
+.sui-switch.sui-sw-theme-danger { --sui-sw-on-bg:#dc2626; }
+.sui-switch.sui-sw-theme-mono { --sui-sw-off-bg:#4b5563; --sui-sw-on-bg:#e5e7eb; --sui-sw-thumb-off-bg:#9ca3af; --sui-sw-thumb-on-bg:#111827; }
+.sui-switch.sui-sw-theme-dark { --sui-sw-off-bg:#1f2937; --sui-sw-on-bg:#64748b; --sui-sw-thumb-off-bg:#e5e7eb; --sui-sw-thumb-on-bg:#f8fafc; }
+.sui-switch.sui-sw-theme-light { --sui-sw-off-bg:#cbd5e1; --sui-sw-on-bg:#2563eb; --sui-sw-thumb-off-bg:#fff; --sui-sw-thumb-on-bg:#fff; }
+.sui-checkbox.sui-cb-shape-rounded { --sui-cb-radius:6px; }
+.sui-checkbox.sui-cb-shape-square { --sui-cb-radius:2px; }
+.sui-checkbox.sui-cb-shape-circle { --sui-cb-radius:9px; --sui-cb-mark-left:5px; --sui-cb-mark-top:4px; --sui-cb-mark-w:5px; --sui-cb-mark-h:8px; }
+.sui-checkbox.sui-cb-shape-ios { --sui-cb-size:22px; --sui-cb-radius:11px; --sui-cb-mark-left:6px; --sui-cb-mark-top:4px; --sui-cb-mark-w:5px; --sui-cb-mark-h:9px; }
+.sui-checkbox.sui-cb-shape-minimal { --sui-cb-size:16px; --sui-cb-radius:3px; --sui-cb-mark-left:4px; --sui-cb-mark-top:2px; --sui-cb-mark-w:4px; --sui-cb-mark-h:7px; }
+.sui-checkbox.sui-cb-shape-soft { --sui-cb-size:20px; --sui-cb-radius:6px; --sui-cb-mark-left:6px; --sui-cb-mark-top:3px; --sui-cb-mark-w:5px; --sui-cb-mark-h:9px; }
+.sui-checkbox.sui-cb-theme-success { --sui-cb-on-bg:#16a34a; }
+.sui-checkbox.sui-cb-theme-warning { --sui-cb-on-bg:#d97706; }
+.sui-checkbox.sui-cb-theme-danger { --sui-cb-on-bg:#dc2626; }
+.sui-checkbox.sui-cb-theme-mono { --sui-cb-off-bg:#4b5563; --sui-cb-on-bg:#e5e7eb; --sui-cb-mark-color:#111827; }
+.sui-checkbox.sui-cb-theme-dark { --sui-cb-off-bg:#1f2937; --sui-cb-on-bg:#64748b; }
+.sui-checkbox.sui-cb-theme-light { --sui-cb-off-bg:#e5e7eb; --sui-cb-on-bg:#2563eb; --sui-cb-mark-color:#fff; }
+.sui-radio.sui-rd-shape-compact { --sui-rd-size:14px; --sui-rd-dot-size:5px; }
+.sui-radio.sui-rd-shape-large { --sui-rd-size:22px; --sui-rd-dot-size:8px; }
+.sui-radio.sui-rd-shape-soft { --sui-rd-size:20px; --sui-rd-dot-size:7px; }
+.sui-radio.sui-rd-shape-minimal { --sui-rd-size:16px; --sui-rd-dot-size:5px; --sui-rd-border-width:2px; }
+.sui-radio.sui-rd-theme-success { --sui-rd-on-bg:#16a34a; }
+.sui-radio.sui-rd-theme-warning { --sui-rd-on-bg:#d97706; }
+.sui-radio.sui-rd-theme-danger { --sui-rd-on-bg:#dc2626; }
+.sui-radio.sui-rd-theme-mono { --sui-rd-off-bg:#4b5563; --sui-rd-on-bg:#e5e7eb; --sui-rd-dot-color:#111827; }
+.sui-radio.sui-rd-theme-dark { --sui-rd-off-bg:#1f2937; --sui-rd-on-bg:#64748b; }
+.sui-radio.sui-rd-theme-light { --sui-rd-off-bg:#e5e7eb; --sui-rd-on-bg:#2563eb; }
 .sui-slider {
   appearance: none;
   width: 100%;
@@ -5633,13 +5725,13 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString(" class=\"sui-progress\"")
 		staticClassSuffix(sb, e)
 	case "checkbox":
-		sb.WriteString(" type=\"checkbox\" class=\"sui-checkbox\"")
+		sb.WriteString(" type=\"checkbox\" class=\"sui-checkbox" + togglePresetClasses(e) + "\"")
 		staticClassSuffix(sb, e)
 	case "radio":
-		sb.WriteString(" type=\"radio\" class=\"sui-radio\"")
+		sb.WriteString(" type=\"radio\" class=\"sui-radio" + togglePresetClasses(e) + "\"")
 		staticClassSuffix(sb, e)
 	case "switch":
-		sb.WriteString(" type=\"checkbox\" class=\"sui-switch\"")
+		sb.WriteString(" type=\"checkbox\" class=\"sui-switch" + togglePresetClasses(e) + "\"")
 		staticClassSuffix(sb, e)
 	case "slider":
 		sb.WriteString(" type=\"range\" class=\"sui-slider\"")
@@ -7942,6 +8034,10 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			continue
 		}
 		if e.tag == "skeleton" && a.key == "duration" {
+			continue
+		}
+		if (e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio") &&
+			(a.key == "shape" || a.key == "theme" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay" || a.key == "stagger") {
 			continue
 		}
 		if e.tag == "tablelayout" && (a.key == "columns" || a.key == "rows" ||

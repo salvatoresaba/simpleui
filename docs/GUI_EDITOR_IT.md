@@ -906,6 +906,16 @@ l'effetto **animation** (`fade`, `scale`, `slide`, `none`), `duration`, `easing`
 `duration` per lo shimmer. Gli stessi campi sono disponibili come attributi nel
 sorgente e sono mostrati in anteprima dal designer.
 
+### Struttura, tema e motion dei toggle
+
+Selezionando **checkbox**, **switch** o **radio** si apre **structure & motion**.
+Il selettore **structure** sceglie un preset di forma, **theme** un preset di
+colore e **animation** sceglie `auto`, `morph`, `fade`, `scale`, `slide` o `none`.
+`duration`, `easing`, `delay` e `stagger` regolano la transizione. Forma e tema
+sono preset di variabili CSS; il runtime di motion interpola ogni parte tra i due
+stati, quindi thumb, track, spunta e bordi morfano invece di saltare. Questi
+attributi possono essere legati a stati e cambiati a runtime.
+
 **Controls > Split panes** inserisce due figli `pane` e un divisore
 trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.
 Uno splitter deve mantenere esattamente due pannelli.

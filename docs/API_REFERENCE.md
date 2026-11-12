@@ -333,6 +333,38 @@ The `slide` effect follows the final placement (down, up, left or right).
 `skeleton` uses `duration` for the shimmer speed. Tooltips use the project
 tooltip settings for place, effect, duration, easing and delay.
 
+### State motion and toggle presets
+
+`checkbox`, `switch` and `radio` can morph between two structures and themes
+instead of jumping. Shape and theme presets set CSS variables for every part;
+the motion engine snapshots the old values and interpolates colors, lengths,
+radii and positions frame by frame:
+
+```sui
+state on = true
+state shape = "pill"
+state theme = "accent"
+
+switch "Mode" shape: shape theme: theme checked: on
+	animation: "morph" duration: "360ms" easing: "ease-in-out"
+	stagger: "0.12" onChange: toggle
+```
+
+| Attribute | Values | Meaning |
+|---|---|---|
+| `shape` | switch: `default`, `rounded`, `square`, `pill`, `ios`, `material`, `minimal`, `soft`; checkbox: `default`, `rounded`, `square`, `circle`, `ios`, `minimal`, `soft`; radio: `default`, `compact`, `large`, `soft`, `minimal` | Structure preset. |
+| `theme` | `default`/`accent`, `success`, `warning`, `danger`, `mono`, `dark`, `light` | Color preset. |
+| `animation` | `auto`, `morph`, `fade`, `scale`, `slide`, `none` | Transition effect. |
+| `duration` | CSS time or ms | Tween length. |
+| `easing` | CSS timing function | Easing, including `cubic-bezier(...)`. |
+| `delay` | CSS time or ms | Delay before the tween. |
+| `stagger` | `0`-`0.5` | Fraction of the duration spread across parts. |
+
+The same mechanism works for any element that opts in with the motion data
+attributes: the runtime captures selected CSS properties and custom properties,
+then generates the intermediate frames. For native toggles the old state is
+captured on `pointerdown`/`keydown`, before the browser changes `checked`.
+
 ## Popover
 
 `popover` is a trigger with rich content in an anchored panel. The element text

@@ -137,7 +137,7 @@ func TestComponentMultipleInstancesInlineIds(t *testing.T) {
 		t.Fatalf("parse:%v", pdl.String())
 	}
 	js := GenerateJs(prog)
-	if strings.Contains(js, "data-sui-id") {
+	if strings.Contains(js, `data-sui-id="`) {
 		t.Errorf("component buttons must use inline handlers, not ids:\n%v", js)
 	}
 	if strings.Contains(js, `onclick="go()"`) {

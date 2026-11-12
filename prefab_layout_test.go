@@ -69,6 +69,52 @@ view main {
 	}
 }
 
+func TestTogglePresetAndMotionAttrs(t *testing.T) {
+	src := `state on = true
+state shape = "pill"
+state theme = "accent"
+
+view main {
+	switch "Modalità" shape: shape theme: theme checked: on animation: "morph" duration: "360ms" easing: "ease-in-out" stagger: "0.12" onChange: noop
+	checkbox "Accetta" shape: "ios" theme: "success" checked: on animation: "morph" onChange: noop
+}
+
+fn noop() -> null {
+}`
+	prog, dl := ParseSource(src, "toggle.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	html := GenerateHtmlPage(prog)
+	for _, want := range []string{
+		`__sui_preset(shape, "sui-sw-shape-",`,
+		`__sui_preset(theme, "sui-sw-theme-",`,
+		`data-sui-motion`,
+		`data-sui-motion-key="0"`,
+		`data-sui-motion-effect="morph"`,
+		`data-sui-motion-vars="--sui-sw-w`,
+		`data-sui-motion-stagger="0.12"`,
+		`sui-cb-shape-ios`,
+		`sui-cb-theme-success`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("toggle preset JS missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`sui-cb-shape-ios`,
+		`sui-cb-theme-success`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("toggle preset static HTML missing %q", want)
+		}
+	}
+}
+
 func TestDrawerRender(t *testing.T) {
 	src := `state show = false
 

@@ -305,6 +305,38 @@ L'effetto `slide` segue il posizionamento finale (down, up, left o right).
 usa `duration` per la velocità dello shimmer. I tooltip usano le impostazioni
 globali del progetto per posizione, effetto, durata, easing e ritardo.
 
+### Motion tra stati e preset dei toggle
+
+`checkbox`, `switch` e `radio` possono morfare tra due strutture e due temi
+invece di saltare. I preset di forma e tema impostano variabili CSS per ogni
+parte; il motore di motion cattura i vecchi valori e interpola colori, lunghezze,
+raggi e posizioni frame per frame:
+
+```sui
+state on = true
+state shape = "pill"
+state theme = "accent"
+
+switch "Modalità" shape: shape theme: theme checked: on
+	animation: "morph" duration: "360ms" easing: "ease-in-out"
+	stagger: "0.12" onChange: toggle
+```
+
+| Attributo | Valori | Significato |
+|---|---|---|
+| `shape` | switch: `default`, `rounded`, `square`, `pill`, `ios`, `material`, `minimal`, `soft`; checkbox: `default`, `rounded`, `square`, `circle`, `ios`, `minimal`, `soft`; radio: `default`, `compact`, `large`, `soft`, `minimal` | Preset di struttura. |
+| `theme` | `default`/`accent`, `success`, `warning`, `danger`, `mono`, `dark`, `light` | Preset di colore. |
+| `animation` | `auto`, `morph`, `fade`, `scale`, `slide`, `none` | Effetto di transizione. |
+| `duration` | tempo CSS o ms | Durata del tween. |
+| `easing` | funzione di timing CSS | Easing, incluso `cubic-bezier(...)`. |
+| `delay` | tempo CSS o ms | Ritardo prima del tween. |
+| `stagger` | `0`-`0.5` | Frazione della durata distribuita sulle parti. |
+
+Lo stesso meccanismo vale per qualsiasi elemento che opta in con gli attributi
+data del motion: il runtime cattura proprietà CSS e custom properties scelte,
+poi genera i frame intermedi. Per i toggle nativi lo stato precedente viene
+catturato su `pointerdown`/`keydown`, prima che il browser cambi `checked`.
+
 ## Popover
 
 `popover` è un trigger con contenuto ricco in un pannello ancorato. Il testo è

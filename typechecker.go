@@ -2960,6 +2960,10 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "radio" && key == "required" {
 		return true
 	}
+	if (tag == "checkbox" || tag == "switch" || tag == "radio") &&
+		(key == "shape" || key == "theme" || key == "animation" || key == "duration" || key == "easing" || key == "delay" || key == "stagger") {
+		return true
+	}
 	if (tag == "number" || tag == "date" || tag == "time") && key == "required" {
 		return true
 	}

@@ -1946,13 +1946,13 @@ var TAG_FIELDS = {
   p: ["text"], blockquote: ["text"], pre: ["text"], code: ["text"], mark: ["text"], strong: ["text"], em: ["text"], small: ["text"],
   li: ["text"], legend: ["text"], tcell: ["text"], option: ["text"], text: [],
   list: [],
-  button: ["text", "onClick"], checkbox: ["label", "checked", "disabled", "onClick", "onChange"], switch: ["label", "checked", "disabled", "onClick", "onChange"], radio: ["label", "value", "name", "checked", "disabled", "onClick", "onChange"], input: ["value", "placeholder", "inputtype", "disabled", "onClick", "onChange"], textarea: ["value", "placeholder", "disabled", "onClick", "onChange"], select: ["value", "options", "disabled", "onClick", "onChange"], number: ["value", "placeholder", "min", "max", "step", "onClick", "onChange"], slider: ["value", "min", "max", "step", "onClick", "onChange"], file: ["accept", "multiple", "onClick", "onChange"], color: ["value", "onClick", "onChange"], date: ["value", "onClick", "onChange"], time: ["value", "onClick", "onChange"], card: ["text"], a: ["text", "link", "onClick"], progress: ["value", "max"], badge: ["text"], alert: ["text"], spinner: [], divider: [], tabs: ["text"], tab: ["text"], menubar: ["text"], menu: ["text"], menuitem: ["text", "link", "onClick"], modal: ["text", "name"], modalbutton: ["text", "onClick"], 
+  button: ["text", "onClick"], checkbox: ["label", "checked", "disabled", "onClick", "onChange", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"], switch: ["label", "checked", "disabled", "onClick", "onChange", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"], radio: ["label", "value", "name", "checked", "disabled", "onClick", "onChange", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"], input: ["value", "placeholder", "inputtype", "disabled", "onClick", "onChange"], textarea: ["value", "placeholder", "disabled", "onClick", "onChange"], select: ["value", "options", "disabled", "onClick", "onChange"], number: ["value", "placeholder", "min", "max", "step", "onClick", "onChange"], slider: ["value", "min", "max", "step", "onClick", "onChange"], file: ["accept", "multiple", "onClick", "onChange"], color: ["value", "onClick", "onChange"], date: ["value", "onClick", "onChange"], time: ["value", "onClick", "onChange"], card: ["text"], a: ["text", "link", "onClick"], progress: ["value", "max"], badge: ["text"], alert: ["text"], spinner: [], divider: [], tabs: ["text"], tab: ["text"], menubar: ["text"], menu: ["text"], menuitem: ["text", "link", "onClick"], modal: ["text", "name"], modalbutton: ["text", "onClick"], 
   img: ["src"], video: ["src"], audio: ["src"], iframe: ["src", "srcAllow", "sandbox", "allow", "referrerpolicy", "loading", "width", "height"],
   input: ["value", "placeholder", "inputtype", "disabled", "required"],
   textarea: ["value", "placeholder", "disabled", "required"],
-  checkbox: ["label", "checked", "disabled"],
-  switch: ["label", "checked", "disabled"],
-  radio: ["label", "value", "name", "checked", "disabled", "required"],
+  checkbox: ["label", "checked", "disabled", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"],
+  switch: ["label", "checked", "disabled", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"],
+  radio: ["label", "value", "name", "checked", "disabled", "required", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"],
   select: ["value", "options", "disabled", "required"],
   combobox: ["value", "options", "maxOptions", "maxOptionLength", "placeholder", "empty", "required", "placement", "animation", "duration", "easing", "delay"],
   datepicker: ["value", "mode", "min", "max", "step", "disabled", "required"],
@@ -2025,7 +2025,13 @@ function compatDecls(prop, value) {
 }
 
 function newNode(kind) {
-  return { kind: kind, text: "", class: "", onClick: "", placeholder: "", value: "", src: "", name: "", variant: "", close: true, draggable: false, dragKey: "", dropKey: "", dropFiles: "", pickFiles: "", pickMode: "native", accept: "", multiple: false, directory: false, children: [] };
+  var n = { kind: kind, text: "", class: "", onClick: "", placeholder: "", value: "", src: "", name: "", variant: "", close: true, draggable: false, dragKey: "", dropKey: "", dropFiles: "", pickFiles: "", pickMode: "native", accept: "", multiple: false, directory: false, shape: "", theme: "", animation: "", duration: "", easing: "", delay: "", stagger: "", children: [] };
+  if (kind === "checkbox" || kind === "switch" || kind === "radio") {
+    n.animation = "morph";
+    n.duration = "220ms";
+    n.easing = "ease-out";
+  }
+  return n;
 }
 // "Leaf" tags cannot contain children; everything else can nest.
 var LEAF = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, button:1, input:1, textarea:1, img:1, video:1, audio:1, iframe:1, a:1, br:1, hr:1, spacer:1, text:1, code:1, mark:1, strong:1, em:1, small:1, legend:1, option:1, list:1, checkbox:1, radio:1, switch:1, select:1, combobox:1, datepicker:1, number:1, slider:1, file:1, color:1, date:1, time:1, progress:1, badge:1, spinner:1, divider:1, menuitem:1, modalbutton:1, toast:1, chart:1, graph:1 };
@@ -5180,6 +5186,9 @@ function renderInspector() {
   if (nodes.length === 1 && n && ["timelineitem", "emptystate", "skeleton", "carousel", "stepper", "step", "commandbar", "command"].indexOf(n.kind) >= 0) {
     box.appendChild(block3Controls(n));
   }
+  if (nodes.length === 1 && n && (n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
+    box.appendChild(toggleControls(n));
+  }
   if (nodes.length === 1 && n && (n.kind === "tabs" || n.kind === "tab")) {
     var tabsHint = document.createElement("div");
     tabsHint.className = "hint";
@@ -6208,6 +6217,56 @@ function block3Controls(n) {
   if (n.kind === "commandbar") hint.textContent = "Without open the palette stays inline. With a state, Ctrl/Cmd + hotkey opens the overlay and Escape closes it.";
   else if (n.kind === "carousel" || n.kind === "stepper") hint.textContent = "Bind value to an int state so arrows, dots or steps update the app state.";
   else hint.textContent = "Edit visible text from the Text field; this section exposes the component-specific options.";
+  b.appendChild(hint);
+  a.appendChild(b);
+  return a;
+}
+function toggleControls(n) {
+  var isSwitch = n.kind === "switch";
+  var isRadio = n.kind === "radio";
+  var title = isSwitch ? "Switch" : (isRadio ? "Radio" : "Checkbox");
+  var shapes = isSwitch
+    ? [["default", "default"], ["rounded", "rounded"], ["square", "square"], ["pill", "pill"], ["ios", "iOS"], ["material", "Material"], ["minimal", "minimal"], ["soft", "soft"]]
+    : (isRadio
+      ? [["default", "default"], ["compact", "compact"], ["large", "large"], ["soft", "soft"], ["minimal", "minimal"]]
+      : [["default", "default"], ["rounded", "rounded"], ["square", "square"], ["circle", "circle"], ["ios", "iOS"], ["minimal", "minimal"], ["soft", "soft"]]);
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>' + title + ' structure & motion</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  function choose(label, field, options, fallback) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var sel = document.createElement("select");
+    options.forEach(function(o){
+      var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+      if ((n[field] || fallback) === o[0]) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = function(){ withUndo(function(){ n[field] = sel.value; }, title + " " + label); };
+    row.appendChild(sel); b.appendChild(row);
+  }
+  function textRow(label, field, placeholder) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(label));
+    var inp = document.createElement("input");
+    inp.value = n[field] || "";
+    inp.placeholder = placeholder || "";
+    inp.spellcheck = false;
+    inp.onchange = function(){ withUndo(function(){ n[field] = inp.value.trim(); }, title + " " + label); };
+    row.appendChild(inp); b.appendChild(row);
+  }
+  choose("structure", "shape", shapes, "default");
+  choose("theme", "theme", [["default", "default"], ["accent", "accent"], ["success", "success"], ["warning", "warning"], ["danger", "danger"], ["mono", "mono"], ["dark", "dark"], ["light", "light"]], "default");
+  choose("animation", "animation", [["auto", "auto"], ["morph", "morph"], ["fade", "fade"], ["scale", "scale"], ["slide", "slide"], ["none", "none"]], "morph");
+  textRow("duration", "duration", "220ms");
+  textRow("easing", "easing", "ease-out");
+  textRow("delay", "delay", "0ms");
+  textRow("stagger", "stagger", "0.1");
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "Structure and theme are CSS-variable presets; the motion engine tweens every part between the two states. Stagger is a fraction of the duration (0-0.5) applied across parts.";
   b.appendChild(hint);
   a.appendChild(b);
   return a;
@@ -12434,6 +12493,15 @@ function attrsOf(n) {
     if (n.min) a += " min: \"" + esc(n.min) + "\"";
   }
   if (n.kind === "dropdownitem" && n.separator) a += " separator: true";
+  if (n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio") {
+    if (n.shape) a += " shape: \"" + esc(n.shape) + "\"";
+    if (n.theme) a += " theme: \"" + esc(n.theme) + "\"";
+    if (n.animation) a += " animation: \"" + esc(n.animation) + "\"";
+    if (n.duration) a += " duration: \"" + esc(n.duration) + "\"";
+    if (n.easing) a += " easing: \"" + esc(n.easing) + "\"";
+    if (n.delay) a += " delay: \"" + esc(n.delay) + "\"";
+    if (n.stagger) a += " stagger: \"" + esc(n.stagger) + "\"";
+  }
   if (n.kind === "dropdown" || n.kind === "popover" || n.kind === "combobox" || n.kind === "commandbar") {
     if ((n.kind === "dropdown" || n.kind === "combobox") && n.placement) a += " placement: \"" + esc(n.placement) + "\"";
     if (n.animation) a += " animation: \"" + esc(n.animation) + "\"";
