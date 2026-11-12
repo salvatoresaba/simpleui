@@ -1192,7 +1192,9 @@ The green triangle just outside the table's top-left corner selects the whole
 table; clicking inside the first cell selects that cell or its content.
 Select a cell to open the **Layout cell** section and set `column span` /
 `row span` to merge it with the cells on its right or below; **Reset to 1 x 1**
-splits it again. Padding, background, border, effects and size are edited in the
+splits it again. Increasing a span merges the fully covered cells and appends
+their content; a partial overlap is rejected with a message. Reducing a span
+keeps the content in the cell and recreates the released area as empty cells. Padding, background, border, effects and size are edited in the
 generic inspector sections, which target the cell directly. Alignment belongs
 to the elements inside the cell: select them and use their **Alignment** section.
 The cell stays a real table cell, so vertical alignment uses `vertical-align`

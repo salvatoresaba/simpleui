@@ -150,7 +150,9 @@ tablelayout rows: 2 columns: 3
    **Layout cell** to set `column span` / `row span`; padding, background,
    border and effects are edited in the generic inspector sections, while
    inner elements use their own **Alignment** section. **Reset to 1 x 1**
-   splits the cell again.
+   splits the cell again. Growing a span merges the fully covered cells and
+   keeps their content; a partial overlap is rejected. Shrinking a span keeps
+   the content in the cell and recreates the released area as empty cells.
 6. Cells are outlined in the designer preview, including empty and merged cells,
    so the grid is visible even when application borders are set to none.
 

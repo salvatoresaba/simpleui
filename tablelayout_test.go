@@ -208,6 +208,8 @@ func TestTableLayoutInspectorStructurePanel(t *testing.T) {
 		"LAYOUT_CELL_PROP_ATTR",
 		"function selectedLayoutCellNode",
 		"function layoutApplyCounts",
+		"function layoutSetCellSpans",
+		"span would cut through another cell",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("table layout structure panel missing %q", want)

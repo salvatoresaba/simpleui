@@ -4913,14 +4913,14 @@ function renderInspector() {
     if (selLayoutSplit) box.appendChild(layoutSplitControls(n, selLayoutSplit));
     if (selLayoutCell) {
       if (selLayoutCell.childIndex >= 0 && n.children && n.children[selLayoutCell.childIndex]) {
-        box.appendChild(layoutCellControls(n.children[selLayoutCell.childIndex]));
+        box.appendChild(layoutCellControls(n.children[selLayoutCell.childIndex], n));
       }
     }
   }
   if (nodes.length === 1 && n && n.kind === "layoutcell") {
     var layoutParent = layoutCellParentPath(selPath);
     if (layoutParent) box.appendChild(layoutTableControls(layoutParent));
-    box.appendChild(layoutCellControls(n));
+    box.appendChild(layoutCellControls(n, layoutParent));
   }
   if (nodes.length === 1 && n && n.kind === "tabs") {
     box.appendChild(tabsControls(n));
@@ -9586,7 +9586,84 @@ function layoutTableControls(n) {
   a.appendChild(b);
   return a;
 }
-function layoutCellControls(n) {
+function layoutSetCellSpans(table, cellNode, targetCS, targetRS) {
+  if (!table || table.kind !== "tablelayout" || !cellNode) return;
+  var tablePath = layoutSelectedTablePath();
+  withUndo(function(){
+    materializeLayoutCells(table);
+    var cell = cellNode;
+    if (table.children.indexOf(cell) < 0) {
+      var at = layoutCellNodeAt(table, Number(cell.layoutRow || 0), Number(cell.layoutCol || 0));
+      cell = at && at.node && at.node.kind === "layoutcell" ? at.node : null;
+    }
+    if (!cell) return;
+    var g = layoutGridInfo(table);
+    var row = Number(cell.layoutRow || 0), col = Number(cell.layoutCol || 0);
+    var curCS = layoutClampInt(cell.layoutColspan, 1, 12, 1);
+    var curRS = layoutClampInt(cell.layoutRowspan, 1, 50, 1);
+    var maxCS = Math.max(1, Math.min(12, g.cols - col));
+    var maxRS = Math.max(1, Math.min(50, g.rows - row));
+    var newCS = layoutClampInt(targetCS, 1, maxCS, 1);
+    var newRS = layoutClampInt(targetRS, 1, maxRS, 1);
+    var grew = newCS > curCS || newRS > curRS;
+    var included = [];
+    if (grew) {
+      var r2 = row + newRS, c2 = col + newCS;
+      for (var i = 0; i < table.children.length; i++) {
+        var other = table.children[i];
+        if (other === cell || other.kind !== "layoutcell") continue;
+        var or = Number(other.layoutRow || 0), oc = Number(other.layoutCol || 0);
+        var ors = layoutClampInt(other.layoutRowspan, 1, 50, 1), ocs = layoutClampInt(other.layoutColspan, 1, 12, 1);
+        var overlaps = or < r2 && or + ors > row && oc < c2 && oc + ocs > col;
+        if (!overlaps) continue;
+        var inside = or >= row && or + ors <= r2 && oc >= col && oc + ocs <= c2;
+        if (!inside) {
+          setStatus("span would cut through another cell; adjust the grid or use Merge selected");
+          return;
+        }
+        included.push(other);
+      }
+    }
+    var oldCS = curCS, oldRS = curRS, oldR = row, oldC = col;
+    cell.layoutColspan = String(newCS);
+    cell.layoutRowspan = String(newRS);
+    if (included.length) {
+      included.sort(function(a, b){
+        return (Number(a.layoutRow || 0) - Number(b.layoutRow || 0)) || (Number(a.layoutCol || 0) - Number(b.layoutCol || 0));
+      });
+      cell.children = cell.children || [];
+      for (var k = 0; k < included.length; k++) {
+        if (included[k].children) cell.children = cell.children.concat(included[k].children);
+      }
+      table.children = table.children.filter(function(c){ return included.indexOf(c) < 0; });
+      layoutPruneEmptyBoundaries(table);
+      layoutSyncCounts(table);
+    } else if (newCS < oldCS || newRS < oldRS) {
+      var ng = layoutGridInfo(table);
+      for (var rr = oldR; rr < oldR + oldRS; rr++) {
+        for (var cc = oldC; cc < oldC + oldCS; cc++) {
+          if (rr < oldR + newRS && cc < oldC + newCS) continue;
+          if (ng.occupied[rr] && ng.occupied[rr][cc]) continue;
+          table.children.push(newLayoutCellNode(rr, cc));
+          if (ng.occupied[rr]) ng.occupied[rr][cc] = true;
+        }
+      }
+      layoutSortCells(table);
+    }
+    var idx = table.children.indexOf(cell);
+    if (idx >= 0) {
+      selLayoutCell = { row: Number(cell.layoutRow || 0), col: Number(cell.layoutCol || 0), childIndex: idx };
+      selLayoutCells = [selLayoutCell];
+      if (tablePath) selPath = tablePath.concat([idx]);
+    }
+    setStatus(included.length ? ("merged " + included.length + " cells into the span") : "cell span updated");
+  }, "layout cell span");
+}
+function layoutCellControls(n, table) {
+  if (!table) {
+    var tablePath = layoutSelectedTablePath();
+    table = tablePath ? byPath(tablePath, root.children) : null;
+  }
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
   h.innerHTML = '<span>Layout cell</span><span>\u25BE</span>';
@@ -9605,7 +9682,13 @@ function layoutCellControls(n) {
     inp.value = String(Math.max(min, Math.min(max, isNaN(cur) ? 1 : cur)));
     inp.onchange = function(){
       var v = Math.max(min, Math.min(max, parseInt(inp.value, 10) || 1));
-      withUndo(function(){ n[field] = String(v); }, "layout " + labelText);
+      if (table && table.kind === "tablelayout") {
+        var cs = field === "layoutColspan" ? v : layoutClampInt(n.layoutColspan, 1, 12, 1);
+        var rs = field === "layoutRowspan" ? v : layoutClampInt(n.layoutRowspan, 1, 50, 1);
+        layoutSetCellSpans(table, n, cs, rs);
+      } else {
+        withUndo(function(){ n[field] = String(v); }, "layout " + labelText);
+      }
     };
     row.appendChild(inp);
     b.appendChild(row);
@@ -9616,10 +9699,13 @@ function layoutCellControls(n) {
   sr.appendChild(lbl("split"));
   var sb = document.createElement("button"); sb.type = "button"; sb.className = "btn";
   sb.textContent = "Reset to 1 x 1";
-  sb.onclick = function(){ withUndo(function(){ n.layoutColspan = "1"; n.layoutRowspan = "1"; }, "layout split cell"); };
+  sb.onclick = function(){
+    if (table && table.kind === "tablelayout") layoutSetCellSpans(table, n, 1, 1);
+    else withUndo(function(){ n.layoutColspan = "1"; n.layoutRowspan = "1"; }, "layout split cell");
+  };
   sr.appendChild(sb); b.appendChild(sr);
   var note = document.createElement("div"); note.className = "rowth";
-  note.textContent = "Padding, background, border, effects and size are edited in the inspector sections below. Alignment applies to the elements inside the cell.";
+  note.textContent = "Increasing a span merges the fully covered cells and keeps their content; a partial overlap is rejected. Reducing a span keeps the content here and releases empty cells. Padding, background, border, effects and size are edited in the inspector sections below. Alignment applies to the elements inside the cell.";
   b.appendChild(note);
   a.appendChild(b);
   return a;
