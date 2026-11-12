@@ -1200,8 +1200,9 @@ La sezione **Table layout** dell'inspector controlla:
 - **Structure table settings**, che apre un pannello con un campo per la
   larghezza di ogni colonna e per l'altezza di ogni riga; le due liste
   scorrono separatamente per gestire griglie grandi, e un campo vuoto
-  significa `auto`. Modificando una misura oltre righe/colonne dichiarate, il
-  contatore corrispondente viene alzato;
+  significa `auto`. All'apertura il pannello allinea i contatori righe/colonne
+  alla griglia effettiva; modificando una misura oltre righe/colonne dichiarate,
+  il contatore corrispondente viene alzato;
 - **column gap** e **row gap**;
 - **empty cell height** per mantenere visibili e utilizzabili le celle vuote;
 - **stack on small screens** (impilamento responsive sotto 640px);

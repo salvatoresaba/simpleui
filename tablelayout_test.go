@@ -393,6 +393,9 @@ view main {
 	if !strings.Contains(js, "sui-layout-cell ${__sui_class") {
 		t.Errorf("layout cell class expression missing from generated JS")
 	}
+	if !strings.Contains(guiHTML, `n.kind === "layoutcell" && n.class && n.class.trim()`) {
+		t.Errorf("layout cell static+expression class combination missing")
+	}
 }
 
 func TestTableLayoutCellRuntimeAttrs(t *testing.T) {
@@ -423,6 +426,18 @@ view main {
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("layout cell runtime attribute missing %q", want)
+		}
+	}
+}
+
+func TestTableLayoutPresetResetsSpans(t *testing.T) {
+	for _, want := range []string{
+		`layoutApplyCounts(n, p.rows, p.columns, "remove")`,
+		`c.layoutColspan = "1"; c.layoutRowspan = "1";`,
+		`sync table structure counters`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("table layout preset/structure sync missing %q", want)
 		}
 	}
 }

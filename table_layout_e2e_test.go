@@ -12,7 +12,7 @@ import (
 
 const tableLayoutE2ESource = `view main {
 	title "Layout e2e"
-	tablelayout rows: 2 columns: 2 width: "120px" rowHeights: "200px, 200px" class: "lt" {
+	tablelayout rows: 1 columns: 2 width: "120px" rowHeights: "200px, 200px" class: "lt" {
 		layoutcell row: 0 col: 0 {
 			p "Hello"
 		}
@@ -186,6 +186,22 @@ const tableLayoutE2EScript = `<script>
     await wait(400);
     if (!(await waitPreview())) throw new Error('preview did not render');
 
+    // Opening Structure syncs the declared counters with the real grid.
+    await selectTable();
+    var structBtn = Array.from(acc('Table layout').querySelectorAll('button')).find(function (b) {
+      return b.textContent.trim() === 'Structure table settings';
+    });
+    if (!structBtn) throw new Error('structure button missing');
+    structBtn.click();
+    await wait(700);
+    var structRows = Array.from(acc('Table layout').querySelectorAll('.rowline')).find(function (r) {
+      var l = r.querySelector('label'); return l && l.textContent === 'rows';
+    });
+    if (!structRows || structRows.querySelector('input').value !== '2') throw new Error('structure open did not sync rows counter');
+    var structClose = Array.from(document.querySelectorAll('#layoutstruct button')).find(function (b) { return b.textContent.trim() === 'Close'; });
+    if (structClose) structClose.click();
+    await wait(300);
+
     await selectCell(0, 0);
     var h = heads();
     if (h.indexOf('Position') >= 0) throw new Error('Position must be hidden for a layout cell');
@@ -332,6 +348,37 @@ const tableLayoutE2EScript = `<script>
     document.getElementById('conf-cancel').click();
     await wait(400);
     if (frameDoc().querySelectorAll('table.sui-layout-table td').length !== beforeSplit) throw new Error('cancelled split changed the grid');
+
+    // The Border section on a layout table styles the table frame.
+    await selectTable();
+    var border = acc('Border');
+    if (!border) throw new Error('Border section missing on the table');
+    var bStyleRow = Array.from(border.querySelectorAll('.rowline')).find(function (r) {
+      var l = r.querySelector('label'); return l && l.textContent === 'style';
+    });
+    var bStyle = bStyleRow && bStyleRow.querySelector('select');
+    bStyle.value = 'solid';
+    bStyle.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(700);
+    border = acc('Border');
+    var bWidthRow = Array.from(border.querySelectorAll('.rowline')).find(function (r) {
+      var l = r.querySelector('label'); return l && l.textContent === 'width';
+    });
+    var bWidth = bWidthRow && bWidthRow.querySelector('input');
+    bWidth.value = '3px';
+    bWidth.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(700);
+    border = acc('Border');
+    var bHex = border && border.querySelector('.color-hex');
+    bHex.value = '#ff0000';
+    bHex.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(1000);
+    doc = frameDoc();
+    var frameTable = doc.querySelector('table.sui-layout-table');
+    var fcs = doc.defaultView.getComputedStyle(frameTable);
+    if (fcs.borderTopStyle !== 'solid') throw new Error('table frame border style not applied');
+    if (fcs.borderTopColor !== 'rgb(255, 0, 0)') throw new Error('table frame border color not applied: ' + fcs.borderTopColor);
+    if (parseFloat(fcs.borderTopWidth) <= 0) throw new Error('table frame border width not applied');
 
     result(true);
   } catch (e) {

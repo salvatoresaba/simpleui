@@ -1153,8 +1153,9 @@ The **Table layout** inspector section controls:
 - **rows** (1-50) and **columns** (1-12);
 - **Structure table settings**, which opens a panel with one input per column
   width and per row height; the two lists scroll independently so large grids
-  stay usable, and an empty field means `auto`. Editing a size beyond the
-  declared rows/columns raises the matching counter;
+  stay usable, and an empty field means `auto`. Opening the panel aligns the
+  rows/columns counters with the actual grid; editing a size beyond the declared
+  rows/columns raises the matching counter;
 - **column gap** and **row gap**;
 - **empty cell height** so empty cells stay visible and droppable;
 - **stack on small screens** (responsive stacking below 640px);

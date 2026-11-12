@@ -9486,6 +9486,12 @@ function layoutSizeRow(n, labelText, field, placeholder) {
 }
 var __layoutStructNode = null;
 function openLayoutStructure(n) {
+  var g = layoutGridInfo(n);
+  var rows = Math.max(1, g.rows || 1, layoutClampInt(n.layoutRows, 1, 50, 1));
+  var cols = Math.max(1, g.cols || 1, layoutClampInt(n.layoutColumns, 1, 12, 1));
+  if (String(rows) !== String(layoutClampInt(n.layoutRows, 1, 50, 1)) || String(cols) !== String(layoutClampInt(n.layoutColumns, 1, 12, 1))) {
+    withUndo(function(){ n.layoutRows = String(rows); n.layoutColumns = String(cols); }, "sync table structure counters");
+  }
   __layoutStructNode = n;
   renderLayoutStructure();
   var dlg = document.getElementById("layoutstruct");
@@ -12054,8 +12060,13 @@ function attrsOf(n) {
   }
   if (n.kind === "combobox" && n.empty) a += " empty: \"" + esc(n.empty) + "\"";
   if (n.tooltip) a += " tooltip: \"" + escText(n.tooltip) + "\"";
-  if (n.classExpr) a += " class: " + n.classExpr;
-  else if (n.class) a += " class: \"" + esc(n.class) + "\"";
+  if (n.classExpr) {
+    if (n.kind === "layoutcell" && n.class && n.class.trim()) {
+      a += " class: (" + n.classExpr + ") + \"" + esc(" " + n.class.trim()) + "\"";
+    } else {
+      a += " class: " + n.classExpr;
+    }
+  } else if (n.class) a += " class: \"" + esc(n.class) + "\"";
   if (n.styleExpr) a += " style: " + cssSafeExpr(n.styleExpr);
   else if (n.style) a += " style: \"" + esc(n.style) + "\"";
   if (n.kind === "iframe") {

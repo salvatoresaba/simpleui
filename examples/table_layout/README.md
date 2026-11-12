@@ -130,6 +130,7 @@ tablelayout rows: 2 columns: 3
    - preset (shown only while the table is empty);
    - rows and columns;
    - **Structure table settings** for per-column widths and per-row heights;
+     opening it aligns the rows/columns counters with the actual grid, and
      editing a size beyond the declared rows/columns raises the counters;
    - separate column/row gaps;
    - empty-cell height;
