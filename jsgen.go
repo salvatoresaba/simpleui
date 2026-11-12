@@ -2211,10 +2211,10 @@ func writeLayoutCellExtras(sb *strings.Builder, e *Element, ctx *JsCtx) {
 		if evKey == "onKeyDown" || evKey == "onKeyUp" || evKey == "onFocus" || evKey == "onBlur" {
 			keyboard = true
 		}
-		sb.WriteString(" " + eventAttrJs[evKey] + "=\"if (!event.target.closest('[data-sui-id]')) " + ev.expr.name + "()\"")
+		sb.WriteString(" " + eventAttrJs[evKey] + "=\"var __t=event.target.closest('[data-sui-id]'); if (!__t || !this.contains(__t)) " + ev.expr.name + "()\"")
 	}
 	if ev := findAttr(e, "onContextMenu"); ev != nil && ev.hasExpr && ev.expr != nil && ev.expr.kind == "ident" {
-		sb.WriteString(" oncontextmenu=\"if (!event.target.closest('[data-sui-id]')) { event.preventDefault(); " + ev.expr.name + "(); }\"")
+		sb.WriteString(" oncontextmenu=\"var __t=event.target.closest('[data-sui-id]'); if (!__t || !this.contains(__t)) { event.preventDefault(); " + ev.expr.name + "(); }\"")
 	}
 	if keyboard {
 		sb.WriteString(" tabindex=\"0\"")

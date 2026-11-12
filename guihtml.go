@@ -4310,11 +4310,19 @@ function alignElement(dir) {
   // vertical-align/text-align and auto margins on the child instead.
   if (parent && parent.kind === "layoutcell") {
     var cellCls = ensureClass(parent);
+    var marker = "sui-layout-cell-aligned";
+    var classes = (parent.class || "").trim().split(/\s+/).filter(Boolean);
+    if (classes.indexOf(marker) < 0) {
+      classes.push(marker);
+      parent.class = classes.join(" ");
+    }
     var inlineControl = ["input", "button", "select", "textarea"].indexOf(selNode && selNode.kind) >= 0;
     var cellDecls = [
       { prop: "display", value: "" },
       { prop: "flex-direction", value: "" },
-      { prop: "vertical-align", value: v === "t" ? "top" : v === "b" ? "bottom" : "middle" }
+      { prop: "vertical-align", value: v === "t" ? "top" : v === "b" ? "bottom" : "middle" },
+      { prop: "--sui-cell-align", value: h === "l" ? "flex-start" : h === "r" ? "flex-end" : "center" },
+      { prop: "--sui-cell-justify", value: v === "t" ? "flex-start" : v === "b" ? "flex-end" : "center" }
     ];
     if (inlineControl) cellDecls.push({ prop: "text-align", value: h === "l" ? "left" : h === "r" ? "right" : "center" });
     var childMap = {
@@ -4361,11 +4369,16 @@ function alignClear() {
   var parent = selPath.length >= 2 ? byPath(selPath.slice(0, -1), root.children) : null;
   if (parent && parent.kind === "layoutcell") {
     var cellCls = ensureClass(parent);
+    var marker = "sui-layout-cell-aligned";
+    var classes = (parent.class || "").trim().split(/\s+/).filter(function(c){ return c && c !== marker; });
+    parent.class = classes.join(" ");
     setCssOnClass(cellCls, [
       { prop: "display", value: "" },
       { prop: "flex-direction", value: "" },
       { prop: "vertical-align", value: "" },
-      { prop: "text-align", value: "" }
+      { prop: "text-align", value: "" },
+      { prop: "--sui-cell-align", value: "" },
+      { prop: "--sui-cell-justify", value: "" }
     ], function(){
       setCssProps({ "align-self": "", "margin-left": "", "margin-right": "", "margin-top": "", "margin-bottom": "", "text-align": "" });
     });
@@ -5143,6 +5156,7 @@ var ELEMENT_EVENTS = {
   tabs:     ["onClick"],
   menuitem: ["onClick", "onMouseEnter", "onMouseLeave", "onFocus", "onBlur"],
   modalbutton: ["onClick", "onMouseEnter", "onMouseLeave", "onFocus", "onBlur"],
+  layoutcell: ["onClick", "onDoubleClick", "onMouseEnter", "onMouseLeave", "onFocus", "onBlur", "onKeyDown", "onKeyUp", "onContextMenu"],
 };
 // Drag events are valid on every element: containers can be drop zones, and
 // leaves can be drag handles. The runtime still decides what is useful.

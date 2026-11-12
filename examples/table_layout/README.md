@@ -168,7 +168,8 @@ tablelayout rows: 2 columns: 3
 6. Cells are outlined in the designer preview, including empty and merged cells,
    so the grid is visible even when application borders are set to none.
    Responsive stacking is disabled in the preview; the compiled app still
-   stacks below 640px.
+   stacks below 640px. Aligned cells become flex-column when stacked and keep
+   the chosen horizontal/vertical alignment; other cells stay block.
 
 ## Build
 

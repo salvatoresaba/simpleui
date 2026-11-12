@@ -2124,7 +2124,8 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
   `cellBorderStyle`/`cellBorderWidth`/`cellBorderColor`.
 - Per allineare il contenuto, applica lo stile all'elemento figlio (sezione
   Alignment o CSS), non alla cella.
-- `responsive: true` impila le celle sotto i 640px di larghezza.
+- `responsive: true` impila le celle sotto i 640px di larghezza; le celle
+  allineate diventano flex-column quando impilate e mantengono l'allineamento.
 - `semantic: true` usa `role="table"` invece di `role="presentation"`; `label`
   aggiunge un `aria-label` accessibile.
 - I figli mantengono comportamento e stile normali. Usa `col`/`div`/`card` per

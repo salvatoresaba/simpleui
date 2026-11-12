@@ -277,10 +277,16 @@ func TestTableLayoutCellAlignment(t *testing.T) {
 		`"text-align"`,
 		`"margin-left": h === "r" ? "auto"`,
 		`sn.kind === "tablelayout" || sn.kind === "layoutcell"`,
+		`sui-layout-cell-aligned`,
+		`--sui-cell-align`,
+		`--sui-cell-justify`,
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("layout cell alignment missing %q", want)
 		}
+	}
+	if !strings.Contains(suiCssBase, "align-items: var(--sui-cell-align, stretch)") {
+		t.Errorf("responsive layout cell alignment CSS missing")
 	}
 	if !strings.Contains(guiPreviewPicker, "sui-layout-responsive") {
 		t.Errorf("designer preview must keep layout cells in grid mode")
@@ -412,8 +418,8 @@ view main {
 		`data-sui-tooltip="tip"`,
 		`data-sui-drop-key="item"`,
 		`data-sui-dropzone="1"`,
-		`onclick="if (!event.target.closest('[data-sui-id]')) hello()"`,
-		`oncontextmenu="if (!event.target.closest('[data-sui-id]')) { event.preventDefault(); hello(); }"`,
+		`onclick="var __t=event.target.closest('[data-sui-id]'); if (!__t || !this.contains(__t)) hello()"`,
+		`oncontextmenu="var __t=event.target.closest('[data-sui-id]'); if (!__t || !this.contains(__t)) { event.preventDefault(); hello(); }"`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("layout cell runtime attribute missing %q", want)

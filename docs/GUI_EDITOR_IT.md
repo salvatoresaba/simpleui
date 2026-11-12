@@ -1269,7 +1269,9 @@ sfondo, bordo e le altre proprietà CSS generiche vengono applicati a tutte le
 celle selezionate.
 
 
-Le frecce spostano la selezione tra le celle vuote. Nella preview del designer l'impilamento responsive è temporaneamente disattivato per mantenere visibili griglia e maniglie; l'app compilata impila comunque sotto 640px. Le celle sono evidenziate, comprese quelle vuote e
+Le frecce spostano la selezione tra le celle vuote. Nella preview del designer l'impilamento responsive è temporaneamente disattivato per mantenere visibili griglia e maniglie; l'app compilata impila comunque sotto 640px.
+Le celle allineate diventano flex-column quando sono impilate, quindi mantengono
+l'allineamento orizzontale/verticale; le altre restano block. Le celle sono evidenziate, comprese quelle vuote e
 unite, così la griglia è visibile anche senza bordi applicativi. Raggruppa più
 elementi in un `col`, `div` o `card` per tenerli nella stessa cella. Usa il
 controllo dati **Table** quando servono `table.display`, `table.importText`,

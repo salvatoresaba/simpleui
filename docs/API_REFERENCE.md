@@ -2234,7 +2234,8 @@ tablelayout rows: 3 columns: 2 width: "100%" columnWidths: "55%, 45%"
   `cellBorderStyle`/`cellBorderWidth`/`cellBorderColor`.
 - Align content by styling the child element (its Alignment section or CSS),
   not the cell itself.
-- `responsive: true` stacks the cells on screens up to 640px wide.
+- `responsive: true` stacks the cells on screens up to 640px wide; aligned cells
+  become flex-column when stacked, keeping the chosen alignment.
 - `semantic: true` uses `role="table"` instead of `role="presentation"`;
   `label` adds an accessible `aria-label`.
 - Children keep their normal behavior and styling. Wrap several elements in a

@@ -1722,6 +1722,11 @@ p { line-height: 1.6; }
   .sui-layout-responsive > tbody,
   .sui-layout-responsive > tbody > tr,
   .sui-layout-responsive > tbody > tr > .sui-layout-cell { display: block; width: 100% !important; }
+  .sui-layout-responsive > tbody > tr > .sui-layout-cell.sui-layout-cell-aligned {
+    display: flex; flex-direction: column;
+    align-items: var(--sui-cell-align, stretch);
+    justify-content: var(--sui-cell-justify, flex-start);
+  }
   .sui-layout-responsive > tbody > tr > .sui-layout-cell { margin-bottom: var(--sui-layout-gap-y, 12px); }
 }
 

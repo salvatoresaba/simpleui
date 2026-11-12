@@ -1217,7 +1217,8 @@ applied to every selected cell.
 
 Arrow keys move selection between empty cells. In the designer preview responsive stacking is temporarily disabled so the grid
 and its split handles stay visible; the compiled app still stacks below 640px.
-Cells are outlined, including empty and merged cells, so
+Aligned cells become flex-column when stacked, so their horizontal/vertical
+alignment still applies; other cells stay block. Cells are outlined, including empty and merged cells, so
 the grid is visible even without application borders. Wrap several elements in a
 `col`, `div` or `card` to keep them in the same cell. Use the data **Table**
 control when you need `table.display`, `table.importText`, sorting, filtering or

@@ -194,6 +194,10 @@ const tableLayoutE2EScript = `<script>
     if (h.indexOf('Alignment') >= 0) throw new Error('Alignment must be hidden for a layout cell');
     if (h.indexOf('Layout') >= 0) throw new Error('Layout must be hidden for a layout cell');
     if (h.indexOf('Grid') >= 0) throw new Error('Grid must be hidden for a layout cell');
+    if (h.indexOf('Bindings') >= 0) throw new Error('Bindings must be hidden for a layout cell');
+    if (h.indexOf('Tooltip') < 0) throw new Error('Tooltip must stay available for a layout cell');
+    if (h.indexOf('Events') < 0) throw new Error('Events must stay available for a layout cell');
+    if (h.indexOf('Drag & drop') < 0) throw new Error('Drag & drop must stay available for a layout cell');
     var box = secLabels('Box model');
     if (box.indexOf('margin') >= 0) throw new Error('margin must be hidden for a layout cell');
     if (box.indexOf('padding') < 0) throw new Error('padding must stay available for a layout cell');

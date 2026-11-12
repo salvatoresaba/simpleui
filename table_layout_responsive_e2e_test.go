@@ -22,7 +22,7 @@ func TestTableLayoutRuntimeResponsiveE2E(t *testing.T) {
 	const source = `view main {
 	title "Responsive e2e"
 	tablelayout rows: 1 columns: 2 responsive: true {
-		layoutcell row: 0 col: 0 {
+		layoutcell row: 0 col: 0 class: "sui-layout-cell-aligned" style: "--sui-cell-align:center;--sui-cell-justify:center;min-height:220px" {
 			card "A"
 		}
 		layoutcell row: 0 col: 1 {
@@ -116,11 +116,21 @@ const tableLayoutResponsiveScript = `<script>
     var cells = Array.from(table.querySelectorAll('tbody > tr > .sui-layout-cell'));
     if (cells.length < 2) throw new Error('expected at least two cells');
     var displays = cells.map(function (c) { return window.getComputedStyle(c).display; });
-    if (displays.some(function (d) { return d !== 'block'; })) throw new Error('cells are not stacked: ' + displays.join(','));
+    if (displays.some(function (d, i) {
+      return d !== 'block' && !(cells[i].classList.contains('sui-layout-cell-aligned') && d === 'flex');
+    })) throw new Error('cells are not stacked: ' + displays.join(','));
     var rects = cells.map(function (c) { return c.getBoundingClientRect(); });
     if (rects[1].top < rects[0].bottom - 2) throw new Error('second cell is not below the first');
     if (Math.abs(rects[0].width - rects[1].width) > 4) throw new Error('stacked cells have different widths');
     if (rects[0].width < window.innerWidth * 0.6) throw new Error('stacked cell is too narrow');
+    var aligned = document.querySelector('.sui-layout-cell-aligned');
+    if (!aligned) throw new Error('aligned cell marker missing');
+    if (window.getComputedStyle(aligned).display !== 'flex') throw new Error('aligned stacked cell is not flex');
+    var child = aligned.firstElementChild;
+    if (!child) throw new Error('aligned cell has no content');
+    var ar = aligned.getBoundingClientRect(), cr = child.getBoundingClientRect();
+    if (Math.abs((cr.top - ar.top) - (ar.bottom - cr.bottom)) > 20) throw new Error('stacked content is not vertically centered');
+    if (Math.abs((cr.left - ar.left) - (ar.right - cr.right)) > 20) throw new Error('stacked content is not horizontally centered');
     result(true);
   } catch (e) {
     result(false, e && e.message ? e.message : String(e));
