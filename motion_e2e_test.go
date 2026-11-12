@@ -199,9 +199,9 @@ const motionRuntimeScript = `<script>
       return res;
     }
     var fade = await sampleEffect('Fade', 'fade');
-    if (fade.attr !== 'fade' || fade.opacity >= 0.9) throw new Error('fade effect missing: ' + JSON.stringify(fade));
+    if (fade.attr !== 'fade' || fade.opacity <= 0.35 || fade.opacity >= 1) throw new Error('fade effect missing: ' + JSON.stringify(fade));
     var scale = await sampleEffect('Scale', 'scale');
-    if (scale.attr !== 'scale' || scale.opacity >= 0.9 || scale.transform === 'none') throw new Error('scale effect missing: ' + JSON.stringify(scale));
+    if (scale.attr !== 'scale' || scale.opacity < 0.99 || scale.transform === 'none') throw new Error('scale effect missing: ' + JSON.stringify(scale));
     var morph = await sampleEffect('Morph', 'morph');
     if (morph.attr !== 'morph' || morph.opacity < 0.99 || morph.transform !== 'none') throw new Error('morph effect changed opacity/transform: ' + JSON.stringify(morph));
     result(true);

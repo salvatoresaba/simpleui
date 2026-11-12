@@ -332,6 +332,11 @@ switch "Modalità" shape: shape theme: theme checked: on
 | `delay` | tempo CSS o ms | Ritardo prima del tween. |
 | `stagger` | `0`-`0.5` | Frazione della durata distribuita sulle parti. |
 
+`morph` interpola solo forma e colore; `fade` scende al 35% di opacità e
+ritorna; `scale` si riduce all'82% senza dissolvenza; `slide` si sposta di 10px
+e scende al 40%. Tutti gli effetti restano leggibili e non fanno sparire il
+controllo.
+
 Lo stesso meccanismo vale per qualsiasi elemento che opta in con gli attributi
 data del motion: il runtime cattura proprietà CSS e custom properties scelte,
 poi genera i frame intermedi. Per i toggle nativi lo stato precedente viene

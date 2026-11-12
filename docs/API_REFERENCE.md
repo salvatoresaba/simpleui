@@ -360,6 +360,10 @@ switch "Mode" shape: shape theme: theme checked: on
 | `delay` | CSS time or ms | Delay before the tween. |
 | `stagger` | `0`-`0.5` | Fraction of the duration spread across parts. |
 
+`morph` interpolates shape and color only; `fade` dims to 35% and returns;
+`scale` shrinks to 82% without fading; `slide` moves 10px and dims to 40%.
+All effects stay readable and never make the control vanish completely.
+
 The same mechanism works for any element that opts in with the motion data
 attributes: the runtime captures selected CSS properties and custom properties,
 then generates the intermediate frames. For native toggles the old state is

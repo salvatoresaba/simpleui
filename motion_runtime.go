@@ -192,10 +192,18 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     function applyEffect(t) {
       if (!effectProps) return;
       var e = ease(Math.max(0, Math.min(1, t)), o.easing);
-      el.style.opacity = e;
-      if (o.effect === 'scale') el.style.transform = 'scale(' + (0.96 + 0.04 * e) + ')';
-      else if (o.effect === 'slide') el.style.transform = 'translateY(' + ((1 - e) * 6) + 'px)';
-      else el.style.transform = 'none';
+      if (o.effect === 'fade') {
+        // Never go fully transparent: a state toggle should stay readable.
+        el.style.opacity = 0.35 + 0.65 * e;
+        el.style.transform = 'none';
+      } else if (o.effect === 'scale') {
+        // Scale is a real, visible size change without fading out.
+        el.style.opacity = '1';
+        el.style.transform = 'scale(' + (0.82 + 0.18 * e) + ')';
+      } else if (o.effect === 'slide') {
+        el.style.opacity = 0.4 + 0.6 * e;
+        el.style.transform = 'translateY(' + ((1 - e) * 10) + 'px)';
+      }
     }
     el.__suiMotionVars = items.map(function(it){ return it.name; });
     el.__suiMotionProps = effectProps;
