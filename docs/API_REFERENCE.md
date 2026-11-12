@@ -307,9 +307,12 @@ dropdown "Actions" position: "right" {
 
 `position` is `left` (default) or `right`. Items support `onClick`, `disabled`
 and `separator`; the menu closes on outside clicks, Escape or item selection.
-The runtime reuses the menu bar keyboard/focus behavior. In the designer choose
-**Controls > Dropdown menu**; edit the label from **Text**, the side from the
-**Dropdown** section and add items from the element tree.
+The runtime reuses the menu bar keyboard/focus behavior and repositions the
+popup inside the viewport: it shifts left/right at the edges, flips above the
+trigger when there is not enough space below, and scrolls when it is taller
+than the window. In the designer choose **Controls > Dropdown menu**; edit the
+label from **Text**, the side from the **Dropdown** section and add items from
+the element tree.
 
 ## Popover
 

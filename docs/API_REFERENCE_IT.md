@@ -279,9 +279,11 @@ dropdown "Azioni" position: "right" {
 `position` è `left` (default) o `right`. Le voci supportano `onClick`,
 `disabled` e `separator`; il menu si chiude con un click fuori, Esc o la
 selezione di una voce. Il runtime riusa il comportamento tastiera/focus della
-menu bar. Nel designer scegliere **Controls > Dropdown menu**; modificare
-l'etichetta da **Text**, il lato dalla sezione **Dropdown** e aggiungere le voci
-dall'albero.
+menu bar e riposiziona il popup dentro la finestra: si sposta a sinistra/destra
+ai bordi, si apre sopra il trigger quando sotto non c'è spazio e diventa
+scorrevole se è più alto della finestra. Nel designer scegliere **Controls >
+Dropdown menu**; modificare l'etichetta da **Text**, il lato dalla sezione
+**Dropdown** e aggiungere le voci dall'albero.
 
 ## Popover
 

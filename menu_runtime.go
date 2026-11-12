@@ -4,19 +4,95 @@ package main
 //
 // The generated markup is a <nav class="sui-menubar"> containing
 // <div class="sui-menu"> items. Each menu is a real <button> plus a hidden
-// popup. A menu nested in another popup is a submenu and uses the same markup;
-// CSS positions it beside its parent. This script only toggles the `open` class
-// and keeps ARIA state in sync; labels and links are rendered/escaped by the
-// normal generator.
+// popup. A menu nested in another popup is a submenu and uses the same markup.
+// This script toggles the `open` class, keeps ARIA state in sync and positions
+// every popup inside the visible viewport (flipping above and clamping left/
+// right when the trigger is near an edge).
 const suiMenuRuntime = `(function(){
   function closest(el, sel) {
     return el && el.closest ? el.closest(sel) : null;
+  }
+  function popupOf(menu) {
+    if (!menu) return null;
+    for (var i = 0; i < menu.children.length; i++) {
+      var c = menu.children[i];
+      if (c.classList && c.classList.contains('sui-menu-popup')) return c;
+    }
+    return null;
+  }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function resetPopup(popup) {
+    if (!popup) return;
+    popup.style.position = '';
+    popup.style.left = '';
+    popup.style.top = '';
+    popup.style.right = '';
+    popup.style.maxHeight = '';
+    popup.style.maxWidth = '';
+    popup.style.overflowY = '';
+  }
+  // positionMenu measures the open popup and pins it with fixed coordinates so
+  // a dropdown never renders past the viewport edge. Right-aligned dropdowns
+  // align their right edge to the trigger, then shift back inside the viewport.
+  function positionMenu(menu) {
+    if (!menu || !menu.classList.contains('open')) return;
+    var popup = popupOf(menu);
+    if (!popup) return;
+    var margin = 8, gap = 4;
+    var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (!vw || !vh) return;
+    popup.style.position = 'fixed';
+    popup.style.right = 'auto';
+    popup.style.left = '0px';
+    popup.style.top = '0px';
+    popup.style.maxWidth = Math.max(120, vw - margin * 2) + 'px';
+    popup.style.maxHeight = '';
+    popup.style.overflowY = '';
+    var trigger = menu.querySelector('.sui-menu-button') || menu;
+    var tr = trigger.getBoundingClientRect();
+    var pr = popup.getBoundingClientRect();
+    var w = pr.width, h = pr.height;
+    var left, top;
+    if (isNested(menu)) {
+      var parentPopup = menu.parentNode;
+      var pp = parentPopup.getBoundingClientRect();
+      left = pp.right + gap;
+      if (left + w > vw - margin) left = pp.left - w - gap;
+      top = tr.top;
+    } else {
+      var rightAligned = menu.hasAttribute('data-sui-dropdown-right') || menu.classList.contains('sui-dropdown-right');
+      left = rightAligned ? tr.right - w : tr.left;
+      top = tr.bottom + gap;
+      var above = tr.top - gap - h;
+      if (top + h > vh - margin && above >= margin) top = above;
+    }
+    if (top + h > vh - margin) {
+      var avail = Math.max(60, vh - margin - Math.max(top, margin));
+      if (top < margin) {
+        top = margin;
+        avail = vh - margin * 2;
+      }
+      popup.style.maxHeight = avail + 'px';
+      popup.style.overflowY = 'auto';
+      h = Math.min(h, avail);
+    }
+    left = clamp(left, margin, Math.max(margin, vw - w - margin));
+    top = clamp(top, margin, Math.max(margin, vh - h - margin));
+    popup.style.left = Math.round(left) + 'px';
+    popup.style.top = Math.round(top) + 'px';
+  }
+  function repositionOpenMenus() {
+    var open = document.querySelectorAll('.sui-menu.open');
+    for (var i = 0; i < open.length; i++) positionMenu(open[i]);
   }
   function closeMenus(except) {
     var open = document.querySelectorAll('.sui-menu.open');
     for (var i = 0; i < open.length; i++) {
       if (open[i] === except) continue;
       open[i].classList.remove('open');
+      var p = popupOf(open[i]);
+      if (p) resetPopup(p);
       var b = open[i].querySelector('.sui-menu-button');
       if (b) b.setAttribute('aria-expanded', 'false');
     }
@@ -26,12 +102,15 @@ const suiMenuRuntime = `(function(){
     var deeper = menu.querySelectorAll('.sui-menu.open');
     for (var i = 0; i < deeper.length; i++) {
       deeper[i].classList.remove('open');
+      var dp = popupOf(deeper[i]);
+      if (dp) resetPopup(dp);
       var db = deeper[i].querySelector('.sui-menu-button');
       if (db) db.setAttribute('aria-expanded', 'false');
     }
     menu.classList.add('open');
     var b = menu.querySelector('.sui-menu-button');
     if (b) b.setAttribute('aria-expanded', 'true');
+    positionMenu(menu);
   }
   function isNested(menu) {
     return !!(menu && menu.parentNode && menu.parentNode.classList &&
@@ -40,11 +119,15 @@ const suiMenuRuntime = `(function(){
   function closeBranch(menu) {
     if (!menu) return;
     menu.classList.remove('open');
+    var bp = popupOf(menu);
+    if (bp) resetPopup(bp);
     var b = menu.querySelector('.sui-menu-button');
     if (b) b.setAttribute('aria-expanded', 'false');
     var nested = menu.querySelectorAll('.sui-menu.open');
     for (var i = 0; i < nested.length; i++) {
       nested[i].classList.remove('open');
+      var np = popupOf(nested[i]);
+      if (np) resetPopup(np);
       var nb = nested[i].querySelector('.sui-menu-button');
       if (nb) nb.setAttribute('aria-expanded', 'false');
     }
@@ -59,6 +142,8 @@ const suiMenuRuntime = `(function(){
     for (var i = 0; i < open.length; i++) {
       if (open[i] === menu) continue;
       open[i].classList.remove('open');
+      var sp = popupOf(open[i]);
+      if (sp) resetPopup(sp);
       var b = open[i].querySelector('.sui-menu-button');
       if (b) b.setAttribute('aria-expanded', 'false');
     }
@@ -161,13 +246,18 @@ const suiMenuRuntime = `(function(){
       return;
     }
     if (ev.key === 'Escape') {
-      var top = document.querySelector('.sui-menubar > .sui-menu.open');
-      if (top) {
-        var button = top.querySelector('.sui-menu-button');
+      var openNow = document.querySelectorAll('.sui-menu.open');
+      if (openNow.length) {
+        var firstButton = null;
+        for (var oi = 0; oi < openNow.length; oi++) {
+          if (!isNested(openNow[oi])) { firstButton = openNow[oi].querySelector('.sui-menu-button'); break; }
+        }
         closeMenus(null);
-        if (button) button.focus();
+        if (firstButton) firstButton.focus();
         ev.preventDefault();
       }
     }
   });
+  window.addEventListener('resize', repositionOpenMenus);
+  document.addEventListener('scroll', repositionOpenMenus, true);
 })();`

@@ -23,7 +23,7 @@ fn edit() -> null {
 
 view main {
 	p "Action: {action}"
-	dropdown "Actions" {
+	dropdown "Actions" position: "right" {
 		dropdownitem "Edit" onClick: edit
 	}
 	popover "Info" position: "bottom" {
@@ -106,6 +106,12 @@ const dropdownPopoverScript = `<script>
     toggle.click();
     await wait(100);
     if (!menu.classList.contains('open')) throw new Error('dropdown did not open');
+    var popup = menu.querySelector('.sui-menu-popup');
+    var rect = popup.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) throw new Error('dropdown popup has no size');
+    if (rect.left < 0 || rect.top < 0 || rect.right > window.innerWidth || rect.bottom > window.innerHeight) {
+      throw new Error('dropdown popup outside viewport: ' + JSON.stringify({ left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, vw: window.innerWidth, vh: window.innerHeight }));
+    }
     var item = menu.querySelector('.sui-menuitem');
     item.click();
     await wait(300);
