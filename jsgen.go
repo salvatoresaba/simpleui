@@ -2194,6 +2194,33 @@ func layoutCellStyleAttrValue(cell layoutGridCell, table *Element, dynamic bool)
 	return base + htmlTextParts(a.text)
 }
 
+func writeLayoutCellExtras(sb *strings.Builder, e *Element, ctx *JsCtx) {
+	writeDndAttrs(sb, e, ctx)
+	writePickerAttrs(sb, e, ctx)
+	if a := findAttr(e, "tooltip"); a != nil {
+		sb.WriteString(" data-sui-tooltip=\"")
+		sb.WriteString(htmlAttrValue(a, false))
+		sb.WriteString("\"")
+	}
+	keyboard := false
+	for _, evKey := range elemEventOrder {
+		ev := findAttr(e, evKey)
+		if ev == nil || !ev.hasExpr || ev.expr == nil || ev.expr.kind != "ident" {
+			continue
+		}
+		if evKey == "onKeyDown" || evKey == "onKeyUp" || evKey == "onFocus" || evKey == "onBlur" {
+			keyboard = true
+		}
+		sb.WriteString(" " + eventAttrJs[evKey] + "=\"if (!event.target.closest('[data-sui-id]')) " + ev.expr.name + "()\"")
+	}
+	if ev := findAttr(e, "onContextMenu"); ev != nil && ev.hasExpr && ev.expr != nil && ev.expr.kind == "ident" {
+		sb.WriteString(" oncontextmenu=\"if (!event.target.closest('[data-sui-id]')) { event.preventDefault(); " + ev.expr.name + "(); }\"")
+	}
+	if keyboard {
+		sb.WriteString(" tabindex=\"0\"")
+	}
+}
+
 func layoutCellAttrs(cell layoutGridCell, e *Element, dynamic bool) string {
 	var b strings.Builder
 	if cell.colspan > 1 {
@@ -3336,6 +3363,9 @@ func tableLayoutElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			b.WriteString("\"")
 			b.WriteString(layoutCellPosAttrs(r, c))
 			b.WriteString(layoutCellAttrs(cell, e, true))
+			if cell.node != nil && cell.node.kind == "element" && cell.node.elem != nil {
+				writeLayoutCellExtras(&b, cell.node.elem, ctx)
+			}
 			b.WriteString(">` + (")
 			b.WriteString(viewNodesJs(childPtrs(cell.content), g, ctx))
 			b.WriteString(") + `</td>")

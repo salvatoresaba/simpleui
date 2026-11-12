@@ -2278,7 +2278,9 @@ per-cell border attributes remain source-level. Select a cell to edit its span
 and position; padding,
 background, border and effects use the generic inspector sections, while
 alignment applies to the elements inside the cell. With a cell selected,
-Position/Size/Responsive/Layout/Grid are hidden; with several cells selected,
+Position/Size/Responsive/Layout/Grid/Bindings are hidden; Tooltip, Events and
+Drag & drop work on the `<td>` and fire on empty cell areas, while a child
+component's event takes precedence. With several cells selected,
 the generic CSS sections apply to all of them. Cells are outlined in the
 preview while designing.
 See [examples/table_layout](../examples/table_layout/README.md).

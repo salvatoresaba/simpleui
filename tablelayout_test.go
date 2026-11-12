@@ -389,6 +389,38 @@ view main {
 	}
 }
 
+func TestTableLayoutCellRuntimeAttrs(t *testing.T) {
+	src := `fn hello() -> null {
+}
+
+view main {
+	tablelayout columns: 1 {
+		layoutcell row: 0 col: 0 tooltip: "tip" dropKey: "item" onClick: hello onContextMenu: hello {
+			card "A"
+		}
+	}
+}`
+	prog, dl := ParseSource(src, "layout_cell_runtime.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	for _, want := range []string{
+		`data-sui-tooltip="tip"`,
+		`data-sui-drop-key="item"`,
+		`data-sui-dropzone="1"`,
+		`onclick="if (!event.target.closest('[data-sui-id]')) hello()"`,
+		`oncontextmenu="if (!event.target.closest('[data-sui-id]')) { event.preventDefault(); hello(); }"`,
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("layout cell runtime attribute missing %q", want)
+		}
+	}
+}
+
 func TestTableLayoutPaletteEntry(t *testing.T) {
 	for _, want := range []string{
 		`"tablelayout"`,

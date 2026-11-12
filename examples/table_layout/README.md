@@ -158,8 +158,10 @@ tablelayout rows: 2 columns: 3
    splits the cell again. Growing a span merges the fully covered cells and
    keeps their content; a partial overlap is rejected. Shrinking a span keeps
    the content in the cell and recreates the released area as empty cells.
-   With a cell selected, Position, Size, Responsive, Layout, Grid and margin are
-   hidden; padding, background, border, effects and Drag & drop stay available.
+   With a cell selected, Position, Size, Responsive, Layout, Grid, Bindings and
+   margin are hidden; padding, background, border and effects stay available.
+   Tooltip, Events and Drag & drop are emitted on the cell `<td>`; they fire on
+   empty cell areas, while an event on a child component takes precedence.
    With several cells selected, the generic CSS sections apply to all of them.
    The table frame is edited in **Border**; the global cell border attributes
    remain source-level.

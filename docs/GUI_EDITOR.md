@@ -1208,11 +1208,12 @@ to the elements inside the cell: select them and use their **Alignment** section
 The cell stays a real table cell, so vertical alignment uses `vertical-align`
 and horizontal alignment uses auto margins; **Clear** restores the top-left
 position. With a cell selected, the inspector hides **Position**, **Size**,
-**Responsive**, **Layout** and **Grid**, and **Box model** shows only
-**padding** because margins do not apply to table cells. **Drag & drop** stays
-available: a cell can be a runtime drop target. With several cells selected,
-padding, background, border and the other generic CSS properties are applied to
-every selected cell.
+**Responsive**, **Layout**, **Grid** and **Bindings**, and **Box model** shows
+only **padding** because margins do not apply to table cells. **Tooltip**,
+**Events** and **Drag & drop** work on the `<td>`: they fire on empty cell areas,
+while an event on a child component takes precedence. With several cells
+selected, padding, background, border and the other generic CSS properties are
+applied to every selected cell.
 
 Arrow keys move selection between empty cells. In the designer preview responsive stacking is temporarily disabled so the grid
 and its split handles stay visible; the compiled app still stacks below 640px.

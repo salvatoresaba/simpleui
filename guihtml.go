@@ -4894,8 +4894,10 @@ function renderInspector() {
   // explicitly: the sections carry the INTERSECTION of the selection and
   // disappear entirely when an element (or one of the selected ones) has none.
   if (nodes.length && everyKind(nodes, function(k){ return k !== "table"; })) {
-    var bc = bindingControls(nodes);
-    if (bc) box.appendChild(bc);
+    if (!(nodes.length === 1 && n && n.kind === "layoutcell")) {
+      var bc = bindingControls(nodes);
+      if (bc) box.appendChild(bc);
+    }
     // Tree, table, chart and graph own their event model and expose it in
     // their dedicated settings panels: the generic Events panel would
     // duplicate a partial list.

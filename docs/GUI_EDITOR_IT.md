@@ -1260,10 +1260,11 @@ riguarda gli elementi dentro la cella: selezionali e usa la loro sezione
 **Alignment**. La cella resta una vera cella di tabella: l'allineamento verticale
 usa `vertical-align`, quello orizzontale usa i margini automatici; **Clear**
 ripristina la posizione in alto a sinistra. Con una cella selezionata
-l'inspector nasconde **Position**, **Size**, **Responsive**, **Layout** e
-**Grid**, e **Box model** mostra solo **padding** perché i margini non si
-applicano alle celle di tabella. **Drag & drop** resta disponibile: una cella
-può essere un'area di drop a runtime. Con più celle selezionate, padding,
+l'inspector nasconde **Position**, **Size**, **Responsive**, **Layout**,
+**Grid** e **Bindings**, e **Box model** mostra solo **padding** perché i margini non si
+applicano alle celle di tabella. **Tooltip**, **Events** e **Drag & drop**
+funzionano sul `<td>`: scattano sulle parti vuote della cella, mentre un evento
+su un componente figlio ha la precedenza. Con più celle selezionate, padding,
 sfondo, bordo e le altre proprietà CSS generiche vengono applicati a tutte le
 celle selezionate.
 

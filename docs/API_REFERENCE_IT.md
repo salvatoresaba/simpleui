@@ -2171,8 +2171,11 @@ bordo. Gli attributi globali del bordo delle celle restano source-level.
 Seleziona una cella per modificarne span e
 posizione; padding, sfondo, bordo ed effetti usano le sezioni generiche
 dell'inspector, mentre l'allineamento riguarda gli elementi dentro la cella.
-Con una cella selezionata sono nascosti Position/Size/Responsive/Layout/Grid;
-con più celle selezionate le sezioni CSS generiche si applicano a tutte.
+Con una cella selezionata sono nascosti
+Position/Size/Responsive/Layout/Grid/Bindings; Tooltip, Events e Drag & drop
+funzionano sul `<td>` e scattano sulle aree vuote, mentre l'evento di un
+componente figlio ha la precedenza. Con più celle selezionate le sezioni CSS
+generiche si applicano a tutte.
 Le celle sono evidenziate nella preview durante la progettazione. Vedi
 [examples/table_layout](../examples/table_layout/README.md).
 
