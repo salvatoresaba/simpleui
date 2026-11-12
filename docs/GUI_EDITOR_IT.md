@@ -927,6 +927,11 @@ componenti ripetuti devono impostare `motionKey` (ad esempio `item.id` o il
 parametro del componente); `data-sui-id` non è univoco dentro una lista. Tabelle,
 tree, chart e toggle hanno sezioni motion dedicate.
 
+Nelle app multi-pagina, `navigate(page)` cattura la pagina visibile prima del
+cambio e applica le chiavi condivise dopo il render della nuova pagina. Lo stesso
+`motionKey` su due pagine produce una transizione shared-element, incluse
+dimensioni e posizione.
+
 **Controls > Split panes** inserisce due figli `pane` e un divisore
 trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.
 Uno splitter deve mantenere esattamente due pannelli.

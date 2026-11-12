@@ -373,6 +373,12 @@ devono impostare `motionKey` (ad esempio `motionKey: item.id`). Card, pannelli e
 rami condizionali possono condividere la stessa chiave tra percorsi di render
 diversi, abilitando transizioni lista → dettaglio e liste filtrate.
 
+In un'app multi-pagina, `navigate(page)` cattura prima la pagina visibile,
+renderizza la nuova pagina e poi applica le chiavi corrispondenti. Lo stesso
+`motionKey` su due pagine anima quindi l'elemento tra le pagine, inclusi
+posizione e dimensioni. Il contenuto senza chiave corrispondente appare
+semplicemente con la nuova pagina.
+
 ## Popover
 
 `popover` è un trigger con contenuto ricco in un pannello ancorato. Il testo è

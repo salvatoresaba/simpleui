@@ -399,6 +399,11 @@ moves it; `fade`, `scale` and `slide` add the corresponding enter/exit effect.
 branches can share the same key across different render paths, which enables
 list → detail and filtered-list transitions.
 
+On a multi-page app, `navigate(page)` first captures the currently visible page,
+renders the new page, then flushes matching keys. The same `motionKey` on two
+pages therefore animates the element between pages, including its position and
+size. Content without a matching key simply appears with the new page.
+
 ## Popover
 
 `popover` is a trigger with rich content in an anchored panel. The element text

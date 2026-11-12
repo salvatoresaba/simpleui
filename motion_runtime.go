@@ -12,6 +12,8 @@ package main
 const suiMotionRuntime = `const __SUI_MOTION = (function(){
   var beforeMap = {};
   var preMap = {};
+  var sharedMap = {};
+  var pageSwitching = false;
   var hadSnapshot = false;
   var probe = null;
   var STANDARD = ['opacity', 'backgroundColor', 'color', 'borderColor', 'borderRadius', 'width', 'height', 'transform', 'filter', 'letterSpacing', 'fontSize', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'boxShadow'];
@@ -102,7 +104,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
     return null;
   }
-  function snapshot(el) {
+  function snapshot(el, withClone) {
     var cs = getComputedStyle(el);
     var vars = {};
     var names = varList(el);
@@ -114,7 +116,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
     var r = el.getBoundingClientRect();
     var snap = { vars: vars, props: props, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, opts: optionsOf(el), clone: null };
-    if (!names.length && el.getAttribute('data-sui-motion-exit') === '1') {
+    if (withClone !== false && !names.length && el.getAttribute('data-sui-motion-exit') === '1') {
       snap.clone = el.cloneNode(true);
       stripMotionClone(snap.clone);
     }
@@ -163,6 +165,8 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     if (el.__suiMotionProps) {
       el.style.removeProperty('opacity');
       el.style.removeProperty('transform');
+      el.style.removeProperty('width');
+      el.style.removeProperty('height');
       el.__suiMotionProps = false;
     }
     if (el.__suiMotionAnim) { try { el.__suiMotionAnim.cancel(); } catch (e) {} el.__suiMotionAnim = null; }
@@ -259,9 +263,10 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
     scheduleFrame(el, frame);
   }
-  function animateMovement(el, dx, dy, o, fromOpacity, toOpacity, fromScale, toScale, fromY, toY, done) {
+  function animateMovement(el, dx, dy, o, fromOpacity, toOpacity, fromScale, toScale, fromY, toY, done, size) {
     var has = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5 || fromOpacity !== toOpacity || fromScale !== toScale || fromY !== toY;
-    if (!has) { if (done) done(); return; }
+    var hasSize = !!(size && (Math.abs(size.fromW - size.toW) > 0.5 || Math.abs(size.fromH - size.toH) > 0.5));
+    if (!has && !hasSize) { if (done) done(); return; }
     var start = performance.now() + o.delay;
     el.__suiMotionProps = true;
     function apply(t) {
@@ -277,6 +282,10 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       if (Math.abs(yy) > 0.01) tf += (tf ? ' ' : '') + 'translateY(' + yy + 'px)';
       el.style.transform = tf;
       el.style.opacity = String(op);
+      if (hasSize) {
+        el.style.width = (size.fromW + (size.toW - size.fromW) * e) + 'px';
+        el.style.height = (size.fromH + (size.toH - size.fromH) * e) + 'px';
+      }
     }
     apply(0);
     function frame() {
@@ -289,6 +298,10 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
         el.__suiMotionRafType = '';
         el.style.removeProperty('opacity');
         el.style.removeProperty('transform');
+        if (hasSize) {
+          el.style.removeProperty('width');
+          el.style.removeProperty('height');
+        }
         el.__suiMotionProps = false;
         if (done) done();
       }
@@ -307,13 +320,14 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     if (o.effect === 'fade') fromOpacity = 0;
     else if (o.effect === 'scale') { fromOpacity = 0; fromScale = 0.96; }
     else if (o.effect === 'slide') { fromOpacity = 0; fromY = 6; }
-    animateMovement(el, dx, dy, o, fromOpacity, toOpacity, fromScale, toScale, fromY, toY, null);
+    var size = { fromW: old.rect.width, fromH: old.rect.height, toW: r.width, toH: r.height };
+    animateMovement(el, dx, dy, o, fromOpacity, toOpacity, fromScale, toScale, fromY, toY, null, size);
     if (old.props) {
       var ns = getComputedStyle(el);
       var from = {}, to = {};
       for (var i = 0; i < STANDARD.length; i++) {
         var p = STANDARD[i];
-        if (p === 'opacity' || p === 'transform') continue;
+        if (p === 'opacity' || p === 'transform' || p === 'width' || p === 'height') continue;
         var nv = ns[p];
         if (nv === undefined) continue;
         if (String(old.props[p]) !== String(nv)) { from[p] = old.props[p]; to[p] = nv; }
@@ -357,6 +371,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }, o.duration + o.delay + 250);
   }
   function before(root) {
+    if (pageSwitching) { hadSnapshot = false; return; }
     beforeMap = {};
     hadSnapshot = false;
     var els = root.querySelectorAll('[data-sui-motion]');
@@ -370,6 +385,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
   }
   function after(root) {
+    if (pageSwitching) return;
     if (!hadSnapshot) { beforeMap = {}; return; }
     var els = root.querySelectorAll('[data-sui-motion]');
     var seen = {};
@@ -394,6 +410,46 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       if (snap && snap.clone) exitClone(snap);
     }
     beforeMap = {};
+  }
+  function visiblePageBoxes() {
+    var boxes = document.querySelectorAll('[data-sui-pagebox]');
+    var out = [];
+    for (var i = 0; i < boxes.length; i++) {
+      if (getComputedStyle(boxes[i]).display !== 'none') out.push(boxes[i]);
+    }
+    return out;
+  }
+  function capturePage() {
+    sharedMap = {};
+    pageSwitching = true;
+    var boxes = visiblePageBoxes();
+    for (var b = 0; b < boxes.length; b++) {
+      var els = boxes[b].querySelectorAll('[data-sui-motion]');
+      for (var i = 0; i < els.length; i++) {
+        var k = keyOf(els[i]);
+        if (!k) continue;
+        sharedMap[k] = snapshot(els[i], false);
+      }
+    }
+  }
+  function flushShared() {
+    var boxes = visiblePageBoxes();
+    for (var b = 0; b < boxes.length; b++) {
+      var els = boxes[b].querySelectorAll('[data-sui-motion]');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        var k = keyOf(el);
+        var old = sharedMap[k];
+        if (!old) continue;
+        var o = optionsOf(el);
+        if (o.effect === 'none') continue;
+        cancel(el);
+        animateElement(old, el, o);
+        delete sharedMap[k];
+      }
+    }
+    sharedMap = {};
+    pageSwitching = false;
   }
   function captureBeforeToggle(ev) {
     var el = motionTarget(ev.target);
@@ -422,5 +478,5 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       if (ev.key === ' ' || ev.key === 'Enter') captureBeforeToggle(ev);
     }, true);
   }
-  return { before: before, after: after, cancel: cancel };
+  return { before: before, after: after, cancel: cancel, capturePage: capturePage, flushShared: flushShared };
 })();`

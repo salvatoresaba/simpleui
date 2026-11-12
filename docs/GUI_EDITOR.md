@@ -892,6 +892,10 @@ fades missing/new elements. Repeated list items and components must set
 not unique inside a list. Tables, trees, charts and toggles have their own
 specialized motion sections.
 
+On multi-page apps, `navigate(page)` captures the visible page before switching
+and flushes shared keys after the new page renders. The same `motionKey` on two
+pages produces a shared-element transition, including size and position.
+
 **Controls > Split panes** inserts two `pane` children and a draggable divider.
 Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must
 keep exactly two panes.

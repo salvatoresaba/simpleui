@@ -772,8 +772,10 @@ func GenerateJsFor(p *Prog, target string) string {
 	if multi {
 		sb.WriteString("\n\nwindow.__SUI_PAGE = " + jsString(rootNames[0]) + ";\n")
 		sb.WriteString("function __sui_page(n) {\n")
+		sb.WriteString("  if (typeof __SUI_MOTION !== 'undefined' && __SUI_MOTION.capturePage) __SUI_MOTION.capturePage();\n")
 		sb.WriteString("  window.__SUI_PAGE = String(n);\n")
 		sb.WriteString("  for (const k of Object.keys(__SUI_views)) __SUI_views[k]();\n")
+		sb.WriteString("  if (typeof __SUI_MOTION !== 'undefined' && __SUI_MOTION.flushShared) __SUI_MOTION.flushShared();\n")
 		sb.WriteString("}\n")
 	}
 	sb.WriteString("\n\n__sui_render();\n")
