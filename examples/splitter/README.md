@@ -8,7 +8,7 @@ the bar or focusing it and using the arrow keys resizes the panes. `Home` and
 ## Complete source
 
 ```sui
-css ".split-page \\{ max-width: 900px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .split-note \\{ color: #8fa0b8; font-size: 13px; \\} .split-panel \\{ height: 320px; \\}"
+css ".split-page \{ max-width: 900px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .split-note \{ color: #8fa0b8; font-size: 13px; \} .split-panel \{ height: 320px; \}"
 
 view main {
 	title "Split panes"

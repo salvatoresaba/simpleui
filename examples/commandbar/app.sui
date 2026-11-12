@@ -17,7 +17,7 @@ fn help() -> null {
 	last = "help"
 }
 
-css ".command-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .command-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+css ".command-page \{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .command-note \{ color: #8fa0b8; font-size: 13px; \}"
 
 view main {
 	title "Command palette"

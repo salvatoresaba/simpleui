@@ -5,7 +5,7 @@ A vertical list of dated events with a status dot (done, active, pending or erro
 ## Complete source
 
 ```sui
-css ".timeline-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .timeline-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+css ".timeline-page \{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .timeline-note \{ color: #8fa0b8; font-size: 13px; \}"
 
 view main {
 	title "Timeline"

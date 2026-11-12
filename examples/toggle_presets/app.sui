@@ -57,7 +57,7 @@ fn setScale() -> null {
 	motion = "scale"
 }
 
-css ".toggle-page \\{ max-width: 820px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 16px; \\} .toggle-note \\{ color: #8fa0b8; font-size: 13px; \\} .toggle-stage \\{ display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px; border: 1px solid #3a4152; border-radius: 12px; background: #1a1f29; \\} .toggle-buttons \\{ display: flex; gap: 8px; flex-wrap: wrap; \\}"
+css ".toggle-page \{ max-width: 820px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 16px; \} .toggle-note \{ color: #8fa0b8; font-size: 13px; \} .toggle-stage \{ display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px; border: 1px solid #3a4152; border-radius: 12px; background: #1a1f29; \} .toggle-buttons \{ display: flex; gap: 8px; flex-wrap: wrap; \} .toggle-choice \{ border: 1px solid #3a4152; background: #242b38; color: #cbd5e1; \} .toggle-choice:hover \{ border-color: #4c5cf7; \} .toggle-choice.active \{ background: #3949d6; border-color: #7d8cff; color: #fff; box-shadow: 0 0 0 1px #7d8cff inset; \}"
 
 view main {
 	title "Toggle presets"
@@ -73,21 +73,21 @@ view main {
 		p "Struttura: {shape} · Tema: {theme} · Animazione: {motion}" class: "toggle-note"
 
 		div class: "toggle-buttons" {
-			button "Pill" onClick: setPill
-			button "iOS" onClick: setIOS
-			button "Material" onClick: setMaterial
-			button "Square" onClick: setSquare
+			button "Pill" class: "toggle-choice" + (shape == "pill" ? " active" : "") onClick: setPill
+			button "iOS" class: "toggle-choice" + (shape == "ios" ? " active" : "") onClick: setIOS
+			button "Material" class: "toggle-choice" + (shape == "material" ? " active" : "") onClick: setMaterial
+			button "Square" class: "toggle-choice" + (shape == "square" ? " active" : "") onClick: setSquare
 		}
 		div class: "toggle-buttons" {
-			button "Accent" onClick: setAccent
-			button "Success" onClick: setSuccess
-			button "Danger" onClick: setDanger
-			button "Mono" onClick: setMono
+			button "Accent" class: "toggle-choice" + (theme == "accent" ? " active" : "") onClick: setAccent
+			button "Success" class: "toggle-choice" + (theme == "success" ? " active" : "") onClick: setSuccess
+			button "Danger" class: "toggle-choice" + (theme == "danger" ? " active" : "") onClick: setDanger
+			button "Mono" class: "toggle-choice" + (theme == "mono" ? " active" : "") onClick: setMono
 		}
 		div class: "toggle-buttons" {
-			button "Morph" onClick: setMorph
-			button "Fade" onClick: setFade
-			button "Scale" onClick: setScale
+			button "Morph" class: "toggle-choice" + (motion == "morph" ? " active" : "") onClick: setMorph
+			button "Fade" class: "toggle-choice" + (motion == "fade" ? " active" : "") onClick: setFade
+			button "Scale" class: "toggle-choice" + (motion == "scale" ? " active" : "") onClick: setScale
 		}
 		p "Click the switch or the checkbox to toggle both. The shape/theme buttons morph the parts; the animation buttons change the effect used on the next toggle." class: "toggle-note"
 	}

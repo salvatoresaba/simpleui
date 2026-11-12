@@ -7,7 +7,7 @@ A slide track with previous/next buttons, dots and keyboard support. The active 
 ```sui
 state slide = 0
 
-css ".carousel-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .carousel-note \\{ color: #8fa0b8; font-size: 13px; \\} .carousel-slide-title \\{ margin: 0 0 6px; \\}"
+css ".carousel-page \{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .carousel-note \{ color: #8fa0b8; font-size: 13px; \} .carousel-slide-title \{ margin: 0 0 6px; \}"
 
 view main {
 	title "Carousel"

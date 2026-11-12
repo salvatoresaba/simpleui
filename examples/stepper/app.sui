@@ -12,7 +12,7 @@ fn previousStep() -> null {
 	}
 }
 
-css ".stepper-page \\{ max-width: 780px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 16px; \\} .stepper-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+css ".stepper-page \{ max-width: 780px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 16px; \} .stepper-note \{ color: #8fa0b8; font-size: 13px; \}"
 
 view main {
 	title "Stepper"

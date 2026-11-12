@@ -83,7 +83,7 @@ fn helpCommand() -> null {
 	lastCommand = "aiuto"
 }
 
-css ".prefab-page \\{ max-width: 980px; margin: 0 auto; padding: 26px; display: flex; flex-direction: column; gap: 16px; \\} .prefab-grid \\{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; \\} .prefab-note \\{ color: #8fa0b8; font-size: 13px; \\} .prefab-split \\{ height: 220px; \\} .prefab-carousel \\{ min-height: 170px; \\} .prefab-slide-title \\{ margin: 0 0 6px; \\}"
+css ".prefab-page \{ max-width: 980px; margin: 0 auto; padding: 26px; display: flex; flex-direction: column; gap: 16px; \} .prefab-grid \{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; \} .prefab-note \{ color: #8fa0b8; font-size: 13px; \} .prefab-split \{ height: 220px; \} .prefab-carousel \{ min-height: 170px; \} .prefab-slide-title \{ margin: 0 0 6px; \}"
 
 view main {
 	title "Prefabricated controls"

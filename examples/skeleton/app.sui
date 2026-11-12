@@ -8,7 +8,7 @@ fn toggleLoading() -> null {
 	}
 }
 
-css ".skeleton-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .skeleton-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+css ".skeleton-page \{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .skeleton-note \{ color: #8fa0b8; font-size: 13px; \}"
 
 view main {
 	title "Skeleton loader"

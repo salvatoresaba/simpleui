@@ -8,7 +8,7 @@ fn closeDrawer() -> null {
 	showFilters = false
 }
 
-css ".drawer-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .drawer-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+css ".drawer-page \{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .drawer-note \{ color: #8fa0b8; font-size: 13px; \}"
 
 view main {
 	title "Drawer"

@@ -10,7 +10,7 @@ and stored in a string state.
 state files = ""
 state folder = ""
 
-css ".drop-page \\{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \\} .drop-note \\{ color: #8fa0b8; font-size: 13px; \\}"
+css ".drop-page \{ max-width: 720px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 14px; \} .drop-note \{ color: #8fa0b8; font-size: 13px; \}"
 
 view main {
 	title "File dropzone"
