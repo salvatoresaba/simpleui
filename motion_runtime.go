@@ -125,12 +125,51 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     };
   }
   function cancel(el) {
-    if (el.__suiMotionRaf) { clearTimeout(el.__suiMotionRaf); el.__suiMotionRaf = 0; }
+    if (el.__suiMotionRaf) {
+      if (el.__suiMotionRafType === 'raf' && el.__suiMotionRaf.raf) {
+        cancelAnimationFrame(el.__suiMotionRaf.raf);
+        clearTimeout(el.__suiMotionRaf.timer);
+      } else {
+        clearTimeout(el.__suiMotionRaf);
+      }
+      el.__suiMotionRaf = 0;
+    }
+    el.__suiMotionRafType = '';
     if (el.__suiMotionVars) {
       for (var i = 0; i < el.__suiMotionVars.length; i++) el.style.removeProperty(el.__suiMotionVars[i]);
       el.__suiMotionVars = null;
     }
+    if (el.__suiMotionProps) {
+      el.style.removeProperty('opacity');
+      el.style.removeProperty('transform');
+      el.__suiMotionProps = false;
+    }
     if (el.__suiMotionAnim) { try { el.__suiMotionAnim.cancel(); } catch (e) {} el.__suiMotionAnim = null; }
+  }
+  function scheduleFrame(el, fn) {
+    // requestAnimationFrame is smoother in a visible browser. A timer fallback
+    // keeps the tween moving when the tab is hidden or the driver throttles
+    // rAF. Tests can force timer mode with ?motion=timer.
+    var forceTimer = (typeof window !== 'undefined' && window.__SUI_MOTION_TIMER) ||
+      (typeof location !== 'undefined' && location.search.indexOf('motion=timer') >= 0);
+    var useRaf = typeof requestAnimationFrame === 'function' && !forceTimer && !(typeof navigator !== 'undefined' && navigator.webdriver);
+    if (!useRaf) {
+      el.__suiMotionRafType = 'timer';
+      el.__suiMotionRaf = setTimeout(fn, 16);
+      return;
+    }
+    var fired = false;
+    function run() {
+      if (fired) return;
+      fired = true;
+      if (el.__suiMotionRaf && el.__suiMotionRaf.raf) cancelAnimationFrame(el.__suiMotionRaf.raf);
+      if (el.__suiMotionRaf && el.__suiMotionRaf.timer) clearTimeout(el.__suiMotionRaf.timer);
+      el.__suiMotionRaf = 0;
+      el.__suiMotionRafType = '';
+      fn();
+    }
+    el.__suiMotionRafType = 'raf';
+    el.__suiMotionRaf = { raf: requestAnimationFrame(run), timer: setTimeout(run, 34) };
   }
   function tweenVars(el, old, o) {
     var names = varList(el);
@@ -149,7 +188,24 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     var spread = o.stagger;
     var step = n > 1 ? spread / (n - 1) : 0;
     var span = Math.max(0.05, 1 - spread);
+    var effectProps = o.effect === 'fade' || o.effect === 'scale' || o.effect === 'slide';
+    function applyEffect(t) {
+      if (!effectProps) return;
+      var e = ease(Math.max(0, Math.min(1, t)), o.easing);
+      el.style.opacity = e;
+      if (o.effect === 'scale') el.style.transform = 'scale(' + (0.96 + 0.04 * e) + ')';
+      else if (o.effect === 'slide') el.style.transform = 'translateY(' + ((1 - e) * 6) + 'px)';
+      else el.style.transform = 'none';
+    }
     el.__suiMotionVars = items.map(function(it){ return it.name; });
+    el.__suiMotionProps = effectProps;
+    // Apply the first frame synchronously: without this the browser paints the
+    // new state for one frame before the tween rewinds to the old value, which
+    // is visible as flicker.
+    for (var init = 0; init < items.length; init++) {
+      el.style.setProperty(items[init].name, interpolate(items[init].a, items[init].b, 0));
+    }
+    applyEffect(0);
     function frame() {
       var t = (performance.now() - start) / o.duration;
       for (var k = 0; k < items.length; k++) {
@@ -157,24 +213,42 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
         var val = interpolate(items[k].a, items[k].b, ease(local, o.easing));
         if (val != null) el.style.setProperty(items[k].name, val);
       }
+      applyEffect(t);
       if (t < 1) {
-        el.__suiMotionRaf = setTimeout(frame, 16);
+        scheduleFrame(el, frame);
       } else {
         el.__suiMotionRaf = 0;
+        el.__suiMotionRafType = '';
         el.__suiMotionVars = null;
         for (var v = 0; v < items.length; v++) el.style.removeProperty(items[v].name);
+        if (el.__suiMotionProps) {
+          el.style.removeProperty('opacity');
+          el.style.removeProperty('transform');
+          el.__suiMotionProps = false;
+        }
       }
     }
-    el.__suiMotionRaf = setTimeout(frame, 16);
+    scheduleFrame(el, frame);
   }
   function animateElement(old, el, o) {
+    // Elements with custom-property presets run their whole transition in
+    // tweenVars (including the fade/scale/slide effect), so it stays in sync
+    // with the geometry tween and does not depend on the WAAPI timeline.
+    if (varList(el).length > 0) return;
+    var from = {};
+    var to = {};
     var r = el.getBoundingClientRect();
     var dx = old.rect.left - r.left;
     var dy = old.rect.top - r.top;
     var sx = r.width ? old.rect.width / r.width : 1;
     var sy = r.height ? old.rect.height / r.height : 1;
-    var from = {};
-    var to = {};
+    var transform = '';
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5 || Math.abs(sx - 1) > 0.01 || Math.abs(sy - 1) > 0.01) {
+      transform += ' translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
+    }
+    if (o.effect === 'scale') transform += ' scale(.96)';
+    if (o.effect === 'slide') transform += ' translateY(6px)';
+    if (transform) { from.transform = transform.trim(); to.transform = 'none'; }
     if (old.props) {
       var ns = getComputedStyle(el);
       for (var i = 0; i < STANDARD.length; i++) {
@@ -184,13 +258,6 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
         if (String(old.props[p]) !== String(nv)) { from[p] = old.props[p]; to[p] = nv; }
       }
     }
-    var transform = '';
-    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5 || Math.abs(sx - 1) > 0.01 || Math.abs(sy - 1) > 0.01) {
-      transform += ' translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
-    }
-    if (o.effect === 'scale') transform += ' scale(.96)';
-    if (o.effect === 'slide') transform += ' translateY(6px)';
-    if (transform) { from.transform = transform.trim(); to.transform = to.transform || 'none'; }
     if (o.effect === 'fade' || o.effect === 'scale' || o.effect === 'slide') { from.opacity = 0; to.opacity = to.opacity || 1; }
     if (!Object.keys(from).length) return;
     el.__suiMotionAnim = el.animate([from, to], { duration: o.duration, easing: o.easing, delay: o.delay, fill: 'none' });
@@ -239,7 +306,22 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     var el = motionTarget(ev.target);
     if (!el) return;
     var k = keyOf(el);
-    if (k) preMap[k] = snapshot(el);
+    if (!k) return;
+    var snap = snapshot(el);
+    preMap[k] = snap;
+    // Freeze state-bound toggles until the re-render starts the tween. This
+    // removes the one-frame native flash some browsers paint between the click
+    // and the reactive update.
+    if (el.hasAttribute('data-sui-motion-state')) {
+      var names = varList(el);
+      for (var i = 0; i < names.length; i++) {
+        if (snap.vars[names[i]] != null && snap.vars[names[i]] !== '') el.style.setProperty(names[i], snap.vars[names[i]]);
+      }
+      setTimeout(function() {
+        if (!document.body.contains(el)) return;
+        for (var j = 0; j < names.length; j++) el.style.removeProperty(names[j]);
+      }, 700);
+    }
   }
   if (typeof document !== 'undefined') {
     document.addEventListener('pointerdown', captureBeforeToggle, true);

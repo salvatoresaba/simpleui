@@ -5183,11 +5183,20 @@ func toggleMotionAttrs(e *Element, idx int) string {
 	if findAttr(e, "animation") == nil || idx < 0 {
 		return ""
 	}
-	effect := attrChoice(e, "animation", []string{"auto", "morph", "fade", "scale", "slide", "none"}, "morph")
+	effectAttr := ""
+	if a := findAttr(e, "animation"); a != nil && a.hasExpr && a.expr != nil {
+		effectAttr = " data-sui-motion-effect=\"${__sui_esc(" + ExprToJs(a.expr) + ")}\""
+	} else {
+		effect := attrChoice(e, "animation", []string{"auto", "morph", "fade", "scale", "slide", "none"}, "morph")
+		effectAttr = " data-sui-motion-effect=\"" + effect + "\""
+	}
 	var b strings.Builder
 	b.WriteString(" data-sui-motion data-sui-motion-key=\"" + strconv.Itoa(idx) + "\"")
-	b.WriteString(" data-sui-motion-effect=\"" + effect + "\"")
+	b.WriteString(effectAttr)
 	b.WriteString(" data-sui-motion-vars=\"" + toggleMotionVars(e.tag) + "\"")
+	if a := findAttr(e, "checked"); a != nil && a.hasExpr && a.expr != nil {
+		b.WriteString(" data-sui-motion-state=\"1\"")
+	}
 	if v := animationSafeValue(attrLiteral(e, "duration")); v != "" {
 		b.WriteString(" data-sui-motion-duration=\"" + htmlEscape(v) + "\"")
 	}

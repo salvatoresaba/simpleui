@@ -66,7 +66,7 @@ view main {
 		p "Change structure, theme and animation while the switch and checkbox morph between the two states." class: "toggle-note"
 
 		div class: "toggle-stage" {
-			switch "Modalità" shape: shape theme: theme checked: on animation: motion duration: "360ms" easing: "ease-in-out" stagger: "0.12" onChange: toggle
+			switch "Modalità" shape: shape theme: theme checked: on animation: motion duration: "360ms" easing: "ease-in-out" onChange: toggle
 			checkbox "Accetta i termini" shape: "ios" theme: theme checked: on animation: motion duration: "360ms" easing: "ease-in-out" onChange: toggle
 		}
 

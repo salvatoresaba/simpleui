@@ -18,6 +18,7 @@ func TestMotionRuntimeE2E(t *testing.T) {
 	const source = `state on = true
 state shape = "pill"
 state theme = "accent"
+state effect = "morph"
 
 fn toggle() -> null {
 	on = on == false
@@ -31,12 +32,27 @@ fn setSuccess() -> null {
 	theme = "success"
 }
 
+fn setFade() -> null {
+	effect = "fade"
+}
+
+fn setScale() -> null {
+	effect = "scale"
+}
+
+fn setMorph() -> null {
+	effect = "morph"
+}
+
 view main {
-	switch "Modalità" shape: shape theme: theme checked: on animation: "morph" duration: "400ms" easing: "linear" onChange: toggle
+	switch "Modalità" shape: shape theme: theme checked: on animation: effect duration: "400ms" easing: "linear" onChange: toggle
 	checkbox "Accetta" checked: on animation: "morph" duration: "400ms" easing: "linear" onChange: toggle
 	button "Material" onClick: setMaterial
 	button "Success" onClick: setSuccess
-	p "on {on} shape {shape} theme {theme}"
+	button "Fade" onClick: setFade
+	button "Scale" onClick: setScale
+	button "Morph" onClick: setMorph
+	p "on {on} shape {shape} theme {theme} effect {effect}"
 }`
 	index, css, js, diags, ok := guiBuildFiles(source)
 	if !ok {
@@ -59,7 +75,7 @@ view main {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
 	go func() { _ = http.Serve(ln, mux) }()
-	url := "http://" + ln.Addr().String() + "/"
+	url := "http://" + ln.Addr().String() + "/?motion=timer"
 	time.Sleep(50 * time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -99,6 +115,11 @@ const motionRuntimeScript = `<script>
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function press(el) { el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); }
   function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+  function button(label) {
+    var list = document.querySelectorAll('button');
+    for (var i = 0; i < list.length; i++) if (list[i].textContent.trim() === label) return list[i];
+    return null;
+  }
   try {
     for (var i = 0; i < 100; i++) {
       if (document.querySelector('.sui-switch') && document.querySelector('.sui-checkbox')) break;
@@ -162,6 +183,27 @@ const motionRuntimeScript = `<script>
     await wait(420);
     cb = document.querySelector('.sui-checkbox');
     if (cb.style.getPropertyValue('--sui-cb-mark-opacity') !== '') throw new Error('checkbox inline vars were not cleared');
+
+    async function sampleEffect(label, want) {
+      button(label).click();
+      await wait(80);
+      var s = document.querySelector('.sui-switch');
+      var attr = s.getAttribute('data-sui-motion-effect');
+      s.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+      s.click();
+      await wait(100);
+      s = document.querySelector('.sui-switch');
+      var cs = getComputedStyle(s);
+      var res = { attr: attr, opacity: parseFloat(cs.opacity), transform: cs.transform };
+      await wait(420);
+      return res;
+    }
+    var fade = await sampleEffect('Fade', 'fade');
+    if (fade.attr !== 'fade' || fade.opacity >= 0.9) throw new Error('fade effect missing: ' + JSON.stringify(fade));
+    var scale = await sampleEffect('Scale', 'scale');
+    if (scale.attr !== 'scale' || scale.opacity >= 0.9 || scale.transform === 'none') throw new Error('scale effect missing: ' + JSON.stringify(scale));
+    var morph = await sampleEffect('Morph', 'morph');
+    if (morph.attr !== 'morph' || morph.opacity < 0.99 || morph.transform !== 'none') throw new Error('morph effect changed opacity/transform: ' + JSON.stringify(morph));
     result(true);
   } catch (e) {
     result(false, e && e.message ? e.message : String(e));

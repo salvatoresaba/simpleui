@@ -73,9 +73,10 @@ func TestTogglePresetAndMotionAttrs(t *testing.T) {
 	src := `state on = true
 state shape = "pill"
 state theme = "accent"
+state anim = "morph"
 
 view main {
-	switch "Modalità" shape: shape theme: theme checked: on animation: "morph" duration: "360ms" easing: "ease-in-out" stagger: "0.12" onChange: noop
+	switch "Modalità" shape: shape theme: theme checked: on animation: anim duration: "360ms" easing: "ease-in-out" stagger: "0.12" onChange: noop
 	checkbox "Accetta" shape: "ios" theme: "success" checked: on animation: "morph" onChange: noop
 }
 
@@ -95,6 +96,7 @@ fn noop() -> null {
 		`__sui_preset(theme, "sui-sw-theme-",`,
 		`data-sui-motion`,
 		`data-sui-motion-key="0"`,
+		`data-sui-motion-effect="${__sui_esc(anim)}"`,
 		`data-sui-motion-effect="morph"`,
 		`data-sui-motion-vars="--sui-sw-w`,
 		`data-sui-motion-stagger="0.12"`,
