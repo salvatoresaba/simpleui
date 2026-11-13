@@ -291,6 +291,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     if (!stateById(cfg, id)) id = cfg.initial || cfg.states[0].id;
     el.__suiGraphState = id;
     applyState(el, cfg, id, null, true);
+    // Apply the remembered state and evaluate state triggers in the same DOM
+    // mutation cycle: the browser has not painted the re-rendered base element
+    // yet, so a switch change never flashes the default size.
+    checkStateLinks(el, cfg);
   }
   function scan(root) {
     var scope = root && root.querySelectorAll ? root : document;
@@ -298,18 +302,16 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     for (var i = 0; i < els.length; i++) init(els[i]);
   }
   if (typeof document !== 'undefined') {
-    var schedule = function() {
-      if (schedule.pending) return;
-      schedule.pending = true;
-      setTimeout(function() { schedule.pending = false; scan(document); }, 16);
-    };
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function() { scan(document); });
     } else {
       scan(document);
     }
     try {
-      new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+      // MutationObserver callbacks run before the browser paints. Scan here
+      // instead of waiting for a timer, so re-rendered graph elements receive
+      // their remembered state in the same frame.
+      new MutationObserver(function() { scan(document); }).observe(document.body, { childList: true, subtree: true });
     } catch (e) {}
     setTimeout(function() { scan(document); }, 0);
     setInterval(function() {
