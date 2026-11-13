@@ -411,7 +411,10 @@ Il pulsante **Motion > Open animation graph** del designer modifica lo stesso
 JSON: i blocchi sono gli stati, le frecce sono i link. **Modifica stato**
 nasconde il grafo e blocca il resto della preview, lasciando modificabile solo
 l'elemento selezionato; l'inspector normale resta disponibile e **Salva stato**
-cattura lo stile calcolato nello stato.
+cattura lo stile calcolato nello stato. Un elemento usa i campi semplici oppure
+un grafo: quando esiste `motionGraph` l'inspector nasconde i campi semplici e
+aprire il grafo li cancella. **Remove graph** riporta l'elemento alla modalità
+semplice.
 
 `motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
 condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere

@@ -921,6 +921,9 @@ states as blocks and triggers as arrows:
 - Duration, easing and delay belong to the link, not to the state.
 - **Imposta iniziale** marks the state applied on load. **Anteprima** plays the
   selected state or link in the preview.
+- Simple motion and a graph are exclusive. When the element has a `motionGraph`
+  the inspector hides the simple effect/key/duration fields. Opening the graph
+  clears those simple fields; **Remove graph** returns to simple mode.
 
 The editor writes a literal `motionGraph` JSON attribute. The runtime keeps the
 current state on the element, tweens explicit start/end style values in a

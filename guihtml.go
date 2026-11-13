@@ -1091,6 +1091,7 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
         <span>Animation graph</span>
         <div style="flex:1"></div>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgAddState()">+ state</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgRemoveGraph(mgNode)">Rimuovi grafo</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgClosePanel()">&#10005;</button>
       </div>
       <div class="mg-toolbar">
@@ -6293,6 +6294,26 @@ function motionControls(n) {
   h.onclick = function(){ a.classList.toggle("open"); };
   a.appendChild(h);
   var b = document.createElement("div"); b.className = "accbody";
+  var hasGraph = !!n.motionGraph && (typeof n.motionGraph !== "string" || n.motionGraph.trim() !== "");
+  if (hasGraph) {
+    var gnote = document.createElement("div"); gnote.className = "hint";
+    gnote.textContent = "This element uses an animation graph. The simple effect/key/duration fields are hidden so a graph and the simple FLIP settings cannot disagree.";
+    b.appendChild(gnote);
+    var grow = document.createElement("div"); grow.className = "rowline";
+    var gopen = document.createElement("button"); gopen.className = "btn";
+    gopen.style.fontSize = "11px"; gopen.style.padding = "3px 8px";
+    gopen.textContent = "Open animation graph";
+    gopen.onclick = function(){ mgOpen(n, selPath ? selPath.slice() : null); };
+    grow.appendChild(gopen);
+    var gremove = document.createElement("button"); gremove.className = "btn";
+    gremove.style.fontSize = "11px"; gremove.style.padding = "3px 8px"; gremove.style.marginLeft = "6px";
+    gremove.textContent = "Remove graph";
+    gremove.onclick = function(){ mgRemoveGraph(n); };
+    grow.appendChild(gremove);
+    b.appendChild(grow);
+    a.appendChild(b);
+    return a;
+  }
   var row = document.createElement("div"); row.className = "rowline";
   row.appendChild(lbl("effect"));
   var sel = document.createElement("select");
@@ -6340,7 +6361,7 @@ function motionControls(n) {
   ec.onchange = function(){ withUndo(function(){ n.motionExit = !!ec.checked; }, "motion exit"); };
   er.appendChild(ec); b.appendChild(er);
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Elements are matched across renders by key. Use the item field (for example item.id) on repeated list items; without a key the runtime falls back to data-sui-id, which is not unique inside a list.";
+  hint.textContent = "These simple FLIP fields are the active configuration. Opening the animation graph replaces them with graph states and triggers; the graph is not active while this simple mode is in use. Use item.id on repeated list items.";
   b.appendChild(hint);
   var graphRow = document.createElement("div"); graphRow.className = "rowline";
   var graphBtn = document.createElement("button"); graphBtn.className = "btn";
@@ -6400,6 +6421,17 @@ function mgNextId(prefix, list) {
 }
 function mgOpen(n, path) {
   if (!n) return;
+  var staleSimple = !!(n.motion || n.motionKey || n.motionDuration || n.motionEasing || n.motionDelay || n.motionExit === false);
+  if (staleSimple) {
+    snap("switch to animation graph");
+    n.motion = "";
+    n.motionKey = "";
+    n.motionKeyExpr = false;
+    n.motionDuration = "";
+    n.motionEasing = "";
+    n.motionDelay = "";
+    n.motionExit = true;
+  }
   mgPath = path && path.length ? path.slice() : (selPath ? selPath.slice() : null);
   mgNode = n;
   mgCfg = mgEnsure(n);
@@ -6408,8 +6440,19 @@ function mgOpen(n, path) {
   var panel = document.getElementById("mg-panel");
   if (panel) panel.classList.add("on");
   var title = document.getElementById("mg-graph-title");
-  if (title) title.textContent = (n.kind || "element") + (n.text ? " — " + String(n.text).slice(0, 32) : "");
+  if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
+  if (staleSimple) { setOut(); autoPreview(); }
+  renderInspector();
+}
+function mgRemoveGraph(n) {
+  if (!n || !n.motionGraph) return;
+  snap("remove animation graph");
+  delete n.motionGraph;
+  if (mgNode === n) { mgCfg = null; mgNode = null; mgSelState = ""; mgSelLink = ""; mgClosePanel(); }
+  setOut();
+  autoPreview();
+  renderInspector();
 }
 function mgClosePanel() {
   if (mgEdit) mgCloseState();
@@ -12928,7 +12971,8 @@ function attrsOf(n) {
     if (n.min) a += " min: \"" + esc(n.min) + "\"";
   }
   if (n.kind === "dropdownitem" && n.separator) a += " separator: true";
-  if (n.motion && !(n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
+  var mgOn = !!n.motionGraph && (typeof n.motionGraph !== "string" || n.motionGraph.trim() !== "");
+  if (n.motion && !mgOn && !(n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
     a += " motion: \"" + esc(n.motion) + "\"";
     if (n.motionKey) a += " motionKey: " + (n.motionKeyExpr ? n.motionKey : "\"" + esc(n.motionKey) + "\"");
     if (n.motionDuration) a += " motionDuration: \"" + esc(n.motionDuration) + "\"";
@@ -12936,7 +12980,7 @@ function attrsOf(n) {
     if (n.motionDelay) a += " motionDelay: \"" + esc(n.motionDelay) + "\"";
     if (n.motionExit === false) a += " motionExit: false";
   }
-  if (n.motionGraph) {
+  if (mgOn) {
     var mgJson = typeof n.motionGraph === "string" ? n.motionGraph : JSON.stringify(n.motionGraph);
     if (mgJson && mgJson !== "{}") a += " motionGraph: \"" + esc(mgJson) + "\"";
   }

@@ -436,7 +436,9 @@ The designer's **Motion > Open animation graph** button edits the same JSON:
 blocks are states, arrows are links. **Modifica stato** hides the graph and
 locks the rest of the preview so only the selected element can be edited; the
 normal inspector stays available and **Salva stato** captures the computed style
-into the state.
+into the state. An element uses either the simple motion fields or a graph: when
+`motionGraph` exists the inspector hides the simple fields, and opening the
+graph clears them. **Remove graph** returns the element to simple motion mode.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.

@@ -72,6 +72,8 @@ and the FLIP engine described in `examples/motion_pages`.
    - only the target card can be selected and edited;
    - the normal inspector stays available;
    - press **Salva stato** to capture the computed style.
+   Simple motion fields and a graph are exclusive: when `motionGraph` exists the
+   inspector hides the simple fields, and **Remove graph** returns to them.
 5. Select a state and use **Aggiungi collegamento** to create an arrow.
 6. Choose the trigger, duration, easing and delay on the arrow.
 7. For a state trigger, set the event to `state` and enter `open` or `!open`.

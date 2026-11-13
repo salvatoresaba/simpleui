@@ -956,6 +956,9 @@ mostra gli stati come blocchi e i trigger come frecce:
 - Durata, easing e delay appartengono al link, non allo stato.
 - **Imposta iniziale** segna lo stato applicato al caricamento. **Anteprima**
   riproduce lo stato o il link selezionato nella preview.
+- Motion semplice e grafo sono esclusivi. Quando l'elemento ha un `motionGraph`
+  l'inspector nasconde i campi semplici effetto/key/durata. Aprire il grafo
+  cancella quei campi; **Remove graph** riporta alla modalità semplice.
 
 L'editor scrive un attributo JSON letterale `motionGraph`. Il runtime conserva
 lo stato corrente sull'elemento, interpola valori espliciti di inizio e fine in
