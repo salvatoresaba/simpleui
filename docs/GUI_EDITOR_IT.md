@@ -950,9 +950,11 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   uscenti, così i punti di connessione restano leggibili. Trascina un blocco per
   spostarlo; la posizione viene conservata nel grafo. Ogni blocco ha **+** per
   aggiungere uno stato collegato e **×** per eliminare lo stato.
-- **+** crea subito un nuovo blocco e un link, ma non apre ancora il pannello
-  del trigger. Il blocco viene evidenziato per il posizionamento; trascinalo (o
-  premi **Conferma posizione**) e solo dopo si apre il pannello del trigger.
+- **+** crea subito un nuovo blocco e un link, ma non apre il pannello del
+  trigger. Muovi il mouse sul grafo e clicca per posizionare il blocco dove ci
+  sono almeno 10 px liberi; il pulsante **Conferma posizione** conferma la
+  posizione corrente. Nessun pannello di selezione si apre automaticamente: il
+  trigger può essere scelto in seguito dalla riga del trigger attivo.
   **Aggiungi trigger** nell'overlay dello stato aggiunge un trigger a uno stato
   esistente.
 - Il trigger appartiene allo stato di partenza. Ogni link uscente è numerato

@@ -898,6 +898,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   box-shadow:0 2px 10px rgba(0,0,0,.25); user-select:none; }
 .mg-node:hover { border-color:#4c5cf7; }
 .mg-node.on { border-color:#4c5cf7; box-shadow:0 0 0 2px rgba(76,92,247,.25),0 2px 10px rgba(0,0,0,.35); }
+.mg-node.mg-invalid { border-color:#b23a4a !important; box-shadow:0 0 0 2px rgba(178,58,74,.3) !important; }
 .mg-node .mg-name { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; padding-right:16px; overflow:hidden; }
 .mg-node .mg-name span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mg-node .mg-name .mg-init { font-size:8px; font-weight:600; color:#0e1118; background:#34d399; border-radius:4px; padding:0 3px; }
@@ -1141,7 +1142,7 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
       </div>
       <div id="mg-placebar">
         <span>Posiziona il nuovo stato trascinandolo, poi scegli il trigger.</span>
-        <button class="btn" type="button" style="font-size:11px;padding:3px 8px" onclick="mgFinishPlacement()">Conferma posizione</button>
+        <button class="btn" type="button" style="font-size:11px;padding:3px 8px" onclick="mgConfirmPlacement()">Conferma posizione</button>
       </div>
       <div class="mg-main">
         <div id="mg-canvas"><div id="mg-stage"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div></div>
@@ -6658,7 +6659,6 @@ function mgMakeStateDraggable(d, s) {
       mgNode.motionGraph = mgCfg;
       setOut();
       mgRender();
-      if (mgPlacement && mgPlacement.stateId === s.id) mgFinishPlacement();
     }
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -6737,7 +6737,7 @@ function mgRouteLink(p, boxes, routed, grid) {
     var sg = mgSegRect(x1, y1, x2, y2, 0);
     for (var i = 0; i < boxes.length; i++) {
       var b = boxes[i];
-      var pad = (b.id === p.from || b.id === p.to) ? 0 : MG_LINK_MARGIN;
+      var pad = MG_LINK_MARGIN;
       var br = { l: b.x - pad, t: b.y - pad, r: b.x + MG_BOX_W + pad, b: b.y + b.h + pad };
       if (mgRectsOverlap(sg, br)) return true;
     }
@@ -6997,7 +6997,7 @@ function mgRender() {
     var del = document.createElement("button"); del.type = "button"; del.className = "mg-del"; del.textContent = "\u00d7"; del.title = "Elimina stato";
     del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgDeleteState(s.id); };
     d.appendChild(del);
-    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgFinishPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
+    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgConfirmPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
     d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgFocusState(s.id, true); mgOpenParam("state", s.id); mgMinimizePanel(); };
     mgMakeStateDraggable(d, s);
     nodes.appendChild(d);
@@ -7040,7 +7040,7 @@ function mgQuickAddState(sourceId) {
   mgCfg.states.push(st);
   var link = { id: mgNextId("l", mgCfg.links), from: sourceId, to: st.id, event: "", duration: "320ms", easing: "ease-out", delay: "0ms" };
   mgCfg.links.push(link);
-  mgPlacement = { stateId: st.id, sourceId: sourceId, linkId: link.id };
+  mgPlacement = { stateId: st.id, sourceId: sourceId, linkId: link.id, last: { x: free.x, y: free.y, valid: true } };
   mgSelState = st.id; mgSelLink = ""; mgParam = null;
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
   mgUpdatePlacementBar();
@@ -7050,16 +7050,47 @@ function mgUpdatePlacementBar() {
   if (!bar) return;
   bar.classList.toggle("on", !!(mgPlacement && mgPlacement.stateId));
 }
-function mgFinishPlacement() {
+function mgPlacementPoint(ev) {
+  var stage = document.getElementById("mg-stage");
+  if (!stage || !mgPlacement) return null;
+  var r = stage.getBoundingClientRect();
+  var scale = mgGraphSize.x ? r.width / mgGraphSize.x : 1;
+  if (!scale) scale = 1;
+  var h = mgNodeHeights[mgPlacement.stateId] || 38;
+  return {
+    x: Math.max(0, (ev.clientX - r.left) / scale - MG_BOX_W / 2),
+    y: Math.max(0, (ev.clientY - r.top) / scale - h / 2)
+  };
+}
+function mgPlacementMove(ev) {
   if (!mgPlacement) return;
-  var pl = mgPlacement;
+  var pt = mgPlacementPoint(ev);
+  if (!pt) return;
+  var valid = !mgBoxCollides(mgPlacement.stateId, pt.x, pt.y);
+  mgPlacement.last = { x: pt.x, y: pt.y, valid: valid };
+  mgPositions[mgPlacement.stateId] = { x: pt.x, y: pt.y };
+  var d = document.querySelector('.mg-node[data-state="' + mgPlacement.stateId + '"]');
+  if (d) {
+    d.style.left = pt.x + "px";
+    d.style.top = pt.y + "px";
+    d.classList.toggle("mg-invalid", !valid);
+  }
+  mgRenderLinks();
+}
+function mgConfirmPlacement() {
+  if (!mgPlacement) return;
+  var last = mgPlacement.last || { x: mgPositions[mgPlacement.stateId].x, y: mgPositions[mgPlacement.stateId].y, valid: true };
+  if (!last.valid || mgBoxCollides(mgPlacement.stateId, last.x, last.y)) {
+    mgNotify("Spazio insufficiente: lascia almeno 10 px tra i box.");
+    return;
+  }
+  var st = mgStateById(mgPlacement.stateId);
+  if (st) { st.x = Math.round(last.x); st.y = Math.round(last.y); }
   mgPlacement = null;
   mgUpdatePlacementBar();
-  var link = mgLinkById(pl.linkId);
-  mgSelState = ""; mgSelLink = link ? link.id : "";
-  mgMarkSelection();
-  if (link) mgOpenParam("link", link.id);
-  else mgOpenParam("state", pl.sourceId);
+  mgNode.motionGraph = mgCfg;
+  setOut();
+  mgRender();
 }
 function mgCloseParam() {
   mgParam = null;
@@ -7522,6 +7553,14 @@ function mgMakeResizable(panelId, handleId) {
   mgMakeResizable("mg-panel", "mg-resize");
   mgUpdateLauncher();
   var mgCanvas = document.getElementById("mg-canvas");
+  if (mgCanvas) {
+    mgCanvas.addEventListener("pointermove", mgPlacementMove);
+    mgCanvas.addEventListener("click", function(ev){
+      if (!mgPlacement) return;
+      if (ev.target && ev.target.closest && ev.target.closest(".mg-node")) return;
+      mgConfirmPlacement();
+    });
+  }
   if (mgCanvas && typeof ResizeObserver === "function") {
     try { new ResizeObserver(function(){ mgFitGraph(); mgClampAll(); }).observe(mgCanvas); } catch (e) {}
   }

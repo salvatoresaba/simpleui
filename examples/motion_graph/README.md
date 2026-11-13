@@ -75,8 +75,9 @@ and the FLIP engine described in `examples/motion_pages`.
 5. State blocks grow taller when outgoing triggers are added, and can be
    dragged to custom positions. Each block has **+** to add a connected state
    and **×** to delete it. **+** immediately creates a positioned state block
-   and a link, but leaves the trigger panel closed while you position it; drag
-   it or press **Conferma posizione**, then the trigger panel opens.
+   and a link, but leaves the trigger panel closed. Move the mouse and click on
+   a free spot (at least 10 px clear) or use **Conferma posizione**; no panel
+   opens automatically. Choose the trigger later from the active-trigger row.
 6. Triggers belong to the source state. Outgoing links are numbered at their
    starting point; hovering the number shows the trigger hint. Links leave the
    right side and enter the target's left centre horizontally. Routing is

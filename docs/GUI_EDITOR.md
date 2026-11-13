@@ -916,9 +916,11 @@ only the graph; parameters open in draggable overlay panels:
   position is kept in the graph. Each block has **+** to add a connected state
   and **×** to delete the state.
 - **+** immediately creates a new state block and a link, but does not open the
-  trigger panel yet. The block is highlighted for positioning; drag it (or
-  press **Conferma posizione**) and only then the trigger panel opens.
-  **Aggiungi trigger** in the state overlay adds a trigger to an existing state.
+  trigger panel. Move the mouse over the graph and click to place the block
+  where there is at least 10 px of free space; the **Conferma posizione** button
+  confirms the current position. No selection panel opens automatically: the
+  trigger can be chosen later from the active-trigger row. **Aggiungi trigger**
+  in the state overlay adds a trigger to an existing state.
 - A trigger belongs to the state that starts the transition. Every outgoing
   link is numbered at its starting point; the number is the trigger index.
   Hovering the number shows the trigger hint (for example `click`). Several
