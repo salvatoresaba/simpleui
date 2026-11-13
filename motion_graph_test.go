@@ -45,6 +45,29 @@ func TestMotionGraphAttrs(t *testing.T) {
 	}
 }
 
+func TestMotionGraphOwnsSimpleMotion(t *testing.T) {
+	graph := map[string]any{
+		"initial": "a",
+		"states":  []any{map[string]any{"id": "a", "name": "A", "css": "width: 200px;"}},
+		"links":   []any{},
+	}
+	src := "view main {\n\tcard motion: \"fade\" motionGraph: \"" + suiGraphLiteral(graph) + "\" {\n\t\tp \"Graph\"\n\t}\n}\n"
+	prog, dl := ParseSource(src, "graph.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	if cd := Check(prog); cd.HasErrors() {
+		t.Fatalf("check: %s", cd.String())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, "data-sui-motion-graph=") {
+		t.Fatal("motionGraph attribute was not emitted")
+	}
+	if strings.Contains(js, "data-sui-motion-effect=") {
+		t.Fatal("simple motion attributes must be ignored when a graph is present")
+	}
+}
+
 const motionGraphScript = `<script>
 (async function () {
   function result(ok, message) {

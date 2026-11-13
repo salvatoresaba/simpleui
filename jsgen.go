@@ -5232,10 +5232,17 @@ func toggleMotionAttrs(e *Element, idx int) string {
 // motionKey is required for repeated list items because data-sui-id is the same
 // for every iteration of a list node.
 func writeMotionAttrs(sb *strings.Builder, e *Element, ctx *JsCtx) {
+	graphWritten := false
 	if g := findAttr(e, "motionGraph"); g != nil && !g.hasExpr {
 		if v := strings.TrimSpace(partsContent(g.text)); v != "" {
 			sb.WriteString(" data-sui-motion-graph=\"" + htmlEscape(v) + "\"")
+			graphWritten = true
 		}
+	}
+	// A graph owns its states and triggers. Ignore the simple FLIP attributes on
+	// the same element so a hand-edited source cannot run both systems at once.
+	if graphWritten {
+		return
 	}
 	if e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio" {
 		return
