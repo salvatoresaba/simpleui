@@ -910,6 +910,9 @@ only the graph; parameters open in draggable overlay panels:
   fields in the inspector.
 - The graph canvas centers the states and scales the whole diagram to fit the
   panel, including after minimizing/restoring or resizing the window.
+- The animation panel and every overlay are clamped to the visible viewport;
+  dragging stops at the window edges and content growth cannot push them
+  partially off-screen.
 - **+ state** creates another CSS snapshot of the element. Opening the panel
   selects the element's current graph state, or the initial state when no
   transition is active.

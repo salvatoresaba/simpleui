@@ -412,7 +412,9 @@ JSON: i blocchi sono gli stati, le frecce sono i link. Il pannello contiene solo
 il grafo; i parametri si aprono in overlay trascinabili ancorati a una posizione
 fissa. Il canvas centra e scala il diagramma per adattarlo al pannello e
 aprendo il pannello viene selezionato lo stato corrente o iniziale dell'elemento.
-**Layout & shared** nella toolbar apre le impostazioni classiche `motion`, `motionKey`,
+Pannelli e overlay restano dentro il viewport visibile e non possono essere
+trascinati parzialmente fuori schermo. **Layout & shared** nella toolbar apre le
+impostazioni classiche `motion`, `motionKey`,
 `motionDuration`, `motionEasing`, `motionDelay` e `motionExit` usate da FLIP,
 riordino liste e transizioni tra pagine. Stati e link gestiscono i trigger
 espliciti. L'inspector non duplica più quei campi.

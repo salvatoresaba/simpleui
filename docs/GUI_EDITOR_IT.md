@@ -946,6 +946,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 - Il grafico centra gli stati e scala l'intero diagramma per adattarsi al
   pannello, anche dopo minimizzazione/ripristino o ridimensionamento della
   finestra.
+- Il pannello animazioni e ogni overlay restano completamente dentro il viewport
+  visibile; il trascinamento si ferma ai bordi e la crescita del contenuto non
+  può spingerli parzialmente fuori schermo.
 - **+ state** crea un'altra fotografia CSS dell'elemento. Aprendo il pannello
   viene selezionato lo stato corrente del grafo, o quello iniziale quando non
   c'è una transizione attiva.

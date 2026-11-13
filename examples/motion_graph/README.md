@@ -68,7 +68,8 @@ and the FLIP engine described in `examples/motion_pages`.
 2. Select a card in the tree or preview.
 3. Inspector → **Motion (animation panel)** → **Open animation panel**.
    The canvas centers and scales the diagram to fit the panel; opening the panel
-   selects the element's current or initial state.
+   selects the element's current or initial state. Panels and overlays are kept
+   fully inside the visible viewport.
 4. **Layout & shared** in the toolbar opens a draggable overlay for
    FLIP/key/duration/easing/delay/exit for lists and page transitions.
 5. Click a state: it is highlighted, its CSS is applied in the preview, the
