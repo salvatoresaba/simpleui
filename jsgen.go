@@ -662,6 +662,8 @@ func GenerateJsFor(p *Prog, target string) string {
 	sb.WriteString("\n\n")
 	sb.WriteString(suiMotionRuntime)
 	sb.WriteString("\n\n")
+	sb.WriteString(suiMotionGraphRuntime)
+	sb.WriteString("\n\n")
 	sb.WriteString(suiOverlayRuntime)
 	sb.WriteString("\n\n")
 	sb.WriteString(suiMenuRuntime)
@@ -725,6 +727,13 @@ func GenerateJsFor(p *Prog, target string) string {
 		sb.WriteString("\n\n")
 		sb.WriteString("let " + sd.name + " = " + ExprToJs(sd.init) + ";\n")
 		sb.WriteString("function " + setterName(sd.name) + "(v) { " + sd.name + " = v; __sui_react(" + jsString(sd.name) + "); }")
+	}
+	if len(p.states) > 0 {
+		sb.WriteString("\n\nwindow.__SUI_STATE_GET = Object.create(null);\n")
+		for i := 0; i < len(p.states); i++ {
+			sd := p.states[i]
+			sb.WriteString("window.__SUI_STATE_GET[" + jsString(sd.name) + "] = function(){ return " + sd.name + "; };\n")
+		}
 	}
 	for i := 0; i < len(p.funcs); i++ {
 		sb.WriteString("\n\n")
@@ -5223,6 +5232,11 @@ func toggleMotionAttrs(e *Element, idx int) string {
 // motionKey is required for repeated list items because data-sui-id is the same
 // for every iteration of a list node.
 func writeMotionAttrs(sb *strings.Builder, e *Element, ctx *JsCtx) {
+	if g := findAttr(e, "motionGraph"); g != nil && !g.hasExpr {
+		if v := strings.TrimSpace(partsContent(g.text)); v != "" {
+			sb.WriteString(" data-sui-motion-graph=\"" + htmlEscape(v) + "\"")
+		}
+	}
 	if e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio" {
 		return
 	}

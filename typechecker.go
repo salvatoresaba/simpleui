@@ -2932,7 +2932,7 @@ func attrAllowed(key string, tag string) bool {
 	if key == "class" || key == "style" || key == "link" {
 		return true
 	}
-	if key == "motion" || key == "motionKey" || key == "motionDuration" || key == "motionEasing" || key == "motionDelay" || key == "motionExit" {
+	if key == "motion" || key == "motionKey" || key == "motionDuration" || key == "motionEasing" || key == "motionDelay" || key == "motionExit" || key == "motionGraph" {
 		return true
 	}
 	if eventAttr(key) {

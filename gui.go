@@ -759,6 +759,7 @@ const guiPreviewPicker = `<script>
   var guidesOn = false;
   var step = 8;
   var marqueeOn = false;
+  var scopeRoot = null;
   var mDown = null, mEl = null;
   var grid = document.createElement('div'); grid.className = 'sui-grid'; document.body.appendChild(grid);
   // Row/column strips straddle the cell border: half in the control padding and
@@ -1125,7 +1126,63 @@ const guiPreviewPicker = `<script>
     if (typeof saved === 'string') el.className = saved;
     return out;
   }
+  function clearGraphScope() {
+    if (scopeRoot && scopeRoot.__suiGraphEditLocked) {
+      scopeRoot.__suiGraphEditLocked = false;
+      scopeRoot.__suiGraphJson = null;
+      scopeRoot.__suiGraphBound = false;
+      if (window.__SUI_MOTION_GRAPH) { try { window.__SUI_MOTION_GRAPH.init(scopeRoot); } catch (e) {} }
+    }
+    document.querySelectorAll('[data-sui-id]').forEach(function(el){ el.style.pointerEvents = ''; el.classList.remove('sui-scope-target'); });
+    scopeRoot = null;
+  }
+  function applyGraphScope(id) {
+    clearGraphScope();
+    if (id === null || id === undefined || id < 0) return;
+    var el = document.querySelector('[data-sui-id="' + id + '"]');
+    if (!el) return;
+    scopeRoot = el;
+    el.style.pointerEvents = 'auto';
+    el.classList.add('sui-scope-target');
+    document.querySelectorAll('[data-sui-id]').forEach(function(x){
+      if (!el.contains(x)) x.style.pointerEvents = 'none';
+    });
+    // Editing a state should start from the element's normal appearance, not
+    // from the graph's current inline state. The graph is re-initialized when
+    // the scope closes.
+    el.__suiGraphEditLocked = true;
+    var props = el.__suiGraphProps || [];
+    for (var i = 0; i < props.length; i++) el.style.removeProperty(props[i]);
+    el.__suiGraphProps = [];
+  }
   window.addEventListener('message', function (e) {
+    if (e.data && e.data.ty === 'sui-scope') { applyGraphScope(Number(e.data.id)); return; }
+    if (e.data && e.data.ty === 'sui-graph-preview') {
+      var gid = Number(e.data.id);
+      var gel = gid >= 0 ? document.querySelector('[data-sui-id="' + gid + '"]') : null;
+      if (gel) {
+        var gprops = gel.__suiPreviewProps || [];
+        for (var gp = 0; gp < gprops.length; gp++) gel.style.removeProperty(gprops[gp]);
+        var gcss = String(e.data.css || '');
+        var glist = gcss.split(';'), gnames = [];
+        var gdur = String(e.data.duration || '320ms');
+        var gease = String(e.data.easing || 'ease-out');
+        if (gcss.trim()) gel.style.transition = 'all ' + gdur + ' ' + gease;
+        for (var gi = 0; gi < glist.length; gi++) {
+          var gd = glist[gi].trim();
+          if (!gd) continue;
+          var gc = gd.indexOf(':');
+          if (gc <= 0) continue;
+          var gn = gd.slice(0, gc).trim(), gv = gd.slice(gc + 1).trim();
+          if (!gn || !gv) continue;
+          gel.style.setProperty(gn, gv);
+          gnames.push(gn);
+        }
+        gel.__suiPreviewProps = gnames;
+        setTimeout(function(){ gel.style.transition = ''; }, 700);
+      }
+      return;
+    }
     if (e.data && e.data.ty === 'sui-hl') hl(e.data.id, e.data.mode);
     if (e.data && e.data.ty === 'sui-layout-hl') {
       if (layoutHl) { layoutHl.classList.remove('sui-hl-cell'); layoutHl = null; }
@@ -1800,6 +1857,14 @@ const guiPreviewPicker = `<script>
     }
     if (id >= 0) parent.postMessage({ ty: 'sui', id: id }, '*');
     if (isLink) e.preventDefault();
+  }, true);
+  // While a motion state is being edited, the target stays selectable but its
+  // app handlers (navigate, modal open, ...) must not run.
+  document.addEventListener('click', function (e) {
+    if (scopeRoot && scopeRoot.contains(e.target)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }, true);
   // Type-to-edit bridge: clicks select elements inside this iframe, so the
   // preview document owns the focus and its keydowns would never reach the
@@ -3104,6 +3169,12 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		} else if (e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio") &&
 			(a.key == "shape" || a.key == "theme" || a.key == "animation" || a.key == "duration" || a.key == "easing" || a.key == "delay" || a.key == "stagger") {
 			o.obj[a.key] = JStr(partsLiteral(a.text))
+		} else if a.key == "motionGraph" {
+			if a.hasExpr && a.expr != nil {
+				o.obj["motionGraph"] = JStr(exprSource(a.expr))
+			} else {
+				o.obj["motionGraph"] = JStr(partsLiteral(a.text))
+			}
 		} else if a.key == "motion" || a.key == "motionKey" || a.key == "motionDuration" || a.key == "motionEasing" || a.key == "motionDelay" {
 			if a.hasExpr && a.expr != nil {
 				o.obj[a.key] = JStr(exprSource(a.expr))

@@ -841,6 +841,45 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .td-row .td-acts button { min-width:24px; height:24px; padding:0 5px; font-size:11px; border:1px solid var(--border2); border-radius:5px; background:var(--input-bg); color:var(--fg); cursor:pointer; }
 .td-row .td-acts button:hover { border-color:var(--accent); }
 .td-empty { padding:18px; color:var(--muted); font-size:12px; text-align:center; }
+/* Animation graph panel */
+#mg-panel { position:fixed; top:86px; right:24px; width:780px; height:520px; max-width:94vw; max-height:86vh;
+  background:var(--panel2); border:1px solid var(--border2); border-radius:10px; display:none; flex-direction:column;
+  overflow:hidden; box-shadow:0 14px 48px rgba(0,0,0,.55); z-index:45; }
+#mg-panel.on { display:flex; }
+.mg-hdr { display:flex; align-items:center; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border);
+  background:var(--panel); font-size:13px; font-weight:600; flex:none; }
+.mg-toolbar { display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--border); flex:none; }
+.mg-toolbar .hint { margin-left:auto; font-size:11px; color:var(--dim); }
+.mg-main { display:flex; flex:1; min-height:0; }
+#mg-canvas { position:relative; flex:1; min-width:0; overflow:auto; background:
+  radial-gradient(circle at 1px 1px, rgba(143,160,184,.18) 1px, transparent 0) 0 0/18px 18px; }
+#mg-nodes { position:absolute; left:0; top:0; }
+#mg-lines { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
+#mg-lines path { pointer-events:stroke; cursor:pointer; }
+#mg-lines text { pointer-events:all; cursor:pointer; }
+.mg-node { position:absolute; width:168px; min-height:72px; padding:8px; border:1px solid var(--border2);
+  border-radius:8px; background:var(--panel); color:var(--fg); cursor:pointer; box-sizing:border-box;
+  box-shadow:0 2px 10px rgba(0,0,0,.25); user-select:none; }
+.mg-node:hover { border-color:#4c5cf7; }
+.mg-node.on { border-color:#4c5cf7; box-shadow:0 0 0 2px rgba(76,92,247,.25),0 2px 10px rgba(0,0,0,.35); }
+.mg-node .mg-name { font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; }
+.mg-node .mg-name .mg-init { font-size:9px; font-weight:600; color:#0e1118; background:#34d399; border-radius:4px; padding:0 4px; }
+.mg-node .mg-css { margin-top:5px; font-size:10px; line-height:1.35; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mg-node .mg-count { margin-top:4px; font-size:10px; color:#7db3ff; }
+#mg-side { width:286px; flex:none; border-left:1px solid var(--border); overflow:auto; padding:10px; box-sizing:border-box; }
+#mg-side label { display:block; font-size:11px; color:var(--dim); margin:8px 0 3px; }
+#mg-side input, #mg-side select, #mg-side textarea { width:100%; box-sizing:border-box; background:var(--input-bg);
+  color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:5px 7px; font-size:12px; }
+#mg-side textarea { min-height:104px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:11px; line-height:1.45; }
+#mg-side .mg-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+#mg-side .hint { font-size:11px; color:var(--dim); line-height:1.4; }
+#mg-editbar { position:fixed; left:50%; top:14px; transform:translateX(-50%); display:none; align-items:center; gap:8px;
+  background:var(--panel); border:1px solid #4c5cf7; border-radius:9px; padding:7px 10px; z-index:70;
+  box-shadow:0 10px 36px rgba(0,0,0,.5); font-size:12px; }
+#mg-editbar.on { display:flex; }
+#mg-editbar .mg-edit-title { font-weight:700; color:#9db4ff; }
+#mg-editbar .hint { color:var(--dim); font-size:11px; }
+body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset:-2px; }
 </style>
 </head>
 <body>
@@ -1046,6 +1085,29 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
         <div id="fnslist2" style="margin-top:8px"></div>
       </div>
       <div class="sf-resize" id="sf-resize" title="Drag to resize"></div>
+    </div>
+    <div id="mg-panel">
+      <div class="mg-hdr">
+        <span>Animation graph</span>
+        <div style="flex:1"></div>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgAddState()">+ state</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgClosePanel()">&#10005;</button>
+      </div>
+      <div class="mg-toolbar">
+        <span id="mg-graph-title" class="hint" style="margin-left:0"></span>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgPreviewSelected()">Anteprima</button>
+        <span class="hint">Gli stati sono blocchi; le frecce sono i trigger.</span>
+      </div>
+      <div class="mg-main">
+        <div id="mg-canvas"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div>
+        <div id="mg-side"></div>
+      </div>
+    </div>
+    <div id="mg-editbar">
+      <span class="mg-edit-title" id="mg-edit-title">Modifica stato</span>
+      <span class="hint">Solo questo elemento è modificabile. Usa l'inspector, poi salva.</span>
+      <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgSaveState()">Salva stato</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgCloseState()">Chiudi</button>
     </div>
 </main>
 <div id="bottom">
@@ -2025,7 +2087,7 @@ function compatDecls(prop, value) {
 }
 
 function newNode(kind) {
-  var n = { kind: kind, text: "", class: "", onClick: "", placeholder: "", value: "", src: "", name: "", variant: "", close: true, draggable: false, dragKey: "", dropKey: "", dropFiles: "", pickFiles: "", pickMode: "native", accept: "", multiple: false, directory: false, shape: "", theme: "", animation: "", duration: "", easing: "", delay: "", stagger: "", motion: "", motionKey: "", motionKeyExpr: false, motionDuration: "", motionEasing: "", motionDelay: "", motionExit: true, children: [] };
+  var n = { kind: kind, text: "", class: "", onClick: "", placeholder: "", value: "", src: "", name: "", variant: "", close: true, draggable: false, dragKey: "", dropKey: "", dropFiles: "", pickFiles: "", pickMode: "native", accept: "", multiple: false, directory: false, shape: "", theme: "", animation: "", duration: "", easing: "", delay: "", stagger: "", motion: "", motionKey: "", motionKeyExpr: false, motionDuration: "", motionEasing: "", motionDelay: "", motionExit: true, motionGraph: "", children: [] };
   if (kind === "checkbox" || kind === "switch" || kind === "radio") {
     n.animation = "morph";
     n.duration = "220ms";
@@ -6280,11 +6342,322 @@ function motionControls(n) {
   var hint = document.createElement("div"); hint.className = "hint";
   hint.textContent = "Elements are matched across renders by key. Use the item field (for example item.id) on repeated list items; without a key the runtime falls back to data-sui-id, which is not unique inside a list.";
   b.appendChild(hint);
+  var graphRow = document.createElement("div"); graphRow.className = "rowline";
+  var graphBtn = document.createElement("button"); graphBtn.className = "btn";
+  graphBtn.style.fontSize = "11px"; graphBtn.style.padding = "3px 8px";
+  graphBtn.textContent = "Open animation graph";
+  graphBtn.title = "Create states and connect them with event or after-transition triggers";
+  graphBtn.onclick = function(){ mgOpen(n, selPath ? selPath.slice() : null); };
+  graphRow.appendChild(graphBtn);
+  b.appendChild(graphRow);
   a.appendChild(b);
   return a;
 }
-function toggleControls(n) {
-  var isSwitch = n.kind === "switch";
+// ---- animation graph -------------------------------------------------------
+// States are CSS snapshots of one element. Links carry a trigger and timing;
+// "after" links continue a chain when the previous transition finishes.
+var mgPath = null, mgNode = null, mgCfg = null, mgSelState = "", mgSelLink = "";
+var mgEdit = null;
+var MG_CAPTURE_PROPS = ["width","height","min-width","min-height","max-width","max-height",
+  "margin-top","margin-right","margin-bottom","margin-left","padding-top","padding-right","padding-bottom","padding-left",
+  "background-color","background-image","color","border-top-width","border-right-width","border-bottom-width","border-left-width",
+  "border-top-style","border-right-style","border-bottom-style","border-left-style",
+  "border-top-color","border-right-color","border-bottom-color","border-left-color",
+  "border-top-left-radius","border-top-right-radius","border-bottom-right-radius","border-bottom-left-radius",
+  "box-shadow","opacity","transform","filter","font-size","font-weight","line-height","letter-spacing",
+  "display","position","top","right","bottom","left","z-index","overflow","gap","flex-grow","flex-shrink","flex-basis","align-self","justify-content","align-items"];
+function mgEnsure(n) {
+  var raw = n ? n.motionGraph : null;
+  var cfg = null;
+  if (typeof raw === "string" && raw.trim()) {
+    try { cfg = JSON.parse(raw); } catch (e) { cfg = null; }
+  } else if (raw && typeof raw === "object") {
+    cfg = raw;
+  }
+  if (!cfg || !cfg.states || !cfg.states.length) {
+    cfg = { initial: "s1", states: [{ id: "s1", name: "Stato iniziale", css: "" }], links: [] };
+  }
+  if (!cfg.links) cfg.links = [];
+  if (!cfg.initial || !cfg.states.some(function(s){ return s.id === cfg.initial; })) cfg.initial = cfg.states[0].id;
+  cfg.states.forEach(function(s){ if (!s.css) s.css = ""; });
+  n.motionGraph = cfg;
+  return cfg;
+}
+function mgStateById(id) {
+  if (!mgCfg) return null;
+  for (var i = 0; i < mgCfg.states.length; i++) if (mgCfg.states[i].id === id) return mgCfg.states[i];
+  return null;
+}
+function mgLinkById(id) {
+  if (!mgCfg) return null;
+  for (var i = 0; i < mgCfg.links.length; i++) if (mgCfg.links[i].id === id) return mgCfg.links[i];
+  return null;
+}
+function mgNextId(prefix, list) {
+  var max = 0;
+  (list || []).forEach(function(x){ var m = new RegExp("^" + prefix + "([0-9]+)$").exec(x.id || ""); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+  return prefix + (max + 1);
+}
+function mgOpen(n, path) {
+  if (!n) return;
+  mgPath = path && path.length ? path.slice() : (selPath ? selPath.slice() : null);
+  mgNode = n;
+  mgCfg = mgEnsure(n);
+  mgSelState = mgCfg.initial;
+  mgSelLink = "";
+  var panel = document.getElementById("mg-panel");
+  if (panel) panel.classList.add("on");
+  var title = document.getElementById("mg-graph-title");
+  if (title) title.textContent = (n.kind || "element") + (n.text ? " — " + String(n.text).slice(0, 32) : "");
+  mgRender();
+}
+function mgClosePanel() {
+  if (mgEdit) mgCloseState();
+  var panel = document.getElementById("mg-panel");
+  if (panel) panel.classList.remove("on");
+}
+function mgCommit(label) {
+  if (!mgNode || !mgCfg) return;
+  if (label) snap(label);
+  mgNode.motionGraph = mgCfg;
+  setOut();
+  autoPreview();
+}
+function mgRender() {
+  if (!mgCfg) return;
+  var nodes = document.getElementById("mg-nodes");
+  var svg = document.getElementById("mg-lines");
+  if (!nodes || !svg) return;
+  var layers = {}, queue = [mgCfg.initial], guard = 0;
+  layers[mgCfg.initial] = 0;
+  while (queue.length && guard++ < 200) {
+    var cur = queue.shift();
+    for (var i = 0; i < mgCfg.links.length; i++) {
+      var l = mgCfg.links[i];
+      if (l.from !== cur || !mgStateById(l.to)) continue;
+      if (layers[l.to] === undefined) { layers[l.to] = layers[cur] + 1; queue.push(l.to); }
+    }
+  }
+  var maxLayer = 0;
+  for (var k in layers) if (layers[k] > maxLayer) maxLayer = layers[k];
+  var per = {};
+  var pos = {};
+  mgCfg.states.forEach(function(s){
+    if (layers[s.id] === undefined) layers[s.id] = maxLayer + 1;
+    var n = per[layers[s.id]] || 0;
+    pos[s.id] = { x: 24 + layers[s.id] * 206, y: 24 + n * 102 };
+    per[layers[s.id]] = n + 1;
+  });
+  var maxX = 240, maxY = 120;
+  nodes.innerHTML = "";
+  mgCfg.states.forEach(function(s){
+    maxX = Math.max(maxX, pos[s.id].x + 190);
+    maxY = Math.max(maxY, pos[s.id].y + 96);
+    var d = document.createElement("div");
+    d.className = "mg-node" + (s.id === mgSelState ? " on" : "");
+    d.style.left = pos[s.id].x + "px";
+    d.style.top = pos[s.id].y + "px";
+    d.title = "Apri lo stato " + s.name;
+    var nm = document.createElement("div"); nm.className = "mg-name";
+    var txt = document.createElement("span"); txt.textContent = s.name || s.id; nm.appendChild(txt);
+    if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "iniziale"; nm.appendChild(b); }
+    d.appendChild(nm);
+    var cs = document.createElement("div"); cs.className = "mg-css";
+    cs.textContent = (s.css || "nessuna proprietà catturata").replace(/\s+/g, " ").slice(0, 70);
+    d.appendChild(cs);
+    var cnt = 0;
+    mgCfg.links.forEach(function(l){ if (l.from === s.id) cnt++; });
+    var c = document.createElement("div"); c.className = "mg-count"; c.textContent = cnt + (cnt === 1 ? " uscita" : " uscite");
+    d.appendChild(c);
+    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgRender(); };
+    nodes.appendChild(d);
+  });
+  nodes.style.width = maxX + "px";
+  nodes.style.height = maxY + "px";
+  svg.setAttribute("width", maxX);
+  svg.setAttribute("height", maxY);
+  svg.innerHTML = '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7db3ff"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4c5cf7"/></marker></defs>';
+  mgCfg.links.forEach(function(l){
+    var a = mgStateById(l.from), b = mgStateById(l.to);
+    if (!a || !b) return;
+    var x1 = pos[a.id].x + 168, y1 = pos[a.id].y + 36, x2 = pos[b.id].x, y2 = pos[b.id].y + 36;
+    var dx = Math.max(48, Math.abs(x2 - x1) * 0.45);
+    var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", l.id === mgSelLink ? "#4c5cf7" : "#7db3ff");
+    path.setAttribute("stroke-width", l.id === mgSelLink ? "2.4" : "1.6");
+    path.setAttribute("marker-end", "url(#" + (l.id === mgSelLink ? "mg-arrow-on" : "mg-arrow") + ")");
+    path.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgRender(); };
+    svg.appendChild(path);
+    var t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", (x1 + x2) / 2); t.setAttribute("y", (y1 + y2) / 2 - 5);
+    t.setAttribute("text-anchor", "middle"); t.setAttribute("font-size", "10"); t.setAttribute("fill", "#9db4ff");
+    t.textContent = (l.event === "after" ? "dopo" : l.event || "click") + (l.duration ? " · " + l.duration : "");
+    t.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgRender(); };
+    svg.appendChild(t);
+  });
+  mgRenderSide();
+}
+function mgRenderSide() {
+  var side = document.getElementById("mg-side");
+  if (!side) return;
+  side.innerHTML = "";
+  function label(t) { var l = document.createElement("label"); l.textContent = t; side.appendChild(l); return l; }
+  function input(v, ph) { var i = document.createElement("input"); i.value = v || ""; i.placeholder = ph || ""; i.spellcheck = false; side.appendChild(i); return i; }
+  function select(v, opts) {
+    var s = document.createElement("select");
+    opts.forEach(function(o){ var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; if (o[0] === v) op.selected = true; s.appendChild(op); });
+    side.appendChild(s); return s;
+  }
+  function actions() { var d = document.createElement("div"); d.className = "mg-actions"; side.appendChild(d); return d; }
+  function btn(parent, text, fn) { var b = document.createElement("button"); b.className = "btn"; b.style.fontSize = "11px"; b.style.padding = "3px 7px"; b.textContent = text; b.onclick = fn; parent.appendChild(b); return b; }
+  if (mgSelLink) {
+    var l = mgLinkById(mgSelLink);
+    if (!l) { mgSelLink = ""; return mgRenderSide(); }
+    var a = mgStateById(l.from), b = mgStateById(l.to);
+    var h = document.createElement("div"); h.className = "hint";
+    h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
+    side.appendChild(h);
+    label("trigger"); var ev = select(l.event || "click", [["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","stato variabile"],["after","dopo la transizione"]]);
+    ev.onchange = function(){ snap("motion graph trigger"); l.event = ev.value; mgCommit(); mgRender(); };
+    if (l.event === "state") {
+      label("variabile (vero/falso)"); var wh = input(l.when, "es. open oppure !open");
+      wh.onchange = function(){ snap("motion graph condition"); l.when = wh.value.trim(); mgCommit(); };
+    }
+    label("duration"); var du = input(l.duration, "320ms"); du.onchange = function(){ snap("motion graph duration"); l.duration = du.value.trim(); mgCommit(); };
+    label("easing"); var ea = input(l.easing, "ease-out"); ea.onchange = function(){ snap("motion graph easing"); l.easing = ea.value.trim(); mgCommit(); };
+    label("delay"); var de = input(l.delay, "0ms"); de.onchange = function(){ snap("motion graph delay"); l.delay = de.value.trim(); mgCommit(); };
+    var ac = actions();
+    btn(ac, "Anteprima", function(){ mgPreviewLink(l); });
+    btn(ac, "Elimina collegamento", function(){ snap("delete motion link"); mgCfg.links = mgCfg.links.filter(function(x){ return x.id !== l.id; }); mgSelLink = ""; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
+    return;
+  }
+  var s = mgSelState ? mgStateById(mgSelState) : null;
+  if (!s) { var h2 = document.createElement("div"); h2.className = "hint"; h2.textContent = "Seleziona uno stato o una freccia. Ogni stato è una fotografia CSS dell'elemento; ogni freccia è un trigger."; side.appendChild(h2); return; }
+  label("nome stato"); var nm = input(s.name, "es. aperto"); nm.onchange = function(){ snap("motion graph state name"); s.name = nm.value.trim() || s.id; mgCommit(); mgRender(); };
+  label("CSS dello stato"); var ta = document.createElement("textarea"); ta.value = s.css || ""; ta.placeholder = "width: 420px; height: 280px; margin-left: 96px;"; side.appendChild(ta); ta.onchange = function(){ snap("motion graph state css"); s.css = ta.value; mgCommit(); };
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = "Puoi modificare la preview con l'inspector e poi salvare lo stato catturato, oppure scrivere direttamente le dichiarazioni CSS qui.";
+  side.appendChild(hint);
+  var ac2 = actions();
+  btn(ac2, "Modifica stato", function(){ mgFocusState(s.id); });
+  btn(ac2, "Imposta iniziale", function(){ snap("motion graph initial"); mgCfg.initial = s.id; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
+  btn(ac2, "Elimina stato", function(){ mgDeleteState(s.id); });
+  var linkLabel = document.createElement("div"); linkLabel.className = "hint"; linkLabel.style.marginTop = "12px"; linkLabel.textContent = "Collega questo stato a:"; side.appendChild(linkLabel);
+  var targets = mgCfg.states.filter(function(x){ return x.id !== s.id; });
+  if (targets.length) {
+    var tsel = select("", targets.map(function(x){ return [x.id, x.name]; }));
+    var ac3 = actions();
+    btn(ac3, "Aggiungi collegamento", function(){
+      var to = tsel.value || (targets[0] && targets[0].id);
+      if (!to) return;
+      snap("add motion link");
+      var link = { id: mgNextId("l", mgCfg.links), from: s.id, to: to, event: "click", duration: "320ms", easing: "ease-out", delay: "0ms" };
+      mgCfg.links.push(link); mgSelLink = link.id; mgSelState = ""; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+    });
+  }
+}
+function mgAddState() {
+  if (!mgCfg) return;
+  snap("add motion state");
+  var st = { id: mgNextId("s", mgCfg.states), name: "Stato " + (mgCfg.states.length + 1), css: "" };
+  mgCfg.states.push(st); mgSelState = st.id; mgSelLink = "";
+  mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+}
+function mgDeleteState(id) {
+  if (!mgCfg || mgCfg.states.length <= 1) return;
+  snap("delete motion state");
+  mgCfg.states = mgCfg.states.filter(function(s){ return s.id !== id; });
+  mgCfg.links = mgCfg.links.filter(function(l){ return l.from !== id && l.to !== id; });
+  if (mgCfg.initial === id) mgCfg.initial = mgCfg.states[0].id;
+  if (mgSelState === id) mgSelState = mgCfg.initial;
+  if (mgEdit && mgEdit.state === id) mgCloseState();
+  mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+}
+function mgSendScope() {
+  var f = document.getElementById("prev");
+  if (!f || !f.contentWindow || !mgEdit) return;
+  var id = peerIdForPath(mgEdit.path);
+  try { f.contentWindow.postMessage({ ty: "sui-scope", id: id }, "*"); } catch (e) {}
+}
+function mgFocusState(id) {
+  var st = mgStateById(id);
+  if (!st || !mgPath) return;
+  mgEdit = { path: mgPath.slice(), state: id };
+  var panel = document.getElementById("mg-panel"); if (panel) panel.classList.remove("on");
+  var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.add("on");
+  var lbl = document.getElementById("mg-edit-title"); if (lbl) lbl.textContent = "Modifica stato: " + st.name;
+  document.body.classList.add("mg-scope-edit");
+  selPath = mgPath.slice(); multiSel = [];
+  renderTree(); fillPanel(); renderInspector(); postHighlight();
+  mgSendScope();
+  setTimeout(mgSendScope, 350);
+  setTimeout(mgSendScope, 900);
+}
+function mgCloseState() {
+  var f = document.getElementById("prev");
+  if (f && f.contentWindow) { try { f.contentWindow.postMessage({ ty: "sui-scope", id: -1 }, "*"); } catch (e) {} }
+  mgEdit = null;
+  var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.remove("on");
+  document.body.classList.remove("mg-scope-edit");
+  var panel = document.getElementById("mg-panel"); if (panel) panel.classList.add("on");
+  mgRender();
+}
+function mgCaptureStyle() {
+  var f = document.getElementById("prev");
+  if (!f || !mgEdit) return null;
+  var doc = f.contentDocument, win = f.contentWindow;
+  if (!doc || !win) return null;
+  var id = peerIdForPath(mgEdit.path);
+  var el = id >= 0 ? doc.querySelector('[data-sui-id="' + id + '"]') : null;
+  if (!el) return null;
+  var cs = win.getComputedStyle(el), out = [];
+  for (var i = 0; i < MG_CAPTURE_PROPS.length; i++) {
+    var p = MG_CAPTURE_PROPS[i];
+    var v = cs.getPropertyValue(p);
+    if (!v) continue;
+    if ((p === "box-shadow" || p === "filter" || p === "transform") && v === "none") continue;
+    out.push(p + ": " + v + ";");
+  }
+  return out.join(" ");
+}
+function mgSaveState() {
+  if (!mgEdit) return;
+  var st = mgStateById(mgEdit.state);
+  var css = mgCaptureStyle();
+  if (st && css != null) {
+    snap("save motion state");
+    st.css = css;
+    mgNode.motionGraph = mgCfg;
+    setOut();
+    autoPreview();
+  }
+  mgCloseState();
+}
+function mgPreviewSelected() {
+  if (mgSelLink) { var l = mgLinkById(mgSelLink); if (l) mgPreviewLink(l); return; }
+  var st = mgSelState ? mgStateById(mgSelState) : null;
+  if (st) mgPreviewState(st.id, "360ms", "ease-out");
+}
+function mgPreviewLink(l) {
+  if (!l || !mgCfg) return;
+  var to = mgStateById(l.to);
+  if (to) mgPreviewState(to.id, l.duration || "320ms", l.easing || "ease-out");
+}
+function mgPreviewState(id, duration, easing) {
+  var st = mgStateById(id);
+  if (!st || !mgPath) return;
+  var f = document.getElementById("prev");
+  if (!f || !f.contentWindow) return;
+  var pid = peerIdForPath(mgPath);
+  try { f.contentWindow.postMessage({ ty: "sui-graph-preview", id: pid, css: st.css || "", duration: duration || "320ms", easing: easing || "ease-out" }, "*"); } catch (e) {}
+}
+(function(){
+  var f = document.getElementById("prev");
+  if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(mgSendScope, 80); });
+})();
+function toggleControls(n) {  var isSwitch = n.kind === "switch";
   var isRadio = n.kind === "radio";
   var title = isSwitch ? "Switch" : (isRadio ? "Radio" : "Checkbox");
   var shapes = isSwitch
@@ -12562,6 +12935,10 @@ function attrsOf(n) {
     if (n.motionEasing) a += " motionEasing: \"" + esc(n.motionEasing) + "\"";
     if (n.motionDelay) a += " motionDelay: \"" + esc(n.motionDelay) + "\"";
     if (n.motionExit === false) a += " motionExit: false";
+  }
+  if (n.motionGraph) {
+    var mgJson = typeof n.motionGraph === "string" ? n.motionGraph : JSON.stringify(n.motionGraph);
+    if (mgJson && mgJson !== "{}") a += " motionGraph: \"" + esc(mgJson) + "\"";
   }
   if (n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio") {
     if (n.shape) a += " shape: \"" + esc(n.shape) + "\"";

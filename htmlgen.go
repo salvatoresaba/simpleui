@@ -8088,7 +8088,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 			a.key == "dropFiles" || a.key == "pickFiles" || a.key == "pickMode" || a.key == "dragKey" || a.key == "dropKey" {
 			continue
 		}
-		if a.key == "motion" || a.key == "motionKey" || a.key == "motionDuration" || a.key == "motionEasing" || a.key == "motionDelay" || a.key == "motionExit" {
+		if a.key == "motion" || a.key == "motionKey" || a.key == "motionDuration" || a.key == "motionEasing" || a.key == "motionDelay" || a.key == "motionExit" || a.key == "motionGraph" {
 			continue
 		}
 		if e.tag != "tcell" && (a.key == "colspan" || a.key == "rowspan") {

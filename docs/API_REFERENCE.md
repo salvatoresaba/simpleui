@@ -412,6 +412,35 @@ at the end at exactly the same geometry, so there is no cross-fade, jump or
 disappearing text. Content without a matching key simply appears with the new
 page.
 
+### Motion graph (states and triggers)
+
+`motionGraph` turns one element into a small state machine. The attribute is a
+literal JSON object emitted by the designer:
+
+```sui
+card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"name\":\"Chiuso\",\"css\":\"width: 300px;\"\},\{\"id\":\"open\",\"name\":\"Aperto\",\"css\":\"width: 420px; margin-left: 80px;\"\}],\"links\":[\{\"id\":\"l1\",\"from\":\"closed\",\"to\":\"open\",\"event\":\"click\",\"duration\":\"320ms\",\"easing\":\"ease-out\"\}]\}" { ... }
+```
+
+- `states[].css` is the style snapshot for that state.
+- `links[].event` is `click`, `dblclick`, `pointerenter`, `pointerleave`,
+  `focus`, `blur`, `change`, `state` or `after`.
+- `state` links evaluate the boolean state named by `when` (prefix `!` negates
+  it) and fire on a false-to-true change.
+- `after` links continue a chain when the previous animation completes.
+- Multiple outgoing links are matched in order; the first link for the current
+  state and event wins.
+- The runtime tweens explicit start and end values, keeps the current state on
+  the element, and honors `prefers-reduced-motion` by jumping instantly.
+
+The designer's **Motion > Open animation graph** button edits the same JSON:
+blocks are states, arrows are links. **Modifica stato** hides the graph and
+locks the rest of the preview so only the selected element can be edited; the
+normal inspector stays available and **Salva stato** captures the computed style
+into the state.
+
+`motionGraph` is per element. Use `motionKey` for shared page transitions and
+the list FLIP engine; the two systems can be combined on the same element.
+
 ## Popover
 
 `popover` is a trigger with rich content in an anchored panel. The element text

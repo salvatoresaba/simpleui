@@ -900,6 +900,33 @@ parts, grows a content-free surface layer and translates each part in a straight
 line to its measured final position; the content is clipped to the growing box
 instead of being reflowed.
 
+### Animation graph
+
+Select an element and open **Motion > Open animation graph**. The panel shows
+states as blocks and triggers as arrows:
+
+- **+ state** creates another CSS snapshot of the element.
+- A state has a name and a CSS declarations field. **Captura** from the normal
+  inspector is also possible: press **Modifica stato**, hide the graph, edit the
+  element with the usual panels, then **Salva stato**.
+- While a state is being edited, the rest of the preview stays visible but is
+  inert: only the target element can be selected or changed. The graph panel is
+  replaced by a small bar with **Salva stato** and **Chiudi**.
+- Select two states and use **Aggiungi collegamento** to create an arrow.
+- A link trigger is `click`, `dblclick`, `pointerenter`, `pointerleave`,
+  `focus`, `blur`, `change`, `state` or `after`.
+  - `state` fires when the boolean state named in `when` changes from false to
+    true; prefix `!` negates it.
+  - `after` chains the next transition when the previous one ends.
+- Duration, easing and delay belong to the link, not to the state.
+- **Imposta iniziale** marks the state applied on load. **Anteprima** plays the
+  selected state or link in the preview.
+
+The editor writes a literal `motionGraph` JSON attribute. The runtime keeps the
+current state on the element, tweens explicit start/end style values in a
+timer/rAF loop and honors reduced motion. The graph is per element; shared page
+transitions still use `motionKey`, and the two systems can coexist.
+
 **Controls > Split panes** inserts two `pane` children and a draggable divider.
 Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must
 keep exactly two panes.

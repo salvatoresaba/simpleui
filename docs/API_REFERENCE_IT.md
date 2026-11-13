@@ -387,6 +387,36 @@ alla fine esattamente alla stessa geometria, quindi non ci sono cross-fade,
 salti o testo che scompare. Il contenuto senza chiave corrispondente appare
 semplicemente con la nuova pagina.
 
+### Motion graph (stati e trigger)
+
+`motionGraph` trasforma un elemento in una piccola macchina a stati. L'attributo
+è un oggetto JSON letterale generato dal designer:
+
+```sui
+card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"name\":\"Chiuso\",\"css\":\"width: 300px;\"\},\{\"id\":\"open\",\"name\":\"Aperto\",\"css\":\"width: 420px; margin-left: 80px;\"\}],\"links\":[\{\"id\":\"l1\",\"from\":\"closed\",\"to\":\"open\",\"event\":\"click\",\"duration\":\"320ms\",\"easing\":\"ease-out\"\}]\}" { ... }
+```
+
+- `states[].css` è la fotografia dello stile per quello stato.
+- `links[].event` può essere `click`, `dblclick`, `pointerenter`,
+  `pointerleave`, `focus`, `blur`, `change`, `state` o `after`.
+- I link `state` valutano lo stato booleano indicato in `when` (il prefisso `!`
+  lo nega) e scattano sulla transizione da falso a vero.
+- I link `after` continuano una catena quando l'animazione precedente termina.
+- Con più link uscenti vince il primo che corrisponde allo stato corrente e
+  all'evento.
+- Il runtime interpola valori iniziali e finali espliciti, conserva lo stato
+  corrente sull'elemento e rispetta `prefers-reduced-motion` saltando subito.
+
+Il pulsante **Motion > Open animation graph** del designer modifica lo stesso
+JSON: i blocchi sono gli stati, le frecce sono i link. **Modifica stato**
+nasconde il grafo e blocca il resto della preview, lasciando modificabile solo
+l'elemento selezionato; l'inspector normale resta disponibile e **Salva stato**
+cattura lo stile calcolato nello stato.
+
+`motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
+condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere
+sullo stesso elemento.
+
 ## Popover
 
 `popover` è un trigger con contenuto ricco in un pannello ancorato. Il testo è
