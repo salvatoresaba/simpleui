@@ -145,10 +145,23 @@ const motionPagesScript = `<script>
     for (var i = 0; i < list.length; i++) {
       if (list[i].offsetParent !== null) {
         var r = list[i].getBoundingClientRect();
-        return { w: Math.round(r.width), h: Math.round(r.height), left: Math.round(r.left), top: Math.round(r.top), transform: getComputedStyle(list[i]).transform, page: window.__SUI_PAGE };
+        return { w: Math.round(r.width), h: Math.round(r.height), left: Math.round(r.left), top: Math.round(r.top), transform: getComputedStyle(list[i]).transform, visibility: getComputedStyle(list[i]).visibility, page: window.__SUI_PAGE };
       }
     }
     return null;
+  }
+  function boxRect() {
+    var box = document.querySelector('.sui-motion-shared-box');
+    if (!box) return null;
+    var r = box.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), left: Math.round(r.left), top: Math.round(r.top) };
+  }
+  function layer() {
+    var layer = document.querySelector('.sui-motion-shared-clone');
+    if (!layer) return null;
+    var r = layer.getBoundingClientRect();
+    var child = layer.children[0];
+    return { w: Math.round(r.width), h: Math.round(r.height), left: Math.round(r.left), top: Math.round(r.top), child: child ? getComputedStyle(child).transform : 'none' };
   }
   try {
     for (var i = 0; i < 100; i++) {
@@ -159,32 +172,36 @@ const motionPagesScript = `<script>
     if (!home || home.w !== 280 || home.h !== 140) throw new Error('unexpected home hero: ' + JSON.stringify(home));
 
     button('Open').click();
-    await wait(120);
+    await wait(80);
+    var early = boxRect();
+    await wait(80);
+    var mid = boxRect();
     var toDetail = hero();
-    var clone = document.querySelector('.sui-motion-shared-clone');
+    var content = layer();
     if (!toDetail || toDetail.page !== 'detail') throw new Error('did not navigate to detail');
-    if (!clone) throw new Error('shared clone missing');
-    var cr = clone.getBoundingClientRect();
-    if (getComputedStyle(clone).transform === 'none') throw new Error('shared clone did not FLIP');
-    if (!(cr.width > home.w && cr.width < 640)) throw new Error('shared width did not tween: ' + JSON.stringify(cr));
-    if (toDetail.opacity > 0.05) throw new Error('new page content was not hidden during the move');
+    if (!early || !mid || !content) throw new Error('shared overlay missing');
+    if (!(early.w > 280 && mid.w > early.w && mid.w < 640)) throw new Error('shared box did not tween monotonically: ' + JSON.stringify({ early: early, mid: mid }));
+    if (toDetail.visibility !== 'hidden') throw new Error('new page content was not hidden during the move');
+    if (content.child === 'none') throw new Error('shared content parts were not offset to their old positions');
+    if (!(mid.h > 140 && mid.h < 260)) throw new Error('shared height did not tween: ' + JSON.stringify(mid));
     await wait(500);
     var detail = hero();
-    if (!detail || detail.w !== 640 || detail.h !== 260 || detail.transform !== 'none' || detail.opacity < 0.99) throw new Error('detail did not settle: ' + JSON.stringify(detail));
-    if (document.querySelector('.sui-motion-shared-clone')) throw new Error('shared clone was not removed');
+    if (!detail || detail.w !== 640 || detail.h !== 260 || detail.transform !== 'none' || detail.visibility !== 'visible') throw new Error('detail did not settle: ' + JSON.stringify(detail));
+    if (boxRect() || layer()) throw new Error('shared overlay was not removed');
 
     button('Back').click();
-    await wait(120);
+    await wait(160);
     var toHome = hero();
-    var clone2 = document.querySelector('.sui-motion-shared-clone');
+    var content2 = layer();
+    var mid2 = boxRect();
     if (!toHome || toHome.page !== 'home') throw new Error('did not navigate home');
-    if (!clone2) throw new Error('reverse shared clone missing');
-    var cr2 = clone2.getBoundingClientRect();
-    if (getComputedStyle(clone2).transform === 'none') throw new Error('reverse shared clone did not FLIP');
-    if (!(cr2.width > 280 && cr2.width < 640)) throw new Error('reverse shared width did not tween: ' + JSON.stringify(cr2));
+    if (!content2 || !mid2) throw new Error('reverse shared overlay missing');
+    if (!(mid2.w > 280 && mid2.w < 640)) throw new Error('reverse shared box did not tween: ' + JSON.stringify(mid2));
+    if (toHome.visibility !== 'hidden') throw new Error('home content was not hidden during the reverse move');
+    if (content2.child === 'none') throw new Error('reverse shared content parts were not offset');
     await wait(500);
     var back = hero();
-    if (!back || back.w !== 280 || back.h !== 140 || back.transform !== 'none' || back.opacity < 0.99) throw new Error('home did not settle: ' + JSON.stringify(back));
+    if (!back || back.w !== 280 || back.h !== 140 || back.transform !== 'none' || back.visibility !== 'visible') throw new Error('home did not settle: ' + JSON.stringify(back));
     result(true);
   } catch (e) {
     result(false, e && e.message ? e.message : String(e));

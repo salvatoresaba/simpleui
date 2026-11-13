@@ -5,8 +5,9 @@ switches page, the runtime captures the visible page's card, renders the new
 page, then moves and resizes the card from the old position to the new one.
 Navigating back plays the reverse transition.
 
-The navigation button lives inside the card, so it moves with the card; the
-label changes only during the final cross-fade.
+The navigation button lives inside the card, so it travels with the card; its
+label switches as soon as the new page is rendered, while the measured card and
+part rectangles animate to their final state.
 
 ## Complete source
 
@@ -14,8 +15,8 @@ label changes only during the final cross-fade.
 # Shared element transition across pages.
 #
 # The same motionKey ("hero") exists on both pages. navigate() captures the
-# visible page before switching, then FLIPs the new page's hero from the old
-# page's position and size.
+# visible page before switching, then morphs the new hero from the old page's
+# measured position and size to its final measured state.
 
 fn openDetail() -> null {
 	navigate("detail")
@@ -59,14 +60,21 @@ view detail {
 
 - `navigate(page)` calls `__SUI_MOTION.capturePage()` before switching.
 - The visible page's `[data-sui-motion]` elements are snapshotted by
-  `motionKey`, including their rectangle and size.
+  `motionKey`, including the card rectangle and the rectangle of every direct
+  visual part (heading, paragraph, button).
 - After every page is rendered, `flushShared()` matches keys in the newly visible
-  page and evaluates the two rectangles.
-- The old page's element is cloned into a fixed overlay. It moves and grows for
-  75% of the duration until it exactly matches the new rectangle.
-- The new page content stays at opacity 0 during that movement. Once the old
-  clone has reached the final size, old and new content cross-fade at the same
-  position and size. This avoids swapping text while the box is still moving.
+  page and measures the final rectangle of the same parts.
+- A content-free surface layer draws the card background, border and shadow and
+  animates its measured rectangle with explicit pixel values. A separate content
+  layer keeps the final layout and is clipped by that surface, so text never
+  spills outside the card while it grows.
+- Each part is translated from its measured start rectangle to its measured end
+  rectangle with the same easing. The parts travel in straight lines; the box
+  changes size independently. The browser never reflows or rewraps the text
+  during the transition.
+- The real new element stays hidden until the overlay reaches the final
+  geometry, then the overlay is removed and the real element is revealed at the
+  same rectangle, so there is no jump or cross-fade.
 - Non-shared content simply appears or disappears with the page.
 - Use `motionDuration`, `motionEasing` and `motionDelay` to tune the transition.
 

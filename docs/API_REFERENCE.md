@@ -402,10 +402,15 @@ list → detail and filtered-list transitions.
 On a multi-page app, `navigate(page)` first captures the currently visible page,
 renders the new page, then flushes matching keys. The same `motionKey` on two
 pages therefore animates the element between pages, including its position and
-size. The old element is cloned into a fixed overlay and moved/resized to the new
-rectangle; the old content stays visible and cross-fades into the new content at
-the end, so text does not vanish at the start. Content without a matching key
-simply appears with the new page.
+size. The runtime measures the start and end rectangles of the card and of its
+direct visual parts (heading, paragraph, button), then interpolates those
+measured states with one easing function. A content-free surface layer grows and
+moves the background, border and shadow while a clipped content layer keeps the
+final layout; each part travels in a straight line to its final rectangle and the
+text is never reflowed or rewrapped mid-transition. The real element is revealed
+at the end at exactly the same geometry, so there is no cross-fade, jump or
+disappearing text. Content without a matching key simply appears with the new
+page.
 
 ## Popover
 

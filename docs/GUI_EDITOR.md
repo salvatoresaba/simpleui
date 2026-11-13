@@ -894,9 +894,11 @@ specialized motion sections.
 
 On multi-page apps, `navigate(page)` captures the visible page before switching
 and flushes shared keys after the new page renders. The same `motionKey` on two
-pages produces a shared-element transition, including size and position. The old
-element is cloned into an overlay and cross-fades into the new content at the
-end.
+pages produces a shared-element transition, including size and position. The
+runtime measures the start and end rectangles of the card and its direct visual
+parts, grows a content-free surface layer and translates each part in a straight
+line to its measured final position; the content is clipped to the growing box
+instead of being reflowed.
 
 **Controls > Split panes** inserts two `pane` children and a draggable divider.
 Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must

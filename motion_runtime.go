@@ -309,24 +309,6 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
     scheduleFrame(el, frame);
   }
-  function animateOpacity(el, from, to, duration, easing, done) {
-    var start = performance.now();
-    el.style.opacity = String(from);
-    function frame() {
-      var t = (performance.now() - start) / duration;
-      var e = ease(Math.max(0, Math.min(1, t)), easing);
-      el.style.opacity = String(from + (to - from) * e);
-      if (t < 1) {
-        scheduleFrame(el, frame);
-      } else {
-        el.__suiMotionRaf = 0;
-        el.__suiMotionRafType = '';
-        el.style.removeProperty('opacity');
-        if (done) done();
-      }
-    }
-    scheduleFrame(el, frame);
-  }
   function animateElement(old, el, o) {
     // Elements with custom-property presets run their whole transition in
     // tweenVars (including the fade/scale/slide effect), so it stays in sync
@@ -438,6 +420,120 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     }
     return out;
   }
+  function partRects(el) {
+    // Measure the initial/final state of every direct visual part. The shared
+    // transition interpolates these two measured states directly instead of
+    // letting the browser reflow the content while the box changes size.
+    var out = [];
+    var kids = el.children || [];
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i].nodeType !== 1) continue;
+      var r = kids[i].getBoundingClientRect();
+      out.push({ left: r.left, top: r.top, width: r.width, height: r.height });
+    }
+    return out;
+  }
+  function paintBox(el, rect) {
+    // A content-free layer that only draws the surface (background, border,
+    // radius, shadow). Its rectangle is animated with explicit pixel values,
+    // so growing the card never reflows or rewraps the text.
+    var cs = getComputedStyle(el);
+    var box = document.createElement('div');
+    box.className = 'sui-motion-shared-box';
+    box.setAttribute('aria-hidden', 'true');
+    box.style.position = 'fixed';
+    box.style.left = rect.left + 'px';
+    box.style.top = rect.top + 'px';
+    box.style.width = rect.width + 'px';
+    box.style.height = rect.height + 'px';
+    box.style.margin = '0';
+    box.style.boxSizing = 'border-box';
+    box.style.pointerEvents = 'none';
+    box.style.zIndex = '9997';
+    // The animated rectangle also clips the final-layout content, so text never
+    // spills outside the card while the box is still growing.
+    box.style.overflow = 'hidden';
+    var props = ['background-color', 'background-image', 'background-size', 'background-position', 'background-repeat',
+      'border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius',
+      'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+      'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+      'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+      'box-shadow', 'outline-color', 'outline-style', 'outline-width', 'backdrop-filter', '-webkit-backdrop-filter', 'filter'];
+    for (var i = 0; i < props.length; i++) {
+      var v = cs.getPropertyValue(props[i]);
+      if (v) box.style.setProperty(props[i], v);
+    }
+    document.body.appendChild(box);
+    return box;
+  }
+  function contentLayer(el, rect) {
+    var content = el.cloneNode(true);
+    stripMotionClone(content);
+    content.classList.add('sui-motion-shared-clone');
+    content.style.position = 'absolute';
+    content.style.width = rect.width + 'px';
+    content.style.height = rect.height + 'px';
+    content.style.margin = '0';
+    content.style.boxSizing = 'border-box';
+    content.style.pointerEvents = 'none';
+    // The separate box layer owns the surface. Keep border widths (they affect
+    // the final layout) but make the paint transparent so the two layers do not
+    // draw the same background twice.
+    content.style.background = 'transparent';
+    content.style.backgroundImage = 'none';
+    content.style.boxShadow = 'none';
+    content.style.borderTopColor = 'transparent';
+    content.style.borderRightColor = 'transparent';
+    content.style.borderBottomColor = 'transparent';
+    content.style.borderLeftColor = 'transparent';
+    return content;
+  }
+  function animateShared(box, fromRect, toRect, content, oldParts, newParts, o, done) {
+    var pairs = [];
+    var count = Math.min(oldParts.length, newParts.length, content.children.length);
+    for (var i = 0; i < count; i++) {
+      var child = content.children[i];
+      pairs.push({
+        el: child,
+        dx: oldParts[i].left - newParts[i].left,
+        dy: oldParts[i].top - newParts[i].top
+      });
+    }
+    var cs = getComputedStyle(box);
+    var borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+    var borderTop = parseFloat(cs.borderTopWidth) || 0;
+    var start = performance.now() + o.delay;
+    function apply(t) {
+      var e = ease(Math.max(0, Math.min(1, t)), o.easing);
+      var left = fromRect.left + (toRect.left - fromRect.left) * e;
+      var top = fromRect.top + (toRect.top - fromRect.top) * e;
+      box.style.left = left + 'px';
+      box.style.top = top + 'px';
+      box.style.width = (fromRect.width + (toRect.width - fromRect.width) * e) + 'px';
+      box.style.height = (fromRect.height + (toRect.height - fromRect.height) * e) + 'px';
+      // Keep the content anchored to its final viewport position while the
+      // clipping box grows and moves.
+      content.style.left = (toRect.left - left - borderLeft) + 'px';
+      content.style.top = (toRect.top - top - borderTop) + 'px';
+      for (var p = 0; p < pairs.length; p++) {
+        pairs[p].el.style.transform = 'translate(' + (pairs[p].dx * (1 - e)) + 'px,' + (pairs[p].dy * (1 - e)) + 'px)';
+      }
+    }
+    apply(0);
+    function frame() {
+      var t = (performance.now() - start) / o.duration;
+      apply(t);
+      if (t < 1) {
+        scheduleFrame(box, frame);
+      } else {
+        box.__suiMotionRaf = 0;
+        box.__suiMotionRafType = '';
+        for (var p = 0; p < pairs.length; p++) pairs[p].el.style.removeProperty('transform');
+        done();
+      }
+    }
+    scheduleFrame(box, frame);
+  }
   function capturePage() {
     sharedMap = {};
     pageSwitching = true;
@@ -447,7 +543,9 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       for (var i = 0; i < els.length; i++) {
         var k = keyOf(els[i]);
         if (!k) continue;
-        sharedMap[k] = snapshot(els[i], false);
+        var snap = snapshot(els[i], false);
+        snap.parts = partRects(els[i]);
+        sharedMap[k] = snap;
       }
     }
   }
@@ -464,58 +562,32 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
         if (o.effect === 'none') continue;
         cancel(el);
         var r = el.getBoundingClientRect();
-        var dx = old.rect.left - r.left;
-        var dy = old.rect.top - r.top;
-        var size = { fromW: old.rect.width, fromH: old.rect.height, toW: r.width, toH: r.height };
-        var clone = old.el ? old.el.cloneNode(true) : null;
-        if (!clone) {
+        if (!old.parts) {
           animateElement(old, el, o);
           delete sharedMap[k];
           continue;
         }
-        stripMotionClone(clone);
-        clone.classList.add('sui-motion-shared-clone');
-        clone.style.position = 'fixed';
-        clone.style.left = r.left + 'px';
-        clone.style.top = r.top + 'px';
-        clone.style.width = r.width + 'px';
-        clone.style.height = r.height + 'px';
-        clone.style.margin = '0';
-        clone.style.boxSizing = 'border-box';
-        clone.style.pointerEvents = 'none';
-        clone.style.zIndex = '9997';
-        clone.style.opacity = '1';
-        document.body.appendChild(clone);
-        el.style.opacity = '0';
-        // Evaluate the two geometries first: the old card grows/moves for 75%
-        // of the time, then the old and new content cross-fade while both are
-        // at exactly the final rectangle. This avoids swapping text while the
-        // box is still mid-size.
-        var geomMs = Math.max(100, Math.round(o.duration * 0.75));
-        var fadeMs = Math.max(60, o.duration - geomMs);
-        var cloneOpts = { effect: o.effect, duration: geomMs, easing: o.easing, delay: o.delay };
-        var fadeStarted = false;
-        function cleanupShared() {
-          if (clone.parentNode) clone.remove();
-          el.style.removeProperty('opacity');
+        // Evaluate the two measured states up front: the box rectangle and
+        // every part rectangle. Then fuse them with one easing function, so
+        // each part travels in a straight line while the box grows.
+        var box = paintBox(el, old.rect);
+        var content = contentLayer(el, r);
+        box.appendChild(content);
+        var bcs = getComputedStyle(box);
+        content.style.left = (r.left - old.rect.left - (parseFloat(bcs.borderLeftWidth) || 0)) + 'px';
+        content.style.top = (r.top - old.rect.top - (parseFloat(bcs.borderTopWidth) || 0)) + 'px';
+        var newParts = partRects(content);
+        el.style.visibility = 'hidden';
+        var finished = false;
+        function finishShared() {
+          if (finished) return;
+          finished = true;
+          if (box.parentNode) box.remove();
+          if (content.parentNode) content.remove();
+          el.style.removeProperty('visibility');
         }
-        function startSharedFade() {
-          if (fadeStarted) return;
-          fadeStarted = true;
-          // Hold the final rectangle for the fade; stop the geometry loop.
-          cancel(clone);
-          clone.style.width = r.width + 'px';
-          clone.style.height = r.height + 'px';
-          clone.style.transform = 'none';
-          // Drive opacity from the same timer/rAF loop as the geometry so the
-          // fade also works when the tab is hidden or the compositor throttles
-          // CSS transitions.
-          animateOpacity(clone, 1, 0, fadeMs, o.easing, null);
-          animateOpacity(el, 0, 1, fadeMs, o.easing, cleanupShared);
-        }
-        animateMovement(clone, dx, dy, cloneOpts, 1, 1, 1, 1, 0, 0, startSharedFade, size);
-        setTimeout(startSharedFade, o.delay + geomMs + 120);
-        setTimeout(cleanupShared, o.delay + geomMs + fadeMs + 400);
+        animateShared(box, old.rect, r, content, old.parts, newParts, o, finishShared);
+        setTimeout(finishShared, o.delay + o.duration + 250);
         delete sharedMap[k];
       }
     }

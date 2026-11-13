@@ -1,8 +1,8 @@
 # Shared element transition across pages.
 #
 # The same motionKey ("hero") exists on both pages. navigate() captures the
-# visible page before switching, then FLIPs the new page's hero from the old
-# page's position and size.
+# visible page before switching, then morphs the new hero from the old page's
+# measured position and size to its final measured state.
 
 fn openDetail() -> null {
 	navigate("detail")

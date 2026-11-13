@@ -930,8 +930,10 @@ tree, chart e toggle hanno sezioni motion dedicate.
 Nelle app multi-pagina, `navigate(page)` cattura la pagina visibile prima del
 cambio e applica le chiavi condivise dopo il render della nuova pagina. Lo stesso
 `motionKey` su due pagine produce una transizione shared-element, incluse
-dimensioni e posizione. Il vecchio elemento viene clonato in un overlay e sfuma
-nel nuovo contenuto alla fine.
+dimensioni e posizione. Il runtime misura i rettangoli iniziale e finale della
+card e delle sue parti visive dirette, ingrandisce un livello di superficie senza
+contenuto e trasla ogni parte in linea retta verso la posizione finale misurata;
+il contenuto viene ritagliato al box che cresce invece di essere riflussato.
 
 **Controls > Split panes** inserisce due figli `pane` e un divisore
 trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.

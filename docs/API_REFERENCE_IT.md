@@ -376,11 +376,16 @@ diversi, abilitando transizioni lista → dettaglio e liste filtrate.
 In un'app multi-pagina, `navigate(page)` cattura prima la pagina visibile,
 renderizza la nuova pagina e poi applica le chiavi corrispondenti. Lo stesso
 `motionKey` su due pagine anima quindi l'elemento tra le pagine, inclusi
-posizione e dimensioni. Il vecchio elemento viene clonato in un overlay fisso e
-spostato/ridimensionato verso il nuovo rettangolo; il vecchio contenuto resta
-visibile e sfuma nel nuovo contenuto alla fine, quindi il testo non scompare
-all'inizio. Il contenuto senza chiave corrispondente appare semplicemente con la
-nuova pagina.
+posizione e dimensioni. Il runtime misura i rettangoli iniziale e finale della
+card e delle sue parti visive dirette (titolo, paragrafo, pulsante), poi
+interpola questi stati misurati con un'unica funzione di easing. Un livello di
+superficie senza contenuto muove e ridimensiona sfondo, bordo e ombra, mentre un
+livello di contenuto ritagliato mantiene il layout finale; ogni parte viaggia in
+linea retta verso il proprio rettangolo finale e il testo non viene mai
+riflussato o riscritto durante la transizione. L'elemento reale viene mostrato
+alla fine esattamente alla stessa geometria, quindi non ci sono cross-fade,
+salti o testo che scompare. Il contenuto senza chiave corrispondente appare
+semplicemente con la nuova pagina.
 
 ## Popover
 
