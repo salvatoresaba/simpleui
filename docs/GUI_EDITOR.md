@@ -908,6 +908,8 @@ only the graph; parameters open in draggable overlay panels:
 - **Layout & shared** in the toolbar opens the FLIP/list/page settings overlay.
 - The graph fields drive explicit triggers. There are no duplicate motion
   fields in the inspector.
+- The graph canvas centers the states and scales the whole diagram to fit the
+  panel, including after minimizing/restoring or resizing the window.
 - **+ state** creates another CSS snapshot of the element.
 - Clicking a state highlights it, applies its CSS in the preview, centers the
   element and locks the rest of the preview so only that element stays active.
@@ -916,10 +918,11 @@ only the graph; parameters open in draggable overlay panels:
   minimizes automatically to free the preview; the header keeps it available
   and the **–** button, drag or close controls behave normally.
 - If the panel is closed, a floating **Animation panel** button restores it.
-- Double-click a state to open its parameter overlay (name and CSS). Double-
+- Double-click a state to open its parameter overlay (name, CSS, and the
+  incoming/outgoing transition trigger, duration, easing and delay). Double-
   click an arrow to open its trigger, duration, easing, delay and condition.
-  Overlays are above the graph, draggable, and the graph itself shows only state
-  names and arrows.
+  Overlays are above the graph, stay anchored while their content changes, and
+  are draggable. The graph itself shows only state names and arrows.
 - Editing the overlay writes the state/link parameters immediately.
   **Salva da preview** captures the current computed style into the state.
 - Select a state and use **Aggiungi collegamento** to create an arrow.

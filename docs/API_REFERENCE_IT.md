@@ -409,8 +409,9 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 
 Il pulsante **Motion > Open animation panel** del designer modifica lo stesso
 JSON: i blocchi sono gli stati, le frecce sono i link. Il pannello contiene solo
-il grafo; i parametri si aprono in overlay trascinabili. **Layout & shared**
-nella toolbar apre le impostazioni classiche `motion`, `motionKey`,
+il grafo; i parametri si aprono in overlay trascinabili ancorati a una posizione
+fissa. Il canvas centra e scala il diagramma per adattarlo al pannello.
+**Layout & shared** nella toolbar apre le impostazioni classiche `motion`, `motionKey`,
 `motionDuration`, `motionEasing`, `motionDelay` e `motionExit` usate da FLIP,
 riordino liste e transizioni tra pagine. Stati e link gestiscono i trigger
 espliciti. L'inspector non duplica più quei campi.
@@ -422,8 +423,9 @@ compaiono subito nella preview. Il pannello del grafo si minimizza
 automaticamente per liberare la preview; l'intestazione resta disponibile e può
 essere trascinata, ripristinata con **–** o chiusa. Se viene chiuso, un pulsante
 flottante **Animation panel** lo ripristina. Il doppio clic su uno stato apre
-l'overlay dei parametri; il doppio clic su una freccia apre trigger, durata,
-easing e delay. Gli overlay sono trascinabili e il grafo mostra solo nomi degli
+l'overlay con nome, CSS e le transizioni in ingresso/uscita (trigger, durata,
+easing, delay); il doppio clic su una freccia apre le stesse proprietà della
+transizione. Gli overlay sono trascinabili e il grafo mostra solo nomi degli
 stati e frecce. **Salva stato** cattura lo stile calcolato della preview nello
 stato. **Remove states** elimina il grafo degli stati ma conserva gli attributi
 Layout & shared.

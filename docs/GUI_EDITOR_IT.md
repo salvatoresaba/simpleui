@@ -943,6 +943,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 - **Layout & shared** nella toolbar apre l'overlay per FLIP/liste/pagine.
 - I campi del grafo gestiscono i trigger espliciti. Nell'inspector non ci sono
   più campi motion duplicati.
+- Il grafico centra gli stati e scala l'intero diagramma per adattarsi al
+  pannello, anche dopo minimizzazione/ripristino o ridimensionamento della
+  finestra.
 - **+ state** crea un'altra fotografia CSS dell'elemento.
 - Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
   l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
@@ -953,10 +956,11 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   funzionano normalmente.
 - Se il pannello viene chiuso, un pulsante flottante **Animation panel** lo
   ripristina.
-- Il doppio clic su uno stato apre l'overlay dei parametri (nome e CSS). Il
-  doppio clic su una freccia apre trigger, durata, easing, delay e condizione.
-  Gli overlay sono sopra il grafo, trascinabili, e il grafo mostra solo nomi
-  degli stati e frecce.
+- Il doppio clic su uno stato apre l'overlay dei parametri (nome, CSS e le
+  transizioni in ingresso/uscita con trigger, durata, easing e delay). Il doppio
+  clic su una freccia apre trigger, durata, easing, delay e condizione. Gli
+  overlay sono sopra il grafo, restano ancorati quando il contenuto cambia e
+  sono trascinabili. Il grafo mostra solo nomi degli stati e frecce.
 - Modificare l'overlay scrive subito i parametri dello stato/link.
   **Salva da preview** cattura lo stile calcolato corrente nello stato.
 - Seleziona uno stato e usa **Aggiungi collegamento** per creare una freccia.

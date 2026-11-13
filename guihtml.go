@@ -842,9 +842,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .td-row .td-acts button:hover { border-color:var(--accent); }
 .td-empty { padding:18px; color:var(--muted); font-size:12px; text-align:center; }
 /* Animation graph panel */
-#mg-panel { position:fixed; top:86px; right:24px; width:780px; height:520px; max-width:94vw; max-height:86vh;
+#mg-panel { position:fixed; top:86px; left:calc(100vw - 804px); width:780px; height:520px; max-width:94vw; max-height:86vh;
   background:var(--panel2); border:1px solid var(--border2); border-radius:10px; display:none; flex-direction:column;
   overflow:hidden; box-shadow:0 14px 48px rgba(0,0,0,.55); z-index:45; }
+@media (max-width: 900px) { #mg-panel { left:12px; width:calc(100vw - 24px); } }
 #mg-panel.on { display:flex; }
 .mg-hdr { display:flex; align-items:center; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border);
   background:var(--panel); font-size:13px; font-weight:600; flex:none; }
@@ -855,9 +856,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #mg-panel.min .mg-toolbar, #mg-panel.min .mg-main { display:none; }
 .mg-hdr { cursor:move; }
 .mg-hdr button { cursor:pointer; }
-#mg-param { position:fixed; right:24px; bottom:24px; width:340px; max-width:92vw; max-height:72vh;
+#mg-param { position:fixed; top:120px; left:calc(100vw - 364px); width:340px; max-width:92vw; max-height:72vh;
   background:var(--panel2); border:1px solid var(--border2); border-radius:10px; display:none; flex-direction:column;
   overflow:hidden; box-shadow:0 12px 42px rgba(0,0,0,.55); z-index:60; }
+@media (max-width: 900px) { #mg-param { left:12px; width:calc(100vw - 24px); } }
 #mg-param.on { display:flex; }
 .mg-param-hdr { display:flex; align-items:center; gap:6px; padding:7px 10px; border-bottom:1px solid var(--border);
   background:var(--panel); font-size:12px; font-weight:600; cursor:move; }
@@ -873,8 +875,9 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   background:var(--panel); border:1px solid #4c5cf7; color:var(--fg); border-radius:9px; padding:7px 12px;
   font-size:12px; font-weight:600; box-shadow:0 8px 26px rgba(0,0,0,.45); cursor:pointer; }
 #mg-launch.on { display:flex; }
-#mg-canvas { position:relative; flex:1; min-width:0; overflow:auto; background:
+#mg-canvas { position:relative; flex:1; min-width:0; overflow:hidden; background:
   radial-gradient(circle at 1px 1px, rgba(143,160,184,.18) 1px, transparent 0) 0 0/18px 18px; }
+#mg-stage { position:absolute; left:0; top:0; transform-origin:0 0; }
 #mg-nodes { position:absolute; left:0; top:0; }
 #mg-lines { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
 #mg-lines path { pointer-events:stroke; cursor:pointer; }
@@ -1115,7 +1118,7 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
         <span class="hint">Doppio clic su stato o freccia per i parametri.</span>
       </div>
       <div class="mg-main">
-        <div id="mg-canvas"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div>
+        <div id="mg-canvas"><div id="mg-stage"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div></div>
       </div>
     </div>
     <div id="mg-param">
@@ -6351,6 +6354,7 @@ function motionControls(n) {
 var mgPath = null, mgNode = null, mgCfg = null, mgSelState = "", mgSelLink = "";
 var mgParam = null;
 var mgCollapseTimer = 0;
+var mgGraphSize = { x: 240, y: 120 };
 var mgEdit = null;
 var MG_CAPTURE_PROPS = ["width","height","min-width","min-height","max-width","max-height",
   "margin-top","margin-right","margin-bottom","margin-left","padding-top","padding-right","padding-bottom","padding-left",
@@ -6407,6 +6411,7 @@ function mgOpen(n, path) {
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
   mgUpdateLauncher();
+  setTimeout(mgFitGraph, 0);
   renderInspector();
 }
 function mgRemoveGraph(n) {
@@ -6482,6 +6487,21 @@ function mgMarkSelection() {
     p.setAttribute("marker-end", "url(#" + (on ? "mg-arrow-on" : "mg-arrow") + ")");
   });
 }
+function mgFitGraph() {
+  var canvas = document.getElementById("mg-canvas");
+  var stage = document.getElementById("mg-stage");
+  if (!canvas || !stage) return;
+  var cw = canvas.clientWidth, ch = canvas.clientHeight;
+  if (!cw || !ch) return;
+  var pad = 28;
+  var sx = (cw - pad * 2) / Math.max(1, mgGraphSize.x);
+  var sy = (ch - pad * 2) / Math.max(1, mgGraphSize.y);
+  var scale = Math.min(1, sx, sy);
+  if (!isFinite(scale) || scale <= 0) scale = 1;
+  var ox = (cw - mgGraphSize.x * scale) / 2;
+  var oy = (ch - mgGraphSize.y * scale) / 2;
+  stage.style.transform = "translate(" + ox + "px," + oy + "px) scale(" + scale + ")";
+}
 function mgRender() {
   if (!mgCfg) return;
   var nodes = document.getElementById("mg-nodes");
@@ -6530,6 +6550,9 @@ function mgRender() {
   nodes.style.height = maxY + "px";
   svg.setAttribute("width", maxX);
   svg.setAttribute("height", maxY);
+  var stage = document.getElementById("mg-stage");
+  if (stage) { stage.style.width = maxX + "px"; stage.style.height = maxY + "px"; }
+  mgGraphSize = { x: maxX, y: maxY };
   svg.innerHTML = '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7db3ff"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4c5cf7"/></marker></defs>';
   mgCfg.links.forEach(function(l){
     var a = mgStateById(l.from), b = mgStateById(l.to);
@@ -6547,6 +6570,7 @@ function mgRender() {
     path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelLink = l.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", l.id); mgMinimizePanel(); };
     svg.appendChild(path);
   });
+  mgFitGraph();
   mgRenderParam();
 }
 function mgOpenParam(kind, id) {
@@ -6568,11 +6592,13 @@ function mgRestorePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.remove("min");
   mgUpdateLauncher();
+  setTimeout(mgFitGraph, 0);
 }
 function mgTogglePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.toggle("min");
   mgUpdateLauncher();
+  setTimeout(mgFitGraph, 0);
 }
 function mgUpdateLauncher() {
   var p = document.getElementById("mg-panel");
@@ -6684,6 +6710,33 @@ function mgRenderParam() {
   btn(ac2, "Salva da preview", function(){ var css = mgCaptureStyle(); if (css != null) { snap("save motion state"); s.css = css; mgCommit(); mgRender(); } });
   btn(ac2, "Imposta iniziale", function(){ snap("motion graph initial"); mgCfg.initial = s.id; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
   btn(ac2, "Elimina stato", function(){ mgDeleteState(s.id); });
+  var trHead = document.createElement("div"); trHead.className = "hint"; trHead.style.marginTop = "14px"; trHead.textContent = "Transizioni dello stato"; side.appendChild(trHead);
+  function transitionBlock(link, incoming) {
+    var other = mgStateById(incoming ? link.from : link.to);
+    var title = document.createElement("div"); title.className = "hint"; title.style.marginTop = "10px";
+    title.textContent = (incoming ? "In ingresso da " : "In uscita verso ") + (other ? other.name : (incoming ? link.from : link.to));
+    side.appendChild(title);
+    label("trigger"); var ev = select(link.event || "click", [["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","stato variabile"],["after","dopo la transizione"]]);
+    ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
+    if (link.event === "state") {
+      label("variabile (vero/falso)"); var wh = input(link.when, "es. open oppure !open");
+      wh.onchange = function(){ snap("motion graph condition"); link.when = wh.value.trim(); mgCommit(); };
+    }
+    label("durata"); var dur = input(link.duration, "320ms"); dur.onchange = function(){ snap("motion graph duration"); link.duration = dur.value.trim(); mgCommit(); };
+    label("easing"); var eas = input(link.easing, "ease-out"); eas.onchange = function(){ snap("motion graph easing"); link.easing = eas.value.trim(); mgCommit(); };
+    label("delay"); var del = input(link.delay, "0ms"); del.onchange = function(){ snap("motion graph delay"); link.delay = del.value.trim(); mgCommit(); };
+    var sep = document.createElement("div"); sep.style.cssText = "border-top:1px solid var(--border);margin:10px 0 2px"; side.appendChild(sep);
+  }
+  var incoming = mgCfg.links.filter(function(x){ return x.to === s.id; });
+  var outgoing = mgCfg.links.filter(function(x){ return x.from === s.id; });
+  if (!incoming.length) {
+    var noIn = document.createElement("div"); noIn.className = "hint"; noIn.textContent = "Nessuna transizione in ingresso (stato iniziale o raggiunto da un altro stato)."; side.appendChild(noIn);
+  } else {
+    incoming.forEach(function(link){ transitionBlock(link, true); });
+  }
+  if (outgoing.length) {
+    outgoing.forEach(function(link){ transitionBlock(link, false); });
+  }
   var linkLabel = document.createElement("div"); linkLabel.className = "hint"; linkLabel.style.marginTop = "12px"; linkLabel.textContent = "Collega questo stato a:"; side.appendChild(linkLabel);
   var targets = mgCfg.states.filter(function(x){ return x.id !== s.id; });
   if (targets.length) {
@@ -6836,6 +6889,11 @@ function mgMakeDraggable(panelId, handleId) {
   mgMakeDraggable("mg-panel", "mg-hdr");
   mgMakeDraggable("mg-param", "mg-param-hdr");
   mgUpdateLauncher();
+  var mgCanvas = document.getElementById("mg-canvas");
+  if (mgCanvas && typeof ResizeObserver === "function") {
+    try { new ResizeObserver(function(){ mgFitGraph(); }).observe(mgCanvas); } catch (e) {}
+  }
+  window.addEventListener("resize", mgFitGraph);
   var f = document.getElementById("prev");
   if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(function(){ mgSendScope(); mgSendStateFocus(true); }, 80); });
 })();

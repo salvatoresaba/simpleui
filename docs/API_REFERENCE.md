@@ -434,11 +434,12 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 
 The designer's **Motion > Open animation panel** edits the same JSON: blocks are
 states, arrows are links. The graph panel contains only the graph; parameters
-open in draggable overlays. **Layout & shared** in the toolbar opens the classic
-`motion`, `motionKey`, `motionDuration`, `motionEasing`, `motionDelay` and
-`motionExit` settings used by FLIP, list reordering and page transitions. States
-and links handle explicit triggers. The inspector no longer duplicates those
-fields.
+open in draggable overlays anchored to a fixed position. The canvas centers and
+scales the diagram to fit the panel. **Layout & shared** in the toolbar opens
+the classic `motion`, `motionKey`, `motionDuration`, `motionEasing`,
+`motionDelay` and `motionExit` settings used by FLIP, list reordering and page
+transitions. States and links handle explicit triggers. The inspector no longer
+duplicates those fields.
 
 Clicking a state highlights it and applies its CSS in the preview, centers the
 element and locks the rest of the preview so only that element stays active.
@@ -446,11 +447,12 @@ Inspector style edits are written back into the focused state CSS and appear
 immediately in the preview. The graph panel minimizes automatically to free the
 preview; its header stays available and can be dragged, restored with **–** or
 closed. If it is closed, a floating **Animation panel** button restores it.
-Double-clicking a state opens its parameter overlay; double-clicking an arrow
-opens the trigger, duration, easing and delay. Overlays are draggable and the
-graph only shows state names and arrows. **Salva stato** captures the computed
-preview style into the state. **Remove states** deletes the state graph but
-keeps the Layout & shared attributes.
+Double-clicking a state opens its parameter overlay with name, CSS and the
+incoming/outgoing transition trigger, duration, easing and delay; double-
+clicking an arrow opens the same transition properties. Overlays are draggable
+and the graph only shows state names and arrows. **Salva stato** captures the
+computed preview style into the state. **Remove states** deletes the state graph
+but keeps the Layout & shared attributes.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.

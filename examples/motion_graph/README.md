@@ -67,6 +67,7 @@ and the FLIP engine described in `examples/motion_pages`.
 1. Open `simpleui gui examples/motion_graph/app.sui`.
 2. Select a card in the tree or preview.
 3. Inspector → **Motion (animation panel)** → **Open animation panel**.
+   The canvas centers and scales the diagram to fit the panel.
 4. **Layout & shared** in the toolbar opens a draggable overlay for
    FLIP/key/duration/easing/delay/exit for lists and page transitions.
 5. Click a state: it is highlighted, its CSS is applied in the preview, the
@@ -76,10 +77,10 @@ and the FLIP engine described in `examples/motion_pages`.
    automatically so the preview is free; its header can be dragged, restored
    with **–** or closed. If it is closed, the floating **Animation panel**
    button restores it.
-6. Double-click a state to open its parameter overlay (name and CSS).
-   Double-click an arrow to open trigger, duration, easing, delay and condition.
-   The graph shows only state names and arrows; overlays are above the graph
-   and draggable.
+6. Double-click a state to open its parameter overlay (name, CSS and the
+   incoming/outgoing transition trigger, duration, easing and delay). Double-
+   click an arrow to open the same transition properties. The graph shows only
+   state names and arrows; overlays stay anchored and are draggable.
 7. Editing the overlay writes the state/link parameters immediately.
    **Salva da preview** captures the current computed style into the state.
 8. Select a state and use **Aggiungi collegamento** to create an arrow.
