@@ -947,25 +947,33 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   ridimensionati.
 
 - I blocchi sono piccoli: mostrano il nome dello stato e il punto di
-  connessione. Ogni stato ha un pulsante **+** per un nuovo collegamento.
-- **+** apre la scelta del collegamento: stato esistente oppure nuovo stato. Il
-  nuovo stato parte con i parametri dello stato sorgente ed è collegato da un
-  link ancora senza trigger; il salvataggio lo segnala.
+  connessione. Ogni stato ha un pulsante **+** per un nuovo trigger.
+- **+** apre la scelta del trigger: tipo, stato di destinazione (esistente o
+  nuovo) e dati specifici. Il nuovo stato parte con i parametri dello stato
+  sorgente ed è collegato automaticamente; il salvataggio lo valida.
 - Il trigger appartiene allo stato di partenza. Ogni link uscente è numerato
-  nel punto di partenza e il numero è l'indice del trigger. Il tipo di trigger
-  si sceglie dall'overlay dello stato sorgente o dal link. Più link possono
+  nel punto di partenza e il numero è l'indice del trigger. Più link possono
   uscire dallo stesso stato verso destinazioni diverse.
-- Doppio clic su uno stato: overlay con nome, CSS e transizioni in
-  ingresso/uscita con trigger, durata, easing e delay. Doppio clic su una
-  freccia: stesse proprietà del trigger. Gli overlay sono trascinabili e sopra
-  il grafo.
+- Click e gli altri eventi DOM si possono usare una sola volta per stato
+  sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
+  eventi già usati e la validazione rifiuta i duplicati.
+- Un trigger **variabile** elenca gli stati SUI disponibili e chiede il valore
+  che lo attiva (`true`/`false`, testo o numero). Un trigger **timer** chiede
+  una durata e avvia la transizione automaticamente dopo quel tempo nello stato
+  sorgente.
+- Doppio clic su uno stato: overlay con nome, CSS e lista dei trigger attivi con
+  la destinazione. Non ci sono campi per i trigger in ingresso. Usa **Aggiungi
+  trigger** per aggiungerne altri. Doppio clic su una freccia: trigger, durata,
+  easing e delay. Gli overlay sono trascinabili e sopra il grafo.
 - Il clic su uno stato lo applica nella preview e centra/blocca l'elemento. Le
   modifiche dall'inspector vengono scritte nello stato e compaiono subito.
 - Durante la modifica lo stato il grafo si riduce a una barra con **Salva
   stato** e **Chiudi**. **Salva stato** valida e torna al pannello aggiornato;
   **Chiudi** ripristina lo snapshot e scarta le modifiche.
-- Il salvataggio rifiuta un trigger vuoto e due stati con gli stessi parametri;
-  l'errore compare nella notifica e lo stato resta aperto per la correzione.
+- Il salvataggio rifiuta un trigger vuoto, un trigger variabile senza variabile,
+  due stati con gli stessi parametri o lo stesso evento singolo usato due volte
+  dallo stesso stato; l'errore compare nella notifica e lo stato resta aperto
+  per la correzione.
 - Aprendo il pannello viene selezionato lo stato corrente o iniziale.
   Cliccando nella preview il pannello si minimizza; **–**, trascinamento,
   ridimensionamento e chiusura restano disponibili. Il pulsante flottante

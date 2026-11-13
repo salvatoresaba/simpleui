@@ -73,22 +73,23 @@ and the FLIP engine described in `examples/motion_pages`.
 4. **Layout & shared** in the toolbar opens a draggable overlay for
    FLIP/key/duration/easing/delay/exit for lists and page transitions.
 5. State blocks show only the name and a connection point. Each has a **+**
-   button: connect to an existing state or create a new state. A new state
-   copies the source parameters and gets a link without a trigger; the next
-   save reports the error until both are fixed.
+   button that opens the trigger chooser: trigger type, destination state
+   (existing or new) and type-specific data. A new state copies the source
+   parameters and is connected automatically.
 6. Triggers belong to the source state. Outgoing links are numbered at their
-   starting point; the number is the trigger index. Several triggers can leave
-   one state toward different targets. Choose the trigger from the state
-   overlay or the link overlay.
-7. Double-click a state to edit its overlay (name, CSS and incoming/outgoing
-   triggers with duration, easing and delay); double-click an arrow for the
-   same trigger properties. Overlays are draggable and above the graph.
+   starting point; the number is the trigger index. Click and the other DOM
+   events can be used once per source state; variable and timer triggers can be
+   repeated. A variable trigger lists the available SUI states and asks for the
+   activating value; a timer trigger starts after the chosen duration.
+7. Double-click a state to edit its overlay (name, CSS and the list of active
+   triggers with destinations); use **Aggiungi trigger** for more. Double-click
+   an arrow for trigger, duration, easing and delay.
 8. Clicking a state applies it in the preview and locks the element. Inspector
    changes are written into the focused state and appear immediately.
 9. While editing, the graph collapses to a bar with **Salva stato** and
    **Chiudi**. Save validates and returns to the updated panel; close restores
-   the snapshot and discards changes. Saving rejects an empty trigger or two
-   states with identical parameters and shows the error.
+   the snapshot and discards changes. Saving rejects an empty trigger, a missing
+   variable, duplicate state parameters or a repeated single-use event.
 10. Press **Anteprima** to play the selected state or link.
 
 States/links and Layout & shared live in the same panel; there are no duplicate

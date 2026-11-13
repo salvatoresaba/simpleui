@@ -416,21 +416,27 @@ posizione fissa. Pannelli e overlay restano dentro il viewport visibile.
 `motionKey`, `motionDuration`, `motionEasing`, `motionDelay` e `motionExit`
 usate da FLIP, riordino liste e transizioni tra pagine.
 
-I blocchi mostrano solo nome, punto di connessione e pulsante **+**. **+** crea
-un collegamento verso uno stato esistente o un nuovo stato. Il trigger
-appartiene allo stato di partenza; i link uscenti sono numerati nel punto di
-partenza e il numero è l'indice del trigger. Uno stato può avere più trigger
-numerati verso destinazioni diverse. Il doppio clic su uno stato apre l'overlay
-con nome, CSS e transizioni in ingresso/uscita (trigger, durata, easing, delay);
-il doppio clic su una freccia apre le stesse proprietà.
+I blocchi mostrano solo nome, punto di connessione e pulsante **+**. **+**
+apre la scelta del trigger: tipo, destinazione (stato esistente o nuovo) e dati
+specifici. Il trigger appartiene allo stato di partenza; i link uscenti sono
+numerati nel punto di partenza e il numero è l'indice del trigger. Uno stato può
+avere più trigger numerati. Gli eventi DOM come click si usano una sola volta
+per stato sorgente; variabili e timer possono essere ripetuti. Il trigger
+variabile elenca gli stati SUI disponibili e chiede il valore attivatore; il
+timer avvia la transizione dopo la durata scelta.
+
+Il doppio clic su uno stato apre l'overlay con nome, CSS e lista dei trigger
+attivi con la destinazione (nessun campo per i trigger in ingresso);
+**Aggiungi trigger** ne crea altri. Il doppio clic su una freccia apre trigger,
+durata, easing e delay.
 
 Il clic su uno stato applica il CSS nella preview e blocca l'elemento; le
 modifiche dall'inspector vengono scritte nello stato focalizzato. La modifica
 riduce il grafo a una barra con **Salva stato** e **Chiudi**: il salvataggio
 valida e torna al pannello aggiornato, la chiusura ripristina lo snapshot e
-scarta le modifiche. Il salvataggio rifiuta un trigger vuoto o due stati con gli
-stessi parametri e mostra l'errore. **Remove states** elimina il grafo degli
-stati ma conserva Layout & shared.
+scarta le modifiche. Il salvataggio rifiuta trigger vuoto, variabile mancante,
+parametri uguali o evento singolo ripetuto e mostra l'errore. **Remove states**
+elimina il grafo degli stati ma conserva Layout & shared.
 
 `motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
 condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere

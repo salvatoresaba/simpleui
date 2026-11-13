@@ -441,19 +441,26 @@ to the visible viewport. **Layout & shared** in the toolbar opens the classic
 `motionExit` settings used by FLIP, list reordering and page transitions.
 
 State blocks show only the name, connection point and a **+** button. **+**
-creates a link to an existing state or a new state. A trigger belongs to the
-source state; outgoing links are numbered at their start point and the number
-is the trigger index. A state can have several numbered triggers pointing to
-different targets. Double-clicking a state opens its overlay with name, CSS and
-incoming/outgoing trigger, duration, easing and delay; double-clicking an arrow
-opens the same trigger properties.
+opens the trigger chooser: trigger type, destination (existing or new state),
+and type-specific data. A trigger belongs to the source state; outgoing links
+are numbered at their start point and the number is the trigger index. A state
+can have several numbered triggers pointing to different targets. DOM events
+such as click can be used once per source state; variable and timer triggers can
+be repeated. A variable trigger lists the available SUI states and asks for the
+activating value; a timer trigger starts the transition after a chosen duration.
+
+Double-clicking a state opens its overlay with name, CSS and the list of active
+triggers with their destinations (no incoming-trigger fields); **Aggiungi
+trigger** adds more. Double-clicking an arrow opens the trigger, duration,
+easing and delay.
 
 Clicking a state applies its CSS in the preview and locks the element; inspector
 edits are written into the focused state. Editing collapses the graph to a bar
 with **Salva stato** and **Chiudi**: save validates and returns to the updated
 panel, close restores the snapshot and discards changes. Saving rejects an empty
-trigger or two states with identical parameters and shows the error. **Remove
-states** deletes the state graph but keeps Layout & shared.
+trigger, a missing variable, duplicate state parameters or a repeated single-use
+event and shows the error. **Remove states** deletes the state graph but keeps
+Layout & shared.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.

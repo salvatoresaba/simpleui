@@ -912,25 +912,34 @@ only the graph; parameters open in draggable overlay panels:
   resized.
 
 - State blocks are intentionally small: they show the state name and a
-  connection point. Each state has a **+** button for a new link.
-- **+** opens the link chooser: connect to an existing state or create a new
-  state. A new state starts with the source parameters and is connected by a
-  link with no trigger yet, so the next save validates it.
+  connection point. Each state has a **+** button for a new trigger.
+- **+** opens the trigger chooser: choose the trigger type, the destination
+  state (existing or new), and the type-specific data. A new state starts with
+  the source parameters and is connected automatically; the next save validates
+  it.
 - A trigger belongs to the state that starts the transition. Every outgoing
   link is numbered at its starting point; the number is the trigger index.
-  Select a trigger type from the source state overlay or the link overlay.
   Several links can leave the same state and point to different targets.
-- Double-click a state to open its overlay: name, CSS, and incoming/outgoing
-  transitions with trigger, duration, easing and delay. Double-click an arrow
-  for the same trigger properties. Overlays are draggable and stay above the
-  graph.
+- Click and the other DOM events can be used once per source state; variable
+  and timer triggers can be repeated. The chooser disables already-used single
+  events and validation rejects duplicates.
+- A **variable** trigger lists the available SUI states and asks for the value
+  that activates it (`true`/`false`, text or number). A **timer** trigger asks
+  for a duration and starts the transition automatically after that time in the
+  source state.
+- Double-click a state to open its overlay: name, CSS and the list of active
+  triggers with their destination. There are no incoming-trigger fields. Use
+  **Aggiungi trigger** for more. Double-click an arrow to edit its trigger,
+  duration, easing and delay. Overlays are draggable and stay above the graph.
 - Clicking a state applies it in the preview and centers/locks the element.
   Inspector changes are written into the focused state and appear immediately.
 - While a state is being edited, the graph panel collapses to a small bar with
   **Salva stato** and **Chiudi**. **Salva stato** validates and returns to the
   updated panel; **Chiudi** restores the snapshot and discards the edits.
-- Saving rejects an empty trigger and duplicate state parameters. The error is
-  shown in the editor notification and the state stays open for correction.
+- Saving rejects an empty trigger, a variable trigger without a variable, two
+  states with identical parameters, or the same single-use event twice from one
+  state. The error is shown in the editor notification and the state stays open
+  for correction.
 - Opening the panel selects the element's current or initial state. Clicking in
   the preview minimizes the panel; the **–** button, drag, resize and close
   controls remain available. A floating **Animation panel** button restores a

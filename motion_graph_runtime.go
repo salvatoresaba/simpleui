@@ -208,9 +208,20 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(w)) return false;
     var get = window.__SUI_STATE_GET && window.__SUI_STATE_GET[w];
     if (!get) return false;
-    var v = false;
-    try { v = !!get(); } catch (e) { return false; }
-    return neg ? !v : v;
+    var v;
+    try { v = get(); } catch (e) { return false; }
+    var expected = link && link.value != null ? String(link.value) : '';
+    var active;
+    if (expected === '') {
+      active = !!v;
+    } else if (typeof v === 'boolean') {
+      active = (expected.toLowerCase() === 'true') === v;
+    } else if (typeof v === 'number') {
+      active = v === Number(expected);
+    } else {
+      active = String(v) === expected;
+    }
+    return neg ? !active : active;
   }
   function checkStateLinks(el, cfg) {
     if (!el.isConnected || el.__suiGraphEditLocked) return;
@@ -232,14 +243,38 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     var l = findLink(cfg, from, 'after');
     if (l) run(el, cfg, l);
   }
+  function clearTimers(el) {
+    var timers = el.__suiGraphTimers || [];
+    for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
+    el.__suiGraphTimers = [];
+  }
+  function scheduleTimers(el, cfg, from) {
+    clearTimers(el);
+    var links = cfg && cfg.links ? cfg.links : [];
+    var token = el.__suiGraphToken;
+    for (var i = 0; i < links.length; i++) {
+      var l = links[i];
+      if (!l || l.event !== 'timer' || l.from !== from) continue;
+      (function(link) {
+        var wait = Math.max(0, timeMs(link.timer, 1000));
+        var id = setTimeout(function() {
+          if (token !== el.__suiGraphToken) return;
+          run(el, cfg, link);
+        }, wait);
+        el.__suiGraphTimers.push(id);
+      })(l);
+    }
+  }
   function run(el, cfg, link) {
     if (!link) return;
     var to = stateById(cfg, link.to);
     if (!to) return;
+    clearTimers(el);
     el.__suiGraphState = link.to;
     var key = keyOf(el);
     if (key) stateMemory[key] = link.to;
     applyState(el, cfg, link.to, link, false);
+    scheduleTimers(el, cfg, link.to);
     var wait = Math.max(0, timeMs(link.duration, 240)) + Math.max(0, timeMs(link.delay, 0));
     var token = el.__suiGraphToken;
     setTimeout(function() {
@@ -248,6 +283,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     }, wait + 60);
   }
   function unbind(el) {
+    clearTimers(el);
     var handlers = el.__suiGraphHandlers || [];
     for (var i = 0; i < handlers.length; i++) el.removeEventListener(handlers[i].event, handlers[i].fn);
     el.__suiGraphHandlers = [];
@@ -260,7 +296,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     var links = cfg && cfg.links ? cfg.links : [];
     for (var i = 0; i < links.length; i++) {
       var ev = links[i] && links[i].event;
-      if (!ev || ev === 'after' || ev === 'state' || seen[ev]) continue;
+      if (!ev || ev === 'after' || ev === 'state' || ev === 'timer' || seen[ev]) continue;
       seen[ev] = 1;
       (function(eventName) {
         var fn = function(e) {
@@ -291,6 +327,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     if (!stateById(cfg, id)) id = cfg.initial || cfg.states[0].id;
     el.__suiGraphState = id;
     applyState(el, cfg, id, null, true);
+    scheduleTimers(el, cfg, id);
     // Apply the remembered state and evaluate state triggers in the same DOM
     // mutation cycle: the browser has not painted the re-rendered base element
     // yet, so a switch change never flashes the default size.
