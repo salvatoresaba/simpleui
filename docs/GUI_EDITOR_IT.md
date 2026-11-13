@@ -959,9 +959,11 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   numero compare l'hint del trigger (ad esempio `click`). Più link possono
   uscire dallo stesso stato verso destinazioni diverse.
 - I link partono sempre dal lato destro dello stato sorgente e finiscono al
-  centro del lato sinistro della destinazione. I link in avanti usano una curva
-  morbida; quelli che tornano a uno stato precedente vengono instradati attorno
-  ai blocchi per restare visibili.
+  centro del lato sinistro della destinazione, orizzontalmente. Il percorso è
+  ortogonale: i segmenti mantengono distanza da box e altri link, non attraversano
+  mai un box, usano angoli retti e preferiscono il percorso più breve con il
+  minor numero di segmenti. I link all'indietro vengono instradati attorno ai
+  box. Il percorso viene ridisegnato in tempo reale mentre si trascina un box.
 - Click e gli altri eventi DOM si possono usare una sola volta per stato
   sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
   eventi già usati e la validazione rifiuta i duplicati.

@@ -446,9 +446,11 @@ delete it. **+** immediately creates a new state block, positions it on the
 graph and adds a link; the source state overlay opens to configure the new
 trigger. **Aggiungi trigger** adds another trigger to an existing state. A
 trigger belongs to the source state; outgoing links are numbered at their start
-point and hovering the number shows the trigger hint. Links always leave the
-right side and enter the centre of the target's left side; forward links curve
-directly and backward links are routed around the boxes.
+point and hovering the number shows the trigger hint. Links leave the right side
+and enter the centre of the target's left side horizontally. Routing is
+orthogonal, avoids boxes and other links with clearance, uses right-angle
+corners and prefers the shortest path with the fewest segments; backward links
+are routed around the boxes. Routes redraw live during state dragging.
 
 Double-clicking a state opens its overlay with name, CSS and the list of active
 triggers with their destinations (no incoming-trigger fields). Double-clicking

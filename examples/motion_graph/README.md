@@ -78,12 +78,15 @@ and the FLIP engine described in `examples/motion_pages`.
    and a link, then opens the source state overlay to configure the trigger.
    **Aggiungi trigger** in the overlay is for existing states.
 6. Triggers belong to the source state. Outgoing links are numbered at their
-   starting point; hovering the number shows the trigger hint. Links always
-   leave the right side and enter the target's left centre; backward links are
-   routed around the boxes. Click and other DOM events can be used once per
-   source state; variable and timer triggers can be repeated. A variable
-   trigger lists the available SUI states and asks for the activating value; a
-   timer trigger starts after the chosen duration.
+   starting point; hovering the number shows the trigger hint. Links leave the
+   right side and enter the target's left centre horizontally. Routing is
+   orthogonal, avoids boxes and other links with clearance, uses right-angle
+   corners and prefers the shortest path with the fewest segments; backward
+   links route around the boxes and the path redraws live while dragging. Click
+   and other DOM events can be used once per source state; variable and timer
+   triggers can be repeated. A variable trigger lists the available SUI states
+   and asks for the activating value; a timer trigger starts after the chosen
+   duration.
 7. Double-click a state to edit its overlay (name, CSS and the list of active
    triggers with destinations); use **Aggiungi trigger** for more. Double-click
    an arrow for trigger, duration, easing and delay.

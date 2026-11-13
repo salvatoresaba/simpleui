@@ -924,8 +924,11 @@ only the graph; parameters open in draggable overlay panels:
   Hovering the number shows the trigger hint (for example `click`). Several
   links can leave the same state and point to different targets.
 - Links always start at the right side of the source and end at the centre of
-  the target's left side. Forward links use a smooth curve; links that go back
-  to an earlier state are routed around the boxes so they stay visible.
+  the target's left side, horizontally. Routing is orthogonal: segments keep
+  clearance from boxes and other links, never cross a box, use right-angle
+  corners and prefer the shortest path with the fewest segments. Links that go
+  back to an earlier state are routed around the boxes. The route is redrawn
+  live while a state box is dragged.
 - Click and the other DOM events can be used once per source state; variable
   and timer triggers can be repeated. The chooser disables already-used single
   events and validation rejects duplicates.
