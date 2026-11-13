@@ -2487,7 +2487,13 @@ func stmtToSui(sb *strings.Builder, st *Stmt, ind int) {
 			sb.WriteString(st.targets[0] + " = " + exprSource(st.rhs) + "\n")
 		}
 	case "expr":
-		sb.WriteString(exprSource(st.value) + "\n")
+		// Expression statements are parsed into init (a call such as
+		// navigate("detail") or storage.set(...)), not value.
+		if st.init != nil {
+			sb.WriteString(exprSource(st.init) + "\n")
+		} else {
+			sb.WriteString(exprSource(st.value) + "\n")
+		}
 	case "return":
 		if len(st.values) > 1 {
 			var parts []string

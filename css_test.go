@@ -184,6 +184,7 @@ func TestGuiFuncBodyRoundTrip(t *testing.T) {
 		"\tif counter > 10 {\n" +
 		"\t\tcounter = 0\n" +
 		"\t}\n" +
+		"\tnavigate(\"detail\")\n" +
 		"}\n" +
 		"view main {\n\tbutton \"Go\" onClick: increment\n}\n"
 	prog, dl := ParseSource(src, "f.sui")
@@ -197,6 +198,9 @@ func TestGuiFuncBodyRoundTrip(t *testing.T) {
 	body := asStr(get(fn.arr[0], "body"))
 	if !strings.Contains(body, "counter = counter + 1") || !strings.Contains(body, "if counter > 10") {
 		t.Errorf("function body lost:\n%v", body)
+	}
+	if !strings.Contains(body, `navigate("detail")`) {
+		t.Errorf("expression statement lost:\n%v", body)
 	}
 	// re-serialize into a compilable source
 	out := "state counter = 0\nfn increment() -> null {\n" + body + "\n}\nview main {\n\tbutton \"Go\" onClick: increment\n}\n"
