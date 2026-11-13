@@ -75,18 +75,18 @@ and the FLIP engine described in `examples/motion_pages`.
 5. State blocks grow taller when outgoing triggers are added, and can be
    dragged to custom positions. Each block has **+** to add a connected state
    and **×** to delete it. **+** immediately creates a positioned state block
-   and a link, then opens the source state overlay to configure the trigger.
-   **Aggiungi trigger** in the overlay is for existing states.
+   and a link, but leaves the trigger panel closed while you position it; drag
+   it or press **Conferma posizione**, then the trigger panel opens.
 6. Triggers belong to the source state. Outgoing links are numbered at their
    starting point; hovering the number shows the trigger hint. Links leave the
    right side and enter the target's left centre horizontally. Routing is
-   orthogonal, avoids boxes and other links with clearance, uses right-angle
-   corners and prefers the shortest path with the fewest segments; backward
-   links route around the boxes and the path redraws live while dragging. Click
-   and other DOM events can be used once per source state; variable and timer
-   triggers can be repeated. A variable trigger lists the available SUI states
-   and asks for the activating value; a timer trigger starts after the chosen
-   duration.
+   orthogonal with a **10 px** minimum distance between boxes, links, and
+   links/boxes. It avoids boxes, uses right-angle corners and prefers the
+   shortest path with the fewest segments; backward links route around the
+   boxes and the path redraws live while dragging. Click and other DOM events
+   can be used once per source state; variable and timer triggers can be
+   repeated. A variable trigger lists the available SUI states and asks for the
+   activating value; a timer trigger starts after the chosen duration.
 7. Double-click a state to edit its overlay (name, CSS and the list of active
    triggers with destinations); use **Aggiungi trigger** for more. Double-click
    an arrow for trigger, duration, easing and delay.

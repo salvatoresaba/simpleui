@@ -950,20 +950,22 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   uscenti, così i punti di connessione restano leggibili. Trascina un blocco per
   spostarlo; la posizione viene conservata nel grafo. Ogni blocco ha **+** per
   aggiungere uno stato collegato e **×** per eliminare lo stato.
-- **+** crea subito un nuovo blocco, lo posiziona sul grafo e aggiunge un link
-  dallo stato sorgente. Si apre l'overlay dello stato sorgente per configurare
-  il nuovo trigger tra i tipi disponibili. **Aggiungi trigger** nell'overlay
-  aggiunge invece un trigger a uno stato esistente.
+- **+** crea subito un nuovo blocco e un link, ma non apre ancora il pannello
+  del trigger. Il blocco viene evidenziato per il posizionamento; trascinalo (o
+  premi **Conferma posizione**) e solo dopo si apre il pannello del trigger.
+  **Aggiungi trigger** nell'overlay dello stato aggiunge un trigger a uno stato
+  esistente.
 - Il trigger appartiene allo stato di partenza. Ogni link uscente è numerato
   nel punto di partenza; il numero è l'indice del trigger. Passando il mouse sul
   numero compare l'hint del trigger (ad esempio `click`). Più link possono
   uscire dallo stesso stato verso destinazioni diverse.
 - I link partono sempre dal lato destro dello stato sorgente e finiscono al
   centro del lato sinistro della destinazione, orizzontalmente. Il percorso è
-  ortogonale: i segmenti mantengono distanza da box e altri link, non attraversano
-  mai un box, usano angoli retti e preferiscono il percorso più breve con il
-  minor numero di segmenti. I link all'indietro vengono instradati attorno ai
-  box. Il percorso viene ridisegnato in tempo reale mentre si trascina un box.
+  ortogonale con una distanza minima di **10 px** tra box, tra link e tra link e
+  box. I segmenti non attraversano mai un box, usano angoli retti e preferiscono
+  il percorso più breve con il minor numero di segmenti. I link all'indietro
+  vengono instradati attorno ai box. Il percorso viene ridisegnato in tempo reale
+  mentre si trascina un box.
 - Click e gli altri eventi DOM si possono usare una sola volta per stato
   sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
   eventi già usati e la validazione rifiuta i duplicati.

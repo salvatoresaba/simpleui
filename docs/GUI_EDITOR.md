@@ -915,20 +915,21 @@ only the graph; parameters open in draggable overlay panels:
   added, so their connection points stay readable. Drag a block to move it; the
   position is kept in the graph. Each block has **+** to add a connected state
   and **×** to delete the state.
-- **+** immediately creates a new state block, positions it on the graph and
-  adds a link from the source state. The source state overlay opens so the new
-  trigger can be configured from the available types. **Aggiungi trigger** in
-  the overlay adds a trigger to an existing state instead.
+- **+** immediately creates a new state block and a link, but does not open the
+  trigger panel yet. The block is highlighted for positioning; drag it (or
+  press **Conferma posizione**) and only then the trigger panel opens.
+  **Aggiungi trigger** in the state overlay adds a trigger to an existing state.
 - A trigger belongs to the state that starts the transition. Every outgoing
   link is numbered at its starting point; the number is the trigger index.
   Hovering the number shows the trigger hint (for example `click`). Several
   links can leave the same state and point to different targets.
 - Links always start at the right side of the source and end at the centre of
-  the target's left side, horizontally. Routing is orthogonal: segments keep
-  clearance from boxes and other links, never cross a box, use right-angle
-  corners and prefer the shortest path with the fewest segments. Links that go
-  back to an earlier state are routed around the boxes. The route is redrawn
-  live while a state box is dragged.
+  the target's left side, horizontally. Routing is orthogonal with a **10 px**
+  minimum distance between boxes, between links, and between links and boxes.
+  Segments never cross a box, use right-angle corners and prefer the shortest
+  path with the fewest segments. Links that go back to an earlier state are
+  routed around the boxes. The route is redrawn live while a state box is
+  dragged.
 - Click and the other DOM events can be used once per source state; variable
   and timer triggers can be repeated. The chooser disables already-used single
   events and validation rejects duplicates.

@@ -418,16 +418,17 @@ usate da FLIP, riordino liste e transizioni tra pagine.
 
 I blocchi crescono in altezza con i trigger uscenti e possono essere trascinati
 in posizioni personalizzate. Ogni blocco ha **+** per aggiungere uno stato
-collegato e **×** per eliminarlo. **+** crea subito un nuovo blocco, lo
-posiziona sul grafo e aggiunge il link; si apre l'overlay dello stato sorgente
-per configurare il nuovo trigger. **Aggiungi trigger** aggiunge un altro trigger
-a uno stato esistente. Il trigger appartiene allo stato di partenza; i link
-uscenti sono numerati all'inizio e il tooltip del numero mostra il tipo di
-trigger. I link partono dal lato destro e arrivano orizzontalmente al centro del
-lato sinistro della destinazione. Il percorso è ortogonale, evita box e altri
-link con margine, usa angoli retti e preferisce il percorso più breve con il
-minor numero di segmenti; i link all'indietro girano attorno ai box. I percorsi
-si aggiornano in tempo reale durante il trascinamento.
+collegato e **×** per eliminarlo. **+** crea subito un nuovo blocco e un link, ma
+lascia chiuso il pannello del trigger mentre il blocco viene posizionato;
+trascinalo o premi **Conferma posizione**, poi si apre il pannello del trigger.
+**Aggiungi trigger** aggiunge un altro trigger a uno stato esistente. Il trigger
+appartiene allo stato di partenza; i link uscenti sono numerati all'inizio e il
+tooltip del numero mostra il tipo di trigger. I link partono dal lato destro e
+arrivano orizzontalmente al centro del lato sinistro della destinazione. Il
+percorso è ortogonale con una distanza minima di **10 px** tra box, tra link e
+tra link e box; evita i box, usa angoli retti e preferisce il percorso più breve
+con il minor numero di segmenti. I link all'indietro girano attorno ai box e i
+percorsi si aggiornano in tempo reale durante il trascinamento.
 
 Il doppio clic su uno stato apre l'overlay con nome, CSS e lista dei trigger
 attivi con la destinazione (nessun campo per i trigger in ingresso). Il doppio

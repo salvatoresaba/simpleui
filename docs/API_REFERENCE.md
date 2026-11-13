@@ -442,15 +442,16 @@ to the visible viewport. **Layout & shared** in the toolbar opens the classic
 
 State blocks grow taller as outgoing triggers are added and can be dragged to
 custom positions. Each block has **+** to add a connected state and **×** to
-delete it. **+** immediately creates a new state block, positions it on the
-graph and adds a link; the source state overlay opens to configure the new
-trigger. **Aggiungi trigger** adds another trigger to an existing state. A
-trigger belongs to the source state; outgoing links are numbered at their start
-point and hovering the number shows the trigger hint. Links leave the right side
-and enter the centre of the target's left side horizontally. Routing is
-orthogonal, avoids boxes and other links with clearance, uses right-angle
-corners and prefers the shortest path with the fewest segments; backward links
-are routed around the boxes. Routes redraw live during state dragging.
+delete it. **+** immediately creates a new state block and link, but leaves the
+trigger panel closed while the block is positioned; drag it or press **Conferma
+posizione** and then the trigger panel opens. **Aggiungi trigger** adds another
+trigger to an existing state. A trigger belongs to the source state; outgoing
+links are numbered at their start point and hovering the number shows the
+trigger hint. Links leave the right side and enter the centre of the target's
+left side horizontally. Routing is orthogonal with a **10 px** minimum distance
+between boxes, between links and between links and boxes; it avoids boxes, uses
+right-angle corners and prefers the shortest path with the fewest segments.
+Backward links route around the boxes and routes redraw live during dragging.
 
 Double-clicking a state opens its overlay with name, CSS and the list of active
 triggers with their destinations (no incoming-trigger fields). Double-clicking

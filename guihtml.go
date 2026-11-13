@@ -851,6 +851,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   background:var(--panel); font-size:13px; font-weight:600; flex:none; }
 .mg-toolbar { display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--border); flex:none; }
 .mg-toolbar .hint { margin-left:auto; font-size:11px; color:var(--dim); }
+#mg-placebar { display:none; align-items:center; gap:8px; padding:5px 10px; border-bottom:1px solid #4c5cf7;
+  background:rgba(76,92,247,.12); font-size:11px; color:#c7d3ff; flex:none; }
+#mg-placebar.on { display:flex; }
+#mg-placebar button { margin-left:auto; }
 .mg-main { display:flex; flex:1; min-height:0; }
 #mg-panel.min { height:auto; width:340px; }
 #mg-panel.min .mg-toolbar, #mg-panel.min .mg-main { display:none; }
@@ -1134,6 +1138,10 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgOpenParam('layout')">Layout &amp; shared</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgPreviewSelected()">Anteprima</button>
         <span class="hint">Doppio clic su stato o freccia per i parametri.</span>
+      </div>
+      <div id="mg-placebar">
+        <span>Posiziona il nuovo stato trascinandolo, poi scegli il trigger.</span>
+        <button class="btn" type="button" style="font-size:11px;padding:3px 8px" onclick="mgFinishPlacement()">Conferma posizione</button>
       </div>
       <div class="mg-main">
         <div id="mg-canvas"><div id="mg-stage"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div></div>
@@ -6387,6 +6395,7 @@ var mgCollapseTimer = 0;
 var mgGraphSize = { x: 240, y: 120 };
 var mgPositions = {};
 var mgNodeHeights = {};
+var mgPlacement = null;
 var mgEdit = null;
 var MG_CAPTURE_PROPS = ["width","height","min-width","min-height","max-width","max-height",
   "margin-top","margin-right","margin-bottom","margin-left","padding-top","padding-right","padding-bottom","padding-left",
@@ -6448,6 +6457,8 @@ function mgOpen(n, path) {
   if (live && mgStateById(live)) mgSelState = live;
   mgSelLink = "";
   mgParam = null;
+  mgPlacement = null;
+  mgUpdatePlacementBar();
   var panel = document.getElementById("mg-panel");
   if (panel) { panel.classList.add("on"); panel.classList.remove("min"); }
   mgCloseParam();
@@ -6582,6 +6593,33 @@ function mgApplyStateDecls(decls, after) {
   if (after) after();
   return true;
 }
+function mgBoxCollides(id, x, y) {
+  var h = mgNodeHeights[id] || 38;
+  var mine = { l: x, t: y, r: x + MG_BOX_W, b: y + h };
+  for (var i = 0; i < mgCfg.states.length; i++) {
+    var s = mgCfg.states[i];
+    if (s.id === id) continue;
+    var p = mgPositions[s.id];
+    if (!p) continue;
+    var h2 = mgNodeHeights[s.id] || 38;
+    var other = { l: p.x - MG_LINK_MARGIN, t: p.y - MG_LINK_MARGIN, r: p.x + MG_BOX_W + MG_LINK_MARGIN, b: p.y + h2 + MG_LINK_MARGIN };
+    if (mgRectsOverlap(mine, other)) return true;
+  }
+  return false;
+}
+function mgFreeStatePosition(sourceId) {
+  var base = mgPositions[sourceId] || { x: 24, y: 24 };
+  var maxRight = base.x;
+  for (var i = 0; i < mgCfg.states.length; i++) {
+    var p = mgPositions[mgCfg.states[i].id];
+    if (p) maxRight = Math.max(maxRight, p.x + MG_BOX_W + MG_LINK_MARGIN);
+  }
+  var x = maxRight + MG_LINK_MARGIN + 2;
+  var y = base.y;
+  var guard = 0;
+  while (mgBoxCollides("", x, y) && guard++ < 30) y += 58;
+  return { x: x, y: y };
+}
 function mgMakeStateDraggable(d, s) {
   d.addEventListener("pointerdown", function(ev){
     if (ev.target && ev.target.closest && ev.target.closest("button,.mg-port")) return;
@@ -6603,6 +6641,7 @@ function mgMakeStateDraggable(d, s) {
       moved = true;
       var nx = Math.max(0, startX + dx / scaleX);
       var ny = Math.max(0, startY + dy / scaleY);
+      if (mgBoxCollides(s.id, nx, ny)) return;
       d.style.left = nx + "px";
       d.style.top = ny + "px";
       mgPositions[s.id] = { x: nx, y: ny };
@@ -6619,6 +6658,7 @@ function mgMakeStateDraggable(d, s) {
       mgNode.motionGraph = mgCfg;
       setOut();
       mgRender();
+      if (mgPlacement && mgPlacement.stateId === s.id) mgFinishPlacement();
     }
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -6642,7 +6682,7 @@ function mgLinkPath(x1, y1, x2, y2, aId, bId, idx) {
   return "M " + x1 + " " + y1 + " C " + r1 + " " + y1 + ", " + r1 + " " + lane + ", " + (r1 + 20) + " " + lane +
     " L " + (r2 - 20) + " " + lane + " C " + r2 + " " + lane + ", " + r2 + " " + y2 + ", " + x2 + " " + y2;
 }
-var MG_BOX_W = 120, MG_LINK_MARGIN = 18, MG_LINE_CLEAR = 7;
+var MG_BOX_W = 120, MG_LINK_MARGIN = 10, MG_LINE_CLEAR = 10;
 function mgSegRect(x1, y1, x2, y2, pad) {
   return {
     l: Math.min(x1, x2) - pad, t: Math.min(y1, y2) - pad,
@@ -6694,7 +6734,7 @@ function mgRouteLink(p, boxes, routed, grid) {
   var endXI = grid.xs.indexOf(ex), endYI = grid.ys.indexOf(ey);
   if (startXI < 0 || startYI < 0 || endXI < 0 || endYI < 0) return mgAddFallback(p, routed);
   function blocked(x1, y1, x2, y2) {
-    var sg = mgSegRect(x1, y1, x2, y2, 1);
+    var sg = mgSegRect(x1, y1, x2, y2, 0);
     for (var i = 0; i < boxes.length; i++) {
       var b = boxes[i];
       var pad = (b.id === p.from || b.id === p.to) ? 0 : MG_LINK_MARGIN;
@@ -6703,7 +6743,7 @@ function mgRouteLink(p, boxes, routed, grid) {
     }
     for (var j = 0; j < routed.length; j++) {
       var r = routed[j];
-      if (mgRectsOverlap(mgSegRect(x1, y1, x2, y2, MG_LINE_CLEAR), mgSegRect(r.x1, r.y1, r.x2, r.y2, MG_LINE_CLEAR))) return true;
+      if (mgRectsOverlap(sg, mgSegRect(r.x1, r.y1, r.x2, r.y2, MG_LINE_CLEAR))) return true;
     }
     return false;
   }
@@ -6915,7 +6955,7 @@ function mgRender() {
   });
   function nodeHeight(id) {
     var n = Math.max(outCount[id] || 0, inCount[id] || 0);
-    return Math.min(130, 38 + Math.max(0, n - 1) * 16);
+    return Math.min(220, 38 + Math.max(0, n - 1) * 18);
   }
   var layerY = {};
   var pos = {};
@@ -6929,7 +6969,7 @@ function mgRender() {
     } else {
       var y = layerY[layers[s.id]] !== undefined ? layerY[layers[s.id]] : 24;
       pos[s.id] = { x: 24 + layers[s.id] * 172, y: y };
-      layerY[layers[s.id]] = y + h + 12;
+      layerY[layers[s.id]] = y + h + 10;
     }
   });
   mgPositions = pos;
@@ -6957,7 +6997,7 @@ function mgRender() {
     var del = document.createElement("button"); del.type = "button"; del.className = "mg-del"; del.textContent = "\u00d7"; del.title = "Elimina stato";
     del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgDeleteState(s.id); };
     d.appendChild(del);
-    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
+    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgFinishPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
     d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgFocusState(s.id, true); mgOpenParam("state", s.id); mgMinimizePanel(); };
     mgMakeStateDraggable(d, s);
     nodes.appendChild(d);
@@ -6989,20 +7029,37 @@ function mgQuickAddState(sourceId) {
   var src = mgStateById(sourceId);
   if (!src || !mgNode) return;
   snap("add motion state");
-  var count = mgCfg.links.filter(function(l){ return l.from === sourceId; }).length;
-  var base = mgPositions[sourceId] || { x: 24, y: 24 };
+  var free = mgFreeStatePosition(sourceId);
   var st = {
     id: mgNextId("s", mgCfg.states),
     name: "Stato " + (mgCfg.states.length + 1),
     css: src.css || "",
-    x: base.x + 200,
-    y: base.y + count * 74
+    x: free.x,
+    y: free.y
   };
   mgCfg.states.push(st);
   var link = { id: mgNextId("l", mgCfg.links), from: sourceId, to: st.id, event: "", duration: "320ms", easing: "ease-out", delay: "0ms" };
   mgCfg.links.push(link);
-  mgSelState = sourceId; mgSelLink = ""; mgParam = { kind: "state", id: sourceId };
+  mgPlacement = { stateId: st.id, sourceId: sourceId, linkId: link.id };
+  mgSelState = st.id; mgSelLink = ""; mgParam = null;
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+  mgUpdatePlacementBar();
+}
+function mgUpdatePlacementBar() {
+  var bar = document.getElementById("mg-placebar");
+  if (!bar) return;
+  bar.classList.toggle("on", !!(mgPlacement && mgPlacement.stateId));
+}
+function mgFinishPlacement() {
+  if (!mgPlacement) return;
+  var pl = mgPlacement;
+  mgPlacement = null;
+  mgUpdatePlacementBar();
+  var link = mgLinkById(pl.linkId);
+  mgSelState = ""; mgSelLink = link ? link.id : "";
+  mgMarkSelection();
+  if (link) mgOpenParam("link", link.id);
+  else mgOpenParam("state", pl.sourceId);
 }
 function mgCloseParam() {
   mgParam = null;
