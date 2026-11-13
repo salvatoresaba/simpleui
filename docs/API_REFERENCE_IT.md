@@ -417,13 +417,16 @@ espliciti. L'inspector non duplica più quei campi.
 
 Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
 l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
-Il pannello del grafo si minimizza automaticamente per liberare la preview;
-l'intestazione resta disponibile e può essere trascinata, ripristinata con **–**
-o chiusa. Il doppio clic su uno stato apre l'overlay dei parametri; il doppio
-clic su una freccia apre trigger, durata, easing e delay. Gli overlay sono
-trascinabili e il grafo mostra solo nomi degli stati e frecce. **Salva stato**
-cattura lo stile calcolato della preview nello stato. **Remove states** elimina
-il grafo degli stati ma conserva gli attributi Layout & shared.
+Le modifiche di stile dall'inspector vengono scritte nello stato focalizzato e
+compaiono subito nella preview. Il pannello del grafo si minimizza
+automaticamente per liberare la preview; l'intestazione resta disponibile e può
+essere trascinata, ripristinata con **–** o chiusa. Se viene chiuso, un pulsante
+flottante **Animation panel** lo ripristina. Il doppio clic su uno stato apre
+l'overlay dei parametri; il doppio clic su una freccia apre trigger, durata,
+easing e delay. Gli overlay sono trascinabili e il grafo mostra solo nomi degli
+stati e frecce. **Salva stato** cattura lo stile calcolato della preview nello
+stato. **Remove states** elimina il grafo degli stati ma conserva gli attributi
+Layout & shared.
 
 `motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
 condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere

@@ -441,14 +441,16 @@ and links handle explicit triggers. The inspector no longer duplicates those
 fields.
 
 Clicking a state highlights it and applies its CSS in the preview, centers the
-element and locks the rest of the preview so only that element stays active. The
-graph panel minimizes automatically to free the preview; its header stays
-available and can be dragged, restored with **–** or closed. Double-clicking a
-state opens its parameter overlay; double-clicking an arrow opens the trigger,
-duration, easing and delay. Overlays are draggable and the graph only shows
-state names and arrows. **Salva stato** captures the computed preview style into
-the state. **Remove states** deletes the state graph but keeps the Layout &
-shared attributes.
+element and locks the rest of the preview so only that element stays active.
+Inspector style edits are written back into the focused state CSS and appear
+immediately in the preview. The graph panel minimizes automatically to free the
+preview; its header stays available and can be dragged, restored with **–** or
+closed. If it is closed, a floating **Animation panel** button restores it.
+Double-clicking a state opens its parameter overlay; double-clicking an arrow
+opens the trigger, duration, easing and delay. Overlays are draggable and the
+graph only shows state names and arrows. **Salva stato** captures the computed
+preview style into the state. **Remove states** deletes the state graph but
+keeps the Layout & shared attributes.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.

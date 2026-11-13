@@ -869,6 +869,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #mg-param-body textarea { min-height:104px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:11px; line-height:1.45; }
 #mg-param-body .mg-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
 #mg-param-body .hint { font-size:11px; color:var(--dim); line-height:1.4; }
+#mg-launch { position:fixed; right:24px; bottom:24px; z-index:50; display:none; align-items:center; gap:6px;
+  background:var(--panel); border:1px solid #4c5cf7; color:var(--fg); border-radius:9px; padding:7px 12px;
+  font-size:12px; font-weight:600; box-shadow:0 8px 26px rgba(0,0,0,.45); cursor:pointer; }
+#mg-launch.on { display:flex; }
 #mg-canvas { position:relative; flex:1; min-width:0; overflow:auto; background:
   radial-gradient(circle at 1px 1px, rgba(143,160,184,.18) 1px, transparent 0) 0 0/18px 18px; }
 #mg-nodes { position:absolute; left:0; top:0; }
@@ -1122,6 +1126,7 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
       </div>
       <div id="mg-param-body"></div>
     </div>
+    <button id="mg-launch" type="button" onclick="mgLaunchPanel()" title="Show the animation panel">Animation panel</button>
     <div id="mg-editbar">
       <span class="mg-edit-title" id="mg-edit-title">Modifica stato</span>
       <span class="hint">Solo questo elemento è attivo. Doppio clic sullo stato per i parametri; Salva stato cattura la preview.</span>
@@ -4492,6 +4497,12 @@ function setCssProp(prop, value, after) {
 // Writes one or more CSS properties, expanding vendor prefixes as needed.
 // Applies to every selected element (sequentially, to avoid racing writes).
 function setCssProps(map, after) {
+  if (typeof mgEdit !== "undefined" && mgEdit) {
+    var stateDecls = [];
+    for (var sk in map) compatDecls(sk, map[sk]).forEach(function(d){ stateDecls.push(d); });
+    snap(snapLabelFromMap(map));
+    if (mgApplyStateDecls(stateDecls, after)) return;
+  }
   // Layout cells keep padding, background and border in their SUI attributes,
   // so the generic sections edit the cell(s) directly instead of creating a
   // redundant class rule. With multiple cells selected the same values are
@@ -4578,6 +4589,7 @@ function snapLabelFromMap(map) {
 // can post both with the same stale CSS and silently lose the first change.
 var __cssWriteQueue = Promise.resolve();
 function setCssOnClass(cls, decls, after) {
+  if (typeof mgEdit !== "undefined" && mgEdit && mgApplyStateDecls(decls, after)) return;
   __cssWriteQueue = __cssWriteQueue.then(function() {
     var fd = new URLSearchParams();
     fd.set("css", root.css);
@@ -6394,6 +6406,7 @@ function mgOpen(n, path) {
   var title = document.getElementById("mg-graph-title");
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
+  mgUpdateLauncher();
   renderInspector();
 }
 function mgRemoveGraph(n) {
@@ -6410,6 +6423,7 @@ function mgClosePanel() {
   mgCloseParam();
   var panel = document.getElementById("mg-panel");
   if (panel) { panel.classList.remove("on"); panel.classList.remove("min"); }
+  mgUpdateLauncher();
 }
 function mgCommit(label) {
   if (!mgNode || !mgCfg) return;
@@ -6417,6 +6431,45 @@ function mgCommit(label) {
   mgNode.motionGraph = mgCfg;
   setOut();
   autoPreview();
+}
+function mgDeclList(css) {
+  var out = [];
+  String(css || "").split(";").forEach(function(part){
+    var s = part.trim();
+    if (!s) return;
+    var at = s.indexOf(":");
+    if (at <= 0) return;
+    out.push({ prop: s.slice(0, at).trim(), value: s.slice(at + 1).trim() });
+  });
+  return out;
+}
+function mgDeclStr(list) {
+  return list.map(function(d){ return d.prop + ": " + d.value + ";"; }).join(" ");
+}
+function mgApplyStateDecls(decls, after) {
+  if (!mgEdit) return false;
+  var st = mgStateById(mgEdit.state);
+  if (!st) return false;
+  var list = mgDeclList(st.css || "");
+  for (var i = 0; i < decls.length; i++) {
+    var prop = String(decls[i].prop || "").trim();
+    if (!prop) continue;
+    var value = decls[i].value;
+    var empty = value === null || value === undefined || String(value) === "";
+    var found = -1;
+    for (var j = 0; j < list.length; j++) if (list[j].prop === prop) { found = j; break; }
+    if (empty) { if (found >= 0) list.splice(found, 1); }
+    else if (found >= 0) list[found].value = String(value);
+    else list.push({ prop: prop, value: String(value) });
+  }
+  st.css = mgDeclStr(list);
+  mgNode.motionGraph = mgCfg;
+  setOut();
+  mgSendStateFocus();
+  var ta = document.querySelector("#mg-param-body textarea");
+  if (ta && mgParam && mgParam.kind === "state" && mgParam.id === st.id) ta.value = st.css;
+  if (after) after();
+  return true;
 }
 function mgMarkSelection() {
   document.querySelectorAll(".mg-node").forEach(function(n){
@@ -6509,14 +6562,30 @@ function mgCloseParam() {
 function mgMinimizePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.add("min");
+  mgUpdateLauncher();
 }
 function mgRestorePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.remove("min");
+  mgUpdateLauncher();
 }
 function mgTogglePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.toggle("min");
+  mgUpdateLauncher();
+}
+function mgUpdateLauncher() {
+  var p = document.getElementById("mg-panel");
+  var b = document.getElementById("mg-launch");
+  if (!b) return;
+  b.classList.toggle("on", !p || !p.classList.contains("on"));
+}
+function mgLaunchPanel() {
+  var n = null;
+  if (selPath) { try { n = byPath(selPath, root.children); } catch (e) {} }
+  if (!n) n = mgNode;
+  if (!n) { setStatus("select an element first"); return; }
+  mgOpen(n, selPath ? selPath.slice() : mgPath);
 }
 function mgSchedulePanelCollapse() {
   if (mgCollapseTimer) clearTimeout(mgCollapseTimer);
@@ -6653,7 +6722,7 @@ function mgSendScope() {
   var id = peerIdForPath(mgEdit.path);
   try { f.contentWindow.postMessage({ ty: "sui-scope", id: id }, "*"); } catch (e) {}
 }
-function mgSendStateFocus() {
+function mgSendStateFocus(center) {
   var f = document.getElementById("prev");
   if (!f || !f.contentWindow || !mgEdit) return;
   var st = mgStateById(mgEdit.state);
@@ -6663,7 +6732,7 @@ function mgSendStateFocus() {
       ty: "sui-graph-focus",
       id: id,
       css: st ? (st.css || "") : "",
-      center: true
+      center: !!center
     }, "*");
   } catch (e) {}
 }
@@ -6676,9 +6745,9 @@ function mgFocusState(id) {
   document.body.classList.add("mg-scope-edit");
   selPath = mgPath.slice(); multiSel = [];
   renderTree(); fillPanel(); renderInspector(); postHighlight();
-  mgSendScope(); mgSendStateFocus();
-  setTimeout(function(){ mgSendScope(); mgSendStateFocus(); }, 350);
-  setTimeout(function(){ mgSendScope(); mgSendStateFocus(); }, 900);
+  mgSendScope(); mgSendStateFocus(true);
+  setTimeout(function(){ mgSendScope(); mgSendStateFocus(true); }, 350);
+  setTimeout(function(){ mgSendScope(); mgSendStateFocus(true); }, 900);
 }
 function mgCloseState() {
   var f = document.getElementById("prev");
@@ -6766,8 +6835,9 @@ function mgMakeDraggable(panelId, handleId) {
 (function(){
   mgMakeDraggable("mg-panel", "mg-hdr");
   mgMakeDraggable("mg-param", "mg-param-hdr");
+  mgUpdateLauncher();
   var f = document.getElementById("prev");
-  if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(function(){ mgSendScope(); mgSendStateFocus(); }, 80); });
+  if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(function(){ mgSendScope(); mgSendStateFocus(true); }, 80); });
 })();
 function toggleControls(n) {  var isSwitch = n.kind === "switch";
   var isRadio = n.kind === "radio";

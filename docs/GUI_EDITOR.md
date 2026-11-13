@@ -911,11 +911,15 @@ only the graph; parameters open in draggable overlay panels:
 - **+ state** creates another CSS snapshot of the element.
 - Clicking a state highlights it, applies its CSS in the preview, centers the
   element and locks the rest of the preview so only that element stays active.
-  The graph panel minimizes automatically to free the preview; the header keeps
-  it available and the **–** button, drag or close controls behave normally.
+  Inspector style changes (size, color, border, ...) are written back into the
+  focused state CSS and appear immediately in the preview. The graph panel
+  minimizes automatically to free the preview; the header keeps it available
+  and the **–** button, drag or close controls behave normally.
+- If the panel is closed, a floating **Animation panel** button restores it.
 - Double-click a state to open its parameter overlay (name and CSS). Double-
   click an arrow to open its trigger, duration, easing, delay and condition.
-  Overlays are draggable and the graph itself shows only state names and arrows.
+  Overlays are above the graph, draggable, and the graph itself shows only state
+  names and arrows.
 - Editing the overlay writes the state/link parameters immediately.
   **Salva da preview** captures the current computed style into the state.
 - Select a state and use **Aggiungi collegamento** to create an arrow.

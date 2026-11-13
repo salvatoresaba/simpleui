@@ -946,12 +946,17 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 - **+ state** crea un'altra fotografia CSS dell'elemento.
 - Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
   l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
-  Il pannello del grafo si minimizza automaticamente per liberare la preview;
-  l'intestazione resta disponibile e il pulsante **–**, il trascinamento e la
-  chiusura funzionano normalmente.
+  Le modifiche di stile dall'inspector (dimensioni, colore, bordo, ...) vengono
+  scritte nello stato focalizzato e compaiono subito nella preview. Il pannello
+  del grafo si minimizza automaticamente per liberare la preview; l'intestazione
+  resta disponibile e il pulsante **–**, il trascinamento e la chiusura
+  funzionano normalmente.
+- Se il pannello viene chiuso, un pulsante flottante **Animation panel** lo
+  ripristina.
 - Il doppio clic su uno stato apre l'overlay dei parametri (nome e CSS). Il
   doppio clic su una freccia apre trigger, durata, easing, delay e condizione.
-  Gli overlay sono trascinabili e il grafo mostra solo nomi degli stati e frecce.
+  Gli overlay sono sopra il grafo, trascinabili, e il grafo mostra solo nomi
+  degli stati e frecce.
 - Modificare l'overlay scrive subito i parametri dello stato/link.
   **Salva da preview** cattura lo stile calcolato corrente nello stato.
 - Seleziona uno stato e usa **Aggiungi collegamento** per creare una freccia.
