@@ -1193,7 +1193,8 @@ const guiPreviewPicker = `<script>
       var fid = Number(e.data.id);
       var fel = fid >= 0 ? document.querySelector('[data-sui-id="' + fid + '"]') : null;
       if (fel) {
-        applyGraphScope(fid);
+        if (scopeRoot !== fel) applyGraphScope(fid);
+        else fel.style.pointerEvents = 'auto';
         if (!document.getElementById('sui-mg-focus-style')) {
           var fs = document.createElement('style');
           fs.id = 'sui-mg-focus-style';

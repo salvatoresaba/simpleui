@@ -435,7 +435,8 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 The designer's **Motion > Open animation panel** edits the same JSON: blocks are
 states, arrows are links. The graph panel contains only the graph; parameters
 open in draggable overlays anchored to a fixed position. The canvas centers and
-scales the diagram to fit the panel. **Layout & shared** in the toolbar opens
+scales the diagram to fit the panel, and opening the panel selects the element's
+current or initial state. **Layout & shared** in the toolbar opens
 the classic `motion`, `motionKey`, `motionDuration`, `motionEasing`,
 `motionDelay` and `motionExit` settings used by FLIP, list reordering and page
 transitions. States and links handle explicit triggers. The inspector no longer

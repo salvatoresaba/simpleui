@@ -410,7 +410,8 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 Il pulsante **Motion > Open animation panel** del designer modifica lo stesso
 JSON: i blocchi sono gli stati, le frecce sono i link. Il pannello contiene solo
 il grafo; i parametri si aprono in overlay trascinabili ancorati a una posizione
-fissa. Il canvas centra e scala il diagramma per adattarlo al pannello.
+fissa. Il canvas centra e scala il diagramma per adattarlo al pannello e
+aprendo il pannello viene selezionato lo stato corrente o iniziale dell'elemento.
 **Layout & shared** nella toolbar apre le impostazioni classiche `motion`, `motionKey`,
 `motionDuration`, `motionEasing`, `motionDelay` e `motionExit` usate da FLIP,
 riordino liste e transizioni tra pagine. Stati e link gestiscono i trigger

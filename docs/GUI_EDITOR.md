@@ -910,7 +910,9 @@ only the graph; parameters open in draggable overlay panels:
   fields in the inspector.
 - The graph canvas centers the states and scales the whole diagram to fit the
   panel, including after minimizing/restoring or resizing the window.
-- **+ state** creates another CSS snapshot of the element.
+- **+ state** creates another CSS snapshot of the element. Opening the panel
+  selects the element's current graph state, or the initial state when no
+  transition is active.
 - Clicking a state highlights it, applies its CSS in the preview, centers the
   element and locks the rest of the preview so only that element stays active.
   Inspector style changes (size, color, border, ...) are written back into the

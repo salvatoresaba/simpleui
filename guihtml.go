@@ -3325,6 +3325,16 @@ function selectByDfs(id) {
   }
   expandTreePath(selPath);
   renderTree(); fillPanel(); renderInspector(); postHighlight();
+  if (!mgEdit && selPath) {
+    var mgPanel = document.getElementById("mg-panel");
+    if (mgPanel && mgPanel.classList.contains("on")) {
+      var picked = byPath(selPath, root.children);
+      if (picked && picked !== mgNode) {
+        if (picked.motionGraph) mgOpen(picked, selPath.slice());
+        else mgClosePanel();
+      }
+    }
+  }
   dbg("select id=" + id + " path=[" + (selPath ? selPath.join(",") : "?") + "] children=" + root.children.length);
 }
 function currentPeerIds() {
@@ -6396,12 +6406,24 @@ function mgNextId(prefix, list) {
   (list || []).forEach(function(x){ var m = new RegExp("^" + prefix + "([0-9]+)$").exec(x.id || ""); if (m) max = Math.max(max, parseInt(m[1], 10)); });
   return prefix + (max + 1);
 }
+function mgPreviewGraphState(path) {
+  try {
+    var f = document.getElementById("prev");
+    if (!f || !f.contentDocument || !path) return "";
+    var id = peerIdForPath(path);
+    if (id < 0) return "";
+    var el = f.contentDocument.querySelector('[data-sui-id="' + id + '"]');
+    return el && el.__suiGraphState ? el.__suiGraphState : "";
+  } catch (e) { return ""; }
+}
 function mgOpen(n, path) {
   if (!n) return;
   mgPath = path && path.length ? path.slice() : (selPath ? selPath.slice() : null);
   mgNode = n;
   mgCfg = mgEnsure(n);
   mgSelState = mgCfg.initial;
+  var live = mgPreviewGraphState(path && path.length ? path : selPath);
+  if (live && mgStateById(live)) mgSelState = live;
   mgSelLink = "";
   mgParam = null;
   var panel = document.getElementById("mg-panel");
@@ -6613,12 +6635,6 @@ function mgLaunchPanel() {
   if (!n) { setStatus("select an element first"); return; }
   mgOpen(n, selPath ? selPath.slice() : mgPath);
 }
-function mgSchedulePanelCollapse() {
-  if (mgCollapseTimer) clearTimeout(mgCollapseTimer);
-  mgCollapseTimer = setTimeout(function(){
-    if (mgEdit && !mgParam) mgMinimizePanel();
-  }, 800);
-}
 function mgRenderParam() {
   var side = document.getElementById("mg-param-body");
   if (!side) return;
@@ -6769,12 +6785,6 @@ function mgDeleteState(id) {
   if (mgEdit && mgEdit.state === id) mgCloseState();
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
 }
-function mgSendScope() {
-  var f = document.getElementById("prev");
-  if (!f || !f.contentWindow || !mgEdit) return;
-  var id = peerIdForPath(mgEdit.path);
-  try { f.contentWindow.postMessage({ ty: "sui-scope", id: id }, "*"); } catch (e) {}
-}
 function mgSendStateFocus(center) {
   var f = document.getElementById("prev");
   if (!f || !f.contentWindow || !mgEdit) return;
@@ -6798,9 +6808,9 @@ function mgFocusState(id) {
   document.body.classList.add("mg-scope-edit");
   selPath = mgPath.slice(); multiSel = [];
   renderTree(); fillPanel(); renderInspector(); postHighlight();
-  mgSendScope(); mgSendStateFocus(true);
-  setTimeout(function(){ mgSendScope(); mgSendStateFocus(true); }, 350);
-  setTimeout(function(){ mgSendScope(); mgSendStateFocus(true); }, 900);
+  mgSendStateFocus(true);
+  setTimeout(function(){ mgSendStateFocus(true); }, 350);
+  setTimeout(function(){ mgSendStateFocus(true); }, 900);
 }
 function mgCloseState() {
   var f = document.getElementById("prev");
@@ -6868,6 +6878,13 @@ function mgMakeDraggable(panelId, handleId) {
     if (ev.target && ev.target.closest && ev.target.closest("button,input,select,textarea")) return;
     ev.preventDefault();
     var r = panel.getBoundingClientRect();
+    var cs = getComputedStyle(panel);
+    var baseLeft = parseFloat(cs.left) || 0;
+    var baseTop = parseFloat(cs.top) || 0;
+    var scaleX = panel.offsetWidth ? (r.width / panel.offsetWidth) : 1;
+    var scaleY = panel.offsetHeight ? (r.height / panel.offsetHeight) : 1;
+    if (!scaleX) scaleX = 1;
+    if (!scaleY) scaleY = 1;
     var sx = ev.clientX, sy = ev.clientY;
     var moved = false;
     var pinned = false;
@@ -6877,13 +6894,13 @@ function mgMakeDraggable(panelId, handleId) {
       moved = true;
       if (!pinned) {
         pinned = true;
-        panel.style.left = r.left + "px";
-        panel.style.top = r.top + "px";
+        panel.style.left = baseLeft + "px";
+        panel.style.top = baseTop + "px";
         panel.style.right = "auto";
         panel.style.bottom = "auto";
       }
-      panel.style.left = Math.max(0, r.left + dx) + "px";
-      panel.style.top = Math.max(0, r.top + dy) + "px";
+      panel.style.left = Math.max(0, baseLeft + dx / scaleX) + "px";
+      panel.style.top = Math.max(0, baseTop + dy / scaleY) + "px";
     }
     function up() {
       window.removeEventListener("pointermove", move);
@@ -6903,7 +6920,7 @@ function mgMakeDraggable(panelId, handleId) {
   }
   window.addEventListener("resize", mgFitGraph);
   var f = document.getElementById("prev");
-  if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(function(){ mgSendScope(); mgSendStateFocus(true); }, 80); });
+  if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(function(){ mgSendStateFocus(true); }, 80); });
 })();
 function toggleControls(n) {  var isSwitch = n.kind === "switch";
   var isRadio = n.kind === "radio";

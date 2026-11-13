@@ -946,7 +946,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 - Il grafico centra gli stati e scala l'intero diagramma per adattarsi al
   pannello, anche dopo minimizzazione/ripristino o ridimensionamento della
   finestra.
-- **+ state** crea un'altra fotografia CSS dell'elemento.
+- **+ state** crea un'altra fotografia CSS dell'elemento. Aprendo il pannello
+  viene selezionato lo stato corrente del grafo, o quello iniziale quando non
+  c'è una transizione attiva.
 - Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
   l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
   Le modifiche di stile dall'inspector (dimensioni, colore, bordo, ...) vengono
