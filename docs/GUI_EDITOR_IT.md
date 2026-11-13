@@ -938,21 +938,21 @@ il contenuto viene ritagliato al box che cresce invece di essere riflussato.
 ### Animation panel
 
 Seleziona un elemento e apri **Motion > Open animation panel**. Il pannello
-mostra gli stati come blocchi e i trigger come frecce, più una sezione
-**Layout & shared**:
+contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 
-- **Layout & shared** scrive `motion`, `motionKey`, durata, easing, delay ed
-  exit. Gestisce FLIP, riordino liste e transizioni tra pagine.
+- **Layout & shared** nella toolbar apre l'overlay per FLIP/liste/pagine.
 - I campi del grafo gestiscono i trigger espliciti. Nell'inspector non ci sono
   più campi motion duplicati.
 - **+ state** crea un'altra fotografia CSS dell'elemento.
 - Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
   l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
-  Una barra mostra **Salva stato** e **Chiudi**.
-- Il doppio clic su uno stato apre il mini pannello dei parametri (nome e CSS).
-  Il doppio clic su una freccia apre trigger, durata, easing, delay e condizione.
-  Il grafo mostra solo nomi degli stati e frecce, non i parametri.
-- Modificare il mini pannello scrive subito i parametri dello stato/link.
+  Il pannello del grafo si minimizza automaticamente per liberare la preview;
+  l'intestazione resta disponibile e il pulsante **–**, il trascinamento e la
+  chiusura funzionano normalmente.
+- Il doppio clic su uno stato apre l'overlay dei parametri (nome e CSS). Il
+  doppio clic su una freccia apre trigger, durata, easing, delay e condizione.
+  Gli overlay sono trascinabili e il grafo mostra solo nomi degli stati e frecce.
+- Modificare l'overlay scrive subito i parametri dello stato/link.
   **Salva da preview** cattura lo stile calcolato corrente nello stato.
 - Seleziona uno stato e usa **Aggiungi collegamento** per creare una freccia.
 - Il trigger di un link è `click`, `dblclick`, `pointerenter`, `pointerleave`,

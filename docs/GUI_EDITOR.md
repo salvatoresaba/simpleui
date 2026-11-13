@@ -902,21 +902,21 @@ instead of being reflowed.
 
 ### Animation panel
 
-Select an element and open **Motion > Open animation panel**. The panel shows
-states as blocks and triggers as arrows, plus a **Layout & shared** section:
+Select an element and open **Motion > Open animation panel**. The panel contains
+only the graph; parameters open in draggable overlay panels:
 
-- **Layout & shared** writes `motion`, `motionKey`, duration, easing, delay and
-  exit. It drives FLIP, list reorder and page transitions.
-- The graph fields below drive explicit triggers. There are no duplicate motion
+- **Layout & shared** in the toolbar opens the FLIP/list/page settings overlay.
+- The graph fields drive explicit triggers. There are no duplicate motion
   fields in the inspector.
 - **+ state** creates another CSS snapshot of the element.
 - Clicking a state highlights it, applies its CSS in the preview, centers the
   element and locks the rest of the preview so only that element stays active.
-  A small bar shows **Salva stato** and **Chiudi**.
-- Double-click a state to open its parameter mini-panel (name and CSS). Double-
+  The graph panel minimizes automatically to free the preview; the header keeps
+  it available and the **–** button, drag or close controls behave normally.
+- Double-click a state to open its parameter overlay (name and CSS). Double-
   click an arrow to open its trigger, duration, easing, delay and condition.
-  The graph itself shows only state names and arrows, not parameters.
-- Editing the mini-panel writes the state/link parameters immediately.
+  Overlays are draggable and the graph itself shows only state names and arrows.
+- Editing the overlay writes the state/link parameters immediately.
   **Salva da preview** captures the current computed style into the state.
 - Select a state and use **Aggiungi collegamento** to create an arrow.
 - A link trigger is `click`, `dblclick`, `pointerenter`, `pointerleave`,

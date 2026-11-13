@@ -851,6 +851,24 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .mg-toolbar { display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--border); flex:none; }
 .mg-toolbar .hint { margin-left:auto; font-size:11px; color:var(--dim); }
 .mg-main { display:flex; flex:1; min-height:0; }
+#mg-panel.min { height:auto; width:360px; }
+#mg-panel.min .mg-toolbar, #mg-panel.min .mg-main { display:none; }
+.mg-hdr { cursor:move; }
+.mg-hdr button { cursor:pointer; }
+#mg-param { position:fixed; right:24px; bottom:24px; width:340px; max-width:92vw; max-height:72vh;
+  background:var(--panel2); border:1px solid var(--border2); border-radius:10px; display:none; flex-direction:column;
+  overflow:hidden; box-shadow:0 12px 42px rgba(0,0,0,.55); z-index:60; }
+#mg-param.on { display:flex; }
+.mg-param-hdr { display:flex; align-items:center; gap:6px; padding:7px 10px; border-bottom:1px solid var(--border);
+  background:var(--panel); font-size:12px; font-weight:600; cursor:move; }
+.mg-param-hdr button { cursor:pointer; }
+#mg-param-body { overflow:auto; padding:10px; }
+#mg-param-body label { display:block; font-size:11px; color:var(--dim); margin:8px 0 3px; }
+#mg-param-body input, #mg-param-body select, #mg-param-body textarea { width:100%; box-sizing:border-box; background:var(--input-bg);
+  color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:5px 7px; font-size:12px; }
+#mg-param-body textarea { min-height:104px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:11px; line-height:1.45; }
+#mg-param-body .mg-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+#mg-param-body .hint { font-size:11px; color:var(--dim); line-height:1.4; }
 #mg-canvas { position:relative; flex:1; min-width:0; overflow:auto; background:
   radial-gradient(circle at 1px 1px, rgba(143,160,184,.18) 1px, transparent 0) 0 0/18px 18px; }
 #mg-nodes { position:absolute; left:0; top:0; }
@@ -864,15 +882,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .mg-node.on { border-color:#4c5cf7; box-shadow:0 0 0 2px rgba(76,92,247,.25),0 2px 10px rgba(0,0,0,.35); }
 .mg-node .mg-name { font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; }
 .mg-node .mg-name .mg-init { font-size:9px; font-weight:600; color:#0e1118; background:#34d399; border-radius:4px; padding:0 4px; }
-.mg-node .mg-css { margin-top:5px; font-size:10px; line-height:1.35; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mg-node .mg-count { margin-top:4px; font-size:10px; color:#7db3ff; }
-#mg-side { width:286px; flex:none; border-left:1px solid var(--border); overflow:auto; padding:10px; box-sizing:border-box; }
-#mg-side label { display:block; font-size:11px; color:var(--dim); margin:8px 0 3px; }
-#mg-side input, #mg-side select, #mg-side textarea { width:100%; box-sizing:border-box; background:var(--input-bg);
-  color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:5px 7px; font-size:12px; }
-#mg-side textarea { min-height:104px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:11px; line-height:1.45; }
-#mg-side .mg-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-#mg-side .hint { font-size:11px; color:var(--dim); line-height:1.4; }
 #mg-editbar { position:fixed; left:50%; top:14px; transform:translateX(-50%); display:none; align-items:center; gap:8px;
   background:var(--panel); border:1px solid #4c5cf7; border-radius:9px; padding:7px 10px; z-index:70;
   box-shadow:0 10px 36px rgba(0,0,0,.5); font-size:12px; }
@@ -1087,22 +1096,31 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
       <div class="sf-resize" id="sf-resize" title="Drag to resize"></div>
     </div>
     <div id="mg-panel">
-      <div class="mg-hdr">
+      <div class="mg-hdr" id="mg-hdr">
         <span>Animation panel</span>
         <div style="flex:1"></div>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgAddState()">+ state</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgRemoveGraph(mgNode)">Rimuovi stati</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgTogglePanel()">&#8211;</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgClosePanel()">&#10005;</button>
       </div>
       <div class="mg-toolbar">
         <span id="mg-graph-title" class="hint" style="margin-left:0"></span>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgOpenParam('layout')">Layout &amp; shared</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgPreviewSelected()">Anteprima</button>
-        <span class="hint">Gli stati sono blocchi; le frecce sono i trigger.</span>
+        <span class="hint">Doppio clic su stato o freccia per i parametri.</span>
       </div>
       <div class="mg-main">
         <div id="mg-canvas"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div>
-        <div id="mg-side"></div>
       </div>
+    </div>
+    <div id="mg-param">
+      <div class="mg-param-hdr" id="mg-param-hdr">
+        <span id="mg-param-title">Parametri</span>
+        <div style="flex:1"></div>
+        <button class="btn" style="font-size:11px;padding:1px 6px" onclick="mgCloseParam()">&#10005;</button>
+      </div>
+      <div id="mg-param-body"></div>
     </div>
     <div id="mg-editbar">
       <span class="mg-edit-title" id="mg-edit-title">Modifica stato</span>
@@ -6320,6 +6338,7 @@ function motionControls(n) {
 // "after" links continue a chain when the previous transition finishes.
 var mgPath = null, mgNode = null, mgCfg = null, mgSelState = "", mgSelLink = "";
 var mgParam = null;
+var mgCollapseTimer = 0;
 var mgEdit = null;
 var MG_CAPTURE_PROPS = ["width","height","min-width","min-height","max-width","max-height",
   "margin-top","margin-right","margin-bottom","margin-left","padding-top","padding-right","padding-bottom","padding-left",
@@ -6370,7 +6389,8 @@ function mgOpen(n, path) {
   mgSelLink = "";
   mgParam = null;
   var panel = document.getElementById("mg-panel");
-  if (panel) panel.classList.add("on");
+  if (panel) { panel.classList.add("on"); panel.classList.remove("min"); }
+  mgCloseParam();
   var title = document.getElementById("mg-graph-title");
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
@@ -6387,8 +6407,9 @@ function mgRemoveGraph(n) {
 }
 function mgClosePanel() {
   if (mgEdit) mgCloseState();
+  mgCloseParam();
   var panel = document.getElementById("mg-panel");
-  if (panel) panel.classList.remove("on");
+  if (panel) { panel.classList.remove("on"); panel.classList.remove("min"); }
 }
 function mgCommit(label) {
   if (!mgNode || !mgCfg) return;
@@ -6448,8 +6469,8 @@ function mgRender() {
     var txt = document.createElement("span"); txt.textContent = s.name || s.id; nm.appendChild(txt);
     if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "iniziale"; nm.appendChild(b); }
     d.appendChild(nm);
-    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgRenderSide(); mgFocusState(s.id); };
-    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelState = s.id; mgSelLink = ""; mgParam = { kind: "state", id: s.id }; mgRender(); };
+    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); mgSchedulePanelCollapse(); };
+    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgOpenParam("state", s.id); mgMinimizePanel(); };
     nodes.appendChild(d);
   });
   nodes.style.width = maxX + "px";
@@ -6469,16 +6490,49 @@ function mgRender() {
     path.setAttribute("stroke-width", l.id === mgSelLink ? "2.4" : "1.6");
     path.setAttribute("marker-end", "url(#" + (l.id === mgSelLink ? "mg-arrow-on" : "mg-arrow") + ")");
     path.setAttribute("data-link", l.id);
-    path.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgParam = null; mgMarkSelection(); mgRenderSide(); };
-    path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = l.id; mgSelState = ""; mgParam = { kind: "link", id: l.id }; mgRender(); };
+    path.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
+    path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelLink = l.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", l.id); mgMinimizePanel(); };
     svg.appendChild(path);
   });
-  mgRenderSide();
+  mgRenderParam();
 }
-function mgRenderSide() {
-  var side = document.getElementById("mg-side");
+function mgOpenParam(kind, id) {
+  clearTimeout(mgCollapseTimer);
+  mgParam = { kind: kind, id: id || "" };
+  mgRenderParam();
+}
+function mgCloseParam() {
+  mgParam = null;
+  var p = document.getElementById("mg-param");
+  if (p) p.classList.remove("on");
+}
+function mgMinimizePanel() {
+  var p = document.getElementById("mg-panel");
+  if (p) p.classList.add("min");
+}
+function mgRestorePanel() {
+  var p = document.getElementById("mg-panel");
+  if (p) p.classList.remove("min");
+}
+function mgTogglePanel() {
+  var p = document.getElementById("mg-panel");
+  if (p) p.classList.toggle("min");
+}
+function mgSchedulePanelCollapse() {
+  if (mgCollapseTimer) clearTimeout(mgCollapseTimer);
+  mgCollapseTimer = setTimeout(function(){
+    if (mgEdit && !mgParam) mgMinimizePanel();
+  }, 800);
+}
+function mgRenderParam() {
+  var side = document.getElementById("mg-param-body");
   if (!side) return;
+  var overlay = document.getElementById("mg-param");
   side.innerHTML = "";
+  if (!mgParam) { if (overlay) overlay.classList.remove("on"); return; }
+  if (overlay) overlay.classList.add("on");
+  var title = document.getElementById("mg-param-title");
+  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Parametri collegamento" : "Parametri stato";
   function label(t) { var l = document.createElement("label"); l.textContent = t; side.appendChild(l); return l; }
   function input(v, ph) { var i = document.createElement("input"); i.value = v || ""; i.placeholder = ph || ""; i.spellcheck = false; side.appendChild(i); return i; }
   function select(v, opts) {
@@ -6491,6 +6545,7 @@ function mgRenderSide() {
   // Layout & shared is part of the same panel: it controls FLIP movement,
   // list reordering and page transitions, while states/links control explicit
   // triggers. Keeping both here avoids a second inspector configuration.
+  if (mgParam.kind === "layout") {
   label("Layout & shared (FLIP / lists / pages)");
   var le = select(mgNode.motion || "", [["", "off"], ["layout", "layout (FLIP)"], ["fade", "fade"], ["scale", "scale"], ["slide", "slide"]]);
   le.onchange = function(){ snap("motion layout effect"); mgNode.motion = le.value; mgCommit(); };
@@ -6516,9 +6571,11 @@ function mgRenderSide() {
   lnote.textContent = "Layout & shared handles FLIP, list reorder and page transitions. States and links below handle explicit triggers.";
   side.appendChild(lnote);
   var lsep = document.createElement("div"); lsep.style.cssText = "border-top:1px solid var(--border);margin:10px 0 4px"; side.appendChild(lsep);
+  return;
+  }
   if (mgParam && mgParam.kind === "link") {
     var l = mgLinkById(mgParam.id);
-    if (!l) { mgParam = null; return mgRenderSide(); }
+    if (!l) { mgParam = null; return mgRenderParam(); }
     var a = mgStateById(l.from), b = mgStateById(l.to);
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
@@ -6681,7 +6738,34 @@ function mgPreviewState(id, duration, easing) {
   var pid = peerIdForPath(mgPath);
   try { f.contentWindow.postMessage({ ty: "sui-graph-preview", id: pid, css: st.css || "", duration: duration || "320ms", easing: easing || "ease-out" }, "*"); } catch (e) {}
 }
+function mgMakeDraggable(panelId, handleId) {
+  var panel = document.getElementById(panelId);
+  var handle = document.getElementById(handleId);
+  if (!panel || !handle) return;
+  handle.addEventListener("pointerdown", function(ev){
+    if (ev.target && ev.target.closest && ev.target.closest("button,input,select,textarea")) return;
+    ev.preventDefault();
+    var r = panel.getBoundingClientRect();
+    var sx = ev.clientX, sy = ev.clientY;
+    panel.style.left = r.left + "px";
+    panel.style.top = r.top + "px";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    function move(e) {
+      panel.style.left = Math.max(0, r.left + e.clientX - sx) + "px";
+      panel.style.top = Math.max(0, r.top + e.clientY - sy) + "px";
+    }
+    function up() {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  });
+}
 (function(){
+  mgMakeDraggable("mg-panel", "mg-hdr");
+  mgMakeDraggable("mg-param", "mg-param-hdr");
   var f = document.getElementById("prev");
   if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(function(){ mgSendScope(); mgSendStateFocus(); }, 80); });
 })();
