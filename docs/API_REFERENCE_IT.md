@@ -408,30 +408,29 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   corrente sull'elemento e rispetta `prefers-reduced-motion` saltando subito.
 
 Il pulsante **Motion > Open animation panel** del designer modifica lo stesso
-JSON: i blocchi sono gli stati, le frecce sono i link. Il pannello contiene solo
-il grafo; i parametri si aprono in overlay trascinabili ancorati a una posizione
-fissa. Il canvas centra e scala il diagramma per adattarlo al pannello e
-aprendo il pannello viene selezionato lo stato corrente o iniziale dell'elemento.
-Pannelli e overlay restano dentro il viewport visibile e non possono essere
-trascinati parzialmente fuori schermo. **Layout & shared** nella toolbar apre le
-impostazioni classiche `motion`, `motionKey`,
-`motionDuration`, `motionEasing`, `motionDelay` e `motionExit` usate da FLIP,
-riordino liste e transizioni tra pagine. Stati e link gestiscono i trigger
-espliciti. L'inspector non duplica più quei campi.
+JSON: i blocchi sono gli stati, le frecce sono i link. Il pannello è compatto e
+ridimensionabile dall'handle in basso a destra; il canvas centra e scala il
+diagramma. I parametri si aprono in overlay trascinabili ancorati a una
+posizione fissa. Pannelli e overlay restano dentro il viewport visibile.
+**Layout & shared** nella toolbar apre le impostazioni classiche `motion`,
+`motionKey`, `motionDuration`, `motionEasing`, `motionDelay` e `motionExit`
+usate da FLIP, riordino liste e transizioni tra pagine.
 
-Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
-l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
-Le modifiche di stile dall'inspector vengono scritte nello stato focalizzato e
-compaiono subito nella preview. Il pannello del grafo resta aperto per il doppio
-clic; un clic nella preview lo minimizza per liberare l'area di lavoro.
-L'intestazione può essere trascinata, ripristinata con **–** o chiusa. Se viene
-chiuso, un pulsante flottante **Animation panel** lo ripristina. Il doppio clic su uno stato apre
-l'overlay con nome, CSS e le transizioni in ingresso/uscita (trigger, durata,
-easing, delay); il doppio clic su una freccia apre le stesse proprietà della
-transizione. Gli overlay sono trascinabili e il grafo mostra solo nomi degli
-stati e frecce. **Salva stato** cattura lo stile calcolato della preview nello
-stato. **Remove states** elimina il grafo degli stati ma conserva gli attributi
-Layout & shared.
+I blocchi mostrano solo nome, punto di connessione e pulsante **+**. **+** crea
+un collegamento verso uno stato esistente o un nuovo stato. Il trigger
+appartiene allo stato di partenza; i link uscenti sono numerati nel punto di
+partenza e il numero è l'indice del trigger. Uno stato può avere più trigger
+numerati verso destinazioni diverse. Il doppio clic su uno stato apre l'overlay
+con nome, CSS e transizioni in ingresso/uscita (trigger, durata, easing, delay);
+il doppio clic su una freccia apre le stesse proprietà.
+
+Il clic su uno stato applica il CSS nella preview e blocca l'elemento; le
+modifiche dall'inspector vengono scritte nello stato focalizzato. La modifica
+riduce il grafo a una barra con **Salva stato** e **Chiudi**: il salvataggio
+valida e torna al pannello aggiornato, la chiusura ripristina lo snapshot e
+scarta le modifiche. Il salvataggio rifiuta un trigger vuoto o due stati con gli
+stessi parametri e mostra l'errore. **Remove states** elimina il grafo degli
+stati ma conserva Layout & shared.
 
 `motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
 condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere

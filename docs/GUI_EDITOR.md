@@ -906,37 +906,35 @@ Select an element and open **Motion > Open animation panel**. The panel contains
 only the graph; parameters open in draggable overlay panels:
 
 - **Layout & shared** in the toolbar opens the FLIP/list/page settings overlay.
-- The graph fields drive explicit triggers. There are no duplicate motion
-  fields in the inspector.
-- The graph canvas centers the states and scales the whole diagram to fit the
-  panel, including after minimizing/restoring or resizing the window.
-- The animation panel and every overlay are clamped to the visible viewport;
-  dragging stops at the window edges and content growth cannot push them
-  partially off-screen.
-- **+ state** creates another CSS snapshot of the element. Opening the panel
-  selects the element's current graph state, or the initial state when no
-  transition is active.
-- Clicking a state highlights it, applies its CSS in the preview, centers the
-  element and locks the rest of the preview so only that element stays active.
-  Inspector style changes (size, color, border, ...) are written back into the
-  focused state CSS and appear immediately in the preview. The graph panel
-  stays open for double-click; clicking inside the preview minimizes it to free
-  the workspace. The **–**, drag and close controls are always available.
-- If the panel is closed, a floating **Animation panel** button restores it.
-- Double-click a state to open its parameter overlay (name, CSS, and the
-  incoming/outgoing transition trigger, duration, easing and delay). Double-
-  click an arrow to open its trigger, duration, easing, delay and condition.
-  Overlays are above the graph, stay anchored while their content changes, and
-  are draggable. The graph itself shows only state names and arrows.
-- Editing the overlay writes the state/link parameters immediately.
-  **Salva da preview** captures the current computed style into the state.
-- Select a state and use **Aggiungi collegamento** to create an arrow.
-- A link trigger is `click`, `dblclick`, `pointerenter`, `pointerleave`,
-  `focus`, `blur`, `change`, `state` or `after`.
-  - `state` fires when the boolean state named in `when` changes from false to
-    true; prefix `!` negates it.
-  - `after` chains the next transition when the previous one ends.
-- Duration, easing and delay belong to the link, not to the state.
+- The panel is compact and has a drag handle on its bottom-right corner. The
+  graph canvas centers the states and scales the diagram to fit the panel; the
+  panel and overlays stay fully inside the viewport and can be dragged or
+  resized.
+
+- State blocks are intentionally small: they show the state name and a
+  connection point. Each state has a **+** button for a new link.
+- **+** opens the link chooser: connect to an existing state or create a new
+  state. A new state starts with the source parameters and is connected by a
+  link with no trigger yet, so the next save validates it.
+- A trigger belongs to the state that starts the transition. Every outgoing
+  link is numbered at its starting point; the number is the trigger index.
+  Select a trigger type from the source state overlay or the link overlay.
+  Several links can leave the same state and point to different targets.
+- Double-click a state to open its overlay: name, CSS, and incoming/outgoing
+  transitions with trigger, duration, easing and delay. Double-click an arrow
+  for the same trigger properties. Overlays are draggable and stay above the
+  graph.
+- Clicking a state applies it in the preview and centers/locks the element.
+  Inspector changes are written into the focused state and appear immediately.
+- While a state is being edited, the graph panel collapses to a small bar with
+  **Salva stato** and **Chiudi**. **Salva stato** validates and returns to the
+  updated panel; **Chiudi** restores the snapshot and discards the edits.
+- Saving rejects an empty trigger and duplicate state parameters. The error is
+  shown in the editor notification and the state stays open for correction.
+- Opening the panel selects the element's current or initial state. Clicking in
+  the preview minimizes the panel; the **–** button, drag, resize and close
+  controls remain available. A floating **Animation panel** button restores a
+  closed panel.
 - **Imposta iniziale** marks the state applied on load. **Anteprima** plays the
   selected state or link in the preview.
 - **Remove states** deletes the state graph but keeps Layout & shared.

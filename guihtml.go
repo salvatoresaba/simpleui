@@ -842,18 +842,25 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .td-row .td-acts button:hover { border-color:var(--accent); }
 .td-empty { padding:18px; color:var(--muted); font-size:12px; text-align:center; }
 /* Animation graph panel */
-#mg-panel { position:fixed; top:86px; left:calc(100vw - 804px); width:780px; height:520px; max-width:94vw; max-height:86vh;
+#mg-panel { position:fixed; top:86px; left:calc(100vw - 644px); width:620px; height:380px; max-width:94vw; max-height:86vh;
   background:var(--panel2); border:1px solid var(--border2); border-radius:10px; display:none; flex-direction:column;
   overflow:hidden; box-shadow:0 14px 48px rgba(0,0,0,.55); z-index:45; }
-@media (max-width: 900px) { #mg-panel { left:12px; width:calc(100vw - 24px); } }
+@media (max-width: 700px) { #mg-panel { left:12px; width:calc(100vw - 24px); } }
 #mg-panel.on { display:flex; }
 .mg-hdr { display:flex; align-items:center; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border);
   background:var(--panel); font-size:13px; font-weight:600; flex:none; }
 .mg-toolbar { display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--border); flex:none; }
 .mg-toolbar .hint { margin-left:auto; font-size:11px; color:var(--dim); }
 .mg-main { display:flex; flex:1; min-height:0; }
-#mg-panel.min { height:auto; width:360px; }
+#mg-panel.min { height:auto; width:340px; }
 #mg-panel.min .mg-toolbar, #mg-panel.min .mg-main { display:none; }
+#mg-panel.min #mg-resize { display:none; }
+#mg-resize { position:absolute; right:0; bottom:0; width:16px; height:16px; cursor:nwse-resize; z-index:2;
+  background:linear-gradient(135deg, transparent 0 50%, var(--dim) 50% 55%, transparent 55% 70%, var(--dim) 70% 75%, transparent 75%); }
+#mg-notify { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:90; display:none; max-width:min(560px,92vw);
+  background:#3a1d24; color:#ffd7dd; border:1px solid #b23a4a; border-radius:8px; padding:9px 14px; font-size:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5); }
+#mg-notify.on { display:block; }
 .mg-hdr { cursor:move; }
 .mg-hdr button { cursor:pointer; }
 #mg-param { position:fixed; top:120px; left:calc(100vw - 364px); width:340px; max-width:92vw; max-height:72vh;
@@ -882,13 +889,20 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #mg-lines { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
 #mg-lines path { pointer-events:stroke; cursor:pointer; }
 #mg-lines text { pointer-events:all; cursor:pointer; }
-.mg-node { position:absolute; width:168px; min-height:72px; padding:8px; border:1px solid var(--border2);
-  border-radius:8px; background:var(--panel); color:var(--fg); cursor:pointer; box-sizing:border-box;
+.mg-node { position:absolute; width:120px; min-height:38px; padding:5px 8px; border:1px solid var(--border2);
+  border-radius:7px; background:var(--panel); color:var(--fg); cursor:pointer; box-sizing:border-box;
   box-shadow:0 2px 10px rgba(0,0,0,.25); user-select:none; }
 .mg-node:hover { border-color:#4c5cf7; }
 .mg-node.on { border-color:#4c5cf7; box-shadow:0 0 0 2px rgba(76,92,247,.25),0 2px 10px rgba(0,0,0,.35); }
-.mg-node .mg-name { font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; }
-.mg-node .mg-name .mg-init { font-size:9px; font-weight:600; color:#0e1118; background:#34d399; border-radius:4px; padding:0 4px; }
+.mg-node .mg-name { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; padding-right:16px; overflow:hidden; }
+.mg-node .mg-name span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mg-node .mg-name .mg-init { font-size:8px; font-weight:600; color:#0e1118; background:#34d399; border-radius:4px; padding:0 3px; }
+.mg-node .mg-add { position:absolute; right:2px; top:2px; width:16px; height:16px;
+  border:1px solid var(--border2); border-radius:50%; background:var(--input-bg); color:var(--fg); font-size:12px;
+  line-height:13px; text-align:center; cursor:pointer; padding:0; }
+.mg-node .mg-add:hover { border-color:#4c5cf7; color:#9db4ff; }
+.mg-node .mg-port { position:absolute; right:-4px; top:50%; width:7px; height:7px; border-radius:50%; background:#7db3ff;
+  transform:translateY(-50%); }
 #mg-editbar { position:fixed; left:50%; top:14px; transform:translateX(-50%); display:none; align-items:center; gap:8px;
   background:var(--panel); border:1px solid #4c5cf7; border-radius:9px; padding:7px 10px; z-index:70;
   box-shadow:0 10px 36px rgba(0,0,0,.5); font-size:12px; max-width:calc(100vw - 24px); flex-wrap:wrap; justify-content:center; box-sizing:border-box; }
@@ -1120,6 +1134,7 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
       <div class="mg-main">
         <div id="mg-canvas"><div id="mg-stage"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div></div>
       </div>
+      <div id="mg-resize" title="Resize"></div>
     </div>
     <div id="mg-param">
       <div class="mg-param-hdr" id="mg-param-hdr">
@@ -1130,6 +1145,7 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
       <div id="mg-param-body"></div>
     </div>
     <button id="mg-launch" type="button" onclick="mgLaunchPanel()" title="Show the animation panel">Animation panel</button>
+    <div id="mg-notify"></div>
     <div id="mg-editbar">
       <span class="mg-edit-title" id="mg-edit-title">Modifica stato</span>
       <span class="hint">Solo questo elemento è attivo. Doppio clic sullo stato per i parametri; Salva stato cattura la preview.</span>
@@ -6438,6 +6454,7 @@ function mgOpen(n, path) {
 }
 function mgRemoveGraph(n) {
   if (!n || !n.motionGraph) return;
+  if (mgEdit) { mgEdit.snapshot = null; mgCloseState(); }
   snap("remove animation states");
   delete n.motionGraph;
   if (mgNode === n) { mgCfg = null; mgNode = null; mgSelState = ""; mgSelLink = ""; mgClosePanel(); }
@@ -6472,6 +6489,40 @@ function mgDeclList(css) {
 }
 function mgDeclStr(list) {
   return list.map(function(d){ return d.prop + ": " + d.value + ";"; }).join(" ");
+}
+function mgNormCss(css) {
+  var list = mgDeclList(css || "");
+  var map = {};
+  list.forEach(function(d){
+    var p = String(d.prop || "").toLowerCase();
+    var v = String(d.value || "").trim().toLowerCase().replace(/\s+/g, " ");
+    var m = /^(-?\d*\.?\d+)([a-z%]*)$/.exec(v);
+    if (m) v = String(Math.round(parseFloat(m[1]) * 2) / 2) + m[2];
+    map[p] = v;
+  });
+  var keys = Object.keys(map).sort();
+  return keys.map(function(k){ return k + ":" + map[k]; }).join(";");
+}
+function mgValidateState(st) {
+  var errors = [];
+  if (!st) return ["Stato non trovato."];
+  var norm = mgNormCss(st.css || "");
+  for (var i = 0; i < mgCfg.states.length; i++) {
+    var other = mgCfg.states[i];
+    if (other.id === st.id) continue;
+    if (mgNormCss(other.css || "") === norm) {
+      errors.push("Lo stato \"" + (st.name || st.id) + "\" ha gli stessi parametri di \"" + (other.name || other.id) + "\". Modifica dimensioni, colori o altri valori.");
+      break;
+    }
+  }
+  for (var k = 0; k < mgCfg.links.length; k++) {
+    var l = mgCfg.links[k];
+    if (!l.event) {
+      var a = mgStateById(l.from), b = mgStateById(l.to);
+      errors.push("Il collegamento " + (a ? a.name : l.from) + " → " + (b ? b.name : l.to) + " non ha un trigger. Scegli il tipo di trigger sullo stato di partenza.");
+    }
+  }
+  return errors;
 }
 function mgApplyStateDecls(decls, after) {
   if (!mgEdit) return false;
@@ -6560,6 +6611,22 @@ function mgClampAll() {
   mgClampPanel(document.getElementById("mg-panel"));
   mgClampPanel(document.getElementById("mg-param"));
 }
+function mgNotify(message) {
+  var el = document.getElementById("mg-notify");
+  if (!el) return;
+  el.textContent = String(message || "");
+  el.classList.add("on");
+  setStatus(message);
+  clearTimeout(el.__suiTimer);
+  el.__suiTimer = setTimeout(function(){ el.classList.remove("on"); }, 4500);
+}
+function mgClearNotify() {
+  var el = document.getElementById("mg-notify");
+  if (!el) return;
+  el.classList.remove("on");
+  el.textContent = "";
+  clearTimeout(el.__suiTimer);
+}
 function mgRender() {
   if (!mgCfg) return;
   var nodes = document.getElementById("mg-nodes");
@@ -6582,14 +6649,14 @@ function mgRender() {
   mgCfg.states.forEach(function(s){
     if (layers[s.id] === undefined) layers[s.id] = maxLayer + 1;
     var n = per[layers[s.id]] || 0;
-    pos[s.id] = { x: 24 + layers[s.id] * 206, y: 24 + n * 102 };
+    pos[s.id] = { x: 24 + layers[s.id] * 172, y: 24 + n * 62 };
     per[layers[s.id]] = n + 1;
   });
-  var maxX = 240, maxY = 120;
+  var maxX = 160, maxY = 80;
   nodes.innerHTML = "";
   mgCfg.states.forEach(function(s){
-    maxX = Math.max(maxX, pos[s.id].x + 190);
-    maxY = Math.max(maxY, pos[s.id].y + 96);
+    maxX = Math.max(maxX, pos[s.id].x + 136);
+    maxY = Math.max(maxY, pos[s.id].y + 50);
     var d = document.createElement("div");
     d.className = "mg-node" + (s.id === mgSelState ? " on" : "");
     d.style.left = pos[s.id].x + "px";
@@ -6600,8 +6667,12 @@ function mgRender() {
     var txt = document.createElement("span"); txt.textContent = s.name || s.id; nm.appendChild(txt);
     if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "iniziale"; nm.appendChild(b); }
     d.appendChild(nm);
+    var port = document.createElement("span"); port.className = "mg-port"; d.appendChild(port);
+    var add = document.createElement("button"); add.type = "button"; add.className = "mg-add"; add.textContent = "+"; add.title = "Nuovo collegamento";
+    add.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgAddLinkMenu(s.id); };
+    d.appendChild(add);
     d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
-    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgOpenParam("state", s.id); mgMinimizePanel(); };
+    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgFocusState(s.id, true); mgOpenParam("state", s.id); mgMinimizePanel(); };
     nodes.appendChild(d);
   });
   nodes.style.width = maxX + "px";
@@ -6612,11 +6683,18 @@ function mgRender() {
   if (stage) { stage.style.width = maxX + "px"; stage.style.height = maxY + "px"; }
   mgGraphSize = { x: maxX, y: maxY };
   svg.innerHTML = '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7db3ff"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4c5cf7"/></marker></defs>';
+  var outCount = {}, outUsed = {};
+  mgCfg.links.forEach(function(l){ if (l.from) outCount[l.from] = (outCount[l.from] || 0) + 1; });
   mgCfg.links.forEach(function(l){
     var a = mgStateById(l.from), b = mgStateById(l.to);
     if (!a || !b) return;
-    var x1 = pos[a.id].x + 168, y1 = pos[a.id].y + 36, x2 = pos[b.id].x, y2 = pos[b.id].y + 36;
-    var dx = Math.max(48, Math.abs(x2 - x1) * 0.45);
+    var slotIndex = (outUsed[l.from] || 0);
+    outUsed[l.from] = slotIndex + 1;
+    var count = outCount[l.from] || 1;
+    var slot = slotIndex - (count - 1) / 2;
+    var x1 = pos[a.id].x + 120, y1 = pos[a.id].y + 19 + slot * 8;
+    var x2 = pos[b.id].x, y2 = pos[b.id].y + 19;
+    var dx = Math.max(40, Math.abs(x2 - x1) * 0.45);
     var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2);
     path.setAttribute("fill", "none");
@@ -6627,6 +6705,23 @@ function mgRender() {
     path.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
     path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelLink = l.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", l.id); mgMinimizePanel(); };
     svg.appendChild(path);
+    var badge = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    badge.setAttribute("data-trigger", l.id);
+    badge.style.cursor = "pointer";
+    var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", x1 + 7); circle.setAttribute("cy", y1 - 9); circle.setAttribute("r", "7");
+    circle.setAttribute("fill", l.event ? "#4c5cf7" : "#b23a4a");
+    circle.setAttribute("stroke", "#0e1118"); circle.setAttribute("stroke-width", "1");
+    badge.appendChild(circle);
+    var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", x1 + 7); label.setAttribute("y", y1 - 5.5);
+    label.setAttribute("text-anchor", "middle"); label.setAttribute("font-size", "9");
+    label.setAttribute("font-weight", "700"); label.setAttribute("fill", "#fff");
+    label.textContent = String(slotIndex + 1);
+    badge.appendChild(label);
+    badge.onclick = function(ev){ if (ev) ev.stopPropagation(); mgSelLink = l.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
+    badge.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = l.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", l.id); mgMinimizePanel(); };
+    svg.appendChild(badge);
   });
   mgFitGraph();
   mgRenderParam();
@@ -6635,6 +6730,11 @@ function mgRender() {
 function mgOpenParam(kind, id) {
   clearTimeout(mgCollapseTimer);
   mgParam = { kind: kind, id: id || "" };
+  mgRenderParam();
+}
+function mgAddLinkMenu(sourceId) {
+  clearTimeout(mgCollapseTimer);
+  mgParam = { kind: "newlink", id: sourceId };
   mgRenderParam();
 }
 function mgCloseParam() {
@@ -6682,7 +6782,7 @@ function mgRenderParam() {
   if (overlay) overlay.classList.add("on");
   setTimeout(function(){ mgClampPanel(overlay); }, 0);
   var title = document.getElementById("mg-param-title");
-  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Parametri collegamento" : "Parametri stato";
+  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Parametri collegamento" : mgParam.kind === "newlink" ? "Nuovo collegamento" : "Parametri stato";
   function label(t) { var l = document.createElement("label"); l.textContent = t; side.appendChild(l); return l; }
   function input(v, ph) { var i = document.createElement("input"); i.value = v || ""; i.placeholder = ph || ""; i.spellcheck = false; side.appendChild(i); return i; }
   function select(v, opts) {
@@ -6692,6 +6792,37 @@ function mgRenderParam() {
   }
   function actions() { var d = document.createElement("div"); d.className = "mg-actions"; side.appendChild(d); return d; }
   function btn(parent, text, fn) { var b = document.createElement("button"); b.className = "btn"; b.style.fontSize = "11px"; b.style.padding = "3px 7px"; b.textContent = text; b.onclick = fn; parent.appendChild(b); return b; }
+  if (mgParam.kind === "newlink") {
+    var fromState = mgStateById(mgParam.id);
+    var nh = document.createElement("div"); nh.className = "hint";
+    nh.textContent = "Collega " + (fromState ? fromState.name : mgParam.id) + " a:";
+    side.appendChild(nh);
+    mgCfg.states.forEach(function(t){
+      if (t.id === mgParam.id) return;
+      var row = actions();
+      btn(row, t.name, function(){
+        snap("add motion link");
+        var link = { id: mgNextId("l", mgCfg.links), from: mgParam.id, to: t.id, event: "", duration: "320ms", easing: "ease-out", delay: "0ms" };
+        mgCfg.links.push(link);
+        mgSelLink = link.id; mgSelState = ""; mgParam = { kind: "link", id: link.id };
+        mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+      });
+    });
+    var newRow = actions();
+    btn(newRow, "Nuovo stato", function(){
+      snap("add motion state and link");
+      var before = JSON.parse(JSON.stringify(mgCfg));
+      var st = { id: mgNextId("s", mgCfg.states), name: "Stato " + (mgCfg.states.length + 1), css: fromState ? (fromState.css || "") : "" };
+      mgCfg.states.push(st);
+      var link = { id: mgNextId("l", mgCfg.links), from: mgParam.id, to: st.id, event: "", duration: "320ms", easing: "ease-out", delay: "0ms" };
+      mgCfg.links.push(link);
+      mgSelState = st.id; mgSelLink = ""; mgParam = { kind: "state", id: st.id };
+      mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+      mgFocusState(st.id, true);
+      if (mgEdit) mgEdit.snapshot = before;
+    });
+    return;
+  }
   // Layout & shared is part of the same panel: it controls FLIP movement,
   // list reordering and page transitions, while states/links control explicit
   // triggers. Keeping both here avoids a second inspector configuration.
@@ -6730,7 +6861,7 @@ function mgRenderParam() {
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
     side.appendChild(h);
-    label("trigger"); var ev = select(l.event || "click", [["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","stato variabile"],["after","dopo la transizione"]]);
+    label("trigger"); var ev = select(l.event || "", [["","(scegli trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","stato variabile"],["after","dopo la transizione"]]);
     ev.onchange = function(){ snap("motion graph trigger"); l.event = ev.value; mgCommit(); mgRender(); };
     if (l.event === "state") {
       label("variabile (vero/falso)"); var wh = input(l.when, "es. open oppure !open");
@@ -6766,12 +6897,12 @@ function mgRenderParam() {
   btn(ac2, "Imposta iniziale", function(){ snap("motion graph initial"); mgCfg.initial = s.id; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
   btn(ac2, "Elimina stato", function(){ mgDeleteState(s.id); });
   var trHead = document.createElement("div"); trHead.className = "hint"; trHead.style.marginTop = "14px"; trHead.textContent = "Transizioni dello stato"; side.appendChild(trHead);
-  function transitionBlock(link, incoming) {
+  function transitionBlock(link, incoming, num) {
     var other = mgStateById(incoming ? link.from : link.to);
     var title = document.createElement("div"); title.className = "hint"; title.style.marginTop = "10px";
-    title.textContent = (incoming ? "In ingresso da " : "In uscita verso ") + (other ? other.name : (incoming ? link.from : link.to));
+    title.textContent = (incoming ? "In ingresso da " : "Trigger " + num + " → ") + (other ? other.name : (incoming ? link.from : link.to));
     side.appendChild(title);
-    label("trigger"); var ev = select(link.event || "click", [["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","stato variabile"],["after","dopo la transizione"]]);
+    label("trigger"); var ev = select(link.event || "", [["","(scegli trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","stato variabile"],["after","dopo la transizione"]]);
     ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
     if (link.event === "state") {
       label("variabile (vero/falso)"); var wh = input(link.when, "es. open oppure !open");
@@ -6790,7 +6921,7 @@ function mgRenderParam() {
     incoming.forEach(function(link){ transitionBlock(link, true); });
   }
   if (outgoing.length) {
-    outgoing.forEach(function(link){ transitionBlock(link, false); });
+    outgoing.forEach(function(link, idx){ transitionBlock(link, false, idx + 1); });
   }
   var linkLabel = document.createElement("div"); linkLabel.className = "hint"; linkLabel.style.marginTop = "12px"; linkLabel.textContent = "Collega questo stato a:"; side.appendChild(linkLabel);
   var targets = mgCfg.states.filter(function(x){ return x.id !== s.id; });
@@ -6821,7 +6952,7 @@ function mgDeleteState(id) {
   if (mgCfg.initial === id) mgCfg.initial = mgCfg.states[0].id;
   if (mgSelState === id) mgSelState = mgCfg.initial;
   if (mgParam && mgParam.kind === "state" && mgParam.id === id) mgParam = null;
-  if (mgEdit && mgEdit.state === id) mgCloseState();
+  if (mgEdit && mgEdit.state === id) { mgEdit.snapshot = null; mgCloseState(); }
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
 }
 function mgSendStateFocus(center) {
@@ -6838,10 +6969,36 @@ function mgSendStateFocus(center) {
     }, "*");
   } catch (e) {}
 }
-function mgFocusState(id) {
+function mgFinishEdit(save) {
+  var snapshot = mgEdit && mgEdit.snapshot;
+  var f = document.getElementById("prev");
+  if (f && f.contentWindow) { try { f.contentWindow.postMessage({ ty: "sui-scope", id: -1 }, "*"); } catch (e) {} }
+  mgEdit = null;
+  var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.remove("on");
+  document.body.classList.remove("mg-scope-edit");
+  if (!save && snapshot && mgNode) {
+    mgCfg = snapshot;
+    mgNode.motionGraph = mgCfg;
+    setOut();
+    autoPreview();
+  }
+  var panel = document.getElementById("mg-panel");
+  if (panel) { panel.classList.add("on"); panel.classList.remove("min"); }
+  mgParam = null;
+  mgCloseParam();
+  if (mgCfg && mgSelState && !mgStateById(mgSelState)) mgSelState = mgCfg.initial;
+  mgRender();
+  renderInspector();
+  setTimeout(function(){ mgFitGraph(); mgClampAll(); }, 0);
+}
+function mgFocusState(id, collapse) {
   var st = mgStateById(id);
   if (!st || !mgPath) return;
-  mgEdit = { path: mgPath.slice(), state: id };
+  if (mgEdit && mgEdit.state !== id) mgCloseState();
+  if (!mgEdit || mgEdit.state !== id) {
+    mgEdit = { path: mgPath.slice(), state: id, snapshot: JSON.parse(JSON.stringify(mgCfg)) };
+  }
+  if (collapse) mgMinimizePanel();
   var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.add("on");
   var lbl = document.getElementById("mg-edit-title"); if (lbl) lbl.textContent = "Stato: " + st.name;
   document.body.classList.add("mg-scope-edit");
@@ -6852,13 +7009,7 @@ function mgFocusState(id) {
   setTimeout(function(){ mgSendStateFocus(true); }, 900);
 }
 function mgCloseState() {
-  var f = document.getElementById("prev");
-  if (f && f.contentWindow) { try { f.contentWindow.postMessage({ ty: "sui-scope", id: -1 }, "*"); } catch (e) {} }
-  mgEdit = null;
-  var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.remove("on");
-  document.body.classList.remove("mg-scope-edit");
-  var panel = document.getElementById("mg-panel"); if (panel) panel.classList.add("on");
-  mgRender();
+  mgFinishEdit(false);
 }
 function mgCaptureStyle() {
   var f = document.getElementById("prev");
@@ -6881,15 +7032,17 @@ function mgCaptureStyle() {
 function mgSaveState() {
   if (!mgEdit) return;
   var st = mgStateById(mgEdit.state);
+  if (!st) return;
+  var errors = mgValidateState(st);
+  if (errors.length) { mgNotify(errors[0]); return; }
   var css = mgCaptureStyle();
-  if (st && css != null) {
-    snap("save motion state");
-    st.css = css;
-    mgNode.motionGraph = mgCfg;
-    setOut();
-    autoPreview();
-  }
-  mgCloseState();
+  if (css != null) st.css = css;
+  mgClearNotify();
+  snap("save motion state");
+  mgNode.motionGraph = mgCfg;
+  setOut();
+  autoPreview();
+  mgFinishEdit(true);
 }
 function mgPreviewSelected() {
   if (mgSelLink) { var l = mgLinkById(mgSelLink); if (l) mgPreviewLink(l); return; }
@@ -6952,9 +7105,42 @@ function mgMakeDraggable(panelId, handleId) {
     window.addEventListener("pointerup", up);
   });
 }
+function mgMakeResizable(panelId, handleId) {
+  var panel = document.getElementById(panelId);
+  var handle = document.getElementById(handleId);
+  if (!panel || !handle) return;
+  handle.addEventListener("pointerdown", function(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+    var r = panel.getBoundingClientRect();
+    var startW = panel.offsetWidth, startH = panel.offsetHeight;
+    var scaleX = startW ? (r.width / startW) : 1;
+    var scaleY = startH ? (r.height / startH) : 1;
+    if (!scaleX) scaleX = 1;
+    if (!scaleY) scaleY = 1;
+    var sx = ev.clientX, sy = ev.clientY;
+    function move(e) {
+      var w = Math.max(340, Math.min(window.innerWidth * 0.94, startW + (e.clientX - sx) / scaleX));
+      var h = Math.max(220, Math.min(window.innerHeight * 0.86, startH + (e.clientY - sy) / scaleY));
+      panel.style.width = w + "px";
+      panel.style.height = h + "px";
+      mgFitGraph();
+      mgClampPanel(panel);
+    }
+    function up() {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      mgFitGraph();
+      mgClampPanel(panel);
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  });
+}
 (function(){
   mgMakeDraggable("mg-panel", "mg-hdr");
   mgMakeDraggable("mg-param", "mg-param-hdr");
+  mgMakeResizable("mg-panel", "mg-resize");
   mgUpdateLauncher();
   var mgCanvas = document.getElementById("mg-canvas");
   if (mgCanvas && typeof ResizeObserver === "function") {

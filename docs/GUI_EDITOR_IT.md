@@ -941,40 +941,35 @@ Seleziona un elemento e apri **Motion > Open animation panel**. Il pannello
 contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 
 - **Layout & shared** nella toolbar apre l'overlay per FLIP/liste/pagine.
-- I campi del grafo gestiscono i trigger espliciti. Nell'inspector non ci sono
-  più campi motion duplicati.
-- Il grafico centra gli stati e scala l'intero diagramma per adattarsi al
-  pannello, anche dopo minimizzazione/ripristino o ridimensionamento della
-  finestra.
-- Il pannello animazioni e ogni overlay restano completamente dentro il viewport
-  visibile; il trascinamento si ferma ai bordi e la crescita del contenuto non
-  può spingerli parzialmente fuori schermo.
-- **+ state** crea un'altra fotografia CSS dell'elemento. Aprendo il pannello
-  viene selezionato lo stato corrente del grafo, o quello iniziale quando non
-  c'è una transizione attiva.
-- Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
-  l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
-  Le modifiche di stile dall'inspector (dimensioni, colore, bordo, ...) vengono
-  scritte nello stato focalizzato e compaiono subito nella preview. Il pannello
-  del grafo resta aperto per il doppio clic; cliccando nella preview si minimizza
-  per liberare l'area di lavoro. I controlli **–**, trascinamento e chiusura sono
-  sempre disponibili.
-- Se il pannello viene chiuso, un pulsante flottante **Animation panel** lo
-  ripristina.
-- Il doppio clic su uno stato apre l'overlay dei parametri (nome, CSS e le
-  transizioni in ingresso/uscita con trigger, durata, easing e delay). Il doppio
-  clic su una freccia apre trigger, durata, easing, delay e condizione. Gli
-  overlay sono sopra il grafo, restano ancorati quando il contenuto cambia e
-  sono trascinabili. Il grafo mostra solo nomi degli stati e frecce.
-- Modificare l'overlay scrive subito i parametri dello stato/link.
-  **Salva da preview** cattura lo stile calcolato corrente nello stato.
-- Seleziona uno stato e usa **Aggiungi collegamento** per creare una freccia.
-- Il trigger di un link è `click`, `dblclick`, `pointerenter`, `pointerleave`,
-  `focus`, `blur`, `change`, `state` o `after`.
-  - `state` scatta quando lo stato booleano indicato in `when` passa da falso a
-    vero; il prefisso `!` lo nega.
-  - `after` concatena la transizione successiva quando la precedente termina.
-- Durata, easing e delay appartengono al link, non allo stato.
+- Il pannello è compatto e ha un handle di ridimensionamento nell'angolo in
+  basso a destra. Il canvas centra e scala il diagramma per adattarlo; pannello
+  e overlay restano dentro il viewport e possono essere trascinati o
+  ridimensionati.
+
+- I blocchi sono piccoli: mostrano il nome dello stato e il punto di
+  connessione. Ogni stato ha un pulsante **+** per un nuovo collegamento.
+- **+** apre la scelta del collegamento: stato esistente oppure nuovo stato. Il
+  nuovo stato parte con i parametri dello stato sorgente ed è collegato da un
+  link ancora senza trigger; il salvataggio lo segnala.
+- Il trigger appartiene allo stato di partenza. Ogni link uscente è numerato
+  nel punto di partenza e il numero è l'indice del trigger. Il tipo di trigger
+  si sceglie dall'overlay dello stato sorgente o dal link. Più link possono
+  uscire dallo stesso stato verso destinazioni diverse.
+- Doppio clic su uno stato: overlay con nome, CSS e transizioni in
+  ingresso/uscita con trigger, durata, easing e delay. Doppio clic su una
+  freccia: stesse proprietà del trigger. Gli overlay sono trascinabili e sopra
+  il grafo.
+- Il clic su uno stato lo applica nella preview e centra/blocca l'elemento. Le
+  modifiche dall'inspector vengono scritte nello stato e compaiono subito.
+- Durante la modifica lo stato il grafo si riduce a una barra con **Salva
+  stato** e **Chiudi**. **Salva stato** valida e torna al pannello aggiornato;
+  **Chiudi** ripristina lo snapshot e scarta le modifiche.
+- Il salvataggio rifiuta un trigger vuoto e due stati con gli stessi parametri;
+  l'errore compare nella notifica e lo stato resta aperto per la correzione.
+- Aprendo il pannello viene selezionato lo stato corrente o iniziale.
+  Cliccando nella preview il pannello si minimizza; **–**, trascinamento,
+  ridimensionamento e chiusura restano disponibili. Il pulsante flottante
+  **Animation panel** riapre un pannello chiuso.
 - **Imposta iniziale** segna lo stato applicato al caricamento. **Anteprima**
   riproduce lo stato o il link selezionato nella preview.
 - **Remove states** elimina il grafo degli stati ma conserva Layout & shared.

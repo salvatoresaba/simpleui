@@ -67,26 +67,28 @@ and the FLIP engine described in `examples/motion_pages`.
 1. Open `simpleui gui examples/motion_graph/app.sui`.
 2. Select a card in the tree or preview.
 3. Inspector → **Motion (animation panel)** → **Open animation panel**.
-   The canvas centers and scales the diagram to fit the panel; opening the panel
-   selects the element's current or initial state. Panels and overlays are kept
-   fully inside the visible viewport.
+   The panel is compact and resizable from its bottom-right handle; the canvas
+   centers and scales the diagram. Opening the panel selects the element's
+   current or initial state. Panels and overlays stay inside the viewport.
 4. **Layout & shared** in the toolbar opens a draggable overlay for
    FLIP/key/duration/easing/delay/exit for lists and page transitions.
-5. Click a state: it is highlighted, its CSS is applied in the preview, the
-   element is centered, and the rest of the preview becomes inert. Inspector
-   changes (size, color, border, ...) are written back into the focused state
-   CSS and appear immediately in the preview. The graph panel stays open for
-   double-click; clicking inside the preview minimizes it. Its header can be
-   dragged, restored with **–** or closed. If it is closed, the floating
-   **Animation panel** button restores it.
-6. Double-click a state to open its parameter overlay (name, CSS and the
-   incoming/outgoing transition trigger, duration, easing and delay). Double-
-   click an arrow to open the same transition properties. The graph shows only
-   state names and arrows; overlays stay anchored and are draggable.
-7. Editing the overlay writes the state/link parameters immediately.
-   **Salva da preview** captures the current computed style into the state.
-8. Select a state and use **Aggiungi collegamento** to create an arrow.
-9. For a state trigger, set the event to `state` and enter `open` or `!open`.
+5. State blocks show only the name and a connection point. Each has a **+**
+   button: connect to an existing state or create a new state. A new state
+   copies the source parameters and gets a link without a trigger; the next
+   save reports the error until both are fixed.
+6. Triggers belong to the source state. Outgoing links are numbered at their
+   starting point; the number is the trigger index. Several triggers can leave
+   one state toward different targets. Choose the trigger from the state
+   overlay or the link overlay.
+7. Double-click a state to edit its overlay (name, CSS and incoming/outgoing
+   triggers with duration, easing and delay); double-click an arrow for the
+   same trigger properties. Overlays are draggable and above the graph.
+8. Clicking a state applies it in the preview and locks the element. Inspector
+   changes are written into the focused state and appear immediately.
+9. While editing, the graph collapses to a bar with **Salva stato** and
+   **Chiudi**. Save validates and returns to the updated panel; close restores
+   the snapshot and discards changes. Saving rejects an empty trigger or two
+   states with identical parameters and shows the error.
 10. Press **Anteprima** to play the selected state or link.
 
 States/links and Layout & shared live in the same panel; there are no duplicate

@@ -433,30 +433,27 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   the element, and honors `prefers-reduced-motion` by jumping instantly.
 
 The designer's **Motion > Open animation panel** edits the same JSON: blocks are
-states, arrows are links. The graph panel contains only the graph; parameters
-open in draggable overlays anchored to a fixed position. The canvas centers and
-scales the diagram to fit the panel, and opening the panel selects the element's
-current or initial state. Panels and overlays are clamped to the visible
-viewport and cannot be dragged partially off-screen. **Layout & shared** in the
-toolbar opens
-the classic `motion`, `motionKey`, `motionDuration`, `motionEasing`,
-`motionDelay` and `motionExit` settings used by FLIP, list reordering and page
-transitions. States and links handle explicit triggers. The inspector no longer
-duplicates those fields.
+states, arrows are links. The panel is compact and resizable from its bottom-
+right handle; the canvas centers and scales the diagram. Parameters open in
+draggable overlays anchored to a fixed position. Panels and overlays are clamped
+to the visible viewport. **Layout & shared** in the toolbar opens the classic
+`motion`, `motionKey`, `motionDuration`, `motionEasing`, `motionDelay` and
+`motionExit` settings used by FLIP, list reordering and page transitions.
 
-Clicking a state highlights it and applies its CSS in the preview, centers the
-element and locks the rest of the preview so only that element stays active.
-Inspector style edits are written back into the focused state CSS and appear
-immediately in the preview. The graph panel stays open for double-click; a
-click inside the preview minimizes it to free the workspace. Its header can be
-dragged, restored with **–** or closed. If it is closed, a floating **Animation
-panel** button restores it.
-Double-clicking a state opens its parameter overlay with name, CSS and the
-incoming/outgoing transition trigger, duration, easing and delay; double-
-clicking an arrow opens the same transition properties. Overlays are draggable
-and the graph only shows state names and arrows. **Salva stato** captures the
-computed preview style into the state. **Remove states** deletes the state graph
-but keeps the Layout & shared attributes.
+State blocks show only the name, connection point and a **+** button. **+**
+creates a link to an existing state or a new state. A trigger belongs to the
+source state; outgoing links are numbered at their start point and the number
+is the trigger index. A state can have several numbered triggers pointing to
+different targets. Double-clicking a state opens its overlay with name, CSS and
+incoming/outgoing trigger, duration, easing and delay; double-clicking an arrow
+opens the same trigger properties.
+
+Clicking a state applies its CSS in the preview and locks the element; inspector
+edits are written into the focused state. Editing collapses the graph to a bar
+with **Salva stato** and **Chiudi**: save validates and returns to the updated
+panel, close restores the snapshot and discards changes. Saving rejects an empty
+trigger or two states with identical parameters and shows the error. **Remove
+states** deletes the state graph but keeps Layout & shared.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.
