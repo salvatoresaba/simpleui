@@ -439,10 +439,13 @@ and `motionExit` attributes used by FLIP, list reordering and page transitions.
 States and links handle explicit triggers. The inspector no longer duplicates
 those fields, so there is a single place to configure both parts.
 
-**Modifica stato** hides the panel and locks the rest of the preview so only the
-selected element can be edited; the normal inspector stays available and
-**Salva stato** captures the computed style into the state. **Remove states**
-deletes the state graph but keeps the Layout & shared attributes.
+Clicking a state highlights it and applies its CSS in the preview, centers the
+element and locks the rest of the preview so only that element stays active.
+Double-clicking a state opens its parameter mini-panel; double-clicking an
+arrow opens the trigger, duration, easing and delay. The graph only shows state
+names and arrows, not the parameters. **Salva stato** captures the computed
+preview style into the state. **Remove states** deletes the state graph but
+keeps the Layout & shared attributes.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.

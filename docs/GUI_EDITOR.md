@@ -910,13 +910,15 @@ states as blocks and triggers as arrows, plus a **Layout & shared** section:
 - The graph fields below drive explicit triggers. There are no duplicate motion
   fields in the inspector.
 - **+ state** creates another CSS snapshot of the element.
-- A state has a name and a CSS declarations field. **Captura** from the normal
-  inspector is also possible: press **Modifica stato**, hide the panel, edit the
-  element with the usual panels, then **Salva stato**.
-- While a state is being edited, the rest of the preview stays visible but is
-  inert: only the target element can be selected or changed. The panel is
-  replaced by a small bar with **Salva stato** and **Chiudi**.
-- Select two states and use **Aggiungi collegamento** to create an arrow.
+- Clicking a state highlights it, applies its CSS in the preview, centers the
+  element and locks the rest of the preview so only that element stays active.
+  A small bar shows **Salva stato** and **Chiudi**.
+- Double-click a state to open its parameter mini-panel (name and CSS). Double-
+  click an arrow to open its trigger, duration, easing, delay and condition.
+  The graph itself shows only state names and arrows, not parameters.
+- Editing the mini-panel writes the state/link parameters immediately.
+  **Salva da preview** captures the current computed style into the state.
+- Select a state and use **Aggiungi collegamento** to create an arrow.
 - A link trigger is `click`, `dblclick`, `pointerenter`, `pointerleave`,
   `focus`, `blur`, `change`, `state` or `after`.
   - `state` fires when the boolean state named in `when` changes from false to

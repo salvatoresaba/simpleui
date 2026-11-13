@@ -1127,6 +1127,12 @@ const guiPreviewPicker = `<script>
     return out;
   }
   function clearGraphScope() {
+    if (scopeRoot) {
+      scopeRoot.classList.remove("sui-mg-focus");
+      var fp = scopeRoot.__suiGraphFocusProps || [];
+      for (var fi = 0; fi < fp.length; fi++) scopeRoot.style.removeProperty(fp[fi]);
+      scopeRoot.__suiGraphFocusProps = [];
+    }
     if (scopeRoot && scopeRoot.__suiGraphEditLocked) {
       scopeRoot.__suiGraphEditLocked = false;
       scopeRoot.__suiGraphJson = null;
@@ -1180,6 +1186,39 @@ const guiPreviewPicker = `<script>
         }
         gel.__suiPreviewProps = gnames;
         setTimeout(function(){ gel.style.transition = ''; }, 700);
+      }
+      return;
+    }
+    if (e.data && e.data.ty === 'sui-graph-focus') {
+      var fid = Number(e.data.id);
+      var fel = fid >= 0 ? document.querySelector('[data-sui-id="' + fid + '"]') : null;
+      if (fel) {
+        applyGraphScope(fid);
+        if (!document.getElementById('sui-mg-focus-style')) {
+          var fs = document.createElement('style');
+          fs.id = 'sui-mg-focus-style';
+          fs.textContent = '.sui-mg-focus { outline: 2px solid #4c5cf7 !important; outline-offset: 4px; scroll-margin: 80px; }';
+          document.head.appendChild(fs);
+        }
+        var fprops = fel.__suiGraphFocusProps || [];
+        for (var fpi = 0; fpi < fprops.length; fpi++) fel.style.removeProperty(fprops[fpi]);
+        var fcss = String(e.data.css || '');
+        var flist = fcss.split(';'), fnames = [];
+        for (var fgi = 0; fgi < flist.length; fgi++) {
+          var fgd = flist[fgi].trim();
+          if (!fgd) continue;
+          var fgc = fgd.indexOf(':');
+          if (fgc <= 0) continue;
+          var fgn = fgd.slice(0, fgc).trim(), fgv = fgd.slice(fgc + 1).trim();
+          if (!fgn || !fgv) continue;
+          fel.style.setProperty(fgn, fgv);
+          fnames.push(fgn);
+        }
+        fel.__suiGraphFocusProps = fnames;
+        fel.classList.add('sui-mg-focus');
+        if (e.data.center) {
+          try { fel.scrollIntoView({ block: 'center', inline: 'center' }); } catch (err) {}
+        }
       }
       return;
     }

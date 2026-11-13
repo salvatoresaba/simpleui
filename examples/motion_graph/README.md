@@ -69,18 +69,21 @@ and the FLIP engine described in `examples/motion_pages`.
 3. Inspector → **Motion (animation panel)** → **Open animation panel**.
 4. The **Layout & shared** section at the top writes FLIP/key/duration/easing/
    delay/exit for lists and page transitions.
-5. Click a block to edit its CSS, or press **Modifica stato**:
-   - the panel hides, the rest of the preview stays visible but inert;
-   - only the target card can be selected and edited;
-   - the normal inspector stays available;
-   - press **Salva stato** to capture the computed style.
-   States/links and Layout & shared live in the same panel; there are no
-   duplicate motion fields in the inspector. **Remove states** clears the graph
-   but keeps Layout & shared.
-6. Select a state and use **Aggiungi collegamento** to create an arrow.
-7. Choose the trigger, duration, easing and delay on the arrow.
-8. For a state trigger, set the event to `state` and enter `open` or `!open`.
-9. Press **Anteprima** to play the selected state or link.
+5. Click a state: it is highlighted, its CSS is applied in the preview, the
+   element is centered, and the rest of the preview becomes inert. The small
+   bar offers **Salva stato** and **Chiudi**.
+6. Double-click a state to open its parameter mini-panel (name and CSS).
+   Double-click an arrow to open trigger, duration, easing, delay and condition.
+   The graph shows only state names and arrows.
+7. Editing the mini-panel writes the state/link parameters immediately.
+   **Salva da preview** captures the current computed style into the state.
+8. Select a state and use **Aggiungi collegamento** to create an arrow.
+9. For a state trigger, set the event to `state` and enter `open` or `!open`.
+10. Press **Anteprima** to play the selected state or link.
+
+States/links and Layout & shared live in the same panel; there are no duplicate
+motion fields in the inspector. **Remove states** clears the graph but keeps
+Layout & shared.
 
 ## Build
 

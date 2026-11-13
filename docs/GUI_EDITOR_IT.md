@@ -946,13 +946,15 @@ mostra gli stati come blocchi e i trigger come frecce, più una sezione
 - I campi del grafo gestiscono i trigger espliciti. Nell'inspector non ci sono
   più campi motion duplicati.
 - **+ state** crea un'altra fotografia CSS dell'elemento.
-- Uno stato ha un nome e un campo di dichiarazioni CSS. Puoi anche catturarlo
-  dall'inspector normale: premi **Modifica stato**, nascondi il pannello,
-  modifica l'elemento con i pannelli abituali e poi **Salva stato**.
-- Mentre modifichi uno stato, il resto della preview resta visibile ma inerte:
-  solo l'elemento target può essere selezionato o modificato. Il pannello viene
-  sostituito da una barra con **Salva stato** e **Chiudi**.
-- Seleziona due stati e usa **Aggiungi collegamento** per creare una freccia.
+- Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
+  l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
+  Una barra mostra **Salva stato** e **Chiudi**.
+- Il doppio clic su uno stato apre il mini pannello dei parametri (nome e CSS).
+  Il doppio clic su una freccia apre trigger, durata, easing, delay e condizione.
+  Il grafo mostra solo nomi degli stati e frecce, non i parametri.
+- Modificare il mini pannello scrive subito i parametri dello stato/link.
+  **Salva da preview** cattura lo stile calcolato corrente nello stato.
+- Seleziona uno stato e usa **Aggiungi collegamento** per creare una freccia.
 - Il trigger di un link è `click`, `dblclick`, `pointerenter`, `pointerleave`,
   `focus`, `blur`, `change`, `state` o `after`.
   - `state` scatta quando lo stato booleano indicato in `when` passa da falso a

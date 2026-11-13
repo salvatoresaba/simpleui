@@ -415,11 +415,13 @@ riordino liste e transizioni tra pagine. Stati e link gestiscono i trigger
 espliciti. L'inspector non duplica più quei campi, quindi la configurazione è in
 un unico punto.
 
-**Modifica stato** nasconde il pannello e blocca il resto della preview,
-lasciando modificabile solo l'elemento selezionato; l'inspector normale resta
-disponibile e **Salva stato** cattura lo stile calcolato nello stato.
-**Remove states** elimina il grafo degli stati ma conserva gli attributi
-Layout & shared.
+Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
+l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
+Il doppio clic su uno stato apre il mini pannello dei suoi parametri; il doppio
+clic su una freccia apre trigger, durata, easing e delay. Nel grafo compaiono
+solo i nomi degli stati e le frecce, non i parametri. **Salva stato** cattura lo
+stile calcolato della preview nello stato. **Remove states** elimina il grafo
+degli stati ma conserva gli attributi Layout & shared.
 
 `motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
 condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere

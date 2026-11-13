@@ -1106,7 +1106,7 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
     </div>
     <div id="mg-editbar">
       <span class="mg-edit-title" id="mg-edit-title">Modifica stato</span>
-      <span class="hint">Solo questo elemento è modificabile. Usa l'inspector, poi salva.</span>
+      <span class="hint">Solo questo elemento è attivo. Doppio clic sullo stato per i parametri; Salva stato cattura la preview.</span>
       <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgSaveState()">Salva stato</button>
       <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgCloseState()">Chiudi</button>
     </div>
@@ -6319,6 +6319,7 @@ function motionControls(n) {
 // States are CSS snapshots of one element. Links carry a trigger and timing;
 // "after" links continue a chain when the previous transition finishes.
 var mgPath = null, mgNode = null, mgCfg = null, mgSelState = "", mgSelLink = "";
+var mgParam = null;
 var mgEdit = null;
 var MG_CAPTURE_PROPS = ["width","height","min-width","min-height","max-width","max-height",
   "margin-top","margin-right","margin-bottom","margin-left","padding-top","padding-right","padding-bottom","padding-left",
@@ -6367,6 +6368,7 @@ function mgOpen(n, path) {
   mgCfg = mgEnsure(n);
   mgSelState = mgCfg.initial;
   mgSelLink = "";
+  mgParam = null;
   var panel = document.getElementById("mg-panel");
   if (panel) panel.classList.add("on");
   var title = document.getElementById("mg-graph-title");
@@ -6394,6 +6396,17 @@ function mgCommit(label) {
   mgNode.motionGraph = mgCfg;
   setOut();
   autoPreview();
+}
+function mgMarkSelection() {
+  document.querySelectorAll(".mg-node").forEach(function(n){
+    n.classList.toggle("on", n.getAttribute("data-state") === mgSelState);
+  });
+  document.querySelectorAll("#mg-lines path[data-link]").forEach(function(p){
+    var on = p.getAttribute("data-link") === mgSelLink;
+    p.setAttribute("stroke", on ? "#4c5cf7" : "#7db3ff");
+    p.setAttribute("stroke-width", on ? "2.4" : "1.6");
+    p.setAttribute("marker-end", "url(#" + (on ? "mg-arrow-on" : "mg-arrow") + ")");
+  });
 }
 function mgRender() {
   if (!mgCfg) return;
@@ -6429,19 +6442,14 @@ function mgRender() {
     d.className = "mg-node" + (s.id === mgSelState ? " on" : "");
     d.style.left = pos[s.id].x + "px";
     d.style.top = pos[s.id].y + "px";
-    d.title = "Apri lo stato " + s.name;
+    d.title = "Clic: mostra lo stato nella preview. Doppio clic: parametri.";
+    d.setAttribute("data-state", s.id);
     var nm = document.createElement("div"); nm.className = "mg-name";
     var txt = document.createElement("span"); txt.textContent = s.name || s.id; nm.appendChild(txt);
     if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "iniziale"; nm.appendChild(b); }
     d.appendChild(nm);
-    var cs = document.createElement("div"); cs.className = "mg-css";
-    cs.textContent = (s.css || "nessuna proprietà catturata").replace(/\s+/g, " ").slice(0, 70);
-    d.appendChild(cs);
-    var cnt = 0;
-    mgCfg.links.forEach(function(l){ if (l.from === s.id) cnt++; });
-    var c = document.createElement("div"); c.className = "mg-count"; c.textContent = cnt + (cnt === 1 ? " uscita" : " uscite");
-    d.appendChild(c);
-    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgRender(); };
+    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgRenderSide(); mgFocusState(s.id); };
+    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelState = s.id; mgSelLink = ""; mgParam = { kind: "state", id: s.id }; mgRender(); };
     nodes.appendChild(d);
   });
   nodes.style.width = maxX + "px";
@@ -6460,14 +6468,10 @@ function mgRender() {
     path.setAttribute("stroke", l.id === mgSelLink ? "#4c5cf7" : "#7db3ff");
     path.setAttribute("stroke-width", l.id === mgSelLink ? "2.4" : "1.6");
     path.setAttribute("marker-end", "url(#" + (l.id === mgSelLink ? "mg-arrow-on" : "mg-arrow") + ")");
-    path.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgRender(); };
+    path.setAttribute("data-link", l.id);
+    path.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgParam = null; mgMarkSelection(); mgRenderSide(); };
+    path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = l.id; mgSelState = ""; mgParam = { kind: "link", id: l.id }; mgRender(); };
     svg.appendChild(path);
-    var t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("x", (x1 + x2) / 2); t.setAttribute("y", (y1 + y2) / 2 - 5);
-    t.setAttribute("text-anchor", "middle"); t.setAttribute("font-size", "10"); t.setAttribute("fill", "#9db4ff");
-    t.textContent = (l.event === "after" ? "dopo" : l.event || "click") + (l.duration ? " · " + l.duration : "");
-    t.onclick = function(){ mgSelLink = l.id; mgSelState = ""; mgRender(); };
-    svg.appendChild(t);
   });
   mgRenderSide();
 }
@@ -6512,9 +6516,9 @@ function mgRenderSide() {
   lnote.textContent = "Layout & shared handles FLIP, list reorder and page transitions. States and links below handle explicit triggers.";
   side.appendChild(lnote);
   var lsep = document.createElement("div"); lsep.style.cssText = "border-top:1px solid var(--border);margin:10px 0 4px"; side.appendChild(lsep);
-  if (mgSelLink) {
-    var l = mgLinkById(mgSelLink);
-    if (!l) { mgSelLink = ""; return mgRenderSide(); }
+  if (mgParam && mgParam.kind === "link") {
+    var l = mgLinkById(mgParam.id);
+    if (!l) { mgParam = null; return mgRenderSide(); }
     var a = mgStateById(l.from), b = mgStateById(l.to);
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
@@ -6530,18 +6534,28 @@ function mgRenderSide() {
     label("delay"); var de = input(l.delay, "0ms"); de.onchange = function(){ snap("motion graph delay"); l.delay = de.value.trim(); mgCommit(); };
     var ac = actions();
     btn(ac, "Anteprima", function(){ mgPreviewLink(l); });
-    btn(ac, "Elimina collegamento", function(){ snap("delete motion link"); mgCfg.links = mgCfg.links.filter(function(x){ return x.id !== l.id; }); mgSelLink = ""; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
+    btn(ac, "Elimina collegamento", function(){ snap("delete motion link"); mgCfg.links = mgCfg.links.filter(function(x){ return x.id !== l.id; }); mgSelLink = ""; mgParam = null; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
     return;
   }
-  var s = mgSelState ? mgStateById(mgSelState) : null;
-  if (!s) { var h2 = document.createElement("div"); h2.className = "hint"; h2.textContent = "Seleziona uno stato o una freccia. Ogni stato è una fotografia CSS dell'elemento; ogni freccia è un trigger."; side.appendChild(h2); return; }
+  var s = (mgParam && mgParam.kind === "state") ? mgStateById(mgParam.id) : null;
+  if (!s) {
+    var h2 = document.createElement("div"); h2.className = "hint";
+    h2.textContent = "Doppio clic su uno stato o su una freccia per aprire i suoi parametri. Il clic singolo su uno stato lo evidenzia e lo mostra nella preview.";
+    side.appendChild(h2);
+    return;
+  }
   label("nome stato"); var nm = input(s.name, "es. aperto"); nm.onchange = function(){ snap("motion graph state name"); s.name = nm.value.trim() || s.id; mgCommit(); mgRender(); };
-  label("CSS dello stato"); var ta = document.createElement("textarea"); ta.value = s.css || ""; ta.placeholder = "width: 420px; height: 280px; margin-left: 96px;"; side.appendChild(ta); ta.onchange = function(){ snap("motion graph state css"); s.css = ta.value; mgCommit(); };
+  label("CSS dello stato"); var ta = document.createElement("textarea"); ta.value = s.css || ""; ta.placeholder = "width: 420px; height: 280px; margin-left: 96px;"; side.appendChild(ta);
+  ta.onchange = function(){
+    snap("motion graph state css"); s.css = ta.value; mgCommit();
+    if (mgEdit && mgEdit.state === s.id) mgSendStateFocus();
+  };
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Puoi modificare la preview con l'inspector e poi salvare lo stato catturato, oppure scrivere direttamente le dichiarazioni CSS qui.";
+  hint.textContent = "Le modifiche qui aggiornano i parametri dello stato. Il clic sullo stato applica questi parametri nella preview e centra l'elemento.";
   side.appendChild(hint);
   var ac2 = actions();
-  btn(ac2, "Modifica stato", function(){ mgFocusState(s.id); });
+  btn(ac2, "Focus preview", function(){ mgFocusState(s.id); });
+  btn(ac2, "Salva da preview", function(){ var css = mgCaptureStyle(); if (css != null) { snap("save motion state"); s.css = css; mgCommit(); mgRender(); } });
   btn(ac2, "Imposta iniziale", function(){ snap("motion graph initial"); mgCfg.initial = s.id; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
   btn(ac2, "Elimina stato", function(){ mgDeleteState(s.id); });
   var linkLabel = document.createElement("div"); linkLabel.className = "hint"; linkLabel.style.marginTop = "12px"; linkLabel.textContent = "Collega questo stato a:"; side.appendChild(linkLabel);
@@ -6554,7 +6568,7 @@ function mgRenderSide() {
       if (!to) return;
       snap("add motion link");
       var link = { id: mgNextId("l", mgCfg.links), from: s.id, to: to, event: "click", duration: "320ms", easing: "ease-out", delay: "0ms" };
-      mgCfg.links.push(link); mgSelLink = link.id; mgSelState = ""; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+      mgCfg.links.push(link); mgSelLink = link.id; mgSelState = ""; mgParam = null; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
     });
   }
 }
@@ -6562,7 +6576,7 @@ function mgAddState() {
   if (!mgCfg) return;
   snap("add motion state");
   var st = { id: mgNextId("s", mgCfg.states), name: "Stato " + (mgCfg.states.length + 1), css: "" };
-  mgCfg.states.push(st); mgSelState = st.id; mgSelLink = "";
+  mgCfg.states.push(st); mgSelState = st.id; mgSelLink = ""; mgParam = null;
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
 }
 function mgDeleteState(id) {
@@ -6572,6 +6586,7 @@ function mgDeleteState(id) {
   mgCfg.links = mgCfg.links.filter(function(l){ return l.from !== id && l.to !== id; });
   if (mgCfg.initial === id) mgCfg.initial = mgCfg.states[0].id;
   if (mgSelState === id) mgSelState = mgCfg.initial;
+  if (mgParam && mgParam.kind === "state" && mgParam.id === id) mgParam = null;
   if (mgEdit && mgEdit.state === id) mgCloseState();
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
 }
@@ -6581,19 +6596,32 @@ function mgSendScope() {
   var id = peerIdForPath(mgEdit.path);
   try { f.contentWindow.postMessage({ ty: "sui-scope", id: id }, "*"); } catch (e) {}
 }
+function mgSendStateFocus() {
+  var f = document.getElementById("prev");
+  if (!f || !f.contentWindow || !mgEdit) return;
+  var st = mgStateById(mgEdit.state);
+  var id = peerIdForPath(mgEdit.path);
+  try {
+    f.contentWindow.postMessage({
+      ty: "sui-graph-focus",
+      id: id,
+      css: st ? (st.css || "") : "",
+      center: true
+    }, "*");
+  } catch (e) {}
+}
 function mgFocusState(id) {
   var st = mgStateById(id);
   if (!st || !mgPath) return;
   mgEdit = { path: mgPath.slice(), state: id };
-  var panel = document.getElementById("mg-panel"); if (panel) panel.classList.remove("on");
   var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.add("on");
-  var lbl = document.getElementById("mg-edit-title"); if (lbl) lbl.textContent = "Modifica stato: " + st.name;
+  var lbl = document.getElementById("mg-edit-title"); if (lbl) lbl.textContent = "Stato: " + st.name;
   document.body.classList.add("mg-scope-edit");
   selPath = mgPath.slice(); multiSel = [];
   renderTree(); fillPanel(); renderInspector(); postHighlight();
-  mgSendScope();
-  setTimeout(mgSendScope, 350);
-  setTimeout(mgSendScope, 900);
+  mgSendScope(); mgSendStateFocus();
+  setTimeout(function(){ mgSendScope(); mgSendStateFocus(); }, 350);
+  setTimeout(function(){ mgSendScope(); mgSendStateFocus(); }, 900);
 }
 function mgCloseState() {
   var f = document.getElementById("prev");
@@ -6655,7 +6683,7 @@ function mgPreviewState(id, duration, easing) {
 }
 (function(){
   var f = document.getElementById("prev");
-  if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(mgSendScope, 80); });
+  if (f) f.addEventListener("load", function(){ if (mgEdit) setTimeout(function(){ mgSendScope(); mgSendStateFocus(); }, 80); });
 })();
 function toggleControls(n) {  var isSwitch = n.kind === "switch";
   var isRadio = n.kind === "radio";
