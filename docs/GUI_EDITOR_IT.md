@@ -951,9 +951,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
   Le modifiche di stile dall'inspector (dimensioni, colore, bordo, ...) vengono
   scritte nello stato focalizzato e compaiono subito nella preview. Il pannello
-  del grafo si minimizza automaticamente per liberare la preview; l'intestazione
-  resta disponibile e il pulsante **–**, il trascinamento e la chiusura
-  funzionano normalmente.
+  del grafo resta aperto per il doppio clic; cliccando nella preview si minimizza
+  per liberare l'area di lavoro. I controlli **–**, trascinamento e chiusura sono
+  sempre disponibili.
 - Se il pannello viene chiuso, un pulsante flottante **Animation panel** lo
   ripristina.
 - Il doppio clic su uno stato apre l'overlay dei parametri (nome, CSS e le

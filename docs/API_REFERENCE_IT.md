@@ -419,10 +419,10 @@ espliciti. L'inspector non duplica più quei campi.
 Il clic su uno stato lo evidenzia, applica il suo CSS nella preview, centra
 l'elemento e blocca il resto della preview lasciando attivo solo quell'elemento.
 Le modifiche di stile dall'inspector vengono scritte nello stato focalizzato e
-compaiono subito nella preview. Il pannello del grafo si minimizza
-automaticamente per liberare la preview; l'intestazione resta disponibile e può
-essere trascinata, ripristinata con **–** o chiusa. Se viene chiuso, un pulsante
-flottante **Animation panel** lo ripristina. Il doppio clic su uno stato apre
+compaiono subito nella preview. Il pannello del grafo resta aperto per il doppio
+clic; un clic nella preview lo minimizza per liberare l'area di lavoro.
+L'intestazione può essere trascinata, ripristinata con **–** o chiusa. Se viene
+chiuso, un pulsante flottante **Animation panel** lo ripristina. Il doppio clic su uno stato apre
 l'overlay con nome, CSS e le transizioni in ingresso/uscita (trigger, durata,
 easing, delay); il doppio clic su una freccia apre le stesse proprietà della
 transizione. Gli overlay sono trascinabili e il grafo mostra solo nomi degli

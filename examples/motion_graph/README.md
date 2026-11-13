@@ -73,10 +73,10 @@ and the FLIP engine described in `examples/motion_pages`.
 5. Click a state: it is highlighted, its CSS is applied in the preview, the
    element is centered, and the rest of the preview becomes inert. Inspector
    changes (size, color, border, ...) are written back into the focused state
-   CSS and appear immediately in the preview. The graph panel minimizes
-   automatically so the preview is free; its header can be dragged, restored
-   with **–** or closed. If it is closed, the floating **Animation panel**
-   button restores it.
+   CSS and appear immediately in the preview. The graph panel stays open for
+   double-click; clicking inside the preview minimizes it. Its header can be
+   dragged, restored with **–** or closed. If it is closed, the floating
+   **Animation panel** button restores it.
 6. Double-click a state to open its parameter overlay (name, CSS and the
    incoming/outgoing transition trigger, duration, easing and delay). Double-
    click an arrow to open the same transition properties. The graph shows only

@@ -6542,7 +6542,7 @@ function mgRender() {
     var txt = document.createElement("span"); txt.textContent = s.name || s.id; nm.appendChild(txt);
     if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "iniziale"; nm.appendChild(b); }
     d.appendChild(nm);
-    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); mgSchedulePanelCollapse(); };
+    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
     d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgOpenParam("state", s.id); mgMinimizePanel(); };
     nodes.appendChild(d);
   });
@@ -6869,13 +6869,21 @@ function mgMakeDraggable(panelId, handleId) {
     ev.preventDefault();
     var r = panel.getBoundingClientRect();
     var sx = ev.clientX, sy = ev.clientY;
-    panel.style.left = r.left + "px";
-    panel.style.top = r.top + "px";
-    panel.style.right = "auto";
-    panel.style.bottom = "auto";
+    var moved = false;
+    var pinned = false;
     function move(e) {
-      panel.style.left = Math.max(0, r.left + e.clientX - sx) + "px";
-      panel.style.top = Math.max(0, r.top + e.clientY - sy) + "px";
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      moved = true;
+      if (!pinned) {
+        pinned = true;
+        panel.style.left = r.left + "px";
+        panel.style.top = r.top + "px";
+        panel.style.right = "auto";
+        panel.style.bottom = "auto";
+      }
+      panel.style.left = Math.max(0, r.left + dx) + "px";
+      panel.style.top = Math.max(0, r.top + dy) + "px";
     }
     function up() {
       window.removeEventListener("pointermove", move);
@@ -14210,7 +14218,7 @@ window.addEventListener("message", function(ev) {
   if (ev.data.ty === "sui-layout-resize") { applyLayoutResize(Number(ev.data.table), String(ev.data.axis || "x"), ev.data.sizes || []); return; }
   if (ev.data.ty === "sui-layout-split-select") { selectLayoutSplit(Number(ev.data.table), String(ev.data.axis || "x"), Number(ev.data.index), !!ev.data.add); return; }
   if (ev.data.ty === "sui-drop-layout") { dropFromPaletteLayout(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
-  if (ev.data.ty === "sui") { selectByDfs(ev.data.id); return; }
+  if (ev.data.ty === "sui") { if (mgEdit) mgMinimizePanel(); selectByDfs(ev.data.id); return; }
   if (ev.data.ty === "sui-mselect") { selectPaths(idsToPaths(ev.data.ids || [])); setStatus((ev.data.ids || []).length ? ("selected " + ev.data.ids.length + " element(s)") : "nothing selected"); return; }
   if (ev.data.ty === "sui-drop") { dropFromPalette(ev.data.id); return; }
   if (ev.data.ty === "sui-key") { typeToEdit(String(ev.data.key || "")); return; }

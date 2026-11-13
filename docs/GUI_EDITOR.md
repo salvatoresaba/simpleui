@@ -915,8 +915,8 @@ only the graph; parameters open in draggable overlay panels:
   element and locks the rest of the preview so only that element stays active.
   Inspector style changes (size, color, border, ...) are written back into the
   focused state CSS and appear immediately in the preview. The graph panel
-  minimizes automatically to free the preview; the header keeps it available
-  and the **–** button, drag or close controls behave normally.
+  stays open for double-click; clicking inside the preview minimizes it to free
+  the workspace. The **–**, drag and close controls are always available.
 - If the panel is closed, a floating **Animation panel** button restores it.
 - Double-click a state to open its parameter overlay (name, CSS, and the
   incoming/outgoing transition trigger, duration, easing and delay). Double-

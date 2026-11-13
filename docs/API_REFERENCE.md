@@ -444,9 +444,10 @@ duplicates those fields.
 Clicking a state highlights it and applies its CSS in the preview, centers the
 element and locks the rest of the preview so only that element stays active.
 Inspector style edits are written back into the focused state CSS and appear
-immediately in the preview. The graph panel minimizes automatically to free the
-preview; its header stays available and can be dragged, restored with **–** or
-closed. If it is closed, a floating **Animation panel** button restores it.
+immediately in the preview. The graph panel stays open for double-click; a
+click inside the preview minimizes it to free the workspace. Its header can be
+dragged, restored with **–** or closed. If it is closed, a floating **Animation
+panel** button restores it.
 Double-clicking a state opens its parameter overlay with name, CSS and the
 incoming/outgoing transition trigger, duration, easing and delay; double-
 clicking an arrow opens the same transition properties. Overlays are draggable
