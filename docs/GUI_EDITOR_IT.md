@@ -946,14 +946,22 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   e overlay restano dentro il viewport e possono essere trascinati o
   ridimensionati.
 
-- I blocchi sono piccoli: mostrano il nome dello stato e il punto di
-  connessione. Ogni stato ha un pulsante **+** per un nuovo trigger.
-- **+** apre la scelta del trigger: tipo, stato di destinazione (esistente o
-  nuovo) e dati specifici. Il nuovo stato parte con i parametri dello stato
-  sorgente ed è collegato automaticamente; il salvataggio lo valida.
+- I blocchi sono piccoli ma crescono in altezza quando si aggiungono trigger
+  uscenti, così i punti di connessione restano leggibili. Trascina un blocco per
+  spostarlo; la posizione viene conservata nel grafo. Ogni blocco ha **+** per
+  aggiungere uno stato collegato e **×** per eliminare lo stato.
+- **+** crea subito un nuovo blocco, lo posiziona sul grafo e aggiunge un link
+  dallo stato sorgente. Si apre l'overlay dello stato sorgente per configurare
+  il nuovo trigger tra i tipi disponibili. **Aggiungi trigger** nell'overlay
+  aggiunge invece un trigger a uno stato esistente.
 - Il trigger appartiene allo stato di partenza. Ogni link uscente è numerato
-  nel punto di partenza e il numero è l'indice del trigger. Più link possono
+  nel punto di partenza; il numero è l'indice del trigger. Passando il mouse sul
+  numero compare l'hint del trigger (ad esempio `click`). Più link possono
   uscire dallo stesso stato verso destinazioni diverse.
+- I link partono sempre dal lato destro dello stato sorgente e finiscono al
+  centro del lato sinistro della destinazione. I link in avanti usano una curva
+  morbida; quelli che tornano a uno stato precedente vengono instradati attorno
+  ai blocchi per restare visibili.
 - Click e gli altri eventi DOM si possono usare una sola volta per stato
   sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
   eventi già usati e la validazione rifiuta i duplicati.

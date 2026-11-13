@@ -72,15 +72,18 @@ and the FLIP engine described in `examples/motion_pages`.
    current or initial state. Panels and overlays stay inside the viewport.
 4. **Layout & shared** in the toolbar opens a draggable overlay for
    FLIP/key/duration/easing/delay/exit for lists and page transitions.
-5. State blocks show only the name and a connection point. Each has a **+**
-   button that opens the trigger chooser: trigger type, destination state
-   (existing or new) and type-specific data. A new state copies the source
-   parameters and is connected automatically.
+5. State blocks grow taller when outgoing triggers are added, and can be
+   dragged to custom positions. Each block has **+** to add a connected state
+   and **×** to delete it. **+** immediately creates a positioned state block
+   and a link, then opens the source state overlay to configure the trigger.
+   **Aggiungi trigger** in the overlay is for existing states.
 6. Triggers belong to the source state. Outgoing links are numbered at their
-   starting point; the number is the trigger index. Click and the other DOM
-   events can be used once per source state; variable and timer triggers can be
-   repeated. A variable trigger lists the available SUI states and asks for the
-   activating value; a timer trigger starts after the chosen duration.
+   starting point; hovering the number shows the trigger hint. Links always
+   leave the right side and enter the target's left centre; backward links are
+   routed around the boxes. Click and other DOM events can be used once per
+   source state; variable and timer triggers can be repeated. A variable
+   trigger lists the available SUI states and asks for the activating value; a
+   timer trigger starts after the chosen duration.
 7. Double-click a state to edit its overlay (name, CSS and the list of active
    triggers with destinations); use **Aggiungi trigger** for more. Double-click
    an arrow for trigger, duration, easing and delay.

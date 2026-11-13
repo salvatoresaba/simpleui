@@ -903,6 +903,10 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .mg-node .mg-add:hover { border-color:#4c5cf7; color:#9db4ff; }
 .mg-node .mg-port { position:absolute; right:-4px; top:50%; width:7px; height:7px; border-radius:50%; background:#7db3ff;
   transform:translateY(-50%); }
+.mg-node .mg-del { position:absolute; right:2px; bottom:2px; width:16px; height:16px; border:1px solid #b23a4a;
+  border-radius:50%; background:var(--input-bg); color:#ffb4bf; font-size:12px; line-height:13px; text-align:center;
+  cursor:pointer; padding:0; }
+.mg-node .mg-del:hover { background:#3a1d24; }
 #mg-editbar { position:fixed; left:50%; top:14px; transform:translateX(-50%); display:none; align-items:center; gap:8px;
   background:var(--panel); border:1px solid #4c5cf7; border-radius:9px; padding:7px 10px; z-index:70;
   box-shadow:0 10px 36px rgba(0,0,0,.5); font-size:12px; max-width:calc(100vw - 24px); flex-wrap:wrap; justify-content:center; box-sizing:border-box; }
@@ -6381,6 +6385,8 @@ var mgPath = null, mgNode = null, mgCfg = null, mgSelState = "", mgSelLink = "";
 var mgParam = null;
 var mgCollapseTimer = 0;
 var mgGraphSize = { x: 240, y: 120 };
+var mgPositions = {};
+var mgNodeHeights = {};
 var mgEdit = null;
 var MG_CAPTURE_PROPS = ["width","height","min-width","min-height","max-width","max-height",
   "margin-top","margin-right","margin-bottom","margin-left","padding-top","padding-right","padding-bottom","padding-left",
@@ -6576,8 +6582,63 @@ function mgApplyStateDecls(decls, after) {
   if (after) after();
   return true;
 }
-function mgMarkSelection() {
-  document.querySelectorAll(".mg-node").forEach(function(n){
+function mgMakeStateDraggable(d, s) {
+  d.addEventListener("pointerdown", function(ev){
+    if (ev.target && ev.target.closest && ev.target.closest("button,.mg-port")) return;
+    ev.preventDefault();
+    var r = d.getBoundingClientRect();
+    var startX = parseFloat(s.x);
+    var startY = parseFloat(s.y);
+    if (!isFinite(startX)) startX = mgPositions[s.id] ? mgPositions[s.id].x : 0;
+    if (!isFinite(startY)) startY = mgPositions[s.id] ? mgPositions[s.id].y : 0;
+    var sx = ev.clientX, sy = ev.clientY;
+    var scaleX = d.offsetWidth ? (r.width / d.offsetWidth) : 1;
+    var scaleY = d.offsetHeight ? (r.height / d.offsetHeight) : 1;
+    if (!scaleX) scaleX = 1;
+    if (!scaleY) scaleY = 1;
+    var moved = false;
+    function move(e) {
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      moved = true;
+      d.style.left = Math.max(0, startX + dx / scaleX) + "px";
+      d.style.top = Math.max(0, startY + dy / scaleY) + "px";
+    }
+    function up() {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      if (!moved) return;
+      d.__suiDragged = true;
+      snap("move motion state");
+      s.x = Math.round(parseFloat(d.style.left) || startX);
+      s.y = Math.round(parseFloat(d.style.top) || startY);
+      mgNode.motionGraph = mgCfg;
+      setOut();
+      mgRender();
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  });
+}
+function mgLinkPath(x1, y1, x2, y2, aId, bId, idx) {
+  var a = mgPositions[aId] || { x: 0, y: 0 };
+  var b = mgPositions[bId] || { x: 0, y: 0 };
+  var ha = mgNodeHeights[aId] || 38;
+  var hb = mgNodeHeights[bId] || 38;
+  if (x2 > x1 + 32 && aId !== bId) {
+    var dx = Math.max(28, (x2 - x1) * 0.45);
+    return "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2;
+  }
+  var top = Math.min(a.y, b.y);
+  var bottom = Math.max(a.y + ha, b.y + hb);
+  var lane = (idx % 2 === 0) ? top - 24 - idx * 6 : bottom + 24 + idx * 6;
+  if (lane < 8) lane = bottom + 24 + idx * 6;
+  var r1 = x1 + 38;
+  var r2 = Math.max(20, x2 - 38);
+  return "M " + x1 + " " + y1 + " C " + r1 + " " + y1 + ", " + r1 + " " + lane + ", " + (r1 + 20) + " " + lane +
+    " L " + (r2 - 20) + " " + lane + " C " + r2 + " " + lane + ", " + r2 + " " + y2 + ", " + x2 + " " + y2;
+}
+function mgMarkSelection() {  document.querySelectorAll(".mg-node").forEach(function(n){
     n.classList.toggle("on", n.getAttribute("data-state") === mgSelState);
   });
   document.querySelectorAll("#mg-lines path[data-link]").forEach(function(p){
@@ -6673,35 +6734,52 @@ function mgRender() {
   }
   var maxLayer = 0;
   for (var k in layers) if (layers[k] > maxLayer) maxLayer = layers[k];
-  var per = {};
+  var outCount = {};
+  mgCfg.links.forEach(function(l){ if (l.from) outCount[l.from] = (outCount[l.from] || 0) + 1; });
+  function nodeHeight(id) { return Math.min(130, 38 + Math.max(0, (outCount[id] || 0) - 1) * 16); }
+  var layerY = {};
   var pos = {};
+  mgNodeHeights = {};
   mgCfg.states.forEach(function(s){
     if (layers[s.id] === undefined) layers[s.id] = maxLayer + 1;
-    var n = per[layers[s.id]] || 0;
-    pos[s.id] = { x: 24 + layers[s.id] * 172, y: 24 + n * 62 };
-    per[layers[s.id]] = n + 1;
+    var h = nodeHeight(s.id);
+    mgNodeHeights[s.id] = h;
+    if (typeof s.x === "number" && typeof s.y === "number") {
+      pos[s.id] = { x: s.x, y: s.y };
+    } else {
+      var y = layerY[layers[s.id]] !== undefined ? layerY[layers[s.id]] : 24;
+      pos[s.id] = { x: 24 + layers[s.id] * 172, y: y };
+      layerY[layers[s.id]] = y + h + 12;
+    }
   });
+  mgPositions = pos;
   var maxX = 160, maxY = 80;
   nodes.innerHTML = "";
   mgCfg.states.forEach(function(s){
-    maxX = Math.max(maxX, pos[s.id].x + 136);
-    maxY = Math.max(maxY, pos[s.id].y + 50);
+    var h = mgNodeHeights[s.id] || 38;
+    maxX = Math.max(maxX, pos[s.id].x + 200);
+    maxY = Math.max(maxY, pos[s.id].y + h + 50);
     var d = document.createElement("div");
     d.className = "mg-node" + (s.id === mgSelState ? " on" : "");
     d.style.left = pos[s.id].x + "px";
     d.style.top = pos[s.id].y + "px";
-    d.title = "Clic: mostra lo stato nella preview. Doppio clic: parametri.";
+    d.style.height = h + "px";
+    d.title = "Clic: mostra lo stato nella preview. Doppio clic: parametri. Trascina per spostare.";
     d.setAttribute("data-state", s.id);
     var nm = document.createElement("div"); nm.className = "mg-name";
     var txt = document.createElement("span"); txt.textContent = s.name || s.id; nm.appendChild(txt);
     if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "iniziale"; nm.appendChild(b); }
     d.appendChild(nm);
-    var port = document.createElement("span"); port.className = "mg-port"; d.appendChild(port);
-    var add = document.createElement("button"); add.type = "button"; add.className = "mg-add"; add.textContent = "+"; add.title = "Nuovo collegamento";
-    add.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgAddLinkMenu(s.id); };
+    var port = document.createElement("span"); port.className = "mg-port"; port.style.top = (h / 2) + "px"; d.appendChild(port);
+    var add = document.createElement("button"); add.type = "button"; add.className = "mg-add"; add.textContent = "+"; add.title = "Nuovo stato collegato";
+    add.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgQuickAddState(s.id); };
     d.appendChild(add);
-    d.onclick = function(){ mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
+    var del = document.createElement("button"); del.type = "button"; del.className = "mg-del"; del.textContent = "\u00d7"; del.title = "Elimina stato";
+    del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgDeleteState(s.id); };
+    d.appendChild(del);
+    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
     d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgFocusState(s.id, true); mgOpenParam("state", s.id); mgMinimizePanel(); };
+    mgMakeStateDraggable(d, s);
     nodes.appendChild(d);
   });
   nodes.style.width = maxX + "px";
@@ -6720,12 +6798,13 @@ function mgRender() {
     var slotIndex = (outUsed[l.from] || 0);
     outUsed[l.from] = slotIndex + 1;
     var count = outCount[l.from] || 1;
-    var slot = slotIndex - (count - 1) / 2;
-    var x1 = pos[a.id].x + 120, y1 = pos[a.id].y + 19 + slot * 8;
-    var x2 = pos[b.id].x, y2 = pos[b.id].y + 19;
-    var dx = Math.max(40, Math.abs(x2 - x1) * 0.45);
+    var hs = mgNodeHeights[a.id] || 38;
+    var ht = mgNodeHeights[b.id] || 38;
+    var x1 = pos[a.id].x + 120;
+    var y1 = pos[a.id].y + (hs * (slotIndex + 1)) / (count + 1);
+    var x2 = pos[b.id].x, y2 = pos[b.id].y + ht / 2;
     var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2);
+    path.setAttribute("d", mgLinkPath(x1, y1, x2, y2, a.id, b.id, slotIndex));
     path.setAttribute("fill", "none");
     path.setAttribute("stroke", l.id === mgSelLink ? "#4c5cf7" : "#7db3ff");
     path.setAttribute("stroke-width", l.id === mgSelLink ? "2.4" : "1.6");
@@ -6739,6 +6818,9 @@ function mgRender() {
     var badge = document.createElementNS("http://www.w3.org/2000/svg", "g");
     badge.setAttribute("data-trigger", l.id);
     badge.style.cursor = "pointer";
+    var badgeTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    badgeTitle.textContent = mgTriggerLabel(l);
+    badge.appendChild(badgeTitle);
     var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     circle.setAttribute("cx", x1 + 7); circle.setAttribute("cy", y1 - 9); circle.setAttribute("r", "7");
     circle.setAttribute("fill", l.event ? "#4c5cf7" : "#b23a4a");
@@ -6767,6 +6849,25 @@ function mgAddLinkMenu(sourceId) {
   clearTimeout(mgCollapseTimer);
   mgParam = { kind: "newlink", id: sourceId };
   mgRenderParam();
+}
+function mgQuickAddState(sourceId) {
+  var src = mgStateById(sourceId);
+  if (!src || !mgNode) return;
+  snap("add motion state");
+  var count = mgCfg.links.filter(function(l){ return l.from === sourceId; }).length;
+  var base = mgPositions[sourceId] || { x: 24, y: 24 };
+  var st = {
+    id: mgNextId("s", mgCfg.states),
+    name: "Stato " + (mgCfg.states.length + 1),
+    css: src.css || "",
+    x: base.x + 200,
+    y: base.y + count * 74
+  };
+  mgCfg.states.push(st);
+  var link = { id: mgNextId("l", mgCfg.links), from: sourceId, to: st.id, event: "", duration: "320ms", easing: "ease-out", delay: "0ms" };
+  mgCfg.links.push(link);
+  mgSelState = sourceId; mgSelLink = ""; mgParam = { kind: "state", id: sourceId };
+  mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
 }
 function mgCloseParam() {
   mgParam = null;

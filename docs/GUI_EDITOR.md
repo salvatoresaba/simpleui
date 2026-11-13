@@ -911,15 +911,21 @@ only the graph; parameters open in draggable overlay panels:
   panel and overlays stay fully inside the viewport and can be dragged or
   resized.
 
-- State blocks are intentionally small: they show the state name and a
-  connection point. Each state has a **+** button for a new trigger.
-- **+** opens the trigger chooser: choose the trigger type, the destination
-  state (existing or new), and the type-specific data. A new state starts with
-  the source parameters and is connected automatically; the next save validates
-  it.
+- State blocks are intentionally small but grow taller as outgoing triggers are
+  added, so their connection points stay readable. Drag a block to move it; the
+  position is kept in the graph. Each block has **+** to add a connected state
+  and **×** to delete the state.
+- **+** immediately creates a new state block, positions it on the graph and
+  adds a link from the source state. The source state overlay opens so the new
+  trigger can be configured from the available types. **Aggiungi trigger** in
+  the overlay adds a trigger to an existing state instead.
 - A trigger belongs to the state that starts the transition. Every outgoing
   link is numbered at its starting point; the number is the trigger index.
-  Several links can leave the same state and point to different targets.
+  Hovering the number shows the trigger hint (for example `click`). Several
+  links can leave the same state and point to different targets.
+- Links always start at the right side of the source and end at the centre of
+  the target's left side. Forward links use a smooth curve; links that go back
+  to an earlier state are routed around the boxes so they stay visible.
 - Click and the other DOM events can be used once per source state; variable
   and timer triggers can be repeated. The chooser disables already-used single
   events and validation rejects duplicates.

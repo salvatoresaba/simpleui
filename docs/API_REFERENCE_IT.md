@@ -416,19 +416,21 @@ posizione fissa. Pannelli e overlay restano dentro il viewport visibile.
 `motionKey`, `motionDuration`, `motionEasing`, `motionDelay` e `motionExit`
 usate da FLIP, riordino liste e transizioni tra pagine.
 
-I blocchi mostrano solo nome, punto di connessione e pulsante **+**. **+**
-apre la scelta del trigger: tipo, destinazione (stato esistente o nuovo) e dati
-specifici. Il trigger appartiene allo stato di partenza; i link uscenti sono
-numerati nel punto di partenza e il numero è l'indice del trigger. Uno stato può
-avere più trigger numerati. Gli eventi DOM come click si usano una sola volta
-per stato sorgente; variabili e timer possono essere ripetuti. Il trigger
-variabile elenca gli stati SUI disponibili e chiede il valore attivatore; il
-timer avvia la transizione dopo la durata scelta.
+I blocchi crescono in altezza con i trigger uscenti e possono essere trascinati
+in posizioni personalizzate. Ogni blocco ha **+** per aggiungere uno stato
+collegato e **×** per eliminarlo. **+** crea subito un nuovo blocco, lo
+posiziona sul grafo e aggiunge il link; si apre l'overlay dello stato sorgente
+per configurare il nuovo trigger. **Aggiungi trigger** aggiunge un altro trigger
+a uno stato esistente. Il trigger appartiene allo stato di partenza; i link
+uscenti sono numerati all'inizio e il tooltip del numero mostra il tipo di
+trigger. I link partono dal lato destro e arrivano al centro del lato sinistro
+della destinazione; quelli all'indietro vengono instradati attorno ai blocchi.
 
 Il doppio clic su uno stato apre l'overlay con nome, CSS e lista dei trigger
-attivi con la destinazione (nessun campo per i trigger in ingresso);
-**Aggiungi trigger** ne crea altri. Il doppio clic su una freccia apre trigger,
-durata, easing e delay.
+attivi con la destinazione (nessun campo per i trigger in ingresso). Il doppio
+clic su una freccia apre trigger, durata, easing e delay. Il chooser supporta
+eventi DOM (una volta per stato sorgente), trigger variabile con valore
+attivatore e timer con durata.
 
 Il clic su uno stato applica il CSS nella preview e blocca l'elemento; le
 modifiche dall'inspector vengono scritte nello stato focalizzato. La modifica

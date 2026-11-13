@@ -440,19 +440,21 @@ to the visible viewport. **Layout & shared** in the toolbar opens the classic
 `motion`, `motionKey`, `motionDuration`, `motionEasing`, `motionDelay` and
 `motionExit` settings used by FLIP, list reordering and page transitions.
 
-State blocks show only the name, connection point and a **+** button. **+**
-opens the trigger chooser: trigger type, destination (existing or new state),
-and type-specific data. A trigger belongs to the source state; outgoing links
-are numbered at their start point and the number is the trigger index. A state
-can have several numbered triggers pointing to different targets. DOM events
-such as click can be used once per source state; variable and timer triggers can
-be repeated. A variable trigger lists the available SUI states and asks for the
-activating value; a timer trigger starts the transition after a chosen duration.
+State blocks grow taller as outgoing triggers are added and can be dragged to
+custom positions. Each block has **+** to add a connected state and **×** to
+delete it. **+** immediately creates a new state block, positions it on the
+graph and adds a link; the source state overlay opens to configure the new
+trigger. **Aggiungi trigger** adds another trigger to an existing state. A
+trigger belongs to the source state; outgoing links are numbered at their start
+point and hovering the number shows the trigger hint. Links always leave the
+right side and enter the centre of the target's left side; forward links curve
+directly and backward links are routed around the boxes.
 
 Double-clicking a state opens its overlay with name, CSS and the list of active
-triggers with their destinations (no incoming-trigger fields); **Aggiungi
-trigger** adds more. Double-clicking an arrow opens the trigger, duration,
-easing and delay.
+triggers with their destinations (no incoming-trigger fields). Double-clicking
+an arrow opens the trigger, duration, easing and delay. The trigger chooser
+supports DOM events (once per source state), variable triggers with an
+activating value, and timers that fire after a chosen duration.
 
 Clicking a state applies its CSS in the preview and locks the element; inspector
 edits are written into the focused state. Editing collapses the graph to a bar
