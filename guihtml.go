@@ -1088,10 +1088,10 @@ body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset
     </div>
     <div id="mg-panel">
       <div class="mg-hdr">
-        <span>Animation graph</span>
+        <span>Animation panel</span>
         <div style="flex:1"></div>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgAddState()">+ state</button>
-        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgRemoveGraph(mgNode)">Rimuovi grafo</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgRemoveGraph(mgNode)">Rimuovi stati</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgClosePanel()">&#10005;</button>
       </div>
       <div class="mg-toolbar">
@@ -6290,87 +6290,28 @@ function block3Controls(n) {
 function motionControls(n) {
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
-  h.innerHTML = '<span>Motion (FLIP / enter / exit)</span><span>\u25BE</span>';
+  h.innerHTML = '<span>Motion (animation panel)</span><span>\u25BE</span>';
   h.onclick = function(){ a.classList.toggle("open"); };
   a.appendChild(h);
   var b = document.createElement("div"); b.className = "accbody";
   var hasGraph = !!n.motionGraph && (typeof n.motionGraph !== "string" || n.motionGraph.trim() !== "");
-  if (hasGraph) {
-    var gnote = document.createElement("div"); gnote.className = "hint";
-    gnote.textContent = "This element uses an animation graph. The simple effect/key/duration fields are hidden so a graph and the simple FLIP settings cannot disagree.";
-    b.appendChild(gnote);
-    var grow = document.createElement("div"); grow.className = "rowline";
-    var gopen = document.createElement("button"); gopen.className = "btn";
-    gopen.style.fontSize = "11px"; gopen.style.padding = "3px 8px";
-    gopen.textContent = "Open animation graph";
-    gopen.onclick = function(){ mgOpen(n, selPath ? selPath.slice() : null); };
-    grow.appendChild(gopen);
-    var gremove = document.createElement("button"); gremove.className = "btn";
-    gremove.style.fontSize = "11px"; gremove.style.padding = "3px 8px"; gremove.style.marginLeft = "6px";
-    gremove.textContent = "Remove graph";
-    gremove.onclick = function(){ mgRemoveGraph(n); };
-    grow.appendChild(gremove);
-    b.appendChild(grow);
-    a.appendChild(b);
-    return a;
-  }
-  var row = document.createElement("div"); row.className = "rowline";
-  row.appendChild(lbl("effect"));
-  var sel = document.createElement("select");
-  [["", "off"], ["layout", "layout (FLIP)"], ["fade", "fade"], ["scale", "scale"], ["slide", "slide"]].forEach(function(o){
-    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
-    if ((n.motion || "") === o[0]) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  sel.onchange = function(){ withUndo(function(){ n.motion = sel.value; }, "motion effect"); };
-  row.appendChild(sel); b.appendChild(row);
-  function textRow(label, field, placeholder) {
-    var r = document.createElement("div"); r.className = "rowline";
-    r.appendChild(lbl(label));
-    var inp = document.createElement("input");
-    inp.value = n[field] || "";
-    inp.placeholder = placeholder || "";
-    inp.spellcheck = false;
-    inp.onchange = function(){ withUndo(function(){ n[field] = inp.value.trim(); }, "motion " + label); };
-    r.appendChild(inp); b.appendChild(r);
-  }
-  var kr = document.createElement("div"); kr.className = "rowline";
-  kr.appendChild(lbl("key"));
-  var ki = document.createElement("input");
-  ki.value = n.motionKey || "";
-  ki.placeholder = "e.g. item.id (required in lists)";
-  ki.spellcheck = false;
-  ki.onchange = function(){
-    var v = ki.value.trim();
-    var expr = false;
-    if ((v.charAt(0) === '"' && v.charAt(v.length - 1) === '"') || (v.charAt(0) === "'" && v.charAt(v.length - 1) === "'")) {
-      v = v.slice(1, -1);
-    } else {
-      expr = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(v);
-    }
-    withUndo(function(){ n.motionKey = v; n.motionKeyExpr = expr; }, "motion key");
-  };
-  kr.appendChild(ki); b.appendChild(kr);
-  textRow("duration", "motionDuration", "280ms");
-  textRow("easing", "motionEasing", "ease-out");
-  textRow("delay", "motionDelay", "0ms");
-  var er = document.createElement("div"); er.className = "rowline";
-  er.appendChild(lbl("animate exit"));
-  var ec = document.createElement("input"); ec.type = "checkbox"; ec.checked = n.motionExit !== false;
-  ec.style.flex = "none";
-  ec.onchange = function(){ withUndo(function(){ n.motionExit = !!ec.checked; }, "motion exit"); };
-  er.appendChild(ec); b.appendChild(er);
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "These simple FLIP fields are the active configuration. Opening the animation graph replaces them with graph states and triggers; the graph is not active while this simple mode is in use. Use item.id on repeated list items.";
+  hint.textContent = "All motion settings live in one panel: states, links and Layout & shared (FLIP, lists, page transitions).";
   b.appendChild(hint);
-  var graphRow = document.createElement("div"); graphRow.className = "rowline";
-  var graphBtn = document.createElement("button"); graphBtn.className = "btn";
-  graphBtn.style.fontSize = "11px"; graphBtn.style.padding = "3px 8px";
-  graphBtn.textContent = "Open animation graph";
-  graphBtn.title = "Create states and connect them with event or after-transition triggers";
-  graphBtn.onclick = function(){ mgOpen(n, selPath ? selPath.slice() : null); };
-  graphRow.appendChild(graphBtn);
-  b.appendChild(graphRow);
+  var row = document.createElement("div"); row.className = "rowline";
+  var open = document.createElement("button"); open.className = "btn";
+  open.style.fontSize = "11px"; open.style.padding = "3px 8px";
+  open.textContent = "Open animation panel";
+  open.onclick = function(){ mgOpen(n, selPath ? selPath.slice() : null); };
+  row.appendChild(open);
+  if (hasGraph) {
+    var remove = document.createElement("button"); remove.className = "btn";
+    remove.style.fontSize = "11px"; remove.style.padding = "3px 8px"; remove.style.marginLeft = "6px";
+    remove.textContent = "Remove states";
+    remove.onclick = function(){ mgRemoveGraph(n); };
+    row.appendChild(remove);
+  }
+  b.appendChild(row);
   a.appendChild(b);
   return a;
 }
@@ -6421,17 +6362,6 @@ function mgNextId(prefix, list) {
 }
 function mgOpen(n, path) {
   if (!n) return;
-  var staleSimple = !!(n.motion || n.motionKey || n.motionDuration || n.motionEasing || n.motionDelay || n.motionExit === false);
-  if (staleSimple) {
-    snap("switch to animation graph");
-    n.motion = "";
-    n.motionKey = "";
-    n.motionKeyExpr = false;
-    n.motionDuration = "";
-    n.motionEasing = "";
-    n.motionDelay = "";
-    n.motionExit = true;
-  }
   mgPath = path && path.length ? path.slice() : (selPath ? selPath.slice() : null);
   mgNode = n;
   mgCfg = mgEnsure(n);
@@ -6442,12 +6372,11 @@ function mgOpen(n, path) {
   var title = document.getElementById("mg-graph-title");
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
-  if (staleSimple) { setOut(); autoPreview(); }
   renderInspector();
 }
 function mgRemoveGraph(n) {
   if (!n || !n.motionGraph) return;
-  snap("remove animation graph");
+  snap("remove animation states");
   delete n.motionGraph;
   if (mgNode === n) { mgCfg = null; mgNode = null; mgSelState = ""; mgSelLink = ""; mgClosePanel(); }
   setOut();
@@ -6555,6 +6484,34 @@ function mgRenderSide() {
   }
   function actions() { var d = document.createElement("div"); d.className = "mg-actions"; side.appendChild(d); return d; }
   function btn(parent, text, fn) { var b = document.createElement("button"); b.className = "btn"; b.style.fontSize = "11px"; b.style.padding = "3px 7px"; b.textContent = text; b.onclick = fn; parent.appendChild(b); return b; }
+  // Layout & shared is part of the same panel: it controls FLIP movement,
+  // list reordering and page transitions, while states/links control explicit
+  // triggers. Keeping both here avoids a second inspector configuration.
+  label("Layout & shared (FLIP / lists / pages)");
+  var le = select(mgNode.motion || "", [["", "off"], ["layout", "layout (FLIP)"], ["fade", "fade"], ["scale", "scale"], ["slide", "slide"]]);
+  le.onchange = function(){ snap("motion layout effect"); mgNode.motion = le.value; mgCommit(); };
+  label("layout key"); var lk = input(mgNode.motionKey || "", "e.g. hero or item.id");
+  lk.onchange = function(){
+    var v = lk.value.trim(); var expr = false;
+    if ((v.charAt(0) === '"' && v.charAt(v.length - 1) === '"') || (v.charAt(0) === "'" && v.charAt(v.length - 1) === "'")) v = v.slice(1, -1);
+    else expr = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(v);
+    snap("motion layout key"); mgNode.motionKey = v; mgNode.motionKeyExpr = expr; mgCommit();
+  };
+  label("layout duration"); var ld = input(mgNode.motionDuration || "", "280ms");
+  ld.onchange = function(){ snap("motion layout duration"); mgNode.motionDuration = ld.value.trim(); mgCommit(); };
+  label("layout easing"); var lz = input(mgNode.motionEasing || "", "ease-out");
+  lz.onchange = function(){ snap("motion layout easing"); mgNode.motionEasing = lz.value.trim(); mgCommit(); };
+  label("layout delay"); var ly = input(mgNode.motionDelay || "", "0ms");
+  ly.onchange = function(){ snap("motion layout delay"); mgNode.motionDelay = ly.value.trim(); mgCommit(); };
+  var lex = document.createElement("div"); lex.className = "rowline"; lex.style.marginTop = "6px";
+  var lec = document.createElement("input"); lec.type = "checkbox"; lec.checked = mgNode.motionExit !== false; lec.style.flex = "none";
+  lec.onchange = function(){ snap("motion layout exit"); mgNode.motionExit = !!lec.checked; mgCommit(); };
+  var lel = document.createElement("label"); lel.textContent = "animate exit"; lel.style.margin = "0 0 0 4px";
+  lex.appendChild(lec); lex.appendChild(lel); side.appendChild(lex);
+  var lnote = document.createElement("div"); lnote.className = "hint"; lnote.style.marginTop = "4px";
+  lnote.textContent = "Layout & shared handles FLIP, list reorder and page transitions. States and links below handle explicit triggers.";
+  side.appendChild(lnote);
+  var lsep = document.createElement("div"); lsep.style.cssText = "border-top:1px solid var(--border);margin:10px 0 4px"; side.appendChild(lsep);
   if (mgSelLink) {
     var l = mgLinkById(mgSelLink);
     if (!l) { mgSelLink = ""; return mgRenderSide(); }
@@ -12972,7 +12929,7 @@ function attrsOf(n) {
   }
   if (n.kind === "dropdownitem" && n.separator) a += " separator: true";
   var mgOn = !!n.motionGraph && (typeof n.motionGraph !== "string" || n.motionGraph.trim() !== "");
-  if (n.motion && !mgOn && !(n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
+  if (n.motion && !(n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
     a += " motion: \"" + esc(n.motion) + "\"";
     if (n.motionKey) a += " motionKey: " + (n.motionKeyExpr ? n.motionKey : "\"" + esc(n.motionKey) + "\"");
     if (n.motionDuration) a += " motionDuration: \"" + esc(n.motionDuration) + "\"";

@@ -45,7 +45,7 @@ func TestMotionGraphAttrs(t *testing.T) {
 	}
 }
 
-func TestMotionGraphOwnsSimpleMotion(t *testing.T) {
+func TestMotionGraphKeepsLayoutMotion(t *testing.T) {
 	graph := map[string]any{
 		"initial": "a",
 		"states":  []any{map[string]any{"id": "a", "name": "A", "css": "width: 200px;"}},
@@ -63,8 +63,8 @@ func TestMotionGraphOwnsSimpleMotion(t *testing.T) {
 	if !strings.Contains(js, "data-sui-motion-graph=") {
 		t.Fatal("motionGraph attribute was not emitted")
 	}
-	if strings.Contains(js, "data-sui-motion-effect=") {
-		t.Fatal("simple motion attributes must be ignored when a graph is present")
+	if !strings.Contains(js, "data-sui-motion-effect=") {
+		t.Fatal("layout/shared motion must remain available alongside a graph")
 	}
 }
 
@@ -118,7 +118,7 @@ func TestMotionGraphE2E(t *testing.T) {
 		},
 	}
 	source := "css \".box \\{ width: 200px; height: 120px; background: #223344; \\}\"\n" +
-		"view main {\n\tcard class: \"box\" motionGraph: \"" + suiGraphLiteral(graph) + "\" {\n\t\tp \"Click\"\n\t}\n}\n"
+		"view main {\n\tcard class: \"box\" motion: \"layout\" motionKey: \"graph\" motionGraph: \"" + suiGraphLiteral(graph) + "\" {\n\t\tp \"Click\"\n\t}\n}\n"
 	index, css, js, diags, ok := guiBuildFiles(source)
 	if !ok {
 		t.Fatalf("build files: %s", StringifyJson(diags))

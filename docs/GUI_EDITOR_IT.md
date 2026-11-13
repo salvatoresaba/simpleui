@@ -935,17 +935,22 @@ card e delle sue parti visive dirette, ingrandisce un livello di superficie senz
 contenuto e trasla ogni parte in linea retta verso la posizione finale misurata;
 il contenuto viene ritagliato al box che cresce invece di essere riflussato.
 
-### Animation graph
+### Animation panel
 
-Seleziona un elemento e apri **Motion > Open animation graph**. Il pannello
-mostra gli stati come blocchi e i trigger come frecce:
+Seleziona un elemento e apri **Motion > Open animation panel**. Il pannello
+mostra gli stati come blocchi e i trigger come frecce, più una sezione
+**Layout & shared**:
 
+- **Layout & shared** scrive `motion`, `motionKey`, durata, easing, delay ed
+  exit. Gestisce FLIP, riordino liste e transizioni tra pagine.
+- I campi del grafo gestiscono i trigger espliciti. Nell'inspector non ci sono
+  più campi motion duplicati.
 - **+ state** crea un'altra fotografia CSS dell'elemento.
 - Uno stato ha un nome e un campo di dichiarazioni CSS. Puoi anche catturarlo
-  dall'inspector normale: premi **Modifica stato**, nascondi il grafo, modifica
-  l'elemento con i pannelli abituali e poi **Salva stato**.
+  dall'inspector normale: premi **Modifica stato**, nascondi il pannello,
+  modifica l'elemento con i pannelli abituali e poi **Salva stato**.
 - Mentre modifichi uno stato, il resto della preview resta visibile ma inerte:
-  solo l'elemento target può essere selezionato o modificato. Il grafo viene
+  solo l'elemento target può essere selezionato o modificato. Il pannello viene
   sostituito da una barra con **Salva stato** e **Chiudi**.
 - Seleziona due stati e usa **Aggiungi collegamento** per creare una freccia.
 - Il trigger di un link è `click`, `dblclick`, `pointerenter`, `pointerleave`,
@@ -956,15 +961,13 @@ mostra gli stati come blocchi e i trigger come frecce:
 - Durata, easing e delay appartengono al link, non allo stato.
 - **Imposta iniziale** segna lo stato applicato al caricamento. **Anteprima**
   riproduce lo stato o il link selezionato nella preview.
-- Motion semplice e grafo sono esclusivi. Quando l'elemento ha un `motionGraph`
-  l'inspector nasconde i campi semplici effetto/key/durata. Aprire il grafo
-  cancella quei campi; **Remove graph** riporta alla modalità semplice.
+- **Remove states** elimina il grafo degli stati ma conserva Layout & shared.
 
-L'editor scrive un attributo JSON letterale `motionGraph`. Il runtime conserva
-lo stato corrente sull'elemento, interpola valori espliciti di inizio e fine in
-un loop timer/rAF e rispetta il movimento ridotto. Il grafo è per singolo
-elemento; le transizioni condivise tra pagine usano ancora `motionKey` e i due
-sistemi possono convivere.
+L'editor scrive un attributo JSON letterale `motionGraph` più gli attributi
+motion classici di Layout & shared. Il runtime conserva lo stato corrente
+sull'elemento, interpola valori espliciti di inizio e fine in un loop timer/rAF
+e rispetta il movimento ridotto. Il pannello è per singolo elemento; Layout &
+shared usa ancora `motionKey` per pagine condivise e liste.
 
 **Controls > Split panes** inserisce due figli `pane` e un divisore
 trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.

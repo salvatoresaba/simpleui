@@ -3,7 +3,7 @@
 # Card 1: click toggles between two captured states.
 # Card 2: a state variable (open) drives the transition.
 #
-# Open the designer, select a card, open Motion > Open animation graph.
+# Open the designer, select a card, open Motion > Open animation panel.
 state open = false
 
 css ".page \{ max-width: 900px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 20px; \} .demo-card \{ border: 1px solid #3a4152; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 8px; color: #e6e6ef; overflow: hidden; \} .demo-card h2 \{ margin: 0; \} .demo-note \{ color: #8fa0b8; font-size: 13px; \} .demo-row \{ display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; \}"

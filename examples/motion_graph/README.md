@@ -21,7 +21,7 @@ The runtime interpolates the measured start and end values.
 # Card 1: click toggles between two captured states.
 # Card 2: a state variable (open) drives the transition.
 #
-# Open the designer, select a card, open Motion > Open animation graph.
+# Open the designer, select a card, open Motion > Open animation panel.
 state open = false
 
 css ".page \{ max-width: 900px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 20px; \} .demo-card \{ border: 1px solid #3a4152; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 8px; color: #e6e6ef; overflow: hidden; \} .demo-card h2 \{ margin: 0; \} .demo-note \{ color: #8fa0b8; font-size: 13px; \} .demo-row \{ display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; \}"
@@ -66,18 +66,21 @@ and the FLIP engine described in `examples/motion_pages`.
 
 1. Open `simpleui gui examples/motion_graph/app.sui`.
 2. Select a card in the tree or preview.
-3. Inspector → **Motion (FLIP / enter / exit)** → **Open animation graph**.
-4. Click a block to edit its CSS, or press **Modifica stato**:
-   - the graph hides, the rest of the preview stays visible but inert;
+3. Inspector → **Motion (animation panel)** → **Open animation panel**.
+4. The **Layout & shared** section at the top writes FLIP/key/duration/easing/
+   delay/exit for lists and page transitions.
+5. Click a block to edit its CSS, or press **Modifica stato**:
+   - the panel hides, the rest of the preview stays visible but inert;
    - only the target card can be selected and edited;
    - the normal inspector stays available;
    - press **Salva stato** to capture the computed style.
-   Simple motion fields and a graph are exclusive: when `motionGraph` exists the
-   inspector hides the simple fields, and **Remove graph** returns to them.
-5. Select a state and use **Aggiungi collegamento** to create an arrow.
-6. Choose the trigger, duration, easing and delay on the arrow.
-7. For a state trigger, set the event to `state` and enter `open` or `!open`.
-8. Press **Anteprima** to play the selected state or link.
+   States/links and Layout & shared live in the same panel; there are no
+   duplicate motion fields in the inspector. **Remove states** clears the graph
+   but keeps Layout & shared.
+6. Select a state and use **Aggiungi collegamento** to create an arrow.
+7. Choose the trigger, duration, easing and delay on the arrow.
+8. For a state trigger, set the event to `state` and enter `open` or `!open`.
+9. Press **Anteprima** to play the selected state or link.
 
 ## Build
 

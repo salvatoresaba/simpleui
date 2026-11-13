@@ -900,17 +900,21 @@ parts, grows a content-free surface layer and translates each part in a straight
 line to its measured final position; the content is clipped to the growing box
 instead of being reflowed.
 
-### Animation graph
+### Animation panel
 
-Select an element and open **Motion > Open animation graph**. The panel shows
-states as blocks and triggers as arrows:
+Select an element and open **Motion > Open animation panel**. The panel shows
+states as blocks and triggers as arrows, plus a **Layout & shared** section:
 
+- **Layout & shared** writes `motion`, `motionKey`, duration, easing, delay and
+  exit. It drives FLIP, list reorder and page transitions.
+- The graph fields below drive explicit triggers. There are no duplicate motion
+  fields in the inspector.
 - **+ state** creates another CSS snapshot of the element.
 - A state has a name and a CSS declarations field. **Captura** from the normal
-  inspector is also possible: press **Modifica stato**, hide the graph, edit the
+  inspector is also possible: press **Modifica stato**, hide the panel, edit the
   element with the usual panels, then **Salva stato**.
 - While a state is being edited, the rest of the preview stays visible but is
-  inert: only the target element can be selected or changed. The graph panel is
+  inert: only the target element can be selected or changed. The panel is
   replaced by a small bar with **Salva stato** and **Chiudi**.
 - Select two states and use **Aggiungi collegamento** to create an arrow.
 - A link trigger is `click`, `dblclick`, `pointerenter`, `pointerleave`,
@@ -921,14 +925,13 @@ states as blocks and triggers as arrows:
 - Duration, easing and delay belong to the link, not to the state.
 - **Imposta iniziale** marks the state applied on load. **Anteprima** plays the
   selected state or link in the preview.
-- Simple motion and a graph are exclusive. When the element has a `motionGraph`
-  the inspector hides the simple effect/key/duration fields. Opening the graph
-  clears those simple fields; **Remove graph** returns to simple mode.
+- **Remove states** deletes the state graph but keeps Layout & shared.
 
-The editor writes a literal `motionGraph` JSON attribute. The runtime keeps the
-current state on the element, tweens explicit start/end style values in a
-timer/rAF loop and honors reduced motion. The graph is per element; shared page
-transitions still use `motionKey`, and the two systems can coexist.
+The editor writes a literal `motionGraph` JSON attribute plus the classic motion
+attributes from Layout & shared. The runtime keeps the current state on the
+element, tweens explicit start/end style values in a timer/rAF loop and honors
+reduced motion. The panel is per element; Layout & shared still uses
+`motionKey` for shared pages and lists.
 
 **Controls > Split panes** inserts two `pane` children and a draggable divider.
 Set `direction`, `initial` and `min` in the **Splitter** section. A splitter must

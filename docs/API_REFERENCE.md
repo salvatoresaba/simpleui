@@ -432,13 +432,17 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - The runtime tweens explicit start and end values, keeps the current state on
   the element, and honors `prefers-reduced-motion` by jumping instantly.
 
-The designer's **Motion > Open animation graph** button edits the same JSON:
-blocks are states, arrows are links. **Modifica stato** hides the graph and
-locks the rest of the preview so only the selected element can be edited; the
-normal inspector stays available and **Salva stato** captures the computed style
-into the state. An element uses either the simple motion fields or a graph: when
-`motionGraph` exists the inspector hides the simple fields, and opening the
-graph clears them. **Remove graph** returns the element to simple motion mode.
+The designer's **Motion > Open animation panel** edits the same JSON: blocks are
+states, arrows are links. The panel's **Layout & shared** section writes the
+classic `motion`, `motionKey`, `motionDuration`, `motionEasing`, `motionDelay`
+and `motionExit` attributes used by FLIP, list reordering and page transitions.
+States and links handle explicit triggers. The inspector no longer duplicates
+those fields, so there is a single place to configure both parts.
+
+**Modifica stato** hides the panel and locks the rest of the preview so only the
+selected element can be edited; the normal inspector stays available and
+**Salva stato** captures the computed style into the state. **Remove states**
+deletes the state graph but keeps the Layout & shared attributes.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.
