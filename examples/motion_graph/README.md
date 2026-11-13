@@ -82,9 +82,13 @@ and the FLIP engine described in `examples/motion_pages`.
    starting point; hovering the number shows the trigger hint. Links leave the
    right side and enter the target's left centre horizontally. Routing is
    orthogonal with a **10 px** minimum distance between boxes, links, and
-   links/boxes. It avoids boxes, uses right-angle corners and prefers the
-   shortest path with the fewest segments; backward links route around the
-   boxes and the path redraws live while dragging. Click and other DOM events
+   links/boxes, and the first/last segment is at least 10 px long. Ports are
+   assigned in vertical target order and all links are re-routed on every
+   change, trying several orders. It avoids boxes, uses right-angle corners and
+   prefers the shortest path with the fewest segments; backward links route
+   around the boxes and the path redraws live while dragging. A position or link
+   that makes a clean route impossible is rejected with a message instead of
+   drawing an overlapping path. Click and other DOM events
    can be used once per source state; variable and timer triggers can be
    repeated. A variable trigger lists the available SUI states and asks for the
    activating value; a timer trigger starts after the chosen duration.

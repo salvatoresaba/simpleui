@@ -427,9 +427,14 @@ appartiene allo stato di partenza; i link uscenti sono numerati all'inizio e il
 tooltip del numero mostra il tipo di trigger. I link partono dal lato destro e
 arrivano orizzontalmente al centro del lato sinistro della destinazione. Il
 percorso è ortogonale con una distanza minima di **10 px** tra box, tra link e
-tra link e box; evita i box, usa angoli retti e preferisce il percorso più breve
+tra link e box; il primo e l'ultimo tratto sono perpendicolari al lato e lunghi
+almeno 10 px. I punti di connessione sono assegnati in ordine verticale di
+destinazione e tutti i link vengono ricalcolati a ogni modifica, provando più
+ordini; il router evita i box, usa angoli retti e preferisce il percorso più breve
 con il minor numero di segmenti. I link all'indietro girano attorno ai box e i
-percorsi si aggiornano in tempo reale durante il trascinamento.
+percorsi si aggiornano in tempo reale durante il trascinamento. Una posizione o
+un link che rende impossibile un percorso pulito viene rifiutato con un messaggio
+invece di disegnare percorsi sovrapposti.
 
 Il doppio clic su uno stato apre l'overlay con nome, CSS e lista dei trigger
 attivi con la destinazione (nessun campo per i trigger in ingresso). Il doppio

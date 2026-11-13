@@ -6394,6 +6394,9 @@ var mgPath = null, mgNode = null, mgCfg = null, mgSelState = "", mgSelLink = "";
 var mgParam = null;
 var mgCollapseTimer = 0;
 var mgGraphSize = { x: 240, y: 120 };
+var mgRouteOrderPreference = null;
+var mgDragging = false;
+var mgLastRouteClean = true;
 var mgPositions = {};
 var mgNodeHeights = {};
 var mgPlacement = null;
@@ -6466,6 +6469,7 @@ function mgOpen(n, path) {
   var title = document.getElementById("mg-graph-title");
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
+  if (!mgLastRouteClean) mgNotify("Layout non instradabile: sposta gli stati per separare i collegamenti.");
   mgUpdateLauncher();
   setTimeout(function(){ mgFitGraph(); mgClampAll(); }, 0);
   renderInspector();
@@ -6603,7 +6607,7 @@ function mgBoxCollides(id, x, y) {
     var p = mgPositions[s.id];
     if (!p) continue;
     var h2 = mgNodeHeights[s.id] || 38;
-    var other = { l: p.x - MG_LINK_MARGIN, t: p.y - MG_LINK_MARGIN, r: p.x + MG_BOX_W + MG_LINK_MARGIN, b: p.y + h2 + MG_LINK_MARGIN };
+    var other = { l: p.x - MG_ROUTE_PAD_X, t: p.y - MG_ROUTE_PAD_Y, r: p.x + MG_BOX_W + MG_ROUTE_PAD_X, b: p.y + h2 + MG_ROUTE_PAD_Y };
     if (mgRectsOverlap(mine, other)) return true;
   }
   return false;
@@ -6615,7 +6619,7 @@ function mgFreeStatePosition(sourceId) {
     var p = mgPositions[mgCfg.states[i].id];
     if (p) maxRight = Math.max(maxRight, p.x + MG_BOX_W + MG_LINK_MARGIN);
   }
-  var x = maxRight + MG_LINK_MARGIN + 2;
+  var x = maxRight + MG_LINK_MARGIN + 32;
   var y = base.y;
   var guard = 0;
   while (mgBoxCollides("", x, y) && guard++ < 30) y += 58;
@@ -6646,12 +6650,26 @@ function mgMakeStateDraggable(d, s) {
       d.style.left = nx + "px";
       d.style.top = ny + "px";
       mgPositions[s.id] = { x: nx, y: ny };
+      mgDragging = true;
       mgRenderLinks();
     }
     function up() {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       if (!moved) return;
+      if (!mgLastRouteClean) {
+        mgDragging = false;
+        mgRenderLinks();
+        if (!mgLastRouteClean) {
+          d.style.left = startX + "px";
+          d.style.top = startY + "px";
+          mgPositions[s.id] = { x: startX, y: startY };
+          mgRender();
+          mgNotify("Posizione non instradabile: sposta lo stato in un'area libera.");
+          return;
+        }
+      }
+      mgDragging = false;
       d.__suiDragged = true;
       snap("move motion state");
       s.x = Math.round(parseFloat(d.style.left) || startX);
@@ -6664,25 +6682,8 @@ function mgMakeStateDraggable(d, s) {
     window.addEventListener("pointerup", up);
   });
 }
-function mgLinkPath(x1, y1, x2, y2, aId, bId, idx) {
-  var a = mgPositions[aId] || { x: 0, y: 0 };
-  var b = mgPositions[bId] || { x: 0, y: 0 };
-  var ha = mgNodeHeights[aId] || 38;
-  var hb = mgNodeHeights[bId] || 38;
-  if (x2 > x1 + 32 && aId !== bId) {
-    var dx = Math.max(28, (x2 - x1) * 0.45);
-    return "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2;
-  }
-  var top = Math.min(a.y, b.y);
-  var bottom = Math.max(a.y + ha, b.y + hb);
-  var lane = (idx % 2 === 0) ? top - 24 - idx * 6 : bottom + 24 + idx * 6;
-  if (lane < 8) lane = bottom + 24 + idx * 6;
-  var r1 = x1 + 38;
-  var r2 = Math.max(20, x2 - 38);
-  return "M " + x1 + " " + y1 + " C " + r1 + " " + y1 + ", " + r1 + " " + lane + ", " + (r1 + 20) + " " + lane +
-    " L " + (r2 - 20) + " " + lane + " C " + r2 + " " + lane + ", " + r2 + " " + y2 + ", " + x2 + " " + y2;
-}
-var MG_BOX_W = 120, MG_LINK_MARGIN = 10, MG_LINE_CLEAR = 10;
+var MG_BOX_W = 120, MG_LINK_MARGIN = 10, MG_LINE_CLEAR = 10, MG_LANE = 20, MG_STUB = 10;
+var MG_ROUTE_PAD_X = 30, MG_ROUTE_PAD_Y = 20;
 function mgSegRect(x1, y1, x2, y2, pad) {
   return {
     l: Math.min(x1, x2) - pad, t: Math.min(y1, y2) - pad,
@@ -6692,67 +6693,173 @@ function mgSegRect(x1, y1, x2, y2, pad) {
 function mgRectsOverlap(a, b) {
   return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 }
+function mgSegPointDist(x1, y1, x2, y2, px, py) {
+  var loX = Math.min(x1, x2), hiX = Math.max(x1, x2);
+  var loY = Math.min(y1, y2), hiY = Math.max(y1, y2);
+  var dx = px < loX ? loX - px : (px > hiX ? px - hiX : 0);
+  var dy = py < loY ? loY - py : (py > hiY ? py - hiY : 0);
+  return Math.sqrt(dx * dx + dy * dy);
+}
 function mgGridAdd(list, v) {
   var n = Math.round(v * 2) / 2;
+  if (n < 2) return;
   if (list.indexOf(n) < 0) list.push(n);
 }
-function mgBuildGrid(boxes, ports, maxX, maxY) {
-  var xs = [0, maxX], ys = [0, maxY];
+function mgGraphBounds(boxes, fan) {
+  var minX = Infinity, minY = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
+  boxes.forEach(function(b){
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxRight = Math.max(maxRight, b.x + MG_BOX_W);
+    maxBottom = Math.max(maxBottom, b.y + b.h);
+  });
+  if (!isFinite(minX)) { minX = 24; minY = 24; maxRight = 144; maxBottom = 62; }
+  var yLanes = Math.max(2, fan || 2);
+  var xLanes = 3;
+  return {
+    minX: minX, minY: minY, maxRight: maxRight, maxBottom: maxBottom,
+    lanesX: xLanes, lanesY: yLanes,
+    width: Math.max(maxRight + MG_LINK_MARGIN + xLanes * MG_LANE + 10, 200),
+    height: Math.max(maxBottom + MG_LINK_MARGIN + yLanes * MG_LANE + 10, 120)
+  };
+}
+function mgBuildGrid(boxes, ports, bounds) {
+  var xs = [0, bounds.width], ys = [0, bounds.height];
   boxes.forEach(function(b){
     [b.x - MG_LINK_MARGIN, b.x + MG_BOX_W + MG_LINK_MARGIN, b.x - 2, b.x + MG_BOX_W + 2].forEach(function(v){ mgGridAdd(xs, v); });
     [b.y - MG_LINK_MARGIN, b.y + b.h + MG_LINK_MARGIN, b.y - 2, b.y + b.h + 2].forEach(function(v){ mgGridAdd(ys, v); });
+    for (var k = 0; k < 3; k++) {
+      mgGridAdd(ys, b.y + b.h + MG_LINK_MARGIN + k * MG_LINK_MARGIN);
+      mgGridAdd(ys, b.y - MG_LINK_MARGIN - k * MG_LINK_MARGIN);
+    }
+    for (var kx = 0; kx < 2; kx++) {
+      mgGridAdd(xs, b.x + MG_BOX_W + MG_LINK_MARGIN + kx * MG_LINK_MARGIN);
+      mgGridAdd(xs, b.x - MG_LINK_MARGIN - kx * MG_LINK_MARGIN);
+    }
   });
   ports.forEach(function(p){
-    [p.x1, p.x1 + MG_LINK_MARGIN, p.x2, p.x2 - MG_LINK_MARGIN, p.x1 + MG_LINK_MARGIN + 8, p.x2 - MG_LINK_MARGIN - 8].forEach(function(v){ mgGridAdd(xs, v); });
-    [p.y1, p.y2].forEach(function(v){ mgGridAdd(ys, v); });
+    [p.x1, p.x1 + MG_STUB, p.x1 + MG_STUB + 8, p.x2, p.x2 - MG_STUB, p.x2 - MG_STUB - 8].forEach(function(v){ mgGridAdd(xs, v); });
+    [p.x1 + MG_STUB - MG_LINK_MARGIN, p.x1 + MG_STUB + MG_LINK_MARGIN,
+     p.x2 - MG_STUB - MG_LINK_MARGIN, p.x2 - MG_STUB + MG_LINK_MARGIN].forEach(function(v){ mgGridAdd(xs, v); });
+    [p.y1, p.y2, p.y1 - MG_LINK_MARGIN, p.y1 + MG_LINK_MARGIN, p.y2 - MG_LINK_MARGIN, p.y2 + MG_LINK_MARGIN].forEach(function(v){ mgGridAdd(ys, v); });
   });
+  for (var gx2 = 0; gx2 < bounds.lanesX; gx2++) {
+    mgGridAdd(xs, bounds.maxRight + MG_LINK_MARGIN + gx2 * MG_LINK_MARGIN);
+    mgGridAdd(xs, bounds.minX - MG_LINK_MARGIN - gx2 * MG_LINK_MARGIN);
+  }
+  for (var gy2 = 0; gy2 < bounds.lanesY; gy2++) {
+    mgGridAdd(ys, bounds.maxBottom + MG_LINK_MARGIN + gy2 * MG_LINK_MARGIN);
+    mgGridAdd(ys, bounds.minY - MG_LINK_MARGIN - gy2 * MG_LINK_MARGIN);
+  }
   var addMids = function(list){
     var sorted = list.slice().sort(function(a,b){ return a - b; });
     var extra = [];
-    for (var i = 0; i + 1 < sorted.length; i++) if (sorted[i+1] - sorted[i] > 32) extra.push((sorted[i] + sorted[i + 1]) / 2);
+    for (var i = 0; i + 1 < sorted.length; i++) if (sorted[i+1] - sorted[i] > 16) extra.push((sorted[i] + sorted[i + 1]) / 2);
     extra.forEach(function(v){ mgGridAdd(list, v); });
     return list.sort(function(a,b){ return a - b; });
   };
   return { xs: addMids(xs), ys: addMids(ys) };
 }
-function mgFallbackRoute(p) {
-  var lane = Math.max(8, Math.min(p.y1, p.y2) - 26);
-  var r1 = p.x1 + 30, r2 = Math.max(20, p.x2 - 30);
-  return [ {x:p.x1,y:p.y1}, {x:r1,y:p.y1}, {x:r1,y:lane}, {x:r2,y:lane}, {x:r2,y:p.y2}, {x:p.x2,y:p.y2} ];
+function mgSegmentFree(p, boxes, routed, reserved, x1, y1, x2, y2, own) {
+  var sg = mgSegRect(x1, y1, x2, y2, 0);
+  for (var i = 0; i < boxes.length; i++) {
+    var b = boxes[i];
+    var skip = (own === "both") || (own === "from" && b.id === p.from) || (own === "to" && b.id === p.to);
+    var pad = skip ? 0 : MG_LINK_MARGIN;
+    var br = { l: b.x - pad, t: b.y - pad, r: b.x + MG_BOX_W + pad, b: b.y + b.h + pad };
+    if (mgRectsOverlap(sg, br)) return false;
+  }
+  for (var j = 0; j < routed.length; j++) {
+    var r = routed[j];
+    if (r.link === p.link.id) continue;
+    if (mgRectsOverlap(sg, mgSegRect(r.x1, r.y1, r.x2, r.y2, MG_LINE_CLEAR))) return false;
+  }
+  for (var k = 0; k < reserved.length; k++) {
+    var rp = reserved[k];
+    if (rp.link === p.link.id) continue;
+    if (mgSegPointDist(x1, y1, x2, y2, rp.x, rp.y) < MG_LINK_MARGIN) return false;
+  }
+  return true;
 }
-function mgAddFallback(p, routed) {
-  var pts = mgFallbackRoute(p);
-  for (var i = 1; i < pts.length; i++) routed.push({ x1: pts[i-1].x, y1: pts[i-1].y, x2: pts[i].x, y2: pts[i].y });
-  return pts;
+function mgPtsFree(p, pts, boxes, routed, reserved) {
+  for (var i = 1; i < pts.length; i++) {
+    var own = null;
+    if (i === 1 && i === pts.length - 1) own = "both";
+    else if (i === 1) own = "from";
+    else if (i === pts.length - 1) own = "to";
+    if (!mgSegmentFree(p, boxes, routed, reserved, pts[i-1].x, pts[i-1].y, pts[i].x, pts[i].y, own)) return false;
+  }
+  return true;
 }
-function mgRouteLink(p, boxes, routed, grid) {
-  var sx = p.x1 + MG_LINK_MARGIN, sy = p.y1;
-  var ex = p.x2 - MG_LINK_MARGIN, ey = p.y2;
-  mgGridAdd(grid.xs, sx); mgGridAdd(grid.xs, ex); mgGridAdd(grid.ys, sy); mgGridAdd(grid.ys, ey);
+function mgZRoute(p, sx, ex, lane) {
+  return [
+    { x: p.x1, y: p.y1 }, { x: sx, y: p.y1 },
+    { x: sx, y: lane }, { x: ex, y: lane },
+    { x: ex, y: p.y2 }, { x: p.x2, y: p.y2 }
+  ];
+}
+function mgFallbackRoute(p, boxes, routed, grid, reserved) {
+  var sx = Math.ceil((p.x1 + MG_STUB) * 2) / 2;
+  var ex = Math.floor((p.x2 - MG_STUB) * 2) / 2;
+  var candidates = [];
+  grid.ys.forEach(function(y){ if (y !== p.y1 && y !== p.y2) candidates.push(y); });
+  candidates.sort(function(a, b){
+    return (Math.abs(a - p.y1) + Math.abs(a - p.y2)) - (Math.abs(b - p.y1) + Math.abs(b - p.y2));
+  });
+  for (var i = 0; i < candidates.length; i++) {
+    var pts = mgZRoute(p, sx, ex, candidates[i]);
+    if (mgPtsFree(p, pts, boxes, routed, reserved)) return pts;
+  }
+  var far = Math.max(8, boxes.reduce(function(m, b){ return Math.max(m, b.y + b.h); }, 0) + MG_LINK_MARGIN + MG_LANE);
+  return mgZRoute(p, sx, ex, far);
+}
+function mgHeapPush(h, node) {
+  h.push(node);
+  var i = h.length - 1;
+  while (i > 0) {
+    var p = (i - 1) >> 1;
+    if (h[p].f <= h[i].f) break;
+    var t = h[p]; h[p] = h[i]; h[i] = t;
+    i = p;
+  }
+}
+function mgHeapPop(h) {
+  var top = h[0], last = h.pop();
+  if (h.length) {
+    h[0] = last;
+    var i = 0;
+    for (;;) {
+      var l = i * 2 + 1, r = l + 1, b = i;
+      if (l < h.length && h[l].f < h[b].f) b = l;
+      if (r < h.length && h[r].f < h[b].f) b = r;
+      if (b === i) break;
+      var t = h[b]; h[b] = h[i]; h[i] = t;
+      i = b;
+    }
+  }
+  return top;
+}
+function mgRouteLink(p, boxes, routed, grid, reserved) {
+  var sx = Math.ceil((p.x1 + MG_STUB) * 2) / 2;
+  var sy = Math.round(p.y1 * 2) / 2;
+  var ex = Math.floor((p.x2 - MG_STUB) * 2) / 2;
+  var ey = Math.round(p.y2 * 2) / 2;
+  var p1 = { x: p.x1, y: p.y1 }, p2 = { x: p.x2, y: p.y2 };
+  if (p.x2 - p.x1 >= MG_STUB && Math.abs(p.y1 - p.y2) < 0.5 &&
+      mgSegmentFree(p, boxes, routed, reserved, p.x1, p.y1, p.x2, p.y2, "both")) {
+    return [p1, p2];
+  }
+  mgGridAdd(grid.xs, sx); mgGridAdd(grid.xs, ex);
+  mgGridAdd(grid.ys, sy); mgGridAdd(grid.ys, ey);
   grid.xs.sort(function(a,b){ return a - b; }); grid.ys.sort(function(a,b){ return a - b; });
   var startXI = grid.xs.indexOf(sx), startYI = grid.ys.indexOf(sy);
   var endXI = grid.xs.indexOf(ex), endYI = grid.ys.indexOf(ey);
-  if (startXI < 0 || startYI < 0 || endXI < 0 || endYI < 0) return mgAddFallback(p, routed);
-  function blocked(x1, y1, x2, y2) {
-    var sg = mgSegRect(x1, y1, x2, y2, 0);
-    for (var i = 0; i < boxes.length; i++) {
-      var b = boxes[i];
-      var pad = MG_LINK_MARGIN;
-      var br = { l: b.x - pad, t: b.y - pad, r: b.x + MG_BOX_W + pad, b: b.y + b.h + pad };
-      if (mgRectsOverlap(sg, br)) return true;
-    }
-    for (var j = 0; j < routed.length; j++) {
-      var r = routed[j];
-      if (mgRectsOverlap(sg, mgSegRect(r.x1, r.y1, r.x2, r.y2, MG_LINE_CLEAR))) return true;
-    }
-    return false;
-  }
+  if (startXI < 0 || startYI < 0 || endXI < 0 || endYI < 0) return mgFallbackRoute(p, boxes, routed, grid, reserved);
   var open = [{ xi: startXI, yi: startYI, dir: 1, g: 0, f: 0, parent: null }];
   var best = {}; best[startXI + "," + startYI + ",1"] = 0;
   var endNode = null;
   while (open.length) {
-    open.sort(function(a,b){ return a.f - b.f; });
-    var cur = open.shift();
+    var cur = mgHeapPop(open);
     if (cur.xi === endXI && cur.yi === endYI) { endNode = cur; break; }
     var moves = [
       { dx: 1, dy: 0, dir: 1 }, { dx: -1, dy: 0, dir: 1 },
@@ -6762,34 +6869,33 @@ function mgRouteLink(p, boxes, routed, grid) {
       var nx = cur.xi + moves[m].dx, ny = cur.yi + moves[m].dy;
       if (nx < 0 || ny < 0 || nx >= grid.xs.length || ny >= grid.ys.length) continue;
       var x1 = grid.xs[cur.xi], y1 = grid.ys[cur.yi], x2 = grid.xs[nx], y2 = grid.ys[ny];
-      if (blocked(x1, y1, x2, y2)) continue;
+      if (!mgSegmentFree(p, boxes, routed, reserved, x1, y1, x2, y2, null)) continue;
       var turn = cur.dir && cur.dir !== moves[m].dir ? 24 : 0;
       var ng = cur.g + Math.abs(x2 - x1) + Math.abs(y2 - y1) + turn;
       var key = nx + "," + ny + "," + moves[m].dir;
       if (best[key] !== undefined && best[key] <= ng) continue;
       best[key] = ng;
       var h = Math.abs(grid.xs[endXI] - x2) + Math.abs(grid.ys[endYI] - y2);
-      open.push({ xi: nx, yi: ny, dir: moves[m].dir, g: ng, f: ng + h, parent: cur });
+      mgHeapPush(open, { xi: nx, yi: ny, dir: moves[m].dir, g: ng, f: ng + h, parent: cur });
     }
   }
-  if (!endNode) return mgAddFallback(p, routed);
+  if (!endNode) return mgFallbackRoute(p, boxes, routed, grid, reserved);
   var pts = [];
   var n = endNode;
   while (n) { pts.unshift({ x: grid.xs[n.xi], y: grid.ys[n.yi] }); n = n.parent; }
-  pts.unshift({ x: p.x1, y: p.y1 });
-  pts.push({ x: p.x2, y: p.y2 });
+  pts.unshift(p1);
+  pts.push(p2);
   var clean = [pts[0]];
   for (var i = 1; i < pts.length; i++) {
-    var a = clean[clean.length - 1], b = pts[i];
-    if (a.x === b.x && a.y === b.y) continue;
-    if (clean.length >= 1) {
-      var prev = clean[clean.length - 1];
-      var before = clean.length >= 2 ? clean[clean.length - 2] : null;
-      if (before && ((before.x === prev.x && prev.x === b.x) || (before.y === prev.y && prev.y === b.y))) clean[clean.length - 1] = b;
-      else clean.push(b);
-    } else clean.push(b);
+    var a = pts[i], prev = clean[clean.length - 1];
+    if (a.x === prev.x && a.y === prev.y) continue;
+    var before = clean.length >= 2 ? clean[clean.length - 2] : null;
+    if (before && ((before.x === prev.x && prev.x === a.x) || (before.y === prev.y && prev.y === a.y))) clean[clean.length - 1] = a;
+    else clean.push(a);
   }
-  for (var s = 1; s < clean.length; s++) routed.push({ x1: clean[s-1].x, y1: clean[s-1].y, x2: clean[s].x, y2: clean[s].y });
+  var first = clean[1] || p2, last = clean[clean.length - 2] || p1;
+  if (!mgSegmentFree(p, boxes, routed, [], p1.x, p1.y, first.x, first.y, "from")) return mgFallbackRoute(p, boxes, routed, grid, reserved);
+  if (!mgSegmentFree(p, boxes, routed, [], last.x, last.y, p2.x, p2.y, "to")) return mgFallbackRoute(p, boxes, routed, grid, reserved);
   return clean;
 }
 function mgRenderLinks() {
@@ -6801,28 +6907,174 @@ function mgRenderLinks() {
     if (!p) return;
     boxes.push({ id: s.id, x: p.x, y: p.y, h: mgNodeHeights[s.id] || 38 });
   });
-  var outCount = {}, outUsed = {}, inCount = {}, inUsed = {};
-  mgCfg.links.forEach(function(l){ outCount[l.from] = (outCount[l.from] || 0) + 1; inCount[l.to] = (inCount[l.to] || 0) + 1; });
+  var outCount = {}, inCount = {}, outNum = {};
+  mgCfg.links.forEach(function(l){
+    outCount[l.from] = (outCount[l.from] || 0) + 1;
+    inCount[l.to] = (inCount[l.to] || 0) + 1;
+    outNum[l.id] = outCount[l.from];
+  });
+  var outGroups = {}, inGroups = {};
+  mgCfg.links.forEach(function(l){
+    (outGroups[l.from] || (outGroups[l.from] = [])).push(l);
+    (inGroups[l.to] || (inGroups[l.to] = [])).push(l);
+  });
+  var outRank = {}, inRank = {};
+  var gx = function(id){ return mgPositions[id] ? mgPositions[id].x : 0; };
+  var gy = function(id){ return mgPositions[id] ? mgPositions[id].y : 0; };
+  Object.keys(outGroups).forEach(function(id){
+    outGroups[id].slice().sort(function(a, b){
+      var ay = gy(a.to), by = gy(b.to);
+      if (ay !== by) return ay - by;
+      var ax = gx(a.to), bx = gx(b.to);
+      if (ax !== bx) return ax - bx;
+      return 0;
+    }).forEach(function(l, i){ outRank[l.id] = i; });
+  });
+  Object.keys(inGroups).forEach(function(id){
+    inGroups[id].slice().sort(function(a, b){
+      var ay = gy(a.from), by = gy(b.from);
+      if (ay !== by) return ay - by;
+      var ax = gx(a.from), bx = gx(b.from);
+      if (ax !== bx) return ax - bx;
+      return 0;
+    }).forEach(function(l, i){ inRank[l.id] = i; });
+  });
   var ports = [];
   mgCfg.links.forEach(function(l){
     var a = mgPositions[l.from], b = mgPositions[l.to];
     if (!a || !b) return;
-    var oi = outUsed[l.from] || 0; outUsed[l.from] = oi + 1;
-    var ii = inUsed[l.to] || 0; inUsed[l.to] = ii + 1;
     var hs = mgNodeHeights[l.from] || 38, ht = mgNodeHeights[l.to] || 38;
     ports.push({
       link: l, from: l.from, to: l.to,
-      x1: a.x + MG_BOX_W, y1: a.y + hs * (oi + 1) / ((outCount[l.from] || 1) + 1),
-      x2: b.x, y2: b.y + ht * (ii + 1) / ((inCount[l.to] || 1) + 1),
-      num: oi + 1
+      x1: a.x + MG_BOX_W, y1: Math.round((a.y + hs * (outRank[l.id] + 1) / ((outCount[l.from] || 1) + 1)) * 2) / 2,
+      x2: b.x, y2: Math.round((b.y + ht * (inRank[l.id] + 1) / ((inCount[l.to] || 1) + 1)) * 2) / 2,
+      num: outNum[l.id]
     });
   });
-  var maxX = mgGraphSize.x, maxY = mgGraphSize.y;
-  var grid = mgBuildGrid(boxes, ports, maxX, maxY);
-  var routed = [];
+  var maxFan = 2;
+  mgCfg.states.forEach(function(s){ maxFan = Math.max(maxFan, outCount[s.id] || 0, inCount[s.id] || 0); });
+  maxFan = Math.max(maxFan, mgCfg.links.length);
+  var bounds = mgGraphBounds(boxes, maxFan);
+  var reserved = [];
+  ports.forEach(function(p){
+    reserved.push({ link: p.link.id, x: Math.ceil((p.x1 + MG_STUB) * 2) / 2, y: Math.round(p.y1 * 2) / 2 });
+    reserved.push({ link: p.link.id, x: Math.floor((p.x2 - MG_STUB) * 2) / 2, y: Math.round(p.y2 * 2) / 2 });
+  });
+  function orderByMode(mode) {
+    return ports.slice().sort(function(a, b){
+      var ax = a.x2 - a.x1, bx = b.x2 - b.x1;
+      var ad = Math.abs(ax) + Math.abs(a.y2 - a.y1), bd = Math.abs(bx) + Math.abs(b.y2 - b.y1);
+      if (mode === 0) {
+        var ab = ax <= 0 ? 0 : 1, bb = bx <= 0 ? 0 : 1;
+        if (ab !== bb) return ab - bb;
+        if (a.y1 !== b.y1) return a.y1 - b.y1;
+        return a.x2 - b.x2;
+      }
+      if (mode === 2) {
+        if (a.from !== b.from) return a.from < b.from ? -1 : 1;
+        return a.y1 - b.y1;
+      }
+      if (mode === 3) {
+        if (a.x2 !== b.x2) return a.x2 - b.x2;
+        return a.y1 - b.y1;
+      }
+      if (bd !== ad) return bd - ad;
+      return a.y1 - b.y1;
+    });
+  }
+  function orderBySeed(seed) {
+    var arr = ports.slice();
+    var s = (seed * 2654435761) & 0x7fffffff;
+    for (var i = arr.length - 1; i > 0; i--) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      var j = s % (i + 1);
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+  function routeOrdered(ordered) {
+    var grid = mgBuildGrid(boxes, ports, bounds);
+    var routed = [], ptsMap = {};
+    for (var i = 0; i < ordered.length; i++) {
+      var p = ordered[i];
+      var pts = mgRouteLink(p, boxes, routed, grid, reserved);
+      if (!pts || pts.length < 2) return null;
+      ptsMap[p.link.id] = pts;
+      for (var s = 1; s < pts.length; s++) {
+        routed.push({ link: p.link.id, x1: pts[s-1].x, y1: pts[s-1].y, x2: pts[s].x, y2: pts[s].y });
+      }
+    }
+    return ptsMap;
+  }
+  function validateAll(ptsMap) {
+    var bad = 0, segs = [];
+    ports.forEach(function(p){
+      var pts = ptsMap[p.link.id];
+      if (!pts) { bad += 10; return; }
+      var a = pts[0], b = pts[1] || a;
+      if (a.y !== b.y || Math.abs(b.x - a.x) < MG_STUB - 0.01 || b.x < a.x) bad++;
+      var y = pts[pts.length - 1], z = pts[pts.length - 2] || y;
+      if (y.y !== z.y || Math.abs(y.x - z.x) < MG_STUB - 0.01 || z.x > y.x) bad++;
+      for (var i = 1; i < pts.length; i++) {
+        if (pts[i].x !== pts[i-1].x && pts[i].y !== pts[i-1].y) bad++;
+        segs.push({ link: p.link.id, x1: pts[i-1].x, y1: pts[i-1].y, x2: pts[i].x, y2: pts[i].y });
+      }
+      for (var k = 1; k < pts.length; k++) {
+        var own = (k === 1 && k === pts.length - 1) ? "both" : (k === 1 ? "from" : (k === pts.length - 1 ? "to" : null));
+        if (!mgSegmentFree(p, boxes, [], reserved, pts[k-1].x, pts[k-1].y, pts[k].x, pts[k].y, own)) bad++;
+      }
+    });
+    for (var i = 0; i < segs.length; i++) for (var j = i + 1; j < segs.length; j++) {
+      if (segs[i].link === segs[j].link) continue;
+      if (mgRectsOverlap(mgSegRect(segs[i].x1, segs[i].y1, segs[i].x2, segs[i].y2, 0), mgSegRect(segs[j].x1, segs[j].y1, segs[j].x2, segs[j].y2, MG_LINE_CLEAR))) bad++;
+    }
+    return bad;
+  }
+  var routeResult = null, bestBad = Infinity;
+  var candidates = [];
+  if (mgRouteOrderPreference) {
+    var seen = {}, pref = [];
+    mgRouteOrderPreference.forEach(function(id){
+      for (var pi = 0; pi < ports.length; pi++) {
+        if (ports[pi].link.id === id && !seen[id]) { seen[id] = 1; pref.push(ports[pi]); }
+      }
+    });
+    ports.forEach(function(p){ if (!seen[p.link.id]) { seen[p.link.id] = 1; pref.push(p); } });
+    if (pref.length === ports.length) {
+      candidates.push(pref);
+      for (var pj = 0; pj + 1 < pref.length; pj++) {
+        var swapped = pref.slice();
+        var st = swapped[pj]; swapped[pj] = swapped[pj+1]; swapped[pj+1] = st;
+        candidates.push(swapped);
+      }
+    }
+  }
+  for (var mode = 0; mode < 4; mode++) candidates.push(orderByMode(mode));
+  for (var seed = 1; seed <= 40; seed++) candidates.push(orderBySeed(seed));
+  var startedAt = Date.now();
+  var budget = mgDragging ? 120 : 1500;
+  var routeLog = { tries: 0, clean: false, best: null };
+  for (var ci = 0; ci < candidates.length; ci++) {
+    if (ci >= 4 && Date.now() - startedAt > budget) break;
+    var cand = routeOrdered(candidates[ci]);
+    if (!cand) continue;
+    var bad = validateAll(cand);
+    routeLog.tries++;
+    if (bad === 0) {
+      routeResult = cand;
+      mgRouteOrderPreference = candidates[ci].map(function(p){ return p.link.id; });
+      routeLog.clean = true;
+      routeLog.best = 0;
+      break;
+    }
+    if (bad < bestBad) { bestBad = bad; routeResult = cand; routeLog.best = bad; }
+  }
+  mgLastRouteClean = routeLog.clean;
+  if (!routeResult) routeResult = {};
   svg.innerHTML = '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7db3ff"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4c5cf7"/></marker></defs>';
   ports.forEach(function(p){
-    var pts = mgRouteLink(p, boxes, routed, grid);
+    var pts = routeResult[p.link.id];
+    if (!pts || pts.length < 2) return;
     var complete = !!p.link.event;
     var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", pts.map(function(pt, i){ return (i ? "L " : "M ") + pt.x + " " + pt.y; }).join(" "));
@@ -6969,16 +7221,20 @@ function mgRender() {
     } else {
       var y = layerY[layers[s.id]] !== undefined ? layerY[layers[s.id]] : 24;
       pos[s.id] = { x: 24 + layers[s.id] * 172, y: y };
-      layerY[layers[s.id]] = y + h + 10;
+      layerY[layers[s.id]] = y + h + 24;
     }
   });
   mgPositions = pos;
+  var renderFan = 2;
+  for (var fid in outCount) renderFan = Math.max(renderFan, outCount[fid]);
+  for (var fid2 in inCount) renderFan = Math.max(renderFan, inCount[fid2]);
+  renderFan = Math.max(renderFan, mgCfg.links.length);
   var maxX = 160, maxY = 80;
   nodes.innerHTML = "";
   mgCfg.states.forEach(function(s){
     var h = mgNodeHeights[s.id] || 38;
     maxX = Math.max(maxX, pos[s.id].x + 200);
-    maxY = Math.max(maxY, pos[s.id].y + h + 50);
+    maxY = Math.max(maxY, pos[s.id].y + h + MG_LINK_MARGIN + renderFan * MG_LANE + MG_LINK_MARGIN);
     var d = document.createElement("div");
     d.className = "mg-node" + (s.id === mgSelState ? " on" : "");
     d.style.left = pos[s.id].x + "px";
@@ -7075,6 +7331,7 @@ function mgPlacementMove(ev) {
     d.style.top = pt.y + "px";
     d.classList.toggle("mg-invalid", !valid);
   }
+  mgDragging = true;
   mgRenderLinks();
 }
 function mgConfirmPlacement() {
@@ -7084,9 +7341,16 @@ function mgConfirmPlacement() {
     mgNotify("Spazio insufficiente: lascia almeno 10 px tra i box.");
     return;
   }
+  mgDragging = false;
+  mgRenderLinks();
+  if (!mgLastRouteClean) {
+    mgNotify("Collegamenti non instradabili: sposta il nuovo stato in un'area libera.");
+    return;
+  }
   var st = mgStateById(mgPlacement.stateId);
   if (st) { st.x = Math.round(last.x); st.y = Math.round(last.y); }
   mgPlacement = null;
+  mgDragging = false;
   mgUpdatePlacementBar();
   mgNode.motionGraph = mgCfg;
   setOut();
@@ -7227,6 +7491,14 @@ function mgRenderParam() {
       } else {
         mgParam = { kind: "state", id: mgParam.id };
         mgRender();
+      }
+      if (!mgLastRouteClean) {
+        mgCfg = before;
+        mgNode.motionGraph = mgCfg;
+        mgSelState = ""; mgSelLink = ""; mgParam = null;
+        setOut(); autoPreview(); mgRender();
+        mgNotify("Collegamento non instradabile: sposta gli stati o scegli un'altra destinazione.");
+        return;
       }
     });
     return;

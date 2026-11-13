@@ -450,9 +450,14 @@ trigger to an existing state. A trigger belongs to the source state; outgoing
 links are numbered at their start point and hovering the number shows the
 trigger hint. Links leave the right side and enter the centre of the target's
 left side horizontally. Routing is orthogonal with a **10 px** minimum distance
-between boxes, between links and between links and boxes; it avoids boxes, uses
-right-angle corners and prefers the shortest path with the fewest segments.
-Backward links route around the boxes and routes redraw live during dragging.
+between boxes, between links and between links and boxes; the first and last
+segments are perpendicular to the edge and at least 10 px long. Ports are
+assigned in vertical target order and all links are re-routed on every change,
+trying several orders; the router avoids boxes, uses right-angle corners and
+prefers the shortest path with the fewest segments. Backward links route around
+the boxes and routes redraw live during dragging. A position or link that makes
+a clean route impossible is rejected with a message instead of drawing
+overlapping paths.
 
 Double-clicking a state opens its overlay with name, CSS and the list of active
 triggers with their destinations (no incoming-trigger fields). Double-clicking

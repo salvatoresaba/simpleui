@@ -928,10 +928,15 @@ only the graph; parameters open in draggable overlay panels:
 - Links always start at the right side of the source and end at the centre of
   the target's left side, horizontally. Routing is orthogonal with a **10 px**
   minimum distance between boxes, between links, and between links and boxes.
-  Segments never cross a box, use right-angle corners and prefer the shortest
-  path with the fewest segments. Links that go back to an earlier state are
-  routed around the boxes. The route is redrawn live while a state box is
-  dragged.
+  The first and last segment are perpendicular to the box edge and at least
+  10 px long. Ports are assigned in vertical target order, so a fan-out nests
+  without crossings; every change re-routes all links and tries several orders
+  before choosing a route. Segments never cross a box, use right-angle corners
+  and prefer the shortest path with the fewest segments. Links that go back to
+  an earlier state are routed around the boxes. The route is redrawn live while
+  a state box is dragged. If a position or a new link makes a clean route
+  impossible, the editor rejects it with a message instead of drawing
+  overlapping paths.
 - Click and the other DOM events can be used once per source state; variable
   and timer triggers can be repeated. The chooser disables already-used single
   events and validation rejects duplicates.

@@ -964,10 +964,16 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 - I link partono sempre dal lato destro dello stato sorgente e finiscono al
   centro del lato sinistro della destinazione, orizzontalmente. Il percorso è
   ortogonale con una distanza minima di **10 px** tra box, tra link e tra link e
-  box. I segmenti non attraversano mai un box, usano angoli retti e preferiscono
-  il percorso più breve con il minor numero di segmenti. I link all'indietro
+  box. Il primo e l'ultimo tratto sono perpendicolari al lato del box e lunghi
+  almeno 10 px. I punti di connessione sono assegnati in ordine verticale di
+  destinazione, così un ventaglio di link si annida senza incroci; ogni modifica
+  ricalcola tutti i link e prova più ordini prima di scegliere il percorso. I
+  segmenti non attraversano mai un box, usano angoli retti e preferiscono il
+  percorso più breve con il minor numero di segmenti. I link all'indietro
   vengono instradati attorno ai box. Il percorso viene ridisegnato in tempo reale
-  mentre si trascina un box.
+  mentre si trascina un box. Se una posizione o un nuovo link rendono impossibile
+  un percorso pulito, l'editor lo rifiuta con un messaggio invece di disegnare
+  percorsi sovrapposti.
 - Click e gli altri eventi DOM si possono usare una sola volta per stato
   sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
   eventi già usati e la validazione rifiuta i duplicati.
