@@ -122,9 +122,10 @@ const motionGraphEdgeScript = `<script>
     var ext = document.querySelector('.ext-card');
     var other = document.querySelector('.other-card');
     var extstate = document.querySelector('.extstate-card');
+    var keys = document.querySelector('.keys-card');
     var src = document.querySelector('.src-btn');
-    for (var i = 0; i < 100 && (!main || !ext || !other || !extstate || !src || !window.__SUI_MOTION_GRAPH); i++) await wait(50);
-    if (!main || !ext || !other || !extstate || !src || !window.__SUI_MOTION_GRAPH) throw new Error('test elements missing');
+    for (var i = 0; i < 100 && (!main || !ext || !other || !extstate || !keys || !src || !window.__SUI_MOTION_GRAPH); i++) await wait(50);
+    if (!main || !ext || !other || !extstate || !keys || !src || !window.__SUI_MOTION_GRAPH) throw new Error('test elements missing');
     var srcId = src.getAttribute('data-sui-id');
     var otherId = other.getAttribute('data-sui-id');
     if (!srcId || !otherId) throw new Error('missing data-sui-id');
@@ -155,7 +156,7 @@ const motionGraphEdgeScript = `<script>
     var mainCfg = { initial: 'a', states: [
       { id: 'a', css: 'width: 200px; height: 120px; background-color: #223344;' },
       { id: 'b', css: 'width: 360px; height: 200px; background-color: #446688;' },
-      { id: 'c', css: 'width: 300px; height: 150px;' }
+      { id: 'c', css: 'width: 300px; height: 150px; transform: translateX(30px); filter: blur(2px); box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);' }
     ], links: [
       { id: 'm1', from: 'a', to: 'b', event: 'click', duration: '320ms', easing: 'linear' },
       { id: 'm2', from: 'b', to: 'c', event: 'click', duration: '320ms', easing: 'linear' }
@@ -167,8 +168,32 @@ const motionGraphEdgeScript = `<script>
     await wait(700);
     if (main.__suiGraphState !== 'c') throw new Error('interrupted state not applied: ' + main.__suiGraphState);
     var leftover = main.style.getPropertyValue('background-color');
-    if (leftover) throw new Error('interrupted transition left background-color: ' + leftover);
+    if (leftover) throw new Error('interrupted transition left background-color: ' + leftover + ' props=' + JSON.stringify(main.__suiGraphProps) + ' anim=' + !!main.__suiGraphAnim + ' style=' + main.getAttribute('style'));
     if (Math.round(main.getBoundingClientRect().width) !== 300) throw new Error('interrupted width: ' + main.getBoundingClientRect().width);
+    var cs = getComputedStyle(main);
+    var matrix = null;
+    try { matrix = new DOMMatrix(cs.transform); } catch (e) {}
+    if (!matrix || Math.round(matrix.m41) !== 30) throw new Error('transform not applied: ' + cs.transform);
+    if (cs.filter.indexOf('blur(2px)') < 0) throw new Error('filter not applied: ' + cs.filter);
+    if (cs.boxShadow.indexOf('12px') < 0) throw new Error('box shadow not applied: ' + cs.boxShadow);
+
+    var keyCfg = { initial: 'a', states: [
+      { id: 'a', css: 'width: 180px; height: 90px; background-color: #224455;' },
+      { id: 'b', css: 'width: 220px; height: 120px; background-color: #557799;' }
+    ], links: [
+      { id: 'k1', from: 'a', to: 'b', event: 'keydown', key: 'Enter', ctrl: true, duration: '80ms', easing: 'linear' },
+      { id: 'c1', from: 'b', to: 'a', event: 'custom', customEvent: 'flip', duration: '80ms', easing: 'linear' }
+    ] };
+    setGraph(keys, keyCfg);
+    keys.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: false, bubbles: true }));
+    await wait(150);
+    if (keys.__suiGraphState !== 'a') throw new Error('key filter should not fire without Ctrl: ' + keys.__suiGraphState);
+    keys.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
+    await wait(200);
+    if (keys.__suiGraphState !== 'b') throw new Error('key filter did not fire with Ctrl: ' + keys.__suiGraphState);
+    keys.dispatchEvent(new Event('flip', { bubbles: true }));
+    await wait(200);
+    if (keys.__suiGraphState !== 'a') throw new Error('custom event did not fire: ' + keys.__suiGraphState);
     result(true);
   } catch (e) {
     result(false, e && e.message ? e.message : String(e));
@@ -188,6 +213,7 @@ func TestMotionGraphEdgeCasesE2E(t *testing.T) {
 		"\tcard class: \"box ext-card\" { p \"Ext\" }\n" +
 		"\tcard class: \"box other-card\" { p \"Other\" }\n" +
 		"\tcard class: \"box extstate-card\" { p \"ExtState\" }\n" +
+		"\tcard class: \"box keys-card\" { p \"Keys\" }\n" +
 		"}\n"
 	index, css, js, diags, ok := guiBuildFiles(source)
 	if !ok {

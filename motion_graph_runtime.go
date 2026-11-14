@@ -76,60 +76,12 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     if (!name || !value) return;
     out.push({ name: name, value: value });
   }
-  function parseValue(v) {
-    if (v == null) return null;
-    var s = String(v).trim();
-    if (!s) return null;
-    var m = /^(-?\d*\.?\d+)([a-z%]*)$/i.exec(s);
-    if (m) return { kind: 'num', n: parseFloat(m[1]), unit: m[2] || '' };
-    var cm = /^rgba?\(([0-9.,\s]+)\)$/i.exec(s);
-    if (!cm) return null;
-    var parts = cm[1].split(',').map(function(x){ return parseFloat(x); });
-    if (parts.length < 3 || isNaN(parts[0])) return null;
-    return { kind: 'color', r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
-  }
-  function interpolate(a, b, t) {
-    if (!a || !b) return null;
-    if (a.kind === 'color' && b.kind === 'color') {
-      var r = Math.round(a.r + (b.r - a.r) * t);
-      var g = Math.round(a.g + (b.g - a.g) * t);
-      var bl = Math.round(a.b + (b.b - a.b) * t);
-      var al = a.a + (b.a - a.a) * t;
-      return 'rgba(' + r + ',' + g + ',' + bl + ',' + (Math.round(al * 1000) / 1000) + ')';
-    }
-    if (a.kind === 'num' && b.kind === 'num' && a.unit === b.unit) {
-      return (a.n + (b.n - a.n) * t) + a.unit;
-    }
-    return null;
-  }
-  function ease(t, name) {
-    if (t <= 0) return 0;
-    if (t >= 1) return 1;
-    name = String(name || 'ease-out').toLowerCase();
-    if (name === 'linear') return t;
-    if (name === 'ease-in') return t * t;
-    if (name === 'ease-out') return 1 - (1 - t) * (1 - t);
-    if (name === 'ease-in-out') return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    var m = /^cubic-bezier\(([0-9.,\s-]+)\)$/.exec(name);
-    if (m) {
-      var p = m[1].split(',').map(function(n){ return parseFloat(n); });
-      if (p.length === 4) {
-        function sx(u) { return 3 * (1 - u) * (1 - u) * u * p[0] + 3 * (1 - u) * u * u * p[2] + u * u * u; }
-        function sy(u) { return 3 * (1 - u) * (1 - u) * u * p[1] + 3 * (1 - u) * u * u * p[3] + u * u * u; }
-        var lo = 0, hi = 1;
-        for (var i = 0; i < 20; i++) { var mid = (lo + hi) / 2; if (sx(mid) < t) lo = mid; else hi = mid; }
-        return sy((lo + hi) / 2);
-      }
-    }
-    return 1 - (1 - t) * (1 - t);
-  }
   function applyState(el, cfg, id, link, instant) {
     var state = stateById(cfg, id);
     if (!state) return;
     var decls = parseDecls(state.css || '');
     var next = Object.create(null);
-    var target = Object.create(null);
-    for (var i = 0; i < decls.length; i++) { next[decls[i].name] = 1; target[decls[i].name] = decls[i].value; }
+    for (var i = 0; i < decls.length; i++) next[decls[i].name] = 1;
     var prev = el.__suiGraphProps || [];
     var all = prev.slice();
     for (var j = 0; j < decls.length; j++) if (all.indexOf(decls[j].name) < 0) all.push(decls[j].name);
@@ -143,16 +95,21 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     if (reduced || instant || !link || duration <= 0) { duration = 0; delay = 0; }
     var token = (el.__suiGraphToken || 0) + 1;
     el.__suiGraphToken = token;
+    if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
     function finish() {
       if (token !== el.__suiGraphToken) return;
+      if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
+      var active = el.__suiGraphAnim;
+      el.__suiGraphAnim = null;
       for (var p = 0; p < all.length; p++) if (!next[all[p]]) el.style.removeProperty(all[p]);
       for (var d = 0; d < decls.length; d++) el.style.setProperty(decls[d].name, decls[d].value);
       el.__suiGraphProps = decls.map(function(x){ return x.name; });
+      if (active) { try { active.cancel(); } catch (e) {} }
     }
     if (duration <= 0 || !all.length) { finish(); return; }
     // Evaluate both measured states before starting: compute the start values,
     // temporarily apply the target to read its computed end values, then put
-    // the start values back and tween the difference.
+    // the start values back and let the browser animate between them.
     var starts = {}, was = {}, explicit = Object.create(null);
     for (var a = 0; a < all.length; a++) {
       var p0 = all[a];
@@ -160,6 +117,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       starts[p0] = getComputedStyle(el).getPropertyValue(p0);
       explicit[p0] = el.style.getPropertyPriority(p0);
     }
+    if (el.__suiGraphAnim) { try { el.__suiGraphAnim.cancel(); } catch (e) {} el.__suiGraphAnim = null; }
     for (var r = 0; r < all.length; r++) if (!next[all[r]]) el.style.removeProperty(all[r]);
     for (var t = 0; t < decls.length; t++) el.style.setProperty(decls[t].name, decls[t].value);
     var ends = {};
@@ -169,40 +127,29 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       if (was[pb]) el.style.setProperty(pb, was[pb], explicit[pb]);
       else el.style.removeProperty(pb);
     }
-    var items = [];
+    if (typeof el.animate !== 'function') { finish(); return; }
+    var from = {}, to = {};
     for (var c = 0; c < all.length; c++) {
       var pc = all[c];
-      var va = parseValue(starts[pc]);
-      var vb = parseValue(ends[pc]);
-      if (va && vb) items.push({ name: pc, a: va, b: vb });
+      var key = pc.indexOf('--') === 0 ? pc : pc.replace(/-([a-z])/g, function(m, ch){ return ch.toUpperCase(); });
+      from[key] = starts[pc];
+      to[key] = ends[pc];
     }
-    var nonAnim = [];
-    for (var n = 0; n < all.length; n++) {
-      var pn = all[n];
-      var found = false;
-      for (var q = 0; q < items.length; q++) if (items[q].name === pn) { found = true; break; }
-      if (!found) nonAnim.push(pn);
-    }
-    for (var q2 = 0; q2 < nonAnim.length; q2++) {
-      if (target[nonAnim[q2]] != null) el.style.setProperty(nonAnim[q2], target[nonAnim[q2]]);
-      else el.style.removeProperty(nonAnim[q2]);
-    }
-    var start = performance.now() + delay;
-    function frame() {
+    var anim = null;
+    try {
+      anim = el.animate([from, to], { duration: duration, delay: delay, easing: easing, fill: 'both' });
+    } catch (err) { finish(); return; }
+    el.__suiGraphAnim = anim;
+    el.__suiGraphFinishTimer = setTimeout(function() {
       if (token !== el.__suiGraphToken) return;
-      var t = (performance.now() - start) / duration;
-      var k = ease(Math.max(0, Math.min(1, t)), easing);
-      for (var m = 0; m < items.length; m++) {
-        var v = interpolate(items[m].a, items[m].b, k);
-        if (v != null) el.style.setProperty(items[m].name, v);
-      }
-      if (t < 1) {
-        setTimeout(frame, 16);
-      } else {
-        finish();
-      }
-    }
-    setTimeout(frame, 16);
+      finish();
+    }, duration + delay + 50);
+    anim.onfinish = function() {
+      if (token !== el.__suiGraphToken) return;
+      if (el.__suiGraphAnim === anim) el.__suiGraphAnim = null;
+      finish();
+      try { anim.cancel(); } catch (e) {}
+    };
   }
   function findLink(cfg, from, event, sourceId) {
     var want = sourceId || '';
@@ -212,6 +159,34 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       if (l && l.from === from && l.event === event && (l.sourceId || '') === want) return l;
     }
     return null;
+  }
+  function eventMatches(link, e) {
+    if (!e) return true;
+    if (link.key && String(link.key) !== String(e.key || '')) return false;
+    if (link.ctrl && !e.ctrlKey) return false;
+    if (link.alt && !e.altKey) return false;
+    if (link.shift && !e.shiftKey) return false;
+    if (link.meta && !e.metaKey) return false;
+    if (link.button != null && link.button !== '') {
+      var b = Number(link.button);
+      if (!isNaN(b) && b >= 0 && e.button !== b) return false;
+    }
+    return true;
+  }
+  function findEventLink(cfg, from, eventName, sourceId, e) {
+    var want = sourceId || '';
+    var links = cfg && cfg.links ? cfg.links : [];
+    var best = null, bestScore = -1;
+    for (var i = 0; i < links.length; i++) {
+      var l = links[i];
+      if (!l || l.from !== from || (l.sourceId || '') !== want) continue;
+      var name = l.event === 'custom' ? l.customEvent : l.event;
+      if (name !== eventName || !eventMatches(l, e)) continue;
+      var score = (l.key ? 2 : 0) + (l.button != null && l.button !== '' ? 2 : 0) +
+        (l.ctrl ? 1 : 0) + (l.alt ? 1 : 0) + (l.shift ? 1 : 0) + (l.meta ? 1 : 0);
+      if (score > bestScore) { best = l; bestScore = score; }
+    }
+    return best;
   }
   function stateCondition(link) {
     var w = String(link && link.when || '').trim();
@@ -334,8 +309,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     var links = cfg && cfg.links ? cfg.links : [];
     for (var i = 0; i < links.length; i++) {
       var link = links[i];
-      var ev = link && link.event;
-      if (!ev || ev === 'after' || ev === 'state' || ev === 'timer' || ev === 'elementState') continue;
+      var rawEv = link && link.event;
+      if (!rawEv || rawEv === 'after' || rawEv === 'state' || rawEv === 'timer' || rawEv === 'elementState') continue;
+      var ev = rawEv === 'custom' ? String(link.customEvent || '') : rawEv;
+      if (!ev || !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(ev)) continue;
       var sourceId = link.sourceId || '';
       if (sourceId && !/^[A-Za-z0-9_-]+$/.test(sourceId)) continue;
       var key = sourceId + '|' + ev;
@@ -350,7 +327,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
             var src = t.closest('[data-sui-id]');
             if (!src || src.getAttribute('data-sui-id') !== source) return;
           }
-          var found = findLink(cfg, el.__suiGraphState, eventName, source);
+          var found = findEventLink(cfg, el.__suiGraphState, eventName, source, e);
           if (found) run(el, cfg, found);
         };
         var target = source ? document : el;

@@ -399,11 +399,16 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - `states[].css` è la fotografia dello stile per quello stato.
 - `links[].event` può essere `click`, `dblclick`, `mouseover`, `mouseout`,
   `mouseenter`, `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`,
-  `change`, `state`, `elementState` o `after`.
+  `change`, `input`, `keydown`, `keyup`, `pointerdown`, `pointerup`, `submit`,
+  `custom`, `state`, `elementState` o `after`.
 - `links[].sourceId` collega un evento DOM a un altro elemento (il suo
   `data-sui-id`); `whenState` seleziona lo stato del motion graph di quell'elemento
   per `elementState`. `sourceLabel` è l'etichetta del designer e non viene usata
   a runtime.
+- Gli eventi `custom` usano `customEvent` come nome DOM. I link DOM possono avere
+  filtri: `key` per gli eventi tastiera, `ctrl`/`alt`/`shift`/`meta` e `button`
+  per il puntatore. Se più link corrispondono allo stesso stato/evento vince
+  quello con i filtri più specifici.
 - Un cambio di stato parte subito: durante il tween l'elemento è considerato
   nello stato di destinazione. Un evento che arriva durante il tween viene
   valutato nel nuovo stato e avvia un nuovo tween dai valori correnti (vince
@@ -415,10 +420,11 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - I link `state` valutano lo stato booleano indicato in `when` (il prefisso `!`
   lo nega) e scattano sulla transizione da falso a vero.
 - I link `after` continuano una catena quando l'animazione precedente termina.
-- Con più link uscenti vince il primo che corrisponde allo stato corrente e
-  all'evento.
-- Il runtime interpola valori iniziali e finali espliciti, conserva lo stato
-  corrente sull'elemento e rispetta `prefers-reduced-motion` saltando subito.
+- Le transizioni usano il motore di animazione del browser con valori iniziali e
+  finali calcolati: transform, filtri, box shadow, clip path, gradienti, colori,
+  lunghezze e custom properties vengono interpolati dove supportato; i valori non
+  animabili cambiano in modo discreto. I valori finali sono applicati alla fine e
+  `prefers-reduced-motion` o durata zero saltano subito.
 
 Il pulsante **Motion > Open animation panel** del designer modifica lo stesso
 JSON: i blocchi sono gli stati, le frecce sono i link. Il pannello è compatto e

@@ -1003,12 +1003,22 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   stabile. Blocchi
   e link usano colori sensibili al tema e restano leggibili in modalità chiara
   e scura.
-- Click e gli altri eventi DOM si possono usare una sola volta per stato
+- Click e gli altri eventi DOM singoli si possono usare una sola volta per stato
   sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
   eventi già usati e la validazione rifiuta i duplicati. Per un hover reversibile
   usa `pointerenter` + `pointerleave` (oppure `mouseenter` + `mouseleave`);
   `mouseover`/`mouseout` fanno bubbling, quindi scattano anche attraversando gli
   elementi figli e possono ripetersi più volte.
+- Il chooser espone anche `keydown`, `keyup`, `input`, `submit`, `pointerdown`,
+  `pointerup` ed eventi **custom**. I link tastiera/custom possono avere filtri
+  key, mouse button e Ctrl/Alt/Shift/Meta; se più link corrispondono allo stesso
+  stato/evento vince il filtro più specifico. Gli eventi custom usano il nome DOM
+  inserito nel chooser.
+- Le transizioni usano il motore di animazione del browser con valori iniziali e
+  finali calcolati: `transform`, filtri, box shadow, clip path, gradienti,
+  colori, lunghezze e custom properties vengono animati dove supportato; i valori
+  non animabili cambiano in modo discreto. I valori finali sono applicati alla
+  fine.
 - Un trigger **variabile** elenca gli stati SUI disponibili e chiede il valore
   che lo attiva (`true`/`false`, testo o numero). Un trigger **timer** chiede
   una durata e avvia la transizione automaticamente dopo quel tempo nello stato

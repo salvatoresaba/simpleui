@@ -109,9 +109,14 @@ and the FLIP engine described in `examples/motion_pages`.
    state; variable and timer triggers can be repeated. For a reversible hover
    prefer `pointerenter` + `pointerleave` or `mouseenter` + `mouseleave`;
    `mouseover` and
-   `mouseout` bubble and can fire while crossing child elements. A variable
-   trigger lists the available SUI states and asks for the activating value; a
-   timer trigger starts after the chosen duration.
+   `mouseout` bubble and can fire while crossing child elements. Keyboard,
+   pointerdown/up, input/submit and custom events are available; keyboard/custom
+   links can use key, mouse-button and Ctrl/Alt/Shift/Meta filters (the most
+   specific match wins). A variable trigger lists the available SUI states and
+   asks for the activating value; a timer trigger starts after the chosen
+   duration. Transitions use the browser animation engine, so transforms,
+   filters, shadows, clip paths, gradients and custom properties animate where
+   supported.
 7. Double-click a state to edit its overlay (name, CSS and the list of active
    triggers with destinations). If it has an untriggered outgoing link, the
    trigger chooser opens directly: **Cancel** returns to the overlay, **Confirm**

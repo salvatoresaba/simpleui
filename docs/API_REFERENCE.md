@@ -423,11 +423,16 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 
 - `states[].css` is the style snapshot for that state.
 - `links[].event` is `click`, `dblclick`, `mouseover`, `mouseout`, `mouseenter`,
-  `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`, `change`,
-  `state`, `elementState` or `after`.
+  `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`, `change`, `input`,
+  `keydown`, `keyup`, `pointerdown`, `pointerup`, `submit`, `custom`, `state`,
+  `elementState` or `after`.
 - `links[].sourceId` binds a DOM event to another element (its `data-sui-id`);
   `whenState` selects that element's motion-graph state for `elementState`.
   `sourceLabel` is the designer label and is not used at runtime.
+- `custom` events use `customEvent` as the DOM event name. DOM links can carry
+  filters: `key` for keyboard events, `ctrl`/`alt`/`shift`/`meta` booleans and
+  `button` for pointer events. When several links match the same state/event, the
+  most specific filter wins.
 - A state change starts immediately: the element is considered to be in the
   target state while the tween runs. An event that arrives during the tween is
   evaluated in the new state and starts a new tween from the current computed
@@ -439,10 +444,11 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - `state` links evaluate the boolean state named by `when` (prefix `!` negates
   it) and fire on a false-to-true change.
 - `after` links continue a chain when the previous animation completes.
-- Multiple outgoing links are matched in order; the first link for the current
-  state and event wins.
-- The runtime tweens explicit start and end values, keeps the current state on
-  the element, and honors `prefers-reduced-motion` by jumping instantly.
+- Transitions use the browser animation engine with computed start and end values,
+  so transforms, filters, box shadows, clip paths, gradients, colors, lengths and
+  custom properties are interpolated where the browser supports it; values that
+  cannot be animated change discretely. Final values are applied at the end and
+  `prefers-reduced-motion` or a zero duration jumps instantly.
 
 The designer's **Motion > Open animation panel** edits the same JSON: blocks are
 states, arrows are links. The panel is compact and resizable from its bottom-

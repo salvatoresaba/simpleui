@@ -6583,6 +6583,8 @@ function mgValidateState(st) {
       errors.push("The variable trigger of link " + l.from + " → " + l.to + " has no selected variable.");
     } else if (l.event === "elementState" && (!l.sourceId || !l.whenState)) {
       errors.push("The external state trigger of link " + l.from + " → " + l.to + " needs a source element and a state.");
+    } else if (l.event === "custom" && !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(String(l.customEvent || ""))) {
+      errors.push("The custom event trigger of link " + l.from + " → " + l.to + " needs a valid event name.");
     } else if (MG_SINGLE_EVENTS[l.event]) {
       var key = l.from + "|" + l.event;
       if (singleUsed[key]) errors.push("State \"" + ((mgStateById(l.from) || {}).name || l.from) + "\" has multiple \"" + l.event + "\" triggers. This trigger can be used only once.");
@@ -6598,7 +6600,10 @@ var MG_TRIGGER_OPTIONS = [
   ["mouseover", "mouse over"], ["mouseout", "mouse out"],
   ["mouseenter", "mouse enter"], ["mouseleave", "mouse leave"],
   ["pointerenter", "pointer enter"], ["pointerleave", "pointer leave"],
-  ["focus", "focus"], ["blur", "blur"], ["change", "change"],
+  ["focus", "focus"], ["blur", "blur"], ["change", "change"], ["input", "input"],
+  ["keydown", "key down"], ["keyup", "key up"],
+  ["pointerdown", "pointer down"], ["pointerup", "pointer up"], ["submit", "submit"],
+  ["custom", "custom event"],
   ["state", "variable value"], ["elementState", "external element state"], ["timer", "timer"], ["after", "after transition"]
 ];
 function mgTriggerUsed(stateId, event) {
@@ -6613,12 +6618,22 @@ function mgTriggerUsedExcept(stateId, event, exceptId) {
 }
 function mgTriggerLabel(link) {
   if (!link || !link.event) return "Trigger not configured";
-  if (link.event === "state") return "Variable " + (link.when || "?") + (link.value != null && link.value !== "" ? " = " + link.value : "");
-  if (link.event === "timer") return "Timer " + (link.timer || "1s");
-  if (link.event === "after") return "After transition";
-  if (link.event === "elementState") return "Element " + (link.sourceLabel || link.sourceId || "?") + " state " + (link.whenState || "?");
-  if (link.sourceId) return (link.sourceLabel || ("Element " + link.sourceId)) + ": " + link.event;
-  return link.event;
+  var base;
+  if (link.event === "state") base = "Variable " + (link.when || "?") + (link.value != null && link.value !== "" ? " = " + link.value : "");
+  else if (link.event === "timer") base = "Timer " + (link.timer || "1s");
+  else if (link.event === "after") base = "After transition";
+  else if (link.event === "elementState") base = "Element " + (link.sourceLabel || link.sourceId || "?") + " state " + (link.whenState || "?");
+  else if (link.event === "custom") base = "custom: " + (link.customEvent || "?");
+  else if (link.sourceId) base = (link.sourceLabel || ("Element " + link.sourceId)) + ": " + link.event;
+  else base = link.event;
+  var filters = [];
+  if (link.key) filters.push(link.key);
+  if (link.ctrl) filters.push("Ctrl");
+  if (link.alt) filters.push("Alt");
+  if (link.shift) filters.push("Shift");
+  if (link.meta) filters.push("Meta");
+  if (link.button != null && link.button !== "") filters.push(["Left", "Middle", "Right"][Number(link.button)] || ("Button " + link.button));
+  return filters.length ? base + " [" + filters.join(", ") + "]" : base;
 }
 function mgElementLabel(n, path) {
   var text = n.kind;
@@ -7690,6 +7705,39 @@ function mgRenderParam() {
     var extStateSel = document.createElement("select");
     side.appendChild(extStateSel);
 
+    var customLabel = label("custom event");
+    var customInp = input(editLink ? (editLink.customEvent || "") : "", "e.g. my-event");
+    var keyLabel = label("key");
+    var keyInp = input(editLink ? (editLink.key || "") : "", "e.g. Enter");
+    var buttonLabel = label("mouse button");
+    var buttonSel = document.createElement("select");
+    [["-1", "Any"], ["0", "Left"], ["1", "Middle"], ["2", "Right"]].forEach(function(o){
+      var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; buttonSel.appendChild(op);
+    });
+    if (editLink && editLink.button != null && editLink.button !== "") buttonSel.value = String(editLink.button);
+    side.appendChild(buttonSel);
+    var modLabel = label("modifiers");
+    var modRow = document.createElement("div");
+    modRow.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin:4px 0 8px";
+    function modCheck(key, text) {
+      var lab = document.createElement("label");
+      lab.style.cssText = "display:inline-flex;align-items:center;gap:3px;margin:0";
+      var cb = document.createElement("input"); cb.type = "checkbox";
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(text)); modRow.appendChild(lab);
+      return cb;
+    }
+    var ctrlCb = modCheck("ctrl", "Ctrl");
+    var altCb = modCheck("alt", "Alt");
+    var shiftCb = modCheck("shift", "Shift");
+    var metaCb = modCheck("meta", "Meta");
+    if (editLink) {
+      ctrlCb.checked = !!editLink.ctrl;
+      altCb.checked = !!editLink.alt;
+      shiftCb.checked = !!editLink.shift;
+      metaCb.checked = !!editLink.meta;
+    }
+    side.appendChild(modRow);
+
     function syncExternalStates() {
       var choice = externalById[String(sourceSel.value)];
       var states = choice ? mgGraphStatesOfNode(choice.node) : [];
@@ -7751,11 +7799,22 @@ function mgRenderParam() {
       var showState = ev === "state";
       var isDom = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState";
       var isExtState = ev === "elementState";
+      var isCustom = ev === "custom";
+      var isKey = ev === "keydown" || ev === "keyup";
+      var showButton = isDom && !isKey && !isCustom && ev !== "input" && ev !== "submit" && ev !== "change" && ev !== "focus" && ev !== "blur";
       var showSource = isDom || isExtState;
       sourceLabel.style.display = showSource ? "" : "none";
       sourceSel.style.display = showSource ? "" : "none";
       extStateLabel.style.display = isExtState ? "" : "none";
       extStateSel.style.display = isExtState ? "" : "none";
+      customLabel.style.display = isCustom ? "" : "none";
+      customInp.style.display = isCustom ? "" : "none";
+      keyLabel.style.display = isKey ? "" : "none";
+      keyInp.style.display = isKey ? "" : "none";
+      buttonLabel.style.display = showButton ? "" : "none";
+      buttonSel.style.display = showButton ? "" : "none";
+      modLabel.style.display = isDom ? "" : "none";
+      modRow.style.display = isDom ? "" : "none";
       varLabel.style.display = showState ? "" : "none";
       varSel.style.display = showState ? "" : "none";
       valLabel.style.display = showState ? "" : "none";
@@ -7779,9 +7838,26 @@ function mgRenderParam() {
       var extSource = sourceSel.value || "";
       var extChoice = externalById[String(extSource)];
       var isDomEvent = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState";
+      var isCurrentCustom = ev === "custom";
+      var isCurrentKey = ev === "keydown" || ev === "keyup";
+      var showCurrentButton = isDomEvent && !isCurrentKey && !isCurrentCustom && ev !== "input" && ev !== "submit" && ev !== "change" && ev !== "focus" && ev !== "blur";
+      if (isCurrentCustom && !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(customInp.value.trim())) { mgNotify("Enter a valid custom event name."); return; }
       if (ev === "elementState") {
         if (!extSource || !extChoice) { mgNotify("Choose a valid external element for the external state trigger."); return; }
         if (!extStateSel.value) { mgNotify("Choose the external state."); return; }
+      }
+      function applyFilters(obj) {
+        if (isCurrentCustom) obj.customEvent = customInp.value.trim(); else delete obj.customEvent;
+        if (isCurrentKey && keyInp.value.trim()) obj.key = keyInp.value.trim(); else delete obj.key;
+        if (showCurrentButton && buttonSel.value !== "-1") obj.button = Number(buttonSel.value); else delete obj.button;
+        if (isDomEvent) {
+          if (ctrlCb.checked) obj.ctrl = true; else delete obj.ctrl;
+          if (altCb.checked) obj.alt = true; else delete obj.alt;
+          if (shiftCb.checked) obj.shift = true; else delete obj.shift;
+          if (metaCb.checked) obj.meta = true; else delete obj.meta;
+        } else {
+          delete obj.ctrl; delete obj.alt; delete obj.shift; delete obj.meta;
+        }
       }
       var sourceId = mgParam.id;
       if (editLink) {
@@ -7805,6 +7881,7 @@ function mgRenderParam() {
         }
         if (ev === "elementState") editLink.whenState = extStateSel.value;
         else delete editLink.whenState;
+        applyFilters(editLink);
         mgSelLink = ""; mgSelState = "";
         mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
         mgFinishEdit(true);
@@ -7825,6 +7902,7 @@ function mgRenderParam() {
         link.sourceLabel = extChoice.label;
       }
       if (ev === "elementState") link.whenState = extStateSel.value;
+      applyFilters(link);
       mgCfg.links.push(link);
       mgSelLink = link.id;
       mgSelState = "";
@@ -7880,12 +7958,19 @@ function mgRenderParam() {
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
     side.appendChild(h);
-    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["elementState","external element state"],["timer","timer"],["after","after transition"]]);
+    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["input","input"],["keydown","key down"],["keyup","key up"],["pointerdown","pointer down"],["pointerup","pointer up"],["submit","submit"],["custom","custom event"],["state","variable value"],["elementState","external element state"],["timer","timer"],["after","after transition"]]);
     ev.onchange = function(){
       snap("motion graph trigger");
       l.event = ev.value;
       if (ev.value !== "elementState") delete l.whenState;
-      if (ev.value === "state" || ev.value === "timer" || ev.value === "after") { delete l.sourceId; delete l.sourceLabel; }
+      if (ev.value === "state" || ev.value === "timer" || ev.value === "after") {
+        delete l.sourceId; delete l.sourceLabel;
+        delete l.ctrl; delete l.alt; delete l.shift; delete l.meta;
+        delete l.button; delete l.key;
+      }
+      if (ev.value !== "custom") delete l.customEvent;
+      if (ev.value !== "keydown" && ev.value !== "keyup") delete l.key;
+      if (ev.value === "custom" || ev.value === "keydown" || ev.value === "keyup" || ev.value === "input" || ev.value === "submit" || ev.value === "change" || ev.value === "focus" || ev.value === "blur") delete l.button;
       mgCommit(); mgRender(); mgRenderParam();
     };
     var linkExternal = mgExternalChoices();
@@ -7925,6 +8010,34 @@ function mgRenderParam() {
         stateSel.onchange = function(){ snap("motion graph external state"); l.whenState = stateSel.value; mgCommit(); };
         side.appendChild(stateSel);
       }
+    }
+    if (linkDomEvent) {
+      if (l.event === "custom") {
+        label("custom event"); var ce = input(l.customEvent || "", "e.g. my-event");
+        ce.onchange = function(){ snap("motion graph custom event"); l.customEvent = ce.value.trim(); mgCommit(); mgRenderParam(); };
+      }
+      if (l.event === "keydown" || l.event === "keyup") {
+        label("key"); var ki = input(l.key || "", "e.g. Enter");
+        ki.onchange = function(){ snap("motion graph key filter"); if (ki.value.trim()) l.key = ki.value.trim(); else delete l.key; mgCommit(); mgRenderParam(); };
+      }
+      var showButton = l.event !== "custom" && l.event !== "keydown" && l.event !== "keyup" && l.event !== "input" && l.event !== "submit" && l.event !== "change" && l.event !== "focus" && l.event !== "blur";
+      if (showButton) {
+        label("mouse button");
+        var bs = select(l.button != null && l.button !== "" ? String(l.button) : "-1", [["-1", "Any"], ["0", "Left"], ["1", "Middle"], ["2", "Right"]]);
+        bs.onchange = function(){ snap("motion graph button filter"); if (bs.value === "-1") delete l.button; else l.button = Number(bs.value); mgCommit(); };
+      }
+      label("modifiers");
+      var modRow = document.createElement("div");
+      modRow.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin:4px 0 8px";
+      function linkMod(key, text) {
+        var lab = document.createElement("label");
+        lab.style.cssText = "display:inline-flex;align-items:center;gap:3px;margin:0";
+        var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!l[key];
+        cb.onchange = function(){ snap("motion graph modifier filter"); if (cb.checked) l[key] = true; else delete l[key]; mgCommit(); };
+        lab.appendChild(cb); lab.appendChild(document.createTextNode(text)); modRow.appendChild(lab);
+      }
+      linkMod("ctrl", "Ctrl"); linkMod("alt", "Alt"); linkMod("shift", "Shift"); linkMod("meta", "Meta");
+      side.appendChild(modRow);
     }
     if (l.event === "state") {
       label("variable"); var vars = (root.states || []).map(function(st){ return [st.name, st.name]; });
@@ -7972,7 +8085,7 @@ function mgRenderParam() {
     var title = document.createElement("div"); title.className = "hint"; title.style.marginTop = "10px";
     title.textContent = (incoming ? "Incoming from " : "Trigger " + num + " → ") + (other ? other.name : (incoming ? link.from : link.to));
     side.appendChild(title);
-    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["elementState","external element state"],["after","after transition"]]);
+    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["input","input"],["keydown","key down"],["keyup","key up"],["pointerdown","pointer down"],["pointerup","pointer up"],["submit","submit"],["custom","custom event"],["state","variable value"],["elementState","external element state"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
     if (link.event === "state") {
       label("variable (true/false)"); var wh = input(link.when, "e.g. open or !open");

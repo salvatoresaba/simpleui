@@ -962,12 +962,21 @@ only the graph; parameters open in draggable overlay panels:
   state and re-routes every link; placed positions are pinned so the layout
   stays stable. State blocks and links use theme-aware
   colors and stay readable in light and dark themes.
-- Click and the other DOM events can be used once per source state; variable
-  and timer triggers can be repeated. The chooser disables already-used single
-  events and validation rejects duplicates. For a reversible hover use
+- Click and the other single-use DOM events can be used once per source state;
+  variable and timer triggers can be repeated. The chooser disables already-used
+  single events and validation rejects duplicates. For a reversible hover use
   `pointerenter` + `pointerleave` (or `mouseenter` + `mouseleave`);
   `mouseover`/`mouseout` bubble, so they also fire when the pointer crosses child
   elements and can repeat more than once.
+- The chooser also exposes `keydown`, `keyup`, `input`, `submit`, `pointerdown`,
+  `pointerup` and **custom** events. Keyboard and custom links can carry a key,
+  mouse-button and Ctrl/Alt/Shift/Meta filters; when several links match the same
+  state and event, the most specific filter wins. Custom events use a DOM event
+  name entered in the chooser.
+- Transitions use the browser animation engine with computed start and end
+  values, so `transform`, filters, box shadows, clip paths, gradients, colors,
+  lengths and custom properties animate where the browser supports them;
+  non-animatable values change discretely. Final values are applied at the end.
 - A **variable** trigger lists the available SUI states and asks for the value
   that activates it (`true`/`false`, text or number). A **timer** trigger asks
   for a duration and starts the transition automatically after that time in the
