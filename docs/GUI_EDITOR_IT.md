@@ -606,7 +606,13 @@ riordinare le sezioni dell'inspector; l'ordine viene salvato nel local storage
 dell'editor e ripristinato al reload. Le sezioni che non si applicano
 all'elemento corrente scompaiono temporaneamente e mantengono la posizione
 salvata quando ricompaiono. Il riordino cambia solo la UI dell'editor, non
-l'applicazione generata.
+l'applicazione generata. Anche la sezione **View** (titolo pagina, nome pagina,
+onLoad e azioni pagina) è una normale sezione riordinabile e, come tutte le
+altre, parte chiusa.
+
+Quando una modifica ridisegna l'inspector vengono ripristinati la sezione
+aperta, la posizione di scorrimento e il campo con il focus. Puoi continuare a
+modificare lo stesso parametro senza dover ritrovare la sezione.
 
 Ogni riga dell'albero **Structure** a sinistra inizia con un badge del tipo
 esatto (`div`, `tree`, `treeitem`, `chart`, `input`, ...). Il badge e separato

@@ -583,7 +583,13 @@ Each section header has a small grip on the left. Drag the grip to reorder the
 inspector sections; the order is saved in the editor's local storage and is
 restored on reload. Sections that do not apply to the current element disappear
 temporarily and keep their stored position when they return. Reordering only
-changes the editor UI, not the generated application.
+changes the editor UI, not the generated application. The **View** section
+(page title, page name, onLoad and page actions) is a normal reorderable section
+and, like every other section, starts closed.
+
+When an edit rebuilds the inspector, the open section, the scroll position and
+the focused field are restored. You can continue editing the same parameter
+without searching for the section again.
 
 Every row in the left **Structure** tree starts with an exact type badge
 (`div`, `tree`, `treeitem`, `chart`, `input`, ...). The badge is independent of

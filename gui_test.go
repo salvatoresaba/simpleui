@@ -819,6 +819,17 @@ func TestGuiInspectorEffectControls(t *testing.T) {
 	}
 }
 
+func TestGuiInspectorFocusAndDefaults(t *testing.T) {
+	for _, want := range []string{
+		"captureInspectorFocus", "assignInspectorFocusKeys", "restoreInspectorFocus",
+		"finishInspector", "sui.inspector.sections.v2",
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("inspector focus/default handling is missing %q", want)
+		}
+	}
+}
+
 func TestGuiReorderableInspectorSections(t *testing.T) {
 	for _, want := range []string{
 		"setupInspectorSectionOrder", "INSPECTOR_ORDER_KEY", "ins-grip",

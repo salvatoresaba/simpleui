@@ -5260,16 +5260,91 @@ document.addEventListener("keydown", function(e){
 window.addEventListener("resize", function(){
   if (insOverlayOpen) mgClampPanel(document.getElementById("ins-overlay"));
 });
+function inspectorFocusable(el) {
+  if (!el || !el.tagName) return false;
+  var tag = el.tagName.toUpperCase();
+  if (tag !== "INPUT" && tag !== "SELECT" && tag !== "TEXTAREA" && tag !== "BUTTON") return false;
+  if (el.closest && el.closest(".acchead, .ins-sec-h")) return false;
+  return true;
+}
+function captureInspectorFocus() {
+  var box = document.getElementById("inspector");
+  if (!box) return null;
+  var ae = document.activeElement;
+  var inside = ae && ae !== box && box.contains(ae) && inspectorFocusable(ae);
+  var state = {
+    key: inside ? (ae.getAttribute("data-ins-focus-key") || "") : "",
+    scope: currentInspectScope(),
+    scrollTop: box.scrollTop
+  };
+  if (inside && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) {
+    try {
+      state.start = ae.selectionStart;
+      state.end = ae.selectionEnd;
+    } catch (e) {}
+  }
+  return state;
+}
+function assignInspectorFocusKeys(box) {
+  if (!box) return;
+  var sections = [];
+  for (var i = 0; i < box.children.length; i++) {
+    var ch = box.children[i];
+    if (ch.classList && (ch.classList.contains("acc") || ch.classList.contains("ins-sec"))) sections.push(ch);
+  }
+  sections.forEach(function(sec) {
+    var sectionKey = sec.getAttribute("data-ins-key") || "";
+    var controls = sec.querySelectorAll("input, select, textarea, button");
+    var n = 0;
+    for (var j = 0; j < controls.length; j++) {
+      var el = controls[j];
+      if (!inspectorFocusable(el)) continue;
+      var row = el.closest ? el.closest(".rowline, .fx-field, .fx-card, .mg-field, .adv-row, .adv-add") : null;
+      var label = row ? ((row.querySelector("label") || {}).textContent || "") : "";
+      var id = el.id || "";
+      var ph = el.getAttribute("placeholder") || "";
+      el.setAttribute("data-ins-focus-key", sectionKey + "|" + (id || label || ph || el.tagName.toLowerCase()) + "|" + n);
+      n++;
+    }
+  });
+}
+function restoreInspectorFocus(state) {
+  if (!state) return;
+  var box = document.getElementById("inspector");
+  if (!box) return;
+  if (state.scope !== currentInspectScope()) return;
+  if (typeof state.scrollTop === "number") box.scrollTop = state.scrollTop;
+  if (!state.key) return;
+  var controls = box.querySelectorAll("[data-ins-focus-key]");
+  for (var i = 0; i < controls.length; i++) {
+    if (controls[i].getAttribute("data-ins-focus-key") !== state.key) continue;
+    var el = controls[i];
+    try {
+      el.focus({ preventScroll: true });
+      if (state.start != null && el.setSelectionRange) el.setSelectionRange(state.start, state.end == null ? state.start : state.end);
+    } catch (e) {}
+    break;
+  }
+}
 function renderInspector() {
   if (selPath && (!multiSel || !multiSel.length)) {
     var ownerPath = treeOwnerPath(selPath);
     if (ownerPath && !samePath(ownerPath, selPath)) selPath = ownerPath;
   }
   var box = document.getElementById("inspector");
+  var focusState = captureInspectorFocus();
   box.innerHTML = "";
+  function finishInspector() {
+    syncInspectorSections();
+    setupInspectorSectionOrder(box);
+    assignInspectorFocusKeys(box);
+    requestLiveStyles();
+    refreshInspectorOverlay();
+    restoreInspectorFocus(focusState);
+  }
   // Document section: the page title is a page-level property (the browser tab
-  // title of the generated app), not an element property; it pins to the top of
-  // the inspector and stays editable whatever is selected.
+  // title of the generated app), not an element property. It is created first
+  // by default but follows the same reorderable, collapsed-section rules.
   var dsec = document.createElement("div"); dsec.className = "ins-sec";
   var dh = document.createElement("div"); dh.className = "ins-sec-h"; dh.textContent = "View";
   dsec.appendChild(dh);
@@ -5320,9 +5395,14 @@ function renderInspector() {
   var isToastHost = !!(nodes.length === 1 && n && n.kind === "toast");
   if (!isToastHost) __toastPreviewPending = null;
   __runColorHint = (nodes.length === 1 && n && n.kind === "text") ? commonRunColor(n) : "";
-  if (!nodes.length && !selBody) { box.insertAdjacentHTML("beforeend", '<div class="hint">Select an element (tree or preview) to style it.</div>'); return; }
+  if (!nodes.length && !selBody) {
+    box.insertAdjacentHTML("beforeend", '<div class="hint">Select an element (tree or preview) to style it.</div>');
+    finishInspector();
+    return;
+  }
   if (nodes.some(function(m){ return m && m.component; })) {
     box.insertAdjacentHTML("beforeend", '<div class="hint">This is a parameterized view (component). It is kept in the SUI as-is.</div>');
+    finishInspector();
     return;
   }
 
@@ -5767,10 +5847,7 @@ function renderInspector() {
     var ct = document.getElementById("celltext");
     if (ct) { ct.focus(); ct.select(); }
   }
-  syncInspectorSections();
-  setupInspectorSectionOrder(box);
-  requestLiveStyles();
-  refreshInspectorOverlay();
+  finishInspector();
 }
 
 // Typical events per element kind.
@@ -11794,10 +11871,12 @@ function toastControls(n) {
 // closing one is remembered across selection changes, re-renders and reloads.
 var __inspectorSectionOpen = {};
 try {
-  __inspectorSectionOpen = JSON.parse(localStorage.getItem("sui.inspector.sections") || "{}") || {};
+  // Versioned key: the default is "all sections closed"; old saved open
+  // states are intentionally ignored after this change.
+  __inspectorSectionOpen = JSON.parse(localStorage.getItem("sui.inspector.sections.v2") || "{}") || {};
 } catch (e) { __inspectorSectionOpen = {}; }
 function saveInspectorSections() {
-  try { localStorage.setItem("sui.inspector.sections", JSON.stringify(__inspectorSectionOpen)); } catch (e) {}
+  try { localStorage.setItem("sui.inspector.sections.v2", JSON.stringify(__inspectorSectionOpen)); } catch (e) {}
 }
 function directInspectorChild(el, cls) {
   for (var i = 0; i < el.children.length; i++) {
