@@ -629,6 +629,27 @@ La proprietà **required** è disponibile per `input`, `textarea`, `select`,
 usano l'attributo `required` del browser; il combobox aggiunge un errore inline
 quando non è selezionato un valore.
 
+### Ombre, filtri ed effetti di fusione
+
+La sezione **Effects** usa card compatte invece di un'unica riga affollata:
+
+- **Box shadow**: preset (`none`, `soft`, `raised`, `crisp`, `inset`), spin box
+  X/Y/blur/spread in `px`, alpha in `%`, toggle inset, color picker del progetto
+  e campo **CSS** raw. L'alpha di `rgba()` viene conservato.
+- **Filter**: blur (`px`), brightness/contrast/saturation/grayscale/sepia/invert
+  (`%`) e hue (`°`) con preset e campo CSS raw. Le funzioni sconosciute come
+  `drop-shadow()` o `url()` restano nel valore raw e vengono preservate quando
+  si modifica un controllo noto.
+- **Backdrop filter**: preset glass, frost e tint con controlli blur,
+  saturazione, luminosità e contrasto; l'editor scrive sia la proprietà standard
+  sia `-webkit-`.
+- **Blend mode**: `mix-blend-mode`, da `normal` a `luminosity`.
+
+La sezione **Typography** usa la stessa card per `text-shadow` (senza spread e
+inset). Il campo CSS raw è la via per ombre a più livelli o filtri avanzati; un
+preset o un controllo numerico sostituisce un'ombra multi-livello con un solo
+livello.
+
 ## Drag and drop del designer
 
 Il drag and drop interno del designer è sempre attivo. Non esiste un'impostazione,

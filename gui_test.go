@@ -808,6 +808,17 @@ func TestGuiPreviewHasNoRuler(t *testing.T) {
 	}
 }
 
+func TestGuiInspectorEffectControls(t *testing.T) {
+	for _, want := range []string{
+		"function shadowBox", "function filterBox", "fxParseFilter", "fxBuildFilter",
+		"backdrop-filter", "mix-blend-mode", "fx-preset", "fx-preview",
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("inspector effects are missing %q", want)
+		}
+	}
+}
+
 func TestGuiPreviewMotionFeatures(t *testing.T) {
 	for _, want := range []string{
 		"sui-graph-preview-stop", "gPreviewDecls", "gPreviewApply",

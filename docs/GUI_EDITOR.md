@@ -606,6 +606,27 @@ The **required** property is offered for `input`, `textarea`, `select`,
 use the browser's `required` attribute; the combobox adds an inline required
 error when no value is selected.
 
+### Shadow, filter and blend effects
+
+The **Effects** section uses compact cards instead of a single crowded row:
+
+- **Box shadow**: presets (`none`, `soft`, `raised`, `crisp`, `inset`), X/Y/
+  blur/spread spin boxes in `px`, an alpha spin box in `%`, an inset toggle, the
+  project colour picker and a raw **CSS** field. `rgba()` alpha is preserved.
+- **Filter**: blur (`px`), brightness/contrast/saturation/grayscale/sepia/
+  invert (`%`) and hue (`°`) with presets and a raw CSS field. Unknown functions
+  such as `drop-shadow()` or `url()` are kept in the raw value and preserved
+  when a known control changes.
+- **Backdrop filter**: glass, frost and tint presets with blur, saturation,
+  brightness and contrast controls; the editor writes both the standard and
+  `-webkit-` property.
+- **Blend mode**: `mix-blend-mode`, from `normal` to `luminosity`.
+
+The **Typography** section uses the same card for `text-shadow` (without spread
+and inset). The raw CSS field is the escape hatch for multiple shadow layers or
+advanced filter functions; a preset or a numeric control replaces a multi-layer
+shadow with a single layer.
+
 ## Designer drag and drop
 
 The designer's own drag and drop is always enabled. There is no setting,

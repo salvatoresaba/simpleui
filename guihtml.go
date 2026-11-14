@@ -307,6 +307,30 @@ body.panel-resizing iframe { pointer-events:none !important; }
 input[type=color] { padding:0; height:26px; }
 .rowline input[type=range] { padding:0; }
 .hint { font-size:11px; color:var(--dim); margin:5px 0; }
+/* Inspector effect cards: shadow, filter and backdrop-filter */
+.fx-card { border:1px solid var(--border2); border-radius:9px; background:var(--panel3); padding:8px; margin:7px 0; }
+.fx-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.fx-title { flex:1; min-width:0; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx-preview { width:46px; height:34px; flex:none; border:1px solid var(--border); border-radius:6px; background:var(--panel); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.fx-preview-box { width:22px; height:22px; border-radius:4px; background:#e5e7eb; }
+.fx-preview-text { font:800 16px/1 system-ui, "Segoe UI", sans-serif; color:var(--fg); }
+.fx-preview-filter { width:100%; height:100%; background:linear-gradient(135deg,#4c5cf7,#34d399 55%,#fbbf24); }
+.fx-preview-glass { position:relative; width:100%; height:100%; background:repeating-linear-gradient(45deg,#4c5cf7 0 6px,#34d399 6px 12px); }
+.fx-preview-glass > span { position:absolute; inset:5px; border-radius:4px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22); }
+.fx-presets { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+.fx-preset { font:600 9.5px/1 var(--mono,ui-monospace,Consolas,monospace); padding:4px 6px; border:1px solid var(--border2); border-radius:5px; background:var(--btn-bg); color:var(--muted); cursor:pointer; }
+.fx-preset:hover { color:var(--fg); border-color:var(--accent); }
+.fx-grid { display:grid; grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr); gap:5px 6px; align-items:center; }
+.fx-grid > label { font-size:10px; color:var(--muted); white-space:nowrap; }
+.fx-num { display:flex; align-items:center; gap:3px; min-width:0; }
+.fx-num input { width:100%; min-width:0; height:24px; padding:2px 4px; font-size:11px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; }
+.fx-unit { font-size:9px; color:var(--dim); white-space:nowrap; }
+.fx-check { grid-column:1 / -1; display:flex; align-items:center; gap:5px; font-size:10px; color:var(--muted); }
+.fx-check input { width:auto; margin:0; }
+.fx-color { grid-column:2 / -1; min-width:0; }
+.fx-color .colorbar { height:24px; }
+.fx-raw { grid-column:2 / -1; min-width:0; width:100%; box-sizing:border-box; height:24px; padding:2px 5px; font:10px/1.2 var(--mono,ui-monospace,Consolas,monospace); background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; }
+.fx-note { grid-column:1 / -1; font-size:10px; color:var(--dim); line-height:1.35; }
 .applyhot { background: var(--accent) !important; color: #fff !important; font-weight: 700; box-shadow: 0 0 0 2px rgba(76, 92, 247, .35); }
 /* inspector switch: graphical on/off control for binary attribute fields */
 label.isw { box-sizing:border-box; position:relative; width:36px; height:20px; flex:none; display:inline-block; }
@@ -2194,6 +2218,8 @@ var COMPAT = {
     { prop: "border-radius", value: v }
   ]; },
   "box-shadow": function(v) { return [{ prop: "-webkit-box-shadow", value: v }, { prop: "-moz-box-shadow", value: v }, { prop: "box-shadow", value: v }]; },
+  "filter": function(v) { return [{ prop: "-webkit-filter", value: v }, { prop: "filter", value: v }]; },
+  "backdrop-filter": function(v) { return [{ prop: "-webkit-backdrop-filter", value: v }, { prop: "backdrop-filter", value: v }]; },
   "transform": function(v) { return [{ prop: "-webkit-transform", value: v }, { prop: "-moz-transform", value: v }, { prop: "transform", value: v }]; },
   "transition": function(v) { return [{ prop: "-webkit-transition", value: v }, { prop: "-moz-transition", value: v }, { prop: "transition", value: v }]; },
   "user-select": function(v) { return [{ prop: "-webkit-user-select", value: v }, { prop: "-moz-user-select", value: v }, { prop: "-ms-user-select", value: v }, { prop: "user-select", value: v }]; }
@@ -5128,6 +5154,8 @@ function cssFieldValue(prop, rule, useParent) {
   }
   if (prop === "color" && __runColorHint) return cssColorToHex(__runColorHint) || __runColorHint;
   var direct = rule ? declOf(rule, prop) : "";
+  if (!direct && rule && prop === "filter") direct = declOf(rule, "-webkit-filter");
+  if (!direct && rule && prop === "backdrop-filter") direct = declOf(rule, "-webkit-backdrop-filter");
   if (direct && !/^var\(/i.test(direct)) return normalizeLiveField(prop, direct) || direct;
   var live = liveStyleValue(prop, !!useParent);
   return live || direct;
@@ -5584,7 +5612,10 @@ function renderInspector() {
       transparency("opacity", "Opacity")
     ]),
     acc("Effects", [
-      shadowBox("box-shadow", "box-shadow")
+      shadowBox("box-shadow", "box-shadow"),
+      filterBox("filter", "filter", ["blur", "brightness", "contrast", "saturate", "grayscale", "sepia", "hue-rotate", "invert"]),
+      filterBox("backdrop-filter", "backdrop filter", ["blur", "saturate", "brightness", "contrast"]),
+      selBox("mix-blend-mode", "blend mode", ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"])
     ]),
     layoutCellSelection ? null : acc("Size", (function(){
       var rows = [];
@@ -12216,41 +12247,295 @@ function parseShadow(v, spread) {
   res.color = color || res.color;
   return res;
 }
+function fxLabel(text) {
+  var l = document.createElement("label"); l.textContent = text; return l;
+}
+function fxNumCell(parent, value, min, max, step, unit) {
+  var cell = document.createElement("div"); cell.className = "fx-num";
+  var inp = document.createElement("input");
+  inp.type = "number"; inp.value = String(value);
+  inp.min = String(min); inp.max = String(max); inp.step = String(step);
+  cell.appendChild(inp);
+  if (unit) {
+    var u = document.createElement("span"); u.className = "fx-unit"; u.textContent = unit; cell.appendChild(u);
+  }
+  parent.appendChild(cell); return inp;
+}
+function fxRawRow(grid, value, apply) {
+  grid.appendChild(fxLabel("CSS"));
+  var inp = document.createElement("input");
+  inp.className = "fx-raw"; inp.value = value || "none"; inp.spellcheck = false;
+  inp.onchange = function(){ apply(inp.value.trim() || "none"); };
+  grid.appendChild(inp); return inp;
+}
+function fxPresetRow(card, list, apply) {
+  var row = document.createElement("div"); row.className = "fx-presets";
+  list.forEach(function(p){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "fx-preset"; b.textContent = p[0];
+    b.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } apply(p[1]); };
+    row.appendChild(b);
+  });
+  card.appendChild(row); return row;
+}
+function fxHex2(n) {
+  n = Math.max(0, Math.min(255, Math.round(n)));
+  return (n < 16 ? "0" : "") + n.toString(16);
+}
+function fxRgbToHex(r, g, b) {
+  return "#" + fxHex2(r) + fxHex2(g) + fxHex2(b);
+}
+function fxParseColor(v) {
+  var s = String(v || "").trim();
+  var m = /^rgba?\(([^)]*)\)$/i.exec(s);
+  if (m) {
+    var parts = m[1].trim().split(/[\s,\/]+/).filter(function(x){ return x !== ""; });
+    if (parts.length >= 3) {
+      var av = parts.length > 3 ? parseFloat(parts[3]) : 1;
+      if (!isFinite(av)) av = 1;
+      if (String(parts[3] || "").indexOf("%") >= 0) av /= 100;
+      return {
+        hex: fxRgbToHex(+parts[0], +parts[1], +parts[2]),
+        alpha: Math.max(0, Math.min(1, av))
+      };
+    }
+  }
+  var hm = /^#([0-9a-f]{3,8})$/i.exec(s);
+  if (hm) {
+    var h = hm[1];
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (h.length === 8) return { hex: "#" + h.slice(0, 6), alpha: Math.round((parseInt(h.slice(6, 8), 16) / 255) * 1000) / 1000 };
+    if (h.length === 4) return { hex: "#" + h[0] + h[0] + h[1] + h[1] + h[2] + h[2], alpha: Math.round((parseInt(h[3] + h[3], 16) / 255) * 1000) / 1000 };
+    return { hex: "#" + h.slice(0, 6), alpha: 1 };
+  }
+  return { hex: "#000000", alpha: 1 };
+}
+function fxShadowColor(hex, alpha) {
+  var m = /^#([0-9a-f]{6})$/i.exec(String(hex || ""));
+  if (!m) return String(hex || "#000000");
+  if (alpha >= 0.999) return "#" + m[1].toLowerCase();
+  var r = parseInt(m[1].slice(0, 2), 16);
+  var g = parseInt(m[1].slice(2, 4), 16);
+  var b = parseInt(m[1].slice(4, 6), 16);
+  return "rgba(" + r + "," + g + "," + b + "," + (Math.round(alpha * 1000) / 1000) + ")";
+}
 function shadowBox(prop, label) {
   var spread = prop === "box-shadow";
-  var d = document.createElement("div"); d.className = "rowline";
-  var l = document.createElement("label"); l.textContent = label; d.appendChild(l);
   var cur = cssFieldValue(prop, currentRule());
   var s = parseShadow(cur, spread);
-  var wrap = document.createElement("div"); wrap.style.cssText = "display:flex;flex-direction:column;gap:4px;flex:1;min-width:0";
-  var row = document.createElement("div"); row.style.cssText = "display:flex;gap:5px;align-items:center;flex-wrap:wrap";
-  function mk(txt, val, width) {
-    var cell = document.createElement("span"); cell.style.cssText = "display:flex;align-items:center;gap:2px";
-    var t = document.createElement("span"); t.textContent = txt; t.style.cssText = "font-size:10px;color:var(--muted)";
-    var i = document.createElement("input"); i.style.cssText = "width:" + width + "px;min-width:0"; i.value = val;
-    cell.appendChild(t); cell.appendChild(i);
-    row.appendChild(cell);
-    return i;
+  var colorParts = fxParseColor(s.color);
+  var card = document.createElement("div"); card.className = "fx-card";
+  var head = document.createElement("div"); head.className = "fx-head";
+  var title = document.createElement("span"); title.className = "fx-title"; title.textContent = label;
+  var preview = document.createElement("div"); preview.className = "fx-preview";
+  var sample = document.createElement(spread ? "div" : "span");
+  sample.className = spread ? "fx-preview-box" : "fx-preview-text";
+  if (!spread) sample.textContent = "Ag";
+  preview.appendChild(sample);
+  head.appendChild(title); head.appendChild(preview); card.appendChild(head);
+
+  var presets = spread ? [
+    ["none", "none"],
+    ["soft", "0 8px 24px rgba(0,0,0,0.18)"],
+    ["raised", "0 12px 32px rgba(0,0,0,0.28)"],
+    ["crisp", "0 2px 0 rgba(0,0,0,0.35)"],
+    ["inset", "inset 0 2px 6px rgba(0,0,0,0.35)"]
+  ] : [
+    ["none", "none"],
+    ["soft", "0 1px 2px rgba(0,0,0,0.45)"],
+    ["glow", "0 0 10px rgba(76,92,247,0.75)"],
+    ["crisp", "0 1px 0 rgba(0,0,0,0.8)"]
+  ];
+  fxPresetRow(card, presets, function(v){ setCssProp(prop, v, function(){ renderInspector(); }); });
+
+  var grid = document.createElement("div"); grid.className = "fx-grid"; card.appendChild(grid);
+  grid.appendChild(fxLabel("X"));
+  var xi = fxNumCell(grid, Math.round(parseFloat(s.x) || 0), -999, 999, 1, "px");
+  grid.appendChild(fxLabel("Y"));
+  var yi = fxNumCell(grid, Math.round(parseFloat(s.y) || 0), -999, 999, 1, "px");
+  grid.appendChild(fxLabel("blur"));
+  var bi = fxNumCell(grid, Math.round(parseFloat(s.blur) || 0), 0, 999, 1, "px");
+  var si = null;
+  var textAlpha = null;
+  grid.appendChild(fxLabel(spread ? "spread" : "alpha"));
+  if (spread) {
+    si = fxNumCell(grid, Math.round(parseFloat(s.spread) || 0), -999, 999, 1, "px");
+  } else {
+    textAlpha = fxNumCell(grid, Math.round(colorParts.alpha * 100), 0, 100, 1, "%");
+    textAlpha.oninput = function(){ previewShadow(); };
+    textAlpha.onchange = function(){ previewShadow(); applyShadow(); };
   }
-  var xi = mk("X", s.x, 44);
-  var yi = mk("Y", s.y, 44);
-  var bi = mk("blur", s.blur, 44);
-  var si = spread ? mk("spread", s.spread, 52) : null;
-  var cp = colorPicker("", s.color, function(){ apply(); });
-  row.appendChild(cp);
-  wrap.appendChild(row);
-  function apply() {
-    var parts = [normLen(xi.value) || "0px", normLen(yi.value) || "0px", normLen(bi.value) || "0px"];
-    if (spread) parts.push(normLen(si.value) || "0px");
-    parts.push(cp.__inp.value);
-    setCssProp(prop, parts.join(" "));
+  var alpha = null;
+  if (spread) {
+    grid.appendChild(fxLabel("alpha"));
+    alpha = fxNumCell(grid, Math.round(colorParts.alpha * 100), 0, 100, 1, "%");
   }
-  xi.onchange = apply;
-  yi.onchange = apply;
-  bi.onchange = apply;
-  if (spread) si.onchange = apply;
-  d.appendChild(wrap);
-  return d;
+  var insetCb = null;
+  if (spread) {
+    var insetLab = document.createElement("label"); insetLab.className = "fx-check";
+    insetCb = document.createElement("input"); insetCb.type = "checkbox"; insetCb.checked = /\binset\b/i.test(cur);
+    insetLab.appendChild(insetCb); insetLab.appendChild(document.createTextNode("inset shadow"));
+    grid.appendChild(insetLab);
+  }
+  grid.appendChild(fxLabel("color"));
+  var cp = makeColorField(colorParts.hex, function(){ previewShadow(); applyShadow(); });
+  cp.classList.add("fx-color");
+  cp.style.flex = "none";
+  grid.appendChild(cp);
+  var raw = fxRawRow(grid, cur, function(v){ setCssProp(prop, v, function(){ renderInspector(); }); });
+
+  function readShadow() {
+    var n = function(v){ var x = Number(v); return isFinite(x) ? x : 0; };
+    var a = spread ? n(alpha.value) / 100 : n(textAlpha.value) / 100;
+    var x = n(xi.value), y = n(yi.value), blur = n(bi.value), spreadValue = spread ? n(si.value) : 0;
+    if (a <= 0 || (x === 0 && y === 0 && blur === 0 && spreadValue === 0)) return "none";
+    var parts = [];
+    if (spread && insetCb && insetCb.checked) parts.push("inset");
+    parts.push(x + "px");
+    parts.push(y + "px");
+    parts.push(blur + "px");
+    if (spread) parts.push(spreadValue + "px");
+    parts.push(fxShadowColor(cp.__inp.value, a));
+    return parts.join(" ");
+  }
+  function previewShadow(updateRaw) {
+    var v = readShadow();
+    if (updateRaw !== false && raw) raw.value = v;
+    if (spread) sample.style.boxShadow = v === "none" ? "" : v;
+    else sample.style.textShadow = v === "none" ? "" : v;
+  }
+  function applyShadow() { setCssProp(prop, readShadow()); }
+  function bind(inp) {
+    if (!inp) return;
+    inp.oninput = function(){ previewShadow(); };
+    inp.onchange = function(){ previewShadow(); applyShadow(); };
+  }
+  bind(xi); bind(yi); bind(bi); bind(si); bind(alpha);
+  if (insetCb) insetCb.onchange = function(){ previewShadow(); applyShadow(); };
+  previewShadow(false);
+  return card;
+}
+
+var FX_FILTER_META = {
+  blur: { label: "blur", unit: "px", css: "px", def: 0, min: 0, max: 50, step: 0.5 },
+  brightness: { label: "bright", unit: "%", css: "%", def: 100, min: 0, max: 300, step: 1 },
+  contrast: { label: "contrast", unit: "%", css: "%", def: 100, min: 0, max: 300, step: 1 },
+  saturate: { label: "saturate", unit: "%", css: "%", def: 100, min: 0, max: 300, step: 1 },
+  grayscale: { label: "gray", unit: "%", css: "%", def: 0, min: 0, max: 100, step: 1 },
+  sepia: { label: "sepia", unit: "%", css: "%", def: 0, min: 0, max: 100, step: 1 },
+  "hue-rotate": { label: "hue", unit: "°", css: "deg", def: 0, min: -360, max: 360, step: 1 },
+  invert: { label: "invert", unit: "%", css: "%", def: 0, min: 0, max: 100, step: 1 }
+};
+function fxParseFilter(v, keys) {
+  var vals = {};
+  keys.forEach(function(k){ vals[k] = FX_FILTER_META[k].def; });
+  var s = String(v || ""), rest = "", i = 0;
+  while (i < s.length) {
+    while (i < s.length && /\s/.test(s.charAt(i))) i++;
+    if (i >= s.length) break;
+    var start = i;
+    while (i < s.length && /[a-z-]/i.test(s.charAt(i))) i++;
+    var name = s.slice(start, i).toLowerCase();
+    if (!name) { i++; continue; }
+    var j = i;
+    while (j < s.length && /\s/.test(s.charAt(j))) j++;
+    if (s.charAt(j) !== "(") {
+      if (name !== "none") rest += (rest ? " " : "") + name;
+      i = j;
+      continue;
+    }
+    var depth = 0, k = j;
+    for (; k < s.length; k++) {
+      var ch = s.charAt(k);
+      if (ch === "(") depth++;
+      else if (ch === ")") { depth--; if (depth === 0) { k++; break; } }
+    }
+    var raw = s.slice(j + 1, Math.max(j + 1, k - 1)).trim();
+    var full = s.slice(start, k);
+    var meta = FX_FILTER_META[name];
+    if (meta && vals[name] !== undefined) {
+      var num = parseFloat(raw);
+      if (!isFinite(num)) num = meta.def;
+      if (meta.unit === "%" && raw.indexOf("%") < 0 && Math.abs(num) <= 3) num *= 100;
+      if (meta.css === "deg" && /turn$/i.test(raw)) num *= 360;
+      vals[name] = num;
+    } else {
+      rest += (rest ? " " : "") + full;
+    }
+    i = k;
+  }
+  return { values: vals, rest: rest };
+}
+function fxBuildFilter(vals, keys, rest) {
+  var out = [];
+  keys.forEach(function(k){
+    var meta = FX_FILTER_META[k];
+    var v = Number(vals[k]);
+    if (!isFinite(v)) v = meta.def;
+    if (Math.abs(v - meta.def) < 0.001) return;
+    out.push(k + "(" + (Math.round(v * 100) / 100) + meta.css + ")");
+  });
+  if (rest) out.push(rest);
+  return out.length ? out.join(" ") : "none";
+}
+function filterBox(prop, label, keys) {
+  var cur = cssFieldValue(prop, currentRule());
+  var parsed = fxParseFilter(cur, keys);
+  var card = document.createElement("div"); card.className = "fx-card";
+  var head = document.createElement("div"); head.className = "fx-head";
+  var title = document.createElement("span"); title.className = "fx-title"; title.textContent = label;
+  var preview = document.createElement("div"); preview.className = "fx-preview";
+  var target = null;
+  if (prop === "backdrop-filter") {
+    var glass = document.createElement("div"); glass.className = "fx-preview-glass";
+    target = document.createElement("span"); glass.appendChild(target); preview.appendChild(glass);
+  } else {
+    target = document.createElement("div"); target.className = "fx-preview-filter"; preview.appendChild(target);
+  }
+  head.appendChild(title); head.appendChild(preview); card.appendChild(head);
+
+  var presets = prop === "backdrop-filter" ? [
+    ["none", "none"],
+    ["glass", "blur(12px) saturate(140%)"],
+    ["frost", "blur(20px) brightness(110%)"],
+    ["tint", "blur(8px) contrast(120%)"]
+  ] : [
+    ["none", "none"],
+    ["blur", "blur(4px)"],
+    ["soft", "blur(0.5px) brightness(105%) saturate(110%)"],
+    ["vivid", "saturate(140%) contrast(108%)"],
+    ["mono", "grayscale(100%)"]
+  ];
+  fxPresetRow(card, presets, function(v){ setCssProp(prop, v, function(){ renderInspector(); }); });
+
+  var grid = document.createElement("div"); grid.className = "fx-grid"; card.appendChild(grid);
+  var inputs = {};
+  keys.forEach(function(k){
+    var meta = FX_FILTER_META[k];
+    grid.appendChild(fxLabel(meta.label));
+    inputs[k] = fxNumCell(grid, Math.round(parsed.values[k] * 100) / 100, meta.min, meta.max, meta.step, meta.unit);
+  });
+  var raw = fxRawRow(grid, cur, function(v){ setCssProp(prop, v, function(){ renderInspector(); }); });
+
+  function readFilter() {
+    var vals = {};
+    keys.forEach(function(k){ vals[k] = inputs[k].value; });
+    return fxBuildFilter(vals, keys, parsed.rest);
+  }
+  function previewFilter(updateRaw) {
+    var v = readFilter();
+    if (updateRaw !== false && raw) raw.value = v;
+    var css = v === "none" ? "" : v;
+    if (prop === "backdrop-filter") target.style.backdropFilter = css;
+    else target.style.filter = css;
+  }
+  function applyFilter() { setCssProp(prop, readFilter()); }
+  keys.forEach(function(k){
+    inputs[k].oninput = previewFilter;
+    inputs[k].onchange = function(){ previewFilter(); applyFilter(); };
+  });
+  previewFilter(false);
+  return card;
 }
 
 // ---- problems / tokens / history -----------------------------------------
