@@ -342,6 +342,17 @@ Il pannello **Problems/History** in basso si ridimensiona trascinando il bordo
 superiore. L'altezza resta tra 90 px e il 65% della finestra, viene ricordata tra
 i reload e un doppio click sul divisore ripristina i 190 px predefiniti.
 
+### Etichette dell'albero elementi
+
+Ogni riga dell'albero mantiene il chip del tipo e aggiunge un nome leggibile e un
+chip con il codice. Il nome viene dal testo o dal titolo dell'elemento, dal
+placeholder, dall'attributo `name` o dalla prima classe. Il chip del codice mostra
+il `motionKey` letterale quando presente, altrimenti il percorso nell'albero (per
+esempio `0.2.3`). Passando sulla riga si vedono nome, key e percorso completi.
+
+Usa il `motionKey` o il percorso per distinguere card, righe e controlli ripetuti.
+Lo stesso codice è disponibile nel picker **event source** dei trigger.
+
 ### Design token
 
 La tab **Tokens** elenca i design token presenti nel CSS del progetto. Un design

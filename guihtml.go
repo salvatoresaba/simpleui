@@ -344,6 +344,26 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   padding:3px 4px;
   opacity:.92;
 }
+.node .node-label {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+  flex:1;
+}
+.node .node-code {
+  flex:none;
+  max-width:42%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font:500 9px/1 var(--mono, ui-monospace, Consolas, monospace);
+  color:var(--muted);
+  border-left:1px solid var(--border2);
+  padding-left:4px;
+  margin-left:2px;
+}
+.node.sel .node-code { color:var(--fg); }
 .node.sel .node-type { color:var(--fg); border-color:var(--accent); }
 .sel-type {
   display:flex; align-items:center; gap:6px;
@@ -3586,6 +3606,27 @@ function toggleTreeCollapsed(path) {
   else __treeCollapsed[key] = true;
   renderTree();
 }
+function treeNodeName(n) {
+  if (!n) return "";
+  if (n.name) return String(n.name).slice(0, 28);
+  if (n.placeholder) return String(n.placeholder).slice(0, 28);
+  if (n.value != null && typeof n.value === "string" && n.value.trim()) return n.value.trim().slice(0, 28);
+  var own = mgNodeOwnText(n);
+  if (own) return own.slice(0, 28);
+  var generic = n.kind === "col" || n.kind === "row" || n.kind === "div" || n.kind === "layoutcell";
+  if (!generic) {
+    var stack = (n.children || []).slice(0, 20);
+    var seen = 0;
+    while (stack.length && seen < 40) {
+      var x = stack.shift(); seen++;
+      var childText = mgNodeOwnText(x);
+      if (childText) return childText.slice(0, 28);
+      if (x && x.children && x.children.length) stack = stack.concat(x.children.slice(0, 20));
+    }
+  }
+  if (n.class) return String(n.class).trim().split(/\s+/)[0].slice(0, 28);
+  return "";
+}
 function renderTree() {
   var box = document.getElementById("nodes");
   box.innerHTML = "";
@@ -3655,8 +3696,15 @@ function renderWorkbookTreeRow(node, p, entries, parent, depth) {
   typeChip.textContent = "table";
   row.appendChild(typeChip);
   var lab = document.createElement("span");
+  lab.className = "node-label";
   lab.textContent = "table";
   row.appendChild(lab);
+  var code = document.createElement("span");
+  code.className = "node-code";
+  code.textContent = chosen.join(".");
+  code.title = "Tree path " + chosen.join(".");
+  row.appendChild(code);
+  row.title = "Workbook table · path " + chosen.join(".");
   var ops = document.createElement("span");
   ops.style.marginLeft = "auto";
   ops.innerHTML = '<span class="btn" style="font-size:9px;padding:0 4px" onclick="event.stopPropagation();delSelPath(\'' + p.join(",") + '\')">&#215;</span>';
@@ -3793,15 +3841,25 @@ function renderNodes(children, depth, parent, path) {
     } else if (node.kind === "menuitem") {
       labelText = "item '" + (node.text || "") + "'";
     } else {
-      labelText = node.text || node.kind;
+      var treeName = treeNodeName(node);
+      labelText = treeName || node.kind;
     }
     var typeChip = document.createElement("span");
     typeChip.className = "node-type";
     typeChip.textContent = node.kind === "text" && node.tag ? node.tag : node.kind;
     typeChip.title = "Exact element type";
     row.appendChild(typeChip);
-    lab.textContent = labelText + (cls ? " ." + cls : "") + (node.component ? "  \u2022" : "");
+    lab.className = "node-label";
+    var classSuffix = cls && cls !== labelText ? " ." + cls : "";
+    lab.textContent = labelText + classSuffix + (node.component ? "  \u2022" : "");
     row.appendChild(lab);
+    var code = document.createElement("span");
+    code.className = "node-code";
+    var motionKey = !node.motionKeyExpr && typeof node.motionKey === "string" ? node.motionKey.trim() : "";
+    code.textContent = motionKey ? "key: " + motionKey : p.join(".");
+    code.title = motionKey ? "motionKey: " + motionKey + " · path " + p.join(".") : "Tree path " + p.join(".");
+    row.appendChild(code);
+    row.title = labelText + classSuffix + " · " + (motionKey ? "key: " + motionKey + " · path " + p.join(".") : "path " + p.join("."));
     var ops = document.createElement("span");
     ops.style.marginLeft = "auto";
     ops.innerHTML = '<span class="btn" style="font-size:9px;padding:0 4px" onclick="event.stopPropagation();delSelPath(\'' + p.join(",") + '\')">&#215;</span>';

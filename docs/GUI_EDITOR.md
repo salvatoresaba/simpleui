@@ -332,6 +332,17 @@ The **Problems/History** panel at the bottom is resized by dragging its top
 edge. Its height stays between 90 px and 65% of the window, is remembered across
 reloads, and a double-click on the divider restores the default 190 px.
 
+### Element tree labels
+
+Each tree row keeps the type chip and adds a readable name plus a code chip. The
+name comes from the element text or heading, its placeholder, its `name`
+attribute or its first class. The code chip shows the literal `motionKey` when
+present, otherwise the tree path (for example `0.2.3`). Hovering the row shows
+the full name, key and path together.
+
+Use the `motionKey` or the path to distinguish repeated cards, rows and controls.
+The same code is available in the trigger **event source** picker.
+
 ### Design tokens
 
 The **Tokens** tab lists the design tokens found in the project CSS. A design
