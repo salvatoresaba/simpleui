@@ -54,8 +54,9 @@ view main {
 - `links[].event` is a DOM event (`click`, `pointerenter`, `focus`, ...),
   `state` for a boolean SUI state, or `after` for a transition chain.
 - `links[].duration`, `easing` and `delay` describe the interpolation.
-- Multiple outgoing links are matched in order; the first one for the current
-  state and trigger wins.
+- When several outgoing links match the current state and trigger, the most
+  specific filters win; otherwise the first link wins. Loops, spring easing and
+  lifecycle events are demonstrated in `examples/motion_sequence`.
 - The runtime honors `prefers-reduced-motion` by jumping to the target state.
 - A re-render keeps the current graph state for the same element key.
 
@@ -152,8 +153,8 @@ ready-to-run build is in `dist/`, with the complete source as `dist/app.sui`.
 
 ## Limits
 
-- The graph is per element; multi-element choreography needs one graph per
-  element or an `after`/shared state trigger.
+- The graph is per element; use custom events with `motionKey` sources for
+  coordinated multi-element scenes, as shown in `examples/motion_sequence`.
 - State snapshots use the current viewport values. For responsive layouts,
   capture or review each breakpoint.
 - A state trigger supports a boolean state name, optionally negated; arbitrary

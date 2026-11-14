@@ -142,6 +142,7 @@ Per capability desktop:
 | Grafici da JSON/XML/CSV con preset, scroll/zoom | `docs/API_REFERENCE_IT.md#chart`, `docs/GUI_EDITOR_IT.md#controllo-chart` | `examples/chart/README.md`, `examples/chart/dist/app.exe` |
 | Navigazione multi-pagina | `docs/API_REFERENCE_IT.md#pagine-e-navigazione`, `docs/GUI_EDITOR_IT.md#pagine` | `examples/pages/README.md` |
 | Dialoghi modali | `docs/API_REFERENCE_IT.md#dialoghi-modali`, `docs/GUI_EDITOR_IT.md#modal-control` | `examples/modal.sui` |
+| Loop, spring ed eventi tra grafi | `docs/API_REFERENCE_IT.md#motion-graph-stati-e-trigger`, `docs/GUI_EDITOR_IT.md#animation-panel` | `examples/motion_sequence/README.md` |
 | Drag/drop o dialogo file nativo | `docs/GUI_EDITOR_IT.md`, `docs/AGENT_RECIPES_IT.md#drag-and-drop`, `docs/API_REFERENCE_IT.md#drag-and-drop` | `examples/drag_drop.sui`, `examples/file_picker.sui` |
 | API JSON remota | `docs/AGENT_RECIPES_IT.md`, `docs/STDLIB_IT.md` | `examples/users/app.sui` |
 | CRUD remoto | `docs/AGENT_RECIPES_IT.md`, `SECURITY_IT.md` | `examples/users/app.sui` |

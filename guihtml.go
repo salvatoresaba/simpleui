@@ -6590,6 +6590,36 @@ function mgValidateState(st) {
       if (singleUsed[key]) errors.push("State \"" + ((mgStateById(l.from) || {}).name || l.from) + "\" has multiple \"" + l.event + "\" triggers. This trigger can be used only once.");
       singleUsed[key] = true;
     }
+    var la = mgStateById(l.from), lb = mgStateById(l.to);
+    var lname = (la ? la.name : l.from) + " → " + (lb ? lb.name : l.to);
+    if (l.iterations != null) {
+      var itv = String(l.iterations).toLowerCase();
+      var itn = Number(l.iterations);
+      if (itv !== "infinite" && (!isFinite(itn) || itn < 1 || Math.floor(itn) !== itn)) {
+        errors.push("Link " + lname + " has invalid iterations. Use a positive integer or infinite.");
+      }
+    }
+    if (l.direction != null && ["normal", "reverse", "alternate", "alternate-reverse"].indexOf(String(l.direction).toLowerCase()) < 0) {
+      errors.push("Link " + lname + " has an invalid direction.");
+    }
+    if (l.playbackRate != null) {
+      var prn = Number(l.playbackRate);
+      if (!isFinite(prn) || prn <= 0 || prn > 10) errors.push("Link " + lname + " has an invalid playback rate. Use a number between 0.1 and 10.");
+    }
+    if (l.spring) {
+      var sp = l.spring;
+      if (typeof sp !== "object") errors.push("Link " + lname + " has an invalid spring setting.");
+      else {
+        if (!isFinite(Number(sp.stiffness)) || Number(sp.stiffness) <= 0) errors.push("Link " + lname + " needs a positive spring stiffness.");
+        if (!isFinite(Number(sp.damping)) || Number(sp.damping) < 0) errors.push("Link " + lname + " needs a non-negative spring damping.");
+        if (!isFinite(Number(sp.mass)) || Number(sp.mass) <= 0) errors.push("Link " + lname + " needs a positive spring mass.");
+      }
+    }
+    if (l.emit) {
+      var em = typeof l.emit === "string" ? { name: l.emit, on: "end" } : l.emit;
+      if (!em || !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(String(em.name || ""))) errors.push("Link " + lname + " needs a valid emitted event name.");
+      else if (em.on && ["start", "end", "cancel"].indexOf(String(em.on)) < 0) errors.push("Link " + lname + " has an invalid emit timing. Use start, end or cancel.");
+    }
   }
   return errors;
 }
@@ -6633,6 +6663,9 @@ function mgTriggerLabel(link) {
   if (link.shift) filters.push("Shift");
   if (link.meta) filters.push("Meta");
   if (link.button != null && link.button !== "") filters.push(["Left", "Middle", "Right"][Number(link.button)] || ("Button " + link.button));
+  if (link.iterations != null && String(link.iterations) !== "1") filters.push(String(link.iterations).toLowerCase() === "infinite" ? "infinite" : "×" + link.iterations);
+  if (link.direction && link.direction !== "normal") filters.push(link.direction);
+  if (link.spring) filters.push("spring");
   return filters.length ? base + " [" + filters.join(", ") + "]" : base;
 }
 var MG_EASING_OPTIONS = [
@@ -6662,15 +6695,21 @@ function mgElementLabel(n, path) {
 }
 function mgExternalChoices() {
   var out = [];
+  var usedKeys = {};
   var paths = flattenPaths();
   for (var i = 0; i < paths.length; i++) {
     var p = paths[i];
     if (mgPath && samePath(p, mgPath)) continue;
     var n = byPath(p, root.children);
     if (!n || n.raw) continue;
-    var id = peerIdForPath(p);
-    if (id < 0) continue;
-    out.push({ id: id, path: p, node: n, label: mgElementLabel(n, p) });
+    var isToggle = n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio";
+    var key = !isToggle && !n.motionKeyExpr && typeof n.motionKey === "string" ? n.motionKey.trim() : "";
+    if (key && (!/^[A-Za-z0-9_.:-]+$/.test(key) || usedKeys[key])) key = "";
+    var peer = peerIdForPath(p);
+    var id = key || peer;
+    if (!key && id < 0) continue;
+    if (key) usedKeys[key] = true;
+    out.push({ id: id, altId: key ? peer : null, path: p, node: n, label: mgElementLabel(n, p) });
   }
   return out;
 }
@@ -7677,6 +7716,113 @@ function mgRenderParam() {
   }
   function actions() { var d = document.createElement("div"); d.className = "mg-actions"; side.appendChild(d); return d; }
   function btn(parent, text, fn) { var b = document.createElement("button"); b.className = "btn"; b.style.fontSize = "11px"; b.style.padding = "3px 7px"; b.textContent = text; b.onclick = fn; parent.appendChild(b); return b; }
+  function linkTimingFields(l) {
+    label("duration"); var du = input(l.duration, "320ms");
+    du.onchange = function(){ snap("motion graph duration"); l.duration = du.value.trim(); mgCommit(); };
+    label("easing"); var ea = select(l.easing || "ease-out", mgEasingOptions(l.easing));
+    ea.onchange = function(){ snap("motion graph easing"); l.easing = ea.value; mgCommit(); };
+    label("delay"); var de = input(l.delay, "0ms");
+    de.onchange = function(){ snap("motion graph delay"); l.delay = de.value.trim(); mgCommit(); };
+    label("iterations"); var it = input(l.iterations != null ? String(l.iterations) : "1", "1 or infinite");
+    it.onchange = function(){
+      snap("motion graph iterations");
+      var v = it.value.trim().toLowerCase();
+      if (v === "infinite") l.iterations = "infinite";
+      else {
+        var n = Number(v);
+        if (!isFinite(n) || n < 1 || Math.floor(n) !== n) {
+          mgNotify("Iterations must be a positive integer or infinite.");
+          it.value = l.iterations != null ? String(l.iterations) : "1";
+          return;
+        }
+        if (n === 1) delete l.iterations; else l.iterations = n;
+      }
+      mgCommit();
+    };
+    label("direction"); var dir = select(l.direction || "normal", [["normal","normal"],["reverse","reverse"],["alternate","alternate"],["alternate-reverse","alternate reverse"]]);
+    dir.onchange = function(){
+      snap("motion graph direction");
+      if (dir.value === "normal") delete l.direction; else l.direction = dir.value;
+      mgCommit();
+    };
+    var dirHint = document.createElement("div"); dirHint.className = "hint";
+    dirHint.textContent = "Alternate loops settle on the target state; an odd iteration count ends on the target side.";
+    side.appendChild(dirHint);
+    label("playback rate"); var pr = input(l.playbackRate != null ? String(l.playbackRate) : "1", "1");
+    pr.onchange = function(){
+      snap("motion graph playback rate");
+      var n = Number(pr.value);
+      if (!isFinite(n) || n <= 0 || n > 10) {
+        mgNotify("Playback rate must be between 0.1 and 10.");
+        pr.value = l.playbackRate != null ? String(l.playbackRate) : "1";
+        return;
+      }
+      if (n === 1) delete l.playbackRate; else l.playbackRate = n;
+      mgCommit();
+    };
+    var springWrap = document.createElement("label");
+    springWrap.style.cssText = "display:flex;align-items:center;gap:6px;margin:8px 0 2px";
+    var springCb = document.createElement("input"); springCb.type = "checkbox"; springCb.checked = !!l.spring;
+    springWrap.appendChild(springCb); springWrap.appendChild(document.createTextNode("spring easing")); side.appendChild(springWrap);
+    var springFields = document.createElement("div"); side.appendChild(springFields);
+    function springNumber(text, key, min, fallback) {
+      var lab = document.createElement("label"); lab.textContent = text; springFields.appendChild(lab);
+      var inp = document.createElement("input");
+      inp.value = l.spring && l.spring[key] != null ? String(l.spring[key]) : String(fallback);
+      inp.placeholder = String(fallback); inp.spellcheck = false; springFields.appendChild(inp);
+      inp.onchange = function(){
+        var n = Number(inp.value);
+        if (!isFinite(n) || n < min) {
+          mgNotify(text.charAt(0).toUpperCase() + text.slice(1) + " must be at least " + min + ".");
+          inp.value = l.spring && l.spring[key] != null ? String(l.spring[key]) : String(fallback);
+          return;
+        }
+        snap("motion graph spring"); l.spring[key] = n; mgCommit();
+      };
+    }
+    function renderSpring() {
+      springFields.innerHTML = "";
+      if (!l.spring) return;
+      springNumber("stiffness", "stiffness", 1, 180);
+      springNumber("damping", "damping", 0, 18);
+      springNumber("mass", "mass", 0.1, 1);
+      var sh = document.createElement("div"); sh.className = "hint";
+      sh.textContent = "Spring overrides the easing curve; duration controls its speed.";
+      springFields.appendChild(sh);
+    }
+    springCb.onchange = function(){
+      snap("motion graph spring");
+      if (springCb.checked) l.spring = { stiffness: 180, damping: 18, mass: 1 };
+      else delete l.spring;
+      mgCommit(); renderSpring();
+    };
+    renderSpring();
+    label("emit event"); var emitName = input(l.emit ? (typeof l.emit === "string" ? l.emit : (l.emit.name || "")) : "", "e.g. card-opened");
+    emitName.onchange = function(){
+      snap("motion graph emit");
+      var name = emitName.value.trim();
+      if (!name) { delete l.emit; mgCommit(); return; }
+      if (!/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(name)) {
+        mgNotify("Event names start with a letter and use letters, digits, _ . : -.");
+        emitName.value = l.emit ? (typeof l.emit === "string" ? l.emit : (l.emit.name || "")) : "";
+        return;
+      }
+      var on = l.emit && typeof l.emit === "object" ? (l.emit.on || "end") : "end";
+      l.emit = { name: name, on: on };
+      mgCommit();
+    };
+    label("emit when"); var emitWhen = select(l.emit && typeof l.emit === "object" ? (l.emit.on || "end") : "end", [["start","start"],["end","end"],["cancel","cancel"]]);
+    emitWhen.onchange = function(){
+      if (!l.emit) return;
+      snap("motion graph emit timing");
+      var name = typeof l.emit === "string" ? l.emit : l.emit.name;
+      l.emit = { name: name, on: emitWhen.value };
+      mgCommit();
+    };
+    var emitHint = document.createElement("div"); emitHint.className = "hint";
+    emitHint.textContent = "The event bubbles from this element; another graph can listen with a custom trigger and this element as source.";
+    side.appendChild(emitHint);
+  }
   if (mgParam.kind === "newlink") {
     var fromState = mgStateById(mgParam.id);
     var editLink = mgParam.link ? mgLinkById(mgParam.link) : null;
@@ -7707,7 +7853,7 @@ function mgRenderParam() {
 
     var externalChoices = mgExternalChoices();
     var externalById = {};
-    externalChoices.forEach(function(c){ externalById[String(c.id)] = c; });
+    externalChoices.forEach(function(c){ externalById[String(c.id)] = c; if (c.altId != null) externalById[String(c.altId)] = c; });
 
     var sourceLabel = label("event source");
     var sourceSel = document.createElement("select");
@@ -7715,13 +7861,18 @@ function mgRenderParam() {
     externalChoices.forEach(function(c){
       var op = document.createElement("option"); op.value = String(c.id); op.textContent = c.label; sourceSel.appendChild(op);
     });
-    if (editLink && editLink.sourceId && !externalById[String(editLink.sourceId)]) {
-      var stale = document.createElement("option");
-      stale.value = String(editLink.sourceId);
-      stale.textContent = (editLink.sourceLabel || ("Element " + editLink.sourceId)) + " (missing)";
-      sourceSel.appendChild(stale);
+    if (editLink && editLink.sourceId) {
+      var currentSource = externalById[String(editLink.sourceId)];
+      if (currentSource) {
+        sourceSel.value = String(currentSource.id);
+      } else {
+        var stale = document.createElement("option");
+        stale.value = String(editLink.sourceId);
+        stale.textContent = (editLink.sourceLabel || ("Element " + editLink.sourceId)) + " (missing)";
+        sourceSel.appendChild(stale);
+        sourceSel.value = String(editLink.sourceId);
+      }
     }
-    if (editLink && editLink.sourceId) sourceSel.value = String(editLink.sourceId);
     side.appendChild(sourceSel);
 
     var extStateLabel = label("external state");
@@ -8004,18 +8155,23 @@ function mgRenderParam() {
     }
     var linkExternal = mgExternalChoices();
     var linkExternalById = {};
-    linkExternal.forEach(function(c){ linkExternalById[String(c.id)] = c; });
+    linkExternal.forEach(function(c){ linkExternalById[String(c.id)] = c; if (c.altId != null) linkExternalById[String(c.altId)] = c; });
     var linkDomEvent = l.event && l.event !== "state" && l.event !== "timer" && l.event !== "after" && l.event !== "elementState";
     if (linkDomEvent || l.event === "elementState") {
       label("event source");
       var sourceSel = document.createElement("select");
       var thisOpt = document.createElement("option"); thisOpt.value = ""; thisOpt.textContent = "This element"; sourceSel.appendChild(thisOpt);
       linkExternal.forEach(function(c){ var op = document.createElement("option"); op.value = String(c.id); op.textContent = c.label; sourceSel.appendChild(op); });
-      if (l.sourceId && !linkExternalById[String(l.sourceId)]) {
-        var staleOpt = document.createElement("option"); staleOpt.value = String(l.sourceId);
-        staleOpt.textContent = (l.sourceLabel || ("Element " + l.sourceId)) + " (missing)"; sourceSel.appendChild(staleOpt);
+      if (l.sourceId) {
+        var currentLinkSource = linkExternalById[String(l.sourceId)];
+        if (currentLinkSource) {
+          sourceSel.value = String(currentLinkSource.id);
+        } else {
+          var staleOpt = document.createElement("option"); staleOpt.value = String(l.sourceId);
+          staleOpt.textContent = (l.sourceLabel || ("Element " + l.sourceId)) + " (missing)"; sourceSel.appendChild(staleOpt);
+          sourceSel.value = String(l.sourceId);
+        }
       }
-      if (l.sourceId) sourceSel.value = String(l.sourceId);
       sourceSel.onchange = function(){
         snap("motion graph event source");
         var choice = linkExternalById[String(sourceSel.value)];
@@ -8080,9 +8236,7 @@ function mgRenderParam() {
       label("timer"); var tim = input(l.timer || "1s", "e.g. 1s, 500ms");
       tim.onchange = function(){ snap("motion graph timer"); l.timer = tim.value.trim() || "1s"; mgCommit(); };
     }
-    label("duration"); var du = input(l.duration, "320ms"); du.onchange = function(){ snap("motion graph duration"); l.duration = du.value.trim(); mgCommit(); };
-    label("easing"); var ea = select(l.easing || "ease-out", mgEasingOptions(l.easing)); ea.onchange = function(){ snap("motion graph easing"); l.easing = ea.value; mgCommit(); };
-    label("delay"); var de = input(l.delay, "0ms"); de.onchange = function(){ snap("motion graph delay"); l.delay = de.value.trim(); mgCommit(); };
+    linkTimingFields(l);
     var ac = actions();
     btn(ac, "Preview", function(){ mgPreviewLink(l); });
     btn(ac, "Delete link", function(){ snap("delete motion link"); mgCfg.links = mgCfg.links.filter(function(x){ return x.id !== l.id; }); mgSelLink = ""; mgParam = null; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
@@ -8125,9 +8279,7 @@ function mgRenderParam() {
       label("variable (true/false)"); var wh = input(link.when, "e.g. open or !open");
       wh.onchange = function(){ snap("motion graph condition"); link.when = wh.value.trim(); mgCommit(); };
     }
-    label("duration"); var dur = input(link.duration, "320ms"); dur.onchange = function(){ snap("motion graph duration"); link.duration = dur.value.trim(); mgCommit(); };
-    label("easing"); var eas = select(link.easing || "ease-out", mgEasingOptions(link.easing)); eas.onchange = function(){ snap("motion graph easing"); link.easing = eas.value; mgCommit(); };
-    label("delay"); var del = input(link.delay, "0ms"); del.onchange = function(){ snap("motion graph delay"); link.delay = del.value.trim(); mgCommit(); };
+    linkTimingFields(link);
     var sep = document.createElement("div"); sep.style.cssText = "border-top:1px solid var(--border);margin:10px 0 2px"; side.appendChild(sep);
   }
   var outgoing = mgCfg.links.filter(function(x){ return x.from === s.id; });
@@ -14731,11 +14883,13 @@ function attrsOf(n) {
   var mgOn = !!n.motionGraph && (typeof n.motionGraph !== "string" || n.motionGraph.trim() !== "");
   if (n.motion && !(n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
     a += " motion: \"" + esc(n.motion) + "\"";
-    if (n.motionKey) a += " motionKey: " + (n.motionKeyExpr ? n.motionKey : "\"" + esc(n.motionKey) + "\"");
     if (n.motionDuration) a += " motionDuration: \"" + esc(n.motionDuration) + "\"";
     if (n.motionEasing) a += " motionEasing: \"" + esc(n.motionEasing) + "\"";
     if (n.motionDelay) a += " motionDelay: \"" + esc(n.motionDelay) + "\"";
     if (n.motionExit === false) a += " motionExit: false";
+  }
+  if (n.motionKey && !(n.kind === "checkbox" || n.kind === "switch" || n.kind === "radio")) {
+    a += " motionKey: " + (n.motionKeyExpr ? n.motionKey : "\"" + esc(n.motionKey) + "\"");
   }
   if (mgOn) {
     var mgJson = typeof n.motionGraph === "string" ? n.motionGraph : JSON.stringify(n.motionGraph);

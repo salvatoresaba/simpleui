@@ -1028,6 +1028,19 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   (A → B → C) si costruiscono animazioni multi-step. Ogni transizione espone
   `duration`, un **combo box easing** con le funzioni CSS standard e i preset
   `cubic-bezier` comuni, e `delay`.
+- L'editor del link espone anche **iterations** (un numero o `infinite`),
+  **direction** (`normal`, `reverse`, `alternate`, `alternate-reverse`),
+  **playback rate**, un toggle **spring easing** con stiffness/damping/mass e un
+  nome **emit event** con **emit when** (`start`, `end`, `cancel`). Lo spring
+  sostituisce la curva easing; la durata ne controlla la velocità. I loop
+  `alternate` si fermano sullo stato di destinazione, quindi usa un numero
+  dispari di iterazioni per terminare sul lato di destinazione.
+- Un link può emettere un evento custom; il runtime emette anche
+  `sui:motionstate`, `sui:motionstart`, `sui:motionend` e `sui:motioncancel`. Un
+  altro grafo può ascoltarli con un trigger **custom**; scegli l'elemento
+  sorgente e usa il suo `motionKey` per un riferimento stabile.
+- I loop infiniti continuano finché un altro evento non li annulla e non
+  attivano mai link `after`. La transizione successiva parte dai valori correnti.
 - Doppio clic su uno stato: overlay con nome, CSS e lista dei trigger attivi con
   la destinazione. Non ci sono campi per i trigger in ingresso. Se lo stato ha un
   collegamento uscente senza trigger, si apre direttamente il chooser:
@@ -1059,9 +1072,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 
 L'editor scrive un attributo JSON letterale `motionGraph` più gli attributi
 motion classici di Layout & shared. Il runtime conserva lo stato corrente
-sull'elemento, interpola valori espliciti di inizio e fine in un loop timer/rAF
-e rispetta il movimento ridotto. Il pannello è per singolo elemento; Layout &
-shared usa ancora `motionKey` per pagine condivise e liste.
+sull'elemento e usa il motore di animazione del browser con valori iniziali e
+finali calcolati; rispetta il movimento ridotto. Il pannello è per singolo
+elemento; Layout & shared usa ancora `motionKey` per pagine condivise e liste.
 
 **Controls > Split panes** inserisce due figli `pane` e un divisore
 trascinabile. Imposta `direction`, `initial` e `min` nella sezione **Splitter**.

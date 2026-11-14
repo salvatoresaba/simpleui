@@ -16,7 +16,7 @@ import (
 // docs_nav_test.go verifies that the embedded copy is in sync with the files on
 // disk and that links/anchors/manifest entries are valid.
 
-//go:embed docs/*.md docs/*.json AGENTS.md CLAUDE.md llms.txt README.md SECURITY.md SPEC.md DESIGN.md TODO.md examples/README.md examples/security/README.md examples/spreadsheet_table/README.md examples/gantt_project/README.md examples/gantt_construction/README.md examples/process_monitor/README.md examples/graph/README.md .github/copilot-instructions.md .cursor/rules/simpleui.mdc
+//go:embed docs/*.md docs/*.json AGENTS.md CLAUDE.md llms.txt README.md SECURITY.md SPEC.md DESIGN.md TODO.md examples/README.md examples/security/README.md examples/spreadsheet_table/README.md examples/gantt_project/README.md examples/gantt_construction/README.md examples/process_monitor/README.md examples/graph/README.md examples/motion_sequence/README.md .github/copilot-instructions.md .cursor/rules/simpleui.mdc
 var embeddedDocs embed.FS
 
 type DocEntry struct {

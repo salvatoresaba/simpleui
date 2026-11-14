@@ -402,13 +402,32 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   `change`, `input`, `keydown`, `keyup`, `pointerdown`, `pointerup`, `submit`,
   `custom`, `state`, `elementState` o `after`.
 - `links[].sourceId` collega un evento DOM a un altro elemento (il suo
-  `data-sui-id`); `whenState` seleziona lo stato del motion graph di quell'elemento
-  per `elementState`. `sourceLabel` è l'etichetta del designer e non viene usata
-  a runtime.
+  `data-sui-id` o `data-sui-motion-key`); `whenState` seleziona lo stato del
+  motion graph di quell'elemento per `elementState`. `sourceLabel` è l'etichetta
+  del designer e non viene usata a runtime. Imposta `motionKey` sull'elemento
+  sorgente per un riferimento stabile e leggibile; le chiavi usano lettere,
+  cifre, `_`, `.`, `:` e `-`.
 - Gli eventi `custom` usano `customEvent` come nome DOM. I link DOM possono avere
   filtri: `key` per gli eventi tastiera, `ctrl`/`alt`/`shift`/`meta` e `button`
   per il puntatore. Se più link corrispondono allo stesso stato/evento vince
   quello con i filtri più specifici.
+- `links[].iterations` è un intero positivo o `"infinite"`; `direction` è
+  `normal`, `reverse`, `alternate` o `alternate-reverse`; `playbackRate` è tra
+  `0.1` e `10`. `spring: {stiffness, damping, mass}` sostituisce `easing` e usa
+  la durata del link come velocità. I link infiniti non terminano, non attivano
+  link `after` e vengono annullati dalla transizione successiva partendo dai
+  valori correnti. I loop finiti `alternate` si fermano sullo stato di
+  destinazione.
+- `links[].emit` è un nome di evento oppure
+  `{ "name": "...", "on": "start" | "end" | "cancel" }`. Il runtime emette anche
+  `sui:motionstate`, `sui:motionstart`, `sui:motionend` e `sui:motioncancel`
+  sull'elemento con `{from,to,state,link}`. Gli eventi fanno bubbling e sono
+  composed, quindi un altro grafo può ascoltarli con un trigger `custom` e un
+  `sourceId`.
+- `window.SimpleUIMotion.get(elementoOSelettore)` restituisce l'API
+  dell'elemento: `to(state, opts)`, `pause()`, `resume()`, `seek(ms)`,
+  `progress`, `state` e `paused`. `to` accetta gli stessi campi di timing di un
+  link. L'API è disponibile anche come `element.__suiMotion`.
 - Un cambio di stato parte subito: durante il tween l'elemento è considerato
   nello stato di destinazione. Un evento che arriva durante il tween viene
   valutato nel nuovo stato e avvia un nuovo tween dai valori correnti (vince
@@ -420,11 +439,12 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - I link `state` valutano lo stato booleano indicato in `when` (il prefisso `!`
   lo nega) e scattano sulla transizione da falso a vero.
 - I link `after` continuano una catena quando l'animazione precedente termina.
+  Partono dalla callback di fine, quindi non gareggiano con i valori finali.
 - Le transizioni usano il motore di animazione del browser con valori iniziali e
   finali calcolati: transform, filtri, box shadow, clip path, gradienti, colori,
   lunghezze e custom properties vengono interpolati dove supportato; i valori non
   animabili cambiano in modo discreto. I valori finali sono applicati alla fine e
-  `prefers-reduced-motion` o durata zero saltano subito.
+  `prefers-reduced-motion` o durata zero saltano subito, loop inclusi.
 
 Il pulsante **Motion > Open animation panel** del designer modifica lo stesso
 JSON: i blocchi sono gli stati, le frecce sono i link. Il pannello è compatto e

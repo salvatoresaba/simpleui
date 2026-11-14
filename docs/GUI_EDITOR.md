@@ -986,6 +986,18 @@ only the graph; parameters open in draggable overlay panels:
   multi-step animations. Each transition exposes `duration`, an **easing** combo
   box with the standard CSS timing functions and common `cubic-bezier` presets,
   and `delay`.
+- The link editor also exposes **iterations** (a number or `infinite`),
+  **direction** (`normal`, `reverse`, `alternate`, `alternate-reverse`),
+  **playback rate**, a **spring easing** toggle with stiffness/damping/mass, and
+  an **emit event** name with **emit when** (`start`, `end`, `cancel`). Spring
+  overrides the easing curve; duration controls its speed. Alternate loops settle
+  on the target state, so use an odd iteration count to end on the target side.
+- A link can emit a custom event; the runtime also dispatches `sui:motionstate`,
+  `sui:motionstart`, `sui:motionend` and `sui:motioncancel`. Another graph can
+  listen to these with a **custom** trigger; choose the source element and use its
+  `motionKey` for a stable reference.
+- Infinite loops run until another event cancels them and never fire `after`
+  links. The next transition starts from the current computed values.
 - Double-click a state to open its overlay: name, CSS and the list of active
   triggers with their destination. There are no incoming-trigger fields. When
   the state has an untriggered outgoing link, the trigger chooser opens directly:
@@ -1012,14 +1024,14 @@ only the graph; parameters open in draggable overlay panels:
   the preview minimizes the panel; the **–** button, drag, resize and close
   controls remain available. A floating **Animation panel** button restores a
   closed panel.
-- **Imposta iniziale** marks the state applied on load. **Anteprima** plays the
+- **Set initial** marks the state applied on load. **Preview** plays the
   selected state or link in the preview.
 - **Remove states** deletes the state graph but keeps Layout & shared.
 
 The editor writes a literal `motionGraph` JSON attribute plus the classic motion
 attributes from Layout & shared. The runtime keeps the current state on the
-element, tweens explicit start/end style values in a timer/rAF loop and honors
-reduced motion. The panel is per element; Layout & shared still uses
+element and uses the browser animation engine with computed start/end values; it
+honors reduced motion. The panel is per element; Layout & shared still uses
 `motionKey` for shared pages and lists.
 
 **Controls > Split panes** inserts two `pane` children and a draggable divider.

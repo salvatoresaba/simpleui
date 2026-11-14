@@ -340,6 +340,16 @@
       "sections": ["Run it", "What the example demonstrates", "Complete SUI source"]
     },
     {
+      "id": "motion_sequence_example",
+      "path": "examples/motion_sequence/README.md",
+      "title": "Motion sequences: loops, springs and graph events",
+      "summary": "Runnable motion-graph example with infinite and finite loops, alternate direction, spring easing, emitted lifecycle events and multi-element orchestration through motionKey source references.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "motion", "motion-graph", "animation", "spring", "loop", "events", "designer"],
+      "sections": ["What it demonstrates", "Complete SUI source", "How it works", "Designer workflow", "Build and run", "Limits and critical points"]
+    },
+    {
       "id": "index_it",
       "path": "docs/INDEX_IT.md",
       "title": "Documentation index (Italian)",

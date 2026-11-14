@@ -35,6 +35,7 @@ For an agent-oriented walkthrough see
 | [`motion_layout/`](motion_layout/README.md) | Keyed FLIP cards for filtered and reordered lists. |
 | [`motion_pages/`](motion_pages/README.md) | Shared element transition across pages with measured start/end rectangles. |
 | [`motion_graph/`](motion_graph/README.md) | Per-element state graph with click, state-variable and after-transition triggers. |
+| [`motion_sequence/`](motion_sequence/README.md) | Infinite and finite loops, spring easing, emitted lifecycle events and multi-element orchestration. |
 | [`modal.sui`](modal.sui) | Configurable modal dialog with cancel/save buttons and `modal.open()`. |
 | [`drag_drop.sui`](drag_drop.sui) | Reorder rows and drop files/folders onto a field. |
 | [`file_picker.sui`](file_picker.sui) | Native file/directory dialog with `pickFiles` and a linked field. |

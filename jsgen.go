@@ -5240,6 +5240,13 @@ func writeMotionAttrs(sb *strings.Builder, e *Element, ctx *JsCtx) {
 	if e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio" {
 		return
 	}
+	if k := findAttr(e, "motionKey"); k != nil {
+		if k.hasExpr && k.expr != nil {
+			sb.WriteString(" data-sui-motion-key=\"${__sui_esc(" + ExprToJs(k.expr) + ")}\"")
+		} else if v := strings.TrimSpace(partsContent(k.text)); v != "" {
+			sb.WriteString(" data-sui-motion-key=\"" + htmlEscape(v) + "\"")
+		}
+	}
 	a := findAttr(e, "motion")
 	if a == nil {
 		return
@@ -5257,13 +5264,6 @@ func writeMotionAttrs(sb *strings.Builder, e *Element, ctx *JsCtx) {
 	var b strings.Builder
 	b.WriteString(" data-sui-motion")
 	b.WriteString(effectAttr)
-	if k := findAttr(e, "motionKey"); k != nil {
-		if k.hasExpr && k.expr != nil {
-			b.WriteString(" data-sui-motion-key=\"${__sui_esc(" + ExprToJs(k.expr) + ")}\"")
-		} else if v := strings.TrimSpace(partsContent(k.text)); v != "" {
-			b.WriteString(" data-sui-motion-key=\"" + htmlEscape(v) + "\"")
-		}
-	}
 	if attrBoolDefault(e, "motionExit", true) {
 		b.WriteString(" data-sui-motion-exit=\"1\"")
 	}

@@ -426,13 +426,31 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`, `change`, `input`,
   `keydown`, `keyup`, `pointerdown`, `pointerup`, `submit`, `custom`, `state`,
   `elementState` or `after`.
-- `links[].sourceId` binds a DOM event to another element (its `data-sui-id`);
-  `whenState` selects that element's motion-graph state for `elementState`.
-  `sourceLabel` is the designer label and is not used at runtime.
+- `links[].sourceId` binds a DOM event to another element (its `data-sui-id` or
+  `data-sui-motion-key`); `whenState` selects that element's motion-graph state
+  for `elementState`. `sourceLabel` is the designer label and is not used at
+  runtime. Set `motionKey` on the source for a stable, readable reference; keys
+  use letters, digits, `_`, `.`, `:` and `-`.
 - `custom` events use `customEvent` as the DOM event name. DOM links can carry
   filters: `key` for keyboard events, `ctrl`/`alt`/`shift`/`meta` booleans and
   `button` for pointer events. When several links match the same state/event, the
   most specific filter wins.
+- `links[].iterations` is a positive integer or `"infinite"`; `direction` is
+  `normal`, `reverse`, `alternate` or `alternate-reverse`; `playbackRate` is
+  between `0.1` and `10`. `spring: {stiffness, damping, mass}` overrides
+  `easing` and uses the link duration as its speed. Infinite links never finish,
+  do not fire `after` links, and are canceled by the next transition from the
+  current computed values. Finite alternate loops settle on the target state.
+- `links[].emit` is an event name or
+  `{ "name": "...", "on": "start" | "end" | "cancel" }`. The runtime also
+  dispatches `sui:motionstate`, `sui:motionstart`, `sui:motionend` and
+  `sui:motioncancel` on the element with `{from,to,state,link}`. Events bubble
+  and compose, so another graph can listen with a `custom` trigger and a
+  `sourceId`.
+- `window.SimpleUIMotion.get(elementOrSelector)` returns the element API:
+  `to(state, opts)`, `pause()`, `resume()`, `seek(ms)`, `progress`, `state` and
+  `paused`. `to` accepts the same timing fields as a link. The API is also
+  available as `element.__suiMotion`.
 - A state change starts immediately: the element is considered to be in the
   target state while the tween runs. An event that arrives during the tween is
   evaluated in the new state and starts a new tween from the current computed
@@ -443,12 +461,13 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   (at transition start); `after` links fire when the transition finishes.
 - `state` links evaluate the boolean state named by `when` (prefix `!` negates
   it) and fire on a false-to-true change.
-- `after` links continue a chain when the previous animation completes.
+- `after` links continue a chain when the previous animation completes. They
+  start from the finish callback, so they never race the final property values.
 - Transitions use the browser animation engine with computed start and end values,
   so transforms, filters, box shadows, clip paths, gradients, colors, lengths and
   custom properties are interpolated where the browser supports it; values that
   cannot be animated change discretely. Final values are applied at the end and
-  `prefers-reduced-motion` or a zero duration jumps instantly.
+  `prefers-reduced-motion` or a zero duration jumps instantly, including loops.
 
 The designer's **Motion > Open animation panel** edits the same JSON: blocks are
 states, arrows are links. The panel is compact and resizable from its bottom-

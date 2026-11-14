@@ -49,6 +49,7 @@ Recommended order for an agent:
 | FLIP card list, filter and reorder | [API: layout motion](API_REFERENCE.md#layout-motion-with-flip-and-keys) | [GUI editor: layout motion](GUI_EDITOR.md#layout-motion-flip) | `examples/motion_layout/README.md` |
 | Shared element transition across pages | [API: layout motion](API_REFERENCE.md#layout-motion-with-flip-and-keys) | [GUI editor: layout motion](GUI_EDITOR.md#layout-motion-flip) | `examples/motion_pages/README.md` |
 | Element states with click, state and after triggers | [API: motion graph](API_REFERENCE.md#motion-graph-states-and-triggers) | [GUI editor: animation panel](GUI_EDITOR.md#animation-panel) | `examples/motion_graph/README.md` |
+| Loops, springs and graph-to-graph events | [API: motion graph](API_REFERENCE.md#motion-graph-states-and-triggers) | [GUI editor: animation panel](GUI_EDITOR.md#animation-panel) | `examples/motion_sequence/README.md` |
 | Tabbed content | [API: tabs](API_REFERENCE.md#tabs) | [GUI editor: tabs](GUI_EDITOR.md#tabs-control) | `examples/tabs.sui` |
 | Collapsible sections / FAQ | [API: accordion](API_REFERENCE.md#accordion) | [GUI editor: accordion](GUI_EDITOR.md#accordion-control) | `examples/accordion/README.md` |
 | Toast feedback | [API: toast](API_REFERENCE.md#toast-notifications) | [GUI editor: toast](GUI_EDITOR.md#toast-control) | `examples/toast/README.md` |

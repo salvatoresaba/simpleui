@@ -44,6 +44,7 @@ Ordine consigliato per un agente:
 | Controllo Graph / diagrammi a blocchi | [API: Graph](API_REFERENCE_IT.md#controllo-graph-diagrammi-a-blocchi) | [Editor GUI: Graph](GUI_EDITOR_IT.md#controllo-graph) | `examples/graph/README.md`, `examples/state_machine/README.md` |
 | Più pagine e navigazione | [API: pagine](API_REFERENCE_IT.md#pagine-e-navigazione) | [Editor GUI: pagine](GUI_EDITOR_IT.md#pagine) | `examples/pages/README.md` |
 | Dialoghi modali | [API: modali](API_REFERENCE_IT.md#dialoghi-modali) | [Editor GUI: modal](GUI_EDITOR_IT.md#modal-control) | `examples/modal.sui` |
+| Loop, spring ed eventi tra grafi | [API: motion graph](API_REFERENCE_IT.md#motion-graph-stati-e-trigger) | [Editor GUI: animation panel](GUI_EDITOR_IT.md#animation-panel) | `examples/motion_sequence/README.md` |
 | Riordinare righe o trascinare/scegliere file/cartelle | [drag-and-drop](AGENT_RECIPES_IT.md#drag-and-drop) | [API](API_REFERENCE_IT.md#drag-and-drop), [BUILTINS](BUILTINS_IT.md#drag-and-drop-functions), [Editor GUI](GUI_EDITOR_IT.md) | `examples/drag_drop.sui`, `examples/file_picker.sui` |
 | Analizzare i tipi di file con backend Go | [file-type-analyzer](AGENT_RECIPES_IT.md#analisi-dei-tipi-di-file-con-backend-go) | [STDLIB](STDLIB_IT.md#http-module-http), [API](API_REFERENCE_IT.md#drag-and-drop) | `examples/file_analyzer/README.md` |
 | Leggere un'API JSON remota | [remote-api-table](AGENT_RECIPES_IT.md#remote-json-api--table) | [STDLIB](STDLIB_IT.md#http-module-http), [SECURITY_IT](../SECURITY_IT.md) | `examples/users/app.sui` |

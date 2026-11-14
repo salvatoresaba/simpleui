@@ -1,0 +1,44 @@
+# Motion sequences: loops, spring easing and graph-to-graph events.
+#
+# Open the designer, select a card, then Motion > Open animation panel.
+# Each card has a motionKey so other graphs can use it as an event source.
+
+css ".page \{ max-width: 1080px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 18px; \} .grid \{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; \} .card \{ box-sizing: border-box; border: 1px solid #3a4152; border-radius: 14px; padding: 16px; color: #e6e6ef; display: flex; flex-direction: column; gap: 8px; overflow: hidden; justify-self: start; \} .card h2 \{ margin: 0; font-size: 16px; \} .note \{ color: #8fa0b8; font-size: 12px; line-height: 1.45; \} .kbd \{ color: #c7d2fe; font-weight: 600; \}"
+
+view main {
+	title "Motion sequences"
+	col class: "page" {
+		h1 "Motion sequences"
+		p "Click the scene trigger to open a spring transition; the event fans out to other cards. The pulse loops until a second click, the bounce plays three iterations and settles, and the spark reacts to the transition start." class: "note"
+		div class: "grid" {
+			card class: "card" motionKey: "scene-trigger" motionGraph: "\{\"initial\":\"idle\",\"states\":[\{\"id\":\"idle\",\"name\":\"Idle\",\"css\":\"width: 280px; height: 150px; background-color: #243247; transform: translateY(0px); box-shadow: 0 10px 24px rgba(0,0,0,0.28);\"\},\{\"id\":\"open\",\"name\":\"Open\",\"css\":\"width: 340px; height: 180px; background-color: #3e6fa8; transform: translateY(-8px); box-shadow: 0 20px 44px rgba(0,0,0,0.45);\"\}],\"links\":[\{\"id\":\"to-open\",\"from\":\"idle\",\"to\":\"open\",\"event\":\"click\",\"duration\":\"560ms\",\"spring\":\{\"stiffness\":180,\"damping\":14,\"mass\":1\},\"emit\":\{\"on\":\"end\",\"name\":\"scene-open\"\}\},\{\"id\":\"to-idle\",\"from\":\"open\",\"to\":\"idle\",\"event\":\"click\",\"duration\":\"320ms\",\"easing\":\"ease-in\",\"emit\":\{\"on\":\"end\",\"name\":\"scene-close\"\}\}]\}" {
+				h2 "Scene trigger"
+				p "Click: spring to open and emit scene-open. Click again to close." class: "note"
+			}
+			card class: "card" motionKey: "follower-a" motionGraph: "\{\"initial\":\"waiting\",\"states\":[\{\"id\":\"waiting\",\"name\":\"Waiting\",\"css\":\"width: 280px; height: 150px; background-color: #2b2b3a; transform: translateY(0px) scale(1); opacity: 0.65;\"\},\{\"id\":\"shown\",\"name\":\"Shown\",\"css\":\"width: 280px; height: 150px; background-color: #6750a4; transform: translateY(-4px) scale(1.02); opacity: 1;\"\}],\"links\":[\{\"id\":\"show\",\"from\":\"waiting\",\"to\":\"shown\",\"event\":\"custom\",\"customEvent\":\"scene-open\",\"sourceId\":\"scene-trigger\",\"duration\":\"520ms\",\"spring\":\{\"stiffness\":140,\"damping\":12,\"mass\":1\}\},\{\"id\":\"hide\",\"from\":\"shown\",\"to\":\"waiting\",\"event\":\"custom\",\"customEvent\":\"scene-close\",\"sourceId\":\"scene-trigger\",\"duration\":\"300ms\",\"easing\":\"ease-in\"\}]\}" {
+				h2 "Follower A"
+				p "Listens to the emitted scene-open custom event." class: "note"
+			}
+			card class: "card" motionKey: "follower-b" motionGraph: "\{\"initial\":\"hidden\",\"states\":[\{\"id\":\"hidden\",\"name\":\"Hidden\",\"css\":\"width: 280px; height: 150px; background-color: #2a2f3a; transform: translateX(0px); opacity: 0.4;\"\},\{\"id\":\"visible\",\"name\":\"Visible\",\"css\":\"width: 280px; height: 150px; background-color: #2f7d6b; transform: translateX(18px); opacity: 1;\"\}],\"links\":[\{\"id\":\"show\",\"from\":\"hidden\",\"to\":\"visible\",\"event\":\"custom\",\"customEvent\":\"sui:motionend\",\"sourceId\":\"scene-trigger\",\"duration\":\"480ms\",\"easing\":\"cubic-bezier(0.34, 1.56, 0.64, 1)\",\"delay\":\"80ms\"\},\{\"id\":\"hide\",\"from\":\"visible\",\"to\":\"hidden\",\"event\":\"custom\",\"customEvent\":\"scene-close\",\"sourceId\":\"scene-trigger\",\"duration\":\"260ms\",\"easing\":\"ease-in\"\}]\}" {
+				h2 "Follower B"
+				p "Listens to the built-in sui:motionend event with an extra delay." class: "note"
+			}
+			card class: "card" motionKey: "pulse-card" motionGraph: "\{\"initial\":\"rest\",\"states\":[\{\"id\":\"rest\",\"name\":\"Rest\",\"css\":\"width: 280px; height: 150px; background-color: #30343f; transform: scale(1); box-shadow: 0 0 0 rgba(124,77,255,0);\"\},\{\"id\":\"pulse\",\"name\":\"Pulse\",\"css\":\"width: 280px; height: 150px; background-color: #5b3fa8; transform: scale(1.06); box-shadow: 0 0 28px rgba(124,77,255,0.7);\"\}],\"links\":[\{\"id\":\"start\",\"from\":\"rest\",\"to\":\"pulse\",\"event\":\"click\",\"duration\":\"760ms\",\"easing\":\"ease-in-out\",\"iterations\":\"infinite\",\"direction\":\"alternate\"\},\{\"id\":\"stop\",\"from\":\"pulse\",\"to\":\"rest\",\"event\":\"click\",\"duration\":\"260ms\",\"easing\":\"ease-out\"\}]\}" {
+				h2 "Pulse"
+				p "Click: infinite alternate loop. Click again to stop and cancel it." class: "note"
+			}
+			card class: "card" motionKey: "bounce-card" motionGraph: "\{\"initial\":\"ready\",\"states\":[\{\"id\":\"ready\",\"name\":\"Ready\",\"css\":\"width: 280px; height: 150px; background-color: #2d3a2f; transform: translateY(0px);\"\},\{\"id\":\"up\",\"name\":\"Up\",\"css\":\"width: 280px; height: 150px; background-color: #4d7a56; transform: translateY(-16px);\"\},\{\"id\":\"done\",\"name\":\"Done\",\"css\":\"width: 280px; height: 150px; background-color: #6a9f74; transform: translateY(0px);\"\}],\"links\":[\{\"id\":\"bounce\",\"from\":\"ready\",\"to\":\"up\",\"event\":\"click\",\"duration\":\"180ms\",\"easing\":\"ease-out\",\"iterations\":3,\"direction\":\"alternate\"\},\{\"id\":\"settle\",\"from\":\"up\",\"to\":\"done\",\"event\":\"after\",\"duration\":\"220ms\",\"easing\":\"ease-out\"\},\{\"id\":\"reset\",\"from\":\"done\",\"to\":\"ready\",\"event\":\"click\",\"duration\":\"220ms\",\"easing\":\"ease-in\"\}]\}" {
+				h2 "Bounce"
+				p "Three alternate iterations, then an after link settles the card." class: "note"
+			}
+			card class: "card" motionKey: "spark-card" motionGraph: "\{\"initial\":\"dim\",\"states\":[\{\"id\":\"dim\",\"name\":\"Dim\",\"css\":\"width: 280px; height: 150px; background-color: #2b2b3a; opacity: 0.45;\"\},\{\"id\":\"lit\",\"name\":\"Lit\",\"css\":\"width: 280px; height: 150px; background-color: #ffb347; opacity: 1;\"\}],\"links\":[\{\"id\":\"light\",\"from\":\"dim\",\"to\":\"lit\",\"event\":\"custom\",\"customEvent\":\"sui:motionstart\",\"sourceId\":\"scene-trigger\",\"duration\":\"160ms\",\"easing\":\"ease-out\"\},\{\"id\":\"fade\",\"from\":\"lit\",\"to\":\"dim\",\"event\":\"timer\",\"timer\":\"650ms\",\"duration\":\"260ms\",\"easing\":\"ease-in\"\}]\}" {
+				h2 "Start spark"
+				p "Lights on sui:motionstart from the scene trigger, then fades on a timer." class: "note"
+			}
+			card class: "card" motionKey: "cancel-light" motionGraph: "\{\"initial\":\"off\",\"states\":[\{\"id\":\"off\",\"name\":\"Off\",\"css\":\"width: 280px; height: 150px; background-color: #2b2b3a; opacity: 0.45;\"\},\{\"id\":\"flash\",\"name\":\"Flash\",\"css\":\"width: 280px; height: 150px; background-color: #d95f5f; opacity: 1;\"\}],\"links\":[\{\"id\":\"flash\",\"from\":\"off\",\"to\":\"flash\",\"event\":\"custom\",\"customEvent\":\"sui:motioncancel\",\"sourceId\":\"pulse-card\",\"duration\":\"180ms\",\"easing\":\"ease-out\"\},\{\"id\":\"clear\",\"from\":\"flash\",\"to\":\"off\",\"event\":\"timer\",\"timer\":\"450ms\",\"duration\":\"220ms\",\"easing\":\"ease-in\"\}]\}" {
+				h2 "Cancel light"
+				p "Flashes when the pulse loop is interrupted (sui:motioncancel)." class: "note"
+			}
+		}
+	}
+}

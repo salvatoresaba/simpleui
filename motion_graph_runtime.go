@@ -29,12 +29,98 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
   function keyOf(el) {
     return el.getAttribute('data-sui-motion-key') || el.getAttribute('data-sui-id') || '';
   }
+  function matchesSource(node, id) {
+    if (!node || !node.getAttribute) return false;
+    return node.getAttribute('data-sui-id') === id || node.getAttribute('data-sui-motion-key') === id;
+  }
   function sourceById(id) {
     var s = String(id || '');
-    if (!/^[A-Za-z0-9_-]+$/.test(s)) return null;
-    var list = document.querySelectorAll('[data-sui-id]');
-    for (var i = 0; i < list.length; i++) if (list[i].getAttribute('data-sui-id') === s) return list[i];
+    if (!/^[A-Za-z0-9_.:-]+$/.test(s)) return null;
+    var list = document.querySelectorAll('[data-sui-id],[data-sui-motion-key]');
+    for (var i = 0; i < list.length; i++) if (matchesSource(list[i], s)) return list[i];
     return null;
+  }
+  function linkIterations(link) {
+    var v = link && link.iterations;
+    if (v === Infinity || String(v).toLowerCase() === 'infinite') return Infinity;
+    var n = Number(v);
+    if (!isFinite(n) || n < 1) return 1;
+    return Math.min(1000, Math.floor(n));
+  }
+  function linkDirection(link) {
+    var d = String(link && link.direction || 'normal').toLowerCase();
+    if (d === 'reverse' || d === 'alternate' || d === 'alternate-reverse') return d;
+    return 'normal';
+  }
+  function linkPlaybackRate(link) {
+    var r = Number(link && link.playbackRate);
+    if (!isFinite(r) || r <= 0) return 1;
+    return Math.min(10, Math.max(0.1, r));
+  }
+  function clampNum(v, fallback, min, max) {
+    var n = Number(v);
+    if (!isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+  function springEasing(spec, durationMs) {
+    if (!spec) return '';
+    var stiffness = clampNum(spec.stiffness, 170, 1, 1000);
+    var damping = clampNum(spec.damping, 18, 0, 100);
+    var mass = clampNum(spec.mass, 1, 0.1, 20);
+    var seconds = Math.max(0.05, durationMs / 1000);
+    var w0 = Math.sqrt(stiffness / mass);
+    var zeta = damping / (2 * Math.sqrt(stiffness * mass));
+    var wd = w0 * Math.sqrt(Math.max(0, 1 - zeta * zeta));
+    function valueAt(t) {
+      var s = t * seconds;
+      if (zeta < 1 && wd > 0.001) {
+        return 1 - Math.exp(-zeta * w0 * s) * (Math.cos(wd * s) + (zeta * w0 / wd) * Math.sin(wd * s));
+      }
+      return 1 - Math.exp(-w0 * s) * (1 + w0 * s);
+    }
+    var end = valueAt(1);
+    if (!isFinite(end) || Math.abs(end) < 0.001) return 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+    var points = [];
+    var steps = 24;
+    for (var i = 0; i <= steps; i++) {
+      var x = i === 0 ? 0 : (i === steps ? 1 : valueAt(i / steps) / end);
+      points.push(Math.round(x * 1000) / 1000);
+    }
+    return 'linear(' + points.join(', ') + ')';
+  }
+  function scheduleFallback(el) {
+    if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
+    if (!el.__suiGraphFinishFn || el.__suiGraphInfinite || el.__suiGraphPaused) return;
+    var anim = el.__suiGraphAnim;
+    var total = Number(el.__suiGraphTotal);
+    var current = anim ? Number(anim.currentTime) || 0 : 0;
+    var remaining = isFinite(total) ? Math.max(0, total - current) : 0;
+    el.__suiGraphFinishTimer = setTimeout(function() {
+      if (el.__suiGraphPaused) { scheduleFallback(el); return; }
+      if (el.__suiGraphFinishFn) el.__suiGraphFinishFn();
+    }, remaining + 80);
+  }
+  function transitionDetail(link, el) {
+    return {
+      from: link && link.from ? link.from : '',
+      to: link && link.to ? link.to : '',
+      state: el ? el.__suiGraphState : (link && link.to) || '',
+      link: link && link.id ? link.id : ''
+    };
+  }
+  function emitEvent(el, name, detail) {
+    if (!el || !name || !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(String(name))) return;
+    var ev = null;
+    try { ev = new CustomEvent(name, { detail: detail || {}, bubbles: true, composed: true }); } catch (e) { return; }
+    try { el.dispatchEvent(ev); } catch (e) {}
+  }
+  function emitSpec(el, link, when, detail) {
+    var spec = link && link.emit;
+    if (!spec) return;
+    var name = typeof spec === 'string' ? spec : spec.name;
+    var on = typeof spec === 'string' ? 'end' : (spec.on || 'end');
+    if (!name || on !== when) return;
+    emitEvent(el, name, detail);
   }
   function stateById(cfg, id) {
     var list = cfg && cfg.states ? cfg.states : [];
@@ -92,21 +178,82 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     var duration = Math.max(0, timeMs(link && link.duration, 240));
     var delay = Math.max(0, timeMs(link && link.delay, 0));
     var easing = (link && link.easing) || 'ease-out';
-    if (reduced || instant || !link || duration <= 0) { duration = 0; delay = 0; }
+    var iterations = linkIterations(link);
+    var direction = linkDirection(link);
+    var playbackRate = linkPlaybackRate(link);
+    var spring = link && link.spring;
+    var springUsed = false;
+    if (spring) {
+      var generated = springEasing(spring, duration);
+      if (generated) { easing = generated; springUsed = true; }
+    }
+    if (reduced || instant || !link || duration <= 0) {
+      duration = 0; delay = 0; iterations = 1; direction = 'normal'; playbackRate = 1;
+    }
+    var infinite = iterations === Infinity && duration > 0;
+    var totalMs = infinite ? Infinity : (delay + duration * iterations) / playbackRate;
+    var detail = transitionDetail(link, el);
     var token = (el.__suiGraphToken || 0) + 1;
     el.__suiGraphToken = token;
+    el.__suiGraphPaused = false;
+    el.__suiGraphInfinite = infinite;
+    el.__suiGraphTotal = totalMs;
     if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
+    if (link && !instant) emitEvent(el, 'sui:motionstate', detail);
+    if (token !== el.__suiGraphToken) return;
+    var settled = false;
     function finish() {
-      if (token !== el.__suiGraphToken) return;
+      if (token !== el.__suiGraphToken || settled) return;
+      settled = true;
       if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
       var active = el.__suiGraphAnim;
       el.__suiGraphAnim = null;
+      el.__suiGraphInfinite = false;
+      el.__suiGraphPaused = false;
       for (var p = 0; p < all.length; p++) if (!next[all[p]]) el.style.removeProperty(all[p]);
       for (var d = 0; d < decls.length; d++) el.style.setProperty(decls[d].name, decls[d].value);
       el.__suiGraphProps = decls.map(function(x){ return x.name; });
       if (active) { try { active.cancel(); } catch (e) {} }
+      if (link) {
+        emitEvent(el, 'sui:motionend', detail);
+        emitSpec(el, link, 'end', detail);
+      }
+      if (token !== el.__suiGraphToken) return;
+      if (el.__suiGraphLink === link) el.__suiGraphLink = null;
+      el.__suiGraphFinishFn = null;
+      if (link && link.to) {
+        el.__suiGraphAfterTimer = setTimeout(function() {
+          el.__suiGraphAfterTimer = 0;
+          if (token !== el.__suiGraphToken) return;
+          fireAfter(el, cfg, link.to);
+        }, 0);
+      }
     }
-    if (duration <= 0 || !all.length) { finish(); return; }
+    function cancelOld() {
+      if (!el.__suiGraphAnim) return;
+      var oldLink = el.__suiGraphLink;
+      var oldDetail = transitionDetail(oldLink, null);
+      try { el.__suiGraphAnim.cancel(); } catch (e) {}
+      el.__suiGraphAnim = null;
+      el.__suiGraphLink = null;
+      if (oldLink) {
+        emitEvent(el, 'sui:motioncancel', oldDetail);
+        emitSpec(el, oldLink, 'cancel', oldDetail);
+      }
+    }
+    function emitStart() {
+      if (!link || instant) return;
+      emitEvent(el, 'sui:motionstart', detail);
+      emitSpec(el, link, 'start', detail);
+    }
+    if (duration <= 0 || !all.length) {
+      cancelOld();
+      if (token !== el.__suiGraphToken) return;
+      emitStart();
+      if (token !== el.__suiGraphToken) return;
+      finish();
+      return;
+    }
     // Evaluate both measured states before starting: compute the start values,
     // temporarily apply the target to read its computed end values, then put
     // the start values back and let the browser animate between them.
@@ -117,7 +264,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       starts[p0] = getComputedStyle(el).getPropertyValue(p0);
       explicit[p0] = el.style.getPropertyPriority(p0);
     }
-    if (el.__suiGraphAnim) { try { el.__suiGraphAnim.cancel(); } catch (e) {} el.__suiGraphAnim = null; }
+    cancelOld();
+    if (token !== el.__suiGraphToken) return;
+    emitStart();
+    if (token !== el.__suiGraphToken) return;
     for (var r = 0; r < all.length; r++) if (!next[all[r]]) el.style.removeProperty(all[r]);
     for (var t = 0; t < decls.length; t++) el.style.setProperty(decls[t].name, decls[t].value);
     var ends = {};
@@ -135,15 +285,32 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       from[key] = starts[pc];
       to[key] = ends[pc];
     }
+    var timing = {
+      duration: duration, delay: delay, fill: 'both',
+      iterations: iterations === Infinity ? Infinity : iterations,
+      direction: direction, easing: easing
+    };
     var anim = null;
     try {
-      anim = el.animate([from, to], { duration: duration, delay: delay, easing: easing, fill: 'both' });
-    } catch (err) { finish(); return; }
+      anim = el.animate([from, to], timing);
+    } catch (err) {
+      if (springUsed) {
+        try {
+          timing.easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+          anim = el.animate([from, to], timing);
+        } catch (err2) { anim = null; }
+      }
+      if (!anim) { finish(); return; }
+    }
+    try { anim.playbackRate = playbackRate; } catch (e) {}
     el.__suiGraphAnim = anim;
-    el.__suiGraphFinishTimer = setTimeout(function() {
-      if (token !== el.__suiGraphToken) return;
-      finish();
-    }, duration + delay + 50);
+    el.__suiGraphLink = link;
+    el.__suiGraphFinishFn = finish;
+    if (infinite) {
+      anim.onfinish = null;
+      return;
+    }
+    scheduleFallback(el);
     anim.onfinish = function() {
       if (token !== el.__suiGraphToken) return;
       if (el.__suiGraphAnim === anim) el.__suiGraphAnim = null;
@@ -275,24 +442,25 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
   // A new run invalidates the previous token, timers and pending after link, so
   // an interrupted transition cannot leave stale graph properties behind.
   function run(el, cfg, link) {
-    if (!link) return;
+    if (!link || el.__suiGraphUnbinding) return;
     var to = stateById(cfg, link.to);
     if (!to) return;
     clearTimers(el);
+    if (el.__suiGraphAfterTimer) { clearTimeout(el.__suiGraphAfterTimer); el.__suiGraphAfterTimer = 0; }
     el.__suiGraphState = link.to;
     var key = keyOf(el);
     if (key) stateMemory[key] = link.to;
+    var seq = (el.__suiGraphRunSeq || 0) + 1;
+    el.__suiGraphRunSeq = seq;
     applyState(el, cfg, link.to, link, false);
+    if (el.__suiGraphRunSeq !== seq) return;
     scheduleTimers(el, cfg, link.to);
-    var wait = Math.max(0, timeMs(link.duration, 240)) + Math.max(0, timeMs(link.delay, 0));
-    var token = el.__suiGraphToken;
-    setTimeout(function() {
-      if (token !== el.__suiGraphToken) return;
-      fireAfter(el, cfg, link.to);
-    }, wait + 60);
   }
   function unbind(el) {
+    el.__suiGraphUnbinding = true;
     clearTimers(el);
+    if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
+    if (el.__suiGraphAfterTimer) { clearTimeout(el.__suiGraphAfterTimer); el.__suiGraphAfterTimer = 0; }
     var handlers = el.__suiGraphHandlers || [];
     for (var i = 0; i < handlers.length; i++) {
       var h = handlers[i];
@@ -301,9 +469,25 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     }
     el.__suiGraphHandlers = [];
     el.__suiGraphBound = false;
+    if (el.__suiGraphAnim) {
+      var oldLink = el.__suiGraphLink;
+      var oldDetail = transitionDetail(oldLink, null);
+      try { el.__suiGraphAnim.cancel(); } catch (e) {}
+      el.__suiGraphAnim = null;
+      if (oldLink) {
+        emitEvent(el, 'sui:motioncancel', oldDetail);
+        emitSpec(el, oldLink, 'cancel', oldDetail);
+      }
+    }
+    el.__suiGraphInfinite = false;
+    el.__suiGraphPaused = false;
+    el.__suiGraphLink = null;
+    el.__suiGraphFinishFn = null;
+    delete el.__suiMotion;
   }
   function bind(el, cfg) {
     if (el.__suiGraphBound) unbind(el);
+    el.__suiGraphUnbinding = false;
     var handlers = [];
     var seen = Object.create(null);
     var links = cfg && cfg.links ? cfg.links : [];
@@ -314,7 +498,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       var ev = rawEv === 'custom' ? String(link.customEvent || '') : rawEv;
       if (!ev || !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(ev)) continue;
       var sourceId = link.sourceId || '';
-      if (sourceId && !/^[A-Za-z0-9_-]+$/.test(sourceId)) continue;
+      if (sourceId && !/^[A-Za-z0-9_.:-]+$/.test(sourceId)) continue;
       var key = sourceId + '|' + ev;
       if (seen[key]) continue;
       seen[key] = 1;
@@ -323,9 +507,14 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
           if (el.__suiGraphEditLocked) return;
           if (source) {
             var t = e.target;
-            if (!t || !t.closest) return;
-            var src = t.closest('[data-sui-id]');
-            if (!src || src.getAttribute('data-sui-id') !== source) return;
+            if (!t || !t.getAttribute) return;
+            var foundSource = false;
+            var node = t;
+            while (node && node !== document) {
+              if (matchesSource(node, source)) { foundSource = true; break; }
+              node = node.parentElement;
+            }
+            if (!foundSource) return;
           }
           var found = findEventLink(cfg, el.__suiGraphState, eventName, source, e);
           if (found) run(el, cfg, found);
@@ -339,6 +528,64 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     el.__suiGraphHandlers = handlers;
     el.__suiGraphBound = true;
   }
+  function runTo(el, cfg, state, opts) {
+    if (!el || !cfg || !stateById(cfg, state)) return false;
+    opts = opts || {};
+    var link = {
+      id: 'api',
+      from: el.__suiGraphState || '',
+      to: state,
+      duration: opts.duration != null ? opts.duration : '240ms',
+      easing: opts.easing != null ? opts.easing : 'ease-out',
+      delay: opts.delay != null ? opts.delay : '0ms'
+    };
+    if (opts.iterations != null) link.iterations = opts.iterations;
+    if (opts.direction != null) link.direction = opts.direction;
+    if (opts.playbackRate != null) link.playbackRate = opts.playbackRate;
+    if (opts.spring) link.spring = opts.spring;
+    if (opts.emit) link.emit = opts.emit;
+    run(el, cfg, link);
+    return true;
+  }
+  function attachApi(el, cfg) {
+    el.__suiMotion = {
+      to: function(state, opts) { return runTo(el, cfg, state, opts); },
+      pause: function() {
+        if (!el.__suiGraphAnim) return false;
+        try { el.__suiGraphAnim.pause(); } catch (e) { return false; }
+        el.__suiGraphPaused = true;
+        if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
+        return true;
+      },
+      resume: function() {
+        if (!el.__suiGraphAnim) return false;
+        try { el.__suiGraphAnim.play(); } catch (e) { return false; }
+        el.__suiGraphPaused = false;
+        scheduleFallback(el);
+        return true;
+      },
+      seek: function(ms) {
+        if (!el.__suiGraphAnim) return false;
+        try { el.__suiGraphAnim.currentTime = Math.max(0, Number(ms) || 0); } catch (e) { return false; }
+        scheduleFallback(el);
+        return true;
+      },
+      get state() { return el.__suiGraphState || ''; },
+      get paused() { return !!el.__suiGraphPaused; },
+      get progress() {
+        var anim = el.__suiGraphAnim;
+        if (!anim) return el.__suiGraphState ? 1 : 0;
+        var total = el.__suiGraphTotal;
+        if (el.__suiGraphInfinite) {
+          var duration = Math.max(1, timeMs(el.__suiGraphLink && el.__suiGraphLink.duration, 240) / linkPlaybackRate(el.__suiGraphLink));
+          return ((Number(anim.currentTime) || 0) % duration) / duration;
+        }
+        if (!isFinite(total) || total <= 0) return 0;
+        return Math.min(1, Math.max(0, (Number(anim.currentTime) || 0) / total));
+      }
+    };
+    return el.__suiMotion;
+  }
   function init(el) {
     var raw = el.getAttribute('data-sui-motion-graph');
     if (!raw) return;
@@ -349,6 +596,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     el.__suiGraphJson = raw;
     el.__suiGraphCfg = cfg;
     bind(el, cfg);
+    attachApi(el, cfg);
     var key = keyOf(el);
     var id = key && stateMemory[key] ? stateMemory[key] : (cfg.initial || cfg.states[0].id);
     if (!stateById(cfg, id)) id = cfg.initial || cfg.states[0].id;
@@ -389,6 +637,20 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
         }
       }
     }, 120);
+  }
+  if (typeof window !== 'undefined') {
+    window.SimpleUIMotion = {
+      get: function(target) {
+        if (typeof target === 'string') {
+          try { target = document.querySelector(target); } catch (e) { return null; }
+        }
+        return target && target.__suiMotion ? target.__suiMotion : null;
+      },
+      to: function(target, state, opts) {
+        var api = this.get(target);
+        return api ? api.to(state, opts) : false;
+      }
+    };
   }
   return { scan: scan, run: run, init: init };
 })();
