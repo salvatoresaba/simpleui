@@ -453,8 +453,9 @@ to the visible viewport. **Layout & shared** in the toolbar opens the classic
 `motionExit` settings used by FLIP, list reordering and page transitions.
 
 State blocks grow taller as outgoing triggers are added and can be dragged to
-custom positions. Each block has **+** to add a link, a pencil icon to edit its
-appearance, and **×** to delete it. **Create state** in the panel creates a new
+custom positions. The graph canvas supports wheel zoom, drag-to-pan on empty
+space, and toolbar minus/plus/Fit controls with a zoom percentage. Each block has
+**+** to add a link, a pencil icon to edit its appearance, and **×** to delete it. **Create state** in the panel creates a new
 state block without a link; move the mouse and click on a free spot, then use
 **Confirm position**. The new state is selected. Use **+** on a state to create a
 link to an existing destination: the trigger chooser opens with **Cancel** and

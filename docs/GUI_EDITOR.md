@@ -907,9 +907,10 @@ only the graph; parameters open in draggable overlay panels:
 
 - **Layout & shared** in the toolbar opens the FLIP/list/page settings overlay.
 - The panel is compact and has a drag handle on its bottom-right corner. The
-  graph canvas centers the states and scales the diagram to fit the panel; the
-  panel and overlays stay fully inside the viewport and can be dragged or
-  resized.
+  graph canvas centers and fits the diagram; the toolbar has **&#8722;**, **+** and
+  **Fit** controls with a zoom percentage. Drag empty canvas space to pan and use
+  the wheel to zoom around the pointer. The panel and overlays stay fully inside
+  the viewport and can be dragged or resized.
 
 - State blocks are intentionally small but grow taller as outgoing triggers are
   added, so their connection points stay readable. Drag a block to move it; the

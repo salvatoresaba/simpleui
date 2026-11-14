@@ -887,7 +887,8 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   font-size:12px; font-weight:600; box-shadow:0 8px 26px rgba(0,0,0,.45); cursor:pointer; }
 #mg-launch.on { display:flex; }
 #mg-canvas { position:relative; flex:1; min-width:0; overflow:hidden; background:
-  radial-gradient(circle at 1px 1px, rgba(143,160,184,.26) 1px, transparent 0) 0 0/18px 18px; }
+  radial-gradient(circle at 1px 1px, rgba(143,160,184,.26) 1px, transparent 0) 0 0/18px 18px; cursor:grab; user-select:none; }
+#mg-canvas.mg-panning { cursor:grabbing; }
 #mg-stage { position:absolute; left:0; top:0; transform-origin:0 0; }
 #mg-nodes { position:absolute; left:0; top:0; }
 #mg-lines { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
@@ -899,22 +900,22 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .mg-node:hover { border-color:#4c5cf7; }
 .mg-node.on { border-color:#4c5cf7; box-shadow:0 0 0 2px rgba(76,92,247,.25),0 2px 10px rgba(0,0,0,.35); }
 .mg-node.mg-invalid { border-color:#b23a4a !important; box-shadow:0 0 0 2px rgba(178,58,74,.3) !important; }
-.mg-node .mg-name { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; padding-right:36px; overflow:hidden; }
+.mg-node .mg-name { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; padding-right:48px; overflow:hidden; }
 .mg-node .mg-name span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mg-node .mg-name .mg-init { font-size:8px; font-weight:600; color:#0e1118; background:#34d399; border-radius:4px; padding:0 3px; }
-.mg-node .mg-edit { position:absolute; right:20px; top:2px; width:16px; height:16px;
-  border:1px solid var(--border2); border-radius:50%; background:var(--input-bg); color:var(--fg); font-size:10px;
-  line-height:13px; text-align:center; cursor:pointer; padding:0; }
+.mg-node .mg-edit { position:absolute; right:24px; top:2px; width:20px; height:20px;
+  border:1px solid var(--border2); border-radius:50%; background:var(--input-bg); color:var(--fg); font-size:13px;
+  line-height:17px; text-align:center; cursor:pointer; padding:0; }
 .mg-node .mg-edit:hover { border-color:#4c5cf7; color:#9db4ff; }
 html[data-theme="light"] .mg-node .mg-edit:hover { border-color:#1d4ed8; color:#1d4ed8; }
-.mg-node .mg-add { position:absolute; right:2px; top:2px; width:16px; height:16px;
-  border:1px solid var(--border2); border-radius:50%; background:var(--input-bg); color:var(--fg); font-size:12px;
-  line-height:13px; text-align:center; cursor:pointer; padding:0; }
+.mg-node .mg-add { position:absolute; right:2px; top:2px; width:20px; height:20px;
+  border:1px solid var(--border2); border-radius:50%; background:var(--input-bg); color:var(--fg); font-size:14px;
+  line-height:17px; text-align:center; cursor:pointer; padding:0; }
 .mg-node .mg-add:hover { border-color:#4c5cf7; color:#9db4ff; }
-.mg-node .mg-port { position:absolute; right:-4px; top:50%; width:7px; height:7px; border-radius:50%; background:#7db3ff;
+.mg-node .mg-port { position:absolute; right:-5px; top:50%; width:9px; height:9px; border-radius:50%; background:#7db3ff;
   transform:translateY(-50%); }
-.mg-node .mg-del { position:absolute; right:2px; bottom:2px; width:16px; height:16px; border:1px solid #b23a4a;
-  border-radius:50%; background:var(--input-bg); color:#ffb4bf; font-size:12px; line-height:13px; text-align:center;
+.mg-node .mg-del { position:absolute; right:2px; bottom:2px; width:20px; height:20px; border:1px solid #b23a4a;
+  border-radius:50%; background:var(--input-bg); color:#ffb4bf; font-size:14px; line-height:17px; text-align:center;
   cursor:pointer; padding:0; }
 .mg-node .mg-del:hover { background:#3a1d24; }
 #mg-editbar { position:fixed; left:50%; top:14px; transform:translateX(-50%); display:none; align-items:center; gap:8px;
@@ -1164,6 +1165,10 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
         <span id="mg-graph-title" class="hint" style="margin-left:0"></span>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgOpenParam('layout')">Layout &amp; shared</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgPreviewSelected()">Preview</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgZoomAt(1/1.2)">&#8722;</button>
+        <span id="mg-zoom" class="hint" style="min-width:38px;text-align:center">100%</span>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgZoomAt(1.2)">+</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgFitGraph()">Fit</button>
         <span class="hint">Double-click a state or an arrow to edit its parameters.</span>
       </div>
       <div id="mg-placebar">
@@ -6421,6 +6426,7 @@ var mgPath = null, mgNode = null, mgCfg = null, mgSelState = "", mgSelLink = "";
 var mgParam = null;
 var mgCollapseTimer = 0;
 var mgGraphSize = { x: 240, y: 120 };
+var mgView = { x: 0, y: 0, scale: 1, initialized: false };
 var mgRouteOrderPreference = null;
 var mgDragging = false;
 var mgLastRouteClean = true;
@@ -6486,6 +6492,7 @@ function mgOpen(n, path) {
   mgNode = n;
   mgCfg = mgEnsure(n);
   mgAutoPositions = {};
+  mgView = { x: 0, y: 0, scale: 1, initialized: false };
   mgSelState = mgCfg.initial;
   var live = mgPreviewGraphState(path && path.length ? path : selPath);
   if (live && mgStateById(live)) mgSelState = live;
@@ -7271,6 +7278,12 @@ function mgMarkSelection() {
     p.setAttribute("marker-end", "url(#" + (on ? "mg-arrow-on" : complete ? "mg-arrow" : "mg-arrow-bad") + ")");
   });
 }
+function mgApplyView() {
+  var stage = document.getElementById("mg-stage");
+  if (stage) stage.style.transform = "translate(" + mgView.x + "px," + mgView.y + "px) scale(" + mgView.scale + ")";
+  var z = document.getElementById("mg-zoom");
+  if (z) z.textContent = Math.round(mgView.scale * 100) + "%";
+}
 function mgFitGraph() {
   var canvas = document.getElementById("mg-canvas");
   var stage = document.getElementById("mg-stage");
@@ -7282,9 +7295,59 @@ function mgFitGraph() {
   var sy = (ch - pad * 2) / Math.max(1, mgGraphSize.y);
   var scale = Math.min(1, sx, sy);
   if (!isFinite(scale) || scale <= 0) scale = 1;
-  var ox = (cw - mgGraphSize.x * scale) / 2;
-  var oy = (ch - mgGraphSize.y * scale) / 2;
-  stage.style.transform = "translate(" + ox + "px," + oy + "px) scale(" + scale + ")";
+  mgView.scale = scale;
+  mgView.x = (cw - mgGraphSize.x * scale) / 2;
+  mgView.y = (ch - mgGraphSize.y * scale) / 2;
+  mgView.initialized = true;
+  mgApplyView();
+}
+function mgZoomAt(factor, clientX, clientY) {
+  var canvas = document.getElementById("mg-canvas");
+  if (!canvas) return;
+  var r = canvas.getBoundingClientRect();
+  var px = clientX == null ? r.width / 2 : clientX - r.left;
+  var py = clientY == null ? r.height / 2 : clientY - r.top;
+  var old = mgView.scale || 1;
+  var next = Math.min(4, Math.max(0.15, old * (factor || 1)));
+  if (!isFinite(next) || next === old) return;
+  mgView.x = px - (px - mgView.x) * (next / old);
+  mgView.y = py - (py - mgView.y) * (next / old);
+  mgView.scale = next;
+  mgView.initialized = true;
+  mgApplyView();
+}
+function mgBindCanvasView() {
+  var canvas = document.getElementById("mg-canvas");
+  if (!canvas || canvas.__mgViewBound) return;
+  canvas.__mgViewBound = true;
+  canvas.addEventListener("wheel", function(ev){
+    if (!mgCfg || mgDragging) return;
+    ev.preventDefault();
+    mgZoomAt(ev.deltaY < 0 ? 1.14 : 1 / 1.14, ev.clientX, ev.clientY);
+  }, { passive: false });
+  canvas.addEventListener("pointerdown", function(ev){
+    if (ev.button !== 0 || mgPlacement) return;
+    var t = ev.target;
+    if (t && t.closest && t.closest(".mg-node")) return;
+    var sx = ev.clientX, sy = ev.clientY, ox = mgView.x, oy = mgView.y, moved = false;
+    function move(e) {
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+      if (!moved) { moved = true; canvas.classList.add("mg-panning"); }
+      e.preventDefault();
+      mgView.x = ox + dx;
+      mgView.y = oy + dy;
+      mgView.initialized = true;
+      mgApplyView();
+    }
+    function up() {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      canvas.classList.remove("mg-panning");
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  });
 }
 function mgClampPanel(panel) {
   if (!panel) return;
@@ -7438,7 +7501,7 @@ function mgRender() {
   mgGraphSize = { x: maxX, y: maxY };
   svg.innerHTML = mgLinkDefs();
   mgRenderLinks();
-  mgFitGraph();
+  if (!mgView.initialized) mgFitGraph(); else mgApplyView();
   mgRenderParam();
   setTimeout(mgClampAll, 0);
 }
@@ -8233,6 +8296,7 @@ function mgMakeResizable(panelId, handleId) {
       if (ev.target && ev.target.closest && ev.target.closest(".mg-node")) return;
       mgConfirmPlacement();
     });
+    mgBindCanvasView();
   }
   if (mgCanvas && typeof ResizeObserver === "function") {
     try { new ResizeObserver(function(){ mgFitGraph(); mgClampAll(); }).observe(mgCanvas); } catch (e) {}

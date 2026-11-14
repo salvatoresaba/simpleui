@@ -430,8 +430,10 @@ posizione fissa. Pannelli e overlay restano dentro il viewport visibile.
 usate da FLIP, riordino liste e transizioni tra pagine.
 
 I blocchi crescono in altezza con i trigger uscenti e possono essere trascinati
-in posizioni personalizzate. Ogni blocco ha **+** per aggiungere un link,
-l'icona a matita per modificarne l'aspetto e **×** per eliminarlo. **Create
+in posizioni personalizzate. Il canvas supporta zoom con la rotella, pan
+trascinando lo spazio vuoto e i controlli meno/più/Fit con la percentuale di
+zoom. Ogni blocco ha **+** per aggiungere un link, l'icona a matita per
+modificarne l'aspetto e **×** per eliminarlo. **Create
 state** nel pannello crea un nuovo blocco senza link; muovi il mouse e clicca su
 uno spazio libero, poi usa **Confirm position**. Il nuovo stato è selezionato. Usa
 **+** su uno stato per creare un link verso una destinazione esistente: il

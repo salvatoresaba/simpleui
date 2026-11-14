@@ -942,9 +942,11 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 
 - **Layout & shared** nella toolbar apre l'overlay per FLIP/liste/pagine.
 - Il pannello è compatto e ha un handle di ridimensionamento nell'angolo in
-  basso a destra. Il canvas centra e scala il diagramma per adattarlo; pannello
-  e overlay restano dentro il viewport e possono essere trascinati o
-  ridimensionati.
+  basso a destra. Il canvas centra e adatta il diagramma; la toolbar ha i
+  controlli **&#8722;**, **+** e **Fit** con la percentuale di zoom. Trascina lo
+  spazio vuoto del canvas per il pan e usa la rotella per lo zoom attorno al
+  puntatore. Pannello e overlay restano dentro il viewport e possono essere
+  trascinati o ridimensionati.
 
 - I blocchi sono piccoli ma crescono in altezza quando si aggiungono trigger
   uscenti, così i punti di connessione restano leggibili. Trascina un blocco per
