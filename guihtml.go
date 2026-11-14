@@ -1155,7 +1155,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
       <div class="mg-hdr" id="mg-hdr">
         <span>Animation panel</span>
         <div style="flex:1"></div>
-        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgAddState()">+ state</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgAddState()">Create state</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgRemoveGraph(mgNode)">Remove states</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgTogglePanel()">&#8211;</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgClosePanel()">&#10005;</button>
@@ -1167,7 +1167,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
         <span class="hint">Double-click a state or an arrow to edit its parameters.</span>
       </div>
       <div id="mg-placebar">
-        <span>Drag to place the new state, then choose its trigger.</span>
+        <span>Drag to place the new state, then confirm.</span>
         <button class="btn" type="button" style="font-size:11px;padding:3px 8px" onclick="mgConfirmPlacement()">Confirm position</button>
       </div>
       <div class="mg-main">
@@ -6427,6 +6427,7 @@ var mgLastRouteClean = true;
 var mgPositions = {};
 var mgNodeHeights = {};
 var mgPlacement = null;
+var mgLastCreatedState = "";
 var mgEdit = null;
 var MG_CAPTURE_PROPS = ["width","height","min-width","min-height","max-width","max-height",
   "margin-top","margin-right","margin-bottom","margin-left","padding-top","padding-right","padding-bottom","padding-left",
@@ -7311,8 +7312,8 @@ function mgRender() {
     var edit = document.createElement("button"); edit.type = "button"; edit.className = "mg-edit"; edit.textContent = "\u270e"; edit.title = "Edit state appearance";
     edit.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgCloseParam(); mgMarkSelection(); mgFocusState(s.id, true); };
     d.appendChild(edit);
-    var add = document.createElement("button"); add.type = "button"; add.className = "mg-add"; add.textContent = "+"; add.title = "Add a connected state";
-    add.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgQuickAddState(s.id); };
+    var add = document.createElement("button"); add.type = "button"; add.className = "mg-add"; add.textContent = "+"; add.title = "Add a link to another state";
+    add.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgAddLinkMenu(s.id); };
     d.appendChild(add);
     var del = document.createElement("button"); del.type = "button"; del.className = "mg-del"; del.textContent = "\u00d7"; del.title = "Delete state";
     del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgDeleteState(s.id); };
@@ -7345,26 +7346,28 @@ function mgOpenParam(kind, id) {
   mgRenderParam();
 }
 function mgAddLinkMenu(sourceId, linkId) {
+  if (mgPlacement) { mgNotify("Confirm the new state position first."); return; }
   clearTimeout(mgCollapseTimer);
   mgParam = { kind: "newlink", id: sourceId, link: linkId || "" };
   mgRenderParam();
 }
-function mgQuickAddState(sourceId) {
-  var src = mgStateById(sourceId);
-  if (!src || !mgNode) return;
+function mgAddState() {
+  if (!mgCfg) return;
+  if (mgPlacement) { mgNotify("Confirm the new state position first."); return; }
+  var baseId = mgSelState && mgStateById(mgSelState) ? mgSelState : mgCfg.initial;
+  var base = mgStateById(baseId) || mgCfg.states[0];
+  var free = mgFreeStatePosition(baseId);
   snap("add motion state");
-  var free = mgFreeStatePosition(sourceId);
   var st = {
     id: mgNextId("s", mgCfg.states),
     name: "State " + (mgCfg.states.length + 1),
-    css: src.css || "",
+    css: base ? (base.css || "") : "",
     x: free.x,
     y: free.y
   };
   mgCfg.states.push(st);
-  var link = { id: mgNextId("l", mgCfg.links), from: sourceId, to: st.id, event: "", duration: "320ms", easing: "ease-out", delay: "0ms" };
-  mgCfg.links.push(link);
-  mgPlacement = { stateId: st.id, sourceId: sourceId, linkId: link.id, last: { x: free.x, y: free.y, valid: true } };
+  mgLastCreatedState = st.id;
+  mgPlacement = { stateId: st.id, sourceId: "", linkId: "", last: { x: free.x, y: free.y, valid: true } };
   mgSelState = st.id; mgSelLink = ""; mgParam = null;
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
   mgUpdatePlacementBar();
@@ -7533,8 +7536,16 @@ function mgRenderParam() {
         if (t.id === mgParam.id) return;
         var op = document.createElement("option"); op.value = t.id; op.textContent = t.name; targetSel.appendChild(op);
       });
-      var newOpt = document.createElement("option"); newOpt.value = "__new"; newOpt.textContent = "New state"; targetSel.appendChild(newOpt);
+      var preferred = mgLastCreatedState;
+      if (!preferred || preferred === mgParam.id || !mgStateById(preferred)) preferred = mgSelState;
+      if (!preferred || preferred === mgParam.id || !mgStateById(preferred)) preferred = targetSel.options.length ? targetSel.options[0].value : "";
+      if (preferred) targetSel.value = preferred;
       side.appendChild(targetSel);
+      if (!targetSel.options.length) {
+        var noTarget = document.createElement("div"); noTarget.className = "hint";
+        noTarget.textContent = "Create another state with Create state first.";
+        side.appendChild(noTarget);
+      }
     }
 
     function syncTriggerFields() {
@@ -7729,13 +7740,6 @@ function mgRenderParam() {
   }
   var addTr = actions();
   btn(addTr, "Add trigger", function(){ mgAddLinkMenu(s.id); });
-}
-function mgAddState() {
-  if (!mgCfg) return;
-  snap("add motion state");
-  var st = { id: mgNextId("s", mgCfg.states), name: "State " + (mgCfg.states.length + 1), css: "" };
-  mgCfg.states.push(st); mgSelState = st.id; mgSelLink = ""; mgParam = null;
-  mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
 }
 function mgDeleteState(id) {
   if (!mgCfg || mgCfg.states.length <= 1) return;

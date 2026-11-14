@@ -417,22 +417,25 @@ posizione fissa. Pannelli e overlay restano dentro il viewport visibile.
 usate da FLIP, riordino liste e transizioni tra pagine.
 
 I blocchi crescono in altezza con i trigger uscenti e possono essere trascinati
-in posizioni personalizzate. Ogni blocco ha **+** per aggiungere uno stato
-collegato e **×** per eliminarlo. **+** crea subito un nuovo blocco e un link,
-ma lascia chiuso il pannello del trigger; muovi il mouse e clicca su uno spazio
-libero (con spazio sufficiente per i link) oppure usa **Conferma posizione**. Nessun pannello si apre
-automaticamente; scegli il trigger in seguito con doppio clic sullo stato sorgente
-(il chooser si apre per il link in attesa) oppure dalla riga del trigger attivo.
-**Aggiungi trigger** aggiunge un altro trigger a uno stato esistente. Il trigger
-appartiene allo stato di partenza; i link uscenti sono numerati all'inizio e il
-tooltip del numero mostra il tipo di trigger. I link partono dal lato destro e
-arrivano orizzontalmente al centro del lato sinistro della destinazione. Il
-percorso è ortogonale con una distanza minima di **15 px** tra box, tra link e
-tra link e box; il primo e l'ultimo tratto sono perpendicolari al lato e lunghi
-almeno 15 px. I punti di connessione sono assegnati in ordine verticale di
-destinazione e tutti i link vengono ricalcolati a ogni modifica, provando più
-ordini; il router evita i box, usa angoli retti e preferisce il percorso più breve
-con il minor numero di segmenti. I link all'indietro girano attorno ai box e i
+in posizioni personalizzate. Ogni blocco ha **+** per aggiungere un link,
+l'icona a matita per modificarne l'aspetto e **×** per eliminarlo. **Create
+state** nel pannello crea un nuovo blocco senza link; muovi il mouse e clicca su
+uno spazio libero, poi usa **Confirm position**. Il nuovo stato è selezionato. Usa
+**+** su uno stato per creare un link verso una destinazione esistente: il
+chooser si apre con **Cancel** e **Confirm** e preseleziona lo stato creato più di
+recente. Confirm crea il link, chiude il pannello e lo disegna con il colore di
+completamento. Per collegare all'indietro, premi **+** sul nuovo stato e scegli il
+vecchio. Un link vecchio senza trigger può ancora essere completato con doppio
+clic sullo stato sorgente o sulla sua riga rossa. Il trigger appartiene allo stato
+di partenza; i link uscenti sono numerati all'inizio e il tooltip del numero
+mostra il tipo di trigger. I link partono dal lato destro e arrivano
+orizzontalmente al centro del lato sinistro della destinazione. Il percorso è
+ortogonale con una distanza minima di **15 px** tra box, tra link e tra link e
+box; il primo e l'ultimo tratto sono perpendicolari al lato e lunghi almeno
+15 px. I punti di connessione sono assegnati in ordine verticale di destinazione
+e tutti i link vengono ricalcolati a ogni modifica, provando più ordini; il router
+evita i box, usa angoli retti e preferisce il percorso più breve con il minor
+numero di segmenti. I link all'indietro girano attorno ai box e i
 percorsi si aggiornano in tempo reale durante il trascinamento. Una posizione o
 un link che rende impossibile un percorso pulito viene rifiutato con un messaggio
 invece di disegnare percorsi sovrapposti; le posizioni non instradabili vengono

@@ -949,15 +949,20 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 - I blocchi sono piccoli ma crescono in altezza quando si aggiungono trigger
   uscenti, così i punti di connessione restano leggibili. Trascina un blocco per
   spostarlo; la posizione viene conservata nel grafo. Ogni blocco ha **+** per
-  aggiungere uno stato collegato e **×** per eliminare lo stato.
-- **+** crea subito un nuovo blocco e un link, ma non apre il pannello del
-  trigger. Muovi il mouse sul grafo e clicca per posizionare il blocco dove ci
-  c'è spazio libero sufficiente per i collegamenti; il pulsante **Conferma posizione** conferma la
-  posizione corrente. Nessun pannello di selezione si apre automaticamente: il
-  trigger può essere scelto in seguito con doppio clic sullo stato sorgente (il
-  chooser si apre per il link in attesa) oppure dalla riga del trigger attivo.
-  **Aggiungi trigger** nell'overlay dello stato aggiunge un altro trigger a uno
-  stato esistente.
+  aggiungere un link, l'icona a matita per modificarne l'aspetto e **×** per
+  eliminare lo stato.
+- **Create state** nel pannello animazioni crea un nuovo blocco senza link. Muovi
+  il mouse sul grafo e clicca per posizionarlo dove c'è spazio libero, poi usa
+  **Confirm position**. Il nuovo stato è selezionato e può essere modificato con
+  l'icona a matita.
+- L'icona **+** su uno stato crea un link da quello stato verso una destinazione
+  esistente. Il chooser si apre con **Cancel** e **Confirm**; la destinazione è
+  preselezionata allo stato creato più di recente. Confirm crea il link, chiude il
+  pannello e lo disegna con il colore di completamento. Per tornare allo stato
+  precedente, premi **+** sul nuovo stato e scegli il vecchio. La partenza è
+  sempre sul lato destro e l'arrivo al centro del lato sinistro. Un link vecchio
+  senza trigger può ancora essere completato con doppio clic sullo stato sorgente
+  o sulla sua riga rossa.
 - Il trigger appartiene allo stato di partenza. Ogni link uscente è numerato
   nel punto di partenza; il numero è l'indice del trigger. Passando il mouse sul
   numero compare l'hint del trigger (ad esempio `click`). Più link possono

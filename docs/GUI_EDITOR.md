@@ -913,15 +913,20 @@ only the graph; parameters open in draggable overlay panels:
 
 - State blocks are intentionally small but grow taller as outgoing triggers are
   added, so their connection points stay readable. Drag a block to move it; the
-  position is kept in the graph. Each block has **+** to add a connected state
-  and **×** to delete the state.
-- **+** immediately creates a new state block and a link, but does not open the
-  trigger panel. Move the mouse over the graph and click to place the block
-  where there is enough free space for its links; the **Conferma posizione** button
-  confirms the current position. No selection panel opens automatically: the
-  trigger can be chosen later by double-clicking the source state (the chooser
-  opens for the pending link) or from the active-trigger row. **Aggiungi trigger**
-  in the state overlay adds another trigger to an existing state.
+  position is kept in the graph. Each block has **+** to add a link, a pencil
+  icon to edit its appearance, and **×** to delete the state.
+- **Create state** in the animation panel creates a new state block without a
+  link. Move the mouse over the graph and click to place the block where there is
+  enough free space, then use **Confirm position**. The new state is selected and
+  can be edited with the pencil icon.
+- The **+** icon on a state creates a link from that state to an existing
+  destination. The trigger chooser opens with **Cancel** and **Confirm**; the
+  destination is preselected to the most recently created state. Confirm creates
+  the link, closes the panel and draws it with the completed color. To return to
+  the previous state, press **+** on the new state and choose the old state. The
+  source point is always on the right side and the target point at the centre of
+  the left side. An older link without a trigger can still be completed by
+  double-clicking the source state or its red trigger row.
 - A trigger belongs to the state that starts the transition. Every outgoing
   link is numbered at its starting point; the number is the trigger index.
   Hovering the number shows the trigger hint (for example `click`). Several

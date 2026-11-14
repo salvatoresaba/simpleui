@@ -441,13 +441,16 @@ to the visible viewport. **Layout & shared** in the toolbar opens the classic
 `motionExit` settings used by FLIP, list reordering and page transitions.
 
 State blocks grow taller as outgoing triggers are added and can be dragged to
-custom positions. Each block has **+** to add a connected state and **×** to
-delete it. **+** immediately creates a new state block and link, but leaves the
-trigger panel closed; move the mouse and click on a free spot (with enough free
-space for the links) or use **Conferma posizione**. No panel opens automatically;
-choose the trigger later by double-clicking the source state (the chooser opens
-for the pending link) or from the active-trigger row. **Aggiungi trigger** adds
-another trigger to an existing state. A trigger belongs to the source state; outgoing
+custom positions. Each block has **+** to add a link, a pencil icon to edit its
+appearance, and **×** to delete it. **Create state** in the panel creates a new
+state block without a link; move the mouse and click on a free spot, then use
+**Confirm position**. The new state is selected. Use **+** on a state to create a
+link to an existing destination: the trigger chooser opens with **Cancel** and
+**Confirm** and preselects the most recently created state. Confirm creates the
+link, closes the panel and draws it with the completed color. To link back to the
+previous state, press **+** on the new state and choose the old one. An older
+link without a trigger can still be completed by double-clicking the source state
+or its red trigger row. A trigger belongs to the source state; outgoing
 links are numbered at their start point and hovering the number shows the
 trigger hint. Links leave the right side and enter the centre of the target's
 left side horizontally. Routing is orthogonal with a **15 px** minimum distance

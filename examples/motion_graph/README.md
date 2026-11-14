@@ -73,22 +73,24 @@ and the FLIP engine described in `examples/motion_pages`.
 4. **Layout & shared** in the toolbar opens a draggable overlay for
    FLIP/key/duration/easing/delay/exit for lists and page transitions.
 5. State blocks grow taller when outgoing triggers are added, and can be
-   dragged to custom positions. Each block has **+** to add a connected state
-   and **×** to delete it. **+** immediately creates a positioned state block
-   and a link, but leaves the trigger panel closed. Move the mouse and click on
-   a free spot (with enough free space for links) or use **Conferma posizione**; no panel
-   opens automatically. Choose the trigger later by double-clicking the source
-   state (the chooser opens for the pending link) or from the active-trigger row.
-6. Triggers belong to the source state. Outgoing links are numbered at their
-   starting point; hovering the number shows the trigger hint. Links leave the
-   right side and enter the target's left centre horizontally. Routing is
-   orthogonal with a **15 px** minimum distance between boxes, links, and
-   links/boxes, and the first/last segment is at least 15 px long. Ports are
-   assigned in vertical target order and all links are re-routed on every
-   change, trying several orders. It avoids boxes, uses right-angle corners and
-   prefers the shortest path with the fewest segments; backward links route
-   around the boxes and the path redraws live while dragging. A position or link
-   that makes a clean route impossible is rejected with a message instead of
+   dragged to custom positions. Each block has **+** to add a link, a pencil icon
+   to edit its appearance, and **×** to delete it. **Create state** in the panel
+   creates a new state block without a link; move the mouse and click on a free
+   spot, then use **Confirm position**. The new state is selected.
+6. Press **+** on a state to create a link to an existing destination. The
+   trigger chooser opens with **Cancel** and **Confirm** and preselects the most
+   recently created state. Confirm creates the link, closes the panel and draws
+   it with the completed color. To link back to the previous state, press **+** on
+   the new state and choose the old one. Triggers belong to the source state.
+   Outgoing links are numbered at their starting point; hovering the number shows
+   the trigger hint. Links leave the right side and enter the target's left centre
+   horizontally. Routing is orthogonal with a **15 px** minimum distance between
+   boxes, links, and links/boxes, and the first/last segment is at least 15 px
+   long. Ports are assigned in vertical target order and all links are re-routed
+   on every change, trying several orders. It avoids boxes, uses right-angle
+   corners and prefers the shortest path with the fewest segments; backward links
+   route around the boxes and the path redraws live while dragging. A position or
+   link that makes a clean route impossible is rejected with a message instead of
    drawing an overlapping path; unroutable drag positions are rejected
    immediately. Blocks and links use theme-aware colors for light and dark
    editor themes. Click and other DOM events
