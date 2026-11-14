@@ -821,7 +821,9 @@ func TestGuiInspectorEffectControls(t *testing.T) {
 
 func TestGuiAdvancedCssControls(t *testing.T) {
 	for _, want := range []string{
-		"Advanced CSS", "CSS_PROPERTY_NAMES", "advancedCssSection", "moreStylesControls",
+		"CSS declarations", "CSS_PROPERTY_NAMES", "advancedCssRows", "openInspectorOverlay",
+		"backgroundAdvancedRows", "flexAdvancedRows", "gridAdvancedRows", "textAdvancedRows",
+		"sizeAdvancedRows", "transformAdvancedRows", "outlineAdvancedRows", "interactionControls",
 		"adv-list", "aspect-ratio", "background-image", "pointer-events",
 	} {
 		if !strings.Contains(guiHTML, want) {

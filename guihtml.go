@@ -343,6 +343,18 @@ input[type=color] { padding:0; height:26px; }
 .adv-add .adv-prop { flex:0 0 40%; }
 .adv-add .adv-val { flex:1; }
 .adv-add button { flex:none; }
+/* Shared inspector overlay for advanced CSS and grouped style controls */
+#ins-overlay { position:fixed; top:120px; left:calc(100vw - 420px); width:380px; max-width:92vw; max-height:78vh;
+  background:var(--panel2); border:1px solid var(--border2); border-radius:10px; display:none; flex-direction:column;
+  overflow:hidden; box-shadow:0 14px 44px rgba(0,0,0,.55); z-index:85; }
+#ins-overlay.on { display:flex; }
+.ins-ov-h { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border);
+  background:var(--panel); font-size:12px; font-weight:600; cursor:move; }
+.ins-ov-h > span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ins-ov-h > button { flex:none; cursor:pointer; }
+.ins-ov-body { padding:10px; overflow:auto; }
+.ins-ov-body .rowline { margin:5px 0; }
+.ins-ov-body .hint { margin:3px 0 6px; }
 .applyhot { background: var(--accent) !important; color: #fff !important; font-weight: 700; box-shadow: 0 0 0 2px rgba(76, 92, 247, .35); }
 /* inspector switch: graphical on/off control for binary attribute fields */
 label.isw { box-sizing:border-box; position:relative; width:36px; height:20px; flex:none; display:inline-block; }
@@ -5177,8 +5189,66 @@ function applyLiveStyleMessage(d) {
   __liveStyle.values = d.values || {};
   __liveStyle.parentValues = d.parentValues || {};
   __liveStyle.pending = false;
+  __skipOverlayRefresh = true;
   renderInspector();
+  __skipOverlayRefresh = false;
 }
+var insOverlayOpen = false, insOverlayScope = "", insOverlayBuilder = null, __skipOverlayRefresh = false;
+function currentInspectScope() {
+  return selBody ? "body" : (selPath ? selPath.join(",") : "");
+}
+function ensureInspectorOverlay() {
+  var p = document.getElementById("ins-overlay");
+  if (p) return p;
+  p = document.createElement("div"); p.id = "ins-overlay";
+  var h = document.createElement("div"); h.id = "ins-overlay-h"; h.className = "ins-ov-h";
+  var t = document.createElement("span"); t.id = "ins-overlay-title"; t.textContent = "Styles";
+  var x = document.createElement("button"); x.type = "button"; x.className = "btn"; x.style.cssText = "font-size:11px;padding:1px 6px"; x.textContent = "\u00d7"; x.title = "Close";
+  x.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } closeInspectorOverlay(); };
+  h.appendChild(t); h.appendChild(x); p.appendChild(h);
+  var b = document.createElement("div"); b.id = "ins-overlay-body"; b.className = "ins-ov-body"; p.appendChild(b);
+  document.body.appendChild(p);
+  try { mgMakeDraggable("ins-overlay", "ins-overlay-h"); } catch (e) {}
+  return p;
+}
+function openInspectorOverlay(title, builder) {
+  var p = ensureInspectorOverlay();
+  insOverlayOpen = true;
+  insOverlayScope = currentInspectScope();
+  insOverlayBuilder = builder;
+  document.getElementById("ins-overlay-title").textContent = title;
+  p.classList.add("on");
+  refreshInspectorOverlay(true);
+  setTimeout(function(){ mgClampPanel(p); }, 0);
+}
+function refreshInspectorOverlay(resetScroll) {
+  if (__skipOverlayRefresh || !insOverlayOpen || !insOverlayBuilder) return;
+  if (insOverlayScope !== currentInspectScope()) { closeInspectorOverlay(); return; }
+  var body = document.getElementById("ins-overlay-body");
+  if (!body) return;
+  var top = resetScroll ? 0 : body.scrollTop;
+  body.innerHTML = "";
+  var cls = selClass();
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = (selBody ? "Body rule" : (cls ? "Class rule: ." + cls : "No class rule yet")) + " — changes stay in sync with the CSS editor.";
+  body.appendChild(hint);
+  var rows = insOverlayBuilder();
+  (rows || []).forEach(function(r){ if (r) body.appendChild(r); });
+  body.scrollTop = top;
+}
+function closeInspectorOverlay() {
+  insOverlayOpen = false;
+  insOverlayScope = "";
+  insOverlayBuilder = null;
+  var p = document.getElementById("ins-overlay");
+  if (p) p.classList.remove("on");
+}
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape" && insOverlayOpen) { e.stopPropagation(); closeInspectorOverlay(); }
+});
+window.addEventListener("resize", function(){
+  if (insOverlayOpen) mgClampPanel(document.getElementById("ins-overlay"));
+});
 function renderInspector() {
   if (selPath && (!multiSel || !multiSel.length)) {
     var ownerPath = treeOwnerPath(selPath);
@@ -5376,7 +5446,7 @@ function renderInspector() {
     var cl = document.createElement("label"); cl.textContent = "class"; cls.appendChild(cl);
     var ci = document.createElement("input"); ci.id = "f_class"; ci.setAttribute("list", "classlist");
     ci.value = commonVal(appearanceNodes, "class");
-    ci.oninput = function(ev){ snap(); appearanceNodes.forEach(function(m){ m.class = ev.target.value; }); renderTree(); setOut(); autoPreview(); buildDatalist(); };
+    ci.oninput = function(ev){ snap(); closeInspectorOverlay(); appearanceNodes.forEach(function(m){ m.class = ev.target.value; }); renderTree(); setOut(); autoPreview(); buildDatalist(); };
     cls.appendChild(ci);
     var dl = document.createElement("datalist"); dl.id = "classlist"; cls.appendChild(dl);
     clsSec.appendChild(cls);
@@ -5406,6 +5476,20 @@ function renderInspector() {
     }
     sxs.appendChild(sxi);
     clsSec.appendChild(sxs);
+    var cssAdvRow = document.createElement("div"); cssAdvRow.className = "rowline";
+    var cssAdvLab = document.createElement("label"); cssAdvLab.textContent = "CSS declarations"; cssAdvLab.title = "Edit the selected class rule declarations in an overlay";
+    var cssAdvBtn = document.createElement("button"); cssAdvBtn.type = "button"; cssAdvBtn.className = "btn";
+    cssAdvBtn.style.cssText = "font-size:11px;padding:3px 8px";
+    cssAdvBtn.textContent = "Edit...";
+    cssAdvBtn.disabled = nodes.length !== 1;
+    cssAdvBtn.title = nodes.length === 1 ? "Open the CSS declarations editor" : "Select one element to edit its CSS rule";
+    cssAdvBtn.onclick = function(ev){
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      if (nodes.length !== 1) return;
+      openInspectorOverlay("CSS declarations", advancedCssRows);
+    };
+    cssAdvRow.appendChild(cssAdvLab); cssAdvRow.appendChild(cssAdvBtn);
+    clsSec.appendChild(cssAdvRow);
     if (!(nodes.length === 1 && n && n.kind === "layoutcell")) {
     var lk = document.createElement("div"); lk.className = "rowline";
     var ll = document.createElement("label"); ll.textContent = "link"; lk.appendChild(ll);
@@ -5556,6 +5640,7 @@ function renderInspector() {
         selBox("vertical-align", "vertical-align", ["", "baseline", "top", "middle", "bottom", "sub", "super", "text-top", "text-bottom"]),
         containerTxt("gap", "gap", "e.g. 12px", nodes)
       ];
+      rows.push(advancedButton("Advanced flex", flexAdvancedRows));
       if (!selIsContainer(nodes)) {
         var ph = document.createElement("div"); ph.className = "hint";
         ph.style.cssText = "font-size:10px;margin-top:2px";
@@ -5571,7 +5656,8 @@ function renderInspector() {
       txt("grid-row", "grid-row"),
       txt("grid-area", "grid-area"),
       selBox("place-items", "place-items", ["", "start", "center", "end", "stretch"]),
-      selBox("place-content", "place-content", ["", "start", "center", "end", "stretch", "space-between", "space-around"])
+      selBox("place-content", "place-content", ["", "start", "center", "end", "stretch", "space-between", "space-around"]),
+      advancedButton("Advanced grid", gridAdvancedRows)
     ]) : null),
     layoutCellSelection ? null : acc("Position", (function(){
       var r = [
@@ -5601,7 +5687,8 @@ function renderInspector() {
       selBox("border-style", "style", ["", "none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"]),
       txt("border-width", "width"),
       color("border-color", "color"),
-      roundness("border-radius", "radius")
+      roundness("border-radius", "radius"),
+      advancedButton("Outline", outlineAdvancedRows)
     ]),
     everyKind(nodes, capTypography) ? acc("Typography", [
       range("font-size", "font-size", "8", "72", "px"),
@@ -5617,19 +5704,22 @@ function renderInspector() {
       txt("word-spacing", "word-spacing"),
       txt("text-indent", "text-indent"),
       shadowBox("text-shadow", "text-shadow"),
-      selBox("white-space", "white-space", ["", "normal", "nowrap", "pre", "pre-wrap", "pre-line"])
+      selBox("white-space", "white-space", ["", "normal", "nowrap", "pre", "pre-wrap", "pre-line"]),
+      advancedButton("Advanced text", textAdvancedRows)
     ]) : null,
     acc("Background", [
       color("background-color", "background-color"),
-      transparency("opacity", "Opacity")
+      transparency("opacity", "Opacity"),
+      advancedButton("Advanced background", backgroundAdvancedRows)
     ]),
     acc("Effects", [
       shadowBox("box-shadow", "box-shadow"),
       filterBox("filter", "filter", ["blur", "brightness", "contrast", "saturate", "grayscale", "sepia", "hue-rotate", "invert"]),
       filterBox("backdrop-filter", "backdrop filter", ["blur", "saturate", "brightness", "contrast"]),
-      selBox("mix-blend-mode", "blend mode", ["", "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"])
+      selBox("mix-blend-mode", "blend mode", ["", "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"]),
+      advancedButton("Transform and clip path", transformAdvancedRows)
     ]),
-    moreStylesControls(nodes),
+    interactionControls(),
     layoutCellSelection ? null : acc("Size", (function(){
       var rows = [];
       if (nodes.length === 1 && n && n.kind === "tablelayout") {
@@ -5641,6 +5731,7 @@ function renderInspector() {
       }
       rows.push(txt("max-width", "max-width"));
       rows.push(fillControls());
+      rows.push(advancedButton("Overflow and sizing", sizeAdvancedRows));
       return rows;
     })())
   ];
@@ -5653,10 +5744,6 @@ function renderInspector() {
     });
   }
   controls.forEach(function(a){ if (a) box.appendChild(a); });
-  if (!isToastHost) {
-    var advSec = advancedCssSection(nodes);
-    if (advSec) box.appendChild(advSec);
-  }
 
   // Drag & drop is a dedicated section at the END of the inspector, after all
   // visual/style sections. It contains the source/target keys, file state and
@@ -5671,6 +5758,7 @@ function renderInspector() {
   }
   syncInspectorSections();
   requestLiveStyles();
+  refreshInspectorOverlay();
 }
 
 // Typical events per element kind.
@@ -6604,6 +6692,7 @@ function mgPreviewGraphState(path) {
 }
 function mgOpen(n, path) {
   if (!n) return;
+  closeInspectorOverlay();
   mgPath = path && path.length ? path.slice() : (selPath ? selPath.slice() : null);
   mgNode = n;
   mgCfg = mgEnsure(n);
@@ -12555,84 +12644,101 @@ function filterBox(prop, label, keys) {
   return card;
 }
 
-function moreStylesControls(nodes) {
-  var rows = [];
-  function sub(text) {
-    var d = document.createElement("div"); d.className = "rowth"; d.textContent = text; rows.push(d);
-  }
-  sub("Overflow and sizing");
-  rows.push(selBox("overflow", "overflow", ["", "visible", "hidden", "clip", "scroll", "auto"]));
-  rows.push(selBox("box-sizing", "box-sizing", ["", "content-box", "border-box"]));
-  rows.push(txt("aspect-ratio", "aspect-ratio", "16 / 9"));
-  rows.push(txt("min-width", "min-width", "auto"));
-  rows.push(txt("min-height", "min-height", "auto"));
-  rows.push(selBox("object-fit", "object-fit", ["", "fill", "contain", "cover", "none", "scale-down"]));
-  sub("Flex extras");
-  rows.push(selBox("flex-wrap", "flex-wrap", ["", "nowrap", "wrap", "wrap-reverse"]));
-  rows.push(txt("order", "order", "0"));
-  rows.push(txt("flex-grow", "flex-grow", "0"));
-  rows.push(txt("flex-shrink", "flex-shrink", "1"));
-  rows.push(txt("flex-basis", "flex-basis", "auto"));
-  sub("Grid extras");
-  rows.push(selBox("grid-auto-flow", "auto flow", ["", "row", "column", "dense", "row dense", "column dense"]));
-  rows.push(txt("grid-auto-rows", "auto rows", "auto"));
-  rows.push(txt("grid-auto-columns", "auto cols", "auto"));
-  rows.push(selBox("justify-items", "justify-items", ["", "start", "center", "end", "stretch"]));
-  rows.push(selBox("justify-self", "justify-self", ["", "auto", "start", "center", "end", "stretch"]));
-  sub("Background extras");
-  rows.push(txt("background-image", "image", "linear-gradient(...) or url(...)"));
-  rows.push(selBox("background-size", "size", ["", "auto", "cover", "contain"]));
-  rows.push(txt("background-position", "position", "center / 50% 50%"));
-  rows.push(selBox("background-repeat", "repeat", ["", "no-repeat", "repeat", "repeat-x", "repeat-y", "space", "round"]));
-  rows.push(selBox("background-attachment", "attachment", ["", "scroll", "fixed", "local"]));
-  rows.push(selBox("background-clip", "clip", ["", "border-box", "padding-box", "content-box", "text"]));
-  rows.push(selBox("background-origin", "origin", ["", "border-box", "padding-box", "content-box"]));
-  rows.push(selBox("background-blend-mode", "blend", ["", "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"]));
-  sub("Transform and outline");
-  rows.push(txt("transform", "transform", "translate(...) rotate(...)"));
-  rows.push(txt("transform-origin", "origin", "center center"));
-  rows.push(txt("clip-path", "clip-path", "circle(50%) or polygon(...)"));
-  rows.push(selBox("outline-style", "outline", ["", "none", "solid", "dashed", "dotted", "double"]));
-  rows.push(txt("outline-width", "outline width", "2px"));
-  rows.push(color("outline-color", "outline color"));
-  rows.push(txt("outline-offset", "outline offset", "2px"));
-  sub("Text extras");
-  rows.push(selBox("text-overflow", "text-overflow", ["", "clip", "ellipsis"]));
-  rows.push(selBox("overflow-wrap", "overflow-wrap", ["", "normal", "break-word", "anywhere"]));
-  rows.push(selBox("word-break", "word-break", ["", "normal", "break-all", "keep-all", "break-word"]));
-  rows.push(selBox("writing-mode", "writing-mode", ["", "horizontal-tb", "vertical-rl", "vertical-lr"]));
-  rows.push(selBox("direction", "direction", ["", "ltr", "rtl"]));
-  sub("Interaction");
-  rows.push(selBox("cursor", "cursor", ["", "auto", "default", "pointer", "text", "move", "grab", "grabbing", "not-allowed", "wait", "help", "crosshair", "zoom-in", "zoom-out", "none"]));
-  rows.push(selBox("pointer-events", "pointer-events", ["", "auto", "none"]));
-  rows.push(selBox("user-select", "user-select", ["", "auto", "none", "text", "all", "contain"]));
-  rows.push(selBox("visibility", "visibility", ["", "visible", "hidden", "collapse"]));
-  rows.push(selBox("float", "float", ["", "none", "left", "right"]));
-  rows.push(selBox("clear", "clear", ["", "none", "left", "right", "both"]));
-  rows.push(selBox("scroll-behavior", "scroll behavior", ["", "auto", "smooth"]));
+function advancedButton(label, builder) {
+  var d = document.createElement("div"); d.className = "rowline";
+  var b = document.createElement("button");
+  b.type = "button"; b.className = "btn";
+  b.style.cssText = "font-size:11px;padding:4px 8px;width:100%";
+  b.textContent = label + "...";
+  b.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } openInspectorOverlay(label, builder); };
+  d.appendChild(b); return d;
+}
+function backgroundAdvancedRows() {
+  return [
+    txt("background-image", "image", "linear-gradient(...) or url(...)"),
+    selBox("background-size", "size", ["", "auto", "cover", "contain"]),
+    txt("background-position", "position", "center / 50% 50%"),
+    selBox("background-repeat", "repeat", ["", "no-repeat", "repeat", "repeat-x", "repeat-y", "space", "round"]),
+    selBox("background-attachment", "attachment", ["", "scroll", "fixed", "local"]),
+    selBox("background-clip", "clip", ["", "border-box", "padding-box", "content-box", "text"]),
+    selBox("background-origin", "origin", ["", "border-box", "padding-box", "content-box"]),
+    selBox("background-blend-mode", "blend", ["", "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"])
+  ];
+}
+function flexAdvancedRows() {
+  return [
+    selBox("flex-wrap", "flex-wrap", ["", "nowrap", "wrap", "wrap-reverse"]),
+    txt("order", "order", "0"),
+    txt("flex-grow", "flex-grow", "0"),
+    txt("flex-shrink", "flex-shrink", "1"),
+    txt("flex-basis", "flex-basis", "auto")
+  ];
+}
+function gridAdvancedRows() {
+  return [
+    selBox("grid-auto-flow", "auto flow", ["", "row", "column", "dense", "row dense", "column dense"]),
+    txt("grid-auto-rows", "auto rows", "auto"),
+    txt("grid-auto-columns", "auto cols", "auto"),
+    selBox("justify-items", "justify-items", ["", "start", "center", "end", "stretch"]),
+    selBox("justify-self", "justify-self", ["", "auto", "start", "center", "end", "stretch"])
+  ];
+}
+function textAdvancedRows() {
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Use Advanced CSS for any property not listed here.";
-  rows.push(hint);
-  return acc("More styles", rows);
+  hint.textContent = "text-overflow: ellipsis needs overflow: hidden (or clip) and white-space: nowrap.";
+  return [
+    selBox("text-overflow", "text-overflow", ["", "clip", "ellipsis"]),
+    selBox("overflow-wrap", "overflow-wrap", ["", "normal", "break-word", "anywhere"]),
+    selBox("word-break", "word-break", ["", "normal", "break-all", "keep-all", "break-word"]),
+    selBox("writing-mode", "writing-mode", ["", "horizontal-tb", "vertical-rl", "vertical-lr"]),
+    selBox("direction", "direction", ["", "ltr", "rtl"]),
+    hint
+  ];
+}
+function sizeAdvancedRows() {
+  return [
+    selBox("overflow", "overflow", ["", "visible", "hidden", "clip", "scroll", "auto"]),
+    selBox("box-sizing", "box-sizing", ["", "content-box", "border-box"]),
+    txt("aspect-ratio", "aspect-ratio", "16 / 9"),
+    txt("min-width", "min-width", "auto"),
+    txt("min-height", "min-height", "auto"),
+    selBox("object-fit", "object-fit", ["", "fill", "contain", "cover", "none", "scale-down"])
+  ];
+}
+function transformAdvancedRows() {
+  return [
+    txt("transform", "transform", "translate(...) rotate(...)"),
+    txt("transform-origin", "origin", "center center"),
+    txt("clip-path", "clip-path", "circle(50%) or polygon(...)"),
+    selBox("isolation", "isolation", ["", "auto", "isolate"])
+  ];
+}
+function outlineAdvancedRows() {
+  return [
+    selBox("outline-style", "outline", ["", "none", "solid", "dashed", "dotted", "double"]),
+    txt("outline-width", "outline width", "2px"),
+    color("outline-color", "outline color"),
+    txt("outline-offset", "outline offset", "2px")
+  ];
+}
+function interactionControls() {
+  return acc("Interaction", [
+    selBox("cursor", "cursor", ["", "auto", "default", "pointer", "text", "move", "grab", "grabbing", "not-allowed", "wait", "help", "crosshair", "zoom-in", "zoom-out", "none"]),
+    selBox("pointer-events", "pointer-events", ["", "auto", "none"]),
+    selBox("user-select", "user-select", ["", "auto", "none", "text", "all", "contain"]),
+    selBox("visibility", "visibility", ["", "visible", "hidden", "collapse"]),
+    selBox("float", "float", ["", "none", "left", "right"]),
+    selBox("clear", "clear", ["", "none", "left", "right", "both"]),
+    selBox("scroll-behavior", "scroll behavior", ["", "auto", "smooth"])
+  ]);
 }
 
 var CSS_PROPERTY_NAMES = ("align-content align-items align-self all animation animation-delay animation-direction animation-duration animation-fill-mode animation-iteration-count animation-name animation-play-state animation-timing-function appearance aspect-ratio backdrop-filter backface-visibility background background-attachment background-blend-mode background-clip background-color background-image background-origin background-position background-repeat background-size border border-bottom border-bottom-color border-bottom-left-radius border-bottom-right-radius border-bottom-style border-bottom-width border-collapse border-color border-image border-left border-left-color border-left-style border-left-width border-radius border-right border-right-color border-right-style border-right-width border-spacing border-style border-top border-top-color border-top-left-radius border-top-right-radius border-top-style border-top-width border-width bottom box-shadow box-sizing break-after break-before break-inside caption-side caret-color clear clip clip-path color column-count column-gap column-rule column-span column-width columns contain content content-visibility counter-increment counter-reset cursor direction display empty-cells filter flex flex-basis flex-direction flex-flow flex-grow flex-shrink flex-wrap float font font-family font-feature-settings font-kerning font-size font-stretch font-style font-variant font-weight gap grid grid-area grid-auto-columns grid-auto-flow grid-auto-rows grid-column grid-column-end grid-column-start grid-gap grid-row grid-row-end grid-row-start grid-template grid-template-areas grid-template-columns grid-template-rows height hyphens image-rendering inline-size inset isolation justify-content justify-items justify-self left letter-spacing line-break line-height list-style list-style-image list-style-position list-style-type margin margin-block margin-bottom margin-inline margin-left margin-right margin-top mask mask-image max-height max-width min-height min-width mix-blend-mode object-fit object-position opacity order orphans outline outline-color outline-offset outline-style outline-width overflow overflow-wrap overflow-x overflow-y overscroll-behavior padding padding-block padding-bottom padding-inline padding-left padding-right padding-top page-break-after page-break-before page-break-inside perspective perspective-origin place-content place-items place-self pointer-events position quotes resize right rotate row-gap scale scroll-behavior scroll-margin scroll-padding scroll-snap-align scroll-snap-type shape-outside table-layout text-align text-decoration text-decoration-color text-decoration-line text-decoration-style text-decoration-thickness text-indent text-overflow text-shadow text-transform text-underline-offset top touch-action transform transform-origin transform-style transition transition-delay transition-duration transition-property transition-timing-function translate unicode-bidi user-select vertical-align visibility white-space widows width will-change word-break word-spacing word-wrap writing-mode z-index zoom").split(" ");
 
-function advancedCssSection(nodes) {
-  if (!selBody && (!nodes || nodes.length !== 1)) return null;
+function advancedCssRows() {
+  var rows = [];
   var rule = currentRule();
   var decls = rule && rule.decls ? rule.decls.slice() : [];
-  var a = document.createElement("div"); a.className = "acc";
-  var h = document.createElement("div"); h.className = "acchead";
-  h.innerHTML = '<span>Advanced CSS</span><span>\u25BE</span>';
-  h.onclick = function(){ a.classList.toggle("open"); };
-  a.appendChild(h);
-  var body = document.createElement("div"); body.className = "accbody";
-  var cls = selClass();
-  var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = selBody ? "Body rule declarations" : (cls ? "Class rule: ." + cls : "No class rule yet; adding a property creates one.");
-  body.appendChild(hint);
-
   var list = document.createElement("div"); list.className = "adv-list";
   var byProp = Object.create(null), order = [];
   for (var i = 0; i < decls.length; i++) {
@@ -12656,16 +12762,16 @@ function advancedCssSection(nodes) {
     row.appendChild(pin); row.appendChild(vin); row.appendChild(del);
     list.appendChild(row);
   });
-  body.appendChild(list);
+  rows.push(list);
 
   var add = document.createElement("div"); add.className = "adv-add";
   var pin = document.createElement("input"); pin.className = "adv-prop"; pin.placeholder = "property"; pin.setAttribute("list", "css-prop-list");
   var vin = document.createElement("input"); vin.className = "adv-val"; vin.placeholder = "value"; vin.spellcheck = false;
   var addBtn = document.createElement("button"); addBtn.type = "button"; addBtn.className = "btn"; addBtn.style.cssText = "font-size:10px;padding:3px 6px"; addBtn.textContent = "Add";
-  add.appendChild(pin); add.appendChild(vin); add.appendChild(addBtn); body.appendChild(add);
+  add.appendChild(pin); add.appendChild(vin); add.appendChild(addBtn); rows.push(add);
   var dl = document.createElement("datalist"); dl.id = "css-prop-list";
   CSS_PROPERTY_NAMES.forEach(function(n){ var o = document.createElement("option"); o.value = n; dl.appendChild(o); });
-  body.appendChild(dl);
+  rows.push(dl);
   function addDecl() {
     var typed = pin.value.trim();
     var prop = typed.indexOf("--") === 0 ? typed : typed.toLowerCase();
@@ -12679,9 +12785,8 @@ function advancedCssSection(nodes) {
   vin.onkeydown = function(ev){ if (ev.key === "Enter") { ev.preventDefault(); addDecl(); } };
   var ex = document.createElement("div"); ex.className = "hint";
   ex.textContent = "Examples: overflow: hidden, aspect-ratio: 16 / 9, transform: rotate(2deg), --accent: #4c5cf7.";
-  body.appendChild(ex);
-  a.appendChild(body);
-  return a;
+  rows.push(ex);
+  return rows;
 }
 
 // ---- problems / tokens / history -----------------------------------------

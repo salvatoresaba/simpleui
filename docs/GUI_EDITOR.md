@@ -627,26 +627,36 @@ and inset). The raw CSS field is the escape hatch for multiple shadow layers or
 advanced filter functions; a preset or a numeric control replaces a multi-layer
 shadow with a single layer.
 
-### More styles
+### Advanced style overlays
 
-The **More styles** section adds common properties that do not belong to the
-main sections, grouped by task:
+Less common properties are grouped behind buttons in the section they belong
+to. Each button opens a draggable overlay; the overlay stays open while values
+change and stays in sync with the CSS editor.
 
-- overflow, box-sizing, aspect-ratio, min-width/min-height and object-fit;
-- flex-wrap, order, flex-grow/shrink/basis;
-- grid auto flow/rows/columns and justify-items/self;
-- background image, size, position, repeat, attachment, clip, origin and blend;
-- transform, transform-origin, clip-path and outline;
-- text-overflow, overflow-wrap, word-break, writing-mode and direction;
-- cursor, pointer-events, user-select, visibility, float, clear and
-  scroll-behavior.
+- **Background** → **Advanced background...**: image, size, position, repeat,
+  attachment, clip, origin and blend.
+- **Layout** → **Advanced flex...**: flex-wrap, order and grow/shrink/basis.
+- **Grid** → **Advanced grid...**: auto flow/rows/columns and justify-items/self.
+- **Typography** → **Advanced text...**: text-overflow, overflow-wrap,
+  word-break, writing-mode and direction.
+- **Size** → **Overflow and sizing...**: overflow, box-sizing, aspect-ratio,
+  min-width/min-height and object-fit.
+- **Effects** → **Transform and clip path...**: transform, transform-origin,
+  clip-path and isolation.
+- **Border** → **Outline...**: outline style, width, colour and offset.
+- **Interaction**: cursor, pointer-events, user-select, visibility, float,
+  clear and scroll-behavior.
+
+The overlay closes with its **×** button or **Escape**; selecting another
+element closes it as well.
 
 ### Advanced CSS
 
-The **Advanced CSS** section lists the declarations of the selected class rule.
-Every row has a read-only property, an editable value and a delete button. The
-add row accepts any valid CSS property, including custom properties
-(`--accent: #4c5cf7`), with a suggestion list and validation. Examples:
+Open **Appearance → CSS declarations → Edit...**. The overlay lists the
+declarations of the selected class rule. Every row has a read-only property, an
+editable value and a delete button. The add row accepts any valid CSS property,
+including custom properties (`--accent: #4c5cf7`), with a suggestion list and
+validation. Examples:
 
 ```css
 overflow: hidden;
@@ -655,8 +665,10 @@ transform: rotate(2deg);
 --accent: #4c5cf7;
 ```
 
-The section edits the class rule, not inline effective values; use **style expr**
-for reactive inline declarations. Because an arbitrary value may contain
+This is a second view of the same CSS model used by the CSS editor: edits update
+`root.css`, the generated source and the CSS editor immediately. The overlay
+edits the class rule, not inline effective values; use **style expr** for
+reactive inline declarations. Because an arbitrary value may contain
 `url(...)`, images and fonts can load external resources. Vendor-prefixed
 properties are allowed; editing a property that has a known compatibility entry
 updates its prefixed variants too.

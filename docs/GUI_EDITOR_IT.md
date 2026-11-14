@@ -650,27 +650,36 @@ inset). Il campo CSS raw è la via per ombre a più livelli o filtri avanzati; u
 preset o un controllo numerico sostituisce un'ombra multi-livello con un solo
 livello.
 
-### More styles
+### Overlay per stili avanzati
 
-La sezione **More styles** aggiunge proprietà comuni che non appartengono alle
-sezioni principali, raggruppate per attività:
+Le proprietà meno comuni sono raggruppate dietro pulsanti nella sezione a cui
+appartengono. Ogni pulsante apre un overlay trascinabile; l'overlay resta aperto
+mentre si modificano i valori e resta sincronizzato con l'editor CSS.
 
-- overflow, box-sizing, aspect-ratio, min-width/min-height e object-fit;
-- flex-wrap, order, flex-grow/shrink/basis;
-- grid auto flow/rows/columns e justify-items/self;
-- background image, size, position, repeat, attachment, clip, origin e blend;
-- transform, transform-origin, clip-path e outline;
-- text-overflow, overflow-wrap, word-break, writing-mode e direction;
-- cursor, pointer-events, user-select, visibility, float, clear e
-  scroll-behavior.
+- **Background** → **Advanced background...**: image, size, position, repeat,
+  attachment, clip, origin e blend.
+- **Layout** → **Advanced flex...**: flex-wrap, order e grow/shrink/basis.
+- **Grid** → **Advanced grid...**: auto flow/rows/columns e justify-items/self.
+- **Typography** → **Advanced text...**: text-overflow, overflow-wrap,
+  word-break, writing-mode e direction.
+- **Size** → **Overflow and sizing...**: overflow, box-sizing, aspect-ratio,
+  min-width/min-height e object-fit.
+- **Effects** → **Transform and clip path...**: transform, transform-origin,
+  clip-path e isolation.
+- **Border** → **Outline...**: outline style, width, colore e offset.
+- **Interaction**: cursor, pointer-events, user-select, visibility, float,
+  clear e scroll-behavior.
+
+L'overlay si chiude con **×** o **Escape**; selezionando un altro elemento si
+chiude automaticamente.
 
 ### Advanced CSS
 
-La sezione **Advanced CSS** elenca le dichiarazioni della regola di classe
-selezionata. Ogni riga ha proprietà in sola lettura, valore modificabile e
-pulsante di eliminazione. La riga di aggiunta accetta qualsiasi proprietà CSS
-valida, comprese le custom properties (`--accent: #4c5cf7`), con suggerimenti e
-validazione. Esempi:
+Apri **Appearance → CSS declarations → Edit...**. L'overlay elenca le
+dichiarazioni della regola di classe selezionata. Ogni riga ha proprietà in sola
+lettura, valore modificabile e pulsante di eliminazione. La riga di aggiunta
+accetta qualsiasi proprietà CSS valida, comprese le custom properties
+(`--accent: #4c5cf7`), con suggerimenti e validazione. Esempi:
 
 ```css
 overflow: hidden;
@@ -679,11 +688,13 @@ transform: rotate(2deg);
 --accent: #4c5cf7;
 ```
 
-La sezione modifica la regola di classe, non i valori inline effettivi; per
-dichiarazioni inline reattive usa **style expr**. Poiché un valore arbitrario
-può contenere `url(...)`, immagini e font possono caricare risorse esterne. Le
-proprietà con prefisso vendor sono ammesse; modificando una proprietà con una
-entry di compatibilità nota vengono aggiornate anche le varianti prefissate.
+È una seconda vista dello stesso modello CSS usato dall'editor CSS: le modifiche
+aggiornano subito `root.css`, il sorgente generato e l'editor CSS. L'overlay
+modifica la regola di classe, non i valori inline effettivi; per dichiarazioni
+inline reattive usa **style expr**. Poiché un valore arbitrario può contenere
+`url(...)`, immagini e font possono caricare risorse esterne. Le proprietà con
+prefisso vendor sono ammesse; modificando una proprietà con una entry di
+compatibilità nota vengono aggiornate anche le varianti prefissate.
 
 ## Drag and drop del designer
 
