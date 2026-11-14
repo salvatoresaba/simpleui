@@ -996,6 +996,17 @@ only the graph; parameters open in draggable overlay panels:
   `sui:motionstart`, `sui:motionend` and `sui:motioncancel`. Another graph can
   listen to these with a **custom** trigger; choose the source element and use its
   `motionKey` for a stable reference.
+- The trigger overlay arranges the timing and spring fields in a compact
+  two-column grid. Duration, delay and timer are spin boxes in milliseconds;
+  playback rate shows `×`; spring stiffness/damping/mass show `N/m`, `N·s/m` and
+  `kg`. **OK** closes the overlay after the live edits are committed.
+- The event source picker labels each element with its name, its `motionKey` or
+  `data-sui-id`, and its tree path. A **Source code** line repeats the exact
+  identifier to paste into the source. Set a layout key on the source for a
+  stable readable code; text-only nodes are omitted from the picker.
+- **Preview** plays the selected link with its delay, spring, iterations,
+  direction and playback rate. **Stop preview** cancels a running preview; an
+  infinite preview is also stopped when another state, link or panel is opened.
 - Infinite loops run until another event cancels them and never fire `after`
   links. The next transition starts from the current computed values.
 - Double-click a state to open its overlay: name, CSS and the list of active

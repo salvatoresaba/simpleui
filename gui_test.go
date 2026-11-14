@@ -807,3 +807,17 @@ func TestGuiPreviewHasNoRuler(t *testing.T) {
 		t.Error("preview picker must keep the guide grid")
 	}
 }
+
+func TestGuiPreviewMotionFeatures(t *testing.T) {
+	for _, want := range []string{
+		"sui-graph-preview-stop", "gPreviewDecls", "gPreviewApply",
+		"iterations", "playbackRate", "prefers-reduced-motion",
+	} {
+		if !strings.Contains(guiPreviewPicker, want) {
+			t.Errorf("preview picker missing motion preview feature %q", want)
+		}
+	}
+	if strings.Contains(guiPreviewPicker, "gel.style.transition = 'all '") {
+		t.Error("graph preview must use Web Animations, not a CSS transition")
+	}
+}

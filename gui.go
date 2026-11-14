@@ -1126,8 +1126,57 @@ const guiPreviewPicker = `<script>
     if (typeof saved === 'string') el.className = saved;
     return out;
   }
+  function gPreviewTime(v, fallback) {
+    if (v == null || v === '') return fallback;
+    if (typeof v === 'number' && isFinite(v)) return v;
+    var s = String(v).trim();
+    if (/^[0-9]+$/.test(s)) return parseInt(s, 10);
+    var m = /^([0-9]*\.?[0-9]+)(ms|s)$/.exec(s);
+    if (!m) return fallback;
+    return m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
+  }
+  function gPreviewCancel(el) {
+    if (!el) return;
+    el.__suiPreviewToken = (el.__suiPreviewToken || 0) + 1;
+    if (el.__suiPreviewTimer) { clearTimeout(el.__suiPreviewTimer); el.__suiPreviewTimer = 0; }
+    if (el.__suiPreviewAnim) { try { el.__suiPreviewAnim.cancel(); } catch (e) {} el.__suiPreviewAnim = null; }
+    var props = el.__suiPreviewProps || [];
+    for (var i = 0; i < props.length; i++) el.style.removeProperty(props[i]);
+    el.__suiPreviewProps = [];
+  }
+  function gPreviewStopGraph(el) {
+    if (!el) return;
+    if (el.__suiGraphAnim) { try { el.__suiGraphAnim.cancel(); } catch (e) {} el.__suiGraphAnim = null; }
+    if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
+    if (el.__suiGraphAfterTimer) { clearTimeout(el.__suiGraphAfterTimer); el.__suiGraphAfterTimer = 0; }
+    el.__suiGraphFinishFn = null;
+    el.__suiGraphInfinite = false;
+    el.__suiGraphPaused = false;
+  }
+  function gPreviewDecls(css) {
+    var out = [], parts = String(css || '').split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var s = parts[i].trim();
+      if (!s) continue;
+      var at = s.indexOf(':');
+      if (at <= 0) continue;
+      var name = s.slice(0, at).trim(), value = s.slice(at + 1).trim();
+      if (name && value) out.push({ name: name, value: value });
+    }
+    return out;
+  }
+  function gPreviewApply(el, decls) {
+    var names = [];
+    for (var i = 0; i < decls.length; i++) {
+      el.style.setProperty(decls[i].name, decls[i].value);
+      names.push(decls[i].name);
+    }
+    el.__suiPreviewProps = names;
+  }
   function clearGraphScope() {
     if (scopeRoot) {
+      gPreviewCancel(scopeRoot);
+      gPreviewStopGraph(scopeRoot);
       scopeRoot.classList.remove("sui-mg-focus");
       var fp = scopeRoot.__suiGraphFocusProps || [];
       for (var fi = 0; fi < fp.length; fi++) scopeRoot.style.removeProperty(fp[fi]);
@@ -1156,6 +1205,8 @@ const guiPreviewPicker = `<script>
     // Editing a state should start from the element's normal appearance, not
     // from the graph's current inline state. The graph is re-initialized when
     // the scope closes.
+    gPreviewCancel(el);
+    gPreviewStopGraph(el);
     el.__suiGraphEditLocked = true;
     var props = el.__suiGraphProps || [];
     for (var i = 0; i < props.length; i++) el.style.removeProperty(props[i]);
@@ -1163,30 +1214,84 @@ const guiPreviewPicker = `<script>
   }
   window.addEventListener('message', function (e) {
     if (e.data && e.data.ty === 'sui-scope') { applyGraphScope(Number(e.data.id)); return; }
+    if (e.data && e.data.ty === 'sui-graph-preview-stop') {
+      var sid = Number(e.data.id);
+      if (sid < 0) {
+        document.querySelectorAll('[data-sui-id]').forEach(function (x) { gPreviewCancel(x); });
+      } else {
+        var sel = sid >= 0 ? document.querySelector('[data-sui-id="' + sid + '"]') : null;
+        if (sel) gPreviewCancel(sel);
+      }
+      return;
+    }
     if (e.data && e.data.ty === 'sui-graph-preview') {
       var gid = Number(e.data.id);
       var gel = gid >= 0 ? document.querySelector('[data-sui-id="' + gid + '"]') : null;
-      if (gel) {
-        var gprops = gel.__suiPreviewProps || [];
-        for (var gp = 0; gp < gprops.length; gp++) gel.style.removeProperty(gprops[gp]);
-        var gcss = String(e.data.css || '');
-        var glist = gcss.split(';'), gnames = [];
-        var gdur = String(e.data.duration || '320ms');
-        var gease = String(e.data.easing || 'ease-out');
-        if (gcss.trim()) gel.style.transition = 'all ' + gdur + ' ' + gease;
-        for (var gi = 0; gi < glist.length; gi++) {
-          var gd = glist[gi].trim();
-          if (!gd) continue;
-          var gc = gd.indexOf(':');
-          if (gc <= 0) continue;
-          var gn = gd.slice(0, gc).trim(), gv = gd.slice(gc + 1).trim();
-          if (!gn || !gv) continue;
-          gel.style.setProperty(gn, gv);
-          gnames.push(gn);
-        }
-        gel.__suiPreviewProps = gnames;
-        setTimeout(function(){ gel.style.transition = ''; }, 700);
+      if (!gel) return;
+      gPreviewCancel(gel);
+      gPreviewStopGraph(gel);
+      gel.__suiGraphEditLocked = true;
+      var gdecls = gPreviewDecls(e.data.css);
+      if (!gdecls.length) return;
+      var gdur = Math.max(0, gPreviewTime(e.data.duration, 240));
+      var gdelay = Math.max(0, gPreviewTime(e.data.delay, 0));
+      var gease = String(e.data.easing || 'ease-out');
+      var giter = String(e.data.iterations == null ? 1 : e.data.iterations).toLowerCase() === 'infinite'
+        ? Infinity : Math.max(1, Math.floor(Number(e.data.iterations) || 1));
+      var gdir = String(e.data.direction || 'normal').toLowerCase();
+      if (gdir !== 'reverse' && gdir !== 'alternate' && gdir !== 'alternate-reverse') gdir = 'normal';
+      var grate = Number(e.data.playbackRate);
+      if (!isFinite(grate) || grate <= 0) grate = 1;
+      grate = Math.min(10, Math.max(0.1, grate));
+      var gred = false;
+      try { gred = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (gredErr) {}
+      if (gred) { gdur = 0; gdelay = 0; giter = 1; }
+      var gstarts = {}, gwas = {}, gprio = {};
+      for (var gi = 0; gi < gdecls.length; gi++) {
+        var gn = gdecls[gi].name;
+        gwas[gn] = gel.style.getPropertyValue(gn);
+        gprio[gn] = gel.style.getPropertyPriority(gn);
+        gstarts[gn] = getComputedStyle(gel).getPropertyValue(gn);
       }
+      for (var gj = 0; gj < gdecls.length; gj++) gel.style.setProperty(gdecls[gj].name, gdecls[gj].value);
+      var gends = {};
+      for (var gk = 0; gk < gdecls.length; gk++) gends[gdecls[gk].name] = getComputedStyle(gel).getPropertyValue(gdecls[gk].name);
+      for (var gl = 0; gl < gdecls.length; gl++) {
+        var gp = gdecls[gl].name;
+        if (gwas[gp]) gel.style.setProperty(gp, gwas[gp], gprio[gp]);
+        else gel.style.removeProperty(gp);
+      }
+      if (gdur <= 0 || typeof gel.animate !== 'function') {
+        gPreviewApply(gel, gdecls);
+        return;
+      }
+      var gfrom = {}, gto = {};
+      for (var gm = 0; gm < gdecls.length; gm++) {
+        var gkey = gdecls[gm].name.indexOf('--') === 0
+          ? gdecls[gm].name
+          : gdecls[gm].name.replace(/-([a-z])/g, function (_, ch) { return ch.toUpperCase(); });
+        gfrom[gkey] = gstarts[gdecls[gm].name];
+        gto[gkey] = gends[gdecls[gm].name];
+      }
+      var gani = null;
+      try {
+        gani = gel.animate([gfrom, gto], { duration: gdur, delay: gdelay, easing: gease, fill: 'both', iterations: giter, direction: gdir });
+      } catch (ganiErr) { gani = null; }
+      if (!gani) { gPreviewApply(gel, gdecls); return; }
+      try { gani.playbackRate = grate; } catch (grateErr) {}
+      gel.__suiPreviewAnim = gani;
+      var gtoken = gel.__suiPreviewToken;
+      var gfinish = function () {
+        if (gtoken !== gel.__suiPreviewToken) return;
+        if (gel.__suiPreviewTimer) { clearTimeout(gel.__suiPreviewTimer); gel.__suiPreviewTimer = 0; }
+        if (gel.__suiPreviewAnim === gani) gel.__suiPreviewAnim = null;
+        gPreviewApply(gel, gdecls);
+        try { gani.cancel(); } catch (gcancelErr) {}
+      };
+      if (giter === Infinity) { gani.onfinish = null; return; }
+      var gtotal = (gdelay + gdur * giter) / grate;
+      gel.__suiPreviewTimer = setTimeout(gfinish, gtotal + 80);
+      gani.onfinish = function () { gfinish(); };
       return;
     }
     if (e.data && e.data.ty === 'sui-graph-focus') {

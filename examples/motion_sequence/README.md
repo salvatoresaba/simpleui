@@ -170,13 +170,21 @@ as `element.__suiMotion`.
 2. Select a card, open **Motion > Open animation panel**, then double-click the
    state or arrow you want to edit.
 3. Double-click an arrow to edit its trigger, duration, easing, delay,
-   iterations, direction, playback rate, spring values and emitted event.
+   iterations, direction, playback rate, spring values and emitted event. The
+   timing and spring fields use a compact two-column grid; numeric fields are
+   spin boxes with explicit units (`ms`, `×`, `N/m`, `N·s/m`, `kg`). **OK** closes
+   the overlay after the live edits.
 4. Use **+** on a state to create a link, **Create state** for an unlinked state,
    and **Duplicate state** to copy CSS and parameters. The normal element
    **Duplicate** copies the whole graph.
-5. For a cross-element trigger, choose **event source** and pick a card by its
-   `motionKey`; the source list prefers the stable key when present.
-6. Use **Preview** to play a state or link. The panel supports pan, zoom and Fit.
+5. For a cross-element trigger, choose **event source**. Each option shows the
+   element name, its `motionKey` or `data-sui-id`, and its tree path; a **Source
+   code** line repeats the exact identifier. Prefer a `motionKey` for a stable
+   readable name.
+6. Use **Preview** to play a state or link with its delay, spring, loop direction
+   and playback rate. **Stop preview** cancels a running preview; infinite
+   previews also stop when another state, link or panel is opened. The panel
+   supports pan, zoom and Fit.
 
 ## Build and run
 

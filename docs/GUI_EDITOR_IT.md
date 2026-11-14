@@ -1039,6 +1039,17 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   `sui:motionstate`, `sui:motionstart`, `sui:motionend` e `sui:motioncancel`. Un
   altro grafo può ascoltarli con un trigger **custom**; scegli l'elemento
   sorgente e usa il suo `motionKey` per un riferimento stabile.
+- L'overlay del trigger dispone i campi di timing e spring in una griglia compatta
+  a due colonne. Duration, delay e timer sono spin box in millisecondi; playback
+  rate mostra `×`; stiffness/damping/mass dello spring mostrano `N/m`, `N·s/m` e
+  `kg`. **OK** chiude l'overlay dopo aver applicato le modifiche live.
+- Il picker della sorgente etichetta ogni elemento con nome, `motionKey` o
+  `data-sui-id` e percorso nell'albero. Una riga **Source code** ripete
+  l'identificatore esatto da usare nel sorgente. Imposta una layout key sulla
+  sorgente per un codice stabile e leggibile; i nodi di solo testo sono esclusi.
+- **Preview** riproduce il link selezionato con delay, spring, iterations,
+  direction e playback rate. **Stop preview** annulla la preview in corso; una
+  preview infinita viene fermata anche aprendo un altro stato, link o pannello.
 - I loop infiniti continuano finché un altro evento non li annulla e non
   attivano mai link `after`. La transizione successiva parte dai valori correnti.
 - Doppio clic su uno stato: overlay con nome, CSS e lista dei trigger attivi con
