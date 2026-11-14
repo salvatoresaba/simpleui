@@ -987,7 +987,10 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   e scura.
 - Click e gli altri eventi DOM si possono usare una sola volta per stato
   sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
-  eventi già usati e la validazione rifiuta i duplicati.
+  eventi già usati e la validazione rifiuta i duplicati. Per un hover reversibile
+  usa `pointerenter` + `pointerleave` (oppure `mouseenter` + `mouseleave`);
+  `mouseover`/`mouseout` fanno bubbling, quindi scattano anche attraversando gli
+  elementi figli e possono ripetersi più volte.
 - Un trigger **variabile** elenca gli stati SUI disponibili e chiede il valore
   che lo attiva (`true`/`false`, testo o numero). Un trigger **timer** chiede
   una durata e avvia la transizione automaticamente dopo quel tempo nello stato

@@ -94,10 +94,13 @@ and the FLIP engine described in `examples/motion_pages`.
    earlier one with a small background gap. When a small automatic state move can
    restore a clean route, the editor moves that state and re-routes every link;
    placed positions are pinned so the layout stays stable. Blocks and links use
-   theme-aware colors for light and dark editor themes. Click, mouse over and
-   other DOM events can be used once per source state; variable and timer triggers
-   can be repeated. A variable trigger lists the available SUI states and asks for
-   the activating value; a timer trigger starts after the chosen duration.
+   theme-aware colors for light and dark editor themes. Click, mouse enter/leave,
+   mouse over/out and other DOM events can be used once per source state; variable
+   and timer triggers can be repeated. For a reversible hover prefer
+   `pointerenter` + `pointerleave` or `mouseenter` + `mouseleave`; `mouseover` and
+   `mouseout` bubble and can fire while crossing child elements. A variable
+   trigger lists the available SUI states and asks for the activating value; a
+   timer trigger starts after the chosen duration.
 7. Double-click a state to edit its overlay (name, CSS and the list of active
    triggers with destinations). If it has an untriggered outgoing link, the
    trigger chooser opens directly: **Cancel** returns to the overlay, **Confirm**

@@ -397,8 +397,9 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 ```
 
 - `states[].css` è la fotografia dello stile per quello stato.
-- `links[].event` può essere `click`, `dblclick`, `mouseover`, `pointerenter`,
-  `pointerleave`, `focus`, `blur`, `change`, `state` o `after`.
+- `links[].event` può essere `click`, `dblclick`, `mouseover`, `mouseout`,
+  `mouseenter`, `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`,
+  `change`, `state` o `after`.
 - I link `state` valutano lo stato booleano indicato in `when` (il prefisso `!`
   lo nega) e scattano sulla transizione da falso a vero.
 - I link `after` continuano una catena quando l'animazione precedente termina.

@@ -422,8 +422,9 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 ```
 
 - `states[].css` is the style snapshot for that state.
-- `links[].event` is `click`, `dblclick`, `mouseover`, `pointerenter`,
-  `pointerleave`, `focus`, `blur`, `change`, `state` or `after`.
+- `links[].event` is `click`, `dblclick`, `mouseover`, `mouseout`, `mouseenter`,
+  `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`, `change`,
+  `state` or `after`.
 - `state` links evaluate the boolean state named by `when` (prefix `!` negates
   it) and fire on a false-to-true change.
 - `after` links continue a chain when the previous animation completes.

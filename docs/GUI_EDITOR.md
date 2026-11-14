@@ -948,7 +948,10 @@ only the graph; parameters open in draggable overlay panels:
   colors and stay readable in light and dark themes.
 - Click and the other DOM events can be used once per source state; variable
   and timer triggers can be repeated. The chooser disables already-used single
-  events and validation rejects duplicates.
+  events and validation rejects duplicates. For a reversible hover use
+  `pointerenter` + `pointerleave` (or `mouseenter` + `mouseleave`);
+  `mouseover`/`mouseout` bubble, so they also fire when the pointer crosses child
+  elements and can repeat more than once.
 - A **variable** trigger lists the available SUI states and asks for the value
   that activates it (`true`/`false`, text or number). A **timer** trigger asks
   for a duration and starts the transition automatically after that time in the

@@ -6582,11 +6582,12 @@ function mgValidateState(st) {
   }
   return errors;
 }
-var MG_SINGLE_EVENTS = { click: 1, dblclick: 1, mouseover: 1, pointerenter: 1, pointerleave: 1, focus: 1, blur: 1, change: 1, after: 1 };
+var MG_SINGLE_EVENTS = { click: 1, dblclick: 1, mouseover: 1, mouseout: 1, mouseenter: 1, mouseleave: 1, pointerenter: 1, pointerleave: 1, focus: 1, blur: 1, change: 1, after: 1 };
 var MG_TRIGGER_OPTIONS = [
   ["", "(choose trigger)"],
   ["click", "click"], ["dblclick", "double click"],
-  ["mouseover", "mouse over"],
+  ["mouseover", "mouse over"], ["mouseout", "mouse out"],
+  ["mouseenter", "mouse enter"], ["mouseleave", "mouse leave"],
   ["pointerenter", "pointer enter"], ["pointerleave", "pointer leave"],
   ["focus", "focus"], ["blur", "blur"], ["change", "change"],
   ["state", "variable value"], ["timer", "timer"], ["after", "after transition"]
@@ -7714,7 +7715,7 @@ function mgRenderParam() {
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
     side.appendChild(h);
-    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["timer","timer"],["after","after transition"]]);
+    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["timer","timer"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); l.event = ev.value; mgCommit(); mgRender(); };
     if (l.event === "state") {
       label("variable"); var vars = (root.states || []).map(function(st){ return [st.name, st.name]; });
@@ -7761,7 +7762,7 @@ function mgRenderParam() {
     var title = document.createElement("div"); title.className = "hint"; title.style.marginTop = "10px";
     title.textContent = (incoming ? "Incoming from " : "Trigger " + num + " → ") + (other ? other.name : (incoming ? link.from : link.to));
     side.appendChild(title);
-    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["after","after transition"]]);
+    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
     if (link.event === "state") {
       label("variable (true/false)"); var wh = input(link.when, "e.g. open or !open");
