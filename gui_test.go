@@ -819,6 +819,17 @@ func TestGuiInspectorEffectControls(t *testing.T) {
 	}
 }
 
+func TestGuiReorderableInspectorSections(t *testing.T) {
+	for _, want := range []string{
+		"setupInspectorSectionOrder", "INSPECTOR_ORDER_KEY", "ins-grip",
+		"ins-drop-before", "ins-drop-after", "Drag to reorder section",
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("inspector section reordering is missing %q", want)
+		}
+	}
+}
+
 func TestGuiAdvancedCssControls(t *testing.T) {
 	for _, want := range []string{
 		"CSS declarations", "CSS_PROPERTY_NAMES", "advancedCssRows", "openInspectorOverlay",

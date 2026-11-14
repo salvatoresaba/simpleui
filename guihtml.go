@@ -412,6 +412,17 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   margin-left:2px;
 }
 .node.sel .node-code { color:var(--fg); }
+/* Reorderable inspector sections */
+.ins-grip { flex:none; order:-1; cursor:grab; color:var(--dim); font-size:13px; line-height:1; padding:0 2px; user-select:none; opacity:.55; background:transparent; border:0; font-family:inherit; }
+.ins-grip:hover { opacity:1; color:var(--fg); }
+.ins-grip:active { cursor:grabbing; }
+.ins-sec-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.acc.ins-dragging, .ins-sec.ins-dragging { opacity:.5; }
+.acc.ins-drop-before, .ins-sec.ins-drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+.acc.ins-drop-after, .ins-sec.ins-drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+.acc > .acchead, #inspector .ins-sec-h { justify-content:flex-start; gap:6px; }
+.acc > .acchead > :last-child { margin-left:auto; }
+#inspector .ins-sec-h::after { margin-left:auto; }
 .node.sel .node-type { color:var(--fg); border-color:var(--accent); }
 .sel-type {
   display:flex; align-items:center; gap:6px;
@@ -5757,6 +5768,7 @@ function renderInspector() {
     if (ct) { ct.focus(); ct.select(); }
   }
   syncInspectorSections();
+  setupInspectorSectionOrder(box);
   requestLiveStyles();
   refreshInspectorOverlay();
 }
@@ -11793,6 +11805,152 @@ function directInspectorChild(el, cls) {
   }
   return null;
 }
+var INSPECTOR_ORDER_KEY = "sui.inspector.order.v1";
+function readInspectorOrder() {
+  try {
+    var order = JSON.parse(localStorage.getItem(INSPECTOR_ORDER_KEY) || "[]");
+    return Array.isArray(order) ? order : [];
+  } catch (e) { return []; }
+}
+function inspectorSectionKey(title) {
+  return String(title || "").trim().toLowerCase().replace(/[^\w -]/g, "").replace(/\s+/g, " ").trim();
+}
+function moveInspectorOrderKey(order, dragKey, targetKey, before) {
+  var out = [];
+  for (var i = 0; i < order.length; i++) if (order[i] !== dragKey) out.push(order[i]);
+  var idx = out.indexOf(targetKey);
+  if (idx < 0) out.push(dragKey);
+  else {
+    if (!before) idx++;
+    out.splice(idx, 0, dragKey);
+  }
+  return out;
+}
+function saveInspectorOrderMove(dragKey, targetKey, before, currentOrder) {
+  if (!dragKey || !targetKey) return;
+  var order = readInspectorOrder();
+  if (!order.length) order = currentOrder.slice();
+  else {
+    for (var i = 0; i < currentOrder.length; i++) {
+      if (order.indexOf(currentOrder[i]) < 0) order.push(currentOrder[i]);
+    }
+  }
+  order = moveInspectorOrderKey(order, dragKey, targetKey, before);
+  try { localStorage.setItem(INSPECTOR_ORDER_KEY, JSON.stringify(order)); } catch (e) {}
+}
+function setupInspectorSectionOrder(box) {
+  if (!box) return;
+  var children = Array.prototype.slice.call(box.children);
+  var sections = children.filter(function(ch){
+    if (!ch.classList || !(ch.classList.contains("acc") || ch.classList.contains("ins-sec"))) return false;
+    var isAcc = ch.classList.contains("acc");
+    return !!directInspectorChild(ch, isAcc ? "acchead" : "ins-sec-h");
+  });
+  if (!sections.length) return;
+  var dragged = null, draggedKey = "";
+  function clearDrop() {
+    sections.forEach(function(s){ s.classList.remove("ins-drop-before", "ins-drop-after"); });
+  }
+  sections.forEach(function(sec, idx) {
+    var isAcc = sec.classList.contains("acc");
+    var head = directInspectorChild(sec, isAcc ? "acchead" : "ins-sec-h");
+    if (!head) return;
+    var title = "";
+    if (isAcc) {
+      var titleEl = head.querySelector("span");
+      if (titleEl) {
+        title = titleEl.textContent.trim();
+        titleEl.classList.add("ins-sec-title");
+      } else {
+        title = head.textContent.trim();
+      }
+    } else {
+      title = head.textContent.trim();
+      var ts = document.createElement("span");
+      ts.className = "ins-sec-title"; ts.textContent = title;
+      while (head.firstChild) head.removeChild(head.firstChild);
+      head.appendChild(ts);
+    }
+    var key = inspectorSectionKey(title);
+    if (!key) key = "section-" + idx;
+    sec.setAttribute("data-ins-key", key);
+    sec.title = title;
+    var grip = document.createElement("button");
+    grip.type = "button";
+    grip.className = "ins-grip"; grip.textContent = "⋮⋮"; grip.title = "Drag to reorder section";
+    grip.draggable = true; grip.setAttribute("aria-label", "Drag to reorder section");
+    grip.onclick = function(ev){ if (ev) ev.stopPropagation(); };
+    grip.onmousedown = function(ev){ if (ev) ev.stopPropagation(); };
+    grip.addEventListener("dragstart", function(ev) {
+      dragged = sec; draggedKey = key;
+      sec.__insDragged = true;
+      sec.classList.add("ins-dragging");
+      try {
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/plain", key);
+      } catch (e) {}
+    });
+    grip.addEventListener("dragend", function() {
+      sec.classList.remove("ins-dragging");
+      clearDrop();
+      dragged = null; draggedKey = "";
+      setTimeout(function(){ sec.__insDragged = false; }, 80);
+    });
+    sec.addEventListener("click", function(ev) {
+      if (sec.__insDragged) { ev.preventDefault(); ev.stopPropagation(); }
+    }, true);
+    if (isAcc && titleEl) head.insertBefore(grip, titleEl.nextSibling);
+    else head.appendChild(grip);
+    sec.addEventListener("dragover", function(ev) {
+      if (!dragged || dragged === sec) return;
+      ev.preventDefault();
+      try { ev.dataTransfer.dropEffect = "move"; } catch (e) {}
+      clearDrop();
+      var rect = sec.getBoundingClientRect();
+      if (ev.clientY < rect.top + rect.height / 2) sec.classList.add("ins-drop-before");
+      else sec.classList.add("ins-drop-after");
+    });
+    sec.addEventListener("dragleave", function(ev) {
+      if (ev.relatedTarget && sec.contains(ev.relatedTarget)) return;
+      sec.classList.remove("ins-drop-before", "ins-drop-after");
+    });
+    sec.addEventListener("drop", function(ev) {
+      if (!dragged || dragged === sec) return;
+      ev.preventDefault();
+      var rect = sec.getBoundingClientRect();
+      var before = ev.clientY < rect.top + rect.height / 2;
+      var targetKey = key;
+      var currentOrder = sections.map(function(s){ return s.getAttribute("data-ins-key"); });
+      if (before) sec.parentNode.insertBefore(dragged, sec);
+      else sec.parentNode.insertBefore(dragged, sec.nextSibling);
+      saveInspectorOrderMove(draggedKey, targetKey, before, currentOrder);
+      sections = Array.prototype.slice.call(box.children).filter(function(s){
+        return s.classList && (s.classList.contains("acc") || s.classList.contains("ins-sec"));
+      });
+      sec.classList.remove("ins-drop-before", "ins-drop-after");
+      dragged.classList.remove("ins-dragging");
+      dragged = null; draggedKey = "";
+    });
+  });
+  var stored = readInspectorOrder();
+  var byKey = {};
+  sections.forEach(function(s){ byKey[s.getAttribute("data-ins-key")] = s; });
+  var desired = [];
+  stored.forEach(function(k){ if (byKey[k]) { desired.push(byKey[k]); delete byKey[k]; } });
+  sections.forEach(function(s){
+    var k = s.getAttribute("data-ins-key");
+    if (byKey[k]) { desired.push(s); delete byKey[k]; }
+  });
+  sections.forEach(function(s){ if (desired.indexOf(s) < 0) desired.push(s); });
+  var sectionSet = {};
+  sections.forEach(function(s){ sectionSet[s] = true; });
+  var result = [], si = 0;
+  children.forEach(function(ch){
+    if (sectionSet[ch]) result.push(desired[si++] || ch);
+    else result.push(ch);
+  });
+  result.forEach(function(ch){ if (ch && ch.nodeType === 1) box.appendChild(ch); });
+}
 function syncInspectorSections() {
   var sections = document.querySelectorAll("#inspector .acc, #inspector .ins-sec");
   for (var i = 0; i < sections.length; i++) {
@@ -12722,7 +12880,13 @@ function outlineAdvancedRows() {
   ];
 }
 function interactionControls() {
+  var cls = selClass();
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = selBody
+    ? "These properties apply to the body rule: inherited properties such as cursor, pointer-events, user-select and visibility affect the whole page."
+    : ("These properties apply to the class rule " + (cls ? "." + cls : "(none)") + ". Elements sharing the class change too; inherited properties such as cursor, pointer-events, user-select and visibility also affect descendants. Use Appearance → style expr for one element only.");
   return acc("Interaction", [
+    hint,
     selBox("cursor", "cursor", ["", "auto", "default", "pointer", "text", "move", "grab", "grabbing", "not-allowed", "wait", "help", "crosshair", "zoom-in", "zoom-out", "none"]),
     selBox("pointer-events", "pointer-events", ["", "auto", "none"]),
     selBox("user-select", "user-select", ["", "auto", "none", "text", "all", "contain"]),

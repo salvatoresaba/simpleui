@@ -601,6 +601,13 @@ Tutte le sezioni dell'inspector partono chiuse. Aprire una sezione cliccando
 sull'intestazione; resta aperta tra cambi di selezione e reload della preview
 finché non viene richiusa.
 
+Ogni intestazione di sezione ha una piccola maniglia a sinistra. Trascinala per
+riordinare le sezioni dell'inspector; l'ordine viene salvato nel local storage
+dell'editor e ripristinato al reload. Le sezioni che non si applicano
+all'elemento corrente scompaiono temporaneamente e mantengono la posizione
+salvata quando ricompaiono. Il riordino cambia solo la UI dell'editor, non
+l'applicazione generata.
+
 Ogni riga dell'albero **Structure** a sinistra inizia con un badge del tipo
 esatto (`div`, `tree`, `treeitem`, `chart`, `input`, ...). Il badge e separato
 dall'etichetta descrittiva, quindi il tipo dell'elemento selezionato e sempre
@@ -668,7 +675,10 @@ mentre si modificano i valori e resta sincronizzato con l'editor CSS.
   clip-path e isolation.
 - **Border** → **Outline...**: outline style, width, colore e offset.
 - **Interaction**: cursor, pointer-events, user-select, visibility, float,
-  clear e scroll-behavior.
+  clear e scroll-behavior. Queste proprietà agiscono sulla regola di classe
+  selezionata. Cursor, pointer-events, user-select e visibility sono ereditate,
+  quindi su un contenitore influenzano anche i discendenti; per un solo elemento
+  usa **Appearance → style expr**.
 
 L'overlay si chiude con **×** o **Escape**; selezionando un altro elemento si
 chiude automaticamente.

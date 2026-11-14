@@ -579,6 +579,12 @@ All inspector sections start collapsed. Open a section by clicking its header;
 it stays open across selection changes and preview reloads until you close it
 again.
 
+Each section header has a small grip on the left. Drag the grip to reorder the
+inspector sections; the order is saved in the editor's local storage and is
+restored on reload. Sections that do not apply to the current element disappear
+temporarily and keep their stored position when they return. Reordering only
+changes the editor UI, not the generated application.
+
 Every row in the left **Structure** tree starts with an exact type badge
 (`div`, `tree`, `treeitem`, `chart`, `input`, ...). The badge is independent of
 the friendly label, so the selected element type is always unambiguous. The
@@ -645,7 +651,10 @@ change and stays in sync with the CSS editor.
   clip-path and isolation.
 - **Border** → **Outline...**: outline style, width, colour and offset.
 - **Interaction**: cursor, pointer-events, user-select, visibility, float,
-  clear and scroll-behavior.
+  clear and scroll-behavior. These target the selected class rule. Cursor,
+  pointer-events, user-select and visibility are inherited, so on a container
+  they also affect descendants; use **Appearance → style expr** for one element
+  only.
 
 The overlay closes with its **×** button or **Escape**; selecting another
 element closes it as well.
