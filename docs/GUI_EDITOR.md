@@ -936,7 +936,9 @@ only the graph; parameters open in draggable overlay panels:
   an earlier state are routed around the boxes. The route is redrawn live while
   a state box is dragged. If a position or a new link makes a clean route
   impossible, the editor rejects it with a message instead of drawing
-  overlapping paths.
+  overlapping paths. Unroutable positions are rejected while dragging, so a
+  block never stays on such a spot. State blocks and links use theme-aware
+  colors and stay readable in light and dark themes.
 - Click and the other DOM events can be used once per source state; variable
   and timer triggers can be repeated. The chooser disables already-used single
   events and validation rejects duplicates.

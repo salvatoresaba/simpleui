@@ -887,7 +887,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
   font-size:12px; font-weight:600; box-shadow:0 8px 26px rgba(0,0,0,.45); cursor:pointer; }
 #mg-launch.on { display:flex; }
 #mg-canvas { position:relative; flex:1; min-width:0; overflow:hidden; background:
-  radial-gradient(circle at 1px 1px, rgba(143,160,184,.18) 1px, transparent 0) 0 0/18px 18px; }
+  radial-gradient(circle at 1px 1px, rgba(143,160,184,.26) 1px, transparent 0) 0 0/18px 18px; }
 #mg-stage { position:absolute; left:0; top:0; transform-origin:0 0; }
 #mg-nodes { position:absolute; left:0; top:0; }
 #mg-lines { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
@@ -919,6 +919,27 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #mg-editbar .mg-edit-title { font-weight:700; color:#9db4ff; }
 #mg-editbar .hint { color:var(--dim); font-size:11px; }
 body.mg-scope-edit #prev { outline:2px solid rgba(76,92,247,.35); outline-offset:-2px; }
+html[data-theme="light"] #mg-canvas {
+  background:radial-gradient(circle at 1px 1px, rgba(60,75,100,.32) 1px, transparent 0) 0 0/18px 18px, #ffffff;
+}
+html[data-theme="light"] .mg-node {
+  background:#ffffff; border-color:#7c879e; color:#111827;
+  box-shadow:0 2px 10px rgba(15,23,42,.14);
+}
+html[data-theme="light"] .mg-node:hover,
+html[data-theme="light"] .mg-node.on { border-color:#1d4ed8; }
+html[data-theme="light"] .mg-node.on { box-shadow:0 0 0 2px rgba(29,78,216,.22), 0 2px 10px rgba(15,23,42,.18); }
+html[data-theme="light"] .mg-node.mg-invalid { border-color:#b91c1c !important; box-shadow:0 0 0 2px rgba(185,28,28,.22) !important; }
+html[data-theme="light"] .mg-node .mg-add:hover { color:#1d4ed8; border-color:#1d4ed8; }
+html[data-theme="light"] .mg-node .mg-port { background:#1d4ed8; }
+html[data-theme="light"] .mg-node .mg-del { border-color:#b91c1c; color:#b91c1c; }
+html[data-theme="light"] .mg-node .mg-del:hover { background:#fee2e2; color:#991b1b; }
+html[data-theme="light"] #mg-placebar { color:#1e3a8a; border-bottom-color:#1d4ed8; background:rgba(29,78,216,.09); }
+html[data-theme="light"] #mg-placebar button { border-color:#1d4ed8; }
+html[data-theme="light"] #mg-launch { border-color:#1d4ed8; }
+html[data-theme="light"] #mg-editbar { border-color:#1d4ed8; }
+html[data-theme="light"] #mg-editbar .mg-edit-title { color:#1d4ed8; }
+html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-color:#b91c1c; box-shadow:0 10px 30px rgba(15,23,42,.18); }
 </style>
 </head>
 <body>
@@ -6640,18 +6661,28 @@ function mgMakeStateDraggable(d, s) {
     if (!scaleX) scaleX = 1;
     if (!scaleY) scaleY = 1;
     var moved = false;
+    var lastX = startX, lastY = startY;
     function move(e) {
       var dx = e.clientX - sx, dy = e.clientY - sy;
       if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
       moved = true;
-      var nx = Math.max(0, startX + dx / scaleX);
-      var ny = Math.max(0, startY + dy / scaleY);
+      var nx = Math.max(0, Math.round(startX + dx / scaleX));
+      var ny = Math.max(0, Math.round(startY + dy / scaleY));
       if (mgBoxCollides(s.id, nx, ny)) return;
       d.style.left = nx + "px";
       d.style.top = ny + "px";
       mgPositions[s.id] = { x: nx, y: ny };
       mgDragging = true;
       mgRenderLinks();
+      if (!mgLastRouteClean) {
+        d.style.left = lastX + "px";
+        d.style.top = lastY + "px";
+        mgPositions[s.id] = { x: lastX, y: lastY };
+        mgRenderLinks();
+        return;
+      }
+      lastX = nx;
+      lastY = ny;
     }
     function up() {
       window.removeEventListener("pointermove", move);
@@ -6661,9 +6692,9 @@ function mgMakeStateDraggable(d, s) {
         mgDragging = false;
         mgRenderLinks();
         if (!mgLastRouteClean) {
-          d.style.left = startX + "px";
-          d.style.top = startY + "px";
-          mgPositions[s.id] = { x: startX, y: startY };
+          d.style.left = lastX + "px";
+          d.style.top = lastY + "px";
+          mgPositions[s.id] = { x: lastX, y: lastY };
           mgRender();
           mgNotify("Posizione non instradabile: sposta lo stato in un'area libera.");
           return;
@@ -6898,6 +6929,22 @@ function mgRouteLink(p, boxes, routed, grid, reserved) {
   if (!mgSegmentFree(p, boxes, routed, [], last.x, last.y, p2.x, p2.y, "to")) return mgFallbackRoute(p, boxes, routed, grid, reserved);
   return clean;
 }
+function mgLinkPalette() {
+  if (typeof prefs !== "undefined" && prefs && prefs.theme === "light") {
+    return {
+      complete: "#1d4ed8", selected: "#111c8f", incomplete: "#b91c1c",
+      badgeComplete: "#1d4ed8", badgeIncomplete: "#b91c1c", badgeStroke: "#ffffff"
+    };
+  }
+  return {
+    complete: "#7db3ff", selected: "#b9c8ff", incomplete: "#ff8095",
+    badgeComplete: "#4c5cf7", badgeIncomplete: "#b23a4a", badgeStroke: "#0e1118"
+  };
+}
+function mgLinkDefs() {
+  var c = mgLinkPalette();
+  return '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="' + c.complete + '"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="' + c.selected + '"/></marker><marker id="mg-arrow-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="' + c.incomplete + '"/></marker></defs>';
+}
 function mgRenderLinks() {
   var svg = document.getElementById("mg-lines");
   if (!svg || !mgCfg) return;
@@ -7071,7 +7118,8 @@ function mgRenderLinks() {
   }
   mgLastRouteClean = routeLog.clean;
   if (!routeResult) routeResult = {};
-  svg.innerHTML = '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7db3ff"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4c5cf7"/></marker></defs>';
+  var palette = mgLinkPalette();
+  svg.innerHTML = mgLinkDefs();
   ports.forEach(function(p){
     var pts = routeResult[p.link.id];
     if (!pts || pts.length < 2) return;
@@ -7079,10 +7127,10 @@ function mgRenderLinks() {
     var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", pts.map(function(pt, i){ return (i ? "L " : "M ") + pt.x + " " + pt.y; }).join(" "));
     path.setAttribute("fill", "none");
-    path.setAttribute("stroke", p.link.id === mgSelLink ? "#4c5cf7" : complete ? "#7db3ff" : "#b23a4a");
+    path.setAttribute("stroke", p.link.id === mgSelLink ? palette.selected : complete ? palette.complete : palette.incomplete);
     path.setAttribute("stroke-width", p.link.id === mgSelLink ? "2.4" : "1.6");
     if (!complete) path.setAttribute("stroke-dasharray", "4 3");
-    path.setAttribute("marker-end", "url(#" + (p.link.id === mgSelLink ? "mg-arrow-on" : "mg-arrow") + ")");
+    path.setAttribute("marker-end", "url(#" + (p.link.id === mgSelLink ? "mg-arrow-on" : complete ? "mg-arrow" : "mg-arrow-bad") + ")");
     path.setAttribute("data-link", p.link.id);
     path.setAttribute("data-complete", complete ? "1" : "0");
     path.onclick = function(){ mgSelLink = p.link.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
@@ -7093,7 +7141,7 @@ function mgRenderLinks() {
     var title = document.createElementNS("http://www.w3.org/2000/svg", "title"); title.textContent = mgTriggerLabel(p.link); badge.appendChild(title);
     var circ = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     circ.setAttribute("cx", p.x1 + 8); circ.setAttribute("cy", p.y1 - 9); circ.setAttribute("r", "7");
-    circ.setAttribute("fill", complete ? "#4c5cf7" : "#b23a4a"); circ.setAttribute("stroke", "#0e1118"); circ.setAttribute("stroke-width", "1");
+    circ.setAttribute("fill", complete ? palette.badgeComplete : palette.badgeIncomplete); circ.setAttribute("stroke", palette.badgeStroke); circ.setAttribute("stroke-width", "1");
     badge.appendChild(circ);
     var txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
     txt.setAttribute("x", p.x1 + 8); txt.setAttribute("y", p.y1 - 5.5); txt.setAttribute("text-anchor", "middle");
@@ -7104,16 +7152,18 @@ function mgRenderLinks() {
     svg.appendChild(badge);
   });
 }
-function mgMarkSelection() {  document.querySelectorAll(".mg-node").forEach(function(n){
+function mgMarkSelection() {
+  var palette = mgLinkPalette();
+  document.querySelectorAll(".mg-node").forEach(function(n){
     n.classList.toggle("on", n.getAttribute("data-state") === mgSelState);
   });
   document.querySelectorAll("#mg-lines path[data-link]").forEach(function(p){
     var on = p.getAttribute("data-link") === mgSelLink;
     var complete = p.getAttribute("data-complete") === "1";
-    p.setAttribute("stroke", on ? "#4c5cf7" : complete ? "#7db3ff" : "#b23a4a");
+    p.setAttribute("stroke", on ? palette.selected : complete ? palette.complete : palette.incomplete);
     p.setAttribute("stroke-width", on ? "2.4" : "1.6");
     if (complete) p.removeAttribute("stroke-dasharray"); else p.setAttribute("stroke-dasharray", "4 3");
-    p.setAttribute("marker-end", "url(#" + (on ? "mg-arrow-on" : "mg-arrow") + ")");
+    p.setAttribute("marker-end", "url(#" + (on ? "mg-arrow-on" : complete ? "mg-arrow" : "mg-arrow-bad") + ")");
   });
 }
 function mgFitGraph() {
@@ -7265,7 +7315,7 @@ function mgRender() {
   var stage = document.getElementById("mg-stage");
   if (stage) { stage.style.width = maxX + "px"; stage.style.height = maxY + "px"; }
   mgGraphSize = { x: maxX, y: maxY };
-  svg.innerHTML = '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7db3ff"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4c5cf7"/></marker></defs>';
+  svg.innerHTML = mgLinkDefs();
   mgRenderLinks();
   mgFitGraph();
   mgRenderParam();
@@ -7314,8 +7364,8 @@ function mgPlacementPoint(ev) {
   if (!scale) scale = 1;
   var h = mgNodeHeights[mgPlacement.stateId] || 38;
   return {
-    x: Math.max(0, (ev.clientX - r.left) / scale - MG_BOX_W / 2),
-    y: Math.max(0, (ev.clientY - r.top) / scale - h / 2)
+    x: Math.max(0, Math.round((ev.clientX - r.left) / scale - MG_BOX_W / 2)),
+    y: Math.max(0, Math.round((ev.clientY - r.top) / scale - h / 2))
   };
 }
 function mgPlacementMove(ev) {
@@ -7333,6 +7383,8 @@ function mgPlacementMove(ev) {
   }
   mgDragging = true;
   mgRenderLinks();
+  mgPlacement.last.routable = mgLastRouteClean;
+  if (!mgLastRouteClean && d) d.classList.add("mg-invalid");
 }
 function mgConfirmPlacement() {
   if (!mgPlacement) return;
@@ -22575,6 +22627,7 @@ function toggleEditorTheme() {
   setStatus("theme: " + prefs.theme);
 }
 function applyTheme() {
+  try { document.documentElement.setAttribute("data-theme", prefs.theme === "light" ? "light" : (prefs.theme === "contrast" ? "contrast" : "dark")); } catch (e) {}
   var r = document.documentElement.style;
   r.setProperty("--fs", prefs.font + "px");
   r.setProperty("--accent", prefs.accent);
@@ -22606,6 +22659,9 @@ function applyTheme() {
   }
   applyEditorPrefs();
   updateThemeToggle();
+  if (typeof mgCfg !== "undefined" && mgCfg && document.getElementById("mg-lines")) {
+    try { mgRenderLinks(); } catch (e) {}
+  }
 }
 
 // ---- code editing: highlight + two-way sync -------------------------------

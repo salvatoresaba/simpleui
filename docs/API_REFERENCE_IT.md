@@ -434,7 +434,9 @@ ordini; il router evita i box, usa angoli retti e preferisce il percorso più br
 con il minor numero di segmenti. I link all'indietro girano attorno ai box e i
 percorsi si aggiornano in tempo reale durante il trascinamento. Una posizione o
 un link che rende impossibile un percorso pulito viene rifiutato con un messaggio
-invece di disegnare percorsi sovrapposti.
+invece di disegnare percorsi sovrapposti; le posizioni non instradabili vengono
+rifiutate subito durante il trascinamento. Blocchi e link sono sensibili al tema
+e restano leggibili in modalità chiara e scura.
 
 Il doppio clic su uno stato apre l'overlay con nome, CSS e lista dei trigger
 attivi con la destinazione (nessun campo per i trigger in ingresso). Il doppio

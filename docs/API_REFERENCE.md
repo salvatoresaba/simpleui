@@ -457,7 +457,8 @@ trying several orders; the router avoids boxes, uses right-angle corners and
 prefers the shortest path with the fewest segments. Backward links route around
 the boxes and routes redraw live during dragging. A position or link that makes
 a clean route impossible is rejected with a message instead of drawing
-overlapping paths.
+overlapping paths; unroutable drag positions are rejected immediately. State
+blocks and links are theme-aware and remain readable in light and dark themes.
 
 Double-clicking a state opens its overlay with name, CSS and the list of active
 triggers with their destinations (no incoming-trigger fields). Double-clicking

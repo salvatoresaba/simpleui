@@ -88,7 +88,9 @@ and the FLIP engine described in `examples/motion_pages`.
    prefers the shortest path with the fewest segments; backward links route
    around the boxes and the path redraws live while dragging. A position or link
    that makes a clean route impossible is rejected with a message instead of
-   drawing an overlapping path. Click and other DOM events
+   drawing an overlapping path; unroutable drag positions are rejected
+   immediately. Blocks and links use theme-aware colors for light and dark
+   editor themes. Click and other DOM events
    can be used once per source state; variable and timer triggers can be
    repeated. A variable trigger lists the available SUI states and asks for the
    activating value; a timer trigger starts after the chosen duration.

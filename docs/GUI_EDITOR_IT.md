@@ -973,7 +973,10 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   vengono instradati attorno ai box. Il percorso viene ridisegnato in tempo reale
   mentre si trascina un box. Se una posizione o un nuovo link rendono impossibile
   un percorso pulito, l'editor lo rifiuta con un messaggio invece di disegnare
-  percorsi sovrapposti.
+  percorsi sovrapposti. Le posizioni non instradabili vengono rifiutate già
+  durante il trascinamento, quindi il blocco non resta mai in quel punto. Blocchi
+  e link usano colori sensibili al tema e restano leggibili in modalità chiara
+  e scura.
 - Click e gli altri eventi DOM si possono usare una sola volta per stato
   sorgente; variabili e timer possono essere ripetuti. Il chooser disabilita gli
   eventi già usati e la validazione rifiuta i duplicati.
