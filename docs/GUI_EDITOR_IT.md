@@ -650,6 +650,41 @@ inset). Il campo CSS raw è la via per ombre a più livelli o filtri avanzati; u
 preset o un controllo numerico sostituisce un'ombra multi-livello con un solo
 livello.
 
+### More styles
+
+La sezione **More styles** aggiunge proprietà comuni che non appartengono alle
+sezioni principali, raggruppate per attività:
+
+- overflow, box-sizing, aspect-ratio, min-width/min-height e object-fit;
+- flex-wrap, order, flex-grow/shrink/basis;
+- grid auto flow/rows/columns e justify-items/self;
+- background image, size, position, repeat, attachment, clip, origin e blend;
+- transform, transform-origin, clip-path e outline;
+- text-overflow, overflow-wrap, word-break, writing-mode e direction;
+- cursor, pointer-events, user-select, visibility, float, clear e
+  scroll-behavior.
+
+### Advanced CSS
+
+La sezione **Advanced CSS** elenca le dichiarazioni della regola di classe
+selezionata. Ogni riga ha proprietà in sola lettura, valore modificabile e
+pulsante di eliminazione. La riga di aggiunta accetta qualsiasi proprietà CSS
+valida, comprese le custom properties (`--accent: #4c5cf7`), con suggerimenti e
+validazione. Esempi:
+
+```css
+overflow: hidden;
+aspect-ratio: 16 / 9;
+transform: rotate(2deg);
+--accent: #4c5cf7;
+```
+
+La sezione modifica la regola di classe, non i valori inline effettivi; per
+dichiarazioni inline reattive usa **style expr**. Poiché un valore arbitrario
+può contenere `url(...)`, immagini e font possono caricare risorse esterne. Le
+proprietà con prefisso vendor sono ammesse; modificando una proprietà con una
+entry di compatibilità nota vengono aggiornate anche le varianti prefissate.
+
 ## Drag and drop del designer
 
 Il drag and drop interno del designer è sempre attivo. Non esiste un'impostazione,

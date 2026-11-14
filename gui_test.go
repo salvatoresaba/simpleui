@@ -819,6 +819,17 @@ func TestGuiInspectorEffectControls(t *testing.T) {
 	}
 }
 
+func TestGuiAdvancedCssControls(t *testing.T) {
+	for _, want := range []string{
+		"Advanced CSS", "CSS_PROPERTY_NAMES", "advancedCssSection", "moreStylesControls",
+		"adv-list", "aspect-ratio", "background-image", "pointer-events",
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("advanced inspector controls are missing %q", want)
+		}
+	}
+}
+
 func TestGuiPreviewMotionFeatures(t *testing.T) {
 	for _, want := range []string{
 		"sui-graph-preview-stop", "gPreviewDecls", "gPreviewApply",

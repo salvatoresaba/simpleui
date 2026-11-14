@@ -627,6 +627,40 @@ and inset). The raw CSS field is the escape hatch for multiple shadow layers or
 advanced filter functions; a preset or a numeric control replaces a multi-layer
 shadow with a single layer.
 
+### More styles
+
+The **More styles** section adds common properties that do not belong to the
+main sections, grouped by task:
+
+- overflow, box-sizing, aspect-ratio, min-width/min-height and object-fit;
+- flex-wrap, order, flex-grow/shrink/basis;
+- grid auto flow/rows/columns and justify-items/self;
+- background image, size, position, repeat, attachment, clip, origin and blend;
+- transform, transform-origin, clip-path and outline;
+- text-overflow, overflow-wrap, word-break, writing-mode and direction;
+- cursor, pointer-events, user-select, visibility, float, clear and
+  scroll-behavior.
+
+### Advanced CSS
+
+The **Advanced CSS** section lists the declarations of the selected class rule.
+Every row has a read-only property, an editable value and a delete button. The
+add row accepts any valid CSS property, including custom properties
+(`--accent: #4c5cf7`), with a suggestion list and validation. Examples:
+
+```css
+overflow: hidden;
+aspect-ratio: 16 / 9;
+transform: rotate(2deg);
+--accent: #4c5cf7;
+```
+
+The section edits the class rule, not inline effective values; use **style expr**
+for reactive inline declarations. Because an arbitrary value may contain
+`url(...)`, images and fonts can load external resources. Vendor-prefixed
+properties are allowed; editing a property that has a known compatibility entry
+updates its prefixed variants too.
+
 ## Designer drag and drop
 
 The designer's own drag and drop is always enabled. There is no setting,
