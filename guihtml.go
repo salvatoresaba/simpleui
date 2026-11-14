@@ -899,9 +899,14 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .mg-node:hover { border-color:#4c5cf7; }
 .mg-node.on { border-color:#4c5cf7; box-shadow:0 0 0 2px rgba(76,92,247,.25),0 2px 10px rgba(0,0,0,.35); }
 .mg-node.mg-invalid { border-color:#b23a4a !important; box-shadow:0 0 0 2px rgba(178,58,74,.3) !important; }
-.mg-node .mg-name { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; padding-right:16px; overflow:hidden; }
+.mg-node .mg-name { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; padding-right:36px; overflow:hidden; }
 .mg-node .mg-name span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mg-node .mg-name .mg-init { font-size:8px; font-weight:600; color:#0e1118; background:#34d399; border-radius:4px; padding:0 3px; }
+.mg-node .mg-edit { position:absolute; right:20px; top:2px; width:16px; height:16px;
+  border:1px solid var(--border2); border-radius:50%; background:var(--input-bg); color:var(--fg); font-size:10px;
+  line-height:13px; text-align:center; cursor:pointer; padding:0; }
+.mg-node .mg-edit:hover { border-color:#4c5cf7; color:#9db4ff; }
+html[data-theme="light"] .mg-node .mg-edit:hover { border-color:#1d4ed8; color:#1d4ed8; }
 .mg-node .mg-add { position:absolute; right:2px; top:2px; width:16px; height:16px;
   border:1px solid var(--border2); border-radius:50%; background:var(--input-bg); color:var(--fg); font-size:12px;
   line-height:13px; text-align:center; cursor:pointer; padding:0; }
@@ -1151,19 +1156,19 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
         <span>Animation panel</span>
         <div style="flex:1"></div>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgAddState()">+ state</button>
-        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgRemoveGraph(mgNode)">Rimuovi stati</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgRemoveGraph(mgNode)">Remove states</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgTogglePanel()">&#8211;</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgClosePanel()">&#10005;</button>
       </div>
       <div class="mg-toolbar">
         <span id="mg-graph-title" class="hint" style="margin-left:0"></span>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgOpenParam('layout')">Layout &amp; shared</button>
-        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgPreviewSelected()">Anteprima</button>
-        <span class="hint">Doppio clic su stato o freccia per i parametri.</span>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgPreviewSelected()">Preview</button>
+        <span class="hint">Double-click a state or an arrow to edit its parameters.</span>
       </div>
       <div id="mg-placebar">
-        <span>Posiziona il nuovo stato trascinandolo, poi scegli il trigger.</span>
-        <button class="btn" type="button" style="font-size:11px;padding:3px 8px" onclick="mgConfirmPlacement()">Conferma posizione</button>
+        <span>Drag to place the new state, then choose its trigger.</span>
+        <button class="btn" type="button" style="font-size:11px;padding:3px 8px" onclick="mgConfirmPlacement()">Confirm position</button>
       </div>
       <div class="mg-main">
         <div id="mg-canvas"><div id="mg-stage"><svg id="mg-lines"></svg><div id="mg-nodes"></div></div></div>
@@ -1172,7 +1177,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     </div>
     <div id="mg-param">
       <div class="mg-param-hdr" id="mg-param-hdr">
-        <span id="mg-param-title">Parametri</span>
+        <span id="mg-param-title">Parameters</span>
         <div style="flex:1"></div>
         <button class="btn" style="font-size:11px;padding:1px 6px" onclick="mgCloseParam()">&#10005;</button>
       </div>
@@ -1181,10 +1186,11 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     <button id="mg-launch" type="button" onclick="mgLaunchPanel()" title="Show the animation panel">Animation panel</button>
     <div id="mg-notify"></div>
     <div id="mg-editbar">
-      <span class="mg-edit-title" id="mg-edit-title">Modifica stato</span>
-      <span class="hint">Solo questo elemento è attivo. Doppio clic sullo stato per i parametri; Salva stato cattura la preview.</span>
-      <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgSaveState()">Salva stato</button>
-      <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgCloseState()">Chiudi</button>
+      <span class="mg-edit-title" id="mg-edit-title">Edit state</span>
+      <span class="hint">Only this element is active. Save state captures the preview; Cancel discards changes.</span>
+      <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgSaveState()">Save state</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgCancelEdit()">Cancel</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px" onclick="mgCloseEdit()">Close</button>
     </div>
 </main>
 <div id="bottom">
@@ -6439,7 +6445,7 @@ function mgEnsure(n) {
     cfg = raw;
   }
   if (!cfg || !cfg.states || !cfg.states.length) {
-    cfg = { initial: "s1", states: [{ id: "s1", name: "Stato iniziale", css: "" }], links: [] };
+    cfg = { initial: "s1", states: [{ id: "s1", name: "Initial state", css: "" }], links: [] };
   }
   if (!cfg.links) cfg.links = [];
   if (!cfg.initial || !cfg.states.some(function(s){ return s.id === cfg.initial; })) cfg.initial = cfg.states[0].id;
@@ -6490,7 +6496,7 @@ function mgOpen(n, path) {
   var title = document.getElementById("mg-graph-title");
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
-  if (!mgLastRouteClean) mgNotify("Layout non instradabile: sposta gli stati per separare i collegamenti.");
+  if (!mgLastRouteClean) mgNotify("Unroutable layout: move the states to separate the links.");
   mgUpdateLauncher();
   setTimeout(function(){ mgFitGraph(); mgClampAll(); }, 0);
   renderInspector();
@@ -6548,13 +6554,13 @@ function mgNormCss(css) {
 }
 function mgValidateState(st) {
   var errors = [];
-  if (!st) return ["Stato non trovato."];
+  if (!st) return ["State not found."];
   var norm = mgNormCss(st.css || "");
   for (var i = 0; i < mgCfg.states.length; i++) {
     var other = mgCfg.states[i];
     if (other.id === st.id) continue;
     if (mgNormCss(other.css || "") === norm) {
-      errors.push("Lo stato \"" + (st.name || st.id) + "\" ha gli stessi parametri di \"" + (other.name || other.id) + "\". Modifica dimensioni, colori o altri valori.");
+      errors.push("State \"" + (st.name || st.id) + "\" has the same parameters as \"" + (other.name || other.id) + "\". Change size, colors or other values.");
       break;
     }
   }
@@ -6563,12 +6569,12 @@ function mgValidateState(st) {
     var l = mgCfg.links[k];
     if (!l.event) {
       var a = mgStateById(l.from), b = mgStateById(l.to);
-      errors.push("Il collegamento " + (a ? a.name : l.from) + " → " + (b ? b.name : l.to) + " non ha un trigger. Scegli il tipo di trigger sullo stato di partenza.");
+      errors.push("Link " + (a ? a.name : l.from) + " → " + (b ? b.name : l.to) + " has no trigger. Choose a trigger type on the source state.");
     } else if (l.event === "state" && !l.when) {
-      errors.push("Il trigger variabile del collegamento " + l.from + " → " + l.to + " non ha una variabile selezionata.");
+      errors.push("The variable trigger of link " + l.from + " → " + l.to + " has no selected variable.");
     } else if (MG_SINGLE_EVENTS[l.event]) {
       var key = l.from + "|" + l.event;
-      if (singleUsed[key]) errors.push("Lo stato \"" + ((mgStateById(l.from) || {}).name || l.from) + "\" ha più trigger \"" + l.event + "\". Questo trigger può essere usato una sola volta.");
+      if (singleUsed[key]) errors.push("State \"" + ((mgStateById(l.from) || {}).name || l.from) + "\" has multiple \"" + l.event + "\" triggers. This trigger can be used only once.");
       singleUsed[key] = true;
     }
   }
@@ -6576,11 +6582,11 @@ function mgValidateState(st) {
 }
 var MG_SINGLE_EVENTS = { click: 1, dblclick: 1, pointerenter: 1, pointerleave: 1, focus: 1, blur: 1, change: 1, after: 1 };
 var MG_TRIGGER_OPTIONS = [
-  ["", "(scegli trigger)"],
-  ["click", "click"], ["dblclick", "doppio click"],
+  ["", "(choose trigger)"],
+  ["click", "click"], ["dblclick", "double click"],
   ["pointerenter", "pointer enter"], ["pointerleave", "pointer leave"],
   ["focus", "focus"], ["blur", "blur"], ["change", "change"],
-  ["state", "valore variabile"], ["timer", "timer"], ["after", "dopo la transizione"]
+  ["state", "variable value"], ["timer", "timer"], ["after", "after transition"]
 ];
 function mgTriggerUsed(stateId, event) {
   var n = 0;
@@ -6593,10 +6599,10 @@ function mgTriggerUsedExcept(stateId, event, exceptId) {
   return n;
 }
 function mgTriggerLabel(link) {
-  if (!link || !link.event) return "Trigger non configurato";
-  if (link.event === "state") return "Variabile " + (link.when || "?") + (link.value != null && link.value !== "" ? " = " + link.value : "");
+  if (!link || !link.event) return "Trigger not configured";
+  if (link.event === "state") return "Variable " + (link.when || "?") + (link.value != null && link.value !== "" ? " = " + link.value : "");
   if (link.event === "timer") return "Timer " + (link.timer || "1s");
-  if (link.event === "after") return "Dopo la transizione";
+  if (link.event === "after") return "After transition";
   return link.event;
 }
 function mgApplyStateDecls(decls, after) {
@@ -6701,7 +6707,7 @@ function mgMakeStateDraggable(d, s) {
           d.style.top = lastY + "px";
           mgPositions[s.id] = { x: lastX, y: lastY };
           mgRender();
-          mgNotify("Posizione non instradabile: sposta lo stato in un'area libera.");
+          mgNotify("Unroutable position: move the state to a free area.");
           return;
         }
       }
@@ -7139,7 +7145,7 @@ function mgRenderLinks() {
     path.setAttribute("data-link", p.link.id);
     path.setAttribute("data-complete", complete ? "1" : "0");
     path.onclick = function(){ mgSelLink = p.link.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
-    path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); if (!p.link.event) mgAddLinkMenu(p.link.from, p.link.id); else mgOpenParam("link", p.link.id); mgMinimizePanel(); };
+    path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); if (!p.link.event) mgAddLinkMenu(p.link.from, p.link.id); else mgOpenParam("link", p.link.id); };
     svg.appendChild(path);
     var badge = document.createElementNS("http://www.w3.org/2000/svg", "g");
     badge.setAttribute("data-trigger", p.link.id); badge.style.cursor = "pointer";
@@ -7153,7 +7159,7 @@ function mgRenderLinks() {
     txt.setAttribute("font-size", "9"); txt.setAttribute("font-weight", "700"); txt.setAttribute("fill", "#fff"); txt.textContent = String(p.num);
     badge.appendChild(txt);
     badge.onclick = function(ev){ if (ev) ev.stopPropagation(); mgSelLink = p.link.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
-    badge.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); if (!p.link.event) mgAddLinkMenu(p.link.from, p.link.id); else mgOpenParam("link", p.link.id); mgMinimizePanel(); };
+    badge.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); if (!p.link.event) mgAddLinkMenu(p.link.from, p.link.id); else mgOpenParam("link", p.link.id); };
     svg.appendChild(badge);
   });
 }
@@ -7295,21 +7301,24 @@ function mgRender() {
     d.style.left = pos[s.id].x + "px";
     d.style.top = pos[s.id].y + "px";
     d.style.height = h + "px";
-    d.title = "Clic: mostra lo stato nella preview. Doppio clic: parametri. Trascina per spostare.";
+    d.title = "Click: select the state and preview it. Double-click: parameters. Drag to move.";
     d.setAttribute("data-state", s.id);
     var nm = document.createElement("div"); nm.className = "mg-name";
     var txt = document.createElement("span"); txt.textContent = s.name || s.id; nm.appendChild(txt);
-    if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "iniziale"; nm.appendChild(b); }
+    if (s.id === mgCfg.initial) { var b = document.createElement("span"); b.className = "mg-init"; b.textContent = "initial"; nm.appendChild(b); }
     d.appendChild(nm);
     var port = document.createElement("span"); port.className = "mg-port"; port.style.top = (h / 2) + "px"; d.appendChild(port);
-    var add = document.createElement("button"); add.type = "button"; add.className = "mg-add"; add.textContent = "+"; add.title = "Nuovo stato collegato";
+    var edit = document.createElement("button"); edit.type = "button"; edit.className = "mg-edit"; edit.textContent = "\u270e"; edit.title = "Edit state appearance";
+    edit.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgCloseParam(); mgMarkSelection(); mgFocusState(s.id, true); };
+    d.appendChild(edit);
+    var add = document.createElement("button"); add.type = "button"; add.className = "mg-add"; add.textContent = "+"; add.title = "Add a connected state";
     add.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgQuickAddState(s.id); };
     d.appendChild(add);
-    var del = document.createElement("button"); del.type = "button"; del.className = "mg-del"; del.textContent = "\u00d7"; del.title = "Elimina stato";
+    var del = document.createElement("button"); del.type = "button"; del.className = "mg-del"; del.textContent = "\u00d7"; del.title = "Delete state";
     del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgDeleteState(s.id); };
     d.appendChild(del);
-    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgConfirmPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id, true); };
-    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgFocusState(s.id, true); mgOpenParam("state", s.id); mgMinimizePanel();
+    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgConfirmPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgCloseParam(); mgMarkSelection(); mgPreviewState(s.id, "1ms", "linear"); };
+    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgOpenParam("state", s.id);
       var pending = null;
       for (var li = 0; li < mgCfg.links.length; li++) { var pl = mgCfg.links[li]; if (pl.from === s.id && !pl.event) { pending = pl; break; } }
       if (pending) mgAddLinkMenu(s.id, pending.id);
@@ -7347,7 +7356,7 @@ function mgQuickAddState(sourceId) {
   var free = mgFreeStatePosition(sourceId);
   var st = {
     id: mgNextId("s", mgCfg.states),
-    name: "Stato " + (mgCfg.states.length + 1),
+    name: "State " + (mgCfg.states.length + 1),
     css: src.css || "",
     x: free.x,
     y: free.y
@@ -7399,13 +7408,13 @@ function mgConfirmPlacement() {
   if (!mgPlacement) return;
   var last = mgPlacement.last || { x: mgPositions[mgPlacement.stateId].x, y: mgPositions[mgPlacement.stateId].y, valid: true };
   if (!last.valid || mgBoxCollides(mgPlacement.stateId, last.x, last.y)) {
-    mgNotify("Spazio insufficiente: lascia più spazio tra i box e i collegamenti.");
+    mgNotify("Not enough space: leave room between states and links.");
     return;
   }
   mgDragging = false;
   mgRenderLinks();
   if (!mgLastRouteClean) {
-    mgNotify("Collegamenti non instradabili: sposta il nuovo stato in un'area libera.");
+    mgNotify("Unroutable links: move the new state to a free area.");
     return;
   }
   var st = mgStateById(mgPlacement.stateId);
@@ -7462,7 +7471,7 @@ function mgRenderParam() {
   if (overlay) overlay.classList.add("on");
   setTimeout(function(){ mgClampPanel(overlay); }, 0);
   var title = document.getElementById("mg-param-title");
-  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Parametri trigger" : mgParam.kind === "newlink" ? (mgParam.link ? "Trigger collegamento" : "Nuovo trigger") : "Parametri stato";
+  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Trigger parameters" : mgParam.kind === "newlink" ? (mgParam.link ? "Link trigger" : "New trigger") : "State parameters";
   function label(t) { var l = document.createElement("label"); l.textContent = t; side.appendChild(l); return l; }
   function input(v, ph) { var i = document.createElement("input"); i.value = v || ""; i.placeholder = ph || ""; i.spellcheck = false; side.appendChild(i); return i; }
   function select(v, opts) {
@@ -7479,37 +7488,37 @@ function mgRenderParam() {
     var targetState = editLink ? mgStateById(editLink.to) : null;
     var nh = document.createElement("div"); nh.className = "hint";
     nh.textContent = editLink
-      ? "Trigger del collegamento " + (fromState ? fromState.name : mgParam.id) + " \u2192 " + (targetState ? targetState.name : editLink.to) + ":"
-      : "Nuovo trigger da " + (fromState ? fromState.name : mgParam.id) + ":";
+      ? "Link trigger " + (fromState ? fromState.name : mgParam.id) + " \u2192 " + (targetState ? targetState.name : editLink.to) + ":"
+      : "New trigger from " + (fromState ? fromState.name : mgParam.id) + ":";
     side.appendChild(nh);
-    label("tipo trigger");
+    label("trigger type");
     var evSel = document.createElement("select");
     MG_TRIGGER_OPTIONS.forEach(function(o){
       var op = document.createElement("option");
       op.value = o[0]; op.textContent = o[1];
       if (o[0] && MG_SINGLE_EVENTS[o[0]] && mgTriggerUsedExcept(mgParam.id, o[0], editLink ? editLink.id : "")) {
         op.disabled = true;
-        op.textContent += " (già usato)";
+        op.textContent += " (already used)";
       }
       if (editLink && o[0] === (editLink.event || "")) op.selected = true;
       evSel.appendChild(op);
     });
     side.appendChild(evSel);
 
-    var varLabel = label("variabile"); var varSel = document.createElement("select");
+    var varLabel = label("variable"); var varSel = document.createElement("select");
     (root.states || []).forEach(function(st){
       var op = document.createElement("option"); op.value = st.name; op.textContent = st.name + (st.init ? " = " + st.init : "");
       varSel.appendChild(op);
     });
     side.appendChild(varSel);
-    var valLabel = label("valore attivatore"); var valInp = input("true", "true, false, testo o numero");
+    var valLabel = label("activating value"); var valInp = input("true", "true, false, text or number");
 
-    var timerLabel = label("timer"); var timerInp = input("1s", "es. 1s, 500ms");
+    var timerLabel = label("timer"); var timerInp = input("1s", "e.g. 1s, 500ms");
 
     var targetSel = null;
     if (editLink) {
       var th = document.createElement("div"); th.className = "hint";
-      th.textContent = "Destinazione: " + (targetState ? targetState.name : editLink.to);
+      th.textContent = "Destination: " + (targetState ? targetState.name : editLink.to);
       side.appendChild(th);
       if (editLink.event === "state") {
         var when = editLink.when || "";
@@ -7519,12 +7528,12 @@ function mgRenderParam() {
       }
       if (editLink.event === "timer") timerInp.value = editLink.timer || "1s";
     } else {
-      label("stato di destinazione"); targetSel = document.createElement("select");
+      label("destination state"); targetSel = document.createElement("select");
       mgCfg.states.forEach(function(t){
         if (t.id === mgParam.id) return;
         var op = document.createElement("option"); op.value = t.id; op.textContent = t.name; targetSel.appendChild(op);
       });
-      var newOpt = document.createElement("option"); newOpt.value = "__new"; newOpt.textContent = "Nuovo stato"; targetSel.appendChild(newOpt);
+      var newOpt = document.createElement("option"); newOpt.value = "__new"; newOpt.textContent = "New state"; targetSel.appendChild(newOpt);
       side.appendChild(targetSel);
     }
 
@@ -7542,14 +7551,14 @@ function mgRenderParam() {
     syncTriggerFields();
 
     var createRow = actions();
-    btn(createRow, "Annulla", function(){
+    btn(createRow, "Cancel", function(){
       mgParam = { kind: "state", id: mgParam.id };
       mgRenderParam();
     });
-    btn(createRow, "Conferma", function(){
+    btn(createRow, "Confirm", function(){
       var ev = evSel.value;
-      if (!ev) { mgNotify("Scegli il tipo di trigger."); return; }
-      if (MG_SINGLE_EVENTS[ev] && mgTriggerUsedExcept(mgParam.id, ev, editLink ? editLink.id : "")) { mgNotify("Questo trigger è già stato usato da questo stato."); return; }
+      if (!ev) { mgNotify("Choose a trigger type."); return; }
+      if (MG_SINGLE_EVENTS[ev] && mgTriggerUsedExcept(mgParam.id, ev, editLink ? editLink.id : "")) { mgNotify("This trigger is already used by this state."); return; }
       var sourceId = mgParam.id;
       if (editLink) {
         snap("set motion trigger");
@@ -7569,12 +7578,12 @@ function mgRenderParam() {
         return;
       }
       var target = targetSel ? targetSel.value : "";
-      if (!target) { mgNotify("Scegli lo stato di destinazione."); return; }
+      if (!target) { mgNotify("Choose the destination state."); return; }
       snap("add motion trigger");
       var before = JSON.parse(JSON.stringify(mgCfg));
       var toId = target;
       if (target === "__new") {
-        var st = { id: mgNextId("s", mgCfg.states), name: "Stato " + (mgCfg.states.length + 1), css: fromState ? (fromState.css || "") : "" };
+        var st = { id: mgNextId("s", mgCfg.states), name: "State " + (mgCfg.states.length + 1), css: fromState ? (fromState.css || "") : "" };
         mgCfg.states.push(st);
         toId = st.id;
       }
@@ -7595,7 +7604,7 @@ function mgRenderParam() {
         mgSelState = ""; mgSelLink = "";
         mgParam = { kind: "newlink", id: sourceId };
         setOut(); autoPreview(); mgRender(); mgRenderParam();
-        mgNotify("Collegamento non instradabile: sposta gli stati o scegli un'altra destinazione.");
+        mgNotify("Unroutable link: move the states or choose another destination.");
         return;
       }
       mgSelLink = ""; mgSelState = "";
@@ -7641,69 +7650,68 @@ function mgRenderParam() {
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
     side.appendChild(h);
-    label("trigger"); var ev = select(l.event || "", [["","(scegli trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","valore variabile"],["timer","timer"],["after","dopo la transizione"]]);
+    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["timer","timer"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); l.event = ev.value; mgCommit(); mgRender(); };
     if (l.event === "state") {
-      label("variabile"); var vars = (root.states || []).map(function(st){ return [st.name, st.name]; });
+      label("variable"); var vars = (root.states || []).map(function(st){ return [st.name, st.name]; });
       if (l.when && !vars.some(function(v){ return v[0] === l.when; })) vars.unshift([l.when, l.when]);
       var vsel = select(l.when || "", vars);
       vsel.onchange = function(){ snap("motion graph condition"); l.when = vsel.value; mgCommit(); };
-      label("valore attivatore"); var val = input(l.value, "true, false, testo o numero");
+      label("activating value"); var val = input(l.value, "true, false, text or number");
       val.onchange = function(){ snap("motion graph condition value"); l.value = val.value.trim(); mgCommit(); };
     }
     if (l.event === "timer") {
-      label("timer"); var tim = input(l.timer || "1s", "es. 1s, 500ms");
+      label("timer"); var tim = input(l.timer || "1s", "e.g. 1s, 500ms");
       tim.onchange = function(){ snap("motion graph timer"); l.timer = tim.value.trim() || "1s"; mgCommit(); };
     }
     label("duration"); var du = input(l.duration, "320ms"); du.onchange = function(){ snap("motion graph duration"); l.duration = du.value.trim(); mgCommit(); };
     label("easing"); var ea = input(l.easing, "ease-out"); ea.onchange = function(){ snap("motion graph easing"); l.easing = ea.value.trim(); mgCommit(); };
     label("delay"); var de = input(l.delay, "0ms"); de.onchange = function(){ snap("motion graph delay"); l.delay = de.value.trim(); mgCommit(); };
     var ac = actions();
-    btn(ac, "Anteprima", function(){ mgPreviewLink(l); });
-    btn(ac, "Elimina collegamento", function(){ snap("delete motion link"); mgCfg.links = mgCfg.links.filter(function(x){ return x.id !== l.id; }); mgSelLink = ""; mgParam = null; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
+    btn(ac, "Preview", function(){ mgPreviewLink(l); });
+    btn(ac, "Delete link", function(){ snap("delete motion link"); mgCfg.links = mgCfg.links.filter(function(x){ return x.id !== l.id; }); mgSelLink = ""; mgParam = null; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
     return;
   }
   var s = (mgParam && mgParam.kind === "state") ? mgStateById(mgParam.id) : null;
   if (!s) {
     var h2 = document.createElement("div"); h2.className = "hint";
-    h2.textContent = "Doppio clic su uno stato o su una freccia per aprire i suoi parametri. Il clic singolo su uno stato lo evidenzia e lo mostra nella preview.";
+    h2.textContent = "Double-click a state or an arrow to open its parameters. A single click selects the state and previews it.";
     side.appendChild(h2);
     return;
   }
-  label("nome stato"); var nm = input(s.name, "es. aperto"); nm.onchange = function(){ snap("motion graph state name"); s.name = nm.value.trim() || s.id; mgCommit(); mgRender(); };
-  label("CSS dello stato"); var ta = document.createElement("textarea"); ta.value = s.css || ""; ta.placeholder = "width: 420px; height: 280px; margin-left: 96px;"; side.appendChild(ta);
+  label("state name"); var nm = input(s.name, "e.g. open"); nm.onchange = function(){ snap("motion graph state name"); s.name = nm.value.trim() || s.id; mgCommit(); mgRender(); };
+  label("state CSS"); var ta = document.createElement("textarea"); ta.value = s.css || ""; ta.placeholder = "width: 420px; height: 280px; margin-left: 96px;"; side.appendChild(ta);
   ta.onchange = function(){
     snap("motion graph state css"); s.css = ta.value; mgCommit();
     if (mgEdit && mgEdit.state === s.id) mgSendStateFocus();
   };
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = "Le modifiche qui aggiornano i parametri dello stato. Il clic sullo stato applica questi parametri nella preview e centra l'elemento.";
+  hint.textContent = "Changes here update the state parameters. A click on the state previews these parameters; use the pencil icon on the block to edit its appearance.";
   side.appendChild(hint);
   var ac2 = actions();
-  btn(ac2, "Focus preview", function(){ mgFocusState(s.id); });
-  btn(ac2, "Salva da preview", function(){ var css = mgCaptureStyle(); if (css != null) { snap("save motion state"); s.css = css; mgCommit(); mgRender(); } });
-  btn(ac2, "Imposta iniziale", function(){ snap("motion graph initial"); mgCfg.initial = s.id; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
-  btn(ac2, "Elimina stato", function(){ mgDeleteState(s.id); });
+  btn(ac2, "Preview state", function(){ mgPreviewState(s.id, "360ms", "ease-out"); });
+  btn(ac2, "Set as initial", function(){ snap("motion graph initial"); mgCfg.initial = s.id; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
+  btn(ac2, "Delete state", function(){ mgDeleteState(s.id); });
   function transitionBlock(link, incoming, num) {
     var other = mgStateById(incoming ? link.from : link.to);
     var title = document.createElement("div"); title.className = "hint"; title.style.marginTop = "10px";
-    title.textContent = (incoming ? "In ingresso da " : "Trigger " + num + " → ") + (other ? other.name : (incoming ? link.from : link.to));
+    title.textContent = (incoming ? "Incoming from " : "Trigger " + num + " → ") + (other ? other.name : (incoming ? link.from : link.to));
     side.appendChild(title);
-    label("trigger"); var ev = select(link.event || "", [["","(scegli trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","stato variabile"],["after","dopo la transizione"]]);
+    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
     if (link.event === "state") {
-      label("variabile (vero/falso)"); var wh = input(link.when, "es. open oppure !open");
+      label("variable (true/false)"); var wh = input(link.when, "e.g. open or !open");
       wh.onchange = function(){ snap("motion graph condition"); link.when = wh.value.trim(); mgCommit(); };
     }
-    label("durata"); var dur = input(link.duration, "320ms"); dur.onchange = function(){ snap("motion graph duration"); link.duration = dur.value.trim(); mgCommit(); };
+    label("duration"); var dur = input(link.duration, "320ms"); dur.onchange = function(){ snap("motion graph duration"); link.duration = dur.value.trim(); mgCommit(); };
     label("easing"); var eas = input(link.easing, "ease-out"); eas.onchange = function(){ snap("motion graph easing"); link.easing = eas.value.trim(); mgCommit(); };
     label("delay"); var del = input(link.delay, "0ms"); del.onchange = function(){ snap("motion graph delay"); link.delay = del.value.trim(); mgCommit(); };
     var sep = document.createElement("div"); sep.style.cssText = "border-top:1px solid var(--border);margin:10px 0 2px"; side.appendChild(sep);
   }
   var outgoing = mgCfg.links.filter(function(x){ return x.from === s.id; });
-  var trHead = document.createElement("div"); trHead.className = "hint"; trHead.style.marginTop = "14px"; trHead.textContent = "Trigger attivi"; side.appendChild(trHead);
+  var trHead = document.createElement("div"); trHead.className = "hint"; trHead.style.marginTop = "14px"; trHead.textContent = "Active triggers"; side.appendChild(trHead);
   if (!outgoing.length) {
-    var noTr = document.createElement("div"); noTr.className = "hint"; noTr.textContent = "Nessun trigger attivo. Aggiungine uno per creare un collegamento."; side.appendChild(noTr);
+    var noTr = document.createElement("div"); noTr.className = "hint"; noTr.textContent = "No active triggers. Add one to create a link."; side.appendChild(noTr);
   } else {
     outgoing.forEach(function(link, idx){
       var target = mgStateById(link.to);
@@ -7711,7 +7719,7 @@ function mgRenderParam() {
       row.className = "btn"; row.type = "button";
       row.style.cssText = "display:block;width:100%;text-align:left;margin:3px 0;font-size:11px;padding:4px 7px;" + (link.event ? "" : "border-color:#b23a4a;color:#ffb4bf;");
       row.textContent = "#" + (idx + 1) + "  " + mgTriggerLabel(link) + "  ->  " + (target ? target.name : "?");
-      row.title = link.event ? "Clic per modificare il trigger" : "Clic per scegliere il trigger";
+      row.title = link.event ? "Click to edit the trigger" : "Click to choose the trigger";
       row.onclick = function(){
         if (!link.event) { mgAddLinkMenu(s.id, link.id); return; }
         mgSelLink = link.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", link.id);
@@ -7720,12 +7728,12 @@ function mgRenderParam() {
     });
   }
   var addTr = actions();
-  btn(addTr, "Aggiungi trigger", function(){ mgAddLinkMenu(s.id); });
+  btn(addTr, "Add trigger", function(){ mgAddLinkMenu(s.id); });
 }
 function mgAddState() {
   if (!mgCfg) return;
   snap("add motion state");
-  var st = { id: mgNextId("s", mgCfg.states), name: "Stato " + (mgCfg.states.length + 1), css: "" };
+  var st = { id: mgNextId("s", mgCfg.states), name: "State " + (mgCfg.states.length + 1), css: "" };
   mgCfg.states.push(st); mgSelState = st.id; mgSelLink = ""; mgParam = null;
   mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
 }
@@ -7783,9 +7791,15 @@ function mgFocusState(id, collapse) {
   if (!mgEdit || mgEdit.state !== id) {
     mgEdit = { path: mgPath.slice(), state: id, snapshot: JSON.parse(JSON.stringify(mgCfg)) };
   }
-  if (collapse) mgMinimizePanel();
+  if (collapse) {
+    var panel = document.getElementById("mg-panel");
+    if (panel) { panel.classList.remove("on"); panel.classList.remove("min"); }
+    var launch = document.getElementById("mg-launch");
+    if (launch) launch.classList.remove("on");
+    mgCloseParam();
+  }
   var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.add("on");
-  var lbl = document.getElementById("mg-edit-title"); if (lbl) lbl.textContent = "Stato: " + st.name;
+  var lbl = document.getElementById("mg-edit-title"); if (lbl) lbl.textContent = "State: " + st.name;
   document.body.classList.add("mg-scope-edit");
   selPath = mgPath.slice(); multiSel = [];
   renderTree(); fillPanel(); renderInspector(); postHighlight();
@@ -7795,6 +7809,12 @@ function mgFocusState(id, collapse) {
 }
 function mgCloseState() {
   mgFinishEdit(false);
+}
+function mgCancelEdit() {
+  mgFinishEdit(false);
+}
+function mgCloseEdit() {
+  mgClosePanel();
 }
 function mgCaptureStyle() {
   var f = document.getElementById("prev");

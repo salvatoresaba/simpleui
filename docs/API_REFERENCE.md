@@ -472,11 +472,13 @@ without a trigger opens the chooser for that link. The trigger chooser supports
 DOM events (once per source state), variable triggers with an activating value,
 and timers that fire after a chosen duration.
 
-Clicking a state enters editing mode: its CSS is applied in the preview, the
-element is isolated, and the graph panel collapses to a bar with **Salva stato**
-and **Chiudi**. Inspector edits are written into the focused state. Save validates
-and restores the animation panel; close restores the snapshot and discards
-changes. Saving rejects an empty trigger, a missing variable, duplicate state
+A single click selects a state and previews its CSS without leaving the panel.
+The pencil icon on a state block enters graphic editing: the animation panel is
+hidden, the element is isolated, and only the edit bar remains with **Save
+state**, **Cancel** and **Close**. Save captures the preview style, associates it
+with the state and reopens the panel; Cancel discards the changes and reopens the
+panel; Close discards them, closes the animation panel and returns to the normal
+editor. Saving rejects an empty trigger, a missing variable, duplicate state
 parameters or a repeated single-use event and shows the error. **Remove states**
 deletes the state graph but keeps Layout & shared.
 

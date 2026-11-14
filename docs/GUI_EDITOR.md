@@ -955,13 +955,16 @@ only the graph; parameters open in draggable overlay panels:
   draws the link with the normal completed color. **Aggiungi trigger** uses the
   same chooser for a new link. Double-click an arrow to edit its trigger,
   duration, easing and delay; an arrow without a trigger opens the chooser for
-  that link. Overlays are draggable and stay above the graph.
-- Clicking a state enters editing mode: the element is isolated and centered in
-  the preview, and the graph panel collapses to a small bar. Inspector changes
-  are written into the focused state and appear immediately.
-- While a state is being edited, use **Salva stato** to validate and capture the
-  preview style, or **Chiudi** to restore the snapshot and discard the edits.
-  Saving restores the animation panel.
+  that link. Overlays are draggable and stay above the graph; opening them does
+  not minimize the animation panel.
+- A single click selects the state and previews its parameters without leaving
+  the panel.
+- The pencil icon on a state block enters graphic editing: the animation panel
+  is hidden, the element is isolated and centered in the preview, and only the
+  edit bar appears with **Save state**, **Cancel** and **Close**. Save captures
+  the preview style, associates it with the state and reopens the panel; Cancel
+  discards the changes and reopens the panel; Close discards them, closes the
+  animation panel and returns to the normal editor.
 - Saving rejects an empty trigger, a variable trigger without a variable, two
   states with identical parameters, or the same single-use event twice from one
   state. The error is shown in the editor notification and the state stays open

@@ -450,13 +450,15 @@ una freccia senza trigger apre il chooser per quel link. Il chooser supporta
 eventi DOM (una volta per stato sorgente), trigger variabile con valore
 attivatore e timer con durata.
 
-Il clic su uno stato entra in modalità editing: applica il CSS nella preview,
-isola l'elemento e riduce il pannello del grafo a una barra con **Salva stato** e
-**Chiudi**. Le modifiche dall'inspector vengono scritte nello stato focalizzato.
-Il salvataggio valida e riapre il pannello animazioni; la chiusura ripristina lo
-snapshot e scarta le modifiche. Il salvataggio rifiuta trigger vuoto, variabile
-mancante, parametri uguali o evento singolo ripetuto e mostra l'errore. **Remove
-states** elimina il grafo degli stati ma conserva Layout & shared.
+Il clic semplice su uno stato lo seleziona e mostra il suo CSS nella preview
+senza lasciare il pannello. L'icona a matita sul blocco stato entra in editing
+grafico: il pannello animazioni viene nascosto, l'elemento è isolato e resta solo
+la barra con **Save state**, **Cancel** e **Close**. Save cattura lo stile della
+preview, lo associa allo stato e riapre il pannello; Cancel scarta le modifiche e
+riapre il pannello; Close le scarta, chiude il pannello animazioni e torna
+all'editor normale. Il salvataggio rifiuta trigger vuoto, variabile mancante,
+parametri uguali o evento singolo ripetuto e mostra l'errore. **Remove states**
+elimina il grafo degli stati ma conserva Layout & shared.
 
 `motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
 condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere

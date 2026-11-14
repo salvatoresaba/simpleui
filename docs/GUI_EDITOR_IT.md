@@ -993,13 +993,15 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   normale di completamento. **Aggiungi trigger** usa lo stesso chooser per un
   nuovo link. Doppio clic su una freccia: trigger, durata, easing e delay; una
   freccia senza trigger apre il chooser per quel link. Gli overlay sono
-  trascinabili e sopra il grafo.
-- Il clic su uno stato entra in modalità editing: l'elemento viene isolato e
-  centrato nella preview e il pannello del grafo si riduce a una barra. Le
-  modifiche dall'inspector vengono scritte nello stato e compaiono subito.
-- Durante la modifica dello stato usa **Salva stato** per validare e catturare
-  lo stile della preview, oppure **Chiudi** per ripristinare lo snapshot e
-  scartare le modifiche. Il salvataggio riapre il pannello animazioni.
+  trascinabili e sopra il grafo; aprirli non minimizza il pannello animazioni.
+- Il clic semplice su uno stato lo seleziona e mostra i suoi parametri nella
+  preview senza lasciare il pannello.
+- L'icona a matita sul blocco stato entra in editing grafico: il pannello
+  animazioni viene nascosto, l'elemento è isolato e centrato nella preview e
+  compare solo la barra con **Save state**, **Cancel** e **Close**. Save cattura
+  lo stile della preview, lo associa allo stato e riapre il pannello; Cancel
+  scarta le modifiche e riapre il pannello; Close le scarta, chiude il pannello
+  animazioni e torna all'editor normale.
 - Il salvataggio rifiuta un trigger vuoto, un trigger variabile senza variabile,
   due stati con gli stessi parametri o lo stesso evento singolo usato due volte
   dallo stesso stato; l'errore compare nella notifica e lo stato resta aperto

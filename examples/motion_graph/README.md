@@ -102,13 +102,15 @@ and the FLIP engine described in `examples/motion_pages`.
    in the normal completed color. Use **Aggiungi trigger** for a new link.
    Double-click an arrow for trigger, duration, easing and delay; an untriggered
    arrow opens the same chooser.
-8. Clicking a state enters editing mode: it applies the state in the preview,
-   isolates the element and collapses the graph panel. Inspector changes are
-   written into the focused state and appear immediately.
-9. While editing, use **Salva stato** to validate and capture the preview style,
-   or **Chiudi** to restore the snapshot and discard changes. Save restores the
-   animation panel. Saving rejects an empty trigger, a missing variable, duplicate
-   state parameters or a repeated single-use event.
+8. A single click selects a state and previews its style without leaving the
+   panel. The pencil icon on a state enters graphic editing: the animation panel
+   is hidden, the element is isolated, and only the edit bar remains with **Save
+   state**, **Cancel** and **Close**.
+9. **Save state** captures the preview style, associates it with the state and
+   reopens the panel; **Cancel** discards the changes and reopens the panel;
+   **Close** discards them, closes the animation panel and returns to the normal
+   editor. Saving rejects an empty trigger, a missing variable, duplicate state
+   parameters or a repeated single-use event.
 10. Press **Anteprima** to play the selected state or link.
 
 States/links and Layout & shared live in the same panel; there are no duplicate
