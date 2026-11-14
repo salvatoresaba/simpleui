@@ -952,7 +952,7 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   aggiungere uno stato collegato e **×** per eliminare lo stato.
 - **+** crea subito un nuovo blocco e un link, ma non apre il pannello del
   trigger. Muovi il mouse sul grafo e clicca per posizionare il blocco dove ci
-  sono almeno 10 px liberi; il pulsante **Conferma posizione** conferma la
+  c'è spazio libero sufficiente per i collegamenti; il pulsante **Conferma posizione** conferma la
   posizione corrente. Nessun pannello di selezione si apre automaticamente: il
   trigger può essere scelto in seguito dalla riga del trigger attivo.
   **Aggiungi trigger** nell'overlay dello stato aggiunge un trigger a uno stato
@@ -963,9 +963,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   uscire dallo stesso stato verso destinazioni diverse.
 - I link partono sempre dal lato destro dello stato sorgente e finiscono al
   centro del lato sinistro della destinazione, orizzontalmente. Il percorso è
-  ortogonale con una distanza minima di **10 px** tra box, tra link e tra link e
+  ortogonale con una distanza minima di **15 px** tra box, tra link e tra link e
   box. Il primo e l'ultimo tratto sono perpendicolari al lato del box e lunghi
-  almeno 10 px. I punti di connessione sono assegnati in ordine verticale di
+  almeno 15 px. I punti di connessione sono assegnati in ordine verticale di
   destinazione, così un ventaglio di link si annida senza incroci; ogni modifica
   ricalcola tutti i link e prova più ordini prima di scegliere il percorso. I
   segmenti non attraversano mai un box, usano angoli retti e preferiscono il

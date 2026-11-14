@@ -6634,16 +6634,16 @@ function mgBoxCollides(id, x, y) {
   return false;
 }
 function mgFreeStatePosition(sourceId) {
-  var base = mgPositions[sourceId] || { x: 24, y: 24 };
+  var base = mgPositions[sourceId] || { x: 36, y: 36 };
   var maxRight = base.x;
   for (var i = 0; i < mgCfg.states.length; i++) {
     var p = mgPositions[mgCfg.states[i].id];
     if (p) maxRight = Math.max(maxRight, p.x + MG_BOX_W + MG_LINK_MARGIN);
   }
-  var x = maxRight + MG_LINK_MARGIN + 32;
+  var x = maxRight + MG_LINK_MARGIN + 48;
   var y = base.y;
   var guard = 0;
-  while (mgBoxCollides("", x, y) && guard++ < 30) y += 58;
+  while (mgBoxCollides("", x, y) && guard++ < 30) y += 87;
   return { x: x, y: y };
 }
 function mgMakeStateDraggable(d, s) {
@@ -6713,8 +6713,8 @@ function mgMakeStateDraggable(d, s) {
     window.addEventListener("pointerup", up);
   });
 }
-var MG_BOX_W = 120, MG_LINK_MARGIN = 10, MG_LINE_CLEAR = 10, MG_LANE = 20, MG_STUB = 10;
-var MG_ROUTE_PAD_X = 30, MG_ROUTE_PAD_Y = 20;
+var MG_BOX_W = 120, MG_LINK_MARGIN = 15, MG_LINE_CLEAR = 15, MG_LANE = 30, MG_STUB = 15;
+var MG_ROUTE_PAD_X = 45, MG_ROUTE_PAD_Y = 30;
 function mgSegRect(x1, y1, x2, y2, pad) {
   return {
     l: Math.min(x1, x2) - pad, t: Math.min(y1, y2) - pad,
@@ -7257,7 +7257,7 @@ function mgRender() {
   });
   function nodeHeight(id) {
     var n = Math.max(outCount[id] || 0, inCount[id] || 0);
-    return Math.min(220, 38 + Math.max(0, n - 1) * 18);
+    return Math.min(330, 57 + Math.max(0, n - 1) * 27);
   }
   var layerY = {};
   var pos = {};
@@ -7269,9 +7269,9 @@ function mgRender() {
     if (typeof s.x === "number" && typeof s.y === "number") {
       pos[s.id] = { x: s.x, y: s.y };
     } else {
-      var y = layerY[layers[s.id]] !== undefined ? layerY[layers[s.id]] : 24;
-      pos[s.id] = { x: 24 + layers[s.id] * 172, y: y };
-      layerY[layers[s.id]] = y + h + 24;
+      var y = layerY[layers[s.id]] !== undefined ? layerY[layers[s.id]] : 36;
+      pos[s.id] = { x: 36 + layers[s.id] * 258, y: y };
+      layerY[layers[s.id]] = y + h + 36;
     }
   });
   mgPositions = pos;
@@ -7390,7 +7390,7 @@ function mgConfirmPlacement() {
   if (!mgPlacement) return;
   var last = mgPlacement.last || { x: mgPositions[mgPlacement.stateId].x, y: mgPositions[mgPlacement.stateId].y, valid: true };
   if (!last.valid || mgBoxCollides(mgPlacement.stateId, last.x, last.y)) {
-    mgNotify("Spazio insufficiente: lascia almeno 10 px tra i box.");
+    mgNotify("Spazio insufficiente: lascia più spazio tra i box e i collegamenti.");
     return;
   }
   mgDragging = false;

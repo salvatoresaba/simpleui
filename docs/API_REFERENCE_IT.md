@@ -420,15 +420,15 @@ I blocchi crescono in altezza con i trigger uscenti e possono essere trascinati
 in posizioni personalizzate. Ogni blocco ha **+** per aggiungere uno stato
 collegato e **×** per eliminarlo. **+** crea subito un nuovo blocco e un link,
 ma lascia chiuso il pannello del trigger; muovi il mouse e clicca su uno spazio
-libero (almeno 10 px) oppure usa **Conferma posizione**. Nessun pannello si apre
+libero (con spazio sufficiente per i link) oppure usa **Conferma posizione**. Nessun pannello si apre
 automaticamente; scegli il trigger in seguito dalla riga del trigger attivo.
 **Aggiungi trigger** aggiunge un altro trigger a uno stato esistente. Il trigger
 appartiene allo stato di partenza; i link uscenti sono numerati all'inizio e il
 tooltip del numero mostra il tipo di trigger. I link partono dal lato destro e
 arrivano orizzontalmente al centro del lato sinistro della destinazione. Il
-percorso è ortogonale con una distanza minima di **10 px** tra box, tra link e
+percorso è ortogonale con una distanza minima di **15 px** tra box, tra link e
 tra link e box; il primo e l'ultimo tratto sono perpendicolari al lato e lunghi
-almeno 10 px. I punti di connessione sono assegnati in ordine verticale di
+almeno 15 px. I punti di connessione sono assegnati in ordine verticale di
 destinazione e tutti i link vengono ricalcolati a ogni modifica, provando più
 ordini; il router evita i box, usa angoli retti e preferisce il percorso più breve
 con il minor numero di segmenti. I link all'indietro girano attorno ai box e i

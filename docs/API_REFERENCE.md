@@ -443,15 +443,15 @@ to the visible viewport. **Layout & shared** in the toolbar opens the classic
 State blocks grow taller as outgoing triggers are added and can be dragged to
 custom positions. Each block has **+** to add a connected state and **×** to
 delete it. **+** immediately creates a new state block and link, but leaves the
-trigger panel closed; move the mouse and click on a free spot (at least 10 px
-clear) or use **Conferma posizione**. No panel opens automatically; choose the
+trigger panel closed; move the mouse and click on a free spot (with enough free
+space for the links) or use **Conferma posizione**. No panel opens automatically; choose the
 trigger later from the active-trigger row. **Aggiungi trigger** adds another
 trigger to an existing state. A trigger belongs to the source state; outgoing
 links are numbered at their start point and hovering the number shows the
 trigger hint. Links leave the right side and enter the centre of the target's
-left side horizontally. Routing is orthogonal with a **10 px** minimum distance
+left side horizontally. Routing is orthogonal with a **15 px** minimum distance
 between boxes, between links and between links and boxes; the first and last
-segments are perpendicular to the edge and at least 10 px long. Ports are
+segments are perpendicular to the edge and at least 15 px long. Ports are
 assigned in vertical target order and all links are re-routed on every change,
 trying several orders; the router avoids boxes, uses right-angle corners and
 prefers the shortest path with the fewest segments. Backward links route around

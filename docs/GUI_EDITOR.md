@@ -917,7 +917,7 @@ only the graph; parameters open in draggable overlay panels:
   and **×** to delete the state.
 - **+** immediately creates a new state block and a link, but does not open the
   trigger panel. Move the mouse over the graph and click to place the block
-  where there is at least 10 px of free space; the **Conferma posizione** button
+  where there is enough free space for its links; the **Conferma posizione** button
   confirms the current position. No selection panel opens automatically: the
   trigger can be chosen later from the active-trigger row. **Aggiungi trigger**
   in the state overlay adds a trigger to an existing state.
@@ -926,10 +926,10 @@ only the graph; parameters open in draggable overlay panels:
   Hovering the number shows the trigger hint (for example `click`). Several
   links can leave the same state and point to different targets.
 - Links always start at the right side of the source and end at the centre of
-  the target's left side, horizontally. Routing is orthogonal with a **10 px**
+  the target's left side, horizontally. Routing is orthogonal with a **15 px**
   minimum distance between boxes, between links, and between links and boxes.
   The first and last segment are perpendicular to the box edge and at least
-  10 px long. Ports are assigned in vertical target order, so a fan-out nests
+  15 px long. Ports are assigned in vertical target order, so a fan-out nests
   without crossings; every change re-routes all links and tries several orders
   before choosing a route. Segments never cross a box, use right-angle corners
   and prefer the shortest path with the fewest segments. Links that go back to
