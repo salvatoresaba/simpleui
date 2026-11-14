@@ -1023,6 +1023,11 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   che lo attiva (`true`/`false`, testo o numero). Un trigger **timer** chiede
   una durata e avvia la transizione automaticamente dopo quel tempo nello stato
   sorgente.
+- Un trigger **after transition** parte automaticamente quando termina la
+  transizione che entra nello stato sorgente. Concatenando più link `after`
+  (A → B → C) si costruiscono animazioni multi-step. Ogni transizione espone
+  `duration`, un **combo box easing** con le funzioni CSS standard e i preset
+  `cubic-bezier` comuni, e `delay`.
 - Doppio clic su uno stato: overlay con nome, CSS e lista dei trigger attivi con
   la destinazione. Non ci sono campi per i trigger in ingresso. Se lo stato ha un
   collegamento uscente senza trigger, si apre direttamente il chooser:

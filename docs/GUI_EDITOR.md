@@ -981,6 +981,11 @@ only the graph; parameters open in draggable overlay panels:
   that activates it (`true`/`false`, text or number). A **timer** trigger asks
   for a duration and starts the transition automatically after that time in the
   source state.
+- An **after transition** trigger starts automatically when the transition into
+  the source state finishes. Chain several `after` links (A → B → C) to build
+  multi-step animations. Each transition exposes `duration`, an **easing** combo
+  box with the standard CSS timing functions and common `cubic-bezier` presets,
+  and `delay`.
 - Double-click a state to open its overlay: name, CSS and the list of active
   triggers with their destination. There are no incoming-trigger fields. When
   the state has an untriggered outgoing link, the trigger chooser opens directly:

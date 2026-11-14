@@ -6635,6 +6635,25 @@ function mgTriggerLabel(link) {
   if (link.button != null && link.button !== "") filters.push(["Left", "Middle", "Right"][Number(link.button)] || ("Button " + link.button));
   return filters.length ? base + " [" + filters.join(", ") + "]" : base;
 }
+var MG_EASING_OPTIONS = [
+  ["ease-out", "ease out (default)"],
+  ["ease-in", "ease in"],
+  ["ease-in-out", "ease in out"],
+  ["ease", "ease"],
+  ["linear", "linear"],
+  ["cubic-bezier(0.4, 0, 0.2, 1)", "standard (cubic-bezier)"],
+  ["cubic-bezier(0, 0, 0.2, 1)", "decelerate (cubic-bezier)"],
+  ["cubic-bezier(0.4, 0, 1, 1)", "accelerate (cubic-bezier)"],
+  ["cubic-bezier(0.34, 1.56, 0.64, 1)", "overshoot (cubic-bezier)"],
+  ["steps(4, end)", "steps (4)"]
+];
+function mgEasingOptions(value) {
+  var v = String(value || "").trim() || "ease-out";
+  var opts = MG_EASING_OPTIONS.slice();
+  var known = opts.some(function(o){ return o[0] === v; });
+  if (!known) opts.unshift([v, "custom (" + v + ")"]);
+  return opts;
+}
 function mgElementLabel(n, path) {
   var text = n.kind;
   if (n.name) text += " #" + n.name;
@@ -7681,6 +7700,10 @@ function mgRenderParam() {
       evSel.appendChild(op);
     });
     side.appendChild(evSel);
+    var afterHint = document.createElement("div");
+    afterHint.className = "hint";
+    afterHint.textContent = "Starts automatically when the transition into this state finishes. Chain several after links to build a sequence.";
+    side.appendChild(afterHint);
 
     var externalChoices = mgExternalChoices();
     var externalById = {};
@@ -7821,6 +7844,7 @@ function mgRenderParam() {
       valInp.style.display = showState ? "" : "none";
       timerLabel.style.display = ev === "timer" ? "" : "none";
       timerInp.style.display = ev === "timer" ? "" : "none";
+      afterHint.style.display = ev === "after" ? "" : "none";
       if (isExtState) syncExternalStates();
     }
     evSel.onchange = syncTriggerFields;
@@ -7973,6 +7997,11 @@ function mgRenderParam() {
       if (ev.value === "custom" || ev.value === "keydown" || ev.value === "keyup" || ev.value === "input" || ev.value === "submit" || ev.value === "change" || ev.value === "focus" || ev.value === "blur") delete l.button;
       mgCommit(); mgRender(); mgRenderParam();
     };
+    if (l.event === "after") {
+      var afterLinkNote = document.createElement("div"); afterLinkNote.className = "hint";
+      afterLinkNote.textContent = "Starts when the transition into " + (a ? a.name : l.from) + " finishes.";
+      side.appendChild(afterLinkNote);
+    }
     var linkExternal = mgExternalChoices();
     var linkExternalById = {};
     linkExternal.forEach(function(c){ linkExternalById[String(c.id)] = c; });
@@ -8052,7 +8081,7 @@ function mgRenderParam() {
       tim.onchange = function(){ snap("motion graph timer"); l.timer = tim.value.trim() || "1s"; mgCommit(); };
     }
     label("duration"); var du = input(l.duration, "320ms"); du.onchange = function(){ snap("motion graph duration"); l.duration = du.value.trim(); mgCommit(); };
-    label("easing"); var ea = input(l.easing, "ease-out"); ea.onchange = function(){ snap("motion graph easing"); l.easing = ea.value.trim(); mgCommit(); };
+    label("easing"); var ea = select(l.easing || "ease-out", mgEasingOptions(l.easing)); ea.onchange = function(){ snap("motion graph easing"); l.easing = ea.value; mgCommit(); };
     label("delay"); var de = input(l.delay, "0ms"); de.onchange = function(){ snap("motion graph delay"); l.delay = de.value.trim(); mgCommit(); };
     var ac = actions();
     btn(ac, "Preview", function(){ mgPreviewLink(l); });
@@ -8087,12 +8116,17 @@ function mgRenderParam() {
     side.appendChild(title);
     label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["input","input"],["keydown","key down"],["keyup","key up"],["pointerdown","pointer down"],["pointerup","pointer up"],["submit","submit"],["custom","custom event"],["state","variable value"],["elementState","external element state"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
+    if (link.event === "after") {
+      var afterNote = document.createElement("div"); afterNote.className = "hint";
+      afterNote.textContent = "Starts when the transition into this state finishes.";
+      side.appendChild(afterNote);
+    }
     if (link.event === "state") {
       label("variable (true/false)"); var wh = input(link.when, "e.g. open or !open");
       wh.onchange = function(){ snap("motion graph condition"); link.when = wh.value.trim(); mgCommit(); };
     }
     label("duration"); var dur = input(link.duration, "320ms"); dur.onchange = function(){ snap("motion graph duration"); link.duration = dur.value.trim(); mgCommit(); };
-    label("easing"); var eas = input(link.easing, "ease-out"); eas.onchange = function(){ snap("motion graph easing"); link.easing = eas.value.trim(); mgCommit(); };
+    label("easing"); var eas = select(link.easing || "ease-out", mgEasingOptions(link.easing)); eas.onchange = function(){ snap("motion graph easing"); link.easing = eas.value; mgCommit(); };
     label("delay"); var del = input(link.delay, "0ms"); del.onchange = function(){ snap("motion graph delay"); link.delay = del.value.trim(); mgCommit(); };
     var sep = document.createElement("div"); sep.style.cssText = "border-top:1px solid var(--border);margin:10px 0 2px"; side.appendChild(sep);
   }
