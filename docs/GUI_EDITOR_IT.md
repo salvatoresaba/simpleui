@@ -977,10 +977,12 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   segmenti non attraversano mai un box, usano angoli retti e preferiscono il
   percorso più breve con il minor numero di segmenti. I link all'indietro
   vengono instradati attorno ai box. Il percorso viene ridisegnato in tempo reale
-  mentre si trascina un box. Se una posizione o un nuovo link rendono impossibile
-  un percorso pulito, l'editor lo rifiuta con un messaggio invece di disegnare
-  percorsi sovrapposti. Le posizioni non instradabili vengono rifiutate già
-  durante il trascinamento, quindi il blocco non resta mai in quel punto. Blocchi
+  mentre si trascina un box. Se non esiste un layout senza incroci, i link
+  possono incrociarsi: il link successivo viene disegnato sopra il precedente con
+  un piccolo distacco sullo sfondo. Quando un piccolo spostamento automatico di
+  uno stato può ripristinare un percorso pulito, l'editor muove quello stato e
+  ricalcola tutti i link; le posizioni sono fissate per mantenere il layout
+  stabile. Blocchi
   e link usano colori sensibili al tema e restano leggibili in modalità chiara
   e scura.
 - Click e gli altri eventi DOM si possono usare una sola volta per stato
@@ -993,9 +995,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 - Doppio clic su uno stato: overlay con nome, CSS e lista dei trigger attivi con
   la destinazione. Non ci sono campi per i trigger in ingresso. Se lo stato ha un
   collegamento uscente senza trigger, si apre direttamente il chooser:
-  **Annulla** torna all'overlay senza modificare il link, **Conferma** applica il
+  **Cancel** torna all'overlay senza modificare il link, **Confirm** applica il
   trigger, chiude l'overlay, ripristina il grafo e disegna il link con il colore
-  normale di completamento. **Aggiungi trigger** usa lo stesso chooser per un
+  normale di completamento. **Add trigger** usa lo stesso chooser per un
   nuovo link. Doppio clic su una freccia: trigger, durata, easing e delay; una
   freccia senza trigger apre il chooser per quel link. Gli overlay sono
   trascinabili e sopra il grafo; aprirli non minimizza il pannello animazioni.

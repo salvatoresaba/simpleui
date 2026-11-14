@@ -89,19 +89,20 @@ and the FLIP engine described in `examples/motion_pages`.
    long. Ports are assigned in vertical target order and all links are re-routed
    on every change, trying several orders. It avoids boxes, uses right-angle
    corners and prefers the shortest path with the fewest segments; backward links
-   route around the boxes and the path redraws live while dragging. A position or
-   link that makes a clean route impossible is rejected with a message instead of
-   drawing an overlapping path; unroutable drag positions are rejected
-   immediately. Blocks and links use theme-aware colors for light and dark
-   editor themes. Click and other DOM events
-   can be used once per source state; variable and timer triggers can be
-   repeated. A variable trigger lists the available SUI states and asks for the
-   activating value; a timer trigger starts after the chosen duration.
+   route around the boxes and the path redraws live while dragging. If no
+   crossing-free layout exists, links may cross: the later link is drawn over the
+   earlier one with a small background gap. When a small automatic state move can
+   restore a clean route, the editor moves that state and re-routes every link;
+   placed positions are pinned so the layout stays stable. Blocks and links use
+   theme-aware colors for light and dark editor themes. Click, mouse over and
+   other DOM events can be used once per source state; variable and timer triggers
+   can be repeated. A variable trigger lists the available SUI states and asks for
+   the activating value; a timer trigger starts after the chosen duration.
 7. Double-click a state to edit its overlay (name, CSS and the list of active
    triggers with destinations). If it has an untriggered outgoing link, the
-   trigger chooser opens directly: **Annulla** returns to the overlay, **Conferma**
+   trigger chooser opens directly: **Cancel** returns to the overlay, **Confirm**
    applies the trigger, closes the overlay, restores the graph and draws the link
-   in the normal completed color. Use **Aggiungi trigger** for a new link.
+   in the normal completed color. Use **Add trigger** for a new link.
    Double-click an arrow for trigger, duration, easing and delay; an untriggered
    arrow opens the same chooser.
 8. A single click selects a state and previews its style without leaving the

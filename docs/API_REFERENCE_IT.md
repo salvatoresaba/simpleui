@@ -397,7 +397,7 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 ```
 
 - `states[].css` è la fotografia dello stile per quello stato.
-- `links[].event` può essere `click`, `dblclick`, `pointerenter`,
+- `links[].event` può essere `click`, `dblclick`, `mouseover`, `pointerenter`,
   `pointerleave`, `focus`, `blur`, `change`, `state` o `after`.
 - I link `state` valutano lo stato booleano indicato in `when` (il prefisso `!`
   lo nega) e scattano sulla transizione da falso a vero.
@@ -436,18 +436,20 @@ box; il primo e l'ultimo tratto sono perpendicolari al lato e lunghi almeno
 e tutti i link vengono ricalcolati a ogni modifica, provando più ordini; il router
 evita i box, usa angoli retti e preferisce il percorso più breve con il minor
 numero di segmenti. I link all'indietro girano attorno ai box e i
-percorsi si aggiornano in tempo reale durante il trascinamento. Una posizione o
-un link che rende impossibile un percorso pulito viene rifiutato con un messaggio
-invece di disegnare percorsi sovrapposti; le posizioni non instradabili vengono
-rifiutate subito durante il trascinamento. Blocchi e link sono sensibili al tema
+percorsi si aggiornano in tempo reale durante il trascinamento. Se non esiste un
+layout senza incroci, i link possono incrociarsi: il link successivo viene
+disegnato sopra il precedente con un piccolo distacco sullo sfondo. Quando un
+piccolo spostamento automatico di uno stato può ripristinare un percorso pulito,
+l'editor muove quello stato e ricalcola tutti i link; le posizioni sono fissate
+per mantenere il layout stabile. Blocchi e link sono sensibili al tema
 e restano leggibili in modalità chiara e scura.
 
 Il doppio clic su uno stato apre l'overlay con nome, CSS e lista dei trigger
 attivi con la destinazione (nessun campo per i trigger in ingresso). Se lo stato
 ha un collegamento uscente senza trigger, si apre direttamente il chooser:
-**Annulla** torna all'overlay senza modificare il link, **Conferma** applica il
+**Cancel** torna all'overlay senza modificare il link, **Confirm** applica il
 trigger, chiude l'overlay, ripristina il grafo e disegna il link con il colore
-normale di completamento. **Aggiungi trigger** riusa lo stesso chooser per un
+normale di completamento. **Add trigger** riusa lo stesso chooser per un
 nuovo link. Il doppio clic su una freccia apre trigger, durata, easing e delay;
 una freccia senza trigger apre il chooser per quel link. Il chooser supporta
 eventi DOM (una volta per stato sorgente), trigger variabile con valore

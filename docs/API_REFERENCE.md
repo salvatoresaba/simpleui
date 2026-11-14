@@ -422,8 +422,8 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 ```
 
 - `states[].css` is the style snapshot for that state.
-- `links[].event` is `click`, `dblclick`, `pointerenter`, `pointerleave`,
-  `focus`, `blur`, `change`, `state` or `after`.
+- `links[].event` is `click`, `dblclick`, `mouseover`, `pointerenter`,
+  `pointerleave`, `focus`, `blur`, `change`, `state` or `after`.
 - `state` links evaluate the boolean state named by `when` (prefix `!` negates
   it) and fire on a false-to-true change.
 - `after` links continue a chain when the previous animation completes.
@@ -459,17 +459,19 @@ segments are perpendicular to the edge and at least 15 px long. Ports are
 assigned in vertical target order and all links are re-routed on every change,
 trying several orders; the router avoids boxes, uses right-angle corners and
 prefers the shortest path with the fewest segments. Backward links route around
-the boxes and routes redraw live during dragging. A position or link that makes
-a clean route impossible is rejected with a message instead of drawing
-overlapping paths; unroutable drag positions are rejected immediately. State
-blocks and links are theme-aware and remain readable in light and dark themes.
+the boxes and routes redraw live during dragging. If no crossing-free layout
+exists, links may cross: the later link is drawn over the earlier one with a
+small background gap. When a small automatic state move can restore a clean
+route, the editor moves that state and re-routes every link; placed positions are
+pinned so the layout stays stable. State blocks and links are theme-aware and
+remain readable in light and dark themes.
 
 Double-clicking a state opens its overlay with name, CSS and the list of active
 triggers with their destinations (no incoming-trigger fields). If the state has
-an untriggered outgoing link, the trigger chooser opens directly: **Annulla**
-returns to the state overlay without changing the link, **Conferma** applies the
+an untriggered outgoing link, the trigger chooser opens directly: **Cancel**
+returns to the state overlay without changing the link, **Confirm** applies the
 trigger, closes the overlay, restores the graph and draws the link with the
-normal completed color. **Aggiungi trigger** reuses the chooser for a new link.
+normal completed color. **Add trigger** reuses the chooser for a new link.
 Double-clicking an arrow opens the trigger, duration, easing and delay; an arrow
 without a trigger opens the chooser for that link. The trigger chooser supports
 DOM events (once per source state), variable triggers with an activating value,

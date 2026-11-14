@@ -940,10 +940,11 @@ only the graph; parameters open in draggable overlay panels:
   before choosing a route. Segments never cross a box, use right-angle corners
   and prefer the shortest path with the fewest segments. Links that go back to
   an earlier state are routed around the boxes. The route is redrawn live while
-  a state box is dragged. If a position or a new link makes a clean route
-  impossible, the editor rejects it with a message instead of drawing
-  overlapping paths. Unroutable positions are rejected while dragging, so a
-  block never stays on such a spot. State blocks and links use theme-aware
+  a state box is dragged. If no crossing-free layout exists, links may cross:
+  the later link is drawn over the earlier one with a small background gap. When
+  a small automatic state move can restore a clean route, the editor moves that
+  state and re-routes every link; placed positions are pinned so the layout
+  stays stable. State blocks and links use theme-aware
   colors and stay readable in light and dark themes.
 - Click and the other DOM events can be used once per source state; variable
   and timer triggers can be repeated. The chooser disables already-used single
@@ -955,9 +956,9 @@ only the graph; parameters open in draggable overlay panels:
 - Double-click a state to open its overlay: name, CSS and the list of active
   triggers with their destination. There are no incoming-trigger fields. When
   the state has an untriggered outgoing link, the trigger chooser opens directly:
-  **Annulla** returns to the state overlay without changing the link,
-  **Conferma** applies the trigger, closes the overlay, restores the graph and
-  draws the link with the normal completed color. **Aggiungi trigger** uses the
+  **Cancel** returns to the state overlay without changing the link,
+  **Confirm** applies the trigger, closes the overlay, restores the graph and
+  draws the link with the normal completed color. **Add trigger** uses the
   same chooser for a new link. Double-click an arrow to edit its trigger,
   duration, easing and delay; an arrow without a trigger opens the chooser for
   that link. Overlays are draggable and stay above the graph; opening them does

@@ -6426,6 +6426,7 @@ var mgDragging = false;
 var mgLastRouteClean = true;
 var mgPositions = {};
 var mgNodeHeights = {};
+var mgAutoPositions = {};
 var mgPlacement = null;
 var mgLastCreatedState = "";
 var mgEdit = null;
@@ -6484,6 +6485,7 @@ function mgOpen(n, path) {
   mgPath = path && path.length ? path.slice() : (selPath ? selPath.slice() : null);
   mgNode = n;
   mgCfg = mgEnsure(n);
+  mgAutoPositions = {};
   mgSelState = mgCfg.initial;
   var live = mgPreviewGraphState(path && path.length ? path : selPath);
   if (live && mgStateById(live)) mgSelState = live;
@@ -6497,7 +6499,6 @@ function mgOpen(n, path) {
   var title = document.getElementById("mg-graph-title");
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
-  if (!mgLastRouteClean) mgNotify("Unroutable layout: move the states to separate the links.");
   mgUpdateLauncher();
   setTimeout(function(){ mgFitGraph(); mgClampAll(); }, 0);
   renderInspector();
@@ -6507,7 +6508,7 @@ function mgRemoveGraph(n) {
   if (mgEdit) { mgEdit.snapshot = null; mgCloseState(); }
   snap("remove animation states");
   delete n.motionGraph;
-  if (mgNode === n) { mgCfg = null; mgNode = null; mgSelState = ""; mgSelLink = ""; mgClosePanel(); }
+  if (mgNode === n) { mgCfg = null; mgNode = null; mgSelState = ""; mgSelLink = ""; mgAutoPositions = {}; mgClosePanel(); }
   setOut();
   autoPreview();
   renderInspector();
@@ -6581,10 +6582,11 @@ function mgValidateState(st) {
   }
   return errors;
 }
-var MG_SINGLE_EVENTS = { click: 1, dblclick: 1, pointerenter: 1, pointerleave: 1, focus: 1, blur: 1, change: 1, after: 1 };
+var MG_SINGLE_EVENTS = { click: 1, dblclick: 1, mouseover: 1, pointerenter: 1, pointerleave: 1, focus: 1, blur: 1, change: 1, after: 1 };
 var MG_TRIGGER_OPTIONS = [
   ["", "(choose trigger)"],
   ["click", "click"], ["dblclick", "double click"],
+  ["mouseover", "mouse over"],
   ["pointerenter", "pointer enter"], ["pointerleave", "pointer leave"],
   ["focus", "focus"], ["blur", "blur"], ["change", "change"],
   ["state", "variable value"], ["timer", "timer"], ["after", "after transition"]
@@ -6673,7 +6675,6 @@ function mgMakeStateDraggable(d, s) {
     if (!scaleX) scaleX = 1;
     if (!scaleY) scaleY = 1;
     var moved = false;
-    var lastX = startX, lastY = startY;
     function move(e) {
       var dx = e.clientX - sx, dy = e.clientY - sy;
       if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
@@ -6686,37 +6687,17 @@ function mgMakeStateDraggable(d, s) {
       mgPositions[s.id] = { x: nx, y: ny };
       mgDragging = true;
       mgRenderLinks();
-      if (!mgLastRouteClean) {
-        d.style.left = lastX + "px";
-        d.style.top = lastY + "px";
-        mgPositions[s.id] = { x: lastX, y: lastY };
-        mgRenderLinks();
-        return;
-      }
-      lastX = nx;
-      lastY = ny;
     }
     function up() {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       if (!moved) return;
-      if (!mgLastRouteClean) {
-        mgDragging = false;
-        mgRenderLinks();
-        if (!mgLastRouteClean) {
-          d.style.left = lastX + "px";
-          d.style.top = lastY + "px";
-          mgPositions[s.id] = { x: lastX, y: lastY };
-          mgRender();
-          mgNotify("Unroutable position: move the state to a free area.");
-          return;
-        }
-      }
       mgDragging = false;
       d.__suiDragged = true;
       snap("move motion state");
       s.x = Math.round(parseFloat(d.style.left) || startX);
       s.y = Math.round(parseFloat(d.style.top) || startY);
+      mgAutoPositions[s.id] = { x: s.x, y: s.y };
       mgNode.motionGraph = mgCfg;
       setOut();
       mgRender();
@@ -6945,21 +6926,23 @@ function mgLinkPalette() {
   if (typeof prefs !== "undefined" && prefs && prefs.theme === "light") {
     return {
       complete: "#1d4ed8", selected: "#111c8f", incomplete: "#b91c1c",
-      badgeComplete: "#1d4ed8", badgeIncomplete: "#b91c1c", badgeStroke: "#ffffff"
+      badgeComplete: "#1d4ed8", badgeIncomplete: "#b91c1c", badgeStroke: "#ffffff",
+      halo: "#ffffff"
     };
   }
   return {
     complete: "#7db3ff", selected: "#b9c8ff", incomplete: "#ff8095",
-    badgeComplete: "#4c5cf7", badgeIncomplete: "#b23a4a", badgeStroke: "#0e1118"
+    badgeComplete: "#4c5cf7", badgeIncomplete: "#b23a4a", badgeStroke: "#0e1118",
+    halo: "#161922"
   };
 }
 function mgLinkDefs() {
   var c = mgLinkPalette();
   return '<defs><marker id="mg-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="' + c.complete + '"/></marker><marker id="mg-arrow-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="' + c.selected + '"/></marker><marker id="mg-arrow-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="' + c.incomplete + '"/></marker></defs>';
 }
-function mgRenderLinks() {
-  var svg = document.getElementById("mg-lines");
-  if (!svg || !mgCfg) return;
+function mgComputeRoutes(opts) {
+  opts = opts || {};
+  if (!mgCfg) return { ports: [], result: {}, clean: true };
   var boxes = [];
   mgCfg.states.forEach(function(s){
     var p = mgPositions[s.id];
@@ -7089,7 +7072,7 @@ function mgRenderLinks() {
     }
     return bad;
   }
-  var routeResult = null, bestBad = Infinity;
+  var routeResult = null, bestBad = Infinity, bestOrder = null;
   var candidates = [];
   if (mgRouteOrderPreference) {
     var seen = {}, pref = [];
@@ -7101,17 +7084,20 @@ function mgRenderLinks() {
     ports.forEach(function(p){ if (!seen[p.link.id]) { seen[p.link.id] = 1; pref.push(p); } });
     if (pref.length === ports.length) {
       candidates.push(pref);
-      for (var pj = 0; pj + 1 < pref.length; pj++) {
-        var swapped = pref.slice();
-        var st = swapped[pj]; swapped[pj] = swapped[pj+1]; swapped[pj+1] = st;
-        candidates.push(swapped);
+      if (!opts.fast) {
+        for (var pj = 0; pj + 1 < pref.length; pj++) {
+          var swapped = pref.slice();
+          var st = swapped[pj]; swapped[pj] = swapped[pj+1]; swapped[pj+1] = st;
+          candidates.push(swapped);
+        }
       }
     }
   }
   for (var mode = 0; mode < 4; mode++) candidates.push(orderByMode(mode));
-  for (var seed = 1; seed <= 40; seed++) candidates.push(orderBySeed(seed));
+  var seedLimit = opts.fast ? 8 : 40;
+  for (var seed = 1; seed <= seedLimit; seed++) candidates.push(orderBySeed(seed));
   var startedAt = Date.now();
-  var budget = mgDragging ? 120 : 1500;
+  var budget = opts.budget != null ? opts.budget : (mgDragging ? 120 : 1500);
   var routeLog = { tries: 0, clean: false, best: null };
   for (var ci = 0; ci < candidates.length; ci++) {
     if (ci >= 4 && Date.now() - startedAt > budget) break;
@@ -7121,23 +7107,50 @@ function mgRenderLinks() {
     routeLog.tries++;
     if (bad === 0) {
       routeResult = cand;
-      mgRouteOrderPreference = candidates[ci].map(function(p){ return p.link.id; });
       routeLog.clean = true;
       routeLog.best = 0;
+      bestOrder = candidates[ci].map(function(p){ return p.link.id; });
       break;
     }
-    if (bad < bestBad) { bestBad = bad; routeResult = cand; routeLog.best = bad; }
+    if (bad < bestBad) {
+      bestBad = bad;
+      routeResult = cand;
+      routeLog.best = bad;
+      bestOrder = candidates[ci].map(function(p){ return p.link.id; });
+    }
   }
-  mgLastRouteClean = routeLog.clean;
+  if (bestOrder && opts.updatePreference !== false) mgRouteOrderPreference = bestOrder;
   if (!routeResult) routeResult = {};
+  return { ports: ports, result: routeResult, clean: routeLog.clean };
+}
+function mgRenderLinks() {
+  var svg = document.getElementById("mg-lines");
+  if (!svg || !mgCfg) return;
+  var computed = mgComputeRoutes();
+  mgLastRouteClean = computed.clean;
+  var routeResult = computed.result;
+  var ports = computed.ports;
   var palette = mgLinkPalette();
+  var crossed = !computed.clean;
   svg.innerHTML = mgLinkDefs();
   ports.forEach(function(p){
     var pts = routeResult[p.link.id];
     if (!pts || pts.length < 2) return;
     var complete = !!p.link.event;
+    var d = pts.map(function(pt, i){ return (i ? "L " : "M ") + pt.x + " " + pt.y; }).join(" ");
+    if (crossed) {
+      var halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      halo.setAttribute("d", d);
+      halo.setAttribute("fill", "none");
+      halo.setAttribute("stroke", palette.halo);
+      halo.setAttribute("stroke-width", p.link.id === mgSelLink ? "6" : "5");
+      halo.setAttribute("stroke-linecap", "round");
+      halo.setAttribute("stroke-linejoin", "round");
+      halo.setAttribute("pointer-events", "none");
+      svg.appendChild(halo);
+    }
     var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", pts.map(function(pt, i){ return (i ? "L " : "M ") + pt.x + " " + pt.y; }).join(" "));
+    path.setAttribute("d", d);
     path.setAttribute("fill", "none");
     path.setAttribute("stroke", p.link.id === mgSelLink ? palette.selected : complete ? palette.complete : palette.incomplete);
     path.setAttribute("stroke-width", p.link.id === mgSelLink ? "2.4" : "1.6");
@@ -7163,6 +7176,52 @@ function mgRenderLinks() {
     badge.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); if (!p.link.event) mgAddLinkMenu(p.link.from, p.link.id); else mgOpenParam("link", p.link.id); };
     svg.appendChild(badge);
   });
+}
+function mgTryAutoLayout(sourceId, toId) {
+  if (!mgCfg) return false;
+  var degree = {};
+  mgCfg.links.forEach(function(l){ degree[l.from] = (degree[l.from] || 0) + 1; degree[l.to] = (degree[l.to] || 0) + 1; });
+  var ids = [];
+  function addId(id) {
+    if (id && mgStateById(id) && ids.indexOf(id) < 0 && ids.length < 3) ids.push(id);
+  }
+  addId(toId);
+  addId(sourceId);
+  mgCfg.states.slice().sort(function(a, b){
+    return (degree[a.id] || 0) - (degree[b.id] || 0);
+  }).forEach(function(s){ addId(s.id); });
+  for (var oi = 0; oi < ids.length; oi++) {
+    var id = ids[oi];
+    var p = mgPositions[id];
+    if (!p) continue;
+    var xStep = 258;
+    var yStep = 90;
+    var yStep2 = 180;
+    var offsets = [
+      { dx: 0, dy: yStep }, { dx: 0, dy: -yStep },
+      { dx: 0, dy: yStep2 }, { dx: 0, dy: -yStep2 },
+      { dx: xStep, dy: 0 }, { dx: -xStep, dy: 0 },
+      { dx: xStep, dy: yStep }, { dx: -xStep, dy: yStep },
+      { dx: xStep, dy: -yStep }, { dx: -xStep, dy: -yStep }
+    ];
+    for (var k = 0; k < offsets.length; k++) {
+      var nx = Math.round(p.x + offsets[k].dx);
+      var ny = Math.round(p.y + offsets[k].dy);
+      if (nx < 0 || ny < 0) continue;
+      if (mgBoxCollides(id, nx, ny)) continue;
+      var old = { x: p.x, y: p.y };
+      mgPositions[id] = { x: nx, y: ny };
+      var isTarget = oi === 0;
+      var probe = mgComputeRoutes({ fast: !isTarget, budget: isTarget ? 400 : 120, updatePreference: false });
+      if (probe.clean) {
+        var st = mgStateById(id);
+        if (st) { st.x = nx; st.y = ny; mgAutoPositions[id] = { x: nx, y: ny }; }
+        return true;
+      }
+      mgPositions[id] = old;
+    }
+  }
+  return false;
 }
 function mgMarkSelection() {
   var palette = mgLinkPalette();
@@ -7280,9 +7339,17 @@ function mgRender() {
     mgNodeHeights[s.id] = h;
     if (typeof s.x === "number" && typeof s.y === "number") {
       pos[s.id] = { x: s.x, y: s.y };
+      mgAutoPositions[s.id] = { x: s.x, y: s.y };
+    } else if (mgAutoPositions[s.id]) {
+      pos[s.id] = { x: mgAutoPositions[s.id].x, y: mgAutoPositions[s.id].y };
+      s.x = pos[s.id].x;
+      s.y = pos[s.id].y;
     } else {
       var y = layerY[layers[s.id]] !== undefined ? layerY[layers[s.id]] : 36;
       pos[s.id] = { x: 36 + layers[s.id] * 258, y: y };
+      s.x = pos[s.id].x;
+      s.y = pos[s.id].y;
+      mgAutoPositions[s.id] = { x: s.x, y: s.y };
       layerY[layers[s.id]] = y + h + 36;
     }
   });
@@ -7404,8 +7471,6 @@ function mgPlacementMove(ev) {
   }
   mgDragging = true;
   mgRenderLinks();
-  mgPlacement.last.routable = mgLastRouteClean;
-  if (!mgLastRouteClean && d) d.classList.add("mg-invalid");
 }
 function mgConfirmPlacement() {
   if (!mgPlacement) return;
@@ -7416,12 +7481,8 @@ function mgConfirmPlacement() {
   }
   mgDragging = false;
   mgRenderLinks();
-  if (!mgLastRouteClean) {
-    mgNotify("Unroutable links: move the new state to a free area.");
-    return;
-  }
   var st = mgStateById(mgPlacement.stateId);
-  if (st) { st.x = Math.round(last.x); st.y = Math.round(last.y); }
+  if (st) { st.x = Math.round(last.x); st.y = Math.round(last.y); mgAutoPositions[st.id] = { x: st.x, y: st.y }; }
   mgPlacement = null;
   mgDragging = false;
   mgUpdatePlacementBar();
@@ -7591,13 +7652,7 @@ function mgRenderParam() {
       var target = targetSel ? targetSel.value : "";
       if (!target) { mgNotify("Choose the destination state."); return; }
       snap("add motion trigger");
-      var before = JSON.parse(JSON.stringify(mgCfg));
       var toId = target;
-      if (target === "__new") {
-        var st = { id: mgNextId("s", mgCfg.states), name: "State " + (mgCfg.states.length + 1), css: fromState ? (fromState.css || "") : "" };
-        mgCfg.states.push(st);
-        toId = st.id;
-      }
       var link = {
         id: mgNextId("l", mgCfg.links), from: sourceId, to: toId,
         event: ev, duration: "320ms", easing: "ease-out", delay: "0ms"
@@ -7606,17 +7661,15 @@ function mgRenderParam() {
       if (ev === "timer") link.timer = timerInp.value.trim() || "1s";
       mgCfg.links.push(link);
       mgSelLink = link.id;
-      mgSelState = target === "__new" ? toId : "";
+      mgSelState = "";
       mgNode.motionGraph = mgCfg; setOut(); autoPreview();
       mgRender();
       if (!mgLastRouteClean) {
-        mgCfg = before;
-        mgNode.motionGraph = mgCfg;
-        mgSelState = ""; mgSelLink = "";
-        mgParam = { kind: "newlink", id: sourceId };
-        setOut(); autoPreview(); mgRender(); mgRenderParam();
-        mgNotify("Unroutable link: move the states or choose another destination.");
-        return;
+        if (mgTryAutoLayout(sourceId, toId)) {
+          mgNode.motionGraph = mgCfg;
+          setOut();
+          mgRender();
+        }
       }
       mgSelLink = ""; mgSelState = "";
       mgFinishEdit(true);
@@ -7661,7 +7714,7 @@ function mgRenderParam() {
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
     side.appendChild(h);
-    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["timer","timer"],["after","after transition"]]);
+    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["timer","timer"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); l.event = ev.value; mgCommit(); mgRender(); };
     if (l.event === "state") {
       label("variable"); var vars = (root.states || []).map(function(st){ return [st.name, st.name]; });
@@ -7708,7 +7761,7 @@ function mgRenderParam() {
     var title = document.createElement("div"); title.className = "hint"; title.style.marginTop = "10px";
     title.textContent = (incoming ? "Incoming from " : "Trigger " + num + " → ") + (other ? other.name : (incoming ? link.from : link.to));
     side.appendChild(title);
-    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["after","after transition"]]);
+    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
     if (link.event === "state") {
       label("variable (true/false)"); var wh = input(link.when, "e.g. open or !open");
@@ -7744,6 +7797,7 @@ function mgRenderParam() {
 function mgDeleteState(id) {
   if (!mgCfg || mgCfg.states.length <= 1) return;
   snap("delete motion state");
+  delete mgAutoPositions[id];
   mgCfg.states = mgCfg.states.filter(function(s){ return s.id !== id; });
   mgCfg.links = mgCfg.links.filter(function(l){ return l.from !== id && l.to !== id; });
   if (mgCfg.initial === id) mgCfg.initial = mgCfg.states[0].id;
