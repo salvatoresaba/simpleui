@@ -6587,6 +6587,11 @@ function mgTriggerUsed(stateId, event) {
   mgCfg.links.forEach(function(l){ if (l.from === stateId && l.event === event) n++; });
   return n;
 }
+function mgTriggerUsedExcept(stateId, event, exceptId) {
+  var n = 0;
+  mgCfg.links.forEach(function(l){ if (l.from === stateId && l.event === event && l.id !== exceptId) n++; });
+  return n;
+}
 function mgTriggerLabel(link) {
   if (!link || !link.event) return "Trigger non configurato";
   if (link.event === "state") return "Variabile " + (link.when || "?") + (link.value != null && link.value !== "" ? " = " + link.value : "");
@@ -7134,7 +7139,7 @@ function mgRenderLinks() {
     path.setAttribute("data-link", p.link.id);
     path.setAttribute("data-complete", complete ? "1" : "0");
     path.onclick = function(){ mgSelLink = p.link.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
-    path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", p.link.id); mgMinimizePanel(); };
+    path.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); if (!p.link.event) mgAddLinkMenu(p.link.from, p.link.id); else mgOpenParam("link", p.link.id); mgMinimizePanel(); };
     svg.appendChild(path);
     var badge = document.createElementNS("http://www.w3.org/2000/svg", "g");
     badge.setAttribute("data-trigger", p.link.id); badge.style.cursor = "pointer";
@@ -7148,7 +7153,7 @@ function mgRenderLinks() {
     txt.setAttribute("font-size", "9"); txt.setAttribute("font-weight", "700"); txt.setAttribute("fill", "#fff"); txt.textContent = String(p.num);
     badge.appendChild(txt);
     badge.onclick = function(ev){ if (ev) ev.stopPropagation(); mgSelLink = p.link.id; mgSelState = ""; mgParam = null; mgMarkSelection(); };
-    badge.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", p.link.id); mgMinimizePanel(); };
+    badge.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelLink = p.link.id; mgSelState = ""; mgMarkSelection(); if (!p.link.event) mgAddLinkMenu(p.link.from, p.link.id); else mgOpenParam("link", p.link.id); mgMinimizePanel(); };
     svg.appendChild(badge);
   });
 }
@@ -7303,8 +7308,12 @@ function mgRender() {
     var del = document.createElement("button"); del.type = "button"; del.className = "mg-del"; del.textContent = "\u00d7"; del.title = "Elimina stato";
     del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgDeleteState(s.id); };
     d.appendChild(del);
-    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgConfirmPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id); };
-    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgFocusState(s.id, true); mgOpenParam("state", s.id); mgMinimizePanel(); };
+    d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgConfirmPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgMarkSelection(); mgFocusState(s.id, true); };
+    d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgFocusState(s.id, true); mgOpenParam("state", s.id); mgMinimizePanel();
+      var pending = null;
+      for (var li = 0; li < mgCfg.links.length; li++) { var pl = mgCfg.links[li]; if (pl.from === s.id && !pl.event) { pending = pl; break; } }
+      if (pending) mgAddLinkMenu(s.id, pending.id);
+    };
     mgMakeStateDraggable(d, s);
     nodes.appendChild(d);
   });
@@ -7326,9 +7335,9 @@ function mgOpenParam(kind, id) {
   mgParam = { kind: kind, id: id || "" };
   mgRenderParam();
 }
-function mgAddLinkMenu(sourceId) {
+function mgAddLinkMenu(sourceId, linkId) {
   clearTimeout(mgCollapseTimer);
-  mgParam = { kind: "newlink", id: sourceId };
+  mgParam = { kind: "newlink", id: sourceId, link: linkId || "" };
   mgRenderParam();
 }
 function mgQuickAddState(sourceId) {
@@ -7453,7 +7462,7 @@ function mgRenderParam() {
   if (overlay) overlay.classList.add("on");
   setTimeout(function(){ mgClampPanel(overlay); }, 0);
   var title = document.getElementById("mg-param-title");
-  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Parametri trigger" : mgParam.kind === "newlink" ? "Nuovo trigger" : "Parametri stato";
+  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Parametri trigger" : mgParam.kind === "newlink" ? (mgParam.link ? "Trigger collegamento" : "Nuovo trigger") : "Parametri stato";
   function label(t) { var l = document.createElement("label"); l.textContent = t; side.appendChild(l); return l; }
   function input(v, ph) { var i = document.createElement("input"); i.value = v || ""; i.placeholder = ph || ""; i.spellcheck = false; side.appendChild(i); return i; }
   function select(v, opts) {
@@ -7465,18 +7474,24 @@ function mgRenderParam() {
   function btn(parent, text, fn) { var b = document.createElement("button"); b.className = "btn"; b.style.fontSize = "11px"; b.style.padding = "3px 7px"; b.textContent = text; b.onclick = fn; parent.appendChild(b); return b; }
   if (mgParam.kind === "newlink") {
     var fromState = mgStateById(mgParam.id);
+    var editLink = mgParam.link ? mgLinkById(mgParam.link) : null;
+    if (editLink && editLink.from !== mgParam.id) editLink = null;
+    var targetState = editLink ? mgStateById(editLink.to) : null;
     var nh = document.createElement("div"); nh.className = "hint";
-    nh.textContent = "Nuovo trigger da " + (fromState ? fromState.name : mgParam.id) + ":";
+    nh.textContent = editLink
+      ? "Trigger del collegamento " + (fromState ? fromState.name : mgParam.id) + " \u2192 " + (targetState ? targetState.name : editLink.to) + ":"
+      : "Nuovo trigger da " + (fromState ? fromState.name : mgParam.id) + ":";
     side.appendChild(nh);
     label("tipo trigger");
     var evSel = document.createElement("select");
     MG_TRIGGER_OPTIONS.forEach(function(o){
       var op = document.createElement("option");
       op.value = o[0]; op.textContent = o[1];
-      if (o[0] && MG_SINGLE_EVENTS[o[0]] && mgTriggerUsed(mgParam.id, o[0])) {
+      if (o[0] && MG_SINGLE_EVENTS[o[0]] && mgTriggerUsedExcept(mgParam.id, o[0], editLink ? editLink.id : "")) {
         op.disabled = true;
         op.textContent += " (già usato)";
       }
+      if (editLink && o[0] === (editLink.event || "")) op.selected = true;
       evSel.appendChild(op);
     });
     side.appendChild(evSel);
@@ -7491,13 +7506,27 @@ function mgRenderParam() {
 
     var timerLabel = label("timer"); var timerInp = input("1s", "es. 1s, 500ms");
 
-    label("stato di destinazione"); var targetSel = document.createElement("select");
-    mgCfg.states.forEach(function(t){
-      if (t.id === mgParam.id) return;
-      var op = document.createElement("option"); op.value = t.id; op.textContent = t.name; targetSel.appendChild(op);
-    });
-    var newOpt = document.createElement("option"); newOpt.value = "__new"; newOpt.textContent = "Nuovo stato"; targetSel.appendChild(newOpt);
-    side.appendChild(targetSel);
+    var targetSel = null;
+    if (editLink) {
+      var th = document.createElement("div"); th.className = "hint";
+      th.textContent = "Destinazione: " + (targetState ? targetState.name : editLink.to);
+      side.appendChild(th);
+      if (editLink.event === "state") {
+        var when = editLink.when || "";
+        var plain = when.charAt(0) === "!" ? when.slice(1) : when;
+        for (var vi = 0; vi < varSel.options.length; vi++) if (varSel.options[vi].value === plain) varSel.selectedIndex = vi;
+        valInp.value = editLink.value || "true";
+      }
+      if (editLink.event === "timer") timerInp.value = editLink.timer || "1s";
+    } else {
+      label("stato di destinazione"); targetSel = document.createElement("select");
+      mgCfg.states.forEach(function(t){
+        if (t.id === mgParam.id) return;
+        var op = document.createElement("option"); op.value = t.id; op.textContent = t.name; targetSel.appendChild(op);
+      });
+      var newOpt = document.createElement("option"); newOpt.value = "__new"; newOpt.textContent = "Nuovo stato"; targetSel.appendChild(newOpt);
+      side.appendChild(targetSel);
+    }
 
     function syncTriggerFields() {
       var ev = evSel.value;
@@ -7513,11 +7542,33 @@ function mgRenderParam() {
     syncTriggerFields();
 
     var createRow = actions();
-    btn(createRow, "Crea trigger", function(){
+    btn(createRow, "Annulla", function(){
+      mgParam = { kind: "state", id: mgParam.id };
+      mgRenderParam();
+    });
+    btn(createRow, "Conferma", function(){
       var ev = evSel.value;
       if (!ev) { mgNotify("Scegli il tipo di trigger."); return; }
-      if (MG_SINGLE_EVENTS[ev] && mgTriggerUsed(mgParam.id, ev)) { mgNotify("Questo trigger è già stato usato da questo stato."); return; }
-      var target = targetSel.value;
+      if (MG_SINGLE_EVENTS[ev] && mgTriggerUsedExcept(mgParam.id, ev, editLink ? editLink.id : "")) { mgNotify("Questo trigger è già stato usato da questo stato."); return; }
+      var sourceId = mgParam.id;
+      if (editLink) {
+        snap("set motion trigger");
+        editLink.event = ev;
+        if (ev === "state") {
+          editLink.when = varSel.value || "";
+          editLink.value = valInp.value.trim();
+        } else {
+          delete editLink.when;
+          delete editLink.value;
+        }
+        if (ev === "timer") editLink.timer = timerInp.value.trim() || "1s";
+        else delete editLink.timer;
+        mgSelLink = ""; mgSelState = "";
+        mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
+        mgFinishEdit(true);
+        return;
+      }
+      var target = targetSel ? targetSel.value : "";
       if (!target) { mgNotify("Scegli lo stato di destinazione."); return; }
       snap("add motion trigger");
       var before = JSON.parse(JSON.stringify(mgCfg));
@@ -7528,30 +7579,27 @@ function mgRenderParam() {
         toId = st.id;
       }
       var link = {
-        id: mgNextId("l", mgCfg.links), from: mgParam.id, to: toId,
+        id: mgNextId("l", mgCfg.links), from: sourceId, to: toId,
         event: ev, duration: "320ms", easing: "ease-out", delay: "0ms"
       };
       if (ev === "state") { link.when = varSel.value || ""; link.value = valInp.value.trim(); }
       if (ev === "timer") link.timer = timerInp.value.trim() || "1s";
       mgCfg.links.push(link);
-      mgSelLink = link.id; mgSelState = "";
+      mgSelLink = link.id;
+      mgSelState = target === "__new" ? toId : "";
       mgNode.motionGraph = mgCfg; setOut(); autoPreview();
-      if (target === "__new") {
-        mgSelState = toId; mgParam = { kind: "state", id: toId };
-        mgRender(); mgFocusState(toId, true);
-        if (mgEdit) mgEdit.snapshot = before;
-      } else {
-        mgParam = { kind: "state", id: mgParam.id };
-        mgRender();
-      }
+      mgRender();
       if (!mgLastRouteClean) {
         mgCfg = before;
         mgNode.motionGraph = mgCfg;
-        mgSelState = ""; mgSelLink = ""; mgParam = null;
-        setOut(); autoPreview(); mgRender();
+        mgSelState = ""; mgSelLink = "";
+        mgParam = { kind: "newlink", id: sourceId };
+        setOut(); autoPreview(); mgRender(); mgRenderParam();
         mgNotify("Collegamento non instradabile: sposta gli stati o scegli un'altra destinazione.");
         return;
       }
+      mgSelLink = ""; mgSelState = "";
+      mgFinishEdit(true);
     });
     return;
   }
@@ -7663,8 +7711,11 @@ function mgRenderParam() {
       row.className = "btn"; row.type = "button";
       row.style.cssText = "display:block;width:100%;text-align:left;margin:3px 0;font-size:11px;padding:4px 7px;" + (link.event ? "" : "border-color:#b23a4a;color:#ffb4bf;");
       row.textContent = "#" + (idx + 1) + "  " + mgTriggerLabel(link) + "  ->  " + (target ? target.name : "?");
-      row.title = "Clic per modificare il trigger";
-      row.onclick = function(){ mgSelLink = link.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", link.id); };
+      row.title = link.event ? "Clic per modificare il trigger" : "Clic per scegliere il trigger";
+      row.onclick = function(){
+        if (!link.event) { mgAddLinkMenu(s.id, link.id); return; }
+        mgSelLink = link.id; mgSelState = ""; mgMarkSelection(); mgOpenParam("link", link.id);
+      };
       side.appendChild(row);
     });
   }

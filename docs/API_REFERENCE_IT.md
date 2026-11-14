@@ -421,7 +421,8 @@ in posizioni personalizzate. Ogni blocco ha **+** per aggiungere uno stato
 collegato e **×** per eliminarlo. **+** crea subito un nuovo blocco e un link,
 ma lascia chiuso il pannello del trigger; muovi il mouse e clicca su uno spazio
 libero (con spazio sufficiente per i link) oppure usa **Conferma posizione**. Nessun pannello si apre
-automaticamente; scegli il trigger in seguito dalla riga del trigger attivo.
+automaticamente; scegli il trigger in seguito con doppio clic sullo stato sorgente
+(il chooser si apre per il link in attesa) oppure dalla riga del trigger attivo.
 **Aggiungi trigger** aggiunge un altro trigger a uno stato esistente. Il trigger
 appartiene allo stato di partenza; i link uscenti sono numerati all'inizio e il
 tooltip del numero mostra il tipo di trigger. I link partono dal lato destro e
@@ -439,18 +440,23 @@ rifiutate subito durante il trascinamento. Blocchi e link sono sensibili al tema
 e restano leggibili in modalità chiara e scura.
 
 Il doppio clic su uno stato apre l'overlay con nome, CSS e lista dei trigger
-attivi con la destinazione (nessun campo per i trigger in ingresso). Il doppio
-clic su una freccia apre trigger, durata, easing e delay. Il chooser supporta
+attivi con la destinazione (nessun campo per i trigger in ingresso). Se lo stato
+ha un collegamento uscente senza trigger, si apre direttamente il chooser:
+**Annulla** torna all'overlay senza modificare il link, **Conferma** applica il
+trigger, chiude l'overlay, ripristina il grafo e disegna il link con il colore
+normale di completamento. **Aggiungi trigger** riusa lo stesso chooser per un
+nuovo link. Il doppio clic su una freccia apre trigger, durata, easing e delay;
+una freccia senza trigger apre il chooser per quel link. Il chooser supporta
 eventi DOM (una volta per stato sorgente), trigger variabile con valore
 attivatore e timer con durata.
 
-Il clic su uno stato applica il CSS nella preview e blocca l'elemento; le
-modifiche dall'inspector vengono scritte nello stato focalizzato. La modifica
-riduce il grafo a una barra con **Salva stato** e **Chiudi**: il salvataggio
-valida e torna al pannello aggiornato, la chiusura ripristina lo snapshot e
-scarta le modifiche. Il salvataggio rifiuta trigger vuoto, variabile mancante,
-parametri uguali o evento singolo ripetuto e mostra l'errore. **Remove states**
-elimina il grafo degli stati ma conserva Layout & shared.
+Il clic su uno stato entra in modalità editing: applica il CSS nella preview,
+isola l'elemento e riduce il pannello del grafo a una barra con **Salva stato** e
+**Chiudi**. Le modifiche dall'inspector vengono scritte nello stato focalizzato.
+Il salvataggio valida e riapre il pannello animazioni; la chiusura ripristina lo
+snapshot e scarta le modifiche. Il salvataggio rifiuta trigger vuoto, variabile
+mancante, parametri uguali o evento singolo ripetuto e mostra l'errore. **Remove
+states** elimina il grafo degli stati ma conserva Layout & shared.
 
 `motionGraph` è per singolo elemento. Usa `motionKey` per le transizioni
 condivise tra pagine e per il FLIP delle liste; i due sistemi possono convivere

@@ -77,7 +77,8 @@ and the FLIP engine described in `examples/motion_pages`.
    and **×** to delete it. **+** immediately creates a positioned state block
    and a link, but leaves the trigger panel closed. Move the mouse and click on
    a free spot (with enough free space for links) or use **Conferma posizione**; no panel
-   opens automatically. Choose the trigger later from the active-trigger row.
+   opens automatically. Choose the trigger later by double-clicking the source
+   state (the chooser opens for the pending link) or from the active-trigger row.
 6. Triggers belong to the source state. Outgoing links are numbered at their
    starting point; hovering the number shows the trigger hint. Links leave the
    right side and enter the target's left centre horizontally. Routing is
@@ -95,14 +96,19 @@ and the FLIP engine described in `examples/motion_pages`.
    repeated. A variable trigger lists the available SUI states and asks for the
    activating value; a timer trigger starts after the chosen duration.
 7. Double-click a state to edit its overlay (name, CSS and the list of active
-   triggers with destinations); use **Aggiungi trigger** for more. Double-click
-   an arrow for trigger, duration, easing and delay.
-8. Clicking a state applies it in the preview and locks the element. Inspector
-   changes are written into the focused state and appear immediately.
-9. While editing, the graph collapses to a bar with **Salva stato** and
-   **Chiudi**. Save validates and returns to the updated panel; close restores
-   the snapshot and discards changes. Saving rejects an empty trigger, a missing
-   variable, duplicate state parameters or a repeated single-use event.
+   triggers with destinations). If it has an untriggered outgoing link, the
+   trigger chooser opens directly: **Annulla** returns to the overlay, **Conferma**
+   applies the trigger, closes the overlay, restores the graph and draws the link
+   in the normal completed color. Use **Aggiungi trigger** for a new link.
+   Double-click an arrow for trigger, duration, easing and delay; an untriggered
+   arrow opens the same chooser.
+8. Clicking a state enters editing mode: it applies the state in the preview,
+   isolates the element and collapses the graph panel. Inspector changes are
+   written into the focused state and appear immediately.
+9. While editing, use **Salva stato** to validate and capture the preview style,
+   or **Chiudi** to restore the snapshot and discard changes. Save restores the
+   animation panel. Saving rejects an empty trigger, a missing variable, duplicate
+   state parameters or a repeated single-use event.
 10. Press **Anteprima** to play the selected state or link.
 
 States/links and Layout & shared live in the same panel; there are no duplicate

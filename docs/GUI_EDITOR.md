@@ -919,8 +919,9 @@ only the graph; parameters open in draggable overlay panels:
   trigger panel. Move the mouse over the graph and click to place the block
   where there is enough free space for its links; the **Conferma posizione** button
   confirms the current position. No selection panel opens automatically: the
-  trigger can be chosen later from the active-trigger row. **Aggiungi trigger**
-  in the state overlay adds a trigger to an existing state.
+  trigger can be chosen later by double-clicking the source state (the chooser
+  opens for the pending link) or from the active-trigger row. **Aggiungi trigger**
+  in the state overlay adds another trigger to an existing state.
 - A trigger belongs to the state that starts the transition. Every outgoing
   link is numbered at its starting point; the number is the trigger index.
   Hovering the number shows the trigger hint (for example `click`). Several
@@ -947,14 +948,20 @@ only the graph; parameters open in draggable overlay panels:
   for a duration and starts the transition automatically after that time in the
   source state.
 - Double-click a state to open its overlay: name, CSS and the list of active
-  triggers with their destination. There are no incoming-trigger fields. Use
-  **Aggiungi trigger** for more. Double-click an arrow to edit its trigger,
-  duration, easing and delay. Overlays are draggable and stay above the graph.
-- Clicking a state applies it in the preview and centers/locks the element.
-  Inspector changes are written into the focused state and appear immediately.
-- While a state is being edited, the graph panel collapses to a small bar with
-  **Salva stato** and **Chiudi**. **Salva stato** validates and returns to the
-  updated panel; **Chiudi** restores the snapshot and discards the edits.
+  triggers with their destination. There are no incoming-trigger fields. When
+  the state has an untriggered outgoing link, the trigger chooser opens directly:
+  **Annulla** returns to the state overlay without changing the link,
+  **Conferma** applies the trigger, closes the overlay, restores the graph and
+  draws the link with the normal completed color. **Aggiungi trigger** uses the
+  same chooser for a new link. Double-click an arrow to edit its trigger,
+  duration, easing and delay; an arrow without a trigger opens the chooser for
+  that link. Overlays are draggable and stay above the graph.
+- Clicking a state enters editing mode: the element is isolated and centered in
+  the preview, and the graph panel collapses to a small bar. Inspector changes
+  are written into the focused state and appear immediately.
+- While a state is being edited, use **Salva stato** to validate and capture the
+  preview style, or **Chiudi** to restore the snapshot and discard the edits.
+  Saving restores the animation panel.
 - Saving rejects an empty trigger, a variable trigger without a variable, two
   states with identical parameters, or the same single-use event twice from one
   state. The error is shown in the editor notification and the state stays open

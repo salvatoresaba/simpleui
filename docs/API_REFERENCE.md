@@ -444,9 +444,10 @@ State blocks grow taller as outgoing triggers are added and can be dragged to
 custom positions. Each block has **+** to add a connected state and **×** to
 delete it. **+** immediately creates a new state block and link, but leaves the
 trigger panel closed; move the mouse and click on a free spot (with enough free
-space for the links) or use **Conferma posizione**. No panel opens automatically; choose the
-trigger later from the active-trigger row. **Aggiungi trigger** adds another
-trigger to an existing state. A trigger belongs to the source state; outgoing
+space for the links) or use **Conferma posizione**. No panel opens automatically;
+choose the trigger later by double-clicking the source state (the chooser opens
+for the pending link) or from the active-trigger row. **Aggiungi trigger** adds
+another trigger to an existing state. A trigger belongs to the source state; outgoing
 links are numbered at their start point and hovering the number shows the
 trigger hint. Links leave the right side and enter the centre of the target's
 left side horizontally. Routing is orthogonal with a **15 px** minimum distance
@@ -461,18 +462,23 @@ overlapping paths; unroutable drag positions are rejected immediately. State
 blocks and links are theme-aware and remain readable in light and dark themes.
 
 Double-clicking a state opens its overlay with name, CSS and the list of active
-triggers with their destinations (no incoming-trigger fields). Double-clicking
-an arrow opens the trigger, duration, easing and delay. The trigger chooser
-supports DOM events (once per source state), variable triggers with an
-activating value, and timers that fire after a chosen duration.
+triggers with their destinations (no incoming-trigger fields). If the state has
+an untriggered outgoing link, the trigger chooser opens directly: **Annulla**
+returns to the state overlay without changing the link, **Conferma** applies the
+trigger, closes the overlay, restores the graph and draws the link with the
+normal completed color. **Aggiungi trigger** reuses the chooser for a new link.
+Double-clicking an arrow opens the trigger, duration, easing and delay; an arrow
+without a trigger opens the chooser for that link. The trigger chooser supports
+DOM events (once per source state), variable triggers with an activating value,
+and timers that fire after a chosen duration.
 
-Clicking a state applies its CSS in the preview and locks the element; inspector
-edits are written into the focused state. Editing collapses the graph to a bar
-with **Salva stato** and **Chiudi**: save validates and returns to the updated
-panel, close restores the snapshot and discards changes. Saving rejects an empty
-trigger, a missing variable, duplicate state parameters or a repeated single-use
-event and shows the error. **Remove states** deletes the state graph but keeps
-Layout & shared.
+Clicking a state enters editing mode: its CSS is applied in the preview, the
+element is isolated, and the graph panel collapses to a bar with **Salva stato**
+and **Chiudi**. Inspector edits are written into the focused state. Save validates
+and restores the animation panel; close restores the snapshot and discards
+changes. Saving rejects an empty trigger, a missing variable, duplicate state
+parameters or a repeated single-use event and shows the error. **Remove states**
+deletes the state graph but keeps Layout & shared.
 
 `motionGraph` is per element. Use `motionKey` for shared page transitions and
 the list FLIP engine; the two systems can be combined on the same element.

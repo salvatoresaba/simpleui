@@ -954,9 +954,10 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   trigger. Muovi il mouse sul grafo e clicca per posizionare il blocco dove ci
   c'è spazio libero sufficiente per i collegamenti; il pulsante **Conferma posizione** conferma la
   posizione corrente. Nessun pannello di selezione si apre automaticamente: il
-  trigger può essere scelto in seguito dalla riga del trigger attivo.
-  **Aggiungi trigger** nell'overlay dello stato aggiunge un trigger a uno stato
-  esistente.
+  trigger può essere scelto in seguito con doppio clic sullo stato sorgente (il
+  chooser si apre per il link in attesa) oppure dalla riga del trigger attivo.
+  **Aggiungi trigger** nell'overlay dello stato aggiunge un altro trigger a uno
+  stato esistente.
 - Il trigger appartiene allo stato di partenza. Ogni link uscente è numerato
   nel punto di partenza; il numero è l'indice del trigger. Passando il mouse sul
   numero compare l'hint del trigger (ad esempio `click`). Più link possono
@@ -985,14 +986,20 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   una durata e avvia la transizione automaticamente dopo quel tempo nello stato
   sorgente.
 - Doppio clic su uno stato: overlay con nome, CSS e lista dei trigger attivi con
-  la destinazione. Non ci sono campi per i trigger in ingresso. Usa **Aggiungi
-  trigger** per aggiungerne altri. Doppio clic su una freccia: trigger, durata,
-  easing e delay. Gli overlay sono trascinabili e sopra il grafo.
-- Il clic su uno stato lo applica nella preview e centra/blocca l'elemento. Le
+  la destinazione. Non ci sono campi per i trigger in ingresso. Se lo stato ha un
+  collegamento uscente senza trigger, si apre direttamente il chooser:
+  **Annulla** torna all'overlay senza modificare il link, **Conferma** applica il
+  trigger, chiude l'overlay, ripristina il grafo e disegna il link con il colore
+  normale di completamento. **Aggiungi trigger** usa lo stesso chooser per un
+  nuovo link. Doppio clic su una freccia: trigger, durata, easing e delay; una
+  freccia senza trigger apre il chooser per quel link. Gli overlay sono
+  trascinabili e sopra il grafo.
+- Il clic su uno stato entra in modalità editing: l'elemento viene isolato e
+  centrato nella preview e il pannello del grafo si riduce a una barra. Le
   modifiche dall'inspector vengono scritte nello stato e compaiono subito.
-- Durante la modifica lo stato il grafo si riduce a una barra con **Salva
-  stato** e **Chiudi**. **Salva stato** valida e torna al pannello aggiornato;
-  **Chiudi** ripristina lo snapshot e scarta le modifiche.
+- Durante la modifica dello stato usa **Salva stato** per validare e catturare
+  lo stile della preview, oppure **Chiudi** per ripristinare lo snapshot e
+  scartare le modifiche. Il salvataggio riapre il pannello animazioni.
 - Il salvataggio rifiuta un trigger vuoto, un trigger variabile senza variabile,
   due stati con gli stessi parametri o lo stesso evento singolo usato due volte
   dallo stesso stato; l'errore compare nella notifica e lo stato resta aperto
