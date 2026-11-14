@@ -94,10 +94,19 @@ and the FLIP engine described in `examples/motion_pages`.
    earlier one with a small background gap. When a small automatic state move can
    restore a clean route, the editor moves that state and re-routes every link;
    placed positions are pinned so the layout stays stable. Blocks and links use
-   theme-aware colors for light and dark editor themes. Click, mouse enter/leave,
-   mouse over/out and other DOM events can be used once per source state; variable
-   and timer triggers can be repeated. For a reversible hover prefer
-   `pointerenter` + `pointerleave` or `mouseenter` + `mouseleave`; `mouseover` and
+   theme-aware colors for light and dark editor themes. Right-click a state for
+   **Parameters**, **Duplicate state** and **Delete state**; the state overlay
+   also has **Duplicate state**. Duplicating a state copies its CSS/parameters;
+   the normal element **Duplicate** deep-clones motion fields and `motionGraph`.
+   A trigger can use this element or another **event source**, with an external
+   DOM event or an **external element state** from the source graph. State changes
+   start immediately: events during a tween are evaluated in the target state and
+   retarget the animation (latest wins), while interrupted transitions cancel
+   their `after` link/timers and clean up intermediate properties. Click, mouse
+   enter/leave, mouse over/out and other DOM events can be used once per source
+   state; variable and timer triggers can be repeated. For a reversible hover
+   prefer `pointerenter` + `pointerleave` or `mouseenter` + `mouseleave`;
+   `mouseover` and
    `mouseout` bubble and can fire while crossing child elements. A variable
    trigger lists the available SUI states and asks for the activating value; a
    timer trigger starts after the chosen duration.

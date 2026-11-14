@@ -399,7 +399,19 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - `states[].css` è la fotografia dello stile per quello stato.
 - `links[].event` può essere `click`, `dblclick`, `mouseover`, `mouseout`,
   `mouseenter`, `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`,
-  `change`, `state` o `after`.
+  `change`, `state`, `elementState` o `after`.
+- `links[].sourceId` collega un evento DOM a un altro elemento (il suo
+  `data-sui-id`); `whenState` seleziona lo stato del motion graph di quell'elemento
+  per `elementState`. `sourceLabel` è l'etichetta del designer e non viene usata
+  a runtime.
+- Un cambio di stato parte subito: durante il tween l'elemento è considerato
+  nello stato di destinazione. Un evento che arriva durante il tween viene
+  valutato nel nuovo stato e avvia un nuovo tween dai valori correnti (vince
+  l'ultimo evento); gli eventi non vengono accodati. Una nuova transizione annulla
+  i link `after` e i timer dello stato precedente e tutte le proprietà gestite dal
+  grafo sono tracciate, quindi un tween interrotto non lascia valori intermedi.
+  I timer partono quando lo stato di destinazione viene attivato (all'inizio
+  della transizione); i link `after` scattano al termine.
 - I link `state` valutano lo stato booleano indicato in `when` (il prefisso `!`
   lo nega) e scattano sulla transizione da falso a vero.
 - I link `after` continuano una catena quando l'animazione precedente termina.

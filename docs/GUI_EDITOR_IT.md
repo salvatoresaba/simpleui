@@ -955,6 +955,11 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   il mouse sul grafo e clicca per posizionarlo dove c'è spazio libero, poi usa
   **Confirm position**. Il nuovo stato è selezionato e può essere modificato con
   l'icona a matita.
+- Tasto destro su uno stato: **Parameters**, **Duplicate state** e **Delete
+  state**; anche l'overlay dello stato ha **Duplicate state**. La duplicazione
+  copia CSS e parametri dello stato; modificali prima di salvare. Il normale
+  **Duplicate** dell'elemento clona in profondità anche `motion`, `motionKey`,
+  durata/easing/delay e `motionGraph`.
 - L'icona **+** su uno stato crea un link da quello stato verso una destinazione
   esistente. Il chooser si apre con **Cancel** e **Confirm**; la destinazione è
   preselezionata allo stato creato più di recente. Confirm crea il link, chiude il
@@ -967,6 +972,17 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   nel punto di partenza; il numero è l'indice del trigger. Passando il mouse sul
   numero compare l'hint del trigger (ad esempio `click`). Più link possono
   uscire dallo stesso stato verso destinazioni diverse.
+- Un trigger può ascoltare questo elemento o un altro elemento: il chooser ha
+  **event source**. Per una sorgente esterna scegli un evento DOM oppure
+  **external element state**, poi uno degli stati del motion graph della sorgente.
+  I trigger di stato esterno scattano quando il grafo della sorgente entra nello
+  stato selezionato.
+- I cambi di stato partono subito. Un evento durante il tween viene valutato nello
+  stato di destinazione e avvia un nuovo tween dai valori correnti (vince l'ultimo
+  evento); gli eventi non vengono accodati. Una nuova transizione annulla il link
+  `after` e i timer precedenti e un tween interrotto non lascia proprietà
+  intermedie. I timer partono all'ingresso; i link `after` aspettano la fine della
+  transizione.
 - I link partono sempre dal lato destro dello stato sorgente e finiscono al
   centro del lato sinistro della destinazione, orizzontalmente. Il percorso è
   ortogonale con una distanza minima di **15 px** tra box, tra link e tra link e

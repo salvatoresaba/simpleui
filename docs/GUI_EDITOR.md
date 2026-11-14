@@ -919,6 +919,11 @@ only the graph; parameters open in draggable overlay panels:
   link. Move the mouse over the graph and click to place the block where there is
   enough free space, then use **Confirm position**. The new state is selected and
   can be edited with the pencil icon.
+- Right-click a state for **Parameters**, **Duplicate state** and **Delete
+  state**; the state overlay also has **Duplicate state**. Duplicating a state
+  copies its CSS and parameters; adjust them before saving. The normal element
+  **Duplicate** deep-clones the element, including `motion`, `motionKey`,
+  duration/easing/delay and `motionGraph`.
 - The **+** icon on a state creates a link from that state to an existing
   destination. The trigger chooser opens with **Cancel** and **Confirm**; the
   destination is preselected to the most recently created state. Confirm creates
@@ -931,6 +936,16 @@ only the graph; parameters open in draggable overlay panels:
   link is numbered at its starting point; the number is the trigger index.
   Hovering the number shows the trigger hint (for example `click`). Several
   links can leave the same state and point to different targets.
+- A trigger can listen on this element or on another element: the chooser has
+  **event source**. For an external source choose a DOM event or **external
+  element state**, then one of the source element's motion-graph states. External
+  state triggers fire when that source graph enters the selected state.
+- State changes start immediately. An event that arrives during a tween is
+  evaluated in the target state and starts a new tween from the current computed
+  values (latest event wins); events are not queued. A new transition cancels the
+  previous `after` link and timers, and interrupted tweens cannot leave stale
+  intermediate properties. Timers start on entry; `after` links wait for the
+  transition to finish.
 - Links always start at the right side of the source and end at the centre of
   the target's left side, horizontally. Routing is orthogonal with a **15 px**
   minimum distance between boxes, between links, and between links and boxes.

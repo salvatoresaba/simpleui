@@ -6574,6 +6574,8 @@ function mgValidateState(st) {
       errors.push("Link " + (a ? a.name : l.from) + " → " + (b ? b.name : l.to) + " has no trigger. Choose a trigger type on the source state.");
     } else if (l.event === "state" && !l.when) {
       errors.push("The variable trigger of link " + l.from + " → " + l.to + " has no selected variable.");
+    } else if (l.event === "elementState" && (!l.sourceId || !l.whenState)) {
+      errors.push("The external state trigger of link " + l.from + " → " + l.to + " needs a source element and a state.");
     } else if (MG_SINGLE_EVENTS[l.event]) {
       var key = l.from + "|" + l.event;
       if (singleUsed[key]) errors.push("State \"" + ((mgStateById(l.from) || {}).name || l.from) + "\" has multiple \"" + l.event + "\" triggers. This trigger can be used only once.");
@@ -6590,7 +6592,7 @@ var MG_TRIGGER_OPTIONS = [
   ["mouseenter", "mouse enter"], ["mouseleave", "mouse leave"],
   ["pointerenter", "pointer enter"], ["pointerleave", "pointer leave"],
   ["focus", "focus"], ["blur", "blur"], ["change", "change"],
-  ["state", "variable value"], ["timer", "timer"], ["after", "after transition"]
+  ["state", "variable value"], ["elementState", "external element state"], ["timer", "timer"], ["after", "after transition"]
 ];
 function mgTriggerUsed(stateId, event) {
   var n = 0;
@@ -6607,7 +6609,38 @@ function mgTriggerLabel(link) {
   if (link.event === "state") return "Variable " + (link.when || "?") + (link.value != null && link.value !== "" ? " = " + link.value : "");
   if (link.event === "timer") return "Timer " + (link.timer || "1s");
   if (link.event === "after") return "After transition";
+  if (link.event === "elementState") return "Element " + (link.sourceLabel || link.sourceId || "?") + " state " + (link.whenState || "?");
+  if (link.sourceId) return (link.sourceLabel || ("Element " + link.sourceId)) + ": " + link.event;
   return link.event;
+}
+function mgElementLabel(n, path) {
+  var text = n.kind;
+  if (n.name) text += " #" + n.name;
+  if (n.text) text += " '" + String(n.text).slice(0, 24) + "'";
+  return text + " [" + path.join(".") + "]";
+}
+function mgExternalChoices() {
+  var out = [];
+  var paths = flattenPaths();
+  for (var i = 0; i < paths.length; i++) {
+    var p = paths[i];
+    if (mgPath && samePath(p, mgPath)) continue;
+    var n = byPath(p, root.children);
+    if (!n || n.raw) continue;
+    var id = peerIdForPath(p);
+    if (id < 0) continue;
+    out.push({ id: id, path: p, node: n, label: mgElementLabel(n, p) });
+  }
+  return out;
+}
+function mgGraphStatesOfNode(n) {
+  var raw = n && n.motionGraph;
+  if (!raw) return [];
+  var cfg = raw;
+  if (typeof raw === "string") {
+    try { cfg = JSON.parse(raw); } catch (e) { return []; }
+  }
+  return cfg && cfg.states ? cfg.states : [];
 }
 function mgApplyStateDecls(decls, after) {
   if (!mgEdit) return false;
@@ -7387,6 +7420,7 @@ function mgRender() {
     del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgDeleteState(s.id); };
     d.appendChild(del);
     d.onclick = function(){ if (d.__suiDragged) { d.__suiDragged = false; return; } if (mgPlacement && mgPlacement.stateId === s.id) { mgConfirmPlacement(); return; } mgSelState = s.id; mgSelLink = ""; mgParam = null; mgCloseParam(); mgMarkSelection(); mgPreviewState(s.id, "1ms", "linear"); };
+    d.oncontextmenu = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgShowStateMenu(ev, s); };
     d.ondblclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTimeout(mgCollapseTimer); mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgOpenParam("state", s.id);
       var pending = null;
       for (var li = 0; li < mgCfg.links.length; li++) { var pl = mgCfg.links[li]; if (pl.from === s.id && !pl.event) { pending = pl; break; } }
@@ -7570,6 +7604,45 @@ function mgRenderParam() {
     });
     side.appendChild(evSel);
 
+    var externalChoices = mgExternalChoices();
+    var externalById = {};
+    externalChoices.forEach(function(c){ externalById[String(c.id)] = c; });
+
+    var sourceLabel = label("event source");
+    var sourceSel = document.createElement("select");
+    var thisSource = document.createElement("option"); thisSource.value = ""; thisSource.textContent = "This element"; sourceSel.appendChild(thisSource);
+    externalChoices.forEach(function(c){
+      var op = document.createElement("option"); op.value = String(c.id); op.textContent = c.label; sourceSel.appendChild(op);
+    });
+    if (editLink && editLink.sourceId && !externalById[String(editLink.sourceId)]) {
+      var stale = document.createElement("option");
+      stale.value = String(editLink.sourceId);
+      stale.textContent = (editLink.sourceLabel || ("Element " + editLink.sourceId)) + " (missing)";
+      sourceSel.appendChild(stale);
+    }
+    if (editLink && editLink.sourceId) sourceSel.value = String(editLink.sourceId);
+    side.appendChild(sourceSel);
+
+    var extStateLabel = label("external state");
+    var extStateSel = document.createElement("select");
+    side.appendChild(extStateSel);
+
+    function syncExternalStates() {
+      var choice = externalById[String(sourceSel.value)];
+      var states = choice ? mgGraphStatesOfNode(choice.node) : [];
+      extStateSel.innerHTML = "";
+      states.forEach(function(st){
+        var op = document.createElement("option"); op.value = st.id; op.textContent = st.name || st.id; extStateSel.appendChild(op);
+      });
+      if (!states.length) {
+        var op = document.createElement("option"); op.value = ""; op.textContent = choice ? "This element has no motion states" : "Choose an external element"; extStateSel.appendChild(op);
+      }
+      if (editLink && editLink.whenState) {
+        for (var i = 0; i < extStateSel.options.length; i++) if (extStateSel.options[i].value === editLink.whenState) extStateSel.selectedIndex = i;
+      }
+    }
+    sourceSel.onchange = function(){ syncExternalStates(); syncTriggerFields(); };
+
     var varLabel = label("variable"); var varSel = document.createElement("select");
     (root.states || []).forEach(function(st){
       var op = document.createElement("option"); op.value = st.name; op.textContent = st.name + (st.init ? " = " + st.init : "");
@@ -7613,12 +7686,20 @@ function mgRenderParam() {
     function syncTriggerFields() {
       var ev = evSel.value;
       var showState = ev === "state";
+      var isDom = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState";
+      var isExtState = ev === "elementState";
+      var showSource = isDom || isExtState;
+      sourceLabel.style.display = showSource ? "" : "none";
+      sourceSel.style.display = showSource ? "" : "none";
+      extStateLabel.style.display = isExtState ? "" : "none";
+      extStateSel.style.display = isExtState ? "" : "none";
       varLabel.style.display = showState ? "" : "none";
       varSel.style.display = showState ? "" : "none";
       valLabel.style.display = showState ? "" : "none";
       valInp.style.display = showState ? "" : "none";
       timerLabel.style.display = ev === "timer" ? "" : "none";
       timerInp.style.display = ev === "timer" ? "" : "none";
+      if (isExtState) syncExternalStates();
     }
     evSel.onchange = syncTriggerFields;
     syncTriggerFields();
@@ -7632,6 +7713,13 @@ function mgRenderParam() {
       var ev = evSel.value;
       if (!ev) { mgNotify("Choose a trigger type."); return; }
       if (MG_SINGLE_EVENTS[ev] && mgTriggerUsedExcept(mgParam.id, ev, editLink ? editLink.id : "")) { mgNotify("This trigger is already used by this state."); return; }
+      var extSource = sourceSel.value || "";
+      var extChoice = externalById[String(extSource)];
+      var isDomEvent = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState";
+      if (ev === "elementState") {
+        if (!extSource || !extChoice) { mgNotify("Choose a valid external element for the external state trigger."); return; }
+        if (!extStateSel.value) { mgNotify("Choose the external state."); return; }
+      }
       var sourceId = mgParam.id;
       if (editLink) {
         snap("set motion trigger");
@@ -7645,6 +7733,15 @@ function mgRenderParam() {
         }
         if (ev === "timer") editLink.timer = timerInp.value.trim() || "1s";
         else delete editLink.timer;
+        if ((isDomEvent || ev === "elementState") && extSource && extChoice) {
+          editLink.sourceId = extSource;
+          editLink.sourceLabel = extChoice.label;
+        } else {
+          delete editLink.sourceId;
+          delete editLink.sourceLabel;
+        }
+        if (ev === "elementState") editLink.whenState = extStateSel.value;
+        else delete editLink.whenState;
         mgSelLink = ""; mgSelState = "";
         mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
         mgFinishEdit(true);
@@ -7660,6 +7757,11 @@ function mgRenderParam() {
       };
       if (ev === "state") { link.when = varSel.value || ""; link.value = valInp.value.trim(); }
       if (ev === "timer") link.timer = timerInp.value.trim() || "1s";
+      if ((isDomEvent || ev === "elementState") && extSource && extChoice) {
+        link.sourceId = extSource;
+        link.sourceLabel = extChoice.label;
+      }
+      if (ev === "elementState") link.whenState = extStateSel.value;
       mgCfg.links.push(link);
       mgSelLink = link.id;
       mgSelState = "";
@@ -7715,8 +7817,52 @@ function mgRenderParam() {
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
     side.appendChild(h);
-    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["timer","timer"],["after","after transition"]]);
-    ev.onchange = function(){ snap("motion graph trigger"); l.event = ev.value; mgCommit(); mgRender(); };
+    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["elementState","external element state"],["timer","timer"],["after","after transition"]]);
+    ev.onchange = function(){
+      snap("motion graph trigger");
+      l.event = ev.value;
+      if (ev.value !== "elementState") delete l.whenState;
+      if (ev.value === "state" || ev.value === "timer" || ev.value === "after") { delete l.sourceId; delete l.sourceLabel; }
+      mgCommit(); mgRender(); mgRenderParam();
+    };
+    var linkExternal = mgExternalChoices();
+    var linkExternalById = {};
+    linkExternal.forEach(function(c){ linkExternalById[String(c.id)] = c; });
+    var linkDomEvent = l.event && l.event !== "state" && l.event !== "timer" && l.event !== "after" && l.event !== "elementState";
+    if (linkDomEvent || l.event === "elementState") {
+      label("event source");
+      var sourceSel = document.createElement("select");
+      var thisOpt = document.createElement("option"); thisOpt.value = ""; thisOpt.textContent = "This element"; sourceSel.appendChild(thisOpt);
+      linkExternal.forEach(function(c){ var op = document.createElement("option"); op.value = String(c.id); op.textContent = c.label; sourceSel.appendChild(op); });
+      if (l.sourceId && !linkExternalById[String(l.sourceId)]) {
+        var staleOpt = document.createElement("option"); staleOpt.value = String(l.sourceId);
+        staleOpt.textContent = (l.sourceLabel || ("Element " + l.sourceId)) + " (missing)"; sourceSel.appendChild(staleOpt);
+      }
+      if (l.sourceId) sourceSel.value = String(l.sourceId);
+      sourceSel.onchange = function(){
+        snap("motion graph event source");
+        var choice = linkExternalById[String(sourceSel.value)];
+        if (sourceSel.value && choice) { l.sourceId = sourceSel.value; l.sourceLabel = choice.label; }
+        else { delete l.sourceId; delete l.sourceLabel; }
+        if (l.event === "elementState") {
+          var opts = choice ? mgGraphStatesOfNode(choice.node) : [];
+          l.whenState = opts.length ? opts[0].id : "";
+        }
+        mgCommit(); mgRender(); mgRenderParam();
+      };
+      side.appendChild(sourceSel);
+      if (l.event === "elementState") {
+        label("external state");
+        var stateSel = document.createElement("select");
+        var choice = linkExternalById[String(l.sourceId || "")];
+        var states = choice ? mgGraphStatesOfNode(choice.node) : [];
+        states.forEach(function(st){ var op = document.createElement("option"); op.value = st.id; op.textContent = st.name || st.id; stateSel.appendChild(op); });
+        if (!states.length) { var none = document.createElement("option"); none.value = ""; none.textContent = "Choose an external element"; stateSel.appendChild(none); }
+        if (l.whenState) stateSel.value = l.whenState;
+        stateSel.onchange = function(){ snap("motion graph external state"); l.whenState = stateSel.value; mgCommit(); };
+        side.appendChild(stateSel);
+      }
+    }
     if (l.event === "state") {
       label("variable"); var vars = (root.states || []).map(function(st){ return [st.name, st.name]; });
       if (l.when && !vars.some(function(v){ return v[0] === l.when; })) vars.unshift([l.when, l.when]);
@@ -7756,13 +7902,14 @@ function mgRenderParam() {
   var ac2 = actions();
   btn(ac2, "Preview state", function(){ mgPreviewState(s.id, "360ms", "ease-out"); });
   btn(ac2, "Set as initial", function(){ snap("motion graph initial"); mgCfg.initial = s.id; mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender(); });
+  btn(ac2, "Duplicate state", function(){ mgDuplicateState(s.id); });
   btn(ac2, "Delete state", function(){ mgDeleteState(s.id); });
   function transitionBlock(link, incoming, num) {
     var other = mgStateById(incoming ? link.from : link.to);
     var title = document.createElement("div"); title.className = "hint"; title.style.marginTop = "10px";
     title.textContent = (incoming ? "Incoming from " : "Trigger " + num + " → ") + (other ? other.name : (incoming ? link.from : link.to));
     side.appendChild(title);
-    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["after","after transition"]]);
+    label("trigger"); var ev = select(link.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["state","variable value"],["elementState","external element state"],["after","after transition"]]);
     ev.onchange = function(){ snap("motion graph trigger"); link.event = ev.value; mgCommit(); mgRenderParam(); };
     if (link.event === "state") {
       label("variable (true/false)"); var wh = input(link.when, "e.g. open or !open");
@@ -7794,6 +7941,78 @@ function mgRenderParam() {
   }
   var addTr = actions();
   btn(addTr, "Add trigger", function(){ mgAddLinkMenu(s.id); });
+}
+function mgShowStateMenu(ev, s) {
+  closeMenus();
+  var old = document.getElementById("mg-state-menu");
+  if (old) old.remove();
+  var m = document.createElement("div");
+  m.id = "mg-state-menu";
+  m.className = "sui-ac";
+  m.style.display = "block";
+  m.style.minWidth = "180px";
+  function add(label, fn) {
+    var item = document.createElement("div");
+    item.className = "sui-ac-item";
+    item.textContent = label;
+    item.onclick = function(){ m.remove(); fn(); };
+    m.appendChild(item);
+  }
+  add("Parameters...", function(){ mgSelState = s.id; mgSelLink = ""; mgMarkSelection(); mgOpenParam("state", s.id); });
+  add("Duplicate state", function(){ mgDuplicateState(s.id); });
+  add("Delete state", function(){ mgDeleteState(s.id); });
+  document.body.appendChild(m);
+  var z = menuZoom();
+  m.style.left = (ev.pageX / z) + "px";
+  m.style.top = (ev.pageY / z) + "px";
+  var close = function() {
+    m.remove();
+    document.removeEventListener("click", close);
+  };
+  setTimeout(function(){ document.addEventListener("click", close); }, 0);
+}
+function mgDuplicateState(id) {
+  if (!mgCfg) return;
+  var src = mgStateById(id);
+  if (!src) return;
+  snap("duplicate motion state");
+  var copy = JSON.parse(JSON.stringify(src));
+  copy.id = mgNextId("s", mgCfg.states);
+  copy.name = (src.name || src.id) + " copy";
+  var idx = mgCfg.states.indexOf(src);
+  mgCfg.states.splice(idx + 1, 0, copy);
+  mgNodeHeights[copy.id] = 57;
+  var pos = mgDuplicatePosition(copy);
+  copy.x = pos.x;
+  copy.y = pos.y;
+  mgAutoPositions[copy.id] = { x: pos.x, y: pos.y };
+  mgLastCreatedState = copy.id;
+  mgSelState = copy.id;
+  mgSelLink = "";
+  mgParam = null;
+  mgNode.motionGraph = mgCfg;
+  setOut();
+  autoPreview();
+  mgRender();
+  mgNotify("State duplicated: change its parameters before saving.");
+}
+function mgDuplicatePosition(src) {
+  var h = mgNodeHeights[src.id] || 38;
+  var gapX = MG_BOX_W + MG_ROUTE_PAD_X;
+  var gapY = h + MG_ROUTE_PAD_Y;
+  var offsets = [
+    { dx: gapX, dy: 0 }, { dx: 0, dy: gapY },
+    { dx: -gapX, dy: 0 }, { dx: 0, dy: -gapY },
+    { dx: gapX, dy: gapY }, { dx: -gapX, dy: gapY },
+    { dx: gapX, dy: -gapY }, { dx: -gapX, dy: -gapY }
+  ];
+  for (var i = 0; i < offsets.length; i++) {
+    var x = Math.round(src.x + offsets[i].dx);
+    var y = Math.round(src.y + offsets[i].dy);
+    if (x < 0 || y < 0) continue;
+    if (!mgBoxCollides(src.id, x, y)) return { x: x, y: y };
+  }
+  return mgFreeStatePosition(src.id);
 }
 function mgDeleteState(id) {
   if (!mgCfg || mgCfg.states.length <= 1) return;

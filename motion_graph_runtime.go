@@ -29,6 +29,13 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
   function keyOf(el) {
     return el.getAttribute('data-sui-motion-key') || el.getAttribute('data-sui-id') || '';
   }
+  function sourceById(id) {
+    var s = String(id || '');
+    if (!/^[A-Za-z0-9_-]+$/.test(s)) return null;
+    var list = document.querySelectorAll('[data-sui-id]');
+    for (var i = 0; i < list.length; i++) if (list[i].getAttribute('data-sui-id') === s) return list[i];
+    return null;
+  }
   function stateById(cfg, id) {
     var list = cfg && cfg.states ? cfg.states : [];
     for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i];
@@ -126,6 +133,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     var prev = el.__suiGraphProps || [];
     var all = prev.slice();
     for (var j = 0; j < decls.length; j++) if (all.indexOf(decls[j].name) < 0) all.push(decls[j].name);
+    // Remember every property touched by the graph, including those from a
+    // transition that may be interrupted. The next transition starts from the
+    // current computed values and removes any carried property not in its target.
+    el.__suiGraphProps = all.slice();
     var duration = Math.max(0, timeMs(link && link.duration, 240));
     var delay = Math.max(0, timeMs(link && link.delay, 0));
     var easing = (link && link.easing) || 'ease-out';
@@ -134,7 +145,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     el.__suiGraphToken = token;
     function finish() {
       if (token !== el.__suiGraphToken) return;
-      for (var p = 0; p < prev.length; p++) if (!next[prev[p]]) el.style.removeProperty(prev[p]);
+      for (var p = 0; p < all.length; p++) if (!next[all[p]]) el.style.removeProperty(all[p]);
       for (var d = 0; d < decls.length; d++) el.style.setProperty(decls[d].name, decls[d].value);
       el.__suiGraphProps = decls.map(function(x){ return x.name; });
     }
@@ -149,7 +160,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       starts[p0] = getComputedStyle(el).getPropertyValue(p0);
       explicit[p0] = el.style.getPropertyPriority(p0);
     }
-    for (var r = 0; r < prev.length; r++) if (!next[prev[r]]) el.style.removeProperty(prev[r]);
+    for (var r = 0; r < all.length; r++) if (!next[all[r]]) el.style.removeProperty(all[r]);
     for (var t = 0; t < decls.length; t++) el.style.setProperty(decls[t].name, decls[t].value);
     var ends = {};
     for (var e = 0; e < all.length; e++) ends[all[e]] = getComputedStyle(el).getPropertyValue(all[e]);
@@ -193,11 +204,12 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     }
     setTimeout(frame, 16);
   }
-  function findLink(cfg, from, event) {
+  function findLink(cfg, from, event, sourceId) {
+    var want = sourceId || '';
     var links = cfg && cfg.links ? cfg.links : [];
     for (var i = 0; i < links.length; i++) {
       var l = links[i];
-      if (l && l.from === from && l.event === event) return l;
+      if (l && l.from === from && l.event === event && (l.sourceId || '') === want) return l;
     }
     return null;
   }
@@ -239,6 +251,23 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       seen[l.id] = now;
     }
   }
+  function checkExternalStateLinks(el, cfg) {
+    if (!el.isConnected || el.__suiGraphEditLocked) return;
+    var seen = el.__suiGraphSeenElement || (el.__suiGraphSeenElement = Object.create(null));
+    var links = cfg && cfg.links ? cfg.links : [];
+    for (var i = 0; i < links.length; i++) {
+      var l = links[i];
+      if (!l || l.event !== 'elementState' || l.from !== el.__suiGraphState) continue;
+      var src = sourceById(l.sourceId);
+      var now = !!(src && src.__suiGraphState && src.__suiGraphState === l.whenState);
+      if (now && !seen[l.id]) {
+        seen[l.id] = true;
+        run(el, cfg, l);
+        return;
+      }
+      seen[l.id] = now;
+    }
+  }
   function fireAfter(el, cfg, from) {
     var l = findLink(cfg, from, 'after');
     if (l) run(el, cfg, l);
@@ -265,6 +294,11 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       })(l);
     }
   }
+  // The state changes immediately when a link fires. An event that arrives
+  // during the tween is evaluated against the new state and starts a new tween
+  // from the current computed values (latest event wins); it is not queued.
+  // A new run invalidates the previous token, timers and pending after link, so
+  // an interrupted transition cannot leave stale graph properties behind.
   function run(el, cfg, link) {
     if (!link) return;
     var to = stateById(cfg, link.to);
@@ -285,7 +319,11 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
   function unbind(el) {
     clearTimers(el);
     var handlers = el.__suiGraphHandlers || [];
-    for (var i = 0; i < handlers.length; i++) el.removeEventListener(handlers[i].event, handlers[i].fn);
+    for (var i = 0; i < handlers.length; i++) {
+      var h = handlers[i];
+      var target = h.target || el;
+      target.removeEventListener(h.event, h.fn, !!h.capture);
+    }
     el.__suiGraphHandlers = [];
     el.__suiGraphBound = false;
   }
@@ -295,19 +333,31 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     var seen = Object.create(null);
     var links = cfg && cfg.links ? cfg.links : [];
     for (var i = 0; i < links.length; i++) {
-      var ev = links[i] && links[i].event;
-      if (!ev || ev === 'after' || ev === 'state' || ev === 'timer' || seen[ev]) continue;
-      seen[ev] = 1;
-      (function(eventName) {
+      var link = links[i];
+      var ev = link && link.event;
+      if (!ev || ev === 'after' || ev === 'state' || ev === 'timer' || ev === 'elementState') continue;
+      var sourceId = link.sourceId || '';
+      if (sourceId && !/^[A-Za-z0-9_-]+$/.test(sourceId)) continue;
+      var key = sourceId + '|' + ev;
+      if (seen[key]) continue;
+      seen[key] = 1;
+      (function(eventName, source) {
         var fn = function(e) {
-          var link = findLink(cfg, el.__suiGraphState, eventName);
-          if (!link) return;
           if (el.__suiGraphEditLocked) return;
-          run(el, cfg, link);
+          if (source) {
+            var t = e.target;
+            if (!t || !t.closest) return;
+            var src = t.closest('[data-sui-id]');
+            if (!src || src.getAttribute('data-sui-id') !== source) return;
+          }
+          var found = findLink(cfg, el.__suiGraphState, eventName, source);
+          if (found) run(el, cfg, found);
         };
-        el.addEventListener(eventName, fn);
-        handlers.push({ event: eventName, fn: fn });
-      })(ev);
+        var target = source ? document : el;
+        var capture = !!source;
+        target.addEventListener(eventName, fn, capture);
+        handlers.push({ event: eventName, fn: fn, target: target, capture: capture });
+      })(ev, sourceId);
     }
     el.__suiGraphHandlers = handlers;
     el.__suiGraphBound = true;
@@ -332,6 +382,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     // mutation cycle: the browser has not painted the re-rendered base element
     // yet, so a switch change never flashes the default size.
     checkStateLinks(el, cfg);
+    checkExternalStateLinks(el, cfg);
   }
   function scan(root) {
     var scope = root && root.querySelectorAll ? root : document;
@@ -355,7 +406,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       var els = document.querySelectorAll('[data-sui-motion-graph]');
       for (var i = 0; i < els.length; i++) {
         var el = els[i];
-        if (el.__suiGraphCfg) checkStateLinks(el, el.__suiGraphCfg);
+        if (el.__suiGraphCfg) {
+          checkStateLinks(el, el.__suiGraphCfg);
+          checkExternalStateLinks(el, el.__suiGraphCfg);
+        }
       }
     }, 120);
   }
