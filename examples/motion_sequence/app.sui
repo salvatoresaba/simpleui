@@ -3,7 +3,7 @@
 # Open the designer, select a card, then Motion > Open animation panel.
 # Each card has a motionKey so other graphs can use it as an event source.
 
-css ".page \{ max-width: 1080px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 18px; \} .grid \{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; \} .card \{ box-sizing: border-box; border: 1px solid #3a4152; border-radius: 14px; padding: 16px; color: #e6e6ef; display: flex; flex-direction: column; gap: 8px; overflow: hidden; justify-self: start; \} .card h2 \{ margin: 0; font-size: 16px; \} .note \{ color: #8fa0b8; font-size: 12px; line-height: 1.45; \} .kbd \{ color: #c7d2fe; font-weight: 600; \}"
+css ".page \{ max-width: 1080px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 18px; \} .grid \{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; \} .card \{ box-sizing: border-box; border: 1px solid #3a4152; border-radius: 14px; padding: 16px; color: #e6e6ef; display: flex; flex-direction: column; gap: 8px; overflow: hidden; justify-self: start; \} .card h2 \{ margin: 0; font-size: 16px; \} .note \{ color: #8fa0b8; font-size: 12px; line-height: 1.45; \}"
 
 view main {
 	title "Motion sequences"
