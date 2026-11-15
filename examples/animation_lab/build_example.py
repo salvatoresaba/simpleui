@@ -186,158 +186,33 @@ cards.append(card("Command palette",
                   [field("Animation", "cmdAnim", overlay_anims, wide=True)],
                   "Press Ctrl+K or use the button."))
 
-# ---- export / import of the current effect selections -----------------------
-defaults = {
-    "pStyle": "lab-p-classic", "pAnim": "lab-p-anim-wave",
-    "sShape": "lab-s-ring", "sAnim": "lab-s-anim-spin",
-    "bStyle": "lab-b-pill", "bAnim": "lab-b-anim-ping",
-    "aStyle": "lab-a-bar", "aAnim": "lab-a-anim-breathe",
-    "cStyle": "lab-c-elevated", "cAnim": "lab-c-anim-halo",
-    "btnStyle": "lab-btn-gradient", "btnAnim": "lab-btn-anim-jelly",
-    "tStyle": "lab-t-underline", "tAnim": "lab-t-anim-pop",
-    "iStyle": "lab-i-outline", "iAnim": "lab-i-anim-glow",
-    "chkStyle": "lab-check-tile", "chkTheme": "lab-cb-theme-accent", "chkAnim": "scale",
-    "swShape": "pill", "swTheme": "accent", "swAnim": "scale",
-    "rdShape": "default", "rdTheme": "accent", "rdAnim": "slide",
-    "ddStyle": "lab-dd-classic", "ddItem": "lab-items-bar", "ddAnim": "slide",
-    "popStyle": "lab-pop-card", "popAnim": "scale",
-    "cbStyle": "lab-cb-classic", "cbAnim": "slide",
-    "cmdAnim": "slide",
-}
-
-specs = [
-    ("progress", [("style", "pStyle", progress_styles), ("animation", "pAnim", progress_anims)]),
-    ("spinner", [("shape", "sShape", spinner_shapes), ("animation", "sAnim", spinner_anims)]),
-    ("badge", [("style", "bStyle", badge_styles), ("animation", "bAnim", badge_anims)]),
-    ("alert", [("style", "aStyle", alert_styles), ("animation", "aAnim", alert_anims)]),
-    ("card", [("style", "cStyle", card_styles), ("animation", "cAnim", card_anims)]),
-    ("button", [("style", "btnStyle", button_styles), ("animation", "btnAnim", button_anims)]),
-    ("tabs", [("style", "tStyle", tabs_styles), ("animation", "tAnim", tabs_anims)]),
-    ("input", [("style", "iStyle", input_styles), ("animation", "iAnim", input_anims)]),
-    ("checkbox", [("style", "chkStyle", checkbox_shapes), ("theme", "chkTheme", cb_themes), ("animation", "chkAnim", toggle_anims)]),
-    ("switch", [("shape", "swShape", switch_shapes), ("theme", "swTheme", toggle_themes), ("animation", "swAnim", toggle_anims)]),
-    ("radio", [("shape", "rdShape", radio_shapes), ("theme", "rdTheme", toggle_themes), ("animation", "rdAnim", toggle_anims)]),
-    ("dropdown", [("style", "ddStyle", overlay_styles), ("item", "ddItem", ddItemOptions), ("animation", "ddAnim", overlay_anims)]),
-    ("popover", [("style", "popStyle", popStyles), ("animation", "popAnim", overlay_anims)]),
-    ("combobox", [("style", "cbStyle", cbStyles), ("animation", "cbAnim", overlay_anims)]),
-    ("commandbar", [("animation", "cmdAnim", overlay_anims)]),
-]
-
-effect_state = [
-    'state effectsJson = ""',
-    'state effectsMsg = "Export the current selections, edit the JSON, then Import."',
-]
-seen = set()
-for _, fields in specs:
-    for _, state, pairs in fields:
-        if state in seen:
-            continue
-        seen.add(state)
-        vals = ", ".join('"%s"' % v for _, v in pairs)
-        effect_state.append("state allowed_%s = [%s]" % (state, vals))
-effect_state_code = "\n".join(effect_state)
 
 
-def json_section_parts(section, fields, last):
-    parts = ['"  \\"%s\\": \\{"' % section]
-    for i, (key, state, _) in enumerate(fields):
-        if i > 0:
-            parts.append('"\\", "')
-        parts.append('"\\"%s\\": \\""' % key)
-        parts.append(state)
-    parts.append('"\\"\\},\\n"' if not last else '"\\"\\n\\}"')
-    return parts
-
-
-export_parts = ['"\\{\\n"', '"  \\"format\\": \\"simpleui-animation-lab\\",\\n"', '"  \\"version\\": 1,\\n"']
-for i, (section, fields) in enumerate(specs):
-    export_parts.extend(json_section_parts(section, fields, i == len(specs) - 1))
-export_parts.append('"\\n\\}"')
-export_expr = " + ".join(export_parts)
-export_fn = """fn exportEffects() -> null {
-	effectsJson = %s
-	effectsMsg = "Exported. Copy or edit the JSON, then Import."
-}""" % export_expr
-
-import_blocks = []
-for section, fields in specs:
-    cap = section.capitalize()
-    lines = ['  if v["%s"] != null {' % section, '    let sec%s = v["%s"]' % (cap, section)]
-    for key, state, _ in fields:
-        var = "%s%s" % (key, cap)
-        lines.append('    let %s = sec%s["%s"]' % (var, cap, key))
-        lines.append('    if %s != null {' % var)
-        lines.append('      if indexOf(allowed_%s, %s) >= 0 {' % (state, var))
-        lines.append('        %s = %s' % (state, var))
-        lines.append('        applied = applied + 1')
-        lines.append('      } else {')
-        lines.append('        rejected = rejected + 1')
-        lines.append('      }')
-        lines.append('    }')
-    lines.append('  }')
-    import_blocks.append("\n".join(lines))
-
-import_fn = """async fn importEffects() -> null {
-  v, err = json.parse(effectsJson)
-  if err != null {
-    effectsMsg = "JSON error: " + err
-    return
-  }
-  if v == null {
-    effectsMsg = "Empty JSON."
-    return
-  }
-  if v["format"] != "simpleui-animation-lab" {
-    effectsMsg = "Not an animation-lab effects file (missing format field)."
-    return
-  }
-  let applied = 0
-  let rejected = 0
-%s
-  if rejected == 0 {
-    effectsMsg = "Imported " + str(applied) + " selection(s)."
-  } else {
-    effectsMsg = "Imported " + str(applied) + ", ignored " + str(rejected) + " invalid value(s)."
-  }
-}""" % "\n".join(import_blocks)
-
-reset_lines = []
-for key, value in defaults.items():
-    reset_lines.append('\t%s = "%s"' % (key, value))
-reset_lines.append('\teffectsMsg = "Selections reset to defaults."')
-reset_fn = "fn resetEffects() -> null {\n%s\n}" % "\n".join(reset_lines)
-
-copy_fn = """fn copyEffects() -> null {
-  let ok = clipboard.writeText(effectsJson)
-  if ok {
-    effectsMsg = "Copied to clipboard."
-  } else {
-    effectsMsg = "Copy failed."
-  }
-}"""
-
-effect_funcs = export_fn + "\n\n" + import_fn + "\n\n" + reset_fn + "\n\n" + copy_fn
-
-export_card = """card class: "lab-card lab-export-card" {
-  h3 "Effects file"
-  p "Export the current selections as JSON, edit the values and import them back. Invalid values are ignored and reported; the format field keeps unrelated JSON out." class: "lab-note"
-  textarea "Effects JSON" value: effectsJson class: "lab-json"
+motion_card = """card class: "lab-card lab-motion-card" {
+  h3 "Motion editor"
+  p "Tune every animation live: speed multiplier, easing and delay. New keyframes are added at build time in lab.css." class: "lab-note"
   div class: "lab-fields" {
+    number "Speed" value: motionSpeed min: 0.3 max: 2.5 step: 0.1
+    select "Easing" value: motionEase {
+      option "Default" value: "default"
+      option "Linear" value: "linear"
+      option "Ease" value: "ease"
+      option "Ease in" value: "ease-in"
+      option "Ease out" value: "ease-out"
+      option "Ease in out" value: "ease-in-out"
+    }
+    number "Delay" value: motionDelay min: 0 max: 1 step: 0.05
     row class: "lab-wide" {
-      button "Export current" onClick: exportEffects
-      button "Copy" onClick: copyEffects
-      button "Import" onClick: importEffects
-      button "Reset" onClick: resetEffects
+      button "Copy CSS" onClick: copyMotion
     }
   }
-  p "{effectsMsg}" class: "lab-note"
-  p "{str(len(effectsJson))} characters" class: "lab-note"
+  p "{motionMsg}" class: "lab-note"
 }"""
-cards.insert(0, export_card)
+cards.insert(0, motion_card)
 
 view = '''view main {
   title "Animation lab"
-  col class: "lab-page" {
+  div class: "lab-page" style: cssSafe("--lab-motion-speed: " + motionSpeed + (motionEase == "default" ? "" : "; --lab-motion-easing: " + motionEase) + (motionDelay == "0" or motionDelay == "0.0" ? "" : "; --lab-motion-delay: " + motionDelay + "s")) {
     h1 "Animation lab" class: "lab-head"
     p "Only controls whose graphics can be animated. Every style and every animation is chosen live; the page does not jump thanks to the re-render preservation in the runtime." class: "lab-note"
 
@@ -347,9 +222,7 @@ view = '''view main {
   }
 }''' % "\n\n".join("\n".join("      " + line for line in c.splitlines()) for c in cards)
 
-app = r'''import { json } from "std"
-
-state name = ""
+app = r'''state name = ""
 state pStyle = "lab-p-classic"
 state pAnim = "lab-p-anim-wave"
 state sShape = "lab-s-ring"
@@ -387,12 +260,33 @@ state cbStyle = "lab-cb-classic"
 state cbAnim = "slide"
 state cmdAnim = "slide"
 state showCommands = false
-__EFFECT_STATE__
+state motionSpeed = "1"
+state motionEase = "default"
+state motionDelay = "0"
+state motionMsg = ""
 
 fn noop() -> null {
 	return null
 }
 __EFFECT_FUNCS__
+
+fn copyMotion() -> null {
+  let easeCss = ""
+  if motionEase != "default" {
+    easeCss = "; --lab-motion-easing: " + motionEase
+  }
+  let delayCss = ""
+  if motionDelay != "0" and motionDelay != "0.0" {
+    delayCss = "; --lab-motion-delay: " + motionDelay + "s"
+  }
+  let cssText = ":root \{ --lab-motion-speed: " + motionSpeed + easeCss + delayCss + "; \}"
+  let ok = clipboard.writeText(cssText)
+  if ok {
+    motionMsg = "CSS copied: " + cssText
+  } else {
+    motionMsg = "Copy failed."
+  }
+}
 
 fn openCommands() -> null {
 	showCommands = true
@@ -417,10 +311,7 @@ css "__CSS__"
 __VIEW__
 '''
 
-app = (app.replace("__CSS__", esc(css))
-          .replace("__VIEW__", view)
-          .replace("__EFFECT_STATE__", effect_state_code)
-          .replace("__EFFECT_FUNCS__", effect_funcs))
+app = app.replace("__CSS__", esc(css)).replace("__VIEW__", view).replace("__EFFECT_FUNCS__", "").replace("__EFFECT_STATE__", "")
 
 io.open(root + r"\app.sui", "w", encoding="utf-8", newline="\n").write(app)
 print("written")

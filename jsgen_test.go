@@ -393,3 +393,15 @@ func TestReadStateStillRebindsView(t *testing.T) {
 		t.Errorf("state read by the view must bind it:\n%v", js)
 	}
 }
+
+func TestTernaryStateBindsView(t *testing.T) {
+	src := "state on = true\nview main {\n\tdiv class: on ? \"a\" : \"b\" { p \"x\" }\n}\n"
+	prog, dl := ParseSource(src, "cond.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %v", dl.Count())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, `__sui_bindView("on"`) {
+		t.Errorf("state used in a ternary must bind the view:\n%v", js)
+	}
+}

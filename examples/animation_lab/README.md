@@ -112,8 +112,6 @@ control.
 Every selector is bound to a state variable:
 
 ```sui
-import { json } from "std"
-
 state name = ""
 state pStyle = "lab-p-classic"
 state pAnim = "lab-p-anim-wave"
@@ -152,458 +150,31 @@ state cbStyle = "lab-cb-classic"
 state cbAnim = "slide"
 state cmdAnim = "slide"
 state showCommands = false
-state effectsJson = ""
-state effectsMsg = "Export the current selections, edit the JSON, then Import."
-state allowed_pStyle = ["lab-p-classic", "lab-p-thin", "lab-p-segments", "lab-p-stripes", "lab-p-square", "lab-p-neon", "lab-p-dashed"]
-state allowed_pAnim = ["lab-p-anim-pulse", "lab-p-anim-stripes", "lab-p-anim-shimmer", "lab-p-anim-glow", "lab-p-anim-indeterminate", "lab-p-anim-aurora", "lab-p-anim-breathe", "lab-p-anim-ticker", "lab-p-anim-spark", "lab-p-anim-wave", "lab-p-anim-none"]
-state allowed_sShape = ["lab-s-ring", "lab-s-dots", "lab-s-bars", "lab-s-orbit", "lab-s-comet", "lab-s-pulse", "lab-s-square", "lab-s-hourglass", "lab-s-drop"]
-state allowed_sAnim = ["lab-s-anim-spin", "lab-s-anim-pulse", "lab-s-anim-flip", "lab-s-anim-reverse", "lab-s-anim-orbit", "lab-s-anim-wobble", "lab-s-anim-bounce", "lab-s-anim-ripple", "lab-s-anim-swing", "lab-s-anim-none"]
-state allowed_bStyle = ["lab-b-pill", "lab-b-tag", "lab-b-outline", "lab-b-neon", "lab-b-status", "lab-b-brutalist", "lab-b-glass"]
-state allowed_bAnim = ["lab-b-anim-pulse", "lab-b-anim-glow", "lab-b-anim-float", "lab-b-anim-pop", "lab-b-anim-blink", "lab-b-anim-tilt", "lab-b-anim-ping", "lab-b-anim-bounce", "lab-b-anim-jelly", "lab-b-anim-sheen", "lab-b-anim-dot", "lab-b-anim-border", "lab-b-anim-none"]
-state allowed_aStyle = ["lab-a-bar", "lab-a-filled", "lab-a-outline", "lab-a-glass", "lab-a-brutalist", "lab-a-info"]
-state allowed_aAnim = ["lab-a-anim-fade", "lab-a-anim-slide", "lab-a-anim-shake", "lab-a-anim-pulse", "lab-a-anim-zoom", "lab-a-anim-bounce-in", "lab-a-anim-slide-right", "lab-a-anim-wobble", "lab-a-anim-breathe", "lab-a-anim-flash", "lab-a-anim-wipe", "lab-a-anim-border", "lab-a-anim-none"]
-state allowed_cStyle = ["lab-c-elevated", "lab-c-flat", "lab-c-outline", "lab-c-glass", "lab-c-neon", "lab-c-brutalist", "lab-c-dashed"]
-state allowed_cAnim = ["lab-c-anim-fade", "lab-c-anim-float", "lab-c-anim-rise", "lab-c-anim-zoom", "lab-c-anim-tilt", "lab-c-anim-halo", "lab-c-anim-drift", "lab-c-anim-unfold", "lab-c-anim-dot", "lab-c-anim-border", "lab-c-anim-wipe", "lab-c-anim-flip", "lab-c-anim-squash", "lab-c-anim-none"]
-state allowed_btnStyle = ["lab-btn-solid", "lab-btn-gradient", "lab-btn-outline", "lab-btn-ghost", "lab-btn-neon", "lab-btn-3d", "lab-btn-pill", "lab-btn-brutalist"]
-state allowed_btnAnim = ["lab-btn-anim-pulse", "lab-btn-anim-float", "lab-btn-anim-glow", "lab-btn-anim-jelly", "lab-btn-anim-bounce", "lab-btn-anim-tilt", "lab-btn-anim-ring", "lab-btn-anim-sheen", "lab-btn-anim-press", "lab-btn-anim-border", "lab-btn-anim-wipe", "lab-btn-anim-pop", "lab-btn-anim-none"]
-state allowed_tStyle = ["lab-t-underline", "lab-t-pills", "lab-t-segmented", "lab-t-boxed", "lab-t-brutalist", "lab-t-neon"]
-state allowed_tAnim = ["lab-t-anim-pop", "lab-t-anim-slide", "lab-t-anim-glow", "lab-t-anim-sweep", "lab-t-anim-none"]
-state allowed_iStyle = ["lab-i-outline", "lab-i-filled", "lab-i-underline", "lab-i-pill", "lab-i-glass", "lab-i-brutalist"]
-state allowed_iAnim = ["lab-i-anim-ring", "lab-i-anim-glow", "lab-i-anim-lift", "lab-i-anim-shake", "lab-i-anim-none"]
-state allowed_chkStyle = ["lab-check-classic", "lab-check-round", "lab-check-tile", "lab-check-led", "lab-check-brutalist", "lab-check-neon", "lab-check-sweep"]
-state allowed_chkTheme = ["lab-cb-theme-accent", "lab-cb-theme-success", "lab-cb-theme-warning", "lab-cb-theme-danger", "lab-cb-theme-mono"]
-state allowed_chkAnim = ["auto", "scale", "morph", "fade", "slide", "none"]
-state allowed_swShape = ["default", "rounded", "square", "pill", "ios", "material", "minimal", "soft"]
-state allowed_swTheme = ["default", "accent", "success", "warning", "danger", "mono", "dark", "light"]
-state allowed_swAnim = ["auto", "scale", "morph", "fade", "slide", "none"]
-state allowed_rdShape = ["default", "compact", "large", "soft", "minimal"]
-state allowed_rdTheme = ["default", "accent", "success", "warning", "danger", "mono", "dark", "light"]
-state allowed_rdAnim = ["auto", "scale", "morph", "fade", "slide", "none"]
-state allowed_ddStyle = ["lab-dd-classic", "lab-dd-pill", "lab-dd-neon", "lab-dd-brutalist", "lab-dd-glass", "lab-dd-outline"]
-state allowed_ddItem = ["lab-items-bar", "lab-items-glow", "lab-items-aura", "lab-items-gradient", "lab-items-border", "lab-items-dot", "lab-items-check", "lab-items-bar lab-items-aura", "lab-items-bar lab-items-cloud", "lab-items-bar lab-items-underline", "lab-items-bar lab-items-glow", "lab-items-none"]
-state allowed_ddAnim = ["slide", "fade", "scale", "none"]
-state allowed_popStyle = ["lab-pop-card", "lab-pop-glass", "lab-pop-neon", "lab-pop-brutalist"]
-state allowed_popAnim = ["slide", "fade", "scale", "none"]
-state allowed_cbStyle = ["lab-cb-classic", "lab-cb-pill", "lab-cb-neon", "lab-cb-brutalist"]
-state allowed_cbAnim = ["slide", "fade", "scale", "none"]
-state allowed_cmdAnim = ["slide", "fade", "scale", "none"]
+state motionSpeed = "1"
+state motionEase = "default"
+state motionDelay = "0"
+state motionMsg = ""
 
 fn noop() -> null {
 	return null
 }
-fn exportEffects() -> null {
-	effectsJson = "\{\n" + "  \"format\": \"simpleui-animation-lab\",\n" + "  \"version\": 1,\n" + "  \"progress\": \{" + "\"style\": \"" + pStyle + "\", " + "\"animation\": \"" + pAnim + "\"\},\n" + "  \"spinner\": \{" + "\"shape\": \"" + sShape + "\", " + "\"animation\": \"" + sAnim + "\"\},\n" + "  \"badge\": \{" + "\"style\": \"" + bStyle + "\", " + "\"animation\": \"" + bAnim + "\"\},\n" + "  \"alert\": \{" + "\"style\": \"" + aStyle + "\", " + "\"animation\": \"" + aAnim + "\"\},\n" + "  \"card\": \{" + "\"style\": \"" + cStyle + "\", " + "\"animation\": \"" + cAnim + "\"\},\n" + "  \"button\": \{" + "\"style\": \"" + btnStyle + "\", " + "\"animation\": \"" + btnAnim + "\"\},\n" + "  \"tabs\": \{" + "\"style\": \"" + tStyle + "\", " + "\"animation\": \"" + tAnim + "\"\},\n" + "  \"input\": \{" + "\"style\": \"" + iStyle + "\", " + "\"animation\": \"" + iAnim + "\"\},\n" + "  \"checkbox\": \{" + "\"style\": \"" + chkStyle + "\", " + "\"theme\": \"" + chkTheme + "\", " + "\"animation\": \"" + chkAnim + "\"\},\n" + "  \"switch\": \{" + "\"shape\": \"" + swShape + "\", " + "\"theme\": \"" + swTheme + "\", " + "\"animation\": \"" + swAnim + "\"\},\n" + "  \"radio\": \{" + "\"shape\": \"" + rdShape + "\", " + "\"theme\": \"" + rdTheme + "\", " + "\"animation\": \"" + rdAnim + "\"\},\n" + "  \"dropdown\": \{" + "\"style\": \"" + ddStyle + "\", " + "\"item\": \"" + ddItem + "\", " + "\"animation\": \"" + ddAnim + "\"\},\n" + "  \"popover\": \{" + "\"style\": \"" + popStyle + "\", " + "\"animation\": \"" + popAnim + "\"\},\n" + "  \"combobox\": \{" + "\"style\": \"" + cbStyle + "\", " + "\"animation\": \"" + cbAnim + "\"\},\n" + "  \"commandbar\": \{" + "\"animation\": \"" + cmdAnim + "\"\n\}" + "\n\}"
-	effectsMsg = "Exported. Copy or edit the JSON, then Import."
-}
 
-async fn importEffects() -> null {
-  v, err = json.parse(effectsJson)
-  if err != null {
-    effectsMsg = "JSON error: " + err
-    return
-  }
-  if v == null {
-    effectsMsg = "Empty JSON."
-    return
-  }
-  if v["format"] != "simpleui-animation-lab" {
-    effectsMsg = "Not an animation-lab effects file (missing format field)."
-    return
-  }
-  let applied = 0
-  let rejected = 0
-  if v["progress"] != null {
-    let secProgress = v["progress"]
-    let styleProgress = secProgress["style"]
-    if styleProgress != null {
-      if indexOf(allowed_pStyle, styleProgress) >= 0 {
-        pStyle = styleProgress
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationProgress = secProgress["animation"]
-    if animationProgress != null {
-      if indexOf(allowed_pAnim, animationProgress) >= 0 {
-        pAnim = animationProgress
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["spinner"] != null {
-    let secSpinner = v["spinner"]
-    let shapeSpinner = secSpinner["shape"]
-    if shapeSpinner != null {
-      if indexOf(allowed_sShape, shapeSpinner) >= 0 {
-        sShape = shapeSpinner
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationSpinner = secSpinner["animation"]
-    if animationSpinner != null {
-      if indexOf(allowed_sAnim, animationSpinner) >= 0 {
-        sAnim = animationSpinner
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["badge"] != null {
-    let secBadge = v["badge"]
-    let styleBadge = secBadge["style"]
-    if styleBadge != null {
-      if indexOf(allowed_bStyle, styleBadge) >= 0 {
-        bStyle = styleBadge
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationBadge = secBadge["animation"]
-    if animationBadge != null {
-      if indexOf(allowed_bAnim, animationBadge) >= 0 {
-        bAnim = animationBadge
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["alert"] != null {
-    let secAlert = v["alert"]
-    let styleAlert = secAlert["style"]
-    if styleAlert != null {
-      if indexOf(allowed_aStyle, styleAlert) >= 0 {
-        aStyle = styleAlert
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationAlert = secAlert["animation"]
-    if animationAlert != null {
-      if indexOf(allowed_aAnim, animationAlert) >= 0 {
-        aAnim = animationAlert
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["card"] != null {
-    let secCard = v["card"]
-    let styleCard = secCard["style"]
-    if styleCard != null {
-      if indexOf(allowed_cStyle, styleCard) >= 0 {
-        cStyle = styleCard
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationCard = secCard["animation"]
-    if animationCard != null {
-      if indexOf(allowed_cAnim, animationCard) >= 0 {
-        cAnim = animationCard
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["button"] != null {
-    let secButton = v["button"]
-    let styleButton = secButton["style"]
-    if styleButton != null {
-      if indexOf(allowed_btnStyle, styleButton) >= 0 {
-        btnStyle = styleButton
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationButton = secButton["animation"]
-    if animationButton != null {
-      if indexOf(allowed_btnAnim, animationButton) >= 0 {
-        btnAnim = animationButton
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["tabs"] != null {
-    let secTabs = v["tabs"]
-    let styleTabs = secTabs["style"]
-    if styleTabs != null {
-      if indexOf(allowed_tStyle, styleTabs) >= 0 {
-        tStyle = styleTabs
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationTabs = secTabs["animation"]
-    if animationTabs != null {
-      if indexOf(allowed_tAnim, animationTabs) >= 0 {
-        tAnim = animationTabs
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["input"] != null {
-    let secInput = v["input"]
-    let styleInput = secInput["style"]
-    if styleInput != null {
-      if indexOf(allowed_iStyle, styleInput) >= 0 {
-        iStyle = styleInput
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationInput = secInput["animation"]
-    if animationInput != null {
-      if indexOf(allowed_iAnim, animationInput) >= 0 {
-        iAnim = animationInput
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["checkbox"] != null {
-    let secCheckbox = v["checkbox"]
-    let styleCheckbox = secCheckbox["style"]
-    if styleCheckbox != null {
-      if indexOf(allowed_chkStyle, styleCheckbox) >= 0 {
-        chkStyle = styleCheckbox
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let themeCheckbox = secCheckbox["theme"]
-    if themeCheckbox != null {
-      if indexOf(allowed_chkTheme, themeCheckbox) >= 0 {
-        chkTheme = themeCheckbox
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationCheckbox = secCheckbox["animation"]
-    if animationCheckbox != null {
-      if indexOf(allowed_chkAnim, animationCheckbox) >= 0 {
-        chkAnim = animationCheckbox
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["switch"] != null {
-    let secSwitch = v["switch"]
-    let shapeSwitch = secSwitch["shape"]
-    if shapeSwitch != null {
-      if indexOf(allowed_swShape, shapeSwitch) >= 0 {
-        swShape = shapeSwitch
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let themeSwitch = secSwitch["theme"]
-    if themeSwitch != null {
-      if indexOf(allowed_swTheme, themeSwitch) >= 0 {
-        swTheme = themeSwitch
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationSwitch = secSwitch["animation"]
-    if animationSwitch != null {
-      if indexOf(allowed_swAnim, animationSwitch) >= 0 {
-        swAnim = animationSwitch
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["radio"] != null {
-    let secRadio = v["radio"]
-    let shapeRadio = secRadio["shape"]
-    if shapeRadio != null {
-      if indexOf(allowed_rdShape, shapeRadio) >= 0 {
-        rdShape = shapeRadio
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let themeRadio = secRadio["theme"]
-    if themeRadio != null {
-      if indexOf(allowed_rdTheme, themeRadio) >= 0 {
-        rdTheme = themeRadio
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationRadio = secRadio["animation"]
-    if animationRadio != null {
-      if indexOf(allowed_rdAnim, animationRadio) >= 0 {
-        rdAnim = animationRadio
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["dropdown"] != null {
-    let secDropdown = v["dropdown"]
-    let styleDropdown = secDropdown["style"]
-    if styleDropdown != null {
-      if indexOf(allowed_ddStyle, styleDropdown) >= 0 {
-        ddStyle = styleDropdown
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let itemDropdown = secDropdown["item"]
-    if itemDropdown != null {
-      if indexOf(allowed_ddItem, itemDropdown) >= 0 {
-        ddItem = itemDropdown
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationDropdown = secDropdown["animation"]
-    if animationDropdown != null {
-      if indexOf(allowed_ddAnim, animationDropdown) >= 0 {
-        ddAnim = animationDropdown
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["popover"] != null {
-    let secPopover = v["popover"]
-    let stylePopover = secPopover["style"]
-    if stylePopover != null {
-      if indexOf(allowed_popStyle, stylePopover) >= 0 {
-        popStyle = stylePopover
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationPopover = secPopover["animation"]
-    if animationPopover != null {
-      if indexOf(allowed_popAnim, animationPopover) >= 0 {
-        popAnim = animationPopover
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["combobox"] != null {
-    let secCombobox = v["combobox"]
-    let styleCombobox = secCombobox["style"]
-    if styleCombobox != null {
-      if indexOf(allowed_cbStyle, styleCombobox) >= 0 {
-        cbStyle = styleCombobox
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-    let animationCombobox = secCombobox["animation"]
-    if animationCombobox != null {
-      if indexOf(allowed_cbAnim, animationCombobox) >= 0 {
-        cbAnim = animationCombobox
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if v["commandbar"] != null {
-    let secCommandbar = v["commandbar"]
-    let animationCommandbar = secCommandbar["animation"]
-    if animationCommandbar != null {
-      if indexOf(allowed_cmdAnim, animationCommandbar) >= 0 {
-        cmdAnim = animationCommandbar
-        applied = applied + 1
-      } else {
-        rejected = rejected + 1
-      }
-    }
-  }
-  if rejected == 0 {
-    effectsMsg = "Imported " + str(applied) + " selection(s)."
-  } else {
-    effectsMsg = "Imported " + str(applied) + ", ignored " + str(rejected) + " invalid value(s)."
-  }
-}
 
-fn resetEffects() -> null {
-	pStyle = "lab-p-classic"
-	pAnim = "lab-p-anim-wave"
-	sShape = "lab-s-ring"
-	sAnim = "lab-s-anim-spin"
-	bStyle = "lab-b-pill"
-	bAnim = "lab-b-anim-ping"
-	aStyle = "lab-a-bar"
-	aAnim = "lab-a-anim-breathe"
-	cStyle = "lab-c-elevated"
-	cAnim = "lab-c-anim-halo"
-	btnStyle = "lab-btn-gradient"
-	btnAnim = "lab-btn-anim-jelly"
-	tStyle = "lab-t-underline"
-	tAnim = "lab-t-anim-pop"
-	iStyle = "lab-i-outline"
-	iAnim = "lab-i-anim-glow"
-	chkStyle = "lab-check-tile"
-	chkTheme = "lab-cb-theme-accent"
-	chkAnim = "scale"
-	swShape = "pill"
-	swTheme = "accent"
-	swAnim = "scale"
-	rdShape = "default"
-	rdTheme = "accent"
-	rdAnim = "slide"
-	ddStyle = "lab-dd-classic"
-	ddItem = "lab-items-bar"
-	ddAnim = "slide"
-	popStyle = "lab-pop-card"
-	popAnim = "scale"
-	cbStyle = "lab-cb-classic"
-	cbAnim = "slide"
-	cmdAnim = "slide"
-	effectsMsg = "Selections reset to defaults."
-}
-
-fn copyEffects() -> null {
-  let ok = clipboard.writeText(effectsJson)
+fn copyMotion() -> null {
+  let easeCss = ""
+  if motionEase != "default" {
+    easeCss = "; --lab-motion-easing: " + motionEase
+  }
+  let delayCss = ""
+  if motionDelay != "0" and motionDelay != "0.0" {
+    delayCss = "; --lab-motion-delay: " + motionDelay + "s"
+  }
+  let cssText = ":root \{ --lab-motion-speed: " + motionSpeed + easeCss + delayCss + "; \}"
+  let ok = clipboard.writeText(cssText)
   if ok {
-    effectsMsg = "Copied to clipboard."
+    motionMsg = "CSS copied: " + cssText
   } else {
-    effectsMsg = "Copy failed."
+    motionMsg = "Copy failed."
   }
 }
 
@@ -669,16 +240,16 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-progress.lab-p-dashed::-webkit-progress-value \{ background: linear-gradient(90deg, #94a3b8, #cbd5e1); \}
 
 /* ---------- Progress: animations ---------- */
-.sui-progress.lab-p-anim-pulse::-webkit-progress-value \{ animation: lab-progress-pulse 1.4s ease-in-out infinite; \}
-.sui-progress.lab-p-anim-stripes::-webkit-progress-value \{ background: repeating-linear-gradient(45deg, #4c5cf7 0 10px, #8b5cf6 10px 20px); background-size: 28px 100%; animation: lab-progress-stripes .9s linear infinite; \}
-.sui-progress.lab-p-anim-shimmer::-webkit-progress-value \{ background: linear-gradient(90deg, transparent 20%, rgba(255,255,255,.6) 50%, transparent 80%), linear-gradient(90deg, #4c5cf7, #6366f1); background-size: 220% 100%; animation: lab-progress-shimmer 2.2s linear infinite; \}
-.sui-progress.lab-p-anim-glow::-webkit-progress-value \{ animation: lab-progress-glow 1.6s ease-in-out infinite; \}
-.sui-progress.lab-p-anim-indeterminate::-webkit-progress-value \{ background: linear-gradient(90deg, transparent 12%, #4c5cf7 42%, #6366f1 58%, transparent 88%); background-size: 200% 100%; animation: lab-progress-scan 1.25s ease-in-out infinite; \}
-.sui-progress.lab-p-anim-aurora::-webkit-progress-value \{ animation: lab-progress-aurora 7s linear infinite; \}
-.sui-progress.lab-p-anim-breathe::-webkit-progress-value \{ animation: lab-progress-breathe 2.4s ease-in-out infinite; \}
-.sui-progress.lab-p-anim-ticker::-webkit-progress-value \{ background: repeating-linear-gradient(90deg, #22d3ee 0 6px, transparent 6px 12px); animation: lab-progress-ticker 1s steps(10) infinite; \}
-.sui-progress.lab-p-anim-spark::-webkit-progress-value \{ animation: lab-progress-spark 1.6s steps(6) infinite; \}
-.sui-progress.lab-p-anim-wave::-webkit-progress-value \{ background: linear-gradient(180deg, #4c5cf7 0 34%, #6366f1 34% 62%, #4c5cf7 62% 100%); background-size: 100% 240%; animation: lab-progress-wave 1.8s ease-in-out infinite; \}
+.sui-progress.lab-p-anim-pulse::-webkit-progress-value \{ animation: lab-progress-pulse calc(1.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-stripes::-webkit-progress-value \{ background: repeating-linear-gradient(45deg, #4c5cf7 0 10px, #8b5cf6 10px 20px); background-size: 28px 100%; animation: lab-progress-stripes calc(.9s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, linear) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-shimmer::-webkit-progress-value \{ background: linear-gradient(90deg, transparent 20%, rgba(255,255,255,.6) 50%, transparent 80%), linear-gradient(90deg, #4c5cf7, #6366f1); background-size: 220% 100%; animation: lab-progress-shimmer calc(2.2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, linear) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-glow::-webkit-progress-value \{ animation: lab-progress-glow calc(1.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-indeterminate::-webkit-progress-value \{ background: linear-gradient(90deg, transparent 12%, #4c5cf7 42%, #6366f1 58%, transparent 88%); background-size: 200% 100%; animation: lab-progress-scan calc(1.25s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-aurora::-webkit-progress-value \{ animation: lab-progress-aurora calc(7s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, linear) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-breathe::-webkit-progress-value \{ animation: lab-progress-breathe calc(2.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-ticker::-webkit-progress-value \{ background: repeating-linear-gradient(90deg, #22d3ee 0 6px, transparent 6px 12px); animation: lab-progress-ticker calc(1s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, steps(10)) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-spark::-webkit-progress-value \{ animation: lab-progress-spark calc(1.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, steps(6)) var(--lab-motion-delay, 0s) infinite; \}
+.sui-progress.lab-p-anim-wave::-webkit-progress-value \{ background: linear-gradient(180deg, #4c5cf7 0 34%, #6366f1 34% 62%, #4c5cf7 62% 100%); background-size: 100% 240%; animation: lab-progress-wave calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
 .sui-progress.lab-p-anim-none \{ animation: none; \}
 @keyframes lab-progress-pulse \{ 0%, 100% \{ opacity: 1; \} 50% \{ opacity: .62; \} \}
 @keyframes lab-progress-stripes \{ to \{ background-position: 28px 0; \} \}
@@ -701,15 +272,15 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-spinner.lab-s-pulse \{ border: 0; background: #4c5cf7; \}
 .sui-spinner.lab-s-square \{ border-radius: 6px; border-color: rgba(76,92,247,.22); border-top-color: #4c5cf7; \}
 /* ---------- Spinner: animations ---------- */
-.sui-spinner.lab-s-anim-spin \{ animation: lab-spin 1s linear infinite; \}
-.sui-spinner.lab-s-anim-pulse \{ animation: lab-spin-pulse 1.4s ease-in-out infinite; \}
-.sui-spinner.lab-s-anim-flip \{ animation: lab-spin-flip 1.4s ease-in-out infinite; \}
-.sui-spinner.lab-s-anim-reverse \{ animation: lab-spin-reverse 1.1s linear infinite; \}
-.sui-spinner.lab-s-anim-orbit \{ animation: lab-spin-orbit 1.2s linear infinite; \}
-.sui-spinner.lab-s-anim-wobble \{ animation: lab-spin-wobble 1.4s ease-in-out infinite; \}
-.sui-spinner.lab-s-anim-bounce \{ animation: lab-spin-bounce .9s ease-in-out infinite; \}
-.sui-spinner.lab-s-anim-ripple \{ animation: lab-spin-ripple 1.4s ease-out infinite; \}
-.sui-spinner.lab-s-anim-swing \{ animation: lab-spin-swing 1.6s ease-in-out infinite; \}
+.sui-spinner.lab-s-anim-spin \{ animation: lab-spin calc(1s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, linear) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-pulse \{ animation: lab-spin-pulse calc(1.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-flip \{ animation: lab-spin-flip calc(1.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-reverse \{ animation: lab-spin-reverse calc(1.1s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, linear) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-orbit \{ animation: lab-spin-orbit calc(1.2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, linear) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-wobble \{ animation: lab-spin-wobble calc(1.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-bounce \{ animation: lab-spin-bounce calc(.9s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-ripple \{ animation: lab-spin-ripple calc(1.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-anim-swing \{ animation: lab-spin-swing calc(1.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
 .sui-spinner.lab-s-anim-none \{ animation: none; \}
 @keyframes lab-spin \{ to \{ transform: rotate(360deg); \} \}
 @keyframes lab-spin-reverse \{ to \{ transform: rotate(-360deg); \} \}
@@ -731,18 +302,18 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-badge.lab-b-brutalist \{ background: #facc15; color: #111; border: 2px solid #111; border-radius: 0; box-shadow: 3px 3px 0 #111; padding: 3px 9px; font-weight: 700; \}
 .sui-badge.lab-b-glass \{ background: rgba(148,163,184,.18); color: #e2e8f0; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; backdrop-filter: blur(8px); padding: 3px 10px; \}
 /* ---------- Badge: animations ---------- */
-.lab-b-anim-pulse \{ animation: lab-badge-pulse 1.8s ease-in-out infinite; \}
-.lab-b-anim-glow \{ animation: lab-badge-glow 2s ease-in-out infinite; \}
-.lab-b-anim-float \{ animation: lab-badge-float 2.4s ease-in-out infinite; \}
-.lab-b-anim-pop \{ animation: lab-badge-pop .42s cubic-bezier(.2,1.4,.4,1); \}
-.lab-b-anim-blink \{ animation: lab-badge-blink 1.2s steps(1,end) infinite; \}
-.lab-b-anim-tilt \{ animation: lab-badge-tilt 2.6s ease-in-out infinite; \}
-.lab-b-anim-ping \{ animation: lab-badge-ping 1.8s ease-out infinite; \}
-.lab-b-anim-bounce \{ animation: lab-badge-bounce 1.6s ease-in-out infinite; \}
-.lab-b-anim-jelly \{ animation: lab-badge-jelly 2.2s ease-in-out infinite; \}
-.lab-b-anim-sheen \{ animation: lab-badge-sheen 2.4s ease-in-out infinite; \}
-.lab-b-anim-dot \{ animation: lab-badge-dot .55s cubic-bezier(.2,1.3,.4,1); \}
-.lab-b-anim-border \{ animation: lab-badge-border .6s ease-out; \}
+.lab-b-anim-pulse \{ animation: lab-badge-pulse calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-glow \{ animation: lab-badge-glow calc(2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-float \{ animation: lab-badge-float calc(2.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-pop \{ animation: lab-badge-pop calc(.42s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.4,.4,1)) var(--lab-motion-delay, 0s); \}
+.lab-b-anim-blink \{ animation: lab-badge-blink calc(1.2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, steps(1,end)) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-tilt \{ animation: lab-badge-tilt calc(2.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-ping \{ animation: lab-badge-ping calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-bounce \{ animation: lab-badge-bounce calc(1.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-jelly \{ animation: lab-badge-jelly calc(2.2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-sheen \{ animation: lab-badge-sheen calc(2.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-b-anim-dot \{ animation: lab-badge-dot calc(.55s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.3,.4,1)) var(--lab-motion-delay, 0s); \}
+.lab-b-anim-border \{ animation: lab-badge-border calc(.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
 .lab-b-anim-none \{ animation: none; \}
 @keyframes lab-badge-pulse \{ 0%, 100% \{ transform: scale(1); \} 50% \{ transform: scale(1.06); \} \}
 @keyframes lab-badge-glow \{ 0%, 100% \{ filter: brightness(1); \} 50% \{ filter: brightness(1.35); \} \}
@@ -765,18 +336,18 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-alert.lab-a-brutalist \{ background: #facc15; color: #111; border: 2px solid #111; border-radius: 0; box-shadow: 4px 4px 0 #111; \}
 .sui-alert.lab-a-info \{ background: #0c2340; color: #bae6fd; border: 1px solid #0ea5e9; border-radius: 10px; \}
 /* ---------- Alert: animations ---------- */
-.lab-a-anim-fade \{ animation: lab-alert-in .24s ease-out; \}
-.lab-a-anim-slide \{ animation: lab-alert-slide .26s ease-out; \}
-.lab-a-anim-shake \{ animation: lab-alert-shake .5s ease-in-out; \}
-.lab-a-anim-pulse \{ animation: lab-alert-pulse 1.8s ease-in-out infinite; \}
-.lab-a-anim-zoom \{ animation: lab-alert-zoom .3s cubic-bezier(.2,1.2,.4,1); \}
-.lab-a-anim-bounce-in \{ animation: lab-alert-bounce-in .46s cubic-bezier(.2,1.3,.4,1); \}
-.lab-a-anim-slide-right \{ animation: lab-alert-slide-right .28s ease-out; \}
-.lab-a-anim-wobble \{ animation: lab-alert-wobble 2.4s ease-in-out infinite; \}
-.lab-a-anim-breathe \{ animation: lab-alert-breathe 2.6s ease-in-out infinite; \}
-.lab-a-anim-flash \{ animation: lab-alert-flash 1.4s ease-in-out infinite; \}
-.lab-a-anim-wipe \{ animation: lab-alert-wipe .55s ease-out; \}
-.lab-a-anim-border \{ animation: lab-alert-border .7s ease-out; \}
+.lab-a-anim-fade \{ animation: lab-alert-in calc(.24s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-a-anim-slide \{ animation: lab-alert-slide calc(.26s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-a-anim-shake \{ animation: lab-alert-shake calc(.5s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s); \}
+.lab-a-anim-pulse \{ animation: lab-alert-pulse calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-a-anim-zoom \{ animation: lab-alert-zoom calc(.3s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.2,.4,1)) var(--lab-motion-delay, 0s); \}
+.lab-a-anim-bounce-in \{ animation: lab-alert-bounce-in calc(.46s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.3,.4,1)) var(--lab-motion-delay, 0s); \}
+.lab-a-anim-slide-right \{ animation: lab-alert-slide-right calc(.28s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-a-anim-wobble \{ animation: lab-alert-wobble calc(2.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-a-anim-breathe \{ animation: lab-alert-breathe calc(2.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-a-anim-flash \{ animation: lab-alert-flash calc(1.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-a-anim-wipe \{ animation: lab-alert-wipe calc(.55s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-a-anim-border \{ animation: lab-alert-border calc(.7s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
 .lab-a-anim-none \{ animation: none; \}
 @keyframes lab-alert-in \{ from \{ opacity: 0; \} to \{ opacity: 1; \} \}
 @keyframes lab-alert-slide \{ from \{ opacity: 0; transform: translateY(-6px); \} to \{ opacity: 1; transform: translateY(0); \} \}
@@ -800,19 +371,19 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-card.lab-c-brutalist \{ background: #fde68a; color: #111; border: 3px solid #111; border-radius: 0; box-shadow: 6px 6px 0 #111; \}
 .sui-card.lab-c-dashed \{ background: #0f172a; border: 2px dashed #475569; border-radius: 10px; box-shadow: none; \}
 /* ---------- Card: animations ---------- */
-.lab-c-anim-fade \{ animation: lab-card-in .28s ease-out; \}
-.lab-c-anim-float \{ animation: lab-card-float 3.2s ease-in-out infinite; \}
-.lab-c-anim-rise \{ animation: lab-card-rise .38s cubic-bezier(.2,1,.3,1); \}
-.lab-c-anim-zoom \{ animation: lab-card-zoom .34s cubic-bezier(.2,1.2,.4,1); \}
-.lab-c-anim-tilt \{ animation: lab-card-tilt .45s cubic-bezier(.2,1,.3,1); \}
-.lab-c-anim-halo \{ animation: lab-card-halo 3s ease-in-out infinite; \}
-.lab-c-anim-drift \{ animation: lab-card-drift 5s ease-in-out infinite; \}
-.lab-c-anim-unfold \{ animation: lab-card-unfold .4s cubic-bezier(.2,1,.3,1); \}
-.lab-c-anim-dot \{ animation: lab-card-dot .6s cubic-bezier(.2,1.2,.3,1); \}
-.lab-c-anim-border \{ animation: lab-card-border .7s ease-out; \}
-.lab-c-anim-wipe \{ animation: lab-card-wipe .6s ease-out; \}
-.lab-c-anim-flip \{ animation: lab-card-flip .7s cubic-bezier(.2,1,.3,1); \}
-.lab-c-anim-squash \{ animation: lab-card-squash .5s cubic-bezier(.2,1.3,.4,1); \}
+.lab-c-anim-fade \{ animation: lab-card-in calc(.28s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-float \{ animation: lab-card-float calc(3.2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-c-anim-rise \{ animation: lab-card-rise calc(.38s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1,.3,1)) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-zoom \{ animation: lab-card-zoom calc(.34s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.2,.4,1)) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-tilt \{ animation: lab-card-tilt calc(.45s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1,.3,1)) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-halo \{ animation: lab-card-halo calc(3s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-c-anim-drift \{ animation: lab-card-drift calc(5s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-c-anim-unfold \{ animation: lab-card-unfold calc(.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1,.3,1)) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-dot \{ animation: lab-card-dot calc(.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.2,.3,1)) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-border \{ animation: lab-card-border calc(.7s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-wipe \{ animation: lab-card-wipe calc(.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-flip \{ animation: lab-card-flip calc(.7s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1,.3,1)) var(--lab-motion-delay, 0s); \}
+.lab-c-anim-squash \{ animation: lab-card-squash calc(.5s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.3,.4,1)) var(--lab-motion-delay, 0s); \}
 .lab-c-anim-none \{ animation: none; \}
 @keyframes lab-card-in \{ from \{ opacity: 0; transform: translateY(6px); \} to \{ opacity: 1; transform: translateY(0); \} \}
 @keyframes lab-card-float \{ 0%, 100% \{ transform: translateY(0); \} 50% \{ transform: translateY(-5px); \} \}
@@ -840,18 +411,18 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-button.lab-btn-pill \{ background: #22c55e; color: #052e16; border: 0; border-radius: 999px; font-weight: 600; \}
 .sui-button.lab-btn-brutalist \{ background: #facc15; color: #111; border: 3px solid #111; border-radius: 0; box-shadow: 5px 5px 0 #111; font-weight: 700; \}
 /* ---------- Button: animations ---------- */
-.lab-btn-anim-pulse \{ animation: lab-button-pulse 1.8s ease-in-out infinite; \}
-.lab-btn-anim-float \{ animation: lab-button-float 2.6s ease-in-out infinite; \}
-.lab-btn-anim-glow \{ animation: lab-button-glow 2.2s ease-in-out infinite; \}
-.lab-btn-anim-jelly \{ animation: lab-button-jelly 2.4s ease-in-out infinite; \}
-.lab-btn-anim-bounce \{ animation: lab-button-bounce 1.8s ease-in-out infinite; \}
-.lab-btn-anim-tilt \{ animation: lab-button-tilt 3s ease-in-out infinite; \}
-.lab-btn-anim-ring \{ animation: lab-button-ring 2s ease-out infinite; \}
-.lab-btn-anim-sheen \{ animation: lab-button-sheen 2.6s ease-in-out infinite; \}
-.lab-btn-anim-press \{ animation: lab-button-press 2s ease-in-out infinite; \}
-.lab-btn-anim-border \{ animation: lab-button-border .6s ease-out; \}
-.lab-btn-anim-wipe \{ animation: lab-button-wipe .55s ease-out; \}
-.lab-btn-anim-pop \{ animation: lab-button-pop .45s cubic-bezier(.2,1.5,.4,1); \}
+.lab-btn-anim-pulse \{ animation: lab-button-pulse calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-float \{ animation: lab-button-float calc(2.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-glow \{ animation: lab-button-glow calc(2.2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-jelly \{ animation: lab-button-jelly calc(2.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-bounce \{ animation: lab-button-bounce calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-tilt \{ animation: lab-button-tilt calc(3s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-ring \{ animation: lab-button-ring calc(2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-sheen \{ animation: lab-button-sheen calc(2.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-press \{ animation: lab-button-press calc(2s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-btn-anim-border \{ animation: lab-button-border calc(.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-btn-anim-wipe \{ animation: lab-button-wipe calc(.55s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-btn-anim-pop \{ animation: lab-button-pop calc(.45s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.5,.4,1)) var(--lab-motion-delay, 0s); \}
 .lab-btn-anim-none \{ animation: none; \}
 @keyframes lab-button-pulse \{ 0%, 100% \{ box-shadow: 0 0 0 0 rgba(76,92,247,.45); \} 50% \{ box-shadow: 0 0 0 6px rgba(76,92,247,0); \} \}
 @keyframes lab-button-float \{ 0%, 100% \{ transform: translateY(0); \} 50% \{ transform: translateY(-3px); \} \}
@@ -886,10 +457,10 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-tabs.lab-t-neon .sui-tab \{ border-radius: 6px; color: #67e8f9; \}
 .sui-tabs.lab-t-neon .sui-tab.active \{ background: #0e7490; color: #ecfeff; box-shadow: none; \}
 /* ---------- Tabs: animations ---------- */
-.lab-t-anim-pop .sui-tab.active \{ animation: lab-tab-pop .32s cubic-bezier(.2,1.4,.4,1); \}
-.lab-t-anim-slide .sui-tab.active \{ animation: lab-tab-slide .26s ease-out; \}
-.lab-t-anim-glow .sui-tab.active \{ animation: lab-tab-glow 2.4s ease-in-out infinite; \}
-.lab-t-anim-sweep .sui-tab.active \{ animation: lab-tab-sweep .45s ease-out; \}
+.lab-t-anim-pop .sui-tab.active \{ animation: lab-tab-pop calc(.32s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, cubic-bezier(.2,1.4,.4,1)) var(--lab-motion-delay, 0s); \}
+.lab-t-anim-slide .sui-tab.active \{ animation: lab-tab-slide calc(.26s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.lab-t-anim-glow .sui-tab.active \{ animation: lab-tab-glow calc(2.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.lab-t-anim-sweep .sui-tab.active \{ animation: lab-tab-sweep calc(.45s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
 .lab-t-anim-none .sui-tab.active \{ animation: none; \}
 @keyframes lab-tab-pop \{ 0% \{ scale: .95; \} 60% \{ scale: 1.03; \} 100% \{ scale: 1; \} \}
 @keyframes lab-tab-slide \{ from \{ opacity: .35; translate: -6px 0; \} to \{ opacity: 1; translate: 0 0; \} \}
@@ -904,10 +475,10 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-input.lab-i-glass \{ background: rgba(148,163,184,.14); color: #e2e8f0; border: 1px solid rgba(255,255,255,.24); border-radius: 10px; backdrop-filter: blur(8px); \}
 .sui-input.lab-i-brutalist \{ background: #fff; color: #111; border: 3px solid #111; border-radius: 0; box-shadow: 4px 4px 0 #111; \}
 /* ---------- Input: focus animations ---------- */
-.sui-input.lab-i-anim-ring:focus \{ animation: lab-focus-ring .5s ease-out; \}
-.sui-input.lab-i-anim-glow:focus \{ animation: lab-focus-glow 1.8s ease-in-out infinite; \}
-.sui-input.lab-i-anim-lift:focus \{ animation: lab-focus-lift .3s ease-out; \}
-.sui-input.lab-i-anim-shake:focus \{ animation: lab-focus-shake .4s ease-in-out; \}
+.sui-input.lab-i-anim-ring:focus \{ animation: lab-focus-ring calc(.5s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.sui-input.lab-i-anim-glow:focus \{ animation: lab-focus-glow calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-input.lab-i-anim-lift:focus \{ animation: lab-focus-lift calc(.3s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-out) var(--lab-motion-delay, 0s); \}
+.sui-input.lab-i-anim-shake:focus \{ animation: lab-focus-shake calc(.4s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s); \}
 .sui-input.lab-i-anim-none \{ animation: none; \}
 @keyframes lab-focus-ring \{ 0% \{ box-shadow: 0 0 0 0 rgba(76,92,247,.45); \} 100% \{ box-shadow: 0 0 0 5px rgba(76,92,247,0); \} \}
 @keyframes lab-focus-glow \{ 0%, 100% \{ filter: drop-shadow(0 0 0 transparent); \} 50% \{ filter: drop-shadow(0 0 5px rgba(76,92,247,.55)); \} \}
@@ -1016,10 +587,10 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-cb-theme-mono \{ --lab-cb-color: #94a3b8; \}
 
 /* ---------- Spinner: hourglass and drop ---------- */
-.sui-spinner.lab-s-hourglass \{ width: 26px; height: 34px; border: 0; border-radius: 0; background: #1e293b; clip-path: polygon(0 0, 100% 0, 50% 50%, 100% 100%, 0 100%, 50% 50%); position: relative; animation: lab-hourglass-flip 2.6s ease-in-out infinite; \}
-.sui-spinner.lab-s-hourglass::after \{ content: \"\"; position: absolute; left: 0; right: 0; top: 0; height: 50%; background: #4c5cf7; animation: lab-hourglass-sand 2.6s ease-in-out infinite; \}
-.sui-spinner.lab-s-drop \{ width: 26px; height: 36px; border: 2px solid #334155; border-radius: 4px 4px 12px 12px; background-color: #0b1220; background-image: linear-gradient(#22d3ee, #4c5cf7); background-repeat: no-repeat; background-position: bottom; background-size: 100% 0%; position: relative; overflow: hidden; animation: lab-drop-fill 1.8s ease-in-out infinite; \}
-.sui-spinner.lab-s-drop::before \{ content: \"\"; position: absolute; top: -10px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: #22d3ee; border-radius: 50% 50% 50% 0; transform: rotate(45deg); animation: lab-drop-fall 1.8s ease-in infinite; \}
+.sui-spinner.lab-s-hourglass \{ width: 26px; height: 34px; border: 0; border-radius: 0; background: #1e293b; clip-path: polygon(0 0, 100% 0, 50% 50%, 100% 100%, 0 100%, 50% 50%); position: relative; animation: lab-hourglass-flip calc(2.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-hourglass::after \{ content: \"\"; position: absolute; left: 0; right: 0; top: 0; height: 50%; background: #4c5cf7; animation: lab-hourglass-sand calc(2.6s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-drop \{ width: 26px; height: 36px; border: 2px solid #334155; border-radius: 4px 4px 12px 12px; background-color: #0b1220; background-image: linear-gradient(#22d3ee, #4c5cf7); background-repeat: no-repeat; background-position: bottom; background-size: 100% 0%; position: relative; overflow: hidden; animation: lab-drop-fill calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
+.sui-spinner.lab-s-drop::before \{ content: \"\"; position: absolute; top: -10px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: #22d3ee; border-radius: 50% 50% 50% 0; transform: rotate(45deg); animation: lab-drop-fall calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in) var(--lab-motion-delay, 0s) infinite; \}
 @keyframes lab-hourglass-flip \{ 0%, 42% \{ transform: rotate(0deg); \} 55%, 100% \{ transform: rotate(180deg); \} \}
 @keyframes lab-hourglass-sand \{ 0% \{ height: 50%; \} 42% \{ height: 0%; \} 55% \{ height: 0%; \} 95% \{ height: 50%; \} 100% \{ height: 50%; \} \}
 @keyframes lab-drop-fill \{ 0% \{ background-size: 100% 0%; \} 65% \{ background-size: 100% 72%; \} 100% \{ background-size: 100% 100%; \} \}
@@ -1032,7 +603,7 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 
 .lab-items-glow .sui-menuitem:hover, .lab-items-glow .sui-menuitem:focus \{ background: #1e2637; box-shadow: 0 0 0 1px #4c5cf7, 0 0 14px rgba(76,92,247,.55); \}
 
-.lab-items-aura .sui-menuitem:hover, .lab-items-aura .sui-menuitem:focus \{ background: radial-gradient(circle at 18% 50%, rgba(76,92,247,.5), transparent 70%); animation: lab-item-aura 1.8s ease-in-out infinite; \}
+.lab-items-aura .sui-menuitem:hover, .lab-items-aura .sui-menuitem:focus \{ background: radial-gradient(circle at 18% 50%, rgba(76,92,247,.5), transparent 70%); animation: lab-item-aura calc(1.8s * var(--lab-motion-speed, 1)) var(--lab-motion-easing, ease-in-out) var(--lab-motion-delay, 0s) infinite; \}
 @keyframes lab-item-aura \{ 0%, 100% \{ box-shadow: 0 0 0 0 rgba(76,92,247,0); \} 50% \{ box-shadow: 0 0 16px 2px rgba(76,92,247,.45); \} \}
 
 .lab-items-gradient .sui-menuitem \{ background-image: linear-gradient(90deg, #4c5cf7, #a855f7); background-size: 0% 100%; background-repeat: no-repeat; background-position: left; transition: background-size .25s ease; \}
@@ -1059,33 +630,37 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-items-bar.lab-items-underline .sui-menuitem::before \{ height: 0; \}
 .lab-items-bar.lab-items-underline .sui-menuitem:hover::before, .lab-items-bar.lab-items-underline .sui-menuitem:focus::before \{ height: 0; \}
 
-.lab-export-card \{ grid-column: 1 / -1; \}
-.lab-json \{ width: 100%; min-height: 190px; box-sizing: border-box; font: 11px/1.5 ui-monospace, Consolas, monospace; color: #e2e8f0; background: #0b1220; border: 1px solid #334155; border-radius: 10px; padding: 10px; resize: vertical; \}
-.lab-export-card .lab-fields \{ grid-template-columns: 1fr; \}
-.lab-export-card button \{ min-height: 34px; touch-action: manipulation; \}
+.lab-motion-card \{ grid-column: 1 / -1; \}
+.lab-motion-card .lab-fields \{ grid-template-columns: repeat(3, minmax(130px, 1fr)); \}
+.lab-motion-card button \{ min-height: 34px; touch-action: manipulation; \}
 "
 
 view main {
   title "Animation lab"
-  col class: "lab-page" {
+  div class: "lab-page" style: cssSafe("--lab-motion-speed: " + motionSpeed + (motionEase == "default" ? "" : "; --lab-motion-easing: " + motionEase) + (motionDelay == "0" or motionDelay == "0.0" ? "" : "; --lab-motion-delay: " + motionDelay + "s")) {
     h1 "Animation lab" class: "lab-head"
     p "Only controls whose graphics can be animated. Every style and every animation is chosen live; the page does not jump thanks to the re-render preservation in the runtime." class: "lab-note"
 
     div class: "lab-grid" {
-      card class: "lab-card lab-export-card" {
-        h3 "Effects file"
-        p "Export the current selections as JSON, edit the values and import them back. Invalid values are ignored and reported; the format field keeps unrelated JSON out." class: "lab-note"
-        textarea "Effects JSON" value: effectsJson class: "lab-json"
+      card class: "lab-card lab-motion-card" {
+        h3 "Motion editor"
+        p "Tune every animation live: speed multiplier, easing and delay. New keyframes are added at build time in lab.css." class: "lab-note"
         div class: "lab-fields" {
+          number "Speed" value: motionSpeed min: 0.3 max: 2.5 step: 0.1
+          select "Easing" value: motionEase {
+            option "Default" value: "default"
+            option "Linear" value: "linear"
+            option "Ease" value: "ease"
+            option "Ease in" value: "ease-in"
+            option "Ease out" value: "ease-out"
+            option "Ease in out" value: "ease-in-out"
+          }
+          number "Delay" value: motionDelay min: 0 max: 1 step: 0.05
           row class: "lab-wide" {
-            button "Export current" onClick: exportEffects
-            button "Copy" onClick: copyEffects
-            button "Import" onClick: importEffects
-            button "Reset" onClick: resetEffects
+            button "Copy CSS" onClick: copyMotion
           }
         }
-        p "{effectsMsg}" class: "lab-note"
-        p "{str(len(effectsJson))} characters" class: "lab-note"
+        p "{motionMsg}" class: "lab-note"
       }
 
       card class: "lab-card" {
@@ -1583,38 +1158,34 @@ dropdown "Menu" class: ddStyle animation: ddAnim
 switch "Enabled" shape: swShape theme: swTheme animation: swAnim
 ```
 
-## Export and import the effects
+## Motion editor
 
-The first card is an **Effects file** editor:
+The first card tunes the animation library live:
 
-- **Export current** writes a JSON document with every selected style, shape,
-  theme and animation;
-- **Copy** copies it to the clipboard;
-- **Import** parses the textarea and applies the valid values;
-- **Reset** restores the factory selections.
+- **Speed** multiplies every animation duration (`0.3` to `2.5`);
+- **Easing** overrides the timing function (Default keeps each effect's own);
+- **Delay** shifts the start of every animation;
+- **Copy CSS** copies a snippet with the generated custom properties.
 
-The JSON is editable. A minimal example:
+The animation declarations use
+`calc(<duration> * var(--lab-motion-speed, 1))` plus
+`var(--lab-motion-easing, ...)` and `var(--lab-motion-delay, 0s)`, so the values
+apply instantly to every control on the page.
 
-```json
-{
-  "format": "simpleui-animation-lab",
-  "version": 1,
-  "progress": { "style": "lab-p-neon", "animation": "lab-p-anim-ticker" },
-  "checkbox": { "style": "lab-check-led", "theme": "lab-cb-theme-success", "animation": "scale" },
-  "dropdown": { "style": "lab-dd-glass", "item": "lab-items-bar lab-items-underline", "animation": "slide" }
+New keyframes are a **build-time** feature: add `@keyframes` in `lab.css` (or
+in the project CSS) and rebuild; the motion is then selectable like the others.
+Arbitrary CSS injection at runtime is intentionally blocked by the class
+allow-list.
+
+To scope the tuning to one control, paste the snippet with a selector instead of
+`:root`, for example:
+
+```css
+.my-card {
+  --lab-motion-speed: .7;
+  --lab-motion-easing: ease-out;
 }
 ```
-
-Import validates the `format` field, the control names and every value against
-the options compiled into the app. Unknown sections are ignored; invalid values
-are counted and reported (`Imported 32, ignored 1 invalid value(s)`) without
-touching the rest. This keeps a hand-edited file from breaking the page.
-
-The JSON stores **selections**, not new CSS. The visual styles themselves are
-CSS classes in `lab.css`, compiled into the app and filtered by the dynamic
-class allow-list; to add a new style, edit `lab.css`, rebuild, and the new class
-becomes selectable and exportable. Importing arbitrary CSS at runtime would
-bypass that allow-list, so it is intentionally not supported.
 
 ## Re-render safety
 

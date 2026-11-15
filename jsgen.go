@@ -5988,6 +5988,12 @@ func addExprRefs(e *Expr, g *ViewGen) {
 		addExprRefs(e.r, g)
 		return
 	}
+	if k == "cond" {
+		addExprRefs(e.cond, g)
+		addExprRefs(e.l, g)
+		addExprRefs(e.r, g)
+		return
+	}
 	if k == "range" {
 		addExprRefs(e.lo, g)
 		addExprRefs(e.hi, g)
