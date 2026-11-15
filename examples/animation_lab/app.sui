@@ -1,3 +1,5 @@
+import { json } from "std"
+
 state name = ""
 state pStyle = "lab-p-classic"
 state pAnim = "lab-p-anim-wave"
@@ -16,7 +18,7 @@ state tAnim = "lab-t-anim-pop"
 state iStyle = "lab-i-outline"
 state iAnim = "lab-i-anim-glow"
 state chkOn = true
-state chkStyle = "lab-cb-tile"
+state chkStyle = "lab-check-tile"
 state chkTheme = "lab-cb-theme-accent"
 state chkAnim = "scale"
 state swOn = true
@@ -36,9 +38,459 @@ state cbStyle = "lab-cb-classic"
 state cbAnim = "slide"
 state cmdAnim = "slide"
 state showCommands = false
+state effectsJson = ""
+state effectsMsg = "Export the current selections, edit the JSON, then Import."
+state allowed_pStyle = ["lab-p-classic", "lab-p-thin", "lab-p-segments", "lab-p-stripes", "lab-p-square", "lab-p-neon", "lab-p-dashed"]
+state allowed_pAnim = ["lab-p-anim-pulse", "lab-p-anim-stripes", "lab-p-anim-shimmer", "lab-p-anim-glow", "lab-p-anim-indeterminate", "lab-p-anim-aurora", "lab-p-anim-breathe", "lab-p-anim-ticker", "lab-p-anim-spark", "lab-p-anim-wave", "lab-p-anim-none"]
+state allowed_sShape = ["lab-s-ring", "lab-s-dots", "lab-s-bars", "lab-s-orbit", "lab-s-comet", "lab-s-pulse", "lab-s-square", "lab-s-hourglass", "lab-s-drop"]
+state allowed_sAnim = ["lab-s-anim-spin", "lab-s-anim-pulse", "lab-s-anim-flip", "lab-s-anim-reverse", "lab-s-anim-orbit", "lab-s-anim-wobble", "lab-s-anim-bounce", "lab-s-anim-ripple", "lab-s-anim-swing", "lab-s-anim-none"]
+state allowed_bStyle = ["lab-b-pill", "lab-b-tag", "lab-b-outline", "lab-b-neon", "lab-b-status", "lab-b-brutalist", "lab-b-glass"]
+state allowed_bAnim = ["lab-b-anim-pulse", "lab-b-anim-glow", "lab-b-anim-float", "lab-b-anim-pop", "lab-b-anim-blink", "lab-b-anim-tilt", "lab-b-anim-ping", "lab-b-anim-bounce", "lab-b-anim-jelly", "lab-b-anim-sheen", "lab-b-anim-dot", "lab-b-anim-border", "lab-b-anim-none"]
+state allowed_aStyle = ["lab-a-bar", "lab-a-filled", "lab-a-outline", "lab-a-glass", "lab-a-brutalist", "lab-a-info"]
+state allowed_aAnim = ["lab-a-anim-fade", "lab-a-anim-slide", "lab-a-anim-shake", "lab-a-anim-pulse", "lab-a-anim-zoom", "lab-a-anim-bounce-in", "lab-a-anim-slide-right", "lab-a-anim-wobble", "lab-a-anim-breathe", "lab-a-anim-flash", "lab-a-anim-wipe", "lab-a-anim-border", "lab-a-anim-none"]
+state allowed_cStyle = ["lab-c-elevated", "lab-c-flat", "lab-c-outline", "lab-c-glass", "lab-c-neon", "lab-c-brutalist", "lab-c-dashed"]
+state allowed_cAnim = ["lab-c-anim-fade", "lab-c-anim-float", "lab-c-anim-rise", "lab-c-anim-zoom", "lab-c-anim-tilt", "lab-c-anim-halo", "lab-c-anim-drift", "lab-c-anim-unfold", "lab-c-anim-dot", "lab-c-anim-border", "lab-c-anim-wipe", "lab-c-anim-flip", "lab-c-anim-squash", "lab-c-anim-none"]
+state allowed_btnStyle = ["lab-btn-solid", "lab-btn-gradient", "lab-btn-outline", "lab-btn-ghost", "lab-btn-neon", "lab-btn-3d", "lab-btn-pill", "lab-btn-brutalist"]
+state allowed_btnAnim = ["lab-btn-anim-pulse", "lab-btn-anim-float", "lab-btn-anim-glow", "lab-btn-anim-jelly", "lab-btn-anim-bounce", "lab-btn-anim-tilt", "lab-btn-anim-ring", "lab-btn-anim-sheen", "lab-btn-anim-press", "lab-btn-anim-border", "lab-btn-anim-wipe", "lab-btn-anim-pop", "lab-btn-anim-none"]
+state allowed_tStyle = ["lab-t-underline", "lab-t-pills", "lab-t-segmented", "lab-t-boxed", "lab-t-brutalist", "lab-t-neon"]
+state allowed_tAnim = ["lab-t-anim-pop", "lab-t-anim-slide", "lab-t-anim-glow", "lab-t-anim-sweep", "lab-t-anim-none"]
+state allowed_iStyle = ["lab-i-outline", "lab-i-filled", "lab-i-underline", "lab-i-pill", "lab-i-glass", "lab-i-brutalist"]
+state allowed_iAnim = ["lab-i-anim-ring", "lab-i-anim-glow", "lab-i-anim-lift", "lab-i-anim-shake", "lab-i-anim-none"]
+state allowed_chkStyle = ["lab-check-classic", "lab-check-round", "lab-check-tile", "lab-check-led", "lab-check-brutalist", "lab-check-neon", "lab-check-sweep"]
+state allowed_chkTheme = ["lab-cb-theme-accent", "lab-cb-theme-success", "lab-cb-theme-warning", "lab-cb-theme-danger", "lab-cb-theme-mono"]
+state allowed_chkAnim = ["auto", "scale", "morph", "fade", "slide", "none"]
+state allowed_swShape = ["default", "rounded", "square", "pill", "ios", "material", "minimal", "soft"]
+state allowed_swTheme = ["default", "accent", "success", "warning", "danger", "mono", "dark", "light"]
+state allowed_swAnim = ["auto", "scale", "morph", "fade", "slide", "none"]
+state allowed_rdShape = ["default", "compact", "large", "soft", "minimal"]
+state allowed_rdTheme = ["default", "accent", "success", "warning", "danger", "mono", "dark", "light"]
+state allowed_rdAnim = ["auto", "scale", "morph", "fade", "slide", "none"]
+state allowed_ddStyle = ["lab-dd-classic", "lab-dd-pill", "lab-dd-neon", "lab-dd-brutalist", "lab-dd-glass", "lab-dd-outline"]
+state allowed_ddItem = ["lab-items-bar", "lab-items-glow", "lab-items-aura", "lab-items-gradient", "lab-items-border", "lab-items-dot", "lab-items-check", "lab-items-bar lab-items-aura", "lab-items-bar lab-items-cloud", "lab-items-bar lab-items-underline", "lab-items-bar lab-items-glow", "lab-items-none"]
+state allowed_ddAnim = ["slide", "fade", "scale", "none"]
+state allowed_popStyle = ["lab-pop-card", "lab-pop-glass", "lab-pop-neon", "lab-pop-brutalist"]
+state allowed_popAnim = ["slide", "fade", "scale", "none"]
+state allowed_cbStyle = ["lab-cb-classic", "lab-cb-pill", "lab-cb-neon", "lab-cb-brutalist"]
+state allowed_cbAnim = ["slide", "fade", "scale", "none"]
+state allowed_cmdAnim = ["slide", "fade", "scale", "none"]
 
 fn noop() -> null {
 	return null
+}
+fn exportEffects() -> null {
+	effectsJson = "\{\n" + "  \"format\": \"simpleui-animation-lab\",\n" + "  \"version\": 1,\n" + "  \"progress\": \{" + "\"style\": \"" + pStyle + "\", " + "\"animation\": \"" + pAnim + "\"\},\n" + "  \"spinner\": \{" + "\"shape\": \"" + sShape + "\", " + "\"animation\": \"" + sAnim + "\"\},\n" + "  \"badge\": \{" + "\"style\": \"" + bStyle + "\", " + "\"animation\": \"" + bAnim + "\"\},\n" + "  \"alert\": \{" + "\"style\": \"" + aStyle + "\", " + "\"animation\": \"" + aAnim + "\"\},\n" + "  \"card\": \{" + "\"style\": \"" + cStyle + "\", " + "\"animation\": \"" + cAnim + "\"\},\n" + "  \"button\": \{" + "\"style\": \"" + btnStyle + "\", " + "\"animation\": \"" + btnAnim + "\"\},\n" + "  \"tabs\": \{" + "\"style\": \"" + tStyle + "\", " + "\"animation\": \"" + tAnim + "\"\},\n" + "  \"input\": \{" + "\"style\": \"" + iStyle + "\", " + "\"animation\": \"" + iAnim + "\"\},\n" + "  \"checkbox\": \{" + "\"style\": \"" + chkStyle + "\", " + "\"theme\": \"" + chkTheme + "\", " + "\"animation\": \"" + chkAnim + "\"\},\n" + "  \"switch\": \{" + "\"shape\": \"" + swShape + "\", " + "\"theme\": \"" + swTheme + "\", " + "\"animation\": \"" + swAnim + "\"\},\n" + "  \"radio\": \{" + "\"shape\": \"" + rdShape + "\", " + "\"theme\": \"" + rdTheme + "\", " + "\"animation\": \"" + rdAnim + "\"\},\n" + "  \"dropdown\": \{" + "\"style\": \"" + ddStyle + "\", " + "\"item\": \"" + ddItem + "\", " + "\"animation\": \"" + ddAnim + "\"\},\n" + "  \"popover\": \{" + "\"style\": \"" + popStyle + "\", " + "\"animation\": \"" + popAnim + "\"\},\n" + "  \"combobox\": \{" + "\"style\": \"" + cbStyle + "\", " + "\"animation\": \"" + cbAnim + "\"\},\n" + "  \"commandbar\": \{" + "\"animation\": \"" + cmdAnim + "\"\n\}" + "\n\}"
+	effectsMsg = "Exported. Copy or edit the JSON, then Import."
+}
+
+async fn importEffects() -> null {
+  v, err = json.parse(effectsJson)
+  if err != null {
+    effectsMsg = "JSON error: " + err
+    return
+  }
+  if v == null {
+    effectsMsg = "Empty JSON."
+    return
+  }
+  if v["format"] != "simpleui-animation-lab" {
+    effectsMsg = "Not an animation-lab effects file (missing format field)."
+    return
+  }
+  let applied = 0
+  let rejected = 0
+  if v["progress"] != null {
+    let secProgress = v["progress"]
+    let styleProgress = secProgress["style"]
+    if styleProgress != null {
+      if indexOf(allowed_pStyle, styleProgress) >= 0 {
+        pStyle = styleProgress
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationProgress = secProgress["animation"]
+    if animationProgress != null {
+      if indexOf(allowed_pAnim, animationProgress) >= 0 {
+        pAnim = animationProgress
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["spinner"] != null {
+    let secSpinner = v["spinner"]
+    let shapeSpinner = secSpinner["shape"]
+    if shapeSpinner != null {
+      if indexOf(allowed_sShape, shapeSpinner) >= 0 {
+        sShape = shapeSpinner
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationSpinner = secSpinner["animation"]
+    if animationSpinner != null {
+      if indexOf(allowed_sAnim, animationSpinner) >= 0 {
+        sAnim = animationSpinner
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["badge"] != null {
+    let secBadge = v["badge"]
+    let styleBadge = secBadge["style"]
+    if styleBadge != null {
+      if indexOf(allowed_bStyle, styleBadge) >= 0 {
+        bStyle = styleBadge
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationBadge = secBadge["animation"]
+    if animationBadge != null {
+      if indexOf(allowed_bAnim, animationBadge) >= 0 {
+        bAnim = animationBadge
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["alert"] != null {
+    let secAlert = v["alert"]
+    let styleAlert = secAlert["style"]
+    if styleAlert != null {
+      if indexOf(allowed_aStyle, styleAlert) >= 0 {
+        aStyle = styleAlert
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationAlert = secAlert["animation"]
+    if animationAlert != null {
+      if indexOf(allowed_aAnim, animationAlert) >= 0 {
+        aAnim = animationAlert
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["card"] != null {
+    let secCard = v["card"]
+    let styleCard = secCard["style"]
+    if styleCard != null {
+      if indexOf(allowed_cStyle, styleCard) >= 0 {
+        cStyle = styleCard
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationCard = secCard["animation"]
+    if animationCard != null {
+      if indexOf(allowed_cAnim, animationCard) >= 0 {
+        cAnim = animationCard
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["button"] != null {
+    let secButton = v["button"]
+    let styleButton = secButton["style"]
+    if styleButton != null {
+      if indexOf(allowed_btnStyle, styleButton) >= 0 {
+        btnStyle = styleButton
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationButton = secButton["animation"]
+    if animationButton != null {
+      if indexOf(allowed_btnAnim, animationButton) >= 0 {
+        btnAnim = animationButton
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["tabs"] != null {
+    let secTabs = v["tabs"]
+    let styleTabs = secTabs["style"]
+    if styleTabs != null {
+      if indexOf(allowed_tStyle, styleTabs) >= 0 {
+        tStyle = styleTabs
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationTabs = secTabs["animation"]
+    if animationTabs != null {
+      if indexOf(allowed_tAnim, animationTabs) >= 0 {
+        tAnim = animationTabs
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["input"] != null {
+    let secInput = v["input"]
+    let styleInput = secInput["style"]
+    if styleInput != null {
+      if indexOf(allowed_iStyle, styleInput) >= 0 {
+        iStyle = styleInput
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationInput = secInput["animation"]
+    if animationInput != null {
+      if indexOf(allowed_iAnim, animationInput) >= 0 {
+        iAnim = animationInput
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["checkbox"] != null {
+    let secCheckbox = v["checkbox"]
+    let styleCheckbox = secCheckbox["style"]
+    if styleCheckbox != null {
+      if indexOf(allowed_chkStyle, styleCheckbox) >= 0 {
+        chkStyle = styleCheckbox
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let themeCheckbox = secCheckbox["theme"]
+    if themeCheckbox != null {
+      if indexOf(allowed_chkTheme, themeCheckbox) >= 0 {
+        chkTheme = themeCheckbox
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationCheckbox = secCheckbox["animation"]
+    if animationCheckbox != null {
+      if indexOf(allowed_chkAnim, animationCheckbox) >= 0 {
+        chkAnim = animationCheckbox
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["switch"] != null {
+    let secSwitch = v["switch"]
+    let shapeSwitch = secSwitch["shape"]
+    if shapeSwitch != null {
+      if indexOf(allowed_swShape, shapeSwitch) >= 0 {
+        swShape = shapeSwitch
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let themeSwitch = secSwitch["theme"]
+    if themeSwitch != null {
+      if indexOf(allowed_swTheme, themeSwitch) >= 0 {
+        swTheme = themeSwitch
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationSwitch = secSwitch["animation"]
+    if animationSwitch != null {
+      if indexOf(allowed_swAnim, animationSwitch) >= 0 {
+        swAnim = animationSwitch
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["radio"] != null {
+    let secRadio = v["radio"]
+    let shapeRadio = secRadio["shape"]
+    if shapeRadio != null {
+      if indexOf(allowed_rdShape, shapeRadio) >= 0 {
+        rdShape = shapeRadio
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let themeRadio = secRadio["theme"]
+    if themeRadio != null {
+      if indexOf(allowed_rdTheme, themeRadio) >= 0 {
+        rdTheme = themeRadio
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationRadio = secRadio["animation"]
+    if animationRadio != null {
+      if indexOf(allowed_rdAnim, animationRadio) >= 0 {
+        rdAnim = animationRadio
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["dropdown"] != null {
+    let secDropdown = v["dropdown"]
+    let styleDropdown = secDropdown["style"]
+    if styleDropdown != null {
+      if indexOf(allowed_ddStyle, styleDropdown) >= 0 {
+        ddStyle = styleDropdown
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let itemDropdown = secDropdown["item"]
+    if itemDropdown != null {
+      if indexOf(allowed_ddItem, itemDropdown) >= 0 {
+        ddItem = itemDropdown
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationDropdown = secDropdown["animation"]
+    if animationDropdown != null {
+      if indexOf(allowed_ddAnim, animationDropdown) >= 0 {
+        ddAnim = animationDropdown
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["popover"] != null {
+    let secPopover = v["popover"]
+    let stylePopover = secPopover["style"]
+    if stylePopover != null {
+      if indexOf(allowed_popStyle, stylePopover) >= 0 {
+        popStyle = stylePopover
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationPopover = secPopover["animation"]
+    if animationPopover != null {
+      if indexOf(allowed_popAnim, animationPopover) >= 0 {
+        popAnim = animationPopover
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["combobox"] != null {
+    let secCombobox = v["combobox"]
+    let styleCombobox = secCombobox["style"]
+    if styleCombobox != null {
+      if indexOf(allowed_cbStyle, styleCombobox) >= 0 {
+        cbStyle = styleCombobox
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+    let animationCombobox = secCombobox["animation"]
+    if animationCombobox != null {
+      if indexOf(allowed_cbAnim, animationCombobox) >= 0 {
+        cbAnim = animationCombobox
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if v["commandbar"] != null {
+    let secCommandbar = v["commandbar"]
+    let animationCommandbar = secCommandbar["animation"]
+    if animationCommandbar != null {
+      if indexOf(allowed_cmdAnim, animationCommandbar) >= 0 {
+        cmdAnim = animationCommandbar
+        applied = applied + 1
+      } else {
+        rejected = rejected + 1
+      }
+    }
+  }
+  if rejected == 0 {
+    effectsMsg = "Imported " + str(applied) + " selection(s)."
+  } else {
+    effectsMsg = "Imported " + str(applied) + ", ignored " + str(rejected) + " invalid value(s)."
+  }
+}
+
+fn resetEffects() -> null {
+	pStyle = "lab-p-classic"
+	pAnim = "lab-p-anim-wave"
+	sShape = "lab-s-ring"
+	sAnim = "lab-s-anim-spin"
+	bStyle = "lab-b-pill"
+	bAnim = "lab-b-anim-ping"
+	aStyle = "lab-a-bar"
+	aAnim = "lab-a-anim-breathe"
+	cStyle = "lab-c-elevated"
+	cAnim = "lab-c-anim-halo"
+	btnStyle = "lab-btn-gradient"
+	btnAnim = "lab-btn-anim-jelly"
+	tStyle = "lab-t-underline"
+	tAnim = "lab-t-anim-pop"
+	iStyle = "lab-i-outline"
+	iAnim = "lab-i-anim-glow"
+	chkStyle = "lab-check-tile"
+	chkTheme = "lab-cb-theme-accent"
+	chkAnim = "scale"
+	swShape = "pill"
+	swTheme = "accent"
+	swAnim = "scale"
+	rdShape = "default"
+	rdTheme = "accent"
+	rdAnim = "slide"
+	ddStyle = "lab-dd-classic"
+	ddItem = "lab-items-bar"
+	ddAnim = "slide"
+	popStyle = "lab-pop-card"
+	popAnim = "scale"
+	cbStyle = "lab-cb-classic"
+	cbAnim = "slide"
+	cmdAnim = "slide"
+	effectsMsg = "Selections reset to defaults."
+}
+
+fn copyEffects() -> null {
+  let ok = clipboard.writeText(effectsJson)
+  if ok {
+    effectsMsg = "Copied to clipboard."
+  } else {
+    effectsMsg = "Copy failed."
+  }
 }
 
 fn openCommands() -> null {
@@ -408,40 +860,40 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 
 
 /* ---------- Checkbox: genuinely different structures ---------- */
-.sui-checkbox.lab-cb-classic \{ width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid #475569; background: #0f172a; \}
-.sui-checkbox.lab-cb-classic:checked \{ background: var(--lab-cb-color, #4c5cf7); border-color: var(--lab-cb-color, #4c5cf7); \}
-.sui-checkbox.lab-cb-classic::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 6px; top: 2px; opacity: 0; \}
-.sui-checkbox.lab-cb-classic:checked::after \{ opacity: 1; \}
+.sui-checkbox.lab-check-classic \{ width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid #475569; background: #0f172a; \}
+.sui-checkbox.lab-check-classic:checked \{ background: var(--lab-cb-color, #4c5cf7); border-color: var(--lab-cb-color, #4c5cf7); \}
+.sui-checkbox.lab-check-classic::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 6px; top: 2px; opacity: 0; \}
+.sui-checkbox.lab-check-classic:checked::after \{ opacity: 1; \}
 
-.sui-checkbox.lab-cb-round \{ width: 22px; height: 22px; border-radius: 50%; border: 2px solid #64748b; background: transparent; \}
-.sui-checkbox.lab-cb-round:checked \{ background: var(--lab-cb-color, #4c5cf7); border-color: var(--lab-cb-color, #4c5cf7); box-shadow: 0 0 0 4px rgba(76,92,247,.18); \}
-.sui-checkbox.lab-cb-round::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 7px; top: 3px; opacity: 0; \}
-.sui-checkbox.lab-cb-round:checked::after \{ opacity: 1; \}
+.sui-checkbox.lab-check-round \{ width: 22px; height: 22px; border-radius: 50%; border: 2px solid #64748b; background: transparent; \}
+.sui-checkbox.lab-check-round:checked \{ background: var(--lab-cb-color, #4c5cf7); border-color: var(--lab-cb-color, #4c5cf7); box-shadow: 0 0 0 4px rgba(76,92,247,.18); \}
+.sui-checkbox.lab-check-round::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 7px; top: 3px; opacity: 0; \}
+.sui-checkbox.lab-check-round:checked::after \{ opacity: 1; \}
 
-.sui-checkbox.lab-cb-tile \{ width: 30px; height: 30px; border-radius: 9px; border: 0; background: #1e293b; \}
-.sui-checkbox.lab-cb-tile:checked \{ background: linear-gradient(135deg, var(--lab-cb-color, #4c5cf7), #a855f7); box-shadow: 0 6px 16px rgba(0,0,0,.35); \}
-.sui-checkbox.lab-cb-tile::after \{ width: 7px; height: 14px; border: solid #fff; border-width: 0 3px 3px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 10px; top: 5px; opacity: 0; \}
-.sui-checkbox.lab-cb-tile:checked::after \{ opacity: 1; \}
+.sui-checkbox.lab-check-tile \{ width: 30px; height: 30px; border-radius: 9px; border: 0; background: #1e293b; \}
+.sui-checkbox.lab-check-tile:checked \{ background: linear-gradient(135deg, var(--lab-cb-color, #4c5cf7), #a855f7); box-shadow: 0 6px 16px rgba(0,0,0,.35); \}
+.sui-checkbox.lab-check-tile::after \{ width: 7px; height: 14px; border: solid #fff; border-width: 0 3px 3px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 10px; top: 5px; opacity: 0; \}
+.sui-checkbox.lab-check-tile:checked::after \{ opacity: 1; \}
 
-.sui-checkbox.lab-cb-led \{ width: 22px; height: 22px; border-radius: 6px; border: 1px solid #334155; background: #0b1220; \}
-.sui-checkbox.lab-cb-led:checked \{ border-color: var(--lab-cb-color, #22d3ee); background: #0b1220; \}
-.sui-checkbox.lab-cb-led::after \{ width: 8px; height: 8px; border: 0; border-radius: 50%; background: transparent; transform: none; left: 50%; top: 50%; margin: -4px 0 0 -4px; opacity: 0; \}
-.sui-checkbox.lab-cb-led:checked::after \{ opacity: 1; background: var(--lab-cb-color, #22d3ee); box-shadow: 0 0 10px var(--lab-cb-color, #22d3ee); \}
+.sui-checkbox.lab-check-led \{ width: 22px; height: 22px; border-radius: 6px; border: 1px solid #334155; background: #0b1220; \}
+.sui-checkbox.lab-check-led:checked \{ border-color: var(--lab-cb-color, #22d3ee); background: #0b1220; \}
+.sui-checkbox.lab-check-led::after \{ width: 8px; height: 8px; border: 0; border-radius: 50%; background: transparent; transform: none; left: 50%; top: 50%; margin: -4px 0 0 -4px; opacity: 0; \}
+.sui-checkbox.lab-check-led:checked::after \{ opacity: 1; background: var(--lab-cb-color, #22d3ee); box-shadow: 0 0 10px var(--lab-cb-color, #22d3ee); \}
 
-.sui-checkbox.lab-cb-brutalist \{ width: 26px; height: 26px; border-radius: 0; border: 3px solid #111; background: #fff; box-shadow: 3px 3px 0 #111; \}
-.sui-checkbox.lab-cb-brutalist:checked \{ background: #facc15; border-color: #111; \}
-.sui-checkbox.lab-cb-brutalist::after \{ width: 7px; height: 13px; border: solid #111; border-width: 0 4px 4px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 8px; top: 2px; opacity: 0; \}
-.sui-checkbox.lab-cb-brutalist:checked::after \{ opacity: 1; \}
+.sui-checkbox.lab-check-brutalist \{ width: 26px; height: 26px; border-radius: 0; border: 3px solid #111; background: #fff; box-shadow: 3px 3px 0 #111; \}
+.sui-checkbox.lab-check-brutalist:checked \{ background: #facc15; border-color: #111; \}
+.sui-checkbox.lab-check-brutalist::after \{ width: 7px; height: 13px; border: solid #111; border-width: 0 4px 4px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 8px; top: 2px; opacity: 0; \}
+.sui-checkbox.lab-check-brutalist:checked::after \{ opacity: 1; \}
 
-.sui-checkbox.lab-cb-neon \{ width: 22px; height: 22px; border-radius: 8px; border: 2px solid var(--lab-cb-color, #22d3ee); background: transparent; \}
-.sui-checkbox.lab-cb-neon:checked \{ background: rgba(34,211,238,.14); border-color: var(--lab-cb-color, #22d3ee); box-shadow: inset 0 0 10px var(--lab-cb-color, #22d3ee), 0 0 12px rgba(34,211,238,.45); \}
-.sui-checkbox.lab-cb-neon::after \{ width: 5px; height: 10px; border: solid var(--lab-cb-color, #22d3ee); border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 7px; top: 3px; opacity: 0; \}
-.sui-checkbox.lab-cb-neon:checked::after \{ opacity: 1; \}
+.sui-checkbox.lab-check-neon \{ width: 22px; height: 22px; border-radius: 8px; border: 2px solid var(--lab-cb-color, #22d3ee); background: transparent; \}
+.sui-checkbox.lab-check-neon:checked \{ background: rgba(34,211,238,.14); border-color: var(--lab-cb-color, #22d3ee); box-shadow: inset 0 0 10px var(--lab-cb-color, #22d3ee), 0 0 12px rgba(34,211,238,.45); \}
+.sui-checkbox.lab-check-neon::after \{ width: 5px; height: 10px; border: solid var(--lab-cb-color, #22d3ee); border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 7px; top: 3px; opacity: 0; \}
+.sui-checkbox.lab-check-neon:checked::after \{ opacity: 1; \}
 
-.sui-checkbox.lab-cb-sweep \{ width: 24px; height: 24px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; background-image: linear-gradient(var(--lab-cb-color, #4c5cf7), var(--lab-cb-color, #4c5cf7)); background-repeat: no-repeat; background-position: bottom; background-size: 100% 0%; transition: background-size .28s ease-out, border-color .2s ease; \}
-.sui-checkbox.lab-cb-sweep:checked \{ border-color: var(--lab-cb-color, #4c5cf7); background-size: 100% 100%; \}
-.sui-checkbox.lab-cb-sweep::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 8px; top: 4px; opacity: 0; \}
-.sui-checkbox.lab-cb-sweep:checked::after \{ opacity: 1; \}
+.sui-checkbox.lab-check-sweep \{ width: 24px; height: 24px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; background-image: linear-gradient(var(--lab-cb-color, #4c5cf7), var(--lab-cb-color, #4c5cf7)); background-repeat: no-repeat; background-position: bottom; background-size: 100% 0%; transition: background-size .28s ease-out, border-color .2s ease; \}
+.sui-checkbox.lab-check-sweep:checked \{ border-color: var(--lab-cb-color, #4c5cf7); background-size: 100% 100%; \}
+.sui-checkbox.lab-check-sweep::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 8px; top: 4px; opacity: 0; \}
+.sui-checkbox.lab-check-sweep:checked::after \{ opacity: 1; \}
 
 .lab-cb-theme-accent \{ --lab-cb-color: #4c5cf7; \}
 .lab-cb-theme-success \{ --lab-cb-color: #22c55e; \}
@@ -492,6 +944,11 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-items-underline .sui-menuitem:hover::after, .lab-items-underline .sui-menuitem:focus::after \{ transform: scaleX(1); \}
 .lab-items-bar.lab-items-underline .sui-menuitem::before \{ height: 0; \}
 .lab-items-bar.lab-items-underline .sui-menuitem:hover::before, .lab-items-bar.lab-items-underline .sui-menuitem:focus::before \{ height: 0; \}
+
+.lab-export-card \{ grid-column: 1 / -1; \}
+.lab-json \{ width: 100%; min-height: 190px; box-sizing: border-box; font: 11px/1.5 ui-monospace, Consolas, monospace; color: #e2e8f0; background: #0b1220; border: 1px solid #334155; border-radius: 10px; padding: 10px; resize: vertical; \}
+.lab-export-card .lab-fields \{ grid-template-columns: 1fr; \}
+.lab-export-card button \{ min-height: 34px; touch-action: manipulation; \}
 "
 
 view main {
@@ -501,6 +958,22 @@ view main {
     p "Only controls whose graphics can be animated. Every style and every animation is chosen live; the page does not jump thanks to the re-render preservation in the runtime." class: "lab-note"
 
     div class: "lab-grid" {
+      card class: "lab-card lab-export-card" {
+        h3 "Effects file"
+        p "Export the current selections as JSON, edit the values and import them back. Invalid values are ignored and reported; the format field keeps unrelated JSON out." class: "lab-note"
+        textarea "Effects JSON" value: effectsJson class: "lab-json"
+        div class: "lab-fields" {
+          row class: "lab-wide" {
+            button "Export current" onClick: exportEffects
+            button "Copy" onClick: copyEffects
+            button "Import" onClick: importEffects
+            button "Reset" onClick: resetEffects
+          }
+        }
+        p "{effectsMsg}" class: "lab-note"
+        p "{str(len(effectsJson))} characters" class: "lab-note"
+      }
+
       card class: "lab-card" {
         h3 "Progress"
         div class: "lab-preview" {
@@ -563,7 +1036,7 @@ view main {
           					option "None" value: "lab-s-anim-none"
           }
         }
-        p "Seven geometries, ten motions." class: "lab-note"
+        p "Nine geometries, ten motions." class: "lab-note"
       }
 
       card class: "lab-card" {
@@ -670,7 +1143,7 @@ view main {
           					option "None" value: "lab-c-anim-none"
           }
         }
-        p "Seven surfaces, eight motions." class: "lab-note"
+        p "Seven surfaces, fourteen motions." class: "lab-note"
       }
 
       card class: "lab-card" {
@@ -775,13 +1248,13 @@ view main {
         }
         div class: "lab-fields" {
           select "Style" value: chkStyle class: "lab-wide" {
-          					option "Classic" value: "lab-cb-classic"
-          					option "Round" value: "lab-cb-round"
-          					option "Tile" value: "lab-cb-tile"
-          					option "LED" value: "lab-cb-led"
-          					option "Brutalist" value: "lab-cb-brutalist"
-          					option "Neon" value: "lab-cb-neon"
-          					option "Sweep fill" value: "lab-cb-sweep"
+          					option "Classic" value: "lab-check-classic"
+          					option "Round" value: "lab-check-round"
+          					option "Tile" value: "lab-check-tile"
+          					option "LED" value: "lab-check-led"
+          					option "Brutalist" value: "lab-check-brutalist"
+          					option "Neon" value: "lab-check-neon"
+          					option "Sweep fill" value: "lab-check-sweep"
           }
           select "Theme" value: chkTheme {
           					option "Accent" value: "lab-cb-theme-accent"
@@ -837,7 +1310,7 @@ view main {
           					option "None" value: "none"
           }
         }
-        p "Nine shapes and eight themes at runtime." class: "lab-note"
+        p "Eight shapes and eight themes at runtime." class: "lab-note"
       }
 
       card class: "lab-card" {
@@ -875,7 +1348,7 @@ view main {
           					option "None" value: "none"
           }
         }
-        p "Independent radio; group them with name:." class: "lab-note"
+        p "Two options in one group, so the choice is visible." class: "lab-note"
       }
 
       card class: "lab-card" {
