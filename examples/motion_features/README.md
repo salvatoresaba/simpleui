@@ -157,7 +157,8 @@ ready-to-run build is in `dist/`, with the complete source as `dist/app.sui`.
   link guard.
 - Gestures use pointer events. A browser without pointer events still supports
   ordinary DOM triggers; long press is canceled after about 10 px of movement.
-- Visibility uses `IntersectionObserver` with an immediate initial check. In a
-  browser without it, only the initial visibility is evaluated.
+- Visibility uses `IntersectionObserver` with an immediate initial check. Without
+  it, the runtime also measures on scroll, resize and a periodic timer, so
+  `visible` and `hidden` keep working.
 - Exit animation has one destination state per graph. The ghost clone is a
   snapshot: later changes to the original element do not affect it.

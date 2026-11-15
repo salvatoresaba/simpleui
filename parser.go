@@ -258,7 +258,11 @@ func ParseSource(source string, file string) (*Prog, DiagList) {
 				prog.views = append(prog.views, *vd)
 			}
 		} else if k == "css" {
+			start := p.cur()
 			text := parseCss(p)
+			if msg := cssExternalReferenceError(text); msg != "" {
+				p.dd.Add(p.file, start.line, start.col, msg)
+			}
 			if text != "" {
 				prog.css = append(prog.css, text)
 			}

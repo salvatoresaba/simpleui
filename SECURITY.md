@@ -40,7 +40,11 @@ style templates. `cssSafe` removes `url()`, `image-set()`, `paint()`, `attr()`,
 `var()`, `expression()`, CSS escapes, positioning/overlay properties and
 vendor-prefixed properties. Safe CSS custom properties (`--name`) are allowed,
 but their values pass the same filters. Static developer-authored styles are
-trusted.
+trusted, with one exception: author CSS cannot load external resources.
+`css "..."`, static `style:` values and motion-graph state CSS reject
+`@import` and `url(...)` values with network/file schemes (`http:`, `https:`,
+`file:`, `ftp:`, `ws:`, `wss:` and protocol-relative `//`). Relative assets,
+fragments and `data:` URIs remain allowed.
 
 ### 3b. Tree data import is inert
 

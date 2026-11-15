@@ -335,5 +335,5 @@ ready-to-run build is in `dist/`, with the complete source as `dist/app.sui`.
   view. Hiding it with CSS keeps the element, so no clone is created. The clone
   is a snapshot: later state changes on the original do not affect it.
 - Swipe and long press use pointer events. Without pointer support, only the
-  ordinary DOM triggers work; visibility falls back to an immediate check when
-  `IntersectionObserver` is unavailable.
+  ordinary DOM triggers work. Without `IntersectionObserver`, visibility falls
+  back to scroll, resize and periodic measurements, so both directions work.

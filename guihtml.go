@@ -8827,6 +8827,17 @@ function mgRenderParam() {
     exitNote.textContent = "Only one exit state per graph. The state CSS supplies the final values. Spring overrides easing; duration controls its speed.";
     side.appendChild(exitNote);
     var exitActions = actions();
+    var exitPreview = btn(exitActions, "Preview exit", function(){
+      if (!mgCfg.exit || !mgCfg.exit.state) { mgNotify("Choose an exit state first."); return; }
+      var st = mgStateById(mgCfg.exit.state);
+      if (!st) return;
+      var duration = mgCfg.exit.duration || "240ms";
+      var easing = mgCfg.exit.easing || "ease-out";
+      if (mgCfg.exit.spring) easing = mgSpringEasing(mgCfg.exit.spring, mgTimeMs(duration, 240));
+      mgPreviewState(st.id, duration, easing, { delay: mgCfg.exit.delay });
+    });
+    exitPreview.id = "mg-exit-preview";
+    btn(exitActions, "Stop preview", function(){ mgPreviewStop(); });
     btn(exitActions, "OK", function(){ mgCloseParam(); mgRender(); });
     return;
   }

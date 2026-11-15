@@ -4125,6 +4125,11 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 					"style interpolation requires cssSafe(...) (untrusted CSS)")
 			}
 		}
+		if lit, ok := staticPartsLiteral(a.text); ok {
+			if msg := cssExternalReferenceError(lit); msg != "" {
+				c.diagAt(a.span, msg)
+			}
+		}
 		c.checkViewParts(a.text)
 		return
 	}

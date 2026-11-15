@@ -455,7 +455,10 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   `hidden` when it leaves. `threshold` is the visible ratio between `0` and `1`
   (default `0.5` for `visible`, `0.2` for `hidden`); `once: true` fires only the
   first time. They use `IntersectionObserver` with an immediate initial check,
-  so enter animations start as soon as the element is mounted.
+  so enter animations start as soon as the element is mounted. Without
+  `IntersectionObserver`, the runtime also measures on the initial timer,
+  document scroll (including nested scrollers), window resize and a periodic
+  check, so both directions keep working.
 - `links[].iterations` is a positive integer or `"infinite"`; `direction` is
   `normal`, `reverse`, `alternate` or `alternate-reverse`; `playbackRate` is
   between `0.1` and `10`. `spring: {stiffness, damping, mass}` overrides

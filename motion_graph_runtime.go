@@ -743,11 +743,19 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
         }, 0);
         cleanups.push(function(){ clearTimeout(initialTimer); observer.disconnect(); });
       } else {
-        var fallbackTimer = setTimeout(function() {
-          if (!el.isConnected) return;
-          initialVisibility();
-        }, 0);
-        cleanups.push(function(){ clearTimeout(fallbackTimer); });
+        var measure = function() {
+          if (el.isConnected) initialVisibility();
+        };
+        var fallbackTimer = setTimeout(measure, 0);
+        var fallbackInterval = setInterval(measure, 350);
+        document.addEventListener('scroll', measure, true);
+        window.addEventListener('resize', measure);
+        cleanups.push(function(){
+          clearTimeout(fallbackTimer);
+          clearInterval(fallbackInterval);
+          document.removeEventListener('scroll', measure, true);
+          window.removeEventListener('resize', measure);
+        });
       }
     }
     if (cleanups.length) {

@@ -77,6 +77,55 @@ func TestMotionGraphCheckDiagnostics(t *testing.T) {
 	}
 }
 
+func TestMotionGraphEventDiagnostics(t *testing.T) {
+	valid := `{"initial":"a","states":[{"id":"a"},{"id":"b"}],"links":[
+		{"id":"c","from":"a","to":"b","event":"custom","customEvent":"scene-open"},
+		{"id":"s","from":"a","to":"b","event":"state","when":"!flag"},
+		{"id":"e","from":"a","to":"b","event":"elementState","sourceId":"src","whenState":"b"},
+		{"id":"t","from":"a","to":"b","event":"timer","timer":"1.5s"},
+		{"id":"w","from":"a","to":"b","event":"wheel","wheel":"down"},
+		{"id":"sw","from":"a","to":"b","event":"swipe","axis":"left","distance":45},
+		{"id":"l","from":"a","to":"b","event":"longpress","hold":600},
+		{"id":"v","from":"a","to":"b","event":"visible","threshold":0.6}
+	],"exit":{"state":"b","duration":"180ms","delay":"20ms","spring":{"stiffness":180,"damping":14,"mass":1}}}`
+	if msgs := motionGraphDiagnostics(valid); len(msgs) != 0 {
+		t.Fatalf("valid event graph produced diagnostics: %v", msgs)
+	}
+	invalid := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{"custom missing", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"custom"}]}`, "customEvent"},
+		{"custom bad", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"custom","customEvent":"1bad"}]}`, "invalid custom event"},
+		{"state missing", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"state"}]}`, "needs when"},
+		{"state bad", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"state","when":"a b"}]}`, "invalid state name"},
+		{"element missing source", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"elementState","whenState":"b"}]}`, "sourceId"},
+		{"element missing state", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"elementState","sourceId":"x"}]}`, "whenState"},
+		{"timer missing", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"timer"}]}`, "non-negative time"},
+		{"timer bad", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"timer","timer":"soon"}]}`, "non-negative time"},
+		{"wheel bad", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"wheel","wheel":"left"}]}`, "wheel must be"},
+		{"swipe axis", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"swipe","axis":"diagonal"}]}`, "swipe axis"},
+		{"swipe distance", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"swipe","distance":0}]}`, "positive number"},
+		{"hold", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"longpress","hold":-1}]}`, "non-negative number"},
+		{"threshold", `{"states":[{"id":"a"}],"links":[{"from":"a","to":"a","event":"visible","threshold":1.5}]}`, "between 0 and 1"},
+		{"duplicate link", `{"states":[{"id":"a"}],"links":[{"id":"x","from":"a","to":"a","event":"click"},{"id":"x","from":"a","to":"a","event":"click"}]}`, "duplicate link id"},
+		{"exit duration", `{"states":[{"id":"a"}],"exit":{"state":"a","duration":"later"}}`, "duration must be"},
+		{"exit spring", `{"states":[{"id":"a"}],"exit":{"state":"a","spring":{"stiffness":5000}}}`, "stiffness must be"},
+	}
+	for _, tc := range invalid {
+		msgs := motionGraphDiagnostics(tc.raw)
+		if len(msgs) == 0 {
+			t.Errorf("%s: expected diagnostics", tc.name)
+			continue
+		}
+		joined := strings.Join(msgs, "\n")
+		if !strings.Contains(joined, tc.want) {
+			t.Errorf("%s: got %q, want substring %q", tc.name, joined, tc.want)
+		}
+	}
+}
+
 func TestMotionGraphCheckIntegration(t *testing.T) {
 	graph := map[string]any{
 		"initial": "a",

@@ -433,7 +433,10 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   `hidden` quando esce. `threshold` è la frazione visibile tra `0` e `1`
   (default `0.5` per `visible`, `0.2` per `hidden`); `once: true` scatta solo la
   prima volta. Usano `IntersectionObserver` con un controllo iniziale immediato,
-  così le animazioni di ingresso partono appena l'elemento viene montato.
+  così le animazioni di ingresso partono appena l'elemento viene montato. Senza
+  `IntersectionObserver`, il runtime misura anche al timer iniziale, allo scroll
+  del documento (inclusi gli scroll annidati), al resize della finestra e con un
+  controllo periodico, quindi funzionano entrambe le direzioni.
 - `links[].iterations` è un intero positivo o `"infinite"`; `direction` è
   `normal`, `reverse`, `alternate` o `alternate-reverse`; `playbackRate` è tra
   `0.1` e `10`. `spring: {stiffness, damping, mass}` sostituisce `easing` e usa

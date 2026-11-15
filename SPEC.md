@@ -88,7 +88,9 @@ ViewDecl   := 'view' ident '{' ViewBody '}'
   `style.css` (it overrides/augments the default look — useful for custom
   classes such as `.card { … }`). The string follows the usual SUI escaping
   (`\n`, `\{`, `\}` …), so CSS braces are written escaped in the source. Any
-  number of `css` declarations is allowed.
+  number of `css` declarations is allowed. External resource links are rejected:
+  `@import` and `url(...)` values with network/file schemes are compile errors;
+  relative assets, fragments and `data:` URIs are allowed.
 
 ### 2.2a User-defined struct types
 

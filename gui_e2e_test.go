@@ -384,6 +384,10 @@ const guiMotionDesignerScript = `<script>
     await wait(300);
     if (mgCfg.exit.spring.stiffness !== 220) throw new Error('exit spring stiffness was not stored');
     if (out.value.indexOf('spring') < 0) throw new Error('exit spring missing from source');
+    var exitPreview = document.getElementById('mg-exit-preview');
+    if (!exitPreview) throw new Error('exit preview button missing');
+    exitPreview.click();
+    await wait(150);
     var ok = buttonByText('#mg-param-body', 'OK');
     if (!ok) throw new Error('exit OK button missing');
     ok.click();
