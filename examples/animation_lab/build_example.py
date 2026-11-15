@@ -54,20 +54,24 @@ badge_styles = [("Pill", "lab-b-pill"), ("Tag", "lab-b-tag"), ("Outline", "lab-b
 badge_anims = [("Pulse", "lab-b-anim-pulse"), ("Glow", "lab-b-anim-glow"), ("Float", "lab-b-anim-float"),
                ("Pop", "lab-b-anim-pop"), ("Blink", "lab-b-anim-blink"), ("Tilt", "lab-b-anim-tilt"),
                ("Ping", "lab-b-anim-ping"), ("Bounce", "lab-b-anim-bounce"), ("Jelly", "lab-b-anim-jelly"),
-               ("Sheen", "lab-b-anim-sheen"), ("None", "lab-b-anim-none")]
+               ("Sheen", "lab-b-anim-sheen"), ("Dot to pill", "lab-b-anim-dot"), ("Border first", "lab-b-anim-border"),
+               ("None", "lab-b-anim-none")]
 
 alert_styles = [("Accent bar", "lab-a-bar"), ("Filled", "lab-a-filled"), ("Outline", "lab-a-outline"),
                 ("Glass", "lab-a-glass"), ("Brutalist", "lab-a-brutalist"), ("Info", "lab-a-info")]
 alert_anims = [("Fade in", "lab-a-anim-fade"), ("Slide in", "lab-a-anim-slide"), ("Shake", "lab-a-anim-shake"),
                ("Pulse", "lab-a-anim-pulse"), ("Zoom in", "lab-a-anim-zoom"), ("Bounce in", "lab-a-anim-bounce-in"),
                ("Slide right", "lab-a-anim-slide-right"), ("Wobble", "lab-a-anim-wobble"),
-               ("Breathe", "lab-a-anim-breathe"), ("Flash", "lab-a-anim-flash"), ("None", "lab-a-anim-none")]
+               ("Breathe", "lab-a-anim-breathe"), ("Flash", "lab-a-anim-flash"),
+               ("Wipe", "lab-a-anim-wipe"), ("Border first", "lab-a-anim-border"), ("None", "lab-a-anim-none")]
 
 card_styles = [("Elevated", "lab-c-elevated"), ("Flat", "lab-c-flat"), ("Outline", "lab-c-outline"),
                ("Glass", "lab-c-glass"), ("Neon", "lab-c-neon"), ("Brutalist", "lab-c-brutalist"), ("Dashed", "lab-c-dashed")]
 card_anims = [("Fade in", "lab-c-anim-fade"), ("Float", "lab-c-anim-float"), ("Rise", "lab-c-anim-rise"),
               ("Zoom in", "lab-c-anim-zoom"), ("Tilt in", "lab-c-anim-tilt"), ("Halo", "lab-c-anim-halo"),
-              ("Drift", "lab-c-anim-drift"), ("Unfold", "lab-c-anim-unfold"), ("None", "lab-c-anim-none")]
+              ("Drift", "lab-c-anim-drift"), ("Unfold", "lab-c-anim-unfold"), ("Dot to card", "lab-c-anim-dot"),
+              ("Border first", "lab-c-anim-border"), ("Wipe", "lab-c-anim-wipe"), ("Flip", "lab-c-anim-flip"),
+              ("Squash", "lab-c-anim-squash"), ("None", "lab-c-anim-none")]
 
 button_styles = [("Solid", "lab-btn-solid"), ("Gradient", "lab-btn-gradient"), ("Outline", "lab-btn-outline"),
                  ("Ghost", "lab-btn-ghost"), ("Neon", "lab-btn-neon"), ("3D", "lab-btn-3d"), ("Pill", "lab-btn-pill"),
@@ -75,6 +79,7 @@ button_styles = [("Solid", "lab-btn-solid"), ("Gradient", "lab-btn-gradient"), (
 button_anims = [("Pulse", "lab-btn-anim-pulse"), ("Float", "lab-btn-anim-float"), ("Glow", "lab-btn-anim-glow"),
                 ("Jelly", "lab-btn-anim-jelly"), ("Bounce", "lab-btn-anim-bounce"), ("Tilt", "lab-btn-anim-tilt"),
                 ("Ring", "lab-btn-anim-ring"), ("Sheen", "lab-btn-anim-sheen"), ("Press", "lab-btn-anim-press"),
+                ("Border first", "lab-btn-anim-border"), ("Wipe", "lab-btn-anim-wipe"), ("Pop", "lab-btn-anim-pop"),
                 ("None", "lab-btn-anim-none")]
 
 tabs_styles = [("Underline", "lab-t-underline"), ("Pills", "lab-t-pills"), ("Segmented", "lab-t-segmented"),
@@ -121,7 +126,7 @@ cards.append(card("Card", 'card class: cStyle + " " + cAnim {\n  strong "Aurora 
                   [field("Style", "cStyle", card_styles), field("Animation", "cAnim", card_anims)],
                   "Seven surfaces, eight motions."))
 
-cards.append(card("Button", 'button "Press me" class: btnStyle + " " + btnAnim onClick: noop',
+cards.append(card("Button", 'col class: "lab-stack" {\n  button "Press me" class: btnStyle + " " + btnAnim onClick: press\n  text "Clicks: {presses}" class: "lab-note"\n}',
                   [field("Style", "btnStyle", button_styles), field("Animation", "btnAnim", button_anims)],
                   "Solid, gradient, 3D, ghost, brutalist..."))
 
@@ -146,7 +151,7 @@ cards.append(card("Switch",
                   "Nine shapes and eight themes at runtime."))
 
 cards.append(card("Radio",
-                  'radio "Selected" checked: rdOn shape: rdShape theme: rdTheme animation: rdAnim duration: "300ms" easing: "ease-out"',
+                  'col {\n  radio "Option A" name: "lab-radio" checked: rdSel == "a" shape: rdShape theme: rdTheme animation: rdAnim onChange: pickRadioA\n  radio "Option B" name: "lab-radio" checked: rdSel == "b" shape: rdShape theme: rdTheme animation: rdAnim onChange: pickRadioB\n}',
                   [field("Shape", "rdShape", radio_shapes), field("Theme", "rdTheme", toggle_themes),
                    field("Animation", "rdAnim", toggle_anims, wide=True)],
                   "Independent radio; group them with name:."))
@@ -205,7 +210,7 @@ state swOn = true
 state swShape = "pill"
 state swTheme = "accent"
 state swAnim = "morph"
-state rdOn = true
+state rdSel = "a"
 state rdShape = "default"
 state rdTheme = "accent"
 state rdAnim = "slide"
@@ -224,6 +229,20 @@ fn noop() -> null {
 
 fn openCommands() -> null {
 	showCommands = true
+}
+
+fn pickRadioA() -> null {
+	rdSel = "a"
+}
+
+fn pickRadioB() -> null {
+	rdSel = "b"
+}
+
+state presses = 0
+
+fn press() -> null {
+	presses = presses + 1
 }
 
 css "__CSS__"

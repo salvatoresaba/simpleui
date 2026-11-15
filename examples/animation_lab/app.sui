@@ -23,7 +23,7 @@ state swOn = true
 state swShape = "pill"
 state swTheme = "accent"
 state swAnim = "morph"
-state rdOn = true
+state rdSel = "a"
 state rdShape = "default"
 state rdTheme = "accent"
 state rdAnim = "slide"
@@ -44,6 +44,20 @@ fn openCommands() -> null {
 	showCommands = true
 }
 
+fn pickRadioA() -> null {
+	rdSel = "a"
+}
+
+fn pickRadioB() -> null {
+	rdSel = "b"
+}
+
+state presses = 0
+
+fn press() -> null {
+	presses = presses + 1
+}
+
 css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-page \{ max-width: 1200px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 18px; \}
 .lab-head \{ margin: 0; \}
@@ -55,6 +69,13 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-fields \{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; \}
 .lab-fields .lab-wide \{ grid-column: 1 / -1; \}
 .lab-fields select \{ width: 100%; \}
+.lab-preview .lab-note \{ color: inherit; opacity: .78; \}
+.lab-preview .sui-checkbox-wrap, .lab-preview .sui-switch-wrap, .lab-preview .sui-radio-wrap \{ width: 100%; box-sizing: border-box; justify-content: center; min-height: 42px; padding: 8px 14px; border-radius: 10px; cursor: pointer; touch-action: manipulation; \}
+.lab-preview .sui-checkbox-wrap:hover, .lab-preview .sui-switch-wrap:hover, .lab-preview .sui-radio-wrap:hover \{ background: rgba(148,163,184,.12); \}
+.lab-preview .sui-button, .lab-preview .sui-menu-button, .lab-preview .sui-popover-trigger \{ min-height: 38px; padding: 8px 16px; touch-action: manipulation; \}
+.lab-fields select \{ min-height: 34px; touch-action: manipulation; \}
+.lab-preview .sui-button:active, .lab-preview .sui-menu-button:active, .lab-preview .sui-popover-trigger:active \{ scale: .97; \}
+.lab-stack \{ display: flex; flex-direction: column; align-items: center; gap: 8px; \}
 .lab-kbd \{ font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #c7d2fe; background: #1e2637; border: 1px solid #334155; border-radius: 4px; padding: 1px 5px; \}
 
 /* ---------- Progress: styles ---------- */
@@ -153,6 +174,8 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-b-anim-bounce \{ animation: lab-badge-bounce 1.6s ease-in-out infinite; \}
 .lab-b-anim-jelly \{ animation: lab-badge-jelly 2.2s ease-in-out infinite; \}
 .lab-b-anim-sheen \{ animation: lab-badge-sheen 2.4s ease-in-out infinite; \}
+.lab-b-anim-dot \{ animation: lab-badge-dot .55s cubic-bezier(.2,1.3,.4,1); \}
+.lab-b-anim-border \{ animation: lab-badge-border .6s ease-out; \}
 .lab-b-anim-none \{ animation: none; \}
 @keyframes lab-badge-pulse \{ 0%, 100% \{ transform: scale(1); \} 50% \{ transform: scale(1.06); \} \}
 @keyframes lab-badge-glow \{ 0%, 100% \{ filter: brightness(1); \} 50% \{ filter: brightness(1.35); \} \}
@@ -164,6 +187,8 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 @keyframes lab-badge-bounce \{ 0%, 100% \{ translate: 0 0; \} 40% \{ translate: 0 -4px; \} 60% \{ translate: 0 1px; \} \}
 @keyframes lab-badge-jelly \{ 0%, 100% \{ scale: 1 1; \} 30% \{ scale: 1.12 .88; \} 55% \{ scale: .92 1.08; \} 80% \{ scale: 1.03 .97; \} \}
 @keyframes lab-badge-sheen \{ 0%, 100% \{ filter: brightness(1); \} 50% \{ filter: brightness(1.45) saturate(1.15); \} \}
+@keyframes lab-badge-dot \{ 0% \{ opacity: 0; scale: .2; border-radius: 50%; \} 60% \{ opacity: 1; scale: 1.15 .78; border-radius: 999px; \} 100% \{ scale: 1 1; \} \}
+@keyframes lab-badge-border \{ 0% \{ background-color: transparent; box-shadow: inset 0 0 0 2px currentColor; \} 50% \{ background-color: transparent; box-shadow: inset 0 0 0 2px currentColor; \} 100% \{ box-shadow: none; \} \}
 
 /* ---------- Alert: styles ---------- */
 .sui-alert.lab-a-bar \{ background: #1b2230; color: #dbeafe; border: 0; border-left: 5px solid #3b82f6; border-radius: 4px; \}
@@ -183,6 +208,8 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-a-anim-wobble \{ animation: lab-alert-wobble 2.4s ease-in-out infinite; \}
 .lab-a-anim-breathe \{ animation: lab-alert-breathe 2.6s ease-in-out infinite; \}
 .lab-a-anim-flash \{ animation: lab-alert-flash 1.4s ease-in-out infinite; \}
+.lab-a-anim-wipe \{ animation: lab-alert-wipe .55s ease-out; \}
+.lab-a-anim-border \{ animation: lab-alert-border .7s ease-out; \}
 .lab-a-anim-none \{ animation: none; \}
 @keyframes lab-alert-in \{ from \{ opacity: 0; \} to \{ opacity: 1; \} \}
 @keyframes lab-alert-slide \{ from \{ opacity: 0; transform: translateY(-6px); \} to \{ opacity: 1; transform: translateY(0); \} \}
@@ -194,6 +221,8 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 @keyframes lab-alert-wobble \{ 0%, 100% \{ rotate: 0deg; \} 25% \{ rotate: -1.4deg; \} 75% \{ rotate: 1.4deg; \} \}
 @keyframes lab-alert-breathe \{ 0%, 100% \{ filter: drop-shadow(0 0 0 transparent); \} 50% \{ filter: drop-shadow(0 0 7px #f59e0b); \} \}
 @keyframes lab-alert-flash \{ 0%, 100% \{ filter: brightness(1); \} 50% \{ filter: brightness(1.25); \} \}
+@keyframes lab-alert-wipe \{ from \{ clip-path: inset(0 0 0 100%); \} to \{ clip-path: inset(0 0 0 0); \} \}
+@keyframes lab-alert-border \{ 0% \{ background-color: transparent; box-shadow: inset 0 0 0 2px currentColor; \} 50% \{ background-color: transparent; box-shadow: inset 0 0 0 2px currentColor; \} 100% \{ box-shadow: none; \} \}
 
 /* ---------- Card: styles ---------- */
 .sui-card.lab-c-elevated \{ background: #161d2b; border: 1px solid #2a3446; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,.4); \}
@@ -212,6 +241,11 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-c-anim-halo \{ animation: lab-card-halo 3s ease-in-out infinite; \}
 .lab-c-anim-drift \{ animation: lab-card-drift 5s ease-in-out infinite; \}
 .lab-c-anim-unfold \{ animation: lab-card-unfold .4s cubic-bezier(.2,1,.3,1); \}
+.lab-c-anim-dot \{ animation: lab-card-dot .6s cubic-bezier(.2,1.2,.3,1); \}
+.lab-c-anim-border \{ animation: lab-card-border .7s ease-out; \}
+.lab-c-anim-wipe \{ animation: lab-card-wipe .6s ease-out; \}
+.lab-c-anim-flip \{ animation: lab-card-flip .7s cubic-bezier(.2,1,.3,1); \}
+.lab-c-anim-squash \{ animation: lab-card-squash .5s cubic-bezier(.2,1.3,.4,1); \}
 .lab-c-anim-none \{ animation: none; \}
 @keyframes lab-card-in \{ from \{ opacity: 0; transform: translateY(6px); \} to \{ opacity: 1; transform: translateY(0); \} \}
 @keyframes lab-card-float \{ 0%, 100% \{ transform: translateY(0); \} 50% \{ transform: translateY(-5px); \} \}
@@ -221,6 +255,11 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 @keyframes lab-card-halo \{ 0%, 100% \{ box-shadow: 0 0 0 0 rgba(76,92,247,0); \} 50% \{ box-shadow: 0 0 26px 2px rgba(76,92,247,.4); \} \}
 @keyframes lab-card-drift \{ 0%, 100% \{ translate: 0 0; \} 50% \{ translate: 3px -4px; \} \}
 @keyframes lab-card-unfold \{ from \{ opacity: 0; transform: scaleY(.72); transform-origin: top center; \} to \{ opacity: 1; transform: scaleY(1); \} \}
+@keyframes lab-card-dot \{ 0% \{ opacity: 0; scale: .22; border-radius: 50%; \} 55% \{ opacity: 1; scale: 1.02 .55; border-radius: 999px; \} 100% \{ opacity: 1; scale: 1; \} \}
+@keyframes lab-card-border \{ 0% \{ background-color: transparent; border-color: #60a5fa; box-shadow: inset 0 0 0 2px #60a5fa; \} 48% \{ background-color: transparent; border-color: #60a5fa; box-shadow: inset 0 0 0 2px #60a5fa; \} 100% \{ box-shadow: none; \} \}
+@keyframes lab-card-wipe \{ from \{ clip-path: inset(0 100% 0 0); \} to \{ clip-path: inset(0 0 0 0); \} \}
+@keyframes lab-card-flip \{ from \{ opacity: .2; transform: perspective(900px) rotateY(-75deg); \} to \{ opacity: 1; transform: perspective(900px) rotateY(0); \} \}
+@keyframes lab-card-squash \{ 0% \{ opacity: .3; scale: 1 .35; \} 60% \{ scale: 1 1.06; \} 100% \{ opacity: 1; scale: 1 1; \} \}
 
 /* ---------- Button: styles ---------- */
 .sui-button.lab-btn-solid \{ background: #2d3340; color: #e6e6e6; border: 1px solid #3d4556; border-radius: 8px; \}
@@ -243,6 +282,9 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-btn-anim-ring \{ animation: lab-button-ring 2s ease-out infinite; \}
 .lab-btn-anim-sheen \{ animation: lab-button-sheen 2.6s ease-in-out infinite; \}
 .lab-btn-anim-press \{ animation: lab-button-press 2s ease-in-out infinite; \}
+.lab-btn-anim-border \{ animation: lab-button-border .6s ease-out; \}
+.lab-btn-anim-wipe \{ animation: lab-button-wipe .55s ease-out; \}
+.lab-btn-anim-pop \{ animation: lab-button-pop .45s cubic-bezier(.2,1.5,.4,1); \}
 .lab-btn-anim-none \{ animation: none; \}
 @keyframes lab-button-pulse \{ 0%, 100% \{ box-shadow: 0 0 0 0 rgba(76,92,247,.45); \} 50% \{ box-shadow: 0 0 0 6px rgba(76,92,247,0); \} \}
 @keyframes lab-button-float \{ 0%, 100% \{ transform: translateY(0); \} 50% \{ transform: translateY(-3px); \} \}
@@ -253,6 +295,9 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 @keyframes lab-button-ring \{ 0% \{ box-shadow: 0 0 0 0 rgba(76,92,247,.5); \} 70%, 100% \{ box-shadow: 0 0 0 8px rgba(76,92,247,0); \} \}
 @keyframes lab-button-sheen \{ 0%, 100% \{ filter: brightness(1); \} 50% \{ filter: brightness(1.3) saturate(1.1); \} \}
 @keyframes lab-button-press \{ 0%, 100% \{ scale: 1; \} 50% \{ scale: .97; \} \}
+@keyframes lab-button-border \{ 0% \{ background-color: transparent; box-shadow: inset 0 0 0 2px #60a5fa; \} 50% \{ background-color: transparent; box-shadow: inset 0 0 0 2px #60a5fa; \} 100% \{ box-shadow: none; \} \}
+@keyframes lab-button-wipe \{ from \{ clip-path: inset(0 100% 0 0); \} to \{ clip-path: inset(0 0 0 0); \} \}
+@keyframes lab-button-pop \{ 0% \{ opacity: 0; scale: .3; border-radius: 50%; \} 60% \{ opacity: 1; scale: 1.08; \} 100% \{ scale: 1; \} \}
 
 /* ---------- Tabs: styles ---------- */
 .sui-tabs.lab-t-underline \{ background: transparent; border: 0; \}
@@ -267,7 +312,7 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .sui-tabs.lab-t-boxed \{ background: #111827; border: 1px solid #334155; border-radius: 8px; \}
 .sui-tabs.lab-t-boxed .sui-tab \{ border-radius: 1px; color: #94a3b8; \}
 .sui-tabs.lab-t-boxed .sui-tab.active \{ background: #1e293b; color: #fff; box-shadow: none; \}
-.sui-tabs.lab-t-brutalist \{ background: #facc15; border: 3px solid #111; border-radius: 0; \}
+.sui-tabs.lab-t-brutalist \{ background: #facc15; color: #111; border: 3px solid #111; border-radius: 0; \}
 .sui-tabs.lab-t-brutalist .sui-tab \{ border-radius: 0; color: #111; font-weight: 700; \}
 .sui-tabs.lab-t-brutalist .sui-tab.active \{ background: #111; color: #facc15; box-shadow: none; \}
 .sui-tabs.lab-t-neon \{ background: #07131a; border: 1px solid #22d3ee; border-radius: 8px; box-shadow: 0 0 18px rgba(34,211,238,.25); \}
@@ -320,10 +365,10 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) \{
-  .lab-b-anim-pulse, .lab-b-anim-glow, .lab-b-anim-float, .lab-b-anim-blink, .lab-b-anim-tilt, .lab-b-anim-ping, .lab-b-anim-bounce, .lab-b-anim-jelly, .lab-b-anim-sheen,
-  .lab-a-anim-pulse, .lab-a-anim-wobble, .lab-a-anim-breathe, .lab-a-anim-flash,
-  .lab-c-anim-float, .lab-c-anim-halo, .lab-c-anim-drift,
-  .lab-btn-anim-pulse, .lab-btn-anim-float, .lab-btn-anim-glow, .lab-btn-anim-jelly, .lab-btn-anim-bounce, .lab-btn-anim-tilt, .lab-btn-anim-ring, .lab-btn-anim-sheen, .lab-btn-anim-press,
+  .lab-b-anim-pulse, .lab-b-anim-glow, .lab-b-anim-float, .lab-b-anim-blink, .lab-b-anim-tilt, .lab-b-anim-ping, .lab-b-anim-bounce, .lab-b-anim-jelly, .lab-b-anim-sheen, .lab-b-anim-dot, .lab-b-anim-border,
+  .lab-a-anim-pulse, .lab-a-anim-wobble, .lab-a-anim-breathe, .lab-a-anim-flash, .lab-a-anim-wipe, .lab-a-anim-border,
+  .lab-c-anim-float, .lab-c-anim-halo, .lab-c-anim-drift, .lab-c-anim-dot, .lab-c-anim-border, .lab-c-anim-wipe, .lab-c-anim-flip, .lab-c-anim-squash,
+  .lab-btn-anim-pulse, .lab-btn-anim-float, .lab-btn-anim-glow, .lab-btn-anim-jelly, .lab-btn-anim-bounce, .lab-btn-anim-tilt, .lab-btn-anim-ring, .lab-btn-anim-sheen, .lab-btn-anim-press, .lab-btn-anim-border, .lab-btn-anim-wipe, .lab-btn-anim-pop,
   .lab-t-anim-glow .sui-tab.active,
   .sui-spinner.lab-s-anim-spin, .sui-spinner.lab-s-anim-pulse, .sui-spinner.lab-s-anim-flip, .sui-spinner.lab-s-anim-reverse, .sui-spinner.lab-s-anim-orbit, .sui-spinner.lab-s-anim-wobble, .sui-spinner.lab-s-anim-bounce, .sui-spinner.lab-s-anim-ripple, .sui-spinner.lab-s-anim-swing,
   .sui-input.lab-i-anim-glow:focus \{ animation: none !important; \}
@@ -429,6 +474,8 @@ view main {
           					option "Bounce" value: "lab-b-anim-bounce"
           					option "Jelly" value: "lab-b-anim-jelly"
           					option "Sheen" value: "lab-b-anim-sheen"
+          					option "Dot to pill" value: "lab-b-anim-dot"
+          					option "Border first" value: "lab-b-anim-border"
           					option "None" value: "lab-b-anim-none"
           }
         }
@@ -460,6 +507,8 @@ view main {
           					option "Wobble" value: "lab-a-anim-wobble"
           					option "Breathe" value: "lab-a-anim-breathe"
           					option "Flash" value: "lab-a-anim-flash"
+          					option "Wipe" value: "lab-a-anim-wipe"
+          					option "Border first" value: "lab-a-anim-border"
           					option "None" value: "lab-a-anim-none"
           }
         }
@@ -493,6 +542,11 @@ view main {
           					option "Halo" value: "lab-c-anim-halo"
           					option "Drift" value: "lab-c-anim-drift"
           					option "Unfold" value: "lab-c-anim-unfold"
+          					option "Dot to card" value: "lab-c-anim-dot"
+          					option "Border first" value: "lab-c-anim-border"
+          					option "Wipe" value: "lab-c-anim-wipe"
+          					option "Flip" value: "lab-c-anim-flip"
+          					option "Squash" value: "lab-c-anim-squash"
           					option "None" value: "lab-c-anim-none"
           }
         }
@@ -502,7 +556,10 @@ view main {
       card class: "lab-card" {
         h3 "Button"
         div class: "lab-preview" {
-          button "Press me" class: btnStyle + " " + btnAnim onClick: noop
+          col class: "lab-stack" {
+            button "Press me" class: btnStyle + " " + btnAnim onClick: press
+            text "Clicks: {presses}" class: "lab-note"
+          }
         }
         div class: "lab-fields" {
           select "Style" value: btnStyle {
@@ -525,6 +582,9 @@ view main {
           					option "Ring" value: "lab-btn-anim-ring"
           					option "Sheen" value: "lab-btn-anim-sheen"
           					option "Press" value: "lab-btn-anim-press"
+          					option "Border first" value: "lab-btn-anim-border"
+          					option "Wipe" value: "lab-btn-anim-wipe"
+          					option "Pop" value: "lab-btn-anim-pop"
           					option "None" value: "lab-btn-anim-none"
           }
         }
@@ -666,7 +726,10 @@ view main {
       card class: "lab-card" {
         h3 "Radio"
         div class: "lab-preview" {
-          radio "Selected" checked: rdOn shape: rdShape theme: rdTheme animation: rdAnim duration: "300ms" easing: "ease-out"
+          col {
+            radio "Option A" name: "lab-radio" checked: rdSel == "a" shape: rdShape theme: rdTheme animation: rdAnim onChange: pickRadioA
+            radio "Option B" name: "lab-radio" checked: rdSel == "b" shape: rdShape theme: rdTheme animation: rdAnim onChange: pickRadioB
+          }
         }
         div class: "lab-fields" {
           select "Shape" value: rdShape {
