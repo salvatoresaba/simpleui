@@ -19179,12 +19179,24 @@ function isShortcut(ev, id) {
   var combo = shortcutCombo(id);
   if (!combo) return false;
   if (comboMatches(combo, ev)) return true;
+  // Aliases are part of the factory binding only: once the user rebinds an
+  // action, exactly one combination should trigger it.
+  if (prefs.shortcuts && prefs.shortcuts[id] !== undefined) return false;
   var d = shortcutDef(id);
   var aliases = (d && d.aliases) || [];
   for (var i = 0; i < aliases.length; i++) if (comboMatches(aliases[i], ev)) return true;
   return false;
 }
+// Combinations consumed by fixed editor behaviour; rebinding onto one of them
+// would make two different actions fire on the same key.
+var RESERVED_SHORTCUTS = [
+  "F2", "F3", "Shift+F3", "F8", "Shift+F8", "F12", "Shift+F12",
+  "Ctrl+Space", "Ctrl+Shift+K", "Ctrl+L", "Shift+Alt+Down", "Alt+Up", "Alt+Down", "Ctrl+Enter"
+];
 function shortcutConflicts(id, combo) {
+  for (var r = 0; r < RESERVED_SHORTCUTS.length; r++) {
+    if (RESERVED_SHORTCUTS[r] === combo) return "a fixed editor shortcut";
+  }
   for (var i = 0; i < SHORTCUT_DEFS.length; i++) {
     var other = SHORTCUT_DEFS[i];
     if (other.id === id) continue;
