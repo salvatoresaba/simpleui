@@ -139,13 +139,13 @@ cards.append(card("Input", 'input "Focus me" value: name class: iStyle + " " + i
                   "Click the field to see the focus effect."))
 
 cards.append(card("Checkbox",
-                  'checkbox "Accept terms" checked: chkOn shape: chkShape theme: chkTheme animation: chkAnim duration: "300ms" easing: "ease-out"',
+                  'checkbox "Accept terms" checked: chkOn shape: chkShape theme: chkTheme animation: chkAnim duration: "180ms" easing: "ease-out"',
                   [field("Shape", "chkShape", checkbox_shapes), field("Theme", "chkTheme", toggle_themes),
                    field("Animation", "chkAnim", toggle_anims, wide=True)],
                   "Shape, colour theme and transition are separate."))
 
 cards.append(card("Switch",
-                  'switch "Enabled" checked: swOn shape: swShape theme: swTheme animation: swAnim duration: "300ms" easing: "ease-out"',
+                  'switch "Enabled" checked: swOn shape: swShape theme: swTheme animation: swAnim duration: "180ms" easing: "ease-out"',
                   [field("Shape", "swShape", switch_shapes), field("Theme", "swTheme", toggle_themes),
                    field("Animation", "swAnim", toggle_anims, wide=True)],
                   "Nine shapes and eight themes at runtime."))
@@ -209,7 +209,7 @@ state chkAnim = "scale"
 state swOn = true
 state swShape = "pill"
 state swTheme = "accent"
-state swAnim = "morph"
+state swAnim = "scale"
 state rdSel = "a"
 state rdShape = "default"
 state rdTheme = "accent"

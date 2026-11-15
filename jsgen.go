@@ -6096,6 +6096,16 @@ func bindingOnlyAttr(e *Element, a *Attr) bool {
 		if h := findAttr(e, "onChange"); h != nil && h.hasExpr && h.expr != nil {
 			return false
 		}
+		// A toggle with an animation needs the re-render so the motion engine
+		// can tween from the previous to the new checked appearance. Without an
+		// animation the native state change is already final and the view does
+		// not need to re-render.
+		if an := findAttr(e, "animation"); an != nil {
+			if !an.hasExpr && strings.EqualFold(strings.TrimSpace(attrChoice(e, "animation", []string{"auto", "morph", "fade", "scale", "slide", "none"}, "morph")), "none") {
+				return true
+			}
+			return false
+		}
 		return true
 	}
 	return false

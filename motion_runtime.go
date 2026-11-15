@@ -148,6 +148,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     };
   }
   function cancel(el) {
+    if (el && el.__suiMotionFreeze) { clearTimeout(el.__suiMotionFreeze); el.__suiMotionFreeze = null; }
     if (el.__suiMotionRaf) {
       if (el.__suiMotionRafType === 'raf' && el.__suiMotionRaf.raf) {
         cancelAnimationFrame(el.__suiMotionRaf.raf);
@@ -197,6 +198,7 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     el.__suiMotionRaf = { raf: requestAnimationFrame(run), timer: setTimeout(run, 34) };
   }
   function tweenVars(el, old, o) {
+    if (el.__suiMotionFreeze) { clearTimeout(el.__suiMotionFreeze); el.__suiMotionFreeze = null; }
     var names = varList(el);
     if (!names.length) return;
     var cs = getComputedStyle(el);
@@ -601,18 +603,22 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
     if (!k) return;
     var snap = snapshot(el);
     preMap[k] = snap;
-    // Freeze state-bound toggles until the re-render starts the tween. This
-    // removes the one-frame native flash some browsers paint between the click
-    // and the reactive update.
-    if (el.hasAttribute('data-sui-motion-state')) {
+    // Freeze state-bound toggles only for the frame in which the reactive
+    // update runs. The old 700 ms window left the control showing the previous
+    // state when the binding does not trigger a re-render; now the native new
+    // state paints on the next frame if no tween starts, and tweenVars clears
+    // the timer as soon as a tween takes over.
+    if (el.hasAttribute('data-sui-motion-state') && optionsOf(el).effect !== 'none') {
       var names = varList(el);
       for (var i = 0; i < names.length; i++) {
         if (snap.vars[names[i]] != null && snap.vars[names[i]] !== '') el.style.setProperty(names[i], snap.vars[names[i]]);
       }
-      setTimeout(function() {
+      if (el.__suiMotionFreeze) clearTimeout(el.__suiMotionFreeze);
+      el.__suiMotionFreeze = setTimeout(function() {
+        el.__suiMotionFreeze = null;
         if (!document.body.contains(el)) return;
         for (var j = 0; j < names.length; j++) el.style.removeProperty(names[j]);
-      }, 700);
+      }, 60);
     }
   }
   if (typeof document !== 'undefined') {

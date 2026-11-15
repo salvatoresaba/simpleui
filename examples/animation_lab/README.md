@@ -51,6 +51,9 @@ control.
   `touch-action: manipulation`, which removes the touch tap delay.
 - The Button card shows a live "Clicks" counter, so the press feedback is
   immediate instead of silent.
+- Checkbox, switch and radio apply the new checked state on the next frame
+  (180 ms tween when an animation is selected); there is no fixed 700 ms
+  freeze between the click and the state change.
 
 ## Runtime selection
 
@@ -81,7 +84,7 @@ state chkAnim = "scale"
 state swOn = true
 state swShape = "pill"
 state swTheme = "accent"
-state swAnim = "morph"
+state swAnim = "scale"
 state rdSel = "a"
 state rdShape = "default"
 state rdTheme = "accent"
@@ -710,7 +713,7 @@ view main {
       card class: "lab-card" {
         h3 "Checkbox"
         div class: "lab-preview" {
-          checkbox "Accept terms" checked: chkOn shape: chkShape theme: chkTheme animation: chkAnim duration: "300ms" easing: "ease-out"
+          checkbox "Accept terms" checked: chkOn shape: chkShape theme: chkTheme animation: chkAnim duration: "180ms" easing: "ease-out"
         }
         div class: "lab-fields" {
           select "Shape" value: chkShape {
@@ -747,7 +750,7 @@ view main {
       card class: "lab-card" {
         h3 "Switch"
         div class: "lab-preview" {
-          switch "Enabled" checked: swOn shape: swShape theme: swTheme animation: swAnim duration: "300ms" easing: "ease-out"
+          switch "Enabled" checked: swOn shape: swShape theme: swTheme animation: swAnim duration: "180ms" easing: "ease-out"
         }
         div class: "lab-fields" {
           select "Shape" value: swShape {
