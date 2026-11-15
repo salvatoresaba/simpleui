@@ -32,6 +32,45 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  for (const k of Object.keys(__SUI_views)) __SUI_views[k]();\n" +
 	"}\n" +
 	`function __sui_replace_view(el, html) {
+  if (el.__suiLastHtml === html) return;
+  el.__suiLastHtml = html;
+  var focusInfo = null, focusEl = document.activeElement;
+  if (focusEl && focusEl !== document.body && el.contains(focusEl)) {
+    var focusHolder = focusEl.closest ? (focusEl.closest('[data-sui-id]') || focusEl) : focusEl;
+    focusInfo = {
+      id: focusHolder.getAttribute('data-sui-id') || '',
+      tag: focusEl.tagName,
+      start: null,
+      end: null,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY
+    };
+    try { focusInfo.start = focusEl.selectionStart; focusInfo.end = focusEl.selectionEnd; } catch (e) {}
+  }
+  var scrollX = window.scrollX, scrollY = window.scrollY;
+  var keepMedia = [];
+  var mediaNodes = el.querySelectorAll('video,audio,img,iframe');
+  for (var mi = 0; mi < mediaNodes.length; mi++) {
+    var mn = mediaNodes[mi];
+    var mHolder = mn.closest ? (mn.closest('[data-sui-id]') || mn) : mn;
+    var mId = mHolder.getAttribute('data-sui-id');
+    var mSrc = mn.getAttribute('src') || '';
+    if (!mId || !mSrc) continue;
+    keepMedia.push({ id: mId, tag: mn.tagName, src: mSrc, node: mn });
+  }
+  var keepAnims = [];
+  if (document.getAnimations && typeof CSSAnimation !== 'undefined') {
+    var liveAnims = document.getAnimations();
+    for (var ai = 0; ai < liveAnims.length; ai++) {
+      var an = liveAnims[ai];
+      var at = an.effect && an.effect.target;
+      if (!at || !el.contains(at) || !(an instanceof CSSAnimation)) continue;
+      var aHolder = at.closest ? (at.closest('[data-sui-id]') || at) : at;
+      var aId = aHolder.getAttribute('data-sui-id');
+      if (!aId) continue;
+      keepAnims.push({ id: aId, tag: at.tagName, name: an.animationName, time: an.currentTime, state: an.playState });
+    }
+  }
   var oldCharts = Array.prototype.slice.call(el.querySelectorAll('[data-sui-chart]'));
   var saved = [];
   for (var i = 0; i < oldCharts.length; i++) {
@@ -44,6 +83,63 @@ var SuiPrelude = "\"use strict\";\n" +
   el.innerHTML = html;
   if (typeof __SUI_MOTION !== 'undefined') __SUI_MOTION.after(el);
   if (typeof __SUI_MOTION_GRAPH !== 'undefined' && __SUI_MOTION_GRAPH.afterReplace) __SUI_MOTION_GRAPH.afterReplace(el);
+  for (var km = 0; km < keepMedia.length; km++) {
+    var keep = keepMedia[km];
+    var kHolder = el.querySelector('[data-sui-id="' + keep.id + '"]');
+    if (!kHolder) continue;
+    var kFresh = kHolder.tagName === keep.tag ? kHolder : kHolder.querySelector(keep.tag.toLowerCase());
+    if (!kFresh || kFresh === keep.node || (kFresh.getAttribute('src') || '') !== keep.src) continue;
+    if (!kFresh.parentNode) continue;
+    for (var ka = 0; ka < kFresh.attributes.length; ka++) {
+      var kattr = kFresh.attributes[ka];
+      if (kattr.name === 'src') continue;
+      keep.node.setAttribute(kattr.name, kattr.value);
+    }
+    kFresh.parentNode.replaceChild(keep.node, kFresh);
+  }
+  var valueSelects = el.querySelectorAll('select[value]');
+  for (var vs = 0; vs < valueSelects.length; vs++) {
+    var wantValue = valueSelects[vs].getAttribute('value');
+    if (wantValue && valueSelects[vs].value !== wantValue) {
+      try { valueSelects[vs].value = wantValue; } catch (e) {}
+    }
+  }
+  for (var kn = 0; kn < keepAnims.length; kn++) {
+    var ka2 = keepAnims[kn];
+    var anHolder = el.querySelector('[data-sui-id="' + ka2.id + '"]');
+    if (!anHolder || !anHolder.getAnimations) continue;
+    var anTargets = [];
+    if (anHolder.tagName === ka2.tag) anTargets.push(anHolder);
+    else anTargets = Array.prototype.slice.call(anHolder.querySelectorAll(ka2.tag.toLowerCase()));
+    for (var ati = 0; ati < anTargets.length; ati++) {
+      var targetAnims = anTargets[ati].getAnimations();
+      for (var tai = 0; tai < targetAnims.length; tai++) {
+        if (targetAnims[tai].animationName !== ka2.name) continue;
+        try {
+          targetAnims[tai].currentTime = ka2.time;
+          if (ka2.state === 'paused') targetAnims[tai].pause();
+        } catch (e) {}
+      }
+    }
+  }
+  if (focusInfo && focusInfo.id) {
+    var fHolder = el.querySelector('[data-sui-id="' + focusInfo.id + '"]');
+    var fTarget = null;
+    if (fHolder) {
+      if (fHolder.tagName === focusInfo.tag) fTarget = fHolder;
+      else fTarget = fHolder.querySelector(focusInfo.tag.toLowerCase());
+      if (!fTarget && fHolder.matches && fHolder.matches('input,textarea,select')) fTarget = fHolder;
+    }
+    if (fTarget && fTarget.focus) {
+      try { fTarget.focus({ preventScroll: true }); } catch (e) { try { fTarget.focus(); } catch (e2) {} }
+      if (focusInfo.start != null && fTarget.setSelectionRange) {
+        try { fTarget.setSelectionRange(focusInfo.start, focusInfo.end); } catch (e) {}
+      }
+    }
+  }
+  if (window.scrollX !== scrollX || window.scrollY !== scrollY) {
+    window.scrollTo(scrollX, scrollY);
+  }
   if (!saved.length) return;
   var fresh = Array.prototype.slice.call(el.querySelectorAll('[data-sui-chart]'));
   var used = [], changed = [];
@@ -5113,10 +5209,16 @@ func animationSafeValue(v string) string {
 
 // dataAnimAttrs emits the shared overlay animation parameters. Values are
 // sanitized by the compiler and applied by __SUI_OVERLAY.animate at runtime.
+// The animation name may be a state expression, so an app can change the
+// effect while it runs; the runtime still validates it against its own list.
 func dataAnimAttrs(e *Element, defEffect string) string {
-	effect := attrChoice(e, "animation", []string{"fade", "scale", "slide", "none"}, defEffect)
 	var b strings.Builder
-	b.WriteString(" data-sui-animation=\"" + effect + "\"")
+	if a := findAttr(e, "animation"); a != nil && a.hasExpr && a.expr != nil {
+		b.WriteString(" data-sui-animation=\"${__sui_esc(" + ExprToJs(a.expr) + ")}\"")
+	} else {
+		effect := attrChoice(e, "animation", []string{"fade", "scale", "slide", "none"}, defEffect)
+		b.WriteString(" data-sui-animation=\"" + effect + "\"")
+	}
 	if v := animationSafeValue(attrLiteral(e, "duration")); v != "" {
 		b.WriteString(" data-sui-duration=\"" + htmlEscape(v) + "\"")
 	}

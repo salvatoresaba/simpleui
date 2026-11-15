@@ -1,4 +1,5 @@
 
+state items = ["Alpha", "Beta", "Gamma"]
 state chartData = "[\{\"month\":\"Jan\",\"value\":12\},\{\"month\":\"Feb\",\"value\":18\},\{\"month\":\"Mar\",\"value\":15\},\{\"month\":\"Apr\",\"value\":24\},\{\"month\":\"May\",\"value\":21\}]"
 state graphData = "\{\"states\":[\{\"id\":\"start\",\"label\":\"Start\",\"shape\":\"rectangle\",\"x\":30,\"y\":70,\"w\":110,\"h\":54,\"tag\":\"entry\"\},\{\"id\":\"check\",\"label\":\"Valid?\",\"shape\":\"rhombus\",\"x\":180,\"y\":60,\"w\":110,\"h\":74,\"tag\":\"decision\"\},\{\"id\":\"done\",\"label\":\"Done\",\"shape\":\"rectangle\",\"x\":330,\"y\":70,\"w\":110,\"h\":54\}],\"transitions\":[\{\"from\":\"start\",\"to\":\"check\",\"label\":\"submit\"\},\{\"from\":\"check\",\"to\":\"done\",\"label\":\"yes\"\}]\}"
 state name = "Ada"
@@ -10,10 +11,25 @@ state day = "2026-11-15"
 state at = "09:30"
 state filePath = ""
 state volume = 64
-state on = true
-state checked = true
-state radio = true
-state morphOn = true
+state t1 = true
+state t2 = false
+state r1 = true
+state sw1 = true
+state pAnim = "demo-progress-wave"
+state sAnim = "demo-spinner-orbit"
+state bAnim = "demo-badge-ping"
+state aAnim = "demo-alert-breathe"
+state cAnim = "demo-card-halo"
+state btnAnim = "demo-button-jelly"
+state tabsAnim = "demo-tabs-pop"
+state iAnim = "demo-input-glow"
+state ddAnim = "slide"
+state popAnim = "scale"
+state cbAnim = "slide"
+state cmdAnim = "slide"
+state chkAnim = "scale"
+state swAnim = "morph"
+state rdAnim = "slide"
 state slide = 0
 state step = 1
 state showPalette = false
@@ -23,11 +39,6 @@ state projects = 0
 state action = "none"
 state lastCommand = "none"
 state drops = ""
-state items = ["Alpha", "Beta", "Gamma"]
-
-fn countClick() -> null {
-	notes = "Clicked"
-}
 
 fn openModal() -> null {
 	modal.open("all-demo")
@@ -85,29 +96,23 @@ fn addProject() -> null {
 	projects = projects + 1
 }
 
-fn chooseAction(a: string) -> null {
-	action = a
+fn chooseAction() -> null {
+	action = "clicked"
 }
 
-fn inspectFiles() -> null {
-	drops = "files received"
+fn noop() -> null {
+	return null
 }
 
 css "
 .all-page \{ max-width: 1180px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 18px; \}
 .all-note \{ color: #8fa0b8; font-size: 13px; margin: 0; \}
 .all-grid \{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; align-items: start; \}
-.all-card \{ background: #141a27; border: 1px solid #2a3345; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; \}
-.all-card h3 \{ margin: 0; font-size: 15px; \}
-.all-kbd \{ font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #c7d2fe; background: #1e2637; border: 1px solid #334155; border-radius: 4px; padding: 1px 5px; \}
-.demo-jelly \{ animation: demo-jelly 2.4s ease-in-out infinite; \}
-.demo-ping \{ animation: demo-ping 1.8s ease-out infinite; \}
-.demo-halo \{ animation: demo-halo 3s ease-in-out infinite; \}
-.sui-progress.demo-wave::-webkit-progress-value \{ animation: demo-wave 1.8s ease-in-out infinite; \}
-.sui-progress.demo-wave::-moz-progress-bar \{ animation: demo-wave 1.8s ease-in-out infinite; \}
-.demo-orbit \{ animation: demo-orbit 1s linear infinite; \}
-.demo-breathe \{ animation: demo-breathe 2.6s ease-in-out infinite; \}
-.demo-tabs .sui-tab.active \{ animation: demo-tab-pop .32s cubic-bezier(.2,1.4,.4,1); \}
+.lab-grid \{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; \}
+.lab-card \{ background: #141a27; border: 1px solid #2a3345; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; \}
+.lab-preview \{ min-height: 86px; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 12px; border: 1px dashed #2a3345; border-radius: 10px; \}
+.lab-card h3 \{ margin: 0; font-size: 15px; \}
+.lab-card select \{ width: 100%; \}
 .all-split \{ height: 170px; \}
 .all-media \{ width: 100%; height: 72px; object-fit: cover; border-radius: 8px; \}
 .all-video \{ width: 100%; border-radius: 8px; \}
@@ -115,48 +120,311 @@ css "
 .all-form \{ display: flex; flex-direction: column; gap: 8px; \}
 .all-form fieldset \{ border: 1px solid #2a3345; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; \}
 .all-form legend \{ color: #8fa0b8; font-size: 12px; padding: 0 4px; \}
-@keyframes demo-jelly \{ 0%, 100% \{ scale: 1 1; \} 30% \{ scale: 1.06 .94; \} 55% \{ scale: .95 1.05; \} 80% \{ scale: 1.02 .98; \} \}
-@keyframes demo-ping \{ 0% \{ box-shadow: 0 0 0 0 rgba(74,222,128,.6); \} 70%, 100% \{ box-shadow: 0 0 0 8px rgba(74,222,128,0); \} \}
-@keyframes demo-halo \{ 0%, 100% \{ box-shadow: 0 0 0 0 rgba(76,92,247,0); \} 50% \{ box-shadow: 0 0 26px 2px rgba(76,92,247,.4); \} \}
-@keyframes demo-wave \{ 0%, 100% \{ background-position: 0 0; \} 50% \{ background-position: 0 100%; \} \}
-@keyframes demo-orbit \{ 0% \{ transform: rotate(0deg) translateX(0); \} 50% \{ transform: rotate(180deg) translateX(3px); \} 100% \{ transform: rotate(360deg) translateX(0); \} \}
-@keyframes demo-breathe \{ 0%, 100% \{ filter: drop-shadow(0 0 0 transparent); \} 50% \{ filter: drop-shadow(0 0 7px #f59e0b); \} \}
-@keyframes demo-tab-pop \{ 0% \{ scale: .95; \} 60% \{ scale: 1.03; \} 100% \{ scale: 1; \} \}
-@media (prefers-reduced-motion: reduce) \{ .demo-jelly, .demo-ping, .demo-halo, .demo-breathe, .demo-orbit \{ animation: none !important; \} .sui-progress.demo-wave::-webkit-progress-value, .sui-progress.demo-wave::-moz-progress-bar \{ animation: none !important; \} .demo-tabs .sui-tab.active \{ animation: none !important; \} \}
+
+/* CSS animation library selectable from the lab selectors */
+.sui-progress.demo-progress-wave::-webkit-progress-value \{ animation: kf-progress-wave 1.8s ease-in-out infinite; \}
+.sui-progress.demo-progress-wave::-moz-progress-bar \{ animation: kf-progress-wave 1.8s ease-in-out infinite; \}
+.sui-progress.demo-progress-aurora::-webkit-progress-value \{ animation: kf-progress-aurora 7s linear infinite; \}
+.sui-progress.demo-progress-aurora::-moz-progress-bar \{ animation: kf-progress-aurora 7s linear infinite; \}
+.sui-progress.demo-progress-indeterminate::-webkit-progress-value \{ background: linear-gradient(90deg, transparent 12%, #4c5cf7 42%, #6366f1 58%, transparent 88%); background-size: 200% 100%; animation: kf-progress-scan 1.25s ease-in-out infinite; \}
+.sui-progress.demo-progress-indeterminate::-moz-progress-bar \{ background: linear-gradient(90deg, transparent 12%, #4c5cf7 42%, #6366f1 58%, transparent 88%); background-size: 200% 100%; animation: kf-progress-scan 1.25s ease-in-out infinite; \}
+.sui-spinner.demo-spinner-orbit \{ animation: kf-spinner-orbit 1s linear infinite; \}
+.sui-spinner.demo-spinner-reverse \{ animation: kf-spinner-reverse 1.1s linear infinite; \}
+.sui-spinner.demo-spinner-wobble \{ animation: kf-spinner-wobble 1.4s ease-in-out infinite; \}
+.demo-badge-ping \{ animation: kf-badge-ping 1.8s ease-out infinite; \}
+.demo-badge-pop \{ animation: kf-badge-pop .42s cubic-bezier(.2,1.4,.4,1); \}
+.demo-badge-tilt \{ animation: kf-badge-tilt 2.6s ease-in-out infinite; \}
+.demo-alert-breathe \{ animation: kf-alert-breathe 2.6s ease-in-out infinite; \}
+.demo-alert-wobble \{ animation: kf-alert-wobble 2.4s ease-in-out infinite; \}
+.demo-alert-flash \{ animation: kf-alert-flash 1.4s ease-in-out infinite; \}
+.demo-card-halo \{ animation: kf-card-halo 3s ease-in-out infinite; \}
+.demo-card-drift \{ animation: kf-card-drift 5s ease-in-out infinite; \}
+.demo-button-jelly \{ animation: kf-button-jelly 2.4s ease-in-out infinite; \}
+.demo-button-bounce \{ animation: kf-button-bounce 1.8s ease-in-out infinite; \}
+.demo-button-ring \{ animation: kf-button-ring 2s ease-out infinite; \}
+.demo-tabs-pop .sui-tab.active \{ animation: kf-tab-pop .32s cubic-bezier(.2,1.4,.4,1); \}
+.demo-tabs-slide .sui-tab.active \{ animation: kf-tab-slide .26s ease-out; \}
+.demo-tabs-glow .sui-tab.active \{ animation: kf-tab-glow 2.4s ease-in-out infinite; \}
+.sui-input.demo-input-ring:focus \{ animation: kf-focus-ring .5s ease-out; \}
+.sui-input.demo-input-glow:focus \{ animation: kf-focus-glow 1.8s ease-in-out infinite; \}
+.sui-input.demo-input-lift:focus \{ animation: kf-focus-lift .3s ease-out; \}
+
+@keyframes kf-progress-wave \{ 0%, 100% \{ background-position: 0 0; \} 50% \{ background-position: 0 100%; \} \}
+@keyframes kf-progress-aurora \{ to \{ filter: hue-rotate(360deg); \} \}
+@keyframes kf-progress-scan \{ 0% \{ background-position: 130% 0; \} 100% \{ background-position: -130% 0; \} \}
+@keyframes kf-spinner-orbit \{ 0% \{ transform: rotate(0deg) translateX(0); \} 50% \{ transform: rotate(180deg) translateX(3px); \} 100% \{ transform: rotate(360deg) translateX(0); \} \}
+@keyframes kf-spinner-reverse \{ to \{ transform: rotate(-360deg); \} \}
+@keyframes kf-spinner-wobble \{ 0%, 100% \{ transform: rotate(-14deg) scale(.94); \} 50% \{ transform: rotate(14deg) scale(1.06); \} \}
+@keyframes kf-badge-ping \{ 0% \{ box-shadow: 0 0 0 0 rgba(74,222,128,.6); \} 70%, 100% \{ box-shadow: 0 0 0 8px rgba(74,222,128,0); \} \}
+@keyframes kf-badge-pop \{ 0% \{ opacity: 0; scale: .6; \} 65% \{ opacity: 1; scale: 1.1; \} 100% \{ opacity: 1; scale: 1; \} \}
+@keyframes kf-badge-tilt \{ 0%, 100% \{ rotate: -3deg; \} 50% \{ rotate: 3deg; \} \}
+@keyframes kf-alert-breathe \{ 0%, 100% \{ filter: drop-shadow(0 0 0 transparent); \} 50% \{ filter: drop-shadow(0 0 7px #f59e0b); \} \}
+@keyframes kf-alert-wobble \{ 0%, 100% \{ rotate: 0deg; \} 25% \{ rotate: -1.4deg; \} 75% \{ rotate: 1.4deg; \} \}
+@keyframes kf-alert-flash \{ 0%, 100% \{ filter: brightness(1); \} 50% \{ filter: brightness(1.25); \} \}
+@keyframes kf-card-halo \{ 0%, 100% \{ box-shadow: 0 0 0 0 rgba(76,92,247,0); \} 50% \{ box-shadow: 0 0 26px 2px rgba(76,92,247,.4); \} \}
+@keyframes kf-card-drift \{ 0%, 100% \{ translate: 0 0; \} 50% \{ translate: 3px -4px; \} \}
+@keyframes kf-button-jelly \{ 0%, 100% \{ scale: 1 1; \} 30% \{ scale: 1.06 .94; \} 55% \{ scale: .95 1.05; \} 80% \{ scale: 1.02 .98; \} \}
+@keyframes kf-button-bounce \{ 0%, 100% \{ translate: 0 0; \} 45% \{ translate: 0 -3px; \} 60% \{ translate: 0 1px; \} \}
+@keyframes kf-button-ring \{ 0% \{ box-shadow: 0 0 0 0 rgba(76,92,247,.5); \} 70%, 100% \{ box-shadow: 0 0 0 8px rgba(76,92,247,0); \} \}
+@keyframes kf-tab-pop \{ 0% \{ scale: .95; \} 60% \{ scale: 1.03; \} 100% \{ scale: 1; \} \}
+@keyframes kf-tab-slide \{ from \{ opacity: .35; translate: -6px 0; \} to \{ opacity: 1; translate: 0 0; \} \}
+@keyframes kf-tab-glow \{ 0%, 100% \{ filter: brightness(1); \} 50% \{ filter: brightness(1.22); \} \}
+@keyframes kf-focus-ring \{ 0% \{ box-shadow: 0 0 0 0 rgba(76,92,247,.45); \} 100% \{ box-shadow: 0 0 0 5px rgba(76,92,247,0); \} \}
+@keyframes kf-focus-glow \{ 0%, 100% \{ filter: drop-shadow(0 0 0 transparent); \} 50% \{ filter: drop-shadow(0 0 5px rgba(76,92,247,.55)); \} \}
+@keyframes kf-focus-lift \{ 50% \{ translate: 0 -1px; \} \}
+
+@media (prefers-reduced-motion: reduce) \{
+  .demo-badge-ping, .demo-badge-pop, .demo-badge-tilt,
+  .demo-alert-breathe, .demo-alert-wobble, .demo-alert-flash,
+  .demo-card-halo, .demo-card-drift,
+  .demo-button-jelly, .demo-button-bounce, .demo-button-ring,
+  .sui-spinner.demo-spinner-orbit, .sui-spinner.demo-spinner-reverse, .sui-spinner.demo-spinner-wobble,
+  .sui-input.demo-input-glow:focus \{ animation: none !important; \}
+  .sui-progress.demo-progress-wave::-webkit-progress-value, .sui-progress.demo-progress-wave::-moz-progress-bar,
+  .sui-progress.demo-progress-aurora::-webkit-progress-value, .sui-progress.demo-progress-aurora::-moz-progress-bar,
+  .sui-progress.demo-progress-indeterminate::-webkit-progress-value, .sui-progress.demo-progress-indeterminate::-moz-progress-bar \{ animation: none !important; \}
+  .demo-tabs-pop .sui-tab.active, .demo-tabs-slide .sui-tab.active, .demo-tabs-glow .sui-tab.active \{ animation: none !important; \}
+\}
 "
 
 view main {
 	title "All controls and animations"
 	col class: "all-page" {
 		h1 "All controls and animations"
-		p "A single page with every SimpleUI control. Feedback cards use the CSS animation library; dropdowns, popovers and toggles use the runtime animation parameter." class: "all-note"
+		p "The animation lab below selects the effect of every animatable control at runtime. The rest of the page is the full control reference." class: "all-note"
 
-		row {
-			badge "Tooltip" tooltip: "The tooltip repositions itself and uses its own animation."
-			badge "LIVE" class: "demo-ping"
-			badge "New"
-			spinner class: "demo-orbit"
+		h2 "Animation lab - pick an effect"
+		div class: "lab-grid" {
+			card class: "lab-card" {
+				h3 "Progress"
+				progress value: 64 max: 100 class: pAnim
+				select "Effect" value: pAnim {
+					option "Wave" value: "demo-progress-wave"
+					option "Aurora" value: "demo-progress-aurora"
+					option "Indeterminate" value: "demo-progress-indeterminate"
+					option "None" value: "demo-none-progress"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Spinner"
+				div class: "lab-preview" {
+					spinner class: sAnim
+				}
+				select "Effect" value: sAnim {
+					option "Orbit" value: "demo-spinner-orbit"
+					option "Reverse" value: "demo-spinner-reverse"
+					option "Wobble" value: "demo-spinner-wobble"
+					option "None" value: "demo-none-spinner"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Badge"
+				div class: "lab-preview" {
+					row {
+						badge "LIVE" class: bAnim
+					}
+				}
+				select "Effect" value: bAnim {
+					option "Ping" value: "demo-badge-ping"
+					option "Pop" value: "demo-badge-pop"
+					option "Tilt" value: "demo-badge-tilt"
+					option "None" value: "demo-none-badge"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Alert"
+				div class: "lab-preview" {
+					alert "Deploy completed" class: aAnim
+				}
+				select "Effect" value: aAnim {
+					option "Breathe" value: "demo-alert-breathe"
+					option "Wobble" value: "demo-alert-wobble"
+					option "Flash" value: "demo-alert-flash"
+					option "None" value: "demo-none-alert"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Card"
+				div class: "lab-preview" {
+					card class: cAnim {
+						strong "Card preview"
+					}
+				}
+				select "Effect" value: cAnim {
+					option "Halo" value: "demo-card-halo"
+					option "Drift" value: "demo-card-drift"
+					option "None" value: "demo-none-card"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Button"
+				div class: "lab-preview" {
+					button "Press me" class: btnAnim onClick: noop
+				}
+				select "Effect" value: btnAnim {
+					option "Jelly" value: "demo-button-jelly"
+					option "Bounce" value: "demo-button-bounce"
+					option "Ring" value: "demo-button-ring"
+					option "None" value: "demo-none-button"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Tabs"
+				tabs "Sections" class: tabsAnim {
+					tab "One" {
+						p "First tab" class: "all-note"
+					}
+					tab "Two" {
+						p "Second tab" class: "all-note"
+					}
+				}
+				select "Effect" value: tabsAnim {
+					option "Pop" value: "demo-tabs-pop"
+					option "Slide" value: "demo-tabs-slide"
+					option "Glow" value: "demo-tabs-glow"
+					option "None" value: "demo-none-tabs"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Input focus"
+				div class: "lab-preview" {
+					input "Focus me" value: name class: iAnim
+				}
+				select "Effect" value: iAnim {
+					option "Glow" value: "demo-input-glow"
+					option "Ring" value: "demo-input-ring"
+					option "Lift" value: "demo-input-lift"
+					option "None" value: "demo-none-input"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Dropdown (runtime)"
+				div class: "lab-preview" {
+					dropdown "Open menu" animation: ddAnim duration: "180ms" {
+						dropdownitem "One" onClick: chooseAction
+						dropdownitem "Two" onClick: chooseAction
+					}
+				}
+				select "Effect" value: ddAnim {
+					option "Slide" value: "slide"
+					option "Fade" value: "fade"
+					option "Scale" value: "scale"
+					option "None" value: "none"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Popover (runtime)"
+				div class: "lab-preview" {
+					popover "Open popover" animation: popAnim duration: "160ms" {
+						p "Popover content." class: "all-note"
+					}
+				}
+				select "Effect" value: popAnim {
+					option "Scale" value: "scale"
+					option "Fade" value: "fade"
+					option "Slide" value: "slide"
+					option "None" value: "none"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Combobox (runtime)"
+				div class: "lab-preview" {
+					combobox "Country" options: "Italy,France,Germany" animation: cbAnim duration: "180ms"
+				}
+				select "Effect" value: cbAnim {
+					option "Slide" value: "slide"
+					option "Fade" value: "fade"
+					option "Scale" value: "scale"
+					option "None" value: "none"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Command palette (runtime)"
+				div class: "lab-preview" {
+					button "Open commands" onClick: openPalette
+				}
+				select "Effect" value: cmdAnim {
+					option "Slide" value: "slide"
+					option "Fade" value: "fade"
+					option "Scale" value: "scale"
+					option "None" value: "none"
+				}
+				commandbar "Commands" open: showPalette hotkey: "k" animation: cmdAnim duration: "200ms" {
+					command "New" onClick: commandNew
+					command "Settings" onClick: commandSettings
+				}
+			}
+			card class: "lab-card" {
+				h3 "Checkbox (runtime)"
+				div class: "lab-preview" {
+					checkbox "Accept terms" checked: t1 animation: chkAnim duration: "280ms"
+				}
+				select "Effect" value: chkAnim {
+					option "Scale" value: "scale"
+					option "Morph" value: "morph"
+					option "Fade" value: "fade"
+					option "Slide" value: "slide"
+					option "None" value: "none"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Switch (runtime)"
+				div class: "lab-preview" {
+					switch "Enabled" checked: sw1 animation: swAnim duration: "300ms"
+				}
+				select "Effect" value: swAnim {
+					option "Morph" value: "morph"
+					option "Scale" value: "scale"
+					option "Fade" value: "fade"
+					option "Slide" value: "slide"
+					option "None" value: "none"
+				}
+			}
+			card class: "lab-card" {
+				h3 "Radio (runtime)"
+				div class: "lab-preview" {
+					radio "Option A" checked: r1 animation: rdAnim duration: "260ms"
+				}
+				select "Effect" value: rdAnim {
+					option "Slide" value: "slide"
+					option "Scale" value: "scale"
+					option "Morph" value: "morph"
+					option "None" value: "none"
+				}
+			}
 		}
 
+		h2 "Feedback controls"
 		div class: "all-grid" {
-			card class: "demo-halo" {
-				h3 "Progress - wave"
-				progress value: 64 max: 100 class: "demo-wave"
+			card {
+				h3 "Progress"
+				progress value: 46 max: 100 class: "demo-progress-wave"
 			}
 			card {
-				h3 "Spinner - orbit"
+				h3 "Spinner"
 				row {
-					spinner class: "demo-orbit"
+					spinner class: "demo-spinner-orbit"
 					p "Loading" class: "all-note"
 				}
 			}
 			card {
-				h3 "Alert - breathe"
-				alert "Deploy completed" class: "demo-breathe"
+				h3 "Badge"
+				row {
+					badge "New"
+					badge "Live" class: "demo-badge-ping"
+				}
 			}
 			card {
-				h3 "Button - jelly"
-				button "Press me" class: "demo-jelly" onClick: countClick
+				h3 "Alert"
+				alert "Heads up" class: "demo-alert-breathe"
+			}
+			card {
+				h3 "Toast"
+				button "Show toast" onClick: showToast
+			}
+			card {
+				h3 "Tooltip"
+				badge "Hover me" tooltip: "The tooltip repositions itself and uses its own animation."
 			}
 		}
 
@@ -189,22 +457,20 @@ view main {
 				slider "Volume" value: volume min: 0 max: 100
 			}
 			card {
-				h3 "Toggles with runtime animation"
-				checkbox "Scale" checked: on animation: "scale" duration: "280ms" easing: "ease-out"
-				checkbox "Fade" checked: checked animation: "fade" duration: "220ms"
-				radio "Slide" checked: radio animation: "slide" duration: "240ms"
-				switch "Morph" checked: morphOn animation: "morph" duration: "320ms" easing: "ease-in-out"
-				p "The checkbox, radio and switch animate their own state change." class: "all-note"
+				h3 "Toggles"
+				checkbox "Checked" checked: t1
+				checkbox "Unchecked" checked: t2
+				radio "Selected" checked: r1
+				switch "Enabled" checked: sw1
 			}
 			card {
 				h3 "Buttons"
 				row {
-					button "Primary" onClick: countClick
-					button "Secondary" onClick: countClick
+					button "Primary" onClick: noop
+					button "Secondary" onClick: noop
 				}
 				row {
 					button "Open modal" onClick: openModal
-					button "Toast" onClick: showToast
 					button "Drawer" onClick: openFilters
 				}
 			}
@@ -214,7 +480,7 @@ view main {
 		div class: "all-grid" {
 			card {
 				h3 "Tabs"
-				tabs "Sections" class: "demo-tabs" {
+				tabs "Sections" {
 					tab "Overview" {
 						p "Overview panel" class: "all-note"
 					}
@@ -250,17 +516,10 @@ view main {
 				}
 			}
 			card {
-				h3 "Dropdown - three animations"
-				row {
-					dropdown "Fade" animation: "fade" duration: "180ms" {
-						dropdownitem "Fade item" onClick: chooseAction
-					}
-					dropdown "Scale" animation: "scale" duration: "200ms" {
-						dropdownitem "Scale item" onClick: chooseAction
-					}
-					dropdown "Slide" animation: "slide" duration: "220ms" {
-						dropdownitem "Slide item" onClick: chooseAction
-					}
+				h3 "Dropdown"
+				dropdown "Actions" animation: "slide" duration: "180ms" {
+					dropdownitem "Edit" onClick: chooseAction
+					dropdownitem "Delete" onClick: chooseAction
 				}
 				p "Last action: {action}" class: "all-note"
 			}
@@ -309,7 +568,7 @@ view main {
 				}
 			}
 			card {
-				h3 "Combobox - slide"
+				h3 "Combobox"
 				combobox "Country" options: "Italy,France,Germany" animation: "slide" duration: "180ms"
 			}
 		}
@@ -328,13 +587,13 @@ view main {
 		h2 "Overlays and prefabricated controls"
 		div class: "all-grid" {
 			card {
-				h3 "Popover - scale"
+				h3 "Popover"
 				popover "Details" animation: "scale" duration: "160ms" {
 					p "Anchored popover content." class: "all-note"
 				}
 			}
 			card {
-				h3 "Command palette - slide"
+				h3 "Command palette"
 				row {
 					button "Open commands" onClick: openPalette
 					p "Last: {lastCommand}" class: "all-note"
@@ -460,7 +719,6 @@ view main {
 			list item in items {
 				text "{item}"
 			}
-			a "SimpleUI documentation" href: "https://example.com/docs"
 			img src: "assets/preview.png" alt: "Preview image" class: "all-media"
 			video src: "assets/clip.mp4" class: "all-video"
 			audio src: "assets/tone.wav"

@@ -137,8 +137,18 @@ func TestComponentMultipleInstancesInlineIds(t *testing.T) {
 		t.Fatalf("parse:%v", pdl.String())
 	}
 	js := GenerateJs(prog)
-	if strings.Contains(js, `data-sui-id="`) {
-		t.Errorf("component buttons must use inline handlers, not ids:\n%v", js)
+	// The runtime prelude mentions data-sui-id for focus and animation
+	// restoration; the check is about the generated component chunk.
+	start := strings.Index(js, "function __html_Badge")
+	if start < 0 {
+		t.Fatalf("component chunk missing:\n%v", js)
+	}
+	chunk := js[start:]
+	if next := strings.Index(chunk[1:], "function "); next >= 0 {
+		chunk = chunk[:next+1]
+	}
+	if strings.Contains(chunk, `data-sui-id="`) {
+		t.Errorf("component buttons must use inline handlers, not ids:\n%v", chunk)
 	}
 	if strings.Contains(js, `onclick="go()"`) {
 		// ok

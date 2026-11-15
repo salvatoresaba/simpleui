@@ -593,7 +593,9 @@ Presets that showcase the new effects: **Aurora** and **Scanner** for Progress,
 and then changing the animation keeps the rest of the look.
 
 The runnable gallery in `examples/all_controls_animations` puts every control and
-both animation mechanisms on one page; its README lists the animation map.
+both animation mechanisms on one page, with an **animation lab** where every
+animatable control has an effect selector that changes the animation while the
+app runs. Its README lists the animation map.
 
 The **Sketch** family has Light and Dark versions, shared by all twenty panels so
 components placed on the same page stay visually related. The light variant uses

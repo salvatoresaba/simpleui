@@ -333,6 +333,26 @@ The `slide` effect follows the final placement (down, up, left or right).
 `skeleton` uses `duration` for the shimmer speed. Tooltips use the project
 tooltip settings for place, effect, duration, easing and delay.
 
+`animation` also accepts a state expression, so the effect can be chosen while
+the app runs. The runtime validates the value against the same list and falls
+back to the default effect for unknown values:
+
+```sui
+state panelEffect = "slide"
+
+select "Effect" value: panelEffect {
+	option "Slide" value: "slide"
+	option "Fade" value: "fade"
+	option "Scale" value: "scale"
+}
+
+dropdown "Actions" animation: panelEffect duration: "180ms" {
+	dropdownitem "Edit"
+}
+```
+
+The same expression form is available on `checkbox`, `switch` and `radio`.
+
 ### State motion and toggle presets
 
 `checkbox`, `switch` and `radio` can morph between two structures and themes
