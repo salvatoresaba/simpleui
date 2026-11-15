@@ -13625,9 +13625,25 @@ function ensureCssValueList() {
 function fillCssValueList(prop) {
   var dl = ensureCssValueList();
   dl.innerHTML = "";
-  var values = (CSS_VALUE_SUGGESTIONS[String(prop || "").toLowerCase()] || []).slice();
-  CSS_GENERIC_VALUES.forEach(function(v){ if (values.indexOf(v) < 0) values.push(v); });
-  values.forEach(function(v){ var o = document.createElement("option"); o.value = v; dl.appendChild(o); });
+  var entries = [], seen = {};
+  function add(value, label) {
+    if (!value || seen[value]) return;
+    seen[value] = true;
+    entries.push({ value: value, label: label || "" });
+  }
+  (CSS_VALUE_SUGGESTIONS[String(prop || "").toLowerCase()] || []).forEach(function(v){ add(v); });
+  CSS_GENERIC_VALUES.forEach(function(v){ add(v); });
+  add("var(", "CSS custom property");
+  if (typeof tokens !== "undefined" && tokens && tokens.length) {
+    tokens.forEach(function(t){
+      var name = String(t && t.name || "").trim();
+      if (name.indexOf("--") !== 0) return;
+      add("var(" + name + ")", name + (t.value ? " = " + t.value : ""));
+    });
+  }
+  var re = /(--[A-Za-z0-9_-]+)\s*:/g, m;
+  while ((m = re.exec(String(root.css || ""))) !== null) add("var(" + m[1] + ")", m[1]);
+  entries.forEach(function(e){ var o = document.createElement("option"); o.value = e.value; if (e.label) o.label = e.label; dl.appendChild(o); });
   return dl;
 }
 function bindCssValueAutocomplete(input, prop) {
@@ -13698,29 +13714,33 @@ function advRuleForSelector(selector, atRule) {
 }
 function setCssOnSelectors(selectors, atRule, map, after) {
   if (!selectors.length) { if (after) after(); return; }
+  atRule = String(atRule || "").trim();
+  if (atRule && (atRule.charAt(0) !== '@' || /[{}\n\r;]/.test(atRule))) { setStatus("Invalid at-rule"); return; }
+  var clean = [], seen = {};
+  for (var s = 0; s < selectors.length; s++) {
+    var sel = String(selectors[s] || "").trim();
+    if (!sel || /[{}\n\r;]/.test(sel)) { setStatus("Invalid CSS selector"); return; }
+    if (seen[sel]) continue;
+    seen[sel] = true; clean.push(sel);
+  }
   var decls = [];
-  for (var k in map) compatDecls(k, map[k]).forEach(function(d){ decls.push(d); });
+  for (var k in map) {
+    if (!/^(--[A-Za-z0-9_-]+|[a-z-]+)$/.test(k)) { setStatus("Invalid CSS property name"); return; }
+    compatDecls(k, map[k]).forEach(function(d){ decls.push(d); });
+  }
   snap("advanced CSS");
-  var i = 0;
-  (function next() {
-    if (i >= selectors.length) {
+  __cssWriteQueue = __cssWriteQueue.then(function() {
+    var fd = new URLSearchParams();
+    fd.set("css", root.css); fd.set("selectors", JSON.stringify(clean)); fd.set("at", atRule); fd.set("decls", JSON.stringify(decls));
+    return fetch("/__css__/setselmany", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+      if (!j.ok) { setStatus("CSS update rejected: " + (j.error || "invalid selector")); return; }
+      syncing = true;
+      root.css = j.css; ast = j.ast || ast;
+      syncing = false;
       renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector(); scheduleCssSync();
       if (after) after();
-      return;
-    }
-    var sel = selectors[i++];
-    __cssWriteQueue = __cssWriteQueue.then(function() {
-      var fd = new URLSearchParams();
-      fd.set("css", root.css); fd.set("selector", sel); fd.set("at", atRule || ""); fd.set("decls", JSON.stringify(decls));
-      return fetch("/__css__/setsel", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
-        if (!j.ok) return;
-        syncing = true;
-        root.css = j.css; ast = j.ast || ast;
-        syncing = false;
-      });
-    }).catch(function(){});
-    __cssWriteQueue.then(next);
-  })();
+    });
+  }).catch(function(){ setStatus("CSS update failed"); });
 }
 var advCtx = { pseudo: "", at: "", text: false };
 function openAdvancedCss() {

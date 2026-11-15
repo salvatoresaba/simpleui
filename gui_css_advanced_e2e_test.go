@@ -18,7 +18,8 @@ func TestGuiCssAdvancedE2E(t *testing.T) {
 	if browser == "" {
 		t.Skip("no Chrome/Edge found; skipping advanced CSS designer test")
 	}
-	const source = `view main {
+	const source = `css ":root \{ --brand: #ff0000; \} .one \{ display: block; width: 10px; \} .two \{ display: flex; width: 20px; \}"
+view main {
 	card "One" class: "one"
 	card "Two" class: "two"
 }`
@@ -73,6 +74,10 @@ func TestGuiCssAdvancedE2E(t *testing.T) {
 	mux.HandleFunc("POST /__css__/setsel", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
 		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(guiCssSetSelector(r.PostFormValue("css"), r.PostFormValue("selector"), r.PostFormValue("at"), r.PostFormValue("decls"))))
+	})
+	mux.HandleFunc("POST /__css__/setselmany", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(guiCssSetSelectors(r.PostFormValue("css"), r.PostFormValue("selectors"), r.PostFormValue("at"), r.PostFormValue("decls"))))
 	})
 	go func() { _ = http.Serve(ln, mux) }()
 	baseURL := "http://" + ln.Addr().String() + "/"
@@ -154,6 +159,29 @@ const guiCssAdvancedScript = `<script>
     var body = document.getElementById('ins-overlay-body');
     if (!body) throw new Error('CSS overlay missing: ' + errs.join(' | ') + ' disabled=' + edit.disabled + ' multi=' + multiSel.length + ' sel=' + (selPath ? selPath.join(',') : 'none') + ' edit=' + (edit.textContent || '') + ' row=' + (advRow.textContent || '').slice(0, 120));
     if (body.textContent.indexOf('Editing 2 selected elements') < 0) throw new Error('multi-selection hint missing');
+    function mixedRow(prop) {
+      var rows = body.querySelectorAll('.adv-row');
+      for (var ri = 0; ri < rows.length; ri++) {
+        var pin = rows[ri].querySelector('.adv-prop');
+        var vin = rows[ri].querySelector('.adv-val');
+        if (pin && (pin.value || '') === prop && vin && vin.placeholder === '(mixed)') return vin;
+      }
+      return null;
+    }
+    var displayMixed = mixedRow('display');
+    var widthMixed = mixedRow('width');
+    if (!displayMixed || !widthMixed) throw new Error('mixed values were not shown');
+    displayMixed.value = 'grid';
+    displayMixed.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(700);
+    if ((root.css.match(/display: grid/g) || []).length < 2) throw new Error('mixed display was not applied to both classes');
+    body = document.getElementById('ins-overlay-body');
+    widthMixed = mixedRow('width');
+    if (!widthMixed) throw new Error('mixed width disappeared early');
+    widthMixed.value = '30px';
+    widthMixed.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(700);
+    if ((root.css.match(/width: 30px/g) || []).length < 2) throw new Error('mixed width was not applied to both classes');
     addDecl('background-color', '#102030');
     await wait(700);
     if (root.css.indexOf('.one') < 0 || root.css.indexOf('.two') < 0 || root.css.indexOf('#102030') < 0) throw new Error('multi-class declaration not applied');
@@ -163,10 +191,15 @@ const guiCssAdvancedScript = `<script>
     propInput.value = 'display'; propInput.dispatchEvent(new Event('input', { bubbles: true }));
     valInput.focus();
     await wait(100);
+    for (var ti = 0; ti < 40 && (!tokens || !tokens.length); ti++) await wait(50);
     var valueList = document.getElementById('css-val-list');
-    var hasFlex = false;
-    if (valueList) for (var oi = 0; oi < valueList.options.length; oi++) if (valueList.options[oi].value === 'flex') hasFlex = true;
+    var hasFlex = false, hasBrand = false;
+    if (valueList) for (var oi = 0; oi < valueList.options.length; oi++) {
+      if (valueList.options[oi].value === 'flex') hasFlex = true;
+      if (valueList.options[oi].value === 'var(--brand)') hasBrand = true;
+    }
     if (!hasFlex) throw new Error('CSS value autocomplete missing display suggestions');
+    if (!hasBrand) throw new Error('CSS value autocomplete missing project token');
     propInput.value = ''; valInput.value = '';
     var pseudo = body.querySelector('select');
     if (!pseudo) throw new Error('pseudo context select missing');
@@ -206,6 +239,24 @@ const guiCssAdvancedScript = `<script>
     applyText.click();
     await wait(800);
     if (root.css.indexOf('#abcdef') < 0) throw new Error('text mode declaration not applied');
+    body = document.getElementById('ins-overlay-body');
+    var visualBtn = null, vbs = body.querySelectorAll('button');
+    for (var vi = 0; vi < vbs.length; vi++) if ((vbs[vi].textContent || '').trim() === 'Visual mode') visualBtn = vbs[vi];
+    if (!visualBtn) throw new Error('Visual mode button missing');
+    visualBtn.click();
+    await wait(400);
+    body = document.getElementById('ins-overlay-body');
+    var beforeInvalid = root.css;
+    var invalidAt = null, invalidInputs = body.querySelectorAll('input');
+    for (var ii = 0; ii < invalidInputs.length; ii++) if ((invalidInputs[ii].placeholder || '').indexOf('@media') >= 0) invalidAt = invalidInputs[ii];
+    if (!invalidAt) throw new Error('at-rule input missing for validation test');
+    invalidAt.value = '@media {';
+    invalidAt.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(400);
+    body = document.getElementById('ins-overlay-body');
+    addDecl('color', 'blue');
+    await wait(300);
+    if (root.css !== beforeInvalid) throw new Error('invalid at-rule should reject the whole multi-class write');
     function closeOverlay() { var c = document.querySelector('#ins-overlay-h button'); if (c) c.click(); }
     function openBuilder(label, titlePart) {
       var b = buttonInInspector(label);
@@ -224,6 +275,18 @@ const guiCssAdvancedScript = `<script>
     gradientApply.click();
     await wait(800);
     if (root.css.indexOf('linear-gradient(') < 0) throw new Error('gradient builder did not apply');
+    body = document.getElementById('ins-overlay-body');
+    var gradientType = body.querySelector('.adv-builder select');
+    gradientType.value = 'radial';
+    body.querySelector('.adv-builder .adv-btns button').click();
+    await wait(800);
+    if (root.css.indexOf('radial-gradient(') < 0) throw new Error('radial gradient builder did not apply');
+    body = document.getElementById('ins-overlay-body');
+    gradientType = body.querySelector('.adv-builder select');
+    gradientType.value = 'conic';
+    body.querySelector('.adv-builder .adv-btns button').click();
+    await wait(800);
+    if (root.css.indexOf('conic-gradient(') < 0) throw new Error('conic gradient builder did not apply');
     closeOverlay();
     await wait(250);
     body = openBuilder('Transform and clip path...', 'Transform builder');
@@ -236,6 +299,34 @@ const guiCssAdvancedScript = `<script>
     transformApply.click();
     await wait(800);
     if (root.css.indexOf('scale(1.1)') < 0) throw new Error('transform builder did not apply');
+    body = document.getElementById('ins-overlay-body');
+    var builders = body.querySelectorAll('.adv-builder');
+    if (builders.length < 2) throw new Error('clip-path builder missing');
+    var clipCard = builders[1];
+    var clipShape = clipCard.querySelector('select');
+    clipShape.value = 'polygon';
+    clipCard.querySelector('.adv-btns button').click();
+    await wait(800);
+    if (root.css.indexOf('clip-path: polygon(') < 0) throw new Error('clip-path builder did not apply');
+    closeOverlay();
+    await wait(250);
+    body = openBuilder('Advanced flex...', 'Flex builder');
+    var flexDirection = body.querySelector('.adv-builder select');
+    flexDirection.value = 'column';
+    flexDirection.dispatchEvent(new Event('change', { bubbles: true }));
+    body.querySelector('.adv-builder .adv-btns button').click();
+    await wait(800);
+    if (root.css.indexOf('flex-direction: column') < 0) throw new Error('flex builder did not apply');
+    closeOverlay();
+    await wait(250);
+    body = openBuilder('Advanced grid...', 'Grid builder');
+    var gridLabels = body.querySelectorAll('label');
+    for (var gi = 0; gi < gridLabels.length; gi++) {
+      if ((gridLabels[gi].textContent || '').trim() === 'columns') { gridLabels[gi].nextElementSibling.value = '1fr 2fr'; break; }
+    }
+    body.querySelector('.adv-builder .adv-btns button').click();
+    await wait(800);
+    if (root.css.indexOf('grid-template-columns: 1fr 2fr') < 0) throw new Error('grid builder did not apply');
     closeOverlay();
     await wait(250);
     body = openBuilder('Per-side borders...', 'Per-side border builder');
@@ -249,6 +340,18 @@ const guiCssAdvancedScript = `<script>
     borderApply.click();
     await wait(800);
     if (root.css.indexOf('border-style: solid') < 0 && root.css.indexOf('border-top-style') < 0) throw new Error('per-side border builder did not apply');
+    body = document.getElementById('ins-overlay-body');
+    var sideSelect = body.querySelector('.adv-builder select');
+    sideSelect.value = 'top';
+    sideSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    var sideSelects = body.querySelectorAll('.adv-builder select');
+    if (sideSelects.length > 1) {
+      sideSelects[1].value = 'dashed';
+      sideSelects[1].dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    body.querySelector('.adv-builder .adv-btns button').click();
+    await wait(800);
+    if (root.css.indexOf('border-top-style: dashed') < 0) throw new Error('per-side top border did not apply');
     closeOverlay();
     await wait(250);
     body = openBuilder('Border image...', 'Border image builder');

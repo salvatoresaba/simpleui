@@ -301,3 +301,23 @@ func TestGuiCssSetSelectorPseudoAndAtRule(t *testing.T) {
 		t.Fatalf("at-rule rule missing:\n%s", out)
 	}
 }
+
+func TestGuiCssSetSelectorsAtomic(t *testing.T) {
+	css := ".one { color: red; }\n"
+	res := guiCssSetSelectors(css, `[".one", ".two", ".one"]`, "", `[{"prop":"display","value":"grid"}]`)
+	if !asBool(get(res, "ok")) {
+		t.Fatalf("multi selector failed: %v", StringifyJson(res))
+	}
+	out := asStr(get(res, "css"))
+	if strings.Count(out, "display: grid") != 2 {
+		t.Fatalf("expected both classes in one transaction:\n%s", out)
+	}
+	bad := guiCssSetSelectors(css, `[".one{", ".two"]`, "", `[{"prop":"display","value":"grid"}]`)
+	if asBool(get(bad, "ok")) {
+		t.Fatalf("invalid selector should be rejected")
+	}
+	empty := guiCssSetSelectors(css, `[]`, "", `[]`)
+	if asBool(get(empty, "ok")) {
+		t.Fatalf("empty selector list should be rejected")
+	}
+}

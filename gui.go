@@ -464,6 +464,15 @@ func CmdGui(args []string) {
 		res := guiCssSetSelector(css, selector, atRule, declsJson)
 		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
 	})
+	mux.HandleFunc("POST /__css__/setselmany", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		css := r.PostFormValue("css")
+		selectors := r.PostFormValue("selectors")
+		atRule := r.PostFormValue("at")
+		declsJson := r.PostFormValue("decls")
+		res := guiCssSetSelectors(css, selectors, atRule, declsJson)
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
+	})
 	mux.HandleFunc("GET /__gui__/fonts", func(w http.ResponseWriter, r *http.Request) {
 		guiFontsMu.Lock()
 		names := make([]string, 0, len(guiFonts))
@@ -4291,13 +4300,43 @@ func guiCssSetBatch(css, class, declsJson string) JVal {
 // is the writer behind pseudo-element and responsive-rule editing in Advanced
 // CSS.
 func guiCssSetSelector(css, selector, atRule, declsJson string) JVal {
-	selector = strings.TrimSpace(selector)
+	return guiCssSetSelectorList(css, []string{selector}, atRule, declsJson)
+}
+
+// guiCssSetSelectors applies one declaration batch to several exact selectors
+// in a single parse/generate transaction, so a multi-class edit cannot leave
+// half the selection updated.
+func guiCssSetSelectors(css, selectorsJson, atRule, declsJson string) JVal {
+	v, err := ParseJson(selectorsJson)
+	if err != nil || v.kind != "arr" {
+		return JObj("ok", JBool(false), "error", JStr("selectors must be a JSON array"))
+	}
+	var selectors []string
+	seen := map[string]bool{}
+	for i := 0; i < len(v.arr); i++ {
+		s := strings.TrimSpace(asStr(v.arr[i]))
+		if s == "" || seen[s] {
+			continue
+		}
+		seen[s] = true
+		selectors = append(selectors, s)
+	}
+	return guiCssSetSelectorList(css, selectors, atRule, declsJson)
+}
+
+func guiCssSetSelectorList(css string, selectors []string, atRule, declsJson string) JVal {
 	atRule = strings.TrimSpace(atRule)
-	if selector == "" {
+	if len(selectors) == 0 {
 		return JObj("ok", JBool(false), "error", JStr("empty selector"))
 	}
-	if strings.ContainsAny(selector, "{};") || strings.ContainsAny(atRule, "{};") {
-		return JObj("ok", JBool(false), "error", JStr("invalid selector or at-rule"))
+	for _, selector := range selectors {
+		selector = strings.TrimSpace(selector)
+		if selector == "" {
+			return JObj("ok", JBool(false), "error", JStr("empty selector"))
+		}
+		if strings.ContainsAny(selector, "{};\n\r") || strings.ContainsAny(atRule, "{};\n\r") {
+			return JObj("ok", JBool(false), "error", JStr("invalid selector or at-rule"))
+		}
 	}
 	s := ParseCss(css)
 	decls := []JVal{}
@@ -4329,34 +4368,38 @@ func guiCssSetSelector(css, selector, atRule, declsJson string) JVal {
 		}
 		nodes = scope.nodes
 	}
-	var target *CssNode
-	for _, n := range nodes {
-		if n.kind != "rule" {
-			continue
-		}
-		for _, sel := range n.selectors {
-			if strings.TrimSpace(sel) == selector {
-				target = n
+	for _, selector := range selectors {
+		selector = strings.TrimSpace(selector)
+		var target *CssNode
+		for _, n := range nodes {
+			if n.kind != "rule" {
+				continue
+			}
+			for _, sel := range n.selectors {
+				if strings.TrimSpace(sel) == selector {
+					target = n
+					break
+				}
+			}
+			if target != nil {
 				break
 			}
 		}
-		if target != nil {
-			break
+		if target == nil {
+			target = &CssNode{kind: "rule", selectors: []string{selector}}
+			if scope != nil {
+				scope.nodes = append(scope.nodes, target)
+			} else {
+				s.nodes = append(s.nodes, target)
+			}
+			nodes = append(nodes, target)
 		}
-	}
-	if target == nil {
-		target = &CssNode{kind: "rule", selectors: []string{selector}}
-		if scope != nil {
-			scope.nodes = append(scope.nodes, target)
-		} else {
-			s.nodes = append(s.nodes, target)
-		}
-	}
-	for i := 0; i < len(decls); i++ {
-		prop := asStr(get(decls[i], "prop"))
-		value := asStr(get(decls[i], "value"))
-		if prop != "" {
-			setCssDecl(target, prop, value)
+		for i := 0; i < len(decls); i++ {
+			prop := asStr(get(decls[i], "prop"))
+			value := asStr(get(decls[i], "value"))
+			if prop != "" {
+				setCssDecl(target, prop, value)
+			}
 		}
 	}
 	out := GenCss(s)

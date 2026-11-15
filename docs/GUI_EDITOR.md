@@ -681,7 +681,8 @@ editable value and a delete button. The add row accepts any valid CSS property,
 including custom properties (`--accent: #4c5cf7`), with property and value
 suggestions and validation. Values autocomplete common keywords and function
 prefixes (`display`, `position`, `flex-*`, `grid-*`, `border-*`,
-`linear-gradient(`, `clip-path`, `content`, `var(` and so on). Examples:
+`linear-gradient(`, `clip-path`, `content`, `var(` and so on), plus every
+project design token and custom property as `var(--name)`. Examples:
 
 ```css
 overflow: hidden;
@@ -692,7 +693,9 @@ transform: rotate(2deg);
 
 With several elements selected, the overlay edits every selected class. Fields
 with different current values show **(mixed)** and a tooltip listing the values;
-entering a value applies it to all selected classes. **Text mode** switches to a
+entering a value applies it to all selected classes. Multi-class writes are sent
+as one transaction, so an invalid selector or at-rule rejects the whole update
+instead of leaving some classes changed. **Text mode** switches to a
 declaration textarea (`property: value;` lines) with an **Apply text** button;
 mixed values are shown as comments and are not overwritten unless typed.
 

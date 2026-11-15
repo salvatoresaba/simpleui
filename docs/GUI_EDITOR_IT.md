@@ -705,7 +705,8 @@ accetta qualsiasi proprietà CSS valida, comprese le custom properties
 (`--accent: #4c5cf7`), con suggerimenti per proprietà e valori e validazione. I
 valori suggeriscono keyword comuni e prefissi di funzione (`display`, `position`,
 `flex-*`, `grid-*`, `border-*`, `linear-gradient(`, `clip-path`, `content`,
-`var(` e così via). Esempi:
+`var(` e così via), più ogni design token e custom property del progetto come
+`var(--name)`. Esempi:
 
 ```css
 overflow: hidden;
@@ -716,8 +717,10 @@ transform: rotate(2deg);
 
 Con più elementi selezionati l'overlay modifica ogni classe selezionata. I campi
 con valori diversi mostrano **(mixed)** e un tooltip con i valori; inserendo un
-valore questo viene applicato a tutte le classi. **Text mode** passa a una
-textarea di dichiarazioni (`property: value;`) con **Apply text**; i valori misti
+valore questo viene applicato a tutte le classi. Le scritture multi-classe sono
+inviate come un'unica transazione: un selettore o at-rule non valido rifiuta
+l'intero aggiornamento senza lasciare classi parzialmente modificate. **Text
+mode** passa a una textarea di dichiarazioni (`property: value;`) con **Apply text**; i valori misti
 sono mostrati come commenti e non vengono sovrascritti finché non ne digiti uno.
 
 La card **Rule context** aggiunge pseudo-elementi (`::before`, `::after`,
