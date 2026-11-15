@@ -43,7 +43,8 @@ progress_anims = [("Pulse", "lab-p-anim-pulse"), ("Stripes", "lab-p-anim-stripes
                   ("Wave", "lab-p-anim-wave"), ("None", "lab-p-anim-none")]
 
 spinner_shapes = [("Ring", "lab-s-ring"), ("Tri dots", "lab-s-dots"), ("Bars", "lab-s-bars"), ("Orbit", "lab-s-orbit"),
-                  ("Comet", "lab-s-comet"), ("Pulse", "lab-s-pulse"), ("Square", "lab-s-square")]
+                  ("Comet", "lab-s-comet"), ("Pulse", "lab-s-pulse"), ("Square", "lab-s-square"),
+                  ("Hourglass", "lab-s-hourglass"), ("Drop fill", "lab-s-drop")]
 spinner_anims = [("Spin", "lab-s-anim-spin"), ("Pulse", "lab-s-anim-pulse"), ("Flip", "lab-s-anim-flip"),
                  ("Reverse", "lab-s-anim-reverse"), ("Orbit", "lab-s-anim-orbit"), ("Wobble", "lab-s-anim-wobble"),
                  ("Bounce", "lab-s-anim-bounce"), ("Ripple", "lab-s-anim-ripple"), ("Swing", "lab-s-anim-swing"),
@@ -92,8 +93,12 @@ input_styles = [("Outline", "lab-i-outline"), ("Filled", "lab-i-filled"), ("Unde
 input_anims = [("Focus ring", "lab-i-anim-ring"), ("Focus glow", "lab-i-anim-glow"), ("Focus lift", "lab-i-anim-lift"),
                ("Focus shake", "lab-i-anim-shake"), ("None", "lab-i-anim-none")]
 
-checkbox_shapes = [("Default", "default"), ("Rounded", "rounded"), ("Square", "square"), ("Circle", "circle"),
-                   ("iOS", "ios"), ("Minimal", "minimal"), ("Soft", "soft")]
+checkbox_shapes = [("Classic", "lab-cb-classic"), ("Round", "lab-cb-round"), ("Tile", "lab-cb-tile"),
+                   ("LED", "lab-cb-led"), ("Brutalist", "lab-cb-brutalist"), ("Neon", "lab-cb-neon"),
+                   ("Sweep fill", "lab-cb-sweep")]
+cb_themes = [("Accent", "lab-cb-theme-accent"), ("Success", "lab-cb-theme-success"),
+             ("Warning", "lab-cb-theme-warning"), ("Danger", "lab-cb-theme-danger"),
+             ("Mono", "lab-cb-theme-mono")]
 switch_shapes = [("Default", "default"), ("Rounded", "rounded"), ("Square", "square"), ("Pill", "pill"),
                  ("iOS", "ios"), ("Material", "material"), ("Minimal", "minimal"), ("Soft", "soft")]
 radio_shapes = [("Default", "default"), ("Compact", "compact"), ("Large", "large"), ("Soft", "soft"), ("Minimal", "minimal")]
@@ -139,10 +144,10 @@ cards.append(card("Input", 'input "Focus me" value: name class: iStyle + " " + i
                   "Click the field to see the focus effect."))
 
 cards.append(card("Checkbox",
-                  'checkbox "Accept terms" checked: chkOn shape: chkShape theme: chkTheme animation: chkAnim duration: "180ms" easing: "ease-out"',
-                  [field("Shape", "chkShape", checkbox_shapes), field("Theme", "chkTheme", toggle_themes),
-                   field("Animation", "chkAnim", toggle_anims, wide=True)],
-                  "Shape, colour theme and transition are separate."))
+                  'checkbox "Accept terms" checked: chkOn class: chkStyle + " " + chkTheme animation: chkAnim duration: "180ms" easing: "ease-out"',
+                  [field("Style", "chkStyle", checkbox_shapes, wide=True), field("Theme", "chkTheme", cb_themes),
+                   field("Animation", "chkAnim", toggle_anims)],
+                  "Seven structures: round, tile, LED, brutalist, neon, sweep fill."))
 
 cards.append(card("Switch",
                   'switch "Enabled" checked: swOn shape: swShape theme: swTheme animation: swAnim duration: "180ms" easing: "ease-out"',
@@ -156,9 +161,13 @@ cards.append(card("Radio",
                    field("Animation", "rdAnim", toggle_anims, wide=True)],
                   "Independent radio; group them with name:."))
 
-cards.append(card("Dropdown", 'dropdown "Open menu" class: ddStyle animation: ddAnim duration: "200ms" {\n  dropdownitem "Edit"\n  dropdownitem "Duplicate"\n  dropdownitem "Delete"\n}',
-                  [field("Style", "ddStyle", overlay_styles), field("Animation", "ddAnim", overlay_anims)],
-                  "The animation plays when the panel opens."))
+cards.append(card("Dropdown", 'dropdown "Open menu" class: ddStyle + " " + ddItem animation: ddAnim duration: "200ms" {\n  dropdownitem "Edit"\n  dropdownitem "Duplicate"\n  dropdownitem "Delete"\n}',
+                  [field("Style", "ddStyle", overlay_styles), field("Animation", "ddAnim", overlay_anims),
+                   field("Item highlight", "ddItem", [("Accent bar", "lab-items-bar"), ("Glow", "lab-items-glow"),
+                                                      ("Aura", "lab-items-aura"), ("Gradient", "lab-items-gradient"),
+                                                      ("Border", "lab-items-border"), ("Dot", "lab-items-dot"),
+                                                      ("Check mark", "lab-items-check"), ("None", "lab-items-none")], wide=True)],
+                  "Hover an item to see the selection highlight."))
 
 cards.append(card("Popover", 'popover "Open popover" class: popStyle animation: popAnim duration: "180ms" {\n  p "Anchored panel." class: "lab-note"\n}',
                   [field("Style", "popStyle", [("Card", "lab-pop-card"), ("Glass", "lab-pop-glass"), ("Neon", "lab-pop-neon"), ("Brutalist", "lab-pop-brutalist")]),
@@ -203,8 +212,8 @@ state tAnim = "lab-t-anim-pop"
 state iStyle = "lab-i-outline"
 state iAnim = "lab-i-anim-glow"
 state chkOn = true
-state chkShape = "default"
-state chkTheme = "accent"
+state chkStyle = "lab-cb-tile"
+state chkTheme = "lab-cb-theme-accent"
 state chkAnim = "scale"
 state swOn = true
 state swShape = "pill"
@@ -215,6 +224,7 @@ state rdShape = "default"
 state rdTheme = "accent"
 state rdAnim = "slide"
 state ddStyle = "lab-dd-classic"
+state ddItem = "lab-items-bar"
 state ddAnim = "slide"
 state popStyle = "lab-pop-card"
 state popAnim = "scale"

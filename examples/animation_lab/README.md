@@ -12,23 +12,57 @@ animatable controls.
 | Control | Styles | Animations |
 |---|---|---|
 | Progress | Classic, Thin line, Segments, Stripes, Square, Neon, Dashed | Pulse, Stripes, Shimmer, Glow, Indeterminate, Aurora, Breathe, Ticker, Spark, Wave, None |
-| Spinner | Ring, Tri dots, Bars, Orbit, Comet, Pulse, Square | Spin, Pulse, Flip, Reverse, Orbit, Wobble, Bounce, Ripple, Swing, None |
+| Spinner | Ring, Tri dots, Bars, Orbit, Comet, Pulse, Square, **Hourglass**, **Drop fill** | Spin, Pulse, Flip, Reverse, Orbit, Wobble, Bounce, Ripple, Swing, None |
 | Badge | Pill, Tag, Outline, Neon, Status, Brutalist, Glass | Pulse, Glow, Float, Pop, Blink, Tilt, Ping, Bounce, Jelly, Sheen, **Dot to pill**, **Border first**, None |
 | Alert | Accent bar, Filled, Outline, Glass, Brutalist, Info | Fade in, Slide in, Shake, Pulse, Zoom in, Bounce in, Slide right, Wobble, Breathe, Flash, **Wipe**, **Border first**, None |
 | Card | Elevated, Flat, Outline, Glass, Neon, Brutalist, Dashed | Fade in, Float, Rise, Zoom in, Tilt in, Halo, Drift, Unfold, **Dot to card**, **Border first**, **Wipe**, **Flip**, **Squash**, None |
 | Button | Solid, Gradient, Outline, Ghost, Neon, 3D, Pill, Brutalist | Pulse, Float, Glow, Jelly, Bounce, Tilt, Ring, Sheen, Press, **Border first**, **Wipe**, **Pop**, None |
 | Tabs | Underline, Pills, Segmented, Boxed, Brutalist, Neon | Pop, Slide, Glow, Sweep, None |
 | Input | Outline, Filled, Underline, Pill, Glass, Brutalist | Focus ring, Focus glow, Focus lift, Focus shake, None |
-| Checkbox | 7 shapes | Auto, Scale, Morph, Fade, Slide, None |
+| Checkbox | **Classic, Round, Tile, LED, Brutalist, Neon, Sweep fill** (plus 5 colour themes) | Auto, Scale, Morph, Fade, Slide, None |
 | Switch | 8 shapes | Auto, Scale, Morph, Fade, Slide, None |
 | Radio | 5 shapes | Auto, Scale, Morph, Fade, Slide, None |
-| Dropdown | Classic, Pill, Neon, Brutalist | Slide, Fade, Scale, None |
+| Dropdown | Classic, Pill, Neon, Brutalist; **item highlight**: accent bar, glow, aura, gradient, border, dot, check mark, none | Slide, Fade, Scale, None |
 | Popover | Card, Glass, Neon, Brutalist | Slide, Fade, Scale, None |
 | Combobox | Classic, Pill, Neon, Brutalist | Slide, Fade, Scale, None |
 | Command palette | - | Slide, Fade, Scale, None |
 
 Checkbox, switch and radio also expose eight colour themes: Default, Accent,
 Success, Warning, Danger, Mono, Dark and Light.
+
+## Checkbox structures
+
+The checkbox is not a recoloured square: the seven styles change size, radius,
+border, surface and the mark itself.
+
+| Style | Structure |
+|---|---|
+| Classic | 20 px rounded square with a drawn tick |
+| Round | 22 px circle with a ring when checked |
+| Tile | 30 px tile with a gradient fill and a large tick |
+| LED | dark square with a glowing dot instead of a tick |
+| Brutalist | hard black border, yellow fill, offset shadow |
+| Neon | hollow ring with a glowing cyan tick |
+| Sweep fill | the accent colour rises from the bottom to fill the box |
+
+Five themes (Accent, Success, Warning, Danger, Mono) recolour the style through
+a CSS variable, so structure and colour stay independent.
+
+## Spinner graphics
+
+New shapes beyond the ring family:
+
+- **Hourglass**: a clipped hourglass silhouette; the sand drains, the glass
+  flips and the sand fills the other half.
+- **Drop fill**: a drop falls into a beaker and the beaker fills with a gradient.
+
+## Menu item highlights
+
+The Dropdown card also chooses how an item is highlighted, not only how the
+panel opens: **accent bar** (slides in), **glow**, **aura** (pulsing radial
+light), **gradient** (sweeps across), **border**, **dot** (pops in) and
+**check mark** (scales in). They react to hover and keyboard focus, so mouse and
+keyboard selection look the same.
 
 ## Shape transitions
 
@@ -78,8 +112,8 @@ state tAnim = "lab-t-anim-pop"
 state iStyle = "lab-i-outline"
 state iAnim = "lab-i-anim-glow"
 state chkOn = true
-state chkShape = "default"
-state chkTheme = "accent"
+state chkStyle = "lab-cb-tile"
+state chkTheme = "lab-cb-theme-accent"
 state chkAnim = "scale"
 state swOn = true
 state swShape = "pill"
@@ -90,6 +124,7 @@ state rdShape = "default"
 state rdTheme = "accent"
 state rdAnim = "slide"
 state ddStyle = "lab-dd-classic"
+state ddItem = "lab-items-bar"
 state ddAnim = "slide"
 state popStyle = "lab-pop-card"
 state popAnim = "scale"
@@ -436,6 +471,85 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
   .sui-input.lab-i-anim-glow:focus \{ animation: none !important; \}
   .sui-progress.lab-p-anim-pulse::-webkit-progress-value, .sui-progress.lab-p-anim-stripes::-webkit-progress-value, .sui-progress.lab-p-anim-shimmer::-webkit-progress-value, .sui-progress.lab-p-anim-glow::-webkit-progress-value, .sui-progress.lab-p-anim-indeterminate::-webkit-progress-value, .sui-progress.lab-p-anim-aurora::-webkit-progress-value, .sui-progress.lab-p-anim-breathe::-webkit-progress-value, .sui-progress.lab-p-anim-ticker::-webkit-progress-value, .sui-progress.lab-p-anim-spark::-webkit-progress-value, .sui-progress.lab-p-anim-wave::-webkit-progress-value \{ animation: none !important; \}
 \}
+
+
+/* ---------- Checkbox: genuinely different structures ---------- */
+.sui-checkbox.lab-cb-classic \{ width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid #475569; background: #0f172a; \}
+.sui-checkbox.lab-cb-classic:checked \{ background: var(--lab-cb-color, #4c5cf7); border-color: var(--lab-cb-color, #4c5cf7); \}
+.sui-checkbox.lab-cb-classic::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 6px; top: 2px; opacity: 0; \}
+.sui-checkbox.lab-cb-classic:checked::after \{ opacity: 1; \}
+
+.sui-checkbox.lab-cb-round \{ width: 22px; height: 22px; border-radius: 50%; border: 2px solid #64748b; background: transparent; \}
+.sui-checkbox.lab-cb-round:checked \{ background: var(--lab-cb-color, #4c5cf7); border-color: var(--lab-cb-color, #4c5cf7); box-shadow: 0 0 0 4px rgba(76,92,247,.18); \}
+.sui-checkbox.lab-cb-round::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 7px; top: 3px; opacity: 0; \}
+.sui-checkbox.lab-cb-round:checked::after \{ opacity: 1; \}
+
+.sui-checkbox.lab-cb-tile \{ width: 30px; height: 30px; border-radius: 9px; border: 0; background: #1e293b; \}
+.sui-checkbox.lab-cb-tile:checked \{ background: linear-gradient(135deg, var(--lab-cb-color, #4c5cf7), #a855f7); box-shadow: 0 6px 16px rgba(0,0,0,.35); \}
+.sui-checkbox.lab-cb-tile::after \{ width: 7px; height: 14px; border: solid #fff; border-width: 0 3px 3px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 10px; top: 5px; opacity: 0; \}
+.sui-checkbox.lab-cb-tile:checked::after \{ opacity: 1; \}
+
+.sui-checkbox.lab-cb-led \{ width: 22px; height: 22px; border-radius: 6px; border: 1px solid #334155; background: #0b1220; \}
+.sui-checkbox.lab-cb-led:checked \{ border-color: var(--lab-cb-color, #22d3ee); background: #0b1220; \}
+.sui-checkbox.lab-cb-led::after \{ width: 8px; height: 8px; border: 0; border-radius: 50%; background: transparent; transform: none; left: 50%; top: 50%; margin: -4px 0 0 -4px; opacity: 0; \}
+.sui-checkbox.lab-cb-led:checked::after \{ opacity: 1; background: var(--lab-cb-color, #22d3ee); box-shadow: 0 0 10px var(--lab-cb-color, #22d3ee); \}
+
+.sui-checkbox.lab-cb-brutalist \{ width: 26px; height: 26px; border-radius: 0; border: 3px solid #111; background: #fff; box-shadow: 3px 3px 0 #111; \}
+.sui-checkbox.lab-cb-brutalist:checked \{ background: #facc15; border-color: #111; \}
+.sui-checkbox.lab-cb-brutalist::after \{ width: 7px; height: 13px; border: solid #111; border-width: 0 4px 4px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 8px; top: 2px; opacity: 0; \}
+.sui-checkbox.lab-cb-brutalist:checked::after \{ opacity: 1; \}
+
+.sui-checkbox.lab-cb-neon \{ width: 22px; height: 22px; border-radius: 8px; border: 2px solid var(--lab-cb-color, #22d3ee); background: transparent; \}
+.sui-checkbox.lab-cb-neon:checked \{ background: rgba(34,211,238,.14); border-color: var(--lab-cb-color, #22d3ee); box-shadow: inset 0 0 10px var(--lab-cb-color, #22d3ee), 0 0 12px rgba(34,211,238,.45); \}
+.sui-checkbox.lab-cb-neon::after \{ width: 5px; height: 10px; border: solid var(--lab-cb-color, #22d3ee); border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 7px; top: 3px; opacity: 0; \}
+.sui-checkbox.lab-cb-neon:checked::after \{ opacity: 1; \}
+
+.sui-checkbox.lab-cb-sweep \{ width: 24px; height: 24px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; background-image: linear-gradient(var(--lab-cb-color, #4c5cf7), var(--lab-cb-color, #4c5cf7)); background-repeat: no-repeat; background-position: bottom; background-size: 100% 0%; transition: background-size .28s ease-out, border-color .2s ease; \}
+.sui-checkbox.lab-cb-sweep:checked \{ border-color: var(--lab-cb-color, #4c5cf7); background-size: 100% 100%; \}
+.sui-checkbox.lab-cb-sweep::after \{ width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; background: none; border-radius: 0; transform: rotate(45deg); left: 8px; top: 4px; opacity: 0; \}
+.sui-checkbox.lab-cb-sweep:checked::after \{ opacity: 1; \}
+
+.lab-cb-theme-accent \{ --lab-cb-color: #4c5cf7; \}
+.lab-cb-theme-success \{ --lab-cb-color: #22c55e; \}
+.lab-cb-theme-warning \{ --lab-cb-color: #f59e0b; \}
+.lab-cb-theme-danger \{ --lab-cb-color: #ef4444; \}
+.lab-cb-theme-mono \{ --lab-cb-color: #94a3b8; \}
+
+/* ---------- Spinner: hourglass and drop ---------- */
+.sui-spinner.lab-s-hourglass \{ width: 26px; height: 34px; border: 0; border-radius: 0; background: #1e293b; clip-path: polygon(0 0, 100% 0, 50% 50%, 100% 100%, 0 100%, 50% 50%); position: relative; animation: lab-hourglass-flip 2.6s ease-in-out infinite; \}
+.sui-spinner.lab-s-hourglass::after \{ content: \"\"; position: absolute; left: 0; right: 0; top: 0; height: 50%; background: #4c5cf7; animation: lab-hourglass-sand 2.6s ease-in-out infinite; \}
+.sui-spinner.lab-s-drop \{ width: 26px; height: 36px; border: 2px solid #334155; border-radius: 4px 4px 12px 12px; background-color: #0b1220; background-image: linear-gradient(#22d3ee, #4c5cf7); background-repeat: no-repeat; background-position: bottom; background-size: 100% 0%; position: relative; overflow: hidden; animation: lab-drop-fill 1.8s ease-in-out infinite; \}
+.sui-spinner.lab-s-drop::before \{ content: \"\"; position: absolute; top: -10px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: #22d3ee; border-radius: 50% 50% 50% 0; transform: rotate(45deg); animation: lab-drop-fall 1.8s ease-in infinite; \}
+@keyframes lab-hourglass-flip \{ 0%, 42% \{ transform: rotate(0deg); \} 55%, 100% \{ transform: rotate(180deg); \} \}
+@keyframes lab-hourglass-sand \{ 0% \{ height: 50%; \} 42% \{ height: 0%; \} 55% \{ height: 0%; \} 95% \{ height: 50%; \} 100% \{ height: 50%; \} \}
+@keyframes lab-drop-fill \{ 0% \{ background-size: 100% 0%; \} 65% \{ background-size: 100% 72%; \} 100% \{ background-size: 100% 100%; \} \}
+@keyframes lab-drop-fall \{ 0% \{ top: -10px; opacity: 0; \} 15% \{ opacity: 1; \} 62% \{ top: 10px; opacity: 0; \} 100% \{ top: 10px; opacity: 0; \} \}
+
+/* ---------- Dropdown: item highlight styles ---------- */
+.lab-items-bar .sui-menuitem \{ position: relative; padding-left: 16px; \}
+.lab-items-bar .sui-menuitem::before \{ content: \"\"; position: absolute; left: 5px; top: 50%; width: 3px; height: 0; border-radius: 2px; background: var(--sui-accent, #4c5cf7); transform: translateY(-50%); transition: height .18s ease; \}
+.lab-items-bar .sui-menuitem:hover::before, .lab-items-bar .sui-menuitem:focus::before \{ height: 62%; \}
+
+.lab-items-glow .sui-menuitem:hover, .lab-items-glow .sui-menuitem:focus \{ background: #1e2637; box-shadow: 0 0 0 1px #4c5cf7, 0 0 14px rgba(76,92,247,.55); \}
+
+.lab-items-aura .sui-menuitem:hover, .lab-items-aura .sui-menuitem:focus \{ background: radial-gradient(circle at 18% 50%, rgba(76,92,247,.5), transparent 70%); animation: lab-item-aura 1.8s ease-in-out infinite; \}
+@keyframes lab-item-aura \{ 0%, 100% \{ box-shadow: 0 0 0 0 rgba(76,92,247,0); \} 50% \{ box-shadow: 0 0 16px 2px rgba(76,92,247,.45); \} \}
+
+.lab-items-gradient .sui-menuitem \{ background-image: linear-gradient(90deg, #4c5cf7, #a855f7); background-size: 0% 100%; background-repeat: no-repeat; background-position: left; transition: background-size .25s ease; \}
+.lab-items-gradient .sui-menuitem:hover, .lab-items-gradient .sui-menuitem:focus \{ background-size: 100% 100%; color: #fff; \}
+
+.lab-items-border .sui-menuitem \{ border: 1px solid transparent; \}
+.lab-items-border .sui-menuitem:hover, .lab-items-border .sui-menuitem:focus \{ border-color: #4c5cf7; box-shadow: inset 0 0 0 1px rgba(76,92,247,.45); \}
+
+.lab-items-dot .sui-menuitem \{ position: relative; padding-left: 18px; \}
+.lab-items-dot .sui-menuitem::before \{ content: \"\"; position: absolute; left: 6px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #4c5cf7; opacity: 0; transform: scale(.4); transition: opacity .15s ease, transform .15s ease; \}
+.lab-items-dot .sui-menuitem:hover::before, .lab-items-dot .sui-menuitem:focus::before \{ opacity: 1; transform: scale(1); \}
+
+.lab-items-check .sui-menuitem \{ position: relative; padding-right: 22px; \}
+.lab-items-check .sui-menuitem::after \{ content: \"\\2713\"; position: absolute; right: 8px; top: 50%; transform: translateY(-50%) scale(.5); opacity: 0; color: #4c5cf7; transition: opacity .15s ease, transform .15s ease; \}
+.lab-items-check .sui-menuitem:hover::after, .lab-items-check .sui-menuitem:focus::after \{ opacity: 1; transform: translateY(-50%) scale(1); \}
+
+.lab-items-none .sui-menuitem \{ \}
 "
 
 view main {
@@ -491,6 +605,8 @@ view main {
           					option "Comet" value: "lab-s-comet"
           					option "Pulse" value: "lab-s-pulse"
           					option "Square" value: "lab-s-square"
+          					option "Hourglass" value: "lab-s-hourglass"
+          					option "Drop fill" value: "lab-s-drop"
           }
           select "Animation" value: sAnim {
           					option "Spin" value: "lab-s-anim-spin"
@@ -713,29 +829,26 @@ view main {
       card class: "lab-card" {
         h3 "Checkbox"
         div class: "lab-preview" {
-          checkbox "Accept terms" checked: chkOn shape: chkShape theme: chkTheme animation: chkAnim duration: "180ms" easing: "ease-out"
+          checkbox "Accept terms" checked: chkOn class: chkStyle + " " + chkTheme animation: chkAnim duration: "180ms" easing: "ease-out"
         }
         div class: "lab-fields" {
-          select "Shape" value: chkShape {
-          					option "Default" value: "default"
-          					option "Rounded" value: "rounded"
-          					option "Square" value: "square"
-          					option "Circle" value: "circle"
-          					option "iOS" value: "ios"
-          					option "Minimal" value: "minimal"
-          					option "Soft" value: "soft"
+          select "Style" value: chkStyle class: "lab-wide" {
+          					option "Classic" value: "lab-cb-classic"
+          					option "Round" value: "lab-cb-round"
+          					option "Tile" value: "lab-cb-tile"
+          					option "LED" value: "lab-cb-led"
+          					option "Brutalist" value: "lab-cb-brutalist"
+          					option "Neon" value: "lab-cb-neon"
+          					option "Sweep fill" value: "lab-cb-sweep"
           }
           select "Theme" value: chkTheme {
-          					option "Default" value: "default"
-          					option "Accent" value: "accent"
-          					option "Success" value: "success"
-          					option "Warning" value: "warning"
-          					option "Danger" value: "danger"
-          					option "Mono" value: "mono"
-          					option "Dark" value: "dark"
-          					option "Light" value: "light"
+          					option "Accent" value: "lab-cb-theme-accent"
+          					option "Success" value: "lab-cb-theme-success"
+          					option "Warning" value: "lab-cb-theme-warning"
+          					option "Danger" value: "lab-cb-theme-danger"
+          					option "Mono" value: "lab-cb-theme-mono"
           }
-          select "Animation" value: chkAnim class: "lab-wide" {
+          select "Animation" value: chkAnim {
           					option "Auto" value: "auto"
           					option "Scale" value: "scale"
           					option "Morph" value: "morph"
@@ -744,7 +857,7 @@ view main {
           					option "None" value: "none"
           }
         }
-        p "Shape, colour theme and transition are separate." class: "lab-note"
+        p "Seven structures: round, tile, LED, brutalist, neon, sweep fill." class: "lab-note"
       }
 
       card class: "lab-card" {
@@ -826,7 +939,7 @@ view main {
       card class: "lab-card" {
         h3 "Dropdown"
         div class: "lab-preview" {
-          dropdown "Open menu" class: ddStyle animation: ddAnim duration: "200ms" {
+          dropdown "Open menu" class: ddStyle + " " + ddItem animation: ddAnim duration: "200ms" {
             dropdownitem "Edit"
             dropdownitem "Duplicate"
             dropdownitem "Delete"
@@ -845,8 +958,18 @@ view main {
           					option "Scale" value: "scale"
           					option "None" value: "none"
           }
+          select "Item highlight" value: ddItem class: "lab-wide" {
+          					option "Accent bar" value: "lab-items-bar"
+          					option "Glow" value: "lab-items-glow"
+          					option "Aura" value: "lab-items-aura"
+          					option "Gradient" value: "lab-items-gradient"
+          					option "Border" value: "lab-items-border"
+          					option "Dot" value: "lab-items-dot"
+          					option "Check mark" value: "lab-items-check"
+          					option "None" value: "lab-items-none"
+          }
         }
-        p "The animation plays when the panel opens." class: "lab-note"
+        p "Hover an item to see the selection highlight." class: "lab-note"
       }
 
       card class: "lab-card" {
