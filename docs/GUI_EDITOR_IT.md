@@ -836,6 +836,53 @@ viene incorporato direttamente nel sorgente SUI quando lo applichi. Usa un
 percorso relativo locale invece di un asset quando vuoi che il file viva accanto
 al progetto.
 
+## Motion composer
+
+**Insert → Motion composer…** apre un piccolo editor per disegnare un controllo e
+le sue keyframe senza scrivere CSS a mano.
+
+| Area | Cosa puoi impostare |
+|---|---|
+| Forma | larghezza, altezza, raggio del bordo, sfondo, colore del testo, dimensione del font |
+| Movimento | durata, easing (incluso un cubic-bezier a molla), ritardo, numero di ripetizioni |
+| Keyframe | istante, spostamento verticale, scala, rotazione, opacità, sfondo per frame |
+| Anteprima | forma e animazione live, **Play**, **Stop** |
+
+Il palco si aggiorna mentre digiti. **Add keyframe** inserisce un frame nel vuoto
+più ampio e ne interpola i valori, **Remove last** lo elimina; un movimento
+mantiene sempre almeno due frame.
+
+Due modalità di inserimento rendono l'operazione esplicita e sicura:
+
+| Azione | Risultato |
+|---|---|
+| Insert control | Aggiunge un nuovo button, card, box o badge con classe `.nome` e la sua animazione |
+| Apply to selection | Aggiunge solo `.nome-motion` agli elementi selezionati, lasciando intatta la forma |
+
+Entrambe scrivono blocchi gestiti in `root.css`. Inserire un controllo scrive
+forma e movimento:
+
+```css
+/* sui-motion-shape:pulse-card */
+.pulse-card { ...forma...; animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+/* /sui-motion-shape:pulse-card */
+/* sui-motion:pulse-card */
+.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+@keyframes sui-motion-pulse-card { ... }
+/* /sui-motion:pulse-card */
+```
+
+Apply to selection scrive solo il secondo blocco, così un controllo esistente
+mantiene la propria dimensione e i propri colori.
+
+Inserire di nuovo la stessa classe sostituisce quel blocco invece di duplicarlo,
+quindi puoi continuare a modificare la forma e premere **Insert control** di
+nuovo. **Copy CSS** copia lo stesso blocco per usarlo altrove. I nomi delle
+classi devono rispettare `^[A-Za-z_][A-Za-z0-9_-]*$`; i numeri vengono limitati e
+i colori devono essere esadecimali, così il composer non può scrivere CSS
+arbitrario. Le keyframe vengono compilate nel progetto: il runtime non inietta
+mai stili.
+
 ## Drag and drop del designer
 
 Il drag and drop interno del designer è sempre attivo. Non esiste un'impostazione,

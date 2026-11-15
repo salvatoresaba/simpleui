@@ -827,6 +827,26 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .asset-actions { display:flex; gap:3px; padding:4px 6px 6px; }
 .asset-actions button { flex:1; font-size:10px; padding:3px 4px; }
 .asset-empty { color:var(--muted); font-size:12px; grid-column:1 / -1; }
+#motion-composer { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:14; }
+#motion-composer.on { display:flex; }
+#mc-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:900px; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#mc-head { display:flex; align-items:center; gap:6px; padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
+#mc-head span { flex:1; }
+.mc-body { padding:12px 14px; overflow:auto; display:grid; grid-template-columns:290px minmax(0,1fr); gap:14px; }
+.mc-stage { grid-row:1 / span 2; display:flex; align-items:center; justify-content:center; min-height:260px; background:radial-gradient(circle at 50% 0%, #1a2436, #0b111c); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.mc-shape { display:flex; align-items:center; justify-content:center; width:160px; height:56px; border-radius:10px; background:#4c5cf7; color:#fff; font:600 14px system-ui, sans-serif; box-sizing:border-box; }
+.mc-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; align-content:start; }
+.mc-fields .mc-wide { grid-column:1 / -1; }
+.mc-fields label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:2px; }
+.mc-fields input, .mc-fields select { width:100%; box-sizing:border-box; height:26px; padding:2px 6px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border); border-radius:5px; font:11px/1.2 var(--mono, ui-monospace, Consolas, monospace); }
+.mc-timeline { display:flex; flex-direction:column; gap:6px; }
+.mc-kf { display:grid; grid-template-columns:44px repeat(5,minmax(0,1fr)); gap:6px; align-items:end; }
+.mc-kf .mc-at { align-self:center; font:600 11px var(--mono, ui-monospace, Consolas, monospace); color:var(--accent); }
+.mc-kf label { font-size:9px; }
+.mc-kf-h { font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+.mc-kf input { width:100%; box-sizing:border-box; height:24px; padding:2px 4px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border); border-radius:5px; font:10px/1.2 var(--mono, ui-monospace, Consolas, monospace); }
+.mc-actions { grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-top:2px; }
+#mc-status { grid-column:1 / -1; min-height:18px; }
 #hist-editor { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #hist-editor.on { display:flex; }
 #hist-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:520px; max-width:94vw; max-height:70vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -1369,6 +1389,43 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
   <div id="hist-box">
     <div id="hist-head"><span>Project history</span><button class="btn" onclick="snapshotNow()">Snapshot now</button><button class="btn" onclick="closeHistory()">&#10005;</button></div>
     <div id="hist-list"></div>
+  </div>
+</div>
+<div id="motion-composer">
+  <div id="mc-box" role="dialog" aria-modal="true" aria-labelledby="mc-title">
+    <div id="mc-head">
+      <span id="mc-title">Motion composer</span>
+      <button class="btn" type="button" onclick="mcPlay()">Play</button>
+      <button class="btn" type="button" onclick="mcStop()">Stop</button>
+      <button class="btn" type="button" onclick="closeMotionComposer()" aria-label="Close motion composer">&#10005;</button>
+    </div>
+    <div class="mc-body">
+      <div class="mc-stage"><div id="mc-shape" class="mc-shape">Animated</div></div>
+      <div class="mc-fields">
+        <div class="mc-wide"><label for="mc-name">Class name</label><input id="mc-name" value="pulse-card" spellcheck="false" oninput="mcPreview()"></div>
+        <div><label for="mc-kind">Insert as</label><select id="mc-kind"><option value="button">Button</option><option value="card">Card</option><option value="div">Box</option><option value="badge">Badge</option></select></div>
+        <div><label for="mc-text">Label</label><input id="mc-text" value="Animated" oninput="mcPreview()"></div>
+        <div><label for="mc-fs">Font size</label><input id="mc-fs" type="number" value="15" min="8" max="48" oninput="mcPreview()"></div>
+        <div><label for="mc-w">Width</label><input id="mc-w" type="number" value="180" min="24" max="900" oninput="mcPreview()"></div>
+        <div><label for="mc-h">Height</label><input id="mc-h" type="number" value="56" min="16" max="900" oninput="mcPreview()"></div>
+        <div><label for="mc-radius">Radius</label><input id="mc-radius" type="number" value="12" min="0" max="300" oninput="mcPreview()"></div>
+        <div><label for="mc-bg">Background</label><input id="mc-bg" value="#4c5cf7" spellcheck="false" oninput="mcPreview()"></div>
+        <div><label for="mc-fg">Text colour</label><input id="mc-fg" value="#ffffff" spellcheck="false" oninput="mcPreview()"></div>
+        <div><label for="mc-dur">Duration (s)</label><input id="mc-dur" type="number" value="1.4" min="0.1" max="20" step="0.1" oninput="mcPreview()"></div>
+        <div><label for="mc-ease">Easing</label><select id="mc-ease" onchange="mcPreview()"><option value="ease">Ease</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="ease-in-out" selected>Ease in out</option><option value="linear">Linear</option><option value="cubic-bezier(.34,1.56,.64,1)">Spring</option></select></div>
+        <div><label for="mc-delay">Delay (s)</label><input id="mc-delay" type="number" value="0" min="0" max="20" step="0.05" oninput="mcPreview()"></div>
+        <div><label for="mc-iter">Repeat</label><select id="mc-iter" onchange="mcPreview()"><option value="infinite" selected>Infinite</option><option value="1">Once</option><option value="2">Twice</option><option value="3">3 times</option><option value="5">5 times</option></select></div>
+      </div>
+      <div class="mc-timeline" id="mc-timeline"></div>
+      <div class="mc-actions">
+        <button class="btn" type="button" onclick="mcAddKeyframe()">Add keyframe</button>
+        <button class="btn" type="button" onclick="mcRemoveKeyframe()">Remove last</button>
+        <button class="btn" type="button" onclick="mcCopy()">Copy CSS</button>
+        <button class="btn" type="button" onclick="mcInsert()">Insert control</button>
+        <button class="btn" type="button" onclick="mcApply()">Apply to selection</button>
+      </div>
+      <div id="mc-status" class="hint"></div>
+    </div>
   </div>
 </div>
 <div id="chart-data-layer" aria-hidden="true">
@@ -13204,6 +13261,360 @@ function copyAssetFallback(url) {
   try { document.execCommand("copy"); setStatus("data URL copied"); } catch (e) { setStatus("copy failed"); }
   ta.remove();
 }
+
+// ---- motion composer ------------------------------------------------------
+// Draws a control shape and its keyframes, previews them live and writes a
+// managed block into root.css. Keyframes are real build-time CSS: nothing is
+// injected into the running application at runtime.
+var __mcKeys = [
+  { at: 0, ty: 0, scale: 1, rot: 0, opacity: 1, bg: "" },
+  { at: 50, ty: -10, scale: 1.04, rot: 0, opacity: 1, bg: "" },
+  { at: 100, ty: 0, scale: 1, rot: 0, opacity: 1, bg: "" }
+];
+function openMotionComposer() {
+  var m = document.getElementById("motion-composer");
+  if (!m) return;
+  m.classList.add("on");
+  renderMotionComposer();
+  mcPreview();
+  if (!document.getElementById("mc-status").textContent) {
+    setMcStatus("Draw the shape and tune the keyframes; the stage previews them live.");
+  }
+  var name = document.getElementById("mc-name");
+  if (name) name.focus();
+}
+function closeMotionComposer() {
+  var m = document.getElementById("motion-composer");
+  if (m) m.classList.remove("on");
+  mcStop();
+}
+function setMcStatus(msg) {
+  var el = document.getElementById("mc-status");
+  if (el) el.textContent = msg || "";
+}
+function mcNum(id, def, lo, hi) {
+  var el = document.getElementById(id);
+  var n = el ? Number(el.value) : NaN;
+  if (!isFinite(n)) return def;
+  return Math.max(lo, Math.min(hi, n));
+}
+function mcColorValue(id, def) {
+  var el = document.getElementById(id);
+  var v = el ? String(el.value || "").trim() : "";
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ? v : def;
+}
+function mcColorOrEmpty(v) {
+  var s = String(v || "").trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s) ? s : "";
+}
+function mcEase() {
+  var el = document.getElementById("mc-ease");
+  var v = el ? String(el.value) : "";
+  var allowed = ["ease", "ease-in", "ease-out", "ease-in-out", "linear", "cubic-bezier(.34,1.56,.64,1)"];
+  return allowed.indexOf(v) >= 0 ? v : "ease-in-out";
+}
+function mcIter() {
+  var el = document.getElementById("mc-iter");
+  var v = el ? String(el.value) : "";
+  return /^(\d+|infinite)$/.test(v) ? v : "infinite";
+}
+function mcRound(n) {
+  return Number(Number(n).toFixed(3));
+}
+function mcTime(v, def, lo, hi) {
+  var n = Number(v);
+  if (!isFinite(n)) n = def;
+  return Math.max(lo, Math.min(hi, n));
+}
+function mcKeyField(i, prop, value, type, min, max, step) {
+  var inp = document.createElement("input");
+  inp.type = type;
+  inp.value = value;
+  if (min !== null) inp.min = min;
+  if (max !== null) inp.max = max;
+  if (step !== null) inp.step = step;
+  if (prop === "at") inp.className = "mc-at";
+  if (prop === "bg") { inp.type = "text"; inp.placeholder = "inherit"; inp.spellcheck = false; }
+  inp.setAttribute("aria-label", prop === "at" ? "Keyframe position" : prop);
+  inp.oninput = function(){ mcKeyEdit(i, prop, inp.value); };
+  return inp;
+}
+function renderMotionComposer() {
+  var list = document.getElementById("mc-timeline");
+  if (!list) return;
+  list.textContent = "";
+  var head = document.createElement("div");
+  head.className = "mc-kf";
+  ["At %", "Y", "Scale", "Rotate", "Opacity", "Colour"].forEach(function(t){
+    var d = document.createElement("div");
+    d.className = "mc-kf-h";
+    d.textContent = t;
+    head.appendChild(d);
+  });
+  list.appendChild(head);
+  __mcKeys.forEach(function(k, i){
+    var row = document.createElement("div");
+    row.className = "mc-kf";
+    row.appendChild(mcKeyField(i, "at", k.at, "number", 0, 100, 1));
+    row.appendChild(mcKeyField(i, "ty", k.ty, "number", -400, 400, 1));
+    row.appendChild(mcKeyField(i, "scale", k.scale, "number", 0, 4, 0.01));
+    row.appendChild(mcKeyField(i, "rot", k.rot, "number", -720, 720, 1));
+    row.appendChild(mcKeyField(i, "opacity", k.opacity, "number", 0, 1, 0.05));
+    row.appendChild(mcKeyField(i, "bg", k.bg, "text", null, null, null));
+    list.appendChild(row);
+  });
+}
+function mcKeyEdit(i, prop, value) {
+  if (!__mcKeys[i]) return;
+  if (prop === "bg") __mcKeys[i].bg = String(value || "");
+  else {
+    var n = Number(value);
+    if (!isFinite(n)) return;
+    __mcKeys[i][prop] = n;
+  }
+  mcPreview();
+}
+function mcFrames() {
+  var keys = __mcKeys.slice().sort(function(a, b){ return Number(a.at) - Number(b.at); });
+  var out = [];
+  keys.forEach(function(k){
+    var at = mcTime(k.at, 0, 0, 100);
+    var ty = mcTime(k.ty, 0, -400, 400);
+    var sc = mcTime(k.scale, 1, 0, 4);
+    var rot = mcTime(k.rot, 0, -720, 720);
+    var op = mcTime(k.opacity, 1, 0, 1);
+    var decl = "  " + mcRound(at) + "% { transform: translateY(" + mcRound(ty) + "px) scale(" + mcRound(sc) + ") rotate(" + mcRound(rot) + "deg); opacity: " + mcRound(op) + ";";
+    var bg = mcColorOrEmpty(k.bg);
+    if (bg) decl += " background-color: " + bg + ";";
+    out.push(decl + " }");
+  });
+  return out.join("\n");
+}
+function mcShapeCss(sel, animName) {
+  var w = mcNum("mc-w", 180, 24, 900);
+  var h = mcNum("mc-h", 56, 16, 900);
+  var radius = mcNum("mc-radius", 12, 0, 300);
+  var fs = mcNum("mc-fs", 15, 8, 48);
+  var bg = mcColorValue("mc-bg", "#4c5cf7");
+  var fg = mcColorValue("mc-fg", "#ffffff");
+  var dur = mcNum("mc-dur", 1.4, 0.1, 20);
+  var delay = mcNum("mc-delay", 0, 0, 20);
+  return sel + " {\n" +
+    "  display: inline-flex;\n" +
+    "  align-items: center;\n" +
+    "  justify-content: center;\n" +
+    "  width: " + w + "px;\n" +
+    "  height: " + h + "px;\n" +
+    "  border-radius: " + radius + "px;\n" +
+    "  background: " + bg + ";\n" +
+    "  color: " + fg + ";\n" +
+    "  font: 600 " + fs + "px/1.1 system-ui, -apple-system, Segoe UI, sans-serif;\n" +
+    "  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);\n" +
+    "  animation: " + animName + " " + dur + "s " + mcEase() + " " + delay + "s " + mcIter() + " both;\n" +
+    "}";
+}
+function mcMotionCss(sel, animName) {
+  var dur = mcNum("mc-dur", 1.4, 0.1, 20);
+  var delay = mcNum("mc-delay", 0, 0, 20);
+  return sel + " { animation: " + animName + " " + dur + "s " + mcEase() + " " + delay + "s " + mcIter() + " both; }";
+}
+function mcSafeName() {
+  var el = document.getElementById("mc-name");
+  var v = el ? String(el.value || "").trim() : "";
+  return /^[A-Za-z_][A-Za-z0-9_-]*$/.test(v) ? v : "";
+}
+function mcValidName() {
+  var name = mcSafeName();
+  if (!name) {
+    setMcStatus("Class name must start with a letter or underscore and use only letters, digits, _ and -.");
+    var el = document.getElementById("mc-name");
+    if (el) el.focus();
+  }
+  return name;
+}
+function mcCssBlock(name) {
+  var anim = "sui-motion-" + name;
+  return "/* sui-motion-shape:" + name + " */\n" +
+    mcShapeCss("." + name, anim) + "\n" +
+    "/* /sui-motion-shape:" + name + " */\n" +
+    "/* sui-motion:" + name + " */\n" +
+    mcMotionCss("." + name + "-motion", anim) + "\n" +
+    "@keyframes " + anim + " {\n" + mcFrames() + "\n}\n" +
+    "/* /sui-motion:" + name + " */";
+}
+function mcShapeBlock(name) {
+  return "/* sui-motion-shape:" + name + " */\n" +
+    mcShapeCss("." + name, "sui-motion-" + name) + "\n" +
+    "/* /sui-motion-shape:" + name + " */";
+}
+function mcMotionBlock(name) {
+  var anim = "sui-motion-" + name;
+  return "/* sui-motion:" + name + " */\n" +
+    mcMotionCss("." + name + "-motion", anim) + "\n" +
+    "@keyframes " + anim + " {\n" + mcFrames() + "\n}\n" +
+    "/* /sui-motion:" + name + " */";
+}
+function mcPreview() {
+  var style = document.getElementById("mc-live-style");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "mc-live-style";
+    document.head.appendChild(style);
+  }
+  style.textContent = mcShapeCss("#mc-shape", "sui-motion-preview") + "\n@keyframes sui-motion-preview {\n" + mcFrames() + "\n}";
+  var shape = document.getElementById("mc-shape");
+  if (shape) {
+    var text = document.getElementById("mc-text");
+    shape.textContent = (text && text.value) || "Animated";
+    shape.style.animation = "";
+  }
+}
+function mcStop() {
+  var style = document.getElementById("mc-live-style");
+  if (style) style.textContent = "";
+  var shape = document.getElementById("mc-shape");
+  if (shape) shape.style.animation = "none";
+}
+function mcPlay() {
+  var shape = document.getElementById("mc-shape");
+  if (shape) {
+    shape.style.animation = "none";
+    void shape.offsetWidth;
+  }
+  mcPreview();
+}
+function mcAddKeyframe() {
+  var sorted = __mcKeys.slice().sort(function(a, b){ return Number(a.at) - Number(b.at); });
+  var pts = [{ at: 0 }].concat(sorted).concat([{ at: 100 }]);
+  var best = null;
+  for (var i = 1; i < pts.length; i++) {
+    var gap = mcTime(pts[i].at, 0, 0, 100) - mcTime(pts[i - 1].at, 0, 0, 100);
+    if (gap > 1 && (!best || gap > best.gap)) best = { a: pts[i - 1], b: pts[i], gap: gap };
+  }
+  if (!best) { setMcStatus("No room for another keyframe. Move or remove a frame first."); return; }
+  function mix(prop, def) {
+    var av = best.a[prop] == null ? def : Number(best.a[prop]);
+    var bv = best.b[prop] == null ? def : Number(best.b[prop]);
+    if (!isFinite(av)) av = def;
+    if (!isFinite(bv)) bv = def;
+    return av + (bv - av) / 2;
+  }
+  __mcKeys.push({
+    at: Math.round((mcTime(best.a.at, 0, 0, 100) + mcTime(best.b.at, 0, 0, 100)) / 2),
+    ty: mix("ty", 0),
+    scale: mix("scale", 1),
+    rot: mix("rot", 0),
+    opacity: mix("opacity", 1),
+    bg: best.a.bg || ""
+  });
+  renderMotionComposer();
+  mcPreview();
+  setMcStatus("Keyframe added.");
+}
+function mcRemoveKeyframe() {
+  if (__mcKeys.length <= 2) { setMcStatus("Keep at least two keyframes."); return; }
+  __mcKeys.pop();
+  renderMotionComposer();
+  mcPreview();
+  setMcStatus("Keyframe removed.");
+}
+function mcWriteCss(name, block) {
+  var key = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var re = new RegExp("\\n?/\\* sui-motion:" + key + " \\*/[\\s\\S]*?/\\* /sui-motion:" + key + " \\*/");
+  var css = String(root.css || "");
+  if (re.test(css)) css = css.replace(re, "\n" + block);
+  else css = (css.trim() ? css.trim() + "\n" : "") + block;
+  root.css = css.trim() + "\n";
+}
+function mcWriteShapeCss(name, block) {
+  var key = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var re = new RegExp("\\n?/\\* sui-motion-shape:" + key + " \\*/[\\s\\S]*?/\\* /sui-motion-shape:" + key + " \\*/");
+  var css = String(root.css || "");
+  if (re.test(css)) css = css.replace(re, "\n" + block);
+  else css = (css.trim() ? css.trim() + "\n" : "") + block;
+  root.css = css.trim() + "\n";
+}
+function mcCopy() {
+  var name = mcSafeName() || "motion";
+  var text = mcCssBlock(name);
+  function done(ok) {
+    setMcStatus(ok ? "CSS copied to the clipboard." : "Copy failed; select the text in root.css instead.");
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); });
+    return;
+  }
+  done(false);
+}
+function mcInsert() {
+  var name = mcValidName();
+  if (!name) return;
+  var shapeBlock = mcShapeBlock(name);
+  var motionBlock = mcMotionBlock(name);
+  var kindEl = document.getElementById("mc-kind");
+  var kind = kindEl ? String(kindEl.value) : "button";
+  var allowed = ["button", "card", "div", "badge"];
+  if (allowed.indexOf(kind) < 0) kind = "button";
+  var textEl = document.getElementById("mc-text");
+  var label = textEl ? String(textEl.value || "") : "";
+  if (!label) label = "Animated";
+  var into = selPath ? byPath(selPath, root.children) : null;
+  if (into && !canNest(into.kind)) into = null;
+  var intoPath = into ? selPath.slice() : null;
+  withUndo(function(){
+    mcWriteShapeCss(name, shapeBlock);
+    mcWriteCss(name, motionBlock);
+    var node = newNodeForKind(kind);
+    node.class = name;
+    node.text = label;
+    if (into) {
+      into.children = into.children || [];
+      into.children.push(node);
+      selPath = intoPath.concat([into.children.length - 1]);
+    } else {
+      root.children.push(node);
+      selPath = [root.children.length - 1];
+    }
+    multiSel = [];
+  }, "motion " + name);
+  scheduleCssSync();
+  setMcStatus("Inserted ." + name + " and its keyframes into root.css.");
+  mcPreview();
+}
+function mcApply() {
+  var name = mcValidName();
+  if (!name) return;
+  var paths = selectedPaths();
+  if (!paths.length) {
+    setMcStatus("Select one or more elements first, or use Insert control.");
+    return;
+  }
+  var cls = name + "-motion";
+  var block = mcMotionBlock(name);
+  withUndo(function(){
+    mcWriteCss(name, block);
+    paths.forEach(function(p){
+      var n = byPath(p, root.children);
+      if (!n) return;
+      var cs = String(n.class || "").trim().split(/\s+/).filter(Boolean);
+      if (cs.indexOf(cls) < 0) cs.push(cls);
+      n.class = cs.join(" ");
+    });
+  }, "motion " + cls);
+  scheduleCssSync();
+  setMcStatus("Applied ." + cls + " to " + paths.length + " element(s); the shape is untouched.");
+  mcPreview();
+}
+document.addEventListener("keydown", function(ev){
+  if (ev.key !== "Escape") return;
+  var m = document.getElementById("motion-composer");
+  if (m && m.classList.contains("on")) { ev.preventDefault(); closeMotionComposer(); }
+});
+document.addEventListener("click", function(ev){
+  var m = document.getElementById("motion-composer");
+  if (m && ev.target === m) closeMotionComposer();
+});
+
 // Length-ish values accept px/em/%/... units; a bare number means px. Props
 // where a unitless value is meaningful (line-height, shorthand border) are left
 // untouched.
@@ -20072,6 +20483,11 @@ function renderInsertMenu() {
   assetsItem.textContent = 'Image assets\u2026';
   assetsItem.onclick = function(){ closeMenus(); openAssets(); };
   drop.appendChild(assetsItem);
+  var motionItem = document.createElement('div');
+  motionItem.className = 'mi';
+  motionItem.textContent = 'Motion composer\u2026';
+  motionItem.onclick = function(){ closeMenus(); openMotionComposer(); };
+  drop.appendChild(motionItem);
   var assetsSep = document.createElement('div');
   assetsSep.className = 'dropsep';
   drop.appendChild(assetsSep);

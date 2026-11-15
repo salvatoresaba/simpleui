@@ -805,6 +805,52 @@ Uploads are session-scoped: they are not written to disk, and the data URL is
 embedded directly in the SUI source when you apply it. Use a local relative path
 instead of an asset when you want the file to live next to the project.
 
+## Motion composer
+
+**Insert → Motion composer…** opens a small editor for drawing a control and its
+keyframes without touching CSS by hand.
+
+| Area | What you can set |
+|---|---|
+| Shape | width, height, border radius, background, text colour, font size |
+| Motion | duration, easing (including a spring cubic-bezier), delay, repeat count |
+| Keyframes | start time, vertical offset, scale, rotation, opacity, per-frame background |
+| Preview | live shape and animation, **Play**, **Stop** |
+
+The stage updates while you type. **Add keyframe** inserts a frame in the widest
+gap and interpolates its values, **Remove last** deletes it; a motion always keeps
+at least two frames.
+
+Two insertion modes keep the operation explicit and safe:
+
+| Action | Result |
+|---|---|
+| Insert control | Adds a new button, card, box or badge with class `.name` and its animation |
+| Apply to selection | Adds only `.name-motion` to the selected elements, leaving their shape untouched |
+
+Both write managed blocks into `root.css`. Inserting a control writes the shape
+and the motion:
+
+```css
+/* sui-motion-shape:pulse-card */
+.pulse-card { ...shape...; animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+/* /sui-motion-shape:pulse-card */
+/* sui-motion:pulse-card */
+.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+@keyframes sui-motion-pulse-card { ... }
+/* /sui-motion:pulse-card */
+```
+
+Apply to selection writes only the second block, so an existing control keeps its
+own size and colours.
+
+Inserting the same class name again replaces that block instead of duplicating
+it, so you can keep tuning the shape and press **Insert control** again.
+**Copy CSS** copies the same block for use elsewhere. Class names must match
+`^[A-Za-z_][A-Za-z0-9_-]*$`; numbers are clamped and colours must be hex, so the
+composer cannot write arbitrary CSS. The keyframes are compiled into the
+project: the runtime never injects styles.
+
 ## Designer drag and drop
 
 The designer's own drag and drop is always enabled. There is no setting,
