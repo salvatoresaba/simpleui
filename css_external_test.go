@@ -12,6 +12,7 @@ func TestCSSExternalReferenceValidation(t *testing.T) {
 		".a { background: url(\"../assets/a.png\"); }",
 		".a { background: url(#gradient); }",
 		".a { background: url(data:image/png;base64,AAAA); }",
+		".a { background-image: image-set(\"data:image/png;base64,AAAA\" 1x); }",
 		".a { content: \"url(https://example.invalid/x)\"; }",
 		".a { content: \"@import\"; }",
 		"/* @import url(https://example.invalid/x.css); */ .a { color: red; }",
@@ -22,15 +23,16 @@ func TestCSSExternalReferenceValidation(t *testing.T) {
 		}
 	}
 	invalid := map[string]string{
-		".a { background: url(https://example.invalid/x.png); }":    "external URL",
-		".a { background: url('HTTP://example.invalid/x.png'); }":   "external URL",
-		".a { background: url(//example.invalid/x.png); }":          "external URL",
-		".a { background: url(file:///etc/passwd); }":               "external URL",
-		".a { background: url(h\\74tps://example.invalid/x); }":     "external URL",
-		"@import url(/local.css);":                                  "@import",
-		"@import \"https://example.invalid/x.css\";":                "@import",
-		"@\\69mport \"https://example.invalid/x.css\";":             "@import",
-		".a { background: u\\72l(https://example.invalid/x.png); }": "external URL",
+		".a { background: url(https://example.invalid/x.png); }":                    "external URL",
+		".a { background: url('HTTP://example.invalid/x.png'); }":                   "external URL",
+		".a { background: url(//example.invalid/x.png); }":                          "external URL",
+		".a { background: url(file:///etc/passwd); }":                               "external URL",
+		".a { background: url(h\\74tps://example.invalid/x); }":                     "external URL",
+		"@import url(/local.css);":                                                  "@import",
+		"@import \"https://example.invalid/x.css\";":                                "@import",
+		"@\\69mport \"https://example.invalid/x.css\";":                             "@import",
+		".a { background: u\\72l(https://example.invalid/x.png); }":                 "external URL",
+		".a { background-image: image-set(\"https://example.invalid/x.png\" 1x); }": "external URL",
 	}
 	for css, want := range invalid {
 		msg := cssExternalReferenceError(css)

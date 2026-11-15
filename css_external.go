@@ -42,7 +42,63 @@ func cssExternalReferenceError(css string) string {
 		}
 		i = end
 	}
+	if msg := cssImageSetExternalError(clean); msg != "" {
+		return msg
+	}
 	return ""
+}
+
+// cssImageSetExternalError covers image-set("https://...") notation, where the
+// URL is a string rather than a url(...) token.
+func cssImageSetExternalError(src string) string {
+	lower := strings.ToLower(src)
+	from := 0
+	for {
+		idx := strings.Index(lower[from:], "image-set(")
+		if idx < 0 {
+			return ""
+		}
+		start := from + idx + len("image-set(")
+		end, ok := cssMatchingParen(src, start)
+		if !ok {
+			return ""
+		}
+		arg := src[start:end]
+		for i := 0; i < len(arg); i++ {
+			if arg[i] != '"' && arg[i] != '\'' {
+				continue
+			}
+			close := skipCssString(arg, i)
+			if close <= i {
+				break
+			}
+			value := strings.TrimSpace(cssUnescape(arg[i+1 : close]))
+			if cssURLIsExternal(value) {
+				return fmt.Sprintf("CSS external URL %q is not allowed (use a data URI or a local relative asset)", value)
+			}
+			i = close
+		}
+		from = end + 1
+	}
+}
+
+func cssMatchingParen(src string, start int) (int, bool) {
+	depth := 0
+	for i := start; i < len(src); i++ {
+		if src[i] == '"' || src[i] == '\'' {
+			i = skipCssString(src, i)
+			continue
+		}
+		if src[i] == '(' {
+			depth++
+		} else if src[i] == ')' {
+			if depth == 0 {
+				return i, true
+			}
+			depth--
+		}
+	}
+	return 0, false
 }
 
 func cssIdentByte(c byte) bool {
