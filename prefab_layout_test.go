@@ -182,7 +182,7 @@ func TestSplitterRender(t *testing.T) {
 		`data-sui-splitter`,
 		`data-sui-splitter-direction="vertical"`,
 		`data-sui-splitter-min="90px"`,
-		`class="sui-split-pane" style="flex-basis:40%"`,
+		`class="sui-split-pane" style="flex:0 0 40%"`,
 		`class="sui-split-bar" role="separator" tabindex="0" aria-orientation="horizontal"`,
 		`Top`,
 		`Bottom`,

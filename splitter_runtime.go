@@ -31,7 +31,7 @@ const suiSplitterRuntime = `(function(){
     var minPct = limit > 0 ? (limit / available) * 100 : 0;
     var maxPct = 100 - minPct;
     pct = Math.max(minPct, Math.min(maxPct, pct));
-    first.style.flexBasis = pct + '%';
+    first.style.flex = '0 0 ' + pct + '%';
   }
   function beginDrag(split, bar, ev) {
     var first = panes(split)[0];

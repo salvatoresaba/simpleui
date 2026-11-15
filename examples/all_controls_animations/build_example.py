@@ -28,9 +28,13 @@ css = """
 .sui-progress.demo-progress-aurora::-moz-progress-bar { animation: kf-progress-aurora 7s linear infinite; }
 .sui-progress.demo-progress-indeterminate::-webkit-progress-value { background: linear-gradient(90deg, transparent 12%, #4c5cf7 42%, #6366f1 58%, transparent 88%); background-size: 200% 100%; animation: kf-progress-scan 1.25s ease-in-out infinite; }
 .sui-progress.demo-progress-indeterminate::-moz-progress-bar { background: linear-gradient(90deg, transparent 12%, #4c5cf7 42%, #6366f1 58%, transparent 88%); background-size: 200% 100%; animation: kf-progress-scan 1.25s ease-in-out infinite; }
-.sui-spinner.demo-spinner-orbit { animation: kf-spinner-orbit 1s linear infinite; }
-.sui-spinner.demo-spinner-reverse { animation: kf-spinner-reverse 1.1s linear infinite; }
-.sui-spinner.demo-spinner-wobble { animation: kf-spinner-wobble 1.4s ease-in-out infinite; }
+.sui-spinner.demo-spin-ring { border-color: rgba(76,92,247,.22); border-top-color: #4c5cf7; border-bottom-color: transparent; animation: kf-spin 1s linear infinite; }
+.sui-spinner.demo-spin-dots { width: 30px; height: 30px; border: 0; border-radius: 50%; background: radial-gradient(circle at 50% 8%, #4c5cf7 3.5px, transparent 4px), radial-gradient(circle at 88% 78%, #6366f1 3.5px, transparent 4px), radial-gradient(circle at 12% 78%, #22d3ee 3.5px, transparent 4px); animation: kf-spin 1.3s linear infinite; }
+.sui-spinner.demo-spin-bars { width: 28px; height: 24px; border: 0; border-radius: 0; background: linear-gradient(#4c5cf7, #4c5cf7) 0 100%/5px 50% no-repeat, linear-gradient(#6366f1, #6366f1) 50% 100%/5px 80% no-repeat, linear-gradient(#22d3ee, #22d3ee) 100% 100%/5px 40% no-repeat; animation: kf-bars 1s ease-in-out infinite alternate; }
+.sui-spinner.demo-spin-orbit { border: 2px solid rgba(76,92,247,.25); border-top-color: transparent; border-bottom-color: transparent; background: transparent; position: relative; animation: kf-spin 1.6s linear infinite; }
+.sui-spinner.demo-spin-orbit::before { content: ""; position: absolute; top: -3px; left: 50%; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #4c5cf7; box-shadow: 0 0 8px #4c5cf7; }
+.sui-spinner.demo-spin-comet { border: 0; background: conic-gradient(from 0deg, transparent 0 55%, #22d3ee 78%, #4c5cf7 100%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px)); mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px)); animation: kf-spin .9s linear infinite; }
+.sui-spinner.demo-spin-pulse { border: 0; background: #4c5cf7; animation: kf-pulse 1.4s ease-out infinite; }
 .demo-badge-ping { animation: kf-badge-ping 1.8s ease-out infinite; }
 .demo-badge-pop { animation: kf-badge-pop .42s cubic-bezier(.2,1.4,.4,1); }
 .demo-badge-tilt { animation: kf-badge-tilt 2.6s ease-in-out infinite; }
@@ -52,9 +56,9 @@ css = """
 @keyframes kf-progress-wave { 0%, 100% { background-position: 0 0; } 50% { background-position: 0 100%; } }
 @keyframes kf-progress-aurora { to { filter: hue-rotate(360deg); } }
 @keyframes kf-progress-scan { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
-@keyframes kf-spinner-orbit { 0% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(180deg) translateX(3px); } 100% { transform: rotate(360deg) translateX(0); } }
-@keyframes kf-spinner-reverse { to { transform: rotate(-360deg); } }
-@keyframes kf-spinner-wobble { 0%, 100% { transform: rotate(-14deg) scale(.94); } 50% { transform: rotate(14deg) scale(1.06); } }
+@keyframes kf-spin { to { transform: rotate(360deg); } }
+@keyframes kf-bars { 0% { background-size: 5px 35%, 5px 70%, 5px 45%; } 100% { background-size: 5px 85%, 5px 30%, 5px 65%; } }
+@keyframes kf-pulse { 0% { transform: scale(.55); box-shadow: 0 0 0 0 rgba(76,92,247,.55), 0 0 0 0 rgba(76,92,247,.3); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(76,92,247,0), 0 0 0 18px rgba(76,92,247,0); } 100% { transform: scale(.55); box-shadow: 0 0 0 0 rgba(76,92,247,0), 0 0 0 0 rgba(76,92,247,0); } }
 @keyframes kf-badge-ping { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.6); } 70%, 100% { box-shadow: 0 0 0 8px rgba(74,222,128,0); } }
 @keyframes kf-badge-pop { 0% { opacity: 0; scale: .6; } 65% { opacity: 1; scale: 1.1; } 100% { opacity: 1; scale: 1; } }
 @keyframes kf-badge-tilt { 0%, 100% { rotate: -3deg; } 50% { rotate: 3deg; } }
@@ -78,7 +82,7 @@ css = """
   .demo-alert-breathe, .demo-alert-wobble, .demo-alert-flash,
   .demo-card-halo, .demo-card-drift,
   .demo-button-jelly, .demo-button-bounce, .demo-button-ring,
-  .sui-spinner.demo-spinner-orbit, .sui-spinner.demo-spinner-reverse, .sui-spinner.demo-spinner-wobble,
+  .sui-spinner.demo-spin-ring, .sui-spinner.demo-spin-dots, .sui-spinner.demo-spin-bars, .sui-spinner.demo-spin-orbit, .sui-spinner.demo-spin-comet, .sui-spinner.demo-spin-pulse,
   .sui-input.demo-input-glow:focus { animation: none !important; }
   .sui-progress.demo-progress-wave::-webkit-progress-value, .sui-progress.demo-progress-wave::-moz-progress-bar,
   .sui-progress.demo-progress-aurora::-webkit-progress-value, .sui-progress.demo-progress-aurora::-moz-progress-bar,
@@ -109,8 +113,12 @@ state t1 = true
 state t2 = false
 state r1 = true
 state sw1 = true
+state tLab = true
+state rLab = true
+state swLab = true
+state plan = "a"
 state pAnim = "demo-progress-wave"
-state sAnim = "demo-spinner-orbit"
+state sAnim = "demo-spin-ring"
 state bAnim = "demo-badge-ping"
 state aAnim = "demo-alert-breathe"
 state cAnim = "demo-card-halo"
@@ -198,6 +206,18 @@ fn noop() -> null {
 	return null
 }
 
+fn pickPlanA() -> null {
+	plan = "a"
+}
+
+fn pickPlanB() -> null {
+	plan = "b"
+}
+
+fn pickPlanC() -> null {
+	plan = "c"
+}
+
 css "__CSS__"
 
 view main {
@@ -223,10 +243,13 @@ view main {
 				div class: "lab-preview" {
 					spinner class: sAnim
 				}
-				select "Effect" value: sAnim {
-					option "Orbit" value: "demo-spinner-orbit"
-					option "Reverse" value: "demo-spinner-reverse"
-					option "Wobble" value: "demo-spinner-wobble"
+				select "Shape" value: sAnim {
+					option "Ring" value: "demo-spin-ring"
+					option "Dots" value: "demo-spin-dots"
+					option "Bars" value: "demo-spin-bars"
+					option "Orbit" value: "demo-spin-orbit"
+					option "Comet" value: "demo-spin-comet"
+					option "Pulse" value: "demo-spin-pulse"
 					option "None" value: "demo-none-spinner"
 				}
 			}
@@ -370,7 +393,7 @@ view main {
 			card class: "lab-card" {
 				h3 "Checkbox (runtime)"
 				div class: "lab-preview" {
-					checkbox "Accept terms" checked: t1 animation: chkAnim duration: "280ms"
+					checkbox "Accept terms" checked: tLab animation: chkAnim duration: "280ms"
 				}
 				select "Effect" value: chkAnim {
 					option "Scale" value: "scale"
@@ -383,7 +406,7 @@ view main {
 			card class: "lab-card" {
 				h3 "Switch (runtime)"
 				div class: "lab-preview" {
-					switch "Enabled" checked: sw1 animation: swAnim duration: "300ms"
+					switch "Enabled" checked: swLab animation: swAnim duration: "300ms"
 				}
 				select "Effect" value: swAnim {
 					option "Morph" value: "morph"
@@ -396,7 +419,7 @@ view main {
 			card class: "lab-card" {
 				h3 "Radio (runtime)"
 				div class: "lab-preview" {
-					radio "Option A" checked: r1 animation: rdAnim duration: "260ms"
+					radio "Option A" checked: rLab animation: rdAnim duration: "260ms"
 				}
 				select "Effect" value: rdAnim {
 					option "Slide" value: "slide"
@@ -416,7 +439,7 @@ view main {
 			card {
 				h3 "Spinner"
 				row {
-					spinner class: "demo-spinner-orbit"
+					spinner class: "demo-spin-ring"
 					p "Loading" class: "all-note"
 				}
 			}
@@ -473,7 +496,9 @@ view main {
 				h3 "Toggles"
 				checkbox "Checked" checked: t1
 				checkbox "Unchecked" checked: t2
-				radio "Selected" checked: r1
+				radio "Free" name: "plan" checked: plan == "a" onChange: pickPlanA
+				radio "Pro" name: "plan" checked: plan == "b" onChange: pickPlanB
+				radio "Team" name: "plan" checked: plan == "c" onChange: pickPlanC
 				switch "Enabled" checked: sw1
 			}
 			card {

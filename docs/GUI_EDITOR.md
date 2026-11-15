@@ -587,6 +587,9 @@ ships a `prefers-reduced-motion` guard: when the operating system asks for
 reduced motion, decorative animations stop or the spinner slows down, while the
 control keeps its colours and layout.
 
+Spinner presets now include real shape changes: **Tri dots**, **Equalizer** and
+**Comet** in addition to the ring variants.
+
 Presets that showcase the new effects: **Aurora** and **Scanner** for Progress,
 **Live** for Badge, **Arcade** for Button and **Aurora halo** for Card. The
 **Style** selector still writes palette and shape together, so choosing a preset

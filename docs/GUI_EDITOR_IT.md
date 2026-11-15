@@ -613,6 +613,9 @@ effetto in loop o di ingresso include anche una guardia
 le animazioni decorative si fermano o lo spinner rallenta, mentre colori e
 layout del controllo restano invariati.
 
+I preset dello spinner ora cambiano davvero forma: **Tri dots**, **Equalizer** e
+**Comet** oltre alle varianti ad anello.
+
 I preset che mostrano i nuovi effetti sono **Aurora** e **Scanner** per Progress,
 **Live** per Badge, **Arcade** per Button e **Aurora halo** per Card. Il selettore
 **Style** continua a scrivere palette e forma insieme, quindi scegliere un preset

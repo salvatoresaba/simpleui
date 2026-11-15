@@ -177,7 +177,11 @@ func TestJsgenWsInputBinding(t *testing.T) {
 	jsContains(js, "value=\"${__sui_esc(msg)}\"", t)
 	jsContains(js, "placeholder=\"Type here\"", t)
 	jsContains(js, "setMsg(ev.target.value);", t)
-	jsContains(js, "__sui_bindView(\"msg\", \"main\");", t)
+	// value: is a write-only binding when the state is not read elsewhere, so
+	// the view is not rebound and typing does not re-render it.
+	if strings.Contains(js, "__sui_bindView(\"msg\", \"main\");") {
+		t.Errorf("input value binding must not rebind the view")
+	}
 	jsBalanced(js, t)
 }
 
@@ -364,4 +368,28 @@ func TestJsgenRangeLoop(t *testing.T) {
 	jsContains(js, "let acc = 0;", t)
 	jsContains(js, "acc = (acc + i);", t)
 	jsBalanced(js, t)
+}
+
+func TestBindingOnlyValueDoesNotRebindView(t *testing.T) {
+	src := "state q = \"x\"\nview main {\n\tinput \"Q\" value: q\n}\n"
+	prog, dl := ParseSource(src, "bind.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %v", dl.Count())
+	}
+	js := GenerateJs(prog)
+	if strings.Contains(js, `__sui_bindView("q"`) {
+		t.Errorf("write-only value binding must not bind the view:\n%v", js)
+	}
+}
+
+func TestReadStateStillRebindsView(t *testing.T) {
+	src := "state q = \"x\"\nview main {\n\tinput \"Q\" value: q\n\tp \"Value: {q}\"\n}\n"
+	prog, dl := ParseSource(src, "bind.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %v", dl.Count())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, `__sui_bindView("q"`) {
+		t.Errorf("state read by the view must bind it:\n%v", js)
+	}
 }

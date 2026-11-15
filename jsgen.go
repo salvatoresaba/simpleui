@@ -5098,7 +5098,7 @@ func splitterElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	for i := 0; i < len(panes); i++ {
 		style := ""
 		if i == 0 {
-			style = " style=\"flex-basis:" + htmlEscape(initial) + "\""
+			style = " style=\"flex:0 0 " + htmlEscape(initial) + "\""
 		}
 		sb.WriteString("<div class=\"sui-split-pane\"" + style + ">` + (")
 		sb.WriteString(viewNodesJs(childPtrs(panes[i].children), g, ctx))
@@ -6052,12 +6052,53 @@ func addElemRefs(e *Element, g *ViewGen) {
 	addPartsRefs(e.text, g)
 	for i := 0; i < len(e.attrs); i++ {
 		a := e.attrs[i]
+		// value:/checked: on a form control is a write-only binding: the
+		// control updates itself and the state setter runs, so the view does
+		// not need to be re-bound to that state. Skipping the ref avoids a
+		// full re-render (and the resulting jank/flicker) on every keystroke
+		// or drag threshold. If the state is read anywhere else, that read
+		// still binds the view.
+		if bindingOnlyAttr(e, &a) {
+			continue
+		}
 		addPartsRefs(a.text, g)
 		if a.hasExpr {
 			addExprRefs(a.expr, g)
 		}
 	}
 	addNodesRefs(e.children, g)
+}
+
+// bindingOnlyAttr reports whether a is an automatic form binding whose only
+// effect is to write state from the control (the control already shows the
+// value, and an explicit handler is absent).
+func bindingOnlyAttr(e *Element, a *Attr) bool {
+	if e == nil || a == nil || !a.hasExpr || a.expr == nil || a.expr.kind != "ident" {
+		return false
+	}
+	if a.key == "value" {
+		switch e.tag {
+		case "input", "textarea", "select", "number", "slider", "datepicker", "combobox", "tree":
+		default:
+			return false
+		}
+		if h := findAttr(e, "onInput"); h != nil && h.hasExpr && h.expr != nil {
+			return false
+		}
+		return true
+	}
+	if a.key == "checked" {
+		switch e.tag {
+		case "checkbox", "switch", "radio":
+		default:
+			return false
+		}
+		if h := findAttr(e, "onChange"); h != nil && h.hasExpr && h.expr != nil {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func viewBindings(states []string, viewName string, g *ViewGen) string {

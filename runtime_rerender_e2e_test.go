@@ -21,13 +21,15 @@ func TestRuntimeRerenderPreservesStateE2E(t *testing.T) {
 	}
 	const source = `state name = "Ada"
 state pick = "b"
+state volume = 40
+state day = "2026-11-15"
 state open = false
 
 fn toggleOpen() -> null {
 	open = open == true ? false : true
 }
 
-css ".tall \{ height: 2200px; \}"
+css ".tall \{ height: 2200px; \} .split \{ height: 120px; \}"
 
 view main {
 	col {
@@ -38,6 +40,19 @@ view main {
 			option "C" value: "c"
 		}
 		img src: "pixel.png" alt: "pixel"
+		p "Name: {name}"
+		slider "Volume" value: volume min: 0 max: 100
+		datepicker "Day" mode: "date" value: day
+		radio "One" name: "demo-group" checked: true
+		radio "Two" name: "demo-group"
+		splitter direction: "horizontal" initial: "40%" min: "40px" class: "split" {
+			pane {
+				p "Left"
+			}
+			pane {
+				p "Right"
+			}
+		}
 		div class: "tall" {
 			p "Tall content"
 		}
@@ -136,11 +151,12 @@ window.addEventListener('error', function (e) {
     if (imgAfter !== img) throw new Error('image node was replaced');
     if (!imgAfter.naturalWidth) throw new Error('image lost its loaded state');
 
-    select.value = 'c';
-    select.dispatchEvent(new Event('input', { bubbles: true }));
+    var selectLive = document.querySelector('.sui-select');
+    selectLive.value = 'c';
+    selectLive.dispatchEvent(new Event('input', { bubbles: true }));
     await wait(150);
     var selectAfter = document.querySelector('.sui-select');
-    if (selectAfter.value !== 'c') throw new Error('select value not reflected after re-render: ' + selectAfter.value);
+    if (selectAfter.value !== 'c') throw new Error('select value changed unexpectedly: ' + selectAfter.value);
 
     window.scrollTo(0, document.documentElement.scrollHeight - 600);
     await wait(80);
@@ -154,6 +170,41 @@ window.addEventListener('error', function (e) {
     if (imgAfter2 !== img) throw new Error('image node replaced after button update');
     if (Math.abs(window.scrollY - scrollBefore) > 4) throw new Error('scroll position changed: ' + window.scrollY + ' vs ' + scrollBefore);
     if (document.body.innerText.indexOf('Panel open') < 0) throw new Error('conditional content did not update');
+    if (document.body.innerText.indexOf('Name: Ada Lovelace') < 0) throw new Error('bound text did not update with the input value');
+
+    // A control whose state is not read anywhere else must not re-render the
+    // view: the slider keeps its native drag smooth and the date picker keeps
+    // its internal DOM (and popup) intact.
+    var marker = document.querySelector('.tall');
+    var picker = document.querySelector('.sui-datepicker');
+    var slider = document.querySelector('.sui-slider');
+    if (!marker || !picker || !slider) throw new Error('slider or datepicker missing');
+    slider.value = '72';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+    await wait(120);
+    if (document.querySelector('.tall') !== marker) throw new Error('view re-rendered on slider input');
+    if (document.querySelector('.sui-datepicker') !== picker) throw new Error('date picker was re-created on slider input');
+
+    // Radio groups: radios with the same name are exclusive.
+    var radios = Array.prototype.slice.call(document.querySelectorAll('input[type=radio]'));
+    if (radios.length < 2) throw new Error('radio group missing');
+    radios[1].click();
+    await wait(80);
+    if (radios[0].checked || !radios[1].checked) throw new Error('radio group is not exclusive');
+
+    // Splitter: the bar follows the pointer one-to-one.
+    var split = document.querySelector('.sui-splitter');
+    var bar = split ? split.querySelector('.sui-split-bar') : null;
+    if (!bar) throw new Error('splitter bar missing');
+    bar.scrollIntoView({ block: 'center' });
+    await wait(60);
+    var br = bar.getBoundingClientRect();
+    bar.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: br.left + 2, clientY: br.top + 10, pointerId: 11, pointerType: 'mouse', isPrimary: true }));
+    var barBefore = bar.getBoundingClientRect().left;
+    window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: br.left + 52, clientY: br.top + 10, pointerId: 11, pointerType: 'mouse', isPrimary: true }));
+    var barMoved = bar.getBoundingClientRect().left - barBefore;
+    window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: br.left + 52, clientY: br.top + 10, pointerId: 11, pointerType: 'mouse', isPrimary: true }));
+    if (Math.abs(barMoved - 50) > 8) throw new Error('splitter did not follow the pointer: moved ' + barMoved + ' for 50');
 
     result(true);
   } catch (e) {
