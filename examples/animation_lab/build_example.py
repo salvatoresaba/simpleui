@@ -94,7 +94,7 @@ switch_shapes = [("Default", "default"), ("Rounded", "rounded"), ("Square", "squ
 radio_shapes = [("Default", "default"), ("Compact", "compact"), ("Large", "large"), ("Soft", "soft"), ("Minimal", "minimal")]
 toggle_themes = [("Default", "default"), ("Accent", "accent"), ("Success", "success"), ("Warning", "warning"),
                  ("Danger", "danger"), ("Mono", "mono"), ("Dark", "dark"), ("Light", "light")]
-toggle_anims = [("Scale", "scale"), ("Morph", "morph"), ("Fade", "fade"), ("Slide", "slide"), ("None", "none")]
+toggle_anims = [("Auto", "auto"), ("Scale", "scale"), ("Morph", "morph"), ("Fade", "fade"), ("Slide", "slide"), ("None", "none")]
 
 overlay_styles = [("Classic", "lab-dd-classic"), ("Pill", "lab-dd-pill"), ("Neon", "lab-dd-neon"), ("Brutalist", "lab-dd-brutalist")]
 overlay_anims = [("Slide", "slide"), ("Fade", "fade"), ("Scale", "scale"), ("None", "none")]

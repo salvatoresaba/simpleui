@@ -614,6 +614,7 @@ view main {
           					option "Light" value: "light"
           }
           select "Animation" value: chkAnim class: "lab-wide" {
+          					option "Auto" value: "auto"
           					option "Scale" value: "scale"
           					option "Morph" value: "morph"
           					option "Fade" value: "fade"
@@ -651,6 +652,7 @@ view main {
           					option "Light" value: "light"
           }
           select "Animation" value: swAnim class: "lab-wide" {
+          					option "Auto" value: "auto"
           					option "Scale" value: "scale"
           					option "Morph" value: "morph"
           					option "Fade" value: "fade"
@@ -685,6 +687,7 @@ view main {
           					option "Light" value: "light"
           }
           select "Animation" value: rdAnim class: "lab-wide" {
+          					option "Auto" value: "auto"
           					option "Scale" value: "scale"
           					option "Morph" value: "morph"
           					option "Fade" value: "fade"

@@ -19,9 +19,9 @@ animatable controls.
 | Button | Solid, Gradient, Outline, Ghost, Neon, 3D, Pill, Brutalist | Pulse, Float, Glow, Jelly, Bounce, Tilt, Ring, Sheen, Press, None |
 | Tabs | Underline, Pills, Segmented, Boxed, Brutalist, Neon | Pop, Slide, Glow, Sweep, None |
 | Input | Outline, Filled, Underline, Pill, Glass, Brutalist | Focus ring, Focus glow, Focus lift, Focus shake, None |
-| Checkbox | 7 shapes | Scale, Morph, Fade, Slide, None |
-| Switch | 8 shapes | Scale, Morph, Fade, Slide, None |
-| Radio | 5 shapes | Scale, Morph, Fade, Slide, None |
+| Checkbox | 7 shapes | Auto, Scale, Morph, Fade, Slide, None |
+| Switch | 8 shapes | Auto, Scale, Morph, Fade, Slide, None |
+| Radio | 5 shapes | Auto, Scale, Morph, Fade, Slide, None |
 | Dropdown | Classic, Pill, Neon, Brutalist | Slide, Fade, Scale, None |
 | Popover | Card, Glass, Neon, Brutalist | Slide, Fade, Scale, None |
 | Combobox | Classic, Pill, Neon, Brutalist | Slide, Fade, Scale, None |
@@ -651,6 +651,7 @@ view main {
           					option "Light" value: "light"
           }
           select "Animation" value: chkAnim class: "lab-wide" {
+          					option "Auto" value: "auto"
           					option "Scale" value: "scale"
           					option "Morph" value: "morph"
           					option "Fade" value: "fade"
@@ -688,6 +689,7 @@ view main {
           					option "Light" value: "light"
           }
           select "Animation" value: swAnim class: "lab-wide" {
+          					option "Auto" value: "auto"
           					option "Scale" value: "scale"
           					option "Morph" value: "morph"
           					option "Fade" value: "fade"
@@ -722,6 +724,7 @@ view main {
           					option "Light" value: "light"
           }
           select "Animation" value: rdAnim class: "lab-wide" {
+          					option "Auto" value: "auto"
           					option "Scale" value: "scale"
           					option "Morph" value: "morph"
           					option "Fade" value: "fade"
