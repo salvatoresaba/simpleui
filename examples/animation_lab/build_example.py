@@ -106,7 +106,7 @@ toggle_themes = [("Default", "default"), ("Accent", "accent"), ("Success", "succ
                  ("Danger", "danger"), ("Mono", "mono"), ("Dark", "dark"), ("Light", "light")]
 toggle_anims = [("Auto", "auto"), ("Scale", "scale"), ("Morph", "morph"), ("Fade", "fade"), ("Slide", "slide"), ("None", "none")]
 
-overlay_styles = [("Classic", "lab-dd-classic"), ("Pill", "lab-dd-pill"), ("Neon", "lab-dd-neon"), ("Brutalist", "lab-dd-brutalist")]
+overlay_styles = [("Classic", "lab-dd-classic"), ("Pill", "lab-dd-pill"), ("Neon", "lab-dd-neon"), ("Brutalist", "lab-dd-brutalist"), ("Glass", "lab-dd-glass"), ("Outline", "lab-dd-outline")]
 overlay_anims = [("Slide", "slide"), ("Fade", "fade"), ("Scale", "scale"), ("None", "none")]
 
 cards = []
@@ -166,7 +166,12 @@ cards.append(card("Dropdown", 'dropdown "Open menu" class: ddStyle + " " + ddIte
                    field("Item highlight", "ddItem", [("Accent bar", "lab-items-bar"), ("Glow", "lab-items-glow"),
                                                       ("Aura", "lab-items-aura"), ("Gradient", "lab-items-gradient"),
                                                       ("Border", "lab-items-border"), ("Dot", "lab-items-dot"),
-                                                      ("Check mark", "lab-items-check"), ("None", "lab-items-none")], wide=True)],
+                                                      ("Check mark", "lab-items-check"),
+                                                      ("Bar + aura", "lab-items-bar lab-items-aura"),
+                                                      ("Bar + colour cloud", "lab-items-bar lab-items-cloud"),
+                                                      ("Bar + underline", "lab-items-bar lab-items-underline"),
+                                                      ("Bar + glow", "lab-items-bar lab-items-glow"),
+                                                      ("None", "lab-items-none")], wide=True)],
                   "Hover an item to see the selection highlight."))
 
 cards.append(card("Popover", 'popover "Open popover" class: popStyle animation: popAnim duration: "180ms" {\n  p "Anchored panel." class: "lab-note"\n}',

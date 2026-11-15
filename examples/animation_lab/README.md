@@ -22,7 +22,7 @@ animatable controls.
 | Checkbox | **Classic, Round, Tile, LED, Brutalist, Neon, Sweep fill** (plus 5 colour themes) | Auto, Scale, Morph, Fade, Slide, None |
 | Switch | 8 shapes | Auto, Scale, Morph, Fade, Slide, None |
 | Radio | 5 shapes | Auto, Scale, Morph, Fade, Slide, None |
-| Dropdown | Classic, Pill, Neon, Brutalist; **item highlight**: accent bar, glow, aura, gradient, border, dot, check mark, none | Slide, Fade, Scale, None |
+| Dropdown | Classic, Pill, Neon, Brutalist, Glass, Outline; **item highlight**: accent bar, glow, aura, gradient, border, dot, check mark, **bar + aura**, **bar + colour cloud**, **bar + underline**, **bar + glow**, none | Slide, Fade, Scale, None |
 | Popover | Card, Glass, Neon, Brutalist | Slide, Fade, Scale, None |
 | Combobox | Classic, Pill, Neon, Brutalist | Slide, Fade, Scale, None |
 | Command palette | - | Slide, Fade, Scale, None |
@@ -56,13 +56,31 @@ New shapes beyond the ring family:
   flips and the sand fills the other half.
 - **Drop fill**: a drop falls into a beaker and the beaker fills with a gradient.
 
-## Menu item highlights
+## Dropdown styles and item highlights
 
-The Dropdown card also chooses how an item is highlighted, not only how the
-panel opens: **accent bar** (slides in), **glow**, **aura** (pulsing radial
-light), **gradient** (sweeps across), **border**, **dot** (pops in) and
-**check mark** (scales in). They react to hover and keyboard focus, so mouse and
-keyboard selection look the same.
+A dropdown style applies to **both** the trigger button and the popup panel:
+Classic, Pill, Neon, Brutalist, Glass and Outline each define the button surface,
+the panel surface, the item text colour and the open/hover state, so the two
+parts always belong to the same graphic language.
+
+The item highlight is chosen separately and also supports combinations:
+
+| Highlight | Effect |
+|---|---|
+| Accent bar | a vertical accent bar grows on hover/focus |
+| Glow | border and outer glow |
+| Aura | pulsing radial light |
+| Gradient | a gradient sweeps across the item |
+| Border | an inset outline appears |
+| Dot | a dot pops in |
+| Check mark | a check scales in on the right |
+| **Bar + aura** | accent bar and pulsing light together |
+| **Bar + colour cloud** | accent bar over a radial colour cloud |
+| **Bar + underline** | the accent stretches into an underline under the item |
+| **Bar + glow** | accent bar with a glowing surface |
+
+They react to hover and keyboard focus, so mouse and keyboard selection look the
+same.
 
 ## Shape transitions
 
@@ -444,11 +462,41 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 @keyframes lab-focus-lift \{ 50% \{ translate: 0 -1px; \} \}
 @keyframes lab-focus-shake \{ 0%, 100% \{ translate: 0 0; \} 25% \{ translate: -2px 0; \} 75% \{ translate: 2px 0; \} \}
 
-/* ---------- Dropdown styles ---------- */
+/* ---------- Dropdown styles: trigger and panel stay coherent ---------- */
 .lab-dd-classic .sui-menu-button \{ background: #2d3340; color: #e6e6e6; border: 1px solid #3d4556; border-radius: 8px; \}
+.lab-dd-classic .sui-menu-popup \{ background: #1d2129; color: #e6e6e6; border: 1px solid #3d4556; border-radius: 8px; box-shadow: 0 18px 40px rgba(0,0,0,.45); \}
+.lab-dd-classic .sui-menu-button:hover, .lab-dd-classic .sui-menu-button:focus-visible, .lab-dd-classic.sui-menu.open > .sui-menu-button \{ background: #3a4356; color: #fff; \}
+.lab-dd-classic .sui-menuitem:hover, .lab-dd-classic .sui-menuitem:focus \{ background: #2a3143; color: #fff; \}
+
 .lab-dd-pill .sui-menu-button \{ background: #4c5cf7; color: #fff; border: 0; border-radius: 999px; padding: 7px 16px; \}
+.lab-dd-pill .sui-menu-popup \{ background: #111827; color: #e2e8f0; border: 1px solid #334155; border-radius: 16px; padding: 6px; box-shadow: 0 18px 40px rgba(0,0,0,.45); \}
+.lab-dd-pill .sui-menuitem \{ border-radius: 999px; color: #e2e8f0; \}
+.lab-dd-pill .sui-menu-button:hover, .lab-dd-pill .sui-menu-button:focus-visible, .lab-dd-pill.sui-menu.open > .sui-menu-button \{ background: #6366f1; color: #fff; \}
+.lab-dd-pill .sui-menuitem:hover, .lab-dd-pill .sui-menuitem:focus \{ background: #1e293b; color: #fff; \}
+
 .lab-dd-neon .sui-menu-button \{ background: #07131a; color: #22d3ee; border: 1px solid #22d3ee; border-radius: 8px; box-shadow: 0 0 12px rgba(34,211,238,.4); \}
+.lab-dd-neon .sui-menu-popup \{ background: #07131a; color: #a5f3fc; border: 1px solid #22d3ee; border-radius: 10px; box-shadow: 0 0 22px rgba(34,211,238,.35); \}
+.lab-dd-neon .sui-menuitem \{ color: #a5f3fc; \}
+.lab-dd-neon .sui-menu-button:hover, .lab-dd-neon .sui-menu-button:focus-visible, .lab-dd-neon.sui-menu.open > .sui-menu-button \{ background: #0b1f2a; color: #67e8f9; box-shadow: 0 0 18px rgba(34,211,238,.6); \}
+.lab-dd-neon .sui-menuitem:hover, .lab-dd-neon .sui-menuitem:focus \{ background: #0e7490; color: #ecfeff; \}
+
 .lab-dd-brutalist .sui-menu-button \{ background: #facc15; color: #111; border: 3px solid #111; border-radius: 0; box-shadow: 4px 4px 0 #111; font-weight: 700; \}
+.lab-dd-brutalist .sui-menu-popup \{ background: #facc15; color: #111; border: 3px solid #111; border-radius: 0; box-shadow: 6px 6px 0 #111; \}
+.lab-dd-brutalist .sui-menuitem \{ color: #111; border-radius: 0; \}
+.lab-dd-brutalist .sui-menu-button:hover, .lab-dd-brutalist .sui-menu-button:focus-visible, .lab-dd-brutalist.sui-menu.open > .sui-menu-button \{ background: #fde047; color: #111; \}
+.lab-dd-brutalist .sui-menuitem:hover, .lab-dd-brutalist .sui-menuitem:focus \{ background: #111; color: #facc15; \}
+
+.lab-dd-glass .sui-menu-button \{ background: rgba(148,163,184,.16); color: #e2e8f0; border: 1px solid rgba(255,255,255,.24); border-radius: 10px; backdrop-filter: blur(10px); \}
+.lab-dd-glass .sui-menu-popup \{ background: rgba(15,23,42,.78); color: #e2e8f0; border: 1px solid rgba(255,255,255,.24); border-radius: 14px; backdrop-filter: blur(16px); box-shadow: 0 18px 40px rgba(0,0,0,.45); \}
+.lab-dd-glass .sui-menuitem \{ color: #e2e8f0; \}
+.lab-dd-glass .sui-menu-button:hover, .lab-dd-glass .sui-menu-button:focus-visible, .lab-dd-glass.sui-menu.open > .sui-menu-button \{ background: rgba(148,163,184,.28); color: #fff; \}
+.lab-dd-glass .sui-menuitem:hover, .lab-dd-glass .sui-menuitem:focus \{ background: rgba(255,255,255,.12); color: #fff; \}
+
+.lab-dd-outline .sui-menu-button \{ background: transparent; color: #93c5fd; border: 1px solid #3b82f6; border-radius: 8px; \}
+.lab-dd-outline .sui-menu-popup \{ background: #0f172a; color: #dbeafe; border: 1px solid #3b82f6; border-radius: 10px; box-shadow: 0 18px 40px rgba(0,0,0,.4); \}
+.lab-dd-outline .sui-menuitem \{ color: #dbeafe; \}
+.lab-dd-outline .sui-menu-button:hover, .lab-dd-outline .sui-menu-button:focus-visible, .lab-dd-outline.sui-menu.open > .sui-menu-button \{ background: rgba(59,130,246,.18); color: #dbeafe; \}
+.lab-dd-outline .sui-menuitem:hover, .lab-dd-outline .sui-menuitem:focus \{ background: #1e293b; color: #fff; \}
 /* ---------- Popover styles ---------- */
 .lab-pop-card .sui-popover-panel \{ background: #161d2b; color: #e2e8f0; border: 1px solid #2a3446; border-radius: 12px; box-shadow: 0 16px 36px rgba(0,0,0,.45); \}
 .lab-pop-glass .sui-popover-panel \{ background: rgba(148,163,184,.16); color: #e2e8f0; border: 1px solid rgba(255,255,255,.24); border-radius: 14px; backdrop-filter: blur(12px); \}
@@ -550,6 +598,14 @@ css "/* Animation lab: visual styles and motion for the animatable controls. */
 .lab-items-check .sui-menuitem:hover::after, .lab-items-check .sui-menuitem:focus::after \{ opacity: 1; transform: translateY(-50%) scale(1); \}
 
 .lab-items-none .sui-menuitem \{ \}
+
+/* ---------- Item highlight combinations ---------- */
+.lab-items-cloud .sui-menuitem:hover, .lab-items-cloud .sui-menuitem:focus \{ background: radial-gradient(ellipse at 12% 50%, rgba(76,92,247,.62), transparent 68%); \}
+.lab-items-underline .sui-menuitem \{ position: relative; \}
+.lab-items-underline .sui-menuitem::after \{ content: \"\"; position: absolute; left: 8px; right: 8px; bottom: 4px; height: 2px; border-radius: 2px; background: var(--sui-accent, #4c5cf7); transform: scaleX(0); transform-origin: left; transition: transform .22s ease; \}
+.lab-items-underline .sui-menuitem:hover::after, .lab-items-underline .sui-menuitem:focus::after \{ transform: scaleX(1); \}
+.lab-items-bar.lab-items-underline .sui-menuitem::before \{ height: 0; \}
+.lab-items-bar.lab-items-underline .sui-menuitem:hover::before, .lab-items-bar.lab-items-underline .sui-menuitem:focus::before \{ height: 0; \}
 "
 
 view main {
@@ -951,6 +1007,8 @@ view main {
           					option "Pill" value: "lab-dd-pill"
           					option "Neon" value: "lab-dd-neon"
           					option "Brutalist" value: "lab-dd-brutalist"
+          					option "Glass" value: "lab-dd-glass"
+          					option "Outline" value: "lab-dd-outline"
           }
           select "Animation" value: ddAnim {
           					option "Slide" value: "slide"
@@ -966,6 +1024,10 @@ view main {
           					option "Border" value: "lab-items-border"
           					option "Dot" value: "lab-items-dot"
           					option "Check mark" value: "lab-items-check"
+          					option "Bar + aura" value: "lab-items-bar lab-items-aura"
+          					option "Bar + colour cloud" value: "lab-items-bar lab-items-cloud"
+          					option "Bar + underline" value: "lab-items-bar lab-items-underline"
+          					option "Bar + glow" value: "lab-items-bar lab-items-glow"
           					option "None" value: "lab-items-none"
           }
         }
