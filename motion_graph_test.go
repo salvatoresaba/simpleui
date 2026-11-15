@@ -264,6 +264,7 @@ func TestMotionGraphEdgeCasesE2E(t *testing.T) {
 	defer cancel()
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
 		"--no-first-run", "--no-default-browser-check", "--window-size=1000,700",
 		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=20000", "--dump-dom", url,
 	}
@@ -466,14 +467,13 @@ const motionGraphLoopsScript = `<script>
     var infTiming = inf.__suiGraphAnim.effect.getTiming();
     if (infTiming.iterations !== Infinity) throw new Error('infinite iterations were not applied');
     if (infTiming.direction !== 'alternate') throw new Error('infinite direction was not applied');
+    // Sample synchronously after seeking: the animation keeps running, so a
+    // timed wait would drift under load.
     inf.__suiGraphAnim.currentTime = 90;
-    await wait(30);
     var midW = width(inf);
     inf.__suiGraphAnim.currentTime = 180;
-    await wait(30);
     var endW = width(inf);
     inf.__suiGraphAnim.currentTime = 270;
-    await wait(30);
     var backW = width(inf);
     if (!(midW > 105 && midW < 180)) throw new Error('infinite forward sample: ' + midW);
     if (Math.abs(endW - 180) > 2) throw new Error('infinite end sample: ' + endW);

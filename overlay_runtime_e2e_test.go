@@ -51,6 +51,7 @@ view main {
 	defer cancel()
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
 		"--no-first-run", "--no-default-browser-check", "--window-size=800,600",
 		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=20000", "--dump-dom", url,
 	}

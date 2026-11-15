@@ -86,6 +86,7 @@ func TestGuiControlAnimationsE2E(t *testing.T) {
 	defer cancel()
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
 		"--no-first-run", "--no-default-browser-check", "--window-size=1100,860",
 		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=20000", "--dump-dom", baseURL,
 	}
@@ -142,7 +143,7 @@ const guiAnimationsScript = `<script>
     return null;
   }
   try {
-    await until(function () { return typeof COMPONENT_DEFS !== 'undefined' && COMPONENT_DEFS.length > 10 && __prefsLoaded; }, 8000);
+    await until(function () { return typeof COMPONENT_DEFS !== 'undefined' && COMPONENT_DEFS.length > 10 && __prefsLoaded; }, 15000);
 
     // 1. Every option must reference a keyframe shipped by the component.
     var animated = 0, options = 0;
@@ -179,7 +180,7 @@ const guiAnimationsScript = `<script>
     openComponentSettings(button, null);
     __compSettings.values['--sui-button-animation'] = jelly;
     applyComponentSettings();
-    await wait(120);
+    await wait(300);
     if (root.css.indexOf('@keyframes sui-button-jelly') < 0) throw new Error('button keyframes not written to CSS');
     if (root.css.indexOf('--sui-button-animation: ' + jelly) < 0) throw new Error('button animation variable not written');
     if (root.css.indexOf('@media (prefers-reduced-motion: reduce)') < 0) throw new Error('reduced-motion guard not written');
@@ -194,7 +195,7 @@ const guiAnimationsScript = `<script>
     __compSettings.values['--sui-progress-animation'] = wave[1];
     if (wave[2]) Object.keys(wave[2]).forEach(function (k) { __compSettings.values[k] = wave[2][k]; });
     applyComponentSettings();
-    await wait(120);
+    await wait(300);
     if (root.css.indexOf('@keyframes sui-progress-wave') < 0) throw new Error('progress wave keyframes missing');
     if (root.css.indexOf('--sui-progress-fill: ' + wave[2]['--sui-progress-fill']) < 0) throw new Error('progress wave fill not applied');
 

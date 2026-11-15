@@ -387,6 +387,24 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       else beforeMap[k] = snapshot(els[i]);
     }
   }
+  // unchanged reports whether an element kept the same motion variables and
+  // geometry across the re-render. A toggle whose checked state did not change
+  // must stay still instead of replaying its enter/scale effect with the rest
+  // of the view.
+  function unchanged(old, el) {
+    if (!old) return false;
+    if (old.vars) {
+      var cs = getComputedStyle(el);
+      for (var name in old.vars) {
+        if (!Object.prototype.hasOwnProperty.call(old.vars, name)) continue;
+        if (cs.getPropertyValue(name).trim() !== old.vars[name]) return false;
+      }
+    }
+    var r = el.getBoundingClientRect();
+    if (Math.abs(r.left - old.rect.left) > 0.5 || Math.abs(r.top - old.rect.top) > 0.5 ||
+        Math.abs(r.width - old.rect.width) > 0.5 || Math.abs(r.height - old.rect.height) > 0.5) return false;
+    return true;
+  }
   function after(root) {
     if (pageSwitching) return;
     if (!hadSnapshot) { beforeMap = {}; return; }
@@ -399,11 +417,13 @@ const suiMotionRuntime = `const __SUI_MOTION = (function(){
       var o = optionsOf(el);
       if (o.effect === 'none') continue;
       var old = beforeMap[k];
-      cancel(el);
       if (old) {
+        if (unchanged(old, el)) continue;
+        cancel(el);
         animateElement(old, el, o);
         tweenVars(el, old, o);
       } else {
+        cancel(el);
         enter(el, o);
       }
     }
