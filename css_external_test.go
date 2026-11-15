@@ -22,13 +22,15 @@ func TestCSSExternalReferenceValidation(t *testing.T) {
 		}
 	}
 	invalid := map[string]string{
-		".a { background: url(https://example.invalid/x.png); }":  "external URL",
-		".a { background: url('HTTP://example.invalid/x.png'); }": "external URL",
-		".a { background: url(//example.invalid/x.png); }":        "external URL",
-		".a { background: url(file:///etc/passwd); }":             "external URL",
-		".a { background: url(h\\74tps://example.invalid/x); }":   "external URL",
-		"@import url(/local.css);":                                "@import",
-		"@import \"https://example.invalid/x.css\";":              "@import",
+		".a { background: url(https://example.invalid/x.png); }":    "external URL",
+		".a { background: url('HTTP://example.invalid/x.png'); }":   "external URL",
+		".a { background: url(//example.invalid/x.png); }":          "external URL",
+		".a { background: url(file:///etc/passwd); }":               "external URL",
+		".a { background: url(h\\74tps://example.invalid/x); }":     "external URL",
+		"@import url(/local.css);":                                  "@import",
+		"@import \"https://example.invalid/x.css\";":                "@import",
+		"@\\69mport \"https://example.invalid/x.css\";":             "@import",
+		".a { background: u\\72l(https://example.invalid/x.png); }": "external URL",
 	}
 	for css, want := range invalid {
 		msg := cssExternalReferenceError(css)

@@ -15,7 +15,7 @@ func cssExternalReferenceError(css string) string {
 	if strings.TrimSpace(css) == "" {
 		return ""
 	}
-	clean := stripCssComments(css)
+	clean := cssUnescape(stripCssComments(css))
 	if strings.Contains(strings.ToLower(maskCssStrings(clean)), "@import") {
 		return "CSS @import is not allowed (external stylesheets are blocked)"
 	}
