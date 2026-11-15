@@ -258,12 +258,14 @@ The removable card declares an exit state:
 "exit": { "state": "gone", "duration": "280ms", "easing": "ease-in" }
 ```
 
-When **Add or remove card** hides the conditional card, SUI replaces the view.
-Before the replacement the runtime clones the card at its current position;
-after it, the clone animates to the `gone` CSS (`opacity: 0`, `transform:
-scale(0.9)`) and is then removed. The clone has no ids or motion attributes and
-ignores pointer events. Elements that survive the render do not get a clone.
-With `prefers-reduced-motion` the card is removed without animating.
+The designer exit overlay also has a **spring easing** toggle with stiffness,
+damping and mass. Spring overrides easing; duration controls its speed. When
+**Add or remove card** hides the conditional card, SUI replaces the view. Before
+the replacement the runtime clones the card at its current position; after it,
+the clone animates to the `gone` CSS (`opacity: 0`, `transform: scale(0.9)`) and
+is then removed. The clone has no ids or motion attributes and ignores pointer
+events. Elements that survive the render do not get a clone. With
+`prefers-reduced-motion` the card is removed without animating.
 
 ## Designer workflow
 
@@ -293,8 +295,9 @@ With `prefers-reduced-motion` the card is removed without animating.
    viewport** to expose the matching direction, axis/distance, hold time, ratio
    and **fire once** fields. These triggers are repeatable, not single-use.
 9. Use **Exit animation** in the toolbar to choose the exit state, duration,
-   easing and delay. The card must be removed by the view (for example inside an
-   `if`) for the exit animation to run.
+   easing and delay, or enable **spring easing** for stiffness/damping/mass. The
+   card must be removed by the view (for example inside an `if`) for the exit
+   animation to run.
 
 ## Build and run
 

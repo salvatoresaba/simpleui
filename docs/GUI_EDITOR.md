@@ -1000,8 +1000,9 @@ only the graph; parameters open in draggable overlay panels:
 
 - **Layout & shared** in the toolbar opens the FLIP/list/page settings overlay.
   **Exit animation** opens the exit overlay: choose the destination state plus
-  duration, easing and delay. The runtime animates a fixed ghost clone when SUI
-  removes the element.
+  duration, easing and delay. **Spring easing** adds stiffness, damping and mass;
+  spring overrides easing and duration controls its speed. The runtime animates a
+  fixed ghost clone when SUI removes the element.
 - The panel is compact and has a drag handle on its bottom-right corner. The
   graph canvas centers and fits the diagram; the toolbar has **&#8722;**, **+** and
   **Fit** controls with a zoom percentage. Drag empty canvas space to pan and use

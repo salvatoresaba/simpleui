@@ -3553,6 +3553,18 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		c.diagAt(a.span, a.key+" must name a declared function")
 		return
 	}
+	if a.key == "motionGraph" {
+		// Dynamic graph expressions cannot be validated at compile time. A
+		// literal graph is checked here so hand-written sources get the same
+		// diagnostics as designer-authored ones.
+		if a.hasExpr {
+			return
+		}
+		for _, msg := range motionGraphDiagnostics(partsLiteral(a.text)) {
+			c.diagAt(a.span, msg)
+		}
+		return
+	}
 	if a.key == "editMode" && (tag == "table" || tag == "chart" || tag == "graph" || tag == "tree") {
 		if a.hasExpr {
 			t := c.inferExpr(a.expr)

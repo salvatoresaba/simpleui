@@ -628,6 +628,65 @@ const motionGraphGuardsGesturesExitScript = `<script>
     guard.click(); await wait(180);
     if (guard.__suiGraphState !== 'a') throw new Error('invalid guard should not fire');
 
+    setGraph(guard, baseCfg([
+      { id: 'g3', from: 'a', to: 'b', event: 'click', guard: '(allowed && mode == "view") || level >= 5', duration: '60ms', easing: 'linear' }
+    ]), 'guard-card');
+    guard.click(); await wait(150);
+    if (guard.__suiGraphState !== 'a') throw new Error('guard OR/parentheses allowed a false branch');
+    setGraph(guard, baseCfg([
+      { id: 'g4', from: 'a', to: 'b', event: 'click', guard: '(allowed && mode == "edit") || level >= 5', duration: '60ms', easing: 'linear' }
+    ]), 'guard-card');
+    guard.click(); await wait(180);
+    if (guard.__suiGraphState !== 'b') throw new Error('guard OR/parentheses did not allow a true branch');
+    setGraph(guard, baseCfg([
+      { id: 'g5', from: 'a', to: 'b', event: 'click', guard: 'level >= 2 && level < 10', duration: '60ms', easing: 'linear' }
+    ]), 'guard-card');
+    guard.click(); await wait(180);
+    if (guard.__suiGraphState !== 'b') throw new Error('numeric guard did not pass');
+    setGraph(guard, baseCfg([
+      { id: 'g6', from: 'a', to: 'b', event: 'click', guard: 'level >= 5', duration: '60ms', easing: 'linear' }
+    ]), 'guard-card');
+    guard.click(); await wait(150);
+    if (guard.__suiGraphState !== 'a') throw new Error('numeric guard did not block');
+
+    var timerCard = document.querySelector('.timer-card');
+    setGraph(timerCard, baseCfg([
+      { id: 't1', from: 'a', to: 'b', event: 'timer', timer: '80ms', guard: 'allowed', duration: '60ms', easing: 'linear' }
+    ]), 'timer-card');
+    await wait(260);
+    if (timerCard.__suiGraphState !== 'b') throw new Error('guarded timer did not fire');
+    setGraph(timerCard, baseCfg([
+      { id: 't2', from: 'a', to: 'b', event: 'timer', timer: '80ms', guard: '!allowed', duration: '60ms', easing: 'linear' }
+    ]), 'timer-card');
+    await wait(260);
+    if (timerCard.__suiGraphState !== 'a') throw new Error('guard did not block timer');
+
+    var afterCard = document.querySelector('.after-card');
+    setGraph(afterCard, baseCfg([
+      { id: 'a1', from: 'a', to: 'b', event: 'click', duration: '60ms', easing: 'linear' },
+      { id: 'a2', from: 'b', to: 'a', event: 'after', guard: 'allowed', duration: '60ms', easing: 'linear' }
+    ]), 'after-card');
+    afterCard.click(); await wait(320);
+    if (afterCard.__suiGraphState !== 'a') throw new Error('guarded after link did not fire');
+    setGraph(afterCard, baseCfg([
+      { id: 'a3', from: 'a', to: 'b', event: 'click', duration: '60ms', easing: 'linear' },
+      { id: 'a4', from: 'b', to: 'a', event: 'after', guard: '!allowed', duration: '60ms', easing: 'linear' }
+    ]), 'after-card');
+    afterCard.click(); await wait(320);
+    if (afterCard.__suiGraphState !== 'b') throw new Error('guard did not block after link');
+
+    var stateCard = document.querySelector('.state-card');
+    setGraph(stateCard, baseCfg([
+      { id: 's1', from: 'a', to: 'b', event: 'state', when: 'allowed', guard: 'allowed', duration: '60ms', easing: 'linear' }
+    ]), 'state-card');
+    await wait(240);
+    if (stateCard.__suiGraphState !== 'b') throw new Error('guarded state link did not fire');
+    setGraph(stateCard, baseCfg([
+      { id: 's2', from: 'a', to: 'b', event: 'state', when: 'allowed', guard: '!allowed', duration: '60ms', easing: 'linear' }
+    ]), 'state-card');
+    await wait(240);
+    if (stateCard.__suiGraphState !== 'a') throw new Error('guard did not block state link');
+
     setGraph(wheel, baseCfg([
       { id: 'w1', from: 'a', to: 'b', event: 'wheel', wheel: 'down', duration: '80ms', easing: 'linear' }
     ]), 'wheel-card');
@@ -653,6 +712,12 @@ const motionGraphGuardsGesturesExitScript = `<script>
     swipe(swipeCard, 120, 20, 20, 20);
     await wait(180);
     if (swipeCard.__suiGraphState !== 'a') throw new Error('swipe left should not match right');
+    setGraph(swipeCard, baseCfg([
+      { id: 's3', from: 'a', to: 'b', event: 'swipe', axis: 'right', distance: 80, duration: '60ms', easing: 'linear' }
+    ]), 'swipe-card');
+    swipe(swipeCard, 20, 20, 60, 20);
+    await wait(180);
+    if (swipeCard.__suiGraphState !== 'a') throw new Error('swipe below minimum distance fired');
 
     setGraph(hold, baseCfg([
       { id: 'h1', from: 'a', to: 'b', event: 'longpress', hold: 120, duration: '80ms', easing: 'linear' }
@@ -669,6 +734,22 @@ const motionGraphGuardsGesturesExitScript = `<script>
     document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 9, pointerType: 'mouse', button: 0, buttons: 0, clientX: 20, clientY: 20 }));
     await wait(200);
     if (hold.__suiGraphState !== 'a') throw new Error('short long press should not fire');
+    setGraph(hold, baseCfg([
+      { id: 'h3', from: 'a', to: 'b', event: 'longpress', hold: 150, duration: '60ms', easing: 'linear' }
+    ]), 'hold-card');
+    hold.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 10, pointerType: 'mouse', button: 0, buttons: 1, clientX: 20, clientY: 20 }));
+    document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 10, pointerType: 'mouse', buttons: 1, clientX: 90, clientY: 20 }));
+    await wait(240);
+    document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 10, pointerType: 'mouse', button: 0, buttons: 0, clientX: 90, clientY: 20 }));
+    if (hold.__suiGraphState !== 'a') throw new Error('long press was not canceled by movement');
+    setGraph(hold, baseCfg([
+      { id: 'h4', from: 'a', to: 'b', event: 'longpress', hold: 150, duration: '60ms', easing: 'linear' }
+    ]), 'hold-card');
+    hold.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 11, pointerType: 'mouse', button: 0, buttons: 1, clientX: 20, clientY: 20 }));
+    await wait(50);
+    document.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 11, pointerType: 'mouse' }));
+    await wait(220);
+    if (hold.__suiGraphState !== 'a') throw new Error('long press was not canceled by pointercancel');
 
     setGraph(vis, baseCfg([
       { id: 'v1', from: 'a', to: 'b', event: 'visible', threshold: 0.5, once: true, duration: '80ms', easing: 'linear' }
@@ -706,8 +787,14 @@ const motionGraphGuardsGesturesExitScript = `<script>
         { id: 'gone', css: 'width: 160px; height: 100px; opacity: 0; background-color: #aa4444;' }
       ],
       links: [],
-      exit: { state: 'gone', duration: '200ms', easing: 'linear' }
+      exit: { state: 'gone', duration: '200ms', easing: 'linear', delay: '40ms', spring: { stiffness: 180, damping: 14, mass: 1 } }
     }, 'exit-card');
+    // A graph element that survives the render keeps its live node and must
+    // not produce a ghost clone.
+    window.__SUI_MOTION_GRAPH.beforeReplace(exitRoot);
+    window.__SUI_MOTION_GRAPH.afterReplace(exitRoot);
+    await wait(40);
+    if (document.body.querySelector('.sui-motion-graph-exit')) throw new Error('surviving element produced an exit clone');
     window.__SUI_MOTION_GRAPH.beforeReplace(exitRoot);
     exitRoot.innerHTML = '<p>gone</p>';
     window.__SUI_MOTION_GRAPH.afterReplace(exitRoot);
@@ -716,6 +803,9 @@ const motionGraphGuardsGesturesExitScript = `<script>
     if (!clone) throw new Error('exit clone was not created');
     var exitAnims = clone.getAnimations ? clone.getAnimations() : [];
     if (!exitAnims.length) throw new Error('exit clone has no animation');
+    var timing = exitAnims[0].effect.getTiming();
+    if (Number(timing.delay) !== 40) throw new Error('exit delay was not applied: ' + timing.delay);
+    if (String(timing.easing).indexOf('linear(') !== 0) throw new Error('exit spring was not applied: ' + timing.easing);
     var frames = exitAnims[0].effect.getKeyframes();
     var lastOpacity = frames.length ? String(frames[frames.length - 1].opacity) : '';
     if (parseFloat(lastOpacity) !== 0) throw new Error('exit animation does not target transparent: ' + lastOpacity);
@@ -757,6 +847,7 @@ func TestMotionGraphGuardsGesturesExitE2E(t *testing.T) {
 	source := "css \".box \\{ width: 100px; height: 80px; background: #223344; margin: 4px; \\} .exit-root \\{ width: 300px; height: 140px; \\}\"\n" +
 		"state allowed = false\n" +
 		"state mode = \"edit\"\n" +
+		"state level = 2\n" +
 		"state showExit = true\n" +
 		"fn toggleAllowed() -> null { allowed = not allowed }\n" +
 		"fn toggleExit() -> null { showExit = not showExit }\n" +
@@ -768,6 +859,9 @@ func TestMotionGraphGuardsGesturesExitE2E(t *testing.T) {
 		"\tcard class: \"box swipe-card\" { p \"Swipe\" }\n" +
 		"\tcard class: \"box hold-card\" { p \"Hold\" }\n" +
 		"\tcard class: \"box vis-card\" { p \"Visible\" }\n" +
+		"\tcard class: \"box timer-card\" { p \"Timer\" }\n" +
+		"\tcard class: \"box after-card\" { p \"After\" }\n" +
+		"\tcard class: \"box state-card\" { p \"State\" }\n" +
 		"\tdiv class: \"exit-root\" { card class: \"box exit-card\" { p \"Exit\" } }\n" +
 		"\tif showExit { card class: \"box exit-live\" motionGraph: \"" + exitAttr + "\" { p \"Exit live\" } }\n" +
 		"}\n"
@@ -818,6 +912,120 @@ func TestMotionGraphGuardsGesturesExitE2E(t *testing.T) {
 		detail = text[marker:end]
 	}
 	t.Fatalf("motion guards/gestures/exit e2e failed:\n%s", detail)
+}
+
+func TestMotionGraphReducedMotionE2E(t *testing.T) {
+	browser := findHeadlessBrowser()
+	if browser == "" {
+		t.Skip("no Chrome/Edge found; skipping reduced-motion test")
+	}
+	motion := map[string]any{
+		"initial": "a",
+		"states": []any{
+			map[string]any{"id": "a", "css": "width: 100px; height: 80px; background-color: #223344;"},
+			map[string]any{"id": "b", "css": "width: 220px; height: 80px; background-color: #557799;"},
+		},
+		"links": []any{map[string]any{"id": "m1", "from": "a", "to": "b", "event": "click", "duration": "500ms", "easing": "linear"}},
+	}
+	exitGraph := map[string]any{
+		"initial": "shown",
+		"states": []any{
+			map[string]any{"id": "shown", "css": "width: 100px; height: 80px; background-color: #223344;"},
+			map[string]any{"id": "gone", "css": "width: 100px; height: 80px; opacity: 0;"},
+		},
+		"links": []any{},
+		"exit":  map[string]any{"state": "gone", "duration": "200ms", "easing": "linear"},
+	}
+	source := "css \".box \\{ width: 100px; height: 80px; background: #223344; margin: 4px; \\}\"\n" +
+		"state showExit = true\n" +
+		"fn toggleExit() -> null { showExit = not showExit }\n" +
+		"view main {\n" +
+		"\tbutton \"Toggle\" class: \"toggle\" onClick: toggleExit\n" +
+		"\tcard class: \"box motion-card\" motionKey: \"rm-motion\" motionGraph: \"" + suiGraphLiteral(motion) + "\" { p \"Motion\" }\n" +
+		"\tif showExit { card class: \"box exit-card\" motionKey: \"rm-exit\" motionGraph: \"" + suiGraphLiteral(exitGraph) + "\" { p \"Exit\" } }\n" +
+		"}\n"
+	index, css, js, diags, ok := guiBuildFiles(source)
+	if !ok {
+		t.Fatalf("build files: %s", StringifyJson(diags))
+	}
+	page := CombineSingleHTML(index, css, js, false)
+	reduce := `<script>window.matchMedia = function(q) { return { matches: /prefers-reduced-motion/.test(q), media: q, onchange: null, addListener: function(){}, removeListener: function(){}, addEventListener: function(){}, removeEventListener: function(){}, dispatchEvent: function(){ return false; } }; };</script>`
+	page = strings.Replace(page, "<body>", "<body>"+reduce, 1)
+	script := `<script>
+(async function () {
+  function result(ok, message) {
+    var el = document.getElementById('e2e-result');
+    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.appendChild(el); }
+    el.textContent = ok ? 'OK' : 'FAIL: ' + message;
+    document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
+  }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  try {
+    for (var i = 0; i < 120; i++) {
+      var card = document.querySelector('.motion-card');
+      if (window.__SUI_MOTION_GRAPH && card && card.__suiGraphState) break;
+      await wait(50);
+    }
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) throw new Error('reduced motion did not emulate');
+    var motionCard = document.querySelector('.motion-card');
+    if (!motionCard || motionCard.__suiGraphState !== 'a') throw new Error('motion card did not initialize');
+    motionCard.click();
+    await wait(40);
+    if (Math.round(motionCard.getBoundingClientRect().width) !== 220) throw new Error('reduced transition did not jump: ' + motionCard.getBoundingClientRect().width);
+    var toggle = document.querySelector('.toggle');
+    if (!toggle) throw new Error('toggle missing');
+    toggle.click();
+    await wait(150);
+    if (document.querySelector('.exit-card[data-sui-id]')) throw new Error('exit card was not removed');
+    if (document.body.querySelector('.sui-motion-graph-exit')) throw new Error('reduced motion created an exit clone');
+    result(true);
+  } catch (e) {
+    result(false, e && e.message ? e.message : String(e));
+  }
+})();
+</script>`
+	if idx := strings.LastIndex(page, "</body>"); idx >= 0 {
+		page = page[:idx] + script + page[idx:]
+	} else {
+		t.Fatal("compiled page has no closing body")
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "text/html; charset=utf-8", page)
+	})
+	go func() { _ = http.Serve(ln, mux) }()
+	url := "http://" + ln.Addr().String() + "/"
+	time.Sleep(50 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	args := []string{
+		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+		"--no-first-run", "--no-default-browser-check", "--window-size=1000,700",
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=20000", "--dump-dom", url,
+	}
+	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
+	text := string(out)
+	if err != nil {
+		t.Fatalf("headless browser failed: %v\n%s", err, text)
+	}
+	if strings.Contains(text, `id="e2e-result">OK<`) {
+		return
+	}
+	marker := strings.Index(text, `id="e2e-result"`)
+	detail := text
+	if marker >= 0 {
+		end := marker + 600
+		if end > len(text) {
+			end = len(text)
+		}
+		detail = text[marker:end]
+	}
+	t.Fatalf("reduced motion e2e failed:\n%s", detail)
 }
 
 func TestMotionGraphE2E(t *testing.T) {

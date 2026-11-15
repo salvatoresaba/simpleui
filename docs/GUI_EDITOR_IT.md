@@ -1036,8 +1036,9 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 
 - **Layout & shared** nella toolbar apre l'overlay per FLIP/liste/pagine.
   **Exit animation** apre l'overlay di uscita: scegli lo stato di destinazione,
-  durata, easing e delay. Il runtime anima un clone fisso quando SUI rimuove
-  l'elemento.
+  durata, easing e delay. **Spring easing** aggiunge stiffness, damping e mass;
+  lo spring sostituisce l'easing e la durata ne controlla la velocità. Il runtime
+  anima un clone fisso quando SUI rimuove l'elemento.
 - Il pannello è compatto e ha un handle di ridimensionamento nell'angolo in
   basso a destra. Il canvas centra e adatta il diagramma; la toolbar ha i
   controlli **&#8722;**, **+** e **Fit** con la percentuale di zoom. Trascina lo

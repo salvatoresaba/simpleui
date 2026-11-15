@@ -141,8 +141,11 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       if (two === '&&' || two === '||' || two === '==' || two === '!=' || two === '<=' || two === '>=') {
         out.push({ t: 'op', v: two }); i += 2; continue;
       }
-      if (ch === '!' || ch === '<' || ch === '>' || ch === '(' || ch === ')') {
+      if (ch === '!' || ch === '(' || ch === ')') {
         out.push({ t: ch, v: ch }); i++; continue;
+      }
+      if (ch === '<' || ch === '>') {
+        out.push({ t: 'op', v: ch }); i++; continue;
       }
       if (ch === '"' || ch === "'") {
         var quote = ch, value = '';

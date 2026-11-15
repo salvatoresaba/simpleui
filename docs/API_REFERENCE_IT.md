@@ -420,6 +420,10 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   non valida non scatta mai. Le guard filtrano eventi DOM, trigger di stato ed
   elemento esterno, timer, link `after` e `run`. Le chiamate esplicite a
   `SimpleUIMotion.to()` sono programmatiche e non vengono bloccate da una guard.
+- `simpleui check` valida il JSON letterale di `motionGraph`: sintassi JSON, id
+  degli stati, riferimenti a `initial` e `exit`, nomi dei trigger e sintassi delle
+  guard. Le espressioni dinamiche di `motionGraph` non vengono valutate in fase
+  di compilazione.
 - Link gesto: `swipe` usa `axis` (`left`, `right`, `up`, `down`) e `distance`
   (pixel minimi, default 40); `longpress` usa `hold` (millisecondi, default 500,
   annullato dopo circa 10 px di movimento). Entrambi usano i pointer events e

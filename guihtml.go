@@ -7035,18 +7035,21 @@ function mgGuardError(src) {
     if (two === "&&" || two === "||" || two === "==" || two === "!=" || two === "<=" || two === ">=") {
       tokens.push({ t: "op", v: two }); i += 2; continue;
     }
-    if (ch === "!" || ch === "<" || ch === ">" || ch === "(" || ch === ")") {
+    if (ch === "!" || ch === "<" || ch === ">") {
+      tokens.push({ t: "op", v: ch }); i++; continue;
+    }
+    if (ch === "(" || ch === ")") {
       tokens.push({ t: ch, v: ch }); i++; continue;
     }
     if (ch === '"' || ch === "'") {
-      var quote = ch; i++;
+      var quote = ch; i++; var closed = false;
       while (i < s.length) {
         var c = s.charAt(i);
-        if (c === quote) { i++; break; }
+        if (c === quote) { i++; closed = true; break; }
         if (c === "\\" && i + 1 < s.length) { i += 2; continue; }
         i++;
       }
-      if (s.charAt(i - 1) !== quote) return "Unterminated string.";
+      if (!closed) return "Unterminated string.";
       tokens.push({ t: "val", v: "" }); continue;
     }
     var num = /^-?\d+(?:\.\d+)?/.exec(s.slice(i));
@@ -8746,7 +8749,7 @@ function mgRenderParam() {
     var exitStates = [["", "(none)"]];
     (mgCfg.states || []).forEach(function(st){ exitStates.push([st.id, st.name || st.id]); });
     if (exCfg.state && !mgStateById(exCfg.state)) exitStates.push([exCfg.state, exCfg.state + " (missing)"]);
-    var exitStateSel = select(exCfg.state || "", exitStates);
+    var exitStateSel = select(exCfg.state || "", exitStates); exitStateSel.id = "mg-exit-state";
     function ensureExitCfg() {
       if (!mgCfg.exit) mgCfg.exit = { state: "", duration: "240ms", easing: "ease-out", delay: "0ms" };
       return mgCfg.exit;
@@ -8757,14 +8760,71 @@ function mgRenderParam() {
       else ensureExitCfg().state = exitStateSel.value;
       mgCommit(); mgRenderParam();
     };
-    label("duration"); var exitDur = input(exCfg.duration || "240ms", "240ms");
+    label("duration"); var exitDur = input(exCfg.duration || "240ms", "240ms"); exitDur.id = "mg-exit-duration";
     exitDur.onchange = function(){ snap("motion graph exit duration"); ensureExitCfg().duration = exitDur.value.trim() || "240ms"; mgCommit(); };
-    label("easing"); var exitEase = select(exCfg.easing || "ease-out", mgEasingOptions(exCfg.easing));
+    label("easing"); var exitEase = select(exCfg.easing || "ease-out", mgEasingOptions(exCfg.easing)); exitEase.id = "mg-exit-easing";
     exitEase.onchange = function(){ snap("motion graph exit easing"); ensureExitCfg().easing = exitEase.value; mgCommit(); };
-    label("delay"); var exitDelay = input(exCfg.delay || "0ms", "0ms");
+    label("delay"); var exitDelay = input(exCfg.delay || "0ms", "0ms"); exitDelay.id = "mg-exit-delay";
     exitDelay.onchange = function(){ snap("motion graph exit delay"); ensureExitCfg().delay = exitDelay.value.trim() || "0ms"; mgCommit(); };
+
+    var springDefaults = { stiffness: 170, damping: 18, mass: 1 };
+    var springCfg = exCfg.spring || {};
+    var springRow = document.createElement("div"); springRow.className = "rowline"; springRow.style.marginTop = "6px";
+    var springCb = document.createElement("input"); springCb.type = "checkbox"; springCb.id = "mg-exit-spring";
+    springCb.checked = !!exCfg.spring; springCb.style.flex = "none";
+    var springLbl = document.createElement("label"); springLbl.textContent = "spring easing"; springLbl.style.margin = "0 0 0 4px";
+    springRow.appendChild(springCb); springRow.appendChild(springLbl); side.appendChild(springRow);
+
+    var springStiffLabel = label("stiffness (N/m)");
+    var springStiff = input(String(springCfg.stiffness != null ? springCfg.stiffness : springDefaults.stiffness), "170");
+    springStiff.id = "mg-exit-stiffness"; springStiff.type = "number"; springStiff.min = "1"; springStiff.max = "1000"; springStiff.step = "1";
+    var springDampLabel = label("damping (N·s/m)");
+    var springDamp = input(String(springCfg.damping != null ? springCfg.damping : springDefaults.damping), "18");
+    springDamp.id = "mg-exit-damping"; springDamp.type = "number"; springDamp.min = "0"; springDamp.max = "100"; springDamp.step = "1";
+    var springMassLabel = label("mass (kg)");
+    var springMass = input(String(springCfg.mass != null ? springCfg.mass : springDefaults.mass), "1");
+    springMass.id = "mg-exit-mass"; springMass.type = "number"; springMass.min = "0.1"; springMass.max = "20"; springMass.step = "0.1";
+    var springFields = [springStiffLabel, springStiff, springDampLabel, springDamp, springMassLabel, springMass];
+    function springField(key, el, min, max, integer) {
+      var n = Number(el.value);
+      if (el.value === "" || !isFinite(n) || n < min || n > max) {
+        mgNotify("Exit spring " + key + " must be between " + min + " and " + max + ".");
+        var current = (mgCfg.exit && mgCfg.exit.spring && mgCfg.exit.spring[key] != null) ? mgCfg.exit.spring[key] : springDefaults[key];
+        el.value = String(current);
+        return;
+      }
+      snap("motion graph exit spring " + key);
+      var sp = ensureExitCfg().spring || (ensureExitCfg().spring = { stiffness: springDefaults.stiffness, damping: springDefaults.damping, mass: springDefaults.mass });
+      sp[key] = integer ? Math.round(n) : n;
+      mgCommit();
+    }
+    springStiff.onchange = function(){ springField("stiffness", springStiff, 1, 1000, true); };
+    springDamp.onchange = function(){ springField("damping", springDamp, 0, 100, true); };
+    springMass.onchange = function(){ springField("mass", springMass, 0.1, 20, false); };
+    function updateSpringFields() {
+      var show = !!(mgCfg.exit && mgCfg.exit.spring);
+      for (var i = 0; i < springFields.length; i++) springFields[i].style.display = show ? "" : "none";
+      springCb.checked = show;
+    }
+    springCb.onchange = function(){
+      snap("motion graph exit spring");
+      if (springCb.checked) {
+        if (!mgCfg.exit || !mgCfg.exit.state) {
+          mgNotify("Choose an exit state before enabling spring.");
+          springCb.checked = false;
+          updateSpringFields();
+          return;
+        }
+        ensureExitCfg().spring = { stiffness: springDefaults.stiffness, damping: springDefaults.damping, mass: springDefaults.mass };
+      } else if (mgCfg.exit) {
+        delete mgCfg.exit.spring;
+      }
+      mgCommit(); mgRenderParam();
+    };
+    updateSpringFields();
+
     var exitNote = document.createElement("div"); exitNote.className = "hint";
-    exitNote.textContent = "Only one exit state per graph. The state CSS supplies the final values.";
+    exitNote.textContent = "Only one exit state per graph. The state CSS supplies the final values. Spring overrides easing; duration controls its speed.";
     side.appendChild(exitNote);
     var exitActions = actions();
     btn(exitActions, "OK", function(){ mgCloseParam(); mgRender(); });

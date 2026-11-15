@@ -143,7 +143,8 @@ ready-to-run build is in `dist/`, with the complete source as `dist/app.sui`.
 4. Select the visibility card to edit **enters viewport** and **leaves
    viewport**, the ratio and **fire once**.
 5. Select the exit card and use **Exit animation** in the toolbar to choose the
-   destination state, duration, easing and delay.
+   destination state, duration, easing and delay. Enable **spring easing** to
+   edit stiffness, damping and mass; spring overrides easing.
 6. Use **Preview** to play a state or link without leaving the editor.
 
 ## Limits and notes
