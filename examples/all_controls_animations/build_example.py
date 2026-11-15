@@ -185,7 +185,6 @@ view main {
 						input "Name" value: name
 					}
 				}
-				input "Name" value: name
 				textarea "Notes" value: notes
 				select "Option" value: pick {
 					option "A" value: "a"
