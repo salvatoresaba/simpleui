@@ -618,6 +618,10 @@ I preset che mostrano i nuovi effetti sono **Aurora** e **Scanner** per Progress
 **Style** continua a scrivere palette e forma insieme, quindi scegliere un preset
 e poi cambiare l'animazione mantiene il resto dell'aspetto.
 
+La gallery eseguibile in `examples/all_controls_animations` raccoglie tutti i
+controlli e i due meccanismi di animazione in una pagina; il suo README contiene
+la mappa delle animazioni.
+
 La famiglia **Sketch** ha versioni Light e Dark, condivise da tutti e venti i
 pannelli, cosi i componenti sulla stessa pagina restano visivamente coerenti. La
 versione chiara usa carta calda; quella scura usa inchiostro crema su carta

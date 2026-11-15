@@ -592,6 +592,9 @@ Presets that showcase the new effects: **Aurora** and **Scanner** for Progress,
 **Style** selector still writes palette and shape together, so choosing a preset
 and then changing the animation keeps the rest of the look.
 
+The runnable gallery in `examples/all_controls_animations` puts every control and
+both animation mechanisms on one page; its README lists the animation map.
+
 The **Sketch** family has Light and Dark versions, shared by all twenty panels so
 components placed on the same page stay visually related. The light variant uses
 a warm paper surface; the dark variant uses cream ink on dark paper. Both use
