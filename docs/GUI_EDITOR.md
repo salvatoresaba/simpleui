@@ -999,6 +999,9 @@ Select an element and open **Motion > Open animation panel**. The panel contains
 only the graph; parameters open in draggable overlay panels:
 
 - **Layout & shared** in the toolbar opens the FLIP/list/page settings overlay.
+  **Exit animation** opens the exit overlay: choose the destination state plus
+  duration, easing and delay. The runtime animates a fixed ghost clone when SUI
+  removes the element.
 - The panel is compact and has a drag handle on its bottom-right corner. The
   graph canvas centers and fits the diagram; the toolbar has **&#8722;**, **+** and
   **Fit** controls with a zoom percentage. Drag empty canvas space to pan and use
@@ -1062,10 +1065,21 @@ only the graph; parameters open in draggable overlay panels:
   `mouseover`/`mouseout` bubble, so they also fire when the pointer crosses child
   elements and can repeat more than once.
 - The chooser also exposes `keydown`, `keyup`, `input`, `submit`, `pointerdown`,
-  `pointerup` and **custom** events. Keyboard and custom links can carry a key,
-  mouse-button and Ctrl/Alt/Shift/Meta filters; when several links match the same
-  state and event, the most specific filter wins. Custom events use a DOM event
-  name entered in the chooser.
+  `pointerup`, **wheel**, **swipe**, **long press**, **enters viewport**,
+  **leaves viewport** and **custom** events. Keyboard and custom links can carry a
+  key, mouse-button and Ctrl/Alt/Shift/Meta filters; when several links match the
+  same state and event, the most specific filter wins. Custom events use a DOM
+  event name entered in the chooser.
+- Wheel links can filter `down` or `up`. Swipe links choose an axis and a minimum
+  distance (default 40 px); long-press links choose a hold time (default 500 ms).
+  Visibility links choose a ratio between 0 and 1 (`0.5` for enters, `0.2` for
+  leaves) and an optional **fire once** flag. Gestures and viewport triggers are
+  repeatable, so they are not in the single-use list.
+- The trigger overlay has an optional **guard** field. It accepts SUI state
+  names, `true`/`false`/`null`, numbers, strings, `!`, `&&`, `||`, comparisons and
+  parentheses (for example `open && mode == "edit"`). The editor validates the
+  expression before saving and the runtime never uses `eval`; an invalid guard
+  blocks the transition.
 - Transitions use the browser animation engine with computed start and end
   values, so `transform`, filters, box shadows, clip paths, gradients, colors,
   lengths and custom properties animate where the browser supports them;

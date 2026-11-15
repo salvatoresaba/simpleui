@@ -424,17 +424,34 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - `states[].css` is the style snapshot for that state.
 - `links[].event` is `click`, `dblclick`, `mouseover`, `mouseout`, `mouseenter`,
   `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`, `change`, `input`,
-  `keydown`, `keyup`, `pointerdown`, `pointerup`, `submit`, `custom`, `state`,
-  `elementState` or `after`.
+  `keydown`, `keyup`, `pointerdown`, `pointerup`, `submit`, `wheel`, `swipe`,
+  `longpress`, `visible`, `hidden`, `custom`, `state`, `elementState` or `after`.
 - `links[].sourceId` binds a DOM event to another element (its `data-sui-id` or
   `data-sui-motion-key`); `whenState` selects that element's motion-graph state
   for `elementState`. `sourceLabel` is the designer label and is not used at
   runtime. Set `motionKey` on the source for a stable, readable reference; keys
   use letters, digits, `_`, `.`, `:` and `-`.
 - `custom` events use `customEvent` as the DOM event name. DOM links can carry
-  filters: `key` for keyboard events, `ctrl`/`alt`/`shift`/`meta` booleans and
-  `button` for pointer events. When several links match the same state/event, the
-  most specific filter wins.
+  filters: `key` for keyboard events, `ctrl`/`alt`/`shift`/`meta` booleans,
+  `button` for pointer events and `wheel` (`any`, `down`, `up`) for wheel events.
+  When several links match the same state/event, the most specific filter wins.
+- `links[].guard` is an optional condition evaluated before the trigger runs.
+  It is a small, safe expression language, not JavaScript: SUI state names
+  (booleans, numbers, strings), `true`/`false`/`null`, `!`, `&&`, `||`,
+  comparisons (`==`, `===`, `!=`, `!==`, `<`, `<=`, `>`, `>=`) and parentheses.
+  No `eval` and no function calls. Unknown state names evaluate to `undefined`;
+  an invalid guard never fires. Guards gate DOM events, state and external-state
+  triggers, timers, `after` links, the element API and `run`.
+- Gesture links: `swipe` uses `axis` (`left`, `right`, `up`, `down`) and
+  `distance` (minimum pixels, default 40); `longpress` uses `hold` (milliseconds,
+  default 500, canceled after about 10 px of movement). Both are recognized from
+  pointer events and are repeatable, so they can fire again after returning to
+  the source state.
+- Visibility links: `visible` fires when the element enters the viewport and
+  `hidden` when it leaves. `threshold` is the visible ratio between `0` and `1`
+  (default `0.5` for `visible`, `0.2` for `hidden`); `once: true` fires only the
+  first time. They use `IntersectionObserver` with an immediate initial check,
+  so enter animations start as soon as the element is mounted.
 - `links[].iterations` is a positive integer or `"infinite"`; `direction` is
   `normal`, `reverse`, `alternate` or `alternate-reverse`; `playbackRate` is
   between `0.1` and `10`. `spring: {stiffness, damping, mass}` overrides
@@ -476,6 +493,18 @@ draggable overlays anchored to a fixed position. Panels and overlays are clamped
 to the visible viewport. **Layout & shared** in the toolbar opens the classic
 `motion`, `motionKey`, `motionDuration`, `motionEasing`, `motionDelay` and
 `motionExit` settings used by FLIP, list reordering and page transitions.
+**Exit animation** in the toolbar edits `motionGraph.exit`:
+
+```json
+{"state":"gone","duration":"240ms","easing":"ease-out","delay":"0ms"}
+```
+
+When SUI removes a graph-managed element, the runtime clones it at its current
+position, strips identity and motion attributes, and animates the clone to the
+`exit.state` CSS values (`spring` is supported too). The clone is inert, ignores
+pointer events and is removed after the animation. Elements that survive the
+render do not get an exit clone. With `prefers-reduced-motion` the element is
+removed without a clone.
 
 State blocks grow taller as outgoing triggers are added and can be dragged to
 custom positions. The graph canvas supports wheel zoom, drag-to-pan on empty

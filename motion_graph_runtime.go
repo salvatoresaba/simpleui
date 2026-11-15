@@ -127,6 +127,106 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i];
     return null;
   }
+  // Safe guard expressions: identifiers (SUI states), booleans, numbers,
+  // strings, parentheses, !, &&, ||, ==, !=, <, <=, >, >=. No eval and no
+  // function calls.
+  function guardTokens(src) {
+    var out = [], i = 0;
+    while (i < src.length) {
+      var ch = src.charAt(i);
+      if (/\s/.test(ch)) { i++; continue; }
+      var three = src.slice(i, i + 3);
+      if (three === '===' || three === '!==') { out.push({ t: 'op', v: three }); i += 3; continue; }
+      var two = src.slice(i, i + 2);
+      if (two === '&&' || two === '||' || two === '==' || two === '!=' || two === '<=' || two === '>=') {
+        out.push({ t: 'op', v: two }); i += 2; continue;
+      }
+      if (ch === '!' || ch === '<' || ch === '>' || ch === '(' || ch === ')') {
+        out.push({ t: ch, v: ch }); i++; continue;
+      }
+      if (ch === '"' || ch === "'") {
+        var quote = ch, value = '';
+        i++;
+        while (i < src.length) {
+          var c = src.charAt(i);
+          if (c === quote) { i++; break; }
+          if (c === '\\' && i + 1 < src.length) { value += src.charAt(i + 1); i += 2; continue; }
+          value += c; i++;
+        }
+        out.push({ t: 'str', v: value }); continue;
+      }
+      var num = /^-?\d+(?:\.\d+)?/.exec(src.slice(i));
+      if (num) { out.push({ t: 'num', v: parseFloat(num[0]) }); i += num[0].length; continue; }
+      var id = /^[A-Za-z_][A-Za-z0-9_]*/.exec(src.slice(i));
+      if (id) { out.push({ t: 'id', v: id[0] }); i += id[0].length; continue; }
+      throw new Error('invalid guard');
+    }
+    return out;
+  }
+  function evalGuard(src) {
+    var tokens = guardTokens(String(src || ''));
+    var pos = 0;
+    function peek() { return tokens[pos] || null; }
+    function next() { return tokens[pos++]; }
+    function isOp(v) { var t = peek(); return t && t.t === 'op' && t.v === v; }
+    function primary() {
+      var t = next();
+      if (!t) throw new Error('missing value');
+      if (t.t === '(') {
+        var v = orExpr();
+        if (!peek() || peek().t !== ')') throw new Error('missing close paren');
+        next();
+        return v;
+      }
+      if (t.t === 'num' || t.t === 'str') return t.v;
+      if (t.t === 'id') {
+        if (t.v === 'true') return true;
+        if (t.v === 'false') return false;
+        if (t.v === 'null') return null;
+        var get = typeof window !== 'undefined' && window.__SUI_STATE_GET && window.__SUI_STATE_GET[t.v];
+        return get ? get() : undefined;
+      }
+      throw new Error('unexpected token');
+    }
+    function unary() {
+      if (peek() && peek().t === '!') { next(); return !unary(); }
+      return primary();
+    }
+    function compare() {
+      var left = unary();
+      var t = peek();
+      if (t && t.t === 'op' && (t.v === '==' || t.v === '===' || t.v === '!=' || t.v === '!==' || t.v === '<' || t.v === '<=' || t.v === '>' || t.v === '>=')) {
+        next();
+        var right = unary();
+        if (t.v === '==' || t.v === '===') return left === right;
+        if (t.v === '!=' || t.v === '!==') return left !== right;
+        if (t.v === '<') return left < right;
+        if (t.v === '<=') return left <= right;
+        if (t.v === '>') return left > right;
+        return left >= right;
+      }
+      return left;
+    }
+    function andExpr() {
+      var value = compare();
+      while (isOp('&&')) { next(); var right = compare(); value = !!value && !!right; }
+      return value;
+    }
+    function orExpr() {
+      var value = andExpr();
+      while (isOp('||')) { next(); var right = andExpr(); value = !!value || !!right; }
+      return value;
+    }
+    if (!tokens.length) return false;
+    var result = orExpr();
+    if (pos !== tokens.length) throw new Error('trailing guard tokens');
+    return result;
+  }
+  function guardPass(link) {
+    var raw = link && link.guard;
+    if (!raw) return true;
+    try { return !!evalGuard(String(raw)); } catch (e) { return false; }
+  }
   function parseDecls(text) {
     var out = [];
     var buf = '';
@@ -338,6 +438,13 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       var b = Number(link.button);
       if (!isNaN(b) && b >= 0 && e.button !== b) return false;
     }
+    if (link.wheel && link.wheel !== 'any' && e.deltaY != null) {
+      var dy = Number(e.deltaY) || 0;
+      if (link.wheel === 'down' && dy <= 0) return false;
+      if (link.wheel === 'up' && dy >= 0) return false;
+    }
+    if (link.axis && e.axis && String(link.axis) !== String(e.axis)) return false;
+    if (link.distance != null && link.distance !== '' && e.distance != null && Number(e.distance) < Number(link.distance)) return false;
     return true;
   }
   function findEventLink(cfg, from, eventName, sourceId, e) {
@@ -348,9 +455,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       var l = links[i];
       if (!l || l.from !== from || (l.sourceId || '') !== want) continue;
       var name = l.event === 'custom' ? l.customEvent : l.event;
-      if (name !== eventName || !eventMatches(l, e)) continue;
+      if (name !== eventName || !eventMatches(l, e) || !guardPass(l)) continue;
       var score = (l.key ? 2 : 0) + (l.button != null && l.button !== '' ? 2 : 0) +
-        (l.ctrl ? 1 : 0) + (l.alt ? 1 : 0) + (l.shift ? 1 : 0) + (l.meta ? 1 : 0);
+        (l.ctrl ? 1 : 0) + (l.alt ? 1 : 0) + (l.shift ? 1 : 0) + (l.meta ? 1 : 0) +
+        (l.guard ? 1 : 0) + (l.axis ? 1 : 0) + (l.wheel && l.wheel !== 'any' ? 1 : 0);
       if (score > bestScore) { best = l; bestScore = score; }
     }
     return best;
@@ -384,7 +492,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     for (var i = 0; i < links.length; i++) {
       var l = links[i];
       if (!l || l.event !== 'state' || l.from !== el.__suiGraphState) continue;
-      var now = stateCondition(l);
+      var now = stateCondition(l) && guardPass(l);
       if (now && !seen[l.id]) {
         seen[l.id] = true;
         run(el, cfg, l);
@@ -401,7 +509,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       var l = links[i];
       if (!l || l.event !== 'elementState' || l.from !== el.__suiGraphState) continue;
       var src = sourceById(l.sourceId);
-      var now = !!(src && src.__suiGraphState && src.__suiGraphState === l.whenState);
+      var now = !!(src && src.__suiGraphState && src.__suiGraphState === l.whenState) && guardPass(l);
       if (now && !seen[l.id]) {
         seen[l.id] = true;
         run(el, cfg, l);
@@ -429,7 +537,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       (function(link) {
         var wait = Math.max(0, timeMs(link.timer, 1000));
         var id = setTimeout(function() {
-          if (token !== el.__suiGraphToken) return;
+          if (token !== el.__suiGraphToken || !guardPass(link)) return;
           run(el, cfg, link);
         }, wait);
         el.__suiGraphTimers.push(id);
@@ -442,7 +550,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
   // A new run invalidates the previous token, timers and pending after link, so
   // an interrupted transition cannot leave stale graph properties behind.
   function run(el, cfg, link) {
-    if (!link || el.__suiGraphUnbinding) return;
+    if (!link || el.__suiGraphUnbinding || !guardPass(link)) return;
     var to = stateById(cfg, link.to);
     if (!to) return;
     clearTimers(el);
@@ -458,6 +566,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
   }
   function unbind(el) {
     el.__suiGraphUnbinding = true;
+    if (el.__suiGraphGestureCleanup) {
+      try { el.__suiGraphGestureCleanup(); } catch (e) {}
+      el.__suiGraphGestureCleanup = null;
+    }
     clearTimers(el);
     if (el.__suiGraphFinishTimer) { clearTimeout(el.__suiGraphFinishTimer); el.__suiGraphFinishTimer = 0; }
     if (el.__suiGraphAfterTimer) { clearTimeout(el.__suiGraphAfterTimer); el.__suiGraphAfterTimer = 0; }
@@ -485,6 +597,157 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     el.__suiGraphFinishFn = null;
     delete el.__suiMotion;
   }
+  function bindGestures(el, cfg, links) {
+    var cleanups = [];
+    var swipeLinks = [], longLinks = [], visLinks = [];
+    for (var i = 0; i < links.length; i++) {
+      var l = links[i];
+      if (!l) continue;
+      if (l.event === 'swipe') swipeLinks.push(l);
+      else if (l.event === 'longpress') longLinks.push(l);
+      else if (l.event === 'visible' || l.event === 'hidden') visLinks.push(l);
+    }
+    if (swipeLinks.length) {
+      var swipeStart = null;
+      var swipeDown = function(e) {
+        if (e.button != null && e.button !== 0) return;
+        swipeStart = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      };
+      var swipeUp = function(e) {
+        if (!swipeStart) return;
+        if (swipeStart.id != null && e.pointerId != null && swipeStart.id !== e.pointerId) return;
+        var dx = e.clientX - swipeStart.x, dy = e.clientY - swipeStart.y;
+        swipeStart = null;
+        var ax = Math.abs(dx), ay = Math.abs(dy);
+        var distance = Math.max(ax, ay);
+        if (distance < 10) return;
+        var axis = ax >= ay ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+        var found = findEventLink(cfg, el.__suiGraphState, 'swipe', '', {
+          axis: axis, distance: distance, dx: dx, dy: dy, pointerType: e.pointerType
+        });
+        if (found) run(el, cfg, found);
+      };
+      var swipeCancel = function(){ swipeStart = null; };
+      el.addEventListener('pointerdown', swipeDown, { passive: true });
+      document.addEventListener('pointerup', swipeUp, true);
+      document.addEventListener('pointercancel', swipeCancel, true);
+      cleanups.push(function(){
+        el.removeEventListener('pointerdown', swipeDown);
+        document.removeEventListener('pointerup', swipeUp, true);
+        document.removeEventListener('pointercancel', swipeCancel, true);
+      });
+    }
+    if (longLinks.length) {
+      var longStart = null, longTimers = [];
+      function clearLong() {
+        for (var t = 0; t < longTimers.length; t++) clearTimeout(longTimers[t]);
+        longTimers = [];
+        longStart = null;
+      }
+      var longDown = function(e) {
+        if (e.button != null && e.button !== 0) return;
+        clearLong();
+        longStart = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        var from = el.__suiGraphState;
+        for (var i = 0; i < longLinks.length; i++) {
+          (function(link) {
+            if (link.from !== from || !guardPass(link)) return;
+            var hold = Math.max(0, timeMs(link.hold, 500));
+            longTimers.push(setTimeout(function() {
+              if (!longStart || el.__suiGraphState !== link.from || !guardPass(link)) return;
+              clearLong();
+              run(el, cfg, link);
+            }, hold));
+          })(longLinks[i]);
+        }
+      };
+      var longUp = function(){ clearLong(); };
+      var longMove = function(e) {
+        if (!longStart) return;
+        var dx = e.clientX - longStart.x, dy = e.clientY - longStart.y;
+        if (dx * dx + dy * dy > 100) clearLong();
+      };
+      el.addEventListener('pointerdown', longDown, { passive: true });
+      document.addEventListener('pointerup', longUp, true);
+      document.addEventListener('pointercancel', longUp, true);
+      document.addEventListener('pointermove', longMove, true);
+      cleanups.push(function(){
+        clearLong();
+        el.removeEventListener('pointerdown', longDown);
+        document.removeEventListener('pointerup', longUp, true);
+        document.removeEventListener('pointercancel', longUp, true);
+        document.removeEventListener('pointermove', longMove, true);
+      });
+    }
+    if (visLinks.length) {
+      var visState = el.__suiGraphVisState || (el.__suiGraphVisState = Object.create(null));
+      function applyVisibility(entry) {
+        var ratio = entry.intersectionRatio || 0;
+        for (var i = 0; i < visLinks.length; i++) {
+          (function(link) {
+            var key = link.id || (link.event + '|' + link.to);
+            var st = visState[key] || (visState[key] = { vis: false, fired: false });
+            var fallback = link.event === 'hidden' ? 0.2 : 0.5;
+            var threshold = link.threshold != null && link.threshold !== '' ? Number(link.threshold) : fallback;
+            if (!isFinite(threshold)) threshold = fallback;
+            var visNow = !!(entry.isIntersecting && ratio >= threshold);
+            var wasVisible = st.vis;
+            if (link.event === 'visible') {
+              if (visNow && !wasVisible && !(link.once && st.fired) && link.from === el.__suiGraphState && guardPass(link)) {
+                st.fired = true;
+                run(el, cfg, link);
+              }
+            } else if (!visNow && wasVisible && !(link.once && st.fired) && link.from === el.__suiGraphState && guardPass(link)) {
+              st.fired = true;
+              run(el, cfg, link);
+            }
+            st.vis = visNow;
+          })(visLinks[i]);
+        }
+      }
+      // Initial visibility check: the observer normally reports the first
+      // entry after the next frame, but an enter animation should start as
+      // soon as the element is mounted. The once flag keeps a later observer
+      // entry from firing the same link twice.
+      function initialVisibility() {
+        if (!el.isConnected || typeof el.getBoundingClientRect !== 'function') return;
+        var r = el.getBoundingClientRect();
+        var win = window;
+        var vw = win.innerWidth || document.documentElement.clientWidth || 0;
+        var vh = win.innerHeight || document.documentElement.clientHeight || 0;
+        var left = Math.max(0, r.left), top = Math.max(0, r.top);
+        var right = Math.min(vw, r.right), bottom = Math.min(vh, r.bottom);
+        var area = Math.max(0, r.width) * Math.max(0, r.height);
+        var visible = Math.max(0, right - left) * Math.max(0, bottom - top);
+        var ratio = area > 0 ? Math.min(1, visible / area) : 0;
+        applyVisibility({ isIntersecting: visible > 0, intersectionRatio: ratio });
+      }
+      if (typeof IntersectionObserver !== 'undefined') {
+        var observedFirst = false;
+        var observer = new IntersectionObserver(function(entries) {
+          observedFirst = true;
+          for (var e = 0; e < entries.length; e++) applyVisibility(entries[e]);
+        }, { threshold: [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1] });
+        observer.observe(el);
+        var initialTimer = setTimeout(function() {
+          if (observedFirst) return;
+          initialVisibility();
+        }, 0);
+        cleanups.push(function(){ clearTimeout(initialTimer); observer.disconnect(); });
+      } else {
+        var fallbackTimer = setTimeout(function() {
+          if (!el.isConnected) return;
+          initialVisibility();
+        }, 0);
+        cleanups.push(function(){ clearTimeout(fallbackTimer); });
+      }
+    }
+    if (cleanups.length) {
+      el.__suiGraphGestureCleanup = function() {
+        for (var i = 0; i < cleanups.length; i++) { try { cleanups[i](); } catch (e) {} }
+      };
+    }
+  }
   function bind(el, cfg) {
     if (el.__suiGraphBound) unbind(el);
     el.__suiGraphUnbinding = false;
@@ -494,7 +757,8 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     for (var i = 0; i < links.length; i++) {
       var link = links[i];
       var rawEv = link && link.event;
-      if (!rawEv || rawEv === 'after' || rawEv === 'state' || rawEv === 'timer' || rawEv === 'elementState') continue;
+      if (!rawEv || rawEv === 'after' || rawEv === 'state' || rawEv === 'timer' || rawEv === 'elementState' ||
+          rawEv === 'swipe' || rawEv === 'longpress' || rawEv === 'visible' || rawEv === 'hidden') continue;
       var ev = rawEv === 'custom' ? String(link.customEvent || '') : rawEv;
       if (!ev || !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(ev)) continue;
       var sourceId = link.sourceId || '';
@@ -525,6 +789,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
         handlers.push({ event: eventName, fn: fn, target: target, capture: capture });
       })(ev, sourceId);
     }
+    bindGestures(el, cfg, links);
     el.__suiGraphHandlers = handlers;
     el.__suiGraphBound = true;
   }
@@ -586,6 +851,136 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     };
     return el.__suiMotion;
   }
+  var exitSnapshots = [];
+  function stripExitClone(node) {
+    if (!node || node.nodeType !== 1) return;
+    node.setAttribute('aria-hidden', 'true');
+    var all = [node];
+    var found = node.querySelectorAll('*');
+    for (var i = 0; i < found.length; i++) all.push(found[i]);
+    for (var j = 0; j < all.length; j++) {
+      var n = all[j];
+      n.removeAttribute('id');
+      n.removeAttribute('data-sui-id');
+      var attrs = Array.prototype.slice.call(n.attributes || []);
+      for (var a = 0; a < attrs.length; a++) {
+        if (attrs[a].name.indexOf('data-sui-motion') === 0) n.removeAttribute(attrs[a].name);
+      }
+    }
+  }
+  function beforeReplace(root) {
+    exitSnapshots = [];
+    if (reduced || !root || !root.querySelectorAll) return;
+    var els = root.querySelectorAll('[data-sui-motion-graph]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var cfg = el.__suiGraphCfg;
+      if (!cfg) {
+        try { cfg = JSON.parse(el.getAttribute('data-sui-motion-graph') || 'null'); } catch (e) { cfg = null; }
+      }
+      var ex = cfg && cfg.exit;
+      if (!ex || !ex.state || !stateById(cfg, ex.state)) continue;
+      var key = keyOf(el);
+      if (!key) continue;
+      var r = el.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      var clone = el.cloneNode(true);
+      stripExitClone(clone);
+      exitSnapshots.push({
+        key: key, clone: clone, cfg: cfg, exit: ex, state: stateById(cfg, ex.state),
+        rect: { left: r.left, top: r.top, width: r.width, height: r.height }
+      });
+    }
+  }
+  function afterReplace(root) {
+    if (!exitSnapshots.length) return;
+    var seen = Object.create(null);
+    var els = root && root.querySelectorAll ? root.querySelectorAll('[data-sui-motion-graph]') : [];
+    for (var i = 0; i < els.length; i++) {
+      var k = keyOf(els[i]);
+      if (k) seen[k] = 1;
+    }
+    var pending = exitSnapshots;
+    exitSnapshots = [];
+    for (var j = 0; j < pending.length; j++) {
+      if (seen[pending[j].key]) continue;
+      animateExitClone(pending[j]);
+    }
+  }
+  function animateExitClone(snap) {
+    var clone = snap.clone, state = snap.state, ex = snap.exit || {};
+    var decls = parseDecls(state.css || '');
+    if (!decls.length) return;
+    var r = snap.rect;
+    clone.classList.add('sui-motion-graph-exit');
+    clone.style.position = 'fixed';
+    clone.style.left = r.left + 'px';
+    clone.style.top = r.top + 'px';
+    clone.style.width = r.width + 'px';
+    clone.style.height = r.height + 'px';
+    clone.style.margin = '0';
+    clone.style.boxSizing = 'border-box';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '9998';
+    clone.style.transform = 'none';
+    document.body.appendChild(clone);
+    var starts = {}, was = {}, prio = {};
+    for (var a = 0; a < decls.length; a++) {
+      var p0 = decls[a].name;
+      was[p0] = clone.style.getPropertyValue(p0);
+      prio[p0] = clone.style.getPropertyPriority(p0);
+      starts[p0] = getComputedStyle(clone).getPropertyValue(p0);
+    }
+    for (var b = 0; b < decls.length; b++) clone.style.setProperty(decls[b].name, decls[b].value);
+    var ends = {};
+    for (var c = 0; c < decls.length; c++) ends[decls[c].name] = getComputedStyle(clone).getPropertyValue(decls[c].name);
+    for (var d = 0; d < decls.length; d++) {
+      var pd = decls[d].name;
+      if (was[pd]) clone.style.setProperty(pd, was[pd], prio[pd]);
+      else clone.style.removeProperty(pd);
+    }
+    var duration = Math.max(0, timeMs(ex.duration, 240));
+    var delay = Math.max(0, timeMs(ex.delay, 0));
+    var easing = ex.easing || 'ease-out';
+    if (ex.spring) {
+      var generated = springEasing(ex.spring, duration);
+      if (generated) easing = generated;
+    }
+    function removeClone() {
+      if (clone.parentNode) clone.remove();
+    }
+    if (reduced || duration <= 0 || typeof clone.animate !== 'function') {
+      for (var e = 0; e < decls.length; e++) clone.style.setProperty(decls[e].name, decls[e].value);
+      setTimeout(removeClone, 20);
+      return;
+    }
+    var from = {}, to = {};
+    for (var f = 0; f < decls.length; f++) {
+      var pf = decls[f].name;
+      var key = pf.indexOf('--') === 0 ? pf : pf.replace(/-([a-z])/g, function(m, ch){ return ch.toUpperCase(); });
+      from[key] = starts[pf];
+      to[key] = ends[pf];
+    }
+    var anim = null;
+    try {
+      anim = clone.animate([from, to], { duration: duration, delay: delay, easing: easing, fill: 'both' });
+    } catch (err) {
+      for (var g = 0; g < decls.length; g++) clone.style.setProperty(decls[g].name, decls[g].value);
+      setTimeout(removeClone, 20);
+      return;
+    }
+    var done = false;
+    function finishExit() {
+      if (done) return;
+      done = true;
+      if (timer) clearTimeout(timer);
+      for (var h = 0; h < decls.length; h++) clone.style.setProperty(decls[h].name, decls[h].value);
+      try { anim.cancel(); } catch (err2) {}
+      removeClone();
+    }
+    var timer = setTimeout(finishExit, duration + delay + 80);
+    anim.onfinish = finishExit;
+  }
   function init(el) {
     var raw = el.getAttribute('data-sui-motion-graph');
     if (!raw) return;
@@ -595,12 +990,15 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     if (!cfg || !cfg.states || !cfg.states.length) return;
     el.__suiGraphJson = raw;
     el.__suiGraphCfg = cfg;
-    bind(el, cfg);
-    attachApi(el, cfg);
+    // Resolve the starting state before binding: IntersectionObserver can
+    // deliver its first entry in the same task, and visibility links compare
+    // against the element's current state.
     var key = keyOf(el);
     var id = key && stateMemory[key] ? stateMemory[key] : (cfg.initial || cfg.states[0].id);
     if (!stateById(cfg, id)) id = cfg.initial || cfg.states[0].id;
     el.__suiGraphState = id;
+    bind(el, cfg);
+    attachApi(el, cfg);
     applyState(el, cfg, id, null, true);
     scheduleTimers(el, cfg, id);
     // Apply the remembered state and evaluate state triggers in the same DOM
@@ -652,6 +1050,6 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       }
     };
   }
-  return { scan: scan, run: run, init: init };
+  return { scan: scan, run: run, init: init, beforeReplace: beforeReplace, afterReplace: afterReplace };
 })();
 if (typeof window !== 'undefined') window.__SUI_MOTION_GRAPH = __SUI_MOTION_GRAPH;`

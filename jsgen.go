@@ -39,9 +39,11 @@ var SuiPrelude = "\"use strict\";\n" +
   }
   var active = document.activeElement, activeInChart = null;
   if (active) for (var a = 0; a < saved.length; a++) if (saved[a].node.contains(active)) { activeInChart = active; break; }
+  if (typeof __SUI_MOTION_GRAPH !== 'undefined' && __SUI_MOTION_GRAPH.beforeReplace) __SUI_MOTION_GRAPH.beforeReplace(el);
   if (typeof __SUI_MOTION !== 'undefined') __SUI_MOTION.before(el);
   el.innerHTML = html;
   if (typeof __SUI_MOTION !== 'undefined') __SUI_MOTION.after(el);
+  if (typeof __SUI_MOTION_GRAPH !== 'undefined' && __SUI_MOTION_GRAPH.afterReplace) __SUI_MOTION_GRAPH.afterReplace(el);
   if (!saved.length) return;
   var fresh = Array.prototype.slice.call(el.querySelectorAll('[data-sui-chart]'));
   var used = [], changed = [];

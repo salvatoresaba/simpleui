@@ -1253,6 +1253,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
       <div class="mg-toolbar">
         <span id="mg-graph-title" class="hint" style="margin-left:0"></span>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgOpenParam('layout')">Layout &amp; shared</button>
+        <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgOpenParam('exit')">Exit animation</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgPreviewSelected()">Preview</button>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="mgZoomAt(1/1.2)">&#8722;</button>
         <span id="mg-zoom" class="hint" style="min-width:38px;text-align:center">100%</span>
@@ -6868,6 +6869,11 @@ function mgValidateState(st) {
       break;
     }
   }
+  if (mgCfg.exit) {
+    if (!mgCfg.exit.state || !mgStateById(mgCfg.exit.state)) {
+      errors.push("Exit animation needs a valid destination state.");
+    }
+  }
   var singleUsed = {};
   for (var k = 0; k < mgCfg.links.length; k++) {
     var l = mgCfg.links[k];
@@ -6887,6 +6893,21 @@ function mgValidateState(st) {
     }
     var la = mgStateById(l.from), lb = mgStateById(l.to);
     var lname = (la ? la.name : l.from) + " → " + (lb ? lb.name : l.to);
+    var guardError = mgGuardError(l.guard);
+    if (guardError) errors.push("Link " + lname + " guard: " + guardError);
+    if (l.event === "wheel" && l.wheel && ["any", "down", "up"].indexOf(String(l.wheel)) < 0) {
+      errors.push("Link " + lname + " has an invalid wheel direction.");
+    }
+    if (l.event === "swipe") {
+      if (l.axis && ["left", "right", "up", "down"].indexOf(String(l.axis)) < 0) errors.push("Link " + lname + " has an invalid swipe axis.");
+      if (l.distance != null && (!isFinite(Number(l.distance)) || Number(l.distance) < 1)) errors.push("Link " + lname + " needs a positive swipe distance.");
+    }
+    if (l.event === "longpress" && l.hold != null && (!isFinite(Number(l.hold)) || Number(l.hold) < 0)) {
+      errors.push("Link " + lname + " needs a non-negative long press hold.");
+    }
+    if ((l.event === "visible" || l.event === "hidden") && l.threshold != null && (!isFinite(Number(l.threshold)) || Number(l.threshold) < 0 || Number(l.threshold) > 1)) {
+      errors.push("Link " + lname + " needs a visibility ratio between 0 and 1.");
+    }
     if (l.iterations != null) {
       var itv = String(l.iterations).toLowerCase();
       var itn = Number(l.iterations);
@@ -6928,6 +6949,8 @@ var MG_TRIGGER_OPTIONS = [
   ["focus", "focus"], ["blur", "blur"], ["change", "change"], ["input", "input"],
   ["keydown", "key down"], ["keyup", "key up"],
   ["pointerdown", "pointer down"], ["pointerup", "pointer up"], ["submit", "submit"],
+  ["wheel", "wheel"], ["swipe", "swipe"], ["longpress", "long press"],
+  ["visible", "enters viewport"], ["hidden", "leaves viewport"],
   ["custom", "custom event"],
   ["state", "variable value"], ["elementState", "external element state"], ["timer", "timer"], ["after", "after transition"]
 ];
@@ -6957,6 +6980,11 @@ function mgTriggerLabel(link) {
   if (link.event === "state") base = "Variable " + (link.when || "?") + (link.value != null && link.value !== "" ? " = " + link.value : "");
   else if (link.event === "timer") base = "Timer " + (link.timer || "1s");
   else if (link.event === "after") base = "After transition";
+  else if (link.event === "wheel") base = "Wheel" + (link.wheel && link.wheel !== "any" ? " " + link.wheel : "");
+  else if (link.event === "swipe") base = "Swipe " + (link.axis || "any") + " ≥ " + (link.distance != null ? link.distance : 40) + "px";
+  else if (link.event === "longpress") base = "Long press " + (link.hold != null ? link.hold : 500) + "ms";
+  else if (link.event === "visible") base = "Visible ≥ " + (link.threshold != null ? link.threshold : 0.5);
+  else if (link.event === "hidden") base = "Hidden ≤ " + (link.threshold != null ? link.threshold : 0.2);
   else if (link.event === "elementState") base = sourceText + " state " + (link.whenState || "?");
   else if (link.event === "custom") base = (sourceText ? sourceText + ": " : "") + "custom: " + (link.customEvent || "?");
   else if (link.sourceId) base = sourceText + ": " + link.event;
@@ -6971,6 +6999,7 @@ function mgTriggerLabel(link) {
   if (link.iterations != null && String(link.iterations) !== "1") filters.push(String(link.iterations).toLowerCase() === "infinite" ? "infinite" : "×" + link.iterations);
   if (link.direction && link.direction !== "normal") filters.push(link.direction);
   if (link.spring) filters.push("spring");
+  if (link.guard) filters.push("if " + link.guard);
   return filters.length ? base + " [" + filters.join(", ") + "]" : base;
 }
 var MG_EASING_OPTIONS = [
@@ -6991,6 +7020,67 @@ function mgEasingOptions(value) {
   var known = opts.some(function(o){ return o[0] === v; });
   if (!known) opts.unshift([v, "custom (" + v + ")"]);
   return opts;
+}
+function mgGuardError(src) {
+  var s = String(src || "").trim();
+  if (!s) return "";
+  if (s.length > 400) return "Guard is too long.";
+  var tokens = [], i = 0;
+  while (i < s.length) {
+    var ch = s.charAt(i);
+    if (/\s/.test(ch)) { i++; continue; }
+    var three = s.slice(i, i + 3);
+    if (three === "===" || three === "!==") { tokens.push({ t: "op", v: three }); i += 3; continue; }
+    var two = s.slice(i, i + 2);
+    if (two === "&&" || two === "||" || two === "==" || two === "!=" || two === "<=" || two === ">=") {
+      tokens.push({ t: "op", v: two }); i += 2; continue;
+    }
+    if (ch === "!" || ch === "<" || ch === ">" || ch === "(" || ch === ")") {
+      tokens.push({ t: ch, v: ch }); i++; continue;
+    }
+    if (ch === '"' || ch === "'") {
+      var quote = ch; i++;
+      while (i < s.length) {
+        var c = s.charAt(i);
+        if (c === quote) { i++; break; }
+        if (c === "\\" && i + 1 < s.length) { i += 2; continue; }
+        i++;
+      }
+      if (s.charAt(i - 1) !== quote) return "Unterminated string.";
+      tokens.push({ t: "val", v: "" }); continue;
+    }
+    var num = /^-?\d+(?:\.\d+)?/.exec(s.slice(i));
+    if (num) { tokens.push({ t: "val", v: num[0] }); i += num[0].length; continue; }
+    var id = /^[A-Za-z_][A-Za-z0-9_]*/.exec(s.slice(i));
+    if (id) { tokens.push({ t: "val", v: id[0] }); i += id[0].length; continue; }
+    return "Invalid character in guard.";
+  }
+  var expectValue = true, depth = 0;
+  for (var j = 0; j < tokens.length; j++) {
+    var t = tokens[j];
+    if (t.t === "(") {
+      if (!expectValue) return "Expected an operator before '('.";
+      depth++; expectValue = true;
+    } else if (t.t === ")") {
+      if (expectValue) return "Expected a value before ')'.";
+      if (depth <= 0) return "Unbalanced parentheses.";
+      depth--; expectValue = false;
+    } else if (t.t === "op") {
+      if (t.v === "!") {
+        if (!expectValue) return "'!' must be followed by a value.";
+        expectValue = true;
+      } else {
+        if (expectValue) return "Expected a value before an operator.";
+        expectValue = true;
+      }
+    } else {
+      if (!expectValue) return "Expected an operator.";
+      expectValue = false;
+    }
+  }
+  if (depth) return "Unbalanced parentheses.";
+  if (expectValue) return "Guard ends with an operator.";
+  return "";
 }
 function mgTimeMs(v, fallback) {
   if (v == null || v === "") return fallback;
@@ -8081,7 +8171,7 @@ function mgRenderParam() {
   if (overlay) overlay.classList.add("on");
   setTimeout(function(){ mgClampPanel(overlay); }, 0);
   var title = document.getElementById("mg-param-title");
-  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "link" ? "Trigger parameters" : mgParam.kind === "newlink" ? (mgParam.link ? "Link trigger" : "New trigger") : "State parameters";
+  if (title) title.textContent = mgParam.kind === "layout" ? "Layout & shared" : mgParam.kind === "exit" ? "Exit animation" : mgParam.kind === "link" ? "Trigger parameters" : mgParam.kind === "newlink" ? (mgParam.link ? "Link trigger" : "New trigger") : "State parameters";
   function label(t) { var l = document.createElement("label"); l.textContent = t; side.appendChild(l); return l; }
   function input(v, ph) { var i = document.createElement("input"); i.value = v || ""; i.placeholder = ph || ""; i.spellcheck = false; side.appendChild(i); return i; }
   function select(v, opts) {
@@ -8312,6 +8402,30 @@ function mgRenderParam() {
     afterHint.className = "hint";
     afterHint.textContent = "Starts automatically when the transition into this state finishes. Chain several after links to build a sequence.";
     side.appendChild(afterHint);
+    label("guard"); var guardInp = input(editLink ? (editLink.guard || "") : "", 'e.g. open && mode == "edit"');
+    var guardHint = document.createElement("div"); guardHint.className = "hint";
+    guardHint.textContent = "Optional condition using SUI state names, &&, ||, ! and comparisons.";
+    side.appendChild(guardHint);
+    var wheelLabel = label("wheel direction");
+    var wheelSel = select(editLink && editLink.wheel ? editLink.wheel : "any", [["any", "any"], ["down", "down"], ["up", "up"]]);
+    var swipeAxisLabel = label("swipe axis");
+    var swipeAxisSel = select(editLink && editLink.axis ? editLink.axis : "left", [["left", "left"], ["right", "right"], ["up", "up"], ["down", "down"]]);
+    var swipeDistLabel = label("minimum distance (px)");
+    var swipeDistInp = input(editLink && editLink.distance != null ? String(editLink.distance) : "40", "40");
+    swipeDistInp.type = "number"; swipeDistInp.min = "1"; swipeDistInp.step = "1";
+    var holdLabel = label("hold (ms)");
+    var holdInp = input(editLink && editLink.hold != null ? String(editLink.hold) : "500", "500");
+    holdInp.type = "number"; holdInp.min = "0"; holdInp.step = "50";
+    var visThresholdLabel = label("visibility ratio");
+    var visThresholdInp = input(editLink && editLink.threshold != null ? String(editLink.threshold) : "0.5", "0.5");
+    visThresholdInp.type = "number"; visThresholdInp.min = "0"; visThresholdInp.max = "1"; visThresholdInp.step = "0.05";
+    var onceRow = document.createElement("div"); onceRow.className = "rowline"; onceRow.style.marginTop = "6px";
+    var onceCb = document.createElement("input"); onceCb.type = "checkbox"; onceCb.checked = !!(editLink && editLink.once); onceCb.style.flex = "none";
+    var onceLbl = document.createElement("label"); onceLbl.textContent = "fire once"; onceLbl.style.margin = "0 0 0 4px";
+    onceRow.appendChild(onceCb); onceRow.appendChild(onceLbl); side.appendChild(onceRow);
+    var gestureHint = document.createElement("div"); gestureHint.className = "hint";
+    gestureHint.textContent = "Gestures use this element. Visibility uses IntersectionObserver.";
+    side.appendChild(gestureHint);
 
     var externalChoices = mgExternalChoices();
     var externalById = {};
@@ -8445,7 +8559,9 @@ function mgRenderParam() {
     function syncTriggerFields() {
       var ev = evSel.value;
       var showState = ev === "state";
-      var isDom = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState";
+      var isGesture = ev === "swipe" || ev === "longpress" || ev === "visible" || ev === "hidden";
+      var isWheel = ev === "wheel";
+      var isDom = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState" && !isGesture && !isWheel;
       var isExtState = ev === "elementState";
       var isCustom = ev === "custom";
       var isKey = ev === "keydown" || ev === "keyup";
@@ -8470,6 +8586,18 @@ function mgRenderParam() {
       timerLabel.style.display = ev === "timer" ? "" : "none";
       timerInp.style.display = ev === "timer" ? "" : "none";
       afterHint.style.display = ev === "after" ? "" : "none";
+      wheelLabel.style.display = isWheel ? "" : "none";
+      wheelSel.style.display = isWheel ? "" : "none";
+      swipeAxisLabel.style.display = ev === "swipe" ? "" : "none";
+      swipeAxisSel.style.display = ev === "swipe" ? "" : "none";
+      swipeDistLabel.style.display = ev === "swipe" ? "" : "none";
+      swipeDistInp.style.display = ev === "swipe" ? "" : "none";
+      holdLabel.style.display = ev === "longpress" ? "" : "none";
+      holdInp.style.display = ev === "longpress" ? "" : "none";
+      visThresholdLabel.style.display = (ev === "visible" || ev === "hidden") ? "" : "none";
+      visThresholdInp.style.display = (ev === "visible" || ev === "hidden") ? "" : "none";
+      onceRow.style.display = (ev === "visible" || ev === "hidden") ? "" : "none";
+      gestureHint.style.display = (isGesture || isWheel) ? "" : "none";
       sourceCode.style.display = showSource ? "" : "none";
       if (showSource) syncSourceCode();
       if (isExtState) syncExternalStates();
@@ -8488,11 +8616,35 @@ function mgRenderParam() {
       if (MG_SINGLE_EVENTS[ev] && mgTriggerUsedExcept(mgParam.id, ev, editLink ? editLink.id : "")) { mgNotify("This trigger is already used by this state."); return; }
       var extSource = sourceSel.value || "";
       var extChoice = externalById[String(extSource)];
-      var isDomEvent = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState";
+      var isGestureEvent = ev === "swipe" || ev === "longpress" || ev === "visible" || ev === "hidden";
+      var isDomEvent = !!ev && ev !== "state" && ev !== "timer" && ev !== "after" && ev !== "elementState" && ev !== "wheel" && !isGestureEvent;
       var isCurrentCustom = ev === "custom";
       var isCurrentKey = ev === "keydown" || ev === "keyup";
       var showCurrentButton = isDomEvent && !isCurrentKey && !isCurrentCustom && ev !== "input" && ev !== "submit" && ev !== "change" && ev !== "focus" && ev !== "blur";
       if (isCurrentCustom && !/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(customInp.value.trim())) { mgNotify("Enter a valid custom event name."); return; }
+      var guardError = mgGuardError(guardInp.value);
+      if (guardError) { mgNotify(guardError); return; }
+      function applyGuard(obj) {
+        if (guardInp.value.trim()) obj.guard = guardInp.value.trim(); else delete obj.guard;
+      }
+      function applyGesture(obj) {
+        delete obj.wheel; delete obj.axis; delete obj.distance; delete obj.hold; delete obj.threshold; delete obj.once;
+        if (ev === "wheel") {
+          if (wheelSel.value !== "any") obj.wheel = wheelSel.value;
+        } else if (ev === "swipe") {
+          obj.axis = swipeAxisSel.value;
+          var sd = Number(swipeDistInp.value);
+          obj.distance = isFinite(sd) && sd > 0 ? Math.round(sd) : 40;
+        } else if (ev === "longpress") {
+          var lh = Number(holdInp.value);
+          obj.hold = isFinite(lh) && lh >= 0 ? Math.round(lh) : 500;
+        } else if (ev === "visible" || ev === "hidden") {
+          var vt = Number(visThresholdInp.value);
+          if (!isFinite(vt) || vt < 0 || vt > 1) vt = ev === "hidden" ? 0.2 : 0.5;
+          obj.threshold = vt;
+          if (onceCb.checked) obj.once = true;
+        }
+      }
       if (ev === "elementState") {
         if (!extSource || !extChoice) { mgNotify("Choose a valid external element for the external state trigger."); return; }
         if (!extStateSel.value) { mgNotify("Choose the external state."); return; }
@@ -8536,6 +8688,8 @@ function mgRenderParam() {
         if (ev === "elementState") editLink.whenState = extStateSel.value;
         else delete editLink.whenState;
         applyFilters(editLink);
+        applyGuard(editLink);
+        applyGesture(editLink);
         mgSelLink = ""; mgSelState = "";
         mgNode.motionGraph = mgCfg; setOut(); autoPreview(); mgRender();
         mgFinishEdit(true);
@@ -8561,6 +8715,8 @@ function mgRenderParam() {
       }
       if (ev === "elementState") link.whenState = extStateSel.value;
       applyFilters(link);
+      applyGuard(link);
+      applyGesture(link);
       mgCfg.links.push(link);
       mgSelLink = link.id;
       mgSelState = "";
@@ -8581,6 +8737,39 @@ function mgRenderParam() {
   // Layout & shared is part of the same panel: it controls FLIP movement,
   // list reordering and page transitions, while states/links control explicit
   // triggers. Keeping both here avoids a second inspector configuration.
+  if (mgParam.kind === "exit") {
+    var exCfg = mgCfg.exit || {};
+    var eh = document.createElement("div"); eh.className = "hint";
+    eh.textContent = "Runs when SUI removes this element. A fixed ghost clone animates from the current appearance to the chosen state, then disappears.";
+    side.appendChild(eh);
+    label("exit state");
+    var exitStates = [["", "(none)"]];
+    (mgCfg.states || []).forEach(function(st){ exitStates.push([st.id, st.name || st.id]); });
+    if (exCfg.state && !mgStateById(exCfg.state)) exitStates.push([exCfg.state, exCfg.state + " (missing)"]);
+    var exitStateSel = select(exCfg.state || "", exitStates);
+    function ensureExitCfg() {
+      if (!mgCfg.exit) mgCfg.exit = { state: "", duration: "240ms", easing: "ease-out", delay: "0ms" };
+      return mgCfg.exit;
+    }
+    exitStateSel.onchange = function(){
+      snap("motion graph exit state");
+      if (!exitStateSel.value) delete mgCfg.exit;
+      else ensureExitCfg().state = exitStateSel.value;
+      mgCommit(); mgRenderParam();
+    };
+    label("duration"); var exitDur = input(exCfg.duration || "240ms", "240ms");
+    exitDur.onchange = function(){ snap("motion graph exit duration"); ensureExitCfg().duration = exitDur.value.trim() || "240ms"; mgCommit(); };
+    label("easing"); var exitEase = select(exCfg.easing || "ease-out", mgEasingOptions(exCfg.easing));
+    exitEase.onchange = function(){ snap("motion graph exit easing"); ensureExitCfg().easing = exitEase.value; mgCommit(); };
+    label("delay"); var exitDelay = input(exCfg.delay || "0ms", "0ms");
+    exitDelay.onchange = function(){ snap("motion graph exit delay"); ensureExitCfg().delay = exitDelay.value.trim() || "0ms"; mgCommit(); };
+    var exitNote = document.createElement("div"); exitNote.className = "hint";
+    exitNote.textContent = "Only one exit state per graph. The state CSS supplies the final values.";
+    side.appendChild(exitNote);
+    var exitActions = actions();
+    btn(exitActions, "OK", function(){ mgCloseParam(); mgRender(); });
+    return;
+  }
   if (mgParam.kind === "layout") {
   label("Layout & shared (FLIP / lists / pages)");
   var le = select(mgNode.motion || "", [["", "off"], ["layout", "layout (FLIP)"], ["fade", "fade"], ["scale", "scale"], ["slide", "slide"]]);
@@ -8616,16 +8805,22 @@ function mgRenderParam() {
     var h = document.createElement("div"); h.className = "hint";
     h.textContent = (a ? a.name : l.from) + " → " + (b ? b.name : l.to);
     side.appendChild(h);
-    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["input","input"],["keydown","key down"],["keyup","key up"],["pointerdown","pointer down"],["pointerup","pointer up"],["submit","submit"],["custom","custom event"],["state","variable value"],["elementState","external element state"],["timer","timer"],["after","after transition"]]);
+    label("trigger"); var ev = select(l.event || "", [["","(choose trigger)"],["click","click"],["dblclick","double click"],["mouseover","mouse over"],["mouseout","mouse out"],["mouseenter","mouse enter"],["mouseleave","mouse leave"],["pointerenter","pointer enter"],["pointerleave","pointer leave"],["focus","focus"],["blur","blur"],["change","change"],["input","input"],["keydown","key down"],["keyup","key up"],["pointerdown","pointer down"],["pointerup","pointer up"],["submit","submit"],["wheel","wheel"],["swipe","swipe"],["longpress","long press"],["visible","enters viewport"],["hidden","leaves viewport"],["custom","custom event"],["state","variable value"],["elementState","external element state"],["timer","timer"],["after","after transition"]]);
     ev.onchange = function(){
       snap("motion graph trigger");
       l.event = ev.value;
       if (ev.value !== "elementState") delete l.whenState;
-      if (ev.value === "state" || ev.value === "timer" || ev.value === "after") {
+      if (ev.value === "state" || ev.value === "timer" || ev.value === "after" || ev.value === "wheel" ||
+          ev.value === "swipe" || ev.value === "longpress" || ev.value === "visible" || ev.value === "hidden") {
         delete l.sourceId; delete l.sourceLabel;
         delete l.ctrl; delete l.alt; delete l.shift; delete l.meta;
         delete l.button; delete l.key;
       }
+      delete l.wheel; delete l.axis; delete l.distance; delete l.hold; delete l.threshold; delete l.once;
+      if (ev.value === "swipe") { l.axis = "left"; l.distance = 40; }
+      if (ev.value === "longpress") l.hold = 500;
+      if (ev.value === "visible") l.threshold = 0.5;
+      if (ev.value === "hidden") l.threshold = 0.2;
       if (ev.value !== "custom") delete l.customEvent;
       if (ev.value !== "keydown" && ev.value !== "keyup") delete l.key;
       if (ev.value === "custom" || ev.value === "keydown" || ev.value === "keyup" || ev.value === "input" || ev.value === "submit" || ev.value === "change" || ev.value === "focus" || ev.value === "blur") delete l.button;
@@ -8636,10 +8831,23 @@ function mgRenderParam() {
       afterLinkNote.textContent = "Starts when the transition into " + (a ? a.name : l.from) + " finishes.";
       side.appendChild(afterLinkNote);
     }
+    label("guard"); var guardInp = input(l.guard || "", 'e.g. open && mode == "edit"');
+    guardInp.onchange = function(){
+      var ge = mgGuardError(guardInp.value);
+      if (ge) { mgNotify(ge); guardInp.value = l.guard || ""; return; }
+      snap("motion graph guard");
+      if (guardInp.value.trim()) l.guard = guardInp.value.trim(); else delete l.guard;
+      mgCommit();
+    };
+    var guardNote = document.createElement("div"); guardNote.className = "hint";
+    guardNote.textContent = "Optional condition using SUI state names, &&, ||, ! and comparisons. The trigger runs only when it is true.";
+    side.appendChild(guardNote);
     var linkExternal = mgExternalChoices();
     var linkExternalById = {};
     linkExternal.forEach(function(c){ linkExternalById[String(c.id)] = c; if (c.altId != null) linkExternalById[String(c.altId)] = c; });
-    var linkDomEvent = l.event && l.event !== "state" && l.event !== "timer" && l.event !== "after" && l.event !== "elementState";
+    var linkGesture = l.event === "swipe" || l.event === "longpress" || l.event === "visible" || l.event === "hidden";
+    var linkWheel = l.event === "wheel";
+    var linkDomEvent = l.event && l.event !== "state" && l.event !== "timer" && l.event !== "after" && l.event !== "elementState" && !linkGesture && !linkWheel;
     if (linkDomEvent || l.event === "elementState") {
       label("event source");
       var sourceSel = document.createElement("select");
@@ -8742,6 +8950,63 @@ function mgRenderParam() {
         }
         snap("motion graph timer"); l.timer = Math.round(n) + "ms"; mgCommit();
       };
+    }
+    if (linkWheel) {
+      label("wheel direction");
+      var wheelSel = select(l.wheel || "any", [["any", "any"], ["down", "down"], ["up", "up"]]);
+      wheelSel.onchange = function(){
+        snap("motion graph wheel direction");
+        if (wheelSel.value === "any") delete l.wheel; else l.wheel = wheelSel.value;
+        mgCommit();
+      };
+    }
+    if (l.event === "swipe") {
+      label("swipe axis");
+      var axisSel = select(l.axis || "left", [["left", "left"], ["right", "right"], ["up", "up"], ["down", "down"]]);
+      axisSel.onchange = function(){ snap("motion graph swipe axis"); l.axis = axisSel.value; mgCommit(); };
+      label("minimum distance (px)");
+      var distInp = input(String(l.distance != null ? l.distance : 40), "40");
+      distInp.type = "number"; distInp.min = "1"; distInp.step = "1";
+      distInp.onchange = function(){
+        var n = Number(distInp.value);
+        if (!isFinite(n) || n < 1) { mgNotify("Swipe distance must be a positive number."); distInp.value = String(l.distance != null ? l.distance : 40); return; }
+        snap("motion graph swipe distance"); l.distance = Math.round(n); mgCommit();
+      };
+      var swipeNote = document.createElement("div"); swipeNote.className = "hint";
+      swipeNote.textContent = "The gesture is recognized on pointer release in the chosen direction.";
+      side.appendChild(swipeNote);
+    }
+    if (l.event === "longpress") {
+      label("hold (ms)");
+      var holdInp = input(String(l.hold != null ? l.hold : 500), "500");
+      holdInp.type = "number"; holdInp.min = "0"; holdInp.step = "50";
+      holdInp.onchange = function(){
+        var n = Number(holdInp.value);
+        if (!isFinite(n) || n < 0) { mgNotify("Long press hold must be a non-negative number."); holdInp.value = String(l.hold != null ? l.hold : 500); return; }
+        snap("motion graph long press hold"); l.hold = Math.round(n); mgCommit();
+      };
+      var holdNote = document.createElement("div"); holdNote.className = "hint";
+      holdNote.textContent = "Canceled when the pointer moves more than about 10 px.";
+      side.appendChild(holdNote);
+    }
+    if (l.event === "visible" || l.event === "hidden") {
+      label("visibility ratio");
+      var visDefault = l.event === "hidden" ? 0.2 : 0.5;
+      var thresholdInp = input(String(l.threshold != null ? l.threshold : visDefault), "0.5");
+      thresholdInp.type = "number"; thresholdInp.min = "0"; thresholdInp.max = "1"; thresholdInp.step = "0.05";
+      thresholdInp.onchange = function(){
+        var n = Number(thresholdInp.value);
+        if (!isFinite(n) || n < 0 || n > 1) { mgNotify("Visibility ratio must be between 0 and 1."); thresholdInp.value = String(l.threshold != null ? l.threshold : visDefault); return; }
+        snap("motion graph visibility ratio"); l.threshold = n; mgCommit();
+      };
+      var onceRow = document.createElement("div"); onceRow.className = "rowline"; onceRow.style.marginTop = "6px";
+      var onceCb = document.createElement("input"); onceCb.type = "checkbox"; onceCb.checked = !!l.once; onceCb.style.flex = "none";
+      onceCb.onchange = function(){ snap("motion graph visibility once"); if (onceCb.checked) l.once = true; else delete l.once; mgCommit(); };
+      var onceLbl = document.createElement("label"); onceLbl.textContent = "fire once"; onceLbl.style.margin = "0 0 0 4px";
+      onceRow.appendChild(onceCb); onceRow.appendChild(onceLbl); side.appendChild(onceRow);
+      var visNote = document.createElement("div"); visNote.className = "hint";
+      visNote.textContent = "Uses IntersectionObserver; the link fires when the ratio crosses the threshold.";
+      side.appendChild(visNote);
     }
     linkTimingFields(l);
     var ac = actions();
@@ -8893,6 +9158,7 @@ function mgDeleteState(id) {
   delete mgAutoPositions[id];
   mgCfg.states = mgCfg.states.filter(function(s){ return s.id !== id; });
   mgCfg.links = mgCfg.links.filter(function(l){ return l.from !== id && l.to !== id; });
+  if (mgCfg.exit && mgCfg.exit.state === id) delete mgCfg.exit;
   if (mgCfg.initial === id) mgCfg.initial = mgCfg.states[0].id;
   if (mgSelState === id) mgSelState = mgCfg.initial;
   if (mgParam && mgParam.kind === "state" && mgParam.id === id) mgParam = null;

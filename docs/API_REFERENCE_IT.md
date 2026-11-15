@@ -400,7 +400,8 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
 - `links[].event` può essere `click`, `dblclick`, `mouseover`, `mouseout`,
   `mouseenter`, `mouseleave`, `pointerenter`, `pointerleave`, `focus`, `blur`,
   `change`, `input`, `keydown`, `keyup`, `pointerdown`, `pointerup`, `submit`,
-  `custom`, `state`, `elementState` o `after`.
+  `wheel`, `swipe`, `longpress`, `visible`, `hidden`, `custom`, `state`,
+  `elementState` o `after`.
 - `links[].sourceId` collega un evento DOM a un altro elemento (il suo
   `data-sui-id` o `data-sui-motion-key`); `whenState` seleziona lo stato del
   motion graph di quell'elemento per `elementState`. `sourceLabel` è l'etichetta
@@ -408,9 +409,26 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   sorgente per un riferimento stabile e leggibile; le chiavi usano lettere,
   cifre, `_`, `.`, `:` e `-`.
 - Gli eventi `custom` usano `customEvent` come nome DOM. I link DOM possono avere
-  filtri: `key` per gli eventi tastiera, `ctrl`/`alt`/`shift`/`meta` e `button`
-  per il puntatore. Se più link corrispondono allo stesso stato/evento vince
-  quello con i filtri più specifici.
+  filtri: `key` per gli eventi tastiera, `ctrl`/`alt`/`shift`/`meta`, `button`
+  per il puntatore e `wheel` (`any`, `down`, `up`) per la rotella. Se più link
+  corrispondono allo stesso stato/evento vince quello con i filtri più specifici.
+- `links[].guard` è una condizione opzionale valutata prima di eseguire il
+  trigger. È un piccolo linguaggio sicuro, non JavaScript: nomi di stati SUI
+  (booleani, numeri, stringhe), `true`/`false`/`null`, `!`, `&&`, `||`, confronti
+  (`==`, `===`, `!=`, `!==`, `<`, `<=`, `>`, `>=`) e parentesi. Nessun `eval` e
+  nessuna chiamata a funzioni. I nomi sconosciuti valgono `undefined`; una guard
+  non valida non scatta mai. Le guard filtrano eventi DOM, trigger di stato ed
+  elemento esterno, timer, link `after`, API dell'elemento e `run`.
+- Link gesto: `swipe` usa `axis` (`left`, `right`, `up`, `down`) e `distance`
+  (pixel minimi, default 40); `longpress` usa `hold` (millisecondi, default 500,
+  annullato dopo circa 10 px di movimento). Entrambi usano i pointer events e
+  sono ripetibili, quindi possono scattare di nuovo dopo il ritorno allo stato
+  sorgente.
+- Link di visibilità: `visible` scatta quando l'elemento entra nel viewport e
+  `hidden` quando esce. `threshold` è la frazione visibile tra `0` e `1`
+  (default `0.5` per `visible`, `0.2` per `hidden`); `once: true` scatta solo la
+  prima volta. Usano `IntersectionObserver` con un controllo iniziale immediato,
+  così le animazioni di ingresso partono appena l'elemento viene montato.
 - `links[].iterations` è un intero positivo o `"infinite"`; `direction` è
   `normal`, `reverse`, `alternate` o `alternate-reverse`; `playbackRate` è tra
   `0.1` e `10`. `spring: {stiffness, damping, mass}` sostituisce `easing` e usa
@@ -454,6 +472,18 @@ posizione fissa. Pannelli e overlay restano dentro il viewport visibile.
 **Layout & shared** nella toolbar apre le impostazioni classiche `motion`,
 `motionKey`, `motionDuration`, `motionEasing`, `motionDelay` e `motionExit`
 usate da FLIP, riordino liste e transizioni tra pagine.
+**Exit animation** nella toolbar modifica `motionGraph.exit`:
+
+```json
+{"state":"gone","duration":"240ms","easing":"ease-out","delay":"0ms"}
+```
+
+Quando SUI rimuove un elemento gestito dal grafo, il runtime ne clona lo stato
+attuale nella posizione corrente, rimuove identità e attributi motion e anima il
+clone verso i valori CSS di `exit.state` (anche con `spring`). Il clone è inerte,
+ignora i pointer events e viene rimosso al termine. Gli elementi che
+sopravvivono al render non producono un clone di uscita. Con
+`prefers-reduced-motion` l'elemento viene rimosso senza clone.
 
 I blocchi crescono in altezza con i trigger uscenti e possono essere trascinati
 in posizioni personalizzate. Il canvas supporta zoom con la rotella, pan

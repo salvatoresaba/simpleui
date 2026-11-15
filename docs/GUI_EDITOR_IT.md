@@ -1035,6 +1035,9 @@ Seleziona un elemento e apri **Motion > Open animation panel**. Il pannello
 contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
 
 - **Layout & shared** nella toolbar apre l'overlay per FLIP/liste/pagine.
+  **Exit animation** apre l'overlay di uscita: scegli lo stato di destinazione,
+  durata, easing e delay. Il runtime anima un clone fisso quando SUI rimuove
+  l'elemento.
 - Il pannello è compatto e ha un handle di ridimensionamento nell'angolo in
   basso a destra. Il canvas centra e adatta il diagramma; la toolbar ha i
   controlli **&#8722;**, **+** e **Fit** con la percentuale di zoom. Trascina lo
@@ -1104,10 +1107,21 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   `mouseover`/`mouseout` fanno bubbling, quindi scattano anche attraversando gli
   elementi figli e possono ripetersi più volte.
 - Il chooser espone anche `keydown`, `keyup`, `input`, `submit`, `pointerdown`,
-  `pointerup` ed eventi **custom**. I link tastiera/custom possono avere filtri
-  key, mouse button e Ctrl/Alt/Shift/Meta; se più link corrispondono allo stesso
-  stato/evento vince il filtro più specifico. Gli eventi custom usano il nome DOM
-  inserito nel chooser.
+  `pointerup`, **wheel**, **swipe**, **long press**, **enters viewport**,
+  **leaves viewport** ed eventi **custom**. I link tastiera/custom possono avere
+  filtri key, mouse button e Ctrl/Alt/Shift/Meta; se più link corrispondono allo
+  stesso stato/evento vince il filtro più specifico. Gli eventi custom usano il
+  nome DOM inserito nel chooser.
+- I link wheel possono filtrare `down` o `up`. I link swipe scelgono un asse e
+  una distanza minima (default 40 px); quelli long press scelgono il tempo di
+  pressione (default 500 ms). I link di visibilità scelgono una frazione tra 0 e 1
+  (`0.5` per entra, `0.2` per esce) e l'opzione **fire once**. Gesti e viewport
+  sono ripetibili, quindi non sono nell'elenco degli eventi singoli.
+- L'overlay del trigger ha un campo **guard** opzionale. Accetta nomi di stati
+  SUI, `true`/`false`/`null`, numeri, stringhe, `!`, `&&`, `||`, confronti e
+  parentesi (ad esempio `open && mode == "edit"`). L'editor valida l'espressione
+  prima di salvare e il runtime non usa mai `eval`; una guard non valida blocca la
+  transizione.
 - Le transizioni usano il motore di animazione del browser con valori iniziali e
   finali calcolati: `transform`, filtri, box shadow, clip path, gradienti,
   colori, lunghezze e custom properties vengono animati dove supportato; i valori

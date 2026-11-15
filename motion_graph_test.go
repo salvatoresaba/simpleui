@@ -564,6 +564,220 @@ func TestMotionGraphLoopsAndEventsE2E(t *testing.T) {
 	t.Fatalf("motion graph loops/events e2e failed:\n%s", detail)
 }
 
+const motionGraphGuardsGesturesExitScript = `<script>
+(async function () {
+  function result(ok, message) {
+    var el = document.getElementById('e2e-result');
+    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.appendChild(el); }
+    el.textContent = ok ? 'OK' : 'FAIL: ' + message;
+    document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
+  }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  var graphSeq = 0;
+  function setGraph(el, cfg, key) {
+    if (key) el.setAttribute('data-sui-motion-key', key + '-' + (++graphSeq));
+    el.setAttribute('data-sui-motion-graph', JSON.stringify(cfg));
+    el.__suiGraphJson = '';
+    window.__SUI_MOTION_GRAPH.init(el);
+  }
+  function baseCfg(links) {
+    return { initial: 'a', states: [
+      { id: 'a', css: 'width: 100px; height: 80px; background-color: #223344;' },
+      { id: 'b', css: 'width: 180px; height: 100px; background-color: #557799;' }
+    ], links: links };
+  }
+  function swipe(el, x1, y1, x2, y2) {
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'mouse', button: 0, buttons: 1, clientX: x1, clientY: y1 }));
+    document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'mouse', button: 0, buttons: 0, clientX: x2, clientY: y2 }));
+  }
+  try {
+    var guard = document.querySelector('.guard-card');
+    var wheel = document.querySelector('.wheel-card');
+    var swipeCard = document.querySelector('.swipe-card');
+    var hold = document.querySelector('.hold-card');
+    var vis = document.querySelector('.vis-card');
+    var toggle = document.querySelector('.toggle');
+    var exitRoot = document.querySelector('.exit-root');
+    var exitCard = document.querySelector('.exit-card');
+    for (var i = 0; i < 120 && (!guard || !wheel || !swipeCard || !hold || !vis || !toggle || !exitRoot || !exitCard || !window.__SUI_MOTION_GRAPH); i++) await wait(50);
+    if (!guard || !wheel || !swipeCard || !hold || !vis || !toggle || !exitRoot || !exitCard || !window.__SUI_MOTION_GRAPH) throw new Error('test elements missing');
+    if (!window.__SUI_STATE_GET || !window.__SUI_STATE_GET.allowed) throw new Error('SUI state getter missing');
+
+    setGraph(guard, baseCfg([
+      { id: 'g1', from: 'a', to: 'b', event: 'click', guard: 'allowed && mode == "edit"', duration: '80ms', easing: 'linear' }
+    ]), 'guard-card');
+    guard.click(); await wait(180);
+    if (guard.__suiGraphState !== 'a') throw new Error('guard should block while allowed is false');
+    toggle.click(); await wait(120);
+    if (!window.__SUI_STATE_GET.allowed()) throw new Error('toggle did not set allowed');
+    // A state change re-renders the view, so the original nodes are detached.
+    // Re-query before exercising layout-dependent gestures.
+    guard = document.querySelector('.guard-card');
+    wheel = document.querySelector('.wheel-card');
+    swipeCard = document.querySelector('.swipe-card');
+    hold = document.querySelector('.hold-card');
+    vis = document.querySelector('.vis-card');
+    exitRoot = document.querySelector('.exit-root');
+    exitCard = document.querySelector('.exit-card');
+    if (!guard || !wheel || !swipeCard || !hold || !vis || !exitRoot || !exitCard) throw new Error('test elements missing after re-render');
+    guard.click(); await wait(220);
+    if (guard.__suiGraphState !== 'b') throw new Error('guard did not allow the transition');
+    setGraph(guard, baseCfg([
+      { id: 'g2', from: 'a', to: 'b', event: 'click', guard: 'allowed &&', duration: '80ms', easing: 'linear' }
+    ]), 'guard-card');
+    guard.click(); await wait(180);
+    if (guard.__suiGraphState !== 'a') throw new Error('invalid guard should not fire');
+
+    setGraph(wheel, baseCfg([
+      { id: 'w1', from: 'a', to: 'b', event: 'wheel', wheel: 'down', duration: '80ms', easing: 'linear' }
+    ]), 'wheel-card');
+    wheel.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 120 }));
+    await wait(220);
+    if (wheel.__suiGraphState !== 'b') throw new Error('wheel down did not fire');
+    setGraph(wheel, baseCfg([
+      { id: 'w2', from: 'a', to: 'b', event: 'wheel', wheel: 'down', duration: '80ms', easing: 'linear' }
+    ]), 'wheel-card');
+    wheel.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -120 }));
+    await wait(180);
+    if (wheel.__suiGraphState !== 'a') throw new Error('wheel up should not match down');
+
+    setGraph(swipeCard, baseCfg([
+      { id: 's1', from: 'a', to: 'b', event: 'swipe', axis: 'right', distance: 40, duration: '80ms', easing: 'linear' }
+    ]), 'swipe-card');
+    swipe(swipeCard, 20, 20, 120, 20);
+    await wait(220);
+    if (swipeCard.__suiGraphState !== 'b') throw new Error('swipe right did not fire');
+    setGraph(swipeCard, baseCfg([
+      { id: 's2', from: 'a', to: 'b', event: 'swipe', axis: 'right', distance: 40, duration: '80ms', easing: 'linear' }
+    ]), 'swipe-card');
+    swipe(swipeCard, 120, 20, 20, 20);
+    await wait(180);
+    if (swipeCard.__suiGraphState !== 'a') throw new Error('swipe left should not match right');
+
+    setGraph(hold, baseCfg([
+      { id: 'h1', from: 'a', to: 'b', event: 'longpress', hold: 120, duration: '80ms', easing: 'linear' }
+    ]), 'hold-card');
+    hold.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 8, pointerType: 'mouse', button: 0, buttons: 1, clientX: 20, clientY: 20 }));
+    await wait(220);
+    document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 8, pointerType: 'mouse', button: 0, buttons: 0, clientX: 20, clientY: 20 }));
+    if (hold.__suiGraphState !== 'b') throw new Error('long press did not fire');
+    setGraph(hold, baseCfg([
+      { id: 'h2', from: 'a', to: 'b', event: 'longpress', hold: 180, duration: '80ms', easing: 'linear' }
+    ]), 'hold-card');
+    hold.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 9, pointerType: 'mouse', button: 0, buttons: 1, clientX: 20, clientY: 20 }));
+    await wait(60);
+    document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 9, pointerType: 'mouse', button: 0, buttons: 0, clientX: 20, clientY: 20 }));
+    await wait(200);
+    if (hold.__suiGraphState !== 'a') throw new Error('short long press should not fire');
+
+    setGraph(vis, baseCfg([
+      { id: 'v1', from: 'a', to: 'b', event: 'visible', threshold: 0.5, once: true, duration: '80ms', easing: 'linear' }
+    ]), 'vis-card');
+    await wait(900);
+    if (vis.__suiGraphState !== 'b') throw new Error('visible trigger did not fire');
+
+    setGraph(exitCard, {
+      initial: 'a',
+      states: [
+        { id: 'a', css: 'width: 100px; height: 80px; background-color: #223344;' },
+        { id: 'gone', css: 'width: 160px; height: 100px; opacity: 0; background-color: #aa4444;' }
+      ],
+      links: [],
+      exit: { state: 'gone', duration: '200ms', easing: 'linear' }
+    }, 'exit-card');
+    window.__SUI_MOTION_GRAPH.beforeReplace(exitRoot);
+    exitRoot.innerHTML = '<p>gone</p>';
+    window.__SUI_MOTION_GRAPH.afterReplace(exitRoot);
+    await wait(70);
+    var clone = document.body.querySelector('.sui-motion-graph-exit');
+    if (!clone) throw new Error('exit clone was not created');
+    var exitAnims = clone.getAnimations ? clone.getAnimations() : [];
+    if (!exitAnims.length) throw new Error('exit clone has no animation');
+    var frames = exitAnims[0].effect.getKeyframes();
+    var lastOpacity = frames.length ? String(frames[frames.length - 1].opacity) : '';
+    if (parseFloat(lastOpacity) !== 0) throw new Error('exit animation does not target transparent: ' + lastOpacity);
+    // Headless virtual time does not advance animation frames after load, so
+    // seek the animation explicitly before reading the computed style.
+    exitAnims[0].currentTime = 100;
+    await wait(20);
+    var co = parseFloat(getComputedStyle(clone).opacity);
+    if (!(co < 0.98)) throw new Error('exit clone did not animate opacity: ' + co);
+    await wait(300);
+    if (document.body.querySelector('.sui-motion-graph-exit')) throw new Error('exit clone was not removed');
+    result(true);
+  } catch (e) {
+    result(false, e && e.message ? e.message : String(e));
+  }
+})();
+</script>`
+
+func TestMotionGraphGuardsGesturesExitE2E(t *testing.T) {
+	browser := findHeadlessBrowser()
+	if browser == "" {
+		t.Skip("no Chrome/Edge found; skipping motion graph test")
+	}
+	source := "css \".box \\{ width: 100px; height: 80px; background: #223344; margin: 4px; \\} .exit-root \\{ width: 300px; height: 140px; \\}\"\n" +
+		"state allowed = false\n" +
+		"state mode = \"edit\"\n" +
+		"fn toggleAllowed() -> null { allowed = not allowed }\n" +
+		"view main {\n" +
+		"\tbutton \"Toggle\" class: \"toggle\" onClick: toggleAllowed\n" +
+		"\tcard class: \"box guard-card\" { p \"Guard\" }\n" +
+		"\tcard class: \"box wheel-card\" { p \"Wheel\" }\n" +
+		"\tcard class: \"box swipe-card\" { p \"Swipe\" }\n" +
+		"\tcard class: \"box hold-card\" { p \"Hold\" }\n" +
+		"\tcard class: \"box vis-card\" { p \"Visible\" }\n" +
+		"\tdiv class: \"exit-root\" { card class: \"box exit-card\" { p \"Exit\" } }\n" +
+		"}\n"
+	index, css, js, diags, ok := guiBuildFiles(source)
+	if !ok {
+		t.Fatalf("build files: %s", StringifyJson(diags))
+	}
+	page := CombineSingleHTML(index, css, js, false)
+	if idx := strings.LastIndex(page, "</body>"); idx >= 0 {
+		page = page[:idx] + motionGraphGuardsGesturesExitScript + page[idx:]
+	} else {
+		t.Fatal("compiled page has no closing body")
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "text/html; charset=utf-8", page)
+	})
+	go func() { _ = http.Serve(ln, mux) }()
+	url := "http://" + ln.Addr().String() + "/"
+	time.Sleep(50 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	args := []string{
+		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
+		"--no-first-run", "--no-default-browser-check", "--window-size=1000,700",
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=20000", "--dump-dom", url,
+	}
+	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
+	text := string(out)
+	if err != nil {
+		t.Fatalf("headless browser failed: %v\n%s", err, text)
+	}
+	if strings.Contains(text, `id="e2e-result">OK<`) {
+		return
+	}
+	marker := strings.Index(text, `id="e2e-result"`)
+	detail := text
+	if marker >= 0 {
+		end := marker + 2000
+		if end > len(text) {
+			end = len(text)
+		}
+		detail = text[marker:end]
+	}
+	t.Fatalf("motion guards/gestures/exit e2e failed:\n%s", detail)
+}
+
 func TestMotionGraphE2E(t *testing.T) {
 	browser := findHeadlessBrowser()
 	if browser == "" {
