@@ -1,0 +1,162 @@
+# Motion features: guards, gestures, visibility and exit
+
+This project is a focused, runnable tour of the motion-graph features added on
+top of states, links and timing.
+
+## What it demonstrates
+
+- **Guards**: the guarded card opens only while `gate && editing` is true.
+- **Wheel**: scrolling down over the gesture card moves it to the wheel state.
+- **Swipe**: a left swipe of at least 45 px moves it to the swipe state.
+- **Long press**: holding for 600 ms moves it to the hold state.
+- **Timers**: each gesture state returns to idle after 900 ms.
+- **Visibility**: the card below the fold lights at 60% visibility and dims when
+  it leaves the viewport.
+- **Exit animation**: removing the conditional card animates a ghost clone to
+  the `gone` state before it disappears.
+- **Designer support**: every feature is editable from **Motion > Open
+  animation panel**, including the guard field, gesture fields and the exit
+  overlay.
+
+## Complete SUI source
+
+```sui
+# Motion features: guards, gestures, viewport visibility and exit animation.
+#
+# Open the designer, select a card, then Motion > Open animation panel.
+# The guard card demonstrates a multi-condition guard. The gesture card reacts
+# to wheel, swipe and long press. The visibility card is below the fold and
+# reacts to entering and leaving the viewport. The exit card is removed by an
+# `if` and animates through its `exit` state.
+
+css ".page \{ max-width: 1100px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 22px; \} .grid \{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; align-items: start; \} .card \{ box-sizing: border-box; border: 1px solid #3a4152; border-radius: 16px; padding: 18px; color: #e6e6ef; display: flex; flex-direction: column; gap: 10px; justify-self: stretch; \} .card h2 \{ margin: 0; font-size: 17px; \} .note \{ color: #8fa0b8; font-size: 12px; line-height: 1.5; \} .actions \{ display: flex; flex-wrap: wrap; align-items: center; gap: 10px; \} .spacer \{ height: 95vh; display: flex; align-items: flex-start; justify-content: center; color: #65718a; font-size: 13px; \} .vis-card \{ width: 100%; min-height: 170px; \}"
+
+state gate = false
+state editing = true
+state showExit = true
+
+fn toggleGate() -> null {
+	gate = not gate
+}
+
+fn toggleEditing() -> null {
+	editing = not editing
+}
+
+fn toggleExit() -> null {
+	showExit = not showExit
+}
+
+view main {
+	title "Motion features"
+	col class: "page" {
+		h1 "Guards, gestures, visibility and exit"
+		p "Every card below is a motion graph. Use the buttons to change the guard, try pointer gestures, scroll the page to enter or leave the viewport, and remove the exit card." class: "note"
+
+		div class: "grid" {
+			col {
+				row class: "actions" {
+					button "Toggle gate" onClick: toggleGate
+					button "Toggle editing" onClick: toggleEditing
+				}
+				p "gate = {gate} · editing = {editing}" class: "note"
+				card class: "card guard-card" motionKey: "guard-card" motionGraph: "\{\"initial\":\"locked\",\"states\":[\{\"id\":\"locked\",\"name\":\"Locked\",\"css\":\"width: 100%; min-height: 170px; background-color: #34303f; opacity: 0.65; transform: translateY(0px);\"\},\{\"id\":\"open\",\"name\":\"Open\",\"css\":\"width: 100%; min-height: 170px; background-color: #4a8f6a; opacity: 1; transform: translateY(-4px);\"\}],\"links\":[\{\"id\":\"try-open\",\"from\":\"locked\",\"to\":\"open\",\"event\":\"click\",\"guard\":\"gate && editing\",\"duration\":\"240ms\",\"easing\":\"ease-out\"\},\{\"id\":\"close\",\"from\":\"open\",\"to\":\"locked\",\"event\":\"click\",\"duration\":\"180ms\",\"easing\":\"ease-in\"\}]\}" {
+					h2 "Guarded transition"
+					p "Click the card. It opens only when gate and editing are both true." class: "note"
+				}
+			}
+
+			card class: "card gesture-card" motionKey: "gesture-card" motionGraph: "\{\"initial\":\"idle\",\"states\":[\{\"id\":\"idle\",\"name\":\"Idle\",\"css\":\"width: 100%; min-height: 170px; background-color: #2f3440; transform: translateX(0px);\"\},\{\"id\":\"wheeled\",\"name\":\"Wheeled\",\"css\":\"width: 100%; min-height: 170px; background-color: #3f6f8f; transform: translateY(-4px);\"\},\{\"id\":\"swiped\",\"name\":\"Swiped\",\"css\":\"width: 100%; min-height: 170px; background-color: #8f6f3f; transform: translateX(10px);\"\},\{\"id\":\"held\",\"name\":\"Held\",\"css\":\"width: 100%; min-height: 170px; background-color: #8f3f6f; transform: scale(1.02);\"\}],\"links\":[\{\"id\":\"on-wheel\",\"from\":\"idle\",\"to\":\"wheeled\",\"event\":\"wheel\",\"wheel\":\"down\",\"duration\":\"180ms\",\"easing\":\"ease-out\"\},\{\"id\":\"wheel-back\",\"from\":\"wheeled\",\"to\":\"idle\",\"event\":\"timer\",\"timer\":\"900ms\",\"duration\":\"180ms\",\"easing\":\"ease-in\"\},\{\"id\":\"on-swipe\",\"from\":\"idle\",\"to\":\"swiped\",\"event\":\"swipe\",\"axis\":\"left\",\"distance\":45,\"duration\":\"180ms\",\"easing\":\"ease-out\"\},\{\"id\":\"swipe-back\",\"from\":\"swiped\",\"to\":\"idle\",\"event\":\"timer\",\"timer\":\"900ms\",\"duration\":\"180ms\",\"easing\":\"ease-in\"\},\{\"id\":\"on-hold\",\"from\":\"idle\",\"to\":\"held\",\"event\":\"longpress\",\"hold\":600,\"duration\":\"180ms\",\"easing\":\"ease-out\"\},\{\"id\":\"hold-back\",\"from\":\"held\",\"to\":\"idle\",\"event\":\"timer\",\"timer\":\"900ms\",\"duration\":\"180ms\",\"easing\":\"ease-in\"\}]\}" {
+				h2 "Wheel, swipe and long press"
+				p "Wheel down, swipe left, or hold for 600 ms. Each state returns to idle after 900 ms." class: "note"
+			}
+
+			col {
+				row class: "actions" {
+					button "Add or remove card" onClick: toggleExit
+				}
+				if showExit {
+					card class: "card exit-card" motionKey: "exit-card" motionGraph: "\{\"initial\":\"shown\",\"states\":[\{\"id\":\"shown\",\"name\":\"Shown\",\"css\":\"width: 100%; min-height: 170px; background-color: #3e6fa8; opacity: 1; transform: scale(1);\"\},\{\"id\":\"gone\",\"name\":\"Gone\",\"css\":\"width: 100%; min-height: 170px; background-color: #6f3e3e; opacity: 0; transform: scale(0.9);\"\}],\"links\":[],\"exit\":\{\"state\":\"gone\",\"duration\":\"320ms\",\"easing\":\"ease-in\"\}\}" {
+						h2 "Exit animation"
+						p "This card is removed by SUI. A ghost clone fades and scales down before it disappears." class: "note"
+					}
+				}
+				if showExit == false {
+					p "Card removed. Click again to add it back; the exit animation runs each time." class: "note"
+				}
+			}
+		}
+
+		h2 "Viewport visibility"
+		p "Scroll down. The card lights when 60% is visible and dims when it leaves. The spacer keeps it below the fold on load." class: "note"
+		div class: "spacer" {
+			p "↓ keep scrolling ↓"
+		}
+		card class: "card vis-card visibility-card" motionKey: "visibility-card" motionGraph: "\{\"initial\":\"dim\",\"states\":[\{\"id\":\"dim\",\"name\":\"Dim\",\"css\":\"width: 100%; min-height: 170px; background-color: #2b2b3a; opacity: 0.35; transform: scale(0.98);\"\},\{\"id\":\"lit\",\"name\":\"Lit\",\"css\":\"width: 100%; min-height: 170px; background-color: #c98a2e; opacity: 1; transform: scale(1);\"\}],\"links\":[\{\"id\":\"enter\",\"from\":\"dim\",\"to\":\"lit\",\"event\":\"visible\",\"threshold\":0.6,\"duration\":\"260ms\",\"easing\":\"ease-out\"\},\{\"id\":\"leave\",\"from\":\"lit\",\"to\":\"dim\",\"event\":\"hidden\",\"threshold\":0.6,\"duration\":\"260ms\",\"easing\":\"ease-in\"\}]\}" {
+			h2 "Visibility card"
+			p "This element reacts to visible and hidden links with threshold 0.6." class: "note"
+		}
+		div class: "spacer" {
+			p "↓ scroll back up to hide it ↓"
+		}
+	}
+}
+
+```
+
+## Build and run
+
+```bash
+simpleui check examples/motion_features/app.sui --json
+simpleui build examples/motion_features/app.sui --out examples/motion_features/dist
+simpleui build examples/motion_features/app.sui --single --out example.html
+simpleui serve examples/motion_features/app.sui --watch
+```
+
+The `run.ps1` / `run.bat` scripts rebuild the desktop demo and launch it. A
+ready-to-run build is in `dist/`, with the complete source as `dist/app.sui`.
+
+## Try it
+
+1. Read the state line under the buttons: `gate` and `editing` start as
+   `false` and `true`. Click the guarded card: nothing happens.
+2. Click **Toggle gate**, then click the card: it opens. Click **Toggle
+   editing** and try again: the guard blocks the transition.
+3. Move the pointer over the gesture card and scroll down, swipe left, or hold
+   for 600 ms. Watch the state color and wait for the timer to return to idle.
+4. Scroll down to the visibility card. It lights when at least 60% is visible.
+   Scroll further so it leaves the viewport and it dims again.
+5. Click **Add or remove card** on the exit card. The card is removed by SUI and
+   a ghost clone fades and scales down. Add it back and remove it again.
+
+## Designer workflow
+
+1. Open the project:
+   `simpleui gui examples/motion_features/app.sui`.
+2. Select **Guarded transition**, open **Motion > Open animation panel**, then
+   double-click the arrow. Edit the optional **guard** field. The editor
+   validates the expression before saving; an invalid guard is rejected with a
+   notification.
+3. Select the gesture card and double-click its arrows to see the **wheel**,
+   **swipe** and **long press** options with their direction, axis, distance and
+   hold fields.
+4. Select the visibility card to edit **enters viewport** and **leaves
+   viewport**, the ratio and **fire once**.
+5. Select the exit card and use **Exit animation** in the toolbar to choose the
+   destination state, duration, easing and delay.
+6. Use **Preview** to play a state or link without leaving the editor.
+
+## Limits and notes
+
+- Guards are intentionally not JavaScript: state names, literals, `!`, `&&`,
+  `||`, comparisons and parentheses only. No arithmetic, property access or
+  function calls.
+- An invalid guard never fires. Unknown names evaluate to `undefined`.
+- Explicit `SimpleUIMotion.to()` calls are programmatic and are not blocked by a
+  link guard.
+- Gestures use pointer events. A browser without pointer events still supports
+  ordinary DOM triggers; long press is canceled after about 10 px of movement.
+- Visibility uses `IntersectionObserver` with an immediate initial check. In a
+  browser without it, only the initial visibility is evaluated.
+- Exit animation has one destination state per graph. The ghost clone is a
+  snapshot: later changes to the original element do not affect it.

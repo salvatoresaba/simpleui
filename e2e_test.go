@@ -240,6 +240,8 @@ func TestExamplesCompile(t *testing.T) {
 		"examples/wrapper.sui",
 		"examples/chat.sui",
 		"examples/todo.sui",
+		"examples/motion_features/app.sui",
+		"examples/motion_sequence/app.sui",
 	}
 	for i := 0; i < len(examples); i++ {
 		data, err := os.ReadFile(examples[i])

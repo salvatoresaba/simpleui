@@ -350,6 +350,16 @@
       "sections": ["What it demonstrates", "Complete SUI source", "How it works", "Designer workflow", "Build and run", "Limits and critical points"]
     },
     {
+      "id": "motion_features_example",
+      "path": "examples/motion_features/README.md",
+      "title": "Motion features: guards, gestures, visibility and exit",
+      "summary": "Focused runnable project for motion-graph guards, wheel/swipe/long-press gestures, viewport visibility and exit animation, with designer workflow and complete source.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["examples", "motion", "motion-graph", "guard", "gestures", "wheel", "swipe", "long-press", "visibility", "exit", "designer"],
+      "sections": ["What it demonstrates", "Complete SUI source", "Build and run", "Try it", "Designer workflow", "Limits and notes"]
+    },
+    {
       "id": "index_it",
       "path": "docs/INDEX_IT.md",
       "title": "Documentation index (Italian)",

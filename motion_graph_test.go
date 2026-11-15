@@ -676,6 +676,29 @@ const motionGraphGuardsGesturesExitScript = `<script>
     await wait(900);
     if (vis.__suiGraphState !== 'b') throw new Error('visible trigger did not fire');
 
+    // Deterministic threshold/once/hidden test: hide the card so the initial
+    // viewport check sees ratio 0, then feed synthetic IntersectionObserver
+    // entries. Headless virtual time does not deliver later observer frames.
+    vis.style.display = 'none';
+    setGraph(vis, baseCfg([
+      { id: 'v2', from: 'a', to: 'b', event: 'visible', threshold: 0.6, once: true, duration: '60ms', easing: 'linear' },
+      { id: 'v3', from: 'b', to: 'a', event: 'hidden', threshold: 0.5, duration: '60ms', easing: 'linear' }
+    ]), 'vis-card');
+    await wait(120);
+    if (typeof vis.__suiGraphApplyVisibility !== 'function') throw new Error('visibility evaluator hook missing');
+    vis.__suiGraphApplyVisibility({ isIntersecting: true, intersectionRatio: 0.4 });
+    await wait(120);
+    if (vis.__suiGraphState !== 'a') throw new Error('visible fired below threshold');
+    vis.__suiGraphApplyVisibility({ isIntersecting: true, intersectionRatio: 0.8 });
+    await wait(160);
+    if (vis.__suiGraphState !== 'b') throw new Error('visible did not fire above threshold');
+    vis.__suiGraphApplyVisibility({ isIntersecting: false, intersectionRatio: 0.2 });
+    await wait(160);
+    if (vis.__suiGraphState !== 'a') throw new Error('hidden trigger did not fire');
+    vis.__suiGraphApplyVisibility({ isIntersecting: true, intersectionRatio: 0.9 });
+    await wait(160);
+    if (vis.__suiGraphState !== 'a') throw new Error('once visibility link fired twice');
+
     setGraph(exitCard, {
       initial: 'a',
       states: [

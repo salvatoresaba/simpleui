@@ -705,6 +705,11 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
           })(visLinks[i]);
         }
       }
+      // Expose the evaluator for deterministic tests and for hosts that
+      // already know the visible ratio (for example a virtualized list).
+      // It is an internal hook and is cleared when the graph is unbound.
+      el.__suiGraphApplyVisibility = applyVisibility;
+      cleanups.push(function() { el.__suiGraphApplyVisibility = null; });
       // Initial visibility check: the observer normally reports the first
       // entry after the next frame, but an enter animation should start as
       // soon as the element is mounted. The once flag keeps a later observer

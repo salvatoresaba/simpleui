@@ -162,7 +162,7 @@ For desktop capabilities:
 | Runtime chart tags/colors, unique element ids, event-list polling, custom hints, table view/focus, element read/write API, static mode and shape/tag events | `docs/STATE_CHART_RUNTIME.md`, `docs/STDLIB.md#chart-module-chart-core` | `examples/process_monitor/README.md` |
 | Multi-page navigation | `docs/API_REFERENCE.md#pages-and-navigation`, `docs/GUI_EDITOR.md#pages` | `examples/pages/README.md` |
 | Modal dialogs | `docs/API_REFERENCE.md#modal-dialogs`, `docs/GUI_EDITOR.md#modal-control` | `examples/modal.sui` |
-| Motion loops, spring easing, graph events, guards, gestures, visibility and exit | `docs/API_REFERENCE.md#motion-graph-states-and-triggers`, `docs/GUI_EDITOR.md#animation-panel` | `examples/motion_sequence/README.md` |
+| Motion loops, spring easing, graph events, guards, gestures, visibility and exit | `docs/API_REFERENCE.md#motion-graph-states-and-triggers`, `docs/GUI_EDITOR.md#animation-panel` | `examples/motion_features/README.md`, `examples/motion_sequence/README.md` |
 | Drag/drop or native file picker | `docs/GUI_EDITOR.md`, `docs/AGENT_RECIPES.md#drag-and-drop`, `docs/API_REFERENCE.md#drag-and-drop` | `examples/drag_drop.sui`, `examples/file_picker.sui` |
 | Remote JSON API | `docs/AGENT_RECIPES.md#remote-json-api--table`, `docs/STDLIB.md#http-module-http` | `examples/users/app.sui` |
 | POST/update remote data | `docs/AGENT_RECIPES.md#remote-crud-form`, `SECURITY.md` | `examples/users/app.sui` |
