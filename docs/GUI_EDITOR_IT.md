@@ -586,15 +586,37 @@ e **Barber pole** per Progress, **Dual ring**, **Gradient ring** e **Coin flip**
 per Spinner, **Glass** per Card e Toast, **Pill** per Button e Input, e
 **Striped**, **Borderless** e **Rounded** per Table. Diversi preset includono
 un effetto di movimento; la scheda Animation/Effects espone gli effetti anche
-direttamente:
+direttamente.
 
-- Progress: pulse, strisce scorrevoli, shimmer e glow.
-- Spinner: rotazione classica, pulse e flip verticale.
-- Badge: pulse, glow e float.
-- Alert: fade in, slide in, shake e pulse.
-- Card: fade in e float.
-- Button: pulse, float e glow.
-- Toast: discesa, fade, zoom, salita e rimbalzo.
+La libreria di animazioni è organizzata in base a ciò che il controllo fa, quindi
+ogni effetto reagisce al meccanismo del controllo invece di essere un loop
+generico:
+
+| Controllo | Effetti |
+|---|---|
+| Progress | none, pulse, strisce, shimmer, glow, **indeterminate** (banda che scorre), **aurora** (deriva di tonalità), **breathe** (respiro verticale), **ticker** (blocchi a scatti), **spark** (sfarfallio irregolare), **wave** (bande verticali) |
+| Spinner | rotazione classica, pulse, flip, **reverse**, **orbit**, **wobble**, **bounce**, **ripple**, **swing** |
+| Badge | none, pulse, glow, float, **pop**, **blink**, **tilt**, **ping** (anello che si irradia), **bounce**, **jelly**, **sheen** |
+| Alert | none, fade in, slide in, shake, pulse, **zoom in**, **bounce in**, **slide right**, **wobble**, **breathe** (alone colorato), **flash** |
+| Card | none, fade in, float, **rise**, **zoom in**, **tilt in** (3D), **halo**, **drift**, **unfold** |
+| Button | none, pulse, float, glow, **jelly**, **bounce**, **tilt**, **ring**, **sheen**, **press** |
+| Toast | discesa, fade, zoom, salita, rimbalzo, **flip**, **swing**, **pop**, **slide left**, **squash** |
+| Switch | none, **pop**, **bounce**, **pulse ring**, **jelly** (parte quando lo switch si accende) |
+| Checkbox / Radio | none, **pop**, **bounce**, **jelly**, **ring** (parte quando viene selezionato) |
+| Input / Textarea / Select | none, **focus ring**, **focus glow**, **focus lift** |
+| Tabs | none, **pop**, **slide**, **glow** (parte sulla scheda attiva) |
+
+Gli effetti legati allo stato partono quando il controllo cambia stato
+(selezionato, in focus, scheda attiva) invece di ripetersi all'infinito. Ogni
+effetto in loop o di ingresso include anche una guardia
+`prefers-reduced-motion`: quando il sistema operativo chiede movimento ridotto,
+le animazioni decorative si fermano o lo spinner rallenta, mentre colori e
+layout del controllo restano invariati.
+
+I preset che mostrano i nuovi effetti sono **Aurora** e **Scanner** per Progress,
+**Live** per Badge, **Arcade** per Button e **Aurora halo** per Card. Il selettore
+**Style** continua a scrivere palette e forma insieme, quindi scegliere un preset
+e poi cambiare l'animazione mantiene il resto dell'aspetto.
 
 La famiglia **Sketch** ha versioni Light e Dark, condivise da tutti e venti i
 pannelli, cosi i componenti sulla stessa pagina restano visivamente coerenti. La

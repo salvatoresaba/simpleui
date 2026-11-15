@@ -562,15 +562,35 @@ The presets cover all twenty-one component panels, for example **Neon glow** and
 **Barber pole** for Progress, **Dual ring**, **Gradient ring** and **Coin flip**
 for Spinner, **Glass** for Card and Toast, **Pill** for Button and Input, and
 **Striped**, **Borderless** and **Rounded** for Table. Several presets include a
-motion effect; the Animation/Effects tab also exposes the effects directly:
+motion effect; the Animation/Effects tab also exposes the effects directly.
 
-- Progress: pulse, scrolling stripes, shimmer and glow.
-- Spinner: classic spin, pulse and vertical flip.
-- Badge: pulse, glow and float.
-- Alert: fade in, slide in, shake and pulse.
-- Card: fade in and float.
-- Button: pulse, float and glow.
-- Toast: slide down, fade, zoom, slide up and bounce.
+The animation library is organised by what the control does, so each effect
+reacts to the control's own mechanism instead of being a generic loop:
+
+| Control | Effects |
+|---|---|
+| Progress | none, pulse, stripes, shimmer, glow, **indeterminate** (scanning band), **aurora** (hue drift), **breathe** (vertical breathing), **ticker** (stepped blocks), **spark** (irregular flicker), **wave** (vertical bands) |
+| Spinner | classic spin, pulse, flip, **reverse**, **orbit**, **wobble**, **bounce**, **ripple**, **swing** |
+| Badge | none, pulse, glow, float, **pop**, **blink**, **tilt**, **ping** (radiating ring), **bounce**, **jelly**, **sheen** |
+| Alert | none, fade in, slide in, shake, pulse, **zoom in**, **bounce in**, **slide right**, **wobble**, **breathe** (coloured glow), **flash** |
+| Card | none, fade in, float, **rise**, **zoom in**, **tilt in** (3D), **halo**, **drift**, **unfold** |
+| Button | none, pulse, float, glow, **jelly**, **bounce**, **tilt**, **ring**, **sheen**, **press** |
+| Toast | slide down, fade, zoom, slide up, bounce, **flip**, **swing**, **pop**, **slide left**, **squash** |
+| Switch | none, **pop**, **bounce**, **pulse ring**, **jelly** (runs when the switch turns on) |
+| Checkbox / Radio | none, **pop**, **bounce**, **jelly**, **ring** (runs when checked) |
+| Input / Textarea / Select | none, **focus ring**, **focus glow**, **focus lift** |
+| Tabs | none, **pop**, **slide**, **glow** (runs on the active tab) |
+
+State-driven effects run when the control changes state (checked, focused,
+active tab) rather than looping forever. Every looping or entrance effect also
+ships a `prefers-reduced-motion` guard: when the operating system asks for
+reduced motion, decorative animations stop or the spinner slows down, while the
+control keeps its colours and layout.
+
+Presets that showcase the new effects: **Aurora** and **Scanner** for Progress,
+**Live** for Badge, **Arcade** for Button and **Aurora halo** for Card. The
+**Style** selector still writes palette and shape together, so choosing a preset
+and then changing the animation keeps the rest of the look.
 
 The **Sketch** family has Light and Dark versions, shared by all twenty panels so
 components placed on the same page stay visually related. The light variant uses
