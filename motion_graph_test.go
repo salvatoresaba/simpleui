@@ -704,6 +704,19 @@ const motionGraphGuardsGesturesExitScript = `<script>
     if (!(co < 0.98)) throw new Error('exit clone did not animate opacity: ' + co);
     await wait(300);
     if (document.body.querySelector('.sui-motion-graph-exit')) throw new Error('exit clone was not removed');
+
+    // Real SUI removal: toggling a SUI state makes __sui_replace_view drop the
+    // conditional card, so the runtime hooks must create the exit clone.
+    var liveToggle = document.querySelector('.exit-toggle');
+    var liveCard = document.querySelector('.exit-live');
+    if (!liveToggle || !liveCard) throw new Error('live exit elements missing');
+    liveToggle.click();
+    await wait(120);
+    if (document.querySelector('.exit-live[data-sui-id]')) throw new Error('SUI did not remove the conditional card');
+    var liveClone = document.body.querySelector('.sui-motion-graph-exit');
+    if (!liveClone) throw new Error('SUI removal did not create an exit clone');
+    await wait(350);
+    if (document.body.querySelector('.sui-motion-graph-exit')) throw new Error('SUI exit clone was not removed');
     result(true);
   } catch (e) {
     result(false, e && e.message ? e.message : String(e));
@@ -716,18 +729,24 @@ func TestMotionGraphGuardsGesturesExitE2E(t *testing.T) {
 	if browser == "" {
 		t.Skip("no Chrome/Edge found; skipping motion graph test")
 	}
+	exitGraph := `{"initial":"shown","states":[{"id":"shown","css":"width: 100px; height: 80px; background-color: #223344;"},{"id":"gone","css":"width: 100px; height: 80px; opacity: 0;"}],"links":[],"exit":{"state":"gone","duration":"200ms","easing":"linear"}}`
+	exitAttr := strings.NewReplacer("{", "\\{", "}", "\\}", "\"", "\\\"").Replace(exitGraph)
 	source := "css \".box \\{ width: 100px; height: 80px; background: #223344; margin: 4px; \\} .exit-root \\{ width: 300px; height: 140px; \\}\"\n" +
 		"state allowed = false\n" +
 		"state mode = \"edit\"\n" +
+		"state showExit = true\n" +
 		"fn toggleAllowed() -> null { allowed = not allowed }\n" +
+		"fn toggleExit() -> null { showExit = not showExit }\n" +
 		"view main {\n" +
 		"\tbutton \"Toggle\" class: \"toggle\" onClick: toggleAllowed\n" +
+		"\tbutton \"Exit toggle\" class: \"exit-toggle\" onClick: toggleExit\n" +
 		"\tcard class: \"box guard-card\" { p \"Guard\" }\n" +
 		"\tcard class: \"box wheel-card\" { p \"Wheel\" }\n" +
 		"\tcard class: \"box swipe-card\" { p \"Swipe\" }\n" +
 		"\tcard class: \"box hold-card\" { p \"Hold\" }\n" +
 		"\tcard class: \"box vis-card\" { p \"Visible\" }\n" +
 		"\tdiv class: \"exit-root\" { card class: \"box exit-card\" { p \"Exit\" } }\n" +
+		"\tif showExit { card class: \"box exit-live\" motionGraph: \"" + exitAttr + "\" { p \"Exit live\" } }\n" +
 		"}\n"
 	index, css, js, diags, ok := guiBuildFiles(source)
 	if !ok {

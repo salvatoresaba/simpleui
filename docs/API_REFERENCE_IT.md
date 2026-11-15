@@ -418,7 +418,8 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   (`==`, `===`, `!=`, `!==`, `<`, `<=`, `>`, `>=`) e parentesi. Nessun `eval` e
   nessuna chiamata a funzioni. I nomi sconosciuti valgono `undefined`; una guard
   non valida non scatta mai. Le guard filtrano eventi DOM, trigger di stato ed
-  elemento esterno, timer, link `after`, API dell'elemento e `run`.
+  elemento esterno, timer, link `after` e `run`. Le chiamate esplicite a
+  `SimpleUIMotion.to()` sono programmatiche e non vengono bloccate da una guard.
 - Link gesto: `swipe` usa `axis` (`left`, `right`, `up`, `down`) e `distance`
   (pixel minimi, default 40); `longpress` usa `hold` (millisecondi, default 500,
   annullato dopo circa 10 px di movimento). Entrambi usano i pointer events e

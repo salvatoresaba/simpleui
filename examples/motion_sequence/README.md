@@ -228,7 +228,8 @@ safe expression language, not JavaScript: state names, `true`/`false`/`null`,
 numbers, strings, `!`, `&&`, `||`, comparisons and parentheses. There is no
 `eval` and no function call. Unknown names evaluate to `undefined`; an invalid
 guard never fires. Guards apply to DOM events, state/external-state triggers,
-timers, `after` links, the element API and `run`.
+timers, `after` links and `run`. Explicit `SimpleUIMotion.to()` calls are
+programmatic and are not blocked by a link guard.
 
 ### Gestures and visibility
 
