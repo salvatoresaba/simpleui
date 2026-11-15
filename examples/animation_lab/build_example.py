@@ -232,10 +232,6 @@ __VIEW__
 '''
 
 app = app.replace("__CSS__", esc(css)).replace("__VIEW__", view)
-# Card and button share the "bStyle"/"bAnim" names in the lab helpers; the
-# actual states above use bStyle for the badge, so rename the button pair in
-# the generated view.
-
 
 io.open(root + r"\app.sui", "w", encoding="utf-8", newline="\n").write(app)
 print("written")
