@@ -124,6 +124,8 @@ ready-to-run build is in `dist/`, with the complete source as `dist/app.sui`.
    editing** and try again: the guard blocks the transition.
 3. Move the pointer over the gesture card and scroll down, swipe left, or hold
    for 600 ms. Watch the state color and wait for the timer to return to idle.
+   The card is also keyboard accessible: focus it, then use ArrowLeft for swipe,
+   PageDown for wheel, or hold Space/Enter for long press.
 4. Scroll down to the visibility card. It lights when at least 60% is visible.
    Scroll further so it leaves the viewport and it dims again.
 5. Click **Add or remove card** on the exit card. The card is removed by SUI and

@@ -751,6 +751,48 @@ const motionGraphGuardsGesturesExitScript = `<script>
     await wait(220);
     if (hold.__suiGraphState !== 'a') throw new Error('long press was not canceled by pointercancel');
 
+    if (vis.hasAttribute('tabindex')) throw new Error('visibility-only card should not become tabbable');
+    setGraph(swipeCard, baseCfg([
+      { id: 'k1', from: 'a', to: 'b', event: 'swipe', axis: 'left', distance: 40, duration: '60ms', easing: 'linear' }
+    ]), 'key-swipe');
+    swipeCard.focus();
+    if (swipeCard.getAttribute('tabindex') !== '0') throw new Error('gesture card is not keyboard focusable');
+    if (!swipeCard.classList.contains('sui-gesture-focus')) throw new Error('gesture focus class missing');
+    swipeCard.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+    await wait(180);
+    if (swipeCard.__suiGraphState !== 'b') throw new Error('keyboard swipe did not fire');
+    setGraph(swipeCard, baseCfg([
+      { id: 'k2', from: 'a', to: 'b', event: 'swipe', axis: 'left', distance: 40, duration: '60ms', easing: 'linear' }
+    ]), 'key-swipe');
+    swipeCard.focus();
+    swipeCard.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    await wait(160);
+    if (swipeCard.__suiGraphState !== 'a') throw new Error('wrong keyboard swipe direction fired');
+    setGraph(swipeCard, baseCfg([
+      { id: 'k3', from: 'a', to: 'b', event: 'wheel', wheel: 'down', duration: '60ms', easing: 'linear' }
+    ]), 'key-wheel');
+    swipeCard.focus();
+    swipeCard.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }));
+    await wait(180);
+    if (swipeCard.__suiGraphState !== 'b') throw new Error('keyboard wheel did not fire');
+    setGraph(hold, baseCfg([
+      { id: 'k4', from: 'a', to: 'b', event: 'longpress', hold: 150, duration: '60ms', easing: 'linear' }
+    ]), 'key-hold-short');
+    hold.focus();
+    hold.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    await wait(50);
+    hold.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }));
+    await wait(200);
+    if (hold.__suiGraphState !== 'a') throw new Error('short keyboard long press fired');
+    setGraph(hold, baseCfg([
+      { id: 'k5', from: 'a', to: 'b', event: 'longpress', hold: 120, duration: '60ms', easing: 'linear' }
+    ]), 'key-hold');
+    hold.focus();
+    hold.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    await wait(180);
+    hold.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }));
+    if (hold.__suiGraphState !== 'b') throw new Error('keyboard long press did not fire');
+
     setGraph(vis, baseCfg([
       { id: 'v1', from: 'a', to: 'b', event: 'visible', threshold: 0.5, once: true, duration: '80ms', easing: 'linear' }
     ]), 'vis-card');
@@ -784,11 +826,13 @@ const motionGraphGuardsGesturesExitScript = `<script>
       initial: 'a',
       states: [
         { id: 'a', css: 'width: 100px; height: 80px; background-color: #223344;' },
-        { id: 'gone', css: 'width: 160px; height: 100px; opacity: 0; background-color: #aa4444;' }
+        { id: 'gone', css: 'width: 50%; height: 100px; opacity: 0; background-color: #aa4444;' }
       ],
       links: [],
       exit: { state: 'gone', duration: '200ms', easing: 'linear', delay: '40ms', spring: { stiffness: 180, damping: 14, mass: 1 } }
     }, 'exit-card');
+    exitCard.style.transform = 'translateY(-10px) scale(1.1) rotate(8deg)';
+    var originalRect = exitCard.getBoundingClientRect();
     // A graph element that survives the render keeps its live node and must
     // not produce a ghost clone.
     window.__SUI_MOTION_GRAPH.beforeReplace(exitRoot);
@@ -803,12 +847,22 @@ const motionGraphGuardsGesturesExitScript = `<script>
     if (!clone) throw new Error('exit clone was not created');
     var exitAnims = clone.getAnimations ? clone.getAnimations() : [];
     if (!exitAnims.length) throw new Error('exit clone has no animation');
+    exitAnims[0].pause();
+    exitAnims[0].currentTime = 0;
+    await wait(30);
+    var cloneRect = clone.getBoundingClientRect();
+    if (Math.abs(cloneRect.left - originalRect.left) > 2 || Math.abs(cloneRect.top - originalRect.top) > 2 ||
+        Math.abs(cloneRect.width - originalRect.width) > 2 || Math.abs(cloneRect.height - originalRect.height) > 2) {
+      throw new Error('exit clone did not preserve the transformed box: ' + JSON.stringify({ original: { left: originalRect.left, top: originalRect.top, width: originalRect.width, height: originalRect.height }, clone: { left: cloneRect.left, top: cloneRect.top, width: cloneRect.width, height: cloneRect.height } }));
+    }
     var timing = exitAnims[0].effect.getTiming();
     if (Number(timing.delay) !== 40) throw new Error('exit delay was not applied: ' + timing.delay);
     if (String(timing.easing).indexOf('linear(') !== 0) throw new Error('exit spring was not applied: ' + timing.easing);
     var frames = exitAnims[0].effect.getKeyframes();
     var lastOpacity = frames.length ? String(frames[frames.length - 1].opacity) : '';
     if (parseFloat(lastOpacity) !== 0) throw new Error('exit animation does not target transparent: ' + lastOpacity);
+    var lastWidth = frames.length ? parseFloat(String(frames[frames.length - 1].width)) : NaN;
+    if (!(Math.abs(lastWidth - 150) <= 2)) throw new Error('exit percentage width did not resolve against the parent: ' + lastWidth);
     // Headless virtual time does not advance animation frames after load, so
     // seek the animation explicitly before reading the computed style.
     exitAnims[0].currentTime = 100;

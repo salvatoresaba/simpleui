@@ -1077,7 +1077,10 @@ only the graph; parameters open in draggable overlay panels:
   distance (default 40 px); long-press links choose a hold time (default 500 ms).
   Visibility links choose a ratio between 0 and 1 (`0.5` for enters, `0.2` for
   leaves) and an optional **fire once** flag. Gestures and viewport triggers are
-  repeatable, so they are not in the single-use list.
+  repeatable, so they are not in the single-use list. Gesture graphs are
+  keyboard accessible: Arrow keys trigger swipe, PageUp/PageDown trigger wheel
+  and holding Space/Enter triggers long press; the element gets a focus outline
+  and `aria-keyshortcuts`.
 - The trigger overlay has an optional **guard** field. It accepts SUI state
   names, `true`/`false`/`null`, numbers, strings, `!`, `&&`, `||`, comparisons and
   parentheses (for example `open && mode == "edit"`). The editor validates the

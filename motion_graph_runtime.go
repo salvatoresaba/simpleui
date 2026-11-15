@@ -758,11 +758,120 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
         });
       }
     }
+    bindKeyboardGestures(el, cfg, links, cleanups);
     if (cleanups.length) {
       el.__suiGraphGestureCleanup = function() {
         for (var i = 0; i < cleanups.length; i++) { try { cleanups[i](); } catch (e) {} }
       };
     }
+  }
+  function ensureGestureFocusStyle() {
+    if (!document || !document.head || document.getElementById('sui-gesture-focus-style')) return;
+    var style = document.createElement('style');
+    style.id = 'sui-gesture-focus-style';
+    style.textContent = '.sui-gesture-focus:focus-visible{outline:2px solid currentColor;outline-offset:2px}';
+    document.head.appendChild(style);
+  }
+  function bindKeyboardGestures(el, cfg, links, cleanups) {
+    var hasKeyboard = false;
+    for (var k = 0; k < links.length; k++) {
+      if (links[k] && (links[k].event === 'wheel' || links[k].event === 'swipe' || links[k].event === 'longpress')) {
+        hasKeyboard = true;
+        break;
+      }
+    }
+    if (!hasKeyboard) return;
+    var longTimers = [];
+    function clearLongTimers() {
+      for (var i = 0; i < longTimers.length; i++) clearTimeout(longTimers[i]);
+      longTimers = [];
+    }
+    function editableTarget(target) {
+      if (!target) return false;
+      if (target === el) return target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName || '');
+      return !!(target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName || ''));
+    }
+    function swipeAxis(key) {
+      if (key === 'ArrowLeft') return 'left';
+      if (key === 'ArrowRight') return 'right';
+      if (key === 'ArrowUp') return 'up';
+      if (key === 'ArrowDown') return 'down';
+      return '';
+    }
+    function onDown(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat || editableTarget(e.target)) return;
+      var axis = swipeAxis(e.key);
+      if (axis) {
+        var swipe = findEventLink(cfg, el.__suiGraphState, 'swipe', '', { axis: axis, distance: 10000 });
+        if (swipe) {
+          e.preventDefault();
+          run(el, cfg, swipe);
+          return;
+        }
+      }
+      var wheelDir = e.key === 'PageDown' ? 'down' : e.key === 'PageUp' ? 'up' : '';
+      if (wheelDir) {
+        var wheel = findEventLink(cfg, el.__suiGraphState, 'wheel', '', { deltaY: wheelDir === 'down' ? 1 : -1 });
+        if (wheel) {
+          e.preventDefault();
+          run(el, cfg, wheel);
+          return;
+        }
+      }
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'Spacebar') {
+        clearLongTimers();
+        var from = el.__suiGraphState;
+        var started = false;
+        for (var i = 0; i < links.length; i++) {
+          (function(link) {
+            if (!link || link.event !== 'longpress' || link.from !== from || !guardPass(link)) return;
+            started = true;
+            var hold = Math.max(0, timeMs(link.hold, 500));
+            longTimers.push(setTimeout(function() {
+              if (el.__suiGraphState !== link.from || !guardPass(link)) return;
+              clearLongTimers();
+              run(el, cfg, link);
+            }, hold));
+          })(links[i]);
+        }
+        if (started) e.preventDefault();
+      }
+    }
+    function onUp(e) {
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'Spacebar') clearLongTimers();
+    }
+    var hadTabindex = el.hasAttribute('tabindex');
+    var oldTabindex = el.getAttribute('tabindex');
+    var hadAria = el.hasAttribute('aria-keyshortcuts');
+    var oldAria = el.getAttribute('aria-keyshortcuts');
+    var keys = [];
+    var hasSwipe = false, hasWheel = false, hasLong = false;
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].event === 'swipe') hasSwipe = true;
+      else if (links[i].event === 'wheel') hasWheel = true;
+      else if (links[i].event === 'longpress') hasLong = true;
+    }
+    if (hasSwipe) keys.push('ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown');
+    if (hasWheel) keys.push('PageUp', 'PageDown');
+    if (hasLong) keys.push('Space', 'Enter');
+    if (!hadTabindex) el.setAttribute('tabindex', '0');
+    el.classList.add('sui-gesture-focus');
+    if (keys.length) el.setAttribute('aria-keyshortcuts', keys.join(' '));
+    ensureGestureFocusStyle();
+    el.addEventListener('keydown', onDown);
+    el.addEventListener('keyup', onUp);
+    el.addEventListener('blur', clearLongTimers);
+    cleanups.push(function() {
+      clearLongTimers();
+      el.removeEventListener('keydown', onDown);
+      el.removeEventListener('keyup', onUp);
+      el.removeEventListener('blur', clearLongTimers);
+      el.classList.remove('sui-gesture-focus');
+      if (!hadTabindex) el.removeAttribute('tabindex');
+      else if (oldTabindex != null) el.setAttribute('tabindex', oldTabindex);
+      if (hadAria && oldAria != null) el.setAttribute('aria-keyshortcuts', oldAria);
+      else if (!hadAria) el.removeAttribute('aria-keyshortcuts');
+    });
   }
   function bind(el, cfg) {
     if (el.__suiGraphBound) unbind(el);
@@ -900,11 +1009,31 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       if (!key) continue;
       var r = el.getBoundingClientRect();
       if (!r.width && !r.height) continue;
+      var state = stateById(cfg, ex.state);
+      var cs = getComputedStyle(el);
+      var current = {};
+      var decls = parseDecls(state.css || '');
+      for (var d = 0; d < decls.length; d++) current[decls[d].name] = cs.getPropertyValue(decls[d].name);
+      current['transform'] = cs.transform;
+      current['transform-origin'] = cs.transformOrigin;
+      var parent = el.parentElement;
+      var pcs = parent ? getComputedStyle(parent) : null;
+      var parentW = pcs ? (parseFloat(pcs.width) || parent.clientWidth || 0) : 0;
+      var parentH = pcs ? (parseFloat(pcs.height) || parent.clientHeight || 0) : 0;
       var clone = el.cloneNode(true);
       stripExitClone(clone);
       exitSnapshots.push({
-        key: key, clone: clone, cfg: cfg, exit: ex, state: stateById(cfg, ex.state),
-        rect: { left: r.left, top: r.top, width: r.width, height: r.height }
+        key: key, clone: clone, cfg: cfg, exit: ex, state: state,
+        rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+        current: current,
+        layout: {
+          width: el.offsetWidth || r.width,
+          height: el.offsetHeight || r.height,
+          transform: cs.transform,
+          origin: cs.transformOrigin,
+          parentWidth: parentW,
+          parentHeight: parentH
+        }
       });
     }
   }
@@ -923,23 +1052,76 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       animateExitClone(pending[j]);
     }
   }
+  function exitOrigin(layout) {
+    var w = layout.width || 0, h = layout.height || 0;
+    var parts = String(layout.origin || '50% 50%').trim().split(/\s+/);
+    function axis(v, size) {
+      if (!v) return size / 2;
+      if (/%$/.test(v)) return size * (parseFloat(v) || 0) / 100;
+      var n = parseFloat(v);
+      return isFinite(n) ? n : size / 2;
+    }
+    return { x: axis(parts[0], w), y: axis(parts[1] || parts[0], h) };
+  }
+  function exitBox(snap) {
+    var layout = snap.layout || {};
+    var r = snap.rect;
+    var w = layout.width || r.width, h = layout.height || r.height;
+    var left = r.left, top = r.top, transform = layout.transform || 'none';
+    if (transform.indexOf('matrix3d') === 0 || typeof DOMMatrix === 'undefined') {
+      return { left: left, top: top, width: r.width, height: r.height, transform: 'none', origin: layout.origin || '50% 50%' };
+    }
+    try {
+      var origin = exitOrigin(layout);
+      var m = new DOMMatrix(transform === 'none' ? '' : transform);
+      var folded = new DOMMatrix().translate(origin.x, origin.y).multiply(m).translate(-origin.x, -origin.y);
+      var minX = Infinity, minY = Infinity;
+      var points = [[0, 0], [w, 0], [0, h], [w, h]];
+      for (var i = 0; i < points.length; i++) {
+        var px = folded.a * points[i][0] + folded.c * points[i][1] + folded.e;
+        var py = folded.b * points[i][0] + folded.d * points[i][1] + folded.f;
+        if (px < minX) minX = px;
+        if (py < minY) minY = py;
+      }
+      return { left: r.left - minX, top: r.top - minY, width: w, height: h, transform: transform, origin: layout.origin || '50% 50%' };
+    } catch (e) {
+      return { left: left, top: top, width: r.width, height: r.height, transform: 'none', origin: layout.origin || '50% 50%' };
+    }
+  }
+  function exitValue(snap, name, value) {
+    var v = String(value || '');
+    if (!/%$/.test(v)) return v;
+    var base = 0;
+    if (name === 'width' || name === 'min-width' || name === 'max-width') base = snap.layout && snap.layout.parentWidth || 0;
+    if (name === 'height' || name === 'min-height' || name === 'max-height') base = snap.layout && snap.layout.parentHeight || 0;
+    if (!base) return v;
+    return (base * (parseFloat(v) || 0) / 100) + 'px';
+  }
   function animateExitClone(snap) {
     var clone = snap.clone, state = snap.state, ex = snap.exit || {};
     var decls = parseDecls(state.css || '');
     if (!decls.length) return;
-    var r = snap.rect;
+    var box = exitBox(snap);
     clone.classList.add('sui-motion-graph-exit');
     clone.style.position = 'fixed';
-    clone.style.left = r.left + 'px';
-    clone.style.top = r.top + 'px';
-    clone.style.width = r.width + 'px';
-    clone.style.height = r.height + 'px';
+    clone.style.left = box.left + 'px';
+    clone.style.top = box.top + 'px';
+    clone.style.width = box.width + 'px';
+    clone.style.height = box.height + 'px';
     clone.style.margin = '0';
     clone.style.boxSizing = 'border-box';
     clone.style.pointerEvents = 'none';
     clone.style.zIndex = '9998';
-    clone.style.transform = 'none';
+    clone.style.transformOrigin = box.origin;
+    clone.style.transform = box.transform;
     document.body.appendChild(clone);
+    for (var q = 0; q < decls.length; q++) {
+      var qn = decls[q].name;
+      if (qn === 'width') clone.style.width = box.width + 'px';
+      else if (qn === 'height') clone.style.height = box.height + 'px';
+      else if (qn === 'transform' || qn === 'transform-origin') continue;
+      else if (snap.current && snap.current[qn] != null && snap.current[qn] !== '') clone.style.setProperty(qn, snap.current[qn]);
+    }
     var starts = {}, was = {}, prio = {};
     for (var a = 0; a < decls.length; a++) {
       var p0 = decls[a].name;
@@ -947,7 +1129,10 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       prio[p0] = clone.style.getPropertyPriority(p0);
       starts[p0] = getComputedStyle(clone).getPropertyValue(p0);
     }
-    for (var b = 0; b < decls.length; b++) clone.style.setProperty(decls[b].name, decls[b].value);
+    function applyExitTarget() {
+      for (var t = 0; t < decls.length; t++) clone.style.setProperty(decls[t].name, exitValue(snap, decls[t].name, decls[t].value));
+    }
+    applyExitTarget();
     var ends = {};
     for (var c = 0; c < decls.length; c++) ends[decls[c].name] = getComputedStyle(clone).getPropertyValue(decls[c].name);
     for (var d = 0; d < decls.length; d++) {
@@ -966,7 +1151,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       if (clone.parentNode) clone.remove();
     }
     if (reduced || duration <= 0 || typeof clone.animate !== 'function') {
-      for (var e = 0; e < decls.length; e++) clone.style.setProperty(decls[e].name, decls[e].value);
+      applyExitTarget();
       setTimeout(removeClone, 20);
       return;
     }
@@ -981,7 +1166,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
     try {
       anim = clone.animate([from, to], { duration: duration, delay: delay, easing: easing, fill: 'both' });
     } catch (err) {
-      for (var g = 0; g < decls.length; g++) clone.style.setProperty(decls[g].name, decls[g].value);
+      applyExitTarget();
       setTimeout(removeClone, 20);
       return;
     }
@@ -990,7 +1175,7 @@ const suiMotionGraphRuntime = `const __SUI_MOTION_GRAPH = (function(){
       if (done) return;
       done = true;
       if (timer) clearTimeout(timer);
-      for (var h = 0; h < decls.length; h++) clone.style.setProperty(decls[h].name, decls[h].value);
+      applyExitTarget();
       try { anim.cancel(); } catch (err2) {}
       removeClone();
     }

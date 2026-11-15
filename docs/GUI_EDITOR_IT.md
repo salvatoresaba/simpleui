@@ -1119,7 +1119,10 @@ contiene solo il grafo; i parametri si aprono in pannelli overlay trascinabili:
   una distanza minima (default 40 px); quelli long press scelgono il tempo di
   pressione (default 500 ms). I link di visibilità scelgono una frazione tra 0 e 1
   (`0.5` per entra, `0.2` per esce) e l'opzione **fire once**. Gesti e viewport
-  sono ripetibili, quindi non sono nell'elenco degli eventi singoli.
+  sono ripetibili, quindi non sono nell'elenco degli eventi singoli. I grafi con
+  gesti sono accessibili da tastiera: le frecce attivano lo swipe,
+  PageUp/PageDown il wheel e tenere premuto Spazio/Invio attiva il long press;
+  l'elemento riceve un outline di focus e `aria-keyshortcuts`.
 - L'overlay del trigger ha un campo **guard** opzionale. Accetta nomi di stati
   SUI, `true`/`false`/`null`, numeri, stringhe, `!`, `&&`, `||`, confronti e
   parentesi (ad esempio `open && mode == "edit"`). L'editor valida l'espressione

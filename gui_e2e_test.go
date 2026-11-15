@@ -106,6 +106,12 @@ func TestGuiDesignerE2E(t *testing.T) {
 	t.Fatalf("designer e2e failed:\n%s", detail)
 }
 
+const guiMotionDesignerSource = `state gate = true
+state mode = "edit"
+view main {
+	card "Animated" class: "card" motionGraph: "\{\"initial\":\"a\",\"states\":[\{\"id\":\"a\",\"name\":\"A\",\"css\":\"width: 120px; height: 80px; background-color: #223344;\"\},\{\"id\":\"b\",\"name\":\"B\",\"css\":\"width: 200px; height: 100px; background-color: #557799;\"\}],\"links\":[\{\"id\":\"l1\",\"from\":\"a\",\"to\":\"b\",\"event\":\"click\",\"duration\":\"200ms\"\}]\}"
+}`
+
 // TestGuiMotionDesignerE2E drives the real animation panel: it edits the exit
 // overlay and a link guard through the same controls a user clicks.
 func TestGuiMotionDesignerE2E(t *testing.T) {
@@ -114,11 +120,7 @@ func TestGuiMotionDesignerE2E(t *testing.T) {
 		t.Skip("no Chrome/Edge found; skipping motion designer end-to-end test")
 	}
 
-	const source = `state gate = true
-state mode = "edit"
-view main {
-	card "Animated" class: "card" motionGraph: "\{\"initial\":\"a\",\"states\":[\{\"id\":\"a\",\"name\":\"A\",\"css\":\"width: 120px; height: 80px; background-color: #223344;\"\},\{\"id\":\"b\",\"name\":\"B\",\"css\":\"width: 200px; height: 100px; background-color: #557799;\"\}],\"links\":[\{\"id\":\"l1\",\"from\":\"a\",\"to\":\"b\",\"event\":\"click\",\"duration\":\"200ms\"\}]\}"
-}`
+	const source = guiMotionDesignerSource
 
 	page := strings.Replace(guiHTML, "</body>", guiMotionDesignerScript+"</body>", 1)
 	if page == guiHTML {

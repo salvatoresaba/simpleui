@@ -450,7 +450,11 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   `distance` (minimum pixels, default 40); `longpress` uses `hold` (milliseconds,
   default 500, canceled after about 10 px of movement). Both are recognized from
   pointer events and are repeatable, so they can fire again after returning to
-  the source state.
+  the source state. For keyboard access, a graph with gesture links makes its
+  element focusable (`tabindex="0"` when needed) and maps Arrow keys to swipe,
+  PageUp/PageDown to wheel and Space/Enter to long press; the element also gets
+  `aria-keyshortcuts` and a visible focus outline. Form controls are not
+  hijacked.
 - Visibility links: `visible` fires when the element enters the viewport and
   `hidden` when it leaves. `threshold` is the visible ratio between `0` and `1`
   (default `0.5` for `visible`, `0.2` for `hidden`); `once: true` fires only the
@@ -508,10 +512,12 @@ to the visible viewport. **Layout & shared** in the toolbar opens the classic
 
 When SUI removes a graph-managed element, the runtime clones it at its current
 position, strips identity and motion attributes, and animates the clone to the
-`exit.state` CSS values (`spring` is supported too). The clone is inert, ignores
-pointer events and is removed after the animation. Elements that survive the
-render do not get an exit clone. With `prefers-reduced-motion` the element is
-removed without a clone.
+`exit.state` CSS values (`spring` is supported too). The clone snapshots current
+computed values, preserves the current 2D transform and visual box, and resolves
+percentage `width`/`height`/`min-*`/`max-*` against the original parent. The
+clone is inert, ignores pointer events and is removed after the animation.
+Elements that survive the render do not get an exit clone. With
+`prefers-reduced-motion` the element is removed without a clone.
 
 State blocks grow taller as outgoing triggers are added and can be dragged to
 custom positions. The graph canvas supports wheel zoom, drag-to-pan on empty

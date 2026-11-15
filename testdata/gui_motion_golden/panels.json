@@ -1,0 +1,46 @@
+{
+  "panelOn": true,
+  "exit": {
+    "title": "Exit animation",
+    "stateValues": [
+      "",
+      "a",
+      "b"
+    ],
+    "stateLabels": [
+      "(none)",
+      "A",
+      "B"
+    ],
+    "labels": [
+      "exit state",
+      "duration",
+      "easing",
+      "delay",
+      "spring easing",
+      "stiffness (N/m)",
+      "damping (N·s/m)",
+      "mass (kg)"
+    ],
+    "buttons": [
+      "Preview exit",
+      "Stop preview",
+      "OK"
+    ],
+    "springInitiallyHidden": true,
+    "springVisible": true
+  },
+  "guard": {
+    "title": "Trigger parameters",
+    "hasGuard": true,
+    "guardType": "text",
+    "guardPlaceholder": "e.g. open \u0026\u0026 mode == \"edit\"",
+    "guardHint": "Optional condition using SUI state names, \u0026\u0026, ||, ! and comparisons. The trigger runs only when it is true.",
+    "buttons": [
+      "Preview",
+      "Stop preview",
+      "Delete link",
+      "OK"
+    ]
+  }
+}

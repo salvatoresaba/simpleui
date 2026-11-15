@@ -428,7 +428,11 @@ card motionGraph: "\{\"initial\":\"closed\",\"states\":[\{\"id\":\"closed\",\"na
   (pixel minimi, default 40); `longpress` usa `hold` (millisecondi, default 500,
   annullato dopo circa 10 px di movimento). Entrambi usano i pointer events e
   sono ripetibili, quindi possono scattare di nuovo dopo il ritorno allo stato
-  sorgente.
+  sorgente. Per l'accesso da tastiera, un grafo con link gesto rende l'elemento
+  focalizzabile (`tabindex="0"` quando serve) e mappa le frecce su swipe,
+  PageUp/PageDown su wheel e Spazio/Invio su long press; l'elemento riceve anche
+  `aria-keyshortcuts` e un outline di focus visibile. I controlli di form non
+  vengono intercettati.
 - Link di visibilità: `visible` scatta quando l'elemento entra nel viewport e
   `hidden` quando esce. `threshold` è la frazione visibile tra `0` e `1`
   (default `0.5` per `visible`, `0.2` per `hidden`); `once: true` scatta solo la
@@ -488,9 +492,11 @@ usate da FLIP, riordino liste e transizioni tra pagine.
 
 Quando SUI rimuove un elemento gestito dal grafo, il runtime ne clona lo stato
 attuale nella posizione corrente, rimuove identità e attributi motion e anima il
-clone verso i valori CSS di `exit.state` (anche con `spring`). Il clone è inerte,
-ignora i pointer events e viene rimosso al termine. Gli elementi che
-sopravvivono al render non producono un clone di uscita. Con
+clone verso i valori CSS di `exit.state` (anche con `spring`). Il clone cattura i
+valori calcolati correnti, conserva il transform 2D e il box visivo e risolve le
+percentuali di `width`/`height`/`min-*`/`max-*` rispetto al parent originale. Il
+clone è inerte, ignora i pointer events e viene rimosso al termine. Gli elementi
+che sopravvivono al render non producono un clone di uscita. Con
 `prefers-reduced-motion` l'elemento viene rimosso senza clone.
 
 I blocchi crescono in altezza con i trigger uscenti e possono essere trascinati
