@@ -60,6 +60,7 @@ Appearance and layout of the editor shell.
 | Setting | Default | Effect |
 |---|---|---|
 | Theme | Dark | Dark, Light or High contrast editor chrome |
+| Language | English | Editor interface language: English, Italiano, Espa\u00f1ol, Fran\u00e7ais or Deutsch |
 | Interface font | System UI | Font family for menus, panels, labels and controls |
 | Custom interface font | - | CSS family used when **Custom** is selected |
 | Font size | 14 | Scales the whole editor UI |
@@ -68,6 +69,19 @@ Appearance and layout of the editor shell.
 | Panels | all visible except history | Show or hide Structure/Tokens, Inspector and Problems/History |
 | Toolbar layout | side by side | Both top bars share one row when space allows; drag a grip to reorder |
 | Reset toolbar order | - | Restores the default toolbar layout |
+
+### Interface language
+
+**Appearance → Language** switches the editor interface between English,
+Italiano, Español, Français and Deutsch. The choice is saved with the other
+editor preferences and applied immediately to the chrome: menus, toolbar
+tooltips, panel tabs, the inspector section titles, preferences and shortcut
+labels.
+
+Translation is dictionary-driven and falls back to English for any string that
+has no translation yet, so a partially translated language never shows blanks.
+The setting changes only the editor: the SUI source, the generated preview and
+the application itself are not affected.
 
 ### Code editor
 
@@ -139,9 +153,21 @@ It also shows a tooltip bubble using the current editor tooltip style. It
 updates while you edit the controls, before **Apply**.
 ### Shortcuts
 
-The **Shortcuts** tab is a read-only reference. Use the search field to filter
-by action, key or group. It lists the designer, SUI editor, menu, structure and
-chart data shortcuts; shortcuts are not rebindable yet.
+The **Shortcuts** tab lists every binding with its key combination. Factory
+combinations can be changed: click a combination, press the new keys and the
+change is stored in the editor preferences. **Esc** cancels the capture,
+**Backspace** clears a custom binding and the arrow button next to a row
+restores its default. **Reset all shortcuts** clears every custom binding.
+
+Combinations must include **Ctrl**, **Alt** or **Meta**, or be a function key,
+so typing in the editor is never hijacked. A combination already used by
+another action is rejected with a status message. The toolbar tooltips and the
+command palette show the current combinations.
+
+Actions marked **fixed** (completion navigation, line operations, symbol
+navigation, menu and chart keys) stay built into editing and cannot be
+rebound. Shortcuts apply to the designer and to the SUI editor: for example,
+rebinding **Undo** changes both.
 
 ### Files & history
 
@@ -188,6 +214,21 @@ When the designer regenerates source, function bodies are indented one level
 inside their braces. Nested statements keep their relative indentation, so
 round-tripping a project through the visual editor does not flatten function
 code.
+
+### Formatting
+
+**Shift+Alt+F**, or **Format document** in the command palette, normalizes the
+SUI source without changing any token:
+
+- indentation is rebuilt from brace depth with tabs;
+- trailing spaces are removed and blank runs collapse to one line;
+- a closing brace is aligned with its opening statement;
+- the file ends with exactly one newline.
+
+Quoted strings are never touched, including multi-line strings: lines that start
+inside a literal, or open a literal that continues on the next line, keep their
+whitespace because it is part of the value. Formatting is a normal undoable
+edit and triggers the usual auto-apply.
 
 ## Code editor menus and navigation
 
@@ -710,6 +751,31 @@ expr** for reactive inline declarations. External CSS resources (`@import` and
 network/file `url(...)`) are rejected by the compiler; use data URIs or local
 relative assets. Vendor-prefixed properties are allowed; editing a property that
 has a known compatibility entry updates its prefixed variants too.
+
+Visual builders (gradient, transform, clip-path, flex, grid, per-side borders
+and border-image) write their declarations to every selected element in one
+multi-class transaction too, so a multi-selection edit cannot leave half the
+classes updated.
+
+## Image assets
+
+**Insert → Image assets…** opens the asset manager. It uploads an image and
+keeps it in memory as a data URL, so the project stays self-contained and the
+compiler's external-resource rule keeps holding. PNG, JPEG, GIF, WebP and AVIF
+are accepted up to 4 MB; the server validates the file signature, not just the
+extension, and SVG is rejected because it can carry active content.
+
+Every uploaded asset appears as a card with a thumbnail, name and size:
+
+| Action | Effect |
+|---|---|
+| Background | Writes `background-image: url(data:...)` on the selected element |
+| Src | Sets `src` on the selected `img`, `video`, `audio` or `iframe` element |
+| Copy | Copies the embedded data URL to the clipboard |
+
+Uploads are session-scoped: they are not written to disk, and the data URL is
+embedded directly in the SUI source when you apply it. Use a local relative path
+instead of an asset when you want the file to live next to the project.
 
 ## Designer drag and drop
 

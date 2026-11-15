@@ -564,6 +564,14 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .sc-row:first-of-type { border-top:0; }
 .sc-row kbd { flex:none; min-width:150px; font-family:ui-monospace, Consolas, monospace; font-size:11.5px; color:var(--fg); background:var(--input-bg); border:1px solid var(--border2); border-bottom-width:2px; border-radius:4px; padding:2px 6px; }
 .sc-row span { color:var(--muted); }
+.sc-row .sc-label { flex:1; color:var(--fg); }
+.sc-combo { flex:none; min-width:150px; text-align:left; font-family:ui-monospace, Consolas, monospace; font-size:11.5px; padding:3px 8px; border:1px solid var(--border2); border-radius:5px; background:var(--input-bg); color:var(--fg); cursor:pointer; }
+.sc-combo:hover { border-color:var(--accent); }
+.sc-combo.rec { border-color:var(--accent); color:var(--accent); }
+.sc-combo.unset { color:var(--muted); }
+.sc-reset { flex:none; padding:2px 7px; font-size:11px; border:1px solid var(--border2); border-radius:5px; background:var(--btn-bg); color:var(--muted); cursor:pointer; }
+.sc-reset:hover { color:var(--fg); }
+.sc-fixed { flex:none; font-size:10px; color:var(--muted); border:1px solid var(--border2); border-radius:4px; padding:1px 5px; }
 .sc-empty { color:var(--muted); font-size:12px; padding:10px 0; }
 #edtip { position:fixed; z-index:100; max-width:var(--edtip-max-width,320px); padding:6px 8px; border:1px solid var(--edtip-border,#3a4152); border-radius:var(--edtip-radius,6px); background:var(--edtip-bg,#1d2129); color:var(--edtip-fg,#e6e6ef); font-size:var(--edtip-font-size,12px); line-height:1.4; white-space:pre-line; box-shadow:0 6px 20px rgba(0,0,0,.35); pointer-events:none; opacity:0; transition:opacity .08s ease; }
 #edtip.on { opacity:1; }
@@ -805,6 +813,20 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #media-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:660px; max-width:94vw; height:60vh; display:flex; flex-direction:column; padding:0; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #media-head { display:flex; align-items:center; gap:6px; padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
 #media-head span { flex:1; }
+#asset-editor { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
+#asset-editor.on { display:flex; }
+#asset-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:740px; max-width:94vw; height:70vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#asset-head { display:flex; align-items:center; gap:6px; padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
+#asset-head span { flex:1; }
+#asset-hint { padding:8px 14px; }
+#asset-grid { flex:1; overflow:auto; padding:10px 14px 14px; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; align-content:start; }
+.asset-card { border:1px solid var(--border2); border-radius:8px; background:var(--panel3); overflow:hidden; display:flex; flex-direction:column; }
+.asset-thumb { height:96px; background:var(--input-bg); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.asset-thumb img { max-width:100%; max-height:100%; object-fit:contain; }
+.asset-meta { padding:5px 7px 2px; font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.asset-actions { display:flex; gap:3px; padding:4px 6px 6px; }
+.asset-actions button { flex:1; font-size:10px; padding:3px 4px; }
+.asset-empty { color:var(--muted); font-size:12px; grid-column:1 / -1; }
 #hist-editor { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #hist-editor.on { display:flex; }
 #hist-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:520px; max-width:94vw; max-height:70vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -1331,6 +1353,18 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     <textarea id="media-css" spellcheck="false" style="flex:1;width:100%;resize:none;background:var(--input-bg);color:var(--fg);border:1px solid var(--border2);border-radius:6px;padding:10px;font-family:ui-monospace,monospace;font-size:13px"></textarea>
   </div>
 </div>
+<div id="asset-editor">
+  <div id="asset-box" role="dialog" aria-modal="true" aria-labelledby="asset-title">
+    <div id="asset-head">
+      <span id="asset-title">Image assets</span>
+      <input type="file" id="asset-file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" style="display:none" onchange="uploadAsset(this.files)">
+      <button class="btn" type="button" onclick="document.getElementById('asset-file').click()">Upload image</button>
+      <button class="btn" type="button" onclick="closeAssets()" aria-label="Close assets">&#10005;</button>
+    </div>
+    <div id="asset-hint" class="hint">Images are embedded as data URLs, so the project stays self-contained and external resources remain blocked. Maximum 4 MB; PNG, JPEG, GIF, WebP and AVIF are accepted.</div>
+    <div id="asset-grid"></div>
+  </div>
+</div>
 <div id="hist-editor">
   <div id="hist-box">
     <div id="hist-head"><span>Project history</span><button class="btn" onclick="snapshotNow()">Snapshot now</button><button class="btn" onclick="closeHistory()">&#10005;</button></div>
@@ -1427,6 +1461,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
           <div class="pref-acc-body on">
             <div class="pref-grid">
               <div class="pf-field"><label>Theme</label><select id="pf-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></div>
+              <div class="pf-field"><label>Language</label><select id="pf-lang" onchange="changeEditorLanguage(this.value)"></select></div>
               <div class="pf-field"><label>Interface font</label>
                 <select id="pf-ui-font" onchange="updateUiPreview()">
                   <option value='system-ui, "Segoe UI", Roboto, sans-serif'>System UI</option>
@@ -1533,7 +1568,8 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
       <section class="pref-pane" id="pref-pane-shortcuts" role="tabpanel" aria-labelledby="pref-tab-shortcuts">
         <div class="pref-grid">
           <div class="pf-field wide"><label>Search</label><input type="text" id="pf-shortcut-search" placeholder="Filter shortcuts..." oninput="renderShortcutList()"></div>
-          <div class="hint" style="grid-column:1 / -1">Read-only reference for the current editor shortcuts.</div>
+          <div class="hint" style="grid-column:1 / -1">Click a combination and press the new keys to rebind it. Esc cancels the capture; Backspace clears a custom binding. Actions marked <b>fixed</b> are built into typing and cannot be changed.</div>
+          <div class="pf-field wide"><label>Reset</label><div class="pf-actions"><button class="btn" type="button" onclick="resetAllShortcuts()">Reset all shortcuts</button></div></div>
           <div id="pf-shortcut-list" style="grid-column:1 / -1"></div>
         </div>
       </section>
@@ -2186,9 +2222,323 @@ var PREF_DEFAULTS = {
   editorTipMaxWidth: "320px", editorTipFontSize: 12,
   editorTipBg: "#1d2129", editorTipFg: "#e6e6ef",
   editorTipBorder: "#3a4152", editorTipRadius: "6px",
-  historyAuto: true, historyInterval: 60, historyKeep: 30
+  historyAuto: true, historyInterval: 60, historyKeep: 30,
+  lang: "en", shortcuts: {}
 };
 var prefs = Object.assign({}, PREF_DEFAULTS);
+
+// ---- editor interface languages -------------------------------------------
+// The dictionary is keyed by the English UI text, so every untranslated string
+// falls back to English automatically. Only editor chrome is localized; the
+// user's project source and the preview are never touched.
+var EDITOR_LANGS = [
+  { id: "en", label: "English" },
+  { id: "it", label: "Italiano" },
+  { id: "es", label: "Espa\u00f1ol" },
+  { id: "fr", label: "Fran\u00e7ais" },
+  { id: "de", label: "Deutsch" }
+];
+var I18N = {
+  it: {
+    "File": "File", "Edit": "Modifica", "Insert": "Inserisci", "View": "Visualizza", "Preferences": "Preferenze",
+    "New SUI": "Nuovo SUI", "Open SUI file.": "Apri file SUI.", "Save": "Salva", "Save As.": "Salva con nome.",
+    "Export .sui": "Esporta .sui", "Export build (.zip).": "Esporta build (.zip).",
+    "Export single HTML.": "Esporta HTML singolo.", "Build desktop executable.": "Compila eseguibile desktop.",
+    "Project history.": "Cronologia progetto.", "Undo": "Annulla", "Redo": "Ripeti", "Duplicate": "Duplica",
+    "Delete selected": "Elimina selezione", "Problems panel": "Pannello problemi", "Desktop": "Desktop",
+    "Tablet": "Tablet", "Mobile": "Mobile", "Editor preferences.": "Preferenze editor.",
+    "Project preferences.": "Preferenze progetto.", "Build & preview in new window": "Compila e apri anteprima",
+    "Build desktop executable": "Compila eseguibile desktop", "Toggle light/dark theme": "Cambia tema chiaro/scuro",
+    "Structure": "Struttura", "Tokens": "Token", "Preview": "Anteprima", "Problems": "Problemi", "History": "Cronologia",
+    "Interface": "Interfaccia", "Code editor": "Editor di codice", "Shortcuts": "Scorciatoie",
+    "Files & history": "File e cronologia", "Appearance": "Aspetto", "Theme": "Tema", "Language": "Lingua",
+    "Interface font": "Font interfaccia", "Font size": "Dimensione carattere", "Density": "Densit\u00e0",
+    "Accent color": "Colore accento", "Layout": "Layout", "Panels": "Pannelli", "Toolbars": "Barre degli strumenti",
+    "Reset toolbar order": "Reimposta ordine barre", "Font & metrics": "Font e metriche", "Code font": "Font codice",
+    "Editor size": "Dimensione editor", "Line height": "Altezza riga", "Tab size": "Dimensione tab",
+    "Word wrap": "A capo automatico", "Line numbers": "Numeri di riga", "Editing": "Modifica",
+    "Auto-close pairs": "Chiudi coppie automaticamente", "Smart indent": "Rientro intelligente",
+    "Auto suggestions": "Suggerimenti automatici", "Syntax highlighting": "Evidenziazione sintassi",
+    "Syntax colors": "Colori sintassi", "Bracket match": "Corrispondenza parentesi",
+    "Selected line": "Riga selezionata", "Editor tooltips": "Suggerimenti editor", "Show tooltips": "Mostra suggerimenti",
+    "Place": "Posizione", "Delay": "Ritardo", "Max width": "Larghezza massima", "Background": "Sfondo",
+    "Text color": "Colore testo", "Border color": "Colore bordo", "Radius": "Raggio", "Snapshots": "Snapshot",
+    "Automatic snapshots": "Snapshot automatici", "Interval": "Intervallo", "Versions kept": "Versioni conservate",
+    "Actions": "Azioni", "Snapshot now": "Crea snapshot", "Open project history": "Apri cronologia progetto",
+    "Clear history": "Cancella cronologia", "Files": "File", "Close": "Chiudi", "Cancel": "Annulla",
+    "Apply": "Applica", "Delete": "Elimina", "Add": "Aggiungi", "Reset": "Reimposta", "Search": "Cerca",
+    "Image assets": "Immagini", "Image assets\u2026": "Immagini\u2026", "Upload image": "Carica immagine", "Copy": "Copia", "Src": "Sorgente",
+    "Position": "Posizione", "Size": "Dimensione", "Box model": "Modello box", "Typography": "Tipografia",
+    "Border": "Bordo", "Effects": "Effetti", "Grid": "Griglia", "Interaction": "Interazione", "Events": "Eventi",
+    "Validation": "Validazione", "Tooltip": "Tooltip", "Toast": "Toast", "Tabs": "Schede", "Tree": "Albero",
+    "Combobox": "Combobox", "Date/Time picker": "Selettore data/ora", "Drag & drop": "Trascina e rilascia",
+    "Scroll & scale": "Scorrimento e scala", "Format document": "Formatta documento", "Save project": "Salva progetto",
+    "Copy element": "Copia elemento", "Cut element": "Taglia elemento", "Paste element": "Incolla elemento",
+    "Delete element": "Elimina elemento", "Build and preview": "Compila e anteprima", "Find": "Cerca",
+    "Find and replace": "Cerca e sostituisci", "Go to line": "Vai alla riga", "Command palette": "Palette comandi",
+    "Toggle line comment": "Commenta riga", "Quick Fix": "Correzione rapida", "General": "Generale",
+    "SUI editor": "Editor SUI", "fixed": "fisso", "Reset all shortcuts": "Reimposta tutte le scorciatoie"
+  },
+  es: {
+    "File": "Archivo", "Edit": "Editar", "Insert": "Insertar", "View": "Ver", "Preferences": "Preferencias",
+    "New SUI": "Nuevo SUI", "Open SUI file.": "Abrir archivo SUI.", "Save": "Guardar", "Save As.": "Guardar como",
+    "Export .sui": "Exportar .sui", "Export build (.zip).": "Exportar compilaci\u00f3n (.zip).",
+    "Export single HTML.": "Exportar HTML \u00fanico.", "Build desktop executable.": "Compilar ejecutable de escritorio.",
+    "Project history.": "Historial del proyecto.", "Undo": "Deshacer", "Redo": "Rehacer", "Duplicate": "Duplicar",
+    "Delete selected": "Eliminar selecci\u00f3n", "Problems panel": "Panel de problemas", "Desktop": "Escritorio",
+    "Tablet": "Tableta", "Mobile": "M\u00f3vil", "Editor preferences.": "Preferencias del editor.",
+    "Project preferences.": "Preferencias del proyecto.",
+    "Build & preview in new window": "Compilar y previsualizar en una ventana nueva",
+    "Build desktop executable": "Compilar ejecutable de escritorio",
+    "Toggle light/dark theme": "Cambiar tema claro/oscuro", "Structure": "Estructura", "Tokens": "Tokens",
+    "Preview": "Vista previa", "Problems": "Problemas", "History": "Historial", "Interface": "Interfaz",
+    "Code editor": "Editor de c\u00f3digo", "Shortcuts": "Atajos", "Files & history": "Archivos e historial",
+    "Appearance": "Apariencia", "Theme": "Tema", "Language": "Idioma", "Interface font": "Fuente de la interfaz",
+    "Font size": "Tama\u00f1o de fuente", "Density": "Densidad", "Accent color": "Color de acento", "Layout": "Dise\u00f1o",
+    "Panels": "Paneles", "Toolbars": "Barras de herramientas", "Reset toolbar order": "Restablecer orden de barras",
+    "Font & metrics": "Fuente y m\u00e9tricas", "Code font": "Fuente del c\u00f3digo", "Editor size": "Tama\u00f1o del editor",
+    "Line height": "Altura de l\u00ednea", "Tab size": "Tama\u00f1o de tabulaci\u00f3n", "Word wrap": "Ajuste de l\u00ednea",
+    "Line numbers": "N\u00fameros de l\u00ednea", "Editing": "Edici\u00f3n",
+    "Auto-close pairs": "Cerrar pares autom\u00e1ticamente", "Smart indent": "Sangr\u00eda inteligente",
+    "Auto suggestions": "Sugerencias autom\u00e1ticas", "Syntax highlighting": "Resaltado de sintaxis",
+    "Syntax colors": "Colores de sintaxis", "Bracket match": "Coincidencia de par\u00e9ntesis",
+    "Selected line": "L\u00ednea seleccionada", "Editor tooltips": "Informaci\u00f3n emergente del editor",
+    "Show tooltips": "Mostrar informaci\u00f3n emergente", "Place": "Posici\u00f3n", "Delay": "Retardo",
+    "Max width": "Ancho m\u00e1ximo", "Background": "Fondo", "Text color": "Color del texto",
+    "Border color": "Color del borde", "Radius": "Radio", "Snapshots": "Instant\u00e1neas",
+    "Automatic snapshots": "Instant\u00e1neas autom\u00e1ticas", "Interval": "Intervalo",
+    "Versions kept": "Versiones conservadas", "Actions": "Acciones", "Snapshot now": "Crear instant\u00e1nea",
+    "Open project history": "Abrir historial del proyecto", "Clear history": "Borrar historial", "Files": "Archivos",
+    "Close": "Cerrar", "Cancel": "Cancelar", "Apply": "Aplicar", "Delete": "Eliminar", "Add": "A\u00f1adir",
+    "Reset": "Restablecer", "Search": "Buscar", "Image assets": "Im\u00e1genes", "Image assets\u2026": "Im\u00e1genes\u2026", "Upload image": "Subir imagen",
+    "Copy": "Copiar", "Src": "Origen", "Position": "Posici\u00f3n", "Size": "Tama\u00f1o", "Box model": "Modelo de caja",
+    "Typography": "Tipograf\u00eda", "Border": "Borde", "Effects": "Efectos", "Grid": "Cuadr\u00edcula",
+    "Interaction": "Interacci\u00f3n", "Events": "Eventos", "Validation": "Validaci\u00f3n", "Tooltip": "Tooltip",
+    "Toast": "Toast", "Tabs": "Pesta\u00f1as", "Tree": "\u00c1rbol", "Combobox": "Combobox",
+    "Date/Time picker": "Selector de fecha/hora", "Drag & drop": "Arrastrar y soltar",
+    "Scroll & scale": "Desplazamiento y escala", "Format document": "Formatear documento",
+    "Save project": "Guardar proyecto", "Copy element": "Copiar elemento", "Cut element": "Cortar elemento",
+    "Paste element": "Pegar elemento", "Delete element": "Eliminar elemento", "Build and preview": "Compilar y previsualizar",
+    "Find": "Buscar", "Find and replace": "Buscar y reemplazar", "Go to line": "Ir a la l\u00ednea",
+    "Command palette": "Paleta de comandos", "Toggle line comment": "Comentar l\u00ednea", "Quick Fix": "Correcci\u00f3n r\u00e1pida",
+    "General": "General", "SUI editor": "Editor SUI", "fixed": "fijo", "Reset all shortcuts": "Restablecer todos los atajos"
+  },
+  fr: {
+    "File": "Fichier", "Edit": "\u00c9dition", "Insert": "Ins\u00e9rer", "View": "Affichage", "Preferences": "Pr\u00e9f\u00e9rences",
+    "New SUI": "Nouveau SUI", "Open SUI file.": "Ouvrir un fichier SUI.", "Save": "Enregistrer",
+    "Save As.": "Enregistrer sous", "Export .sui": "Exporter .sui", "Export build (.zip).": "Exporter la build (.zip).",
+    "Export single HTML.": "Exporter un HTML unique.", "Build desktop executable.": "Compiler un ex\u00e9cutable de bureau.",
+    "Project history.": "Historique du projet.", "Undo": "Annuler", "Redo": "R\u00e9tablir", "Duplicate": "Dupliquer",
+    "Delete selected": "Supprimer la s\u00e9lection", "Problems panel": "Panneau des probl\u00e8mes", "Desktop": "Bureau",
+    "Tablet": "Tablette", "Mobile": "Mobile", "Editor preferences.": "Pr\u00e9f\u00e9rences de l'\u00e9diteur.",
+    "Project preferences.": "Pr\u00e9f\u00e9rences du projet.",
+    "Build & preview in new window": "Compiler et pr\u00e9visualiser dans une nouvelle fen\u00eatre",
+    "Build desktop executable": "Compiler un ex\u00e9cutable de bureau",
+    "Toggle light/dark theme": "Basculer th\u00e8me clair/sombre", "Structure": "Structure", "Tokens": "Jetons",
+    "Preview": "Aper\u00e7u", "Problems": "Probl\u00e8mes", "History": "Historique", "Interface": "Interface",
+    "Code editor": "\u00c9diteur de code", "Shortcuts": "Raccourcis", "Files & history": "Fichiers et historique",
+    "Appearance": "Apparence", "Theme": "Th\u00e8me", "Language": "Langue", "Interface font": "Police de l'interface",
+    "Font size": "Taille de police", "Density": "Densit\u00e9", "Accent color": "Couleur d'accent",
+    "Layout": "Disposition", "Panels": "Panneaux", "Toolbars": "Barres d'outils",
+    "Reset toolbar order": "R\u00e9initialiser l'ordre des barres", "Font & metrics": "Police et m\u00e9triques",
+    "Code font": "Police du code", "Editor size": "Taille de l'\u00e9diteur", "Line height": "Hauteur de ligne",
+    "Tab size": "Taille des tabulations", "Word wrap": "Retour \u00e0 la ligne", "Line numbers": "Num\u00e9ros de ligne",
+    "Editing": "\u00c9dition", "Auto-close pairs": "Fermer les paires automatiquement",
+    "Smart indent": "Indentation intelligente", "Auto suggestions": "Suggestions automatiques",
+    "Syntax highlighting": "Coloration syntaxique", "Syntax colors": "Couleurs de syntaxe",
+    "Bracket match": "Correspondance des parenth\u00e8ses", "Selected line": "Ligne s\u00e9lectionn\u00e9e",
+    "Editor tooltips": "Infobulles de l'\u00e9diteur", "Show tooltips": "Afficher les infobulles",
+    "Place": "Position", "Delay": "D\u00e9lai", "Max width": "Largeur maximale", "Background": "Arri\u00e8re-plan",
+    "Text color": "Couleur du texte", "Border color": "Couleur de bordure", "Radius": "Rayon",
+    "Snapshots": "Instantan\u00e9s", "Automatic snapshots": "Instantan\u00e9s automatiques", "Interval": "Intervalle",
+    "Versions kept": "Versions conserv\u00e9es", "Actions": "Actions", "Snapshot now": "Cr\u00e9er un instantan\u00e9",
+    "Open project history": "Ouvrir l'historique du projet", "Clear history": "Effacer l'historique",
+    "Files": "Fichiers", "Close": "Fermer", "Cancel": "Annuler", "Apply": "Appliquer", "Delete": "Supprimer",
+    "Add": "Ajouter", "Reset": "R\u00e9initialiser", "Search": "Rechercher", "Image assets": "Images", "Image assets\u2026": "Images\u2026",
+    "Upload image": "Importer une image", "Copy": "Copier", "Src": "Source", "Position": "Position",
+    "Size": "Taille", "Box model": "Mod\u00e8le de bo\u00eete", "Typography": "Typographie", "Border": "Bordure",
+    "Effects": "Effets", "Grid": "Grille", "Interaction": "Interaction", "Events": "\u00c9v\u00e9nements",
+    "Validation": "Validation", "Tooltip": "Infobulle", "Toast": "Toast", "Tabs": "Onglets",
+    "Tree": "Arborescence", "Combobox": "Combobox", "Date/Time picker": "S\u00e9lecteur date/heure",
+    "Drag & drop": "Glisser-d\u00e9poser", "Scroll & scale": "D\u00e9filement et \u00e9chelle",
+    "Format document": "Formater le document", "Save project": "Enregistrer le projet",
+    "Copy element": "Copier l'\u00e9l\u00e9ment", "Cut element": "Couper l'\u00e9l\u00e9ment",
+    "Paste element": "Coller l'\u00e9l\u00e9ment", "Delete element": "Supprimer l'\u00e9l\u00e9ment",
+    "Build and preview": "Compiler et pr\u00e9visualiser", "Find": "Rechercher",
+    "Find and replace": "Rechercher et remplacer", "Go to line": "Aller \u00e0 la ligne",
+    "Command palette": "Palette de commandes", "Toggle line comment": "Commenter la ligne",
+    "Quick Fix": "Correction rapide", "General": "G\u00e9n\u00e9ral", "SUI editor": "\u00c9diteur SUI",
+    "fixed": "fixe", "Reset all shortcuts": "R\u00e9initialiser tous les raccourcis"
+  },
+  de: {
+    "File": "Datei", "Edit": "Bearbeiten", "Insert": "Einf\u00fcgen", "View": "Ansicht", "Preferences": "Einstellungen",
+    "New SUI": "Neues SUI", "Open SUI file.": "SUI-Datei \u00f6ffnen.", "Save": "Speichern",
+    "Save As.": "Speichern unter", "Export .sui": ".sui exportieren", "Export build (.zip).": "Build exportieren (.zip).",
+    "Export single HTML.": "Einzelne HTML exportieren.", "Build desktop executable.": "Desktop-Anwendung erstellen.",
+    "Project history.": "Projektverlauf.", "Undo": "R\u00fcckg\u00e4ngig", "Redo": "Wiederholen", "Duplicate": "Duplizieren",
+    "Delete selected": "Auswahl l\u00f6schen", "Problems panel": "Problembereich", "Desktop": "Desktop",
+    "Tablet": "Tablet", "Mobile": "Mobil", "Editor preferences.": "Editor-Einstellungen.",
+    "Project preferences.": "Projekt-Einstellungen.",
+    "Build & preview in new window": "Bauen und in neuem Fenster ansehen",
+    "Build desktop executable": "Desktop-Anwendung erstellen",
+    "Toggle light/dark theme": "Helles/dunkles Design umschalten", "Structure": "Struktur", "Tokens": "Tokens",
+    "Preview": "Vorschau", "Problems": "Probleme", "History": "Verlauf", "Interface": "Oberfl\u00e4che",
+    "Code editor": "Code-Editor", "Shortcuts": "Tastenk\u00fcrzel", "Files & history": "Dateien & Verlauf",
+    "Appearance": "Darstellung", "Theme": "Design", "Language": "Sprache",
+    "Interface font": "Oberfl\u00e4chen-Schrift", "Font size": "Schriftgr\u00f6\u00dfe", "Density": "Dichte",
+    "Accent color": "Akzentfarbe", "Layout": "Layout", "Panels": "Bereiche", "Toolbars": "Werkzeugleisten",
+    "Reset toolbar order": "Reihenfolge zur\u00fccksetzen", "Font & metrics": "Schrift & Ma\u00dfe",
+    "Code font": "Code-Schrift", "Editor size": "Editor-Gr\u00f6\u00dfe", "Line height": "Zeilenh\u00f6he",
+    "Tab size": "Tab-Gr\u00f6\u00dfe", "Word wrap": "Zeilenumbruch", "Line numbers": "Zeilennummern",
+    "Editing": "Bearbeiten", "Auto-close pairs": "Paare automatisch schlie\u00dfen",
+    "Smart indent": "Intelligente Einr\u00fcckung", "Auto suggestions": "Automatische Vorschl\u00e4ge",
+    "Syntax highlighting": "Syntaxhervorhebung", "Syntax colors": "Syntaxfarben", "Bracket match": "Klammerpaare",
+    "Selected line": "Aktuelle Zeile", "Editor tooltips": "Editor-Tooltips", "Show tooltips": "Tooltips anzeigen",
+    "Place": "Position", "Delay": "Verz\u00f6gerung", "Max width": "Maximale Breite", "Background": "Hintergrund",
+    "Text color": "Textfarbe", "Border color": "Rahmenfarbe", "Radius": "Radius", "Snapshots": "Snapshots",
+    "Automatic snapshots": "Automatische Snapshots", "Interval": "Intervall",
+    "Versions kept": "Aufbewahrte Versionen", "Actions": "Aktionen", "Snapshot now": "Jetzt sichern",
+    "Open project history": "Projektverlauf \u00f6ffnen", "Clear history": "Verlauf l\u00f6schen", "Files": "Dateien",
+    "Close": "Schlie\u00dfen", "Cancel": "Abbrechen", "Apply": "Anwenden", "Delete": "L\u00f6schen",
+    "Add": "Hinzuf\u00fcgen", "Reset": "Zur\u00fccksetzen", "Search": "Suchen", "Image assets": "Bilder", "Image assets\u2026": "Bilder\u2026",
+    "Upload image": "Bild hochladen", "Copy": "Kopieren", "Src": "Quelle", "Position": "Position",
+    "Size": "Gr\u00f6\u00dfe", "Box model": "Box-Modell", "Typography": "Typografie", "Border": "Rahmen",
+    "Effects": "Effekte", "Grid": "Raster", "Interaction": "Interaktion", "Events": "Ereignisse",
+    "Validation": "Validierung", "Tooltip": "Tooltip", "Toast": "Toast", "Tabs": "Tabs", "Tree": "Baum",
+    "Combobox": "Combobox", "Date/Time picker": "Datums-/Zeitauswahl", "Drag & drop": "Ziehen & Ablegen",
+    "Scroll & scale": "Scrollen & Skalieren", "Format document": "Dokument formatieren",
+    "Save project": "Projekt speichern", "Copy element": "Element kopieren", "Cut element": "Element ausschneiden",
+    "Paste element": "Element einf\u00fcgen", "Delete element": "Element l\u00f6schen",
+    "Build and preview": "Bauen und Vorschau", "Find": "Suchen", "Find and replace": "Suchen und ersetzen",
+    "Go to line": "Gehe zu Zeile", "Command palette": "Befehlspalette", "Toggle line comment": "Zeile kommentieren",
+    "Quick Fix": "Schnellkorrektur", "General": "Allgemein", "SUI editor": "SUI-Editor", "fixed": "fest",
+    "Reset all shortcuts": "Alle Tastenk\u00fcrzel zur\u00fccksetzen"
+  }
+};
+var __i18nSource = typeof WeakMap !== "undefined" ? new WeakMap() : null;
+var __localizing = false;
+var __localizeObserver = null;
+function tr(text) {
+  var lang = prefs.lang || "en";
+  var table = I18N[lang];
+  if (!table) return text;
+  return Object.prototype.hasOwnProperty.call(table, text) ? table[text] : text;
+}
+var __i18nKeys = null;
+function i18nKnown(text) {
+  if (!__i18nKeys) {
+    __i18nKeys = {};
+    for (var id in I18N) {
+      if (!Object.prototype.hasOwnProperty.call(I18N, id)) continue;
+      for (var key in I18N[id]) {
+        if (Object.prototype.hasOwnProperty.call(I18N[id], key)) __i18nKeys[key] = 1;
+      }
+    }
+  }
+  return !!__i18nKeys[text];
+}
+function i18nSkipNode(node) {
+  var el = node && node.nodeType === 1 ? node : (node && node.parentElement);
+  if (!el || !el.closest) return false;
+  return !!el.closest("#out, #sui_hl, #suigutter, #tree, #tokens, #prev, #mg-canvas, textarea, pre, code, .sui-doc");
+}
+function localizeTextNode(node) {
+  var raw = node.nodeValue;
+  if (!raw) return;
+  var store = __i18nSource ? __i18nSource.get(node) : null;
+  if (!store) {
+    var trimmed = raw.trim();
+    if (!trimmed || !i18nKnown(trimmed)) return;
+    var at = raw.indexOf(trimmed);
+    store = { pre: raw.slice(0, at), text: trimmed, post: raw.slice(at + trimmed.length) };
+    if (__i18nSource) __i18nSource.set(node, store);
+    else node.__i18nText = store;
+  } else {
+    store = store || node.__i18nText;
+  }
+  var next = store.pre + tr(store.text) + store.post;
+  if (node.nodeValue !== next) node.nodeValue = next;
+}
+function localizeRoot(root) {
+  if (!root || __localizing) return;
+  if (root.nodeType === 3) { localizeTextNode(root); return; }
+  if (root.nodeType !== 1) return;
+  if (i18nSkipNode(root)) return;
+  __localizing = true;
+  try {
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (var i = 0; i < nodes.length; i++) {
+      if (!i18nSkipNode(nodes[i])) localizeTextNode(nodes[i]);
+    }
+    var targets = [root];
+    var sel = root.querySelectorAll("[title],[placeholder],[aria-label]");
+    for (var s = 0; s < sel.length; s++) targets.push(sel[s]);
+    for (var t = 0; t < targets.length; t++) {
+      var el = targets[t];
+      if (!el || el.nodeType !== 1) continue;
+      if (i18nSkipNode(el)) continue;
+      if (!el.__i18nAttrs) el.__i18nAttrs = {};
+      ["title", "placeholder", "aria-label"].forEach(function(attr) {
+        var current = el.getAttribute(attr);
+        if (!current) return;
+        if (el.__i18nAttrs[attr] === undefined) {
+          if (!i18nKnown(current)) return;
+          el.__i18nAttrs[attr] = current;
+        }
+        var next = tr(el.__i18nAttrs[attr]);
+        if (current !== next) el.setAttribute(attr, next);
+      });
+    }
+  } finally {
+    __localizing = false;
+  }
+}
+function startLocalizeObserver() {
+  if (__localizeObserver || typeof MutationObserver === "undefined" || !document.body) return;
+  __localizeObserver = new MutationObserver(function(muts) {
+    if (__localizing) return;
+    for (var i = 0; i < muts.length; i++) {
+      var added = muts[i].addedNodes || [];
+      for (var j = 0; j < added.length; j++) localizeRoot(added[j]);
+    }
+  });
+  __localizeObserver.observe(document.body, { childList: true, subtree: true });
+}
+function initLanguageOptions() {
+  var sel = document.getElementById("pf-lang");
+  if (!sel || sel.options.length) return;
+  EDITOR_LANGS.forEach(function(lang) {
+    var o = document.createElement("option");
+    o.value = lang.id;
+    o.textContent = lang.label;
+    sel.appendChild(o);
+  });
+}
+function applyLanguage(persist) {
+  var lang = prefs.lang || "en";
+  var known = false;
+  for (var i = 0; i < EDITOR_LANGS.length; i++) if (EDITOR_LANGS[i].id === lang) known = true;
+  if (!known) lang = "en";
+  prefs.lang = lang;
+  document.documentElement.setAttribute("lang", lang);
+  if (persist !== false) savePrefs();
+  initLanguageOptions();
+  var sel = document.getElementById("pf-lang");
+  if (sel) sel.value = lang;
+  startLocalizeObserver();
+  localizeRoot(document.body);
+  refreshShortcutHints();
+}
+function changeEditorLanguage(lang) {
+  prefs.lang = lang;
+  applyLanguage(true);
+  var label = lang;
+  for (var i = 0; i < EDITOR_LANGS.length; i++) if (EDITOR_LANGS[i].id === lang) label = EDITOR_LANGS[i].label;
+  setStatus("editor language: " + label);
+}
+
 
 // Which SUI attributes each element exposes in the "Element" panel.
 var TAG_FIELDS = {
@@ -4742,16 +5092,14 @@ function setCssProps(map, after) {
       var restDecls = [];
       for (var rk in rest) compatDecls(rk, rest[rk]).forEach(function(d){ restDecls.push(d); });
       if (!mapped.length) snap(snapLabelFromMap(rest));
-      var pending = layoutCells.length;
-      var done = function(){
-        if (--pending > 0) return;
+      var cellTargets = [];
+      for (var ci = 0; ci < layoutCells.length; ci++) {
+        cellTargets.push({ cls: ensureClass(layoutCells[ci]) + selState, decls: restDecls });
+      }
+      setCssDeclsBatch(cellTargets, function(){
         renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector(); scheduleCssSync();
         if (after) after();
-      };
-      for (var ci = 0; ci < layoutCells.length; ci++) {
-        var cellCls = ensureClass(layoutCells[ci]) + selState;
-        setCssOnClass(cellCls, restDecls, done);
-      }
+      });
       return;
     }
     if (mapped.length) {
@@ -4768,10 +5116,9 @@ function setCssProps(map, after) {
   if (selBody) { setCssOnClass("body" + selState, decls, after); return; }
   var paths = selectedPaths();
   if (!paths.length) { if (after) after(); return; }
-  var i = 0;
-  (function next() {
-    if (i >= paths.length) { if (after) after(); return; }
-    var n = byPath(paths[i], root.children);
+  var targets = [];
+  for (var pi = 0; pi < paths.length; pi++) {
+    var n = byPath(paths[pi], root.children);
     var cls = ensureClass(n) + selState;
     if (n.kind === "toast") {
       // Toast is a component: the inspector styles the card inside the host
@@ -4791,9 +5138,9 @@ function setCssProps(map, after) {
         if (!isNaN(hpx) && hpx > 0) useDecls = useDecls.concat([{ prop: "--t-rowh", value: Math.max(1, Math.round(hpx / n.rows)) + "px" }]);
       }
     }
-    i++;
-    setCssOnClass(cls, useDecls, next);
-  })();
+    targets.push({ cls: cls, decls: useDecls });
+  }
+  setCssDeclsBatch(targets, after);
 }
 function snapLabelFromMap(map) {
   var keys = Object.keys(map).filter(function(k){ return map[k] !== ""; });
@@ -4804,6 +5151,70 @@ function snapLabelFromMap(map) {
 // the previous one. Without the queue, editing two fields in quick succession
 // can post both with the same stale CSS and silently lose the first change.
 var __cssWriteQueue = Promise.resolve();
+// cssSelectorForClass turns the designer's "class" key (a bare class name that
+// may carry a state suffix or a nested toast part) into a full selector. The
+// multi-select writer works on exact selectors, so body and parts need this.
+function cssSelectorForClass(cls) {
+  var s = String(cls || "").trim();
+  if (!s) return "";
+  if (/^body(?=[:\s]|$)/.test(s)) return s;
+  return "." + s;
+}
+// setCssDeclsBatch writes several class/selector targets in one backend
+// transaction. Targets with identical declarations share one request, so a
+// multi-selection edit cannot leave some classes changed and others not.
+function setCssDeclsBatch(targets, after) {
+  var list = (targets || []).filter(function(t){ return t && t.cls; });
+  if (!list.length) { if (after) after(); return; }
+  if (list.length === 1) {
+    setCssOnClass(list[0].cls, list[0].decls, after);
+    return;
+  }
+  var groups = [], byKey = {};
+  for (var i = 0; i < list.length; i++) {
+    var sel = cssSelectorForClass(list[i].cls);
+    if (!sel) continue;
+    var key = JSON.stringify(list[i].decls || []);
+    if (!byKey[key]) {
+      byKey[key] = { selectors: [], decls: list[i].decls || [] };
+      groups.push(byKey[key]);
+    }
+    if (byKey[key].selectors.indexOf(sel) < 0) byKey[key].selectors.push(sel);
+  }
+  if (!groups.length) { if (after) after(); return; }
+  var pending = groups.length;
+  groups.forEach(function(g) {
+    __cssWriteQueue = __cssWriteQueue.then(function() {
+      var fd = new URLSearchParams();
+      fd.set("css", root.css);
+      fd.set("selectors", JSON.stringify(g.selectors));
+      fd.set("at", "");
+      fd.set("decls", JSON.stringify(g.decls));
+      return fetch("/__css__/setselmany", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+        if (!j.ok) {
+          setStatus("CSS update rejected: " + (j.error || "invalid selector"));
+          return;
+        }
+        syncing = true;
+        root.css = j.css;
+        ast = j.ast || ast;
+        renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector();
+        syncing = false;
+        scheduleCssSync();
+      });
+    }).catch(function(){
+      // An older server without the batch endpoint must not lose the edit:
+      // write the classes one at a time as a fallback.
+      g.selectors.forEach(function(sel) {
+        var cls = sel.charAt(0) === "." ? sel.slice(1) : sel;
+        setCssOnClass(cls, g.decls);
+      });
+      setStatus("CSS batch endpoint unavailable; wrote classes individually");
+    }).then(function() {
+      if (--pending === 0 && after) after();
+    });
+  });
+}
 function setCssOnClass(cls, decls, after) {
   if (typeof mgEdit !== "undefined" && mgEdit && mgApplyStateDecls(decls, after)) return;
   __cssWriteQueue = __cssWriteQueue.then(function() {
@@ -12679,6 +13090,120 @@ function closeMediaEditor() {
   var m = document.getElementById("media-editor");
   if (m) m.classList.remove("on");
 }
+
+// ---- image assets ---------------------------------------------------------
+// Uploaded images are embedded as data URLs, so the asset manager never
+// introduces external resources into the project CSS or markup.
+var __assetList = [];
+function openAssets() {
+  var m = document.getElementById("asset-editor");
+  if (!m) return;
+  m.classList.add("on");
+  loadAssets();
+}
+function closeAssets() {
+  var m = document.getElementById("asset-editor");
+  if (m) m.classList.remove("on");
+}
+function loadAssets() {
+  fetch("/__gui__/assets").then(function(r){ return r.json(); }).then(function(j){
+    __assetList = (j && j.ok && j.assets) ? j.assets : [];
+    renderAssets();
+  }).catch(function(){ __assetList = []; renderAssets(); });
+}
+function assetMediaTarget() {
+  var paths = selectedPaths();
+  if (paths.length !== 1) return null;
+  var n = byPath(paths[0], root.children);
+  if (!n) return null;
+  if (["img", "video", "audio", "iframe"].indexOf(n.kind) < 0) return null;
+  return n;
+}
+function renderAssets() {
+  var grid = document.getElementById("asset-grid");
+  if (!grid) return;
+  grid.textContent = "";
+  if (!__assetList.length) {
+    var empty = document.createElement("div");
+    empty.className = "asset-empty";
+    empty.textContent = "No images yet. Upload one to use it as a background or as an image source.";
+    grid.appendChild(empty);
+    return;
+  }
+  var media = assetMediaTarget();
+  __assetList.forEach(function(a) {
+    var card = document.createElement("div"); card.className = "asset-card";
+    var thumb = document.createElement("div"); thumb.className = "asset-thumb";
+    var img = document.createElement("img");
+    img.alt = a.name || "asset";
+    img.loading = "lazy";
+    img.src = a.url;
+    thumb.appendChild(img);
+    card.appendChild(thumb);
+    var meta = document.createElement("div"); meta.className = "asset-meta";
+    meta.textContent = (a.name || "image") + " \u00b7 " + Math.max(1, Math.round((a.size || 0) / 1024)) + " KB";
+    meta.title = meta.textContent;
+    card.appendChild(meta);
+    var actions = document.createElement("div"); actions.className = "asset-actions";
+    var bg = document.createElement("button"); bg.type = "button"; bg.className = "btn"; bg.textContent = "Background";
+    bg.title = "Apply as background-image on the selected element";
+    bg.onclick = function(){ insertAssetBackground(a.url); };
+    var src = document.createElement("button"); src.type = "button"; src.className = "btn"; src.textContent = "Src";
+    src.title = media ? "Set the image source of the selected element" : "Select an image, video, audio or iframe element first";
+    src.disabled = !media;
+    src.onclick = function(){ insertAssetSrc(a.url); };
+    var cp = document.createElement("button"); cp.type = "button"; cp.className = "btn"; cp.textContent = "Copy";
+    cp.title = "Copy the embedded data URL";
+    cp.onclick = function(){ copyAssetUrl(a.url); };
+    actions.appendChild(bg); actions.appendChild(src); actions.appendChild(cp);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+function uploadAsset(files) {
+  var inp = document.getElementById("asset-file");
+  if (!files || !files.length) return;
+  var f = files[0];
+  if (f.size > (4 << 20)) { setStatus("image is larger than 4 MB"); if (inp) inp.value = ""; return; }
+  var fd = new FormData();
+  fd.append("image", f);
+  setStatus("uploading " + f.name + "...");
+  fetch("/__gui__/asset", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+    if (!j.ok) { setStatus("upload failed: " + (j.error || "unknown")); return; }
+    setStatus("image added: " + j.asset.name);
+    loadAssets();
+  }).catch(function(){ setStatus("upload failed"); });
+  if (inp) inp.value = "";
+}
+function insertAssetBackground(url) {
+  if (!url) return;
+  setCssProp("background-image", "url(" + url + ")");
+  setStatus("background image applied");
+}
+function insertAssetSrc(url) {
+  if (!url) return;
+  var n = assetMediaTarget();
+  if (!n) { setStatus("select an image, video, audio or iframe element"); return; }
+  upd("src", url);
+  setStatus("source applied");
+}
+function copyAssetUrl(url) {
+  if (!url) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function(){ setStatus("data URL copied"); }, function(){ copyAssetFallback(url); });
+    return;
+  }
+  copyAssetFallback(url);
+}
+function copyAssetFallback(url) {
+  var ta = document.createElement("textarea");
+  ta.value = url;
+  ta.style.cssText = "position:fixed;left:-9999px;top:0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); setStatus("data URL copied"); } catch (e) { setStatus("copy failed"); }
+  ta.remove();
+}
 // Length-ish values accept px/em/%/... units; a bare number means px. Props
 // where a unitless value is meaningful (line-height, shorthand border) are left
 // untouched.
@@ -18581,6 +19106,130 @@ function resizeById(id, w, h, l, t) {
   setCssOnClass(cls, decls);
 }
 
+// ---- rebindable shortcuts --------------------------------------------------
+// Designer-level actions whose key combination can be changed in Preferences.
+// Fixed editor keys (completion, line operations, symbol navigation) stay
+// documented but are not rebindable, because they interact with typing.
+var SHORTCUT_DEFS = [
+  { id: "undo", group: "General", label: "Undo", def: "Ctrl+Z", aliases: ["Ctrl+U"] },
+  { id: "redo", group: "General", label: "Redo", def: "Ctrl+Y", aliases: ["Ctrl+Shift+Z"] },
+  { id: "copy", group: "General", label: "Copy element", def: "Ctrl+C" },
+  { id: "cut", group: "General", label: "Cut element", def: "Ctrl+X" },
+  { id: "paste", group: "General", label: "Paste element", def: "Ctrl+V" },
+  { id: "delete", group: "General", label: "Delete element", def: "Delete", aliases: ["Backspace"] },
+  { id: "save", group: "File", label: "Save project", def: "Ctrl+S" },
+  { id: "preview", group: "File", label: "Build and preview", def: "Ctrl+Shift+B" },
+  { id: "format", group: "Editor", label: "Format document", def: "Shift+Alt+F" },
+  { id: "find", group: "SUI editor", label: "Find", def: "Ctrl+F" },
+  { id: "replace", group: "SUI editor", label: "Find and replace", def: "Ctrl+H" },
+  { id: "gotoLine", group: "SUI editor", label: "Go to line", def: "Ctrl+G" },
+  { id: "palette", group: "SUI editor", label: "Command palette", def: "Ctrl+Shift+P" },
+  { id: "comment", group: "SUI editor", label: "Toggle line comment", def: "Ctrl+/" },
+  { id: "quickFix", group: "SUI editor", label: "Quick Fix", def: "Ctrl+." },
+  { id: "assets", group: "Insert", label: "Image assets", def: "" }
+];
+function shortcutDef(id) {
+  for (var i = 0; i < SHORTCUT_DEFS.length; i++) if (SHORTCUT_DEFS[i].id === id) return SHORTCUT_DEFS[i];
+  return null;
+}
+function shortcutCombo(id) {
+  var d = shortcutDef(id);
+  if (!d) return "";
+  if (prefs.shortcuts && typeof prefs.shortcuts[id] === "string") return prefs.shortcuts[id];
+  return d.def || "";
+}
+// shortcutParts splits "Ctrl+Shift+P" into modifiers plus the final key.
+function shortcutParts(combo) {
+  var out = { ctrl: false, alt: false, shift: false, meta: false, key: "" };
+  var parts = String(combo || "").split("+").filter(function(p){ return p !== ""; });
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i].toLowerCase();
+    if (p === "ctrl" || p === "control") out.ctrl = true;
+    else if (p === "alt" || p === "option") out.alt = true;
+    else if (p === "shift") out.shift = true;
+    else if (p === "meta" || p === "cmd" || p === "command") out.meta = true;
+    else out.key = parts[i];
+  }
+  return out;
+}
+function comboFromEvent(ev) {
+  var parts = [];
+  if (ev.ctrlKey) parts.push("Ctrl");
+  if (ev.shiftKey) parts.push("Shift");
+  if (ev.altKey) parts.push("Alt");
+  if (ev.metaKey) parts.push("Meta");
+  var k = String(ev.key || "");
+  if (k === " " || k === "Spacebar") k = "Space";
+  else if (k === "Esc") k = "Escape";
+  else if (k.length === 1) k = k.toUpperCase();
+  parts.push(k);
+  return parts.join("+");
+}
+function comboMatches(combo, ev) {
+  var p = shortcutParts(combo);
+  if (!p.key) return false;
+  var k = String(ev.key || "");
+  if (k === " " || k === "Spacebar") k = "Space";
+  if (k === "Esc") k = "Escape";
+  var keyOk = p.key.length === 1 ? k.toUpperCase() === p.key.toUpperCase() : k.toLowerCase() === p.key.toLowerCase();
+  if (!keyOk) return false;
+  return p.ctrl === !!ev.ctrlKey && p.alt === !!ev.altKey && p.shift === !!ev.shiftKey && p.meta === !!ev.metaKey;
+}
+function isShortcut(ev, id) {
+  var combo = shortcutCombo(id);
+  if (!combo) return false;
+  if (comboMatches(combo, ev)) return true;
+  var d = shortcutDef(id);
+  var aliases = (d && d.aliases) || [];
+  for (var i = 0; i < aliases.length; i++) if (comboMatches(aliases[i], ev)) return true;
+  return false;
+}
+function shortcutConflicts(id, combo) {
+  for (var i = 0; i < SHORTCUT_DEFS.length; i++) {
+    var other = SHORTCUT_DEFS[i];
+    if (other.id === id) continue;
+    if (shortcutCombo(other.id) === combo) return other.label;
+    var aliases = other.aliases || [];
+    for (var a = 0; a < aliases.length; a++) if (aliases[a] === combo) return other.label;
+  }
+  return "";
+}
+function setShortcut(id, combo) {
+  if (!prefs.shortcuts) prefs.shortcuts = {};
+  if (combo && combo !== shortcutDef(id).def) prefs.shortcuts[id] = combo;
+  else delete prefs.shortcuts[id];
+  savePrefs();
+  renderShortcutList();
+  refreshShortcutHints();
+}
+function resetShortcut(id) {
+  if (prefs.shortcuts && prefs.shortcuts[id] !== undefined) delete prefs.shortcuts[id];
+  savePrefs();
+  renderShortcutList();
+}
+function resetAllShortcuts() {
+  prefs.shortcuts = {};
+  savePrefs();
+  renderShortcutList();
+  refreshShortcutHints();
+  setStatus("shortcuts reset");
+}
+// refreshShortcutHints keeps the toolbar tooltips in step with rebinding.
+function refreshShortcutHints() {
+  var undoBtn = document.getElementById("tb-undo");
+  if (undoBtn) {
+    var u = shortcutCombo("undo");
+    undoBtn.title = tr("Undo") + (u ? " (" + u + ")" : "");
+    undoBtn.setAttribute("aria-label", tr("Undo"));
+  }
+  var redoBtn = document.getElementById("tb-redo");
+  if (redoBtn) {
+    var r = shortcutCombo("redo");
+    redoBtn.title = tr("Redo") + (r ? " (" + r + ")" : "");
+    redoBtn.setAttribute("aria-label", tr("Redo"));
+  }
+}
+
 // keyboard -----------------------------------------------------------------
 document.addEventListener("keydown", function(ev) {
   var mod = ev.ctrlKey || ev.metaKey;
@@ -18597,18 +19246,22 @@ document.addEventListener("keydown", function(ev) {
   // because a property edit is a designer action, while prompt/modal text
   // fields keep their native undo.
   var modelUndoScope = (!editing && !tediting) || inInspector;
-  if (mod && (ev.key === "z" || ev.key === "Z" || ev.key === "u" || ev.key === "U") && !ev.shiftKey && modelUndoScope) {
+  if (isShortcut(ev, "undo") && !ev.shiftKey && modelUndoScope) {
     ev.preventDefault(); undo(); return;
   }
-  if (mod && ((ev.shiftKey && (ev.key === "z" || ev.key === "Z")) || ev.key === "y" || ev.key === "Y") && modelUndoScope) {
+  if (isShortcut(ev, "redo") && modelUndoScope) {
     ev.preventDefault(); redo(); return;
   }
-  if (mod && !(editing || tediting)) {
-    if (ev.key === "c") { ev.preventDefault(); copySelected(); return; }
-    if (ev.key === "x") { ev.preventDefault(); cutSelected(); return; }
-    if (ev.key === "v") { ev.preventDefault(); pasteClipboard(); return; }
+  if (isShortcut(ev, "save")) { ev.preventDefault(); saveSui(); return; }
+  if (isShortcut(ev, "preview")) { ev.preventDefault(); openPreviewWindow(); return; }
+  if (isShortcut(ev, "format")) { ev.preventDefault(); formatSuiDocument(); return; }
+  if (isShortcut(ev, "assets")) { ev.preventDefault(); openAssets(); return; }
+  if (!(editing || tediting)) {
+    if (isShortcut(ev, "copy")) { ev.preventDefault(); copySelected(); return; }
+    if (isShortcut(ev, "cut")) { ev.preventDefault(); cutSelected(); return; }
+    if (isShortcut(ev, "paste")) { ev.preventDefault(); pasteClipboard(); return; }
   }
-  if ((ev.key === "Delete" || ev.key === "Backspace") && !editing) { ev.preventDefault(); deleteSelected(); return; }
+  if (isShortcut(ev, "delete") && !editing) { ev.preventDefault(); deleteSelected(); return; }
   // Type-to-edit: if a text-capable element is selected and the user starts
   // typing, redirect the keystroke into its "text" field.
   if (!selPath || mod || ev.altKey || ev.isComposing || ev.key.length !== 1) return;
@@ -19402,6 +20055,14 @@ function renderInsertMenu() {
   var searchSep = document.createElement('div');
   searchSep.className = 'dropsep';
   drop.appendChild(searchSep);
+  var assetsItem = document.createElement('div');
+  assetsItem.className = 'mi';
+  assetsItem.textContent = 'Image assets\u2026';
+  assetsItem.onclick = function(){ closeMenus(); openAssets(); };
+  drop.appendChild(assetsItem);
+  var assetsSep = document.createElement('div');
+  assetsSep.className = 'dropsep';
+  drop.appendChild(assetsSep);
   // The top level shows only GROUP rows; hovering a row opens its flyout to
   // the right. Sub-groups (Navigation, Lists, Feedback) cascade the same way
   // one level deeper.
@@ -19933,7 +20594,10 @@ function loadRemotePrefs() {
     prefs.historyAuto = p.historyAuto !== undefined ? !!p.historyAuto : PREF_DEFAULTS.historyAuto;
     prefs.historyInterval = prefNumber(p.historyInterval, PREF_DEFAULTS.historyInterval, 15, 3600);
     prefs.historyKeep = prefNumber(p.historyKeep, PREF_DEFAULTS.historyKeep, 5, 500);
+    prefs.lang = typeof p.lang === "string" && p.lang ? p.lang : PREF_DEFAULTS.lang;
+    prefs.shortcuts = Object.assign({}, (p.shortcuts && typeof p.shortcuts === "object") ? p.shortcuts : {}, prefs.shortcuts || {});
     applyEditorPrefs();
+    applyLanguage(false);
     applyEditorTipPrefs();
     prefs.palette = (p.palette && p.palette.length) ? p.palette.slice() : [];
     palColors = prefs.palette;
@@ -19941,8 +20605,10 @@ function loadRemotePrefs() {
     applyTheme();
     applyPanelVisibility();
     applyBarOrder();
+    __prefsLoaded = true;
   }).catch(function(){});
 }
+var __prefsLoaded = false;
 
 var CHART_TOOLTIP_VARS = [
   "--sui-chart-tooltip-bg", "--sui-chart-tooltip-fg", "--sui-chart-tooltip-border",
@@ -24467,6 +25133,8 @@ function renderProjectPreferences() {
 }
 document.addEventListener("keydown", function(ev) {
   if (ev.key !== "Escape") return;
+  var as = document.getElementById("asset-editor");
+  if (as && as.classList.contains("on")) { ev.preventDefault(); closeAssets(); return; }
   var ins = document.getElementById("insertdlg");
   if (ins && ins.classList.contains("on")) { ev.preventDefault(); closeInsertDialog(); return; }
   var ip = document.getElementById("iconpick");
@@ -24642,6 +25310,9 @@ var prefActiveTab = "interface";
 function fillPrefsForm() {
   var p = prefs;
   document.getElementById("pf-theme").value = p.theme;
+  initLanguageOptions();
+  var langSel = document.getElementById("pf-lang");
+  if (langSel) langSel.value = p.lang || "en";
   setPrefNum("pf-size", p.font);
   document.getElementById("pf-density").value = p.density;
   document.getElementById("pf-accent").value = p.accent;
@@ -24702,12 +25373,14 @@ function openPrefs() {
   if (active) active.focus();
 }
 function closePrefs() {
+  endShortcutCapture(false);
   document.getElementById("pref").classList.remove("on");
   editorTipHide();
 }
 function showPrefTab(name) {
   var ids = ["interface", "editor", "shortcuts", "history"];
   if (ids.indexOf(name) < 0) name = "interface";
+  if (name !== "shortcuts") endShortcutCapture(false);
   prefActiveTab = name;
   for (var i = 0; i < ids.length; i++) {
     var on = ids[i] === name;
@@ -24908,11 +25581,14 @@ function applyPrefs() {
   prefs.historyAuto = document.getElementById("pf-hist-auto").checked;
   prefs.historyInterval = prefNumber(document.getElementById("pf-hist-interval").value, 60, 15, 3600);
   prefs.historyKeep = prefNumber(document.getElementById("pf-hist-keep").value, 30, 5, 500);
+  var langField = document.getElementById("pf-lang");
+  if (langField) prefs.lang = langField.value;
   savePrefs();
   closePrefs();
   applyTheme();
   applyPanelVisibility();
   applyEditorTipPrefs();
+  applyLanguage(false);
 }
 
 function resetPrefs() {
@@ -24923,6 +25599,7 @@ function resetPrefs() {
   applyPanelVisibility();
   applyBarOrder();
   applyEditorTipPrefs();
+  applyLanguage(false);
 }
 
 function resetBarOrder() {
@@ -24933,23 +25610,23 @@ function resetBarOrder() {
 }
 
 var EDITOR_SHORTCUTS = [
-  { g: "General", k: "Ctrl+Z / Ctrl+U", d: "Undo the last designer change" },
-  { g: "General", k: "Ctrl+Y / Ctrl+Shift+Z", d: "Redo the last undone change" },
-  { g: "General", k: "Ctrl+C", d: "Copy the selected element" },
-  { g: "General", k: "Ctrl+X", d: "Cut the selected element" },
-  { g: "General", k: "Ctrl+V", d: "Paste an element" },
-  { g: "General", k: "Delete / Backspace", d: "Delete the selected element" },
+  { g: "General", k: "Ctrl+Z / Ctrl+U", d: "Undo the last designer change", r: "undo" },
+  { g: "General", k: "Ctrl+Y / Ctrl+Shift+Z", d: "Redo the last undone change", r: "redo" },
+  { g: "General", k: "Ctrl+C", d: "Copy the selected element", r: "copy" },
+  { g: "General", k: "Ctrl+X", d: "Cut the selected element", r: "cut" },
+  { g: "General", k: "Ctrl+V", d: "Paste an element", r: "paste" },
+  { g: "General", k: "Delete / Backspace", d: "Delete the selected element", r: "delete" },
   { g: "General", k: "Type a character", d: "Edit the selected element text" },
   { g: "General", k: "Escape", d: "Close a popup, menu or dialog" },
   { g: "SUI editor", k: "Ctrl+Space", d: "Open the completion list" },
-  { g: "SUI editor", k: "Ctrl+/", d: "Toggle a line comment" },
-  { g: "SUI editor", k: "Ctrl+F", d: "Find in the SUI source" },
-  { g: "SUI editor", k: "Ctrl+H", d: "Find and replace in the SUI source" },
-  { g: "SUI editor", k: "Ctrl+G", d: "Go to a line" },
-  { g: "SUI editor", k: "Ctrl+Shift+P", d: "Open the command palette" },
+  { g: "SUI editor", k: "Ctrl+/", d: "Toggle a line comment", r: "comment" },
+  { g: "SUI editor", k: "Ctrl+F", d: "Find in the SUI source", r: "find" },
+  { g: "SUI editor", k: "Ctrl+H", d: "Find and replace in the SUI source", r: "replace" },
+  { g: "SUI editor", k: "Ctrl+G", d: "Go to a line", r: "gotoLine" },
+  { g: "SUI editor", k: "Ctrl+Shift+P", d: "Open the command palette", r: "palette" },
   { g: "SUI editor", k: "F3 / Shift+F3", d: "Next or previous search match" },
   { g: "SUI editor", k: "F8 / Shift+F8", d: "Next or previous problem" },
-  { g: "SUI editor", k: "Ctrl+.", d: "Open Quick Fix for the problem at the cursor" },
+  { g: "SUI editor", k: "Ctrl+.", d: "Open Quick Fix for the problem at the cursor", r: "quickFix" },
   { g: "SUI editor", k: "F12 / Shift+F12", d: "Go to definition or find references" },
   { g: "SUI editor", k: "F2", d: "Rename the symbol under the cursor" },
   { g: "SUI editor", k: "Shift+Alt+Down", d: "Duplicate the current line or selection" },
@@ -24968,6 +25645,53 @@ var EDITOR_SHORTCUTS = [
   { g: "Chart data", k: "Ctrl+Enter", d: "Apply the chart data overlay" },
   { g: "Chart data", k: "Tab", d: "Insert two spaces in the data editor" }
 ];
+var __shortcutCapture = null;
+function beginShortcutCapture(id, btn) {
+  if (__shortcutCapture) endShortcutCapture(false);
+  __shortcutCapture = { id: id, btn: btn };
+  if (btn) {
+    btn.textContent = "Press keys\u2026";
+    btn.classList.add("rec");
+    try { btn.focus(); } catch (e) {}
+  }
+  document.addEventListener("keydown", shortcutCaptureKey, true);
+}
+function endShortcutCapture(rerender) {
+  if (!__shortcutCapture) return;
+  var c = __shortcutCapture;
+  __shortcutCapture = null;
+  document.removeEventListener("keydown", shortcutCaptureKey, true);
+  if (c.btn) c.btn.classList.remove("rec");
+  if (rerender) renderShortcutList();
+}
+function shortcutCaptureKey(ev) {
+  if (!__shortcutCapture) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+  if (ev.key === "Escape") { endShortcutCapture(true); return; }
+  if (ev.key === "Backspace" && !ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.shiftKey) {
+    var id0 = __shortcutCapture.id;
+    endShortcutCapture(false);
+    resetShortcut(id0);
+    setStatus("shortcut reset");
+    return;
+  }
+  var combo = comboFromEvent(ev);
+  var keyPart = shortcutParts(combo).key;
+  var hasMod = ev.ctrlKey || ev.altKey || ev.metaKey;
+  var isFn = /^F\d{1,2}$/.test(keyPart);
+  if (!hasMod && !isFn && keyPart !== "Delete") {
+    setStatus("include Ctrl, Alt or Meta in the shortcut");
+    return;
+  }
+  var id = __shortcutCapture.id;
+  var conflict = shortcutConflicts(id, combo);
+  if (conflict) { setStatus("already used by " + conflict); return; }
+  endShortcutCapture(false);
+  setShortcut(id, combo);
+  setStatus("shortcut updated: " + combo);
+}
 function renderShortcutList() {
   var box = document.getElementById("pf-shortcut-list");
   if (!box) return;
@@ -24975,13 +25699,22 @@ function renderShortcutList() {
   var q = (search && search.value ? search.value : "").toLowerCase();
   box.textContent = "";
   var groups = [], map = {};
-  for (var i = 0; i < EDITOR_SHORTCUTS.length; i++) {
-    var item = EDITOR_SHORTCUTS[i];
-    var hay = (item.g + " " + item.k + " " + item.d).toLowerCase();
-    if (q && hay.indexOf(q) < 0) continue;
-    if (!map[item.g]) { map[item.g] = []; groups.push(item.g); }
-    map[item.g].push(item);
+  function push(group, row) {
+    if (!map[group]) { map[group] = []; groups.push(group); }
+    map[group].push(row);
   }
+  SHORTCUT_DEFS.forEach(function(def) {
+    var combo = shortcutCombo(def.id);
+    var hay = (def.group + " " + def.label + " " + combo).toLowerCase();
+    if (q && hay.indexOf(q) < 0) return;
+    push(def.group, { kind: "rebindable", def: def, combo: combo });
+  });
+  EDITOR_SHORTCUTS.forEach(function(item) {
+    if (item.r) return;
+    var hay = (item.g + " " + item.k + " " + item.d).toLowerCase();
+    if (q && hay.indexOf(q) < 0) return;
+    push(item.g, { kind: "fixed", item: item });
+  });
   if (!groups.length) {
     var empty = document.createElement("div");
     empty.className = "sc-empty";
@@ -24989,26 +25722,55 @@ function renderShortcutList() {
     box.appendChild(empty);
     return;
   }
-  for (var gi = 0; gi < groups.length; gi++) {
+  groups.forEach(function(name) {
     var group = document.createElement("div");
     group.className = "sc-group";
     var head = document.createElement("h4");
-    head.textContent = groups[gi];
+    head.textContent = name;
     group.appendChild(head);
-    var items = map[groups[gi]];
-    for (var ii = 0; ii < items.length; ii++) {
+    map[name].forEach(function(entry) {
       var row = document.createElement("div");
       row.className = "sc-row";
-      var keys = document.createElement("kbd");
-      keys.textContent = items[ii].k;
-      row.appendChild(keys);
-      var desc = document.createElement("span");
-      desc.textContent = items[ii].d;
-      row.appendChild(desc);
+      if (entry.kind === "fixed") {
+        var kb = document.createElement("kbd");
+        kb.textContent = entry.item.k;
+        row.appendChild(kb);
+        var d = document.createElement("span");
+        d.className = "sc-label";
+        d.textContent = entry.item.d;
+        row.appendChild(d);
+        var fixed = document.createElement("span");
+        fixed.className = "sc-fixed";
+        fixed.textContent = "fixed";
+        row.appendChild(fixed);
+        group.appendChild(row);
+        return;
+      }
+      var def = entry.def;
+      var lab = document.createElement("span");
+      lab.className = "sc-label";
+      lab.textContent = def.label;
+      row.appendChild(lab);
+      var comboBtn = document.createElement("button");
+      comboBtn.type = "button";
+      comboBtn.className = "sc-combo" + (entry.combo ? "" : " unset");
+      comboBtn.textContent = entry.combo || "(unset)";
+      comboBtn.title = "Click, then press the new key combination";
+      comboBtn.onclick = function(){ beginShortcutCapture(def.id, comboBtn); };
+      row.appendChild(comboBtn);
+      var custom = prefs.shortcuts && prefs.shortcuts[def.id] !== undefined;
+      var rst = document.createElement("button");
+      rst.type = "button";
+      rst.className = "sc-reset";
+      rst.textContent = "\u21ba";
+      rst.title = custom ? "Reset to default" : "Default";
+      rst.disabled = !custom;
+      rst.onclick = function(){ resetShortcut(def.id); setStatus("shortcut reset"); };
+      row.appendChild(rst);
       group.appendChild(row);
-    }
+    });
     box.appendChild(group);
-  }
+  });
 }
 
 function applyEditorTipPrefs() {
@@ -26179,9 +26941,87 @@ function scheduleAutoApply() {
     applySuiCommon(src, { keepUndo: true, keepSel: true, quiet: true });
   }, 700);
 }
+// formatSuiSource normalizes whitespace without touching tokens: it fixes
+// indentation from brace depth, strips trailing spaces and collapses blank
+// runs. Lines that start inside a string, and lines that open a string which
+// continues on the next line, are left byte-for-byte untouched because their
+// whitespace is part of the literal.
+function formatSuiSource(src) {
+  var text = String(src == null ? "" : src).replace(/\r\n?/g, "\n");
+  var lines = text.split("\n");
+  var out = [];
+  var depth = 0;
+  var inString = false;
+  var pendingBlank = false;
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var startsInString = inString;
+    var scan = scanSuiLine(line, inString);
+    inString = scan.inString;
+    if (startsInString || scan.opensString) {
+      // Inside a literal: indentation and trailing spaces are data.
+      out.push(line);
+      pendingBlank = false;
+      depth = Math.max(0, depth + scan.delta);
+      continue;
+    }
+    var trimmed = line.replace(/[ \t]+$/, "");
+    var body = trimmed.replace(/^[ \t]+/, "");
+    if (!body) {
+      if (out.length) pendingBlank = true;
+      depth = Math.max(0, depth + scan.delta);
+      continue;
+    }
+    if (pendingBlank) { out.push(""); pendingBlank = false; }
+    var lead = depth;
+    // A closing brace belongs to the outer level.
+    if (body.charAt(0) === "}") lead = Math.max(0, depth - 1);
+    var indent = "";
+    for (var t = 0; t < lead; t++) indent += "\t";
+    out.push(indent + body);
+    depth = Math.max(0, depth + scan.delta);
+  }
+  while (out.length && out[out.length - 1] === "") out.pop();
+  return out.join("\n") + (out.length ? "\n" : "");
+}
+// scanSuiLine counts brace depth changes outside strings and comments.
+function scanSuiLine(line, inString) {
+  var i = 0, delta = 0, startsIn = !!inString, opened = false;
+  while (i < line.length) {
+    var ch = line.charAt(i);
+    if (inString) {
+      if (ch === "\\") { i += 2; continue; }
+      if (ch === '"') inString = false;
+      i++;
+      continue;
+    }
+    if (ch === '"') { inString = true; opened = true; i++; continue; }
+    if (ch === "#") break;
+    if (ch === "{") delta++;
+    else if (ch === "}") delta--;
+    i++;
+  }
+  return { delta: delta, inString: inString, opensString: !startsIn && opened && inString };
+}
+function formatSuiDocument() {
+  var ta = document.getElementById("out");
+  if (!ta) return;
+  var src = ta.value;
+  var formatted = formatSuiSource(src);
+  if (formatted === src) { setStatus("source already formatted"); return; }
+  undoFlush();
+  ta.value = formatted;
+  highlightSui();
+  renderOutline();
+  updateEditorStatus();
+  undoFlush();
+  scheduleAutoApply();
+  setStatus("source formatted");
+}
 function applySui() {
   applySuiCommon(document.getElementById("out").value, {});
 }
+
 function setupEditorScroll() {
   [["out", "sui_hl"]].forEach(function(p) {
     var ta = document.getElementById(p[0]);
@@ -26312,13 +27152,14 @@ function editorKeydown(ev) {
   if (ev.key === "F12") { ev.preventDefault(); if (ev.shiftKey) findReferences(); else gotoDefinition(); return; }
   if (ev.key === "F2") { ev.preventDefault(); renameSymbol(); return; }
   var mod = ev.ctrlKey || ev.metaKey;
-  if (mod && ev.shiftKey && (ev.key === "P" || ev.key === "p")) { ev.preventDefault(); openCommandPalette(); return; }
-  if (mod && !ev.shiftKey && (ev.key === "f" || ev.key === "F")) { ev.preventDefault(); openFindBar(false); return; }
-  if (mod && !ev.shiftKey && (ev.key === "h" || ev.key === "H")) { ev.preventDefault(); openFindBar(true); return; }
-  if (mod && !ev.shiftKey && (ev.key === "g" || ev.key === "G")) { ev.preventDefault(); gotoLinePrompt(); return; }
+  if (isShortcut(ev, "palette")) { ev.preventDefault(); openCommandPalette(); return; }
+  if (isShortcut(ev, "find")) { ev.preventDefault(); openFindBar(false); return; }
+  if (isShortcut(ev, "replace")) { ev.preventDefault(); openFindBar(true); return; }
+  if (isShortcut(ev, "gotoLine")) { ev.preventDefault(); gotoLinePrompt(); return; }
+  if (isShortcut(ev, "format")) { ev.preventDefault(); formatSuiDocument(); return; }
   if (ev.key === "F3") { ev.preventDefault(); findNext(ev.shiftKey ? -1 : 1); return; }
   if (ev.key === "F8") { ev.preventDefault(); gotoNextProblem(ev.shiftKey ? -1 : 1); return; }
-  if (mod && (ev.key === "." || ev.key === ">")) { ev.preventDefault(); showQuickFixMenu(); return; }
+  if (isShortcut(ev, "quickFix")) { ev.preventDefault(); showQuickFixMenu(); return; }
   if (mod && ev.shiftKey && (ev.key === "k" || ev.key === "K")) { ev.preventDefault(); deleteLine(); return; }
   if (mod && !ev.shiftKey && (ev.key === "l" || ev.key === "L")) { ev.preventDefault(); selectLine(); return; }
   if (ev.altKey && ev.shiftKey && ev.key === "ArrowDown") { ev.preventDefault(); duplicateLine(); return; }
@@ -26331,19 +27172,11 @@ function editorKeydown(ev) {
     suiSuggest(true);
     return;
   }
-  if ((ev.ctrlKey || ev.metaKey) && ev.key === "/") { ev.preventDefault(); toggleComment(); return; }
-  // Undo/redo through the editor's own snapshot history. Ctrl+U is accepted as
-  // an undo alias; Ctrl+Y and Ctrl+Shift+Z are redo. Copy/cut/paste
+  if (isShortcut(ev, "comment")) { ev.preventDefault(); toggleComment(); return; }
+  // Undo/redo through the unified designer history. Copy/cut/paste
   // (Ctrl+C/X/V) are native textarea behavior and are never intercepted here.
-  if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
-    var uk = (ev.key || "").toLowerCase();
-    if ((uk === "z" || uk === "u") && !ev.shiftKey) {
-      ev.preventDefault(); ev.stopPropagation(); undo(); return;
-    }
-    if (uk === "y" || (uk === "z" && ev.shiftKey)) {
-      ev.preventDefault(); ev.stopPropagation(); redo(); return;
-    }
-  }
+  if (isShortcut(ev, "undo")) { ev.preventDefault(); ev.stopPropagation(); undo(); return; }
+  if (isShortcut(ev, "redo")) { ev.preventDefault(); ev.stopPropagation(); redo(); return; }
   // Autocomplete popup owns the arrow/enter/tab keys while visible.
   if (__suiAc.visible) {
     if (ev.key === 'ArrowDown') { ev.preventDefault(); moveSuiAc(1); return; }
@@ -27545,16 +28378,18 @@ var __cmdIdx = 0;
 function commandPaletteItems() {
   var items = [];
   function add(label, key, fn) { items.push({ label: label, key: key || "", run: fn }); }
-  add("Find", "Ctrl+F", function(){ openFindBar(false); });
-  add("Replace", "Ctrl+H", function(){ openFindBar(true); });
-  add("Go to line", "Ctrl+G", gotoLinePrompt);
+  function sc(id) { return shortcutCombo(id); }
+  add("Find", sc("find"), function(){ openFindBar(false); });
+  add("Replace", sc("replace"), function(){ openFindBar(true); });
+  add("Go to line", sc("gotoLine"), gotoLinePrompt);
+  add("Format document", sc("format"), formatSuiDocument);
   add("Go to definition", "F12", gotoDefinition);
   add("Find references", "Shift+F12", findReferences);
   add("Rename symbol", "F2", renameSymbol);
-  add("Quick Fix", "Ctrl+.", showQuickFixMenu);
+  add("Quick Fix", sc("quickFix"), showQuickFixMenu);
   add("Next problem", "F8", function(){ gotoNextProblem(1); });
   add("Previous problem", "Shift+F8", function(){ gotoNextProblem(-1); });
-  add("Toggle line comment", "Ctrl+/", toggleComment);
+  add("Toggle line comment", sc("comment"), toggleComment);
   add("Duplicate line", "Shift+Alt+Down", duplicateLine);
   add("Move line up", "Alt+Up", function(){ moveLines(-1); });
   add("Move line down", "Alt+Down", function(){ moveLines(1); });
@@ -27876,7 +28711,9 @@ renderInsertMenu();
 renderTemplates();
 applyTheme();
 applyPanelVisibility();
+initLanguageOptions();
 loadRemotePrefs();
+applyLanguage(false);
 wireEditorTools();
 applyEditorTipPrefs();
 initEditorTips();

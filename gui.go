@@ -35,6 +35,26 @@ var (
 	guiFonts   = map[string]string{}
 )
 
+// Images uploaded through the designer asset manager. They are kept in memory
+// as data URLs so the generated SUI source stays self-contained and the
+// compiler keeps rejecting external resources.
+type guiAsset struct {
+	ID    string
+	Name  string
+	Mime  string
+	Size  int
+	URL   string
+	Added int64
+}
+
+var (
+	guiAssetsMu sync.Mutex
+	guiAssets   = map[string]*guiAsset{}
+	guiAssetSeq int
+)
+
+const guiAssetMaxBytes = 4 << 20
+
 // The most recent "quick preview" build: the compiled static project
 // (index.html + style.css + app.js) served for opening in a new window.
 var (
@@ -515,6 +535,26 @@ func CmdGui(args []string) {
 		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"family":`+StringifyJson(JStr(family))+`}`)
 	})
 
+	// ---- image assets -------------------------------------------------------
+	mux.HandleFunc("GET /__gui__/assets", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(guiAssetList()))
+	})
+	mux.HandleFunc("POST /__gui__/asset", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseMultipartForm(guiAssetMaxBytes + (1 << 20))
+		file, hdr, err := r.FormFile("image")
+		if err != nil {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"error":"no image file"}`)
+			return
+		}
+		defer file.Close()
+		data, err := io.ReadAll(io.LimitReader(file, guiAssetMaxBytes+1))
+		if err != nil || len(data) == 0 {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"error":"could not read image"}`)
+			return
+		}
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(guiAssetUpload(data, hdr.Filename)))
+	})
+
 	// ---- filesystem browser (open/save .sui) --------------------------------
 	mux.HandleFunc("GET /__gui__/fs/list", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(guiFsList(r.URL.Query().Get("path"))))
@@ -756,6 +796,102 @@ func fontMime(ext string) string {
 		return "font/woff2"
 	}
 	return ""
+}
+
+// imageMime validates uploaded image bytes by signature. The extension only
+// gates which signatures are accepted, so renaming an executable to .png fails.
+// SVG is intentionally rejected: it can carry active content in some contexts.
+func imageMime(data []byte, ext string) string {
+	ext = strings.ToLower(ext)
+	switch ext {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif":
+	default:
+		return ""
+	}
+	switch {
+	case len(data) >= 8 && bytes.Equal(data[:8], []byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}):
+		return "image/png"
+	case len(data) >= 3 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff:
+		return "image/jpeg"
+	case len(data) >= 6 && (string(data[:6]) == "GIF87a" || string(data[:6]) == "GIF89a"):
+		return "image/gif"
+	case len(data) >= 12 && string(data[:4]) == "RIFF" && string(data[8:12]) == "WEBP":
+		return "image/webp"
+	case len(data) >= 12 && string(data[4:8]) == "ftyp" && (string(data[8:12]) == "avif" || string(data[8:12]) == "avis"):
+		return "image/avif"
+	}
+	return ""
+}
+
+// sanitizeAssetName keeps a display-safe base name: no directories, no control
+// characters and a bounded length. The name is only shown in the asset grid.
+func sanitizeAssetName(name string) string {
+	name = filepath.Base(strings.ReplaceAll(name, "\\", "/"))
+	var b strings.Builder
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f || r == '/' || r == '\\' {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	out := strings.TrimSpace(b.String())
+	if len(out) > 80 {
+		out = out[:80]
+	}
+	return out
+}
+
+// guiAssetList returns the uploaded assets, newest first.
+func guiAssetList() JVal {
+	guiAssetsMu.Lock()
+	list := make([]*guiAsset, 0, len(guiAssets))
+	for _, a := range guiAssets {
+		list = append(list, a)
+	}
+	guiAssetsMu.Unlock()
+	sort.Slice(list, func(i, j int) bool { return list[i].Added > list[j].Added })
+	if len(list) > 60 {
+		list = list[:60]
+	}
+	arr := JArr()
+	for _, a := range list {
+		arr = pushArr(arr, JObj(
+			"id", JStr(a.ID),
+			"name", JStr(a.Name),
+			"mime", JStr(a.Mime),
+			"size", JInt(a.Size),
+			"url", JStr(a.URL),
+		))
+	}
+	return JObj("ok", JBool(true), "assets", arr)
+}
+
+// guiAssetUpload validates and stores one image, returning its metadata. The
+// bytes must match a supported signature and fit the 4 MB budget.
+func guiAssetUpload(data []byte, filename string) JVal {
+	if len(data) == 0 {
+		return JObj("ok", JBool(false), "error", JStr("empty image"))
+	}
+	if len(data) > guiAssetMaxBytes {
+		return JObj("ok", JBool(false), "error", JStr("image is larger than 4 MB"))
+	}
+	mime := imageMime(data, filepath.Ext(filename))
+	if mime == "" {
+		return JObj("ok", JBool(false), "error", JStr("unsupported image format (use .png .jpg .gif .webp .avif)"))
+	}
+	name := sanitizeAssetName(filename)
+	if name == "" {
+		name = "image"
+	}
+	guiAssetsMu.Lock()
+	guiAssetSeq++
+	id := "a" + strconv.Itoa(guiAssetSeq)
+	a := &guiAsset{ID: id, Name: name, Mime: mime, Size: len(data), URL: "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data), Added: time.Now().UnixNano()}
+	guiAssets[id] = a
+	guiAssetsMu.Unlock()
+	return JObj("ok", JBool(true), "asset", JObj(
+		"id", JStr(a.ID), "name", JStr(a.Name), "mime", JStr(a.Mime), "size", JInt(a.Size), "url", JStr(a.URL),
+	))
 }
 
 // guiPreviewPicker lets the user click a widget inside the compiled preview

@@ -867,3 +867,29 @@ func TestGuiPreviewMotionFeatures(t *testing.T) {
 		t.Error("graph preview must use Web Animations, not a CSS transition")
 	}
 }
+
+func TestGuiEditorToolsPanel(t *testing.T) {
+	for _, want := range []string{
+		`id="asset-editor"`,
+		`id="asset-grid"`,
+		`function openAssets`,
+		`function uploadAsset`,
+		`function insertAssetBackground`,
+		`function setCssDeclsBatch`,
+		`function formatSuiSource`,
+		`function formatSuiDocument`,
+		`var SHORTCUT_DEFS`,
+		`function beginShortcutCapture`,
+		`function isShortcut`,
+		`function refreshShortcutHints`,
+		`var EDITOR_LANGS`,
+		`var I18N`,
+		`id="pf-lang"`,
+		`function applyLanguage`,
+		`function changeEditorLanguage`,
+	} {
+		if !strings.Contains(guiHTML, want) {
+			t.Errorf("designer page missing %q", want)
+		}
+	}
+}

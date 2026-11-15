@@ -62,6 +62,7 @@ Aspetto e layout della shell dell'editor.
 | Impostazione | Default | Effetto |
 |---|---|---|
 | Theme | Dark | Interfaccia Dark, Light o High contrast |
+| Language | English | Lingua dell'interfaccia: English, Italiano, Español, Français o Deutsch |
 | Interface font | System UI | Font di menu, pannelli, etichette e controlli |
 | Custom interface font | - | Famiglia CSS usata quando è selezionato **Custom** |
 | Font size | 14 | Scala l'intera interfaccia dell'editor |
@@ -70,6 +71,19 @@ Aspetto e layout della shell dell'editor.
 | Panels | tutti visibili tranne history | Mostra o nasconde Structure/Tokens, Inspector e Problems/History |
 | Toolbar layout | affiancate | Le due barre superiori condividono una riga quando c'è spazio; trascina la maniglia per riordinarle |
 | Reset toolbar order | - | Ripristina il layout predefinito delle toolbar |
+
+### Lingua dell'interfaccia
+
+**Appearance → Language** cambia la lingua dell'interfaccia tra English,
+Italiano, Español, Français e Deutsch. La scelta viene salvata con le
+altre preferenze e applicata subito alla chrome dell'editor: menu, tooltip delle
+toolbar, tab dei pannelli, titoli delle sezioni dell'inspector, preferenze ed
+etichette delle scorciatoie.
+
+La traduzione usa un dizionario e ricade sull'inglese per ogni stringa non ancora
+tradotta, quindi una lingua parziale non mostra mai testo vuoto. L'impostazione
+cambia solo l'editor: il sorgente SUI, l'anteprima generata e l'applicazione non
+sono modificati.
 
 ### Code editor
 
@@ -142,9 +156,23 @@ correnti. Mostra anche un fumetto con lo stile tooltip dell'editor. Si aggiorna
 mentre modifichi i controlli, prima di **Apply**.
 ### Shortcuts
 
-La tab **Shortcuts** è un riferimento in sola lettura. Il campo di ricerca filtra
-per azione, tasto o gruppo. Elenca le scorciatoie di designer, editor SUI, menu,
-struttura e dati dei chart; le scorciatoie non sono ancora riassegnabili.
+La tab **Shortcuts** elenca ogni azione con la sua combinazione. Le combinazioni
+predefinite si possono cambiare: clicca una combinazione, premi i nuovi tasti e
+la modifica viene salvata nelle preferenze. **Esc** annulla la cattura,
+**Backspace** cancella una combinazione personalizzata e il pulsante con la
+freccia accanto alla riga ripristina il default. **Reset all shortcuts** cancella
+tutte le personalizzazioni.
+
+Le combinazioni devono includere **Ctrl**, **Alt** o **Meta**, oppure essere un
+tasto funzione, così la digitazione nell'editor non viene mai intercettata.
+Una combinazione già usata da un'altra azione viene rifiutata con un messaggio
+di stato. I tooltip delle toolbar e la palette comandi mostrano le combinazioni
+correnti.
+
+Le azioni marcate **fisso** (navigazione del completamento, operazioni di riga,
+navigazione simboli, tasti dei menu e dei chart) restano integrate nell'editing e
+non sono riassegnabili. Le scorciatoie valgono sia per il designer sia per
+l'editor SUI: per esempio riassegnare **Undo** cambia entrambi.
 
 ### Files & history
 
@@ -192,6 +220,22 @@ Quando il designer rigenera il sorgente, il corpo delle funzioni viene indentato
 di un livello dentro le parentesi graffe. Le istruzioni annidate mantengono la
 loro indentazione relativa, quindi il round-trip attraverso l'editor visuale non
 appiattisce il codice delle funzioni.
+
+### Formattazione
+
+**Shift+Alt+F**, oppure **Format document** nella palette comandi, normalizza il
+sorgente SUI senza cambiare nessun token:
+
+- l'indentazione viene ricostruita dalla profondità delle graffe con tab;
+- gli spazi finali vengono rimossi e le righe vuote consecutive diventano una;
+- una graffa di chiusura viene allineata alla sua istruzione di apertura;
+- il file termina con una sola riga vuota finale.
+
+Le stringhe tra virgolette non vengono mai toccate, comprese quelle su più
+righe: le righe che iniziano dentro un literal, o che aprono un literal che
+continua alla riga successiva, mantengono gli spazi perché fanno parte del
+valore. La formattazione è una normale modifica annullabile e attiva il
+consueto auto-apply.
 
 ## Menu e navigazione del code editor
 
@@ -735,6 +779,32 @@ esterne (`@import` e `url(...)` di rete/file) sono rifiutate dal compilatore; us
 data URI o asset relativi locali. Le proprietà con prefisso vendor sono ammesse;
 modificando una proprietà con una entry di compatibilità nota vengono aggiornate
 anche le varianti prefissate.
+
+I builder visuali (gradiente, transform, clip-path, flex, grid, bordi per lato
+e border-image) scrivono le dichiarazioni su ogni elemento selezionato in
+un'unica transazione multi-classe, quindi un errore non lascia metà delle
+classi aggiornate.
+
+## Immagini
+
+**Insert → Image assets…** apre l'asset manager. Carica un'immagine e la
+mantiene in memoria come data URL, così il progetto resta autosufficiente e la
+regola del compilatore sulle risorse esterne continua a valere. Sono accettati
+PNG, JPEG, GIF, WebP e AVIF fino a 4 MB; il server valida la firma del file, non
+solo l'estensione, e rifiuta SVG perché può contenere contenuto attivo.
+
+Ogni immagine caricata appare come card con miniatura, nome e dimensione:
+
+| Azione | Effetto |
+|---|---|
+| Background | Scrive `background-image: url(data:...)` sull'elemento selezionato |
+| Src | Imposta `src` sull'elemento `img`, `video`, `audio` o `iframe` selezionato |
+| Copy | Copia negli appunti il data URL incorporato |
+
+I caricamenti valgono per la sessione: non vengono scritti su disco e il data URL
+viene incorporato direttamente nel sorgente SUI quando lo applichi. Usa un
+percorso relativo locale invece di un asset quando vuoi che il file viva accanto
+al progetto.
 
 ## Drag and drop del designer
 

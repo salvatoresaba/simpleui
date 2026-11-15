@@ -274,7 +274,7 @@ const guiCssAdvancedScript = `<script>
     if (!gradientApply) throw new Error('gradient Apply missing');
     gradientApply.click();
     await wait(800);
-    if (root.css.indexOf('linear-gradient(') < 0) throw new Error('gradient builder did not apply');
+    if ((root.css.match(/linear-gradient\(/g) || []).length < 2) throw new Error('gradient builder was not applied atomically to both classes');
     body = document.getElementById('ins-overlay-body');
     var gradientType = body.querySelector('.adv-builder select');
     gradientType.value = 'radial';
@@ -298,7 +298,7 @@ const guiCssAdvancedScript = `<script>
     if (!transformApply) throw new Error('transform Apply missing');
     transformApply.click();
     await wait(800);
-    if (root.css.indexOf('scale(1.1)') < 0) throw new Error('transform builder did not apply');
+    if ((root.css.match(/scale\(1\.1\)/g) || []).length < 2) throw new Error('transform builder was not applied atomically to both classes');
     body = document.getElementById('ins-overlay-body');
     var builders = body.querySelectorAll('.adv-builder');
     if (builders.length < 2) throw new Error('clip-path builder missing');

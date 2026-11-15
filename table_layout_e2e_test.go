@@ -84,6 +84,11 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 		res := guiCssSetBatch(r.PostFormValue("css"), r.PostFormValue("class"), r.PostFormValue("decls"))
 		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
 	})
+	mux.HandleFunc("POST /__css__/setselmany", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		res := guiCssSetSelectors(r.PostFormValue("css"), r.PostFormValue("selectors"), r.PostFormValue("at"), r.PostFormValue("decls"))
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
+	})
 	go func() { _ = http.Serve(ln, mux) }()
 
 	url := "http://" + ln.Addr().String() + "/"
