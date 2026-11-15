@@ -621,11 +621,10 @@ I preset che mostrano i nuovi effetti sono **Aurora** e **Scanner** per Progress
 **Style** continua a scrivere palette e forma insieme, quindi scegliere un preset
 e poi cambiare l'animazione mantiene il resto dell'aspetto.
 
-La gallery eseguibile in `examples/all_controls_animations` raccoglie tutti i
-controlli e i due meccanismi di animazione in una pagina, con un **animation
-lab** in cui ogni controllo animabile ha un selettore dell'effetto che cambia
-l'animazione mentre l'app gira. Il suo README contiene la mappa delle
-animazioni.
+L'**animation lab** eseguibile in `examples/animation_lab` mostra solo i
+controlli animabili, ognuno con selettori runtime **Style** e **Animation** per
+cambiare l'effetto mentre l'app gira. Il suo README elenca tutti gli stili e
+tutte le animazioni.
 
 La famiglia **Sketch** ha versioni Light e Dark, condivise da tutti e venti i
 pannelli, cosi i componenti sulla stessa pagina restano visivamente coerenti. La

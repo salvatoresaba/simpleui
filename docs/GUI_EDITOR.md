@@ -595,10 +595,10 @@ Presets that showcase the new effects: **Aurora** and **Scanner** for Progress,
 **Style** selector still writes palette and shape together, so choosing a preset
 and then changing the animation keeps the rest of the look.
 
-The runnable gallery in `examples/all_controls_animations` puts every control and
-both animation mechanisms on one page, with an **animation lab** where every
-animatable control has an effect selector that changes the animation while the
-app runs. Its README lists the animation map.
+The runnable **animation lab** in `examples/animation_lab` shows only the
+animatable controls, each with runtime **Style** and **Animation** selectors, so
+the effect can be changed while the app runs. Its README lists every style and
+every animation.
 
 The **Sketch** family has Light and Dark versions, shared by all twenty panels so
 components placed on the same page stay visually related. The light variant uses

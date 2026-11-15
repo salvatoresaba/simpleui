@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -75,9 +76,10 @@ view main {
 	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte(page), 0o644); err != nil {
 		t.Fatalf("write page: %v", err)
 	}
-	pixel, err := os.ReadFile(filepath.Join("examples", "all_controls_animations", "assets", "preview.png"))
+	// 1x1 PNG; the test only needs a real image that reports naturalWidth.
+	pixel, err := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
 	if err != nil {
-		t.Fatalf("read pixel fixture: %v", err)
+		t.Fatalf("decode pixel fixture: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "pixel.png"), pixel, 0o644); err != nil {
 		t.Fatalf("write pixel: %v", err)
