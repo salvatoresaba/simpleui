@@ -645,17 +645,25 @@ Less common properties are grouped behind buttons in the section they belong
 to. Each button opens a draggable overlay; the overlay stays open while values
 change and stays in sync with the CSS editor.
 
-- **Background** → **Advanced background...**: image, size, position, repeat,
-  attachment, clip, origin and blend.
-- **Layout** → **Advanced flex...**: flex-wrap, order and grow/shrink/basis.
-- **Grid** → **Advanced grid...**: auto flow/rows/columns and justify-items/self.
+- **Background** → **Advanced background...**: a **Gradient builder** for
+  linear/radial/conic gradients with three colour stops, a live preview and
+  Apply/Clear, plus image, size, position, repeat, attachment, clip, origin and
+  blend.
+- **Layout** → **Advanced flex...**: a **Flex builder** for direction, wrap,
+  justify, align, content and gap with a live preview, plus flex-wrap, order and
+  grow/shrink/basis.
+- **Grid** → **Advanced grid...**: a **Grid builder** for template columns/rows,
+  auto flow, justify/align and gap with a live preview, plus the raw grid fields.
 - **Typography** → **Advanced text...**: text-overflow, overflow-wrap,
   word-break, writing-mode and direction.
 - **Size** → **Overflow and sizing...**: overflow, box-sizing, aspect-ratio,
   min-width/min-height and object-fit.
-- **Effects** → **Transform and clip path...**: transform, transform-origin,
-  clip-path and isolation.
-- **Border** → **Outline...**: outline style, width, colour and offset.
+- **Effects** → **Transform and clip path...**: **Transform builder**
+  (translate/scale/rotate/skew), **Clip-path builder** (circle, ellipse, inset,
+  polygon), transform-origin and isolation.
+- **Border** → **Per-side borders...**: one side or all sides with style, width
+  and colour; **Border image...**: source, slice, width, outset and repeat;
+  **Outline...**: outline style, width, colour and offset.
 - **Interaction**: cursor, pointer-events, user-select, visibility, float,
   clear and scroll-behavior. These target the selected class rule. Cursor,
   pointer-events, user-select and visibility are inherited, so on a container
@@ -670,8 +678,10 @@ element closes it as well.
 Open **Appearance → CSS declarations → Edit...**. The overlay lists the
 declarations of the selected class rule. Every row has a read-only property, an
 editable value and a delete button. The add row accepts any valid CSS property,
-including custom properties (`--accent: #4c5cf7`), with a suggestion list and
-validation. Examples:
+including custom properties (`--accent: #4c5cf7`), with property and value
+suggestions and validation. Values autocomplete common keywords and function
+prefixes (`display`, `position`, `flex-*`, `grid-*`, `border-*`,
+`linear-gradient(`, `clip-path`, `content`, `var(` and so on). Examples:
 
 ```css
 overflow: hidden;
@@ -680,13 +690,23 @@ transform: rotate(2deg);
 --accent: #4c5cf7;
 ```
 
-This is a second view of the same CSS model used by the CSS editor: edits update
-`root.css`, the generated source and the CSS editor immediately. The overlay
-edits the class rule, not inline effective values; use **style expr** for
-reactive inline declarations. Because an arbitrary value may contain
-`url(...)`, images and fonts can load external resources. Vendor-prefixed
-properties are allowed; editing a property that has a known compatibility entry
-updates its prefixed variants too.
+With several elements selected, the overlay edits every selected class. Fields
+with different current values show **(mixed)** and a tooltip listing the values;
+entering a value applies it to all selected classes. **Text mode** switches to a
+declaration textarea (`property: value;` lines) with an **Apply text** button;
+mixed values are shown as comments and are not overwritten unless typed.
+
+The **Rule context** card adds pseudo-elements (`::before`, `::after`, `:hover`,
+`:focus`, `:focus-visible`, `:active`, `:disabled`) and an at-rule field
+(`@media`, `@supports`, …). For `::before`/`::after`, **Set content** writes the
+`content` declaration. The context applies to every selected class. This is a
+second view of the same CSS model used by the CSS editor: edits update `root.css`,
+the generated source and the CSS editor immediately. The overlay edits class,
+pseudo-element and at-rule rules, not inline effective values; use **style
+expr** for reactive inline declarations. External CSS resources (`@import` and
+network/file `url(...)`) are rejected by the compiler; use data URIs or local
+relative assets. Vendor-prefixed properties are allowed; editing a property that
+has a known compatibility entry updates its prefixed variants too.
 
 ## Designer drag and drop
 

@@ -669,17 +669,24 @@ Le proprietà meno comuni sono raggruppate dietro pulsanti nella sezione a cui
 appartengono. Ogni pulsante apre un overlay trascinabile; l'overlay resta aperto
 mentre si modificano i valori e resta sincronizzato con l'editor CSS.
 
-- **Background** → **Advanced background...**: image, size, position, repeat,
-  attachment, clip, origin e blend.
-- **Layout** → **Advanced flex...**: flex-wrap, order e grow/shrink/basis.
-- **Grid** → **Advanced grid...**: auto flow/rows/columns e justify-items/self.
+- **Background** → **Advanced background...**: **Gradient builder** per gradienti
+  lineari/radiali/conici con tre stop, anteprima live e Apply/Clear, più image,
+  size, position, repeat, attachment, clip, origin e blend.
+- **Layout** → **Advanced flex...**: **Flex builder** per direction, wrap,
+  justify, align, content e gap con anteprima live, più flex-wrap, order e
+  grow/shrink/basis.
+- **Grid** → **Advanced grid...**: **Grid builder** per template columns/rows,
+  auto flow, justify/align e gap con anteprima live, più i campi raw.
 - **Typography** → **Advanced text...**: text-overflow, overflow-wrap,
   word-break, writing-mode e direction.
 - **Size** → **Overflow and sizing...**: overflow, box-sizing, aspect-ratio,
   min-width/min-height e object-fit.
-- **Effects** → **Transform and clip path...**: transform, transform-origin,
-  clip-path e isolation.
-- **Border** → **Outline...**: outline style, width, colore e offset.
+- **Effects** → **Transform and clip path...**: **Transform builder**
+  (translate/scale/rotate/skew), **Clip-path builder** (circle, ellipse, inset,
+  polygon), transform-origin e isolation.
+- **Border** → **Per-side borders...**: un lato o tutti i lati con style, width e
+  colore; **Border image...**: source, slice, width, outset e repeat;
+  **Outline...**: outline style, width, colore e offset.
 - **Interaction**: cursor, pointer-events, user-select, visibility, float,
   clear e scroll-behavior. Queste proprietà agiscono sulla regola di classe
   selezionata. Cursor, pointer-events, user-select e visibility sono ereditate,
@@ -695,7 +702,10 @@ Apri **Appearance → CSS declarations → Edit...**. L'overlay elenca le
 dichiarazioni della regola di classe selezionata. Ogni riga ha proprietà in sola
 lettura, valore modificabile e pulsante di eliminazione. La riga di aggiunta
 accetta qualsiasi proprietà CSS valida, comprese le custom properties
-(`--accent: #4c5cf7`), con suggerimenti e validazione. Esempi:
+(`--accent: #4c5cf7`), con suggerimenti per proprietà e valori e validazione. I
+valori suggeriscono keyword comuni e prefissi di funzione (`display`, `position`,
+`flex-*`, `grid-*`, `border-*`, `linear-gradient(`, `clip-path`, `content`,
+`var(` e così via). Esempi:
 
 ```css
 overflow: hidden;
@@ -704,13 +714,24 @@ transform: rotate(2deg);
 --accent: #4c5cf7;
 ```
 
-È una seconda vista dello stesso modello CSS usato dall'editor CSS: le modifiche
+Con più elementi selezionati l'overlay modifica ogni classe selezionata. I campi
+con valori diversi mostrano **(mixed)** e un tooltip con i valori; inserendo un
+valore questo viene applicato a tutte le classi. **Text mode** passa a una
+textarea di dichiarazioni (`property: value;`) con **Apply text**; i valori misti
+sono mostrati come commenti e non vengono sovrascritti finché non ne digiti uno.
+
+La card **Rule context** aggiunge pseudo-elementi (`::before`, `::after`,
+`:hover`, `:focus`, `:focus-visible`, `:active`, `:disabled`) e un campo at-rule
+(`@media`, `@supports`, …). Per `::before`/`::after`, **Set content** scrive la
+dichiarazione `content`. Il contesto si applica a ogni classe selezionata. È una
+seconda vista dello stesso modello CSS usato dall'editor CSS: le modifiche
 aggiornano subito `root.css`, il sorgente generato e l'editor CSS. L'overlay
-modifica la regola di classe, non i valori inline effettivi; per dichiarazioni
-inline reattive usa **style expr**. Poiché un valore arbitrario può contenere
-`url(...)`, immagini e font possono caricare risorse esterne. Le proprietà con
-prefisso vendor sono ammesse; modificando una proprietà con una entry di
-compatibilità nota vengono aggiornate anche le varianti prefissate.
+modifica regole di classe, pseudo-elementi e at-rule, non i valori inline
+effettivi; per dichiarazioni inline reattive usa **style expr**. Le risorse CSS
+esterne (`@import` e `url(...)` di rete/file) sono rifiutate dal compilatore; usa
+data URI o asset relativi locali. Le proprietà con prefisso vendor sono ammesse;
+modificando una proprietà con una entry di compatibilità nota vengono aggiornate
+anche le varianti prefissate.
 
 ## Drag and drop del designer
 

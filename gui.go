@@ -455,6 +455,15 @@ func CmdGui(args []string) {
 		res := guiCssSetBatch(css, class, declsJson)
 		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
 	})
+	mux.HandleFunc("POST /__css__/setsel", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		css := r.PostFormValue("css")
+		selector := r.PostFormValue("selector")
+		atRule := r.PostFormValue("at")
+		declsJson := r.PostFormValue("decls")
+		res := guiCssSetSelector(css, selector, atRule, declsJson)
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
+	})
 	mux.HandleFunc("GET /__gui__/fonts", func(w http.ResponseWriter, r *http.Request) {
 		guiFontsMu.Lock()
 		names := make([]string, 0, len(guiFonts))
@@ -4275,4 +4284,81 @@ func guiCssSetBatch(css, class, declsJson string) JVal {
 		setCssDecl(target, prop, value)
 	}
 	return JObj("ok", JBool(true), "css", JStr(GenCss(s)), "ast", cssSheetJson(ParseCss(GenCss(s))))
+}
+
+// guiCssSetSelector edits an exact selector, optionally inside an at-rule such
+// as @media or @supports. It creates the at-rule or the rule when missing. This
+// is the writer behind pseudo-element and responsive-rule editing in Advanced
+// CSS.
+func guiCssSetSelector(css, selector, atRule, declsJson string) JVal {
+	selector = strings.TrimSpace(selector)
+	atRule = strings.TrimSpace(atRule)
+	if selector == "" {
+		return JObj("ok", JBool(false), "error", JStr("empty selector"))
+	}
+	if strings.ContainsAny(selector, "{};") || strings.ContainsAny(atRule, "{};") {
+		return JObj("ok", JBool(false), "error", JStr("invalid selector or at-rule"))
+	}
+	s := ParseCss(css)
+	decls := []JVal{}
+	if declsJson != "" {
+		if v, err := ParseJson(declsJson); err == nil && v.kind == "arr" {
+			decls = v.arr
+		}
+	}
+	var scope *CssNode
+	nodes := s.nodes
+	if atRule != "" {
+		name, prelude := atRule, ""
+		if i := strings.IndexAny(atRule, " \t"); i > 0 {
+			name = atRule[:i]
+			prelude = strings.TrimSpace(atRule[i:])
+		}
+		if !strings.HasPrefix(name, "@") {
+			return JObj("ok", JBool(false), "error", JStr("at-rule must start with @"))
+		}
+		for _, n := range s.nodes {
+			if n.kind == "at" && n.name == name && strings.TrimSpace(n.prelude) == prelude {
+				scope = n
+				break
+			}
+		}
+		if scope == nil {
+			scope = &CssNode{kind: "at", name: name, prelude: prelude}
+			s.nodes = append(s.nodes, scope)
+		}
+		nodes = scope.nodes
+	}
+	var target *CssNode
+	for _, n := range nodes {
+		if n.kind != "rule" {
+			continue
+		}
+		for _, sel := range n.selectors {
+			if strings.TrimSpace(sel) == selector {
+				target = n
+				break
+			}
+		}
+		if target != nil {
+			break
+		}
+	}
+	if target == nil {
+		target = &CssNode{kind: "rule", selectors: []string{selector}}
+		if scope != nil {
+			scope.nodes = append(scope.nodes, target)
+		} else {
+			s.nodes = append(s.nodes, target)
+		}
+	}
+	for i := 0; i < len(decls); i++ {
+		prop := asStr(get(decls[i], "prop"))
+		value := asStr(get(decls[i], "value"))
+		if prop != "" {
+			setCssDecl(target, prop, value)
+		}
+	}
+	out := GenCss(s)
+	return JObj("ok", JBool(true), "css", JStr(out), "ast", cssSheetJson(ParseCss(out)))
 }

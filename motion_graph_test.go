@@ -573,6 +573,14 @@ const motionGraphGuardsGesturesExitScript = `<script>
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  async function until(fn, timeout) {
+    var end = Date.now() + (timeout || 1200);
+    while (Date.now() < end) {
+      if (fn()) return true;
+      await wait(25);
+    }
+    return !!fn();
+  }
   var graphSeq = 0;
   function setGraph(el, cfg, key) {
     if (key) el.setAttribute('data-sui-motion-key', key + '-' + (++graphSeq));
@@ -813,13 +821,13 @@ const motionGraphGuardsGesturesExitScript = `<script>
     await wait(120);
     if (vis.__suiGraphState !== 'a') throw new Error('visible fired below threshold');
     vis.__suiGraphApplyVisibility({ isIntersecting: true, intersectionRatio: 0.8 });
-    await wait(160);
+    await until(function(){ return vis.__suiGraphState === 'b'; }, 900);
     if (vis.__suiGraphState !== 'b') throw new Error('visible did not fire above threshold');
     vis.__suiGraphApplyVisibility({ isIntersecting: false, intersectionRatio: 0.2 });
-    await wait(160);
+    await until(function(){ return vis.__suiGraphState === 'a'; }, 900);
     if (vis.__suiGraphState !== 'a') throw new Error('hidden trigger did not fire');
     vis.__suiGraphApplyVisibility({ isIntersecting: true, intersectionRatio: 0.9 });
-    await wait(160);
+    await wait(260);
     if (vis.__suiGraphState !== 'a') throw new Error('once visibility link fired twice');
 
     setGraph(exitCard, {

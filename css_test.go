@@ -281,3 +281,23 @@ func TestGuiOpenTableMatrix(t *testing.T) {
 		t.Errorf("spans[1][1].cs = %d, want 2", asInt(get(sp, "cs")))
 	}
 }
+
+func TestGuiCssSetSelectorPseudoAndAtRule(t *testing.T) {
+	css := ".card { color: red; }\n"
+	res := guiCssSetSelector(css, ".card::before", "", `[{"prop":"content","value":"\"x\""},{"prop":"display","value":"block"}]`)
+	if !asBool(get(res, "ok")) {
+		t.Fatalf("set selector pseudo failed: %v", StringifyJson(res))
+	}
+	out := asStr(get(res, "css"))
+	if !strings.Contains(out, ".card::before") || !strings.Contains(out, "content:") {
+		t.Fatalf("pseudo rule missing:\n%s", out)
+	}
+	res = guiCssSetSelector(out, ".card", "@media (max-width: 767px)", `[{"prop":"color","value":"blue"}]`)
+	if !asBool(get(res, "ok")) {
+		t.Fatalf("set selector at-rule failed: %v", StringifyJson(res))
+	}
+	out = asStr(get(res, "css"))
+	if !strings.Contains(out, "@media (max-width: 767px)") || !strings.Contains(out, "color: blue") {
+		t.Fatalf("at-rule rule missing:\n%s", out)
+	}
+}

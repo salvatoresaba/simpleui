@@ -343,6 +343,18 @@ input[type=color] { padding:0; height:26px; }
 .adv-add .adv-prop { flex:0 0 40%; }
 .adv-add .adv-val { flex:1; }
 .adv-add button { flex:none; }
+.adv-builder { border:1px solid var(--border2); border-radius:8px; background:var(--panel3); padding:7px; margin:6px 0; }
+.adv-builder-title { font-size:11px; font-weight:600; color:var(--fg); margin-bottom:4px; }
+.adv-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 7px; align-items:center; }
+.adv-grid label { font-size:10px; color:var(--muted); }
+.adv-grid input, .adv-grid select, .adv-grid textarea { width:100%; min-width:0; box-sizing:border-box; height:23px; padding:2px 5px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border); border-radius:4px; font:11px/1.2 var(--mono, ui-monospace, Consolas, monospace); }
+.adv-grid input[type=color] { padding:1px; height:23px; }
+.adv-grid textarea { grid-column:1 / -1; height:48px; resize:vertical; }
+.adv-preview { height:42px; border:1px solid var(--border); border-radius:6px; margin:5px 0; background:var(--input-bg); overflow:hidden; position:relative; }
+.adv-preview .adv-preview-box { position:absolute; inset:7px; border-radius:4px; background:#557799; }
+.adv-btns { display:flex; gap:5px; margin-top:5px; }
+.adv-btns button { font-size:10px; padding:3px 7px; }
+.adv-mixed::placeholder { color:#d9a441; opacity:1; }
 /* Shared inspector overlay for advanced CSS and grouped style controls */
 #ins-overlay { position:fixed; top:120px; left:calc(100vw - 420px); width:380px; max-width:92vw; max-height:78vh;
   background:var(--panel2); border:1px solid var(--border2); border-radius:10px; display:none; flex-direction:column;
@@ -5179,6 +5191,38 @@ function liveStyleValue(prop, parent) {
   if (c) return normalizeLiveField(prop, c);
   return normalizeLiveField(prop, a);
 }
+function ruleForNodePath(path) {
+  if (!path) return null;
+  var n = byPath(path, root.children);
+  if (!n) return null;
+  var all = n.class ? n.class.trim().split(/\s+/).filter(Boolean) : [];
+  var usable = all.filter(function(c){ return c !== "suitbl"; });
+  var cls = "";
+  for (var i = 0; i < usable.length; i++) if (findRule(usable[i] + selState)) { cls = usable[i]; break; }
+  if (!cls) cls = usable[0] || all[0] || "";
+  return cls ? findRule(cls + selState) : null;
+}
+function selectedCssRules() {
+  if (selBody) { var b = findRule("body" + selState); return b ? [b] : []; }
+  var paths = selectedPaths();
+  var out = [];
+  for (var i = 0; i < paths.length; i++) {
+    var r = ruleForNodePath(paths[i]);
+    out.push(r || null);
+  }
+  return out;
+}
+function cssSelectionState(prop) {
+  var rules = selectedCssRules();
+  if (!rules.length) return { value: "", mixed: false, values: [] };
+  var values = [];
+  for (var i = 0; i < rules.length; i++) values.push(rules[i] ? (declOf(rules[i], prop) || "") : "");
+  var first = values[0], mixed = false;
+  for (var j = 1; j < values.length; j++) if (values[j] !== first) { mixed = true; break; }
+  return { value: first, mixed: mixed, values: values };
+}
+function cssSelectionMixed(prop) { return cssSelectionState(prop).mixed; }
+function cssSelectionValue(prop) { var s = cssSelectionState(prop); return s.mixed ? "" : s.value; }
 function cssFieldValue(prop, rule, useParent) {
   var cellAttr = layoutCellAttrForProp(prop);
   if (cellAttr) {
@@ -5573,12 +5617,12 @@ function renderInspector() {
     var cssAdvBtn = document.createElement("button"); cssAdvBtn.type = "button"; cssAdvBtn.className = "btn";
     cssAdvBtn.style.cssText = "font-size:11px;padding:3px 8px";
     cssAdvBtn.textContent = "Edit...";
-    cssAdvBtn.disabled = nodes.length !== 1;
-    cssAdvBtn.title = nodes.length === 1 ? "Open the CSS declarations editor" : "Select one element to edit its CSS rule";
+    cssAdvBtn.disabled = !nodes.length;
+    cssAdvBtn.title = nodes.length === 1 ? "Open the CSS declarations editor" : "Edit declarations for every selected class";
     cssAdvBtn.onclick = function(ev){
       if (ev) { ev.preventDefault(); ev.stopPropagation(); }
-      if (nodes.length !== 1) return;
-      openInspectorOverlay("CSS declarations", advancedCssRows);
+      if (!nodes.length) return;
+      openAdvancedCss();
     };
     cssAdvRow.appendChild(cssAdvLab); cssAdvRow.appendChild(cssAdvBtn);
     clsSec.appendChild(cssAdvRow);
@@ -5780,6 +5824,8 @@ function renderInspector() {
       txt("border-width", "width"),
       color("border-color", "color"),
       roundness("border-radius", "radius"),
+      advancedButton("Per-side borders", borderSideRows),
+      advancedButton("Border image", borderImageRows),
       advancedButton("Outline", outlineAdvancedRows)
     ]),
     everyKind(nodes, capTypography) ? acc("Typography", [
@@ -12469,9 +12515,12 @@ function tokenButton(prop, getValue) {
 function txt(prop, label, ph) {
   var d = document.createElement("div"); d.className = "rowline";
   var l = document.createElement("label"); l.textContent = label; d.appendChild(l);
-  var i = document.createElement("input"); i.value = cssFieldValue(prop, currentRule());
-  i.placeholder = ph || "auto";
+  var mixed = cssSelectionMixed(prop);
+  var i = document.createElement("input"); i.value = mixed ? "" : cssFieldValue(prop, currentRule());
+  i.placeholder = mixed ? "(mixed)" : (ph || "auto");
+  if (mixed) i.title = "Mixed values: " + cssSelectionState(prop).values.join(" | ");
   i.onchange = function(){ setCssProp(prop, NO_PX[prop] ? i.value : normLen(i.value)); };
+  bindCssValueAutocomplete(i, prop);
   d.appendChild(i);
   if (TOKEN_VALUE_PROPS[prop]) d.appendChild(tokenButton(prop, function(){ return i.value; }));
   return d;
@@ -12643,18 +12692,22 @@ function selBox(prop, label, opts) {
   var d = document.createElement("div"); d.className = "rowline";
   var l = document.createElement("label"); l.textContent = label; d.appendChild(l);
   var s = document.createElement("select");
-  var cur = cssFieldValue(prop, currentRule());
+  var mixed = cssSelectionMixed(prop);
+  var cur = mixed ? "__mixed__" : cssFieldValue(prop, currentRule());
   var list = opts.slice();
+  if (mixed) list.unshift("__mixed__");
   if (cur && list.indexOf(cur) < 0) list.push(cur);
-  list.forEach(function(o){ var e = document.createElement("option"); e.value = o; e.textContent = o === "" ? "(unset)" : o; if (o === cur) e.selected = true; s.appendChild(e); });
-  s.onchange = function(){ setCssProp(prop, s.value); };
+  list.forEach(function(o){ var e = document.createElement("option"); e.value = o; e.textContent = o === "__mixed__" ? "(mixed)" : (o === "" ? "(unset)" : o); if (o === cur) e.selected = true; s.appendChild(e); });
+  s.onchange = function(){ if (s.value === "__mixed__") return; setCssProp(prop, s.value); };
   d.appendChild(s);
   return d;
 }
 function color(prop, label) {
   var d = document.createElement("div"); d.className = "rowline";
   var l = document.createElement("label"); l.textContent = label; d.appendChild(l);
-  var f = makeColorField(cssFieldValue(prop, currentRule()), function(v){ setCssProp(prop, v); });
+  var mixed = cssSelectionMixed(prop);
+  var f = makeColorField(mixed ? "" : cssFieldValue(prop, currentRule()), function(v){ setCssProp(prop, v); });
+  if (mixed) { f.title = "Mixed values: " + cssSelectionState(prop).values.join(" | "); f.classList.add("adv-mixed"); }
   d.appendChild(f);
   d.appendChild(tokenButton(prop, function(){ return cssFieldValue(prop, currentRule()); }));
   return d;
@@ -13218,6 +13271,203 @@ function filterBox(prop, label, keys) {
   return card;
 }
 
+function advShell(title, hintText) {
+  var card = document.createElement("div"); card.className = "adv-builder";
+  var t = document.createElement("div"); t.className = "adv-builder-title"; t.textContent = title; card.appendChild(t);
+  if (hintText) { var h = document.createElement("div"); h.className = "hint"; h.textContent = hintText; card.appendChild(h); }
+  var grid = document.createElement("div"); grid.className = "adv-grid"; card.appendChild(grid);
+  var preview = document.createElement("div"); preview.className = "adv-preview";
+  var previewBox = document.createElement("div"); previewBox.className = "adv-preview-box"; preview.appendChild(previewBox);
+  card.appendChild(preview);
+  var btns = document.createElement("div"); btns.className = "adv-btns"; card.appendChild(btns);
+  function button(text) { var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = text; btns.appendChild(b); return b; }
+  return { card: card, grid: grid, preview: previewBox, previewWrap: preview, apply: button("Apply"), clear: button("Clear") };
+}
+function advField(parent, label, control) { var l = document.createElement("label"); l.textContent = label; parent.appendChild(l); parent.appendChild(control); return control; }
+function advText(parent, label, value, ph, type) {
+  var i = document.createElement("input"); i.type = type || "text"; i.value = value == null ? "" : String(value); i.placeholder = ph || ""; i.spellcheck = false;
+  return advField(parent, label, i);
+}
+function advSelect(parent, label, value, opts) {
+  var s = document.createElement("select");
+  opts.forEach(function(o){ var op = document.createElement("option"); op.value = o; op.textContent = o; if (o === value) op.selected = true; s.appendChild(op); });
+  return advField(parent, label, s);
+}
+function advArea(parent, label, value, ph) {
+  var t = document.createElement("textarea"); t.value = value || ""; t.placeholder = ph || ""; t.spellcheck = false;
+  advField(parent, label, t); return t;
+}
+function advPreviewChildren(shell, count, display) {
+  shell.preview.innerHTML = "";
+  shell.preview.style.display = display || "flex";
+  shell.preview.style.alignItems = "center";
+  shell.preview.style.justifyContent = "center";
+  shell.preview.style.gap = "4px";
+  for (var i = 0; i < count; i++) {
+    var c = document.createElement("div");
+    c.style.cssText = "width:20px;height:18px;border-radius:3px;background:" + (i % 2 ? "#8fa0b8" : "#557799") + ";flex:none";
+    shell.preview.appendChild(c);
+  }
+}
+function gradientBuilder() {
+  var shell = advShell("Gradient builder", "Build a gradient without writing CSS by hand.");
+  var type = advSelect(shell.grid, "type", "linear", ["linear", "radial", "conic"]);
+  var angle = advText(shell.grid, "angle", "135deg", "135deg");
+  var position = advText(shell.grid, "position", "center", "center or 50% 50%");
+  var colors = [], stops = [];
+  var defaults = [["#4c5cf7", ""], ["#8b5cf6", "50%"], ["#f59e0b", "100%"]];
+  for (var i = 0; i < 3; i++) {
+    colors.push(advText(shell.grid, "stop " + (i + 1), defaults[i][0], "#4c5cf7", "color"));
+    stops.push(advText(shell.grid, "stop " + (i + 1) + " at", defaults[i][1], "optional position"));
+  }
+  function value() {
+    var parts = [];
+    for (var i = 0; i < 3; i++) parts.push(colors[i].value + (stops[i].value.trim() ? " " + stops[i].value.trim() : ""));
+    var list = parts.join(", ");
+    if (type.value === "radial") return "radial-gradient(circle at " + (position.value.trim() || "center") + ", " + list + ")";
+    if (type.value === "conic") return "conic-gradient(from " + (angle.value.trim() || "0deg") + " at " + (position.value.trim() || "center") + ", " + list + ")";
+    return "linear-gradient(" + (angle.value.trim() || "135deg") + ", " + list + ")";
+  }
+  function preview() { shell.preview.style.backgroundImage = value(); shell.preview.style.background = value(); }
+  [type, angle, position].concat(colors).concat(stops).forEach(function(el){ el.oninput = preview; });
+  shell.apply.onclick = function(){ setCssProp("background-image", value()); };
+  shell.clear.onclick = function(){ setCssProp("background-image", ""); };
+  preview();
+  return shell.card;
+}
+function transformBuilder() {
+  var shell = advShell("Transform builder", "Combine translate, scale, rotate and skew; the raw field below stays available.");
+  var raw = cssFieldValue("transform", currentRule()) || "";
+  function pick(re, fb) { var m = re.exec(raw); return m ? m[1] : fb; }
+  var tx = advText(shell.grid, "translate X", pick(/translateX?\(\s*(-?[\d.]+)px/, "0"), "0");
+  var ty = advText(shell.grid, "translate Y", pick(/translate(?:X?\([^)]*?,\s*|\()(-?[\d.]+)px/, "0"), "0");
+  var scale = advText(shell.grid, "scale", pick(/scale\(\s*(-?[\d.]+)/, "1"), "1");
+  var rotate = advText(shell.grid, "rotate", pick(/rotate\(\s*(-?[\d.]+)deg/, "0"), "0");
+  var skewX = advText(shell.grid, "skew X", pick(/skew\(\s*(-?[\d.]+)deg/, "0"), "0");
+  var skewY = advText(shell.grid, "skew Y", pick(/skew\([^)]*,\s*(-?[\d.]+)deg/, "0"), "0");
+  function value() {
+    var x = parseFloat(tx.value) || 0, y = parseFloat(ty.value) || 0;
+    var sc = parseFloat(scale.value); if (!isFinite(sc)) sc = 1;
+    var r = parseFloat(rotate.value) || 0, sx = parseFloat(skewX.value) || 0, sy = parseFloat(skewY.value) || 0;
+    if (!x && !y && sc === 1 && !r && !sx && !sy) return "none";
+    var parts = [];
+    if (x || y) parts.push("translate(" + x + "px, " + y + "px)");
+    if (sc !== 1) parts.push("scale(" + sc + ")");
+    if (r) parts.push("rotate(" + r + "deg)");
+    if (sx || sy) parts.push("skew(" + sx + "deg, " + sy + "deg)");
+    return parts.join(" ");
+  }
+  function preview() { shell.preview.style.transform = value(); }
+  [tx, ty, scale, rotate, skewX, skewY].forEach(function(el){ el.oninput = preview; });
+  shell.apply.onclick = function(){ setCssProp("transform", value()); };
+  shell.clear.onclick = function(){ setCssProp("transform", "none"); };
+  preview();
+  return shell.card;
+}
+function clipPathBuilder() {
+  var shell = advShell("Clip-path builder", "Circle, ellipse, inset and polygon presets.");
+  var shape = advSelect(shell.grid, "shape", "circle", ["none", "circle", "ellipse", "inset", "polygon"]);
+  var radius = advText(shell.grid, "circle radius", "50%", "50%");
+  var rx = advText(shell.grid, "ellipse X", "50%", "50%");
+  var ry = advText(shell.grid, "ellipse Y", "50%", "50%");
+  var pos = advText(shell.grid, "position", "center", "center");
+  var top = advText(shell.grid, "inset top", "10%", "10%");
+  var right = advText(shell.grid, "inset right", "10%", "10%");
+  var bottom = advText(shell.grid, "inset bottom", "10%", "10%");
+  var left = advText(shell.grid, "inset left", "10%", "10%");
+  var round = advText(shell.grid, "inset round", "0", "0 or 12px");
+  var points = advArea(shell.grid, "polygon points", "50% 0, 100% 100%, 0 100%", "x y, x y, ...");
+  function value() {
+    if (shape.value === "none") return "none";
+    if (shape.value === "circle") return "circle(" + (radius.value.trim() || "50%") + " at " + (pos.value.trim() || "center") + ")";
+    if (shape.value === "ellipse") return "ellipse(" + (rx.value.trim() || "50%") + " " + (ry.value.trim() || "50%") + " at " + (pos.value.trim() || "center") + ")";
+    if (shape.value === "inset") {
+      var v = "inset(" + [top.value, right.value, bottom.value, left.value].map(function(x){ return x.trim() || "0"; }).join(" ");
+      if (round.value.trim()) v += " round " + round.value.trim();
+      return v + ")";
+    }
+    return "polygon(" + (points.value.trim() || "50% 0, 100% 100%, 0 100%") + ")";
+  }
+  function preview() { shell.preview.style.clipPath = value(); shell.preview.style.background = "#557799"; }
+  [shape, radius, rx, ry, pos, top, right, bottom, left, round, points].forEach(function(el){ el.oninput = preview; el.onchange = preview; });
+  shell.apply.onclick = function(){ setCssProp("clip-path", value()); };
+  shell.clear.onclick = function(){ setCssProp("clip-path", "none"); };
+  preview();
+  return shell.card;
+}
+function flexBuilder() {
+  var shell = advShell("Flex builder", "Container properties for children. Apply writes the flex props together.");
+  var dir = advSelect(shell.grid, "direction", "row", ["row", "row-reverse", "column", "column-reverse"]);
+  var wrap = advSelect(shell.grid, "wrap", "nowrap", ["nowrap", "wrap", "wrap-reverse"]);
+  var justify = advSelect(shell.grid, "justify", "flex-start", ["flex-start", "center", "flex-end", "space-between", "space-around", "space-evenly"]);
+  var align = advSelect(shell.grid, "align items", "stretch", ["stretch", "center", "flex-start", "flex-end", "baseline"]);
+  var content = advSelect(shell.grid, "align content", "stretch", ["stretch", "center", "flex-start", "flex-end", "space-between", "space-around"]);
+  var gap = advText(shell.grid, "gap", "8px", "8px");
+  advPreviewChildren(shell, 3, "flex");
+  function value() { return { "flex-direction": dir.value, "flex-wrap": wrap.value, "justify-content": justify.value, "align-items": align.value, "align-content": content.value, "gap": gap.value }; }
+  function preview() { var v = value(); shell.preview.style.flexDirection = v["flex-direction"]; shell.preview.style.flexWrap = v["flex-wrap"]; shell.preview.style.justifyContent = v["justify-content"]; shell.preview.style.alignItems = v["align-items"]; shell.preview.style.alignContent = v["align-content"]; shell.preview.style.gap = v.gap; }
+  [dir, wrap, justify, align, content, gap].forEach(function(el){ el.onchange = preview; el.oninput = preview; });
+  shell.apply.onclick = function(){ setCssProps(value()); };
+  shell.clear.onclick = function(){ setCssProps({ "flex-direction": "", "flex-wrap": "", "justify-content": "", "align-items": "", "align-content": "", "gap": "" }); };
+  preview();
+  return shell.card;
+}
+function gridBuilder() {
+  var shell = advShell("Grid builder", "Template columns/rows and alignment. The raw grid fields remain available.");
+  var cols = advText(shell.grid, "columns", "1fr 1fr", "1fr 1fr");
+  var rows = advText(shell.grid, "rows", "auto", "auto");
+  var gap = advText(shell.grid, "gap", "8px", "8px");
+  var flow = advSelect(shell.grid, "auto flow", "row", ["row", "column", "row dense", "column dense"]);
+  var justify = advSelect(shell.grid, "justify items", "stretch", ["stretch", "start", "center", "end"]);
+  var align = advSelect(shell.grid, "align items", "stretch", ["stretch", "start", "center", "end"]);
+  advPreviewChildren(shell, 4, "grid");
+  var v = function(){ return { "grid-template-columns": cols.value, "grid-template-rows": rows.value, "grid-auto-flow": flow.value, "justify-items": justify.value, "align-items": align.value, "gap": gap.value }; };
+  function preview() { var x = v(); shell.preview.style.gridTemplateColumns = x["grid-template-columns"]; shell.preview.style.gridTemplateRows = x["grid-template-rows"]; shell.preview.style.gridAutoFlow = x["grid-auto-flow"]; shell.preview.style.justifyItems = x["justify-items"]; shell.preview.style.alignItems = x["align-items"]; shell.preview.style.gap = x.gap; }
+  [cols, rows, gap, flow, justify, align].forEach(function(el){ el.onchange = preview; el.oninput = preview; });
+  shell.apply.onclick = function(){ setCssProps(v()); };
+  shell.clear.onclick = function(){ setCssProps({ "grid-template-columns": "", "grid-template-rows": "", "grid-auto-flow": "", "justify-items": "", "align-items": "", "gap": "" }); };
+  preview();
+  return shell.card;
+}
+function borderSideBuilder() {
+  var shell = advShell("Per-side border builder", "Choose one side or all sides. Empty values remove the declaration.");
+  var side = advSelect(shell.grid, "side", "all", ["all", "top", "right", "bottom", "left"]);
+  var style = advSelect(shell.grid, "style", "", ["", "none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"]);
+  var width = advText(shell.grid, "width", "", "1px");
+  var color = advText(shell.grid, "color", "", "#3a4152", "color");
+  function read() {
+    var base = side.value === "all" ? "border" : "border-" + side.value;
+    style.value = cssFieldValue(base + "-style", currentRule()) || "";
+    width.value = cssFieldValue(base + "-width", currentRule()) || "";
+    color.value = cssFieldValue(base + "-color", currentRule()) || "";
+  }
+  function map() {
+    var base = side.value === "all" ? "border" : "border-" + side.value;
+    var m = {}; m[base + "-style"] = style.value; m[base + "-width"] = width.value; m[base + "-color"] = color.value; return m;
+  }
+  function preview() { var m = map(); shell.preview.style.borderStyle = "none"; shell.preview.style.border = "0"; if (side.value === "all") { shell.preview.style.borderStyle = style.value || "none"; shell.preview.style.borderWidth = width.value || "0"; shell.preview.style.borderColor = color.value || "transparent"; } else { shell.preview.style["border" + side.value.charAt(0).toUpperCase() + side.value.slice(1) + "Style"] = style.value || "none"; shell.preview.style["border" + side.value.charAt(0).toUpperCase() + side.value.slice(1) + "Width"] = width.value || "0"; shell.preview.style["border" + side.value.charAt(0).toUpperCase() + side.value.slice(1) + "Color"] = color.value || "transparent"; } }
+  side.onchange = function(){ read(); preview(); };
+  [style, width, color].forEach(function(el){ el.oninput = preview; el.onchange = preview; });
+  shell.apply.onclick = function(){ setCssProps(map()); };
+  shell.clear.onclick = function(){ var m = map(); Object.keys(m).forEach(function(k){ m[k] = ""; }); setCssProps(m); };
+  read(); preview();
+  return shell.card;
+}
+function borderImageBuilder() {
+  var shell = advShell("Border image builder", "Use a data URI or a local relative image; external URLs are rejected by the compiler.");
+  var source = advText(shell.grid, "source", "", "url(...)");
+  var slice = advText(shell.grid, "slice", "30", "30");
+  var width = advText(shell.grid, "width", "1", "1");
+  var outset = advText(shell.grid, "outset", "0", "0");
+  var repeat = advSelect(shell.grid, "repeat", "stretch", ["stretch", "repeat", "round", "space"]);
+  function map() { return { "border-image-source": source.value, "border-image-slice": slice.value, "border-image-width": width.value, "border-image-outset": outset.value, "border-image-repeat": repeat.value }; }
+  shell.apply.onclick = function(){ setCssProps(map()); };
+  shell.clear.onclick = function(){ setCssProps({ "border-image-source": "", "border-image-slice": "", "border-image-width": "", "border-image-outset": "", "border-image-repeat": "" }); };
+  return shell.card;
+}
+function borderSideRows() { return [borderSideBuilder()]; }
+function borderImageRows() { return [borderImageBuilder()]; }
+
 function advancedButton(label, builder) {
   var d = document.createElement("div"); d.className = "rowline";
   var b = document.createElement("button");
@@ -13229,6 +13479,7 @@ function advancedButton(label, builder) {
 }
 function backgroundAdvancedRows() {
   return [
+    gradientBuilder(),
     txt("background-image", "image", "linear-gradient(...) or url(...)"),
     selBox("background-size", "size", ["", "auto", "cover", "contain"]),
     txt("background-position", "position", "center / 50% 50%"),
@@ -13241,6 +13492,7 @@ function backgroundAdvancedRows() {
 }
 function flexAdvancedRows() {
   return [
+    flexBuilder(),
     selBox("flex-wrap", "flex-wrap", ["", "nowrap", "wrap", "wrap-reverse"]),
     txt("order", "order", "0"),
     txt("flex-grow", "flex-grow", "0"),
@@ -13250,6 +13502,7 @@ function flexAdvancedRows() {
 }
 function gridAdvancedRows() {
   return [
+    gridBuilder(),
     selBox("grid-auto-flow", "auto flow", ["", "row", "column", "dense", "row dense", "column dense"]),
     txt("grid-auto-rows", "auto rows", "auto"),
     txt("grid-auto-columns", "auto cols", "auto"),
@@ -13281,6 +13534,8 @@ function sizeAdvancedRows() {
 }
 function transformAdvancedRows() {
   return [
+    transformBuilder(),
+    clipPathBuilder(),
     txt("transform", "transform", "translate(...) rotate(...)"),
     txt("transform-origin", "origin", "center center"),
     txt("clip-path", "clip-path", "circle(50%) or polygon(...)"),
@@ -13315,30 +13570,260 @@ function interactionControls() {
 
 var CSS_PROPERTY_NAMES = ("align-content align-items align-self all animation animation-delay animation-direction animation-duration animation-fill-mode animation-iteration-count animation-name animation-play-state animation-timing-function appearance aspect-ratio backdrop-filter backface-visibility background background-attachment background-blend-mode background-clip background-color background-image background-origin background-position background-repeat background-size border border-bottom border-bottom-color border-bottom-left-radius border-bottom-right-radius border-bottom-style border-bottom-width border-collapse border-color border-image border-left border-left-color border-left-style border-left-width border-radius border-right border-right-color border-right-style border-right-width border-spacing border-style border-top border-top-color border-top-left-radius border-top-right-radius border-top-style border-top-width border-width bottom box-shadow box-sizing break-after break-before break-inside caption-side caret-color clear clip clip-path color column-count column-gap column-rule column-span column-width columns contain content content-visibility counter-increment counter-reset cursor direction display empty-cells filter flex flex-basis flex-direction flex-flow flex-grow flex-shrink flex-wrap float font font-family font-feature-settings font-kerning font-size font-stretch font-style font-variant font-weight gap grid grid-area grid-auto-columns grid-auto-flow grid-auto-rows grid-column grid-column-end grid-column-start grid-gap grid-row grid-row-end grid-row-start grid-template grid-template-areas grid-template-columns grid-template-rows height hyphens image-rendering inline-size inset isolation justify-content justify-items justify-self left letter-spacing line-break line-height list-style list-style-image list-style-position list-style-type margin margin-block margin-bottom margin-inline margin-left margin-right margin-top mask mask-image max-height max-width min-height min-width mix-blend-mode object-fit object-position opacity order orphans outline outline-color outline-offset outline-style outline-width overflow overflow-wrap overflow-x overflow-y overscroll-behavior padding padding-block padding-bottom padding-inline padding-left padding-right padding-top page-break-after page-break-before page-break-inside perspective perspective-origin place-content place-items place-self pointer-events position quotes resize right rotate row-gap scale scroll-behavior scroll-margin scroll-padding scroll-snap-align scroll-snap-type shape-outside table-layout text-align text-decoration text-decoration-color text-decoration-line text-decoration-style text-decoration-thickness text-indent text-overflow text-shadow text-transform text-underline-offset top touch-action transform transform-origin transform-style transition transition-delay transition-duration transition-property transition-timing-function translate unicode-bidi user-select vertical-align visibility white-space widows width will-change word-break word-spacing word-wrap writing-mode z-index zoom").split(" ");
 
+var CSS_VALUE_SUGGESTIONS = {
+  display: ["block", "flex", "grid", "inline", "inline-block", "inline-flex", "inline-grid", "none", "contents"],
+  position: ["static", "relative", "absolute", "fixed", "sticky"],
+  "flex-direction": ["row", "row-reverse", "column", "column-reverse"],
+  "flex-wrap": ["nowrap", "wrap", "wrap-reverse"],
+  "justify-content": ["flex-start", "center", "flex-end", "space-between", "space-around", "space-evenly"],
+  "align-items": ["stretch", "center", "flex-start", "flex-end", "baseline"],
+  "align-content": ["stretch", "center", "flex-start", "flex-end", "space-between", "space-around"],
+  "align-self": ["auto", "stretch", "center", "flex-start", "flex-end", "baseline"],
+  "text-align": ["left", "center", "right", "justify", "start", "end"],
+  "font-weight": ["400", "500", "600", "700", "800", "900", "normal", "bold"],
+  "font-style": ["normal", "italic", "oblique"],
+  "text-transform": ["none", "uppercase", "lowercase", "capitalize"],
+  "text-decoration": ["none", "underline", "line-through", "overline"],
+  "white-space": ["normal", "nowrap", "pre", "pre-wrap", "pre-line"],
+  "overflow": ["visible", "hidden", "clip", "scroll", "auto"],
+  "overflow-x": ["visible", "hidden", "clip", "scroll", "auto"],
+  "overflow-y": ["visible", "hidden", "clip", "scroll", "auto"],
+  "border-style": ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
+  "border-top-style": ["none", "solid", "dashed", "dotted", "double"],
+  "border-right-style": ["none", "solid", "dashed", "dotted", "double"],
+  "border-bottom-style": ["none", "solid", "dashed", "dotted", "double"],
+  "border-left-style": ["none", "solid", "dashed", "dotted", "double"],
+  "border-image-repeat": ["stretch", "repeat", "round", "space"],
+  "background-repeat": ["no-repeat", "repeat", "repeat-x", "repeat-y", "space", "round"],
+  "background-size": ["auto", "cover", "contain"],
+  "background-position": ["center", "center center", "top", "bottom", "left", "right"],
+  "background-attachment": ["scroll", "fixed", "local"],
+  "background-clip": ["border-box", "padding-box", "content-box", "text"],
+  "mix-blend-mode": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "difference", "exclusion", "hue", "saturation", "color", "luminosity"],
+  "object-fit": ["fill", "contain", "cover", "none", "scale-down"],
+  "grid-auto-flow": ["row", "column", "row dense", "column dense"],
+  "justify-items": ["stretch", "start", "center", "end"],
+  "justify-self": ["auto", "stretch", "start", "center", "end"],
+  "cursor": ["auto", "default", "pointer", "text", "move", "grab", "grabbing", "not-allowed", "wait"],
+  "pointer-events": ["auto", "none"],
+  "visibility": ["visible", "hidden", "collapse"],
+  "transform": ["none", "translate(", "scale(", "rotate(", "skew("],
+  "clip-path": ["none", "circle(", "ellipse(", "inset(", "polygon("],
+  "background-image": ["none", "linear-gradient(", "radial-gradient(", "conic-gradient(", "url("],
+  "content": ["\"\"", "none", "normal", "attr(", "counter("],
+  "transition": ["none", "all .2s ease", "opacity .2s ease"],
+  "animation": ["none"]
+};
+var CSS_GENERIC_VALUES = ["inherit", "initial", "unset", "revert", "auto", "none"];
+function ensureCssValueList() {
+  var dl = document.getElementById("css-val-list");
+  if (dl) return dl;
+  dl = document.createElement("datalist"); dl.id = "css-val-list";
+  document.body.appendChild(dl);
+  return dl;
+}
+function fillCssValueList(prop) {
+  var dl = ensureCssValueList();
+  dl.innerHTML = "";
+  var values = (CSS_VALUE_SUGGESTIONS[String(prop || "").toLowerCase()] || []).slice();
+  CSS_GENERIC_VALUES.forEach(function(v){ if (values.indexOf(v) < 0) values.push(v); });
+  values.forEach(function(v){ var o = document.createElement("option"); o.value = v; dl.appendChild(o); });
+  return dl;
+}
+function bindCssValueAutocomplete(input, prop) {
+  if (!input) return;
+  input.setAttribute("list", "css-val-list");
+  function update() { fillCssValueList(typeof prop === "function" ? prop() : prop); }
+  input.addEventListener("focus", update);
+  input.addEventListener("input", update);
+  update();
+}
+function advParseDeclarations(text) {
+  var parts = [], buf = "", depth = 0, quote = "";
+  for (var i = 0; i < text.length; i++) {
+    var ch = text.charAt(i);
+    if (quote) { buf += ch; if (ch === "\\" && i + 1 < text.length) { buf += text.charAt(++i); continue; } if (ch === quote) quote = ""; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; buf += ch; continue; }
+    if (ch === "(" || ch === "[") { depth++; buf += ch; continue; }
+    if (ch === ")" || ch === "]") { if (depth > 0) depth--; buf += ch; continue; }
+    if (ch === ";" && depth === 0) { parts.push(buf); buf = ""; continue; }
+    buf += ch;
+  }
+  if (buf.trim()) parts.push(buf);
+  var map = {};
+  for (var p = 0; p < parts.length; p++) {
+    var line = parts[p].replace(/\/\*[\s\S]*?\*\//g, "").trim();
+    if (!line) continue;
+    var c = line.indexOf(":");
+    if (c < 1) continue;
+    var prop = line.slice(0, c).trim();
+    var value = line.slice(c + 1).trim();
+    if (/^(--[A-Za-z0-9_-]+|[a-z-]+)$/.test(prop)) map[prop] = value;
+  }
+  return map;
+}
+function advContextSelectors() {
+  if (selBody) return ["body"];
+  var paths = selectedPaths();
+  var out = [];
+  for (var i = 0; i < paths.length; i++) {
+    var n = byPath(paths[i], root.children);
+    if (!n) continue;
+    var base = "." + ensureClass(n);
+    out.push(base);
+  }
+  return out;
+}
+function advAtKey(node) { return ((node.name || "") + " " + (node.prelude || "")).trim(); }
+function advRuleForSelector(selector, atRule) {
+  var found = null;
+  function search(nodes) {
+    for (var i = 0; i < nodes.length && !found; i++) {
+      var n = nodes[i];
+      if (n.kind === "rule") {
+        for (var j = 0; j < n.selectors.length; j++) {
+          if (n.selectors[j].trim() === selector) { found = n; return; }
+        }
+      }
+    }
+  }
+  if (atRule) {
+    for (var a = 0; a < ast.length; a++) {
+      if (ast[a].kind === "at" && advAtKey(ast[a]) === atRule) { search(ast[a].nodes || []); break; }
+    }
+  } else {
+    search(ast);
+  }
+  return found;
+}
+function setCssOnSelectors(selectors, atRule, map, after) {
+  if (!selectors.length) { if (after) after(); return; }
+  var decls = [];
+  for (var k in map) compatDecls(k, map[k]).forEach(function(d){ decls.push(d); });
+  snap("advanced CSS");
+  var i = 0;
+  (function next() {
+    if (i >= selectors.length) {
+      renderTree(); renderGutters(); setOut(); autoPreview(); renderInspector(); scheduleCssSync();
+      if (after) after();
+      return;
+    }
+    var sel = selectors[i++];
+    __cssWriteQueue = __cssWriteQueue.then(function() {
+      var fd = new URLSearchParams();
+      fd.set("css", root.css); fd.set("selector", sel); fd.set("at", atRule || ""); fd.set("decls", JSON.stringify(decls));
+      return fetch("/__css__/setsel", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+        if (!j.ok) return;
+        syncing = true;
+        root.css = j.css; ast = j.ast || ast;
+        syncing = false;
+      });
+    }).catch(function(){});
+    __cssWriteQueue.then(next);
+  })();
+}
+var advCtx = { pseudo: "", at: "", text: false };
+function openAdvancedCss() {
+  advCtx = { pseudo: "", at: "", text: false };
+  openInspectorOverlay("CSS declarations", advancedCssRows);
+}
+function advContextCard(selectors) {
+  var card = document.createElement("div"); card.className = "adv-builder";
+  var title = document.createElement("div"); title.className = "adv-builder-title"; title.textContent = "Rule context"; card.appendChild(title);
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.textContent = selectors.length > 1
+    ? "Editing " + selectors.length + " selected elements. Changes apply to every selected class."
+    : ("Editing " + (selectors[0] || "the current selection") + ".");
+  card.appendChild(hint);
+  var grid = document.createElement("div"); grid.className = "adv-grid"; card.appendChild(grid);
+  var pseudo = advSelect(grid, "pseudo", advCtx.pseudo, ["", "::before", "::after", ":hover", ":focus", ":focus-visible", ":active", ":disabled"]);
+  pseudo.onchange = function(){ advCtx.pseudo = pseudo.value; refreshInspectorOverlay(true); };
+  var at = advText(grid, "at-rule", advCtx.at, "@media (max-width: 767px)");
+  at.onchange = function(){ advCtx.at = at.value.trim(); refreshInspectorOverlay(true); };
+  var mode = document.createElement("div"); mode.className = "adv-btns";
+  var visual = document.createElement("button"); visual.type = "button"; visual.className = "btn"; visual.textContent = "Visual"; visual.disabled = !advCtx.text;
+  var text = document.createElement("button"); text.type = "button"; text.className = "btn"; text.textContent = "Text mode"; text.disabled = advCtx.text;
+  visual.onclick = function(){ advCtx.text = false; refreshInspectorOverlay(true); };
+  text.onclick = function(){ advCtx.text = true; refreshInspectorOverlay(true); };
+  mode.appendChild(visual); mode.appendChild(text); card.appendChild(mode);
+  if (advCtx.pseudo === "::before" || advCtx.pseudo === "::after") {
+    var content = advText(grid, "content", "", "text, \"\" or attr(...)");
+    var applyContent = document.createElement("button"); applyContent.type = "button"; applyContent.className = "btn"; applyContent.textContent = "Set content";
+    applyContent.onclick = function(){ setCssOnSelectors(selectors.map(function(s){ return s + advCtx.pseudo; }), advCtx.at, { content: content.value }, function(){ refreshInspectorOverlay(true); }); };
+    advField(grid, "", applyContent);
+  }
+  return card;
+}
 function advancedCssRows() {
   var rows = [];
-  var rule = currentRule();
-  var decls = rule && rule.decls ? rule.decls.slice() : [];
-  var list = document.createElement("div"); list.className = "adv-list";
-  var byProp = Object.create(null), order = [];
-  for (var i = 0; i < decls.length; i++) {
-    var d = decls[i];
-    if (!d || !d.prop) continue;
-    if (!byProp[d.prop]) order.push(d.prop);
-    byProp[d.prop] = d.value;
+  var baseSelectors = advContextSelectors();
+  var selectors = baseSelectors.map(function(s){ return s + advCtx.pseudo; });
+  var rules = selectors.map(function(s){ return advRuleForSelector(s, advCtx.at); });
+  rows.push(advContextCard(baseSelectors));
+  var byProp = Object.create(null), order = [], values = Object.create(null);
+  for (var r = 0; r < rules.length; r++) {
+    var decls = rules[r] && rules[r].decls ? rules[r].decls : [];
+    for (var i = 0; i < decls.length; i++) {
+      var d = decls[i];
+      if (!d || !d.prop) continue;
+      if (!byProp[d.prop]) order.push(d.prop);
+      byProp[d.prop] = 1;
+    }
   }
+  order.sort();
+  for (var o = 0; o < order.length; o++) {
+    var prop = order[o];
+    values[prop] = [];
+    for (var q = 0; q < rules.length; q++) values[prop].push(rules[q] ? (declOf(rules[q], prop) || "") : "");
+  }
+  function valueOf(prop) {
+    var vals = values[prop] || [];
+    var first = vals.length ? vals[0] : "";
+    for (var v = 1; v < vals.length; v++) if (vals[v] !== first) return { value: "", mixed: true, values: vals };
+    return { value: first, mixed: false, values: vals };
+  }
+  function applyMap(map, after) {
+    setCssOnSelectors(selectors, advCtx.at, map, function(){ if (after) after(); refreshInspectorOverlay(true); });
+  }
+  if (advCtx.text) {
+    var ta = document.createElement("textarea");
+    ta.id = "adv-text-mode"; ta.className = "adv-text";
+    ta.style.cssText = "width:100%;min-height:220px;box-sizing:border-box;background:var(--input-bg);color:var(--fg);border:1px solid var(--border2);border-radius:6px;padding:7px;font:11px/1.5 var(--mono,ui-monospace,Consolas,monospace);resize:vertical";
+    var lines = [];
+    for (var t = 0; t < order.length; t++) {
+      var st = valueOf(order[t]);
+      if (!st.mixed) lines.push(order[t] + ": " + st.value + ";");
+      else lines.push("/* " + order[t] + ": " + st.values.filter(function(v){ return v !== ""; }).join(" | ") + " (mixed) */");
+    }
+    ta.value = lines.join("\n");
+    rows.push(ta);
+    var textHint = document.createElement("div"); textHint.className = "hint";
+    textHint.textContent = "Declaration text only. Use the context controls for pseudo-elements and at-rules; mixed values are shown as comments and are not overwritten unless you type a value.";
+    rows.push(textHint);
+    var textBtns = document.createElement("div"); textBtns.className = "adv-btns";
+    var apply = document.createElement("button"); apply.type = "button"; apply.className = "btn"; apply.textContent = "Apply text"; apply.style.cssText = "font-size:10px;padding:3px 7px";
+    apply.onclick = function(){ var map = advParseDeclarations(ta.value); if (!Object.keys(map).length) { setStatus("No declarations found"); return; } applyMap(map); };
+    var back = document.createElement("button"); back.type = "button"; back.className = "btn"; back.textContent = "Visual mode"; back.style.cssText = "font-size:10px;padding:3px 7px";
+    back.onclick = function(){ advCtx.text = false; refreshInspectorOverlay(true); };
+    textBtns.appendChild(apply); textBtns.appendChild(back); rows.push(textBtns);
+    return rows;
+  }
+  var list = document.createElement("div"); list.className = "adv-list";
   if (!order.length) {
     var empty = document.createElement("div"); empty.className = "hint";
-    empty.textContent = rule ? "No declarations in this rule yet." : "No CSS rule yet; add the first declaration below.";
+    empty.textContent = selectors.length > 1 ? "No declarations in the selected rules yet." : "No declarations in this rule yet; add the first declaration below.";
     list.appendChild(empty);
   }
   order.forEach(function(prop){
+    var state = valueOf(prop);
     var row = document.createElement("div"); row.className = "adv-row";
     var pin = document.createElement("input"); pin.className = "adv-prop"; pin.value = prop; pin.readOnly = true; pin.title = prop;
-    var vin = document.createElement("input"); vin.className = "adv-val"; vin.value = byProp[prop]; vin.spellcheck = false;
-    vin.onchange = function(){ setCssProp(prop, vin.value.trim()); };
+    var vin = document.createElement("input"); vin.className = "adv-val"; vin.value = state.mixed ? "" : state.value; vin.spellcheck = false;
+    if (state.mixed) { vin.placeholder = "(mixed)"; vin.classList.add("adv-mixed"); vin.title = state.values.join(" | "); }
+    bindCssValueAutocomplete(vin, prop);
+    vin.onchange = function(){ applyMap({ [prop]: vin.value.trim() }); };
     var del = document.createElement("button"); del.type = "button"; del.className = "adv-del"; del.textContent = "\u00d7"; del.title = "Remove declaration";
-    del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } setCssProp(prop, ""); };
+    del.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } applyMap({ [prop]: "" }); };
     row.appendChild(pin); row.appendChild(vin); row.appendChild(del);
     list.appendChild(row);
   });
@@ -13349,22 +13834,27 @@ function advancedCssRows() {
   var vin = document.createElement("input"); vin.className = "adv-val"; vin.placeholder = "value"; vin.spellcheck = false;
   var addBtn = document.createElement("button"); addBtn.type = "button"; addBtn.className = "btn"; addBtn.style.cssText = "font-size:10px;padding:3px 6px"; addBtn.textContent = "Add";
   add.appendChild(pin); add.appendChild(vin); add.appendChild(addBtn); rows.push(add);
-  var dl = document.createElement("datalist"); dl.id = "css-prop-list";
-  CSS_PROPERTY_NAMES.forEach(function(n){ var o = document.createElement("option"); o.value = n; dl.appendChild(o); });
-  rows.push(dl);
+  var dl = document.getElementById("css-prop-list");
+  if (!dl) {
+    dl = document.createElement("datalist"); dl.id = "css-prop-list";
+    CSS_PROPERTY_NAMES.forEach(function(n){ var op = document.createElement("option"); op.value = n; dl.appendChild(op); });
+    rows.push(dl);
+  }
+  pin.oninput = function(){ fillCssValueList(pin.value); };
+  bindCssValueAutocomplete(vin, function(){ return pin.value; });
   function addDecl() {
     var typed = pin.value.trim();
     var prop = typed.indexOf("--") === 0 ? typed : typed.toLowerCase();
     var val = vin.value.trim();
     if (!/^(--[A-Za-z0-9_-]+|[a-z-]+)$/.test(prop)) { setStatus("Invalid CSS property name"); return; }
     if (!val) { setStatus("Enter a CSS value"); return; }
-    setCssProp(prop, val);
+    applyMap({ [prop]: val });
   }
   addBtn.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } addDecl(); };
   pin.onkeydown = function(ev){ if (ev.key === "Enter") { ev.preventDefault(); addDecl(); } };
   vin.onkeydown = function(ev){ if (ev.key === "Enter") { ev.preventDefault(); addDecl(); } };
   var ex = document.createElement("div"); ex.className = "hint";
-  ex.textContent = "Examples: overflow: hidden, aspect-ratio: 16 / 9, transform: rotate(2deg), --accent: #4c5cf7.";
+  ex.textContent = "Examples: overflow: hidden, aspect-ratio: 16 / 9, transform: rotate(2deg), --accent: #4c5cf7. Values suggest common options as you type.";
   rows.push(ex);
   return rows;
 }
