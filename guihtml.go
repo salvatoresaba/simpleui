@@ -2173,7 +2173,16 @@ RUNNING</div>
     orig("/__gui__/ping", { cache: "no-store" }).then(function (r) {
       if (!r.ok) { markLost(); return; }
       return r.json().then(function (j) {
-        if (j && j.ok && gone && !disco) { disco = true; location.reload(); }
+        if (j && j.ok && gone && !disco) {
+          // Never reload in a tight loop when the server flaps: at most one
+          // automatic reload per 10 seconds, otherwise try again next tick.
+          var last = 0;
+          try { last = Number(sessionStorage.getItem("sui.autoReloadAt") || 0); } catch (e3) {}
+          if (Date.now() - last < 10000) return;
+          try { sessionStorage.setItem("sui.autoReloadAt", String(Date.now())); } catch (e4) {}
+          disco = true;
+          location.reload();
+        }
       });
     }).catch(function () { markLost(); });
     if (gone && !disco && location.port !== "32330") {

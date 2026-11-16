@@ -163,7 +163,7 @@ var libraryCssProps = map[string]bool{
 func loadComponentLibraryPayload(projectDir string) []byte {
 	path := componentLibraryPath(projectDir)
 	if path == "" {
-		return libraryPayload(false, "", nil, nil, "no external component library found; using built-in components")
+		return libraryPayload(true, "", nil, nil, "no external component library found; using built-in components")
 	}
 	groups, warnings, err := loadComponentLibraryFile(path)
 	if err != nil {

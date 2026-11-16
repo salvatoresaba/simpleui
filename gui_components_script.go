@@ -1057,21 +1057,43 @@ function appearancePreviewSource(def, kind, sel) {
 }
 function appearanceLoadPreview(def, kind, sel, frame) {
   if (!frame) return;
+  // Rapid keyboard navigation must not navigate the sandboxed preview iframe on
+  // every key: debounce, cancel the previous request and only replace srcdoc
+  // when the compiled page is ready. The current preview stays visible while
+  // the next one loads, so holding ArrowDown cannot spawn a reload storm.
+  if (LIB_APP_PREVIEW_TIMER) { clearTimeout(LIB_APP_PREVIEW_TIMER); LIB_APP_PREVIEW_TIMER = 0; }
+  if (LIB_APP_PREVIEW_ABORT) {
+    try { LIB_APP_PREVIEW_ABORT.abort(); } catch (e) {}
+    LIB_APP_PREVIEW_ABORT = null;
+  }
   var seq = ++LIB_APP_PREVIEW_SEQ;
-  frame.srcdoc = "<!doctype html><html><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#0f1117;color:#8fa0b8;font:13px system-ui,sans-serif'>Loading preview…</body></html>";
-  var fd = new URLSearchParams();
-  fd.set("sui", appearancePreviewSource(def, kind, sel));
-  fetch("/__gui__/source-preview", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+  var source = appearancePreviewSource(def, kind, sel);
+  if (!frame.srcdoc || frame.srcdoc === "about:blank") {
+    frame.srcdoc = "<!doctype html><html><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#0f1117;color:#8fa0b8;font:13px system-ui,sans-serif'>Loading preview…</body></html>";
+  }
+  LIB_APP_PREVIEW_TIMER = setTimeout(function () {
+    LIB_APP_PREVIEW_TIMER = 0;
     if (seq !== LIB_APP_PREVIEW_SEQ) return;
-    if (j && j.ok && j.html) frame.srcdoc = j.html;
-    else {
-      var msg = (j && (j.error || (j.diagnostics && j.diagnostics.length))) ? (j.error || j.diagnostics[0]) : "Preview unavailable";
-      frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>" + libNavEscape(msg) + "</body></html>";
-    }
-  }).catch(function(){
-    if (seq !== LIB_APP_PREVIEW_SEQ) return;
-    frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>Preview request failed.</body></html>";
-  });
+    var ctl = null;
+    try { ctl = new AbortController(); } catch (e) {}
+    LIB_APP_PREVIEW_ABORT = ctl;
+    var fd = new URLSearchParams();
+    fd.set("sui", source);
+    fetch("/__gui__/source-preview", { method: "POST", body: fd, signal: ctl ? ctl.signal : undefined }).then(function(r){ return r.json(); }).then(function(j){
+      if (seq !== LIB_APP_PREVIEW_SEQ) return;
+      LIB_APP_PREVIEW_ABORT = null;
+      if (j && j.ok && j.html) frame.srcdoc = j.html;
+      else {
+        var msg = (j && (j.error || (j.diagnostics && j.diagnostics.length))) ? (j.error || j.diagnostics[0]) : "Preview unavailable";
+        frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>" + libNavEscape(msg) + "</body></html>";
+      }
+    }).catch(function(err){
+      if (err && err.name === "AbortError") return;
+      if (seq !== LIB_APP_PREVIEW_SEQ) return;
+      LIB_APP_PREVIEW_ABORT = null;
+      frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>Preview request failed.</body></html>";
+    });
+  }, 160);
 }
 function appearanceInspectorSection(def, node) {
   var kind = node.kind;
@@ -1147,6 +1169,8 @@ var LIB_APP_THEME_ID = "";
 var LIB_APP_FOCUS_COL = "structure";
 var LIB_APP_RESTORE_FOCUS = false;
 var LIB_APP_PREVIEW_SEQ = 0;
+var LIB_APP_PREVIEW_TIMER = 0;
+var LIB_APP_PREVIEW_ABORT = null;
 function appearanceDefById(id) {
   for (var i = 0; i < COMPONENT_DEFS.length; i++) if (COMPONENT_DEFS[i].id === id) return COMPONENT_DEFS[i];
   return null;
