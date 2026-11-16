@@ -92,6 +92,16 @@ var appearanceLibraryKinds = map[string]bool{
 	"dropzone": true, "timeline": true, "carousel": true, "stepper": true,
 }
 
+// appearanceTextKinds mirrors APPEARANCE_TEXT_KINDS. These controls accept
+// typing, so the catalog must not move or resize them.
+var appearanceTextKinds = map[string]bool{
+	"input": true, "textarea": true, "select": true, "combobox": true,
+	"datepicker": true, "number": true, "color": true, "date": true,
+	"time": true, "file": true,
+}
+
+var appearanceMotionRe = regexp.MustCompile(`sui-fx-(lift|grow|tilt|press|pop|jelly|bounce|shake|slide)|sui-appearance-(pulse|float|fade)|sui-field-lift`)
+
 // appearanceAttrKeys limits structure attributes to the ones the preview and
 // the editor understand. Arbitrary keys could rewrite unrelated node fields.
 var appearanceAttrKeys = map[string]bool{
@@ -193,6 +203,9 @@ func loadAppearanceLibraryFile(path string) (appearanceCatalogData, []string, er
 			if err := validateAppearanceCSSValue(value); err != nil {
 				return appearanceCatalogData{}, nil, fmt.Errorf("feedback %q %s: %v", variant, phase, err)
 			}
+			if variant == "static" && appearanceMotionRe.MatchString(value) {
+				return appearanceCatalogData{}, nil, fmt.Errorf("feedback static %s must not move or resize the control: %s", phase, value)
+			}
 		}
 	}
 	seenControls := map[string]bool{}
@@ -266,6 +279,11 @@ func loadAppearanceLibraryFile(path string) (appearanceCatalogData, []string, er
 		}
 		if !hasNone {
 			return appearanceCatalogData{}, nil, fmt.Errorf("%s: animations must include a None option", c.Kind)
+		}
+		if appearanceTextKinds[c.Kind] {
+			if len(c.Animations) != 1 || c.Animations[0].ID != "none" || c.Animations[0].Value != "none" {
+				return appearanceCatalogData{}, nil, fmt.Errorf("%s: text-entry controls only allow the None animation; use feedback.static for phase feedback", c.Kind)
+			}
 		}
 	}
 	for _, kind := range sortedAppearanceKinds() {

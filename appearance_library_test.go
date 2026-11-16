@@ -140,6 +140,62 @@ func TestAppearanceLibraryRejectsUnsafeFeedback(t *testing.T) {
 	}
 }
 
+func TestAppearanceLibraryRejectsMotionForTextEntry(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "appearance.json")
+	body := `{
+  "format": "simpleui-appearance-library",
+  "version": 1,
+  "controls": [{
+    "kind": "input",
+    "structures": [{"id": "default", "label": "Default"}],
+    "styles": [{"id": "dark", "label": "Dark"}, {"id": "light", "label": "Light"}],
+    "animations": [
+      {"id": "none", "label": "None", "value": "none"},
+      {"id": "lift", "label": "Lift", "value": "sui-fx-lift .18s ease-out forwards"}
+    ]
+  }]
+}`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := loadAppearanceLibraryFile(path)
+	if err == nil || !strings.Contains(err.Error(), "text-entry controls only allow the None animation") {
+		t.Fatalf("text-entry motion should be rejected, got %v", err)
+	}
+}
+
+func TestAppearanceLibraryRejectsMotionStaticFeedback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "appearance.json")
+	body := `{
+  "format": "simpleui-appearance-library",
+  "version": 1,
+  "feedback": {"static": {"hover": "sui-fx-lift .2s ease-out", "press": "none", "focus": "none", "state": "none"}},
+  "controls": [{
+    "kind": "button",
+    "structures": [{"id": "rect", "label": "Rect"}],
+    "styles": [{"id": "dark", "label": "Dark"}, {"id": "light", "label": "Light"}],
+    "animations": [{"id": "none", "label": "None", "value": "none"}]
+  }]
+}`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := loadAppearanceLibraryFile(path)
+	if err == nil || !strings.Contains(err.Error(), "feedback static hover must not move") {
+		t.Fatalf("static feedback motion should be rejected, got %v", err)
+	}
+}
+
+func TestMCPAppearanceTool(t *testing.T) {
+	text, isErr := mcpCallTool("sui_appearance", JObj("path", JStr(filepath.Join("components", "appearance.json"))))
+	if isErr {
+		t.Fatalf("sui_appearance failed: %s", text)
+	}
+	if !strings.Contains(text, `"ok":true`) || !strings.Contains(text, `"controls":36`) {
+		t.Fatalf("unexpected sui_appearance result: %s", text)
+	}
+}
+
 func TestAppearanceKindsMatchDesignerScript(t *testing.T) {
 	data, err := os.ReadFile("gui_components_script.go")
 	if err != nil {

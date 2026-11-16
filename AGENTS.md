@@ -123,11 +123,16 @@ go test -count=1 ./...
 ./simpleui.exe build app.sui --single --out app.html
 ./simpleui.exe build app.sui --single --minify --out app.html
 ./simpleui.exe serve app.sui --watch
+
+# Always after editing the control appearance catalog
+./simpleui.exe appearance check components/appearance.json --json
 ```
 
 `check --json` returns `ok` plus structured diagnostics; use it in an edit loop
 instead of parsing human output. `build` fails on errors and prints warnings.
-`serve --watch` rebuilds and reloads the browser.
+`serve --watch` rebuilds and reloads the browser. `appearance check` uses the
+same validator as the designer; text-entry controls only allow the `None`
+animation and `feedback.static` must not contain motion effects.
 
 For desktop capabilities:
 
@@ -181,7 +186,7 @@ Full index: `docs/INDEX.md`. Machine manifest: `docs/manifest.json`.
 
 Run `simpleui mcp` for a stdio MCP server. It exposes:
 
-- tools: `sui_check`, `sui_model`, `sui_compile`, `sui_render`, `sui_docs`;
+- tools: `sui_check`, `sui_model`, `sui_compile`, `sui_render`, `sui_docs`, `sui_appearance`;
 - resources: `sui://docs/<path>` for every manifest document;
 - prompts: `build_simpleui_interface` and `review_simpleui_security`.
 

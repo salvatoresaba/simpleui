@@ -47,6 +47,8 @@ func main() {
 		CmdParse(ArgsAfter(args, 2))
 	} else if cmd == "check" {
 		CmdCheck(ArgsAfter(args, 2))
+	} else if cmd == "appearance" {
+		CmdAppearance(ArgsAfter(args, 2))
 	} else if cmd == "docs" {
 		CmdDocs(ArgsAfter(args, 2))
 	} else if cmd == "build" {
@@ -254,6 +256,7 @@ func PrintHelp() {
 	fmt.Printf("  %v help                 show this help\n", AppName)
 	fmt.Printf("  %v parse <file.sui>     tokenize and parse, print the AST as JSON\n", AppName)
 	fmt.Printf("  %v check <file.sui>     parse + typecheck; --json for structured diagnostics\n", AppName)
+	fmt.Printf("  %v appearance check [f] validate the appearance catalog (default: components/appearance.json; --json)\n", AppName)
 	fmt.Printf("  %v fmt <file.sui>       canonical format (--write to update in place)\n", AppName)
 	fmt.Printf("  %v docs                 documentation index (also: --agent, --json, --read, --search)\n", AppName)
 	fmt.Printf("  %v gui [file.sui]       visual design tool (palette + live preview + .sui export)\n", AppName)

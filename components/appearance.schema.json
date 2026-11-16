@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simpleui.local/components/appearance.schema.json",
+  "title": "SimpleUI control appearance catalog",
+  "description": "Advisory JSON Schema for components/appearance.json. The SimpleUI loader (simpleui appearance check, sui_appearance MCP tool, or the GUI server) is the authoritative validator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "controls"],
+  "properties": {
+    "format": { "const": "simpleui-appearance-library" },
+    "version": { "const": 1 },
+    "feedback": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{0,39}$" },
+      "additionalProperties": { "$ref": "#/$defs/feedback" }
+    },
+    "controls": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 120,
+      "items": { "$ref": "#/$defs/control" }
+    }
+  },
+  "$defs": {
+    "cssValue": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^[^;{}<>\\\\\\r\\n]*$"
+    },
+    "feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hover", "press", "focus", "state"],
+      "properties": {
+        "hover": { "$ref": "#/$defs/cssValue" },
+        "press": { "$ref": "#/$defs/cssValue" },
+        "focus": { "$ref": "#/$defs/cssValue" },
+        "state": { "$ref": "#/$defs/cssValue" }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "vars": {
+          "type": "object",
+          "propertyNames": { "pattern": "^(--[A-Za-z0-9_-]{1,60}|[a-z][a-z0-9-]{0,60})$" },
+          "additionalProperties": { "$ref": "#/$defs/cssValue" }
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "shape": { "type": "string", "maxLength": 200 },
+            "size": { "type": "string", "maxLength": 200 },
+            "variant": { "type": "string", "maxLength": 200 },
+            "tone": { "type": "string", "maxLength": 200 }
+          }
+        }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "value"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "value": { "$ref": "#/$defs/cssValue" }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "structures", "styles", "animations"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "button", "input", "textarea", "select", "combobox", "datepicker",
+            "number", "slider", "checkbox", "radio", "switch", "color", "date",
+            "time", "file", "progress", "spinner", "badge", "alert", "card",
+            "tabs", "accordion", "menubar", "dropdown", "popover", "modal",
+            "toast", "tree", "commandbar", "drawer", "splitter", "pane",
+            "dropzone", "timeline", "carousel", "stepper"
+          ]
+        },
+        "label": { "type": "string", "maxLength": 80 },
+        "structures": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 80,
+          "items": { "$ref": "#/$defs/variant" }
+        },
+        "styles": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 80,
+          "items": { "$ref": "#/$defs/variant" }
+        },
+        "animations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 80,
+          "items": { "$ref": "#/$defs/animation" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["input", "textarea", "select", "combobox", "datepicker", "number", "color", "date", "time", "file"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "animations": {
+                "maxItems": 1,
+                "items": {
+                  "properties": {
+                    "id": { "const": "none" },
+                    "value": { "const": "none" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

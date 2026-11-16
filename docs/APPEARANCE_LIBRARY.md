@@ -181,6 +181,24 @@ keeps the built-in fallback, showing the reason in the status bar. After editing
 the file, use **Preferences → Reload component and appearance libraries** (or the
 **Reload** button in the navigator) to reload it without restarting.
 
+Validate an edit with the same loader the GUI uses:
+
+```bash
+simpleui appearance check components/appearance.json --json
+```
+
+The MCP server exposes the same check as **`sui_appearance`**. The advisory
+editor schema is [`components/appearance.schema.json`](../components/appearance.schema.json);
+the CLI and the GUI loader remain authoritative.
+
+Text-entry controls (**input**, **textarea**, **select**, **combobox**,
+**date/time**, **datepicker**, **number**, **color**, **file**) must list only
+the `None` animation. Phase feedback for them comes from `feedback.static` and
+must not contain `sui-fx-lift`, `sui-fx-grow`, `sui-fx-tilt`, `sui-fx-press`,
+`sui-fx-pop`, `sui-fx-jelly`, `sui-fx-bounce`, `sui-fx-shake`, `sui-fx-slide`,
+`sui-appearance-pulse`, `sui-appearance-float`, `sui-appearance-fade` or
+`sui-field-lift`. The validator rejects those values.
+
 ## Button example
 
 1. Select a `button` in the Structure tree or preview.

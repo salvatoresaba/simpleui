@@ -48,5 +48,15 @@ Rules and validation are documented in
 complete control appearance catalog: structures, styles and animations for every
 control. The designer validates it at startup and falls back to the built-in
 catalog when the file is missing or rejected. Dark and Light styles are required
-for every control. The schema is documented in
+for every control; text-entry controls only allow the `None` animation and use
+the non-motion `feedback.static` variant. The schema is documented in
 [`docs/APPEARANCE_LIBRARY.md`](../docs/APPEARANCE_LIBRARY.md#the-external-appearance-file).
+
+Validate an edit with the same loader the designer uses:
+
+```bash
+simpleui appearance check components/appearance.json --json
+```
+
+The advisory editor schema is `components/appearance.schema.json`. The CLI,
+the GUI loader and the MCP tool `sui_appearance` are authoritative.

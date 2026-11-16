@@ -3,6 +3,7 @@ package main
 import "bufio"
 import "fmt"
 import "os"
+import "path/filepath"
 import "strings"
 
 // mcp.go — a Model Context Protocol (MCP) server so an AI agent (Claude
@@ -51,6 +52,14 @@ var mcpTools = []JVal{
 				"path", JObj("type", JStr("string"), "description", JStr("document path, e.g. docs/API_REFERENCE.md")),
 				"query", JObj("type", JStr("string"), "description", JStr("full-text search across embedded documents")),
 				"full", JObj("type", JStr("boolean"), "description", JStr("return every embedded document (large)")),
+			)),
+	),
+	JObj(
+		"name", JStr("sui_appearance"),
+		"description", JStr("Validate the external control appearance catalog (components/appearance.json or a given path): schema, CSS values, Dark/Light styles and the text-entry no-motion rule. Returns ok, control/feedback counts and warnings, or the exact error."),
+		"inputSchema", JObj("type", JStr("object"),
+			"properties", JObj(
+				"path", JObj("type", JStr("string"), "description", JStr("catalog path; defaults to components/appearance.json")),
 			)),
 	),
 }
@@ -103,7 +112,7 @@ func mcpHandle(msg JVal) string {
 				"prompts", JObj("listChanged", JBool(false)),
 			),
 			"serverInfo", JObj("name", JStr(AppName), "version", JStr(AppVersion),
-				"instructions", JStr("Read AGENTS.md or call sui_docs first. Check generated SUI with sui_check before building. Use docs/AGENT_RECIPES.md for local/remote interface patterns.")),
+				"instructions", JStr("Read AGENTS.md or call sui_docs first. Check generated SUI with sui_check before building. Use docs/AGENT_RECIPES.md for local/remote interface patterns. Validate components/appearance.json with sui_appearance before reloading the designer.")),
 		)
 		return mcpResult(id, res)
 	case "tools/list":
@@ -188,6 +197,29 @@ func mcpCallTool(name string, args JVal) (string, bool) {
 			return StringifyJson(JObj("ok", JBool(false), "diagnostics", msgs)), false
 		}
 		return StringifyJson(JObj("ok", JBool(true), "preview", JStr(html))), false
+	case "sui_appearance":
+		path := asStr(get(args, "path"))
+		if path == "" {
+			path = appearanceLibraryPath("")
+			if path == "" {
+				path = filepath.Join("components", "appearance.json")
+			}
+		}
+		catalog, warnings, err := loadAppearanceLibraryFile(path)
+		if err != nil {
+			return StringifyJson(JObj("ok", JBool(false), "file", JStr(path), "error", JStr(err.Error()))), true
+		}
+		arr := JArr()
+		for _, warning := range warnings {
+			arr = pushArr(arr, JStr(warning))
+		}
+		return StringifyJson(JObj(
+			"ok", JBool(true),
+			"file", JStr(path),
+			"controls", JInt(len(catalog.Controls)),
+			"feedback", JInt(len(catalog.Feedback)),
+			"warnings", arr,
+		)), false
 	case "sui_docs":
 		m, err := loadDocsManifest()
 		if err != nil {
