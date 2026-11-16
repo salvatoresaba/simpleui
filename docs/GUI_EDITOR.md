@@ -644,17 +644,18 @@ position.
 
 ## Inspector and effective styles
 
-All inspector sections start collapsed. Open a section by clicking its header;
-it stays open across selection changes and preview reloads until you close it
-again.
+The inspector opens the primary sections by default: **Content**, **Appearance**,
+**Layout**, **Size**, **Typography**, **View** and, when it applies, **Animation**.
+Other sections start collapsed. Use **Expand all** / **Collapse all** above the
+fields; opening or closing a section stays remembered across selection changes
+and preview reloads until you change it again.
 
 Each section header has a small grip on the left. Drag the grip to reorder the
 inspector sections; the order is saved in the editor's local storage and is
 restored on reload. Sections that do not apply to the current element disappear
 temporarily and keep their stored position when they return. Reordering only
 changes the editor UI, not the generated application. The **View** section
-(page title, page name, onLoad and page actions) is a normal reorderable section
-and, like every other section, starts closed.
+(page title, page name, onLoad and page actions) is a normal reorderable section.
 
 When an edit rebuilds the inspector, the open section, the scroll position and
 the focused field are restored. You can continue editing the same parameter
@@ -665,6 +666,12 @@ Every row in the left **Structure** tree starts with an exact type badge
 the friendly label, so the selected element type is always unambiguous. The
 inspector repeats the exact type in a **Selected element** banner above the
 sections.
+
+An **Animation** section appears when the selected element's class carries an
+`animation` declaration. It shows the class and the animation value, calls out
+an `infinite` loop, and offers **Remove class** (stops it on this element) and
+**Stop in CSS** (sets `animation: none` on the class, for every element using
+it). Motion-graph elements also open their **Motion (animation panel)** section.
 
 Style fields show the value that actually reaches the selected element, not
 only a declaration from its first class rule. The preview reports authored and
@@ -804,88 +811,6 @@ Every uploaded asset appears as a card with a thumbnail, name and size:
 Uploads are session-scoped: they are not written to disk, and the data URL is
 embedded directly in the SUI source when you apply it. Use a local relative path
 instead of an asset when you want the file to live next to the project.
-
-## Shape & motion
-
-**Tools → Shape & motion…** opens a small vector editor: draw the control itself,
-then attach a motion. Nothing in it needs hand-written CSS.
-
-### Drawing and editing
-
-| Tool | Use |
-|---|---|
-| Select | Click a path, drag a node, drag a square handle to bend the curve; arrow keys nudge the selected node (Shift = 10 px) |
-| Line | Click to add corner nodes; click the first node to close the path |
-| Curve | Drag to pull out the handles of a smooth node |
-| Rect / Ellipse / Arc | Drag a primitive on the canvas |
-
-The node row adds and removes nodes, switches a node between **Smooth** and
-**Corner**, opens or closes the path, and cuts a path at the selected node.
-**Fillet** rounds a corner using the radius field; it needs straight edges.
-**Join** connects the two nearest endpoints of two open paths. **Fit box** scales
-the whole drawing to the canvas.
-
-**Union**, **Intersect** and **Subtract** apply to the first two paths and
-require closed paths. Curves are flattened to a fine polyline for the
-operation; shapes that share a straight edge or touch at a single point are
-rejected with a message instead of producing broken geometry. The result keeps
-holes as extra subpaths and is drawn with `fill-rule="evenodd"`.
-
-### Starting from what exists
-
-**Load selection** reads the selected component:
-
-- if it carries a shape written by the composer, the exact nodes, fill and
-  stroke are loaded again from the `sui-cad` metadata in `root.css`;
-- otherwise its computed width, height, radius, background, text colour and
-  font size are used to build a rounded rectangle as a starting point.
-
-**Import SVG** converts `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`
-and `polygon` elements into nodes, applying `translate`, `scale`, `rotate`,
-`matrix`, `skewX` and `skewY` transforms and fitting the result to the canvas.
-Supported path commands are M, L, H, V, C, S, Q, T, A and Z, absolute and
-relative. The file is parsed into numbers and never embedded as SVG markup, so
-script, external references and event attributes cannot enter the project.
-
-**Reference image** loads a PNG, JPEG, WebP or GIF as a **tracing underlay** only.
-It is not compiled into the control; use **Ref off** to remove it.
-
-### Output and motion
-
-| Action | Result |
-|---|---|
-| Insert control | Adds a new button, card, box or badge with classes `.name` and `.name-motion` plus its drawn shape |
-| Apply to selection | Adds only `.name-motion`, leaving the existing shape untouched |
-| Apply shape | Replaces the selected component's shape with the drawing (undoable) |
-| Copy SVG | Copies a standalone SVG of the drawing |
-| Copy CSS | Copies both managed blocks |
-| Reset box | Restores a rounded rectangle from the width, height and radius fields |
-
-A drawn control is written as a masked silhouette, so the fill colour is the
-element background and remains animatable by the keyframes; the stroke is a
-second embedded SVG image:
-
-```css
-/* sui-motion-shape:pulse-card */
-/* sui-cad:{"v":1,"w":240,"h":120,"fill":"#0ea5e9",...} */
-.pulse-card { ...; background-color:#0ea5e9; mask-image:url("data:image/svg+xml,..."); animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
-/* /sui-motion-shape:pulse-card */
-/* sui-motion:pulse-card */
-.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
-@keyframes sui-motion-pulse-card { ... }
-/* /sui-motion:pulse-card */
-```
-
-The keyframes support position, scale, rotation, opacity and per-frame
-background colour. **Add keyframe** fills the widest gap and interpolates the
-values, **Remove last** deletes one; at least two frames are kept.
-
-Inserting the same class name replaces the blocks instead of duplicating them.
-Class names must match `^[A-Za-z_][A-Za-z0-9_-]*$`; sizes, opacity and radii are
-clamped and colours must be hex. The composer writes ordinary project CSS and
-`data:` images: the runtime never injects markup or styles. The shape masks the
-label too, which is intentional for unusual silhouettes but means a very thin
-shape can clip its text.
 
 ## Designer drag and drop
 

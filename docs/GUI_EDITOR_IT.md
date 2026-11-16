@@ -671,9 +671,11 @@ inserito nella posizione corrente.
 
 ## Inspector e stili effettivi
 
-Tutte le sezioni dell'inspector partono chiuse. Aprire una sezione cliccando
-sull'intestazione; resta aperta tra cambi di selezione e reload della preview
-finché non viene richiusa.
+L'inspector apre per default le sezioni principali: **Content**, **Appearance**,
+**Layout**, **Size**, **Typography**, **View** e, quando serve, **Animation**.
+Le altre partono chiuse. Usa **Expand all** / **Collapse all** sopra i campi;
+l'apertura o la chiusura di una sezione resta memorizzata tra cambi di selezione
+e reload della preview finché non la cambi di nuovo.
 
 Ogni intestazione di sezione ha una piccola maniglia a sinistra. Trascinala per
 riordinare le sezioni dell'inspector; l'ordine viene salvato nel local storage
@@ -681,8 +683,7 @@ dell'editor e ripristinato al reload. Le sezioni che non si applicano
 all'elemento corrente scompaiono temporaneamente e mantengono la posizione
 salvata quando ricompaiono. Il riordino cambia solo la UI dell'editor, non
 l'applicazione generata. Anche la sezione **View** (titolo pagina, nome pagina,
-onLoad e azioni pagina) è una normale sezione riordinabile e, come tutte le
-altre, parte chiusa.
+onLoad e azioni pagina) è una normale sezione riordinabile.
 
 Quando una modifica ridisegna l'inspector vengono ripristinati la sezione
 aperta, la posizione di scorrimento e il campo con il focus. Puoi continuare a
@@ -693,6 +694,13 @@ esatto (`div`, `tree`, `treeitem`, `chart`, `input`, ...). Il badge e separato
 dall'etichetta descrittiva, quindi il tipo dell'elemento selezionato e sempre
 inequivocabile. L'inspector ripete il tipo esatto in un banner **Selected
 element** sopra le sezioni.
+
+Una sezione **Animation** compare quando la classe dell'elemento selezionato ha
+una dichiarazione `animation`. Mostra la classe e il valore dell'animazione,
+segnala i loop `infinite` e offre **Remove class** (la ferma su questo elemento)
+e **Stop in CSS** (imposta `animation: none` sulla classe, per tutti gli elementi
+che la usano). Gli elementi con un motion graph aprono anche la sezione
+**Motion (animation panel)**.
 
 I campi di stile mostrano il valore che raggiunge realmente l'elemento
 selezionato, non solo una dichiarazione della prima classe. La preview riporta i
@@ -835,89 +843,6 @@ I caricamenti valgono per la sessione: non vengono scritti su disco e il data UR
 viene incorporato direttamente nel sorgente SUI quando lo applichi. Usa un
 percorso relativo locale invece di un asset quando vuoi che il file viva accanto
 al progetto.
-
-## Shape & motion
-
-**Tools → Shape & motion…** apre un piccolo editor vettoriale: disegni il
-controllo e poi gli applichi un movimento. Non serve scrivere CSS a mano.
-
-### Disegno e modifica
-
-| Strumento | Uso |
-|---|---|
-| Select | Clicca una traccia, trascina un nodo, trascina un quadratino per curvare; le frecce spostano il nodo selezionato (Shift = 10 px) |
-| Line | Clic per aggiungere nodi ad angolo; clic sul primo nodo per chiudere |
-| Curve | Trascina per estrarre le maniglie di un nodo morbido |
-| Rect / Ellipse / Arc | Trascina una primitiva sul canvas |
-
-La riga dei nodi aggiunge e rimuove nodi, passa tra **Smooth** e **Corner**,
-apre o chiude la traccia e taglia la traccia nel nodo selezionato. **Fillet**
-arrotonda un angolo con il raggio impostato; richiede lati dritti. **Join**
-unisce gli estremi più vicini di due tracce aperte. **Fit box** scala l'intero
-disegno al canvas.
-
-**Union**, **Intersect** e **Subtract** lavorano sulle prime due tracce e
-richiedono tracce chiuse. Le curve vengono appiattite in una polilinea fine per
-l'operazione; forme che condividono un lato dritto o si toccano in un solo punto
-vengono rifiutate con un messaggio invece di produrre geometria rotta. Il
-risultato conserva i fori come sottotracce e viene disegnato con
-`fill-rule="evenodd"`.
-
-### Partire da ciò che esiste
-
-**Load selection** legge il componente selezionato:
-
-- se contiene una forma scritta dal composer, ricarica nodi, riempimento e bordo
-  dai metadati `sui-cad` in `root.css`;
-- altrimenti usa larghezza, altezza, raggio, sfondo, colore del testo e font
-  calcolati per costruire un rettangolo arrotondato di partenza.
-
-**Import SVG** converte gli elementi `path`, `rect`, `circle`, `ellipse`, `line`,
-`polyline` e `polygon` in nodi, applicando le trasformazioni `translate`, `scale`,
-`rotate`, `matrix`, `skewX` e `skewY` e adattando il risultato al canvas. I
-comandi di path supportati sono M, L, H, V, C, S, Q, T, A e Z, assoluti e
-relativi. Il file viene convertito in numeri e non incorporato come markup SVG,
-quindi script, riferimenti esterni ed eventi non possono entrare nel progetto.
-
-**Reference image** carica un PNG, JPEG, WebP o GIF solo come **sottofondo per
-ricalcare**. Non viene compilato nel controllo; usa **Ref off** per rimuoverlo.
-
-### Output e movimento
-
-| Azione | Risultato |
-|---|---|
-| Insert control | Aggiunge un nuovo button, card, box o badge con classi `.nome` e `.nome-motion` e la forma disegnata |
-| Apply to selection | Aggiunge solo `.nome-motion`, lasciando intatta la forma esistente |
-| Apply shape | Sostituisce la forma del componente selezionato con il disegno (annullabile) |
-| Copy SVG | Copia un SVG autonomo del disegno |
-| Copy CSS | Copia entrambi i blocchi gestiti |
-| Reset box | Ripristina un rettangolo arrotondato da larghezza, altezza e raggio |
-
-Un controllo disegnato viene scritto come sagoma mascherata: il colore di
-riempimento resta lo sfondo dell'elemento ed è animabile dalle keyframe, mentre
-il bordo è una seconda immagine SVG incorporata:
-
-```css
-/* sui-motion-shape:pulse-card */
-/* sui-cad:{"v":1,"w":240,"h":120,"fill":"#0ea5e9",...} */
-.pulse-card { ...; background-color:#0ea5e9; mask-image:url("data:image/svg+xml,..."); animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
-/* /sui-motion-shape:pulse-card */
-/* sui-motion:pulse-card */
-.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
-@keyframes sui-motion-pulse-card { ... }
-/* /sui-motion:pulse-card */
-```
-
-Le keyframe gestiscono posizione, scala, rotazione, opacità e colore di sfondo per
-frame. **Add keyframe** riempie il vuoto più ampio interpolando i valori,
-**Remove last** ne elimina uno; restano sempre almeno due frame.
-
-Inserire di nuovo la stessa classe sostituisce i blocchi invece di duplicarli.
-I nomi delle classi devono rispettare `^[A-Za-z_][A-Za-z0-9_-]*$`; dimensioni,
-opacità e raggi vengono limitati e i colori devono essere esadecimali. Il
-composer scrive CSS normale e immagini `data:`: il runtime non inietta mai markup
-o stili. La sagoma maschera anche l'etichetta: è voluto per silhouette particolari,
-ma una forma molto sottile può tagliare il testo.
 
 ## Drag and drop del designer
 

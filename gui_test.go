@@ -822,7 +822,8 @@ func TestGuiInspectorEffectControls(t *testing.T) {
 func TestGuiInspectorFocusAndDefaults(t *testing.T) {
 	for _, want := range []string{
 		"captureInspectorFocus", "assignInspectorFocusKeys", "restoreInspectorFocus",
-		"finishInspector", "sui.inspector.sections.v2",
+		"finishInspector", "sui.inspector.sections.v3", "__inspectorSectionDefaults",
+		"setAllInspectorSections", "inspectorAnimations", "Stop in CSS",
 	} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("inspector focus/default handling is missing %q", want)
@@ -875,26 +876,6 @@ func TestGuiEditorToolsPanel(t *testing.T) {
 		`function openAssets`,
 		`function uploadAsset`,
 		`function insertAssetBackground`,
-		`id="motion-composer"`,
-		`function openMotionComposer`,
-		`function closeMotionComposer`,
-		`function renderMotionComposer`,
-		`function mcPreview`,
-		`function mcInsert`,
-		`function mcApply`,
-		`function mcWriteCss`,
-		`function mcValidName`,
-		`function mcImportSvgText`,
-		`function mcPolyBool`,
-		`function mcFillet`,
-		`function mcCutNode`,
-		`function mcJoinPaths`,
-		`function mcLoadSelection`,
-		`function mcSvgMarkup`,
-		`data-menu="tools"`,
-		`Shape &amp; motion`,
-		`sui-cad:`,
-		`/* sui-motion:`,
 		`function setCssDeclsBatch`,
 		`function formatSuiSource`,
 		`function formatSuiDocument`,
