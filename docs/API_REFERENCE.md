@@ -2646,10 +2646,20 @@ datepicker "Appointment"
 - The label is associated with the input and the clear button has an accessible
   name.
 
-The browser owns the calendar/clock popup and keyboard interaction. The
-datepicker does not add network, file or command capabilities. Validate
-out-of-range or malformed values before assigning remote data to the bound
-state.
+### Custom calendar picker
+
+`variant` selects the picker UI: `native` (the default) keeps the browser's
+native date/time picker; `calendar` renders a SimpleUI calendar for `date` and
+`datetime` modes. In `datetime` mode the custom calendar also provides a time
+field. The calendar supports month navigation, arrow-key day movement, Home /
+End, Page Up / Page Down and Escape. Its day cells respect `min` and `max`, and
+the picker keeps the same bound ISO value format. Choose **Native picker**,
+**SimpleUI calendar**, **Calendar circles** or **Calendar tiles** in the
+designer's Structure menu. `time` mode remains a native time input.
+
+The native picker behavior is owned by the browser. The custom calendar adds no
+network, file or command capabilities. Validate out-of-range or malformed
+values before assigning remote data to the bound state.
 
 ## Pages and navigation
 

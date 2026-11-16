@@ -11,7 +11,7 @@ fn changed() -> null {
 }
 view main {
 	datepicker "Start" mode: "datetime" value: when min: "2026-01-01T09:00" max: "2026-12-31T18:00" step: 60 onChange: changed required: true
-	datepicker "Day" mode: "date" value: when min: "2026-01-01"
+	datepicker "Day" mode: "date" value: when min: "2026-01-01" variant: "calendar"
 	datepicker "Alarm" mode: "time" value: at step: 60 disabled: true
 }
 `
@@ -38,6 +38,7 @@ func TestDatepickerRender(t *testing.T) {
 		`data-sui-datepicker-onchange="changed"`,
 		`sui-datepicker-input`,
 		`sui-datepicker-error`,
+		`variant="calendar"`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("generated JS missing %q", want)
@@ -50,6 +51,7 @@ func TestDatepickerRender(t *testing.T) {
 		`type="date"`,
 		`type="datetime-local"`,
 		`data-sui-mode="datetime"`,
+		`variant="calendar"`,
 		`sui-datepicker-label`,
 		`sui-datepicker-error`,
 		`Start`,
@@ -59,7 +61,7 @@ func TestDatepickerRender(t *testing.T) {
 		}
 	}
 	css := GenerateCss(prog)
-	for _, want := range []string{".sui-datepicker", ".sui-datepicker-input", ".sui-datepicker-error"} {
+	for _, want := range []string{".sui-datepicker", ".sui-datepicker-input", ".sui-datepicker-error", ".sui-datepicker-calendar", ".sui-datepicker-day"} {
 		if !strings.Contains(css, want) {
 			t.Errorf("generated CSS missing %q", want)
 		}
@@ -79,6 +81,7 @@ func TestDatepickerDesignerRoundTrip(t *testing.T) {
 		`"max":"2026-12-31T18:00"`,
 		`"step":"60"`,
 		`"value":"when"`,
+		`"variant":"calendar"`,
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("designer model missing %q: %s", want, model)
@@ -92,6 +95,7 @@ func TestDatepickerDesignerRoundTrip(t *testing.T) {
 		`max: "2026-12-31T18:00"`,
 		`step: 60`,
 		`value: when`,
+		`variant: "calendar"`,
 		`onChange: changed`,
 	} {
 		if !strings.Contains(src, want) {
@@ -116,6 +120,21 @@ func TestDatepickerRejectsInvalidMode(t *testing.T) {
 		t.Fatalf("expected invalid mode diagnostic")
 	}
 	if !strings.Contains(cd.String(), "mode must be one of") {
+		t.Fatalf("unexpected diagnostic: %s", cd.String())
+	}
+}
+
+func TestDatepickerRejectsInvalidVariant(t *testing.T) {
+	src := "view main {\n\tdatepicker \"When\" variant: \"floating\"\n}\n"
+	prog, dl := ParseSource(src, "datepicker.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %s", dl.String())
+	}
+	cd := Check(prog)
+	if !cd.HasErrors() {
+		t.Fatalf("expected invalid datepicker variant diagnostic")
+	}
+	if !strings.Contains(cd.String(), "variant must be one of: native, calendar") {
 		t.Fatalf("unexpected diagnostic: %s", cd.String())
 	}
 }

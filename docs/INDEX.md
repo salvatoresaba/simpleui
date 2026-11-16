@@ -58,7 +58,7 @@ Recommended order for an agent:
 | Toast feedback | [API: toast](API_REFERENCE.md#toast-notifications) | [GUI editor: toast](GUI_EDITOR.md#toast-control) | `examples/toast/README.md` |
 | Hover/focus hint | [API: tooltip](API_REFERENCE.md#tooltip-property) | [GUI editor: tooltip](GUI_EDITOR.md#tooltip-property) | `examples/tooltip/README.md` |
 | Searchable single choice, runtime options, wildcards | [API: combobox](API_REFERENCE.md#combobox) | [GUI editor: combobox](GUI_EDITOR.md#combobox-control) | `examples/combobox/README.md` |
-| Native date/time/datetime picker | [API: date/time picker](API_REFERENCE.md#datetime-picker) | [GUI editor: date/time picker](GUI_EDITOR.md#datetime-picker-control) | `examples/datepicker/README.md` |
+| Native or customizable date/time/datetime picker | [API: date/time picker](API_REFERENCE.md#datetime-picker) | [GUI editor: date/time picker](GUI_EDITOR.md#datetime-picker-control) | `examples/datepicker/README.md` |
 | Nested tree with rename, icons and styles | [API: tree](API_REFERENCE.md#tree) | [GUI editor: tree](GUI_EDITOR.md#tree-control) | `examples/tree/README.md` |
 | Tree JSON/XML import and export | [STDLIB: tree](STDLIB.md#tree-module-tree-core) | [API: tree](API_REFERENCE.md#tree) | `examples/tree/README.md` |
 | Charts from JSON/XML/CSV with presets, scroll and zoom | [API: chart](API_REFERENCE.md#chart) | [GUI editor: chart](GUI_EDITOR.md#chart-control) | `examples/chart/README.md` |

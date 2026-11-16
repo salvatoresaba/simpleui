@@ -202,6 +202,7 @@ var appearanceKeyframes = map[string]bool{
 	"sui-spinner-bounce":         true,
 	"sui-spinner-comet":          true,
 	"sui-spinner-dots":           true,
+	"sui-spinner-fill-flip":      true,
 	"sui-spinner-flip":           true,
 	"sui-spinner-orbit":          true,
 	"sui-spinner-pulse":          true,

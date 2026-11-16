@@ -60,6 +60,13 @@ The project default for every control of that kind remains under
 width, events and alignment stay in their existing inspector sections and can be
 combined with any appearance.
 
+Date/time pickers offer both the browser's **Native picker** and a customizable
+**SimpleUI calendar**. Calendar circles and tiles provide alternate day shapes;
+`datetime` keeps its time field, while `time` remains native. Spinner structures
+include an hourglass, a filling wave, multiple dots and a two-colour fill/flip.
+Checkbox structures include rounded and circular forms with plus, cross and
+star symbols.
+
 ## Insert toolbar organization
 
 The Insert toolbar is grouped so the list stays short:

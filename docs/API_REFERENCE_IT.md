@@ -2528,9 +2528,21 @@ datepicker "Appuntamento"
   validazione.
 - La label è associata all'input e il pulsante clear ha un nome accessibile.
 
-Il browser gestisce calendario/orologio e tastiera. Il datepicker non aggiunge
-capability di rete, file o comandi. Validare valori malformati o fuori intervallo
-prima di assegnare dati remoti allo stato collegato.
+### Calendario personalizzato
+
+`variant` seleziona l'interfaccia: `native` (predefinito) mantiene il selettore
+data/ora del browser; `calendar` mostra un calendario SimpleUI per i modi `date`
+e `datetime`. Nel modo `datetime` il calendario include anche un campo orario.
+Il calendario supporta navigazione tra mesi, spostamento dei giorni con le
+frecce, Home / End, Page Up / Page Down ed Escape. I giorni rispettano `min` e
+`max` e il valore ISO collegato allo stato non cambia. Nel menu Struttura del
+designer sono disponibili **Native picker**, **SimpleUI calendar**, **Calendar
+circles** e **Calendar tiles**. Il modo `time` resta un input orario nativo.
+
+Il comportamento del selettore nativo è gestito dal browser. Il calendario
+personalizzato non aggiunge capability di rete, file o comandi. Validare valori
+malformati o fuori intervallo prima di assegnare dati remoti allo stato
+collegato.
 
 ## Pagine e navigazione
 

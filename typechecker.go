@@ -2977,7 +2977,10 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "datepicker" && (key == "value" || key == "mode" || key == "min" || key == "max" ||
-		key == "step" || key == "disabled" || key == "required") {
+		key == "step" || key == "disabled" || key == "required" || key == "variant") {
+		return true
+	}
+	if tag == "spinner" && key == "variant" {
 		return true
 	}
 	if tag == "tree" && (key == "name" || key == "value" || key == "editMode" || key == "editDepth" ||
@@ -4060,6 +4063,28 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
 		if v != "date" && v != "time" && v != "datetime" {
 			c.diagAt(a.span, "mode must be one of: date, time, datetime")
+		}
+		return
+	}
+	if tag == "datepicker" && a.key == "variant" {
+		if a.hasExpr {
+			c.diagAt(a.span, "variant must be one of: native, calendar")
+			return
+		}
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		if v != "native" && v != "calendar" {
+			c.diagAt(a.span, "variant must be one of: native, calendar")
+		}
+		return
+	}
+	if tag == "spinner" && a.key == "variant" {
+		if a.hasExpr {
+			c.diagAt(a.span, "variant must be one of: ring-track, orbit-dots, clessidra, fill-wave")
+			return
+		}
+		v := strings.TrimSpace(partsContent(a.text))
+		if v != "ring-track" && v != "orbit-dots" && v != "clessidra" && v != "fill-wave" {
+			c.diagAt(a.span, "variant must be one of: ring-track, orbit-dots, clessidra, fill-wave")
 		}
 		return
 	}
