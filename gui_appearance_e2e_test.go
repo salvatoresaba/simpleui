@@ -166,8 +166,14 @@ const guiAppearanceScript = `<script>
     var spinnerDef = componentDefForKind('spinner');
     var spinnerStructures = appearanceStructures(spinnerDef, 'spinner');
     assert(spinnerStructures.some(function (item) { return item.id === 'multiple-dots' && item.attrs && item.attrs.variant === 'multiple-dots'; }), 'multiple-dot spinner structure is not mapped to its CSS variant');
+    var hourglass = spinnerStructures.filter(function (item) { return item.id === 'hourglass'; })[0];
+    var fillFlip = spinnerStructures.filter(function (item) { return item.id === 'fill-flip'; })[0];
+    assert(!!hourglass && parseFloat(hourglass.vars['--sui-spinner-speed']) >= 5, 'hourglass must run slowly enough to show the sand cycle');
+    assert(!!fillFlip && parseFloat(fillFlip.vars['--sui-spinner-speed']) >= 4, 'two-colour flip must run slowly enough to see the turn');
     var spinnerCSS = appearanceControlCss(spinnerDef, 'spinner');
     assert(spinnerCSS.indexOf("variant='multiple-dots'") >= 0 && spinnerCSS.indexOf('@keyframes sui-spinner-wave') >= 0, 'spinner variants are missing their structure rules');
+    assert(spinnerCSS.indexOf("variant='hourglass']::after") >= 0 && spinnerCSS.indexOf('@keyframes sui-spinner-hourglass-sand') >= 0, 'hourglass must visibly fill its lower chamber');
+    assert(spinnerCSS.indexOf("variant='fill-flip'") >= 0 && spinnerCSS.indexOf('@keyframes sui-spinner-fill-flip') >= 0, 'two-colour flip rules are missing');
     var inputDef = componentDefForKind('input');
     var inputAnims = appearanceAnimations(inputDef, 'input').map(function (a) { return a.label; });
     assert(inputAnims.join(',') === 'None,Feedback', 'text entry animations must be None/Feedback: ' + inputAnims);

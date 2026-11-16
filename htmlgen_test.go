@@ -66,6 +66,24 @@ func TestBaseElementsUseThemeVariables(t *testing.T) {
 	}
 }
 
+func TestSpinnerStructuralAnimations(t *testing.T) {
+	for _, want := range []string{
+		`.sui-spinner[variant="hourglass"]`,
+		`.sui-spinner[variant="hourglass"]::after`,
+		`@keyframes sui-spinner-hourglass`,
+		`@keyframes sui-spinner-hourglass-sand`,
+		`@keyframes sui-spinner-hourglass-flow`,
+		`82%, 88%, 94% { transform: rotate(180deg); background-size: 100% 42%, 100% 100%; }`,
+		`82%, 100% { height: 0%; }`,
+		`.sui-spinner[variant="fill-flip"]`,
+		`@keyframes sui-spinner-fill-flip`,
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("spinner base CSS missing %q", want)
+		}
+	}
+}
+
 func TestChartDarkThemeControlsUseChartForeground(t *testing.T) {
 	for _, want := range []string{
 		`--sui-chart-control-bg: #1d2129;`,

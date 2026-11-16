@@ -104,9 +104,35 @@
     .sui-spinner[variant="hourglass"] {
       border: 0;
       border-radius: 0;
-      background: linear-gradient(180deg, var(--sui-spinner-color) 0 43%, transparent 43% 57%, var(--sui-spinner-color2) 57% 100%);
-      clip-path: polygon(8% 0, 92% 0, 92% 9%, 61% 46%, 61% 54%, 92% 91%, 92% 100%, 8% 100%, 8% 91%, 39% 54%, 39% 46%, 8% 9%);
-      animation-name: sui-hourglass;
+      background:
+        linear-gradient(var(--sui-spinner-color), var(--sui-spinner-color)) top / 100% 42% no-repeat,
+        linear-gradient(var(--sui-spinner-track), var(--sui-spinner-track)) top / 100% 100% no-repeat;
+      clip-path: polygon(10% 0, 90% 0, 90% 8%, 58% 42%, 58% 58%, 90% 92%, 90% 100%, 10% 100%, 10% 92%, 42% 58%, 42% 42%, 10% 8%);
+      animation-name: var(--sui-spinner-animation, sui-spinner-hourglass);
+      animation-timing-function: linear;
+    }
+    .sui-spinner[variant="hourglass"]::before {
+      content: "";
+      position: absolute;
+      top: 43%;
+      left: 48%;
+      width: 6%;
+      height: 14%;
+      border-radius: 99px;
+      background: linear-gradient(var(--sui-spinner-color), var(--sui-spinner-color2));
+      transform-origin: top;
+      animation: sui-spinner-hourglass-flow var(--sui-spinner-speed, 5.4s) linear infinite;
+    }
+    .sui-spinner[variant="hourglass"]::after {
+      position: absolute;
+      bottom: 0;
+      left: 10%;
+      width: 80%;
+      height: 0;
+      background: var(--sui-spinner-color2);
+      clip-path: polygon(0 100%, 50% 0, 100% 100%);
+      content: "";
+      animation: sui-spinner-hourglass-sand var(--sui-spinner-speed, 5.4s) ease-in-out infinite;
     }
     .sui-spinner[variant="fill-wave"] {
       border: 2px solid var(--sui-spinner-track);
@@ -131,7 +157,7 @@
       background: var(--sui-spinner-color);
       backface-visibility: hidden;
       transform-style: preserve-3d;
-      animation: sui-fill-flip var(--sui-spinner-speed) ease-in-out infinite;
+      animation: var(--sui-spinner-animation, sui-spinner-fill-flip) var(--sui-spinner-speed) var(--sui-spinner-easing, ease-in-out) infinite;
     }
     .sui-spinner[variant="fill-flip"]::before {
       position: absolute;
@@ -143,9 +169,11 @@
       backface-visibility: hidden;
     }
     @keyframes sui-spin { to { transform: rotate(360deg); } }
-    @keyframes sui-hourglass { 0%, 45% { transform: rotate(0); } 50%, 95% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+    @keyframes sui-spinner-hourglass { 0% { transform: rotate(0); background-size: 100% 42%, 100% 100%; } 38%, 44% { transform: rotate(0); background-size: 100% 0%, 100% 100%; } 50% { transform: rotate(180deg); background-size: 100% 0%, 100% 100%; } 82%, 88%, 94% { transform: rotate(180deg); background-size: 100% 42%, 100% 100%; } 100% { transform: rotate(360deg); background-size: 100% 42%, 100% 100%; } }
+    @keyframes sui-spinner-hourglass-sand { 0%, 6% { height: 0%; } 38%, 50% { height: 42%; } 82%, 100% { height: 0%; } }
+    @keyframes sui-spinner-hourglass-flow { 0%, 5%, 42%, 54%, 92%, 100% { opacity: 0; transform: scaleY(0); } 8%, 35%, 60%, 84% { opacity: 1; transform: scaleY(1); } }
     @keyframes sui-wave { 0%, 100% { transform: translateY(34%) rotate(-8deg); } 50% { transform: translateY(-22%) rotate(8deg); } }
-    @keyframes sui-fill-flip { 0%, 45% { transform: perspective(90px) rotateY(0); } 50%, 95% { transform: perspective(90px) rotateY(180deg); } 100% { transform: perspective(90px) rotateY(360deg); } }
+    @keyframes sui-spinner-fill-flip { 0%, 35% { transform: perspective(90px) rotateY(0); background-color: var(--sui-spinner-color); } 50%, 85% { transform: perspective(90px) rotateY(180deg); background-color: var(--sui-spinner-color2); } 100% { transform: perspective(90px) rotateY(360deg); background-color: var(--sui-spinner-color); } }
 
     .sui-checkbox,
     .sui-radio {
@@ -378,9 +406,9 @@
       { id: "ring-track", label: "Ring track", variant: "ring-track", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "4px", "--sui-spinner-track": "rgba(148,163,184,.26)", "--sui-spinner-color": "#7c3aed" } },
       { id: "orbit-dots", label: "Orbit dots", variant: "orbit-dots", vars: { "--sui-spinner-size": "30px", "--sui-spinner-color": "#60a5fa", "--sui-spinner-color2": "#a78bfa", "--sui-spinner-speed": "1.2s" } },
       { id: "multiple-dots", label: "Three orbiting dots", variant: "multiple-dots", vars: { "--sui-spinner-size": "32px", "--sui-spinner-thickness": "0px", "--sui-spinner-dot-size": "3px", "--sui-spinner-color": "#60a5fa", "--sui-spinner-color2": "#a78bfa", "--sui-spinner-color3": "#22d3ee", "--sui-spinner-speed": "1.1s" } },
-      { id: "hourglass", label: "Hourglass", variant: "hourglass", vars: { "--sui-spinner-size": "30px", "--sui-spinner-color": "#f59e0b", "--sui-spinner-color2": "#fcd34d", "--sui-spinner-speed": "1.4s" } },
+      { id: "hourglass", label: "Hourglass", variant: "hourglass", vars: { "--sui-spinner-size": "36px", "--sui-spinner-color": "#f59e0b", "--sui-spinner-color2": "#fcd34d", "--sui-spinner-track": "rgba(148,163,184,.35)", "--sui-spinner-animation": "sui-spinner-hourglass", "--sui-spinner-easing": "linear", "--sui-spinner-speed": "5.4s" } },
       { id: "fill-wave", label: "Liquid fill", variant: "fill-wave", vars: { "--sui-spinner-size": "30px", "--sui-spinner-thickness": "2px", "--sui-spinner-track": "rgba(148,163,184,.5)", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-color2": "#22d3ee", "--sui-spinner-speed": "1.8s" } },
-      { id: "fill-flip", label: "Two-colour flip", variant: "fill-flip", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "0px", "--sui-spinner-radius": "50%", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-color2": "#22d3ee", "--sui-spinner-speed": "1.4s" } }
+      { id: "fill-flip", label: "Two-colour flip", variant: "fill-flip", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "0px", "--sui-spinner-radius": "50%", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-color2": "#22d3ee", "--sui-spinner-animation": "sui-spinner-fill-flip", "--sui-spinner-easing": "ease-in-out", "--sui-spinner-speed": "4.2s" } }
     ];
 
     const checkboxVariants = [

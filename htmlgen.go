@@ -1881,8 +1881,74 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
   to { transform: rotate(360deg); }
 }
 @keyframes sui-spinner-fill-flip {
-  0%, 45% { transform: rotateY(0deg); background-color: var(--sui-spinner-color, #4c5cf7); }
-  50%, 100% { transform: rotateY(180deg); background-color: var(--sui-spinner-color2, #22d3ee); }
+  0%, 35% { transform: perspective(90px) rotateY(0deg); background-color: var(--sui-spinner-color, #4c5cf7); }
+  50%, 85% { transform: perspective(90px) rotateY(180deg); background-color: var(--sui-spinner-color2, #22d3ee); }
+  100% { transform: perspective(90px) rotateY(360deg); background-color: var(--sui-spinner-color, #4c5cf7); }
+}
+@keyframes sui-spinner-hourglass {
+  0% { transform: rotate(0deg); background-size: 100% 42%, 100% 100%; }
+  38%, 44% { transform: rotate(0deg); background-size: 100% 0%, 100% 100%; }
+  50% { transform: rotate(180deg); background-size: 100% 0%, 100% 100%; }
+  82%, 88%, 94% { transform: rotate(180deg); background-size: 100% 42%, 100% 100%; }
+  100% { transform: rotate(360deg); background-size: 100% 42%, 100% 100%; }
+}
+@keyframes sui-spinner-hourglass-sand {
+  0%, 6% { height: 0%; }
+  38%, 50% { height: 42%; }
+  82%, 100% { height: 0%; }
+}
+@keyframes sui-spinner-hourglass-flow {
+  0%, 5%, 42%, 54%, 92%, 100% { opacity: 0; transform: scaleY(0); }
+  8%, 35%, 60%, 84% { opacity: 1; transform: scaleY(1); }
+}
+.sui-spinner[variant="hourglass"] {
+  border: none;
+  border-radius: 0;
+  background:
+    linear-gradient(var(--sui-spinner-color, #f59e0b), var(--sui-spinner-color, #f59e0b)) top / 100% 42% no-repeat,
+    linear-gradient(var(--sui-spinner-track, rgba(148, 163, 184, .35)), var(--sui-spinner-track, rgba(148, 163, 184, .35))) top / 100% 100% no-repeat;
+  clip-path: polygon(10% 0, 90% 0, 90% 8%, 58% 42%, 58% 58%, 90% 92%, 90% 100%, 10% 100%, 10% 92%, 42% 58%, 42% 42%, 10% 8%);
+  animation-name: var(--sui-spinner-animation, sui-spinner-hourglass);
+  animation-timing-function: linear;
+}
+.sui-spinner[variant="hourglass"]::before {
+  content: "";
+  position: absolute;
+  left: 48%;
+  top: 43%;
+  width: 6%;
+  height: 14%;
+  border-radius: 99px;
+  background: linear-gradient(var(--sui-spinner-color, #f59e0b), var(--sui-spinner-color2, #fcd34d));
+  transform-origin: top;
+  animation: sui-spinner-hourglass-flow var(--sui-spinner-speed, 5.4s) linear infinite;
+}
+.sui-spinner[variant="hourglass"]::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  bottom: 0;
+  width: 80%;
+  height: 0;
+  background: var(--sui-spinner-color2, #fcd34d);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+  animation: sui-spinner-hourglass-sand var(--sui-spinner-speed, 5.4s) ease-in-out infinite;
+}
+.sui-spinner[variant="fill-flip"] {
+  border: none;
+  background: var(--sui-spinner-color, #4c5cf7);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation-name: var(--sui-spinner-animation, sui-spinner-fill-flip);
+}
+.sui-spinner[variant="fill-flip"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--sui-spinner-color2, #22d3ee);
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
 }
 .sui-card {
   background: var(--sui-card-bg, #1a1d26);

@@ -63,12 +63,12 @@ combined with any appearance.
 Date/time pickers offer both the browser's **Native picker** and a customizable
 **SimpleUI calendar**. Calendar circles and tiles provide alternate day shapes;
 `datetime` keeps its time field, while `time` remains native. Spinner structures
-include a track ring, orbiting dots, a three-dot orbit, an hourglass, a liquid
-fill and a two-colour flip. Checkbox structures include square, rounded,
-circular, orbit, soft, iOS, minimal, diamond and pill shapes, plus, cross, star
-and heart symbols. Radio structures include compact and large circles, soft
-and minimal forms, square and diamond shapes, a target, a bold ring and a
-check-mark option.
+include a track ring, orbiting dots, a three-dot orbit, a sand-flowing hourglass,
+a liquid fill and a slower two-colour flip. Checkbox structures include square,
+rounded, circular, orbit, soft, iOS, minimal, diamond and pill shapes, plus,
+cross, star and heart symbols. Radio structures include compact and large
+circles, soft and minimal forms, square and diamond shapes, a target, a bold
+ring and a check-mark option.
 
 ## Insert toolbar organization
 
