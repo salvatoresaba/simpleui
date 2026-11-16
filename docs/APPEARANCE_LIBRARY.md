@@ -18,8 +18,10 @@ structure and style and, when its definition has one, its animation options.
 
 ## The inspector section
 
-Select a control (for example a button) and open **Control appearance** in the
-Inspector:
+Select a control (for example a button) and open its **name** section in the
+Inspector - for a button the section is called **Button**; for a card it is
+**Card**, for a dropdown **Dropdown menu**, and so on. Inside it there are four
+drop-downs in this order: **Theme**, **Structure**, **Style**, **Animation**.
 
 - **Structure** — selects the shape/drawing; changes radius, padding, size and
   shape attributes as needed;
@@ -63,11 +65,14 @@ In Appearance:
 - the left column lists **every non-complex control** (Button first, then Input,
   Textarea, Select, Combobox, Date/Time, Number, Slider, Checkbox, Radio, Switch,
   Colour, Date, Time, File, Progress, Spinner, Badge, Alert, Card, Tabs,
-  Accordion, Dropdown, Popover, Modal, Toast, Tree, Command palette, Drawer,
-  Split panes, Dropzone, Timeline, Carousel, Stepper, List);
+  Accordion, Menu bar, Dropdown, Popover, Modal, Toast, Tree, Command palette,
+  Drawer, Split panes, Dropzone, Timeline, Carousel, Stepper, List);
 - the middle area shows three **side-by-side lists** - **Structures**,
   **Styles** and **Animations** - for the selected kind, so combinations are
   created without scrolling between sections;
+- the lists are keyboard-navigable: **Up/Down** moves inside the focused list,
+  **Left/Right** switches list, **Home/End** jumps to the first/last option,
+  **Enter** selects the focused option; the current list is highlighted;
 - the right column compiles an **interactive preview** of the current
   combination, shows the **Theme** selector, and offers **Save theme…** and
   **Apply to selection**;
@@ -107,10 +112,12 @@ without the editor's theme list.
 
 - Rich catalogs ship for **button**, **checkbox/radio**, **switch**, **card**,
   **input/textarea/select**, **badge**, **progress**, **spinner**, **slider**,
-  **alert** and **tabs**. Other controls get a generic catalog with Default,
-  Rounded, Square, Compact and Wide structures; Default, Accent, Dark, Light and
-  Outline styles; and None, Pulse, Glow, Float and Fade animations
-  (`sui-appearance-*` keyframes written to the project CSS).
+  **alert**, **tabs** and **menu bar**. Other controls get a generic catalog with
+  Default, Rounded, Square, Compact and Wide structures; **Dark**, **Light**,
+  Default, Accent and Outline styles; and None, Pulse, Glow, Float and Fade
+  animations (`sui-appearance-*` keyframes written to the project CSS).
+- **Dark** and **Light** are always the first two styles for every control;
+  custom palettes follow them.
 - Structures and styles are **validated built-in data**, not arbitrary CSS. The
   external `components/library.json` is a separate layer for insertable
   component presets; it does not replace the appearance catalog.

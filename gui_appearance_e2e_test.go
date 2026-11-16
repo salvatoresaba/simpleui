@@ -128,8 +128,9 @@ const guiAppearanceScript = `<script>
     });
   }
   function assert(ok, message) { if (!ok) throw new Error(message); }
+  var APP_TITLE = 'Button';
   function appSection() {
-    return Array.prototype.slice.call(document.querySelectorAll('#inspector .acc')).filter(function (s) { return s.title === 'Control appearance'; })[0] || null;
+    return Array.prototype.slice.call(document.querySelectorAll('#inspector .acc')).filter(function (s) { return s.title === APP_TITLE; })[0] || null;
   }
   function selects() {
     var sec = appSection();
@@ -155,20 +156,23 @@ const guiAppearanceScript = `<script>
     await until(function () { return !!appSection(); }, 4000);
     var s = selects();
     assert(s.length === 4, 'expected structure, style, animation and theme selects; got ' + s.length + ' accs=' + Array.prototype.map.call(document.querySelectorAll('#inspector .acc'), function(a){ return a.title; }).join(',') + ' supported=' + (typeof appearanceKindSupported) + ':' + (typeof appearanceKindSupported === 'function' ? appearanceKindSupported('button') : 'n/a') + ' section=' + (typeof appearanceInspectorSection) + ' status=' + document.getElementById('status').textContent);
-    var structs = Array.prototype.slice.call(s[0].options).map(function (o) { return o.textContent; });
+    assert(appSection().title === 'Button', 'button section must be named Button');
+    var structs = Array.prototype.slice.call(s[1].options).map(function (o) { return o.textContent; });
     assert(structs.indexOf('Circular') >= 0, 'button structures missing');
-    s[0].value = 'circle'; s[0].dispatchEvent(new Event('change', { bubbles: true }));
+    var btnStyleLabels = Array.prototype.slice.call(s[2].options).map(function (o) { return o.textContent; });
+    assert(btnStyleLabels.indexOf('Dark') >= 0 && btnStyleLabels.indexOf('Light') >= 0, 'button styles must include Dark and Light');
+    s[1].value = 'circle'; s[1].dispatchEvent(new Event('change', { bubbles: true }));
     await wait(500);
     var btn = byPath(selPath, root.children);
     assert(String(btn.style || '').indexOf('width:56px') >= 0 || String(btn.style || '').indexOf('width: 56px') >= 0, 'circular structure not applied');
-    s = selects(); s[1].value = 'coral'; s[1].dispatchEvent(new Event('change', { bubbles: true }));
+    s = selects(); s[2].value = 'coral'; s[2].dispatchEvent(new Event('change', { bubbles: true }));
     await wait(500);
     btn = byPath(selPath, root.children);
     assert(String(btn.style || '').indexOf('#f43f5e') >= 0, 'coral style not applied');
     s = selects();
-    var pulse = Array.prototype.slice.call(s[2].options).filter(function (o) { return o.textContent === 'Pulse'; })[0];
+    var pulse = Array.prototype.slice.call(s[3].options).filter(function (o) { return o.textContent === 'Pulse'; })[0];
     assert(!!pulse, 'pulse animation missing');
-    s[2].value = pulse.value; s[2].dispatchEvent(new Event('change', { bubbles: true }));
+    s[3].value = pulse.value; s[3].dispatchEvent(new Event('change', { bubbles: true }));
     await wait(500);
     btn = byPath(selPath, root.children);
     assert(/sui-button-pulse/.test(String(btn.style || '')), 'pulse animation not applied');
@@ -181,7 +185,7 @@ const guiAppearanceScript = `<script>
     await wait(400);
     assert(appearanceFavorites().length === 1, 'theme was not saved');
     s = selects();
-    var themeLabels = Array.prototype.slice.call(s[3].options).map(function (o) { return o.textContent; });
+    var themeLabels = Array.prototype.slice.call(s[0].options).map(function (o) { return o.textContent; });
     assert(themeLabels.join(' ').indexOf('Test theme') >= 0, 'saved theme missing from the inspector');
     openLibraryNavigator('appearance', 'button');
     await until(function () { return document.querySelectorAll('#lib-kinds .lib-group').length > 0; }, 4000);
@@ -192,22 +196,36 @@ const guiAppearanceScript = `<script>
     await wait(900);
     var frame = document.getElementById('lib-app-preview');
     assert(frame.srcdoc.indexOf('Button') >= 0, 'appearance preview was not compiled');
+    // Keyboard: arrow navigation inside a list, then Enter selects.
+    var firstStruct = document.querySelector('#lib-structures .lib-app-option');
+    assert(!!firstStruct, 'structure options missing');
+    firstStruct.focus();
+    firstStruct.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    var focused = document.activeElement;
+    assert(focused && focused !== firstStruct && focused.getAttribute('data-col') === 'structure', 'ArrowDown did not move focus in the structure list');
+    var keyboardId = focused.getAttribute('data-id');
+    focused.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await wait(500);
+    assert(LIB_APP_SEL.structure === keyboardId, 'Enter did not select the focused structure');
     closeLibraryNavigator();
     // Every non-complex control gets the section; list is a generic catalog.
     var genericPath = pathOfKind('dropdown');
     assert(!!genericPath, 'dropdown node missing');
+    APP_TITLE = appearanceKindLabel('dropdown');
     selPath = genericPath; multiSel = []; renderTree(); renderInspector();
     await until(function () { return !!appSection(); }, 4000);
     var gs = selects();
     assert(gs.length === 4, 'generic control appearance section missing');
-    var gStructs = Array.prototype.slice.call(gs[0].options).map(function (o) { return o.textContent; });
+    var gStructs = Array.prototype.slice.call(gs[1].options).map(function (o) { return o.textContent; });
     assert(gStructs.indexOf('Rounded') >= 0, 'generic structures missing');
-    gs[0].value = 'rounded'; gs[0].dispatchEvent(new Event('change', { bubbles: true })); await wait(500);
-    gs = selects(); gs[1].value = 'accent'; gs[1].dispatchEvent(new Event('change', { bubbles: true })); await wait(500);
+    var gStyles = Array.prototype.slice.call(gs[2].options).map(function (o) { return o.textContent; });
+    assert(gStyles.indexOf('Dark') >= 0 && gStyles.indexOf('Light') >= 0, 'generic styles must include Dark and Light');
+    gs[1].value = 'rounded'; gs[1].dispatchEvent(new Event('change', { bubbles: true })); await wait(500);
+    gs = selects(); gs[2].value = 'accent'; gs[2].dispatchEvent(new Event('change', { bubbles: true })); await wait(500);
     gs = selects();
-    var gPulse = Array.prototype.slice.call(gs[2].options).filter(function (o) { return o.textContent === 'Pulse'; })[0];
+    var gPulse = Array.prototype.slice.call(gs[3].options).filter(function (o) { return o.textContent === 'Pulse'; })[0];
     assert(!!gPulse, 'generic pulse animation missing');
-    gs[2].value = gPulse.value; gs[2].dispatchEvent(new Event('change', { bubbles: true })); await wait(600);
+    gs[3].value = gPulse.value; gs[3].dispatchEvent(new Event('change', { bubbles: true })); await wait(600);
     var genericNode = byPath(genericPath, root.children);
     var genericStyle = String(genericNode.style || '');
     assert(/border-radius:\s*12px/.test(genericStyle), 'generic structure not applied');

@@ -54,8 +54,8 @@ func TestBundledComponentLibraryValid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bundled components/library.json is invalid: %v", err)
 	}
-	if len(groups) == 0 {
-		t.Fatal("bundled library has no groups")
+	if groups == nil {
+		t.Fatal("bundled library should be an empty list, not null")
 	}
 }
 

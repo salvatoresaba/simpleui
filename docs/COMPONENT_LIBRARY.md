@@ -15,10 +15,12 @@ directory:
 1. `<project-dir>/components/library.json`
 2. `<current-dir>/components/library.json`
 
-The repository ships an example in
-[`components/library.json`](../components/library.json). When no file is found,
-the designer uses the built-in components and shows a soft warning; this is not
-an error.
+The repository ships an empty file in
+[`components/library.json`](../components/library.json) with the folder notes in
+[`components/README.md`](../components/README.md). When no file is found, the
+designer uses the built-in components and shows a soft warning; this is not an
+error. A library with `"groups": []` is valid and simply means "no custom
+component presets".
 
 Use **Preferences → Reload component library** after editing the file. The
 server validates it again and the Insert menu is rebuilt. The editor fetches the
@@ -68,10 +70,11 @@ The groups are the control families of the Insert menu. They are shown as
 flyout rows before the **Built-in** groups, so a library can organize custom
 components by type without removing access to standard controls.
 
-Every group must contain at least one component: a control type always has a
-version available. Empty groups are rejected at load. Each kind used by the
-library gets a default component: the one marked `"default": true`, or the first
-component of that kind when no explicit default exists.
+Every group that exists must contain at least one component: a control type
+always has a version available. Empty groups are rejected at load, while an empty
+`groups` array (no custom components) is valid. Each kind used by the library gets
+a default component: the one marked `"default": true`, or the first component of
+that kind when no explicit default exists.
 
 ### Components
 
@@ -215,6 +218,6 @@ validated before insertion.
 4. Optionally validate the file with the test suite:
    `go test -run TestBundledComponentLibrary .`
 
-The bundled example is intentionally small: a metric card, a profile card, a
-search bar and a status pill. Copy one entry and change its `id`, `label`,
-`kind`, `class`, `css` and children.
+The bundled `components/library.json` is empty. Use the example above or
+[`components/README.md`](../components/README.md) as a starting point, add groups
+and components, then reload the library from the editor.

@@ -825,15 +825,17 @@ classi aggiornate.
 
 ## Aspetto dei controlli
 
-Ogni controllo tranne **table**, **graph** e **chart** mostra la sezione
-**Control appearance** nell'Inspector:
+Ogni controllo tranne **table**, **graph** e **chart** mostra nell'Inspector una
+sezione col proprio nome (**Button**, **Card**, **Dropdown menu**, ...). Contiene
+quattro menu a tendina in quest'ordine: **Theme**, **Structure**, **Style**,
+**Animation**. **Dark** e **Light** sono sempre disponibili come primi due stili.
 
 | Selettore | Cosa cambia |
 |---|---|
-| Structure | forma e disegno del tipo (per un button: rettangolare, pill, circolare, quadrato, largo) |
-| Style | palette di colori (bordo, testo, riempimento, ombra) |
-| Animation | movimento delle parti del controllo |
 | Theme | combinazione con nome di struttura + stile + animazione |
+| Structure | forma e disegno del tipo (per un button: rettangolare, pill, circolare, quadrato, largo) |
+| Style | palette di colori (bordo, testo, riempimento, ombra); Dark e Light sono sempre i primi due |
+| Animation | movimento delle parti del controllo |
 
 **Browse…** apre il navigator della libreria filtrato su quel controllo;
 **Save theme…** salva la combinazione corrente e le dichiarazioni personalizzate
@@ -843,9 +845,10 @@ default di progetto per ogni controllo di quel tipo. Testo, font, bordo, eventi 
 allineamento restano nelle rispettive sezioni dell'Inspector.
 
 **Insert → Controls library…** apre il navigator con la scheda **Appearance**
-(tutti i controlli, strutture, stili, animazioni, anteprima interattiva, temi) e
-la scheda **Components** per i preset inseribili. La toolbar Insert raggruppa i
-controlli in **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**,
+(tutti i controlli, tre liste affiancate per strutture, stili e animazioni,
+anteprima interattiva, temi) e la scheda **Components** per i preset inseribili.
+Le liste si navigano da tastiera: Su/Giù sposta, Sinistra/Destra cambia lista,
+Invio seleziona. La toolbar Insert raggruppa i controlli in **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**,
 **Feedback** e **Advanced**; Advanced contiene table, graph e chart. I temi preferiti sono salvati nel local
 storage dell'editor (`sui.appearance.themes.v1`), non nel file `.sui`.
 

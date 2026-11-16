@@ -794,15 +794,18 @@ classes updated.
 
 ## Control appearance
 
-Every control except **table**, **graph** and **chart** shows a **Control
-appearance** section in the Inspector:
+Every control except **table**, **graph** and **chart** shows a section named
+after the control (**Button**, **Card**, **Dropdown menu**, ...) in the
+Inspector. It contains four drop-downs in this order: **Theme**, **Structure**,
+**Style**, **Animation**. **Dark** and **Light** are always available as the first
+two styles.
 
 | Selector | What it changes |
 |---|---|
-| Structure | shape and drawing for the kind (for a button: rectangular, pill, circular, square, wide) |
-| Style | colour palette (border, text, fill, shadow) |
-| Animation | motion of the control parts |
 | Theme | a named structure + style + animation combination |
+| Structure | shape and drawing for the kind (for a button: rectangular, pill, circular, square, wide) |
+| Style | colour palette (border, text, fill, shadow); Dark and Light are always first |
+| Animation | motion of the control parts |
 
 **Browse…** opens the Controls library navigator filtered to that control;
 **Save theme…** stores the current combination and custom declarations in the
@@ -812,8 +815,10 @@ default for every control of that kind. Text, font, border, events and alignment
 stay in their own inspector sections.
 
 **Insert → Controls library…** opens the navigator with an **Appearance** tab
-(every control, structures, styles, animations, interactive preview, themes) and
-a **Components** tab for insertable presets. The Insert toolbar groups controls
+(every control, three side-by-side lists for structures, styles and animations,
+interactive preview, themes) and a **Components** tab for insertable presets.
+The appearance lists are keyboard-navigable: Up/Down moves, Left/Right switches
+list, Enter selects. The Insert toolbar groups controls
 under **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**, **Feedback** and
 **Advanced**; Advanced holds table, graph and chart. Favourite themes are stored in the
 editor's local storage (`sui.appearance.themes.v1`), not in the `.sui` file.

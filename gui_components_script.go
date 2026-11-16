@@ -227,6 +227,10 @@ function openLibraryNavigator(mode, kind) {
     var all = libraryAllComponents();
     if (all.length) LIB_NAV_SEL = all[0].c.id;
   }
+  if (LIB_NAV_MODE === "appearance") {
+    LIB_APP_FOCUS_COL = "structure";
+    LIB_APP_RESTORE_FOCUS = true;
+  }
   renderLibraryNavigator();
   if (LIB_NAV_MODE === "components") {
     var s = document.getElementById("lib-search");
@@ -621,19 +625,62 @@ function appearanceStructures(def, kind) {
   }
   return out;
 }
+function appearanceColorKeys(def) {
+  var out = [];
+  (def.categories || []).forEach(function(cat){
+    (cat.fields || []).forEach(function(f){
+      if (f.type === "color" && f.key && out.indexOf(f.key) < 0) out.push(f.key);
+    });
+  });
+  return out;
+}
+function appearancePalette(def, mode) {
+  var dark = mode === "dark";
+  var vars = {};
+  var keys = appearanceColorKeys(def);
+  if (!keys.length) {
+    vars["background-color"] = dark ? "#111827" : "#f8fafc";
+    vars["color"] = dark ? "#e5e7eb" : "#0f172a";
+    vars["border-color"] = dark ? "#334155" : "#cbd5e1";
+    if (!dark) vars["box-shadow"] = "0 4px 12px rgba(15,23,42,.12)";
+    return vars;
+  }
+  keys.forEach(function(k){
+    var low = String(k).toLowerCase();
+    var v;
+    if (/hover/.test(low)) v = dark ? "#1f2937" : "#e2e8f0";
+    else if (/checked|accent|focus|value|color/.test(low)) v = dark ? "#4c5cf7" : "#2563eb";
+    else if (/fg|mark|thumb|text/.test(low)) v = dark ? "#e5e7eb" : "#0f172a";
+    else if (/bg|track|tablist/.test(low)) v = dark ? "#111827" : "#f8fafc";
+    else if (/border/.test(low)) v = dark ? "#334155" : "#cbd5e1";
+    else v = dark ? "#111827" : "#f8fafc";
+    vars[k] = v;
+  });
+  return vars;
+}
 function appearanceStyles(def, kind) {
   var custom = APPEARANCE_CUSTOM[def.id];
-  if (custom && custom.styles) return custom.styles;
-  if (def.generic) {
-    return [
-      { id: "default", label: "Default", vars: {} },
-      { id: "accent", label: "Accent", vars: { "background-color": "#4c5cf7", "color": "#ffffff", "border-color": "#3730a3", "box-shadow": "0 4px 14px rgba(76,92,247,.35)" } },
-      { id: "dark", label: "Dark", vars: { "background-color": "#111827", "color": "#e5e7eb", "border-color": "#334155" } },
-      { id: "light", label: "Light", vars: { "background-color": "#f8fafc", "color": "#0f172a", "border-color": "#cbd5e1" } },
-      { id: "outline", label: "Outline", vars: { "background-color": "transparent", "color": "#a5b4fc", "border-color": "#4c5cf7", "border-width": "1px", "border-style": "solid" } }
-    ];
+  var list = custom && custom.styles ? custom.styles.slice() : [];
+  if (!list.length) {
+    if (def.generic) {
+      list = [
+        { id: "accent", label: "Accent", vars: { "background-color": "#4c5cf7", "color": "#ffffff", "border-color": "#3730a3", "box-shadow": "0 4px 14px rgba(76,92,247,.35)" } },
+        { id: "default", label: "Default", vars: {} },
+        { id: "outline", label: "Outline", vars: { "background-color": "transparent", "color": "#a5b4fc", "border-color": "#4c5cf7", "border-width": "1px", "border-style": "solid" } }
+      ];
+    } else {
+      list = [{ id: "default", label: "Default", vars: {} }];
+    }
   }
-  return [{ id: "default", label: "Default", vars: {} }];
+  var dark = null, light = null;
+  list = list.filter(function(s){
+    if (s.id === "dark" || /^dark$/i.test(s.label)) { if (!dark) dark = s; return false; }
+    if (s.id === "light" || /^light$/i.test(s.label)) { if (!light) light = s; return false; }
+    return true;
+  });
+  if (!dark) dark = { id: "dark", label: "Dark", vars: appearancePalette(def, "dark") };
+  if (!light) light = { id: "light", label: "Light", vars: appearancePalette(def, "light") };
+  return [dark, light].concat(list);
 }
 function appearanceAnimations(def) {
   var field = null;
@@ -985,15 +1032,7 @@ function appearanceInspectorSection(def, node) {
   function apply(patch, label) {
     withUndo(function(){ appearanceApply(node, def, patch); }, "appearance " + (label || kind));
   }
-  var structureSel = optionRow("Structure", structs, cur.structure, function(v){
-    apply({ structure: v }, "structure");
-  }, "Shape and drawing of the control");
-  optionRow("Style", styles, cur.style, function(v){
-    apply({ style: v }, "style");
-  }, "Colour palette of the control");
-  optionRow("Animation", anims, cur.animation, function(v){
-    apply({ animation: v }, "animation");
-  }, "Animation of the control parts");
+  // Order requested by the designer: Theme, Structure, Style, Animation.
   var themeSel = document.createElement("select");
   var themeRow = document.createElement("div"); themeRow.className = "rowline";
   var tl = document.createElement("label"); tl.textContent = "Theme"; themeRow.appendChild(tl);
@@ -1009,6 +1048,15 @@ function appearanceInspectorSection(def, node) {
   };
   themeRow.appendChild(themeSel);
   rows.push(themeRow);
+  optionRow("Structure", structs, cur.structure, function(v){
+    apply({ structure: v }, "structure");
+  }, "Shape and drawing of the control");
+  optionRow("Style", styles, cur.style, function(v){
+    apply({ style: v }, "style");
+  }, "Colour palette of the control");
+  optionRow("Animation", anims, cur.animation, function(v){
+    apply({ animation: v }, "animation");
+  }, "Animation of the control parts");
   var actions = document.createElement("div"); actions.className = "rowline";
   var browse = document.createElement("button"); browse.type = "button"; browse.className = "btn"; browse.textContent = "Browse…";
   browse.title = "Open the appearance library for this control";
@@ -1021,7 +1069,7 @@ function appearanceInspectorSection(def, node) {
   var hint = document.createElement("div"); hint.className = "hint"; hint.style.fontSize = "10px";
   hint.textContent = "Applies to this element only. Use Settings… for the project default. Themes are saved in this editor.";
   rows.push(hint);
-  var sec = acc("Control appearance", rows);
+  var sec = acc(appearanceKindLabel(kind), rows);
   sec.classList.add("open");
   return sec;
 }
@@ -1030,6 +1078,8 @@ var LIB_APP_DEF_ID = "";
 var LIB_APP_KIND = "";
 var LIB_APP_SEL = null;
 var LIB_APP_THEME_ID = "";
+var LIB_APP_FOCUS_COL = "structure";
+var LIB_APP_RESTORE_FOCUS = false;
 function appearanceDefById(id) {
   for (var i = 0; i < COMPONENT_DEFS.length; i++) if (COMPONENT_DEFS[i].id === id) return COMPONENT_DEFS[i];
   return null;
@@ -1050,6 +1100,10 @@ function renderLibraryMode() {
 }
 function setLibraryMode(mode) {
   LIB_NAV_MODE = mode === "components" ? "components" : "appearance";
+  if (LIB_NAV_MODE === "appearance") {
+    LIB_APP_FOCUS_COL = "structure";
+    LIB_APP_RESTORE_FOCUS = true;
+  }
   renderLibraryNavigator();
 }
 function renderAppearanceKinds() {
@@ -1070,6 +1124,54 @@ function renderAppearanceKinds() {
     box.appendChild(b);
   });
 }
+function appearanceColumnBox(col) {
+  var boxes = { structure: "lib-structures", style: "lib-styles", animation: "lib-animations" };
+  return document.getElementById(boxes[col] || "lib-structures");
+}
+function appearanceFocusColumn(col) {
+  var box = appearanceColumnBox(col);
+  if (!box) return;
+  LIB_APP_FOCUS_COL = col;
+  var selected = (LIB_APP_SEL && LIB_APP_SEL[col]) || "";
+  var target = selected ? box.querySelector('[data-id="' + selected + '"]') : null;
+  if (!target) target = box.querySelector(".lib-app-option");
+  if (target) target.focus();
+}
+function appearanceOptionKey(ev, btn, col) {
+  var cols = ["structure", "style", "animation"];
+  var buttons = Array.prototype.slice.call(btn.parentNode.querySelectorAll(".lib-app-option"));
+  var at = buttons.indexOf(btn);
+  if (ev.key === "ArrowDown" || ev.key === "ArrowUp" || ev.key === "Home" || ev.key === "End") {
+    ev.preventDefault();
+    ev.stopPropagation();
+    var next = at;
+    if (ev.key === "ArrowDown") next = Math.min(buttons.length - 1, at + 1);
+    else if (ev.key === "ArrowUp") next = Math.max(0, at - 1);
+    else if (ev.key === "Home") next = 0;
+    else next = buttons.length - 1;
+    if (buttons[next]) { LIB_APP_FOCUS_COL = col; buttons[next].focus(); }
+    return;
+  }
+  if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") {
+    ev.preventDefault();
+    ev.stopPropagation();
+    var idx = cols.indexOf(col);
+    var targetCol = cols[ev.key === "ArrowRight" ? Math.min(cols.length - 1, idx + 1) : Math.max(0, idx - 1)];
+    if (!targetCol || targetCol === col) return;
+    LIB_APP_FOCUS_COL = targetCol;
+    var target = appearanceColumnBox(targetCol);
+    var selected = (LIB_APP_SEL && LIB_APP_SEL[targetCol]) || "";
+    var nextBtn = selected && target ? target.querySelector('[data-id="' + selected + '"]') : null;
+    if (!nextBtn && target) nextBtn = target.querySelector(".lib-app-option");
+    if (nextBtn) nextBtn.focus();
+    return;
+  }
+  if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") {
+    ev.preventDefault();
+    ev.stopPropagation();
+    btn.click();
+  }
+}
 function renderAppearanceOptions() {
   var kind = LIB_APP_KIND || APPEARANCE_KINDS[0];
   var def = appearanceDefForKind(kind);
@@ -1078,13 +1180,23 @@ function renderAppearanceOptions() {
     var box = document.getElementById(boxId);
     if (!box) return;
     box.textContent = "";
+    box.setAttribute("role", "listbox");
+    box.setAttribute("aria-label", selKey);
     items.forEach(function(item){
       var b = document.createElement("button");
       b.type = "button";
       b.className = "lib-app-option" + (LIB_APP_SEL && LIB_APP_SEL[selKey] === item.id ? " on" : "");
       b.textContent = item.label;
       b.title = item.label;
+      b.setAttribute("data-id", item.id);
+      b.setAttribute("data-col", selKey);
+      b.setAttribute("role", "option");
+      b.setAttribute("aria-selected", LIB_APP_SEL && LIB_APP_SEL[selKey] === item.id ? "true" : "false");
+      b.onfocus = function(){ LIB_APP_FOCUS_COL = selKey; };
+      b.onkeydown = function(ev){ appearanceOptionKey(ev, b, selKey); };
       b.onclick = function(){
+        LIB_APP_FOCUS_COL = selKey;
+        LIB_APP_RESTORE_FOCUS = true;
         LIB_APP_SEL[selKey] = item.id;
         LIB_APP_SEL.themeVars = null;
         LIB_APP_THEME_ID = "";
@@ -1094,10 +1206,21 @@ function renderAppearanceOptions() {
       };
       box.appendChild(b);
     });
+    var group = box.closest ? box.closest(".lib-app-group") : null;
+    if (group && !group.__appColumnClick) {
+      group.__appColumnClick = true;
+      group.addEventListener("click", function(ev){
+        if (ev.target === group || (ev.target && ev.target.tagName === "H4")) appearanceFocusColumn(selKey);
+      });
+    }
   }
   list("lib-structures", appearanceStructures(def, kind), "structure");
   list("lib-styles", appearanceStyles(def, kind), "style");
   list("lib-animations", appearanceAnimations(def), "animation");
+  if (LIB_APP_RESTORE_FOCUS) {
+    LIB_APP_RESTORE_FOCUS = false;
+    appearanceFocusColumn(LIB_APP_FOCUS_COL || "structure");
+  }
 }
 function renderAppearanceTheme() {
   var kind = LIB_APP_KIND || APPEARANCE_KINDS[0];
@@ -1135,7 +1258,7 @@ function renderAppearanceNavigator() {
   renderAppearanceTheme();
   var kind = LIB_APP_KIND || def.kinds[0];
   var info = document.getElementById("lib-app-info");
-  if (info) info.textContent = "Select a structure, a style and an animation. The preview is a real compiled control.";
+  if (info) info.textContent = "Arrow keys move within a list, Left/Right switch list, Enter selects. The preview is a real compiled control.";
   var status = document.getElementById("lib-app-status");
   if (status) status.textContent = "";
   appearanceLoadPreview(def, kind, LIB_APP_SEL, document.getElementById("lib-app-preview"));

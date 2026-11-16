@@ -871,6 +871,8 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .lib-app-option { border:1px solid var(--border); background:var(--panel3); color:var(--fg); border-radius:6px; padding:4px 7px; font-size:11px; text-align:left; cursor:pointer; line-height:1.25; }
 .lib-app-option:hover { border-color:var(--border2); background:var(--btn-hover); }
 .lib-app-option.on { border-color:var(--accent); background:var(--btn-on); color:var(--accent); font-weight:600; }
+.lib-app-option:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.lib-app-group:focus-within h4 { color:var(--accent); }
 #lib-app-detail { padding:12px 14px; display:flex; flex-direction:column; gap:7px; min-width:0; min-height:0; }
 #lib-app-preview { flex:1; width:100%; min-height:180px; border:1px solid var(--border2); border-radius:8px; background:#0f1117; }
 .lib-app-row { display:flex; align-items:center; gap:6px; }
@@ -12845,7 +12847,7 @@ function toastControls(n) {
 var __inspectorSectionOpen = {};
 var __inspectorSectionDefaults = {
   "View": true, "Content": true, "Appearance": true, "Layout": true,
-  "Size": true, "Typography": true, "Animation": true, "Control appearance": true
+  "Size": true, "Typography": true, "Animation": true
 };
 try {
   __inspectorSectionOpen = JSON.parse(localStorage.getItem("sui.inspector.sections.v3") || "{}") || {};
@@ -13032,6 +13034,9 @@ function syncInspectorSections() {
   if (sn) {
     var cdef = componentDefForKind(sn.kind);
     if (cdef && cdef.label) openMap[cdef.label] = true;
+    if (typeof appearanceKindSupported === "function" && appearanceKindSupported(sn.kind)) {
+      openMap[appearanceKindLabel(sn.kind)] = true;
+    }
     if (sn.motionKey || sn.motionGraph || sn.motion || sn.animation) openMap["Motion (animation panel)"] = true;
   }
   for (var i = 0; i < sections.length; i++) {

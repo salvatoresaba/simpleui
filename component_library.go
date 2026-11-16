@@ -237,9 +237,6 @@ func loadComponentLibraryFile(path string) ([]ComponentGroupJSON, []string, erro
 	if lib.Version != componentLibraryVersion {
 		return nil, nil, fmt.Errorf("unsupported version %d (expected %d)", lib.Version, componentLibraryVersion)
 	}
-	if len(lib.Groups) == 0 {
-		return nil, nil, fmt.Errorf("the library has no groups")
-	}
 	if len(lib.Groups) > componentMaxGroups {
 		return nil, nil, fmt.Errorf("too many groups (max %d)", componentMaxGroups)
 	}
