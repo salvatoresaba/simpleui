@@ -213,26 +213,15 @@ function openLibraryNavigator(mode, kind) {
   if (!nav) return;
   nav.classList.add("on");
   if (mode === "appearance" || mode === "components") LIB_NAV_MODE = mode;
-  if (kind) {
-    var def = componentDefForKind(kind);
-    if (def) {
-      LIB_NAV_MODE = "appearance";
-      LIB_APP_DEF_ID = def.id;
-      LIB_APP_KIND = kind;
-      LIB_APP_SEL = appearanceDefaultSelection(def, kind);
-      LIB_APP_THEME_ID = "";
-    }
+  if (kind && appearanceKindSupported(kind)) {
+    LIB_NAV_MODE = "appearance";
+    LIB_APP_KIND = kind;
+    LIB_APP_SEL = appearanceDefaultSelection(appearanceDefForKind(kind), kind);
+    LIB_APP_THEME_ID = "";
   }
-  if (LIB_NAV_MODE === "appearance" && !LIB_APP_DEF_ID) {
-    var first = null;
-    for (var i = 0; i < COMPONENT_DEFS.length; i++) {
-      if (COMPONENT_DEFS[i].categories && COMPONENT_DEFS[i].categories.length) { first = COMPONENT_DEFS[i]; break; }
-    }
-    if (first) {
-      LIB_APP_DEF_ID = first.id;
-      LIB_APP_KIND = first.kinds[0];
-      LIB_APP_SEL = appearanceDefaultSelection(first, LIB_APP_KIND);
-    }
+  if (LIB_NAV_MODE === "appearance" && (!LIB_APP_KIND || !appearanceKindSupported(LIB_APP_KIND))) {
+    LIB_APP_KIND = APPEARANCE_KINDS[0] || "button";
+    LIB_APP_SEL = appearanceDefaultSelection(appearanceDefForKind(LIB_APP_KIND), LIB_APP_KIND);
   }
   if (!LIB_NAV_SEL) {
     var all = libraryAllComponents();
@@ -412,6 +401,20 @@ document.addEventListener("click", function(ev){
 // and its animation options; the curated entries below make the button example
 // (and a few other controls) richer.
 var APPEARANCE_FAV_KEY = "sui.appearance.themes.v1";
+// Control kinds that expose the appearance section. Complex data/visualization
+// components (table, graph, chart) are deliberately excluded.
+var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "pane", "dropzone", "timeline", "carousel", "stepper", "list"];
+function appearanceKindLabel(kind) {
+  return PALETTE_LABEL[kind] || kind;
+}
+function appearanceKindSupported(kind) {
+  return APPEARANCE_KINDS.indexOf(kind) >= 0;
+}
+function appearanceDefForKind(kind) {
+  var def = componentDefForKind(kind);
+  if (def) return def;
+  return { id: "kind:" + kind, label: appearanceKindLabel(kind), kinds: [kind], categories: [], generic: true };
+}
 var APPEARANCE_CUSTOM = {
   button: {
     structures: [
@@ -504,6 +507,79 @@ var APPEARANCE_CUSTOM = {
       { id: "amber", label: "Amber", vars: { "--sui-badge-bg": "#3b2a09", "--sui-badge-fg": "#fcd34d", "--sui-badge-border": "#b45309" } },
       { id: "mono", label: "Mono", vars: { "--sui-badge-bg": "#111827", "--sui-badge-fg": "#e5e7eb", "--sui-badge-border": "#64748b" } }
     ]
+  },
+  progress: {
+    structures: [
+      { id: "thin", label: "Thin line", vars: { "--sui-progress-height": "4px", "--sui-progress-radius": "999px" } },
+      { id: "classic", label: "Classic", vars: { "--sui-progress-height": "8px", "--sui-progress-radius": "999px" } },
+      { id: "thick", label: "Thick", vars: { "--sui-progress-height": "14px", "--sui-progress-radius": "999px" } },
+      { id: "square", label: "Square", vars: { "--sui-progress-height": "10px", "--sui-progress-radius": "3px" } }
+    ],
+    styles: [
+      { id: "indigo", label: "Indigo", vars: { "--sui-progress-track": "#1f2937", "--sui-progress-value": "#4c5cf7", "--sui-progress-value-end": "#6366f1" } },
+      { id: "aurora", label: "Aurora", vars: { "--sui-progress-track": "#0b1220", "--sui-progress-value": "#8b5cf6", "--sui-progress-value-end": "#22d3ee" } },
+      { id: "green", label: "Green", vars: { "--sui-progress-track": "#052e16", "--sui-progress-value": "#22c55e", "--sui-progress-value-end": "#16a34a" } },
+      { id: "amber", label: "Amber", vars: { "--sui-progress-track": "#3b2a09", "--sui-progress-value": "#f59e0b", "--sui-progress-value-end": "#ef4444" } },
+      { id: "mono", label: "Mono", vars: { "--sui-progress-track": "#1f2937", "--sui-progress-value": "#e5e7eb", "--sui-progress-value-end": "#94a3b8" } }
+    ]
+  },
+  spinner: {
+    structures: [
+      { id: "small", label: "Small", vars: { "--sui-spinner-size": "16px", "--sui-spinner-thickness": "2px" } },
+      { id: "default", label: "Default", vars: { "--sui-spinner-size": "24px", "--sui-spinner-thickness": "3px" } },
+      { id: "large", label: "Large", vars: { "--sui-spinner-size": "40px", "--sui-spinner-thickness": "4px" } },
+      { id: "thick", label: "Thick", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "6px" } }
+    ],
+    styles: [
+      { id: "accent", label: "Accent", vars: { "--sui-spinner-track": "#4b5563", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-bg": "transparent" } },
+      { id: "cyan", label: "Cyan", vars: { "--sui-spinner-track": "#164e63", "--sui-spinner-color": "#22d3ee", "--sui-spinner-color2": "#818cf8" } },
+      { id: "green", label: "Green", vars: { "--sui-spinner-track": "#14532d", "--sui-spinner-color": "#22c55e", "--sui-spinner-bg": "transparent" } },
+      { id: "mono", label: "Mono", vars: { "--sui-spinner-track": "#334155", "--sui-spinner-color": "#e5e7eb", "--sui-spinner-bg": "transparent" } }
+    ]
+  },
+  slider: {
+    structures: [
+      { id: "thin", label: "Thin", vars: { "--sui-slider-track": "3px", "--sui-slider-thumb": "14px" } },
+      { id: "classic", label: "Classic", vars: { "--sui-slider-track": "6px", "--sui-slider-thumb": "18px" } },
+      { id: "thick", label: "Thick", vars: { "--sui-slider-track": "12px", "--sui-slider-thumb": "26px" } },
+      { id: "square", label: "Square", vars: { "--sui-slider-radius": "3px", "--sui-slider-thumb-radius": "4px" } }
+    ],
+    styles: [
+      { id: "indigo", label: "Indigo", vars: { "--sui-slider-bg": "#374151", "--sui-slider-thumb-bg": "#4c5cf7" } },
+      { id: "cyan", label: "Cyan", vars: { "--sui-slider-bg": "#0f172a", "--sui-slider-thumb-bg": "#22d3ee" } },
+      { id: "green", label: "Green", vars: { "--sui-slider-bg": "#14532d", "--sui-slider-thumb-bg": "#22c55e" } },
+      { id: "coral", label: "Coral", vars: { "--sui-slider-bg": "#3f1d24", "--sui-slider-thumb-bg": "#f43f5e" } },
+      { id: "mono", label: "Mono", vars: { "--sui-slider-bg": "#334155", "--sui-slider-thumb-bg": "#e5e7eb" } }
+    ]
+  },
+  alert: {
+    structures: [
+      { id: "bar", label: "Accent bar", vars: { "--sui-alert-radius": "8px", "--sui-alert-border-width": "1px", "--sui-alert-padding": "12px 16px" } },
+      { id: "filled", label: "Filled", vars: { "--sui-alert-border-width": "0px" } },
+      { id: "outline", label: "Outline", vars: { "--sui-alert-bg": "transparent", "--sui-alert-border-width": "2px" } },
+      { id: "square", label: "Square", vars: { "--sui-alert-radius": "0px" } }
+    ],
+    styles: [
+      { id: "danger", label: "Danger", vars: { "--sui-alert-bg": "#3a2427", "--sui-alert-fg": "#fca5a5", "--sui-alert-border": "#7f3a3d" } },
+      { id: "success", label: "Success", vars: { "--sui-alert-bg": "#0f2a1d", "--sui-alert-fg": "#86efac", "--sui-alert-border": "#166534" } },
+      { id: "info", label: "Info", vars: { "--sui-alert-bg": "#10243a", "--sui-alert-fg": "#93c5fd", "--sui-alert-border": "#1d4ed8" } },
+      { id: "warning", label: "Warning", vars: { "--sui-alert-bg": "#3b2a09", "--sui-alert-fg": "#fcd34d", "--sui-alert-border": "#b45309" } },
+      { id: "mono", label: "Mono", vars: { "--sui-alert-bg": "#111827", "--sui-alert-fg": "#e5e7eb", "--sui-alert-border": "#64748b" } }
+    ]
+  },
+  tabs: {
+    structures: [
+      { id: "underline", label: "Underline", vars: { "--sui-tabs-radius": "8px", "--sui-tabs-border-width": "1px" } },
+      { id: "pills", label: "Pills", vars: { "--sui-tabs-radius": "999px", "--sui-tab-radius": "999px" } },
+      { id: "boxed", label: "Boxed", vars: { "--sui-tabs-radius": "6px", "--sui-tabs-border-width": "1px" } },
+      { id: "square", label: "Square", vars: { "--sui-tabs-radius": "0px", "--sui-tab-radius": "0px" } }
+    ],
+    styles: [
+      { id: "dark", label: "Dark", vars: { "--sui-tabs-bg": "#1d2129", "--sui-tabs-fg": "#e6e6ef", "--sui-tablist-bg": "#1d2129", "--sui-tab-fg": "#9aa7b8", "--sui-tab-active-bg": "#14171c", "--sui-tab-active-fg": "#e6e6ef", "--sui-tab-accent": "#4c5cf7", "--sui-tabs-border": "#3d4556" } },
+      { id: "light", label: "Light", vars: { "--sui-tabs-bg": "#f8fafc", "--sui-tabs-fg": "#0f172a", "--sui-tablist-bg": "#e2e8f0", "--sui-tab-fg": "#475569", "--sui-tab-active-bg": "#ffffff", "--sui-tab-active-fg": "#0f172a", "--sui-tab-accent": "#2563eb", "--sui-tabs-border": "#cbd5e1" } },
+      { id: "neon", label: "Neon", vars: { "--sui-tabs-bg": "#0b1220", "--sui-tabs-fg": "#e0f2fe", "--sui-tablist-bg": "#0b1220", "--sui-tab-fg": "#7dd3fc", "--sui-tab-active-bg": "#082f49", "--sui-tab-active-fg": "#e0f2fe", "--sui-tab-accent": "#22d3ee", "--sui-tabs-border": "#164e63" } },
+      { id: "mono", label: "Mono", vars: { "--sui-tabs-bg": "#111827", "--sui-tabs-fg": "#e5e7eb", "--sui-tablist-bg": "#111827", "--sui-tab-fg": "#94a3b8", "--sui-tab-active-bg": "#1f2937", "--sui-tab-active-fg": "#f8fafc", "--sui-tab-accent": "#e5e7eb", "--sui-tabs-border": "#374151" } }
+    ]
   }
 };
 function appearanceFieldKey(def, re) {
@@ -526,6 +602,15 @@ function appearanceAnimKey(def) {
 function appearanceStructures(def, kind) {
   var custom = APPEARANCE_CUSTOM[def.id];
   if (custom && custom.structures) return custom.structures;
+  if (def.generic) {
+    return [
+      { id: "default", label: "Default", vars: {} },
+      { id: "rounded", label: "Rounded", vars: { "border-radius": "12px" } },
+      { id: "square", label: "Square", vars: { "border-radius": "0px" } },
+      { id: "compact", label: "Compact", vars: { padding: "6px 10px" } },
+      { id: "wide", label: "Wide", vars: { padding: "12px 20px" } }
+    ];
+  }
   var out = [{ id: "default", label: "Default", vars: {} }];
   var radius = appearanceFieldKey(def, /-radius$/);
   if (radius) {
@@ -539,6 +624,15 @@ function appearanceStructures(def, kind) {
 function appearanceStyles(def, kind) {
   var custom = APPEARANCE_CUSTOM[def.id];
   if (custom && custom.styles) return custom.styles;
+  if (def.generic) {
+    return [
+      { id: "default", label: "Default", vars: {} },
+      { id: "accent", label: "Accent", vars: { "background-color": "#4c5cf7", "color": "#ffffff", "border-color": "#3730a3", "box-shadow": "0 4px 14px rgba(76,92,247,.35)" } },
+      { id: "dark", label: "Dark", vars: { "background-color": "#111827", "color": "#e5e7eb", "border-color": "#334155" } },
+      { id: "light", label: "Light", vars: { "background-color": "#f8fafc", "color": "#0f172a", "border-color": "#cbd5e1" } },
+      { id: "outline", label: "Outline", vars: { "background-color": "transparent", "color": "#a5b4fc", "border-color": "#4c5cf7", "border-width": "1px", "border-style": "solid" } }
+    ];
+  }
   return [{ id: "default", label: "Default", vars: {} }];
 }
 function appearanceAnimations(def) {
@@ -549,9 +643,10 @@ function appearanceAnimations(def) {
       if ((fs[j].key || "").indexOf("animation") >= 0) { field = fs[j]; break; }
     }
   }
+  if (!field) return genericAppearanceAnimations();
   var out = [];
   var seen = {};
-  (field && field.opts ? field.opts : []).forEach(function(o){
+  (field.opts || []).forEach(function(o){
     var value = String(o[1] === undefined ? "" : o[1]);
     if (value === "") return;
     var id = String(o[0] || value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "option";
@@ -562,6 +657,29 @@ function appearanceAnimations(def) {
   });
   if (!out.some(function(o){ return o.value === "none"; })) out.unshift({ id: "none", label: "None", value: "none" });
   return out;
+}
+function genericAppearanceAnimations() {
+  return [
+    { id: "none", label: "None", value: "none" },
+    { id: "pulse", label: "Pulse", value: "sui-appearance-pulse 1.8s ease-in-out infinite" },
+    { id: "glow", label: "Glow", value: "sui-appearance-glow 2.2s ease-in-out infinite" },
+    { id: "float", label: "Float", value: "sui-appearance-float 2.6s ease-in-out infinite" },
+    { id: "fade", label: "Fade", value: "sui-appearance-fade 2.4s ease-in-out infinite" }
+  ];
+}
+function appearanceKeyframesCss() {
+  return "@keyframes sui-appearance-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: .85; } }\n" +
+    "@keyframes sui-appearance-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n" +
+    "@keyframes sui-appearance-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }\n" +
+    "@keyframes sui-appearance-fade { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }";
+}
+function ensureAppearanceKeyframes() {
+  var re = /\/\* sui-appearance-keyframes \*\/[\s\S]*?\/\* \/sui-appearance-keyframes \*\//;
+  var block = "/* sui-appearance-keyframes */\n" + appearanceKeyframesCss() + "\n/* /sui-appearance-keyframes */";
+  var css = String(root.css || "");
+  if (re.test(css)) css = css.replace(re, block);
+  else css = (css.trim() ? css.trim() + "\n" : "") + block;
+  root.css = css.trim() + "\n";
 }
 function appearanceThemeLookup(def, kind, id) {
   var themes = appearanceThemes(def, kind);
@@ -649,7 +767,7 @@ function appearanceKeyUnion(def) {
   appearanceStructures(def, "").forEach(function(s){ Object.keys(s.vars || {}).forEach(add); });
   appearanceStyles(def, "").forEach(function(s){ Object.keys(s.vars || {}).forEach(add); });
   var ak = appearanceAnimKey(def);
-  if (ak) add(ak);
+  if (ak) add(ak); else add("animation");
   return out;
 }
 function appearanceAttrsUnion(def) {
@@ -675,8 +793,8 @@ function appearanceVarsForSelection(def, kind, sel) {
   var an = appearanceVariant(appearanceAnimations(def), sel.animation);
   if (st) Object.keys(st.vars || {}).forEach(function(k){ vars[k] = st.vars[k]; });
   if (sy) Object.keys(sy.vars || {}).forEach(function(k){ vars[k] = sy.vars[k]; });
-  var ak = appearanceAnimKey(def);
-  if (ak && an && an.value && an.value !== "none") vars[ak] = an.value;
+  var ak = appearanceAnimKey(def) || "animation";
+  if (an && an.value && an.value !== "none") vars[ak] = an.value;
   return vars;
 }
 function appearanceMatchVariant(list, map, attrs, node) {
@@ -695,7 +813,7 @@ function appearanceCurrent(node, def, kind) {
   var structs = appearanceStructures(def, kind);
   var styles = appearanceStyles(def, kind);
   var anims = appearanceAnimations(def);
-  var ak = appearanceAnimKey(def);
+  var ak = appearanceAnimKey(def) || "animation";
   var structure = appearanceMatchVariant(structs, map, null, node);
   var style = appearanceMatchVariant(styles, map, null, node);
   var animation = "";
@@ -739,6 +857,11 @@ function appearanceApply(node, def, patch) {
       var ak = appearanceAnimKey(def);
       if (ak) {
         if (an && an.value && an.value !== "none") map[ak] = an.value; else delete map[ak];
+      } else if (an && an.value && an.value !== "none") {
+        map["animation"] = an.value;
+        ensureAppearanceKeyframes();
+      } else {
+        delete map["animation"];
       }
     }
   }
@@ -788,6 +911,28 @@ function appearancePreviewNode(kind, attrs) {
   if (kind === "tabs") return "tabs \"Tabs\"" + cls + attrStr + " {\n\t\ttab \"One\" { p \"One\" }\n\t\ttab \"Two\" { p \"Two\" }\n\t}";
   if (kind === "accordion") return "accordion \"Sections\"" + cls + attrStr + " {\n\t\taccordionitem \"First\" { p \"Content\" }\n\t}";
   if (kind === "alert") return "alert \"Preview\"" + cls + attrStr;
+  if (kind === "slider") return "slider value: 50" + cls + attrStr;
+  if (kind === "number") return "number \"Number\" value: \"42\"" + cls + attrStr;
+  if (kind === "color") return "color \"Colour\" value: \"#4c5cf7\"" + cls + attrStr;
+  if (kind === "date") return "date \"Date\" value: \"2026-01-01\"" + cls + attrStr;
+  if (kind === "time") return "time \"Time\" value: \"12:00\"" + cls + attrStr;
+  if (kind === "file") return "file \"File\"" + cls + attrStr;
+  if (kind === "combobox") return "combobox \"Combo\" options: \"One,Two\"" + cls + attrStr;
+  if (kind === "datepicker") return "datepicker \"Date\"" + cls + attrStr;
+  if (kind === "dropdown") return "dropdown \"Menu\"" + cls + attrStr + " {\n\t\tdropdownitem \"One\"\n\t}";
+  if (kind === "popover") return "popover \"Popover\"" + cls + attrStr + " {\n\t\tp \"Panel\"\n\t}";
+  if (kind === "modal") return "modal \"Modal\"" + cls + attrStr + " {\n\t\tp \"Content\"\n\t}";
+  if (kind === "toast") return "toast \"Toast\"" + cls + attrStr + " {\n\t\tp \"Saved\"\n\t}";
+  if (kind === "tree") return "tree \"Tree\"" + cls + attrStr + " {\n\t\ttreeitem \"One\"\n\t}";
+  if (kind === "commandbar") return "commandbar \"Commands\"" + cls + attrStr + " {\n\t\tcommand \"One\"\n\t}";
+  if (kind === "drawer") return "drawer \"Drawer\"" + cls + attrStr + " {\n\t\tp \"Panel\"\n\t}";
+  if (kind === "splitter") return "splitter" + cls + attrStr + " {\n\t\tpane { p \"A\" }\n\t\tpane { p \"B\" }\n\t}";
+  if (kind === "pane") return "splitter {\n\t\tpane" + cls + attrStr + " { p \"A\" }\n\t\tpane { p \"B\" }\n\t}";
+  if (kind === "dropzone") return "dropzone \"Drop files\"" + cls + attrStr;
+  if (kind === "timeline") return "timeline \"History\"" + cls + attrStr + " {\n\t\ttimelineitem \"Event\"\n\t}";
+  if (kind === "carousel") return "carousel" + cls + attrStr + " {\n\t\tslide \"One\"\n\t}";
+  if (kind === "stepper") return "stepper" + cls + attrStr + " {\n\t\tstep \"One\"\n\t}";
+  if (kind === "list") return "list" + cls + attrStr + " {\n\t\tp \"One\"\n\t}";
   if (kind === "divider") return "divider" + cls + attrStr;
   return kind + cls + attrStr;
 }
@@ -795,7 +940,7 @@ function appearancePreviewSource(def, kind, sel) {
   var vars = appearanceVarsForSelection(def, kind, sel);
   var st = appearanceVariant(appearanceStructures(def, kind), sel && sel.structure);
   var decls = Object.keys(vars).map(function(k){ return k + ": " + vars[k] + ";"; }).join(" ");
-  var css = (def.css || "") + "\n.appearance-preview { " + decls + " }\n" +
+  var css = (def.css || "") + "\n" + appearanceKeyframesCss() + "\n.appearance-preview { " + decls + " }\n" +
     "body { margin: 0; padding: 24px; background: #0f1117; color: #e5e7eb; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }";
   return "css \"" + esc(css) + "\"\n\nview main {\n\t" + appearancePreviewNode(kind, st ? st.attrs : null) + "\n}\n";
 }
@@ -906,26 +1051,18 @@ function setLibraryMode(mode) {
   LIB_NAV_MODE = mode === "components" ? "components" : "appearance";
   renderLibraryNavigator();
 }
-function appearanceKindOrder(def) {
-  var order = ["Button", "Checkbox / Radio", "Switch", "Card", "Input / Textarea / Select", "Badge", "Tabs", "Progress bar", "Spinner", "Alert"];
-  var at = order.indexOf(def.label);
-  return at < 0 ? 100 : at;
-}
 function renderAppearanceKinds() {
   var box = document.getElementById("lib-kinds");
   if (!box) return;
   box.textContent = "";
-  var defs = COMPONENT_DEFS.slice().sort(function(a, b){ return appearanceKindOrder(a) - appearanceKindOrder(b); });
-  defs.forEach(function(def){
-    if (!def.categories || !def.categories.length) return;
+  APPEARANCE_KINDS.forEach(function(kind){
     var b = document.createElement("button");
     b.type = "button";
-    b.className = "lib-group" + (def.id === LIB_APP_DEF_ID ? " on" : "");
-    b.textContent = def.label;
+    b.className = "lib-group" + (LIB_APP_KIND === kind ? " on" : "");
+    b.textContent = appearanceKindLabel(kind);
     b.onclick = function(){
-      LIB_APP_DEF_ID = def.id;
-      LIB_APP_KIND = def.kinds[0];
-      LIB_APP_SEL = appearanceDefaultSelection(def, LIB_APP_KIND);
+      LIB_APP_KIND = kind;
+      LIB_APP_SEL = appearanceDefaultSelection(appearanceDefForKind(kind), kind);
       LIB_APP_THEME_ID = "";
       renderAppearanceNavigator();
     };
@@ -933,9 +1070,9 @@ function renderAppearanceKinds() {
   });
 }
 function renderAppearanceOptions() {
-  var def = appearanceDefById(LIB_APP_DEF_ID);
+  var kind = LIB_APP_KIND || APPEARANCE_KINDS[0];
+  var def = appearanceDefForKind(kind);
   if (!def) return;
-  var kind = LIB_APP_KIND || def.kinds[0];
   function list(boxId, items, selKey) {
     var box = document.getElementById(boxId);
     if (!box) return;
@@ -962,9 +1099,9 @@ function renderAppearanceOptions() {
   list("lib-animations", appearanceAnimations(def), "animation");
 }
 function renderAppearanceTheme() {
-  var def = appearanceDefById(LIB_APP_DEF_ID);
+  var kind = LIB_APP_KIND || APPEARANCE_KINDS[0];
+  var def = appearanceDefForKind(kind);
   if (!def) return;
-  var kind = LIB_APP_KIND || def.kinds[0];
   var sel = document.getElementById("lib-app-theme");
   if (!sel) return;
   sel.textContent = "";
@@ -987,16 +1124,11 @@ function renderAppearanceTheme() {
   };
 }
 function renderAppearanceNavigator() {
-  var def = appearanceDefById(LIB_APP_DEF_ID);
-  if (!def) {
-    def = COMPONENT_DEFS[0];
-    LIB_APP_DEF_ID = def.id;
-    LIB_APP_KIND = def.kinds[0];
-    LIB_APP_SEL = appearanceDefaultSelection(def, LIB_APP_KIND);
-  }
+  if (!LIB_APP_KIND || !appearanceKindSupported(LIB_APP_KIND)) LIB_APP_KIND = APPEARANCE_KINDS[0] || "button";
+  var def = appearanceDefForKind(LIB_APP_KIND);
   if (!LIB_APP_SEL) LIB_APP_SEL = appearanceDefaultSelection(def, LIB_APP_KIND);
   var title = document.getElementById("lib-app-title");
-  if (title) title.textContent = def.label + " appearance";
+  if (title) title.textContent = appearanceKindLabel(LIB_APP_KIND) + " appearance";
   renderAppearanceKinds();
   renderAppearanceOptions();
   renderAppearanceTheme();
@@ -1008,12 +1140,13 @@ function renderAppearanceNavigator() {
   appearanceLoadPreview(def, kind, LIB_APP_SEL, document.getElementById("lib-app-preview"));
 }
 function applyAppearanceFromNavigator() {
-  var def = appearanceDefById(LIB_APP_DEF_ID);
+  var kind = LIB_APP_KIND || APPEARANCE_KINDS[0];
+  var def = appearanceDefForKind(kind);
   if (!def) return;
   var node = selPath ? byPath(selPath, root.children) : null;
-  if (!node || def.kinds.indexOf(node.kind) < 0) {
+  if (!node || node.kind !== kind) {
     var st = document.getElementById("lib-app-status");
-    if (st) st.textContent = "Select a " + def.label + " element in the project first.";
+    if (st) st.textContent = "Select a " + appearanceKindLabel(kind) + " element in the project first.";
     return;
   }
   withUndo(function(){ appearanceApply(node, def, LIB_APP_SEL); }, "appearance " + node.kind);
@@ -1021,11 +1154,12 @@ function applyAppearanceFromNavigator() {
   if (st2) st2.textContent = "Applied to the selected " + def.label + ".";
 }
 function saveAppearanceThemeFromNavigator() {
-  var def = appearanceDefById(LIB_APP_DEF_ID);
+  var kind = LIB_APP_KIND || APPEARANCE_KINDS[0];
+  var def = appearanceDefForKind(kind);
   if (!def) return;
   var node = selPath ? byPath(selPath, root.children) : null;
-  if (node && def.kinds.indexOf(node.kind) < 0) node = null;
-  appearanceSaveFavorite(def, LIB_APP_KIND || def.kinds[0], node, LIB_APP_SEL);
+  if (node && node.kind !== kind) node = null;
+  appearanceSaveFavorite(def, kind, node, LIB_APP_SEL);
   var st = document.getElementById("lib-app-status");
   if (st) st.textContent = "Theme saved. It is now available in the control inspector.";
 }

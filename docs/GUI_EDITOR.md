@@ -794,7 +794,8 @@ classes updated.
 
 ## Control appearance
 
-Selecting a control shows a **Control appearance** section in the Inspector:
+Every control except **table**, **graph** and **chart** shows a **Control
+appearance** section in the Inspector:
 
 | Selector | What it changes |
 |---|---|
@@ -811,8 +812,10 @@ default for every control of that kind. Text, font, border, events and alignment
 stay in their own inspector sections.
 
 **Insert → Controls library…** opens the navigator with an **Appearance** tab
-(kinds, structures, styles, animations, interactive preview, themes) and a
-**Components** tab for insertable presets. Favourite themes are stored in the
+(every control, structures, styles, animations, interactive preview, themes) and
+a **Components** tab for insertable presets. The Insert toolbar groups controls
+under **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**, **Feedback** and
+**Advanced**; Advanced holds table, graph and chart. Favourite themes are stored in the
 editor's local storage (`sui.appearance.themes.v1`), not in the `.sui` file.
 
 See [Control appearance library](APPEARANCE_LIBRARY.md) for the catalog, the

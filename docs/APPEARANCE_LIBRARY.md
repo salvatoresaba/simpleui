@@ -1,7 +1,9 @@
 # Control appearance library
 
-Every built-in control has an appearance catalog in the designer. The catalog
-separates the three things that make a control look and feel the way it does:
+Every non-complex control has an appearance catalog in the designer. The only
+exceptions are **table**, **graph** and **chart**, which keep their dedicated
+data/visualization editors. The catalog separates the three things that make a
+control look and feel the way it does:
 
 | Axis | What it controls | Examples (button) |
 |---|---|---|
@@ -37,6 +39,20 @@ The project default for every control of that kind remains under
 width, events and alignment stay in their existing inspector sections and can be
 combined with any appearance.
 
+## Insert toolbar organization
+
+The Insert toolbar is grouped so the list stays short:
+
+| Group | Subcategories |
+|---|---|
+| Controls | Inputs, Toggles, Actions, Panels, Data, Feedback, **Advanced** |
+| Layout | containers and the Navigation submenu |
+| Text | text elements and Lists |
+| Overlay / Content / Media | their own groups |
+
+**Advanced** contains **table**, **graph** and **chart**. These three also do not
+show the appearance section in the Inspector.
+
 ## The Controls library navigator
 
 **Insert → Controls library…** opens the navigator. Its **Appearance** tab is the
@@ -44,8 +60,11 @@ appearance browser; the **Components** tab keeps the component presets.
 
 In Appearance:
 
-- the left column lists control kinds (Button first, then Checkbox/Radio, Switch,
-  Card, Input/Textarea/Select, Badge, Tabs, Progress, Spinner, …);
+- the left column lists **every non-complex control** (Button first, then Input,
+  Textarea, Select, Combobox, Date/Time, Number, Slider, Checkbox, Radio, Switch,
+  Colour, Date, Time, File, Progress, Spinner, Badge, Alert, Card, Tabs,
+  Accordion, Dropdown, Popover, Modal, Toast, Tree, Command palette, Drawer,
+  Split panes, Dropzone, Timeline, Carousel, Stepper, List);
 - the middle column lists **Structures**, **Styles** and **Animations** for the
   selected kind;
 - the right column compiles an **interactive preview** of the current
@@ -86,8 +105,11 @@ without the editor's theme list.
 ## Catalog coverage and limits
 
 - Rich catalogs ship for **button**, **checkbox/radio**, **switch**, **card**,
-  **input/textarea/select** and **badge**. Other definitions get a default
-  structure/style plus their animation field options.
+  **input/textarea/select**, **badge**, **progress**, **spinner**, **slider**,
+  **alert** and **tabs**. Other controls get a generic catalog with Default,
+  Rounded, Square, Compact and Wide structures; Default, Accent, Dark, Light and
+  Outline styles; and None, Pulse, Glow, Float and Fade animations
+  (`sui-appearance-*` keyframes written to the project CSS).
 - Structures and styles are **validated built-in data**, not arbitrary CSS. The
   external `components/library.json` is a separate layer for insertable
   component presets; it does not replace the appearance catalog.

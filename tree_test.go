@@ -188,7 +188,7 @@ func TestTreeDesignerRoundTrip(t *testing.T) {
 			t.Errorf("designer source missing %q:\n%s", want, src)
 		}
 	}
-	for _, want := range []string{"treeControls", "Edit depth", "Rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "Runtime name", "Tooltip", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time", "tree", "chart"`, `tree: '<rect`} {
+	for _, want := range []string{"treeControls", "Edit depth", "Rename key state", "read-only", "TREE_STYLE_PRESETS", "style preset", "--sui-tree-panel-bg", "TREE_ITEM_STYLE_PRESETS", "Runtime name", "Tooltip", "treeImportData", "treeDownloadData", "Import JSON", "Export XML", `"date", "time"`, `"tree"`, `"chart"`, `tree: '<rect`} {
 		if !strings.Contains(guiHTML, want) {
 			t.Errorf("designer tree support missing %q", want)
 		}

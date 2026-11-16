@@ -520,7 +520,7 @@ func TestChartDesignerRoundTrip(t *testing.T) {
 		"chartDataValidateText", "chartDataCompatibility", "chartDataProfile",
 		"chartDataApply", "chartDataSaveGeom",
 		"Mode", "show grid", "Chart settings...", "Edit hints...",
-		"chartPresetStyleExpr", "chart: '<path", `"date", "time", "tree", "chart"`,
+		"chartPresetStyleExpr", "chart: '<path", `"date", "time"`, `"tree"`, `"chart"`,
 		"node-type", "sel-type", "--sui-chart-control-bg",
 		"--sui-chart-control-hover-fg",
 		"CHART_TYPE_OPTIONS", "chartDataCompatibility", "chartDataProfile",

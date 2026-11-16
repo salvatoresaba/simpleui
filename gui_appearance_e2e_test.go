@@ -20,6 +20,9 @@ func TestGuiAppearanceLibraryE2E(t *testing.T) {
 	}
 	const source = `view main {
 	button "Go" class: "go"
+	dropdown "Menu" {
+		dropdownitem "One"
+	}
 }`
 	page := injectGuiTestScript(guiAppearanceScript)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -134,11 +137,24 @@ const guiAppearanceScript = `<script>
   }
   try {
     await until(function () { return typeof __prefsLoaded !== 'undefined' && __prefsLoaded && root && root.children.length > 0; }, 15000);
-    selPath = [0]; multiSel = [];
+    await wait(1200);
+    function pathOfKind(kind) {
+      function walk(list, base) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].kind === kind) return base.concat([i]);
+          if (list[i].children) { var r = walk(list[i].children, base.concat([i])); if (r) return r; }
+        }
+        return null;
+      }
+      return walk(root.children, []);
+    }
+    var buttonPath = pathOfKind('button');
+    assert(!!buttonPath, 'button node missing');
+    selPath = buttonPath; multiSel = [];
     renderTree(); renderInspector();
     await until(function () { return !!appSection(); }, 4000);
     var s = selects();
-    assert(s.length === 4, 'expected structure, style, animation and theme selects');
+    assert(s.length === 4, 'expected structure, style, animation and theme selects; got ' + s.length + ' accs=' + Array.prototype.map.call(document.querySelectorAll('#inspector .acc'), function(a){ return a.title; }).join(',') + ' supported=' + (typeof appearanceKindSupported) + ':' + (typeof appearanceKindSupported === 'function' ? appearanceKindSupported('button') : 'n/a') + ' section=' + (typeof appearanceInspectorSection) + ' status=' + document.getElementById('status').textContent);
     var structs = Array.prototype.slice.call(s[0].options).map(function (o) { return o.textContent; });
     assert(structs.indexOf('Circular') >= 0, 'button structures missing');
     s[0].value = 'circle'; s[0].dispatchEvent(new Event('change', { bubbles: true }));
@@ -176,6 +192,48 @@ const guiAppearanceScript = `<script>
     await wait(900);
     var frame = document.getElementById('lib-app-preview');
     assert(frame.srcdoc.indexOf('Button') >= 0, 'appearance preview was not compiled');
+    closeLibraryNavigator();
+    // Every non-complex control gets the section; list is a generic catalog.
+    var genericPath = pathOfKind('dropdown');
+    assert(!!genericPath, 'dropdown node missing');
+    selPath = genericPath; multiSel = []; renderTree(); renderInspector();
+    await until(function () { return !!appSection(); }, 4000);
+    var gs = selects();
+    assert(gs.length === 4, 'generic control appearance section missing');
+    var gStructs = Array.prototype.slice.call(gs[0].options).map(function (o) { return o.textContent; });
+    assert(gStructs.indexOf('Rounded') >= 0, 'generic structures missing');
+    gs[0].value = 'rounded'; gs[0].dispatchEvent(new Event('change', { bubbles: true })); await wait(500);
+    gs = selects(); gs[1].value = 'accent'; gs[1].dispatchEvent(new Event('change', { bubbles: true })); await wait(500);
+    gs = selects();
+    var gPulse = Array.prototype.slice.call(gs[2].options).filter(function (o) { return o.textContent === 'Pulse'; })[0];
+    assert(!!gPulse, 'generic pulse animation missing');
+    gs[2].value = gPulse.value; gs[2].dispatchEvent(new Event('change', { bubbles: true })); await wait(600);
+    var genericNode = byPath(genericPath, root.children);
+    var genericStyle = String(genericNode.style || '');
+    assert(/border-radius:\s*12px/.test(genericStyle), 'generic structure not applied');
+    assert(genericStyle.indexOf('#4c5cf7') >= 0, 'generic style not applied');
+    assert(/sui-appearance-pulse/.test(genericStyle), 'generic animation not applied');
+    assert(root.css.indexOf('sui-appearance-keyframes') >= 0, 'generic keyframes missing');
+    assert(!appearanceKindSupported('table') && !appearanceKindSupported('graph') && !appearanceKindSupported('chart'), 'complex controls must not expose appearance');
+    // Insert toolbar: Controls has subcategories and Advanced holds table/graph/chart.
+    renderInsertMenu();
+    var drop = document.getElementById('drop-insert');
+    var controlsRow = null;
+    drop.querySelectorAll(':scope > .mi.has-sub').forEach(function (row) {
+      var label = row.querySelector('span') ? row.querySelector('span').textContent : '';
+      if (label === 'Controls') controlsRow = row;
+    });
+    assert(!!controlsRow, 'Controls group missing');
+    var subLabels = Array.prototype.map.call(controlsRow.querySelector('.mi-sub').querySelectorAll(':scope > .mi.has-sub > span:first-child'), function (s) { return s.textContent; });
+    assert(subLabels.indexOf('Inputs') >= 0 && subLabels.indexOf('Advanced') >= 0, 'Controls subcategories missing');
+    var advancedRow = null;
+    controlsRow.querySelector('.mi-sub').querySelectorAll(':scope > .mi.has-sub').forEach(function (row) {
+      var label = row.querySelector('span') ? row.querySelector('span').textContent : '';
+      if (label === 'Advanced') advancedRow = row;
+    });
+    assert(!!advancedRow, 'Advanced submenu missing');
+    var advancedText = advancedRow.querySelector('.mi-sub').textContent;
+    assert(advancedText.indexOf('Table') >= 0 && advancedText.indexOf('Graph') >= 0 && advancedText.indexOf('Chart') >= 0, 'Advanced must contain table, graph and chart');
     try { localStorage.removeItem('sui.appearance.themes.v1'); } catch (e) {}
     result(true, '');
   } catch (e) {

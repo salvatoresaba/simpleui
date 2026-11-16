@@ -825,7 +825,8 @@ classi aggiornate.
 
 ## Aspetto dei controlli
 
-Selezionando un controllo compare la sezione **Control appearance** nell'Inspector:
+Ogni controllo tranne **table**, **graph** e **chart** mostra la sezione
+**Control appearance** nell'Inspector:
 
 | Selettore | Cosa cambia |
 |---|---|
@@ -842,8 +843,10 @@ default di progetto per ogni controllo di quel tipo. Testo, font, bordo, eventi 
 allineamento restano nelle rispettive sezioni dell'Inspector.
 
 **Insert → Controls library…** apre il navigator con la scheda **Appearance**
-(tipi, strutture, stili, animazioni, anteprima interattiva, temi) e la scheda
-**Components** per i preset inseribili. I temi preferiti sono salvati nel local
+(tutti i controlli, strutture, stili, animazioni, anteprima interattiva, temi) e
+la scheda **Components** per i preset inseribili. La toolbar Insert raggruppa i
+controlli in **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**,
+**Feedback** e **Advanced**; Advanced contiene table, graph e chart. I temi preferiti sono salvati nel local
 storage dell'editor (`sui.appearance.themes.v1`), non nel file `.sui`.
 
 Vedi [Control appearance library](APPEARANCE_LIBRARY.md) per il catalogo,

@@ -2249,9 +2249,15 @@ var PALETTE = [
   { group: "Text", tags: ["h1", "h2", "h3", "p", "text", "hr", "blockquote", "pre"],
     subs: [ { name: "Lists", tags: ["list", "ul", "ol"] } ] },
   { group: "Content", tags: ["timeline", "timelineitem", "emptystate", "skeleton", "carousel", "slide", "stepper", "step"] },
-  { group: "Controls", tags: ["button", "input", "textarea", "checkbox", "switch", "radio", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time", "tree", "chart", "graph", "dropdown", "popover", "drawer", "splitter", "pane", "dropzone"],
-    subs: [ { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] } ] },
-  { group: "Tables", tags: ["table"] },
+  { group: "Controls", tags: [], subs: [
+      { name: "Inputs", tags: ["input", "textarea", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time"] },
+      { name: "Toggles", tags: ["checkbox", "switch", "radio"] },
+      { name: "Actions", tags: ["button", "dropdown", "popover"] },
+      { name: "Panels", tags: ["drawer", "splitter", "pane", "dropzone"] },
+      { name: "Data", tags: ["tree"] },
+      { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] },
+      { name: "Advanced", tags: ["table", "graph", "chart"] }
+    ] },
   { group: "Media", tags: ["img", "video", "audio", "iframe"] }
 ];
 
@@ -2273,7 +2279,7 @@ var PALETTE_LABEL = {
   commandbar: "Command palette", command: "Command",
   tablelayout: "Table layout",
   layoutcell: "Layout cell",
-  tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph",
+  tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph", table: "Table",
   menubar: "Menu bar", menu: "Menu", menuitem: "Menu item", modal: "Modal", modalbutton: "Modal button", toast: "Toast host",
   progress: "Progress",
   badge: "Badge", alert: "Alert", spinner: "Spinner", divider: "Divider"
@@ -6024,10 +6030,9 @@ function renderInspector() {
 
   // Dedicated appearance controls for the selected control kind: structure
   // (shape), style (colours) and animation, plus saved themes.
-  if (nodes.length === 1 && n && typeof appearanceInspectorSection === "function") {
-    var appearanceDef = componentDefForKind(n.kind);
-    if (appearanceDef && appearanceDef.categories && appearanceDef.categories.length) {
-      box.appendChild(appearanceInspectorSection(appearanceDef, n));
+  if (nodes.length === 1 && n && typeof appearanceInspectorSection === "function" && typeof appearanceKindSupported === "function") {
+    if (appearanceKindSupported(n.kind)) {
+      box.appendChild(appearanceInspectorSection(appearanceDefForKind(n.kind), n));
     }
   }
 
@@ -24511,7 +24516,7 @@ function writeComponentVars(vars) {
   else root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
 }
 function ensureComponentRules(def) {
-  if (!def) return;
+  if (!def || !def.css) return;
   var re = new RegExp("/\\* sui-component-rules:" + def.id + " \\*/[\\s\\S]*?/\\* /sui-component-rules:" + def.id + " \\*/");
   var block = "/* sui-component-rules:" + def.id + " */\n" + def.css + "\n/* /sui-component-rules:" + def.id + " */";
   if (re.test(root.css)) root.css = root.css.replace(re, block);
