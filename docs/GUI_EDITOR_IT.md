@@ -823,6 +823,32 @@ e border-image) scrivono le dichiarazioni su ogni elemento selezionato in
 un'unica transazione multi-classe, quindi un errore non lascia metà delle
 classi aggiornate.
 
+## Aspetto dei controlli
+
+Selezionando un controllo compare la sezione **Control appearance** nell'Inspector:
+
+| Selettore | Cosa cambia |
+|---|---|
+| Structure | forma e disegno del tipo (per un button: rettangolare, pill, circolare, quadrato, largo) |
+| Style | palette di colori (bordo, testo, riempimento, ombra) |
+| Animation | movimento delle parti del controllo |
+| Theme | combinazione con nome di struttura + stile + animazione |
+
+**Browse…** apre il navigator della libreria filtrato su quel controllo;
+**Save theme…** salva la combinazione corrente e le dichiarazioni personalizzate
+tra i temi preferiti dell'editor, che compaiono nel selettore **Theme**. I valori
+si applicano solo all'elemento selezionato; **Settings…** continua a gestire il
+default di progetto per ogni controllo di quel tipo. Testo, font, bordo, eventi e
+allineamento restano nelle rispettive sezioni dell'Inspector.
+
+**Insert → Controls library…** apre il navigator con la scheda **Appearance**
+(tipi, strutture, stili, animazioni, anteprima interattiva, temi) e la scheda
+**Components** per i preset inseribili. I temi preferiti sono salvati nel local
+storage dell'editor (`sui.appearance.themes.v1`), non nel file `.sui`.
+
+Vedi [Control appearance library](APPEARANCE_LIBRARY.md) per il catalogo,
+l'esempio del button e il flusso di lavoro.
+
 ## Immagini
 
 **Insert → Image assets…** apre l'asset manager. Carica un'immagine e la

@@ -208,17 +208,41 @@ function libraryNavSelected() {
   for (var i = 0; i < all.length; i++) if (all[i].c.id === LIB_NAV_SEL) return all[i];
   return all.length ? all[0] : null;
 }
-function openLibraryNavigator() {
+function openLibraryNavigator(mode, kind) {
   var nav = document.getElementById("lib-nav");
   if (!nav) return;
   nav.classList.add("on");
+  if (mode === "appearance" || mode === "components") LIB_NAV_MODE = mode;
+  if (kind) {
+    var def = componentDefForKind(kind);
+    if (def) {
+      LIB_NAV_MODE = "appearance";
+      LIB_APP_DEF_ID = def.id;
+      LIB_APP_KIND = kind;
+      LIB_APP_SEL = appearanceDefaultSelection(def, kind);
+      LIB_APP_THEME_ID = "";
+    }
+  }
+  if (LIB_NAV_MODE === "appearance" && !LIB_APP_DEF_ID) {
+    var first = null;
+    for (var i = 0; i < COMPONENT_DEFS.length; i++) {
+      if (COMPONENT_DEFS[i].categories && COMPONENT_DEFS[i].categories.length) { first = COMPONENT_DEFS[i]; break; }
+    }
+    if (first) {
+      LIB_APP_DEF_ID = first.id;
+      LIB_APP_KIND = first.kinds[0];
+      LIB_APP_SEL = appearanceDefaultSelection(first, LIB_APP_KIND);
+    }
+  }
   if (!LIB_NAV_SEL) {
     var all = libraryAllComponents();
     if (all.length) LIB_NAV_SEL = all[0].c.id;
   }
   renderLibraryNavigator();
-  var s = document.getElementById("lib-search");
-  if (s) s.focus();
+  if (LIB_NAV_MODE === "components") {
+    var s = document.getElementById("lib-search");
+    if (s) s.focus();
+  }
 }
 function closeLibraryNavigator() {
   var nav = document.getElementById("lib-nav");
@@ -226,10 +250,13 @@ function closeLibraryNavigator() {
 }
 function renderLibraryNavigator() {
   var src = document.getElementById("lib-source");
-  if (src) src.textContent = COMPONENT_LIBRARY ? (COMPONENT_LIBRARY.source || "component library") : "";
+  if (src) src.textContent = LIB_NAV_MODE === "appearance" ? "Structures / styles / animations" : (COMPONENT_LIBRARY ? (COMPONENT_LIBRARY.source || "component library") : "");
   var st = document.getElementById("lib-status");
   if (st) {
-    if (COMPONENT_LIBRARY_ERROR) {
+    if (LIB_NAV_MODE === "appearance") {
+      st.textContent = LIBRARY_REF_WARNINGS.length ? LIBRARY_REF_WARNINGS.join(" ") : "";
+      st.style.color = LIBRARY_REF_WARNINGS.length ? "#fbbf24" : "";
+    } else if (COMPONENT_LIBRARY_ERROR) {
       st.textContent = "Library rejected: " + COMPONENT_LIBRARY_ERROR;
       st.style.color = "#f87171";
     } else if (LIBRARY_REF_WARNINGS.length) {
@@ -240,9 +267,13 @@ function renderLibraryNavigator() {
       st.style.color = "";
     }
   }
-  renderLibraryGroups();
-  renderLibraryList();
-  renderLibraryDetail();
+  renderLibraryMode();
+  if (LIB_NAV_MODE === "appearance") renderAppearanceNavigator();
+  else {
+    renderLibraryGroups();
+    renderLibraryList();
+    renderLibraryDetail();
+  }
 }
 function renderLibraryGroups() {
   var box = document.getElementById("lib-groups");
@@ -373,4 +404,629 @@ document.addEventListener("click", function(ev){
   var nav = document.getElementById("lib-nav");
   if (nav && ev.target === nav) closeLibraryNavigator();
 });
+
+// ---- control appearance library -------------------------------------------
+// Structures (shape), styles (colours) and animations for the built-in control
+// kinds. A theme is a structure + style + animation triple. The data is derived
+// from COMPONENT_DEFS so every control gets at least a default structure/style
+// and its animation options; the curated entries below make the button example
+// (and a few other controls) richer.
+var APPEARANCE_FAV_KEY = "sui.appearance.themes.v1";
+var APPEARANCE_CUSTOM = {
+  button: {
+    structures: [
+      { id: "rect", label: "Rectangular", vars: { "--sui-button-radius": "8px" } },
+      { id: "pill", label: "Pill", vars: { "--sui-button-radius": "999px", "--sui-button-padding": "8px 20px" } },
+      { id: "circle", label: "Circular", vars: { "--sui-button-radius": "999px", "--sui-button-padding": "0px", "width": "56px", "height": "56px" } },
+      { id: "square", label: "Square", vars: { "--sui-button-radius": "4px", "--sui-button-padding": "0px", "width": "56px", "height": "56px" } },
+      { id: "wide", label: "Wide", vars: { "--sui-button-padding": "10px 28px", "--sui-button-radius": "12px" } }
+    ],
+    styles: [
+      { id: "midnight", label: "Midnight", vars: { "--sui-button-bg": "#111827", "--sui-button-fg": "#e5e7eb", "--sui-button-border": "#334155", "--sui-button-hover": "#1f2937", "--sui-button-shadow": "0 2px 8px rgba(0,0,0,.28)" } },
+      { id: "primary", label: "Primary", vars: { "--sui-button-bg": "linear-gradient(135deg, #4c5cf7, #7c3aed)", "--sui-button-fg": "#ffffff", "--sui-button-border": "#4c5cf7", "--sui-button-hover": "#5b6bff", "--sui-button-shadow": "0 4px 14px rgba(76,92,247,.45)" } },
+      { id: "coral", label: "Coral", vars: { "--sui-button-bg": "#f43f5e", "--sui-button-fg": "#ffffff", "--sui-button-border": "#e11d48", "--sui-button-hover": "#fb7185", "--sui-button-shadow": "0 4px 14px rgba(244,63,94,.4)" } },
+      { id: "mint", label: "Mint", vars: { "--sui-button-bg": "#10b981", "--sui-button-fg": "#052e16", "--sui-button-border": "#059669", "--sui-button-hover": "#34d399", "--sui-button-shadow": "0 4px 12px rgba(16,185,129,.35)" } },
+      { id: "neon", label: "Neon", vars: { "--sui-button-bg": "transparent", "--sui-button-fg": "#22d3ee", "--sui-button-border": "#22d3ee", "--sui-button-hover": "rgba(34,211,238,.14)", "--sui-button-shadow": "0 0 14px rgba(34,211,238,.45)" } },
+      { id: "ghost", label: "Ghost", vars: { "--sui-button-bg": "transparent", "--sui-button-fg": "#c7d2fe", "--sui-button-border": "transparent", "--sui-button-hover": "rgba(255,255,255,.08)", "--sui-button-shadow": "none" } }
+    ]
+  },
+  check: {
+    structures: [
+      { id: "compact", label: "Compact", vars: { "--sui-check-size": "14px" } },
+      { id: "default", label: "Default", vars: { "--sui-check-size": "18px" } },
+      { id: "large", label: "Large", vars: { "--sui-check-size": "24px" } }
+    ],
+    styles: [
+      { id: "midnight", label: "Midnight", vars: { "--sui-check-bg": "#1d2129", "--sui-check-border": "#3d4556", "--sui-check-checked": "#4c5cf7", "--sui-check-checked-border": "#4c5cf7", "--sui-check-mark": "#ffffff" } },
+      { id: "success", label: "Success", vars: { "--sui-check-bg": "#0f172a", "--sui-check-border": "#334155", "--sui-check-checked": "#22c55e", "--sui-check-checked-border": "#16a34a", "--sui-check-mark": "#052e16" } },
+      { id: "danger", label: "Danger", vars: { "--sui-check-bg": "#1f1215", "--sui-check-border": "#7f1d1d", "--sui-check-checked": "#ef4444", "--sui-check-checked-border": "#dc2626", "--sui-check-mark": "#ffffff" } },
+      { id: "mono", label: "Mono", vars: { "--sui-check-bg": "#111827", "--sui-check-border": "#64748b", "--sui-check-checked": "#e5e7eb", "--sui-check-checked-border": "#e5e7eb", "--sui-check-mark": "#111827" } }
+    ]
+  },
+  switch: {
+    structures: [
+      { id: "default", label: "Default", attrs: {}, vars: {} },
+      { id: "rounded", label: "Rounded", attrs: { shape: "rounded" }, vars: {} },
+      { id: "square", label: "Square", attrs: { shape: "square" }, vars: {} },
+      { id: "pill", label: "Pill", attrs: { shape: "pill" }, vars: {} },
+      { id: "ios", label: "iOS", attrs: { shape: "ios" }, vars: {} },
+      { id: "material", label: "Material", attrs: { shape: "material" }, vars: {} },
+      { id: "minimal", label: "Minimal", attrs: { shape: "minimal" }, vars: {} },
+      { id: "soft", label: "Soft", attrs: { shape: "soft" }, vars: {} }
+    ],
+    styles: [
+      { id: "midnight", label: "Midnight", vars: { "--sui-switch-bg": "#374151", "--sui-switch-checked": "#4c5cf7", "--sui-switch-thumb": "#ffffff" } },
+      { id: "ios", label: "iOS green", vars: { "--sui-switch-bg": "#334155", "--sui-switch-checked": "#22c55e", "--sui-switch-thumb": "#ffffff" } },
+      { id: "coral", label: "Coral", vars: { "--sui-switch-bg": "#3f1d24", "--sui-switch-checked": "#f43f5e", "--sui-switch-thumb": "#ffe4e6" } },
+      { id: "mono", label: "Mono", vars: { "--sui-switch-bg": "#1f2937", "--sui-switch-checked": "#e5e7eb", "--sui-switch-thumb": "#111827" } }
+    ]
+  },
+  card: {
+    structures: [
+      { id: "elevated", label: "Elevated", vars: { "--sui-card-radius": "12px", "--sui-card-padding": "16px" } },
+      { id: "flat", label: "Flat", vars: { "--sui-card-shadow": "none", "--sui-card-radius": "8px" } },
+      { id: "outline", label: "Outline", vars: { "--sui-card-bg": "transparent", "--sui-card-border-width": "2px" } },
+      { id: "glass", label: "Glass", vars: { "--sui-card-bg": "rgba(15,23,42,.55)", "--sui-card-backdrop": "blur(10px)" } },
+      { id: "square", label: "Square", vars: { "--sui-card-radius": "0px" } }
+    ],
+    styles: [
+      { id: "dark", label: "Dark", vars: { "--sui-card-bg": "#1a1d26", "--sui-card-fg": "#e6e6ef", "--sui-card-border": "#3d4556", "--sui-card-shadow": "0 4px 12px rgba(0,0,0,.3)" } },
+      { id: "light", label: "Light", vars: { "--sui-card-bg": "#f8fafc", "--sui-card-fg": "#0f172a", "--sui-card-border": "#cbd5e1", "--sui-card-shadow": "0 4px 12px rgba(15,23,42,.12)" } },
+      { id: "glass", label: "Glass", vars: { "--sui-card-bg": "rgba(15,23,42,.55)", "--sui-card-fg": "#e2e8f0", "--sui-card-border": "rgba(148,163,184,.35)", "--sui-card-backdrop": "blur(10px)" } },
+      { id: "neon", label: "Neon", vars: { "--sui-card-bg": "#0b1220", "--sui-card-fg": "#e0f2fe", "--sui-card-border": "#22d3ee", "--sui-card-shadow": "0 0 18px rgba(34,211,238,.28)" } }
+    ]
+  },
+  form: {
+    structures: [
+      { id: "outline", label: "Outline", vars: { "--sui-field-radius": "8px", "--sui-field-border-width": "1px" } },
+      { id: "filled", label: "Filled", vars: { "--sui-field-bg": "#1f2937", "--sui-field-border-width": "0px" } },
+      { id: "pill", label: "Pill", vars: { "--sui-field-radius": "999px", "--sui-field-padding": "8px 16px" } },
+      { id: "square", label: "Square", vars: { "--sui-field-radius": "0px" } }
+    ],
+    styles: [
+      { id: "dark", label: "Dark", vars: { "--sui-field-bg": "#1d2129", "--sui-field-fg": "#e6e6ef", "--sui-field-border": "#3d4556", "--sui-field-focus": "#4c5cf7" } },
+      { id: "filled", label: "Filled", vars: { "--sui-field-bg": "#1f2937", "--sui-field-fg": "#e5e7eb", "--sui-field-border": "#1f2937", "--sui-field-focus": "#60a5fa" } },
+      { id: "outline", label: "Outline", vars: { "--sui-field-bg": "transparent", "--sui-field-fg": "#e6e6ef", "--sui-field-border": "#4c5cf7", "--sui-field-focus": "#818cf8" } },
+      { id: "mono", label: "Mono", vars: { "--sui-field-bg": "#0f172a", "--sui-field-fg": "#e2e8f0", "--sui-field-border": "#64748b", "--sui-field-focus": "#e2e8f0" } }
+    ]
+  },
+  badge: {
+    structures: [
+      { id: "pill", label: "Pill", vars: { "--sui-badge-radius": "999px", "--sui-badge-padding": "2px 10px" } },
+      { id: "tag", label: "Tag", vars: { "--sui-badge-radius": "4px", "--sui-badge-padding": "2px 6px" } },
+      { id: "square", label: "Square", vars: { "--sui-badge-radius": "0px" } },
+      { id: "large", label: "Large", vars: { "--sui-badge-font-size": "14px", "--sui-badge-padding": "4px 12px" } }
+    ],
+    styles: [
+      { id: "indigo", label: "Indigo", vars: { "--sui-badge-bg": "#252b45", "--sui-badge-fg": "#a5b4fc", "--sui-badge-border": "#4c5cf7" } },
+      { id: "green", label: "Green", vars: { "--sui-badge-bg": "#052e16", "--sui-badge-fg": "#86efac", "--sui-badge-border": "#166534" } },
+      { id: "red", label: "Red", vars: { "--sui-badge-bg": "#3f1d24", "--sui-badge-fg": "#fda4af", "--sui-badge-border": "#9f1239" } },
+      { id: "amber", label: "Amber", vars: { "--sui-badge-bg": "#3b2a09", "--sui-badge-fg": "#fcd34d", "--sui-badge-border": "#b45309" } },
+      { id: "mono", label: "Mono", vars: { "--sui-badge-bg": "#111827", "--sui-badge-fg": "#e5e7eb", "--sui-badge-border": "#64748b" } }
+    ]
+  }
+};
+function appearanceFieldKey(def, re) {
+  for (var i = 0; i < def.categories.length; i++) {
+    var fs = def.categories[i].fields || [];
+    for (var j = 0; j < fs.length; j++) if (re.test(fs[j].key || "")) return fs[j].key;
+  }
+  return "";
+}
+function appearanceAnimKey(def) {
+  for (var i = 0; i < def.categories.length; i++) {
+    var fs = def.categories[i].fields || [];
+    for (var j = 0; j < fs.length; j++) {
+      var f = fs[j];
+      if ((f.key || "").indexOf("animation") >= 0 || (f.type === "select" && /^sui-|^none$/.test(String((f.opts || [["", ""]])[0][1] || "")))) return f.key || "";
+    }
+  }
+  return "";
+}
+function appearanceStructures(def, kind) {
+  var custom = APPEARANCE_CUSTOM[def.id];
+  if (custom && custom.structures) return custom.structures;
+  var out = [{ id: "default", label: "Default", vars: {} }];
+  var radius = appearanceFieldKey(def, /-radius$/);
+  if (radius) {
+    var round = {}; round[radius] = "999px";
+    var square = {}; square[radius] = "0px";
+    out.push({ id: "round", label: "Rounded", vars: round });
+    out.push({ id: "square", label: "Square", vars: square });
+  }
+  return out;
+}
+function appearanceStyles(def, kind) {
+  var custom = APPEARANCE_CUSTOM[def.id];
+  if (custom && custom.styles) return custom.styles;
+  return [{ id: "default", label: "Default", vars: {} }];
+}
+function appearanceAnimations(def) {
+  var field = null;
+  for (var i = 0; i < def.categories.length && !field; i++) {
+    var fs = def.categories[i].fields || [];
+    for (var j = 0; j < fs.length; j++) {
+      if ((fs[j].key || "").indexOf("animation") >= 0) { field = fs[j]; break; }
+    }
+  }
+  var out = [];
+  var seen = {};
+  (field && field.opts ? field.opts : []).forEach(function(o){
+    var value = String(o[1] === undefined ? "" : o[1]);
+    if (value === "") return;
+    var id = String(o[0] || value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "option";
+    var base = id, n = 2;
+    while (seen[id]) id = base + "-" + (n++);
+    seen[id] = true;
+    out.push({ id: id, label: String(o[0] || value), value: value });
+  });
+  if (!out.some(function(o){ return o.value === "none"; })) out.unshift({ id: "none", label: "None", value: "none" });
+  return out;
+}
+function appearanceThemeLookup(def, kind, id) {
+  var themes = appearanceThemes(def, kind);
+  for (var i = 0; i < themes.length; i++) if (themes[i].id === id) return themes[i];
+  return null;
+}
+function appearanceThemes(def, kind) {
+  var S = appearanceStructures(def, kind);
+  var T = appearanceStyles(def, kind);
+  var A = appearanceAnimations(def);
+  function pick(list, ids, fallback) {
+    for (var i = 0; i < ids.length; i++) for (var j = 0; j < list.length; j++) if (list[j].id === ids[i]) return list[j].id;
+    return fallback;
+  }
+  var s0 = S[0].id, t0 = T[0].id, a0 = A[0].id;
+  var out = [];
+  var seen = {};
+  function add(id, label, structure, style, animation) {
+    var key = structure + "|" + style + "|" + animation;
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push({ id: id, label: label, structure: structure, style: style, animation: animation, generated: true });
+  }
+  add("classic", "Classic", s0, t0, a0);
+  var round = pick(S, ["pill", "round", "circle"], s0);
+  var primary = pick(T, ["primary", "midnight"], t0);
+  add("rounded", "Rounded", round, primary, a0);
+  var neonStyle = pick(T, ["neon", "indigo", "primary"], t0);
+  var glow = pick(A, ["glow", "pulse", "float"], a0);
+  add("neon", "Neon", round, neonStyle, glow);
+  var dangerStyle = pick(T, ["coral", "danger", "red"], t0);
+  var pulse = pick(A, ["pulse", "bounce", "jelly"], a0);
+  add("alert", "Alert", s0, dangerStyle, pulse);
+  var compact = pick(S, ["compact", "square", "tag"], s0);
+  add("compact", "Compact", compact, t0, a0);
+  var favs = appearanceFavorites().filter(function(f){ return f.defId === def.id; });
+  favs.forEach(function(f){
+    out.push({ id: f.id, label: f.label, structure: f.structure || "", style: f.style || "", animation: f.animation || "", vars: f.vars || {}, favorite: true });
+  });
+  return out;
+}
+function appearanceFavorites() {
+  try {
+    var raw = localStorage.getItem(APPEARANCE_FAV_KEY);
+    var list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list.filter(function(f){ return f && f.id && f.label && f.defId; }) : [];
+  } catch (e) { return []; }
+}
+function appearanceSaveFavorite(def, kind, node, sel) {
+  function store(name) {
+    name = String(name || "").trim();
+    if (!name) return;
+    var vars = {};
+    if (node) {
+      var map = styleDeclMap(node.style || "");
+      appearanceKeyUnion(def).forEach(function(k){ if (map[k] !== undefined) vars[k] = map[k]; });
+    } else {
+      vars = appearanceVarsForSelection(def, kind, sel);
+    }
+    var list = appearanceFavorites();
+    var item = {
+      id: "fav-" + Date.now(),
+      label: name,
+      kind: kind,
+      defId: def.id,
+      structure: sel && sel.structure ? sel.structure : "",
+      style: sel && sel.style ? sel.style : "",
+      animation: sel && sel.animation ? sel.animation : "",
+      vars: vars
+    };
+    list.push(item);
+    try { localStorage.setItem(APPEARANCE_FAV_KEY, JSON.stringify(list)); } catch (e) {}
+    setStatus("Saved appearance theme '" + name + "'.");
+    renderInspector();
+    if (document.getElementById("lib-nav") && document.getElementById("lib-nav").classList.contains("on")) renderLibraryNavigator();
+    return item;
+  }
+  var initial = (def.label || kind) + " theme";
+  if (typeof askPrompt === "function") askPrompt("Save appearance theme", "Name", initial, store, "Stored in this editor and available in the control inspector.");
+  else store(initial);
+}
+function appearanceKeyUnion(def) {
+  var keys = {}, out = [];
+  function add(k) { if (k && !keys[k]) { keys[k] = true; out.push(k); } }
+  appearanceStructures(def, "").forEach(function(s){ Object.keys(s.vars || {}).forEach(add); });
+  appearanceStyles(def, "").forEach(function(s){ Object.keys(s.vars || {}).forEach(add); });
+  var ak = appearanceAnimKey(def);
+  if (ak) add(ak);
+  return out;
+}
+function appearanceAttrsUnion(def) {
+  var keys = {}, out = [];
+  appearanceStructures(def, "").forEach(function(s){
+    Object.keys(s.attrs || {}).forEach(function(k){ if (!keys[k]) { keys[k] = true; out.push(k); } });
+  });
+  return out;
+}
+function appearanceVariant(list, id) {
+  for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+  return null;
+}
+function appearanceVarsForSelection(def, kind, sel) {
+  var vars = {};
+  sel = sel || {};
+  if (sel.themeVars) {
+    Object.keys(sel.themeVars).forEach(function(k){ vars[k] = sel.themeVars[k]; });
+    return vars;
+  }
+  var st = appearanceVariant(appearanceStructures(def, kind), sel.structure);
+  var sy = appearanceVariant(appearanceStyles(def, kind), sel.style);
+  var an = appearanceVariant(appearanceAnimations(def), sel.animation);
+  if (st) Object.keys(st.vars || {}).forEach(function(k){ vars[k] = st.vars[k]; });
+  if (sy) Object.keys(sy.vars || {}).forEach(function(k){ vars[k] = sy.vars[k]; });
+  var ak = appearanceAnimKey(def);
+  if (ak && an && an.value && an.value !== "none") vars[ak] = an.value;
+  return vars;
+}
+function appearanceMatchVariant(list, map, attrs, node) {
+  for (var i = 0; i < list.length; i++) {
+    var v = list[i], ok = true;
+    Object.keys(v.vars || {}).forEach(function(k){ if (String(map[k] === undefined ? "" : map[k]) !== String(v.vars[k])) ok = false; });
+    if (ok && v.attrs) {
+      Object.keys(v.attrs).forEach(function(k){ if (String((node && node[k]) || "") !== String(v.attrs[k])) ok = false; });
+    }
+    if (ok) return v.id;
+  }
+  return "";
+}
+function appearanceCurrent(node, def, kind) {
+  var map = styleDeclMap(node.style || "");
+  var structs = appearanceStructures(def, kind);
+  var styles = appearanceStyles(def, kind);
+  var anims = appearanceAnimations(def);
+  var ak = appearanceAnimKey(def);
+  var structure = appearanceMatchVariant(structs, map, null, node);
+  var style = appearanceMatchVariant(styles, map, null, node);
+  var animation = "";
+  var av = String(map[ak] === undefined ? "" : map[ak]);
+  for (var i = 0; i < anims.length; i++) {
+    if (String(anims[i].value) === av || (av === "" && anims[i].value === "none")) { animation = anims[i].id; break; }
+  }
+  var theme = "";
+  var themes = appearanceThemes(def, kind);
+  for (var j = 0; j < themes.length; j++) {
+    if (themes[j].structure === structure && themes[j].style === style && themes[j].animation === animation) { theme = themes[j].id; break; }
+  }
+  return { structure: structure, style: style, animation: animation, theme: theme, vars: map };
+}
+function appearanceApply(node, def, patch) {
+  if (!node) return;
+  patch = patch || {};
+  var kind = node.kind;
+  var map = styleDeclMap(node.style || "");
+  var allKeys = appearanceKeyUnion(def);
+  if (patch.themeVars) {
+    allKeys.forEach(function(k){ delete map[k]; });
+    Object.keys(patch.themeVars).forEach(function(k){ map[k] = patch.themeVars[k]; });
+  } else {
+    if (patch.structure) {
+      var st = appearanceVariant(appearanceStructures(def, kind), patch.structure);
+      appearanceStructures(def, kind).forEach(function(s){ Object.keys(s.vars || {}).forEach(function(k){ delete map[k]; }); });
+      if (st) {
+        Object.keys(st.vars || {}).forEach(function(k){ map[k] = st.vars[k]; });
+        appearanceAttrsUnion(def).forEach(function(k){ delete node[k]; });
+        Object.keys(st.attrs || {}).forEach(function(k){ node[k] = st.attrs[k]; });
+      }
+    }
+    if (patch.style) {
+      var sy = appearanceVariant(appearanceStyles(def, kind), patch.style);
+      appearanceStyles(def, kind).forEach(function(s){ Object.keys(s.vars || {}).forEach(function(k){ delete map[k]; }); });
+      if (sy) Object.keys(sy.vars || {}).forEach(function(k){ map[k] = sy.vars[k]; });
+    }
+    if (patch.animation) {
+      var an = appearanceVariant(appearanceAnimations(def), patch.animation);
+      var ak = appearanceAnimKey(def);
+      if (ak) {
+        if (an && an.value && an.value !== "none") map[ak] = an.value; else delete map[ak];
+      }
+    }
+  }
+  if (patch.structure) {
+    var st2 = appearanceVariant(appearanceStructures(def, kind), patch.structure);
+    if (st2) {
+      appearanceAttrsUnion(def).forEach(function(k){ delete node[k]; });
+      Object.keys(st2.attrs || {}).forEach(function(k){ node[k] = st2.attrs[k]; });
+    }
+  }
+  writeComponentNodeStyle(def, node, map);
+  ensureComponentRules(def);
+}
+function appearanceVarsForTheme(def, kind, theme) {
+  if (!theme) return {};
+  if (theme.vars) {
+    var vars = {};
+    Object.keys(theme.vars).forEach(function(k){ vars[k] = theme.vars[k]; });
+    return vars;
+  }
+  return appearanceVarsForSelection(def, kind, { structure: theme.structure, style: theme.style, animation: theme.animation });
+}
+function appearancePatchForTheme(theme) {
+  if (!theme) return {};
+  return {
+    structure: theme.structure || "",
+    style: theme.style || "",
+    animation: theme.animation || "",
+    themeVars: theme.vars || null
+  };
+}
+function appearancePreviewNode(kind, attrs) {
+  var attrStr = "";
+  Object.keys(attrs || {}).forEach(function(k){ attrStr += " " + k + ": \"" + esc(String(attrs[k])) + "\""; });
+  var cls = " class: \"appearance-preview\"";
+  if (kind === "button") return "button \"Button\"" + cls + attrStr;
+  if (kind === "card") return "card \"Card\"" + cls + attrStr + " {\n\t\tp \"Preview\"\n\t}";
+  if (kind === "checkbox") return "checkbox \"Checkbox\" checked: true" + cls + attrStr;
+  if (kind === "radio") return "radio \"Radio\" name: \"appearance-preview\" checked: true" + cls + attrStr;
+  if (kind === "switch") return "switch \"Switch\" checked: true" + cls + attrStr;
+  if (kind === "input") return "input \"Input\" value: \"Preview\"" + cls + attrStr;
+  if (kind === "textarea") return "textarea \"Textarea\" value: \"Preview\"" + cls + attrStr;
+  if (kind === "select") return "select \"Select\" options: \"One,Two\"" + cls + attrStr;
+  if (kind === "badge") return "badge \"Live\"" + cls + attrStr;
+  if (kind === "progress") return "progress value: 62 max: 100" + cls + attrStr;
+  if (kind === "spinner") return "spinner" + cls + attrStr;
+  if (kind === "tabs") return "tabs \"Tabs\"" + cls + attrStr + " {\n\t\ttab \"One\" { p \"One\" }\n\t\ttab \"Two\" { p \"Two\" }\n\t}";
+  if (kind === "accordion") return "accordion \"Sections\"" + cls + attrStr + " {\n\t\taccordionitem \"First\" { p \"Content\" }\n\t}";
+  if (kind === "alert") return "alert \"Preview\"" + cls + attrStr;
+  if (kind === "divider") return "divider" + cls + attrStr;
+  return kind + cls + attrStr;
+}
+function appearancePreviewSource(def, kind, sel) {
+  var vars = appearanceVarsForSelection(def, kind, sel);
+  var st = appearanceVariant(appearanceStructures(def, kind), sel && sel.structure);
+  var decls = Object.keys(vars).map(function(k){ return k + ": " + vars[k] + ";"; }).join(" ");
+  var css = (def.css || "") + "\n.appearance-preview { " + decls + " }\n" +
+    "body { margin: 0; padding: 24px; background: #0f1117; color: #e5e7eb; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }";
+  return "css \"" + esc(css) + "\"\n\nview main {\n\t" + appearancePreviewNode(kind, st ? st.attrs : null) + "\n}\n";
+}
+function appearanceLoadPreview(def, kind, sel, frame) {
+  if (!frame) return;
+  frame.srcdoc = "<!doctype html><html><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#0f1117;color:#8fa0b8;font:13px system-ui,sans-serif'>Loading preview…</body></html>";
+  var fd = new URLSearchParams();
+  fd.set("sui", appearancePreviewSource(def, kind, sel));
+  fetch("/__gui__/source-preview", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+    if (j && j.ok && j.html) frame.srcdoc = j.html;
+    else {
+      var msg = (j && (j.error || (j.diagnostics && j.diagnostics.length))) ? (j.error || j.diagnostics[0]) : "Preview unavailable";
+      frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>" + libNavEscape(msg) + "</body></html>";
+    }
+  }).catch(function(){
+    frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>Preview request failed.</body></html>";
+  });
+}
+function appearanceInspectorSection(def, node) {
+  var kind = node.kind;
+  var cur = appearanceCurrent(node, def, kind);
+  var structs = appearanceStructures(def, kind);
+  var styles = appearanceStyles(def, kind);
+  var anims = appearanceAnimations(def);
+  var themes = appearanceThemes(def, kind);
+  var rows = [];
+  function optionRow(label, list, value, onChange, title) {
+    var row = document.createElement("div"); row.className = "rowline";
+    var l = document.createElement("label"); l.textContent = label; l.title = title || ""; row.appendChild(l);
+    var sel = document.createElement("select");
+    var custom = document.createElement("option"); custom.value = ""; custom.textContent = "Custom"; sel.appendChild(custom);
+    list.forEach(function(o){
+      var op = document.createElement("option"); op.value = o.id; op.textContent = o.label; sel.appendChild(op);
+    });
+    sel.value = value || "";
+    sel.onchange = function(){ onChange(sel.value); };
+    row.appendChild(sel);
+    rows.push(row);
+    return sel;
+  }
+  function apply(patch, label) {
+    withUndo(function(){ appearanceApply(node, def, patch); }, "appearance " + (label || kind));
+  }
+  var structureSel = optionRow("Structure", structs, cur.structure, function(v){
+    apply({ structure: v }, "structure");
+  }, "Shape and drawing of the control");
+  optionRow("Style", styles, cur.style, function(v){
+    apply({ style: v }, "style");
+  }, "Colour palette of the control");
+  optionRow("Animation", anims, cur.animation, function(v){
+    apply({ animation: v }, "animation");
+  }, "Animation of the control parts");
+  var themeSel = document.createElement("select");
+  var themeRow = document.createElement("div"); themeRow.className = "rowline";
+  var tl = document.createElement("label"); tl.textContent = "Theme"; themeRow.appendChild(tl);
+  var tc = document.createElement("option"); tc.value = ""; tc.textContent = "Custom"; themeSel.appendChild(tc);
+  themes.forEach(function(t){
+    var op = document.createElement("option"); op.value = t.id; op.textContent = t.label + (t.favorite ? " (saved)" : ""); themeSel.appendChild(op);
+  });
+  themeSel.value = cur.theme || "";
+  themeSel.onchange = function(){
+    var t = appearanceThemeLookup(def, kind, themeSel.value);
+    if (!t) return;
+    apply(appearancePatchForTheme(t), "theme");
+  };
+  themeRow.appendChild(themeSel);
+  rows.push(themeRow);
+  var actions = document.createElement("div"); actions.className = "rowline";
+  var browse = document.createElement("button"); browse.type = "button"; browse.className = "btn"; browse.textContent = "Browse…";
+  browse.title = "Open the appearance library for this control";
+  browse.onclick = function(){ openLibraryNavigator("appearance", kind); };
+  var save = document.createElement("button"); save.type = "button"; save.className = "btn"; save.textContent = "Save theme…";
+  save.title = "Save this structure + style + animation as a theme";
+  save.onclick = function(){ appearanceSaveFavorite(def, kind, node, cur); };
+  actions.appendChild(browse); actions.appendChild(save);
+  rows.push(actions);
+  var hint = document.createElement("div"); hint.className = "hint"; hint.style.fontSize = "10px";
+  hint.textContent = "Applies to this element only. Use Settings… for the project default. Themes are saved in this editor.";
+  rows.push(hint);
+  var sec = acc("Control appearance", rows);
+  sec.classList.add("open");
+  return sec;
+}
+var LIB_NAV_MODE = "appearance";
+var LIB_APP_DEF_ID = "";
+var LIB_APP_KIND = "";
+var LIB_APP_SEL = null;
+var LIB_APP_THEME_ID = "";
+function appearanceDefById(id) {
+  for (var i = 0; i < COMPONENT_DEFS.length; i++) if (COMPONENT_DEFS[i].id === id) return COMPONENT_DEFS[i];
+  return null;
+}
+function appearanceDefaultSelection(def, kind) {
+  var t = appearanceThemeLookup(def, kind, "classic") || appearanceThemes(def, kind)[0] || null;
+  return t ? { structure: t.structure, style: t.style, animation: t.animation, themeVars: t.vars || null } : { structure: "", style: "", animation: "" };
+}
+function renderLibraryMode() {
+  var comp = document.getElementById("lib-body");
+  var app = document.getElementById("lib-app-body");
+  var cb = document.getElementById("lib-mode-components");
+  var ab = document.getElementById("lib-mode-appearance");
+  if (comp) comp.style.display = LIB_NAV_MODE === "appearance" ? "none" : "grid";
+  if (app) app.style.display = LIB_NAV_MODE === "appearance" ? "grid" : "none";
+  if (cb) cb.classList.toggle("on", LIB_NAV_MODE !== "appearance");
+  if (ab) ab.classList.toggle("on", LIB_NAV_MODE === "appearance");
+}
+function setLibraryMode(mode) {
+  LIB_NAV_MODE = mode === "components" ? "components" : "appearance";
+  renderLibraryNavigator();
+}
+function appearanceKindOrder(def) {
+  var order = ["Button", "Checkbox / Radio", "Switch", "Card", "Input / Textarea / Select", "Badge", "Tabs", "Progress bar", "Spinner", "Alert"];
+  var at = order.indexOf(def.label);
+  return at < 0 ? 100 : at;
+}
+function renderAppearanceKinds() {
+  var box = document.getElementById("lib-kinds");
+  if (!box) return;
+  box.textContent = "";
+  var defs = COMPONENT_DEFS.slice().sort(function(a, b){ return appearanceKindOrder(a) - appearanceKindOrder(b); });
+  defs.forEach(function(def){
+    if (!def.categories || !def.categories.length) return;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "lib-group" + (def.id === LIB_APP_DEF_ID ? " on" : "");
+    b.textContent = def.label;
+    b.onclick = function(){
+      LIB_APP_DEF_ID = def.id;
+      LIB_APP_KIND = def.kinds[0];
+      LIB_APP_SEL = appearanceDefaultSelection(def, LIB_APP_KIND);
+      LIB_APP_THEME_ID = "";
+      renderAppearanceNavigator();
+    };
+    box.appendChild(b);
+  });
+}
+function renderAppearanceOptions() {
+  var def = appearanceDefById(LIB_APP_DEF_ID);
+  if (!def) return;
+  var kind = LIB_APP_KIND || def.kinds[0];
+  function list(boxId, items, selKey) {
+    var box = document.getElementById(boxId);
+    if (!box) return;
+    box.textContent = "";
+    items.forEach(function(item){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "lib-app-option" + (LIB_APP_SEL && LIB_APP_SEL[selKey] === item.id ? " on" : "");
+      b.textContent = item.label;
+      b.title = item.label;
+      b.onclick = function(){
+        LIB_APP_SEL[selKey] = item.id;
+        LIB_APP_SEL.themeVars = null;
+        LIB_APP_THEME_ID = "";
+        renderAppearanceOptions();
+        renderAppearanceTheme();
+        appearanceLoadPreview(def, kind, LIB_APP_SEL, document.getElementById("lib-app-preview"));
+      };
+      box.appendChild(b);
+    });
+  }
+  list("lib-structures", appearanceStructures(def, kind), "structure");
+  list("lib-styles", appearanceStyles(def, kind), "style");
+  list("lib-animations", appearanceAnimations(def), "animation");
+}
+function renderAppearanceTheme() {
+  var def = appearanceDefById(LIB_APP_DEF_ID);
+  if (!def) return;
+  var kind = LIB_APP_KIND || def.kinds[0];
+  var sel = document.getElementById("lib-app-theme");
+  if (!sel) return;
+  sel.textContent = "";
+  var custom = document.createElement("option"); custom.value = ""; custom.textContent = "Custom"; sel.appendChild(custom);
+  var themes = appearanceThemes(def, kind);
+  var current = "";
+  themes.forEach(function(t){
+    var op = document.createElement("option"); op.value = t.id; op.textContent = t.label + (t.favorite ? " (saved)" : ""); sel.appendChild(op);
+    if (LIB_APP_SEL && t.structure === LIB_APP_SEL.structure && t.style === LIB_APP_SEL.style && t.animation === LIB_APP_SEL.animation) current = t.id;
+  });
+  sel.value = LIB_APP_THEME_ID || current;
+  sel.onchange = function(){
+    var t = appearanceThemeLookup(def, kind, sel.value);
+    if (!t) return;
+    LIB_APP_SEL = { structure: t.structure, style: t.style, animation: t.animation, themeVars: t.vars || null };
+    LIB_APP_THEME_ID = t.id;
+    renderAppearanceOptions();
+    renderAppearanceTheme();
+    appearanceLoadPreview(def, kind, LIB_APP_SEL, document.getElementById("lib-app-preview"));
+  };
+}
+function renderAppearanceNavigator() {
+  var def = appearanceDefById(LIB_APP_DEF_ID);
+  if (!def) {
+    def = COMPONENT_DEFS[0];
+    LIB_APP_DEF_ID = def.id;
+    LIB_APP_KIND = def.kinds[0];
+    LIB_APP_SEL = appearanceDefaultSelection(def, LIB_APP_KIND);
+  }
+  if (!LIB_APP_SEL) LIB_APP_SEL = appearanceDefaultSelection(def, LIB_APP_KIND);
+  var title = document.getElementById("lib-app-title");
+  if (title) title.textContent = def.label + " appearance";
+  renderAppearanceKinds();
+  renderAppearanceOptions();
+  renderAppearanceTheme();
+  var kind = LIB_APP_KIND || def.kinds[0];
+  var info = document.getElementById("lib-app-info");
+  if (info) info.textContent = "Select a structure, a style and an animation. The preview is a real compiled control.";
+  var status = document.getElementById("lib-app-status");
+  if (status) status.textContent = "";
+  appearanceLoadPreview(def, kind, LIB_APP_SEL, document.getElementById("lib-app-preview"));
+}
+function applyAppearanceFromNavigator() {
+  var def = appearanceDefById(LIB_APP_DEF_ID);
+  if (!def) return;
+  var node = selPath ? byPath(selPath, root.children) : null;
+  if (!node || def.kinds.indexOf(node.kind) < 0) {
+    var st = document.getElementById("lib-app-status");
+    if (st) st.textContent = "Select a " + def.label + " element in the project first.";
+    return;
+  }
+  withUndo(function(){ appearanceApply(node, def, LIB_APP_SEL); }, "appearance " + node.kind);
+  var st2 = document.getElementById("lib-app-status");
+  if (st2) st2.textContent = "Applied to the selected " + def.label + ".";
+}
+function saveAppearanceThemeFromNavigator() {
+  var def = appearanceDefById(LIB_APP_DEF_ID);
+  if (!def) return;
+  var node = selPath ? byPath(selPath, root.children) : null;
+  if (node && def.kinds.indexOf(node.kind) < 0) node = null;
+  appearanceSaveFavorite(def, LIB_APP_KIND || def.kinds[0], node, LIB_APP_SEL);
+  var st = document.getElementById("lib-app-status");
+  if (st) st.textContent = "Theme saved. It is now available in the control inspector.";
+}
 `

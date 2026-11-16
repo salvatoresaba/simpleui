@@ -860,6 +860,23 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #lib-preview { flex:1; width:100%; min-height:180px; border:1px solid var(--border2); border-radius:8px; background:#0f1117; }
 #lib-detail-actions { display:flex; gap:6px; }
 #lib-detail-actions .btn { font-size:12px; padding:5px 10px; }
+#lib-modes { display:flex; gap:4px; }
+#lib-modes .btn { font-size:11px; padding:3px 8px; }
+#lib-modes .btn.on { border-color:var(--accent); color:var(--accent); background:var(--btn-on); font-weight:600; }
+#lib-app-body { flex:1; display:none; grid-template-columns:190px 320px minmax(0,1fr); min-height:0; }
+#lib-kinds { overflow:auto; padding:8px; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:3px; }
+#lib-app-middle { overflow:auto; padding:8px 10px; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:10px; }
+.lib-app-group h4 { margin:0 0 5px; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+.lib-app-options { display:flex; flex-wrap:wrap; gap:4px; }
+.lib-app-option { border:1px solid var(--border); background:var(--panel3); color:var(--fg); border-radius:6px; padding:4px 8px; font-size:11px; cursor:pointer; }
+.lib-app-option:hover { border-color:var(--border2); background:var(--btn-hover); }
+.lib-app-option.on { border-color:var(--accent); background:var(--btn-on); color:var(--accent); font-weight:600; }
+#lib-app-detail { padding:12px 14px; display:flex; flex-direction:column; gap:7px; min-width:0; min-height:0; }
+#lib-app-preview { flex:1; width:100%; min-height:180px; border:1px solid var(--border2); border-radius:8px; background:#0f1117; }
+.lib-app-row { display:flex; align-items:center; gap:6px; }
+.lib-app-row label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+.lib-app-row select { flex:1; min-width:0; height:28px; padding:3px 6px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; font-size:12px; }
+.lib-app-row .btn { font-size:11px; padding:4px 8px; }
 #hist-editor { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #hist-editor.on { display:flex; }
 #hist-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:520px; max-width:94vw; max-height:70vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -1409,6 +1426,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
   <div id="lib-box" role="dialog" aria-modal="true" aria-labelledby="lib-title">
     <div id="lib-head">
       <span id="lib-title">Controls library</span>
+      <div id="lib-modes"><button class="btn" type="button" id="lib-mode-appearance" onclick="setLibraryMode(&#39;appearance&#39;)">Appearance</button><button class="btn" type="button" id="lib-mode-components" onclick="setLibraryMode(&#39;components&#39;)">Components</button></div>
       <span id="lib-source" class="hint"></span>
       <button class="btn" type="button" onclick="loadComponentLibrary(true)">Reload</button>
       <button class="btn" type="button" onclick="closeLibraryNavigator()" aria-label="Close controls library">&#10005;</button>
@@ -1429,6 +1447,25 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
           <button class="btn" type="button" id="lib-insert" disabled onclick="insertLibraryFromNavigator()">Insert</button>
           <button class="btn" type="button" onclick="LIB_NAV_PREVIEW_ID=''; renderLibraryDetail();" title="Reload the preview">Reload preview</button>
         </div>
+      </div>
+    </div>
+    <div id="lib-app-body">
+      <div id="lib-kinds" role="tablist" aria-label="Controls"></div>
+      <div id="lib-app-middle">
+        <div class="lib-app-group"><h4>Structure</h4><div id="lib-structures" class="lib-app-options"></div></div>
+        <div class="lib-app-group"><h4>Style</h4><div id="lib-styles" class="lib-app-options"></div></div>
+        <div class="lib-app-group"><h4>Animation</h4><div id="lib-animations" class="lib-app-options"></div></div>
+      </div>
+      <div id="lib-app-detail">
+        <h3 id="lib-app-title">Appearance</h3>
+        <div id="lib-app-info" class="hint"></div>
+        <iframe id="lib-app-preview" sandbox="allow-scripts" title="Interactive appearance preview"></iframe>
+        <div class="lib-app-row"><label for="lib-app-theme">Theme</label><select id="lib-app-theme"></select></div>
+        <div class="lib-app-row">
+          <button class="btn" type="button" onclick="saveAppearanceThemeFromNavigator()">Save theme&#8230;</button>
+          <button class="btn" type="button" onclick="applyAppearanceFromNavigator()">Apply to selection</button>
+        </div>
+        <div id="lib-app-status" class="hint"></div>
       </div>
     </div>
   </div>
@@ -5984,6 +6021,15 @@ function renderInspector() {
   collapseAll.onclick = function(){ setAllInspectorSections(false); };
   insTools.appendChild(insTip); insTools.appendChild(expandAll); insTools.appendChild(collapseAll);
   box.appendChild(insTools);
+
+  // Dedicated appearance controls for the selected control kind: structure
+  // (shape), style (colours) and animation, plus saved themes.
+  if (nodes.length === 1 && n && typeof appearanceInspectorSection === "function") {
+    var appearanceDef = componentDefForKind(n.kind);
+    if (appearanceDef && appearanceDef.categories && appearanceDef.categories.length) {
+      box.appendChild(appearanceInspectorSection(appearanceDef, n));
+    }
+  }
 
   // Surface running CSS animations. A class with an infinite animation is the
   // usual reason a selected element keeps moving; show it with a one-click way
@@ -12794,7 +12840,7 @@ function toastControls(n) {
 var __inspectorSectionOpen = {};
 var __inspectorSectionDefaults = {
   "View": true, "Content": true, "Appearance": true, "Layout": true,
-  "Size": true, "Typography": true, "Animation": true
+  "Size": true, "Typography": true, "Animation": true, "Control appearance": true
 };
 try {
   __inspectorSectionOpen = JSON.parse(localStorage.getItem("sui.inspector.sections.v3") || "{}") || {};

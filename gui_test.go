@@ -909,5 +909,14 @@ func guiTestMux() *http.ServeMux {
 	mux.HandleFunc("POST /__gui__/component-preview", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"html":"<!doctype html><html><body><button>Preview</button></body></html>"}`)
 	})
+	mux.HandleFunc("POST /__gui__/source-preview", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		ok, html, msgs := renderSui(r.PostFormValue("sui"))
+		if !ok {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"diagnostics":`+StringifyJson(msgs)+`}`)
+			return
+		}
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"html":`+StringifyJson(JStr(html))+`}`)
+	})
 	return mux
 }

@@ -792,6 +792,32 @@ and border-image) write their declarations to every selected element in one
 multi-class transaction too, so a multi-selection edit cannot leave half the
 classes updated.
 
+## Control appearance
+
+Selecting a control shows a **Control appearance** section in the Inspector:
+
+| Selector | What it changes |
+|---|---|
+| Structure | shape and drawing for the kind (for a button: rectangular, pill, circular, square, wide) |
+| Style | colour palette (border, text, fill, shadow) |
+| Animation | motion of the control parts |
+| Theme | a named structure + style + animation combination |
+
+**Browse…** opens the Controls library navigator filtered to that control;
+**Save theme…** stores the current combination and custom declarations in the
+editor's favourite themes, which then appear in the **Theme** selector. Values
+apply to the selected element only; **Settings…** continues to manage the project
+default for every control of that kind. Text, font, border, events and alignment
+stay in their own inspector sections.
+
+**Insert → Controls library…** opens the navigator with an **Appearance** tab
+(kinds, structures, styles, animations, interactive preview, themes) and a
+**Components** tab for insertable presets. Favourite themes are stored in the
+editor's local storage (`sui.appearance.themes.v1`), not in the `.sui` file.
+
+See [Control appearance library](APPEARANCE_LIBRARY.md) for the catalog, the
+button example and the workflow.
+
 ## Image assets
 
 **Insert → Image assets…** opens the asset manager. It uploads an image and

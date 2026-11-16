@@ -137,7 +137,7 @@ const guiLibraryNavigatorScript = `<script>
   }
   try {
     await until(function () { return typeof __prefsLoaded !== 'undefined' && __prefsLoaded && root && root.children.length > 0; }, 15000);
-    openLibraryNavigator();
+    openLibraryNavigator('components');
     await until(function () { return document.getElementById('lib-nav').classList.contains('on'); }, 4000);
     await until(function () { return document.querySelectorAll('#lib-list .lib-item').length === 2; }, 4000);
     var groups = Array.prototype.map.call(document.querySelectorAll('#lib-groups .lib-group'), function (b) { return b.textContent; });

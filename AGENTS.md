@@ -150,6 +150,7 @@ For desktop capabilities:
 |---|---|---|
 | Local form, state, validation, table | `docs/AGENT_RECIPES.md#local-form--reactive-table`, `docs/API_REFERENCE.md` | `examples/todo.sui`, `examples/table_data.sui` |
 | External component library (add/regroup palette presets) | `docs/COMPONENT_LIBRARY.md` | `components/library.json` |
+| Control appearance (structure/style/animation, themes, navigator) | `docs/APPEARANCE_LIBRARY.md` | a `button` in the designer |
 | Structural table layout for arranging UI regions | `docs/API_REFERENCE.md#table-layout`, `docs/GUI_EDITOR.md#table-layout-control` | `examples/table_layout/README.md` |
 | Excel-like workbook with multiple tables in bottom sheet tabs | `docs/API_REFERENCE.md#excel-like-sheet-tabs`, `docs/GUI_EDITOR.md#excel-like-sheet-tabs` | `examples/table_sheets/README.md` |
 | Menu bar / navigation | `docs/API_REFERENCE.md#menu-bar`, `docs/GUI_EDITOR.md#menu-bar-control` | `examples/menu_bar.sui` |

@@ -32,6 +32,7 @@ Recommended order for an agent:
 |---|---|---|---|
 | Local form with state and table | [local-form-table](AGENT_RECIPES.md#local-form--reactive-table) | [API](API_REFERENCE.md), [STDLIB](STDLIB.md) | `examples/todo.sui`, `examples/table_data.sui` |
 | External component catalog | [Component library](COMPONENT_LIBRARY.md) | [GUI editor](GUI_EDITOR.md#component-library) | `components/library.json` |
+| Per-control appearance themes | [Appearance library](APPEARANCE_LIBRARY.md) | [GUI editor](GUI_EDITOR.md#control-appearance) | a `button` in the designer |
 | Arrange UI regions in a structural table | [API: table layout](API_REFERENCE.md#table-layout) | [GUI editor: table layout](GUI_EDITOR.md#table-layout-control) | `examples/table_layout/README.md` |
 | Build a menu bar / navigation | [API: menu bar](API_REFERENCE.md#menu-bar) | [GUI editor: menu bar](GUI_EDITOR.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Action menu on a button | [API: dropdown](API_REFERENCE.md#dropdown-menu) | [GUI editor: dropdown](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/dropdown/README.md` |

@@ -197,7 +197,40 @@
       "audience": ["human", "agent"],
       "priority": 2,
       "tags": ["gui", "designer", "editor", "preferences", "shortcuts", "find", "replace", "regex", "palette", "context-menu", "line-operations", "quick-fix", "status-bar", "diagnostics", "f8", "history", "completion", "autocomplete", "indent", "highlight", "symbols", "undo", "redo", "styles", "tokens", "design-tokens", "css-variables", "component-defaults", "component-preview", "component-presets", "presets", "variants", "animations", "preview-background", "dark-preview", "light-preview", "theme-selector", "project-theme", "theme-tabs", "standard-theme", "light-theme", "dark-theme", "page-theme", "body-background", "light-body", "dark-body", "project-settings-grid", "normal-buttons", "control-name", "tree-data-editor", "tree-settings", "tree-guides", "tree-icons", "tree-badges", "tree-metadata", "tree-checkboxes", "tree-search", "tree-multi-select", "tree-drag-drop", "tree-lazy", "tree-grid", "tree-virtual", "tree-sort", "tree-undo", "tree-retry", "tree-tooltip", "tree-icons", "tree-leaf-icons", "tree-parent-icons", "tree-branch-symbols", "tree-onchange", "tree-lastchange", "tree-context-editing", "table-columns", "table-cell-text", "table-wrap", "table-truncate", "table-sort", "table-filter", "table-pagination", "table-selection", "table-events", "table-lastchange", "table-settings", "table-settings-overlay", "table-settings-panel", "table-multi-sort", "table-column-filters", "table-filter-popup", "table-value-filter", "table-header-buttons", "table-auto-name", "table-runtime-create", "table-runtime-structure", "table-layout", "structural-table", "table-sheet-tabs", "table-cell-selection", "table-row-selection", "table-column-selection", "table-drag-selection", "table-border-hover", "table-select-all-corner", "table-wrapper-resize", "sheet-tabs", "tree-general-settings", "tree-bindings", "tree-columns-settings", "tree-title", "tree-runtime-columns", "tree-extra", "tree-name-badges", "tree-font-step", "autosave", "theme-toggle", "undo-redo", "tooltip-text-align", "open-file", "start-from-file", "gui-file", "file-association", "windows-association", "double-click", "associate", "base-elements", "theme-aware-base", "theme-tooltip", "tooltip-letter-spacing", "hover-non-interactive", "media-theme", "media-controls", "chart-theme-presets", "theme-presets", "theme-export", "theme-import", "theme-json", "theme-name", "theme-import-defaults", "visual-regression", "golden-screenshot", "screenshot-regression", "css-problems", "unused-css", "duplicate-selector", "contrast", "readability", "accessibility", "wcag", "chart-contrast", "chart-theme-contrast", "dark-chart", "link-token", "sui-link", "scrollbar", "scrollbars", "project-chart-defaults", "chart-defaults", "graph-defaults", "chart-settings", "graph-settings", "hover", "letter-spacing", "tracking", "sketch", "wireframe", "terminal", "crt", "glassmorphism", "brutalist", "blueprint", "neumorphic", "high-contrast", "editorial", "luxury", "cyberpunk", "geometric", "shared-styles", "optgroup", "line-style", "outline-style", "no-fill", "dashes", "paper", "handwriting", "shared-style", "style-family", "project-default", "inherit", "insert-component", "progress", "spinner", "badge", "alert", "project-preferences", "layout", "resize", "drag", "drop", "menu", "tabs", "accordion", "toast", "tooltip", "combobox", "datepicker", "tree", "chart", "graph", "json", "xml", "csv", "import", "export", "pages", "modal", "files", "picker", "inspector", "hints", "round-trip", "dropdown", "popover", "drawer", "splitter", "dropzone", "timeline", "empty-state", "skeleton", "carousel", "stepper", "command-palette", "placement", "animation", "state-motion", "toggle-presets", "flip", "layout-motion", "motion-key", "shared-element", "page-transition", "motion-graph", "state-graph", "motion-guards", "motion-gestures", "viewport-visibility", "exit-animation", "css-builders", "css-pseudo", "css-at-rules", "css-multi-select", "css-value-autocomplete", "image-assets", "image-upload", "asset-manager", "css-atomic", "format-document", "rebindable-shortcuts", "interface-language", "i18n", "control-animations", "animation-library", "animation-presets", "reduced-motion", "state-driven-motion"],
-      "sections": ["GUI editor: drag and drop", "Quick answer", "Editor preferences", "Interface", "Interface language", "Code editor", "Syntax highlighting", "Editor tooltips", "Preview", "Shortcuts", "Files & history", "Completion and indentation", "Code editor menus and navigation", "Formatting", "Find and replace", "Quick Fix and problems", "Status bar", "Command palette", "Undo and redo", "Left panel and design tokens", "Project component defaults", "Inspector and effective styles", "Image assets", "Designer drag and drop", "Tree drops", "Palette drops", "Designer limitations", "Application drag and drop", "Required properties", "Minimal reorder example", "Designer steps for the reorder example", "Dropping files and folders", "Menu bar control", "Dropdown and popover controls", "Content and feedback controls", "Pages", "Modal control", "Tabs control", "Accordion control", "Combobox control", "Tree control", "Table layout control", "Table control", "Chart control", "Graph control", "Date/Time picker control", "Toast control", "Tooltip property", "Desktop build dialog", "Native file and folder dialogs", "Designer inspector checklist", "Troubleshooting", "Security notes", "Related documents"]
+      "sections": ["GUI editor: drag and drop", "Quick answer", "Editor preferences", "Interface", "Interface language", "Code editor", "Syntax highlighting", "Editor tooltips", "Preview", "Shortcuts", "Files & history", "Completion and indentation", "Code editor menus and navigation", "Formatting", "Find and replace", "Quick Fix and problems", "Status bar", "Command palette", "Undo and redo", "Left panel and design tokens", "Project component defaults", "Inspector and effective styles", "Control appearance", "Image assets", "Designer drag and drop", "Tree drops", "Palette drops", "Designer limitations", "Application drag and drop", "Required properties", "Minimal reorder example", "Designer steps for the reorder example", "Dropping files and folders", "Menu bar control", "Dropdown and popover controls", "Content and feedback controls", "Pages", "Modal control", "Tabs control", "Accordion control", "Combobox control", "Tree control", "Table layout control", "Table control", "Chart control", "Graph control", "Date/Time picker control", "Toast control", "Tooltip property", "Desktop build dialog", "Native file and folder dialogs", "Designer inspector checklist", "Troubleshooting", "Security notes", "Related documents"]
+    },
+    {
+      "id": "appearance_library",
+      "path": "docs/APPEARANCE_LIBRARY.md",
+      "title": "Control appearance library",
+      "summary": "The per-control appearance catalog: structures (shape), styles (colour palettes) and animations, combined into themes. Covers the Control appearance inspector section, the Controls library navigator appearance tab with a compiled interactive preview, favourite themes stored in the editor, the button example and the catalog coverage limits.",
+      "audience": [
+        "human",
+        "agent"
+      ],
+      "priority": 2,
+      "tags": [
+        "appearance",
+        "structures",
+        "styles",
+        "animations",
+        "themes",
+        "favorites",
+        "inspector",
+        "navigator",
+        "preview",
+        "button",
+        "designer",
+        "component-defs"
+      ],
+      "sections": [
+        "Control appearance library",
+        "The inspector section",
+        "The Controls library navigator",
+        "Button example",
+        "Where themes are stored",
+        "Catalog coverage and limits"
+      ]
     },
     {
       "id": "component_library",

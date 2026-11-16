@@ -164,6 +164,15 @@ func CmdGui(args []string) {
 	mux.HandleFunc("GET /__gui__/components.js", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/javascript; charset=utf-8", guiComponentLibraryJS)
 	})
+	mux.HandleFunc("POST /__gui__/source-preview", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		ok, html, msgs := renderSui(r.PostFormValue("sui"))
+		if !ok {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"diagnostics":`+StringifyJson(msgs)+`}`)
+			return
+		}
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"html":`+StringifyJson(JStr(html))+`}`)
+	})
 	mux.HandleFunc("POST /__gui__/component-preview", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
 		id := r.PostFormValue("id")
