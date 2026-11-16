@@ -4079,12 +4079,13 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 	}
 	if tag == "spinner" && a.key == "variant" {
 		if a.hasExpr {
-			c.diagAt(a.span, "variant must be one of: ring-track, orbit-dots, clessidra, fill-wave")
+			c.diagAt(a.span, "variant must be one of: ring-track, orbit-dots, multiple-dots, clessidra, hourglass, fill-wave, fill-flip")
 			return
 		}
 		v := strings.TrimSpace(partsContent(a.text))
-		if v != "ring-track" && v != "orbit-dots" && v != "clessidra" && v != "fill-wave" {
-			c.diagAt(a.span, "variant must be one of: ring-track, orbit-dots, clessidra, fill-wave")
+		if v != "ring-track" && v != "orbit-dots" && v != "multiple-dots" && v != "clessidra" &&
+			v != "hourglass" && v != "fill-wave" && v != "fill-flip" {
+			c.diagAt(a.span, "variant must be one of: ring-track, orbit-dots, multiple-dots, clessidra, hourglass, fill-wave, fill-flip")
 		}
 		return
 	}

@@ -171,3 +171,31 @@ func TestLibraryPreviewSourceCompiles(t *testing.T) {
 		}
 	}
 }
+
+func TestLibrarySpinnerPreviewCompilesForSupportedVariants(t *testing.T) {
+	for _, variant := range []string{
+		"ring-track",
+		"orbit-dots",
+		"clessidra",
+		"multiple-dots",
+		"hourglass",
+		"fill-wave",
+		"fill-flip",
+	} {
+		body := `{"format":"simpleui-component-library","version":1,"groups":[{"id":"g","label":"G","components":[{"id":"spinner-` + variant + `","label":"Spinner","kind":"spinner","attrs":{"variant":"` + variant + `"}}]}]}`
+		groups, _, err := loadComponentLibraryFile(writeLibraryFile(t, body))
+		if err != nil {
+			t.Fatalf("library spinner variant %q was rejected: %v", variant, err)
+		}
+		c := groups[0].Components[0]
+		src := libraryPreviewSource(&c)
+		prog, dl := ParseSource(src, "components/preview.sui")
+		if dl.HasErrors() {
+			t.Fatalf("preview for %q does not parse: %s", c.ID, firstLibraryError(&dl))
+		}
+		dl = Check(prog)
+		if dl.HasErrors() {
+			t.Fatalf("preview for %q does not type-check: %s", c.ID, firstLibraryError(&dl))
+		}
+	}
+}

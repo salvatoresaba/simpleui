@@ -51,10 +51,20 @@ func checkSrc(t *testing.T, src string) DiagList {
 }
 
 func TestSpinnerVariantValidation(t *testing.T) {
-	if diagnostics := checkSrc(t, "view main {\n\tspinner variant: \"clessidra\"\n}\n"); diagnostics.HasErrors() {
-		t.Fatalf("valid spinner variant was rejected: %s", diagnostics.String())
+	for _, variant := range []string{
+		"ring-track",
+		"orbit-dots",
+		"multiple-dots",
+		"clessidra",
+		"hourglass",
+		"fill-wave",
+		"fill-flip",
+	} {
+		if diagnostics := checkSrc(t, "view main {\n\tspinner variant: \""+variant+"\"\n}\n"); diagnostics.HasErrors() {
+			t.Errorf("valid spinner variant %q was rejected: %s", variant, diagnostics.String())
+		}
 	}
-	if diagnostics := checkSrc(t, "view main {\n\tspinner variant: \"unknown\"\n}\n"); !hasMsg(diagnostics, "variant must be one of: ring-track, orbit-dots, clessidra, fill-wave") {
+	if diagnostics := checkSrc(t, "view main {\n\tspinner variant: \"unknown\"\n}\n"); !hasMsg(diagnostics, "variant must be one of: ring-track, orbit-dots, multiple-dots, clessidra, hourglass, fill-wave, fill-flip") {
 		t.Fatalf("expected invalid spinner variant diagnostic, got: %s", diagnostics.String())
 	}
 }
