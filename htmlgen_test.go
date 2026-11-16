@@ -70,6 +70,8 @@ func TestSpinnerStructuralAnimations(t *testing.T) {
 	for _, want := range []string{
 		`.sui-spinner[variant="hourglass"]`,
 		`.sui-spinner[variant="hourglass"]::after`,
+		`--sui-spinner-glow-animation`,
+		`@keyframes sui-spinner-glow`,
 		`@keyframes sui-spinner-hourglass`,
 		`@keyframes sui-spinner-hourglass-sand`,
 		`@keyframes sui-spinner-hourglass-flow`,
@@ -80,6 +82,29 @@ func TestSpinnerStructuralAnimations(t *testing.T) {
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("spinner base CSS missing %q", want)
+		}
+	}
+}
+
+func TestControlMarksAndRangeStructures(t *testing.T) {
+	for _, want := range []string{
+		`left:50%;`,
+		`top:50%;`,
+		`transform:translate(-50%,-50%) rotate(var(--sui-cb-mark-rotate));`,
+		`transform:translate(-50%,-50%);`,
+		`.sui-radio.sui-rd-shape-check:checked::after`,
+		`.sui-progress.sui-progress-segmented`,
+		`.sui-progress.sui-progress-steps`,
+		`.sui-progress.sui-progress-neon`,
+		`.sui-slider.sui-slider-pill`,
+		`.sui-slider.sui-slider-diamond::-webkit-slider-thumb`,
+		`.sui-slider.sui-slider-triangle::-webkit-slider-thumb`,
+		`clip-path:polygon(0 0,100% 0,50% 100%)`,
+		`--sui-slider-thumb-height:24px`,
+		`.sui-slider.sui-slider-neon`,
+	} {
+		if !strings.Contains(suiCssBase, want) {
+			t.Errorf("control CSS missing %q", want)
 		}
 	}
 }

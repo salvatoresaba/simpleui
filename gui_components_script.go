@@ -407,7 +407,7 @@ document.addEventListener("click", function(ev){
 var APPEARANCE_FAV_KEY = "sui.appearance.themes.v1";
 // Control kinds that expose the appearance section. Complex data/visualization
 // components (table, graph, chart) are deliberately excluded.
-var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "menubar", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "pane", "dropzone", "timeline", "carousel", "stepper"];
+var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "menubar", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "dropzone", "timeline", "carousel", "stepper"];
 // Text-entry controls must stay still while the user types. They only expose
 // None and the non-motion Feedback set (ring/glow/box-shadow), never translate,
 // scale or rotate.
@@ -521,10 +521,12 @@ var APPEARANCE_CUSTOM = {
   },
   progress: {
     structures: [
-      { id: "thin", label: "Thin line", vars: { "--sui-progress-height": "4px", "--sui-progress-radius": "999px" } },
-      { id: "classic", label: "Classic", vars: { "--sui-progress-height": "8px", "--sui-progress-radius": "999px" } },
-      { id: "thick", label: "Thick", vars: { "--sui-progress-height": "14px", "--sui-progress-radius": "999px" } },
-      { id: "square", label: "Square", vars: { "--sui-progress-height": "10px", "--sui-progress-radius": "3px" } }
+      { id: "thin", label: "Thin", class: "sui-progress-thin" },
+      { id: "classic", label: "Classic", class: "sui-progress-classic" },
+      { id: "segmented", label: "Segmented", class: "sui-progress-segmented" },
+      { id: "steps", label: "Stepped blocks", class: "sui-progress-steps" },
+      { id: "neon", label: "Neon glow", class: "sui-progress-neon" },
+      { id: "square", label: "Square", class: "sui-progress-square" }
     ],
     styles: [
       { id: "indigo", label: "Indigo", vars: { "--sui-progress-track": "#1f2937", "--sui-progress-value": "#4c5cf7", "--sui-progress-value-end": "#6366f1" } },
@@ -550,10 +552,15 @@ var APPEARANCE_CUSTOM = {
   },
   slider: {
     structures: [
-      { id: "thin", label: "Thin", vars: { "--sui-slider-track": "3px", "--sui-slider-thumb": "14px" } },
-      { id: "classic", label: "Classic", vars: { "--sui-slider-track": "6px", "--sui-slider-thumb": "18px" } },
-      { id: "thick", label: "Thick", vars: { "--sui-slider-track": "12px", "--sui-slider-thumb": "26px" } },
-      { id: "square", label: "Square", vars: { "--sui-slider-radius": "3px", "--sui-slider-thumb-radius": "4px" } }
+      { id: "thin", label: "Thin", class: "sui-slider-thin" },
+      { id: "classic", label: "Classic", class: "sui-slider-classic" },
+      { id: "pill", label: "Pill", class: "sui-slider-pill" },
+      { id: "glass", label: "Glass", class: "sui-slider-glass" },
+      { id: "square", label: "Square", class: "sui-slider-square" },
+      { id: "diamond", label: "Diamond thumb", class: "sui-slider-diamond" },
+      { id: "triangle", label: "Inverted triangle", class: "sui-slider-triangle" },
+      { id: "segment", label: "Vertical segment", class: "sui-slider-segment" },
+      { id: "neon", label: "Neon", class: "sui-slider-neon" }
     ],
     styles: [
       { id: "indigo", label: "Indigo", vars: { "--sui-slider-bg": "#374151", "--sui-slider-thumb-bg": "#4c5cf7" } },
@@ -755,9 +762,12 @@ function appearanceWithFeedbackOption(list) {
   }
   return list;
 }
+function appearanceAnimationOptions(list, kind) {
+  return kind === "spinner" ? list : appearanceWithFeedbackOption(list);
+}
 function appearanceAnimations(def, kind) {
   if (appearanceTextKind(kind)) {
-    return appearanceWithFeedbackOption([{ id: "none", label: "None", value: "none" }]);
+    return appearanceAnimationOptions([{ id: "none", label: "None", value: "none" }], kind);
   }
   var ext = appearanceCatalogEntry(def, kind);
   if (ext && ext.animations && ext.animations.length) {
@@ -767,7 +777,7 @@ function appearanceAnimations(def, kind) {
       external.push({ id: String(a.id), label: String(a.label || a.id), value: String(a.value || "none") });
     });
     if (!external.some(function(o){ return o.value === "none"; })) external.unshift({ id: "none", label: "None", value: "none" });
-    return appearanceWithFeedbackOption(external);
+    return appearanceAnimationOptions(external, kind);
   }
   var field = null;
   for (var i = 0; i < def.categories.length && !field; i++) {
@@ -776,7 +786,7 @@ function appearanceAnimations(def, kind) {
       if ((fs[j].key || "").indexOf("animation") >= 0) { field = fs[j]; break; }
     }
   }
-  if (!field) return appearanceWithFeedbackOption(genericAppearanceAnimations());
+  if (!field) return appearanceAnimationOptions(genericAppearanceAnimations(), kind);
   var out = [];
   var seen = {};
   (field.opts || []).forEach(function(o){
@@ -789,7 +799,7 @@ function appearanceAnimations(def, kind) {
     out.push({ id: id, label: String(o[0] || value), value: value });
   });
   if (!out.some(function(o){ return o.value === "none"; })) out.unshift({ id: "none", label: "None", value: "none" });
-  return appearanceWithFeedbackOption(out);
+  return appearanceAnimationOptions(out, kind);
 }
 function genericAppearanceAnimations() {
   return [

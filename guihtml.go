@@ -2264,7 +2264,7 @@ var PALETTE = [
       { name: "Inputs", tags: ["input", "textarea", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time"] },
       { name: "Toggles", tags: ["checkbox", "switch", "radio"] },
       { name: "Actions", tags: ["button", "dropdown", "popover"] },
-      { name: "Panels", tags: ["drawer", "splitter", "pane", "dropzone"] },
+      { name: "Panels", tags: ["drawer", "splitter", "dropzone"] },
       { name: "Data", tags: ["tree"] },
       { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] },
       { name: "Advanced", tags: ["table", "graph", "chart"] }
@@ -2281,7 +2281,7 @@ var PALETTE_LABEL = {
   dropdown: "Dropdown menu", dropdownitem: "Dropdown item",
   popover: "Popover",
   drawer: "Drawer",
-  splitter: "Split panes", pane: "Split pane",
+  splitter: "Split panes",
   dropzone: "File dropzone",
   timeline: "Timeline", timelineitem: "Timeline event",
   emptystate: "Empty state", skeleton: "Skeleton loader",
@@ -22250,10 +22250,8 @@ var COMPONENT_DEFS = [
         { key: "--sui-spinner-bg", label: "Fill", type: "color", def: "transparent" }
       ]},
       { name: "Animation", fields: [
-        { key: "--sui-spinner-animation", label: "Effect", type: "select", def: "sui-spin", opts: [
-          ["Classic spin", "sui-spin"], ["Pulse", "sui-spinner-pulse"], ["Flip", "sui-spinner-flip"],
-          ["Reverse", "sui-spin-reverse"], ["Orbit", "sui-spinner-orbit"], ["Wobble", "sui-spinner-wobble"],
-          ["Bounce", "sui-spinner-bounce"], ["Ripple", "sui-spinner-ripple"], ["Swing", "sui-spinner-swing"]
+        { key: "--sui-spinner-glow-animation", label: "Glow effect", type: "select", def: "none", opts: [
+          ["None", "none"], ["Soft glow", "sui-spinner-glow"], ["Pulsing glow", "sui-spinner-glow-pulse"]
         ] },
         { key: "--sui-spinner-speed", label: "Speed", type: "number", def: 0.8, min: 0.2, max: 4, step: 0.1, unit: "s" },
         { key: "--sui-spinner-easing", label: "Easing", type: "select", def: "linear", opts: [["Linear", "linear"], ["Ease in out", "ease-in-out"], ["Ease", "ease"]] },
@@ -22320,13 +22318,15 @@ var COMPONENT_DEFS = [
         "--sui-spinner-animation": "sui-spinner-comet", "--sui-spinner-speed": ".9s",
         "--sui-spinner-shadow": "none" } }
     ],
-    css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) var(--sui-spinner-border-style, solid) var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-bottom-color: var(--sui-spinner-color2, transparent); background: var(--sui-spinner-bg, transparent); border-radius: var(--sui-spinner-radius, 50%); box-shadow: var(--sui-spinner-shadow, none); mask: var(--sui-spinner-mask, none); -webkit-mask: var(--sui-spinner-mask, none); animation-name: var(--sui-spinner-animation, sui-spin); animation-duration: var(--sui-spinner-speed, .8s); animation-timing-function: var(--sui-spinner-easing, linear); animation-iteration-count: infinite; animation-play-state: var(--sui-spinner-play, running); }\n.sui-spinner:hover { border-color: var(--sui-spinner-hover-track, var(--sui-spinner-track, #4b5563)); border-top-color: var(--sui-spinner-hover-color, var(--sui-spinner-color, #4c5cf7)); border-bottom-color: var(--sui-spinner-hover-color2, var(--sui-spinner-color2, transparent)); filter: var(--sui-spinner-hover-filter, none); }\n@keyframes sui-spinner-pulse { 0%, 100% { transform: scale(.68); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }\n@keyframes sui-spinner-flip { to { transform: rotateY(360deg); } }\n@keyframes sui-spinner-dots { to { transform: rotate(360deg); } }\n@keyframes sui-spinner-bars { 0% { background-size: 5px 35%, 5px 70%, 5px 45%; } 100% { background-size: 5px 85%, 5px 30%, 5px 65%; } }\n@keyframes sui-spinner-comet { to { transform: rotate(360deg); } }\n" +
+    css: ".sui-spinner { width: var(--sui-spinner-size, 24px); height: var(--sui-spinner-size, 24px); border: var(--sui-spinner-thickness, 3px) var(--sui-spinner-border-style, solid) var(--sui-spinner-track, #4b5563); border-top-color: var(--sui-spinner-color, #4c5cf7); border-bottom-color: var(--sui-spinner-color2, transparent); background: var(--sui-spinner-bg, transparent); border-radius: var(--sui-spinner-radius, 50%); box-shadow: var(--sui-spinner-shadow, none); mask: var(--sui-spinner-mask, none); -webkit-mask: var(--sui-spinner-mask, none); animation-name: var(--sui-spinner-animation, sui-spin), var(--sui-spinner-glow-animation, none); animation-duration: var(--sui-spinner-speed, .8s), 1.8s; animation-timing-function: var(--sui-spinner-easing, linear), ease-in-out; animation-iteration-count: infinite, infinite; animation-play-state: var(--sui-spinner-play, running), var(--sui-spinner-play, running); }\n.sui-spinner:hover { border-color: var(--sui-spinner-hover-track, var(--sui-spinner-track, #4b5563)); border-top-color: var(--sui-spinner-hover-color, var(--sui-spinner-color, #4c5cf7)); border-bottom-color: var(--sui-spinner-hover-color2, var(--sui-spinner-color2, transparent)); filter: var(--sui-spinner-hover-filter, none); }\n@keyframes sui-spinner-pulse { 0%, 100% { transform: scale(.68); opacity: .55; } 50% { transform: scale(1); opacity: 1; } }\n@keyframes sui-spinner-flip { to { transform: rotateY(360deg); } }\n@keyframes sui-spinner-dots { to { transform: rotate(360deg); } }\n@keyframes sui-spinner-bars { 0% { background-size: 5px 35%, 5px 70%, 5px 45%; } 100% { background-size: 5px 85%, 5px 30%, 5px 65%; } }\n@keyframes sui-spinner-comet { to { transform: rotate(360deg); } }\n" +
       "@keyframes sui-spin-reverse { to { transform: rotate(-360deg); } }\n" +
       "@keyframes sui-spinner-orbit { 0% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(180deg) translateX(3px); } 100% { transform: rotate(360deg) translateX(0); } }\n" +
       "@keyframes sui-spinner-wobble { 0%, 100% { transform: rotate(-14deg) scale(.94); } 50% { transform: rotate(14deg) scale(1.06); } }\n" +
       "@keyframes sui-spinner-bounce { 0%, 100% { transform: translateY(-16%) scale(.94); } 55% { transform: translateY(16%) scale(1.04); } }\n" +
       "@keyframes sui-spinner-ripple { 0% { transform: scale(.66); opacity: .45; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(.66); opacity: .45; } }\n" +
       "@keyframes sui-spinner-swing { 0%, 100% { transform: rotate(-38deg); } 50% { transform: rotate(38deg); } }\n" +
+      "@keyframes sui-spinner-glow { 0%, 100% { filter: drop-shadow(0 0 2px var(--sui-spinner-color, #4c5cf7)); } 50% { filter: drop-shadow(0 0 7px var(--sui-spinner-color, #4c5cf7)); } }\n" +
+      "@keyframes sui-spinner-glow-pulse { 0%, 100% { filter: drop-shadow(0 0 1px var(--sui-spinner-color, #4c5cf7)); } 50% { filter: drop-shadow(0 0 5px var(--sui-spinner-color, #4c5cf7)) brightness(1.25); } }\n" +
       "@media (prefers-reduced-motion: reduce) { .sui-spinner { animation-duration: 2.4s; } }"
   },
   { id: "card", label: "Card", group: "Layout", kinds: ["card"],

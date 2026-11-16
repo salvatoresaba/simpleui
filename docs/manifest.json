@@ -203,7 +203,7 @@
       "id": "appearance_library",
       "path": "docs/APPEARANCE_LIBRARY.md",
       "title": "Control appearance library",
-      "summary": "The per-control appearance catalog: structures (shape), styles (colour palettes) and full animation sets covering idle, hover, click, focus and state feedback, combined into themes. Covers the section named after each control, the self-contained components/appearance.json catalog (definitions baseCss/phaseCss/keyframes plus per-control markup/classes/css/keyframes, validated, Dark and Light required, feedback block), the Controls library navigator appearance tab with keyboard selection and a compiled interactive preview, favourite themes stored in the editor, the button example and the catalog coverage limits.",
+      "summary": "The per-control appearance catalog: structures (shape), styles (colour palettes) and full animation sets covering idle, hover, click, focus and state feedback, combined into themes. Includes distinctive spinner, checkbox, radio, progress and slider structures; spinner glow effects remain independent of structural motion. Covers the self-contained components/appearance.json catalog (definitions baseCss/phaseCss/keyframes plus per-control markup/classes/css/keyframes, validated, Dark and Light required, feedback block), the Controls library navigator appearance tab with keyboard selection and a compiled interactive preview, favourite themes stored in the editor, the button example and the catalog coverage limits.",
       "audience": [
         "human",
         "agent"
@@ -220,6 +220,11 @@
         "navigator",
         "preview",
         "button",
+        "spinner",
+        "checkbox",
+        "radio",
+        "progress",
+        "slider",
         "designer",
         "component-defs"
       ],

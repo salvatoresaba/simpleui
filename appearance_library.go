@@ -204,6 +204,8 @@ var appearanceKeyframes = map[string]bool{
 	"sui-spinner-dots":           true,
 	"sui-spinner-fill-flip":      true,
 	"sui-spinner-flip":           true,
+	"sui-spinner-glow":           true,
+	"sui-spinner-glow-pulse":     true,
 	"sui-spinner-hourglass":      true,
 	"sui-spinner-hourglass-sand": true,
 	"sui-spinner-hourglass-flow": true,

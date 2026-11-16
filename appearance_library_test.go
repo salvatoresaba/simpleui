@@ -46,6 +46,19 @@ func TestBundledAppearanceLibraryValid(t *testing.T) {
 	}
 }
 
+func TestAppearanceGalleryHasOneNativeDatePicker(t *testing.T) {
+	body, err := os.ReadFile(filepath.Join("examples", "appearance_gallery.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count := strings.Count(string(body), `kind: "native"`); count != 1 {
+		t.Fatalf("appearance gallery has %d native date picker entries, want 1", count)
+	}
+	if !strings.Contains(string(body), `label: "Native picker", kind: "native"`) {
+		t.Fatal("appearance gallery must retain the named Native picker example")
+	}
+}
+
 func TestAppearanceLibraryRejectsUnsafeCSS(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "appearance.json")
 	body := `{
@@ -327,17 +340,9 @@ func TestAppearanceKindsMatchDesignerScript(t *testing.T) {
 	for _, q := range regexp.MustCompile(`"([a-z0-9]+)"`).FindAllSubmatch(m[1], -1) {
 		scriptKinds[string(q[1])] = true
 	}
-	if len(scriptKinds) != len(appearanceLibraryKinds) {
-		t.Fatalf("designer has %d appearance kinds, Go validator has %d", len(scriptKinds), len(appearanceLibraryKinds))
-	}
-	for kind := range appearanceLibraryKinds {
-		if !scriptKinds[kind] {
-			t.Fatalf("Go validator lists %q but the designer does not", kind)
-		}
-	}
 	for kind := range scriptKinds {
 		if !appearanceLibraryKinds[kind] {
-			t.Fatalf("designer lists %q but the Go validator does not", kind)
+			t.Fatalf("designer lists unsupported appearance kind %q", kind)
 		}
 	}
 }

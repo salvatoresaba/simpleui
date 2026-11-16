@@ -140,7 +140,12 @@ const guiAppearanceScript = `<script>
     await until(function () { return typeof __prefsLoaded !== 'undefined' && __prefsLoaded && root && root.children.length > 0; }, 15000);
     await wait(1200);
     await until(function () { return typeof APPEARANCE_CATALOG !== 'undefined' && !!APPEARANCE_CATALOG; }, 4000);
-    assert(!!APPEARANCE_CATALOG && APPEARANCE_CATALOG.controls.length === APPEARANCE_KINDS.length, 'external appearance catalog not loaded');
+    assert(!!APPEARANCE_CATALOG && APPEARANCE_KINDS.every(function (kind) {
+      return APPEARANCE_CATALOG.controls.some(function (item) { return item.kind === kind; });
+    }), 'external appearance catalog is missing a visible control');
+    assert(APPEARANCE_KINDS.indexOf('pane') < 0, 'split pane must not be listed as a duplicate control');
+    var panelGroup = PALETTE.filter(function (group) { return group.group === 'Controls'; })[0].subs.filter(function (sub) { return sub.name === 'Panels'; })[0];
+    assert(panelGroup.tags.indexOf('splitter') >= 0 && panelGroup.tags.indexOf('pane') < 0, 'splitter palette should not list its child pane separately');
     var comboDef = componentDefForKind('combobox');
     var lightPalette = appearancePalette(comboDef, 'light');
     var darkPalette = appearancePalette(comboDef, 'dark');
@@ -164,6 +169,9 @@ const guiAppearanceScript = `<script>
     assert(appearanceCurrent(radioProbe, radioDef, 'radio').structure === 'check', 'radio structure class was not recognized');
     assert(appearanceControlCss(radioDef, 'radio').indexOf('sui-rd-shape-diamond') >= 0, 'radio shape rules are missing');
     var spinnerDef = componentDefForKind('spinner');
+    var spinnerAnims = appearanceAnimations(spinnerDef, 'spinner').map(function (item) { return item.label; });
+    assert(appearanceAnimKey(spinnerDef) === '--sui-spinner-glow-animation', 'spinner animation selection must not replace its structural motion');
+    assert(spinnerAnims.join(',') === 'None,Soft glow,Pulsing glow', 'spinner should expose only glow effects: ' + spinnerAnims);
     var spinnerStructures = appearanceStructures(spinnerDef, 'spinner');
     assert(spinnerStructures.some(function (item) { return item.id === 'multiple-dots' && item.attrs && item.attrs.variant === 'multiple-dots'; }), 'multiple-dot spinner structure is not mapped to its CSS variant');
     var hourglass = spinnerStructures.filter(function (item) { return item.id === 'hourglass'; })[0];
@@ -174,6 +182,21 @@ const guiAppearanceScript = `<script>
     assert(spinnerCSS.indexOf("variant='multiple-dots'") >= 0 && spinnerCSS.indexOf('@keyframes sui-spinner-wave') >= 0, 'spinner variants are missing their structure rules');
     assert(spinnerCSS.indexOf("variant='hourglass']::after") >= 0 && spinnerCSS.indexOf('@keyframes sui-spinner-hourglass-sand') >= 0, 'hourglass must visibly fill its lower chamber');
     assert(spinnerCSS.indexOf("variant='fill-flip'") >= 0 && spinnerCSS.indexOf('@keyframes sui-spinner-fill-flip') >= 0, 'two-colour flip rules are missing');
+    var progressDef = componentDefForKind('progress');
+    var progressStructures = appearanceStructures(progressDef, 'progress').map(function (item) { return item.id; });
+    assert(progressStructures.join(',') === 'thin,classic,segmented,steps,neon,square', 'progress structures should be distinct and value-driven: ' + progressStructures);
+    assert(appearanceControlCss(progressDef, 'progress').indexOf('.sui-progress.sui-progress-segmented') >= 0, 'segmented progress style is missing');
+    var sliderDef = componentDefForKind('slider');
+    var sliderStructures = appearanceStructures(sliderDef, 'slider').map(function (item) { return item.id; });
+    assert(sliderStructures.join(',') === 'thin,classic,pill,glass,square,diamond,triangle,segment,neon', 'slider structures should include distinct thumb and track shapes: ' + sliderStructures);
+    assert(appearanceControlCss(sliderDef, 'slider').indexOf('.sui-slider.sui-slider-diamond::-webkit-slider-thumb') >= 0, 'diamond slider thumb style is missing');
+    assert(appearanceControlCss(sliderDef, 'slider').indexOf('.sui-slider.sui-slider-triangle::-webkit-slider-thumb') >= 0, 'inverted triangle slider thumb style is missing');
+    assert(appearanceControlCss(sliderDef, 'slider').indexOf('--sui-slider-thumb-height:24px') >= 0, 'vertical segment slider thumb style is missing');
+    var appearanceBaseCss = APPEARANCE_CATALOG.definitions.baseCss;
+    var checkboxMarkRule = appearanceBaseCss.slice(appearanceBaseCss.indexOf('.sui-checkbox::after'), appearanceBaseCss.indexOf('}', appearanceBaseCss.indexOf('.sui-checkbox::after')));
+    var radioMarkRule = appearanceBaseCss.slice(appearanceBaseCss.indexOf('.sui-radio::after'), appearanceBaseCss.indexOf('}', appearanceBaseCss.indexOf('.sui-radio::after')));
+    assert(checkboxMarkRule.indexOf('left:50%') >= 0 && checkboxMarkRule.indexOf('top:50%') >= 0, 'checkbox mark must be centered');
+    assert(radioMarkRule.indexOf('left:50%') >= 0 && radioMarkRule.indexOf('top:50%') >= 0, 'radio mark must be centered');
     var inputDef = componentDefForKind('input');
     var inputAnims = appearanceAnimations(inputDef, 'input').map(function (a) { return a.label; });
     assert(inputAnims.join(',') === 'None,Feedback', 'text entry animations must be None/Feedback: ' + inputAnims);
@@ -293,6 +316,22 @@ const guiAppearanceScript = `<script>
     assert(/sui-anim-hover/.test(frame.srcdoc), 'preview hover class missing');
     assert(/sui-anim-press/.test(frame.srcdoc), 'preview press class missing');
     assert(/sui-demo-hover/.test(frame.srcdoc), 'preview phase demo missing');
+    var sliderKind = Array.prototype.slice.call(document.querySelectorAll('#lib-kinds .lib-group')).filter(function (b) { return b.textContent.trim() === appearanceKindLabel('slider'); })[0];
+    assert(!!sliderKind, 'slider is missing from the appearance navigator');
+    sliderKind.click();
+    await until(function () { return LIB_APP_KIND === 'slider' && document.querySelectorAll('#lib-structures .lib-app-option').length > 0; }, 4000);
+    var triangleOption = Array.prototype.slice.call(document.querySelectorAll('#lib-structures .lib-app-option')).filter(function (b) { return b.getAttribute('data-id') === 'triangle'; })[0];
+    assert(!!triangleOption, 'inverted triangle option is missing from the slider navigator');
+    triangleOption.click();
+    await until(function () { return /sui-slider-triangle/.test(frame.srcdoc); }, 4000);
+    assert(LIB_APP_SEL.structure === 'triangle' && /sui-slider-triangle/.test(frame.srcdoc), 'inverted triangle selection did not update the compiled preview');
+    assert(/clip-path:\s*polygon\(0 0,100% 0,50% 100%\)/.test(frame.srcdoc), 'compiled preview is missing the inverted triangle thumb CSS');
+    var segmentOption = Array.prototype.slice.call(document.querySelectorAll('#lib-structures .lib-app-option')).filter(function (b) { return b.getAttribute('data-id') === 'segment'; })[0];
+    assert(!!segmentOption, 'vertical segment option is missing from the slider navigator');
+    segmentOption.click();
+    await until(function () { return /sui-slider-segment/.test(frame.srcdoc); }, 4000);
+    assert(LIB_APP_SEL.structure === 'segment' && /sui-slider-segment/.test(frame.srcdoc), 'vertical segment selection did not update the compiled preview');
+    assert(/--sui-slider-thumb-height:\s*24px/.test(frame.srcdoc), 'compiled preview is missing the vertical segment thumb size');
     closeLibraryNavigator();
     // Every non-complex control gets the section; list is a generic catalog.
     var genericPath = pathOfKind('dropdown');

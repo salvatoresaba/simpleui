@@ -73,7 +73,10 @@
       border: var(--sui-spinner-thickness) solid var(--sui-spinner-track);
       border-top-color: var(--sui-spinner-color);
       border-radius: var(--sui-spinner-radius, 50%);
-      animation: sui-spin var(--sui-spinner-speed) linear infinite;
+      animation-name: sui-spin, var(--sui-spinner-glow-animation, none);
+      animation-duration: var(--sui-spinner-speed), 1.8s;
+      animation-timing-function: linear, ease-in-out;
+      animation-iteration-count: infinite, infinite;
     }
     .sui-spinner[variant="ring-track"] {
       border-width: var(--sui-spinner-thickness);
@@ -81,7 +84,7 @@
       border-top-color: var(--sui-spinner-color);
       border-right-color: var(--sui-spinner-color);
     }
-    .sui-spinner[variant="orbit-dots"] { overflow: visible; border: 0; animation: sui-spin var(--sui-spinner-speed) linear infinite; }
+    .sui-spinner[variant="orbit-dots"] { overflow: visible; border: 0; animation-name: sui-spin, var(--sui-spinner-glow-animation, none); animation-duration: var(--sui-spinner-speed), 1.8s; animation-timing-function: linear, ease-in-out; }
     .sui-spinner[variant="orbit-dots"]::before,
     .sui-spinner[variant="orbit-dots"]::after {
       position: absolute;
@@ -108,8 +111,9 @@
         linear-gradient(var(--sui-spinner-color), var(--sui-spinner-color)) top / 100% 42% no-repeat,
         linear-gradient(var(--sui-spinner-track), var(--sui-spinner-track)) top / 100% 100% no-repeat;
       clip-path: polygon(10% 0, 90% 0, 90% 8%, 58% 42%, 58% 58%, 90% 92%, 90% 100%, 10% 100%, 10% 92%, 42% 58%, 42% 42%, 10% 8%);
-      animation-name: var(--sui-spinner-animation, sui-spinner-hourglass);
-      animation-timing-function: linear;
+      animation-name: var(--sui-spinner-animation, sui-spinner-hourglass), var(--sui-spinner-glow-animation, none);
+      animation-duration: var(--sui-spinner-speed, 5.4s), 1.8s;
+      animation-timing-function: linear, ease-in-out;
     }
     .sui-spinner[variant="hourglass"]::before {
       content: "";
@@ -137,7 +141,8 @@
     .sui-spinner[variant="fill-wave"] {
       border: 2px solid var(--sui-spinner-track);
       background: #0f172a;
-      animation: none;
+      animation-name: none, var(--sui-spinner-glow-animation, none);
+      animation-duration: 0s, 1.8s;
     }
     .sui-spinner[variant="fill-wave"]::before {
       position: absolute;
@@ -157,7 +162,10 @@
       background: var(--sui-spinner-color);
       backface-visibility: hidden;
       transform-style: preserve-3d;
-      animation: var(--sui-spinner-animation, sui-spinner-fill-flip) var(--sui-spinner-speed) var(--sui-spinner-easing, ease-in-out) infinite;
+      animation-name: var(--sui-spinner-animation, sui-spinner-fill-flip), var(--sui-spinner-glow-animation, none);
+      animation-duration: var(--sui-spinner-speed), 1.8s;
+      animation-timing-function: var(--sui-spinner-easing, ease-in-out), ease-in-out;
+      animation-iteration-count: infinite, infinite;
     }
     .sui-spinner[variant="fill-flip"]::before {
       position: absolute;
@@ -172,6 +180,8 @@
     @keyframes sui-spinner-hourglass { 0% { transform: rotate(0); background-size: 100% 42%, 100% 100%; } 38%, 44% { transform: rotate(0); background-size: 100% 0%, 100% 100%; } 50% { transform: rotate(180deg); background-size: 100% 0%, 100% 100%; } 82%, 88%, 94% { transform: rotate(180deg); background-size: 100% 42%, 100% 100%; } 100% { transform: rotate(360deg); background-size: 100% 42%, 100% 100%; } }
     @keyframes sui-spinner-hourglass-sand { 0%, 6% { height: 0%; } 38%, 50% { height: 42%; } 82%, 100% { height: 0%; } }
     @keyframes sui-spinner-hourglass-flow { 0%, 5%, 42%, 54%, 92%, 100% { opacity: 0; transform: scaleY(0); } 8%, 35%, 60%, 84% { opacity: 1; transform: scaleY(1); } }
+    @keyframes sui-spinner-glow { 0%, 100% { filter: drop-shadow(0 0 2px var(--sui-spinner-color)); } 50% { filter: drop-shadow(0 0 7px var(--sui-spinner-color)); } }
+    @keyframes sui-spinner-glow-pulse { 0%, 100% { filter: drop-shadow(0 0 1px var(--sui-spinner-color)); } 50% { filter: drop-shadow(0 0 5px var(--sui-spinner-color)) brightness(1.25); } }
     @keyframes sui-wave { 0%, 100% { transform: translateY(34%) rotate(-8deg); } 50% { transform: translateY(-22%) rotate(8deg); } }
     @keyframes sui-spinner-fill-flip { 0%, 35% { transform: perspective(90px) rotateY(0); background-color: var(--sui-spinner-color); } 50%, 85% { transform: perspective(90px) rotateY(180deg); background-color: var(--sui-spinner-color2); } 100% { transform: perspective(90px) rotateY(360deg); background-color: var(--sui-spinner-color); } }
 
@@ -192,13 +202,16 @@
     }
     .sui-checkbox { border-radius: var(--sui-cb-radius, 4px); }
     .sui-checkbox::after {
+      position: absolute;
+      left: 50%;
+      top: 50%;
       width: 5px;
       height: 9px;
       border: solid #fff;
       border-width: 0 2px 2px 0;
       content: "";
       opacity: 0;
-      transform: rotate(45deg) translate(-1px, -1px);
+      transform: translate(-50%, -50%) rotate(45deg);
     }
     .sui-checkbox:checked { border-color: #6875ff; background: #4c5cf7; }
     .sui-checkbox:checked::after { opacity: 1; }
@@ -212,9 +225,7 @@
     .sui-cb-shape-orbit { --sui-cb-radius: 50%; box-shadow: inset 0 0 0 3px rgba(148, 163, 184, .24); }
     .sui-cb-shape-soft { --sui-cb-radius: 6px; box-shadow: 0 3px 9px rgba(99, 102, 241, .2); }
     .sui-cb-shape-ios { width: 31px; height: 18px; border-radius: 999px; background: #334155; }
-    .sui-cb-shape-ios::after { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; opacity: 1; transform: none; transition: left .16s ease; }
-    .sui-cb-shape-ios:checked { background: #4c5cf7; }
-    .sui-cb-shape-ios:checked::after { left: 15px; }
+    .sui-cb-shape-ios::after { width: 5px; height: 9px; }
     .sui-cb-shape-minimal { border-color: #8b9bb3; background: transparent; }
     .sui-cb-shape-diamond { border-radius: 0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
     .sui-cb-shape-pill { width: 26px; height: 16px; border-radius: 999px; }
@@ -224,6 +235,9 @@
     .sui-checkbox.sui-cb-symbol-star:checked::after,
     .sui-checkbox.sui-cb-symbol-heart:checked::after {
       display: grid;
+      position: absolute;
+      left: 0;
+      top: 0;
       width: 100%;
       height: 100%;
       place-items: center;
@@ -245,17 +259,20 @@
       background: #121b2c;
     }
     .sui-radio::after {
+      position: absolute;
+      left: 50%;
+      top: 50%;
       width: var(--sui-rd-dot-size);
       height: var(--sui-rd-dot-size);
       border-radius: 50%;
       background: #fff;
       content: "";
       opacity: 0;
-      transform: scale(.5);
+      transform: translate(-50%, -50%) scale(.5);
       transition: opacity .16s ease, transform .16s ease;
     }
     .sui-radio:checked { border-color: #6875ff; background: #4c5cf7; }
-    .sui-radio:checked::after { opacity: 1; transform: scale(1); }
+    .sui-radio:checked::after { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     .sui-rd-shape-soft { border-color: #818cf8; box-shadow: 0 0 0 4px rgba(129, 140, 248, .12); }
     .sui-rd-shape-minimal { border-width: 1px; background: transparent; }
     .sui-rd-shape-square { --sui-rd-radius: 5px; }
@@ -263,6 +280,8 @@
     .sui-rd-shape-target { border-width: 3px; box-shadow: inset 0 0 0 3px rgba(148, 163, 184, .16); }
     .sui-rd-shape-ring { border-width: 4px; }
     .sui-rd-shape-check:checked::after {
+      left: 50%;
+      top: 50%;
       width: 5px;
       height: 9px;
       border: solid #fff;
@@ -270,8 +289,79 @@
       border-radius: 0;
       background: transparent;
       opacity: 1;
-      transform: rotate(45deg) translate(-1px, -1px);
+      transform: translate(-50%, -50%) rotate(45deg);
     }
+
+    .sui-progress {
+      appearance: none;
+      width: 100%;
+      height: var(--sui-progress-height, 8px);
+      border: var(--sui-progress-border-width, 0) solid var(--sui-progress-border, transparent);
+      border-radius: var(--sui-progress-radius, 999px);
+      background: var(--sui-progress-track, #1f2937);
+      box-shadow: var(--sui-progress-shadow, none);
+      overflow: hidden;
+    }
+    .sui-progress::-webkit-progress-bar { background: var(--sui-progress-track, #1f2937); }
+    .sui-progress::-webkit-progress-value {
+      background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #60a5fa), var(--sui-progress-value-end, #22d3ee)));
+      border-radius: var(--sui-progress-radius, 999px);
+      box-shadow: var(--sui-progress-fill-shadow, none);
+    }
+    .sui-progress::-moz-progress-bar {
+      background: var(--sui-progress-fill, linear-gradient(90deg, var(--sui-progress-value, #60a5fa), var(--sui-progress-value-end, #22d3ee)));
+      border-radius: var(--sui-progress-radius, 999px);
+      box-shadow: var(--sui-progress-fill-shadow, none);
+    }
+    .sui-progress-thin { --sui-progress-height:4px; }
+    .sui-progress-classic { --sui-progress-height:8px; }
+    .sui-progress-segmented { --sui-progress-height:12px; --sui-progress-fill:repeating-linear-gradient(90deg,#60a5fa 0 9px,transparent 9px 12px); }
+    .sui-progress-steps { --sui-progress-height:14px; --sui-progress-radius:3px; --sui-progress-fill:repeating-linear-gradient(90deg,#a78bfa 0 15px,transparent 15px 19px); }
+    .sui-progress-neon { --sui-progress-height:10px; --sui-progress-fill-shadow:0 0 10px #22d3ee; }
+    .sui-progress-square { --sui-progress-height:12px; --sui-progress-radius:3px; --sui-progress-border-width:1px; --sui-progress-border:#60a5fa; }
+    .sui-slider {
+      appearance: none;
+      width: min(100%, 240px);
+      height: var(--sui-slider-track, 6px);
+      margin: 0;
+      border: var(--sui-slider-border-width, 0) solid var(--sui-slider-border, transparent);
+      border-radius: var(--sui-slider-radius, 999px);
+      background: var(--sui-slider-bg, #263248);
+      box-shadow: var(--sui-slider-shadow, none);
+    }
+    .sui-slider::-webkit-slider-runnable-track { height: var(--sui-slider-track, 6px); border-radius: var(--sui-slider-radius, 999px); background: var(--sui-slider-bg, #263248); }
+    .sui-slider::-moz-range-track { height: var(--sui-slider-track, 6px); border-radius: var(--sui-slider-radius, 999px); background: var(--sui-slider-bg, #263248); }
+    .sui-slider::-moz-range-progress { height: var(--sui-slider-track, 6px); border-radius: var(--sui-slider-radius, 999px); background: var(--sui-slider-thumb-bg, #60a5fa); }
+    .sui-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: var(--sui-slider-thumb-width, var(--sui-slider-thumb, 18px));
+      height: var(--sui-slider-thumb-height, var(--sui-slider-thumb, 18px));
+      border: var(--sui-slider-thumb-border-width, 0) solid var(--sui-slider-thumb-border, transparent);
+      border-radius: var(--sui-slider-thumb-radius, 50%);
+      background: var(--sui-slider-thumb-bg, #60a5fa);
+      box-shadow: var(--sui-slider-thumb-shadow, 0 2px 6px rgba(96, 165, 250, .4));
+      cursor: pointer;
+    }
+    .sui-slider::-moz-range-thumb {
+      width: var(--sui-slider-thumb-width, var(--sui-slider-thumb, 18px));
+      height: var(--sui-slider-thumb-height, var(--sui-slider-thumb, 18px));
+      border: var(--sui-slider-thumb-border-width, 0) solid var(--sui-slider-thumb-border, transparent);
+      border-radius: var(--sui-slider-thumb-radius, 50%);
+      background: var(--sui-slider-thumb-bg, #60a5fa);
+      box-shadow: var(--sui-slider-thumb-shadow, 0 2px 6px rgba(96, 165, 250, .4));
+      cursor: pointer;
+    }
+    .sui-slider-thin { --sui-slider-track:3px; --sui-slider-thumb:14px; }
+    .sui-slider-classic { --sui-slider-track:6px; --sui-slider-thumb:18px; }
+    .sui-slider-pill { --sui-slider-track:12px; --sui-slider-thumb:18px; --sui-slider-thumb-radius:999px; --sui-slider-shadow:0 4px 10px rgba(96,165,250,.24); }
+    .sui-slider-glass { --sui-slider-track:10px; --sui-slider-bg:rgba(148,163,184,.18); --sui-slider-thumb:20px; --sui-slider-thumb-border-width:2px; --sui-slider-thumb-border:rgba(255,255,255,.55); --sui-slider-shadow:0 8px 18px rgba(76,92,247,.24); }
+    .sui-slider-square { --sui-slider-track:8px; --sui-slider-radius:3px; --sui-slider-thumb:17px; --sui-slider-thumb-radius:4px; }
+    .sui-slider-diamond::-webkit-slider-thumb { border-radius:3px; transform:rotate(45deg); }
+    .sui-slider-diamond::-moz-range-thumb { border-radius:3px; transform:rotate(45deg); }
+    .sui-slider-triangle::-webkit-slider-thumb { border-radius:0; clip-path:polygon(0 0,100% 0,50% 100%); }
+    .sui-slider-triangle::-moz-range-thumb { border-radius:0; clip-path:polygon(0 0,100% 0,50% 100%); }
+    .sui-slider-segment { --sui-slider-thumb-width:4px; --sui-slider-thumb-height:24px; --sui-slider-thumb-radius:2px; }
+    .sui-slider-neon { --sui-slider-track:5px; --sui-slider-thumb-bg:#22d3ee; --sui-slider-shadow:0 0 12px rgba(34,211,238,.32); --sui-slider-thumb-shadow:0 0 12px rgba(34,211,238,.72); }
 
     .datepicker-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
     .datepicker-card { padding: 14px; }
@@ -348,7 +438,7 @@
     <header>
       <div class="eyebrow">SimpleUI · Appearance</div>
       <h1>Control gallery</h1>
-      <p class="intro">A hands-on showcase of the spinner, checkbox, radio and date-picker structures in the appearance library. Toggle the controls, inspect the animated loaders and try the calendar day shapes.</p>
+      <p class="intro">A hands-on showcase of spinner, checkbox, radio, progress, slider and date-picker structures in the appearance library. Toggle the controls, inspect the animated loaders and try the calendar day shapes.</p>
     </header>
 
     <section aria-labelledby="spinner-heading">
@@ -384,6 +474,28 @@
       <div class="gallery-grid" id="radio-gallery"></div>
     </section>
 
+    <section aria-labelledby="progress-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="progress-heading">Progress bars</h2>
+          <p class="section-note">Value-driven fills in slim, segmented, stepped, glowing and square tracks.</p>
+        </div>
+        <span class="count" id="progress-count"></span>
+      </div>
+      <div class="gallery-grid" id="progress-gallery"></div>
+    </section>
+
+    <section aria-labelledby="slider-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="slider-heading">Sliders</h2>
+          <p class="section-note">Interactive range controls with varied track thickness, thumb shapes and finishes.</p>
+        </div>
+        <span class="count" id="slider-count"></span>
+      </div>
+      <div class="gallery-grid" id="slider-gallery"></div>
+    </section>
+
     <section aria-labelledby="datepicker-heading">
       <div class="section-heading">
         <div>
@@ -403,10 +515,10 @@
       { id: "small", label: "Small", vars: { "--sui-spinner-size": "16px", "--sui-spinner-thickness": "2px" } },
       { id: "default", label: "Default", vars: { "--sui-spinner-size": "24px", "--sui-spinner-thickness": "3px" } },
       { id: "large", label: "Large", vars: { "--sui-spinner-size": "36px", "--sui-spinner-thickness": "4px" } },
-      { id: "ring-track", label: "Ring track", variant: "ring-track", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "4px", "--sui-spinner-track": "rgba(148,163,184,.26)", "--sui-spinner-color": "#7c3aed" } },
+      { id: "ring-track", label: "Ring track", variant: "ring-track", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "4px", "--sui-spinner-track": "rgba(148,163,184,.26)", "--sui-spinner-color": "#7c3aed", "--sui-spinner-glow-animation": "sui-spinner-glow" } },
       { id: "orbit-dots", label: "Orbit dots", variant: "orbit-dots", vars: { "--sui-spinner-size": "30px", "--sui-spinner-color": "#60a5fa", "--sui-spinner-color2": "#a78bfa", "--sui-spinner-speed": "1.2s" } },
       { id: "multiple-dots", label: "Three orbiting dots", variant: "multiple-dots", vars: { "--sui-spinner-size": "32px", "--sui-spinner-thickness": "0px", "--sui-spinner-dot-size": "3px", "--sui-spinner-color": "#60a5fa", "--sui-spinner-color2": "#a78bfa", "--sui-spinner-color3": "#22d3ee", "--sui-spinner-speed": "1.1s" } },
-      { id: "hourglass", label: "Hourglass", variant: "hourglass", vars: { "--sui-spinner-size": "36px", "--sui-spinner-color": "#f59e0b", "--sui-spinner-color2": "#fcd34d", "--sui-spinner-track": "rgba(148,163,184,.35)", "--sui-spinner-animation": "sui-spinner-hourglass", "--sui-spinner-easing": "linear", "--sui-spinner-speed": "5.4s" } },
+      { id: "hourglass", label: "Hourglass", variant: "hourglass", vars: { "--sui-spinner-size": "36px", "--sui-spinner-color": "#f59e0b", "--sui-spinner-color2": "#fcd34d", "--sui-spinner-track": "rgba(148,163,184,.35)", "--sui-spinner-animation": "sui-spinner-hourglass", "--sui-spinner-glow-animation": "sui-spinner-glow-pulse", "--sui-spinner-easing": "linear", "--sui-spinner-speed": "5.4s" } },
       { id: "fill-wave", label: "Liquid fill", variant: "fill-wave", vars: { "--sui-spinner-size": "30px", "--sui-spinner-thickness": "2px", "--sui-spinner-track": "rgba(148,163,184,.5)", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-color2": "#22d3ee", "--sui-spinner-speed": "1.8s" } },
       { id: "fill-flip", label: "Two-colour flip", variant: "fill-flip", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "0px", "--sui-spinner-radius": "50%", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-color2": "#22d3ee", "--sui-spinner-animation": "sui-spinner-fill-flip", "--sui-spinner-easing": "ease-in-out", "--sui-spinner-speed": "4.2s" } }
     ];
@@ -441,6 +553,27 @@
       { id: "target", label: "Target" },
       { id: "ring", label: "Bold ring" },
       { id: "check", label: "Check mark" }
+    ];
+
+    const progressVariants = [
+      { id: "thin", label: "Thin", className: "sui-progress-thin" },
+      { id: "classic", label: "Classic", className: "sui-progress-classic" },
+      { id: "segmented", label: "Segmented", className: "sui-progress-segmented" },
+      { id: "steps", label: "Stepped blocks", className: "sui-progress-steps" },
+      { id: "neon", label: "Neon glow", className: "sui-progress-neon" },
+      { id: "square", label: "Square", className: "sui-progress-square" }
+    ];
+
+    const sliderVariants = [
+      { id: "thin", label: "Thin", className: "sui-slider-thin" },
+      { id: "classic", label: "Classic", className: "sui-slider-classic" },
+      { id: "pill", label: "Pill", className: "sui-slider-pill" },
+      { id: "glass", label: "Glass", className: "sui-slider-glass" },
+      { id: "square", label: "Square", className: "sui-slider-square" },
+      { id: "diamond", label: "Diamond thumb", className: "sui-slider-diamond" },
+      { id: "triangle", label: "Inverted triangle", className: "sui-slider-triangle" },
+      { id: "segment", label: "Vertical segment", className: "sui-slider-segment" },
+      { id: "neon", label: "Neon", className: "sui-slider-neon" }
     ];
 
     function makeCard(title, className) {
@@ -528,8 +661,45 @@
       document.getElementById("radio-count").textContent = radioVariants.length + " structures";
     }
 
+    function renderProgressBars() {
+      const gallery = document.getElementById("progress-gallery");
+      for (const item of progressVariants) {
+        const card = makeCard(item.label);
+        const sample = document.createElement("div");
+        sample.className = "demo-sample";
+        const progress = document.createElement("progress");
+        progress.className = "sui-progress " + item.className;
+        progress.max = 100;
+        progress.value = 68;
+        progress.setAttribute("aria-label", item.label + " progress");
+        sample.appendChild(progress);
+        card.appendChild(sample);
+        gallery.appendChild(card);
+      }
+      document.getElementById("progress-count").textContent = progressVariants.length + " structures";
+    }
+
+    function renderSliders() {
+      const gallery = document.getElementById("slider-gallery");
+      for (const item of sliderVariants) {
+        const card = makeCard(item.label);
+        const sample = document.createElement("div");
+        sample.className = "demo-sample";
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = 0;
+        slider.max = 100;
+        slider.value = 62;
+        slider.className = "sui-slider " + item.className;
+        slider.setAttribute("aria-label", item.label + " slider");
+        sample.appendChild(slider);
+        card.appendChild(sample);
+        gallery.appendChild(card);
+      }
+      document.getElementById("slider-count").textContent = sliderVariants.length + " structures";
+    }
+
     const dateVariants = [
-      { id: "default", label: "Default", kind: "native" },
       { id: "native", label: "Native picker", kind: "native" },
       { id: "calendar", label: "SimpleUI calendar", kind: "calendar" },
       { id: "calendar-circles", label: "Calendar circles", kind: "calendar-circles" },
@@ -664,6 +834,8 @@
     renderSpinners();
     renderChecks();
     renderRadios();
+    renderProgressBars();
+    renderSliders();
     renderDatePickers();
   </script>
 </body>
