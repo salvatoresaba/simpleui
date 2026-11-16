@@ -157,8 +157,10 @@ const guiAppearanceScript = `<script>
     renderTree(); renderInspector();
     await until(function () { return !!appSection(); }, 4000);
     var s = selects();
-    assert(s.length === 4, 'expected structure, style, animation and theme selects; got ' + s.length + ' accs=' + Array.prototype.map.call(document.querySelectorAll('#inspector .acc'), function(a){ return a.title; }).join(',') + ' supported=' + (typeof appearanceKindSupported) + ':' + (typeof appearanceKindSupported === 'function' ? appearanceKindSupported('button') : 'n/a') + ' section=' + (typeof appearanceInspectorSection) + ' status=' + document.getElementById('status').textContent);
+    assert(s.length === 8, 'expected theme, structure, style, animation and four phase selects; got ' + s.length + ' accs=' + Array.prototype.map.call(document.querySelectorAll('#inspector .acc'), function(a){ return a.title; }).join(','));
     assert(appSection().title === 'Button', 'button section must be named Button');
+    var phaseLabels = s.slice(4).map(function (sel) { return sel.getAttribute('data-phase') || ''; });
+    assert(phaseLabels.join(',') === 'hover,press,focus,state', 'phase selects missing: ' + phaseLabels.join(','));
     var structs = Array.prototype.slice.call(s[1].options).map(function (o) { return o.textContent; });
     assert(structs.indexOf('Circular') >= 0, 'button structures missing');
     var btnStyleLabels = Array.prototype.slice.call(s[2].options).map(function (o) { return o.textContent; });
@@ -177,7 +179,23 @@ const guiAppearanceScript = `<script>
     s[3].value = pulse.value; s[3].dispatchEvent(new Event('change', { bubbles: true }));
     await wait(500);
     btn = byPath(selPath, root.children);
-    assert(/sui-button-pulse/.test(String(btn.style || '')), 'pulse animation not applied');
+    var btnStyle = String(btn.style || '');
+    assert(/sui-button-pulse/.test(btnStyle), 'pulse animation not applied');
+    assert(/--sui-hover-animation:/.test(btnStyle), 'hover feedback missing');
+    assert(/--sui-active-animation:/.test(btnStyle), 'click feedback missing');
+    assert(/--sui-focus-animation:/.test(btnStyle), 'focus feedback missing');
+    assert(/--sui-state-animation:/.test(btnStyle), 'state feedback missing');
+    assert(/(^|\s)sui-anim-hover(\s|$)/.test(String(btn.class || '')), 'hover phase class missing');
+    assert(/(^|\s)sui-anim-press(\s|$)/.test(String(btn.class || '')), 'press phase class missing');
+    // The Click menu overrides only the press phase.
+    s = selects();
+    var pressOpt = Array.prototype.slice.call(s[5].options).filter(function (o) { return o.textContent === 'Press'; })[0];
+    assert(!!pressOpt, 'press phase option missing');
+    s[5].value = pressOpt.value; s[5].dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(500);
+    btn = byPath(selPath, root.children);
+    assert(String(btn.style || '').indexOf('sui-fx-press') >= 0, 'click phase not applied');
+    assert(root.css.indexOf('sui-appearance-phase-rules') >= 0, 'phase CSS block missing');
     // The saved theme must appear in both the inspector and the navigator.
     var oldAsk = window.askPrompt;
     window.askPrompt = function (title, label, initial, cb) { cb('Test theme'); };
@@ -221,6 +239,11 @@ const guiAppearanceScript = `<script>
     assert(LIB_APP_SEL.animation === 'glow', 'Glow was not selected');
     assert(/--sui-button-animation:\s*sui-button-glow/.test(frame.srcdoc), 'preview does not apply the button animation variable');
     assert(!/--sui-button-shadow:\s*sui-button-glow/.test(frame.srcdoc), 'animation must not overwrite the shadow variable');
+    assert(/--sui-hover-animation:/.test(frame.srcdoc), 'preview hover feedback missing');
+    assert(/--sui-active-animation:/.test(frame.srcdoc), 'preview click feedback missing');
+    assert(/sui-anim-hover/.test(frame.srcdoc), 'preview hover class missing');
+    assert(/sui-anim-press/.test(frame.srcdoc), 'preview press class missing');
+    assert(/sui-demo-hover/.test(frame.srcdoc), 'preview phase demo missing');
     closeLibraryNavigator();
     // Every non-complex control gets the section; list is a generic catalog.
     var genericPath = pathOfKind('dropdown');
@@ -229,7 +252,7 @@ const guiAppearanceScript = `<script>
     selPath = genericPath; multiSel = []; renderTree(); renderInspector();
     await until(function () { return !!appSection(); }, 4000);
     var gs = selects();
-    assert(gs.length === 4, 'generic control appearance section missing');
+    assert(gs.length === 8, 'generic control appearance section missing phase selects');
     var gStructs = Array.prototype.slice.call(gs[1].options).map(function (o) { return o.textContent; });
     assert(gStructs.indexOf('Rounded') >= 0, 'generic structures missing');
     var gStyles = Array.prototype.slice.call(gs[2].options).map(function (o) { return o.textContent; });
@@ -245,6 +268,8 @@ const guiAppearanceScript = `<script>
     assert(/border-radius:\s*12px/.test(genericStyle), 'generic structure not applied');
     assert(genericStyle.indexOf('#4c5cf7') >= 0, 'generic style not applied');
     assert(/sui-appearance-pulse/.test(genericStyle), 'generic animation not applied');
+    assert(/--sui-hover-animation:/.test(genericStyle), 'generic hover feedback missing');
+    assert(/--sui-active-animation:/.test(genericStyle), 'generic click feedback missing');
     assert(root.css.indexOf('sui-appearance-keyframes') >= 0, 'generic keyframes missing');
     assert(!appearanceKindSupported('table') && !appearanceKindSupported('graph') && !appearanceKindSupported('chart'), 'complex controls must not expose appearance');
     // Insert toolbar: Controls has subcategories and Advanced holds table/graph/chart.

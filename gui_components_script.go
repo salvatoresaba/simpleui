@@ -607,7 +607,7 @@ function loadAppearanceCatalog(reload) {
   var url = "/__gui__/appearance" + (reload ? "?reload=1" : "");
   return fetch(url).then(function(r){ return r.json(); }).then(function(j){
     if (j && j.ok && j.controls && j.controls.length) {
-      APPEARANCE_CATALOG = { controls: j.controls, source: j.source || "" };
+      APPEARANCE_CATALOG = { controls: j.controls, feedback: j.feedback || null, source: j.source || "" };
       APPEARANCE_CATALOG_ERROR = "";
       APPEARANCE_CATALOG_SOURCE = j.source || "";
       if (reload) setStatus("Appearance library reloaded from " + (j.source || "components/appearance.json"));
@@ -782,7 +782,18 @@ function appearanceKeyframesCss() {
   return "@keyframes sui-appearance-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: .85; } }\n" +
     "@keyframes sui-appearance-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n" +
     "@keyframes sui-appearance-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }\n" +
-    "@keyframes sui-appearance-fade { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }";
+    "@keyframes sui-appearance-fade { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }\n" +
+    "@keyframes sui-fx-lift { to { translate: 0 -3px; } }\n" +
+    "@keyframes sui-fx-grow { to { scale: 1.03; } }\n" +
+    "@keyframes sui-fx-tilt { to { rotate: -2deg; } }\n" +
+    "@keyframes sui-fx-press { 0% { scale: 1; } 45% { scale: .94; } 100% { scale: 1; } }\n" +
+    "@keyframes sui-fx-pop { 0% { scale: .96; } 55% { scale: 1.06; } 100% { scale: 1; } }\n" +
+    "@keyframes sui-fx-jelly { 0%, 100% { scale: 1 1; } 30% { scale: 1.12 .9; } 60% { scale: .94 1.06; } }\n" +
+    "@keyframes sui-fx-bounce { 0%, 100% { translate: 0 0; } 35% { translate: 0 -5px; } 65% { translate: 0 2px; } }\n" +
+    "@keyframes sui-fx-shake { 0%, 100% { translate: 0 0; } 20% { translate: -3px 0; } 40% { translate: 3px 0; } 60% { translate: -2px 0; } 80% { translate: 2px 0; } }\n" +
+    "@keyframes sui-fx-ring { 0% { box-shadow: 0 0 0 0 rgba(76,92,247,.55); } 100% { box-shadow: 0 0 0 8px rgba(76,92,247,0); } }\n" +
+    "@keyframes sui-fx-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n" +
+    "@keyframes sui-fx-slide { from { translate: 0 4px; opacity: .6; } to { translate: 0 0; opacity: 1; } }";
 }
 function ensureAppearanceKeyframes() {
   var re = /\/\* sui-appearance-keyframes \*\/[\s\S]*?\/\* \/sui-appearance-keyframes \*\//;
@@ -791,6 +802,128 @@ function ensureAppearanceKeyframes() {
   if (re.test(css)) css = css.replace(re, block);
   else css = (css.trim() ? css.trim() + "\n" : "") + block;
   root.css = css.trim() + "\n";
+}
+// Every animation option is a full set: idle + hover + click + focus + state.
+// The feedback layer gives the user a visible reaction on every action, even
+// when the idle effect is subtle or absent.
+var APPEARANCE_FEEDBACK_FALLBACK = {
+  default: {
+    hover: "sui-fx-lift .18s ease-out forwards",
+    press: "sui-fx-press .18s ease-out",
+    focus: "sui-fx-ring .9s ease-out",
+    state: "sui-fx-pop .24s ease-out"
+  },
+  glow: {
+    hover: "sui-fx-glow 1s ease-in-out infinite",
+    press: "sui-fx-pop .2s ease-out",
+    focus: "sui-fx-ring .9s ease-out",
+    state: "sui-fx-glow .9s ease-out"
+  },
+  energetic: {
+    hover: "sui-fx-grow .18s ease-out forwards",
+    press: "sui-fx-jelly .34s ease-out",
+    focus: "sui-fx-ring .9s ease-out",
+    state: "sui-fx-bounce .38s ease-out"
+  },
+  playful: {
+    hover: "sui-fx-tilt .18s ease-out forwards",
+    press: "sui-fx-jelly .38s cubic-bezier(.2,1.4,.4,1)",
+    focus: "sui-fx-ring .9s ease-out",
+    state: "sui-fx-slide .26s ease-out"
+  }
+};
+function appearanceFeedbackCatalog() {
+  var ext = APPEARANCE_CATALOG && APPEARANCE_CATALOG.feedback;
+  var out = {};
+  Object.keys(APPEARANCE_FEEDBACK_FALLBACK).forEach(function (variant) {
+    var base = APPEARANCE_FEEDBACK_FALLBACK[variant];
+    var add = ext && ext[variant] ? ext[variant] : null;
+    out[variant] = {
+      hover: add && add.hover !== undefined ? String(add.hover) : base.hover,
+      press: add && add.press !== undefined ? String(add.press) : base.press,
+      focus: add && add.focus !== undefined ? String(add.focus) : base.focus,
+      state: add && add.state !== undefined ? String(add.state) : base.state
+    };
+  });
+  return out;
+}
+function appearanceFeedbackFor(label, value) {
+  var low = String(label || "") + " " + String(value || "");
+  var variant = "default";
+  if (/glow|neon|shine|sheen|bright|halo/.test(low)) variant = "glow";
+  else if (/bounce|jelly|pop|pulse|press|spring|breathe/.test(low)) variant = "energetic";
+  else if (/float|tilt|drift|wave|swing|slide/.test(low)) variant = "playful";
+  var fb = appearanceFeedbackCatalog()[variant] || APPEARANCE_FEEDBACK_FALLBACK.default;
+  return {
+    hover: fb.hover || "none",
+    press: fb.press || "none",
+    focus: fb.focus || "none",
+    state: fb.state || "none"
+  };
+}
+var APPEARANCE_PHASE_KEYS = { hover: "--sui-hover-animation", press: "--sui-active-animation", focus: "--sui-focus-animation", state: "--sui-state-animation" };
+var APPEARANCE_PHASE_CLASSES = { hover: "sui-anim-hover", press: "sui-anim-press", focus: "sui-anim-focus", state: "sui-anim-state" };
+function appearancePhaseValueLabel(value) {
+  if (!value || value === "none") return "None";
+  var name = String(value).split(/\s+/)[0].replace(/^sui-fx-/, "").replace(/^sui-/, "").replace(/-/g, " ");
+  return name.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) || String(value);
+}
+function appearancePhaseOptions(phase) {
+  var out = [{ id: "none", label: "None", value: "none" }];
+  var seen = { none: true };
+  var fb = appearanceFeedbackCatalog();
+  Object.keys(fb).forEach(function (variant) {
+    var value = fb[variant] && fb[variant][phase];
+    if (!value || value === "none") return;
+    var key = String(value).split(/\s+/)[0] || value;
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push({ id: key, label: appearancePhaseValueLabel(value), value: value });
+  });
+  return out;
+}
+function appearanceAnimationSetFor(def, kind, id) {
+  var list = appearanceAnimations(def, kind);
+  var opt = null;
+  for (var i = 0; i < list.length; i++) if (list[i].id === id) { opt = list[i]; break; }
+  if (!opt) return { id: id || "", label: id || "None", value: "none", hover: "none", press: "none", focus: "none", state: "none" };
+  if (!opt.value || opt.value === "none") {
+    return { id: opt.id, label: opt.label, value: "none", hover: "none", press: "none", focus: "none", state: "none" };
+  }
+  var fb = appearanceFeedbackFor(opt.label, opt.value);
+  return { id: opt.id, label: opt.label, value: opt.value, hover: fb.hover, press: fb.press, focus: fb.focus, state: fb.state };
+}
+function appearancePhaseCss() {
+  return ".sui-anim-hover:hover { animation: var(--sui-hover-animation, none); }\n" +
+    ".sui-anim-focus:focus-visible { animation: var(--sui-focus-animation, none); }\n" +
+    ".sui-anim-state:checked, .sui-anim-state[aria-checked=\"true\"], .sui-anim-state[aria-pressed=\"true\"], .sui-anim-state[aria-expanded=\"true\"], .sui-anim-state[aria-selected=\"true\"], .sui-anim-state.on, .sui-anim-state.active { animation: var(--sui-state-animation, none); }\n" +
+    ".sui-anim-press:active { animation: var(--sui-active-animation, none); }\n" +
+    ".sui-anim-hover.sui-demo-hover { animation: var(--sui-hover-animation, none); }\n" +
+    ".sui-anim-press.sui-demo-press { animation: var(--sui-active-animation, none); }\n" +
+    ".sui-anim-focus.sui-demo-focus { animation: var(--sui-focus-animation, none); }\n" +
+    ".sui-anim-state.sui-demo-state { animation: var(--sui-state-animation, none); }\n" +
+    "@media (prefers-reduced-motion: reduce) { .sui-anim-hover, .sui-anim-press, .sui-anim-focus, .sui-anim-state { animation-duration: .01ms !important; } }";
+}
+function ensureAppearancePhaseCss() {
+  var re = /\/\* sui-appearance-phase-rules \*\/[\s\S]*?\/\* \/sui-appearance-phase-rules \*\//;
+  var block = "/* sui-appearance-phase-rules */\n" + appearancePhaseCss() + "\n/* /sui-appearance-phase-rules */";
+  var css = String(root.css || "");
+  if (re.test(css)) css = css.replace(re, block);
+  else css = (css.trim() ? css.trim() + "\n" : "") + block;
+  root.css = css.trim() + "\n";
+}
+function appearanceSyncPhaseClasses(node, map) {
+  if (!node) return;
+  var tokens = String(node.class || "").split(/\s+/).filter(Boolean);
+  Object.keys(APPEARANCE_PHASE_CLASSES).forEach(function (phase) {
+    var cls = APPEARANCE_PHASE_CLASSES[phase];
+    var value = String(map[APPEARANCE_PHASE_KEYS[phase]] === undefined ? "" : map[APPEARANCE_PHASE_KEYS[phase]]);
+    var on = !!value && value !== "none";
+    var at = tokens.indexOf(cls);
+    if (on && at < 0) tokens.push(cls);
+    if (!on && at >= 0) tokens.splice(at, 1);
+  });
+  node.class = tokens.join(" ");
 }
 function appearanceThemeLookup(def, kind, id) {
   var themes = appearanceThemes(def, kind);
@@ -879,6 +1012,7 @@ function appearanceKeyUnion(def) {
   appearanceStyles(def, "").forEach(function(s){ Object.keys(s.vars || {}).forEach(add); });
   var ak = appearanceAnimKey(def);
   if (ak) add(ak); else add("animation");
+  Object.keys(APPEARANCE_PHASE_KEYS).forEach(function (phase) { add(APPEARANCE_PHASE_KEYS[phase]); });
   return out;
 }
 function appearanceAttrsUnion(def) {
@@ -901,11 +1035,14 @@ function appearanceVarsForSelection(def, kind, sel) {
   }
   var st = appearanceVariant(appearanceStructures(def, kind), sel.structure);
   var sy = appearanceVariant(appearanceStyles(def, kind), sel.style);
-  var an = appearanceVariant(appearanceAnimations(def, kind), sel.animation);
+  var set = appearanceAnimationSetFor(def, kind, sel.animation);
   if (st) Object.keys(st.vars || {}).forEach(function(k){ vars[k] = st.vars[k]; });
   if (sy) Object.keys(sy.vars || {}).forEach(function(k){ vars[k] = sy.vars[k]; });
   var ak = appearanceAnimKey(def) || "animation";
-  if (an && an.value && an.value !== "none") vars[ak] = an.value;
+  if (set.value && set.value !== "none") vars[ak] = set.value;
+  ["hover", "press", "focus", "state"].forEach(function (phase) {
+    if (set[phase] && set[phase] !== "none") vars[APPEARANCE_PHASE_KEYS[phase]] = set[phase];
+  });
   return vars;
 }
 function appearanceMatchVariant(list, map, attrs, node) {
@@ -933,11 +1070,16 @@ function appearanceCurrent(node, def, kind) {
     if (String(anims[i].value) === av || (av === "" && anims[i].value === "none")) { animation = anims[i].id; break; }
   }
   var theme = "";
+  var phases = {};
+  Object.keys(APPEARANCE_PHASE_KEYS).forEach(function (phase) {
+    var pv = String(map[APPEARANCE_PHASE_KEYS[phase]] === undefined ? "" : map[APPEARANCE_PHASE_KEYS[phase]]);
+    phases[phase] = pv === "" ? "none" : pv;
+  });
   var themes = appearanceThemes(def, kind);
   for (var j = 0; j < themes.length; j++) {
     if (themes[j].structure === structure && themes[j].style === style && themes[j].animation === animation) { theme = themes[j].id; break; }
   }
-  return { structure: structure, style: style, animation: animation, theme: theme, vars: map };
+  return { structure: structure, style: style, animation: animation, phases: phases, theme: theme, vars: map };
 }
 function appearanceApply(node, def, patch) {
   if (!node) return;
@@ -964,16 +1106,36 @@ function appearanceApply(node, def, patch) {
       if (sy) Object.keys(sy.vars || {}).forEach(function(k){ map[k] = sy.vars[k]; });
     }
     if (patch.animation) {
-      var an = appearanceVariant(appearanceAnimations(def, kind), patch.animation);
+      var set = appearanceAnimationSetFor(def, kind, patch.animation);
       var ak = appearanceAnimKey(def);
-      if (ak) {
-        if (an && an.value && an.value !== "none") map[ak] = an.value; else delete map[ak];
-      } else if (an && an.value && an.value !== "none") {
-        map["animation"] = an.value;
+      delete map[ak || "animation"];
+      Object.keys(APPEARANCE_PHASE_KEYS).forEach(function (phase) { delete map[APPEARANCE_PHASE_KEYS[phase]]; });
+      if (set.value && set.value !== "none") map[ak || "animation"] = set.value;
+      ["hover", "press", "focus", "state"].forEach(function (phase) {
+        if (set[phase] && set[phase] !== "none") map[APPEARANCE_PHASE_KEYS[phase]] = set[phase];
+      });
+      ensureAppearanceKeyframes();
+      ensureAppearancePhaseCss();
+    }
+    if (patch.phase && APPEARANCE_PHASE_KEYS[patch.phase]) {
+      var pkey = APPEARANCE_PHASE_KEYS[patch.phase];
+      if (patch.phaseValue && patch.phaseValue !== "none") {
+        map[pkey] = patch.phaseValue;
         ensureAppearanceKeyframes();
+        ensureAppearancePhaseCss();
       } else {
-        delete map["animation"];
+        delete map[pkey];
       }
+    }
+  }
+  if (patch.themeVars) {
+    var hasPhase = Object.keys(APPEARANCE_PHASE_KEYS).some(function (phase) {
+      var pv = patch.themeVars[APPEARANCE_PHASE_KEYS[phase]];
+      return pv && pv !== "none";
+    });
+    if (hasPhase) {
+      ensureAppearanceKeyframes();
+      ensureAppearancePhaseCss();
     }
   }
   if (patch.structure) {
@@ -983,6 +1145,7 @@ function appearanceApply(node, def, patch) {
       Object.keys(st2.attrs || {}).forEach(function(k){ node[k] = st2.attrs[k]; });
     }
   }
+  appearanceSyncPhaseClasses(node, map);
   writeComponentNodeStyle(def, node, map);
   ensureComponentRules(def);
 }
@@ -1004,10 +1167,10 @@ function appearancePatchForTheme(theme) {
     themeVars: theme.vars || null
   };
 }
-function appearancePreviewNode(kind, attrs) {
+function appearancePreviewNode(kind, attrs, extraClasses) {
   var attrStr = "";
   Object.keys(attrs || {}).forEach(function(k){ attrStr += " " + k + ": \"" + esc(String(attrs[k])) + "\""; });
-  var cls = " class: \"appearance-preview\"";
+  var cls = " class: \"appearance-preview" + (extraClasses ? " " + extraClasses : "") + "\"";
   if (kind === "button") return "button \"Button\"" + cls + attrStr;
   if (kind === "card") return "card \"Card\"" + cls + attrStr + " {\n\t\tp \"Preview\"\n\t}";
   if (kind === "checkbox") return "checkbox \"Checkbox\" checked: true" + cls + attrStr;
@@ -1051,9 +1214,26 @@ function appearancePreviewSource(def, kind, sel) {
   var vars = appearanceVarsForSelection(def, kind, sel);
   var st = appearanceVariant(appearanceStructures(def, kind), sel && sel.structure);
   var decls = Object.keys(vars).map(function(k){ return k + ": " + vars[k] + ";"; }).join(" ");
-  var css = (def.css || "") + "\n" + appearanceKeyframesCss() + "\n.appearance-preview { " + decls + " }\n" +
+  var phaseClasses = [];
+  Object.keys(APPEARANCE_PHASE_KEYS).forEach(function (phase) {
+    var value = vars[APPEARANCE_PHASE_KEYS[phase]];
+    if (value && value !== "none") phaseClasses.push(APPEARANCE_PHASE_CLASSES[phase]);
+  });
+  var css = (def.css || "") + "\n" + appearanceKeyframesCss() + "\n" + appearancePhaseCss() + "\n.appearance-preview { " + decls + " }\n" +
     "body { margin: 0; padding: 24px; background: #0f1117; color: #e5e7eb; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }";
-  return "css \"" + esc(css) + "\"\n\nview main {\n\t" + appearancePreviewNode(kind, st ? st.attrs : null) + "\n}\n";
+  return "css \"" + esc(css) + "\"\n\nview main {\n\t" + appearancePreviewNode(kind, st ? st.attrs : null, phaseClasses.join(" ")) + "\n}\n";
+}
+function appearancePreviewDemo(html) {
+  var script = "<script>(function(){var el=document.querySelector('.appearance-preview');if(!el)return;" +
+    "if(!/sui-anim-(hover|press|focus|state)/.test(String(el.className||'')))return;" +
+    "var steps=[['sui-demo-hover',850],['sui-demo-press',450],['sui-demo-focus',850],['sui-demo-state',750],['',300]],i=0;" +
+    "function next(){el.classList.remove('sui-demo-hover','sui-demo-press','sui-demo-focus','sui-demo-state');var s=steps[i++];if(!s)return;if(s[0])el.classList.add(s[0]);setTimeout(next,s[1]);}" +
+    "setTimeout(next,700);})();<\/script>";
+  if (/<\/body>/i.test(html)) {
+    var at = html.toLowerCase().lastIndexOf("</body>");
+    return html.slice(0, at) + script + html.slice(at);
+  }
+  return html + script;
 }
 function appearanceLoadPreview(def, kind, sel, frame) {
   if (!frame) return;
@@ -1082,7 +1262,7 @@ function appearanceLoadPreview(def, kind, sel, frame) {
     fetch("/__gui__/source-preview", { method: "POST", body: fd, signal: ctl ? ctl.signal : undefined }).then(function(r){ return r.json(); }).then(function(j){
       if (seq !== LIB_APP_PREVIEW_SEQ) return;
       LIB_APP_PREVIEW_ABORT = null;
-      if (j && j.ok && j.html) frame.srcdoc = j.html;
+      if (j && j.ok && j.html) frame.srcdoc = appearancePreviewDemo(j.html);
       else {
         var msg = (j && (j.error || (j.diagnostics && j.diagnostics.length))) ? (j.error || j.diagnostics[0]) : "Preview unavailable";
         frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>" + libNavEscape(msg) + "</body></html>";
@@ -1144,7 +1324,40 @@ function appearanceInspectorSection(def, node) {
   }, "Colour palette of the control");
   optionRow("Animation", anims, cur.animation, function(v){
     apply({ animation: v }, "animation");
-  }, "Animation of the control parts");
+  }, "Idle effect plus hover, click, focus and state feedback");
+  // The Animation menu selects the whole coherent set; these four refine the
+  // feedback of each interaction. Hover/click/focus/state are written to their
+  // own CSS variables and class hooks, so they never replace the idle effect.
+  var phaseLabels = { hover: "Hover", press: "Click", focus: "Focus", state: "State" };
+  Object.keys(phaseLabels).forEach(function (phase) {
+    var prow = document.createElement("div");
+    prow.className = "rowline appearance-phase-row";
+    prow.setAttribute("data-phase-row", phase);
+    var pl = document.createElement("label");
+    pl.textContent = phaseLabels[phase];
+    pl.title = phase === "state" ? "Checked, selected, expanded or open state" : phaseLabels[phase] + " feedback";
+    prow.appendChild(pl);
+    var ps = document.createElement("select");
+    ps.setAttribute("data-phase", phase);
+    ps.setAttribute("aria-label", phaseLabels[phase]);
+    var list = appearancePhaseOptions(phase);
+    var current = (cur.phases && cur.phases[phase]) || "none";
+    if (!list.some(function (o) { return o.value === current; })) {
+      list.push({ id: current, label: appearancePhaseValueLabel(current), value: current });
+    }
+    list.forEach(function (o) {
+      var op = document.createElement("option");
+      op.value = o.value;
+      op.textContent = o.label;
+      ps.appendChild(op);
+    });
+    ps.value = current;
+    ps.onchange = function () {
+      apply({ phase: phase, phaseValue: ps.value }, "animation " + phase);
+    };
+    prow.appendChild(ps);
+    rows.push(prow);
+  });
   var actions = document.createElement("div"); actions.className = "rowline";
   var browse = document.createElement("button"); browse.type = "button"; browse.className = "btn"; browse.textContent = "Browse…";
   browse.title = "Open the appearance library for this control";
@@ -1155,7 +1368,7 @@ function appearanceInspectorSection(def, node) {
   actions.appendChild(browse); actions.appendChild(save);
   rows.push(actions);
   var hint = document.createElement("div"); hint.className = "hint"; hint.style.fontSize = "10px";
-  hint.textContent = "Applies to this element only. Use Settings… for the project default. Themes are saved in this editor.";
+  hint.textContent = "Idle + hover + click + focus + state. Applies to this element only; themes are saved in this editor.";
   rows.push(hint);
   var sec = acc(appearanceKindLabel(kind), rows);
   sec.classList.add("open");
@@ -1284,6 +1497,14 @@ function renderAppearanceOptions() {
       b.className = "lib-app-option" + (LIB_APP_SEL && LIB_APP_SEL[selKey] === item.id ? " on" : "");
       b.textContent = item.label;
       b.title = item.label;
+      if (selKey === "animation") {
+        var set = appearanceAnimationSetFor(def, kind, item.id);
+        b.title = item.label + " · idle: " + (set.value === "none" ? "none" : set.label) +
+          " · hover: " + appearancePhaseValueLabel(set.hover) +
+          " · click: " + appearancePhaseValueLabel(set.press) +
+          " · focus: " + appearancePhaseValueLabel(set.focus) +
+          " · state: " + appearancePhaseValueLabel(set.state);
+      }
       b.setAttribute("data-id", item.id);
       b.setAttribute("data-col", selKey);
       b.setAttribute("role", "option");
@@ -1354,7 +1575,7 @@ function renderAppearanceNavigator() {
   renderAppearanceTheme();
   var kind = LIB_APP_KIND || def.kinds[0];
   var info = document.getElementById("lib-app-info");
-  if (info) info.textContent = "Arrow keys move and select (the preview updates), Left/Right switch list, Enter re-applies. The preview is a real compiled control.";
+  if (info) info.textContent = "Arrow keys move and select, Left/Right switch list, Enter re-applies. Each animation covers idle, hover, click, focus and state; the preview plays them once, then stays interactive.";
   var status = document.getElementById("lib-app-status");
   if (status) status.textContent = APPEARANCE_CATALOG_ERROR ? ("Appearance file rejected; built-in catalog active. " + APPEARANCE_CATALOG_ERROR) : "";
   appearanceLoadPreview(def, kind, LIB_APP_SEL, document.getElementById("lib-app-preview"));

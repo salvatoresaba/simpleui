@@ -9,15 +9,24 @@ import (
 )
 
 func TestBundledAppearanceLibraryValid(t *testing.T) {
-	controls, warnings, err := loadAppearanceLibraryFile(filepath.Join("components", "appearance.json"))
+	catalog, warnings, err := loadAppearanceLibraryFile(filepath.Join("components", "appearance.json"))
 	if err != nil {
 		t.Fatalf("bundled components/appearance.json is invalid: %v", err)
 	}
+	controls := catalog.Controls
 	if len(controls) != len(appearanceLibraryKinds) {
 		t.Fatalf("bundled catalog covers %d controls, want %d", len(controls), len(appearanceLibraryKinds))
 	}
 	if len(warnings) != 0 {
 		t.Fatalf("bundled catalog should cover every control, got warnings: %v", warnings)
+	}
+	if len(catalog.Feedback) < 4 {
+		t.Fatalf("bundled catalog needs the four feedback variants, got %d", len(catalog.Feedback))
+	}
+	for variant, fb := range catalog.Feedback {
+		if fb.Hover == "" || fb.Press == "" || fb.Focus == "" || fb.State == "" {
+			t.Fatalf("feedback %q must cover hover, press, focus and state", variant)
+		}
 	}
 	for _, c := range controls {
 		hasDark, hasLight, hasNone := false, false, false
@@ -106,6 +115,28 @@ func TestAppearanceLibraryRejectsUnknownAttribute(t *testing.T) {
 	_, _, err := loadAppearanceLibraryFile(path)
 	if err == nil || !strings.Contains(err.Error(), "unsupported attribute") {
 		t.Fatalf("unknown attribute should be rejected, got %v", err)
+	}
+}
+
+func TestAppearanceLibraryRejectsUnsafeFeedback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "appearance.json")
+	body := `{
+  "format": "simpleui-appearance-library",
+  "version": 1,
+  "feedback": {"default": {"hover": "sui-fx-lift .2s; url(javascript:alert(1))", "press": "none", "focus": "none", "state": "none"}},
+  "controls": [{
+    "kind": "button",
+    "structures": [{"id": "rect", "label": "Rect"}],
+    "styles": [{"id": "dark", "label": "Dark"}, {"id": "light", "label": "Light"}],
+    "animations": [{"id": "none", "label": "None", "value": "none"}]
+  }]
+}`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := loadAppearanceLibraryFile(path)
+	if err == nil || !strings.Contains(err.Error(), "feedback") {
+		t.Fatalf("unsafe feedback should be rejected, got %v", err)
 	}
 }
 

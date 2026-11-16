@@ -32,9 +32,22 @@ const (
 
 // AppearanceLibraryJSON is the on-disk and wire shape.
 type AppearanceLibraryJSON struct {
-	Format   string                  `json:"format"`
-	Version  int                     `json:"version"`
-	Controls []AppearanceControlJSON `json:"controls"`
+	Format   string                            `json:"format"`
+	Version  int                               `json:"version"`
+	Feedback map[string]AppearanceFeedbackJSON `json:"feedback,omitempty"`
+	Controls []AppearanceControlJSON           `json:"controls"`
+}
+
+type AppearanceFeedbackJSON struct {
+	Hover string `json:"hover"`
+	Press string `json:"press"`
+	Focus string `json:"focus"`
+	State string `json:"state"`
+}
+
+type appearanceCatalogData struct {
+	Controls []AppearanceControlJSON
+	Feedback map[string]AppearanceFeedbackJSON
 }
 
 type AppearanceControlJSON struct {
@@ -102,9 +115,9 @@ func appearanceLibraryPath(projectDir string) string {
 func loadAppearanceLibraryPayload(projectDir string) []byte {
 	path := appearanceLibraryPath(projectDir)
 	if path == "" {
-		return appearancePayload(false, "", nil, []string{"no external appearance library found; using the built-in catalog"})
+		return appearancePayload(false, "", nil, nil, []string{"no external appearance library found; using the built-in catalog"})
 	}
-	controls, warnings, err := loadAppearanceLibraryFile(path)
+	catalog, warnings, err := loadAppearanceLibraryFile(path)
 	if err != nil {
 		b, _ := json.Marshal(map[string]any{
 			"ok":     false,
@@ -113,12 +126,15 @@ func loadAppearanceLibraryPayload(projectDir string) []byte {
 		})
 		return b
 	}
-	return appearancePayload(true, path, controls, warnings)
+	return appearancePayload(true, path, catalog.Controls, catalog.Feedback, warnings)
 }
 
-func appearancePayload(ok bool, source string, controls []AppearanceControlJSON, warnings []string) []byte {
+func appearancePayload(ok bool, source string, controls []AppearanceControlJSON, feedback map[string]AppearanceFeedbackJSON, warnings []string) []byte {
 	if controls == nil {
 		controls = []AppearanceControlJSON{}
+	}
+	if feedback == nil {
+		feedback = map[string]AppearanceFeedbackJSON{}
 	}
 	if warnings == nil {
 		warnings = []string{}
@@ -127,81 +143,95 @@ func appearancePayload(ok bool, source string, controls []AppearanceControlJSON,
 		"ok":       ok,
 		"source":   source,
 		"controls": controls,
+		"feedback": feedback,
 		"warnings": warnings,
 	})
 	return b
 }
 
-func loadAppearanceLibraryFile(path string) ([]AppearanceControlJSON, []string, error) {
+func loadAppearanceLibraryFile(path string) (appearanceCatalogData, []string, error) {
 	st, err := os.Stat(path)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot read %s: %v", path, err)
+		return appearanceCatalogData{}, nil, fmt.Errorf("cannot read %s: %v", path, err)
 	}
 	if st.Size() > appearanceLibraryMaxSize {
-		return nil, nil, fmt.Errorf("%s is larger than %d bytes", path, appearanceLibraryMaxSize)
+		return appearanceCatalogData{}, nil, fmt.Errorf("%s is larger than %d bytes", path, appearanceLibraryMaxSize)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot read %s: %v", path, err)
+		return appearanceCatalogData{}, nil, fmt.Errorf("cannot read %s: %v", path, err)
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	var lib AppearanceLibraryJSON
 	if err := dec.Decode(&lib); err != nil {
-		return nil, nil, fmt.Errorf("invalid JSON: %v", err)
+		return appearanceCatalogData{}, nil, fmt.Errorf("invalid JSON: %v", err)
 	}
 	if dec.More() {
-		return nil, nil, fmt.Errorf("unexpected data after the appearance object")
+		return appearanceCatalogData{}, nil, fmt.Errorf("unexpected data after the appearance object")
 	}
 	if lib.Format != appearanceLibraryFormat {
-		return nil, nil, fmt.Errorf("format must be %q", appearanceLibraryFormat)
+		return appearanceCatalogData{}, nil, fmt.Errorf("format must be %q", appearanceLibraryFormat)
 	}
 	if lib.Version != appearanceLibraryVersion {
-		return nil, nil, fmt.Errorf("unsupported version %d (expected %d)", lib.Version, appearanceLibraryVersion)
+		return appearanceCatalogData{}, nil, fmt.Errorf("unsupported version %d (expected %d)", lib.Version, appearanceLibraryVersion)
 	}
 	if len(lib.Controls) == 0 {
-		return nil, nil, fmt.Errorf("the appearance catalog has no controls")
+		return appearanceCatalogData{}, nil, fmt.Errorf("the appearance catalog has no controls")
 	}
 	if len(lib.Controls) > appearanceMaxControls {
-		return nil, nil, fmt.Errorf("too many controls (max %d)", appearanceMaxControls)
+		return appearanceCatalogData{}, nil, fmt.Errorf("too many controls (max %d)", appearanceMaxControls)
+	}
+	for variant, fb := range lib.Feedback {
+		if !appearanceVariantIDRe.MatchString(variant) {
+			return appearanceCatalogData{}, nil, fmt.Errorf("feedback %q has an invalid id", variant)
+		}
+		for phase, value := range map[string]string{"hover": fb.Hover, "press": fb.Press, "focus": fb.Focus, "state": fb.State} {
+			if strings.TrimSpace(value) == "" {
+				return appearanceCatalogData{}, nil, fmt.Errorf("feedback %q needs a %s value", variant, phase)
+			}
+			if err := validateAppearanceCSSValue(value); err != nil {
+				return appearanceCatalogData{}, nil, fmt.Errorf("feedback %q %s: %v", variant, phase, err)
+			}
+		}
 	}
 	seenControls := map[string]bool{}
 	warnings := []string{}
 	for ci := range lib.Controls {
 		c := &lib.Controls[ci]
 		if !appearanceKindRe.MatchString(c.Kind) || !appearanceLibraryKinds[c.Kind] {
-			return nil, nil, fmt.Errorf("control %d: unknown kind %q", ci+1, c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("control %d: unknown kind %q", ci+1, c.Kind)
 		}
 		if seenControls[c.Kind] {
-			return nil, nil, fmt.Errorf("duplicate control kind %q", c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("duplicate control kind %q", c.Kind)
 		}
 		seenControls[c.Kind] = true
 		if c.Label != "" && (len(c.Label) > 80 || strings.ContainsAny(c.Label, "<>\n\r")) {
-			return nil, nil, fmt.Errorf("%s: invalid label", c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("%s: invalid label", c.Kind)
 		}
 		if len(c.Structures) == 0 {
-			return nil, nil, fmt.Errorf("%s: at least one structure is required", c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("%s: at least one structure is required", c.Kind)
 		}
 		if len(c.Styles) == 0 {
-			return nil, nil, fmt.Errorf("%s: at least one style is required", c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("%s: at least one style is required", c.Kind)
 		}
 		if len(c.Animations) == 0 {
-			return nil, nil, fmt.Errorf("%s: at least one animation is required", c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("%s: at least one animation is required", c.Kind)
 		}
 		if len(c.Structures) > appearanceMaxVariants || len(c.Styles) > appearanceMaxVariants || len(c.Animations) > appearanceMaxVariants {
-			return nil, nil, fmt.Errorf("%s: too many variants (max %d)", c.Kind, appearanceMaxVariants)
+			return appearanceCatalogData{}, nil, fmt.Errorf("%s: too many variants (max %d)", c.Kind, appearanceMaxVariants)
 		}
 		seen := map[string]bool{}
 		for vi := range c.Structures {
 			if err := validateAppearanceVariant(c.Kind, "structure", &c.Structures[vi], seen); err != nil {
-				return nil, nil, err
+				return appearanceCatalogData{}, nil, err
 			}
 		}
 		seen = map[string]bool{}
 		hasDark, hasLight := false, false
 		for vi := range c.Styles {
 			if err := validateAppearanceVariant(c.Kind, "style", &c.Styles[vi], seen); err != nil {
-				return nil, nil, err
+				return appearanceCatalogData{}, nil, err
 			}
 			if c.Styles[vi].ID == "dark" {
 				hasDark = true
@@ -211,31 +241,31 @@ func loadAppearanceLibraryFile(path string) ([]AppearanceControlJSON, []string, 
 			}
 		}
 		if !hasDark || !hasLight {
-			return nil, nil, fmt.Errorf("%s: styles must include Dark and Light (ids \"dark\" and \"light\")", c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("%s: styles must include Dark and Light (ids \"dark\" and \"light\")", c.Kind)
 		}
 		seen = map[string]bool{}
 		hasNone := false
 		for ai := range c.Animations {
 			a := &c.Animations[ai]
 			if !appearanceVariantIDRe.MatchString(a.ID) {
-				return nil, nil, fmt.Errorf("%s: animation %d has invalid id %q", c.Kind, ai+1, a.ID)
+				return appearanceCatalogData{}, nil, fmt.Errorf("%s: animation %d has invalid id %q", c.Kind, ai+1, a.ID)
 			}
 			if seen[a.ID] {
-				return nil, nil, fmt.Errorf("%s: duplicate animation id %q", c.Kind, a.ID)
+				return appearanceCatalogData{}, nil, fmt.Errorf("%s: duplicate animation id %q", c.Kind, a.ID)
 			}
 			seen[a.ID] = true
 			if a.Label == "" || len(a.Label) > 60 || strings.ContainsAny(a.Label, "<>\n\r") {
-				return nil, nil, fmt.Errorf("%s: animation %q has an invalid label", c.Kind, a.ID)
+				return appearanceCatalogData{}, nil, fmt.Errorf("%s: animation %q has an invalid label", c.Kind, a.ID)
 			}
 			if err := validateAppearanceCSSValue(a.Value); err != nil {
-				return nil, nil, fmt.Errorf("%s: animation %q: %v", c.Kind, a.ID, err)
+				return appearanceCatalogData{}, nil, fmt.Errorf("%s: animation %q: %v", c.Kind, a.ID, err)
 			}
 			if a.ID == "none" || a.Value == "none" {
 				hasNone = true
 			}
 		}
 		if !hasNone {
-			return nil, nil, fmt.Errorf("%s: animations must include a None option", c.Kind)
+			return appearanceCatalogData{}, nil, fmt.Errorf("%s: animations must include a None option", c.Kind)
 		}
 	}
 	for _, kind := range sortedAppearanceKinds() {
@@ -243,7 +273,7 @@ func loadAppearanceLibraryFile(path string) ([]AppearanceControlJSON, []string, 
 			warnings = append(warnings, "appearance catalog has no entry for "+kind+"; the built-in catalog is used for that control")
 		}
 	}
-	return lib.Controls, warnings, nil
+	return appearanceCatalogData{Controls: lib.Controls, Feedback: lib.Feedback}, warnings, nil
 }
 
 func validateAppearanceVariant(kind, layer string, v *AppearanceVariantJSON, seen map[string]bool) error {

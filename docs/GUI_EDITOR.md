@@ -796,16 +796,23 @@ classes updated.
 
 Every control except **table**, **graph** and **chart** shows a section named
 after the control (**Button**, **Card**, **Dropdown menu**, ...) in the
-Inspector. It contains four drop-downs in this order: **Theme**, **Structure**,
-**Style**, **Animation**. **Dark** and **Light** are always available as the first
-two styles.
+Inspector. It contains four main drop-downs in this order: **Theme**,
+**Structure**, **Style**, **Animation**, plus **Hover**, **Click**, **Focus** and
+**State** selects under Animation for the interaction feedback. **Dark** and
+**Light** are always available as the first two styles.
+
+Each animation is a coherent set: the idle effect plus a visible hover reaction,
+a click/press reaction, a focus ring and a checked/selected/open state reaction.
+**None** disables every phase. The navigator preview plays the phases once on
+load and then stays interactive, so the click feedback is visible without
+leaving the editor.
 
 | Selector | What it changes |
 |---|---|
 | Theme | a named structure + style + animation combination |
 | Structure | shape and drawing for the kind (for a button: rectangular, pill, circular, square, wide) |
 | Style | colour palette (border, text, fill, shadow); Dark and Light are always first |
-| Animation | motion of the control parts |
+| Animation | idle effect plus hover, click, focus and state feedback |
 
 **Browse…** opens the Controls library navigator filtered to that control;
 **Save theme…** stores the current combination and custom declarations in the

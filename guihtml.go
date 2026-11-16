@@ -1456,7 +1456,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
       <div id="lib-app-middle">
         <div class="lib-app-group"><h4>Structure</h4><div id="lib-structures" class="lib-app-options"></div></div>
         <div class="lib-app-group"><h4>Style</h4><div id="lib-styles" class="lib-app-options"></div></div>
-        <div class="lib-app-group"><h4>Animation</h4><div id="lib-animations" class="lib-app-options"></div></div>
+        <div class="lib-app-group"><h4 title="Idle + hover + click + focus + state feedback">Animation</h4><div id="lib-animations" class="lib-app-options"></div></div>
       </div>
       <div id="lib-app-detail">
         <h3 id="lib-app-title">Appearance</h3>

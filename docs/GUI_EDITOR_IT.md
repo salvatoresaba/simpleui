@@ -827,15 +827,23 @@ classi aggiornate.
 
 Ogni controllo tranne **table**, **graph** e **chart** mostra nell'Inspector una
 sezione col proprio nome (**Button**, **Card**, **Dropdown menu**, ...). Contiene
-quattro menu a tendina in quest'ordine: **Theme**, **Structure**, **Style**,
-**Animation**. **Dark** e **Light** sono sempre disponibili come primi due stili.
+quattro menu principali in quest'ordine: **Theme**, **Structure**, **Style**,
+**Animation**, più i selettori **Hover**, **Click**, **Focus** e **State** sotto
+Animation per il feedback delle interazioni. **Dark** e **Light** sono sempre
+disponibili come primi due stili.
+
+Ogni animazione è un set coerente: effetto a riposo + reazione visibile al
+passaggio del mouse, reazione al click, anello di focus e reazione allo stato
+selezionato/aperto. **None** disattiva tutte le fasi. L'anteprima del navigator
+riproduce le fasi una volta al caricamento e poi resta interattiva, così il
+feedback del click è visibile senza uscire dall'editor.
 
 | Selettore | Cosa cambia |
 |---|---|
 | Theme | combinazione con nome di struttura + stile + animazione |
 | Structure | forma e disegno del tipo (per un button: rettangolare, pill, circolare, quadrato, largo) |
 | Style | palette di colori (bordo, testo, riempimento, ombra); Dark e Light sono sempre i primi due |
-| Animation | movimento delle parti del controllo |
+| Animation | effetto a riposo + feedback hover, click, focus e stato |
 
 **Browse…** apre il navigator della libreria filtrato su quel controllo;
 **Save theme…** salva la combinazione corrente e le dichiarazioni personalizzate

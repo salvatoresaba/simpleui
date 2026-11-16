@@ -9,7 +9,7 @@ control look and feel the way it does:
 |---|---|---|
 | **Structure** | shape and drawing | Rectangular, Pill, Circular, Square, Wide |
 | **Style** | colour palette | Midnight, Primary, Coral, Mint, Neon, Ghost |
-| **Animation** | motion of the parts | None, Pulse, Float, Glow, Jelly, Bounce |
+| **Animation** | idle effect plus hover, click, focus and state feedback | None, Pulse, Float, Glow, Jelly, Bounce |
 
 A **theme** is a named structure + style + animation. Themes can be applied as a
 whole, or the three axes can be mixed freely. The catalog ships in
@@ -23,12 +23,21 @@ never break the editor.
 Select a control (for example a button) and open its **name** section in the
 Inspector - for a button the section is called **Button**; for a card it is
 **Card**, for a dropdown **Dropdown menu**, and so on. Inside it there are four
-drop-downs in this order: **Theme**, **Structure**, **Style**, **Animation**.
+main drop-downs in this order: **Theme**, **Structure**, **Style**, **Animation**.
+
+The **Animation** menu selects a coherent set for the whole interaction: the idle
+effect plus the feedback for **Hover**, **Click**, **Focus** and **State**
+(checked, selected, expanded or open). The four selects under it override a
+single phase without changing the others. Applying **Pulse**, for example, keeps
+the pulse loop at rest, grows the control on hover, gives it a jelly reaction on
+click and shows the focus ring plus a bounce on state. **None** disables every
+phase.
 
 - **Structure** — selects the shape/drawing; changes radius, padding, size and
   shape attributes as needed;
 - **Style** — selects the border, text, fill and shadow colours;
-- **Animation** — selects the effect applied to the control;
+- **Animation** — selects the full set: idle + hover + click + focus + state;
+- **Hover / Click / Focus / State** — refine one phase of the current set;
 - **Theme** — applies a structure + style + animation together. **Custom** means
   the current combination does not match a stored theme;
 - **Browse…** — opens the Controls library navigator filtered to this control;
@@ -71,7 +80,8 @@ In Appearance:
   Drawer, Split panes, Dropzone, Timeline, Carousel, Stepper);
 - the middle area shows three **side-by-side lists** - **Structures**,
   **Styles** and **Animations** - for the selected kind, so combinations are
-  created without scrolling between sections;
+  created without scrolling between sections. Each animation is a full set
+  (idle + hover + click + focus + state), not only a resting effect;
 - the lists are keyboard-navigable: **Up/Down** moves inside the focused list and
   **selects the reached option**, **Left/Right** switches list, **Home/End** jumps
   to the first/last option, **Enter** selects the focused option; the current list
@@ -86,7 +96,9 @@ Moving in a list is the same as selecting: the highlight, the side lists and the
 preview update on every **Up/Down/Home/End** key, without pressing **Enter**
 first. **Enter** (or **Space**) re-applies the focused option. The preview runs
 the selected animation with the control's own animation variable and keyframes,
-so pulse, glow, float and the other effects are visible immediately.
+so pulse, glow, float and the other effects are visible immediately. The preview
+also plays the interaction phases once on load: hover, click, focus and state,
+then it leaves the control interactive so you can try them yourself.
 
 Select an option to update the preview immediately. Choose a saved theme to
 restore its full combination. **Apply to selection** writes the current
@@ -107,6 +119,14 @@ styles and animations. The shape is:
 {
   "format": "simpleui-appearance-library",
   "version": 1,
+  "feedback": {
+    "default": {
+      "hover": "sui-fx-lift .18s ease-out forwards",
+      "press": "sui-fx-press .18s ease-out",
+      "focus": "sui-fx-ring .9s ease-out",
+      "state": "sui-fx-pop .24s ease-out"
+    }
+  },
   "controls": [
     {
       "kind": "button",
@@ -134,12 +154,19 @@ Rules:
 - `structures`, `styles` and `animations` each need at least one entry.
 - `styles` must contain **Dark** and **Light** (ids `dark` and `light`). They are
   listed first for every control.
+- `feedback` defines the interaction phases used by every animation set. Each
+  variant needs `hover`, `press`, `focus` and `state`; the editor merges missing
+  variants with the built-in feedback. `default`, `glow`, `energetic` and
+  `playful` ship in the bundled file and are chosen from the idle effect name.
 - `animations` must contain a **None** entry.
 - `vars` values are CSS values; `attrs` is limited to the supported structure
   attributes (`shape`, `size`, `variant`, `tone`).
 - A structure may also use direct CSS keys such as `border-radius` or `padding`.
 - Values containing `;`, `{}`, `<>`, `url(...)`, `expression(...)`,
   `javascript:` or `!important` are rejected.
+- Animation and feedback values reference the built-in `sui-fx-*` and
+  `sui-appearance-*` keyframes. The JSON selects effects and phase assignments;
+  it does not inject arbitrary `@keyframes`.
 
 Validation is atomic: a malformed file rejects the whole catalog and the editor
 keeps the built-in fallback, showing the reason in the status bar. After editing
@@ -151,7 +178,8 @@ the file, use **Preferences → Reload component and appearance libraries** (or 
 1. Select a `button` in the Structure tree or preview.
 2. In the **Button** section, choose **Circular** as the structure.
 3. Choose **Coral** as the style (border, text, fill and shadow change).
-4. Choose **Pulse** as the animation.
+4. Choose **Pulse** as the animation. The preview shows the pulse at rest,
+   then the hover grow, the jelly click, the focus ring and the state bounce.
 5. Open **Browse…**, check the live preview, then **Save theme…** as “Coral
    pulse”.
 6. The theme now appears in the button's **Theme** list. Selecting it restores
@@ -182,6 +210,9 @@ without the editor's theme list.
   project CSS).
 - **Dark** and **Light** are always the first two styles for every control;
   custom palettes follow them.
+- Every non-None animation set gives feedback on hover, click, focus and state.
+  The `feedback` block in `components/appearance.json` supplies the phase
+  declarations and can be edited without touching the compiler.
 - Structures and styles are **validated catalog data**, not arbitrary CSS. The
   external `components/library.json` is a separate layer for insertable
   component presets; it does not replace the appearance catalog.

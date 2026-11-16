@@ -1,6 +1,32 @@
 {
   "format": "simpleui-appearance-library",
   "version": 1,
+  "feedback": {
+    "default": {
+      "hover": "sui-fx-lift .18s ease-out forwards",
+      "press": "sui-fx-press .18s ease-out",
+      "focus": "sui-fx-ring .9s ease-out",
+      "state": "sui-fx-pop .24s ease-out"
+    },
+    "glow": {
+      "hover": "sui-fx-glow 1s ease-in-out infinite",
+      "press": "sui-fx-pop .2s ease-out",
+      "focus": "sui-fx-ring .9s ease-out",
+      "state": "sui-fx-glow .9s ease-out"
+    },
+    "energetic": {
+      "hover": "sui-fx-grow .18s ease-out forwards",
+      "press": "sui-fx-jelly .34s ease-out",
+      "focus": "sui-fx-ring .9s ease-out",
+      "state": "sui-fx-bounce .38s ease-out"
+    },
+    "playful": {
+      "hover": "sui-fx-tilt .18s ease-out forwards",
+      "press": "sui-fx-jelly .38s cubic-bezier(.2,1.4,.4,1)",
+      "focus": "sui-fx-ring .9s ease-out",
+      "state": "sui-fx-slide .26s ease-out"
+    }
+  },
   "controls": [
     {
       "kind": "button",
