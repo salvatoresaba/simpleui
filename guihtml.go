@@ -829,12 +829,24 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .asset-empty { color:var(--muted); font-size:12px; grid-column:1 / -1; }
 #motion-composer { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:14; }
 #motion-composer.on { display:flex; }
-#mc-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:900px; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+#mc-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:1060px; max-width:97vw; max-height:94vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
 #mc-head { display:flex; align-items:center; gap:6px; padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
-#mc-head span { flex:1; }
-.mc-body { padding:12px 14px; overflow:auto; display:grid; grid-template-columns:290px minmax(0,1fr); gap:14px; }
-.mc-stage { grid-row:1 / span 2; display:flex; align-items:center; justify-content:center; min-height:260px; background:radial-gradient(circle at 50% 0%, #1a2436, #0b111c); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-.mc-shape { display:flex; align-items:center; justify-content:center; width:160px; height:56px; border-radius:10px; background:#4c5cf7; color:#fff; font:600 14px system-ui, sans-serif; box-sizing:border-box; }
+#mc-head #mc-title { font-weight:600; }
+#mc-head .mc-sub { flex:1; color:var(--muted); font-size:11px; }
+.mc-body { padding:12px 14px; overflow:auto; display:grid; grid-template-columns:minmax(360px,460px) minmax(300px,1fr); gap:14px; align-items:start; }
+.mc-stage { grid-row:1 / span 2; display:flex; flex-direction:column; gap:6px; padding:8px; background:radial-gradient(circle at 50% 0%, #1a2436, #0b111c); border:1px solid var(--border); border-radius:12px; min-width:0; }
+.mc-cadbar, .mc-cadrow { display:flex; flex-wrap:wrap; gap:4px; }
+.mc-cadbar .btn, .mc-cadrow .btn { font-size:10px; padding:3px 6px; line-height:1.3; }
+.mc-cadbar .btn.on { border-color:var(--accent); color:var(--accent); background:var(--btn-hover); font-weight:600; }
+#mc-canvas-wrap { position:relative; margin:0 auto; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px; overflow:hidden; flex:none; }
+#mc-canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block; }
+#mc-shape-live { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:600 15px/1.1 system-ui, -apple-system, Segoe UI, sans-serif; color:#fff; pointer-events:none; overflow:hidden; }
+#mc-ref-img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.3; pointer-events:none; }
+#mc-handles .mc-node { fill:#0b111c; stroke:#93c5fd; stroke-width:1.5; cursor:grab; }
+#mc-handles .mc-node.on { fill:#4c5cf7; stroke:#fff; }
+#mc-handles .mc-h { fill:#f59e0b; stroke:#1a2436; stroke-width:1; cursor:crosshair; }
+#mc-handles .mc-hline { stroke:#f59e0b; stroke-width:1; stroke-dasharray:3 2; pointer-events:none; }
+#mc-handles .mc-pathhit { fill:none; stroke:transparent; stroke-width:10; cursor:pointer; }
 .mc-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; align-content:start; }
 .mc-fields .mc-wide { grid-column:1 / -1; }
 .mc-fields label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:2px; }
@@ -847,6 +859,7 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .mc-kf input { width:100%; box-sizing:border-box; height:24px; padding:2px 4px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border); border-radius:5px; font:10px/1.2 var(--mono, ui-monospace, Consolas, monospace); }
 .mc-actions { grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-top:2px; }
 #mc-status { grid-column:1 / -1; min-height:18px; }
+#mc-tool-hint { font-size:10px; line-height:1.35; }
 #hist-editor { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #hist-editor.on { display:flex; }
 #hist-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:520px; max-width:94vw; max-height:70vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -1124,6 +1137,12 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     <span class="mitem">Insert</span>
     <div class="drop" id="drop-insert"></div>
   </div>
+  <div class="menu" data-menu="tools">
+    <span class="mitem">Tools</span>
+    <div class="drop" id="drop-tools">
+      <div class="mi" onclick="openMotionComposer()">Shape &amp; motion&#8230;</div>
+    </div>
+  </div>
   <div class="menu" data-menu="view">
     <span class="mitem">View</span>
     <div class="drop" id="drop-view">
@@ -1394,23 +1413,62 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
 <div id="motion-composer">
   <div id="mc-box" role="dialog" aria-modal="true" aria-labelledby="mc-title">
     <div id="mc-head">
-      <span id="mc-title">Motion composer</span>
+      <span id="mc-title">Shape &amp; motion</span>
+      <span class="mc-sub">draw a control, then animate it</span>
       <button class="btn" type="button" onclick="mcPlay()">Play</button>
       <button class="btn" type="button" onclick="mcStop()">Stop</button>
-      <button class="btn" type="button" onclick="closeMotionComposer()" aria-label="Close motion composer">&#10005;</button>
+      <button class="btn" type="button" onclick="closeMotionComposer()" aria-label="Close shape and motion editor">&#10005;</button>
     </div>
     <div class="mc-body">
-      <div class="mc-stage"><div id="mc-shape" class="mc-shape">Animated</div></div>
+      <div class="mc-stage">
+        <div class="mc-cadbar" role="toolbar" aria-label="Shape tools">
+          <button class="btn mc-tool on" type="button" data-tool="select" onclick="mcSetTool('select')" title="Select and move nodes (S)">Select</button>
+          <button class="btn mc-tool" type="button" data-tool="line" onclick="mcSetTool('line')" title="Click to add straight nodes (L)">Line</button>
+          <button class="btn mc-tool" type="button" data-tool="curve" onclick="mcSetTool('curve')" title="Drag to add a smooth node (C)">Curve</button>
+          <button class="btn mc-tool" type="button" data-tool="rect" onclick="mcSetTool('rect')" title="Drag a rectangle (R)">Rect</button>
+          <button class="btn mc-tool" type="button" data-tool="ellipse" onclick="mcSetTool('ellipse')" title="Drag an ellipse (E)">Ellipse</button>
+          <button class="btn mc-tool" type="button" data-tool="arc" onclick="mcSetTool('arc')" title="Drag an arc (A)">Arc</button>
+        </div>
+        <div id="mc-canvas-wrap">
+          <div id="mc-shape-live" aria-hidden="true"></div>
+          <img id="mc-ref-img" class="mc-ref" alt="" style="display:none">
+          <svg id="mc-canvas" aria-label="Shape canvas">
+            <g id="mc-art-group"><path id="mc-art" fill="none" stroke="none"></path></g>
+            <g id="mc-draft-group"><path id="mc-draft" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 3"></path></g>
+            <g id="mc-handles"></g>
+          </svg>
+        </div>
+        <div class="mc-cadrow">
+          <button class="btn" type="button" onclick="mcAddNode()" title="Insert a node in the selected segment">+ Node</button>
+          <button class="btn" type="button" onclick="mcDeleteNode()" title="Delete the selected node">Delete node</button>
+          <button class="btn" type="button" onclick="mcNodeSmooth(true)" title="Make the selected node smooth">Smooth</button>
+          <button class="btn" type="button" onclick="mcNodeSmooth(false)" title="Make the selected node a corner">Corner</button>
+          <button class="btn" type="button" onclick="mcToggleClose()" title="Close or open the active path">Close / open</button>
+          <button class="btn" type="button" onclick="mcFillet()" title="Round the selected corner">Fillet</button>
+          <button class="btn" type="button" onclick="mcCutNode()" title="Split the path at the selected node">Cut</button>
+          <button class="btn" type="button" onclick="mcJoinPaths()" title="Join the two nearest open paths">Join</button>
+          <button class="btn" type="button" onclick="mcBoolean('union')" title="Union of the first two paths">Union</button>
+          <button class="btn" type="button" onclick="mcBoolean('intersect')" title="Intersection of the first two paths">Intersect</button>
+          <button class="btn" type="button" onclick="mcBoolean('subtract')" title="Subtract the second path from the first">Subtract</button>
+          <button class="btn" type="button" onclick="mcUndoCad()" title="Undo the last shape edit (Ctrl+Z)">Undo</button>
+          <button class="btn" type="button" onclick="mcRedoCad()" title="Redo the shape edit (Ctrl+Y)">Redo</button>
+          <button class="btn" type="button" onclick="mcFitToBox()" title="Scale the drawing to the canvas">Fit box</button>
+        </div>
+        <div class="hint" id="mc-tool-hint">Drag nodes to move them; drag the square handles to bend the curve. Arrow keys nudge the selected node.</div>
+      </div>
       <div class="mc-fields">
         <div class="mc-wide"><label for="mc-name">Class name</label><input id="mc-name" value="pulse-card" spellcheck="false" oninput="mcPreview()"></div>
         <div><label for="mc-kind">Insert as</label><select id="mc-kind"><option value="button">Button</option><option value="card">Card</option><option value="div">Box</option><option value="badge">Badge</option></select></div>
         <div><label for="mc-text">Label</label><input id="mc-text" value="Animated" oninput="mcPreview()"></div>
         <div><label for="mc-fs">Font size</label><input id="mc-fs" type="number" value="15" min="8" max="48" oninput="mcPreview()"></div>
-        <div><label for="mc-w">Width</label><input id="mc-w" type="number" value="180" min="24" max="900" oninput="mcPreview()"></div>
-        <div><label for="mc-h">Height</label><input id="mc-h" type="number" value="56" min="16" max="900" oninput="mcPreview()"></div>
-        <div><label for="mc-radius">Radius</label><input id="mc-radius" type="number" value="12" min="0" max="300" oninput="mcPreview()"></div>
-        <div><label for="mc-bg">Background</label><input id="mc-bg" value="#4c5cf7" spellcheck="false" oninput="mcPreview()"></div>
+        <div><label for="mc-w">Width</label><input id="mc-w" type="number" value="220" min="24" max="900" oninput="mcSizeChanged()"></div>
+        <div><label for="mc-h">Height</label><input id="mc-h" type="number" value="80" min="16" max="900" oninput="mcSizeChanged()"></div>
+        <div><label for="mc-radius">Box radius</label><input id="mc-radius" type="number" value="14" min="0" max="300" oninput="mcSizeChanged()"></div>
+        <div><label for="mc-bg">Fill</label><input id="mc-bg" value="#7c3aed" spellcheck="false" oninput="mcPreview()"></div>
         <div><label for="mc-fg">Text colour</label><input id="mc-fg" value="#ffffff" spellcheck="false" oninput="mcPreview()"></div>
+        <div><label for="mc-stroke">Stroke</label><input id="mc-stroke" value="" placeholder="none" spellcheck="false" oninput="mcPreview()"></div>
+        <div><label for="mc-sw">Stroke width</label><input id="mc-sw" type="number" value="0" min="0" max="40" step="0.5" oninput="mcPreview()"></div>
+        <div><label for="mc-fillet">Fillet radius</label><input id="mc-fillet" type="number" value="12" min="0" max="200" oninput="mcPreview()"></div>
         <div><label for="mc-dur">Duration (s)</label><input id="mc-dur" type="number" value="1.4" min="0.1" max="20" step="0.1" oninput="mcPreview()"></div>
         <div><label for="mc-ease">Easing</label><select id="mc-ease" onchange="mcPreview()"><option value="ease">Ease</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="ease-in-out" selected>Ease in out</option><option value="linear">Linear</option><option value="cubic-bezier(.34,1.56,.64,1)">Spring</option></select></div>
         <div><label for="mc-delay">Delay (s)</label><input id="mc-delay" type="number" value="0" min="0" max="20" step="0.05" oninput="mcPreview()"></div>
@@ -1420,10 +1478,20 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
       <div class="mc-actions">
         <button class="btn" type="button" onclick="mcAddKeyframe()">Add keyframe</button>
         <button class="btn" type="button" onclick="mcRemoveKeyframe()">Remove last</button>
+        <button class="btn" type="button" onclick="mcLoadSelection()">Load selection</button>
+        <button class="btn" type="button" onclick="document.getElementById('mc-import-svg').click()">Import SVG</button>
+        <button class="btn" type="button" onclick="document.getElementById('mc-import-ref').click()">Reference image</button>
+        <button class="btn" type="button" onclick="mcClearReference()">Ref off</button>
+        <button class="btn" type="button" onclick="mcCopySvg()">Copy SVG</button>
         <button class="btn" type="button" onclick="mcCopy()">Copy CSS</button>
         <button class="btn" type="button" onclick="mcInsert()">Insert control</button>
         <button class="btn" type="button" onclick="mcApply()">Apply to selection</button>
+        <button class="btn" type="button" onclick="mcApplyShape()">Apply shape</button>
+        <button class="btn" type="button" onclick="mcResetBox()">Reset box</button>
+        <button class="btn" type="button" onclick="mcClearShape()">Clear shape</button>
       </div>
+      <input type="file" id="mc-import-svg" accept=".svg,image/svg+xml" style="display:none" onchange="mcImportSvg(this.files)">
+      <input type="file" id="mc-import-ref" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" onchange="mcImportReference(this.files)">
       <div id="mc-status" class="hint"></div>
     </div>
   </div>
@@ -13262,41 +13330,1486 @@ function copyAssetFallback(url) {
   ta.remove();
 }
 
-// ---- motion composer ------------------------------------------------------
-// Draws a control shape and its keyframes, previews them live and writes a
-// managed block into root.css. Keyframes are real build-time CSS: nothing is
-// injected into the running application at runtime.
+// ---- shape & motion composer ----------------------------------------------
+// A small vector editor for controls. Subpaths are cubic node lists; the result
+// is written to root.css as a masked silhouette (fill) plus an optional stroke
+// image, so the runtime never injects markup or styles.
+var __mcPaths = [];
+var __mcSelPath = -1;
+var __mcSelNode = -1;
+var __mcTool = "select";
+var __mcAutoBox = true;
+var __mcDrag = null;
+var __mcDraft = "";
+var __mcRefUrl = "";
+var __mcCadPast = [];
+var __mcCadFuture = [];
+var __mcBound = false;
 var __mcKeys = [
   { at: 0, ty: 0, scale: 1, rot: 0, opacity: 1, bg: "" },
   { at: 50, ty: -10, scale: 1.04, rot: 0, opacity: 1, bg: "" },
   { at: 100, ty: 0, scale: 1, rot: 0, opacity: 1, bg: "" }
 ];
-function openMotionComposer() {
-  var m = document.getElementById("motion-composer");
-  if (!m) return;
-  m.classList.add("on");
-  renderMotionComposer();
-  mcPreview();
-  if (!document.getElementById("mc-status").textContent) {
-    setMcStatus("Draw the shape and tune the keyframes; the stage previews them live.");
-  }
-  var name = document.getElementById("mc-name");
-  if (name) name.focus();
-}
-function closeMotionComposer() {
-  var m = document.getElementById("motion-composer");
-  if (m) m.classList.remove("on");
-  mcStop();
-}
-function setMcStatus(msg) {
-  var el = document.getElementById("mc-status");
-  if (el) el.textContent = msg || "";
-}
+function mcW() { return mcNum("mc-w", 220, 24, 900); }
+function mcH() { return mcNum("mc-h", 80, 16, 900); }
 function mcNum(id, def, lo, hi) {
   var el = document.getElementById(id);
   var n = el ? Number(el.value) : NaN;
   if (!isFinite(n)) return def;
   return Math.max(lo, Math.min(hi, n));
+}
+function mcFill() { return mcColorValue("mc-bg", "#7c3aed"); }
+function mcStroke() { return mcColorValue("mc-stroke", ""); }
+function mcStrokeWidth() { return mcNum("mc-sw", 0, 0, 40); }
+function mcRadius() { return mcNum("mc-radius", 14, 0, 300); }
+function mcFilletRadius() { return mcNum("mc-fillet", 12, 0, 200); }
+function mcFmt(n) { var v = Math.round(Number(n) * 100) / 100; return isFinite(v) ? String(v) : "0"; }
+function mcNode(x, y, ix, iy, ox, oy) {
+  return { x: Number(x) || 0, y: Number(y) || 0, ix: Number(ix) || 0, iy: Number(iy) || 0, ox: Number(ox) || 0, oy: Number(oy) || 0, smooth: false };
+}
+function mcDist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function mcRoundBoxPath(w, h, r) {
+  r = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+  if (r < 0.01) {
+    return { closed: true, nodes: [mcNode(0, 0), mcNode(w, 0), mcNode(w, h), mcNode(0, h)] };
+  }
+  var k = 0.5522847498 * r;
+  return { closed: true, nodes: [
+    mcNode(r, 0, -k, 0, 0, 0),
+    mcNode(w - r, 0, 0, 0, k, 0),
+    mcNode(w, r, 0, -k, 0, 0),
+    mcNode(w, h - r, 0, 0, 0, k),
+    mcNode(w - r, h, k, 0, 0, 0),
+    mcNode(r, h, 0, 0, -k, 0),
+    mcNode(0, h - r, 0, k, 0, 0),
+    mcNode(0, r, 0, 0, 0, -k)
+  ] };
+}
+function mcEllipsePath(cx, cy, rx, ry) {
+  var kx = 0.5522847498 * rx;
+  var ky = 0.5522847498 * ry;
+  return { closed: true, nodes: [
+    mcNode(cx + rx, cy, 0, -ky, 0, ky),
+    mcNode(cx, cy + ry, kx, 0, -kx, 0),
+    mcNode(cx - rx, cy, 0, ky, 0, -ky),
+    mcNode(cx, cy - ry, -kx, 0, kx, 0)
+  ] };
+}
+function mcArcPath(a, b) {
+  var dx = b.x - a.x, dy = b.y - a.y;
+  var len = Math.hypot(dx, dy);
+  if (len < 4) return null;
+  var nx = -dy / len, ny = dx / len;
+  var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  var bulge = len * 0.28;
+  var qx = mx + nx * bulge, qy = my + ny * bulge;
+  var c1x = a.x + (qx - a.x) * 2 / 3, c1y = a.y + (qy - a.y) * 2 / 3;
+  var c2x = b.x + (qx - b.x) * 2 / 3, c2y = b.y + (qy - b.y) * 2 / 3;
+  return { closed: false, nodes: [
+    mcNode(a.x, a.y, 0, 0, c1x - a.x, c1y - a.y),
+    mcNode(b.x, b.y, c2x - b.x, c2y - b.y, 0, 0)
+  ] };
+}
+function mcPathD(p) {
+  var ns = p.nodes || [];
+  if (!ns.length) return "";
+  var d = "M" + mcFmt(ns[0].x) + " " + mcFmt(ns[0].y);
+  var count = p.closed ? ns.length : ns.length - 1;
+  for (var i = 0; i < count; i++) {
+    var a = ns[i], b = ns[(i + 1) % ns.length];
+    if (a.ox || a.oy || b.ix || b.iy) {
+      d += " C" + mcFmt(a.x + a.ox) + " " + mcFmt(a.y + a.oy) + " " +
+        mcFmt(b.x + b.ix) + " " + mcFmt(b.y + b.iy) + " " + mcFmt(b.x) + " " + mcFmt(b.y);
+    } else {
+      d += " L" + mcFmt(b.x) + " " + mcFmt(b.y);
+    }
+  }
+  if (p.closed) d += " Z";
+  return d;
+}
+function mcAllD() {
+  var out = [];
+  for (var i = 0; i < __mcPaths.length; i++) out.push(mcPathD(__mcPaths[i]));
+  return out.join(" ");
+}
+function mcEffectiveStroke() {
+  var sw = mcStrokeWidth();
+  var open = false;
+  for (var i = 0; i < __mcPaths.length; i++) if (!__mcPaths[i].closed) open = true;
+  if (sw <= 0 && open) sw = 2;
+  var color = mcStroke();
+  if (!color) color = mcFill();
+  return { width: mcRound(sw), color: color };
+}
+function mcSvgUrl(inner) {
+  var w = mcW(), h = mcH();
+  var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 " + w + " " + h +
+    "' width='" + w + "' height='" + h + "'>" + inner + "</svg>";
+  return "data:image/svg+xml," + encodeURIComponent(svg);
+}
+function mcPathGroups() {
+  var closed = [], open = [], all = [];
+  for (var i = 0; i < __mcPaths.length; i++) {
+    var p = __mcPaths[i];
+    if (!p.nodes || !p.nodes.length) continue;
+    var d = mcPathD(p);
+    if (!d) continue;
+    all.push(d);
+    if (p.closed) closed.push(d); else open.push(d);
+  }
+  return { closed: closed.join(" "), open: open.join(" "), all: all.join(" ") };
+}
+function mcSvgMarkup(kind) {
+  var g = mcPathGroups();
+  var eff = mcEffectiveStroke();
+  var fill = mcFill();
+  var out = "";
+  if (!g.all) return "";
+  if (kind === "stroke") {
+    return "<path d='" + g.all + "' fill='none' stroke='" + eff.color + "' stroke-width='" +
+      eff.width + "' stroke-linejoin='round' stroke-linecap='round'/>";
+  }
+  var strokeColor = kind === "mask" ? "#fff" : eff.color;
+  if (g.closed) {
+    out += "<path d='" + g.closed + "' fill='" + (kind === "mask" ? "#fff" : fill) +
+      "' fill-rule='evenodd' stroke='" + strokeColor + "' stroke-width='" + eff.width +
+      "' stroke-linejoin='round' stroke-linecap='round'/>";
+  }
+  if (g.open) {
+    out += "<path d='" + g.open + "' fill='none' stroke='" + strokeColor + "' stroke-width='" +
+      eff.width + "' stroke-linejoin='round' stroke-linecap='round'/>";
+  }
+  return out;
+}
+function mcMaskUrl() { return mcSvgUrl(mcSvgMarkup("mask")); }
+function mcStrokeUrl() { return mcSvgUrl(mcSvgMarkup("stroke")); }
+function mcStandaloneSvg() {
+  var w = mcW(), h = mcH();
+  return "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 " + w + " " + h +
+    "' width='" + w + "' height='" + h + "'>" + mcSvgMarkup("plain") + "</svg>";
+}
+function mcShapeCss(sel, animName) {
+  var w = mcW(), h = mcH();
+  var fs = mcNum("mc-fs", 15, 8, 48);
+  var dur = mcNum("mc-dur", 1.4, 0.1, 20);
+  var delay = mcNum("mc-delay", 0, 0, 20);
+  var fg = mcColorValue("mc-fg", "#ffffff");
+  var lines = [];
+  lines.push(sel + " {");
+  lines.push("  display: inline-flex;");
+  lines.push("  align-items: center;");
+  lines.push("  justify-content: center;");
+  lines.push("  width: " + w + "px;");
+  lines.push("  height: " + h + "px;");
+  lines.push("  padding: 0;");
+  lines.push("  border: 0;");
+  if (!__mcPaths.length) {
+    lines.push("  border-radius: " + mcRadius() + "px;");
+    lines.push("  background-color: " + mcFill() + ";");
+  } else {
+    var eff = mcEffectiveStroke();
+    lines.push("  border-radius: 0;");
+    lines.push("  background-color: " + mcFill() + ";");
+    if (eff.width > 0) {
+      lines.push("  background-image: url(\"" + mcStrokeUrl() + "\");");
+      lines.push("  background-repeat: no-repeat;");
+      lines.push("  background-size: 100% 100%;");
+    }
+    lines.push("  -webkit-mask-image: url(\"" + mcMaskUrl() + "\");");
+    lines.push("  mask-image: url(\"" + mcMaskUrl() + "\");");
+    lines.push("  -webkit-mask-repeat: no-repeat;");
+    lines.push("  mask-repeat: no-repeat;");
+    lines.push("  -webkit-mask-size: 100% 100%;");
+    lines.push("  mask-size: 100% 100%;");
+  }
+  lines.push("  color: " + fg + ";");
+  lines.push("  font: 600 " + fs + "px/1.1 system-ui, -apple-system, Segoe UI, sans-serif;");
+  lines.push("  animation: " + animName + " " + dur + "s " + mcEase() + " " + delay + "s " + mcIter() + " both;");
+  lines.push("}");
+  return lines.join("\n");
+}
+function mcMotionCss(sel, animName) {
+  var dur = mcNum("mc-dur", 1.4, 0.1, 20);
+  var delay = mcNum("mc-delay", 0, 0, 20);
+  return sel + " { animation: " + animName + " " + dur + "s " + mcEase() + " " + delay + "s " + mcIter() + " both; }";
+}
+function mcMotionBlock(name) {
+  var anim = "sui-motion-" + name;
+  return "/* sui-motion:" + name + " */\n" +
+    mcMotionCss("." + name + "-motion", anim) + "\n" +
+    "@keyframes " + anim + " {\n" + mcFrames() + "\n}\n" +
+    "/* /sui-motion:" + name + " */";
+}
+function mcCadModel() {
+  var paths = [];
+  for (var i = 0; i < __mcPaths.length; i++) {
+    var p = __mcPaths[i];
+    var nodes = [];
+    for (var j = 0; j < p.nodes.length; j++) {
+      var n = p.nodes[j];
+      nodes.push({ x: mcRound(n.x), y: mcRound(n.y), ix: mcRound(n.ix), iy: mcRound(n.iy), ox: mcRound(n.ox), oy: mcRound(n.oy), smooth: !!n.smooth });
+    }
+    paths.push({ closed: !!p.closed, nodes: nodes });
+  }
+  return { v: 1, w: mcW(), h: mcH(), fill: mcFill(), stroke: mcStroke(), sw: mcStrokeWidth(), paths: paths };
+}
+function mcShapeBlock(name) {
+  return "/* sui-motion-shape:" + name + " */\n" +
+    "/* sui-cad:" + JSON.stringify(mcCadModel()) + " */\n" +
+    mcShapeCss("." + name, "sui-motion-" + name) + "\n" +
+    "/* /sui-motion-shape:" + name + " */";
+}
+function mcCssBlock(name) {
+  return mcShapeBlock(name) + "\n" + mcMotionBlock(name);
+}
+function mcSafeName() {
+  var el = document.getElementById("mc-name");
+  var v = el ? String(el.value || "").trim() : "";
+  return /^[A-Za-z_][A-Za-z0-9_-]*$/.test(v) ? v : "";
+}
+function mcValidName() {
+  var name = mcSafeName();
+  if (!name) {
+    setMcStatus("Class name must start with a letter or underscore and use only letters, digits, _ and -.");
+    var el = document.getElementById("mc-name");
+    if (el) el.focus();
+  }
+  return name;
+}
+function setMcStatus(msg) {
+  var el = document.getElementById("mc-status");
+  if (el) el.textContent = msg || "";
+}
+function mcCadSnap() {
+  var s = JSON.stringify({ paths: __mcPaths, auto: __mcAutoBox });
+  if (__mcCadPast.length && __mcCadPast[__mcCadPast.length - 1] === s) return;
+  __mcCadPast.push(s);
+  if (__mcCadPast.length > 80) __mcCadPast.shift();
+  __mcCadFuture = [];
+}
+function mcApplyCadSnapshot(s) {
+  var v;
+  try { v = JSON.parse(s); } catch (e) { return; }
+  if (!v || !Array.isArray(v.paths)) return;
+  __mcPaths = v.paths;
+  __mcAutoBox = !!v.auto;
+  if (__mcSelPath >= __mcPaths.length) __mcSelPath = __mcPaths.length - 1;
+  if (__mcSelNode >= (__mcPaths[__mcSelPath] ? __mcPaths[__mcSelPath].nodes.length : 0)) __mcSelNode = -1;
+  mcPreview();
+}
+function mcUndoCad() {
+  if (!__mcCadPast.length) { setMcStatus("Nothing to undo in the shape."); return; }
+  __mcCadFuture.push(JSON.stringify({ paths: __mcPaths, auto: __mcAutoBox }));
+  mcApplyCadSnapshot(__mcCadPast.pop());
+  setMcStatus("Shape edit undone.");
+}
+function mcRedoCad() {
+  if (!__mcCadFuture.length) { setMcStatus("Nothing to redo in the shape."); return; }
+  __mcCadPast.push(JSON.stringify({ paths: __mcPaths, auto: __mcAutoBox }));
+  mcApplyCadSnapshot(__mcCadFuture.pop());
+  setMcStatus("Shape edit redone.");
+}
+function mcFitToBox() {
+  if (!__mcPaths.length) { setMcStatus("Draw a shape first."); return; }
+  mcCadSnap();
+  mcFitPaths(__mcPaths, mcW(), mcH());
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus("Drawing scaled to fit the canvas.");
+}
+function mcDefaultBox() {
+  __mcPaths = [mcRoundBoxPath(mcW(), mcH(), mcRadius())];
+  __mcSelPath = 0;
+  __mcSelNode = -1;
+  __mcAutoBox = true;
+}
+function mcSizeChanged() {
+  if (!__mcPaths.length || __mcAutoBox) mcDefaultBox();
+  mcPreview();
+}
+function mcResetBox() {
+  mcCadSnap();
+  mcDefaultBox();
+  mcPreview();
+  setMcStatus("Rounded box restored from the width, height and radius fields.");
+}
+function mcClearShape() {
+  mcCadSnap();
+  __mcPaths = [];
+  __mcSelPath = -1;
+  __mcSelNode = -1;
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus("Canvas cleared. Draw a shape or press Reset box.");
+}
+function mcActiveOpenPath() {
+  var p = __mcPaths[__mcSelPath];
+  if (p && !p.closed && p.nodes.length) return p;
+  return null;
+}
+function mcStartPath() {
+  var p = { closed: false, nodes: [] };
+  __mcPaths.push(p);
+  __mcSelPath = __mcPaths.length - 1;
+  __mcSelNode = -1;
+  return p;
+}
+function mcSelNodeObj() {
+  var p = __mcPaths[__mcSelPath];
+  if (!p || __mcSelNode < 0 || __mcSelNode >= p.nodes.length) return null;
+  return p.nodes[__mcSelNode];
+}
+function mcCubicPoint(a, b, t) {
+  var c1x = a.x + a.ox, c1y = a.y + a.oy, c2x = b.x + b.ix, c2y = b.y + b.iy;
+  var mt = 1 - t;
+  var x = mt * mt * mt * a.x + 3 * mt * mt * t * c1x + 3 * mt * t * t * c2x + t * t * t * b.x;
+  var y = mt * mt * mt * a.y + 3 * mt * mt * t * c1y + 3 * mt * t * t * c2y + t * t * t * b.y;
+  return { x: x, y: y };
+}
+function mcSplitSegment(path, i) {
+  var ns = path.nodes;
+  if (ns.length < 2) return -1;
+  var a = ns[i], b = ns[(i + 1) % ns.length];
+  var c1x = a.x + a.ox, c1y = a.y + a.oy, c2x = b.x + b.ix, c2y = b.y + b.iy;
+  function mid(x1, y1, x2, y2) { return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 }; }
+  var p01 = mid(a.x, a.y, c1x, c1y);
+  var p12 = mid(c1x, c1y, c2x, c2y);
+  var p23 = mid(c2x, c2y, b.x, b.y);
+  var p012 = mid(p01.x, p01.y, p12.x, p12.y);
+  var p123 = mid(p12.x, p12.y, p23.x, p23.y);
+  var m = mid(p012.x, p012.y, p123.x, p123.y);
+  var n = mcNode(m.x, m.y, p012.x - m.x, p012.y - m.y, p123.x - m.x, p123.y - m.y);
+  n.smooth = true;
+  a.ox = p01.x - a.x; a.oy = p01.y - a.y;
+  b.ix = p23.x - b.x; b.iy = p23.y - b.y;
+  var at = i + 1;
+  if (at >= ns.length) ns.push(n);
+  else ns.splice(at, 0, n);
+  return at;
+}
+function mcAddNode() {
+  var p = __mcPaths[__mcSelPath];
+  if (!p || !p.nodes.length) { setMcStatus("Select a path first, or draw one."); return; }
+  var i = __mcSelNode >= 0 ? __mcSelNode : p.nodes.length - 1;
+  if (!p.closed && i >= p.nodes.length - 1) i = p.nodes.length - 2;
+  if (i < 0) { setMcStatus("The path needs at least two nodes."); return; }
+  mcCadSnap();
+  __mcSelNode = mcSplitSegment(p, i);
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus("Node inserted on the selected segment.");
+}
+function mcDeleteNode() {
+  var p = __mcPaths[__mcSelPath];
+  if (!p || __mcSelNode < 0 || __mcSelNode >= p.nodes.length) { setMcStatus("Select a node first."); return; }
+  mcCadSnap();
+  p.nodes.splice(__mcSelNode, 1);
+  if (!p.nodes.length) {
+    __mcPaths.splice(__mcSelPath, 1);
+    __mcSelPath = Math.min(__mcSelPath, __mcPaths.length - 1);
+    __mcSelNode = -1;
+  } else if (__mcSelNode >= p.nodes.length) {
+    __mcSelNode = p.nodes.length - 1;
+  }
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus("Node deleted.");
+}
+function mcNodeSmooth(on) {
+  var n = mcSelNodeObj();
+  if (!n) { setMcStatus("Select a node first."); return; }
+  var p = __mcPaths[__mcSelPath];
+  var i = __mcSelNode;
+  mcCadSnap();
+  if (!on) {
+    n.ix = n.iy = n.ox = n.oy = 0;
+    n.smooth = false;
+  } else {
+    var prev = p.nodes[(i - 1 + p.nodes.length) % p.nodes.length];
+    var next = p.nodes[(i + 1) % p.nodes.length];
+    var dx = next.x - prev.x, dy = next.y - prev.y;
+    var len = Math.hypot(dx, dy) || 1;
+    var d1 = mcDist(n, prev) / 3;
+    var d2 = mcDist(n, next) / 3;
+    n.ox = dx / len * d1; n.oy = dy / len * d1;
+    n.ix = -dx / len * d2; n.iy = -dy / len * d2;
+    n.smooth = true;
+  }
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus(on ? "Node set to smooth." : "Node set to corner.");
+}
+function mcToggleClose() {
+  var p = __mcPaths[__mcSelPath];
+  if (!p || p.nodes.length < 2) { setMcStatus("Select a path with at least two nodes."); return; }
+  mcCadSnap();
+  p.closed = !p.closed;
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus(p.closed ? "Path closed." : "Path opened.");
+}
+function mcFillet() {
+  var p = __mcPaths[__mcSelPath];
+  var i = __mcSelNode;
+  if (!p || i < 0 || i >= p.nodes.length) { setMcStatus("Select a corner node first."); return; }
+  var n = p.nodes[i];
+  if (!p.closed && (i === 0 || i === p.nodes.length - 1)) { setMcStatus("Fillet needs a node with two neighbours."); return; }
+  var prev = p.nodes[(i - 1 + p.nodes.length) % p.nodes.length];
+  var next = p.nodes[(i + 1) % p.nodes.length];
+  if (prev.ox || prev.oy || n.ix || n.iy || n.ox || n.oy || next.ix || next.iy) {
+    setMcStatus("Fillet works on straight edges. Remove the curve handles first.");
+    return;
+  }
+  var ux = n.x - prev.x, uy = n.y - prev.y;
+  var vx = next.x - n.x, vy = next.y - n.y;
+  var l1 = Math.hypot(ux, uy), l2 = Math.hypot(vx, vy);
+  if (l1 < 0.01 || l2 < 0.01) { setMcStatus("The corner has a zero-length edge."); return; }
+  ux /= l1; uy /= l1; vx /= l2; vy /= l2;
+  var dot = Math.max(-1, Math.min(1, ux * vx + uy * vy));
+  var beta = Math.acos(dot);
+  if (beta < 0.02 || beta > Math.PI - 0.02) { setMcStatus("The corner is too straight or doubled back for a fillet."); return; }
+  var r = mcFilletRadius();
+  if (r < 0.5) { setMcStatus("Set a fillet radius of at least 0.5."); return; }
+  var t = r / Math.tan(beta / 2);
+  var maxT = Math.min(l1, l2) * 0.92;
+  if (t > maxT) { t = maxT; r = t * Math.tan(beta / 2); }
+  if (t < 0.5) { setMcStatus("The edges are too short for that radius."); return; }
+  var p1 = mcNode(n.x - ux * t, n.y - uy * t);
+  var p2 = mcNode(n.x + vx * t, n.y + vy * t);
+  var h = (4 / 3) * r * Math.tan(beta / 4);
+  p1.ox = ux * h; p1.oy = uy * h;
+  p2.ix = -vx * h; p2.iy = -vy * h;
+  p1.smooth = false; p2.smooth = false;
+  mcCadSnap();
+  p.nodes.splice(i, 1, p1, p2);
+  __mcSelNode = i + 1;
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus("Corner rounded with radius " + mcFmt(r) + ".");
+}
+function mcCutNode() {
+  var p = __mcPaths[__mcSelPath];
+  var i = __mcSelNode;
+  if (!p || i < 0 || i >= p.nodes.length) { setMcStatus("Select a node to cut at."); return; }
+  mcCadSnap();
+  if (p.closed) {
+    p.nodes = p.nodes.slice(i).concat(p.nodes.slice(0, i));
+    p.closed = false;
+    __mcSelNode = 0;
+    setMcStatus("Closed path opened at the selected node.");
+  } else if (i > 0 && i < p.nodes.length - 1) {
+    var second = { closed: false, nodes: p.nodes.slice(i) };
+    p.nodes = p.nodes.slice(0, i + 1);
+    __mcPaths.splice(__mcSelPath + 1, 0, second);
+    __mcSelNode = p.nodes.length - 1;
+    setMcStatus("Path split into two open paths.");
+  } else {
+    setMcStatus("Cut needs an interior node or a closed path.");
+    return;
+  }
+  __mcAutoBox = false;
+  mcPreview();
+}
+function mcReversePath(p) {
+  p.nodes.reverse();
+  for (var i = 0; i < p.nodes.length; i++) {
+    var n = p.nodes[i];
+    var ix = n.ix, iy = n.iy;
+    n.ix = n.ox; n.iy = n.oy;
+    n.ox = ix; n.oy = iy;
+  }
+}
+function mcJoinPaths() {
+  var open = [];
+  for (var i = 0; i < __mcPaths.length; i++) if (!__mcPaths[i].closed && __mcPaths[i].nodes.length) open.push(i);
+  if (open.length < 2) { setMcStatus("Join needs two open paths."); return; }
+  var ia = open[0], ib = open[1];
+  var A = __mcPaths[ia], B = __mcPaths[ib];
+  var ea = A.nodes[A.nodes.length - 1];
+  var eb = B.nodes[0];
+  var best = { d: mcDist(ea, eb), rev: false };
+  var d2 = mcDist(ea, B.nodes[B.nodes.length - 1]);
+  if (d2 < best.d) best = { d: d2, rev: true };
+  mcCadSnap();
+  if (best.rev) mcReversePath(B);
+  var bFirst = B.nodes[0];
+  if (best.d < 0.01) {
+    var last = A.nodes[A.nodes.length - 1];
+    last.ox = bFirst.ox; last.oy = bFirst.oy;
+    B.nodes.shift();
+  }
+  for (var k = 0; k < B.nodes.length; k++) A.nodes.push(B.nodes[k]);
+  __mcPaths.splice(ib, 1);
+  if (ib < ia) __mcSelPath = ia - 1; else __mcSelPath = ia;
+  __mcSelNode = -1;
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus("Open paths joined.");
+}
+function mcSetTool(t) {
+  __mcTool = t;
+  var btns = document.querySelectorAll(".mc-tool");
+  for (var i = 0; i < btns.length; i++) btns[i].classList.toggle("on", btns[i].getAttribute("data-tool") === t);
+  var hints = {
+    select: "Drag nodes to move them; drag the square handles to bend. Click the path to select it. Arrow keys nudge the selected node (Shift = 10 px).",
+    line: "Click to add straight nodes. Click the first node to close the path.",
+    curve: "Drag to pull out the handles of a smooth node.",
+    rect: "Drag a rectangle on the canvas.",
+    ellipse: "Drag an ellipse on the canvas.",
+    arc: "Drag an arc; it bulges above the chord."
+  };
+  var el = document.getElementById("mc-tool-hint");
+  if (el) el.textContent = hints[t] || "";
+}
+function mcSvgEl(tag, attrs) {
+  var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function mcCanvasPoint(ev) {
+  var svg = document.getElementById("mc-canvas");
+  if (!svg) return { x: 0, y: 0 };
+  var m = svg.getScreenCTM();
+  if (!m) return { x: 0, y: 0 };
+  var pt;
+  if (window.DOMPoint) pt = new DOMPoint(ev.clientX, ev.clientY);
+  else { pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; }
+  var q = pt.matrixTransform(m.inverse());
+  var w = mcW(), h = mcH();
+  return { x: Math.max(0, Math.min(w, q.x)), y: Math.max(0, Math.min(h, q.y)) };
+}
+function mcRenderCad(applyAnim) {
+  var w = mcW(), h = mcH();
+  var wrap = document.getElementById("mc-canvas-wrap");
+  var svg = document.getElementById("mc-canvas");
+  if (!wrap || !svg) return;
+  var stage = wrap.parentNode;
+  var availW = Math.max(180, (stage ? stage.clientWidth : 380) - 20);
+  var availH = 290;
+  var scale = Math.min(availW / w, availH / h, 2.6);
+  if (!isFinite(scale) || scale <= 0) scale = 1;
+  wrap.style.width = Math.round(w * scale) + "px";
+  wrap.style.height = Math.round(h * scale) + "px";
+  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+  svg.setAttribute("preserveAspectRatio", "none");
+  var live = document.getElementById("mc-shape-live");
+  if (live) {
+    var text = document.getElementById("mc-text");
+    live.textContent = (text && text.value) || "Animated";
+    live.style.fontSize = mcNum("mc-fs", 15, 8, 48) + "px";
+    live.style.color = mcColorValue("mc-fg", "#ffffff");
+    if (__mcPaths.length) {
+      var eff = mcEffectiveStroke();
+      live.style.backgroundColor = mcFill();
+      live.style.borderRadius = "0";
+      live.style.backgroundImage = eff.width > 0 ? "url(\"" + mcStrokeUrl() + "\")" : "none";
+      live.style.backgroundRepeat = "no-repeat";
+      live.style.backgroundSize = "100% 100%";
+      live.style.webkitMaskImage = "url(\"" + mcMaskUrl() + "\")";
+      live.style.maskImage = "url(\"" + mcMaskUrl() + "\")";
+      live.style.webkitMaskRepeat = "no-repeat";
+      live.style.maskRepeat = "no-repeat";
+      live.style.webkitMaskSize = "100% 100%";
+      live.style.maskSize = "100% 100%";
+    } else {
+      live.style.backgroundColor = mcFill();
+      live.style.borderRadius = mcRadius() + "px";
+      live.style.backgroundImage = "none";
+      live.style.webkitMaskImage = "none";
+      live.style.maskImage = "none";
+    }
+    if (applyAnim) {
+      live.style.animation = "sui-motion-preview " + mcNum("mc-dur", 1.4, 0.1, 20) + "s " +
+        mcEase() + " " + mcNum("mc-delay", 0, 0, 20) + "s " + mcIter() + " both";
+    }
+  }
+  var ref = document.getElementById("mc-ref-img");
+  if (ref) {
+    if (__mcRefUrl) { ref.src = __mcRefUrl; ref.style.display = "block"; }
+    else { ref.removeAttribute("src"); ref.style.display = "none"; }
+  }
+  var art = document.getElementById("mc-art");
+  if (art) art.setAttribute("d", mcAllD());
+  mcDrawHandles();
+  mcDrawDraft();
+}
+function mcDrawDraft() {
+  var el = document.getElementById("mc-draft");
+  if (!el) return;
+  el.setAttribute("d", __mcDraft || "");
+  el.setAttribute("stroke-width", String(Math.max(1, mcW() / 300)));
+}
+function mcDrawHandles() {
+  var g = document.getElementById("mc-handles");
+  if (!g) return;
+  g.textContent = "";
+  var w = mcW();
+  var wrap = document.getElementById("mc-canvas-wrap");
+  var px = wrap && wrap.clientWidth ? w / wrap.clientWidth : 1;
+  var r = 5.2 * px, hs = 4.4 * px, sw = 1.4 * px;
+  for (var i = 0; i < __mcPaths.length; i++) {
+    var p = __mcPaths[i];
+    if (!p.nodes.length) continue;
+    var d = mcPathD(p);
+    var hit = mcSvgEl("path", { d: d, fill: "rgba(0,0,0,0.001)", stroke: "rgba(0,0,0,0.001)", "stroke-width": 10 * px, "data-path": i, "data-hit": "1", style: "pointer-events:all" });
+    g.appendChild(hit);
+    if (i === __mcSelPath && __mcSelNode >= 0 && __mcSelNode < p.nodes.length) {
+      var sn = p.nodes[__mcSelNode];
+      var ends = [[sn.x + sn.ix, sn.y + sn.iy, "in"], [sn.x + sn.ox, sn.y + sn.oy, "out"]];
+      for (var e = 0; e < ends.length; e++) {
+        var hx = ends[e][0], hy = ends[e][1], which = ends[e][2];
+        if (!sn.ix && !sn.iy && which === "in") continue;
+        if (!sn.ox && !sn.oy && which === "out") continue;
+        g.appendChild(mcSvgEl("line", { x1: sn.x, y1: sn.y, x2: hx, y2: hy, class: "mc-hline" }));
+        g.appendChild(mcSvgEl("rect", { x: hx - hs, y: hy - hs, width: hs * 2, height: hs * 2, class: "mc-h", "data-path": i, "data-handle": which }));
+      }
+    }
+    for (var j = 0; j < p.nodes.length; j++) {
+      var n = p.nodes[j];
+      var on = (i === __mcSelPath && j === __mcSelNode) ? " on" : "";
+      g.appendChild(mcSvgEl("circle", { cx: n.x, cy: n.y, r: r, class: "mc-node" + on, "data-path": i, "data-node": j }));
+    }
+  }
+}
+function mcPointerAttr(ev, name) {
+  var el = ev.target;
+  while (el && el.getAttribute && el.getAttribute(name) === null) {
+    if (el === document.getElementById("mc-canvas")) return null;
+    el = el.parentNode;
+  }
+  return el && el.getAttribute ? el.getAttribute(name) : null;
+}
+function mcCanvasDown(ev) {
+  if (ev.button !== 0) return;
+  ev.preventDefault();
+  var p = mcCanvasPoint(ev);
+  var handle = mcPointerAttr(ev, "data-handle");
+  var nodeAttr = mcPointerAttr(ev, "data-node");
+  var pathAttr = mcPointerAttr(ev, "data-path");
+  if (__mcTool === "select") {
+    if (handle !== null && __mcSelPath >= 0 && __mcSelNode >= 0) {
+      __mcDrag = { mode: "handle", which: handle, start: p, snapped: false };
+      return;
+    }
+    if (nodeAttr !== null) {
+      __mcSelPath = Number(pathAttr);
+      __mcSelNode = Number(nodeAttr);
+      __mcDrag = { mode: "node", start: p, orig: { x: __mcPaths[__mcSelPath].nodes[__mcSelNode].x, y: __mcPaths[__mcSelPath].nodes[__mcSelNode].y }, snapped: false };
+      mcRenderCad(false);
+      return;
+    }
+    if (pathAttr !== null) {
+      __mcSelPath = Number(pathAttr);
+      __mcSelNode = -1;
+      mcRenderCad(false);
+      setMcStatus("Path selected. Click a node to edit it.");
+      return;
+    }
+    __mcSelPath = -1;
+    __mcSelNode = -1;
+    mcRenderCad(false);
+    return;
+  }
+  if (__mcTool === "line") {
+    var lp = mcActiveOpenPath();
+    if (!lp) lp = mcStartPath();
+    if (lp.nodes.length >= 2 && mcDist(p, { x: lp.nodes[0].x, y: lp.nodes[0].y }) < 10 * (mcW() / 220)) {
+      mcCadSnap();
+      lp.closed = true;
+      __mcSelNode = 0;
+      __mcAutoBox = false;
+      mcPreview();
+      setMcStatus("Path closed. Switch to Select to edit it.");
+      return;
+    }
+    mcCadSnap();
+    lp.nodes.push(mcNode(p.x, p.y));
+    __mcSelNode = lp.nodes.length - 1;
+    __mcAutoBox = false;
+    mcPreview();
+    return;
+  }
+  if (__mcTool === "curve") {
+    var cp = mcActiveOpenPath();
+    if (!cp) cp = mcStartPath();
+    mcCadSnap();
+    cp.nodes.push(mcNode(p.x, p.y));
+    __mcSelNode = cp.nodes.length - 1;
+    __mcAutoBox = false;
+    __mcDrag = { mode: "curveNew", path: cp, node: __mcSelNode, snapX: p.x, snapY: p.y, moved: false };
+    mcRenderCad(false);
+    return;
+  }
+  __mcDrag = { mode: "shape", tool: __mcTool, start: p, moved: false };
+}
+function mcCanvasMove(ev) {
+  var d = __mcDrag;
+  if (!d) return;
+  var p = mcCanvasPoint(ev);
+  if (d.mode === "node") {
+    if (!d.snapped) { mcCadSnap(); d.snapped = true; }
+    var n = __mcPaths[__mcSelPath].nodes[__mcSelNode];
+    n.x = Math.max(0, Math.min(mcW(), d.orig.x + (p.x - d.start.x)));
+    n.y = Math.max(0, Math.min(mcH(), d.orig.y + (p.y - d.start.y)));
+    __mcAutoBox = false;
+    mcRenderCad(false);
+  } else if (d.mode === "handle") {
+    if (!d.snapped) { mcCadSnap(); d.snapped = true; }
+    var p2 = __mcPaths[__mcSelPath];
+    var n2 = p2.nodes[__mcSelNode];
+    var ox = p.x - n2.x, oy = p.y - n2.y;
+    if (d.which === "in") {
+      n2.ix = ox; n2.iy = oy;
+      if (n2.smooth) { n2.ox = -ox; n2.oy = -oy; }
+    } else {
+      n2.ox = ox; n2.oy = oy;
+      if (n2.smooth) { n2.ix = -ox; n2.iy = -oy; }
+    }
+    n2.smooth = true;
+    __mcAutoBox = false;
+    mcRenderCad(false);
+  } else if (d.mode === "curveNew") {
+    var cn = d.path.nodes[d.node];
+    var dx = p.x - cn.x, dy = p.y - cn.y;
+    if (Math.hypot(dx, dy) > 2) {
+      d.moved = true;
+      cn.ox = dx; cn.oy = dy; cn.ix = -dx; cn.iy = -dy; cn.smooth = true;
+      mcRenderCad(false);
+    }
+  } else if (d.mode === "shape") {
+    d.moved = mcDist(d.start, p) > 4;
+    d.current = p;
+    var path = mcShapeFromDrag(d.tool, d.start, p);
+    __mcDraft = path ? mcPathD(path) : "";
+    mcDrawDraft();
+  }
+}
+function mcShapeFromDrag(tool, a, b) {
+  var x0 = Math.min(a.x, b.x), y0 = Math.min(a.y, b.y);
+  var x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+  if (tool === "rect") return { closed: true, nodes: [mcNode(x0, y0), mcNode(x1, y0), mcNode(x1, y1), mcNode(x0, y1)] };
+  if (tool === "ellipse") {
+    if (x1 - x0 < 2 || y1 - y0 < 2) return null;
+    return mcEllipsePath((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2);
+  }
+  if (tool === "arc") return mcArcPath(a, b);
+  return null;
+}
+function mcCanvasUp(ev) {
+  var d = __mcDrag;
+  __mcDrag = null;
+  if (!d) return;
+  var p = mcCanvasPoint(ev);
+  if (d.mode === "shape") {
+    var path = d.moved ? mcShapeFromDrag(d.tool, d.start, p) : null;
+    __mcDraft = "";
+    if (path) {
+      mcCadSnap();
+      __mcPaths.push(path);
+      __mcSelPath = __mcPaths.length - 1;
+      __mcSelNode = -1;
+      __mcAutoBox = false;
+      mcPreview();
+      setMcStatus(d.tool === "rect" ? "Rectangle added." : d.tool === "ellipse" ? "Ellipse added." : "Arc added.");
+    } else {
+      mcRenderCad(false);
+    }
+    return;
+  }
+  if (d.mode === "curveNew" && !d.moved) {
+    var n = d.path.nodes[d.node];
+    n.ix = n.iy = n.ox = n.oy = 0;
+    n.smooth = false;
+    setMcStatus("Corner node added. Drag it with Select to move it.");
+  }
+  mcPreview();
+}
+function mcBindCanvas() {
+  if (__mcBound) return;
+  var svg = document.getElementById("mc-canvas");
+  if (!svg) return;
+  __mcBound = true;
+  svg.addEventListener("pointerdown", mcCanvasDown);
+  svg.addEventListener("dblclick", function(ev){ ev.preventDefault(); mcSetTool("select"); });
+  window.addEventListener("pointermove", mcCanvasMove);
+  window.addEventListener("pointerup", mcCanvasUp);
+  window.addEventListener("resize", function(){
+    var m = document.getElementById("motion-composer");
+    if (m && m.classList.contains("on")) mcRenderCad(false);
+  });
+}
+function mcHex2(n) { var v = Math.max(0, Math.min(255, Math.round(Number(n)))); return (v < 16 ? "0" : "") + v.toString(16); }
+function mcHexFromColor(v) {
+  var s = String(v || "").trim();
+  if (/^#[0-9a-fA-F]{3}$/.test(s)) return ("#" + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]).toLowerCase();
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  var m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?/.exec(s);
+  if (m) {
+    if (m[4] !== undefined && Number(m[4]) === 0) return "";
+    return "#" + mcHex2(m[1]) + mcHex2(m[2]) + mcHex2(m[3]);
+  }
+  var names = { black: "#000000", white: "#ffffff", red: "#ff0000", green: "#008000", blue: "#0000ff", yellow: "#ffff00", orange: "#ffa500", purple: "#800080", gray: "#808080", grey: "#808080", silver: "#c0c0c0", navy: "#000080", teal: "#008080", lime: "#00ff00", aqua: "#00ffff", cyan: "#00ffff", magenta: "#ff00ff", fuchsia: "#ff00ff", maroon: "#800000", olive: "#808000", transparent: "" };
+  var k = s.toLowerCase();
+  return names[k] !== undefined ? names[k] : "";
+}
+function mcSelectedNode() {
+  if (selPath === null || typeof selPath === "undefined") return null;
+  var n = byPath(selPath, root.children);
+  return n || null;
+}
+function mcSelectedPreviewEl() {
+  var n = mcSelectedNode();
+  if (!n) return null;
+  var frame = document.getElementById("prev");
+  var doc = frame && frame.contentDocument;
+  if (!doc) return null;
+  var classes = String(n.class || "").trim().split(/\s+/).filter(Boolean);
+  for (var i = 0; i < classes.length; i++) {
+    if (/^sui-/.test(classes[i])) continue;
+    var el = doc.querySelector("." + classes[i]);
+    if (el) return el;
+  }
+  for (var j = 0; j < classes.length; j++) {
+    var el2 = doc.querySelector("." + classes[j]);
+    if (el2) return el2;
+  }
+  return null;
+}
+function mcFindCadModel(name) {
+  var key = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var re = new RegExp("\\/\\* sui-motion-shape:" + key + " \\*\\/[\\s\\S]*?\\/\\* /sui-motion-shape:" + key + " \\*/");
+  var m = re.exec(String(root.css || ""));
+  if (!m) return null;
+  var meta = /\/\* sui-cad:(\{[^\n]*\}) \*\//.exec(m[0]);
+  if (!meta) return null;
+  try { return JSON.parse(meta[1]); } catch (e) { return null; }
+}
+function mcApplyModel(m) {
+  if (!m || typeof m !== "object") return false;
+  var w = Number(m.w), h = Number(m.h);
+  if (!isFinite(w) || !isFinite(h) || w < 24 || h < 16 || w > 900 || h > 900) return false;
+  var paths = [];
+  var arr = Array.isArray(m.paths) ? m.paths.slice(0, 64) : [];
+  for (var i = 0; i < arr.length; i++) {
+    var p = arr[i];
+    if (!p || !Array.isArray(p.nodes)) continue;
+    var ns = [];
+    for (var j = 0; j < p.nodes.length && j < 4000; j++) {
+      var n = p.nodes[j];
+      if (!n || typeof n !== "object") continue;
+      var x = Number(n.x), y = Number(n.y);
+      if (!isFinite(x) || !isFinite(y)) continue;
+      var node = mcNode(x, y, Number(n.ix) || 0, Number(n.iy) || 0, Number(n.ox) || 0, Number(n.oy) || 0);
+      node.smooth = !!n.smooth;
+      ns.push(node);
+    }
+    if (ns.length) paths.push({ closed: !!p.closed, nodes: ns });
+  }
+  if (!paths.length) return false;
+  document.getElementById("mc-w").value = Math.round(w);
+  document.getElementById("mc-h").value = Math.round(h);
+  document.getElementById("mc-bg").value = mcHexFromColor(m.fill) || mcFill();
+  if (m.stroke) document.getElementById("mc-stroke").value = mcHexFromColor(m.stroke) || "";
+  document.getElementById("mc-sw").value = Math.max(0, Math.min(40, Number(m.sw) || 0));
+  __mcPaths = paths;
+  __mcAutoBox = false;
+  __mcSelPath = 0;
+  __mcSelNode = -1;
+  mcPreview();
+  return true;
+}
+function mcLoadSelection() {
+  var n = mcSelectedNode();
+  if (!n) { setMcStatus("Select a component in the tree or preview first."); return; }
+  var classes = String(n.class || "").trim().split(/\s+/).filter(Boolean);
+  for (var i = 0; i < classes.length; i++) {
+    var model = mcFindCadModel(classes[i]);
+    if (model && mcApplyModel(model)) {
+      setMcStatus("Loaded the drawn shape from ." + classes[i] + ". Edit it and insert again.");
+      return;
+    }
+  }
+  var el = mcSelectedPreviewEl();
+  var w = 220, h = 80, fill = "", fg = "", fs = 0, radius = 0;
+  if (el) {
+    var cs = window.getComputedStyle(el);
+    w = parseFloat(cs.width) || w;
+    h = parseFloat(cs.height) || h;
+    radius = parseFloat(cs.borderTopLeftRadius) || 0;
+    fill = mcHexFromColor(cs.backgroundColor);
+    fg = mcHexFromColor(cs.color);
+    fs = parseFloat(cs.fontSize) || 0;
+  }
+  w = Math.max(24, Math.min(900, Math.round(w)));
+  h = Math.max(16, Math.min(900, Math.round(h)));
+  document.getElementById("mc-w").value = w;
+  document.getElementById("mc-h").value = h;
+  document.getElementById("mc-radius").value = Math.max(0, Math.min(300, Math.round(radius)));
+  if (fill) document.getElementById("mc-bg").value = fill;
+  if (fg) document.getElementById("mc-fg").value = fg;
+  if (fs) document.getElementById("mc-fs").value = Math.max(8, Math.min(48, Math.round(fs)));
+  __mcPaths = [mcRoundBoxPath(w, h, radius)];
+  __mcSelPath = 0;
+  __mcSelNode = -1;
+  __mcAutoBox = true;
+  mcPreview();
+  setMcStatus("Loaded the selected component box as a rounded rectangle. Edit the nodes or import an SVG.");
+}
+function mcMatIdentity() { return [1, 0, 0, 1, 0, 0]; }
+function mcMatMul(a, b) {
+  return [
+    a[0] * b[0] + a[2] * b[1],
+    a[1] * b[0] + a[3] * b[1],
+    a[0] * b[2] + a[2] * b[3],
+    a[1] * b[2] + a[3] * b[3],
+    a[0] * b[4] + a[2] * b[5] + a[4],
+    a[1] * b[4] + a[3] * b[5] + a[5]
+  ];
+}
+function mcParseTransform(str) {
+  var m = mcMatIdentity();
+  if (!str) return m;
+  var re = /([a-zA-Z]+)\s*\(([^)]*)\)/g, t;
+  while ((t = re.exec(str)) !== null) {
+    var name = t[1].toLowerCase();
+    var nums = (t[2].match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi) || []).map(Number);
+    if (!nums.length) continue;
+    var local = mcMatIdentity();
+    if (name === "translate") local = [1, 0, 0, 1, nums[0] || 0, nums.length > 1 ? nums[1] : 0];
+    else if (name === "scale") local = [nums.length > 1 ? nums[0] : nums[0], 0, 0, nums.length > 1 ? nums[1] : nums[0], 0, 0];
+    else if (name === "matrix" && nums.length >= 6) local = [nums[0], nums[1], nums[2], nums[3], nums[4], nums[5]];
+    else if (name === "rotate") {
+      var a = (nums[0] || 0) * Math.PI / 180;
+      var cos = Math.cos(a), sin = Math.sin(a);
+      var rot = [cos, sin, -sin, cos, 0, 0];
+      if (nums.length >= 3) {
+        var cx = nums[1], cy = nums[2];
+        rot = mcMatMul(mcMatMul([1, 0, 0, 1, cx, cy], rot), [1, 0, 0, 1, -cx, -cy]);
+      }
+      local = rot;
+    } else if (name === "skewx") local = [1, 0, Math.tan((nums[0] || 0) * Math.PI / 180), 1, 0, 0];
+    else if (name === "skewy") local = [1, Math.tan((nums[0] || 0) * Math.PI / 180), 0, 1, 0, 0];
+    m = mcMatMul(m, local);
+  }
+  return m;
+}
+function mcApplyMatrixToPath(p, m) {
+  for (var i = 0; i < p.nodes.length; i++) {
+    var n = p.nodes[i];
+    var x = n.x, y = n.y;
+    n.x = m[0] * x + m[2] * y + m[4];
+    n.y = m[1] * x + m[3] * y + m[5];
+    var ix = n.ix, iy = n.iy, ox = n.ox, oy = n.oy;
+    n.ix = m[0] * ix + m[2] * iy;
+    n.iy = m[1] * ix + m[3] * iy;
+    n.ox = m[0] * ox + m[2] * oy;
+    n.oy = m[1] * ox + m[3] * oy;
+  }
+}
+function mcFitPaths(paths, W, H) {
+  var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (var i = 0; i < paths.length; i++) {
+    for (var j = 0; j < paths[i].nodes.length; j++) {
+      var n = paths[i].nodes[j];
+      var pts = [[n.x, n.y], [n.x + n.ix, n.y + n.iy], [n.x + n.ox, n.y + n.oy]];
+      for (var k = 0; k < 3; k++) {
+        if (pts[k][0] < minX) minX = pts[k][0];
+        if (pts[k][1] < minY) minY = pts[k][1];
+        if (pts[k][0] > maxX) maxX = pts[k][0];
+        if (pts[k][1] > maxY) maxY = pts[k][1];
+      }
+    }
+  }
+  var bw = maxX - minX, bh = maxY - minY;
+  if (!isFinite(bw) || !isFinite(bh)) return;
+  var pad = 8;
+  var sx = bw > 0.01 ? (W - 2 * pad) / bw : 1;
+  var sy = bh > 0.01 ? (H - 2 * pad) / bh : 1;
+  var s = Math.min(sx, sy);
+  if (!isFinite(s) || s <= 0) s = 1;
+  var offX = pad + ((W - 2 * pad) - bw * s) / 2 - minX * s;
+  var offY = pad + ((H - 2 * pad) - bh * s) / 2 - minY * s;
+  for (var a = 0; a < paths.length; a++) {
+    for (var b = 0; b < paths[a].nodes.length; b++) {
+      var q = paths[a].nodes[b];
+      q.x = q.x * s + offX;
+      q.y = q.y * s + offY;
+      q.ix *= s; q.iy *= s; q.ox *= s; q.oy *= s;
+    }
+  }
+}
+function mcArcToCubics(x1, y1, rx, ry, phiDeg, largeArc, sweep, x2, y2) {
+  var phi = phiDeg * Math.PI / 180;
+  var dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+  var x1p = Math.cos(phi) * dx + Math.sin(phi) * dy;
+  var y1p = -Math.sin(phi) * dx + Math.cos(phi) * dy;
+  rx = Math.abs(rx); ry = Math.abs(ry);
+  if (rx < 1e-9 || ry < 1e-9) return [[x1, y1, x2, y2, x2, y2]];
+  var lambda = x1p * x1p / (rx * rx) + y1p * y1p / (ry * ry);
+  if (lambda > 1) { var sq = Math.sqrt(lambda); rx *= sq; ry *= sq; }
+  var sign = (!!largeArc === !!sweep) ? -1 : 1;
+  var num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p;
+  var den = rx * rx * y1p * y1p + ry * ry * x1p * x1p;
+  var co = den > 1e-12 ? sign * Math.sqrt(Math.max(0, num / den)) : 0;
+  var cxp = co * (rx * y1p / ry);
+  var cyp = co * (-ry * x1p / rx);
+  var cx = Math.cos(phi) * cxp - Math.sin(phi) * cyp + (x1 + x2) / 2;
+  var cy = Math.sin(phi) * cxp + Math.cos(phi) * cyp + (y1 + y2) / 2;
+  var ux = (x1p - cxp) / rx, uy = (y1p - cyp) / ry;
+  var vx = (-x1p - cxp) / rx, vy = (-y1p - cyp) / ry;
+  var t1 = Math.atan2(uy, ux);
+  var dt = Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+  if (!sweep && dt > 0) dt -= 2 * Math.PI;
+  if (sweep && dt < 0) dt += 2 * Math.PI;
+  var segs = Math.max(1, Math.ceil(Math.abs(dt) / (Math.PI / 2)));
+  var step = dt / segs;
+  var t = (4 / 3) * Math.tan(step / 4);
+  var out = [];
+  function pt(a) {
+    return [cx + rx * Math.cos(a) * Math.cos(phi) - ry * Math.sin(a) * Math.sin(phi),
+      cy + rx * Math.cos(a) * Math.sin(phi) + ry * Math.sin(a) * Math.cos(phi)];
+  }
+  function der(a) {
+    return [-rx * Math.sin(a) * Math.cos(phi) - ry * Math.cos(a) * Math.sin(phi),
+      -rx * Math.sin(a) * Math.sin(phi) + ry * Math.cos(a) * Math.cos(phi)];
+  }
+  for (var k = 0; k < segs; k++) {
+    var a1 = t1 + k * step, a2 = a1 + step;
+    var p1 = pt(a1), p2 = pt(a2), d1 = der(a1), d2 = der(a2);
+    out.push([p1[0] + t * d1[0], p1[1] + t * d1[1], p2[0] - t * d2[0], p2[1] - t * d2[1], p2[0], p2[1]]);
+  }
+  if (out.length) { out[out.length - 1][4] = x2; out[out.length - 1][5] = y2; }
+  return out;
+}
+function mcPathsFromSvgData(d, mat) {
+  var toks = String(d || "").match(/[MmLlHhVvCcSsQqTtAaZz]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi) || [];
+  var i = 0, cmd = "", cur = null, paths = [];
+  var cx = 0, cy = 0, sx = 0, sy = 0, prevC2 = null;
+  function num() { var v = Number(toks[i++]); if (!isFinite(v)) throw new Error("bad number in path"); return v; }
+  function start(x, y) { cur = { closed: false, nodes: [mcNode(x, y)] }; paths.push(cur); cx = x; cy = y; sx = x; sy = y; prevC2 = null; }
+  function addLine(x, y) {
+    var p = cur.nodes[cur.nodes.length - 1];
+    p.ox = 0; p.oy = 0;
+    cur.nodes.push(mcNode(x, y));
+    cx = x; cy = y; prevC2 = null;
+  }
+  function addCubic(c1x, c1y, c2x, c2y, x, y) {
+    var p = cur.nodes[cur.nodes.length - 1];
+    p.ox = c1x - p.x; p.oy = c1y - p.y;
+    var n = mcNode(x, y);
+    n.ix = c2x - x; n.iy = c2y - y;
+    cur.nodes.push(n);
+    cx = x; cy = y; prevC2 = [c2x, c2y];
+  }
+  while (i < toks.length) {
+    var tok = toks[i];
+    if (/^[MmLlHhVvCcSsQqTtAaZz]$/.test(tok)) { cmd = tok; i++; }
+    else if (!cmd) { i++; continue; }
+    var rel = cmd === cmd.toLowerCase();
+    var C = cmd.toUpperCase();
+    if (C === "Z") {
+      if (cur) {
+        cur.closed = true;
+        if (cur.nodes.length > 1) {
+          var last = cur.nodes[cur.nodes.length - 1];
+          if (Math.abs(last.x - sx) < 1e-4 && Math.abs(last.y - sy) < 1e-4) {
+            cur.nodes[0].ix = last.ix; cur.nodes[0].iy = last.iy;
+            cur.nodes.pop();
+          }
+        }
+        cx = sx; cy = sy;
+      }
+      cmd = "";
+      prevC2 = null;
+      continue;
+    }
+    if (!cur) start(cx, cy);
+    if (C === "M") {
+      var mx = num() + (rel ? cx : 0), my = num() + (rel ? cy : 0);
+      start(mx, my);
+      cmd = rel ? "l" : "L";
+      continue;
+    }
+    if (C === "L") { var lx = num() + (rel ? cx : 0), ly = num() + (rel ? cy : 0); addLine(lx, ly); continue; }
+    if (C === "H") { var hx = num() + (rel ? cx : 0); addLine(hx, cy); continue; }
+    if (C === "V") { var vy = num() + (rel ? cy : 0); addLine(cx, vy); continue; }
+    if (C === "C") {
+      var c1x = num() + (rel ? cx : 0), c1y = num() + (rel ? cy : 0);
+      var c2x = num() + (rel ? cx : 0), c2y = num() + (rel ? cy : 0);
+      var ex = num() + (rel ? cx : 0), ey = num() + (rel ? cy : 0);
+      addCubic(c1x, c1y, c2x, c2y, ex, ey);
+      continue;
+    }
+    if (C === "S") {
+      var r1x = prevC2 ? 2 * cx - prevC2[0] : cx;
+      var r1y = prevC2 ? 2 * cy - prevC2[1] : cy;
+      var s2x = num() + (rel ? cx : 0), s2y = num() + (rel ? cy : 0);
+      var sex = num() + (rel ? cx : 0), sey = num() + (rel ? cy : 0);
+      addCubic(r1x, r1y, s2x, s2y, sex, sey);
+      continue;
+    }
+    if (C === "Q" || C === "T") {
+      var qx, qy, qex, qey;
+      if (C === "Q") {
+        qx = num() + (rel ? cx : 0); qy = num() + (rel ? cy : 0);
+        qex = num() + (rel ? cx : 0); qey = num() + (rel ? cy : 0);
+      } else {
+        qx = prevC2 ? 2 * cx - prevC2[0] : cx;
+        qy = prevC2 ? 2 * cy - prevC2[1] : cy;
+        qex = num() + (rel ? cx : 0); qey = num() + (rel ? cy : 0);
+      }
+      var q1x = cx + 2 / 3 * (qx - cx), q1y = cy + 2 / 3 * (qy - cy);
+      var q2x = qex + 2 / 3 * (qx - qex), q2y = qey + 2 / 3 * (qy - qey);
+      addCubic(q1x, q1y, q2x, q2y, qex, qey);
+      prevC2 = [qx, qy];
+      continue;
+    }
+    if (C === "A") {
+      var arx = num(), ary = num(), arot = num();
+      var af = num(), as = num();
+      var aex = num() + (rel ? cx : 0), aey = num() + (rel ? cy : 0);
+      var segs = mcArcToCubics(cx, cy, arx, ary, arot, af !== 0, as !== 0, aex, aey);
+      for (var si = 0; si < segs.length; si++) {
+        var sg = segs[si];
+        addCubic(sg[0], sg[1], sg[2], sg[3], sg[4], sg[5]);
+      }
+      continue;
+    }
+    i++;
+  }
+  for (var pi = 0; pi < paths.length; pi++) mcApplyMatrixToPath(paths[pi], mat);
+  return paths.filter(function(p){ return p.nodes.length > 1; });
+}
+function mcWalkSvg(el, parentMat, out, depth) {
+  if (depth > 20) return;
+  var tag = String(el.nodeName || "").toLowerCase();
+  if (tag === "defs" || tag === "clippath" || tag === "mask" || tag === "style" || tag === "title" || tag === "desc") return;
+  var mat = mcMatMul(parentMat, mcParseTransform(el.getAttribute("transform")));
+  var paths = [];
+  if (tag === "path") {
+    paths = mcPathsFromSvgData(el.getAttribute("d") || "", mat);
+  } else if (tag === "rect") {
+    var x = Number(el.getAttribute("x") || 0), y = Number(el.getAttribute("y") || 0);
+    var w = Number(el.getAttribute("width") || 0), h = Number(el.getAttribute("height") || 0);
+    var rx = Number(el.getAttribute("rx") || el.getAttribute("ry") || 0);
+    if (w > 0 && h > 0) {
+      var rp = mcRoundBoxPath(w, h, rx);
+      for (var ri = 0; ri < rp.nodes.length; ri++) { rp.nodes[ri].x += x; rp.nodes[ri].y += y; }
+      mcApplyMatrixToPath(rp, mat);
+      paths = [rp];
+    }
+  } else if (tag === "circle" || tag === "ellipse") {
+    var ccx = Number(el.getAttribute("cx") || 0), ccy = Number(el.getAttribute("cy") || 0);
+    var crx = tag === "circle" ? Number(el.getAttribute("r") || 0) : Number(el.getAttribute("rx") || 0);
+    var cry = tag === "circle" ? Number(el.getAttribute("r") || 0) : Number(el.getAttribute("ry") || 0);
+    if (crx > 0 && cry > 0) {
+      var ep = mcEllipsePath(ccx, ccy, crx, cry);
+      mcApplyMatrixToPath(ep, mat);
+      paths = [ep];
+    }
+  } else if (tag === "line") {
+    var d = "M" + Number(el.getAttribute("x1") || 0) + " " + Number(el.getAttribute("y1") || 0) +
+      " L" + Number(el.getAttribute("x2") || 0) + " " + Number(el.getAttribute("y2") || 0);
+    paths = mcPathsFromSvgData(d, mat);
+  } else if (tag === "polyline" || tag === "polygon") {
+    var pts = (el.getAttribute("points") || "").match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi) || [];
+    if (pts.length >= 4) {
+      var pd = "M" + pts[0] + " " + pts[1];
+      for (var pi = 2; pi + 1 < pts.length; pi += 2) pd += " L" + pts[pi] + " " + pts[pi + 1];
+      if (tag === "polygon") pd += " Z";
+      paths = mcPathsFromSvgData(pd, mat);
+    }
+  }
+  for (var k = 0; k < paths.length; k++) out.push(paths[k]);
+  var kids = el.children || [];
+  for (var c = 0; c < kids.length; c++) mcWalkSvg(kids[c], mat, out, depth + 1);
+}
+function mcImportSvg(files) {
+  var inp = document.getElementById("mc-import-svg");
+  if (!files || !files.length) return;
+  var f = files[0];
+  if (f.size > (2 << 20)) { setMcStatus("SVG is larger than 2 MB."); if (inp) inp.value = ""; return; }
+  var reader = new FileReader();
+  reader.onload = function() {
+    try { mcImportSvgText(String(reader.result || "")); }
+    catch (e) { setMcStatus("SVG import failed: " + (e && e.message ? e.message : e)); }
+  };
+  reader.readAsText(f);
+  if (inp) inp.value = "";
+}
+function mcImportSvgText(text) {
+  if (String(text).length > (2 << 20)) throw new Error("file is too large");
+  var doc = new DOMParser().parseFromString(String(text), "image/svg+xml");
+  var perr = doc.querySelector("parsererror");
+  if (perr) throw new Error("invalid SVG");
+  var svg = doc.documentElement;
+  if (!svg || String(svg.nodeName).toLowerCase() !== "svg") throw new Error("not an SVG document");
+  var out = [];
+  mcWalkSvg(svg, mcMatIdentity(), out, 0);
+  if (!out.length) throw new Error("no supported shapes found (path, rect, circle, ellipse, line, polyline, polygon)");
+  mcFitPaths(out, mcW(), mcH());
+  mcCadSnap();
+  __mcPaths = out;
+  __mcSelPath = 0;
+  __mcSelNode = -1;
+  __mcAutoBox = false;
+  var fill = mcHexFromColor(svg.getAttribute("fill"));
+  if (fill) document.getElementById("mc-bg").value = fill;
+  var stroke = mcHexFromColor(svg.getAttribute("stroke"));
+  if (stroke) document.getElementById("mc-stroke").value = stroke;
+  if (svg.getAttribute("stroke-width")) {
+    var sw = Number(svg.getAttribute("stroke-width"));
+    if (isFinite(sw)) document.getElementById("mc-sw").value = Math.max(0, Math.min(40, sw));
+  }
+  mcPreview();
+  setMcStatus("Imported " + out.length + " path(s) from SVG and fitted them to the canvas.");
+}
+function mcImportReference(files) {
+  var inp = document.getElementById("mc-import-ref");
+  if (!files || !files.length) return;
+  var f = files[0];
+  if (f.size > (4 << 20)) { setMcStatus("Reference image is larger than 4 MB."); if (inp) inp.value = ""; return; }
+  var reader = new FileReader();
+  reader.onload = function() {
+    __mcRefUrl = String(reader.result || "");
+    mcRenderCad(false);
+    setMcStatus("Reference image loaded as a tracing underlay; it is not added to the project.");
+  };
+  reader.readAsDataURL(f);
+  if (inp) inp.value = "";
+}
+function mcClearReference() {
+  __mcRefUrl = "";
+  mcRenderCad(false);
+  setMcStatus("Reference image removed.");
+}
+function mcCopySvg() {
+  var svg = mcStandaloneSvg();
+  function done(ok) { setMcStatus(ok ? "SVG copied to the clipboard." : "Copy failed; use Copy CSS instead."); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(svg).then(function(){ done(true); }, function(){ done(false); });
+    return;
+  }
+  done(false);
+}
+function mcSignedArea(poly) {
+  var s = 0;
+  for (var i = 0; i < poly.length; i++) {
+    var a = poly[i], b = poly[(i + 1) % poly.length];
+    s += a[0] * b[1] - b[0] * a[1];
+  }
+  return s / 2;
+}
+function mcPointInPoly(pt, poly) {
+  var inside = false;
+  for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    var xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if (((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+function mcSegCross(a, b, c, d) {
+  var rx = b[0] - a[0], ry = b[1] - a[1];
+  var sx = d[0] - c[0], sy = d[1] - c[1];
+  var qx = c[0] - a[0], qy = c[1] - a[1];
+  var den = rx * sy - ry * sx;
+  if (Math.abs(den) < 1e-9) {
+    if (Math.abs(qx * ry - qy * rx) > 1e-6) return null;
+    var rr = rx * rx + ry * ry;
+    if (rr < 1e-12) return null;
+    var t0 = (qx * rx + qy * ry) / rr;
+    var t1 = t0 + (sx * rx + sy * ry) / rr;
+    if (Math.min(t0, t1) < 1 - 1e-6 && Math.max(t0, t1) > 1e-6) return { collinear: true };
+    return null;
+  }
+  var t = (qx * sy - qy * sx) / den;
+  var u = (qx * ry - qy * rx) / den;
+  if (t <= 1e-7 || t >= 1 - 1e-7 || u <= 1e-7 || u >= 1 - 1e-7) return null;
+  return { t: t, u: u, p: [a[0] + t * rx, a[1] + t * ry] };
+}
+function mcSplitPoly(poly, other) {
+  var out = [];
+  for (var i = 0; i < poly.length; i++) {
+    var a = poly[i], b = poly[(i + 1) % poly.length];
+    var ts = [0, 1];
+    for (var j = 0; j < other.length; j++) {
+      var r = mcSegCross(a, b, other[j], other[(j + 1) % other.length]);
+      if (r && r.collinear) return null;
+      if (r) ts.push(r.t);
+    }
+    ts.sort(function(x, y){ return x - y; });
+    for (var k = 0; k < ts.length - 1; k++) {
+      if (ts[k + 1] - ts[k] < 1e-9) continue;
+      var t0 = ts[k], t1 = ts[k + 1];
+      out.push({
+        a: [a[0] + (b[0] - a[0]) * t0, a[1] + (b[1] - a[1]) * t0],
+        b: [a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1]
+      });
+    }
+  }
+  return out;
+}
+function mcFlattenPath(p) {
+  var ns = p.nodes, pts = [];
+  if (ns.length < 2) return pts;
+  var count = p.closed ? ns.length : ns.length - 1;
+  for (var i = 0; i < count; i++) {
+    var a = ns[i], b = ns[(i + 1) % ns.length];
+    var curved = a.ox || a.oy || b.ix || b.iy;
+    if (curved) {
+      for (var k = 0; k < 16; k++) {
+        var q = mcCubicPoint(a, b, k / 16);
+        pts.push([q.x, q.y]);
+      }
+    } else {
+      pts.push([a.x, a.y]);
+    }
+  }
+  if (!p.closed) pts.push([ns[ns.length - 1].x, ns[ns.length - 1].y]);
+  var out = [];
+  for (var j = 0; j < pts.length; j++) {
+    var prev = out[out.length - 1];
+    if (prev && Math.abs(prev[0] - pts[j][0]) < 1e-7 && Math.abs(prev[1] - pts[j][1]) < 1e-7) continue;
+    out.push(pts[j]);
+  }
+  if (out.length > 1) {
+    var f = out[0], l = out[out.length - 1];
+    if (Math.abs(f[0] - l[0]) < 1e-7 && Math.abs(f[1] - l[1]) < 1e-7) out.pop();
+  }
+  return out;
+}
+function mcPolyKey(p) { return Math.round(p[0] * 1000) + "," + Math.round(p[1] * 1000); }
+function mcChainFrags(frags) {
+  var map = {};
+  for (var i = 0; i < frags.length; i++) {
+    frags[i].idx = i;
+    map[mcPolyKey(frags[i].a)] = frags[i];
+  }
+  var used = {}, loops = [];
+  for (var j = 0; j < frags.length; j++) {
+    var f = frags[j];
+    if (used[f.idx]) continue;
+    var startKey = mcPolyKey(f.a);
+    var loop = [f.a], cur = f, guard = 0;
+    while (cur && !used[cur.idx] && guard++ <= frags.length + 2) {
+      used[cur.idx] = true;
+      loop.push(cur.b);
+      if (mcPolyKey(cur.b) === startKey) break;
+      cur = map[mcPolyKey(cur.b)];
+    }
+    if (loop.length > 3 && mcPolyKey(loop[loop.length - 1]) === startKey) {
+      loop.pop();
+      loops.push(loop);
+    }
+  }
+  for (var k = 0; k < frags.length; k++) if (!used[frags[k].idx]) return null;
+  return loops;
+}
+function mcSimplifyLoop(pts) {
+  if (pts.length < 4) return pts;
+  var out = [];
+  for (var i = 0; i < pts.length; i++) {
+    var a = pts[(i - 1 + pts.length) % pts.length];
+    var p = pts[i];
+    var b = pts[(i + 1) % pts.length];
+    var cross = Math.abs((p[0] - a[0]) * (b[1] - a[1]) - (p[1] - a[1]) * (b[0] - a[0]));
+    var len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (cross > 1e-3 * Math.max(1, len)) out.push(p);
+  }
+  return out.length >= 3 ? out : pts;
+}
+function mcPolyBool(pa, pb, op) {
+  if (mcSignedArea(pa) < 0) pa.reverse();
+  if (mcSignedArea(pb) < 0) pb.reverse();
+  var A = mcSplitPoly(pa, pb);
+  if (!A) throw new Error("the shapes share a straight edge; move one slightly");
+  var B = mcSplitPoly(pb, pa);
+  if (!B) throw new Error("the shapes share a straight edge; move one slightly");
+  function classify(list, other) {
+    for (var i = 0; i < list.length; i++) {
+      var m = [(list[i].a[0] + list[i].b[0]) / 2, (list[i].a[1] + list[i].b[1]) / 2];
+      list[i].inside = mcPointInPoly(m, other);
+    }
+  }
+  classify(A, pb);
+  classify(B, pa);
+  var keep = [];
+  if (op === "union") {
+    for (var i = 0; i < A.length; i++) if (!A[i].inside) keep.push(A[i]);
+    for (var j = 0; j < B.length; j++) if (!B[j].inside) keep.push(B[j]);
+  } else if (op === "intersect") {
+    for (var k = 0; k < A.length; k++) if (A[k].inside) keep.push(A[k]);
+    for (var l = 0; l < B.length; l++) if (B[l].inside) keep.push(B[l]);
+  } else {
+    for (var m2 = 0; m2 < A.length; m2++) if (!A[m2].inside) keep.push(A[m2]);
+    for (var n = 0; n < B.length; n++) {
+      if (B[n].inside) keep.push({ a: B[n].b, b: B[n].a });
+    }
+  }
+  if (!keep.length) return [];
+  var loops = mcChainFrags(keep);
+  if (!loops) throw new Error("the shapes touch at shared points; move one slightly");
+  return loops;
+}
+function mcBoolean(op) {
+  if (__mcPaths.length < 2) { setMcStatus("Boolean operations need two paths."); return; }
+  var a = __mcPaths[0], b = __mcPaths[1];
+  if (!a.closed || !b.closed) { setMcStatus("Boolean operations need two closed paths."); return; }
+  var pa = mcFlattenPath(a), pb = mcFlattenPath(b);
+  if (pa.length < 3 || pb.length < 3) { setMcStatus("One of the paths has no area."); return; }
+  var loops;
+  try { loops = mcPolyBool(pa, pb, op); }
+  catch (e) { setMcStatus("Boolean failed: " + (e && e.message ? e.message : e) + "."); return; }
+  if (!loops.length) { setMcStatus("The operation produced an empty shape."); return; }
+  mcCadSnap();
+  var out = [];
+  for (var i = 0; i < loops.length; i++) {
+    var pts = mcSimplifyLoop(loops[i]);
+    var nodes = [];
+    for (var j = 0; j < pts.length; j++) nodes.push(mcNode(pts[j][0], pts[j][1]));
+    out.push({ closed: true, nodes: nodes });
+  }
+  __mcPaths.splice(0, 2);
+  for (var k = out.length - 1; k >= 0; k--) __mcPaths.unshift(out[k]);
+  __mcSelPath = 0;
+  __mcSelNode = -1;
+  __mcAutoBox = false;
+  mcPreview();
+  setMcStatus((op === "union" ? "Union" : op === "intersect" ? "Intersection" : "Subtract") +
+    " applied to the first two paths (" + out.length + " loop(s)). Curves are flattened.");
+}
+function mcPreview() {
+  mcRenderCad(true);
+}
+function mcStop() {
+  var live = document.getElementById("mc-shape-live");
+  if (live) live.style.animation = "none";
+}
+function mcPlay() {
+  var live = document.getElementById("mc-shape-live");
+  if (live) {
+    live.style.animation = "none";
+    void live.offsetWidth;
+  }
+  mcPreview();
+}
+function openMotionComposer() {
+  var m = document.getElementById("motion-composer");
+  if (!m) return;
+  if (!__mcPaths.length) mcDefaultBox();
+  mcBindCanvas();
+  m.classList.add("on");
+  mcSetTool(__mcTool);
+  renderMotionComposer();
+  mcPreview();
+  if (!document.getElementById("mc-status").textContent) {
+    setMcStatus("Draw a shape or load the selected control. The stage previews the fill, stroke and motion.");
+  }
+}
+function closeMotionComposer() {
+  var m = document.getElementById("motion-composer");
+  if (m) m.classList.remove("on");
+  mcStop();
 }
 function mcColorValue(id, def) {
   var el = document.getElementById(id);
@@ -13390,99 +14903,6 @@ function mcFrames() {
   });
   return out.join("\n");
 }
-function mcShapeCss(sel, animName) {
-  var w = mcNum("mc-w", 180, 24, 900);
-  var h = mcNum("mc-h", 56, 16, 900);
-  var radius = mcNum("mc-radius", 12, 0, 300);
-  var fs = mcNum("mc-fs", 15, 8, 48);
-  var bg = mcColorValue("mc-bg", "#4c5cf7");
-  var fg = mcColorValue("mc-fg", "#ffffff");
-  var dur = mcNum("mc-dur", 1.4, 0.1, 20);
-  var delay = mcNum("mc-delay", 0, 0, 20);
-  return sel + " {\n" +
-    "  display: inline-flex;\n" +
-    "  align-items: center;\n" +
-    "  justify-content: center;\n" +
-    "  width: " + w + "px;\n" +
-    "  height: " + h + "px;\n" +
-    "  border-radius: " + radius + "px;\n" +
-    "  background: " + bg + ";\n" +
-    "  color: " + fg + ";\n" +
-    "  font: 600 " + fs + "px/1.1 system-ui, -apple-system, Segoe UI, sans-serif;\n" +
-    "  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);\n" +
-    "  animation: " + animName + " " + dur + "s " + mcEase() + " " + delay + "s " + mcIter() + " both;\n" +
-    "}";
-}
-function mcMotionCss(sel, animName) {
-  var dur = mcNum("mc-dur", 1.4, 0.1, 20);
-  var delay = mcNum("mc-delay", 0, 0, 20);
-  return sel + " { animation: " + animName + " " + dur + "s " + mcEase() + " " + delay + "s " + mcIter() + " both; }";
-}
-function mcSafeName() {
-  var el = document.getElementById("mc-name");
-  var v = el ? String(el.value || "").trim() : "";
-  return /^[A-Za-z_][A-Za-z0-9_-]*$/.test(v) ? v : "";
-}
-function mcValidName() {
-  var name = mcSafeName();
-  if (!name) {
-    setMcStatus("Class name must start with a letter or underscore and use only letters, digits, _ and -.");
-    var el = document.getElementById("mc-name");
-    if (el) el.focus();
-  }
-  return name;
-}
-function mcCssBlock(name) {
-  var anim = "sui-motion-" + name;
-  return "/* sui-motion-shape:" + name + " */\n" +
-    mcShapeCss("." + name, anim) + "\n" +
-    "/* /sui-motion-shape:" + name + " */\n" +
-    "/* sui-motion:" + name + " */\n" +
-    mcMotionCss("." + name + "-motion", anim) + "\n" +
-    "@keyframes " + anim + " {\n" + mcFrames() + "\n}\n" +
-    "/* /sui-motion:" + name + " */";
-}
-function mcShapeBlock(name) {
-  return "/* sui-motion-shape:" + name + " */\n" +
-    mcShapeCss("." + name, "sui-motion-" + name) + "\n" +
-    "/* /sui-motion-shape:" + name + " */";
-}
-function mcMotionBlock(name) {
-  var anim = "sui-motion-" + name;
-  return "/* sui-motion:" + name + " */\n" +
-    mcMotionCss("." + name + "-motion", anim) + "\n" +
-    "@keyframes " + anim + " {\n" + mcFrames() + "\n}\n" +
-    "/* /sui-motion:" + name + " */";
-}
-function mcPreview() {
-  var style = document.getElementById("mc-live-style");
-  if (!style) {
-    style = document.createElement("style");
-    style.id = "mc-live-style";
-    document.head.appendChild(style);
-  }
-  style.textContent = mcShapeCss("#mc-shape", "sui-motion-preview") + "\n@keyframes sui-motion-preview {\n" + mcFrames() + "\n}";
-  var shape = document.getElementById("mc-shape");
-  if (shape) {
-    var text = document.getElementById("mc-text");
-    shape.textContent = (text && text.value) || "Animated";
-    shape.style.animation = "";
-  }
-}
-function mcStop() {
-  var style = document.getElementById("mc-live-style");
-  if (style) style.textContent = "";
-  var shape = document.getElementById("mc-shape");
-  if (shape) shape.style.animation = "none";
-}
-function mcPlay() {
-  var shape = document.getElementById("mc-shape");
-  if (shape) {
-    shape.style.animation = "none";
-    void shape.offsetWidth;
-  }
-  mcPreview();
-}
 function mcAddKeyframe() {
   var sorted = __mcKeys.slice().sort(function(a, b){ return Number(a.at) - Number(b.at); });
   var pts = [{ at: 0 }].concat(sorted).concat([{ at: 100 }]);
@@ -13565,7 +14985,7 @@ function mcInsert() {
     mcWriteShapeCss(name, shapeBlock);
     mcWriteCss(name, motionBlock);
     var node = newNodeForKind(kind);
-    node.class = name;
+    node.class = name + " " + name + "-motion";
     node.text = label;
     if (into) {
       into.children = into.children || [];
@@ -13578,7 +14998,7 @@ function mcInsert() {
     multiSel = [];
   }, "motion " + name);
   scheduleCssSync();
-  setMcStatus("Inserted ." + name + " and its keyframes into root.css.");
+  setMcStatus("Inserted ." + name + " with its vector shape and keyframes.");
   mcPreview();
 }
 function mcApply() {
@@ -13605,10 +15025,82 @@ function mcApply() {
   setMcStatus("Applied ." + cls + " to " + paths.length + " element(s); the shape is untouched.");
   mcPreview();
 }
+function mcManagedShapeNames() {
+  var names = [];
+  var re = /\/\* sui-motion-shape:([A-Za-z_][A-Za-z0-9_-]*) \*\//g;
+  var m;
+  var css = String(root.css || "");
+  while ((m = re.exec(css)) !== null) names.push(m[1]);
+  return names;
+}
+function mcApplyShape() {
+  var name = mcValidName();
+  if (!name) return;
+  var paths = selectedPaths();
+  if (!paths.length) {
+    setMcStatus("Select the component to reshape, or use Insert control.");
+    return;
+  }
+  var managed = mcManagedShapeNames();
+  var shapeBlock = mcShapeBlock(name);
+  var motionBlock = mcMotionBlock(name);
+  withUndo(function(){
+    mcWriteShapeCss(name, shapeBlock);
+    mcWriteCss(name, motionBlock);
+    paths.forEach(function(p){
+      var n = byPath(p, root.children);
+      if (!n) return;
+      var cs = String(n.class || "").trim().split(/\s+/).filter(function(c){
+        if (!c) return false;
+        if (managed.indexOf(c) >= 0) return false;
+        if (/-motion$/.test(c) && managed.indexOf(c.slice(0, -7)) >= 0) return false;
+        return true;
+      });
+      if (cs.indexOf(name) < 0) cs.push(name);
+      if (cs.indexOf(name + "-motion") < 0) cs.push(name + "-motion");
+      n.class = cs.join(" ");
+    });
+  }, "shape " + name);
+  scheduleCssSync();
+  setMcStatus("Reshaped " + paths.length + " element(s) with ." + name + ". Use Undo to revert.");
+  mcPreview();
+}
 document.addEventListener("keydown", function(ev){
-  if (ev.key !== "Escape") return;
   var m = document.getElementById("motion-composer");
-  if (m && m.classList.contains("on")) { ev.preventDefault(); closeMotionComposer(); }
+  if (!m || !m.classList.contains("on")) return;
+  if (ev.key === "Escape") { ev.preventDefault(); closeMotionComposer(); return; }
+  var t = ev.target;
+  var typing = t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA");
+  if (typing) return;
+  if ((ev.ctrlKey || ev.metaKey) && (ev.key === "z" || ev.key === "Z")) {
+    ev.preventDefault(); ev.stopPropagation(); mcUndoCad(); return;
+  }
+  if ((ev.ctrlKey || ev.metaKey) && (ev.key === "y" || ev.key === "Y")) {
+    ev.preventDefault(); ev.stopPropagation(); mcRedoCad(); return;
+  }
+  if (ev.key === "Delete" || ev.key === "Backspace") {
+    ev.preventDefault(); mcDeleteNode(); return;
+  }
+  var dirs = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  var dir = dirs[ev.key];
+  if (dir) {
+    var n = mcSelNodeObj();
+    if (n) {
+      ev.preventDefault(); ev.stopPropagation();
+      mcCadSnap();
+      var step = ev.shiftKey ? 10 : 1;
+      n.x = Math.max(0, Math.min(mcW(), n.x + dir[0] * step));
+      n.y = Math.max(0, Math.min(mcH(), n.y + dir[1] * step));
+      __mcAutoBox = false;
+      mcPreview();
+    }
+    return;
+  }
+  var keys = { s: "select", l: "line", c: "curve", r: "rect", e: "ellipse", a: "arc" };
+  if (keys[String(ev.key).toLowerCase()] && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+    ev.preventDefault();
+    mcSetTool(keys[String(ev.key).toLowerCase()]);
+  }
 });
 document.addEventListener("click", function(ev){
   var m = document.getElementById("motion-composer");
@@ -20483,11 +21975,6 @@ function renderInsertMenu() {
   assetsItem.textContent = 'Image assets\u2026';
   assetsItem.onclick = function(){ closeMenus(); openAssets(); };
   drop.appendChild(assetsItem);
-  var motionItem = document.createElement('div');
-  motionItem.className = 'mi';
-  motionItem.textContent = 'Motion composer\u2026';
-  motionItem.onclick = function(){ closeMenus(); openMotionComposer(); };
-  drop.appendChild(motionItem);
   var assetsSep = document.createElement('div');
   assetsSep.className = 'dropsep';
   drop.appendChild(assetsSep);

@@ -1188,7 +1188,7 @@ To scope the tuning to one control, paste the snippet with a selector instead of
 ```
 
 To draw a control and its keyframes rather than retune the existing library, use
-the designer: **Insert → Motion composer…**. It writes managed blocks
+the designer: **Tools → Shape & motion…**. It writes managed blocks
 (`/* sui-motion:... */`) into `root.css` and can either insert a new control or
 animate the current selection. The generated keyframes are ordinary project CSS,
 so this lab can keep using its build-time library.

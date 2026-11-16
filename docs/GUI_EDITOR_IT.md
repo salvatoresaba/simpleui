@@ -836,52 +836,88 @@ viene incorporato direttamente nel sorgente SUI quando lo applichi. Usa un
 percorso relativo locale invece di un asset quando vuoi che il file viva accanto
 al progetto.
 
-## Motion composer
+## Shape & motion
 
-**Insert → Motion composer…** apre un piccolo editor per disegnare un controllo e
-le sue keyframe senza scrivere CSS a mano.
+**Tools → Shape & motion…** apre un piccolo editor vettoriale: disegni il
+controllo e poi gli applichi un movimento. Non serve scrivere CSS a mano.
 
-| Area | Cosa puoi impostare |
+### Disegno e modifica
+
+| Strumento | Uso |
 |---|---|
-| Forma | larghezza, altezza, raggio del bordo, sfondo, colore del testo, dimensione del font |
-| Movimento | durata, easing (incluso un cubic-bezier a molla), ritardo, numero di ripetizioni |
-| Keyframe | istante, spostamento verticale, scala, rotazione, opacità, sfondo per frame |
-| Anteprima | forma e animazione live, **Play**, **Stop** |
+| Select | Clicca una traccia, trascina un nodo, trascina un quadratino per curvare; le frecce spostano il nodo selezionato (Shift = 10 px) |
+| Line | Clic per aggiungere nodi ad angolo; clic sul primo nodo per chiudere |
+| Curve | Trascina per estrarre le maniglie di un nodo morbido |
+| Rect / Ellipse / Arc | Trascina una primitiva sul canvas |
 
-Il palco si aggiorna mentre digiti. **Add keyframe** inserisce un frame nel vuoto
-più ampio e ne interpola i valori, **Remove last** lo elimina; un movimento
-mantiene sempre almeno due frame.
+La riga dei nodi aggiunge e rimuove nodi, passa tra **Smooth** e **Corner**,
+apre o chiude la traccia e taglia la traccia nel nodo selezionato. **Fillet**
+arrotonda un angolo con il raggio impostato; richiede lati dritti. **Join**
+unisce gli estremi più vicini di due tracce aperte. **Fit box** scala l'intero
+disegno al canvas.
 
-Due modalità di inserimento rendono l'operazione esplicita e sicura:
+**Union**, **Intersect** e **Subtract** lavorano sulle prime due tracce e
+richiedono tracce chiuse. Le curve vengono appiattite in una polilinea fine per
+l'operazione; forme che condividono un lato dritto o si toccano in un solo punto
+vengono rifiutate con un messaggio invece di produrre geometria rotta. Il
+risultato conserva i fori come sottotracce e viene disegnato con
+`fill-rule="evenodd"`.
+
+### Partire da ciò che esiste
+
+**Load selection** legge il componente selezionato:
+
+- se contiene una forma scritta dal composer, ricarica nodi, riempimento e bordo
+  dai metadati `sui-cad` in `root.css`;
+- altrimenti usa larghezza, altezza, raggio, sfondo, colore del testo e font
+  calcolati per costruire un rettangolo arrotondato di partenza.
+
+**Import SVG** converte gli elementi `path`, `rect`, `circle`, `ellipse`, `line`,
+`polyline` e `polygon` in nodi, applicando le trasformazioni `translate`, `scale`,
+`rotate`, `matrix`, `skewX` e `skewY` e adattando il risultato al canvas. I
+comandi di path supportati sono M, L, H, V, C, S, Q, T, A e Z, assoluti e
+relativi. Il file viene convertito in numeri e non incorporato come markup SVG,
+quindi script, riferimenti esterni ed eventi non possono entrare nel progetto.
+
+**Reference image** carica un PNG, JPEG, WebP o GIF solo come **sottofondo per
+ricalcare**. Non viene compilato nel controllo; usa **Ref off** per rimuoverlo.
+
+### Output e movimento
 
 | Azione | Risultato |
 |---|---|
-| Insert control | Aggiunge un nuovo button, card, box o badge con classe `.nome` e la sua animazione |
-| Apply to selection | Aggiunge solo `.nome-motion` agli elementi selezionati, lasciando intatta la forma |
+| Insert control | Aggiunge un nuovo button, card, box o badge con classi `.nome` e `.nome-motion` e la forma disegnata |
+| Apply to selection | Aggiunge solo `.nome-motion`, lasciando intatta la forma esistente |
+| Apply shape | Sostituisce la forma del componente selezionato con il disegno (annullabile) |
+| Copy SVG | Copia un SVG autonomo del disegno |
+| Copy CSS | Copia entrambi i blocchi gestiti |
+| Reset box | Ripristina un rettangolo arrotondato da larghezza, altezza e raggio |
 
-Entrambe scrivono blocchi gestiti in `root.css`. Inserire un controllo scrive
-forma e movimento:
+Un controllo disegnato viene scritto come sagoma mascherata: il colore di
+riempimento resta lo sfondo dell'elemento ed è animabile dalle keyframe, mentre
+il bordo è una seconda immagine SVG incorporata:
 
 ```css
 /* sui-motion-shape:pulse-card */
-.pulse-card { ...forma...; animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+/* sui-cad:{"v":1,"w":240,"h":120,"fill":"#0ea5e9",...} */
+.pulse-card { ...; background-color:#0ea5e9; mask-image:url("data:image/svg+xml,..."); animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
 /* /sui-motion-shape:pulse-card */
 /* sui-motion:pulse-card */
-.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
 @keyframes sui-motion-pulse-card { ... }
 /* /sui-motion:pulse-card */
 ```
 
-Apply to selection scrive solo il secondo blocco, così un controllo esistente
-mantiene la propria dimensione e i propri colori.
+Le keyframe gestiscono posizione, scala, rotazione, opacità e colore di sfondo per
+frame. **Add keyframe** riempie il vuoto più ampio interpolando i valori,
+**Remove last** ne elimina uno; restano sempre almeno due frame.
 
-Inserire di nuovo la stessa classe sostituisce quel blocco invece di duplicarlo,
-quindi puoi continuare a modificare la forma e premere **Insert control** di
-nuovo. **Copy CSS** copia lo stesso blocco per usarlo altrove. I nomi delle
-classi devono rispettare `^[A-Za-z_][A-Za-z0-9_-]*$`; i numeri vengono limitati e
-i colori devono essere esadecimali, così il composer non può scrivere CSS
-arbitrario. Le keyframe vengono compilate nel progetto: il runtime non inietta
-mai stili.
+Inserire di nuovo la stessa classe sostituisce i blocchi invece di duplicarli.
+I nomi delle classi devono rispettare `^[A-Za-z_][A-Za-z0-9_-]*$`; dimensioni,
+opacità e raggi vengono limitati e i colori devono essere esadecimali. Il
+composer scrive CSS normale e immagini `data:`: il runtime non inietta mai markup
+o stili. La sagoma maschera anche l'etichetta: è voluto per silhouette particolari,
+ma una forma molto sottile può tagliare il testo.
 
 ## Drag and drop del designer
 

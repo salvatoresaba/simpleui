@@ -805,51 +805,87 @@ Uploads are session-scoped: they are not written to disk, and the data URL is
 embedded directly in the SUI source when you apply it. Use a local relative path
 instead of an asset when you want the file to live next to the project.
 
-## Motion composer
+## Shape & motion
 
-**Insert → Motion composer…** opens a small editor for drawing a control and its
-keyframes without touching CSS by hand.
+**Tools → Shape & motion…** opens a small vector editor: draw the control itself,
+then attach a motion. Nothing in it needs hand-written CSS.
 
-| Area | What you can set |
+### Drawing and editing
+
+| Tool | Use |
 |---|---|
-| Shape | width, height, border radius, background, text colour, font size |
-| Motion | duration, easing (including a spring cubic-bezier), delay, repeat count |
-| Keyframes | start time, vertical offset, scale, rotation, opacity, per-frame background |
-| Preview | live shape and animation, **Play**, **Stop** |
+| Select | Click a path, drag a node, drag a square handle to bend the curve; arrow keys nudge the selected node (Shift = 10 px) |
+| Line | Click to add corner nodes; click the first node to close the path |
+| Curve | Drag to pull out the handles of a smooth node |
+| Rect / Ellipse / Arc | Drag a primitive on the canvas |
 
-The stage updates while you type. **Add keyframe** inserts a frame in the widest
-gap and interpolates its values, **Remove last** deletes it; a motion always keeps
-at least two frames.
+The node row adds and removes nodes, switches a node between **Smooth** and
+**Corner**, opens or closes the path, and cuts a path at the selected node.
+**Fillet** rounds a corner using the radius field; it needs straight edges.
+**Join** connects the two nearest endpoints of two open paths. **Fit box** scales
+the whole drawing to the canvas.
 
-Two insertion modes keep the operation explicit and safe:
+**Union**, **Intersect** and **Subtract** apply to the first two paths and
+require closed paths. Curves are flattened to a fine polyline for the
+operation; shapes that share a straight edge or touch at a single point are
+rejected with a message instead of producing broken geometry. The result keeps
+holes as extra subpaths and is drawn with `fill-rule="evenodd"`.
+
+### Starting from what exists
+
+**Load selection** reads the selected component:
+
+- if it carries a shape written by the composer, the exact nodes, fill and
+  stroke are loaded again from the `sui-cad` metadata in `root.css`;
+- otherwise its computed width, height, radius, background, text colour and
+  font size are used to build a rounded rectangle as a starting point.
+
+**Import SVG** converts `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`
+and `polygon` elements into nodes, applying `translate`, `scale`, `rotate`,
+`matrix`, `skewX` and `skewY` transforms and fitting the result to the canvas.
+Supported path commands are M, L, H, V, C, S, Q, T, A and Z, absolute and
+relative. The file is parsed into numbers and never embedded as SVG markup, so
+script, external references and event attributes cannot enter the project.
+
+**Reference image** loads a PNG, JPEG, WebP or GIF as a **tracing underlay** only.
+It is not compiled into the control; use **Ref off** to remove it.
+
+### Output and motion
 
 | Action | Result |
 |---|---|
-| Insert control | Adds a new button, card, box or badge with class `.name` and its animation |
-| Apply to selection | Adds only `.name-motion` to the selected elements, leaving their shape untouched |
+| Insert control | Adds a new button, card, box or badge with classes `.name` and `.name-motion` plus its drawn shape |
+| Apply to selection | Adds only `.name-motion`, leaving the existing shape untouched |
+| Apply shape | Replaces the selected component's shape with the drawing (undoable) |
+| Copy SVG | Copies a standalone SVG of the drawing |
+| Copy CSS | Copies both managed blocks |
+| Reset box | Restores a rounded rectangle from the width, height and radius fields |
 
-Both write managed blocks into `root.css`. Inserting a control writes the shape
-and the motion:
+A drawn control is written as a masked silhouette, so the fill colour is the
+element background and remains animatable by the keyframes; the stroke is a
+second embedded SVG image:
 
 ```css
 /* sui-motion-shape:pulse-card */
-.pulse-card { ...shape...; animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+/* sui-cad:{"v":1,"w":240,"h":120,"fill":"#0ea5e9",...} */
+.pulse-card { ...; background-color:#0ea5e9; mask-image:url("data:image/svg+xml,..."); animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
 /* /sui-motion-shape:pulse-card */
 /* sui-motion:pulse-card */
-.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out 0.1s infinite both; }
+.pulse-card-motion { animation: sui-motion-pulse-card 2s ease-in-out infinite both; }
 @keyframes sui-motion-pulse-card { ... }
 /* /sui-motion:pulse-card */
 ```
 
-Apply to selection writes only the second block, so an existing control keeps its
-own size and colours.
+The keyframes support position, scale, rotation, opacity and per-frame
+background colour. **Add keyframe** fills the widest gap and interpolates the
+values, **Remove last** deletes one; at least two frames are kept.
 
-Inserting the same class name again replaces that block instead of duplicating
-it, so you can keep tuning the shape and press **Insert control** again.
-**Copy CSS** copies the same block for use elsewhere. Class names must match
-`^[A-Za-z_][A-Za-z0-9_-]*$`; numbers are clamped and colours must be hex, so the
-composer cannot write arbitrary CSS. The keyframes are compiled into the
-project: the runtime never injects styles.
+Inserting the same class name replaces the blocks instead of duplicating them.
+Class names must match `^[A-Za-z_][A-Za-z0-9_-]*$`; sizes, opacity and radii are
+clamped and colours must be hex. The composer writes ordinary project CSS and
+`data:` images: the runtime never injects markup or styles. The shape masks the
+label too, which is intentional for unusual silhouettes but means a very thin
+shape can clip its text.
 
 ## Designer drag and drop
 
