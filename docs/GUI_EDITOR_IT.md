@@ -838,7 +838,10 @@ selezionato/aperto. **None** disattiva tutte le fasi. L'anteprima del navigator
 riproduce le fasi una volta al caricamento e poi resta interattiva, così il
 feedback del click è visibile senza uscire dall'editor. Menu e popup aperti
 mantengono la distanza dal trigger; le etichette vanno a capo o vengono
-troncate dentro la forma del controllo, senza uscire.
+troncate dentro la forma del controllo, senza uscire. I controlli di testo
+(**input**, **textarea**, **select**, **combobox**, **date/time**, **number**,
+**color**, **file**) offrono solo **None** e **Feedback**: il feedback non
+sposta e non ridimensiona il campo durante la digitazione.
 
 | Selettore | Cosa cambia |
 |---|---|

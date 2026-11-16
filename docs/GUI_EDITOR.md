@@ -807,6 +807,9 @@ a click/press reaction, a focus ring and a checked/selected/open state reaction.
 load and then stays interactive, so the click feedback is visible without
 leaving the editor. Open menus and popups keep their offset from the trigger;
 labels wrap or ellipsize inside the control shape instead of spilling out.
+Text-entry controls (**input**, **textarea**, **select**, **combobox**,
+**date/time**, **number**, **color**, **file**) only offer **None** and
+**Feedback**; their feedback never moves or resizes the field while typing.
 
 | Selector | What it changes |
 |---|---|

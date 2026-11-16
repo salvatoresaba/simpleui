@@ -34,6 +34,13 @@ click and shows the focus ring plus a bounce on state. **None** disables every
 phase, while **Feedback** keeps no idle effect and still reacts to hover, click,
 focus and state.
 
+Text-entry controls - **input**, **textarea**, **select**, **combobox**,
+**date/time**, **datepicker**, **number**, **color** and **file** - only expose
+**None** and **Feedback**. Their feedback uses ring, glow and box-shadow only:
+no translate, scale or rotate, so the field never moves or changes size while
+the user is typing. The phase menus for these controls list only the static
+options.
+
 - **Structure** — selects the shape/drawing; changes radius, padding, size and
   shape attributes as needed;
 - **Style** — selects the border, text, fill and shadow colours;

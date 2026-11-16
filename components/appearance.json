@@ -25,6 +25,12 @@
       "press": "sui-fx-jelly .38s cubic-bezier(.2,1.4,.4,1)",
       "focus": "sui-fx-ring .9s ease-out",
       "state": "sui-fx-slide .26s ease-out"
+    },
+    "static": {
+      "hover": "sui-fx-ring .6s ease-out",
+      "press": "sui-fx-ring .28s ease-out",
+      "focus": "sui-fx-ring .8s ease-out",
+      "state": "sui-fx-glow .7s ease-out"
     }
   },
   "controls": [
@@ -315,21 +321,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "ring",
-          "label": "Ring",
-          "value": "sui-field-ring .5s ease-out"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-field-glow 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "lift",
-          "label": "Lift",
-          "value": "sui-field-lift .3s ease-out"
         }
       ]
     },
@@ -427,21 +418,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "ring",
-          "label": "Ring",
-          "value": "sui-field-ring .5s ease-out"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-field-glow 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "lift",
-          "label": "Lift",
-          "value": "sui-field-lift .3s ease-out"
         }
       ]
     },
@@ -539,21 +515,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "ring",
-          "label": "Ring",
-          "value": "sui-field-ring .5s ease-out"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-field-glow 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "lift",
-          "label": "Lift",
-          "value": "sui-field-lift .3s ease-out"
         }
       ]
     },
@@ -619,26 +580,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "pulse",
-          "label": "Pulse",
-          "value": "sui-appearance-pulse 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-appearance-glow 2.2s ease-in-out infinite"
-        },
-        {
-          "id": "float",
-          "label": "Float",
-          "value": "sui-appearance-float 2.6s ease-in-out infinite"
-        },
-        {
-          "id": "fade",
-          "label": "Fade",
-          "value": "sui-appearance-fade 2.4s ease-in-out infinite"
         }
       ]
     },
@@ -698,26 +639,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "pulse",
-          "label": "Pulse",
-          "value": "sui-appearance-pulse 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-appearance-glow 2.2s ease-in-out infinite"
-        },
-        {
-          "id": "float",
-          "label": "Float",
-          "value": "sui-appearance-float 2.6s ease-in-out infinite"
-        },
-        {
-          "id": "fade",
-          "label": "Fade",
-          "value": "sui-appearance-fade 2.4s ease-in-out infinite"
         }
       ]
     },
@@ -809,26 +730,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "pulse",
-          "label": "Pulse",
-          "value": "sui-appearance-pulse 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-appearance-glow 2.2s ease-in-out infinite"
-        },
-        {
-          "id": "float",
-          "label": "Float",
-          "value": "sui-appearance-float 2.6s ease-in-out infinite"
-        },
-        {
-          "id": "fade",
-          "label": "Fade",
-          "value": "sui-appearance-fade 2.4s ease-in-out infinite"
         }
       ]
     },
@@ -1443,26 +1344,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "pulse",
-          "label": "Pulse",
-          "value": "sui-appearance-pulse 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-appearance-glow 2.2s ease-in-out infinite"
-        },
-        {
-          "id": "float",
-          "label": "Float",
-          "value": "sui-appearance-float 2.6s ease-in-out infinite"
-        },
-        {
-          "id": "fade",
-          "label": "Fade",
-          "value": "sui-appearance-fade 2.4s ease-in-out infinite"
         }
       ]
     },
@@ -1554,26 +1435,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "pulse",
-          "label": "Pulse",
-          "value": "sui-appearance-pulse 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-appearance-glow 2.2s ease-in-out infinite"
-        },
-        {
-          "id": "float",
-          "label": "Float",
-          "value": "sui-appearance-float 2.6s ease-in-out infinite"
-        },
-        {
-          "id": "fade",
-          "label": "Fade",
-          "value": "sui-appearance-fade 2.4s ease-in-out infinite"
         }
       ]
     },
@@ -1665,26 +1526,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "pulse",
-          "label": "Pulse",
-          "value": "sui-appearance-pulse 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-appearance-glow 2.2s ease-in-out infinite"
-        },
-        {
-          "id": "float",
-          "label": "Float",
-          "value": "sui-appearance-float 2.6s ease-in-out infinite"
-        },
-        {
-          "id": "fade",
-          "label": "Fade",
-          "value": "sui-appearance-fade 2.4s ease-in-out infinite"
         }
       ]
     },
@@ -1776,26 +1617,6 @@
           "id": "none",
           "label": "None",
           "value": "none"
-        },
-        {
-          "id": "pulse",
-          "label": "Pulse",
-          "value": "sui-appearance-pulse 1.8s ease-in-out infinite"
-        },
-        {
-          "id": "glow",
-          "label": "Glow",
-          "value": "sui-appearance-glow 2.2s ease-in-out infinite"
-        },
-        {
-          "id": "float",
-          "label": "Float",
-          "value": "sui-appearance-float 2.6s ease-in-out infinite"
-        },
-        {
-          "id": "fade",
-          "label": "Fade",
-          "value": "sui-appearance-fade 2.4s ease-in-out infinite"
         }
       ]
     },

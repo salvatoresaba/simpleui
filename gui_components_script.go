@@ -408,6 +408,13 @@ var APPEARANCE_FAV_KEY = "sui.appearance.themes.v1";
 // Control kinds that expose the appearance section. Complex data/visualization
 // components (table, graph, chart) are deliberately excluded.
 var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "menubar", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "pane", "dropzone", "timeline", "carousel", "stepper"];
+// Text-entry controls must stay still while the user types. They only expose
+// None and the non-motion Feedback set (ring/glow/box-shadow), never translate,
+// scale or rotate.
+var APPEARANCE_TEXT_KINDS = ["input", "textarea", "select", "combobox", "datepicker", "number", "color", "date", "time", "file"];
+function appearanceTextKind(kind) {
+  return APPEARANCE_TEXT_KINDS.indexOf(kind) >= 0;
+}
 function appearanceKindLabel(kind) {
   return PALETTE_LABEL[kind] || kind;
 }
@@ -744,6 +751,9 @@ function appearanceWithFeedbackOption(list) {
   return list;
 }
 function appearanceAnimations(def, kind) {
+  if (appearanceTextKind(kind)) {
+    return appearanceWithFeedbackOption([{ id: "none", label: "None", value: "none" }]);
+  }
   var ext = appearanceCatalogEntry(def, kind);
   if (ext && ext.animations && ext.animations.length) {
     var external = [];
@@ -837,6 +847,12 @@ var APPEARANCE_FEEDBACK_FALLBACK = {
     press: "sui-fx-jelly .38s cubic-bezier(.2,1.4,.4,1)",
     focus: "sui-fx-ring .9s ease-out",
     state: "sui-fx-slide .26s ease-out"
+  },
+  static: {
+    hover: "sui-fx-ring .6s ease-out",
+    press: "sui-fx-ring .28s ease-out",
+    focus: "sui-fx-ring .8s ease-out",
+    state: "sui-fx-glow .7s ease-out"
   }
 };
 function appearanceFeedbackCatalog() {
@@ -854,7 +870,16 @@ function appearanceFeedbackCatalog() {
   });
   return out;
 }
-function appearanceFeedbackFor(label, value) {
+function appearanceFeedbackFor(label, value, kind) {
+  if (appearanceTextKind(kind)) {
+    var st = appearanceFeedbackCatalog().static || APPEARANCE_FEEDBACK_FALLBACK.static;
+    return {
+      hover: st.hover || "none",
+      press: st.press || "none",
+      focus: st.focus || "none",
+      state: st.state || "none"
+    };
+  }
   var low = String(label || "") + " " + String(value || "");
   var variant = "default";
   if (/glow|neon|shine|sheen|bright|halo/.test(low)) variant = "glow";
@@ -875,11 +900,27 @@ function appearancePhaseValueLabel(value) {
   var name = String(value).split(/\s+/)[0].replace(/^sui-fx-/, "").replace(/^sui-/, "").replace(/-/g, " ");
   return name.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) || String(value);
 }
-function appearancePhaseOptions(phase) {
+function appearanceIsMotion(value) {
+  var s = String(value || "");
+  if (!s || s === "none") return false;
+  if (/sui-fx-(ring|glow)/.test(s)) return false;
+  return /sui-fx-(lift|grow|tilt|press|pop|jelly|bounce|shake|slide)|sui-appearance-(pulse|float|fade)|sui-field-lift/.test(s);
+}
+function appearanceSanitizeTextVars(def, kind, vars) {
+  if (!appearanceTextKind(kind)) return vars;
+  delete vars[appearanceAnimKey(def) || "animation"];
+  Object.keys(APPEARANCE_PHASE_KEYS).forEach(function (phase) {
+    var key = APPEARANCE_PHASE_KEYS[phase];
+    if (appearanceIsMotion(vars[key])) delete vars[key];
+  });
+  return vars;
+}
+function appearancePhaseOptions(phase, kind) {
   var out = [{ id: "none", label: "None", value: "none" }];
   var seen = { none: true };
   var fb = appearanceFeedbackCatalog();
-  Object.keys(fb).forEach(function (variant) {
+  var variants = appearanceTextKind(kind) ? ["static"] : Object.keys(fb);
+  variants.forEach(function (variant) {
     var value = fb[variant] && fb[variant][phase];
     if (!value || value === "none") return;
     var key = String(value).split(/\s+/)[0] || value;
@@ -895,13 +936,13 @@ function appearanceAnimationSetFor(def, kind, id) {
   for (var i = 0; i < list.length; i++) if (list[i].id === id) { opt = list[i]; break; }
   if (!opt) return { id: id || "", label: id || "None", value: "none", hover: "none", press: "none", focus: "none", state: "none" };
   if (opt.feedback) {
-    var ff = appearanceFeedbackFor("Feedback", "none");
+    var ff = appearanceFeedbackFor("Feedback", "none", kind);
     return { id: opt.id, label: opt.label, value: "none", hover: ff.hover, press: ff.press, focus: ff.focus, state: ff.state };
   }
   if (!opt.value || opt.value === "none") {
     return { id: opt.id, label: opt.label, value: "none", hover: "none", press: "none", focus: "none", state: "none" };
   }
-  var fb = appearanceFeedbackFor(opt.label, opt.value);
+  var fb = appearanceFeedbackFor(opt.label, opt.value, kind);
   return { id: opt.id, label: opt.label, value: opt.value, hover: fb.hover, press: fb.press, focus: fb.focus, state: fb.state };
 }
 function appearancePhaseCss() {
@@ -1044,7 +1085,7 @@ function appearanceVarsForSelection(def, kind, sel) {
   sel = sel || {};
   if (sel.themeVars) {
     Object.keys(sel.themeVars).forEach(function(k){ vars[k] = sel.themeVars[k]; });
-    return vars;
+    return appearanceSanitizeTextVars(def, kind, vars);
   }
   var st = appearanceVariant(appearanceStructures(def, kind), sel.structure);
   var sy = appearanceVariant(appearanceStyles(def, kind), sel.style);
@@ -1056,7 +1097,7 @@ function appearanceVarsForSelection(def, kind, sel) {
   ["hover", "press", "focus", "state"].forEach(function (phase) {
     if (set[phase] && set[phase] !== "none") vars[APPEARANCE_PHASE_KEYS[phase]] = set[phase];
   });
-  return vars;
+  return appearanceSanitizeTextVars(def, kind, vars);
 }
 function appearanceMatchVariant(list, map, attrs, node) {
   for (var i = 0; i < list.length; i++) {
@@ -1169,6 +1210,9 @@ function appearanceApply(node, def, patch) {
       appearanceAttrsUnion(def).forEach(function(k){ delete node[k]; });
       Object.keys(st2.attrs || {}).forEach(function(k){ node[k] = st2.attrs[k]; });
     }
+  }
+  if (appearanceTextKind(kind)) {
+    appearanceSanitizeTextVars(def, kind, map);
   }
   appearanceSyncPhaseClasses(node, map);
   writeComponentNodeStyle(def, node, map);
@@ -1365,10 +1409,14 @@ function appearanceInspectorSection(def, node) {
     var ps = document.createElement("select");
     ps.setAttribute("data-phase", phase);
     ps.setAttribute("aria-label", phaseLabels[phase]);
-    var list = appearancePhaseOptions(phase);
+    var list = appearancePhaseOptions(phase, kind);
     var current = (cur.phases && cur.phases[phase]) || "none";
     if (!list.some(function (o) { return o.value === current; })) {
-      list.push({ id: current, label: appearancePhaseValueLabel(current), value: current });
+      if (appearanceTextKind(kind) && current !== "none") {
+        current = "none";
+      } else {
+        list.push({ id: current, label: appearancePhaseValueLabel(current), value: current });
+      }
     }
     list.forEach(function (o) {
       var op = document.createElement("option");

@@ -147,6 +147,15 @@ const guiAppearanceScript = `<script>
     assert(lightPalette['--sui-combobox-hover-fg'] === '#0f172a', 'light combo selected text must be dark: ' + lightPalette['--sui-combobox-hover-fg']);
     assert(lightPalette['--sui-combobox-label'] === '#0f172a', 'light combo label must be dark');
     assert(darkPalette['--sui-combobox-hover-fg'] === '#e5e7eb', 'dark combo selected text must be light');
+    var inputDef = componentDefForKind('input');
+    var inputAnims = appearanceAnimations(inputDef, 'input').map(function (a) { return a.label; });
+    assert(inputAnims.join(',') === 'None,Feedback', 'text entry animations must be None/Feedback: ' + inputAnims);
+    var inputHover = appearancePhaseOptions('hover', 'input').map(function (o) { return o.label; });
+    assert(inputHover.indexOf('Lift') < 0 && inputHover.indexOf('Grow') < 0 && inputHover.indexOf('Tilt') < 0, 'text entry hover must not move: ' + inputHover);
+    var inputSet = appearanceAnimationSetFor(inputDef, 'input', 'feedback');
+    var inputMotion = [inputSet.hover, inputSet.press, inputSet.focus, inputSet.state].join(' ');
+    assert(!/sui-fx-(lift|grow|tilt|press|pop|jelly|bounce|slide)/.test(inputMotion), 'text entry feedback must not move or resize: ' + inputMotion);
+    assert(/sui-fx-ring/.test(inputSet.hover) && /sui-fx-ring/.test(inputSet.focus), 'text entry feedback must use the ring');
     function pathOfKind(kind) {
       function walk(list, base) {
         for (var i = 0; i < list.length; i++) {
