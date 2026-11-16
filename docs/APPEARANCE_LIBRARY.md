@@ -127,6 +127,15 @@ styles and animations. The shape is:
 {
   "format": "simpleui-appearance-library",
   "version": 1,
+  "definitions": {
+    "baseCss": "/* full base stylesheet */",
+    "phaseCss": ".sui-anim-hover:hover { animation: var(--sui-hover-animation, none); }",
+    "genericKeyframesCss": "@keyframes sui-fx-ring { ... }",
+    "phaseClasses": ["sui-anim-hover", "sui-anim-press", "sui-anim-focus", "sui-anim-state"],
+    "keyframes": {
+      "sui-fx-ring": "@keyframes sui-fx-ring { 0% { box-shadow: 0 0 0 0 rgba(76,92,247,.55); } 100% { box-shadow: 0 0 0 8px rgba(76,92,247,0); } }"
+    }
+  },
   "feedback": {
     "default": {
       "hover": "sui-fx-lift .18s ease-out forwards",
@@ -139,6 +148,10 @@ styles and animations. The shape is:
     {
       "kind": "button",
       "label": "Button",
+      "markup": "<button type=\"button\" class=\"sui-button\">Button</button>",
+      "classes": ["sui-button"],
+      "css": ".sui-button { background: var(--sui-button-bg); color: var(--sui-button-fg); }",
+      "keyframes": ["sui-fx-ring", "sui-button-glow"],
       "structures": [
         { "id": "pill", "label": "Pill", "vars": { "--sui-button-radius": "999px" } }
       ],
@@ -155,10 +168,31 @@ styles and animations. The shape is:
 }
 ```
 
+A structure that maps to a class declares it explicitly:
+
+```json
+{ "id": "ios", "label": "iOS", "class": "sui-sw-shape-ios", "attrs": { "shape": "ios" } }
+```
+
 Rules:
 
 - `kind` must be one of the controls that expose the appearance section (all
   except **table**, **graph** and **chart**); every kind appears at most once.
+- `definitions` is the self-contained layer: `baseCss` (the full base
+  stylesheet), `phaseCss` (the `sui-anim-*` phase classes),
+  `genericKeyframesCss` (the shared `sui-fx-*` and `sui-appearance-*` keyframes),
+  `phaseClasses`, and a `keyframes` map with every `@keyframes` rule.
+- Every control declares its `markup`, `classes`, `css` and `keyframes`.
+  `markup` is the canonical compiled structure, `classes` lists every class used
+  by that structure (including runtime parts such as option rows), `css` holds
+  the control-specific rules, and `keyframes` lists the keyframes the control
+  can use. For controls defined only by the base stylesheet `css` may be empty.
+- A structure that maps to a class declares it in `class`; the class must be
+  defined by `baseCss`, the control `css` or `phaseCss`.
+- `classes` are validated: a class with no matching selector in
+  `baseCss`/`css`/`phaseCss` is rejected. `keyframes` are validated against
+  `definitions.keyframes`; a keyframe used by an animation or feedback but
+  missing from the control list is rejected.
 - `structures`, `styles` and `animations` each need at least one entry.
 - `styles` must contain **Dark** and **Light** (ids `dark` and `light`). They are
   listed first for every control.
@@ -191,6 +225,11 @@ simpleui appearance check components/appearance.json --json
 The MCP server exposes the same check as **`sui_appearance`**. The advisory
 editor schema is [`components/appearance.schema.json`](../components/appearance.schema.json);
 the CLI and the GUI loader remain authoritative.
+
+The editor uses `definitions.phaseCss`, `definitions.genericKeyframesCss` and
+each control's `css` when compiling the preview and the project; `markup` and
+`classes` are the canonical structure reference so the file describes every
+part of every control without relying on hidden source.
 
 Text-entry controls (**input**, **textarea**, **select**, **combobox**,
 **date/time**, **datepicker**, **number**, **color**, **file**) must list only

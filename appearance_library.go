@@ -32,10 +32,23 @@ const (
 
 // AppearanceLibraryJSON is the on-disk and wire shape.
 type AppearanceLibraryJSON struct {
-	Format   string                            `json:"format"`
-	Version  int                               `json:"version"`
-	Feedback map[string]AppearanceFeedbackJSON `json:"feedback,omitempty"`
-	Controls []AppearanceControlJSON           `json:"controls"`
+	Format      string                            `json:"format"`
+	Version     int                               `json:"version"`
+	Definitions *AppearanceDefinitionsJSON        `json:"definitions,omitempty"`
+	Feedback    map[string]AppearanceFeedbackJSON `json:"feedback,omitempty"`
+	Controls    []AppearanceControlJSON           `json:"controls"`
+}
+
+// AppearanceDefinitionsJSON is the self-contained CSS/keyframe layer. baseCss
+// is the full base stylesheet; phaseCss defines the sui-anim-* phase classes;
+// genericKeyframesCss is the shared sui-fx-*/sui-appearance-* keyframe block;
+// keyframes maps every animation name to its full @keyframes rule.
+type AppearanceDefinitionsJSON struct {
+	BaseCSS             string            `json:"baseCss"`
+	PhaseCSS            string            `json:"phaseCss"`
+	GenericKeyframesCSS string            `json:"genericKeyframesCss"`
+	PhaseClasses        []string          `json:"phaseClasses"`
+	Keyframes           map[string]string `json:"keyframes"`
 }
 
 type AppearanceFeedbackJSON struct {
@@ -46,13 +59,18 @@ type AppearanceFeedbackJSON struct {
 }
 
 type appearanceCatalogData struct {
-	Controls []AppearanceControlJSON
-	Feedback map[string]AppearanceFeedbackJSON
+	Controls    []AppearanceControlJSON
+	Feedback    map[string]AppearanceFeedbackJSON
+	Definitions *AppearanceDefinitionsJSON
 }
 
 type AppearanceControlJSON struct {
 	Kind       string                    `json:"kind"`
 	Label      string                    `json:"label,omitempty"`
+	Markup     string                    `json:"markup,omitempty"`
+	Classes    []string                  `json:"classes,omitempty"`
+	CSS        string                    `json:"css,omitempty"`
+	Keyframes  []string                  `json:"keyframes,omitempty"`
 	Structures []AppearanceVariantJSON   `json:"structures"`
 	Styles     []AppearanceVariantJSON   `json:"styles"`
 	Animations []AppearanceAnimationJSON `json:"animations"`
@@ -61,6 +79,7 @@ type AppearanceControlJSON struct {
 type AppearanceVariantJSON struct {
 	ID    string            `json:"id"`
 	Label string            `json:"label"`
+	Class string            `json:"class,omitempty"`
 	Vars  map[string]string `json:"vars,omitempty"`
 	Attrs map[string]any    `json:"attrs,omitempty"`
 }
@@ -77,6 +96,8 @@ var (
 	appearanceVarKeyRe    = regexp.MustCompile(`^--[A-Za-z0-9_-]{1,60}$`)
 	appearanceCSSPropRe   = regexp.MustCompile(`^[a-z][a-z0-9-]{0,60}$`)
 	appearanceAttrKeyRe   = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_-]{0,40}$`)
+	appearanceTokenRe     = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+	appearanceClassRe     = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]{0,59}$`)
 )
 
 // appearanceLibraryKinds mirrors APPEARANCE_KINDS in the designer script.
@@ -244,7 +265,7 @@ func appearanceLibraryPath(projectDir string) string {
 func loadAppearanceLibraryPayload(projectDir string) []byte {
 	path := appearanceLibraryPath(projectDir)
 	if path == "" {
-		return appearancePayload(false, "", nil, nil, []string{"no external appearance library found; using the built-in catalog"})
+		return appearancePayload(false, "", nil, nil, nil, []string{"no external appearance library found; using the built-in catalog"})
 	}
 	catalog, warnings, err := loadAppearanceLibraryFile(path)
 	if err != nil {
@@ -255,10 +276,10 @@ func loadAppearanceLibraryPayload(projectDir string) []byte {
 		})
 		return b
 	}
-	return appearancePayload(true, path, catalog.Controls, catalog.Feedback, warnings)
+	return appearancePayload(true, path, catalog.Controls, catalog.Feedback, catalog.Definitions, warnings)
 }
 
-func appearancePayload(ok bool, source string, controls []AppearanceControlJSON, feedback map[string]AppearanceFeedbackJSON, warnings []string) []byte {
+func appearancePayload(ok bool, source string, controls []AppearanceControlJSON, feedback map[string]AppearanceFeedbackJSON, definitions *AppearanceDefinitionsJSON, warnings []string) []byte {
 	if controls == nil {
 		controls = []AppearanceControlJSON{}
 	}
@@ -269,11 +290,12 @@ func appearancePayload(ok bool, source string, controls []AppearanceControlJSON,
 		warnings = []string{}
 	}
 	b, _ := json.Marshal(map[string]any{
-		"ok":       ok,
-		"source":   source,
-		"controls": controls,
-		"feedback": feedback,
-		"warnings": warnings,
+		"ok":          ok,
+		"source":      source,
+		"controls":    controls,
+		"feedback":    feedback,
+		"definitions": definitions,
+		"warnings":    warnings,
 	})
 	return b
 }
@@ -411,12 +433,18 @@ func loadAppearanceLibraryFile(path string) (appearanceCatalogData, []string, er
 			}
 		}
 	}
+	if err := validateAppearanceDefinitions(lib.Definitions, lib.Controls, lib.Feedback); err != nil {
+		return appearanceCatalogData{}, nil, err
+	}
+	if lib.Definitions == nil {
+		warnings = append(warnings, "appearance catalog has no self-contained definitions (markup/classes/css/keyframes)")
+	}
 	for _, kind := range sortedAppearanceKinds() {
 		if !seenControls[kind] {
 			warnings = append(warnings, "appearance catalog has no entry for "+kind+"; the built-in catalog is used for that control")
 		}
 	}
-	return appearanceCatalogData{Controls: lib.Controls, Feedback: lib.Feedback}, warnings, nil
+	return appearanceCatalogData{Controls: lib.Controls, Feedback: lib.Feedback, Definitions: lib.Definitions}, warnings, nil
 }
 
 func validateAppearanceVariant(kind, layer string, v *AppearanceVariantJSON, seen map[string]bool) error {
@@ -500,6 +528,161 @@ func validateAppearanceAnimationName(value string) error {
 	}
 	if !appearanceKeyframes[name] {
 		return fmt.Errorf("unknown keyframe %q (not defined by SimpleUI; use a keyframe from docs/APPEARANCE_LIBRARY.md)", name)
+	}
+	return nil
+}
+
+// validateAppearanceCSSBlock validates a full stylesheet fragment (control CSS,
+// base CSS, phase CSS or a keyframe block). These are definitions, not single
+// declaration values, so semicolons and braces are allowed; executable markup
+// and remote/script URLs are not.
+func validateAppearanceCSSBlock(label, css string) error {
+	if strings.TrimSpace(css) == "" {
+		return fmt.Errorf("%s must not be empty", label)
+	}
+	if len(css) > 1<<20 {
+		return fmt.Errorf("%s is larger than 1 MB", label)
+	}
+	low := strings.ToLower(css)
+	for _, bad := range []string{"<script", "</style", "javascript:", "expression(", "@import", "behavior:"} {
+		if strings.Contains(low, bad) {
+			return fmt.Errorf("%s contains forbidden text %q", label, bad)
+		}
+	}
+	return nil
+}
+
+func appearanceClassDefined(corpus, class string) bool {
+	re := regexp.MustCompile(`\.` + regexp.QuoteMeta(class) + `([^A-Za-z0-9_-]|$)`)
+	return re.MatchString(corpus)
+}
+
+func validateAppearanceDefinitions(defs *AppearanceDefinitionsJSON, controls []AppearanceControlJSON, feedback map[string]AppearanceFeedbackJSON) error {
+	if defs == nil {
+		return nil
+	}
+	if err := validateAppearanceCSSBlock("definitions.baseCss", defs.BaseCSS); err != nil {
+		return err
+	}
+	if err := validateAppearanceCSSBlock("definitions.phaseCss", defs.PhaseCSS); err != nil {
+		return err
+	}
+	if err := validateAppearanceCSSBlock("definitions.genericKeyframesCss", defs.GenericKeyframesCSS); err != nil {
+		return err
+	}
+	if len(defs.PhaseClasses) == 0 {
+		return fmt.Errorf("definitions.phaseClasses must not be empty")
+	}
+	for _, class := range defs.PhaseClasses {
+		if !appearanceClassDefined(defs.PhaseCSS, class) {
+			return fmt.Errorf("definitions.phaseClasses: %q is not defined in phaseCss", class)
+		}
+	}
+	if len(defs.Keyframes) == 0 {
+		return fmt.Errorf("definitions.keyframes must not be empty")
+	}
+	for name, block := range defs.Keyframes {
+		if !appearanceTokenRe.MatchString(name) {
+			return fmt.Errorf("definitions.keyframes: invalid name %q", name)
+		}
+		if !appearanceKeyframes[name] {
+			return fmt.Errorf("definitions.keyframes: %q is not a SimpleUI keyframe", name)
+		}
+		if err := validateAppearanceCSSBlock("definitions.keyframes."+name, block); err != nil {
+			return err
+		}
+		if !strings.HasPrefix(strings.TrimSpace(block), "@keyframes "+name) {
+			return fmt.Errorf("definitions.keyframes.%s must start with @keyframes %s", name, name)
+		}
+	}
+	for ci := range controls {
+		c := &controls[ci]
+		if strings.TrimSpace(c.Markup) == "" {
+			return fmt.Errorf("%s: definitions.markup is required", c.Kind)
+		}
+		if len(c.Markup) > 100000 {
+			return fmt.Errorf("%s: markup is larger than 100 KB", c.Kind)
+		}
+		lowMarkup := strings.ToLower(c.Markup)
+		for _, bad := range []string{"<script", "</style", "javascript:"} {
+			if strings.Contains(lowMarkup, bad) {
+				return fmt.Errorf("%s: markup contains forbidden text %q", c.Kind, bad)
+			}
+		}
+		if len(c.Classes) == 0 {
+			return fmt.Errorf("%s: definitions.classes is required", c.Kind)
+		}
+		if c.CSS != "" {
+			if err := validateAppearanceCSSBlock(c.Kind+".css", c.CSS); err != nil {
+				return err
+			}
+		}
+		corpus := defs.BaseCSS + "\n" + c.CSS + "\n" + defs.PhaseCSS
+		seenClasses := map[string]bool{}
+		for _, class := range c.Classes {
+			if !appearanceClassRe.MatchString(class) {
+				return fmt.Errorf("%s: invalid class %q", c.Kind, class)
+			}
+			if seenClasses[class] {
+				return fmt.Errorf("%s: duplicate class %q", c.Kind, class)
+			}
+			seenClasses[class] = true
+			if !appearanceClassDefined(corpus, class) {
+				return fmt.Errorf("%s: class %q is not defined by baseCss, css or phaseCss", c.Kind, class)
+			}
+		}
+		for _, st := range c.Structures {
+			if st.Class == "" {
+				continue
+			}
+			if !appearanceClassRe.MatchString(st.Class) {
+				return fmt.Errorf("%s: structure %q has invalid class %q", c.Kind, st.ID, st.Class)
+			}
+			if !appearanceClassDefined(corpus, st.Class) {
+				return fmt.Errorf("%s: structure %q class %q is not defined", c.Kind, st.ID, st.Class)
+			}
+		}
+		if len(c.Keyframes) == 0 {
+			return fmt.Errorf("%s: definitions.keyframes is required", c.Kind)
+		}
+		seenKeyframes := map[string]bool{}
+		for _, name := range c.Keyframes {
+			if seenKeyframes[name] {
+				return fmt.Errorf("%s: duplicate keyframe %q", c.Kind, name)
+			}
+			seenKeyframes[name] = true
+			if _, ok := defs.Keyframes[name]; !ok {
+				return fmt.Errorf("%s: keyframe %q is missing from definitions.keyframes", c.Kind, name)
+			}
+		}
+		used := map[string]bool{}
+		for _, a := range c.Animations {
+			fields := strings.Fields(strings.TrimSpace(a.Value))
+			if len(fields) > 0 && fields[0] != "none" {
+				used[fields[0]] = true
+			}
+		}
+		variants := []string{"static"}
+		if !appearanceTextKinds[c.Kind] {
+			variants = make([]string, 0, len(feedback))
+			for variant := range feedback {
+				variants = append(variants, variant)
+			}
+		}
+		for _, variant := range variants {
+			fb := feedback[variant]
+			for _, value := range []string{fb.Hover, fb.Press, fb.Focus, fb.State} {
+				fields := strings.Fields(strings.TrimSpace(value))
+				if len(fields) > 0 && fields[0] != "none" {
+					used[fields[0]] = true
+				}
+			}
+		}
+		for name := range used {
+			if !seenKeyframes[name] {
+				return fmt.Errorf("%s: keyframe %q is used but missing from definitions.keyframes", c.Kind, name)
+			}
+		}
 	}
 	return nil
 }

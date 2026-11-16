@@ -144,6 +144,7 @@ const guiAnimationsScript = `<script>
   }
   try {
     await until(function () { return typeof COMPONENT_DEFS !== 'undefined' && COMPONENT_DEFS.length > 10 && __prefsLoaded; }, 15000);
+    await until(function () { return typeof root !== 'undefined' && root && root.children && root.children.length > 0; }, 15000);
 
     // 1. Every option must reference a keyframe shipped by the component.
     var animated = 0, options = 0;

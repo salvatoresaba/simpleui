@@ -46,10 +46,14 @@ Rules and validation are documented in
 
 `components/appearance.json` (format `simpleui-appearance-library`) is the
 complete control appearance catalog: structures, styles and animations for every
-control. The designer validates it at startup and falls back to the built-in
-catalog when the file is missing or rejected. Dark and Light styles are required
-for every control; text-entry controls only allow the `None` animation and use
-the non-motion `feedback.static` variant. The schema is documented in
+control. It is self-contained: `definitions.baseCss` is the full base stylesheet,
+`definitions.phaseCss` defines the `sui-anim-*` classes,
+`definitions.genericKeyframesCss` and `definitions.keyframes` define every
+keyframe, and each control carries `markup`, `classes`, `css` and `keyframes`.
+The designer validates it at startup and falls back to the built-in catalog when
+the file is missing or rejected. Dark and Light styles are required for every
+control; text-entry controls only allow the `None` animation and use the
+non-motion `feedback.static` variant. The schema is documented in
 [`docs/APPEARANCE_LIBRARY.md`](../docs/APPEARANCE_LIBRARY.md#the-external-appearance-file).
 
 Validate an edit with the same loader the designer uses:

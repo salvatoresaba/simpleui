@@ -24537,10 +24537,13 @@ function writeComponentVars(vars) {
   if (re.test(root.css)) root.css = root.css.replace(re, block);
   else root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
 }
-function ensureComponentRules(def) {
-  if (!def || !def.css) return;
+function ensureComponentRules(def, kind) {
+  if (!def) return;
+  kind = kind || (def.kinds && def.kinds[0]) || "";
+  var css = appearanceControlCss(def, kind);
+  if (!css) return;
   var re = new RegExp("/\\* sui-component-rules:" + def.id + " \\*/[\\s\\S]*?/\\* /sui-component-rules:" + def.id + " \\*/");
-  var block = "/* sui-component-rules:" + def.id + " */\n" + def.css + "\n/* /sui-component-rules:" + def.id + " */";
+  var block = "/* sui-component-rules:" + def.id + " */\n" + css + "\n/* /sui-component-rules:" + def.id + " */";
   if (re.test(root.css)) root.css = root.css.replace(re, block);
   else root.css = (root.css.trim() ? root.css.trim() + "\n" : "") + block + "\n";
 }

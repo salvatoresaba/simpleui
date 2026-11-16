@@ -132,7 +132,10 @@ go test -count=1 ./...
 instead of parsing human output. `build` fails on errors and prints warnings.
 `serve --watch` rebuilds and reloads the browser. `appearance check` uses the
 same validator as the designer; text-entry controls only allow the `None`
-animation and `feedback.static` must not contain motion effects.
+animation and `feedback.static` must not contain motion effects. The catalog is
+self-contained: `definitions.baseCss`, `phaseCss` and `keyframes` plus each
+control's `markup`, `classes`, `css` and `keyframes`; a class or keyframe with
+no definition is rejected.
 
 For desktop capabilities:
 

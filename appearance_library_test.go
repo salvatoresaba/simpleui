@@ -220,6 +220,71 @@ func TestAppearanceLibraryRejectsUnknownKeyframe(t *testing.T) {
 	}
 }
 
+func TestBundledAppearanceLibraryDefinitions(t *testing.T) {
+	catalog, _, err := loadAppearanceLibraryFile(filepath.Join("components", "appearance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalog.Definitions == nil {
+		t.Fatal("bundled catalog is missing the self-contained definitions")
+	}
+	if catalog.Definitions.BaseCSS == "" || catalog.Definitions.PhaseCSS == "" || catalog.Definitions.GenericKeyframesCSS == "" {
+		t.Fatal("bundled definitions must include baseCss, phaseCss and genericKeyframesCss")
+	}
+	if len(catalog.Definitions.Keyframes) < 100 {
+		t.Fatalf("bundled definitions list only %d keyframes", len(catalog.Definitions.Keyframes))
+	}
+	for _, c := range catalog.Controls {
+		if c.Markup == "" || len(c.Classes) == 0 || len(c.Keyframes) == 0 {
+			t.Fatalf("%s: markup, classes and keyframes are required", c.Kind)
+		}
+		if c.Kind == "switch" {
+			found := false
+			for _, st := range c.Structures {
+				if st.ID == "ios" && st.Class == "sui-sw-shape-ios" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatal("switch iOS structure must declare its shape class")
+			}
+		}
+	}
+}
+
+func TestAppearanceLibraryRejectsUndefinedClass(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "appearance.json")
+	body := `{
+  "format": "simpleui-appearance-library",
+  "version": 1,
+  "definitions": {
+    "baseCss": ".sui-button { color: red; }",
+    "phaseCss": ".sui-anim-hover:hover { animation: var(--sui-hover-animation, none); }",
+    "genericKeyframesCss": "@keyframes sui-fx-ring { 0% { box-shadow: none; } 100% { box-shadow: 0 0 0 4px transparent; } }",
+    "phaseClasses": ["sui-anim-hover"],
+    "keyframes": {"sui-fx-ring": "@keyframes sui-fx-ring { 0% { box-shadow: none; } 100% { box-shadow: 0 0 0 4px transparent; } }"}
+  },
+  "feedback": {"static": {"hover": "sui-fx-ring .2s", "press": "none", "focus": "none", "state": "none"}},
+  "controls": [{
+    "kind": "button",
+    "markup": "<button class=\"sui-button sui-missing\">X</button>",
+    "classes": ["sui-button", "sui-missing"],
+    "css": "",
+    "keyframes": ["sui-fx-ring"],
+    "structures": [{"id": "rect", "label": "Rect"}],
+    "styles": [{"id": "dark", "label": "Dark"}, {"id": "light", "label": "Light"}],
+    "animations": [{"id": "none", "label": "None", "value": "none"}]
+  }]
+}`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := loadAppearanceLibraryFile(path)
+	if err == nil || !strings.Contains(err.Error(), "sui-missing") {
+		t.Fatalf("undefined class should be rejected, got %v", err)
+	}
+}
+
 func TestAppearanceKeyframeAllowListMatchesCSS(t *testing.T) {
 	files, err := filepath.Glob("*.go")
 	if err != nil {

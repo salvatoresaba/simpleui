@@ -5,20 +5,37 @@
   "description": "Advisory JSON Schema for components/appearance.json. The SimpleUI loader (simpleui appearance check, sui_appearance MCP tool, or the GUI server) is the authoritative validator.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["format", "version", "controls"],
+  "required": [
+    "format",
+    "version",
+    "controls"
+  ],
   "properties": {
-    "format": { "const": "simpleui-appearance-library" },
-    "version": { "const": 1 },
+    "format": {
+      "const": "simpleui-appearance-library"
+    },
+    "version": {
+      "const": 1
+    },
     "feedback": {
       "type": "object",
-      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{0,39}$" },
-      "additionalProperties": { "$ref": "#/$defs/feedback" }
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,39}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/feedback"
+      }
     },
     "controls": {
       "type": "array",
       "minItems": 1,
       "maxItems": 120,
-      "items": { "$ref": "#/$defs/control" }
+      "items": {
+        "$ref": "#/$defs/control"
+      }
+    },
+    "definitions": {
+      "$ref": "#/$defs/definitions"
     }
   },
   "$defs": {
@@ -31,81 +48,205 @@
     "feedback": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["hover", "press", "focus", "state"],
+      "required": [
+        "hover",
+        "press",
+        "focus",
+        "state"
+      ],
       "properties": {
-        "hover": { "$ref": "#/$defs/cssValue" },
-        "press": { "$ref": "#/$defs/cssValue" },
-        "focus": { "$ref": "#/$defs/cssValue" },
-        "state": { "$ref": "#/$defs/cssValue" }
+        "hover": {
+          "$ref": "#/$defs/cssValue"
+        },
+        "press": {
+          "$ref": "#/$defs/cssValue"
+        },
+        "focus": {
+          "$ref": "#/$defs/cssValue"
+        },
+        "state": {
+          "$ref": "#/$defs/cssValue"
+        }
       }
     },
     "variant": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label"],
+      "required": [
+        "id",
+        "label"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$" },
-        "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
         "vars": {
           "type": "object",
-          "propertyNames": { "pattern": "^(--[A-Za-z0-9_-]{1,60}|[a-z][a-z0-9-]{0,60})$" },
-          "additionalProperties": { "$ref": "#/$defs/cssValue" }
+          "propertyNames": {
+            "pattern": "^(--[A-Za-z0-9_-]{1,60}|[a-z][a-z0-9-]{0,60})$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/cssValue"
+          }
         },
         "attrs": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "shape": { "type": "string", "maxLength": 200 },
-            "size": { "type": "string", "maxLength": 200 },
-            "variant": { "type": "string", "maxLength": 200 },
-            "tone": { "type": "string", "maxLength": 200 }
+            "shape": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "size": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "variant": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "tone": {
+              "type": "string",
+              "maxLength": 200
+            }
           }
+        },
+        "class": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,59}$"
         }
       }
     },
     "animation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label", "value"],
+      "required": [
+        "id",
+        "label",
+        "value"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$" },
-        "label": { "type": "string", "minLength": 1, "maxLength": 60 },
-        "value": { "$ref": "#/$defs/cssValue" }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "value": {
+          "$ref": "#/$defs/cssValue"
+        }
       }
     },
     "control": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "structures", "styles", "animations"],
+      "required": [
+        "kind",
+        "structures",
+        "styles",
+        "animations"
+      ],
       "properties": {
         "kind": {
           "enum": [
-            "button", "input", "textarea", "select", "combobox", "datepicker",
-            "number", "slider", "checkbox", "radio", "switch", "color", "date",
-            "time", "file", "progress", "spinner", "badge", "alert", "card",
-            "tabs", "accordion", "menubar", "dropdown", "popover", "modal",
-            "toast", "tree", "commandbar", "drawer", "splitter", "pane",
-            "dropzone", "timeline", "carousel", "stepper"
+            "button",
+            "input",
+            "textarea",
+            "select",
+            "combobox",
+            "datepicker",
+            "number",
+            "slider",
+            "checkbox",
+            "radio",
+            "switch",
+            "color",
+            "date",
+            "time",
+            "file",
+            "progress",
+            "spinner",
+            "badge",
+            "alert",
+            "card",
+            "tabs",
+            "accordion",
+            "menubar",
+            "dropdown",
+            "popover",
+            "modal",
+            "toast",
+            "tree",
+            "commandbar",
+            "drawer",
+            "splitter",
+            "pane",
+            "dropzone",
+            "timeline",
+            "carousel",
+            "stepper"
           ]
         },
-        "label": { "type": "string", "maxLength": 80 },
+        "label": {
+          "type": "string",
+          "maxLength": 80
+        },
         "structures": {
           "type": "array",
           "minItems": 1,
           "maxItems": 80,
-          "items": { "$ref": "#/$defs/variant" }
+          "items": {
+            "$ref": "#/$defs/variant"
+          }
         },
         "styles": {
           "type": "array",
           "minItems": 1,
           "maxItems": 80,
-          "items": { "$ref": "#/$defs/variant" }
+          "items": {
+            "$ref": "#/$defs/variant"
+          }
         },
         "animations": {
           "type": "array",
           "minItems": 1,
           "maxItems": 80,
-          "items": { "$ref": "#/$defs/animation" }
+          "items": {
+            "$ref": "#/$defs/animation"
+          }
+        },
+        "markup": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100000
+        },
+        "classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,59}$"
+          }
+        },
+        "css": {
+          "type": "string"
+        },
+        "keyframes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
         }
       },
       "allOf": [
@@ -113,10 +254,23 @@
           "if": {
             "properties": {
               "kind": {
-                "enum": ["input", "textarea", "select", "combobox", "datepicker", "number", "color", "date", "time", "file"]
+                "enum": [
+                  "input",
+                  "textarea",
+                  "select",
+                  "combobox",
+                  "datepicker",
+                  "number",
+                  "color",
+                  "date",
+                  "time",
+                  "file"
+                ]
               }
             },
-            "required": ["kind"]
+            "required": [
+              "kind"
+            ]
           },
           "then": {
             "properties": {
@@ -124,8 +278,12 @@
                 "maxItems": 1,
                 "items": {
                   "properties": {
-                    "id": { "const": "none" },
-                    "value": { "const": "none" }
+                    "id": {
+                      "const": "none"
+                    },
+                    "value": {
+                      "const": "none"
+                    }
                   }
                 }
               }
@@ -133,6 +291,50 @@
           }
         }
       ]
+    },
+    "definitions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseCss",
+        "phaseCss",
+        "genericKeyframesCss",
+        "phaseClasses",
+        "keyframes"
+      ],
+      "properties": {
+        "baseCss": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phaseCss": {
+          "type": "string",
+          "minLength": 1
+        },
+        "genericKeyframesCss": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phaseClasses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,59}$"
+          }
+        },
+        "keyframes": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   }
 }

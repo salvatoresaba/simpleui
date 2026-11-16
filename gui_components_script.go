@@ -610,11 +610,16 @@ function appearanceCatalogEntry(def, kind) {
   for (var i = 0; i < list.length; i++) if (list[i].kind === k) return list[i];
   return null;
 }
+function appearanceControlCss(def, kind) {
+  var ext = appearanceCatalogEntry(def, kind);
+  if (ext && ext.css) return ext.css;
+  return (def && def.css) || "";
+}
 function loadAppearanceCatalog(reload) {
   var url = "/__gui__/appearance" + (reload ? "?reload=1" : "");
   return fetch(url).then(function(r){ return r.json(); }).then(function(j){
     if (j && j.ok && j.controls && j.controls.length) {
-      APPEARANCE_CATALOG = { controls: j.controls, feedback: j.feedback || null, source: j.source || "" };
+      APPEARANCE_CATALOG = { controls: j.controls, feedback: j.feedback || null, definitions: j.definitions || null, source: j.source || "" };
       APPEARANCE_CATALOG_ERROR = "";
       APPEARANCE_CATALOG_SOURCE = j.source || "";
       if (reload) setStatus("Appearance library reloaded from " + (j.source || "components/appearance.json"));
@@ -796,6 +801,8 @@ function genericAppearanceAnimations() {
   ];
 }
 function appearanceKeyframesCss() {
+  var defs = APPEARANCE_CATALOG && APPEARANCE_CATALOG.definitions;
+  if (defs && defs.genericKeyframesCss) return defs.genericKeyframesCss;
   return "@keyframes sui-appearance-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: .85; } }\n" +
     "@keyframes sui-appearance-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }\n" +
     "@keyframes sui-appearance-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }\n" +
@@ -946,6 +953,8 @@ function appearanceAnimationSetFor(def, kind, id) {
   return { id: opt.id, label: opt.label, value: opt.value, hover: fb.hover, press: fb.press, focus: fb.focus, state: fb.state };
 }
 function appearancePhaseCss() {
+  var defs = APPEARANCE_CATALOG && APPEARANCE_CATALOG.definitions;
+  if (defs && defs.phaseCss) return defs.phaseCss;
   return ".sui-anim-hover:hover { animation: var(--sui-hover-animation, none); }\n" +
     ".sui-anim-focus:focus-visible { animation: var(--sui-focus-animation, none); }\n" +
     ".sui-anim-state:checked, .sui-anim-state[aria-checked=\"true\"], .sui-anim-state[aria-pressed=\"true\"], .sui-anim-state[aria-expanded=\"true\"], .sui-anim-state[aria-selected=\"true\"], .sui-anim-state.on, .sui-anim-state.active { animation: var(--sui-state-animation, none); }\n" +
@@ -1216,7 +1225,7 @@ function appearanceApply(node, def, patch) {
   }
   appearanceSyncPhaseClasses(node, map);
   writeComponentNodeStyle(def, node, map);
-  ensureComponentRules(def);
+  ensureComponentRules(def, kind);
 }
 function appearanceVarsForTheme(def, kind, theme) {
   if (!theme) return {};
@@ -1288,7 +1297,7 @@ function appearancePreviewSource(def, kind, sel) {
     var value = vars[APPEARANCE_PHASE_KEYS[phase]];
     if (value && value !== "none") phaseClasses.push(APPEARANCE_PHASE_CLASSES[phase]);
   });
-  var css = (def.css || "") + "\n" + appearanceKeyframesCss() + "\n" + appearancePhaseCss() + "\n.appearance-preview { " + decls + " }\n" +
+  var css = appearanceControlCss(def, kind) + "\n" + appearanceKeyframesCss() + "\n" + appearancePhaseCss() + "\n.appearance-preview { " + decls + " }\n" +
     "body { margin: 0; padding: 24px; background: #0f1117; color: #e5e7eb; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }";
   return "css \"" + esc(css) + "\"\n\nview main {\n\t" + appearancePreviewNode(kind, st ? st.attrs : null, phaseClasses.join(" ")) + "\n}\n";
 }
