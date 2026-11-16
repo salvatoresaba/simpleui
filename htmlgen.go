@@ -1682,6 +1682,7 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
 }
 .sui-radio {
   --sui-rd-size:18px;
+  --sui-rd-radius:50%;
   --sui-rd-off-bg:#1d2129;
   --sui-rd-on-bg:#4c5cf7;
   --sui-rd-color:var(--sui-rd-off-bg);
@@ -1695,7 +1696,7 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
   height:var(--sui-rd-size);
   border:var(--sui-rd-border-width) solid var(--sui-rd-border-color);
   background:var(--sui-rd-color);
-  border-radius:50%;
+  border-radius:var(--sui-rd-radius,50%);
   position:relative;
   cursor:pointer;
   transition:all 0.15s ease;

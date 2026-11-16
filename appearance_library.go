@@ -208,6 +208,7 @@ var appearanceKeyframes = map[string]bool{
 	"sui-spinner-pulse":          true,
 	"sui-spinner-ripple":         true,
 	"sui-spinner-swing":          true,
+	"sui-spinner-wave":           true,
 	"sui-spinner-wobble":         true,
 	"sui-switch-bounce":          true,
 	"sui-switch-fade":            true,

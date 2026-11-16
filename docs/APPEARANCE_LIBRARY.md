@@ -63,9 +63,12 @@ combined with any appearance.
 Date/time pickers offer both the browser's **Native picker** and a customizable
 **SimpleUI calendar**. Calendar circles and tiles provide alternate day shapes;
 `datetime` keeps its time field, while `time` remains native. Spinner structures
-include an hourglass, a filling wave, multiple dots and a two-colour fill/flip.
-Checkbox structures include rounded and circular forms with plus, cross and
-star symbols.
+include a track ring, orbiting dots, a three-dot orbit, an hourglass, a liquid
+fill and a two-colour flip. Checkbox structures include square, rounded,
+circular, orbit, soft, iOS, minimal, diamond and pill shapes, plus, cross, star
+and heart symbols. Radio structures include compact and large circles, soft
+and minimal forms, square and diamond shapes, a target, a bold ring and a
+check-mark option.
 
 ## Insert toolbar organization
 
@@ -180,6 +183,10 @@ A structure that maps to a class declares it explicitly:
 ```json
 { "id": "ios", "label": "iOS", "class": "sui-sw-shape-ios", "attrs": { "shape": "ios" } }
 ```
+
+The designer applies that class to the selected control and to the live preview,
+removing any class owned by its previously selected structure. Class-based
+structures therefore work like variable- and attribute-based structures.
 
 Rules:
 

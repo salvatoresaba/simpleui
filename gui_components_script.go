@@ -1115,9 +1115,20 @@ function appearanceMatchVariant(list, map, attrs, node) {
     if (ok && v.attrs) {
       Object.keys(v.attrs).forEach(function(k){ if (String((node && node[k]) || "") !== String(v.attrs[k])) ok = false; });
     }
+    if (ok && v.class && String(node && node.class || "").split(/\s+/).indexOf(v.class) < 0) ok = false;
     if (ok) return v.id;
   }
   return "";
+}
+function appearanceSyncStructureClass(node, def, kind, structure) {
+  if (!node) return;
+  var owned = {};
+  var structures = appearanceStructures(def, kind);
+  structures.forEach(function (item) { if (item.class) owned[item.class] = true; });
+  var tokens = String(node.class || "").split(/\s+/).filter(function (token) { return token && !owned[token]; });
+  var selected = appearanceVariant(structures, structure);
+  if (selected && selected.class && tokens.indexOf(selected.class) < 0) tokens.push(selected.class);
+  node.class = tokens.join(" ");
 }
 function appearanceCurrent(node, def, kind) {
   var map = styleDeclMap(node.style || "");
@@ -1219,6 +1230,7 @@ function appearanceApply(node, def, patch) {
       appearanceAttrsUnion(def).forEach(function(k){ delete node[k]; });
       Object.keys(st2.attrs || {}).forEach(function(k){ node[k] = st2.attrs[k]; });
     }
+    appearanceSyncStructureClass(node, def, kind, patch.structure);
   }
   if (appearanceTextKind(kind)) {
     appearanceSanitizeTextVars(def, kind, map);
@@ -1245,10 +1257,11 @@ function appearancePatchForTheme(theme) {
     themeVars: theme.vars || null
   };
 }
-function appearancePreviewNode(kind, attrs, extraClasses) {
+function appearancePreviewNode(kind, attrs, extraClasses, structureClass) {
   var attrStr = "";
   Object.keys(attrs || {}).forEach(function(k){ attrStr += " " + k + ": \"" + esc(String(attrs[k])) + "\""; });
-  var cls = " class: \"appearance-preview" + (extraClasses ? " " + extraClasses : "") + "\"";
+  var previewClasses = [extraClasses, structureClass].filter(Boolean).join(" ");
+  var cls = " class: \"appearance-preview" + (previewClasses ? " " + esc(previewClasses) : "") + "\"";
   if (kind === "button") return "button \"Button\"" + cls + attrStr;
   if (kind === "card") return "card \"Card\"" + cls + attrStr + " {\n\t\tp \"Preview\"\n\t}";
   if (kind === "checkbox") return "checkbox \"Checkbox\" checked: true" + cls + attrStr;
@@ -1299,7 +1312,7 @@ function appearancePreviewSource(def, kind, sel) {
   });
   var css = appearanceControlCss(def, kind) + "\n" + appearanceKeyframesCss() + "\n" + appearancePhaseCss() + "\n.appearance-preview { " + decls + " }\n" +
     "body { margin: 0; padding: 24px; background: #0f1117; color: #e5e7eb; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }";
-  return "css \"" + esc(css) + "\"\n\nview main {\n\t" + appearancePreviewNode(kind, st ? st.attrs : null, phaseClasses.join(" ")) + "\n}\n";
+  return "css \"" + esc(css) + "\"\n\nview main {\n\t" + appearancePreviewNode(kind, st ? st.attrs : null, phaseClasses.join(" "), st ? st.class : "") + "\n}\n";
 }
 function appearancePreviewDemo(html) {
   var script = "<script>(function(){var el=document.querySelector('.appearance-preview');if(!el)return;" +

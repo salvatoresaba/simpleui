@@ -147,6 +147,27 @@ const guiAppearanceScript = `<script>
     assert(lightPalette['--sui-combobox-hover-fg'] === '#0f172a', 'light combo selected text must be dark: ' + lightPalette['--sui-combobox-hover-fg']);
     assert(lightPalette['--sui-combobox-label'] === '#0f172a', 'light combo label must be dark');
     assert(darkPalette['--sui-combobox-hover-fg'] === '#e5e7eb', 'dark combo selected text must be light');
+    var checkboxDef = componentDefForKind('checkbox');
+    var checkboxProbe = { kind: 'checkbox', class: 'sui-checkbox sui-cb-shape-soft', style: '' };
+    appearanceApply(checkboxProbe, checkboxDef, { structure: 'star' });
+    assert(/(^|\s)sui-cb-symbol-star(\s|$)/.test(checkboxProbe.class), 'checkbox structure class was not applied: ' + checkboxProbe.class);
+    assert(!/sui-cb-shape-soft/.test(checkboxProbe.class), 'previous checkbox structure class was not removed: ' + checkboxProbe.class);
+    assert(appearanceCurrent(checkboxProbe, checkboxDef, 'checkbox').structure === 'star', 'checkbox structure class was not recognized');
+    var checkboxPreview = appearancePreviewSource(checkboxDef, 'checkbox', { structure: 'cross', style: 'dark', animation: 'none' });
+    assert(checkboxPreview.indexOf('sui-cb-symbol-cross') >= 0, 'checkbox structure class was not included in its preview');
+    var checkboxCSS = appearanceControlCss(checkboxDef, 'checkbox');
+    assert(checkboxCSS.indexOf('sui-cb-shape-diamond') >= 0 && checkboxCSS.indexOf('sui-cb-symbol-heart') >= 0, 'checkbox shape and symbol rules are missing');
+    var radioDef = componentDefForKind('radio');
+    var radioProbe = { kind: 'radio', class: 'sui-radio sui-rd-shape-soft', style: '' };
+    appearanceApply(radioProbe, radioDef, { structure: 'check' });
+    assert(/(^|\s)sui-rd-shape-check(\s|$)/.test(radioProbe.class), 'radio check-mark structure class was not applied: ' + radioProbe.class);
+    assert(appearanceCurrent(radioProbe, radioDef, 'radio').structure === 'check', 'radio structure class was not recognized');
+    assert(appearanceControlCss(radioDef, 'radio').indexOf('sui-rd-shape-diamond') >= 0, 'radio shape rules are missing');
+    var spinnerDef = componentDefForKind('spinner');
+    var spinnerStructures = appearanceStructures(spinnerDef, 'spinner');
+    assert(spinnerStructures.some(function (item) { return item.id === 'multiple-dots' && item.attrs && item.attrs.variant === 'multiple-dots'; }), 'multiple-dot spinner structure is not mapped to its CSS variant');
+    var spinnerCSS = appearanceControlCss(spinnerDef, 'spinner');
+    assert(spinnerCSS.indexOf("variant='multiple-dots'") >= 0 && spinnerCSS.indexOf('@keyframes sui-spinner-wave') >= 0, 'spinner variants are missing their structure rules');
     var inputDef = componentDefForKind('input');
     var inputAnims = appearanceAnimations(inputDef, 'input').map(function (a) { return a.label; });
     assert(inputAnims.join(',') === 'None,Feedback', 'text entry animations must be None/Feedback: ' + inputAnims);
@@ -160,7 +181,7 @@ const guiAppearanceScript = `<script>
     var switchAnims = appearanceAnimations(switchDef, 'switch').map(function (a) { return a.label; });
     assert(switchAnims.indexOf('Morph') >= 0 && switchAnims.indexOf('Fade') >= 0 && switchAnims.indexOf('Scale') >= 0, 'switch animations missing Morph/Fade/Scale: ' + switchAnims);
     var switchIos = appearanceStructures(switchDef, 'switch').filter(function (s) { return s.id === 'ios'; })[0];
-    assert(!!switchIos && switchIos.attrs && switchIos.attrs.shape === 'ios', 'switch iOS structure must set shape');
+    assert(!!switchIos && ((switchIos.attrs && switchIos.attrs.shape === 'ios') || switchIos.class === 'sui-sw-shape-ios'), 'switch iOS structure must set its shape');
     function pathOfKind(kind) {
       function walk(list, base) {
         for (var i = 0; i < list.length; i++) {
