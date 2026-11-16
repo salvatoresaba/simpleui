@@ -823,7 +823,18 @@ the editor.
 A rejected file is reported as `Library rejected: ...` in the Insert menu and in
 the status bar; the built-in catalog remains available. A library can add
 presets over the standard element kinds, group them by control type, and rename
-or re-group a built-in kind with `"override": true`.
+or re-group a built-in kind with `"override": true`. Every group must contain at
+least one component.
+
+**Insert → Controls library…** opens the navigator: filter by control type,
+search, read the description, inspect the **interactive preview**, and insert the
+selected component. The **Default** badge marks the fallback version of a kind.
+
+If a project references a library component that is no longer in the file, the
+editor shows a warning and rewrites that element to the default version of its
+kind (explicit `default`, otherwise the first component of the kind), keeping the
+element content. If the kind has no component at all, the warning says so and the
+current styles are kept.
 
 See [External component library](COMPONENT_LIBRARY.md) for the JSON schema, the
 supported kinds, the CSS and attribute allow-lists, the size limits and the

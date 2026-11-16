@@ -3,6 +3,7 @@ package main
 import "archive/zip"
 import "bytes"
 import "encoding/base64"
+import "encoding/json"
 import "fmt"
 import "io"
 import "net"
@@ -162,6 +163,31 @@ func CmdGui(args []string) {
 	})
 	mux.HandleFunc("GET /__gui__/components.js", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/javascript; charset=utf-8", guiComponentLibraryJS)
+	})
+	mux.HandleFunc("POST /__gui__/component-preview", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		id := r.PostFormValue("id")
+		componentLibraryMu.Lock()
+		payload := append([]byte(nil), componentLibraryJSON...)
+		componentLibraryMu.Unlock()
+		var parsed struct {
+			Groups []ComponentGroupJSON `json:"groups"`
+		}
+		if id == "" || json.Unmarshal(payload, &parsed) != nil {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"error":"component library unavailable"}`)
+			return
+		}
+		c := libraryComponentByID(parsed.Groups, id)
+		if c == nil {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"error":"component not found in the library"}`)
+			return
+		}
+		ok, html, msgs := renderSui(libraryPreviewSource(c))
+		if !ok {
+			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"error":"preview failed","diagnostics":`+StringifyJson(msgs)+`}`)
+			return
+		}
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"html":`+StringifyJson(JStr(html))+`}`)
 	})
 	mux.HandleFunc("GET /__gui__/current", func(w http.ResponseWriter, r *http.Request) {
 		srcMu.Lock()

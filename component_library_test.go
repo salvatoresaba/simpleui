@@ -120,3 +120,54 @@ func TestComponentLibraryMissingFileKeepsFallback(t *testing.T) {
 		t.Fatalf("missing library should be a soft fallback, got %s", payload)
 	}
 }
+
+func TestComponentLibraryRejectsEmptyGroup(t *testing.T) {
+	body := `{"format":"simpleui-component-library","version":1,"groups":[{"id":"g","label":"G","components":[]}]}`
+	if _, _, err := loadComponentLibraryFile(writeLibraryFile(t, body)); err == nil || !strings.Contains(err.Error(), "at least one version") {
+		t.Fatalf("empty group was not rejected: %v", err)
+	}
+}
+
+func TestBundledLibraryDefaults(t *testing.T) {
+	groups, _, err := loadComponentLibraryFile(filepath.Join("components", "library.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	kinds := map[string]bool{}
+	defaults := map[string]bool{}
+	for gi := range groups {
+		for ci := range groups[gi].Components {
+			c := groups[gi].Components[ci]
+			kinds[c.Kind] = true
+			if c.Default {
+				defaults[c.Kind] = true
+			}
+		}
+	}
+	for kind := range kinds {
+		if !defaults[kind] {
+			t.Errorf("bundled library has no default component for kind %q", kind)
+		}
+	}
+}
+
+func TestLibraryPreviewSourceCompiles(t *testing.T) {
+	groups, _, err := loadComponentLibraryFile(filepath.Join("components", "library.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for gi := range groups {
+		for ci := range groups[gi].Components {
+			c := groups[gi].Components[ci]
+			src := libraryPreviewSource(&c)
+			prog, dl := ParseSource(src, "components/preview.sui")
+			if dl.HasErrors() {
+				t.Fatalf("preview for %q does not parse: %s", c.ID, firstLibraryError(&dl))
+			}
+			dl = Check(prog)
+			if dl.HasErrors() {
+				t.Fatalf("preview for %q does not type-check: %s", c.ID, firstLibraryError(&dl))
+			}
+		}
+	}
+}

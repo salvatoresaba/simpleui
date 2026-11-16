@@ -831,6 +831,35 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .asset-actions { display:flex; gap:3px; padding:4px 6px 6px; }
 .asset-actions button { flex:1; font-size:10px; padding:3px 4px; }
 .asset-empty { color:var(--muted); font-size:12px; grid-column:1 / -1; }
+#lib-nav { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:14; }
+#lib-nav.on { display:flex; }
+#lib-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:1080px; max-width:97vw; height:78vh; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); overflow:hidden; }
+#lib-head { display:flex; align-items:center; gap:8px; padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
+#lib-head #lib-title { font-weight:600; }
+#lib-head #lib-source { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#lib-status { padding:7px 14px; border-bottom:1px solid var(--border); min-height:30px; line-height:1.4; }
+#lib-body { flex:1; display:grid; grid-template-columns:190px 320px minmax(0,1fr); min-height:0; }
+#lib-groups { overflow:auto; padding:8px; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:3px; }
+.lib-group { text-align:left; border:1px solid transparent; background:transparent; color:var(--muted); border-radius:6px; padding:6px 8px; font-size:12px; cursor:pointer; }
+.lib-group:hover { background:var(--btn-hover); color:var(--fg); }
+.lib-group.on { background:var(--btn-on); color:var(--fg); border-color:var(--border2); font-weight:600; }
+#lib-middle { display:flex; flex-direction:column; min-width:0; border-right:1px solid var(--border); }
+#lib-search { margin:8px 10px; height:30px; padding:4px 8px; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:6px; font-size:12px; }
+#lib-list { flex:1; overflow:auto; padding:0 8px 8px; display:flex; flex-direction:column; gap:4px; }
+.lib-item { position:relative; display:flex; flex-direction:column; gap:1px; text-align:left; border:1px solid var(--border); background:var(--panel3); color:var(--fg); border-radius:7px; padding:7px 9px; cursor:pointer; }
+.lib-item:hover { border-color:var(--border2); background:var(--btn-hover); }
+.lib-item.on { border-color:var(--accent); background:var(--btn-on); }
+.lib-item-title { font-size:12px; font-weight:600; }
+.lib-item-meta { font-size:10px; color:var(--muted); }
+.lib-default, .lib-default-badge { font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:#10b981; border:1px solid rgba(16,185,129,.45); border-radius:999px; padding:1px 6px; align-self:flex-start; margin-top:3px; }
+#lib-detail { padding:12px 14px; display:flex; flex-direction:column; gap:6px; min-width:0; min-height:0; }
+#lib-detail h3 { margin:0; font-size:16px; }
+#lib-badges { display:flex; flex-wrap:wrap; gap:4px; }
+.lib-badge { font-size:10px; color:var(--muted); border:1px solid var(--border2); border-radius:999px; padding:1px 7px; }
+#lib-detail-desc { margin:0; min-height:16px; }
+#lib-preview { flex:1; width:100%; min-height:180px; border:1px solid var(--border2); border-radius:8px; background:#0f1117; }
+#lib-detail-actions { display:flex; gap:6px; }
+#lib-detail-actions .btn { font-size:12px; padding:5px 10px; }
 #hist-editor { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:12; }
 #hist-editor.on { display:flex; }
 #hist-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:520px; max-width:94vw; max-height:70vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); }
@@ -1374,6 +1403,34 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
   <div id="hist-box">
     <div id="hist-head"><span>Project history</span><button class="btn" onclick="snapshotNow()">Snapshot now</button><button class="btn" onclick="closeHistory()">&#10005;</button></div>
     <div id="hist-list"></div>
+  </div>
+</div>
+<div id="lib-nav">
+  <div id="lib-box" role="dialog" aria-modal="true" aria-labelledby="lib-title">
+    <div id="lib-head">
+      <span id="lib-title">Controls library</span>
+      <span id="lib-source" class="hint"></span>
+      <button class="btn" type="button" onclick="loadComponentLibrary(true)">Reload</button>
+      <button class="btn" type="button" onclick="closeLibraryNavigator()" aria-label="Close controls library">&#10005;</button>
+    </div>
+    <div id="lib-status" class="hint"></div>
+    <div id="lib-body">
+      <div id="lib-groups" role="tablist" aria-label="Control types"></div>
+      <div id="lib-middle">
+        <input id="lib-search" type="search" placeholder="Search components, control types, ids…" aria-label="Search components" oninput="renderLibraryList(); renderLibraryDetail();">
+        <div id="lib-list"></div>
+      </div>
+      <div id="lib-detail">
+        <h3 id="lib-detail-title">Select a component</h3>
+        <div id="lib-badges"></div>
+        <p id="lib-detail-desc" class="hint"></p>
+        <iframe id="lib-preview" sandbox="allow-scripts" title="Interactive component preview"></iframe>
+        <div id="lib-detail-actions">
+          <button class="btn" type="button" id="lib-insert" disabled onclick="insertLibraryFromNavigator()">Insert</button>
+          <button class="btn" type="button" onclick="LIB_NAV_PREVIEW_ID=''; renderLibraryDetail();" title="Reload the preview">Reload preview</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <div id="chart-data-layer" aria-hidden="true">
@@ -20179,6 +20236,11 @@ function renderInsertMenu() {
   searchItem.textContent = 'Search components\u2026';
   searchItem.onclick = function(){ closeMenus(); openInsertDialog(); };
   drop.appendChild(searchItem);
+  var browseItem = document.createElement('div');
+  browseItem.className = 'mi';
+  browseItem.textContent = 'Controls library\u2026';
+  browseItem.onclick = function(){ closeMenus(); openLibraryNavigator(); };
+  drop.appendChild(browseItem);
   var searchSep = document.createElement('div');
   searchSep.className = 'dropsep';
   drop.appendChild(searchSep);
@@ -20209,6 +20271,22 @@ function renderInsertMenu() {
     var libErrSep = document.createElement('div');
     libErrSep.className = 'dropsep';
     drop.appendChild(libErrSep);
+  }
+  if (typeof LIBRARY_REF_WARNINGS !== "undefined" && LIBRARY_REF_WARNINGS.length) {
+    var libWarn = document.createElement('div');
+    libWarn.className = 'mi grp';
+    var shortWarn = LIBRARY_REF_WARNINGS[0].length > 86 ? LIBRARY_REF_WARNINGS[0].slice(0, 83) + '...' : LIBRARY_REF_WARNINGS[0];
+    libWarn.textContent = 'Library fallback: ' + shortWarn + (LIBRARY_REF_WARNINGS.length > 1 ? ' (+' + (LIBRARY_REF_WARNINGS.length - 1) + ')' : '');
+    libWarn.title = LIBRARY_REF_WARNINGS.join(' ');
+    drop.appendChild(libWarn);
+    var libWarnOpen = document.createElement('div');
+    libWarnOpen.className = 'mi';
+    libWarnOpen.textContent = 'Inspect library fallback\u2026';
+    libWarnOpen.onclick = function(){ closeMenus(); openLibraryNavigator(); };
+    drop.appendChild(libWarnOpen);
+    var libWarnSep = document.createElement('div');
+    libWarnSep.className = 'dropsep';
+    drop.appendChild(libWarnSep);
   }
   // The top level shows only GROUP rows; hovering a row opens its flyout to
   // the right. Sub-groups (Navigation, Lists, Feedback) cascade the same way
@@ -29176,12 +29254,14 @@ function loadCurrentProject() {
         if (m && m.ok) { loadTree(m); autoPreview(); scheduleLiveCheck(); }
         else { renderAll(); scheduleLiveCheck(); }
         startAutosave();
-      }).catch(function(){ renderAll(); startAutosave(); });
+        if (typeof queueLibraryAudit === "function") queueLibraryAudit();
+      }).catch(function(){ renderAll(); startAutosave(); if (typeof queueLibraryAudit === "function") queueLibraryAudit(); });
     } else {
       renderAll();
       startAutosave();
+      if (typeof queueLibraryAudit === "function") queueLibraryAudit();
     }
-  }).catch(function(){ renderAll(); startAutosave(); });
+  }).catch(function(){ renderAll(); startAutosave(); if (typeof queueLibraryAudit === "function") queueLibraryAudit(); });
 }
 </script>
 </body>

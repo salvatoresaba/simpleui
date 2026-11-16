@@ -203,7 +203,7 @@
       "id": "component_library",
       "path": "docs/COMPONENT_LIBRARY.md",
       "title": "External component library",
-      "summary": "How the designer loads components/library.json at startup: groups by control type, presets over the standard element kinds, CSS and attribute allow-lists, override entries, strict schema and compiler checks, atomic rejection with built-in fallback, and reloading after external edits.",
+      "summary": "How the designer loads components/library.json at startup: groups by control type, presets over the standard element kinds, CSS and attribute allow-lists, override entries, default versions per kind, missing-component fallback with warnings, the interactive Controls library navigator, strict schema and compiler checks, atomic rejection with built-in fallback, and reloading after external edits.",
       "audience": [
         "human",
         "agent"

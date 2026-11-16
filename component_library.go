@@ -58,6 +58,7 @@ type ComponentEntryJSON struct {
 	Class       string              `json:"class,omitempty"`
 	CSS         string              `json:"css,omitempty"`
 	Override    bool                `json:"override,omitempty"`
+	Default     bool                `json:"default,omitempty"`
 	Text        string              `json:"text,omitempty"`
 	Attrs       map[string]any      `json:"attrs,omitempty"`
 	Children    []ComponentNodeJSON `json:"children,omitempty"`
@@ -259,8 +260,7 @@ func loadComponentLibraryFile(path string) ([]ComponentGroupJSON, []string, erro
 			return nil, nil, fmt.Errorf("group %q: label must be 1..60 characters", g.ID)
 		}
 		if len(g.Components) == 0 {
-			warnings = append(warnings, fmt.Sprintf("group %q has no components", g.ID))
-			continue
+			return nil, nil, fmt.Errorf("group %q has no components: every control type needs at least one version", g.ID)
 		}
 		for ci := range g.Components {
 			c := &g.Components[ci]
@@ -536,4 +536,32 @@ func writeLibraryNode(b *strings.Builder, kind, text, class string, attrs map[st
 func suiLibraryEscape(s string) string {
 	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\t", `\t`, "{", `\{`, "}", `\}`)
 	return r.Replace(s)
+}
+
+func libraryComponentByID(groups []ComponentGroupJSON, id string) *ComponentEntryJSON {
+	for gi := range groups {
+		for ci := range groups[gi].Components {
+			if groups[gi].Components[ci].ID == id {
+				return &groups[gi].Components[ci]
+			}
+		}
+	}
+	return nil
+}
+
+// libraryPreviewSource builds a small standalone app for the navigator. It adds
+// a neutral preview background without changing the component itself.
+func libraryPreviewSource(c *ComponentEntryJSON) string {
+	css := c.CSS
+	if css != "" {
+		css += "\n"
+	}
+	css += "body { margin: 0; padding: 24px; background: #0f1117; color: #e5e7eb; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }"
+	var b strings.Builder
+	b.WriteString("css \"")
+	b.WriteString(suiLibraryEscape(css))
+	b.WriteString("\"\n\nview main {\n")
+	writeLibraryNode(&b, c.Kind, c.Text, c.Class, c.Attrs, c.Children, 1)
+	b.WriteString("}\n")
+	return b.String()
 }

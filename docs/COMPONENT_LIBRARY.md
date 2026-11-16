@@ -40,6 +40,7 @@ served as `/__gui__/components.js`.
           "id": "metric-card",
           "label": "Metric card",
           "kind": "card",
+          "default": true,
           "description": "A compact KPI card.",
           "class": "lib-metric-card",
           "css": ".lib-metric-card { display: flex; flex-direction: column; gap: 6px; padding: 18px; border: 1px solid #334155; border-radius: 14px; background: #111827; color: #e5e7eb; }",
@@ -67,6 +68,11 @@ The groups are the control families of the Insert menu. They are shown as
 flyout rows before the **Built-in** groups, so a library can organize custom
 components by type without removing access to standard controls.
 
+Every group must contain at least one component: a control type always has a
+version available. Empty groups are rejected at load. Each kind used by the
+library gets a default component: the one marked `"default": true`, or the first
+component of that kind when no explicit default exists.
+
 ### Components
 
 | Field | Required | Meaning |
@@ -74,6 +80,7 @@ components by type without removing access to standard controls.
 | `id` | yes | Unique, lowercase letters, digits and `-` |
 | `label` | yes | Insert-menu label (1–60 characters) |
 | `kind` | yes | A supported SimpleUI element kind (see limits) |
+| `default` | no | Marks the default version of its `kind` for fallback; the first component of a kind is the implicit default |
 | `description` | no | Tooltip text (max 240 characters) |
 | `class` | no | CSS class applied to the component; required when `css` is set |
 | `css` | no | One rule for that class, validated against a safe property list |
@@ -110,6 +117,51 @@ Values must be literal; expressions, `onClick`, `href`, `src`, `styleExpr`,
 - The library cannot remove built-in components that no entry overrides. This
   keeps the editor usable if the external file is incomplete.
 
+## Fallback for missing components
+
+Inserted library components are tracked in the managed CSS block:
+
+```css
+/* sui-library:lib-metric-card component=metric-card kind=card */
+.lib-metric-card { ... }
+/* /sui-library:lib-metric-card */
+```
+
+When a project is opened (or the library is reloaded), the editor checks every
+`component=<id>` marker against the loaded library. If the component no longer
+exists:
+
+1. a warning is shown in the status bar, in **Insert** and in the Controls
+   library navigator;
+2. the default version for that `kind` is selected (explicit `default`, else the
+   first component of the kind);
+3. the element's class and the managed CSS block are rewritten to the default
+   version, so the control keeps a working style;
+4. the element content (text and children) is preserved.
+
+If the library has no component at all for the kind, the warning says so and the
+current styles are kept. When the whole library is unavailable, the project still
+renders with its materialized CSS; the warning explains that no fallback could be
+chosen.
+
+## Controls library navigator
+
+**Insert → Controls library…** opens the library browser:
+
+- groups on the left, filtered by control type;
+- search across label, id, kind, description and group;
+- a **Default** badge on the fallback version of each kind;
+- an **interactive preview** of the selected control, compiled by the server and
+  shown in a sandboxed iframe;
+- **Insert** to add the selected component to the project at the current
+  selection;
+- **Reload** to re-read `components/library.json` and **Reload preview** for the
+  current selection.
+
+The navigator also shows the library source, rejection errors, fallback warnings
+and the current group counts. It is the quickest way for an external tool author
+to verify the catalog before opening the project.
+
 ## Security and stability checks
 
 Loading is **all-or-nothing**. The server rejects the file if any check fails
@@ -121,6 +173,8 @@ Checks:
 - file size at most 1 MB, valid UTF-8 JSON, unknown fields rejected;
 - `format` must be `simpleui-component-library`, `version` must be `1`;
 - at most 20 groups and 200 components, unique group and component ids;
+- every group has at least one component; a kind's explicit or implicit default is
+  used for fallback;
 - component labels, descriptions, classes and texts are length-limited;
 - id/class patterns are validated; classes starting with `sui-` are rejected so
   a library cannot override the component skin;

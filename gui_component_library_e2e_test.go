@@ -161,7 +161,7 @@ const guiComponentLibraryScript = `<script>
     assert(n.kind === 'card' && n.class === 'lib-demo', 'preset kind/class not applied');
     assert(n.children && n.children.length === 1 && n.children[0].text === 'Hello library', 'preset child missing');
     assert(root.css.indexOf('.lib-demo') >= 0, 'preset CSS missing');
-    assert(root.css.indexOf('/* sui-library:lib-demo */') >= 0, 'managed CSS block missing');
+    assert(root.css.indexOf('/* sui-library:lib-demo') >= 0, 'managed CSS block missing');
     renderInsertList();
     var items = Array.prototype.map.call(document.querySelectorAll('#insert-list .insert-item'), function (x) { return x.textContent; });
     assert(items.some(function (x) { return x.indexOf('Demo card') >= 0; }), 'library component missing from search dialog');

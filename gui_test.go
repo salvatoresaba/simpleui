@@ -906,5 +906,8 @@ func guiTestMux() *http.ServeMux {
 	mux.HandleFunc("GET /__gui__/components.js", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/javascript; charset=utf-8", guiComponentLibraryJS)
 	})
+	mux.HandleFunc("POST /__gui__/component-preview", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"html":"<!doctype html><html><body><button>Preview</button></body></html>"}`)
+	})
 	return mux
 }

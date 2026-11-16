@@ -855,7 +855,19 @@ riavviare l'editor.
 Un file rifiutato viene segnalato come `Library rejected: ...` nel menu Insert e
 nella barra di stato; il catalogo integrato resta disponibile. Una libreria può
 aggiungere preset sopra i kind standard, organizzarli per tipo di controllo e
-rinominare o raggruppare un kind integrato con `"override": true`.
+rinominare o raggruppare un kind integrato con `"override": true`. Ogni gruppo
+deve contenere almeno un componente.
+
+**Insert → Controls library…** apre il navigator: filtra per tipo di controllo,
+cerca, leggi la descrizione, guarda l'**anteprima interattiva** e inserisci il
+componente selezionato. Il badge **Default** indica la versione di fallback di un
+kind.
+
+Se un progetto usa un componente della libreria che non esiste più, l'editor
+mostra un avviso e riscrive quell'elemento con la versione di default del suo kind
+(`default` esplicito, altrimenti il primo componente del kind), mantenendo il
+contenuto. Se il kind non ha alcun componente, l'avviso lo segnala e gli stili
+correnti restano.
 
 Vedi [External component library](COMPONENT_LIBRARY.md) per lo schema JSON, i
 kind supportati, le allow-list di CSS e attributi, i limiti di dimensione e il
