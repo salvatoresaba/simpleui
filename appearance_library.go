@@ -92,6 +92,125 @@ var appearanceLibraryKinds = map[string]bool{
 	"dropzone": true, "timeline": true, "carousel": true, "stepper": true,
 }
 
+// appearanceKeyframes is the allow-list of keyframes defined by the base and
+// component CSS. The catalog may only reference these names; typos and stale
+// options from an older catalog are rejected.
+var appearanceKeyframes = map[string]bool{
+	"sui-alert-bounce-in":        true,
+	"sui-alert-breathe":          true,
+	"sui-alert-flash":            true,
+	"sui-alert-in":               true,
+	"sui-alert-pulse":            true,
+	"sui-alert-shake":            true,
+	"sui-alert-slide":            true,
+	"sui-alert-slide-right":      true,
+	"sui-alert-wobble":           true,
+	"sui-alert-zoom":             true,
+	"sui-anim-fade":              true,
+	"sui-anim-scale":             true,
+	"sui-anim-slide-down":        true,
+	"sui-anim-slide-left":        true,
+	"sui-anim-slide-right":       true,
+	"sui-anim-slide-up":          true,
+	"sui-appearance-fade":        true,
+	"sui-appearance-float":       true,
+	"sui-appearance-glow":        true,
+	"sui-appearance-pulse":       true,
+	"sui-badge-blink":            true,
+	"sui-badge-bounce":           true,
+	"sui-badge-float":            true,
+	"sui-badge-glow":             true,
+	"sui-badge-jelly":            true,
+	"sui-badge-ping":             true,
+	"sui-badge-pop":              true,
+	"sui-badge-pulse":            true,
+	"sui-badge-sheen":            true,
+	"sui-badge-tilt":             true,
+	"sui-button-bounce":          true,
+	"sui-button-float":           true,
+	"sui-button-glow":            true,
+	"sui-button-jelly":           true,
+	"sui-button-press":           true,
+	"sui-button-pulse":           true,
+	"sui-button-ring":            true,
+	"sui-button-sheen":           true,
+	"sui-button-tilt":            true,
+	"sui-card-drift":             true,
+	"sui-card-float":             true,
+	"sui-card-halo":              true,
+	"sui-card-in":                true,
+	"sui-card-rise":              true,
+	"sui-card-tilt-in":           true,
+	"sui-card-unfold":            true,
+	"sui-card-zoom":              true,
+	"sui-chart-cell-flash":       true,
+	"sui-chart-table-flash":      true,
+	"sui-chart-task-flash":       true,
+	"sui-check-bounce":           true,
+	"sui-check-jelly":            true,
+	"sui-check-pop":              true,
+	"sui-check-ring":             true,
+	"sui-field-glow":             true,
+	"sui-field-lift":             true,
+	"sui-field-ring":             true,
+	"sui-fx-bounce":              true,
+	"sui-fx-glow":                true,
+	"sui-fx-grow":                true,
+	"sui-fx-jelly":               true,
+	"sui-fx-lift":                true,
+	"sui-fx-pop":                 true,
+	"sui-fx-press":               true,
+	"sui-fx-ring":                true,
+	"sui-fx-shake":               true,
+	"sui-fx-slide":               true,
+	"sui-fx-tilt":                true,
+	"sui-progress-aurora":        true,
+	"sui-progress-breathe":       true,
+	"sui-progress-glow":          true,
+	"sui-progress-indeterminate": true,
+	"sui-progress-pulse":         true,
+	"sui-progress-shimmer":       true,
+	"sui-progress-spark":         true,
+	"sui-progress-stripes":       true,
+	"sui-progress-ticker":        true,
+	"sui-progress-wave":          true,
+	"sui-sk":                     true,
+	"sui-spin":                   true,
+	"sui-spin-reverse":           true,
+	"sui-spinner-bars":           true,
+	"sui-spinner-bounce":         true,
+	"sui-spinner-comet":          true,
+	"sui-spinner-dots":           true,
+	"sui-spinner-flip":           true,
+	"sui-spinner-orbit":          true,
+	"sui-spinner-pulse":          true,
+	"sui-spinner-ripple":         true,
+	"sui-spinner-swing":          true,
+	"sui-spinner-wobble":         true,
+	"sui-switch-bounce":          true,
+	"sui-switch-fade":            true,
+	"sui-switch-jelly":           true,
+	"sui-switch-morph":           true,
+	"sui-switch-pop":             true,
+	"sui-switch-pulse":           true,
+	"sui-switch-scale":           true,
+	"sui-tab-glow":               true,
+	"sui-tab-pop":                true,
+	"sui-tab-slide":              true,
+	"sui-toast-bounce":           true,
+	"sui-toast-fade":             true,
+	"sui-toast-flip":             true,
+	"sui-toast-in":               true,
+	"sui-toast-left":             true,
+	"sui-toast-pop":              true,
+	"sui-toast-rise":             true,
+	"sui-toast-slide":            true,
+	"sui-toast-squash":           true,
+	"sui-toast-swing":            true,
+	"sui-toast-zoom":             true,
+	"sui-tooltip-in":             true,
+}
+
 // appearanceTextKinds mirrors APPEARANCE_TEXT_KINDS. These controls accept
 // typing, so the catalog must not move or resize them.
 var appearanceTextKinds = map[string]bool{
@@ -203,6 +322,9 @@ func loadAppearanceLibraryFile(path string) (appearanceCatalogData, []string, er
 			if err := validateAppearanceCSSValue(value); err != nil {
 				return appearanceCatalogData{}, nil, fmt.Errorf("feedback %q %s: %v", variant, phase, err)
 			}
+			if err := validateAppearanceAnimationName(value); err != nil {
+				return appearanceCatalogData{}, nil, fmt.Errorf("feedback %q %s: %v", variant, phase, err)
+			}
 			if variant == "static" && appearanceMotionRe.MatchString(value) {
 				return appearanceCatalogData{}, nil, fmt.Errorf("feedback static %s must not move or resize the control: %s", phase, value)
 			}
@@ -273,6 +395,9 @@ func loadAppearanceLibraryFile(path string) (appearanceCatalogData, []string, er
 			if err := validateAppearanceCSSValue(a.Value); err != nil {
 				return appearanceCatalogData{}, nil, fmt.Errorf("%s: animation %q: %v", c.Kind, a.ID, err)
 			}
+			if err := validateAppearanceAnimationName(a.Value); err != nil {
+				return appearanceCatalogData{}, nil, fmt.Errorf("%s: animation %q: %v", c.Kind, a.ID, err)
+			}
 			if a.ID == "none" || a.Value == "none" {
 				hasNone = true
 			}
@@ -315,6 +440,11 @@ func validateAppearanceVariant(kind, layer string, v *AppearanceVariantJSON, see
 		if err := validateAppearanceCSSValue(val); err != nil {
 			return fmt.Errorf("%s: %s %q: %s: %v", kind, layer, v.ID, k, err)
 		}
+		if strings.Contains(strings.ToLower(k), "animation") {
+			if err := validateAppearanceAnimationName(val); err != nil {
+				return fmt.Errorf("%s: %s %q: %s: %v", kind, layer, v.ID, k, err)
+			}
+		}
 	}
 	if len(v.Attrs) > appearanceMaxAttrs {
 		return fmt.Errorf("%s: %s %q has too many attributes (max %d)", kind, layer, v.ID, appearanceMaxAttrs)
@@ -351,6 +481,25 @@ func validateAppearanceCSSValue(v string) error {
 		if strings.Contains(low, bad) {
 			return fmt.Errorf("value contains forbidden text %q", bad)
 		}
+	}
+	return nil
+}
+
+// validateAppearanceAnimationName checks the first token of an animation
+// shorthand against the keyframes the base/component CSS actually defines.
+// A valid-looking but undefined name (for example a stale sui-accordion-expand
+// option) would otherwise be accepted and do nothing at runtime.
+func validateAppearanceAnimationName(value string) error {
+	fields := strings.Fields(strings.TrimSpace(value))
+	if len(fields) == 0 {
+		return fmt.Errorf("animation value must not be empty")
+	}
+	name := fields[0]
+	if name == "none" {
+		return nil
+	}
+	if !appearanceKeyframes[name] {
+		return fmt.Errorf("unknown keyframe %q (not defined by SimpleUI; use a keyframe from docs/APPEARANCE_LIBRARY.md)", name)
 	}
 	return nil
 }

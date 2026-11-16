@@ -196,6 +196,58 @@ func TestMCPAppearanceTool(t *testing.T) {
 	}
 }
 
+func TestAppearanceLibraryRejectsUnknownKeyframe(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "appearance.json")
+	body := `{
+  "format": "simpleui-appearance-library",
+  "version": 1,
+  "controls": [{
+    "kind": "accordion",
+    "structures": [{"id": "default", "label": "Default"}],
+    "styles": [{"id": "dark", "label": "Dark"}, {"id": "light", "label": "Light"}],
+    "animations": [
+      {"id": "none", "label": "None", "value": "none"},
+      {"id": "expand", "label": "Expand", "value": "sui-accordion-expand .3s ease-out"}
+    ]
+  }]
+}`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := loadAppearanceLibraryFile(path)
+	if err == nil || !strings.Contains(err.Error(), "unknown keyframe") {
+		t.Fatalf("unknown keyframe should be rejected, got %v", err)
+	}
+}
+
+func TestAppearanceKeyframeAllowListMatchesCSS(t *testing.T) {
+	files, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	re := regexp.MustCompile(`@keyframes\s+(sui-[A-Za-z0-9_-]+)`)
+	defined := map[string]bool{}
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, match := range re.FindAllSubmatch(data, -1) {
+			defined[string(match[1])] = true
+		}
+	}
+	for name := range defined {
+		if !appearanceKeyframes[name] {
+			t.Errorf("keyframe %q is defined but missing from appearanceKeyframes", name)
+		}
+	}
+	for name := range appearanceKeyframes {
+		if !defined[name] {
+			t.Errorf("appearanceKeyframes lists %q but no CSS defines it", name)
+		}
+	}
+}
+
 func TestAppearanceKindsMatchDesignerScript(t *testing.T) {
 	data, err := os.ReadFile("gui_components_script.go")
 	if err != nil {

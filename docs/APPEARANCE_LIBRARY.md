@@ -174,7 +174,8 @@ Rules:
   `javascript:` or `!important` are rejected.
 - Animation and feedback values reference the built-in `sui-fx-*` and
   `sui-appearance-*` keyframes. The JSON selects effects and phase assignments;
-  it does not inject arbitrary `@keyframes`.
+  it does not inject arbitrary `@keyframes`. The validator rejects a name that
+  no base or component CSS defines.
 
 Validation is atomic: a malformed file rejects the whole catalog and the editor
 keeps the built-in fallback, showing the reason in the status bar. After editing
