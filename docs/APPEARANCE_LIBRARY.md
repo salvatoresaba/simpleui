@@ -65,8 +65,9 @@ In Appearance:
   Colour, Date, Time, File, Progress, Spinner, Badge, Alert, Card, Tabs,
   Accordion, Dropdown, Popover, Modal, Toast, Tree, Command palette, Drawer,
   Split panes, Dropzone, Timeline, Carousel, Stepper, List);
-- the middle column lists **Structures**, **Styles** and **Animations** for the
-  selected kind;
+- the middle area shows three **side-by-side lists** - **Structures**,
+  **Styles** and **Animations** - for the selected kind, so combinations are
+  created without scrolling between sections;
 - the right column compiles an **interactive preview** of the current
   combination, shows the **Theme** selector, and offers **Save theme…** and
   **Apply to selection**;

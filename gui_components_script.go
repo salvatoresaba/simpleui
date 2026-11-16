@@ -403,7 +403,7 @@ document.addEventListener("click", function(ev){
 var APPEARANCE_FAV_KEY = "sui.appearance.themes.v1";
 // Control kinds that expose the appearance section. Complex data/visualization
 // components (table, graph, chart) are deliberately excluded.
-var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "pane", "dropzone", "timeline", "carousel", "stepper", "list"];
+var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "menubar", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "pane", "dropzone", "timeline", "carousel", "stepper", "list"];
 function appearanceKindLabel(kind) {
   return PALETTE_LABEL[kind] || kind;
 }
@@ -910,6 +910,7 @@ function appearancePreviewNode(kind, attrs) {
   if (kind === "spinner") return "spinner" + cls + attrStr;
   if (kind === "tabs") return "tabs \"Tabs\"" + cls + attrStr + " {\n\t\ttab \"One\" { p \"One\" }\n\t\ttab \"Two\" { p \"Two\" }\n\t}";
   if (kind === "accordion") return "accordion \"Sections\"" + cls + attrStr + " {\n\t\taccordionitem \"First\" { p \"Content\" }\n\t}";
+  if (kind === "menubar") return "menubar" + cls + attrStr + " {\n\t\tmenu \"File\" { menuitem \"Open\" }\n\t}";
   if (kind === "alert") return "alert \"Preview\"" + cls + attrStr;
   if (kind === "slider") return "slider value: 50" + cls + attrStr;
   if (kind === "number") return "number \"Number\" value: \"42\"" + cls + attrStr;
