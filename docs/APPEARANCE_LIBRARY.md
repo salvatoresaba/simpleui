@@ -68,7 +68,7 @@ In Appearance:
   Textarea, Select, Combobox, Date/Time, Number, Slider, Checkbox, Radio, Switch,
   Colour, Date, Time, File, Progress, Spinner, Badge, Alert, Card, Tabs,
   Accordion, Menu bar, Dropdown, Popover, Modal, Toast, Tree, Command palette,
-  Drawer, Split panes, Dropzone, Timeline, Carousel, Stepper, List);
+  Drawer, Split panes, Dropzone, Timeline, Carousel, Stepper);
 - the middle area shows three **side-by-side lists** - **Structures**,
   **Styles** and **Animations** - for the selected kind, so combinations are
   created without scrolling between sections;

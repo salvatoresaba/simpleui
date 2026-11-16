@@ -407,7 +407,7 @@ document.addEventListener("click", function(ev){
 var APPEARANCE_FAV_KEY = "sui.appearance.themes.v1";
 // Control kinds that expose the appearance section. Complex data/visualization
 // components (table, graph, chart) are deliberately excluded.
-var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "menubar", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "pane", "dropzone", "timeline", "carousel", "stepper", "list"];
+var APPEARANCE_KINDS = ["button", "input", "textarea", "select", "combobox", "datepicker", "number", "slider", "checkbox", "radio", "switch", "color", "date", "time", "file", "progress", "spinner", "badge", "alert", "card", "tabs", "accordion", "menubar", "dropdown", "popover", "modal", "toast", "tree", "commandbar", "drawer", "splitter", "pane", "dropzone", "timeline", "carousel", "stepper"];
 function appearanceKindLabel(kind) {
   return PALETTE_LABEL[kind] || kind;
 }
@@ -1044,7 +1044,6 @@ function appearancePreviewNode(kind, attrs) {
   if (kind === "timeline") return "timeline \"History\"" + cls + attrStr + " {\n\t\ttimelineitem \"Event\"\n\t}";
   if (kind === "carousel") return "carousel" + cls + attrStr + " {\n\t\tslide \"One\"\n\t}";
   if (kind === "stepper") return "stepper" + cls + attrStr + " {\n\t\tstep \"One\"\n\t}";
-  if (kind === "list") return "list" + cls + attrStr + " {\n\t\tp \"One\"\n\t}";
   if (kind === "divider") return "divider" + cls + attrStr;
   return kind + cls + attrStr;
 }

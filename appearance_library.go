@@ -77,7 +77,6 @@ var appearanceLibraryKinds = map[string]bool{
 	"popover": true, "modal": true, "toast": true, "tree": true,
 	"commandbar": true, "drawer": true, "splitter": true, "pane": true,
 	"dropzone": true, "timeline": true, "carousel": true, "stepper": true,
-	"list": true,
 }
 
 // appearanceAttrKeys limits structure attributes to the ones the preview and
