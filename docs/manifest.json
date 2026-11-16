@@ -203,7 +203,7 @@
       "id": "appearance_library",
       "path": "docs/APPEARANCE_LIBRARY.md",
       "title": "Control appearance library",
-      "summary": "The per-control appearance catalog: structures (shape), styles (colour palettes) and animations, combined into themes. Covers the Control appearance inspector section, the Controls library navigator appearance tab with a compiled interactive preview, favourite themes stored in the editor, the button example and the catalog coverage limits.",
+      "summary": "The per-control appearance catalog: structures (shape), styles (colour palettes) and animations, combined into themes. Covers the section named after each control, the external components/appearance.json catalog (validated, Dark and Light required), the Controls library navigator appearance tab with keyboard selection and a compiled interactive preview, favourite themes stored in the editor, the button example and the catalog coverage limits.",
       "audience": [
         "human",
         "agent"

@@ -40,8 +40,13 @@ Minimal example:
 ```
 
 Rules and validation are documented in
-[`docs/COMPONENT_LIBRARY.md`](../docs/COMPONENT_LIBRARY.md). The per-control
-appearance catalog (structures, styles, animations, themes) is built into the
-editor and is documented in
-[`docs/APPEARANCE_LIBRARY.md`](../docs/APPEARANCE_LIBRARY.md); it is a separate
-layer from this component-preset file.
+[`docs/COMPONENT_LIBRARY.md`](../docs/COMPONENT_LIBRARY.md).
+
+## Appearance catalog
+
+`components/appearance.json` (format `simpleui-appearance-library`) is the
+complete control appearance catalog: structures, styles and animations for every
+control. The designer validates it at startup and falls back to the built-in
+catalog when the file is missing or rejected. Dark and Light styles are required
+for every control. The schema is documented in
+[`docs/APPEARANCE_LIBRARY.md`](../docs/APPEARANCE_LIBRARY.md#the-external-appearance-file).

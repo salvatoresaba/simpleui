@@ -586,6 +586,51 @@ var APPEARANCE_CUSTOM = {
     ]
   }
 };
+// ---- external appearance catalog ------------------------------------------
+// components/appearance.json holds the structures, styles and animations for
+// every control. The server validates it; a missing or rejected file leaves the
+// built-in catalog below active.
+var APPEARANCE_CATALOG = null;
+var APPEARANCE_CATALOG_ERROR = "";
+var APPEARANCE_CATALOG_SOURCE = "";
+function appearanceCatalogKind(def, kind) {
+  return kind || (def && def.kinds && def.kinds[0]) || (def && def.id) || "";
+}
+function appearanceCatalogEntry(def, kind) {
+  var k = appearanceCatalogKind(def, kind);
+  if (!k || !APPEARANCE_CATALOG || !APPEARANCE_CATALOG.controls) return null;
+  var list = APPEARANCE_CATALOG.controls;
+  for (var i = 0; i < list.length; i++) if (list[i].kind === k) return list[i];
+  return null;
+}
+function loadAppearanceCatalog(reload) {
+  var url = "/__gui__/appearance" + (reload ? "?reload=1" : "");
+  return fetch(url).then(function(r){ return r.json(); }).then(function(j){
+    if (j && j.ok && j.controls && j.controls.length) {
+      APPEARANCE_CATALOG = { controls: j.controls, source: j.source || "" };
+      APPEARANCE_CATALOG_ERROR = "";
+      APPEARANCE_CATALOG_SOURCE = j.source || "";
+      if (reload) setStatus("Appearance library reloaded from " + (j.source || "components/appearance.json"));
+    } else {
+      APPEARANCE_CATALOG = null;
+      APPEARANCE_CATALOG_ERROR = (j && j.error) ? String(j.error) : "invalid appearance library";
+      if (reload) setStatus("Appearance library rejected; built-in catalog remains available. " + APPEARANCE_CATALOG_ERROR);
+    }
+    if (reload || (document.getElementById("lib-nav") && document.getElementById("lib-nav").classList.contains("on"))) {
+      if (document.getElementById("lib-nav") && document.getElementById("lib-nav").classList.contains("on")) renderLibraryNavigator();
+      if (typeof renderInspector === "function" && selPath) renderInspector();
+    }
+    return j;
+  }).catch(function(err){
+    APPEARANCE_CATALOG = null;
+    APPEARANCE_CATALOG_ERROR = String(err);
+    return null;
+  });
+}
+function reloadDesignerLibraries() {
+  loadComponentLibrary(true);
+  loadAppearanceCatalog(true);
+}
 function appearanceFieldKey(def, re) {
   for (var i = 0; i < def.categories.length; i++) {
     var fs = def.categories[i].fields || [];
@@ -594,16 +639,24 @@ function appearanceFieldKey(def, re) {
   return "";
 }
 function appearanceAnimKey(def) {
+  // Prefer the explicit animation field. The fallback select heuristic must run
+  // only after every category was scanned: controls such as the button also
+  // expose a shadow select whose first option is "none", and picking that field
+  // would overwrite the shadow with an animation value.
+  var fallback = "";
   for (var i = 0; i < def.categories.length; i++) {
     var fs = def.categories[i].fields || [];
     for (var j = 0; j < fs.length; j++) {
       var f = fs[j];
-      if ((f.key || "").indexOf("animation") >= 0 || (f.type === "select" && /^sui-|^none$/.test(String((f.opts || [["", ""]])[0][1] || "")))) return f.key || "";
+      if ((f.key || "").indexOf("animation") >= 0) return f.key || "";
+      if (!fallback && f.type === "select" && /^sui-/.test(String((f.opts || [["", ""]])[0][1] || ""))) fallback = f.key || "";
     }
   }
-  return "";
+  return fallback;
 }
 function appearanceStructures(def, kind) {
+  var ext = appearanceCatalogEntry(def, kind);
+  if (ext && ext.structures && ext.structures.length) return ext.structures;
   var custom = APPEARANCE_CUSTOM[def.id];
   if (custom && custom.structures) return custom.structures;
   if (def.generic) {
@@ -659,8 +712,9 @@ function appearancePalette(def, mode) {
   return vars;
 }
 function appearanceStyles(def, kind) {
+  var ext = appearanceCatalogEntry(def, kind);
   var custom = APPEARANCE_CUSTOM[def.id];
-  var list = custom && custom.styles ? custom.styles.slice() : [];
+  var list = ext && ext.styles && ext.styles.length ? ext.styles.slice() : (custom && custom.styles ? custom.styles.slice() : []);
   if (!list.length) {
     if (def.generic) {
       list = [
@@ -682,7 +736,17 @@ function appearanceStyles(def, kind) {
   if (!light) light = { id: "light", label: "Light", vars: appearancePalette(def, "light") };
   return [dark, light].concat(list);
 }
-function appearanceAnimations(def) {
+function appearanceAnimations(def, kind) {
+  var ext = appearanceCatalogEntry(def, kind);
+  if (ext && ext.animations && ext.animations.length) {
+    var external = [];
+    ext.animations.forEach(function(a){
+      if (!a || !a.id) return;
+      external.push({ id: String(a.id), label: String(a.label || a.id), value: String(a.value || "none") });
+    });
+    if (!external.some(function(o){ return o.value === "none"; })) external.unshift({ id: "none", label: "None", value: "none" });
+    return external;
+  }
   var field = null;
   for (var i = 0; i < def.categories.length && !field; i++) {
     var fs = def.categories[i].fields || [];
@@ -736,7 +800,7 @@ function appearanceThemeLookup(def, kind, id) {
 function appearanceThemes(def, kind) {
   var S = appearanceStructures(def, kind);
   var T = appearanceStyles(def, kind);
-  var A = appearanceAnimations(def);
+  var A = appearanceAnimations(def, kind);
   function pick(list, ids, fallback) {
     for (var i = 0; i < ids.length; i++) for (var j = 0; j < list.length; j++) if (list[j].id === ids[i]) return list[j].id;
     return fallback;
@@ -837,7 +901,7 @@ function appearanceVarsForSelection(def, kind, sel) {
   }
   var st = appearanceVariant(appearanceStructures(def, kind), sel.structure);
   var sy = appearanceVariant(appearanceStyles(def, kind), sel.style);
-  var an = appearanceVariant(appearanceAnimations(def), sel.animation);
+  var an = appearanceVariant(appearanceAnimations(def, kind), sel.animation);
   if (st) Object.keys(st.vars || {}).forEach(function(k){ vars[k] = st.vars[k]; });
   if (sy) Object.keys(sy.vars || {}).forEach(function(k){ vars[k] = sy.vars[k]; });
   var ak = appearanceAnimKey(def) || "animation";
@@ -859,7 +923,7 @@ function appearanceCurrent(node, def, kind) {
   var map = styleDeclMap(node.style || "");
   var structs = appearanceStructures(def, kind);
   var styles = appearanceStyles(def, kind);
-  var anims = appearanceAnimations(def);
+  var anims = appearanceAnimations(def, kind);
   var ak = appearanceAnimKey(def) || "animation";
   var structure = appearanceMatchVariant(structs, map, null, node);
   var style = appearanceMatchVariant(styles, map, null, node);
@@ -900,7 +964,7 @@ function appearanceApply(node, def, patch) {
       if (sy) Object.keys(sy.vars || {}).forEach(function(k){ map[k] = sy.vars[k]; });
     }
     if (patch.animation) {
-      var an = appearanceVariant(appearanceAnimations(def), patch.animation);
+      var an = appearanceVariant(appearanceAnimations(def, kind), patch.animation);
       var ak = appearanceAnimKey(def);
       if (ak) {
         if (an && an.value && an.value !== "none") map[ak] = an.value; else delete map[ak];
@@ -994,16 +1058,19 @@ function appearancePreviewSource(def, kind, sel) {
 }
 function appearanceLoadPreview(def, kind, sel, frame) {
   if (!frame) return;
+  var seq = ++LIB_APP_PREVIEW_SEQ;
   frame.srcdoc = "<!doctype html><html><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#0f1117;color:#8fa0b8;font:13px system-ui,sans-serif'>Loading preview…</body></html>";
   var fd = new URLSearchParams();
   fd.set("sui", appearancePreviewSource(def, kind, sel));
   fetch("/__gui__/source-preview", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
+    if (seq !== LIB_APP_PREVIEW_SEQ) return;
     if (j && j.ok && j.html) frame.srcdoc = j.html;
     else {
       var msg = (j && (j.error || (j.diagnostics && j.diagnostics.length))) ? (j.error || j.diagnostics[0]) : "Preview unavailable";
       frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>" + libNavEscape(msg) + "</body></html>";
     }
   }).catch(function(){
+    if (seq !== LIB_APP_PREVIEW_SEQ) return;
     frame.srcdoc = "<!doctype html><html><body style='margin:0;padding:18px;background:#0f1117;color:#f87171;font:12px ui-monospace,monospace'>Preview request failed.</body></html>";
   });
 }
@@ -1012,7 +1079,7 @@ function appearanceInspectorSection(def, node) {
   var cur = appearanceCurrent(node, def, kind);
   var structs = appearanceStructures(def, kind);
   var styles = appearanceStyles(def, kind);
-  var anims = appearanceAnimations(def);
+  var anims = appearanceAnimations(def, kind);
   var themes = appearanceThemes(def, kind);
   var rows = [];
   function optionRow(label, list, value, onChange, title) {
@@ -1080,6 +1147,7 @@ var LIB_APP_SEL = null;
 var LIB_APP_THEME_ID = "";
 var LIB_APP_FOCUS_COL = "structure";
 var LIB_APP_RESTORE_FOCUS = false;
+var LIB_APP_PREVIEW_SEQ = 0;
 function appearanceDefById(id) {
   for (var i = 0; i < COMPONENT_DEFS.length; i++) if (COMPONENT_DEFS[i].id === id) return COMPONENT_DEFS[i];
   return null;
@@ -1149,7 +1217,12 @@ function appearanceOptionKey(ev, btn, col) {
     else if (ev.key === "ArrowUp") next = Math.max(0, at - 1);
     else if (ev.key === "Home") next = 0;
     else next = buttons.length - 1;
-    if (buttons[next]) { LIB_APP_FOCUS_COL = col; buttons[next].focus(); }
+    if (buttons[next]) {
+      LIB_APP_FOCUS_COL = col;
+      buttons[next].focus();
+      // Moving in a list means selecting: update the selection and the preview.
+      buttons[next].click();
+    }
     return;
   }
   if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") {
@@ -1216,7 +1289,7 @@ function renderAppearanceOptions() {
   }
   list("lib-structures", appearanceStructures(def, kind), "structure");
   list("lib-styles", appearanceStyles(def, kind), "style");
-  list("lib-animations", appearanceAnimations(def), "animation");
+  list("lib-animations", appearanceAnimations(def, kind), "animation");
   if (LIB_APP_RESTORE_FOCUS) {
     LIB_APP_RESTORE_FOCUS = false;
     appearanceFocusColumn(LIB_APP_FOCUS_COL || "structure");
@@ -1258,9 +1331,9 @@ function renderAppearanceNavigator() {
   renderAppearanceTheme();
   var kind = LIB_APP_KIND || def.kinds[0];
   var info = document.getElementById("lib-app-info");
-  if (info) info.textContent = "Arrow keys move within a list, Left/Right switch list, Enter selects. The preview is a real compiled control.";
+  if (info) info.textContent = "Arrow keys move and select (the preview updates), Left/Right switch list, Enter re-applies. The preview is a real compiled control.";
   var status = document.getElementById("lib-app-status");
-  if (status) status.textContent = "";
+  if (status) status.textContent = APPEARANCE_CATALOG_ERROR ? ("Appearance file rejected; built-in catalog active. " + APPEARANCE_CATALOG_ERROR) : "";
   appearanceLoadPreview(def, kind, LIB_APP_SEL, document.getElementById("lib-app-preview"));
 }
 function applyAppearanceFromNavigator() {

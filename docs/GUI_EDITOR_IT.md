@@ -847,8 +847,15 @@ allineamento restano nelle rispettive sezioni dell'Inspector.
 **Insert → Controls library…** apre il navigator con la scheda **Appearance**
 (tutti i controlli, tre liste affiancate per strutture, stili e animazioni,
 anteprima interattiva, temi) e la scheda **Components** per i preset inseribili.
-Le liste si navigano da tastiera: Su/Giù sposta, Sinistra/Destra cambia lista,
-Invio seleziona. La toolbar Insert raggruppa i controlli in **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**,
+Le liste si navigano da tastiera: Su/Giù sposta e seleziona l'opzione raggiunta
+(l'anteprima si aggiorna subito), Sinistra/Destra cambia lista, Home/End salta alla
+prima/ultima opzione, Invio riapplica l'opzione evidenziata. Il catalogo è `components/appearance.json` (formato
+`simpleui-appearance-library`): elenca strutture, stili e animazioni per ogni
+controllo, richiede gli stili Dark e Light ed è validato dal server. Se il file
+manca o viene rifiutato resta attivo il catalogo integrato. Ricaricalo con
+**Preferences  Reload component and appearance libraries**.
+
+La toolbar Insert raggruppa i controlli in **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**,
 **Feedback** e **Advanced**; Advanced contiene table, graph e chart. I temi preferiti sono salvati nel local
 storage dell'editor (`sui.appearance.themes.v1`), non nel file `.sui`.
 
@@ -2062,8 +2069,8 @@ L'inspector **Chart** dipende dal tipo: i campi non utilizzabili vengono nascost
 - **show grid** nascosto per pie, donut, radar, gauge, funnel, heatmap, treemap, bullet e state;
 - **show legend** nascosto per gauge, funnel e state;
 - **show values** nascosto per pie, donut, scatter, gauge, radar e state.
-Cambiando **type** i campi visibili si aggiornano subito. Se `chartType` �
-un'espressione, tutti i campi restano visibili e la compatibilit� viene
+Cambiando **type** i campi visibili si aggiornano subito. Se `chartType` è
+un'espressione, tutti i campi restano visibili e la compatibilità viene
 controllata a runtime.
 
 Se i dati correnti non sono compatibili con il tipo scelto, una finestra di
@@ -2072,7 +2079,7 @@ di esempio adatto al nuovo tipo; annullando si torna al tipo precedente. Un
 grafico vuoto resta vuoto quando cambia tipo: nessun campione viene inserito
 implicitamente. I dati compatibili vengono mantenuti.
 
-Il Gantt usa lo stesso overlay ma legge righe pi� ricche: `task`, `start`, `end`
+Il Gantt usa lo stesso overlay ma legge righe più ricche: `task`, `start`, `end`
 (o `duration`), `progress`, `milestone`, `group`, `parent`, `dependsOn`,
 `dependencyType`, `lag`, `constraint`, `constraintDate`, `status`,
 `color`, `cost`, `actualStart`, `actualEnd`, `remaining`, `work`, `workDone` e

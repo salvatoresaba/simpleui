@@ -817,8 +817,15 @@ stay in their own inspector sections.
 **Insert → Controls library…** opens the navigator with an **Appearance** tab
 (every control, three side-by-side lists for structures, styles and animations,
 interactive preview, themes) and a **Components** tab for insertable presets.
-The appearance lists are keyboard-navigable: Up/Down moves, Left/Right switches
-list, Enter selects. The Insert toolbar groups controls
+The appearance lists are keyboard-navigable: Up/Down moves and selects the reached
+option (the preview updates immediately), Left/Right switches list, Home/End jumps
+to the first/last option, Enter re-applies the focused option. The catalog itself is `components/appearance.json` (format
+`simpleui-appearance-library`): it lists structures, styles and animations for
+every control, requires Dark and Light styles, and is validated by the server.
+A missing or rejected file leaves the built-in catalog active. Reload it with
+**Preferences  Reload component and appearance libraries**.
+
+The Insert toolbar groups controls
 under **Inputs**, **Toggles**, **Actions**, **Panels**, **Data**, **Feedback** and
 **Advanced**; Advanced holds table, graph and chart. Favourite themes are stored in the
 editor's local storage (`sui.appearance.themes.v1`), not in the `.sui` file.

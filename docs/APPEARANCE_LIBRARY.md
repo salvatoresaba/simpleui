@@ -12,9 +12,11 @@ control look and feel the way it does:
 | **Animation** | motion of the parts | None, Pulse, Float, Glow, Jelly, Bounce |
 
 A **theme** is a named structure + style + animation. Themes can be applied as a
-whole, or the three axes can be mixed freely. The catalog is derived from the
-component definitions (`COMPONENT_DEFS`), so every control has at least a default
-structure and style and, when its definition has one, its animation options.
+whole, or the three axes can be mixed freely. The catalog ships in
+[`components/appearance.json`](../components/appearance.json): that file lists the
+structures, styles and animations for every control. The designer validates it at
+startup and keeps a built-in fallback catalog, so a missing or rejected file can
+never break the editor.
 
 ## The inspector section
 
@@ -70,24 +72,84 @@ In Appearance:
 - the middle area shows three **side-by-side lists** - **Structures**,
   **Styles** and **Animations** - for the selected kind, so combinations are
   created without scrolling between sections;
-- the lists are keyboard-navigable: **Up/Down** moves inside the focused list,
-  **Left/Right** switches list, **Home/End** jumps to the first/last option,
-  **Enter** selects the focused option; the current list is highlighted;
+- the lists are keyboard-navigable: **Up/Down** moves inside the focused list and
+  **selects the reached option**, **Left/Right** switches list, **Home/End** jumps
+  to the first/last option, **Enter** selects the focused option; the current list
+  is highlighted;
 - the right column compiles an **interactive preview** of the current
   combination, shows the **Theme** selector, and offers **Save theme…** and
   **Apply to selection**;
 - the preview is a real SimpleUI app compiled by the server
   (`/__gui__/source-preview`), so inputs, toggles and tabs interact normally.
 
+Moving in a list is the same as selecting: the highlight, the side lists and the
+preview update on every **Up/Down/Home/End** key, without pressing **Enter**
+first. **Enter** (or **Space**) re-applies the focused option. The preview runs
+the selected animation with the control's own animation variable and keyframes,
+so pulse, glow, float and the other effects are visible immediately.
+
 Select an option to update the preview immediately. Choose a saved theme to
 restore its full combination. **Apply to selection** writes the current
 combination to the selected control of that kind; select a matching control
 first.
 
+## The external appearance file
+
+`components/appearance.json` is the complete catalog. The editor looks for it in:
+
+1. `<project-dir>/components/appearance.json`
+2. `<current-dir>/components/appearance.json`
+
+The repository ships the full file, so every control starts with its structures,
+styles and animations. The shape is:
+
+```json
+{
+  "format": "simpleui-appearance-library",
+  "version": 1,
+  "controls": [
+    {
+      "kind": "button",
+      "label": "Button",
+      "structures": [
+        { "id": "pill", "label": "Pill", "vars": { "--sui-button-radius": "999px" } }
+      ],
+      "styles": [
+        { "id": "dark", "label": "Dark", "vars": { "--sui-button-bg": "#111827" } },
+        { "id": "light", "label": "Light", "vars": { "--sui-button-bg": "#f8fafc" } }
+      ],
+      "animations": [
+        { "id": "none", "label": "None", "value": "none" },
+        { "id": "glow", "label": "Glow", "value": "sui-button-glow 2.2s ease-in-out infinite" }
+      ]
+    }
+  ]
+}
+```
+
+Rules:
+
+- `kind` must be one of the controls that expose the appearance section (all
+  except **table**, **graph** and **chart**); every kind appears at most once.
+- `structures`, `styles` and `animations` each need at least one entry.
+- `styles` must contain **Dark** and **Light** (ids `dark` and `light`). They are
+  listed first for every control.
+- `animations` must contain a **None** entry.
+- `vars` values are CSS values; `attrs` is limited to the supported structure
+  attributes (`shape`, `size`, `variant`, `tone`).
+- A structure may also use direct CSS keys such as `border-radius` or `padding`.
+- Values containing `;`, `{}`, `<>`, `url(...)`, `expression(...)`,
+  `javascript:` or `!important` are rejected.
+
+Validation is atomic: a malformed file rejects the whole catalog and the editor
+keeps the built-in fallback, showing the reason in the status bar. After editing
+the file, use **Preferences → Reload component and appearance libraries** (or the
+**Reload** button in the navigator) to reload it without restarting.
+
 ## Button example
 
 1. Select a `button` in the Structure tree or preview.
-2. In **Control appearance**, choose **Circular** as the structure.
+2. In the **Button** section, choose **Circular** as the structure.
 3. Choose **Coral** as the style (border, text, fill and shadow change).
 4. Choose **Pulse** as the animation.
 5. Open **Browse…**, check the live preview, then **Save theme…** as “Coral
@@ -110,15 +172,17 @@ without the editor's theme list.
 
 ## Catalog coverage and limits
 
-- Rich catalogs ship for **button**, **checkbox/radio**, **switch**, **card**,
-  **input/textarea/select**, **badge**, **progress**, **spinner**, **slider**,
-  **alert**, **tabs** and **menu bar**. Other controls get a generic catalog with
-  Default, Rounded, Square, Compact and Wide structures; **Dark**, **Light**,
-  Default, Accent and Outline styles; and None, Pulse, Glow, Float and Fade
-  animations (`sui-appearance-*` keyframes written to the project CSS).
+- The bundled `components/appearance.json` covers **every** control that exposes
+  the section. Rich catalogs ship for **button**, **checkbox/radio**, **switch**,
+  **card**, **input/textarea/select**, **badge**, **progress**, **spinner**,
+  **slider**, **alert**, **tabs** and **menu bar**; the other controls get a
+  generic catalog with Default, Rounded, Square, Compact and Wide structures,
+  **Dark** and **Light** plus Default, Accent and Outline styles, and None, Pulse,
+  Glow, Float and Fade animations (`sui-appearance-*` keyframes written to the
+  project CSS).
 - **Dark** and **Light** are always the first two styles for every control;
   custom palettes follow them.
-- Structures and styles are **validated built-in data**, not arbitrary CSS. The
+- Structures and styles are **validated catalog data**, not arbitrary CSS. The
   external `components/library.json` is a separate layer for insertable
   component presets; it does not replace the appearance catalog.
 - Themes save the full appearance declarations for the selected element, so a

@@ -1170,7 +1170,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     <div class="drop" id="drop-prefs">
       <div class="mi" onclick="openPrefs()">Editor preferences.</div>
       <div class="mi" onclick="openProjectPreferences()">Project preferences.</div>
-      <div class="mi" onclick="loadComponentLibrary(true)">Reload component library</div>
+      <div class="mi" onclick="reloadDesignerLibraries()">Reload component and appearance libraries</div>
       <div class="dropsep"></div>
       <div class="mi" id="probbtn" onclick="toggleBottom()">Problems panel</div>
     </div>
@@ -1430,7 +1430,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
       <span id="lib-title">Controls library</span>
       <div id="lib-modes"><button class="btn" type="button" id="lib-mode-appearance" onclick="setLibraryMode(&#39;appearance&#39;)">Appearance</button><button class="btn" type="button" id="lib-mode-components" onclick="setLibraryMode(&#39;components&#39;)">Components</button></div>
       <span id="lib-source" class="hint"></span>
-      <button class="btn" type="button" onclick="loadComponentLibrary(true)">Reload</button>
+      <button class="btn" type="button" onclick="reloadDesignerLibraries()">Reload</button>
       <button class="btn" type="button" onclick="closeLibraryNavigator()" aria-label="Close controls library">&#10005;</button>
     </div>
     <div id="lib-status" class="hint"></div>
@@ -20322,7 +20322,7 @@ function renderInsertMenu() {
     var libRetry = document.createElement('div');
     libRetry.className = 'mi';
     libRetry.textContent = 'Reload component library';
-    libRetry.onclick = function(){ closeMenus(); loadComponentLibrary(true); };
+    libRetry.onclick = function(){ closeMenus(); reloadDesignerLibraries(); };
     drop.appendChild(libRetry);
     var libErrSep = document.createElement('div');
     libErrSep.className = 'dropsep';
@@ -20916,6 +20916,7 @@ function loadRemotePrefs() {
     applyBarOrder();
     __prefsLoaded = true;
     loadComponentLibrary(false);
+loadAppearanceCatalog(false);
   }).catch(function(){});
 }
 var __prefsLoaded = false;

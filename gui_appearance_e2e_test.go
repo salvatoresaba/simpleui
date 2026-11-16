@@ -139,6 +139,8 @@ const guiAppearanceScript = `<script>
   try {
     await until(function () { return typeof __prefsLoaded !== 'undefined' && __prefsLoaded && root && root.children.length > 0; }, 15000);
     await wait(1200);
+    await until(function () { return typeof APPEARANCE_CATALOG !== 'undefined' && !!APPEARANCE_CATALOG; }, 4000);
+    assert(!!APPEARANCE_CATALOG && APPEARANCE_CATALOG.controls.length === APPEARANCE_KINDS.length, 'external appearance catalog not loaded');
     function pathOfKind(kind) {
       function walk(list, base) {
         for (var i = 0; i < list.length; i++) {
@@ -196,17 +198,29 @@ const guiAppearanceScript = `<script>
     await wait(900);
     var frame = document.getElementById('lib-app-preview');
     assert(frame.srcdoc.indexOf('Button') >= 0, 'appearance preview was not compiled');
-    // Keyboard: arrow navigation inside a list, then Enter selects.
+    // Keyboard: moving inside a list selects the item and refreshes the preview.
     var firstStruct = document.querySelector('#lib-structures .lib-app-option');
     assert(!!firstStruct, 'structure options missing');
     firstStruct.focus();
     firstStruct.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await wait(800);
     var focused = document.activeElement;
     assert(focused && focused !== firstStruct && focused.getAttribute('data-col') === 'structure', 'ArrowDown did not move focus in the structure list');
     var keyboardId = focused.getAttribute('data-id');
+    assert(LIB_APP_SEL.structure === keyboardId, 'ArrowDown did not select the focused structure');
+    assert(frame.srcdoc.indexOf('--sui-button-padding: 8px 20px') >= 0, 'ArrowDown did not update the preview');
+    focused = document.activeElement;
     focused.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await wait(500);
     assert(LIB_APP_SEL.structure === keyboardId, 'Enter did not select the focused structure');
+    // The preview must consume the control animation variable, not another slot.
+    var glow = Array.prototype.slice.call(document.querySelectorAll('#lib-animations .lib-app-option')).filter(function (b) { return b.textContent === 'Glow'; })[0];
+    assert(!!glow, 'Glow animation missing');
+    glow.click();
+    await wait(900);
+    assert(LIB_APP_SEL.animation === 'glow', 'Glow was not selected');
+    assert(/--sui-button-animation:\s*sui-button-glow/.test(frame.srcdoc), 'preview does not apply the button animation variable');
+    assert(!/--sui-button-shadow:\s*sui-button-glow/.test(frame.srcdoc), 'animation must not overwrite the shadow variable');
     closeLibraryNavigator();
     // Every non-complex control gets the section; list is a generic catalog.
     var genericPath = pathOfKind('dropdown');

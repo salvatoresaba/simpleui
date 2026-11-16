@@ -145,6 +145,8 @@ func CmdGui(args []string) {
 	srcSet := inputFile != ""
 	var componentLibraryMu sync.Mutex
 	componentLibraryJSON := loadComponentLibraryPayload(initialDir)
+	var appearanceLibraryMu sync.Mutex
+	appearanceLibraryJSON := loadAppearanceLibraryPayload(initialDir)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", guiPage)
@@ -163,6 +165,18 @@ func CmdGui(args []string) {
 	})
 	mux.HandleFunc("GET /__gui__/components.js", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/javascript; charset=utf-8", guiComponentLibraryJS)
+	})
+	mux.HandleFunc("GET /__gui__/appearance", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("reload") != "" {
+			payload := loadAppearanceLibraryPayload(initialDir)
+			appearanceLibraryMu.Lock()
+			appearanceLibraryJSON = payload
+			appearanceLibraryMu.Unlock()
+		}
+		appearanceLibraryMu.Lock()
+		payload := append([]byte(nil), appearanceLibraryJSON...)
+		appearanceLibraryMu.Unlock()
+		writeRawHandler(w, "application/json; charset=utf-8", string(payload))
 	})
 	mux.HandleFunc("POST /__gui__/source-preview", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
