@@ -9,7 +9,7 @@ control look and feel the way it does:
 |---|---|---|
 | **Structure** | shape and drawing | Rectangular, Pill, Circular, Square, Wide |
 | **Style** | colour palette | Midnight, Primary, Coral, Mint, Neon, Ghost |
-| **Animation** | idle effect plus hover, click, focus and state feedback | None, Pulse, Float, Glow, Jelly, Bounce |
+| **Animation** | idle effect plus hover, click, focus and state feedback | None, Feedback, Pulse, Float, Glow, Jelly, Bounce |
 
 A **theme** is a named structure + style + animation. Themes can be applied as a
 whole, or the three axes can be mixed freely. The catalog ships in
@@ -31,7 +31,8 @@ effect plus the feedback for **Hover**, **Click**, **Focus** and **State**
 single phase without changing the others. Applying **Pulse**, for example, keeps
 the pulse loop at rest, grows the control on hover, gives it a jelly reaction on
 click and shows the focus ring plus a bounce on state. **None** disables every
-phase.
+phase, while **Feedback** keeps no idle effect and still reacts to hover, click,
+focus and state.
 
 - **Structure** — selects the shape/drawing; changes radius, padding, size and
   shape attributes as needed;
@@ -212,7 +213,9 @@ without the editor's theme list.
   custom palettes follow them.
 - Every non-None animation set gives feedback on hover, click, focus and state.
   The `feedback` block in `components/appearance.json` supplies the phase
-  declarations and can be edited without touching the compiler.
+  declarations and can be edited without touching the compiler. The **Feedback**
+  set uses that block with no idle animation, so a control can react to actions
+  without a permanent loop.
 - Structures and styles are **validated catalog data**, not arbitrary CSS. The
   external `components/library.json` is a separate layer for insertable
   component presets; it does not replace the appearance catalog.

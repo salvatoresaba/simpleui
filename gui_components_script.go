@@ -736,6 +736,13 @@ function appearanceStyles(def, kind) {
   if (!light) light = { id: "light", label: "Light", vars: appearancePalette(def, "light") };
   return [dark, light].concat(list);
 }
+function appearanceWithFeedbackOption(list) {
+  if (!list.some(function (o) { return o.id === "feedback"; })) {
+    var at = (list.length && list[0].value === "none") ? 1 : 0;
+    list.splice(at, 0, { id: "feedback", label: "Feedback", value: "none", feedback: true });
+  }
+  return list;
+}
 function appearanceAnimations(def, kind) {
   var ext = appearanceCatalogEntry(def, kind);
   if (ext && ext.animations && ext.animations.length) {
@@ -745,7 +752,7 @@ function appearanceAnimations(def, kind) {
       external.push({ id: String(a.id), label: String(a.label || a.id), value: String(a.value || "none") });
     });
     if (!external.some(function(o){ return o.value === "none"; })) external.unshift({ id: "none", label: "None", value: "none" });
-    return external;
+    return appearanceWithFeedbackOption(external);
   }
   var field = null;
   for (var i = 0; i < def.categories.length && !field; i++) {
@@ -754,7 +761,7 @@ function appearanceAnimations(def, kind) {
       if ((fs[j].key || "").indexOf("animation") >= 0) { field = fs[j]; break; }
     }
   }
-  if (!field) return genericAppearanceAnimations();
+  if (!field) return appearanceWithFeedbackOption(genericAppearanceAnimations());
   var out = [];
   var seen = {};
   (field.opts || []).forEach(function(o){
@@ -767,7 +774,7 @@ function appearanceAnimations(def, kind) {
     out.push({ id: id, label: String(o[0] || value), value: value });
   });
   if (!out.some(function(o){ return o.value === "none"; })) out.unshift({ id: "none", label: "None", value: "none" });
-  return out;
+  return appearanceWithFeedbackOption(out);
 }
 function genericAppearanceAnimations() {
   return [
@@ -887,6 +894,10 @@ function appearanceAnimationSetFor(def, kind, id) {
   var opt = null;
   for (var i = 0; i < list.length; i++) if (list[i].id === id) { opt = list[i]; break; }
   if (!opt) return { id: id || "", label: id || "None", value: "none", hover: "none", press: "none", focus: "none", state: "none" };
+  if (opt.feedback) {
+    var ff = appearanceFeedbackFor("Feedback", "none");
+    return { id: opt.id, label: opt.label, value: "none", hover: ff.hover, press: ff.press, focus: ff.focus, state: ff.state };
+  }
   if (!opt.value || opt.value === "none") {
     return { id: opt.id, label: opt.label, value: "none", hover: "none", press: "none", focus: "none", state: "none" };
   }
@@ -948,6 +959,8 @@ function appearanceThemes(def, kind) {
     out.push({ id: id, label: label, structure: structure, style: style, animation: animation, generated: true });
   }
   add("classic", "Classic", s0, t0, a0);
+  var feedback = pick(A, ["feedback"], a0);
+  add("interactive", "Interactive", s0, t0, feedback);
   var round = pick(S, ["pill", "round", "circle"], s0);
   var primary = pick(T, ["primary", "midnight"], t0);
   add("rounded", "Rounded", round, primary, a0);
@@ -1066,8 +1079,20 @@ function appearanceCurrent(node, def, kind) {
   var style = appearanceMatchVariant(styles, map, null, node);
   var animation = "";
   var av = String(map[ak] === undefined ? "" : map[ak]);
-  for (var i = 0; i < anims.length; i++) {
-    if (String(anims[i].value) === av || (av === "" && anims[i].value === "none")) { animation = anims[i].id; break; }
+  var hasPhase = Object.keys(APPEARANCE_PHASE_KEYS).some(function (phase) {
+    var pv = String(map[APPEARANCE_PHASE_KEYS[phase]] === undefined ? "" : map[APPEARANCE_PHASE_KEYS[phase]]);
+    return !!pv && pv !== "none";
+  });
+  if (av && av !== "none") {
+    for (var i = 0; i < anims.length; i++) {
+      if (String(anims[i].value) === av) { animation = anims[i].id; break; }
+    }
+  } else if (hasPhase) {
+    animation = "feedback";
+  } else {
+    for (var n = 0; n < anims.length; n++) {
+      if (String(anims[n].value) === "none" || anims[n].id === "none") { animation = anims[n].id; break; }
+    }
   }
   var theme = "";
   var phases = {};

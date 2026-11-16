@@ -213,6 +213,8 @@ const guiAppearanceScript = `<script>
     assert(kinds[0] === 'Button', 'button should be first in the appearance kinds');
     var opts = Array.prototype.slice.call(document.querySelectorAll('#lib-structures .lib-app-option')).map(function (b) { return b.textContent; });
     assert(opts.join(' ').indexOf('Circular') >= 0, 'navigator structures missing');
+    var animNames = Array.prototype.slice.call(document.querySelectorAll('#lib-animations .lib-app-option')).map(function (b) { return b.textContent; });
+    assert(animNames.indexOf('Feedback') >= 0, 'Feedback animation set missing');
     await wait(900);
     var frame = document.getElementById('lib-app-preview');
     assert(frame.srcdoc.indexOf('Button') >= 0, 'appearance preview was not compiled');
