@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SimpleUI Control Appearance Gallery</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #e5e7eb;
+      background: #0b1020;
+      font-synthesis: none;
+      --panel: #111827;
+      --panel-soft: #151d2e;
+      --line: #273449;
+      --muted: #9aa8bd;
+      --accent: #818cf8;
+      --accent-strong: #4c5cf7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(ellipse at 12% 0%, rgba(76, 92, 247, .18), transparent 34rem),
+        radial-gradient(ellipse at 88% 8%, rgba(34, 211, 238, .09), transparent 30rem),
+        #0b1020;
+    }
+
+    main { width: min(1180px, calc(100% - 36px)); margin: 0 auto; padding: 48px 0 72px; }
+    .eyebrow { color: #a5b4fc; font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 10px 0 12px; font-size: clamp(32px, 6vw, 54px); letter-spacing: -.045em; line-height: 1.04; }
+    .intro { max-width: 720px; margin: 0; color: #b6c1d2; font-size: 16px; line-height: 1.7; }
+    section { margin-top: 52px; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 25px; letter-spacing: -.025em; }
+    .section-note { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .count { color: #a5b4fc; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+    .demo-card {
+      min-width: 0;
+      min-height: 118px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: linear-gradient(145deg, rgba(21, 29, 46, .97), rgba(17, 24, 39, .92));
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .13);
+    }
+    .demo-title { margin: 0 0 16px; color: #dce5f2; font-size: 13px; font-weight: 650; }
+    .demo-sample { display: flex; min-height: 45px; align-items: center; justify-content: center; gap: 12px; }
+    .demo-caption { margin: 12px 0 0; color: #8796ad; font-size: 11px; line-height: 1.5; }
+    .control-label { display: inline-flex; min-height: 36px; align-items: center; gap: 11px; color: #cbd5e1; font-size: 13px; cursor: pointer; }
+    .control-label input { flex: 0 0 auto; }
+
+    .sui-spinner {
+      --sui-spinner-size: 24px;
+      --sui-spinner-thickness: 3px;
+      --sui-spinner-track: rgba(148, 163, 184, .24);
+      --sui-spinner-color: #60a5fa;
+      --sui-spinner-color2: #a78bfa;
+      --sui-spinner-color3: #22d3ee;
+      --sui-spinner-speed: 1s;
+      position: relative;
+      display: inline-block;
+      width: var(--sui-spinner-size);
+      height: var(--sui-spinner-size);
+      flex: 0 0 auto;
+      overflow: hidden;
+      border: var(--sui-spinner-thickness) solid var(--sui-spinner-track);
+      border-top-color: var(--sui-spinner-color);
+      border-radius: var(--sui-spinner-radius, 50%);
+      animation: sui-spin var(--sui-spinner-speed) linear infinite;
+    }
+    .sui-spinner[variant="ring-track"] {
+      border-width: var(--sui-spinner-thickness);
+      border-color: var(--sui-spinner-track);
+      border-top-color: var(--sui-spinner-color);
+      border-right-color: var(--sui-spinner-color);
+    }
+    .sui-spinner[variant="orbit-dots"] { overflow: visible; border: 0; animation: sui-spin var(--sui-spinner-speed) linear infinite; }
+    .sui-spinner[variant="orbit-dots"]::before,
+    .sui-spinner[variant="orbit-dots"]::after {
+      position: absolute;
+      top: 0;
+      left: calc(50% - 3px);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--sui-spinner-color);
+      content: "";
+    }
+    .sui-spinner[variant="orbit-dots"]::after { top: auto; bottom: 0; background: var(--sui-spinner-color2); }
+    .sui-spinner[variant="multiple-dots"] {
+      border: 0;
+      background:
+        radial-gradient(circle at 50% 10%, var(--sui-spinner-color) 0 3px, transparent 4px),
+        radial-gradient(circle at 14% 73%, var(--sui-spinner-color2) 0 3px, transparent 4px),
+        radial-gradient(circle at 86% 73%, var(--sui-spinner-color3) 0 3px, transparent 4px);
+    }
+    .sui-spinner[variant="hourglass"] {
+      border: 0;
+      border-radius: 0;
+      background: linear-gradient(180deg, var(--sui-spinner-color) 0 43%, transparent 43% 57%, var(--sui-spinner-color2) 57% 100%);
+      clip-path: polygon(8% 0, 92% 0, 92% 9%, 61% 46%, 61% 54%, 92% 91%, 92% 100%, 8% 100%, 8% 91%, 39% 54%, 39% 46%, 8% 9%);
+      animation-name: sui-hourglass;
+    }
+    .sui-spinner[variant="fill-wave"] {
+      border: 2px solid var(--sui-spinner-track);
+      background: #0f172a;
+      animation: none;
+    }
+    .sui-spinner[variant="fill-wave"]::before {
+      position: absolute;
+      top: 34%;
+      left: -25%;
+      width: 150%;
+      height: 110%;
+      border-radius: 42% 58% 0 0;
+      background: linear-gradient(180deg, var(--sui-spinner-color2), var(--sui-spinner-color));
+      content: "";
+      animation: sui-wave 1.8s ease-in-out infinite;
+    }
+    .sui-spinner[variant="fill-flip"] {
+      overflow: visible;
+      border: 0;
+      border-radius: var(--sui-spinner-radius, 50%);
+      background: var(--sui-spinner-color);
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+      animation: sui-fill-flip var(--sui-spinner-speed) ease-in-out infinite;
+    }
+    .sui-spinner[variant="fill-flip"]::before {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: var(--sui-spinner-color2);
+      content: "";
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+    }
+    @keyframes sui-spin { to { transform: rotate(360deg); } }
+    @keyframes sui-hourglass { 0%, 45% { transform: rotate(0); } 50%, 95% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+    @keyframes sui-wave { 0%, 100% { transform: translateY(34%) rotate(-8deg); } 50% { transform: translateY(-22%) rotate(8deg); } }
+    @keyframes sui-fill-flip { 0%, 45% { transform: perspective(90px) rotateY(0); } 50%, 95% { transform: perspective(90px) rotateY(180deg); } 100% { transform: perspective(90px) rotateY(360deg); } }
+
+    .sui-checkbox,
+    .sui-radio {
+      position: relative;
+      display: inline-grid;
+      width: var(--sui-cb-size, var(--sui-rd-size, 18px));
+      height: var(--sui-cb-size, var(--sui-rd-size, 18px));
+      flex: 0 0 auto;
+      place-items: center;
+      margin: 0;
+      appearance: none;
+      border: 1px solid #536176;
+      background: #121b2c;
+      cursor: pointer;
+      transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+    .sui-checkbox { border-radius: var(--sui-cb-radius, 4px); }
+    .sui-checkbox::after {
+      width: 5px;
+      height: 9px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      content: "";
+      opacity: 0;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .sui-checkbox:checked { border-color: #6875ff; background: #4c5cf7; }
+    .sui-checkbox:checked::after { opacity: 1; }
+    .sui-checkbox:focus-visible, .sui-radio:focus-visible, .sui-datepicker-input:focus-visible {
+      outline: 2px solid #a5b4fc;
+      outline-offset: 3px;
+    }
+    .sui-cb-shape-square { --sui-cb-radius: 0px; }
+    .sui-cb-shape-rounded { --sui-cb-radius: 7px; }
+    .sui-cb-shape-circle { --sui-cb-radius: 50%; }
+    .sui-cb-shape-orbit { --sui-cb-radius: 50%; box-shadow: inset 0 0 0 3px rgba(148, 163, 184, .24); }
+    .sui-cb-shape-soft { --sui-cb-radius: 6px; box-shadow: 0 3px 9px rgba(99, 102, 241, .2); }
+    .sui-cb-shape-ios { width: 31px; height: 18px; border-radius: 999px; background: #334155; }
+    .sui-cb-shape-ios::after { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; opacity: 1; transform: none; transition: left .16s ease; }
+    .sui-cb-shape-ios:checked { background: #4c5cf7; }
+    .sui-cb-shape-ios:checked::after { left: 15px; }
+    .sui-cb-shape-minimal { border-color: #8b9bb3; background: transparent; }
+    .sui-cb-shape-diamond { border-radius: 0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+    .sui-cb-shape-pill { width: 26px; height: 16px; border-radius: 999px; }
+    .sui-cb-shape-pill::after { width: 4px; height: 7px; }
+    .sui-checkbox.sui-cb-symbol-plus:checked::after,
+    .sui-checkbox.sui-cb-symbol-cross:checked::after,
+    .sui-checkbox.sui-cb-symbol-star:checked::after,
+    .sui-checkbox.sui-cb-symbol-heart:checked::after {
+      display: grid;
+      width: 100%;
+      height: 100%;
+      place-items: center;
+      border: 0;
+      color: #fff;
+      opacity: 1;
+      transform: none;
+    }
+    .sui-cb-symbol-plus:checked::after { content: "+"; font-size: 19px; font-weight: 500; }
+    .sui-cb-symbol-cross:checked::after { content: "\00d7"; font-size: 20px; font-weight: 400; }
+    .sui-cb-symbol-star:checked::after { content: "\2605"; font-size: 12px; }
+    .sui-cb-symbol-heart:checked::after { content: "\2665"; font-size: 14px; }
+
+    .sui-radio {
+      --sui-rd-radius: 50%;
+      --sui-rd-dot-size: 6px;
+      border: 2px solid #66758d;
+      border-radius: var(--sui-rd-radius);
+      background: #121b2c;
+    }
+    .sui-radio::after {
+      width: var(--sui-rd-dot-size);
+      height: var(--sui-rd-dot-size);
+      border-radius: 50%;
+      background: #fff;
+      content: "";
+      opacity: 0;
+      transform: scale(.5);
+      transition: opacity .16s ease, transform .16s ease;
+    }
+    .sui-radio:checked { border-color: #6875ff; background: #4c5cf7; }
+    .sui-radio:checked::after { opacity: 1; transform: scale(1); }
+    .sui-rd-shape-soft { border-color: #818cf8; box-shadow: 0 0 0 4px rgba(129, 140, 248, .12); }
+    .sui-rd-shape-minimal { border-width: 1px; background: transparent; }
+    .sui-rd-shape-square { --sui-rd-radius: 5px; }
+    .sui-rd-shape-diamond { --sui-rd-radius: 4px; transform: rotate(45deg); }
+    .sui-rd-shape-target { border-width: 3px; box-shadow: inset 0 0 0 3px rgba(148, 163, 184, .16); }
+    .sui-rd-shape-ring { border-width: 4px; }
+    .sui-rd-shape-check:checked::after {
+      width: 5px;
+      height: 9px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      border-radius: 0;
+      background: transparent;
+      opacity: 1;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+
+    .datepicker-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+    .datepicker-card { padding: 14px; }
+    .sui-datepicker { position: relative; min-width: 0; }
+    .sui-datepicker-label { display: block; margin-bottom: 6px; color: #a7b3c6; font-size: 11px; font-weight: 650; }
+    .sui-datepicker-control { display: flex; align-items: center; }
+    .sui-datepicker-input {
+      width: 100%;
+      min-width: 0;
+      height: 38px;
+      padding: var(--sui-datepicker-padding, 8px 11px);
+      border: 1px solid var(--sui-datepicker-border, #3d4556);
+      border-radius: var(--sui-datepicker-radius, 8px);
+      background: var(--sui-datepicker-bg, #111827);
+      color: var(--sui-datepicker-fg, #e5e7eb);
+      box-shadow: var(--sui-datepicker-shadow, none);
+      font: inherit;
+      font-size: 12px;
+    }
+    .sui-datepicker-input:hover { border-color: #818cf8; }
+    .calendar-demo { margin-top: 12px; }
+    .sui-datepicker-calendar {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--sui-datepicker-border, #334155);
+      border-radius: var(--sui-datepicker-calendar-radius, 12px);
+      background: var(--sui-datepicker-calendar-bg, #101827);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
+    }
+    .calendar-header { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; gap: 5px; margin-bottom: 8px; }
+    .calendar-title { color: var(--sui-datepicker-fg, #e5e7eb); font-size: 12px; font-weight: 700; text-align: center; }
+    .month-button { width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: #bdc9da; font: inherit; font-size: 20px; cursor: pointer; }
+    .month-button:hover { background: rgba(148, 163, 184, .14); }
+    .weekdays, .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+    .weekdays { margin-bottom: 4px; color: #8493aa; font-size: 9px; font-weight: 700; text-align: center; }
+    .weekdays span { padding: 4px 0; }
+    .day {
+      min-width: 0;
+      height: 30px;
+      border: 1px solid transparent;
+      border-radius: var(--sui-datepicker-day-radius, 8px);
+      background: transparent;
+      color: var(--sui-datepicker-fg, #dce5f2);
+      font: inherit;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .day:hover { background: rgba(148, 163, 184, .14); }
+    .day.outside { color: #718099; opacity: .6; }
+    .day.today { border-color: var(--sui-datepicker-today, #818cf8); }
+    .day.selected { background: var(--sui-datepicker-selected, #4c5cf7); color: var(--sui-datepicker-selected-fg, #fff); font-weight: 750; }
+    .day:focus-visible, .month-button:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 1px; }
+    .calendar-circles { --sui-datepicker-calendar-radius: 18px; --sui-datepicker-day-radius: 50%; --sui-datepicker-selected: #7c3aed; --sui-datepicker-today: #c4b5fd; }
+    .calendar-tiles { --sui-datepicker-calendar-radius: 4px; --sui-datepicker-day-radius: 3px; --sui-datepicker-selected: #0e7490; --sui-datepicker-today: #22d3ee; }
+    .field-rounded { --sui-datepicker-radius: 999px; }
+    .field-square { --sui-datepicker-radius: 0px; }
+    .field-soft { --sui-datepicker-radius: 14px; --sui-datepicker-padding: 10px 14px; --sui-datepicker-shadow: 0 4px 14px rgba(0, 0, 0, .22); }
+    footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); color: #8493aa; font-size: 12px; }
+
+    @media (max-width: 620px) {
+      main { width: min(100% - 24px, 1180px); padding-top: 32px; }
+      section { margin-top: 38px; }
+      .section-heading { align-items: start; flex-direction: column; gap: 8px; }
+      .demo-card { padding: 13px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+      .sui-spinner { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">SimpleUI · Appearance</div>
+      <h1>Control gallery</h1>
+      <p class="intro">A hands-on showcase of the spinner, checkbox, radio and date-picker structures in the appearance library. Toggle the controls, inspect the animated loaders and try the calendar day shapes.</p>
+    </header>
+
+    <section aria-labelledby="spinner-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="spinner-heading">Spinners</h2>
+          <p class="section-note">Every structure, from compact rings to liquid and two-colour motion.</p>
+        </div>
+        <span class="count" id="spinner-count"></span>
+      </div>
+      <div class="gallery-grid" id="spinner-gallery"></div>
+    </section>
+
+    <section aria-labelledby="checkbox-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="checkbox-heading">Checkboxes</h2>
+          <p class="section-note">All sizes, silhouettes and checked symbols. Each sample is a real, toggleable checkbox.</p>
+        </div>
+        <span class="count" id="checkbox-count"></span>
+      </div>
+      <div class="gallery-grid" id="checkbox-gallery"></div>
+    </section>
+
+    <section aria-labelledby="radio-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="radio-heading">Radio buttons</h2>
+          <p class="section-note">Circle, soft, minimal, square, diamond, target, bold ring and check-mark options.</p>
+        </div>
+        <span class="count" id="radio-count"></span>
+      </div>
+      <div class="gallery-grid" id="radio-gallery"></div>
+    </section>
+
+    <section aria-labelledby="datepicker-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="datepicker-heading">Date pickers</h2>
+          <p class="section-note">Native and SimpleUI calendar options, plus the input shapes. Calendar days can be selected and the month can be changed.</p>
+        </div>
+        <span class="count" id="datepicker-count"></span>
+      </div>
+      <div class="gallery-grid datepicker-grid" id="datepicker-gallery"></div>
+    </section>
+
+    <footer>All samples are local: no external fonts, scripts or network requests.</footer>
+  </main>
+
+  <script>
+    const spinnerVariants = [
+      { id: "small", label: "Small", vars: { "--sui-spinner-size": "16px", "--sui-spinner-thickness": "2px" } },
+      { id: "default", label: "Default", vars: { "--sui-spinner-size": "24px", "--sui-spinner-thickness": "3px" } },
+      { id: "large", label: "Large", vars: { "--sui-spinner-size": "36px", "--sui-spinner-thickness": "4px" } },
+      { id: "ring-track", label: "Ring track", variant: "ring-track", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "4px", "--sui-spinner-track": "rgba(148,163,184,.26)", "--sui-spinner-color": "#7c3aed" } },
+      { id: "orbit-dots", label: "Orbit dots", variant: "orbit-dots", vars: { "--sui-spinner-size": "30px", "--sui-spinner-color": "#60a5fa", "--sui-spinner-color2": "#a78bfa", "--sui-spinner-speed": "1.2s" } },
+      { id: "multiple-dots", label: "Three orbiting dots", variant: "multiple-dots", vars: { "--sui-spinner-size": "32px", "--sui-spinner-thickness": "0px", "--sui-spinner-dot-size": "3px", "--sui-spinner-color": "#60a5fa", "--sui-spinner-color2": "#a78bfa", "--sui-spinner-color3": "#22d3ee", "--sui-spinner-speed": "1.1s" } },
+      { id: "hourglass", label: "Hourglass", variant: "hourglass", vars: { "--sui-spinner-size": "30px", "--sui-spinner-color": "#f59e0b", "--sui-spinner-color2": "#fcd34d", "--sui-spinner-speed": "1.4s" } },
+      { id: "fill-wave", label: "Liquid fill", variant: "fill-wave", vars: { "--sui-spinner-size": "30px", "--sui-spinner-thickness": "2px", "--sui-spinner-track": "rgba(148,163,184,.5)", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-color2": "#22d3ee", "--sui-spinner-speed": "1.8s" } },
+      { id: "fill-flip", label: "Two-colour flip", variant: "fill-flip", vars: { "--sui-spinner-size": "28px", "--sui-spinner-thickness": "0px", "--sui-spinner-radius": "50%", "--sui-spinner-color": "#4c5cf7", "--sui-spinner-color2": "#22d3ee", "--sui-spinner-speed": "1.4s" } }
+    ];
+
+    const checkboxVariants = [
+      { id: "compact", label: "Compact", vars: { "--sui-cb-size": "14px" } },
+      { id: "default", label: "Default", vars: { "--sui-cb-size": "18px" } },
+      { id: "large", label: "Large", vars: { "--sui-cb-size": "24px" } },
+      { id: "square", label: "Square" },
+      { id: "rounded", label: "Rounded" },
+      { id: "circle", label: "Circle" },
+      { id: "orbit", label: "Orbit" },
+      { id: "soft", label: "Soft" },
+      { id: "ios", label: "iOS" },
+      { id: "minimal", label: "Minimal" },
+      { id: "diamond", label: "Diamond" },
+      { id: "pill", label: "Pill" },
+      { id: "plus", label: "Plus symbol", symbol: true },
+      { id: "cross", label: "Cross symbol", symbol: true },
+      { id: "star", label: "Star symbol", symbol: true },
+      { id: "heart", label: "Heart symbol", symbol: true }
+    ];
+
+    const radioVariants = [
+      { id: "compact", label: "Compact", vars: { "--sui-rd-size": "14px", "--sui-rd-dot-size": "5px" } },
+      { id: "default", label: "Default", vars: { "--sui-rd-size": "18px", "--sui-rd-dot-size": "6px" } },
+      { id: "large", label: "Large", vars: { "--sui-rd-size": "24px", "--sui-rd-dot-size": "9px" } },
+      { id: "soft", label: "Soft" },
+      { id: "minimal", label: "Minimal" },
+      { id: "square", label: "Square" },
+      { id: "diamond", label: "Diamond" },
+      { id: "target", label: "Target" },
+      { id: "ring", label: "Bold ring" },
+      { id: "check", label: "Check mark" }
+    ];
+
+    function makeCard(title, className) {
+      const card = document.createElement("article");
+      card.className = "demo-card" + (className ? " " + className : "");
+      const heading = document.createElement("h3");
+      heading.className = "demo-title";
+      heading.textContent = title;
+      card.appendChild(heading);
+      return card;
+    }
+
+    function applyVars(element, vars) {
+      for (const [name, value] of Object.entries(vars || {})) element.style.setProperty(name, value);
+    }
+
+    function renderSpinners() {
+      const gallery = document.getElementById("spinner-gallery");
+      for (const item of spinnerVariants) {
+        const card = makeCard(item.label);
+        const sample = document.createElement("div");
+        sample.className = "demo-sample";
+        const spinner = document.createElement("span");
+        spinner.className = "sui-spinner";
+        spinner.setAttribute("role", "status");
+        spinner.setAttribute("aria-label", item.label + " loading");
+        if (item.variant) spinner.setAttribute("variant", item.variant);
+        applyVars(spinner, item.vars);
+        sample.appendChild(spinner);
+        card.appendChild(sample);
+        gallery.appendChild(card);
+      }
+      document.getElementById("spinner-count").textContent = spinnerVariants.length + " structures";
+    }
+
+    function renderChecks() {
+      const gallery = document.getElementById("checkbox-gallery");
+      for (const item of checkboxVariants) {
+        const card = makeCard(item.label);
+        const sample = document.createElement("div");
+        sample.className = "demo-sample";
+        const label = document.createElement("label");
+        label.className = "control-label";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = true;
+        input.className = "sui-checkbox";
+        input.setAttribute("aria-label", item.label + " checkbox");
+        if (item.symbol) input.classList.add("sui-cb-symbol-" + item.id);
+        else if (!["compact", "default", "large"].includes(item.id)) input.classList.add("sui-cb-shape-" + item.id);
+        applyVars(input, item.vars);
+        const text = document.createElement("span");
+        text.textContent = "Toggle me";
+        label.append(input, text);
+        sample.appendChild(label);
+        card.appendChild(sample);
+        gallery.appendChild(card);
+      }
+      document.getElementById("checkbox-count").textContent = checkboxVariants.length + " structures";
+    }
+
+    function renderRadios() {
+      const gallery = document.getElementById("radio-gallery");
+      for (const item of radioVariants) {
+        const card = makeCard(item.label);
+        const sample = document.createElement("div");
+        sample.className = "demo-sample";
+        const label = document.createElement("label");
+        label.className = "control-label";
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "radio-" + item.id;
+        input.checked = true;
+        input.className = "sui-radio";
+        input.setAttribute("aria-label", item.label + " radio button");
+        if (!["compact", "default", "large"].includes(item.id)) input.classList.add("sui-rd-shape-" + item.id);
+        applyVars(input, item.vars);
+        const text = document.createElement("span");
+        text.textContent = "Selected";
+        label.append(input, text);
+        sample.appendChild(label);
+        card.appendChild(sample);
+        gallery.appendChild(card);
+      }
+      document.getElementById("radio-count").textContent = radioVariants.length + " structures";
+    }
+
+    const dateVariants = [
+      { id: "default", label: "Default", kind: "native" },
+      { id: "native", label: "Native picker", kind: "native" },
+      { id: "calendar", label: "SimpleUI calendar", kind: "calendar" },
+      { id: "calendar-circles", label: "Calendar circles", kind: "calendar-circles" },
+      { id: "calendar-tiles", label: "Calendar tiles", kind: "calendar-tiles" },
+      { id: "round", label: "Rounded", kind: "field", className: "field-rounded" },
+      { id: "square", label: "Square", kind: "field", className: "field-square" },
+      { id: "soft", label: "Soft", kind: "field", className: "field-soft" }
+    ];
+
+    function formatDate(date) {
+      return String(date.getDate()).padStart(2, "0") + "/" +
+        String(date.getMonth() + 1).padStart(2, "0") + "/" + date.getFullYear();
+    }
+
+    function renderCalendar(card, variant, initialDate) {
+      const calendar = document.createElement("div");
+      calendar.className = "sui-datepicker-calendar";
+      calendar.classList.add("calendar-demo");
+      if (variant === "calendar-circles") calendar.classList.add("calendar-circles");
+      if (variant === "calendar-tiles") calendar.classList.add("calendar-tiles");
+      const header = document.createElement("div");
+      header.className = "calendar-header";
+      const previous = document.createElement("button");
+      previous.type = "button";
+      previous.className = "month-button";
+      previous.setAttribute("aria-label", "Previous month");
+      previous.textContent = "‹";
+      const title = document.createElement("div");
+      title.className = "calendar-title";
+      title.setAttribute("aria-live", "polite");
+      const next = document.createElement("button");
+      next.type = "button";
+      next.className = "month-button";
+      next.setAttribute("aria-label", "Next month");
+      next.textContent = "›";
+      header.append(previous, title, next);
+      const weekdays = document.createElement("div");
+      weekdays.className = "weekdays";
+      for (const day of ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]) {
+        const cell = document.createElement("span");
+        cell.textContent = day;
+        weekdays.appendChild(cell);
+      }
+      const days = document.createElement("div");
+      days.className = "days";
+      calendar.append(header, weekdays, days);
+
+      const field = card.querySelector(".sui-datepicker-input");
+      let viewing = new Date(initialDate.getFullYear(), initialDate.getMonth(), 1);
+      let selected = new Date(initialDate.getFullYear(), initialDate.getMonth(), initialDate.getDate());
+      function draw() {
+        title.textContent = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(viewing);
+        days.replaceChildren();
+        const offset = (viewing.getDay() + 6) % 7;
+        const first = new Date(viewing.getFullYear(), viewing.getMonth(), 1 - offset);
+        for (let index = 0; index < 42; index++) {
+          const date = new Date(first.getFullYear(), first.getMonth(), first.getDate() + index);
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "day";
+          button.textContent = String(date.getDate());
+          button.setAttribute("aria-label", new Intl.DateTimeFormat("en", { dateStyle: "full" }).format(date));
+          button.setAttribute("aria-pressed", date.toDateString() === selected.toDateString() ? "true" : "false");
+          if (date.getMonth() !== viewing.getMonth()) button.classList.add("outside");
+          if (date.toDateString() === new Date().toDateString()) button.classList.add("today");
+          if (date.toDateString() === selected.toDateString()) button.classList.add("selected");
+          button.addEventListener("click", () => {
+            selected = date;
+            field.value = formatDate(date);
+            field.dispatchEvent(new Event("change", { bubbles: true }));
+            draw();
+          });
+          days.appendChild(button);
+        }
+      }
+      previous.addEventListener("click", () => {
+        viewing = new Date(viewing.getFullYear(), viewing.getMonth() - 1, 1);
+        draw();
+      });
+      next.addEventListener("click", () => {
+        viewing = new Date(viewing.getFullYear(), viewing.getMonth() + 1, 1);
+        draw();
+      });
+      draw();
+      card.appendChild(calendar);
+    }
+
+    function renderDatePickers() {
+      const gallery = document.getElementById("datepicker-gallery");
+      document.getElementById("datepicker-count").textContent = dateVariants.length + " structures";
+      const now = new Date();
+      const initialDate = new Date(now.getFullYear(), now.getMonth(), Math.min(16, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()));
+      for (const item of dateVariants) {
+        const card = makeCard(item.label, "datepicker-card");
+        const fieldWrap = document.createElement("div");
+        fieldWrap.className = "sui-datepicker";
+        if (item.className) fieldWrap.classList.add(item.className);
+        const label = document.createElement("label");
+        label.className = "sui-datepicker-label";
+        label.textContent = item.kind === "native" ? "Choose a date" : "Date";
+        const input = document.createElement("input");
+        input.className = "sui-datepicker-input";
+        input.id = "datepicker-" + item.id;
+        input.setAttribute("aria-label", item.label);
+        label.htmlFor = input.id;
+        if (item.kind === "native") {
+          input.type = "date";
+          input.value = initialDate.getFullYear() + "-" + String(initialDate.getMonth() + 1).padStart(2, "0") + "-" + String(initialDate.getDate()).padStart(2, "0");
+        } else {
+          input.type = "text";
+          input.inputMode = "numeric";
+          input.value = formatDate(initialDate);
+          input.addEventListener("input", () => {
+            const digits = input.value.replace(/\D/g, "").slice(0, 8);
+            let value = digits.slice(0, 2);
+            if (digits.length >= 2) value += "/";
+            if (digits.length > 2) value += digits.slice(2, 4);
+            if (digits.length >= 4) value += "/";
+            if (digits.length > 4) value += digits.slice(4, 8);
+            input.value = value;
+          });
+        }
+        fieldWrap.append(label, input);
+        card.appendChild(fieldWrap);
+        if (item.kind === "calendar" || item.kind === "calendar-circles" || item.kind === "calendar-tiles") {
+          renderCalendar(card, item.kind, initialDate);
+        }
+        gallery.appendChild(card);
+      }
+    }
+
+    renderSpinners();
+    renderChecks();
+    renderRadios();
+    renderDatePickers();
+  </script>
+</body>
+</html>
