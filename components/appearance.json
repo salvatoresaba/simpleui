@@ -1240,6 +1240,21 @@
           "value": "sui-switch-pop .3s cubic-bezier(.2,1.4,.4,1)"
         },
         {
+          "id": "morph",
+          "label": "Morph",
+          "value": "sui-switch-morph .38s cubic-bezier(.2,.8,.2,1)"
+        },
+        {
+          "id": "fade",
+          "label": "Fade",
+          "value": "sui-switch-fade .28s ease-out"
+        },
+        {
+          "id": "scale",
+          "label": "Scale",
+          "value": "sui-switch-scale .3s cubic-bezier(.2,1.2,.4,1)"
+        },
+        {
           "id": "bounce",
           "label": "Bounce",
           "value": "sui-switch-bounce .36s cubic-bezier(.2,1.3,.4,1)"

@@ -256,6 +256,10 @@ without the editor's theme list.
   declarations and can be edited without touching the compiler. The **Feedback**
   set uses that block with no idle animation, so a control can react to actions
   without a permanent loop.
+- The **switch** exposes **Morph**, **Fade** and **Scale** in addition to Pop,
+  Bounce, Pulse and Jelly. Its thumb transitions between the two states even
+  with **None**, and every switch structure (rounded, square, pill, iOS,
+  material, minimal, soft) sets its own size and thumb geometry.
 - Structures and styles are **validated catalog data**, not arbitrary CSS. The
   external `components/library.json` is a separate layer for insertable
   component presets; it does not replace the appearance catalog.

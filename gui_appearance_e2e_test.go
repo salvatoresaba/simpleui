@@ -156,6 +156,11 @@ const guiAppearanceScript = `<script>
     var inputMotion = [inputSet.hover, inputSet.press, inputSet.focus, inputSet.state].join(' ');
     assert(!/sui-fx-(lift|grow|tilt|press|pop|jelly|bounce|slide)/.test(inputMotion), 'text entry feedback must not move or resize: ' + inputMotion);
     assert(/sui-fx-ring/.test(inputSet.hover) && /sui-fx-ring/.test(inputSet.focus), 'text entry feedback must use the ring');
+    var switchDef = componentDefForKind('switch');
+    var switchAnims = appearanceAnimations(switchDef, 'switch').map(function (a) { return a.label; });
+    assert(switchAnims.indexOf('Morph') >= 0 && switchAnims.indexOf('Fade') >= 0 && switchAnims.indexOf('Scale') >= 0, 'switch animations missing Morph/Fade/Scale: ' + switchAnims);
+    var switchIos = appearanceStructures(switchDef, 'switch').filter(function (s) { return s.id === 'ios'; })[0];
+    assert(!!switchIos && switchIos.attrs && switchIos.attrs.shape === 'ios', 'switch iOS structure must set shape');
     function pathOfKind(kind) {
       function walk(list, base) {
         for (var i = 0; i < list.length; i++) {

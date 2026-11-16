@@ -1653,6 +1653,7 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
   background:var(--sui-sw-thumb-color);
   border-radius:var(--sui-sw-thumb-radius);
   transform:translate(var(--sui-sw-thumb-x), var(--sui-sw-thumb-y));
+  transition:transform .22s cubic-bezier(.2,.8,.2,1), width .22s ease, height .22s ease, border-radius .22s ease, background-color .22s ease;
   will-change:transform, width, height, background-color;
 }
 .sui-switch:checked {
