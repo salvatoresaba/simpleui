@@ -48,7 +48,7 @@ func TestGuiMotionPanelsGolden(t *testing.T) {
 		t.Skip("no Chrome/Edge found; skipping motion panel golden test")
 	}
 
-	page := strings.Replace(guiHTML, "</body>", guiMotionGoldenScript+"</body>", 1)
+	page := injectGuiTestScript(guiMotionGoldenScript)
 	if page == guiHTML {
 		t.Fatal("designer page has no closing body")
 	}
@@ -60,7 +60,7 @@ func TestGuiMotionPanelsGolden(t *testing.T) {
 	defer ln.Close()
 
 	var lastHTML string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})

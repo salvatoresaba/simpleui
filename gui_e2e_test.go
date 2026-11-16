@@ -23,7 +23,7 @@ func TestGuiDesignerE2E(t *testing.T) {
 	chart "Bars" name: "b" data: "Month,Value\nJan,12\nFeb,18" chartType: "bar"
 }`
 
-	page := strings.Replace(guiHTML, "</body>", guiE2EScript+"</body>", 1)
+	page := injectGuiTestScript(guiE2EScript)
 	if page == guiHTML {
 		t.Fatal("designer page has no closing body")
 	}
@@ -35,7 +35,7 @@ func TestGuiDesignerE2E(t *testing.T) {
 	defer ln.Close()
 
 	var lastHTML string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
@@ -122,7 +122,7 @@ func TestGuiMotionDesignerE2E(t *testing.T) {
 
 	const source = guiMotionDesignerSource
 
-	page := strings.Replace(guiHTML, "</body>", guiMotionDesignerScript+"</body>", 1)
+	page := injectGuiTestScript(guiMotionDesignerScript)
 	if page == guiHTML {
 		t.Fatal("designer page has no closing body")
 	}
@@ -134,7 +134,7 @@ func TestGuiMotionDesignerE2E(t *testing.T) {
 	defer ln.Close()
 
 	var lastHTML string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
@@ -238,7 +238,7 @@ const guiE2EScript = `<script>
     if (!el) {
       el = document.createElement('div');
       el.id = 'e2e-result';
-      document.body.appendChild(el);
+      document.body.insertBefore(el, document.body.firstChild);
     }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
@@ -316,7 +316,7 @@ const guiMotionDesignerScript = `<script>
     if (!el) {
       el = document.createElement('div');
       el.id = 'e2e-result';
-      document.body.appendChild(el);
+      document.body.insertBefore(el, document.body.firstChild);
     }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';

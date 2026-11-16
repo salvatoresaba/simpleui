@@ -844,6 +844,23 @@ viene incorporato direttamente nel sorgente SUI quando lo applichi. Usa un
 percorso relativo locale invece di un asset quando vuoi che il file viva accanto
 al progetto.
 
+## Component library
+
+Il menu **Insert** viene esteso da `components/library.json` accanto al progetto
+(o nella directory di lavoro). La GUI lo legge all'avvio, valida l'intero file e
+mostra i gruppi accettati prima di quelli integrati. Gli strumenti esterni possono
+modificare il file e usare **Preferences → Reload component library** senza
+riavviare l'editor.
+
+Un file rifiutato viene segnalato come `Library rejected: ...` nel menu Insert e
+nella barra di stato; il catalogo integrato resta disponibile. Una libreria può
+aggiungere preset sopra i kind standard, organizzarli per tipo di controllo e
+rinominare o raggruppare un kind integrato con `"override": true`.
+
+Vedi [External component library](COMPONENT_LIBRARY.md) per lo schema JSON, i
+kind supportati, le allow-list di CSS e attributi, i limiti di dimensione e il
+check di compilazione eseguito su ogni componente.
+
 ## Drag and drop del designer
 
 Il drag and drop interno del designer è sempre attivo. Non esiste un'impostazione,

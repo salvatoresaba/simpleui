@@ -812,6 +812,23 @@ Uploads are session-scoped: they are not written to disk, and the data URL is
 embedded directly in the SUI source when you apply it. Use a local relative path
 instead of an asset when you want the file to live next to the project.
 
+## Component library
+
+**Insert** is extended by `components/library.json` next to the project (or in
+the working directory). The GUI reads it at startup, validates the whole file
+and shows the accepted groups before the built-in ones. External tools can edit
+the file and use **Preferences → Reload component library** without restarting
+the editor.
+
+A rejected file is reported as `Library rejected: ...` in the Insert menu and in
+the status bar; the built-in catalog remains available. A library can add
+presets over the standard element kinds, group them by control type, and rename
+or re-group a built-in kind with `"override": true`.
+
+See [External component library](COMPONENT_LIBRARY.md) for the JSON schema, the
+supported kinds, the CSS and attribute allow-lists, the size limits and the
+compile check performed on every component.
+
 ## Designer drag and drop
 
 The designer's own drag and drop is always enabled. There is no setting,

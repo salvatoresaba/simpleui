@@ -1122,6 +1122,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     <div class="drop" id="drop-prefs">
       <div class="mi" onclick="openPrefs()">Editor preferences.</div>
       <div class="mi" onclick="openProjectPreferences()">Project preferences.</div>
+      <div class="mi" onclick="loadComponentLibrary(true)">Reload component library</div>
       <div class="dropsep"></div>
       <div class="mi" id="probbtn" onclick="toggleBottom()">Problems panel</div>
     </div>
@@ -2048,6 +2049,7 @@ RUNNING</div>
     </div>
   </div>
 </div>
+<script src="/__gui__/components.js"></script>
 <script>
 "use strict";
 // Designer resilience: server restarts re-bind one stable port and an open
@@ -4753,69 +4755,73 @@ var KIND_PLACEHOLDER = {
   code: "code", mark: "highlight", strong: "bold text", em: "italic text",
   small: "small text", legend: "Legend", badge: "badge"
 };
+function insertNodeAtSelection(node, kind) {
+  var insPath = null;
+  var insertedIntoCell = false;
+  var targetCell = selLayoutCell;
+  var targetTablePath = null;
+  if (selPath) {
+    var selNode = byPath(selPath, root.children);
+    if (selNode && selNode.kind === "layoutcell") {
+      targetTablePath = selPath.slice(0, -1);
+      if (!targetCell) targetCell = { row: Number(selNode.layoutRow || 0), col: Number(selNode.layoutCol || 0) };
+    } else if (selNode && selNode.kind === "tablelayout") {
+      targetTablePath = selPath;
+    }
+  }
+  if (targetCell && targetTablePath) {
+    var tl = byPath(targetTablePath, root.children);
+    if (tl && tl.kind === "tablelayout") {
+      materializeLayoutCells(tl);
+      var at = layoutCellNodeAt(tl, targetCell.row, targetCell.col);
+      if (at && at.node && at.node.kind === "layoutcell") {
+        at.node.children = at.node.children || [];
+        at.node.children.push(node);
+        insPath = targetTablePath.concat([at.index, at.node.children.length - 1]);
+        insertedIntoCell = true;
+      }
+    }
+  }
+  if (!insertedIntoCell) {
+    if (selPath) {
+      var sel = byPath(selPath, root.children);
+      if (canNest(sel.kind)) {
+        sel.children.push(node);
+        insPath = selPath.concat([sel.children.length - 1]);
+      } else {
+        // leaf selected: insert as the next sibling
+        var par = selPath.slice(0, -1);
+        var arr = par.length === 0 ? root.children : byPath(par, root.children).children;
+        var pos = selPath[selPath.length - 1] + 1;
+        arr.splice(pos, 0, node);
+        insPath = par.concat([pos]);
+      }
+    } else {
+      // no selection: append at the root (inside the virtual body)
+      root.children.push(node);
+      insPath = [root.children.length - 1];
+    }
+  }
+  // Tables are wrapped in a scroll container so a fixed-size parent shows
+  // scrollbars only when rows/columns are actually hidden. A table inserted
+  // from the palette is a workbook by default: one sheet plus a + tab.
+  if (kind === "table") {
+    var tablePath = wrapTableInScroll(insPath);
+    selPath = wrapTableInWorkbook(tablePath);
+  } else {
+    selPath = insPath;
+  }
+  selLayoutCell = null;
+  selLayoutCells = [];
+  selLayoutSplit = null;
+  selLayoutSplits = [];
+  return insPath;
+}
 function addEl(kind) {
   withUndo(function() {
     var node = newNodeForKind(kind);
     if (KIND_PLACEHOLDER[kind] && node.text === "") node.text = KIND_PLACEHOLDER[kind];
-    var insPath = null;
-    var insertedIntoCell = false;
-    var targetCell = selLayoutCell;
-    var targetTablePath = null;
-    if (selPath) {
-      var selNode = byPath(selPath, root.children);
-      if (selNode && selNode.kind === "layoutcell") {
-        targetTablePath = selPath.slice(0, -1);
-        if (!targetCell) targetCell = { row: Number(selNode.layoutRow || 0), col: Number(selNode.layoutCol || 0) };
-      } else if (selNode && selNode.kind === "tablelayout") {
-        targetTablePath = selPath;
-      }
-    }
-    if (targetCell && targetTablePath) {
-      var tl = byPath(targetTablePath, root.children);
-      if (tl && tl.kind === "tablelayout") {
-        materializeLayoutCells(tl);
-        var at = layoutCellNodeAt(tl, targetCell.row, targetCell.col);
-        if (at && at.node && at.node.kind === "layoutcell") {
-          at.node.children = at.node.children || [];
-          at.node.children.push(node);
-          insPath = targetTablePath.concat([at.index, at.node.children.length - 1]);
-          insertedIntoCell = true;
-        }
-      }
-    }
-    if (!insertedIntoCell) {
-      if (selPath) {
-        var sel = byPath(selPath, root.children);
-        if (canNest(sel.kind)) {
-          sel.children.push(node);
-          insPath = selPath.concat([sel.children.length - 1]);
-        } else {
-          // leaf selected: insert as the next sibling
-          var par = selPath.slice(0, -1);
-          var arr = par.length === 0 ? root.children : byPath(par, root.children).children;
-          var pos = selPath[selPath.length - 1] + 1;
-          arr.splice(pos, 0, node);
-          insPath = par.concat([pos]);
-        }
-      } else {
-        // no selection: append at the root (inside the virtual body)
-        root.children.push(node);
-        insPath = [root.children.length - 1];
-      }
-    }
-    // Tables are wrapped in a scroll container so a fixed-size parent shows
-    // scrollbars only when rows/columns are actually hidden. A table inserted
-    // from the palette is a workbook by default: one sheet plus a + tab.
-    if (kind === "table") {
-      var tablePath = wrapTableInScroll(insPath);
-      selPath = wrapTableInWorkbook(tablePath);
-    } else {
-      selPath = insPath;
-    }
-    selLayoutCell = null;
-    selLayoutCells = [];
-    selLayoutSplit = null;
-    selLayoutSplits = [];
+    insertNodeAtSelection(node, kind);
   }, "insert " + kind);
 }
 
@@ -20184,10 +20190,31 @@ function renderInsertMenu() {
   var assetsSep = document.createElement('div');
   assetsSep.className = 'dropsep';
   drop.appendChild(assetsSep);
+  var overridden = {};
+  componentLibraryGroups().forEach(function(g){
+    (g.components || []).forEach(function(c){ if (c.override) overridden[c.kind] = true; });
+  });
+  if (COMPONENT_LIBRARY_ERROR) {
+    var libErr = document.createElement('div');
+    libErr.className = 'mi grp';
+    var shortErr = COMPONENT_LIBRARY_ERROR.length > 90 ? COMPONENT_LIBRARY_ERROR.slice(0, 87) + '...' : COMPONENT_LIBRARY_ERROR;
+    libErr.textContent = 'Library rejected: ' + shortErr;
+    libErr.title = COMPONENT_LIBRARY_ERROR;
+    drop.appendChild(libErr);
+    var libRetry = document.createElement('div');
+    libRetry.className = 'mi';
+    libRetry.textContent = 'Reload component library';
+    libRetry.onclick = function(){ closeMenus(); loadComponentLibrary(true); };
+    drop.appendChild(libRetry);
+    var libErrSep = document.createElement('div');
+    libErrSep.className = 'dropsep';
+    drop.appendChild(libErrSep);
+  }
   // The top level shows only GROUP rows; hovering a row opens its flyout to
   // the right. Sub-groups (Navigation, Lists, Feedback) cascade the same way
   // one level deeper.
   function addItem(panel, t) {
+    if (overridden[t]) return;
     var mi = document.createElement('div'); mi.className = 'mi'; mi.textContent = PALETTE_LABEL[t] || t;
     mi.onclick = function(){ addEl(t); closeMenus(); };
     panel.appendChild(mi);
@@ -20205,6 +20232,33 @@ function renderInsertMenu() {
     row.addEventListener("mouseenter", function(){ sub.style.display = "block"; });
     row.addEventListener("mouseleave", function(){ sub.style.display = ""; });
     panel.appendChild(row);
+  }
+  var libGroups = componentLibraryGroups();
+  if (libGroups.length) {
+    var libHead = document.createElement('div');
+    libHead.className = 'mi grp';
+    libHead.textContent = 'Component library';
+    drop.appendChild(libHead);
+    libGroups.forEach(function(g) {
+      if (!g.components || !g.components.length) return;
+      addSubRow(drop, g.label, function(sub) {
+        g.components.forEach(function(c) {
+          var mi = document.createElement('div');
+          mi.className = 'mi';
+          mi.textContent = c.label || c.id;
+          if (c.description) mi.title = c.description;
+          mi.onclick = function(){ addLibraryComponent(c); closeMenus(); };
+          sub.appendChild(mi);
+        });
+      });
+    });
+    var builtSep = document.createElement('div');
+    builtSep.className = 'dropsep';
+    drop.appendChild(builtSep);
+    var builtHead = document.createElement('div');
+    builtHead.className = 'mi grp';
+    builtHead.textContent = 'Built-in';
+    drop.appendChild(builtHead);
   }
   PALETTE.forEach(function(g) {
     addSubRow(drop, g.group, function(sub) {
@@ -20727,6 +20781,7 @@ function loadRemotePrefs() {
     applyPanelVisibility();
     applyBarOrder();
     __prefsLoaded = true;
+    loadComponentLibrary(false);
   }).catch(function(){});
 }
 var __prefsLoaded = false;
@@ -24977,31 +25032,28 @@ function closeInsertDialog() {
   var dlg = document.getElementById("insertdlg");
   if (dlg) dlg.classList.remove("on");
 }
-function allInsertTags() {
-  var out = [];
-  function add(t) { if (t && out.indexOf(t) < 0) out.push(t); }
-  PALETTE.forEach(function(g){
-    (g.tags || []).forEach(add);
-    (g.subs || []).forEach(function(s){ (s.tags || []).forEach(add); });
-  });
-  ["progress", "badge", "alert", "spinner"].forEach(add);
-  return out;
-}
 function renderInsertList() {
   var box = document.getElementById("insert-list");
   var search = document.getElementById("insert-search");
   if (!box) return;
   var q = search && search.value ? search.value.toLowerCase() : "";
   box.textContent = "";
-  allInsertTags().forEach(function(tag){
-    var label = PALETTE_LABEL[tag] || tag;
-    if (q && (tag + " " + label).toLowerCase().indexOf(q) < 0) return;
+  allInsertEntries().forEach(function(entry){
+    var tag = entry.kind;
+    var label = entry.label;
+    var hay = tag + " " + label + " " + (entry.preset ? entry.preset.id : "");
+    if (q && hay.toLowerCase().indexOf(q) < 0) return;
     var b = document.createElement("button");
     b.type = "button"; b.className = "insert-item";
     var l = document.createElement("span"); l.textContent = label;
     var k = document.createElement("span"); k.className = "insert-kind"; k.textContent = tag;
     b.appendChild(l); b.appendChild(k);
-    b.onclick = function(){ closeInsertDialog(); addEl(tag); setStatus("inserted " + label); };
+    b.onclick = function(){
+      closeInsertDialog();
+      if (entry.preset) addLibraryComponent(entry.preset);
+      else addEl(tag);
+      setStatus("inserted " + label);
+    };
     box.appendChild(b);
   });
   if (!box.children.length) {

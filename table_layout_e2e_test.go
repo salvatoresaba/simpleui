@@ -37,7 +37,7 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 		t.Skip("no Chrome/Edge found; skipping table layout visual test")
 	}
 
-	page := strings.Replace(guiHTML, "</body>", tableLayoutE2EScript+"</body>", 1)
+	page := injectGuiTestScript(tableLayoutE2EScript)
 	if page == guiHTML {
 		t.Fatal("designer page has no closing body")
 	}
@@ -49,7 +49,7 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 	defer ln.Close()
 
 	var lastHTML string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
@@ -135,7 +135,7 @@ const tableLayoutE2EScript = `<script>
     if (!el) {
       el = document.createElement('div');
       el.id = 'e2e-result';
-      document.body.appendChild(el);
+      document.body.insertBefore(el, document.body.firstChild);
     }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';

@@ -22,7 +22,7 @@ func startGui(t *testing.T, keep bool) string {
 		t.Cleanup(func() { _ = ln.Close() })
 	}
 	var lastHtml string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", guiPage)
 	})
@@ -893,4 +893,18 @@ func TestGuiEditorToolsPanel(t *testing.T) {
 			t.Errorf("designer page missing %q", want)
 		}
 	}
+}
+
+func injectGuiTestScript(script string) string {
+	return strings.Replace(guiHTML, "<body>", "<body>"+script, 1)
+}
+
+// guiTestMux serves the external component library script next to the test
+// handlers. The designer loads it before its main inline script.
+func guiTestMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /__gui__/components.js", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "text/javascript; charset=utf-8", guiComponentLibraryJS)
+	})
+	return mux
 }

@@ -14,7 +14,7 @@ const persistentE2EScript = `<script>
 (async function () {
   function result(ok, message) {
     var el = document.getElementById('e2e-result');
-    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.appendChild(el); }
+    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.insertBefore(el, document.body.firstChild); }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
   }

@@ -20,7 +20,7 @@ const treeRuntimeE2EScript = `<script>
     if (!el) {
       el = document.createElement('div');
       el.id = 'e2e-result';
-      document.body.appendChild(el);
+      document.body.insertBefore(el, document.body.firstChild);
     }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';

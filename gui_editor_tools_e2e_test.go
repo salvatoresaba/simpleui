@@ -21,7 +21,7 @@ func TestGuiEditorToolsE2E(t *testing.T) {
 	card "One" class: "one"
 	card "Two" class: "two"
 }`
-	page := strings.Replace(guiHTML, "</body>", guiEditorToolsScript+"</body>", 1)
+	page := injectGuiTestScript(guiEditorToolsScript)
 	if page == guiHTML {
 		t.Fatal("designer page has no closing body")
 	}
@@ -32,7 +32,7 @@ func TestGuiEditorToolsE2E(t *testing.T) {
 	defer ln.Close()
 	var lastHTML string
 	var savedPrefs = "{}"
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
@@ -139,7 +139,7 @@ const guiEditorToolsScript = `<script>
 (async function () {
   function result(ok, message) {
     var el = document.getElementById('e2e-result');
-    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.appendChild(el); }
+    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.insertBefore(el, document.body.firstChild); }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
   }

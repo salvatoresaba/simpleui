@@ -26,7 +26,7 @@ func TestGuiControlAnimationsE2E(t *testing.T) {
 		progress
 	}
 }`
-	page := strings.Replace(guiHTML, "</body>", guiAnimationsScript+"</body>", 1)
+	page := injectGuiTestScript(guiAnimationsScript)
 	if page == guiHTML {
 		t.Fatal("designer page has no closing body")
 	}
@@ -36,7 +36,7 @@ func TestGuiControlAnimationsE2E(t *testing.T) {
 	}
 	defer ln.Close()
 	var lastHTML string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
@@ -114,7 +114,7 @@ const guiAnimationsScript = `<script>
 (async function () {
   function result(ok, message) {
     var el = document.getElementById('e2e-result');
-    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.appendChild(el); }
+    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.insertBefore(el, document.body.firstChild); }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
   }

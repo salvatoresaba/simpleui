@@ -142,9 +142,26 @@ func CmdGui(args []string) {
 	var srcMu sync.Mutex
 	var currentSrc = initialSrc
 	srcSet := inputFile != ""
+	var componentLibraryMu sync.Mutex
+	componentLibraryJSON := loadComponentLibraryPayload(initialDir)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", guiPage)
+	})
+	mux.HandleFunc("GET /__gui__/components", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("reload") != "" {
+			payload := loadComponentLibraryPayload(initialDir)
+			componentLibraryMu.Lock()
+			componentLibraryJSON = payload
+			componentLibraryMu.Unlock()
+		}
+		componentLibraryMu.Lock()
+		payload := append([]byte(nil), componentLibraryJSON...)
+		componentLibraryMu.Unlock()
+		writeRawHandler(w, "application/json; charset=utf-8", string(payload))
+	})
+	mux.HandleFunc("GET /__gui__/components.js", func(w http.ResponseWriter, r *http.Request) {
+		writeRawHandler(w, "text/javascript; charset=utf-8", guiComponentLibraryJS)
 	})
 	mux.HandleFunc("GET /__gui__/current", func(w http.ResponseWriter, r *http.Request) {
 		srcMu.Lock()

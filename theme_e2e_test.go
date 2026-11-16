@@ -41,7 +41,7 @@ func TestGuiThemeVisualE2E(t *testing.T) {
 
 	const source = themeE2ESource
 
-	page := strings.Replace(guiHTML, "</body>", themeE2EScript+"</body>", 1)
+	page := injectGuiTestScript(themeE2EScript)
 	if page == guiHTML {
 		t.Fatal("designer page has no closing body")
 	}
@@ -53,7 +53,7 @@ func TestGuiThemeVisualE2E(t *testing.T) {
 	defer ln.Close()
 
 	var lastHTML string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
@@ -130,7 +130,7 @@ const themeE2EScript = `<script>
     if (!el) {
       el = document.createElement('div');
       el.id = 'e2e-result';
-      document.body.appendChild(el);
+      document.body.insertBefore(el, document.body.firstChild);
     }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
@@ -423,7 +423,7 @@ func TestGuiThemeScreenshotGolden(t *testing.T) {
 	pages := map[string]string{}
 	for _, id := range themes {
 		script := strings.ReplaceAll(themeShotScriptTemplate, "__THEME__", id)
-		page := strings.Replace(guiHTML, "</body>", script+"</body>", 1)
+		page := injectGuiTestScript(script)
 		if page == guiHTML {
 			t.Fatal("designer page has no closing body")
 		}
@@ -437,7 +437,7 @@ func TestGuiThemeScreenshotGolden(t *testing.T) {
 	defer ln.Close()
 
 	var lastHTML string
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /__gui__/current", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"sui":`+StringifyJson(JStr(themeE2ESource))+`}`)
 	})

@@ -53,7 +53,7 @@ view main {
 		t.Fatalf("listen: %v", err)
 	}
 	defer ln.Close()
-	mux := http.NewServeMux()
+	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
@@ -103,7 +103,7 @@ const tableLayoutEventsScript = `<script>
     if (!el) {
       el = document.createElement('div');
       el.id = 'e2e-result';
-      document.body.appendChild(el);
+      document.body.insertBefore(el, document.body.firstChild);
     }
     el.textContent = ok ? 'OK' : 'FAIL: ' + message;
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';

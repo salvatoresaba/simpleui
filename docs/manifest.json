@@ -200,6 +200,42 @@
       "sections": ["GUI editor: drag and drop", "Quick answer", "Editor preferences", "Interface", "Interface language", "Code editor", "Syntax highlighting", "Editor tooltips", "Preview", "Shortcuts", "Files & history", "Completion and indentation", "Code editor menus and navigation", "Formatting", "Find and replace", "Quick Fix and problems", "Status bar", "Command palette", "Undo and redo", "Left panel and design tokens", "Project component defaults", "Inspector and effective styles", "Image assets", "Designer drag and drop", "Tree drops", "Palette drops", "Designer limitations", "Application drag and drop", "Required properties", "Minimal reorder example", "Designer steps for the reorder example", "Dropping files and folders", "Menu bar control", "Dropdown and popover controls", "Content and feedback controls", "Pages", "Modal control", "Tabs control", "Accordion control", "Combobox control", "Tree control", "Table layout control", "Table control", "Chart control", "Graph control", "Date/Time picker control", "Toast control", "Tooltip property", "Desktop build dialog", "Native file and folder dialogs", "Designer inspector checklist", "Troubleshooting", "Security notes", "Related documents"]
     },
     {
+      "id": "component_library",
+      "path": "docs/COMPONENT_LIBRARY.md",
+      "title": "External component library",
+      "summary": "How the designer loads components/library.json at startup: groups by control type, presets over the standard element kinds, CSS and attribute allow-lists, override entries, strict schema and compiler checks, atomic rejection with built-in fallback, and reloading after external edits.",
+      "audience": [
+        "human",
+        "agent"
+      ],
+      "priority": 2,
+      "tags": [
+        "components",
+        "component-library",
+        "palette",
+        "insert-menu",
+        "external",
+        "json",
+        "security",
+        "validation",
+        "fallback",
+        "preset",
+        "override",
+        "designer"
+      ],
+      "sections": [
+        "External component library",
+        "Where the file lives",
+        "Format",
+        "Groups",
+        "Components",
+        "How the editor uses it",
+        "Security and stability checks",
+        "Limits",
+        "Workflow for external tools"
+      ]
+    },
+    {
       "id": "builtins",
       "path": "docs/BUILTINS.md",
       "title": "Builtin functions",
