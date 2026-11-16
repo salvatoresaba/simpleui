@@ -701,11 +701,11 @@ function appearancePalette(def, mode) {
   keys.forEach(function(k){
     var low = String(k).toLowerCase();
     var v;
-    if (/hover/.test(low)) v = dark ? "#1f2937" : "#e2e8f0";
-    else if (/checked|accent|focus|value|color/.test(low)) v = dark ? "#4c5cf7" : "#2563eb";
-    else if (/fg|mark|thumb|text/.test(low)) v = dark ? "#e5e7eb" : "#0f172a";
-    else if (/bg|track|tablist/.test(low)) v = dark ? "#111827" : "#f8fafc";
+    if (/fg|mark|thumb|text|label|muted|placeholder|hint/.test(low)) v = dark ? "#e5e7eb" : "#0f172a";
     else if (/border/.test(low)) v = dark ? "#334155" : "#cbd5e1";
+    else if (/hover/.test(low)) v = dark ? "#1f2937" : "#e2e8f0";
+    else if (/checked|accent|focus|value|color/.test(low)) v = dark ? "#4c5cf7" : "#2563eb";
+    else if (/bg|track|tablist/.test(low)) v = dark ? "#111827" : "#f8fafc";
     else v = dark ? "#111827" : "#f8fafc";
     vars[k] = v;
   });

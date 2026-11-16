@@ -85,8 +85,8 @@
             "--sui-button-fg": "#e5e7eb",
             "--sui-button-border": "#334155",
             "--sui-button-hover": "#1f2937",
-            "--sui-button-hover-fg": "#1f2937",
-            "--sui-button-hover-border": "#1f2937"
+            "--sui-button-hover-fg": "#e5e7eb",
+            "--sui-button-hover-border": "#334155"
           }
         },
         {
@@ -97,8 +97,8 @@
             "--sui-button-fg": "#0f172a",
             "--sui-button-border": "#cbd5e1",
             "--sui-button-hover": "#e2e8f0",
-            "--sui-button-hover-fg": "#e2e8f0",
-            "--sui-button-hover-border": "#e2e8f0"
+            "--sui-button-hover-fg": "#0f172a",
+            "--sui-button-hover-border": "#cbd5e1"
           }
         },
         {
@@ -588,11 +588,11 @@
             "--sui-combobox-bg": "#111827",
             "--sui-combobox-fg": "#e5e7eb",
             "--sui-combobox-border": "#334155",
-            "--sui-combobox-label": "#111827",
+            "--sui-combobox-label": "#e5e7eb",
             "--sui-combobox-popup-bg": "#111827",
             "--sui-combobox-hover": "#1f2937",
-            "--sui-combobox-hover-border": "#1f2937",
-            "--sui-combobox-hover-fg": "#1f2937"
+            "--sui-combobox-hover-fg": "#e5e7eb",
+            "--sui-combobox-hover-border": "#334155"
           }
         },
         {
@@ -602,11 +602,11 @@
             "--sui-combobox-bg": "#f8fafc",
             "--sui-combobox-fg": "#0f172a",
             "--sui-combobox-border": "#cbd5e1",
-            "--sui-combobox-label": "#f8fafc",
+            "--sui-combobox-label": "#0f172a",
             "--sui-combobox-popup-bg": "#f8fafc",
             "--sui-combobox-hover": "#e2e8f0",
-            "--sui-combobox-hover-border": "#e2e8f0",
-            "--sui-combobox-hover-fg": "#e2e8f0"
+            "--sui-combobox-hover-fg": "#0f172a",
+            "--sui-combobox-hover-border": "#cbd5e1"
           }
         },
         {
@@ -673,7 +673,7 @@
             "--sui-datepicker-bg": "#111827",
             "--sui-datepicker-fg": "#e5e7eb",
             "--sui-datepicker-border": "#334155",
-            "--sui-datepicker-label": "#111827",
+            "--sui-datepicker-label": "#e5e7eb",
             "--sui-datepicker-hover": "#1f2937"
           }
         },
@@ -684,7 +684,7 @@
             "--sui-datepicker-bg": "#f8fafc",
             "--sui-datepicker-fg": "#0f172a",
             "--sui-datepicker-border": "#cbd5e1",
-            "--sui-datepicker-label": "#f8fafc",
+            "--sui-datepicker-label": "#0f172a",
             "--sui-datepicker-hover": "#e2e8f0"
           }
         },
@@ -876,7 +876,7 @@
           "vars": {
             "--sui-slider-bg": "#111827",
             "--sui-slider-thumb-bg": "#e5e7eb",
-            "--sui-slider-thumb-hover": "#1f2937"
+            "--sui-slider-thumb-hover": "#e5e7eb"
           }
         },
         {
@@ -885,7 +885,7 @@
           "vars": {
             "--sui-slider-bg": "#f8fafc",
             "--sui-slider-thumb-bg": "#0f172a",
-            "--sui-slider-thumb-hover": "#e2e8f0"
+            "--sui-slider-thumb-hover": "#0f172a"
           }
         },
         {
@@ -991,7 +991,7 @@
             "--sui-check-bg": "#111827",
             "--sui-check-border": "#334155",
             "--sui-check-checked": "#4c5cf7",
-            "--sui-check-checked-border": "#4c5cf7",
+            "--sui-check-checked-border": "#334155",
             "--sui-check-mark": "#e5e7eb",
             "--sui-check-hover": "#1f2937"
           }
@@ -1003,7 +1003,7 @@
             "--sui-check-bg": "#f8fafc",
             "--sui-check-border": "#cbd5e1",
             "--sui-check-checked": "#2563eb",
-            "--sui-check-checked-border": "#2563eb",
+            "--sui-check-checked-border": "#cbd5e1",
             "--sui-check-mark": "#0f172a",
             "--sui-check-hover": "#e2e8f0"
           }
@@ -1115,7 +1115,7 @@
             "--sui-check-bg": "#111827",
             "--sui-check-border": "#334155",
             "--sui-check-checked": "#4c5cf7",
-            "--sui-check-checked-border": "#4c5cf7",
+            "--sui-check-checked-border": "#334155",
             "--sui-check-mark": "#e5e7eb",
             "--sui-check-hover": "#1f2937"
           }
@@ -1127,7 +1127,7 @@
             "--sui-check-bg": "#f8fafc",
             "--sui-check-border": "#cbd5e1",
             "--sui-check-checked": "#2563eb",
-            "--sui-check-checked-border": "#2563eb",
+            "--sui-check-checked-border": "#cbd5e1",
             "--sui-check-mark": "#0f172a",
             "--sui-check-hover": "#e2e8f0"
           }
@@ -2162,7 +2162,7 @@
             "--sui-badge-fg": "#e5e7eb",
             "--sui-badge-border": "#334155",
             "--sui-badge-hover-bg": "#1f2937",
-            "--sui-badge-hover-fg": "#1f2937"
+            "--sui-badge-hover-fg": "#e5e7eb"
           }
         },
         {
@@ -2173,7 +2173,7 @@
             "--sui-badge-fg": "#0f172a",
             "--sui-badge-border": "#cbd5e1",
             "--sui-badge-hover-bg": "#e2e8f0",
-            "--sui-badge-hover-fg": "#e2e8f0"
+            "--sui-badge-hover-fg": "#0f172a"
           }
         },
         {
@@ -2325,7 +2325,7 @@
             "--sui-alert-fg": "#e5e7eb",
             "--sui-alert-border": "#334155",
             "--sui-alert-hover-bg": "#1f2937",
-            "--sui-alert-hover-fg": "#1f2937"
+            "--sui-alert-hover-fg": "#e5e7eb"
           }
         },
         {
@@ -2336,7 +2336,7 @@
             "--sui-alert-fg": "#0f172a",
             "--sui-alert-border": "#cbd5e1",
             "--sui-alert-hover-bg": "#e2e8f0",
-            "--sui-alert-hover-fg": "#e2e8f0"
+            "--sui-alert-hover-fg": "#0f172a"
           }
         },
         {
@@ -2728,7 +2728,7 @@
             "--sui-accordion-fg": "#e5e7eb",
             "--sui-accordion-border": "#334155",
             "--sui-accordion-hover-bg": "#1f2937",
-            "--sui-accordion-hover-fg": "#1f2937"
+            "--sui-accordion-hover-fg": "#e5e7eb"
           }
         },
         {
@@ -2740,7 +2740,7 @@
             "--sui-accordion-fg": "#0f172a",
             "--sui-accordion-border": "#cbd5e1",
             "--sui-accordion-hover-bg": "#e2e8f0",
-            "--sui-accordion-hover-fg": "#e2e8f0"
+            "--sui-accordion-hover-fg": "#0f172a"
           }
         },
         {
@@ -2809,7 +2809,7 @@
             "--sui-menu-border": "#334155",
             "--sui-menu-popup-bg": "#111827",
             "--sui-menu-hover": "#1f2937",
-            "--sui-menu-hover-fg": "#1f2937"
+            "--sui-menu-hover-fg": "#e5e7eb"
           }
         },
         {
@@ -2821,7 +2821,7 @@
             "--sui-menu-border": "#cbd5e1",
             "--sui-menu-popup-bg": "#f8fafc",
             "--sui-menu-hover": "#e2e8f0",
-            "--sui-menu-hover-fg": "#e2e8f0"
+            "--sui-menu-hover-fg": "#0f172a"
           }
         },
         {
@@ -3113,7 +3113,7 @@
             "--sui-modal-button-bg": "#111827",
             "--sui-modal-button-fg": "#e5e7eb",
             "--sui-modal-button-hover": "#1f2937",
-            "--sui-modal-button-hover-fg": "#1f2937"
+            "--sui-modal-button-hover-fg": "#e5e7eb"
           }
         },
         {
@@ -3126,7 +3126,7 @@
             "--sui-modal-button-bg": "#f8fafc",
             "--sui-modal-button-fg": "#0f172a",
             "--sui-modal-button-hover": "#e2e8f0",
-            "--sui-modal-button-hover-fg": "#e2e8f0"
+            "--sui-modal-button-hover-fg": "#0f172a"
           }
         },
         {
@@ -3194,7 +3194,7 @@
             "--sui-toast-fg": "#e5e7eb",
             "--sui-toast-accent": "#4c5cf7",
             "--sui-toast-hover-bg": "#1f2937",
-            "--sui-toast-hover-fg": "#1f2937",
+            "--sui-toast-hover-fg": "#e5e7eb",
             "--sui-toast-hover-accent": "#1f2937"
           }
         },
@@ -3206,7 +3206,7 @@
             "--sui-toast-fg": "#0f172a",
             "--sui-toast-accent": "#2563eb",
             "--sui-toast-hover-bg": "#e2e8f0",
-            "--sui-toast-hover-fg": "#e2e8f0",
+            "--sui-toast-hover-fg": "#0f172a",
             "--sui-toast-hover-accent": "#e2e8f0"
           }
         },

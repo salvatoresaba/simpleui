@@ -22,8 +22,40 @@ const suiOverlayRuntime = `const __SUI_OVERLAY = (function(){
     if (/^[0-9]*\.?[0-9]+(ms|s)$/.test(s)) return s;
     return fallback;
   }
+  function markOverlayChain(panel) {
+    if (!panel || panel.__suiMarked) return;
+    var marked = [];
+    var el = panel.parentElement;
+    while (el && el !== document.documentElement) {
+      var openCount = Number(el.getAttribute('data-sui-overlay-count') || '0') + 1;
+      el.setAttribute('data-sui-overlay-count', String(openCount));
+      el.classList.add('sui-overlay-anchor-open');
+      marked.push(el);
+      el = el.parentElement;
+    }
+    panel.__suiMarked = marked;
+  }
+  function unmarkOverlayChain(panel) {
+    if (!panel || !panel.__suiMarked) return;
+    var marked = panel.__suiMarked;
+    panel.__suiMarked = null;
+    for (var i = 0; i < marked.length; i++) {
+      var el = marked[i];
+      var openCount = Math.max(0, Number(el.getAttribute('data-sui-overlay-count') || '0') - 1);
+      if (openCount > 0) {
+        el.setAttribute('data-sui-overlay-count', String(openCount));
+      } else {
+        el.removeAttribute('data-sui-overlay-count');
+        el.classList.remove('sui-overlay-anchor-open');
+      }
+    }
+  }
   function place(anchor, panel, opts) {
     if (!anchor || !panel) return '';
+    // A transformed/filtered ancestor makes a fixed panel use that ancestor as
+    // its containing block: the overlay would jump far from its trigger. Keep
+    // every ancestor of the panel animation-free while the overlay is open.
+    markOverlayChain(panel);
     opts = opts || {};
     var margin = opts.margin == null ? 8 : opts.margin;
     var gap = opts.gap == null ? 4 : opts.gap;
@@ -108,6 +140,7 @@ const suiOverlayRuntime = `const __SUI_OVERLAY = (function(){
   }
   function reset(panel) {
     if (!panel) return;
+    unmarkOverlayChain(panel);
     panel.style.position = '';
     panel.style.left = '';
     panel.style.top = '';
@@ -147,7 +180,8 @@ const suiOverlayRuntime = `const __SUI_OVERLAY = (function(){
   function reposition() {
     for (var i = 0; i < tracked.length; i++) {
       var p = tracked[i];
-      if (!document.body.contains(p)) { tracked.splice(i, 1); i--; continue; }
+      if (!document.body.contains(p)) { reset(p); tracked.splice(i, 1); i--; continue; }
+      if (!p.__suiOverlay || !p.__suiOverlay.anchor || !p.__suiOverlay.anchor.isConnected) { reset(p); tracked.splice(i, 1); i--; continue; }
       if (!visible(p) || !p.__suiOverlay) continue;
       place(p.__suiOverlay.anchor, p, p.__suiOverlay.opts);
     }

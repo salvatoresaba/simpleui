@@ -199,6 +199,21 @@ They are not written into the `.sui` file and do not travel with the project;
 the project stores the applied CSS variables/attributes instead, so it renders
 without the editor's theme list.
 
+## Layout and contrast safeguards
+
+- **Open overlays stay attached.** While a combobox popup, menu, dropdown,
+  popover or tooltip is open, the editor removes transform/filter animations
+  from the panel's ancestor chain. Fixed overlays then keep the 4 px gap from
+  their trigger instead of jumping to the anchor's page position.
+- **Text stays inside the shape.** Buttons, badges, tabs, menu items, cards,
+  alerts, toasts and option rows use `min-width: 0` and `overflow-wrap:
+  anywhere`; single-line controls ellipsize. Fixed-size shapes such as the
+  circular button clip excess text instead of letting it spill outside.
+- **Selected text keeps contrast.** Dark and Light palettes assign `*-fg`,
+  `*-label` and `*-hover-fg` keys to text colours before hover/border colours.
+  The combobox selected option, menu items and tabs therefore stay readable in
+  both palettes.
+
 ## Catalog coverage and limits
 
 - The bundled `components/appearance.json` covers **every** control that exposes

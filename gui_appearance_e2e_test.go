@@ -141,6 +141,12 @@ const guiAppearanceScript = `<script>
     await wait(1200);
     await until(function () { return typeof APPEARANCE_CATALOG !== 'undefined' && !!APPEARANCE_CATALOG; }, 4000);
     assert(!!APPEARANCE_CATALOG && APPEARANCE_CATALOG.controls.length === APPEARANCE_KINDS.length, 'external appearance catalog not loaded');
+    var comboDef = componentDefForKind('combobox');
+    var lightPalette = appearancePalette(comboDef, 'light');
+    var darkPalette = appearancePalette(comboDef, 'dark');
+    assert(lightPalette['--sui-combobox-hover-fg'] === '#0f172a', 'light combo selected text must be dark: ' + lightPalette['--sui-combobox-hover-fg']);
+    assert(lightPalette['--sui-combobox-label'] === '#0f172a', 'light combo label must be dark');
+    assert(darkPalette['--sui-combobox-hover-fg'] === '#e5e7eb', 'dark combo selected text must be light');
     function pathOfKind(kind) {
       function walk(list, base) {
         for (var i = 0; i < list.length; i++) {

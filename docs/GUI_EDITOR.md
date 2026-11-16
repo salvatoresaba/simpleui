@@ -805,7 +805,8 @@ Each animation is a coherent set: the idle effect plus a visible hover reaction,
 a click/press reaction, a focus ring and a checked/selected/open state reaction.
 **None** disables every phase. The navigator preview plays the phases once on
 load and then stays interactive, so the click feedback is visible without
-leaving the editor.
+leaving the editor. Open menus and popups keep their offset from the trigger;
+labels wrap or ellipsize inside the control shape instead of spilling out.
 
 | Selector | What it changes |
 |---|---|
