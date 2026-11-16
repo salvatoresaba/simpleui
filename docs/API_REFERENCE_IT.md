@@ -2539,6 +2539,15 @@ frecce, Home / End, Page Up / Page Down ed Escape. I giorni rispettano `min` e
 designer sono disponibili **Native picker**, **SimpleUI calendar**, **Calendar
 circles** e **Calendar tiles**. Il modo `time` resta un input orario nativo.
 
+Con `variant: "calendar"` il campo data è modificabile: digitare le cifre
+inserisce automaticamente `/`, spazi e `:`. Le date usano `DD/MM/YYYY`; i
+valori data/ora usano `DD/MM/YYYY HH:MM` (i secondi sono accettati se inclusi).
+È possibile incollare un valore ISO. Il valore associato allo stato resta ISO
+(`YYYY-MM-DD` oppure `YYYY-MM-DDTHH:MM[:SS]`). Gli input incompleti o non validi
+mostrano un errore inline e non vengono mantenuti nello stato. Fare clic sul
+pulsante calendario, oppure premere Invio o Freccia giù con il campo attivo,
+per aprire il calendario.
+
 Il comportamento del selettore nativo è gestito dal browser. Il calendario
 personalizzato non aggiunge capability di rete, file o comandi. Validare valori
 malformati o fuori intervallo prima di assegnare dati remoti allo stato

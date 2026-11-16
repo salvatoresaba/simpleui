@@ -2657,6 +2657,14 @@ the picker keeps the same bound ISO value format. Choose **Native picker**,
 **SimpleUI calendar**, **Calendar circles** or **Calendar tiles** in the
 designer's Structure menu. `time` mode remains a native time input.
 
+With `variant: "calendar"`, the visible date field is editable: type digits and
+the field inserts `/`, spaces and `:` as you go. Dates use `DD/MM/YYYY`;
+datetime values use `DD/MM/YYYY HH:MM` (seconds are accepted when included).
+Pasting an ISO value is supported. The bound value remains ISO
+(`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM[:SS]`). Incomplete or invalid input is
+reported inline and is not kept as the bound value. Click the calendar button,
+or press Enter or Arrow Down while the field is focused, to open the calendar.
+
 The native picker behavior is owned by the browser. The custom calendar adds no
 network, file or command capabilities. Validate out-of-range or malformed
 values before assigning remote data to the bound state.

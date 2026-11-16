@@ -39,6 +39,10 @@ func TestDatepickerRender(t *testing.T) {
 		`sui-datepicker-input`,
 		`sui-datepicker-error`,
 		`variant="calendar"`,
+		`input.readOnly = false`,
+		`input.addEventListener('input'`,
+		`input.addEventListener('paste'`,
+		`data-sui-calendar-open`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("generated JS missing %q", want)
@@ -61,7 +65,15 @@ func TestDatepickerRender(t *testing.T) {
 		}
 	}
 	css := GenerateCss(prog)
-	for _, want := range []string{".sui-datepicker", ".sui-datepicker-input", ".sui-datepicker-error", ".sui-datepicker-calendar", ".sui-datepicker-day"} {
+	for _, want := range []string{
+		".sui-datepicker",
+		".sui-datepicker-input",
+		".sui-datepicker-error",
+		".sui-datepicker-calendar",
+		".sui-datepicker-day",
+		`.sui-datepicker[data-sui-calendar-open="1"] { z-index: 4100; }`,
+		`cursor: text`,
+	} {
 		if !strings.Contains(css, want) {
 			t.Errorf("generated CSS missing %q", want)
 		}

@@ -26,6 +26,59 @@ const suiDatePickerRuntime = `(function(){
   function datePart(value) {
     return value && value.indexOf('T') >= 0 ? value.slice(0, value.indexOf('T')) : value;
   }
+  function displayCalendarValue(value, mode) {
+    if (!value) return '';
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart(value));
+    if (!match) return value;
+    var display = match[3] + '/' + match[2] + '/' + match[1];
+    if (mode === 'datetime' && value.indexOf('T') >= 0) display += ' ' + value.slice(value.indexOf('T') + 1);
+    return display;
+  }
+  function maskCalendarInput(value, mode) {
+    var limit = mode === 'datetime' ? 14 : 8;
+    var digits = String(value || '').replace(/\D/g, '').slice(0, limit);
+    var masked = digits.slice(0, 2);
+    if (digits.length >= 2) masked += '/';
+    if (digits.length > 2) masked += digits.slice(2, 4);
+    if (digits.length >= 4) masked += '/';
+    if (digits.length > 4) masked += digits.slice(4, 8);
+    if (mode === 'datetime' && digits.length >= 8) masked += ' ';
+    if (mode === 'datetime' && digits.length > 8) masked += digits.slice(8, 10);
+    if (mode === 'datetime' && digits.length >= 10) masked += ':';
+    if (mode === 'datetime' && digits.length > 10) masked += digits.slice(10, 12);
+    if (mode === 'datetime' && digits.length > 12) masked += ':' + digits.slice(12, 14);
+    return masked;
+  }
+  function parseCalendarInput(value, mode) {
+    var match;
+    if (mode === 'datetime') {
+      match = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value || '');
+    } else {
+      match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value || '');
+    }
+    if (!match) return '';
+    var date = match[3] + '-' + match[2] + '-' + match[1];
+    if (!parseDate(date)) return '';
+    if (mode !== 'datetime') return date;
+    var hour = Number(match[4]);
+    var minute = Number(match[5]);
+    var second = match[6] ? Number(match[6]) : -1;
+    if (hour > 23 || minute > 59 || second > 59) return '';
+    return date + 'T' + match[4] + ':' + match[5] + (match[6] ? ':' + match[6] : '');
+  }
+  function calendarInputError(mode) {
+    return mode === 'datetime' ? 'Enter a valid date and time as DD/MM/YYYY HH:MM' : 'Enter a valid date as DD/MM/YYYY';
+  }
+  function cursorAfterDigits(value, count) {
+    var index = 0;
+    var digits = 0;
+    while (index < value.length && digits < count) {
+      if (/\d/.test(value.charAt(index))) digits++;
+      index++;
+    }
+    while (index < value.length && !/\d/.test(value.charAt(index))) index++;
+    return index;
+  }
   function init(root) {
     if (!root || root.__suiDatepicker) return;
     root.__suiDatepicker = true;
@@ -68,14 +121,15 @@ const suiDatePickerRuntime = `(function(){
       return '';
     }
     function sync() {
-      input.value = current;
+      input.value = customCalendar ? displayCalendarValue(current, mode) : current;
       setError(validate(current));
       if (clear) clear.hidden = !current;
     }
     function commit(value) {
       current = value;
       hidden.value = value;
-      input.value = value;
+      var display = customCalendar ? displayCalendarValue(value, mode) : value;
+      if (input.value !== display) input.value = display;
       if (clear) clear.hidden = !value;
       setError(validate(value));
       if (setter && typeof window[setter] === 'function') window[setter](value);
@@ -84,7 +138,8 @@ const suiDatePickerRuntime = `(function(){
     if (customCalendar) {
       root.setAttribute('data-sui-custom-calendar', '1');
       input.type = 'text';
-      input.readOnly = true;
+      input.readOnly = false;
+      input.setAttribute('placeholder', mode === 'datetime' ? 'DD/MM/YYYY HH:MM' : 'DD/MM/YYYY');
       input.setAttribute('aria-haspopup', 'dialog');
       input.setAttribute('aria-expanded', 'false');
       input.setAttribute('autocomplete', 'off');
@@ -233,6 +288,7 @@ const suiDatePickerRuntime = `(function(){
       }
       function closeCalendar(restoreFocus) {
         popup.hidden = true;
+        root.removeAttribute('data-sui-calendar-open');
         input.setAttribute('aria-expanded', 'false');
         open.setAttribute('aria-expanded', 'false');
         if (restoreFocus) input.focus();
@@ -244,6 +300,7 @@ const suiDatePickerRuntime = `(function(){
         if (timeInput) timeInput.value = current.indexOf('T') >= 0 ? current.slice(current.indexOf('T') + 1) : '09:00';
         updateTimeBounds(datePart(current));
         popup.hidden = false;
+        root.setAttribute('data-sui-calendar-open', '1');
         input.setAttribute('aria-expanded', 'true');
         open.setAttribute('aria-expanded', 'true');
         focusDay(datePart(current) || localToday());
@@ -254,7 +311,47 @@ const suiDatePickerRuntime = `(function(){
         focusDay(dateValue(viewing));
       }
       open.addEventListener('click', openCalendar);
-      input.addEventListener('click', openCalendar);
+      function handleCalendarInput(finalize) {
+        var caret = input.selectionStart || 0;
+        var digitsBeforeCaret = (input.value.slice(0, caret).match(/\d/g) || []).length;
+        var masked = maskCalendarInput(input.value, mode);
+        if (input.value !== masked) {
+          input.value = masked;
+          var nextCaret = cursorAfterDigits(masked, digitsBeforeCaret);
+          input.setSelectionRange(nextCaret, nextCaret);
+        }
+        var parsed = parseCalendarInput(masked, mode);
+        if (parsed) {
+          if (parsed !== current) commit(parsed);
+          else setError(validate(parsed));
+          return;
+        }
+        if (!masked) {
+          if (current) commit('');
+          else setError(validate(''));
+          return;
+        }
+        setError('');
+        if (finalize) {
+          if (current) commit('');
+          input.value = masked;
+          setError(calendarInputError(mode));
+        }
+      }
+      input.addEventListener('input', function() { handleCalendarInput(false); });
+      input.addEventListener('change', function() { handleCalendarInput(true); });
+      input.addEventListener('blur', function() { handleCalendarInput(true); });
+      input.addEventListener('paste', function(ev) {
+        var clipboard = ev.clipboardData;
+        var pasted = clipboard ? clipboard.getData('text').trim() : '';
+        var iso = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(pasted);
+        if (!iso) return;
+        ev.preventDefault();
+        input.value = iso[3] + '/' + iso[2] + '/' + iso[1];
+        if (mode === 'datetime' && iso[4]) input.value += ' ' + iso[4] + ':' + iso[5] + (iso[6] ? ':' + iso[6] : '');
+        input.setSelectionRange(input.value.length, input.value.length);
+        handleCalendarInput(false);
+      });
       input.addEventListener('keydown', function(ev) {
         if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'ArrowDown') {
           ev.preventDefault();

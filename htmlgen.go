@@ -252,7 +252,7 @@ body {
 .sui-datepicker-value { display: none; }
 .sui-datepicker-error { font-size: 12px; color: #f87171; }
 .sui-datepicker-error[hidden] { display: none; }
-.sui-datepicker[data-sui-custom-calendar="1"] { z-index: 20; }
+.sui-datepicker[data-sui-calendar-open="1"] { z-index: 4100; }
 .sui-datepicker-open {
   position: absolute;
   right: 32px;
@@ -269,7 +269,7 @@ body {
   cursor: pointer;
 }
 .sui-datepicker-open:hover { color: var(--sui-datepicker-fg, var(--sui-fg, #e6e6ef)); background: var(--sui-datepicker-hover, rgba(148,163,184,.12)); }
-.sui-datepicker-input[aria-haspopup="dialog"] { padding-right: 64px; cursor: pointer; }
+.sui-datepicker-input[aria-haspopup="dialog"] { padding-right: 64px; cursor: text; }
 .sui-datepicker-calendar {
   position: absolute;
   z-index: 4000;
