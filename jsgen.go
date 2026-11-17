@@ -863,6 +863,9 @@ var genAsyncFuncs = map[string]bool{}
 // append the missing trailing defaults.
 var genFnDefaults = map[string][]string{}
 
+// genFnParams holds parameter names in declaration order for named calls.
+var genFnParams = map[string][]string{}
+
 // Component/view bookkeeping shared by generation of one program.
 var genViewParams = map[string][]Param{} // view name -> component parameters
 var genViews = map[string]ViewDecl{}     // view name -> declaration (for refs/cycles)
@@ -939,6 +942,7 @@ func GenerateJsFor(p *Prog, target string) string {
 	genUserFuncs = map[string]bool{}
 	genAsyncFuncs = map[string]bool{}
 	genFnDefaults = map[string][]string{}
+	genFnParams = map[string][]string{}
 	for i := 0; i < len(p.funcs); i++ {
 		f := p.funcs[i]
 		genUserFuncs[f.name] = true
@@ -946,7 +950,9 @@ func GenerateJsFor(p *Prog, target string) string {
 			genAsyncFuncs[f.name] = true
 		}
 		var defs []string
+		var names []string
 		for j := 0; j < len(f.params); j++ {
+			names = append(names, f.params[j].name)
 			if f.params[j].dflt != nil {
 				defs = append(defs, ExprToJs(f.params[j].dflt))
 			} else {
@@ -954,6 +960,30 @@ func GenerateJsFor(p *Prog, target string) string {
 			}
 		}
 		genFnDefaults[f.name] = defs
+		genFnParams[f.name] = names
+	}
+	// View-local methods are called like functions inside their component and
+	// support the same named-argument reordering.
+	for i := 0; i < len(p.views); i++ {
+		for j := 0; j < len(p.views[i].methods); j++ {
+			m := &p.views[i].methods[j]
+			genUserFuncs[m.name] = true
+			if m.async {
+				genAsyncFuncs[m.name] = true
+			}
+			var defs []string
+			var names []string
+			for k := 0; k < len(m.params); k++ {
+				names = append(names, m.params[k].name)
+				if m.params[k].dflt != nil {
+					defs = append(defs, ExprToJs(m.params[k].dflt))
+				} else {
+					defs = append(defs, "")
+				}
+			}
+			genFnDefaults[m.name] = defs
+			genFnParams[m.name] = names
+		}
 	}
 	genViewParams = map[string][]Param{}
 	genViews = map[string]ViewDecl{}
@@ -1244,6 +1274,34 @@ func derefViewNodes(nodes []*ViewNode) []ViewNode {
 	return out
 }
 
+// orderNamedArgsJs rewrites named call arguments into declaration order for
+// code generation. The typechecker has already validated names and gaps.
+func orderNamedArgsJs(args []*Expr, names []string, params []string) []*Expr {
+	if !hasNamedArgs(names) {
+		return args
+	}
+	pos := map[string]int{}
+	for i := 0; i < len(params); i++ {
+		pos[params[i]] = i
+	}
+	out := make([]*Expr, len(args))
+	for i := 0; i < len(args); i++ {
+		if i >= len(names) || names[i] == "" {
+			return args
+		}
+		idx, ok := pos[names[i]]
+		if !ok || idx >= len(out) {
+			return args
+		}
+		out[idx] = args[i]
+	}
+	last := len(out) - 1
+	for last >= 0 && out[last] == nil {
+		last--
+	}
+	return out[:last+1]
+}
+
 func ExprToJs(e *Expr) string {
 	if e == nil {
 		return "null"
@@ -1317,9 +1375,10 @@ func ExprToJs(e *Expr) string {
 		}
 		// User function calls append the missing trailing default values.
 		if e.target != nil && e.target.kind == "ident" && isUserFunc(e.target.name) {
+			args := orderNamedArgsJs(e.args, e.argNames, genFnParams[e.target.name])
 			var argJs []string
-			for i := 0; i < len(e.args); i++ {
-				argJs = append(argJs, ExprToJs(e.args[i]))
+			for i := 0; i < len(args); i++ {
+				argJs = append(argJs, ExprToJs(args[i]))
 			}
 			if defs := genFnDefaults[e.target.name]; len(defs) > len(argJs) {
 				for i := len(argJs); i < len(defs) && defs[i] != ""; i++ {
@@ -1331,11 +1390,23 @@ func ExprToJs(e *Expr) string {
 		return ExprToJs(e.target) + "(" + exprListJs(e.args) + ")"
 	}
 	if k == "array" {
-		return "[" + exprListJs(e.elements) + "]"
+		var parts []string
+		for i := 0; i < len(e.elements); i++ {
+			prefix := ""
+			if i < len(e.spreads) && e.spreads[i] {
+				prefix = "..."
+			}
+			parts = append(parts, prefix+ExprToJs(e.elements[i]))
+		}
+		return "[" + strings.Join(parts, ", ") + "]"
 	}
 	if k == "map" {
 		var parts []string
 		for i := 0; i < len(e.keys); i++ {
+			if i < len(e.spreads) && e.spreads[i] {
+				parts = append(parts, "..."+ExprToJs(e.vals[i]))
+				continue
+			}
 			parts = append(parts, jsString(e.keys[i])+": "+ExprToJs(e.vals[i]))
 		}
 		return "({" + strings.Join(parts, ", ") + "})"
@@ -1733,6 +1804,16 @@ func stmtToJs(st *Stmt, ind string, ctx *JsCtx) string {
 	}
 	k := st.kind
 	if k == "let" {
+		if len(st.pattern) > 0 {
+			for i := 0; i < len(st.pattern); i++ {
+				ctx.scope = append(ctx.scope, st.pattern[i])
+			}
+			open, close := "{", "}"
+			if st.patternKind == "array" {
+				open, close = "[", "]"
+			}
+			return ind + "let " + open + strings.Join(st.pattern, ", ") + close + " = " + ExprToJs(st.init) + ";"
+		}
 		ctx.scope = append(ctx.scope, st.name)
 		return ind + "let " + st.name + " = " + ExprToJs(st.init) + ";"
 	}

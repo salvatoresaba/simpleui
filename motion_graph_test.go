@@ -108,6 +108,9 @@ const motionGraphScript = `<script>
       await wait(50);
     }
     if (!el) throw new Error('graph element missing');
+    // Wait for the motion-graph runtime to attach its click handler; a busy
+    // headless run can render the element before the runtime is ready.
+    for (var gi = 0; gi < 100 && !window.__SUI_MOTION_GRAPH; gi++) await wait(50);
     var before = Math.round(el.getBoundingClientRect().width);
     if (before !== 200) throw new Error('unexpected initial width ' + before);
     el.click();

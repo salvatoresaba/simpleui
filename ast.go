@@ -80,7 +80,9 @@ type Expr struct {
 	memb     string
 	target   *Expr
 	args     []*Expr
+	argNames []string // parallel to args; "" for positional
 	elements []*Expr
+	spreads  []bool // parallel to elements (array) or vals (map)
 	keys     []string
 	vals     []*Expr
 	idx      *Expr
@@ -113,22 +115,24 @@ type Expr struct {
 //
 // ---------------------------------------------------------------------------
 type Stmt struct {
-	kind     string
-	name     string
-	init     *Expr
-	targets  []string
-	rhs      *Expr
-	lvalue   *Expr // struct field / index target for single-target assigns
-	cond     *Expr
-	then_    []*Stmt
-	else_    []*Stmt
-	item     string
-	item2    string // map value variable ("" for single-var loops)
-	iterable *Expr
-	body     []*Stmt
-	value    *Expr
-	values   []*Expr // multi-return values (return a, b)
-	span     Span
+	kind        string
+	name        string
+	init        *Expr
+	pattern     []string // let destructuring names
+	patternKind string   // "object" or "array"
+	targets     []string
+	rhs         *Expr
+	lvalue      *Expr // struct field / index target for single-target assigns
+	cond        *Expr
+	then_       []*Stmt
+	else_       []*Stmt
+	item        string
+	item2       string // map value variable ("" for single-var loops)
+	iterable    *Expr
+	body        []*Stmt
+	value       *Expr
+	values      []*Expr // multi-return values (return a, b)
+	span        Span
 }
 
 // ---------------------------------------------------------------------------

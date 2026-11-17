@@ -275,7 +275,10 @@ func Lex(source string, file string) ([]Token, DiagList) {
 			so := i
 			kind := ""
 			width := 1
-			if i+1 < n {
+			if i+2 < n && source[i:i+3] == "..." {
+				kind = "..."
+				width = 3
+			} else if i+1 < n {
 				two := source[i : i+2]
 				if two == "->" {
 					kind = "->"

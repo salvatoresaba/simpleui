@@ -120,7 +120,9 @@ state contacts: array[Contact] = [
 Block     := '{' { Stmt } '}'
 Stmt      := LetDecl | Assign | IfStmt | LoopStmt | WhileStmt | ReturnStmt
            | BreakStmt | ContinueStmt | ExprStmt
-LetDecl   := 'let' ident '=' Expr
+LetDecl   := 'let' ( ident | ObjectPattern | ArrayPattern ) '=' Expr
+ObjectPattern := '{' ident { ',' ident } '}'
+ArrayPattern  := '[' ident { ',' ident } ']'
 Assign    := ( LValue | Ident { ',' Ident } ) ( '=' | CompoundOp ) Expr
 Postfix   := ident '++' | ident '--'
 LValue    := Ident { '.' ident | '[' Expr ']' }
@@ -160,6 +162,22 @@ ReturnStmt:= 'return' [ Expr ]
   `break`/`continue` are allowed inside `loop` and `while`. The same two-name
   form works in views: `list k, v in m { ... }`. Riding a map with one name
   (or an array/map/range with two) is a compile error.
+
+### 2.3a Destructuring, spread and named arguments
+
+- `let {a, b} = value` reads struct fields or map values; `let [a, b] = value`
+  reads array positions. Patterns contain plain names only (no renaming,
+  defaults or holes yet). A struct pattern requires a struct, an array pattern
+  requires an array; a map pattern accepts any `map[string]T`.
+- Array literals accept `...array`; map literals accept `...map`. A map literal
+  still requires one common value type, and spread values participate in that
+  check.
+- Calls to user functions accept named arguments (`f(b: 2, a: 1)`). Named and
+  positional arguments cannot be mixed; duplicate/unknown names are errors and
+  all required parameters must be supplied. Omitted trailing parameters use
+  their defaults; an omitted middle optional parameter is filled from its
+  default when a later named argument is present. Named arguments are not
+  supported for builtins or std functions.
 
 ### 2.4a Built-in functions (no import needed)
 

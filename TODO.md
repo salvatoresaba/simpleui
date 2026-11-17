@@ -101,9 +101,9 @@ Known accuracy corrections from the previous TODO:
 ### 1.3 Functions & Control
 
 - [ ] **Rest parameters** — `fn sum(...nums: array[int])`
-- [ ] **Named parameters** in addition to existing optional parameters
-- [ ] **Destructuring** — `let {name, age} = user`, `let [a,b] = arr`
-- [ ] **Spread operator** — `[...arr1, ...arr2]`, `{...obj1, ...obj2}`
+- [x] **Named parameters** at user-function call sites (`f(b: 2, a: 1)`)
+- [x] **Destructuring** — `let {name, age} = user`, `let [a,b] = arr`
+- [x] **Spread operator** — `[...arr1, ...arr2]`, `{...obj1, ...obj2}`
 
 ## 2. Reactivity & Runtime
 

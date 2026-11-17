@@ -4,6 +4,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 
 ## Sommario
 - [Linguaggio SUI](#linguaggio-sui-sintassi-essenziale)
+- [Destructuring, spread e argomenti nominati](#destructuring-spread-e-argomenti-nominati)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
 - [Internazionalizzazione (i18n)](#internazionalizzazione-i18n)
@@ -69,6 +70,38 @@ view App {
 `radio`, `number`, `date`, `time` e `datepicker`. I controlli nativi usano
 l'attributo `required` del browser; il combobox mostra anche un errore inline
 quando non è selezionato un valore.
+
+### Destructuring, spread e argomenti nominati
+
+```sui
+type Person struct { name: string, age: int }
+
+let person = Person{ name: "Anna", age: 30 }
+let {name, age} = person          # campi dello struct
+let [first, second] = [10, 20]   # posizioni dell'array
+let {x, y} = {"x": 7, "y": 8}    # valori della mappa
+
+let numbers = [...[1, 2], ...[3, 4]]
+let defaults = {"theme": "dark", "lang": "it"}
+let config = {...defaults, "lang": "en"}
+
+fn greet(name: string, excited: bool = false) -> string { ... }
+greet(excited: true, name: "Anna")
+```
+
+- I pattern a oggetto leggono campi di uno struct o valori di una mappa; i
+  pattern ad array leggono le posizioni. Ogni nome diventa un binding `let`
+  locale.
+- Gli array e le mappe accettano lo spread `...valore`. Uno spread di mappa
+  richiede una mappa; una mappa mantiene un solo tipo comune per i valori.
+- Gli argomenti nominati possono essere in qualsiasi ordine. Argomenti
+  posizionali e nominati non si possono mescolare nella stessa chiamata; nomi
+  sconosciuti o duplicati sono errori. I parametri opzionali finali omessi usano
+  il default; un parametro opzionale intermedio viene riempito col default se
+  viene fornito un argomento nominato successivo.
+- Non ancora supportati: rinomina/default/buchi nei pattern, spread nei struct
+  literal o negli argomenti delle chiamate, argomenti nominati per builtin e
+  funzioni std. `simpleui fmt` preserva queste forme.
 
 ## Drag and drop
 

@@ -203,8 +203,14 @@ func emitExpr(sb *strings.Builder, e *Expr, ind int) {
 	wfield(sb, ind+1, "args")
 	emitExprArray(sb, e.args, ind+1)
 	sb.WriteString(",\n")
+	wfield(sb, ind+1, "argNames")
+	emitStringArray(sb, e.argNames, ind+1)
+	sb.WriteString(",\n")
 	wfield(sb, ind+1, "elements")
 	emitExprArray(sb, e.elements, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "spreads")
+	emitBoolArray(sb, e.spreads, ind+1)
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "keys")
 	emitStringArray(sb, e.keys, ind+1)
@@ -243,6 +249,17 @@ func emitExpr(sb *strings.Builder, e *Expr, ind int) {
 	sb.WriteString("}")
 }
 
+func emitBoolArray(sb *strings.Builder, a []bool, ind int) {
+	sb.WriteString("[")
+	for i := 0; i < len(a); i++ {
+		if i > 0 {
+			sb.WriteString(",")
+		}
+		sb.WriteString(jsonBool(a[i]))
+	}
+	sb.WriteString("]")
+}
+
 func emitStmt(sb *strings.Builder, st *Stmt, ind int) {
 	if st == nil {
 		sb.WriteString("null")
@@ -254,6 +271,12 @@ func emitStmt(sb *strings.Builder, st *Stmt, ind int) {
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "name")
 	writeJsonString(sb, st.name)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "pattern")
+	emitStringArray(sb, st.pattern, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "patternKind")
+	writeJsonString(sb, st.patternKind)
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "init")
 	emitExpr(sb, st.init, ind+1)

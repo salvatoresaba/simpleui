@@ -1,0 +1,40 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 640px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+p \{ margin: 7px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; \}"
+
+type Person struct { name: string, age: int }
+
+state out = ""
+state runLabel = "Run the example"
+
+fn greet(name: string, excited: bool = false, punctuation: string = "!") -> string {
+	let mood = "hello"
+	if excited { mood = "HELLO" }
+	return mood + " " + name + punctuation
+}
+
+fn run() -> null {
+	let person = Person{ name: "Anna", age: 30 }
+	let {name, age} = person
+
+	let [first, second] = [10, 20, 30]
+	let numbers = [...[1, 2], ...[3, 4]]
+
+	let defaults = {"theme": "dark", "lang": "it", "retries": "2"}
+	let config = {...defaults, "lang": "en", "retries": "5"}
+
+	let extra = {"x": 7, "y": 8}
+	let {x, y} = extra
+
+	out = greet(punctuation: "?", name: name, excited: true) + " · " + str(age) + " anni · " + str(first) + ", " + str(second) + " · numbers " + str(numbers) + " · theme " + config["theme"] + ", lang " + config["lang"] + ", retries " + str(config["retries"]) + " · x " + str(x) + ", y " + str(y)
+}
+
+view main {
+	card "" class: "card" {
+		h1 "Destructuring, spread and named arguments"
+		p "{out}"
+		button "{runLabel}" onClick: run
+		p "Object/array destructuring, array/map spread and named calls are compile-time syntax; the generated JavaScript uses native destructuring and spread." class: "muted"
+	}
+}

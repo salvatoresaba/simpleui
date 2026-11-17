@@ -30,6 +30,7 @@ Key features:
 - **Modal dialogs**: configurable dialogs with preset primary/danger buttons and `modal.open()` / `modal.close()`
 - **Components**: create reusable components with parameters, slots, and per-instance state
 - **Typed**: static type checking with inference for `state` and `let`
+- **Expressive syntax**: destructuring, spread and named function arguments
 - **Multi-target**: web apps, browser-launched desktop executables and native-window desktop executables with an embedded WebView
 - **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
 - **Secure for desktop**: native bridge with capability-based permission system and native file/folder dialogs

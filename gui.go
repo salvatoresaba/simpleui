@@ -2941,7 +2941,15 @@ func stmtToSui(sb *strings.Builder, st *Stmt, ind int) {
 	writeInd()
 	switch st.kind {
 	case "let":
-		sb.WriteString("let " + st.name + " = " + exprSource(st.init) + "\n")
+		if len(st.pattern) > 0 {
+			open, close := "{", "}"
+			if st.patternKind == "array" {
+				open, close = "[", "]"
+			}
+			sb.WriteString("let " + open + strings.Join(st.pattern, ", ") + close + " = " + exprSource(st.init) + "\n")
+		} else {
+			sb.WriteString("let " + st.name + " = " + exprSource(st.init) + "\n")
+		}
 	case "assign":
 		if len(st.targets) == 2 {
 			sb.WriteString(st.targets[0] + ", " + st.targets[1] + " = " + exprSource(st.rhs) + "\n")
@@ -3037,26 +3045,44 @@ func exprSource(e *Expr) string {
 		return exprSource(e.obj) + "." + e.memb
 	case "call":
 		args := make([]string, 0, len(e.args))
-		for _, a := range e.args {
-			args = append(args, exprSource(a))
+		for i, a := range e.args {
+			prefix := ""
+			if i < len(e.argNames) && e.argNames[i] != "" {
+				prefix = e.argNames[i] + ": "
+			}
+			args = append(args, prefix+exprSource(a))
 		}
 		return exprSource(e.target) + "(" + strings.Join(args, ", ") + ")"
 	case "array":
 		args := make([]string, 0, len(e.elements))
-		for _, a := range e.elements {
-			args = append(args, exprSource(a))
+		for i, a := range e.elements {
+			prefix := ""
+			if i < len(e.spreads) && e.spreads[i] {
+				prefix = "..."
+			}
+			args = append(args, prefix+exprSource(a))
 		}
 		return "[" + strings.Join(args, ", ") + "]"
 	case "map":
 		var sb strings.Builder
 		sb.WriteString("{ ")
+		first := true
 		for i := range e.keys {
-			if i > 0 {
+			if i < len(e.spreads) && e.spreads[i] {
+				if !first {
+					sb.WriteString(", ")
+				}
+				sb.WriteString("..." + exprSource(e.vals[i]))
+				first = false
+				continue
+			}
+			if !first {
 				sb.WriteString(", ")
 			}
 			sb.WriteString(suiQuoteStr(e.keys[i]))
 			sb.WriteString(": ")
 			sb.WriteString(exprSource(e.vals[i]))
+			first = false
 		}
 		sb.WriteString(" }")
 		return sb.String()

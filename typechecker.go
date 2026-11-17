@@ -362,13 +362,14 @@ type VarEntry struct {
 }
 
 type FnSig struct {
-	name     string
-	params   []SType
-	ret      *SType
-	defaults []*Expr  // per-param default value (nil = required)
-	rets     []*SType // multi-return list (ret == rets[0])
-	multi    bool
-	async    bool
+	name       string
+	params     []SType
+	paramNames []string
+	ret        *SType
+	defaults   []*Expr  // per-param default value (nil = required)
+	rets       []*SType // multi-return list (ret == rets[0])
+	multi      bool
+	async      bool
 }
 
 type Checker struct {
@@ -685,6 +686,7 @@ func (c *Checker) checkState(sd *StateDecl) {
 
 func (c *Checker) checkFuncSig(fd *FuncDecl) {
 	var params []SType
+	var paramNames []string
 	var defaults []*Expr
 	sawOptional := false
 	for i := 0; i < len(fd.params); i++ {
@@ -698,6 +700,7 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 			pt = &SType{kind: "error"}
 		}
 		params = append(params, *pt)
+		paramNames = append(paramNames, fd.params[i].name)
 		// Optional parameters must be trailing: a required one after an
 		// optional one is an error.
 		if fd.params[i].dflt == nil && sawOptional {
@@ -730,7 +733,7 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 			rets = append(rets, t)
 		}
 	}
-	c.sigs[fd.name] = &FnSig{name: fd.name, params: params, ret: rets[0], rets: rets, defaults: defaults, multi: len(rets) > 1, async: fd.async}
+	c.sigs[fd.name] = &FnSig{name: fd.name, params: params, paramNames: paramNames, ret: rets[0], rets: rets, defaults: defaults, multi: len(rets) > 1, async: fd.async}
 	// Type each default expression against its parameter.
 	for i := 0; i < len(fd.params); i++ {
 		if fd.params[i].dflt != nil && i < len(params) {
@@ -818,11 +821,62 @@ func (c *Checker) checkStmt(s *Stmt) {
 }
 
 func (c *Checker) checkLet(s *Stmt) {
+	if len(s.pattern) > 0 {
+		c.checkDestructure(s)
+		return
+	}
 	if c.states[s.name] != nil {
 		c.diagAt(s.span, "let cannot shadow a state variable \""+s.name+"\"")
 	}
 	it := c.inferExpr(s.init)
 	c.declareVar(s.name, it, s.span)
+}
+
+// checkDestructure types `let {a, b} = value` and `let [a, b] = values`.
+// Object patterns take fields from a struct or values from a map; array
+// patterns take the element type.
+func (c *Checker) checkDestructure(s *Stmt) {
+	it := c.inferExpr(s.init)
+	seen := map[string]bool{}
+	for i := 0; i < len(s.pattern); i++ {
+		name := s.pattern[i]
+		if seen[name] {
+			c.diagAt(s.span, "duplicate name \""+name+"\" in the destructuring pattern")
+		}
+		seen[name] = true
+		if c.states[name] != nil {
+			c.diagAt(s.span, "let cannot shadow a state variable \""+name+"\"")
+		}
+		var vt *SType
+		if s.patternKind == "array" {
+			switch it.kind {
+			case "array":
+				vt = it.elem
+			case "any", "unknown":
+				vt = NewSType("any")
+			case "error":
+				vt = NewSType("error")
+			default:
+				c.diagAt(s.span, "array destructuring requires an array, got "+typeStr(it))
+				vt = NewSType("error")
+			}
+		} else {
+			switch it.kind {
+			case "struct":
+				vt = c.structFieldType(s.init, it.name, name)
+			case "map":
+				vt = it.val
+			case "any", "unknown":
+				vt = NewSType("any")
+			case "error":
+				vt = NewSType("error")
+			default:
+				c.diagAt(s.span, "object destructuring requires a struct or a map, got "+typeStr(it))
+				vt = NewSType("error")
+			}
+		}
+		c.declareVar(name, vt, s.span)
+	}
 }
 
 func (c *Checker) checkIf(s *Stmt) {
@@ -1362,6 +1416,72 @@ func (c *Checker) checkTupleAssign(s *Stmt) {
 	}
 }
 
+// orderNamedArgs rewrites a call with named arguments into declaration order.
+// Positional and named arguments cannot be mixed. Missing parameters before a
+// named one are filled from their defaults; trailing optional parameters may
+// still be omitted.
+// hasNamedArgs reports whether a call has at least one named argument.
+// Positional calls carry a parallel slice of empty strings.
+func hasNamedArgs(names []string) bool {
+	for i := 0; i < len(names); i++ {
+		if names[i] != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Checker) orderNamedArgs(e *Expr, sig *FnSig, fname string) []*Expr {
+	if !hasNamedArgs(e.argNames) {
+		return e.args
+	}
+	for i := 0; i < len(e.argNames); i++ {
+		if e.argNames[i] == "" {
+			c.diagAt(e.span, "cannot mix positional and named arguments in a call to "+fname)
+			return e.args
+		}
+	}
+	pos := map[string]int{}
+	for i := 0; i < len(sig.paramNames); i++ {
+		pos[sig.paramNames[i]] = i
+	}
+	ordered := make([]*Expr, len(sig.params))
+	seen := map[string]bool{}
+	max := -1
+	for i := 0; i < len(e.argNames); i++ {
+		name := e.argNames[i]
+		idx, ok := pos[name]
+		if !ok {
+			c.diagAt(e.args[i].span, "unknown named argument \""+name+"\" for "+fname)
+			continue
+		}
+		if seen[name] {
+			c.diagAt(e.args[i].span, "duplicate named argument \""+name+"\" for "+fname)
+			continue
+		}
+		seen[name] = true
+		ordered[idx] = e.args[i]
+		if idx > max {
+			max = idx
+		}
+	}
+	for i := 0; i < max; i++ {
+		if ordered[i] == nil {
+			if i < len(sig.defaults) && sig.defaults[i] != nil {
+				ordered[i] = sig.defaults[i]
+			} else {
+				c.diagAt(e.span, "missing argument for parameter \""+sig.paramNames[i]+"\" of "+fname)
+				return e.args
+			}
+		}
+	}
+	last := len(ordered) - 1
+	for last >= 0 && ordered[last] == nil {
+		last--
+	}
+	return ordered[:last+1]
+}
+
 // checkArgs validates provided arguments against the parameter types; missing
 // trailing arguments are permitted when those parameters carry defaults.
 func (c *Checker) checkArgs(fname string, params []SType, args []*Expr, defs []*Expr, sp Span) {
@@ -1515,6 +1635,16 @@ func (c *Checker) inferArray(e *Expr) *SType {
 	var common *SType
 	for i := 0; i < len(e.elements); i++ {
 		et := c.inferExpr(e.elements[i])
+		if i < len(e.spreads) && e.spreads[i] {
+			if et.kind == "array" {
+				et = et.elem
+			} else if et.kind == "any" || et.kind == "unknown" || et.kind == "error" {
+				// keep the sentinel and let the common-type pass ignore it
+			} else {
+				c.diagAt(e.elements[i].span, "spread in an array literal requires an array, got "+typeStr(et))
+				et = NewSType("error")
+			}
+		}
 		if et.kind == "error" || et.kind == "unknown" {
 			continue
 		}
@@ -1540,6 +1670,16 @@ func (c *Checker) inferMap(e *Expr) *SType {
 	var common *SType
 	for i := 0; i < len(e.vals); i++ {
 		vt := c.inferExpr(e.vals[i])
+		if i < len(e.spreads) && e.spreads[i] {
+			if vt.kind == "map" {
+				vt = vt.val
+			} else if vt.kind == "any" || vt.kind == "unknown" || vt.kind == "error" {
+				// keep the sentinel and let the common-type pass ignore it
+			} else {
+				c.diagAt(e.vals[i].span, "spread in a map literal requires a map, got "+typeStr(vt))
+				vt = NewSType("error")
+			}
+		}
 		if vt.kind == "error" || vt.kind == "unknown" {
 			continue
 		}
@@ -1717,6 +1857,9 @@ func (c *Checker) callbackParamFits(arg *Expr, sig *FnSig, index int, want *STyp
 }
 
 func (c *Checker) inferBuiltin(e *Expr) *SType {
+	if hasNamedArgs(e.argNames) {
+		c.diagAt(e.span, "named arguments are only supported for user functions")
+	}
 	name := e.target.name
 	if e.target != nil && e.target.kind == "member" {
 		name = memberFullName(e.target)
@@ -2918,6 +3061,9 @@ func (c *Checker) inferCall(e *Expr) *SType {
 		}
 	}
 	if isStdCallShape(e) {
+		if hasNamedArgs(e.argNames) {
+			c.diagAt(e.span, "named arguments are only supported for user functions")
+		}
 		var f *StdFunc
 		if e.target.obj != nil && !c.stdImported[e.target.obj.name] && !IsCoreModule(e.target.obj.name) {
 			c.diagAt(e.span, "std module \""+e.target.obj.name+"\" is not imported (add import { "+e.target.obj.name+" } from \"std\")")
@@ -2974,7 +3120,8 @@ func (c *Checker) inferCall(e *Expr) *SType {
 			}
 			return NewSType("error")
 		}
-		c.checkArgs(name, sig.params, e.args, sig.defaults, e.span)
+		args := c.orderNamedArgs(e, sig, name)
+		c.checkArgs(name, sig.params, args, sig.defaults, e.span)
 		if c.methodNames[name] && c.curView == "" {
 			c.diagAt(e.span, "method \""+name+"\" can only be called inside its component view")
 		}

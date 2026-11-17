@@ -30,6 +30,7 @@ Le principali caratteristiche:
 - **Dialoghi modali**: dialoghi configurabili con pulsanti primary/danger e `modal.open()` / `modal.close()`
 - **Componenti**: crea componenti riutilizzabili con parametri, slot e stato per istanza
 - **Tipizzato**: type checking statico con inferenza per `state` e `let`
+- **Sintassi espressiva**: destructuring, spread e argomenti nominati nelle chiamate
 - **Multi-target**: genera app web o eseguibili desktop standalone
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)
 - **Sicuro per desktop**: bridge nativo con permessi basati su capability e dialoghi file/cartelle nativi

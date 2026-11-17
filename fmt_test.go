@@ -123,3 +123,21 @@ view main {
 		t.Fatalf("formatted output does not check: %v\n%s", cdl, out)
 	}
 }
+
+// TestFmtIgnoresHashInStrings guards the comment collector: CSS colors and
+// other # sequences inside a string are not comments and must not be duplicated.
+func TestFmtIgnoresHashInStrings(t *testing.T) {
+	src := "css \"body \\{ color: #0f1117; background: #151922; \\}\"\n" +
+		"view main {\n\tp \"#not-a-comment\"\n}\n"
+	out, dl := FormatSource(src, "hash.sui")
+	if dl != nil && dl.HasErrors() {
+		t.Fatalf("fmt errors: %v", dl)
+	}
+	if strings.Count(out, "#0f1117") != 1 || strings.Count(out, "#151922") != 1 {
+		t.Errorf("formatter duplicated a # inside a string:\n%s", out)
+	}
+	out2, _ := FormatSource(out, "hash.sui")
+	if out != out2 {
+		t.Errorf("fmt is not idempotent with # inside strings:\n---first---\n%s\n---second---\n%s", out, out2)
+	}
+}

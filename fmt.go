@@ -35,6 +35,33 @@ func collectComments(source string) []FmtComment {
 			i++
 			continue
 		}
+		if c == '"' {
+			// Skip string literals: a # inside a CSS string, color literal or
+			// URL is not a comment.
+			i++
+			col++
+			for i < n {
+				if source[i] == '\\' {
+					i += 2
+					col += 2
+					continue
+				}
+				if source[i] == '"' {
+					i++
+					col++
+					break
+				}
+				if source[i] == '\n' {
+					i++
+					line++
+					col = 1
+					continue
+				}
+				i++
+				col++
+			}
+			continue
+		}
 		if c == '#' {
 			start := i
 			startLine := line
@@ -206,7 +233,7 @@ func unaryContext(kind string) bool {
 // a space (open parentheses/brackets, dots, or tokens that already emitted a
 // trailing space like "," and ":").
 func noSpaceAfter(prev string) bool {
-	if prev == "" || prev == "(" || prev == "[" || prev == "." || prev == ".." || prev == "," || prev == ":" || prev == "{" {
+	if prev == "" || prev == "(" || prev == "[" || prev == "." || prev == ".." || prev == "..." || prev == "," || prev == ":" || prev == "{" {
 		return true
 	}
 	return false
@@ -225,7 +252,17 @@ func (f *fmtState) emitToken(t Token) {
 	openBreak := false
 	// Decide whether a single space is needed BEFORE this token.
 	switch kind {
-	case ")", "]", ",", ".", "..", ":", "(", "[":
+	case ")":
+		// no space before
+	case "]":
+		// no space before
+	case "[":
+		// No space before an index, but keep a space before an array literal
+		// after let/=/return/operator (let[first] -> let [first]).
+		if f.prevKind == "let" || f.prevKind == "return" || isOp(f.prevKind) {
+			f.space()
+		}
+	case ",", ".", "..", ":", "(":
 		// no space before
 	default:
 		if f.preTight {

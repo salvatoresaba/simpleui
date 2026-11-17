@@ -5,6 +5,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 ## Summary
 
 - [SUI language](#sui-language-essential-syntax)
+- [Destructuring, spread and named arguments](#destructuring-spread-and-named-arguments)
 - [Drag and drop](#drag-and-drop)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
@@ -78,6 +79,36 @@ view App {
 `radio`, `number`, `date`, `time` and `datepicker`. Native controls use the
 browser's `required` attribute; the combobox also reports an inline required
 error when no value is selected.
+
+### Destructuring, spread and named arguments
+
+```sui
+type Person struct { name: string, age: int }
+
+let person = Person{ name: "Anna", age: 30 }
+let {name, age} = person          # struct fields
+let [first, second] = [10, 20]   # array positions
+let {x, y} = {"x": 7, "y": 8}    # map values
+
+let numbers = [...[1, 2], ...[3, 4]]
+let defaults = {"theme": "dark", "lang": "it"}
+let config = {...defaults, "lang": "en"}
+
+fn greet(name: string, excited: bool = false) -> string { ... }
+greet(excited: true, name: "Anna")
+```
+
+- Object patterns read struct fields or map values; array patterns read array
+  positions. Every pattern name becomes a local `let` binding.
+- Array and map literals accept `...value` spread. A map spread requires a map;
+  a map literal still needs one common value type.
+- Named arguments may be in any order. Positional and named arguments cannot be
+  mixed in one call; unknown or duplicate names are errors. Omitted trailing
+  optional parameters use their defaults, and a missing middle optional
+  parameter is filled from its default when a later named argument is supplied.
+- Not yet supported: renaming/defaults/holes inside patterns, spread in struct
+  literals or function-call arguments, and named arguments for builtins/std
+  functions. `simpleui fmt` preserves these forms.
 
 ## Drag and drop
 

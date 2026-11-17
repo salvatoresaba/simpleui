@@ -160,6 +160,7 @@ For desktop capabilities:
 | Animated image / GIF spinner | `docs/API_REFERENCE.md#spinner`, `docs/GUI_EDITOR.md#spinner-imagegif-mode` | `examples/spinner_image/README.md` |
 | Translations, plurals, locale switching | `docs/API_REFERENCE.md#internationalization-i18n`, `docs/GUI_EDITOR.md#languages` | `examples/i18n/README.md` |
 | Filter/transform/reduce lists with callbacks | `docs/BUILTINS.md#collection-functions` | `examples/collections.sui` |
+| Destructuring, spread and named arguments | `docs/API_REFERENCE.md#destructuring-spread-and-named-arguments` | `examples/syntax_ergonomics.sui` |
 | External component library (add/regroup palette presets) | `docs/COMPONENT_LIBRARY.md` | `components/library.json` |
 | Control appearance (structure/style/animation, themes, navigator) | `docs/APPEARANCE_LIBRARY.md` | a `button` in the designer |
 | Structural table layout for arranging UI regions | `docs/API_REFERENCE.md#table-layout`, `docs/GUI_EDITOR.md#table-layout-control` | `examples/table_layout/README.md` |

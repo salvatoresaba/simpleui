@@ -66,6 +66,7 @@ Completati di recente:
       heartbeat, `onOpen`, `onClose`, `onError`, `status` e `reconnect`.
 - [x] Callback di collezione: `map`, `filter`, `reduce`, `find`, `findIndex`, `any`, `all`, `sortBy`, `unique` con funzioni dichiarate.
 - [x] Cataloghi i18n e plurali: `i18n "xx" { ... }`, `t`, cambio/rilevamento lingua, plurali CLDR, RTL, `?locale=`, editor Lingue nel designer e import/export JSON.
+- [x] Destructuring di oggetti/array, spread di array/mappe e argomenti nominati nelle chiamate a funzioni utente.
 
 ## Correzioni di accuratezza
 
@@ -93,7 +94,7 @@ Completati di recente:
 
 - Import/moduli utente, export di simboli, alias.
 - Enum, union, type guards, generics, literal types, const, readonly.
-- Rest/named parameters, destructuring, spread.
+- Rest parameters.
 - Computed/effects/batching/fine-grained reactivity.
 - Error boundaries, list keys, suspense, context.
 - fs avanzato, crypto, path utilities, JSON Schema e formattazione locale (Intl).

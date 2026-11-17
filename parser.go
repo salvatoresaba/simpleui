@@ -1218,24 +1218,67 @@ func parseStmt(p *Parser) *Stmt {
 	return s
 }
 
-// parseLet: 'let' ident '=' Expr
+// parseLet: 'let' (ident | '{' ident, ... '}' | '[' ident, ... ']') '=' Expr
 func parseLet(p *Parser) *Stmt {
 	sp := p.span()
 	p.adv() // let
-	name := p.cur()
-	if name.kind != "ident" {
-		p.diag("expected identifier after 'let'")
-		resyncToLine(p)
-		return nil
+	var names []string
+	patternKind := ""
+	if p.at("{") || p.at("[") {
+		close := "}"
+		patternKind = "object"
+		if p.at("[") {
+			close = "]"
+			patternKind = "array"
+		}
+		p.adv()
+		skipNewlines(p)
+		for !p.at(close) {
+			if p.at("eof") {
+				p.diag("unexpected end of file: destructuring pattern not closed")
+				break
+			}
+			if p.at("newline") || p.at(",") {
+				p.adv()
+				continue
+			}
+			n := p.cur()
+			if n.kind != "ident" {
+				p.diag("expected a name in the destructuring pattern")
+				resyncToLine(p)
+				break
+			}
+			names = append(names, n.text)
+			p.adv()
+			if !p.accept(",") {
+				skipNewlines(p)
+				break
+			}
+			skipNewlines(p)
+		}
+		if !p.accept(close) {
+			p.diag("expected '" + close + "' to close the destructuring pattern")
+		}
+	} else {
+		name := p.cur()
+		if name.kind != "ident" {
+			p.diag("expected identifier after 'let'")
+			resyncToLine(p)
+			return nil
+		}
+		p.adv()
+		names = append(names, name.text)
 	}
-	p.adv()
 	if !p.accept("=") {
 		p.diag("expected '=' in let declaration")
 		resyncToLine(p)
 		return nil
 	}
 	init := parseExpr(p)
-	return &Stmt{kind: "let", name: name.text, init: init, span: sp}
+	if patternKind != "" {
+		return &Stmt{kind: "let", pattern: names, patternKind: patternKind, init: init, span: sp}
+	}
+	return &Stmt{kind: "let", name: names[0], init: init, span: sp}
 }
 
 // parseReturn: 'return' [ Expr ]
@@ -1574,8 +1617,8 @@ func parsePostfix(p *Parser) *Expr {
 			e = &Expr{kind: "index", obj: e, idx: idx, span: e.span}
 		} else if p.at("(") {
 			p.adv()
-			args := parseArgs(p)
-			e = &Expr{kind: "call", target: e, args: args, span: e.span}
+			args, names := parseArgs(p)
+			e = &Expr{kind: "call", target: e, args: args, argNames: names, span: e.span}
 		} else {
 			break
 		}
@@ -1583,14 +1626,22 @@ func parsePostfix(p *Parser) *Expr {
 	return e
 }
 
-func parseArgs(p *Parser) []*Expr {
+func parseArgs(p *Parser) ([]*Expr, []string) {
 	var args []*Expr
+	var names []string
 	if p.accept(")") {
-		return args
+		return args, names
 	}
 	for true {
+		name := ""
+		if p.cur().kind == "ident" && p.look(1).kind == ":" {
+			name = p.cur().text
+			p.adv()
+			p.adv()
+		}
 		a := parseExpr(p)
 		args = append(args, a)
+		names = append(names, name)
 		if !p.accept(",") {
 			break
 		}
@@ -1598,7 +1649,7 @@ func parseArgs(p *Parser) []*Expr {
 	if !p.accept(")") {
 		p.diag("expected ')' to close argument list")
 	}
-	return args
+	return args, names
 }
 
 func parsePrimary(p *Parser) *Expr {
@@ -1685,13 +1736,16 @@ func parsePrimary(p *Parser) *Expr {
 	if t.kind == "[" {
 		p.adv()
 		var els []*Expr
+		var spreads []bool
 		skipNewlines(p)
 		if p.accept("]") {
-			return &Expr{kind: "array", elements: els, span: p.spanAt(t)}
+			return &Expr{kind: "array", elements: els, spreads: spreads, span: p.spanAt(t)}
 		}
 		for true {
+			spread := p.accept("...")
 			e := parseExpr(p)
 			els = append(els, e)
+			spreads = append(spreads, spread)
 			if !p.accept(",") {
 				break
 			}
@@ -1701,18 +1755,31 @@ func parsePrimary(p *Parser) *Expr {
 		if !p.accept("]") {
 			p.diag("expected ']' to close array literal")
 		}
-		return &Expr{kind: "array", elements: els, span: p.spanAt(t)}
+		return &Expr{kind: "array", elements: els, spreads: spreads, span: p.spanAt(t)}
 	}
 	if t.kind == "{" {
 		p.adv()
 		skipNewlines(p)
 		var keys []string
 		var vals []*Expr
+		var spreads []bool
 		if p.accept("}") {
-			return &Expr{kind: "map", keys: keys, vals: vals, span: p.spanAt(t)}
+			return &Expr{kind: "map", keys: keys, vals: vals, spreads: spreads, span: p.spanAt(t)}
 		}
 		for true {
 			skipNewlines(p)
+			if p.accept("...") {
+				v := parseExpr(p)
+				keys = append(keys, "")
+				vals = append(vals, v)
+				spreads = append(spreads, true)
+				skipNewlines(p)
+				if !p.accept(",") {
+					break
+				}
+				skipNewlines(p)
+				continue
+			}
 			kt := p.cur()
 			if kt.kind != "str" {
 				p.diag("expected a string map key")
@@ -1730,6 +1797,7 @@ func parsePrimary(p *Parser) *Expr {
 			skipNewlines(p)
 			v := parseExpr(p)
 			vals = append(vals, v)
+			spreads = append(spreads, false)
 			skipNewlines(p)
 			if !p.accept(",") {
 				break
@@ -1739,7 +1807,7 @@ func parsePrimary(p *Parser) *Expr {
 		if !p.accept("}") {
 			p.diag("expected '}' to close map literal")
 		}
-		return &Expr{kind: "map", keys: keys, vals: vals, span: p.spanAt(t)}
+		return &Expr{kind: "map", keys: keys, vals: vals, spreads: spreads, span: p.spanAt(t)}
 	}
 	p.diag(fmt.Sprintf("unexpected %v in expression", tokLabel(t.kind, t.text)))
 	resyncToLine(p)
