@@ -156,8 +156,10 @@ not evidence that a desktop path is safe to read; keep `fs` behind
   copy), and `fs.size` rejects directories.
 - **Crypto**: `crypto.hash` uses Web Crypto `subtle.digest` with SHA-256/384/512;
   `crypto.uuid`/`crypto.randomBytes` use the platform CSPRNG. There is no
-  `Math.random` fallback; unavailable APIs return empty values. Hashes are not a
-  password KDF.
+  `Math.random` fallback. `crypto.status()` reports `ready`, `random-only` or
+  `unavailable`; crypto calls throw a descriptive error instead of returning
+  empty values, and `crypto.hash` requires a secure context (HTTPS or
+  localhost). Hashes are not a password KDF.
 - **JSON Schema validation**: `json.validate` treats the schema as trusted
   developer code and the data as untrusted. It supports a practical subset;
   `$ref` is rejected. `pattern` is developer-supplied RegExp, so avoid

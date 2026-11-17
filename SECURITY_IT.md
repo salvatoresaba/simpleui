@@ -336,8 +336,10 @@ valore vuoto, non un percorso.
   (nessuna copia ricorsiva) e `fs.size` rifiuta le directory.
 - **Crypto**: `crypto.hash` usa Web Crypto `subtle.digest` con SHA-256/384/512;
   `crypto.uuid`/`crypto.randomBytes` usano il CSPRNG della piattaforma. Non
-  esiste un fallback a `Math.random`; se l'API non è disponibile restituiscono
-  valori vuoti. Gli hash non sono una KDF per password.
+  esiste un fallback a `Math.random`. `crypto.status()` restituisce `ready`,
+  `random-only` o `unavailable`; le funzioni crypto sollevano un errore
+  descrittivo invece di restituire valori vuoti, e `crypto.hash` richiede un
+  contesto sicuro (HTTPS o localhost). Gli hash non sono una KDF per password.
 - **Validazione JSON Schema**: `json.validate` tratta lo schema come codice
   fidato dello sviluppatore e i dati come non fidati. Supporta un sottoinsieme
   pratico; `$ref` è rifiutato. `pattern` è una RegExp dello sviluppatore: evita

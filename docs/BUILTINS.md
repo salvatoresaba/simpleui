@@ -142,12 +142,35 @@ an empty array.
 
 | Function | Params | Return | Async | Description |
 |---|---|---|---|---|
+| `crypto.available()` | - | bool | false | `true` only when both `crypto.subtle` and `getRandomValues` are available |
+| `crypto.status()` | - | string | false | `ready`, `random-only` or `unavailable` |
 | `crypto.hash(algo, text)` | string, string | string | true | Hex digest; `sha256`, `sha384` or `sha512` |
 | `crypto.uuid()` | - | string | false | Random UUID v4 |
 | `crypto.randomBytes(n)` | int | array[int] | false | `n` secure random bytes (1-1024), values 0-255 |
 
 `crypto.hash` is async; call it from an `async fn`. Use `len()` and `str()` to
 inspect the byte array.
+
+`crypto.subtle` exists only in a secure context (`https://`, `http://localhost`,
+`127.0.0.1`, or a desktop app). `crypto.status()` distinguishes the cases:
+
+- `ready`: hashing and random values are available.
+- `random-only`: `getRandomValues` works (`uuid`/`randomBytes` still work), but
+  `hash` cannot run because the context is insecure.
+- `unavailable`: Web Crypto is missing entirely.
+
+Crypto functions now fail loudly instead of returning empty values:
+
+```sui
+if not crypto.available() {
+	status = "Crypto hashing requires HTTPS or localhost: " + crypto.status()
+	return
+}
+```
+
+`crypto.hash` throws an `Error` for an insecure context or an unsupported
+algorithm; `crypto.uuid`/`crypto.randomBytes` throw when the platform CSPRNG is
+unavailable or the length is outside 1-1024. There is no `Math.random` fallback.
 
 ## Storage Functions (Cross-target)
 

@@ -10,6 +10,7 @@ func TestAdvancedStdlibWeb(t *testing.T) {
 
 state out = ""
 async fn run() -> null {
+	out = crypto.status() + "|" + str(crypto.available())
 	storage.set("sui.demo", {"n": 1})
 	storage.set("sui.text", "hello")
 	let okSync = storage.sync()
@@ -31,6 +32,7 @@ async fn run() -> null {
 	out = out + "|" + str(storage.get("sui.text")) + "|" + str(len(storage.keys()))
 	out = out + "|" + str(q["used"] > 0) + "|" + str(q["quota"] >= 0) + "|" + str(okSync)
 	out = out + "|" + str(valid) + "|" + validErr + "|" + str(invalid) + "|" + invalidErr
+	out = out + "|" + crypto.status() + "|" + str(crypto.available())
 	storage.remove("sui.text")
 	out = out + "|" + str(storage.get("sui.text", "missing"))
 }
@@ -40,14 +42,14 @@ view main {
 }`
 	runHeadlessFeature(t, src, featureScriptHead+`    await wait(300);
     button('Run').click();
-    for (var wi = 0; wi < 80 && document.body.innerText.indexOf('a/c|C:/x|y.txt|.txt') < 0; wi++) await wait(50);
+    for (var wi = 0; wi < 160 && document.body.innerText.indexOf('a/c|C:/x|y.txt|.txt') < 0; wi++) await wait(50);
     var text = document.body.innerText;
     if (text.indexOf('a/c|C:/x|y.txt|.txt') < 0) throw new Error('path: ' + text);
     if (text.indexOf('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824') < 0) throw new Error('hash: ' + text);
     if (text.indexOf('|36|4|hello|') < 0) throw new Error('uuid/bytes/storage: ' + text);
     if (text.indexOf('|true|true|true|true|') < 0) throw new Error('quota/sync/valid: ' + text);
     if (text.indexOf('$.name: must have at least 2 characters') < 0) throw new Error('schema detail: ' + text);
-    if (text.indexOf('|missing') < 0) throw new Error('storage default/remove: ' + text);
+    if (text.indexOf('|ready|true|missing') < 0) throw new Error('crypto/status/storage: ' + text);
 `+featureScriptTail)
 
 	bad := []struct{ name, src, want string }{
@@ -59,6 +61,8 @@ view main { button "x" onClick: run }`, "storage.quota is async"},
 view main { button "x" onClick: run }`, "path.join arguments must be strings"},
 		{"random bytes arg", `fn run() -> null { let b = crypto.randomBytes("x") }
 view main { button "x" onClick: run }`, "crypto.randomBytes requires an int"},
+		{"available args", `fn run() -> null { let a = crypto.available(1) }
+view main { button "x" onClick: run }`, "crypto.available takes exactly 0 arguments"},
 	}
 	for _, tc := range bad {
 		t.Run(tc.name, func(t *testing.T) {

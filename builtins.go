@@ -26,6 +26,8 @@ var Builtins = []Builtin{
 	Builtin{name: "path.basename", js: "__sui_path_basename({0})"},
 	Builtin{name: "path.extname", js: "__sui_path_extname({0})"},
 	// ---- crypto (Web Crypto; no Math.random fallback) ----
+	Builtin{name: "crypto.available", js: "__sui_crypto_available()"},
+	Builtin{name: "crypto.status", js: "__sui_crypto_status()"},
 	Builtin{name: "crypto.hash", js: "__sui_crypto_hash({0}, {1})", async: true},
 	Builtin{name: "crypto.uuid", js: "__sui_crypto_uuid()"},
 	Builtin{name: "crypto.randomBytes", js: "__sui_crypto_random_bytes({0})"},

@@ -9,8 +9,13 @@ state out = ""
 state okSync = false
 state used = 0
 state quota = 0
+state cryptoStatus = crypto.status()
 
 async fn run() -> null {
+	if not crypto.available() {
+		out = "crypto.hash requires HTTPS or localhost · status: " + cryptoStatus
+		return
+	}
 	storage.set("sui.demo.text", "hello")
 	storage.set("sui.demo.count", 2)
 	okSync = storage.sync()
@@ -52,7 +57,7 @@ view main {
 			button "Run" onClick: run
 			button "Clear" onClick: clear
 		}
-		p "quota used: {str(used)} bytes · quota: {str(quota)} bytes · sync listener: {str(okSync)}" class: "muted"
+		p "crypto: {cryptoStatus} · available: {str(crypto.available())} · quota used: {str(used)} bytes · quota: {str(quota)} bytes · sync listener: {str(okSync)}" class: "muted"
 		p "path/crypto/storage are builtins. json.validate is imported from std; it returns (valid, firstError). SHA-256, UUID and random bytes use Web Crypto." class: "muted"
 	}
 }

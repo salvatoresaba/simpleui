@@ -142,12 +142,38 @@ restituisce un array vuoto.
 
 | Funzione | Parametri | Ritorno | Async | Descrizione |
 |---|---|---|---|---|
+| `crypto.available()` | - | bool | false | `true` solo se sono disponibili sia `crypto.subtle` sia `getRandomValues` |
+| `crypto.status()` | - | string | false | `ready`, `random-only` o `unavailable` |
 | `crypto.hash(algo, text)` | string, string | string | true | Digest hex; `sha256`, `sha384` o `sha512` |
 | `crypto.uuid()` | - | string | false | UUID v4 casuale |
 | `crypto.randomBytes(n)` | int | array[int] | false | `n` byte sicuri (1-1024), valori 0-255 |
 
 `crypto.hash` è async; chiamalo da una `async fn`. Usa `len()` e `str()` per
 ispezionare l'array di byte.
+
+`crypto.subtle` esiste solo in un contesto sicuro (`https://`,
+`http://localhost`, `127.0.0.1` o un'app desktop). `crypto.status()` distingue
+i casi:
+
+- `ready`: hashing e valori casuali disponibili.
+- `random-only`: `getRandomValues` funziona (`uuid`/`randomBytes` funzionano),
+  ma `hash` non può girare perché il contesto non è sicuro.
+- `unavailable`: Web Crypto assente.
+
+Le funzioni crypto ora falliscono in modo esplicito invece di restituire valori
+vuoti:
+
+```sui
+if not crypto.available() {
+	status = "Crypto hashing richiede HTTPS o localhost: " + crypto.status()
+	return
+}
+```
+
+`crypto.hash` solleva un `Error` per contesto non sicuro o algoritmo non
+supportato; `crypto.uuid`/`crypto.randomBytes` sollevano un errore se il CSPRNG
+della piattaforma non è disponibile o la lunghezza è fuori da 1-1024. Non esiste
+un fallback a `Math.random`.
 
 ## Funzioni storage (cross-target)
 

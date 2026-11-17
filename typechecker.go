@@ -3050,7 +3050,7 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 		name != "random" && name != "time.now" && name != "time.nowMs" &&
 		name != "storage.clear" && name != "storage.keys" && name != "clipboard.readText" &&
 		name != "i18n.locale" && name != "i18n.detect" && name != "i18n.available" && name != "i18n.dir" && name != "i18n.missing" &&
-		name != "toast.clear" && name != "intl.timezone" && name != "storage.quota" && name != "storage.sync" && name != "crypto.uuid" && !isDndZeroArg(name) {
+		name != "toast.clear" && name != "intl.timezone" && name != "storage.quota" && name != "storage.sync" && name != "crypto.uuid" && name != "crypto.available" && name != "crypto.status" && !isDndZeroArg(name) {
 		c.diagAt(e.span, name+" takes at least one argument")
 		return NewSType("error")
 	}
@@ -3092,6 +3092,18 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 		}
 	}
 
+	if name == "crypto.available" {
+		if !want(0) {
+			return NewSType("error")
+		}
+		return NewSType("bool")
+	}
+	if name == "crypto.status" {
+		if !want(0) {
+			return NewSType("error")
+		}
+		return NewSType("string")
+	}
 	if name == "crypto.uuid" {
 		if !want(0) {
 			return NewSType("error")

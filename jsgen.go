@@ -844,30 +844,55 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  var b = __sui_path_basename(p); var idx = b.lastIndexOf('.');\n" +
 	"  return idx > 0 ? b.slice(idx) : '';\n" +
 	"}\n" +
+	"function __sui_crypto_status() {\n" +
+	"  try {\n" +
+	"    var c = typeof crypto !== 'undefined' ? crypto : null;\n" +
+	"    var hasRandom = !!c && typeof c.getRandomValues === 'function';\n" +
+	"    var hasHash = !!c && !!c.subtle && typeof c.subtle.digest === 'function';\n" +
+	"    if (!hasRandom) return 'unavailable';\n" +
+	"    if (!hasHash) return 'random-only';\n" +
+	"    return 'ready';\n" +
+	"  } catch (e) { return 'unavailable'; }\n" +
+	"}\n" +
+	"function __sui_crypto_available() { return __sui_crypto_status() === 'ready'; }\n" +
 	"function __sui_crypto_uuid() {\n" +
 	"  try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return String(crypto.randomUUID()); } catch (e) {}\n" +
-	"  try { var b = new Uint8Array(16); crypto.getRandomValues(b); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;\n" +
+	"  if (__sui_crypto_status() === 'unavailable') throw new Error('crypto.uuid requires crypto.getRandomValues (Web Crypto is unavailable)');\n" +
+	"  try {\n" +
+	"    var b = new Uint8Array(16); crypto.getRandomValues(b); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;\n" +
 	"    var h = []; for (var i = 0; i < b.length; i++) h.push((b[i] + 256).toString(16).slice(1));\n" +
-	"    return h.slice(0,4).join('') + '-' + h.slice(4,6).join('') + '-' + h.slice(6,8).join('') + '-' + h.slice(8,10).join('') + '-' + h.slice(10).join(''); } catch (e) { return ''; }\n" +
+	"    return h.slice(0,4).join('') + '-' + h.slice(4,6).join('') + '-' + h.slice(6,8).join('') + '-' + h.slice(8,10).join('') + '-' + h.slice(10).join('');\n" +
+	"  } catch (e) { throw new Error('crypto.uuid failed: ' + (e && e.message ? e.message : String(e))); }\n" +
 	"}\n" +
 	"function __sui_crypto_random_bytes(n) {\n" +
-	"  var size = Math.floor(Number(n)); if (!(size > 0) || size > 1024) return [];\n" +
-	"  try { var b = new Uint8Array(size); crypto.getRandomValues(b); return Array.prototype.slice.call(b); } catch (e) { return []; }\n" +
+	"  var size = Math.floor(Number(n));\n" +
+	"  if (!(size > 0) || size > 1024) throw new Error('crypto.randomBytes requires a length between 1 and 1024');\n" +
+	"  if (__sui_crypto_status() === 'unavailable') throw new Error('crypto.randomBytes requires crypto.getRandomValues (Web Crypto is unavailable)');\n" +
+	"  try { var b = new Uint8Array(size); crypto.getRandomValues(b); return Array.prototype.slice.call(b); }\n" +
+	"  catch (e) { throw new Error('crypto.randomBytes failed: ' + (e && e.message ? e.message : String(e))); }\n" +
 	"}\n" +
 	"async function __sui_crypto_hash(algo, text) {\n" +
+	"  var status = __sui_crypto_status();\n" +
+	"  if (status !== 'ready') {\n" +
+	"    if (status === 'random-only') throw new Error('crypto.hash requires a secure context (HTTPS or localhost): crypto.subtle is unavailable');\n" +
+	"    throw new Error('crypto.hash is unavailable: Web Crypto is not supported');\n" +
+	"  }\n" +
+	"  var name = String(algo == null ? 'sha256' : algo).toUpperCase().replace(/-/g, '');\n" +
+	"  if (name === 'SHA2' || name === 'SHA256') name = 'SHA-256';\n" +
+	"  else if (name === 'SHA384') name = 'SHA-384';\n" +
+	"  else if (name === 'SHA512') name = 'SHA-512';\n" +
+	"  else throw new Error('crypto.hash: unsupported algorithm \"' + String(algo) + '\" (use sha256, sha384 or sha512)');\n" +
 	"  try {\n" +
-	"    var name = String(algo == null ? 'sha256' : algo).toUpperCase().replace(/-/g, '');\n" +
-	"    if (name === 'SHA2' || name === 'SHA256') name = 'SHA-256';\n" +
-	"    else if (name === 'SHA384') name = 'SHA-384';\n" +
-	"    else if (name === 'SHA512') name = 'SHA-512';\n" +
-	"    else return '';\n" +
 	"    var data = new TextEncoder().encode(String(text == null ? '' : text));\n" +
 	"    var buf = await crypto.subtle.digest(name, data);\n" +
 	"    var out = []; var bytes = new Uint8Array(buf);\n" +
 	"    for (var i = 0; i < bytes.length; i++) out.push((bytes[i] + 256).toString(16).slice(1));\n" +
 	"    return out.join('');\n" +
-	"  } catch (e) { return ''; }\n" +
+	"  } catch (e) {\n" +
+	"    throw new Error('crypto.hash failed: ' + (e && e.message ? e.message : String(e)));\n" +
+	"  }\n" +
 	"}\n" +
+	"\n" +
 	"// JSON Schema validation: a practical subset (type, properties, required,\n" +
 	"// additionalProperties, items, enum/const, bounds, pattern, formats, allOf/anyOf/oneOf/not).\n" +
 	"function __sui_schema_kind(v) {\n" +
@@ -1046,7 +1071,14 @@ var SuiPrelude = "\"use strict\";\n" +
 	"async function __sui_storage_quota() {\n" +
 	"  var used = 0, quota = 0;\n" +
 	"  try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i) || ''; used += (k.length + String(localStorage.getItem(k) || '').length) * 2; } } catch (e) {}\n" +
-	"  try { if (navigator.storage && navigator.storage.estimate) { var est = await navigator.storage.estimate(); if (est) { if (est.usage !== undefined) used = Number(est.usage) || used; if (est.quota !== undefined) quota = Number(est.quota) || 0; } } } catch (e) {}\n" +
+	"  try {\n" +
+	"    if (navigator.storage && navigator.storage.estimate) {\n" +
+	"      var estimate = navigator.storage.estimate();\n" +
+	"      var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 1000); });\n" +
+	"      var est = await Promise.race([estimate, timeout]);\n" +
+	"      if (est) { if (est.usage !== undefined) used = Number(est.usage) || used; if (est.quota !== undefined) quota = Number(est.quota) || 0; }\n" +
+	"    }\n" +
+	"  } catch (e) {}\n" +
 	"  return { used: used, quota: quota };\n" +
 	"}\n" +
 	"function __sui_storage_sync() {\n" +
