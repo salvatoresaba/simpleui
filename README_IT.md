@@ -38,6 +38,7 @@ Le principali caratteristiche:
 - **Const, computed e readonly**: valori immutabili, stato derivato, campi immutabili
 - **Batching reattivo, error boundary e chiavi delle liste**
 - **Formattazione Intl**: date, numeri, valute, percentuali, tempo relativo e fusi orari
+- **Stdlib avanzata**: fs copy/move/size, crypto hash/UUID/random bytes, helper path, validazione JSON Schema, quota storage e sync cross-tab
 - **Multi-target**: genera app web o eseguibili desktop standalone
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)
 - **Sicuro per desktop**: bridge nativo con permessi basati su capability e dialoghi file/cartelle nativi

@@ -121,17 +121,53 @@ Questo documento elenca tutte le funzioni builtin disponibili in SimpleUI (non r
 | `encoding.base64Encode(s)` | string | string | Codifica Base64 (UTF-8 safe) |
 | `encoding.base64Decode(s)` | string | (string, any) | Decodifica Base64. Restituisce (value, err/null) |
 
-## Storage Functions (Cross-target)
+## Funzioni path
 
-Storage cross-platform: web usa localStorage, desktop fallback su memoria in caso di errore (mem store). Tutte restituiscono (value, err) o (ok, err).
+Helper puramente testuali; non accedono al filesystem. I separatori vengono
+normalizzati a `/`, i prefissi Windows vengono conservati e i segmenti `.`/`..`
+vengono risolti.
 
-| Function | Params | Return | Description |
+| Funzione | Parametri | Ritorno | Descrizione |
 |---|---|---|---|
-| `storage.get(k, [def])` | string, any? | (any, any) | Legge valore (JSON parse se oggetto). Se non trovato → def o null |
-| `storage.set(k, v)` | string, any | (bool, any) | Salva valore (serializza JSON se non stringa) |
-| `storage.remove(k)` | string | (bool, any) | Rimuove chiave |
-| `storage.clear()` | - | (bool, any) | Pulisce tutto |
-| `storage.keys()` | - | (array[string], any) | Elenca chiavi |
+| `path.join(a, b, ...)` | 1-8 stringhe | string | Unisce e normalizza i segmenti |
+| `path.dirname(p)` | string | string | Directory padre (`.` se non esiste) |
+| `path.basename(p)` | string | string | Ultimo segmento del percorso |
+| `path.extname(p)` | string | string | Estensione con il punto, o `""` |
+
+## Funzioni crypto
+
+Web Crypto sicuro nel browser/desktop. Non esiste fallback a `Math.random`: se
+l'API non è disponibile, `crypto.hash` restituisce `""` e `crypto.randomBytes`
+restituisce un array vuoto.
+
+| Funzione | Parametri | Ritorno | Async | Descrizione |
+|---|---|---|---|---|
+| `crypto.hash(algo, text)` | string, string | string | true | Digest hex; `sha256`, `sha384` o `sha512` |
+| `crypto.uuid()` | - | string | false | UUID v4 casuale |
+| `crypto.randomBytes(n)` | int | array[int] | false | `n` byte sicuri (1-1024), valori 0-255 |
+
+`crypto.hash` è async; chiamalo da una `async fn`. Usa `len()` e `str()` per
+ispezionare l'array di byte.
+
+## Funzioni storage (cross-target)
+
+Web usa `localStorage`; desktop ripiega sulla memoria se non disponibile.
+Queste funzioni restituiscono un valore singolo, non coppie `(value, err)`.
+
+| Funzione | Parametri | Ritorno | Descrizione |
+|---|---|---|---|
+| `storage.get(k, [def])` | string, any? | any | Legge un valore (JSON parse se possibile); assente -> def/null |
+| `storage.set(k, v)` | string, any | bool | Salva un valore (JSON se non stringa) |
+| `storage.remove(k)` | string | bool | Rimuove una chiave |
+| `storage.clear()` | - | bool | Pulisce lo storage |
+| `storage.keys()` | - | array[string] | Elenca le chiavi |
+| `storage.quota()` | - | map[string]int | Async; `{used, quota}` da `navigator.storage.estimate` (fallback dimensione localStorage) |
+| `storage.sync()` | - | bool | Installa un listener `storage` cross-tab; le altre schede ri-renderizzano al cambio di una chiave |
+
+`storage.quota` è async; chiamalo da una `async fn`. `storage.sync` è
+sincronizzazione locale tra schede, non un'API cloud: ascolta gli eventi di
+storage del browser e ri-renderizza le view; l'applicazione decide come unire i
+dati.
 
 ## Clipboard Functions
 

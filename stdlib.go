@@ -101,11 +101,17 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "fs", name: "mkdir", params: []string{"string"}, ret0: "null", ret1: "string", jsKey: "fs_mkdir", async: true},
 	StdFunc{mod: "fs", name: "remove", params: []string{"string"}, ret0: "null", ret1: "string", jsKey: "fs_remove", async: true},
 	StdFunc{mod: "fs", name: "list", params: []string{"string"}, ret0: "array[string]", ret1: "string", jsKey: "fs_list", async: true},
+	StdFunc{mod: "fs", name: "copy", params: []string{"string", "string"}, ret0: "null", ret1: "string", jsKey: "fs_copy", async: true},
+	StdFunc{mod: "fs", name: "move", params: []string{"string", "string"}, ret0: "null", ret1: "string", jsKey: "fs_move", async: true},
+	StdFunc{mod: "fs", name: "rename", params: []string{"string", "string"}, ret0: "null", ret1: "string", jsKey: "fs_move", async: true},
+	StdFunc{mod: "fs", name: "isDir", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "fs_isdir", async: true},
+	StdFunc{mod: "fs", name: "size", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "fs_size", async: true},
 	// exec
 	StdFunc{mod: "exec", name: "run", params: []string{"string", "array[string]"}, ret0: "string", ret1: "string", jsKey: "exec_run", async: true},
 	// json
 	StdFunc{mod: "json", name: "parse", params: []string{"string"}, ret0: "any", ret1: "string", jsKey: "json_parse", async: true},
 	StdFunc{mod: "json", name: "stringify", params: []string{"any"}, ret0: "string", ret1: "null", jsKey: "json_stringify", async: true},
+	StdFunc{mod: "json", name: "validate", params: []string{"any", "any"}, ret0: "bool", ret1: "string", jsKey: "json_validate", async: false},
 	// dialog (desktop target only)
 	StdFunc{mod: "dialog", name: "pickFile", params: []string{}, ret0: "string", ret1: "string", jsKey: "dialog_pickfile", async: true},
 	StdFunc{mod: "dialog", name: "pickFiles", params: []string{}, ret0: "array[string]", ret1: "string", jsKey: "dialog_pickfiles", async: true},

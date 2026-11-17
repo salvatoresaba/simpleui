@@ -121,18 +121,52 @@ This page lists the built-in functions available in SimpleUI (no import required
 | `encoding.base64Encode(s)` | string | string | Base64 encode (UTF-8 safe) |
 | `encoding.base64Decode(s)` | string | (string, any) | Base64 decode; returns `(value, err/null)` |
 
-## Storage Functions (Cross-target)
+## Path Functions
 
-Web uses `localStorage`; desktop falls back to in-memory storage on failure.
-All functions return `(value, err)` or `(ok, err)`.
+Pure string helpers; they never touch the filesystem. Separators are normalized
+to `/`, Windows drive prefixes are preserved, and `.`/`..` segments are
+collapsed.
 
 | Function | Params | Return | Description |
 |---|---|---|---|
-| `storage.get(k, [def])` | string, any? | (any, any) | Read a value (JSON parsed when possible); missing -> def/null |
-| `storage.set(k, v)` | string, any | (bool, any) | Store a value (JSON for non-strings) |
-| `storage.remove(k)` | string | (bool, any) | Remove a key |
-| `storage.clear()` | - | (bool, any) | Clear storage |
-| `storage.keys()` | - | (array[string], any) | List keys |
+| `path.join(a, b, ...)` | 1-8 strings | string | Join and normalize path segments |
+| `path.dirname(p)` | string | string | Parent directory (`.` when there is none) |
+| `path.basename(p)` | string | string | Last path segment |
+| `path.extname(p)` | string | string | Extension including the dot, or `""` |
+
+## Crypto Functions
+
+Secure browser/desktop Web Crypto. There is no `Math.random` fallback: when the
+API is unavailable, `crypto.hash` returns `""` and `crypto.randomBytes` returns
+an empty array.
+
+| Function | Params | Return | Async | Description |
+|---|---|---|---|---|
+| `crypto.hash(algo, text)` | string, string | string | true | Hex digest; `sha256`, `sha384` or `sha512` |
+| `crypto.uuid()` | - | string | false | Random UUID v4 |
+| `crypto.randomBytes(n)` | int | array[int] | false | `n` secure random bytes (1-1024), values 0-255 |
+
+`crypto.hash` is async; call it from an `async fn`. Use `len()` and `str()` to
+inspect the byte array.
+
+## Storage Functions (Cross-target)
+
+Web uses `localStorage`; desktop falls back to in-memory storage on failure.
+These functions return single values, not `(value, err)` pairs.
+
+| Function | Params | Return | Description |
+|---|---|---|---|
+| `storage.get(k, [def])` | string, any? | any | Read a value (JSON parsed when possible); missing -> def/null |
+| `storage.set(k, v)` | string, any | bool | Store a value (JSON for non-strings) |
+| `storage.remove(k)` | string | bool | Remove a key |
+| `storage.clear()` | - | bool | Clear storage |
+| `storage.keys()` | - | array[string] | List keys |
+| `storage.quota()` | - | map[string]int | Async; `{used, quota}` from `navigator.storage.estimate` (localStorage size fallback) |
+| `storage.sync()` | - | bool | Install a cross-tab `storage` listener; other tabs re-render when a key changes |
+
+`storage.quota` is async; call it from an `async fn`. `storage.sync` is local
+cross-tab synchronization, not a cloud API: it listens for browser storage
+events and re-renders views; the application decides how to merge data.
 
 ## Clipboard Functions
 

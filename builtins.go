@@ -13,12 +13,22 @@ import "strings"
 // Placeholders in js: {0} {1} {2} = transpiled argument expressions.
 
 type Builtin struct {
-	name string
-	js   string
+	name  string
+	js    string
+	async bool // call sites are emitted with await and must be in async code
 }
 
 var Builtins = []Builtin{
 	Builtin{name: "assert", js: "__sui_assert({0}, {1})"},
+	// ---- paths (pure string helpers; no filesystem access) ----
+	Builtin{name: "path.join", js: "__sui_path_join({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})"},
+	Builtin{name: "path.dirname", js: "__sui_path_dirname({0})"},
+	Builtin{name: "path.basename", js: "__sui_path_basename({0})"},
+	Builtin{name: "path.extname", js: "__sui_path_extname({0})"},
+	// ---- crypto (Web Crypto; no Math.random fallback) ----
+	Builtin{name: "crypto.hash", js: "__sui_crypto_hash({0}, {1})", async: true},
+	Builtin{name: "crypto.uuid", js: "__sui_crypto_uuid()"},
+	Builtin{name: "crypto.randomBytes", js: "__sui_crypto_random_bytes({0})"},
 	// ---- locale formatting (Intl) ----
 	Builtin{name: "intl.date", js: "__sui_intl_date({0}, {1}, {2}, {3})"},
 	Builtin{name: "intl.time", js: "__sui_intl_time({0}, {1}, {2}, {3})"},
@@ -154,6 +164,8 @@ var Builtins = []Builtin{
 	Builtin{name: "storage.remove", js: "__sui_storage_remove({0})"},
 	Builtin{name: "storage.clear", js: "__sui_storage_clear()"},
 	Builtin{name: "storage.keys", js: "__sui_storage_keys()"},
+	Builtin{name: "storage.quota", js: "__sui_storage_quota()", async: true},
+	Builtin{name: "storage.sync", js: "__sui_storage_sync()"},
 	// ---- clipboard ----
 	Builtin{name: "clipboard.readText", js: "__sui_clip_read()"},
 	Builtin{name: "clipboard.writeText", js: "__sui_clip_write({0})"},
@@ -185,6 +197,17 @@ func IsBuiltin(name string) bool {
 
 // builtinToJs renders the JS translation for a built-in call, substituting
 // argument expressions for {0}..{n} placeholders.
+// IsAsyncBuiltin reports whether a builtin returns a Promise and therefore
+// must be awaited in the generated JavaScript.
+func IsAsyncBuiltin(name string) bool {
+	for i := 0; i < len(Builtins); i++ {
+		if Builtins[i].name == name {
+			return Builtins[i].async
+		}
+	}
+	return false
+}
+
 func builtinToJs(name string, args []string) string {
 	js := ""
 	for i := 0; i < len(Builtins); i++ {

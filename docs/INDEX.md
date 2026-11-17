@@ -54,6 +54,11 @@ Recommended order for an agent:
 | Constants, computed values and readonly fields | [API: constants](API_REFERENCE.md#constants-computed-values-and-readonly-fields) | [SPEC](../SPEC.md) | `examples/reactivity.sui` |
 | Batching, error boundaries and list keys | [API: reactivity](API_REFERENCE.md#reactive-updates-batching-error-boundaries-and-list-keys) | [SPEC](../SPEC.md) | `examples/reactivity.sui` |
 | Locale formatting with Intl | [API: Intl](API_REFERENCE.md#locale-formatting-intl) | [BUILTINS](BUILTINS.md#assertions-and-locale-formatting) | `examples/intl_format.sui` |
+| Path helpers | [BUILTINS: path](BUILTINS.md#path-functions) | [STDLIB](../docs/STDLIB.md) | `examples/stdlib_advanced.sui` |
+| Crypto hash/UUID/random bytes | [BUILTINS: crypto](BUILTINS.md#crypto-functions) | [SECURITY](../SECURITY.md) | `examples/stdlib_advanced.sui` |
+| JSON Schema validation | [STDLIB: json](STDLIB.md#json-module-json) | [BUILTINS](BUILTINS.md) | `examples/stdlib_advanced.sui` |
+| Storage quota and cross-tab sync | [BUILTINS: storage](BUILTINS.md#storage-functions-cross-target) | [STDLIB](STDLIB.md) | `examples/stdlib_advanced.sui` |
+| Desktop fs copy/move/size/isDir | [STDLIB: fs](STDLIB.md#file-system-module-fs) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/fs_operations.sui` |
 | Slideshow with dots and keyboard | [API: carousel](API_REFERENCE.md#carousel) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/carousel/README.md` |
 | Wizard / progress steps | [API: stepper](API_REFERENCE.md#stepper) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/stepper/README.md` |
 | Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |

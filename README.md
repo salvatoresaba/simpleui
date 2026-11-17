@@ -38,6 +38,7 @@ Key features:
 - **Const, computed and readonly**: immutable values, derived state, immutable fields
 - **Reactive batching, error boundaries and list keys**
 - **Intl formatting**: dates, numbers, currencies, percentages, relative time and time zones
+- **Advanced stdlib**: fs copy/move/size, crypto hash/UUID/random bytes, path helpers, JSON Schema validation, storage quota and cross-tab sync
 - **Multi-target**: web apps, browser-launched desktop executables and native-window desktop executables with an embedded WebView
 - **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
 - **Secure for desktop**: native bridge with capability-based permission system and native file/folder dialogs

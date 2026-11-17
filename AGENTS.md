@@ -168,6 +168,8 @@ For desktop capabilities:
 | Constants, computed values and readonly fields | `docs/API_REFERENCE.md#constants-computed-values-and-readonly-fields` | `examples/reactivity.sui` |
 | Batching, error boundaries and list keys | `docs/API_REFERENCE.md#reactive-updates-batching-error-boundaries-and-list-keys` | `examples/reactivity.sui` |
 | Locale formatting with Intl | `docs/API_REFERENCE.md#locale-formatting-intl` | `examples/intl_format.sui` |
+| Path, crypto, JSON Schema, storage quota/sync | `docs/BUILTINS.md#path-functions`, `docs/STDLIB.md#json-module-json` | `examples/stdlib_advanced.sui` |
+| Desktop fs copy/move/isDir/size | `docs/STDLIB.md#file-system-module-fs` | `examples/fs_operations.sui` |
 | External component library (add/regroup palette presets) | `docs/COMPONENT_LIBRARY.md` | `components/library.json` |
 | Control appearance (structure/style/animation, themes, navigator) | `docs/APPEARANCE_LIBRARY.md` | a `button` in the designer |
 | Structural table layout for arranging UI regions | `docs/API_REFERENCE.md#table-layout`, `docs/GUI_EDITOR.md#table-layout-control` | `examples/table_layout/README.md` |

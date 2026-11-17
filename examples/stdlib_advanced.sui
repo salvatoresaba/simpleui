@@ -1,0 +1,58 @@
+import { json } from "std"
+
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 760px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+p \{ margin: 6px 0; font-size: 14px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+state out = ""
+state okSync = false
+state used = 0
+state quota = 0
+
+async fn run() -> null {
+	storage.set("sui.demo.text", "hello")
+	storage.set("sui.demo.count", 2)
+	okSync = storage.sync()
+	let q = storage.quota()
+	used = q["used"]
+	quota = q["quota"]
+
+	let hash = crypto.hash("sha256", "hello")
+	let id = crypto.uuid()
+	let bytes = crypto.randomBytes(8)
+	let joined = path.join("reports", "2026", "..", "summary.txt")
+	let dir = path.dirname(joined)
+	let base = path.basename(joined)
+	let ext = path.extname(joined)
+
+	let schema = {"type": "object", "required": ["name", "age"], "additionalProperties": false, "properties": {"name": {"type": "string", "minLength": 2}, "age": {"type": "integer", "minimum": 18}}}
+	valid, validErr = json.validate({"name": "Ada", "age": 36}, schema)
+	invalid, invalidErr = json.validate({"name": "A", "age": 12, "extra": true}, schema)
+
+	out = joined + " · " + dir + " · " + base + " · " + ext
+	out = out + "\nSHA-256: " + hash
+	out = out + "\nUUID: " + id + " · random bytes: " + str(len(bytes))
+	out = out + "\nstorage text: " + str(storage.get("sui.demo.text")) + " · keys: " + str(len(storage.keys()))
+	out = out + "\nschema valid: " + str(valid) + " " + validErr
+	out = out + "\nschema invalid: " + str(invalid) + " " + invalidErr
+}
+
+fn clear() -> null {
+	storage.remove("sui.demo.text")
+	storage.remove("sui.demo.count")
+	out = "storage cleared"
+}
+
+view main {
+	card "" class: "card" {
+		h1 "Advanced stdlib"
+		pre "{out}"
+		row {
+			button "Run" onClick: run
+			button "Clear" onClick: clear
+		}
+		p "quota used: {str(used)} bytes · quota: {str(quota)} bytes · sync listener: {str(okSync)}" class: "muted"
+		p "path/crypto/storage are builtins. json.validate is imported from std; it returns (valid, firstError). SHA-256, UUID and random bytes use Web Crypto." class: "muted"
+	}
+}

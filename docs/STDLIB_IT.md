@@ -91,6 +91,16 @@ FS accessibile via **Desktop Bridge** (target desktop) con capability-based secu
 | `fs.mkdir(path)` | string | (null, string) | true | Crea directory (mkdir -p style). *Fire-and-forget* |
 | `fs.remove(path)` | string | (null, string) | true | Rimuove file/directory. *Fire-and-forget* |
 | `fs.list(path)` | string | (array[string], string) | true | Elenca entry della directory |
+| `fs.copy(src, dst)` | string, string | (null, string) | true | Copia un file; entrambi i percorsi devono essere consentiti |
+| `fs.move(src, dst)` | string, string | (null, string) | true | Sposta/rinomina file o directory; entrambi i percorsi devono essere consentiti |
+| `fs.rename(src, dst)` | string, string | (null, string) | true | Alias di `fs.move` |
+| `fs.isDir(path)` | string | (bool, string) | true | Indica se il percorso è una directory esistente |
+| `fs.size(path)` | string | (int, string) | true | Dimensione in byte di un file (le directory sono rifiutate) |
+
+Sorgente e destinazione sono controllati contro la capability `--allow-dir`.
+`fs.copy` copia solo file regolari; crea prima la directory di destinazione e
+usa `fs.move` per le directory. Sul target web queste chiamate restituiscono un
+errore.
 
 ## Exec Module (`exec`)
 
@@ -119,6 +129,16 @@ Parsing/stringify JSON.
 |---|---|---|---|---|
 | `json.parse(s)` | string | (any, string) | true | Parse JSON. Restituisce oggetto/array/valore |
 | `json.stringify(v)` | any | (string, null) | true | Stringify JSON. *Fire-and-forget* in pratica? Secondo `StdFunc` ret1 = "null" quindi non richiede binding di errore separato nella logica usuale |
+| `json.validate(value, schema)` | any, any | (bool, string) | false | Validazione con un sottoinsieme di JSON Schema; il secondo valore è il primo percorso d'errore |
+
+`json.validate` supporta `type`, `enum`, `const`, `properties`, `required`,
+`additionalProperties`, `items` (schema o tupla), `minItems`/`maxItems`,
+`uniqueItems`, `minLength`/`maxLength`, `pattern`, `format` (`email`, `uri`,
+`url`, `uuid`, `date`, `date-time`), limiti numerici e `multipleOf`,
+`minProperties`/`maxProperties`, `allOf`/`anyOf`/`oneOf`/`not` e
+`if`/`then`/`else`. `schema` può essere una mappa o una stringa JSON. `$ref` è
+rifiutato. Lo schema è codice fidato dello sviluppatore; i dati non vengono
+eseguiti.
 
 ## Dialog Module (`dialog`, desktop)
 

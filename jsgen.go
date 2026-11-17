@@ -811,15 +811,251 @@ var SuiPrelude = "\"use strict\";\n" +
 	"function __sui_b64_encode(s){ try{return btoa(unescape(encodeURIComponent(String(s||''))))}catch(e){return ''} }\n" +
 	"function __sui_b64_decode(s){ try{return [decodeURIComponent(escape(atob(String(s||'')))) , null]}catch(e){return ['', String(e)]} }\n" +
 	"\n" +
+	"function __sui_path_join() {\n" +
+	"  var parts = [];\n" +
+	"  for (var i = 0; i < arguments.length; i++) { var v = arguments[i]; if (v === undefined || v === null || v === '') continue; parts.push(String(v)); }\n" +
+	"  var all = parts.join('/').replace(/\\\\/g, '/');\n" +
+	"  var drive = ''; var dm = /^([A-Za-z]:)(\\/|$)/.exec(all); if (dm) { drive = dm[1]; all = all.slice(drive.length); }\n" +
+	"  var abs = all.charAt(0) === '/'; var segs = all.split('/'); var out = [];\n" +
+	"  for (var j = 0; j < segs.length; j++) {\n" +
+	"    var seg = segs[j];\n" +
+	"    if (seg === '' || seg === '.') continue;\n" +
+	"    if (seg === '..') { if (out.length && out[out.length - 1] !== '..') out.pop(); else if (!abs) out.push('..'); }\n" +
+	"    else out.push(seg);\n" +
+	"  }\n" +
+	"  var res = out.join('/'); if (abs) res = '/' + res; if (drive) res = drive + (res && res.charAt(0) !== '/' ? '/' : '') + res;\n" +
+	"  if (!res) res = abs ? '/' : (drive ? drive + '/' : '.');\n" +
+	"  return res;\n" +
+	"}\n" +
+	"function __sui_path_dirname(p) {\n" +
+	"  var v = String(p == null ? '' : p).replace(/\\\\/g, '/').replace(/\\/+$/, '');\n" +
+	"  if (!v) return '.';\n" +
+	"  var drive = ''; var dm = /^([A-Za-z]:)(\\/|$)/.exec(v); if (dm) { drive = dm[1]; if (v === drive) return drive + '/'; }\n" +
+	"  var idx = v.lastIndexOf('/');\n" +
+	"  if (idx < 0) return drive ? drive + '/' : '.';\n" +
+	"  if (idx === 0) return '/';\n" +
+	"  var d = v.slice(0, idx); if (drive && d === drive) return drive + '/'; return d || '/';\n" +
+	"}\n" +
+	"function __sui_path_basename(p) {\n" +
+	"  var v = String(p == null ? '' : p).replace(/\\\\/g, '/').replace(/\\/+$/, '');\n" +
+	"  var idx = v.lastIndexOf('/'); return idx >= 0 ? v.slice(idx + 1) : v;\n" +
+	"}\n" +
+	"function __sui_path_extname(p) {\n" +
+	"  var b = __sui_path_basename(p); var idx = b.lastIndexOf('.');\n" +
+	"  return idx > 0 ? b.slice(idx) : '';\n" +
+	"}\n" +
+	"function __sui_crypto_uuid() {\n" +
+	"  try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return String(crypto.randomUUID()); } catch (e) {}\n" +
+	"  try { var b = new Uint8Array(16); crypto.getRandomValues(b); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;\n" +
+	"    var h = []; for (var i = 0; i < b.length; i++) h.push((b[i] + 256).toString(16).slice(1));\n" +
+	"    return h.slice(0,4).join('') + '-' + h.slice(4,6).join('') + '-' + h.slice(6,8).join('') + '-' + h.slice(8,10).join('') + '-' + h.slice(10).join(''); } catch (e) { return ''; }\n" +
+	"}\n" +
+	"function __sui_crypto_random_bytes(n) {\n" +
+	"  var size = Math.floor(Number(n)); if (!(size > 0) || size > 1024) return [];\n" +
+	"  try { var b = new Uint8Array(size); crypto.getRandomValues(b); return Array.prototype.slice.call(b); } catch (e) { return []; }\n" +
+	"}\n" +
+	"async function __sui_crypto_hash(algo, text) {\n" +
+	"  try {\n" +
+	"    var name = String(algo == null ? 'sha256' : algo).toUpperCase().replace(/-/g, '');\n" +
+	"    if (name === 'SHA2' || name === 'SHA256') name = 'SHA-256';\n" +
+	"    else if (name === 'SHA384') name = 'SHA-384';\n" +
+	"    else if (name === 'SHA512') name = 'SHA-512';\n" +
+	"    else return '';\n" +
+	"    var data = new TextEncoder().encode(String(text == null ? '' : text));\n" +
+	"    var buf = await crypto.subtle.digest(name, data);\n" +
+	"    var out = []; var bytes = new Uint8Array(buf);\n" +
+	"    for (var i = 0; i < bytes.length; i++) out.push((bytes[i] + 256).toString(16).slice(1));\n" +
+	"    return out.join('');\n" +
+	"  } catch (e) { return ''; }\n" +
+	"}\n" +
+	"// JSON Schema validation: a practical subset (type, properties, required,\n" +
+	"// additionalProperties, items, enum/const, bounds, pattern, formats, allOf/anyOf/oneOf/not).\n" +
+	"function __sui_schema_kind(v) {\n" +
+	"  if (v === null) return 'null';\n" +
+	"  if (Array.isArray(v)) return 'array';\n" +
+	"  if (typeof v === 'number') return Number.isInteger(v) ? 'integer' : 'number';\n" +
+	"  return typeof v;\n" +
+	"}\n" +
+	"function __sui_schema_equal(a, b) { try { return JSON.stringify(a) === JSON.stringify(b); } catch (e) { return false; } }\n" +
+	"function __sui_schema_type_ok(v, t) {\n" +
+	"  if (t === 'any') return true;\n" +
+	"  if (t === 'null') return v === null;\n" +
+	"  if (t === 'array') return Array.isArray(v);\n" +
+	"  if (t === 'object') return v !== null && typeof v === 'object' && !Array.isArray(v);\n" +
+	"  if (t === 'integer') return typeof v === 'number' && Number.isInteger(v);\n" +
+	"  if (t === 'number') return typeof v === 'number' && !isNaN(v);\n" +
+	"  return typeof v === t;\n" +
+	"}\n" +
+	"function __sui_schema_check(v, s, path, depth) {\n" +
+	"  if (depth > 64) return path + ': schema nesting is too deep';\n" +
+	"  if (s === true) return null;\n" +
+	"  if (s === false) return path + ': rejected by false schema';\n" +
+	"  if (s === null || typeof s !== 'object' || Array.isArray(s)) return path + ': schema must be an object or boolean';\n" +
+	"  if (s.$ref !== undefined) return path + ': $ref is not supported';\n" +
+	"  if (s.type !== undefined) {\n" +
+	"    var types = Array.isArray(s.type) ? s.type : [s.type];\n" +
+	"    var ok = false;\n" +
+	"    for (var ti = 0; ti < types.length; ti++) if (__sui_schema_type_ok(v, types[ti])) { ok = true; break; }\n" +
+	"    if (!ok) return path + ': expected ' + types.join(' or ') + ', got ' + __sui_schema_kind(v);\n" +
+	"  }\n" +
+	"  if (s.enum !== undefined) {\n" +
+	"    if (!Array.isArray(s.enum)) return path + ': enum must be an array';\n" +
+	"    var found = false;\n" +
+	"    for (var ei = 0; ei < s.enum.length; ei++) if (__sui_schema_equal(v, s.enum[ei])) { found = true; break; }\n" +
+	"    if (!found) return path + ': value is not in enum';\n" +
+	"  }\n" +
+	"  if (Object.prototype.hasOwnProperty.call(s, 'const') && !__sui_schema_equal(v, s.const)) return path + ': value does not match const';\n" +
+	"  if (typeof v === 'number') {\n" +
+	"    if (typeof s.minimum === 'number' && v < s.minimum) return path + ': must be >= ' + s.minimum;\n" +
+	"    if (typeof s.maximum === 'number' && v > s.maximum) return path + ': must be <= ' + s.maximum;\n" +
+	"    if (typeof s.exclusiveMinimum === 'number' && v <= s.exclusiveMinimum) return path + ': must be > ' + s.exclusiveMinimum;\n" +
+	"    if (typeof s.exclusiveMaximum === 'number' && v >= s.exclusiveMaximum) return path + ': must be < ' + s.exclusiveMaximum;\n" +
+	"    if (typeof s.multipleOf === 'number' && s.multipleOf > 0) {\n" +
+	"      var q = v / s.multipleOf;\n" +
+	"      if (Math.abs(q - Math.round(q)) > 1e-9) return path + ': must be a multiple of ' + s.multipleOf;\n" +
+	"    }\n" +
+	"  }\n" +
+	"  if (typeof v === 'string') {\n" +
+	"    if (typeof s.minLength === 'number' && v.length < s.minLength) return path + ': must have at least ' + s.minLength + ' characters';\n" +
+	"    if (typeof s.maxLength === 'number' && v.length > s.maxLength) return path + ': must have at most ' + s.maxLength + ' characters';\n" +
+	"    if (typeof s.pattern === 'string') {\n" +
+	"      if (s.pattern.length > 512) return path + ': pattern is too long';\n" +
+	"      try { if (!(new RegExp(s.pattern)).test(v)) return path + ': does not match the pattern'; } catch (e) { return path + ': invalid pattern'; }\n" +
+	"    }\n" +
+	"    if (typeof s.format === 'string') {\n" +
+	"      if (s.format === 'email' && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)) return path + ': must be an email';\n" +
+	"      if ((s.format === 'uri' || s.format === 'url') && !__sui_valid_url(v)) return path + ': must be a URI';\n" +
+	"      if (s.format === 'uuid' && !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(v)) return path + ': must be a UUID';\n" +
+	"      if (s.format === 'date' && !/^\\d{4}-\\d{2}-\\d{2}$/.test(v)) return path + ': must be a date';\n" +
+	"      if (s.format === 'date-time' && isNaN(Date.parse(v))) return path + ': must be a date-time';\n" +
+	"    }\n" +
+	"  }\n" +
+	"  if (Array.isArray(v)) {\n" +
+	"    if (typeof s.minItems === 'number' && v.length < s.minItems) return path + ': must have at least ' + s.minItems + ' items';\n" +
+	"    if (typeof s.maxItems === 'number' && v.length > s.maxItems) return path + ': must have at most ' + s.maxItems + ' items';\n" +
+	"    if (s.uniqueItems === true) {\n" +
+	"      var seen = {};\n" +
+	"      for (var ui = 0; ui < v.length; ui++) {\n" +
+	"        var ukey = JSON.stringify(v[ui]);\n" +
+	"        if (seen[ukey]) return path + ': items must be unique';\n" +
+	"        seen[ukey] = true;\n" +
+	"      }\n" +
+	"    }\n" +
+	"    if (Array.isArray(s.items)) {\n" +
+	"      for (var ai = 0; ai < s.items.length && ai < v.length; ai++) {\n" +
+	"        var aerr = __sui_schema_check(v[ai], s.items[ai], path + '[' + ai + ']', depth + 1);\n" +
+	"        if (aerr !== null) return aerr;\n" +
+	"      }\n" +
+	"      if (v.length > s.items.length) {\n" +
+	"        if (s.additionalItems === false) return path + ': additional items are not allowed';\n" +
+	"        if (s.additionalItems && typeof s.additionalItems === 'object') {\n" +
+	"          for (var aj = s.items.length; aj < v.length; aj++) {\n" +
+	"            var ajerr = __sui_schema_check(v[aj], s.additionalItems, path + '[' + aj + ']', depth + 1);\n" +
+	"            if (ajerr !== null) return ajerr;\n" +
+	"          }\n" +
+	"        }\n" +
+	"      }\n" +
+	"    } else if (s.items !== undefined) {\n" +
+	"      for (var ii = 0; ii < v.length; ii++) {\n" +
+	"        var ierr = __sui_schema_check(v[ii], s.items, path + '[' + ii + ']', depth + 1);\n" +
+	"        if (ierr !== null) return ierr;\n" +
+	"      }\n" +
+	"    }\n" +
+	"  } else if (v !== null && typeof v === 'object') {\n" +
+	"    if (typeof s.minProperties === 'number' && Object.keys(v).length < s.minProperties) return path + ': must have at least ' + s.minProperties + ' properties';\n" +
+	"    if (typeof s.maxProperties === 'number' && Object.keys(v).length > s.maxProperties) return path + ': must have at most ' + s.maxProperties + ' properties';\n" +
+	"    if (Array.isArray(s.required)) {\n" +
+	"      for (var ri = 0; ri < s.required.length; ri++) {\n" +
+	"        if (!Object.prototype.hasOwnProperty.call(v, s.required[ri])) return path + ': missing required property \"' + s.required[ri] + '\"';\n" +
+	"      }\n" +
+	"    }\n" +
+	"    var props = (s.properties && typeof s.properties === 'object') ? s.properties : {};\n" +
+	"    var keys = Object.keys(v);\n" +
+	"    for (var ki = 0; ki < keys.length; ki++) {\n" +
+	"      var key = keys[ki];\n" +
+	"      if (props[key] !== undefined) {\n" +
+	"        var perr = __sui_schema_check(v[key], props[key], path + '.' + key, depth + 1);\n" +
+	"        if (perr !== null) return perr;\n" +
+	"      } else if (s.additionalProperties === false) {\n" +
+	"        return path + ': unexpected property \"' + key + '\"';\n" +
+	"      } else if (s.additionalProperties && typeof s.additionalProperties === 'object') {\n" +
+	"        var xerr = __sui_schema_check(v[key], s.additionalProperties, path + '.' + key, depth + 1);\n" +
+	"        if (xerr !== null) return xerr;\n" +
+	"      }\n" +
+	"    }\n" +
+	"  }\n" +
+	"  if (Array.isArray(s.allOf)) {\n" +
+	"    for (var oi = 0; oi < s.allOf.length; oi++) {\n" +
+	"      var oerr = __sui_schema_check(v, s.allOf[oi], path, depth + 1);\n" +
+	"      if (oerr !== null) return oerr;\n" +
+	"    }\n" +
+	"  }\n" +
+	"  if (Array.isArray(s.anyOf)) {\n" +
+	"    var anyOk = false;\n" +
+	"    for (var yi = 0; yi < s.anyOf.length; yi++) if (__sui_schema_check(v, s.anyOf[yi], path, depth + 1) === null) { anyOk = true; break; }\n" +
+	"    if (!anyOk) return path + ': does not match anyOf';\n" +
+	"  }\n" +
+	"  if (Array.isArray(s.oneOf)) {\n" +
+	"    var oneCount = 0;\n" +
+	"    for (var wi = 0; wi < s.oneOf.length; wi++) if (__sui_schema_check(v, s.oneOf[wi], path, depth + 1) === null) oneCount++;\n" +
+	"    if (oneCount !== 1) return path + ': must match exactly one oneOf schema';\n" +
+	"  }\n" +
+	"  if (s.not !== undefined) {\n" +
+	"    if (__sui_schema_check(v, s.not, path, depth + 1) === null) return path + ': must not match the not schema';\n" +
+	"  }\n" +
+	"  if (s.if !== undefined) {\n" +
+	"    var cond = __sui_schema_check(v, s.if, path, depth + 1);\n" +
+	"    if (cond === null && s.then !== undefined) {\n" +
+	"      var terr = __sui_schema_check(v, s.then, path, depth + 1);\n" +
+	"      if (terr !== null) return terr;\n" +
+	"    } else if (cond !== null && s.else !== undefined) {\n" +
+	"      var eerr = __sui_schema_check(v, s.else, path, depth + 1);\n" +
+	"      if (eerr !== null) return eerr;\n" +
+	"    }\n" +
+	"  }\n" +
+	"  return null;\n" +
+	"}\n" +
+	"function __sui_json_validate(value, schema) {\n" +
+	"  try { if (typeof schema === 'string') schema = JSON.parse(schema); } catch (e) { return [false, '$: schema is not valid JSON']; }\n" +
+	"  var err = __sui_schema_check(value, schema, '$', 0);\n" +
+	"  return err === null ? [true, ''] : [false, err];\n" +
+	"}\n" +
+	"\n" +
 	"const __SUI_MEM_STORE = Object.create(null);\n" +
-	"function __sui_storage_get(k, def){ try{ const v=localStorage.getItem(k); if(v===null) return [def===undefined?null:def, null]; try{return [JSON.parse(v), null]}catch(e){return [v,null]} }catch(e){ if(k in __SUI_MEM_STORE){ try{return [JSON.parse(__SUI_MEM_STORE[k]),null]}catch(ee){return [__SUI_MEM_STORE[k],null]} } return [def===undefined?null:def,null] } }\n" +
-	"function __sui_storage_set(k,v){ const sv=typeof v==='string'?v:JSON.stringify(v); try{ localStorage.setItem(k,sv); return [true,null] }catch(e){ __SUI_MEM_STORE[k]=sv; return [false,String(e)] } }\n" +
-	"function __sui_storage_remove(k){ try{ localStorage.removeItem(k); return [true,null] }catch(e){ delete __SUI_MEM_STORE[k]; return [false,String(e)] } }\n" +
-	"function __sui_storage_clear(){ try{ localStorage.clear(); return [true,null] }catch(e){ for(const kk in __SUI_MEM_STORE) delete __SUI_MEM_STORE[kk]; return [false,String(e)] } }\n" +
-	"function __sui_storage_quota(){ try{ return [JSON.stringify(localStorage).length,null]; }catch(e){ return [0,String(e)]; } }\n" +
-	"function __sui_storage_sync(){ try{ return [true,null]; }catch(e){ return [false,String(e)]; } }\n" +
-	"function __sui_storage_keys(){ try{ const r=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) r.push(k); } return [r,null] }catch(e){ return [Object.keys(__SUI_MEM_STORE),null] } }\n" +
-
+	"var __SUI_STORAGE_SYNC = false;\n" +
+	"function __sui_storage_get(k, def) {\n" +
+	"  var key = String(k); var fallback = def === undefined ? null : def;\n" +
+	"  try { var v = localStorage.getItem(key); if (v === null) return fallback; try { return JSON.parse(v); } catch (e) { return v; } }\n" +
+	"  catch (e) { if (key in __SUI_MEM_STORE) { try { return JSON.parse(__SUI_MEM_STORE[key]); } catch (ee) { return __SUI_MEM_STORE[key]; } } return fallback; }\n" +
+	"}\n" +
+	"function __sui_storage_set(k, v) {\n" +
+	"  var key = String(k); var sv = typeof v === 'string' ? v : JSON.stringify(v);\n" +
+	"  try { localStorage.setItem(key, sv); return true; } catch (e) { __SUI_MEM_STORE[key] = sv; return false; }\n" +
+	"}\n" +
+	"function __sui_storage_remove(k) {\n" +
+	"  var key = String(k);\n" +
+	"  try { localStorage.removeItem(key); return true; } catch (e) { delete __SUI_MEM_STORE[key]; return false; }\n" +
+	"}\n" +
+	"function __sui_storage_clear() {\n" +
+	"  try { localStorage.clear(); return true; } catch (e) { for (var kk in __SUI_MEM_STORE) delete __SUI_MEM_STORE[kk]; return false; }\n" +
+	"}\n" +
+	"function __sui_storage_keys() {\n" +
+	"  try { var r = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k) r.push(k); } return r; }\n" +
+	"  catch (e) { return Object.keys(__SUI_MEM_STORE); }\n" +
+	"}\n" +
+	"async function __sui_storage_quota() {\n" +
+	"  var used = 0, quota = 0;\n" +
+	"  try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i) || ''; used += (k.length + String(localStorage.getItem(k) || '').length) * 2; } } catch (e) {}\n" +
+	"  try { if (navigator.storage && navigator.storage.estimate) { var est = await navigator.storage.estimate(); if (est) { if (est.usage !== undefined) used = Number(est.usage) || used; if (est.quota !== undefined) quota = Number(est.quota) || 0; } } } catch (e) {}\n" +
+	"  return { used: used, quota: quota };\n" +
+	"}\n" +
+	"function __sui_storage_sync() {\n" +
+	"  if (__SUI_STORAGE_SYNC) return true;\n" +
+	"  try { if (typeof window === 'undefined' || !window.addEventListener) return false;\n" +
+	"    window.addEventListener('storage', function () { if (typeof __sui_render === 'function') __sui_render(); });\n" +
+	"    __SUI_STORAGE_SYNC = true; return true;\n" +
+	"  } catch (e) { return false; }\n" +
+	"}\n" +
 	"\n" +
 	"function __sui_clip_write_multi(items){try{return {written:true};}catch(e){return {written:false,error:String(e)};}}\n" +
 	"function __sui_clip_write(t){ return (async()=>{ try{ if(navigator.clipboard&&navigator.clipboard.writeText){ await navigator.clipboard.writeText(String(t||'')); return [true,null] } return [false,'clipboard not available'] }catch(e){ return [false,String(e)] } })(); }\n" +
@@ -1598,6 +1834,9 @@ func ExprToJs(e *Expr) string {
 				return "__sui_toast_show(" + strings.Join(argJs, ", ") + ")"
 			}
 			if js := builtinToJs(builtinName, argJs); js != "" {
+				if IsAsyncBuiltin(builtinName) {
+					return "(await " + js + ")"
+				}
 				return js
 			}
 		}
@@ -2323,6 +2562,9 @@ func stdBodyJs(key string, target string) string {
 	if key == "http_uploadwithheaderssafe" {
 		return "async (url, fieldName, fileName, content, headers, allow) => { const fd = __sui_upload_form(fieldName, fileName, content); return __sui_fetch_guarded(url, allow, {method: 'POST', headers: __sui_clean_headers(headers), body: fd}); }"
 	}
+	if key == "json_validate" {
+		return "(value, schema) => __sui_json_validate(value, schema)"
+	}
 	if key == "fs_read" {
 		if target == "desktop" {
 			return "async (path) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/file/read\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [j.data, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
@@ -2364,6 +2606,30 @@ func stdBodyJs(key string, target string) string {
 			return "async (path) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/fs/list\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [j.data.split(\"\\n\").filter((x) => x !== \"\"), null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
 		}
 		return "async (path) => [\"\", \"fs.list is not available on the web target\"]"
+	}
+	if key == "fs_copy" {
+		if target == "desktop" {
+			return "async (src, dst) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"src\", src); fd.set(\"dst\", dst); try { const r = await fetch(\"/__bridge__/fs/copy\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [null, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
+		}
+		return "async (src, dst) => [null, \"fs.copy is not available on the web target\"]"
+	}
+	if key == "fs_move" {
+		if target == "desktop" {
+			return "async (src, dst) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"src\", src); fd.set(\"dst\", dst); try { const r = await fetch(\"/__bridge__/fs/move\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [null, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
+		}
+		return "async (src, dst) => [null, \"fs.move is not available on the web target\"]"
+	}
+	if key == "fs_isdir" {
+		if target == "desktop" {
+			return "async (path) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/fs/stat\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [j.data === \"dir\", null] : [false, j.message]; } catch (e) { return [false, String(e)]; } }"
+		}
+		return "async (path) => [false, \"fs.isDir is not available on the web target\"]"
+	}
+	if key == "fs_size" {
+		if target == "desktop" {
+			return "async (path) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/fs/size\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [Number(j.data) || 0, null] : [0, j.message]; } catch (e) { return [0, String(e)]; } }"
+		}
+		return "async (path) => [0, \"fs.size is not available on the web target\"]"
 	}
 	if key == "exec_run" {
 		if target == "desktop" {

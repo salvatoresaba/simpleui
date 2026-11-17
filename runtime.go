@@ -80,6 +80,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -149,6 +150,9 @@ func main() {
 	mux.HandleFunc("POST /__bridge__/fs/list", makeList(secret))
 	mux.HandleFunc("POST /__bridge__/fs/mkdir", makeMkdir(secret))
 	mux.HandleFunc("POST /__bridge__/fs/remove", makeRemove(secret))
+	mux.HandleFunc("POST /__bridge__/fs/copy", makeCopy(secret))
+	mux.HandleFunc("POST /__bridge__/fs/move", makeMove(secret))
+	mux.HandleFunc("POST /__bridge__/fs/size", makeSize(secret))
 	mux.HandleFunc("POST /__bridge__/exec", makeExec(secret))
 	mux.HandleFunc("POST /__bridge__/pick-file", makePickFile(secret))
 	mux.HandleFunc("POST /__bridge__/pick-directory", makePickDirectory(secret))
@@ -389,6 +393,102 @@ func makeRemove(secret string) http.HandlerFunc {
 			return
 		}
 		bridgeJSON(w, true, "", "")
+	}
+}
+
+// makeCopy copies one file to another. Both paths must be inside the allowed
+// directories; directories are refused (copying a directory needs a recursive
+// policy and is intentionally not exposed).
+func makeCopy(secret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if postForm(r) != nil || !secretOk(secret, r) {
+			bridgeJSON(w, false, "", "forbidden: missing or invalid token")
+			return
+		}
+		src := r.PostFormValue("src")
+		dst := r.PostFormValue("dst")
+		if !pathAllowed(src) || !pathAllowed(dst) {
+			bridgeJSON(w, false, "", "forbidden: path outside the allowed directories")
+			return
+		}
+		if err := copyFile(src, dst); err != nil {
+			bridgeJSON(w, false, "", "fs.copy: "+err.Error())
+			return
+		}
+		bridgeJSON(w, true, "", "")
+	}
+}
+
+func copyFile(src, dst string) error {
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("source is a directory; use fs.move for directories")
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(out, in)
+	closeErr := out.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
+}
+
+// makeMove renames a file or directory. Source and destination are both
+// capability-checked; cross-device moves return the OS error.
+func makeMove(secret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if postForm(r) != nil || !secretOk(secret, r) {
+			bridgeJSON(w, false, "", "forbidden: missing or invalid token")
+			return
+		}
+		src := r.PostFormValue("src")
+		dst := r.PostFormValue("dst")
+		if !pathAllowed(src) || !pathAllowed(dst) {
+			bridgeJSON(w, false, "", "forbidden: path outside the allowed directories")
+			return
+		}
+		if err := os.Rename(src, dst); err != nil {
+			bridgeJSON(w, false, "", "fs.move: "+err.Error())
+			return
+		}
+		bridgeJSON(w, true, "", "")
+	}
+}
+
+// makeSize answers fs.size for a file. Directories are rejected because their
+// recursive size is a different, potentially expensive operation.
+func makeSize(secret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if postForm(r) != nil || !secretOk(secret, r) {
+			bridgeJSON(w, false, "", "forbidden: missing or invalid token")
+			return
+		}
+		path := r.PostFormValue("path")
+		if !pathAllowed(path) {
+			bridgeJSON(w, false, "", "forbidden: path outside the allowed directories")
+			return
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			bridgeJSON(w, false, "", "fs.size: "+err.Error())
+			return
+		}
+		if info.IsDir() {
+			bridgeJSON(w, false, "", "fs.size: path is a directory")
+			return
+		}
+		bridgeJSON(w, true, strconv.FormatInt(info.Size(), 10), "")
 	}
 }
 

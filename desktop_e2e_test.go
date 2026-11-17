@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -227,6 +228,51 @@ func TestDesktopBridgeE2E(t *testing.T) {
 		t.Fatalf("bridge fs stat file: %v", err)
 	} else if r["ok"] != true || !strings.Contains(r["data"].(string), "file") {
 		t.Errorf("fs.stat file: ok=%v data=%v", r["ok"], r["data"])
+	}
+	// fs.copy/size/move: file copy, exact size and rename round-trip.
+	copyPath := filepath.Join(dir, "copy.txt")
+	fc := url.Values{}
+	fc.Set("token", token)
+	fc.Set("src", probe)
+	fc.Set("dst", copyPath)
+	if r, err := post("/__bridge__/fs/copy", fc); err != nil {
+		t.Fatalf("bridge fs copy: %v", err)
+	} else if r["ok"] != true {
+		t.Errorf("fs.copy refused: %v", r["message"])
+	}
+	fsz := url.Values{}
+	fsz.Set("token", token)
+	fsz.Set("path", probe)
+	if r, err := post("/__bridge__/fs/size", fsz); err != nil {
+		t.Fatalf("bridge fs size: %v", err)
+	} else if r["ok"] != true || strings.Trim(r["data"].(string), "\"") != strconv.Itoa(len("desktop-fs-roundtrip")) {
+		t.Errorf("fs.size: ok=%v data=%v msg=%v", r["ok"], r["data"], r["message"])
+	}
+	movedPath := filepath.Join(dir, "moved.txt")
+	fm := url.Values{}
+	fm.Set("token", token)
+	fm.Set("src", copyPath)
+	fm.Set("dst", movedPath)
+	if r, err := post("/__bridge__/fs/move", fm); err != nil {
+		t.Fatalf("bridge fs move: %v", err)
+	} else if r["ok"] != true {
+		t.Errorf("fs.move refused: %v", r["message"])
+	}
+	if _, err := os.Stat(movedPath); err != nil {
+		t.Errorf("fs.move destination missing: %v", err)
+	}
+	if _, err := os.Stat(copyPath); !os.IsNotExist(err) {
+		t.Errorf("fs.move left the source behind: %v", err)
+	}
+	// fs.copy must refuse a destination outside the allow-list.
+	esc := url.Values{}
+	esc.Set("token", token)
+	esc.Set("src", probe)
+	esc.Set("dst", filepath.Join(dir, "..", "sui_escape_copy.txt"))
+	if r, err := post("/__bridge__/fs/copy", esc); err != nil {
+		t.Fatalf("bridge fs copy escape: %v", err)
+	} else if r["ok"] != false {
+		t.Errorf("fs.copy outside the allow-list must be refused, got ok=%v", r["ok"])
 	}
 	sr := url.Values{}
 	sr.Set("token", token)

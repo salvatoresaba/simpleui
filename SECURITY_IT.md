@@ -331,7 +331,22 @@ valore vuoto, non un percorso.
   `exec.Command` (nessuna shell), quindi gli argomenti non vengono interpretati
   da `cmd`/`sh`;
 - `--allow-dir` limita lettura/scrittura e risolve i **symlink**: un link dentro
-  la directory consentita non può puntare fuori;
+  la directory consentita non può puntare fuori. `fs.copy` e `fs.move`
+  controllano sia sorgente sia destinazione; `fs.copy` copia solo file regolari
+  (nessuna copia ricorsiva) e `fs.size` rifiuta le directory.
+- **Crypto**: `crypto.hash` usa Web Crypto `subtle.digest` con SHA-256/384/512;
+  `crypto.uuid`/`crypto.randomBytes` usano il CSPRNG della piattaforma. Non
+  esiste un fallback a `Math.random`; se l'API non è disponibile restituiscono
+  valori vuoti. Gli hash non sono una KDF per password.
+- **Validazione JSON Schema**: `json.validate` tratta lo schema come codice
+  fidato dello sviluppatore e i dati come non fidati. Supporta un sottoinsieme
+  pratico; `$ref` è rifiutato. `pattern` è una RegExp dello sviluppatore: evita
+  pattern catastrofici su stringhe enormi. La validazione non è un sanitizer:
+  continua a usare l'escaping per i dati visualizzati.
+- **Quota/sync storage**: `storage.quota` è un dato advisory del browser;
+  `storage.sync` ascolta eventi storage locali tra schede e ri-renderizza le
+  view. Non è un cloud sync né un servizio di risoluzione conflitti; i valori
+  salvati restano dati non fidati.
 - nessun bridge nel target web: `serve` espone solo i file statici.
 
 Il token è visibile a un processo locale che legge `app.js`: il bridge non

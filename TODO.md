@@ -61,9 +61,9 @@ Recently completed:
 
 Known accuracy corrections from the previous TODO:
 
-- `http.get`/`post` custom headers and timeouts, `http.upload` and WebSocket
-  reconnect/heartbeat are implemented and documented. Advanced `fs.*`,
-  `crypto.*`, path utilities and source maps are still missing.
+- `http.get`/`post` custom headers and timeouts, `http.upload`, WebSocket
+  reconnect/heartbeat, advanced `fs.*`, `crypto.*`, path utilities and
+  storage quota/sync are implemented and documented. Source maps remain open.
 - File imports (`import { X } from "./file.sui"`) work in `check`, `build` and
   `serve`, but the import list is not validated, all symbols are merged into one
   global namespace, and the designer still parses only the entry file. Proper
@@ -157,22 +157,20 @@ Known accuracy corrections from the previous TODO:
 
 ### 3.2 Missing / partial
 
-- [ ] **Advanced filesystem** — `fs.copy`, `fs.move/rename`, `fs.isDir`,
-      `fs.size` (not exposed until implemented)
-- [ ] **Crypto** — `crypto.hash`, `crypto.uuid`, `crypto.randomBytes` (not
-      exposed until implemented)
-- [ ] **Path utilities** — `path.join`, `dirname`, `basename`, `extname`
-- [ ] **JSON Schema validation** — structured validation
+- [x] **Advanced filesystem** - `fs.copy`, `fs.move/rename`, `fs.isDir`,
+      `fs.size` with capability checks on both paths
+- [x] **Crypto** - `crypto.hash`, `crypto.uuid`, `crypto.randomBytes`
+- [x] **Path utilities** — `path.join`, `dirname`, `basename`, `extname`
+- [x] **JSON Schema validation** - practical subset; `$ref` rejected
 - [x] **I18n helpers** - translation catalogs and plural selection.
 - [x] **Locale formatting** - `Intl` date/number/currency/relative/timezone
-      helpers (`format.*`); translations are implemented, formatting is next.
-- [ ] **Advanced storage** — quota/sync APIs are internal/stubbed, not a stable
-      language contract
+      helpers (`intl.*`).
+- [x] **Advanced storage** - `storage.quota` (browser estimate) and
+      `storage.sync` (local cross-tab re-render listener)
 
-> Code review note: unsupported WebSocket/FS/Crypto/Multipart/Source Maps
-> stubs and the `http.upload` builtin were removed from the generated/public
-> surface. They must not be reintroduced without real implementations, typed
-> stdlib entries, tests and documentation.
+> Code review note: public stdlib functions must have a real implementation,
+> typed entries, tests and documentation. Source maps and unsupported FS/Crypto
+> operations remain intentionally absent.
 
 ## 4. Code Generation & Build
 

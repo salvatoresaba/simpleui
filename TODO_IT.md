@@ -73,10 +73,11 @@ Completati di recente:
 - [x] Generici per funzioni e componenti, `const`/`readonly` e parametri rest.
 - [x] `computed`, batching degli aggiornamenti, error boundary e chiavi delle liste.
 - [x] Formattazione `Intl` per date, numeri, valute, percentuali, tempo relativo e timezone.
+- [x] fs.copy/move/rename/isDir/size, crypto hash/UUID/randomBytes, path utilities, validazione JSON Schema, storage quota e sync cross-tab.
 
 ## Correzioni di accuratezza
 
-- `fs` avanzato, crypto, path utilities e source maps **non** sono implementati; le voci pubbliche non supportate sono state rimosse.
+- Source maps **non** sono implementate; fs avanzato, crypto, path utilities, JSON Schema e storage quota/sync sono ora implementati e documentati.
 - Le import di file funzionano in check/build/serve, ma la lista non è validata, i simboli sono fusi in un namespace globale e il designer legge solo il file di ingresso.
 - LSP supporta completion di base e diagnostica live, non hover/definition/
   references/symbols/rename/code actions.
@@ -101,7 +102,6 @@ Completati di recente:
 - Import/moduli utente, export di simboli, alias.
 - Effects e reattività fine-grained; suspense e context.
 - Generici per struct e alias di tipo.
-- fs avanzato, crypto, path utilities, JSON Schema.
 - Source maps, tree shaking, bundle splitting, PWA/SSR/WASM.
 - Component library, tokens JSON, multi-device preview, asset manager.
 - HMR, preserve state, browser error overlay.

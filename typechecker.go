@@ -3050,7 +3050,7 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 		name != "random" && name != "time.now" && name != "time.nowMs" &&
 		name != "storage.clear" && name != "storage.keys" && name != "clipboard.readText" &&
 		name != "i18n.locale" && name != "i18n.detect" && name != "i18n.available" && name != "i18n.dir" && name != "i18n.missing" &&
-		name != "toast.clear" && name != "intl.timezone" && !isDndZeroArg(name) {
+		name != "toast.clear" && name != "intl.timezone" && name != "storage.quota" && name != "storage.sync" && name != "crypto.uuid" && !isDndZeroArg(name) {
 		c.diagAt(e.span, name+" takes at least one argument")
 		return NewSType("error")
 	}
@@ -3060,6 +3060,65 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 			return false
 		}
 		return true
+	}
+
+	if IsAsyncBuiltin(name) && !c.curAsync {
+		c.diagAt(e.span, name+" is async; call it from an async function")
+	}
+
+	if strings.HasPrefix(name, "path.") {
+		switch name {
+		case "path.join":
+			if n < 1 || n > 8 {
+				c.diagAt(e.span, "path.join takes 1 to 8 arguments, got "+itoaStr(n))
+				return NewSType("error")
+			}
+			for i := 0; i < n; i++ {
+				t := c.inferExpr(args[i])
+				if t.kind != "string" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+					c.diagAt(e.span, "path.join arguments must be strings, got "+typeStr(t))
+				}
+			}
+			return NewSType("string")
+		case "path.dirname", "path.basename", "path.extname":
+			if !want(1) {
+				return NewSType("error")
+			}
+			t0 := c.inferExpr(args[0])
+			if t0.kind != "string" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+				c.diagAt(e.span, name+" requires a string, got "+typeStr(t0))
+			}
+			return NewSType("string")
+		}
+	}
+
+	if name == "crypto.uuid" {
+		if !want(0) {
+			return NewSType("error")
+		}
+		return NewSType("string")
+	}
+	if name == "crypto.hash" {
+		if !want(2) {
+			return NewSType("error")
+		}
+		for i := 0; i < 2; i++ {
+			t := c.inferExpr(args[i])
+			if t.kind != "string" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(e.span, "crypto.hash arguments must be strings, got "+typeStr(t))
+			}
+		}
+		return NewSType("string")
+	}
+	if name == "crypto.randomBytes" {
+		if !want(1) {
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "int" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, "crypto.randomBytes requires an int length, got "+typeStr(t0))
+		}
+		return &SType{kind: "array", elem: NewSType("int")}
 	}
 
 	if name == "intl.timezone" {
@@ -3926,6 +3985,18 @@ func (c *Checker) inferTimersMath(e *Expr, name string) *SType {
 				return NewSType("error")
 			}
 			return &SType{kind: "array", elem: NewSType("string")}
+		}
+		if name == "storage.quota" {
+			if !want(0) {
+				return NewSType("error")
+			}
+			return &SType{kind: "map", key: NewSType("string"), val: NewSType("int")}
+		}
+		if name == "storage.sync" {
+			if !want(0) {
+				return NewSType("error")
+			}
+			return NewSType("bool")
 		}
 		return NewSType("any")
 	}

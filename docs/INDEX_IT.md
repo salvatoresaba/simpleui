@@ -43,6 +43,11 @@ Ordine consigliato per un agente:
 | Costanti, computed e campi readonly | [API: costanti](API_REFERENCE_IT.md#costanti-valori-computed-e-campi-readonly) | [SPEC](../SPEC.md) | `examples/reactivity.sui` |
 | Batching, error boundary e chiavi delle liste | [API: reattività](API_REFERENCE_IT.md#aggiornamenti-reattivi-batching-error-boundary-e-chiavi-delle-liste) | [SPEC](../SPEC.md) | `examples/reactivity.sui` |
 | Formattazione locale con Intl | [API: Intl](API_REFERENCE_IT.md#formattazione-locale-intl) | [BUILTINS](BUILTINS_IT.md#assertion-e-formattazione-locale) | `examples/intl_format.sui` |
+| Helper path | [BUILTINS: path](BUILTINS_IT.md#funzioni-path) | [STDLIB](STDLIB_IT.md) | `examples/stdlib_advanced.sui` |
+| Crypto hash/UUID/random bytes | [BUILTINS: crypto](BUILTINS_IT.md#funzioni-crypto) | [SECURITY](../SECURITY_IT.md) | `examples/stdlib_advanced.sui` |
+| Validazione JSON Schema | [STDLIB: json](STDLIB_IT.md#json-module-json) | [BUILTINS](BUILTINS_IT.md) | `examples/stdlib_advanced.sui` |
+| Quota storage e sync cross-tab | [BUILTINS: storage](BUILTINS_IT.md#funzioni-storage-cross-target) | [STDLIB](STDLIB_IT.md) | `examples/stdlib_advanced.sui` |
+| fs copy/move/size/isDir desktop | [STDLIB: fs](STDLIB_IT.md#file-system-module-fs) | [SECURITY](../SECURITY_IT.md#bridge-desktop) | `examples/fs_operations.sui` |
 | Creare una barra dei menù / navigazione | [API: menu bar](API_REFERENCE_IT.md#menu-bar) | [Editor GUI: menu bar](GUI_EDITOR_IT.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Contenuti a schede | [API: tabs](API_REFERENCE_IT.md#tabs) | [Editor GUI: tabs](GUI_EDITOR_IT.md#tabs-control) | `examples/tabs.sui` |
 | Sezioni comprimibili / FAQ | [API: accordion](API_REFERENCE_IT.md#accordion) | [Editor GUI: accordion](GUI_EDITOR_IT.md#controllo-accordion) | `examples/accordion/README.md` |

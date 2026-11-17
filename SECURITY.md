@@ -151,7 +151,22 @@ not evidence that a desktop path is safe to read; keep `fs` behind
 - **Exact command allow-list** (`--allow-exec`); commands run via
   `exec.Command` (no shell), so arguments are not interpreted by `cmd`/`sh`.
 - **Directory allow-list** (`--allow-dir`) with symlink resolution: a link
-  inside an allowed directory cannot escape.
+  inside an allowed directory cannot escape. `fs.copy` and `fs.move` check both
+  source and destination; `fs.copy` copies regular files only (no recursive
+  copy), and `fs.size` rejects directories.
+- **Crypto**: `crypto.hash` uses Web Crypto `subtle.digest` with SHA-256/384/512;
+  `crypto.uuid`/`crypto.randomBytes` use the platform CSPRNG. There is no
+  `Math.random` fallback; unavailable APIs return empty values. Hashes are not a
+  password KDF.
+- **JSON Schema validation**: `json.validate` treats the schema as trusted
+  developer code and the data as untrusted. It supports a practical subset;
+  `$ref` is rejected. `pattern` is developer-supplied RegExp, so avoid
+  catastrophic patterns on huge untrusted strings. Validation is not a
+  sanitizer: keep escaping data rendered in views.
+- **Storage quota/sync**: `storage.quota` is advisory browser data;
+  `storage.sync` listens for local cross-tab storage events and re-renders
+  views. It is not a cloud sync or conflict-resolution service, and stored
+  values remain untrusted data.
 - **No bridge in web builds**: `serve` exposes static files only.
 - The token is visible to a local process reading `app.js`; the bridge does not
   defend against a malicious local process, only against web content.

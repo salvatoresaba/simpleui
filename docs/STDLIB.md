@@ -98,8 +98,16 @@ All functions are async.
 | `fs.mkdir(path)` | string | (null, string) | true | Create a directory (`mkdir -p` style; fire-and-forget) |
 | `fs.remove(path)` | string | (null, string) | true | Remove a file/directory (fire-and-forget) |
 | `fs.list(path)` | string | (array[string], string) | true | List directory entries |
+| `fs.copy(src, dst)` | string, string | (null, string) | true | Copy one file; both paths must be allowed |
+| `fs.move(src, dst)` | string, string | (null, string) | true | Move/rename a file or directory; both paths must be allowed |
+| `fs.rename(src, dst)` | string, string | (null, string) | true | Alias of `fs.move` |
+| `fs.isDir(path)` | string | (bool, string) | true | Whether the path is an existing directory |
+| `fs.size(path)` | string | (int, string) | true | Size in bytes of a file (directories are rejected) |
 
-`fs.copy`, `fs.move/rename`, `fs.isDir` and `fs.size` are **not exposed** yet.
+Both source and destination are checked against the `--allow-dir` capability
+list. `fs.copy` copies regular files only; create the destination directory
+first and use `fs.move` for directories. On the web target these calls return
+an error.
 
 ## Exec Module (`exec`)
 
@@ -128,6 +136,15 @@ async fn load() {
 |---|---|---|---|---|
 | `json.parse(s)` | string | (any, string) | true | Parse JSON |
 | `json.stringify(v)` | any | (string, null) | true | Serialize JSON |
+| `json.validate(value, schema)` | any, any | (bool, string) | false | Validate with a JSON Schema subset; the second value is the first error path |
+
+`json.validate` supports `type`, `enum`, `const`, `properties`, `required`,
+`additionalProperties`, `items` (schema or tuple), `minItems`/`maxItems`,
+`uniqueItems`, `minLength`/`maxLength`, `pattern`, `format` (`email`, `uri`,
+`url`, `uuid`, `date`, `date-time`), numeric bounds and `multipleOf`,
+`minProperties`/`maxProperties`, `allOf`/`anyOf`/`oneOf`/`not` and
+`if`/`then`/`else`. `schema` may be a map or a JSON string. `$ref` is rejected.
+The schema is trusted developer code; data is never executed.
 
 ## Dialog Module (`dialog`, desktop)
 
@@ -505,7 +522,5 @@ async fn fetchData() {
 
 ## Not Yet Available
 
-- advanced `fs` operations (`fs.copy`, `fs.move`, `fs.isDir`, `fs.size`);
-- `crypto.*` (hash, UUID, random bytes);
-- `path.*` utilities (join, dirname, basename, extname);
+- filesystem operations not listed above (recursive copy, watch, glob);
 - source maps.
