@@ -82,7 +82,8 @@ ViewDecl   := 'view' ident '{' ViewBody '}'
 ```
 
 - `TypeName` (string) is one of: `int float string bool array[T] map[string]V
-  any null`. For `state`, the type may be inferred from the initializer.
+  any null`, a user struct/enum, a union `A | B`, or a nullable `T?`
+  (`T | null`). For `state`, the type may be inferred from the initializer.
 - Function **parameters and the return type must be annotated** in v0.1
   (inference applies to `let`/`state` bindings, not to function headers).
 - `css "…"` declares a **raw CSS snippet** appended verbatim to the generated
@@ -167,6 +168,22 @@ ReturnStmt:= 'return' [ Expr ]
   form works in views: `list k, v in m { ... }`. Riding a map with one name
   (or an array/map/range with two) is a compile error.
 
+### 2.3c Union types and `is` guards
+
+- A type can be a union of alternatives: `string | int`, `Status | null`, and
+  `T?` as shorthand for `T | null`. Assignment, parameters, returns, struct
+  fields, array elements and map values accept a value that fits one member.
+  Mixed array/map literals infer a union element/value type.
+- `value is Type` is a boolean expression for primitives, `null`, `fn`,
+  array/map types, structs and enums. In `if`/`while` conditions the variable is
+  narrowed in the branch: positive guards narrow to the target, negative guards
+  remove it from the union. `not` inverts; `and` applies both in the then branch;
+  `or` applies both negated in the else branch.
+- A guard that cannot match any member is a compile error. Reassigning a
+  narrowed state uses the declared union type.
+- Literal types, narrowing of member/index expressions and non-enum switch
+  exhaustiveness are not part of this version.
+
 ### 2.3b Enums and switch
 
 - `enum Name { A, B, C }` declares a nominal enum type. Members are referenced
@@ -176,8 +193,8 @@ ReturnStmt:= 'return' [ Expr ]
   Cases may be enum members, strings, numbers or booleans; duplicates are errors.
 - A switch on an enum without `default` must cover every member; the compiler
   reports the missing members. `default` is the explicit opt-out.
-- Enum payloads, union/literal types, `is` guards and destructuring in cases are
-  not part of this version.
+- Enum payloads, literal types and destructuring in cases are not part of this
+  version.
 
 ### 2.3a Destructuring, spread and named arguments
 

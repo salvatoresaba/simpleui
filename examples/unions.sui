@@ -1,0 +1,67 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 700px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+p \{ margin: 8px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+enum Kind { Text, Number }
+
+state value: string | int = "hello"
+state maybe: string? = null
+state kind: Kind = Kind.Text
+state mixed: array[string | int] = ["a", 1]
+state message = "Press Inspect to narrow the values."
+
+fn inspect() -> null {
+	if value is string {
+		message = "value is a string: " + value
+	} else {
+		message = "value is a number: " + str(value)
+	}
+	if maybe is null {
+		message = message + " · maybe is empty"
+	} else {
+		message = message + " · maybe is " + maybe
+	}
+	if kind is Kind {
+		message = message + " · enum is valid"
+	}
+	let first = mixed[0]
+	if first is string {
+		message = message + " · mixed[0] is a string"
+	} else {
+		message = message + " · mixed[0] is a number"
+	}
+}
+
+fn setText() -> null {
+	value = "text"
+	maybe = "ready"
+}
+
+fn setNumber() -> null {
+	value = 42
+	maybe = null
+}
+
+fn toggleKind() -> null {
+	if kind == Kind.Text {
+		kind = Kind.Number
+	} else {
+		kind = Kind.Text
+	}
+}
+
+view main {
+	card "" class: "card" {
+		h1 "Union types and is guards"
+		p "{message}"
+		p "value: {value} · maybe: {maybe} · kind: {kind} · mixed: {str(mixed)}" class: "muted"
+		row {
+			button "Inspect" onClick: inspect
+			button "Text" onClick: setText
+			button "Number" onClick: setNumber
+			button "Toggle kind" onClick: toggleKind
+		}
+		p "String | int, string? and array[string | int] are checked statically. The if branches narrow the variable, including the local first read from the mixed array." class: "muted"
+	}
+}

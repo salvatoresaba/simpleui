@@ -667,9 +667,28 @@ func parseTypeDecl(p *Parser) *TypeDecl {
 	return &TypeDecl{name: name.text, fields: fields, span: sp}
 }
 
-// parseTypeName: one of int float string bool array[T] map[string]V any null
-// (bracket types are parsed recursively).
+// parseTypeName parses a type with unions (`string | int`), the `?` suffix
+// (`string?` = `string | null`) and literal types (`"success" | "error"`).
 func parseTypeName(p *Parser) string {
+	first := parseTypeAtom(p)
+	if first == "" {
+		return ""
+	}
+	var r strings.Builder
+	r.WriteString(first)
+	for p.accept("|") {
+		r.WriteString(" | ")
+		r.WriteString(parseTypeAtom(p))
+	}
+	for p.accept("?") {
+		r.WriteString(" | null")
+	}
+	return r.String()
+}
+
+// parseTypeAtom parses one non-union type name: primitives, user structs or
+// enums, array[T], map[string]V, fn, null, or a literal type.
+func parseTypeAtom(p *Parser) string {
 	t := p.cur()
 	if t.kind != "ident" && t.kind != "null" && t.kind != "fn" {
 		p.diag(fmt.Sprintf("expected a type name, found %v", tokLabel(t.kind, t.text)))
@@ -682,12 +701,15 @@ func parseTypeName(p *Parser) string {
 	if p.accept("[") {
 		r.WriteString("[")
 		if t.text == "map" {
+			// The key is parsed as a full type so `map[string | int]...` is
+			// rejected by the type checker; the value stays a single atom so a
+			// top-level union applies to the whole map (`map[string]int | null`).
 			r.WriteString(parseTypeName(p))
 			if !p.accept("]") {
 				p.diag("expected ']' inside map type")
 			}
 			r.WriteString("]")
-			r.WriteString(parseTypeName(p))
+			r.WriteString(parseTypeAtom(p))
 		} else {
 			r.WriteString(parseTypeName(p))
 			if !p.accept("]") {
@@ -1639,6 +1661,12 @@ func parseCmp(p *Parser) *Expr {
 	l := parseAdd(p)
 	for l != nil {
 		k := p.cur().kind
+		if k == "is" {
+			p.adv()
+			t := parseTypeAtom(p)
+			l = &Expr{kind: "is", l: l, name: t, span: l.span}
+			continue
+		}
 		if k != "==" && k != "!=" && k != "<" && k != "<=" && k != ">" && k != ">=" {
 			break
 		}

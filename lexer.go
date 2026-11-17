@@ -81,6 +81,9 @@ func keywordOf(w string) string {
 	if w == "null" {
 		return "null"
 	}
+	if w == "is" {
+		return "is"
+	}
 	if w == "and" {
 		return "and"
 	}
@@ -358,6 +361,8 @@ func Lex(source string, file string) ([]Token, DiagList) {
 					kind = ":"
 				} else if c == '?' {
 					kind = "?"
+				} else if c == '|' {
+					kind = "|"
 				}
 			}
 			if kind == "" {

@@ -6,6 +6,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 
 - [SUI language](#sui-language-essential-syntax)
 - [Enums and switch](#enums-and-switch)
+- [Union types and `is` guards](#union-types-and-is-guards)
 - [Destructuring, spread and named arguments](#destructuring-spread-and-named-arguments)
 - [Drag and drop](#drag-and-drop)
 - [Menu bar](#menu-bar)
@@ -81,7 +82,53 @@ view App {
 browser's `required` attribute; the combobox also reports an inline required
 error when no value is selected.
 
-### Destructuring, spread and named arguments
+### Union types and `is` guards
+
+A type may list alternatives with `|`; the `?` suffix means `| null`:
+
+```sui
+state value: string | int = "hello"
+state maybe: string? = null
+state mixed: array[string | int] = ["a", 1]
+```
+
+Assignments, parameters, return types, struct fields, array elements and map
+values accept a union when the value fits one member. Array and map literals
+with mixed compatible values infer a union element/value type.
+
+```sui
+fn show(v: string | int) -> string {
+	if v is string {
+		return "string: " + v
+	}
+	return "number: " + str(v)
+}
+```
+
+`value is Type` is a boolean expression. It supports `string`, `int`, `float`,
+`bool`, `null`, `fn`, array types and enums. Struct and map guards are rejected
+because both are plain JavaScript objects at runtime; use an enum discriminator
+field, or `is null`/`is array[...]` to separate those cases. Inside the matching
+branch the variable is narrowed:
+
+- `if v is string { ... }`: `v` is `string` in the then branch and the
+  remaining members in the else branch.
+- `not (v is T)` inverts the branch.
+- `A and B` narrows both in the then branch; `A or B` narrows both negated in
+  the else branch.
+- `while v is string { ... }` narrows the body.
+- A guard that can never match is a compile error.
+- Reassigning a narrowed state uses the declared union type, so changing to
+  another member is allowed.
+
+`is int` uses `Number.isInteger`; `is float` requires a non-integer number.
+The int/float distinction is static, while both are JavaScript numbers.
+`map[string]int | null` is a nullable map; nullable map values are not
+expressible yet (use `map[string]any`). Literal types (for example
+`"success" | "error"`), narrowing of member/index expressions, and
+exhaustiveness for non-enum switches are not available yet.
+
+## Destructuring, spread and named arguments
 
 ```sui
 type Person struct { name: string, age: int }
@@ -146,8 +193,8 @@ fn label(s: Step) -> string {
   intentional.
 - At runtime an enum is a frozen object of string members, so `str(Step.Idle)`
   is `"Idle"` and JSON output is the member name.
-- Not yet: union types, literal types, `is` type guards, enum payloads or
-  associated values, and destructuring inside `case` patterns.
+- Not yet: literal types, enum payloads or associated values, and
+  destructuring inside `case` patterns.
 
 ## Drag and drop
 

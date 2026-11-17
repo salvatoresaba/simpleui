@@ -68,6 +68,7 @@ Completati di recente:
 - [x] Cataloghi i18n e plurali: `i18n "xx" { ... }`, `t`, cambio/rilevamento lingua, plurali CLDR, RTL, `?locale=`, editor Lingue nel designer e import/export JSON.
 - [x] Destructuring di oggetti/array, spread di array/mappe e argomenti nominati nelle chiamate a funzioni utente.
 - [x] Enum nominali e `switch` esaustivo con casi duplicati, `default` e controllo dei membri.
+- [x] Tipi union, `T?`, inferenza union per array/mappe e type guard `is` con narrowing in if/while.
 
 ## Correzioni di accuratezza
 
@@ -94,7 +95,7 @@ Completati di recente:
 ## Aree principali ancora aperte
 
 - Import/moduli utente, export di simboli, alias.
-- Enum, union, type guards, generics, literal types, const, readonly.
+- Generics, literal types, const, readonly.
 - Rest parameters.
 - Computed/effects/batching/fine-grained reactivity.
 - Error boundaries, list keys, suspense, context.

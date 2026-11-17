@@ -3142,6 +3142,8 @@ func exprSource(e *Expr) string {
 		return "-" + exprSource(e.operand)
 	case "binary":
 		return exprSource(e.l) + " " + binOpSource(e.op) + " " + exprSource(e.r)
+	case "is":
+		return exprSource(e.l) + " is " + e.name
 	case "cond":
 		return exprSource(e.cond) + " ? " + exprSource(e.l) + " : " + exprSource(e.r)
 	case "range":

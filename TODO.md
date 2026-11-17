@@ -91,8 +91,8 @@ Known accuracy corrections from the previous TODO:
 ### 1.2 Type System
 
 - [x] **Enums and switch** - `enum Status { Idle, Loading, Error }` with nominal typing, exhaustive `switch`, duplicate-case checks and `default`
-- [ ] **Union types** — `string | int | null`, `T?` shorthand
-- [ ] **Type guards / narrowing** — `if v is string { ... }`
+- [x] **Union types** - `string | int | null`, `T?` shorthand and union inference for mixed arrays/maps
+- [x] **Type guards / narrowing** - `if v is string { ... }`, `while`, `not`, `and`/`or` branch narrowing
 - [ ] **Generics** — generic functions and components
 - [ ] **Literal types** — unions of literals (`"success" | "error"`)
 - [ ] **Const** — compile-time values

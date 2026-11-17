@@ -33,11 +33,12 @@ import "sync"
 // SType is the internal static type. `name` holds the struct type name when
 // kind == "struct".
 type SType struct {
-	kind string
-	name string
-	elem *SType
-	key  *SType
-	val  *SType
+	kind    string
+	name    string
+	elem    *SType
+	key     *SType
+	val     *SType
+	members []*SType // union members
 }
 
 func NewSType(kind string) *SType {
@@ -49,7 +50,7 @@ func typeStr(t *SType) string {
 	if t == nil {
 		return "unknown"
 	}
-	if t.kind == "struct" || t.kind == "enum" {
+	if t.kind == "struct" || t.kind == "enum" || t.kind == "literal" {
 		return t.name
 	}
 	if t.kind == "array" {
@@ -57,6 +58,13 @@ func typeStr(t *SType) string {
 	}
 	if t.kind == "map" {
 		return "map[string]" + typeStr(t.val)
+	}
+	if t.kind == "union" {
+		var parts []string
+		for i := 0; i < len(t.members); i++ {
+			parts = append(parts, typeStr(t.members[i]))
+		}
+		return strings.Join(parts, " | ")
 	}
 	return t.kind
 }
@@ -77,8 +85,26 @@ func typeEqual(a, b *SType) bool {
 	if a.kind != b.kind {
 		return false
 	}
-	if (a.kind == "struct" || a.kind == "enum") && a.kind == b.kind {
+	if (a.kind == "struct" || a.kind == "enum" || a.kind == "literal") && a.kind == b.kind {
 		return a.name == b.name
+	}
+	if a.kind == "union" || b.kind == "union" {
+		if a.kind != "union" || b.kind != "union" || len(a.members) != len(b.members) {
+			return false
+		}
+		for i := 0; i < len(a.members); i++ {
+			found := false
+			for j := 0; j < len(b.members); j++ {
+				if typeEqual(a.members[i], b.members[j]) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+		return true
 	}
 	if a.kind == "array" {
 		return typeEqual(a.elem, b.elem)
@@ -95,6 +121,178 @@ func isNumericType(t *SType) bool {
 
 // Name registries shared across the free type/name helpers (populated at the
 // start of Check, like KnownStateNames before them).
+// unionOf flattens and deduplicates types into a union. A single member is
+// returned as-is; any/unknown absorb the union.
+func unionOf(types ...*SType) *SType {
+	var flat []*SType
+	var add func(t *SType)
+	add = func(t *SType) {
+		if t == nil {
+			return
+		}
+		if t.kind == "union" {
+			for i := 0; i < len(t.members); i++ {
+				add(t.members[i])
+			}
+			return
+		}
+		if t.kind == "any" || t.kind == "unknown" || t.kind == "error" {
+			flat = append(flat, t)
+			return
+		}
+		for i := 0; i < len(flat); i++ {
+			if typeEqual(flat[i], t) {
+				return
+			}
+		}
+		flat = append(flat, t)
+	}
+	for i := 0; i < len(types); i++ {
+		add(types[i])
+	}
+	for i := 0; i < len(flat); i++ {
+		if flat[i].kind == "any" || flat[i].kind == "unknown" || flat[i].kind == "error" {
+			return flat[i]
+		}
+	}
+	if len(flat) == 0 {
+		return NewSType("unknown")
+	}
+	if len(flat) == 1 {
+		return flat[0]
+	}
+	return &SType{kind: "union", members: flat}
+}
+
+// isNumericLiteralName reports whether a literal type name is an integer or
+// float literal (used by assignable).
+func isNumericLiteralName(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c < '0' || c > '9') && c != '.' && c != '-' && c != '+' && c != 'e' && c != 'E' {
+			return false
+		}
+	}
+	return true
+}
+
+// assignable reports whether a value of type src can be stored where dst is
+// expected. Unions are covariant: every src member must fit dst, and a value
+// may fit any member of a dst union. Literal types fit their base type.
+func assignable(src, dst *SType) bool {
+	if src == nil || dst == nil {
+		return true
+	}
+	if src.kind == "any" || dst.kind == "any" || src.kind == "unknown" || dst.kind == "unknown" || src.kind == "error" || dst.kind == "error" {
+		return true
+	}
+	if src.kind == "union" && dst.kind == "union" {
+		for i := 0; i < len(src.members); i++ {
+			if !assignable(src.members[i], dst) {
+				return false
+			}
+		}
+		return true
+	}
+	if dst.kind == "union" {
+		for i := 0; i < len(dst.members); i++ {
+			if assignable(src, dst.members[i]) {
+				return true
+			}
+		}
+		return false
+	}
+	if src.kind == "union" {
+		for i := 0; i < len(src.members); i++ {
+			if !assignable(src.members[i], dst) {
+				return false
+			}
+		}
+		return true
+	}
+	if src.kind == "func" && dst.kind == "fn" {
+		return true
+	}
+	if src.kind == "array" && dst.kind == "array" {
+		return assignable(src.elem, dst.elem)
+	}
+	if src.kind == "map" && dst.kind == "map" {
+		return assignable(src.val, dst.val)
+	}
+	if src.kind == "literal" {
+		switch dst.kind {
+		case "string":
+			return strings.HasPrefix(src.name, "\"")
+		case "bool":
+			return src.name == "true" || src.name == "false"
+		case "int":
+			return isNumericLiteralName(src.name) && !strings.ContainsAny(src.name, ".eE")
+		case "float":
+			return isNumericLiteralName(src.name)
+		}
+	}
+	return typeEqual(src, dst)
+}
+
+// overlaps reports whether a runtime value could satisfy both types. Used by
+// type guards and equality comparisons against union members.
+func overlaps(a, b *SType) bool {
+	if a == nil || b == nil {
+		return true
+	}
+	if a.kind == "any" || b.kind == "any" || a.kind == "unknown" || b.kind == "unknown" || a.kind == "error" || b.kind == "error" {
+		return true
+	}
+	if a.kind == "union" {
+		for i := 0; i < len(a.members); i++ {
+			if overlaps(a.members[i], b) {
+				return true
+			}
+		}
+		return false
+	}
+	if b.kind == "union" {
+		for i := 0; i < len(b.members); i++ {
+			if overlaps(a, b.members[i]) {
+				return true
+			}
+		}
+		return false
+	}
+	return assignable(a, b) || assignable(b, a)
+}
+
+// narrowType returns the possible type after `value is target` (positive) or
+// its negation. Unions lose the matching members; non-unions keep their type.
+func narrowType(t, target *SType, positive bool) *SType {
+	if t == nil {
+		return target
+	}
+	if t.kind == "union" {
+		var out []*SType
+		for i := 0; i < len(t.members); i++ {
+			match := overlaps(t.members[i], target)
+			if (positive && match) || (!positive && !match) {
+				out = append(out, t.members[i])
+			}
+		}
+		if len(out) == 0 {
+			if positive {
+				return target
+			}
+			return t
+		}
+		return unionOf(out...)
+	}
+	if positive {
+		return target
+	}
+	return t
+}
+
 var structRegistry = map[string][]Field{} // struct name -> fields
 var enumRegistry = map[string][]string{}  // enum name -> members
 var KnownStateNames = map[string]bool{}   // state names for ViewStateRefs
@@ -111,6 +309,7 @@ func isTypeNameChar(c byte) bool {
 // parseTypeFrom parses one type name off the FRONT of s: flat names, bracket
 // forms array[T] / map[string]V, and user struct names (registry).
 func parseTypeFrom(s string) (*SType, string, string) {
+	s = strings.TrimLeft(s, " \t")
 	n := len(s)
 	if n == 0 {
 		return &SType{kind: "error"}, "", "missing type name"
@@ -121,7 +320,7 @@ func parseTypeFrom(s string) (*SType, string, string) {
 	}
 	base := s[:j]
 	rest := s[j:]
-	if base == "int" || base == "float" || base == "string" || base == "bool" || base == "null" || base == "any" {
+	if base == "int" || base == "float" || base == "string" || base == "bool" || base == "null" || base == "any" || base == "fn" {
 		return &SType{kind: base}, rest, ""
 	}
 	if base == "array" || base == "map" {
@@ -149,7 +348,7 @@ func parseTypeFrom(s string) (*SType, string, string) {
 		inner := rest[1:found]
 		tail := rest[found+1:]
 		if base == "array" {
-			it, rest2, err2 := parseTypeFrom(inner)
+			it, rest2, err2 := parseUnionFrom(inner)
 			if err2 != "" {
 				return it, "", err2
 			}
@@ -158,7 +357,7 @@ func parseTypeFrom(s string) (*SType, string, string) {
 			}
 			return &SType{kind: "array", elem: it}, tail, ""
 		}
-		kt, rest2, err2 := parseTypeFrom(inner)
+		kt, rest2, err2 := parseUnionFrom(inner)
 		if err2 != "" {
 			return kt, "", err2
 		}
@@ -183,12 +382,46 @@ func parseTypeFrom(s string) (*SType, string, string) {
 	return &SType{kind: "error"}, "", "unknown type name " + base
 }
 
+// parseUnionFrom parses one type followed by optional `|` members and `?`
+// (which means `| null`).
+func parseUnionFrom(s string) (*SType, string, string) {
+	s = strings.TrimLeft(s, " \t")
+	first, rest, err := parseTypeFrom(s)
+	if err != "" {
+		return first, "", err
+	}
+	members := []*SType{first}
+	for {
+		rest = strings.TrimLeft(rest, " \t")
+		if strings.HasPrefix(rest, "|") {
+			rest = strings.TrimLeft(rest[1:], " \t")
+			next, r2, e := parseTypeFrom(rest)
+			if e != "" {
+				return next, "", e
+			}
+			members = append(members, next)
+			rest = r2
+			continue
+		}
+		if strings.HasPrefix(rest, "?") {
+			members = append(members, NewSType("null"))
+			rest = rest[1:]
+			continue
+		}
+		break
+	}
+	if len(members) == 1 {
+		return first, rest, ""
+	}
+	return unionOf(members...), rest, ""
+}
+
 func parseSUIType(s string) (*SType, string) {
-	typ, rest, err := parseTypeFrom(s)
+	typ, rest, err := parseUnionFrom(s)
 	if err != "" {
 		return typ, err
 	}
-	if rest != "" {
+	if strings.TrimSpace(rest) != "" {
 		return typ, "did not parse the complete type name"
 	}
 	return typ, ""
@@ -377,34 +610,36 @@ type FnSig struct {
 }
 
 type Checker struct {
-	dd           *DiagList
-	states       map[string]*SType
-	sigs         map[string]*FnSig
-	symKinds     map[string]string
-	symSpans     map[string]Span
-	stdImported  map[string]bool
-	scopes       []Scope
-	loopDepth    int
-	switchDepth  int
-	fnDepth      int
-	inFn         bool
-	curRet       *SType
-	curRets      []*SType
-	curAsync     bool
-	seenReturn   bool
-	viewParams   map[string][]Param
-	viewIsComp   bool // current view is a component (invoked or has params)
-	childrenSeen bool
-	curView      string            // name of the view currently being checked
-	methodNames  map[string]bool   // view-method names (globally unique)
-	instTypes    map[string]*SType // current view's instance-state types
-	security     SecurityConfig    // compile-time security policy
+	dd             *DiagList
+	states         map[string]*SType
+	declaredStates map[string]*SType
+	sigs           map[string]*FnSig
+	symKinds       map[string]string
+	symSpans       map[string]Span
+	stdImported    map[string]bool
+	scopes         []Scope
+	loopDepth      int
+	switchDepth    int
+	fnDepth        int
+	inFn           bool
+	curRet         *SType
+	curRets        []*SType
+	curAsync       bool
+	seenReturn     bool
+	viewParams     map[string][]Param
+	viewIsComp     bool // current view is a component (invoked or has params)
+	childrenSeen   bool
+	curView        string            // name of the view currently being checked
+	methodNames    map[string]bool   // view-method names (globally unique)
+	instTypes      map[string]*SType // current view's instance-state types
+	security       SecurityConfig    // compile-time security policy
 }
 
 func newChecker(dd *DiagList) *Checker {
 	var c Checker
 	c.dd = dd
 	c.states = map[string]*SType{}
+	c.declaredStates = map[string]*SType{}
 	c.sigs = map[string]*FnSig{}
 	c.symKinds = map[string]string{}
 	c.symSpans = map[string]Span{}
@@ -676,6 +911,7 @@ func (c *Checker) checkState(sd *StateDecl) {
 	it := c.inferExpr(sd.init)
 	if sd.typename == "" {
 		c.states[sd.name] = it
+		c.declaredStates[sd.name] = it
 		return
 	}
 	decl, err := parseSUIType(sd.typename)
@@ -684,10 +920,11 @@ func (c *Checker) checkState(sd *StateDecl) {
 		c.states[sd.name] = it
 		return
 	}
-	if !typeEqual(it, decl) {
+	if !assignable(it, decl) {
 		c.diagAt(sd.span, "state "+sd.name+" declared as "+typeStr(decl)+" but initialized with a value of type "+typeStr(it))
 	}
 	c.states[sd.name] = decl
+	c.declaredStates[sd.name] = decl
 }
 
 // ---------------------------------------------------------------------------
@@ -748,7 +985,7 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 	for i := 0; i < len(fd.params); i++ {
 		if fd.params[i].dflt != nil && i < len(params) {
 			dt := c.inferExpr(fd.params[i].dflt)
-			if dt != nil && dt.kind != "error" && dt.kind != "unknown" && !typeEqual(&params[i], dt) {
+			if dt != nil && dt.kind != "error" && dt.kind != "unknown" && !assignable(dt, &params[i]) {
 				c.diagAt(fd.params[i].span, "default value of parameter \""+fd.params[i].name+"\" must be "+typeStr(&params[i])+", got "+typeStr(dt))
 			}
 		}
@@ -938,7 +1175,7 @@ func switchCaseKey(e *Expr) string {
 func (c *Checker) checkSwitch(s *Stmt) {
 	st := c.inferExpr(s.init)
 	switch st.kind {
-	case "enum", "string", "int", "float", "bool", "any", "unknown", "error":
+	case "enum", "string", "int", "float", "bool", "union", "any", "unknown", "error":
 	default:
 		c.diagAt(s.span, "switch value must be an enum, string, number, bool or any, got "+typeStr(st))
 	}
@@ -949,7 +1186,7 @@ func (c *Checker) checkSwitch(s *Stmt) {
 		cse := s.cases[i]
 		ct := c.inferExpr(cse.expr)
 		if st.kind != "any" && st.kind != "unknown" && st.kind != "error" && ct.kind != "error" && ct.kind != "unknown" {
-			if !typeEqual(st, ct) {
+			if !assignable(ct, st) {
 				c.diagAt(cse.expr.span, "case value must be "+typeStr(st)+", got "+typeStr(ct))
 			}
 		}
@@ -999,11 +1236,96 @@ func (c *Checker) checkIf(s *Stmt) {
 		c.diagAt(s.span, "if condition must be a bool, got "+typeStr(ct))
 	}
 	c.pushScope()
+	saved := c.applyTypeGuards(s.cond, true)
 	c.checkStmts(s.then_)
+	c.restoreTypeGuards(saved)
 	c.popScope()
 	c.pushScope()
+	saved = c.applyTypeGuards(s.cond, false)
 	c.checkStmts(s.else_)
+	c.restoreTypeGuards(saved)
 	c.popScope()
+}
+
+// typeGuard is one `value is Type` sub-expression in a condition.
+type typeGuard struct {
+	expr     *Expr
+	positive bool
+}
+
+// savedTypeGuard restores a state type after a narrowed branch. Local
+// variables use a scope shadow and need no explicit restore.
+type savedTypeGuard struct {
+	name string
+	old  *SType
+}
+
+// collectTypeGuards extracts guards from the common boolean shapes:
+// `v is T`, `not (v is T)`, `A and B` in the positive branch and `A or B` in
+// the negative branch. Other shapes do not narrow.
+func collectTypeGuards(e *Expr, positive bool, out *[]typeGuard) {
+	if e == nil {
+		return
+	}
+	if e.kind == "is" {
+		*out = append(*out, typeGuard{expr: e, positive: positive})
+		return
+	}
+	if e.kind == "unary" && e.op == "not" {
+		collectTypeGuards(e.operand, !positive, out)
+		return
+	}
+	if e.kind == "binary" {
+		if (e.op == "and" && positive) || (e.op == "or" && !positive) {
+			collectTypeGuards(e.l, positive, out)
+			collectTypeGuards(e.r, positive, out)
+		}
+	}
+}
+
+func (c *Checker) applyTypeGuards(cond *Expr, positive bool) []savedTypeGuard {
+	var guards []typeGuard
+	collectTypeGuards(cond, positive, &guards)
+	var saved []savedTypeGuard
+	for i := 0; i < len(guards); i++ {
+		g := guards[i]
+		if g.expr == nil || g.expr.l == nil || g.expr.l.kind != "ident" {
+			continue
+		}
+		name := g.expr.l.name
+		target, err := parseSUIType(g.expr.name)
+		if err != "" {
+			continue
+		}
+		var current *SType
+		isState := false
+		if c.states[name] != nil {
+			current = c.states[name]
+			isState = true
+		} else if v := c.lookupVar(name); v != nil {
+			current = v.typ
+		}
+		if current == nil {
+			continue
+		}
+		narrowed := narrowType(current, target, g.positive)
+		if current.kind == narrowed.kind && typeEqual(current, narrowed) {
+			continue
+		}
+		if isState {
+			saved = append(saved, savedTypeGuard{name: name, old: current})
+			c.states[name] = narrowed
+		} else {
+			c.declareVar(name, narrowed, g.expr.l.span)
+		}
+	}
+	return saved
+}
+
+func (c *Checker) restoreTypeGuards(saved []savedTypeGuard) {
+	for i := len(saved) - 1; i >= 0; i-- {
+		c.states[saved[i].name] = saved[i].old
+	}
 }
 
 func (c *Checker) checkLoop(s *Stmt) {
@@ -1063,9 +1385,11 @@ func (c *Checker) checkWhile(s *Stmt) {
 		c.diagAt(s.span, "while condition must be a bool, got "+typeStr(ct))
 	}
 	c.pushScope()
+	saved := c.applyTypeGuards(s.cond, true)
 	c.loopDepth++
 	c.checkStmts(s.body)
 	c.loopDepth--
+	c.restoreTypeGuards(saved)
 	c.popScope()
 }
 
@@ -1092,7 +1416,7 @@ func (c *Checker) checkReturn(s *Stmt) {
 			if vt == nil || vt.kind == "error" || vt.kind == "unknown" {
 				continue
 			}
-			if !typeEqual(vt, c.curRets[i]) {
+			if !assignable(vt, c.curRets[i]) {
 				c.diagAt(s.span, "cannot return a value of type "+typeStr(vt)+" for the "+ordinalNd(itoaStr(i+1))+" return value")
 			}
 		}
@@ -1116,7 +1440,7 @@ func (c *Checker) checkReturn(s *Stmt) {
 	if vt.kind == "error" || vt.kind == "unknown" {
 		return
 	}
-	if !typeEqual(vt, c.curRet) {
+	if !assignable(vt, c.curRet) {
 		c.diagAt(s.span, "cannot return a value of type "+typeStr(vt)+" from a function returning "+typeStr(c.curRet))
 	}
 }
@@ -1154,6 +1478,9 @@ func (c *Checker) checkAssign(s *Stmt) {
 	isState := false
 	if c.states[name] != nil {
 		tgt = c.states[name]
+		if c.declaredStates[name] != nil {
+			tgt = c.declaredStates[name]
+		}
 		isState = true
 	} else {
 		v := c.lookupVar(name)
@@ -1178,7 +1505,7 @@ func (c *Checker) checkAssign(s *Stmt) {
 		c.diagAtEx(s.span, "cannot assign to state \""+name+"\" outside a function", "move the assignment inside a function (for example an event handler)")
 	}
 	rt := c.inferExpr(s.rhs)
-	if rt.kind != "error" && rt.kind != "unknown" && !typeEqual(rt, tgt) {
+	if rt.kind != "error" && rt.kind != "unknown" && !assignable(rt, tgt) {
 		hint := "change either the state or the assigned value to match the other"
 		if isState {
 			sp := c.symSpans[name]
@@ -1198,7 +1525,7 @@ func (c *Checker) checkLvalueAssign(s *Stmt) {
 	}
 	lt := c.inferExpr(s.lvalue)
 	rt := c.inferExpr(s.rhs)
-	if lt != nil && rt != nil && rt.kind != "error" && lt.kind != "error" && !typeEqual(lt, rt) {
+	if lt != nil && rt != nil && rt.kind != "error" && lt.kind != "error" && !assignable(rt, lt) {
 		c.diagAt(s.span, "cannot assign a value of type "+typeStr(rt)+" to a value of type "+typeStr(lt))
 	}
 }
@@ -1475,7 +1802,7 @@ func stdCall(c *Checker, e *Expr) (*SType, *SType) {
 		if at.kind == "error" || at.kind == "unknown" {
 			continue
 		}
-		if !typeEqual(at, pt) {
+		if !assignable(at, pt) {
 			c.diagAt(a.span, "argument "+fmt.Sprintf("%v", i+1)+" of "+full+" must be "+typeStr(pt)+", got "+typeStr(at))
 		}
 	}
@@ -1612,7 +1939,7 @@ func (c *Checker) checkArgs(fname string, params []SType, args []*Expr, defs []*
 		if at.kind == "error" || at.kind == "unknown" {
 			continue
 		}
-		if !typeEqual(at, &params[i]) {
+		if !assignable(at, &params[i]) {
 			c.diagAt(a.span, "argument "+fmt.Sprintf("%v", i+1)+" of "+fname+" must be "+typeStr(&params[i])+", got "+typeStr(at))
 		}
 	}
@@ -1688,6 +2015,22 @@ func (c *Checker) inferExpr(e *Expr) *SType {
 	if k == "unary" {
 		return c.inferUnary(e)
 	}
+	if k == "is" {
+		lt := c.inferExpr(e.l)
+		target, err := parseSUIType(e.name)
+		if err != "" {
+			c.diagAt(e.span, "invalid type guard: "+err)
+			return NewSType("bool")
+		}
+		if target.kind == "struct" || target.kind == "map" {
+			c.diagAt(e.span, "type guard for "+typeStr(target)+" is not supported at runtime; use an enum discriminator field or check null/array instead")
+			return NewSType("bool")
+		}
+		if !overlaps(lt, target) {
+			c.diagAt(e.span, "type guard "+typeStr(lt)+" is "+typeStr(target)+" can never succeed")
+		}
+		return NewSType("bool")
+	}
 	if k == "binary" {
 		return c.inferBinary(e)
 	}
@@ -1707,9 +2050,8 @@ func (c *Checker) inferExpr(e *Expr) *SType {
 		if rt.kind == "error" || rt.kind == "unknown" {
 			return lt
 		}
-		if lt.kind != rt.kind {
-			c.diagAt(e.span, "branches of a conditional expression must have the same type, got "+typeStr(lt)+" and "+typeStr(rt))
-			return NewSType("error")
+		if !typeEqual(lt, rt) {
+			return unionOf(lt, rt)
 		}
 		return lt
 	}
@@ -1771,11 +2113,7 @@ func (c *Checker) inferArray(e *Expr) *SType {
 			continue
 		}
 		if !typeEqual(common, et) {
-			if common.kind != "null" || et.kind != "null" {
-				c.diagAt(e.span, "array elements must have a common type, got "+typeStr(common)+" and "+typeStr(et))
-				return &SType{kind: "array", elem: NewSType("error")}
-			}
-			common = et
+			common = unionOf(common, et)
 		}
 	}
 	if common == nil {
@@ -1806,8 +2144,7 @@ func (c *Checker) inferMap(e *Expr) *SType {
 			continue
 		}
 		if !typeEqual(common, vt) {
-			c.diagAt(e.span, "map values must have a common type, got "+typeStr(common)+" and "+typeStr(vt))
-			return &SType{kind: "map", key: NewSType("string"), val: NewSType("error")}
+			common = unionOf(common, vt)
 		}
 	}
 	if common == nil {
@@ -1888,7 +2225,7 @@ func (c *Checker) inferStructLit(e *Expr) *SType {
 			fexp = ft
 		}
 		vt := c.inferExpr(e.vals[i])
-		if fexp != nil && !typeEqual(fexp, vt) {
+		if fexp != nil && !assignable(vt, fexp) {
 			c.diagAt(e.span, "field \""+key+"\" of "+typeName+" expects "+typeStr(fexp)+", got "+typeStr(vt))
 		}
 	}
@@ -1983,7 +2320,7 @@ func (c *Checker) callbackParamFits(arg *Expr, sig *FnSig, index int, want *STyp
 	if got.kind == "any" || got.kind == "unknown" || got.kind == "error" {
 		return
 	}
-	if !typeEqual(got, want) {
+	if !assignable(want, got) {
 		c.diagAt(arg.span, label+" callback parameter "+itoaStr(index+1)+" must be "+typeStr(want)+", got "+typeStr(got))
 	}
 }
@@ -2031,7 +2368,7 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 		}
 		ta := c.inferExpr(args[0])
 		te := c.inferExpr(args[1])
-		if ta.kind == "array" && !typeEqual(ta.elem, te) {
+		if ta.kind == "array" && !assignable(te, ta.elem) {
 			c.diagAt(e.span, "append: cannot add a value of type "+typeStr(te)+" to an array of "+typeStr(ta.elem))
 			return NewSType("error")
 		}
@@ -2092,7 +2429,7 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 				c.callbackParamFits(args[2], sig, 1, ta.elem, "reduce")
 			}
 			c.callbackParamFits(args[2], sig, 0, ti, "reduce")
-			if sig.ret != nil && sig.ret.kind != "error" && sig.ret.kind != "any" && sig.ret.kind != "unknown" && !typeEqual(sig.ret, ti) {
+			if sig.ret != nil && sig.ret.kind != "error" && sig.ret.kind != "any" && sig.ret.kind != "unknown" && !assignable(sig.ret, ti) {
 				c.diagAt(args[2].span, "reduce callback must return "+typeStr(ti)+", got "+typeStr(sig.ret))
 			}
 		}
@@ -2272,7 +2609,7 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 			return NewSType("error")
 		}
 		ta := c.inferExpr(args[0])
-		if ta.kind == "array" && !typeEqual(ta.elem, NewSType("string")) {
+		if ta.kind == "array" && !assignable(ta.elem, NewSType("string")) {
 			c.diagAt(e.span, "join expects an array of strings, got "+typeStr(ta))
 			return NewSType("error")
 		}
@@ -3343,9 +3680,17 @@ func (c *Checker) reportOperatorError(op string, lt, rt *SType, sp Span) {
 
 func (c *Checker) inferBinary(e *Expr) *SType {
 	op := e.op
-	lt := c.inferExpr(e.l)
-	rt := c.inferExpr(e.r)
 	if op == "and" || op == "or" {
+		lt := c.inferExpr(e.l)
+		// Short-circuit narrowing: the right operand of `A and B` sees the
+		// positive guards of A; the right operand of `A or B` sees the negative
+		// guards (the left side was false). A temporary scope removes local
+		// shadows after B; state types are restored explicitly.
+		c.pushScope()
+		saved := c.applyTypeGuards(e.l, op == "and")
+		rt := c.inferExpr(e.r)
+		c.restoreTypeGuards(saved)
+		c.popScope()
 		bad := (lt.kind != "bool" && lt.kind != "error" && lt.kind != "unknown") ||
 			(rt.kind != "bool" && rt.kind != "error" && rt.kind != "unknown")
 		if bad {
@@ -3354,6 +3699,8 @@ func (c *Checker) inferBinary(e *Expr) *SType {
 		}
 		return NewSType("bool")
 	}
+	lt := c.inferExpr(e.l)
+	rt := c.inferExpr(e.r)
 	if op == "==" || op == "!=" {
 		if lt.kind == "struct" && rt.kind == "struct" {
 			c.diagAt(e.span, "comparison of struct values is not supported in v0.5; compare their fields instead (u.name == \"x\")")
@@ -3365,7 +3712,7 @@ func (c *Checker) inferBinary(e *Expr) *SType {
 		if lt.kind == "error" || lt.kind == "unknown" || rt.kind == "error" || rt.kind == "unknown" {
 			return NewSType("bool")
 		}
-		if !typeEqual(lt, rt) {
+		if !overlaps(lt, rt) {
 			c.reportOperatorError(op, lt, rt, e.span)
 		}
 		return NewSType("bool")
@@ -3378,7 +3725,7 @@ func (c *Checker) inferBinary(e *Expr) *SType {
 		if lt.kind == "error" || lt.kind == "unknown" || rt.kind == "error" || rt.kind == "unknown" {
 			return NewSType("bool")
 		}
-		if !typeEqual(lt, rt) {
+		if !overlaps(lt, rt) {
 			c.reportOperatorError(op, lt, rt, e.span)
 		}
 		return NewSType("bool")
@@ -3717,7 +4064,7 @@ func (c *Checker) checkView(vd *ViewDecl) {
 			decl, derr := parseSUIType(sd.typename)
 			if derr != "" {
 				c.diagAt(sd.span, derr)
-			} else if !typeEqual(it, decl) {
+			} else if !assignable(it, decl) {
 				c.diagAt(sd.span, "instance state "+sd.name+" declared as "+typeStr(decl)+" but initialized with "+typeStr(it))
 			}
 			it = decl
@@ -3798,8 +4145,16 @@ func (c *Checker) checkViewNode(n *ViewNode) {
 		if ct.kind != "bool" && ct.kind != "error" && ct.kind != "unknown" {
 			c.diagAt(n.span, "view if condition must be a bool, got "+typeStr(ct))
 		}
+		c.pushScope()
+		saved := c.applyTypeGuards(n.cond, true)
 		c.checkViewBody(derefNodeList(n.then_))
+		c.restoreTypeGuards(saved)
+		c.popScope()
+		c.pushScope()
+		saved = c.applyTypeGuards(n.cond, false)
 		c.checkViewBody(derefNodeList(n.else_))
+		c.restoreTypeGuards(saved)
+		c.popScope()
 		return
 	}
 	if n.kind == "list" {
@@ -4842,7 +5197,7 @@ func (c *Checker) checkComponentCall(e *Element, viewName string) {
 		}
 		if a.hasExpr {
 			vt := c.inferExpr(a.expr)
-			if vt.kind != "error" && !typeEqual(pt, vt) {
+			if vt.kind != "error" && !assignable(vt, pt) {
 				c.diagAt(a.span, "parameter \""+a.key+"\" of component "+viewName+" expects "+typeStr(pt)+", got "+typeStr(vt))
 			}
 		} else {

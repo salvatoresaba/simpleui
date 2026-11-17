@@ -5,6 +5,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 ## Sommario
 - [Linguaggio SUI](#linguaggio-sui-sintassi-essenziale)
 - [Enum e switch](#enum-e-switch)
+- [Tipi union e type guard `is`](#tipi-union-e-type-guard-is)
 - [Destructuring, spread e argomenti nominati](#destructuring-spread-e-argomenti-nominati)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
@@ -72,7 +73,54 @@ view App {
 l'attributo `required` del browser; il combobox mostra anche un errore inline
 quando non è selezionato un valore.
 
-### Destructuring, spread e argomenti nominati
+### Tipi union e type guard `is`
+
+Un tipo può elencare alternative con `|`; il suffisso `?` significa `| null`:
+
+```sui
+state value: string | int = "hello"
+state maybe: string? = null
+state mixed: array[string | int] = ["a", 1]
+```
+
+Assegnazioni, parametri, tipi di ritorno, campi di struct, elementi di array e
+valori di mappe accettano una union quando il valore rientra in un membro. Gli
+array e le mappe con valori misti compatibili inferiscono un tipo union per
+elemento/valore.
+
+```sui
+fn show(v: string | int) -> string {
+	if v is string {
+		return "string: " + v
+	}
+	return "number: " + str(v)
+}
+```
+
+`value is Tipo` è un'espressione booleana. Supporta `string`, `int`, `float`,
+`bool`, `null`, `fn`, tipi array ed enum. I guard su struct e mappe sono
+rifiutati perché a runtime sono entrambi oggetti JavaScript; usa un campo
+discriminante enum, oppure `is null`/`is array[...]` per separare i casi. Nel
+ramo corrispondente la variabile viene ristretta:
+
+- `if v is string { ... }`: `v` è `string` nel ramo then e i membri
+  rimanenti nel ramo else.
+- `not (v is T)` inverte il ramo.
+- `A and B` restringe entrambe nel ramo then; `A or B` restringe entrambe
+  negate nel ramo else.
+- `while v is string { ... }` restringe il corpo.
+- Un guard che non può mai corrispondere è un errore di compilazione.
+- Riassegnare uno state ristretto usa il tipo union dichiarato, quindi passare a
+  un altro membro è permesso.
+
+`is int` usa `Number.isInteger`; `is float` richiede un numero non intero.
+La distinzione int/float è statica, mentre a runtime sono entrambi numeri
+JavaScript. `map[string]int | null` è una mappa nullable; valori di mappa nullable non
+sono ancora esprimibili (usa `map[string]any`). I literal types (per esempio
+`"success" | "error"`), la restrizione di espressioni member/index e
+l'esaustività per switch non enum non sono ancora disponibili.
+
+## Destructuring, spread e argomenti nominati
 
 ```sui
 type Person struct { name: string, age: int }
@@ -140,8 +188,8 @@ fn label(s: Step) -> string {
   aggiornare. Usa `default` solo quando ignorare i nuovi membri è intenzionale.
 - A runtime un enum è un oggetto congelato di stringhe, quindi `str(Step.Idle)`
   vale `"Idle"` e il JSON produce il nome del membro.
-- Non ancora: tipi union, literal types, type guard `is`, payload/valori
-  associati agli enum e destructuring nei pattern dei `case`.
+- Non ancora: literal types, payload/valori associati agli enum e
+  destructuring nei pattern dei `case`.
 
 ## Drag and drop
 

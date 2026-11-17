@@ -866,6 +866,9 @@ var genFnDefaults = map[string][]string{}
 // genFnParams holds parameter names in declaration order for named calls.
 var genFnParams = map[string][]string{}
 
+// genEnums holds enum members for `value is Enum` runtime guards.
+var genEnums = map[string][]string{}
+
 // Component/view bookkeeping shared by generation of one program.
 var genViewParams = map[string][]Param{} // view name -> component parameters
 var genViews = map[string]ViewDecl{}     // view name -> declaration (for refs/cycles)
@@ -943,6 +946,10 @@ func GenerateJsFor(p *Prog, target string) string {
 	genAsyncFuncs = map[string]bool{}
 	genFnDefaults = map[string][]string{}
 	genFnParams = map[string][]string{}
+	genEnums = map[string][]string{}
+	for i := 0; i < len(p.enums); i++ {
+		genEnums[p.enums[i].name] = p.enums[i].members
+	}
 	for i := 0; i < len(p.funcs); i++ {
 		f := p.funcs[i]
 		genUserFuncs[f.name] = true
@@ -1315,6 +1322,48 @@ func orderNamedArgsJs(args []*Expr, names []string, params []string) []*Expr {
 	return out[:last+1]
 }
 
+// typeGuardJs lowers `value is Type` to an inert runtime test. Primitive
+// checks use typeof/Number.isInteger; enums test membership in the generated
+// frozen object; arrays/maps use Array.isArray/object checks.
+func typeGuardJs(e *Expr, name string) string {
+	x := ExprToJs(e)
+	switch name {
+	case "string":
+		return "(typeof " + x + " === \"string\")"
+	case "int":
+		return "(typeof " + x + " === \"number\" && Number.isInteger(" + x + "))"
+	case "float":
+		return "(typeof " + x + " === \"number\" && !Number.isInteger(" + x + "))"
+	case "bool":
+		return "(typeof " + x + " === \"boolean\")"
+	case "null":
+		return "(" + x + " === null)"
+	case "fn":
+		return "(typeof " + x + " === \"function\")"
+	case "any", "unknown":
+		return "true"
+	}
+	if strings.HasPrefix(name, "array[") {
+		return "Array.isArray(" + x + ")"
+	}
+	if strings.HasPrefix(name, "map[") {
+		return "(" + x + " !== null && typeof " + x + " === \"object\" && !Array.isArray(" + x + "))"
+	}
+	if members, ok := genEnums[name]; ok {
+		var tests []string
+		for i := 0; i < len(members); i++ {
+			tests = append(tests, x+" === "+name+"."+members[i])
+		}
+		if len(tests) == 0 {
+			return "false"
+		}
+		return "(" + strings.Join(tests, " || ") + ")"
+	}
+	// Structs and unknown user types: a non-null object is the best runtime
+	// check available without class tags.
+	return "(" + x + " !== null && typeof " + x + " === \"object\")"
+}
+
 func ExprToJs(e *Expr) string {
 	if e == nil {
 		return "null"
@@ -1439,6 +1488,9 @@ func ExprToJs(e *Expr) string {
 			return "(-" + ExprToJs(e.operand) + ")"
 		}
 		return "(!" + ExprToJs(e.operand) + ")"
+	}
+	if k == "is" {
+		return typeGuardJs(e.l, e.name)
 	}
 	if k == "binary" {
 		if e.op == "div" {
