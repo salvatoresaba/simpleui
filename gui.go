@@ -2633,7 +2633,7 @@ func guiOpenDiags(src string) (JVal, JVal, JVal, bool) {
 // sources so the round-trip never loses them. The single-page shape remains
 // available through the first page (`title`/`elements` top-level keys).
 func guiModelJson(prog *Prog) JVal {
-	empty := JObj("title", JStr(""), "onLoad", JStr(""), "imports", JArr(), "states", JArr(), "funcs", JArr(), "css", JStr(""), "i18n", JArr(), "enums", JArr(), "pages", JArr(), "elements", JArr(), "components", JArr())
+	empty := JObj("title", JStr(""), "onLoad", JStr(""), "imports", JArr(), "consts", JArr(), "computed", JArr(), "types", JArr(), "states", JArr(), "funcs", JArr(), "css", JStr(""), "i18n", JArr(), "enums", JArr(), "pages", JArr(), "elements", JArr(), "components", JArr())
 	if prog == nil || len(prog.views) == 0 {
 		return empty
 	}
@@ -2684,6 +2684,9 @@ func guiModelJson(prog *Prog) JVal {
 		"title", get(first, "title"),
 		"onLoad", get(first, "onLoad"),
 		"imports", guiStdImportsJson(prog.imports),
+		"consts", guiConstsJson(prog.consts),
+		"computed", guiComputedJson(prog.computed),
+		"types", guiTypesJson(prog.types),
 		"states", guiStatesJson(prog.states),
 		"funcs", guiFuncsJson(prog.funcs),
 		"css", JStr(strings.Join(prog.css, "\n")),
@@ -2796,6 +2799,9 @@ func collectTags(nodes []ViewNode, viewNames, invoked map[string]bool) {
 func viewDeclSource(vd *ViewDecl) string {
 	var sb strings.Builder
 	sb.WriteString("view " + vd.name)
+	if len(vd.typeParams) > 0 {
+		sb.WriteString("<" + strings.Join(vd.typeParams, ", ") + ">")
+	}
 	if len(vd.params) > 0 {
 		sb.WriteString("(")
 		for i := 0; i < len(vd.params); i++ {
@@ -2814,8 +2820,78 @@ func viewDeclSource(vd *ViewDecl) string {
 		sb.WriteString(")")
 	}
 	sb.WriteString(" {\n")
+	if len(vd.title) > 0 {
+		sb.WriteString("\ttitle \"" + strings.ReplaceAll(partsContent(vd.title), "\"", "\\\"") + "\"\n")
+	}
+	if vd.onLoad != "" {
+		sb.WriteString("\tonLoad: " + vd.onLoad + "\n")
+	}
+	for i := 0; i < len(vd.inst_state); i++ {
+		sd := &vd.inst_state[i]
+		sb.WriteString("\tstate " + sd.name)
+		if sd.typename != "" {
+			sb.WriteString(": " + sd.typename)
+		}
+		if sd.init != nil {
+			sb.WriteString(" = " + exprSource(sd.init))
+		}
+		sb.WriteString("\n")
+	}
+	for i := 0; i < len(vd.methods); i++ {
+		sb.WriteString(funcDeclSource(&vd.methods[i], 1))
+	}
 	sb.WriteString(viewNodesSource(vd.body, 1))
 	sb.WriteString("}\n")
+	return sb.String()
+}
+
+// funcDeclSource serializes one function/method declaration, including
+// generic parameters and rest parameters, so designer round-trips keep them.
+func funcDeclSource(fd *FuncDecl, ind int) string {
+	var sb strings.Builder
+	pad := strings.Repeat("\t", ind)
+	sb.WriteString(pad)
+	if fd.async {
+		sb.WriteString("async ")
+	}
+	sb.WriteString("fn " + fd.name)
+	if len(fd.typeParams) > 0 {
+		sb.WriteString("<" + strings.Join(fd.typeParams, ", ") + ">")
+	}
+	sb.WriteString("(")
+	for i := 0; i < len(fd.params); i++ {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		prm := &fd.params[i]
+		if prm.rest {
+			sb.WriteString("...")
+		}
+		sb.WriteString(prm.name)
+		if prm.typename != "" {
+			sb.WriteString(": " + prm.typename)
+		}
+		if prm.dflt != nil {
+			sb.WriteString(" = " + exprSource(prm.dflt))
+		}
+	}
+	sb.WriteString(")")
+	ret := fd.returnType
+	if len(fd.returnTypes) > 1 {
+		ret = "(" + strings.Join(fd.returnTypes, ", ") + ")"
+	}
+	if ret != "" {
+		sb.WriteString(" -> " + ret)
+	}
+	sb.WriteString(" {\n")
+	body := stmtsToSui(fd.body)
+	for _, line := range strings.Split(body, "\n") {
+		if line == "" {
+			continue
+		}
+		sb.WriteString(pad + "\t" + line + "\n")
+	}
+	sb.WriteString(pad + "}\n")
 	return sb.String()
 }
 
@@ -2823,12 +2899,51 @@ func viewDeclSource(vd *ViewDecl) string {
 func viewNodesSource(nodes []ViewNode, ind int) string {
 	var sb strings.Builder
 	for i := 0; i < len(nodes); i++ {
-		n := &nodes[i]
-		if n.kind == "element" && n.elem != nil {
-			sb.WriteString(elementSource(n.elem, ind))
-		}
+		sb.WriteString(viewNodeSource(&nodes[i], ind))
 	}
 	return sb.String()
+}
+
+// viewNodeSource serializes one view node. Dynamic `if`/`list` blocks and
+// list keys are part of the project source, so the designer must emit them
+// even when it has no visual editor for their control flow.
+func viewNodeSource(n *ViewNode, ind int) string {
+	if n == nil {
+		return ""
+	}
+	inds := strings.Repeat("\t", ind)
+	if n.kind == "element" && n.elem != nil {
+		return elementSource(n.elem, ind)
+	}
+	if n.kind == "if" {
+		var sb strings.Builder
+		sb.WriteString(inds + "if " + exprSource(n.cond) + " {\n")
+		sb.WriteString(viewNodesSource(derefViewNodes(n.then_), ind+1))
+		sb.WriteString(inds + "}")
+		if len(n.else_) > 0 {
+			sb.WriteString(" else {\n")
+			sb.WriteString(viewNodesSource(derefViewNodes(n.else_), ind+1))
+			sb.WriteString(inds + "}")
+		}
+		sb.WriteString("\n")
+		return sb.String()
+	}
+	if n.kind == "list" {
+		var sb strings.Builder
+		sb.WriteString(inds + "list " + n.item)
+		if n.item2 != "" {
+			sb.WriteString(", " + n.item2)
+		}
+		sb.WriteString(" in " + exprSource(n.iterable))
+		if n.key != nil {
+			sb.WriteString(" key: " + exprSource(n.key))
+		}
+		sb.WriteString(" {\n")
+		sb.WriteString(viewNodesSource(derefViewNodes(n.body), ind+1))
+		sb.WriteString(inds + "}\n")
+		return sb.String()
+	}
+	return ""
 }
 
 // elementSource serializes one element to .sui source.
@@ -2881,6 +2996,58 @@ func componentInvocationSource(e *Element) string {
 	return sb.String()
 }
 
+func guiComputedJson(decls []ComputedDecl) JVal {
+	arr := JArr()
+	for i := 0; i < len(decls); i++ {
+		c := &decls[i]
+		init := ""
+		if c.init != nil {
+			init = exprSource(c.init)
+		}
+		arr = pushArr(arr, JObj(
+			"name", JStr(c.name),
+			"type", JStr(c.typename),
+			"init", JStr(init),
+		))
+	}
+	return arr
+}
+
+func guiTypesJson(types []TypeDecl) JVal {
+	arr := JArr()
+	for i := 0; i < len(types); i++ {
+		td := &types[i]
+		fields := JArr()
+		for j := 0; j < len(td.fields); j++ {
+			f := &td.fields[j]
+			fields = pushArr(fields, JObj(
+				"name", JStr(f.name),
+				"type", JStr(f.typename),
+				"readonly", JBool(f.readonly),
+			))
+		}
+		arr = pushArr(arr, JObj("name", JStr(td.name), "fields", fields))
+	}
+	return arr
+}
+
+func guiConstsJson(decls []ConstDecl) JVal {
+	arr := JArr()
+	for i := 0; i < len(decls); i++ {
+		c := &decls[i]
+		init := ""
+		if c.init != nil {
+			init = exprSource(c.init)
+		}
+		arr = pushArr(arr, JObj(
+			"name", JStr(c.name),
+			"type", JStr(c.typename),
+			"init", JStr(init),
+		))
+	}
+	return arr
+}
+
 func guiStatesJson(states []StateDecl) JVal {
 	arr := JArr()
 	for i := 0; i < len(states); i++ {
@@ -2911,6 +3078,9 @@ func guiFuncsJson(funcs []FuncDecl) JVal {
 		for j := 0; j < len(f.params); j++ {
 			pt := &f.params[j]
 			s := pt.name
+			if pt.rest {
+				s = "..." + s
+			}
 			if pt.typename != "" {
 				s += ": " + pt.typename
 			}
@@ -2922,6 +3092,7 @@ func guiFuncsJson(funcs []FuncDecl) JVal {
 		arr = pushArr(arr, JObj(
 			"name", JStr(f.name),
 			"async", JBool(f.async),
+			"typeParams", JStr(strings.Join(f.typeParams, ", ")),
 			"params", JStr(strings.Join(params, ", ")),
 			"ret", JStr(ret),
 			"body", JStr(stmtsToSui(f.body)),
@@ -3254,6 +3425,11 @@ func guiElementsFromNodes(nodes []ViewNode, viewNames map[string]bool) JVal {
 		n := &nodes[i]
 		if n.kind == "element" && n.elem != nil {
 			arr = pushArr(arr, guiElementFrom(n.elem, viewNames))
+		} else if n.kind == "if" || n.kind == "list" {
+			// The designer has no visual editor for dynamic blocks, but dropping
+			// them would silently delete content. Keep the canonical source in a
+			// raw node so the SUI tab and round-trip preserve it.
+			arr = pushArr(arr, JObj("raw", JStr(viewNodeSource(n, 0))))
 		}
 	}
 	return arr
@@ -3289,6 +3465,17 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		o.obj["component"] = JBool(true)
 		o.obj["raw"] = JStr(componentInvocationSource(e))
 		return o
+	}
+	// The designer's <ul>/<ol> model edits static items. A dynamic `list`
+	// block inside one has no visual editor, so preserve the whole element as
+	// raw source instead of dropping the block from the model.
+	if e.tag == "ul" || e.tag == "ol" {
+		for i := 0; i < len(e.children); i++ {
+			if e.children[i].kind == "list" || e.children[i].kind == "if" {
+				o.obj["raw"] = JStr(elementSource(e, 0))
+				return o
+			}
+		}
 	}
 	if chartTag(e.tag) {
 		// Runtime defaults, mirrored so the inspector never shows a blank or

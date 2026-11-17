@@ -1,0 +1,59 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 760px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+p \{ margin: 8px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+# Generic functions infer T from their arguments. Generic components infer T
+# from their props, so the same List view renders strings or numbers.
+fn identity<T>(value: T) -> T {
+	return value
+}
+
+fn first<T>(items: array[T]) -> T {
+	return items[0]
+}
+
+fn addAll(base: int, ...values: array[int]) -> int {
+	let total = base
+	loop v in values {
+		total = total + v
+	}
+	return total
+}
+
+view Chip<T> (value: T, label: string) {
+	span "{label}: {str(value)}" class: "chip"
+}
+
+view List<T> (items: array[T]) {
+	ul {
+		list item in items key: item {
+			li "{str(item)}"
+		}
+	}
+}
+
+state names: array[string] = ["Ada", "Grace", "Linus"]
+state nums: array[int] = [3, 5, 8]
+state out = ""
+
+fn run() -> null {
+	out = identity("x") + " · " + str(identity(42)) + " · first=" + str(first(nums)) + " · sum=" + str(addAll(10, 1, 2, 3))
+}
+
+view main {
+	card "" class: "card" {
+		h1 "Generics and rest parameters"
+		p "{out}"
+		p "Generic component for strings:" class: "muted"
+		List items: names
+		p "Generic component for numbers:" class: "muted"
+		List items: nums
+		row {
+			Chip value: names[0] label: "name"
+			Chip value: nums[0] label: "number"
+		}
+		button "Run" onClick: run
+		p "Chip<T> and List<T> infer T from props; identity<T>, first<T> and addAll infer it from arguments. The rest parameter collects the remaining values into array[int]." class: "muted"
+	}
+}

@@ -34,6 +34,10 @@ Key features:
 - **Nominal enums**: exhaustive `switch`, duplicate-case checks and a checked enum type
 - **Union types**: `string | int`, `string?` and narrowing `is` guards
 - **Literal types**: `"idle" | "loading"` with exhaustive switch
+- **Generics and rest parameters**: `fn first<T>(items: array[T])`, `...values: array[int]`
+- **Const, computed and readonly**: immutable values, derived state, immutable fields
+- **Reactive batching, error boundaries and list keys**
+- **Intl formatting**: dates, numbers, currencies, percentages, relative time and time zones
 - **Multi-target**: web apps, browser-launched desktop executables and native-window desktop executables with an embedded WebView
 - **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
 - **Secure for desktop**: native bridge with capability-based permission system and native file/folder dialogs

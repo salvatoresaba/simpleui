@@ -7,10 +7,14 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 - [Enum e switch](#enum-e-switch)
 - [Tipi union e type guard `is`](#tipi-union-e-type-guard-is)
 - [Literal types](#literal-types)
+- [Generici e parametri rest](#generici-e-parametri-rest)
+- [Costanti, valori computed e campi readonly](#costanti-valori-computed-e-campi-readonly)
+- [Aggiornamenti reattivi, batching, error boundary e chiavi delle liste](#aggiornamenti-reattivi-batching-error-boundary-e-chiavi-delle-liste)
 - [Destructuring, spread e argomenti nominati](#destructuring-spread-e-argomenti-nominati)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
 - [Internazionalizzazione (i18n)](#internazionalizzazione-i18n)
+- [Formattazione locale (Intl)](#formattazione-locale-intl)
 - [Tabs](#tabs)
 - [Pagine e navigazione](#pagine-e-navigazione)
 - [Dialoghi modali](#dialoghi-modali)
@@ -165,6 +169,147 @@ Limiti: i valori di una mappa non possono ancora essere una union, quindi
 `map[string]"ok" | "bad"` viene letto come `map[string]"ok"` oppure `"bad"`;
 usa `map[string]string`. La restrizione di espressioni member/index e
 l'esaustività per switch `string`/`int` ordinari non sono disponibili.
+
+## Generici e parametri rest
+
+Funzioni e componenti possono dichiarare parametri di tipo dopo il nome. Le
+chiamate inferiscono gli argomenti di tipo dai valori ricevuti; non esiste una
+sintassi esplicita `<int>` nel punto di chiamata.
+
+```sui
+fn identity<T>(value: T) -> T {
+	return value
+}
+
+fn first<T>(items: array[T]) -> T {
+	return items[0]
+}
+
+view List<T> (items: array[T]) {
+	ul {
+		list item in items key: item {
+			li "{str(item)}"
+		}
+	}
+}
+```
+
+- Un parametro di tipo può comparire nei parametri, nei valori di ritorno, nei
+  tipi array/mappa e nei parametri dei componenti. Forme annidate come
+  `map[string]array[T]` funzionano.
+- Ogni parametro di tipo deve essere inferibile da un parametro. Una chiamata
+  che non riesce a legarlo segnala `cannot infer generic type parameter`.
+- Argomenti in conflitto (`both<string>("a", 1)`) segnalano il tipo sostituito
+  sull'argomento problematico.
+- Le struct generiche non sono ancora supportate. I parametri di tipo vengono
+  cancellati nel JavaScript generato.
+- Gli argomenti di tipo dei componenti sono inferiti dalle prop fornite, come
+  per le chiamate a funzione.
+
+Un **parametro rest** raccoglie gli argomenti rimanenti in un array:
+
+```sui
+fn sum(base: int, ...values: array[int]) -> int {
+	let total = base
+	loop v in values {
+		total = total + v
+	}
+	return total
+}
+
+let x = sum(10, 1, 2, 3)   # 16
+let y = sum(5)             # 5
+```
+
+Il parametro rest deve essere l'ultimo, deve avere un tipo array e non può avere
+un valore predefinito. Il tipo dell'elemento viene controllato per ogni
+argomento extra. Gli argomenti nominati non possono essere combinati con un
+parametro rest.
+
+## Costanti, valori computed e campi readonly
+
+`const` dichiara un valore immutabile di primo livello:
+
+```sui
+const LIMIT: int = 3
+const TAGS: array[string] = ["a", "b"]
+
+state count = LIMIT
+```
+
+L'inizializzatore deve essere un valore compile-time: literal, const
+precedenti, membri enum, array/mappe/struct costruiti da questi e operatori o
+condizionali su di essi. State runtime e chiamate a funzione sono rifiutati,
+quindi le costanti non dipendono dall'ordine di esecuzione. Assegnare a una
+costante o mutare uno dei suoi contenitori è un errore.
+
+`computed` dichiara un valore in sola lettura derivato dagli state (e da
+computed precedenti):
+
+```sui
+state price: int = 10
+state qty: int = 2
+
+computed total: int = price * qty
+computed label = "total " + str(total)
+```
+
+I valori computed vengono ricalcolati dopo ogni cambio di state e prima di ogni
+render. Non sono assegnabili né mutabili. Dichiarali nell'ordine delle
+dipendenze; ogni computed può usare state, costanti, computed precedenti e
+chiamate a funzioni pure. Mantieni l'espressione priva di effetti collaterali.
+
+I campi di una struct possono essere marcati `readonly`. La costruzione resta
+invariata, ma un'assegnazione successiva attraverso quel campo viene rifiutata:
+
+```sui
+type Job struct {
+	readonly id: string
+	mode: string
+}
+
+state job: Job = Job { id: "a", mode: "idle" }
+# job.id = "b"   -> errore di compilazione
+```
+
+## Aggiornamenti reattivi, batching, error boundary e chiavi delle liste
+
+I setter degli state aggiornano subito i valori computed, poi raggruppano il
+lavoro DOM in una microtask. Più assegnazioni nello stesso handler causano
+quindi un solo render. Vengono ri-renderizzate solo le view legate allo state
+modificato (direttamente o tramite un computed), così i controlli non correlati
+mantengono il loro stato DOM nativo.
+
+`errorboundary` intercetta gli errori sincroni sollevati durante il render del
+suo sottoalbero e mostra un fallback:
+
+```sui
+errorboundary fallback: "Questa sezione non può essere renderizzata" {
+	p "{maybeBroken()}"
+}
+p "Il resto della pagina continua a funzionare."
+```
+
+Il messaggio d'errore viene salvato in `data-sui-error`, il testo del fallback
+viene escapato e l'errore viene registrato anche con `console.error`. Gli errori
+sollevati più tardi da event handler o lavoro asincrono non vengono intercettati
+dall'error boundary. `assert(cond, "messaggio")` solleva un `Error` quando
+`cond` è falso; è utile per validare invarianti e per provare un error boundary.
+
+Una lista in una view può dichiarare una chiave stabile:
+
+```sui
+ul {
+	list item in items key: item.id {
+		li "{item.name}"
+	}
+}
+```
+
+La chiave viene applicata al primo elemento renderizzato per ogni item come
+`data-sui-key`; il ripristino del focus segue la chiave quando la lista viene
+riordinata. Le chiavi devono essere stringhe, numeri, booleani o valori enum.
+Non cambiano i dati né la struttura del markup generato. Nel designer i blocchi dinamici `if`/`list` vengono conservati come sorgente raw e si modificano dalla scheda SUI.
 
 ## Destructuring, spread e argomenti nominati
 
@@ -2853,6 +2998,34 @@ variabili non possono iniettare HTML. Nel designer **Preferenze → Lingue...**
 permette di modificare i cataloghi, importare/esportare JSON e scegliere la
 lingua dell'anteprima. Vedi [Editor GUI: lingue](GUI_EDITOR_IT.md#lingue) e
 `examples/i18n/README.md`.
+
+## Formattazione locale (Intl)
+
+Questi builtin formattano date, numeri, valute, percentuali e tempi relativi con
+le API `Intl` del browser. Una locale vuota o omessa usa la locale i18n attiva,
+poi la lingua del browser.
+
+| Chiamata | Risultato |
+|---|---|
+| `intl.date(value, style?, locale?, timeZone?)` | Data; `value` è una stringa ISO o millisecondi epoch. `style` è `short`, `medium`, `long`, `full` o `iso`. |
+| `intl.time(value, style?, locale?, timeZone?)` | Solo orario. |
+| `intl.datetime(value, style?, locale?, timeZone?)` | Data e orario (`iso` restituisce il timestamp ISO completo). |
+| `intl.number(value, decimals?, locale?)` | Numero decimale con separatori; `decimals = -1` usa il default della locale. |
+| `intl.currency(value, currency, locale?)` | Formattazione valuta con codice ISO 4217 (`EUR`, `USD`, ...). |
+| `intl.percent(value, decimals?, locale?)` | Percentuale da una frazione (`0.256` diventa `25.6%`). |
+| `intl.relative(offset, unit, locale?, numeric?)` | Tempo relativo; unità `second(s)`, `minute(s)`, `hour(s)`, `day(s)`, `week(s)`, `month(s)`, `quarter(s)`, `year(s)`. `numeric` è `auto` (default) o `always`. |
+| `intl.timezone()` | Il fuso orario IANA risolto, per esempio `Europe/Rome`. |
+
+```sui
+p "{intl.date("2024-01-02T15:04:05Z", "short", "en-US", "UTC")}"
+p "{intl.number(1234.56, 2, "en-US")}"
+p "{intl.currency(1234.5, "EUR", "de-DE")}"
+p "{intl.relative(-2, "day")}"
+```
+
+Le date non valide restituiscono `Invalid date`; i numeri non validi
+restituiscono una stringa vuota. Tutti i risultati sono testo normale e passano
+dall'escaping standard delle view.
 
 ## Dialoghi modali
 

@@ -153,12 +153,14 @@ type Param struct {
 	name     string
 	typename string // "" means "infer from call sites" (v0.1: not implemented -> error)
 	dflt     *Expr  // optional default value (nil = required)
+	rest     bool   // `...name: array[T]` collects the remaining arguments
 	span     Span
 }
 
 type FuncDecl struct {
 	name        string
 	async       bool
+	typeParams  []string // generic type parameters, e.g. fn first<T>(...)
 	params      []Param
 	returnType  string   // "" means inferred; the first type for multi-return
 	returnTypes []string // multi-return type list (empty = single return)
@@ -173,10 +175,36 @@ type StateDecl struct {
 	span     Span
 }
 
+// ComputedDecl is a read-only value derived from states and other values:
+//
+//	computed total: int = price * quantity
+//
+// It is recalculated after any state change and before each render.
+type ComputedDecl struct {
+	name     string
+	typename string // "" means inferred from init
+	init     *Expr
+	span     Span
+}
+
+// ConstDecl is a compile-time immutable top-level value:
+//
+//	const LIMIT = 10
+//
+// The initializer is restricted to literals, other consts, enum members and
+// composite literals made from those values.
+type ConstDecl struct {
+	name     string
+	typename string // "" means inferred from init
+	init     *Expr
+	span     Span
+}
+
 // Field is one `name: TypeName` line of a user struct type.
 type Field struct {
 	name     string
 	typename string
+	readonly bool // assignments to this field are rejected after construction
 	span     Span
 }
 
@@ -230,12 +258,14 @@ type ViewNode struct {
 	item     string
 	item2    string // map value variable ("" for single-var lists)
 	iterable *Expr
+	key      *Expr // optional stable identity for each item
 	body     []*ViewNode
 	span     Span
 }
 
 type ViewDecl struct {
 	name       string
+	typeParams []string    // generic component type parameters
 	params     []Param     // component parameters (empty for plain views)
 	inst_state []StateDecl // per-instance state (`state` inside a component body)
 	methods    []FuncDecl  // per-instance methods (`fn` inside a component body)
@@ -253,7 +283,9 @@ type Prog struct {
 	imports  []ImportDecl
 	types    []TypeDecl
 	enums    []EnumDecl
+	consts   []ConstDecl
 	states   []StateDecl
+	computed []ComputedDecl
 	css      []string // raw user CSS snippets (`css "..."` declarations)
 	i18n     []I18nDecl
 	funcs    []FuncDecl

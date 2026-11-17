@@ -18,6 +18,16 @@ type Builtin struct {
 }
 
 var Builtins = []Builtin{
+	Builtin{name: "assert", js: "__sui_assert({0}, {1})"},
+	// ---- locale formatting (Intl) ----
+	Builtin{name: "intl.date", js: "__sui_intl_date({0}, {1}, {2}, {3})"},
+	Builtin{name: "intl.time", js: "__sui_intl_time({0}, {1}, {2}, {3})"},
+	Builtin{name: "intl.datetime", js: "__sui_intl_datetime({0}, {1}, {2}, {3})"},
+	Builtin{name: "intl.number", js: "__sui_intl_number({0}, {1}, {2})"},
+	Builtin{name: "intl.currency", js: "__sui_intl_currency({0}, {1}, {2})"},
+	Builtin{name: "intl.percent", js: "__sui_intl_percent({0}, {1}, {2})"},
+	Builtin{name: "intl.relative", js: "__sui_intl_relative({0}, {1}, {2}, {3})"},
+	Builtin{name: "intl.timezone", js: "__sui_intl_timezone()"},
 	Builtin{name: "len", js: "{0}.length"},
 	Builtin{name: "append", js: "[...{0}, {1}]"},
 	Builtin{name: "upper", js: "{0}.toUpperCase()"},

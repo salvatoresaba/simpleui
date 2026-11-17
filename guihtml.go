@@ -2233,7 +2233,7 @@ RUNNING</div>
 // sync after every model rebuild), so the rest of the designer keeps working
 // against root.children / root.title.
 function pagesModelEmpty() {
-  var r = { imports: [], states: [], funcs: [], css: "", i18n: [], enums: [], components: [], pages: [{ name: "main", title: "", onLoad: "", children: [] }], page: 0 };
+  var r = { imports: [], consts: [], computed: [], types: [], states: [], funcs: [], css: "", i18n: [], enums: [], components: [], pages: [{ name: "main", title: "", onLoad: "", children: [] }], page: 0 };
   r.children = r.pages[0].children;
   return r;
 }
@@ -2299,7 +2299,7 @@ var PALETTE = [
       { name: "Inputs", tags: ["input", "textarea", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time"] },
       { name: "Toggles", tags: ["checkbox", "switch", "radio"] },
       { name: "Actions", tags: ["button", "dropdown", "popover"] },
-      { name: "Panels", tags: ["drawer", "splitter", "dropzone"] },
+      { name: "Panels", tags: ["drawer", "splitter", "dropzone", "errorboundary"] },
       { name: "Data", tags: ["tree"] },
       { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] },
       { name: "Advanced", tags: ["table", "graph", "chart"] }
@@ -2317,7 +2317,7 @@ var PALETTE_LABEL = {
   popover: "Popover",
   drawer: "Drawer",
   splitter: "Split panes",
-  dropzone: "File dropzone",
+  dropzone: "File dropzone", errorboundary: "Error boundary",
   timeline: "Timeline", timelineitem: "Timeline event",
   emptystate: "Empty state", skeleton: "Skeleton loader",
   carousel: "Carousel", slide: "Carousel slide",
@@ -2726,6 +2726,7 @@ var TAG_FIELDS = {
   splitter: ["direction", "initial", "min"],
   pane: [],
   dropzone: ["text", "dropFiles", "pickFiles", "accept", "multiple", "directory", "pickMode", "hint"],
+errorboundary: ["fallback"],
   timeline: ["text"],
   timelineitem: ["text", "date", "status"],
   emptystate: ["text", "icon", "hint", "compact"],
@@ -3659,7 +3660,7 @@ function reparseSui() {
     reparseInFlight = false;
     if (j.ok && suiSource === src) {
       var prevName = curPage().name;
-      root = { states: j.states || [], funcs: j.funcs || [], css: j.css || "", i18n: j.i18n || [], enums: j.enums || [], components: j.components || [], page: 0,
+      root = { consts: j.consts || [], computed: j.computed || [], types: j.types || [], states: j.states || [], funcs: j.funcs || [], css: j.css || "", i18n: j.i18n || [], enums: j.enums || [], components: j.components || [], page: 0,
         pages: (j.pages && j.pages.length ? j.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || [] }; }) : [{ name: "main", title: j.title || "", children: j.elements || [] }]) };
       root.pages.forEach(function(p){ normalizeTables(p.children); });
       for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
@@ -6595,7 +6596,7 @@ var TEXT_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:
   h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, blockquote:1, pre:1, code:1, mark:1, strong:1, em:1, small:1,
   li:1, legend:1, label:1, tcell:1, option:1, button:1, a:1, checkbox:1, switch:1, radio:1, card:1, badge:1, alert:1,
   tabs:1, tab:1, accordion:1, accordionitem:1, tree:1, treeitem:1, chart:1,
-  dropdown:1, dropdownitem:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1,
+  dropdown:1, dropdownitem:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1, errorboundary:1,
   timeline:1, timelineitem:1, emptystate:1, carousel:1, slide:1, stepper:1, step:1, commandbar:1, command:1,
   modal:1, modalbutton:1, menubar:1, menu:1, menuitem:1 };
 var LINK_KINDS = { a:1 };
@@ -18194,7 +18195,7 @@ function toSui(n, depth) {
   var ind = ""; for (var i = 0; i < depth; i++) ind += "\t";
   var line = ind + n.kind;
   // A toast host has no visible text and is emitted as toast class: ...
-  if (n.kind !== "tablelayout" && n.kind !== "layoutcell" && !(n.kind === "toast" && !n.text)) line += " \"" + escText(n.text) + "\"";
+  if (n.kind !== "tablelayout" && n.kind !== "layoutcell" && n.kind !== "errorboundary" && !(n.kind === "toast" && !n.text)) line += " \"" + escText(n.text) + "\"";
   line += attrsOf(n);
   if (n.children && n.children.length) {
     line += " {\n";
@@ -18350,6 +18351,15 @@ function generate() {
   var src = "";
   if (root.imports && root.imports.length) src += "import { " + root.imports.join(", ") + " } from \"std\"\n";
   if (root.css && root.css.trim()) src += "css \"" + esc(root.css) + "\"\n";
+  (root.types || []).forEach(function(td) {
+    if (!td || !td.name) return;
+    src += "type " + td.name + " struct {\n";
+    (td.fields || []).forEach(function(f) {
+      if (!f || !f.name) return;
+      src += "\t" + (f.readonly ? "readonly " : "") + f.name + ": " + (f.type || "string") + "\n";
+    });
+    src += "}\n";
+  });
   (root.enums || []).forEach(function(en) {
     if (!en || !en.name) return;
     src += "enum " + en.name + " { " + String(en.members || "") + " }\n";
@@ -18373,11 +18383,19 @@ function generate() {
     });
     src += "}\n";
   });
+  (root.consts || []).forEach(function(c) {
+    if (!c.name) return;
+    src += "const " + c.name + (c.type ? ": " + c.type : "") + " = " + (c.init || "null") + "\n";
+  });
   root.states.forEach(function(s) {
     if (!s.name) return;
     var init = s.init;
     if (!init) init = (s.type === "int" || s.type === "float") ? "0" : "\"\"";
     src += "state " + s.name + (s.type ? ": " + s.type : "") + " = " + init + "\n";
+  });
+  (root.computed || []).forEach(function(c) {
+    if (!c.name) return;
+    src += "computed " + c.name + (c.type ? ": " + c.type : "") + " = " + (c.init || "null") + "\n";
   });
   (root.components || []).forEach(function(c) { if (c) src += c + "\n"; });
   // Every page is emitted as its own view: the first page comes first so it
@@ -18393,7 +18411,8 @@ function generate() {
   });
   root.funcs.forEach(function(f) {
     if (!f.name) return;
-    src += (f.async ? "async " : "") + "fn " + f.name + "(" + (f.params || "") + ") -> " + (f.ret || "null") + " {\n" + indentFunctionBody(f.body) + "\n}\n";
+    var tps = f.typeParams ? "<" + f.typeParams + ">" : "";
+    src += (f.async ? "async " : "") + "fn " + f.name + tps + "(" + (f.params || "") + ") -> " + (f.ret || "null") + " {\n" + indentFunctionBody(f.body) + "\n}\n";
   });
   return src;
 }
@@ -18543,7 +18562,7 @@ function downloadSui() {
   var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "app.sui"; a.click();
 }
 function loadTree(model) {
-  root = { imports: model.imports || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
+  root = { imports: model.imports || [], consts: model.consts || [], computed: model.computed || [], types: model.types || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
     pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", onLoad: p.onLoad || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", onLoad: model.onLoad || "", children: model.elements || [] }]) };
   root.pages.forEach(function(p){ normalizeTables(p.children); });
   remount();
@@ -27667,7 +27686,7 @@ function applySuiCommon(src, o) {
       if (sn) { keepKind = sn.kind; keepCls = (sn.class || "").trim().split(/\s+/)[0]; }
     }
     var prevName = curPage().name;
-    root = { states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
+    root = { consts: model.consts || [], computed: model.computed || [], types: model.types || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
       pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", children: model.elements || [] }]) };
     root.pages.forEach(function(p){ normalizeTables(p.children); });
     for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }

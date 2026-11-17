@@ -34,6 +34,10 @@ Le principali caratteristiche:
 - **Enum nominali**: `switch` esaustivo, controllo dei casi duplicati e tipo enum verificato
 - **Tipi union**: `string | int`, `string?` e type guard `is` con narrowing
 - **Literal types**: `"idle" | "loading"` con switch esaustivo
+- **Generici e parametri rest**: `fn first<T>(items: array[T])`, `...values: array[int]`
+- **Const, computed e readonly**: valori immutabili, stato derivato, campi immutabili
+- **Batching reattivo, error boundary e chiavi delle liste**
+- **Formattazione Intl**: date, numeri, valute, percentuali, tempo relativo e fusi orari
 - **Multi-target**: genera app web o eseguibili desktop standalone
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)
 - **Sicuro per desktop**: bridge nativo con permessi basati su capability e dialoghi file/cartelle nativi

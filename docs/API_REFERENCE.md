@@ -8,11 +8,15 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 - [Enums and switch](#enums-and-switch)
 - [Union types and `is` guards](#union-types-and-is-guards)
 - [Literal types](#literal-types)
+- [Generics and rest parameters](#generics-and-rest-parameters)
+- [Constants, computed values and readonly fields](#constants-computed-values-and-readonly-fields)
+- [Reactive updates, batching, error boundaries and list keys](#reactive-updates-batching-error-boundaries-and-list-keys)
 - [Destructuring, spread and named arguments](#destructuring-spread-and-named-arguments)
 - [Drag and drop](#drag-and-drop)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
 - [Internationalization (i18n)](#internationalization-i18n)
+- [Locale formatting (Intl)](#locale-formatting-intl)
 - [Tabs](#tabs)
 - [Pages and navigation](#pages-and-navigation)
 - [Modal dialogs](#modal-dialogs)
@@ -170,6 +174,145 @@ Limitations: map values cannot currently be a union, so
 `map[string]"ok" | "bad"` parses as `map[string]"ok"` or `"bad"`; use
 `map[string]string`. Narrowing of member/index expressions and exhaustiveness
 for ordinary `string`/`int` switches are not available.
+
+## Generics and rest parameters
+
+Functions and components can declare type parameters after their name. Calls
+infer the type arguments from the values they receive; there is no explicit
+`<int>` call syntax.
+
+```sui
+fn identity<T>(value: T) -> T {
+	return value
+}
+
+fn first<T>(items: array[T]) -> T {
+	return items[0]
+}
+
+view List<T> (items: array[T]) {
+	ul {
+		list item in items key: item {
+			li "{str(item)}"
+		}
+	}
+}
+```
+
+- A type parameter may appear in parameter types, return types, array/map
+  types and component parameters. Nested forms such as `map[string]array[T]`
+  work.
+- Every type parameter must be inferable from a parameter. A call that cannot
+  bind one reports `cannot infer generic type parameter`.
+- Conflicting arguments (`both<string>("a", 1)`) report the substituted type
+  at the offending argument.
+- Generic structs are not supported yet. Type parameters are erased in the
+  generated JavaScript.
+- Component type arguments are inferred from the provided props, the same way
+  as function calls.
+
+A **rest parameter** collects the remaining arguments into an array:
+
+```sui
+fn sum(base: int, ...values: array[int]) -> int {
+	let total = base
+	loop v in values {
+		total = total + v
+	}
+	return total
+}
+
+let x = sum(10, 1, 2, 3)   # 16
+let y = sum(5)             # 5
+```
+
+The rest parameter must be last, must have an array type, and cannot have a
+default value. Its element type is checked for every extra argument. Named
+arguments cannot be combined with a rest parameter.
+
+## Constants, computed values and readonly fields
+
+`const` declares an immutable top-level value:
+
+```sui
+const LIMIT: int = 3
+const TAGS: array[string] = ["a", "b"]
+
+state count = LIMIT
+```
+
+The initializer must be a compile-time value: literals, earlier consts, enum
+members, arrays/maps/structs built from those, and operators/conditionals over
+them. Runtime state and function calls are rejected, so constants cannot
+depend on execution order. Assigning to a const or mutating one of its
+containers is an error.
+
+`computed` declares a read-only value derived from states (and earlier
+computed values):
+
+```sui
+state price: int = 10
+state qty: int = 2
+
+computed total: int = price * qty
+computed label = "total " + str(total)
+```
+
+Computed values are recalculated after every state change and before each
+render. They are not assignable or mutable. Declare them in dependency order;
+each computed may use states, constants, earlier computed values and pure
+function calls. Keep the expression free of side effects.
+
+Struct fields may be marked `readonly`. Construction is unchanged, but a later
+assignment through that field is rejected:
+
+```sui
+type Job struct {
+	readonly id: string
+	mode: string
+}
+
+state job: Job = Job { id: "a", mode: "idle" }
+# job.id = "b"   -> compile error
+```
+
+## Reactive updates, batching, error boundaries and list keys
+
+State setters refresh computed values immediately, then batch DOM work in a
+microtask. Multiple assignments in the same handler therefore cause one render.
+Only views bound to the changed state (directly or through a computed value)
+are re-rendered, so unrelated controls keep their native DOM state.
+
+`errorboundary` catches synchronous errors thrown while rendering its subtree
+and shows a fallback instead:
+
+```sui
+errorboundary fallback: "This section could not be rendered" {
+	p "{maybeBroken()}"
+}
+p "The rest of the page still works."
+```
+
+The error message is stored in `data-sui-error`, the fallback text is escaped,
+and the error is also logged with `console.error`. Errors thrown later from
+event handlers or async work are not caught by the boundary. `assert(cond,
+"message")` throws an `Error` when `cond` is false; it is useful for validating
+invariants and for exercising an error boundary.
+
+A view list may declare a stable key:
+
+```sui
+ul {
+	list item in items key: item.id {
+		li "{item.name}"
+	}
+}
+```
+
+The key is applied to the first element rendered for each item as
+`data-sui-key`; focus restoration follows the key when the list is reordered.
+Keys must be strings, numbers, booleans or enum values. They do not change the
+data or the generated markup structure. In the designer, dynamic `if`/`list` blocks are preserved as raw source and edited from the SUI tab.
 
 ## Destructuring, spread and named arguments
 
@@ -2974,6 +3117,33 @@ inject HTML. In the designer, **Preferences  Languages...** edits the catalogs,
 imports/exports JSON and provides a preview-language selector. See
 [GUI editor: languages](GUI_EDITOR.md#languages) and
 `examples/i18n/README.md`.
+
+## Locale formatting (Intl)
+
+These builtins format dates, numbers, currencies, percentages and relative
+times with the browser's `Intl` APIs. An empty or omitted locale uses the active
+i18n locale, then the browser language.
+
+| Call | Result |
+|---|---|
+| `intl.date(value, style?, locale?, timeZone?)` | Date; `value` is an ISO string or epoch milliseconds. `style` is `short`, `medium`, `long`, `full` or `iso`. |
+| `intl.time(value, style?, locale?, timeZone?)` | Time only. |
+| `intl.datetime(value, style?, locale?, timeZone?)` | Date and time (`iso` returns the full ISO timestamp). |
+| `intl.number(value, decimals?, locale?)` | Grouped decimal number; `decimals = -1` uses the locale default. |
+| `intl.currency(value, currency, locale?)` | Currency formatting with an ISO 4217 code (`EUR`, `USD`, ...). |
+| `intl.percent(value, decimals?, locale?)` | Percent from a fraction (`0.256` becomes `25.6%`). |
+| `intl.relative(offset, unit, locale?, numeric?)` | Relative time; units are `second(s)`, `minute(s)`, `hour(s)`, `day(s)`, `week(s)`, `month(s)`, `quarter(s)`, `year(s)`. `numeric` is `auto` (default) or `always`. |
+| `intl.timezone()` | The resolved IANA time zone, for example `Europe/Rome`. |
+
+```sui
+p "{intl.date("2024-01-02T15:04:05Z", "short", "en-US", "UTC")}"
+p "{intl.number(1234.56, 2, "en-US")}"
+p "{intl.currency(1234.5, "EUR", "de-DE")}"
+p "{intl.relative(-2, "day")}"
+```
+
+Invalid dates return `Invalid date`; invalid numbers return an empty string.
+All results are plain text and pass through normal view escaping.
 
 ## Modal dialogs
 

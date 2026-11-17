@@ -21,6 +21,12 @@ func keywordOf(w string) string {
 	if w == "state" {
 		return "state"
 	}
+	if w == "const" {
+		return "const"
+	}
+	if w == "computed" {
+		return "computed"
+	}
 	if w == "type" {
 		return "type"
 	}

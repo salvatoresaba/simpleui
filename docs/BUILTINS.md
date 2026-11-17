@@ -219,6 +219,23 @@ fn openSettings() -> null {
 }
 ```
 
+## Assertions and Locale Formatting
+
+| Function | Params | Return | Description |
+|---|---|---|---|
+| `assert(cond, message)` | bool, string | null | Throw an `Error` when `cond` is false; useful with `errorboundary` |
+| `intl.date(value, [style], [locale], [timeZone])` | string \| int, string?, string?, string? | string | Format a date; `style` is `short`, `medium`, `long`, `full` or `iso` |
+| `intl.time(value, [style], [locale], [timeZone])` | string \| int, string?, string?, string? | string | Format a time |
+| `intl.datetime(value, [style], [locale], [timeZone])` | string \| int, string?, string?, string? | string | Format a date and time |
+| `intl.number(value, [decimals], [locale])` | number, int?, string? | string | Grouped decimal formatting |
+| `intl.currency(value, currency, [locale])` | number, string, string? | string | Currency formatting with an ISO 4217 code |
+| `intl.percent(value, [decimals], [locale])` | number, int?, string? | string | Percent from a fraction |
+| `intl.relative(offset, unit, [locale], [numeric])` | int, string, string?, string? | string | Relative time such as `2 days ago` |
+| `intl.timezone()` | - | string | Resolved IANA time zone |
+
+Omitted locales use the active i18n locale, then the browser language. See
+[API reference: Intl](API_REFERENCE.md#locale-formatting-intl).
+
 ## Security
 
 `cssSafe` is required for **dynamic** `style:` values:

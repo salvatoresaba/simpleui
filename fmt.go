@@ -188,6 +188,8 @@ type fmtState struct {
 	preTight    bool
 	wantBreak   bool
 	preDedented bool
+	declName    bool // previous token was fn/view and next ident is its name
+	generic     int  // >0 while inside <T, U> after a declaration name
 }
 
 func (f *fmtState) emitIndent() {
@@ -250,8 +252,23 @@ func (f *fmtState) emitToken(t Token) {
 		unary = unaryContext(f.prevKind)
 	}
 	openBreak := false
+	startGeneric := kind == "<" && f.declName && f.generic == 0
+	endGeneric := kind == ">" && f.generic == 1
+	if startGeneric {
+		f.generic = 1
+		f.declName = false
+	}
+	if endGeneric {
+		f.generic = 0
+	}
 	// Decide whether a single space is needed BEFORE this token.
 	switch kind {
+	case "<", ">":
+		if f.generic > 0 || startGeneric || endGeneric {
+			// No space inside a declaration's <T, U> list.
+		} else if !noSpaceAfter(f.prevKind) {
+			f.space()
+		}
 	case ")":
 		// no space before
 	case "]":
@@ -315,9 +332,22 @@ func (f *fmtState) emitToken(t Token) {
 		}
 	}
 	f.preTight = unary
+	if startGeneric {
+		f.preTight = true
+	}
+	if endGeneric {
+		f.preTight = false
+	}
 	f.prevKind = kind
 	f.prevText = text
 	f.wantBreak = openBreak
+	if kind == "fn" || kind == "view" {
+		f.declName = true
+	} else if kind == "ident" && f.declName {
+		// Keep the flag for the following '<'; any other token clears it.
+	} else if kind != "<" && kind != "," && kind != ">" {
+		f.declName = false
+	}
 }
 
 func (f *fmtState) space() {

@@ -22,14 +22,128 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  for (var i = 0; i < allowed.length; i++) if (allowed[i] === v) return ' ' + prefix + v;\n" +
 	"  return '';\n" +
 	"}\n" +
+	"const __SUI_COMPUTED = [];\n" +
+	"var __sui_pendingRender = false;\n" +
+	"var __sui_pendingViews = null;\n" +
+	"function __sui_recompute() {\n" +
+	"  for (var i = 0; i < __SUI_COMPUTED.length; i++) __SUI_COMPUTED[i]();\n" +
+	"}\n" +
+	"function __sui_schedule(views) {\n" +
+	"  if (!views || !views.length) return;\n" +
+	"  if (!__sui_pendingViews) __sui_pendingViews = Object.create(null);\n" +
+	"  for (var i = 0; i < views.length; i++) __sui_pendingViews[views[i]] = 1;\n" +
+	"  if (__sui_pendingRender) return;\n" +
+	"  __sui_pendingRender = true;\n" +
+	"  var flush = function () {\n" +
+	"    __sui_pendingRender = false;\n" +
+	"    var names = Object.keys(__sui_pendingViews || {});\n" +
+	"    __sui_pendingViews = null;\n" +
+	"    __sui_recompute();\n" +
+	"    for (var j = 0; j < names.length; j++) if (__SUI_views[names[j]]) __SUI_views[names[j]]();\n" +
+	"  };\n" +
+	"  if (typeof queueMicrotask === 'function') queueMicrotask(flush);\n" +
+	"  else setTimeout(flush, 0);\n" +
+	"}\n" +
 	"function __sui_react(stateVar) {\n" +
-	"  for (const v of (__SUI_bind[stateVar] || [])) __SUI_views[v]();\n" +
+	"  // Computed values are refreshed immediately so a handler that reads one\n" +
+	"  // after a state change sees the current value. Only views bound to this\n" +
+	"  // state are scheduled, and updates in the same tick are batched.\n" +
+	"  __sui_recompute();\n" +
+	"  __sui_schedule(__SUI_bind[stateVar] || []);\n" +
 	"}\n" +
 	"function __sui_render() {\n" +
+	"  __sui_recompute();\n" +
 	"  for (const k of Object.keys(__SUI_views)) __SUI_views[k]();\n" +
 	"}\n" +
 	"function __sui_refresh() {\n" +
+	"  __sui_recompute();\n" +
 	"  for (const k of Object.keys(__SUI_views)) __SUI_views[k]();\n" +
+	"}\n" +
+	"function __sui_intl_locale(locale) {\n" +
+	"  var l = locale ? String(locale) : '';\n" +
+	"  if (!l && typeof __sui_i18n_locale === 'function') l = __sui_i18n_locale();\n" +
+	"  if (!l) { try { l = (navigator.languages && navigator.languages[0]) || navigator.language || 'en'; } catch (e) { l = 'en'; } }\n" +
+	"  return l || 'en';\n" +
+	"}\n" +
+	"function __sui_intl_date_value(value) {\n" +
+	"  if (value instanceof Date) return value;\n" +
+	"  var d = typeof value === 'number' ? new Date(value) : new Date(String(value));\n" +
+	"  return isNaN(d.getTime()) ? null : d;\n" +
+	"}\n" +
+	"function __sui_intl_style(style, kind) {\n" +
+	"  var s = String(style || 'medium').toLowerCase();\n" +
+	"  if (s === 'iso') return 'iso';\n" +
+	"  if (s !== 'short' && s !== 'long' && s !== 'full') s = 'medium';\n" +
+	"  var opts = {};\n" +
+	"  if (kind === 'time') opts.timeStyle = s;\n" +
+	"  else if (kind === 'datetime') { opts.dateStyle = s; opts.timeStyle = s; }\n" +
+	"  else opts.dateStyle = s;\n" +
+	"  return opts;\n" +
+	"}\n" +
+	"function __sui_intl_format_date(value, style, locale, timeZone, kind) {\n" +
+	"  var d = __sui_intl_date_value(value);\n" +
+	"  if (!d) return 'Invalid date';\n" +
+	"  var opts = __sui_intl_style(style, kind);\n" +
+	"  if (opts === 'iso') {\n" +
+	"    if (kind === 'date') return d.toISOString().slice(0, 10);\n" +
+	"    if (kind === 'time') return d.toISOString().slice(11, 19);\n" +
+	"    return d.toISOString();\n" +
+	"  }\n" +
+	"  if (timeZone) opts.timeZone = String(timeZone);\n" +
+	"  try { return new Intl.DateTimeFormat(__sui_intl_locale(locale), opts).format(d); } catch (e) { return 'Invalid date'; }\n" +
+	"}\n" +
+	"function __sui_intl_date(value, style, locale, timeZone) { return __sui_intl_format_date(value, style, locale, timeZone, 'date'); }\n" +
+	"function __sui_intl_time(value, style, locale, timeZone) { return __sui_intl_format_date(value, style, locale, timeZone, 'time'); }\n" +
+	"function __sui_intl_datetime(value, style, locale, timeZone) { return __sui_intl_format_date(value, style, locale, timeZone, 'datetime'); }\n" +
+	"function __sui_intl_digits(decimals) {\n" +
+	"  if (decimals === undefined || decimals === null || decimals === '') return null;\n" +
+	"  var d = Number(decimals);\n" +
+	"  return isFinite(d) && d >= 0 ? Math.floor(d) : null;\n" +
+	"}\n" +
+	"function __sui_intl_number(value, decimals, locale) {\n" +
+	"  var n = Number(value);\n" +
+	"  if (!isFinite(n)) return '';\n" +
+	"  var opts = {}, d = __sui_intl_digits(decimals);\n" +
+	"  if (d !== null) { opts.minimumFractionDigits = d; opts.maximumFractionDigits = d; }\n" +
+	"  try { return new Intl.NumberFormat(__sui_intl_locale(locale), opts).format(n); } catch (e) { return String(n); }\n" +
+	"}\n" +
+	"function __sui_intl_currency(value, currency, locale) {\n" +
+	"  var n = Number(value), code = String(currency || 'USD').toUpperCase();\n" +
+	"  if (!isFinite(n)) return '';\n" +
+	"  try { return new Intl.NumberFormat(__sui_intl_locale(locale), { style: 'currency', currency: code }).format(n); } catch (e) { return code + ' ' + n; }\n" +
+	"}\n" +
+	"function __sui_intl_percent(value, decimals, locale) {\n" +
+	"  var n = Number(value);\n" +
+	"  if (!isFinite(n)) return '';\n" +
+	"  var opts = { style: 'percent' }, d = __sui_intl_digits(decimals);\n" +
+	"  if (d !== null) { opts.minimumFractionDigits = d; opts.maximumFractionDigits = d; }\n" +
+	"  try { return new Intl.NumberFormat(__sui_intl_locale(locale), opts).format(n); } catch (e) { return String(n); }\n" +
+	"}\n" +
+	"function __sui_intl_relative(value, unit, locale, numeric) {\n" +
+	"  var u = String(unit || ''), n = Number(value);\n" +
+	"  var allowed = { second: 1, seconds: 1, minute: 1, minutes: 1, hour: 1, hours: 1, day: 1, days: 1, week: 1, weeks: 1, month: 1, months: 1, quarter: 1, quarters: 1, year: 1, years: 1 };\n" +
+	"  if (!allowed[u] || !isFinite(n)) return '';\n" +
+	"  var mode = String(numeric || 'auto');\n" +
+	"  if (mode !== 'always' && mode !== 'auto') mode = 'auto';\n" +
+	"  try { return new Intl.RelativeTimeFormat(__sui_intl_locale(locale), { numeric: mode }).format(Math.trunc(n), u); } catch (e) { return ''; }\n" +
+	"}\n" +
+	"function __sui_intl_timezone() {\n" +
+	"  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; }\n" +
+	"}\n" +
+	"function __sui_keyed(html, key) {\n" +
+	"  var k = __sui_esc(key);\n" +
+	"  return String(html).replace(/^\\s*<([a-zA-Z][\\w-]*)/, '<$1 data-sui-key=\"' + k + '\"');\n" +
+	"}\n" +
+	"function __sui_assert(cond, msg) {\n" +
+	"  if (!cond) throw new Error(msg == null || String(msg) === '' ? 'assertion failed' : String(msg));\n" +
+	"}\n" +
+	"function __sui_boundary(fn, fallback) {\n" +
+	"  try { return fn(); } catch (e) {\n" +
+	"    try { console.error('SUI render error:', e); } catch (ignored) {}\n" +
+	"    var msg = fallback == null || String(fallback) === '' ? 'Something went wrong.' : String(fallback);\n" +
+	"    var detail = e && e.message ? String(e.message) : String(e);\n" +
+	"    return '<div class=\"sui-error\" role=\"alert\" data-sui-error=\"' + __sui_esc(detail) + '\">' + __sui_esc(msg) + '</div>';\n" +
+	"  }\n" +
 	"}\n" +
 	"// Collection helpers take a declared function (or its name for an fn\n" +
 	"// parameter) and call it once per item. Extra arguments are ignored by\n" +
@@ -182,8 +296,10 @@ var SuiPrelude = "\"use strict\";\n" +
   var focusInfo = null, focusEl = document.activeElement;
   if (focusEl && focusEl !== document.body && el.contains(focusEl)) {
     var focusHolder = focusEl.closest ? (focusEl.closest('[data-sui-id]') || focusEl) : focusEl;
+    var focusKeyHolder = focusEl.closest ? focusEl.closest('[data-sui-key]') : null;
     focusInfo = {
       id: focusHolder.getAttribute('data-sui-id') || '',
+      key: focusKeyHolder ? (focusKeyHolder.getAttribute('data-sui-key') || '') : '',
       tag: focusEl.tagName,
       start: null,
       end: null,
@@ -267,8 +383,15 @@ var SuiPrelude = "\"use strict\";\n" +
       }
     }
   }
-  if (focusInfo && focusInfo.id) {
-    var fHolder = el.querySelector('[data-sui-id="' + focusInfo.id + '"]');
+  if (focusInfo && (focusInfo.id || focusInfo.key)) {
+    var fHolder = null;
+    if (focusInfo.key) {
+      var keyed = el.querySelectorAll('[data-sui-key]');
+      for (var fki = 0; fki < keyed.length; fki++) {
+        if (keyed[fki].getAttribute('data-sui-key') === focusInfo.key) { fHolder = keyed[fki]; break; }
+      }
+    }
+    if (!fHolder && focusInfo.id) fHolder = el.querySelector('[data-sui-id="' + focusInfo.id + '"]');
     var fTarget = null;
     if (fHolder) {
       if (fHolder.tagName === focusInfo.tag) fTarget = fHolder;
@@ -869,6 +992,12 @@ var genFnParams = map[string][]string{}
 // genEnums holds enum members for `value is Enum` runtime guards.
 var genEnums = map[string][]string{}
 
+// genComputedDeps maps a computed value to the states/computed values it
+// reads. Views bind to those underlying states so a computed change still
+// re-renders the right views without rendering unrelated ones.
+var genComputedDeps = map[string][]string{}
+var genStateNames = map[string]bool{}
+
 // Component/view bookkeeping shared by generation of one program.
 var genViewParams = map[string][]Param{} // view name -> component parameters
 var genViews = map[string]ViewDecl{}     // view name -> declaration (for refs/cycles)
@@ -946,6 +1075,23 @@ func GenerateJsFor(p *Prog, target string) string {
 	genAsyncFuncs = map[string]bool{}
 	genFnDefaults = map[string][]string{}
 	genFnParams = map[string][]string{}
+	genStateNames = map[string]bool{}
+	for i := 0; i < len(p.states); i++ {
+		genStateNames[p.states[i].name] = true
+	}
+	genComputedDeps = map[string][]string{}
+	for i := 0; i < len(p.computed); i++ {
+		cd := &p.computed[i]
+		acc := &RefAcc{names: map[string]bool{}}
+		collectExprRefs(cd.init, acc)
+		var deps []string
+		for name := range acc.names {
+			if genStateNames[name] || genComputedDeps[name] != nil {
+				deps = append(deps, name)
+			}
+		}
+		genComputedDeps[cd.name] = sortStringList(deps)
+	}
 	genEnums = map[string][]string{}
 	for i := 0; i < len(p.enums); i++ {
 		genEnums[p.enums[i].name] = p.enums[i].members
@@ -1133,11 +1279,20 @@ func GenerateJsFor(p *Prog, target string) string {
 		}
 		sb.WriteString("});")
 	}
+	for i := 0; i < len(p.consts); i++ {
+		cd := p.consts[i]
+		sb.WriteString("\n\nconst " + cd.name + " = " + ExprToJs(cd.init) + ";")
+	}
 	for i := 0; i < len(p.states); i++ {
 		sd := p.states[i]
 		sb.WriteString("\n\n")
 		sb.WriteString("let " + sd.name + " = " + ExprToJs(sd.init) + ";\n")
 		sb.WriteString("function " + setterName(sd.name) + "(v) { " + sd.name + " = v; __sui_react(" + jsString(sd.name) + "); }")
+	}
+	for i := 0; i < len(p.computed); i++ {
+		cd := p.computed[i]
+		sb.WriteString("\n\nlet " + cd.name + ";")
+		sb.WriteString("\n__SUI_COMPUTED.push(function(){ " + cd.name + " = (" + ExprToJs(cd.init) + "); });")
 	}
 	if len(p.states) > 0 {
 		sb.WriteString("\n\nwindow.__SUI_STATE_GET = Object.create(null);\n")
@@ -2052,7 +2207,11 @@ func writeIfTree(sb *strings.Builder, st *Stmt, ind string, ctx *JsCtx) {
 func funcJs(f *FuncDecl, ctx *JsCtx) string {
 	var paramNames []string
 	for i := 0; i < len(f.params); i++ {
-		paramNames = append(paramNames, f.params[i].name)
+		name := f.params[i].name
+		if f.params[i].rest {
+			name = "..." + name
+		}
+		paramNames = append(paramNames, name)
 	}
 	prefix := "function "
 	if f.async {
@@ -3657,6 +3816,9 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 		if _, isEv := eventAttrJs[a.key]; isEv {
 			continue
 		}
+		if e.tag == "errorboundary" && a.key == "fallback" {
+			continue
+		}
 		if e.tag == "spinner" && spinnerImageMode(e) && (a.key == "src" || a.key == "alt") {
 			// The image source and its alternative text belong to the inner
 			// <img>, emitted by spinnerImageElemJs.
@@ -3988,6 +4150,26 @@ func wrapLabelOpen(e *Element, idx int) string {
 	return sb.String()
 }
 
+// errorBoundaryElemJs wraps the boundary content in a try/catch at render
+// time. Child component and expression errors show the fallback text instead
+// of breaking the whole page.
+func errorBoundaryElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	open := openTagHtml(e, "div", false, idx, ctx)
+	if !strings.Contains(open, "sui-error-boundary") {
+		open = addOpenTagClass(open, "sui-error-boundary")
+	}
+	fallback := "`Something went wrong.`"
+	if a := findAttr(e, "fallback"); a != nil {
+		if a.hasExpr && a.expr != nil {
+			fallback = "String(" + ExprToJs(a.expr) + ")"
+		} else if len(a.text) > 0 {
+			fallback = templateParts(a.text)
+		}
+	}
+	inner := viewNodesJs(childPtrs(e.children), g, ctx)
+	return "`" + open + "${__sui_boundary(() => (" + inner + "), " + fallback + ")}</div>`"
+}
+
 func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	if e == nil {
 		return "''"
@@ -4053,6 +4235,9 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	addElemRefs(e, g)
 	if interactive && !genCompBody {
 		collectWiring(e, idx, g, ctx)
+	}
+	if e.tag == "errorboundary" {
+		return errorBoundaryElemJs(e, g, ctx, idx)
 	}
 	if e.tag == "spinner" && spinnerImageMode(e) {
 		return spinnerImageElemJs(e, idx, ctx)
@@ -6518,11 +6703,15 @@ func viewNodeJs(n *ViewNode, g *ViewGen, ctx *JsCtx) string {
 	}
 	if n.kind == "list" {
 		bodyC := viewNodesJs(n.body, g, ctx)
+		itemC := bodyC
+		if n.key != nil {
+			itemC = "__sui_keyed(" + bodyC + ", " + ExprToJs(n.key) + ")"
+		}
 		if n.item2 != "" {
 			tmp := "__sui_" + n.item
-			return "(() => { let s = \"\"; for (const " + tmp + " of Object.entries(" + ExprToJs(n.iterable) + ")) { const " + n.item + " = " + tmp + "[0]; const " + n.item2 + " = " + tmp + "[1]; s += " + bodyC + "; } return s; })()"
+			return "(() => { let s = \"\"; for (const " + tmp + " of Object.entries(" + ExprToJs(n.iterable) + ")) { const " + n.item + " = " + tmp + "[0]; const " + n.item2 + " = " + tmp + "[1]; s += " + itemC + "; } return s; })()"
 		}
-		return "(() => { let s = \"\"; for (const " + n.item + " of (" + ExprToJs(n.iterable) + ")) { s += " + bodyC + "; } return s; })()"
+		return "(() => { let s = \"\"; for (const " + n.item + " of (" + ExprToJs(n.iterable) + ")) { s += " + itemC + "; } return s; })()"
 	}
 	return "''"
 }
@@ -6626,6 +6815,9 @@ func addNodeRefs(n ViewNode, g *ViewGen) {
 	}
 	if n.kind == "list" {
 		addExprRefs(n.iterable, g)
+		if n.key != nil {
+			addExprRefs(n.key, g)
+		}
 		addPtrNodesRefs(n.body, g)
 		return
 	}
@@ -6718,15 +6910,28 @@ func bindingOnlyAttr(e *Element, a *Attr) bool {
 }
 
 func viewBindings(states []string, viewName string, g *ViewGen) string {
+	seen := map[string]bool{}
 	var names []string
+	var addRef func(name string)
+	addRef = func(name string) {
+		if seen[name] {
+			return
+		}
+		seen[name] = true
+		if isNameIn(states, name) {
+			if !isNameIn(names, name) {
+				names = append(names, name)
+			}
+			return
+		}
+		if deps := genComputedDeps[name]; deps != nil {
+			for _, dep := range deps {
+				addRef(dep)
+			}
+		}
+	}
 	for i := 0; i < len(g.refs); i++ {
-		name := g.refs[i]
-		if !isNameIn(states, name) {
-			continue
-		}
-		if !isNameIn(names, name) {
-			names = append(names, name)
-		}
+		addRef(g.refs[i])
 	}
 	var out []string
 	sorted := sortStringList(names)

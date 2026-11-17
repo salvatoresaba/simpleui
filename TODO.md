@@ -93,14 +93,14 @@ Known accuracy corrections from the previous TODO:
 - [x] **Enums and switch** - `enum Status { Idle, Loading, Error }` with nominal typing, exhaustive `switch`, duplicate-case checks and `default`
 - [x] **Union types** - `string | int | null`, `T?` shorthand and union inference for mixed arrays/maps
 - [x] **Type guards / narrowing** - `if v is string { ... }`, `while`, `not`, `and`/`or` branch narrowing
-- [ ] **Generics** — generic functions and components
+- [x] **Generics** — generic functions and components
 - [x] **Literal types** — string/number/boolean literal types, strict assignment checks and exhaustive literal switch
-- [ ] **Const** — compile-time values
-- [ ] **Readonly** — immutable struct fields/variables
+- [x] **Const** — compile-time values
+- [x] **Readonly** — immutable struct fields/variables
 
 ### 1.3 Functions & Control
 
-- [ ] **Rest parameters** — `fn sum(...nums: array[int])`
+- [x] **Rest parameters** — `fn sum(...nums: array[int])`
 - [x] **Named parameters** at user-function call sites (`f(b: 2, a: 1)`)
 - [x] **Destructuring** — `let {name, age} = user`, `let [a,b] = arr`
 - [x] **Spread operator** — `[...arr1, ...arr2]`, `{...obj1, ...obj2}`
@@ -112,15 +112,15 @@ Known accuracy corrections from the previous TODO:
 - [x] **Reactive class/style binding** — `class:` and `style:` accept
       expressions and update without ids
 - [x] **Conditional expression (ternary)** — with type checking on both branches
-- [ ] **Computed/derived state** — `computed doubled = count * 2`
+- [x] **Computed/derived state** — `computed doubled = count * 2`
 - [ ] **Effects/watchers** — `effect { ... }`
-- [ ] **Batching updates** — group multiple state assignments into one re-render
+- [x] **Batching updates** — group multiple state assignments into one re-render
 - [ ] **Fine-grained reactivity** — selective DOM updates
 
 ### 2.2 Advanced UI Components
 
-- [ ] **Error boundaries** — subtree error fallback
-- [ ] **List keys** — `list item in items key: item.id`
+- [x] **Error boundaries** — subtree error fallback
+- [x] **List keys** — `list item in items key: item.id`
 - [ ] **Suspense-like loading** — async loading states
 - [ ] **Context/Provide-Inject** — avoid prop drilling
 
@@ -164,7 +164,7 @@ Known accuracy corrections from the previous TODO:
 - [ ] **Path utilities** — `path.join`, `dirname`, `basename`, `extname`
 - [ ] **JSON Schema validation** — structured validation
 - [x] **I18n helpers** - translation catalogs and plural selection.
-- [ ] **Locale formatting** - `Intl` date/number/currency/relative/timezone
+- [x] **Locale formatting** - `Intl` date/number/currency/relative/timezone
       helpers (`format.*`); translations are implemented, formatting is next.
 - [ ] **Advanced storage** — quota/sync APIs are internal/stubbed, not a stable
       language contract

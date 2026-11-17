@@ -217,6 +217,23 @@ fn openSettings() -> null {
 }
 ```
 
+## Assertion e formattazione locale
+
+| Funzione | Parametri | Ritorno | Descrizione |
+|---|---|---|---|
+| `assert(cond, message)` | bool, string | null | Solleva un `Error` se `cond` è falso; utile con `errorboundary` |
+| `intl.date(value, [style], [locale], [timeZone])` | string \| int, string?, string?, string? | string | Formatta una data; `style` è `short`, `medium`, `long`, `full` o `iso` |
+| `intl.time(value, [style], [locale], [timeZone])` | string \| int, string?, string?, string? | string | Formatta un orario |
+| `intl.datetime(value, [style], [locale], [timeZone])` | string \| int, string?, string?, string? | string | Formatta data e orario |
+| `intl.number(value, [decimals], [locale])` | number, int?, string? | string | Formattazione decimale con separatori |
+| `intl.currency(value, currency, [locale])` | number, string, string? | string | Formattazione valuta con codice ISO 4217 |
+| `intl.percent(value, [decimals], [locale])` | number, int?, string? | string | Percentuale da una frazione |
+| `intl.relative(offset, unit, [locale], [numeric])` | int, string, string?, string? | string | Tempo relativo come `2 giorni fa` |
+| `intl.timezone()` | - | string | Fuso orario IANA risolto |
+
+Le locale omesse usano la locale i18n attiva, poi la lingua del browser. Vedi
+[API reference: Intl](API_REFERENCE_IT.md#formattazione-locale-intl).
+
 ## Sicurezza
 
 `cssSafe` è obbligatorio per i valori **dinamici** di `style:`:

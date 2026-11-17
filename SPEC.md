@@ -67,18 +67,21 @@ go test          # runs every *_test.go TestXxx
 ### 2.2 Program structure (top level only)
 
 ```
-Program  := { ImportDecl | TypeDecl | EnumDecl | StateDecl | CssDecl | FuncDecl | ViewDecl }
+Program  := { ImportDecl | TypeDecl | EnumDecl | ConstDecl | ComputedDecl | StateDecl | CssDecl | FuncDecl | ViewDecl }
 
 ImportDecl := 'import' '{' ident { ',' ident } '}' 'from' String
 TypeDecl   := 'type' ident 'struct' '{' Field { ',' Field } '}'
 EnumDecl   := 'enum' ident '{' ident { ',' ident } '}'
-Field      := ident ':' TypeName
+Field      := [ 'readonly' ] ident ':' TypeName
 StateDecl  := 'state' ident [ ':' TypeName ] '=' Expr
+ConstDecl  := 'const' ident [ ':' TypeName ] '=' Expr
+ComputedDecl := 'computed' ident [ ':' TypeName ] '=' Expr
 CssDecl    := 'css' String
-FuncDecl   := [ 'async' ] 'fn' ident '(' [ Params ] ')' [ '->' ( TypeName | '(' TypeName ',' TypeName ')' ) ] Block
+FuncDecl   := [ 'async' ] 'fn' ident [ '<' ident { ',' ident } '>' ] '(' [ Params ] ')' [ '->' ( TypeName | '(' TypeName ',' TypeName ')' ) ] Block
 Params     := Param { ',' Param }
-Param      := ident ':' TypeName [ '=' Expr ]
-ViewDecl   := 'view' ident '{' ViewBody '}'
+Param      := [ '...' ] ident ':' TypeName [ '=' Expr ]
+ViewDecl   := 'view' ident [ '<' ident { ',' ident } '>' ] [ '(' Params ')' ] '{' ViewBody '}'
+ListBlock  := 'list' ident [ ',' ident ] 'in' Expr [ 'key' ':' Expr ] '{' ViewBody '}'
 ```
 
 - `TypeName` (string) is one of: `int float string bool array[T] map[string]V
@@ -193,6 +196,24 @@ ReturnStmt:= 'return' [ Expr ]
   `default` block.
 - Narrowing of member/index expressions and non-literal switch exhaustiveness
   are not part of this version.
+
+### 2.3d Generics and rest parameters
+
+- `fn name<T, U>(...)` and `view Name<T>(...)` declare type parameters. Calls
+  infer them from argument/prop types; conflicting or unbound parameters are
+  compile errors. Type parameters are erased in JavaScript.
+- A rest parameter (`...values: array[T]`) must be last, must be an array and
+  cannot have a default. Named arguments are not supported with it.
+
+### 2.3e Constants, computed values and readonly fields
+
+- `const` is a top-level immutable binding whose initializer is restricted to
+  compile-time values (literals, earlier consts, enum members, composite
+  literals and operators over them). Assigning or mutating a const is an error.
+- `computed name: T = expr` is a read-only derived value. It is recalculated
+  after state changes and before renders; assignment/mutation is rejected.
+  Declarations are evaluated in source order.
+- Struct fields declared `readonly` cannot be assigned after construction.
 
 ### 2.3b Enums and switch
 
@@ -688,6 +709,12 @@ view main {
   `Card title: "x" note: y`. Values may be string literals (interpolated) or
   any expression, checked against the parameter type. Every parameter must be
   provided exactly once; unknowns/missing/wrong types are compile errors.
+- `list item in expr key: expr { ... }` attaches a stable `data-sui-key` to the
+  first rendered element of each item. Keys are strings, numbers, booleans or
+  enums. A map form `list key, value in expr` is also supported.
+- `errorboundary fallback: "text" { ... }` catches synchronous render errors in
+  its subtree and emits an escaped fallback with `data-sui-error`; the rest of
+  the page continues to render.
 - Rendering: each component becomes a tiny chunk function
   `__html_<Name>({ p1, p2 }) { return <html>; }`, invoked inline from the
   parent's template. Components have no root renderer and never touch ``#app``.

@@ -39,6 +39,10 @@ Ordine consigliato per un agente:
 | Enum nominali e switch esaustivo | [API: enum](API_REFERENCE_IT.md#enum-e-switch) | [SPEC](../SPEC.md) | `examples/enums.sui` |
 | Tipi union, `?` e type guard `is` | [API: union](API_REFERENCE_IT.md#tipi-union-e-type-guard-is) | [SPEC](../SPEC.md) | `examples/unions.sui` |
 | Literal types e switch esaustivo sui literal | [API: literal types](API_REFERENCE_IT.md#literal-types) | [SPEC](../SPEC.md) | `examples/literal_types.sui` |
+| Generici per funzioni/componenti e parametri rest | [API: generici](API_REFERENCE_IT.md#generici-e-parametri-rest) | [SPEC](../SPEC.md) | `examples/generics.sui` |
+| Costanti, computed e campi readonly | [API: costanti](API_REFERENCE_IT.md#costanti-valori-computed-e-campi-readonly) | [SPEC](../SPEC.md) | `examples/reactivity.sui` |
+| Batching, error boundary e chiavi delle liste | [API: reattività](API_REFERENCE_IT.md#aggiornamenti-reattivi-batching-error-boundary-e-chiavi-delle-liste) | [SPEC](../SPEC.md) | `examples/reactivity.sui` |
+| Formattazione locale con Intl | [API: Intl](API_REFERENCE_IT.md#formattazione-locale-intl) | [BUILTINS](BUILTINS_IT.md#assertion-e-formattazione-locale) | `examples/intl_format.sui` |
 | Creare una barra dei menù / navigazione | [API: menu bar](API_REFERENCE_IT.md#menu-bar) | [Editor GUI: menu bar](GUI_EDITOR_IT.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Contenuti a schede | [API: tabs](API_REFERENCE_IT.md#tabs) | [Editor GUI: tabs](GUI_EDITOR_IT.md#tabs-control) | `examples/tabs.sui` |
 | Sezioni comprimibili / FAQ | [API: accordion](API_REFERENCE_IT.md#accordion) | [Editor GUI: accordion](GUI_EDITOR_IT.md#controllo-accordion) | `examples/accordion/README.md` |

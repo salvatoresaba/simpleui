@@ -70,6 +70,9 @@ Completati di recente:
 - [x] Enum nominali e `switch` esaustivo con casi duplicati, `default` e controllo dei membri.
 - [x] Tipi union, `T?`, inferenza union per array/mappe e type guard `is` con narrowing in if/while.
 - [x] Literal types: stringhe/numeri/booleani esatti, controlli di assegnazione e switch esaustivo.
+- [x] Generici per funzioni e componenti, `const`/`readonly` e parametri rest.
+- [x] `computed`, batching degli aggiornamenti, error boundary e chiavi delle liste.
+- [x] Formattazione `Intl` per date, numeri, valute, percentuali, tempo relativo e timezone.
 
 ## Correzioni di accuratezza
 
@@ -96,11 +99,9 @@ Completati di recente:
 ## Aree principali ancora aperte
 
 - Import/moduli utente, export di simboli, alias.
-- Generics, const, readonly.
-- Rest parameters.
-- Computed/effects/batching/fine-grained reactivity.
-- Error boundaries, list keys, suspense, context.
-- fs avanzato, crypto, path utilities, JSON Schema e formattazione locale (Intl).
+- Effects e reattività fine-grained; suspense e context.
+- Generici per struct e alias di tipo.
+- fs avanzato, crypto, path utilities, JSON Schema.
 - Source maps, tree shaking, bundle splitting, PWA/SSR/WASM.
 - Component library, tokens JSON, multi-device preview, asset manager.
 - HMR, preserve state, browser error overlay.

@@ -332,6 +332,9 @@ func emitParam(sb *strings.Builder, pa Param, ind int) {
 	wfield(sb, ind+1, "typename")
 	writeJsonString(sb, pa.typename)
 	sb.WriteString(",\n")
+	wfield(sb, ind+1, "rest")
+	sb.WriteString(jsonBool(pa.rest))
+	sb.WriteString(",\n")
 	wfield(sb, ind+1, "span")
 	emitSpan(sb, pa.span, ind+1)
 	sb.WriteString("\n")
@@ -361,6 +364,9 @@ func emitFuncDecl(sb *strings.Builder, f FuncDecl, ind int) {
 	sb.WriteString("{\n")
 	wfield(sb, ind+1, "name")
 	writeJsonString(sb, f.name)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "typeParams")
+	emitStringArray(sb, f.typeParams, ind+1)
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "async")
 	sb.WriteString(jsonBool(f.async))
@@ -609,6 +615,9 @@ func emitViewDecl(sb *strings.Builder, v ViewDecl, ind int) {
 	wfield(sb, ind+1, "name")
 	writeJsonString(sb, v.name)
 	sb.WriteString(",\n")
+	wfield(sb, ind+1, "typeParams")
+	emitStringArray(sb, v.typeParams, ind+1)
+	sb.WriteString(",\n")
 	wfield(sb, ind+1, "params")
 	emitParamArray(sb, v.params, ind+1)
 	sb.WriteString(",\n")
@@ -656,6 +665,9 @@ func emitField(sb *strings.Builder, f Field, ind int) {
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "typename")
 	writeJsonString(sb, f.typename)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "readonly")
+	sb.WriteString(jsonBool(f.readonly))
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "span")
 	emitSpan(sb, f.span, ind+1)
@@ -834,6 +846,66 @@ func emitSwitchCaseArray(sb *strings.Builder, a []SwitchCase, ind int) {
 	sb.WriteString("]")
 }
 
+func emitComputedArray(sb *strings.Builder, a []ComputedDecl, ind int) {
+	sb.WriteString("[")
+	if len(a) > 0 {
+		sb.WriteString("\n")
+	}
+	for i := 0; i < len(a); i++ {
+		if i > 0 {
+			sb.WriteString(",\n")
+		}
+		jsonIndent(sb, ind+1)
+		sb.WriteString("{\n")
+		wfield(sb, ind+2, "name")
+		writeJsonString(sb, a[i].name)
+		sb.WriteString(",\n")
+		wfield(sb, ind+2, "type")
+		writeJsonString(sb, a[i].typename)
+		sb.WriteString(",\n")
+		wfield(sb, ind+2, "init")
+		emitExpr(sb, a[i].init, ind+2)
+		sb.WriteString("\n")
+		jsonIndent(sb, ind+1)
+		sb.WriteString("}")
+	}
+	if len(a) > 0 {
+		sb.WriteString("\n")
+		jsonIndent(sb, ind)
+	}
+	sb.WriteString("]")
+}
+
+func emitConstArray(sb *strings.Builder, a []ConstDecl, ind int) {
+	sb.WriteString("[")
+	if len(a) > 0 {
+		sb.WriteString("\n")
+	}
+	for i := 0; i < len(a); i++ {
+		if i > 0 {
+			sb.WriteString(",\n")
+		}
+		jsonIndent(sb, ind+1)
+		sb.WriteString("{\n")
+		wfield(sb, ind+2, "name")
+		writeJsonString(sb, a[i].name)
+		sb.WriteString(",\n")
+		wfield(sb, ind+2, "type")
+		writeJsonString(sb, a[i].typename)
+		sb.WriteString(",\n")
+		wfield(sb, ind+2, "init")
+		emitExpr(sb, a[i].init, ind+2)
+		sb.WriteString("\n")
+		jsonIndent(sb, ind+1)
+		sb.WriteString("}")
+	}
+	if len(a) > 0 {
+		sb.WriteString("\n")
+		jsonIndent(sb, ind)
+	}
+	sb.WriteString("]")
+}
+
 func emitProg(sb *strings.Builder, prog *Prog, ind int) {
 	sb.WriteString("{\n")
 	wfield(sb, ind+1, "imports")
@@ -844,6 +916,12 @@ func emitProg(sb *strings.Builder, prog *Prog, ind int) {
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "enums")
 	emitEnumArray(sb, prog.enums, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "consts")
+	emitConstArray(sb, prog.consts, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "computed")
+	emitComputedArray(sb, prog.computed, ind+1)
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "states")
 	emitStateArray(sb, prog.states, ind+1)

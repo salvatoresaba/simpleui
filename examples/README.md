@@ -20,6 +20,9 @@ For an agent-oriented walkthrough see
 | [`enums.sui`](enums.sui) | Nominal enums and exhaustive `switch` with duplicate-case checks. |
 | [`unions.sui`](unions.sui) | Union types, `string?` and `is` guards with branch narrowing. |
 | [`literal_types.sui`](literal_types.sui) | String/number literal types, exhaustive switch and literal `is` guards. |
+| [`generics.sui`](generics.sui) | Generic functions/components, rest parameters and inferred type arguments. |
+| [`reactivity.sui`](reactivity.sui) | Computed values, batched updates, error boundaries and keyed lists. |
+| [`intl_format.sui`](intl_format.sui) | Intl date/number/currency/percent/relative formatting and time zone. |
 | [`todo.sui`](todo.sui) | Local form + list interactions. |
 | [`contacts.sui`](contacts.sui) | Local records and table-like layout. |
 | [`table_data.sui`](table_data.sui) | `table.display` with arrays, objects, JSON, CSV, TSV and export. |

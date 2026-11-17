@@ -50,7 +50,7 @@ func typeStr(t *SType) string {
 	if t == nil {
 		return "unknown"
 	}
-	if t.kind == "struct" || t.kind == "enum" || t.kind == "literal" {
+	if t.kind == "struct" || t.kind == "enum" || t.kind == "literal" || t.kind == "typevar" {
 		return t.name
 	}
 	if t.kind == "array" {
@@ -85,7 +85,7 @@ func typeEqual(a, b *SType) bool {
 	if a.kind != b.kind {
 		return false
 	}
-	if (a.kind == "struct" || a.kind == "enum" || a.kind == "literal") && a.kind == b.kind {
+	if (a.kind == "struct" || a.kind == "enum" || a.kind == "literal" || a.kind == "typevar") && a.kind == b.kind {
 		return a.name == b.name
 	}
 	if a.kind == "union" || b.kind == "union" {
@@ -317,8 +317,13 @@ func isTypeNameChar(c byte) bool {
 }
 
 // parseTypeFrom parses one type name off the FRONT of s: flat names, bracket
-// forms array[T] / map[string]V, and user struct names (registry).
+// forms array[T] / map[string]V, user struct names (registry) and, when vars
+// is non-nil, type parameters of the enclosing generic function.
 func parseTypeFrom(s string) (*SType, string, string) {
+	return parseTypeFromWith(s, nil)
+}
+
+func parseTypeFromWith(s string, vars map[string]bool) (*SType, string, string) {
 	s = strings.TrimLeft(s, " \t")
 	n := len(s)
 	if n == 0 {
@@ -407,7 +412,7 @@ func parseTypeFrom(s string) (*SType, string, string) {
 		inner := rest[1:found]
 		tail := rest[found+1:]
 		if base == "array" {
-			it, rest2, err2 := parseUnionFrom(inner)
+			it, rest2, err2 := parseUnionFromWith(inner, vars)
 			if err2 != "" {
 				return it, "", err2
 			}
@@ -416,7 +421,7 @@ func parseTypeFrom(s string) (*SType, string, string) {
 			}
 			return &SType{kind: "array", elem: it}, tail, ""
 		}
-		kt, rest2, err2 := parseUnionFrom(inner)
+		kt, rest2, err2 := parseUnionFromWith(inner, vars)
 		if err2 != "" {
 			return kt, "", err2
 		}
@@ -426,11 +431,14 @@ func parseTypeFrom(s string) (*SType, string, string) {
 		if rest2 != "" {
 			return kt, "", "invalid map key type name"
 		}
-		vt, resto, err3 := parseTypeFrom(tail)
+		vt, resto, err3 := parseTypeFromWith(tail, vars)
 		if err3 != "" {
 			return vt, "", err3
 		}
 		return &SType{kind: "map", key: &SType{kind: "string"}, val: vt}, resto, ""
+	}
+	if vars != nil && vars[base] {
+		return &SType{kind: "typevar", name: base}, rest, ""
 	}
 	if structRegistry[base] != nil {
 		return &SType{kind: "struct", name: base}, rest, ""
@@ -444,8 +452,12 @@ func parseTypeFrom(s string) (*SType, string, string) {
 // parseUnionFrom parses one type followed by optional `|` members and `?`
 // (which means `| null`).
 func parseUnionFrom(s string) (*SType, string, string) {
+	return parseUnionFromWith(s, nil)
+}
+
+func parseUnionFromWith(s string, vars map[string]bool) (*SType, string, string) {
 	s = strings.TrimLeft(s, " \t")
-	first, rest, err := parseTypeFrom(s)
+	first, rest, err := parseTypeFromWith(s, vars)
 	if err != "" {
 		return first, "", err
 	}
@@ -454,7 +466,7 @@ func parseUnionFrom(s string) (*SType, string, string) {
 		rest = strings.TrimLeft(rest, " \t")
 		if strings.HasPrefix(rest, "|") {
 			rest = strings.TrimLeft(rest[1:], " \t")
-			next, r2, e := parseTypeFrom(rest)
+			next, r2, e := parseTypeFromWith(rest, vars)
 			if e != "" {
 				return next, "", e
 			}
@@ -476,7 +488,11 @@ func parseUnionFrom(s string) (*SType, string, string) {
 }
 
 func parseSUIType(s string) (*SType, string) {
-	typ, rest, err := parseUnionFrom(s)
+	return parseSUITypeWith(s, nil)
+}
+
+func parseSUITypeWith(s string, vars map[string]bool) (*SType, string) {
+	typ, rest, err := parseUnionFromWith(s, vars)
 	if err != "" {
 		return typ, err
 	}
@@ -666,12 +682,16 @@ type FnSig struct {
 	rets       []*SType // multi-return list (ret == rets[0])
 	multi      bool
 	async      bool
+	rest       bool     // last parameter collects the remaining arguments
+	typeParams []string // generic type parameters (empty for ordinary functions)
 }
 
 type Checker struct {
 	dd             *DiagList
 	states         map[string]*SType
 	declaredStates map[string]*SType
+	consts         map[string]*SType
+	computed       map[string]*SType
 	sigs           map[string]*FnSig
 	symKinds       map[string]string
 	symSpans       map[string]Span
@@ -686,9 +706,11 @@ type Checker struct {
 	curAsync       bool
 	seenReturn     bool
 	viewParams     map[string][]Param
+	viewTypeParams map[string][]string
 	viewIsComp     bool // current view is a component (invoked or has params)
 	childrenSeen   bool
 	curView        string            // name of the view currently being checked
+	curTypeParams  map[string]bool   // type parameters of the current generic function/view
 	methodNames    map[string]bool   // view-method names (globally unique)
 	instTypes      map[string]*SType // current view's instance-state types
 	security       SecurityConfig    // compile-time security policy
@@ -699,11 +721,14 @@ func newChecker(dd *DiagList) *Checker {
 	c.dd = dd
 	c.states = map[string]*SType{}
 	c.declaredStates = map[string]*SType{}
+	c.consts = map[string]*SType{}
+	c.computed = map[string]*SType{}
 	c.sigs = map[string]*FnSig{}
 	c.symKinds = map[string]string{}
 	c.symSpans = map[string]Span{}
 	c.stdImported = map[string]bool{}
 	c.viewParams = map[string][]Param{}
+	c.viewTypeParams = map[string][]string{}
 	c.methodNames = map[string]bool{}
 	c.instTypes = map[string]*SType{}
 	return &c
@@ -771,6 +796,12 @@ func (c *Checker) allNames() []string {
 		out = append(out, name)
 	}
 	for name := range c.sigs {
+		out = append(out, name)
+	}
+	for name := range c.consts {
+		out = append(out, name)
+	}
+	for name := range c.computed {
 		out = append(out, name)
 	}
 	return out
@@ -879,6 +910,12 @@ func Check(prog *Prog) DiagList {
 
 	// Symbol table pass: duplicate top-level names across types/states/funcs/
 	// views are errors.
+	for i := 0; i < len(prog.consts); i++ {
+		c.declareSym(prog.consts[i].name, "const", prog.consts[i].span)
+	}
+	for i := 0; i < len(prog.computed); i++ {
+		c.declareSym(prog.computed[i].name, "computed", prog.computed[i].span)
+	}
 	for i := 0; i < len(prog.states); i++ {
 		c.declareSym(prog.states[i].name, "state", prog.states[i].span)
 	}
@@ -897,6 +934,18 @@ func Check(prog *Prog) DiagList {
 			c.diagAt(prog.funcs[i].span, msg)
 		}
 	}
+	for i := 0; i < len(prog.consts); i++ {
+		msg := reservedStateName(prog.consts[i].name)
+		if msg != "" {
+			c.diagAt(prog.consts[i].span, msg)
+		}
+	}
+	for i := 0; i < len(prog.computed); i++ {
+		msg := reservedStateName(prog.computed[i].name)
+		if msg != "" {
+			c.diagAt(prog.computed[i].span, msg)
+		}
+	}
 	for i := 0; i < len(prog.states); i++ {
 		msg := reservedStateName(prog.states[i].name)
 		if msg != "" {
@@ -911,6 +960,10 @@ func Check(prog *Prog) DiagList {
 		KnownStateNames[prog.states[i].name] = true
 	}
 
+	// Constants first: states, function defaults and other consts may use them.
+	for i := 0; i < len(prog.consts); i++ {
+		c.checkConst(&prog.consts[i])
+	}
 	// States.
 	for i := 0; i < len(prog.states); i++ {
 		c.checkState(&prog.states[i])
@@ -922,12 +975,20 @@ func Check(prog *Prog) DiagList {
 	// View-method signatures are also registered up front (names globally
 	// unique; bodies are checked later inside their view's scope).
 	for i := 0; i < len(prog.views); i++ {
+		prevTP := c.curTypeParams
+		c.curTypeParams = typeParamSet(prog.views[i].typeParams)
 		for j := 0; j < len(prog.views[i].methods); j++ {
 			md := &prog.views[i].methods[j]
 			c.declareSym(md.name, "method", md.span)
 			c.methodNames[md.name] = true
 			c.checkFuncSig(md)
 		}
+		c.curTypeParams = prevTP
+	}
+	// Computed values may use states and function signatures (registered
+	// above), plus earlier computed values.
+	for i := 0; i < len(prog.computed); i++ {
+		c.checkComputed(&prog.computed[i])
 	}
 	// Function bodies.
 	for i := 0; i < len(prog.funcs); i++ {
@@ -937,6 +998,7 @@ func Check(prog *Prog) DiagList {
 	// Component registry + invocation set + circular reference detection.
 	for i := 0; i < len(prog.views); i++ {
 		c.viewParams[prog.views[i].name] = prog.views[i].params
+		c.viewTypeParams[prog.views[i].name] = prog.views[i].typeParams
 	}
 	viewInvoked = map[string]bool{}
 	for i := 0; i < len(prog.views); i++ {
@@ -962,6 +1024,109 @@ func Check(prog *Prog) DiagList {
 // ---------------------------------------------------------------------------
 // States
 // ---------------------------------------------------------------------------
+
+// isConstExpr reports whether an expression can initialize a const. Only
+// literals, earlier consts, enum members and composite/operator expressions
+// built from them are allowed, so a const never depends on runtime state.
+func (c *Checker) isConstExpr(e *Expr) bool {
+	if e == nil {
+		return false
+	}
+	switch e.kind {
+	case "int", "float", "bool", "null":
+		return true
+	case "str":
+		for i := 0; i < len(e.parts); i++ {
+			if e.parts[i].kind == "expr" && !c.isConstExpr(e.parts[i].expr) {
+				return false
+			}
+		}
+		return true
+	case "ident":
+		return c.consts[e.name] != nil
+	case "member":
+		_, _, ok := enumMemberOf(e)
+		return ok
+	case "array":
+		for i := 0; i < len(e.elements); i++ {
+			if i < len(e.spreads) && e.spreads[i] {
+				return false
+			}
+			if !c.isConstExpr(e.elements[i]) {
+				return false
+			}
+		}
+		return true
+	case "map":
+		for i := 0; i < len(e.vals); i++ {
+			if i < len(e.spreads) && e.spreads[i] {
+				return false
+			}
+			if !c.isConstExpr(e.vals[i]) {
+				return false
+			}
+		}
+		return true
+	case "structlit":
+		for i := 0; i < len(e.vals); i++ {
+			if !c.isConstExpr(e.vals[i]) {
+				return false
+			}
+		}
+		return true
+	case "unary":
+		return c.isConstExpr(e.operand)
+	case "binary":
+		return c.isConstExpr(e.l) && c.isConstExpr(e.r)
+	case "cond":
+		return c.isConstExpr(e.cond) && c.isConstExpr(e.l) && c.isConstExpr(e.r)
+	case "index":
+		return c.isConstExpr(e.obj) && c.isConstExpr(e.idx)
+	}
+	return false
+}
+
+func (c *Checker) checkComputed(cd *ComputedDecl) {
+	it := c.inferExpr(cd.init)
+	if cd.typename == "" {
+		c.computed[cd.name] = it
+		return
+	}
+	decl, err := parseSUIType(cd.typename)
+	if err != "" {
+		c.diagAt(cd.span, err)
+		c.computed[cd.name] = it
+		return
+	}
+	vt := c.valueTypeOf(cd.init, it)
+	if !assignable(vt, decl) {
+		c.diagAt(cd.span, "computed "+cd.name+" declared as "+typeStr(decl)+" but calculated with a value of type "+valueTypeStr(vt, decl))
+	}
+	c.computed[cd.name] = decl
+}
+
+func (c *Checker) checkConst(cd *ConstDecl) {
+	if !c.isConstExpr(cd.init) {
+		c.diagAtEx(cd.span, "const "+cd.name+" must be initialized with a compile-time value",
+			"use literals, earlier consts, enum members, arrays/maps/structs and operators; runtime state and function calls are not allowed")
+	}
+	it := c.inferExpr(cd.init)
+	if cd.typename == "" {
+		c.consts[cd.name] = it
+		return
+	}
+	decl, err := parseSUIType(cd.typename)
+	if err != "" {
+		c.diagAt(cd.span, err)
+		c.consts[cd.name] = it
+		return
+	}
+	vt := c.valueTypeOf(cd.init, it)
+	if !assignable(vt, decl) {
+		c.diagAt(cd.span, "const "+cd.name+" declared as "+typeStr(decl)+" but initialized with a value of type "+valueTypeStr(vt, decl))
+	}
+	c.consts[cd.name] = decl
+}
 
 func (c *Checker) checkState(sd *StateDecl) {
 	if len(c.scopes) > 0 {
@@ -991,13 +1156,41 @@ func (c *Checker) checkState(sd *StateDecl) {
 // Functions
 // ---------------------------------------------------------------------------
 
+func typeParamSet(names []string) map[string]bool {
+	if len(names) == 0 {
+		return nil
+	}
+	out := map[string]bool{}
+	for i := 0; i < len(names); i++ {
+		out[names[i]] = true
+	}
+	return out
+}
+
 func (c *Checker) checkFuncSig(fd *FuncDecl) {
+	prevTP := c.curTypeParams
+	vars := map[string]bool{}
+	for name := range c.curTypeParams {
+		vars[name] = true
+	}
+	for _, name := range fd.typeParams {
+		vars[name] = true
+	}
+	c.curTypeParams = vars
+	defer func() { c.curTypeParams = prevTP }()
+	seenTP := map[string]bool{}
+	for i := 0; i < len(fd.typeParams); i++ {
+		if seenTP[fd.typeParams[i]] {
+			c.diagAt(fd.span, "duplicate generic type parameter "+fd.typeParams[i])
+		}
+		seenTP[fd.typeParams[i]] = true
+	}
 	var params []SType
 	var paramNames []string
 	var defaults []*Expr
 	sawOptional := false
 	for i := 0; i < len(fd.params); i++ {
-		pt, err := parseSUIType(fd.params[i].typename)
+		pt, err := parseSUITypeWith(fd.params[i].typename, c.curTypeParams)
 		if err != "" {
 			if fd.params[i].typename == "" {
 				c.diagAt(fd.params[i].span, "parameter "+fd.params[i].name+" requires a \":\" type annotation")
@@ -1005,6 +1198,14 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 				c.diagAt(fd.params[i].span, err)
 			}
 			pt = &SType{kind: "error"}
+		}
+		if fd.params[i].rest {
+			if i != len(fd.params)-1 {
+				c.diagAt(fd.params[i].span, "rest parameter \""+fd.params[i].name+"\" must be the last parameter")
+			}
+			if pt.kind != "array" && pt.kind != "error" {
+				c.diagAt(fd.params[i].span, "rest parameter \""+fd.params[i].name+"\" must have an array type, got "+typeStr(pt))
+			}
 		}
 		params = append(params, *pt)
 		paramNames = append(paramNames, fd.params[i].name)
@@ -1018,7 +1219,7 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 		}
 		defaults = append(defaults, fd.params[i].dflt)
 	}
-	rt, rerr := parseSUIType(fd.returnType)
+	rt, rerr := parseSUITypeWith(fd.returnType, c.curTypeParams)
 	if rerr != "" {
 		if fd.returnType == "" {
 			c.diagAt(fd.span, "function "+fd.name+" must declare a return type with \"->\"")
@@ -1032,7 +1233,7 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 		rets = append(rets, rt)
 	} else {
 		for i := 0; i < len(fd.returnTypes); i++ {
-			t, terr := parseSUIType(fd.returnTypes[i])
+			t, terr := parseSUITypeWith(fd.returnTypes[i], c.curTypeParams)
 			if terr != "" {
 				c.diagAt(fd.span, "function "+fd.name+" return "+itoaStr(i+1)+": "+terr)
 				t = NewSType("error")
@@ -1040,7 +1241,8 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 			rets = append(rets, t)
 		}
 	}
-	c.sigs[fd.name] = &FnSig{name: fd.name, params: params, paramNames: paramNames, ret: rets[0], rets: rets, defaults: defaults, multi: len(rets) > 1, async: fd.async}
+	rest := len(fd.params) > 0 && fd.params[len(fd.params)-1].rest
+	c.sigs[fd.name] = &FnSig{name: fd.name, params: params, paramNames: paramNames, ret: rets[0], rets: rets, defaults: defaults, multi: len(rets) > 1, async: fd.async, rest: rest, typeParams: append([]string{}, fd.typeParams...)}
 	// Type each default expression against its parameter.
 	for i := 0; i < len(fd.params); i++ {
 		if fd.params[i].dflt != nil && i < len(params) {
@@ -1063,7 +1265,15 @@ func (c *Checker) checkFuncBody(fd *FuncDecl) {
 	prevLoop := c.loopDepth
 	prevFn := c.fnDepth
 	prevInFn := c.inFn
-
+	prevTP := c.curTypeParams
+	vars := map[string]bool{}
+	for name := range c.curTypeParams {
+		vars[name] = true
+	}
+	for _, name := range fd.typeParams {
+		vars[name] = true
+	}
+	c.curTypeParams = vars
 	c.fnDepth = prevFn + 1
 	c.inFn = true
 	c.curRet = sig.ret
@@ -1090,6 +1300,7 @@ func (c *Checker) checkFuncBody(fd *FuncDecl) {
 	c.loopDepth = prevLoop
 	c.fnDepth = prevFn
 	c.inFn = prevInFn
+	c.curTypeParams = prevTP
 }
 
 // ---------------------------------------------------------------------------
@@ -1262,6 +1473,9 @@ func literalTypeOf(e *Expr) *SType {
 func (c *Checker) valueTypeOf(e *Expr, inferred *SType) *SType {
 	if e != nil && e.kind == "ident" && c.declaredStates[e.name] != nil {
 		return c.declaredStates[e.name]
+	}
+	if e != nil && e.kind == "ident" && c.computed[e.name] != nil {
+		return c.computed[e.name]
 	}
 	if lit := literalTypeOf(e); lit != nil {
 		return lit
@@ -1779,7 +1993,11 @@ func (c *Checker) checkAssign(s *Stmt) {
 		}
 	}
 	if tgt == nil {
-		if c.symKinds[name] != "" {
+		if c.symKinds[name] == "const" {
+			c.diagAt(s.span, "cannot assign to const "+name)
+		} else if c.symKinds[name] == "computed" {
+			c.diagAt(s.span, "cannot assign to computed "+name)
+		} else if c.symKinds[name] != "" {
 			c.diagAt(s.span, "cannot assign to "+name)
 		} else {
 			hint := ""
@@ -1810,15 +2028,50 @@ func (c *Checker) checkAssign(s *Stmt) {
 
 func (c *Checker) checkLvalueAssign(s *Stmt) {
 	root := lvalueRootName(s.lvalue)
+	if root != "" && c.symKinds[root] == "const" {
+		c.diagAt(s.span, "cannot mutate const "+root)
+		return
+	}
+	if root != "" && c.symKinds[root] == "computed" {
+		c.diagAt(s.span, "cannot mutate computed "+root)
+		return
+	}
 	if root != "" && c.states[root] != nil && !c.inFn {
 		c.diagAt(s.span, "cannot mutate state \""+root+"\" outside a function")
 		return
 	}
+	c.checkReadonlyLvalue(s.lvalue)
 	lt := c.inferExpr(s.lvalue)
 	rt := c.inferExpr(s.rhs)
 	vt := c.valueTypeOf(s.rhs, rt)
 	if lt != nil && rt != nil && rt.kind != "error" && lt.kind != "error" && !assignable(vt, lt) {
 		c.diagAt(s.span, "cannot assign a value of type "+valueTypeStr(vt, lt)+" to a value of type "+typeStr(lt))
+	}
+}
+
+// checkReadonlyLvalue rejects writes through a struct field declared
+// `readonly`. Nested fields and fields reached through indexes are checked by
+// walking the object chain; the final assignment type check still runs.
+func (c *Checker) checkReadonlyLvalue(e *Expr) {
+	if e == nil {
+		return
+	}
+	if e.kind == "member" {
+		objT := c.inferExpr(e.obj)
+		if objT != nil && objT.kind == "struct" {
+			fields := structRegistry[objT.name]
+			for i := 0; i < len(fields); i++ {
+				if fields[i].name == e.memb && fields[i].readonly {
+					c.diagAt(e.span, "cannot assign to readonly field \""+e.memb+"\" of "+objT.name)
+					break
+				}
+			}
+		}
+		c.checkReadonlyLvalue(e.obj)
+		return
+	}
+	if e.kind == "index" {
+		c.checkReadonlyLvalue(e.obj)
 	}
 }
 
@@ -1870,11 +2123,17 @@ func userMultiCallRets(c *Checker, e *Expr) []*SType {
 	if sig == nil {
 		return []*SType{}
 	}
-	c.checkArgs(e.target.name, sig.params, e.args, sig.defaults, e.span)
+	var rets []*SType
+	if len(sig.typeParams) > 0 {
+		rets = c.checkGenericCall(e.target.name, sig, e.args, e.span)
+	} else {
+		c.checkArgs(e.target.name, sig.params, e.args, sig.defaults, sig.rest, e.span)
+		rets = sig.rets
+	}
 	if sig.async && !c.curAsync {
 		c.diagAt(e.span, "async function \""+e.target.name+"\" cannot be called from a non-async function")
 	}
-	return sig.rets
+	return rets
 }
 
 // stdTypeName maps a stdlib parameter/return type name to its SType.
@@ -2168,6 +2427,10 @@ func (c *Checker) orderNamedArgs(e *Expr, sig *FnSig, fname string) []*Expr {
 	if !hasNamedArgs(e.argNames) {
 		return e.args
 	}
+	if sig.rest {
+		c.diagAt(e.span, "named arguments cannot be used with the rest parameter of "+fname)
+		return e.args
+	}
 	for i := 0; i < len(e.argNames); i++ {
 		if e.argNames[i] == "" {
 			c.diagAt(e.span, "cannot mix positional and named arguments in a call to "+fname)
@@ -2217,8 +2480,24 @@ func (c *Checker) orderNamedArgs(e *Expr, sig *FnSig, fname string) []*Expr {
 
 // checkArgs validates provided arguments against the parameter types; missing
 // trailing arguments are permitted when those parameters carry defaults.
-func (c *Checker) checkArgs(fname string, params []SType, args []*Expr, defs []*Expr, sp Span) {
-	if len(args) > len(params) {
+func (c *Checker) checkArgs(fname string, params []SType, args []*Expr, defs []*Expr, rest bool, sp Span) {
+	types := make([]*SType, len(args))
+	for i := 0; i < len(args); i++ {
+		if args[i] != nil {
+			types[i] = c.inferExpr(args[i])
+		}
+	}
+	c.checkArgsTyped(fname, params, args, types, defs, rest, sp)
+}
+
+// checkArgsTyped validates already-inferred argument types. Generic calls
+// infer the types once for unification and reuse them here.
+func (c *Checker) checkArgsTyped(fname string, params []SType, args []*Expr, types []*SType, defs []*Expr, rest bool, sp Span) {
+	fixed := len(params)
+	if rest {
+		fixed--
+	}
+	if !rest && len(args) > len(params) {
 		c.diagAt(sp, "function "+fname+" expects "+fmt.Sprintf("%v", len(params))+" arguments, got "+fmt.Sprintf("%v", len(args)))
 		return
 	}
@@ -2227,17 +2506,26 @@ func (c *Checker) checkArgs(fname string, params []SType, args []*Expr, defs []*
 		if a == nil {
 			continue
 		}
-		at := c.inferExpr(a)
-		if at.kind == "error" || at.kind == "unknown" {
+		at := types[i]
+		if at == nil || at.kind == "error" || at.kind == "unknown" {
 			continue
 		}
 		av := c.valueTypeOf(a, at)
-		if !assignable(av, &params[i]) {
-			c.diagAt(a.span, "argument "+fmt.Sprintf("%v", i+1)+" of "+fname+" must be "+typeStr(&params[i])+", got "+valueTypeStr(av, &params[i]))
+		want := &params[0]
+		if i < fixed {
+			want = &params[i]
+		} else if rest {
+			want = params[len(params)-1].elem
+		} else {
+			return
+		}
+		if !assignable(av, want) {
+			c.diagAt(a.span, "argument "+fmt.Sprintf("%v", i+1)+" of "+fname+" must be "+typeStr(want)+", got "+valueTypeStr(av, want))
 		}
 	}
-	// Missing trailing arguments must have default values.
-	for i := len(args); i < len(params); i++ {
+	// Missing trailing arguments must have default values; a rest parameter
+	// may be empty.
+	for i := len(args); i < fixed; i++ {
 		hasDefault := i < len(defs) && defs[i] != nil
 		if !hasDefault {
 			c.diagAt(sp, "missing argument for parameter "+fmt.Sprintf("%v", i+1)+" of "+fname+" (no default value)")
@@ -2245,10 +2533,128 @@ func (c *Checker) checkArgs(fname string, params []SType, args []*Expr, defs []*
 	}
 }
 
+// substituteType replaces generic type variables with their inferred types.
+func substituteType(t *SType, subst map[string]*SType) *SType {
+	if t == nil {
+		return nil
+	}
+	if t.kind == "typevar" {
+		if bound := subst[t.name]; bound != nil {
+			return bound
+		}
+		return t
+	}
+	if t.kind == "array" {
+		return &SType{kind: "array", elem: substituteType(t.elem, subst)}
+	}
+	if t.kind == "map" {
+		return &SType{kind: "map", key: substituteType(t.key, subst), val: substituteType(t.val, subst)}
+	}
+	if t.kind == "union" {
+		var members []*SType
+		for i := 0; i < len(t.members); i++ {
+			members = append(members, substituteType(t.members[i], subst))
+		}
+		return unionOf(members...)
+	}
+	return t
+}
+
+// unifyType binds generic type variables from an argument type. It returns
+// false when a bound parameter conflicts with the argument.
+func (c *Checker) unifyType(param, arg *SType, subst map[string]*SType) bool {
+	if param == nil || arg == nil {
+		return true
+	}
+	if arg.kind == "error" || arg.kind == "unknown" || arg.kind == "any" {
+		return true
+	}
+	if param.kind == "typevar" {
+		if arg.kind == "typevar" && arg.name == param.name {
+			return true
+		}
+		if bound := subst[param.name]; bound != nil {
+			return assignable(arg, bound)
+		}
+		subst[param.name] = widenType(arg)
+		return true
+	}
+	if param.kind == "array" && arg.kind == "array" {
+		return c.unifyType(param.elem, arg.elem, subst)
+	}
+	if param.kind == "map" && arg.kind == "map" {
+		return c.unifyType(param.val, arg.val, subst)
+	}
+	if param.kind == "union" && arg.kind == "union" {
+		for i := 0; i < len(arg.members); i++ {
+			if !assignable(arg.members[i], param) {
+				return false
+			}
+		}
+		return true
+	}
+	return assignable(arg, param)
+}
+
+// checkGenericCall infers a generic function's type arguments from the call,
+// substitutes them into the signature, checks the arguments and returns the
+// substituted return types.
+func (c *Checker) checkGenericCall(name string, sig *FnSig, args []*Expr, sp Span) []*SType {
+	types := make([]*SType, len(args))
+	for i := 0; i < len(args); i++ {
+		if args[i] != nil {
+			types[i] = c.inferExpr(args[i])
+		}
+	}
+	subst := map[string]*SType{}
+	fixed := len(sig.params)
+	if sig.rest {
+		fixed--
+	}
+	for i := 0; i < len(args); i++ {
+		var param *SType
+		if i < fixed {
+			param = &sig.params[i]
+		} else if sig.rest && len(sig.params) > 0 {
+			param = sig.params[len(sig.params)-1].elem
+		} else {
+			break
+		}
+		if types[i] == nil || types[i].kind == "error" || types[i].kind == "unknown" {
+			continue
+		}
+		// A false result means a bound type parameter conflicts with this
+		// argument; checkArgsTyped below reports it against the substituted type.
+		_ = c.unifyType(param, types[i], subst)
+	}
+	var missing []string
+	for _, tp := range sig.typeParams {
+		if subst[tp] == nil {
+			missing = append(missing, tp)
+		}
+	}
+	if len(missing) > 0 {
+		c.diagAt(sp, "cannot infer generic type parameter "+strings.Join(missing, ", ")+" for "+name+" (use it in a parameter type)")
+		for _, tp := range missing {
+			subst[tp] = NewSType("any")
+		}
+	}
+	params := make([]SType, len(sig.params))
+	for i := 0; i < len(sig.params); i++ {
+		params[i] = *substituteType(&sig.params[i], subst)
+	}
+	c.checkArgsTyped(name, params, args, types, sig.defaults, sig.rest, sp)
+	rets := make([]*SType, len(sig.rets))
+	for i := 0; i < len(sig.rets); i++ {
+		rets[i] = substituteType(sig.rets[i], subst)
+	}
+	return rets
+}
+
 // A shim so pre-existing call sites with the old 4-argument signature still
 // compile; new code passes defaults too.
 func (c *Checker) checkArgs4(fname string, params []SType, args []*Expr, sp Span) {
-	c.checkArgs(fname, params, args, nil, sp)
+	c.checkArgs(fname, params, args, nil, false, sp)
 }
 
 // ---------------------------------------------------------------------------
@@ -2360,6 +2766,12 @@ func (c *Checker) inferIdent(e *Expr) *SType {
 		// Literal restrictions stay on the declaration; expression code uses
 		// the base type so operators and builtins keep working.
 		return widenType(c.states[name])
+	}
+	if c.consts[name] != nil {
+		return widenType(c.consts[name])
+	}
+	if c.computed[name] != nil {
+		return widenType(c.computed[name])
 	}
 	v := c.lookupVar(name)
 	if v != nil {
@@ -2638,7 +3050,7 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 		name != "random" && name != "time.now" && name != "time.nowMs" &&
 		name != "storage.clear" && name != "storage.keys" && name != "clipboard.readText" &&
 		name != "i18n.locale" && name != "i18n.detect" && name != "i18n.available" && name != "i18n.dir" && name != "i18n.missing" &&
-		name != "toast.clear" && !isDndZeroArg(name) {
+		name != "toast.clear" && name != "intl.timezone" && !isDndZeroArg(name) {
 		c.diagAt(e.span, name+" takes at least one argument")
 		return NewSType("error")
 	}
@@ -2650,6 +3062,108 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 		return true
 	}
 
+	if name == "intl.timezone" {
+		if !want(0) {
+			return NewSType("error")
+		}
+		return NewSType("string")
+	}
+	if name == "intl.date" || name == "intl.time" || name == "intl.datetime" {
+		if n < 1 || n > 4 {
+			c.diagAt(e.span, name+" takes 1 to 4 arguments, got "+itoaStr(n))
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "string" && t0.kind != "int" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, name+" requires an ISO string or epoch milliseconds, got "+typeStr(t0))
+		}
+		for i := 1; i < n; i++ {
+			t := c.inferExpr(args[i])
+			if t.kind != "string" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(e.span, name+" option arguments must be strings, got "+typeStr(t))
+			}
+		}
+		return NewSType("string")
+	}
+	if name == "intl.number" || name == "intl.percent" {
+		if n < 1 || n > 3 {
+			c.diagAt(e.span, name+" takes 1 to 3 arguments, got "+itoaStr(n))
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "int" && t0.kind != "float" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, name+" requires a number, got "+typeStr(t0))
+		}
+		if n > 1 {
+			t1 := c.inferExpr(args[1])
+			if t1.kind != "int" && t1.kind != "any" && t1.kind != "unknown" && t1.kind != "error" {
+				c.diagAt(e.span, name+" decimals must be an int, got "+typeStr(t1))
+			}
+		}
+		if n > 2 {
+			t2 := c.inferExpr(args[2])
+			if t2.kind != "string" && t2.kind != "any" && t2.kind != "unknown" && t2.kind != "error" {
+				c.diagAt(e.span, name+" locale must be a string, got "+typeStr(t2))
+			}
+		}
+		return NewSType("string")
+	}
+	if name == "intl.currency" {
+		if n < 2 || n > 3 {
+			c.diagAt(e.span, "intl.currency takes 2 or 3 arguments, got "+itoaStr(n))
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "int" && t0.kind != "float" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, "intl.currency requires a number, got "+typeStr(t0))
+		}
+		t1 := c.inferExpr(args[1])
+		if t1.kind != "string" && t1.kind != "any" && t1.kind != "unknown" && t1.kind != "error" {
+			c.diagAt(e.span, "intl.currency code must be a string, got "+typeStr(t1))
+		}
+		if n > 2 {
+			t2 := c.inferExpr(args[2])
+			if t2.kind != "string" && t2.kind != "any" && t2.kind != "unknown" && t2.kind != "error" {
+				c.diagAt(e.span, "intl.currency locale must be a string, got "+typeStr(t2))
+			}
+		}
+		return NewSType("string")
+	}
+	if name == "intl.relative" {
+		if n < 2 || n > 4 {
+			c.diagAt(e.span, "intl.relative takes 2 to 4 arguments, got "+itoaStr(n))
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "int" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, "intl.relative offset must be an int, got "+typeStr(t0))
+		}
+		t1 := c.inferExpr(args[1])
+		if t1.kind != "string" && t1.kind != "any" && t1.kind != "unknown" && t1.kind != "error" {
+			c.diagAt(e.span, "intl.relative unit must be a string, got "+typeStr(t1))
+		}
+		for i := 2; i < n; i++ {
+			t := c.inferExpr(args[i])
+			if t.kind != "string" && t.kind != "any" && t.kind != "unknown" && t.kind != "error" {
+				c.diagAt(e.span, "intl.relative option arguments must be strings, got "+typeStr(t))
+			}
+		}
+		return NewSType("string")
+	}
+	if name == "assert" {
+		if !want(2) {
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "bool" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, "assert condition must be a bool, got "+typeStr(t0))
+		}
+		t1 := c.inferExpr(args[1])
+		if t1.kind != "string" && t1.kind != "any" && t1.kind != "unknown" && t1.kind != "error" {
+			c.diagAt(e.span, "assert message must be a string, got "+typeStr(t1))
+		}
+		return NewSType("null")
+	}
 	if name == "len" {
 		if !want(1) {
 			return NewSType("error")
@@ -3889,7 +4403,15 @@ func (c *Checker) inferCall(e *Expr) *SType {
 			return NewSType("error")
 		}
 		args := c.orderNamedArgs(e, sig, name)
-		c.checkArgs(name, sig.params, args, sig.defaults, e.span)
+		ret := sig.ret
+		if len(sig.typeParams) > 0 {
+			rets := c.checkGenericCall(name, sig, args, e.span)
+			if len(rets) > 0 {
+				ret = rets[0]
+			}
+		} else {
+			c.checkArgs(name, sig.params, args, sig.defaults, sig.rest, e.span)
+		}
 		if c.methodNames[name] && c.curView == "" {
 			c.diagAt(e.span, "method \""+name+"\" can only be called inside its component view")
 		}
@@ -3899,7 +4421,7 @@ func (c *Checker) inferCall(e *Expr) *SType {
 		if sig.async && !c.curAsync {
 			c.diagAt(e.span, "async function \""+name+"\" cannot be called from a non-async function")
 		}
-		return sig.ret
+		return ret
 	}
 	ot := c.inferExpr(target)
 	for i := 0; i < len(e.args); i++ {
@@ -4085,7 +4607,7 @@ func isAllowedTag(tag string) bool {
 		"menubar", "menu", "menuitem", "modal", "modalbutton",
 		"dropdown", "dropdownitem", "popover", "drawer", "splitter", "pane", "dropzone",
 		"timeline", "timelineitem", "emptystate", "skeleton", "carousel", "slide",
-		"stepper", "step", "commandbar", "command":
+		"stepper", "step", "commandbar", "command", "errorboundary":
 		return true
 	}
 	return false
@@ -4119,6 +4641,9 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "dropzone" && key == "hint" {
+		return true
+	}
+	if tag == "errorboundary" && key == "fallback" {
 		return true
 	}
 	if tag == "button" && key == "onClick" {
@@ -4331,6 +4856,9 @@ func (c *Checker) checkViewParts(parts []StrPart) {
 }
 
 func (c *Checker) checkView(vd *ViewDecl) {
+	prevTP := c.curTypeParams
+	c.curTypeParams = typeParamSet(vd.typeParams)
+	defer func() { c.curTypeParams = prevTP }()
 	for i := 0; i < len(vd.title); i++ {
 		if vd.title[i].kind == "expr" {
 			c.diagAt(vd.span, "view title cannot interpolate values")
@@ -4352,7 +4880,7 @@ func (c *Checker) checkView(vd *ViewDecl) {
 	for i := 0; i < len(vd.params); i++ {
 		if vd.params[i].typename == "fn" {
 			c.declareVar(vd.params[i].name, NewSType("fn"), vd.params[i].span)
-		} else if pt, perr := parseSUIType(vd.params[i].typename); perr == "" {
+		} else if pt, perr := parseSUITypeWith(vd.params[i].typename, c.curTypeParams); perr == "" {
 			c.declareVar(vd.params[i].name, pt, vd.params[i].span)
 		}
 	}
@@ -4366,7 +4894,7 @@ func (c *Checker) checkView(vd *ViewDecl) {
 		seenInst[sd.name] = true
 		it := c.inferExpr(sd.init)
 		if sd.typename != "" {
-			decl, derr := parseSUIType(sd.typename)
+			decl, derr := parseSUITypeWith(sd.typename, c.curTypeParams)
 			if derr != "" {
 				c.diagAt(sd.span, derr)
 			} else if !assignable(it, decl) {
@@ -4506,6 +5034,13 @@ func (c *Checker) checkViewNode(n *ViewNode) {
 				item2Type = NewSType("error")
 			}
 			c.declareVar(n.item2, item2Type, n.span)
+		}
+		if n.key != nil {
+			kt := c.inferExpr(n.key)
+			if kt.kind != "string" && kt.kind != "int" && kt.kind != "float" && kt.kind != "bool" &&
+				kt.kind != "enum" && kt.kind != "typevar" && kt.kind != "any" && kt.kind != "unknown" && kt.kind != "error" {
+				c.diagAt(n.key.span, "list key must be a string, number, bool or enum, got "+typeStr(kt))
+			}
 		}
 		c.checkViewBody(derefNodeList(n.body))
 		c.popScope()
@@ -5472,17 +6007,51 @@ func (c *Checker) checkComponentCall(e *Element, viewName string) {
 		c.diagAt(e.span, "component "+viewName+" does not take text; pass values as parameters")
 	}
 	// The caller block (if any) is the component's `children` slot.
+	vars := typeParamSet(c.viewTypeParams[viewName])
 	declared := map[string]*SType{}
 	for i := 0; i < len(params); i++ {
 		if params[i].typename == "fn" {
 			declared[params[i].name] = NewSType("fn")
-		} else if pt, perr := parseSUIType(params[i].typename); perr == "" {
+		} else if pt, perr := parseSUITypeWith(params[i].typename, vars); perr == "" {
 			declared[params[i].name] = pt
 		}
 	}
+	// First pass: infer generic type parameters from the provided values.
+	subst := map[string]*SType{}
 	provided := map[string]bool{}
+	argTypes := map[string]*SType{}
 	for i := 0; i < len(e.attrs); i++ {
-		a := e.attrs[i]
+		a := &e.attrs[i]
+		pt := declared[a.key]
+		if pt == nil || pt.kind == "fn" {
+			continue
+		}
+		provided[a.key] = true
+		if a.hasExpr && a.expr != nil {
+			vt := c.inferExpr(a.expr)
+			argTypes[a.key] = vt
+			_ = c.unifyType(pt, vt, subst)
+		} else {
+			argTypes[a.key] = NewSType("string")
+			_ = c.unifyType(pt, NewSType("string"), subst)
+		}
+	}
+	var missingTP []string
+	for _, tp := range c.viewTypeParams[viewName] {
+		if subst[tp] == nil {
+			missingTP = append(missingTP, tp)
+		}
+	}
+	if len(missingTP) > 0 {
+		c.diagAt(e.span, "cannot infer generic type parameter "+strings.Join(missingTP, ", ")+" for component "+viewName+" (use it in a parameter type)")
+		for _, tp := range missingTP {
+			subst[tp] = NewSType("any")
+		}
+	}
+	// Second pass: validate each provided value against the substituted type.
+	provided = map[string]bool{}
+	for i := 0; i < len(e.attrs); i++ {
+		a := &e.attrs[i]
 		pt := declared[a.key]
 		if pt == nil {
 			hint := ""
@@ -5500,16 +6069,16 @@ func (c *Checker) checkComponentCall(e *Element, viewName string) {
 			c.diagAt(a.span, "parameter \""+a.key+"\" of component "+viewName+" expects a function name (a declared fn)")
 			continue
 		}
-		if a.hasExpr {
-			vt := c.inferExpr(a.expr)
-			if vt.kind != "error" && !assignable(vt, pt) {
-				c.diagAt(a.span, "parameter \""+a.key+"\" of component "+viewName+" expects "+typeStr(pt)+", got "+typeStr(vt))
-			}
-		} else {
+		want := substituteType(pt, subst)
+		if !a.hasExpr {
 			c.checkViewParts(a.text)
-			if pt.kind != "string" && pt.kind != "any" && pt.kind != "error" && pt.kind != "unknown" {
-				c.diagAt(a.span, "parameter \""+a.key+"\" of component "+viewName+" expects "+typeStr(pt)+", got string")
-			}
+		}
+		vt := argTypes[a.key]
+		if vt == nil {
+			vt = NewSType("string")
+		}
+		if vt.kind != "error" && !assignable(vt, want) {
+			c.diagAt(a.span, "parameter \""+a.key+"\" of component "+viewName+" expects "+typeStr(want)+", got "+valueTypeStr(vt, want))
 		}
 	}
 	for i := 0; i < len(params); i++ {

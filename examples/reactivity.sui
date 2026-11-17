@@ -1,0 +1,64 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 760px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+.row \{ display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; \}
+p \{ margin: 6px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}
+.sui-error \{ padding: 10px 12px; border: 1px solid #7a3b3b; border-radius: 8px; background: #2a1717; color: #ffb4b4; \}"
+
+state price: int = 12
+state qty: int = 2
+computed total: int = price * qty
+computed summary = "total " + str(total)
+
+state items: array[string] = ["alpha", "beta", "gamma"]
+state crash = false
+
+fn addTwo() -> null {
+	# Both assignments happen in one handler: the DOM render is batched.
+	qty = qty + 1
+	qty = qty + 1
+}
+
+fn shuffle() -> null {
+	items = [items[2], items[0], items[1]]
+}
+
+fn sectionLabel() -> string {
+	assert(crash == false, "the demo section was intentionally broken")
+	return "section is healthy"
+}
+
+fn toggleCrash() -> null {
+	crash = crash == true ? false : true
+}
+
+view main {
+	card "" class: "card" {
+		h1 "Computed values, batching, boundaries and keys"
+		p "{str(price)} × {str(qty)} = {str(total)} ({summary})"
+		row {
+			button "Add two" onClick: addTwo
+		}
+		p "Two assignments in Add two are batched into one render; computed total updates immediately." class: "muted"
+
+		h2 "Keyed list"
+		ul {
+			list item in items key: item {
+				li "{item}"
+			}
+		}
+		row {
+			button "Shuffle" onClick: shuffle
+		}
+		p "Each li carries data-sui-key, so focus restoration follows the item when the list reorders." class: "muted"
+
+		h2 "Error boundary"
+		errorboundary fallback: "This section failed safely" {
+			p "{sectionLabel()}"
+		}
+		row {
+			button "Toggle crash" onClick: toggleCrash
+		}
+		p "crash: {str(crash)} · the paragraph after the boundary always renders." class: "muted"
+	}
+}

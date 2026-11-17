@@ -164,6 +164,10 @@ For desktop capabilities:
 | Nominal enums and exhaustive switch | `docs/API_REFERENCE.md#enums-and-switch` | `examples/enums.sui` |
 | Union types, `?` and `is` guards | `docs/API_REFERENCE.md#union-types-and-is-guards` | `examples/unions.sui` |
 | Literal types and exhaustive literal switch | `docs/API_REFERENCE.md#literal-types` | `examples/literal_types.sui` |
+| Generic functions/components and rest parameters | `docs/API_REFERENCE.md#generics-and-rest-parameters` | `examples/generics.sui` |
+| Constants, computed values and readonly fields | `docs/API_REFERENCE.md#constants-computed-values-and-readonly-fields` | `examples/reactivity.sui` |
+| Batching, error boundaries and list keys | `docs/API_REFERENCE.md#reactive-updates-batching-error-boundaries-and-list-keys` | `examples/reactivity.sui` |
+| Locale formatting with Intl | `docs/API_REFERENCE.md#locale-formatting-intl` | `examples/intl_format.sui` |
 | External component library (add/regroup palette presets) | `docs/COMPONENT_LIBRARY.md` | `components/library.json` |
 | Control appearance (structure/style/animation, themes, navigator) | `docs/APPEARANCE_LIBRARY.md` | a `button` in the designer |
 | Structural table layout for arranging UI regions | `docs/API_REFERENCE.md#table-layout`, `docs/GUI_EDITOR.md#table-layout-control` | `examples/table_layout/README.md` |

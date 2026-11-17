@@ -1,0 +1,46 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 760px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+.row \{ display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; \}
+p \{ margin: 6px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+i18n "en" {
+	"title": "Locale formatting"
+	"note": "The locale follows the selected language; pass an explicit locale to override it."
+	"amount": "Amount"
+	"when": "When"
+	"zone": "Time zone"
+}
+i18n "it" {
+	"title": "Formattazione locale"
+	"note": "La locale segue la lingua selezionata; passa una locale esplicita per ignorarla."
+	"amount": "Importo"
+	"when": "Quando"
+	"zone": "Fuso orario"
+}
+
+state when = "2026-11-17T18:30:00Z"
+state amount: float = 1234.5
+state progress: float = 0.256
+state days: int = -2
+
+fn english() -> null { i18n.setLocale("en") }
+fn italian() -> null { i18n.setLocale("it") }
+
+view main {
+	card "" class: "card" {
+		h1 "{t("title")}"
+		p "{t("note")}" class: "muted"
+		p "Date: {intl.date(when, "long")}"
+		p "Date/time: {intl.datetime(when, "medium")}"
+		p "{t("amount")}: {intl.currency(amount, "EUR")} · number {intl.number(amount, 2)}"
+		p "Percent: {intl.percent(progress, 1)} · relative: {intl.relative(days, "day")}"
+		p "{t("zone")}: {intl.timezone()}"
+		row {
+			button "English" onClick: english
+			button "Italiano" onClick: italian
+		}
+		p "Fixed en-US / UTC: {intl.date(when, "short", "en-US", "UTC")}" class: "muted"
+		p "The relative string and date names change with the active locale; an explicit locale and time zone override it." class: "muted"
+	}
+}

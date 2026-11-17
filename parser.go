@@ -242,6 +242,16 @@ func ParseSource(source string, file string) (*Prog, DiagList) {
 			if sd != nil {
 				prog.states = append(prog.states, *sd)
 			}
+		} else if k == "const" {
+			cd := parseConst(p)
+			if cd != nil {
+				prog.consts = append(prog.consts, *cd)
+			}
+		} else if k == "computed" {
+			cd := parseComputed(p)
+			if cd != nil {
+				prog.computed = append(prog.computed, *cd)
+			}
 		} else if k == "type" {
 			td := parseTypeDecl(p)
 			if td != nil {
@@ -556,6 +566,56 @@ func parseState(p *Parser) *StateDecl {
 	return &StateDecl{name: name.text, typename: typename, init: init, span: sp}
 }
 
+// parseConst: 'const' ident [ ':' TypeName ] '=' Expr
+func parseConst(p *Parser) *ConstDecl {
+	sp := p.span()
+	p.adv() // const
+	name := p.cur()
+	if name.kind != "ident" {
+		p.diag("expected identifier after 'const'")
+		resyncToLine(p)
+		return nil
+	}
+	p.adv()
+	typename := ""
+	if p.accept(":") {
+		typename = parseTypeName(p)
+	}
+	if !p.accept("=") {
+		p.diag("expected '=' in const declaration")
+		resyncToLine(p)
+		return nil
+	}
+	init := parseExpr(p)
+	stmtEndCheck(p)
+	return &ConstDecl{name: name.text, typename: typename, init: init, span: sp}
+}
+
+// parseComputed: 'computed' ident [ ':' TypeName ] '=' Expr
+func parseComputed(p *Parser) *ComputedDecl {
+	sp := p.span()
+	p.adv() // computed
+	name := p.cur()
+	if name.kind != "ident" {
+		p.diag("expected identifier after 'computed'")
+		resyncToLine(p)
+		return nil
+	}
+	p.adv()
+	typename := ""
+	if p.accept(":") {
+		typename = parseTypeName(p)
+	}
+	if !p.accept("=") {
+		p.diag("expected '=' in computed declaration")
+		resyncToLine(p)
+		return nil
+	}
+	init := parseExpr(p)
+	stmtEndCheck(p)
+	return &ComputedDecl{name: name.text, typename: typename, init: init, span: sp}
+}
+
 // parseEnum: 'enum' ident '{' ident (','|newline)* '}'
 func parseEnum(p *Parser) *EnumDecl {
 	sp := p.span()
@@ -646,6 +706,17 @@ func parseTypeDecl(p *Parser) *TypeDecl {
 			resyncToLine(p)
 			continue
 		}
+		readonly := false
+		if f.text == "readonly" {
+			readonly = true
+			p.adv()
+			f = p.cur()
+			if f.kind != "ident" {
+				p.diag("expected a field name after 'readonly'")
+				resyncToLine(p)
+				continue
+			}
+		}
 		p.adv()
 		fsp := p.span()
 		if seen[f.text] {
@@ -658,7 +729,7 @@ func parseTypeDecl(p *Parser) *TypeDecl {
 			continue
 		}
 		tn := parseTypeName(p)
-		fields = append(fields, Field{name: f.text, typename: tn, span: fsp})
+		fields = append(fields, Field{name: f.text, typename: tn, readonly: readonly, span: fsp})
 	}
 	if !p.accept("}") {
 		p.diag("expected '}' to close struct type")
@@ -763,6 +834,35 @@ func parseFunc(p *Parser) *FuncDecl {
 		return nil
 	}
 	p.adv()
+	var typeParams []string
+	if p.accept("<") {
+		seenTP := map[string]bool{}
+		for !p.at(">") {
+			if p.at("eof") {
+				p.diag("unexpected end of file in generic parameter list")
+				break
+			}
+			tp := p.cur()
+			if tp.kind != "ident" {
+				p.diag("expected a generic type parameter name")
+				resyncToLine(p)
+				break
+			}
+			if seenTP[tp.text] {
+				p.diag("duplicate generic type parameter " + tp.text)
+			}
+			seenTP[tp.text] = true
+			typeParams = append(typeParams, tp.text)
+			p.adv()
+			if !p.accept(",") {
+				break
+			}
+			skipNewlines(p)
+		}
+		if !p.accept(">") {
+			p.diag("expected '>' to close the generic parameter list")
+		}
+	}
 	if !p.accept("(") {
 		p.diag("expected '(' after function name")
 		resyncToLine(p)
@@ -777,6 +877,12 @@ func parseFunc(p *Parser) *FuncDecl {
 		}
 		pt := p.cur()
 		psp := p.span()
+		isRest := false
+		if p.at("...") {
+			p.adv()
+			isRest = true
+			pt = p.cur()
+		}
 		if pt.kind != "ident" {
 			p.diag("expected a parameter name")
 			resyncToLine(p)
@@ -792,7 +898,10 @@ func parseFunc(p *Parser) *FuncDecl {
 		if p.accept("=") {
 			def = parseExpr(p)
 		}
-		params = append(params, Param{name: pt.text, typename: ptype, dflt: def, span: psp})
+		if isRest && def != nil {
+			p.diag("rest parameter " + pt.text + " cannot have a default value")
+		}
+		params = append(params, Param{name: pt.text, typename: ptype, dflt: def, rest: isRest, span: psp})
 		if !p.accept(",") {
 			break
 		}
@@ -838,7 +947,7 @@ func parseFunc(p *Parser) *FuncDecl {
 		p.dd.Add(p.file, t.line, t.col, fmt.Sprintf("function %v must declare a return type with '->'", name.text))
 	}
 	body := parseBlock(p)
-	return &FuncDecl{name: name.text, async: isAsync, params: params, returnType: returnType, returnTypes: returnTypes, body: body, span: sp}
+	return &FuncDecl{name: name.text, async: isAsync, typeParams: typeParams, params: params, returnType: returnType, returnTypes: returnTypes, body: body, span: sp}
 }
 
 // parseView: 'view' ident '{' ViewBody '}'
@@ -852,6 +961,35 @@ func parseView(p *Parser) *ViewDecl {
 		return nil
 	}
 	p.adv()
+	var typeParams []string
+	if p.accept("<") {
+		seenTP := map[string]bool{}
+		for !p.at(">") {
+			if p.at("eof") {
+				p.diag("unexpected end of file in generic parameter list")
+				break
+			}
+			tp := p.cur()
+			if tp.kind != "ident" {
+				p.diag("expected a generic type parameter name")
+				resyncToLine(p)
+				break
+			}
+			if seenTP[tp.text] {
+				p.diag("duplicate generic type parameter " + tp.text)
+			}
+			seenTP[tp.text] = true
+			typeParams = append(typeParams, tp.text)
+			p.adv()
+			if !p.accept(",") {
+				break
+			}
+			skipNewlines(p)
+		}
+		if !p.accept(">") {
+			p.diag("expected '>' to close the generic parameter list")
+		}
+	}
 	// Component parameters: view Card(title: string, accent: string) { ... }
 	var params []Param
 	if p.at("(") {
@@ -1002,7 +1140,7 @@ func parseView(p *Parser) *ViewDecl {
 	if !p.accept("}") {
 		p.diag("expected '}' to close view")
 	}
-	return &ViewDecl{name: name.text, params: params, inst_state: instState, methods: methods, title: title, body: body, onLoad: onLoad, span: sp}
+	return &ViewDecl{name: name.text, typeParams: typeParams, params: params, inst_state: instState, methods: methods, title: title, body: body, onLoad: onLoad, span: sp}
 }
 
 // isListKw reports whether the current token is the `list` view keyword.
@@ -1158,8 +1296,14 @@ func parseViewList(p *Parser) *ViewNode {
 		return nil
 	}
 	iterable := parseExpr(p)
+	var key *Expr
+	if p.cur().kind == "ident" && p.cur().text == "key" {
+		p.adv()
+		p.accept(":")
+		key = parseExpr(p)
+	}
 	body := parseViewBlock(p)
-	return &ViewNode{kind: "list", item: item.text, item2: item2, iterable: iterable, body: body, span: sp}
+	return &ViewNode{kind: "list", item: item.text, item2: item2, iterable: iterable, key: key, body: body, span: sp}
 }
 
 // parseViewElem: Tag [ String ] { Attr } [ '{' ViewBody '}' ]
@@ -2221,6 +2365,12 @@ func (l *Loader) loadFile(path string) {
 	for i := 0; i < len(pp.i18n); i++ {
 		l.prog.i18n = append(l.prog.i18n, pp.i18n[i])
 	}
+	for i := 0; i < len(pp.consts); i++ {
+		l.prog.consts = append(l.prog.consts, pp.consts[i])
+	}
+	for i := 0; i < len(pp.computed); i++ {
+		l.prog.computed = append(l.prog.computed, pp.computed[i])
+	}
 	for i := 0; i < len(pp.states); i++ {
 		l.prog.states = append(l.prog.states, pp.states[i])
 	}
@@ -2261,6 +2411,12 @@ func LoadProgram(entryFile string) (*Prog, DiagList) {
 	l.loadFile(entryFile)
 	var names []string
 	var spans []Span
+	for i := 0; i < len(prog.consts); i++ {
+		names, spans = trackSym(prog.consts[i].name, prog.consts[i].span, names, spans, &dl)
+	}
+	for i := 0; i < len(prog.computed); i++ {
+		names, spans = trackSym(prog.computed[i].name, prog.computed[i].span, names, spans, &dl)
+	}
 	for i := 0; i < len(prog.states); i++ {
 		names, spans = trackSym(prog.states[i].name, prog.states[i].span, names, spans, &dl)
 	}
