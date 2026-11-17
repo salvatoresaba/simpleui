@@ -4062,7 +4062,7 @@
     {
       "kind": "toast",
       "label": "Toast host",
-      "markup": "<div class=\"sui-toast-host\" data-sui-toast-host=\"1\" aria-live=\"polite\" aria-atomic=\"false\" data-sui-id=\"0\"><p data-sui-id=\"1\">Saved</p></div>",
+      "markup": "<div class=\"sui-toast-host\" data-sui-toast-host=\"1\" aria-live=\"polite\" aria-atomic=\"false\"><div class=\"sui-toast\"><div class=\"sui-toast-message\">Saved</div></div></div>",
       "classes": [
         "sui-toast",
         "sui-toast-close",
@@ -4171,6 +4171,131 @@
         {
           "id": "default",
           "label": "Default"
+        },
+        {
+          "id": "info",
+          "label": "Info",
+          "vars": {
+            "--sui-toast-bg": "#10243a",
+            "--sui-toast-fg": "#dbeafe",
+            "--sui-toast-accent": "#3b82f6",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
+        },
+        {
+          "id": "success",
+          "label": "Success",
+          "vars": {
+            "--sui-toast-bg": "#0f2a1d",
+            "--sui-toast-fg": "#dcfce7",
+            "--sui-toast-accent": "#22c55e",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
+        },
+        {
+          "id": "warning",
+          "label": "Warning",
+          "vars": {
+            "--sui-toast-bg": "#3a2a12",
+            "--sui-toast-fg": "#fef3c7",
+            "--sui-toast-accent": "#f59e0b",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
+        },
+        {
+          "id": "danger",
+          "label": "Danger",
+          "vars": {
+            "--sui-toast-bg": "#3a1d22",
+            "--sui-toast-fg": "#fee2e2",
+            "--sui-toast-accent": "#ef4444",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
+        },
+        {
+          "id": "glass",
+          "label": "Glass",
+          "vars": {
+            "--sui-toast-bg": "rgba(17,24,39,.72)",
+            "--sui-toast-fg": "#f8fafc",
+            "--sui-toast-accent": "#38bdf8",
+            "--sui-toast-backdrop": "blur(10px)",
+            "--sui-toast-shadow": "0 10px 32px rgba(0,0,0,.5)"
+          }
+        },
+        {
+          "id": "minimal",
+          "label": "Minimal",
+          "vars": {
+            "--sui-toast-bg": "#111827",
+            "--sui-toast-fg": "#e5e7eb",
+            "--sui-toast-accent": "#64748b",
+            "--sui-toast-border-width": "0px",
+            "--sui-toast-radius": "12px",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.4)"
+          }
+        },
+        {
+          "id": "neon",
+          "label": "Neon",
+          "vars": {
+            "--sui-toast-bg": "#0b1220",
+            "--sui-toast-fg": "#e0f2fe",
+            "--sui-toast-accent": "#22d3ee",
+            "--sui-toast-shadow": "0 0 18px rgba(34,211,238,.35)"
+          }
+        },
+        {
+          "id": "ocean",
+          "label": "Ocean",
+          "vars": {
+            "--sui-toast-bg": "#0c2f4a",
+            "--sui-toast-fg": "#e0f2fe",
+            "--sui-toast-accent": "#0ea5e9",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
+        },
+        {
+          "id": "sunset",
+          "label": "Sunset",
+          "vars": {
+            "--sui-toast-bg": "#3b1d2e",
+            "--sui-toast-fg": "#ffe4e6",
+            "--sui-toast-accent": "#fb7185",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
+        },
+        {
+          "id": "mono",
+          "label": "Mono",
+          "vars": {
+            "--sui-toast-bg": "#111827",
+            "--sui-toast-fg": "#e5e7eb",
+            "--sui-toast-accent": "#94a3b8",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
+        },
+        {
+          "id": "paper",
+          "label": "Paper",
+          "vars": {
+            "--sui-toast-bg": "#f8f1e3",
+            "--sui-toast-fg": "#2f2a24",
+            "--sui-toast-accent": "#b45309",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.25)"
+          }
+        },
+        {
+          "id": "wire",
+          "label": "Wire",
+          "vars": {
+            "--sui-toast-bg": "transparent",
+            "--sui-toast-fg": "#e5e7eb",
+            "--sui-toast-accent": "#93c5fd",
+            "--sui-toast-border-width": "3px",
+            "--sui-toast-radius": "6px",
+            "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)"
+          }
         }
       ],
       "animations": [

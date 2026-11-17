@@ -617,6 +617,20 @@ var APPEARANCE_CUSTOM = {
       { id: "soft", label: "Soft", vars: { "--sui-toast-radius": "14px" } },
       { id: "glass", label: "Glass", vars: { "--sui-toast-bg": "rgba(17,24,39,.84)", "--sui-toast-radius": "16px", "--sui-toast-padding": "14px 16px", "--sui-toast-border-width": "1px", "--sui-toast-backdrop": "blur(14px)", "--sui-toast-shadow": "0 12px 32px rgba(0,0,0,.4)" } },
       { id: "compact", label: "Compact", vars: { "--sui-toast-width": "280px", "--sui-toast-padding": "8px 10px", "--sui-toast-font-size": "12px", "--sui-toast-border-width": "3px", "--sui-toast-radius": "8px" } }
+    ],
+    styles: [
+      { id: "info", label: "Info", vars: { "--sui-toast-bg": "#10243a", "--sui-toast-fg": "#dbeafe", "--sui-toast-accent": "#3b82f6", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "success", label: "Success", vars: { "--sui-toast-bg": "#0f2a1d", "--sui-toast-fg": "#dcfce7", "--sui-toast-accent": "#22c55e", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "warning", label: "Warning", vars: { "--sui-toast-bg": "#3a2a12", "--sui-toast-fg": "#fef3c7", "--sui-toast-accent": "#f59e0b", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "danger", label: "Danger", vars: { "--sui-toast-bg": "#3a1d22", "--sui-toast-fg": "#fee2e2", "--sui-toast-accent": "#ef4444", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "glass", label: "Glass", vars: { "--sui-toast-bg": "rgba(17,24,39,.72)", "--sui-toast-fg": "#f8fafc", "--sui-toast-accent": "#38bdf8", "--sui-toast-backdrop": "blur(10px)", "--sui-toast-shadow": "0 10px 32px rgba(0,0,0,.5)" } },
+      { id: "minimal", label: "Minimal", vars: { "--sui-toast-bg": "#111827", "--sui-toast-fg": "#e5e7eb", "--sui-toast-accent": "#64748b", "--sui-toast-border-width": "0px", "--sui-toast-radius": "12px", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.4)" } },
+      { id: "neon", label: "Neon", vars: { "--sui-toast-bg": "#0b1220", "--sui-toast-fg": "#e0f2fe", "--sui-toast-accent": "#22d3ee", "--sui-toast-shadow": "0 0 18px rgba(34,211,238,.35)" } },
+      { id: "ocean", label: "Ocean", vars: { "--sui-toast-bg": "#0c2f4a", "--sui-toast-fg": "#e0f2fe", "--sui-toast-accent": "#0ea5e9", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "sunset", label: "Sunset", vars: { "--sui-toast-bg": "#3b1d2e", "--sui-toast-fg": "#ffe4e6", "--sui-toast-accent": "#fb7185", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "mono", label: "Mono", vars: { "--sui-toast-bg": "#111827", "--sui-toast-fg": "#e5e7eb", "--sui-toast-accent": "#94a3b8", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } },
+      { id: "paper", label: "Paper", vars: { "--sui-toast-bg": "#f8f1e3", "--sui-toast-fg": "#2f2a24", "--sui-toast-accent": "#b45309", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.25)" } },
+      { id: "wire", label: "Wire", vars: { "--sui-toast-bg": "transparent", "--sui-toast-fg": "#e5e7eb", "--sui-toast-accent": "#93c5fd", "--sui-toast-border-width": "3px", "--sui-toast-radius": "6px", "--sui-toast-shadow": "0 8px 24px rgba(0,0,0,.35)" } }
     ]
   }
 };
@@ -1291,7 +1305,7 @@ function appearancePreviewNode(kind, attrs, extraClasses, structureClass) {
   var attrStr = "";
   Object.keys(attrs || {}).forEach(function(k){ attrStr += " " + k + ": \"" + esc(String(attrs[k])) + "\""; });
   var previewClasses = [extraClasses, structureClass].filter(Boolean).join(" ");
-  var cls = " class: \"appearance-preview" + (previewClasses ? " " + esc(previewClasses) : "") + "\"";
+  var cls = " class: \"appearance-preview" + (kind === "toast" ? " sui-toast" : "") + (previewClasses ? " " + esc(previewClasses) : "") + "\"";
   if (kind === "button") return "button \"Button\"" + cls + attrStr;
   if (kind === "card") return "card \"Card\"" + cls + attrStr + " {\n\t\tp \"Preview\"\n\t}";
   if (kind === "checkbox") return "checkbox \"Checkbox\" checked: true" + cls + attrStr;
@@ -1318,7 +1332,7 @@ function appearancePreviewNode(kind, attrs, extraClasses, structureClass) {
   if (kind === "dropdown") return "dropdown \"Menu\"" + cls + attrStr + " {\n\t\tdropdownitem \"One\"\n\t}";
   if (kind === "popover") return "popover \"Popover\"" + cls + attrStr + " {\n\t\tp \"Panel\"\n\t}";
   if (kind === "modal") return "modal \"Modal\"" + cls + attrStr + " {\n\t\tp \"Content\"\n\t}";
-  if (kind === "toast") return "toast \"Toast\"" + cls + attrStr + " {\n\t\tp \"Saved\"\n\t}";
+  if (kind === "toast") return "div" + cls + attrStr + " {\n\t\tdiv class: \"sui-toast-message\" { p \"Saved\" }\n\t}";
   if (kind === "tree") return "tree \"Tree\"" + cls + attrStr + " {\n\t\ttreeitem \"One\"\n\t}";
   if (kind === "commandbar") return "commandbar \"Commands\"" + cls + attrStr + " {\n\t\tcommand \"One\"\n\t}";
   if (kind === "drawer") return "drawer \"Drawer\"" + cls + attrStr + " {\n\t\tp \"Panel\"\n\t}";

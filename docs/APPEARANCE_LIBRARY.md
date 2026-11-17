@@ -325,6 +325,11 @@ without the editor's theme list.
   Bounce, Pulse and Jelly. Its thumb transitions between the two states even
   with **None**, and every switch structure (rounded, square, pill, iOS,
   material, minimal, soft) sets its own size and thumb geometry.
+- The **toast** ships with Dark, Light, Default and twelve named styles
+  (**Info**, **Success**, **Warning**, **Danger**, **Glass**, **Minimal**,
+  **Neon**, **Ocean**, **Sunset**, **Mono**, **Paper**, **Wire**). The navigator
+  preview renders a real `.sui-toast` card, not the empty live-region host used
+  by the runtime.
 - Structures and styles are **validated catalog data**, not arbitrary CSS. The
   external `components/library.json` is a separate layer for insertable
   component presets; it does not replace the appearance catalog.

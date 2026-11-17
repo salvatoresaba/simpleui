@@ -220,6 +220,14 @@ const guiAppearanceScript = `<script>
     assert(switchAnims.indexOf('Morph') >= 0 && switchAnims.indexOf('Fade') >= 0 && switchAnims.indexOf('Scale') >= 0, 'switch animations missing Morph/Fade/Scale: ' + switchAnims);
     var switchIos = appearanceStructures(switchDef, 'switch').filter(function (s) { return s.id === 'ios'; })[0];
     assert(!!switchIos && ((switchIos.attrs && switchIos.attrs.shape === 'ios') || switchIos.class === 'sui-sw-shape-ios'), 'switch iOS structure must set its shape');
+    var toastDef = componentDefForKind('toast');
+    var toastLabels = appearanceStyles(toastDef, 'toast').map(function (s) { return s.label; });
+    var wantedToast = ['Info', 'Success', 'Warning', 'Danger', 'Glass', 'Minimal', 'Neon', 'Ocean', 'Sunset', 'Mono', 'Paper', 'Wire'];
+    for (var ti = 0; ti < wantedToast.length; ti++) {
+      assert(toastLabels.indexOf(wantedToast[ti]) >= 0, 'toast style missing: ' + wantedToast[ti]);
+    }
+    var toastSrc = appearancePreviewSource(toastDef, 'toast', { structure: '', style: 'success', animation: 'none' });
+    assert(toastSrc.indexOf('sui-toast') >= 0 && toastSrc.indexOf('sui-toast-host') < 0, 'toast preview must render a toast card, not an empty host');
     function pathOfKind(kind) {
       function walk(list, base) {
         for (var i = 0; i < list.length; i++) {
