@@ -1057,10 +1057,6 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 #mg-param-body .mg-unit { flex:none; font-size:10px; color:var(--dim); min-width:22px; }
 #mg-param-body .mg-check { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--dim); margin:2px 0; }
 #mg-param-body .mg-check input { width:auto; }
-#mg-launch { position:fixed; right:24px; bottom:24px; z-index:50; display:none; align-items:center; gap:6px;
-  background:var(--panel); border:1px solid #4c5cf7; color:var(--fg); border-radius:9px; padding:7px 12px;
-  font-size:12px; font-weight:600; box-shadow:0 8px 26px rgba(0,0,0,.45); cursor:pointer; }
-#mg-launch.on { display:flex; }
 #mg-canvas { position:relative; flex:1; min-width:0; overflow:hidden; background:
   radial-gradient(circle at 1px 1px, rgba(143,160,184,.26) 1px, transparent 0) 0 0/18px 18px; cursor:grab; user-select:none; }
 #mg-canvas.mg-panning { cursor:grabbing; }
@@ -1117,7 +1113,6 @@ html[data-theme="light"] .mg-node .mg-del { border-color:#b91c1c; color:#b91c1c;
 html[data-theme="light"] .mg-node .mg-del:hover { background:#fee2e2; color:#991b1b; }
 html[data-theme="light"] #mg-placebar { color:#1e3a8a; border-bottom-color:#1d4ed8; background:rgba(29,78,216,.09); }
 html[data-theme="light"] #mg-placebar button { border-color:#1d4ed8; }
-html[data-theme="light"] #mg-launch { border-color:#1d4ed8; }
 html[data-theme="light"] #mg-editbar { border-color:#1d4ed8; }
 html[data-theme="light"] #mg-editbar .mg-edit-title { color:#1d4ed8; }
 html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-color:#b91c1c; box-shadow:0 10px 30px rgba(15,23,42,.18); }
@@ -1365,7 +1360,6 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
       </div>
       <div id="mg-param-body"></div>
     </div>
-    <button id="mg-launch" type="button" onclick="mgLaunchPanel()" title="Show the animation panel">Animation panel</button>
     <div id="mg-notify"></div>
     <div id="mg-editbar">
       <span class="mg-edit-title" id="mg-edit-title">Edit state</span>
@@ -7447,7 +7441,6 @@ function mgOpen(n, path) {
   var title = document.getElementById("mg-graph-title");
   if (title) title.textContent = (n.kind || "element") + (n.text ? " - " + String(n.text).slice(0, 32) : "");
   mgRender();
-  mgUpdateLauncher();
   setTimeout(function(){ mgFitGraph(); mgClampAll(); }, 0);
   renderInspector();
 }
@@ -7467,7 +7460,6 @@ function mgClosePanel() {
   mgCloseParam();
   var panel = document.getElementById("mg-panel");
   if (panel) { panel.classList.remove("on"); panel.classList.remove("min"); }
-  mgUpdateLauncher();
 }
 function mgCommit(label) {
   if (!mgNode || !mgCfg) return;
@@ -8783,33 +8775,17 @@ function mgCloseParam() {
 function mgMinimizePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.add("min");
-  mgUpdateLauncher();
   setTimeout(mgClampAll, 0);
 }
 function mgRestorePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.remove("min");
-  mgUpdateLauncher();
   setTimeout(function(){ mgFitGraph(); mgClampAll(); }, 0);
 }
 function mgTogglePanel() {
   var p = document.getElementById("mg-panel");
   if (p) p.classList.toggle("min");
-  mgUpdateLauncher();
   setTimeout(function(){ mgFitGraph(); mgClampAll(); }, 0);
-}
-function mgUpdateLauncher() {
-  var p = document.getElementById("mg-panel");
-  var b = document.getElementById("mg-launch");
-  if (!b) return;
-  b.classList.toggle("on", !p || !p.classList.contains("on"));
-}
-function mgLaunchPanel() {
-  var n = null;
-  if (selPath) { try { n = byPath(selPath, root.children); } catch (e) {} }
-  if (!n) n = mgNode;
-  if (!n) { setStatus("select an element first"); return; }
-  mgOpen(n, selPath ? selPath.slice() : mgPath);
 }
 function mgRenderParam() {
   var side = document.getElementById("mg-param-body");
@@ -9928,8 +9904,6 @@ function mgFocusState(id, collapse) {
   if (collapse) {
     var panel = document.getElementById("mg-panel");
     if (panel) { panel.classList.remove("on"); panel.classList.remove("min"); }
-    var launch = document.getElementById("mg-launch");
-    if (launch) launch.classList.remove("on");
     mgCloseParam();
   }
   var bar = document.getElementById("mg-editbar"); if (bar) bar.classList.add("on");
@@ -10102,7 +10076,6 @@ function mgMakeResizable(panelId, handleId) {
   mgMakeDraggable("mg-panel", "mg-hdr");
   mgMakeDraggable("mg-param", "mg-param-hdr");
   mgMakeResizable("mg-panel", "mg-resize");
-  mgUpdateLauncher();
   var mgCanvas = document.getElementById("mg-canvas");
   if (mgCanvas) {
     mgCanvas.addEventListener("pointermove", mgPlacementMove);
