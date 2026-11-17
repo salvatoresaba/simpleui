@@ -30,8 +30,11 @@ interpolation is intentionally unavailable. This applies to static text with
 
 `href`/`src`/`link` allow relative URLs and `http(s)`, `mailto`, `tel`.
 `javascript:`, `vbscript:`, `data:` and other active schemes are neutralized at
-runtime and rejected at compile time when static. Destination allow-lists remain
-the app's responsibility (SSRF/open redirects).
+runtime and rejected at compile time when static. One exception: `data:image/...`
+is accepted in the `src` of `img` and `spinner`, where browsers render the value
+as an image and never execute scripts; it stays rejected in `href`, `link` and
+non-image media. Destination allow-lists remain the app's responsibility
+(SSRF/open redirects).
 
 ### 3. Dynamic CSS requires `cssSafe(...)`
 

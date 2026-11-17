@@ -590,6 +590,25 @@ control keeps its colours and layout.
 Spinner presets now include real shape changes: **Tri dots**, **Equalizer** and
 **Comet** in addition to the ring variants.
 
+### Spinner image/GIF mode
+
+An animated GIF can replace the CSS ring. Select a spinner, open its **Spinner**
+inspector section and tick **Image / GIF**. The **Theme**, **Structure**,
+**Style**, **Animation** and phase selectors are disabled, and two source
+controls appear:
+
+- **Source** lists the images already uploaded to the project; choosing one
+  applies it immediately.
+- **Upload image** accepts GIF, PNG, JPEG, WebP and AVIF files up to 4 MB,
+  stores the image as a data URI and applies it.
+
+The generated element keeps the `spinner` tag and gains a literal or reactive
+`src:`. The preview shows the animation and the generated source stays
+self-contained because the image is embedded as `data:image/...;base64,...`.
+Untick **Image / GIF** to return to the CSS spinner; the previous structure,
+style and animation are kept. The media manager's **Src** button also works on a
+selected spinner. See `examples/spinner_image/` for a runnable comparison.
+
 Presets that showcase the new effects: **Aurora** and **Scanner** for Progress,
 **Live** for Badge, **Arcade** for Button and **Aurora halo** for Card. The
 **Style** selector still writes palette and shape together, so choosing a preset

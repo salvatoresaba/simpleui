@@ -1410,6 +1410,22 @@ function appearanceLoadPreview(def, kind, sel, frame) {
     });
   }, 160);
 }
+// ---- spinner image mode ---------------------------------------------------
+// An image spinner stores its source in the ordinary src attribute, so the
+// generated .sui remains readable and the compiler can render it directly.
+function spinnerImageMode(node) {
+  return !!(node && node.kind === "spinner" && String(node.src || "").trim());
+}
+function spinnerImageSet(node, url) {
+  if (!node || !url) return;
+  node.src = String(url);
+  node.srcExpr = false;
+}
+function spinnerImageClear(node) {
+  if (!node) return;
+  delete node.src;
+  delete node.srcExpr;
+}
 function appearanceInspectorSection(def, node) {
   var kind = node.kind;
   var cur = appearanceCurrent(node, def, kind);
@@ -1418,10 +1434,11 @@ function appearanceInspectorSection(def, node) {
   var anims = appearanceAnimations(def, kind);
   var themes = appearanceThemes(def, kind);
   var rows = [];
-  function optionRow(label, list, value, onChange, title) {
+  function optionRow(label, list, value, onChange, title, field) {
     var row = document.createElement("div"); row.className = "rowline";
     var l = document.createElement("label"); l.textContent = label; l.title = title || ""; row.appendChild(l);
     var sel = document.createElement("select");
+    sel.setAttribute("data-appearance-field", field || label.toLowerCase());
     var custom = document.createElement("option"); custom.value = ""; custom.textContent = "Custom"; sel.appendChild(custom);
     list.forEach(function(o){
       var op = document.createElement("option"); op.value = o.id; op.textContent = o.label; sel.appendChild(op);
@@ -1437,6 +1454,7 @@ function appearanceInspectorSection(def, node) {
   }
   // Order requested by the designer: Theme, Structure, Style, Animation.
   var themeSel = document.createElement("select");
+  themeSel.setAttribute("data-appearance-field", "theme");
   var themeRow = document.createElement("div"); themeRow.className = "rowline";
   var tl = document.createElement("label"); tl.textContent = "Theme"; themeRow.appendChild(tl);
   var tc = document.createElement("option"); tc.value = ""; tc.textContent = "Custom"; themeSel.appendChild(tc);
@@ -1451,19 +1469,20 @@ function appearanceInspectorSection(def, node) {
   };
   themeRow.appendChild(themeSel);
   rows.push(themeRow);
-  optionRow("Structure", structs, cur.structure, function(v){
+  var structSel = optionRow("Structure", structs, cur.structure, function(v){
     apply({ structure: v }, "structure");
-  }, "Shape and drawing of the control");
-  optionRow("Style", styles, cur.style, function(v){
+  }, "Shape and drawing of the control", "structure");
+  var styleSel = optionRow("Style", styles, cur.style, function(v){
     apply({ style: v }, "style");
-  }, "Colour palette of the control");
-  optionRow("Animation", anims, cur.animation, function(v){
+  }, "Colour palette of the control", "style");
+  var animSel = optionRow("Animation", anims, cur.animation, function(v){
     apply({ animation: v }, "animation");
-  }, "Idle effect plus hover, click, focus and state feedback");
+  }, "Idle effect plus hover, click, focus and state feedback", "animation");
   // The Animation menu selects the whole coherent set; these four refine the
   // feedback of each interaction. Hover/click/focus/state are written to their
   // own CSS variables and class hooks, so they never replace the idle effect.
   var phaseLabels = { hover: "Hover", press: "Click", focus: "Focus", state: "State" };
+  var phaseSels = [];
   Object.keys(phaseLabels).forEach(function (phase) {
     var prow = document.createElement("div");
     prow.className = "rowline appearance-phase-row";
@@ -1495,13 +1514,14 @@ function appearanceInspectorSection(def, node) {
       apply({ phase: phase, phaseValue: ps.value }, "animation " + phase);
     };
     prow.appendChild(ps);
+    phaseSels.push(ps);
     rows.push(prow);
   });
   var actions = document.createElement("div"); actions.className = "rowline";
-  var browse = document.createElement("button"); browse.type = "button"; browse.className = "btn"; browse.textContent = "Browse…";
+  var browse = document.createElement("button"); browse.type = "button"; browse.className = "btn"; browse.textContent = "Browse.";
   browse.title = "Open the appearance library for this control";
   browse.onclick = function(){ openLibraryNavigator("appearance", kind); };
-  var save = document.createElement("button"); save.type = "button"; save.className = "btn"; save.textContent = "Save theme…";
+  var save = document.createElement("button"); save.type = "button"; save.className = "btn"; save.textContent = "Save theme.";
   save.title = "Save this structure + style + animation as a theme";
   save.onclick = function(){ appearanceSaveFavorite(def, kind, node, cur); };
   actions.appendChild(browse); actions.appendChild(save);
@@ -1509,6 +1529,135 @@ function appearanceInspectorSection(def, node) {
   var hint = document.createElement("div"); hint.className = "hint"; hint.style.fontSize = "10px";
   hint.textContent = "Idle + hover + click + focus + state. Applies to this element only; themes are saved in this editor.";
   rows.push(hint);
+
+  // Spinner image/GIF mode. A raster animation replaces the CSS ring, so the
+  // structure, style and animation selectors are disabled while an image is
+  // selected. Uploads use the same validated asset store as the media manager.
+  if (kind === "spinner") {
+    var spinnerAssets = [];
+    var imageMode = spinnerImageMode(node);
+    var imageToggleRow = document.createElement("div"); imageToggleRow.className = "rowline";
+    var imageToggleLabel = document.createElement("label");
+    imageToggleLabel.textContent = "Image / GIF";
+    imageToggleLabel.title = "Use an uploaded GIF or image instead of the CSS spinner";
+    var imageToggle = document.createElement("input");
+    imageToggle.type = "checkbox";
+    imageToggle.id = "f_spinner_image";
+    imageToggle.setAttribute("data-role", "spinner-image");
+    imageToggle.checked = imageMode;
+    imageToggleRow.appendChild(imageToggleLabel); imageToggleRow.appendChild(imageToggle);
+    rows.unshift(imageToggleRow);
+
+    var imagePickRow = document.createElement("div"); imagePickRow.className = "rowline";
+    imagePickRow.setAttribute("data-role", "spinner-image-picker");
+    var imagePickLabel = document.createElement("label"); imagePickLabel.textContent = "Source";
+    var imageSelect = document.createElement("select");
+    imageSelect.id = "f_spinner_image_src";
+    imageSelect.setAttribute("data-role", "spinner-image-src");
+    imagePickRow.appendChild(imagePickLabel); imagePickRow.appendChild(imageSelect);
+    rows.unshift(imagePickRow);
+
+    var imageUploadRow = document.createElement("div"); imageUploadRow.className = "rowline";
+    imageUploadRow.setAttribute("data-role", "spinner-image-actions");
+    var uploadSpacer = document.createElement("label");
+    var uploadBtn = document.createElement("button");
+    uploadBtn.type = "button"; uploadBtn.className = "btn"; uploadBtn.id = "f_spinner_image_upload";
+    uploadBtn.textContent = "Upload image.";
+    uploadBtn.title = "Upload a GIF, PNG, JPEG, WebP or AVIF (max 4 MB)";
+    var fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.id = "f_spinner_image_file";
+    fileInput.accept = "image/gif,image/png,image/jpeg,image/webp,image/avif";
+    fileInput.style.display = "none";
+    var preview = document.createElement("img");
+    preview.className = "spinner-image-preview";
+    preview.alt = "";
+    preview.style.cssText = "width:28px;height:28px;object-fit:contain;border-radius:4px;background:rgba(255,255,255,.06)";
+    if (node.src) preview.src = node.src;
+    imageUploadRow.appendChild(uploadSpacer); imageUploadRow.appendChild(uploadBtn);
+    imageUploadRow.appendChild(preview); imageUploadRow.appendChild(fileInput);
+    rows.unshift(imageUploadRow);
+
+    function paintSpinnerAssets() {
+      while (imageSelect.firstChild) imageSelect.removeChild(imageSelect.firstChild);
+      var placeholder = document.createElement("option");
+      placeholder.value = ""; placeholder.textContent = "Select an image.";
+      imageSelect.appendChild(placeholder);
+      var found = false;
+      spinnerAssets.forEach(function (a) {
+        var op = document.createElement("option");
+        op.value = a.url;
+        op.textContent = (a.name || "image") + " \u00b7 " + Math.max(1, Math.round((a.size || 0) / 1024)) + " KB";
+        imageSelect.appendChild(op);
+        if (a.url === node.src) found = true;
+      });
+      if (node.src && !found) {
+        var current = document.createElement("option");
+        current.value = node.src; current.textContent = "Current image";
+        imageSelect.appendChild(current);
+      }
+      imageSelect.value = node.src || "";
+    }
+    function syncSpinnerImageUI() {
+      var on = !!imageToggle.checked;
+      imagePickRow.style.display = on ? "" : "none";
+      imageUploadRow.style.display = on ? "" : "none";
+      imageSelect.disabled = !on;
+      uploadBtn.disabled = !on;
+      [themeSel, structSel, styleSel, animSel].concat(phaseSels).forEach(function (sel) {
+        if (sel) sel.disabled = on;
+      });
+      if (on) {
+        hint.textContent = "Image/GIF mode: structure, style and animation are disabled. Choose an uploaded image or use Upload image.";
+      } else {
+        hint.textContent = "Idle + hover + click + focus + state. Applies to this element only; themes are saved in this editor.";
+      }
+    }
+    imageToggle.onchange = function () {
+      if (!imageToggle.checked) {
+        withUndo(function () { spinnerImageClear(node); }, "spinner image");
+        return;
+      }
+      syncSpinnerImageUI();
+      if (!node.src) {
+        if (spinnerAssets.length) imageSelect.focus();
+        else fileInput.click();
+      }
+    };
+    imageSelect.onchange = function () {
+      if (!imageSelect.value) return;
+      withUndo(function () { spinnerImageSet(node, imageSelect.value); }, "spinner image");
+    };
+    uploadBtn.onclick = function () { fileInput.click(); };
+    fileInput.onchange = function () {
+      var f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      if (f.size > (4 << 20)) {
+        setStatus("image is larger than 4 MB");
+        fileInput.value = "";
+        return;
+      }
+      var fd = new FormData();
+      fd.append("image", f);
+      setStatus("uploading " + f.name + "...");
+      fetch("/__gui__/asset", { method: "POST", body: fd }).then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.ok) { setStatus("upload failed: " + (j.error || "unknown")); return; }
+        setStatus("image added: " + j.asset.name);
+        spinnerAssets.unshift(j.asset);
+        imageToggle.checked = true;
+        withUndo(function () { spinnerImageSet(node, j.asset.url); }, "spinner image");
+      }).catch(function () { setStatus("upload failed"); });
+      fileInput.value = "";
+    };
+    paintSpinnerAssets();
+    syncSpinnerImageUI();
+    fetch("/__gui__/assets").then(function (r) { return r.json(); }).then(function (j) {
+      spinnerAssets = (j && j.ok && j.assets) ? j.assets : [];
+      paintSpinnerAssets();
+      if (imageToggle.checked && !node.src && spinnerAssets.length) imageSelect.focus();
+    }).catch(function () {});
+  }
+
   var sec = acc(appearanceKindLabel(kind), rows);
   sec.classList.add("open");
   return sec;

@@ -2028,6 +2028,46 @@ select.sui-chart-state-cell-input, .sui-chart-tag-editor select { appearance: no
   border-bottom-color: var(--sui-spinner-hover-color2, var(--sui-spinner-color2, transparent));
   filter: var(--sui-spinner-hover-filter, none);
 }
+/* Image/GIF spinner: the src attribute replaces the CSS ring and its
+   animation. The wrapper keeps the user class so the designer can still
+   style it. */
+.sui-spinner.sui-spinner-image {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  line-height: 0;
+  animation: none;
+  vertical-align: middle;
+}
+.sui-spinner.sui-spinner-image::before,
+.sui-spinner.sui-spinner-image::after {
+  content: none;
+}
+.sui-spinner.sui-spinner-image:hover {
+  border: 0;
+  background: transparent;
+  filter: none;
+}
+.sui-spinner.sui-spinner-image > img.sui-spinner-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: var(--sui-spinner-size, 96px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  object-fit: contain;
+}
 .sui-divider:hover {
   border-top-color: var(--sui-divider-hover-color, var(--sui-divider-color, #3d4556));
   border-top-width: var(--sui-divider-hover-thickness, var(--sui-divider-thickness, 1px));
@@ -5935,12 +5975,65 @@ func writeStaticNodes(sb *strings.Builder, nodes []ViewNode, ind string) {
 	}
 }
 
+// spinnerImageMode reports whether a spinner uses an image/GIF instead of the
+// CSS ring. The source may be static text or a reactive expression.
+func spinnerImageMode(e *Element) bool {
+	if e == nil || e.tag != "spinner" {
+		return false
+	}
+	a := findAttr(e, "src")
+	if a == nil {
+		return false
+	}
+	if a.hasExpr {
+		return a.expr != nil
+	}
+	return strings.TrimSpace(partsContent(a.text)) != ""
+}
+
+// spinnerStaticImageMode is the literal-only variant used by the static
+// renderer, which cannot evaluate expressions. A reactive src is rendered by
+// the JavaScript generator instead.
+func spinnerStaticImageMode(e *Element) bool {
+	if e == nil || e.tag != "spinner" {
+		return false
+	}
+	a := findAttr(e, "src")
+	return a != nil && !a.hasExpr && strings.TrimSpace(partsContent(a.text)) != ""
+}
+
+// writeStaticSpinnerImage renders an image spinner as a wrapper with an <img>.
+// The wrapper carries the control class so user styles keep working; the image
+// inherits the size variables and never runs the CSS ring animation.
+func writeStaticSpinnerImage(sb *strings.Builder, e *Element, ind string) {
+	sb.WriteString(ind)
+	sb.WriteString("<div class=\"sui-spinner sui-spinner-image\"")
+	staticClassSuffix(sb, e)
+	sb.WriteString(">")
+	sb.WriteString("<img class=\"sui-spinner-img\"")
+	if a := findAttr(e, "src"); a != nil && !a.hasExpr {
+		sb.WriteString(" src=\"" + htmlEscape(strings.TrimSpace(partsContent(a.text))) + "\"")
+	}
+	if a := findAttr(e, "alt"); a != nil && !a.hasExpr {
+		sb.WriteString(" alt=\"" + htmlEscape(partsContent(a.text)) + "\"")
+	} else if len(e.text) > 0 {
+		sb.WriteString(" alt=\"" + htmlEscape(partsContent(e.text)) + "\"")
+	} else {
+		sb.WriteString(" alt=\"\"")
+	}
+	sb.WriteString("></div>\n")
+}
+
 // staticDatalistSeq numbers the <datalist> elements emitted for static
 // elements. Atomic: two concurrent HTTP handlers can generate HTML at the
 // same time and a plain ++ would be a data race.
 var staticDatalistSeq int64
 
 func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
+	if e.tag == "spinner" && spinnerStaticImageMode(e) {
+		writeStaticSpinnerImage(sb, e, ind)
+		return
+	}
 	if e.tag == "dropdownitem" && datepickerBool(e, "separator") {
 		sb.WriteString(ind + "<div class=\"sui-dropdown-sep\" role=\"separator\"></div>\n")
 		return

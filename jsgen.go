@@ -248,6 +248,15 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  if (/^[a-z][a-z0-9+.-]*:/i.test(probe)) return '#';\n" +
 	"  return s;\n" +
 	"}\n" +
+	"// __sui_img_url is the image-source variant of __sui_url. Raster images and\n" +
+	"// GIFs are embedded as data:image/... URIs by the designer asset manager;\n" +
+	"// scripts never run in an <img>, so those values are safe there.\n" +
+	"function __sui_img_url(v) {\n" +
+	"  var s = String(v === null || v === undefined ? '' : v).trim();\n" +
+	"  var probe = s.replace(/[\\u0000-\\u0020\\u007f]+/g, '');\n" +
+	"  if (/^data:image\\//i.test(probe)) return s;\n" +
+	"  return __sui_url(s);\n" +
+	"}\n" +
 	"// __sui_iframe_src validates iframe URLs. Malformed data is rejected with a\n" +
 	"// reason that the renderer shows in a visible alert (never loaded).\n" +
 	"function __sui_iframe_src(v, allow, required) {\n" +
@@ -1446,6 +1455,20 @@ func htmlAttrValue(a *Attr, url bool) string {
 		return "${__sui_esc(__sui_url(`" + partsContent(a.text) + "`))}"
 	}
 	return htmlTextParts(a.text)
+}
+
+// htmlAttrValueImage is htmlAttrValue for an <img> src. It permits the
+// data:image/... URIs produced by the designer asset manager while delegating
+// every other value to the normal URL guard.
+func htmlAttrValueImage(a *Attr) string {
+	if a.hasExpr {
+		expr := "null"
+		if a.expr != nil {
+			expr = ExprToJs(a.expr)
+		}
+		return "${__sui_esc(__sui_img_url(" + expr + "))}"
+	}
+	return "${__sui_esc(__sui_img_url(`" + partsContent(a.text) + "`))}"
 }
 
 func memberFullName(e *Expr) string {
@@ -3231,6 +3254,9 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 				base += " " + pc
 			}
 		}
+		if e.tag == "spinner" && spinnerImageMode(e) {
+			base += " sui-spinner-image"
+		}
 		if e.tag == "tablelayout" && datepickerBool(e, "responsive") {
 			base += " sui-layout-responsive"
 		}
@@ -3250,6 +3276,20 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 	for i := 0; i < len(e.attrs); i++ {
 		a := e.attrs[i]
 		if _, isEv := eventAttrJs[a.key]; isEv {
+			continue
+		}
+		if e.tag == "spinner" && spinnerImageMode(e) && (a.key == "src" || a.key == "alt") {
+			// The image source and its alternative text belong to the inner
+			// <img>, emitted by spinnerImageElemJs.
+			continue
+		}
+		if e.tag == "img" && a.key == "src" {
+			// The designer asset manager embeds uploaded images as
+			// data:image/... URIs; the image guard accepts them, while the
+			// generic URL guard would replace them with "#".
+			sb.WriteString(" src=\"")
+			sb.WriteString(htmlAttrValueImage(&a))
+			sb.WriteString("\"")
 			continue
 		}
 		if (e.tag == "modal" && a.key == "name") ||
@@ -3635,6 +3675,9 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	if interactive && !genCompBody {
 		collectWiring(e, idx, g, ctx)
 	}
+	if e.tag == "spinner" && spinnerImageMode(e) {
+		return spinnerImageElemJs(e, idx, ctx)
+	}
 	if e.tag == "iframe" {
 		if src := findAttr(e, "src"); src != nil {
 			allow := findAttr(e, "srcAllow")
@@ -3775,6 +3818,30 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 		return "`" + lo + "` + (" + inner + ") + `</a>`"
 	}
 	return inner
+}
+
+// spinnerImageElemJs renders a spinner whose `src` points at a GIF or image.
+// The wrapper keeps the control class and user attributes; the inner <img>
+// receives the guarded source and the label as alternative text.
+func spinnerImageElemJs(e *Element, idx int, ctx *JsCtx) string {
+	open := openTagHtml(e, "div", false, idx, ctx)
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	b.WriteString("<img class=\"sui-spinner-img\"")
+	if src := findAttr(e, "src"); src != nil {
+		b.WriteString(" src=\"")
+		b.WriteString(htmlAttrValueImage(src))
+		b.WriteString("\"")
+	}
+	b.WriteString(" alt=\"")
+	if alt := findAttr(e, "alt"); alt != nil {
+		b.WriteString(htmlAttrValue(alt, false))
+	} else if len(e.text) > 0 {
+		b.WriteString(htmlTextParts(e.text))
+	}
+	b.WriteString("\"></div>`")
+	return b.String()
 }
 
 // modalElemJs renders a hidden modal with a title, body content and a footer

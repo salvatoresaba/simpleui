@@ -52,6 +52,9 @@ Gli attributi `href`, `src` e `link` passano da `__sui_url`:
 - bloccati: `javascript:`, `vbscript:`, `data:`, `file:` e altri schemi attivi
   (sostituiti con `#`); i caratteri di controllo vengono ignorati nel controllo
   dello schema.
+- eccezione: `data:image/...` � accettato solo nello `src` di `img` e `spinner`,
+  dove il browser lo tratta come immagine e non esegue script; resta bloccato in
+  `href`, `link` e nei media non immagine.
 
 Resta responsabilità dell'app validare la **destinazione** (allow-list), non solo
 lo schema: un URL `https://` può puntare a un endpoint interno (SSRF).

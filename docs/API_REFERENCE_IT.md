@@ -5,6 +5,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 ## Sommario
 - [Linguaggio SUI](#linguaggio-sui-sintassi-essenziale)
 - [Menu bar](#menu-bar)
+- [Spinner](#spinner)
 - [Tabs](#tabs)
 - [Pagine e navigazione](#pagine-e-navigazione)
 - [Dialoghi modali](#dialoghi-modali)
@@ -700,6 +701,31 @@ skeleton circle: true height: "48px"
 
 `simpleui check` rifiuta i figli di skeleton. Nel designer scegliere **Content >
 Skeleton loader**.
+
+## Spinner
+
+`spinner "Etichetta"` mostra l'anello CSS. Aggiungi `src` per usare invece
+un'immagine o una GIF animata:
+
+```sui
+spinner "Loading" src: "spinner.gif"
+spinner "Loading" src: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+```
+
+L'etichetta diventa il testo `alt` dell'immagine. Gli spinner con immagine
+generano un wrapper `.sui-spinner.sui-spinner-image` con dentro un'immagine
+`.sui-spinner-img`; l'anello CSS, il bordo e la rotazione sono disattivati.
+L'immagine mantiene le proporzioni ed � limitata da `--sui-spinner-size`
+(default `96px`). `src` pu� essere un'espressione reattiva; il runtime usa la
+guardia URL per immagini, che accetta `data:image/...`, `http(s)` e percorsi
+relativi e rifiuta `javascript:` e altri schemi attivi. `alt` sovrascrive
+l'etichetta.
+
+Quando `src` � presente, `variant` e le variabili di struttura, stile e
+animazione vengono ignorate. Nel designer la sezione **Spinner** ha una
+casella **Image / GIF** con selettore degli asset e **Upload image**; i campi
+struttura, stile e animazione sono disabilitati mentre � attiva. Vedi
+[GUI editor: modalit� immagine/GIF dello spinner](GUI_EDITOR_IT.md#modalità-immaginegif-dello-spinner).
 
 ## Carousel
 

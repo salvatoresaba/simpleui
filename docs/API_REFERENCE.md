@@ -7,6 +7,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 - [SUI language](#sui-language-essential-syntax)
 - [Drag and drop](#drag-and-drop)
 - [Menu bar](#menu-bar)
+- [Spinner](#spinner)
 - [Tabs](#tabs)
 - [Pages and navigation](#pages-and-navigation)
 - [Modal dialogs](#modal-dialogs)
@@ -753,6 +754,30 @@ skeleton circle: true height: "48px"
 
 `simpleui check` rejects skeleton children. In the designer choose **Content >
 Skeleton loader**.
+
+## Spinner
+
+`spinner "Label"` renders the CSS ring. Add `src` to use an image or animated
+GIF instead:
+
+```sui
+spinner "Loading" src: "spinner.gif"
+spinner "Loading" src: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+```
+
+The label becomes the image `alt` text. Image spinners render a
+`.sui-spinner.sui-spinner-image` wrapper with an inner `.sui-spinner-img`
+image; the CSS ring, border and rotation are disabled. The image keeps its
+aspect ratio and is capped by `--sui-spinner-size` (default `96px`). `src` may
+be a reactive expression; the runtime uses the image URL guard, which accepts
+`data:image/...`, `http(s)` and relative paths and rejects `javascript:` and
+other active schemes. `alt` overrides the label.
+
+When `src` is present, `variant` and the appearance structure, style and
+animation variables are ignored. In the designer, the Spinner inspector has an
+**Image / GIF** checkbox with an asset picker and **Upload image**; the
+structure, style and animation selectors are disabled while it is on. See
+[GUI editor: spinner image/GIF mode](GUI_EDITOR.md#spinner-imagegif-mode).
 
 ## Carousel
 

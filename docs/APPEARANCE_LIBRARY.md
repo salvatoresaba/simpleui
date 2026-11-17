@@ -72,7 +72,9 @@ circles, soft and minimal forms, square and diamond shapes, a target, a bold
 ring and a centered check-mark option. Spinner animation choices are limited to
 **None**, **Soft glow** and **Pulsing glow**; these effects run independently of
 the selected spinner structure, so glow never replaces its rotation, fill or
-flip motion. Progress bars offer thin, classic, segmented, stepped, neon and
+flip motion. An image/GIF spinner (`src`) bypasses these appearance choices: the
+designer disables structure, style and animation and renders the uploaded image
+instead. Progress bars offer thin, classic, segmented, stepped, neon and
 square structures that keep the native progress value. Sliders offer thin,
 classic, pill, glass, square and diamond-thumb structures, plus an inverted
 triangle thumb whose point meets the track and a vertical segment that crosses

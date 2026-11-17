@@ -13325,7 +13325,7 @@ function assetMediaTarget() {
   if (paths.length !== 1) return null;
   var n = byPath(paths[0], root.children);
   if (!n) return null;
-  if (["img", "video", "audio", "iframe"].indexOf(n.kind) < 0) return null;
+  if (["img", "video", "audio", "iframe", "spinner"].indexOf(n.kind) < 0) return null;
   return n;
 }
 function renderAssets() {
@@ -13358,7 +13358,7 @@ function renderAssets() {
     bg.title = "Apply as background-image on the selected element";
     bg.onclick = function(){ insertAssetBackground(a.url); };
     var src = document.createElement("button"); src.type = "button"; src.className = "btn"; src.textContent = "Src";
-    src.title = media ? "Set the image source of the selected element" : "Select an image, video, audio or iframe element first";
+    src.title = media ? "Set the image source of the selected element" : "Select an image, video, audio, iframe or spinner element first";
     src.disabled = !media;
     src.onclick = function(){ insertAssetSrc(a.url); };
     var cp = document.createElement("button"); cp.type = "button"; cp.className = "btn"; cp.textContent = "Copy";
@@ -13392,8 +13392,9 @@ function insertAssetBackground(url) {
 function insertAssetSrc(url) {
   if (!url) return;
   var n = assetMediaTarget();
-  if (!n) { setStatus("select an image, video, audio or iframe element"); return; }
+  if (!n) { setStatus("select an image, video, audio, iframe or spinner element"); return; }
   upd("src", url);
+  if (n.kind === "spinner") renderInspector();
   setStatus("source applied");
 }
 function copyAssetUrl(url) {

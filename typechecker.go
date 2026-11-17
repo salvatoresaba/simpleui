@@ -3019,7 +3019,7 @@ func attrAllowed(key string, tag string) bool {
 		key == "step" || key == "disabled" || key == "required" || key == "variant") {
 		return true
 	}
-	if tag == "spinner" && key == "variant" {
+	if tag == "spinner" && (key == "variant" || key == "src" || key == "alt") {
 		return true
 	}
 	if tag == "tree" && (key == "name" || key == "value" || key == "editMode" || key == "editDepth" ||
@@ -4203,8 +4203,14 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		// and about:blank only) with a "cannot accept" diagnostic.
 		if !(tag == "iframe" && a.key == "src") {
 			if lit, ok := staticPartsLiteral(a.text); ok && hasActiveURLScheme(lit) {
-				c.securityDiag(a.span, c.security.StaticURLSchemes,
-					"active URL scheme is not allowed in "+a.key+" (use http(s), mailto, tel or a relative URL)")
+				// Image data URIs are inert inside <img> (scripts do not run).
+				// The designer asset manager embeds uploaded GIF/PNG/JPEG
+				// files this way, so an image spinner needs them.
+				imageSource := a.key == "src" && (tag == "img" || tag == "spinner") && isImageDataURL(lit)
+				if !imageSource {
+					c.securityDiag(a.span, c.security.StaticURLSchemes,
+						"active URL scheme is not allowed in "+a.key+" (use http(s), mailto, tel or a relative URL)")
+				}
 			}
 		}
 	}
@@ -4267,6 +4273,19 @@ func hasActiveURLScheme(s string) bool {
 	return strings.HasPrefix(low, "javascript:") ||
 		strings.HasPrefix(low, "vbscript:") ||
 		strings.HasPrefix(low, "data:")
+}
+
+// isImageDataURL reports whether a literal is an inline image data URI. Such a
+// URI is safe in an <img> (or an image spinner) because scripts are disabled in
+// that context; it is still rejected in href/link and for non-image media.
+func isImageDataURL(s string) bool {
+	var probe strings.Builder
+	for _, r := range s {
+		if r > ' ' {
+			probe.WriteRune(r)
+		}
+	}
+	return strings.HasPrefix(strings.ToLower(probe.String()), "data:image/")
 }
 
 func viewParamNameList(params []Param) []string {

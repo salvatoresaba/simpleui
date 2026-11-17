@@ -71,10 +71,11 @@ func TestAttributeEscapingAndURLSanitizing(t *testing.T) {
 	js := GenerateJs(prog)
 	for _, want := range []string{
 		"href=\"${__sui_esc(__sui_url(url))}\"",
-		"src=\"${__sui_esc(__sui_url(url))}\"",
+		"src=\"${__sui_esc(__sui_img_url(url))}\"",
 		"value=\"${__sui_esc(evil)}\"",
 		"class=\"${__sui_class(evil)}\"",
 		"style=\"${__sui_esc(__sui_css(evil))}\"",
+		"function __sui_img_url(v)",
 		"function __sui_css(v)",
 		"function __sui_class(v)",
 	} {
