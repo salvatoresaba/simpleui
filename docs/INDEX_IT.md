@@ -31,6 +31,7 @@ Ordine consigliato per un agente:
 | Scenario | Recipe | Documenti canonici | Esempio |
 |---|---|---|---|
 | Form locale con stato e tabella | [local-form-table](AGENT_RECIPES_IT.md#local-form--reactive-table) | [API](API_REFERENCE_IT.md), [STDLIB](STDLIB_IT.md) | `examples/todo.sui`, `examples/table_data.sui` |
+| Temi e strutture per spinner, checkbox, radio, progress, slider, schede, accordion e toast | [Libreria aspetto](APPEARANCE_LIBRARY.md) | [Editor GUI: aspetto dei controlli](GUI_EDITOR_IT.md#aspetto-dei-controlli) | `examples/appearance_gallery.html` |
 | Creare una barra dei menù / navigazione | [API: menu bar](API_REFERENCE_IT.md#menu-bar) | [Editor GUI: menu bar](GUI_EDITOR_IT.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Contenuti a schede | [API: tabs](API_REFERENCE_IT.md#tabs) | [Editor GUI: tabs](GUI_EDITOR_IT.md#tabs-control) | `examples/tabs.sui` |
 | Sezioni comprimibili / FAQ | [API: accordion](API_REFERENCE_IT.md#accordion) | [Editor GUI: accordion](GUI_EDITOR_IT.md#controllo-accordion) | `examples/accordion/README.md` |

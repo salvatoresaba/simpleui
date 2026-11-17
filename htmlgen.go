@@ -2579,6 +2579,18 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 .sui-tabs[data-sui-tabs-variant="sheets"][data-sui-tabs-position="bottom"] .sui-tab-add { border-bottom: 0; border-top: 1px solid transparent; border-radius: 0 0 6px 6px; }
 .sui-tabpanels { padding: 12px; }
 .sui-tabpanel[hidden] { display: none; }
+.sui-tabs.sui-tabs-rail { flex-direction: row; }
+.sui-tabs.sui-tabs-rail > .sui-tablist {
+  flex: 0 0 auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  border-bottom: 0;
+  border-right: 1px solid var(--sui-tabs-border, var(--sui-border));
+  padding: 6px;
+}
+.sui-tabs.sui-tabs-rail .sui-tab { border-radius: 6px; text-align: left; }
+.sui-tabs.sui-tabs-rail .sui-tab.active { box-shadow: inset -2px 0 0 var(--sui-tab-accent, #4c5cf7); }
+.sui-tabs.sui-tabs-rail > .sui-tabpanels { flex: 1 1 auto; min-width: 0; }
 .sui-tabs[data-sui-tabs-position="bottom"] .sui-tablist { order: 2; border-bottom: 0; border-top: 1px solid var(--sui-border); padding: 4px 4px 0; }
 .sui-tabs[data-sui-tabs-position="bottom"] .sui-tabpanels { order: 1; }
 .sui-tabs[data-sui-tabs-position="bottom"] .sui-tab { border-radius: 0 0 6px 6px; }
@@ -2703,6 +2715,21 @@ body.sui-designer-preview .sui-tabs[data-sui-workbook="1"][data-sui-tabcount="1"
 }
 .sui-accordion-panel { padding: 0 14px 12px; color: var(--sui-accordion-fg, var(--sui-fg)); overflow-wrap: anywhere; }
 .sui-accordion-panel[hidden] { display: none; }
+.sui-accordion.sui-accordion-separated {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+.sui-accordion-separated .sui-accordion-item {
+  overflow: hidden;
+  border: 1px solid var(--sui-accordion-border, var(--sui-border));
+  border-radius: var(--sui-accordion-radius, 10px);
+  background: var(--sui-accordion-bg, #1d2129);
+}
+.sui-accordion-separated .sui-accordion-item + .sui-accordion-item { border-top: 1px solid var(--sui-accordion-border, var(--sui-border)); }
 
 /* Toast notifications: a host receives text-only .sui-toast elements. */
 .sui-toast-host {

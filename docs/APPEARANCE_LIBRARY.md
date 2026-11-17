@@ -76,7 +76,9 @@ flip motion. Progress bars offer thin, classic, segmented, stepped, neon and
 square structures that keep the native progress value. Sliders offer thin,
 classic, pill, glass, square and diamond-thumb structures, plus an inverted
 triangle thumb whose point meets the track and a vertical segment that crosses
-it, with independently styled tracks and thumbs.
+it, with independently styled tracks and thumbs. Tabs also have a **Vertical
+rail** layout, accordions can separate sections into **cards**, and toasts add
+**Glass** and **Compact** structures.
 
 ## Insert toolbar organization
 
@@ -306,8 +308,9 @@ without the editor's theme list.
 - The bundled `components/appearance.json` covers **every** control that exposes
   the section. Rich catalogs ship for **button**, **checkbox/radio**, **switch**,
   **card**, **input/textarea/select**, **badge**, **progress**, **spinner**,
-  **slider**, **alert**, **tabs** and **menu bar**; the other controls get a
-  generic catalog with Default, Rounded, Square, Compact and Wide structures,
+  **slider**, **alert**, **tabs**, **accordion**, **toast** and **menu bar**;
+  the other controls get a generic catalog with Default, Rounded, Square,
+  Compact and Wide structures,
   **Dark** and **Light** plus Default, Accent and Outline styles, and None, Pulse,
   Glow, Float and Fade animations (`sui-appearance-*` keyframes written to the
   project CSS).

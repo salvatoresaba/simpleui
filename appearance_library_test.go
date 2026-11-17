@@ -57,6 +57,11 @@ func TestAppearanceGalleryHasOneNativeDatePicker(t *testing.T) {
 	if !strings.Contains(string(body), `label: "Native picker", kind: "native"`) {
 		t.Fatal("appearance gallery must retain the named Native picker example")
 	}
+	for _, structure := range []string{"Vertical tab rail", "Separated accordion cards", "Glass toast", "Compact toast"} {
+		if !strings.Contains(string(body), structure) {
+			t.Errorf("appearance gallery is missing %q", structure)
+		}
+	}
 }
 
 func TestAppearanceLibraryRejectsUnsafeCSS(t *testing.T) {

@@ -102,6 +102,9 @@ func TestControlMarksAndRangeStructures(t *testing.T) {
 		`clip-path:polygon(0 0,100% 0,50% 100%)`,
 		`--sui-slider-thumb-height:24px`,
 		`.sui-slider.sui-slider-neon`,
+		`.sui-tabs.sui-tabs-rail > .sui-tablist`,
+		`.sui-accordion.sui-accordion-separated`,
+		`.sui-accordion-separated .sui-accordion-item`,
 	} {
 		if !strings.Contains(suiCssBase, want) {
 			t.Errorf("control CSS missing %q", want)

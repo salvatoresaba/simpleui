@@ -363,6 +363,39 @@
     .sui-slider-segment { --sui-slider-thumb-width:4px; --sui-slider-thumb-height:24px; --sui-slider-thumb-radius:2px; }
     .sui-slider-neon { --sui-slider-track:5px; --sui-slider-thumb-bg:#22d3ee; --sui-slider-shadow:0 0 12px rgba(34,211,238,.32); --sui-slider-thumb-shadow:0 0 12px rgba(34,211,238,.72); }
 
+    .extra-sample { align-items: stretch; justify-content: stretch; min-height: 112px; }
+    #additional-gallery { align-items: start; }
+    .sui-tabs {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 112px;
+      overflow: hidden;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      background: #101827;
+    }
+    .sui-tablist { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; border-bottom: 1px solid #334155; background: #151d2e; }
+    .sui-tab { flex: 1; min-width: 0; border: 0; border-radius: 7px; padding: 7px 9px; background: transparent; color: #aab8cc; font: inherit; font-size: 11px; cursor: pointer; }
+    .sui-tab:hover, .sui-tab:focus-visible { background: rgba(129, 140, 248, .12); outline: none; }
+    .sui-tab.active { background: #26345b; color: #e0e7ff; box-shadow: inset 0 -2px 0 #818cf8; }
+    .sui-tabpanels { flex: 1; min-width: 0; padding: 10px; color: #cbd5e1; font-size: 11px; }
+    .sui-tabpanel[hidden] { display: none; }
+    .sui-tabs-rail { flex-direction: row; }
+    .sui-tabs-rail .sui-tablist { flex: 0 0 86px; flex-direction: column; flex-wrap: nowrap; border-right: 1px solid #334155; border-bottom: 0; }
+    .sui-tabs-rail .sui-tab { flex: 0 0 auto; text-align: left; }
+    .sui-tabs-rail .sui-tab.active { box-shadow: inset -2px 0 0 #818cf8; }
+    .sui-accordion { display: flex; flex-direction: column; width: 100%; gap: 0; }
+    .sui-accordion-separated { gap: 8px; }
+    .sui-accordion-item { overflow: hidden; border: 1px solid #334155; border-radius: 10px; background: #101827; }
+    .sui-accordion-head { display: flex; align-items: center; justify-content: space-between; width: 100%; border: 0; padding: 9px 11px; background: transparent; color: #dce5f2; font: inherit; font-size: 11px; font-weight: 650; text-align: left; cursor: pointer; }
+    .sui-accordion-head::after { content: "+"; color: #a5b4fc; font-size: 15px; }
+    .sui-accordion-item.open .sui-accordion-head::after { content: "−"; }
+    .sui-accordion-panel { padding: 0 11px 9px; color: #9aa8bd; font-size: 10px; }
+    .sui-accordion-panel[hidden] { display: none; }
+    .sui-toast { display: flex; align-self: center; align-items: center; gap: 10px; width: var(--sui-toast-width, 360px); max-width: 100%; border-left: var(--sui-toast-border-width, 4px) solid #818cf8; border-radius: var(--sui-toast-radius, 8px); padding: var(--sui-toast-padding, 12px 14px); background: var(--sui-toast-bg, #1d2738); color: #e5e7eb; box-shadow: var(--sui-toast-shadow, 0 8px 24px rgba(0,0,0,.35)); backdrop-filter: var(--sui-toast-backdrop, none); font-size: var(--sui-toast-font-size, 12px); }
+    .sui-toast-mark { display: grid; flex: 0 0 22px; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: rgba(129,140,248,.18); color: #c7d2fe; font-weight: 800; }
+
     .datepicker-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
     .datepicker-card { padding: 14px; }
     .sui-datepicker { position: relative; min-width: 0; }
@@ -438,7 +471,7 @@
     <header>
       <div class="eyebrow">SimpleUI · Appearance</div>
       <h1>Control gallery</h1>
-      <p class="intro">A hands-on showcase of spinner, checkbox, radio, progress, slider and date-picker structures in the appearance library. Toggle the controls, inspect the animated loaders and try the calendar day shapes.</p>
+      <p class="intro">A hands-on showcase of spinner, checkbox, radio, progress, slider, tabs, accordion, toast and date-picker structures in the appearance library. Toggle the controls, inspect the animated loaders and try the calendar day shapes.</p>
     </header>
 
     <section aria-labelledby="spinner-heading">
@@ -505,6 +538,16 @@
         <span class="count" id="datepicker-count"></span>
       </div>
       <div class="gallery-grid datepicker-grid" id="datepicker-gallery"></div>
+    </section>
+
+    <section aria-labelledby="additional-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="additional-heading">More component structures</h2>
+          <p class="section-note">A vertical tab rail, separated accordion cards and glass or compact toast messages.</p>
+        </div>
+      </div>
+      <div class="gallery-grid" id="additional-gallery"></div>
     </section>
 
     <footer>All samples are local: no external fonts, scripts or network requests.</footer>
@@ -831,12 +874,126 @@
       }
     }
 
+    function renderAdditionalStructures() {
+      const gallery = document.getElementById("additional-gallery");
+
+      const tabsCard = makeCard("Vertical tab rail");
+      const tabsSample = document.createElement("div");
+      tabsSample.className = "demo-sample extra-sample";
+      const tabs = document.createElement("div");
+      tabs.className = "sui-tabs sui-tabs-rail";
+      const tablist = document.createElement("div");
+      tablist.className = "sui-tablist";
+      tablist.setAttribute("role", "tablist");
+      const panels = document.createElement("div");
+      panels.className = "sui-tabpanels";
+      const tabNames = ["Overview", "Activity"];
+      const tabElements = [];
+      tabNames.forEach((name, index) => {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "sui-tab" + (index === 0 ? " active" : "");
+        tab.textContent = name;
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-selected", index === 0 ? "true" : "false");
+        tab.setAttribute("aria-controls", "gallery-tab-panel-" + index);
+        tab.tabIndex = index === 0 ? 0 : -1;
+        const panel = document.createElement("div");
+        panel.className = "sui-tabpanel";
+        panel.id = "gallery-tab-panel-" + index;
+        panel.setAttribute("role", "tabpanel");
+        panel.textContent = index === 0 ? "A compact side navigation for related views." : "The second tab stays keyboard- and click-accessible.";
+        panel.hidden = index !== 0;
+        tabElements.push(tab);
+        tab.addEventListener("click", () => {
+          tablist.querySelectorAll(".sui-tab").forEach((item) => {
+            const selected = item === tab;
+            item.classList.toggle("active", selected);
+            item.setAttribute("aria-selected", selected ? "true" : "false");
+            item.tabIndex = selected ? 0 : -1;
+          });
+          panels.querySelectorAll(".sui-tabpanel").forEach((item, panelIndex) => {
+            item.hidden = panelIndex !== index;
+          });
+        });
+        tablist.appendChild(tab);
+        panels.appendChild(panel);
+      });
+      tabElements.forEach((tab, index) => {
+        tab.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+          event.preventDefault();
+          const next = (index + (event.key === "ArrowDown" ? 1 : tabElements.length - 1)) % tabElements.length;
+          tabElements[next].focus();
+          tabElements[next].click();
+        });
+      });
+      tabs.append(tablist, panels);
+      tabsSample.appendChild(tabs);
+      tabsCard.appendChild(tabsSample);
+      gallery.appendChild(tabsCard);
+
+      const accordionCard = makeCard("Separated accordion cards");
+      const accordionSample = document.createElement("div");
+      accordionSample.className = "demo-sample extra-sample";
+      const accordion = document.createElement("div");
+      accordion.className = "sui-accordion sui-accordion-separated";
+      ["Appearance options", "Live preview"].forEach((title, index) => {
+        const item = document.createElement("div");
+        item.className = "sui-accordion-item" + (index === 0 ? " open" : "");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sui-accordion-head";
+        button.textContent = title;
+        button.setAttribute("aria-controls", "gallery-accordion-panel-" + index);
+        button.setAttribute("aria-expanded", index === 0 ? "true" : "false");
+        const panel = document.createElement("div");
+        panel.className = "sui-accordion-panel";
+        panel.id = "gallery-accordion-panel-" + index;
+        panel.textContent = index === 0 ? "Each section reads as its own card." : "Try opening and closing the panels.";
+        panel.hidden = index !== 0;
+        button.addEventListener("click", () => {
+          const opening = panel.hidden;
+          item.classList.toggle("open", opening);
+          button.setAttribute("aria-expanded", opening ? "true" : "false");
+          panel.hidden = !opening;
+        });
+        item.append(button, panel);
+        accordion.appendChild(item);
+      });
+      accordionSample.appendChild(accordion);
+      accordionCard.appendChild(accordionSample);
+      gallery.appendChild(accordionCard);
+
+      for (const item of [
+        { label: "Glass toast", vars: { "--sui-toast-bg": "rgba(17,24,39,.84)", "--sui-toast-radius": "16px", "--sui-toast-padding": "14px 16px", "--sui-toast-border-width": "1px", "--sui-toast-backdrop": "blur(14px)", "--sui-toast-shadow": "0 12px 32px rgba(0,0,0,.4)" } },
+        { label: "Compact toast", vars: { "--sui-toast-width": "280px", "--sui-toast-padding": "8px 10px", "--sui-toast-font-size": "11px", "--sui-toast-border-width": "3px", "--sui-toast-radius": "8px" } }
+      ]) {
+        const card = makeCard(item.label);
+        const sample = document.createElement("div");
+        sample.className = "demo-sample extra-sample";
+        const toast = document.createElement("div");
+        toast.className = "sui-toast";
+        const mark = document.createElement("span");
+        mark.className = "sui-toast-mark";
+        mark.textContent = "✓";
+        const message = document.createElement("span");
+        message.textContent = "Settings saved successfully";
+        applyVars(toast, item.vars);
+        toast.append(mark, message);
+        sample.appendChild(toast);
+        card.appendChild(sample);
+        gallery.appendChild(card);
+      }
+    }
+
     renderSpinners();
     renderChecks();
     renderRadios();
     renderProgressBars();
     renderSliders();
     renderDatePickers();
+    renderAdditionalStructures();
   </script>
 </body>
 </html>

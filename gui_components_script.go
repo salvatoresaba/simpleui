@@ -590,13 +590,33 @@ var APPEARANCE_CUSTOM = {
       { id: "underline", label: "Underline", vars: { "--sui-tabs-radius": "8px", "--sui-tabs-border-width": "1px" } },
       { id: "pills", label: "Pills", vars: { "--sui-tabs-radius": "999px", "--sui-tab-radius": "999px" } },
       { id: "boxed", label: "Boxed", vars: { "--sui-tabs-radius": "6px", "--sui-tabs-border-width": "1px" } },
-      { id: "square", label: "Square", vars: { "--sui-tabs-radius": "0px", "--sui-tab-radius": "0px" } }
+      { id: "square", label: "Square", vars: { "--sui-tabs-radius": "0px", "--sui-tab-radius": "0px" } },
+      { id: "rail", label: "Vertical rail", class: "sui-tabs-rail" }
     ],
     styles: [
       { id: "dark", label: "Dark", vars: { "--sui-tabs-bg": "#1d2129", "--sui-tabs-fg": "#e6e6ef", "--sui-tablist-bg": "#1d2129", "--sui-tab-fg": "#9aa7b8", "--sui-tab-active-bg": "#14171c", "--sui-tab-active-fg": "#e6e6ef", "--sui-tab-accent": "#4c5cf7", "--sui-tabs-border": "#3d4556" } },
       { id: "light", label: "Light", vars: { "--sui-tabs-bg": "#f8fafc", "--sui-tabs-fg": "#0f172a", "--sui-tablist-bg": "#e2e8f0", "--sui-tab-fg": "#475569", "--sui-tab-active-bg": "#ffffff", "--sui-tab-active-fg": "#0f172a", "--sui-tab-accent": "#2563eb", "--sui-tabs-border": "#cbd5e1" } },
       { id: "neon", label: "Neon", vars: { "--sui-tabs-bg": "#0b1220", "--sui-tabs-fg": "#e0f2fe", "--sui-tablist-bg": "#0b1220", "--sui-tab-fg": "#7dd3fc", "--sui-tab-active-bg": "#082f49", "--sui-tab-active-fg": "#e0f2fe", "--sui-tab-accent": "#22d3ee", "--sui-tabs-border": "#164e63" } },
       { id: "mono", label: "Mono", vars: { "--sui-tabs-bg": "#111827", "--sui-tabs-fg": "#e5e7eb", "--sui-tablist-bg": "#111827", "--sui-tab-fg": "#94a3b8", "--sui-tab-active-bg": "#1f2937", "--sui-tab-active-fg": "#f8fafc", "--sui-tab-accent": "#e5e7eb", "--sui-tabs-border": "#374151" } }
+    ]
+  },
+  accordion: {
+    structures: [
+      { id: "default", label: "Default" },
+      { id: "round", label: "Rounded", vars: { "--sui-accordion-radius": "999px" } },
+      { id: "square", label: "Square", vars: { "--sui-accordion-radius": "0px" } },
+      { id: "soft", label: "Soft", vars: { "--sui-accordion-radius": "14px" } },
+      { id: "separated", label: "Separated cards", class: "sui-accordion-separated" }
+    ]
+  },
+  toast: {
+    structures: [
+      { id: "default", label: "Default" },
+      { id: "round", label: "Rounded", vars: { "--sui-toast-radius": "999px" } },
+      { id: "square", label: "Square", vars: { "--sui-toast-radius": "0px" } },
+      { id: "soft", label: "Soft", vars: { "--sui-toast-radius": "14px" } },
+      { id: "glass", label: "Glass", vars: { "--sui-toast-bg": "rgba(17,24,39,.84)", "--sui-toast-radius": "16px", "--sui-toast-padding": "14px 16px", "--sui-toast-border-width": "1px", "--sui-toast-backdrop": "blur(14px)", "--sui-toast-shadow": "0 12px 32px rgba(0,0,0,.4)" } },
+      { id: "compact", label: "Compact", vars: { "--sui-toast-width": "280px", "--sui-toast-padding": "8px 10px", "--sui-toast-font-size": "12px", "--sui-toast-border-width": "3px", "--sui-toast-radius": "8px" } }
     ]
   }
 };
