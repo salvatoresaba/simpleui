@@ -96,6 +96,8 @@ FS accessibile via **Desktop Bridge** (target desktop) con capability-based secu
 | `fs.rename(src, dst)` | string, string | (null, string) | true | Alias di `fs.move` |
 | `fs.isDir(path)` | string | (bool, string) | true | Indica se il percorso è una directory esistente |
 | `fs.size(path)` | string | (int, string) | true | Dimensione in byte di un file (le directory sono rifiutate) |
+| `fs.readBytes(path)` | string | (array[int], string) | true | Legge un file come byte grezzi |
+| `fs.writeBytes(path, bytes)` | string, array[int] | (null, string) | true | Scrive byte grezzi (base64 sul bridge) |
 
 Sorgente e destinazione sono controllati contro la capability `--allow-dir`.
 `fs.copy` copia solo file regolari; crea prima la directory di destinazione e
@@ -165,6 +167,7 @@ out = name
 | `xml.parse(text)` | string | (any, string) | false | Analizza una stringa; rifiuta DOCTYPE/ENTITY |
 | `xml.parseBytes(bytes, [encoding])` | array[int], string | (any, string) | false | Decodifica i byte con BOM, encoding della dichiarazione XML o encoding esplicito |
 | `xml.loadFile(path)` | string | (any, string) | true | Carica un file desktop sotto `--allow-dir` |
+| `xml.loadBytes(path, [encoding])` | string, string? | (any, string) | true | Carica un file binario desktop; rispetta BOM/dichiarazione/encoding |
 | `xml.loadUrlSafe(url, allow)` | string, string | (any, string) | true | Scarica XML con il guard SSRF; `allow` deve essere una allow-list letterale |
 | `xml.validate(text)` | string | (bool, string) | false | Controllo sintattico; l'errore include riga/colonna quando disponibili |
 
@@ -246,14 +249,21 @@ names, xerr = xml.xpath(doc, "//person[@id='2']/name", {})
 | Funzione | Descrizione |
 |---|---|
 | `xml.validate(text)` | Sintassi XML |
-| `xml.validateXsd(doc, xsdText)` | Sottoinsieme XSD: elementi globali, sequence/all/choice, attributi, cardinalità, tipi semplici, enum, facet length/pattern |
+| `xml.validateXsd(doc, xsdText)` | Sottoinsieme XSD; restituisce `(false, primoErrore)` alla prima violazione |
+| `xml.validateXsdAll(doc, xsdText)` | Sottoinsieme XSD; restituisce `(errori, null)` con fino a 100 messaggi |
 | `xml.validateRules(doc, rules)` | Regole personalizzate per nome elemento: figli/attributi obbligatori, min/max, tipi di campo |
 
 La validazione DTD non è supportata: DOCTYPE/ENTITY sono rifiutati per
-sicurezza. XSD è un sottoinsieme pratico, non l'intera specifica XSD 1.0/1.1
-(`$ref`, substitution group, modelli complessi e import di schema non sono
-implementati). I controlli namespace sono disponibili con `xml.namespace`,
-`xml.findNs` e `targetNamespace` XSD.
+sicurezza. XSD è un sottoinsieme pratico, non l'intera specifica XSD 1.0/1.1.
+Copre elementi globali/locali con `ref`, `sequence`/`all`/`choice`,
+`minOccurs`/`maxOccurs`, attributi, attribute group e attributi globali,
+restrizioni `simpleType` con enumerazione, facet length/pattern e numerici,
+`complexType` con estensione/restrizione `simpleContent`/`complexContent`,
+namespace tramite `targetNamespace` e modelli di contenuto ereditati da
+`complexContent`. Non implementati: `$ref` a documenti o elementi esterni,
+substitution group, `key`/`keyref`/`unique`, wildcard oltre `anyAttribute`,
+derivazione da `xs:anyType`, import/include di schema. I controlli namespace
+sono disponibili con `xml.namespace`, `xml.findNs` e `targetNamespace` XSD.
 
 ### G. Esportazione e salvataggio
 
@@ -262,6 +272,7 @@ implementati). I controlli namespace sono disponibili con `xml.namespace`,
 | `xml.stringify(node, [options])` | Serializza in stringa. Opzioni: `indent` (bool/int), `declaration`, `encoding`, `sortAttributes` |
 | `xml.toBytes(node, encoding, [options])` | Serializza in byte UTF-8/UTF-16LE/UTF-16BE |
 | `xml.saveFile(path, node, [options])` | Salvataggio desktop sotto `--allow-dir`; solo UTF-8 |
+| `xml.saveBytes(path, node, encoding, [options])` | Salvataggio binario desktop; UTF-8/UTF-16LE/UTF-16BE |
 
 Commenti, CDATA, processing instruction e namespace vengono preservati dal
 serializer DOM. `indent: true` produce output leggibile; omettilo per XML
@@ -276,14 +287,28 @@ serializzato di nuovo.
 | `xml.fromJson(value, [rootName])` | Costruisce un documento XML dalla stessa convenzione |
 | `xml.toCsv(node, rowName, [columns])` | CSV da elementi ripetuti; le colonne possono essere `@attributo` o nomi di figli |
 | `xml.xslt(node, stylesheet)` | Applica un foglio XSLT; richiede `XSLTProcessor` del browser |
-| `xml.merge(target, source)` | Clona i figli di source in target; restituisce il numero |
-| `xml.diff(a, b)` | Diff strutturale per percorso: elementi aggiunti/rimossi/sostituiti, attributi e testi |
+| `xml.merge(target, source, [options])` | Di default aggiunge i figli clonati di source. `{"mode": "update", "key": "id"}` aggiorna i figli corrispondenti e aggiunge i nuovi; restituisce il numero di nodi modificati |
+| `xml.merge3(base, ours, theirs, [options])` | Merge a tre vie dentro `ours`; applica le modifiche non in conflitto di `theirs` e restituisce un array di descrizioni dei conflitti |
+| `xml.diff(a, b, [options])` | Diff strutturale con modifiche applicabili. Opzioni: `key` (attributo ID), `detectMoves` (default true), `includeXml` (default true), `maxXml` |
+| `xml.patch(target, changes)` | Applica un diff prodotto da `xml.diff`; risolve tutti i nodi prima di modificare, quindi rimozioni e spostamenti non invalidano i percorsi |
+
+Le modifiche di `xml.diff` contengono `op`, `path` e i dati necessari per
+applicarle: `xml` per nodi aggiunti/sostituiti/rimossi, `name`/`old`/`new` per
+attributi e testi, `parent`/`index` per modifiche strutturali e
+`from`/`to`/`fromIndex` per gli spostamenti. Con `{"key": "id"}` i figli sono
+allineati su quell'attributo e il riordino produce operazioni `moved`; senza
+chiave il diff resta posizionale. I percorsi usano predicati di chiave come
+`/root/item[@id="2"]`, quindi lo stesso diff si applica a un clone.
+`xml.patch` supporta `attribute`, `text`, `added`, `removed`, `replaced` e
+`moved` e segnala i percorsi non risolti invece di saltarli in silenzio.
+`xml.merge3` applica le modifiche non in conflitto e lascia i nodi in conflitto
+come sono in `ours`; controlla i conflitti restituiti prima di salvare.
 
 XML → HTML e trasformazioni XML → XML arbitrarie si fanno con XSLT. La
 conversione JSON è volutamente convenzionale e può perdere l'ordine del
-mixed-content; usa le funzioni DOM quando l'ordine conta. `xml.diff` riporta
-differenze per percorso; non deduce rename o spostamenti semantici senza ID
-stabili.
+mixed-content; usa le funzioni DOM quando l'ordine conta. Gli spostamenti sono
+rilevati nello stesso genitore; quelli tra genitori diversi diventano una
+rimozione più un'aggiunta.
 
 Sicurezza: i dati XML non vengono mai inseriti in HTML; il serializer emette
 solo testo XML. Espressioni XPath, schemi XSD e fogli XSLT sono codice dello

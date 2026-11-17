@@ -39,7 +39,7 @@ Le principali caratteristiche:
 - **Batching reattivo, error boundary e chiavi delle liste**
 - **Formattazione Intl**: date, numeri, valute, percentuali, tempo relativo e fusi orari
 - **Stdlib avanzata**: fs copy/move/size, crypto hash/UUID/random bytes, helper path, validazione JSON Schema, quota storage e sync cross-tab
-- **Libreria XML**: navigazione/modifica DOM, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD, conversione JSON/CSV, XSLT e diff strutturale
+- **Libreria XML**: navigazione/modifica DOM, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD con raccolta completa degli errori, conversione JSON/CSV, XSLT, diff con chiavi e rilevamento spostamenti, applicazione patch, merge update/a tre vie e I/O binario (UTF-8/UTF-16)
 - **Multi-target**: genera app web o eseguibili desktop standalone
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)
 - **Sicuro per desktop**: bridge nativo con permessi basati su capability e dialoghi file/cartelle nativi

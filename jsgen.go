@@ -810,6 +810,8 @@ var SuiPrelude = "\"use strict\";\n" +
 	"function __sui_url_decodeComponent(s){ try{return [decodeURIComponent(String(s||'')), null]}catch(e){return ['', String(e)]} }\n" +
 	"function __sui_b64_encode(s){ try{return btoa(unescape(encodeURIComponent(String(s||''))))}catch(e){return ''} }\n" +
 	"function __sui_b64_decode(s){ try{return [decodeURIComponent(escape(atob(String(s||'')))) , null]}catch(e){return ['', String(e)]} }\n" +
+	"function __sui_bytes_to_b64(bytes){ var s=''; var a=bytes||[]; for(var i=0;i<a.length;i++) s+=String.fromCharCode(a[i]&255); try{return btoa(s)}catch(e){return ''} }\n" +
+	"function __sui_b64_to_bytes(s){ try{ var t=atob(String(s||'')); var a=[]; for(var i=0;i<t.length;i++) a.push(t.charCodeAt(i)); return a; }catch(e){ return []; } }\n" +
 	"\n" +
 	"function __sui_path_join() {\n" +
 	"  var parts = [];\n" +
@@ -2645,6 +2647,18 @@ func stdBodyJs(key string, target string) string {
 			return "async (path) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/fs/list\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [j.data.split(\"\\n\").filter((x) => x !== \"\"), null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
 		}
 		return "async (path) => [\"\", \"fs.list is not available on the web target\"]"
+	}
+	if key == "fs_readbytes" {
+		if target == "desktop" {
+			return "async function (path) { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/file/readbytes\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [__sui_b64_to_bytes(j.data), null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
+		}
+		return "async function (path) { return [null, \"fs.readBytes is not available on the web target\"]; }"
+	}
+	if key == "fs_writebytes" {
+		if target == "desktop" {
+			return "async function (path, bytes) { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); fd.set(\"data\", __sui_bytes_to_b64(bytes)); try { const r = await fetch(\"/__bridge__/file/writebytes\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [null, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
+		}
+		return "async function (path, bytes) { return [null, \"fs.writeBytes is not available on the web target\"]; }"
 	}
 	if key == "fs_copy" {
 		if target == "desktop" {

@@ -33,6 +33,7 @@ fn run() -> null {
 	let xsd = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"><xs:element name=\"people\"><xs:complexType><xs:sequence><xs:element name=\"person\" maxOccurs=\"unbounded\"><xs:complexType><xs:sequence><xs:element name=\"name\" type=\"xs:string\"/><xs:element name=\"desc\" type=\"xs:string\" minOccurs=\"0\"/><xs:element name=\"tag\" type=\"xs:string\" minOccurs=\"0\" maxOccurs=\"unbounded\"/></xs:sequence><xs:attribute name=\"id\" type=\"xs:int\" use=\"required\"/></xs:complexType></xs:element></xs:sequence></xs:complexType></xs:element></xs:schema>"
 	vdoc, vde = xml.parse("<people><person id=\"1\"><name>Mario</name></person></people>")
 	validXsd, vex = xml.validateXsd(vdoc, xsd)
+	xsdErrors, xee = xml.validateXsdAll(vdoc, xsd)
 	let rules = {"person": {"required": ["name"], "attributes": ["id"], "types": {"id": "int"}}}
 	validRules, rue = xml.validateRules(doc, rules)
 
@@ -42,13 +43,31 @@ fn run() -> null {
 	out = out + "\nCSV:\n" + csv
 	out = out + "\nJSON -> XML: " + jsonXml
 	out = out + "\nBytes UTF-16LE: " + str(len(bytes)) + " (BOM " + str(bytes[0]) + "," + str(bytes[1]) + ")"
-	out = out + "\nXSD=" + str(validXsd) + " rules=" + str(validRules)
+	out = out + "\nXSD=" + str(validXsd) + " allErrors=" + str(len(xsdErrors)) + " rules=" + str(validRules)
 	out = out + "\nPretty:\n" + pretty
 }
 
 fn xmlName(node: any) -> string {
 	v, e = xml.name(node)
 	return v
+}
+
+fn diffAndMerge() -> null {
+	let before = "<root><item id=\"1\"><v>A</v></item><item id=\"2\"><v>B</v></item><item id=\"3\"><v>C</v></item></root>"
+	let after = "<root><item id=\"3\"><v>C2</v></item><item id=\"1\"><v>A</v></item><item id=\"4\"><v>D</v></item></root>"
+	docA, ae = xml.parse(before)
+	docB, be = xml.parse(after)
+	changes, ce = xml.diff(docA, docB, {"key": "id"})
+	working, we = xml.clone(docA, true)
+	pok, pe = xml.patch(working, changes)
+	patched, pte = xml.stringify(working, {"declaration": false})
+	source, se = xml.parse("<root><item id=\"2\"><v>BB</v></item></root>")
+	updated, ue = xml.merge(docA, source, {"mode": "update", "key": "id"})
+	merged, me = xml.stringify(docA, {"declaration": false})
+	out = "diff ops=" + str(len(changes)) + " patch=" + str(pok)
+	out = out + "\n" + patched
+	out = out + "\nmerge updated=" + str(updated)
+	out = out + "\n" + merged
 }
 
 fn setStatus() -> null {
@@ -69,8 +88,9 @@ view main {
 		pre "{out}"
 		row {
 			button "Run" onClick: run
+			button "Diff + merge" onClick: diffAndMerge
 			button "Mutate" onClick: setStatus
 		}
-		p "XML parse, navigation, comments/CDATA/PI, namespaces, XPath, XSD subset, custom rules, JSON/CSV conversion, serialization and UTF-16 bytes. On desktop xml.loadFile/xml.saveFile use the fs bridge and --allow-dir." class: "muted"
+		p "XML parse, navigation, comments/CDATA/PI, namespaces, XPath, XSD subset (first error or all errors), custom rules, JSON/CSV conversion, keyed diff with moves, patch application, update merge and three-way merge. Serialization supports UTF-8/UTF-16 bytes. On desktop xml.loadFile/xml.saveFile and the binary xml.loadBytes/xml.saveBytes use the fs bridge and --allow-dir." class: "muted"
 	}
 }

@@ -294,7 +294,7 @@
       "summary": "Importable std modules: http (including file upload), ws, fs, exec, json, the core table/tree/chart APIs and the desktop dialog picker.",
       "audience": ["human", "agent"],
       "priority": 2,
-      "tags": ["stdlib", "http", "upload", "ws", "fs", "exec", "json", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
+      "tags": ["stdlib", "http", "upload", "ws", "fs", "exec", "json", "xml", "xsd", "diff", "patch", "merge", "bytes", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
       "sections": ["Import", "HTTP Module (`http`)", "WebSocket Module (`ws`)", "File System Module (`fs`)", "Exec Module (`exec`)", "JSON Module (`json`)", "Dialog Module (`dialog`, desktop)", "Table Module (`table`, core)", "Chart Module (`chart`, core)", "Tree Module (`tree`, core)", "Error Handling Pattern"]
     },
     {

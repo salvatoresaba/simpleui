@@ -83,7 +83,9 @@ func TestAdvancedStdlibWebFsUnavailable(t *testing.T) {
 state out = ""
 async fn run() -> null {
 	copyOk, err = fs.copy("a", "b")
-	out = str(copyOk) + " " + err
+	bytes, byteErr = fs.readBytes("a")
+	writeOk, writeErr = fs.writeBytes("a", [1, 2, 3])
+	out = str(copyOk) + " " + err + "|" + str(bytes) + " " + byteErr + "|" + str(writeOk) + " " + writeErr
 }
 view main {
 	p "{out}"
@@ -100,5 +102,7 @@ view main {
     button('Run').click(); await wait(200);
     var text = document.body.innerText;
     if (text.indexOf('fs.copy is not available on the web target') < 0) throw new Error('web fs: ' + text);
+    if (text.indexOf('fs.readBytes is not available on the web target') < 0) throw new Error('web fs bytes read: ' + text);
+    if (text.indexOf('fs.writeBytes is not available on the web target') < 0) throw new Error('web fs bytes write: ' + text);
 `+featureScriptTail)
 }

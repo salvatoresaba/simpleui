@@ -74,7 +74,7 @@ Completati di recente:
 - [x] `computed`, batching degli aggiornamenti, error boundary e chiavi delle liste.
 - [x] Formattazione `Intl` per date, numeri, valute, percentuali, tempo relativo e timezone.
 - [x] fs.copy/move/rename/isDir/size, crypto hash/UUID/randomBytes, path utilities, validazione JSON Schema, storage quota e sync cross-tab.
-- [x] Libreria XML: DOM, navigazione/modifica, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD, JSON/CSV/XSLT e diff.
+- [x] Libreria XML: DOM, navigazione/modifica, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD con `validateXsdAll`, JSON/CSV/XSLT, diff con chiavi e operazioni moved, `xml.patch`, merge update, `merge3` a tre vie e I/O binario `loadBytes`/`saveBytes`.
 
 ## Correzioni di accuratezza
 

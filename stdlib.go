@@ -108,6 +108,8 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "fs", name: "rename", params: []string{"string", "string"}, ret0: "null", ret1: "string", jsKey: "fs_move", async: true},
 	StdFunc{mod: "fs", name: "isDir", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "fs_isdir", async: true},
 	StdFunc{mod: "fs", name: "size", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "fs_size", async: true},
+	StdFunc{mod: "fs", name: "readBytes", params: []string{"string"}, ret0: "array[int]", ret1: "string", jsKey: "fs_readbytes", async: true},
+	StdFunc{mod: "fs", name: "writeBytes", params: []string{"string", "any"}, ret0: "null", ret1: "string", jsKey: "fs_writebytes", async: true},
 	// exec
 	StdFunc{mod: "exec", name: "run", params: []string{"string", "array[string]"}, ret0: "string", ret1: "string", jsKey: "exec_run", async: true},
 	// json
@@ -121,6 +123,8 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "xml", name: "loadFile", params: []string{"string"}, ret0: "xmlDocument", ret1: "string", jsKey: "xml_load_file", async: true},
 	StdFunc{mod: "xml", name: "loadUrlSafe", params: []string{"string", "string"}, ret0: "xmlDocument", ret1: "string", jsKey: "xml_load_url_safe", async: true},
 	StdFunc{mod: "xml", name: "saveFile", params: []string{"string", "any", "any"}, ret0: "null", ret1: "string", jsKey: "xml_save_file", async: true, optional: 1},
+	StdFunc{mod: "xml", name: "loadBytes", params: []string{"string", "string"}, ret0: "xmlDocument", ret1: "string", jsKey: "xml_load_bytes", async: true, optional: 1},
+	StdFunc{mod: "xml", name: "saveBytes", params: []string{"string", "any", "string", "any"}, ret0: "null", ret1: "string", jsKey: "xml_save_bytes", async: true, optional: 1},
 	StdFunc{mod: "xml", name: "root", params: []string{"any"}, ret0: "xmlNode", ret1: "string", jsKey: "xml_root", async: false},
 	StdFunc{mod: "xml", name: "parent", params: []string{"any"}, ret0: "xmlNode", ret1: "string", jsKey: "xml_parent", async: false},
 	StdFunc{mod: "xml", name: "children", params: []string{"any"}, ret0: "array[xmlNode]", ret1: "string", jsKey: "xml_children", async: false},
@@ -181,9 +185,12 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "xml", name: "fromJson", params: []string{"any", "string"}, ret0: "xmlDocument", ret1: "string", jsKey: "xml_from_json", async: false, optional: 1},
 	StdFunc{mod: "xml", name: "toCsv", params: []string{"any", "string", "any"}, ret0: "string", ret1: "string", jsKey: "xml_to_csv", async: false, optional: 1},
 	StdFunc{mod: "xml", name: "xslt", params: []string{"any", "string"}, ret0: "string", ret1: "string", jsKey: "xml_xslt", async: false},
-	StdFunc{mod: "xml", name: "merge", params: []string{"any", "any"}, ret0: "int", ret1: "string", jsKey: "xml_merge", async: false},
-	StdFunc{mod: "xml", name: "diff", params: []string{"any", "any"}, ret0: "any", ret1: "string", jsKey: "xml_diff", async: false},
+	StdFunc{mod: "xml", name: "merge", params: []string{"any", "any", "any"}, ret0: "int", ret1: "string", jsKey: "xml_merge", async: false, optional: 1},
+	StdFunc{mod: "xml", name: "merge3", params: []string{"any", "any", "any", "any"}, ret0: "array[string]", ret1: "string", jsKey: "xml_merge3", async: false, optional: 3},
+	StdFunc{mod: "xml", name: "diff", params: []string{"any", "any", "any"}, ret0: "array[any]", ret1: "string", jsKey: "xml_diff", async: false, optional: 2},
+	StdFunc{mod: "xml", name: "patch", params: []string{"any", "any"}, ret0: "bool", ret1: "string", jsKey: "xml_patch", async: false},
 	StdFunc{mod: "xml", name: "validateXsd", params: []string{"any", "string"}, ret0: "bool", ret1: "string", jsKey: "xml_validate_xsd", async: false},
+	StdFunc{mod: "xml", name: "validateXsdAll", params: []string{"any", "string"}, ret0: "array[string]", ret1: "string", jsKey: "xml_validate_xsd_all", async: false},
 	StdFunc{mod: "xml", name: "validateRules", params: []string{"any", "any"}, ret0: "bool", ret1: "string", jsKey: "xml_validate_rules", async: false},
 	// dialog (desktop target only)
 	StdFunc{mod: "dialog", name: "pickFile", params: []string{}, ret0: "string", ret1: "string", jsKey: "dialog_pickfile", async: true},

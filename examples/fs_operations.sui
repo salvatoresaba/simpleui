@@ -42,6 +42,22 @@ async fn moveFile() -> null {
 	out = err == null ? "moved " + source + " -> " + target : err
 }
 
+async fn copyBytes() -> null {
+	if not safeName(source) or not safeName(target) {
+		out = "blocked: names must stay inside the allowed directory"
+		return
+	}
+	let src = path.join(base, source)
+	let dst = path.join(base, target)
+	bytes, rerr = fs.readBytes(src)
+	if rerr != null {
+		out = rerr
+		return
+	}
+	writeOk, werr = fs.writeBytes(dst, bytes)
+	out = werr == null ? "copied " + str(len(bytes)) + " bytes -> " + target : werr
+}
+
 async fn inspect() -> null {
 	if not safeName(source) {
 		out = "blocked: invalid file name"
@@ -70,9 +86,10 @@ view main {
 		row {
 			button "Inspect" onClick: inspect
 			button "Copy" onClick: copyFile
+			button "Copy bytes" onClick: copyBytes
 			button "Move / rename" onClick: moveFile
 		}
 		pre "{out}"
-		p "Copy accepts regular files only. Move/rename also accepts directories. Both source and destination must be under --allow-dir. On web these calls return an error." class: "muted"
+		p "Copy accepts regular files only. Move/rename also accepts directories. Both source and destination must be under --allow-dir. Copy bytes uses fs.readBytes/fs.writeBytes for binary files. On web these calls return an error." class: "muted"
 	}
 }

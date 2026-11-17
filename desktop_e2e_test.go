@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,6 +34,8 @@ func TestDesktopBridgeE2E(t *testing.T) {
 		"\tdoc, err = xml.parse(\"<r/>\")\n" +
 		"\tsaved, saveErr = xml.saveFile(\"probe.xml\", doc, {})\n" +
 		"\tloaded, loadErr = xml.loadFile(\"probe.xml\")\n" +
+		"\tsavedBytes, saveBytesErr = xml.saveBytes(\"probe.xml\", doc, \"utf-8\")\n" +
+		"\tloadedBytes, loadBytesErr = xml.loadBytes(\"probe.xml\", \"utf-8\")\n" +
 		"}\n" +
 		"\n" +
 		"view main {\n" +
@@ -194,6 +197,32 @@ func TestDesktopBridgeE2E(t *testing.T) {
 		t.Fatalf("bridge fs read: %v", err)
 	} else if r["ok"] != true || !strings.Contains(r["data"].(string), "desktop-fs-roundtrip") {
 		t.Errorf("fs read roundtrip: ok=%v data=%q", r["ok"], r["data"])
+	}
+
+	// fs: binary read/write round-trip via base64.
+	binaryPath := filepath.Join(dir, "probe.bin")
+	binaryPayload := []byte{0x00, 0x01, 0x7F, 0x80, 0xFF}
+	wb := url.Values{}
+	wb.Set("token", token)
+	wb.Set("path", binaryPath)
+	wb.Set("data", base64.StdEncoding.EncodeToString(binaryPayload))
+	if r, err := post("/__bridge__/file/writebytes", wb); err != nil {
+		t.Fatalf("bridge fs writebytes: %v", err)
+	} else if r["ok"] != true {
+		t.Errorf("fs.writeBytes refused: %v", r["message"])
+	}
+	rb := url.Values{}
+	rb.Set("token", token)
+	rb.Set("path", binaryPath)
+	if r, err := post("/__bridge__/file/readbytes", rb); err != nil {
+		t.Fatalf("bridge fs readbytes: %v", err)
+	} else if r["ok"] != true {
+		t.Errorf("fs.readBytes refused: %v", r["message"])
+	} else {
+		raw, decErr := base64.StdEncoding.DecodeString(strings.Trim(r["data"].(string), "\""))
+		if decErr != nil || string(raw) != string(binaryPayload) {
+			t.Errorf("fs bytes roundtrip mismatch: %v data=%q", decErr, r["data"])
+		}
 	}
 
 	// fs: a .. escape outside the allowed directory is refused.

@@ -70,8 +70,11 @@ var xmlStdMethods = map[string]string{
 	"xml_to_csv":            "toCsv",
 	"xml_xslt":              "xslt",
 	"xml_merge":             "merge",
+	"xml_merge3":            "merge3",
 	"xml_diff":              "diff",
+	"xml_patch":             "patch",
 	"xml_validate_xsd":      "validateXsd",
+	"xml_validate_xsd_all":  "validateXsdAll",
 	"xml_validate_rules":    "validateRules",
 }
 
@@ -101,6 +104,40 @@ func xmlStdBodyJs(key, target string) string {
   if (fetched[1] !== null) return [null, fetched[1]];
   return __SUI_XML.parse(fetched[0]);
 }`
+	}
+	if key == "xml_load_bytes" {
+		if target == "desktop" {
+			return `async function (path, encoding) {
+  var fd = new URLSearchParams();
+  fd.set("token", __SUI_TOKEN);
+  fd.set("path", path);
+  try {
+    var r = await fetch("/__bridge__/file/readbytes", { method: "POST", body: fd });
+    var j = await r.json();
+    if (!j.ok) return [null, j.message];
+    return __SUI_XML.parseBytes(__sui_b64_to_bytes(j.data), encoding);
+  } catch (e) { return [null, String(e)]; }
+}`
+		}
+		return `async function (path, encoding) { return [null, "xml.loadBytes is not available on the web target"]; }`
+	}
+	if key == "xml_save_bytes" {
+		if target == "desktop" {
+			return `async function (path, node, encoding, options) {
+  var res = __SUI_XML.toBytes(node, encoding, options || {});
+  if (res[1] !== null) return res;
+  var fd = new URLSearchParams();
+  fd.set("token", __SUI_TOKEN);
+  fd.set("path", path);
+  fd.set("data", __sui_bytes_to_b64(res[0]));
+  try {
+    var r = await fetch("/__bridge__/file/writebytes", { method: "POST", body: fd });
+    var j = await r.json();
+    return j.ok ? [null, null] : [null, j.message];
+  } catch (e) { return [null, String(e)]; }
+}`
+		}
+		return `async function (path, node, encoding, options) { return [null, "xml.saveBytes is not available on the web target"]; }`
 	}
 	if key == "xml_save_file" {
 		if target == "desktop" {

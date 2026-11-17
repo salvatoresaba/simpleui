@@ -78,6 +78,7 @@ import (
 	_ "embed"
 	"crypto/rand"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -146,6 +147,8 @@ func main() {
 	})
 	mux.HandleFunc("POST /__bridge__/file/read", makeRead(secret))
 	mux.HandleFunc("POST /__bridge__/file/write", makeWrite(secret))
+	mux.HandleFunc("POST /__bridge__/file/readbytes", makeReadBytes(secret))
+	mux.HandleFunc("POST /__bridge__/file/writebytes", makeWriteBytes(secret))
 	mux.HandleFunc("POST /__bridge__/fs/stat", makeFstat(secret))
 	mux.HandleFunc("POST /__bridge__/fs/list", makeList(secret))
 	mux.HandleFunc("POST /__bridge__/fs/mkdir", makeMkdir(secret))
@@ -282,6 +285,52 @@ func makeRead(secret string) http.HandlerFunc {
 			return
 		}
 		bridgeJSON(w, true, string(data), "")
+	}
+}
+
+// makeReadBytes returns a base64 payload so arbitrary bytes (including UTF-16
+// XML) survive the JSON bridge.
+func makeReadBytes(secret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if postForm(r) != nil || !secretOk(secret, r) {
+			bridgeJSON(w, false, "", "forbidden: missing or invalid token")
+			return
+		}
+		path := r.PostFormValue("path")
+		if !pathAllowed(path) {
+			bridgeJSON(w, false, "", "forbidden: path outside the allowed directories")
+			return
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			bridgeJSON(w, false, "", "fs.readBytes: "+err.Error())
+			return
+		}
+		bridgeJSON(w, true, base64.StdEncoding.EncodeToString(data), "")
+	}
+}
+
+func makeWriteBytes(secret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if postForm(r) != nil || !secretOk(secret, r) {
+			bridgeJSON(w, false, "", "forbidden: missing or invalid token")
+			return
+		}
+		path := r.PostFormValue("path")
+		if !pathAllowed(path) {
+			bridgeJSON(w, false, "", "forbidden: path outside the allowed directories")
+			return
+		}
+		data, err := base64.StdEncoding.DecodeString(r.PostFormValue("data"))
+		if err != nil {
+			bridgeJSON(w, false, "", "fs.writeBytes: invalid base64 payload")
+			return
+		}
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			bridgeJSON(w, false, "", "fs.writeBytes: "+err.Error())
+			return
+		}
+		bridgeJSON(w, true, "", "")
 	}
 }
 

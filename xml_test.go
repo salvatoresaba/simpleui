@@ -169,3 +169,107 @@ view main {
     if (text.indexOf('not available on the web target') < 0) throw new Error('loadFile: ' + text);
 `+featureScriptTail)
 }
+
+func TestXmlXsdAdvanced(t *testing.T) {
+	src := `import { xml } from "std"
+state out = ""
+fn run() -> null {
+	let xsd = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"><xs:attributeGroup name=\"common\"><xs:attribute name=\"id\" type=\"xs:int\" use=\"required\"/></xs:attributeGroup><xs:simpleType name=\"Rating\"><xs:restriction base=\"xs:int\"><xs:minInclusive value=\"1\"/><xs:maxInclusive value=\"5\"/></xs:restriction></xs:simpleType><xs:element name=\"item\"><xs:complexType><xs:simpleContent><xs:extension base=\"xs:string\"><xs:attributeGroup ref=\"common\"/><xs:attribute name=\"rating\" type=\"Rating\"/></xs:extension></xs:simpleContent></xs:complexType></xs:element><xs:element name=\"root\"><xs:complexType><xs:sequence><xs:element ref=\"item\" maxOccurs=\"unbounded\"/></xs:sequence></xs:complexType></xs:element></xs:schema>"
+	doc, derr = xml.parse("<root><item id=\"1\" rating=\"4\">good</item></root>")
+	ok, verr = xml.validateXsd(doc, xsd)
+	all, aerr = xml.validateXsdAll(doc, xsd)
+	bad, be = xml.parse("<root><item rating=\"9\" extra=\"x\">bad</item><other/></root>")
+	bok, berr = xml.validateXsd(bad, xsd)
+	ball, ballErr = xml.validateXsdAll(bad, xsd)
+	out = str(ok) + "/" + str(len(all)) + "/" + str(bok) + "/" + str(len(ball))
+}
+view main {
+	p "{out}"
+	button "Run" onClick: run
+}`
+	runHeadlessFeature(t, src, featureScriptHead+`    await wait(300);
+    button('Run').click(); await wait(300);
+    var text = document.body.innerText;
+    if (text.indexOf('true/0/false/') < 0) throw new Error('xsd advanced: ' + text);
+    var m = /false\/([4-9][0-9]*)/.exec(text);
+    if (!m) throw new Error('xsd error collection: ' + text);
+`+featureScriptTail)
+}
+
+func TestXmlDiffPatchMerge(t *testing.T) {
+	src := `import { json, xml } from "std"
+state out = ""
+async fn run() -> null {
+	let before = "<root><item id=\"1\"><v>A</v></item><item id=\"2\"><v>B</v></item><item id=\"3\"><v>C</v></item></root>"
+	let after = "<root><item id=\"3\"><v>C2</v></item><item id=\"1\"><v>A</v></item><item id=\"4\"><v>D</v></item></root>"
+	docA, ae = xml.parse(before)
+	docB, be = xml.parse(after)
+	changes, ce = xml.diff(docA, docB, {"key": "id"})
+	changeText, cte = json.stringify(changes)
+	working, we = xml.clone(docA, true)
+	pok, perr = xml.patch(working, changes)
+	patchedText, pte = xml.stringify(working, {"declaration": false})
+	targetText, tte = xml.stringify(docB, {"declaration": false})
+
+	mergeDoc, me = xml.parse("<root><item id=\"2\"><v>BB</v></item></root>")
+	updated, ue = xml.merge(docA, mergeDoc, {"mode": "update", "key": "id"})
+	mergedText, mte = xml.stringify(docA, {"declaration": false})
+
+	base, bse = xml.parse("<root><item id=\"1\"><v>A</v></item><item id=\"2\"><v>B</v></item></root>")
+	ours, ose = xml.parse("<root><item id=\"1\"><v>ours</v></item><item id=\"2\"><v>B</v></item></root>")
+	theirs, tse = xml.parse("<root><item id=\"1\"><v>A</v></item><item id=\"2\"><v>theirs</v></item></root>")
+	conflicts, cfe = xml.merge3(base, ours, theirs, {"key": "id"})
+	threeText, tte2 = xml.stringify(ours, {"declaration": false})
+
+	conflictOurs, cose = xml.parse("<root><item id=\"1\"><v>left</v></item></root>")
+	conflictTheirs, ctse = xml.parse("<root><item id=\"1\"><v>right</v></item></root>")
+	conflictBase, cbse = xml.parse("<root><item id=\"1\"><v>A</v></item></root>")
+	conflictList, cle = xml.merge3(conflictBase, conflictOurs, conflictTheirs, {"key": "id"})
+
+	out = "OPS=" + str(len(changes)) + "|" + changeText
+	out = out + "\nPATCH=" + str(pok) + "/" + str(perr) + "/" + str(patchedText == targetText)
+	out = out + "\nMERGE=" + str(updated) + "/" + str(mergedText)
+	out = out + "\nTHREE=" + str(len(conflicts)) + "/" + str(threeText)
+	out = out + "\nCONFLICT=" + str(len(conflictList)) + "/" + conflictList[0]
+}
+view main {
+	pre "{out}"
+	button "Run" onClick: run
+}`
+	runHeadlessFeature(t, src, featureScriptHead+`    await wait(300);
+    button('Run').click();
+    for (var wi = 0; wi < 160 && document.body.innerText.indexOf('CONFLICT=') < 0; wi++) await wait(50);
+    var text = document.body.innerText;
+    if (text.indexOf('OPS=') < 0) throw new Error('diff run: ' + text);
+    if (text.indexOf('OPS=') < 0) throw new Error('diff ops: ' + text);
+    if (text.indexOf('"op":"moved"') < 0) throw new Error('diff moves: ' + text);
+    if (text.indexOf('"op":"added"') < 0) throw new Error('diff added: ' + text);
+    if (text.indexOf('"op":"removed"') < 0) throw new Error('diff removed: ' + text);
+    if (text.indexOf('PATCH=true/null/true') < 0) throw new Error('patch: ' + text);
+    if (text.indexOf('MERGE=1/') < 0 || text.indexOf('id="2"><v>BB</v>') < 0) throw new Error('merge: ' + text);
+    if (text.indexOf('THREE=0/') < 0 || text.indexOf('<v>ours</v>') < 0 || text.indexOf('<v>theirs</v>') < 0) throw new Error('merge3: ' + text);
+    if (text.indexOf('CONFLICT=1/') < 0) throw new Error('merge3 conflict: ' + text);
+`+featureScriptTail)
+}
+
+func TestXmlBytesWebUnavailable(t *testing.T) {
+	src := `import { xml } from "std"
+state out = ""
+async fn run() -> null {
+	doc, derr = xml.parse("<root/>")
+	root, rerr = xml.root(doc)
+	loaded, loadErr = xml.loadBytes("a.xml")
+	saved, saveErr = xml.saveBytes("a.xml", root, "utf-8")
+	out = str(loaded) + " " + loadErr + "|" + str(saved) + " " + saveErr
+}
+view main {
+	p "{out}"
+	button "Run" onClick: run
+}`
+	runHeadlessFeature(t, src, featureScriptHead+`    await wait(300);
+    button('Run').click(); await wait(300);
+    var text = document.body.innerText;
+    if (text.indexOf('xml.loadBytes is not available on the web target') < 0) throw new Error('xml bytes read: ' + text);
+    if (text.indexOf('xml.saveBytes is not available on the web target') < 0) throw new Error('xml bytes write: ' + text);
+`+featureScriptTail)
+}
