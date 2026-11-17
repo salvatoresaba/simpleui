@@ -1343,6 +1343,17 @@ func typeGuardJs(e *Expr, name string) string {
 	case "any", "unknown":
 		return "true"
 	}
+	// Literal types compare against their value: strings arrive already quoted
+	// by the parser, numbers and booleans are valid JavaScript literals.
+	if strings.HasPrefix(name, "\"") {
+		return "(" + x + " === " + name + ")"
+	}
+	if name == "true" || name == "false" {
+		return "(" + x + " === " + name + ")"
+	}
+	if _, err := strconv.ParseFloat(name, 64); err == nil {
+		return "(" + x + " === " + name + ")"
+	}
 	if strings.HasPrefix(name, "array[") {
 		return "Array.isArray(" + x + ")"
 	}

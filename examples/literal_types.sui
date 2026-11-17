@@ -1,0 +1,88 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 720px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+p \{ margin: 8px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+# Literal types restrict a value to specific strings, numbers or booleans.
+# The first locale-style union below is the most common use: a status enum
+# written as plain strings without declaring an enum type.
+state mode: "idle" | "loading" | "error" = "idle"
+state level: 1 | 2 | 3 = 1
+state mixed: array["idle" | "loading"] = ["idle", "loading"]
+state message = "Press a button to change the mode."
+
+fn describe() -> null {
+	# The switch must cover all three members or the compiler reports the
+	# missing ones. A default block would also satisfy the check.
+	switch mode {
+	case "idle" {
+		message = "idle: ready for work"
+	}
+	case "loading" {
+		message = "loading: please wait"
+	}
+	case "error" {
+		message = "error: inspect the log"
+	}
+	}
+}
+
+fn applyMode(next: "idle" | "loading" | "error") -> null {
+	mode = next
+	describe()
+}
+
+fn nextMode() -> null {
+	if mode == "idle" {
+		mode = "loading"
+	} else if mode == "loading" {
+		mode = "error"
+	} else {
+		mode = "idle"
+	}
+	describe()
+}
+
+fn raiseLevel() -> null {
+	if level == 1 {
+		level = 2
+	} else if level == 2 {
+		level = 3
+	} else {
+		level = 1
+	}
+	message = "level is now " + str(level)
+}
+
+fn inspect() -> null {
+	# `is` accepts literal types too. Here it compares the current mode with
+	# the literal "error"; the branch is still type-checked as a normal if.
+	if mode is "error" {
+		message = "guard: mode is the literal \"error\""
+	} else {
+		message = "guard: mode is not \"error\""
+	}
+	let first = mixed[0]
+	if first is "idle" {
+		message = message + " · mixed[0] is idle"
+	}
+}
+
+view main {
+	card "" class: "card" {
+		h1 "Literal types"
+		p "{message}"
+		p "mode: {mode} · level: {str(level)} · mixed: {str(mixed)}" class: "muted"
+		row {
+			button "Next mode" onClick: nextMode
+			button "Raise level" onClick: raiseLevel
+			button "Inspect" onClick: inspect
+			button "Force error" onClick: forceError
+		}
+		p "The declared types allow only \"idle\", \"loading\", \"error\" and 1, 2, 3. Assigning any other literal is a compile error, and the switch must list every mode." class: "muted"
+	}
+}
+
+fn forceError() -> null {
+	applyMode("error")
+}

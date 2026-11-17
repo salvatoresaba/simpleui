@@ -94,7 +94,7 @@ Known accuracy corrections from the previous TODO:
 - [x] **Union types** - `string | int | null`, `T?` shorthand and union inference for mixed arrays/maps
 - [x] **Type guards / narrowing** - `if v is string { ... }`, `while`, `not`, `and`/`or` branch narrowing
 - [ ] **Generics** — generic functions and components
-- [ ] **Literal types** — unions of literals (`"success" | "error"`)
+- [x] **Literal types** — string/number/boolean literal types, strict assignment checks and exhaustive literal switch
 - [ ] **Const** — compile-time values
 - [ ] **Readonly** — immutable struct fields/variables
 

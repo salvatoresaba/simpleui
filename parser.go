@@ -690,6 +690,25 @@ func parseTypeName(p *Parser) string {
 // enums, array[T], map[string]V, fn, null, or a literal type.
 func parseTypeAtom(p *Parser) string {
 	t := p.cur()
+	if t.kind == "str" {
+		p.adv()
+		return strconv.Quote(suiUnescape(t.text, p.file, t.line, t.col, p.dd))
+	}
+	if t.kind == "-" {
+		p.adv()
+		n := p.cur()
+		if n.kind != "int" && n.kind != "float" {
+			p.diag("expected a number after '-' in a literal type")
+			resyncToLine(p)
+			return ""
+		}
+		p.adv()
+		return "-" + n.text
+	}
+	if t.kind == "int" || t.kind == "float" || t.kind == "true" || t.kind == "false" {
+		p.adv()
+		return t.text
+	}
 	if t.kind != "ident" && t.kind != "null" && t.kind != "fn" {
 		p.diag(fmt.Sprintf("expected a type name, found %v", tokLabel(t.kind, t.text)))
 		resyncToLine(p)

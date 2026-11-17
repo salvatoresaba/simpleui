@@ -49,6 +49,7 @@ Recommended order for an agent:
 | Destructuring, spread and named arguments | [API: syntax](API_REFERENCE.md#destructuring-spread-and-named-arguments) | [SPEC](../SPEC.md) | `examples/syntax_ergonomics.sui` |
 | Nominal enums and exhaustive switch | [API: enums](API_REFERENCE.md#enums-and-switch) | [SPEC](../SPEC.md) | `examples/enums.sui` |
 | Union types, `?` and `is` guards | [API: unions](API_REFERENCE.md#union-types-and-is-guards) | [SPEC](../SPEC.md) | `examples/unions.sui` |
+| Literal types and exhaustive literal switch | [API: literal types](API_REFERENCE.md#literal-types) | [SPEC](../SPEC.md) | `examples/literal_types.sui` |
 | Slideshow with dots and keyboard | [API: carousel](API_REFERENCE.md#carousel) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/carousel/README.md` |
 | Wizard / progress steps | [API: stepper](API_REFERENCE.md#stepper) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/stepper/README.md` |
 | Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |

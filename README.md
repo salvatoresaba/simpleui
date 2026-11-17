@@ -33,6 +33,7 @@ Key features:
 - **Expressive syntax**: destructuring, spread and named function arguments
 - **Nominal enums**: exhaustive `switch`, duplicate-case checks and a checked enum type
 - **Union types**: `string | int`, `string?` and narrowing `is` guards
+- **Literal types**: `"idle" | "loading"` with exhaustive switch
 - **Multi-target**: web apps, browser-launched desktop executables and native-window desktop executables with an embedded WebView
 - **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
 - **Secure for desktop**: native bridge with capability-based permission system and native file/folder dialogs

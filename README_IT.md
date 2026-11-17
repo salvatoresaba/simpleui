@@ -33,6 +33,7 @@ Le principali caratteristiche:
 - **Sintassi espressiva**: destructuring, spread e argomenti nominati nelle chiamate
 - **Enum nominali**: `switch` esaustivo, controllo dei casi duplicati e tipo enum verificato
 - **Tipi union**: `string | int`, `string?` e type guard `is` con narrowing
+- **Literal types**: `"idle" | "loading"` con switch esaustivo
 - **Multi-target**: genera app web o eseguibili desktop standalone
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)
 - **Sicuro per desktop**: bridge nativo con permessi basati su capability e dialoghi file/cartelle nativi

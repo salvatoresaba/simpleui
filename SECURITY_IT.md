@@ -52,7 +52,7 @@ Gli attributi `href`, `src` e `link` passano da `__sui_url`:
 - bloccati: `javascript:`, `vbscript:`, `data:`, `file:` e altri schemi attivi
   (sostituiti con `#`); i caratteri di controllo vengono ignorati nel controllo
   dello schema.
-- eccezione: `data:image/...` � accettato solo nello `src` di `img` e `spinner`,
+- eccezione: `data:image/...` è accettato solo nello `src` di `img` e `spinner`,
   dove il browser lo tratta come immagine e non esegue script; resta bloccato in
   `href`, `link` e nei media non immagine.
 
@@ -103,8 +103,8 @@ e stile dell'applicazione restano invariati.
 `chart` tratta l'attributo `data` come testo non fidato. JSON, XML e CSV vengono
 convertiti in punti numerici; i nodi SVG sono creati con `createElementNS` e ogni
 etichetta/valore viene scritto con `textContent`. Nessuna stringa del payload
-raggiunge `innerHTML`. Le dichiarazioni DTD/entit� XML vengono rifiutate, i dati
-non validi mostrano un breve errore visibile e il parsing � limitato a 5.000
+raggiunge `innerHTML`. Le dichiarazioni DTD/entità XML vengono rifiutate, i dati
+non validi mostrano un breve errore visibile e il parsing è limitato a 5.000
 punti, a una dimensione massima del testo e a una lunghezza massima delle
 etichette. I dati chart non caricano URL, script o fogli di stile.
 
@@ -232,7 +232,7 @@ I file trascinati o scelti sono **metadati**, non contenuto: il runtime legge
 `name`, `path`, `size`, `type` e la struttura delle directory, mai i byte. I
 target `dropFiles:` e `pickFiles:` richiedono uno state stringa; i valori
 passano dal normale percorso di rendering con escaping. La scansione ricorsiva
-ha limiti (2.000 file, profondit� 16, 4.096 caratteri per percorso) e gli errori
+ha limiti (2.000 file, profondità 16, 4.096 caratteri per percorso) e gli errori
 sono mostrati in un box visibile `Cannot accept the files: ...`. `pickFiles`
 crea un input file nascosto per i trigger diversi da `file` e lo rimuove dopo
 la selezione o l'annullamento. `pickMode: "fs"` usa la File System Access API
@@ -240,7 +240,7 @@ solo dopo gesto utente e permesso, in sola lettura, su Chromium in contesto
 sicuro; gli handle non vengono persistiti tra reload. `auto` ripiega sul picker
 nativo se l'API non e disponibile.
 
-Il browser non espone percorsi assoluti: un nome pu� essere testo non fidato e
+Il browser non espone percorsi assoluti: un nome può essere testo non fidato e
 non dimostra che un percorso desktop sia sicuro da leggere. `fs` resta dietro
 `--allow-dir`; validare ogni URL costruito da un nome trascinato.
 

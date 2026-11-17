@@ -618,19 +618,19 @@ I preset dello spinner ora cambiano davvero forma: **Tri dots**, **Equalizer** e
 
 ### Modalità immagine/GIF dello spinner
 
-Una GIF animata pu� sostituire l'anello CSS. Seleziona uno spinner, apri la sua
+Una GIF animata può sostituire l'anello CSS. Seleziona uno spinner, apri la sua
 sezione **Spinner** nell'inspector e spunta **Image / GIF**. I selettori
 **Theme**, **Structure**, **Style**, **Animation** e delle fasi vengono
 disabilitati e compaiono due controlli per la sorgente:
 
-- **Source** elenca le immagini gi� caricate nel progetto; sceglierne una la
+- **Source** elenca le immagini già caricate nel progetto; sceglierne una la
   applica subito.
 - **Upload image** accetta file GIF, PNG, JPEG, WebP e AVIF fino a 4 MB,
   memorizza l'immagine come data URI e la applica.
 
 L'elemento generato resta un `spinner` e riceve un `src:` letterale o reattivo.
-L'anteprima mostra l'animazione e il sorgente resta autosufficiente perch�
-l'immagine � incorporata come `data:image/...;base64,...`. Togli la spunta a
+L'anteprima mostra l'animazione e il sorgente resta autosufficiente perché
+l'immagine è incorporata come `data:image/...;base64,...`. Togli la spunta a
 **Image / GIF** per tornare allo spinner CSS; struttura, stile e animazione
 precedenti vengono conservati. Anche il pulsante **Src** del gestore immagini
 funziona su uno spinner selezionato. Vedi `examples/spinner_image/` per un

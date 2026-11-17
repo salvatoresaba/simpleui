@@ -7,6 +7,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 - [SUI language](#sui-language-essential-syntax)
 - [Enums and switch](#enums-and-switch)
 - [Union types and `is` guards](#union-types-and-is-guards)
+- [Literal types](#literal-types)
 - [Destructuring, spread and named arguments](#destructuring-spread-and-named-arguments)
 - [Drag and drop](#drag-and-drop)
 - [Menu bar](#menu-bar)
@@ -124,9 +125,51 @@ branch the variable is narrowed:
 `is int` uses `Number.isInteger`; `is float` requires a non-integer number.
 The int/float distinction is static, while both are JavaScript numbers.
 `map[string]int | null` is a nullable map; nullable map values are not
-expressible yet (use `map[string]any`). Literal types (for example
-`"success" | "error"`), narrowing of member/index expressions, and
-exhaustiveness for non-enum switches are not available yet.
+expressible yet (use `map[string]any`). Narrowing of member/index expressions
+and exhaustiveness for non-literal switches are not available yet.
+
+## Literal types
+
+A literal type restricts a value to one exact string, number or boolean. Literal
+types are often written as a union:
+
+```sui
+state mode: "idle" | "loading" | "error" = "idle"
+state level: 1 | 2 | 3 = 1
+state mixed: array["idle" | "loading"] = ["idle", "loading"]
+```
+
+- Assignments, function arguments, return values, struct fields and array
+  elements are checked against the exact literal. `mode = "run"` is rejected.
+- A literal value is accepted wherever its base type is expected, but a plain
+  `string`, `int` or `bool` value is not accepted where a literal type is
+  expected (the compiler cannot prove the exact value).
+- Array and map literals are checked element by element, including mixed
+  literal unions.
+- Negative literals are supported: `state delta: -1 | 1 = -1`.
+- Numeric literal types keep the int/float distinction: `1` and `1.0` are
+  different members.
+- Operators and builtins use the base type, so `mode == "idle"`, `upper(mode)`
+  and `"mode " + mode` work normally.
+- `value is "idle"` compares against the literal at runtime. A guard that can
+  never match is a compile error.
+- A `switch` on a union made only of literal members must cover every member
+  unless it has a `default` block. The compiler reports the missing members.
+
+```sui
+fn describe() -> null {
+	switch mode {
+	case "idle" { message = "ready" }
+	case "loading" { message = "working" }
+	case "error" { message = "failed" }
+	}
+}
+```
+
+Limitations: map values cannot currently be a union, so
+`map[string]"ok" | "bad"` parses as `map[string]"ok"` or `"bad"`; use
+`map[string]string`. Narrowing of member/index expressions and exhaustiveness
+for ordinary `string`/`int` switches are not available.
 
 ## Destructuring, spread and named arguments
 

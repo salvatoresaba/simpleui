@@ -179,6 +179,16 @@ func isNumericLiteralName(s string) bool {
 	return true
 }
 
+// canonicalFloatName formats a float literal with a decimal point when it is
+// integral, so 1e3 and 1000.0 stay float literals rather than becoming ints.
+func canonicalFloatName(f float64) string {
+	s := strconv.FormatFloat(f, 'g', -1, 64)
+	if !strings.ContainsAny(s, ".eE") {
+		s += ".0"
+	}
+	return s
+}
+
 // assignable reports whether a value of type src can be stored where dst is
 // expected. Unions are covariant: every src member must fit dst, and a value
 // may fit any member of a dst union. Literal types fit their base type.
@@ -313,6 +323,55 @@ func parseTypeFrom(s string) (*SType, string, string) {
 	n := len(s)
 	if n == 0 {
 		return &SType{kind: "error"}, "", "missing type name"
+	}
+	if s[0] == '"' {
+		// String literal type, e.g. "success" | "error".
+		i := 1
+		for i < n {
+			if s[i] == '\\' {
+				i += 2
+				continue
+			}
+			if s[i] == '"' {
+				i++
+				break
+			}
+			i++
+		}
+		if i > n || s[i-1] != '"' {
+			return &SType{kind: "error"}, "", "unterminated string literal type"
+		}
+		raw := s[:i]
+		val, err := strconv.Unquote(raw)
+		if err != nil {
+			return &SType{kind: "error"}, "", "invalid string literal type " + raw
+		}
+		return &SType{kind: "literal", name: strconv.Quote(val)}, s[i:], ""
+	}
+	if s[0] == '-' || (s[0] >= '0' && s[0] <= '9') {
+		i := 1
+		for i < n && (s[i] == '.' || s[i] == 'e' || s[i] == 'E' || s[i] == '+' || s[i] == '-' || (s[i] >= '0' && s[i] <= '9')) {
+			i++
+		}
+		lit := s[:i]
+		if strings.ContainsAny(lit, ".eE") {
+			f, err := strconv.ParseFloat(lit, 64)
+			if err != nil {
+				return &SType{kind: "error"}, "", "invalid numeric literal type " + lit
+			}
+			return &SType{kind: "literal", name: canonicalFloatName(f)}, s[i:], ""
+		}
+		iv, err := strconv.ParseInt(lit, 10, 64)
+		if err != nil {
+			return &SType{kind: "error"}, "", "invalid numeric literal type " + lit
+		}
+		return &SType{kind: "literal", name: strconv.FormatInt(iv, 10)}, s[i:], ""
+	}
+	if strings.HasPrefix(s, "true") && (n == 4 || !isTypeNameChar(s[4])) {
+		return &SType{kind: "literal", name: "true"}, s[4:], ""
+	}
+	if strings.HasPrefix(s, "false") && (n == 5 || !isTypeNameChar(s[5])) {
+		return &SType{kind: "literal", name: "false"}, s[5:], ""
 	}
 	j := 0
 	for j < n && isTypeNameChar(s[j]) {
@@ -920,8 +979,9 @@ func (c *Checker) checkState(sd *StateDecl) {
 		c.states[sd.name] = it
 		return
 	}
-	if !assignable(it, decl) {
-		c.diagAt(sd.span, "state "+sd.name+" declared as "+typeStr(decl)+" but initialized with a value of type "+typeStr(it))
+	vt := c.valueTypeOf(sd.init, it)
+	if !assignable(vt, decl) {
+		c.diagAt(sd.span, "state "+sd.name+" declared as "+typeStr(decl)+" but initialized with a value of type "+valueTypeStr(vt, decl))
 	}
 	c.states[sd.name] = decl
 	c.declaredStates[sd.name] = decl
@@ -985,8 +1045,9 @@ func (c *Checker) checkFuncSig(fd *FuncDecl) {
 	for i := 0; i < len(fd.params); i++ {
 		if fd.params[i].dflt != nil && i < len(params) {
 			dt := c.inferExpr(fd.params[i].dflt)
-			if dt != nil && dt.kind != "error" && dt.kind != "unknown" && !assignable(dt, &params[i]) {
-				c.diagAt(fd.params[i].span, "default value of parameter \""+fd.params[i].name+"\" must be "+typeStr(&params[i])+", got "+typeStr(dt))
+			dv := c.valueTypeOf(fd.params[i].dflt, dt)
+			if dt != nil && dt.kind != "error" && dt.kind != "unknown" && !assignable(dv, &params[i]) {
+				c.diagAt(fd.params[i].span, "default value of parameter \""+fd.params[i].name+"\" must be "+typeStr(&params[i])+", got "+valueTypeStr(dv, &params[i]))
 			}
 		}
 	}
@@ -1128,6 +1189,207 @@ func (c *Checker) checkDestructure(s *Stmt) {
 	}
 }
 
+// literalTypeOf returns the literal type of a compile-time literal
+// expression. It is nil when the expression is not a single literal value;
+// arrays and maps qualify when every element is itself a literal.
+func literalTypeOf(e *Expr) *SType {
+	if e == nil {
+		return nil
+	}
+	switch e.kind {
+	case "int":
+		return &SType{kind: "literal", name: strconv.Itoa(e.i)}
+	case "float":
+		return &SType{kind: "literal", name: canonicalFloatName(e.f)}
+	case "bool":
+		if e.b {
+			return &SType{kind: "literal", name: "true"}
+		}
+		return &SType{kind: "literal", name: "false"}
+	case "str":
+		if val, ok := literalString(e); ok {
+			return &SType{kind: "literal", name: strconv.Quote(val)}
+		}
+	case "unary":
+		if e.op == "neg" && e.operand != nil {
+			switch e.operand.kind {
+			case "int":
+				return &SType{kind: "literal", name: strconv.Itoa(-e.operand.i)}
+			case "float":
+				return &SType{kind: "literal", name: canonicalFloatName(-e.operand.f)}
+			}
+		}
+	case "array":
+		if len(e.elements) == 0 {
+			return nil
+		}
+		var parts []*SType
+		for i := 0; i < len(e.elements); i++ {
+			if i < len(e.spreads) && e.spreads[i] {
+				return nil
+			}
+			lt := literalTypeOf(e.elements[i])
+			if lt == nil {
+				return nil
+			}
+			parts = append(parts, lt)
+		}
+		return &SType{kind: "array", elem: unionOf(parts...)}
+	case "map":
+		if len(e.vals) == 0 {
+			return nil
+		}
+		var parts []*SType
+		for i := 0; i < len(e.vals); i++ {
+			if i < len(e.spreads) && e.spreads[i] {
+				return nil
+			}
+			lt := literalTypeOf(e.vals[i])
+			if lt == nil {
+				return nil
+			}
+			parts = append(parts, lt)
+		}
+		return &SType{kind: "map", key: NewSType("string"), val: unionOf(parts...)}
+	}
+	return nil
+}
+
+// valueTypeOf reports the type a value contributes to an assignment-like
+// check. Literal expressions contribute their literal type, and a state
+// identifier contributes its declared type (the expression layer widens it so
+// ordinary operators see the base type).
+func (c *Checker) valueTypeOf(e *Expr, inferred *SType) *SType {
+	if e != nil && e.kind == "ident" && c.declaredStates[e.name] != nil {
+		return c.declaredStates[e.name]
+	}
+	if lit := literalTypeOf(e); lit != nil {
+		return lit
+	}
+	return inferred
+}
+
+// declaredExprType returns the declared type of a state identifier. Switch
+// subjects and `is` guards use it to keep literal unions visible even though
+// ordinary expressions see the widened base type.
+func (c *Checker) declaredExprType(e *Expr) *SType {
+	if e != nil && e.kind == "ident" && c.declaredStates[e.name] != nil {
+		return c.declaredStates[e.name]
+	}
+	return nil
+}
+
+// hasLiteralType reports whether a declared type contains a literal member.
+// Diagnostics keep the exact literal for those destinations and fall back to
+// the base type elsewhere, so ordinary messages stay "got string".
+func hasLiteralType(t *SType) bool {
+	if t == nil {
+		return false
+	}
+	if t.kind == "literal" {
+		return true
+	}
+	if t.kind == "union" {
+		for i := 0; i < len(t.members); i++ {
+			if hasLiteralType(t.members[i]) {
+				return true
+			}
+		}
+		return false
+	}
+	if t.kind == "array" {
+		return hasLiteralType(t.elem)
+	}
+	if t.kind == "map" {
+		return hasLiteralType(t.val)
+	}
+	return false
+}
+
+// valueTypeStr renders a source value for a diagnostic. When the destination
+// accepts literal members, showing the literal value is more useful; otherwise
+// the base type ("string", "int", ...) is shown.
+func valueTypeStr(src, dst *SType) string {
+	if hasLiteralType(dst) {
+		return typeStr(src)
+	}
+	return typeStr(widenType(src))
+}
+
+// widenType maps literal types back to their base type. Operators and
+// builtins use it so a value narrowed to a literal can still be concatenated
+// or compared as its underlying string/int/bool.
+func widenType(t *SType) *SType {
+	if t == nil {
+		return nil
+	}
+	if t.kind == "literal" {
+		if strings.HasPrefix(t.name, "\"") {
+			return NewSType("string")
+		}
+		if t.name == "true" || t.name == "false" {
+			return NewSType("bool")
+		}
+		if strings.ContainsAny(t.name, ".eE") {
+			return NewSType("float")
+		}
+		return NewSType("int")
+	}
+	if t.kind == "union" {
+		var members []*SType
+		for i := 0; i < len(t.members); i++ {
+			members = append(members, widenType(t.members[i]))
+		}
+		return unionOf(members...)
+	}
+	if t.kind == "array" {
+		return &SType{kind: "array", elem: widenType(t.elem)}
+	}
+	if t.kind == "map" {
+		return &SType{kind: "map", key: t.key, val: widenType(t.val)}
+	}
+	return t
+}
+
+// literalTypeKey returns the switch-case key for a literal type, matching
+// switchCaseKey so exhaustiveness can compare declared members with cases.
+func literalTypeKey(t *SType) string {
+	if t == nil || t.kind != "literal" {
+		return ""
+	}
+	name := t.name
+	if strings.HasPrefix(name, "\"") {
+		val, err := strconv.Unquote(name)
+		if err != nil {
+			return ""
+		}
+		return "s:" + val
+	}
+	if name == "true" || name == "false" {
+		return "b:" + name
+	}
+	if f, err := strconv.ParseFloat(name, 64); err == nil {
+		if strings.ContainsAny(name, ".eE") {
+			return "f:" + strconv.FormatFloat(f, 'g', -1, 64)
+		}
+		return "i:" + strconv.FormatInt(int64(f), 10)
+	}
+	return ""
+}
+
+// allLiteralUnion reports whether t is a union made only of literal types.
+func allLiteralUnion(t *SType) bool {
+	if t == nil || t.kind != "union" || len(t.members) == 0 {
+		return false
+	}
+	for i := 0; i < len(t.members); i++ {
+		if t.members[i].kind != "literal" {
+			return false
+		}
+	}
+	return true
+}
+
 // enumMemberOf reports whether e is Enum.Member and returns both parts.
 func enumMemberOf(e *Expr) (string, string, bool) {
 	if e == nil || e.kind != "member" || e.obj == nil || e.obj.kind != "ident" {
@@ -1166,6 +1428,15 @@ func switchCaseKey(e *Expr) string {
 		if en, mem, ok := enumMemberOf(e); ok {
 			return "e:" + en + "." + mem
 		}
+	case "unary":
+		if e.op == "neg" && e.operand != nil {
+			switch e.operand.kind {
+			case "int":
+				return "i:" + strconv.Itoa(-e.operand.i)
+			case "float":
+				return "f:" + strconv.FormatFloat(-e.operand.f, 'g', -1, 64)
+			}
+		}
 	}
 	return ""
 }
@@ -1174,6 +1445,9 @@ func switchCaseKey(e *Expr) string {
 // an enum requires every member unless a default exists.
 func (c *Checker) checkSwitch(s *Stmt) {
 	st := c.inferExpr(s.init)
+	if d := c.declaredExprType(s.init); d != nil {
+		st = d
+	}
 	switch st.kind {
 	case "enum", "string", "int", "float", "bool", "union", "any", "unknown", "error":
 	default:
@@ -1185,9 +1459,10 @@ func (c *Checker) checkSwitch(s *Stmt) {
 	for i := 0; i < len(s.cases); i++ {
 		cse := s.cases[i]
 		ct := c.inferExpr(cse.expr)
+		cv := c.valueTypeOf(cse.expr, ct)
 		if st.kind != "any" && st.kind != "unknown" && st.kind != "error" && ct.kind != "error" && ct.kind != "unknown" {
-			if !assignable(ct, st) {
-				c.diagAt(cse.expr.span, "case value must be "+typeStr(st)+", got "+typeStr(ct))
+			if !assignable(cv, st) {
+				c.diagAt(cse.expr.span, "case value must be "+typeStr(st)+", got "+valueTypeStr(cv, st))
 			}
 		}
 		if st.kind == "enum" {
@@ -1206,6 +1481,7 @@ func (c *Checker) checkSwitch(s *Stmt) {
 				c.diagAt(cse.expr.span, "duplicate case value in switch")
 			}
 			seen[key] = true
+			covered[key] = true
 		}
 		c.pushScope()
 		c.checkStmts(cse.body)
@@ -1217,15 +1493,27 @@ func (c *Checker) checkSwitch(s *Stmt) {
 		c.popScope()
 	}
 	c.switchDepth--
-	if st.kind == "enum" && !s.hasDefault {
-		var missing []string
-		for _, m := range enumRegistry[st.name] {
-			if !covered[m] {
-				missing = append(missing, m)
+	if !s.hasDefault {
+		if st.kind == "enum" {
+			var missing []string
+			for _, m := range enumRegistry[st.name] {
+				if !covered[m] {
+					missing = append(missing, m)
+				}
 			}
-		}
-		if len(missing) > 0 {
-			c.diagAt(s.span, "switch on "+st.name+" is not exhaustive; missing: "+strings.Join(missing, ", ")+" (add the cases or a default)")
+			if len(missing) > 0 {
+				c.diagAt(s.span, "switch on "+st.name+" is not exhaustive; missing: "+strings.Join(missing, ", ")+" (add the cases or a default)")
+			}
+		} else if allLiteralUnion(st) {
+			var missing []string
+			for i := 0; i < len(st.members); i++ {
+				if !covered[literalTypeKey(st.members[i])] {
+					missing = append(missing, typeStr(st.members[i]))
+				}
+			}
+			if len(missing) > 0 {
+				c.diagAt(s.span, "switch on "+typeStr(st)+" is not exhaustive; missing: "+strings.Join(missing, ", ")+" (add the cases or a default)")
+			}
 		}
 	}
 }
@@ -1416,8 +1704,9 @@ func (c *Checker) checkReturn(s *Stmt) {
 			if vt == nil || vt.kind == "error" || vt.kind == "unknown" {
 				continue
 			}
-			if !assignable(vt, c.curRets[i]) {
-				c.diagAt(s.span, "cannot return a value of type "+typeStr(vt)+" for the "+ordinalNd(itoaStr(i+1))+" return value")
+			vv := c.valueTypeOf(s.values[i], vt)
+			if !assignable(vv, c.curRets[i]) {
+				c.diagAt(s.span, "cannot return a value of type "+valueTypeStr(vv, c.curRets[i])+" for the "+ordinalNd(itoaStr(i+1))+" return value")
 			}
 		}
 		return
@@ -1440,8 +1729,9 @@ func (c *Checker) checkReturn(s *Stmt) {
 	if vt.kind == "error" || vt.kind == "unknown" {
 		return
 	}
-	if !assignable(vt, c.curRet) {
-		c.diagAt(s.span, "cannot return a value of type "+typeStr(vt)+" from a function returning "+typeStr(c.curRet))
+	vv := c.valueTypeOf(s.value, vt)
+	if !assignable(vv, c.curRet) {
+		c.diagAt(s.span, "cannot return a value of type "+valueTypeStr(vv, c.curRet)+" from a function returning "+typeStr(c.curRet))
 	}
 }
 
@@ -1505,7 +1795,8 @@ func (c *Checker) checkAssign(s *Stmt) {
 		c.diagAtEx(s.span, "cannot assign to state \""+name+"\" outside a function", "move the assignment inside a function (for example an event handler)")
 	}
 	rt := c.inferExpr(s.rhs)
-	if rt.kind != "error" && rt.kind != "unknown" && !assignable(rt, tgt) {
+	vt := c.valueTypeOf(s.rhs, rt)
+	if rt.kind != "error" && rt.kind != "unknown" && !assignable(vt, tgt) {
 		hint := "change either the state or the assigned value to match the other"
 		if isState {
 			sp := c.symSpans[name]
@@ -1513,7 +1804,7 @@ func (c *Checker) checkAssign(s *Stmt) {
 				hint = "the state was declared here: " + fmt.Sprintf("%v:%v", sp.file, sp.line)
 			}
 		}
-		c.diagAtEx(s.span, "cannot assign a value of type "+typeStr(rt)+" to \""+name+"\" of type "+typeStr(tgt), hint)
+		c.diagAtEx(s.span, "cannot assign a value of type "+valueTypeStr(vt, tgt)+" to \""+name+"\" of type "+typeStr(tgt), hint)
 	}
 }
 
@@ -1525,8 +1816,9 @@ func (c *Checker) checkLvalueAssign(s *Stmt) {
 	}
 	lt := c.inferExpr(s.lvalue)
 	rt := c.inferExpr(s.rhs)
-	if lt != nil && rt != nil && rt.kind != "error" && lt.kind != "error" && !assignable(rt, lt) {
-		c.diagAt(s.span, "cannot assign a value of type "+typeStr(rt)+" to a value of type "+typeStr(lt))
+	vt := c.valueTypeOf(s.rhs, rt)
+	if lt != nil && rt != nil && rt.kind != "error" && lt.kind != "error" && !assignable(vt, lt) {
+		c.diagAt(s.span, "cannot assign a value of type "+valueTypeStr(vt, lt)+" to a value of type "+typeStr(lt))
 	}
 }
 
@@ -1939,8 +2231,9 @@ func (c *Checker) checkArgs(fname string, params []SType, args []*Expr, defs []*
 		if at.kind == "error" || at.kind == "unknown" {
 			continue
 		}
-		if !assignable(at, &params[i]) {
-			c.diagAt(a.span, "argument "+fmt.Sprintf("%v", i+1)+" of "+fname+" must be "+typeStr(&params[i])+", got "+typeStr(at))
+		av := c.valueTypeOf(a, at)
+		if !assignable(av, &params[i]) {
+			c.diagAt(a.span, "argument "+fmt.Sprintf("%v", i+1)+" of "+fname+" must be "+typeStr(&params[i])+", got "+valueTypeStr(av, &params[i]))
 		}
 	}
 	// Missing trailing arguments must have default values.
@@ -2017,6 +2310,9 @@ func (c *Checker) inferExpr(e *Expr) *SType {
 	}
 	if k == "is" {
 		lt := c.inferExpr(e.l)
+		if d := c.declaredExprType(e.l); d != nil {
+			lt = d
+		}
 		target, err := parseSUIType(e.name)
 		if err != "" {
 			c.diagAt(e.span, "invalid type guard: "+err)
@@ -2061,7 +2357,9 @@ func (c *Checker) inferExpr(e *Expr) *SType {
 func (c *Checker) inferIdent(e *Expr) *SType {
 	name := e.name
 	if c.states[name] != nil {
-		return c.states[name]
+		// Literal restrictions stay on the declaration; expression code uses
+		// the base type so operators and builtins keep working.
+		return widenType(c.states[name])
 	}
 	v := c.lookupVar(name)
 	if v != nil {
@@ -2225,8 +2523,9 @@ func (c *Checker) inferStructLit(e *Expr) *SType {
 			fexp = ft
 		}
 		vt := c.inferExpr(e.vals[i])
-		if fexp != nil && !assignable(vt, fexp) {
-			c.diagAt(e.span, "field \""+key+"\" of "+typeName+" expects "+typeStr(fexp)+", got "+typeStr(vt))
+		vv := c.valueTypeOf(e.vals[i], vt)
+		if fexp != nil && !assignable(vv, fexp) {
+			c.diagAt(e.span, "field \""+key+"\" of "+typeName+" expects "+typeStr(fexp)+", got "+valueTypeStr(vv, fexp))
 		}
 	}
 	for j := 0; j < len(fields); j++ {
@@ -3643,7 +3942,7 @@ func (c *Checker) inferIndex(e *Expr) *SType {
 }
 
 func (c *Checker) inferUnary(e *Expr) *SType {
-	ot := c.inferExpr(e.operand)
+	ot := widenType(c.inferExpr(e.operand))
 	if e.op == "not" {
 		if ot.kind != "bool" && ot.kind != "error" && ot.kind != "unknown" {
 			c.diagAt(e.span, "operator not requires a bool operand, got "+typeStr(ot))
@@ -3691,8 +3990,10 @@ func (c *Checker) inferBinary(e *Expr) *SType {
 		rt := c.inferExpr(e.r)
 		c.restoreTypeGuards(saved)
 		c.popScope()
-		bad := (lt.kind != "bool" && lt.kind != "error" && lt.kind != "unknown") ||
-			(rt.kind != "bool" && rt.kind != "error" && rt.kind != "unknown")
+		lw := widenType(lt)
+		rw := widenType(rt)
+		bad := (lw.kind != "bool" && lw.kind != "error" && lw.kind != "unknown") ||
+			(rw.kind != "bool" && rw.kind != "error" && rw.kind != "unknown")
 		if bad {
 			c.diagAt(e.span, "operator "+op+" requires bool operands, got "+typeStr(lt)+" and "+typeStr(rt))
 			return NewSType("error")
@@ -3701,6 +4002,10 @@ func (c *Checker) inferBinary(e *Expr) *SType {
 	}
 	lt := c.inferExpr(e.l)
 	rt := c.inferExpr(e.r)
+	// Literal types are subtypes of their base type: concatenation, arithmetic
+	// and comparisons see the widened base type.
+	lt = widenType(lt)
+	rt = widenType(rt)
 	if op == "==" || op == "!=" {
 		if lt.kind == "struct" && rt.kind == "struct" {
 			c.diagAt(e.span, "comparison of struct values is not supported in v0.5; compare their fields instead (u.name == \"x\")")

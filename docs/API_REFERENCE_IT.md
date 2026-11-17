@@ -6,6 +6,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 - [Linguaggio SUI](#linguaggio-sui-sintassi-essenziale)
 - [Enum e switch](#enum-e-switch)
 - [Tipi union e type guard `is`](#tipi-union-e-type-guard-is)
+- [Literal types](#literal-types)
 - [Destructuring, spread e argomenti nominati](#destructuring-spread-e-argomenti-nominati)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
@@ -116,9 +117,54 @@ ramo corrispondente la variabile viene ristretta:
 `is int` usa `Number.isInteger`; `is float` richiede un numero non intero.
 La distinzione int/float è statica, mentre a runtime sono entrambi numeri
 JavaScript. `map[string]int | null` è una mappa nullable; valori di mappa nullable non
-sono ancora esprimibili (usa `map[string]any`). I literal types (per esempio
-`"success" | "error"`), la restrizione di espressioni member/index e
-l'esaustività per switch non enum non sono ancora disponibili.
+sono ancora esprimibili (usa `map[string]any`). La restrizione di espressioni
+member/index e l'esaustività per switch non letterali non sono ancora
+disponibili.
+
+## Literal types
+
+Un literal type limita un valore a una stringa, un numero o un booleano esatto.
+Spesso si scrive come union:
+
+```sui
+state mode: "idle" | "loading" | "error" = "idle"
+state level: 1 | 2 | 3 = 1
+state mixed: array["idle" | "loading"] = ["idle", "loading"]
+```
+
+- Assegnazioni, argomenti di funzione, valori di ritorno, campi di struct ed
+  elementi di array sono confrontati con il valore letterale esatto.
+  `mode = "run"` viene rifiutato.
+- Un valore letterale è accettato ovunque sia atteso il suo tipo base, ma un
+  valore `string`, `int` o `bool` generico non è accettato dove serve un literal
+  type (il compilatore non può dimostrare il valore esatto).
+- Gli array e le mappe letterali sono controllati elemento per elemento, anche
+  con union di literal.
+- I literal negativi sono supportati: `state delta: -1 | 1 = -1`.
+- I literal numerici mantengono la distinzione int/float: `1` e `1.0` sono
+  membri diversi.
+- Operatori e builtin usano il tipo base, quindi `mode == "idle"`,
+  `upper(mode)` e `"mode " + mode` funzionano normalmente.
+- `value is "idle"` confronta con il literal a runtime. Un guard che non può
+  mai corrispondere è un errore di compilazione.
+- Uno `switch` su una union composta solo da literal deve coprire ogni membro,
+  a meno che ci sia un blocco `default`. Il compilatore segnala i membri
+  mancanti.
+
+```sui
+fn describe() -> null {
+	switch mode {
+	case "idle" { message = "ready" }
+	case "loading" { message = "working" }
+	case "error" { message = "failed" }
+	}
+}
+```
+
+Limiti: i valori di una mappa non possono ancora essere una union, quindi
+`map[string]"ok" | "bad"` viene letto come `map[string]"ok"` oppure `"bad"`;
+usa `map[string]string`. La restrizione di espressioni member/index e
+l'esaustività per switch `string`/`int` ordinari non sono disponibili.
 
 ## Destructuring, spread e argomenti nominati
 
@@ -837,17 +883,17 @@ spinner "Loading" src: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAA
 L'etichetta diventa il testo `alt` dell'immagine. Gli spinner con immagine
 generano un wrapper `.sui-spinner.sui-spinner-image` con dentro un'immagine
 `.sui-spinner-img`; l'anello CSS, il bordo e la rotazione sono disattivati.
-L'immagine mantiene le proporzioni ed � limitata da `--sui-spinner-size`
-(default `96px`). `src` pu� essere un'espressione reattiva; il runtime usa la
+L'immagine mantiene le proporzioni ed è limitata da `--sui-spinner-size`
+(default `96px`). `src` può essere un'espressione reattiva; il runtime usa la
 guardia URL per immagini, che accetta `data:image/...`, `http(s)` e percorsi
 relativi e rifiuta `javascript:` e altri schemi attivi. `alt` sovrascrive
 l'etichetta.
 
-Quando `src` � presente, `variant` e le variabili di struttura, stile e
+Quando `src` è presente, `variant` e le variabili di struttura, stile e
 animazione vengono ignorate. Nel designer la sezione **Spinner** ha una
 casella **Image / GIF** con selettore degli asset e **Upload image**; i campi
-struttura, stile e animazione sono disabilitati mentre � attiva. Vedi
-[GUI editor: modalit� immagine/GIF dello spinner](GUI_EDITOR_IT.md#modalità-immaginegif-dello-spinner).
+struttura, stile e animazione sono disabilitati mentre è attiva. Vedi
+[GUI editor: modalità immagine/GIF dello spinner](GUI_EDITOR_IT.md#modalità-immaginegif-dello-spinner).
 
 ## Carousel
 
@@ -1449,7 +1495,7 @@ persistenza applicativa/server.
 ## Chart
 
 `chart` visualizza dati JSON, XML o CSV come grafico SVG a barre, linee, area,
-torta, ciambella o scatter. Il testo dell'elemento � il titolo visibile. I dati
+torta, ciambella o scatter. Il testo dell'elemento è il titolo visibile. I dati
 sono testo, mai markup, e ogni etichetta SVG viene scritta con `textContent`.
 Senza dati il controllo resta vuoto ("No data"): i dati arrivano di solito da uno
 stato, un'espressione o un'API. Se un sorgente SUI preimposta dei dati è una
@@ -1515,7 +1561,7 @@ l'SVG precedente nel nuovo, salvo `prefers-reduced-motion`; i refresh reattivi
 della view preservano il DOM di grafico e tabella e ridisegnano solo i chart con
 attributi modificati.
 
-`type` � una parola riservata SUI, quindi l'attributo della geometria si chiama
+`type` è una parola riservata SUI, quindi l'attributo della geometria si chiama
 **`chartType`**: `bar` (default), `barhorizontal`, `barstacked`, `bargrouped`,
 `line`, `step`, `smooth`, `area`, `combo`, `pie`, `donut`, `scatter`,
 `histogram`, `waterfall`, `radar`, `gauge`, `funnel`, `heatmap`, `candlestick`,
@@ -1523,15 +1569,15 @@ attributi modificati.
 a blocchi si dichiara solo con il controllo `graph`).
 
 I tipi `barstacked`, `bargrouped` e `combo` richiedono almeno due serie
-numeriche; `radar` ne accetta una o pi�. `heatmap` richiede due serie (y e
+numeriche; `radar` ne accetta una o più. `heatmap` richiede due serie (y e
 valore), `candlestick` quattro (open, high, low, close), `boxplot` cinque,
 `bullet` due o tre, `dumbbell`/`gantt` due. `histogram` usa `bins`,
 `gauge` usa `min`/`max`.
 
 ### Dati
 
-`data` � una stringa letterale o un'espressione reattiva (di solito uno stato
-`str`). `format` pu� essere `auto` (default), `json`, `xml` o `csv`. Il rilevamento
+`data` è una stringa letterale o un'espressione reattiva (di solito uno stato
+`str`). `format` può essere `auto` (default), `json`, `xml` o `csv`. Il rilevamento
 automatico usa il primo carattere non spazio: `{`/`[` JSON, `<` XML, altro CSV.
 
 JSON accetta array di oggetti, array di array (con eventuale riga di intestazione),
@@ -1548,7 +1594,7 @@ CSV supporta delimitatore virgola, punto e virgola, tab e pipe, con celle tra
 virgolette. L'intestazione viene rilevata da celle testuali sopra celle numeriche.
 XML accetta `<row label="..." value="..."/>`,
 `<row><label>...</label><value>...</value></row>`, attributi `x`/`y` ed elementi
-annidati. I grafici torta/ciambella usano label e valori positivi; DTD ed entit�
+annidati. I grafici torta/ciambella usano label e valori positivi; DTD ed entità
 XML vengono rifiutati.
 
 La heatmap usa la colonna label come x, la prima serie numerica come riga y e la
@@ -2255,7 +2301,7 @@ dati mostra lo stesso controllo prima di Apply:
 
 - i tipi a serie singola accettano una sola serie numerica;
 - `barstacked`, `bargrouped` e `combo` richiedono almeno due serie;
-- `radar` accetta una o pi� serie e almeno tre categorie;
+- `radar` accetta una o più serie e almeno tre categorie;
 - `heatmap` richiede esattamente due serie: riga y e valore;
 - `candlestick` richiede esattamente quattro serie: open, high, low, close;
 - `treemap` richiede una serie positiva;
@@ -2271,7 +2317,7 @@ dati mostra lo stesso controllo prima di Apply:
 
 Se il dato contiene pi? colonne numeriche, scegliere un tipo multi-serie oppure
 impostare `y` su una sola colonna. Il messaggio di errore indica il tipo scelto e
-la differenza. L'overlay disabilita Apply finch� dati e tipo non sono compatibili;
+la differenza. L'overlay disabilita Apply finché dati e tipo non sono compatibili;
 il runtime rifiuta di disegnare una combinazione incompatibile.
 
 ### Dimensioni, scroll e zoom
@@ -2279,7 +2325,7 @@ il runtime rifiuta di disegnare una combinazione incompatibile.
 Il chart non ha parametri width/height separati: usare la dimensione normale del
 componente (`width` e `height` nella sezione **Size** dell'inspector, oppure CSS
 in `style expr`). Il grafico generato riempie quella cornice. La dimensione
-predefinita � 640 x 320 px.
+predefinita è 640 x 320 px.
 
 - `overflow: "scroll"` (default) disegna alla dimensione naturale e mostra
   scrollbar nella viewport quando il disegno supera la cornice.
@@ -2287,8 +2333,8 @@ predefinita � 640 x 320 px.
   `-`, `+`, `Reset` con la percentuale. Intervallo 50%-400% a passi del 25%;
   ingrandendo compaiono le scrollbar.
 - `overflow: "fit"` comprime il disegno nella cornice senza controlli.
-- `pointWidth` riserva spazio orizzontale per punto in modalit� scroll (default
-  48). `zoom` � lo zoom iniziale della modalit� zoom (default 1).
+- `pointWidth` riserva spazio orizzontale per punto in modalità scroll (default
+  48). `zoom` è lo zoom iniziale della modalità zoom (default 1).
 - `pointSize` è il raggio dei punti dati in pixel (default 3, intervallo 1-24).
   Vale per line, step, smooth, area, scatter, combo, radar e dumbbell; gli altri
   tipi lo ignorano.
@@ -2625,16 +2671,16 @@ zoom, legenda, etichette assi e scrollbar usano `--sui-chart-control-*`,
 foreground/axis/muted del preset, quindi restano leggibili con ogni preset.
 Dentro `cssSafe` usare colori esadecimali a 8 cifre invece di `rgba(...)`.
 
-### Accessibilit� e sicurezza
+### Accessibilità e sicurezza
 
-La radice del grafico � un gruppo etichettato e l'SVG ha `role="img"` con
-`aria-label` dal titolo. Un grafico � un riepilogo visivo: se i numeri devono
+La radice del grafico è un gruppo etichettato e l'SVG ha `role="img"` con
+`aria-label` dal titolo. Un grafico è un riepilogo visivo: se i numeri devono
 essere letti con precisione, affiancare una tabella.
 
-`data` � testo non fidato. Il parsing ha un limite di 5.000 punti e un limite di
+`data` è testo non fidato. Il parsing ha un limite di 5.000 punti e un limite di
 testo; formati sconosciuti o righe non valide producono un messaggio visibile.
 I nodi SVG sono creati con `createElementNS` e le etichette con `textContent`,
-quindi il payload non pu� iniettare HTML o script. DTD/entit� XML sono rifiutati.
+quindi il payload non può iniettare HTML o script. DTD/entità XML sono rifiutati.
 Vedere [`SECURITY_IT.md`](../SECURITY_IT.md#3c-dati-chart-inerti).
 
 ## Date/Time picker

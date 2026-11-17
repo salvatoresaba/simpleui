@@ -82,8 +82,9 @@ ViewDecl   := 'view' ident '{' ViewBody '}'
 ```
 
 - `TypeName` (string) is one of: `int float string bool array[T] map[string]V
-  any null`, a user struct/enum, a union `A | B`, or a nullable `T?`
-  (`T | null`). For `state`, the type may be inferred from the initializer.
+  any null`, a user struct/enum, a literal type (`"idle"`, `1`, `true`), a union
+  `A | B`, or a nullable `T?` (`T | null`). For `state`, the type may be
+  inferred from the initializer.
 - Function **parameters and the return type must be annotated** in v0.1
   (inference applies to `let`/`state` bindings, not to function headers).
 - `css "…"` declares a **raw CSS snippet** appended verbatim to the generated
@@ -174,15 +175,24 @@ ReturnStmt:= 'return' [ Expr ]
   `T?` as shorthand for `T | null`. Assignment, parameters, returns, struct
   fields, array elements and map values accept a value that fits one member.
   Mixed array/map literals infer a union element/value type.
-- `value is Type` is a boolean expression for primitives, `null`, `fn`,
-  array/map types, structs and enums. In `if`/`while` conditions the variable is
-  narrowed in the branch: positive guards narrow to the target, negative guards
-  remove it from the union. `not` inverts; `and` applies both in the then branch;
-  `or` applies both negated in the else branch.
+- `value is Type` is a boolean expression for primitives, literal types,
+  `null`, `fn`, array types and enums. Struct and map guards are rejected
+  because both are plain JavaScript objects at runtime; use an enum
+  discriminator field or `is null`/`is array[...]` instead. In `if`/`while`
+  conditions the variable is narrowed in the branch: positive guards narrow to
+  the target, negative guards remove it from the union. `not` inverts; `and`
+  applies both in the then branch; `or` applies both negated in the else
+  branch.
 - A guard that cannot match any member is a compile error. Reassigning a
   narrowed state uses the declared union type.
-- Literal types, narrowing of member/index expressions and non-enum switch
-  exhaustiveness are not part of this version.
+- Literal types (`"idle" | "loading"`, `1 | 2`, `true | false`) restrict a value
+  to exact literals. Assignment, parameters, returns, struct fields and array
+  elements compare the literal value; a value of the base type does not satisfy
+  a literal type. Array/map literals are checked element by element. A switch
+  on a union built only from literal members is exhaustive unless it has a
+  `default` block.
+- Narrowing of member/index expressions and non-literal switch exhaustiveness
+  are not part of this version.
 
 ### 2.3b Enums and switch
 
@@ -193,8 +203,7 @@ ReturnStmt:= 'return' [ Expr ]
   Cases may be enum members, strings, numbers or booleans; duplicates are errors.
 - A switch on an enum without `default` must cover every member; the compiler
   reports the missing members. `default` is the explicit opt-out.
-- Enum payloads, literal types and destructuring in cases are not part of this
-  version.
+- Enum payloads and destructuring in cases are not part of this version.
 
 ### 2.3a Destructuring, spread and named arguments
 
@@ -318,7 +327,8 @@ Primary  := Int | Float | String | true | false | null | ident
 - `http.get("https://api.example.com/data")` is a member expression `http.get`
   applied with one argument; dynamic destinations use `http.getSafe(url, allow)`.
 - Array literal `[1,2,3]` infers `array[int]`; map literal `{"a": 1}` infers
-  `map[string]int`. Mixed-element arrays are an error (except all-`null`).
+  `map[string]int`. Mixed-element arrays and maps infer a union of the element
+  or value types instead of failing.
 
 ### 2.5 Views
 

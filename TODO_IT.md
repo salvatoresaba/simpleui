@@ -69,11 +69,12 @@ Completati di recente:
 - [x] Destructuring di oggetti/array, spread di array/mappe e argomenti nominati nelle chiamate a funzioni utente.
 - [x] Enum nominali e `switch` esaustivo con casi duplicati, `default` e controllo dei membri.
 - [x] Tipi union, `T?`, inferenza union per array/mappe e type guard `is` con narrowing in if/while.
+- [x] Literal types: stringhe/numeri/booleani esatti, controlli di assegnazione e switch esaustivo.
 
 ## Correzioni di accuratezza
 
 - `fs` avanzato, crypto, path utilities e source maps **non** sono implementati; le voci pubbliche non supportate sono state rimosse.
-- Le import di file funzionano in check/build/serve, ma la lista non � validata, i simboli sono fusi in un namespace globale e il designer legge solo il file di ingresso.
+- Le import di file funzionano in check/build/serve, ma la lista non è validata, i simboli sono fusi in un namespace globale e il designer legge solo il file di ingresso.
 - LSP supporta completion di base e diagnostica live, non hover/definition/
   references/symbols/rename/code actions.
 - `--single --minify` è un minifier conservativo, non un minifier JS completo.
@@ -95,7 +96,7 @@ Completati di recente:
 ## Aree principali ancora aperte
 
 - Import/moduli utente, export di simboli, alias.
-- Generics, literal types, const, readonly.
+- Generics, const, readonly.
 - Rest parameters.
 - Computed/effects/batching/fine-grained reactivity.
 - Error boundaries, list keys, suspense, context.
