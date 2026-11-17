@@ -182,6 +182,22 @@ Le app generate non usano `eval`, `new Function` o `setTimeout(string)`; gli
 handler devono essere funzioni dichiarate (`onClick: fn`). `json.parse` usa
 `JSON.parse`.
 
+### 8b. Documenti XML
+
+- Il parser XML rifiuta le dichiarazioni `DOCTYPE`/`ENTITY` prima di `DOMParser`,
+  prevenendo XXE ed espansione di entità. I documenti sono limitati a 5.000.000
+  caratteri e 200.000 elementi.
+- `xml.loadUrlSafe` usa lo stesso guard SSRF e la stessa allow-list letterale di
+  `http.getSafe`; si applica il limite di dimensione della risposta.
+- Espressioni XPath, schemi XSD e fogli XSLT sono codice fidato dello
+  sviluppatore. `xml.validateXsd` implementa un sottoinsieme pratico (niente
+  `$ref`, import di schema o substitution group); la validazione DTD non è
+  supportata.
+- Il serializer emette solo testo XML. I dati XML non vengono mai interpolati
+  nell'HTML; la conversione JSON/CSV tratta i valori come dati.
+- `xml.xslt` dipende dal `XSLTProcessor` del browser; se non è disponibile
+  restituisce un errore esplicito.
+
 ### 9. URL dinamici e SSRF
 
 **SSRF** (Server-Side Request Forgery, qui lato browser) significa che l’app

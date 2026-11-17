@@ -95,6 +95,21 @@ LibreOffice. It is opt-in; use it for untrusted exports.
 Generated apps contain no `eval`/`new Function`; event handlers must be declared
 functions; JSON uses `JSON.parse`.
 
+### 8b. XML documents
+
+- The XML parser rejects `DOCTYPE`/`ENTITY` declarations before `DOMParser`,
+  preventing external/internal entity expansion and XXE. Documents are capped
+  at 5,000,000 characters and 200,000 elements.
+- `xml.loadUrlSafe` uses the same SSRF guard and literal allow-list as
+  `http.getSafe`; the response size limit applies.
+- XPath expressions, XSD schemas and XSLT stylesheets are trusted developer
+  code. `xml.validateXsd` implements a practical subset (no `$ref`, schema
+  imports or substitution groups); DTD validation is unsupported.
+- The serializer emits XML text only. XML data is never interpolated into HTML,
+  and JSON/CSV conversion treats values as data.
+- `xml.xslt` depends on the browser `XSLTProcessor`; browsers that do not
+  provide it return an explicit error.
+
 ### 9. Dynamic URLs and SSRF
 
 `http.get/getStatus/post/postFiles` and `ws.connect` accept only literal URLs. Dynamic

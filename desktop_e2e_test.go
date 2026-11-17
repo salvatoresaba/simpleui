@@ -24,9 +24,15 @@ func TestDesktopBridgeE2E(t *testing.T) {
 	dir := t.TempDir()
 
 	// Fixture: a small app that imports the bridge-relevant modules.
-	fixture := "import { exec, fs } from \"std\"\n" +
+	fixture := "import { exec, fs, xml } from \"std\"\n" +
 		"\n" +
 		"async fn nop() -> null {\n" +
+		"}\n" +
+		"\n" +
+		"async fn xmlTouch() -> null {\n" +
+		"\tdoc, err = xml.parse(\"<r/>\")\n" +
+		"\tsaved, saveErr = xml.saveFile(\"probe.xml\", doc, {})\n" +
+		"\tloaded, loadErr = xml.loadFile(\"probe.xml\")\n" +
 		"}\n" +
 		"\n" +
 		"view main {\n" +
@@ -98,6 +104,15 @@ func TestDesktopBridgeE2E(t *testing.T) {
 	}
 	if len(token) != 64 {
 		t.Fatalf("could not extract 64-char token from app.js (got %d)\n%s", len(token), jsBody)
+	}
+	if node, err := exec.LookPath("node"); err == nil {
+		jsFile := filepath.Join(t.TempDir(), "app.js")
+		if err := os.WriteFile(jsFile, []byte(jsBody), 0o644); err != nil {
+			t.Fatalf("write app.js for syntax check: %v", err)
+		}
+		if out, err := exec.Command(node, "--check", jsFile).CombinedOutput(); err != nil {
+			t.Fatalf("generated desktop app.js has invalid JavaScript: %v\n%s", err, out)
+		}
 	}
 
 	post := func(endpoint string, values url.Values) (map[string]interface{}, error) {

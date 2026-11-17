@@ -1,0 +1,76 @@
+import { xml } from "std"
+
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 900px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+pre \{ white-space: pre-wrap; font-size: 12px; line-height: 1.5; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+state out = "Press Run to parse and transform a sample XML document."
+
+fn run() -> null {
+	let text = "<people xmlns:x=\"urn:demo\"><person id=\"1\"><name>Mario</name><desc>hello <b>world</b></desc><!--note--><![CDATA[raw <x>]]><?pi data?><x:tag>v</x:tag></person><person id=\"2\"><name>Ada</name></person></people>"
+	doc, derr = xml.parse(text)
+	root, rerr = xml.root(doc)
+	people, perr = xml.children(root)
+	let first = people[0]
+	nameEl, ne = xml.find(first, "name")
+	name, nme = xml.text(nameEl)
+	descEl, de = xml.find(first, "desc")
+	direct, dte = xml.text(descEl)
+	aggregate, age = xml.content(descEl)
+	id, ide = xml.attr(first, "id")
+	path, pe = xml.path(nameEl)
+	names, xe = xml.xpath(doc, "//person[@id='2']/name", {})
+	secondName, sne = xml.text(names[0])
+	ns, nse = xml.findNs(root, "tag", "urn:demo")
+	nsUri, nsue = xml.namespace(ns[0])
+	csv, ce = xml.toCsv(doc, "person", ["@id", "name"])
+	jsonDoc, jde = xml.fromJson({"@id": "9", "name": "Grace", "tags": ["a", "b"]}, "person")
+	jsonXml, jxe = xml.stringify(jsonDoc, {"declaration": false})
+	pretty, pre = xml.stringify(doc, {"indent": true, "sortAttributes": true})
+	bytes, be = xml.toBytes(doc, "utf-16le", {"indent": true})
+
+	let xsd = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"><xs:element name=\"people\"><xs:complexType><xs:sequence><xs:element name=\"person\" maxOccurs=\"unbounded\"><xs:complexType><xs:sequence><xs:element name=\"name\" type=\"xs:string\"/><xs:element name=\"desc\" type=\"xs:string\" minOccurs=\"0\"/><xs:element name=\"tag\" type=\"xs:string\" minOccurs=\"0\" maxOccurs=\"unbounded\"/></xs:sequence><xs:attribute name=\"id\" type=\"xs:int\" use=\"required\"/></xs:complexType></xs:element></xs:sequence></xs:complexType></xs:element></xs:schema>"
+	vdoc, vde = xml.parse("<people><person id=\"1\"><name>Mario</name></person></people>")
+	validXsd, vex = xml.validateXsd(vdoc, xsd)
+	let rules = {"person": {"required": ["name"], "attributes": ["id"], "types": {"id": "int"}}}
+	validRules, rue = xml.validateRules(doc, rules)
+
+	out = "root=" + xmlName(root) + " children=" + str(len(people)) + " name=" + name
+	out = out + "\ndirect text=[" + direct + "] aggregated=[" + aggregate + "] id=" + str(id)
+	out = out + "\npath=" + path + " xpath2=" + secondName + " namespace=" + nsUri
+	out = out + "\nCSV:\n" + csv
+	out = out + "\nJSON -> XML: " + jsonXml
+	out = out + "\nBytes UTF-16LE: " + str(len(bytes)) + " (BOM " + str(bytes[0]) + "," + str(bytes[1]) + ")"
+	out = out + "\nXSD=" + str(validXsd) + " rules=" + str(validRules)
+	out = out + "\nPretty:\n" + pretty
+}
+
+fn xmlName(node: any) -> string {
+	v, e = xml.name(node)
+	return v
+}
+
+fn setStatus() -> null {
+	doc, derr = xml.parse("<r><item>one</item></r>")
+	root, rerr = xml.root(doc)
+	item, ie = xml.find(root, "item")
+	sa, sae = xml.setAttr(item, "status", "done")
+	textNode, tne = xml.createText(doc, "!")
+	ap, ape = xml.append(item, textNode)
+	renamed, rene = xml.rename(item, "task")
+	serialized, serr = xml.stringify(doc, {"indent": true})
+	out = serialized
+}
+
+view main {
+	card "" class: "card" {
+		h1 "XML library"
+		pre "{out}"
+		row {
+			button "Run" onClick: run
+			button "Mutate" onClick: setStatus
+		}
+		p "XML parse, navigation, comments/CDATA/PI, namespaces, XPath, XSD subset, custom rules, JSON/CSV conversion, serialization and UTF-16 bytes. On desktop xml.loadFile/xml.saveFile use the fs bridge and --allow-dir." class: "muted"
+	}
+}

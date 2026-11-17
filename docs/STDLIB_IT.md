@@ -140,6 +140,152 @@ Parsing/stringify JSON.
 rifiutato. Lo schema è codice fidato dello sviluppatore; i dati non vengono
 eseguiti.
 
+## Modulo XML (`xml`)
+
+`import { xml } from "std"`. Il modulo usa il DOM XML del browser
+(`DOMParser`, `XMLSerializer`, XPath e `XSLTProcessor`) su web e desktop.
+Tutte le funzioni seguono la convenzione std: lega entrambi i valori con
+`a, b = ...`.
+
+```sui
+import { xml } from "std"
+
+doc, err = xml.parse("<people><person id=\"1\"><name>Ada</name></person></people>")
+root, rerr = xml.root(doc)
+nameEl, nerr = xml.find(root, "name")
+name, textErr = xml.text(nameEl)
+out = name
+```
+
+### A. Caricamento e sintassi
+
+| Funzione | Parametri | Ritorno | Async | Descrizione |
+|---|---|---|---|---|
+| `xml.parse(text)` | string | (any, string) | false | Analizza una stringa; rifiuta DOCTYPE/ENTITY |
+| `xml.parseBytes(bytes, encoding)` | array[int], string | (any, string) | false | Decodifica un buffer (BOM UTF-8/UTF-16 o encoding esplicito) e analizza |
+| `xml.loadFile(path)` | string | (any, string) | true | Carica un file desktop sotto `--allow-dir` |
+| `xml.loadUrlSafe(url, allow)` | string, string | (any, string) | true | Scarica XML con il guard SSRF; `allow` deve essere una allow-list letterale |
+| `xml.validate(text)` | string | (bool, string) | false | Controllo sintattico; l'errore include riga/colonna quando disponibili |
+
+Limiti: 5.000.000 caratteri e 200.000 elementi. Le dichiarazioni `DOCTYPE` e
+`ENTITY` vengono rifiutate prima del parsing. Streaming reale e caricamento
+incrementale non sono disponibili: il documento viene materializzato intero.
+
+### B. Navigazione
+
+| Funzione | Descrizione |
+|---|---|
+| `xml.root(doc)` | Elemento radice |
+| `xml.parent(node)` | Nodo genitore (il documento per la radice) |
+| `xml.children(node)` | Figli elemento |
+| `xml.childNodes(node)` | Tutti i figli (testo, commenti, CDATA, PI, elementi) |
+| `xml.childCount(node)` | Numero di figli elemento |
+| `xml.next(node)` / `xml.previous(node)` | Fratello elemento successivo/precedente |
+| `xml.find(node, name)` | Primo discendente con quel tag |
+| `xml.findNs(node, localName, namespaceURI)` | Ricerca namespace-aware |
+| `xml.findAll(node, name)` | Tutti i discendenti con quel tag |
+| `xml.descendants(node)` | Tutti gli elementi discendenti |
+| `xml.has(node, name)` | Se esiste un discendente |
+
+### C. Lettura dati
+
+| Funzione | Descrizione |
+|---|---|
+| `xml.type(node)` | `document`, `element`, `text`, `comment`, `cdata`, `pi`, ... |
+| `xml.name(node)` / `xml.localName(node)` | Nome qualificato/locale |
+| `xml.namespace(node)` / `xml.prefix(node)` | URI namespace e prefisso |
+| `xml.text(node)` | Solo figli **diretti** Text/CDATA |
+| `xml.content(node)` | `textContent` aggregato del sottoalbero |
+| `xml.attr(node, name)` / `xml.attrNs(node, local, ns)` | Valore attributo o `null` |
+| `xml.attrs(node)` | Mappa di tutti gli attributi |
+| `xml.path(node)` | Percorso assoluto come `/people/person[1]/name` |
+
+`text` e `content` sono intenzionalmente diversi: usa `text` per il valore
+diretto di un elemento e `content` quando servono anche i discendenti.
+
+### D. Modifica
+
+Operazioni su elementi e albero:
+
+| Funzione | Descrizione |
+|---|---|
+| `xml.createDocument()` | Nuovo documento XML vuoto |
+| `xml.createElement(doc, name)` / `xml.createElementNs(doc, ns, qname)` | Nuovo elemento |
+| `xml.createText(doc, text)` / `xml.createComment` / `xml.createCdata` / `xml.createPi` | Altri tipi di nodo |
+| `xml.append(parent, node)` / `xml.prepend` | Aggiunge un figlio alla fine/inizio |
+| `xml.insertBefore(parent, node, ref)` / `xml.insertAfter` | Inserisce rispetto a un figlio |
+| `xml.remove(node)` / `xml.replace(old, new)` / `xml.clear(node)` | Rimuove, sostituisce o svuota |
+| `xml.clone(node, deep)` | Copia un nodo |
+| `xml.rename(node, name)` | Rinomina un elemento (restituisce il nuovo nodo) |
+| `xml.setText(node, text)` | Sostituisce i figli con un nodo testo |
+| `xml.move(node, parent)` | Sposta un nodo sotto un altro genitore |
+| `xml.reorder(parent, indexes)` | Riordina i figli elemento con una permutazione di indici |
+
+Operazioni attributi: `xml.setAttr`, `xml.setAttrNs`, `xml.removeAttr`,
+`xml.renameAttr`, `xml.hasAttr`. I nodi di un altro documento vengono importati
+automaticamente all'inserimento.
+
+### E. Ricerca e XPath
+
+- `xml.find`, `xml.findNs`, `xml.findAll`, `xml.descendants`, `xml.findAttr(node, name, value)` (null per qualsiasi valore)
+- `xml.findText(node, term, regex)` — ricerca nel testo diretto, con RegExp opzionale
+- `xml.xpath(node, expression, namespaces)` — XPath 1.0; `namespaces` è una mappa
+  prefisso → URI. Restituisce un array per i node set, oppure string/number/bool.
+- `xml.xpathOne(node, expression, namespaces)` — primo nodo o valore scalare.
+
+```sui
+names, xerr = xml.xpath(doc, "//person[@id='2']/name", {})
+```
+
+### F. Validazione
+
+| Funzione | Descrizione |
+|---|---|
+| `xml.validate(text)` | Sintassi XML |
+| `xml.validateXsd(doc, xsdText)` | Sottoinsieme XSD: elementi globali, sequence/all/choice, attributi, cardinalità, tipi semplici, enum, facet length/pattern |
+| `xml.validateRules(doc, rules)` | Regole personalizzate per nome elemento: figli/attributi obbligatori, min/max, tipi di campo |
+
+La validazione DTD non è supportata: DOCTYPE/ENTITY sono rifiutati per
+sicurezza. XSD è un sottoinsieme pratico, non l'intera specifica XSD 1.0/1.1
+(`$ref`, substitution group, modelli complessi e import di schema non sono
+implementati). I controlli namespace sono disponibili con `xml.namespace`,
+`xml.findNs` e `targetNamespace` XSD.
+
+### G. Esportazione e salvataggio
+
+| Funzione | Descrizione |
+|---|---|
+| `xml.stringify(node, options)` | Serializza in stringa. Opzioni: `indent` (bool/int), `declaration`, `encoding`, `sortAttributes` |
+| `xml.toBytes(node, encoding, options)` | Serializza in byte UTF-8/UTF-16LE/UTF-16BE |
+| `xml.saveFile(path, node, options)` | Salvataggio desktop sotto `--allow-dir`; solo UTF-8 |
+
+Commenti, CDATA, processing instruction e namespace vengono preservati dal
+serializer DOM. `indent: true` produce output leggibile; omettilo per XML
+compatto. Il salvataggio incrementale non è implementato: il documento viene
+serializzato di nuovo.
+
+### H. Trasformazione e confronto
+
+| Funzione | Descrizione |
+|---|---|
+| `xml.toJson(node, options)` | JSON convenzionale: `@attributo`, `#text`, chiavi dei figli; figli ripetuti diventano array |
+| `xml.fromJson(value, rootName)` | Costruisce un documento XML dalla stessa convenzione |
+| `xml.toCsv(node, rowName, columns)` | CSV da elementi ripetuti; le colonne possono essere `@attributo` o nomi di figli |
+| `xml.xslt(node, stylesheet)` | Applica un foglio XSLT; richiede `XSLTProcessor` del browser |
+| `xml.merge(target, source)` | Clona i figli di source in target; restituisce il numero |
+| `xml.diff(a, b)` | Diff strutturale per percorso: elementi aggiunti/rimossi/sostituiti, attributi e testi |
+
+XML → HTML e trasformazioni XML → XML arbitrarie si fanno con XSLT. La
+conversione JSON è volutamente convenzionale e può perdere l'ordine del
+mixed-content; usa le funzioni DOM quando l'ordine conta. `xml.diff` riporta
+differenze per percorso; non deduce rename o spostamenti semantici senza ID
+stabili.
+
+Sicurezza: i dati XML non vengono mai inseriti in HTML; il serializer emette
+solo testo XML. Espressioni XPath, schemi XSD e fogli XSLT sono codice dello
+sviluppatore. Le dichiarazioni DTD/ENTITY sono rifiutate, i caricamenti remoti
+richiedono una allow-list letterale e il parsing è limitato come sopra.
+
 ## Dialog Module (`dialog`, desktop)
 
 Selezione nativa di file e cartelle. Importare con `import { dialog } from "std"`; sul target web le chiamate restituiscono errore. Il dialogo e guidato dall'utente; i percorsi possono essere passati a `exec.run`/`fs`, che applicano comunque le rispettive allow-list.

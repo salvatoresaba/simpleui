@@ -162,6 +162,7 @@ Known accuracy corrections from the previous TODO:
 - [x] **Crypto** - `crypto.hash`, `crypto.uuid`, `crypto.randomBytes`
 - [x] **Path utilities** — `path.join`, `dirname`, `basename`, `extname`
 - [x] **JSON Schema validation** - practical subset; `$ref` rejected
+- [x] **XML library** - DOM nodes, navigation/mutation, XPath, namespaces, comments/CDATA/PI, XSD subset, JSON/CSV/XSLT and diff
 - [x] **I18n helpers** - translation catalogs and plural selection.
 - [x] **Locale formatting** - `Intl` date/number/currency/relative/timezone
       helpers (`intl.*`).

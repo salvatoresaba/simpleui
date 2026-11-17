@@ -25,6 +25,7 @@ For an agent-oriented walkthrough see
 | [`intl_format.sui`](intl_format.sui) | Intl date/number/currency/percent/relative formatting and time zone. |
 | [`stdlib_advanced.sui`](stdlib_advanced.sui) | Path, crypto, JSON Schema validation, storage quota and cross-tab sync. |
 | [`fs_operations.sui`](fs_operations.sui) | Desktop fs.copy, fs.move/rename, fs.isDir and fs.size with capability checks. |
+| [`xml_library.sui`](xml_library.sui) | XML parse/navigation/mutation, XPath, XSD subset, JSON/CSV, serialization and diff. |
 | [`todo.sui`](todo.sui) | Local form + list interactions. |
 | [`contacts.sui`](contacts.sui) | Local records and table-like layout. |
 | [`table_data.sui`](table_data.sui) | `table.display` with arrays, objects, JSON, CSV, TSV and export. |

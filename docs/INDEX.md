@@ -59,6 +59,7 @@ Recommended order for an agent:
 | JSON Schema validation | [STDLIB: json](STDLIB.md#json-module-json) | [BUILTINS](BUILTINS.md) | `examples/stdlib_advanced.sui` |
 | Storage quota and cross-tab sync | [BUILTINS: storage](BUILTINS.md#storage-functions-cross-target) | [STDLIB](STDLIB.md) | `examples/stdlib_advanced.sui` |
 | Desktop fs copy/move/size/isDir | [STDLIB: fs](STDLIB.md#file-system-module-fs) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/fs_operations.sui` |
+| XML DOM, XPath, XSD subset, validation and conversion | [STDLIB: XML](STDLIB.md#xml-module-xml) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/xml_library.sui` |
 | Slideshow with dots and keyboard | [API: carousel](API_REFERENCE.md#carousel) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/carousel/README.md` |
 | Wizard / progress steps | [API: stepper](API_REFERENCE.md#stepper) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/stepper/README.md` |
 | Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |

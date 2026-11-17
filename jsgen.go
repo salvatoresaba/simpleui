@@ -2523,7 +2523,11 @@ func stdObjJs(p *Prog, target string) string {
 	if len(entries) == 0 {
 		return ""
 	}
-	return "const __SUI_STD = {\n" + strings.Join(entries, ",\n") + "\n};"
+	prefix := ""
+	if xmlModuleImported(p) {
+		prefix = xmlRuntimeSource + "\n\n"
+	}
+	return prefix + "const __SUI_STD = {\n" + strings.Join(entries, ",\n") + "\n};"
 }
 
 var chartAccessorFields = map[string]string{
@@ -2540,6 +2544,9 @@ var chartAccessorFields = map[string]string{
 }
 
 func stdBodyJs(key string, target string) string {
+	if strings.HasPrefix(key, "xml_") {
+		return xmlStdBodyJs(key, target)
+	}
 	if key == "http_get" {
 		return "async (url) => { try { const r = await fetch(url); return [await r.text(), null]; } catch (e) { return [null, String(e)]; } }"
 	}

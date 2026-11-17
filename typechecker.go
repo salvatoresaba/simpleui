@@ -2165,6 +2165,15 @@ func stdTypeName(s string) *SType {
 	if s == "array[array[string]]" {
 		return &SType{kind: "array", elem: &SType{kind: "array", elem: NewSType("string")}}
 	}
+	if s == "array[any]" {
+		return &SType{kind: "array", elem: NewSType("any")}
+	}
+	if s == "map[string]string" {
+		return &SType{kind: "map", key: NewSType("string"), val: NewSType("string")}
+	}
+	if s == "map[string]any" {
+		return &SType{kind: "map", key: NewSType("string"), val: NewSType("any")}
+	}
 	return NewSType("error")
 }
 
@@ -2246,7 +2255,7 @@ func (c *Checker) checkStdURLSecurity(e *Expr, f *StdFunc) {
 			msg := "dynamic URL: use http.requestSafe with an allow-list"
 			c.securityDiag(e.args[1].span, c.security.URLDynamic, msg)
 		}
-	case "http.getSafe", "http.getStatusSafe", "http.postSafe", "http.postFilesSafe", "http.getWithHeadersSafe", "http.postWithHeadersSafe", "http.requestSafe", "http.uploadSafe", "http.uploadWithHeadersSafe", "ws.connectSafe", "ws.connectWithOptionsSafe":
+	case "http.getSafe", "http.getStatusSafe", "http.postSafe", "http.postFilesSafe", "http.getWithHeadersSafe", "http.postWithHeadersSafe", "http.requestSafe", "http.uploadSafe", "http.uploadWithHeadersSafe", "xml.loadUrlSafe", "ws.connectSafe", "ws.connectWithOptionsSafe":
 		idx := 1
 		switch full {
 		case "http.postSafe", "http.getWithHeadersSafe", "ws.connectWithOptionsSafe":
