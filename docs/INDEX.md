@@ -47,6 +47,7 @@ Recommended order for an agent:
 | Translations, plurals and locale switching | [API: i18n](API_REFERENCE.md#internationalization-i18n) | [GUI editor: languages](GUI_EDITOR.md#languages) | `examples/i18n/README.md` |
 | Filter, transform and reduce lists with functions | [Builtins: collections](BUILTINS.md#collection-functions) | [API](API_REFERENCE.md) | `examples/collections.sui` |
 | Destructuring, spread and named arguments | [API: syntax](API_REFERENCE.md#destructuring-spread-and-named-arguments) | [SPEC](../SPEC.md) | `examples/syntax_ergonomics.sui` |
+| Nominal enums and exhaustive switch | [API: enums](API_REFERENCE.md#enums-and-switch) | [SPEC](../SPEC.md) | `examples/enums.sui` |
 | Slideshow with dots and keyboard | [API: carousel](API_REFERENCE.md#carousel) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/carousel/README.md` |
 | Wizard / progress steps | [API: stepper](API_REFERENCE.md#stepper) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/stepper/README.md` |
 | Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |

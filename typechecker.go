@@ -49,7 +49,7 @@ func typeStr(t *SType) string {
 	if t == nil {
 		return "unknown"
 	}
-	if t.kind == "struct" {
+	if t.kind == "struct" || t.kind == "enum" {
 		return t.name
 	}
 	if t.kind == "array" {
@@ -77,7 +77,7 @@ func typeEqual(a, b *SType) bool {
 	if a.kind != b.kind {
 		return false
 	}
-	if a.kind == "struct" && b.kind == "struct" {
+	if (a.kind == "struct" || a.kind == "enum") && a.kind == b.kind {
 		return a.name == b.name
 	}
 	if a.kind == "array" {
@@ -96,6 +96,7 @@ func isNumericType(t *SType) bool {
 // Name registries shared across the free type/name helpers (populated at the
 // start of Check, like KnownStateNames before them).
 var structRegistry = map[string][]Field{} // struct name -> fields
+var enumRegistry = map[string][]string{}  // enum name -> members
 var KnownStateNames = map[string]bool{}   // state names for ViewStateRefs
 var viewInvoked = map[string]bool{}       // views invoked as components
 // Check writes the registries above. The GUI can issue a live check and a
@@ -175,6 +176,9 @@ func parseTypeFrom(s string) (*SType, string, string) {
 	}
 	if structRegistry[base] != nil {
 		return &SType{kind: "struct", name: base}, rest, ""
+	}
+	if enumRegistry[base] != nil {
+		return &SType{kind: "enum", name: base}, rest, ""
 	}
 	return &SType{kind: "error"}, "", "unknown type name " + base
 }
@@ -381,6 +385,7 @@ type Checker struct {
 	stdImported  map[string]bool
 	scopes       []Scope
 	loopDepth    int
+	switchDepth  int
 	fnDepth      int
 	inFn         bool
 	curRet       *SType
@@ -557,9 +562,14 @@ func Check(prog *Prog) DiagList {
 
 	// User struct types first: names must be unique and resolve anywhere.
 	structRegistry = map[string][]Field{}
+	enumRegistry = map[string][]string{}
 	for i := 0; i < len(prog.types); i++ {
 		c.declareSym(prog.types[i].name, "type", prog.types[i].span)
 		structRegistry[prog.types[i].name] = prog.types[i].fields
+	}
+	for i := 0; i < len(prog.enums); i++ {
+		c.declareSym(prog.enums[i].name, "enum", prog.enums[i].span)
+		enumRegistry[prog.enums[i].name] = prog.enums[i].members
 	}
 	// Eagerly validate every field type name.
 	for i := 0; i < len(prog.types); i++ {
@@ -803,6 +813,8 @@ func (c *Checker) checkStmt(s *Stmt) {
 		_ = c.inferExpr(s.init)
 	} else if s.kind == "if" {
 		c.checkIf(s)
+	} else if s.kind == "switch" {
+		c.checkSwitch(s)
 	} else if s.kind == "loop" {
 		c.checkLoop(s)
 	} else if s.kind == "while" {
@@ -810,8 +822,8 @@ func (c *Checker) checkStmt(s *Stmt) {
 	} else if s.kind == "return" {
 		c.checkReturn(s)
 	} else if s.kind == "break" {
-		if c.loopDepth == 0 {
-			c.diagAt(s.span, "break outside a loop")
+		if c.loopDepth == 0 && c.switchDepth == 0 {
+			c.diagAt(s.span, "break outside a loop or switch")
 		}
 	} else if s.kind == "continue" {
 		if c.loopDepth == 0 {
@@ -876,6 +888,108 @@ func (c *Checker) checkDestructure(s *Stmt) {
 			}
 		}
 		c.declareVar(name, vt, s.span)
+	}
+}
+
+// enumMemberOf reports whether e is Enum.Member and returns both parts.
+func enumMemberOf(e *Expr) (string, string, bool) {
+	if e == nil || e.kind != "member" || e.obj == nil || e.obj.kind != "ident" {
+		return "", "", false
+	}
+	if enumRegistry[e.obj.name] == nil {
+		return "", "", false
+	}
+	return e.obj.name, e.memb, true
+}
+
+// switchCaseKey returns a stable key for duplicate detection of literal and
+// enum-member case values. Non-literal expressions return "".
+func switchCaseKey(e *Expr) string {
+	if e == nil {
+		return ""
+	}
+	switch e.kind {
+	case "int":
+		return "i:" + strconv.Itoa(e.i)
+	case "float":
+		return "f:" + strconv.FormatFloat(e.f, 'g', -1, 64)
+	case "bool":
+		if e.b {
+			return "b:true"
+		}
+		return "b:false"
+	case "str":
+		for i := 0; i < len(e.parts); i++ {
+			if e.parts[i].kind != "text" {
+				return ""
+			}
+		}
+		return "s:" + partsContent(e.parts)
+	case "member":
+		if en, mem, ok := enumMemberOf(e); ok {
+			return "e:" + en + "." + mem
+		}
+	}
+	return ""
+}
+
+// checkSwitch types the subject, case values and exhaustiveness. Switching on
+// an enum requires every member unless a default exists.
+func (c *Checker) checkSwitch(s *Stmt) {
+	st := c.inferExpr(s.init)
+	switch st.kind {
+	case "enum", "string", "int", "float", "bool", "any", "unknown", "error":
+	default:
+		c.diagAt(s.span, "switch value must be an enum, string, number, bool or any, got "+typeStr(st))
+	}
+	seen := map[string]bool{}
+	covered := map[string]bool{}
+	c.switchDepth++
+	for i := 0; i < len(s.cases); i++ {
+		cse := s.cases[i]
+		ct := c.inferExpr(cse.expr)
+		if st.kind != "any" && st.kind != "unknown" && st.kind != "error" && ct.kind != "error" && ct.kind != "unknown" {
+			if !typeEqual(st, ct) {
+				c.diagAt(cse.expr.span, "case value must be "+typeStr(st)+", got "+typeStr(ct))
+			}
+		}
+		if st.kind == "enum" {
+			if en, mem, ok := enumMemberOf(cse.expr); ok {
+				if en != st.name {
+					c.diagAt(cse.expr.span, "case value belongs to enum "+en+", but the switch is on "+st.name)
+				} else {
+					covered[mem] = true
+				}
+			} else if ct.kind != "error" && ct.kind != "unknown" {
+				c.diagAt(cse.expr.span, "case value for enum "+st.name+" must be one of its members")
+			}
+		}
+		if key := switchCaseKey(cse.expr); key != "" {
+			if seen[key] {
+				c.diagAt(cse.expr.span, "duplicate case value in switch")
+			}
+			seen[key] = true
+		}
+		c.pushScope()
+		c.checkStmts(cse.body)
+		c.popScope()
+	}
+	if s.hasDefault {
+		c.pushScope()
+		c.checkStmts(s.default_)
+		c.popScope()
+	}
+	c.switchDepth--
+	if st.kind == "enum" && !s.hasDefault {
+		var missing []string
+		for _, m := range enumRegistry[st.name] {
+			if !covered[m] {
+				missing = append(missing, m)
+			}
+		}
+		if len(missing) > 0 {
+			c.diagAt(s.span, "switch on "+st.name+" is not exhaustive; missing: "+strings.Join(missing, ", ")+" (add the cases or a default)")
+		}
 	}
 }
 
@@ -1611,6 +1725,10 @@ func (c *Checker) inferIdent(e *Expr) *SType {
 	if v != nil {
 		return v.typ
 	}
+	if enumRegistry[name] != nil {
+		c.diagAt(e.span, "enum \""+name+"\" cannot be used as a value; use "+name+".Member")
+		return NewSType("error")
+	}
 	if c.symKinds[name] == "func" {
 		return NewSType("func")
 	}
@@ -1784,6 +1902,20 @@ func (c *Checker) inferStructLit(e *Expr) *SType {
 
 func (c *Checker) inferMember(e *Expr) *SType {
 	obj := e.obj
+	if obj != nil && obj.kind == "ident" && enumRegistry[obj.name] != nil {
+		members := enumRegistry[obj.name]
+		for i := 0; i < len(members); i++ {
+			if members[i] == e.memb {
+				return &SType{kind: "enum", name: obj.name}
+			}
+		}
+		hint := ""
+		if cand := nearestName(e.memb, members); cand != "" {
+			hint = "did you mean \"" + cand + "\"? "
+		}
+		c.diagAtEx(e.span, "unknown enum member \""+e.memb+"\" on "+obj.name, hint+"members: "+strings.Join(members, ", "))
+		return NewSType("error")
+	}
 	if obj != nil && obj.kind == "ident" && IsStdModule(obj.name) {
 		if c.stdImported[obj.name] || IsCoreModule(obj.name) {
 			full := obj.name + "." + e.memb

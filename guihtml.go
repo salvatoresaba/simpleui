@@ -2233,7 +2233,7 @@ RUNNING</div>
 // sync after every model rebuild), so the rest of the designer keeps working
 // against root.children / root.title.
 function pagesModelEmpty() {
-  var r = { imports: [], states: [], funcs: [], css: "", i18n: [], components: [], pages: [{ name: "main", title: "", onLoad: "", children: [] }], page: 0 };
+  var r = { imports: [], states: [], funcs: [], css: "", i18n: [], enums: [], components: [], pages: [{ name: "main", title: "", onLoad: "", children: [] }], page: 0 };
   r.children = r.pages[0].children;
   return r;
 }
@@ -3659,7 +3659,7 @@ function reparseSui() {
     reparseInFlight = false;
     if (j.ok && suiSource === src) {
       var prevName = curPage().name;
-      root = { states: j.states || [], funcs: j.funcs || [], css: j.css || "", i18n: j.i18n || [], components: j.components || [], page: 0,
+      root = { states: j.states || [], funcs: j.funcs || [], css: j.css || "", i18n: j.i18n || [], enums: j.enums || [], components: j.components || [], page: 0,
         pages: (j.pages && j.pages.length ? j.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || [] }; }) : [{ name: "main", title: j.title || "", children: j.elements || [] }]) };
       root.pages.forEach(function(p){ normalizeTables(p.children); });
       for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
@@ -18350,6 +18350,10 @@ function generate() {
   var src = "";
   if (root.imports && root.imports.length) src += "import { " + root.imports.join(", ") + " } from \"std\"\n";
   if (root.css && root.css.trim()) src += "css \"" + esc(root.css) + "\"\n";
+  (root.enums || []).forEach(function(en) {
+    if (!en || !en.name) return;
+    src += "enum " + en.name + " { " + String(en.members || "") + " }\n";
+  });
   (root.i18n || []).forEach(function(loc) {
     if (!loc || !loc.locale) return;
     src += "i18n \"" + esc(loc.locale) + "\" {\n";
@@ -18539,7 +18543,7 @@ function downloadSui() {
   var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "app.sui"; a.click();
 }
 function loadTree(model) {
-  root = { imports: model.imports || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], components: model.components || [], page: 0,
+  root = { imports: model.imports || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
     pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", onLoad: p.onLoad || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", onLoad: model.onLoad || "", children: model.elements || [] }]) };
   root.pages.forEach(function(p){ normalizeTables(p.children); });
   remount();
@@ -27663,7 +27667,7 @@ function applySuiCommon(src, o) {
       if (sn) { keepKind = sn.kind; keepCls = (sn.class || "").trim().split(/\s+/)[0]; }
     }
     var prevName = curPage().name;
-    root = { states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], components: model.components || [], page: 0,
+    root = { states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
       pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", children: model.elements || [] }]) };
     root.pages.forEach(function(p){ normalizeTables(p.children); });
     for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }

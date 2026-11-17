@@ -2633,7 +2633,7 @@ func guiOpenDiags(src string) (JVal, JVal, JVal, bool) {
 // sources so the round-trip never loses them. The single-page shape remains
 // available through the first page (`title`/`elements` top-level keys).
 func guiModelJson(prog *Prog) JVal {
-	empty := JObj("title", JStr(""), "onLoad", JStr(""), "imports", JArr(), "states", JArr(), "funcs", JArr(), "css", JStr(""), "i18n", JArr(), "pages", JArr(), "elements", JArr(), "components", JArr())
+	empty := JObj("title", JStr(""), "onLoad", JStr(""), "imports", JArr(), "states", JArr(), "funcs", JArr(), "css", JStr(""), "i18n", JArr(), "enums", JArr(), "pages", JArr(), "elements", JArr(), "components", JArr())
 	if prog == nil || len(prog.views) == 0 {
 		return empty
 	}
@@ -2688,10 +2688,21 @@ func guiModelJson(prog *Prog) JVal {
 		"funcs", guiFuncsJson(prog.funcs),
 		"css", JStr(strings.Join(prog.css, "\n")),
 		"i18n", guiI18nJson(prog.i18n),
+		"enums", guiEnumsJson(prog.enums),
 		"pages", pages,
 		"elements", get(first, "elements"),
 		"components", components,
 	)
+}
+
+// guiEnumsJson serializes nominal enums for the designer. The designer does
+// not edit enums visually yet, but it must preserve them in generated source.
+func guiEnumsJson(decls []EnumDecl) JVal {
+	arr := JArr()
+	for i := 0; i < len(decls); i++ {
+		arr = pushArr(arr, JObj("name", JStr(decls[i].name), "members", JStr(strings.Join(decls[i].members, ", "))))
+	}
+	return arr
 }
 
 // guiI18nJson serializes translation catalogs for the designer. Message order
@@ -3009,6 +3020,28 @@ func stmtToSui(sb *strings.Builder, st *Stmt, ind int) {
 		sb.WriteString("while (" + exprSource(st.cond) + ") {\n")
 		for _, s := range st.body {
 			stmtToSui(sb, s, ind+1)
+		}
+		writeInd()
+		sb.WriteString("}\n")
+	case "switch":
+		sb.WriteString("switch " + exprSource(st.init) + " {\n")
+		for _, cse := range st.cases {
+			writeInd()
+			sb.WriteString("\tcase " + exprSource(cse.expr) + " {\n")
+			for _, s := range cse.body {
+				stmtToSui(sb, s, ind+2)
+			}
+			writeInd()
+			sb.WriteString("\t}\n")
+		}
+		if st.hasDefault {
+			writeInd()
+			sb.WriteString("\tdefault {\n")
+			for _, s := range st.default_ {
+				stmtToSui(sb, s, ind+2)
+			}
+			writeInd()
+			sb.WriteString("\t}\n")
 		}
 		writeInd()
 		sb.WriteString("}\n")

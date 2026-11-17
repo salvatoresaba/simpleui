@@ -17,6 +17,7 @@ For an agent-oriented walkthrough see
 | [`reactive.sui`](reactive.sui) | Derived values and bindings. |
 | [`collections.sui`](collections.sui) | `map`, `filter`, `reduce`, `find`, `any`, `all`, `sortBy` and `unique` with declared callbacks. |
 | [`syntax_ergonomics.sui`](syntax_ergonomics.sui) | Object/array destructuring, array/map spread and named function arguments. |
+| [`enums.sui`](enums.sui) | Nominal enums and exhaustive `switch` with duplicate-case checks. |
 | [`todo.sui`](todo.sui) | Local form + list interactions. |
 | [`contacts.sui`](contacts.sui) | Local records and table-like layout. |
 | [`table_data.sui`](table_data.sui) | `table.display` with arrays, objects, JSON, CSV, TSV and export. |

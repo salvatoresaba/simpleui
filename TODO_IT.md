@@ -67,6 +67,7 @@ Completati di recente:
 - [x] Callback di collezione: `map`, `filter`, `reduce`, `find`, `findIndex`, `any`, `all`, `sortBy`, `unique` con funzioni dichiarate.
 - [x] Cataloghi i18n e plurali: `i18n "xx" { ... }`, `t`, cambio/rilevamento lingua, plurali CLDR, RTL, `?locale=`, editor Lingue nel designer e import/export JSON.
 - [x] Destructuring di oggetti/array, spread di array/mappe e argomenti nominati nelle chiamate a funzioni utente.
+- [x] Enum nominali e `switch` esaustivo con casi duplicati, `default` e controllo dei membri.
 
 ## Correzioni di accuratezza
 

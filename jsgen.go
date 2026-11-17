@@ -1113,6 +1113,19 @@ func GenerateJsFor(p *Prog, target string) string {
 		sb.WriteString("\n\n")
 		sb.WriteString(init)
 	}
+	// Enums are frozen objects of string members so Enum.Member expressions
+	// work as ordinary JS values and switch uses strict equality.
+	for i := 0; i < len(p.enums); i++ {
+		e := p.enums[i]
+		sb.WriteString("\n\nconst " + e.name + " = Object.freeze({")
+		for j := 0; j < len(e.members); j++ {
+			if j > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(jsString(e.members[j]) + ": " + jsString(e.members[j]))
+		}
+		sb.WriteString("});")
+	}
 	for i := 0; i < len(p.states); i++ {
 		sd := p.states[i]
 		sb.WriteString("\n\n")
@@ -1816,6 +1829,26 @@ func stmtToJs(st *Stmt, ind string, ctx *JsCtx) string {
 		}
 		ctx.scope = append(ctx.scope, st.name)
 		return ind + "let " + st.name + " = " + ExprToJs(st.init) + ";"
+	}
+	if k == "switch" {
+		var b strings.Builder
+		b.WriteString(ind + "switch (" + ExprToJs(st.init) + ") {\n")
+		for i := 0; i < len(st.cases); i++ {
+			cse := st.cases[i]
+			b.WriteString(ind + "  case " + ExprToJs(cse.expr) + ":\n")
+			for j := 0; j < len(cse.body); j++ {
+				b.WriteString(stmtToJs(cse.body[j], ind+"    ", ctx) + "\n")
+			}
+			b.WriteString(ind + "    break;\n")
+		}
+		if st.hasDefault {
+			b.WriteString(ind + "  default:\n")
+			for j := 0; j < len(st.default_); j++ {
+				b.WriteString(stmtToJs(st.default_[j], ind+"    ", ctx) + "\n")
+			}
+		}
+		b.WriteString(ind + "}")
+		return b.String()
 	}
 	if k == "assign" {
 		if st.lvalue != nil {

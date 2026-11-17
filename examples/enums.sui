@@ -1,0 +1,61 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 640px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+p \{ margin: 7px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+enum Step { Idle, Loading, Done, Failed }
+
+state step: Step = Step.Idle
+state count = 0
+
+fn stepLabel(s: Step) -> string {
+	switch s {
+		case Step.Idle {
+			return "Ready"
+		}
+		case Step.Loading {
+			return "Loading..."
+		}
+		case Step.Done {
+			return "Done"
+		}
+		case Step.Failed {
+			return "Failed"
+		}
+	}
+	return "Unknown"
+}
+
+fn next() -> null {
+	switch step {
+		case Step.Idle {
+			step = Step.Loading
+		}
+		case Step.Loading {
+			step = Step.Done
+			count += 1
+		}
+		case Step.Done {
+			step = Step.Idle
+		}
+		case Step.Failed {
+			step = Step.Idle
+		}
+	}
+}
+
+fn fail() -> null {
+	step = Step.Failed
+}
+
+view main {
+	card "" class: "card" {
+		h1 "Enums and switch"
+		p "step: {stepLabel(step)} ({step}) · completed: {str(count)}"
+		row {
+			button "Next" onClick: next
+			button "Fail" onClick: fail
+		}
+		p "Enum values are nominal: Step.Idle is not a string. Switch exhaustiveness is checked; add a default only when you really want to ignore new members." class: "muted"
+	}
+}

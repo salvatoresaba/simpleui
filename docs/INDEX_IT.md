@@ -36,6 +36,7 @@ Ordine consigliato per un agente:
 | Traduzioni, plurali e cambio lingua | [API: i18n](API_REFERENCE_IT.md#internazionalizzazione-i18n) | [Editor GUI: lingue](GUI_EDITOR_IT.md#lingue) | `examples/i18n/README.md` |
 | Filtrare, trasformare e ridurre liste con funzioni | [Builtins: collections](BUILTINS_IT.md#collection-functions) | [API](API_REFERENCE_IT.md) | `examples/collections.sui` |
 | Destructuring, spread e argomenti nominati | [API: sintassi](API_REFERENCE_IT.md#destructuring-spread-e-argomenti-nominati) | [SPEC](../SPEC.md) | `examples/syntax_ergonomics.sui` |
+| Enum nominali e switch esaustivo | [API: enum](API_REFERENCE_IT.md#enum-e-switch) | [SPEC](../SPEC.md) | `examples/enums.sui` |
 | Creare una barra dei menù / navigazione | [API: menu bar](API_REFERENCE_IT.md#menu-bar) | [Editor GUI: menu bar](GUI_EDITOR_IT.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Contenuti a schede | [API: tabs](API_REFERENCE_IT.md#tabs) | [Editor GUI: tabs](GUI_EDITOR_IT.md#tabs-control) | `examples/tabs.sui` |
 | Sezioni comprimibili / FAQ | [API: accordion](API_REFERENCE_IT.md#accordion) | [Editor GUI: accordion](GUI_EDITOR_IT.md#controllo-accordion) | `examples/accordion/README.md` |

@@ -67,10 +67,11 @@ go test          # runs every *_test.go TestXxx
 ### 2.2 Program structure (top level only)
 
 ```
-Program  := { ImportDecl | TypeDecl | StateDecl | CssDecl | FuncDecl | ViewDecl }
+Program  := { ImportDecl | TypeDecl | EnumDecl | StateDecl | CssDecl | FuncDecl | ViewDecl }
 
 ImportDecl := 'import' '{' ident { ',' ident } '}' 'from' String
 TypeDecl   := 'type' ident 'struct' '{' Field { ',' Field } '}'
+EnumDecl   := 'enum' ident '{' ident { ',' ident } '}'
 Field      := ident ':' TypeName
 StateDecl  := 'state' ident [ ':' TypeName ] '=' Expr
 CssDecl    := 'css' String
@@ -118,7 +119,7 @@ state contacts: array[Contact] = [
 
 ```
 Block     := '{' { Stmt } '}'
-Stmt      := LetDecl | Assign | IfStmt | LoopStmt | WhileStmt | ReturnStmt
+Stmt      := LetDecl | Assign | IfStmt | LoopStmt | WhileStmt | SwitchStmt | ReturnStmt
            | BreakStmt | ContinueStmt | ExprStmt
 LetDecl   := 'let' ( ident | ObjectPattern | ArrayPattern ) '=' Expr
 ObjectPattern := '{' ident { ',' ident } '}'
@@ -129,6 +130,9 @@ LValue    := Ident { '.' ident | '[' Expr ']' }
 IfStmt    := 'if' Expr Block { 'else' 'if' Expr Block } [ 'else' Block ]
 LoopStmt  := 'loop' ( ident | ident ',' ident ) 'in' Expr [ '..' Expr ] Block
 WhileStmt := 'while' Expr Block
+SwitchStmt:= 'switch' Expr '{' { CaseClause | DefaultClause } '}'
+CaseClause:= 'case' Expr Block
+DefaultClause := 'default' Block
 ReturnStmt:= 'return' [ Expr ]
 ```
 
@@ -162,6 +166,18 @@ ReturnStmt:= 'return' [ Expr ]
   `break`/`continue` are allowed inside `loop` and `while`. The same two-name
   form works in views: `list k, v in m { ... }`. Riding a map with one name
   (or an array/map/range with two) is a compile error.
+
+### 2.3b Enums and switch
+
+- `enum Name { A, B, C }` declares a nominal enum type. Members are referenced
+  as `Name.A` and have type `Name`; a plain string is not assignable to an enum.
+- `switch value { case Expr Block ... default Block }` is a statement. It has no
+  fallthrough, evaluates the value once, and each case body breaks automatically.
+  Cases may be enum members, strings, numbers or booleans; duplicates are errors.
+- A switch on an enum without `default` must cover every member; the compiler
+  reports the missing members. `default` is the explicit opt-out.
+- Enum payloads, union/literal types, `is` guards and destructuring in cases are
+  not part of this version.
 
 ### 2.3a Destructuring, spread and named arguments
 

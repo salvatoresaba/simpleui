@@ -305,6 +305,15 @@ func emitStmt(sb *strings.Builder, st *Stmt, ind int) {
 	wfield(sb, ind+1, "body")
 	emitStmtArray(sb, st.body, ind+1)
 	sb.WriteString(",\n")
+	wfield(sb, ind+1, "cases")
+	emitSwitchCaseArray(sb, st.cases, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "default_")
+	emitStmtArray(sb, st.default_, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "hasDefault")
+	sb.WriteString(jsonBool(st.hasDefault))
+	sb.WriteString(",\n")
 	wfield(sb, ind+1, "value")
 	emitExpr(sb, st.value, ind+1)
 	sb.WriteString(",\n")
@@ -771,6 +780,60 @@ func emitI18nArray(sb *strings.Builder, decls []I18nDecl, ind int) {
 	sb.WriteString("]")
 }
 
+func emitEnumArray(sb *strings.Builder, a []EnumDecl, ind int) {
+	sb.WriteString("[")
+	if len(a) > 0 {
+		sb.WriteString("\n")
+	}
+	for i := 0; i < len(a); i++ {
+		if i > 0 {
+			sb.WriteString(",\n")
+		}
+		jsonIndent(sb, ind+1)
+		sb.WriteString("{\n")
+		wfield(sb, ind+2, "name")
+		writeJsonString(sb, a[i].name)
+		sb.WriteString(",\n")
+		wfield(sb, ind+2, "members")
+		emitStringArray(sb, a[i].members, ind+2)
+		sb.WriteString("\n")
+		jsonIndent(sb, ind+1)
+		sb.WriteString("}")
+	}
+	if len(a) > 0 {
+		sb.WriteString("\n")
+		jsonIndent(sb, ind)
+	}
+	sb.WriteString("]")
+}
+
+func emitSwitchCaseArray(sb *strings.Builder, a []SwitchCase, ind int) {
+	sb.WriteString("[")
+	if len(a) > 0 {
+		sb.WriteString("\n")
+	}
+	for i := 0; i < len(a); i++ {
+		if i > 0 {
+			sb.WriteString(",\n")
+		}
+		jsonIndent(sb, ind+1)
+		sb.WriteString("{\n")
+		wfield(sb, ind+2, "expr")
+		emitExpr(sb, a[i].expr, ind+2)
+		sb.WriteString(",\n")
+		wfield(sb, ind+2, "body")
+		emitStmtArray(sb, a[i].body, ind+2)
+		sb.WriteString("\n")
+		jsonIndent(sb, ind+1)
+		sb.WriteString("}")
+	}
+	if len(a) > 0 {
+		sb.WriteString("\n")
+		jsonIndent(sb, ind)
+	}
+	sb.WriteString("]")
+}
+
 func emitProg(sb *strings.Builder, prog *Prog, ind int) {
 	sb.WriteString("{\n")
 	wfield(sb, ind+1, "imports")
@@ -778,6 +841,9 @@ func emitProg(sb *strings.Builder, prog *Prog, ind int) {
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "types")
 	emitTypeArray(sb, prog.types, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "enums")
+	emitEnumArray(sb, prog.enums, ind+1)
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "states")
 	emitStateArray(sb, prog.states, ind+1)

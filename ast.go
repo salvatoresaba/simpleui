@@ -130,9 +130,19 @@ type Stmt struct {
 	item2       string // map value variable ("" for single-var loops)
 	iterable    *Expr
 	body        []*Stmt
+	cases       []SwitchCase
+	default_    []*Stmt
+	hasDefault  bool
 	value       *Expr
 	values      []*Expr // multi-return values (return a, b)
 	span        Span
+}
+
+// SwitchCase is one `case value { ... }` arm of a switch statement.
+type SwitchCase struct {
+	expr *Expr
+	body []*Stmt
+	span Span
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +252,7 @@ type ViewDecl struct {
 type Prog struct {
 	imports  []ImportDecl
 	types    []TypeDecl
+	enums    []EnumDecl
 	states   []StateDecl
 	css      []string // raw user CSS snippets (`css "..."` declarations)
 	i18n     []I18nDecl
@@ -250,6 +261,17 @@ type Prog struct {
 	security SecurityConfig
 	file     string
 	dir      string // directory of the entry source file (for resolving imports)
+}
+
+// EnumDecl declares a nominal enum and its members:
+//
+//	enum Status { Idle, Loading, Error }
+//
+// Members are referenced as Status.Idle and have the enum type.
+type EnumDecl struct {
+	name    string
+	members []string
+	span    Span
 }
 
 // I18nDecl is a top-level translation catalog for one locale.

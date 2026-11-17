@@ -266,6 +266,10 @@ func ParseSource(source string, file string) (*Prog, DiagList) {
 			if text != "" {
 				prog.css = append(prog.css, text)
 			}
+		} else if k == "ident" && p.cur().text == "enum" {
+			if decl := parseEnum(p); decl != nil {
+				prog.enums = append(prog.enums, *decl)
+			}
 		} else if k == "ident" && p.cur().text == "i18n" {
 			if decl := parseI18n(p); decl != nil {
 				prog.i18n = append(prog.i18n, *decl)
@@ -550,6 +554,57 @@ func parseState(p *Parser) *StateDecl {
 	init := parseExpr(p)
 	stmtEndCheck(p)
 	return &StateDecl{name: name.text, typename: typename, init: init, span: sp}
+}
+
+// parseEnum: 'enum' ident '{' ident (','|newline)* '}'
+func parseEnum(p *Parser) *EnumDecl {
+	sp := p.span()
+	p.adv() // enum
+	name := p.cur()
+	if name.kind != "ident" {
+		p.diag("expected an enum name after 'enum'")
+		resyncToLine(p)
+		return nil
+	}
+	p.adv()
+	if !p.accept("{") {
+		p.diag("expected '{' to open enum " + name.text)
+		resyncToLine(p)
+		return nil
+	}
+	var members []string
+	seen := map[string]bool{}
+	skipNewlines(p)
+	for !p.at("}") {
+		if p.at("eof") {
+			p.diag("unexpected end of file: enum " + name.text + " not closed")
+			break
+		}
+		if p.at("newline") || p.at(",") {
+			p.adv()
+			continue
+		}
+		m := p.cur()
+		if m.kind != "ident" {
+			p.diag("expected an enum member name")
+			resyncToLine(p)
+			continue
+		}
+		if seen[m.text] {
+			p.dd.Add(p.file, m.line, m.col, "duplicate enum member "+m.text+" in "+name.text)
+		}
+		seen[m.text] = true
+		members = append(members, m.text)
+		p.adv()
+		if !p.accept(",") {
+			skipNewlines(p)
+		}
+	}
+	if !p.accept("}") {
+		p.diag("expected '}' to close enum " + name.text)
+	}
+	stmtEndCheck(p)
+	return &EnumDecl{name: name.text, members: members, span: sp}
 }
 
 // parseTypeDecl: 'type' ident 'struct' '{' (ident ':' TypeName) (','|newline)* '}'
@@ -1208,6 +1263,11 @@ func parseStmt(p *Parser) *Stmt {
 		stmtEndCheck(p)
 		return s
 	}
+	if p.cur().kind == "ident" && p.cur().text == "switch" && p.look(1).kind != "(" {
+		s := parseSwitch(p)
+		stmtEndCheck(p)
+		return s
+	}
 	if p.at("}") {
 		p.diag("unexpected '}'")
 		p.adv()
@@ -1310,6 +1370,63 @@ func parseReturn(p *Parser) *Stmt {
 }
 
 // parseIf: 'if' Expr Block { 'else' 'if' Expr Block } [ 'else' Block ]
+// parseSwitch: 'switch' Expr '{' { 'case' Expr Block | 'default' Block } '}'
+func parseSwitch(p *Parser) *Stmt {
+	sp := p.span()
+	p.adv() // switch
+	subject := parseExpr(p)
+	if !p.accept("{") {
+		p.diag("expected '{' after the switch value")
+		resyncToLine(p)
+		return nil
+	}
+	skipNewlines(p)
+	var cases []SwitchCase
+	var defaultBody []*Stmt
+	hasDefault := false
+	for !p.at("}") && !p.at("eof") {
+		if p.at("newline") {
+			p.adv()
+			continue
+		}
+		if p.cur().kind == "ident" && p.cur().text == "case" {
+			csp := p.span()
+			p.adv()
+			e := parseExpr(p)
+			if !p.at("{") {
+				p.diag("expected '{' after the case value")
+				resyncToLine(p)
+				skipNewlines(p)
+				continue
+			}
+			body := parseBlock(p)
+			cases = append(cases, SwitchCase{expr: e, body: body, span: csp})
+			skipNewlines(p)
+			continue
+		}
+		if p.cur().kind == "ident" && p.cur().text == "default" {
+			p.adv()
+			hasDefault = true
+			if !p.at("{") {
+				p.diag("expected '{' after default")
+				resyncToLine(p)
+				skipNewlines(p)
+				continue
+			}
+			defaultBody = parseBlock(p)
+			skipNewlines(p)
+			continue
+		}
+		p.diag("expected 'case' or 'default' in switch")
+		resyncToLine(p)
+		skipNewlines(p)
+	}
+	if !p.accept("}") {
+		p.diag("expected '}' to close switch")
+	}
+	return &Stmt{kind: "switch", init: subject, cases: cases, default_: defaultBody, hasDefault: hasDefault, span: sp}
+}
+
 func parseIf(p *Parser) *Stmt {
 	sp := p.span()
 	p.adv() // if
@@ -2047,6 +2164,9 @@ func (l *Loader) loadFile(path string) {
 	}
 	for i := 0; i < len(pp.types); i++ {
 		l.prog.types = append(l.prog.types, pp.types[i])
+	}
+	for i := 0; i < len(pp.enums); i++ {
+		l.prog.enums = append(l.prog.enums, pp.enums[i])
 	}
 	for i := 0; i < len(pp.css); i++ {
 		l.prog.css = append(l.prog.css, pp.css[i])

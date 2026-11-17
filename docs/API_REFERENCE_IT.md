@@ -4,6 +4,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 
 ## Sommario
 - [Linguaggio SUI](#linguaggio-sui-sintassi-essenziale)
+- [Enum e switch](#enum-e-switch)
 - [Destructuring, spread e argomenti nominati](#destructuring-spread-e-argomenti-nominati)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
@@ -102,6 +103,45 @@ greet(excited: true, name: "Anna")
 - Non ancora supportati: rinomina/default/buchi nei pattern, spread nei struct
   literal o negli argomenti delle chiamate, argomenti nominati per builtin e
   funzioni std. `simpleui fmt` preserva queste forme.
+
+## Enum e switch
+
+Gli enum sono tipi nominali:
+
+```sui
+enum Step { Idle, Loading, Done, Failed }
+
+state step: Step = Step.Idle
+state steps: array[Step] = [Step.Idle, Step.Loading]
+
+fn label(s: Step) -> string {
+	switch s {
+		case Step.Idle { return "Ready" }
+		case Step.Loading { return "Loading..." }
+		case Step.Done { return "Done" }
+		case Step.Failed { return "Failed" }
+	}
+	return "Unknown"
+}
+```
+
+- I membri si scrivono `Step.Idle` e hanno il tipo dell'enum. Una stringa non è
+  assegnabile a `Step`; assegnazioni e confronti sono controllati
+  nominalmente.
+- `switch` è un'istruzione dentro le funzioni. Valuta il valore una volta, non
+  ha fallthrough e ogni corpo `case` termina automaticamente. `default` è
+  opzionale. `break` è ammesso dentro uno switch; `continue` richiede ancora un
+  ciclo.
+- I case possono essere membri enum, stringhe, numeri o booleani. Valori
+  duplicati sono errori; un membro enum sconosciuto mostra un hint con i membri
+  disponibili.
+- Uno switch su enum senza `default` deve coprire tutti i membri. Il compilatore
+  elenca i mancanti, quindi aggiungere un membro evidenzia ogni switch da
+  aggiornare. Usa `default` solo quando ignorare i nuovi membri è intenzionale.
+- A runtime un enum è un oggetto congelato di stringhe, quindi `str(Step.Idle)`
+  vale `"Idle"` e il JSON produce il nome del membro.
+- Non ancora: tipi union, literal types, type guard `is`, payload/valori
+  associati agli enum e destructuring nei pattern dei `case`.
 
 ## Drag and drop
 

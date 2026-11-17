@@ -31,6 +31,7 @@ Key features:
 - **Components**: create reusable components with parameters, slots, and per-instance state
 - **Typed**: static type checking with inference for `state` and `let`
 - **Expressive syntax**: destructuring, spread and named function arguments
+- **Nominal enums**: exhaustive `switch`, duplicate-case checks and a checked enum type
 - **Multi-target**: web apps, browser-launched desktop executables and native-window desktop executables with an embedded WebView
 - **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
 - **Secure for desktop**: native bridge with capability-based permission system and native file/folder dialogs

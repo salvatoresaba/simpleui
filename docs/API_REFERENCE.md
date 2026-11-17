@@ -5,6 +5,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 ## Summary
 
 - [SUI language](#sui-language-essential-syntax)
+- [Enums and switch](#enums-and-switch)
 - [Destructuring, spread and named arguments](#destructuring-spread-and-named-arguments)
 - [Drag and drop](#drag-and-drop)
 - [Menu bar](#menu-bar)
@@ -109,6 +110,44 @@ greet(excited: true, name: "Anna")
 - Not yet supported: renaming/defaults/holes inside patterns, spread in struct
   literals or function-call arguments, and named arguments for builtins/std
   functions. `simpleui fmt` preserves these forms.
+
+## Enums and switch
+
+Enums are nominal types:
+
+```sui
+enum Step { Idle, Loading, Done, Failed }
+
+state step: Step = Step.Idle
+state steps: array[Step] = [Step.Idle, Step.Loading]
+
+fn label(s: Step) -> string {
+	switch s {
+		case Step.Idle { return "Ready" }
+		case Step.Loading { return "Loading..." }
+		case Step.Done { return "Done" }
+		case Step.Failed { return "Failed" }
+	}
+	return "Unknown"
+}
+```
+
+- Members are referenced as `Step.Idle` and have the enum type. A plain string
+  is not assignable to `Step`; comparisons and assignments are checked
+  nominally.
+- `switch` is a statement inside functions. It evaluates the value once, has no
+  fallthrough, and each `case` body ends automatically. `default` is optional.
+  `break` is allowed inside a switch; `continue` still requires a loop.
+- Cases can be enum members, strings, numbers or booleans. Duplicate case values
+  are errors; an unknown enum member gets a hint with the available members.
+- Switching on an enum without `default` must cover every member. The compiler
+  reports the missing members, so adding a new member highlights every switch
+  that needs attention. Add `default` only when ignoring new members is
+  intentional.
+- At runtime an enum is a frozen object of string members, so `str(Step.Idle)`
+  is `"Idle"` and JSON output is the member name.
+- Not yet: union types, literal types, `is` type guards, enum payloads or
+  associated values, and destructuring inside `case` patterns.
 
 ## Drag and drop
 
