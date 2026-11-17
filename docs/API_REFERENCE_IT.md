@@ -31,6 +31,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 - `int`, `float`, `string`, `bool`, `null`, `any`
 - `array[T]`, `map[string]T`
 - Tipi strutturati: `type Nome struct { campo: Tipo }`
+- `xmlDocument`, `xmlNode`: handle opachi usati dal modulo std XML
 
 ### Dichiarazioni
 ```sui

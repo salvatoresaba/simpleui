@@ -81,7 +81,13 @@ const xmlRuntimeSource = `var __SUI_XML = (function () {
     if (!label) {
       if (data.length >= 2 && data[0] === 0xFE && data[1] === 0xFF) label = 'utf-16be';
       else if (data.length >= 2 && data[0] === 0xFF && data[1] === 0xFE) label = 'utf-16le';
-      else label = 'utf-8';
+      else {
+        var head = '';
+        var headLen = Math.min(data.length, 512);
+        for (var hi = 0; hi < headLen; hi++) head += String.fromCharCode(data[hi]);
+        var encMatch = /encoding\s*=\s*["']([^"']+)["']/i.exec(head);
+        label = encMatch ? encMatch[1] : 'utf-8';
+      }
     }
     try {
       return ok(new TextDecoder(label, { fatal: false }).decode(data));
@@ -493,6 +499,25 @@ const xmlRuntimeSource = `var __SUI_XML = (function () {
     var withAttributes = opts.attributes !== false;
     var withText = opts.text !== false;
     var trim = opts.trim !== false;
+    function lossless(n) {
+      if (!n) return null;
+      if (n.nodeType === 9) {
+        var children = [];
+        for (var i = 0; i < n.childNodes.length; i++) children.push(lossless(n.childNodes[i]));
+        return { type: 'document', children: children };
+      }
+      if (n.nodeType === 1) {
+        var node = { type: 'element', name: n.nodeName, localName: n.localName || n.nodeName, namespace: n.namespaceURI || '', prefix: n.prefix || '', attributes: {}, children: [] };
+        for (var a = 0; a < n.attributes.length; a++) node.attributes[n.attributes[a].name] = n.attributes[a].value;
+        for (var c = 0; c < n.childNodes.length; c++) node.children.push(lossless(n.childNodes[c]));
+        return node;
+      }
+      if (n.nodeType === 3) return { type: 'text', text: n.nodeValue || '' };
+      if (n.nodeType === 4) return { type: 'cdata', text: n.nodeValue || '' };
+      if (n.nodeType === 8) return { type: 'comment', text: n.nodeValue || '' };
+      if (n.nodeType === 7) return { type: 'pi', target: n.target || '', data: n.data || '' };
+      return { type: nodeTypeName(n), text: n.nodeValue || '' };
+    }
     function elementValue(el) {
       var obj = {}, has = false;
       if (withAttributes && el.attributes) {
@@ -514,6 +539,7 @@ const xmlRuntimeSource = `var __SUI_XML = (function () {
       return obj;
     }
     try {
+      if (opts.lossless) return ok(lossless(n));
       if (n.nodeType === 9) {
         var out = {};
         for (var k = 0; k < n.childNodes.length; k++) if (n.childNodes[k].nodeType === 1) out[n.childNodes[k].nodeName] = elementValue(n.childNodes[k]);
@@ -528,6 +554,33 @@ const xmlRuntimeSource = `var __SUI_XML = (function () {
     var docRes = createDocument();
     if (docRes[1] !== null) return docRes;
     var doc = docRes[0];
+    function buildTree(node) {
+      if (!node || typeof node !== 'object') return null;
+      if (node.type === 'element') {
+        var el = node.namespace ? doc.createElementNS(String(node.namespace), String(node.name)) : doc.createElement(String(node.name));
+        var attrs = node.attributes || {};
+        var aks = Object.keys(attrs);
+        for (var ai = 0; ai < aks.length; ai++) {
+          var an = aks[ai];
+          if (an === 'xmlns' || an.indexOf('xmlns:') === 0) {
+            try { el.setAttributeNS('http://www.w3.org/2000/xmlns/', an, String(attrs[an])); } catch (e) {}
+            continue;
+          }
+          try { el.setAttribute(an, String(attrs[an])); } catch (e) {}
+        }
+        var kids = node.children || [];
+        for (var ki = 0; ki < kids.length; ki++) {
+          var child = buildTree(kids[ki]);
+          if (child) el.appendChild(child);
+        }
+        return el;
+      }
+      if (node.type === 'text') return doc.createTextNode(String(node.text || ''));
+      if (node.type === 'cdata') return doc.createCDATASection(String(node.text || ''));
+      if (node.type === 'comment') return doc.createComment(String(node.text || ''));
+      if (node.type === 'pi') return doc.createProcessingInstruction(String(node.target || 'pi'), String(node.data || ''));
+      return null;
+    }
     function build(name, value) {
       var el = doc.createElement(name);
       if (value === null || value === undefined) return el;
@@ -551,7 +604,17 @@ const xmlRuntimeSource = `var __SUI_XML = (function () {
     }
     try {
       var rootEl;
-      if (Array.isArray(value)) {
+      if (value && typeof value === 'object' && value.type === 'document') {
+        var dkids = value.children || [];
+        for (var di = 0; di < dkids.length; di++) {
+          var dchild = buildTree(dkids[di]);
+          if (dchild) doc.appendChild(dchild);
+        }
+        return ok(doc);
+      }
+      if (value && typeof value === 'object' && value.type === 'element') {
+        rootEl = buildTree(value);
+      } else if (Array.isArray(value)) {
         rootEl = doc.createElement(name);
         for (var ri = 0; ri < value.length; ri++) rootEl.appendChild(build('item', value[ri]));
       } else {
@@ -873,6 +936,45 @@ const xmlRuntimeSource = `var __SUI_XML = (function () {
     }
     return ok(true);
   }
+  function parseFragment(doc, text) {
+    var d = ownerOf(doc) || (doc && doc.nodeType === 9 ? doc : null);
+    if (!d) return err('xml.parseFragment expects a document');
+    if (typeof text !== 'string') return err('xml.parseFragment expects a string');
+    var wrapper = parseText("<sui:fragment xmlns:sui=\"urn:sui-fragment\">" + text + "</sui:fragment>");
+    if (wrapper[1] !== null) return wrapper;
+    try {
+      var fragment = d.createDocumentFragment();
+      var rootEl = wrapper[0].documentElement;
+      for (var i = 0; i < rootEl.childNodes.length; i++) fragment.appendChild(d.importNode(rootEl.childNodes[i].cloneNode(true), true));
+      return ok(fragment);
+    } catch (e) { return err('xml.parseFragment: ' + (e && e.message ? e.message : String(e))); }
+  }
+  function setInnerXml(node, text) {
+    var n = nodeOf(node);
+    if (!n) return err('xml.setInnerXml expects a node');
+    var frag = parseFragment(ownerOf(n), text);
+    if (frag[1] !== null) return frag;
+    try {
+      while (n.firstChild) n.removeChild(n.firstChild);
+      n.appendChild(frag[0]);
+      return [true, null];
+    } catch (e) { return err('xml.setInnerXml: ' + (e && e.message ? e.message : String(e))); }
+  }
+  function replaceChildren(node, nodes) {
+    var n = nodeOf(node);
+    if (!n || !nodes || typeof nodes.length !== 'number') return err('xml.replaceChildren expects a node and an array');
+    var prepared = [];
+    try {
+      for (var i = 0; i < nodes.length; i++) {
+        var child = nodeOf(nodes[i]);
+        if (!child) return err('xml.replaceChildren contains a non-node value');
+        prepared.push(importFor(n, child));
+      }
+      while (n.firstChild) n.removeChild(n.firstChild);
+      for (var j = 0; j < prepared.length; j++) n.appendChild(prepared[j]);
+      return [true, null];
+    } catch (e) { return err('xml.replaceChildren: ' + (e && e.message ? e.message : String(e))); }
+  }
   function xslt(node, stylesheet) {
     var n = nodeOf(node);
     if (!n) return err('xml.xslt expects a node');
@@ -948,6 +1050,7 @@ const xmlRuntimeSource = `var __SUI_XML = (function () {
     text: text, content: content, attr: attr, attrNs: attrNs, attrs: attrs, path: path,
     createDocument: createDocument, createElement: createElement, createElementNs: createElementNs,
     createText: createText, createComment: createComment, createCdata: createCdata, createPi: createPi,
+    parseFragment: parseFragment, setInnerXml: setInnerXml, replaceChildren: replaceChildren,
     append: append, prepend: prepend, insertBefore: insertBefore, insertAfter: insertAfter,
     remove: remove, replace: replace, clear: clear, clone: clone, rename: rename, setText: setText,
     move: move, reorder: reorder,

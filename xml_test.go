@@ -6,10 +6,10 @@ import (
 )
 
 func TestXmlModuleWeb(t *testing.T) {
-	src := `import { xml } from "std"
+	src := `import { json, xml } from "std"
 
 state out = ""
-fn run() -> null {
+async fn run() -> null {
 	doc, err = xml.parse("<people xmlns:x=\"urn:test\"><person id=\"1\"><name>Mario</name><desc>hello <b>world</b></desc><!--note--><![CDATA[raw <x>]]><?pi data?><x:tag>v</x:tag></person><person id=\"2\"><name>Ada</name></person></people>")
 	root, rerr = xml.root(doc)
 	people, perr = xml.children(root)
@@ -40,11 +40,21 @@ fn run() -> null {
 	cd, cde = xml.toCsv(doc, "person", ["@id", "name"])
 	jd, jde = xml.fromJson({"@id": "9", "name": "X"}, "person")
 	jds, jdse = xml.stringify(jd, {"declaration": false})
-	jobj, joe = xml.toJson(jd, {})
+	jobj, joe = xml.toJson(jd)
 	xbytes, xbe = xml.toBytes(doc, "utf-16le", {"indent": true})
 	roundDoc, roundErr = xml.parseBytes(xbytes, "utf-16le")
 	roundRoot, roundRootErr = xml.root(roundDoc)
 	roundName, roundNameErr = xml.name(roundRoot)
+	loss, le = xml.toJson(doc, {"lossless": true})
+	lossText, lse = json.stringify(loss)
+	fragDoc, fde = xml.createDocument("wrapper")
+	fragRoot, frre = xml.root(fragDoc)
+	inner, ine = xml.setInnerXml(fragRoot, "<a>1</a><b>2</b>")
+	innerKids, ike = xml.children(fragRoot)
+	fragment, fge = xml.parseFragment(doc, "<x/><y/>")
+	fragNodes, fgne = xml.childNodes(fragment)
+	replaced, rpe = xml.replaceChildren(fragRoot, fragNodes)
+	replacedCount, rpce = xml.childCount(fragRoot)
 
 	let validXsd = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"><xs:element name=\"person\"><xs:complexType><xs:sequence><xs:element name=\"name\" type=\"xs:string\"/></xs:sequence><xs:attribute name=\"id\" type=\"xs:int\" use=\"required\"/></xs:complexType></xs:element></xs:schema>"
 	vdoc, vde = xml.parse("<person id=\"1\"><name>Ada</name></person>")
@@ -74,6 +84,8 @@ fn run() -> null {
 	out = out + "\nJSON=" + str(joe) + " root=" + str(jobj)
 	out = out + "\nFJ=" + jds
 	out = out + "\nBYTES=" + str(len(xbytes)) + " BNAME=" + roundName
+	out = out + "\nFRAG=" + str(len(innerKids)) + "/" + str(replacedCount) + "/" + str(replaced)
+	out = out + "\nLOSSLESS=" + lossText
 	out = out + "\nXSD=" + str(vok) + "/" + verr + " BAD=" + str(bok) + "/" + berr
 	out = out + "\nRULES=" + str(rok) + "/" + rerr2 + " DIFF=" + str(len(changes))
 	out = out + "\nDOCTYPE=" + str(doctypeErr != null) + " SYNTAX=" + str(syntaxOk) + "/" + str(syntaxErr != null)
@@ -91,6 +103,14 @@ view main {
     if (text.indexOf('"@id","name"') < 0 || text.indexOf('"1","Mario"') < 0) throw new Error('csv: ' + text);
     if (text.indexOf('FJ=<person id="9"><name>X</name></person>') < 0) throw new Error('fromJson: ' + text);
     if (text.indexOf('BYTES=0') >= 0 || text.indexOf('BNAME=people') < 0) throw new Error('bytes: ' + text);
+    if (text.indexOf('FRAG=2/2/true') < 0) throw new Error('fragment: ' + text);
+    var ascii = '<?xml version="1.0" encoding="ISO-8859-1"?><r>caf';
+    var iso = [];
+    for (var bi = 0; bi < ascii.length; bi++) iso.push(ascii.charCodeAt(bi));
+    iso.push(233, 60, 47, 114, 62);
+    var isoParsed = __SUI_XML.parseBytes(iso);
+    if (isoParsed[1] !== null || !isoParsed[0] || isoParsed[0].documentElement.textContent.indexOf('café') < 0) throw new Error('encoding: ' + text);
+    if (text.indexOf('"type":"document"') < 0 || text.indexOf('"type":"comment"') < 0 || text.indexOf('"type":"cdata"') < 0) throw new Error('lossless: ' + text);
     if (text.indexOf('XSD=true/null') < 0 || text.indexOf('BAD=false/') < 0) throw new Error('xsd: ' + text);
     if (text.indexOf('RULES=true/null') < 0 || text.indexOf('DOCTYPE=true') < 0) throw new Error('rules/doctype: ' + text);
     if (text.indexOf('SYNTAX=false/true') < 0) throw new Error('syntax: ' + text);

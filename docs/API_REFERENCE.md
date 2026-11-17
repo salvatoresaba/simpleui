@@ -35,6 +35,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 - `int`, `float`, `string`, `bool`, `null`, `any`
 - `array[T]`, `map[string]T`
 - Structured types: `type Name struct { field: Type }`
+- `xmlDocument`, `xmlNode`: opaque handles used by the XML std module
 
 ### Declarations
 

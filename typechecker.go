@@ -53,6 +53,12 @@ func typeStr(t *SType) string {
 	if t.kind == "struct" || t.kind == "enum" || t.kind == "literal" || t.kind == "typevar" {
 		return t.name
 	}
+	if t.kind == "xmlnode" {
+		return "xmlNode"
+	}
+	if t.kind == "xmldocument" {
+		return "xmlDocument"
+	}
 	if t.kind == "array" {
 		return "array[" + typeStr(t.elem) + "]"
 	}
@@ -226,6 +232,9 @@ func assignable(src, dst *SType) bool {
 	if src.kind == "func" && dst.kind == "fn" {
 		return true
 	}
+	if src.kind == "xmldocument" && dst.kind == "xmlnode" {
+		return true
+	}
 	if src.kind == "array" && dst.kind == "array" {
 		return assignable(src.elem, dst.elem)
 	}
@@ -386,6 +395,12 @@ func parseTypeFromWith(s string, vars map[string]bool) (*SType, string, string) 
 	rest := s[j:]
 	if base == "int" || base == "float" || base == "string" || base == "bool" || base == "null" || base == "any" || base == "fn" {
 		return &SType{kind: base}, rest, ""
+	}
+	if base == "xmlNode" || base == "xmlnode" {
+		return &SType{kind: "xmlnode"}, rest, ""
+	}
+	if base == "xmlDocument" || base == "xmldocument" {
+		return &SType{kind: "xmldocument"}, rest, ""
 	}
 	if base == "array" || base == "map" {
 		if len(rest) < 2 || rest[0] != '[' {
@@ -2174,6 +2189,15 @@ func stdTypeName(s string) *SType {
 	if s == "map[string]any" {
 		return &SType{kind: "map", key: NewSType("string"), val: NewSType("any")}
 	}
+	if s == "xmlNode" || s == "xmlnode" {
+		return NewSType("xmlnode")
+	}
+	if s == "xmlDocument" || s == "xmldocument" {
+		return NewSType("xmldocument")
+	}
+	if s == "array[xmlNode]" || s == "array[xmlnode]" {
+		return &SType{kind: "array", elem: NewSType("xmlnode")}
+	}
 	return NewSType("error")
 }
 
@@ -2346,8 +2370,16 @@ func stdCall(c *Checker, e *Expr) (*SType, *SType) {
 		return nil, nil
 	}
 	c.checkStdURLSecurity(e, f)
-	if len(e.args) != len(f.params) {
-		c.diagAt(e.span, "std function \""+full+"\" expects "+fmt.Sprintf("%v", len(f.params))+" arguments, got "+fmt.Sprintf("%v", len(e.args)))
+	minArgs := len(f.params) - f.optional
+	if minArgs < 0 {
+		minArgs = 0
+	}
+	if len(e.args) < minArgs || len(e.args) > len(f.params) {
+		expect := fmt.Sprintf("%v", len(f.params))
+		if minArgs != len(f.params) {
+			expect = fmt.Sprintf("%v to %v", minArgs, len(f.params))
+		}
+		c.diagAt(e.span, "std function \""+full+"\" expects "+expect+" arguments, got "+fmt.Sprintf("%v", len(e.args)))
 		for i := 0; i < len(e.args); i++ {
 			if e.args[i] != nil {
 				_ = c.inferExpr(e.args[i])
