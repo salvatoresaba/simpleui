@@ -166,7 +166,40 @@ const suiMenuRuntime = `(function(){
     var btn = closest(ev.target, '.sui-menu-button');
     if (btn) {
       var menu = btn.parentNode;
-      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp' || ev.key === 'ArrowRight') {
+      var menubar = closest(btn, '.sui-menubar');
+      var topLevel = !!(menubar && !closest(btn, '.sui-menu-popup'));
+      if (topLevel && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight')) {
+        ev.preventDefault();
+        var buttons = [];
+        var allButtons = menubar.querySelectorAll('.sui-menu-button');
+        for (var bi = 0; bi < allButtons.length; bi++) {
+          if (!closest(allButtons[bi], '.sui-menu-popup')) buttons.push(allButtons[bi]);
+        }
+        var ci = buttons.indexOf(btn);
+        if (ci >= 0) {
+          var ni = (ci + (ev.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+          var nextButton = buttons[ni];
+          nextButton.focus();
+          if (document.querySelector('.sui-menu.open')) {
+            closeMenus(null);
+            openMenu(nextButton.parentNode);
+            focusItem(nextButton.parentNode, 0);
+          }
+        }
+        return;
+      }
+      if (ev.key === 'Home' || ev.key === 'End') {
+        ev.preventDefault();
+        var listMenu = menu;
+        if (isNested(menu) && !menu.classList.contains('open')) {
+          listMenu = closest(menu.parentNode, '.sui-menu') || menu;
+        }
+        if (listMenu && listMenu.classList.contains('open')) {
+          focusItem(listMenu, ev.key === 'Home' ? 0 : -1);
+        }
+        return;
+      }
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp' || (ev.key === 'ArrowRight' && !topLevel)) {
         ev.preventDefault();
         if (isNested(menu)) closeSiblingMenus(menu); else closeMenus(null);
         openMenu(menu);
@@ -176,33 +209,34 @@ const suiMenuRuntime = `(function(){
       if (ev.key === 'ArrowLeft' && isNested(menu)) {
         ev.preventDefault();
         closeBranch(menu);
-        var parent = closest(menu.parentNode, '.sui-menu');
-        if (parent) {
-          var pb = parent.querySelector('.sui-menu-button');
-          if (pb) pb.focus();
-        }
+        var own = menu.querySelector('.sui-menu-button');
+        if (own) own.focus();
         return;
       }
     }
     var item = closest(ev.target, '.sui-menuitem');
-    if (item && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) {
+    if (item && (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar')) {
+      ev.preventDefault();
+      item.click();
+      return;
+    }
+    if (item && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp' || ev.key === 'Home' || ev.key === 'End')) {
       ev.preventDefault();
       var itemMenu = closest(item, '.sui-menu');
       var items = directItems(itemMenu);
       var index = Array.prototype.indexOf.call(items, item);
-      focusItem(itemMenu, index + (ev.key === 'ArrowUp' ? -1 : 1));
+      if (ev.key === 'Home') focusItem(itemMenu, 0);
+      else if (ev.key === 'End') focusItem(itemMenu, -1);
+      else focusItem(itemMenu, index + (ev.key === 'ArrowUp' ? -1 : 1));
       return;
     }
     if (item && ev.key === 'ArrowLeft') {
       var itemMenu2 = closest(item, '.sui-menu');
       if (isNested(itemMenu2)) {
         ev.preventDefault();
+        var own2 = itemMenu2.querySelector('.sui-menu-button');
         closeBranch(itemMenu2);
-        var parent2 = closest(itemMenu2.parentNode, '.sui-menu');
-        if (parent2) {
-          var pb2 = parent2.querySelector('.sui-menu-button');
-          if (pb2) pb2.focus();
-        }
+        if (own2) own2.focus();
       }
       return;
     }

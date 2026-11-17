@@ -111,6 +111,18 @@ const suiOverlayRuntime = `const __SUI_OVERLAY = (function(){
     if (placed === 'top') top = ar.top - gap - ph;
     else if (placed === 'right') { left = ar.right + gap; top = alignTop(); }
     else if (placed === 'left') { left = ar.left - gap - pw; top = alignTop(); }
+    // Main menus and dropdowns normally align to the trigger's left edge. If
+    // that would clip the panel on the right, align its right edge to the
+    // trigger instead. The reverse applies to explicitly right-aligned menus.
+    if (placed === 'bottom' || placed === 'top') {
+      if (align === 'start' && left + pw > vw - margin) {
+        var rightAligned = ar.right - pw;
+        if (rightAligned >= margin) left = rightAligned;
+      } else if (align === 'end' && left < margin) {
+        var leftAligned = ar.left;
+        if (leftAligned + pw <= vw - margin) left = leftAligned;
+      }
+    }
     if (placed === 'bottom') {
       var availBottom = vh - margin - top;
       if (ph > availBottom) {

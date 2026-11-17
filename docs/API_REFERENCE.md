@@ -275,10 +275,21 @@ menubar "Main menu" {
 
 The bar is a real `nav` with `role="menubar"`. A menu is a real button with a
 hidden popup; clicking the button toggles it, clicking outside or pressing
-Escape closes it, and Arrow keys move through open items. A `menuitem` with
+Escape closes it, and Arrow keys move through open items. **Left/Right** move
+between top-level menus, **Up/Down** move inside a menu, **Home/End** jump to the
+first/last item, **Right** opens a submenu and **Left** closes it, and
+**Enter/Space** activates the focused item. Hover, keyboard focus and selected
+items have distinct visual states. A `menuitem` with
 `link` is wrapped in a safe hyperlink (`javascript:` and other active schemes
 are rejected by the normal URL guard). A `menuitem` with `onClick` calls the
 named zero-argument function like a button.
+
+A menu popup normally aligns to the left edge of its button. If that would
+cross the right edge of the viewport, its right edge is aligned to the button's
+right edge instead; a right-aligned menu flips back to the left when needed.
+Submenus open to the right of their trigger and flip to the left when there is
+not enough space. The same placement rules apply to dropdown menus and other
+anchored overlays.
 
 A `menu` nested inside another `menu` popup is a submenu; submenus can nest
 further. Use `divider` for a separator inside a menu. All labels and links are
@@ -307,17 +318,21 @@ dropdown "Actions" position: "right" {
 
 `position` is `left` (default) or `right`. Items support `onClick`, `disabled`
 and `separator`; the menu closes on outside clicks, Escape or item selection.
-The runtime reuses the menu bar keyboard/focus behavior and repositions the
-popup inside the viewport: it shifts left/right at the edges, flips above the
-trigger when there is not enough space below, and scrolls when it is taller
-than the window. In the designer choose **Controls > Dropdown menu**; edit the
-label from **Text**, the side from the **Dropdown** section and add items from
-the element tree.
+The runtime reuses the menu bar keyboard/focus behavior (Up/Down, Home/End,
+Left/Right, Enter/Space, Escape) and repositions the popup inside the viewport:
+it aligns its right edge to the trigger when left alignment would cross the
+right edge, flips above the trigger when there is not enough space below, and
+scrolls when it is taller than the window. Hover, keyboard focus and the
+selected/active item are visually distinct. In the designer choose
+**Controls > Dropdown menu**; edit the label from **Text**, the side from the
+**Dropdown** section and add items from the element tree.
 
 ### Overlay placement and animation
 
 Anchored overlays share one placement engine. The preferred side is flipped
-when there is no space and coordinates are clamped to the viewport.
+when there is no space; a left-aligned panel whose right edge would overflow
+aligns its right edge to the trigger instead (and a right-aligned panel flips
+back to the left). Coordinates are clamped to the viewport as a last resort.
 
 | Attribute | Values | Applies to |
 |---|---|---|
