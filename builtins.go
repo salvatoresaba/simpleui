@@ -66,6 +66,15 @@ var Builtins = []Builtin{
 	Builtin{name: "reverse", js: "[...{0}].reverse()"},
 	Builtin{name: "removeKey", js: "Object.fromEntries(Object.entries({0}).filter((e) => e[0] !== {1}))"},
 	Builtin{name: "moveItem", js: "__sui_move_item({0}, {1}, {2})"},
+	Builtin{name: "map", js: "__sui_map({0}, {1})"},
+	Builtin{name: "filter", js: "__sui_filter({0}, {1})"},
+	Builtin{name: "reduce", js: "__sui_reduce({0}, {1}, {2})"},
+	Builtin{name: "find", js: "__sui_find({0}, {1})"},
+	Builtin{name: "findIndex", js: "__sui_find_index({0}, {1})"},
+	Builtin{name: "any", js: "__sui_any({0}, {1})"},
+	Builtin{name: "all", js: "__sui_all({0}, {1})"},
+	Builtin{name: "sortBy", js: "__sui_sort_by({0}, {1})"},
+	Builtin{name: "unique", js: "__sui_unique({0})"},
 	// ---- drag and drop ----
 	// DnD handlers are zero-argument functions: these builtins read the
 	// payload captured by the browser event runtime.
@@ -112,6 +121,16 @@ var Builtins = []Builtin{
 	Builtin{name: "time.diff", js: "__sui_time_diff({0}, {1}, {2})"},
 	Builtin{name: "time.toISO", js: "__sui_time_toISO({0})"},
 	Builtin{name: "time.toMs", js: "__sui_time_toMs({0})"},
+	// ---- internationalization ----
+	Builtin{name: "t", js: "__sui_t({0}, {1})"},
+	Builtin{name: "i18n.t", js: "__sui_t({0}, {1})"},
+	Builtin{name: "i18n.locale", js: "__sui_i18n_locale()"},
+	Builtin{name: "i18n.setLocale", js: "__sui_i18n_set({0}, true)"},
+	Builtin{name: "i18n.detect", js: "__sui_i18n_detect()"},
+	Builtin{name: "i18n.available", js: "__sui_i18n_available()"},
+	Builtin{name: "i18n.dir", js: "__sui_i18n_dir()"},
+	Builtin{name: "i18n.has", js: "__sui_i18n_has({0})"},
+	Builtin{name: "i18n.missing", js: "__sui_i18n_missing()"},
 	// ---- url/encoding ----
 	Builtin{name: "url.encode", js: "__sui_url_encode({0})"},
 	Builtin{name: "url.decode", js: "__sui_url_decode({0})"},
@@ -169,6 +188,12 @@ func builtinToJs(name string, args []string) string {
 	}
 	for i := 0; i < len(args); i++ {
 		js = strings.ReplaceAll(js, "{"+strconv.Itoa(i)+"}", args[i])
+	}
+	// Optional arguments (t(key), time.format(dt), ...) leave higher
+	// placeholders in the template. Pass undefined so the generated JS stays
+	// valid and the runtime helper applies its default.
+	for i := len(args); i < 10; i++ {
+		js = strings.ReplaceAll(js, "{"+strconv.Itoa(i)+"}", "undefined")
 	}
 	return js
 }

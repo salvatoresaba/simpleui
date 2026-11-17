@@ -15,6 +15,7 @@ For an agent-oriented walkthrough see
 |---|---|
 | [`counter.sui`](counter.sui) | Smallest reactive app: state, button, re-render. |
 | [`reactive.sui`](reactive.sui) | Derived values and bindings. |
+| [`collections.sui`](collections.sui) | `map`, `filter`, `reduce`, `find`, `any`, `all`, `sortBy` and `unique` with declared callbacks. |
 | [`todo.sui`](todo.sui) | Local form + list interactions. |
 | [`contacts.sui`](contacts.sui) | Local records and table-like layout. |
 | [`table_data.sui`](table_data.sui) | `table.display` with arrays, objects, JSON, CSV, TSV and export. |
@@ -39,6 +40,7 @@ For an agent-oriented walkthrough see
 | [`motion_features/`](motion_features/README.md) | Guards, wheel/swipe/long-press gestures, viewport visibility and exit animation. |
 | [`control_animations/`](control_animations/README.md) | CSS animation library on six controls, with a reduced-motion guard. |
 | [`spinner_image/`](spinner_image/README.md) | CSS spinner vs animated GIF through `src`; includes the designer image/GIF workflow. |
+| [`i18n/`](i18n/README.md) | Translation catalogs, plurals, locale switching, RTL and the designer Languages editor. |
 | [`animation_lab/`](animation_lab/README.md) | Animatable controls only, with runtime **Style** and **Animation** selectors and new visual shapes. |
 | [`prefab_controls/app.sui`](prefab_controls/app.sui) | Dropdown, popover, drawer, splitter, dropzone, timeline, empty state, skeleton, carousel, stepper and command palette. |
 | [`modal.sui`](modal.sui) | Configurable modal dialog with cancel/save buttons and `modal.open()`. |

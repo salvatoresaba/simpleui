@@ -240,9 +240,31 @@ type Prog struct {
 	types    []TypeDecl
 	states   []StateDecl
 	css      []string // raw user CSS snippets (`css "..."` declarations)
+	i18n     []I18nDecl
 	funcs    []FuncDecl
 	views    []ViewDecl
 	security SecurityConfig
 	file     string
 	dir      string // directory of the entry source file (for resolving imports)
+}
+
+// I18nDecl is a top-level translation catalog for one locale.
+//
+//	i18n "it" {
+//	  "save": "Salva"
+//	  "items": { one: "{count} elemento", other: "{count} elementi" }
+//	}
+type I18nDecl struct {
+	locale   string
+	messages []I18nMessage
+	span     Span
+}
+
+// I18nMessage is one key. text is used for simple messages; plural holds the
+// CLDR categories (zero, one, two, few, many, other) for plural messages.
+type I18nMessage struct {
+	key    string
+	text   string
+	plural map[string]string
+	span   Span
 }

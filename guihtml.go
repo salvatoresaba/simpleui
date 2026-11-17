@@ -831,6 +831,27 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .asset-actions { display:flex; gap:3px; padding:4px 6px 6px; }
 .asset-actions button { flex:1; font-size:10px; padding:3px 4px; }
 .asset-empty { color:var(--muted); font-size:12px; grid-column:1 / -1; }
+#vbar select { background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:3px 6px; font-size:11px; min-width:74px; }
+#i18n-editor { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:13; }
+#i18n-editor.on { display:flex; }
+#i18n-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:900px; max-width:96vw; height:78vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); overflow:hidden; }
+#i18n-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:14px; }
+#i18n-head span { flex:1; font-weight:600; }
+#i18n-body { flex:1; display:flex; min-height:0; }
+#i18n-locales { width:200px; flex:none; border-right:1px solid var(--border); overflow:auto; padding:8px; display:flex; flex-direction:column; gap:4px; }
+#i18n-locale { display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid transparent; border-radius:6px; cursor:pointer; font-size:12px; }
+#i18n-locale.on { border-color:var(--accent); background:rgba(76,92,247,.14); }
+#i18n-locale code { font-family:ui-monospace,Consolas,monospace; font-size:12px; flex:1; }
+#i18n-messages { flex:1; overflow:auto; padding:10px 14px; min-width:0; }
+#i18n-messages table { width:100%; border-collapse:collapse; font-size:12px; }
+#i18n-messages th { text-align:left; color:var(--muted); font-weight:600; padding:6px 6px; border-bottom:1px solid var(--border); }
+#i18n-messages td { padding:4px 6px; border-bottom:1px solid var(--border); vertical-align:top; }
+#i18n-messages input, #i18n-messages textarea { width:100%; box-sizing:border-box; background:var(--input-bg); color:var(--fg); border:1px solid var(--border2); border-radius:5px; padding:5px 6px; font:inherit; }
+#i18n-messages textarea { min-height:32px; resize:vertical; }
+#i18n-plural { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; margin-top:4px; }
+#i18n-plural label { font-size:10px; color:var(--muted); display:flex; flex-direction:column; gap:2px; }
+#i18n-foot { padding:8px 14px; border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+#i18n-foot .hint { flex:1; }
 #lib-nav { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:14; }
 #lib-nav.on { display:flex; }
 #lib-box { background:var(--panel2); border:1px solid var(--border2); border-radius:10px; width:1080px; max-width:97vw; height:78vh; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); overflow:hidden; }
@@ -1165,6 +1186,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     <div class="drop" id="drop-prefs">
       <div class="mi" onclick="openPrefs()">Editor preferences.</div>
       <div class="mi" onclick="openProjectPreferences()">Project preferences.</div>
+      <div class="mi" onclick="openI18nEditor()">Languages...</div>
       <div class="mi" onclick="reloadDesignerLibraries()">Reload component and appearance libraries</div>
       <div class="dropsep"></div>
       <div class="mi" id="probbtn" onclick="toggleBottom()">Problems panel</div>
@@ -1241,6 +1263,9 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
           <button class="btn" style="font-size:11px;padding:3px 8px" onclick="setBp('mobile')">Mobile</button>
           <span class="vsep"></span>
           <button class="btn" id="marquee-btn" title="Marquee select: drag on the preview to select multiple elements" style="font-size:11px;padding:3px 8px" onclick="toggleMarquee()">&#9618; Marquee</button>
+          <span class="vsep"></span>
+          <label for="preview-locale">Lang</label>
+          <select id="preview-locale" title="Preview the app in a declared language" onchange="setPreviewLocale(this.value)"></select>
           <span class="vsep"></span>
           <button class="btn" id="guides-btn" style="font-size:11px;padding:3px 8px" onclick="toggleGuides()">Guides</button>
           <input id="grid-step" type="number" min="2" max="100" value="8" style="width:44px" title="snap step (px)" onchange="updateGuides()">
@@ -1410,6 +1435,22 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
     </div>
     <div id="asset-hint" class="hint">Images are embedded as data URLs, so the project stays self-contained and external resources remain blocked. Maximum 4 MB; PNG, JPEG, GIF, WebP and AVIF are accepted.</div>
     <div id="asset-grid"></div>
+  </div>
+</div>
+<div id="i18n-editor">
+  <div id="i18n-box" role="dialog" aria-modal="true" aria-labelledby="i18n-title">
+    <div id="i18n-head">
+      <span id="i18n-title">Languages</span>
+      <input type="file" id="i18n-file" accept=".json,application/json" style="display:none" onchange="i18nImportFile(this.files)">
+      <button class="btn" type="button" onclick="document.getElementById('i18n-file').click()">Import JSON</button>
+      <button class="btn" type="button" onclick="i18nExportJson()">Export JSON</button>
+      <button class="btn" type="button" onclick="closeI18nEditor()" aria-label="Close languages">&#10005;</button>
+    </div>
+    <div id="i18n-body">
+      <div id="i18n-locales"></div>
+      <div id="i18n-messages"></div>
+    </div>
+    <div id="i18n-foot"><span id="i18n-status" class="hint">The first language is the fallback. Declared catalogs are embedded in the generated app.</span><button class="btn" type="button" onclick="i18nAddLocale()">Add language.</button></div>
   </div>
 </div>
 <div id="hist-editor">
@@ -2192,7 +2233,7 @@ RUNNING</div>
 // sync after every model rebuild), so the rest of the designer keeps working
 // against root.children / root.title.
 function pagesModelEmpty() {
-  var r = { imports: [], states: [], funcs: [], css: "", components: [], pages: [{ name: "main", title: "", onLoad: "", children: [] }], page: 0 };
+  var r = { imports: [], states: [], funcs: [], css: "", i18n: [], components: [], pages: [{ name: "main", title: "", onLoad: "", children: [] }], page: 0 };
   r.children = r.pages[0].children;
   return r;
 }
@@ -3618,7 +3659,7 @@ function reparseSui() {
     reparseInFlight = false;
     if (j.ok && suiSource === src) {
       var prevName = curPage().name;
-      root = { states: j.states || [], funcs: j.funcs || [], css: j.css || "", components: j.components || [], page: 0,
+      root = { states: j.states || [], funcs: j.funcs || [], css: j.css || "", i18n: j.i18n || [], components: j.components || [], page: 0,
         pages: (j.pages && j.pages.length ? j.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || [] }; }) : [{ name: "main", title: j.title || "", children: j.elements || [] }]) };
       root.pages.forEach(function(p){ normalizeTables(p.children); });
       for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
@@ -3647,6 +3688,7 @@ function renderAll() {
   setOut();
   renderInspector();
   renderPages();
+  renderPreviewLocales();
   scheduleCssSync();
 }
 
@@ -13415,6 +13457,272 @@ function copyAssetFallback(url) {
   ta.remove();
 }
 
+// ---- project languages (i18n) ---------------------------------------------
+var i18nActive = 0;
+var i18nPreviewTimer = 0;
+var previewLocale = "";
+function i18nModel() { if (!root.i18n) root.i18n = []; return root.i18n; }
+function i18nStatus(msg) { var el = document.getElementById("i18n-status"); if (el) el.textContent = msg; }
+function openI18nEditor() {
+  var m = document.getElementById("i18n-editor");
+  if (!m) return;
+  m.classList.add("on");
+  if (i18nActive >= i18nModel().length) i18nActive = 0;
+  renderI18nEditor();
+}
+function closeI18nEditor() {
+  var m = document.getElementById("i18n-editor");
+  if (m) m.classList.remove("on");
+}
+function i18nAddLocale() {
+  var add = function(code) {
+    code = String(code || "").trim();
+    if (!code) return;
+    var locs = i18nModel();
+    for (var i = 0; i < locs.length; i++) {
+      if (locs[i].locale.toLowerCase() === code.toLowerCase()) { i18nStatus("Language already exists."); return; }
+    }
+    withUndo(function(){ locs.push({ locale: code, messages: [] }); i18nActive = locs.length - 1; }, "add language");
+    renderI18nEditor();
+    renderPreviewLocales();
+    i18nStatus("Language " + code + " added.");
+  };
+  if (typeof askPrompt === "function") askPrompt("Add language", "Locale code", "it", add, "Use a BCP 47 code such as en, it, fr, de or pt-BR. The first language is the fallback.");
+  else add(window.prompt("Locale code", "it"));
+}
+function i18nRemoveLocale(index) {
+  var locs = i18nModel();
+  if (index < 0 || index >= locs.length) return;
+  var code = locs[index].locale;
+  withUndo(function(){ locs.splice(index, 1); if (i18nActive >= locs.length) i18nActive = Math.max(0, locs.length - 1); }, "remove language");
+  renderI18nEditor();
+  renderPreviewLocales();
+  i18nStatus("Language " + code + " removed.");
+}
+function i18nMakeFallback(index) {
+  var locs = i18nModel();
+  if (index <= 0 || index >= locs.length) return;
+  withUndo(function(){ var item = locs.splice(index, 1)[0]; locs.unshift(item); i18nActive = 0; }, "make fallback language");
+  renderI18nEditor();
+  renderPreviewLocales();
+  i18nStatus("The first language is the fallback.");
+}
+function i18nAddKey() {
+  var locs = i18nModel();
+  if (!locs.length) { i18nStatus("Add a language first."); return; }
+  var loc = locs[i18nActive] || locs[0];
+  if (!loc.messages) loc.messages = [];
+  withUndo(function(){ loc.messages.push({ key: "new.key." + (loc.messages.length + 1), text: "" }); }, "add translation key");
+  renderI18nEditor();
+}
+function i18nRemoveKey(index) {
+  var locs = i18nModel();
+  var loc = locs[i18nActive] || locs[0];
+  if (!loc || !loc.messages || index < 0 || index >= loc.messages.length) return;
+  withUndo(function(){ loc.messages.splice(index, 1); }, "remove translation key");
+  renderI18nEditor();
+}
+function i18nSchedulePreview() {
+  if (i18nPreviewTimer) clearTimeout(i18nPreviewTimer);
+  i18nPreviewTimer = setTimeout(function(){ i18nPreviewTimer = 0; setOut(); autoPreview(); }, 250);
+}
+function i18nEditField(el, apply) {
+  el.onfocus = function(){ snap("edit translation"); };
+  el.oninput = function(){ apply(el.value); i18nSchedulePreview(); };
+}
+function renderI18nEditor() {
+  var box = document.getElementById("i18n-locales");
+  var msgs = document.getElementById("i18n-messages");
+  if (!box || !msgs) return;
+  var locs = i18nModel();
+  if (i18nActive >= locs.length) i18nActive = Math.max(0, locs.length - 1);
+  box.textContent = "";
+  if (!locs.length) {
+    var empty = document.createElement("div"); empty.className = "hint"; empty.textContent = "No languages yet. Add one to start translating.";
+    box.appendChild(empty);
+  }
+  locs.forEach(function(loc, i) {
+    var row = document.createElement("div");
+    row.className = "i18n-locale" + (i === i18nActive ? " on" : "");
+    var code = document.createElement("code"); code.textContent = loc.locale || "(empty)"; row.appendChild(code);
+    var count = document.createElement("span"); count.className = "hint"; count.textContent = String((loc.messages || []).length); row.appendChild(count);
+    var del = document.createElement("button"); del.type = "button"; del.className = "btn"; del.textContent = "\u2715"; del.title = "Remove language";
+    del.onclick = function(ev){ ev.stopPropagation(); i18nRemoveLocale(i); };
+    row.appendChild(del);
+    row.onclick = function(){ i18nActive = i; renderI18nEditor(); };
+    box.appendChild(row);
+  });
+  msgs.textContent = "";
+  if (!locs.length) return;
+  var loc = locs[i18nActive] || locs[0];
+  var head = document.createElement("div"); head.className = "rowline";
+  var title = document.createElement("strong"); title.textContent = "Messages for " + loc.locale; head.appendChild(title);
+  var addBtn = document.createElement("button"); addBtn.type = "button"; addBtn.className = "btn"; addBtn.textContent = "Add key."; addBtn.onclick = i18nAddKey;
+  head.appendChild(addBtn);
+  if (i18nActive !== 0) {
+    var fb = document.createElement("button"); fb.type = "button"; fb.className = "btn"; fb.textContent = "Make fallback";
+    fb.title = "Move this language first; the first language is the fallback";
+    fb.onclick = function(){ i18nMakeFallback(i18nActive); };
+    head.appendChild(fb);
+  }
+  msgs.appendChild(head);
+  var table = document.createElement("table");
+  var thead = document.createElement("thead");
+  var hr = document.createElement("tr");
+  ["Key", "Translation", ""].forEach(function(label){ var th = document.createElement("th"); th.textContent = label; hr.appendChild(th); });
+  thead.appendChild(hr); table.appendChild(thead);
+  var tbody = document.createElement("tbody");
+  (loc.messages || []).forEach(function(m, mi) {
+    var tr = document.createElement("tr");
+    var kd = document.createElement("td");
+    var keyInput = document.createElement("input"); keyInput.value = m.key || ""; keyInput.placeholder = "key";
+    i18nEditField(keyInput, function(v){ m.key = v; });
+    kd.appendChild(keyInput); tr.appendChild(kd);
+    var vd = document.createElement("td");
+    var pluralBox = document.createElement("label"); pluralBox.style.cssText = "display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-bottom:4px";
+    var pluralCb = document.createElement("input"); pluralCb.type = "checkbox"; pluralCb.checked = !!(m.plural && Object.keys(m.plural).length);
+    pluralCb.onchange = function() {
+      snap("toggle plural translation");
+      if (pluralCb.checked) {
+        m.plural = { one: m.text || "", other: m.text || "" };
+        delete m.text;
+      } else {
+        m.text = (m.plural && (m.plural.other || m.plural.one)) || "";
+        delete m.plural;
+      }
+      i18nSchedulePreview();
+      renderI18nEditor();
+    };
+    pluralBox.appendChild(pluralCb);
+    var pluralLabel = document.createElement("span"); pluralLabel.textContent = "Plural"; pluralBox.appendChild(pluralLabel);
+    vd.appendChild(pluralBox);
+    if (m.plural && Object.keys(m.plural).length) {
+      var grid = document.createElement("div"); grid.id = "i18n-plural";
+      ["zero", "one", "two", "few", "many", "other"].forEach(function(cat) {
+        if (m.plural[cat] === undefined) return;
+        var lab = document.createElement("label");
+        var span = document.createElement("span"); span.textContent = cat; lab.appendChild(span);
+        var inp = document.createElement("textarea"); inp.value = m.plural[cat] || "";
+        i18nEditField(inp, function(v){ m.plural[cat] = v; });
+        lab.appendChild(inp); grid.appendChild(lab);
+      });
+      vd.appendChild(grid);
+      var missing = ["zero", "one", "two", "few", "many", "other"].filter(function(c){ return m.plural[c] === undefined; });
+      if (missing.length) {
+        var addForm = document.createElement("select"); addForm.style.cssText = "margin-top:4px;font-size:11px";
+        var opt0 = document.createElement("option"); opt0.value = ""; opt0.textContent = "Add plural form..."; addForm.appendChild(opt0);
+        missing.forEach(function(c){ var o = document.createElement("option"); o.value = c; o.textContent = c; addForm.appendChild(o); });
+        addForm.onchange = function(){ if (!addForm.value) return; m.plural[addForm.value] = ""; i18nSchedulePreview(); renderI18nEditor(); };
+        vd.appendChild(addForm);
+      }
+    } else {
+      var ta = document.createElement("textarea"); ta.value = m.text || ""; ta.placeholder = "translation (supports {name} placeholders)";
+      i18nEditField(ta, function(v){ m.text = v; });
+      vd.appendChild(ta);
+    }
+    tr.appendChild(vd);
+    var ad = document.createElement("td");
+    var del = document.createElement("button"); del.type = "button"; del.className = "btn"; del.textContent = "\u2715"; del.title = "Remove key";
+    del.onclick = function(){ i18nRemoveKey(mi); };
+    ad.appendChild(del); tr.appendChild(ad);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody); msgs.appendChild(table);
+  i18nStatus("The first language is the fallback. " + (loc.messages || []).length + " keys in " + loc.locale + ".");
+}
+function i18nToPlain() {
+  var out = {};
+  i18nModel().forEach(function(loc) {
+    if (!loc || !loc.locale) return;
+    var msgs = {};
+    (loc.messages || []).forEach(function(m) {
+      if (!m || !m.key) return;
+      if (m.plural && Object.keys(m.plural).length) {
+        var p = {};
+        ["zero", "one", "two", "few", "many", "other"].forEach(function(c){ if (m.plural[c] !== undefined && m.plural[c] !== "") p[c] = m.plural[c]; });
+        msgs[m.key] = p;
+      } else {
+        msgs[m.key] = m.text || "";
+      }
+    });
+    out[loc.locale] = msgs;
+  });
+  return out;
+}
+function i18nFromPlain(obj) {
+  var locs = [];
+  if (Array.isArray(obj)) {
+    obj.forEach(function(loc) {
+      if (!loc || !loc.locale) return;
+      locs.push({ locale: String(loc.locale), messages: (loc.messages || []).map(function(m){ return m.plural ? { key: m.key, plural: m.plural } : { key: m.key, text: m.text || "" }; }) });
+    });
+    return locs;
+  }
+  if (!obj || typeof obj !== "object") return locs;
+  Object.keys(obj).forEach(function(locale) {
+    var val = obj[locale], messages = [];
+    if (val && typeof val === "object") {
+      Object.keys(val).forEach(function(key) {
+        var v = val[key];
+        if (v && typeof v === "object" && !Array.isArray(v)) messages.push({ key: key, plural: Object.assign({}, v) });
+        else messages.push({ key: key, text: v === null || v === undefined ? "" : String(v) });
+      });
+    }
+    locs.push({ locale: locale, messages: messages });
+  });
+  return locs;
+}
+function i18nImportFile(files) {
+  var f = files && files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function() {
+    try {
+      var locs = i18nFromPlain(JSON.parse(String(reader.result || "")));
+      if (!locs.length) { i18nStatus("No languages found in that JSON file."); return; }
+      withUndo(function(){ root.i18n = locs; i18nActive = 0; }, "import translations");
+      renderI18nEditor();
+      renderPreviewLocales();
+      i18nStatus("Imported " + locs.length + " language(s).");
+    } catch (e) { i18nStatus("Invalid JSON: " + (e && e.message ? e.message : String(e))); }
+  };
+  reader.readAsText(f);
+  var inp = document.getElementById("i18n-file"); if (inp) inp.value = "";
+}
+function i18nExportJson() {
+  var text = JSON.stringify(i18nToPlain(), null, 2) + "\n";
+  var blob = new Blob([text], { type: "application/json" });
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "languages.json"; a.click();
+}
+function renderPreviewLocales() {
+  var sel = document.getElementById("preview-locale");
+  if (!sel) return;
+  var locs = i18nModel();
+  var sig = locs.map(function(l){ return l.locale; }).join("|");
+  if (sel.getAttribute("data-signature") !== sig) {
+    sel.textContent = "";
+    var auto = document.createElement("option"); auto.value = ""; auto.textContent = "Auto"; sel.appendChild(auto);
+    locs.forEach(function(l){ var o = document.createElement("option"); o.value = l.locale; o.textContent = l.locale; sel.appendChild(o); });
+    sel.setAttribute("data-signature", sig);
+  }
+  var ok = false;
+  for (var i = 0; i < locs.length; i++) if (locs[i].locale === previewLocale) ok = true;
+  if (!ok) previewLocale = "";
+  sel.value = previewLocale;
+}
+function previewUrl() {
+  var u = "/__gui__/preview?ts=" + Date.now();
+  if (previewLocale) u += "&locale=" + encodeURIComponent(previewLocale);
+  return u;
+}
+function reloadPreview() {
+  var prev = document.getElementById("prev");
+  if (prev) prev.src = previewUrl();
+}
+function setPreviewLocale(v) {
+  previewLocale = v || "";
+  reloadPreview();
+}
 // Length-ish values accept px/em/%/... units; a bare number means px. Props
 // where a unitless value is meaningful (line-height, shorthand border) are left
 // untouched.
@@ -18042,6 +18350,25 @@ function generate() {
   var src = "";
   if (root.imports && root.imports.length) src += "import { " + root.imports.join(", ") + " } from \"std\"\n";
   if (root.css && root.css.trim()) src += "css \"" + esc(root.css) + "\"\n";
+  (root.i18n || []).forEach(function(loc) {
+    if (!loc || !loc.locale) return;
+    src += "i18n \"" + esc(loc.locale) + "\" {\n";
+    (loc.messages || []).forEach(function(m) {
+      if (!m || !m.key) return;
+      var hasPlural = m.plural && Object.keys(m.plural).length;
+      if (hasPlural) {
+        src += "\t\"" + esc(m.key) + "\": {\n";
+        ["zero", "one", "two", "few", "many", "other"].forEach(function(cat) {
+          if (m.plural[cat] === undefined || m.plural[cat] === null) return;
+          src += "\t\t" + cat + ": \"" + esc(String(m.plural[cat])) + "\"\n";
+        });
+        src += "\t}\n";
+      } else {
+        src += "\t\"" + esc(m.key) + "\": \"" + esc(String(m.text || "")) + "\"\n";
+      }
+    });
+    src += "}\n";
+  });
   root.states.forEach(function(s) {
     if (!s.name) return;
     var init = s.init;
@@ -18197,7 +18524,7 @@ function autoPreview() {
   fd.set("sui", src);
   fetch("/__gui__/render", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
     if (mySeq !== pvSeq) return;
-    if (j.ok) { document.getElementById("prev").src = "/__gui__/preview?ts=" + Date.now(); }
+    if (j.ok) { document.getElementById("prev").src = previewUrl(); }
     else { setStatus((j.diagnostics || []).join(" | ")); }
   }).catch(function(){
     if (mySeq === pvSeq) setStatus("preview failed: server unavailable");
@@ -18212,7 +18539,7 @@ function downloadSui() {
   var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "app.sui"; a.click();
 }
 function loadTree(model) {
-  root = { imports: model.imports || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", components: model.components || [], page: 0,
+  root = { imports: model.imports || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], components: model.components || [], page: 0,
     pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", onLoad: p.onLoad || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", onLoad: model.onLoad || "", children: model.elements || [] }]) };
   root.pages.forEach(function(p){ normalizeTables(p.children); });
   remount();
@@ -27336,7 +27663,7 @@ function applySuiCommon(src, o) {
       if (sn) { keepKind = sn.kind; keepCls = (sn.class || "").trim().split(/\s+/)[0]; }
     }
     var prevName = curPage().name;
-    root = { states: model.states || [], funcs: model.funcs || [], css: model.css || "", components: model.components || [], page: 0,
+    root = { states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], components: model.components || [], page: 0,
       pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", children: model.elements || [] }]) };
     root.pages.forEach(function(p){ normalizeTables(p.children); });
     for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
@@ -27368,7 +27695,7 @@ function applySuiCommon(src, o) {
     var mySeq = ++pvSeq;
     fetch("/__gui__/render", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(rj){
       if (mySeq !== pvSeq || !rj.ok) return;
-      document.getElementById("prev").src = "/__gui__/preview?ts=" + Date.now();
+      document.getElementById("prev").src = previewUrl();
     }).catch(function(){});
   }).catch(function(){
     setStatus("apply failed: server unavailable");

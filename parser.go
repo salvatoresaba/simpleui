@@ -266,6 +266,10 @@ func ParseSource(source string, file string) (*Prog, DiagList) {
 			if text != "" {
 				prog.css = append(prog.css, text)
 			}
+		} else if k == "ident" && p.cur().text == "i18n" {
+			if decl := parseI18n(p); decl != nil {
+				prog.i18n = append(prog.i18n, *decl)
+			}
 		} else {
 			t := p.cur()
 			p.dd.Add(p.file, t.line, t.col, fmt.Sprintf("unexpected %v at top level", tokLabel(t.kind, t.text)))
@@ -332,6 +336,138 @@ func parseImport(p *Parser) *ImportDecl {
 		kind = "std"
 	}
 	return &ImportDecl{names: names, kind: kind, path: s.text, span: sp}
+}
+
+// i18nPluralCategories is the fixed CLDR order used in source and generated
+// catalogs.
+var i18nPluralCategories = []string{"zero", "one", "two", "few", "many", "other"}
+
+func isI18nPluralCategory(s string) bool {
+	for _, c := range i18nPluralCategories {
+		if c == s {
+			return true
+		}
+	}
+	return false
+}
+
+// parseI18n parses one top-level translation catalog:
+//
+//	i18n "it" {
+//	  "save": "Salva"
+//	  "items": { one: "{count} elemento", other: "{count} elementi" }
+//	}
+//
+// The locale and keys are strings; values are raw strings (message placeholders
+// such as {name} are kept literally) or a plural block. Entries may be
+// separated by commas and/or newlines.
+func parseI18n(p *Parser) *I18nDecl {
+	sp := p.span()
+	p.adv() // i18n
+	loc := p.cur()
+	if loc.kind != "str" {
+		p.diag("expected a locale string after 'i18n'")
+		resyncToLine(p)
+		return nil
+	}
+	p.adv()
+	locale := strings.TrimSpace(suiUnescape(loc.text, p.file, loc.line, loc.col, p.dd))
+	decl := &I18nDecl{locale: locale, span: sp}
+	if !p.accept("{") {
+		p.diag("expected '{' after the i18n locale")
+		resyncToLine(p)
+		return nil
+	}
+	seen := map[string]bool{}
+	skipNewlines(p)
+	for !p.at("}") && !p.at("eof") {
+		keyTok := p.cur()
+		if keyTok.kind != "str" {
+			p.diag("expected a quoted message key in the i18n block")
+			resyncToLine(p)
+			skipNewlines(p)
+			continue
+		}
+		p.adv()
+		key := strings.TrimSpace(suiUnescape(keyTok.text, p.file, keyTok.line, keyTok.col, p.dd))
+		if key == "" {
+			p.dd.Add(p.file, keyTok.line, keyTok.col, "i18n message key must not be empty")
+		}
+		if seen[key] {
+			p.dd.Add(p.file, keyTok.line, keyTok.col, "duplicate i18n message key "+key)
+		}
+		seen[key] = true
+		skipNewlines(p)
+		if !p.accept(":") {
+			p.diag("expected ':' after the i18n message key")
+			resyncToLine(p)
+			skipNewlines(p)
+			continue
+		}
+		skipNewlines(p)
+		msg := I18nMessage{key: key, span: Span{file: p.file, line: keyTok.line, col: keyTok.col}}
+		if p.at("{") {
+			p.adv()
+			msg.plural = map[string]string{}
+			skipNewlines(p)
+			for !p.at("}") && !p.at("eof") {
+				cat := p.cur()
+				if cat.kind != "ident" {
+					p.diag("expected a plural category (zero, one, two, few, many, other)")
+					resyncToLine(p)
+					skipNewlines(p)
+					continue
+				}
+				p.adv()
+				if !isI18nPluralCategory(cat.text) {
+					p.dd.Add(p.file, cat.line, cat.col, "unknown plural category \""+cat.text+"\" (use zero, one, two, few, many or other)")
+				}
+				skipNewlines(p)
+				if !p.accept(":") {
+					p.diag("expected ':' after the plural category")
+					resyncToLine(p)
+					skipNewlines(p)
+					continue
+				}
+				skipNewlines(p)
+				val := p.cur()
+				if val.kind != "str" {
+					p.diag("expected a quoted string after the plural category")
+					resyncToLine(p)
+					skipNewlines(p)
+					continue
+				}
+				p.adv()
+				msg.plural[cat.text] = suiUnescape(val.text, p.file, val.line, val.col, p.dd)
+				if !p.accept(",") {
+					skipNewlines(p)
+				}
+			}
+			if !p.accept("}") {
+				p.diag("expected '}' after the plural forms")
+			}
+		} else {
+			val := p.cur()
+			if val.kind != "str" {
+				p.diag("expected a quoted message string")
+				resyncToLine(p)
+				skipNewlines(p)
+				continue
+			}
+			p.adv()
+			msg.text = suiUnescape(val.text, p.file, val.line, val.col, p.dd)
+		}
+		decl.messages = append(decl.messages, msg)
+		if !p.accept(",") {
+			skipNewlines(p)
+		}
+		skipNewlines(p)
+	}
+	if !p.accept("}") {
+		p.diag("expected '}' after the i18n block")
+		resyncToLine(p)
+	}
+	return decl
 }
 
 // parseCss: 'css' String  — a raw CSS snippet appended verbatim to style.css.
@@ -1569,12 +1705,14 @@ func parsePrimary(p *Parser) *Expr {
 	}
 	if t.kind == "{" {
 		p.adv()
+		skipNewlines(p)
 		var keys []string
 		var vals []*Expr
 		if p.accept("}") {
 			return &Expr{kind: "map", keys: keys, vals: vals, span: p.spanAt(t)}
 		}
 		for true {
+			skipNewlines(p)
 			kt := p.cur()
 			if kt.kind != "str" {
 				p.diag("expected a string map key")
@@ -1589,11 +1727,14 @@ func parsePrimary(p *Parser) *Expr {
 				resyncToLine(p)
 				break
 			}
+			skipNewlines(p)
 			v := parseExpr(p)
 			vals = append(vals, v)
+			skipNewlines(p)
 			if !p.accept(",") {
 				break
 			}
+			skipNewlines(p)
 		}
 		if !p.accept("}") {
 			p.diag("expected '}' to close map literal")
@@ -1613,7 +1754,8 @@ func parsePrimary(p *Parser) *Expr {
 // parts and interpolated expression parts. Recognized escapes: \n \t \\ \"
 // \{ \}. Any other backslash sequence is a diagnostic (the characters are
 // kept literally). A `{...}` span is re-lexed and parsed as an expression;
-// string literals inside interpolation are not supported in v0.1.
+// string literals inside interpolation (t("save"), map values, nested
+// templates) are supported and skipped while finding the closing brace.
 func parseStringParts(raw string, sp Span, p *Parser) ([]StrPart, DiagList) {
 	var dl DiagList
 	var parts []StrPart
@@ -1686,8 +1828,9 @@ func parseStringParts(raw string, sp Span, p *Parser) ([]StrPart, DiagList) {
 }
 
 // scanInterpEnd finds the matching '}' of an interpolation starting after the
-// opening '{', tracking { ( [ nesting. A '"' inside interpolation is a v0.1
-// diagnostic. Returns the index of the closing '}' or -1 when unterminated.
+// opening '{', tracking { ( [ nesting. A '"' starts a nested string literal
+// that is skipped (with escapes) so its braces do not affect the depth.
+// Returns the index of the closing '}' or -1 when unterminated.
 func scanInterpEnd(raw string, start int, dl *DiagList, p *Parser) int {
 	depth := 0
 	j := start
@@ -1695,7 +1838,30 @@ func scanInterpEnd(raw string, start int, dl *DiagList, p *Parser) int {
 	for j < n {
 		c := raw[j]
 		if c == '"' {
-			dl.Add(p.file, p.span().line, p.span().col, "string literals are not allowed inside string interpolation")
+			// A string literal inside an interpolation (t("save"), map values,
+			// nested templates) is lexed by parseInterpExpr. Skip it here so
+			// braces inside it do not affect the interpolation depth.
+			j++
+			closed := false
+			for j < n {
+				if raw[j] == '\\' {
+					j += 2
+					continue
+				}
+				if raw[j] == '"' {
+					closed = true
+					j++
+					break
+				}
+				j++
+			}
+			if !closed {
+				dl.Add(p.file, p.span().line, p.span().col, "unterminated string inside interpolation")
+				return -1
+			}
+			// The nested-string scan already advanced past its closing quote;
+			// continue at the character after it.
+			continue
 		} else if c == '{' || c == '(' || c == '[' {
 			depth++
 		} else if c == '}' || c == ')' || c == ']' {
@@ -1816,6 +1982,9 @@ func (l *Loader) loadFile(path string) {
 	}
 	for i := 0; i < len(pp.css); i++ {
 		l.prog.css = append(l.prog.css, pp.css[i])
+	}
+	for i := 0; i < len(pp.i18n); i++ {
+		l.prog.i18n = append(l.prog.i18n, pp.i18n[i])
 	}
 	for i := 0; i < len(pp.states); i++ {
 		l.prog.states = append(l.prog.states, pp.states[i])

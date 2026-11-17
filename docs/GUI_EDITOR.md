@@ -883,6 +883,33 @@ Uploads are session-scoped: they are not written to disk, and the data URL is
 embedded directly in the SUI source when you apply it. Use a local relative path
 instead of an asset when you want the file to live next to the project.
 
+## Languages
+
+**Preferences → Languages...** opens the translation editor for the
+generated app. It is separate from **Editor preferences → Interface
+language**, which translates the designer itself.
+
+- The left column lists the locales; the **first** locale is the fallback. Click
+  a locale to edit its keys.
+- **Add language.** asks for a BCP 47 code (`it`, `en`, `pt-BR`, ...) and
+  creates an empty catalog.
+- **Add key.** adds a message. The **Plural** checkbox turns it into a CLDR
+  plural block; **Add plural form...** adds `zero`, `two`, `few` or `many`.
+  `one` and `other` are created by default and `other` is required.
+- **Import JSON** and **Export JSON** use a plain object:
+  `{ "it": { "save": "Salva", "items": { "one": "...", "other": "..." } } }`.
+- The preview toolbar **Lang** selector reloads the preview with
+  `?locale=xx` without saving the choice. In the app, `i18n.setLocale(code)`
+  persists the choice in `localStorage` (`sui.locale`).
+- Generated source gains `i18n "xx" { ... }` blocks. `t(key, vars)` and the
+  `i18n.*` helpers are documented in the
+  [API reference](API_REFERENCE.md#internationalization-i18n).
+- Use `?locale=xx` on a normal page load to override the stored/browser
+  language without changing it.
+
+See `examples/i18n/` for a runnable Italian/English/Arabic demo with plurals,
+RTL and the complete source.
+
 ## Component library
 
 **Insert** is extended by `components/library.json` next to the project (or in

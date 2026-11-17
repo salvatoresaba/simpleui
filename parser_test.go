@@ -326,3 +326,24 @@ func TestParseMapAndArray(t *testing.T) {
 		t.Errorf("array literal wrong")
 	}
 }
+
+// TestNestedStringInInterpolation covers string literals inside {...}: the
+// lexer keeps the outer token together and the parser re-lexes the nested
+// expression, including escaped quotes.
+func TestNestedStringInInterpolation(t *testing.T) {
+	src := `view main {
+	p "{upper("hello")}"
+	p "{upper("say \"hi\"")}"
+}`
+	prog, dl := ParseSource(src, "nested.sui")
+	if dl.HasErrors() {
+		t.Fatalf("parse: %v", dl.String())
+	}
+	if dl := Check(prog); dl.HasErrors() {
+		t.Fatalf("check: %v", dl.String())
+	}
+	js := GenerateJs(prog)
+	if !strings.Contains(js, ".toUpperCase()") || !strings.Contains(js, "hello") {
+		t.Errorf("nested string expression was not generated")
+	}
+}

@@ -64,10 +64,13 @@ Completati di recente:
       `http.uploadWithHeaders`, `http.uploadWithHeadersSafe`.
 - [x] WebSocket avanzato: `ws.connectWithOptions` con auto-reconnect esponenziale,
       heartbeat, `onOpen`, `onClose`, `onError`, `status` e `reconnect`.
+- [x] Callback di collezione: `map`, `filter`, `reduce`, `find`, `findIndex`, `any`, `all`, `sortBy`, `unique` con funzioni dichiarate.
+- [x] Cataloghi i18n e plurali: `i18n "xx" { ... }`, `t`, cambio/rilevamento lingua, plurali CLDR, RTL, `?locale=`, editor Lingue nel designer e import/export JSON.
 
 ## Correzioni di accuratezza
 
-- `fs` avanzato, crypto e source maps **non** sono implementati; le voci pubbliche non supportate sono state rimosse.
+- `fs` avanzato, crypto, path utilities e source maps **non** sono implementati; le voci pubbliche non supportate sono state rimosse.
+- Le import di file funzionano in check/build/serve, ma la lista non � validata, i simboli sono fusi in un namespace globale e il designer legge solo il file di ingresso.
 - LSP supporta completion di base e diagnostica live, non hover/definition/
   references/symbols/rename/code actions.
 - `--single --minify` è un minifier conservativo, non un minifier JS completo.
@@ -75,7 +78,7 @@ Completati di recente:
 ## Prossime priorità
 
 1. Timeout/audit/process-kill del bridge desktop.
-2. HTTP headers/multipart e reconnect WebSocket.
+2. Formattazione locale (date, numeri, valute, timezone).
 3. LSP avanzato (hover, definition, references, symbols, rename).
 4. Source maps e decisione sul minifier completo.
 5. Packaging/firma desktop: installer, icona/metadati, bootstrap WebView2 e build
@@ -93,8 +96,7 @@ Completati di recente:
 - Rest/named parameters, destructuring, spread.
 - Computed/effects/batching/fine-grained reactivity.
 - Error boundaries, list keys, suspense, context.
-- HTTP multipart, WebSocket reconnect, fs avanzato, crypto, path utilities,
-  JSON Schema, i18n.
+- fs avanzato, crypto, path utilities, JSON Schema e formattazione locale (Intl).
 - Source maps, tree shaking, bundle splitting, PWA/SSR/WASM.
 - Component library, tokens JSON, multi-device preview, asset manager.
 - HMR, preserve state, browser error overlay.

@@ -196,13 +196,42 @@ func Lex(source string, file string) ([]Token, DiagList) {
 			i++
 			col++
 			closed := false
+			interp := 0
 			for i < n {
 				ch := source[i]
 				if ch == '"' {
-					closed = true
+					if interp == 0 {
+						closed = true
+						i++
+						col++
+						break
+					}
+					// A string literal inside {interpolation} is part of this
+					// token; skip it (with escapes) and continue the outer
+					// string. This enables t("save") and nested map values.
 					i++
 					col++
-					break
+					for i < n {
+						if source[i] == '\\' {
+							i += 2
+							col += 2
+							continue
+						}
+						if source[i] == '"' {
+							i++
+							col++
+							break
+						}
+						if source[i] == '\n' {
+							i++
+							line++
+							col = 1
+							continue
+						}
+						i++
+						col++
+					}
+					continue
 				}
 				if ch == '\\' {
 					// Skip the escaped character too (covers \" and anything
@@ -213,6 +242,16 @@ func Lex(source string, file string) ([]Token, DiagList) {
 						i++
 						col++
 					}
+				} else if ch == '{' {
+					interp++
+					i++
+					col++
+				} else if ch == '}' {
+					if interp > 0 {
+						interp--
+					}
+					i++
+					col++
 				} else if ch == '\n' {
 					// Newlines inside strings are allowed lexically; the
 					// parser reports them as errors.

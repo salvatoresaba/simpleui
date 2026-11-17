@@ -1,0 +1,46 @@
+{
+  "it": {
+    "title": "Demo internazionalizzazione",
+    "greeting": "Ciao, {name}!",
+    "items": {
+      "one": "{count} elemento",
+      "other": "{count} elementi"
+    },
+    "language": "Lingua",
+    "increment": "Aggiungi",
+    "italian": "Italiano",
+    "english": "Inglese",
+    "arabic": "Arabo",
+    "onlyIt": "Questa frase esiste solo in italiano"
+  },
+  "en": {
+    "title": "Internationalization demo",
+    "greeting": "Hello, {name}!",
+    "items": {
+      "one": "{count} item",
+      "other": "{count} items"
+    },
+    "language": "Language",
+    "increment": "Increment",
+    "italian": "Italian",
+    "english": "English",
+    "arabic": "Arabic"
+  },
+  "ar": {
+    "title": "عرض التدويل",
+    "greeting": "مرحبا، {name}!",
+    "items": {
+      "zero": "لا عناصر",
+      "one": "{count} عنصر",
+      "two": "{count} عنصران",
+      "few": "{count} عناصر",
+      "many": "{count} عنصرًا",
+      "other": "{count} عنصر"
+    },
+    "language": "اللغة",
+    "increment": "زيادة",
+    "italian": "الإيطالية",
+    "english": "الإنجليزية",
+    "arabic": "العربية"
+  }
+}

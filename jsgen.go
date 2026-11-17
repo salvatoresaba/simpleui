@@ -31,6 +31,151 @@ var SuiPrelude = "\"use strict\";\n" +
 	"function __sui_refresh() {\n" +
 	"  for (const k of Object.keys(__SUI_views)) __SUI_views[k]();\n" +
 	"}\n" +
+	"// Collection helpers take a declared function (or its name for an fn\n" +
+	"// parameter) and call it once per item. Extra arguments are ignored by\n" +
+	"// callbacks that declare fewer parameters.\n" +
+	"function __sui_callback(fn, name) {\n" +
+	"  if (typeof fn === 'function') return fn;\n" +
+	"  if (typeof fn === 'string' && typeof window[fn] === 'function') return window[fn];\n" +
+	"  throw new Error(name + ' expects a function name');\n" +
+	"}\n" +
+	"function __sui_map(arr, fn) {\n" +
+	"  var f = __sui_callback(fn, 'map'), list = arr || [], out = [];\n" +
+	"  for (var i = 0; i < list.length; i++) out.push(f(list[i], i));\n" +
+	"  return out;\n" +
+	"}\n" +
+	"function __sui_filter(arr, fn) {\n" +
+	"  var f = __sui_callback(fn, 'filter'), list = arr || [], out = [];\n" +
+	"  for (var i = 0; i < list.length; i++) if (f(list[i], i)) out.push(list[i]);\n" +
+	"  return out;\n" +
+	"}\n" +
+	"function __sui_reduce(arr, init, fn) {\n" +
+	"  var f = __sui_callback(fn, 'reduce'), list = arr || [], acc = init;\n" +
+	"  for (var i = 0; i < list.length; i++) acc = f(acc, list[i], i);\n" +
+	"  return acc;\n" +
+	"}\n" +
+	"function __sui_find(arr, fn) {\n" +
+	"  var f = __sui_callback(fn, 'find'), list = arr || [];\n" +
+	"  for (var i = 0; i < list.length; i++) if (f(list[i], i)) return list[i];\n" +
+	"  return null;\n" +
+	"}\n" +
+	"function __sui_find_index(arr, fn) {\n" +
+	"  var f = __sui_callback(fn, 'findIndex'), list = arr || [];\n" +
+	"  for (var i = 0; i < list.length; i++) if (f(list[i], i)) return i;\n" +
+	"  return -1;\n" +
+	"}\n" +
+	"function __sui_any(arr, fn) {\n" +
+	"  var f = __sui_callback(fn, 'any'), list = arr || [];\n" +
+	"  for (var i = 0; i < list.length; i++) if (f(list[i], i)) return true;\n" +
+	"  return false;\n" +
+	"}\n" +
+	"function __sui_all(arr, fn) {\n" +
+	"  var f = __sui_callback(fn, 'all'), list = arr || [];\n" +
+	"  for (var i = 0; i < list.length; i++) if (!f(list[i], i)) return false;\n" +
+	"  return true;\n" +
+	"}\n" +
+	"function __sui_sort_by(arr, fn) {\n" +
+	"  var f = __sui_callback(fn, 'sortBy'), list = (arr || []).slice();\n" +
+	"  list.sort(function (a, b) { var ka = f(a), kb = f(b); if (ka < kb) return -1; if (ka > kb) return 1; return 0; });\n" +
+	"  return list;\n" +
+	"}\n" +
+	"function __sui_unique(arr) {\n" +
+	"  var list = arr || [], out = [], seen = new Set();\n" +
+	"  for (var i = 0; i < list.length; i++) { if (!seen.has(list[i])) { seen.add(list[i]); out.push(list[i]); } }\n" +
+	"  return out;\n" +
+	"}\n" + "// Internationalization: catalogs are emitted by i18n declarations. The\n" +
+	"// active locale comes from ?locale=, then localStorage, then the browser.\n" +
+	"var __SUI_I18N = { catalogs: {}, locale: '', fallback: '', dir: 'ltr' };\n" +
+	"function __sui_i18n_rtl(locale) { return /^(ar|he|fa|ur|yi|dv|ps|sd)(-|$)/i.test(String(locale || '')); }\n" +
+	"function __sui_i18n_match(locale) {\n" +
+	"  var want = String(locale || '').toLowerCase();\n" +
+	"  if (!want) return '';\n" +
+	"  var keys = Object.keys(__SUI_I18N.catalogs || {});\n" +
+	"  for (var i = 0; i < keys.length; i++) if (keys[i].toLowerCase() === want) return keys[i];\n" +
+	"  var base = want.split('-')[0];\n" +
+	"  for (var j = 0; j < keys.length; j++) if (keys[j].toLowerCase().split('-')[0] === base) return keys[j];\n" +
+	"  return '';\n" +
+	"}\n" +
+	"function __sui_i18n_apply(locale) {\n" +
+	"  __SUI_I18N.locale = locale || __SUI_I18N.fallback;\n" +
+	"  __SUI_I18N.dir = __sui_i18n_rtl(__SUI_I18N.locale) ? 'rtl' : 'ltr';\n" +
+	"  if (typeof document !== 'undefined' && document.documentElement) {\n" +
+	"    document.documentElement.lang = __SUI_I18N.locale;\n" +
+	"    document.documentElement.dir = __SUI_I18N.dir;\n" +
+	"  }\n" +
+	"}\n" +
+	"function __sui_i18n_init(catalogs, fallback) {\n" +
+	"  __SUI_I18N.catalogs = catalogs || {};\n" +
+	"  __SUI_I18N.fallback = fallback || '';\n" +
+	"  var chosen = '';\n" +
+	"  try {\n" +
+	"    var q = new URLSearchParams(location.search).get('locale');\n" +
+	"    if (q) chosen = __sui_i18n_match(q);\n" +
+	"    if (!chosen) { var saved = localStorage.getItem('sui.locale'); if (saved) chosen = __sui_i18n_match(saved); }\n" +
+	"  } catch (e) {}\n" +
+	"  if (!chosen) chosen = __sui_i18n_detect();\n" +
+	"  if (!chosen) chosen = __SUI_I18N.fallback;\n" +
+	"  __sui_i18n_apply(chosen);\n" +
+	"}\n" +
+	"function __sui_i18n_set(locale, persist) {\n" +
+	"  var want = String(locale || '');\n" +
+	"  var chosen = want.toLowerCase() === 'auto' ? __sui_i18n_detect() : __sui_i18n_match(want);\n" +
+	"  if (!chosen) return false;\n" +
+	"  var changed = chosen !== __SUI_I18N.locale;\n" +
+	"  __sui_i18n_apply(chosen);\n" +
+	"  if (persist) { try { localStorage.setItem('sui.locale', chosen); } catch (e) {} }\n" +
+	"  if (changed && typeof __sui_render === 'function') __sui_render();\n" +
+	"  return true;\n" +
+	"}\n" +
+	"function __sui_i18n_locale() { return __SUI_I18N.locale || __SUI_I18N.fallback; }\n" +
+	"function __sui_i18n_detect() {\n" +
+	"  var langs = [];\n" +
+	"  try { langs = navigator.languages || [navigator.language || '']; } catch (e) {}\n" +
+	"  for (var i = 0; i < langs.length; i++) { var m = __sui_i18n_match(langs[i]); if (m) return m; }\n" +
+	"  return '';\n" +
+	"}\n" +
+	"function __sui_i18n_available() { return Object.keys(__SUI_I18N.catalogs || {}); }\n" +
+	"function __sui_i18n_dir() { return __SUI_I18N.dir || (__sui_i18n_rtl(__sui_i18n_locale()) ? 'rtl' : 'ltr'); }\n" +
+	"function __sui_i18n_entry(key) {\n" +
+	"  var k = String(key == null ? '' : key);\n" +
+	"  var cur = __SUI_I18N.catalogs[__SUI_I18N.locale];\n" +
+	"  if (cur && Object.prototype.hasOwnProperty.call(cur, k)) return cur[k];\n" +
+	"  var fb = __SUI_I18N.catalogs[__SUI_I18N.fallback];\n" +
+	"  if (fb && Object.prototype.hasOwnProperty.call(fb, k)) return fb[k];\n" +
+	"  return null;\n" +
+	"}\n" +
+	"function __sui_i18n_has(key) { return __sui_i18n_entry(key) != null; }\n" +
+	"function __sui_i18n_missing() {\n" +
+	"  var fb = __SUI_I18N.catalogs[__SUI_I18N.fallback] || {};\n" +
+	"  var cur = __SUI_I18N.catalogs[__SUI_I18N.locale] || {};\n" +
+	"  var out = [];\n" +
+	"  for (var k in fb) if (Object.prototype.hasOwnProperty.call(fb, k) && !Object.prototype.hasOwnProperty.call(cur, k)) out.push(k);\n" +
+	"  return out;\n" +
+	"}\n" +
+	"function __sui_i18n_vars(text, vars) {\n" +
+	"  if (!vars) return text;\n" +
+	"  return String(text).replace(/\\{([A-Za-z0-9_.-]+)\\}/g, function (_, name) {\n" +
+	"    var v = vars[name];\n" +
+	"    return v === null || v === undefined ? '' : String(v);\n" +
+	"  });\n" +
+	"}\n" +
+	"function __sui_t(key, vars) {\n" +
+	"  var k = String(key == null ? '' : key);\n" +
+	"  var entry = __sui_i18n_entry(k);\n" +
+	"  if (entry === null || entry === undefined) return k;\n" +
+	"  if (typeof entry === 'object') {\n" +
+	"    var cat = 'other';\n" +
+	"    if (vars && vars.count !== null && vars.count !== undefined) {\n" +
+	"      try {\n" +
+	"        if (typeof Intl !== 'undefined' && Intl.PluralRules) cat = new Intl.PluralRules(__sui_i18n_locale()).select(Number(vars.count));\n" +
+	"        else cat = Number(vars.count) === 1 ? 'one' : 'other';\n" +
+	"      } catch (e) { cat = Number(vars.count) === 1 ? 'one' : 'other'; }\n" +
+	"    }\n" +
+	"    entry = entry[cat] !== undefined ? entry[cat] : (entry.other !== undefined ? entry.other : entry.one);\n" +
+	"    if (entry === undefined || entry === null) return k;\n" +
+	"  }\n" +
+	"  return __sui_i18n_vars(String(entry), vars);\n" +
+	"}\n" +
 	`function __sui_replace_view(el, html) {
   if (el.__suiLastHtml === html) return;
   el.__suiLastHtml = html;
@@ -932,6 +1077,12 @@ func GenerateJsFor(p *Prog, target string) string {
 	for _, cn := range securityClassNames(p) {
 		sb.WriteString("__SUI_CLASSES[" + jsString(cn) + "] = 1;\n")
 	}
+	// Translation catalogs are available before state initializers and views,
+	// so t(...) also works in initial expressions.
+	if init := i18nInitJs(p); init != "" {
+		sb.WriteString("\n\n")
+		sb.WriteString(init)
+	}
 	for i := 0; i < len(p.states); i++ {
 		sd := p.states[i]
 		sb.WriteString("\n\n")
@@ -1008,6 +1159,57 @@ func GenerateJsFor(p *Prog, target string) string {
 		}
 	}
 	sb.WriteString("\n")
+	return sb.String()
+}
+
+// i18nInitJs serializes the i18n declarations into the runtime catalogs. The
+// first declared locale is the fallback (the designer keeps it first).
+func i18nInitJs(p *Prog) string {
+	if p == nil || len(p.i18n) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	sb.WriteString("__sui_i18n_init({")
+	for i := 0; i < len(p.i18n); i++ {
+		d := p.i18n[i]
+		if i > 0 {
+			sb.WriteString(",")
+		}
+		sb.WriteString(jsString(d.locale))
+		sb.WriteString(":{")
+		for j := 0; j < len(d.messages); j++ {
+			m := d.messages[j]
+			if j > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(jsString(m.key))
+			sb.WriteString(":")
+			if len(m.plural) > 0 {
+				sb.WriteString("{")
+				first := true
+				for _, cat := range i18nPluralCategories {
+					v, ok := m.plural[cat]
+					if !ok {
+						continue
+					}
+					if !first {
+						sb.WriteString(",")
+					}
+					first = false
+					sb.WriteString(jsString(cat))
+					sb.WriteString(":")
+					sb.WriteString(jsString(v))
+				}
+				sb.WriteString("}")
+			} else {
+				sb.WriteString(jsString(m.text))
+			}
+		}
+		sb.WriteString("}")
+	}
+	sb.WriteString("}, ")
+	sb.WriteString(jsString(p.i18n[0].locale))
+	sb.WriteString(");")
 	return sb.String()
 }
 

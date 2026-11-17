@@ -50,6 +50,15 @@ This page lists the built-in functions available in SimpleUI (no import required
 | `sort(arr)` | array | array | Sort a copy |
 | `reverse(arr)` | array | array | Reverse a copy |
 | `moveItem(arr, from, to)` | array[T], int, int | array[T] | Move one item to another index (new array) |
+| `map(arr, fn)` | array[T], fn(T, [int]) | array[U] | Transform every item; the callback may take `(item)` or `(item, index)` |
+| `filter(arr, fn)` | array[T], fn(T, [int]) -> bool | array[T] | Keep items whose callback returns true |
+| `reduce(arr, init, fn)` | array[T], U, fn(U, T, [int]) -> U | U | Fold the array into one value |
+| `find(arr, fn)` | array[T], fn(T, [int]) -> bool | any | First matching item, or `null` |
+| `findIndex(arr, fn)` | array[T], fn(T, [int]) -> bool | int | Index of the first match, or `-1` |
+| `any(arr, fn)` | array[T], fn(T, [int]) -> bool | bool | Whether at least one item matches |
+| `all(arr, fn)` | array[T], fn(T, [int]) -> bool | bool | Whether every item matches |
+| `sortBy(arr, fn)` | array[T], fn(T, [int]) -> any | array[T] | Sorted copy ordered by the callback key |
+| `unique(arr)` | array[T] | array[T] | Remove duplicates by value/reference identity |
 
 ## Map/Object Functions
 
@@ -182,6 +191,24 @@ A `pickFiles:` selection from the native dialog also populates `drag.files()`.
 | `navigate(name)` | string | null | Show another page (non-invoked root view) |
 | `modal.open(name)` | string | null | Open the modal with that `name` |
 | `modal.close(name)` | string | null | Close the modal with that `name` |
+
+## Internationalization Functions
+
+`i18n "locale" { ... }` declares a catalog; `t` and the `i18n.*` helpers need no
+import. The first declared catalog is the fallback. See
+[API reference: i18n](API_REFERENCE.md#internationalization-i18n).
+
+| Function | Params | Return | Description |
+|---|---|---|---|
+| `t(key, [vars])` | string, map? | string | Translate a key; `vars` supplies `{placeholder}` values and `count` for plurals |
+| `i18n.t(key, [vars])` | string, map? | string | Alias of `t` |
+| `i18n.locale()` | - | string | Active locale code |
+| `i18n.setLocale(code)` | string | bool | Switch language and persist the choice; `"auto"` re-detects |
+| `i18n.detect()` | - | string | Best loaded match for the browser languages |
+| `i18n.available()` | - | array[string] | Loaded locale codes |
+| `i18n.dir()` | - | string | `"ltr"` or `"rtl"` |
+| `i18n.has(key)` | string | bool | Whether the key exists in the active or fallback catalog |
+| `i18n.missing()` | - | array[string] | Keys present in the fallback but missing from the active locale |
 
 `navigate` needs no import. It is a no-op in single-page apps and for unknown
 page names. Use it from a normal zero-argument handler:

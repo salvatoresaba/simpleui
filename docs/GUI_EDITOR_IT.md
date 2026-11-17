@@ -916,6 +916,33 @@ viene incorporato direttamente nel sorgente SUI quando lo applichi. Usa un
 percorso relativo locale invece di un asset quando vuoi che il file viva accanto
 al progetto.
 
+## Lingue
+
+**Preferenze → Lingue...** apre l'editor delle traduzioni per l'app
+generata. È separato da **Preferenze editor → Lingua
+dell'interfaccia**, che traduce il designer stesso.
+
+- La colonna sinistra elenca le lingue; la **prima** è il fallback. Clicca una
+  lingua per modificarne le chiavi.
+- **Add language.** chiede un codice BCP 47 (`it`, `en`, `pt-BR`, ...) e crea un
+  catalogo vuoto.
+- **Add key.** aggiunge un messaggio. La casella **Plural** lo trasforma in un
+  blocco plurale CLDR; **Add plural form...** aggiunge `zero`, `two`, `few` o
+  `many`. `one` e `other` vengono creati di default e `other` è obbligatoria.
+- **Import JSON** ed **Export JSON** usano un oggetto semplice:
+  `{ "it": { "save": "Salva", "items": { "one": "...", "other": "..." } } }`.
+- Il selettore **Lang** nella barra dell'anteprima ricarica l'anteprima con
+  `?locale=xx` senza salvare la scelta. Nell'app, `i18n.setLocale(code)` salva
+  la scelta in `localStorage` (`sui.locale`).
+- Il sorgente generato include blocchi `i18n "xx" { ... }`. `t(key, vars)` e gli
+  helper `i18n.*` sono documentati nel
+  [riferimento API](API_REFERENCE_IT.md#internazionalizzazione-i18n).
+- Usa `?locale=xx` al caricamento di una pagina normale per forzare la lingua
+  senza modificare quella salvata.
+
+Vedi `examples/i18n/` per una demo eseguibile italiano/inglese/arabo con
+plurali, RTL e sorgente completo.
+
 ## Component library
 
 Il menu **Insert** viene esteso da `components/library.json` accanto al progetto

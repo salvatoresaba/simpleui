@@ -50,6 +50,15 @@ Questo documento elenca tutte le funzioni builtin disponibili in SimpleUI (non r
 | `sort(arr)` | array | array | Ordina array (copia) |
 | `reverse(arr)` | array | array | Inverte array (copia) |
 | `moveItem(arr, from, to)` | array[T], int, int | array[T] | Sposta un elemento in un altro indice (nuovo array) |
+| `map(arr, fn)` | array[T], fn(T, [int]) | array[U] | Trasforma ogni elemento; la callback può ricevere `(item)` o `(item, index)` |
+| `filter(arr, fn)` | array[T], fn(T, [int]) -> bool | array[T] | Mantiene gli elementi per cui la callback restituisce true |
+| `reduce(arr, init, fn)` | array[T], U, fn(U, T, [int]) -> U | U | Riduce l'array a un solo valore |
+| `find(arr, fn)` | array[T], fn(T, [int]) -> bool | any | Primo elemento corrispondente, oppure `null` |
+| `findIndex(arr, fn)` | array[T], fn(T, [int]) -> bool | int | Indice del primo elemento corrispondente, oppure `-1` |
+| `any(arr, fn)` | array[T], fn(T, [int]) -> bool | bool | Se almeno un elemento corrisponde |
+| `all(arr, fn)` | array[T], fn(T, [int]) -> bool | bool | Se tutti gli elementi corrispondono |
+| `sortBy(arr, fn)` | array[T], fn(T, [int]) -> any | array[T] | Copia ordinata in base alla chiave restituita |
+| `unique(arr)` | array[T] | array[T] | Rimuove i duplicati per valore/identità |
 
 ## Map/Object Functions
 
@@ -180,6 +189,24 @@ selezione da `pickFiles:` popola `drag.files()`.
 | `navigate(name)` | string | null | Mostra un'altra pagina (view root non invocata) |
 | `modal.open(name)` | string | null | Apre il modale con quel `name` |
 | `modal.close(name)` | string | null | Chiude il modale con quel `name` |
+
+## Funzioni di internazionalizzazione
+
+`i18n "locale" { ... }` dichiara un catalogo; `t` e gli helper `i18n.*` non
+richiedono import. Il primo catalogo dichiarato è il fallback. Vedi
+[Riferimento API: i18n](API_REFERENCE_IT.md#internazionalizzazione-i18n).
+
+| Funzione | Parametri | Ritorno | Descrizione |
+|---|---|---|---|
+| `t(key, [vars])` | string, map? | string | Traduce una chiave; `vars` fornisce i valori `{placeholder}` e `count` per i plurali |
+| `i18n.t(key, [vars])` | string, map? | string | Alias di `t` |
+| `i18n.locale()` | - | string | Codice della lingua attiva |
+| `i18n.setLocale(code)` | string | bool | Cambia lingua e salva la scelta; `"auto"` riesegue il rilevamento |
+| `i18n.detect()` | - | string | Migliore corrispondenza caricata per le lingue del browser |
+| `i18n.available()` | - | array[string] | Codici lingua caricati |
+| `i18n.dir()` | - | string | `"ltr"` o `"rtl"` |
+| `i18n.has(key)` | string | bool | Se la chiave esiste nel catalogo attivo o di fallback |
+| `i18n.missing()` | - | array[string] | Chiavi presenti nel fallback ma assenti nella lingua attiva |
 
 `navigate` non richiede import. È un no-op nelle app a pagina singola e con nomi
 di pagina sconosciuti. Usarlo da un handler senza argomenti:

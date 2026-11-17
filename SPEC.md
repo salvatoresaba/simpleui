@@ -843,7 +843,10 @@ func LoadProgram(entryFile string) (*Prog, DiagList)
   `import ... from "std"` only records the declaration.
 - String interpolation is parsed in the parser: the lexer returns the raw
   inner text; `parseStringParts` decodes escapes and re-lexes/parses `{...}`
-  sub-expressions. Unescaped newline inside a string is an error.
+  sub-expressions. A string literal inside `{...}` (for example
+  `t("save")` or a map value) is part of the interpolation and may contain
+  its own `{}` interpolation; escaped quotes are handled by the lexer and the
+  interpolation scanner. Unescaped newline inside a string is an error.
 
 ### astjson.go — Agent A
 

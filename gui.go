@@ -240,7 +240,13 @@ func CmdGui(args []string) {
 			srcSet = true
 			srcMu.Unlock()
 			lastHtml = html
-			go guiSaveProject(src)
+			// A file opened with `gui app.sui` is saved explicitly back to that
+			// path; do not overwrite the default project during its preview
+			// renders. The default project is only auto-saved when the editor
+			// started without a file.
+			if inputFile == "" {
+				go guiSaveProject(src)
+			}
 			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true}`)
 			return
 		}
@@ -362,7 +368,7 @@ func CmdGui(args []string) {
 		srcMu.Lock()
 		src := currentSrc
 		srcMu.Unlock()
-		if src != "" {
+		if src != "" && inputFile == "" {
 			guiSnapshotProject(src)
 		}
 		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true}`)
@@ -2627,7 +2633,7 @@ func guiOpenDiags(src string) (JVal, JVal, JVal, bool) {
 // sources so the round-trip never loses them. The single-page shape remains
 // available through the first page (`title`/`elements` top-level keys).
 func guiModelJson(prog *Prog) JVal {
-	empty := JObj("title", JStr(""), "onLoad", JStr(""), "imports", JArr(), "states", JArr(), "funcs", JArr(), "css", JStr(""), "pages", JArr(), "elements", JArr(), "components", JArr())
+	empty := JObj("title", JStr(""), "onLoad", JStr(""), "imports", JArr(), "states", JArr(), "funcs", JArr(), "css", JStr(""), "i18n", JArr(), "pages", JArr(), "elements", JArr(), "components", JArr())
 	if prog == nil || len(prog.views) == 0 {
 		return empty
 	}
@@ -2681,10 +2687,38 @@ func guiModelJson(prog *Prog) JVal {
 		"states", guiStatesJson(prog.states),
 		"funcs", guiFuncsJson(prog.funcs),
 		"css", JStr(strings.Join(prog.css, "\n")),
+		"i18n", guiI18nJson(prog.i18n),
 		"pages", pages,
 		"elements", get(first, "elements"),
 		"components", components,
 	)
+}
+
+// guiI18nJson serializes translation catalogs for the designer. Message order
+// is preserved so generated source stays stable across edits.
+func guiI18nJson(decls []I18nDecl) JVal {
+	arr := JArr()
+	for i := 0; i < len(decls); i++ {
+		msgs := JArr()
+		for j := 0; j < len(decls[i].messages); j++ {
+			m := decls[i].messages[j]
+			o := JObj("key", JStr(m.key))
+			if len(m.plural) > 0 {
+				p := JObj()
+				for _, cat := range i18nPluralCategories {
+					if v, ok := m.plural[cat]; ok {
+						p.obj[cat] = JStr(v)
+					}
+				}
+				o.obj["plural"] = p
+			} else {
+				o.obj["text"] = JStr(m.text)
+			}
+			msgs = pushArr(msgs, o)
+		}
+		arr = pushArr(arr, JObj("locale", JStr(decls[i].locale), "messages", msgs))
+	}
+	return arr
 }
 
 // guiStdImportsJson lists the std modules imported by the program so the

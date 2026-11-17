@@ -6,6 +6,7 @@ Guida completa alle API di SimpleUI: linguaggio, builtin, stdlib, CLI.
 - [Linguaggio SUI](#linguaggio-sui-sintassi-essenziale)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
+- [Internazionalizzazione (i18n)](#internazionalizzazione-i18n)
 - [Tabs](#tabs)
 - [Pagine e navigazione](#pagine-e-navigazione)
 - [Dialoghi modali](#dialoghi-modali)
@@ -2619,6 +2620,72 @@ offre duplicate/delete/save-as-template. La navigazione nell'app generata è
 separata: aggiungere pulsanti o voci di menu con handler che chiamano `navigate`.
 
 Vedere l'[esempio pages](../examples/pages/README.md).
+
+## Internazionalizzazione (i18n)
+
+I cataloghi di traduzione sono dichiarazioni di primo livello. La prima lingua
+dichiarata è il fallback:
+
+```sui
+i18n "it" {
+	"save": "Salva"
+	"welcome": "Ciao, {name}!"
+	"items": { one: "{count} elemento", other: "{count} elementi" }
+}
+i18n "en" {
+	"save": "Save"
+	"welcome": "Hello, {name}!"
+	"items": { one: "{count} item", other: "{count} items" }
+}
+```
+
+Un valore può essere una stringa o un blocco plurale. I blocchi plurali usano le
+categorie CLDR `zero`, `one`, `two`, `few`, `many` e `other`; `other` è
+obbligatoria. I segnaposto come `{name}` e `{count}` restano letterali e vengono
+sostituiti a runtime.
+
+```sui
+state keySave = "save"
+state player = "Anna"
+state count = 1
+
+fn welcomeText() -> string { return t("welcome", {"name": player}) }
+fn itemsText(n: int) -> string { return t("items", {"count": n}) }
+
+view main {
+	p "{t(keySave)}"
+	p "{welcomeText()}"
+	p "{itemsText(count)}"
+	button "English" onClick: setEn
+}
+
+fn setEn() -> null { i18n.setLocale("en") }
+```
+
+`t(key, vars?)` è disponibile anche come `i18n.t` e non richiede import. Le
+stringhe letterali dentro un'interpolazione sono supportate, quindi funziona
+anche la forma diretta `p "{t("save")}"`. La lingua attiva viene scelta in
+quest'ordine: parametro `?locale=`, chiave
+`localStorage` `sui.locale`, lingua del browser, prima lingua dichiarata.
+`i18n.setLocale(locale)` cambia e salva la scelta; `"auto"` riesegue il rilevamento.
+Le chiavi mancanti passano al catalogo di fallback, poi alla chiave stessa.
+
+| Chiamata | Risultato |
+|---|---|
+| `i18n.locale()` | Codice della lingua attiva. |
+| `i18n.setLocale(code)` | Cambia lingua; restituisce `true` se il codice è caricato. |
+| `i18n.detect()` | Migliore corrispondenza caricata per le lingue del browser. |
+| `i18n.available()` | Array dei codici lingua caricati. |
+| `i18n.dir()` | `"ltr"` o `"rtl"`; `setLocale` aggiorna anche `lang`/`dir` del documento. |
+| `i18n.has(key)` | Se la chiave esiste nel catalogo attivo o di fallback. |
+| `i18n.missing()` | Chiavi presenti nel fallback ma assenti nella lingua attiva. |
+
+`Intl.PluralRules` sceglie la categoria plurale. I valori dei segnaposto sono
+inseriti come testo e passano dall'escaping normale delle view: traduzioni e
+variabili non possono iniettare HTML. Nel designer **Preferenze → Lingue...**
+permette di modificare i cataloghi, importare/esportare JSON e scegliere la
+lingua dell'anteprima. Vedi [Editor GUI: lingue](GUI_EDITOR_IT.md#lingue) e
+`examples/i18n/README.md`.
 
 ## Dialoghi modali
 

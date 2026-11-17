@@ -505,7 +505,7 @@ async fn fetchData() {
 
 ## Not Yet Available
 
-- HTTP custom headers/timeout override and multipart upload;
-- WebSocket reconnect/heartbeat;
-- advanced `fs` operations, crypto and path utilities;
+- advanced `fs` operations (`fs.copy`, `fs.move`, `fs.isDir`, `fs.size`);
+- `crypto.*` (hash, UUID, random bytes);
+- `path.*` utilities (join, dirname, basename, extname);
 - source maps.

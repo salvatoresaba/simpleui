@@ -44,6 +44,8 @@ Recommended order for an agent:
 | Empty placeholder with action | [API: empty state](API_REFERENCE.md#empty-state) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/emptystate/README.md` |
 | Loading placeholder | [API: skeleton](API_REFERENCE.md#skeleton) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/skeleton/README.md` |
 | Animated image / GIF spinner | [API: spinner](API_REFERENCE.md#spinner) | [GUI editor: spinner image/GIF mode](GUI_EDITOR.md#spinner-imagegif-mode) | `examples/spinner_image/README.md` |
+| Translations, plurals and locale switching | [API: i18n](API_REFERENCE.md#internationalization-i18n) | [GUI editor: languages](GUI_EDITOR.md#languages) | `examples/i18n/README.md` |
+| Filter, transform and reduce lists with functions | [Builtins: collections](BUILTINS.md#collection-functions) | [API](API_REFERENCE.md) | `examples/collections.sui` |
 | Slideshow with dots and keyboard | [API: carousel](API_REFERENCE.md#carousel) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/carousel/README.md` |
 | Wizard / progress steps | [API: stepper](API_REFERENCE.md#stepper) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/stepper/README.md` |
 | Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |

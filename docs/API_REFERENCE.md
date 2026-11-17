@@ -8,6 +8,7 @@ Complete guide to the SimpleUI language, builtins, stdlib and CLI.
 - [Drag and drop](#drag-and-drop)
 - [Menu bar](#menu-bar)
 - [Spinner](#spinner)
+- [Internationalization (i18n)](#internationalization-i18n)
 - [Tabs](#tabs)
 - [Pages and navigation](#pages-and-navigation)
 - [Modal dialogs](#modal-dialogs)
@@ -2748,6 +2749,71 @@ duplicate/delete/save-as-template actions. Page navigation inside the generated
 app is separate: add buttons or menu items whose handlers call `navigate`.
 
 See the [pages example](../examples/pages/README.md).
+
+## Internationalization (i18n)
+
+Translation catalogs are top-level declarations. The first declared language is
+the fallback:
+
+```sui
+i18n "it" {
+	"save": "Salva"
+	"welcome": "Ciao, {name}!"
+	"items": { one: "{count} elemento", other: "{count} elementi" }
+}
+i18n "en" {
+	"save": "Save"
+	"welcome": "Hello, {name}!"
+	"items": { one: "{count} item", other: "{count} items" }
+}
+```
+
+A message value is either a string or a plural block. Plural blocks use the
+CLDR categories `zero`, `one`, `two`, `few`, `many` and `other`; `other` is
+required. Placeholders such as `{name}` and `{count}` are kept literally and
+replaced at runtime.
+
+```sui
+state keySave = "save"
+state player = "Anna"
+state count = 1
+
+fn welcomeText() -> string { return t("welcome", {"name": player}) }
+fn itemsText(n: int) -> string { return t("items", {"count": n}) }
+
+view main {
+	p "{t(keySave)}"
+	p "{welcomeText()}"
+	p "{itemsText(count)}"
+	button "English" onClick: setEn
+}
+
+fn setEn() -> null { i18n.setLocale("en") }
+```
+
+`t(key, vars?)` is also available as `i18n.t`. It needs no import. String
+literals inside an interpolation are supported, so the direct form
+`p "{t("save")}"` also works. The active locale is selected in this order: `?locale=` query parameter, `localStorage`
+key `sui.locale`, the browser language, then the first declared language.
+`i18n.setLocale(locale)` switches and persists the choice; `"auto"` re-detects.
+Missing keys fall back to the fallback-language catalog, then to the key itself.
+
+| Call | Result |
+|---|---|
+| `i18n.locale()` | Active locale code. |
+| `i18n.setLocale(code)` | Switch language; returns `true` when the code is loaded. |
+| `i18n.detect()` | Best loaded match for the browser languages. |
+| `i18n.available()` | Array of loaded locale codes. |
+| `i18n.dir()` | `"ltr"` or `"rtl"`; `setLocale` also updates the document `lang`/`dir`. |
+| `i18n.has(key)` | Whether the key exists in the active or fallback catalog. |
+| `i18n.missing()` | Keys present in the fallback but missing from the active locale. |
+
+`Intl.PluralRules` chooses the plural category. Placeholder values are inserted
+as text; the normal view escaping applies, so translations and variables cannot
+inject HTML. In the designer, **Preferences  Languages...** edits the catalogs,
+imports/exports JSON and provides a preview-language selector. See
+[GUI editor: languages](GUI_EDITOR.md#languages) and
+`examples/i18n/README.md`.
 
 ## Modal dialogs
 

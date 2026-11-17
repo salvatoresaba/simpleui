@@ -1,0 +1,32 @@
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 640px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+p \{ margin: 7px 0; font-size: 15px; \}
+.muted \{ color: #8fa0b8; font-size: 12px; \}"
+
+state numbers = [5, 2, 8, 1, 8, 3]
+state names = ["Anna", "Bob", "Carla", "Dario"]
+state comma = ", "
+state needle = 8
+
+fn isEven(n: int) -> bool { return n % 2 == 0 }
+fn double(n: int) -> int { return n * 2 }
+fn add(a: int, b: int) -> int { return a + b }
+fn fmt(n: int) -> string { return str(n) }
+fn nameLen(s: string) -> int { return len(s) }
+fn isNeedle(n: int) -> bool { return n == needle }
+
+view main {
+	card "" class: "card" {
+		h1 "Collection builtins"
+		p "numbers: {join(map(numbers, fmt), comma)}" 
+		p "evens: {join(map(filter(numbers, isEven), fmt), comma)}"
+		p "doubled: {join(map(map(numbers, double), fmt), comma)}"
+		p "sum: {str(reduce(numbers, 0, add))}"
+		p "find 8: {str(find(numbers, isNeedle))}"
+		p "findIndex 8: {str(findIndex(numbers, isNeedle))}"
+		p "any even: {str(any(numbers, isEven))} · all even: {str(all(numbers, isEven))}"
+		p "sorted by name length: {join(sortBy(names, nameLen), comma)}"
+		p "unique numbers: {join(map(unique(numbers), fmt), comma)}"
+		p "Callbacks are declared functions: isEven, double, add, fmt, nameLen, isNeedle." class: "muted"
+	}
+}

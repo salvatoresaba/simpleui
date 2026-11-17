@@ -61,11 +61,13 @@ Recently completed:
 
 Known accuracy corrections from the previous TODO:
 
-- `http.get`/`http.post` custom headers and timeout override are **not** in the
-  stdlib contract yet; only URL/body plus the internal safe-fetch timeout exist.
-- `http.upload`, advanced `fs.*`, `crypto.*`, WebSocket reconnect and source
-  maps are **not** implemented. Unsupported builtin/stub entries were removed
-  from the public surface; do not document them as available.
+- `http.get`/`post` custom headers and timeouts, `http.upload` and WebSocket
+  reconnect/heartbeat are implemented and documented. Advanced `fs.*`,
+  `crypto.*`, path utilities and source maps are still missing.
+- File imports (`import { X } from "./file.sui"`) work in `check`, `build` and
+  `serve`, but the import list is not validated, all symbols are merged into one
+  global namespace, and the designer still parses only the entry file. Proper
+  exports/aliases/namespaces and designer multi-file support remain open.
 - LSP supports basic completion plus live diagnostics, not the full editor
   feature set (hover, definition, references, symbols, rename, code actions).
 - `--single --minify` is a conservative minifier, not a general JS minifier.
@@ -147,6 +149,11 @@ Known accuracy corrections from the previous TODO:
 - [x] **Advanced WebSocket** — `ws.connectWithOptions` with exponential backoff reconnect,
       heartbeat/ping-pong, `onOpen`, `onClose`, `onError`, `status`, and `reconnect`
 - [x] **JSON** — `json.parse`, `json.stringify`
+- [x] **Collection callbacks** - `map`, `filter`, `reduce`, `find`,
+      `findIndex`, `any`, `all`, `sortBy`, `unique` with declared functions.
+- [x] **I18n catalogs and plurals** - `i18n "xx" { ... }`, `t`, locale
+      switching/detection, CLDR plurals, RTL, `?locale=`, designer Languages
+      editor and JSON import/export.
 
 ### 3.2 Missing / partial
 
@@ -156,7 +163,9 @@ Known accuracy corrections from the previous TODO:
       exposed until implemented)
 - [ ] **Path utilities** — `path.join`, `dirname`, `basename`, `extname`
 - [ ] **JSON Schema validation** — structured validation
-- [ ] **I18n helpers** — translation and localized formatting
+- [x] **I18n helpers** - translation catalogs and plural selection.
+- [ ] **Locale formatting** - `Intl` date/number/currency/relative/timezone
+      helpers (`format.*`); translations are implemented, formatting is next.
 - [ ] **Advanced storage** — quota/sync APIs are internal/stubbed, not a stable
       language contract
 

@@ -488,6 +488,46 @@ func (c *Checker) funcNames() []string {
 // Check: the public entry point
 // ---------------------------------------------------------------------------
 
+// checkI18n validates translation catalogs: unique locales, unique keys,
+// non-empty keys and the required plural forms.
+func (c *Checker) checkI18n(decls []I18nDecl) {
+	seenLocales := map[string]bool{}
+	for i := 0; i < len(decls); i++ {
+		d := decls[i]
+		loc := strings.TrimSpace(d.locale)
+		if loc == "" {
+			c.diagAt(d.span, "i18n locale must not be empty")
+		} else if strings.ContainsAny(loc, " \t\r\n") {
+			c.diagAt(d.span, "i18n locale \""+loc+"\" must not contain spaces")
+		}
+		if seenLocales[loc] {
+			c.diagAt(d.span, "duplicate i18n locale \""+loc+"\"")
+		}
+		seenLocales[loc] = true
+		seenKeys := map[string]bool{}
+		for j := 0; j < len(d.messages); j++ {
+			m := d.messages[j]
+			if m.key == "" {
+				c.diagAt(m.span, "i18n message key must not be empty")
+			}
+			if seenKeys[m.key] {
+				c.diagAt(m.span, "duplicate i18n message key \""+m.key+"\" in locale \""+loc+"\"")
+			}
+			seenKeys[m.key] = true
+			if len(m.plural) > 0 {
+				if _, ok := m.plural["other"]; !ok {
+					c.diagAt(m.span, "plural message \""+m.key+"\" must define the \"other\" category")
+				}
+				for cat := range m.plural {
+					if !isI18nPluralCategory(cat) {
+						c.diagAt(m.span, "unknown plural category \""+cat+"\"")
+					}
+				}
+			}
+		}
+	}
+}
+
 func Check(prog *Prog) DiagList {
 	checkMu.Lock()
 	defer checkMu.Unlock()
@@ -511,6 +551,8 @@ func Check(prog *Prog) DiagList {
 			}
 		}
 	}
+
+	c.checkI18n(prog.i18n)
 
 	// User struct types first: names must be unique and resolve anywhere.
 	structRegistry = map[string][]Field{}
@@ -1629,6 +1671,51 @@ func (c *Checker) inferMember(e *Expr) *SType {
 // Built-in function typing (routing)
 // ---------------------------------------------------------------------------
 
+// collectionCallback resolves the function argument of map/filter/reduce/... .
+// Top-level functions carry a signature; an fn-typed component parameter is
+// accepted without static parameter/return information.
+func (c *Checker) collectionCallback(arg *Expr, label string, minParams int) *FnSig {
+	if arg == nil {
+		return nil
+	}
+	if arg.kind == "ident" {
+		if sig := c.sigs[arg.name]; sig != nil {
+			if sig.async {
+				c.diagAt(arg.span, label+" callback must be synchronous")
+				return sig
+			}
+			if len(sig.params) < minParams || len(sig.params) > minParams+1 {
+				c.diagAt(arg.span, label+" callback takes "+itoaStr(minParams)+" or "+itoaStr(minParams+1)+" arguments")
+			}
+			return sig
+		}
+		if v := c.lookupVar(arg.name); v != nil && (v.typ.kind == "fn" || v.typ.kind == "func") {
+			return nil
+		}
+	}
+	_ = c.inferExpr(arg)
+	c.diagAt(arg.span, label+" expects the name of a function")
+	return nil
+}
+
+// callbackParamFits checks one callback parameter against the value the runtime
+// passes to it. any/unknown/error types are permissive.
+func (c *Checker) callbackParamFits(arg *Expr, sig *FnSig, index int, want *SType, label string) {
+	if sig == nil || want == nil || index >= len(sig.params) {
+		return
+	}
+	if want.kind == "any" || want.kind == "unknown" || want.kind == "error" {
+		return
+	}
+	got := &sig.params[index]
+	if got.kind == "any" || got.kind == "unknown" || got.kind == "error" {
+		return
+	}
+	if !typeEqual(got, want) {
+		c.diagAt(arg.span, label+" callback parameter "+itoaStr(index+1)+" must be "+typeStr(want)+", got "+typeStr(got))
+	}
+}
+
 func (c *Checker) inferBuiltin(e *Expr) *SType {
 	name := e.target.name
 	if e.target != nil && e.target.kind == "member" {
@@ -1639,6 +1726,7 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 	if n == 0 && name != "len" && name != "str" && name != "int" && name != "float" &&
 		name != "random" && name != "time.now" && name != "time.nowMs" &&
 		name != "storage.clear" && name != "storage.keys" && name != "clipboard.readText" &&
+		name != "i18n.locale" && name != "i18n.detect" && name != "i18n.available" && name != "i18n.dir" && name != "i18n.missing" &&
 		name != "toast.clear" && !isDndZeroArg(name) {
 		c.diagAt(e.span, name+" takes at least one argument")
 		return NewSType("error")
@@ -1673,6 +1761,124 @@ func (c *Checker) inferBuiltin(e *Expr) *SType {
 			return NewSType("error")
 		}
 		return ta
+	}
+	if name == "map" || name == "filter" || name == "find" || name == "findIndex" || name == "any" || name == "all" || name == "sortBy" {
+		if !want(2) {
+			return NewSType("error")
+		}
+		ta := c.inferExpr(args[0])
+		sig := c.collectionCallback(args[1], name, 1)
+		var elem *SType
+		if ta.kind == "array" {
+			elem = ta.elem
+		}
+		if sig != nil && elem != nil {
+			c.callbackParamFits(args[1], sig, 0, elem, name)
+		}
+		if name == "filter" || name == "any" || name == "all" {
+			if sig != nil && sig.ret != nil && sig.ret.kind != "bool" && sig.ret.kind != "any" && sig.ret.kind != "unknown" && sig.ret.kind != "error" {
+				c.diagAt(args[1].span, name+" callback must return bool, got "+typeStr(sig.ret))
+			}
+			if name == "filter" {
+				if ta.kind == "array" {
+					return ta
+				}
+				return &SType{kind: "array", elem: NewSType("any")}
+			}
+			return NewSType("bool")
+		}
+		if name == "findIndex" {
+			return NewSType("int")
+		}
+		if name == "find" {
+			return NewSType("any")
+		}
+		if name == "sortBy" {
+			if ta.kind == "array" {
+				return ta
+			}
+			return &SType{kind: "array", elem: NewSType("any")}
+		}
+		// map
+		if sig != nil && sig.ret != nil && sig.ret.kind != "error" {
+			return &SType{kind: "array", elem: sig.ret}
+		}
+		return &SType{kind: "array", elem: NewSType("any")}
+	}
+	if name == "reduce" {
+		if !want(3) {
+			return NewSType("error")
+		}
+		ta := c.inferExpr(args[0])
+		ti := c.inferExpr(args[1])
+		sig := c.collectionCallback(args[2], "reduce", 2)
+		if sig != nil {
+			if ta.kind == "array" {
+				c.callbackParamFits(args[2], sig, 1, ta.elem, "reduce")
+			}
+			c.callbackParamFits(args[2], sig, 0, ti, "reduce")
+			if sig.ret != nil && sig.ret.kind != "error" && sig.ret.kind != "any" && sig.ret.kind != "unknown" && !typeEqual(sig.ret, ti) {
+				c.diagAt(args[2].span, "reduce callback must return "+typeStr(ti)+", got "+typeStr(sig.ret))
+			}
+		}
+		return ti
+	}
+	if name == "unique" {
+		if !want(1) {
+			return NewSType("error")
+		}
+		ta := c.inferExpr(args[0])
+		if ta.kind == "array" {
+			return ta
+		}
+		if ta.kind == "any" || ta.kind == "unknown" || ta.kind == "error" {
+			return &SType{kind: "array", elem: NewSType("any")}
+		}
+		c.diagAt(args[0].span, "unique expects an array, got "+typeStr(ta))
+		return NewSType("error")
+	}
+	if name == "t" || name == "i18n.t" {
+		if n < 1 || n > 2 {
+			c.diagAt(e.span, name+" takes 1 or 2 arguments, got "+itoaStr(n))
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "string" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, name+" expects a string key, got "+typeStr(t0))
+		}
+		if n == 2 && args[1] != nil {
+			t1 := c.inferExpr(args[1])
+			if t1.kind != "map" && t1.kind != "any" && t1.kind != "unknown" && t1.kind != "error" {
+				c.diagAt(e.span, name+" expects a map of placeholders, got "+typeStr(t1))
+			}
+		}
+		return NewSType("string")
+	}
+	if name == "i18n.setLocale" {
+		if !want(1) {
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "string" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, "i18n.setLocale expects a locale string, got "+typeStr(t0))
+		}
+		return NewSType("bool")
+	}
+	if name == "i18n.locale" || name == "i18n.detect" || name == "i18n.dir" {
+		return NewSType("string")
+	}
+	if name == "i18n.available" || name == "i18n.missing" {
+		return &SType{kind: "array", elem: NewSType("string")}
+	}
+	if name == "i18n.has" {
+		if !want(1) {
+			return NewSType("error")
+		}
+		t0 := c.inferExpr(args[0])
+		if t0.kind != "string" && t0.kind != "any" && t0.kind != "unknown" && t0.kind != "error" {
+			c.diagAt(e.span, "i18n.has expects a string key, got "+typeStr(t0))
+		}
+		return NewSType("bool")
 	}
 	if name == "str" || name == "int" || name == "float" {
 		if !want(1) {

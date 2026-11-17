@@ -94,3 +94,32 @@ func TestFmtBlankLines(t *testing.T) {
 		}
 	}
 }
+
+// TestFmtPreservesI18nAndMultilineMaps guards the formatter/parser pair: the
+// formatter expands map literals over several lines and must keep i18n blocks
+// and nested function-call strings valid.
+func TestFmtPreservesI18nAndMultilineMaps(t *testing.T) {
+	src := `i18n "it" {
+	"items": { one: "{count} elemento", other: "{count} elementi" }
+}
+fn itemsText(n: int) -> string {
+	return t("items", {"count": n})
+}
+view main {
+	p "{itemsText(1)}"
+}`
+	out, dl := FormatSource(src, "i18n_fmt.sui")
+	if dl != nil && dl.HasErrors() {
+		t.Fatalf("fmt errors: %v", dl)
+	}
+	if !strings.Contains(out, `i18n "it"`) {
+		t.Errorf("formatter dropped the i18n declaration:\n%s", out)
+	}
+	prog, pdl := ParseSource(out, "i18n_fmt.sui")
+	if pdl.HasErrors() {
+		t.Fatalf("formatted output does not parse: %v\n%s", pdl, out)
+	}
+	if cdl := Check(prog); cdl.HasErrors() {
+		t.Fatalf("formatted output does not check: %v\n%s", cdl, out)
+	}
+}

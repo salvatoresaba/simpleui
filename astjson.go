@@ -674,6 +674,80 @@ func emitTypeArray(sb *strings.Builder, a []TypeDecl, ind int) {
 	sb.WriteString("]")
 }
 
+func emitI18nArray(sb *strings.Builder, decls []I18nDecl, ind int) {
+	sb.WriteString("[")
+	if len(decls) > 0 {
+		sb.WriteString("\n")
+	}
+	for i := 0; i < len(decls); i++ {
+		if i > 0 {
+			sb.WriteString(",\n")
+		}
+		jsonIndent(sb, ind+1)
+		sb.WriteString("{\n")
+		wfield(sb, ind+2, "locale")
+		writeJsonString(sb, decls[i].locale)
+		sb.WriteString(",\n")
+		wfield(sb, ind+2, "messages")
+		sb.WriteString("[")
+		if len(decls[i].messages) > 0 {
+			sb.WriteString("\n")
+		}
+		for j := 0; j < len(decls[i].messages); j++ {
+			if j > 0 {
+				sb.WriteString(",\n")
+			}
+			m := decls[i].messages[j]
+			jsonIndent(sb, ind+3)
+			sb.WriteString("{\n")
+			wfield(sb, ind+4, "key")
+			writeJsonString(sb, m.key)
+			if len(m.plural) > 0 {
+				sb.WriteString(",\n")
+				wfield(sb, ind+4, "plural")
+				sb.WriteString("{\n")
+				first := true
+				for _, cat := range i18nPluralCategories {
+					v, ok := m.plural[cat]
+					if !ok {
+						continue
+					}
+					if !first {
+						sb.WriteString(",\n")
+					}
+					first = false
+					jsonIndent(sb, ind+5)
+					writeJsonString(sb, cat)
+					sb.WriteString(": ")
+					writeJsonString(sb, v)
+				}
+				sb.WriteString("\n")
+				jsonIndent(sb, ind+4)
+				sb.WriteString("}")
+			} else {
+				sb.WriteString(",\n")
+				wfield(sb, ind+4, "text")
+				writeJsonString(sb, m.text)
+			}
+			sb.WriteString("\n")
+			jsonIndent(sb, ind+3)
+			sb.WriteString("}")
+		}
+		if len(decls[i].messages) > 0 {
+			sb.WriteString("\n")
+			jsonIndent(sb, ind+2)
+		}
+		sb.WriteString("]\n")
+		jsonIndent(sb, ind+1)
+		sb.WriteString("}")
+	}
+	if len(decls) > 0 {
+		sb.WriteString("\n")
+		jsonIndent(sb, ind)
+	}
+	sb.WriteString("]")
+}
+
 func emitProg(sb *strings.Builder, prog *Prog, ind int) {
 	sb.WriteString("{\n")
 	wfield(sb, ind+1, "imports")
@@ -684,6 +758,9 @@ func emitProg(sb *strings.Builder, prog *Prog, ind int) {
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "states")
 	emitStateArray(sb, prog.states, ind+1)
+	sb.WriteString(",\n")
+	wfield(sb, ind+1, "i18n")
+	emitI18nArray(sb, prog.i18n, ind+1)
 	sb.WriteString(",\n")
 	wfield(sb, ind+1, "funcs")
 	emitFuncArray(sb, prog.funcs, ind+1)
