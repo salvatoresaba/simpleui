@@ -145,6 +145,7 @@ Per capability desktop:
 | Loop, spring ed eventi tra grafi | `docs/API_REFERENCE_IT.md#motion-graph-stati-e-trigger`, `docs/GUI_EDITOR_IT.md#animation-panel` | `examples/motion_sequence/README.md` |
 | Drag/drop o dialogo file nativo | `docs/GUI_EDITOR_IT.md`, `docs/AGENT_RECIPES_IT.md#drag-and-drop`, `docs/API_REFERENCE_IT.md#drag-and-drop` | `examples/drag_drop.sui`, `examples/file_picker.sui` |
 | API JSON remota | `docs/AGENT_RECIPES_IT.md`, `docs/STDLIB_IT.md` | `examples/users/app.sui` |
+| HTTP header, multipart upload e WebSocket avanzato | `docs/STDLIB_IT.md`, `docs/API_REFERENCE_IT.md` | `examples/networking_suite/README.md` |
 | CRUD remoto | `docs/AGENT_RECIPES_IT.md`, `SECURITY_IT.md` | `examples/users/app.sui` |
 | Dashboard polling | `docs/AGENT_RECIPES_IT.md` | `examples/monitor.sui` |
 | File/comandi desktop | `docs/AGENT_RECIPES_IT.md`, `SECURITY_IT.md` | `examples/security/desktop_files.sui` |

@@ -3106,8 +3106,8 @@ Interpolated values and attributes are **escaped automatically**;
 `href`/`src` are filtered by scheme (`javascript:`/`data:` are blocked) and
 static active schemes are rejected at compile time. Dynamic `style:` requires
 `cssSafe(...)`; dynamic classes are filtered against the app class allow-list.
-Dynamic URLs require `http.getSafe`/`postSafe`/`getStatusSafe` (or
-`ws.connectSafe`) with a literal allow-list: no SSRF, redirects or credentials.
+Dynamic URLs require `http.getSafe`/`postSafe`/`getStatusSafe`/`getWithHeadersSafe`/`postWithHeadersSafe`/`requestSafe`/`uploadSafe` (or
+`ws.connectSafe`/`ws.connectWithOptionsSafe`) with a literal allow-list: no SSRF, redirects or credentials.
 Do not concatenate untrusted data into `style` or unvalidated URLs.
 
 Iframe attributes are validated: malformed data is rejected at compile time;

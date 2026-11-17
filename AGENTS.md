@@ -175,6 +175,7 @@ For desktop capabilities:
 | Motion loops, spring easing, graph events, guards, gestures, visibility and exit | `docs/API_REFERENCE.md#motion-graph-states-and-triggers`, `docs/GUI_EDITOR.md#animation-panel` | `examples/motion_features/README.md`, `examples/motion_sequence/README.md` |
 | Drag/drop or native file picker | `docs/GUI_EDITOR.md`, `docs/AGENT_RECIPES.md#drag-and-drop`, `docs/API_REFERENCE.md#drag-and-drop` | `examples/drag_drop.sui`, `examples/file_picker.sui` |
 | Remote JSON API | `docs/AGENT_RECIPES.md#remote-json-api--table`, `docs/STDLIB.md#http-module-http` | `examples/users/app.sui` |
+| HTTP headers, multipart upload & advanced WebSocket | `docs/STDLIB.md#http-module-http`, `docs/STDLIB.md#websocket-module-ws` | `examples/networking_suite/README.md` |
 | POST/update remote data | `docs/AGENT_RECIPES.md#remote-crud-form`, `SECURITY.md` | `examples/users/app.sui` |
 | Polling dashboard | `docs/AGENT_RECIPES.md#polling-dashboard` | `examples/monitor.sui` |
 | Desktop files/commands | `docs/AGENT_RECIPES.md#desktop-files-and-commands`, `SECURITY.md#desktop-bridge` | `examples/security/desktop_files.sui` |

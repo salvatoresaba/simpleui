@@ -1,0 +1,6 @@
+@echo off
+cd /d "%~dp0"
+echo Rebuilding SimpleUI Networking Suite...
+..\..\simpleui.exe build app.sui --single --out dist\app.html
+echo Starting server...
+..\..\simpleui.exe serve app.sui --watch

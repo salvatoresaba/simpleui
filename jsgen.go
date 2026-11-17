@@ -335,13 +335,28 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  }\n" +
 	"  return ['', 'URL is not in the allow-list'];\n" +
 	"}\n" +
-	"async function __sui_fetch_guarded(url, allow, init) {\n" +
+	"function __sui_clean_headers(h) {\n" +
+	"  if (!h) return {};\n" +
+	"  if (typeof h === 'string') { try { h = JSON.parse(h); } catch(e) { return {}; } }\n" +
+	"  if (typeof h !== 'object') return {};\n" +
+	"  var out = {};\n" +
+	"  for (var k in h) { if (Object.prototype.hasOwnProperty.call(h, k)) out[String(k)] = String(h[k]); }\n" +
+	"  return out;\n" +
+	"}\n" +
+	"function __sui_upload_form(fieldName, fileName, content) {\n" +
+	"  var fd = new FormData();\n" +
+	"  var blob = new Blob([String(content === null || content === undefined ? '' : content)], { type: 'application/octet-stream' });\n" +
+	"  fd.append(fieldName || 'file', blob, fileName || 'upload.bin');\n" +
+	"  return fd;\n" +
+	"}\n" +
+	"async function __sui_fetch_guarded(url, allow, init, timeoutMs) {\n" +
 	"  var g = __sui_url_guard(url, allow, false);\n" +
 	"  if (g[1]) return [null, g[1]];\n" +
 	"  var opts = init || {};\n" +
 	"  opts.redirect = 'error';\n" +
+	"  var tLimit = (typeof timeoutMs === 'number' && timeoutMs > 0) ? timeoutMs : 30000;\n" +
 	"  var ctrl = null, timer = null;\n" +
-	"  if (typeof AbortController !== 'undefined') { ctrl = new AbortController(); opts.signal = ctrl.signal; timer = setTimeout(function(){ ctrl.abort(); }, 30000); }\n" +
+	"  if (typeof AbortController !== 'undefined') { ctrl = new AbortController(); opts.signal = ctrl.signal; timer = setTimeout(function(){ ctrl.abort(); }, tLimit); }\n" +
 	"  try {\n" +
 	"    var r = await fetch(g[0], opts);\n" +
 	"    var len = Number(r.headers.get('content-length') || 0);\n" +
@@ -350,6 +365,7 @@ var SuiPrelude = "\"use strict\";\n" +
 	"    if (text.length > 10485760) return [null, 'response too large'];\n" +
 	"    return [text, null];\n" +
 	"  } catch(e) {\n" +
+	"    if (ctrl && ctrl.signal && ctrl.signal.aborted) return [null, 'request timed out after ' + tLimit + 'ms'];\n" +
 	"    return [null, String(e)];\n" +
 	"  } finally {\n" +
 	"    if (timer) clearTimeout(timer);\n" +
@@ -557,15 +573,102 @@ var SuiPrelude = "\"use strict\";\n" +
 	"function __sui_extract_all(s,pat){ const ms=__sui_match_all(s,pat,'g'); const out=[]; for(let i=0;i<ms.length;i++){ const mm=ms[i]; if(mm&&mm.length>1) out.push(mm[1]); else if(mm&&mm.length===1) out.push(mm[0]); } return out }"
 
 var SuiWsClass = "class __SUI_WS {\n" +
-	"  constructor(url) {\n" +
+	"  constructor(url, opts) {\n" +
+	"    this.url = url;\n" +
+	"    this.opts = opts || {};\n" +
+	"    this.autoReconnect = Boolean(this.opts.reconnect === true || this.opts.reconnect === 'true' || this.opts.reconnect === 1 || this.opts.reconnect === '1');\n" +
+	"    this.reconnectDelay = Number(this.opts.delay || this.opts.reconnectDelay || 1000);\n" +
+	"    this.currentDelay = this.reconnectDelay;\n" +
+	"    this.maxReconnectDelay = Number(this.opts.maxDelay || this.opts.maxReconnectDelay || 30000);\n" +
+	"    this.heartbeatInterval = Number(this.opts.heartbeat || this.opts.heartbeatInterval || 0);\n" +
+	"    this.pingMsg = String(this.opts.ping || this.opts.pingMessage || 'ping');\n" +
+	"    this.manualClose = false;\n" +
+	"    this.reconnectTimer = null;\n" +
+	"    this.heartbeatTimer = null;\n" +
+	"    this._openHandlers = [];\n" +
+	"    this._closeHandlers = [];\n" +
+	"    this._errorHandlers = [];\n" +
 	"    this.sock = new WebSocket(url);\n" +
+	"    this._bindSock();\n" +
 	"  }\n" +
-	"  send(data) { this.sock.send(data); }\n" +
-	"  close() { this.sock.close(); }\n" +
-	"  open() { return this.sock.readyState === WebSocket.OPEN; }\n" +
+	"  _bindSock(prev) {\n" +
+	"    if (!this.sock) return;\n" +
+	"    if (prev && prev.onmessage) this.sock.onmessage = prev.onmessage;\n" +
+	"    var oldOpen = this.sock.onopen;\n" +
+	"    this.sock.onopen = (ev) => {\n" +
+	"      this.currentDelay = this.reconnectDelay;\n" +
+	"      this._startHeartbeat();\n" +
+	"      if (oldOpen) { try { oldOpen(ev); } catch(e) {} }\n" +
+	"      for (var i = 0; i < this._openHandlers.length; i++) { try { this._openHandlers[i](); } catch(e) {} }\n" +
+	"    };\n" +
+	"    this.sock.onclose = (ev) => {\n" +
+	"      this._stopHeartbeat();\n" +
+	"      for (var i = 0; i < this._closeHandlers.length; i++) { try { this._closeHandlers[i](); } catch(e) {} }\n" +
+	"      if (!this.manualClose && this.autoReconnect) { this._scheduleReconnect(); }\n" +
+	"    };\n" +
+	"    this.sock.onerror = (ev) => {\n" +
+	"      this._handleError(String(ev));\n" +
+	"    };\n" +
+	"  }\n" +
+	"  _init() {\n" +
+	"    if (this.manualClose) return;\n" +
+	"    try {\n" +
+	"      var prev = this.sock;\n" +
+	"      var url = this.url;\n" +
+	"      this.sock = new WebSocket(url);\n" +
+	"      this._bindSock(prev);\n" +
+	"    } catch(e) {\n" +
+	"      this._handleError(String(e));\n" +
+	"      this._scheduleReconnect();\n" +
+	"    }\n" +
+	"  }\n" +
+	"  _scheduleReconnect() {\n" +
+	"    if (this.manualClose || this.reconnectTimer) return;\n" +
+	"    this.reconnectTimer = setTimeout(() => {\n" +
+	"      this.reconnectTimer = null;\n" +
+	"      this._init();\n" +
+	"    }, this.currentDelay);\n" +
+	"    this.currentDelay = Math.min(this.currentDelay * 1.5, this.maxReconnectDelay);\n" +
+	"  }\n" +
+	"  _startHeartbeat() {\n" +
+	"    this._stopHeartbeat();\n" +
+	"    if (this.heartbeatInterval > 0) {\n" +
+	"      this.heartbeatTimer = setInterval(() => {\n" +
+	"        if (this.open()) { try { this.sock.send(this.pingMsg); } catch(e) {} }\n" +
+	"      }, this.heartbeatInterval);\n" +
+	"    }\n" +
+	"  }\n" +
+	"  _stopHeartbeat() {\n" +
+	"    if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }\n" +
+	"  }\n" +
+	"  _handleError(err) {\n" +
+	"    for (var i = 0; i < this._errorHandlers.length; i++) { try { this._errorHandlers[i](err); } catch(e) {} }\n" +
+	"  }\n" +
+	"  send(data) { if (this.sock) this.sock.send(data); }\n" +
+	"  close() {\n" +
+	"    this.manualClose = true;\n" +
+	"    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }\n" +
+	"    this._stopHeartbeat();\n" +
+	"    if (this.sock) this.sock.close();\n" +
+	"  }\n" +
+	"  reconnect() {\n" +
+	"    this.manualClose = false;\n" +
+	"    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }\n" +
+	"    if (this.sock) { try { this.sock.close(); } catch(e) {} }\n" +
+	"    this._init();\n" +
+	"  }\n" +
+	"  open() { return Boolean(this.sock && this.sock.readyState === WebSocket.OPEN); }\n" +
+	"  status() {\n" +
+	"    if (!this.sock) return 'closed';\n" +
+	"    if (this.sock.readyState === 0) return 'connecting';\n" +
+	"    if (this.sock.readyState === 1) return 'open';\n" +
+	"    if (this.sock.readyState === 2) return 'closing';\n" +
+	"    return 'closed';\n" +
+	"  }\n" +
 	"  onMessage(fn) { this.sock.onmessage = (ev) => fn(ev.data); }\n" +
-	"  onClose(fn) { this.sock.onclose = () => fn(); }\n" +
-	"  onError(fn) { this.sock.onerror = (ev) => fn(String(ev)); }\n" +
+	"  onClose(fn) { this._closeHandlers.push(fn); }\n" +
+	"  onError(fn) { this._errorHandlers.push(fn); }\n" +
+	"  onOpen(fn) { this._openHandlers.push(fn); if (this.open()) { try { fn(); } catch(e) {} } }\n" +
 	"}"
 
 type JsCtx struct {
@@ -1629,6 +1732,36 @@ func stdBodyJs(key string, target string) string {
 	if key == "http_postsafe" {
 		return "async (url, data, allow) => __sui_fetch_guarded(url, allow, {method: \"POST\", headers: {\"Content-Type\": \"application/json\"}, body: data})"
 	}
+	if key == "http_getwithheaders" {
+		return "async (url, headers) => { try { const abs = new URL(url, location.origin).href; return __sui_fetch_guarded(abs, abs, {method: 'GET', headers: __sui_clean_headers(headers)}); } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "http_getwithheaderssafe" {
+		return "async (url, headers, allow) => __sui_fetch_guarded(url, allow, {method: 'GET', headers: __sui_clean_headers(headers)})"
+	}
+	if key == "http_postwithheaders" {
+		return "async (url, data, headers) => { try { const abs = new URL(url, location.origin).href; const h = Object.assign({\"Content-Type\": \"application/json\"}, __sui_clean_headers(headers)); return __sui_fetch_guarded(abs, abs, {method: 'POST', headers: h, body: data}); } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "http_postwithheaderssafe" {
+		return "async (url, data, headers, allow) => { const h = Object.assign({\"Content-Type\": \"application/json\"}, __sui_clean_headers(headers)); return __sui_fetch_guarded(url, allow, {method: 'POST', headers: h, body: data}); }"
+	}
+	if key == "http_request" {
+		return "async (method, url, headers, data, timeoutMs) => { try { const abs = new URL(url, location.origin).href; const m = String(method || 'GET').toUpperCase(); const init = {method: m, headers: __sui_clean_headers(headers)}; if (m !== 'GET' && m !== 'HEAD' && data !== undefined && data !== null && data !== '') init.body = data; return __sui_fetch_guarded(abs, abs, init, timeoutMs); } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "http_requestsafe" {
+		return "async (method, url, headers, data, timeoutMs, allow) => { const m = String(method || 'GET').toUpperCase(); const init = {method: m, headers: __sui_clean_headers(headers)}; if (m !== 'GET' && m !== 'HEAD' && data !== undefined && data !== null && data !== '') init.body = data; return __sui_fetch_guarded(url, allow, init, timeoutMs); }"
+	}
+	if key == "http_upload" {
+		return "async (url, fieldName, fileName, content) => { try { const abs = new URL(url, location.origin).href; const fd = __sui_upload_form(fieldName, fileName, content); return __sui_fetch_guarded(abs, abs, {method: 'POST', body: fd}); } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "http_uploadsafe" {
+		return "async (url, fieldName, fileName, content, allow) => { const fd = __sui_upload_form(fieldName, fileName, content); return __sui_fetch_guarded(url, allow, {method: 'POST', body: fd}); }"
+	}
+	if key == "http_uploadwithheaders" {
+		return "async (url, fieldName, fileName, content, headers) => { try { const abs = new URL(url, location.origin).href; const fd = __sui_upload_form(fieldName, fileName, content); return __sui_fetch_guarded(abs, abs, {method: 'POST', headers: __sui_clean_headers(headers), body: fd}); } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "http_uploadwithheaderssafe" {
+		return "async (url, fieldName, fileName, content, headers, allow) => { const fd = __sui_upload_form(fieldName, fileName, content); return __sui_fetch_guarded(url, allow, {method: 'POST', headers: __sui_clean_headers(headers), body: fd}); }"
+	}
 	if key == "fs_read" {
 		if target == "desktop" {
 			return "async (path) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/file/read\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [j.data, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
@@ -1683,11 +1816,32 @@ func stdBodyJs(key string, target string) string {
 	if key == "ws_connectsafe" {
 		return "async (url, allow) => { const g = __sui_url_guard(url, allow, true); if (g[1]) return [null, g[1]]; try { return [new __SUI_WS(g[0]), null]; } catch (e) { return [null, String(e)]; } }"
 	}
+	if key == "ws_connectwithoptions" {
+		return "async (url, opts) => { try { return [new __SUI_WS(url, opts), null]; } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "ws_connectwithoptionssafe" {
+		return "async (url, opts, allow) => { const g = __sui_url_guard(url, allow, true); if (g[1]) return [null, g[1]]; try { return [new __SUI_WS(g[0], opts), null]; } catch (e) { return [null, String(e)]; } }"
+	}
 	if key == "ws_send" {
 		return "async (conn, data) => { try { conn.send(data); return [null, null]; } catch (e) { return [null, String(e)]; } }"
 	}
 	if key == "ws_onmessage" {
 		return "async (conn, fn) => { try { conn.onMessage((data) => fn(data)); return [null, null]; } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "ws_onopen" {
+		return "async (conn, fn) => { try { conn.onOpen(() => fn()); return [null, null]; } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "ws_onclose" {
+		return "async (conn, fn) => { try { conn.onClose(() => fn()); return [null, null]; } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "ws_onerror" {
+		return "async (conn, fn) => { try { conn.onError((err) => fn(err)); return [null, null]; } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "ws_status" {
+		return "(conn) => { try { return [conn ? conn.status() : 'closed', null]; } catch (e) { return ['closed', String(e)]; } }"
+	}
+	if key == "ws_reconnect" {
+		return "async (conn) => { try { if (conn) conn.reconnect(); return [null, null]; } catch (e) { return [null, String(e)]; } }"
 	}
 	if key == "ws_close" {
 		return "async (conn) => { try { conn.close(); return [null, null]; } catch (e) { return [null, String(e)]; } }"

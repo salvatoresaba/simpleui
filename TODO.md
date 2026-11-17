@@ -140,16 +140,16 @@ Known accuracy corrections from the previous TODO:
 - [x] **HTTP safe variants** — `getSafe`, `getStatusSafe`, `postSafe`;
       `ws.connectSafe` with literal allow-lists, redirect blocking, timeout and
       response cap
+- [x] **HTTP custom headers + timeout override** — `getWithHeaders`, `postWithHeaders`,
+      `request`, `requestSafe` with configurable ms timeout and custom headers
+- [x] **HTTP multipart/form-data** — `http.upload`, `http.uploadSafe`,
+      `http.uploadWithHeaders`, `http.uploadWithHeadersSafe`
+- [x] **Advanced WebSocket** — `ws.connectWithOptions` with exponential backoff reconnect,
+      heartbeat/ping-pong, `onOpen`, `onClose`, `onError`, `status`, and `reconnect`
 - [x] **JSON** — `json.parse`, `json.stringify`
 
 ### 3.2 Missing / partial
 
-- [ ] **HTTP custom headers + timeout override** — signatures currently accept
-      only URL/body; do not document headers as available
-- [ ] **HTTP multipart/form-data** — not exposed; implement `http.upload` before
-      documenting it
-- [ ] **Advanced WebSocket** — reconnect and heartbeat/ping-pong; current `ws`
-      keeps a single connection
 - [ ] **Advanced filesystem** — `fs.copy`, `fs.move/rename`, `fs.isDir`,
       `fs.size` (not exposed until implemented)
 - [ ] **Crypto** — `crypto.hash`, `crypto.uuid`, `crypto.randomBytes` (not

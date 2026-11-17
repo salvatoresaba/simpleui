@@ -58,12 +58,16 @@ Completati di recente:
       X/Y rimossi a favore della modifica diretta dei dati.
 - [x] Controlli delle preferenze di progetto a tema e card per categoria in una
       griglia a due colonne.
+- [x] HTTP custom headers e timeout override: `getWithHeaders`, `postWithHeaders`,
+      `request`, `requestSafe` con timeout in ms e header personalizzati.
+- [x] HTTP multipart/form-data: `http.upload`, `http.uploadSafe`,
+      `http.uploadWithHeaders`, `http.uploadWithHeadersSafe`.
+- [x] WebSocket avanzato: `ws.connectWithOptions` con auto-reconnect esponenziale,
+      heartbeat, `onOpen`, `onClose`, `onError`, `status` e `reconnect`.
 
 ## Correzioni di accuratezza
 
-- HTTP custom headers/timeout **non** sono nel contratto stdlib.
-- `http.upload`, `fs` avanzato, crypto, reconnect WebSocket e source maps **non**
-  sono implementati; le voci pubbliche non supportate sono state rimosse.
+- `fs` avanzato, crypto e source maps **non** sono implementati; le voci pubbliche non supportate sono state rimosse.
 - LSP supporta completion di base e diagnostica live, non hover/definition/
   references/symbols/rename/code actions.
 - `--single --minify` è un minifier conservativo, non un minifier JS completo.

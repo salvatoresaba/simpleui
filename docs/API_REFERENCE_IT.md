@@ -2973,7 +2973,8 @@ sono filtrati per schema (`javascript:`/`data:` bloccati) e gli schemi attivi
 statici sono rifiutati in compilazione. Il `style:` dinamico richiede
 `cssSafe(...)`; le classi dinamiche sono filtrate sulla allow-list delle classi
 dell'app. Gli URL dinamici richiedono `http.getSafe`/`postSafe`/
-`getStatusSafe` (o `ws.connectSafe`) con allow-list letterale: niente SSRF,
+`getStatusSafe`/`getWithHeadersSafe`/`postWithHeadersSafe`/`requestSafe`/`uploadSafe`
+(o `ws.connectSafe`/`ws.connectWithOptionsSafe`) con allow-list letterale: niente SSRF,
 redirect o credenziali. Non concatenare dati non fidati in `style` o in URL non
 validati. Gli iframe hanno `sandbox=""` e `referrerpolicy="no-referrer"` per
 default; `src` dinamico richiede `srcAllow` (allow-list letterale) e viene

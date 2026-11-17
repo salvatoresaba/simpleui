@@ -23,8 +23,18 @@ import { fs } from "std"
 | `http.getSafe(url, allow)` | string, string | (string, string) | true | GET con allow-list SSRF (host/schema esatti, no redirect) |
 | `http.getStatusSafe(url, allow)` | string, string | (int, string) | true | Status code con allow-list SSRF |
 | `http.postSafe(url, body, allow)` | string, string, string | (string, string) | true | POST con allow-list SSRF |
+| `http.getWithHeaders(url, headers)` | string, any | (string, string) | true | GET HTTP request con mappa header personalizzati |
+| `http.getWithHeadersSafe(url, headers, allow)` | string, any, string | (string, string) | true | GET con header e allow-list SSRF |
+| `http.postWithHeaders(url, body, headers)` | string, string, any | (string, string) | true | POST HTTP request con mappa header personalizzati |
+| `http.postWithHeadersSafe(url, body, headers, allow)` | string, string, any, string | (string, string) | true | POST con header e allow-list SSRF |
+| `http.request(method, url, headers, body, timeoutMs)` | string, string, any, string, int | (string, string) | true | Richiesta HTTP generica con metodo, header, body e timeout in ms |
+| `http.requestSafe(method, url, headers, body, timeoutMs, allow)` | string, string, any, string, int, string | (string, string) | true | Richiesta HTTP generica con allow-list SSRF |
+| `http.upload(url, fieldName, filename, content)` | string, string, string, string | (string, string) | true | Caricamento multipart/form-data con nome campo e file |
+| `http.uploadSafe(url, fieldName, filename, content, allow)` | string, string, string, string, string | (string, string) | true | Caricamento multipart con allow-list SSRF |
+| `http.uploadWithHeaders(url, fieldName, filename, content, headers)` | string, string, string, string, any | (string, string) | true | Caricamento multipart con header personalizzati |
+| `http.uploadWithHeadersSafe(url, fieldName, filename, content, headers, allow)` | string, string, string, string, any, string | (string, string) | true | Caricamento multipart con header e allow-list SSRF |
 
-**SSRF:** `http.get/getStatus/post/postFiles` accettano solo URL **letterali**. Un URL
+**SSRF:** `http.get/getStatus/post/postFiles/getWithHeaders/postWithHeaders/request/upload/uploadWithHeaders` accettano solo URL **letterali**. Un URL
 dinamico deve usare la variante `*Safe` con una allow-list **letterale** (il
 compilatore rifiuta una variabile). Voci separate da virgole/spazi:
 
@@ -52,14 +62,21 @@ WebSocket reali integrati con runtime. Richiede import `ws` da "std".
 |---|---|---|---|---|
 | `ws.connect(url)` | string | (any, string) | true | Apre connessione WebSocket. Restituisce istanza WS (gestita da runtime) |
 | `ws.connectSafe(url, allow)` | string, string | (any, string) | true | WebSocket con allow-list `ws://`/`wss://` |
-| `ws.send(ws, data)` | any, string | (null, string) | true | Invia messaggio. *Fire-and-forget*: richiede solo binding opzionale? Vedi note sotto |
-| `ws.onMessage(ws, fn)` | any, string \| fn | (null, string) | true | Registra handler per messaggi. *Fire-and-forget* |
-| `ws.close(ws)` | any | (null, string) | true | Chiude connessione. *Fire-and-forget* |
+| `ws.connectWithOptions(url, options)` | string, any | (any, string) | true | Connessione WebSocket con opzioni (`reconnect`, `delay`, `maxDelay`, `heartbeat`, `ping`) |
+| `ws.connectWithOptionsSafe(url, options, allow)` | string, any, string | (any, string) | true | Connessione WebSocket con opzioni e allow-list SSRF |
+| `ws.send(ws, data)` | any, string | (null, string) | true | Invia messaggio (fire-and-forget) |
+| `ws.onMessage(ws, fn)` | any, string \| fn | (null, string) | true | Registra handler per messaggi (fire-and-forget) |
+| `ws.onOpen(ws, fn)` | any, string \| fn | (null, string) | true | Registra handler per evento di apertura/connessione (fire-and-forget) |
+| `ws.onClose(ws, fn)` | any, string \| fn | (null, string) | true | Registra handler per chiusura/disconnessione (fire-and-forget) |
+| `ws.onError(ws, fn)` | any, string \| fn | (null, string) | true | Registra handler per errori (fire-and-forget) |
+| `ws.status(ws)` | any | (string, string) | false | Restituisce stato: `"open"`, `"connecting"`, `"closing"`, `"closed"` |
+| `ws.reconnect(ws)` | any | (null, string) | true | Forza riconnessione immediata (fire-and-forget) |
+| `ws.close(ws)` | any | (null, string) | true | Chiude connessione e cancella timer (fire-and-forget) |
 
 **Note:**
-- Le chiamate `ws.send`, `ws.onMessage`, `ws.close` sono *fire-and-forget* secondo `StdFunc` (ret0 = "null"). 
+- Le chiamate `ws.send`, `ws.onMessage`, `ws.onOpen`, `ws.onClose`, `ws.onError`, `ws.reconnect`, `ws.close` sono *fire-and-forget* secondo `StdFunc` (ret0 = "null"). 
 - `ws.onMessage` può essere usato in modo state-driven (vedi esempi) per aggiornare `state` e triggerare re-render.
-- `ws.connect` restituisce un'istanza utilizzabile con gli altri metodi ws.
+- `ws.connectWithOptions` supporta riconnessione automatica con backoff esponenziale ed heartbeat periodico.
 
 ## File System Module (`fs`)
 

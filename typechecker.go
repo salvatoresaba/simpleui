@@ -997,15 +997,23 @@ func (c *Checker) checkLvalueAssign(s *Stmt) {
 // Tuple assignment (std intrinsics and user multi-return functions)
 // ---------------------------------------------------------------------------
 
-// checkWsOnMessage validates the fire-and-forget ws.onMessage handler arg.
-func checkWsOnMessage(c *Checker, e *Expr, full string) {
-	if full != "ws.onMessage" || len(e.args) != 2 {
+// checkWsCallback validates fire-and-forget ws callback handler args.
+func checkWsCallback(c *Checker, e *Expr, full string) {
+	if (full != "ws.onMessage" && full != "ws.onOpen" && full != "ws.onClose" && full != "ws.onError") || len(e.args) != 2 {
 		return
 	}
 	fn := e.args[1]
 	if fn == nil || fn.kind != "ident" || c.sigs[fn.name] == nil {
-		c.diagAt(e.span, "ws.onMessage second argument must be a declared function that receives the message")
+		if full == "ws.onMessage" {
+			c.diagAt(e.span, "ws.onMessage second argument must be a declared function that receives the message")
+		} else {
+			c.diagAt(e.span, full+" second argument must be a declared function")
+		}
 	}
+}
+
+func checkWsOnMessage(c *Checker, e *Expr, full string) {
+	checkWsCallback(c, e, full)
 }
 
 func isStdCallShape(e *Expr) bool {
@@ -1081,8 +1089,22 @@ func safeURLVariant(full string) string {
 		return "http.getStatusSafe"
 	case "http.post":
 		return "http.postSafe"
+	case "http.postFiles":
+		return "http.postFilesSafe"
+	case "http.getWithHeaders":
+		return "http.getWithHeadersSafe"
+	case "http.postWithHeaders":
+		return "http.postWithHeadersSafe"
+	case "http.request":
+		return "http.requestSafe"
+	case "http.upload":
+		return "http.uploadSafe"
+	case "http.uploadWithHeaders":
+		return "http.uploadWithHeadersSafe"
 	case "ws.connect":
 		return "ws.connectSafe"
+	case "ws.connectWithOptions":
+		return "ws.connectWithOptionsSafe"
 	}
 	return full + "Safe"
 }
@@ -1112,24 +1134,41 @@ func (c *Checker) checkStdURLSecurity(e *Expr, f *StdFunc) {
 	}
 	full := f.mod + "." + f.name
 	switch full {
-	case "http.get", "http.getStatus", "http.post", "http.postFiles", "ws.connect":
+	case "http.get", "http.getStatus", "http.post", "http.postFiles", "http.getWithHeaders", "http.postWithHeaders", "http.upload", "http.uploadWithHeaders", "ws.connect", "ws.connectWithOptions":
 		if len(e.args) == 0 {
 			return
 		}
-		ws := full == "ws.connect"
+		ws := full == "ws.connect" || full == "ws.connectWithOptions"
 		if s, ok := literalString(e.args[0]); ok {
 			c.checkLiteralURL(e.args[0], s, ws)
 		} else {
 			msg := "dynamic URL: use " + safeURLVariant(full) + " with an allow-list"
 			if ws {
-				msg = "dynamic WebSocket URL: use ws.connectSafe with an allow-list"
+				msg = "dynamic WebSocket URL: use " + safeURLVariant(full) + " with an allow-list"
 			}
 			c.securityDiag(e.args[0].span, c.security.URLDynamic, msg)
 		}
-	case "http.getSafe", "http.getStatusSafe", "http.postSafe", "http.postFilesSafe", "ws.connectSafe":
+	case "http.request":
+		if len(e.args) < 2 {
+			return
+		}
+		if s, ok := literalString(e.args[1]); ok {
+			c.checkLiteralURL(e.args[1], s, false)
+		} else {
+			msg := "dynamic URL: use http.requestSafe with an allow-list"
+			c.securityDiag(e.args[1].span, c.security.URLDynamic, msg)
+		}
+	case "http.getSafe", "http.getStatusSafe", "http.postSafe", "http.postFilesSafe", "http.getWithHeadersSafe", "http.postWithHeadersSafe", "http.requestSafe", "http.uploadSafe", "http.uploadWithHeadersSafe", "ws.connectSafe", "ws.connectWithOptionsSafe":
 		idx := 1
-		if full == "http.postSafe" {
+		switch full {
+		case "http.postSafe", "http.getWithHeadersSafe", "ws.connectWithOptionsSafe":
 			idx = 2
+		case "http.postWithHeadersSafe":
+			idx = 3
+		case "http.uploadSafe":
+			idx = 4
+		case "http.uploadWithHeadersSafe", "http.requestSafe":
+			idx = 5
 		}
 		if len(e.args) > idx {
 			if _, ok := literalString(e.args[idx]); !ok {
@@ -1230,8 +1269,8 @@ func stdCall(c *Checker, e *Expr) (*SType, *SType) {
 			c.diagAt(a.span, "argument "+fmt.Sprintf("%v", i+1)+" of "+full+" must be "+typeStr(pt)+", got "+typeStr(at))
 		}
 	}
-	if full == "ws.onMessage" && len(e.args) == 2 {
-		checkWsOnMessage(c, e, full)
+	if (full == "ws.onMessage" || full == "ws.onOpen" || full == "ws.onClose" || full == "ws.onError") && len(e.args) == 2 {
+		checkWsCallback(c, e, full)
 	}
 	return stdTypeName(f.ret0), stdTypeName(f.ret1)
 }
