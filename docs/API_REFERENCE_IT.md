@@ -1664,16 +1664,20 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `readonly` | Disabilita la modifica |
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Mostra/nascondi aree |
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
-| `theme` | Tema dell'interfaccia: `dark` (default), `light` o `auto`. Il selettore è nella toolbar e cambia solo la chrome dell'editor |
+| `theme` | Tema dell'interfaccia: `dark` (default), `light` o `auto`. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
 | `contentTheme` | Tema della pagina: `light` (default, foglio bianco) o `dark`. Indipendente da `theme` |
 | `template` | `article`, `letter`, `report` o `compact` |
+
+I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
+trascina la maniglia ⣿ per sganciarle e usa il pulsante di dock per riportarle in alto.
+La barra superiore fa da dock. Un unico pulsante a destra alterna il tema dell'interfaccia.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
 `highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
+`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
 
 Quando il cursore è dentro una tabella compare una **toolbar della tabella**
 subito sotto la toolbar principale. Ha pulsanti con icone per aggiungere o
@@ -1762,8 +1766,8 @@ scarica il documento. Formati supportati:
 |---|---|---|---|
 | TXT | sì | sì | Paragrafi di testo semplice |
 | RTF | sottoinsieme pratico | sì | Paragrafi, formattazione di carattere e paragrafo, font, allineamento, tabelle con celle unite e sfondo, caselle di controllo, immagini di intestazione/piede pagina e immagini PNG/JPEG incorporate |
-| DOC | best effort | contenuto RTF con estensione `.doc` | Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
-| DOCX | sì | sì | Paragrafi, run, tabelle, formattazione e immagini incorporate WordprocessingML |
+| DOC | best effort | contenuto RTF con estensione `.doc` | Mantiene font, dimensioni, colori, tabelle, immagini e interruzioni di pagina. Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
+| DOCX | sì | sì | Paragrafi, run, tabelle, formattazione, font, sfondo celle, immagini e interruzioni di pagina WordprocessingML |
 | ODT | sì | sì | Testo OpenDocument, formattazione, elenchi, tabelle e immagini incorporate |
 | PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite) e immagini PNG/JPEG incorporate |
 | HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |

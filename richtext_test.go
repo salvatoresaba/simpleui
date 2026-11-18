@@ -96,9 +96,18 @@ view main {
     if (before.indexOf('Toolbar') < 0) throw new Error('JSON model missing text: ' + before);
 
     function richRoot() { return document.querySelector('[data-sui-rich]'); }
-    var themeSelect = richRoot().querySelector('.sui-rich-toolbar [data-rich-theme]');
-    if (!themeSelect) throw new Error('theme picker missing from toolbar');
+    var themeToggle = richRoot().querySelector('.sui-rich-toolbar [data-rich-theme-toggle]');
+    if (!themeToggle) throw new Error('theme button missing from toolbar');
     if (richRoot().querySelector('.sui-rich-status [data-rich-theme]')) throw new Error('theme picker still in status bar');
+    if (richRoot().querySelectorAll('.sui-rich-tool-group').length < 2) throw new Error('toolbar categories missing');
+    if (richRoot().querySelectorAll('[data-rich-tool-handle]').length < 2) throw new Error('toolbar handles missing');
+    var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
+    themeToggle.click();
+    await wait(80);
+    if (richRoot().getAttribute('data-sui-rich-theme') === themeBefore) throw new Error('theme button did not switch');
+    if (getComputedStyle(richRoot().querySelector('.sui-rich-body')).backgroundColor !== 'rgb(255, 255, 255)') throw new Error('page background changed with the interface theme');
+    themeToggle.click();
+    await wait(80);
     var richEditor = richRoot().querySelector('.sui-rich-editor');
     richEditor.innerHTML = '<p>One</p>';
     richEditor.focus();
@@ -202,7 +211,7 @@ view main {
     if (tableRows[1].cells[1].colspan !== 2) throw new Error('rtf cell colspan: ' + tableRows[1].cells[1].colspan);
     if (!tableRows[1].cells[0].children[0].marks.some(function (m) { return m.type === 'bold'; })) throw new Error('rtf cell marks: ' + JSON.stringify(tableRows[1].cells[0].children));
     if (tableDoc.children[0].type !== 'image' || tableDoc.children[0].width !== '100px') throw new Error('rtf header image: ' + JSON.stringify(tableDoc.children[0]));
-    var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.text || ''; }).join('');
+var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.text || ''; }).join('');
     if (firstCellText.indexOf('\u2610') < 0) throw new Error('rtf checkbox glyph: ' + firstCellText);
     if (!tableRows[0].cells[0].children.some(function (n) { return (n.marks || []).some(function (m) { return m.type === 'font' && /serif/i.test(m.value); }); })) throw new Error('rtf font mark: ' + JSON.stringify(tableRows[0].cells[0].children));
     if (richRoot().querySelectorAll('.sui-rich-editor table tr').length !== 2) throw new Error('rtf table dom');
@@ -231,6 +240,42 @@ view main {
     var backTables = backDoc.children.filter(function (c) { return c.type === 'table'; });
     if (backTables.length !== 1 || backTables[0].rows.length !== 2) throw new Error('rtf table re-import rows');
     if (richRoot().querySelector('.sui-rich-editor').innerText.indexOf('D') < 0) throw new Error('rtf table re-import text');
+    var toLatin = function (bytes) {
+      var out = '';
+      for (var bi = 0; bi < bytes.length; bi += 8192) {
+        var chunk = [];
+        for (var bj = bi; bj < Math.min(bytes.length, bi + 8192); bj++) chunk.push(bytes[bj]);
+        out += String.fromCharCode.apply(null, chunk);
+      }
+      return out;
+    };
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'paragraph', align: 'center', spaceBefore: '6pt', indent: '24px', children: [
+        { type: 'text', text: 'Formatting', marks: [{ type: 'bold' }, { type: 'color', value: 'rgb(31, 73, 125)' }, { type: 'size', value: '13pt' }, { type: 'font', value: 'Georgia, serif' }, { type: 'background', value: '#FFFF00' }] }
+      ] },
+      { type: 'page_break' },
+      { type: 'paragraph', children: [{ type: 'text', text: 'After break', marks: [] }] }
+    ] });
+    await wait(100);
+    var formatJson = __SUI_RICH.get('editor')[0];
+    if (formatJson.indexOf('"page_break"') < 0) throw new Error('page break not in the document model');
+    if (richRoot().querySelectorAll('.sui-rich-editor .sui-rich-pagebreak').length !== 1) throw new Error('page break not rendered');
+    var formatDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (formatDocx.indexOf('<w:br w:type="page"/>') < 0) throw new Error('docx page break missing');
+    if (formatDocx.indexOf('<w:jc w:val="center"/>') < 0) throw new Error('docx alignment missing');
+    if (formatDocx.indexOf('<w:spacing w:before="120"') < 0) throw new Error('docx spacing missing');
+    if (formatDocx.indexOf('<w:ind w:left="360"/>') < 0) throw new Error('docx indent missing');
+    if (formatDocx.indexOf('<w:rFonts w:ascii="Georgia"') < 0) throw new Error('docx font missing');
+    if (formatDocx.indexOf('<w:color w:val="1F497D"/>') < 0) throw new Error('docx color missing');
+    if (formatDocx.indexOf('<w:sz w:val="26"/>') < 0) throw new Error('docx size missing');
+    if (formatDocx.indexOf('w:fill="FFFF00"') < 0) throw new Error('docx highlight missing');
+    var formatRtf = toLatin(__SUI_RICH.exportBytes('editor', 'rtf')[0]);
+    if (formatRtf.indexOf('\\page') < 0) throw new Error('rtf page break missing');
+    if (formatRtf.indexOf('\\qc') < 0 || formatRtf.indexOf('\\sb120') < 0 || formatRtf.indexOf('\\li360') < 0) throw new Error('rtf paragraph formatting missing');
+    if (formatRtf.indexOf('\\fs26') < 0 || formatRtf.indexOf('Georgia') < 0) throw new Error('rtf run formatting missing');
+    if (formatRtf.indexOf('\\colortbl') < 0 || formatRtf.indexOf('\\highlight') < 0) throw new Error('rtf colors missing');
+    var formatPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
+    if (formatPdf.indexOf('/Count 2') < 0) throw new Error('pdf page break missing');
 `+featureScriptTail)
 }
 

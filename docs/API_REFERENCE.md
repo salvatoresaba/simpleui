@@ -1689,16 +1689,20 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `readonly` | Disable editing |
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Show/hide UI areas |
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
-| `theme` | Interface theme: `dark` (default), `light` or `auto`. The picker sits in the toolbar and only styles the editor chrome |
+| `theme` | Interface theme: `dark` (default), `light` or `auto`. A single toolbar button cycles dark/light and only styles the editor chrome |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark`. Independent from `theme` |
 | `template` | `article`, `letter`, `report` or `compact` |
+
+Toolbar groups (separated by `|`) are individual dockable toolbars: drag the
+⣿ handle to float one and use the dock button to return it. The top bar is
+the dock. A single theme button at the right cycles the interface theme.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
 `highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
+`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
 
 When the caret is inside a table, a **table toolbar** appears directly below
 the main formatting toolbar. It has icon buttons for add/delete row,
@@ -1787,8 +1791,8 @@ the document. Supported formats:
 |---|---|---|---|
 | TXT | yes | yes | Plain paragraphs |
 | RTF | practical subset | yes | Paragraphs, character/paragraph formatting, fonts, alignment, tables with merged cells and cell shading, checkboxes, header/footer pictures and embedded PNG/JPEG pictures |
-| DOC | best effort | RTF content with `.doc` extension | Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
-| DOCX | yes | yes | WordprocessingML paragraphs, runs, tables, formatting and embedded images |
+| DOC | best effort | RTF content with `.doc` extension | Keeps fonts, sizes, colors, tables, images and page breaks. Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
+| DOCX | yes | yes | WordprocessingML paragraphs, runs, tables, formatting, fonts, cell shading, images and page breaks |
 | ODT | yes | yes | OpenDocument text, paragraphs, formatting, lists, tables and embedded images |
 | PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells) and embedded PNG/JPEG pictures |
 | HTML, Markdown, JSON, XML | yes | yes | Existing editor formats |

@@ -21,13 +21,17 @@ builds.
 
 - Bold, italic, underline, strikethrough, superscript/subscript, inline code,
   color, background color, font family/size, headings, quotes, code blocks.
-- Paragraph alignment, indentation, line height and spacing before/after.
+- Paragraph alignment, indentation, line height, spacing before/after and manual
+  page breaks (Insert > Page break, `pageBreak` toolbar token, Ctrl+Enter) for
+  printing and PDF export.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
 - Configurable toolbar groups, menu bar, contextual selection toolbar and
-  status bar (words, characters, paragraphs, caret, zoom). The interface theme
-  picker (dark/light/auto) sits at the right of the toolbar; the document page
-  stays white unless `contentTheme: "dark"` is set.
+  status bar (words, characters, paragraphs, caret, zoom). Toolbar categories are
+  separate dockable toolbars: drag the ⣿ handle to float one and use the dock
+  button to put it back. A single theme button at the right of the toolbar
+  cycles the interface between dark and light; the document page stays white
+  unless `contentTheme: "dark"` is set.
 - Undo/redo history, keyboard shortcuts and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
 - Open and save plain text, RTF, DOC (best effort), DOCX and ODT; RTF keeps
@@ -38,6 +42,11 @@ builds.
 - Declarative plugins adding commands and toolbar buttons; JavaScript plugins
   can also register custom commands and block renderers on `window.__SUI_RICH`.
 - Document templates: `article`, `letter`, `report`, `compact`.
+
+Select the editor in the designer: the **Rich text editor** section sets
+the interface theme (dark/light/auto), the page theme, height, toolbar items
+and the visible UI areas. The page break is available from Insert, the toolbar
+and Ctrl+Enter.
 
 ## Component attributes
 
@@ -54,6 +63,7 @@ builds.
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | Interface theme: `dark` (default), `light` or `auto` |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark` |
+| `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
@@ -253,7 +263,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed
+			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr,pageBreak" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

@@ -6395,6 +6395,9 @@ function renderInspector() {
   if (nodes.length && everyKind(nodes, function(k){ return k === "input" || k === "textarea"; })) {
     box.appendChild(inputControls(nodes));
   }
+  if (nodes.length === 1 && n && n.kind === "richtext") {
+    box.appendChild(richtextControls(n));
+  }
   var reqSec = requiredControls(nodes);
   if (reqSec) box.appendChild(reqSec);
   if (nodes.length === 1 && n && (n.kind === "modal" || n.kind === "modalbutton")) {
@@ -16856,6 +16859,45 @@ function requiredControls(nodes) {
   return acc("Validation", [rr, hint]);
 }
 
+function richtextControls(n) {
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>Rich text editor</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var body = document.createElement("div"); body.className = "accbody";
+  function selectRow(label, field, options, def) {
+    var row = document.createElement("div"); row.className = "rowline";
+    var lb = document.createElement("label"); lb.textContent = label; row.appendChild(lb);
+    var sel = document.createElement("select");
+    options.forEach(function(opt) {
+      var o = document.createElement("option"); o.value = opt[0]; o.textContent = opt[1];
+      if ((n[field] || def) === opt[0]) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.onchange = function(){ upd(field, sel.value); };
+    row.appendChild(sel); body.appendChild(row);
+  }
+  selectRow("Interface theme", "theme", [["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]], "dark");
+  selectRow("Page theme", "contentTheme", [["light", "Light (white page)"], ["dark", "Dark page"]], "light");
+  body.appendChild(rowInput("height", n.height || "", function(v){ upd("height", v); }, "e.g. 420px"));
+  body.appendChild(rowInput("toolbar items", n.toolbarItems || "", function(v){ upd("toolbarItems", v); }, "undo,redo|bold,italic|link,image,table,pageBreak"));
+  [["toolbar", "Toolbar"], ["menu", "Menu bar"], ["contextToolbar", "Selection toolbar"], ["statusbar", "Status bar"], ["readonly", "Read only"]].forEach(function(pair) {
+    var row = document.createElement("div"); row.className = "rowline";
+    var lb = document.createElement("label"); lb.textContent = pair[1]; row.appendChild(lb);
+    var def = pair[0] === "readonly" ? false : true;
+    var on = n[pair[0]] === undefined ? def : !!n[pair[0]];
+    row.appendChild(mkSwitch(on, false, function(val){ upd(pair[0], val); }));
+    body.appendChild(row);
+  });
+  var hint = document.createElement("div"); hint.className = "hint";
+  hint.style.fontSize = "10px";
+  hint.textContent = "The interface theme only styles the editor chrome; the page keeps its own theme. The theme button in the toolbar cycles dark and light.";
+  body.appendChild(hint);
+  a.appendChild(body);
+  return a;
+}
+
 function inputControls(nodes) {
   var allInput = everyKind(nodes, function(k){ return k === "input"; });
   var a = document.createElement("div"); a.className = "acc open";
@@ -17897,6 +17939,18 @@ function attrsOf(n) {
   if (n.kind === "timelineitem") {
     if (n.date) a += " date: \"" + esc(n.date) + "\"";
     if (n.status) a += " status: \"" + esc(n.status) + "\"";
+  }
+  if (n.kind === "richtext") {
+    if (n.height) a += " height: \"" + esc(n.height) + "\"";
+    if (n.toolbarItems) a += " toolbarItems: \"" + esc(n.toolbarItems) + "\"";
+    if (n.toolbar === false) a += " toolbar: false";
+    if (n.menu === false) a += " menu: false";
+    if (n.contextToolbar === false) a += " contextToolbar: false";
+    if (n.statusbar === false) a += " statusbar: false";
+    if (n.readonly) a += " readonly: true";
+    if (n.theme) a += " theme: \"" + esc(n.theme) + "\"";
+    if (n.contentTheme) a += " contentTheme: \"" + esc(n.contentTheme) + "\"";
+    if (n.template) a += " template: \"" + esc(n.template) + "\"";
   }
   if (n.kind === "emptystate") {
     if (n.icon) a += " icon: \"" + esc(n.icon) + "\"";
