@@ -1683,7 +1683,11 @@ spostare la toolbar dove vuoi; doppio clic sulla maniglia o il pulsante dock la
 riporta sotto la toolbar principale. Le modifiche entrano nella cronologia undo/redo. Clicca fuori da un menu per chiuderlo. Trascina i bordi
 destra/inferiore di una tabella per ridimensionare colonne o righe, oppure
 l'angolo in basso a destra per ridimensionare l'intera tabella; le dimensioni
-sono salvate nel documento JSON.
+sono salvate nel documento JSON. File > Import ed Export sono sottomenu.
+L'azione **Seleziona tutta la tabella** fa applicare l'allineamento alla
+tabella stessa. Seleziona due o più celle e copiale: incollando in un'altra
+cella viene riempito un blocco corrispondente (funziona anche il testo TSV di
+altre applicazioni).
 
 ### Modello del documento
 

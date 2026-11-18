@@ -147,6 +147,15 @@ view main {
     tableBar.querySelector('[data-rich-cmd="tableRowBelow"]').click();
     await wait(250);
     if (richRoot().querySelectorAll('.sui-rich-editor tr').length !== rowsBefore + 1) throw new Error('table row command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+
+    var tableSelect = richRoot().querySelector('.sui-rich-tablebar [data-rich-cmd="tableSelect"]');
+    if (!tableSelect) throw new Error('table select command missing');
+    tableSelect.click();
+    await wait(100);
+    if (!richRoot().querySelector('.sui-rich-editor table.sui-rich-table-selected')) throw new Error('whole table selection missing');
+    richRoot().querySelector('.sui-rich-tablebar [data-rich-cmd="tableAlignCenter"]').click();
+    await wait(250);
+    if ((richRoot().querySelector('.sui-rich-editor table').style.marginLeft || '') !== 'auto') throw new Error('table alignment: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 `+featureScriptTail)
 }
 
