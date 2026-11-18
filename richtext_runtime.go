@@ -532,7 +532,7 @@ window.__SUI_RICH = (function () {
     } catch (e) {}
   }
   function notify(inst, kind) {
-    if (kind !== 'input') saveSelection(inst);
+    saveSelection(inst);
     var input = inst.root.querySelector('.sui-rich-value');
     if (input) input.value = JSON.stringify(inst.doc);
     var setter = attr(inst.root, 'data-sui-rich-setter');
@@ -1404,12 +1404,6 @@ window.__SUI_RICH = (function () {
       instances[name] = inst;
     } else {
       inst.root = root; inst.editor = editor;
-      if (input && input.value) {
-        var external = parseJSON(input.value, null);
-        if (external && JSON.stringify(external) !== JSON.stringify(inst.doc)) {
-          inst.doc = external; inst.history = [JSON.stringify(external)]; inst.index = 0;
-        }
-      }
     }
     if (!inst.editor.__suiRichRendered || inst.editor.__suiRichDoc !== JSON.stringify(inst.doc)) {
       inst.editor.innerHTML = '';
@@ -1417,6 +1411,7 @@ window.__SUI_RICH = (function () {
       inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
     }
     inst.editor.__suiRichRendered = true;
+    if (input) input.value = JSON.stringify(inst.doc);
     var height = attr(root, 'data-sui-rich-height');
     if (height) inst.editor.style.minHeight = cssLength(height, '320px');
     var initialTemplate = attr(root, 'data-sui-rich-template');

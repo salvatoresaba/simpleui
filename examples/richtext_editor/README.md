@@ -248,21 +248,7 @@ view main {
 				button "Load sample" onClick: loadSample
 			}
 			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true properties: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed onInput: typing
-			row {
-				button "Bold" onClick: bold
-				button "Image" onClick: addImage
-				button "Link" onClick: addLink
-				button "Table" onClick: addTable
-				button "Undo" onClick: undo
-				button "Redo" onClick: redo
-				button "Export Markdown" onClick: exportMarkdown
-				button "Import Markdown" onClick: importMarkdown
-				button "Register plugin" onClick: registerPlugin
-				button "Run plugin command" onClick: pluginCommand
-				button "Status" onClick: showStatus
-			}
 			p "{status}" class: "muted"
-			pre "{out}"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}
 	}

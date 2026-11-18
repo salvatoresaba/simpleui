@@ -4714,7 +4714,7 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 		g.count = g.count + 1
 	}
 	addElemRefs(e, g)
-	if interactive && !genCompBody {
+	if interactive && !genCompBody && e.tag != "richtext" {
 		collectWiring(e, idx, g, ctx)
 	}
 	if e.tag == "errorboundary" {
@@ -5475,7 +5475,21 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if theme != "light" {
 		theme = "dark"
 	}
-	open := openTagHtml(e, "div", false, idx, ctx)
+	clean := *e
+	var keep []Attr
+	for _, a := range e.attrs {
+		switch a.key {
+		case "class", "style", "id", "tooltip", "motion", "motionKey", "motionDuration", "motionEasing", "motionDelay", "motionExit", "motionGraph":
+			keep = append(keep, a)
+		}
+	}
+	clean.attrs = keep
+	open := openTagHtml(&clean, "div", false, idx, ctx)
+	if strings.Contains(open, " class=\"") {
+		open = strings.Replace(open, " class=\"", " class=\"sui-rich ", 1)
+	} else if strings.HasSuffix(open, ">") {
+		open = strings.TrimSuffix(open, ">") + " class=\"sui-rich\">"
+	}
 	if strings.HasSuffix(open, ">") {
 		open = strings.TrimSuffix(open, ">")
 		open += " data-sui-rich=\"1\" data-sui-rich-name=\"" + htmlEscape(name) + "\""
