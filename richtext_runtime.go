@@ -3498,11 +3498,12 @@ const suiRichTextCss = `
 .sui-rich-editor pre { background: rgba(0,0,0,.22); border: 1px solid var(--sui-rich-border); border-radius: 8px; padding: 12px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
 .sui-rich-editor code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; background: rgba(127,127,127,.16); border-radius: 4px; padding: .1em .3em; }
 .sui-rich-editor hr { border: 0; border-top: 1px solid var(--sui-rich-border); margin: 1.2em 0; }
-.sui-rich-editor img { max-width: 100%; height: auto; border-radius: 6px; }
+.sui-rich-editor img { max-width: 100%; height: auto; border-radius: 6px; background: transparent; border: 0; box-shadow: none; padding: 0; object-fit: contain; }
 .sui-rich-editor figure { text-align: center; }
 .sui-rich-editor figcaption { color: var(--sui-rich-muted); font-size: .85em; margin-top: 4px; }
 .sui-rich-editor table { width: auto; max-width: 100%; border-collapse: collapse; }
 .sui-rich-editor th, .sui-rich-editor td { border: 1px solid var(--sui-rich-border); padding: 6px 8px; vertical-align: top; min-width: 40px; }
+.sui-rich-editor tbody tr:hover, .sui-rich-editor thead tr:hover { background: transparent; }
 .sui-rich-editor th { background: var(--sui-rich-hover); text-align: left; }
 .sui-rich-editor a { color: var(--sui-rich-accent); text-decoration: underline; }
 .sui-rich-editor ul, .sui-rich-editor ol { padding-left: 1.6em; }

@@ -201,6 +201,10 @@ view main {
     if (tableDoc.children[0].type !== 'image' || tableDoc.children[0].width !== '100px') throw new Error('rtf header image: ' + JSON.stringify(tableDoc.children[0]));
     if (richRoot().querySelectorAll('.sui-rich-editor table tr').length !== 2) throw new Error('rtf table dom');
     if (richRoot().querySelectorAll('.sui-rich-editor img').length !== 1) throw new Error('rtf header image dom: ' + richRoot().querySelectorAll('.sui-rich-editor img').length);
+    var cellBackground = getComputedStyle(richRoot().querySelector('.sui-rich-editor td')).backgroundColor;
+    if (cellBackground !== 'rgba(0, 0, 0, 0)' && cellBackground !== 'transparent') throw new Error('rtf cell background: ' + cellBackground);
+    var pictureBackground = getComputedStyle(richRoot().querySelector('.sui-rich-editor img')).backgroundColor;
+    if (pictureBackground !== 'rgba(0, 0, 0, 0)' && pictureBackground !== 'transparent') throw new Error('rtf picture background: ' + pictureBackground);
 
     var tableRtfOut = __SUI_RICH.exportBytes('editor', 'rtf');
     if (tableRtfOut[1] !== null || tableRtfOut[0][0] !== 123) throw new Error('rtf table export: ' + tableRtfOut[1]);
