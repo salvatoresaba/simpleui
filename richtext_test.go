@@ -126,6 +126,21 @@ view main {
     await wait(250);
     if (!richRoot().querySelector('.sui-rich-editor ul li')) throw new Error('list command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
     if (richRoot().querySelector('.sui-rich-props')) throw new Error('properties panel should not exist');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Table', marks: [] }] }] });
+    await wait(200);
+    __SUI_RICH.command('editor', 'table');
+    await wait(250);
+    var tableCell = richRoot().querySelector('.sui-rich-editor td, .sui-rich-editor th');
+    var tableRange = document.createRange(); tableRange.selectNodeContents(tableCell);
+    var tableSel = window.getSelection(); tableSel.removeAllRanges(); tableSel.addRange(tableRange);
+    await wait(200);
+    var tableBar = richRoot().querySelector('.sui-rich-tablebar');
+    if (!tableBar || tableBar.hidden) throw new Error('table toolbar missing');
+    var rowsBefore = richRoot().querySelectorAll('.sui-rich-editor tr').length;
+    tableBar.querySelector('[data-rich-cmd="tableRowBelow"]').click();
+    await wait(250);
+    if (richRoot().querySelectorAll('.sui-rich-editor tr').length !== rowsBefore + 1) throw new Error('table row command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 `+featureScriptTail)
 }
 

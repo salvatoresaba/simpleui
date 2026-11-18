@@ -1674,6 +1674,11 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
 
+Quando il cursore è dentro una tabella compare una **toolbar contestuale della
+tabella** sopra di essa: aggiungi/elimina riga, aggiungi/elimina colonna, toggle
+riga di intestazione, unisci/divide cella, allineamento celle ed elimina
+tabella. Le modifiche entrano nella normale cronologia undo/redo.
+
 ### Modello del documento
 
 ```json

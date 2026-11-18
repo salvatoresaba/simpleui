@@ -742,21 +742,85 @@ window.__SUI_RICH = (function () {
     }
     return null;
   }
+  function selectedCells(inst, table) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return [];
+    var range = sel.getRangeAt(0);
+    var out = [];
+    var cells = table.querySelectorAll('td,th');
+    for (var i = 0; i < cells.length; i++) {
+      var hit = false;
+      try { hit = range.intersectsNode(cells[i]); } catch (e) { hit = true; }
+      if (hit) out.push(cells[i]);
+    }
+    return out;
+  }
   function tableCommand(inst, kind) {
     var table = closestIn(inst, 'table');
     if (!table) return;
     var row = closestIn(inst, 'tr');
-    if (kind === 'addRow' && row) {
-      var copy = row.cloneNode(true);
-      for (var i = 0; i < copy.cells.length; i++) copy.cells[i].textContent = '';
-      row.parentNode.insertBefore(copy, row.nextSibling);
+    var cells = selectedCells(inst, table);
+    if (!row && cells.length) row = cells[0].parentNode;
+    if (!row && table.rows.length) row = table.rows[0];
+    if (kind === 'addRowAbove' && row) {
+      var above = row.cloneNode(true);
+      for (var ai = 0; ai < above.cells.length; ai++) above.cells[ai].innerHTML = '<p><br></p>';
+      row.parentNode.insertBefore(above, row);
+    } else if (kind === 'addRowBelow' && row) {
+      var below = row.cloneNode(true);
+      for (var bi = 0; bi < below.cells.length; bi++) below.cells[bi].innerHTML = '<p><br></p>';
+      row.parentNode.insertBefore(below, row.nextSibling);
     } else if (kind === 'deleteRow' && row && table.rows.length > 1) row.parentNode.removeChild(row);
-    else if (kind === 'addColumn' && row) {
-      var index = row.cells.length;
-      for (var r = 0; r < table.rows.length; r++) table.rows[r].insertCell(index);
+    else if (kind === 'addColumnLeft' && row) {
+      var li = row.cellIndex;
+      for (var lr = 0; lr < table.rows.length; lr++) {
+        var lc = table.rows[lr].insertCell(li);
+        lc.innerHTML = '<p><br></p>';
+      }
+    } else if (kind === 'addColumnRight' && row) {
+      var ri = row.cellIndex + 1;
+      for (var rr = 0; rr < table.rows.length; rr++) {
+        var rc = table.rows[rr].insertCell(ri);
+        rc.innerHTML = '<p><br></p>';
+      }
     } else if (kind === 'deleteColumn' && row && row.cells.length > 1) {
       var col = row.cellIndex;
-      for (var rr = 0; rr < table.rows.length; rr++) if (table.rows[rr].cells[col]) table.rows[rr].deleteCell(col);
+      for (var dr = 0; dr < table.rows.length; dr++) if (table.rows[dr].cells[col]) table.rows[dr].deleteCell(col);
+    } else if (kind === 'toggleHeader' && table.rows.length) {
+      var first = table.rows[0];
+      var makeTh = first.cells.length && first.cells[0].tagName.toLowerCase() !== 'th';
+      for (var hc = 0; hc < first.cells.length; hc++) {
+        var replacement = el(makeTh ? 'th' : 'td');
+        replacement.innerHTML = first.cells[hc].innerHTML;
+        first.replaceChild(replacement, first.cells[hc]);
+      }
+    } else if (kind === 'deleteTable') {
+      table.parentNode.removeChild(table);
+    } else if (kind === 'merge' && cells.length > 1) {
+      var firstCell = cells[0];
+      var sameRow = cells.every(function (c) { return c.parentNode === firstCell.parentNode; });
+      if (sameRow) {
+        var content = '<p>';
+        for (var mi = 0; mi < cells.length; mi++) content += (cells[mi].textContent || '') + (mi < cells.length - 1 ? ' ' : '');
+        content += '</p>';
+        firstCell.innerHTML = content;
+        firstCell.setAttribute('colspan', String(cells.length));
+        for (var md = 1; md < cells.length; md++) if (cells[md].parentNode) cells[md].parentNode.removeChild(cells[md]);
+      }
+    } else if (kind === 'split' && cells.length) {
+      var cell = cells[0];
+      var span = Number(cell.getAttribute('colspan') || 1);
+      if (span > 1) {
+        cell.setAttribute('colspan', '1');
+        for (var si = 1; si < span; si++) {
+          var split = el('td');
+          split.innerHTML = '<p><br></p>';
+          cell.parentNode.insertBefore(split, cell.nextSibling);
+        }
+      }
+    } else if (kind === 'alignLeft' || kind === 'alignCenter' || kind === 'alignRight') {
+      var align = kind === 'alignLeft' ? 'left' : kind === 'alignCenter' ? 'center' : 'right';
+      for (var ci = 0; ci < cells.length; ci++) cells[ci].style.textAlign = align;
     }
   }
 
@@ -916,10 +980,23 @@ window.__SUI_RICH = (function () {
       var sym = window.prompt('Insert symbol', '\u00a9');
       if (sym != null) document.execCommand('insertText', false, sym);
     }
-    else if (cmd === 'tableAddRow') tableCommand(inst, 'addRow');
+    else if (cmd === 'tableAddRow') tableCommand(inst, 'addRowBelow');
     else if (cmd === 'tableDeleteRow') tableCommand(inst, 'deleteRow');
-    else if (cmd === 'tableAddColumn') tableCommand(inst, 'addColumn');
+    else if (cmd === 'tableAddColumn') tableCommand(inst, 'addColumnRight');
     else if (cmd === 'tableDeleteColumn') tableCommand(inst, 'deleteColumn');
+    else if (cmd === 'tableRowAbove') tableCommand(inst, 'addRowAbove');
+    else if (cmd === 'tableRowBelow') tableCommand(inst, 'addRowBelow');
+    else if (cmd === 'tableRowDelete') tableCommand(inst, 'deleteRow');
+    else if (cmd === 'tableColLeft') tableCommand(inst, 'addColumnLeft');
+    else if (cmd === 'tableColRight') tableCommand(inst, 'addColumnRight');
+    else if (cmd === 'tableColDelete') tableCommand(inst, 'deleteColumn');
+    else if (cmd === 'tableHeader') tableCommand(inst, 'toggleHeader');
+    else if (cmd === 'tableDelete') tableCommand(inst, 'deleteTable');
+    else if (cmd === 'tableMerge') tableCommand(inst, 'merge');
+    else if (cmd === 'tableSplit') tableCommand(inst, 'split');
+    else if (cmd === 'tableAlignLeft') tableCommand(inst, 'alignLeft');
+    else if (cmd === 'tableAlignCenter') tableCommand(inst, 'alignCenter');
+    else if (cmd === 'tableAlignRight') tableCommand(inst, 'alignRight');
     else if (cmd === 'fontFamily') document.execCommand('fontName', false, String(value || ''));
     else if (cmd === 'fontSize') document.execCommand('fontSize', false, String(value || '3'));
     else if (cmd === 'textColor') document.execCommand('foreColor', false, cssColor(value) || '#000000');
@@ -1342,6 +1419,7 @@ window.__SUI_RICH = (function () {
     }
     var saved = inst.root && inst.root.querySelector('.sui-rich-saved');
     if (saved) saved.textContent = inst.dirty ? 'Modified' : 'Ready';
+    updateTableBar(inst);
     updateProperties(inst);
   }
   function updateProperties(inst) {
@@ -1463,6 +1541,35 @@ window.__SUI_RICH = (function () {
       wrap.appendChild(b); wrap.appendChild(panel); bar.appendChild(wrap);
     });
   }
+  function buildTableBar(inst) {
+    var bar = inst.root.querySelector('.sui-rich-tablebar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    var groups = [
+      [['tableRowAbove', '+R', 'Add row above'], ['tableRowBelow', '+R\u2193', 'Add row below'], ['tableRowDelete', '-R', 'Delete row']],
+      [['tableColLeft', '+C', 'Add column left'], ['tableColRight', '+C\u2192', 'Add column right'], ['tableColDelete', '-C', 'Delete column']],
+      [['tableHeader', 'H', 'Toggle header row'], ['tableMerge', 'M', 'Merge selected cells'], ['tableSplit', 'S', 'Split cell']],
+      [['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'], ['tableDelete', '\u00d7', 'Delete table']]
+    ];
+    for (var gi = 0; gi < groups.length; gi++) {
+      var group = el('div', 'sui-rich-group');
+      for (var bi = 0; bi < groups[gi].length; bi++) {
+        var spec = groups[gi][bi];
+        group.appendChild(button(inst, spec[0], spec[1], spec[2]));
+      }
+      bar.appendChild(group);
+    }
+  }
+  function updateTableBar(inst) {
+    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
+    if (!bar) return;
+    var table = closestIn(inst, 'table');
+    if (!table) { bar.hidden = true; return; }
+    bar.hidden = false;
+    var rect = table.getBoundingClientRect();
+    bar.style.left = Math.max(8, Math.min(window.innerWidth - 420, rect.left)) + 'px';
+    bar.style.top = Math.max(8, rect.top - 44) + 'px';
+  }
   function buildContext(inst) {
     var bar = inst.root.querySelector('.sui-rich-context');
     if (!bar) return;
@@ -1488,7 +1595,7 @@ window.__SUI_RICH = (function () {
     root.__suiRichBound = true;
     root.addEventListener('mousedown', function (e) {
       if (!e.target.closest) return;
-      var chrome = e.target.closest('.sui-rich-toolbar,.sui-rich-menu,.sui-rich-context,.sui-rich-status');
+      var chrome = e.target.closest('.sui-rich-toolbar,.sui-rich-menu,.sui-rich-context,.sui-rich-tablebar,.sui-rich-status');
       if (!chrome) return;
       // Preserve the text selection before a select/color input takes focus.
       saveSelection(inst);
@@ -1612,7 +1719,7 @@ window.__SUI_RICH = (function () {
     var readOnly = boolAttr(root, 'data-sui-rich-readonly', false);
     inst.editor.setAttribute('contenteditable', readOnly ? 'false' : 'true');
     if (attr(root, 'data-sui-rich-placeholder')) inst.editor.setAttribute('data-placeholder', attr(root, 'data-sui-rich-placeholder'));
-    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildStatus(inst);
+    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); buildStatus(inst);
     var toolbarEl = root.querySelector('.sui-rich-toolbar');
     if (toolbarEl && !boolAttr(root, 'data-sui-rich-toolbar', true)) toolbarEl.hidden = true;
     var menuEl = root.querySelector('.sui-rich-menu');
@@ -1781,6 +1888,10 @@ const suiRichTextCss = `
 .sui-rich-zoom-btn { width: 22px; height: 22px; border: 1px solid var(--sui-rich-border); border-radius: 5px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; line-height: 1; }
 .sui-rich-context { position: fixed; z-index: 900; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-context[hidden] { display: none; }
+.sui-rich-tablebar { position: fixed; z-index: 950; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
+.sui-rich-tablebar[hidden] { display: none; }
+.sui-rich-tablebar .sui-rich-group { border-right: 1px solid var(--sui-rich-border); padding-right: 3px; }
+.sui-rich-tablebar .sui-rich-group:last-child { border-right: 0; padding-right: 0; }
 .sui-rich[data-sui-rich-theme="light"] .sui-rich-editor pre { background: #f3f5fa; }
 .sui-rich[data-sui-rich-theme="light"] .sui-rich-editor code { background: #eef1f7; }
 @media (max-width: 720px) {

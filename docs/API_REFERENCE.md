@@ -1699,6 +1699,11 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
 
+When the caret is inside a table, a contextual **table toolbar** appears above
+it with add/delete row, add/delete column, header-row toggle, merge/split cell,
+cell alignment and delete-table actions. Table changes are recorded in the
+normal undo/redo history.
+
 ### Document model
 
 ```json
