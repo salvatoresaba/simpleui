@@ -3793,6 +3793,12 @@ simpleui mcp
 - **web**: emits `index.html`, `style.css`, `app.js`; `--single` emits one HTML
   with CSS/JS/runtime inline. `--out app.html` names the file; `--out dist`
   produces `dist/app.html`.
+- **runtime splitting**: `app.js` embeds only the component runtimes the program
+  uses (chart, data table, tree, rich text, drag-and-drop, motion, overlays and
+  the other controls). A text-only app stays around 70 KB, while the chart
+  runtime alone would add about 1.2 MB. Detection scans tags, attributes and
+  intrinsic calls such as `chart.get`, `table.display`, `tree.exportJson`,
+  `toast.show`, `modal.open` and `drag.source`.
 - **web `--sourcemap`**: opt-in JavaScript and CSS source maps. Multi-file builds
   write `app.js.map` and `style.css.map` and append `sourceMappingURL` comments;
   `--single` inlines both maps as `data:` URLs. Maps embed `sourcesContent`,

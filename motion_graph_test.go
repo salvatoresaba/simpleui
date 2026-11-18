@@ -232,10 +232,18 @@ func TestMotionGraphEdgeCasesE2E(t *testing.T) {
 	if browser == "" {
 		t.Skip("no Chrome/Edge found; skipping motion graph test")
 	}
+	graph := suiGraphLiteral(map[string]any{
+		"initial": "a",
+		"states": []any{
+			map[string]any{"id": "a", "name": "A"},
+			map[string]any{"id": "b", "name": "B"},
+		},
+		"links": []any{},
+	})
 	source := "css \".box \\{ width: 200px; height: 120px; background: #223344; \\}\"\n" +
 		"view main {\n" +
 		"\tbutton \"Source\" class: \"src-btn\"\n" +
-		"\tcard class: \"box main-card\" { p \"Main\" }\n" +
+		"\tcard class: \"box main-card\" motionGraph: \"" + graph + "\" { p \"Main\" }\n" +
 		"\tcard class: \"box ext-card\" { p \"Ext\" }\n" +
 		"\tcard class: \"box other-card\" { p \"Other\" }\n" +
 		"\tcard class: \"box extstate-card\" { p \"ExtState\" }\n" +

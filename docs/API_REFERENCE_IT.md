@@ -3671,6 +3671,13 @@ simpleui mcp
 ## Target
 
 - **web**: genera `index.html`, `style.css`, `app.js`; con `--single` genera un solo HTML con CSS/JS/runtime inline. `--out app.html` indica il file, `--out dist` produce `dist/app.html`.
+- **runtime su richiesta**: `app.js` incorpora solo i runtime dei componenti
+  usati dal programma (chart, tabella dati, albero, editor rich text,
+  drag-and-drop, motion, overlay e gli altri controlli). Un'app di solo testo
+  resta intorno ai 70 KB, mentre il solo runtime chart aggiungerebbe circa
+  1,2 MB. Il rilevamento esamina tag, attributi e chiamate intrinseche come
+  `chart.get`, `table.display`, `tree.exportJson`, `toast.show`, `modal.open`
+  e `drag.source`.
 - **web `--sourcemap`**: source map JavaScript e CSS opt-in. Le build multi-file
   scrivono `app.js.map` e `style.css.map` e aggiungono i commenti
   `sourceMappingURL`; `--single` incorpora entrambe le mappe come URL `data:`.

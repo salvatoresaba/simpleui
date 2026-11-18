@@ -1478,51 +1478,82 @@ func generateJsFor(p *Prog, target string, markers bool) string {
 		",maxCols:" + strconv.Itoa(sec.MaxCols) +
 		",maxText:" + strconv.Itoa(sec.MaxText) +
 		",csvFormulaEscape:" + strconv.FormatBool(sec.CSVFormulaEscape) + "};")
-	sb.WriteString("\n\n")
-	sb.WriteString(suiTableRuntime)
+	// Only the runtimes of the components the program actually uses are
+	// embedded, so an app without charts does not ship the 1.2 MB chart
+	// runtime. scanProgFeatures walks the AST once; rendererJs uses the same
+	// result to guard the after-render hooks.
+	feat := scanProgFeatures(p)
+	if feat.needsTable() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiTableRuntime)
+	}
 	// Drag-and-drop runtime. It is independent of the table runtime: the
 	// generated app wires drag sources/targets by data attributes, while the
 	// language exposes the captured keys through drag.source()/drag.target().
-	sb.WriteString("\n\n")
-	sb.WriteString(suiDndRuntime)
+	if feat.needsDnd() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiDndRuntime)
+	}
 	// Menu bars use the same delegated runtime in every view and across
 	// rerenders; labels/actions are generated as normal elements, not HTML.
 	// Anchored overlays share viewport placement and animation helpers.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiMotionRuntime)
-	sb.WriteString("\n\n")
-	sb.WriteString(suiMotionGraphRuntime)
-	sb.WriteString("\n\n")
-	sb.WriteString(suiOverlayRuntime)
-	sb.WriteString("\n\n")
-	sb.WriteString(suiMenuRuntime)
+	if feat.needsMotion() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiMotionRuntime)
+	}
+	if feat.needsMotionGraph() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiMotionGraphRuntime)
+	}
+	if feat.needsOverlay() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiOverlayRuntime)
+	}
+	if feat.needsMenu() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiMenuRuntime)
+	}
 	// Tabs share the same delegated/runtime approach and survive view rerenders
 	// through data-sui-tabs-key.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiTabsRuntime)
+	if feat.needsTabs() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiTabsRuntime)
+	}
 	// Accordions use the same delegated pattern and keep the open item keyed
 	// across view re-renders.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiAccordionRuntime)
+	if feat.needsAccordion() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiAccordionRuntime)
+	}
 	// Toast hosts receive safe text notifications through toast.show().
-	sb.WriteString("\n\n")
-	sb.WriteString(suiToastRuntime)
+	if feat.needsToast() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiToastRuntime)
+	}
 	// Tooltips use delegated hover/focus events and text-only bubbles.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiTooltipRuntime)
+	if feat.needsTooltip() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiTooltipRuntime)
+	}
 	// Searchable combobox controls filter their own listbox and sync a hidden
 	// value binding back to application state.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiComboboxRuntime)
+	if feat.needsCombobox() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiComboboxRuntime)
+	}
 	// Date/time pickers wrap a native input and synchronize the bound state.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiDatePickerRuntime)
+	if feat.needsDatePicker() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiDatePickerRuntime)
+	}
 	// Trees own expansion, roving focus and selection; open state is persisted.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiTreeRuntime)
+	if feat.needsTree() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiTreeRuntime)
+	}
 	// Rich text editors keep a JSON document model, history and a configurable
-	// toolbar/plugin registry. Emit the runtime only when the program uses it.
-	if progUsesRichText(p) {
+	// toolbar/plugin registry. The embedded PDF fonts travel with the editor.
+	if feat.needsRichText() {
 		sb.WriteString("\n\n")
 		sb.WriteString(suiPdfFontsJS)
 		sb.WriteString("\n\n")
@@ -1530,29 +1561,45 @@ func generateJsFor(p *Prog, target string, markers bool) string {
 	}
 	// Charts parse JSON/XML/CSV data and draw inert SVG nodes. Large charts
 	// scroll their viewport or can be zoomed by the user.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiChartRuntime)
+	if feat.needsChart() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiChartRuntime)
+	}
 	// Modal dialogs are opened by data-sui-modal name and use delegated events.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiModalRuntime)
+	if feat.needsModal() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiModalRuntime)
+	}
 	// Popovers toggle an anchored panel and close on outside click/Escape.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiPopoverRuntime)
+	if feat.needsPopover() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiPopoverRuntime)
+	}
 	// State-controlled drawers close through the state setter or onClose.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiDrawerRuntime)
+	if feat.needsDrawer() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiDrawerRuntime)
+	}
 	// Splitters resize their two panes with pointer drags or arrow keys.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiSplitterRuntime)
+	if feat.needsSplitter() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiSplitterRuntime)
+	}
 	// Steppers switch the bound step index.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiStepperRuntime)
+	if feat.needsStepper() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiStepperRuntime)
+	}
 	// Carousels move a slide track and optionally bind the active slide.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiCarouselRuntime)
+	if feat.needsCarousel() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiCarouselRuntime)
+	}
 	// Command palettes filter commands and handle their overlay/hotkey.
-	sb.WriteString("\n\n")
-	sb.WriteString(suiCommandbarRuntime)
+	if feat.needsCommandBar() {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiCommandbarRuntime)
+	}
 	// Class allow-list: dynamic class expressions are filtered to these names
 	// so untrusted data cannot activate arbitrary app classes.
 	sb.WriteString("\n\nconst __SUI_CLASSES = Object.create(null);\n")
@@ -1645,7 +1692,7 @@ func generateJsFor(p *Prog, target string, markers bool) string {
 			continue
 		}
 		sb.WriteString("\n\n")
-		sb.WriteString(rendererJs(p, &p.views[i], &ctx, multi, &base))
+		sb.WriteString(rendererJs(p, &p.views[i], &ctx, multi, &base, feat))
 	}
 	if multi {
 		sb.WriteString("\n\nwindow.__SUI_PAGE = " + jsString(rootNames[0]) + ";\n")
@@ -7612,7 +7659,7 @@ func viewBindings(states []string, viewName string, g *ViewGen) string {
 	return strings.Join(out, "\n")
 }
 
-func rendererJs(p *Prog, v *ViewDecl, ctx *JsCtx, multi bool, base *int) string {
+func rendererJs(p *Prog, v *ViewDecl, ctx *JsCtx, multi bool, base *int, feat *progFeatures) string {
 	var g ViewGen
 	// Continue the DFS numbering from prior root views (multi-page mode);
 	// single-page programs pass 0, so their ids are unchanged.
@@ -7654,8 +7701,12 @@ func rendererJs(p *Prog, v *ViewDecl, ctx *JsCtx, multi bool, base *int) string 
 		}
 		sb.WriteString("  }\n")
 	}
-	sb.WriteString("  __SUI_TBL.afterRender();\n")
-	sb.WriteString("  __SUI_DND.afterRender();\n")
+	if feat.needsTable() {
+		sb.WriteString("  __SUI_TBL.afterRender();\n")
+	}
+	if feat.needsDnd() {
+		sb.WriteString("  __SUI_DND.afterRender();\n")
+	}
 	sb.WriteString("  if (window.__SUI_RICH) __SUI_RICH.afterRender();\n")
 	sb.WriteString("}\n")
 	sb.WriteString("__SUI_views[" + jsString(v.name) + "] = render_" + v.name + ";\n")

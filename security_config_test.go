@@ -211,7 +211,7 @@ func TestSecurityTableLimits(t *testing.T) {
 	cfg.MaxText = 99
 	cfg.CSVFormulaEscape = true
 	SetDefaultSecurity(cfg)
-	prog, dl := ParseSource("view main {\n\tp \"x\"\n}\n", "limits.sui")
+	prog, dl := ParseSource("view main {\n\ttable name: \"t\" {\n\t\tthead {\n\t\t\ttrow {\n\t\t\t\ttcell \"A\"\n\t\t\t}\n\t\t}\n\t\ttbody {\n\t\t\ttrow {\n\t\t\t\ttcell \"1\"\n\t\t\t}\n\t\t}\n\t}\n}\n", "limits.sui")
 	if dl.HasErrors() {
 		t.Fatal(dl.String())
 	}
