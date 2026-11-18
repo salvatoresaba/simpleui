@@ -76,7 +76,7 @@ Completati di recente:
 - [x] fs.copy/move/rename/isDir/size, crypto hash/UUID/randomBytes, path utilities, validazione JSON Schema, storage quota e sync cross-tab.
 - [x] Libreria XML: DOM, navigazione/modifica, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD con `validateXsdAll`, JSON/CSV/XSLT, diff con chiavi e operazioni moved, `xml.patch`, merge update, `merge3` a tre vie e I/O binario `loadBytes`/`saveBytes`.
 - [x] Libreria JSON: JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), diff con chiavi e spostamenti, `merge3`, `validateAll`, byte UTF-8/UTF-16 e helper desktop `loadFile`/`saveFile`/`loadBytes`/`saveBytes`.
-- [x] Editor di testo avanzato: modello documento JSON, toolbar/menu/toolbar contestuale configurabili, pannello proprietà e barra di stato, modelli, undo/redo, import/export JSON/HTML/Markdown/XML e comandi plugin.
+- [x] Editor di testo avanzato: modello JSON, toolbar/menu/contestuale e barra di stato, modelli, undo/redo, plugin, apertura/salvataggio TXT/RTF/DOC/DOCX/ODT, export PDF e import/export JSON/HTML/Markdown/XML.
 
 ## Correzioni di accuratezza
 

@@ -164,7 +164,7 @@ Known accuracy corrections from the previous TODO:
 - [x] **JSON Schema validation** - practical subset; `$ref` rejected
 - [x] **XML library** - DOM nodes, navigation/mutation, XPath, namespaces, comments/CDATA/PI, XSD subset with `validateXsdAll`, JSON/CSV/XSLT, keyed diff with moved operations, `xml.patch`, update merge, three-way `merge3` and binary `loadBytes`/`saveBytes`
 - [x] **JSON library** - JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), keyed diff with moves, `merge3`, `validateAll`, UTF-8/UTF-16 bytes and desktop `loadFile`/`saveFile`/`loadBytes`/`saveBytes`
-- [x] **Rich text editor** - JSON document model, configurable toolbar/menu/context bar, properties and status, templates, undo/redo, JSON/HTML/Markdown/XML import/export and plugin commands
+- [x] **Rich text editor** - JSON document model, configurable toolbar/menu/context bar, status bar, templates, undo/redo, plugins, TXT/RTF/DOC/DOCX/ODT/PDF file support and JSON/HTML/Markdown/XML import/export
 - [x] **I18n helpers** - translation catalogs and plural selection.
 - [x] **Locale formatting** - `Intl` date/number/currency/relative/timezone
       helpers (`intl.*`).

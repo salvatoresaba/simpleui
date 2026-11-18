@@ -1733,8 +1733,12 @@ Tipi blocco: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 | `richtext.insertLink(name, href, [text])` | Crea o avvolge un collegamento |
 | `richtext.insertTable(name, rows, cols)` | Inserisce una tabella |
 | `richtext.undo(name)` / `richtext.redo(name)` | Cronologia |
-| `richtext.exportFormat(name, format)` | JSON, HTML, Markdown o XML |
-| `richtext.importFormat(name, text, format)` | Importa nel documento |
+| `richtext.exportFormat(name, format)` | JSON, HTML, Markdown, XML o testo semplice |
+| `richtext.exportBytes(name, format)` | Byte TXT, RTF, DOC, DOCX, ODT, PDF, HTML, Markdown, JSON o XML |
+| `richtext.importFormat(name, text, format)` | Importa testo nel documento |
+| `richtext.openFile(name)` | Selettore file del browser; importa per estensione |
+| `richtext.importBytes(name, bytes, filename)` | Importa byte; formato rilevato dal nome file |
+| `richtext.saveAs(name, format)` | Scarica il documento nel formato scelto |
 | `richtext.registerPlugin(name, plugin)` | Registra comandi e voci toolbar |
 | `richtext.plugins()` | Nomi dei plugin registrati |
 | `richtext.status(name)` | JSON con parole/caratteri/paragrafi/cursore |
@@ -1746,6 +1750,26 @@ Tipi blocco: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 Tutti i comandi sono centralizzati: lo stesso comando `bold` può essere
 richiamato da toolbar, menu, scorciatoia, plugin o codice host. Undo/redo è una
 cronologia di snapshot JSON (fino a 120 passi).
+
+### File del documento
+
+`File > Open file...` apre il selettore file del browser; `File > Save as`
+scarica il documento. Formati supportati:
+
+| Formato | Import | Export | Note |
+|---|---|---|---|
+| TXT | sì | sì | Paragrafi di testo semplice |
+| RTF | sottoinsieme pratico | sì | Paragrafi, grassetto/corsivo/sottolineato/barrato, apice/pedice e allineamento base |
+| DOC | best effort | contenuto RTF con estensione `.doc` | Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
+| DOCX | sì | sì | Paragrafi, run, tabelle e formattazione di base WordprocessingML |
+| ODT | sì | sì | Testo OpenDocument, formattazione, elenchi e tabelle di base |
+| PDF | - | sì | Layout testo/tabelle con Helvetica; le immagini sono sostituite dal testo alternativo |
+| HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |
+
+I file importati non sono fidati: il parsing ZIP/XML resta nel browser e
+l'HTML non sicuro viene comunque convertito nel modello del documento. Selettore
+file e download sono azioni dell'utente e non richiedono permessi del bridge
+desktop. L'export DOCX/ODT crea il pacchetto nel browser, senza servizi esterni.
 
 ### Import, export e sicurezza
 

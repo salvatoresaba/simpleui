@@ -1758,8 +1758,12 @@ Block types: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 | `richtext.insertLink(name, href, [text])` | Create or wrap a link |
 | `richtext.insertTable(name, rows, cols)` | Insert a table |
 | `richtext.undo(name)` / `richtext.redo(name)` | History |
-| `richtext.exportFormat(name, format)` | JSON, HTML, Markdown or XML |
-| `richtext.importFormat(name, text, format)` | Parse into the document |
+| `richtext.exportFormat(name, format)` | JSON, HTML, Markdown, XML or plain text |
+| `richtext.exportBytes(name, format)` | TXT, RTF, DOC, DOCX, ODT, PDF, HTML, Markdown, JSON or XML bytes |
+| `richtext.importFormat(name, text, format)` | Parse text into the document |
+| `richtext.openFile(name)` | Browser file picker; imports by extension |
+| `richtext.importBytes(name, bytes, filename)` | Import bytes; format detected from the file name |
+| `richtext.saveAs(name, format)` | Download the document in the selected format |
 | `richtext.registerPlugin(name, plugin)` | Register commands and toolbar entries |
 | `richtext.plugins()` | Registered plugin names |
 | `richtext.status(name)` | Word/character/paragraph/caret JSON |
@@ -1771,6 +1775,27 @@ Block types: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 All commands are centralized: the same `bold` command can be invoked by the
 toolbar, the menu, a keyboard shortcut, a plugin or host code. Undo/redo is a
 JSON snapshot history (up to 120 steps).
+
+### Document files
+
+`File > Open file...` opens a browser file picker; `File > Save as` downloads
+the document. Supported formats:
+
+| Format | Import | Export | Notes |
+|---|---|---|---|
+| TXT | yes | yes | Plain paragraphs |
+| RTF | practical subset | yes | Paragraphs, bold/italic/underline/strike, superscript/subscript and basic alignment |
+| DOC | best effort | RTF content with `.doc` extension | Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
+| DOCX | yes | yes | WordprocessingML paragraphs, runs, basic tables and formatting |
+| ODT | yes | yes | OpenDocument text, paragraphs, basic formatting, lists and tables |
+| PDF | - | yes | Text/tables layout with Helvetica; images are represented by their alt text |
+| HTML, Markdown, JSON, XML | yes | yes | Existing editor formats |
+
+Imported files are untrusted: ZIP/XML parsing is bounded by the browser parser,
+and unsafe HTML is still sanitized into the document model. File pickers and
+downloads are user-driven and do not require desktop bridge permissions.
+DOCX/ODT export creates the package in the browser; no external service is
+used.
 
 ### Import, export and safety
 

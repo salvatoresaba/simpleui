@@ -28,6 +28,7 @@ builds.
   status bar (words, characters, paragraphs, caret, zoom).
 - Undo/redo history, keyboard shortcuts and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
+- Open and save plain text, RTF, DOC (best effort), DOCX and ODT; export PDF.
 - Declarative plugins adding commands and toolbar buttons; JavaScript plugins
   can also register custom commands and block renderers on `window.__SUI_RICH`.
 - Document templates: `article`, `letter`, `report`, `compact`.
@@ -130,7 +131,8 @@ never assigned as raw HTML. The editor does not require a desktop bridge.
   slightly between Chromium, Firefox and WebKit.
 - Table merging/splitting and tracked changes are not part of the core; add them
   through a plugin.
-- PDF/DOCX export is not implemented.
+- Legacy binary `.doc` files are not parsed; use `.docx` or RTF. DOC export writes RTF content with a `.doc` extension.
+- PDF export uses a text/table layout and represents images by their alt text.
 - The editor intentionally exposes formatting through the toolbar/menu and API;
   host apps can build their own inspector with `richtext.command` and `richtext.get`.
 

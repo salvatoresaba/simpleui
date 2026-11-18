@@ -156,6 +156,23 @@ view main {
     richRoot().querySelector('.sui-rich-tablebar [data-rich-cmd="tableAlignCenter"]').click();
     await wait(250);
     if ((richRoot().querySelector('.sui-rich-editor table').style.marginLeft || '') !== 'auto') throw new Error('table alignment: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Format test', marks: [{ type: 'bold' }] }] }] });
+    await wait(100);
+    var docx = __SUI_RICH.exportBytes('editor', 'docx');
+    if (docx[1] !== null || docx[0][0] !== 80 || docx[0][1] !== 75) throw new Error('docx export: ' + docx[1]);
+    var odt = __SUI_RICH.exportBytes('editor', 'odt');
+    if (odt[1] !== null || odt[0][0] !== 80 || odt[0][1] !== 75) throw new Error('odt export: ' + odt[1]);
+    var pdf = __SUI_RICH.exportBytes('editor', 'pdf');
+    if (pdf[1] !== null || pdf[0][0] !== 37 || pdf[0][1] !== 80) throw new Error('pdf export: ' + pdf[1]);
+    var rtf = __SUI_RICH.exportBytes('editor', 'rtf');
+    if (rtf[1] !== null || rtf[0][0] !== 123) throw new Error('rtf export: ' + rtf[1]);
+    var docxImport = await __SUI_RICH.importBytes('editor', docx[0], 'x.docx');
+    if (docxImport[1] !== null || __SUI_RICH.exportFormat('editor', 'markdown')[0].indexOf('Format test') < 0) throw new Error('docx import: ' + docxImport[1]);
+    var odtImport = await __SUI_RICH.importBytes('editor', odt[0], 'x.odt');
+    if (odtImport[1] !== null || __SUI_RICH.exportFormat('editor', 'markdown')[0].indexOf('Format test') < 0) throw new Error('odt import: ' + odtImport[1]);
+    var rtfImport = await __SUI_RICH.importBytes('editor', rtf[0], 'x.rtf');
+    if (rtfImport[1] !== null || __SUI_RICH.exportFormat('editor', 'markdown')[0].indexOf('Format test') < 0) throw new Error('rtf import: ' + rtfImport[1]);
 `+featureScriptTail)
 }
 

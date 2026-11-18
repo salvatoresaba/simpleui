@@ -2890,6 +2890,18 @@ func stdBodyJs(key string, target string) string {
 	if key == "richtext_export" {
 		return "(name, fmt) => __SUI_RICH.exportFormat(name, fmt)"
 	}
+	if key == "richtext_exportbytes" {
+		return "(name, fmt) => __SUI_RICH.exportBytes(name, fmt)"
+	}
+	if key == "richtext_openfile" {
+		return "async (name) => __SUI_RICH.openFile(name)"
+	}
+	if key == "richtext_importbytes" {
+		return "async (name, bytes, filename) => __SUI_RICH.importBytes(name, bytes, filename)"
+	}
+	if key == "richtext_saveas" {
+		return "(name, fmt) => __SUI_RICH.saveAs(name, fmt)"
+	}
 	if key == "richtext_import" {
 		return "(name, text, fmt) => __SUI_RICH.importFormat(name, text, fmt)"
 	}
