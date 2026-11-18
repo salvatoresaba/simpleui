@@ -26,6 +26,8 @@ builds.
   printing and PDF export.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
+- Page settings panel (page size, orientation, margins, header/footer) applied
+  to paginated view, print and PDF/DOCX/ODT exports.
 - Configurable toolbar groups, menu bar, contextual selection toolbar and
   status bar (words, characters, paragraphs, caret, zoom). Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
@@ -74,7 +76,8 @@ Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`.
+`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`,
+`pageSettings`, `print`, `find`.
 
 ## API
 
@@ -266,7 +269,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr,pageBreak" onChange: changed
+			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,code,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,print,find" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

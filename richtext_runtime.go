@@ -18,7 +18,7 @@ window.__SUI_RICH = (function () {
   var MAX_HISTORY = 120;
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
-  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,lineHeight,spaceBefore,spaceAfter,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak';
+  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,lineHeight,spaceBefore,spaceAfter,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak|pageSettings,print,find';
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -67,7 +67,10 @@ window.__SUI_RICH = (function () {
     code: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8 5 12l4 4M15 8l4 4-4 4"/></svg>',
     textColor: '<span aria-hidden="true" style="font-weight:700">A</span>',
     highlight: '<span aria-hidden="true" style="background:#ffe066;color:#111;padding:0 2px">A</span>',
-    paragraph: '<span aria-hidden="true">P</span>'
+    paragraph: '<span aria-hidden="true">P</span>',
+    pageSettings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 8h5M9 12h7M9 16h4"/></svg>',
+    print: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H4V9h16v8h-3"/><rect x="7" y="13" width="10" height="7"/></svg>',
+    find: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
   };
   var MENUS = {
     file: ['New document|newDoc', 'Open file...|openFile', 'Print / Save as PDF|print',
@@ -77,7 +80,7 @@ window.__SUI_RICH = (function () {
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Unlink|unlink', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
     format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Heading 4|h4', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Code|code', 'Clear formatting|clearFormat'],
-    view: ['Paginated view|paginatedView', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
+    view: ['Paginated view|paginatedView', 'Page settings|pageSettings', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', format: 'Format', view: 'View', tools: 'Tools' };
@@ -768,6 +771,7 @@ window.__SUI_RICH = (function () {
     var next = docFromDom(inst.editor);
     if (inst.doc && inst.doc.header !== undefined) next.header = inst.doc.header;
     if (inst.doc && inst.doc.footer !== undefined) next.footer = inst.doc.footer;
+    if (inst.doc && inst.doc.page !== undefined) next.page = inst.doc.page;
     var changed = JSON.stringify(next) !== JSON.stringify(inst.doc);
     if (changed) { inst.doc = next; inst.dirty = true; }
     return changed;
@@ -789,9 +793,13 @@ window.__SUI_RICH = (function () {
   }
   function restore(inst, text) {
     inst.doc = parseJSON(text, emptyDoc());
+    inst.headerText = inst.doc.header != null ? String(inst.doc.header) : (inst.headerAttr || '');
+    inst.footerText = inst.doc.footer != null ? String(inst.doc.footer) : (inst.footerAttr || '');
     inst.editor.innerHTML = '';
     inst.editor.appendChild(renderDoc(inst.doc));
+    refreshPageChrome(inst);
     updateStats(inst);
+    if (inst.paginated) schedulePaginate(inst);
   }
   function undo(inst) {
     sync(inst);
@@ -1755,6 +1763,7 @@ window.__SUI_RICH = (function () {
       else document.execCommand('cut');
     }
     else if (cmd === 'paginatedView') { setPaginated(inst); }
+    else if (cmd === 'pageSettings') { openPageSettings(inst); }
     else if (cmd === 'print') { printDocument(inst); }
     else if (cmd === 'find') { openFindBar(inst); if (value) findInDocument(inst, value); }
     else if (cmd === 'findNext') nextMatch(inst, 1);
@@ -1833,7 +1842,7 @@ window.__SUI_RICH = (function () {
         var r = typeof pluginCmd.run === 'function' ? pluginCmd.run(inst, value) : runBuiltin(inst, pluginCmd.command, value);
         if (r === false) return [false, 'command failed: ' + cmd];
       }
-      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|paginatedView)$/.test(cmd)) commit(inst, 'change');
+      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|paginatedView|pageSettings)$/.test(cmd)) commit(inst, 'change');
       return [true, null];
     } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
   }
@@ -1862,8 +1871,8 @@ window.__SUI_RICH = (function () {
     var doc = typeof value === 'string' ? parseJSON(value, null) : value;
     if (!doc || typeof doc !== 'object') return [false, 'richtext document must be JSON'];
     inst.doc = doc;
-    inst.headerText = inst.headerAttr || String(doc.header || '');
-    inst.footerText = inst.footerAttr || String(doc.footer || '');
+    inst.headerText = doc.header != null ? String(doc.header) : (inst.headerAttr || '');
+    inst.footerText = doc.footer != null ? String(doc.footer) : (inst.footerAttr || '');
     refreshPageChrome(inst);
     inst.editor.innerHTML = '';
     inst.editor.appendChild(renderDoc(inst.doc));
@@ -2321,6 +2330,7 @@ window.__SUI_RICH = (function () {
     if (has(/^(styleSelect|fontFamily|fontSize|bold|italic|underline|strike|textColor|highlight|superscript|subscript|code|clearFormat)$/)) return 'Text formatting';
     if (has(/^(align|indent|outdent|lineHeight|spaceBefore|spaceAfter|bulletList|orderedList|blockquote|codeBlock|justify)/)) return 'Paragraph';
     if (has(/^(link|unlink|image|table|symbol|hr|pageBreak)$/)) return 'Insert';
+    if (has(/^(pageSettings|print|find)$/)) return 'Document';
     return 'Tools';
   }
   function buildToolbar(inst) {
@@ -2782,9 +2792,53 @@ window.__SUI_RICH = (function () {
   function sheetChromeText(text, page, total, known) {
     return String(text || '').replace(/\{page\}/gi, known ? String(page) : '__SUI_PAGE__').replace(/\{pages\}/gi, known ? String(total) : '__SUI_PAGES__');
   }
+  function defaultPageConfig() {
+    return { size: 'a4', orientation: 'portrait', margins: { top: 15, right: 17, bottom: 15, left: 17 } };
+  }
+  function clampPageMargin(value, fallback) {
+    var n = Number(value);
+    if (!isFinite(n)) return fallback;
+    return Math.max(0, Math.min(50, Math.round(n * 10) / 10));
+  }
+  function pageConfig(inst) {
+    var page = defaultPageConfig();
+    var raw = inst && inst.doc && inst.doc.page;
+    if (raw && typeof raw === 'object') {
+      if (raw.size === 'a4' || raw.size === 'letter') page.size = raw.size;
+      if (raw.orientation === 'landscape' || raw.orientation === 'portrait') page.orientation = raw.orientation;
+      var m = raw.margins || {};
+      page.margins = {
+        top: clampPageMargin(m.top, page.margins.top),
+        right: clampPageMargin(m.right, page.margins.right),
+        bottom: clampPageMargin(m.bottom, page.margins.bottom),
+        left: clampPageMargin(m.left, page.margins.left)
+      };
+    }
+    return page;
+  }
+  function pageSizeMm(page) {
+    var w = page.size === 'letter' ? 215.9 : 210;
+    var h = page.size === 'letter' ? 279.4 : 297;
+    return page.orientation === 'landscape' ? { w: h, h: w } : { w: w, h: h };
+  }
+  function mmToPx(mm) { return Number(mm) * 96 / 25.4; }
+  function mmToPt(mm) { return Number(mm) * 72 / 25.4; }
+  function mmToTwips(mm) { return Math.round(Number(mm) * 1440 / 25.4); }
+  function mmToCm(mm) { return (Number(mm) / 10).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'cm'; }
   function pageMetrics(inst) {
+    var page = pageConfig(inst);
+    var size = pageSizeMm(page);
+    var width = Math.round(mmToPx(size.w)), height = Math.round(mmToPx(size.h));
+    var padTop = Math.round(mmToPx(page.margins.top)), padRight = Math.round(mmToPx(page.margins.right));
+    var padBottom = Math.round(mmToPx(page.margins.bottom)), padLeft = Math.round(mmToPx(page.margins.left));
     var headerH = inst.headerText ? 24 : 0, footerH = inst.footerText ? 24 : 0;
-    return { width: 794, height: 1123, padX: 64, padY: 56, headerH: headerH, footerH: footerH, contentW: 794 - 128, contentH: 1123 - 112 - headerH - footerH };
+    return {
+      width: width, height: height,
+      padTop: padTop, padRight: padRight, padBottom: padBottom, padLeft: padLeft,
+      headerH: headerH, footerH: footerH,
+      contentW: width - padLeft - padRight,
+      contentH: height - padTop - padBottom - headerH - footerH
+    };
   }
   function setPaginated(inst, on) {
     var rootFlag = inst.root && inst.root.getAttribute('data-sui-rich-paginated') === '1';
@@ -2811,7 +2865,7 @@ window.__SUI_RICH = (function () {
     var sheet = el('div', 'sui-rich-page-sheet');
     sheet.style.width = m.width + 'px';
     sheet.style.minHeight = m.height + 'px';
-    sheet.style.padding = m.padY + 'px ' + m.padX + 'px ' + (m.padY + m.footerH) + 'px';
+    sheet.style.padding = m.padTop + 'px ' + m.padRight + 'px ' + (m.padBottom + m.footerH) + 'px ' + m.padLeft + 'px';
     var head = null, foot = null;
     if (inst.headerText) { head = el('div', 'sui-rich-sheet-header', sheetChromeText(inst.headerText, 1, 1, false)); sheet.appendChild(head); }
     var body = el('div', 'sui-rich-editor sui-rich-sheet-body');
@@ -3118,15 +3172,188 @@ window.__SUI_RICH = (function () {
       page.appendChild(foot);
     }
   }
+  function pageMarginInput(parent, side, label) {
+    var row = el('label');
+    row.appendChild(el('span', '', label));
+    var input = el('input');
+    input.type = 'number';
+    input.min = '0';
+    input.max = '50';
+    input.step = '1';
+    input.setAttribute('data-rich-page-margin', side);
+    input.setAttribute('aria-label', label + ' margin (mm)');
+    row.appendChild(input);
+    parent.appendChild(row);
+    return input;
+  }
+  function pageSettingsPanel(inst) {
+    var panel = document.querySelector('.sui-rich-pagesettings[data-rich-pagesettings="' + inst.name + '"]');
+    if (panel) return panel;
+    panel = el('div', 'sui-rich-pagesettings');
+    panel.setAttribute('data-rich-pagesettings', inst.name);
+    panel.hidden = true;
+    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Page settings'));
+
+    var sizeRow = el('label');
+    sizeRow.appendChild(el('span', '', 'Size'));
+    var sizeSelect = el('select');
+    sizeSelect.setAttribute('data-rich-page-size', '1');
+    sizeSelect.setAttribute('aria-label', 'Page size');
+    [['a4', 'A4'], ['letter', 'Letter']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; sizeSelect.appendChild(op); });
+    sizeRow.appendChild(sizeSelect);
+    panel.appendChild(sizeRow);
+
+    var orientRow = el('label');
+    orientRow.appendChild(el('span', '', 'Orientation'));
+    var orientSelect = el('select');
+    orientSelect.setAttribute('data-rich-page-orientation', '1');
+    orientSelect.setAttribute('aria-label', 'Page orientation');
+    [['portrait', 'Portrait'], ['landscape', 'Landscape']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; orientSelect.appendChild(op); });
+    orientRow.appendChild(orientSelect);
+    panel.appendChild(orientRow);
+
+    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Margins (mm)'));
+    var grid = el('div', 'sui-rich-pagesettings-grid');
+    panel.appendChild(grid);
+    pageMarginInput(grid, 'top', 'Top');
+    pageMarginInput(grid, 'right', 'Right');
+    pageMarginInput(grid, 'bottom', 'Bottom');
+    pageMarginInput(grid, 'left', 'Left');
+
+    var headerRow = el('label');
+    headerRow.appendChild(el('span', '', 'Header'));
+    var headerInput = el('input');
+    headerInput.type = 'text';
+    headerInput.maxLength = 500;
+    headerInput.setAttribute('data-rich-page-header', '1');
+    headerInput.setAttribute('aria-label', 'Header text');
+    headerInput.placeholder = 'Report \u00b7 {page}/{pages}';
+    headerRow.appendChild(headerInput);
+    panel.appendChild(headerRow);
+
+    var footerRow = el('label');
+    footerRow.appendChild(el('span', '', 'Footer'));
+    var footerInput = el('input');
+    footerInput.type = 'text';
+    footerInput.maxLength = 500;
+    footerInput.setAttribute('data-rich-page-footer', '1');
+    footerInput.setAttribute('aria-label', 'Footer text');
+    footerInput.placeholder = 'Page {page} of {pages}';
+    footerRow.appendChild(footerInput);
+    panel.appendChild(footerRow);
+    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Use {page} and {pages} in the header or footer. Margins accept 0-50 mm.'));
+
+    var actions = el('div', 'sui-rich-pagesettings-actions');
+    var apply = el('button', 'sui-rich-btn', 'Apply');
+    apply.type = 'button';
+    apply.setAttribute('data-rich-page-apply', '1');
+    var reset = el('button', 'sui-rich-btn', 'Reset');
+    reset.type = 'button';
+    reset.setAttribute('data-rich-page-reset', '1');
+    var close = el('button', 'sui-rich-btn', 'Close');
+    close.type = 'button';
+    close.setAttribute('data-rich-page-close', '1');
+    actions.appendChild(apply); actions.appendChild(reset); actions.appendChild(close);
+    panel.appendChild(actions);
+
+    panel.addEventListener('click', function (ev) {
+      var target = ev.target;
+      if (!target || !target.closest) return;
+      if (target.closest('[data-rich-page-apply]')) { applyPageSettings(inst); return; }
+      if (target.closest('[data-rich-page-reset]')) { fillPageSettings(inst, panel, defaultPageConfig()); return; }
+      if (target.closest('[data-rich-page-close]')) { panel.hidden = true; return; }
+    });
+    document.body.appendChild(panel);
+    if (!window.__suiPageSettingsBound) {
+      window.__suiPageSettingsBound = true;
+      document.addEventListener('mousedown', function (ev) {
+        var target = ev.target;
+        if (target && target.closest && (target.closest('.sui-rich-pagesettings') || target.closest('[data-rich-cmd="pageSettings"]'))) return;
+        var panels = document.querySelectorAll('.sui-rich-pagesettings');
+        for (var i = 0; i < panels.length; i++) panels[i].hidden = true;
+      });
+    }
+    return panel;
+  }
+  function fillPageSettings(inst, panel, page) {
+    var size = panel.querySelector('[data-rich-page-size]');
+    var orient = panel.querySelector('[data-rich-page-orientation]');
+    if (size) size.value = page.size;
+    if (orient) orient.value = page.orientation;
+    ['top', 'right', 'bottom', 'left'].forEach(function (side) {
+      var input = panel.querySelector('[data-rich-page-margin="' + side + '"]');
+      if (input) input.value = String(page.margins[side]);
+    });
+    var header = panel.querySelector('[data-rich-page-header]');
+    var footer = panel.querySelector('[data-rich-page-footer]');
+    if (header) header.value = inst.headerText || '';
+    if (footer) footer.value = inst.footerText || '';
+  }
+  function applyPageSettings(inst) {
+    inst = resolveInstance(inst.name) || inst;
+    var panel = pageSettingsPanel(inst);
+    function value(sel) { var node = panel.querySelector(sel); return node ? String(node.value || '') : ''; }
+    function margin(side) {
+      var node = panel.querySelector('[data-rich-page-margin="' + side + '"]');
+      return node ? clampPageMargin(node.value, defaultPageConfig().margins[side]) : defaultPageConfig().margins[side];
+    }
+    var page = {
+      size: value('[data-rich-page-size]') === 'letter' ? 'letter' : 'a4',
+      orientation: value('[data-rich-page-orientation]') === 'landscape' ? 'landscape' : 'portrait',
+      margins: { top: margin('top'), right: margin('right'), bottom: margin('bottom'), left: margin('left') }
+    };
+    var header = value('[data-rich-page-header]').slice(0, 500).trim();
+    var footer = value('[data-rich-page-footer]').slice(0, 500).trim();
+    inst.doc.page = page;
+    inst.doc.header = header;
+    inst.doc.footer = footer;
+    inst.headerText = header;
+    inst.footerText = footer;
+    refreshPageChrome(inst);
+    if (inst.paginated) schedulePaginate(inst);
+    commit(inst, 'change');
+    panel.hidden = true;
+  }
+  function openPageSettings(inst) {
+    var liveRoot = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"]');
+    if (liveRoot) {
+      inst.root = liveRoot;
+      var liveEditor = liveRoot.querySelector('.sui-rich-editor');
+      if (liveEditor) inst.editor = liveEditor;
+    }
+    var panel = pageSettingsPanel(inst);
+    // The panel lives on <body>, outside the .sui-rich scope: copy the theme
+    // custom properties so it matches the editor and stays opaque.
+    var rootStyle = getComputedStyle(inst.root);
+    ['--sui-rich-bg', '--sui-rich-fg', '--sui-rich-border', '--sui-rich-muted', '--sui-rich-hover', '--sui-rich-accent', '--sui-rich-shadow'].forEach(function (name) {
+      var value = rootStyle.getPropertyValue(name);
+      if (value) panel.style.setProperty(name, value);
+    });
+    fillPageSettings(inst, panel, pageConfig(inst));
+    panel.hidden = false;
+    var trigger = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"] .sui-rich-toolbar [data-rich-cmd="pageSettings"]');
+    var rect = trigger ? trigger.getBoundingClientRect() : inst.root.getBoundingClientRect();
+    var panelW = 292, panelH = 372;
+    var left = rect && rect.width ? rect.left : 16;
+    var top = rect && rect.height ? rect.bottom + 6 : 16;
+    left = Math.max(8, Math.min(window.innerWidth - panelW, left));
+    if (top + panelH > window.innerHeight) top = Math.max(8, window.innerHeight - panelH);
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    var first = panel.querySelector('[data-rich-page-size]');
+    if (first) first.focus();
+  }
   function escapePrintText(value) {
     return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
   function printHTML(inst) {
     var body = exportHTML(inst);
+    var page = pageConfig(inst);
     var header = inst.headerText ? '<div class="sui-print-header">' + escapePrintText(inst.headerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
     var footer = inst.footerText ? '<div class="sui-print-footer">' + escapePrintText(inst.footerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
+    var pageSize = (page.size === 'letter' ? 'Letter' : 'A4') + (page.orientation === 'landscape' ? ' landscape' : '');
     return '<!doctype html><html><head><meta charset="utf-8"><title>' + escapePrintText(inst.name) + '</title><style>' +
-      '@page { size: A4; margin: 22mm 18mm 24mm; }' +
+      '@page { size: ' + pageSize + '; margin: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; }' +
       'body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: #111; }' +
       '.sui-print-header { position: fixed; top: 0; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; border-bottom: 1px solid #ccc; padding-bottom: 4px; }' +
       '.sui-print-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; border-top: 1px solid #ccc; padding-top: 4px; }' +
@@ -3399,8 +3626,8 @@ window.__SUI_RICH = (function () {
         doc: initial || emptyDoc(),
         headerAttr: attr(root, 'data-sui-rich-header'),
         footerAttr: attr(root, 'data-sui-rich-footer'),
-        headerText: attr(root, 'data-sui-rich-header') || ((initial && initial.header) ? String(initial.header) : ''),
-        footerText: attr(root, 'data-sui-rich-footer') || ((initial && initial.footer) ? String(initial.footer) : ''),
+        headerText: (initial && initial.header != null) ? String(initial.header) : attr(root, 'data-sui-rich-header'),
+        footerText: (initial && initial.footer != null) ? String(initial.footer) : attr(root, 'data-sui-rich-footer'),
         history: [], index: -1, dirty: false, zoom: 1,
         baseFontSize: parseFloat(attr(root, 'data-sui-rich-font-size') || '16') || 16
       };
@@ -4218,6 +4445,10 @@ window.__SUI_RICH = (function () {
     var fontDefs = '';
     for (var f = 0; f < rtfFonts.length; f++) fontDefs += '{\\f' + f + ' ' + rtfFonts[f] + ';}';
     var header = '{\\rtf1\\ansi\\deff0\\uc1{\\fonttbl' + fontDefs + '}';
+    var rtfPage = pageConfig(inst), rtfDims = pageSizeMm(rtfPage);
+    header += '\\paperw' + mmToTwips(rtfDims.w) + '\\paperh' + mmToTwips(rtfDims.h) +
+      '\\margl' + mmToTwips(rtfPage.margins.left) + '\\margr' + mmToTwips(rtfPage.margins.right) +
+      '\\margt' + mmToTwips(rtfPage.margins.top) + '\\margb' + mmToTwips(rtfPage.margins.bottom);
     if (rtfColors.length) {
       header += '{\\colortbl;';
       for (var c = 0; c < rtfColors.length; c++) {
@@ -4524,10 +4755,13 @@ window.__SUI_RICH = (function () {
     var footerRuns = inst.footerText ? docxChromeRuns(inst.footerText) : '';
     var headerXml = headerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + headerRuns + '</w:p></w:hdr>' : '';
     var footerXml = footerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:top w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + footerRuns + '</w:p></w:ftr>' : '';
+    var docxPage = pageConfig(inst), docxDims = pageSizeMm(docxPage);
+    var docxPgSz = '<w:pgSz w:w="' + mmToTwips(docxDims.w) + '" w:h="' + mmToTwips(docxDims.h) + '"' + (docxPage.orientation === 'landscape' ? ' w:orient="landscape"' : '') + '/>';
+    var docxPgMar = '<w:pgMar w:top="' + mmToTwips(docxPage.margins.top) + '" w:right="' + mmToTwips(docxPage.margins.right) + '" w:bottom="' + mmToTwips(docxPage.margins.bottom) + '" w:left="' + mmToTwips(docxPage.margins.left) + '" w:header="720" w:footer="720" w:gutter="0"/>';
     var sectRefs = '';
     if (headerXml) { relsXml += '<Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'; sectRefs += '<w:headerReference w:type="default" r:id="rIdHeader1"/>'; }
     if (footerXml) { relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'; sectRefs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>'; }
-    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' + body + '<w:sectPr>' + sectRefs + '<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="720" w:footer="720"/></w:sectPr></w:body></w:document>';
+    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' + body + '<w:sectPr>' + sectRefs + docxPgSz + docxPgMar + '</w:sectPr></w:body></w:document>';
     var defaults = '';
     for (var ext in extSet) if (Object.prototype.hasOwnProperty.call(extSet, ext)) defaults += '<Default Extension="' + ext + '" ContentType="' + extSet[ext] + '"/>';
     var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (headerXml ? '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' : '') + (footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '') + '</Types>';
@@ -4672,6 +4906,8 @@ window.__SUI_RICH = (function () {
       }
       return out;
     }
+    var odtPage = pageConfig(inst), odtDims = pageSizeMm(odtPage);
+    var odtPageProps = '<style:page-layout-properties fo:page-width="' + mmToCm(odtDims.w) + '" fo:page-height="' + mmToCm(odtDims.h) + '" fo:margin-top="' + mmToCm(odtPage.margins.top) + '" fo:margin-bottom="' + mmToCm(odtPage.margins.bottom) + '" fo:margin-left="' + mmToCm(odtPage.margins.left) + '" fo:margin-right="' + mmToCm(odtPage.margins.right) + '"/>';
     var styles;
     if (inst.headerText || inst.footerText) {
       var odtHeader = inst.headerText ? '<style:header><text:p text:style-name="Header">' + odtChrome(inst.headerText) + '</text:p></style:header>' : '';
@@ -4679,14 +4915,14 @@ window.__SUI_RICH = (function () {
       styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2">' +
         '<office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style><style:style style:name="Header" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' +
         '<style:style style:name="Footer" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' + odtListStyles() + '</office:styles>' +
-        '<office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2cm" fo:margin-right="2cm"/>' +
+        '<office:automatic-styles><style:page-layout style:name="pm1">' + odtPageProps +
         '<style:header-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-bottom="0.3cm"/></style:header-style>' +
         '<style:footer-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-top="0.3cm"/></style:footer-style>' +
         '</style:page-layout></office:automatic-styles>' +
         '<office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1">' + odtHeader + odtFooter + '</style:master-page></office:master-styles>' +
         '</office:document-styles>';
     } else {
-      styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2"><office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style>' + odtListStyles() + '</office:styles></office:document-styles>';
+      styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2"><office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style>' + odtListStyles() + '</office:styles><office:automatic-styles><style:page-layout style:name="pm1">' + odtPageProps + '</style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1"/></office:master-styles></office:document-styles>';
     }
     var manifest = '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>' + manifestMedia + '</manifest:manifest>';
     var entries = [
@@ -4758,13 +4994,37 @@ window.__SUI_RICH = (function () {
       for (var i = 0; i < texts.length; i++) value += (texts[i].textContent || '') + ' ';
       return value.replace(/\s+/g, ' ').trim();
     }
-    var headerText = '', footerText = '';
+    var headerText = '', footerText = '', pageCfg = null;
     var sect = body.getElementsByTagNameNS('*', 'sectPr')[0];
     if (sect) {
       var refs = sect.getElementsByTagNameNS('*', 'headerReference');
       if (refs.length) headerText = textFrom(relTarget(refs[0].getAttribute('r:id') || refs[0].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')));
       var frefs = sect.getElementsByTagNameNS('*', 'footerReference');
       if (frefs.length) footerText = textFrom(relTarget(frefs[0].getAttribute('r:id') || frefs[0].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')));
+      var pgSz = sect.getElementsByTagNameNS('*', 'pgSz')[0];
+      var pgMar = sect.getElementsByTagNameNS('*', 'pgMar')[0];
+      if (pgSz || pgMar) {
+        function twipsToMm(value, fallback) {
+          if (value == null || value === '') return fallback;
+          var n = Number(value);
+          if (!isFinite(n) || n < 0) return fallback;
+          return Math.round(n * 25.4 / 1440 * 10) / 10;
+        }
+        var wmm = pgSz ? twipsToMm(pgSz.getAttribute('w:w'), 210) : 210;
+        var hmm = pgSz ? twipsToMm(pgSz.getAttribute('w:h'), 297) : 297;
+        var shortSide = Math.min(wmm, hmm), longSide = Math.max(wmm, hmm);
+        var pageSize = (Math.abs(shortSide - 215.9) <= 8 && Math.abs(longSide - 279.4) <= 12) ? 'letter' : 'a4';
+        pageCfg = {
+          size: pageSize,
+          orientation: wmm > hmm ? 'landscape' : 'portrait',
+          margins: {
+            top: twipsToMm(pgMar ? pgMar.getAttribute('w:top') : null, 15),
+            right: twipsToMm(pgMar ? pgMar.getAttribute('w:right') : null, 17),
+            bottom: twipsToMm(pgMar ? pgMar.getAttribute('w:bottom') : null, 15),
+            left: twipsToMm(pgMar ? pgMar.getAttribute('w:left') : null, 17)
+          }
+        };
+      }
     }
     function imageFromRun(run) {
       var blips = run.getElementsByTagNameNS('*', 'blip');
@@ -5020,6 +5280,7 @@ window.__SUI_RICH = (function () {
     var doc = { type: 'doc', children: blocks(body) };
     if (headerText) doc.header = headerText;
     if (footerText) doc.footer = footerText;
+    if (pageCfg) doc.page = pageCfg;
     return doc;
   }
   function importODT(files) {
@@ -5032,7 +5293,7 @@ window.__SUI_RICH = (function () {
     for (var fname in files) if (Object.prototype.hasOwnProperty.call(files, fname) && fname.indexOf('Pictures/') === 0) {
       mediaMap[fname] = dataUrlFromBytes(files[fname], fname);
     }
-    var orderedLists = Object.create(null), headerText = '', footerText = '';
+    var orderedLists = Object.create(null), headerText = '', footerText = '', pageCfg = null;
     var stylesXml = files['styles.xml'] ? new TextDecoder().decode(files['styles.xml']) : '';
     if (stylesXml) {
       try {
@@ -5054,6 +5315,34 @@ window.__SUI_RICH = (function () {
         }
         headerText = masterText('header');
         footerText = masterText('footer');
+        var pageProps = stylesDom.getElementsByTagNameNS('*', 'page-layout-properties')[0];
+        if (pageProps) {
+          function odtLengthMm(value, fallback) {
+            var m = /^\s*([\d.]+)\s*(mm|cm|in|pt|pc)?\s*$/i.exec(String(value || ''));
+            if (!m) return fallback;
+            var n = parseFloat(m[1]);
+            if (!isFinite(n) || n < 0) return fallback;
+            var unit = (m[2] || 'mm').toLowerCase();
+            if (unit === 'cm') return n * 10;
+            if (unit === 'in') return n * 25.4;
+            if (unit === 'pt') return n * 25.4 / 72;
+            if (unit === 'pc') return n * 25.4 / 6;
+            return n;
+          }
+          var odtW = odtLengthMm(pageProps.getAttribute('fo:page-width'), 210);
+          var odtH = odtLengthMm(pageProps.getAttribute('fo:page-height'), 297);
+          var odtShort = Math.min(odtW, odtH), odtLong = Math.max(odtW, odtH);
+          pageCfg = {
+            size: (Math.abs(odtShort - 215.9) <= 8 && Math.abs(odtLong - 279.4) <= 12) ? 'letter' : 'a4',
+            orientation: odtW > odtH ? 'landscape' : 'portrait',
+            margins: {
+              top: odtLengthMm(pageProps.getAttribute('fo:margin-top'), 15),
+              right: odtLengthMm(pageProps.getAttribute('fo:margin-right'), 17),
+              bottom: odtLengthMm(pageProps.getAttribute('fo:margin-bottom'), 15),
+              left: odtLengthMm(pageProps.getAttribute('fo:margin-left'), 17)
+            }
+          };
+        }
       } catch (e) {}
     }
     function styleMarks(style) {
@@ -5140,6 +5429,7 @@ window.__SUI_RICH = (function () {
     var doc = { type: 'doc', children: blocks(body) };
     if (headerText) doc.header = headerText;
     if (footerText) doc.footer = footerText;
+    if (pageCfg) doc.page = pageCfg;
     return doc;
   }
   function pdfEscape(text) { return String(text == null ? '' : text).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'); }
@@ -5564,10 +5854,14 @@ window.__SUI_RICH = (function () {
   function exportPDF(inst) {
     var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
     if (liveEditor) inst.editor = liveEditor;
-    var PAGE_W = 595, PAGE_H = 842, MARGIN = 56, CONTENT_W = PAGE_W - MARGIN * 2, BOTTOM = 56;
+    var pageCfg = pageConfig(inst), pageDims = pageSizeMm(pageCfg);
+    var PAGE_W = Math.round(mmToPt(pageDims.w)), PAGE_H = Math.round(mmToPt(pageDims.h));
+    var MARGIN = mmToPt(pageCfg.margins.left), MARGIN_R = mmToPt(pageCfg.margins.right);
+    var MARGIN_T = mmToPt(pageCfg.margins.top), MARGIN_B = mmToPt(pageCfg.margins.bottom);
+    var CONTENT_W = PAGE_W - MARGIN - MARGIN_R;
     var headerText = inst.headerText || '', footerText = inst.footerText || '';
     var HEADER_H = headerText ? 30 : 0, FOOTER_H = footerText ? 30 : 0;
-    var START_Y = MARGIN + HEADER_H, BOTTOM_LIMIT = PAGE_H - MARGIN - FOOTER_H;
+    var START_Y = MARGIN_T + HEADER_H, BOTTOM_LIMIT = PAGE_H - MARGIN_B - FOOTER_H;
     pdfEmbUse = {};
     var pages = [], ops = [], y = START_Y, pageSeq = 0;
     var images = [], imageCache = {};
@@ -5583,12 +5877,12 @@ window.__SUI_RICH = (function () {
     }
     function drawChrome() {
       if (headerText) {
-        chromeLine(headerText, MARGIN - 16);
-        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(MARGIN - 7)) + ' m ' + pdfNumber(PAGE_W - MARGIN) + ' ' + pdfNumber(ty(MARGIN - 7)) + ' l S Q');
+        chromeLine(headerText, MARGIN_T - 16);
+        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(MARGIN_T - 7)) + ' m ' + pdfNumber(PAGE_W - MARGIN_R) + ' ' + pdfNumber(ty(MARGIN_T - 7)) + ' l S Q');
       }
       if (footerText) {
-        chromeLine(footerText, PAGE_H - MARGIN + 18);
-        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(PAGE_H - MARGIN + 8)) + ' m ' + pdfNumber(PAGE_W - MARGIN) + ' ' + pdfNumber(ty(PAGE_H - MARGIN + 8)) + ' l S Q');
+        chromeLine(footerText, PAGE_H - MARGIN_B + 18);
+        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(PAGE_H - MARGIN_B + 8)) + ' m ' + pdfNumber(PAGE_W - MARGIN_R) + ' ' + pdfNumber(ty(PAGE_H - MARGIN_B + 8)) + ' l S Q');
       }
     }
     function newPage() { if (ops.length) pages.push(ops.join('\n')); ops = []; y = START_Y; pageSeq++; drawChrome(); }
@@ -6029,7 +6323,7 @@ window.__SUI_RICH = (function () {
         }
       } else if (node.type === 'hr') {
         ensure(10);
-        ops.push('q ' + pdfStroke('#9aa7b8') + ' 0.7 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(y)) + ' m ' + pdfNumber(PAGE_W - MARGIN) + ' ' + pdfNumber(ty(y)) + ' l S Q');
+        ops.push('q ' + pdfStroke('#9aa7b8') + ' 0.7 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(y)) + ' m ' + pdfNumber(PAGE_W - MARGIN_R) + ' ' + pdfNumber(ty(y)) + ' l S Q');
         y += 10;
       } else if (node.type === 'page_break') {
         newPage();
@@ -6341,6 +6635,17 @@ const suiRichTextCss = `
 .sui-rich-context { position: fixed; z-index: 900; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-context[hidden] { display: none; }
 .sui-rich-tableprops { position: fixed; z-index: 965; width: 232px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.35); color: var(--sui-rich-fg); font-size: 12px; }
+.sui-rich-pagesettings { position: fixed; z-index: 5000; width: 276px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: var(--sui-rich-shadow, 0 14px 34px rgba(0,0,0,.35)); color: var(--sui-rich-fg); font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sui-rich-pagesettings[hidden] { display: none; }
+.sui-rich-pagesettings label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sui-rich-pagesettings select, .sui-rich-pagesettings input { height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 6px; min-width: 0; }
+.sui-rich-pagesettings input[type="number"] { width: 72px; }
+.sui-rich-pagesettings label > span { flex: none; }
+.sui-rich-pagesettings label > input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+.sui-rich-pagesettings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+.sui-rich-pagesettings-hint { color: var(--sui-rich-muted); font-size: 11px; line-height: 1.4; }
+.sui-rich-pagesettings-actions { display: flex; gap: 6px; }
+.sui-rich-pagesettings-actions .sui-rich-btn { flex: 1; border: 1px solid var(--sui-rich-border); }
 .sui-rich-tableprops[hidden] { display: none; }
 .sui-rich-tableprops-title { font-weight: 600; margin-bottom: 6px; }
 .sui-rich-tableprops-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }

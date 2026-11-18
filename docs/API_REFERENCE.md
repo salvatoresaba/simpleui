@@ -1721,7 +1721,17 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
+`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`,
+`pageSettings`, `print`, `find`.
+
+**Page settings** (button `pageSettings`, also View > Page settings) opens a
+panel for page size (A4/Letter), orientation, top/right/bottom/left margins in
+millimetres and the header/footer text. `{page}` and `{pages}` are replaced with
+the page number and total. The settings are stored in the document as
+`page: { size, orientation, margins }` plus `header`/`footer`, and are applied
+to the paginated view, print, PDF, DOCX, ODT and RTF/DOC exports; DOCX and
+ODT import restore them. The default is A4 portrait with 15 mm top/bottom and 17 mm
+left/right margins.
 
 Every text feature has a toolbar control: inline code (`code`) and Remove link
 (`unlink`) included. Unlink is disabled when the caret is outside a link, and

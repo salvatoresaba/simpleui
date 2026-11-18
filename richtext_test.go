@@ -613,7 +613,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     // states follow the caret.
     __SUI_RICH.setToolbar('editor', '');
     await wait(200);
-    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','lineHeight','spaceBefore','spaceAfter','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak'];
+    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','lineHeight','spaceBefore','spaceAfter','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak','pageSettings','print','find'];
     for (var dt = 0; dt < defaultTokens.length; dt++) {
       if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="' + defaultTokens[dt] + '"]')) throw new Error('default toolbar missing control: ' + defaultTokens[dt]);
     }
@@ -651,6 +651,65 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     unlinkBtn.click();
     await wait(200);
     if (bsEditor().querySelector('a')) throw new Error('unlink did not remove the link');
+
+    // Page settings: margins, page size/orientation and header/footer are
+    // edited from the toolbar panel and applied to paginated view, print,
+    // PDF, DOCX and ODT.
+    __SUI_RICH.setToolbar('editor', 'pageSettings,print,find');
+    await wait(200);
+    var pageBtn = bsBtn('pageSettings');
+    if (!pageBtn) throw new Error('page settings button missing');
+    pageBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    pageBtn.click();
+    await wait(200);
+    var pagePanel = document.querySelector('.sui-rich-pagesettings');
+    if (!pagePanel || pagePanel.hidden) throw new Error('page settings panel did not open');
+    pagePanel.querySelector('[data-rich-page-size]').value = 'letter';
+    pagePanel.querySelector('[data-rich-page-orientation]').value = 'landscape';
+    pagePanel.querySelector('[data-rich-page-margin="top"]').value = '20';
+    pagePanel.querySelector('[data-rich-page-margin="right"]').value = '25';
+    pagePanel.querySelector('[data-rich-page-margin="bottom"]').value = '18';
+    pagePanel.querySelector('[data-rich-page-margin="left"]').value = '22';
+    pagePanel.querySelector('[data-rich-page-header]').value = 'H {page}/{pages}';
+    pagePanel.querySelector('[data-rich-page-footer]').value = 'F {page}';
+    pagePanel.querySelector('[data-rich-page-apply]').click();
+    await wait(400);
+    var pageDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (!pageDoc.page || pageDoc.page.size !== 'letter' || pageDoc.page.orientation !== 'landscape') throw new Error('page size/orientation not stored: ' + JSON.stringify(pageDoc.page));
+    if (pageDoc.page.margins.top !== 20 || pageDoc.page.margins.right !== 25 || pageDoc.page.margins.bottom !== 18 || pageDoc.page.margins.left !== 22) throw new Error('margins not stored: ' + JSON.stringify(pageDoc.page.margins));
+    if (pageDoc.header !== 'H {page}/{pages}' || pageDoc.footer !== 'F {page}') throw new Error('header/footer not stored');
+    __SUI_RICH.command('editor', 'undo');
+    await wait(250);
+    var undonePage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
+    if (undonePage && undonePage.size === 'letter') throw new Error('undo did not restore the page settings');
+    __SUI_RICH.command('editor', 'redo');
+    await wait(250);
+    var redonePage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
+    if (!redonePage || redonePage.size !== 'letter' || redonePage.margins.left !== 22) throw new Error('redo did not restore the page settings');
+
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(1000);
+    var pageSheet = document.querySelector('.sui-rich-page-sheet');
+    if (!pageSheet) throw new Error('paginated sheet missing');
+    if (pageSheet.style.width !== '1056px' || pageSheet.style.minHeight !== '816px') throw new Error('Letter landscape sheet size wrong: ' + pageSheet.style.width + ' x ' + pageSheet.style.minHeight);
+    if (pageSheet.style.padding !== '76px 94px 92px 83px') throw new Error('page margins not applied to the sheet: ' + pageSheet.style.padding);
+    if ((pageSheet.querySelector('.sui-rich-sheet-header') || {}).textContent !== 'H 1/1') throw new Error('sheet header text missing');
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(200);
+
+    var pagePdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
+    if (pagePdf.indexOf('/MediaBox [0 0 792 612]') < 0) throw new Error('PDF did not use Letter landscape');
+    var pageDocxBytes = __SUI_RICH.exportBytes('editor', 'docx')[0];
+    var pageDocx = toLatin(pageDocxBytes);
+    if (pageDocx.indexOf('<w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>') < 0) throw new Error('DOCX page size missing');
+    if (pageDocx.indexOf('<w:pgMar w:top="1134" w:right="1417" w:bottom="1020" w:left="1247"') < 0) throw new Error('DOCX margins missing');
+    var pageOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
+    if (pageOdt.indexOf('fo:page-width="27.94cm"') < 0 || pageOdt.indexOf('fo:page-height="21.59cm"') < 0) throw new Error('ODT page size missing');
+    if (pageOdt.indexOf('fo:margin-top="2cm"') < 0 || pageOdt.indexOf('fo:margin-right="2.5cm"') < 0) throw new Error('ODT margins missing');
+    var pageImport = await __SUI_RICH.importBytes('editor', pageDocxBytes, 'x.docx');
+    await wait(300);
+    var importedPage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
+    if (pageImport[1] !== null || !importedPage || importedPage.size !== 'letter' || importedPage.orientation !== 'landscape' || importedPage.margins.left !== 22) throw new Error('DOCX page round-trip failed: ' + JSON.stringify(importedPage));
 `+featureScriptTail)
 }
 
@@ -702,6 +761,7 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"indent", "outdent", "lineHeight", "spaceBefore", "spaceAfter",
 		"bulletList", "orderedList", "blockquote", "codeBlock",
 		"link", "unlink", "image", "table", "symbol", "hr", "pageBreak",
+		"pageSettings", "print", "find",
 	} {
 		if !items[token] {
 			t.Errorf("default toolbar is missing the %q control", token)

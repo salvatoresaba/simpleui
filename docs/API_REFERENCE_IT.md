@@ -1696,7 +1696,18 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
+`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`,
+`pageSettings`, `print`, `find`.
+
+**Impostazioni pagina** (pulsante `pageSettings`, anche Visualizza >
+Impostazioni pagina) apre un pannello per formato pagina (A4/Letter),
+orientamento, margini alto/destra/basso/sinistra in millimetri e testo di
+intestazione/piè di pagina. `{page}` e `{pages}` vengono sostituiti con il
+numero di pagina e il totale. Le impostazioni sono salvate nel documento come
+`page: { size, orientation, margins }` più `header`/`footer`, e vengono usate
+dalla vista paginata, dalla stampa, dal PDF e dagli export DOCX/ODT e RTF/DOC;
+l'import DOCX/ODT le ripristina. Il default è A4 verticale con margini di 15 mm sopra/
+sotto e 17 mm a sinistra/destra.
 
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
 inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un
