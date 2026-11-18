@@ -5535,8 +5535,8 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	b.WriteString("\">")
 	b.WriteString("<div class=\"sui-rich-menu\" role=\"menubar\" aria-label=\"Document menu\"></div>")
 	b.WriteString("<div class=\"sui-rich-toolbar\" role=\"toolbar\" aria-label=\"Text formatting\"></div>")
-	b.WriteString("<div class=\"sui-rich-context\" role=\"toolbar\" aria-label=\"Selection formatting\" hidden></div>")
 	b.WriteString("<div class=\"sui-rich-tablebar\" role=\"toolbar\" aria-label=\"Table actions\" hidden></div>")
+	b.WriteString("<div class=\"sui-rich-context\" role=\"toolbar\" aria-label=\"Selection formatting\" hidden></div>")
 	b.WriteString("<div class=\"sui-rich-body\"><div class=\"sui-rich-editor\" contenteditable=\"true\" role=\"textbox\" aria-multiline=\"true\" spellcheck=\"true\" aria-label=\"")
 	if title != "" {
 		b.WriteString(htmlEscape(title))

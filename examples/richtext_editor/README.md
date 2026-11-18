@@ -22,8 +22,8 @@ builds.
 - Bold, italic, underline, strikethrough, superscript/subscript, inline code,
   color, background color, font family/size, headings, quotes, code blocks.
 - Paragraph alignment, indentation, line height and spacing before/after.
-- Bullet/numbered lists, images, links, tables (with a contextual table toolbar
-  for rows, columns, header, merge/split, alignment and deletion) and rules.
+- Bullet/numbered lists, images, links, tables (with a draggable table toolbar
+  for rows, columns, header, merge/split, cell selection, alignment and deletion) and rules.
 - Configurable toolbar groups, menu bar, contextual selection toolbar and
   status bar (words, characters, paragraphs, caret, zoom).
 - Undo/redo history, keyboard shortcuts and JSON document binding.

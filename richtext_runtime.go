@@ -44,6 +44,21 @@ window.__SUI_RICH = (function () {
     unlink: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l16 16M10 13a5 5 0 0 0 7 0M14 11a5 5 0 0 0-7 0"/></svg>',
     image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>',
     table: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 4v16M15 4v16"/></svg>',
+    tableRowAbove: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="9" rx="1"/><path d="M3 15h18M9 11v9M15 11v9M12 3v5M9 6l3-3 3 3"/></svg>',
+    tableRowBelow: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="9" rx="1"/><path d="M3 9h18M9 4v9M15 4v9M12 16v5M9 18l3 3 3-3"/></svg>',
+    tableRowDelete: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 4v16M15 4v16M7 13h10"/></svg>',
+    tableColLeft: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="4" width="10" height="16" rx="1"/><path d="M16 4v16M3 12h6M6 9l-3 3 3 3"/></svg>',
+    tableColRight: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="10" height="16" rx="1"/><path d="M8 4v16M15 12h6M18 9l3 3-3 3"/></svg>',
+    tableColDelete: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 4v16M15 4v16M7 13h10"/></svg>',
+    tableHeader: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 4v16M15 4v16M3 5h18v4H3z"/></svg>',
+    tableMerge: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M12 4v16M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>',
+    tableSplit: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M12 4v16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>',
+    tableAlignLeft: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M7 9h7M7 13h10M7 17h5"/></svg>',
+    tableAlignCenter: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M8 9h8M6 13h12M9 17h6"/></svg>',
+    tableAlignRight: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M10 9h7M7 13h10M12 17h5"/></svg>',
+    tableDelete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 12h8l1-12M10 11v5M14 11v5"/></svg>',
+    tableDock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H4zM8 9h8M8 13h5M12 17v4M9 20l3 3 3-3"/></svg>',
+    tableDrag: '<span aria-hidden="true">\u28ff</span>',
     hr: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16"/></svg>',
     blockquote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h5v5H6c0 2 2 3 4 3M14 7h5v5h-4c0 2 2 3 4 3"/></svg>',
     codeBlock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7 3 12l5 5M16 7l5 5-5 5M13 5l-2 14"/></svg>',
@@ -273,7 +288,7 @@ window.__SUI_RICH = (function () {
             var cell = node.rows[r].cells[ci];
             var cellInline = [];
             for (var cc = 0; cc < cell.childNodes.length; cc++) inlineFrom(cell.childNodes[cc], [], cellInline, depth + 1);
-            row.cells.push({ type: 'table_cell', header: cell.tagName.toLowerCase() === 'th', colspan: Number(cell.getAttribute('colspan') || 1), rowspan: Number(cell.getAttribute('rowspan') || 1), children: cellInline });
+            row.cells.push({ type: 'table_cell', header: cell.tagName.toLowerCase() === 'th', colspan: Number(cell.getAttribute('colspan') || 1), rowspan: Number(cell.getAttribute('rowspan') || 1), align: cell.style.textAlign || '', children: cellInline });
           }
           table.rows.push(row);
         }
@@ -408,6 +423,7 @@ window.__SUI_RICH = (function () {
         var cells = Array.isArray(rows[ri].cells) ? rows[ri].cells : [];
         for (var ci = 0; ci < cells.length; ci++) {
           var cell = el(cells[ci].header ? 'th' : 'td');
+          if (cells[ci].align) cell.style.textAlign = cells[ci].align;
           if (Number(cells[ci].colspan) > 1) cell.setAttribute('colspan', String(Number(cells[ci].colspan)));
           if (Number(cells[ci].rowspan) > 1) cell.setAttribute('rowspan', String(Number(cells[ci].rowspan)));
           inlineDom(Array.isArray(cells[ci].children) ? cells[ci].children : [], cell);
@@ -742,7 +758,45 @@ window.__SUI_RICH = (function () {
     }
     return null;
   }
+  function clearCellSelection(inst) {
+    if (inst.selectedCells) {
+      for (var i = 0; i < inst.selectedCells.length; i++) if (inst.selectedCells[i] && inst.selectedCells[i].classList) inst.selectedCells[i].classList.remove('sui-rich-cell-selected');
+    }
+    inst.selectedCells = [];
+    inst.cellAnchor = null;
+  }
+  function updateCellSelection(inst) {
+    var cells = inst.editor.querySelectorAll('td,th');
+    for (var i = 0; i < cells.length; i++) cells[i].classList.remove('sui-rich-cell-selected');
+    for (var j = 0; j < (inst.selectedCells || []).length; j++) if (inst.selectedCells[j] && inst.selectedCells[j].classList) inst.selectedCells[j].classList.add('sui-rich-cell-selected');
+  }
+  function selectCellRange(inst, table, a, b) {
+    if (!a || !b) return;
+    var minRow = Math.min(a.parentNode.rowIndex, b.parentNode.rowIndex);
+    var maxRow = Math.max(a.parentNode.rowIndex, b.parentNode.rowIndex);
+    var minCol = Math.min(a.cellIndex, b.cellIndex);
+    var maxCol = Math.max(a.cellIndex, b.cellIndex);
+    var out = [];
+    for (var r = 0; r < table.rows.length; r++) {
+      if (table.rows[r].rowIndex < minRow || table.rows[r].rowIndex > maxRow) continue;
+      for (var c = 0; c < table.rows[r].cells.length; c++) {
+        var cell = table.rows[r].cells[c];
+        if (cell.cellIndex >= minCol && cell.cellIndex <= maxCol) out.push(cell);
+      }
+    }
+    inst.selectedCells = out;
+    inst.cellAnchor = a;
+    updateCellSelection(inst);
+  }
   function selectedCells(inst, table) {
+    if (inst.selectedCells && inst.selectedCells.length) {
+      var selected = [];
+      for (var si = 0; si < inst.selectedCells.length; si++) {
+        var sc = inst.selectedCells[si];
+        if (sc && sc.isConnected && sc.closest('table') === table) selected.push(sc);
+      }
+      if (selected.length) return selected;
+    }
     var sel = window.getSelection();
     if (!sel || !sel.rangeCount) return [];
     var range = sel.getRangeAt(0);
@@ -754,6 +808,29 @@ window.__SUI_RICH = (function () {
       if (hit) out.push(cells[i]);
     }
     return out;
+  }
+  function bindCellSelection(inst) {
+    inst.editor.addEventListener('mousedown', function (e) {
+      var cell = e.target && e.target.closest ? e.target.closest('td,th') : null;
+      if (!cell || !inst.editor.contains(cell)) { clearCellSelection(inst); return; }
+      var table = cell.closest('table');
+      inst.cellDragging = true;
+      if ((e.shiftKey || e.ctrlKey || e.metaKey) && inst.cellAnchor && inst.cellAnchor.closest('table') === table) {
+        selectCellRange(inst, table, inst.cellAnchor, cell);
+      } else {
+        inst.selectedCells = [cell];
+        inst.cellAnchor = cell;
+        updateCellSelection(inst);
+      }
+    });
+    inst.editor.addEventListener('mouseover', function (e) {
+      if (!inst.cellDragging || !e.target || !e.target.closest) return;
+      var cell = e.target.closest('td,th');
+      if (!cell || !inst.cellAnchor) return;
+      var table = cell.closest('table');
+      if (table && table === inst.cellAnchor.closest('table')) selectCellRange(inst, table, inst.cellAnchor, cell);
+    });
+    document.addEventListener('mouseup', function () { inst.cellDragging = false; });
   }
   function tableCommand(inst, kind) {
     var table = closestIn(inst, 'table');
@@ -796,17 +873,23 @@ window.__SUI_RICH = (function () {
       }
     } else if (kind === 'deleteTable') {
       table.parentNode.removeChild(table);
+    } else if (kind === 'dock') {
+      dockTableBar(inst);
     } else if (kind === 'merge' && cells.length > 1) {
-      var firstCell = cells[0];
-      var sameRow = cells.every(function (c) { return c.parentNode === firstCell.parentNode; });
-      if (sameRow) {
-        var content = '<p>';
-        for (var mi = 0; mi < cells.length; mi++) content += (cells[mi].textContent || '') + (mi < cells.length - 1 ? ' ' : '');
-        content += '</p>';
-        firstCell.innerHTML = content;
-        firstCell.setAttribute('colspan', String(cells.length));
-        for (var md = 1; md < cells.length; md++) if (cells[md].parentNode) cells[md].parentNode.removeChild(cells[md]);
+      var minRow = Infinity, maxRow = -1, minCol = Infinity, maxCol = -1;
+      for (var mr = 0; mr < cells.length; mr++) {
+        var cr = cells[mr].parentNode.rowIndex, cc = cells[mr].cellIndex;
+        minRow = Math.min(minRow, cr); maxRow = Math.max(maxRow, cr);
+        minCol = Math.min(minCol, cc); maxCol = Math.max(maxCol, cc);
       }
+      var firstCell = cells[0];
+      var content = '<p>';
+      for (var mi = 0; mi < cells.length; mi++) content += (cells[mi].textContent || '') + (mi < cells.length - 1 ? ' ' : '');
+      content += '</p>';
+      firstCell.innerHTML = content;
+      firstCell.setAttribute('colspan', String(maxCol - minCol + 1));
+      firstCell.setAttribute('rowspan', String(maxRow - minRow + 1));
+      for (var md = 1; md < cells.length; md++) if (cells[md].parentNode) cells[md].parentNode.removeChild(cells[md]);
     } else if (kind === 'split' && cells.length) {
       var cell = cells[0];
       var span = Number(cell.getAttribute('colspan') || 1);
@@ -997,6 +1080,7 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'tableAlignLeft') tableCommand(inst, 'alignLeft');
     else if (cmd === 'tableAlignCenter') tableCommand(inst, 'alignCenter');
     else if (cmd === 'tableAlignRight') tableCommand(inst, 'alignRight');
+    else if (cmd === 'tableDock') tableCommand(inst, 'dock');
     else if (cmd === 'fontFamily') document.execCommand('fontName', false, String(value || ''));
     else if (cmd === 'fontSize') document.execCommand('fontSize', false, String(value || '3'));
     else if (cmd === 'textColor') document.execCommand('foreColor', false, cssColor(value) || '#000000');
@@ -1545,11 +1629,15 @@ window.__SUI_RICH = (function () {
     var bar = inst.root.querySelector('.sui-rich-tablebar');
     if (!bar) return;
     bar.innerHTML = '';
+    var handle = el('span', 'sui-rich-tablebar-handle', '\u28ff');
+    handle.setAttribute('data-rich-table-drag', '1');
+    handle.setAttribute('title', 'Drag to reposition; double-click to dock');
+    bar.appendChild(handle);
     var groups = [
       [['tableRowAbove', '+R', 'Add row above'], ['tableRowBelow', '+R\u2193', 'Add row below'], ['tableRowDelete', '-R', 'Delete row']],
       [['tableColLeft', '+C', 'Add column left'], ['tableColRight', '+C\u2192', 'Add column right'], ['tableColDelete', '-C', 'Delete column']],
       [['tableHeader', 'H', 'Toggle header row'], ['tableMerge', 'M', 'Merge selected cells'], ['tableSplit', 'S', 'Split cell']],
-      [['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'], ['tableDelete', '\u00d7', 'Delete table']]
+      [['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'], ['tableDelete', '\u00d7', 'Delete table'], ['tableDock', 'D', 'Dock table toolbar']]
     ];
     for (var gi = 0; gi < groups.length; gi++) {
       var group = el('div', 'sui-rich-group');
@@ -1564,11 +1652,57 @@ window.__SUI_RICH = (function () {
     var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
     if (!bar) return;
     var table = closestIn(inst, 'table');
-    if (!table) { bar.hidden = true; return; }
+    if (!table) { bar.hidden = true; try { clearCellSelection(inst); } catch (e) {} return; }
     bar.hidden = false;
-    var rect = table.getBoundingClientRect();
-    bar.style.left = Math.max(8, Math.min(window.innerWidth - 420, rect.left)) + 'px';
-    bar.style.top = Math.max(8, rect.top - 44) + 'px';
+  }
+  function dockTableBar(inst) {
+    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
+    if (!bar) return;
+    bar.classList.remove('floating');
+    bar.style.left = '';
+    bar.style.top = '';
+    try { localStorage.removeItem('sui-rich-tablebar-' + inst.name); } catch (e) {}
+  }
+  function restoreTableBarPosition(inst) {
+    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
+    if (!bar) return;
+    try {
+      var saved = localStorage.getItem('sui-rich-tablebar-' + inst.name);
+      if (saved) {
+        var pos = parseJSON(saved, null);
+        if (pos && isFinite(pos.x) && isFinite(pos.y)) {
+          bar.classList.add('floating');
+          bar.style.left = Math.max(0, Number(pos.x)) + 'px';
+          bar.style.top = Math.max(0, Number(pos.y)) + 'px';
+        }
+      }
+    } catch (e) {}
+  }
+  function bindTableBarDrag(inst) {
+    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
+    if (!bar) return;
+    var handle = bar.querySelector('[data-rich-table-drag]');
+    if (!handle || handle.__suiDragBound) return;
+    handle.__suiDragBound = true;
+    handle.addEventListener('dblclick', function (e) { e.preventDefault(); dockTableBar(inst); });
+    handle.addEventListener('mousedown', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var rect = bar.getBoundingClientRect();
+      var offsetX = e.clientX - rect.left, offsetY = e.clientY - rect.top;
+      if (!bar.classList.contains('floating')) { bar.style.left = rect.left + 'px'; bar.style.top = rect.top + 'px'; }
+      bar.classList.add('floating');
+      function move(ev) {
+        bar.style.left = Math.max(0, Math.min(window.innerWidth - 80, ev.clientX - offsetX)) + 'px';
+        bar.style.top = Math.max(0, Math.min(window.innerHeight - 40, ev.clientY - offsetY)) + 'px';
+      }
+      function up() {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+        try { localStorage.setItem('sui-rich-tablebar-' + inst.name, JSON.stringify({ x: parseFloat(bar.style.left) || 0, y: parseFloat(bar.style.top) || 0 })); } catch (err) {}
+      }
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    });
   }
   function buildContext(inst) {
     var bar = inst.root.querySelector('.sui-rich-context');
@@ -1659,6 +1793,7 @@ window.__SUI_RICH = (function () {
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') { e.preventDefault(); command(inst.name, 'underline'); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); commit(inst, 'change'); }
     });
+    bindCellSelection(inst);
     inst.editor.addEventListener('blur', function () { setTimeout(function () { commit(inst, 'change'); }, 0); });
     inst.editor.addEventListener('paste', function (e) {
       var data = e.clipboardData || window.clipboardData;
@@ -1719,7 +1854,7 @@ window.__SUI_RICH = (function () {
     var readOnly = boolAttr(root, 'data-sui-rich-readonly', false);
     inst.editor.setAttribute('contenteditable', readOnly ? 'false' : 'true');
     if (attr(root, 'data-sui-rich-placeholder')) inst.editor.setAttribute('data-placeholder', attr(root, 'data-sui-rich-placeholder'));
-    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); buildStatus(inst);
+    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); restoreTableBarPosition(inst); bindTableBarDrag(inst); buildStatus(inst);
     var toolbarEl = root.querySelector('.sui-rich-toolbar');
     if (toolbarEl && !boolAttr(root, 'data-sui-rich-toolbar', true)) toolbarEl.hidden = true;
     var menuEl = root.querySelector('.sui-rich-menu');
@@ -1888,10 +2023,14 @@ const suiRichTextCss = `
 .sui-rich-zoom-btn { width: 22px; height: 22px; border: 1px solid var(--sui-rich-border); border-radius: 5px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; line-height: 1; }
 .sui-rich-context { position: fixed; z-index: 900; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-context[hidden] { display: none; }
-.sui-rich-tablebar { position: fixed; z-index: 950; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
+.sui-rich-tablebar { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; background: var(--sui-rich-toolbar-bg); border-bottom: 1px solid var(--sui-rich-border); position: relative; z-index: 4; }
 .sui-rich-tablebar[hidden] { display: none; }
+.sui-rich-tablebar.floating { position: fixed; left: 24px; top: 90px; z-index: 950; border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-tablebar .sui-rich-group { border-right: 1px solid var(--sui-rich-border); padding-right: 3px; }
 .sui-rich-tablebar .sui-rich-group:last-child { border-right: 0; padding-right: 0; }
+.sui-rich-tablebar-handle { display: inline-flex; align-items: center; justify-content: center; width: 18px; color: var(--sui-rich-muted); cursor: grab; user-select: none; font-size: 12px; }
+.sui-rich-tablebar-handle:active { cursor: grabbing; }
+.sui-rich-editor td.sui-rich-cell-selected, .sui-rich-editor th.sui-rich-cell-selected { outline: 2px solid var(--sui-rich-accent); outline-offset: -2px; background: color-mix(in srgb, var(--sui-rich-accent) 16%, transparent); }
 .sui-rich[data-sui-rich-theme="light"] .sui-rich-editor pre { background: #f3f5fa; }
 .sui-rich[data-sui-rich-theme="light"] .sui-rich-editor code { background: #eef1f7; }
 @media (max-width: 720px) {

@@ -1699,10 +1699,13 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
 
-When the caret is inside a table, a contextual **table toolbar** appears above
-it with add/delete row, add/delete column, header-row toggle, merge/split cell,
-cell alignment and delete-table actions. Table changes are recorded in the
-normal undo/redo history.
+When the caret is inside a table, a **table toolbar** appears directly below
+the main formatting toolbar. It has icon buttons for add/delete row,
+add/delete column, header-row toggle, merge/split cell, cell alignment and
+delete-table actions. Click or shift-click cells to select a rectangular range
+for merge/alignment. Drag the ⣿ handle to float the toolbar anywhere; double-
+click the handle or use the dock button to return it below the main toolbar.
+Table changes are recorded in the normal undo/redo history.
 
 ### Document model
 

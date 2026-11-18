@@ -1674,10 +1674,14 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
 
-Quando il cursore è dentro una tabella compare una **toolbar contestuale della
-tabella** sopra di essa: aggiungi/elimina riga, aggiungi/elimina colonna, toggle
-riga di intestazione, unisci/divide cella, allineamento celle ed elimina
-tabella. Le modifiche entrano nella normale cronologia undo/redo.
+Quando il cursore è dentro una tabella compare una **toolbar della tabella**
+subito sotto la toolbar principale. Ha pulsanti con icone per aggiungere o
+eliminare righe e colonne, attivare l'intestazione, unire o dividere celle,
+allineare le celle ed eliminare la tabella. Clicca o fai Shift+clic sulle celle
+per selezionare un intervallo rettangolare. Trascina la maniglia ⣿ per
+spostare la toolbar dove vuoi; doppio clic sulla maniglia o il pulsante dock la
+riporta sotto la toolbar principale. Le modifiche entrano nella cronologia
+undo/redo.
 
 ### Modello del documento
 
