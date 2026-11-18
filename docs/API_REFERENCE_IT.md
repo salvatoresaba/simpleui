@@ -1669,8 +1669,10 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `template` | `article`, `letter`, `report` o `compact` |
 
 I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
-trascina la maniglia ⣿ per sganciarle e usa il pulsante di dock per riportarle in alto.
-La barra superiore fa da dock. Un unico pulsante a destra alterna il tema dell'interfaccia.
+trascina la maniglia ⣿ per sganciarle, poi rilasciale sulla barra superiore per
+reinserirle nello slot più vicino alla fine di una toolbar già presente (o al bordo
+sinistro se la barra è vuota); le altre toolbar si spostano. Le posizioni flottanti
+vengono ricordate per ogni editor. Un unico pulsante a destra alterna il tema dell'interfaccia.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,

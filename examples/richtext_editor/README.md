@@ -28,8 +28,8 @@ builds.
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
 - Configurable toolbar groups, menu bar, contextual selection toolbar and
   status bar (words, characters, paragraphs, caret, zoom). Toolbar categories are
-  separate dockable toolbars: drag the ⣿ handle to float one and use the dock
-  button to put it back. A single theme button at the right of the toolbar
+  separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
+  top bar to re-insert it at the nearest slot; the other toolbars move aside. A single theme button at the right of the toolbar
   cycles the interface between dark and light; the document page stays white
   unless `contentTheme: "dark"` is set.
 - Undo/redo history, keyboard shortcuts and JSON document binding.

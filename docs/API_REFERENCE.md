@@ -1694,8 +1694,10 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar groups (separated by `|`) are individual dockable toolbars: drag the
-⣿ handle to float one and use the dock button to return it. The top bar is
-the dock. A single theme button at the right cycles the interface theme.
+⣿ handle to float one, then drop it on the top bar to re-insert it in the slot
+closest to the end of an existing toolbar (or at the left edge when the bar is
+empty); the other toolbars move aside. Floating positions are remembered per
+editor. A single theme button at the right cycles the interface theme.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,

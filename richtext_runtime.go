@@ -1851,7 +1851,7 @@ window.__SUI_RICH = (function () {
       var group = el('div', 'sui-rich-group sui-rich-tool-group');
       group.setAttribute('data-rich-cat', String(g));
       var handle = el('span', 'sui-rich-tool-handle', '\u28ff');
-      handle.title = 'Drag to move this toolbar';
+      handle.title = 'Drag to move this toolbar; drop it on the top bar to dock it';
       handle.setAttribute('data-rich-tool-handle', '1');
       group.appendChild(handle);
       var tokens = groups[g].split(',');
@@ -1873,11 +1873,6 @@ window.__SUI_RICH = (function () {
           group.appendChild(color);
         } else group.appendChild(button(inst, token, token, token));
       }
-      var dockBtn = el('button', 'sui-rich-tool-dock', '\u21e4');
-      dockBtn.type = 'button';
-      dockBtn.title = 'Dock this toolbar';
-      dockBtn.setAttribute('data-rich-tool-dock', '1');
-      group.appendChild(dockBtn);
       bar.appendChild(group);
     }
     var registered = [];
@@ -1924,7 +1919,32 @@ window.__SUI_RICH = (function () {
       groups[i].style.top = Math.max(0, Number(pos.y)) + 'px';
     }
   }
-  function dockToolbar(inst, group) {
+  function dockToolbar(inst, group, dropX, dropY) {
+    var dock = inst.root.querySelector('.sui-rich-toolbar');
+    if (dock) {
+      var list = [];
+      var all = dock.querySelectorAll('.sui-rich-tool-group');
+      for (var a = 0; a < all.length; a++) if (all[a] !== group) list.push(all[a]);
+      var rowGroups = list;
+      if (list.length && typeof dropY === 'number') {
+        var sameRow = [];
+        for (var r = 0; r < list.length; r++) {
+          var rr = list[r].getBoundingClientRect();
+          if (Math.abs((rr.top + rr.height / 2) - dropY) <= Math.max(18, rr.height / 2 + 6)) sameRow.push(list[r]);
+        }
+        if (sameRow.length) rowGroups = sameRow;
+      }
+      var next = null;
+      if (typeof dropX === 'number') {
+        for (var i = 0; i < rowGroups.length; i++) {
+          var rect = rowGroups[i].getBoundingClientRect();
+          if (dropX < rect.left + rect.width / 2) { next = rowGroups[i]; break; }
+        }
+        if (!next && rowGroups.length) next = rowGroups[rowGroups.length - 1].nextSibling;
+      }
+      if (next && next !== group) dock.insertBefore(group, next);
+      else if (!next) dock.appendChild(group);
+    }
     group.classList.remove('floating');
     group.style.left = '';
     group.style.top = '';
@@ -1936,7 +1956,6 @@ window.__SUI_RICH = (function () {
     for (var i = 0; i < groups.length; i++) {
       (function (group) {
         var handle = group.querySelector('[data-rich-tool-handle]');
-        var dockBtn = group.querySelector('[data-rich-tool-dock]');
         if (handle && !handle.__suiBound) {
           handle.__suiBound = true;
           handle.addEventListener('mousedown', function (e) {
@@ -1954,10 +1973,18 @@ window.__SUI_RICH = (function () {
               group.style.left = Math.max(0, Math.min(window.innerWidth - 60, ev.clientX - offsetX)) + 'px';
               group.style.top = Math.max(0, Math.min(window.innerHeight - 30, ev.clientY - offsetY)) + 'px';
             }
-            function up() {
+            function up(ev) {
               document.removeEventListener('mousemove', move);
               document.removeEventListener('mouseup', up);
-              saveToolbarPositions(inst);
+              var dockBar = inst.root.querySelector('.sui-rich-toolbar');
+              var dockRect = dockBar ? dockBar.getBoundingClientRect() : null;
+              var dropX = ev && typeof ev.clientX === 'number' ? ev.clientX : -1;
+              var dropY = ev && typeof ev.clientY === 'number' ? ev.clientY : -1;
+              if (dockRect && dropX >= dockRect.left && dropX <= dockRect.right && dropY >= dockRect.top - 10 && dropY <= dockRect.bottom + 10) {
+                dockToolbar(inst, group, dropX, dropY);
+              } else {
+                saveToolbarPositions(inst);
+              }
             }
             document.addEventListener('mousemove', move);
             document.addEventListener('mouseup', up);
@@ -1967,14 +1994,7 @@ window.__SUI_RICH = (function () {
             dockToolbar(inst, group);
           });
         }
-        if (dockBtn && !dockBtn.__suiBound) {
-          dockBtn.__suiBound = true;
-          dockBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            dockToolbar(inst, group);
-          });
-        }
+        // Docking happens by dropping the floating toolbar on the top bar.
       })(groups[i]);
     }
   }
@@ -4446,7 +4466,6 @@ const suiRichTextCss = `
 .sui-rich-tool-handle { cursor: grab; color: var(--sui-rich-muted); font-size: 11px; padding: 0 2px; user-select: none; line-height: 1; }
 .sui-rich-tool-handle:active { cursor: grabbing; }
 .sui-rich-tool-group.floating { position: fixed; z-index: 940; padding: 5px; flex-wrap: wrap; max-width: calc(100vw - 16px); background: var(--sui-rich-bg); border-color: var(--sui-rich-border); box-shadow: 0 12px 30px rgba(0,0,0,.3); }
-.sui-rich-tool-dock { display: none; border: 0; background: transparent; color: var(--sui-rich-muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 3px; }
 .sui-rich-tool-group.floating .sui-rich-tool-dock { display: inline-flex; }
 .sui-rich-group { display: flex; align-items: center; gap: 2px; padding-right: 5px; border-right: 1px solid var(--sui-rich-border); }
 .sui-rich-group:last-child { border-right: 0; padding-right: 0; }
