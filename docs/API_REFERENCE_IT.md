@@ -1666,6 +1666,7 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
 | `theme` | Tema dell'interfaccia: `dark` (default), `light` o `auto`. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
 | `contentTheme` | Tema della pagina: `light` (default, foglio bianco) o `dark`. Indipendente da `theme` |
+| `header` / `footer` | Testo ripetuto su ogni pagina in PDF, DOCX, ODT e stampa. `\{page\}` e `\{pages\}` diventano numero e totale pagine (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
 
 I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
@@ -1673,6 +1674,14 @@ trascina la maniglia ⣿ per sganciarle, poi rilasciale sulla barra superiore pe
 reinserirle nello slot più vicino alla fine di una toolbar già presente (o al bordo
 sinistro se la barra è vuota); le altre toolbar si spostano. Le posizioni flottanti
 vengono ricordate per ogni editor. Un unico pulsante a destra alterna il tema dell'interfaccia.
+
+**Trova e sostituisci:** `Ctrl+F` (o Modifica > Trova e sostituisci) apre la barra;
+Invio/F3 successivo, Shift+F3 precedente, Esc chiude. **Incolla** da Word/Excel/HTML
+viene sanitizzato nel modello e conserva grassetto/corsivo, colori, link, tabelle e
+immagini. **Anteprima di stampa / PDF:** `Ctrl+P` (File > Stampa / Salva come PDF)
+apre la stampa del browser su pagine A4 con header/footer ripetuti.
+**Liste:** elenchi puntati e numerati si annidano con Tab e si riportano indietro con
+Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
@@ -1768,10 +1777,10 @@ scarica il documento. Formati supportati:
 |---|---|---|---|
 | TXT | sì | sì | Paragrafi di testo semplice |
 | RTF | sottoinsieme pratico | sì | Paragrafi, formattazione di carattere e paragrafo, font, allineamento, tabelle con celle unite e sfondo, caselle di controllo, immagini di intestazione/piede pagina e immagini PNG/JPEG incorporate |
-| DOC | best effort | contenuto RTF con estensione `.doc` | Mantiene font, dimensioni, colori, tabelle, immagini e interruzioni di pagina. Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
-| DOCX | sì | sì | Paragrafi, run, tabelle, formattazione, font, sfondo celle, immagini e interruzioni di pagina WordprocessingML |
-| ODT | sì | sì | Testo OpenDocument, formattazione, elenchi, tabelle e immagini incorporate |
-| PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite) e immagini PNG/JPEG incorporate |
+| DOC | best effort | contenuto RTF con estensione `.doc` | Mantiene font, dimensioni, colori, tabelle, immagini, liste e interruzioni di pagina. Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
+| DOCX | sì | sì | Paragrafi, run, liste native puntate/numerate, tabelle, formattazione, font, sfondo celle, immagini, header/footer e interruzioni di pagina WordprocessingML |
+| ODT | sì | sì | Testo OpenDocument, paragrafi, formattazione, liste native, tabelle, immagini incorporate, header/footer e interruzioni di pagina |
+| PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite), immagini PNG/JPEG, liste e header/footer ripetuti con numeri di pagina |
 | HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |
 
 I file importati non sono fidati: il parsing ZIP/XML resta nel browser e

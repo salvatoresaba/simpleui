@@ -2740,7 +2740,7 @@ errorboundary: ["fallback"],
   command: ["text", "shortcut"],
   accordion: ["text"],
   accordionitem: ["text"],
-  richtext: ["text", "name", "value", "placeholder", "height", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "contentTheme", "onChange", "onInput", "onReady"],
+  richtext: ["text", "name", "value", "placeholder", "height", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "contentTheme", "header", "footer", "onChange", "onInput", "onReady"],
   tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   treeitem: ["text", "key", "open", "rename", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
@@ -2759,7 +2759,7 @@ errorboundary: ["fallback"],
   row: [], col: [], spacer: [], ul: [], ol: [], table: [], thead: [], tbody: [], tfoot: [], trow: [], form: [], fieldset: [], hr: [], br: [], a: ["text", "link"]
 };
 
-var TAG_LABELS = { text: "Text", onClick: "onClick", placeholder: "placeholder", value: "value", height: "height (e.g. 320px)", toolbar: "show toolbar", toolbarItems: "toolbar items (comma/| groups)", menu: "show menu bar", contextToolbar: "selection toolbar", statusbar: "status bar", theme: "theme (dark/light/auto)", contentTheme: "page theme (light/dark)", readonly: "read only", src: "src / href", link: "link", inputtype: "type", pattern: "pattern", minlength: "min length", maxlength: "max length", required: "required", options: "options (comma-separated, e.g. A,B,C)", label: "label", checked: "checked (state/bool)", disabled: "disabled", name: "name / modal id", min: "min", max: "max", step: "step", accept: "accept", multiple: "multiple", directory: "directory picker", draggable: "draggable", dragKey: "drag key expression", dropKey: "drop key expression", dropFiles: "drop files into state", pickFiles: "choose files into state", pickMode: "picker API mode", variant: "variant", close: "close after click", srcAllow: "src allow-list", sandbox: "sandbox tokens", allow: "permissions policy", referrerpolicy: "referrer policy", loading: "loading", empty: "empty result text", maxOptionLength: "max option text length", maxOptions: "max option count", mode: "date/time mode" };
+var TAG_LABELS = { text: "Text", onClick: "onClick", placeholder: "placeholder", value: "value", height: "height (e.g. 320px)", toolbar: "show toolbar", toolbarItems: "toolbar items (comma/| groups)", menu: "show menu bar", contextToolbar: "selection toolbar", statusbar: "status bar", theme: "theme (dark/light/auto)", contentTheme: "page theme (light/dark)", header: "header text ({page}/{pages})", footer: "footer text ({page}/{pages})", readonly: "read only", src: "src / href", link: "link", inputtype: "type", pattern: "pattern", minlength: "min length", maxlength: "max length", required: "required", options: "options (comma-separated, e.g. A,B,C)", label: "label", checked: "checked (state/bool)", disabled: "disabled", name: "name / modal id", min: "min", max: "max", step: "step", accept: "accept", multiple: "multiple", directory: "directory picker", draggable: "draggable", dragKey: "drag key expression", dropKey: "drop key expression", dropFiles: "drop files into state", pickFiles: "choose files into state", pickMode: "picker API mode", variant: "variant", close: "close after click", srcAllow: "src allow-list", sandbox: "sandbox tokens", allow: "permissions policy", referrerpolicy: "referrer policy", loading: "loading", empty: "empty result text", maxOptionLength: "max option text length", maxOptions: "max option count", mode: "date/time mode" };
 
 // Cross-browser expansion: a friendly control (e.g. "Trasparenza") maps to
 // one or more real CSS declarations, incl. vendor prefixes.
@@ -16882,6 +16882,8 @@ function richtextControls(n) {
   selectRow("Page theme", "contentTheme", [["light", "Light (white page)"], ["dark", "Dark page"]], "light");
   body.appendChild(rowInput("height", n.height || "", function(v){ upd("height", v); }, "e.g. 420px"));
   body.appendChild(rowInput("toolbar items", n.toolbarItems || "", function(v){ upd("toolbarItems", v); }, "undo,redo|bold,italic|link,image,table,pageBreak"));
+  body.appendChild(rowInput("header", n.header || "", function(v){ upd("header", v); }, "e.g. Company name - {page}/{pages}"));
+  body.appendChild(rowInput("footer", n.footer || "", function(v){ upd("footer", v); }, "e.g. Page {page} of {pages}"));
   [["toolbar", "Toolbar"], ["menu", "Menu bar"], ["contextToolbar", "Selection toolbar"], ["statusbar", "Status bar"], ["readonly", "Read only"]].forEach(function(pair) {
     var row = document.createElement("div"); row.className = "rowline";
     var lb = document.createElement("label"); lb.textContent = pair[1]; row.appendChild(lb);
@@ -17950,6 +17952,8 @@ function attrsOf(n) {
     if (n.readonly) a += " readonly: true";
     if (n.theme) a += " theme: \"" + esc(n.theme) + "\"";
     if (n.contentTheme) a += " contentTheme: \"" + esc(n.contentTheme) + "\"";
+    if (n.header) a += " header: \"" + esc(n.header) + "\"";
+    if (n.footer) a += " footer: \"" + esc(n.footer) + "\"";
     if (n.template) a += " template: \"" + esc(n.template) + "\"";
   }
   if (n.kind === "emptystate") {

@@ -62,7 +62,7 @@ async fn changedValue() -> null {
 
 view main {
 	col {
-		richtext "Article" name: "editor" value: doc height: "320px" theme: "dark" menu: true toolbar: true contextToolbar: true statusbar: true onChange: changedValue onInput: changedValue toolbarItems: "undo,redo|styleSelect,bold,italic,underline,bulletList,orderedList|link,image,table"
+		richtext "Article" name: "editor" value: doc height: "320px" theme: "dark" header: "Report \{page\}/\{pages\}" footer: "Footer \{page\}" menu: true toolbar: true contextToolbar: true statusbar: true onChange: changedValue onInput: changedValue toolbarItems: "undo,redo|styleSelect,bold,italic,underline,bulletList,orderedList|link,image,table"
 		button "Run" onClick: run
 		p "{status}"
 		pre "{out}"
@@ -295,6 +295,33 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (formatRtf.indexOf('\\colortbl') < 0 || formatRtf.indexOf('\\highlight') < 0) throw new Error('rtf colors missing');
     var formatPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
     if (formatPdf.indexOf('/Count 2') < 0) throw new Error('pdf page break missing');
+    var chromeHeader = richRoot().querySelector('.sui-rich-pageheader');
+    if (!chromeHeader || chromeHeader.textContent.indexOf('Report') < 0) throw new Error('editor header strip missing');
+    if (formatPdf.indexOf('Report 1/2') < 0) throw new Error('pdf header missing');
+    if (formatPdf.indexOf('Footer 2') < 0) throw new Error('pdf footer page number missing');
+    if (formatDocx.indexOf('word/header1.xml') < 0 || formatDocx.indexOf('Report ') < 0) throw new Error('docx header missing');
+    if (formatDocx.indexOf('w:fldSimple w:instr=" PAGE "') < 0) throw new Error('docx header page field missing');
+    if (formatDocx.indexOf('word/footer1.xml') < 0) throw new Error('docx footer missing');
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'bullet_list', children: [
+        { type: 'list_item', children: [
+          { type: 'paragraph', children: [{ type: 'text', text: 'One', marks: [] }] },
+          { type: 'ordered_list', children: [
+            { type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Nested', marks: [] }] }] }
+          ] }
+        ] },
+        { type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Two', marks: [] }] }] }
+      ] }
+    ] });
+    await wait(120);
+    var listDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (listDocx.indexOf('word/numbering.xml') < 0) throw new Error('docx numbering part missing');
+    if (listDocx.indexOf('<w:numPr>') < 0) throw new Error('docx list numbering missing');
+    if (listDocx.indexOf('<w:ilvl w:val="1"/>') < 0) throw new Error('docx nested list level missing');
+    var listOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
+    if (listOdt.indexOf('text:list-style') < 0 || listOdt.indexOf('text:style-name="LBullets"') < 0) throw new Error('odt list style missing');
+    var listPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
+    if (listPdf.indexOf('One') < 0 || listPdf.indexOf('Nested') < 0) throw new Error('pdf list text missing');
 `+featureScriptTail)
 }
 

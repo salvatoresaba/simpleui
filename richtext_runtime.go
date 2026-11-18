@@ -69,11 +69,11 @@ window.__SUI_RICH = (function () {
     paragraph: '<span aria-hidden="true">P</span>'
   };
   var MENUS = {
-    file: ['New document|newDoc', 'Open file...|openFile',
+    file: ['New document|newDoc', 'Open file...|openFile', 'Print / Save as PDF|print',
       { label: 'Import', items: ['JSON|importJSON', 'HTML|importHTML', 'Markdown|importMarkdown', 'XML|importXML'] },
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] },
       { label: 'Save as', items: ['Plain text (.txt)|saveTXT', 'RTF (.rtf)|saveRTF', 'Word (.doc, RTF)|saveDOC', 'Word (.docx)|saveDOCX', 'OpenDocument (.odt)|saveODT', 'PDF (.pdf)|savePDF', 'HTML (.html)|saveHTML', 'Markdown (.md)|saveMarkdown', 'JSON (.json)|saveJSON', 'XML (.xml)|saveXML'] }],
-    edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll'],
+    edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
     format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Code|code', 'Clear formatting|clearFormat'],
     view: ['Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
@@ -1143,8 +1143,35 @@ window.__SUI_RICH = (function () {
     var block = currentBlock(inst);
     if (block) block.style[prop] = value;
   }
+  function indentListItem(li) {
+    var prev = li.previousElementSibling;
+    while (prev && prev.tagName.toLowerCase() !== 'li') prev = prev.previousElementSibling;
+    if (!prev) return false;
+    var list = li.parentNode;
+    var nested = null;
+    for (var i = 0; i < prev.children.length; i++) {
+      var child = prev.children[i];
+      if (child.tagName && /^(UL|OL)$/.test(child.tagName)) { nested = child; break; }
+    }
+    if (!nested) { nested = el(list.tagName.toLowerCase()); prev.appendChild(nested); }
+    nested.appendChild(li);
+    return true;
+  }
+  function outdentListItem(li) {
+    var list = li.parentNode;
+    var parentLi = list.parentNode;
+    if (!parentLi || parentLi.tagName.toLowerCase() !== 'li') return false;
+    var outer = parentLi.parentNode;
+    outer.insertBefore(li, parentLi.nextSibling);
+    if (!list.children.length) list.parentNode.removeChild(list);
+    return true;
+  }
   function changeIndent(inst, delta) {
     var block = currentBlock(inst);
+    if (block && block.tagName && block.tagName.toLowerCase() === 'li') {
+      if (delta > 0) indentListItem(block); else outdentListItem(block);
+      return;
+    }
     if (!block) return;
     var current = parseFloat(block.style.paddingLeft || block.style.marginLeft || '0') || 0;
     current = Math.max(0, Math.min(240, current + delta));
@@ -1195,6 +1222,74 @@ window.__SUI_RICH = (function () {
     var sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
+  }
+  function insertDocumentAtCaret(inst, doc) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !inst.editor.contains(sel.anchorNode)) {
+      var blocks = doc && Array.isArray(doc.children) ? doc.children : [];
+      for (var bi = 0; bi < blocks.length; bi++) { var bb = blockDom(blocks[bi], 0); if (bb) inst.editor.appendChild(bb); }
+      return;
+    }
+    var range = sel.getRangeAt(0);
+    range.deleteContents();
+    var blocks2 = doc && Array.isArray(doc.children) ? doc.children : [];
+    if (blocks2.length === 1 && (blocks2[0].type === 'paragraph' || blocks2[0].type === 'heading') && !(blocks2[0].align || blocks2[0].indent || blocks2[0].spaceBefore || blocks2[0].spaceAfter || blocks2[0].lineHeight)) {
+      insertInlineAtCaret(inst, blocks2[0].children, range);
+      return;
+    }
+    var block = currentBlock(inst);
+    if (block && block.tagName.toLowerCase() === 'td') {
+      var cell = block;
+      for (var ci = 0; ci < blocks2.length; ci++) { var cb = blockDom(blocks2[ci], 0); if (cb) insertIntoCell(cell, cb); }
+      return;
+    }
+    var after = block && block.parentNode === inst.editor ? block : null;
+    var reference = after ? after.nextSibling : null;
+    var last = null;
+    for (var i = 0; i < blocks2.length; i++) {
+      var node = blockDom(blocks2[i], 0);
+      if (!node) continue;
+      inst.editor.insertBefore(node, reference);
+      last = node;
+    }
+    if (last) {
+      var caret = document.createRange();
+      caret.selectNodeContents(last);
+      caret.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(caret);
+    }
+  }
+  function insertIntoCell(cell, node) {
+    if (node.tagName && /^(P|DIV|TABLE|UL|OL|PRE|BLOCKQUOTE)$/.test(node.tagName)) {
+      var p = cell.querySelector('p');
+      if (p) p.parentNode.insertBefore(node, p.nextSibling);
+      else cell.appendChild(node);
+    } else cell.appendChild(node);
+  }
+  function insertInlineAtCaret(inst, nodes, range) {
+    var sel = window.getSelection();
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < (nodes || []).length; i++) {
+      var n = nodes[i];
+      if (n.type === 'text') frag.appendChild(applyMarks(n.text || '', n.marks || []));
+      else if (n.type === 'break') frag.appendChild(el('br'));
+      else if (n.type === 'image') {
+        var img = el('img');
+        var src = safeUrl(n.src, true);
+        if (src) { img.setAttribute('src', src); if (n.alt) img.setAttribute('alt', String(n.alt)); if (n.width) img.style.width = cssLength(n.width, ''); }
+        else continue;
+        frag.appendChild(img);
+      }
+    }
+    var lastNode = frag.lastChild;
+    range.insertNode(frag);
+    if (lastNode) {
+      var after = document.createRange();
+      after.setStartAfter(lastNode);
+      after.collapse(true);
+      if (sel) { sel.removeAllRanges(); sel.addRange(after); }
+    }
   }
   function insertBlock(inst, node) {
     var block = currentBlock(inst);
@@ -1351,6 +1446,13 @@ window.__SUI_RICH = (function () {
       if (inst.selectedCells && inst.selectedCells.length > 1) { copyCellSelection(inst, true); commit(inst); }
       else document.execCommand('cut');
     }
+    else if (cmd === 'print') { printDocument(inst); }
+    else if (cmd === 'find') { openFindBar(inst); if (value) findInDocument(inst, value); }
+    else if (cmd === 'findNext') nextMatch(inst, 1);
+    else if (cmd === 'findPrev') nextMatch(inst, -1);
+    else if (cmd === 'findClose') closeFindBar(inst);
+    else if (cmd === 'replace') replaceMatch(inst, value);
+    else if (cmd === 'replaceAll') replaceAllMatches(inst, value);
     else if (cmd === 'paste') {
       var pasteTable = closestIn(inst, 'table') || inst.selectedTable;
       if (pasteTable && inst.cellClipboard) { pasteCellMatrix(inst, ''); commit(inst); return true; }
@@ -2172,6 +2274,253 @@ window.__SUI_RICH = (function () {
     status.appendChild(zoomOut); status.appendChild(zoomLabel); status.appendChild(zoomIn);
   }
 
+  function findTextNodes(inst, query) {
+    var matches = [];
+    if (!query) return matches;
+    var walker = document.createTreeWalker(inst.editor, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var parent = node.parentNode;
+        if (!parent) return NodeFilter.FILTER_REJECT;
+        if (parent.closest && parent.closest('[contenteditable="false"], .sui-rich-pagebreak, .sui-rich-findbar')) return NodeFilter.FILTER_REJECT;
+        return String(node.nodeValue || '').length ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var needle = String(query).toLowerCase(), node;
+    while ((node = walker.nextNode())) {
+      var text = String(node.nodeValue || '');
+      var hay = text.toLowerCase();
+      var from = 0, at;
+      while ((at = hay.indexOf(needle, from)) >= 0) {
+        matches.push({ node: node, start: at, end: at + needle.length });
+        from = at + needle.length;
+      }
+    }
+    return matches;
+  }
+  function findRange(match) {
+    var range = document.createRange();
+    range.setStart(match.node, match.start);
+    range.setEnd(match.node, match.end);
+    return range;
+  }
+  function findCountText(inst) {
+    if (!inst.find) return '0/0';
+    return (inst.find.index >= 0 ? inst.find.index + 1 : 0) + '/' + inst.find.matches.length;
+  }
+  function updateFindBar(inst) {
+    var bar = inst.root.querySelector('.sui-rich-findbar');
+    if (!bar) return;
+    var input = bar.querySelector('[data-rich-find="query"]');
+    var repl = bar.querySelector('[data-rich-find="replacement"]');
+    if (input && input.value !== (inst.find ? inst.find.query : '')) input.value = inst.find ? inst.find.query : '';
+    var count = bar.querySelector('.sui-rich-find-count');
+    if (count) count.textContent = findCountText(inst);
+    var scope = inst.find && inst.find.matches.length ? (inst.find.index + 1) + ' of ' + inst.find.matches.length : 'no matches';
+    if (repl) repl.setAttribute('aria-label', 'Replace with');
+    bar.setAttribute('data-find-status', scope);
+  }
+  function paintFind(inst) {
+    try {
+      if (!window.Highlight || !window.CSS || !CSS.highlights) return;
+      var normal = new Highlight(), current = new Highlight();
+      for (var i = 0; i < inst.find.matches.length; i++) {
+        var range = findRange(inst.find.matches[i]);
+        if (i === inst.find.index) current.add(range); else normal.add(range);
+      }
+      CSS.highlights.set('sui-rich-find', normal);
+      CSS.highlights.set('sui-rich-find-current', current);
+    } catch (e) {}
+  }
+  function focusFindMatch(inst) {
+    if (!inst.find || inst.find.index < 0) return;
+    var match = inst.find.matches[inst.find.index];
+    if (!match) return;
+    var range = findRange(match);
+    var sel = window.getSelection();
+    if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+    var element = match.node.parentNode;
+    if (element && element.scrollIntoView) {
+      var editor = inst.editor;
+      var rect = element.getBoundingClientRect();
+      var box = editor.getBoundingClientRect();
+      if (rect.top < box.top || rect.bottom > box.bottom) {
+        try { element.scrollIntoView({ block: 'center', behavior: 'auto' }); } catch (e) { editor.scrollTop += rect.top - box.top - 20; }
+      }
+    }
+  }
+  function openFindBar(inst, query) {
+    var bar = inst.root.querySelector('.sui-rich-findbar');
+    if (!bar) return;
+    bar.hidden = false;
+    var input = bar.querySelector('[data-rich-find="query"]');
+    if (input) { if (query) input.value = query; input.focus(); input.select(); }
+  }
+  function closeFindBar(inst) {
+    var bar = inst.root.querySelector('.sui-rich-findbar');
+    if (bar) bar.hidden = true;
+    try { if (window.CSS && CSS.highlights) { CSS.highlights.delete('sui-rich-find'); CSS.highlights.delete('sui-rich-find-current'); } } catch (e) {}
+    if (inst.find) { inst.find.matches = []; inst.find.index = -1; }
+  }
+  function findInDocument(inst, query) {
+    inst.find = { query: String(query || ''), matches: [], index: -1 };
+    inst.find.matches = findTextNodes(inst, inst.find.query);
+    inst.find.index = inst.find.matches.length ? 0 : -1;
+    paintFind(inst);
+    updateFindBar(inst);
+    focusFindMatch(inst);
+    return inst.find.matches.length;
+  }
+  function nextMatch(inst, direction) {
+    if (!inst.find || !inst.find.matches.length) return;
+    var total = inst.find.matches.length;
+    inst.find.index = (inst.find.index + (direction < 0 ? total - 1 : 1)) % total;
+    paintFind(inst);
+    updateFindBar(inst);
+    focusFindMatch(inst);
+  }
+  function replaceMatch(inst, replacement) {
+    if (!inst.find || inst.find.index < 0 || !inst.find.matches.length) return false;
+    var match = inst.find.matches[inst.find.index];
+    var text = replacement == null ? '' : String(replacement);
+    var value = String(match.node.nodeValue || '');
+    var nextValue = value.slice(0, match.start) + text + value.slice(match.end);
+    match.node.nodeValue = nextValue;
+    var caretNode = match.node;
+    var caretOffset = match.start + text.length;
+    var query = inst.find.query;
+    var keep = inst.find.index;
+    inst.find.matches = findTextNodes(inst, query);
+    if (!inst.find.matches.length) inst.find.index = -1;
+    else inst.find.index = Math.min(keep, inst.find.matches.length - 1);
+    paintFind(inst);
+    updateFindBar(inst);
+    var sel = window.getSelection();
+    if (sel && caretNode.parentNode) {
+      var range = document.createRange();
+      range.setStart(caretNode, Math.min(caretOffset, caretNode.nodeValue.length));
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    commit(inst, 'change');
+    return true;
+  }
+  function replaceAllMatches(inst, replacement) {
+    if (!inst.find || !inst.find.query) return 0;
+    var matches = findTextNodes(inst, inst.find.query);
+    var text = replacement == null ? '' : String(replacement);
+    var touched = {};
+    for (var i = matches.length - 1; i >= 0; i--) {
+      var match = matches[i];
+      var value = String(match.node.nodeValue || '');
+      match.node.nodeValue = value.slice(0, match.start) + text + value.slice(match.end);
+      touched[match.node] = true;
+    }
+    inst.find.matches = findTextNodes(inst, inst.find.query);
+    inst.find.index = inst.find.matches.length ? 0 : -1;
+    paintFind(inst);
+    updateFindBar(inst);
+    commit(inst, 'change');
+    return matches.length;
+  }
+  function buildPageChrome(inst) {
+    if (!inst.headerText && !inst.footerText) return;
+    var body = inst.root.querySelector('.sui-rich-body');
+    if (!body || body.querySelector('.sui-rich-page')) return;
+    var page = el('div', 'sui-rich-page');
+    body.insertBefore(page, inst.editor);
+    if (inst.headerText) {
+      var head = el('div', 'sui-rich-pageheader', inst.headerText.replace(/\{pages?\}/g, '1'));
+      head.setAttribute('contenteditable', 'false');
+      page.appendChild(head);
+    }
+    page.appendChild(inst.editor);
+    if (inst.footerText) {
+      var foot = el('div', 'sui-rich-pagefooter', inst.footerText.replace(/\{pages?\}/g, '1'));
+      foot.setAttribute('contenteditable', 'false');
+      page.appendChild(foot);
+    }
+  }
+  function escapePrintText(value) {
+    return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function printHTML(inst) {
+    var body = exportHTML(inst);
+    var header = inst.headerText ? '<div class="sui-print-header">' + escapePrintText(inst.headerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
+    var footer = inst.footerText ? '<div class="sui-print-footer">' + escapePrintText(inst.footerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
+    return '<!doctype html><html><head><meta charset="utf-8"><title>' + escapePrintText(inst.name) + '</title><style>' +
+      '@page { size: A4; margin: 22mm 18mm 24mm; }' +
+      'body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: #111; }' +
+      '.sui-print-header { position: fixed; top: 0; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; border-bottom: 1px solid #ccc; padding-bottom: 4px; }' +
+      '.sui-print-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; border-top: 1px solid #ccc; padding-top: 4px; }' +
+      'main { padding: 0; }' +
+      'main img { max-width: 100%; height: auto; }' +
+      'main table { border-collapse: collapse; width: 100%; }' +
+      'main td, main th { border: 1px solid #999; padding: 5px 7px; vertical-align: top; }' +
+      'main .sui-rich-pagebreak { break-after: page; page-break-after: always; border: 0; height: 0; margin: 0; font-size: 0; color: transparent; }' +
+      '</style></head><body>' + header + '<main>' + body + '</main>' + footer + '</body></html>';
+  }
+  function printDocument(inst) {
+    var html = printHTML(inst);
+    var frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(frame);
+    var doc = frame.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    var run = function () {
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
+      setTimeout(function () { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 1500);
+    };
+    if (doc.readyState === 'complete') setTimeout(run, 120);
+    else frame.onload = function () { setTimeout(run, 120); };
+  }
+
+  function buildFindBar(inst) {
+    var body = inst.root.querySelector('.sui-rich-body');
+    if (!body || body.querySelector('.sui-rich-findbar')) return;
+    var bar = el('div', 'sui-rich-findbar');
+    bar.hidden = true;
+    var query = el('input', 'sui-rich-find-input');
+    query.type = 'search'; query.placeholder = 'Find'; query.setAttribute('data-rich-find', 'query');
+    query.setAttribute('aria-label', 'Find text');
+    var repl = el('input', 'sui-rich-find-input');
+    repl.type = 'text'; repl.placeholder = 'Replace'; repl.setAttribute('data-rich-find', 'replacement');
+    function action(name, label, title) {
+      var b = el('button', 'sui-rich-find-btn', label);
+      b.type = 'button'; b.title = title; b.setAttribute('data-rich-find-action', name);
+      b.setAttribute('aria-label', title);
+      return b;
+    }
+    var prev = action('prev', '\u2191', 'Previous match');
+    var next = action('next', '\u2193', 'Next match');
+    var one = action('replace', 'Replace', 'Replace current match');
+    var all = action('replaceAll', 'All', 'Replace all matches');
+    var close = action('close', '\u00d7', 'Close find bar');
+    var count = el('span', 'sui-rich-find-count', '0/0');
+    bar.appendChild(query); bar.appendChild(count); bar.appendChild(prev); bar.appendChild(next); bar.appendChild(repl); bar.appendChild(one); bar.appendChild(all); bar.appendChild(close);
+    body.appendChild(bar);
+    query.addEventListener('input', function () { findInDocument(inst, query.value); });
+    query.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); if (inst.find && inst.find.query === query.value && inst.find.matches.length) nextMatch(inst, e.shiftKey ? -1 : 1); else findInDocument(inst, query.value); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeFindBar(inst); }
+    });
+    repl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); replaceMatch(inst, repl.value); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeFindBar(inst); }
+    });
+    bar.addEventListener('click', function (e) {
+      var target = e.target && e.target.closest ? e.target.closest('[data-rich-find-action]') : null;
+      if (!target) return;
+      var act = target.getAttribute('data-rich-find-action');
+      if (act === 'prev') nextMatch(inst, -1);
+      else if (act === 'next') nextMatch(inst, 1);
+      else if (act === 'replace') replaceMatch(inst, repl.value);
+      else if (act === 'replaceAll') replaceAllMatches(inst, repl.value);
+      else if (act === 'close') closeFindBar(inst);
+    });
+  }
+
   function bindRoot(inst) {
     var root = inst.root;
     if (root.__suiRichBound) return;
@@ -2252,6 +2601,18 @@ window.__SUI_RICH = (function () {
         return;
       }
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); command(inst.name, 'pageBreak'); return; }
+      if (e.key === 'Tab') {
+        var tabBlock = currentBlock(inst);
+        if (tabBlock && tabBlock.tagName && tabBlock.tagName.toLowerCase() === 'li') {
+          e.preventDefault();
+          if (e.shiftKey) outdentListItem(tabBlock); else indentListItem(tabBlock);
+          commit(inst, 'change');
+          return;
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); command(inst.name, 'find'); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') { e.preventDefault(); command(inst.name, 'print'); return; }
+      if (e.key === 'F3') { e.preventDefault(); var fbar = inst.root.querySelector('.sui-rich-findbar'); if (!fbar || fbar.hidden) command(inst.name, 'find'); else command(inst.name, e.shiftKey ? 'findPrev' : 'findNext'); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(inst); else undo(inst); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(inst); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); command(inst.name, 'bold'); }
@@ -2296,16 +2657,7 @@ window.__SUI_RICH = (function () {
       var html = data && data.getData ? data.getData('text/html') : '';
       if (html) {
         e.preventDefault();
-        var pasted = importHTML(html);
-        var fragment = renderDoc(pasted);
-        var sel = window.getSelection();
-        if (sel && sel.rangeCount) {
-          var range = sel.getRangeAt(0);
-          range.deleteContents();
-          range.insertNode(fragment);
-          range.collapse(false);
-          sel.removeAllRanges(); sel.addRange(range);
-        } else inst.editor.appendChild(fragment);
+        insertDocumentAtCaret(inst, importHTML(html));
         commit(inst, 'input');
       } else setTimeout(function () { commit(inst, 'input'); }, 0);
     });
@@ -2327,6 +2679,8 @@ window.__SUI_RICH = (function () {
           properties: boolAttr(root, 'data-sui-rich-properties', false)
         },
         doc: initial || emptyDoc(),
+        headerText: attr(root, 'data-sui-rich-header'),
+        footerText: attr(root, 'data-sui-rich-footer'),
         history: [], index: -1, dirty: false, zoom: 1,
         baseFontSize: parseFloat(attr(root, 'data-sui-rich-font-size') || '16') || 16
       };
@@ -2350,7 +2704,7 @@ window.__SUI_RICH = (function () {
     var readOnly = boolAttr(root, 'data-sui-rich-readonly', false);
     inst.editor.setAttribute('contenteditable', readOnly ? 'false' : 'true');
     if (attr(root, 'data-sui-rich-placeholder')) inst.editor.setAttribute('data-placeholder', attr(root, 'data-sui-rich-placeholder'));
-    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); restoreTableBarPosition(inst); bindTableBarDrag(inst); buildStatus(inst);
+    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); restoreTableBarPosition(inst); bindTableBarDrag(inst); buildStatus(inst); buildFindBar(inst); buildPageChrome(inst);
     var savedTheme = '';
     try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
     var initialTheme = savedTheme || attr(root, 'data-sui-rich-theme') || 'dark';
@@ -3247,7 +3601,7 @@ window.__SUI_RICH = (function () {
     if (spacing) pPr += '<w:spacing' + spacing + '/>';
     var indent = parseFloat(n.indent);
     if (isFinite(indent) && indent > 0) pPr += '<w:ind w:left="' + Math.round(indent * 15) + '"/>';
-    return '<w:pPr>' + pPr + (extra || '') + '</w:pPr>';
+    return '<w:pPr>' + (extra || '') + pPr + '</w:pPr>';
   }
   function docxCellProps(cell, continuation) {
     var props = '';
@@ -3260,6 +3614,51 @@ window.__SUI_RICH = (function () {
     if (fill) props += '<w:shd w:val="clear" w:color="auto" w:fill="' + fill + '"/>';
     var jc = cell.align ? '<w:jc w:val="' + (cell.align === 'justify' ? 'both' : String(cell.align)) + '"/>' : '';
     return '<w:tc><w:tcPr>' + props + '</w:tcPr><w:p><w:pPr>' + jc + '</w:pPr>' + docxInline(cell.children) + '</w:p></w:tc>';
+  }
+  function docxChromeRuns(text) {
+    var format = '<w:rPr><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr>';
+    var parts = String(text || '').split(/(\{page\}|\{pages\})/i), runs = '';
+    for (var i = 0; i < parts.length; i++) {
+      var part = parts[i];
+      if (/^\{page\}$/i.test(part)) runs += '<w:fldSimple w:instr=" PAGE "><w:r>' + format + '<w:t>1</w:t></w:r></w:fldSimple>';
+      else if (/^\{pages\}$/i.test(part)) runs += '<w:fldSimple w:instr=" NUMPAGES "><w:r>' + format + '<w:t>1</w:t></w:r></w:fldSimple>';
+      else if (part) runs += '<w:r>' + format + '<w:t xml:space="preserve">' + xmlEscapeText(part) + '</w:t></w:r>';
+    }
+    return runs;
+  }
+  function docxList(node, level) {
+    var numId = node.type === 'ordered_list' ? 2 : 1;
+    var out = '';
+    for (var i = 0; i < (node.children || []).length; i++) {
+      var item = node.children[i];
+      var blocks = item.children || [];
+      for (var b = 0; b < blocks.length; b++) {
+        var inner = blocks[b];
+        if (inner.type === 'paragraph') {
+          var extra = '<w:numPr><w:ilvl w:val="' + Math.min(8, level) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
+          out += '<w:p>' + docxParagraphProps(inner, extra) + docxInline(inner.children) + '</w:p>';
+        } else if (inner.type === 'bullet_list' || inner.type === 'ordered_list') {
+          out += docxList(inner, level + 1);
+        } else out += docxBlock(inner);
+      }
+    }
+    return out;
+  }
+  function docxNumberingXml() {
+    function levels(fmt, pattern, bullet) {
+      var xml = '';
+      for (var l = 0; l < 9; l++) {
+        var text = bullet ? (l % 3 === 0 ? '\u2022' : l % 3 === 1 ? '\u25e6' : '\u25aa') : pattern.replace('%1', '%' + (l + 1)) ;
+        xml += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + (bullet ? 'bullet' : fmt) + '"/><w:lvlText w:val="' + text + '"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="' + (720 + l * 720) + '" w:hanging="360"/></w:pPr>' + (bullet ? '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/></w:rPr>' : '') + '</w:lvl>';
+      }
+      return xml;
+    }
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+      '<w:abstractNum w:abstractNumId="0">' + levels('bullet', '', true) + '</w:abstractNum>' +
+      '<w:abstractNum w:abstractNumId="1">' + levels('decimal', '%1.', false) + '</w:abstractNum>' +
+      '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>' +
+      '<w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num>' +
+      '</w:numbering>';
   }
   function docxBlock(n) {
     if (!n) return '';
@@ -3274,14 +3673,7 @@ window.__SUI_RICH = (function () {
     if (n.type === 'hr') return '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="999999"/></w:pBdr></w:pPr></w:p>';
     if (n.type === 'page_break') return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
     if (n.type === 'image') return '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' + (docxImage(n.src, n.width, n.height) || docxRun('[' + (n.alt || 'image') + ']', [])) + '</w:p>';
-    if (n.type === 'bullet_list' || n.type === 'ordered_list') {
-      var out = '';
-      for (var i = 0; i < (n.children || []).length; i++) {
-        var item = n.children[i], text = item.children && item.children[0] ? docxInline(item.children[0].children) : '';
-        out += '<w:p><w:pPr><w:ind w:left="360"/></w:pPr>' + docxRun((n.type === 'ordered_list' ? (i + 1) + '. ' : '\u2022 '), []) + text + '</w:p>';
-      }
-      return out;
-    }
+    if (n.type === 'bullet_list' || n.type === 'ordered_list') return docxList(n, 0);
     if (n.type === 'table') {
       var merges = {}, rows = '';
       var maxCols = 0;
@@ -3339,7 +3731,7 @@ window.__SUI_RICH = (function () {
   }
   function exportDOCX(inst) {
     docxImages = Object.create(null);
-    var media = [], relsXml = '', extSet = {}, imageId = 0;
+    var media = [], relsXml = '', extSet = {}, imageId = 0, hasLists = false;
     function collect(node) {
       if (!node) return;
       if (node.type === 'image' && node.src && !docxImages[node.src]) {
@@ -3354,6 +3746,7 @@ window.__SUI_RICH = (function () {
           extSet[info.ext] = info.mime;
         }
       }
+      if (node.type === 'bullet_list' || node.type === 'ordered_list') hasLists = true;
       var kids = node.children || [];
       for (var i = 0; i < kids.length; i++) collect(kids[i]);
       if (node.type === 'table') for (var r = 0; r < (node.rows || []).length; r++) for (var c = 0; c < (node.rows[r].cells || []).length; c++) collect(node.rows[r].cells[c]);
@@ -3361,11 +3754,22 @@ window.__SUI_RICH = (function () {
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) collect(inst.doc.children[ci]);
     var body = '';
     for (var i = 0; i < (inst.doc.children || []).length; i++) body += docxBlock(inst.doc.children[i]);
-    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr></w:body></w:document>';
+    var headerRuns = inst.headerText ? docxChromeRuns(inst.headerText) : '';
+    var footerRuns = inst.footerText ? docxChromeRuns(inst.footerText) : '';
+    var headerXml = headerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + headerRuns + '</w:p></w:hdr>' : '';
+    var footerXml = footerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:top w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + footerRuns + '</w:p></w:ftr>' : '';
+    var sectRefs = '';
+    if (headerXml) { relsXml += '<Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'; sectRefs += '<w:headerReference w:type="default" r:id="rIdHeader1"/>'; }
+    if (footerXml) { relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'; sectRefs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>'; }
+    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' + body + '<w:sectPr>' + sectRefs + '<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="720" w:footer="720"/></w:sectPr></w:body></w:document>';
     var defaults = '';
     for (var ext in extSet) if (Object.prototype.hasOwnProperty.call(extSet, ext)) defaults += '<Default Extension="' + ext + '" ContentType="' + extSet[ext] + '"/>';
-    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (headerXml ? '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' : '') + (footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '') + '</Types>';
     var rootRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+    if (hasLists) {
+      relsXml += '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
+      contentTypes = contentTypes.replace('</Types>', '<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>');
+    }
     var docRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + relsXml + '</Relationships>';
     var entries = [
       { name: '[Content_Types].xml', data: contentTypes },
@@ -3373,6 +3777,9 @@ window.__SUI_RICH = (function () {
       { name: 'word/document.xml', data: documentXml },
       { name: 'word/_rels/document.xml.rels', data: docRels }
     ];
+    if (hasLists) entries.push({ name: 'word/numbering.xml', data: docxNumberingXml() });
+    if (headerXml) entries.push({ name: 'word/header1.xml', data: headerXml });
+    if (footerXml) entries.push({ name: 'word/footer1.xml', data: footerXml });
     for (var m = 0; m < media.length; m++) entries.push(media[m]);
     return zipStore(entries);
   }
@@ -3409,6 +3816,31 @@ window.__SUI_RICH = (function () {
     }
     return out;
   }
+  function odtList(node) {
+    var styleName = node.type === 'ordered_list' ? 'LNumbers' : 'LBullets';
+    var out = '<text:list text:style-name="' + styleName + '">';
+    for (var i = 0; i < (node.children || []).length; i++) {
+      var item = node.children[i], blocks = item.children || [];
+      out += '<text:list-item>';
+      for (var b = 0; b < blocks.length; b++) {
+        var inner = blocks[b];
+        if (inner.type === 'paragraph') out += '<text:p>' + odtInline(inner.children) + '</text:p>';
+        else if (inner.type === 'bullet_list' || inner.type === 'ordered_list') out += odtList(inner);
+        else out += odtBlock(inner);
+      }
+      out += '</text:list-item>';
+    }
+    return out + '</text:list>';
+  }
+  function odtListStyles() {
+    var bullets = '', numbers = '';
+    var chars = ['\u2022', '\u25e6', '\u25aa'];
+    for (var l = 1; l <= 9; l++) {
+      bullets += '<text:list-level-style-bullet text:level="' + l + '" text:bullet-char="' + chars[(l - 1) % 3] + '"><style:list-level-properties text:space-before="' + (0.5 + (l - 1) * 0.5) + 'cm" text:min-label-width="0.5cm"/></text:list-level-style-bullet>';
+      numbers += '<text:list-level-style-number text:level="' + l + '" style:num-format="1" style:num-suffix="."><style:list-level-properties text:space-before="' + (0.5 + (l - 1) * 0.5) + 'cm" text:min-label-width="0.6cm"/></text:list-level-style-number>';
+    }
+    return '<text:list-style style:name="LBullets">' + bullets + '</text:list-style><text:list-style style:name="LNumbers">' + numbers + '</text:list-style>';
+  }
   function odtBlock(n) {
     if (!n) return '';
     if (n.type === 'heading') return '<text:h text:style-name="Heading_20_' + Math.min(6, Number(n.level) || 1) + '" text:outline-level="' + (Number(n.level) || 1) + '">' + odtInline(n.children) + '</text:h>';
@@ -3419,16 +3851,9 @@ window.__SUI_RICH = (function () {
     if (n.type === 'blockquote') return '<text:section>' + (n.children || []).map(odtBlock).join('') + '</text:section>';
     if (n.type === 'code_block') return '<text:p><text:span style="font-family:monospace">' + xmlEscapeText(n.text || '') + '</text:span></text:p>';
     if (n.type === 'hr') return '<text:p>---</text:p>';
-    if (n.type === 'page_break') return '<text:p><text:soft-page-break/></text:p>';
+    if (n.type === 'page_break') return '<text:p text:style-name="PageBreak"/>';
     if (n.type === 'image') return '<text:p>' + (odtImage(n.src, n.width, n.height) || ('[' + xmlEscapeText(n.alt || n.caption || 'image') + ']')) + '</text:p>';
-    if (n.type === 'bullet_list' || n.type === 'ordered_list') {
-      var out = '<text:list>';
-      for (var i = 0; i < (n.children || []).length; i++) {
-        var item = n.children[i], text = item.children && item.children[0] ? odtInline(item.children[0].children) : '';
-        out += '<text:list-item><text:p>' + (n.type === 'ordered_list' ? (i + 1) + '. ' : '\u2022 ') + text + '</text:p></text:list-item>';
-      }
-      return out + '</text:list>';
-    }
+    if (n.type === 'bullet_list' || n.type === 'ordered_list') return odtList(n);
     if (n.type === 'table') {
       var out = '<table:table>';
       for (var r = 0; r < (n.rows || []).length; r++) {
@@ -3467,7 +3892,31 @@ window.__SUI_RICH = (function () {
     var body = '';
     for (var i = 0; i < (inst.doc.children || []).length; i++) body += odtBlock(inst.doc.children[i]);
     var content = '<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2"><office:body><office:text>' + body + '</office:text></office:body></office:document-content>';
-    var styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.2"/>';
+    function odtChrome(text) {
+      var parts = String(text || '').split(/(\{page\}|\{pages\})/i), out = '';
+      for (var p = 0; p < parts.length; p++) {
+        if (/^\{page\}$/i.test(parts[p])) out += '<text:page-number text:select-page="current">1</text:page-number>';
+        else if (/^\{pages\}$/i.test(parts[p])) out += '<text:page-count>1</text:page-count>';
+        else if (parts[p]) out += xmlEscapeText(parts[p]);
+      }
+      return out;
+    }
+    var styles;
+    if (inst.headerText || inst.footerText) {
+      var odtHeader = inst.headerText ? '<style:header><text:p text:style-name="Header">' + odtChrome(inst.headerText) + '</text:p></style:header>' : '';
+      var odtFooter = inst.footerText ? '<style:footer><text:p text:style-name="Footer">' + odtChrome(inst.footerText) + '</text:p></style:footer>' : '';
+      styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2">' +
+        '<office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style><style:style style:name="Header" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' +
+        '<style:style style:name="Footer" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' + odtListStyles() + '</office:styles>' +
+        '<office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2cm" fo:margin-right="2cm"/>' +
+        '<style:header-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-bottom="0.3cm"/></style:header-style>' +
+        '<style:footer-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-top="0.3cm"/></style:footer-style>' +
+        '</style:page-layout></office:automatic-styles>' +
+        '<office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1">' + odtHeader + odtFooter + '</style:master-page></office:master-styles>' +
+        '</office:document-styles>';
+    } else {
+      styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2"><office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style>' + odtListStyles() + '</office:styles></office:document-styles>';
+    }
     var manifest = '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>' + manifestMedia + '</manifest:manifest>';
     var entries = [
       { name: 'mimetype', data: utf8Bytes('application/vnd.oasis.opendocument.text') },
@@ -3917,13 +4366,33 @@ window.__SUI_RICH = (function () {
   }
   function exportPDF(inst) {
     var PAGE_W = 595, PAGE_H = 842, MARGIN = 56, CONTENT_W = PAGE_W - MARGIN * 2, BOTTOM = 56;
-    var pages = [], ops = [], y = MARGIN;
+    var headerText = inst.headerText || '', footerText = inst.footerText || '';
+    var HEADER_H = headerText ? 30 : 0, FOOTER_H = footerText ? 30 : 0;
+    var START_Y = MARGIN + HEADER_H, BOTTOM_LIMIT = PAGE_H - MARGIN - FOOTER_H;
+    var pages = [], ops = [], y = START_Y;
     var images = [], imageCache = {};
     var doc = inst.doc || { children: [] };
     var domTables = inst.editor ? inst.editor.querySelectorAll('table') : [];
     var tableSeq = 0;
-    function newPage() { if (ops.length) pages.push(ops.join('\n')); ops = []; y = MARGIN; }
-    function ensure(h) { if (y + h > PAGE_H - BOTTOM) newPage(); }
+    function chromeLine(text, baseline) {
+      var font = pdfFont([]), size = 9;
+      var value = String(text).replace(/\{page\}/gi, '__SUI_PAGE__').replace(/\{pages\}/gi, '__SUI_PAGES__');
+      var width = pdfTextWidth(value.replace(/__SUI_(PAGE|PAGES)__/g, '00'), font, size);
+      var x = MARGIN + Math.max(0, (CONTENT_W - width) / 2);
+      ops.push('BT ' + pdfFill('#666666') + ' /' + font.name + ' ' + size + ' Tf ' + pdfNumber(x) + ' ' + pdfNumber(ty(baseline)) + ' Td (' + pdfEscape(value) + ') Tj ET');
+    }
+    function drawChrome() {
+      if (headerText) {
+        chromeLine(headerText, MARGIN - 16);
+        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(MARGIN - 7)) + ' m ' + pdfNumber(PAGE_W - MARGIN) + ' ' + pdfNumber(ty(MARGIN - 7)) + ' l S Q');
+      }
+      if (footerText) {
+        chromeLine(footerText, PAGE_H - MARGIN + 18);
+        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(PAGE_H - MARGIN + 8)) + ' m ' + pdfNumber(PAGE_W - MARGIN) + ' ' + pdfNumber(ty(PAGE_H - MARGIN + 8)) + ' l S Q');
+      }
+    }
+    function newPage() { if (ops.length) pages.push(ops.join('\n')); ops = []; y = START_Y; drawChrome(); }
+    function ensure(h) { if (y + h > BOTTOM_LIMIT) newPage(); }
     function ty(top) { return PAGE_H - top; }
     function imageFor(node) {
       var src = String(node.src || '');
@@ -4227,6 +4696,26 @@ window.__SUI_RICH = (function () {
       }
       y += 3;
     }
+    function pdfList(node, level) {
+      var number = 0;
+      for (var i = 0; i < (node.children || []).length; i++) {
+        var item = node.children[i];
+        var blocks = item.children || [];
+        for (var b = 0; b < blocks.length; b++) {
+          var inner = blocks[b];
+          if (inner.type === 'paragraph') {
+            number++;
+            var prefix = node.type === 'ordered_list' ? (number + '. ') : '\u2022 ';
+            var head = { type: 'run', text: prefix, font: pdfFont([]), size: 11, fontSize: 11, width: pdfTextWidth(prefix, pdfFont([]), 11) };
+            var indent = level * 18;
+            var lines = wrapRuns([head].concat(runsOf(inner.children)), Math.max(40, CONTENT_W - indent - 18));
+            drawLines(lines, MARGIN + indent + 18, Math.max(40, CONTENT_W - indent - 18), inner.align, null);
+          } else if (inner.type === 'bullet_list' || inner.type === 'ordered_list') {
+            pdfList(inner, level + 1);
+          } else block(inner);
+        }
+      }
+    }
     function block(node) {
       if (!node) return;
       if (node.type === 'heading') heading(node);
@@ -4255,17 +4744,10 @@ window.__SUI_RICH = (function () {
         drawImage(sized.entry, ix, y, sized.width, sized.height);
         y += sized.height + 6;
       } else if (node.type === 'bullet_list' || node.type === 'ordered_list') {
-        for (var li = 0; li < (node.children || []).length; li++) {
-          var item = node.children[li];
-          var itemNodes = item.children && item.children[0] ? item.children[0].children : [];
-          var prefix = (node.type === 'ordered_list' ? (li + 1) + '. ' : '\u2022 ');
-          var runs = [{ type: 'run', text: prefix, font: pdfFont([]), size: 11, fontSize: 11, width: pdfTextWidth(prefix, pdfFont([]), 11) }];
-          runs = runs.concat(runsOf(itemNodes));
-          var lines = wrapRuns(runs, CONTENT_W - 18);
-          drawLines(lines, MARGIN + 18, CONTENT_W - 18, node.align, null);
-        }
+        pdfList(node, 0);
       } else if (node.type === 'table') table(node);
     }
+    drawChrome();
     for (var i = 0; i < (doc.children || []).length; i++) block(doc.children[i]);
     newPage();
     if (!pages.length) pages.push('');
@@ -4286,7 +4768,8 @@ window.__SUI_RICH = (function () {
     objects[2] = '<< /Type /Pages /Kids [' + pageIds.map(function (id) { return id + ' 0 R'; }).join(' ') + '] /Count ' + pages.length + ' >>';
     for (var pg = 0; pg < pages.length; pg++) {
       objects[pageIds[pg]] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Resources << ' + fontRes + xobjRes + ' >> /Contents ' + contentIds[pg] + ' 0 R >>';
-      objects[contentIds[pg]] = '<< /Length ' + pdfBytes(pages[pg]).length + ' >>\nstream\n' + pages[pg] + '\nendstream';
+      var streamPg = pages[pg].split('__SUI_PAGE__').join(String(pg + 1)).split('__SUI_PAGES__').join(String(pages.length));
+      objects[contentIds[pg]] = '<< /Length ' + pdfBytes(streamPg).length + ' >>\nstream\n' + streamPg + '\nendstream';
     }
     var out = '%PDF-1.4\n', offsets = [];
     for (var id = 1; id < objects.length; id++) {
@@ -4465,6 +4948,17 @@ const suiRichTextCss = `
 .sui-rich-tool-group { display: flex; align-items: center; gap: 2px; padding: 2px 4px; border: 1px solid var(--sui-rich-border); border-radius: 9px; background: color-mix(in srgb, var(--sui-rich-fg) 4%, transparent); }
 .sui-rich-tool-handle { cursor: grab; color: var(--sui-rich-muted); font-size: 11px; padding: 0 2px; user-select: none; line-height: 1; }
 .sui-rich-tool-handle:active { cursor: grabbing; }
+.sui-rich-page { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--sui-rich-paper); }
+.sui-rich-pageheader { padding: 9px 26px 5px; border-bottom: 1px solid var(--sui-rich-paper-border); font-size: 11px; color: var(--sui-rich-paper-muted); text-align: center; }
+.sui-rich-pagefooter { padding: 5px 26px 9px; border-top: 1px solid var(--sui-rich-paper-border); font-size: 11px; color: var(--sui-rich-paper-muted); text-align: center; }
+.sui-rich-findbar { position: absolute; top: 8px; right: 14px; z-index: 25; display: flex; align-items: center; gap: 4px; padding: 5px 6px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 9px; box-shadow: 0 10px 24px rgba(0,0,0,.25); color: var(--sui-rich-fg); }
+.sui-rich-findbar[hidden] { display: none; }
+.sui-rich-find-input { height: 26px; width: 140px; padding: 0 7px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; }
+.sui-rich-find-count { font-size: 11px; color: var(--sui-rich-muted); min-width: 36px; text-align: center; }
+.sui-rich-find-btn { height: 26px; min-width: 24px; padding: 0 6px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; font: inherit; font-size: 12px; }
+.sui-rich-find-btn:hover { background: var(--sui-rich-hover); }
+::highlight(sui-rich-find) { background: rgba(255, 214, 0, .35); }
+::highlight(sui-rich-find-current) { background: rgba(255, 149, 0, .75); color: #111; }
 .sui-rich-tool-group.floating { position: fixed; z-index: 940; padding: 5px; flex-wrap: wrap; max-width: calc(100vw - 16px); background: var(--sui-rich-bg); border-color: var(--sui-rich-border); box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-tool-group.floating .sui-rich-tool-dock { display: inline-flex; }
 .sui-rich-group { display: flex; align-items: center; gap: 2px; padding-right: 5px; border-right: 1px solid var(--sui-rich-border); }
@@ -4477,7 +4971,7 @@ const suiRichTextCss = `
 .sui-rich-btn:active { transform: translateY(1px); }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
 .sui-rich-color { width: 34px; padding: 2px; cursor: pointer; }
-.sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); }
+.sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }
 .sui-rich-editor { flex: 1 1 auto; min-width: 0; min-height: 220px; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: anywhere; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
 .sui-rich-editor:empty::before, .sui-rich-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--sui-rich-muted); pointer-events: none; }
 .sui-rich-editor p, .sui-rich-editor h1, .sui-rich-editor h2, .sui-rich-editor h3, .sui-rich-editor h4, .sui-rich-editor blockquote, .sui-rich-editor pre, .sui-rich-editor figure, .sui-rich-editor table { margin: 0 0 .8em; }

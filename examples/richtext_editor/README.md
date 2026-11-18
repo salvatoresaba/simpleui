@@ -32,7 +32,8 @@ builds.
   top bar to re-insert it at the nearest slot; the other toolbars move aside. A single theme button at the right of the toolbar
   cycles the interface between dark and light; the document page stays white
   unless `contentTheme: "dark"` is set.
-- Undo/redo history, keyboard shortcuts and JSON document binding.
+- Undo/redo history, keyboard shortcuts, find and replace (Ctrl+F), sanitized
+  paste from Word/Excel/HTML, print preview (Ctrl+P) and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
 - Open and save plain text, RTF, DOC (best effort), DOCX and ODT; RTF keeps
   tables (with merged cells and cell shading), fonts, header/footer pictures
@@ -63,6 +64,7 @@ and Ctrl+Enter.
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | Interface theme: `dark` (default), `light` or `auto` |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark` |
+| `header` / `footer` | Text repeated on every page in PDF/DOCX/ODT/print; `\{page\}` and `\{pages\}` become page numbers |
 | `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter |
 | `template` | `article`, `letter`, `report` or `compact` |
 

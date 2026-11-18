@@ -1691,13 +1691,22 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | Interface theme: `dark` (default), `light` or `auto`. A single toolbar button cycles dark/light and only styles the editor chrome |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark`. Independent from `theme` |
+| `header` / `footer` | Text repeated on every page in PDF, DOCX, ODT and print. `\{page\}` and `\{pages\}` are replaced with the page number and total (escape the braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar groups (separated by `|`) are individual dockable toolbars: drag the
 ⣿ handle to float one, then drop it on the top bar to re-insert it in the slot
 closest to the end of an existing toolbar (or at the left edge when the bar is
 empty); the other toolbars move aside. Floating positions are remembered per
-editor. A single theme button at the right cycles the interface theme.
+editor.
+
+**Find and replace:** `Ctrl+F` (or Edit > Find and replace) opens a find bar;
+Enter/F3 next, Shift+F3 previous, Esc closes. **Paste** from Word/Excel/HTML is
+sanitized into the document model and keeps bold/italic, colors, links, tables
+and images. **Print preview / PDF:** `Ctrl+P` (File > Print / Save as PDF) opens
+the browser print dialog on A4 pages with the header/footer repeated.
+**Lists:** bullet and numbered lists can be nested with Tab and moved back with
+Shift+Tab; DOCX and ODT export use native list numbering. A single theme button at the right cycles the interface theme.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
@@ -1793,10 +1802,10 @@ the document. Supported formats:
 |---|---|---|---|
 | TXT | yes | yes | Plain paragraphs |
 | RTF | practical subset | yes | Paragraphs, character/paragraph formatting, fonts, alignment, tables with merged cells and cell shading, checkboxes, header/footer pictures and embedded PNG/JPEG pictures |
-| DOC | best effort | RTF content with `.doc` extension | Keeps fonts, sizes, colors, tables, images and page breaks. Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
-| DOCX | yes | yes | WordprocessingML paragraphs, runs, tables, formatting, fonts, cell shading, images and page breaks |
-| ODT | yes | yes | OpenDocument text, paragraphs, formatting, lists, tables and embedded images |
-| PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells) and embedded PNG/JPEG pictures |
+| DOC | best effort | RTF content with `.doc` extension | Keeps fonts, sizes, colors, tables, images, lists and page breaks. Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
+| DOCX | yes | yes | WordprocessingML paragraphs, runs, native bullet/numbered lists, tables, formatting, fonts, cell shading, images, header/footer and page breaks |
+| ODT | yes | yes | OpenDocument text, paragraphs, formatting, native lists, tables, embedded images, header/footer and page breaks |
+| PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells), embedded PNG/JPEG pictures, lists and repeated header/footer with page numbers |
 | HTML, Markdown, JSON, XML | yes | yes | Existing editor formats |
 
 Imported files are untrusted: ZIP/XML parsing is bounded by the browser parser,

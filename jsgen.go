@@ -5494,6 +5494,8 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if contentTheme != "dark" {
 		contentTheme = "light"
 	}
+	headerText := richTextTextAttr(e, "header")
+	footerText := richTextTextAttr(e, "footer")
 	clean := *e
 	var keep []Attr
 	for _, a := range e.attrs {
@@ -5522,6 +5524,12 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		open += " data-sui-rich-placeholder=\"" + htmlEscape(placeholder) + "\""
 		open += " data-sui-rich-theme=\"" + theme + "\""
 		open += " data-sui-rich-content=\"" + contentTheme + "\""
+		if headerText != "" {
+			open += " data-sui-rich-header=\"" + htmlEscape(headerText) + "\""
+		}
+		if footerText != "" {
+			open += " data-sui-rich-footer=\"" + htmlEscape(footerText) + "\""
+		}
 		if template != "" {
 			open += " data-sui-rich-template=\"" + htmlEscape(template) + "\""
 		}
