@@ -75,6 +75,7 @@ Completati di recente:
 - [x] Formattazione `Intl` per date, numeri, valute, percentuali, tempo relativo e timezone.
 - [x] fs.copy/move/rename/isDir/size, crypto hash/UUID/randomBytes, path utilities, validazione JSON Schema, storage quota e sync cross-tab.
 - [x] Libreria XML: DOM, navigazione/modifica, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD con `validateXsdAll`, JSON/CSV/XSLT, diff con chiavi e operazioni moved, `xml.patch`, merge update, `merge3` a tre vie e I/O binario `loadBytes`/`saveBytes`.
+- [x] Libreria JSON: JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), diff con chiavi e spostamenti, `merge3`, `validateAll`, byte UTF-8/UTF-16 e helper desktop `loadFile`/`saveFile`/`loadBytes`/`saveBytes`.
 
 ## Correzioni di accuratezza
 

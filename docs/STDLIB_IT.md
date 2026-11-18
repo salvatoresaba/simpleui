@@ -123,24 +123,96 @@ async fn load() {
 }
 ```
 
-## JSON Module (`json`)
+## Modulo JSON (`json`)
 
-Parsing/stringify JSON.
+```sui
+import { json } from "std"
+```
 
-| Function | Params | Return | Async | Description |
+| Funzione | Parametri | Ritorno | Async | Descrizione |
 |---|---|---|---|---|
-| `json.parse(s)` | string | (any, string) | true | Parse JSON. Restituisce oggetto/array/valore |
-| `json.stringify(v)` | any | (string, null) | true | Stringify JSON. *Fire-and-forget* in pratica? Secondo `StdFunc` ret1 = "null" quindi non richiede binding di errore separato nella logica usuale |
-| `json.validate(value, schema)` | any, any | (bool, string) | false | Validazione con un sottoinsieme di JSON Schema; il secondo valore è il primo percorso d'errore |
+| `json.parse(s)` | string | (any, string) | true | Analizza testo JSON; rifiuta BOM iniziale e input troppo grande |
+| `json.parseBytes(bytes, [encoding])` | array[int], string? | (any, string) | false | Analizza byte UTF-8/UTF-16LE/UTF-16BE; BOM rilevato automaticamente |
+| `json.stringify(value, [options])` | any, map? | (string, string) | true | Serializza JSON. Opzioni: `indent` (bool/int/string), `sortKeys`, `newline` |
+| `json.toBytes(value, encoding, [options])` | any, string, map? | (array[int], string) | false | Serializza in byte UTF-8/UTF-16LE/UTF-16BE |
+| `json.validate(value, schema)` | any, any | (bool, string) | false | Valida con un sottoinsieme JSON Schema; restituisce il primo errore |
+| `json.validateAll(value, schema)` | any, any | (array[string], string) | false | Valida e raccoglie fino a 100 errori |
+| `json.pointer(value, pointer)` | any, string | (any, string) | false | Legge un JSON Pointer (RFC 6901) |
+| `json.setPointer(value, pointer, next)` | any, string, any | (any, string) | false | Restituisce una copia con il pointer impostato o aggiunto |
+| `json.removePointer(value, pointer)` | any, string | (any, string) | false | Restituisce una copia con il pointer rimosso |
+| `json.clone(value)` | any | (any, string) | false | Copia profonda; rifiuta cicli e annidamento eccessivo |
+| `json.equal(a, b)` | any, any | (bool, string) | false | Uguaglianza JSON profonda (l'ordine degli array conta) |
+| `json.diff(a, b, [options])` | any, any, map? | (array[any], string) | false | Produce operazioni RFC 6902. Opzioni: `key`, `detectMoves` |
+| `json.patch(value, operations)` | any, any | (any, string) | false | Applica operazioni RFC 6902 a una copia; si ferma al primo errore |
+| `json.merge(target, patch)` | any, any | (any, string) | false | Applica un JSON Merge Patch RFC 7386 |
+| `json.merge3(base, ours, theirs, [options])` | any, any, any, map? | (array[string], string) | false | Merge a tre vie dentro `ours`; restituisce i conflitti |
+| `json.loadFile(path, [encoding])` | string, string? | (any, string) | true | Caricamento desktop sotto `--allow-dir` |
+| `json.loadBytes(path, [encoding])` | string, string? | (any, string) | true | Caricamento binario desktop con BOM/encoding |
+| `json.saveFile(path, value, [options])` | string, any, map? | (null, string) | true | Salvataggio desktop; testo UTF-8 |
+| `json.saveBytes(path, value, encoding, [options])` | string, any, string, map? | (null, string) | true | Salvataggio binario desktop; UTF-8/UTF-16LE/UTF-16BE |
 
-`json.validate` supporta `type`, `enum`, `const`, `properties`, `required`,
-`additionalProperties`, `items` (schema o tupla), `minItems`/`maxItems`,
-`uniqueItems`, `minLength`/`maxLength`, `pattern`, `format` (`email`, `uri`,
-`url`, `uuid`, `date`, `date-time`), limiti numerici e `multipleOf`,
-`minProperties`/`maxProperties`, `allOf`/`anyOf`/`oneOf`/`not` e
-`if`/`then`/`else`. `schema` può essere una mappa o una stringa JSON. `$ref` è
-rifiutato. Lo schema è codice fidato dello sviluppatore; i dati non vengono
-eseguiti.
+### JSON Pointer (RFC 6901)
+
+I pointer indirizzano un solo valore. `""` è l'intero documento, `/store/books/1`
+seleziona un elemento di array e `/a~1b` indirizza la chiave `a/b` (`~1` è `/`,
+`~0` è `~`). Un percorso mancante restituisce `(null, errore)`; un valore `null`
+memorizzato restituisce `(null, null)` ed è quindi distinguibile. `setPointer`
+sostituisce un valore esistente, crea una chiave mancante o aggiunge un elemento
+di array; non modifica mai l'input. `removePointer` rifiuta la radice.
+
+### JSON Patch (RFC 6902)
+
+`json.patch` supporta `add`, `remove`, `replace`, `move`, `copy` e `test`. Le
+operazioni vengono applicate a una copia profonda, in ordine, e l'input non
+viene mai modificato parzialmente: qualsiasi errore annulla e restituisce
+`(null, messaggio)`. `test` consente controlli di concorrenza ottimistica.
+
+```sui
+patched, err = json.patch(doc, [
+  {"op": "replace", "path": "/store/open", "value": false},
+  {"op": "add", "path": "/store/books/-", "value": {"id": 3, "title": "C"}},
+  {"op": "test", "path": "/store/open", "value": false}
+])
+```
+
+### Diff e merge a tre vie
+
+`json.diff` emette operazioni RFC 6902 applicabili direttamente. Senza `key`
+confronta gli array per posizione. Con `{"key": "id"}` allinea gli elementi su
+quel campo, emette `move` per il riordino e `add`/`remove` per aggiunte e
+rimozioni. Ogni operazione porta anche un campo opzionale `key` per l'ispezione;
+i client standard lo ignorano. Le operazioni strutturali precedono le modifiche
+annidate, così i percorsi restano validi. `detectMoves: false` sostituisce
+l'intero array riordinato invece di emettere `move`.
+
+`json.merge` implementa RFC 7386: gli oggetti si fondono ricorsivamente, `null`
+cancella una chiave e array/scalari sostituiscono il valore. `json.merge3`
+calcola `base -> theirs`, applica le modifiche non in conflitto a `ours` sul
+posto e restituisce descrizioni come `replace /items/0/value`. I nodi in
+conflitto mantengono il valore di `ours`. La radice di `ours` deve essere un
+oggetto o un array.
+
+### Validazione
+
+`json.validate` restituisce la prima violazione; `json.validateAll` fino a 100
+messaggi. Lo schema può essere una mappa o una stringa JSON. Parole chiave
+supportate: `type`, `enum`, `const`, `properties`, `required`,
+`additionalProperties`, `items` (schema o tupla), `additionalItems`,
+`minItems`/`maxItems`, `uniqueItems`, `minLength`/`maxLength`, `pattern`,
+`format` (`email`, `uri`, `url`, `uuid`, `date`, `date-time`), limiti numerici,
+`multipleOf`, `minProperties`/`maxProperties`, `allOf`/`anyOf`/`oneOf`/`not` e
+`if`/`then`/`else`. `$ref` è rifiutato. Lo schema è codice fidato dello
+sviluppatore; i dati non vengono mai eseguiti.
+
+### Byte, encoding e file
+
+`json.parseBytes` e `json.toBytes` supportano UTF-8, UTF-16LE e UTF-16BE,
+rilevano o scrivono il BOM e rifiutano UTF-32 con un errore esplicito. Il testo
+JSON è limitato a 20 milioni di caratteri/byte, l'annidamento a 128 livelli, le
+patch a 10.000 operazioni e i diff a 10.000 modifiche. Gli helper file desktop
+usano la stessa allow-list di `fs` e `xml`; sul web restituiscono un errore
+esplicito. La chiave `__proto__` è rifiutata da patch, diff e clone per evitare
+prototype pollution.
 
 ## Modulo XML (`xml`)
 

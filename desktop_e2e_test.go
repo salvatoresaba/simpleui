@@ -25,9 +25,17 @@ func TestDesktopBridgeE2E(t *testing.T) {
 	dir := t.TempDir()
 
 	// Fixture: a small app that imports the bridge-relevant modules.
-	fixture := "import { exec, fs, xml } from \"std\"\n" +
+	fixture := "import { exec, fs, json, xml } from \"std\"\n" +
 		"\n" +
 		"async fn nop() -> null {\n" +
+		"}\n" +
+		"\n" +
+		"async fn jsonTouch() -> null {\n" +
+		"\tdoc, parseErr = json.parse(\"[1,2]\")\n" +
+		"\tsaved, saveErr = json.saveFile(\"probe.json\", doc, {})\n" +
+		"\tloaded, loadErr = json.loadFile(\"probe.json\")\n" +
+		"\tsavedBytes, saveBytesErr = json.saveBytes(\"probe.json\", doc, \"utf-16le\")\n" +
+		"\tloadedBytes, loadBytesErr = json.loadBytes(\"probe.json\", \"utf-16le\")\n" +
 		"}\n" +
 		"\n" +
 		"async fn xmlTouch() -> null {\n" +

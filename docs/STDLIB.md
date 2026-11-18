@@ -134,19 +134,94 @@ async fn load() {
 
 ## JSON Module (`json`)
 
+```sui
+import { json } from "std"
+```
+
 | Function | Params | Return | Async | Description |
 |---|---|---|---|---|
-| `json.parse(s)` | string | (any, string) | true | Parse JSON |
-| `json.stringify(v)` | any | (string, null) | true | Serialize JSON |
-| `json.validate(value, schema)` | any, any | (bool, string) | false | Validate with a JSON Schema subset; the second value is the first error path |
+| `json.parse(s)` | string | (any, string) | true | Parse JSON text; rejects a leading BOM and large input |
+| `json.parseBytes(bytes, [encoding])` | array[int], string? | (any, string) | false | Parse UTF-8/UTF-16LE/UTF-16BE bytes; BOM detected automatically |
+| `json.stringify(value, [options])` | any, map? | (string, string) | true | Serialize JSON. Options: `indent` (bool/int/string), `sortKeys`, `newline` |
+| `json.toBytes(value, encoding, [options])` | any, string, map? | (array[int], string) | false | Serialize to UTF-8/UTF-16LE/UTF-16BE bytes |
+| `json.validate(value, schema)` | any, any | (bool, string) | false | Validate with a JSON Schema subset; returns the first error path |
+| `json.validateAll(value, schema)` | any, any | (array[string], string) | false | Validate and collect up to 100 errors |
+| `json.pointer(value, pointer)` | any, string | (any, string) | false | Read a JSON Pointer (RFC 6901) |
+| `json.setPointer(value, pointer, next)` | any, string, any | (any, string) | false | Return a copy with the pointer set or added |
+| `json.removePointer(value, pointer)` | any, string | (any, string) | false | Return a copy with the pointer removed |
+| `json.clone(value)` | any | (any, string) | false | Deep copy; rejects cycles and excessive nesting |
+| `json.equal(a, b)` | any, any | (bool, string) | false | Deep JSON equality (array order matters) |
+| `json.diff(a, b, [options])` | any, any, map? | (array[any], string) | false | Produce RFC 6902 operations. Options: `key`, `detectMoves` |
+| `json.patch(value, operations)` | any, any | (any, string) | false | Apply RFC 6902 operations to a copy; aborts on the first error |
+| `json.merge(target, patch)` | any, any | (any, string) | false | Apply an RFC 7386 JSON Merge Patch |
+| `json.merge3(base, ours, theirs, [options])` | any, any, any, map? | (array[string], string) | false | Three-way merge into `ours`; returns conflict descriptions |
+| `json.loadFile(path, [encoding])` | string, string? | (any, string) | true | Desktop bridge load under `--allow-dir` |
+| `json.loadBytes(path, [encoding])` | string, string? | (any, string) | true | Desktop binary load with BOM/encoding detection |
+| `json.saveFile(path, value, [options])` | string, any, map? | (null, string) | true | Desktop bridge save; UTF-8 text |
+| `json.saveBytes(path, value, encoding, [options])` | string, any, string, map? | (null, string) | true | Desktop binary save; UTF-8/UTF-16LE/UTF-16BE |
 
-`json.validate` supports `type`, `enum`, `const`, `properties`, `required`,
-`additionalProperties`, `items` (schema or tuple), `minItems`/`maxItems`,
+### JSON Pointer (RFC 6901)
+
+Pointers address exactly one value. `""` is the whole document, `/store/books/1`
+selects an array element, and `/a~1b` addresses the object key `a/b` (`~1` is
+`/`, `~0` is `~`). Missing paths return `(null, error)`; a stored `null` value
+returns `(null, null)` and is therefore distinguishable from a missing path.
+`setPointer` replaces an existing value, creates a missing object member, or
+appends an array element; it never mutates its input. `removePointer` rejects
+the document root.
+
+### JSON Patch (RFC 6902)
+
+`json.patch` supports `add`, `remove`, `replace`, `move`, `copy` and `test`.
+Operations are applied to a deep clone, in order, and the input is never
+partially modified: any error aborts and returns `(null, message)`. `test`
+enables optimistic concurrency checks.
+
+```sui
+patched, err = json.patch(doc, [
+  {"op": "replace", "path": "/store/open", "value": false},
+  {"op": "add", "path": "/store/books/-", "value": {"id": 3, "title": "C"}},
+  {"op": "test", "path": "/store/open", "value": false}
+])
+```
+
+### Diff and three-way merge
+
+`json.diff` emits directly applicable RFC 6902 operations. Without `key` it
+compares arrays positionally. With `{"key": "id"}` it aligns array items by that
+member, emits `move` for reordering and `add`/`remove` for membership changes.
+Each operation also carries an optional `key` field for inspection; standard
+clients ignore it. Structural operations are emitted before nested value
+changes so their paths stay valid. `detectMoves: false` replaces a reordered
+array wholesale instead of emitting moves.
+
+`json.merge` implements RFC 7386: objects merge recursively, `null` deletes a
+member, and arrays/scalars replace the target value. `json.merge3` computes
+`base -> theirs`, applies non-conflicting changes to `ours` in place and
+returns conflict descriptions such as `replace /items/0/value`. Conflicting
+nodes keep the `ours` value. The root of `ours` must be an object or array.
+
+### Validation
+
+`json.validate` returns the first violation; `json.validateAll` returns up to
+100 messages. The schema may be a map or a JSON string. Supported keywords:
+`type`, `enum`, `const`, `properties`, `required`, `additionalProperties`,
+`items` (schema or tuple), `additionalItems`, `minItems`/`maxItems`,
 `uniqueItems`, `minLength`/`maxLength`, `pattern`, `format` (`email`, `uri`,
-`url`, `uuid`, `date`, `date-time`), numeric bounds and `multipleOf`,
+`url`, `uuid`, `date`, `date-time`), numeric bounds, `multipleOf`,
 `minProperties`/`maxProperties`, `allOf`/`anyOf`/`oneOf`/`not` and
-`if`/`then`/`else`. `schema` may be a map or a JSON string. `$ref` is rejected.
-The schema is trusted developer code; data is never executed.
+`if`/`then`/`else`. `$ref` is rejected. The schema is trusted developer code;
+data is never executed.
+
+### Bytes, encoding and file helpers
+
+`json.parseBytes` and `json.toBytes` support UTF-8, UTF-16LE and UTF-16BE,
+detect or write a BOM, and reject UTF-32 with an explicit error. JSON text is
+limited to 20 million characters/bytes, nesting to 128 levels, patches to
+10,000 operations and diffs to 10,000 changes. Desktop file helpers use the
+same allow-list as `fs` and `xml`; on the web they return an explicit error.
+The object key `__proto__` is rejected by patch, diff and clone to avoid
+prototype pollution.
 
 ## XML Module (`xml`)
 

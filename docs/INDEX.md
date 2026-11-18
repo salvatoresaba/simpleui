@@ -56,7 +56,7 @@ Recommended order for an agent:
 | Locale formatting with Intl | [API: Intl](API_REFERENCE.md#locale-formatting-intl) | [BUILTINS](BUILTINS.md#assertions-and-locale-formatting) | `examples/intl_format.sui` |
 | Path helpers | [BUILTINS: path](BUILTINS.md#path-functions) | [STDLIB](../docs/STDLIB.md) | `examples/stdlib_advanced.sui` |
 | Crypto hash/UUID/random bytes | [BUILTINS: crypto](BUILTINS.md#crypto-functions) | [SECURITY](../SECURITY.md) | `examples/stdlib_advanced.sui` |
-| JSON Schema validation | [STDLIB: json](STDLIB.md#json-module-json) | [BUILTINS](BUILTINS.md) | `examples/stdlib_advanced.sui` |
+| JSON Pointer, JSON Patch, Merge Patch, keyed diff and JSON Schema validation | [STDLIB: json](STDLIB.md#json-module-json) | [BUILTINS](BUILTINS.md) | `examples/json_library.sui` |
 | Storage quota and cross-tab sync | [BUILTINS: storage](BUILTINS.md#storage-functions-cross-target) | [STDLIB](STDLIB.md) | `examples/stdlib_advanced.sui` |
 | Desktop fs copy/move/size/isDir | [STDLIB: fs](STDLIB.md#file-system-module-fs) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/fs_operations.sui` |
 | XML DOM, XPath, XSD subset, keyed diff/patch/merge and conversion | [STDLIB: XML](STDLIB.md#xml-module-xml) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/xml_library.sui` |

@@ -2527,7 +2527,10 @@ func stdObjJs(p *Prog, target string) string {
 	}
 	prefix := ""
 	if xmlModuleImported(p) {
-		prefix = xmlRuntimeSource + "\n\n"
+		prefix += xmlRuntimeSource + "\n\n"
+	}
+	if jsonModuleImported(p) {
+		prefix += jsonRuntimeSource + "\n\n"
 	}
 	return prefix + "const __SUI_STD = {\n" + strings.Join(entries, ",\n") + "\n};"
 }
@@ -2605,6 +2608,69 @@ func stdBodyJs(key string, target string) string {
 	}
 	if key == "json_validate" {
 		return "(value, schema) => __sui_json_validate(value, schema)"
+	}
+	if key == "json_parse" {
+		return "async (s) => __SUI_JSON.parse(s)"
+	}
+	if key == "json_parse_bytes" {
+		return "(bytes, encoding) => __SUI_JSON.parseBytes(bytes, encoding)"
+	}
+	if key == "json_stringify" {
+		return "async (v, options) => __SUI_JSON.stringify(v, options)"
+	}
+	if key == "json_to_bytes" {
+		return "(value, encoding, options) => __SUI_JSON.toBytes(value, encoding, options)"
+	}
+	if key == "json_validate_all" {
+		return "(value, schema) => __SUI_JSON.validateAll(value, schema)"
+	}
+	if key == "json_pointer" {
+		return "(value, path) => __SUI_JSON.pointer(value, path)"
+	}
+	if key == "json_set_pointer" {
+		return "(value, path, next) => __SUI_JSON.setPointer(value, path, next)"
+	}
+	if key == "json_remove_pointer" {
+		return "(value, path) => __SUI_JSON.removePointer(value, path)"
+	}
+	if key == "json_clone" {
+		return "(value) => __SUI_JSON.clone(value)"
+	}
+	if key == "json_equal" {
+		return "(a, b) => __SUI_JSON.equal(a, b)"
+	}
+	if key == "json_diff" {
+		return "(a, b, options) => __SUI_JSON.diff(a, b, options)"
+	}
+	if key == "json_patch" {
+		return "(value, changes) => __SUI_JSON.patch(value, changes)"
+	}
+	if key == "json_merge" {
+		return "(value, patch) => __SUI_JSON.merge(value, patch)"
+	}
+	if key == "json_merge3" {
+		return "(base, ours, theirs, options) => __SUI_JSON.merge3(base, ours, theirs, options)"
+	}
+	if key == "json_load_file" || key == "json_load_bytes" {
+		if target == "desktop" {
+			return "async (path, encoding) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); try { const r = await fetch(\"/__bridge__/file/readbytes\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? __SUI_JSON.parseBytes(__sui_b64_to_bytes(j.data), encoding) : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
+		}
+		if key == "json_load_file" {
+			return "async (path, encoding) => [null, \"json.loadFile is not available on the web target; use fs.read or fetch and json.parse\"]"
+		}
+		return "async (path, encoding) => [null, \"json.loadBytes is not available on the web target\"]"
+	}
+	if key == "json_save_file" {
+		if target == "desktop" {
+			return "async (path, value, options) => { const res = __SUI_JSON.stringify(value, options || {}); if (res[1] !== null) return res; const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); fd.set(\"data\", res[0]); try { const r = await fetch(\"/__bridge__/file/write\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [null, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
+		}
+		return "async (path, value, options) => [null, \"json.saveFile is not available on the web target\"]"
+	}
+	if key == "json_save_bytes" {
+		if target == "desktop" {
+			return "async (path, value, encoding, options) => { const res = __SUI_JSON.stringify(value, options || {}); if (res[1] !== null) return res; let bytes; try { bytes = __SUI_JSON.encodeBytes(res[0], encoding || \"utf-8\"); } catch (e) { return [null, String(e)]; } const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"path\", path); fd.set(\"data\", __sui_bytes_to_b64(bytes)); try { const r = await fetch(\"/__bridge__/file/writebytes\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [null, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
+		}
+		return "async (path, value, encoding, options) => [null, \"json.saveBytes is not available on the web target\"]"
 	}
 	if key == "fs_read" {
 		if target == "desktop" {
@@ -2725,12 +2791,6 @@ func stdBodyJs(key string, target string) string {
 	}
 	if key == "ws_close" {
 		return "async (conn) => { try { conn.close(); return [null, null]; } catch (e) { return [null, String(e)]; } }"
-	}
-	if key == "json_parse" {
-		return "async (s) => { try { return [JSON.parse(s), null]; } catch (e) { return [null, String(e)]; } }"
-	}
-	if key == "json_stringify" {
-		return "async (v) => { try { return [JSON.stringify(v), null]; } catch (e) { return [null, String(e)]; } }"
 	}
 	if key == "dialog_pickfile" {
 		if target != "desktop" {

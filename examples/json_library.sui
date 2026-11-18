@@ -1,0 +1,76 @@
+import { json } from "std"
+
+css "body \{ margin: 0; padding: 28px; background: #0f1117; color: #e6e6ef; font-family: system-ui, sans-serif; \}
+.card \{ max-width: 900px; padding: 20px 22px; border: 1px solid #2c3444; border-radius: 10px; background: #151922; \}
+pre \{ white-space: pre-wrap; font-size: 12px; line-height: 1.5; \}
+.muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
+
+state out = "Press Run to exercise JSON Pointer, JSON Patch, merge and schema validation."
+
+state sample = {"store": {"books": [{"id": 1, "title": "A", "price": 10}, {"id": 2, "title": "B", "price": 20}], "open": true}, "a/b": 7}
+
+async fn run() -> null {
+	firstTitle, pe = json.pointer(sample, "/store/books/0/title")
+	escaped, ee = json.pointer(sample, "/a~1b")
+	updated, se = json.setPointer(sample, "/store/open", false)
+	updatedText, ute = json.stringify(updated, {"sortKeys": true})
+	removed, re = json.removePointer(sample, "/store/open")
+	removedText, rte = json.stringify(removed, {"sortKeys": true})
+
+	patched, pae = json.patch(sample, [{"op": "replace", "path": "/store/open", "value": false}, {"op": "add", "path": "/store/books/-", "value": {"id": 3, "title": "C", "price": 30}}])
+	patchedText, pte = json.stringify(patched, {"sortKeys": true})
+	bad, bae = json.patch(sample, [{"op": "remove", "path": "/missing"}])
+
+	let before = {"items": [{"id": 1, "value": "A"}, {"id": 2, "value": "B"}, {"id": 3, "value": "C"}]}
+	let after = {"items": [{"id": 3, "value": "C2"}, {"id": 1, "value": "A"}, {"id": 4, "value": "D"}]}
+	changes, ce = json.diff(before, after, {"key": "id"})
+	changesText, cte = json.stringify(changes)
+	diffPatched, dpe = json.patch(before, changes)
+	diffEqual, deq = json.equal(diffPatched, after)
+
+	merged, me = json.merge({"a": 1, "b": {"x": 1, "y": 2}}, {"b": {"y": null, "z": 3}, "c": [1, 2]})
+	mergedText, mte = json.stringify(merged, {"sortKeys": true})
+
+	let ours = {"items": [{"id": 1, "value": "ours"}, {"id": 2, "value": "B"}]}
+	let base = {"items": [{"id": 1, "value": "A"}, {"id": 2, "value": "B"}]}
+	let theirs = {"items": [{"id": 1, "value": "A"}, {"id": 2, "value": "theirs"}]}
+	conflicts, cfe = json.merge3(base, ours, theirs, {"key": "id"})
+	oursText, ote = json.stringify(ours)
+
+	let schema = {"type": "object", "required": ["name", "age"], "properties": {"name": {"type": "string", "minLength": 3}, "age": {"type": "integer", "minimum": 18}, "tags": {"type": "array", "items": {"type": "string"}}}, "additionalProperties": false}
+	valid, ve = json.validate({"name": "Ada", "age": 36}, schema)
+	errors, vae = json.validateAll({"name": "A", "age": 12, "tags": ["ok", 2], "extra": true}, schema)
+
+	utf16, u16e = json.toBytes(sample, "utf-16le", {"indent": true})
+	from16, f16e = json.parseBytes(utf16, "utf-16le")
+	roundTitle, rte2 = json.pointer(from16, "/store/books/0/title")
+	pretty, pre = json.stringify(sample, {"indent": true, "sortKeys": true, "newline": true})
+
+	out = "Pointer /store/books/0/title = " + str(firstTitle)
+	out = out + "\nEscaped key /a~1b = " + str(escaped)
+	out = out + "\nsetPointer:\n" + updatedText
+	out = out + "\nremovePointer:\n" + removedText
+	out = out + "\nRFC 6902 patch:\n" + patchedText
+	out = out + "\nInvalid patch error = " + str(bae)
+	out = out + "\nDiff operations = " + changesText
+	out = out + "\nDiff applied equals target = " + str(diffEqual)
+	out = out + "\nRFC 7386 merge:\n" + mergedText
+	out = out + "\nThree-way conflicts = " + str(len(conflicts)) + " merged:\n" + oursText
+	out = out + "\nvalidate = " + str(valid) + " validateAll errors = " + str(len(errors))
+	loop err in errors {
+		out = out + "\n  " + err
+	}
+	out = out + "\nUTF-16LE round-trip = " + str(roundTitle) + " (" + str(len(utf16)) + " bytes)"
+	out = out + "\nPretty:\n" + pretty
+}
+
+view main {
+	card "" class: "card" {
+		h1 "JSON library"
+		pre "{out}"
+		row {
+			button "Run" onClick: run
+		}
+		p "JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), keyed diff with moves, three-way merge, multi-error JSON Schema validation, UTF-8/UTF-16 bytes and formatting options. On desktop json.loadFile/saveFile/loadBytes/saveBytes use the fs bridge and --allow-dir; on web they return an explicit error." class: "muted"
+	}
+}

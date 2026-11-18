@@ -418,6 +418,54 @@ valore vuoto. Vedi [`examples/desktop_picker.sui`](../examples/desktop_picker.su
 Valida i nomi forniti dall'utente; l'allow-list del bridge è il secondo livello,
 non un sostituto. Fornisci un messaggio chiaro per il web.
 
+## Documenti JSON
+
+Usa JSON Pointer per indirizzare un valore, JSON Patch per modificare una copia
+e `json.diff`/`json.merge3` per la sincronizzazione. I valori JSON sono mappe e
+array nativi, quindi non serve un DOM.
+
+```sui
+import { json } from "std"
+
+state status = ""
+
+async fn update() -> null {
+	let doc = {"items": [{"id": 1, "done": false}, {"id": 2, "done": true}]}
+	first, perr = json.pointer(doc, "/items/0/id")
+	if perr != null { status = perr; return }
+
+	patched, err = json.patch(doc, [
+		{"op": "replace", "path": "/items/0/done", "value": true},
+		{"op": "add", "path": "/items/-", "value": {"id": 3, "done": false}},
+		{"op": "test", "path": "/items/1/done", "value": true}
+	])
+	if err != null { status = err; return }
+
+	errors, verr = json.validateAll(patched, {"type": "object", "required": ["items"]})
+	if verr != null { status = verr; return }
+	text, terr = json.stringify(patched, {"indent": 2, "sortKeys": true})
+	status = str(first) + " / " + str(len(errors)) + " errori\n" + text
+}
+
+async fn syncFiles() -> null {
+	local, lerr = json.loadFile("C:/data/local.json")
+	if lerr != null { status = lerr; return }
+	remote, rerr = json.loadFile("C:/data/remote.json")
+	if rerr != null { status = rerr; return }
+	conflicts, cerr = json.merge3(local, local, remote, {"key": "id"})
+	if cerr != null { status = cerr; return }
+	ok, serr = json.saveFile("C:/data/local.json", local, {"indent": 2})
+	status = serr == null ? str(len(conflicts)) + " conflitti" : serr
+}
+```
+
+`json.diff(a, b, {"key": "id"})` emette operazioni RFC 6902 standard (`add`,
+`remove`, `replace`, `move`) applicabili direttamente con `json.patch`.
+`json.merge` e RFC 7386 Merge Patch; `json.merge3` modifica `ours` e restituisce
+i conflitti. `json.loadFile`/`saveFile` e `loadBytes`/`saveBytes` sono solo
+desktop e richiedono `--allow-dir`. Vedi
+[`examples/json_library.sui`](../examples/json_library.sui).
+
 ## Spreadsheet data
 
 SimpleUI non legge XLSX/ODS nel browser. Converti a monte con `sheet2json`:

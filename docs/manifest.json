@@ -156,7 +156,7 @@
       "summary": "Operational playbooks with code patterns for local forms/tables, drag and drop, remote APIs, CRUD, polling, desktop files, spreadsheets and iframes.",
       "audience": ["agent", "human"],
       "priority": 1,
-      "tags": ["recipes", "local", "remote", "forms", "table", "drag", "files", "http", "desktop", "iframe"],
+      "tags": ["recipes", "local", "remote", "forms", "table", "drag", "files", "http", "desktop", "json", "pointer", "patch", "iframe"],
       "sections": ["Workflow", "Common skeleton", "Drag and drop", "Local application", "Remote API", "CRUD form", "Polling dashboard", "Desktop files and commands", "Spreadsheet data", "Iframe", "Security checklist", "Verification"]
     },
     {
@@ -294,7 +294,7 @@
       "summary": "Importable std modules: http (including file upload), ws, fs, exec, json, the core table/tree/chart APIs and the desktop dialog picker.",
       "audience": ["human", "agent"],
       "priority": 2,
-      "tags": ["stdlib", "http", "upload", "ws", "fs", "exec", "json", "xml", "xsd", "diff", "patch", "merge", "bytes", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
+      "tags": ["stdlib", "http", "upload", "ws", "fs", "exec", "json", "pointer", "rfc6901", "rfc6902", "rfc7386", "xml", "xsd", "diff", "patch", "merge", "bytes", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
       "sections": ["Import", "HTTP Module (`http`)", "WebSocket Module (`ws`)", "File System Module (`fs`)", "Exec Module (`exec`)", "JSON Module (`json`)", "Dialog Module (`dialog`, desktop)", "Table Module (`table`, core)", "Chart Module (`chart`, core)", "Tree Module (`tree`, core)", "Error Handling Pattern"]
     },
     {

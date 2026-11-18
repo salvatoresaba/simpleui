@@ -171,6 +171,7 @@ For desktop capabilities:
 | Path, crypto, JSON Schema, storage quota/sync | `docs/BUILTINS.md#path-functions`, `docs/STDLIB.md#json-module-json` | `examples/stdlib_advanced.sui` |
 | Desktop fs copy/move/isDir/size | `docs/STDLIB.md#file-system-module-fs` | `examples/fs_operations.sui` |
 | XML DOM/XPath/XSD/JSON/CSV library, keyed diff/patch/merge, binary I/O | `docs/STDLIB.md#xml-module-xml` | `examples/xml_library.sui` |
+| JSON Pointer/Patch/Merge, keyed diff, schema validation, binary I/O | `docs/STDLIB.md#json-module-json` | `examples/json_library.sui` |
 | External component library (add/regroup palette presets) | `docs/COMPONENT_LIBRARY.md` | `components/library.json` |
 | Control appearance (structure/style/animation, themes, navigator) | `docs/APPEARANCE_LIBRARY.md` | a `button` in the designer |
 | Structural table layout for arranging UI regions | `docs/API_REFERENCE.md#table-layout`, `docs/GUI_EDITOR.md#table-layout-control` | `examples/table_layout/README.md` |

@@ -470,6 +470,54 @@ Validate user-supplied paths/names before calling `fs`/`exec`; the bridge
 allow-list is a second layer, not a replacement for app validation. Always
 provide a web fallback or a clear "desktop only" message.
 
+## JSON documents
+
+Use JSON Pointer to address one value, JSON Patch to change a copy and
+`json.diff`/`json.merge3` for synchronisation workflows. JSON values are native
+maps/arrays, so no DOM is involved.
+
+```sui
+import { json } from "std"
+
+state status = ""
+
+async fn update() -> null {
+	let doc = {"items": [{"id": 1, "done": false}, {"id": 2, "done": true}]}
+	first, perr = json.pointer(doc, "/items/0/id")
+	if perr != null { status = perr; return }
+
+	patched, err = json.patch(doc, [
+		{"op": "replace", "path": "/items/0/done", "value": true},
+		{"op": "add", "path": "/items/-", "value": {"id": 3, "done": false}},
+		{"op": "test", "path": "/items/1/done", "value": true}
+	])
+	if err != null { status = err; return }
+
+	errors, verr = json.validateAll(patched, {"type": "object", "required": ["items"]})
+	if verr != null { status = verr; return }
+	text, terr = json.stringify(patched, {"indent": 2, "sortKeys": true})
+	status = str(first) + " / " + str(len(errors)) + " errors\n" + text
+}
+
+async fn syncFiles() -> null {
+	local, lerr = json.loadFile("C:/data/local.json")
+	if lerr != null { status = lerr; return }
+	remote, rerr = json.loadFile("C:/data/remote.json")
+	if rerr != null { status = rerr; return }
+	conflicts, cerr = json.merge3(local, local, remote, {"key": "id"})
+	if cerr != null { status = cerr; return }
+	ok, serr = json.saveFile("C:/data/local.json", local, {"indent": 2})
+	status = serr == null ? str(len(conflicts)) + " conflicts" : serr
+}
+```
+
+`json.diff(a, b, {"key": "id"})` emits standard RFC 6902 operations (`add`,
+`remove`, `replace`, `move`) and the result can be passed directly to
+`json.patch`. `json.merge` is RFC 7386 Merge Patch; `json.merge3` mutates
+`ours` and returns conflict strings. `json.loadFile`/`saveFile` and
+`loadBytes`/`saveBytes` are desktop-only and require `--allow-dir`.
+See [`examples/json_library.sui`](../examples/json_library.sui).
+
 ## Spreadsheet data
 
 SimpleUI does not parse binary XLSX/ODS in the browser. Convert upstream with

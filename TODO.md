@@ -163,6 +163,7 @@ Known accuracy corrections from the previous TODO:
 - [x] **Path utilities** — `path.join`, `dirname`, `basename`, `extname`
 - [x] **JSON Schema validation** - practical subset; `$ref` rejected
 - [x] **XML library** - DOM nodes, navigation/mutation, XPath, namespaces, comments/CDATA/PI, XSD subset with `validateXsdAll`, JSON/CSV/XSLT, keyed diff with moved operations, `xml.patch`, update merge, three-way `merge3` and binary `loadBytes`/`saveBytes`
+- [x] **JSON library** - JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), keyed diff with moves, `merge3`, `validateAll`, UTF-8/UTF-16 bytes and desktop `loadFile`/`saveFile`/`loadBytes`/`saveBytes`
 - [x] **I18n helpers** - translation catalogs and plural selection.
 - [x] **Locale formatting** - `Intl` date/number/currency/relative/timezone
       helpers (`intl.*`).
