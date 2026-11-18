@@ -76,7 +76,7 @@ window.__SUI_RICH = (function () {
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
     format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Code|code', 'Clear formatting|clearFormat'],
-    view: ['Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
+    view: ['Paginated view|paginatedView', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', format: 'Format', view: 'View', tools: 'Tools' };
@@ -671,6 +671,7 @@ window.__SUI_RICH = (function () {
     remember(inst);
     updateStats(inst);
     notify(inst, kind || 'change');
+    if (inst.paginated) schedulePaginate(inst);
   }
   function restore(inst, text) {
     inst.doc = parseJSON(text, emptyDoc());
@@ -1446,6 +1447,7 @@ window.__SUI_RICH = (function () {
       if (inst.selectedCells && inst.selectedCells.length > 1) { copyCellSelection(inst, true); commit(inst); }
       else document.execCommand('cut');
     }
+    else if (cmd === 'paginatedView') { setPaginated(inst, !inst.paginated); }
     else if (cmd === 'print') { printDocument(inst); }
     else if (cmd === 'find') { openFindBar(inst); if (value) findInDocument(inst, value); }
     else if (cmd === 'findNext') nextMatch(inst, 1);
@@ -2261,6 +2263,140 @@ window.__SUI_RICH = (function () {
     applyTheme(inst);
     return [true, null];
   }
+  function sheetChromeText(text, page, total, known) {
+    return String(text || '').replace(/\{page\}/gi, known ? String(page) : '__SUI_PAGE__').replace(/\{pages\}/gi, known ? String(total) : '__SUI_PAGES__');
+  }
+  function pageMetrics(inst) {
+    var headerH = inst.headerText ? 24 : 0, footerH = inst.footerText ? 24 : 0;
+    return { width: 794, height: 1123, padX: 64, padY: 56, headerH: headerH, footerH: footerH, contentW: 794 - 128, contentH: 1123 - 112 - headerH - footerH };
+  }
+  function setPaginated(inst, on) {
+    inst.paginated = !!on;
+    inst.root.classList.toggle('sui-rich-paginated', inst.paginated);
+    var btn = inst.root.querySelector('[data-rich-pages]');
+    if (btn) { btn.classList.toggle('on', inst.paginated); btn.setAttribute('aria-pressed', inst.paginated ? 'true' : 'false'); btn.textContent = inst.paginated ? 'Edit' : 'Pages'; }
+    var wrap = inst.root.querySelector('.sui-rich-pages');
+    if (!wrap) {
+      wrap = el('div', 'sui-rich-pages');
+      inst.root.querySelector('.sui-rich-body').appendChild(wrap);
+    }
+    wrap.hidden = !inst.paginated;
+    if (inst.paginated) schedulePaginate(inst);
+  }
+  function schedulePaginate(inst) {
+    if (!inst.paginated) return;
+    clearTimeout(inst.pageTimer);
+    inst.pageTimer = setTimeout(function () { paginate(inst); }, 140);
+  }
+  function sheetNode(inst, m) {
+    var sheet = el('div', 'sui-rich-page-sheet');
+    sheet.style.width = m.width + 'px';
+    sheet.style.minHeight = m.height + 'px';
+    sheet.style.padding = m.padY + 'px ' + m.padX + 'px ' + (m.padY + m.footerH) + 'px';
+    var head = null, foot = null;
+    if (inst.headerText) { head = el('div', 'sui-rich-sheet-header', sheetChromeText(inst.headerText, 1, 1, false)); sheet.appendChild(head); }
+    var body = el('div', 'sui-rich-editor sui-rich-sheet-body');
+    body.style.height = m.contentH + 'px';
+    sheet.appendChild(body);
+    if (inst.footerText) { foot = el('div', 'sui-rich-sheet-footer', sheetChromeText(inst.footerText, 1, 1, false)); sheet.appendChild(foot); }
+    var number = el('div', 'sui-rich-sheet-number', '1');
+    sheet.appendChild(number);
+    return { sheet: sheet, body: body, head: head, foot: foot, number: number, used: 0 };
+  }
+  function tableShell(table) {
+    var shell = table.cloneNode(false);
+    var tbody = el('tbody');
+    shell.appendChild(tbody);
+    return { shell: shell, tbody: tbody };
+  }
+  async function paginate(inst) {
+    if (!inst.paginated) return;
+    var wrap = inst.root.querySelector('.sui-rich-pages');
+    if (!wrap) return;
+    var m = pageMetrics(inst);
+    wrap.innerHTML = '';
+    var measure = el('div', 'sui-rich-editor sui-rich-sheet-body sui-rich-measure');
+    measure.style.cssText = 'position:absolute;left:-12000px;top:0;width:' + m.contentW + 'px;height:auto;overflow:visible;padding:0;visibility:hidden;';
+    inst.root.querySelector('.sui-rich-body').appendChild(measure);
+    var blocks = (inst.doc && inst.doc.children) || [];
+    var items = [];
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].type === 'page_break') { items.push({ block: blocks[i], node: null }); continue; }
+      var node = blockDom(blocks[i], 0);
+      if (!node) continue;
+      measure.appendChild(node);
+      items.push({ block: blocks[i], node: node });
+    }
+    var imgs = Array.prototype.slice.call(measure.querySelectorAll('img'));
+    await Promise.all(imgs.map(function (img) {
+      if (img.complete) return Promise.resolve();
+      return new Promise(function (resolve) { img.onload = resolve; img.onerror = resolve; setTimeout(resolve, 800); });
+    }));
+    function blockHeight(node) {
+      var rect = node.getBoundingClientRect();
+      var cs = getComputedStyle(node);
+      return rect.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+    }
+    var sheets = [];
+    var current = sheetNode(inst, m);
+    sheets.push(current); wrap.appendChild(current.sheet);
+    function fresh() { current = sheetNode(inst, m); sheets.push(current); wrap.appendChild(current.sheet); current.used = 0; }
+    function placeTable(node, height) {
+      var rows = Array.prototype.slice.call(node.querySelectorAll('tr'));
+      if (rows.length <= 1) { fresh(); current.body.appendChild(node); current.used += height; return; }
+      var shell = tableShell(node);
+      var measureTable = tableShell(node).shell;
+      measure.appendChild(measureTable);
+      var first = true;
+      for (var r = 0; r < rows.length; r++) {
+        var row = rows[r].cloneNode(true);
+        var shellBody = shell.tbody;
+        shellBody.appendChild(row);
+        measureTable.querySelector('tbody').appendChild(rows[r].cloneNode(true));
+        var h = measureTable.getBoundingClientRect().height;
+        var limit = m.contentH - (first ? current.used : 0) - 8;
+        if (h > limit && shellBody.children.length > 1) {
+          shellBody.removeChild(row);
+          measureTable.querySelector('tbody').removeChild(measureTable.querySelector('tbody').lastChild);
+          if (shellBody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height; }
+          fresh();
+          shell = tableShell(node);
+          measureTable = tableShell(node).shell;
+          measure.appendChild(measureTable);
+          first = true;
+          r--;
+          continue;
+        }
+        first = false;
+      }
+      if (shell.tbody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height; }
+      if (measureTable.parentNode) measureTable.parentNode.removeChild(measureTable);
+    }
+    for (var it = 0; it < items.length; it++) {
+      var item = items[it];
+      if (!item.node) { if (current.used > 0) fresh(); continue; }
+      var h = blockHeight(item.node);
+      if (current.used > 0 && current.used + h > m.contentH - 8) {
+        if (item.block.type === 'table') { placeTable(item.node, h); continue; }
+        fresh();
+      }
+      current.body.appendChild(item.node);
+      current.used += h;
+    }
+    if (measure.parentNode) measure.parentNode.removeChild(measure);
+    var total = sheets.length;
+    for (var s2 = 0; s2 < sheets.length; s2++) {
+      var sheet = sheets[s2];
+      sheet.number.textContent = String(s2 + 1);
+      if (sheet.head) sheet.head.textContent = sheetChromeText(inst.headerText, s2 + 1, total, true);
+      if (sheet.foot) sheet.foot.textContent = sheetChromeText(inst.footerText, s2 + 1, total, true);
+      sheet.body.style.height = m.contentH + 'px';
+    }
+    var bodyBox = inst.root.querySelector('.sui-rich-body');
+    var available = Math.max(320, bodyBox ? bodyBox.clientWidth - 36 : 760);
+    wrap.style.zoom = Math.min(1, available / m.width);
+  }
+
   function buildStatus(inst) {
     var status = inst.root.querySelector('.sui-rich-status');
     if (!status) return;
@@ -2268,6 +2404,12 @@ window.__SUI_RICH = (function () {
     var stats = el('span', 'sui-rich-stats'); status.appendChild(stats);
     var pos = el('span', 'sui-rich-position'); status.appendChild(pos);
     var saved = el('span', 'sui-rich-saved', 'Ready'); status.appendChild(saved);
+    var pagesBtn = el('button', 'sui-rich-zoom-btn sui-rich-pages-btn', 'Pages');
+    pagesBtn.type = 'button';
+    pagesBtn.setAttribute('data-rich-pages', '1');
+    pagesBtn.title = 'Paginated preview (A4 pages)';
+    pagesBtn.setAttribute('aria-pressed', 'false');
+    status.appendChild(pagesBtn);
     var zoomOut = el('button', 'sui-rich-zoom-btn', '\u2212'); zoomOut.type = 'button'; zoomOut.setAttribute('data-rich-zoom', 'out');
     var zoomLabel = el('span', 'sui-rich-zoom-label', '100%');
     var zoomIn = el('button', 'sui-rich-zoom-btn', '+'); zoomIn.type = 'button'; zoomIn.setAttribute('data-rich-zoom', 'in');
@@ -2558,6 +2700,8 @@ window.__SUI_RICH = (function () {
         setTheme(inst.name, resolvedTheme === 'light' ? 'dark' : 'light');
         return;
       }
+      var pagesToggle = target.closest('[data-rich-pages]');
+      if (pagesToggle) { setPaginated(inst, !inst.paginated); return; }
       var zoom = target.closest('[data-rich-zoom]');
       if (zoom) {
         inst.zoom = Math.max(0.6, Math.min(2, (inst.zoom || 1) + (zoom.getAttribute('data-rich-zoom') === 'in' ? 0.1 : -0.1)));
@@ -2662,6 +2806,12 @@ window.__SUI_RICH = (function () {
       } else setTimeout(function () { commit(inst, 'input'); }, 0);
     });
     document.addEventListener('selectionchange', function () { if (document.activeElement === inst.editor || inst.root.contains(document.activeElement)) updateStats(inst); });
+    if (!window.__suiRichResizeBound) {
+      window.__suiRichResizeBound = true;
+      window.addEventListener('resize', function () {
+        for (var rn in instances) if (instances[rn] && instances[rn].paginated) schedulePaginate(instances[rn]);
+      });
+    }
   }
 
   function init(root) {
@@ -4948,6 +5098,19 @@ const suiRichTextCss = `
 .sui-rich-tool-group { display: flex; align-items: center; gap: 2px; padding: 2px 4px; border: 1px solid var(--sui-rich-border); border-radius: 9px; background: color-mix(in srgb, var(--sui-rich-fg) 4%, transparent); }
 .sui-rich-tool-handle { cursor: grab; color: var(--sui-rich-muted); font-size: 11px; padding: 0 2px; user-select: none; line-height: 1; }
 .sui-rich-tool-handle:active { cursor: grabbing; }
+.sui-rich-pages { flex: 1 1 auto; min-width: 0; padding: 18px 18px 26px; overflow: auto; background: #e6e9ef; }
+.sui-rich-pages[hidden] { display: none; }
+.sui-rich-paginated .sui-rich-body > .sui-rich-page,
+.sui-rich-paginated .sui-rich-body > .sui-rich-editor { display: none; }
+.sui-rich-paginated .sui-rich-body > .sui-rich-measure { display: block; }
+.sui-rich-paginated .sui-rich-pages { display: block; }
+.sui-rich-page-sheet { position: relative; margin: 0 auto 22px; background: #ffffff; color: #1c2330; box-shadow: 0 10px 28px rgba(0,0,0,.28); box-sizing: border-box; overflow: hidden; }
+.sui-rich-sheet-body { padding: 0 !important; height: auto; min-height: 0; overflow: visible !important; max-width: none !important; width: auto !important; flex: none; }
+.sui-rich-sheet-header { position: absolute; left: 64px; right: 64px; top: 26px; font-size: 11px; color: #65718a; text-align: center; border-bottom: 1px solid #d6dce8; padding-bottom: 3px; }
+.sui-rich-sheet-footer { position: absolute; left: 64px; right: 64px; bottom: 34px; font-size: 11px; color: #65718a; text-align: center; border-top: 1px solid #d6dce8; padding-top: 3px; }
+.sui-rich-sheet-number { position: absolute; right: 18px; bottom: 8px; font-size: 10px; color: #8a94a6; }
+.sui-rich-pages-btn { width: auto; min-width: 44px; padding: 0 7px; font-size: 11px; }
+.sui-rich-pages-btn.on { background: var(--sui-rich-accent); color: #fff; border-color: var(--sui-rich-accent); }
 .sui-rich-page { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--sui-rich-paper); }
 .sui-rich-pageheader { padding: 9px 26px 5px; border-bottom: 1px solid var(--sui-rich-paper-border); font-size: 11px; color: var(--sui-rich-paper-muted); text-align: center; }
 .sui-rich-pagefooter { padding: 5px 26px 9px; border-top: 1px solid var(--sui-rich-paper-border); font-size: 11px; color: var(--sui-rich-paper-muted); text-align: center; }

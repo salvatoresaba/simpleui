@@ -1706,7 +1706,11 @@ sanitized into the document model and keeps bold/italic, colors, links, tables
 and images. **Print preview / PDF:** `Ctrl+P` (File > Print / Save as PDF) opens
 the browser print dialog on A4 pages with the header/footer repeated.
 **Lists:** bullet and numbered lists can be nested with Tab and moved back with
-Shift+Tab; DOCX and ODT export use native list numbering. A single theme button at the right cycles the interface theme.
+Shift+Tab; DOCX and ODT export use native list numbering.
+
+**Paginated view:** the **Pages** button in the status bar (or View >
+Paginated view) shows A4 sheets with margins, optional header/footer and table
+rows split across pages. Press **Edit** to return to the continuous editor. A single theme button at the right cycles the interface theme.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,

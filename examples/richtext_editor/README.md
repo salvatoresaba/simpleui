@@ -33,7 +33,8 @@ builds.
   cycles the interface between dark and light; the document page stays white
   unless `contentTheme: "dark"` is set.
 - Undo/redo history, keyboard shortcuts, find and replace (Ctrl+F), sanitized
-  paste from Word/Excel/HTML, print preview (Ctrl+P) and JSON document binding.
+  paste from Word/Excel/HTML, print preview (Ctrl+P), a paginated A4 preview
+  (Pages button) and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
 - Open and save plain text, RTF, DOC (best effort), DOCX and ODT; RTF keeps
   tables (with merged cells and cell shading), fonts, header/footer pictures

@@ -1683,6 +1683,10 @@ apre la stampa del browser su pagine A4 con header/footer ripetuti.
 **Liste:** elenchi puntati e numerati si annidano con Tab e si riportano indietro con
 Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
 
+**Vista paginata:** il pulsante **Pages** nella barra di stato (o Visualizza >
+Vista paginata) mostra fogli A4 con margini, header/footer e righe di tabella
+spezzate tra le pagine. Premi **Edit** per tornare all'editor continuo.
+
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
 `highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,

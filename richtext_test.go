@@ -322,6 +322,21 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (listOdt.indexOf('text:list-style') < 0 || listOdt.indexOf('text:style-name="LBullets"') < 0) throw new Error('odt list style missing');
     var listPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
     if (listPdf.indexOf('One') < 0 || listPdf.indexOf('Nested') < 0) throw new Error('pdf list text missing');
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'paragraph', children: [{ type: 'text', text: 'Page one', marks: [] }] },
+      { type: 'page_break' },
+      { type: 'paragraph', children: [{ type: 'text', text: 'Page two', marks: [] }] }
+    ] });
+    await wait(100);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(700);
+    if (!richRoot().classList.contains('sui-rich-paginated')) throw new Error('paginated view not enabled');
+    var sheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    if (sheets.length < 2) throw new Error('paginated view sheets: ' + sheets.length);
+    if (sheets[0].innerText.indexOf('Page one') < 0 || sheets[1].innerText.indexOf('Page two') < 0) throw new Error('paginated view content');
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(120);
+    if (richRoot().classList.contains('sui-rich-paginated')) throw new Error('paginated view not disabled');
 `+featureScriptTail)
 }
 
