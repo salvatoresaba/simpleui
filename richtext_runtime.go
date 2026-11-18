@@ -734,7 +734,9 @@ window.__SUI_RICH = (function () {
       var tr = el('tr');
       for (var c = 0; c < cols; c++) {
         var cell = el(r === 0 ? 'th' : 'td');
-        cell.appendChild(el('p'));
+        var cellP = el('p');
+        cellP.appendChild(el('br'));
+        cell.appendChild(cellP);
         tr.appendChild(cell);
       }
       tbody.appendChild(tr);
@@ -809,6 +811,19 @@ window.__SUI_RICH = (function () {
     }
     return out;
   }
+  function forceCellCaret(inst, cell) {
+    if (!cell) return;
+    var caretBlock = cell.querySelector('p') || cell;
+    if (!caretBlock.firstChild) caretBlock.appendChild(el('br'));
+    var caretRange = document.createRange();
+    var textNode = null;
+    for (var i = 0; i < caretBlock.childNodes.length; i++) if (caretBlock.childNodes[i].nodeType === 3) { textNode = caretBlock.childNodes[i]; break; }
+    if (textNode) { caretRange.setStart(textNode, textNode.nodeValue.length); caretRange.collapse(true); }
+    else { caretRange.setStart(caretBlock, 0); caretRange.collapse(true); }
+    var caretSel = window.getSelection();
+    caretSel.removeAllRanges(); caretSel.addRange(caretRange);
+    inst.editor.focus();
+  }
   function bindCellSelection(inst) {
     inst.editor.addEventListener('mousedown', function (e) {
       var cell = e.target && e.target.closest ? e.target.closest('td,th') : null;
@@ -821,6 +836,31 @@ window.__SUI_RICH = (function () {
         inst.selectedCells = [cell];
         inst.cellAnchor = cell;
         updateCellSelection(inst);
+      }
+      // Clicking the empty padding of a cell can make the browser put the
+      // caret in the neighbouring cell. Force it into the clicked cell.
+      if (e.target === cell || !String(cell.textContent || '').trim()) {
+        e.preventDefault();
+        forceCellCaret(inst, cell);
+      }
+    });
+    inst.editor.addEventListener('mouseup', function (e) {
+      if (!inst.cellAnchor || !inst.selectedCells || inst.selectedCells.length !== 1) return;
+      var cell = inst.cellAnchor;
+      if (!inst.editor.contains(cell)) return;
+      if (e.target === cell || !String(cell.textContent || '').trim()) {
+        e.preventDefault();
+        forceCellCaret(inst, cell);
+      }
+    });
+    inst.editor.addEventListener('click', function (e) {
+      var cell = e.target && e.target.closest ? e.target.closest('td,th') : null;
+      if (!cell || !inst.editor.contains(cell)) return;
+      // Chromium can finalize the caret on click after mousedown; repeat the
+      // fix for empty cells and clicks on cell padding.
+      if (e.target === cell || !String(cell.textContent || '').trim()) {
+        e.preventDefault();
+        forceCellCaret(inst, inst.cellAnchor && inst.editor.contains(inst.cellAnchor) ? inst.cellAnchor : cell);
       }
     });
     inst.editor.addEventListener('mouseover', function (e) {
