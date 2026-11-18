@@ -3798,7 +3798,9 @@ simpleui mcp
   the other controls). A text-only app stays around 70 KB, while the chart
   runtime alone would add about 1.2 MB. Detection scans tags, attributes and
   intrinsic calls such as `chart.get`, `table.display`, `tree.exportJson`,
-  `toast.show`, `modal.open` and `drag.source`.
+  `toast.show`, `modal.open` and `drag.source`. The base stylesheet is split
+  the same way: unused component CSS is not emitted (the chart styles alone are
+  about 105 KB), so a text-only app ships roughly 26 KB of CSS.
 - **web `--sourcemap`**: opt-in JavaScript and CSS source maps. Multi-file builds
   write `app.js.map` and `style.css.map` and append `sourceMappingURL` comments;
   `--single` inlines both maps as `data:` URLs. Maps embed `sourcesContent`,

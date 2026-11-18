@@ -143,6 +143,26 @@ func (f *progFeatures) needsCommandBar() bool {
 	return f.hasTag("commandbar", "command")
 }
 
+func (f *progFeatures) needsDropzone() bool {
+	return f.hasTag("dropzone")
+}
+
+func (f *progFeatures) needsTimeline() bool {
+	return f.hasTag("timeline")
+}
+
+func (f *progFeatures) needsEmptyState() bool {
+	return f.hasTag("emptystate")
+}
+
+func (f *progFeatures) needsSkeleton() bool {
+	return f.hasTag("skeleton")
+}
+
+func (f *progFeatures) needsSpinner() bool {
+	return f.hasTag("spinner")
+}
+
 // needsOverlay reports whether the shared anchored-overlay helper is required.
 // Menu, combobox, tooltip, popover and command bar call __SUI_OVERLAY directly,
 // so the helper must be emitted with any of them.

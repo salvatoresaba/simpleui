@@ -3677,7 +3677,9 @@ simpleui mcp
   resta intorno ai 70 KB, mentre il solo runtime chart aggiungerebbe circa
   1,2 MB. Il rilevamento esamina tag, attributi e chiamate intrinseche come
   `chart.get`, `table.display`, `tree.exportJson`, `toast.show`, `modal.open`
-  e `drag.source`.
+  e `drag.source`. Anche il foglio di stile base è diviso: il CSS dei
+  componenti non usati non viene emesso (solo gli stili dei chart pesano circa
+  105 KB), quindi un'app di solo testo spedisce circa 26 KB di CSS.
 - **web `--sourcemap`**: source map JavaScript e CSS opt-in. Le build multi-file
   scrivono `app.js.map` e `style.css.map` e aggiungono i commenti
   `sourceMappingURL`; `--single` incorpora entrambe le mappe come URL `data:`.
