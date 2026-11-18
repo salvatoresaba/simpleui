@@ -62,7 +62,7 @@ async fn changedValue() -> null {
 
 view main {
 	col {
-		richtext "Article" name: "editor" value: doc height: "320px" theme: "dark" menu: true toolbar: true contextToolbar: true properties: true statusbar: true onChange: changedValue onInput: changedValue toolbarItems: "undo,redo|bold,italic,underline|link,image,table"
+		richtext "Article" name: "editor" value: doc height: "320px" theme: "dark" menu: true toolbar: true contextToolbar: true statusbar: true onChange: changedValue onInput: changedValue toolbarItems: "undo,redo|styleSelect,bold,italic,underline,bulletList,orderedList|link,image,table"
 		button "Run" onClick: run
 		p "{status}"
 		pre "{out}"
@@ -94,6 +94,32 @@ view main {
     if (editor.querySelector('em, i, [style*="font-style"]') === null) throw new Error('toolbar formatting failed: ' + editor.innerHTML);
     var before = __SUI_RICH.exportFormat('editor', 'json')[0];
     if (before.indexOf('Toolbar') < 0) throw new Error('JSON model missing text: ' + before);
+
+    function richRoot() { return document.querySelector('[data-sui-rich]'); }
+    var richEditor = richRoot().querySelector('.sui-rich-editor');
+    richEditor.innerHTML = '<p>One</p>';
+    richEditor.focus();
+    var one = richEditor.querySelector('p');
+    var oneRange = document.createRange(); oneRange.selectNodeContents(one); oneRange.collapse(false);
+    var oneSel = window.getSelection(); oneSel.removeAllRanges(); oneSel.addRange(oneRange);
+    richEditor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await wait(250);
+    document.execCommand('insertText', false, 'Two');
+    await wait(250);
+    if (richRoot().querySelectorAll('.sui-rich-editor > p').length !== 2) throw new Error('Enter split: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    var firstBlock = richRoot().querySelector('.sui-rich-editor > p');
+    var blockRange = document.createRange(); blockRange.selectNodeContents(firstBlock);
+    var blockSel = window.getSelection(); blockSel.removeAllRanges(); blockSel.addRange(blockRange);
+    __SUI_RICH.command('editor', 'paragraph', 'h2');
+    await wait(250);
+    if (!richRoot().querySelector('.sui-rich-editor > h2')) throw new Error('heading command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    var heading = richRoot().querySelector('.sui-rich-editor > h2');
+    var headingRange = document.createRange(); headingRange.selectNodeContents(heading);
+    var headingSel = window.getSelection(); headingSel.removeAllRanges(); headingSel.addRange(headingRange);
+    __SUI_RICH.command('editor', 'bulletList');
+    await wait(250);
+    if (!richRoot().querySelector('.sui-rich-editor ul li')) throw new Error('list command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    if (richRoot().querySelector('.sui-rich-props')) throw new Error('properties panel should not exist');
 `+featureScriptTail)
 }
 

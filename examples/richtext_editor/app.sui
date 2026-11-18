@@ -8,15 +8,11 @@ pre \{ white-space: pre-wrap; font-size: 12px; line-height: 1.5; max-height: 260
 .muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
 
 state doc = ""
-state status = "Ready - select text and use the toolbar, menu or API buttons."
+state status = "Ready - select text and use the toolbar or menu."
 state out = ""
 
 fn changed() -> null {
 	status = "Document changed"
-}
-
-fn typing() -> null {
-	status = "Editing..."
 }
 
 async fn loadSample() -> null {
@@ -109,7 +105,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true properties: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed onInput: typing
+			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

@@ -5514,9 +5514,6 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		if !richTextBoolAttr(e, "contextToolbar", true) {
 			open += " data-sui-rich-context=\"0\""
 		}
-		if richTextBoolAttr(e, "properties", false) {
-			open += " data-sui-rich-properties=\"1\""
-		}
 		if !richTextBoolAttr(e, "statusbar", true) {
 			open += " data-sui-rich-statusbar=\"0\""
 		}
@@ -5546,7 +5543,7 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		b.WriteString(htmlEscape(name))
 	}
 	b.WriteString("\"></div>")
-	b.WriteString("<aside class=\"sui-rich-props\" aria-label=\"Element properties\" hidden></aside></div>")
+	b.WriteString("</div>")
 	b.WriteString("<div class=\"sui-rich-status\" role=\"status\" aria-live=\"polite\"></div>")
 	b.WriteString("</div>`")
 	return b.String()

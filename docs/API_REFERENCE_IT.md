@@ -1662,7 +1662,7 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `height` | Altezza minima dell'editor (lunghezza CSS) |
 | `placeholder` | Testo per documento vuoto |
 | `readonly` | Disabilita la modifica |
-| `menu`, `toolbar`, `contextToolbar`, `properties`, `statusbar` | Mostra/nascondi aree |
+| `menu`, `toolbar`, `contextToolbar`, `statusbar` | Mostra/nascondi aree |
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
 | `theme` | `dark` (default) o `light` |
 | `template` | `article`, `letter`, `report` o `compact` |

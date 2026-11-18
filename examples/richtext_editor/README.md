@@ -23,8 +23,8 @@ builds.
   color, background color, font family/size, headings, quotes, code blocks.
 - Paragraph alignment, indentation, line height and spacing before/after.
 - Bullet/numbered lists, images, links, tables and horizontal rules.
-- Configurable toolbar groups, menu bar, contextual selection toolbar,
-  properties panel and status bar (words, characters, paragraphs, caret, zoom).
+- Configurable toolbar groups, menu bar, contextual selection toolbar and
+  status bar (words, characters, paragraphs, caret, zoom).
 - Undo/redo history, keyboard shortcuts and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
 - Declarative plugins adding commands and toolbar buttons; JavaScript plugins
@@ -42,7 +42,7 @@ builds.
 | `height` | Minimum editor height (`px`, `rem`, `vh`, `%`) |
 | `placeholder` | Empty-document placeholder |
 | `readonly` | Disable editing |
-| `toolbar`, `menu`, `contextToolbar`, `properties`, `statusbar` | Toggle UI areas |
+| `toolbar`, `menu`, `contextToolbar`, `statusbar` | Toggle UI areas |
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | `dark` (default) or `light` |
 | `template` | `article`, `letter`, `report` or `compact` |
@@ -130,8 +130,8 @@ never assigned as raw HTML. The editor does not require a desktop bridge.
 - Table merging/splitting and tracked changes are not part of the core; add them
   through a plugin.
 - PDF/DOCX export is not implemented.
-- The properties panel is intentionally compact; host apps can replace it with
-  their own controls using the public API.
+- The editor intentionally exposes formatting through the toolbar/menu and API;
+  host apps can build their own inspector with `richtext.command` and `richtext.get`.
 
 ## Complete source
 
@@ -146,15 +146,11 @@ pre \{ white-space: pre-wrap; font-size: 12px; line-height: 1.5; max-height: 260
 .muted \{ color: #8fa0b8; font-size: 12px; line-height: 1.6; \}"
 
 state doc = ""
-state status = "Ready - select text and use the toolbar, menu or API buttons."
+state status = "Ready - select text and use the toolbar or menu."
 state out = ""
 
 fn changed() -> null {
 	status = "Document changed"
-}
-
-fn typing() -> null {
-	status = "Editing..."
 }
 
 async fn loadSample() -> null {
@@ -247,7 +243,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true properties: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed onInput: typing
+			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

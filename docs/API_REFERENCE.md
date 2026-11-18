@@ -1687,7 +1687,7 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `height` | Minimum editor height (CSS length) |
 | `placeholder` | Empty-document placeholder |
 | `readonly` | Disable editing |
-| `menu`, `toolbar`, `contextToolbar`, `properties`, `statusbar` | Show/hide UI areas |
+| `menu`, `toolbar`, `contextToolbar`, `statusbar` | Show/hide UI areas |
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | `dark` (default) or `light` |
 | `template` | `article`, `letter`, `report` or `compact` |

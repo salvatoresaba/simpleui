@@ -56,7 +56,7 @@ window.__SUI_RICH = (function () {
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll'],
     insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr'],
     format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Code|code', 'Clear formatting|clearFormat'],
-    view: ['Toggle properties|toggleProps', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
+    view: ['Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', format: 'Format', view: 'View', tools: 'Tools' };
@@ -138,7 +138,12 @@ window.__SUI_RICH = (function () {
     if (node.nodeType !== 1) return;
     var tag = node.tagName.toLowerCase();
     if (tag === 'script' || tag === 'style' || tag === 'template') return;
-    if (tag === 'br') { out.push({ type: 'break', marks: [] }); return; }
+    if (tag === 'br') {
+      var parentTag = node.parentNode && node.parentNode.nodeType === 1 ? node.parentNode.tagName.toLowerCase() : '';
+      if (node.parentNode && node.parentNode.childNodes.length === 1 && /^(p|h[1-6]|li)$/.test(parentTag)) return;
+      out.push({ type: 'break', marks: [] });
+      return;
+    }
     if (tag === 'img') {
       out.push({ type: 'image', src: safeUrl(node.getAttribute('src'), true), alt: node.getAttribute('alt') || '', title: node.getAttribute('title') || '', width: cssLength(node.style.width, ''), align: node.style.textAlign || '' });
       return;
@@ -422,7 +427,10 @@ window.__SUI_RICH = (function () {
       inlineDom(Array.isArray(node.children) ? node.children : [], box);
     }
     if (box) styleForBlock(box);
-    if (type === 'paragraph' || type === 'heading') inlineDom(Array.isArray(node.children) ? node.children : [], box);
+    if (type === 'paragraph' || type === 'heading') {
+      inlineDom(Array.isArray(node.children) ? node.children : [], box);
+      if (!box.childNodes.length) box.appendChild(el('br'));
+    }
     return box;
   }
 
@@ -485,6 +493,26 @@ window.__SUI_RICH = (function () {
     return inst.editor.firstElementChild;
   }
 
+  function topBlock(inst, node) {
+    var block = null;
+    while (node && node !== inst.editor) {
+      if (node.nodeType === 1) {
+        var tag = node.tagName.toLowerCase();
+        if (/^(p|div|h[1-6]|li|blockquote|pre|figure|table)$/.test(tag)) block = node;
+        if (node.parentNode === inst.editor) return node;
+      }
+      node = node.parentNode;
+    }
+    return block;
+  }
+  function textOffsetWithin(root, container, offset) {
+    try {
+      var range = document.createRange();
+      range.selectNodeContents(root);
+      range.setEnd(container, offset);
+      return range.toString().length;
+    } catch (e) { return 0; }
+  }
   function selectionInfo(inst) {
     var sel = window.getSelection();
     var info = { collapsed: true, text: '', start: 0, end: 0, block: '', inside: false };
@@ -501,6 +529,12 @@ window.__SUI_RICH = (function () {
     info.end = pre.toString().length;
     var block = currentBlock(inst);
     if (block) info.block = blockLabel(block.tagName.toLowerCase() === 'h1' ? 'heading' : 'paragraph', {});
+    var top = topBlock(inst, range.startContainer);
+    if (top && top.parentNode === inst.editor) {
+      var children = Array.prototype.slice.call(inst.editor.children);
+      info.blockIndex = children.indexOf(top);
+      info.blockOffset = textOffsetWithin(top, range.startContainer, range.startOffset);
+    }
     return info;
   }
 
@@ -513,6 +547,29 @@ window.__SUI_RICH = (function () {
     var info = inst.savedSelection;
     if (!info || !info.active) return;
     inst.savedSelection = null;
+    if (info.blockIndex != null && info.blockIndex >= 0) {
+      var blocks = inst.editor.children;
+      var block = blocks[info.blockIndex];
+      if (block) {
+        var blockWalker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
+        var blockPos = 0, blockNode = null, blockOffset = 0, bn;
+        while ((bn = blockWalker.nextNode())) {
+          var blen = (bn.nodeValue || '').length;
+          if (info.blockOffset <= blockPos + blen) { blockNode = bn; blockOffset = Math.max(0, info.blockOffset - blockPos); break; }
+          blockPos += blen;
+        }
+        try {
+          var blockRange = document.createRange();
+          if (blockNode) blockRange.setStart(blockNode, blockOffset);
+          else { blockRange.selectNodeContents(block); blockRange.collapse(true); }
+          blockRange.collapse(true);
+          var blockSel = window.getSelection();
+          blockSel.removeAllRanges(); blockSel.addRange(blockRange);
+          inst.editor.focus();
+        } catch (e) {}
+        return;
+      }
+    }
     var walker = document.createTreeWalker(inst.editor, NodeFilter.SHOW_TEXT, null);
     var pos = 0, startNode = null, startOffset = 0, endNode = null, endOffset = 0, node;
     while ((node = walker.nextNode())) {
@@ -521,7 +578,19 @@ window.__SUI_RICH = (function () {
       if (!endNode && info.end <= pos + len) { endNode = node; endOffset = Math.max(0, info.end - pos); break; }
       pos += len;
     }
-    if (!startNode) return;
+    if (!startNode) {
+      // Empty blocks contain only <br>; place the caret in the last block.
+      var blocks = inst.editor.querySelectorAll('p,h1,h2,h3,h4,blockquote,pre,li');
+      var target = blocks.length ? blocks[blocks.length - 1] : inst.editor;
+      try {
+        var emptyRange = document.createRange();
+        emptyRange.selectNodeContents(target); emptyRange.collapse(true);
+        var emptySel = window.getSelection();
+        emptySel.removeAllRanges(); emptySel.addRange(emptyRange);
+        inst.editor.focus();
+      } catch (e) {}
+      return;
+    }
     try {
       var range = document.createRange();
       range.setStart(startNode, startOffset);
@@ -639,7 +708,7 @@ window.__SUI_RICH = (function () {
     var sel = window.getSelection();
     if (sel) { var r = document.createRange(); r.selectNodeContents(next); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); }
   }
-  function insertTable(inst, rows, cols) {
+  function buildTable(rows, cols) {
     var table = el('table');
     var tbody = el('tbody');
     rows = Math.max(1, Math.min(30, Number(rows) || 3));
@@ -654,7 +723,11 @@ window.__SUI_RICH = (function () {
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    insertNode(inst, table);
+    return table;
+  }
+  function insertTable(inst, rows, cols) {
+    var table = buildTable(rows, cols);
+    insertBlock(inst, table);
     var first = table.querySelector('td,th');
     if (first) { var range = document.createRange(); range.selectNodeContents(first); range.collapse(true); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
   }
@@ -686,6 +759,102 @@ window.__SUI_RICH = (function () {
     }
   }
 
+  function applyBlockProp(inst, prop, value) {
+    var block = currentBlock(inst);
+    if (block) block.style[prop] = value;
+  }
+  function changeIndent(inst, delta) {
+    var block = currentBlock(inst);
+    if (!block) return;
+    var current = parseFloat(block.style.paddingLeft || block.style.marginLeft || '0') || 0;
+    current = Math.max(0, Math.min(240, current + delta));
+    block.style.paddingLeft = current + 'px';
+  }
+  function toggleList(inst, type) {
+    var block = currentBlock(inst);
+    if (!block) return;
+    var list = block.closest('ul,ol');
+    if (list && list.parentNode === inst.editor) {
+      var parent = list.parentNode;
+      var items = Array.prototype.slice.call(list.children);
+      for (var i = 0; i < items.length; i++) {
+        var p = el('p');
+        while (items[i].firstChild) p.appendChild(items[i].firstChild);
+        parent.insertBefore(p, list);
+      }
+      parent.removeChild(list);
+      return;
+    }
+    if (block.tagName.toLowerCase() === 'li') {
+      var parentList = block.parentNode;
+      var p2 = el('p');
+      while (block.firstChild) p2.appendChild(block.firstChild);
+      parentList.parentNode.replaceChild(p2, parentList);
+      return;
+    }
+    var listEl = el(type);
+    var li = el('li');
+    while (block.firstChild) li.appendChild(block.firstChild);
+    listEl.appendChild(li);
+    block.parentNode.replaceChild(listEl, block);
+    var range = document.createRange(); range.selectNodeContents(li); range.collapse(false);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  }
+  function insertBlock(inst, node) {
+    var block = currentBlock(inst);
+    if (block && block.tagName.toLowerCase() === 'li') {
+      var list = block.closest('ul,ol');
+      if (list && list.parentNode) { list.parentNode.insertBefore(node, list.nextSibling); return; }
+    }
+    if (block && block.parentNode) block.parentNode.insertBefore(node, block.nextSibling);
+    else inst.editor.appendChild(node);
+  }
+  function splitBlock(inst) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var block = currentBlock(inst);
+    if (!block || !inst.editor.contains(block)) return;
+    var tag = block.tagName.toLowerCase();
+    if (tag === 'pre' || tag === 'table' || tag === 'td' || tag === 'th') {
+      document.execCommand('insertLineBreak');
+      return;
+    }
+    var nextTag = tag === 'li' ? 'li' : 'p';
+    var after = range.cloneRange();
+    after.setStart(range.endContainer, range.endOffset);
+    after.setEnd(block, block.childNodes.length);
+    var fragment = after.extractContents();
+    var next = el(nextTag);
+    next.appendChild(fragment);
+    if (!next.textContent && !next.querySelector('img,table,hr,br')) next.appendChild(el('br'));
+    block.parentNode.insertBefore(next, block.nextSibling);
+    inst.editor.focus();
+    var nextRange = document.createRange();
+    nextRange.selectNodeContents(next);
+    nextRange.collapse(true);
+    sel.removeAllRanges(); sel.addRange(nextRange);
+  }
+  function clearFormatting(inst) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var nodes = inst.editor.querySelectorAll('span,font,strong,b,em,i,u,s,strike,code,sup,sub,a');
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      var node = nodes[i];
+      var intersects = false;
+      try { intersects = range.intersectsNode(node); } catch (e) { intersects = true; }
+      if (!intersects || !node.parentNode) continue;
+      if (node.tagName.toLowerCase() === 'a') {
+        while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+        node.parentNode.removeChild(node);
+      } else {
+        while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+        node.parentNode.removeChild(node);
+      }
+    }
+    try { document.execCommand('removeFormat'); } catch (e) {}
+  }
   function runBuiltin(inst, cmd, value) {
     var editor = inst.editor;
     var selection = window.getSelection();
@@ -706,20 +875,23 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'superscript') document.execCommand('superscript');
     else if (cmd === 'subscript') document.execCommand('subscript');
     else if (cmd === 'code') { if (!unwrapTag(inst, 'code')) wrapSelection(inst, 'code'); }
-    else if (cmd === 'clearFormat') { document.execCommand('removeFormat'); ['strong','em','u','s','code','sup','sub'].forEach(function (t) { unwrapTag(inst, t); }); }
-    else if (cmd === 'paragraph') applyBlock(inst, 'p');
+    else if (cmd === 'clearFormat') clearFormatting(inst);
+    else if (cmd === 'paragraph') {
+      var blockTag = String(value || '');
+      applyBlock(inst, /^(h[1-4]|blockquote|pre)$/.test(blockTag) ? blockTag : 'p');
+    }
     else if (/^h[1-4]$/.test(cmd)) applyBlock(inst, cmd);
     else if (cmd === 'blockquote') applyBlock(inst, 'blockquote');
     else if (cmd === 'codeBlock') applyBlock(inst, 'pre');
-    else if (cmd === 'alignLeft') document.execCommand('justifyLeft');
-    else if (cmd === 'alignCenter') document.execCommand('justifyCenter');
-    else if (cmd === 'alignRight') document.execCommand('justifyRight');
-    else if (cmd === 'justify') document.execCommand('justifyFull');
-    else if (cmd === 'indent') document.execCommand('indent');
-    else if (cmd === 'outdent') document.execCommand('outdent');
-    else if (cmd === 'bulletList') document.execCommand('insertUnorderedList');
-    else if (cmd === 'orderedList') document.execCommand('insertOrderedList');
-    else if (cmd === 'hr') insertNode(inst, el('hr'));
+    else if (cmd === 'alignLeft') applyBlockProp(inst, 'textAlign', 'left');
+    else if (cmd === 'alignCenter') applyBlockProp(inst, 'textAlign', 'center');
+    else if (cmd === 'alignRight') applyBlockProp(inst, 'textAlign', 'right');
+    else if (cmd === 'justify') applyBlockProp(inst, 'textAlign', 'justify');
+    else if (cmd === 'indent') changeIndent(inst, 24);
+    else if (cmd === 'outdent') changeIndent(inst, -24);
+    else if (cmd === 'bulletList') toggleList(inst, 'ul');
+    else if (cmd === 'orderedList') toggleList(inst, 'ol');
+    else if (cmd === 'hr') insertBlock(inst, el('hr'));
     else if (cmd === 'link') {
       var url = window.prompt('Link URL', 'https://');
       if (url && safeUrl(url, false)) {
@@ -734,7 +906,7 @@ window.__SUI_RICH = (function () {
         var alt = window.prompt('Alternative text', '') || '';
         insertHTMLNode(inst, 'img', { src: safeUrl(src, true), alt: alt });
       }
-    } else if (cmd === 'table') insertTable(inst, 3, 3);
+    } else if (cmd === 'table') { var tableNode = buildTable(3, 3); insertBlock(inst, tableNode); }
     else if (cmd === 'symbol') {
       var sym = window.prompt('Insert symbol', '\u00a9');
       if (sym != null) document.execCommand('insertText', false, sym);
@@ -762,7 +934,6 @@ window.__SUI_RICH = (function () {
       else document.execCommand('paste');
     } else if (cmd === 'selectAll') { var range = document.createRange(); range.selectNodeContents(editor); var s = window.getSelection(); s.removeAllRanges(); s.addRange(range); }
     else if (cmd === 'newDoc') { inst.doc = emptyDoc(); inst.editor.innerHTML = ''; inst.editor.appendChild(renderDoc(inst.doc)); }
-    else if (cmd === 'toggleProps') { var panel = inst.root.querySelector('.sui-rich-props'); if (panel) panel.hidden = !panel.hidden; }
     else if (cmd === 'toggleStatus') { var status = inst.root.querySelector('.sui-rich-status'); if (status) status.hidden = !status.hidden; }
     else if (cmd === 'toggleContext') inst.config.context = !inst.config.context;
     else if (cmd === 'templateArticle') return setTemplate(inst.name, 'article')[0];
@@ -1352,6 +1523,18 @@ window.__SUI_RICH = (function () {
     });
     root.addEventListener('keydown', function (e) {
       if (!inst.editor.contains(e.target)) return;
+      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        splitBlock(inst);
+        commit(inst, 'input');
+        return;
+      }
+      if (e.key === 'Enter' && e.shiftKey) {
+        e.preventDefault();
+        try { document.execCommand('insertLineBreak'); } catch (err) { insertNode(inst, el('br')); }
+        commit(inst, 'input');
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(inst); else undo(inst); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(inst); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); command(inst.name, 'bold'); }
@@ -1426,8 +1609,6 @@ window.__SUI_RICH = (function () {
     if (menuEl && !boolAttr(root, 'data-sui-rich-menu', true)) menuEl.hidden = true;
     var statusEl = root.querySelector('.sui-rich-status');
     if (statusEl && !boolAttr(root, 'data-sui-rich-statusbar', true)) statusEl.hidden = true;
-    var propsEl = root.querySelector('.sui-rich-props');
-    if (propsEl) propsEl.hidden = !boolAttr(root, 'data-sui-rich-properties', false);
     bindRoot(inst); bindProperties(inst);
     updateStats(inst);
     restoreSelection(inst);

@@ -40,7 +40,7 @@ Key features:
 - **Intl formatting**: dates, numbers, currencies, percentages, relative time and time zones
 - **Advanced stdlib**: fs copy/move/size, crypto hash/UUID/random bytes, path helpers, JSON Schema validation, storage quota and cross-tab sync
 - **JSON library**: JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), keyed diff with moves, three-way merge, multi-error schema validation, UTF-8/UTF-16 bytes and desktop file helpers
-- **Rich text editor**: JSON document model, configurable toolbar/menu/context bar, properties and status panels, undo/redo, JSON/HTML/Markdown/XML import/export and plugin commands
+- **Rich text editor**: JSON document model, configurable toolbar/menu/context bar, status bar, undo/redo, JSON/HTML/Markdown/XML import/export and plugin commands
 - **XML library**: DOM navigation/mutation, XPath, namespaces, comments/CDATA/PI, XSD subset with full error collection, JSON/CSV conversion, XSLT, keyed diff with move detection, patch application, update/three-way merge and binary (UTF-8/UTF-16) file I/O
 - **Multi-target**: web apps, browser-launched desktop executables and native-window desktop executables with an embedded WebView
 - **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
