@@ -1710,7 +1710,8 @@ Shift+Tab; DOCX and ODT export use native list numbering.
 
 **Paginated view:** the **Pages** button in the status bar (or View >
 Paginated view) shows A4 sheets with margins, optional header/footer and table
-rows split across pages. Press **Edit** to return to the continuous editor. A single theme button at the right cycles the interface theme.
+rows split across pages; header rows are repeated on each page. Press **Edit**
+to return to the continuous editor. A single theme button at the right cycles the interface theme.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
@@ -1807,7 +1808,7 @@ the document. Supported formats:
 | TXT | yes | yes | Plain paragraphs |
 | RTF | practical subset | yes | Paragraphs, character/paragraph formatting, fonts, alignment, tables with merged cells and cell shading, checkboxes, header/footer pictures and embedded PNG/JPEG pictures |
 | DOC | best effort | RTF content with `.doc` extension | Keeps fonts, sizes, colors, tables, images, lists and page breaks. Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
-| DOCX | yes | yes | WordprocessingML paragraphs, runs, native bullet/numbered lists, tables, formatting, fonts, cell shading, images, header/footer and page breaks |
+| DOCX | yes | yes | WordprocessingML paragraphs, runs, native bullet/numbered lists, tables with repeating header rows, formatting, fonts, cell shading, images, header/footer and page breaks |
 | ODT | yes | yes | OpenDocument text, paragraphs, formatting, native lists, tables, embedded images, header/footer and page breaks |
 | PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells), embedded PNG/JPEG pictures, lists and repeated header/footer with page numbers |
 | HTML, Markdown, JSON, XML | yes | yes | Existing editor formats |

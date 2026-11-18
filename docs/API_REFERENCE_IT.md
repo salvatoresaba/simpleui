@@ -1685,7 +1685,8 @@ Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
 
 **Vista paginata:** il pulsante **Pages** nella barra di stato (o Visualizza >
 Vista paginata) mostra fogli A4 con margini, header/footer e righe di tabella
-spezzate tra le pagine. Premi **Edit** per tornare all'editor continuo.
+spezzate tra le pagine; l'intestazione della tabella si ripete su ogni pagina.
+Premi **Edit** per tornare all'editor continuo.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
@@ -1782,7 +1783,7 @@ scarica il documento. Formati supportati:
 | TXT | sì | sì | Paragrafi di testo semplice |
 | RTF | sottoinsieme pratico | sì | Paragrafi, formattazione di carattere e paragrafo, font, allineamento, tabelle con celle unite e sfondo, caselle di controllo, immagini di intestazione/piede pagina e immagini PNG/JPEG incorporate |
 | DOC | best effort | contenuto RTF con estensione `.doc` | Mantiene font, dimensioni, colori, tabelle, immagini, liste e interruzioni di pagina. Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
-| DOCX | sì | sì | Paragrafi, run, liste native puntate/numerate, tabelle, formattazione, font, sfondo celle, immagini, header/footer e interruzioni di pagina WordprocessingML |
+| DOCX | sì | sì | Paragrafi, run, liste native puntate/numerate, tabelle con intestazione ripetuta, formattazione, font, sfondo celle, immagini, header/footer e interruzioni di pagina WordprocessingML |
 | ODT | sì | sì | Testo OpenDocument, paragrafi, formattazione, liste native, tabelle, immagini incorporate, header/footer e interruzioni di pagina |
 | PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite), immagini PNG/JPEG, liste e header/footer ripetuti con numeri di pagina |
 | HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |

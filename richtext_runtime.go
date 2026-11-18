@@ -2359,33 +2359,40 @@ window.__SUI_RICH = (function () {
     function placeTable(node, height) {
       var rows = Array.prototype.slice.call(node.querySelectorAll('tr'));
       if (rows.length <= 1) { fresh(); current.body.appendChild(node); current.used += height; return; }
-      var shell = tableShell(node);
-      var measureTable = tableShell(node).shell;
-      measure.appendChild(measureTable);
-      var first = true;
+      var headerCount = 0;
+      for (var hr = 0; hr < rows.length; hr++) {
+        var cellsH = rows[hr].cells;
+        var allH = !!(cellsH && cellsH.length);
+        for (var hc = 0; hc < cellsH.length; hc++) if (cellsH[hc].tagName.toLowerCase() !== 'th') allH = false;
+        if (allH) headerCount++; else break;
+      }
+      function startShell(withHeaders) {
+        var sh = tableShell(node);
+        measure.appendChild(sh.shell);
+        if (withHeaders) for (var hh = 0; hh < headerCount; hh++) sh.tbody.appendChild(rows[hh].cloneNode(true));
+        return sh;
+      }
+      var shell = startShell(false);
+      var measureTable = shell.shell;
       for (var r = 0; r < rows.length; r++) {
         var row = rows[r].cloneNode(true);
-        var shellBody = shell.tbody;
-        shellBody.appendChild(row);
+        shell.tbody.appendChild(row);
         measureTable.querySelector('tbody').appendChild(rows[r].cloneNode(true));
         var h = measureTable.getBoundingClientRect().height;
-        var limit = m.contentH - (first ? current.used : 0) - 8;
-        if (h > limit && shellBody.children.length > 1) {
-          shellBody.removeChild(row);
-          measureTable.querySelector('tbody').removeChild(measureTable.querySelector('tbody').lastChild);
-          if (shellBody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height; }
+        var limit = m.contentH - (current.used > 0 && r >= headerCount ? current.used : 0) - 8;
+        if (h > limit && shell.tbody.children.length > headerCount + 1) {
+          shell.tbody.removeChild(row);
+          var mtBody = measureTable.querySelector('tbody');
+          mtBody.removeChild(mtBody.lastChild);
+          if (shell.tbody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height; }
           fresh();
-          shell = tableShell(node);
-          measureTable = tableShell(node).shell;
-          measure.appendChild(measureTable);
-          first = true;
-          r--;
-          continue;
+          shell = startShell(true);
+          measureTable = shell.shell;
+          shell.tbody.appendChild(row);
+          measureTable.querySelector('tbody').appendChild(rows[r].cloneNode(true));
         }
-        first = false;
       }
       if (shell.tbody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height; }
-      if (measureTable.parentNode) measureTable.parentNode.removeChild(measureTable);
     }
     for (var it = 0; it < items.length; it++) {
       var item = items[it];
@@ -3887,10 +3894,12 @@ window.__SUI_RICH = (function () {
           if (Number(cell.rowspan) > 1) merges[col] = { left: Number(cell.rowspan) - 1, span: span, width: cell.width };
           col += span;
         }
-        var trPr = '';
+        var trPrInner = '';
+        var allHeader = row.cells && row.cells.length > 0 && row.cells.every(function (rc) { return rc.header; });
+        if (allHeader || (r === 0 && n.header)) trPrInner += '<w:tblHeader/>';
         var rowH = parseFloat(row.height);
-        if (isFinite(rowH) && rowH > 0) trPr = '<w:trPr><w:trHeight w:val="' + Math.round(rowH * 15) + '" w:hRule="atLeast"/></w:trPr>';
-        rows += '<w:tr>' + trPr + cells + '</w:tr>';
+        if (isFinite(rowH) && rowH > 0) trPrInner += '<w:trHeight w:val="' + Math.round(rowH * 15) + '" w:hRule="atLeast"/>';
+        rows += '<w:tr>' + (trPrInner ? '<w:trPr>' + trPrInner + '</w:trPr>' : '') + cells + '</w:tr>';
       }
       return '<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="999999"/><w:left w:val="single" w:sz="4" w:color="999999"/><w:bottom w:val="single" w:sz="4" w:color="999999"/><w:right w:val="single" w:sz="4" w:color="999999"/><w:insideH w:val="single" w:sz="4" w:color="999999"/><w:insideV w:val="single" w:sz="4" w:color="999999"/></w:tblBorders></w:tblPr><w:tblGrid>' + gridXml + '</w:tblGrid>' + rows + '</w:tbl><w:p/>';
     }
@@ -4365,13 +4374,18 @@ window.__SUI_RICH = (function () {
               var th = trPr.getElementsByTagNameNS('*', 'trHeight')[0];
               if (th) { var hv = Number(th.getAttribute('w:val') || 0); if (hv) row.height = Math.round(hv / 15) + 'px'; }
             }
+            var headerRow = !!(trPr && trPr.getElementsByTagNameNS('*', 'tblHeader').length);
             for (var c = 0; c < trs[r].childNodes.length; c++) if (trs[r].childNodes[c].nodeType === 1 && trs[r].childNodes[c].localName === 'tc') {
-              row.cells.push(cellFrom(trs[r].childNodes[c]));
+              var importedCell = cellFrom(trs[r].childNodes[c]);
+              if (headerRow) importedCell.header = true;
+              row.cells.push(importedCell);
             }
             rows.push(row);
           }
           finalizeTable(rows);
-          out.push({ type: 'table', rows: rows });
+          var tableNode = { type: 'table', rows: rows };
+          if (rows.length && rows[0].cells.length && rows[0].cells.every(function (rc) { return rc.header; })) tableNode.header = true;
+          out.push(tableNode);
         }
       }
       stack = [];
