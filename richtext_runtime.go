@@ -2360,62 +2360,142 @@ window.__SUI_RICH = (function () {
     return { type: 'doc', children: children.length ? children : [{ type: 'paragraph', children: [] }] };
   }
   function rtfInlineFromText(text) { return text ? [{ type: 'text', text: text, marks: [] }] : []; }
+  function decodeCP1252(code) {
+    if (code >= 0x80 && code <= 0x9F) {
+      var special = { 0x80: '\u20ac', 0x82: '\u201a', 0x83: '\u0192', 0x84: '\u201e', 0x85: '\u2026', 0x86: '\u2020', 0x87: '\u2021', 0x88: '\u02c6', 0x89: '\u2030', 0x8A: '\u0160', 0x8B: '\u2039', 0x8C: '\u0152', 0x8E: '\u017d', 0x91: '\u2018', 0x92: '\u2019', 0x93: '\u201c', 0x94: '\u201d', 0x95: '\u2022', 0x96: '\u2013', 0x97: '\u2014', 0x98: '\u02dc', 0x99: '\u2122', 0x9A: '\u0161', 0x9B: '\u203a', 0x9C: '\u0153', 0x9E: '\u017e', 0x9F: '\u0178' };
+      return special[code] || '';
+    }
+    return String.fromCharCode(code);
+  }
   function importRTF(text) {
-    var source = String(text || ''), i = 0, depth = 0, skip = 0, bold = false, italic = false, underline = false, strike = false;
-    var sup = false, sub = false, align = '', current = [], blocks = [], buffer = '';
-    function rtfMarksNow() {
+    var source = String(text || '');
+    var colorTable = [];
+    var colorGroup = /\\colortbl([^}]*)/i.exec(source);
+    if (colorGroup) {
+      var colorRe = /\\red(\d+)\\green(\d+)\\blue(\d+)/g, cm;
+      while ((cm = colorRe.exec(colorGroup[1]))) colorTable.push('#' + [cm[1], cm[2], cm[3]].map(function (v) { return ('0' + Math.max(0, Math.min(255, Number(v))).toString(16)).slice(-2); }).join(''));
+    }
+    var state = { bold: false, italic: false, underline: false, strike: false, sup: false, sub: false, color: '', highlight: '', size: '' };
+    var stack = [];
+    var i = 0, depth = 0, skipDepth = -1, ucSkip = 1;
+    var current = [], blocks = [], buffer = '', align = '';
+    function marksNow() {
       var marks = [];
-      if (bold) marks.push({ type: 'bold' });
-      if (italic) marks.push({ type: 'italic' });
-      if (underline) marks.push({ type: 'underline' });
-      if (strike) marks.push({ type: 'strike' });
-      if (sup) marks.push({ type: 'sup' });
-      if (sub) marks.push({ type: 'sub' });
+      if (state.bold) marks.push({ type: 'bold' });
+      if (state.italic) marks.push({ type: 'italic' });
+      if (state.underline) marks.push({ type: 'underline' });
+      if (state.strike) marks.push({ type: 'strike' });
+      if (state.sup) marks.push({ type: 'sup' });
+      if (state.sub) marks.push({ type: 'sub' });
+      if (state.color) marks.push({ type: 'color', value: state.color });
+      if (state.highlight) marks.push({ type: 'background', value: state.highlight });
+      if (state.size) marks.push({ type: 'size', value: state.size });
       return marks;
     }
-    function flushText() { if (buffer) { current.push({ type: 'text', text: buffer, marks: rtfMarksNow() }); buffer = ''; } }
+    function flushText() {
+      if (buffer) {
+        current.push({ type: 'text', text: buffer, marks: marksNow() });
+        buffer = '';
+      }
+    }
     function flushBlock() {
       flushText();
-      if (current.length) blocks.push({ type: 'paragraph', align: align, children: current });
-      current = [];
+      if (current.length) {
+        blocks.push({ type: 'paragraph', align: align, children: current });
+        current = [];
+      }
+      align = '';
     }
-    function addChar(ch) { if (!skip) buffer += ch; }
+    function addText(value) { if (skipDepth < 0) buffer += value; }
+    function addBreak() { flushText(); if (skipDepth < 0) current.push({ type: 'break', marks: [] }); }
     while (i < source.length) {
       var ch = source.charAt(i);
-      if (ch === '{') { depth++; i++; continue; }
-      if (ch === '}') { depth--; if (skip && depth < skip) skip = 0; i++; continue; }
+      if (ch === '{') {
+        depth++;
+        stack.push({ bold: state.bold, italic: state.italic, underline: state.underline, strike: state.strike, sup: state.sup, sub: state.sub, color: state.color, highlight: state.highlight, size: state.size });
+        i++;
+        continue;
+      }
+      if (ch === '}') {
+        flushText();
+        if (skipDepth === depth) skipDepth = -1;
+        depth--;
+        if (stack.length) state = stack.pop();
+        i++;
+        continue;
+      }
       if (ch === '\\') {
         i++;
-        if (source.charAt(i) === '*') { skip = depth || 1; i++; continue; }
+        if (source.charAt(i) === '*') {
+          skipDepth = depth;
+          i++;
+          continue;
+        }
+        if (source.charAt(i) === "'") {
+          var hex = source.slice(i + 1, i + 3);
+          if (/^[0-9a-fA-F]{2}$/.test(hex)) addText(decodeCP1252(parseInt(hex, 16)));
+          i += 3;
+          continue;
+        }
+        if (source.charAt(i) === '\\' || source.charAt(i) === '{' || source.charAt(i) === '}') {
+          addText(source.charAt(i)); i++; continue;
+        }
+        if (source.charAt(i) === '~') { addText('\u00a0'); i++; continue; }
+        if (source.charAt(i) === '_') { addText('\u00ad'); i++; continue; }
+        if (source.charAt(i) === '\n' || source.charAt(i) === '\r') { i++; continue; }
         var start = i;
         while (i < source.length && /[a-zA-Z]/.test(source.charAt(i))) i++;
         var word = source.slice(start, i);
-        var num = '';
-        while (i < source.length && /[0-9-]/.test(source.charAt(i))) { num += source.charAt(i); i++; }
+        var numText = '';
+        if (source.charAt(i) === '-' || /[0-9]/.test(source.charAt(i))) {
+          if (source.charAt(i) === '-') i++;
+          while (i < source.length && /[0-9]/.test(source.charAt(i))) { numText += source.charAt(i); i++; }
+          if (source.charAt(i - 1) === '-') numText = String(-Number(numText || '0'));
+        }
+        var hasNum = numText !== '';
+        var num = hasNum ? Number(numText) : 0;
         if (source.charAt(i) === ' ') i++;
-        if (word === 'fonttbl' || word === 'colortbl' || word === 'stylesheet' || word === 'info' || word === 'pict') { skip = depth || 1; continue; }
-        if (word === 'par') flushBlock();
-        else if (word === 'line') addChar('\n');
-        else if (word === 'tab') addChar('\t');
-        else if (word === 'b') { flushText(); bold = num !== '0'; }
-        else if (word === 'i') { flushText(); italic = num !== '0'; }
-        else if (word === 'ul') { flushText(); underline = num !== '0'; }
-        else if (word === 'strike') { flushText(); strike = num !== '0'; }
-        else if (word === 'super') { flushText(); sup = num !== '0'; }
-        else if (word === 'sub') { flushText(); sub = num !== '0'; }
+        if (word === 'fonttbl' || word === 'colortbl' || word === 'stylesheet' || word === 'info' || word === 'pict' || word === 'header' || word === 'footer' || word === 'object' || word === 'themedata' || word === 'datastore' || word === 'latentstyles') {
+          skipDepth = depth;
+          continue;
+        }
+        if (skipDepth >= 0) continue;
+        if (word === 'par' || word === 'sect' || word === 'page') flushBlock();
+        else if (word === 'line') addBreak();
+        else if (word === 'tab') addText('\t');
+        else if (word === 'b') { flushText(); state.bold = !hasNum || num !== 0; }
+        else if (word === 'i') { flushText(); state.italic = !hasNum || num !== 0; }
+        else if (word === 'ul') { flushText(); state.underline = !hasNum || num !== 0; }
+        else if (word === 'strike') { flushText(); state.strike = !hasNum || num !== 0; }
+        else if (word === 'super') { flushText(); state.sup = !hasNum || num !== 0; state.sub = false; }
+        else if (word === 'sub') { flushText(); state.sub = !hasNum || num !== 0; state.sup = false; }
+        else if (word === 'nosupersub') { flushText(); state.sup = false; state.sub = false; }
+        else if (word === 'plain') { flushText(); state.bold = state.italic = state.underline = state.strike = state.sup = state.sub = false; state.color = state.highlight = state.size = ''; }
+        else if (word === 'pard') { flushBlock(); }
         else if (word === 'qc' || word === 'center') align = 'center';
         else if (word === 'qr' || word === 'right') align = 'right';
-        else if (word === 'ql' || word === 'left') align = 'left';
-        else if (word === 'u' && num) addChar(String.fromCharCode(Number(num)));
-        else if (word === 'bullet') addChar('\u2022 ');
+        else if (word === 'ql' || word === 'left' || word === 'qj') align = word === 'qj' ? 'justify' : (word === 'ql' ? 'left' : '');
+        else if (word === 'fs' && hasNum) { flushText(); state.size = Math.max(6, Math.round(num / 2)) + 'pt'; }
+        else if (word === 'cf' && hasNum) { flushText(); state.color = colorTable[num] || ''; }
+        else if (word === 'highlight' && hasNum) { flushText(); state.highlight = colorTable[num] || ''; }
+        else if (word === 'u' && hasNum) {
+          var code = num < 0 ? num + 65536 : num;
+          addText(String.fromCharCode(code));
+          var skip = ucSkip;
+          while (skip > 0 && i < source.length && source.charAt(i) !== '\\' && source.charAt(i) !== '}' && source.charAt(i) !== '{') { i++; skip--; }
+        }
+        else if (word === 'uc' && hasNum) ucSkip = Math.max(0, num);
+        else if (word === 'bullet') addText('\u2022 ');
+        else if (word === 'emdash') addText('\u2014');
+        else if (word === 'endash') addText('\u2013');
         continue;
       }
-      if (ch === '\\' && source.charAt(i + 1) === '\\') { addChar('\\'); i += 2; continue; }
-      if (ch === '\\' && (source.charAt(i + 1) === '{' || source.charAt(i + 1) === '}')) { addChar(source.charAt(i + 1)); i += 2; continue; }
       if (ch === '\n' || ch === '\r') { i++; continue; }
-      addChar(ch); i++;
+      addText(ch);
+      i++;
     }
     flushBlock();
+    blocks = blocks.filter(function (b) { return b.children && b.children.length && !(b.children.length === 1 && b.children[0].type === 'text' && !b.children[0].text.trim()); });
     if (!blocks.length) return importPlain(source);
     return { type: 'doc', children: blocks };
   }
@@ -2441,7 +2521,9 @@ window.__SUI_RICH = (function () {
         if (n.type === 'break') { s += '\\line '; continue; }
         if (n.type !== 'text') continue;
         var m = rtfMarks(n.marks);
-        s += m.open + String(n.text || '').replace(/\\/g, '\\\\').replace(/[{}]/g, '\\$&').replace(/\n/g, '\\line ') + m.close;
+        var value = String(n.text || '').replace(/\\/g, '\\\\').replace(/[{}]/g, '\\$&').replace(/\n/g, '\\line ');
+        value = value.replace(/[^\x00-\x7F]/g, function (ch) { var code = ch.charCodeAt(0); return code > 32767 ? '\\u' + (code - 65536) + '?' : '\\u' + code + '?'; });
+        s += m.open + value + m.close;
       }
       return s;
     }
