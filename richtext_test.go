@@ -135,6 +135,12 @@ view main {
     var tableRange = document.createRange(); tableRange.selectNodeContents(tableCell);
     var tableSel = window.getSelection(); tableSel.removeAllRanges(); tableSel.addRange(tableRange);
     await wait(200);
+    var menuButton = richRoot().querySelector('.sui-rich-menu-btn');
+    var menuPanel = menuButton.parentNode.querySelector('.sui-rich-menu-panel');
+    menuButton.click();
+    if (menuPanel.hidden) throw new Error('menu did not open');
+    document.body.click();
+    if (!menuPanel.hidden) throw new Error('menu did not close outside');
     var tableBar = richRoot().querySelector('.sui-rich-tablebar');
     if (!tableBar || tableBar.hidden) throw new Error('table toolbar missing');
     var rowsBefore = richRoot().querySelectorAll('.sui-rich-editor tr').length;

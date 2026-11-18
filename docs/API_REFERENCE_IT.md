@@ -1680,8 +1680,10 @@ eliminare righe e colonne, attivare l'intestazione, unire o dividere celle,
 allineare le celle ed eliminare la tabella. Clicca o fai Shift+clic sulle celle
 per selezionare un intervallo rettangolare. Trascina la maniglia ⣿ per
 spostare la toolbar dove vuoi; doppio clic sulla maniglia o il pulsante dock la
-riporta sotto la toolbar principale. Le modifiche entrano nella cronologia
-undo/redo.
+riporta sotto la toolbar principale. Le modifiche entrano nella cronologia undo/redo. Clicca fuori da un menu per chiuderlo. Trascina i bordi
+destra/inferiore di una tabella per ridimensionare colonne o righe, oppure
+l'angolo in basso a destra per ridimensionare l'intera tabella; le dimensioni
+sono salvate nel documento JSON.
 
 ### Modello del documento
 

@@ -1705,7 +1705,10 @@ add/delete column, header-row toggle, merge/split cell, cell alignment and
 delete-table actions. Click or shift-click cells to select a rectangular range
 for merge/alignment. Drag the ⣿ handle to float the toolbar anywhere; double-
 click the handle or use the dock button to return it below the main toolbar.
-Table changes are recorded in the normal undo/redo history.
+Click outside a menu to close it. Drag a table's right/bottom borders to
+resize columns or rows, or drag the bottom-right corner to resize the whole
+table; sizes are stored in the JSON document. Table changes are recorded in the
+normal undo/redo history.
 
 ### Document model
 
