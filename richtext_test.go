@@ -607,6 +607,50 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.command('editor', 'codeBlock');
     await wait(200);
     if (bsTopTag() !== 'pre') throw new Error('quote to code conversion failed: ' + bsTopTag());
+
+    // Every text feature has a control: the default toolbar exposes inline
+    // code and unlink, H4 is in the block style select, and pressed/disabled
+    // states follow the caret.
+    __SUI_RICH.setToolbar('editor', '');
+    await wait(200);
+    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','lineHeight','spaceBefore','spaceAfter','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak'];
+    for (var dt = 0; dt < defaultTokens.length; dt++) {
+      if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="' + defaultTokens[dt] + '"]')) throw new Error('default toolbar missing control: ' + defaultTokens[dt]);
+    }
+    if (!bsSelect() || !bsSelect().querySelector('option[value="h4"]')) throw new Error('Heading 4 missing from the block style select');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Code me', marks: [] }] }] });
+    await wait(200);
+    var codePara = bsEditor().querySelector('p');
+    var codeRange = document.createRange();
+    codeRange.setStart(codePara.firstChild, 0); codeRange.setEnd(codePara.firstChild, 4);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(codeRange);
+    __SUI_RICH.command('editor', 'code');
+    await wait(200);
+    if (!bsEditor().querySelector('code')) throw new Error('inline code not applied');
+    var codeNode = bsEditor().querySelector('code');
+    var codeSel = document.createRange(); codeSel.selectNodeContents(codeNode);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(codeSel);
+    await wait(120);
+    var codeBtn = bsBtn('code');
+    if (!codeBtn || !codeBtn.classList.contains('on')) throw new Error('inline code button not pressed');
+    __SUI_RICH.command('editor', 'code');
+    await wait(200);
+    if (bsEditor().querySelector('code')) throw new Error('inline code did not toggle off');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Example', marks: [{ type: 'link', href: 'https://example.com' }] }] }] });
+    await wait(200);
+    var linkNode = bsEditor().querySelector('a');
+    if (!linkNode) throw new Error('link markup missing');
+    var linkRange = document.createRange(); linkRange.selectNodeContents(linkNode);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(linkRange);
+    await wait(120);
+    var unlinkBtn = bsBtn('unlink');
+    if (!unlinkBtn) throw new Error('unlink button missing');
+    if (unlinkBtn.disabled) throw new Error('unlink disabled inside a link');
+    unlinkBtn.click();
+    await wait(200);
+    if (bsEditor().querySelector('a')) throw new Error('unlink did not remove the link');
 `+featureScriptTail)
 }
 
@@ -627,5 +671,51 @@ view main { richtext "x" name: "e" value: v unsupported: true }`, "unsupported"}
 				t.Fatalf("expected %q, got %v", tc.want, d.String())
 			}
 		})
+	}
+}
+
+// TestRichTextDefaultToolbarCoversTextFeatures keeps the toolbar in sync with
+// the text commands: every formatting feature must expose a control, including
+// inline code and unlink, and the block select must offer Heading 4.
+func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
+	const marker = "var defaultToolbar = '"
+	i := strings.Index(suiRichTextRuntime, marker)
+	if i < 0 {
+		t.Fatal("defaultToolbar not found in the runtime")
+	}
+	rest := suiRichTextRuntime[i+len(marker):]
+	end := strings.Index(rest, "'")
+	if end < 0 {
+		t.Fatal("defaultToolbar assignment not closed")
+	}
+	items := map[string]bool{}
+	for _, group := range strings.Split(rest[:end], "|") {
+		for _, token := range strings.Split(group, ",") {
+			items[strings.TrimSpace(token)] = true
+		}
+	}
+	for _, token := range []string{
+		"undo", "redo", "copy", "cut", "paste",
+		"styleSelect", "fontFamily", "fontSize", "bold", "italic", "underline",
+		"strike", "textColor", "highlight", "superscript", "subscript", "code",
+		"clearFormat", "alignLeft", "alignCenter", "alignRight", "justify",
+		"indent", "outdent", "lineHeight", "spaceBefore", "spaceAfter",
+		"bulletList", "orderedList", "blockquote", "codeBlock",
+		"link", "unlink", "image", "table", "symbol", "hr", "pageBreak",
+	} {
+		if !items[token] {
+			t.Errorf("default toolbar is missing the %q control", token)
+		}
+	}
+	for _, want := range []string{
+		"code: '<svg",
+		"unlink: '<svg",
+		"['h4', 'Heading 4']",
+		"Unlink|unlink",
+		"Heading 4|h4",
+	} {
+		if !strings.Contains(suiRichTextRuntime, want) {
+			t.Errorf("rich text runtime is missing %q", want)
+		}
 	}
 }

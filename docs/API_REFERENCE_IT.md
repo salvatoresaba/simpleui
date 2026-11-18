@@ -1693,10 +1693,15 @@ Premi **Edit** per tornare all'editor continuo.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
-`highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
+`highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
+`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
+
+Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
+inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un
+link e gli stati premuti seguono il cursore per grassetto/corsivo/sottolineato/
+barrato, apice/pedice, codice inline, link e stili di blocco.
 
 **Stili di blocco** (Quote, Code block, titoli): il selettore di stile e i
 pulsanti Quote/Code riflettono il blocco del cursore. Clicca di nuovo il

@@ -1718,10 +1718,15 @@ to return to the continuous editor. A single theme button at the right cycles th
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
-`highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
+`highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
+`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
+
+Every text feature has a toolbar control: inline code (`code`) and Remove link
+(`unlink`) included. Unlink is disabled when the caret is outside a link, and
+the pressed states follow the caret for bold/italic/underline/strike,
+super/subscript, inline code, links and block styles.
 
 **Block styles** (Quote, Code block, headings) are reflected by the style
 select and the Quote/Code buttons. Click the active button again or choose

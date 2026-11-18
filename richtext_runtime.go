@@ -18,7 +18,7 @@ window.__SUI_RICH = (function () {
   var MAX_HISTORY = 120;
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
-  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,superscript,subscript,clearFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,lineHeight,spaceBefore,spaceAfter,bulletList,orderedList,blockquote,codeBlock|link,image,table,symbol,hr,pageBreak';
+  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,lineHeight,spaceBefore,spaceAfter,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak';
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -64,6 +64,7 @@ window.__SUI_RICH = (function () {
     pageBreak: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l3 3v15H7z"/><path d="M3 13h18" stroke-dasharray="2 2"/></svg>',
     blockquote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h5v5H6c0 2 2 3 4 3M14 7h5v5h-4c0 2 2 3 4 3"/></svg>',
     codeBlock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7 3 12l5 5M16 7l5 5-5 5M13 5l-2 14"/></svg>',
+    code: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8 5 12l4 4M15 8l4 4-4 4"/></svg>',
     textColor: '<span aria-hidden="true" style="font-weight:700">A</span>',
     highlight: '<span aria-hidden="true" style="background:#ffe066;color:#111;padding:0 2px">A</span>',
     paragraph: '<span aria-hidden="true">P</span>'
@@ -74,8 +75,8 @@ window.__SUI_RICH = (function () {
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] },
       { label: 'Save as', items: ['Plain text (.txt)|saveTXT', 'RTF (.rtf)|saveRTF', 'Word (.doc, RTF)|saveDOC', 'Word (.docx)|saveDOCX', 'OpenDocument (.odt)|saveODT', 'PDF (.pdf)|savePDF', 'HTML (.html)|saveHTML', 'Markdown (.md)|saveMarkdown', 'JSON (.json)|saveJSON', 'XML (.xml)|saveXML'] }],
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
-    insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
-    format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Code|code', 'Clear formatting|clearFormat'],
+    insert: ['Link|link', 'Unlink|unlink', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
+    format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Heading 4|h4', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Code|code', 'Clear formatting|clearFormat'],
     view: ['Paginated view|paginatedView', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
   };
@@ -969,13 +970,31 @@ window.__SUI_RICH = (function () {
       if (selects[i].value !== value) selects[i].value = value;
       selects[i].setAttribute('data-rich-block', value || 'p');
     }
+    var sel = window.getSelection();
+    var inside = !!(sel && sel.rangeCount && inst.editor && inst.editor.contains(sel.anchorNode));
+    var inlineCmds = { bold: 'bold', italic: 'italic', underline: 'underline', strike: 'strikeThrough', superscript: 'superscript', subscript: 'subscript' };
+    var inCode = inside ? !!closestIn(inst, 'code') : false;
+    var inLink = inside ? !!closestIn(inst, 'a') : false;
     var buttons = inst.root.querySelectorAll('.sui-rich-btn[data-rich-cmd]');
     for (var b = 0; b < buttons.length; b++) {
       var cmd = buttons[b].getAttribute('data-rich-cmd');
-      if (cmd !== 'blockquote' && cmd !== 'codeBlock' && !/^h[1-4]$/.test(cmd)) continue;
-      var on = (cmd === 'blockquote' && value === 'blockquote') || (cmd === 'codeBlock' && value === 'pre') || cmd === value;
+      var on = false, disabled = false;
+      if (cmd === 'blockquote') on = value === 'blockquote';
+      else if (cmd === 'codeBlock') on = value === 'pre';
+      else if (/^h[1-4]$/.test(cmd)) on = cmd === value;
+      else if (inlineCmds[cmd]) {
+        if (inside) { try { on = document.queryCommandState(inlineCmds[cmd]); } catch (e) { on = false; } }
+      }
+      else if (cmd === 'code') on = inCode;
+      else if (cmd === 'link') on = inLink;
+      else if (cmd === 'unlink') disabled = !inLink;
+      else continue;
       buttons[b].classList.toggle('on', on);
       buttons[b].setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (cmd === 'unlink') {
+        buttons[b].disabled = disabled;
+        buttons[b].setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      }
     }
   }
   function buildTable(rows, cols) {
@@ -2299,9 +2318,9 @@ window.__SUI_RICH = (function () {
     var list = String(tokens || '').split(',');
     function has(re) { for (var i = 0; i < list.length; i++) if (re.test(list[i].trim())) return true; return false; }
     if (has(/^(undo|redo|copy|cut|paste)$/)) return 'History and clipboard';
-    if (has(/^(styleSelect|fontFamily|fontSize|bold|italic|underline|strike|textColor|highlight|superscript|subscript|clearFormat)$/)) return 'Text formatting';
+    if (has(/^(styleSelect|fontFamily|fontSize|bold|italic|underline|strike|textColor|highlight|superscript|subscript|code|clearFormat)$/)) return 'Text formatting';
     if (has(/^(align|indent|outdent|lineHeight|spaceBefore|spaceAfter|bulletList|orderedList|blockquote|codeBlock|justify)/)) return 'Paragraph';
-    if (has(/^(link|image|table|symbol|hr|pageBreak)$/)) return 'Insert';
+    if (has(/^(link|unlink|image|table|symbol|hr|pageBreak)$/)) return 'Insert';
     return 'Tools';
   }
   function buildToolbar(inst) {
@@ -2326,7 +2345,7 @@ window.__SUI_RICH = (function () {
       for (var t = 0; t < tokens.length; t++) {
         var token = tokens[t].trim();
         if (!token) continue;
-        if (token === 'styleSelect') group.appendChild(select(inst, 'paragraph', [['', 'Normal'], ['h1', 'Heading 1'], ['h2', 'Heading 2'], ['h3', 'Heading 3'], ['blockquote', 'Quote'], ['pre', 'Code block']], 'Block style'));
+        if (token === 'styleSelect') group.appendChild(select(inst, 'paragraph', [['', 'Normal'], ['h1', 'Heading 1'], ['h2', 'Heading 2'], ['h3', 'Heading 3'], ['h4', 'Heading 4'], ['blockquote', 'Quote'], ['pre', 'Code block']], 'Block style'));
         else if (token === 'fontFamily') group.appendChild(select(inst, 'fontFamily', [['', 'Font'], ['Arial, sans-serif', 'Arial'], ['Georgia, serif', 'Georgia'], ['Times New Roman, serif', 'Times'], ['Courier New, monospace', 'Courier'], ['system-ui, sans-serif', 'System']], 'Font family'));
         else if (token === 'fontSize') group.appendChild(select(inst, 'fontSize', [['', 'Size'], ['1', 'Small'], ['3', 'Normal'], ['5', 'Large'], ['7', 'Huge']], 'Font size'));
         else if (token === 'lineHeight') group.appendChild(select(inst, 'lineHeight', [['', 'Line height'], ['1.2', '1.2'], ['1.5', '1.5'], ['1.8', '1.8'], ['2', '2.0']], 'Line height'));
@@ -6283,6 +6302,7 @@ const suiRichTextCss = `
 .sui-rich-btn:hover, .sui-rich-btn:focus-visible { background: var(--sui-rich-hover); border-color: var(--sui-rich-border); outline: none; }
 .sui-rich-btn:active { transform: translateY(1px); }
 .sui-rich-btn.on { background: var(--sui-rich-hover); color: var(--sui-rich-accent); border-color: var(--sui-rich-accent); }
+.sui-rich-btn[disabled] { opacity: .45; cursor: default; }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
 .sui-rich-color { width: 34px; padding: 2px; cursor: pointer; }
 .sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }

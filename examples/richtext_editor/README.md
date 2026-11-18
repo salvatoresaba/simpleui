@@ -74,7 +74,7 @@ Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
+`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`.
 
 ## API
 
