@@ -1818,7 +1818,9 @@ extracted from RTF (including header and footer pictures), DOCX and ODT as data
 URLs and re-embedded on export. File pickers
 and downloads are user-driven and do not require desktop bridge permissions.
 DOCX/ODT export creates the package in the browser; no external service is
-used.
+used. Importing DOCX/ODT recovers fonts, sizes, colors, highlights, links,
+paragraph spacing/indent, bullet/numbered lists, header/footer text and table
+column spans/shading.
 
 ### Import, export and safety
 

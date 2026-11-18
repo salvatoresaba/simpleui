@@ -337,6 +337,23 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(120);
     if (richRoot().classList.contains('sui-rich-paginated')) throw new Error('paginated view not disabled');
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'paragraph', children: [{ type: 'text', text: 'RT', marks: [{ type: 'bold' }, { type: 'color', value: '#1F497D' }, { type: 'size', value: '14pt' }, { type: 'font', value: 'Georgia' }] }] },
+      { type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Item', marks: [] }] }] }] }
+    ] });
+    await wait(100);
+    var rtDocxImport = await __SUI_RICH.importBytes('editor', __SUI_RICH.exportBytes('editor', 'docx')[0], 'rt.docx');
+    if (rtDocxImport[1] !== null) throw new Error('docx roundtrip import: ' + rtDocxImport[1]);
+    var rt1 = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (!rt1.header || rt1.header.indexOf('Report') < 0) throw new Error('docx header roundtrip');
+    if (!rt1.children.some(function (c) { return c.type === 'bullet_list'; })) throw new Error('docx list roundtrip');
+    var rtMarks = (rt1.children[0].children[0].marks || []).map(function (m) { return m.type; });
+    if (rtMarks.indexOf('color') < 0 || rtMarks.indexOf('font') < 0 || rtMarks.indexOf('size') < 0) throw new Error('docx marks roundtrip: ' + rtMarks.join(','));
+    var rtOdtImport = await __SUI_RICH.importBytes('editor', __SUI_RICH.exportBytes('editor', 'odt')[0], 'rt.odt');
+    if (rtOdtImport[1] !== null) throw new Error('odt roundtrip import: ' + rtOdtImport[1]);
+    var rt2 = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (!rt2.header || rt2.header.indexOf('Report') < 0) throw new Error('odt header roundtrip');
+    if (!rt2.children.some(function (c) { return c.type === 'bullet_list'; })) throw new Error('odt list roundtrip');
 `+featureScriptTail)
 }
 

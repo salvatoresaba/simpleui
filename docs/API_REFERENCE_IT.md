@@ -1794,6 +1794,9 @@ pagina), DOCX e ODT come data URL e reinserite
 esportando. Selettore
 file e download sono azioni dell'utente e non richiedono permessi del bridge
 desktop. L'export DOCX/ODT crea il pacchetto nel browser, senza servizi esterni.
+L'import DOCX/ODT recupera font, dimensioni, colori, evidenziazioni, link,
+spaziatura/rientro dei paragrafi, liste puntate/numerate, testo di
+intestazione/piede e colonne/sfondi delle tabelle.
 
 ### Import, export e sicurezza
 
