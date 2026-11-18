@@ -859,6 +859,10 @@ window.__SUI_RICH = (function () {
   function runBuiltin(inst, cmd, value) {
     var editor = inst.editor;
     var selection = window.getSelection();
+    if ((!selection || !selection.rangeCount || !editor.contains(selection.anchorNode)) && inst.savedSelection) {
+      restoreSelection(inst);
+      selection = window.getSelection();
+    }
     var savedRange = selection && selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
     if (document.activeElement !== editor) {
       editor.focus();
@@ -1483,7 +1487,12 @@ window.__SUI_RICH = (function () {
     if (root.__suiRichBound) return;
     root.__suiRichBound = true;
     root.addEventListener('mousedown', function (e) {
-      if (e.target.closest && e.target.closest('.sui-rich-toolbar,.sui-rich-menu,.sui-rich-context,.sui-rich-props,.sui-rich-status')) e.preventDefault();
+      if (!e.target.closest) return;
+      var chrome = e.target.closest('.sui-rich-toolbar,.sui-rich-menu,.sui-rich-context,.sui-rich-status');
+      if (!chrome) return;
+      // Preserve the text selection before a select/color input takes focus.
+      saveSelection(inst);
+      if (!e.target.closest('select,input')) e.preventDefault();
     });
     root.addEventListener('click', function (e) {
       var target = e.target;
@@ -1712,7 +1721,7 @@ const suiRichTextCss = `
   background: var(--sui-rich-bg);
   color: var(--sui-rich-fg);
   font-family: system-ui, sans-serif;
-  overflow: hidden;
+  overflow: visible;
 }
 .sui-rich[data-sui-rich-theme="light"] {
   --sui-rich-bg: #ffffff;
