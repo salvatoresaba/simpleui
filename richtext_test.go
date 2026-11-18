@@ -510,6 +510,103 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var splitTable = splitDoc.children.filter(function (c) { return c.type === 'table'; })[0];
     if (!splitTable || Number(splitTable.rows[0].cells[0].rowspan) > 1) throw new Error('table split did not clear rowspan: ' + JSON.stringify(splitResult));
     if (splitTable.rows[1].cells.length < 2) throw new Error('table split did not add the row cell');
+
+    // Block styles: Quote/Code must always be escapable. A rendered quote
+    // wraps paragraphs, so the toolbar has to treat the quote container as the
+    // styled block (toggle, style select, Escape/Backspace, clear formatting
+    // and Enter on the last empty line).
+    __SUI_RICH.setToolbar('editor', 'styleSelect,blockquote,codeBlock,clearFormat');
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Quote me', marks: [] }] }] });
+    await wait(200);
+    function bsEditor() { return richRoot().querySelector('.sui-rich-editor'); }
+    function bsTopTag() { var e = bsEditor(); return e.firstElementChild ? e.firstElementChild.tagName.toLowerCase() : ''; }
+    function bsCaretTop() {
+      var e = bsEditor(), b = e.firstElementChild;
+      if (!b) return;
+      var t = b.tagName.toLowerCase() === 'blockquote' ? (b.firstElementChild || b) : b;
+      var r = document.createRange(); r.setStart(t.firstChild || t, 0); r.collapse(true);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); e.focus();
+    }
+    function bsCaretEnd() {
+      var e = bsEditor(), b = e.firstElementChild;
+      if (!b) return;
+      var t = b.tagName.toLowerCase() === 'blockquote' ? (b.lastElementChild || b) : b;
+      var r = document.createRange(); r.selectNodeContents(t); r.collapse(false);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); e.focus();
+    }
+    function bsSelect() { return richRoot().querySelector('select[data-rich-cmd="paragraph"]'); }
+    function bsBtn(cmd) { return richRoot().querySelector('.sui-rich-toolbar .sui-rich-btn[data-rich-cmd="' + cmd + '"]'); }
+    if (!bsSelect()) throw new Error('block style select missing after setToolbar');
+
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'blockquote');
+    await wait(200);
+    if (bsTopTag() !== 'blockquote') throw new Error('quote not applied: ' + bsTopTag());
+    if (bsSelect().value !== 'blockquote') throw new Error('block style select not synced: ' + bsSelect().value);
+    if (!bsBtn('blockquote') || !bsBtn('blockquote').classList.contains('on')) throw new Error('quote button not pressed');
+    __SUI_RICH.command('editor', 'blockquote');
+    await wait(200);
+    if (bsTopTag() !== 'p') throw new Error('quote toggle did not exit: ' + bsTopTag());
+
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'codeBlock');
+    await wait(200);
+    if (bsTopTag() !== 'pre') throw new Error('code block not applied: ' + bsTopTag());
+    if (!bsBtn('codeBlock') || !bsBtn('codeBlock').classList.contains('on')) throw new Error('code button not pressed');
+    bsCaretTop();
+    bsEditor().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await wait(200);
+    if (bsTopTag() !== 'p') throw new Error('Escape did not leave the code block: ' + bsTopTag());
+
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'blockquote');
+    await wait(200);
+    bsCaretTop();
+    bsEditor().dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
+    await wait(200);
+    if (bsTopTag() !== 'p') throw new Error('Backspace did not leave the quote: ' + bsTopTag());
+
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'blockquote');
+    await wait(200);
+    bsCaretTop();
+    var bsNormal = bsSelect();
+    bsNormal.value = '';
+    bsNormal.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(200);
+    if (bsTopTag() !== 'p') throw new Error('Normal style did not leave the quote: ' + bsTopTag());
+
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'blockquote');
+    await wait(200);
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'clearFormat');
+    await wait(200);
+    if (bsTopTag() !== 'p') throw new Error('clearFormat did not leave the quote: ' + bsTopTag());
+
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'blockquote');
+    await wait(200);
+    bsCaretEnd();
+    bsEditor().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await wait(200);
+    if (bsTopTag() !== 'blockquote') throw new Error('Enter left the quote too early: ' + bsTopTag());
+    bsEditor().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await wait(200);
+    if (bsTopTag() !== 'blockquote' || bsEditor().children.length < 2) {
+      var bsQ = bsEditor().firstElementChild;
+      var bsChain = [];
+      var bsNode = window.getSelection() && window.getSelection().anchorNode;
+      while (bsNode && bsChain.length < 6) { bsChain.push(bsNode.nodeType === 1 ? bsNode.tagName : '#text'); bsNode = bsNode.parentNode; }
+      throw new Error('Enter on the last empty line did not exit the quote; kids=' + [].map.call(bsEditor().children, function (c) { return c.tagName; }) +
+        ' quoteKids=' + (bsQ ? [].map.call(bsQ.children, function (c) { return c.tagName + ':' + (c.textContent || '') + ':' + (c.innerHTML || ''); }) : []) +
+        ' chain=' + bsChain);
+    }
+
+    bsCaretTop();
+    __SUI_RICH.command('editor', 'codeBlock');
+    await wait(200);
+    if (bsTopTag() !== 'pre') throw new Error('quote to code conversion failed: ' + bsTopTag());
 `+featureScriptTail)
 }
 

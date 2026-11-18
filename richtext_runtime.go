@@ -609,8 +609,12 @@ window.__SUI_RICH = (function () {
 
   function currentBlock(inst) {
     var sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return null;
+    var fallback = inst.editor ? inst.editor.firstElementChild : null;
+    if (!sel || !sel.rangeCount) return fallback;
     var node = sel.anchorNode;
+    // A reactive re-render replaces the editor: the old selection may still
+    // point into the detached view. Never treat that wrapper as a block.
+    if (!node || !inst.editor || !inst.editor.contains(node)) return fallback;
     while (node && node !== inst.editor) {
       if (node.nodeType === 1) {
         var tag = node.tagName.toLowerCase();
@@ -618,7 +622,7 @@ window.__SUI_RICH = (function () {
       }
       node = node.parentNode;
     }
-    return inst.editor.firstElementChild;
+    return fallback;
   }
 
   function topBlock(inst, node) {
@@ -662,6 +666,14 @@ window.__SUI_RICH = (function () {
       var children = Array.prototype.slice.call(inst.editor.children);
       info.blockIndex = children.indexOf(top);
       info.blockOffset = textOffsetWithin(top, range.startContainer, range.startOffset);
+      var leaf = currentBlock(inst);
+      info.leafIndex = -1;
+      info.leafOffset = info.blockOffset;
+      if (leaf && leaf !== top && top.contains(leaf)) {
+        var leaves = top.querySelectorAll('p,h1,h2,h3,h4,pre,li');
+        info.leafIndex = Array.prototype.indexOf.call(leaves, leaf);
+        info.leafOffset = textOffsetWithin(leaf, range.startContainer, range.startOffset);
+      }
     }
     return info;
   }
@@ -679,17 +691,27 @@ window.__SUI_RICH = (function () {
       var blocks = inst.editor.children;
       var block = blocks[info.blockIndex];
       if (block) {
-        var blockWalker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
+        var host = block;
+        var hostOffset = info.blockOffset;
+        if (info.leafIndex != null && info.leafIndex >= 0) {
+          var hostLeaves = block.querySelectorAll('p,h1,h2,h3,h4,pre,li');
+          if (hostLeaves[info.leafIndex]) { host = hostLeaves[info.leafIndex]; hostOffset = info.leafOffset; }
+        }
+        var blockWalker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
         var blockPos = 0, blockNode = null, blockOffset = 0, bn;
         while ((bn = blockWalker.nextNode())) {
           var blen = (bn.nodeValue || '').length;
-          if (info.blockOffset <= blockPos + blen) { blockNode = bn; blockOffset = Math.max(0, info.blockOffset - blockPos); break; }
+          if (hostOffset <= blockPos + blen) { blockNode = bn; blockOffset = Math.max(0, hostOffset - blockPos); break; }
           blockPos += blen;
         }
         try {
           var blockRange = document.createRange();
           if (blockNode) blockRange.setStart(blockNode, blockOffset);
-          else { blockRange.selectNodeContents(block); blockRange.collapse(true); }
+          else {
+            var emptyChild = host.lastElementChild;
+            blockRange.selectNodeContents(emptyChild || host);
+            blockRange.collapse(true);
+          }
           blockRange.collapse(true);
           var blockSel = window.getSelection();
           blockSel.removeAllRanges(); blockSel.addRange(blockRange);
@@ -829,15 +851,132 @@ window.__SUI_RICH = (function () {
     parent.removeChild(found);
     return true;
   }
+  // quoteAncestor returns the blockquote that contains block. A rendered quote
+  // wraps one paragraph per quote line, so the inner paragraph must not be
+  // treated as the styled block.
+  function quoteAncestor(block, editor) {
+    var node = block;
+    while (node && node !== editor) {
+      if (node.nodeType === 1 && node.tagName.toLowerCase() === 'blockquote') return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+  // blockKind returns the block style under the caret: 'blockquote', 'pre',
+  // 'h1'..'h4' or the element tag for ordinary blocks.
+  function blockKind(inst) {
+    var block = currentBlock(inst);
+    if (!block) return '';
+    if (quoteAncestor(block, inst.editor)) return 'blockquote';
+    return block.tagName ? block.tagName.toLowerCase() : '';
+  }
+  // unwrapQuote moves the quote children before the quote and removes it,
+  // keeping the caret in the same paragraph.
+  function unwrapQuote(inst, quote) {
+    var parent = quote.parentNode;
+    if (!parent) return;
+    var active = currentBlock(inst);
+    var nodes = Array.prototype.slice.call(quote.childNodes);
+    var inline = [];
+    var first = null;
+    function flushInline() {
+      if (!inline.length) return;
+      var para = el('p');
+      parent.insertBefore(para, quote);
+      for (var i = 0; i < inline.length; i++) para.appendChild(inline[i]);
+      inline = [];
+      if (!first) first = para;
+    }
+    for (var n = 0; n < nodes.length; n++) {
+      var node = nodes[n];
+      var isBlock = node.nodeType === 1 && /^(p|h[1-6]|pre|ul|ol|table|figure|div)$/.test(node.tagName.toLowerCase());
+      if (isBlock) {
+        flushInline();
+        parent.insertBefore(node, quote);
+        if (!first) first = node;
+      } else if (node.nodeType === 1 || (node.nodeValue && node.nodeValue.length)) {
+        inline.push(node);
+      }
+    }
+    flushInline();
+    if (quote.parentNode === parent) parent.removeChild(quote);
+    var caretBlock = (active && active !== quote && parent.contains(active)) ? active : first;
+    if (caretBlock) {
+      var range = document.createRange();
+      range.selectNodeContents(caretBlock);
+      range.collapse(false);
+      var sel = window.getSelection();
+      if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+    }
+    syncBlockControls(inst);
+  }
   function applyBlock(inst, tag) {
     var block = currentBlock(inst);
     if (!block) return;
+    var quote = quoteAncestor(block, inst.editor);
+    if (quote) {
+      if (/^(blockquote)$/.test(tag)) return;
+      unwrapQuote(inst, quote);
+      if (tag === 'p') return;
+      block = currentBlock(inst);
+      if (!block) return;
+    }
+    if (tag === 'pre' && block.tagName && block.tagName.toLowerCase() === 'pre') return;
     var next = el(tag);
     for (var i = 0; i < block.attributes.length; i++) if (block.attributes[i].name === 'style') next.setAttribute('style', block.getAttribute('style'));
     while (block.firstChild) next.appendChild(block.firstChild);
+    var caretHost = next;
+    if (tag === 'blockquote') {
+      var hasBlockChild = false;
+      for (var qc = next.firstChild; qc; qc = qc.nextSibling) {
+        if (qc.nodeType === 1 && /^(p|h[1-6]|pre|ul|ol|table|figure|div)$/.test(qc.tagName.toLowerCase())) { hasBlockChild = true; break; }
+      }
+      if (!hasBlockChild) {
+        var para = el('p');
+        while (next.firstChild) para.appendChild(next.firstChild);
+        next.appendChild(para);
+      }
+      caretHost = next.lastElementChild || next;
+    }
     block.parentNode.replaceChild(next, block);
     var sel = window.getSelection();
-    if (sel) { var r = document.createRange(); r.selectNodeContents(next); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); }
+    if (sel) { var r = document.createRange(); r.selectNodeContents(caretHost); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); }
+    syncBlockControls(inst);
+  }
+  // blockStyleValue maps a block kind to the value of the "Block style"
+  // select. Normal paragraphs use the empty value.
+  function blockStyleValue(kind) {
+    if (/^h[1-6]$/.test(kind)) return kind;
+    if (kind === 'blockquote') return 'blockquote';
+    if (kind === 'pre') return 'pre';
+    return '';
+  }
+  // toggleBlock applies a block style, or returns to a paragraph when the
+  // caret is already inside it. This is what lets the Quote/Code buttons work
+  // as toggles instead of trapping the caret in the format.
+  function toggleBlock(inst, tag) {
+    applyBlock(inst, blockKind(inst) === tag ? 'p' : tag);
+  }
+  // syncBlockControls reflects the caret block in the toolbar: the style
+  // select shows Quote/Code/Heading, and the matching buttons get their
+  // pressed state. Without this the select stayed on Normal and selecting
+  // Normal again did not fire a change event, leaving no way out.
+  function syncBlockControls(inst) {
+    if (!inst || !inst.root) return;
+    var value = blockStyleValue(blockKind(inst));
+    var selects = inst.root.querySelectorAll('select[data-rich-cmd="paragraph"]');
+    for (var i = 0; i < selects.length; i++) {
+      if (selects[i].value !== value) selects[i].value = value;
+      selects[i].setAttribute('data-rich-block', value || 'p');
+    }
+    var buttons = inst.root.querySelectorAll('.sui-rich-btn[data-rich-cmd]');
+    for (var b = 0; b < buttons.length; b++) {
+      var cmd = buttons[b].getAttribute('data-rich-cmd');
+      if (cmd !== 'blockquote' && cmd !== 'codeBlock' && !/^h[1-4]$/.test(cmd)) continue;
+      var on = (cmd === 'blockquote' && value === 'blockquote') || (cmd === 'codeBlock' && value === 'pre') || cmd === value;
+      buttons[b].classList.toggle('on', on);
+      buttons[b].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
   }
   function buildTable(rows, cols) {
     var table = el('table');
@@ -1433,6 +1572,25 @@ window.__SUI_RICH = (function () {
     var block = currentBlock(inst);
     if (!block || !inst.editor.contains(block)) return;
     var tag = block.tagName.toLowerCase();
+    var quote = quoteAncestor(block, inst.editor);
+    if (quote) {
+      var emptyLine = !block.textContent.replace(/\u200b/g, '').trim() && !block.querySelector('img,table,hr');
+      if (emptyLine && block === quote.lastElementChild) {
+        // Enter on the empty last line of a quote exits the quote.
+        var exit = el('p');
+        exit.appendChild(el('br'));
+        quote.parentNode.insertBefore(exit, quote.nextSibling);
+        quote.removeChild(block);
+        if (!quote.textContent.trim() && !quote.querySelector('img,table,hr,ul,ol,table')) quote.parentNode.removeChild(quote);
+        inst.editor.focus();
+        var exitRange = document.createRange();
+        exitRange.selectNodeContents(exit);
+        exitRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(exitRange);
+        return;
+      }
+    }
     if (tag === 'pre' || tag === 'table' || tag === 'td' || tag === 'th') {
       document.execCommand('insertLineBreak');
       return;
@@ -1471,6 +1629,8 @@ window.__SUI_RICH = (function () {
       }
     }
     try { document.execCommand('removeFormat'); } catch (e) {}
+    var mode = blockKind(inst);
+    if (mode === 'blockquote' || mode === 'pre') applyBlock(inst, 'p');
   }
   function runBuiltin(inst, cmd, value) {
     var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
@@ -1504,8 +1664,8 @@ window.__SUI_RICH = (function () {
       applyBlock(inst, /^(h[1-4]|blockquote|pre)$/.test(blockTag) ? blockTag : 'p');
     }
     else if (/^h[1-4]$/.test(cmd)) applyBlock(inst, cmd);
-    else if (cmd === 'blockquote') applyBlock(inst, 'blockquote');
-    else if (cmd === 'codeBlock') applyBlock(inst, 'pre');
+    else if (cmd === 'blockquote') toggleBlock(inst, 'blockquote');
+    else if (cmd === 'codeBlock') toggleBlock(inst, 'pre');
     else if (cmd === 'alignLeft') applyBlockProp(inst, 'textAlign', 'left');
     else if (cmd === 'alignCenter') applyBlockProp(inst, 'textAlign', 'center');
     else if (cmd === 'alignRight') applyBlockProp(inst, 'textAlign', 'right');
@@ -2074,6 +2234,7 @@ window.__SUI_RICH = (function () {
     if (saved) saved.textContent = inst.dirty ? 'Modified' : 'Ready';
     updateTableBar(inst);
     updateProperties(inst);
+    syncBlockControls(inst);
   }
   function updateProperties(inst) {
     var panel = inst.root && inst.root.querySelector('.sui-rich-props');
@@ -3083,19 +3244,46 @@ window.__SUI_RICH = (function () {
     root.addEventListener('input', function (e) {
       if (!inst.editor.contains(e.target)) return;
       clearTimeout(inst.inputTimer);
-      inst.inputTimer = setTimeout(function () { commit(inst, 'input'); }, 250);
+      inst.inputTimer = setTimeout(function () { saveSelection(inst); commit(inst, 'input'); }, 250);
     });
     root.addEventListener('keydown', function (e) {
       if (!inst.editor.contains(e.target)) return;
+      // Escape leaves a quote/code block; Backspace at its very start does
+      // the same, matching common word processors.
+      if (e.key === 'Escape' || e.key === 'Backspace') {
+        var escapeMode = blockKind(inst);
+        if (escapeMode === 'blockquote' || escapeMode === 'pre') {
+          var escapeBlock = currentBlock(inst);
+          var escapeQuote = quoteAncestor(escapeBlock, inst.editor);
+          var atStart = e.key === 'Escape';
+          if (!atStart) {
+            var escapeSelection = window.getSelection();
+            if (escapeSelection && escapeSelection.isCollapsed && escapeSelection.rangeCount) {
+              var escapeRange = escapeSelection.getRangeAt(0);
+              var atOffsetZero = textOffsetWithin(escapeBlock, escapeRange.startContainer, escapeRange.startOffset) === 0;
+              atStart = atOffsetZero && (escapeMode === 'pre' || !escapeQuote || escapeBlock === escapeQuote.firstElementChild);
+            }
+          }
+          if (atStart) {
+            e.preventDefault();
+            applyBlock(inst, 'p');
+            saveSelection(inst);
+            commit(inst, 'change');
+            return;
+          }
+        }
+      }
       if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         splitBlock(inst);
+        saveSelection(inst);
         commit(inst, 'input');
         return;
       }
       if (e.key === 'Enter' && e.shiftKey) {
         e.preventDefault();
         try { document.execCommand('insertLineBreak'); } catch (err) { insertNode(inst, el('br')); }
+        saveSelection(inst);
         commit(inst, 'input');
         return;
       }
@@ -6094,6 +6282,7 @@ const suiRichTextCss = `
 .sui-rich-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sui-rich-btn:hover, .sui-rich-btn:focus-visible { background: var(--sui-rich-hover); border-color: var(--sui-rich-border); outline: none; }
 .sui-rich-btn:active { transform: translateY(1px); }
+.sui-rich-btn.on { background: var(--sui-rich-hover); color: var(--sui-rich-accent); border-color: var(--sui-rich-accent); }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
 .sui-rich-color { width: 34px; padding: 2px; cursor: pointer; }
 .sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }

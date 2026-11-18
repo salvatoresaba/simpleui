@@ -1723,6 +1723,13 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
 
+**Block styles** (Quote, Code block, headings) are reflected by the style
+select and the Quote/Code buttons. Click the active button again or choose
+**Normal** to return to a paragraph. Escape leaves a quote or code block,
+Backspace at its start does the same, **Clear formatting** resets it, and
+Enter on the last empty line of a quote exits the quote. A code block keeps
+line breaks on Enter: use Escape, Normal or the Code button to leave it.
+
 When the caret is inside a table, a **table toolbar** appears directly below
 the main formatting toolbar. It has icon buttons for add/delete row,
 add/delete column, header-row toggle, merge/split cell, cell alignment and

@@ -1698,6 +1698,14 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `image`, `table`, `symbol`, `hr`, `pageBreak`.
 
+**Stili di blocco** (Quote, Code block, titoli): il selettore di stile e i
+pulsanti Quote/Code riflettono il blocco del cursore. Clicca di nuovo il
+pulsante attivo o scegli **Normal** per tornare a un paragrafo. Escape esce da
+quote e code block, Backspace all'inizio fa lo stesso, **Clear formatting**
+ripristina il paragrafo, ed Enter sull'ultima riga vuota di un quote esce dal
+quote. Il code block mantiene le interruzioni di riga con Enter: usa Escape,
+Normal o il pulsante Code per uscirne.
+
 Quando il cursore è dentro una tabella compare una **toolbar della tabella**
 subito sotto la toolbar principale. Ha pulsanti con icone per aggiungere o
 eliminare righe e colonne, attivare l'intestazione, unire o dividere celle,
