@@ -1703,7 +1703,8 @@ editor.
 **Find and replace:** `Ctrl+F` (or Edit > Find and replace) opens a find bar;
 Enter/F3 next, Shift+F3 previous, Esc closes. **Paste** from Word/Excel/HTML is
 sanitized into the document model and keeps bold/italic, colors, links, tables
-and images. **Print preview / PDF:** `Ctrl+P` (File > Print / Save as PDF) opens
+and images. `blob:` images from the clipboard are converted to data URLs. The
+editor enables the browser spell checker and exposes textbox/toolbar ARIA roles. **Print preview / PDF:** `Ctrl+P` (File > Print / Save as PDF) opens
 the browser print dialog on A4 pages with the header/footer repeated.
 **Lists:** bullet and numbered lists can be nested with Tab and moved back with
 Shift+Tab; DOCX and ODT export use native list numbering.
@@ -1810,7 +1811,7 @@ the document. Supported formats:
 | DOC | best effort | RTF content with `.doc` extension | Keeps fonts, sizes, colors, tables, images, lists and page breaks. Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
 | DOCX | yes | yes | WordprocessingML paragraphs, runs, native bullet/numbered lists, tables with repeating header rows, formatting, fonts, cell shading, images, header/footer and page breaks |
 | ODT | yes | yes | OpenDocument text, paragraphs, formatting, native lists, tables, embedded images, header/footer and page breaks |
-| PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells), embedded PNG/JPEG pictures, lists and repeated header/footer with page numbers |
+| PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells and repeating header rows), embedded PNG/JPEG pictures, lists and repeated header/footer with page numbers |
 | HTML, Markdown, JSON, XML | yes | yes | Existing editor formats |
 
 Imported files are untrusted: ZIP/XML parsing is bounded by the browser parser,

@@ -354,6 +354,21 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var rt2 = JSON.parse(__SUI_RICH.get('editor')[0]);
     if (!rt2.header || rt2.header.indexOf('Report') < 0) throw new Error('odt header roundtrip');
     if (!rt2.children.some(function (c) { return c.type === 'bullet_list'; })) throw new Error('odt list roundtrip');
+    var editorEl = richRoot().querySelector('.sui-rich-editor');
+    if (editorEl.getAttribute('role') !== 'textbox' || editorEl.getAttribute('spellcheck') !== 'true') throw new Error('editor accessibility attributes');
+    if (richRoot().querySelector('.sui-rich-toolbar').getAttribute('role') !== 'toolbar') throw new Error('toolbar role');
+    var headerRows = [{ type: 'table_row', cells: [
+      { type: 'table_cell', header: true, children: [{ type: 'text', text: 'HDRCELL', marks: [] }] },
+      { type: 'table_cell', header: true, children: [{ type: 'text', text: 'HDRCELL', marks: [] }] }
+    ] }];
+    for (var hrow = 1; hrow <= 50; hrow++) headerRows.push({ type: 'table_row', height: '40px', cells: [
+      { type: 'table_cell', children: [{ type: 'text', text: 'r' + hrow, marks: [] }] },
+      { type: 'table_cell', children: [{ type: 'text', text: 'v' + hrow, marks: [] }] }
+    ] });
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'table', header: true, rows: headerRows }] });
+    await wait(120);
+    var repeatPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
+    if ((repeatPdf.match(/HDRCELL/g) || []).length < 4) throw new Error('pdf table header not repeated');
 `+featureScriptTail)
 }
 

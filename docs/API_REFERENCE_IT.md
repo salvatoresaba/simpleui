@@ -1678,7 +1678,9 @@ vengono ricordate per ogni editor. Un unico pulsante a destra alterna il tema de
 **Trova e sostituisci:** `Ctrl+F` (o Modifica > Trova e sostituisci) apre la barra;
 Invio/F3 successivo, Shift+F3 precedente, Esc chiude. **Incolla** da Word/Excel/HTML
 viene sanitizzato nel modello e conserva grassetto/corsivo, colori, link, tabelle e
-immagini. **Anteprima di stampa / PDF:** `Ctrl+P` (File > Stampa / Salva come PDF)
+immagini (le immagini `blob:` vengono convertite in data URL). Il correttore
+ortografico del browser è attivo e l'editor espone ruoli ARIA textbox/toolbar.
+**Anteprima di stampa / PDF:** `Ctrl+P` (File > Stampa / Salva come PDF)
 apre la stampa del browser su pagine A4 con header/footer ripetuti.
 **Liste:** elenchi puntati e numerati si annidano con Tab e si riportano indietro con
 Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
@@ -1785,7 +1787,7 @@ scarica il documento. Formati supportati:
 | DOC | best effort | contenuto RTF con estensione `.doc` | Mantiene font, dimensioni, colori, tabelle, immagini, liste e interruzioni di pagina. Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
 | DOCX | sì | sì | Paragrafi, run, liste native puntate/numerate, tabelle con intestazione ripetuta, formattazione, font, sfondo celle, immagini, header/footer e interruzioni di pagina WordprocessingML |
 | ODT | sì | sì | Testo OpenDocument, paragrafi, formattazione, liste native, tabelle, immagini incorporate, header/footer e interruzioni di pagina |
-| PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite), immagini PNG/JPEG, liste e header/footer ripetuti con numeri di pagina |
+| PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite e intestazione ripetuta), immagini PNG/JPEG, liste e header/footer ripetuti con numeri di pagina |
 | HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |
 
 I file importati non sono fidati: il parsing ZIP/XML resta nel browser e
