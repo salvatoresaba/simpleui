@@ -289,6 +289,7 @@ window.__SUI_RICH = (function () {
         flush();
         var tableAlign = node.style.marginLeft === 'auto' && node.style.marginRight === 'auto' ? 'center' : node.style.marginLeft === 'auto' ? 'right' : node.style.marginRight === 'auto' ? 'left' : '';
         var table = { type: 'table', rows: [], header: false, border: cssColor(node.style.borderColor || '') || '', borderWidth: cssLength(node.getAttribute('data-table-border-width') || '', ''), padding: cssLength(node.getAttribute('data-table-padding') || '', ''), width: cssLength(node.style.width, ''), height: cssLength(node.style.height, ''), align: tableAlign };
+        if (node.getAttribute('data-table-borders') !== null) table.borders = tableBorderFlags(node);
         for (var r = 0; r < node.rows.length; r++) {
           var row = { type: 'table_row', height: cssLength(node.rows[r].style.height, ''), cells: [] };
           for (var ci = 0; ci < node.rows[r].cells.length; ci++) {
@@ -379,6 +380,51 @@ window.__SUI_RICH = (function () {
     }
   }
 
+  function tableBorderFlags(table) {
+    var attr = table.getAttribute && table.getAttribute('data-table-borders');
+    if (attr === null) return ['top', 'right', 'bottom', 'left', 'insideH', 'insideV'];
+    return attr.split(',').filter(function (v) { return v; });
+  }
+  function tableGridColumns(table) {
+    var rows = table.rows, max = 0;
+    for (var r = 0; r < rows.length; r++) {
+      var total = 0;
+      for (var c = 0; c < rows[r].cells.length; c++) total += Math.max(1, rows[r].cells[c].colSpan || 1);
+      if (total > max) max = total;
+    }
+    return max;
+  }
+  function applyTableBorderSides(table, flags, width, color) {
+    if (!table || !table.rows) return;
+    var totalCols = tableGridColumns(table) || 1;
+    function on(name) { return flags.indexOf(name) >= 0; }
+    for (var r = 0; r < table.rows.length; r++) {
+      var row = table.rows[r], col = 0;
+      for (var c = 0; c < row.cells.length; c++) {
+        var cell = row.cells[c];
+        var span = Math.max(1, cell.colSpan || 1), rowspan = Math.max(1, cell.rowSpan || 1);
+        var edges = {
+          Top: r === 0 ? on('top') : on('insideH'),
+          Bottom: (r + rowspan >= table.rows.length) ? on('bottom') : on('insideH'),
+          Left: col === 0 ? on('left') : on('insideV'),
+          Right: (col + span >= totalCols) ? on('right') : on('insideV')
+        };
+        for (var side in edges) {
+          if (!Object.prototype.hasOwnProperty.call(edges, side)) continue;
+          if (edges[side]) {
+            cell.style['border' + side + 'Width'] = width ? width + 'px' : (width === '' ? '' : '');
+            cell.style['border' + side + 'Style'] = 'solid';
+            cell.style['border' + side + 'Color'] = color || '';
+          } else {
+            cell.style['border' + side + 'Width'] = '0px';
+            cell.style['border' + side + 'Style'] = 'none';
+            cell.style['border' + side + 'Color'] = '';
+          }
+        }
+        col += span;
+      }
+    }
+  }
   function blockDom(node, depth) {
     if (!node || typeof node !== 'object' || depth > 32) return null;
     var type = String(node.type || 'paragraph'), box = null;
@@ -431,6 +477,7 @@ window.__SUI_RICH = (function () {
       if (node.border) box.style.borderColor = cssColor(node.border);
       if (node.borderWidth) box.setAttribute('data-table-border-width', cssLength(node.borderWidth, ''));
       if (node.padding) box.setAttribute('data-table-padding', cssLength(node.padding, ''));
+      if (node.borders) box.setAttribute('data-table-borders', node.borders.join(','));
       if (node.width) box.style.width = cssLength(node.width, '');
       if (node.height) box.style.height = cssLength(node.height, '');
       if (node.align === 'center') { box.style.marginLeft = 'auto'; box.style.marginRight = 'auto'; }
@@ -460,6 +507,7 @@ window.__SUI_RICH = (function () {
         tbody.appendChild(tr);
       }
       box.appendChild(tbody);
+      if (node.borders || node.borderWidth || node.border) applyTableBorderSides(box, node.borders || ['top', 'right', 'bottom', 'left', 'insideH', 'insideV'], cssLength(node.borderWidth || '', ''), cssColor(node.border || '') || '');
       return box;
     } else {
       // Plugin-defined block renderer.
@@ -2226,6 +2274,10 @@ window.__SUI_RICH = (function () {
     resolveInstance(inst.name);
     if (!table || !table.isConnected) return;
     var cells = table.querySelectorAll('td,th');
+    var borderFlags = opts.borders || tableBorderFlags(table);
+    if (opts.borders) table.setAttribute('data-table-borders', opts.borders.join(','));
+    var borderWidth = opts.borderWidth !== undefined ? opts.borderWidth : (parseFloat(table.getAttribute('data-table-border-width')) || '');
+    var borderColor = opts.borderColor || table.style.borderColor || '';
     if (opts.padding !== undefined) {
       if (opts.padding !== '') {
         table.setAttribute('data-table-padding', opts.padding + 'px');
@@ -2248,6 +2300,7 @@ window.__SUI_RICH = (function () {
       table.style.borderColor = opts.borderColor;
       for (var cc = 0; cc < cells.length; cc++) cells[cc].style.borderColor = opts.borderColor;
     }
+    applyTableBorderSides(table, borderFlags, borderWidth, borderColor);
     commit(inst, 'change');
   }
   function openTableProps(inst) {
@@ -2311,6 +2364,26 @@ window.__SUI_RICH = (function () {
     color.value = /^#[0-9a-f]{6}$/i.test(currentColor) ? currentColor : '#9aa7b8';
     color.onchange = function () { applyTableLook(inst, currentTable(), { borderColor: color.value }); };
     property('Border color', color);
+    var flags = tableBorderFlags(table);
+    var sidesBox = el('div', 'sui-rich-tableprops-sides');
+    [['top', 'Top'], ['right', 'Right'], ['bottom', 'Bottom'], ['left', 'Left'], ['insideH', 'Inside H'], ['insideV', 'Inside V']].forEach(function (pair) {
+      var wrap = el('label', 'sui-rich-tableprops-side');
+      var cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = flags.indexOf(pair[0]) >= 0;
+      cb.onchange = function () {
+        var next = flags.filter(function (v) { return v !== pair[0]; });
+        if (cb.checked) next.push(pair[0]);
+        flags = next;
+        var current = currentTable();
+        if (!current) return;
+        applyTableLook(inst, current, { borders: next });
+      };
+      wrap.appendChild(cb);
+      wrap.appendChild(el('span', '', pair[1]));
+      sidesBox.appendChild(wrap);
+    });
+    panel.appendChild(sidesBox);
     var close = el('button', 'sui-rich-btn sui-rich-tableprops-close', 'Close');
     close.type = 'button';
     close.onclick = function () { panel.hidden = true; };
@@ -4077,8 +4150,11 @@ window.__SUI_RICH = (function () {
       }
       var docxBorderColor = hexColor(n.border) || '999999';
       var docxBorderWidth = n.borderWidth ? Math.max(0, Math.round(parseFloat(n.borderWidth) * 8)) : 4;
-      var docxBorderVal = docxBorderWidth > 0 ? 'single' : 'nil';
-      var docxBorder = function (side, inside) { return '<w:' + side + ' w:val="' + docxBorderVal + '"' + (docxBorderWidth > 0 ? ' w:sz="' + docxBorderWidth + '" w:space="0" w:color="' + docxBorderColor + '"' : '') + '/>'; };
+      var docxBorderFlags = n.borders || ['top', 'right', 'bottom', 'left', 'insideH', 'insideV'];
+      var docxBorder = function (side, inside) {
+        var enabled = docxBorderFlags.indexOf(side) >= 0 && docxBorderWidth > 0;
+        return '<w:' + side + ' w:val="' + (enabled ? 'single' : 'nil') + '"' + (enabled ? ' w:sz="' + docxBorderWidth + '" w:space="0" w:color="' + docxBorderColor + '"' : '') + '/>';
+      };
       var padTwips = n.padding ? Math.max(0, Math.round(parseFloat(n.padding) * 15)) : 0;
       var cellMar = '<w:tblCellMar><w:top w:w="' + padTwips + '" w:type="dxa"/><w:left w:w="' + padTwips + '" w:type="dxa"/><w:bottom w:w="' + padTwips + '" w:type="dxa"/><w:right w:w="' + padTwips + '" w:type="dxa"/></w:tblCellMar>';
       return '<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>' + docxBorder('top') + docxBorder('left') + docxBorder('bottom') + docxBorder('right') + docxBorder('insideH') + docxBorder('insideV') + '</w:tblBorders>' + cellMar + '</w:tblPr><w:tblGrid>' + gridXml + '</w:tblGrid>' + rows + '</w:tbl><w:p/>';
@@ -5258,6 +5334,7 @@ window.__SUI_RICH = (function () {
       for (var rr = 0; rr < rows.length; rr++) {
         var row = rows[rr], domRow = dom ? dom.rows[rr] : null;
         var cells = [], fallbackX = 0;
+        var colStart = 0;
         for (var cc = 0; cc < (row.cells || []).length; cc++) {
           var cell = row.cells[cc];
           var pct = /^([\d.]+)%$/.exec(String(cell.width || ''));
@@ -5276,7 +5353,9 @@ window.__SUI_RICH = (function () {
           var maxSize = 11;
           for (var lI = 0; lI < lines.length; lI++) if (lines[lI].size > maxSize) maxSize = lines[lI].size;
           var h = lines.length * lineHeightFor(maxSize, null) + cellPad * 2;
-          cells.push({ cell: cell, x: x, width: width, lines: lines, height: h, rowspan: Math.max(1, Number(cell.rowspan) || 1) });
+          var spanCount = Math.max(1, Number(cell.colspan) || 1);
+          cells.push({ cell: cell, x: x, width: width, lines: lines, height: h, rowspan: Math.max(1, Number(cell.rowspan) || 1), start: colStart, span: spanCount });
+          colStart += spanCount;
         }
         var rowHeight = 0;
         for (var hI = 0; hI < cells.length; hI++) if (cells[hI].rowspan === 1) rowHeight = Math.max(rowHeight, cells[hI].height);
@@ -5284,6 +5363,9 @@ window.__SUI_RICH = (function () {
         if (row.height) rowHeight = Math.max(rowHeight, (parseFloat(row.height) || 0) * 0.75);
         rowData.push({ cells: cells, height: rowHeight });
       }
+      var borderFlags = node.borders || ['top', 'right', 'bottom', 'left', 'insideH', 'insideV'];
+      var totalCols = 0;
+      for (var tc = 0; tc < rowData.length; tc++) for (var tcc = 0; tcc < rowData[tc].cells.length; tcc++) totalCols = Math.max(totalCols, rowData[tc].cells[tcc].start + rowData[tc].cells[tcc].span);
       for (var fr = 0; fr < rowData.length; fr++) {
         for (var fc = 0; fc < rowData[fr].cells.length; fc++) {
           var spanCell = rowData[fr].cells[fc];
@@ -5303,7 +5385,18 @@ window.__SUI_RICH = (function () {
           }
           var cellFill = info.cell.background || (info.cell.header ? '#e8ecf3' : '');
           if (cellFill) ops.push('q ' + pdfFill(cellFill) + ' ' + pdfNumber(info.x) + ' ' + pdfNumber(ty(rowTop + cellHeight)) + ' ' + pdfNumber(info.width) + ' ' + pdfNumber(cellHeight) + ' re f Q');
-          ops.push('q ' + pdfStroke(borderColor) + ' ' + pdfNumber(borderW) + ' w ' + pdfNumber(info.x) + ' ' + pdfNumber(ty(rowTop + cellHeight)) + ' ' + pdfNumber(info.width) + ' ' + pdfNumber(cellHeight) + ' re S Q');
+          var onSide = function (name) { return borderFlags.indexOf(name) >= 0; };
+          var topOn = rowIndex === 0 ? onSide('top') : onSide('insideH');
+          var bottomOn = (rowIndex + info.rowspan >= rowData.length) ? onSide('bottom') : onSide('insideH');
+          var leftOn = info.start === 0 ? onSide('left') : onSide('insideV');
+          var rightOn = (info.start + info.span >= totalCols) ? onSide('right') : onSide('insideV');
+          function pdfLine(x1, y1, x2, y2) {
+            ops.push('q ' + pdfStroke(borderColor) + ' ' + pdfNumber(borderW) + ' w ' + pdfNumber(x1) + ' ' + pdfNumber(ty(y1)) + ' m ' + pdfNumber(x2) + ' ' + pdfNumber(ty(y2)) + ' l S Q');
+          }
+          if (topOn) pdfLine(info.x, rowTop, info.x + info.width, rowTop);
+          if (bottomOn) pdfLine(info.x, rowTop + cellHeight, info.x + info.width, rowTop + cellHeight);
+          if (leftOn) pdfLine(info.x, rowTop, info.x, rowTop + cellHeight);
+          if (rightOn) pdfLine(info.x + info.width, rowTop, info.x + info.width, rowTop + cellHeight);
           var savedY = y;
           y = rowTop + cellPad;
           drawLines(info.lines, info.x + cellPad, Math.max(10, info.width - cellPad * 2), String(info.cell.align || '').toLowerCase(), null, false);

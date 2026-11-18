@@ -1709,8 +1709,8 @@ l'angolo in basso a destra per ridimensionare l'intera tabella; le dimensioni
 sono salvate nel documento JSON. File > Import ed Export sono sottomenu.
 L'azione **Seleziona tutta la tabella** fa applicare l'allineamento alla
 tabella stessa. Il pulsante ⚙ apre **Proprietà tabella** per il padding delle
-celle, lo spessore e il colore del bordo; i valori sono salvati nel modello e
-usati da editor, PDF e DOCX. Seleziona due o più celle e copiale: incollando in
+celle, lo spessore/colore del bordo e i lati visibili (alto/destra/basso/
+sinistra/interni); i valori sono salvati nel modello e usati da editor, PDF e DOCX. Seleziona due o più celle e copiale: incollando in
 un'altra cella viene riempito un blocco corrispondente (funziona anche il testo
 TSV di altre applicazioni).
 

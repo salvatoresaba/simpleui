@@ -407,6 +407,17 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (propsDocx.indexOf('<w:tblCellMar>') < 0) throw new Error('docx cell margins missing');
     if (propsDocx.indexOf('1F497D') < 0) throw new Error('docx table border color missing');
     if (propsDocx.indexOf('w:sz="16"') < 0) throw new Error('docx table border width missing');
+    var sideBoxes = document.querySelectorAll('.sui-rich-tableprops-sides input');
+    if (!sideBoxes.length) throw new Error('table border side toggles missing');
+    sideBoxes[0].checked = false;
+    sideBoxes[0].dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(120);
+    var sideDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var sideTable = sideDoc.children.filter(function (c) { return c.type === 'table'; })[0];
+    if (!sideTable.borders || sideTable.borders.indexOf('top') >= 0 || sideTable.borders.indexOf('left') < 0) throw new Error('table border sides model: ' + JSON.stringify(sideTable.borders));
+    var sideDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (sideDocx.indexOf('<w:top w:val="nil"') < 0) throw new Error('docx top border not disabled');
+    if (sideDocx.indexOf('<w:left w:val="single"') < 0) throw new Error('docx left border missing');
 `+featureScriptTail)
 }
 
