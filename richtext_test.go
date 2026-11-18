@@ -433,6 +433,43 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var htmlTableModel = htmlDoc.children.filter(function (c) { return c.type === 'table'; })[0];
     if (!htmlTableModel || !htmlTableModel.padding || !htmlTableModel.borderWidth || !htmlTableModel.border) throw new Error('html table styles: ' + JSON.stringify(htmlTableModel && { padding: htmlTableModel.padding, borderWidth: htmlTableModel.borderWidth, border: htmlTableModel.border }));
     if (!htmlTableModel.rows[0].cells[0].background) throw new Error('html table cell background');
+    var nestedTable = { type: 'table', rows: [
+      { type: 'table_row', cells: [
+        { type: 'table_cell', children: [{ type: 'text', text: 'Inner1', marks: [] }] },
+        { type: 'table_cell', children: [{ type: 'text', text: 'Inner2', marks: [] }] }
+      ] }
+    ] };
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'table', rows: [
+        { type: 'table_row', cells: [
+          { type: 'table_cell', blocks: [
+            { type: 'paragraph', children: [{ type: 'text', text: 'Outer', marks: [] }] },
+            nestedTable
+          ] },
+          { type: 'table_cell', children: [{ type: 'text', text: 'B', marks: [] }] }
+        ] }
+      ] }
+    ] });
+    await wait(150);
+    if (!richRoot().querySelector('.sui-rich-editor td table')) throw new Error('nested table not rendered');
+    var nestedModel = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var nestedCell = nestedModel.children[0].rows[0].cells[0];
+    if (!nestedCell.blocks || !nestedCell.blocks.some(function (b) { return b.type === 'table'; })) throw new Error('nested table model');
+    var nestedDocxBytes = __SUI_RICH.exportBytes('editor', 'docx')[0];
+    var nestedDocx = toLatin(nestedDocxBytes);
+    if ((nestedDocx.match(/<w:tbl>/g) || []).length < 2) throw new Error('nested table docx');
+    var nestedBack = await __SUI_RICH.importBytes('editor', nestedDocxBytes, 'nested.docx');
+    await wait(120);
+    var nestedBackCell = JSON.parse(__SUI_RICH.get('editor')[0]).children[0].rows[0].cells[0];
+    if (nestedBack[1] !== null || !nestedBackCell.blocks || !nestedBackCell.blocks.some(function (b) { return b.type === 'table'; })) throw new Error('nested table docx roundtrip');
+    var nestedOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
+    if ((nestedOdt.match(/<table:table>/g) || []).length < 2) throw new Error('nested table odt');
+    var nestedPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
+    if (nestedPdf.indexOf('Inner1') < 0) throw new Error('nested table pdf');
+    var nestedHtml = __SUI_RICH.importFormat('editor', '<table><tr><td>Outer<div><table><tr><td>Nested</td></tr></table></div></td></tr></table>', 'html');
+    await wait(120);
+    var nestedHtmlCell = JSON.parse(__SUI_RICH.get('editor')[0]).children[0].rows[0].cells[0];
+    if (nestedHtml[1] !== null || !nestedHtmlCell.blocks || !nestedHtmlCell.blocks.some(function (b) { return b.type === 'table'; })) throw new Error('nested table html import');
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'table', rows: [
         { type: 'table_row', cells: [
