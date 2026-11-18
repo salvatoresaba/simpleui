@@ -1820,7 +1820,7 @@ the document. Supported formats:
 | DOC | best effort | RTF content with `.doc` extension | Keeps fonts, sizes, colors, tables, images, lists and page breaks. Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
 | DOCX | yes | yes | WordprocessingML paragraphs, runs, native bullet/numbered lists, tables with repeating header rows, formatting, fonts, cell shading, images, header/footer and page breaks |
 | ODT | yes | yes | OpenDocument text, paragraphs, formatting, native lists, tables, embedded images, header/footer and page breaks |
-| PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells and repeating header rows), embedded PNG/JPEG pictures, lists and repeated header/footer with page numbers |
+| PDF | - | yes | A4 pages with embedded Liberation Sans/Serif fonts (regular, bold, italic, bold-italic), text styles, colors, tables (merged cells and repeating header rows), embedded PNG/JPEG pictures, lists and repeated header/footer with page numbers. ToUnicode keeps the text selectable/searchable; characters outside the embedded subset fall back to standard PDF fonts |
 | HTML, Markdown, JSON, XML | yes | yes | Existing editor formats |
 
 Imported files are untrusted: ZIP/XML parsing is bounded by the browser parser,
@@ -1829,7 +1829,8 @@ extracted from RTF (including header and footer pictures), DOCX and ODT as data
 URLs and re-embedded on export. File pickers
 and downloads are user-driven and do not require desktop bridge permissions.
 DOCX/ODT export creates the package in the browser; no external service is
-used. Importing DOCX/ODT recovers fonts, sizes, colors, highlights, links,
+used. PDF export embeds Latin subsets of the SIL OFL Liberation Sans/Serif
+fonts (the files live in `assets/fonts` and are compiled into the runtime). Importing DOCX/ODT recovers fonts, sizes, colors, highlights, links,
 paragraph spacing/indent, bullet/numbered lists, header/footer text and table
 column spans/shading.
 

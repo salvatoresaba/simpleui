@@ -1575,7 +1575,7 @@ window.__SUI_RICH = (function () {
       if (inst.selectedCells && inst.selectedCells.length > 1) { copyCellSelection(inst, true); commit(inst); }
       else document.execCommand('cut');
     }
-    else if (cmd === 'paginatedView') { setPaginated(inst, !inst.paginated); }
+    else if (cmd === 'paginatedView') { setPaginated(inst); }
     else if (cmd === 'print') { printDocument(inst); }
     else if (cmd === 'find') { openFindBar(inst); if (value) findInDocument(inst, value); }
     else if (cmd === 'findNext') nextMatch(inst, 1);
@@ -2607,7 +2607,10 @@ window.__SUI_RICH = (function () {
     return { width: 794, height: 1123, padX: 64, padY: 56, headerH: headerH, footerH: footerH, contentW: 794 - 128, contentH: 1123 - 112 - headerH - footerH };
   }
   function setPaginated(inst, on) {
-    inst.paginated = !!on;
+    var rootFlag = inst.root && inst.root.getAttribute('data-sui-rich-paginated') === '1';
+    var next = on === undefined ? !(inst.paginated || rootFlag) : !!on;
+    inst.paginated = next;
+    inst.root.setAttribute('data-sui-rich-paginated', next ? '1' : '0');
     inst.root.classList.toggle('sui-rich-paginated', inst.paginated);
     var btn = inst.root.querySelector('[data-rich-pages]');
     if (btn) { btn.classList.toggle('on', inst.paginated); btn.setAttribute('aria-pressed', inst.paginated ? 'true' : 'false'); btn.textContent = inst.paginated ? 'Edit' : 'Pages'; }
@@ -2622,7 +2625,7 @@ window.__SUI_RICH = (function () {
   function schedulePaginate(inst) {
     if (!inst.paginated) return;
     clearTimeout(inst.pageTimer);
-    inst.pageTimer = setTimeout(function () { paginate(inst); }, 140);
+    inst.pageTimer = setTimeout(function () { paginate(inst).catch(function (e) { try { console.error('PAGINATE', e && e.stack); inst.root.setAttribute('data-page-error', String(e && e.message)); } catch (x) {} }); }, 140);
   }
   function sheetNode(inst, m) {
     var sheet = el('div', 'sui-rich-page-sheet');
@@ -2646,9 +2649,17 @@ window.__SUI_RICH = (function () {
     return { shell: shell, tbody: tbody };
   }
   async function paginate(inst) {
+    inst = resolveInstance(inst.name) || inst;
+    if (!inst.paginated && inst.root.getAttribute('data-sui-rich-paginated') === '1') inst.paginated = true;
     if (!inst.paginated) return;
+    inst.root.classList.add('sui-rich-paginated');
+    inst.root.setAttribute('data-sui-rich-paginated', '1');
     var wrap = inst.root.querySelector('.sui-rich-pages');
-    if (!wrap) return;
+    if (!wrap) {
+      wrap = el('div', 'sui-rich-pages');
+      inst.root.querySelector('.sui-rich-body').appendChild(wrap);
+    }
+    wrap.hidden = false;
     var m = pageMetrics(inst);
     wrap.innerHTML = '';
     var measure = el('div', 'sui-rich-editor sui-rich-sheet-body sui-rich-measure');
@@ -2719,7 +2730,7 @@ window.__SUI_RICH = (function () {
       var item = items[it];
       if (!item.node) { if (current.used > 0) fresh(); continue; }
       var h = blockHeight(item.node);
-      if (current.used > 0 && current.used + h > m.contentH - 8) {
+      if ((current.used > 0 && current.used + h > m.contentH - 8) || (item.block.type === 'table' && h > m.contentH - 8)) {
         if (item.block.type === 'table') { placeTable(item.node, h); continue; }
         fresh();
       }
@@ -3045,7 +3056,7 @@ window.__SUI_RICH = (function () {
         return;
       }
       var pagesToggle = target.closest('[data-rich-pages]');
-      if (pagesToggle) { setPaginated(inst, !inst.paginated); return; }
+      if (pagesToggle) { setPaginated(inst); return; }
       var zoom = target.closest('[data-rich-zoom]');
       if (zoom) {
         inst.zoom = Math.max(0.6, Math.min(2, (inst.zoom || 1) + (zoom.getAttribute('data-rich-zoom') === 'in' ? 0.1 : -0.1)));
@@ -3207,6 +3218,7 @@ window.__SUI_RICH = (function () {
     inst.editor.setAttribute('contenteditable', readOnly ? 'false' : 'true');
     if (attr(root, 'data-sui-rich-placeholder')) inst.editor.setAttribute('data-placeholder', attr(root, 'data-sui-rich-placeholder'));
     buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); restoreTableBarPosition(inst); bindTableBarDrag(inst); buildStatus(inst); buildFindBar(inst); buildPageChrome(inst);
+    if (attr(root, 'data-sui-rich-paginated') === '1') setPaginated(inst, true);
     var savedTheme = '';
     try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
     var initialTheme = savedTheme || attr(root, 'data-sui-rich-theme') || 'dark';
@@ -5152,6 +5164,136 @@ window.__SUI_RICH = (function () {
     times: { normal: 5, bold: 6, italic: 7, bolditalic: 8 },
     courier: { normal: 9, bold: 10, italic: 9, bolditalic: 10 }
   };
+  var PDF_EMB_KEYS = ['sans-regular', 'sans-bold', 'sans-italic', 'sans-bolditalic', 'serif-regular', 'serif-bold', 'serif-italic', 'serif-bolditalic'];
+  var PDF_EMB_NAMES = {};
+  for (var pe = 0; pe < PDF_EMB_KEYS.length; pe++) PDF_EMB_NAMES[PDF_EMB_KEYS[pe]] = 'E' + pe;
+  var PDF_EMB_CACHE = {};
+  var pdfEmbUse = {};
+  function pdfFontSlot(family, bold, italic) { return bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'regular'; }
+  function parsePdfFont(base64, key) {
+    if (PDF_EMB_CACHE[key] !== undefined) return PDF_EMB_CACHE[key];
+    try {
+      var binary = atob(base64), bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      function u16(o) { return (bytes[o] << 8) | bytes[o + 1]; }
+      function i16(o) { var v = u16(o); return v >= 32768 ? v - 65536 : v; }
+      function u32(o) { return ((bytes[o] << 24) | (bytes[o + 1] << 16) | (bytes[o + 2] << 8) | bytes[o + 3]) >>> 0; }
+      function tag(o) { return String.fromCharCode(bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3]); }
+      var tables = {}, numTables = u16(4);
+      for (var t = 0; t < numTables; t++) {
+        var rec = 12 + t * 16;
+        tables[tag(rec)] = { offset: u32(rec + 8), length: u32(rec + 12) };
+      }
+      if (!tables.head || !tables.cmap || !tables.hhea || !tables.hmtx) { PDF_EMB_CACHE[key] = null; return null; }
+      var unitsPerEm = u16(tables.head.offset + 18) || 1000;
+      var xMin = i16(tables.head.offset + 36), yMin = i16(tables.head.offset + 38);
+      var xMax = i16(tables.head.offset + 40), yMax = i16(tables.head.offset + 42);
+      var ascent = i16(tables.hhea.offset + 4), descent = i16(tables.hhea.offset + 6);
+      var numHMetrics = u16(tables.hhea.offset + 34);
+      var numGlyphs = tables.maxp ? u16(tables.maxp.offset + 4) : 0;
+      var widths = [];
+      for (var h = 0; h < numHMetrics; h++) widths.push(u16(tables.hmtx.offset + h * 4));
+      if (numGlyphs > numHMetrics) {
+        var lastWidth = widths[widths.length - 1] || 0;
+        for (var g = numHMetrics; g < numGlyphs; g++) widths.push(lastWidth);
+      }
+      var cmapOff = tables.cmap.offset, numSub = u16(cmapOff + 2), best = 0, bestScore = -1;
+      for (var s2 = 0; s2 < numSub; s2++) {
+        var sub = cmapOff + 4 + s2 * 8;
+        var pid = u16(sub), eid = u16(sub + 2), off = u32(sub + 4);
+        var fmt = u16(cmapOff + off);
+        var score = 0;
+        if (fmt === 12) score = 3;
+        else if (fmt === 4) score = 2;
+        else continue;
+        if (pid === 3 && eid === 10) score += 2;
+        if (pid === 3 && eid === 1) score += 1;
+        if (pid === 0) score += 1;
+        if (score > bestScore) { bestScore = score; best = cmapOff + off; }
+      }
+      var format = best ? u16(best) : 0;
+      var segCount = 0, endCodes = null, startCodes = null, idDelta = null, idRangeOffset = null, glyphIdArrayOff = 0, groups = null;
+      if (format === 4) {
+        segCount = u16(best + 6) / 2;
+        endCodes = []; startCodes = []; idDelta = []; idRangeOffset = [];
+        var endOff = best + 14, startOff = endOff + segCount * 2 + 2;
+        var deltaOff = startOff + segCount * 2, roOff = deltaOff + segCount * 2;
+        for (var q = 0; q < segCount; q++) {
+          endCodes.push(u16(endOff + q * 2));
+          startCodes.push(u16(startOff + q * 2));
+          idDelta.push(i16(deltaOff + q * 2));
+          idRangeOffset.push(u16(roOff + q * 2));
+        }
+        glyphIdArrayOff = roOff + segCount * 2;
+      } else if (format === 12) {
+        var nGroups = u32(best + 12), gOff = best + 16;
+        groups = [];
+        for (var gr = 0; gr < nGroups; gr++) groups.push({ start: u32(gOff + gr * 12), end: u32(gOff + gr * 12 + 4), gid: u32(gOff + gr * 12 + 8) });
+      } else { PDF_EMB_CACHE[key] = null; return null; }
+      function gidFor(code) {
+        if (groups) {
+          for (var gg = 0; gg < groups.length; gg++) {
+            var grp = groups[gg];
+            if (code >= grp.start && code <= grp.end) return grp.gid + (code - grp.start);
+          }
+          return 0;
+        }
+        for (var si = 0; si < segCount; si++) {
+          if (code > endCodes[si]) continue;
+          if (code < startCodes[si]) return 0;
+          if (idRangeOffset[si] === 0) return (code + idDelta[si]) & 0xFFFF;
+          var idx = glyphIdArrayOff + si * 2 + idRangeOffset[si] + (code - startCodes[si]) * 2;
+          var gid = u16(idx);
+          return gid ? (gid + idDelta[si]) & 0xFFFF : 0;
+        }
+        return 0;
+      }
+      var font = { key: key, bytes: bytes, unitsPerEm: unitsPerEm, xMin: xMin, yMin: yMin, xMax: xMax, yMax: yMax, ascent: ascent, descent: descent, widths: widths, gidFor: gidFor };
+      PDF_EMB_CACHE[key] = font;
+      return font;
+    } catch (e) { PDF_EMB_CACHE[key] = null; return null; }
+  }
+  function pdfFontParts(family, bold, italic) {
+    var slot = pdfFontSlot(family, bold, italic);
+    var embFamily = family === 'times' ? 'serif' : family === 'helvetica' ? 'sans' : '';
+    var key = embFamily ? embFamily + '-' + slot : '';
+    if (key && window.SUI_PDF_FONTS && window.SUI_PDF_FONTS[embFamily] && window.SUI_PDF_FONTS[embFamily][slot]) {
+      var emb = parsePdfFont(window.SUI_PDF_FONTS[embFamily][slot], key);
+      if (emb) {
+        var std = PDF_FONT_KEYS[family][slot === 'bold' ? 'bold' : slot === 'italic' ? 'italic' : slot === 'bolditalic' ? 'bolditalic' : 'normal'];
+        return { name: PDF_EMB_NAMES[key], key: key, family: family, bold: bold, italic: italic, emb: emb, stdName: 'F' + std };
+      }
+    }
+    var id = PDF_FONT_KEYS[family][slot === 'bold' ? 'bold' : slot === 'italic' ? 'italic' : slot === 'bolditalic' ? 'bolditalic' : 'normal'];
+    return { id: id, name: 'F' + id, family: family, bold: bold, italic: italic, emb: null };
+  }
+  function registerEmbText(font, text) {
+    if (!font || !font.emb || !font.key) return;
+    var use = pdfEmbUse[font.key] || (pdfEmbUse[font.key] = {});
+    for (var i = 0; i < text.length; i++) {
+      var gid = font.emb.gidFor(text.charCodeAt(i));
+      if (gid) use[gid] = text.charCodeAt(i);
+    }
+  }
+  function pdfGids(text, emb) {
+    var hex = '';
+    for (var i = 0; i < text.length; i++) {
+      var gid = emb.gidFor(text.charCodeAt(i)) || 0;
+      hex += ('0000' + gid.toString(16)).slice(-4);
+    }
+    return hex;
+  }
+  function pdfHex4(value) { return ('0000' + (Number(value) || 0).toString(16)).slice(-4); }
+  function pdfToUnicode(name, used) {
+    var gids = Object.keys(used), body = '';
+    for (var i = 0; i < gids.length; i += 100) {
+      var chunk = gids.slice(i, i + 100);
+      body += chunk.length + ' beginbfchar\n';
+      for (var j = 0; j < chunk.length; j++) body += '<' + pdfHex4(chunk[j]) + '> <' + pdfHex4(used[chunk[j]]) + '>\n';
+      body += 'endbfchar\n';
+    }
+    return '/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /' + name + ' def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n' + body + 'endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend';
+  }
   function pdfFont(marks) {
     var bold = false, italic = false, family = 'helvetica';
     for (var i = 0; i < (marks || []).length; i++) {
@@ -5165,9 +5307,7 @@ window.__SUI_RICH = (function () {
         else family = 'helvetica';
       }
     }
-    var key = bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal';
-    var id = PDF_FONT_KEYS[family][key];
-    return { id: id, name: 'F' + id, family: family, bold: bold, italic: italic };
+    return pdfFontParts(family, bold, italic);
   }
   function pdfSize(marks) {
     var size = 11;
@@ -5188,6 +5328,11 @@ window.__SUI_RICH = (function () {
   var PDF_ACCENTS = '\u00e0\u00e1\u00e2\u00e3\u00e4\u00e5\u00e7\u00e8\u00e9\u00ea\u00eb\u00ec\u00ed\u00ee\u00ef\u00f1\u00f2\u00f3\u00f4\u00f5\u00f6\u00f9\u00fa\u00fb\u00fc\u00fd\u00ff\u00c0\u00c1\u00c2\u00c3\u00c4\u00c5\u00c7\u00c8\u00c9\u00ca\u00cb\u00cc\u00cd\u00ce\u00cf\u00d1\u00d2\u00d3\u00d4\u00d5\u00d6\u00d9\u00da\u00db\u00dc\u00dd';
   var PDF_BASE_LETTERS = 'aaaaaaceeeeiiiinooooouuuuyyAAAAAACEEEEIIIINOOOOOUUUUY';
   function pdfCharWidth(ch, font) {
+    if (font.emb) {
+      var egid = font.emb.gidFor(ch.charCodeAt(0));
+      if (!egid) return 0.5;
+      return (font.emb.widths[egid] || 0) / font.emb.unitsPerEm;
+    }
     if (font.family === 'courier') return 0.6;
     var code = ch.charCodeAt(0);
     var table = PDF_WIDTHS[font.family] || PDF_WIDTHS.helvetica;
@@ -5216,13 +5361,14 @@ window.__SUI_RICH = (function () {
     var headerText = inst.headerText || '', footerText = inst.footerText || '';
     var HEADER_H = headerText ? 30 : 0, FOOTER_H = footerText ? 30 : 0;
     var START_Y = MARGIN + HEADER_H, BOTTOM_LIMIT = PAGE_H - MARGIN - FOOTER_H;
+    pdfEmbUse = {};
     var pages = [], ops = [], y = START_Y, pageSeq = 0;
     var images = [], imageCache = {};
     var doc = inst.doc || { children: [] };
     var domTables = inst.editor ? inst.editor.querySelectorAll('table') : [];
     var tableSeq = 0;
     function chromeLine(text, baseline) {
-      var font = pdfFont([]), size = 9;
+      var font = { id: 1, name: 'F1', family: 'helvetica', bold: false, italic: false, emb: null }, size = 9;
       var value = String(text).replace(/\{page\}/gi, '__SUI_PAGE__').replace(/\{pages\}/gi, '__SUI_PAGES__');
       var width = pdfTextWidth(value.replace(/__SUI_(PAGE|PAGES)__/g, '00'), font, size);
       var x = MARGIN + Math.max(0, (CONTENT_W - width) / 2);
@@ -5314,6 +5460,12 @@ window.__SUI_RICH = (function () {
       for (var r = 0; r < runs.length; r++) {
         var run = runs[r];
         if (run.type === 'run') {
+          if (run.font.emb) {
+            var mapped = true;
+            for (var mc = 0; mc < run.text.length; mc++) if (!run.font.emb.gidFor(run.text.charCodeAt(mc))) { mapped = false; break; }
+            if (!mapped) run.font = { id: 0, name: run.font.stdName, family: run.font.family, bold: run.font.bold, italic: run.font.italic, emb: null };
+          }
+          if (run.font.emb) registerEmbText(run.font, run.text);
           run.width = pdfTextWidth(run.text, run.font, run.size);
           run.fontSize = run.size * (run.sup || run.sub ? 0.72 : 1);
         }
@@ -5429,7 +5581,8 @@ window.__SUI_RICH = (function () {
           var fill2 = run2.color || '#000000';
           if (fill2 !== lastFill) { ops.push(pdfFill(fill2)); lastFill = fill2; }
           if (run2.font.name !== lastFont || fontSize2 !== lastSize) { ops.push('/' + run2.font.name + ' ' + pdfNumber(fontSize2) + ' Tf'); lastFont = run2.font.name; lastSize = fontSize2; }
-          ops.push('(' + pdfEscape(pdfEncode(piece2.text)) + ') Tj');
+          if (run2.font.emb) { registerEmbText(run2.font, piece2.text); ops.push('<' + pdfGids(piece2.text, run2.font.emb) + '> Tj'); }
+          else ops.push('(' + pdfEscape(pdfEncode(piece2.text)) + ') Tj');
         }
         closeText();
         for (var u = 0; u < segments.length; u++) {
@@ -5463,9 +5616,7 @@ window.__SUI_RICH = (function () {
       for (var i = 0; i < runs.length; i++) if (runs[i].type === 'run') {
         if (!runs[i].font.bold) {
           var family = runs[i].font.family;
-          var slot = runs[i].font.italic ? 'bolditalic' : 'bold';
-          var boldId = PDF_FONT_KEYS[family][slot];
-          runs[i].font = { id: boldId, name: 'F' + boldId, family: family, bold: true, italic: runs[i].font.italic };
+          runs[i].font = pdfFontParts(family, true, runs[i].font.italic);
         }
         runs[i].size = size; runs[i].fontSize = size;
         runs[i].width = pdfTextWidth(runs[i].text, runs[i].font, size);
@@ -5698,13 +5849,33 @@ window.__SUI_RICH = (function () {
     var nextId = 3 + PDF_FONTS.length;
     var imageIds = [];
     for (var im = 0; im < images.length; im++) imageIds.push(nextId++);
+    var embKeys = [];
+    for (var ek in pdfEmbUse) if (Object.prototype.hasOwnProperty.call(pdfEmbUse, ek) && PDF_EMB_NAMES[ek] && PDF_EMB_CACHE[ek]) embKeys.push(ek);
+    var embIds = {};
+    for (var ei = 0; ei < embKeys.length; ei++) embIds[embKeys[ei]] = { type0: nextId++, cid: nextId++, desc: nextId++, file: nextId++, tu: nextId++ };
     var pageIds = [], contentIds = [];
     for (var p = 0; p < pages.length; p++) { pageIds.push(nextId++); contentIds.push(nextId++); }
     for (var ii = 0; ii < images.length; ii++) {
       var entry = images[ii];
       objects[imageIds[ii]] = '<< /Type /XObject /Subtype /Image /Width ' + entry.width + ' /Height ' + entry.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 ' + (entry.kind === 'jpeg' ? '/Filter /DCTDecode ' : '') + '/Length ' + entry.bytes.length + ' >>\nstream\n' + entry.stream + '\nendstream';
     }
-    var fontRes = '/Font << ' + PDF_FONTS.map(function (_, index) { return '/F' + (index + 1) + ' ' + (3 + index) + ' 0 R'; }).join(' ') + ' >>';
+    for (var eb = 0; eb < embKeys.length; eb++) {
+      var ebKey = embKeys[eb], ebFont = PDF_EMB_CACHE[ebKey], ebId = embIds[ebKey];
+      var ebScale = 1000 / ebFont.unitsPerEm;
+      var ebBase = 'SUI' + ebKey.split('-').map(function (part) { return part.charAt(0).toUpperCase() + part.slice(1); }).join('-');
+      var ebUsed = pdfEmbUse[ebKey];
+      var ebGids = Object.keys(ebUsed);
+      var ebW = ebGids.map(function (gid) { return gid + ' [' + Math.round((ebFont.widths[Number(gid)] || 0) * ebScale) + ']'; }).join(' ');
+      var ebBBox = [ebFont.xMin, ebFont.yMin, ebFont.xMax, ebFont.yMax].map(function (v) { return Math.round(v * ebScale); }).join(' ');
+      var ebAsc = Math.round(ebFont.ascent * ebScale), ebDesc = Math.round(ebFont.descent * ebScale), ebCap = Math.round(ebFont.ascent * ebScale * 0.7);
+      var ebTu = pdfToUnicode(ebBase, ebUsed);
+      objects[ebId.file] = '<< /Length ' + ebFont.bytes.length + ' /Length1 ' + ebFont.bytes.length + ' >>' + String.fromCharCode(10) + 'stream' + String.fromCharCode(10) + binaryString(ebFont.bytes) + String.fromCharCode(10) + 'endstream';
+      objects[ebId.desc] = '<< /Type /FontDescriptor /FontName /' + ebBase + ' /Flags 32 /FontBBox [' + ebBBox + '] /ItalicAngle 0 /Ascent ' + ebAsc + ' /Descent ' + ebDesc + ' /CapHeight ' + ebCap + ' /StemV 80 /FontFile2 ' + ebId.file + ' 0 R >>';
+      objects[ebId.cid] = '<< /Type /Font /Subtype /CIDFontType2 /BaseFont /' + ebBase + ' /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ' + ebId.desc + ' 0 R /DW 1000 /W [' + ebW + '] /CIDToGIDMap /Identity >>';
+      objects[ebId.type0] = '<< /Type /Font /Subtype /Type0 /BaseFont /' + ebBase + ' /Encoding /Identity-H /DescendantFonts [' + ebId.cid + ' 0 R] /ToUnicode ' + ebId.tu + ' 0 R >>';
+      objects[ebId.tu] = '<< /Length ' + pdfBytes(ebTu).length + ' >>' + String.fromCharCode(10) + 'stream' + String.fromCharCode(10) + ebTu + String.fromCharCode(10) + 'endstream';
+    }
+    var fontRes = '/Font << ' + PDF_FONTS.map(function (_, index) { return '/F' + (index + 1) + ' ' + (3 + index) + ' 0 R'; }).join(' ') + embKeys.map(function (key) { return ' /' + PDF_EMB_NAMES[key] + ' ' + embIds[key].type0 + ' 0 R'; }).join('') + ' >>';
     var xobjRes = images.length ? ' /XObject << ' + images.map(function (_, index) { return '/Im' + index + ' ' + imageIds[index] + ' 0 R'; }).join(' ') + ' >>' : '';
     objects[2] = '<< /Type /Pages /Kids [' + pageIds.map(function (id) { return id + ' 0 R'; }).join(' ') + '] /Count ' + pages.length + ' >>';
     for (var pg = 0; pg < pages.length; pg++) {

@@ -1524,6 +1524,8 @@ func generateJsFor(p *Prog, target string, markers bool) string {
 	// toolbar/plugin registry. Emit the runtime only when the program uses it.
 	if progUsesRichText(p) {
 		sb.WriteString("\n\n")
+		sb.WriteString(suiPdfFontsJS)
+		sb.WriteString("\n\n")
 		sb.WriteString(suiRichTextRuntime)
 	}
 	// Charts parse JSON/XML/CSV data and draw inert SVG nodes. Large charts

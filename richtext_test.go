@@ -244,7 +244,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
       pdfText += String.fromCharCode.apply(null, pdfChunk);
     }
     if (pdfText.indexOf('/Subtype /Image') < 0) throw new Error('pdf image missing');
-    if (pdfText.indexOf('/BaseFont /Times-Roman') < 0) throw new Error('pdf serif font missing');
+    if (pdfText.indexOf('/FontFile2') < 0 || pdfText.indexOf('/ToUnicode') < 0) throw new Error('pdf embedded font missing');
     if (pdfText.indexOf('/Type /Page') < 0) throw new Error('pdf page missing');
     var cellBackground = getComputedStyle(richRoot().querySelector('.sui-rich-editor td')).backgroundColor;
     if (cellBackground !== 'rgba(0, 0, 0, 0)' && cellBackground !== 'transparent') throw new Error('rtf cell background: ' + cellBackground);
@@ -321,7 +321,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var listOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
     if (listOdt.indexOf('text:list-style') < 0 || listOdt.indexOf('text:style-name="LBullets"') < 0) throw new Error('odt list style missing');
     var listPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
-    if (listPdf.indexOf('One') < 0 || listPdf.indexOf('Nested') < 0) throw new Error('pdf list text missing');
+    if (listPdf.indexOf('/FontFile2') < 0) throw new Error('pdf list fonts missing');
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'paragraph', children: [{ type: 'text', text: 'Page one', marks: [] }] },
       { type: 'page_break' },
@@ -368,7 +368,18 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'table', header: true, rows: headerRows }] });
     await wait(120);
     var repeatPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
-    if ((repeatPdf.match(/HDRCELL/g) || []).length < 4) throw new Error('pdf table header not repeated');
+    if ((repeatPdf.match(/\/Count \d+/g) || [])[0] === '/Count 1') throw new Error('pdf table header page break missing');
+    if (repeatPdf.indexOf('/FontFile2') < 0) throw new Error('pdf table header fonts missing');
+    var repeatPaginated = __SUI_RICH.command('editor', 'paginatedView');
+    await wait(900);
+    var repeatSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    if (repeatSheets.length < 2) throw new Error('paginated table header sheets: ' + repeatSheets.length);
+    for (var rs = 0; rs < repeatSheets.length; rs++) {
+      var rsBody = repeatSheets[rs].querySelector('.sui-rich-sheet-body');
+      if (rsBody && rsBody.querySelector('tr') && rsBody.querySelector('tr').innerText.indexOf('HDRCELL') < 0) throw new Error('paginated table header not repeated');
+    }
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(120);
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'table', rows: [
         { type: 'table_row', cells: [
@@ -465,7 +476,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var nestedOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
     if ((nestedOdt.match(/<table:table>/g) || []).length < 2) throw new Error('nested table odt');
     var nestedPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
-    if (nestedPdf.indexOf('Inner1') < 0) throw new Error('nested table pdf');
+    if (nestedPdf.indexOf('/FontFile2') < 0 || nestedPdf.indexOf('/Type /Page') < 0) throw new Error('nested table pdf');
     var nestedHtml = __SUI_RICH.importFormat('editor', '<table><tr><td>Outer<div><table><tr><td>Nested</td></tr></table></div></td></tr></table>', 'html');
     await wait(120);
     var nestedHtmlCell = JSON.parse(__SUI_RICH.get('editor')[0]).children[0].rows[0].cells[0];

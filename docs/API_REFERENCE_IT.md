@@ -1794,7 +1794,7 @@ scarica il documento. Formati supportati:
 | DOC | best effort | contenuto RTF con estensione `.doc` | Mantiene font, dimensioni, colori, tabelle, immagini, liste e interruzioni di pagina. Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
 | DOCX | sì | sì | Paragrafi, run, liste native puntate/numerate, tabelle con intestazione ripetuta, formattazione, font, sfondo celle, immagini, header/footer e interruzioni di pagina WordprocessingML |
 | ODT | sì | sì | Testo OpenDocument, paragrafi, formattazione, liste native, tabelle, immagini incorporate, header/footer e interruzioni di pagina |
-| PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite e intestazione ripetuta), immagini PNG/JPEG, liste e header/footer ripetuti con numeri di pagina |
+| PDF | - | sì | Pagine A4 con font Liberation Sans/Serif incorporati (regular, bold, italic, bold-italic), stili del testo, colori, tabelle (celle unite e intestazione ripetuta), immagini PNG/JPEG, liste e header/footer ripetuti con numeri di pagina. ToUnicode mantiene il testo selezionabile/ricercabile; i caratteri fuori dal sottoinsieme incorporato usano i font PDF standard |
 | HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |
 
 I file importati non sono fidati: il parsing ZIP/XML resta nel browser e
@@ -1804,6 +1804,8 @@ pagina), DOCX e ODT come data URL e reinserite
 esportando. Selettore
 file e download sono azioni dell'utente e non richiedono permessi del bridge
 desktop. L'export DOCX/ODT crea il pacchetto nel browser, senza servizi esterni.
+Il PDF incorpora sottoinsiemi latini dei font Liberation Sans/Serif (SIL OFL);
+i file stanno in `assets/fonts` e vengono compilati nel runtime.
 L'import DOCX/ODT recupera font, dimensioni, colori, evidenziazioni, link,
 spaziatura/rientro dei paragrafi, liste puntate/numerate, testo di
 intestazione/piede e colonne/sfondi delle tabelle.
