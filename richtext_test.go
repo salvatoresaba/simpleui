@@ -369,6 +369,44 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(120);
     var repeatPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
     if ((repeatPdf.match(/HDRCELL/g) || []).length < 4) throw new Error('pdf table header not repeated');
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'table', rows: [
+        { type: 'table_row', cells: [
+          { type: 'table_cell', children: [{ type: 'text', text: 'A', marks: [] }] },
+          { type: 'table_cell', children: [{ type: 'text', text: 'B', marks: [] }] }
+        ] }
+      ] }
+    ] });
+    await wait(120);
+    var cellEl = richRoot().querySelector('.sui-rich-editor td');
+    var cellEditor = richRoot().querySelector('.sui-rich-editor');
+    cellEditor.focus();
+    var cellRange = document.createRange();
+    cellRange.selectNodeContents(cellEl);
+    cellRange.collapse(true);
+    var cellSel = window.getSelection();
+    cellSel.removeAllRanges();
+    cellSel.addRange(cellRange);
+    await wait(100);
+    var propsButton = richRoot().querySelector('[data-rich-cmd="tableProps"]');
+    if (!propsButton) throw new Error('table properties button missing');
+    var propsCmd = __SUI_RICH.command('editor', 'tableProps');
+    await wait(150);
+    var propsInputs = document.querySelectorAll('.sui-rich-tableprops input');
+    if (propsInputs.length < 3) throw new Error('table properties panel missing: ' + JSON.stringify(propsCmd));
+    propsInputs[0].value = '10'; propsInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(100);
+    propsInputs[1].value = '2'; propsInputs[1].dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(100);
+    propsInputs[2].value = '#1f497d'; propsInputs[2].dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(120);
+    var propsDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var propsTable = propsDoc.children.filter(function (c) { return c.type === 'table'; })[0];
+    if (!propsTable || propsTable.padding !== '10px' || propsTable.borderWidth !== '2px' || !propsTable.border) throw new Error('table properties model: ' + JSON.stringify(propsTable));
+    var propsDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (propsDocx.indexOf('<w:tblCellMar>') < 0) throw new Error('docx cell margins missing');
+    if (propsDocx.indexOf('1F497D') < 0) throw new Error('docx table border color missing');
+    if (propsDocx.indexOf('w:sz="16"') < 0) throw new Error('docx table border width missing');
 `+featureScriptTail)
 }
 

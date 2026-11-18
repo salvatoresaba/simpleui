@@ -1729,7 +1729,9 @@ for merge/alignment. Drag the ⣿ handle to float the toolbar anywhere; double-
 click the handle or use the dock button to return it below the main toolbar.
 Click outside a menu to close it. File > Import and File > Export are
 submenus. The table toolbar's **Select whole table** action lets table
-alignment apply to the table itself. Select two or more cells and copy them;
+alignment apply to the table itself. Its ⚙ button opens **Table properties**
+for cell padding, border width and border color; the values are stored in the
+table model and used by the editor, PDF and DOCX exports. Select two or more cells and copy them;
 pasting into another cell fills a matching block of cells (TSV text from other
 applications works too). Drag a table's right/bottom borders to resize columns
 or rows, or drag the bottom-right corner to resize the whole table; sizes are

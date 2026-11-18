@@ -288,7 +288,7 @@ window.__SUI_RICH = (function () {
       if (tag === 'table') {
         flush();
         var tableAlign = node.style.marginLeft === 'auto' && node.style.marginRight === 'auto' ? 'center' : node.style.marginLeft === 'auto' ? 'right' : node.style.marginRight === 'auto' ? 'left' : '';
-        var table = { type: 'table', rows: [], header: false, border: cssColor(node.style.borderColor || '') || '', width: cssLength(node.style.width, ''), height: cssLength(node.style.height, ''), align: tableAlign };
+        var table = { type: 'table', rows: [], header: false, border: cssColor(node.style.borderColor || '') || '', borderWidth: cssLength(node.getAttribute('data-table-border-width') || '', ''), padding: cssLength(node.getAttribute('data-table-padding') || '', ''), width: cssLength(node.style.width, ''), height: cssLength(node.style.height, ''), align: tableAlign };
         for (var r = 0; r < node.rows.length; r++) {
           var row = { type: 'table_row', height: cssLength(node.rows[r].style.height, ''), cells: [] };
           for (var ci = 0; ci < node.rows[r].cells.length; ci++) {
@@ -429,6 +429,8 @@ window.__SUI_RICH = (function () {
     } else if (type === 'table') {
       box = el('table');
       if (node.border) box.style.borderColor = cssColor(node.border);
+      if (node.borderWidth) box.setAttribute('data-table-border-width', cssLength(node.borderWidth, ''));
+      if (node.padding) box.setAttribute('data-table-padding', cssLength(node.padding, ''));
       if (node.width) box.style.width = cssLength(node.width, '');
       if (node.height) box.style.height = cssLength(node.height, '');
       if (node.align === 'center') { box.style.marginLeft = 'auto'; box.style.marginRight = 'auto'; }
@@ -445,6 +447,9 @@ window.__SUI_RICH = (function () {
           var cell = el(cells[ci].header ? 'th' : 'td');
           if (cells[ci].align) cell.style.textAlign = cells[ci].align;
           if (cells[ci].background) cell.style.backgroundColor = cssColor(cells[ci].background) || '';
+          if (node.padding) cell.style.padding = cssLength(node.padding, '');
+          if (node.borderWidth) cell.style.borderWidth = cssLength(node.borderWidth, '');
+          if (node.border) cell.style.borderColor = cssColor(node.border) || '';
           if (cells[ci].width) cell.style.width = cssLength(cells[ci].width, '');
           if (Number(cells[ci].colspan) > 1) cell.setAttribute('colspan', String(Number(cells[ci].colspan)));
           if (Number(cells[ci].rowspan) > 1) cell.setAttribute('rowspan', String(Number(cells[ci].rowspan)));
@@ -1371,6 +1376,8 @@ window.__SUI_RICH = (function () {
     try { document.execCommand('removeFormat'); } catch (e) {}
   }
   function runBuiltin(inst, cmd, value) {
+    var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
+    if (liveEditor) inst.editor = liveEditor;
     var editor = inst.editor;
     var selection = window.getSelection();
     if ((!selection || !selection.rangeCount || !editor.contains(selection.anchorNode)) && inst.savedSelection) {
@@ -1449,6 +1456,7 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'tableAlignCenter') tableCommand(inst, 'alignCenter');
     else if (cmd === 'tableAlignRight') tableCommand(inst, 'alignRight');
     else if (cmd === 'tableDock') tableCommand(inst, 'dock');
+    else if (cmd === 'tableProps') openTableProps(inst);
     else if (cmd === 'tableSelect') tableCommand(inst, 'selectTable');
     else if (cmd === 'fontFamily') document.execCommand('fontName', false, String(value || ''));
     else if (cmd === 'fontSize') document.execCommand('fontSize', false, String(value || '3'));
@@ -1521,8 +1529,25 @@ window.__SUI_RICH = (function () {
 
   function nameOf(inst) { return inst.name; }
 
-  function command(name, cmd, value) {
+  function resolveInstance(name) {
     var inst = instances[name];
+    if (!inst) return null;
+    var roots = document.querySelectorAll('[data-sui-rich-name]');
+    for (var i = 0; i < roots.length; i++) {
+      if (roots[i].getAttribute('data-sui-rich-name') !== name || !roots[i].isConnected) continue;
+      if (roots[i] !== inst.root) {
+        inst.root = roots[i];
+        var live = roots[i].querySelector('.sui-rich-editor');
+        if (live) inst.editor = live;
+      }
+      break;
+    }
+    var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
+    if (liveEditor) inst.editor = liveEditor;
+    return inst;
+  }
+  function command(name, cmd, value) {
+    var inst = resolveInstance(name);
     if (!inst) return [false, 'richtext instance not found: ' + name];
     try {
       var handled = runBuiltin(inst, cmd, value);
@@ -1532,7 +1557,7 @@ window.__SUI_RICH = (function () {
         var r = typeof pluginCmd.run === 'function' ? pluginCmd.run(inst, value) : runBuiltin(inst, pluginCmd.command, value);
         if (r === false) return [false, 'command failed: ' + cmd];
       }
-      if (cmd !== 'tableSelect' && cmd !== 'tableDock' && cmd !== 'copy') commit(inst, 'change');
+      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|paginatedView)$/.test(cmd)) commit(inst, 'change');
       return [true, null];
     } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
   }
@@ -1540,7 +1565,7 @@ window.__SUI_RICH = (function () {
   function format(name, fmt, value) { return command(name, fmt, value); }
 
   function getValue(name) {
-    var inst = instances[name];
+    var inst = resolveInstance(name);
     if (!inst) return [null, 'richtext instance not found: ' + name];
     sync(inst);
     return [JSON.stringify(inst.doc), null];
@@ -1556,7 +1581,7 @@ window.__SUI_RICH = (function () {
     if (!foot && inst.footerText) buildPageChrome(inst);
   }
   function setValue(name, value) {
-    var inst = instances[name];
+    var inst = resolveInstance(name);
     if (!inst) return [false, 'richtext instance not found: ' + name];
     var doc = typeof value === 'string' ? parseJSON(value, null) : value;
     if (!doc || typeof doc !== 'object') return [false, 'richtext document must be JSON'];
@@ -2187,6 +2212,114 @@ window.__SUI_RICH = (function () {
       wrap.appendChild(b); wrap.appendChild(panel); bar.appendChild(wrap);
     });
   }
+  function tablePropsPanel(inst) {
+    var panel = document.querySelector('.sui-rich-tableprops[data-rich-props="' + inst.name + '"]');
+    if (!panel) {
+      panel = el('div', 'sui-rich-tableprops');
+      panel.setAttribute('data-rich-props', inst.name);
+      panel.hidden = true;
+      document.body.appendChild(panel);
+    }
+    return panel;
+  }
+  function applyTableLook(inst, table, opts) {
+    resolveInstance(inst.name);
+    if (!table || !table.isConnected) return;
+    var cells = table.querySelectorAll('td,th');
+    if (opts.padding !== undefined) {
+      if (opts.padding !== '') {
+        table.setAttribute('data-table-padding', opts.padding + 'px');
+        for (var pc = 0; pc < cells.length; pc++) cells[pc].style.padding = opts.padding + 'px';
+      } else {
+        table.removeAttribute('data-table-padding');
+        for (var pc2 = 0; pc2 < cells.length; pc2++) cells[pc2].style.padding = '';
+      }
+    }
+    if (opts.borderWidth !== undefined) {
+      if (opts.borderWidth !== '') {
+        table.setAttribute('data-table-border-width', opts.borderWidth + 'px');
+        for (var bc = 0; bc < cells.length; bc++) cells[bc].style.borderWidth = opts.borderWidth + 'px';
+      } else {
+        table.removeAttribute('data-table-border-width');
+        for (var bc2 = 0; bc2 < cells.length; bc2++) cells[bc2].style.borderWidth = '';
+      }
+    }
+    if (opts.borderColor) {
+      table.style.borderColor = opts.borderColor;
+      for (var cc = 0; cc < cells.length; cc++) cells[cc].style.borderColor = opts.borderColor;
+    }
+    commit(inst, 'change');
+  }
+  function openTableProps(inst) {
+    var liveRoot = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"]');
+    if (liveRoot && liveRoot !== inst.root) {
+      inst.root = liveRoot;
+      var liveEd = liveRoot.querySelector('.sui-rich-editor');
+      if (liveEd) inst.editor = liveEd;
+    }
+    var table = closestIn(inst, 'table') || (inst.editor && inst.editor.querySelector('table'));
+    if (!table) return;
+    var tableIndex = 0;
+    var allTables = inst.editor.querySelectorAll('table');
+    for (var ti = 0; ti < allTables.length; ti++) if (allTables[ti] === table) { tableIndex = ti; break; }
+    function currentTable() {
+      resolveInstance(inst.name);
+      var list = inst.editor.querySelectorAll('table');
+      return list[tableIndex] || table;
+    }
+    var panel = tablePropsPanel(inst);
+    var rootStyle = getComputedStyle(inst.root);
+    ['--sui-rich-bg', '--sui-rich-fg', '--sui-rich-border', '--sui-rich-muted', '--sui-rich-hover', '--sui-rich-accent'].forEach(function (v) {
+      var value = rootStyle.getPropertyValue(v);
+      if (value) panel.style.setProperty(v, value.trim());
+    });
+    panel.innerHTML = '';
+    panel.hidden = false;
+    if (!window.__suiTablePropsOutside) {
+      window.__suiTablePropsOutside = true;
+      document.addEventListener('mousedown', function (ev) {
+        if (ev.target.closest && (ev.target.closest('.sui-rich-tableprops') || ev.target.closest('[data-rich-cmd="tableProps"]'))) return;
+        var panels = document.querySelectorAll('.sui-rich-tableprops');
+        for (var pi = 0; pi < panels.length; pi++) panels[pi].hidden = true;
+      });
+    }
+    var title = el('div', 'sui-rich-tableprops-title', 'Table properties');
+    panel.appendChild(title);
+    function property(label, input) {
+      var row = el('div', 'sui-rich-tableprops-row');
+      var lb = el('label', '', label);
+      row.appendChild(lb);
+      row.appendChild(input);
+      panel.appendChild(row);
+      return input;
+    }
+    var pad = el('input', 'sui-rich-prop');
+    pad.type = 'number'; pad.min = '0'; pad.max = '60'; pad.step = '1';
+    pad.value = String(parseFloat(table.getAttribute('data-table-padding')) || '');
+    pad.placeholder = 'default';
+    pad.onchange = function () { applyTableLook(inst, currentTable(), { padding: String(pad.value).replace(/[^0-9.]/g, '') }); };
+    property('Cell padding (px)', pad);
+    var borderW = el('input', 'sui-rich-prop');
+    borderW.type = 'number'; borderW.min = '0'; borderW.max = '12'; borderW.step = '1';
+    borderW.value = String(parseFloat(table.getAttribute('data-table-border-width')) || '');
+    borderW.placeholder = 'default';
+    borderW.onchange = function () { applyTableLook(inst, currentTable(), { borderWidth: String(borderW.value).replace(/[^0-9.]/g, '') }); };
+    property('Border width (px)', borderW);
+    var color = el('input', 'sui-rich-prop');
+    color.type = 'color';
+    var currentColor = table.style.borderColor || '#9aa7b8';
+    color.value = /^#[0-9a-f]{6}$/i.test(currentColor) ? currentColor : '#9aa7b8';
+    color.onchange = function () { applyTableLook(inst, currentTable(), { borderColor: color.value }); };
+    property('Border color', color);
+    var close = el('button', 'sui-rich-btn sui-rich-tableprops-close', 'Close');
+    close.type = 'button';
+    close.onclick = function () { panel.hidden = true; };
+    panel.appendChild(close);
+    var bar = inst.root.querySelector('.sui-rich-tablebar');
+    var rect = (bar && !bar.hidden ? bar : table).getBoundingClientRect();
+    panel.style.left = Math.max(8, Math.min(window.innerWidth - 248, rect.left)) + 'px';
+    panel.style.top = Math.min(window.innerHeight - 220, rect.bottom + 6) + 'px';
+  }
   function buildTableBar(inst) {
     var bar = inst.root.querySelector('.sui-rich-tablebar');
     if (!bar) return;
@@ -2200,7 +2333,7 @@ window.__SUI_RICH = (function () {
       [['tableRowAbove', '+R', 'Add row above'], ['tableRowBelow', '+R\u2193', 'Add row below'], ['tableRowDelete', '-R', 'Delete row']],
       [['tableColLeft', '+C', 'Add column left'], ['tableColRight', '+C\u2192', 'Add column right'], ['tableColDelete', '-C', 'Delete column']],
       [['tableHeader', 'H', 'Toggle header row'], ['tableMerge', 'M', 'Merge selected cells'], ['tableSplit', 'S', 'Split cell']],
-      [['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'], ['tableDelete', '\u00d7', 'Delete table'], ['tableDock', 'D', 'Dock table toolbar']]
+      [['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'], ['tableProps', '\u2699', 'Table properties'], ['tableDelete', '\u00d7', 'Delete table'], ['tableDock', 'D', 'Dock table toolbar']]
     ];
     for (var gi = 0; gi < groups.length; gi++) {
       var group = el('div', 'sui-rich-group');
@@ -3942,7 +4075,13 @@ window.__SUI_RICH = (function () {
         if (isFinite(rowH) && rowH > 0) trPrInner += '<w:trHeight w:val="' + Math.round(rowH * 15) + '" w:hRule="atLeast"/>';
         rows += '<w:tr>' + (trPrInner ? '<w:trPr>' + trPrInner + '</w:trPr>' : '') + cells + '</w:tr>';
       }
-      return '<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="999999"/><w:left w:val="single" w:sz="4" w:color="999999"/><w:bottom w:val="single" w:sz="4" w:color="999999"/><w:right w:val="single" w:sz="4" w:color="999999"/><w:insideH w:val="single" w:sz="4" w:color="999999"/><w:insideV w:val="single" w:sz="4" w:color="999999"/></w:tblBorders></w:tblPr><w:tblGrid>' + gridXml + '</w:tblGrid>' + rows + '</w:tbl><w:p/>';
+      var docxBorderColor = hexColor(n.border) || '999999';
+      var docxBorderWidth = n.borderWidth ? Math.max(0, Math.round(parseFloat(n.borderWidth) * 8)) : 4;
+      var docxBorderVal = docxBorderWidth > 0 ? 'single' : 'nil';
+      var docxBorder = function (side, inside) { return '<w:' + side + ' w:val="' + docxBorderVal + '"' + (docxBorderWidth > 0 ? ' w:sz="' + docxBorderWidth + '" w:space="0" w:color="' + docxBorderColor + '"' : '') + '/>'; };
+      var padTwips = n.padding ? Math.max(0, Math.round(parseFloat(n.padding) * 15)) : 0;
+      var cellMar = '<w:tblCellMar><w:top w:w="' + padTwips + '" w:type="dxa"/><w:left w:w="' + padTwips + '" w:type="dxa"/><w:bottom w:w="' + padTwips + '" w:type="dxa"/><w:right w:w="' + padTwips + '" w:type="dxa"/></w:tblCellMar>';
+      return '<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>' + docxBorder('top') + docxBorder('left') + docxBorder('bottom') + docxBorder('right') + docxBorder('insideH') + docxBorder('insideV') + '</w:tblBorders>' + cellMar + '</w:tblPr><w:tblGrid>' + gridXml + '</w:tblGrid>' + rows + '</w:tbl><w:p/>';
     }
     return '';
   }
@@ -4841,6 +4980,8 @@ window.__SUI_RICH = (function () {
     return w * size;
   }
   function exportPDF(inst) {
+    var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
+    if (liveEditor) inst.editor = liveEditor;
     var PAGE_W = 595, PAGE_H = 842, MARGIN = 56, CONTENT_W = PAGE_W - MARGIN * 2, BOTTOM = 56;
     var headerText = inst.headerText || '', footerText = inst.footerText || '';
     var HEADER_H = headerText ? 30 : 0, FOOTER_H = footerText ? 30 : 0;
@@ -5110,6 +5251,9 @@ window.__SUI_RICH = (function () {
       var dom = domTables[tableSeq++];
       var tableW = 0, tableLeft = 0;
       if (dom) { var tableRect = dom.getBoundingClientRect(); tableW = tableRect.width; tableLeft = tableRect.left; }
+      var cellPad = node.padding ? Math.max(0, Math.min(30, parseFloat(node.padding) * 0.75)) : 2.5;
+      var borderW = node.borderWidth ? Math.max(0, Math.min(4, parseFloat(node.borderWidth) * 0.75)) : 0.5;
+      var borderColor = node.border || '#9aa7b8';
       var rowData = [];
       for (var rr = 0; rr < rows.length; rr++) {
         var row = rows[rr], domRow = dom ? dom.rows[rr] : null;
@@ -5128,10 +5272,10 @@ window.__SUI_RICH = (function () {
           }
           fallbackX += width;
           var runs = runsOf(cell.children);
-          var lines = wrapRuns(runs, Math.max(12, width - 6));
+          var lines = wrapRuns(runs, Math.max(12, width - cellPad * 2));
           var maxSize = 11;
           for (var lI = 0; lI < lines.length; lI++) if (lines[lI].size > maxSize) maxSize = lines[lI].size;
-          var h = lines.length * lineHeightFor(maxSize, null) + 5;
+          var h = lines.length * lineHeightFor(maxSize, null) + cellPad * 2;
           cells.push({ cell: cell, x: x, width: width, lines: lines, height: h, rowspan: Math.max(1, Number(cell.rowspan) || 1) });
         }
         var rowHeight = 0;
@@ -5159,10 +5303,10 @@ window.__SUI_RICH = (function () {
           }
           var cellFill = info.cell.background || (info.cell.header ? '#e8ecf3' : '');
           if (cellFill) ops.push('q ' + pdfFill(cellFill) + ' ' + pdfNumber(info.x) + ' ' + pdfNumber(ty(rowTop + cellHeight)) + ' ' + pdfNumber(info.width) + ' ' + pdfNumber(cellHeight) + ' re f Q');
-          ops.push('q ' + pdfStroke('#9aa7b8') + ' 0.5 w ' + pdfNumber(info.x) + ' ' + pdfNumber(ty(rowTop + cellHeight)) + ' ' + pdfNumber(info.width) + ' ' + pdfNumber(cellHeight) + ' re S Q');
+          ops.push('q ' + pdfStroke(borderColor) + ' ' + pdfNumber(borderW) + ' w ' + pdfNumber(info.x) + ' ' + pdfNumber(ty(rowTop + cellHeight)) + ' ' + pdfNumber(info.width) + ' ' + pdfNumber(cellHeight) + ' re S Q');
           var savedY = y;
-          y = rowTop + 2.5;
-          drawLines(info.lines, info.x + 3, Math.max(10, info.width - 6), String(info.cell.align || '').toLowerCase(), null, false);
+          y = rowTop + cellPad;
+          drawLines(info.lines, info.x + cellPad, Math.max(10, info.width - cellPad * 2), String(info.cell.align || '').toLowerCase(), null, false);
           y = savedY;
         }
       }
@@ -5513,6 +5657,14 @@ const suiRichTextCss = `
 .sui-rich-zoom-btn { width: 22px; height: 22px; border: 1px solid var(--sui-rich-border); border-radius: 5px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; line-height: 1; }
 .sui-rich-context { position: fixed; z-index: 900; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-context[hidden] { display: none; }
+.sui-rich-tableprops { position: fixed; z-index: 965; width: 232px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.35); color: var(--sui-rich-fg); font-size: 12px; }
+.sui-rich-tableprops[hidden] { display: none; }
+.sui-rich-tableprops-title { font-weight: 600; margin-bottom: 6px; }
+.sui-rich-tableprops-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+.sui-rich-tableprops-row label { flex: 1; color: var(--sui-rich-muted); }
+.sui-rich-tableprops-row input { width: 76px; height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; padding: 0 6px; }
+.sui-rich-tableprops-row input[type="color"] { padding: 1px; }
+.sui-rich-tableprops-close { margin-top: 6px; width: 100%; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: transparent; color: var(--sui-rich-fg); padding: 5px; cursor: pointer; }
 .sui-rich-tablebar { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; background: var(--sui-rich-toolbar-bg); border-bottom: 1px solid var(--sui-rich-border); position: relative; z-index: 4; }
 .sui-rich-tablebar[hidden] { display: none; }
 .sui-rich-tablebar.floating { position: fixed; left: 24px; top: 90px; z-index: 950; border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
