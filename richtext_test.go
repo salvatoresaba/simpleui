@@ -418,6 +418,21 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var sideDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
     if (sideDocx.indexOf('<w:top w:val="nil"') < 0) throw new Error('docx top border not disabled');
     if (sideDocx.indexOf('<w:left w:val="single"') < 0) throw new Error('docx left border missing');
+    var sideBack = await __SUI_RICH.importBytes('editor', __SUI_RICH.exportBytes('editor', 'docx')[0], 'side.docx');
+    if (sideBack[1] !== null) throw new Error('table props docx roundtrip: ' + sideBack[1]);
+    await wait(100);
+    var sideBackDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var sideBackTable = sideBackDoc.children.filter(function (c) { return c.type === 'table'; })[0];
+    if (!sideBackTable || sideBackTable.padding !== '10px' || sideBackTable.borderWidth !== '2px' || !sideBackTable.border) throw new Error('table props roundtrip: ' + JSON.stringify(sideBackTable && { padding: sideBackTable.padding, borderWidth: sideBackTable.borderWidth, border: sideBackTable.border }));
+    if (sideBackTable.borders && sideBackTable.borders.indexOf('top') >= 0) throw new Error('table side roundtrip');
+    var htmlTable = '<table style="border:1px solid #ff0000"><tr><td style="border:1px solid #ff0000;padding:8px;background-color:#eeeeee">X</td><td style="border:1px solid #ff0000;padding:8px">Y</td></tr></table>';
+    var htmlImport = __SUI_RICH.importFormat('editor', htmlTable, 'html');
+    if (htmlImport[1] !== null) throw new Error('html table import: ' + htmlImport[1]);
+    await wait(100);
+    var htmlDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var htmlTableModel = htmlDoc.children.filter(function (c) { return c.type === 'table'; })[0];
+    if (!htmlTableModel || !htmlTableModel.padding || !htmlTableModel.borderWidth || !htmlTableModel.border) throw new Error('html table styles: ' + JSON.stringify(htmlTableModel && { padding: htmlTableModel.padding, borderWidth: htmlTableModel.borderWidth, border: htmlTableModel.border }));
+    if (!htmlTableModel.rows[0].cells[0].background) throw new Error('html table cell background');
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'table', rows: [
         { type: 'table_row', cells: [

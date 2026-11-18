@@ -290,16 +290,33 @@ window.__SUI_RICH = (function () {
         var tableAlign = node.style.marginLeft === 'auto' && node.style.marginRight === 'auto' ? 'center' : node.style.marginLeft === 'auto' ? 'right' : node.style.marginRight === 'auto' ? 'left' : '';
         var table = { type: 'table', rows: [], header: false, border: cssColor(node.style.borderColor || '') || '', borderWidth: cssLength(node.getAttribute('data-table-border-width') || '', ''), padding: cssLength(node.getAttribute('data-table-padding') || '', ''), width: cssLength(node.style.width, ''), height: cssLength(node.style.height, ''), align: tableAlign };
         if (node.getAttribute('data-table-borders') !== null) table.borders = tableBorderFlags(node);
+        function cellPaddingOf(cellNode) {
+          var shorthand = String(cellNode.style.padding || '').trim();
+          if (shorthand) {
+            var parts = shorthand.split(/\s+/);
+            var chosen = parts.length === 1 ? parts[0] : (parts[3] || parts[1] || parts[0]);
+            var value = cssLength(chosen, '');
+            if (value) return value;
+          }
+          var left = cssLength(cellNode.style.paddingLeft || cellNode.style.paddingRight || '', '');
+          return left;
+        }
         for (var r = 0; r < node.rows.length; r++) {
           var row = { type: 'table_row', height: cssLength(node.rows[r].style.height, ''), cells: [] };
           for (var ci = 0; ci < node.rows[r].cells.length; ci++) {
             var cell = node.rows[r].cells[ci];
             var cellInline = [];
             for (var cc = 0; cc < cell.childNodes.length; cc++) inlineFrom(cell.childNodes[cc], [], cellInline, depth + 1);
-            row.cells.push({ type: 'table_cell', header: cell.tagName.toLowerCase() === 'th', colspan: Number(cell.getAttribute('colspan') || 1), rowspan: Number(cell.getAttribute('rowspan') || 1), align: cell.style.textAlign || '', width: cssLength(cell.style.width, ''), background: cssColor(cell.style.backgroundColor || '') || '', children: cellInline });
+            var cellBackground = cssColor(cell.style.backgroundColor || '') || cssColor(cell.getAttribute('bgcolor') || '') || '';
+            var cellData = { type: 'table_cell', header: cell.tagName.toLowerCase() === 'th', colspan: Number(cell.getAttribute('colspan') || 1), rowspan: Number(cell.getAttribute('rowspan') || 1), align: cell.style.textAlign || '', width: cssLength(cell.style.width, ''), background: cellBackground, children: cellInline };
+            if (!table.padding) { var cellPadValue = cellPaddingOf(cell); if (cellPadValue) table.padding = cellPadValue; }
+            if (!table.borderWidth) { var cellBorderWidth = cssLength(cell.style.borderTopWidth || cell.style.borderWidth || '', ''); if (cellBorderWidth && parseFloat(cellBorderWidth) > 0) { table.borderWidth = cellBorderWidth; table.border = table.border || cssColor(cell.style.borderTopColor || cell.style.borderColor || '') || ''; } }
+            row.cells.push(cellData);
           }
           table.rows.push(row);
         }
+        if (!table.border && node.style.borderTopColor) table.border = cssColor(node.style.borderTopColor) || '';
+        if (!table.borderWidth && node.style.borderTopWidth) table.borderWidth = cssLength(node.style.borderTopWidth, '');
         if (table.rows.length && table.rows[0].cells.length && table.rows[0].cells[0].header) table.header = true;
         out.push(table);
         continue;
@@ -4649,6 +4666,34 @@ window.__SUI_RICH = (function () {
           }
           finalizeTable(rows);
           var tableNode = { type: 'table', rows: rows };
+          var tblPrEl = n.getElementsByTagNameNS('*', 'tblPr')[0];
+          if (tblPrEl) {
+            var cellMar = tblPrEl.getElementsByTagNameNS('*', 'tblCellMar')[0];
+            if (cellMar) {
+              var marLeft = cellMar.getElementsByTagNameNS('*', 'left')[0];
+              var marTop = cellMar.getElementsByTagNameNS('*', 'top')[0];
+              var marValue = marLeft ? Number(marLeft.getAttribute('w:w') || 0) : (marTop ? Number(marTop.getAttribute('w:w') || 0) : 0);
+              if (marValue > 0) tableNode.padding = Math.round(marValue / 15 * 10) / 10 + 'px';
+            }
+            var tblBorders = tblPrEl.getElementsByTagNameNS('*', 'tblBorders')[0];
+            if (tblBorders) {
+              var sideNames = ['top', 'right', 'bottom', 'left', 'insideH', 'insideV'];
+              var sides = [];
+              for (var sb = 0; sb < sideNames.length; sb++) {
+                var sideEl = tblBorders.getElementsByTagNameNS('*', sideNames[sb])[0];
+                if (!sideEl) continue;
+                var sideVal = sideEl.getAttribute('w:val') || '';
+                var bsz = Number(sideEl.getAttribute('w:sz') || 0);
+                var bcolor = sideEl.getAttribute('w:color') || '';
+                if (sideVal !== 'nil') {
+                  sides.push(sideNames[sb]);
+                  if (!tableNode.borderWidth && bsz > 0) tableNode.borderWidth = Math.max(1, Math.round(bsz / 8)) + 'px';
+                  if (!tableNode.border && bcolor && bcolor !== 'auto') tableNode.border = '#' + bcolor.replace(/^#/, '');
+                }
+              }
+              if (sides.length && sides.length < 6) tableNode.borders = sides;
+            }
+          }
           if (rows.length && rows[0].cells.length && rows[0].cells.every(function (rc) { return rc.header; })) tableNode.header = true;
           out.push(tableNode);
         }

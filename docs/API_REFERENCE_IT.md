@@ -1678,7 +1678,8 @@ vengono ricordate per ogni editor. Un unico pulsante a destra alterna il tema de
 **Trova e sostituisci:** `Ctrl+F` (o Modifica > Trova e sostituisci) apre la barra;
 Invio/F3 successivo, Shift+F3 precedente, Esc chiude. **Incolla** da Word/Excel/HTML
 viene sanitizzato nel modello e conserva grassetto/corsivo, colori, link, tabelle e
-immagini (le immagini `blob:` vengono convertite in data URL). Il correttore
+immagini (anche gli stili delle tabelle Word/Excel: padding celle, spessore/colore
+bordo, lati visibili e sfondo; le immagini `blob:` vengono convertite in data URL). Il correttore
 ortografico del browser è attivo e l'editor espone ruoli ARIA textbox/toolbar.
 **Anteprima di stampa / PDF:** `Ctrl+P` (File > Stampa / Salva come PDF)
 apre la stampa del browser su pagine A4 con header/footer ripetuti.

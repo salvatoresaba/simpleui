@@ -1703,7 +1703,9 @@ editor.
 **Find and replace:** `Ctrl+F` (or Edit > Find and replace) opens a find bar;
 Enter/F3 next, Shift+F3 previous, Esc closes. **Paste** from Word/Excel/HTML is
 sanitized into the document model and keeps bold/italic, colors, links, tables
-and images. `blob:` images from the clipboard are converted to data URLs. The
+and images. Word/Excel table styles are recovered too (cell padding, border
+width/color, visible sides and cell shading). `blob:` images from the clipboard
+are converted to data URLs. The
 editor enables the browser spell checker and exposes textbox/toolbar ARIA roles. **Print preview / PDF:** `Ctrl+P` (File > Print / Save as PDF) opens
 the browser print dialog on A4 pages with the header/footer repeated.
 **Lists:** bullet and numbered lists can be nested with Tab and moved back with
