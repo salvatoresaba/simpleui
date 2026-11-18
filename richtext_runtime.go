@@ -300,12 +300,13 @@ window.__SUI_RICH = (function () {
     return { type: 'doc', children: children };
   }
 
-  function styleForBlock(node) {
-    if (node.align) node.style.textAlign = node.align;
-    if (node.indent) node.style.paddingLeft = node.indent;
-    if (node.lineHeight) node.style.lineHeight = node.lineHeight;
-    if (node.spaceBefore) node.style.marginTop = node.spaceBefore;
-    if (node.spaceAfter) node.style.marginBottom = node.spaceAfter;
+  function styleForBlock(element, node) {
+    if (!element || !node) return;
+    if (node.align) element.style.textAlign = node.align;
+    if (node.indent) element.style.paddingLeft = node.indent;
+    if (node.lineHeight) element.style.lineHeight = node.lineHeight;
+    if (node.spaceBefore) element.style.marginTop = node.spaceBefore;
+    if (node.spaceAfter) element.style.marginBottom = node.spaceAfter;
   }
 
   function applyMarks(text, marks) {
@@ -426,7 +427,7 @@ window.__SUI_RICH = (function () {
       box = el('p');
       inlineDom(Array.isArray(node.children) ? node.children : [], box);
     }
-    if (box) styleForBlock(box);
+    if (box) styleForBlock(box, node);
     if (type === 'paragraph' || type === 'heading') {
       inlineDom(Array.isArray(node.children) ? node.children : [], box);
       if (!box.childNodes.length) box.appendChild(el('br'));

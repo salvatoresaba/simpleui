@@ -113,6 +113,12 @@ view main {
     __SUI_RICH.command('editor', 'paragraph', 'h2');
     await wait(250);
     if (!richRoot().querySelector('.sui-rich-editor > h2')) throw new Error('heading command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    var alignedHeading = richRoot().querySelector('.sui-rich-editor > h2');
+    var alignedRange = document.createRange(); alignedRange.selectNodeContents(alignedHeading);
+    var alignedSel = window.getSelection(); alignedSel.removeAllRanges(); alignedSel.addRange(alignedRange);
+    __SUI_RICH.command('editor', 'alignCenter');
+    await wait(250);
+    if ((richRoot().querySelector('.sui-rich-editor > h2').style.textAlign || '') !== 'center') throw new Error('align command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
     var heading = richRoot().querySelector('.sui-rich-editor > h2');
     var headingRange = document.createRange(); headingRange.selectNodeContents(heading);
     var headingSel = window.getSelection(); headingSel.removeAllRanges(); headingSel.addRange(headingRange);
