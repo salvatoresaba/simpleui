@@ -16,7 +16,27 @@ import (
 
 // BuildSingleHTML compiles a program and returns one HTML document.
 func BuildSingleHTML(prog *Prog, minify bool) string {
-	return CombineSingleHTML(GenerateIndexHtml(prog), GenerateCss(prog), GenerateJs(prog), minify)
+	return BuildSingleHTMLOpts(prog, minify, false)
+}
+
+// BuildSingleHTMLOpts is BuildSingleHTML with optional inline source maps.
+// Maps are inlined as data: URLs so the exported file stays self-contained.
+func BuildSingleHTMLOpts(prog *Prog, minify bool, sourcemap bool) string {
+	index := GenerateIndexHtml(prog)
+	css := GenerateCss(prog)
+	js := GenerateJs(prog)
+	if sourcemap && !minify {
+		base := prog.dir
+		if base == "" {
+			base = filepath.Dir(prog.file)
+		}
+		var cssMap, jsMap string
+		css, cssMap = GenerateCssWithSourceMap(prog, base)
+		js, jsMap = GenerateJsWithSourceMap(prog, "web", base)
+		css = AppendInlineSourceMap(css, cssMap, "css")
+		js = AppendInlineSourceMap(js, jsMap, "js")
+	}
+	return CombineSingleHTML(index, css, js, minify)
 }
 
 // SingleOutputPath maps --out to a single .html file. An explicit .html/.htm

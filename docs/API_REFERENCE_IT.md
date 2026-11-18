@@ -3470,7 +3470,12 @@ simpleui mcp
 ## Target
 
 - **web**: genera `index.html`, `style.css`, `app.js`; con `--single` genera un solo HTML con CSS/JS/runtime inline. `--out app.html` indica il file, `--out dist` produce `dist/app.html`.
-- **web `--minify`**: richiede `--single`; rimuove commenti e indentazione in modo conservativo.
+- **web `--sourcemap`**: source map JavaScript e CSS opt-in. Le build multi-file
+  scrivono `app.js.map` e `style.css.map` e aggiungono i commenti
+  `sourceMappingURL`; `--single` incorpora entrambe le mappe come URL `data:`.
+  Le mappe includono `sourcesContent`: non pubblicarle. Non combinabile con
+  `--minify`. I browser non hanno source map native per HTML: il percorso
+  SUI → HTML è coperto dalla mappa JavaScript perché `app.js` costruisce il DOM.
 - **single HTML e CSP**: CSS/JS sono inline; se servi il file con una Content-Security-Policy restrittiva devi consentire `'unsafe-inline'` (o usare hash/nonce). La build multi-file non ha questo vincolo.
 - **desktop**: genera eseguibile single-file con bridge nativo (exec/fs) + micro-server localhost + apertura browser predefinito. Supporta `--no-open`, `--port N`. Non combinabile con `--single`.
 - **desktop-webview**: genera eseguibile single-file con lo stesso bridge e server localhost, ma apre una finestra WebView nativa invece del browser: WebView2 su Windows, WKWebView su macOS, WebKitGTK su Linux. Supporta `--no-open`, `--port N`. Non combinabile con `--single`. La prima build scarica `github.com/webview/webview_go`; il target richiede CGO e un toolchain C (Xcode Command Line Tools su macOS; su Linux installare i pacchetti di sviluppo GTK 3 e WebKitGTK 4.0).

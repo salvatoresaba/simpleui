@@ -127,6 +127,21 @@ designer inline):
 Con `--out dist` il file diventa `dist/app.html`. `--minify` è conservativo:
 rimuove commenti e indentazione senza cambiare la semantica.
 
+Per fare debug del codice generato, abilita esplicitamente le source map:
+
+```bash
+./simpleui build counter.sui --out dist --sourcemap
+./simpleui serve counter.sui --watch --sourcemap
+./simpleui build counter.sui --single --sourcemap --out app.html
+```
+
+Le build multi-file scrivono `app.js.map` e `style.css.map`; la build single-file
+incorpora entrambe come URL `data:`. I browser supportano source map per
+JavaScript e CSS, non per HTML: il percorso SUI → HTML è coperto dalla mappa
+JavaScript perché `app.html` viene renderizzato da `app.js`. Le mappe includono
+`sourcesContent`: trattale come materiale di sviluppo e non pubblicarle.
+`--sourcemap` non è combinabile con `--minify`.
+
 ### 3. Compilare per desktop
 
 ```bash

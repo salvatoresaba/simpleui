@@ -117,5 +117,6 @@ bridge e inietta un token per-run.
 ## 9. Stato
 
 La fonte aggiornata e verificata è [`TODO.md`](TODO.md). Le API non ancora
-disponibili (HTTP headers/multipart, WebSocket reconnect, fs avanzato, crypto,
-source maps) non devono essere considerate stabili.
+disponibili (HTTP headers/multipart, WebSocket reconnect, fs avanzato, crypto)
+non devono essere considerate stabili. Le source map JS/CSS sono opt-in con
+`--sourcemap`.

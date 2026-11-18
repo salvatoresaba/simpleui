@@ -21,6 +21,7 @@ import "time"
 func CmdServe(args []string) {
 	port := 0
 	watch := false
+	sourcemap := false
 	out := ""
 	input := ""
 	security := ""
@@ -43,6 +44,8 @@ func CmdServe(args []string) {
 				}
 			} else if name == "watch" {
 				watch = true
+			} else if name == "sourcemap" {
+				sourcemap = true
 			} else if name == "out" {
 				if !hasValue {
 					UsageError("--out needs a value")
@@ -76,13 +79,13 @@ func CmdServe(args []string) {
 	}
 
 	hr := NewHotReloader()
-	if err := BuildWebInto(input, out, hr, watch); err != nil {
+	if err := BuildWebIntoOpts(input, out, hr, watch, sourcemap); err != nil {
 		fmt.Fprintf(os.Stderr, "%v: build failed: %v\n", AppName, err)
 		os.Exit(1)
 	}
 
 	if watch {
-		go watchLoop(input, out, hr)
+		go watchLoop(input, out, hr, sourcemap)
 	}
 
 	addr := "127.0.0.1:0"
@@ -113,6 +116,11 @@ func CmdServe(args []string) {
 // BuildWebInto compiles entryFile to a directory and Notifies the reloader on
 // success (when notify is true). It returns an error with the diagnostics.
 func BuildWebInto(entryFile string, outDir string, hr *HotReloader, notify bool) error {
+	return BuildWebIntoOpts(entryFile, outDir, hr, notify, false)
+}
+
+// BuildWebIntoOpts is BuildWebInto with optional JavaScript/CSS source maps.
+func BuildWebIntoOpts(entryFile string, outDir string, hr *HotReloader, notify bool, sourcemap bool) error {
 	prog, dl := LoadProgram(entryFile)
 	if dl.HasErrors() {
 		dl.Print()
@@ -131,6 +139,18 @@ func BuildWebInto(entryFile string, outDir string, hr *HotReloader, notify bool)
 		"index.html": GenerateIndexHtml(prog),
 		"style.css":  GenerateCss(prog),
 		"app.js":     GenerateJs(prog),
+	}
+	if sourcemap {
+		base := prog.dir
+		if base == "" {
+			base = filepath.Dir(prog.file)
+		}
+		css, cssMap := GenerateCssWithSourceMap(prog, base)
+		js, jsMap := GenerateJsWithSourceMap(prog, "web", base)
+		assets["style.css"] = css + "\n/*# sourceMappingURL=style.css.map */\n"
+		assets["app.js"] = js + "\n//# sourceMappingURL=app.js.map\n"
+		assets["style.css.map"] = cssMap
+		assets["app.js.map"] = jsMap
 	}
 	for name, body := range assets {
 		path := filepath.Join(outDir, name)
@@ -176,6 +196,8 @@ func appServer(assetsDir string, watch bool, hr *HotReloader) http.Handler {
 			ct = "text/css; charset=utf-8"
 		} else if strings.HasSuffix(rel, ".js") {
 			ct = "application/javascript; charset=utf-8"
+		} else if strings.HasSuffix(rel, ".map") {
+			ct = "application/json; charset=utf-8"
 		}
 		body := string(data)
 		if watch && rel == "index.html" {
@@ -251,7 +273,7 @@ func (h *HotReloader) ServeSSE(w http.ResponseWriter, r *http.Request) {
 
 // watchLoop polls the source file (and the whole .sui files in its directory)
 // and rebuilds on change.
-func watchLoop(entry string, out string, hr *HotReloader) {
+func watchLoop(entry string, out string, hr *HotReloader, sourcemap bool) {
 	dir := filepath.Dir(entry)
 	fingerprint := func() string {
 		var names []string
@@ -278,7 +300,7 @@ func watchLoop(entry string, out string, hr *HotReloader) {
 		}
 		last = cur
 		fmt.Printf("%v: change detected, recompiling ...\n", AppName)
-		if err := BuildWebInto(entry, out, hr, true); err != nil {
+		if err := BuildWebIntoOpts(entry, out, hr, true, sourcemap); err != nil {
 			fmt.Fprintf(os.Stderr, "%v: rebuild failed: %v\n", AppName, err)
 			continue
 		}

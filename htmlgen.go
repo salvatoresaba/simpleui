@@ -5811,6 +5811,21 @@ func GenerateIndexHtml(p *Prog) string {
 // GenerateCss emits the base stylesheet plus one deduplicated (sorted)
 // pass-through rule per literal class name found in any view element.
 func GenerateCss(p *Prog) string {
+	return generateCss(p, false)
+}
+
+// GenerateCssWithSourceMap builds the stylesheet with markers and returns the
+// clean CSS plus a Source Map v3 document.
+func GenerateCssWithSourceMap(p *Prog, sourceBase string) (string, string) {
+	marked := generateCss(p, true)
+	return SourceMapFromMarked(marked, SourceMapOptions{
+		GeneratedFile:  "style.css",
+		SourceBase:     sourceBase,
+		IncludeContent: true,
+	})
+}
+
+func generateCss(p *Prog, markers bool) string {
 	var sb strings.Builder
 	sb.WriteString(suiCssBase)
 	var classes []string
@@ -5832,6 +5847,9 @@ func GenerateCss(p *Prog) string {
 	if p != nil {
 		for i := 0; i < len(p.css); i++ {
 			sb.WriteString("\n/* user css */\n")
+			if markers && i < len(p.cssSpans) {
+				sb.WriteString(rawSrcMarker(p.cssSpans[i]))
+			}
 			sb.WriteString(p.css[i])
 			sb.WriteString("\n")
 		}

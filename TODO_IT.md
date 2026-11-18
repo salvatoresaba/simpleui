@@ -79,7 +79,7 @@ Completati di recente:
 
 ## Correzioni di accuratezza
 
-- Source maps **non** sono implementate; fs avanzato, crypto, path utilities, JSON Schema e storage quota/sync sono ora implementati e documentati.
+- fs avanzato, crypto, path utilities, JSON Schema, storage quota/sync e source map opt-in sono ora implementati e documentati.
 - Le import di file funzionano in check/build/serve, ma la lista non è validata, i simboli sono fusi in un namespace globale e il designer legge solo il file di ingresso.
 - LSP supporta completion di base e diagnostica live, non hover/definition/
   references/symbols/rename/code actions.
@@ -90,7 +90,8 @@ Completati di recente:
 1. Timeout/audit/process-kill del bridge desktop.
 2. Formattazione locale (date, numeri, valute, timezone).
 3. LSP avanzato (hover, definition, references, symbols, rename).
-4. Source maps e decisione sul minifier completo.
+4. Decisione sul minifier completo.
+   (Le source map SUI -> JS/CSS sono disponibili con `--sourcemap`.)
 5. Packaging/firma desktop: installer, icona/metadati, bootstrap WebView2 e build
    firmate/notarizzate.
 6. `simpleui test` e CI cross-platform.
@@ -104,7 +105,7 @@ Completati di recente:
 - Import/moduli utente, export di simboli, alias.
 - Effects e reattività fine-grained; suspense e context.
 - Generici per struct e alias di tipo.
-- Source maps, tree shaking, bundle splitting, PWA/SSR/WASM.
+- Tree shaking, bundle splitting, PWA/SSR/WASM.
 - Component library, tokens JSON, multi-device preview, asset manager.
 - HMR, preserve state, browser error overlay.
 - Test runner, fuzzing, snapshot, benchmark, CI.

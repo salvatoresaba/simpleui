@@ -122,7 +122,8 @@ go test -count=1 ./...
 ./simpleui.exe build app.sui --out dist
 ./simpleui.exe build app.sui --single --out app.html
 ./simpleui.exe build app.sui --single --minify --out app.html
-./simpleui.exe serve app.sui --watch
+./simpleui.exe build app.sui --out dist --sourcemap
+./simpleui.exe serve app.sui --watch --sourcemap
 
 # Always after editing the control appearance catalog
 ./simpleui.exe appearance check components/appearance.json --json
@@ -171,6 +172,7 @@ For desktop capabilities:
 | Path, crypto, JSON Schema, storage quota/sync | `docs/BUILTINS.md#path-functions`, `docs/STDLIB.md#json-module-json` | `examples/stdlib_advanced.sui` |
 | Desktop fs copy/move/isDir/size | `docs/STDLIB.md#file-system-module-fs` | `examples/fs_operations.sui` |
 | XML DOM/XPath/XSD/JSON/CSV library, keyed diff/patch/merge, binary I/O | `docs/STDLIB.md#xml-module-xml` | `examples/xml_library.sui` |
+| Debug generated JS/CSS with source maps | `docs/API_REFERENCE.md#cli` | `examples/counter.sui` |
 | JSON Pointer/Patch/Merge, keyed diff, schema validation, binary I/O | `docs/STDLIB.md#json-module-json` | `examples/json_library.sui` |
 | External component library (add/regroup palette presets) | `docs/COMPONENT_LIBRARY.md` | `components/library.json` |
 | Control appearance (structure/style/animation, themes, navigator) | `docs/APPEARANCE_LIBRARY.md` | a `button` in the designer |

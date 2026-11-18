@@ -287,6 +287,7 @@ type Prog struct {
 	states   []StateDecl
 	computed []ComputedDecl
 	css      []string // raw user CSS snippets (`css "..."` declarations)
+	cssSpans []Span   // source span of each css snippet (parallel to css)
 	i18n     []I18nDecl
 	funcs    []FuncDecl
 	views    []ViewDecl

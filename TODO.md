@@ -63,7 +63,7 @@ Known accuracy corrections from the previous TODO:
 
 - `http.get`/`post` custom headers and timeouts, `http.upload`, WebSocket
   reconnect/heartbeat, advanced `fs.*`, `crypto.*`, path utilities and
-  storage quota/sync are implemented and documented. Source maps remain open.
+  storage quota/sync are implemented and documented. Source maps are opt-in with `--sourcemap`.
 - File imports (`import { X } from "./file.sui"`) work in `check`, `build` and
   `serve`, but the import list is not validated, all symbols are merged into one
   global namespace, and the designer still parses only the entry file. Proper
@@ -171,8 +171,8 @@ Known accuracy corrections from the previous TODO:
       `storage.sync` (local cross-tab re-render listener)
 
 > Code review note: public stdlib functions must have a real implementation,
-> typed entries, tests and documentation. Source maps and unsupported FS/Crypto
-> operations remain intentionally absent.
+> typed entries, tests and documentation. Unsupported FS/Crypto operations
+> remain intentionally absent; source maps are opt-in with `--sourcemap`.
 
 ## 4. Code Generation & Build
 
@@ -192,7 +192,7 @@ Known accuracy corrections from the previous TODO:
 
 ### 4.2 To do
 
-- [ ] **Source maps** — SUI → JS/HTML mapping for debugging
+- [x] **Source maps** - opt-in `--sourcemap` for JS/CSS with external or inline maps
 - [ ] **Full/general minifier** — current JS pass is conservative; decide
       whether to keep it or add a real minifier
 - [ ] **Tree shaking** — remove unused generated runtime
@@ -379,8 +379,8 @@ Suggested order (security and agent workflows first):
    blockers and misleading documentation.
 3. **LSP advanced features** — hover, definition, references, symbols, rename;
    reuse the GUI implementations.
-4. **Source maps + full minifier decision** - improve debuggability and make
-   `--minify` behavior explicit.
+4. **Full minifier decision** - make `--minify` behavior explicit and decide
+   whether to add a general-purpose JS minifier.
 5. **Desktop packaging/signing** - installers, app icon/metadata, WebView2
    runtime bootstrap and signed/notarized builds.
 6. **`simpleui test` + cross-platform CI** - make agent-generated interfaces

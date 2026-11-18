@@ -3595,7 +3595,12 @@ simpleui mcp
 - **web**: emits `index.html`, `style.css`, `app.js`; `--single` emits one HTML
   with CSS/JS/runtime inline. `--out app.html` names the file; `--out dist`
   produces `dist/app.html`.
-- **web `--minify`**: requires `--single`; removes comments and indentation
+- **web `--sourcemap`**: opt-in JavaScript and CSS source maps. Multi-file builds
+  write `app.js.map` and `style.css.map` and append `sourceMappingURL` comments;
+  `--single` inlines both maps as `data:` URLs. Maps embed `sourcesContent`,
+  so keep them private. Not combinable with `--minify`. Browsers do not have
+  native HTML source maps: the SUI-to-HTML view path is covered by the
+  JavaScript map because the generated `app.js` builds the DOM.
   conservatively.
 - **single HTML and CSP**: CSS/JS are inline; a strict Content-Security-Policy
   must allow `'unsafe-inline'` (or use hashes/nonces). Multi-file builds do not

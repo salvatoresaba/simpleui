@@ -98,6 +98,7 @@ func CmdBuild(args []string) {
 	input := ""
 	single := false
 	minify := false
+	sourcemap := false
 	var allowExec []string
 	var allowDirs []string
 	security := ""
@@ -140,6 +141,8 @@ func CmdBuild(args []string) {
 				single = true
 			} else if name == "minify" {
 				minify = true
+			} else if name == "sourcemap" {
+				sourcemap = true
 			} else {
 				UsageError("unknown flag --" + name)
 			}
@@ -158,6 +161,12 @@ func CmdBuild(args []string) {
 	}
 	if minify && !single {
 		UsageError("--minify requires --single")
+	}
+	if sourcemap && minify {
+		UsageError("--sourcemap cannot be combined with --minify")
+	}
+	if sourcemap && (target == "desktop" || target == "desktop-webview") {
+		UsageError("--sourcemap is available for web builds and serve")
 	}
 	if single && (target == "desktop" || target == "desktop-webview") {
 		UsageError("--single is for web builds; the desktop targets are already one executable")
@@ -200,7 +209,7 @@ func CmdBuild(args []string) {
 				os.Exit(1)
 			}
 		}
-		html := BuildSingleHTML(prog, minify)
+		html := BuildSingleHTMLOpts(prog, minify, sourcemap)
 		if err := os.WriteFile(path, []byte(html), 0o644); err != nil {
 			fmt.Fprintf(os.Stderr, "%v: cannot write %q: %v\n", AppName, path, err)
 			os.Exit(1)
@@ -212,6 +221,17 @@ func CmdBuild(args []string) {
 	appJs := GenerateJs(prog)
 	indexHtml := GenerateIndexHtml(prog)
 	styleCss := GenerateCss(prog)
+	sourceBase := prog.dir
+	if sourceBase == "" {
+		sourceBase = filepath.Dir(prog.file)
+	}
+	var appMap, cssMap string
+	if sourcemap {
+		appJs, appMap = GenerateJsWithSourceMap(prog, "web", sourceBase)
+		styleCss, cssMap = GenerateCssWithSourceMap(prog, sourceBase)
+		appJs = appJs + "\n//# sourceMappingURL=app.js.map\n"
+		styleCss = styleCss + "\n/*# sourceMappingURL=style.css.map */\n"
+	}
 
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		fmt.Fprintf(os.Stderr, "%v: cannot create output directory %q: %v\n", AppName, out, err)
@@ -220,7 +240,15 @@ func CmdBuild(args []string) {
 	WriteFileTo(out, "index.html", indexHtml)
 	WriteFileTo(out, "style.css", styleCss)
 	WriteFileTo(out, "app.js", appJs)
-	fmt.Printf("wrote index.html, style.css, app.js to %v\n", out)
+	if sourcemap {
+		WriteFileTo(out, "app.js.map", appMap)
+		WriteFileTo(out, "style.css.map", cssMap)
+	}
+	if sourcemap {
+		fmt.Printf("wrote index.html, style.css, app.js and source maps to %v\n", out)
+	} else {
+		fmt.Printf("wrote index.html, style.css, app.js to %v\n", out)
+	}
 }
 
 // SplitFlag splits "--name=value" into (name, value, hasValue).
@@ -269,6 +297,7 @@ func PrintHelp() {
 	fmt.Printf("  %v serve <file.sui>     build + serve with browser hot-reload\n", AppName)
 	fmt.Printf("         --port <n>       bind port (default: random)\n")
 	fmt.Printf("         --watch           recompile and reload on source changes\n")
+	fmt.Printf("         --sourcemap       emit JS/CSS source maps while serving\n")
 	fmt.Printf("         --security <f>   policy file (default: next to the .sui)\n")
 	fmt.Printf("  %v build <file.sui>     compile a .sui app to a web or desktop app\n", AppName)
 	fmt.Printf("         --target web     generate index.html, style.css, app.js (default)\n")
@@ -277,6 +306,7 @@ func PrintHelp() {
 	fmt.Printf("         --out <dir>      output directory (default: ./dist)\n")
 	fmt.Printf("         --single         web: emit one self-contained app.html\n")
 	fmt.Printf("         --minify         with --single: strip comments/indentation\n")
+	fmt.Printf("         --sourcemap      web: write app.js.map/style.css.map (inline with --single)\n")
 	fmt.Printf("         --allow-exec <c> (desktop) grant the bridge the command name <c>\n")
 	fmt.Printf("         --allow-dir <d>  (desktop) grant the bridge read/write under <d> (repeatable)\n")
 	fmt.Printf("         --security <f>   policy file (default: simpleui.security.json next to <file.sui>)\n")

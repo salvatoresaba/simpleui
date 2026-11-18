@@ -525,7 +525,7 @@ simpleui check app.sui --json
 simpleui build app.sui --out dist
 simpleui build app.sui --single --out app.html
 simpleui build app.sui --single --minify --out app.html
-simpleui serve app.sui --watch
+simpleui serve app.sui --watch --sourcemap
 ```
 
 Verifica nel browser: loading, successo, vuoto, errore di rete/JSON, URL iframe

@@ -275,6 +275,7 @@ func ParseSource(source string, file string) (*Prog, DiagList) {
 			}
 			if text != "" {
 				prog.css = append(prog.css, text)
+				prog.cssSpans = append(prog.cssSpans, NewSpan(p.file, start.line, start.col))
 			}
 		} else if k == "ident" && p.cur().text == "enum" {
 			if decl := parseEnum(p); decl != nil {
@@ -2361,6 +2362,9 @@ func (l *Loader) loadFile(path string) {
 	}
 	for i := 0; i < len(pp.css); i++ {
 		l.prog.css = append(l.prog.css, pp.css[i])
+		if i < len(pp.cssSpans) {
+			l.prog.cssSpans = append(l.prog.cssSpans, pp.cssSpans[i])
+		}
 	}
 	for i := 0; i < len(pp.i18n); i++ {
 		l.prog.i18n = append(l.prog.i18n, pp.i18n[i])

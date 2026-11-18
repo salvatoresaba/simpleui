@@ -48,6 +48,7 @@ Ordine consigliato per un agente:
 | JSON Pointer, JSON Patch, Merge Patch, diff con chiavi e validazione JSON Schema | [STDLIB: json](STDLIB_IT.md#modulo-json-json) | [BUILTINS](BUILTINS_IT.md) | `examples/json_library.sui` |
 | Quota storage e sync cross-tab | [BUILTINS: storage](BUILTINS_IT.md#funzioni-storage-cross-target) | [STDLIB](STDLIB_IT.md) | `examples/stdlib_advanced.sui` |
 | fs copy/move/size/isDir desktop | [STDLIB: fs](STDLIB_IT.md#file-system-module-fs) | [SECURITY](../SECURITY_IT.md#bridge-desktop) | `examples/fs_operations.sui` |
+| Debug JS/CSS generati con source map | [API: CLI](API_REFERENCE_IT.md#cli) | [README](../README_IT.md) | `examples/counter.sui` |
 | XML DOM, XPath, XSD subset, diff/patch/merge con chiavi e conversione | [STDLIB: XML](STDLIB_IT.md#modulo-xml-xml) | [SECURITY](../SECURITY_IT.md#bridge-desktop) | `examples/xml_library.sui` |
 | Creare una barra dei menù / navigazione | [API: menu bar](API_REFERENCE_IT.md#menu-bar) | [Editor GUI: menu bar](GUI_EDITOR_IT.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Contenuti a schede | [API: tabs](API_REFERENCE_IT.md#tabs) | [Editor GUI: tabs](GUI_EDITOR_IT.md#tabs-control) | `examples/tabs.sui` |

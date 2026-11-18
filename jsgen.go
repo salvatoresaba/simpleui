@@ -1268,6 +1268,10 @@ var genEnums = map[string][]string{}
 var genComputedDeps = map[string][]string{}
 var genStateNames = map[string]bool{}
 
+// genEmitSourceMarkers enables /*@sui-src:...*/ markers during generation.
+// It is set only by GenerateJsWithSourceMap and reset by generateJsFor.
+var genEmitSourceMarkers bool
+
 // Component/view bookkeeping shared by generation of one program.
 var genViewParams = map[string][]Param{} // view name -> component parameters
 var genViews = map[string]ViewDecl{}     // view name -> declaration (for refs/cycles)
@@ -1331,8 +1335,25 @@ func securityClassNames(p *Prog) []string {
 }
 
 func GenerateJsFor(p *Prog, target string) string {
+	return generateJsFor(p, target, false)
+}
+
+// GenerateJsWithSourceMap renders the script with source markers, strips them
+// and returns the clean JavaScript plus a Source Map v3 JSON document.
+func GenerateJsWithSourceMap(p *Prog, target, sourceBase string) (string, string) {
+	marked := generateJsFor(p, target, true)
+	return SourceMapFromMarked(marked, SourceMapOptions{
+		GeneratedFile:  "app.js",
+		SourceBase:     sourceBase,
+		IncludeContent: true,
+	})
+}
+
+func generateJsFor(p *Prog, target string, markers bool) string {
 	genMu.Lock()
 	defer genMu.Unlock()
+	genEmitSourceMarkers = markers
+	defer func() { genEmitSourceMarkers = false }()
 	sec := SecurityConfig{}
 	if p != nil {
 		sec = p.security.Normalized()
@@ -1540,7 +1561,8 @@ func GenerateJsFor(p *Prog, target string) string {
 	// work as ordinary JS values and switch uses strict equality.
 	for i := 0; i < len(p.enums); i++ {
 		e := p.enums[i]
-		sb.WriteString("\n\nconst " + e.name + " = Object.freeze({")
+		sb.WriteString("\n\n" + srcMarker(e.span))
+		sb.WriteString("const " + e.name + " = Object.freeze({")
 		for j := 0; j < len(e.members); j++ {
 			if j > 0 {
 				sb.WriteString(", ")
@@ -1551,17 +1573,20 @@ func GenerateJsFor(p *Prog, target string) string {
 	}
 	for i := 0; i < len(p.consts); i++ {
 		cd := p.consts[i]
-		sb.WriteString("\n\nconst " + cd.name + " = " + ExprToJs(cd.init) + ";")
+		sb.WriteString("\n\n" + srcMarker(cd.span))
+		sb.WriteString("const " + cd.name + " = " + ExprToJs(cd.init) + ";")
 	}
 	for i := 0; i < len(p.states); i++ {
 		sd := p.states[i]
 		sb.WriteString("\n\n")
+		sb.WriteString(srcMarker(sd.span))
 		sb.WriteString("let " + sd.name + " = " + ExprToJs(sd.init) + ";\n")
 		sb.WriteString("function " + setterName(sd.name) + "(v) { " + sd.name + " = v; __sui_react(" + jsString(sd.name) + "); }")
 	}
 	for i := 0; i < len(p.computed); i++ {
 		cd := p.computed[i]
-		sb.WriteString("\n\nlet " + cd.name + ";")
+		sb.WriteString("\n\n" + srcMarker(cd.span))
+		sb.WriteString("let " + cd.name + ";")
 		sb.WriteString("\n__SUI_COMPUTED.push(function(){ " + cd.name + " = (" + ExprToJs(cd.init) + "); });")
 	}
 	if len(p.states) > 0 {
@@ -1801,6 +1826,17 @@ func typeGuardJs(e *Expr, name string) string {
 }
 
 func ExprToJs(e *Expr) string {
+	if e == nil {
+		return "null"
+	}
+	js := exprToJsRaw(e)
+	if genEmitSourceMarkers {
+		return srcMarker(e.span) + js
+	}
+	return js
+}
+
+func exprToJsRaw(e *Expr) string {
 	if e == nil {
 		return "null"
 	}
@@ -2297,7 +2333,7 @@ func tupleNeedAwait(rhs *Expr) bool {
 func stmtsToJs(stmts []*Stmt, ind string, ctx *JsCtx) string {
 	var out []string
 	for i := 0; i < len(stmts); i++ {
-		out = append(out, stmtToJs(stmts[i], ind, ctx))
+		out = append(out, srcMarker(stmts[i].span)+stmtToJs(stmts[i], ind, ctx))
 	}
 	return strings.Join(out, "\n")
 }
@@ -2499,7 +2535,7 @@ func funcJs(f *FuncDecl, ctx *JsCtx) string {
 	body := stmtsToJs(f.body, "  ", ctx)
 	ctxTruncateScope(ctx, saved)
 	ctx.tuples = savedTuples
-	return prefix + f.name + "(" + strings.Join(paramNames, ", ") + ") {\n" + body + "\n}"
+	return srcMarker(f.span) + prefix + f.name + "(" + strings.Join(paramNames, ", ") + ") {\n" + body + "\n}"
 }
 
 func stdObjJs(p *Prog, target string) string {
@@ -7069,6 +7105,17 @@ func viewNodeJs(n *ViewNode, g *ViewGen, ctx *JsCtx) string {
 	if n == nil {
 		return "''"
 	}
+	js := viewNodeJsRaw(n, g, ctx)
+	if genEmitSourceMarkers {
+		return srcMarker(n.span) + js
+	}
+	return js
+}
+
+func viewNodeJsRaw(n *ViewNode, g *ViewGen, ctx *JsCtx) string {
+	if n == nil {
+		return "''"
+	}
 	if n.kind == "element" {
 		return elemJs(n.elem, g, ctx)
 	}
@@ -7329,6 +7376,7 @@ func rendererJs(p *Prog, v *ViewDecl, ctx *JsCtx, multi bool, base *int) string 
 	bodyJs := viewNodesJs(childPtrs(v.body), &g, ctx)
 	*base = g.count
 	var sb strings.Builder
+	sb.WriteString(srcMarker(v.span))
 	sb.WriteString("function render_" + v.name + "() {\n")
 	if multi {
 		// Multi-page programs render every root view into its own box under
@@ -7447,7 +7495,7 @@ func componentChunkJs(p *Prog, v *ViewDecl, ctx *JsCtx) string {
 	if len(methodLines) > 0 {
 		methodBlock = strings.Join(methodLines, "\n") + "\n"
 	}
-	return "function __html_" + v.name + "({ " + strings.Join(paramNames, ", ") + " }) {" + "\n" +
+	return srcMarker(v.span) + "function __html_" + v.name + "({ " + strings.Join(paramNames, ", ") + " }) {" + "\n" +
 		head +
 		methodBlock +
 		"  return " + bodyJs + ";" + "\n" +

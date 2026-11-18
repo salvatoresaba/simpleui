@@ -126,6 +126,16 @@ To export everything into a **single HTML file** (inline CSS, JS, runtime, and d
 
 With `--out dist` the file becomes `dist/app.html`. `--minify` is conservative: it removes comments and indentation without changing semantics.
 
+To debug the generated code, enable source maps explicitly:
+
+```bash
+./simpleui build counter.sui --out dist --sourcemap
+./simpleui serve counter.sui --watch --sourcemap
+./simpleui build counter.sui --single --sourcemap --out app.html
+```
+
+Multi-file builds write `app.js.map` and `style.css.map`; single-file builds inline both maps as `data:` URLs. Browsers map JavaScript and CSS, not HTML: the SUI-to-HTML view path is covered by the JavaScript map because `app.html` is rendered by `app.js`. Source maps embed `sourcesContent`, so keep them private and use the flag only for development. `--sourcemap` cannot be combined with `--minify`.
+
 ### 3. Build for desktop
 
 Browser renderer:
@@ -245,4 +255,4 @@ change.
 
 ## Implementation status
 
-The verified status is tracked in [`TODO.md`](TODO.md). WebSocket reconnect, advanced filesystem operations, crypto, multipart upload and source maps are **not** complete yet and are not exposed as stable APIs. Clipboard, storage, timers, regex, validation, tables and the core HTTP/WebSocket safe guards are implemented.
+The verified status is tracked in [`TODO.md`](TODO.md). WebSocket reconnect, advanced filesystem operations, crypto and multipart upload are **not** complete yet and are not exposed as stable APIs. Clipboard, storage, timers, regex, validation, tables, the core HTTP/WebSocket safe guards and opt-in JS/CSS source maps are implemented.
