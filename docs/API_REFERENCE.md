@@ -1689,7 +1689,7 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `readonly` | Disable editing |
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Show/hide UI areas |
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
-| `theme` | `dark` (default) or `light` |
+| `theme` | `dark` (default), `light` or `auto` (system preference) |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
@@ -1770,6 +1770,7 @@ Block types: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 | `richtext.selection(name)` | Selection JSON |
 | `richtext.setToolbar(name, items)` | Reconfigure toolbar groups |
 | `richtext.setTemplate(name, template)` | Apply a document template |
+| `richtext.setTheme(name, theme)` | Switch `dark`, `light` or `auto` theme |
 | `richtext.destroy(name)` | Destroy the runtime instance |
 
 All commands are centralized: the same `bold` command can be invoked by the

@@ -75,7 +75,7 @@ window.__SUI_RICH = (function () {
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll'],
     insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr'],
     format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Code|code', 'Clear formatting|clearFormat'],
-    view: ['Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
+    view: ['Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', format: 'Format', view: 'View', tools: 'Tools' };
@@ -1349,6 +1349,9 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'templateLetter') return setTemplate(inst.name, 'letter')[0];
     else if (cmd === 'templateReport') return setTemplate(inst.name, 'report')[0];
     else if (cmd === 'templateCompact') return setTemplate(inst.name, 'compact')[0];
+    else if (cmd === 'themeDark') return setTheme(inst.name, 'dark')[0];
+    else if (cmd === 'themeLight') return setTheme(inst.name, 'light')[0];
+    else if (cmd === 'themeAuto') return setTheme(inst.name, 'auto')[0];
     else if (cmd === 'pluginInfo') window.alert('Plugins: ' + (pluginOrder.length ? pluginOrder.join(', ') : 'none'));
     else if (cmd === 'importJSON' || cmd === 'importHTML' || cmd === 'importMarkdown' || cmd === 'importXML') {
       var fmt = cmd.slice(6).toLowerCase();
@@ -1976,6 +1979,28 @@ window.__SUI_RICH = (function () {
     bar.innerHTML = '';
     ['bold', 'italic', 'underline', 'strike', 'link', 'highlight', 'clearFormat'].forEach(function (cmd) { bar.appendChild(button(inst, cmd, cmd, cmd)); });
   }
+  function applyTheme(inst) {
+    if (!inst || !inst.root) return;
+    var choice = inst.theme || 'dark';
+    var resolved = choice;
+    if (choice === 'auto') {
+      try { resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; }
+      catch (e) { resolved = 'dark'; }
+    }
+    inst.root.setAttribute('data-sui-rich-theme', resolved);
+    var picker = inst.root.querySelector('[data-rich-theme]');
+    if (picker) picker.value = choice;
+  }
+  function setTheme(name, theme) {
+    var inst = instances[name];
+    if (!inst) return [false, 'richtext instance not found: ' + name];
+    var next = String(theme || '').toLowerCase();
+    if (next !== 'dark' && next !== 'light' && next !== 'auto') return [false, 'unknown theme: ' + theme];
+    inst.theme = next;
+    try { localStorage.setItem('sui-rich-theme-' + name, next); } catch (e) {}
+    applyTheme(inst);
+    return [true, null];
+  }
   function buildStatus(inst) {
     var status = inst.root.querySelector('.sui-rich-status');
     if (!status) return;
@@ -1983,6 +2008,13 @@ window.__SUI_RICH = (function () {
     var stats = el('span', 'sui-rich-stats'); status.appendChild(stats);
     var pos = el('span', 'sui-rich-position'); status.appendChild(pos);
     var saved = el('span', 'sui-rich-saved', 'Ready'); status.appendChild(saved);
+    var themePicker = el('select', 'sui-rich-select sui-rich-theme-select');
+    themePicker.setAttribute('data-rich-theme', '1');
+    themePicker.setAttribute('aria-label', 'Editor theme');
+    [['dark', 'Dark'], ['light', 'Light'], ['auto', 'Auto']].forEach(function (option) {
+      var opt = el('option', '', option[1]); opt.value = option[0]; themePicker.appendChild(opt);
+    });
+    status.appendChild(themePicker);
     var zoomOut = el('button', 'sui-rich-zoom-btn', '\u2212'); zoomOut.type = 'button'; zoomOut.setAttribute('data-rich-zoom', 'out');
     var zoomLabel = el('span', 'sui-rich-zoom-label', '100%');
     var zoomIn = el('button', 'sui-rich-zoom-btn', '+'); zoomIn.type = 'button'; zoomIn.setAttribute('data-rich-zoom', 'in');
@@ -2038,6 +2070,7 @@ window.__SUI_RICH = (function () {
     root.addEventListener('change', function (e) {
       var target = e.target;
       if (!target || !target.getAttribute) return;
+      if (target.getAttribute('data-rich-theme') !== null) { setTheme(inst.name, target.value); return; }
       var cmd = target.getAttribute('data-rich-cmd');
       if (!cmd) return;
       if (target.tagName === 'SELECT' || target.tagName === 'INPUT') command(inst.name, cmd, target.value);
@@ -2160,6 +2193,19 @@ window.__SUI_RICH = (function () {
     inst.editor.setAttribute('contenteditable', readOnly ? 'false' : 'true');
     if (attr(root, 'data-sui-rich-placeholder')) inst.editor.setAttribute('data-placeholder', attr(root, 'data-sui-rich-placeholder'));
     buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); restoreTableBarPosition(inst); bindTableBarDrag(inst); buildStatus(inst);
+    var savedTheme = '';
+    try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
+    var initialTheme = savedTheme || attr(root, 'data-sui-rich-theme') || 'dark';
+    if (initialTheme !== 'dark' && initialTheme !== 'light' && initialTheme !== 'auto') initialTheme = 'dark';
+    inst.theme = initialTheme;
+    applyTheme(inst);
+    if (!inst.themeMediaBound && window.matchMedia) {
+      inst.themeMediaBound = true;
+      try {
+        var themeMedia = window.matchMedia('(prefers-color-scheme: light)');
+        if (themeMedia.addEventListener) themeMedia.addEventListener('change', function () { if (inst.theme === 'auto') applyTheme(inst); });
+      } catch (e) {}
+    }
     var toolbarEl = root.querySelector('.sui-rich-toolbar');
     if (toolbarEl && !boolAttr(root, 'data-sui-rich-toolbar', true)) toolbarEl.hidden = true;
     var menuEl = root.querySelector('.sui-rich-menu');
@@ -3167,7 +3213,7 @@ window.__SUI_RICH = (function () {
     undo: function (n) { var i = instances[n]; return i && undo(i) ? [true, null] : [false, 'nothing to undo']; },
     redo: function (n) { var i = instances[n]; return i && redo(i) ? [true, null] : [false, 'nothing to redo']; },
     focus: function (n) { var i = instances[n]; if (!i) return [false, 'richtext instance not found: ' + n]; i.editor.focus(); return [true, null]; },
-    exportFormat: exportFormat, importFormat: importFormatTo, exportBytes: exportBytes, importBytes: importBytes, openFile: openFile, saveAs: saveAs, registerPlugin: registerPlugin, plugins: function () { return [pluginNames(), null]; }, setTemplate: setTemplate,
+    exportFormat: exportFormat, importFormat: importFormatTo, exportBytes: exportBytes, importBytes: importBytes, openFile: openFile, saveAs: saveAs, setTheme: setTheme, registerPlugin: registerPlugin, plugins: function () { return [pluginNames(), null]; }, setTemplate: setTemplate,
     status: status, selection: selection, setToolbar: setToolbar, destroy: destroy
   };
 })();

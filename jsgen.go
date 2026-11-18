@@ -2923,6 +2923,9 @@ func stdBodyJs(key string, target string) string {
 	if key == "richtext_settemplate" {
 		return "(name, template) => __SUI_RICH.setTemplate(name, template)"
 	}
+	if key == "richtext_settheme" {
+		return "(name, theme) => __SUI_RICH.setTheme(name, theme)"
+	}
 	if key == "richtext_destroy" {
 		return "(name) => __SUI_RICH.destroy(name)"
 	}
@@ -5484,7 +5487,7 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	height := richTextTextAttr(e, "height")
 	placeholder := richTextTextAttr(e, "placeholder")
 	theme := strings.ToLower(richTextTextAttr(e, "theme"))
-	if theme != "light" {
+	if theme != "light" && theme != "auto" {
 		theme = "dark"
 	}
 	clean := *e

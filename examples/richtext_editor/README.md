@@ -25,7 +25,7 @@ builds.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
 - Configurable toolbar groups, menu bar, contextual selection toolbar and
-  status bar (words, characters, paragraphs, caret, zoom).
+  status bar (words, characters, paragraphs, caret, zoom, dark/light/auto theme).
 - Undo/redo history, keyboard shortcuts and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
 - Open and save plain text, RTF, DOC (best effort), DOCX and ODT; images are
@@ -248,7 +248,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed
+			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,image,table,hr" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

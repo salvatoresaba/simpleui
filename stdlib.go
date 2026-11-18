@@ -238,6 +238,7 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "richtext", name: "selection", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "richtext_selection", async: false},
 	StdFunc{mod: "richtext", name: "setToolbar", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_settoolbar", async: false},
 	StdFunc{mod: "richtext", name: "setTemplate", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_settemplate", async: false},
+	StdFunc{mod: "richtext", name: "setTheme", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_settheme", async: false},
 	StdFunc{mod: "richtext", name: "destroy", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "richtext_destroy", async: false},
 
 	StdFunc{mod: "table", name: "display", params: []string{"string", "any"}, ret0: "int", ret1: "string", jsKey: "table_display", async: false},
