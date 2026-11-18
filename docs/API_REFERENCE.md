@@ -1785,7 +1785,7 @@ the document. Supported formats:
 | Format | Import | Export | Notes |
 |---|---|---|---|
 | TXT | yes | yes | Plain paragraphs |
-| RTF | practical subset | yes | Paragraphs, formatting, basic alignment and embedded PNG/JPEG pictures |
+| RTF | practical subset | yes | Paragraphs, character/paragraph formatting, alignment, tables with merged cells, header/footer pictures and embedded PNG/JPEG pictures |
 | DOC | best effort | RTF content with `.doc` extension | Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
 | DOCX | yes | yes | WordprocessingML paragraphs, runs, tables, formatting and embedded images |
 | ODT | yes | yes | OpenDocument text, paragraphs, formatting, lists, tables and embedded images |
@@ -1794,7 +1794,8 @@ the document. Supported formats:
 
 Imported files are untrusted: ZIP/XML parsing is bounded by the browser parser,
 and unsafe HTML is still sanitized into the document model. Embedded images are
-extracted from RTF/DOCX/ODT as data URLs and re-embedded on export. File pickers
+extracted from RTF (including header and footer pictures), DOCX and ODT as data
+URLs and re-embedded on export. File pickers
 and downloads are user-driven and do not require desktop bridge permissions.
 DOCX/ODT export creates the package in the browser; no external service is
 used.

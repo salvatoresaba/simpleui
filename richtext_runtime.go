@@ -2461,6 +2461,9 @@ window.__SUI_RICH = (function () {
     var stack = [];
     var i = 0, depth = 0, skipDepth = -1, ucSkip = 1;
     var current = [], blocks = [], buffer = '', align = '';
+    var paraIndent = '', paraSpaceBefore = '', paraSpaceAfter = '', paraLineHeight = '', paraStyle = 0;
+    var tableState = null, rowCells = null, cellInline = null;
+    var cellXs = [], cellProps = [], pendingVmerge = '', rowHeight = '', cellAlign = '';
     function marksNow() {
       var marks = [];
       if (state.bold) marks.push({ type: 'bold' });
@@ -2483,10 +2486,25 @@ window.__SUI_RICH = (function () {
     function flushBlock() {
       flushText();
       if (current.length) {
-        blocks.push({ type: 'paragraph', align: align, children: current });
+        var heading = paraStyle === 28 ? 1 : 0;
+        var p = { type: heading ? 'heading' : 'paragraph', children: current };
+        if (heading) p.level = heading;
+        if (align) p.align = align;
+        if (paraIndent) p.indent = paraIndent;
+        if (paraSpaceBefore) p.spaceBefore = paraSpaceBefore;
+        if (paraSpaceAfter) p.spaceAfter = paraSpaceAfter;
+        if (paraLineHeight) p.lineHeight = paraLineHeight;
+        if (tableState && rowCells && cellInline) {
+          if (align) cellAlign = align;
+          if (cellInline.length) cellInline.push({ type: 'break', marks: [] });
+          for (var ci = 0; ci < current.length; ci++) cellInline.push(current[ci]);
+        } else {
+          if (tableState) tableState = null;
+          blocks.push(p);
+        }
         current = [];
       }
-      align = '';
+      align = ''; paraIndent = ''; paraSpaceBefore = ''; paraSpaceAfter = ''; paraLineHeight = ''; paraStyle = 0;
     }
     function addText(value) { if (skipDepth < 0) buffer += value; }
     function addBreak() { flushText(); if (skipDepth < 0) current.push({ type: 'break', marks: [] }); }
@@ -2505,12 +2523,116 @@ window.__SUI_RICH = (function () {
     function pictureNode(group) {
       var mime = /\\pngblip/.test(group) ? 'image/png' : /\\jpegblip/.test(group) ? 'image/jpeg' : '';
       if (!mime) return null;
-      var cleaned = group.replace(/\\[a-zA-Z]+-?\d*\s?/g, '').replace(/[^0-9a-fA-F]/g, '');
-      if (cleaned.length < 4 || cleaned.length % 2) return null;
+      var blip = /\\pngblip|\\jpegblip/i.exec(group);
+      var data = blip ? group.slice(blip.index + blip[0].length) : group;
+      var cleaned = data.replace(/[^0-9a-fA-F]/g, '');
+      if (cleaned.length < 4) return null;
+      if (cleaned.length % 2) cleaned = cleaned.slice(0, cleaned.length - 1);
       var bytes = new Uint8Array(cleaned.length / 2);
       for (var n = 0; n < bytes.length; n++) bytes[n] = parseInt(cleaned.slice(n * 2, n * 2 + 2), 16);
-      var wm = /\\picw(\d+)/.exec(group), hm = /\\pich(\d+)/.exec(group);
-      return { type: 'image', src: dataUrlFromBytes(bytes, mime === 'image/jpeg' ? 'image.jpg' : 'image.png'), alt: '', width: wm ? Math.round(Number(wm[1]) / 15) + 'px' : '', height: hm ? Math.round(Number(hm[1]) / 15) + 'px' : '' };
+      var wm = /\\picwgoal(\d+)/.exec(group) || /\\picw(\d+)/.exec(group), hm = /\\pichgoal(\d+)/.exec(group) || /\\pich(\d+)/.exec(group);
+      var sx = /\\picscalex(\d+)/.exec(group);
+      var width = wm ? Number(wm[1]) / 15 : 0, height = hm ? Number(hm[1]) / 15 : 0;
+      if (sx && Number(sx[1]) > 0 && Number(sx[1]) < 100) { width = width * Number(sx[1]) / 100; if (height > 0) height = height * Number(sx[1]) / 100; }
+      var maxWidth = 680;
+      if (width > maxWidth) { if (height > 0) height = height * maxWidth / width; width = maxWidth; }
+      return { type: 'image', src: dataUrlFromBytes(bytes, mime === 'image/jpeg' ? 'image.jpg' : 'image.png'), alt: '', width: width > 0 ? Math.round(width) + 'px' : '', height: height > 0 ? Math.round(height) + 'px' : '' };
+    }
+    function groupSpanFrom(text, start) {
+      var level = 0, j = start;
+      while (j < text.length) {
+        var c = text.charAt(j);
+        if (c === '\\') { j += 2; continue; }
+        if (c === '{') level++;
+        else if (c === '}') { level--; if (level === 0) return j + 1; }
+        j++;
+      }
+      return text.length;
+    }
+    function destinationPictures(dest) {
+      var out = [];
+      var re = new RegExp('\\\\' + dest + '(?![a-zA-Z])', 'i');
+      var m = re.exec(source);
+      if (!m) return out;
+      var open = source.lastIndexOf('{', m.index);
+      if (open < 0) return out;
+      var body = source.slice(open, groupSpanFrom(source, open));
+      var at = 0;
+      while (at < body.length) {
+        var p = body.indexOf('\\pict', at);
+        if (p < 0) break;
+        var gs = body.lastIndexOf('{', p);
+        if (gs < 0) break;
+        var ge = groupSpanFrom(body, gs);
+        var node = pictureNode(body.slice(gs, ge));
+        if (node) out.push(node);
+        at = ge;
+      }
+      return out;
+    }
+    function finalizeTable(table) {
+      var rows = table.rows || [];
+      if (!rows.length) return;
+      var edges = [];
+      for (var r = 0; r < rows.length; r++) {
+        var bounds = rows[r]._bounds || [];
+        for (var b = 0; b < bounds.length; b++) if (edges.indexOf(bounds[b]) < 0) edges.push(bounds[b]);
+      }
+      if (!edges.length) {
+        for (var r0 = 0; r0 < rows.length; r0++) {
+          delete rows[r0]._bounds;
+          (rows[r0].cells || []).forEach(function (cell) { delete cell._vmerge; });
+        }
+        return;
+      }
+      edges.sort(function (a, b) { return a - b; });
+      var starts = [0].concat(edges);
+      var total = edges[edges.length - 1];
+      function gridIndex(x) {
+        var best = 0, dist = Infinity;
+        for (var s = 0; s < starts.length; s++) {
+          var d = Math.abs(starts[s] - x);
+          if (d < dist) { dist = d; best = s; }
+        }
+        return best;
+      }
+      var layout = [];
+      for (var r = 0; r < rows.length; r++) {
+        var bounds = rows[r]._bounds || [];
+        var cells = rows[r].cells || [];
+        var placed = [];
+        for (var c = 0; c < cells.length; c++) {
+          var x1 = bounds[c] != null ? bounds[c] : (c === cells.length - 1 ? total : (bounds[c - 1] || 0));
+          var x0 = c === 0 ? 0 : (bounds[c - 1] != null ? bounds[c - 1] : 0);
+          var si = gridIndex(x0), ei = gridIndex(x1);
+          if (ei <= si) ei = si + 1;
+          placed.push({ cell: cells[c], start: si, end: ei, x0: x0, x1: x1 });
+        }
+        for (var p = placed.length - 1; p >= 0; p--) {
+          if (placed[p].cell._vmerge !== 'continue') continue;
+          var target = null;
+          for (var pr = r - 1; pr >= 0 && !target; pr--) {
+            var above = layout[pr] || [];
+            for (var q = 0; q < above.length; q++) {
+              if (above[q].start === placed[p].start) { target = above[q]; break; }
+            }
+          }
+          if (target) target.cell.rowspan = (Number(target.cell.rowspan) || 1) + 1;
+          placed.splice(p, 1);
+        }
+        layout[r] = placed;
+        var kept = [];
+        for (var k = 0; k < placed.length; k++) {
+          var info = placed[k];
+          var cell = info.cell;
+          cell.colspan = Math.max(1, info.end - info.start);
+          cell.width = Math.round(((info.x1 - info.x0) / total) * 1000) / 10 + '%';
+          delete cell._vmerge;
+          kept.push(cell);
+        }
+        rows[r].cells = kept;
+        delete rows[r]._bounds;
+      }
     }
     while (i < source.length) {
       var ch = source.charAt(i);
@@ -2531,6 +2653,7 @@ window.__SUI_RICH = (function () {
       if (ch === '\\') {
         i++;
         if (source.charAt(i) === '*') {
+          if (skipDepth >= 0) { i++; continue; }
           var starAt = i + 1;
           while (starAt < source.length && /\s/.test(source.charAt(starAt))) starAt++;
           var starWord = '';
@@ -2565,16 +2688,58 @@ window.__SUI_RICH = (function () {
         var num = hasNum ? Number(numText) : 0;
         if (source.charAt(i) === ' ') i++;
         if (word === 'pict') {
+          if (skipDepth >= 0) continue;
           flushText();
           var picture = pictureNode(readPictureGroup());
+          if (depth > 0) { depth--; if (stack.length) state = stack.pop(); }
           if (picture) current.push(picture);
           continue;
         }
         if (word === 'fonttbl' || word === 'colortbl' || word === 'stylesheet' || word === 'info' || word === 'header' || word === 'footer' || word === 'object' || word === 'themedata' || word === 'datastore' || word === 'latentstyles') {
-          skipDepth = depth;
+          if (skipDepth < 0) skipDepth = depth;
           continue;
         }
         if (skipDepth >= 0) continue;
+        if (word === 'trowd') {
+          if (!tableState) { tableState = { type: 'table', rows: [], align: '' }; blocks.push(tableState); }
+          rowCells = []; cellInline = []; current = [];
+          cellXs = []; cellProps = []; pendingVmerge = ''; rowHeight = ''; cellAlign = '';
+          align = ''; paraIndent = ''; paraSpaceBefore = ''; paraSpaceAfter = ''; paraLineHeight = ''; paraStyle = 0;
+          continue;
+        }
+        if (word === 'cellx' && hasNum) {
+          cellXs.push(num);
+          cellProps.push({ vmerge: pendingVmerge });
+          pendingVmerge = '';
+          continue;
+        }
+        if (word === 'clvmgf') { pendingVmerge = 'start'; continue; }
+        if (word === 'clvmrg') { pendingVmerge = 'continue'; continue; }
+        if (word === 'trrh' && hasNum) { rowHeight = Math.round(Math.abs(num) / 15) + 'px'; continue; }
+        if (word === 'trqc') { if (tableState) tableState.align = 'center'; continue; }
+        if (word === 'trql') { if (tableState) tableState.align = 'left'; continue; }
+        if (word === 'trqr') { if (tableState) tableState.align = 'right'; continue; }
+        if (word === 'trgaph' || word === 'trleft' || word === 'trpaddb' || word === 'trpaddr' || word === 'trpaddl' || word === 'trpaddt') continue;
+        if (word === 'cell') {
+          flushBlock();
+          rowCells = rowCells || [];
+          var cellIndex = rowCells.length;
+          var x0 = cellIndex > 0 ? (cellXs[cellIndex - 1] || 0) : 0;
+          var x1 = cellXs[cellIndex] != null ? cellXs[cellIndex] : x0;
+          var cellWidth = x1 > x0 ? Math.round((x1 - x0) / 15) + 'px' : '';
+          var props = cellProps[cellIndex] || {};
+          rowCells.push({ type: 'table_cell', header: false, colspan: 1, rowspan: 1, align: cellAlign, width: cellWidth, children: cellInline || [], _vmerge: props.vmerge || '' });
+          cellInline = []; current = []; align = ''; cellAlign = '';
+          continue;
+        }
+        if (word === 'row') {
+          flushBlock();
+          if (tableState && rowCells && rowCells.length) {
+            tableState.rows.push({ type: 'table_row', height: rowHeight, cells: rowCells, _bounds: cellXs.slice() });
+          }
+          rowCells = null; cellInline = null; align = ''; cellXs = []; cellProps = []; pendingVmerge = ''; rowHeight = '';
+          continue;
+        }
         if (word === 'par' || word === 'sect' || word === 'page') flushBlock();
         else if (word === 'line') addBreak();
         else if (word === 'tab') addText('\t');
@@ -2591,13 +2756,36 @@ window.__SUI_RICH = (function () {
         else if (word === 'qr' || word === 'right') align = 'right';
         else if (word === 'ql' || word === 'left' || word === 'qj') align = word === 'qj' ? 'justify' : (word === 'ql' ? 'left' : '');
         else if (word === 'fs' && hasNum) { flushText(); state.size = Math.max(6, Math.round(num / 2)) + 'pt'; }
+        else if (word === 'li' && hasNum) { flushText(); paraIndent = Math.round(num / 15) + 'px'; }
+        else if (word === 'lin' && hasNum) { flushText(); paraIndent = Math.round(num / 15) + 'px'; }
+        else if (word === 'sb' && hasNum) { flushText(); paraSpaceBefore = Math.round(num / 20) + 'pt'; }
+        else if (word === 'sa' && hasNum) { flushText(); paraSpaceAfter = Math.round(num / 20) + 'pt'; }
+        else if (word === 'sl' && hasNum) { flushText(); paraLineHeight = Math.round(num / 20) + 'pt'; }
+        else if (word === 's' && hasNum) { paraStyle = num; }
+        else if (word === 'outlinelevel' && hasNum) { paraStyle = 28; }
         else if (word === 'cf' && hasNum) { flushText(); state.color = colorTable[num] || ''; }
         else if (word === 'highlight' && hasNum) { flushText(); state.highlight = colorTable[num] || ''; }
         else if (word === 'u' && hasNum) {
           var code = num < 0 ? num + 65536 : num;
           addText(String.fromCharCode(code));
           var skip = ucSkip;
-          while (skip > 0 && i < source.length && source.charAt(i) !== '\\' && source.charAt(i) !== '}' && source.charAt(i) !== '{') { i++; skip--; }
+          while (skip > 0 && i < source.length) {
+            var ucChar = source.charAt(i);
+            if (ucChar === '{' || ucChar === '}') break;
+            if (ucChar === '\\') {
+              if (source.charAt(i + 1) === "'") { i += 4; skip--; continue; }
+              i++;
+              while (i < source.length && /[a-zA-Z]/.test(source.charAt(i))) i++;
+              if (source.charAt(i) === '-' || /[0-9]/.test(source.charAt(i))) {
+                if (source.charAt(i) === '-') i++;
+                while (i < source.length && /[0-9]/.test(source.charAt(i))) i++;
+              }
+              if (source.charAt(i) === ' ') i++;
+              skip--;
+              continue;
+            }
+            i++; skip--;
+          }
         }
         else if (word === 'uc' && hasNum) ucSkip = Math.max(0, num);
         else if (word === 'bullet') addText('\u2022 ');
@@ -2610,7 +2798,27 @@ window.__SUI_RICH = (function () {
       i++;
     }
     flushBlock();
-    blocks = blocks.filter(function (b) { return b.children && b.children.length && !(b.children.length === 1 && b.children[0].type === 'text' && !b.children[0].text.trim()); });
+    for (var tb = 0; tb < blocks.length; tb++) if (blocks[tb] && blocks[tb].type === 'table') finalizeTable(blocks[tb]);
+    blocks = blocks.filter(function (b) { return b.type === 'table' || (b.children && b.children.length && !(b.children.length === 1 && b.children[0].type === 'text' && !b.children[0].text.trim())); });
+    var headerPics = destinationPictures('header'), footerPics = destinationPictures('footer');
+    if (headerPics.length || footerPics.length) {
+      var existing = {};
+      function notePictures(node) {
+        if (!node || typeof node !== 'object') return;
+        if (node.type === 'image' && node.src) existing[node.src] = true;
+        if (Array.isArray(node.children)) node.children.forEach(notePictures);
+        if (Array.isArray(node.rows)) node.rows.forEach(function (row) {
+          if (!row || !Array.isArray(row.cells)) return;
+          row.cells.forEach(function (cell) { if (cell && Array.isArray(cell.children)) cell.children.forEach(notePictures); });
+        });
+      }
+      blocks.forEach(notePictures);
+      var withPictures = [];
+      headerPics.forEach(function (pic) { if (!existing[pic.src]) { pic.align = 'center'; withPictures.push(pic); existing[pic.src] = true; } });
+      blocks.forEach(function (b) { withPictures.push(b); });
+      footerPics.forEach(function (pic) { if (!existing[pic.src]) { pic.align = 'center'; withPictures.push(pic); existing[pic.src] = true; } });
+      blocks = withPictures;
+    }
     if (!blocks.length) return importPlain(source);
     return { type: 'doc', children: blocks };
   }
@@ -2667,10 +2875,15 @@ window.__SUI_RICH = (function () {
         }
       } else if (n.type === 'table') {
         for (var r = 0; r < (n.rows || []).length; r++) {
-          var cells = [];
-          for (var c = 0; c < (n.rows[r].cells || []).length; c++) cells.push(inline(n.rows[r].cells[c].children));
-          out.push('\\pard\\trowd\\trgaph108\\cellx2000\\cellx4000\\cellx6000 ' + cells.join('\\cell ') + '\\cell\\row\\pard');
+          var cells = [], bounds = [];
+          for (var c = 0; c < (n.rows[r].cells || []).length; c++) {
+            cells.push(inline(n.rows[r].cells[c].children));
+            bounds.push((c + 1) * 2000);
+          }
+          if (!cells.length) continue;
+          out.push('\\trowd\\trgaph108' + bounds.map(function (x) { return '\\cellx' + x; }).join('') + ' ' + cells.map(function (text) { return '\\pard\\intbl ' + text + '\\cell '; }).join('') + '\\row');
         }
+        out.push('\\pard');
       }
     }
     for (var i = 0; i < (inst.doc.children || []).length; i++) block(inst.doc.children[i]);

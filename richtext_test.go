@@ -183,6 +183,33 @@ view main {
       var imported = await __SUI_RICH.importBytes('editor', exported[0], 'image.' + fmt);
       if (imported[1] !== null || richRoot().querySelectorAll('.sui-rich-editor img').length < 1) throw new Error('image roundtrip ' + fmt + ': ' + imported[1]);
     }
+
+    var rtfTable = '{\\rtf1\\ansi{\\header\\pard{\\pict\\picwgoal1500\\pichgoal1500\\pngblip 89504e470d0a1a0a0000000d4948445200000001000000010804000000b51c0c020000000b4944415478da63fcff1f0002eb01f58f59975b0000000049454e44ae426082}\\par}' +
+      '\\trowd\\trqc\\cellx1000\\cellx3000\\cellx6000\\pard\\intbl A\\cell B\\cell C\\cell\\row' +
+      '\\trowd\\cellx1000\\cellx6000\\pard\\intbl{\\b D}\\cell E\\cell\\row\\pard\\par}';
+    var tableImport = await __SUI_RICH.importBytes('editor', new TextEncoder().encode(rtfTable), 'table.rtf');
+    if (tableImport[1] !== null) throw new Error('rtf table import: ' + tableImport[1]);
+    var tableDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var tables = tableDoc.children.filter(function (c) { return c.type === 'table'; });
+    if (tables.length !== 1) throw new Error('rtf table count: ' + tableDoc.children.length);
+    var tableRows = tables[0].rows;
+    if (tableRows.length !== 2) throw new Error('rtf table rows: ' + tableRows.length);
+    if (tableRows[0].cells.length !== 3 || tableRows[1].cells.length !== 2) throw new Error('rtf table cells: ' + tableRows[0].cells.length + ',' + tableRows[1].cells.length);
+    if (tableRows[0].cells[1].children[0].text !== 'B') throw new Error('rtf cell text: ' + JSON.stringify(tableRows[0].cells[1].children));
+    if (tableRows[1].cells[1].colspan !== 2) throw new Error('rtf cell colspan: ' + tableRows[1].cells[1].colspan);
+    if (!tableRows[1].cells[0].children[0].marks.some(function (m) { return m.type === 'bold'; })) throw new Error('rtf cell marks: ' + JSON.stringify(tableRows[1].cells[0].children));
+    if (tableDoc.children[0].type !== 'image' || tableDoc.children[0].width !== '100px') throw new Error('rtf header image: ' + JSON.stringify(tableDoc.children[0]));
+    if (richRoot().querySelectorAll('.sui-rich-editor table tr').length !== 2) throw new Error('rtf table dom');
+    if (richRoot().querySelectorAll('.sui-rich-editor img').length !== 1) throw new Error('rtf header image dom: ' + richRoot().querySelectorAll('.sui-rich-editor img').length);
+
+    var tableRtfOut = __SUI_RICH.exportBytes('editor', 'rtf');
+    if (tableRtfOut[1] !== null || tableRtfOut[0][0] !== 123) throw new Error('rtf table export: ' + tableRtfOut[1]);
+    var tableBack = await __SUI_RICH.importBytes('editor', tableRtfOut[0], 'back.rtf');
+    if (tableBack[1] !== null) throw new Error('rtf table re-import: ' + tableBack[1]);
+    var backDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var backTables = backDoc.children.filter(function (c) { return c.type === 'table'; });
+    if (backTables.length !== 1 || backTables[0].rows.length !== 2) throw new Error('rtf table re-import rows');
+    if (richRoot().querySelector('.sui-rich-editor').innerText.indexOf('D') < 0) throw new Error('rtf table re-import text');
 `+featureScriptTail)
 }
 

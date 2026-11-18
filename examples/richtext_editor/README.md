@@ -28,7 +28,8 @@ builds.
   status bar (words, characters, paragraphs, caret, zoom, dark/light/auto theme).
 - Undo/redo history, keyboard shortcuts and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
-- Open and save plain text, RTF, DOC (best effort), DOCX and ODT; images are
+- Open and save plain text, RTF, DOC (best effort), DOCX and ODT; RTF keeps
+  tables (with merged cells) and header/footer pictures, and images are
   imported/exported with RTF/DOCX/ODT. PDF export renders text/tables and uses
   image alt text.
 - Declarative plugins adding commands and toolbar buttons; JavaScript plugins
