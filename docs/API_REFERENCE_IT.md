@@ -1759,15 +1759,17 @@ scarica il documento. Formati supportati:
 | Formato | Import | Export | Note |
 |---|---|---|---|
 | TXT | sì | sì | Paragrafi di testo semplice |
-| RTF | sottoinsieme pratico | sì | Paragrafi, grassetto/corsivo/sottolineato/barrato, apice/pedice e allineamento base |
+| RTF | sottoinsieme pratico | sì | Paragrafi, formattazione, allineamento base e immagini PNG/JPEG incorporate |
 | DOC | best effort | contenuto RTF con estensione `.doc` | Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
-| DOCX | sì | sì | Paragrafi, run, tabelle e formattazione di base WordprocessingML |
-| ODT | sì | sì | Testo OpenDocument, formattazione, elenchi e tabelle di base |
+| DOCX | sì | sì | Paragrafi, run, tabelle, formattazione e immagini incorporate WordprocessingML |
+| ODT | sì | sì | Testo OpenDocument, formattazione, elenchi, tabelle e immagini incorporate |
 | PDF | - | sì | Layout testo/tabelle con Helvetica; le immagini sono sostituite dal testo alternativo |
 | HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |
 
 I file importati non sono fidati: il parsing ZIP/XML resta nel browser e
-l'HTML non sicuro viene comunque convertito nel modello del documento. Selettore
+l'HTML non sicuro viene comunque convertito nel modello del documento. Le immagini
+incorporate vengono estratte da RTF/DOCX/ODT come data URL e reinserite
+esportando. Selettore
 file e download sono azioni dell'utente e non richiedono permessi del bridge
 desktop. L'export DOCX/ODT crea il pacchetto nel browser, senza servizi esterni.
 

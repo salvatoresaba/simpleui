@@ -173,6 +173,16 @@ view main {
     if (odtImport[1] !== null || __SUI_RICH.exportFormat('editor', 'markdown')[0].indexOf('Format test') < 0) throw new Error('odt import: ' + odtImport[1]);
     var rtfImport = await __SUI_RICH.importBytes('editor', rtf[0], 'x.rtf');
     if (rtfImport[1] !== null || __SUI_RICH.exportFormat('editor', 'markdown')[0].indexOf('Format test') < 0) throw new Error('rtf import: ' + rtfImport[1]);
+
+    var png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=';
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'image', src: png, alt: 'dot', width: '20px' }] }] });
+    await wait(100);
+    for (var formatIndex = 0; formatIndex < 3; formatIndex++) {
+      var fmt = ['docx', 'odt', 'rtf'][formatIndex];
+      var exported = __SUI_RICH.exportBytes('editor', fmt);
+      var imported = await __SUI_RICH.importBytes('editor', exported[0], 'image.' + fmt);
+      if (imported[1] !== null || richRoot().querySelectorAll('.sui-rich-editor img').length < 1) throw new Error('image roundtrip ' + fmt + ': ' + imported[1]);
+    }
 `+featureScriptTail)
 }
 

@@ -28,7 +28,9 @@ builds.
   status bar (words, characters, paragraphs, caret, zoom).
 - Undo/redo history, keyboard shortcuts and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
-- Open and save plain text, RTF, DOC (best effort), DOCX and ODT; export PDF.
+- Open and save plain text, RTF, DOC (best effort), DOCX and ODT; images are
+  imported/exported with RTF/DOCX/ODT. PDF export renders text/tables and uses
+  image alt text.
 - Declarative plugins adding commands and toolbar buttons; JavaScript plugins
   can also register custom commands and block renderers on `window.__SUI_RICH`.
 - Document templates: `article`, `letter`, `report`, `compact`.
