@@ -4727,7 +4727,7 @@ func isAllowedTag(tag string) bool {
 		"a", "img", "video", "audio", "iframe", "hr", "br",
 		// feedback & nav
 		"progress", "badge", "alert", "spinner", "divider", "combobox", "datepicker",
-		"tabs", "tab", "accordion", "accordionitem", "tree", "treeitem", "chart", "graph", "toast",
+		"tabs", "tab", "accordion", "accordionitem", "tree", "treeitem", "richtext", "chart", "graph", "toast",
 		"menubar", "menu", "menuitem", "modal", "modalbutton",
 		"dropdown", "dropdownitem", "popover", "drawer", "splitter", "pane", "dropzone",
 		"timeline", "timelineitem", "emptystate", "skeleton", "carousel", "slide",
@@ -4742,7 +4742,7 @@ func isAllowedTag(tag string) bool {
 func eventAttr(key string) bool {
 	switch key {
 	case "onClick", "onDoubleClick", "onChange", "onInput", "onSubmit", "onReset",
-		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp",
+		"onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange", "onTaskChange", "onDataChange", "onCalendarChange", "onResourceChange", "onCommit", "onFocus", "onBlur", "onMouseEnter", "onMouseLeave", "onKeyDown", "onKeyUp", "onReady", "onSelectionChange",
 		"onCellChange", "onRowChange", "onTableChange", "onRowSelect", "onSort", "onCellClick", "onRowClick",
 		"onDragStart", "onDragEnter", "onDragOver", "onDragLeave", "onDrop", "onDragEnd":
 		return true
@@ -4806,6 +4806,13 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "spinner" && (key == "variant" || key == "src" || key == "alt") {
+		return true
+	}
+	if tag == "richtext" && (key == "name" || key == "value" || key == "placeholder" || key == "height" ||
+		key == "readonly" || key == "toolbar" || key == "menu" ||
+		key == "contextToolbar" || key == "properties" || key == "statusbar" || key == "theme" ||
+		key == "toolbarItems" || key == "template" ||
+		key == "onReady" || key == "onSelectionChange") {
 		return true
 	}
 	if tag == "tree" && (key == "name" || key == "value" || key == "editMode" || key == "editDepth" ||

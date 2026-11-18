@@ -2294,7 +2294,7 @@ var PALETTE = [
   { group: "Overlay", tags: ["modal", "modalbutton", "toast", "commandbar", "command"] },
   { group: "Text", tags: ["h1", "h2", "h3", "p", "text", "hr", "blockquote", "pre"],
     subs: [ { name: "Lists", tags: ["list", "ul", "ol"] } ] },
-  { group: "Content", tags: ["timeline", "timelineitem", "emptystate", "skeleton", "carousel", "slide", "stepper", "step"] },
+  { group: "Content", tags: ["richtext", "timeline", "timelineitem", "emptystate", "skeleton", "carousel", "slide", "stepper", "step"] },
   { group: "Controls", tags: [], subs: [
       { name: "Inputs", tags: ["input", "textarea", "select", "combobox", "datepicker", "number", "slider", "file", "color", "date", "time"] },
       { name: "Toggles", tags: ["checkbox", "switch", "radio"] },
@@ -2323,6 +2323,7 @@ var PALETTE_LABEL = {
   carousel: "Carousel", slide: "Carousel slide",
   stepper: "Stepper", step: "Stepper step",
   commandbar: "Command palette", command: "Command",
+  richtext: "Rich text editor",
   tablelayout: "Table layout",
   layoutcell: "Layout cell",
   tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph", table: "Table",
@@ -2739,6 +2740,7 @@ errorboundary: ["fallback"],
   command: ["text", "shortcut"],
   accordion: ["text"],
   accordionitem: ["text"],
+  richtext: ["text", "name", "value", "placeholder", "height", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "properties", "statusbar", "theme", "onChange", "onInput", "onReady"],
   tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   treeitem: ["text", "key", "open", "rename", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
@@ -2757,7 +2759,7 @@ errorboundary: ["fallback"],
   row: [], col: [], spacer: [], ul: [], ol: [], table: [], thead: [], tbody: [], tfoot: [], trow: [], form: [], fieldset: [], hr: [], br: [], a: ["text", "link"]
 };
 
-var TAG_LABELS = { text: "Text", onClick: "onClick", placeholder: "placeholder", value: "value", src: "src / href", link: "link", inputtype: "type", pattern: "pattern", minlength: "min length", maxlength: "max length", required: "required", options: "options (comma-separated, e.g. A,B,C)", label: "label", checked: "checked (state/bool)", disabled: "disabled", name: "name / modal id", min: "min", max: "max", step: "step", accept: "accept", multiple: "multiple", directory: "directory picker", draggable: "draggable", dragKey: "drag key expression", dropKey: "drop key expression", dropFiles: "drop files into state", pickFiles: "choose files into state", pickMode: "picker API mode", variant: "variant", close: "close after click", srcAllow: "src allow-list", sandbox: "sandbox tokens", allow: "permissions policy", referrerpolicy: "referrer policy", loading: "loading", empty: "empty result text", maxOptionLength: "max option text length", maxOptions: "max option count", mode: "date/time mode" };
+var TAG_LABELS = { text: "Text", onClick: "onClick", placeholder: "placeholder", value: "value", height: "height (e.g. 320px)", toolbar: "show toolbar", toolbarItems: "toolbar items (comma/| groups)", menu: "show menu bar", contextToolbar: "selection toolbar", properties: "properties panel", statusbar: "status bar", theme: "theme (dark/light)", readonly: "read only", src: "src / href", link: "link", inputtype: "type", pattern: "pattern", minlength: "min length", maxlength: "max length", required: "required", options: "options (comma-separated, e.g. A,B,C)", label: "label", checked: "checked (state/bool)", disabled: "disabled", name: "name / modal id", min: "min", max: "max", step: "step", accept: "accept", multiple: "multiple", directory: "directory picker", draggable: "draggable", dragKey: "drag key expression", dropKey: "drop key expression", dropFiles: "drop files into state", pickFiles: "choose files into state", pickMode: "picker API mode", variant: "variant", close: "close after click", srcAllow: "src allow-list", sandbox: "sandbox tokens", allow: "permissions policy", referrerpolicy: "referrer policy", loading: "loading", empty: "empty result text", maxOptionLength: "max option text length", maxOptions: "max option count", mode: "date/time mode" };
 
 // Cross-browser expansion: a friendly control (e.g. "Trasparenza") maps to
 // one or more real CSS declarations, incl. vendor prefixes.
@@ -27354,6 +27356,23 @@ var DOCS = {
   "xml.patch": { sig: "xml.patch(target, changes)", ret: "(bool, string)", desc: "Applies changes produced by xml.diff." },
   "xml.merge": { sig: "xml.merge(target, source, [options])", ret: "(int, string)", desc: "Appends source children or updates them with mode update and a key." },
   "xml.merge3": { sig: "xml.merge3(base, ours, theirs, [options])", ret: "(array[string], string)", desc: "Three-way merge into ours; returns conflict descriptions." },
+  "richtext.get": { sig: "richtext.get(name)", ret: "(string, string)", desc: "Reads the editor document as JSON." },
+  "richtext.set": { sig: "richtext.set(name, jsonOrMap)", ret: "(bool, string)", desc: "Replaces the editor document." },
+  "richtext.command": { sig: "richtext.command(name, command, [value])", ret: "(bool, string)", desc: "Runs a formatting or block command." },
+  "richtext.insertText": { sig: "richtext.insertText(name, text)", ret: "(bool, string)", desc: "Inserts plain text at the caret." },
+  "richtext.insertImage": { sig: "richtext.insertImage(name, src, [alt])", ret: "(bool, string)", desc: "Inserts a safe image URL." },
+  "richtext.insertLink": { sig: "richtext.insertLink(name, href, [text])", ret: "(bool, string)", desc: "Creates or wraps a link." },
+  "richtext.insertTable": { sig: "richtext.insertTable(name, rows, cols)", ret: "(bool, string)", desc: "Inserts a table." },
+  "richtext.undo": { sig: "richtext.undo(name)", ret: "(bool, string)", desc: "Undo the last command." },
+  "richtext.redo": { sig: "richtext.redo(name)", ret: "(bool, string)", desc: "Redo the last undone command." },
+  "richtext.exportFormat": { sig: "richtext.exportFormat(name, format)", ret: "(string, string)", desc: "Exports JSON, HTML, Markdown or XML." },
+  "richtext.importFormat": { sig: "richtext.importFormat(name, text, format)", ret: "(bool, string)", desc: "Imports JSON, HTML, Markdown or XML." },
+  "richtext.registerPlugin": { sig: "richtext.registerPlugin(name, plugin)", ret: "(bool, string)", desc: "Registers declarative commands/toolbar items." },
+  "richtext.plugins": { sig: "richtext.plugins()", ret: "(array[string], string)", desc: "Lists registered plugins." },
+  "richtext.status": { sig: "richtext.status(name)", ret: "(string, string)", desc: "Word/character/paragraph status as JSON." },
+  "richtext.selection": { sig: "richtext.selection(name)", ret: "(string, string)", desc: "Current selection as JSON." },
+  "richtext.setToolbar": { sig: "richtext.setToolbar(name, items)", ret: "(bool, string)", desc: "Reconfigures toolbar groups/items." },
+  "richtext.destroy": { sig: "richtext.destroy(name)", ret: "(bool, string)", desc: "Destroys the runtime instance." },
   "table.display": { sig: "table.display(name, data)", ret: "(int, string)", desc: "Fills the named table from JSON text, arrays or objects; keeps the design.", core: true },
   "table.data": { sig: "table.data(name)", ret: "(array[array[string]], string)", desc: "Reads the visible rows (including edits).", core: true },
   "table.header": { sig: "table.header(name)", ret: "(array[string], string)", desc: "Reads the header labels.", core: true },

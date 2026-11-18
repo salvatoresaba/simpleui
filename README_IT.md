@@ -40,6 +40,7 @@ Le principali caratteristiche:
 - **Formattazione Intl**: date, numeri, valute, percentuali, tempo relativo e fusi orari
 - **Stdlib avanzata**: fs copy/move/size, crypto hash/UUID/random bytes, helper path, validazione JSON Schema, quota storage e sync cross-tab
 - **Libreria JSON**: JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), diff con chiavi e spostamenti, merge a tre vie, validazione con più errori, byte UTF-8/UTF-16 e helper file desktop
+- **Editor di testo avanzato**: modello documento JSON, toolbar/menu/toolbar contestuale configurabili, pannello proprietà e barra di stato, undo/redo, import/export JSON/HTML/Markdown/XML e comandi plugin
 - **Libreria XML**: navigazione/modifica DOM, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD con raccolta completa degli errori, conversione JSON/CSV, XSLT, diff con chiavi e rilevamento spostamenti, applicazione patch, merge update/a tre vie e I/O binario (UTF-8/UTF-16)
 - **Multi-target**: genera app web o eseguibili desktop standalone
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)
@@ -455,6 +456,7 @@ Esempi eseguibili: [`examples/security`](examples/security/README.md).
 - `examples/table_data.sui` - Popolamento ed estrazione dati di una tabella
 - `examples/spreadsheet_table/` - Conversione XLSX/ODS in JSON/CSV + tabella
 - `examples/security/` - Testo, tabelle, URL, file e CSV non fidati
+- `examples/richtext_editor/` - Editor di testo avanzato con modello JSON, toolbar, menu, plugin e import/export
 
 ## Documentazione
 

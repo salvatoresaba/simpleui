@@ -5828,6 +5828,9 @@ func GenerateCssWithSourceMap(p *Prog, sourceBase string) (string, string) {
 func generateCss(p *Prog, markers bool) string {
 	var sb strings.Builder
 	sb.WriteString(suiCssBase)
+	if progUsesRichText(p) {
+		sb.WriteString(suiRichTextCss)
+	}
 	var classes []string
 	if p != nil {
 		for i := 0; i < len(p.views); i++ {

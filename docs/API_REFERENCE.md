@@ -1663,6 +1663,127 @@ not an authorization boundary. In `persistent` mode rename labels are stored in
 `renameKey`/`renameValue` and `onRename` to persist them in the application or
 server model.
 
+## Rich text editor
+
+`richtext` is a core control (no import) for structured text documents. The
+document is a JSON tree, never an HTML string; the generated HTML is a
+`contenteditable` rendering of that tree.
+
+```sui
+state doc = ""
+richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
+  toolbarItems: "undo,redo|bold,italic,underline|link,image,table"
+  onChange: changed onInput: typing
+```
+
+### Attributes
+
+| Attribute | Meaning |
+|---|---|
+| `name` | Runtime name used by `richtext.*` (use a unique name per editor) |
+| `value` | Bound state containing the JSON document |
+| `onChange` / `onInput` | Change and live-typing handlers |
+| `onReady` / `onSelectionChange` | Ready and selection callbacks |
+| `height` | Minimum editor height (CSS length) |
+| `placeholder` | Empty-document placeholder |
+| `readonly` | Disable editing |
+| `menu`, `toolbar`, `contextToolbar`, `properties`, `statusbar` | Show/hide UI areas |
+| `toolbarItems` | Comma-separated commands, `|` separates groups |
+| `theme` | `dark` (default) or `light` |
+| `template` | `article`, `letter`, `report` or `compact` |
+
+Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
+`fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
+`highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
+`alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
+`spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
+`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
+
+### Document model
+
+```json
+{
+  "type": "doc",
+  "children": [
+    { "type": "heading", "level": 1, "children": [
+      { "type": "text", "text": "Title", "marks": [] }
+    ]},
+    { "type": "paragraph", "children": [
+      { "type": "text", "text": "Bold", "marks": [{ "type": "bold" }] }
+    ]},
+    { "type": "bullet_list", "children": [
+      { "type": "list_item", "children": [
+        { "type": "paragraph", "children": [
+          { "type": "text", "text": "Item", "marks": [] }
+        ]}
+      ]}
+    ]}
+  ]
+}
+```
+
+Block types: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
+`list_item`, `blockquote`, `code_block`, `image`, `table`, `table_row`,
+`table_cell`, `hr`. Inline types: `text` with marks (`bold`, `italic`,
+`underline`, `strike`, `code`, `sup`, `sub`, `link`, `color`, `background`,
+`font`, `size`), plus `break` and inline `image`.
+
+### API
+
+`richtext` is always available; its functions take the editor `name`.
+
+| Function | Description |
+|---|---|
+| `richtext.get(name)` | Document as JSON |
+| `richtext.set(name, jsonOrMap)` | Replace the document |
+| `richtext.command(name, command, [value])` | Run a formatting/block/plugin command |
+| `richtext.format(name, format, [value])` | Alias of `command` |
+| `richtext.insertText(name, text)` | Insert plain text at the caret |
+| `richtext.insertImage(name, src, [alt])` | Insert an image block |
+| `richtext.insertLink(name, href, [text])` | Create or wrap a link |
+| `richtext.insertTable(name, rows, cols)` | Insert a table |
+| `richtext.undo(name)` / `richtext.redo(name)` | History |
+| `richtext.exportFormat(name, format)` | JSON, HTML, Markdown or XML |
+| `richtext.importFormat(name, text, format)` | Parse into the document |
+| `richtext.registerPlugin(name, plugin)` | Register commands and toolbar entries |
+| `richtext.plugins()` | Registered plugin names |
+| `richtext.status(name)` | Word/character/paragraph/caret JSON |
+| `richtext.selection(name)` | Selection JSON |
+| `richtext.setToolbar(name, items)` | Reconfigure toolbar groups |
+| `richtext.setTemplate(name, template)` | Apply a document template |
+| `richtext.destroy(name)` | Destroy the runtime instance |
+
+All commands are centralized: the same `bold` command can be invoked by the
+toolbar, the menu, a keyboard shortcut, a plugin or host code. Undo/redo is a
+JSON snapshot history (up to 120 steps).
+
+### Import, export and safety
+
+JSON is the native format; HTML, Markdown and XML are converted by dedicated
+parsers/serializers. Imported HTML is parsed into the model and rebuilt with
+DOM APIs: `<script>`, `<style>`, event attributes and unknown elements are
+discarded. Images allow `http(s)`, `blob:` and `data:image/...;base64`; links
+allow `http(s)`, `mailto:`, `tel:`, fragments and relative paths. Unsafe schemes
+are rejected. The editor uses browser `contenteditable` and Selection APIs, so
+caret behavior can differ slightly between Chromium, Firefox and WebKit.
+
+### Plugins
+
+A declarative plugin can add a toolbar button that runs a built-in command:
+
+```sui
+let plugin = {
+  "commands": {"shout": {"title": "Shout", "command": "bold"}},
+  "toolbar": [{"id": "shout", "label": "Shout"}]
+}
+ok, err = richtext.registerPlugin("demo", plugin)
+```
+
+JavaScript plugins can register custom commands and block renderers on
+`window.__SUI_RICH.registerPlugin`. See
+[`examples/richtext_editor/README.md`](../examples/richtext_editor/README.md)
+for a complete runnable demo.
+
 ## Chart
 
 `chart` renders JSON, XML or CSV data as an SVG bar, line, area, pie, donut or

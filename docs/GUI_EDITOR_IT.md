@@ -1472,6 +1472,8 @@ eventuale stato separato `pickFiles`, `accept`, `multiple`, `directory`,
 
 ## Controlli contenuto e feedback
 
+Il gruppo **Content** include l'**Editor di testo avanzato**, timeline, empty state, skeleton, carousel e stepper. L'inspector espone nome, valore, placeholder, altezza, readonly, toggle toolbar/menu/contestuale/proprietà/stato, tema, modello e handler change/input/ready. Collegando `value` a uno stato si salva il documento JSON; a runtime usa l'API `richtext.*` o la toolbar.
+
 Il gruppo **Content** della palette fornisce timeline, stato vuoto, skeleton,
 carousel e stepper; la command palette è sotto **Overlay**.
 

@@ -37,6 +37,7 @@ var StdModules = []string{
 	"table",
 	"tree",
 	"chart",
+	"richtext",
 	"dialog",
 	"xml",
 }
@@ -49,6 +50,7 @@ var CoreModules = []string{
 	"table",
 	"tree",
 	"chart",
+	"richtext",
 }
 
 // IsCoreModule reports whether name is an always-available intrinsic module.
@@ -213,6 +215,27 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "dialog", name: "pickFiles", params: []string{}, ret0: "array[string]", ret1: "string", jsKey: "dialog_pickfiles", async: true},
 	StdFunc{mod: "dialog", name: "pickDirectory", params: []string{}, ret0: "string", ret1: "string", jsKey: "dialog_pickdirectory", async: true},
 	// table (core: always available, acts on the rendered table named with `name:`)
+	StdFunc{mod: "richtext", name: "get", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "richtext_get", async: false},
+	StdFunc{mod: "richtext", name: "set", params: []string{"string", "any"}, ret0: "bool", ret1: "string", jsKey: "richtext_set", async: false},
+	StdFunc{mod: "richtext", name: "command", params: []string{"string", "string", "any"}, ret0: "bool", ret1: "string", jsKey: "richtext_command", async: false, optional: 1},
+	StdFunc{mod: "richtext", name: "format", params: []string{"string", "string", "any"}, ret0: "bool", ret1: "string", jsKey: "richtext_format", async: false, optional: 1},
+	StdFunc{mod: "richtext", name: "insertText", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_inserttext", async: false},
+	StdFunc{mod: "richtext", name: "insertImage", params: []string{"string", "string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_insertimage", async: false, optional: 1},
+	StdFunc{mod: "richtext", name: "insertLink", params: []string{"string", "string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_insertlink", async: false, optional: 1},
+	StdFunc{mod: "richtext", name: "insertTable", params: []string{"string", "int", "int"}, ret0: "bool", ret1: "string", jsKey: "richtext_inserttable", async: false},
+	StdFunc{mod: "richtext", name: "undo", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "richtext_undo", async: false},
+	StdFunc{mod: "richtext", name: "redo", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "richtext_redo", async: false},
+	StdFunc{mod: "richtext", name: "focus", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "richtext_focus", async: false},
+	StdFunc{mod: "richtext", name: "exportFormat", params: []string{"string", "string"}, ret0: "string", ret1: "string", jsKey: "richtext_export", async: false},
+	StdFunc{mod: "richtext", name: "importFormat", params: []string{"string", "string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_import", async: false},
+	StdFunc{mod: "richtext", name: "registerPlugin", params: []string{"string", "any"}, ret0: "bool", ret1: "string", jsKey: "richtext_register", async: false},
+	StdFunc{mod: "richtext", name: "plugins", params: []string{}, ret0: "array[string]", ret1: "string", jsKey: "richtext_plugins", async: false},
+	StdFunc{mod: "richtext", name: "status", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "richtext_status", async: false},
+	StdFunc{mod: "richtext", name: "selection", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "richtext_selection", async: false},
+	StdFunc{mod: "richtext", name: "setToolbar", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_settoolbar", async: false},
+	StdFunc{mod: "richtext", name: "setTemplate", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_settemplate", async: false},
+	StdFunc{mod: "richtext", name: "destroy", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "richtext_destroy", async: false},
+
 	StdFunc{mod: "table", name: "display", params: []string{"string", "any"}, ret0: "int", ret1: "string", jsKey: "table_display", async: false},
 	StdFunc{mod: "table", name: "data", params: []string{"string"}, ret0: "array[array[string]]", ret1: "string", jsKey: "table_data", async: false},
 	StdFunc{mod: "table", name: "header", params: []string{"string"}, ret0: "array[string]", ret1: "string", jsKey: "table_header", async: false},

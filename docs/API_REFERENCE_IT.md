@@ -1638,6 +1638,129 @@ le etichette rinominate sono in `localStorage`; in modalità `editable` durano p
 la sessione della pagina. Usare `renameKey`/`renameValue` e `onRename` per
 persistenza applicativa/server.
 
+## Editor di testo avanzato
+
+`richtext` è un controllo core (senza import) per documenti testuali
+strutturati. Il documento è un albero JSON, mai una stringa HTML; l'HTML
+generato e una rappresentazione `contenteditable` di quell'albero.
+
+```sui
+state doc = ""
+richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
+  toolbarItems: "undo,redo|bold,italic,underline|link,image,table"
+  onChange: changed onInput: typing
+```
+
+### Attributi
+
+| Attributo | Significato |
+|---|---|
+| `name` | Nome runtime usato da `richtext.*` (univoco per editor) |
+| `value` | Stato collegato che contiene il documento JSON |
+| `onChange` / `onInput` | Handler per modifica e digitazione |
+| `onReady` / `onSelectionChange` | Callback di pronto e selezione |
+| `height` | Altezza minima dell'editor (lunghezza CSS) |
+| `placeholder` | Testo per documento vuoto |
+| `readonly` | Disabilita la modifica |
+| `menu`, `toolbar`, `contextToolbar`, `properties`, `statusbar` | Mostra/nascondi aree |
+| `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
+| `theme` | `dark` (default) o `light` |
+| `template` | `article`, `letter`, `report` o `compact` |
+
+Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
+`fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
+`highlight`, `superscript`, `subscript`, `clearFormat`, `alignLeft`,
+`alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
+`spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
+`codeBlock`, `link`, `image`, `table`, `symbol`, `hr`.
+
+### Modello del documento
+
+```json
+{
+  "type": "doc",
+  "children": [
+    { "type": "heading", "level": 1, "children": [
+      { "type": "text", "text": "Titolo", "marks": [] }
+    ]},
+    { "type": "paragraph", "children": [
+      { "type": "text", "text": "Grassetto", "marks": [{ "type": "bold" }] }
+    ]},
+    { "type": "bullet_list", "children": [
+      { "type": "list_item", "children": [
+        { "type": "paragraph", "children": [
+          { "type": "text", "text": "Voce", "marks": [] }
+        ]}
+      ]}
+    ]}
+  ]
+}
+```
+
+Tipi blocco: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
+`list_item`, `blockquote`, `code_block`, `image`, `table`, `table_row`,
+`table_cell`, `hr`. Tipi inline: `text` con mark (`bold`, `italic`,
+`underline`, `strike`, `code`, `sup`, `sub`, `link`, `color`, `background`,
+`font`, `size`), più `break` e `image` inline.
+
+### API
+
+`richtext` è sempre disponibile; le funzioni ricevono il `name` dell'editor.
+
+| Funzione | Descrizione |
+|---|---|
+| `richtext.get(name)` | Documento come JSON |
+| `richtext.set(name, jsonOrMap)` | Sostituisce il documento |
+| `richtext.command(name, command, [value])` | Esegue un comando di formattazione/blocco/plugin |
+| `richtext.format(name, format, [value])` | Alias di `command` |
+| `richtext.insertText(name, text)` | Inserisce testo al cursore |
+| `richtext.insertImage(name, src, [alt])` | Inserisce un'immagine |
+| `richtext.insertLink(name, href, [text])` | Crea o avvolge un collegamento |
+| `richtext.insertTable(name, rows, cols)` | Inserisce una tabella |
+| `richtext.undo(name)` / `richtext.redo(name)` | Cronologia |
+| `richtext.exportFormat(name, format)` | JSON, HTML, Markdown o XML |
+| `richtext.importFormat(name, text, format)` | Importa nel documento |
+| `richtext.registerPlugin(name, plugin)` | Registra comandi e voci toolbar |
+| `richtext.plugins()` | Nomi dei plugin registrati |
+| `richtext.status(name)` | JSON con parole/caratteri/paragrafi/cursore |
+| `richtext.selection(name)` | JSON della selezione |
+| `richtext.setToolbar(name, items)` | Riconfigura i gruppi toolbar |
+| `richtext.setTemplate(name, template)` | Applica un modello documento |
+| `richtext.destroy(name)` | Distrugge l'istanza runtime |
+
+Tutti i comandi sono centralizzati: lo stesso comando `bold` può essere
+richiamato da toolbar, menu, scorciatoia, plugin o codice host. Undo/redo è una
+cronologia di snapshot JSON (fino a 120 passi).
+
+### Import, export e sicurezza
+
+JSON è il formato nativo; HTML, Markdown e XML passano da parser/serializer
+dedicati. L'HTML importato viene convertito nel modello e ricostruito con API
+DOM: `<script>`, `<style>`, attributi evento e elementi sconosciuti vengono
+scartati. Le immagini ammettono `http(s)`, `blob:` e `data:image/...;base64`;
+i link ammettono `http(s)`, `mailto:`, `tel:`, frammenti e percorsi relativi.
+Gli schemi non sicuri vengono rifiutati. L'editor usa `contenteditable` e le
+API Selection del browser, quindi il comportamento del cursore può variare
+leggermente tra Chromium, Firefox e WebKit.
+
+### Plugin
+
+Un plugin dichiarativo può aggiungere un pulsante che esegue un comando
+integrato:
+
+```sui
+let plugin = {
+  "commands": {"shout": {"title": "Shout", "command": "bold"}},
+  "toolbar": [{"id": "shout", "label": "Shout"}]
+}
+ok, err = richtext.registerPlugin("demo", plugin)
+```
+
+I plugin JavaScript possono registrare comandi personalizzati e renderer di
+blocchi tramite `window.__SUI_RICH.registerPlugin`. Vedi
+[`examples/richtext_editor/README.md`](../examples/richtext_editor/README.md)
+per un esempio eseguibile completo.
+
 ## Chart
 
 `chart` visualizza dati JSON, XML o CSV come grafico SVG a barre, linee, area,

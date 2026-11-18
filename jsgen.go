@@ -1520,6 +1520,12 @@ func generateJsFor(p *Prog, target string, markers bool) string {
 	// Trees own expansion, roving focus and selection; open state is persisted.
 	sb.WriteString("\n\n")
 	sb.WriteString(suiTreeRuntime)
+	// Rich text editors keep a JSON document model, history and a configurable
+	// toolbar/plugin registry. Emit the runtime only when the program uses it.
+	if progUsesRichText(p) {
+		sb.WriteString("\n\n")
+		sb.WriteString(suiRichTextRuntime)
+	}
 	// Charts parse JSON/XML/CSV data and draw inert SVG nodes. Large charts
 	// scroll their viewport or can be zoomed by the user.
 	sb.WriteString("\n\n")
@@ -2848,6 +2854,66 @@ func stdBodyJs(key string, target string) string {
 	}
 	// Core table helpers: synchronous, no I/O. They operate on the rendered
 	// table carrying the matching name attribute.
+	if key == "richtext_get" {
+		return "(name) => __SUI_RICH.get(name)"
+	}
+	if key == "richtext_set" {
+		return "(name, value) => __SUI_RICH.set(name, value)"
+	}
+	if key == "richtext_command" {
+		return "(name, cmd, value) => __SUI_RICH.command(name, cmd, value)"
+	}
+	if key == "richtext_format" {
+		return "(name, fmt, value) => __SUI_RICH.format(name, fmt, value)"
+	}
+	if key == "richtext_inserttext" {
+		return "(name, text) => __SUI_RICH.insertText(name, text)"
+	}
+	if key == "richtext_insertimage" {
+		return "(name, src, alt) => __SUI_RICH.insertImage(name, src, alt)"
+	}
+	if key == "richtext_insertlink" {
+		return "(name, href, text) => __SUI_RICH.insertLink(name, href, text)"
+	}
+	if key == "richtext_inserttable" {
+		return "(name, rows, cols) => __SUI_RICH.insertTable(name, rows, cols)"
+	}
+	if key == "richtext_undo" {
+		return "(name) => __SUI_RICH.undo(name)"
+	}
+	if key == "richtext_redo" {
+		return "(name) => __SUI_RICH.redo(name)"
+	}
+	if key == "richtext_focus" {
+		return "(name) => __SUI_RICH.focus(name)"
+	}
+	if key == "richtext_export" {
+		return "(name, fmt) => __SUI_RICH.exportFormat(name, fmt)"
+	}
+	if key == "richtext_import" {
+		return "(name, text, fmt) => __SUI_RICH.importFormat(name, text, fmt)"
+	}
+	if key == "richtext_register" {
+		return "(name, plugin) => __SUI_RICH.registerPlugin(name, plugin)"
+	}
+	if key == "richtext_plugins" {
+		return "() => __SUI_RICH.plugins()"
+	}
+	if key == "richtext_status" {
+		return "(name) => __SUI_RICH.status(name)"
+	}
+	if key == "richtext_selection" {
+		return "(name) => __SUI_RICH.selection(name)"
+	}
+	if key == "richtext_settoolbar" {
+		return "(name, items) => __SUI_RICH.setToolbar(name, items)"
+	}
+	if key == "richtext_settemplate" {
+		return "(name, template) => __SUI_RICH.setTemplate(name, template)"
+	}
+	if key == "richtext_destroy" {
+		return "(name) => __SUI_RICH.destroy(name)"
+	}
 	if key == "table_display" {
 		return "(name, data) => __SUI_TBL.display(name, data)"
 	}
@@ -4693,6 +4759,9 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	if e.tag == "tree" {
 		return treeElemJs(e, g, ctx, idx)
 	}
+	if e.tag == "richtext" {
+		return richTextElemJs(e, g, ctx, idx)
+	}
 	if e.tag == "tablelayout" {
 		return tableLayoutElemJs(e, g, ctx, idx)
 	}
@@ -5340,7 +5409,16 @@ func chartDataAttrs(e *Element) string {
 // generation; keeping the shell semantic makes it usable in the designer and
 // in static builds (where the SVG is empty until the runtime loads).
 func chartElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
-	open := openTagHtml(e, "div", false, idx, ctx)
+	clean := *e
+	var keep []Attr
+	for _, a := range e.attrs {
+		switch a.key {
+		case "class", "style", "id", "tooltip", "motion", "motionKey", "motionDuration", "motionEasing", "motionDelay", "motionExit", "motionGraph":
+			keep = append(keep, a)
+		}
+	}
+	clean.attrs = keep
+	open := openTagHtml(&clean, "div", false, idx, ctx)
 	if strings.HasSuffix(open, ">") {
 		open = strings.TrimSuffix(open, ">") + chartDataAttrs(e) + ">"
 	}
@@ -5360,6 +5438,131 @@ func chartElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	b.WriteString(`<div class="sui-chart-legend"></div><div class="sui-chart-splitter" role="separator" tabindex="0" aria-orientation="horizontal" aria-valuemin="80" aria-valuemax="320" aria-valuenow="180" aria-valuetext="180 pixels" aria-label="Resize chart and table" title="Drag, or use the arrow keys, to resize chart and table"></div><div class="sui-chart-table" role="region" aria-label="Chart data table" hidden></div><div class="sui-chart-error" role="alert" hidden></div><div class="sui-chart-tooltip" role="tooltip" aria-live="polite" hidden></div></div>`)
 	b.WriteString("`")
 	return b.String()
+}
+
+// richTextElemJs renders the host shell for the rich text editor. The
+// document JSON is carried in a hidden input so it follows normal state
+// bindings; the runtime builds the toolbar, menus and editable surface.
+func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
+	title := strings.TrimSpace(partsContent(e.text))
+	name := richTextTextAttr(e, "name")
+	if name == "" {
+		name = title
+	}
+	if name == "" {
+		name = "richtext"
+	}
+	if richTextTextAttr(e, "name") == "" {
+		name = name + "-" + strconv.Itoa(idx)
+	}
+	valueJs := "{}"
+	if a := findAttr(e, "value"); a != nil {
+		valueJs = htmlAttrValue(a, false)
+	}
+	setter := ""
+	if a := findAttr(e, "value"); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" && ctxIsState(ctx, a.expr.name) {
+		setter = setterName(a.expr.name)
+	}
+	onChange := richTextHandlerAttr(e, "onChange")
+	onInput := richTextHandlerAttr(e, "onInput")
+	onReady := richTextHandlerAttr(e, "onReady")
+	onSelection := richTextHandlerAttr(e, "onSelectionChange")
+	toolbarItems := richTextTextAttr(e, "toolbarItems")
+	template := strings.ToLower(richTextTextAttr(e, "template"))
+	height := richTextTextAttr(e, "height")
+	placeholder := richTextTextAttr(e, "placeholder")
+	theme := strings.ToLower(richTextTextAttr(e, "theme"))
+	if theme != "light" {
+		theme = "dark"
+	}
+	open := openTagHtml(e, "div", false, idx, ctx)
+	if strings.HasSuffix(open, ">") {
+		open = strings.TrimSuffix(open, ">")
+		open += " data-sui-rich=\"1\" data-sui-rich-name=\"" + htmlEscape(name) + "\""
+		open += " data-sui-rich-setter=\"" + htmlEscape(setter) + "\""
+		open += " data-sui-rich-onchange=\"" + htmlEscape(onChange) + "\""
+		open += " data-sui-rich-oninput=\"" + htmlEscape(onInput) + "\""
+		open += " data-sui-rich-onready=\"" + htmlEscape(onReady) + "\""
+		open += " data-sui-rich-onselection=\"" + htmlEscape(onSelection) + "\""
+		open += " data-sui-rich-toolbar-items=\"" + htmlEscape(toolbarItems) + "\""
+		open += " data-sui-rich-height=\"" + htmlEscape(height) + "\""
+		open += " data-sui-rich-placeholder=\"" + htmlEscape(placeholder) + "\""
+		open += " data-sui-rich-theme=\"" + theme + "\""
+		if template != "" {
+			open += " data-sui-rich-template=\"" + htmlEscape(template) + "\""
+		}
+		if !richTextBoolAttr(e, "toolbar", true) {
+			open += " data-sui-rich-toolbar=\"0\""
+		}
+		if !richTextBoolAttr(e, "menu", true) {
+			open += " data-sui-rich-menu=\"0\""
+		}
+		if !richTextBoolAttr(e, "contextToolbar", true) {
+			open += " data-sui-rich-context=\"0\""
+		}
+		if richTextBoolAttr(e, "properties", false) {
+			open += " data-sui-rich-properties=\"1\""
+		}
+		if !richTextBoolAttr(e, "statusbar", true) {
+			open += " data-sui-rich-statusbar=\"0\""
+		}
+		if richTextBoolAttr(e, "readonly", false) {
+			open += " data-sui-rich-readonly=\"1\""
+		}
+		open += ">"
+	}
+	var b strings.Builder
+	b.WriteString("`")
+	b.WriteString(open)
+	if title != "" {
+		b.WriteString("<div class=\"sui-rich-title\">")
+		b.WriteString(htmlTextParts(e.text))
+		b.WriteString("</div>")
+	}
+	b.WriteString("<input type=\"hidden\" class=\"sui-rich-value\" value=\"")
+	b.WriteString(valueJs)
+	b.WriteString("\">")
+	b.WriteString("<div class=\"sui-rich-menu\" role=\"menubar\" aria-label=\"Document menu\"></div>")
+	b.WriteString("<div class=\"sui-rich-toolbar\" role=\"toolbar\" aria-label=\"Text formatting\"></div>")
+	b.WriteString("<div class=\"sui-rich-context\" role=\"toolbar\" aria-label=\"Selection formatting\" hidden></div>")
+	b.WriteString("<div class=\"sui-rich-body\"><div class=\"sui-rich-editor\" contenteditable=\"true\" role=\"textbox\" aria-multiline=\"true\" spellcheck=\"true\" aria-label=\"")
+	if title != "" {
+		b.WriteString(htmlEscape(title))
+	} else {
+		b.WriteString(htmlEscape(name))
+	}
+	b.WriteString("\"></div>")
+	b.WriteString("<aside class=\"sui-rich-props\" aria-label=\"Element properties\" hidden></aside></div>")
+	b.WriteString("<div class=\"sui-rich-status\" role=\"status\" aria-live=\"polite\"></div>")
+	b.WriteString("</div>`")
+	return b.String()
+}
+
+func richTextTextAttr(e *Element, key string) string {
+	if a := findAttr(e, key); a != nil && !a.hasExpr {
+		return strings.TrimSpace(partsContent(a.text))
+	}
+	return ""
+}
+
+func richTextBoolAttr(e *Element, key string, fallback bool) bool {
+	if a := findAttr(e, key); a != nil {
+		if a.hasExpr && a.expr != nil && a.expr.kind == "bool" {
+			return a.expr.b
+		}
+		if !a.hasExpr {
+			v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+			return v != "0" && v != "false" && v != "no"
+		}
+	}
+	return fallback
+}
+
+func richTextHandlerAttr(e *Element, key string) string {
+	if a := findAttr(e, key); a != nil && a.hasExpr && a.expr != nil && a.expr.kind == "ident" {
+		return a.expr.name
+	}
+	return ""
 }
 
 // treeElemJs renders a nested role=tree/group structure. Expansion is handled
@@ -7411,6 +7614,7 @@ func rendererJs(p *Prog, v *ViewDecl, ctx *JsCtx, multi bool, base *int) string 
 	}
 	sb.WriteString("  __SUI_TBL.afterRender();\n")
 	sb.WriteString("  __SUI_DND.afterRender();\n")
+	sb.WriteString("  if (window.__SUI_RICH) __SUI_RICH.afterRender();\n")
 	sb.WriteString("}\n")
 	sb.WriteString("__SUI_views[" + jsString(v.name) + "] = render_" + v.name + ";\n")
 	binds := viewBindings(ctx.states, v.name, &g)

@@ -50,6 +50,7 @@ Ordine consigliato per un agente:
 | fs copy/move/size/isDir desktop | [STDLIB: fs](STDLIB_IT.md#file-system-module-fs) | [SECURITY](../SECURITY_IT.md#bridge-desktop) | `examples/fs_operations.sui` |
 | Debug JS/CSS generati con source map | [API: CLI](API_REFERENCE_IT.md#cli) | [README](../README_IT.md) | `examples/counter.sui` |
 | XML DOM, XPath, XSD subset, diff/patch/merge con chiavi e conversione | [STDLIB: XML](STDLIB_IT.md#modulo-xml-xml) | [SECURITY](../SECURITY_IT.md#bridge-desktop) | `examples/xml_library.sui` |
+| Editor di testo avanzato con modello JSON, toolbar, plugin e import/export | [API: rich text](API_REFERENCE_IT.md#editor-di-testo-avanzato) | [Editor GUI: controlli contenuto](GUI_EDITOR_IT.md#controlli-contenuto-e-feedback) | `examples/richtext_editor/README.md` |
 | Creare una barra dei menù / navigazione | [API: menu bar](API_REFERENCE_IT.md#menu-bar) | [Editor GUI: menu bar](GUI_EDITOR_IT.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Contenuti a schede | [API: tabs](API_REFERENCE_IT.md#tabs) | [Editor GUI: tabs](GUI_EDITOR_IT.md#tabs-control) | `examples/tabs.sui` |
 | Sezioni comprimibili / FAQ | [API: accordion](API_REFERENCE_IT.md#accordion) | [Editor GUI: accordion](GUI_EDITOR_IT.md#controllo-accordion) | `examples/accordion/README.md` |

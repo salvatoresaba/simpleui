@@ -1418,8 +1418,12 @@ keep exactly two panes.
 
 ## Content and feedback controls
 
-The **Content** palette group provides timeline, empty state, skeleton, carousel
-and stepper; the command palette is under **Overlay**.
+The **Content** palette group provides the **Rich text editor**, timeline,
+empty state, skeleton, carousel and stepper; the command palette is under
+**Overlay**. The editor inspector exposes name, value, placeholder, height,
+readonly, toolbar/menu/context/properties/status toggles, theme, template and
+change/input/ready handlers. Binding `value` to a state stores the JSON
+document; use the `richtext.*` API or the toolbar at runtime.
 
 - **Timeline** inserts three `timelineitem` events. Each item exposes **date**
   and **status** (pending, active, done, error).
