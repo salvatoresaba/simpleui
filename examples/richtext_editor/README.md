@@ -25,13 +25,16 @@ builds.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
 - Configurable toolbar groups, menu bar, contextual selection toolbar and
-  status bar (words, characters, paragraphs, caret, zoom, dark/light/auto theme).
+  status bar (words, characters, paragraphs, caret, zoom). The interface theme
+  picker (dark/light/auto) sits at the right of the toolbar; the document page
+  stays white unless `contentTheme: "dark"` is set.
 - Undo/redo history, keyboard shortcuts and JSON document binding.
 - Import/export JSON, HTML, Markdown and XML.
 - Open and save plain text, RTF, DOC (best effort), DOCX and ODT; RTF keeps
-  tables (with merged cells) and header/footer pictures, and images are
-  imported/exported with RTF/DOCX/ODT. PDF export renders text/tables and uses
-  image alt text.
+  tables (with merged cells and cell shading), fonts, header/footer pictures
+  and Wingdings checkboxes, and images are imported/exported with RTF/DOCX/ODT.
+  PDF export builds A4 pages with text styles, fonts, colors, tables and
+  embedded PNG/JPEG pictures.
 - Declarative plugins adding commands and toolbar buttons; JavaScript plugins
   can also register custom commands and block renderers on `window.__SUI_RICH`.
 - Document templates: `article`, `letter`, `report`, `compact`.
@@ -49,7 +52,8 @@ builds.
 | `readonly` | Disable editing |
 | `toolbar`, `menu`, `contextToolbar`, `statusbar` | Toggle UI areas |
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
-| `theme` | `dark` (default) or `light` |
+| `theme` | Interface theme: `dark` (default), `light` or `auto` |
+| `contentTheme` | Page theme: `light` (default, white paper) or `dark` |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
@@ -135,7 +139,7 @@ never assigned as raw HTML. The editor does not require a desktop bridge.
 - Table merging/splitting and tracked changes are not part of the core; add them
   through a plugin.
 - Legacy binary `.doc` files are not parsed; use `.docx` or RTF. DOC export writes RTF content with a `.doc` extension.
-- PDF export uses a text/table layout and represents images by their alt text.
+- PDF export keeps the visible layout: styles, fonts, colors, tables and images.
 - The editor intentionally exposes formatting through the toolbar/menu and API;
   host apps can build their own inspector with `richtext.command` and `richtext.get`.
 

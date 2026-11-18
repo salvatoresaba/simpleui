@@ -1689,7 +1689,8 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `readonly` | Disable editing |
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Show/hide UI areas |
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
-| `theme` | `dark` (default), `light` or `auto` (system preference) |
+| `theme` | Interface theme: `dark` (default), `light` or `auto`. The picker sits in the toolbar and only styles the editor chrome |
+| `contentTheme` | Page theme: `light` (default, white paper) or `dark`. Independent from `theme` |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
@@ -1785,11 +1786,11 @@ the document. Supported formats:
 | Format | Import | Export | Notes |
 |---|---|---|---|
 | TXT | yes | yes | Plain paragraphs |
-| RTF | practical subset | yes | Paragraphs, character/paragraph formatting, alignment, tables with merged cells, header/footer pictures and embedded PNG/JPEG pictures |
+| RTF | practical subset | yes | Paragraphs, character/paragraph formatting, fonts, alignment, tables with merged cells and cell shading, checkboxes, header/footer pictures and embedded PNG/JPEG pictures |
 | DOC | best effort | RTF content with `.doc` extension | Legacy OLE binary DOC is rejected; RTF/HTML/plain document files are accepted |
 | DOCX | yes | yes | WordprocessingML paragraphs, runs, tables, formatting and embedded images |
 | ODT | yes | yes | OpenDocument text, paragraphs, formatting, lists, tables and embedded images |
-| PDF | - | yes | Text/tables layout with Helvetica; images are represented by their alt text |
+| PDF | - | yes | A4 pages with text styles, fonts, colors, tables (merged cells) and embedded PNG/JPEG pictures |
 | HTML, Markdown, JSON, XML | yes | yes | Existing editor formats |
 
 Imported files are untrusted: ZIP/XML parsing is bounded by the browser parser,

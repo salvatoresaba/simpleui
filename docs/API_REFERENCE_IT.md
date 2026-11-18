@@ -1664,7 +1664,8 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `readonly` | Disabilita la modifica |
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Mostra/nascondi aree |
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
-| `theme` | `dark` (default), `light` o `auto` (preferenza di sistema) |
+| `theme` | Tema dell'interfaccia: `dark` (default), `light` o `auto`. Il selettore è nella toolbar e cambia solo la chrome dell'editor |
+| `contentTheme` | Tema della pagina: `light` (default, foglio bianco) o `dark`. Indipendente da `theme` |
 | `template` | `article`, `letter`, `report` o `compact` |
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
@@ -1760,11 +1761,11 @@ scarica il documento. Formati supportati:
 | Formato | Import | Export | Note |
 |---|---|---|---|
 | TXT | sì | sì | Paragrafi di testo semplice |
-| RTF | sottoinsieme pratico | sì | Paragrafi, formattazione di carattere e paragrafo, allineamento, tabelle con celle unite, immagini di intestazione/piede pagina e immagini PNG/JPEG incorporate |
+| RTF | sottoinsieme pratico | sì | Paragrafi, formattazione di carattere e paragrafo, font, allineamento, tabelle con celle unite e sfondo, caselle di controllo, immagini di intestazione/piede pagina e immagini PNG/JPEG incorporate |
 | DOC | best effort | contenuto RTF con estensione `.doc` | Il DOC binario OLE legacy è rifiutato; sono accettati file DOC RTF/HTML/testo |
 | DOCX | sì | sì | Paragrafi, run, tabelle, formattazione e immagini incorporate WordprocessingML |
 | ODT | sì | sì | Testo OpenDocument, formattazione, elenchi, tabelle e immagini incorporate |
-| PDF | - | sì | Layout testo/tabelle con Helvetica; le immagini sono sostituite dal testo alternativo |
+| PDF | - | sì | Pagine A4 con stili del testo, font, colori, tabelle (celle unite) e immagini PNG/JPEG incorporate |
 | HTML, Markdown, JSON, XML | sì | sì | Formati già disponibili nell'editor |
 
 I file importati non sono fidati: il parsing ZIP/XML resta nel browser e

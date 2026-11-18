@@ -96,6 +96,9 @@ view main {
     if (before.indexOf('Toolbar') < 0) throw new Error('JSON model missing text: ' + before);
 
     function richRoot() { return document.querySelector('[data-sui-rich]'); }
+    var themeSelect = richRoot().querySelector('.sui-rich-toolbar [data-rich-theme]');
+    if (!themeSelect) throw new Error('theme picker missing from toolbar');
+    if (richRoot().querySelector('.sui-rich-status [data-rich-theme]')) throw new Error('theme picker still in status bar');
     var richEditor = richRoot().querySelector('.sui-rich-editor');
     richEditor.innerHTML = '<p>One</p>';
     richEditor.focus();
@@ -184,8 +187,8 @@ view main {
       if (imported[1] !== null || richRoot().querySelectorAll('.sui-rich-editor img').length < 1) throw new Error('image roundtrip ' + fmt + ': ' + imported[1]);
     }
 
-    var rtfTable = '{\\rtf1\\ansi{\\header\\pard{\\pict\\picwgoal1500\\pichgoal1500\\pngblip 89504e470d0a1a0a0000000d4948445200000001000000010804000000b51c0c020000000b4944415478da63fcff1f0002eb01f58f59975b0000000049454e44ae426082}\\par}' +
-      '\\trowd\\trqc\\cellx1000\\cellx3000\\cellx6000\\pard\\intbl A\\cell B\\cell C\\cell\\row' +
+    var rtfTable = '{\\rtf1\\ansi{\\fonttbl{\\f0 Liberation Serif;}{\\f1 Arial;}}{\\header\\pard{\\pict\\picwgoal1500\\pichgoal1500\\pngblip 89504e470d0a1a0a0000000d4948445200000001000000010804000000b51c0c020000000b4944415478da63fcff1f0002eb01f58f59975b0000000049454e44ae426082}\\par}' +
+      '\\trowd\\trqc\\cellx1000\\cellx3000\\cellx6000\\pard\\intbl{\\f0 A\\u-3928\\\'3f}\\cell B\\cell C\\cell\\row' +
       '\\trowd\\cellx1000\\cellx6000\\pard\\intbl{\\b D}\\cell E\\cell\\row\\pard\\par}';
     var tableImport = await __SUI_RICH.importBytes('editor', new TextEncoder().encode(rtfTable), 'table.rtf');
     if (tableImport[1] !== null) throw new Error('rtf table import: ' + tableImport[1]);
@@ -199,8 +202,22 @@ view main {
     if (tableRows[1].cells[1].colspan !== 2) throw new Error('rtf cell colspan: ' + tableRows[1].cells[1].colspan);
     if (!tableRows[1].cells[0].children[0].marks.some(function (m) { return m.type === 'bold'; })) throw new Error('rtf cell marks: ' + JSON.stringify(tableRows[1].cells[0].children));
     if (tableDoc.children[0].type !== 'image' || tableDoc.children[0].width !== '100px') throw new Error('rtf header image: ' + JSON.stringify(tableDoc.children[0]));
+    var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.text || ''; }).join('');
+    if (firstCellText.indexOf('\u2610') < 0) throw new Error('rtf checkbox glyph: ' + firstCellText);
+    if (!tableRows[0].cells[0].children.some(function (n) { return (n.marks || []).some(function (m) { return m.type === 'font' && /serif/i.test(m.value); }); })) throw new Error('rtf font mark: ' + JSON.stringify(tableRows[0].cells[0].children));
     if (richRoot().querySelectorAll('.sui-rich-editor table tr').length !== 2) throw new Error('rtf table dom');
     if (richRoot().querySelectorAll('.sui-rich-editor img').length !== 1) throw new Error('rtf header image dom: ' + richRoot().querySelectorAll('.sui-rich-editor img').length);
+    var pdfTable = __SUI_RICH.exportBytes('editor', 'pdf');
+    if (pdfTable[1] !== null || pdfTable[0][0] !== 37) throw new Error('pdf export: ' + pdfTable[1]);
+    var pdfText = '';
+    for (var pb = 0; pb < pdfTable[0].length; pb += 8192) {
+      var pdfChunk = [];
+      for (var pq = pb; pq < Math.min(pdfTable[0].length, pb + 8192); pq++) pdfChunk.push(pdfTable[0][pq]);
+      pdfText += String.fromCharCode.apply(null, pdfChunk);
+    }
+    if (pdfText.indexOf('/Subtype /Image') < 0) throw new Error('pdf image missing');
+    if (pdfText.indexOf('/BaseFont /Times-Roman') < 0) throw new Error('pdf serif font missing');
+    if (pdfText.indexOf('/Type /Page') < 0) throw new Error('pdf page missing');
     var cellBackground = getComputedStyle(richRoot().querySelector('.sui-rich-editor td')).backgroundColor;
     if (cellBackground !== 'rgba(0, 0, 0, 0)' && cellBackground !== 'transparent') throw new Error('rtf cell background: ' + cellBackground);
     var pictureBackground = getComputedStyle(richRoot().querySelector('.sui-rich-editor img')).backgroundColor;

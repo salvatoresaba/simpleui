@@ -5490,6 +5490,10 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	if theme != "light" && theme != "auto" {
 		theme = "dark"
 	}
+	contentTheme := strings.ToLower(richTextTextAttr(e, "contentTheme"))
+	if contentTheme != "dark" {
+		contentTheme = "light"
+	}
 	clean := *e
 	var keep []Attr
 	for _, a := range e.attrs {
@@ -5517,6 +5521,7 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		open += " data-sui-rich-height=\"" + htmlEscape(height) + "\""
 		open += " data-sui-rich-placeholder=\"" + htmlEscape(placeholder) + "\""
 		open += " data-sui-rich-theme=\"" + theme + "\""
+		open += " data-sui-rich-content=\"" + contentTheme + "\""
 		if template != "" {
 			open += " data-sui-rich-template=\"" + htmlEscape(template) + "\""
 		}
