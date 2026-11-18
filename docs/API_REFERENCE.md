@@ -1732,7 +1732,8 @@ submenus. The table toolbar's **Select whole table** action lets table
 alignment apply to the table itself. Its ⚙ button opens **Table properties**
 for cell padding, border width/color and the visible border sides
 (top/right/bottom/left/inside); the values are stored in the table model and
-used by the editor, PDF and DOCX exports. Select two or more cells and copy them;
+used by the editor, PDF and DOCX exports. Select two or more cells and use **Merge** to join them horizontally or
+vertically, **Split** to clear both colspan and rowspan; copy them;
 pasting into another cell fills a matching block of cells (TSV text from other
 applications works too). Drag a table's right/bottom borders to resize columns
 or rows, or drag the bottom-right corner to resize the whole table; sizes are

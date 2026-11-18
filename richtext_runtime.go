@@ -1173,12 +1173,21 @@ window.__SUI_RICH = (function () {
     } else if (kind === 'split' && cells.length) {
       var cell = cells[0];
       var span = Number(cell.getAttribute('colspan') || 1);
-      if (span > 1) {
+      var vspan = Number(cell.getAttribute('rowspan') || 1);
+      if (span > 1 || vspan > 1) {
+        var splitRow = cell.parentNode.rowIndex;
+        var splitCol = cell.cellIndex;
         cell.setAttribute('colspan', '1');
-        for (var si = 1; si < span; si++) {
-          var split = el('td');
-          split.innerHTML = '<p><br></p>';
-          cell.parentNode.insertBefore(split, cell.nextSibling);
+        cell.setAttribute('rowspan', '1');
+        for (var sri = 0; sri < vspan; sri++) {
+          var splitTr = table.rows[splitRow + sri];
+          if (!splitTr) break;
+          for (var sci = 0; sci < span; sci++) {
+            if (sri === 0 && sci === 0) continue;
+            var at = Math.min(splitCol + sci, splitTr.cells.length);
+            var splitCell = splitTr.insertCell(at);
+            splitCell.innerHTML = '<p><br></p>';
+          }
         }
       }
     } else if (kind === 'selectTable') {

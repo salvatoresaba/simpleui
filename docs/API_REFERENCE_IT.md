@@ -1710,8 +1710,9 @@ sono salvate nel documento JSON. File > Import ed Export sono sottomenu.
 L'azione **Seleziona tutta la tabella** fa applicare l'allineamento alla
 tabella stessa. Il pulsante ⚙ apre **Proprietà tabella** per il padding delle
 celle, lo spessore/colore del bordo e i lati visibili (alto/destra/basso/
-sinistra/interni); i valori sono salvati nel modello e usati da editor, PDF e DOCX. Seleziona due o più celle e copiale: incollando in
-un'altra cella viene riempito un blocco corrispondente (funziona anche il testo
+sinistra/interni); i valori sono salvati nel modello e usati da editor, PDF e DOCX. Seleziona due o più celle e usa **Merge** per
+unirle in orizzontale o verticale, **Split** per azzerare colspan e rowspan;
+copiale: incollando in un'altra cella viene riempito un blocco corrispondente (funziona anche il testo
 TSV di altre applicazioni).
 
 ### Modello del documento

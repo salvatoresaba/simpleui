@@ -418,6 +418,35 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var sideDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
     if (sideDocx.indexOf('<w:top w:val="nil"') < 0) throw new Error('docx top border not disabled');
     if (sideDocx.indexOf('<w:left w:val="single"') < 0) throw new Error('docx left border missing');
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'table', rows: [
+        { type: 'table_row', cells: [
+          { type: 'table_cell', rowspan: 2, children: [{ type: 'text', text: 'Span', marks: [] }] },
+          { type: 'table_cell', children: [{ type: 'text', text: 'B1', marks: [] }] }
+        ] },
+        { type: 'table_row', cells: [
+          { type: 'table_cell', children: [{ type: 'text', text: 'C1', marks: [] }] }
+        ] }
+      ] }
+    ] });
+    await wait(120);
+    var spanCell = richRoot().querySelector('.sui-rich-editor td[rowspan]');
+    if (!spanCell) throw new Error('rowspan cell not rendered');
+    var spanEditor = richRoot().querySelector('.sui-rich-editor');
+    spanEditor.focus();
+    var spanRange = document.createRange();
+    spanRange.selectNodeContents(spanCell);
+    spanRange.collapse(true);
+    var spanSel = window.getSelection();
+    spanSel.removeAllRanges();
+    spanSel.addRange(spanRange);
+    await wait(80);
+    var splitResult = __SUI_RICH.command('editor', 'tableSplit');
+    await wait(150);
+    var splitDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var splitTable = splitDoc.children.filter(function (c) { return c.type === 'table'; })[0];
+    if (!splitTable || Number(splitTable.rows[0].cells[0].rowspan) > 1) throw new Error('table split did not clear rowspan: ' + JSON.stringify(splitResult));
+    if (splitTable.rows[1].cells.length < 2) throw new Error('table split did not add the row cell');
 `+featureScriptTail)
 }
 
