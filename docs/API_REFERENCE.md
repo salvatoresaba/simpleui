@@ -1718,17 +1718,21 @@ to return to the continuous editor. A single theme button at the right cycles th
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
-`highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `alignLeft`,
-`alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
-`spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`,
-`pageSettings`, `print`, `find`.
+`highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `copyFormat`,
+`alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
+`paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
+`orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
+`symbol`, `hr`, `pageBreak`, `pageSettings`, `printPreview`, `print`, `find`,
+`zoom`, `zoomIn`, `zoomOut`, `zoomReset`. The spacing and line-height selects
+remain available as custom tokens but are no longer in the default toolbar:
+they live in the Page settings and Paragraph settings panels.
 
 **Page settings** (button `pageSettings`, also View > Page settings) opens a
-panel for page size (A4/Letter), orientation, top/right/bottom/left margins in
-millimetres and the header/footer text. `{page}` and `{pages}` are replaced with
+panel for page size (A4/Letter), orientation (**Vertical**/**Horizontal**),
+the document line height, top/right/bottom/left margins in millimetres and the
+header/footer text. `{page}` and `{pages}` are replaced with
 the page number and total. The settings are stored in the document as
-`page: { size, orientation, margins }` plus `header`/`footer`, and are applied
+`page: { size, orientation, lineHeight, margins }` plus `header`/`footer`, and are applied
 to the paginated view, print, PDF, DOCX, ODT and RTF/DOC exports; DOCX and
 ODT import restore them. The default is A4 portrait with 15 mm top/bottom and 17 mm
 left/right margins.
@@ -1736,7 +1740,24 @@ left/right margins.
 Every text feature has a toolbar control: inline code (`code`) and Remove link
 (`unlink`) included. Unlink is disabled when the caret is outside a link, and
 the pressed states follow the caret for bold/italic/underline/strike,
-super/subscript, inline code, links and block styles.
+super/subscript, inline code, links and block styles. **Inline code** formats a
+word inside a paragraph; **Code block** turns the whole paragraph into a
+preformatted block: they are different commands, not a duplicate.
+
+**Clear formatting** and **Copy formatting** apply to the selection when there
+is one, otherwise to the word at the caret. Copy formatting activates a format
+painter: the next selection (or word) receives the source font, size, color,
+highlight and inline marks; Escape cancels it.
+
+**Paragraph settings** (button `paragraphSettings`, also Format > Paragraph
+settings...) applies to the selected paragraphs or to the paragraph at the
+caret: alignment, left indent, line height, space before and space after.
+The document default line height is in Page settings and individual paragraphs
+can override it.
+
+The editor keeps the height configured with `height` (320 px by default); when
+the text exceeds that area a scrollbar appears inside the content instead of
+growing the control. The paginated view scrolls the same way.
 
 **Block styles** (Quote, Code block, headings) are reflected by the style
 select and the Quote/Code buttons. Click the active button again or choose
@@ -1744,6 +1765,19 @@ select and the Quote/Code buttons. Click the active button again or choose
 Backspace at its start does the same, **Clear formatting** resets it, and
 Enter on the last empty line of a quote exits the quote. A code block keeps
 line breaks on Enter: use Escape, Normal or the Code button to leave it.
+
+**Zoom** controls live in a toolbar group: −, the current percentage (click it
+to return to 100%) and +. They scale the continuous editor and the paginated
+view.
+
+**Print preview** (toolbar button `printPreview` and File > Print preview)
+opens a centered preview with Print and Close buttons; File > Save as is
+listed directly under Open file.
+
+Link, image, symbol and import-content commands open a centered overlay with
+instructions and the required fields, instead of a browser prompt. The overlay
+has no heading and keeps the caret selection to insert the link, image or
+symbol exactly where requested.
 
 When the caret is inside a table, a **table toolbar** appears directly below
 the main formatting toolbar. It has icon buttons for add/delete row,

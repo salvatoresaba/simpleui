@@ -613,11 +613,14 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     // states follow the caret.
     __SUI_RICH.setToolbar('editor', '');
     await wait(200);
-    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','lineHeight','spaceBefore','spaceAfter','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak','pageSettings','print','find'];
+    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','copyFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','paragraphSettings','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak','pageSettings','printPreview','print','find'];
     for (var dt = 0; dt < defaultTokens.length; dt++) {
       if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="' + defaultTokens[dt] + '"]')) throw new Error('default toolbar missing control: ' + defaultTokens[dt]);
     }
     if (!bsSelect() || !bsSelect().querySelector('option[value="h4"]')) throw new Error('Heading 4 missing from the block style select');
+    if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="in"]') || !richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="out"]')) throw new Error('zoom controls missing from the toolbar');
+    if (!richRoot().querySelector('.sui-rich-toolbar .sui-rich-zoom-label')) throw new Error('zoom scale label missing');
+    if (richRoot().querySelectorAll('.sui-rich-status [data-rich-zoom]').length) throw new Error('zoom controls still in the status bar');
 
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Code me', marks: [] }] }] });
     await wait(200);
@@ -666,6 +669,9 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (!pagePanel || pagePanel.hidden) throw new Error('page settings panel did not open');
     pagePanel.querySelector('[data-rich-page-size]').value = 'letter';
     pagePanel.querySelector('[data-rich-page-orientation]').value = 'landscape';
+    var orientationLabels = [].map.call(pagePanel.querySelector('[data-rich-page-orientation]').options, function (o) { return o.textContent; });
+    if (orientationLabels.join(',') !== 'Vertical,Horizontal') throw new Error('page orientation labels: ' + orientationLabels.join(','));
+    pagePanel.querySelector('[data-rich-page-lineheight]').value = '1.8';
     pagePanel.querySelector('[data-rich-page-margin="top"]').value = '20';
     pagePanel.querySelector('[data-rich-page-margin="right"]').value = '25';
     pagePanel.querySelector('[data-rich-page-margin="bottom"]').value = '18';
@@ -676,6 +682,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(400);
     var pageDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
     if (!pageDoc.page || pageDoc.page.size !== 'letter' || pageDoc.page.orientation !== 'landscape') throw new Error('page size/orientation not stored: ' + JSON.stringify(pageDoc.page));
+    if (pageDoc.page.lineHeight !== 1.8 || bsEditor().style.lineHeight !== '1.8') throw new Error('document line height not applied: ' + JSON.stringify(pageDoc.page));
     if (pageDoc.page.margins.top !== 20 || pageDoc.page.margins.right !== 25 || pageDoc.page.margins.bottom !== 18 || pageDoc.page.margins.left !== 22) throw new Error('margins not stored: ' + JSON.stringify(pageDoc.page.margins));
     if (pageDoc.header !== 'H {page}/{pages}' || pageDoc.footer !== 'F {page}') throw new Error('header/footer not stored');
     __SUI_RICH.command('editor', 'undo');
@@ -710,6 +717,110 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(300);
     var importedPage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
     if (pageImport[1] !== null || !importedPage || importedPage.size !== 'letter' || importedPage.orientation !== 'landscape' || importedPage.margins.left !== 22) throw new Error('DOCX page round-trip failed: ' + JSON.stringify(importedPage));
+
+    // Fixed control height with scrolling, toolbar zoom, paragraph panel,
+    // print preview, prompt overlays, format painter and File menu order.
+    __SUI_RICH.setToolbar('editor', 'zoom,paragraphSettings,printPreview,link,bold,copyFormat,clearFormat');
+    await wait(200);
+    var manyRows = [];
+    for (var mr = 0; mr < 80; mr++) manyRows.push({ type: 'paragraph', children: [{ type: 'text', text: 'Row ' + mr, marks: [] }] });
+    __SUI_RICH.set('editor', { type: 'doc', children: manyRows });
+    await wait(400);
+    var reqEd = bsEditor();
+    if (reqEd.clientHeight < 300 || reqEd.clientHeight > 340) throw new Error('editor height is not fixed: ' + reqEd.clientHeight);
+    if (reqEd.scrollHeight <= reqEd.clientHeight) throw new Error('long content does not scroll inside the editor');
+
+    var reqZoomLabel = richRoot().querySelector('.sui-rich-toolbar .sui-rich-zoom-label');
+    richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="in"]').click();
+    await wait(100);
+    if (!reqZoomLabel || reqZoomLabel.textContent !== '110%') throw new Error('zoom in did not update the label');
+    reqZoomLabel.click();
+    await wait(100);
+    if (reqZoomLabel.textContent !== '100%') throw new Error('zoom reset did not return to 100%');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Para', marks: [] }] }] });
+    await wait(300);
+    var reqParaP = bsEditor().querySelector('p');
+    var reqCaret = document.createRange(); reqCaret.setStart(reqParaP.firstChild, 0); reqCaret.collapse(true);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(reqCaret);
+    richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="paragraphSettings"]').click();
+    await wait(200);
+    var reqPara = document.querySelector('.sui-rich-paragraphsettings');
+    if (!reqPara || reqPara.hidden) throw new Error('paragraph settings panel did not open');
+    reqPara.querySelector('[data-rich-paragraph-indent]').value = '24';
+    reqPara.querySelector('[data-rich-paragraph-lineheight]').value = '1.4';
+    reqPara.querySelector('[data-rich-paragraph-before]').value = '6';
+    reqPara.querySelector('[data-rich-paragraph-after]').value = '8';
+    reqPara.querySelector('[data-rich-paragraph-align]').value = 'right';
+    reqPara.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(300);
+    var reqParaDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (reqParaDoc.indent !== '24px' || reqParaDoc.lineHeight !== '1.4' || reqParaDoc.spaceBefore !== '6px' || reqParaDoc.spaceAfter !== '8px' || reqParaDoc.align !== 'right') throw new Error('paragraph settings not stored: ' + JSON.stringify(reqParaDoc));
+
+    richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="printPreview"]').click();
+    await wait(300);
+    if (!document.querySelector('.sui-rich-preview iframe')) throw new Error('print preview did not open');
+    var reqPreviewClose = [].slice.call(document.querySelectorAll('.sui-rich-preview button')).filter(function (b) { return b.textContent === 'Close'; })[0];
+    if (reqPreviewClose) reqPreviewClose.click();
+    await wait(100);
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Link target', marks: [] }] }] });
+    await wait(300);
+    var reqLinkText = bsEditor().querySelector('p').firstChild;
+    var reqLinkRange = document.createRange(); reqLinkRange.setStart(reqLinkText, 0); reqLinkRange.setEnd(reqLinkText, 4);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(reqLinkRange);
+    richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="link"]').click();
+    await wait(200);
+    var reqPrompt = document.querySelector('.sui-rich-prompt');
+    if (!reqPrompt) throw new Error('link overlay missing');
+    if (reqPrompt.querySelector('.sui-rich-tableprops-title, h1, h2, h3')) throw new Error('data overlay must not have a heading');
+    if (!/Enter the link URL/.test(reqPrompt.querySelector('.sui-rich-prompt-text').textContent)) throw new Error('link overlay instructions missing');
+    reqPrompt.querySelector('input').value = 'https://example.com';
+    [].slice.call(reqPrompt.querySelectorAll('button')).filter(function (b) { return b.textContent === 'Insert link'; })[0].click();
+    await wait(300);
+    if (!bsEditor().querySelector('a[href="https://example.com"]')) throw new Error('link overlay did not insert the link');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Alpha', marks: [{ type: 'bold' }] }, { type: 'text', text: ' Beta', marks: [] }] }] });
+    await wait(300);
+    var reqAlpha = null, reqWalk = document.createTreeWalker(bsEditor(), NodeFilter.SHOW_TEXT, null), reqNode;
+    while ((reqNode = reqWalk.nextNode())) if (reqNode.nodeValue.indexOf('Alpha') >= 0) { reqAlpha = reqNode; break; }
+    var reqAlphaRange = document.createRange(); reqAlphaRange.setStart(reqAlpha, 2); reqAlphaRange.collapse(true);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(reqAlphaRange);
+    __SUI_RICH.command('editor', 'clearFormat');
+    await wait(300);
+    if (bsEditor().querySelector('p strong, p b, p span[style*="font-weight"]')) throw new Error('clear formatting did not act on the word at the caret');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Bold', marks: [{ type: 'bold' }] }, { type: 'text', text: ' plain', marks: [] }] }] });
+    await wait(300);
+    var reqBoldNode = null, reqPlainNode = null, reqWalk2 = document.createTreeWalker(bsEditor(), NodeFilter.SHOW_TEXT, null), reqNode2;
+    while ((reqNode2 = reqWalk2.nextNode())) {
+      if (reqNode2.nodeValue.indexOf('Bold') >= 0) reqBoldNode = reqNode2;
+      if (reqNode2.nodeValue.indexOf('plain') >= 0) reqPlainNode = reqNode2;
+    }
+    var reqBoldRange = document.createRange(); reqBoldRange.setStart(reqBoldNode, 0); reqBoldRange.setEnd(reqBoldNode, 4);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(reqBoldRange);
+    __SUI_RICH.command('editor', 'copyFormat');
+    await wait(150);
+    if (!bsBtn('copyFormat').classList.contains('on')) throw new Error('copy format did not activate');
+    var reqPlainRange = document.createRange(); reqPlainRange.setStart(reqPlainNode, reqPlainNode.nodeValue.indexOf('plain')); reqPlainRange.setEnd(reqPlainNode, reqPlainNode.nodeValue.length);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(reqPlainRange);
+    bsEditor().dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    await wait(300);
+    var reqPlainStyle = getComputedStyle(reqPlainNode.parentElement);
+    if (parseInt(reqPlainStyle.fontWeight, 10) < 600) throw new Error('copy format did not paint the target word');
+    if (bsBtn('copyFormat').classList.contains('on')) throw new Error('format painter stayed active after painting');
+
+    var reqFileBtn = richRoot().querySelector('.sui-rich-menu-btn[data-rich-menu="file"]');
+    reqFileBtn.click();
+    await wait(100);
+    var reqPanel = richRoot().querySelector('.sui-rich-menu-panel');
+    var reqOrder = [].map.call(reqPanel.children, function (n) { return (n.textContent || '').trim(); });
+    var reqOpen = reqOrder.findIndex(function (t) { return t.indexOf('Open file') === 0; });
+    var reqSave = reqOrder.findIndex(function (t) { return t.indexOf('Save as') === 0; });
+    var reqPreview = reqOrder.findIndex(function (t) { return t.indexOf('Print preview') === 0; });
+    var reqPrint = reqOrder.findIndex(function (t) { return t.indexOf('Print / Save') === 0; });
+    if (!(reqOpen >= 0 && reqSave === reqOpen + 1 && reqPreview > reqSave && reqPrint > reqPreview)) throw new Error('File menu order: ' + reqOrder.join(' | '));
+    reqFileBtn.click();
 `+featureScriptTail)
 }
 
@@ -758,10 +869,10 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"styleSelect", "fontFamily", "fontSize", "bold", "italic", "underline",
 		"strike", "textColor", "highlight", "superscript", "subscript", "code",
 		"clearFormat", "alignLeft", "alignCenter", "alignRight", "justify",
-		"indent", "outdent", "lineHeight", "spaceBefore", "spaceAfter",
+		"indent", "outdent", "paragraphSettings",
 		"bulletList", "orderedList", "blockquote", "codeBlock",
 		"link", "unlink", "image", "table", "symbol", "hr", "pageBreak",
-		"pageSettings", "print", "find",
+		"pageSettings", "printPreview", "print", "find", "copyFormat", "zoom",
 	} {
 		if !items[token] {
 			t.Errorf("default toolbar is missing the %q control", token)
@@ -770,6 +881,10 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 	for _, want := range []string{
 		"code: '<svg",
 		"unlink: '<svg",
+		"copyFormat: '<svg",
+		"printPreview: '<svg",
+		"['portrait', 'Vertical']",
+		"['landscape', 'Horizontal']",
 		"['h4', 'Heading 4']",
 		"Unlink|unlink",
 		"Heading 4|h4",

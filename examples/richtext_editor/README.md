@@ -26,8 +26,10 @@ builds.
   printing and PDF export.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
-- Page settings panel (page size, orientation, margins, header/footer) applied
-  to paginated view, print and PDF/DOCX/ODT exports.
+- Page settings panel (page size, orientation, margins, document line height,
+  header/footer) applied to paginated view, print and PDF/DOCX/ODT exports.
+- Paragraph settings panel (alignment, indent, line height, space before/after),
+  zoom controls in the toolbar and a print preview overlay.
 - Configurable toolbar groups, menu bar, contextual selection toolbar and
   status bar (words, characters, paragraphs, caret, zoom). Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
@@ -77,7 +79,9 @@ Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`,
-`pageSettings`, `print`, `find`.
+`pageSettings`, `printPreview`, `print`, `find`, `copyFormat`,
+`paragraphSettings`, `zoom`.
+The default toolbar exposes a zoom group (−, percentage reset to 100%, +).
 
 ## API
 
@@ -269,7 +273,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,code,clearFormat|alignLeft,alignCenter,alignRight,indent,outdent,lineHeight,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,print,find" onChange: changed
+			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

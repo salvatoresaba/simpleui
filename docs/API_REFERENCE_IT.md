@@ -1693,18 +1693,22 @@ Premi **Edit** per tornare all'editor continuo.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
-`highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `alignLeft`,
-`alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
-`spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
-`codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`, `pageBreak`,
-`pageSettings`, `print`, `find`.
+`highlight`, `superscript`, `subscript`, `code`, `clearFormat`, `copyFormat`,
+`alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
+`paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
+`orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
+`symbol`, `hr`, `pageBreak`, `pageSettings`, `printPreview`, `print`, `find`,
+`zoom`, `zoomIn`, `zoomOut`, `zoomReset`. I selettori di interlinea e spazi
+restano disponibili come token personalizzati ma non sono più nella toolbar
+predefinita: sono nei pannelli Impostazioni pagina e Impostazioni paragrafo.
 
 **Impostazioni pagina** (pulsante `pageSettings`, anche Visualizza >
 Impostazioni pagina) apre un pannello per formato pagina (A4/Letter),
-orientamento, margini alto/destra/basso/sinistra in millimetri e testo di
+orientamento (**Verticale**/**Orizzontale**), interlinea predefinita del
+documento, margini alto/destra/basso/sinistra in millimetri e testo di
 intestazione/piè di pagina. `{page}` e `{pages}` vengono sostituiti con il
 numero di pagina e il totale. Le impostazioni sono salvate nel documento come
-`page: { size, orientation, margins }` più `header`/`footer`, e vengono usate
+`page: { size, orientation, lineHeight, margins }` più `header`/`footer`, e vengono usate
 dalla vista paginata, dalla stampa, dal PDF e dagli export DOCX/ODT e RTF/DOC;
 l'import DOCX/ODT le ripristina. Il default è A4 verticale con margini di 15 mm sopra/
 sotto e 17 mm a sinistra/destra.
@@ -1712,7 +1716,24 @@ sotto e 17 mm a sinistra/destra.
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
 inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un
 link e gli stati premuti seguono il cursore per grassetto/corsivo/sottolineato/
-barrato, apice/pedice, codice inline, link e stili di blocco.
+barrato, apice/pedice, codice inline, link e stili di blocco. **Codice inline**
+formatta una parola dentro il paragrafo; **Code block** trasforma l'intero
+paragrafo in un blocco preformattato: sono comandi diversi, non un duplicato.
+
+**Clear formatting** e **Copy formatting** agiscono sulla selezione se c'è,
+altrimenti sulla parola al cursore. Copy formatting attiva un pennello di
+formato: la selezione (o parola) successiva riceve font, dimensione, colore,
+evidenziazione e mark inline della sorgente; Escape annulla.
+
+**Impostazioni paragrafo** (pulsante `paragraphSettings`, anche Formato >
+Impostazioni paragrafo...) agisce sui paragrafi selezionati o su quello al
+cursore: allineamento, rientro sinistro, interlinea, spazio prima e dopo.
+L'interlinea predefinita del documento è in Impostazioni pagina e i singoli
+paragrafi possono sovrascriverla.
+
+L'editor mantiene l'altezza configurata con `height` (320 px di default);
+quando il testo supera l'area compare una scrollbar nel contenuto invece di far
+crescere il controllo. Anche la vista paginata scorre allo stesso modo.
 
 **Stili di blocco** (Quote, Code block, titoli): il selettore di stile e i
 pulsanti Quote/Code riflettono il blocco del cursore. Clicca di nuovo il
@@ -1721,6 +1742,18 @@ quote e code block, Backspace all'inizio fa lo stesso, **Clear formatting**
 ripristina il paragrafo, ed Enter sull'ultima riga vuota di un quote esce dal
 quote. Il code block mantiene le interruzioni di riga con Enter: usa Escape,
 Normal o il pulsante Code per uscirne.
+
+I controlli **Zoom** sono in un gruppo della toolbar: −, percentuale corrente
+(clic per tornare al 100%) e +. Scalano l'editor continuo e la vista paginata.
+
+**Anteprima di stampa** (pulsante `printPreview` e File > Anteprima di stampa)
+apre un'anteprima centrata con i pulsanti Stampa e Chiudi; File > Salva con
+nome è elencato subito sotto Apri file.
+
+I comandi link, immagine, simbolo e importa contenuto aprono un overlay
+centrato con le istruzioni e i campi necessari, al posto del prompt del
+browser. L'overlay non ha intestazione e conserva la selezione per inserire
+link, immagine o simbolo nel punto richiesto.
 
 Quando il cursore è dentro una tabella compare una **toolbar della tabella**
 subito sotto la toolbar principale. Ha pulsanti con icone per aggiungere o
