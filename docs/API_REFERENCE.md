@@ -1722,7 +1722,7 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
 `paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
 `orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
-`symbol`, `hr`, `pageBreak`, `pageSettings`, `printPreview`, `print`, `find`,
+`symbol`, `hr`, `pageBreak`, `imageSettings`, `pageSettings`, `printPreview`, `print`, `find`, `imageSettings`,
 `zoom`, `zoomIn`, `zoomOut`, `zoomReset`. The spacing and line-height selects
 remain available as custom tokens but are no longer in the default toolbar:
 they live in the Page settings and Paragraph settings panels.
@@ -1778,6 +1778,15 @@ Link, image, symbol and import-content commands open a centered overlay with
 instructions and the required fields, instead of a browser prompt. The overlay
 has no heading and keeps the caret selection to insert the link, image or
 symbol exactly where requested.
+
+**Image settings** (double-click an image, or the toolbar/menu entry) lets you
+edit the URL, replace the image with a local file, change the alternative text,
+width and left/center/right alignment, or remove it. The selected image is
+outlined in the editor.
+
+Inside a table, dragging over the text keeps the native text selection, so cell
+content can be formatted normally. Shift/Ctrl-click or a drag started on the
+cell padding selects a cell range for merge/alignment/toolbar actions.
 
 When the caret is inside a table, a **table toolbar** appears directly below
 the main formatting toolbar. It has icon buttons for add/delete row,

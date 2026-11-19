@@ -18,7 +18,7 @@ window.__SUI_RICH = (function () {
   var MAX_HISTORY = 120;
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
-  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
+  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,imageSettings,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -46,6 +46,7 @@ window.__SUI_RICH = (function () {
     link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>',
     unlink: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l16 16M10 13a5 5 0 0 0 7 0M14 11a5 5 0 0 0-7 0"/></svg>',
     image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>',
+    imageSettings: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.4"/><path d="M4 17l5-5 4 4 3-3 4 4"/><path d="M17 14l2 2-2 2M15 16h4"/></svg>',
     table: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 4v16M15 4v16"/></svg>',
     tableRowAbove: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="9" rx="1"/><path d="M3 15h18M9 11v9M15 11v9M12 3v5M9 6l3-3 3 3"/></svg>',
     tableRowBelow: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="9" rx="1"/><path d="M3 9h18M9 4v9M15 4v9M12 16v5M9 18l3 3 3-3"/></svg>',
@@ -84,7 +85,7 @@ window.__SUI_RICH = (function () {
     indent: 'Increase indent', outdent: 'Decrease indent',
     bulletList: 'Bulleted list', orderedList: 'Numbered list',
     blockquote: 'Quote', link: 'Insert link', unlink: 'Remove link',
-    image: 'Insert image', table: 'Insert table', symbol: 'Insert symbol',
+    image: 'Insert image', imageSettings: 'Image settings', table: 'Insert table', symbol: 'Insert symbol',
     hr: 'Horizontal rule', pageBreak: 'Page break',
     pageSettings: 'Page settings', printPreview: 'Print preview',
     print: 'Print / Save as PDF', find: 'Find and replace',
@@ -98,7 +99,7 @@ window.__SUI_RICH = (function () {
       { label: 'Import', items: ['JSON|importJSON', 'HTML|importHTML', 'Markdown|importMarkdown', 'XML|importXML'] },
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] }],
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
-    insert: ['Link|link', 'Unlink|unlink', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
+    insert: ['Link|link', 'Unlink|unlink', 'Image|image', 'Image settings...|imageSettings', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
     format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Heading 4|h4', 'Paragraph settings...|paragraphSettings', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Inline code|code', 'Clear formatting|clearFormat', 'Copy formatting|copyFormat'],
     view: ['Paginated view|paginatedView', 'Page settings|pageSettings', 'Zoom to 100%|zoomReset', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
@@ -427,7 +428,12 @@ window.__SUI_RICH = (function () {
         if (node.alt) img.setAttribute('alt', String(node.alt));
         if (node.title) img.setAttribute('title', String(node.title));
         if (node.width) img.style.width = cssLength(node.width, '');
-        if (node.align) img.style.display = 'block', img.style.marginLeft = node.align === 'right' ? 'auto' : node.align === 'center' ? 'auto' : '0';
+        if (node.align) {
+          img.style.display = 'block';
+          img.style.textAlign = node.align;
+          img.style.marginLeft = (node.align === 'right' || node.align === 'center') ? 'auto' : '0';
+          img.style.marginRight = (node.align === 'left' || node.align === 'center') ? 'auto' : '0';
+        }
         parent.appendChild(img);
       }
     }
@@ -1018,10 +1024,11 @@ window.__SUI_RICH = (function () {
       else if (cmd === 'link') on = inLink;
       else if (cmd === 'copyFormat') on = !!inst.painter;
       else if (cmd === 'unlink') disabled = !inLink;
+      else if (cmd === 'imageSettings') disabled = !inst.editor.querySelector('img');
       else continue;
       buttons[b].classList.toggle('on', on);
       buttons[b].setAttribute('aria-pressed', on ? 'true' : 'false');
-      if (cmd === 'unlink') {
+      if (cmd === 'unlink' || cmd === 'imageSettings') {
         buttons[b].disabled = disabled;
         buttons[b].setAttribute('aria-disabled', disabled ? 'true' : 'false');
       }
@@ -1284,6 +1291,31 @@ window.__SUI_RICH = (function () {
       inst.editor.style.cursor = hit ? (hit.kind === 'row' ? 'row-resize' : hit.kind === 'table' ? 'nwse-resize' : 'col-resize') : '';
     });
     inst.editor.addEventListener('mouseleave', function () { inst.editor.style.cursor = ''; });
+    inst.editor.addEventListener('click', function (e) {
+      var img = e.target && e.target.tagName === 'IMG' ? e.target : null;
+      if (img) { selectImage(inst, img); return; }
+      if (inst.lastImage) {
+        inst.lastImage.classList.remove('sui-rich-image-selected');
+        inst.lastImage = null;
+        updateStats(inst);
+      }
+    });
+    inst.editor.addEventListener('dblclick', function (e) {
+      var img = e.target && e.target.tagName === 'IMG' ? e.target : null;
+      if (img) { e.preventDefault(); openImageSettings(inst, img); }
+    });
+  }
+  function cellTextHit(cell, e) {
+    if (!cell || !e) return false;
+    if (!String(cell.textContent || '').trim()) return false;
+    var range = document.createRange();
+    range.selectNodeContents(cell);
+    var rects = range.getClientRects();
+    for (var i = 0; i < rects.length; i++) {
+      var r = rects[i];
+      if (e.clientX >= r.left - 2 && e.clientX <= r.right + 2 && e.clientY >= r.top - 2 && e.clientY <= r.bottom + 2) return true;
+    }
+    return false;
   }
   function bindCellSelection(inst) {
     inst.editor.addEventListener('mousedown', function (e) {
@@ -1293,26 +1325,36 @@ window.__SUI_RICH = (function () {
       if (!cell || !inst.editor.contains(cell)) { clearCellSelection(inst); return; }
       var table = cell.closest('table');
       if (inst.selectedTable) { inst.selectedTable.classList.remove('sui-rich-table-selected'); inst.selectedTable = null; }
-      inst.cellDragging = true;
-      if ((e.shiftKey || e.ctrlKey || e.metaKey) && inst.cellAnchor && inst.cellAnchor.closest('table') === table) {
-        selectCellRange(inst, table, inst.cellAnchor, cell);
-      } else {
+      var wantsRange = !!(e.shiftKey || e.ctrlKey || e.metaKey);
+      var cellPadding = !cellTextHit(cell, e);
+      // A normal drag inside the cell text must stay a native text selection,
+      // so formatting can be applied to part of the cell. Cell ranges are
+      // selected with Shift/Ctrl, or by starting on the cell padding/empty cell.
+      if (wantsRange) {
+        e.preventDefault();
+        inst.cellDragging = true;
+        if (inst.cellAnchor && inst.cellAnchor.closest('table') === table) selectCellRange(inst, table, inst.cellAnchor, cell);
+        else { inst.selectedCells = [cell]; inst.cellAnchor = cell; updateCellSelection(inst); }
+        return;
+      }
+      if (cellPadding) {
+        e.preventDefault();
+        inst.cellDragging = true;
         inst.selectedCells = [cell];
         inst.cellAnchor = cell;
         updateCellSelection(inst);
-      }
-      // Clicking the empty padding of a cell can make the browser put the
-      // caret in the neighbouring cell. Force it into the clicked cell.
-      if (e.target === cell || !String(cell.textContent || '').trim()) {
-        e.preventDefault();
         forceCellCaret(inst, cell);
+        return;
       }
+      clearCellSelection(inst);
+      inst.cellAnchor = cell;
+      inst.cellDragging = false;
     });
     inst.editor.addEventListener('mouseup', function (e) {
       if (!inst.cellAnchor || !inst.selectedCells || inst.selectedCells.length !== 1) return;
       var cell = inst.cellAnchor;
       if (!inst.editor.contains(cell)) return;
-      if (e.target === cell || !String(cell.textContent || '').trim()) {
+      if (!cellTextHit(cell, e)) {
         e.preventDefault();
         forceCellCaret(inst, cell);
       }
@@ -1322,7 +1364,7 @@ window.__SUI_RICH = (function () {
       if (!cell || !inst.editor.contains(cell)) return;
       // Chromium can finalize the caret on click after mousedown; repeat the
       // fix for empty cells and clicks on cell padding.
-      if (e.target === cell || !String(cell.textContent || '').trim()) {
+      if (!cellTextHit(cell, e)) {
         e.preventDefault();
         forceCellCaret(inst, inst.cellAnchor && inst.editor.contains(inst.cellAnchor) ? inst.cellAnchor : cell);
       }
@@ -1939,6 +1981,7 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'paginatedView') { setPaginated(inst); }
     else if (cmd === 'pageSettings') { openPageSettings(inst); }
     else if (cmd === 'paragraphSettings') { openParagraphSettings(inst); }
+    else if (cmd === 'imageSettings') { openImageSettings(inst, imageTarget(inst)); }
     else if (cmd === 'zoomIn') { setZoom(inst, (inst.zoom || 1) + 0.1); }
     else if (cmd === 'zoomOut') { setZoom(inst, (inst.zoom || 1) - 0.1); }
     else if (cmd === 'zoomReset') { setZoom(inst, 1); }
@@ -2029,7 +2072,7 @@ window.__SUI_RICH = (function () {
         var r = typeof pluginCmd.run === 'function' ? pluginCmd.run(inst, value) : runBuiltin(inst, pluginCmd.command, value);
         if (r === false) return [false, 'command failed: ' + cmd];
       }
-      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|paragraphSettings|copyFormat|zoomIn|zoomOut|zoomReset)$/.test(cmd)) commit(inst, 'change');
+      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset)$/.test(cmd)) commit(inst, 'change');
       return [true, null];
     } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
   }
@@ -2516,7 +2559,7 @@ window.__SUI_RICH = (function () {
     if (has(/^(undo|redo|copy|cut|paste)$/)) return 'History and clipboard';
     if (has(/^(styleSelect|fontFamily|fontSize|bold|italic|underline|strike|textColor|highlight|superscript|subscript|code|clearFormat|copyFormat)$/)) return 'Text formatting';
     if (has(/^(align|indent|outdent|lineHeight|spaceBefore|spaceAfter|paragraphSettings|bulletList|orderedList|blockquote|codeBlock|justify)/)) return 'Paragraph';
-    if (has(/^(link|unlink|image|table|symbol|hr|pageBreak)$/)) return 'Insert';
+    if (has(/^(link|unlink|image|imageSettings|table|symbol|hr|pageBreak)$/)) return 'Insert';
     if (has(/^(pageSettings|print|printPreview|find)$/)) return 'Document';
     if (has(/^zoom$/)) return 'Zoom';
     return 'Tools';
@@ -3725,6 +3768,197 @@ window.__SUI_RICH = (function () {
     var first = panel.querySelector('[data-rich-paragraph-align]');
     if (first) first.focus();
   }
+  function imageTarget(inst) {
+    if (inst.lastImage && inst.lastImage.isConnected && inst.editor && inst.editor.contains(inst.lastImage)) return inst.lastImage;
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      var node = sel.anchorNode;
+      var element = node && node.nodeType === 1 ? node : (node && node.parentElement);
+      var img = element && element.closest ? element.closest('img') : null;
+      if (img && inst.editor.contains(img)) return img;
+    }
+    var images = inst.editor ? inst.editor.querySelectorAll('img') : [];
+    return images.length ? images[0] : null;
+  }
+  function selectImage(inst, img) {
+    if (inst.lastImage && inst.lastImage !== img) inst.lastImage.classList.remove('sui-rich-image-selected');
+    inst.lastImage = img;
+    if (img) img.classList.add('sui-rich-image-selected');
+    updateStats(inst);
+  }
+  function imageSettingsPanel(inst) {
+    var panel = document.querySelector('.sui-rich-imagesettings[data-rich-imagesettings="' + inst.name + '"]');
+    if (panel) return panel;
+    panel = el('div', 'sui-rich-imagesettings');
+    panel.setAttribute('data-rich-imagesettings', inst.name);
+    panel.hidden = true;
+    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Image settings'));
+
+    var urlRow = el('label');
+    urlRow.appendChild(el('span', '', 'URL'));
+    var url = el('input');
+    url.type = 'text';
+    url.setAttribute('data-rich-image-url', '1');
+    url.setAttribute('aria-label', 'Image URL');
+    url.placeholder = 'https://example.com/image.png';
+    urlRow.appendChild(url);
+    panel.appendChild(urlRow);
+
+    var fileRow = el('label');
+    fileRow.appendChild(el('span', '', 'Replace'));
+    var file = el('input');
+    file.type = 'file';
+    file.accept = 'image/*';
+    file.setAttribute('data-rich-image-file', '1');
+    file.setAttribute('aria-label', 'Replace image file');
+    fileRow.appendChild(file);
+    panel.appendChild(fileRow);
+
+    var altRow = el('label');
+    altRow.appendChild(el('span', '', 'Alt text'));
+    var alt = el('input');
+    alt.type = 'text';
+    alt.setAttribute('data-rich-image-alt', '1');
+    alt.setAttribute('aria-label', 'Alternative text');
+    alt.placeholder = 'Describe the image';
+    altRow.appendChild(alt);
+    panel.appendChild(altRow);
+
+    var widthRow = el('label');
+    widthRow.appendChild(el('span', '', 'Width'));
+    var width = el('input');
+    width.type = 'number';
+    width.min = '0';
+    width.step = '1';
+    width.setAttribute('data-rich-image-width', '1');
+    width.setAttribute('aria-label', 'Image width in pixels; empty for automatic');
+    widthRow.appendChild(width);
+    panel.appendChild(widthRow);
+
+    var alignRow = el('label');
+    alignRow.appendChild(el('span', '', 'Alignment'));
+    var align = el('select');
+    align.setAttribute('data-rich-image-align', '1');
+    align.setAttribute('aria-label', 'Image alignment');
+    [['', 'Default'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; align.appendChild(op); });
+    alignRow.appendChild(align);
+    panel.appendChild(alignRow);
+    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Edit the URL or choose a file to replace the image. Width is in pixels; leave it empty for automatic.'));
+    var error = el('p', 'sui-rich-imagesettings-error');
+    error.hidden = true;
+    panel.appendChild(error);
+
+    var actions = el('div', 'sui-rich-pagesettings-actions');
+    var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-image-apply', '1');
+    var remove = el('button', 'sui-rich-btn', 'Remove'); remove.type = 'button'; remove.setAttribute('data-rich-image-remove', '1');
+    var close = el('button', 'sui-rich-btn', 'Close'); close.type = 'button'; close.setAttribute('data-rich-image-close', '1');
+    actions.appendChild(apply); actions.appendChild(remove); actions.appendChild(close);
+    panel.appendChild(actions);
+
+    file.addEventListener('change', function () {
+      var picked = file.files && file.files[0];
+      if (!picked) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var value = String(reader.result || '');
+        if (!/^data:image\//i.test(value)) { error.textContent = 'Choose an image file.'; error.hidden = false; return; }
+        url.value = value;
+        error.hidden = true;
+      };
+      reader.readAsDataURL(picked);
+    });
+    panel.addEventListener('click', function (ev) {
+      var target = ev.target;
+      if (!target || !target.closest) return;
+      if (target.closest('[data-rich-image-apply]')) { applyImageSettings(inst); return; }
+      if (target.closest('[data-rich-image-remove]')) { removeImage(inst); return; }
+      if (target.closest('[data-rich-image-close]')) { panel.hidden = true; return; }
+    });
+    document.body.appendChild(panel);
+    if (!window.__suiImageSettingsBound) {
+      window.__suiImageSettingsBound = true;
+      document.addEventListener('mousedown', function (ev) {
+        var target = ev.target;
+        if (target && target.closest && (target.closest('.sui-rich-imagesettings') || target.closest('[data-rich-cmd="imageSettings"]'))) return;
+        var panels = document.querySelectorAll('.sui-rich-imagesettings');
+        for (var i = 0; i < panels.length; i++) panels[i].hidden = true;
+      });
+    }
+    return panel;
+  }
+  function openImageSettings(inst, img) {
+    inst = resolveInstance(inst.name) || inst;
+    var liveRoot = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"]');
+    if (liveRoot) {
+      inst.root = liveRoot;
+      var liveEditor = liveRoot.querySelector('.sui-rich-editor');
+      if (liveEditor) inst.editor = liveEditor;
+    }
+    img = img || imageTarget(inst);
+    if (!img) return;
+    selectImage(inst, img);
+    var images = inst.editor.querySelectorAll('img');
+    inst.imageIndex = Array.prototype.indexOf.call(images, img);
+    var panel = imageSettingsPanel(inst);
+    var rootStyle = getComputedStyle(inst.root);
+    ['--sui-rich-bg', '--sui-rich-fg', '--sui-rich-border', '--sui-rich-muted', '--sui-rich-hover', '--sui-rich-accent', '--sui-rich-shadow'].forEach(function (name) {
+      var value = rootStyle.getPropertyValue(name);
+      if (value) panel.style.setProperty(name, value);
+    });
+    var url = panel.querySelector('[data-rich-image-url]');
+    var alt = panel.querySelector('[data-rich-image-alt]');
+    var width = panel.querySelector('[data-rich-image-width]');
+    var align = panel.querySelector('[data-rich-image-align]');
+    var error = panel.querySelector('.sui-rich-imagesettings-error');
+    if (url) url.value = img.getAttribute('src') || '';
+    if (alt) alt.value = img.getAttribute('alt') || '';
+    if (width) width.value = parseFloat(img.style.width) ? String(Math.round(parseFloat(img.style.width))) : '';
+    if (align) align.value = img.style.textAlign || '';
+    if (error) error.hidden = true;
+    panel.hidden = false;
+    var rect = img.getBoundingClientRect();
+    var panelW = 300, panelH = 390;
+    var left = rect && rect.width ? rect.left : 16;
+    var top = rect && rect.height ? rect.bottom + 6 : 16;
+    left = Math.max(8, Math.min(window.innerWidth - panelW, left));
+    if (top + panelH > window.innerHeight) top = Math.max(8, window.innerHeight - panelH);
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    if (url) url.focus();
+  }
+  function applyImageSettings(inst) {
+    inst = resolveInstance(inst.name) || inst;
+    var panel = imageSettingsPanel(inst);
+    var images = inst.editor.querySelectorAll('img');
+    var img = images[inst.imageIndex] || inst.lastImage;
+    if (!img) return;
+    var url = panel.querySelector('[data-rich-image-url]').value;
+    var src = safeUrl(url, true);
+    var error = panel.querySelector('.sui-rich-imagesettings-error');
+    if (!src) { error.textContent = 'Use an http(s) or data:image URL.'; error.hidden = false; return; }
+    error.hidden = true;
+    img.setAttribute('src', src);
+    img.setAttribute('alt', panel.querySelector('[data-rich-image-alt]').value || '');
+    var width = parseFloat(panel.querySelector('[data-rich-image-width]').value);
+    img.style.width = isFinite(width) && width > 0 ? Math.round(width) + 'px' : '';
+    var align = panel.querySelector('[data-rich-image-align]').value;
+    img.style.textAlign = align || '';
+    img.style.display = align ? 'block' : '';
+    img.style.marginLeft = align === 'right' || align === 'center' ? 'auto' : (align === 'left' ? '0' : '');
+    img.style.marginRight = align === 'left' || align === 'center' ? 'auto' : (align === 'right' ? '0' : '');
+    commit(inst, 'change');
+    panel.hidden = true;
+  }
+  function removeImage(inst) {
+    inst = resolveInstance(inst.name) || inst;
+    var panel = imageSettingsPanel(inst);
+    var images = inst.editor.querySelectorAll('img');
+    var img = images[inst.imageIndex] || inst.lastImage;
+    if (img && img.parentNode) img.parentNode.removeChild(img);
+    inst.lastImage = null;
+    commit(inst, 'change');
+    panel.hidden = true;
+  }
   function escapePrintText(value) {
     return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -3746,6 +3980,27 @@ window.__SUI_RICH = (function () {
       'main .sui-rich-pagebreak { break-after: page; page-break-after: always; border: 0; height: 0; margin: 0; font-size: 0; color: transparent; }' +
       '</style></head><body>' + header + '<main>' + body + '</main>' + footer + '</body></html>';
   }
+  function printPreviewHTML(inst) {
+    var page = pageConfig(inst);
+    var size = pageSizeMm(page);
+    var body = exportHTML(inst);
+    var head = inst.headerText ? '<div class="sui-preview-header">' + escapePrintText(sheetChromeText(inst.headerText, 1, 1, true)) + '</div>' : '';
+    var foot = inst.footerText ? '<div class="sui-preview-footer">' + escapePrintText(sheetChromeText(inst.footerText, 1, 1, true)) + '</div>' : '';
+    var pageSize = (page.size === 'letter' ? 'Letter' : 'A4') + (page.orientation === 'landscape' ? ' landscape' : '');
+    return '<!doctype html><html><head><meta charset="utf-8"><title>' + escapePrintText(inst.name) + '</title><style>' +
+      '@page { size: ' + pageSize + '; margin: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; }' +
+      'html, body { margin: 0; padding: 0; }' +
+      'body { background: #e6e9ef; padding: 24px; font-family: Georgia, "Times New Roman", serif; color: #111; line-height: ' + page.lineHeight + '; }' +
+      '.sui-preview-page { box-sizing: border-box; width: ' + size.w + 'mm; min-height: ' + size.h + 'mm; margin: 0 auto; padding: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; background: #fff; box-shadow: 0 10px 28px rgba(0,0,0,.28); }' +
+      '.sui-preview-header { text-align: center; font-size: 10pt; color: #555; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px; }' +
+      '.sui-preview-footer { text-align: center; font-size: 10pt; color: #555; border-top: 1px solid #ccc; padding-top: 4px; margin-top: 8px; }' +
+      'main img { max-width: 100%; height: auto; }' +
+      'main table { border-collapse: collapse; width: 100%; }' +
+      'main td, main th { border: 1px solid #999; padding: 5px 7px; vertical-align: top; }' +
+      'main .sui-rich-pagebreak { break-after: page; page-break-after: always; border: 0; height: 0; margin: 0; font-size: 0; color: transparent; }' +
+      '@media print { body { background: #fff; padding: 0; } .sui-preview-page { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; } }' +
+      '</style></head><body><div class="sui-preview-page">' + head + '<main>' + body + '</main>' + foot + '</div></body></html>';
+  }
   function openPrintPreview(inst) {
     inst = resolveInstance(inst.name) || inst;
     var existing = document.querySelector('.sui-rich-preview');
@@ -3765,7 +4020,7 @@ window.__SUI_RICH = (function () {
     var frame = el('iframe', 'sui-rich-preview-frame');
     frame.setAttribute('title', 'Print preview');
     frame.setAttribute('sandbox', 'allow-same-origin allow-modals');
-    frame.srcdoc = printHTML(inst);
+    frame.srcdoc = printPreviewHTML(inst);
     card.appendChild(bar); card.appendChild(frame); overlay.appendChild(card);
     document.body.appendChild(overlay);
     function close() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); document.removeEventListener('keydown', onKey); }
@@ -3773,7 +4028,11 @@ window.__SUI_RICH = (function () {
     document.addEventListener('keydown', onKey);
     closeBtn.addEventListener('click', close);
     printBtn.addEventListener('click', function () {
-      try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
+      frame.onload = function () {
+        frame.onload = null;
+        try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
+      };
+      frame.srcdoc = printHTML(inst);
     });
     overlay.addEventListener('mousedown', function (ev) { if (ev.target === overlay) close(); });
     printBtn.focus();
@@ -7106,7 +7365,7 @@ const suiRichTextCss = `
 .sui-rich-sheet-header { position: absolute; left: 64px; right: 64px; top: 26px; font-size: 11px; color: #65718a; text-align: center; border-bottom: 1px solid #d6dce8; padding-bottom: 3px; }
 .sui-rich-sheet-footer { position: absolute; left: 64px; right: 64px; bottom: 34px; font-size: 11px; color: #65718a; text-align: center; border-top: 1px solid #d6dce8; padding-top: 3px; }
 .sui-rich-sheet-number { position: absolute; right: 18px; bottom: 8px; font-size: 10px; color: #8a94a6; }
-.sui-rich-pages-btn { width: auto; min-width: 44px; padding: 0 7px; font-size: 11px; }
+.sui-rich-zoom-btn.sui-rich-pages-btn { width: auto; min-width: 72px; height: 28px; padding: 0 12px; font-size: 12px; white-space: nowrap; flex: 0 0 auto; }
 .sui-rich-pages-btn.on { background: var(--sui-rich-accent); color: #fff; border-color: var(--sui-rich-accent); }
 .sui-rich-page { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--sui-rich-paper); }
 .sui-rich-pageheader { padding: 9px 26px 5px; border-bottom: 1px solid var(--sui-rich-paper-border); font-size: 11px; color: var(--sui-rich-paper-muted); text-align: center; }
@@ -7132,6 +7391,8 @@ const suiRichTextCss = `
 .sui-rich-btn.on { background: var(--sui-rich-hover); color: var(--sui-rich-accent); border-color: var(--sui-rich-accent); }
 .sui-rich-btn[disabled] { opacity: .45; cursor: default; }
 .sui-rich[data-rich-painter="1"] .sui-rich-editor { cursor: copy; }
+.sui-rich-imagesettings-error { margin: 0; color: #fca5a5; font-size: 12px; }
+.sui-rich-editor img.sui-rich-image-selected { outline: 2px solid var(--sui-rich-accent); outline-offset: 2px; }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
 .sui-rich-color { width: 34px; padding: 2px; cursor: pointer; }
 .sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }
@@ -7166,7 +7427,8 @@ const suiRichTextCss = `
 .sui-rich-status { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 5px 10px; border-top: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); color: var(--sui-rich-muted); font-size: 11px; }
 .sui-rich-stats { margin-right: auto; }
 .sui-rich-saved { color: var(--sui-rich-muted); }
-.sui-rich-zoom-btn { width: 22px; height: 22px; border: 1px solid var(--sui-rich-border); border-radius: 5px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; line-height: 1; }
+.sui-rich-zoom-btn { width: 22px; height: 22px; border: 1px solid var(--sui-rich-border); border-radius: 5px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; line-height: 1; white-space: nowrap; }
+.sui-rich-zoom-label { width: auto; min-width: 48px; padding: 0 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
 .sui-rich-context { position: fixed; z-index: 900; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-context[hidden] { display: none; }
 .sui-rich-tableprops { position: fixed; z-index: 965; width: 232px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.35); color: var(--sui-rich-fg); font-size: 12px; }
@@ -7185,13 +7447,13 @@ const suiRichTextCss = `
 .sui-rich-preview-bar strong { margin-right: auto; font-weight: 600; }
 .sui-rich-preview-bar .sui-rich-btn { border: 1px solid #3d4556; }
 .sui-rich-preview-frame { flex: 1 1 auto; width: 100%; border: 0; background: #fff; }
-.sui-rich-pagesettings, .sui-rich-paragraphsettings { position: fixed; z-index: 5000; width: 276px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: var(--sui-rich-shadow, 0 14px 34px rgba(0,0,0,.35)); color: var(--sui-rich-fg); font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
-.sui-rich-pagesettings[hidden], .sui-rich-paragraphsettings[hidden] { display: none; }
-.sui-rich-pagesettings label, .sui-rich-paragraphsettings label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sui-rich-pagesettings select, .sui-rich-pagesettings input, .sui-rich-paragraphsettings select, .sui-rich-paragraphsettings input { height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 6px; min-width: 0; }
+.sui-rich-pagesettings, .sui-rich-paragraphsettings, .sui-rich-imagesettings { position: fixed; z-index: 5000; width: 276px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: var(--sui-rich-shadow, 0 14px 34px rgba(0,0,0,.35)); color: var(--sui-rich-fg); font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sui-rich-pagesettings[hidden], .sui-rich-paragraphsettings[hidden], .sui-rich-imagesettings[hidden] { display: none; }
+.sui-rich-pagesettings label, .sui-rich-paragraphsettings label, .sui-rich-imagesettings label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sui-rich-pagesettings select, .sui-rich-pagesettings input, .sui-rich-paragraphsettings select, .sui-rich-paragraphsettings input, .sui-rich-imagesettings select, .sui-rich-imagesettings input { height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 6px; min-width: 0; }
 .sui-rich-pagesettings input[type="number"], .sui-rich-paragraphsettings input[type="number"] { width: 72px; }
-.sui-rich-pagesettings label > span, .sui-rich-paragraphsettings label > span { flex: none; }
-.sui-rich-pagesettings label > input[type="text"], .sui-rich-paragraphsettings label > input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+.sui-rich-pagesettings label > span, .sui-rich-paragraphsettings label > span, .sui-rich-imagesettings label > span { flex: none; }
+.sui-rich-pagesettings label > input[type="text"], .sui-rich-paragraphsettings label > input[type="text"], .sui-rich-imagesettings label > input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
 .sui-rich-pagesettings-grid, .sui-rich-paragraphsettings .sui-rich-pagesettings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
 .sui-rich-pagesettings-hint { color: var(--sui-rich-muted); font-size: 11px; line-height: 1.4; }
 .sui-rich-pagesettings-actions { display: flex; gap: 6px; }

@@ -1697,7 +1697,7 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
 `paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
 `orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
-`symbol`, `hr`, `pageBreak`, `pageSettings`, `printPreview`, `print`, `find`,
+`symbol`, `hr`, `pageBreak`, `imageSettings`, `pageSettings`, `printPreview`, `print`, `find`,
 `zoom`, `zoomIn`, `zoomOut`, `zoomReset`. I selettori di interlinea e spazi
 restano disponibili come token personalizzati ma non sono più nella toolbar
 predefinita: sono nei pannelli Impostazioni pagina e Impostazioni paragrafo.
@@ -1754,6 +1754,16 @@ I comandi link, immagine, simbolo e importa contenuto aprono un overlay
 centrato con le istruzioni e i campi necessari, al posto del prompt del
 browser. L'overlay non ha intestazione e conserva la selezione per inserire
 link, immagine o simbolo nel punto richiesto.
+
+**Impostazioni immagine** (doppio clic sull'immagine, oppure toolbar/menu)
+permette di modificare l'URL, sostituire l'immagine con un file locale,
+cambiare testo alternativo, larghezza e allineamento sinistra/centro/destra,
+oppure rimuoverla. L'immagine selezionata è evidenziata nell'editor.
+
+Dentro una tabella, il trascinamento sul testo mantiene la selezione nativa e
+quindi il contenuto delle celle si formatta normalmente. Shift/Ctrl+clic o un
+trascinamento iniziato sul padding della cella selezionano un intervallo di
+celle per unione/allineamento/toolbar.
 
 Quando il cursore è dentro una tabella compare una **toolbar della tabella**
 subito sotto la toolbar principale. Ha pulsanti con icone per aggiungere o

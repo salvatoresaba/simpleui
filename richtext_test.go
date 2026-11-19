@@ -613,7 +613,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     // states follow the caret.
     __SUI_RICH.setToolbar('editor', '');
     await wait(200);
-    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','copyFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','paragraphSettings','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak','pageSettings','printPreview','print','find'];
+    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','copyFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','paragraphSettings','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','imageSettings','table','symbol','hr','pageBreak','pageSettings','printPreview','print','find'];
     for (var dt = 0; dt < defaultTokens.length; dt++) {
       if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="' + defaultTokens[dt] + '"]')) throw new Error('default toolbar missing control: ' + defaultTokens[dt]);
     }
@@ -621,6 +621,8 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="in"]') || !richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="out"]')) throw new Error('zoom controls missing from the toolbar');
     if (!richRoot().querySelector('.sui-rich-toolbar .sui-rich-zoom-label')) throw new Error('zoom scale label missing');
     if (richRoot().querySelectorAll('.sui-rich-status [data-rich-zoom]').length) throw new Error('zoom controls still in the status bar');
+    var reqPagesBtn = richRoot().querySelector('.sui-rich-status [data-rich-pages]');
+    if (!reqPagesBtn || reqPagesBtn.getBoundingClientRect().width < 60 || getComputedStyle(reqPagesBtn).whiteSpace !== 'nowrap') throw new Error('Pages button is too small or wraps');
 
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Code me', marks: [] }] }] });
     await wait(200);
@@ -734,6 +736,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="in"]').click();
     await wait(100);
     if (!reqZoomLabel || reqZoomLabel.textContent !== '110%') throw new Error('zoom in did not update the label');
+    if (parseFloat(getComputedStyle(bsEditor()).fontSize) <= 16) throw new Error('zoom did not change the editor content size');
     reqZoomLabel.click();
     await wait(100);
     if (reqZoomLabel.textContent !== '100%') throw new Error('zoom reset did not return to 100%');
@@ -759,7 +762,13 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
 
     richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="printPreview"]').click();
     await wait(300);
-    if (!document.querySelector('.sui-rich-preview iframe')) throw new Error('print preview did not open');
+    var reqPreviewFrame = document.querySelector('.sui-rich-preview iframe');
+    if (!reqPreviewFrame) throw new Error('print preview did not open');
+    try {
+      var reqPreviewDoc = reqPreviewFrame.contentDocument;
+      var reqPreviewPage = reqPreviewDoc && reqPreviewDoc.querySelector('.sui-preview-page');
+      if (!reqPreviewPage || getComputedStyle(reqPreviewPage).paddingTop === '0px') throw new Error('print preview does not show page margins');
+    } catch (e) { throw new Error('print preview document not inspectable: ' + e.message); }
     var reqPreviewClose = [].slice.call(document.querySelectorAll('.sui-rich-preview button')).filter(function (b) { return b.textContent === 'Close'; })[0];
     if (reqPreviewClose) reqPreviewClose.click();
     await wait(100);
@@ -809,6 +818,40 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqPlainStyle = getComputedStyle(reqPlainNode.parentElement);
     if (parseInt(reqPlainStyle.fontWeight, 10) < 600) throw new Error('copy format did not paint the target word');
     if (bsBtn('copyFormat').classList.contains('on')) throw new Error('format painter stayed active after painting');
+
+    var reqPng = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDQ4OCIvPjwvc3ZnPg==';
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'image', src: reqPng, alt: 'Old', width: '80px', marks: [] }] }] });
+    await wait(300);
+    var reqImg = bsEditor().querySelector('img');
+    if (!reqImg) throw new Error('image fixture missing');
+    reqImg.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    await wait(250);
+    var reqImgPanel = document.querySelector('.sui-rich-imagesettings');
+    if (!reqImgPanel || reqImgPanel.hidden) throw new Error('image settings panel did not open');
+    var reqPng2 = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjYzMzIi8+PC9zdmc+';
+    reqImgPanel.querySelector('[data-rich-image-url]').value = reqPng2;
+    reqImgPanel.querySelector('[data-rich-image-alt]').value = 'New alt';
+    reqImgPanel.querySelector('[data-rich-image-width]').value = '120';
+    reqImgPanel.querySelector('[data-rich-image-align]').value = 'center';
+    reqImgPanel.querySelector('[data-rich-image-apply]').click();
+    await wait(300);
+    var reqImgDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0].children[0];
+    if (reqImgDoc.alt !== 'New alt' || reqImgDoc.width !== '120px' || reqImgDoc.align !== 'center') throw new Error('image settings not stored: ' + JSON.stringify(reqImgDoc));
+    if (bsEditor().querySelector('img').getAttribute('alt') !== 'New alt') throw new Error('image settings not applied to the DOM');
+    if (bsEditor().querySelector('img').getAttribute('src') !== reqPng2) throw new Error('image replacement URL not applied');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'table', header: true, rows: [{ type: 'table_row', cells: [{ type: 'table_cell', header: true, children: [{ type: 'text', text: 'Cell', marks: [] }] }] }] }] });
+    await wait(300);
+    var reqCellP = bsEditor().querySelector('th, td');
+    var reqCellRect = reqCellP.getBoundingClientRect();
+    var reqCellDown = new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqCellRect.left + reqCellRect.width / 2, clientY: reqCellRect.top + reqCellRect.height / 2 });
+    reqCellP.dispatchEvent(reqCellDown);
+    if (reqCellDown.defaultPrevented) throw new Error('cell text mousedown blocks native text selection');
+    if (bsEditor().querySelector('th.sui-rich-cell-selected, td.sui-rich-cell-selected')) throw new Error('text mousedown selects the whole cell');
+    var reqCell = bsEditor().querySelector('th, td');
+    var reqPaddingDown = new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqCellRect.left + 1, clientY: reqCellRect.top + 1 });
+    reqCell.dispatchEvent(reqPaddingDown);
+    if (!bsEditor().querySelector('th.sui-rich-cell-selected, td.sui-rich-cell-selected')) throw new Error('cell padding does not select the cell');
 
     var reqFileBtn = richRoot().querySelector('.sui-rich-menu-btn[data-rich-menu="file"]');
     reqFileBtn.click();
@@ -871,7 +914,7 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"clearFormat", "alignLeft", "alignCenter", "alignRight", "justify",
 		"indent", "outdent", "paragraphSettings",
 		"bulletList", "orderedList", "blockquote", "codeBlock",
-		"link", "unlink", "image", "table", "symbol", "hr", "pageBreak",
+		"link", "unlink", "image", "imageSettings", "table", "symbol", "hr", "pageBreak",
 		"pageSettings", "printPreview", "print", "find", "copyFormat", "zoom",
 	} {
 		if !items[token] {
