@@ -31,7 +31,8 @@ builds.
 Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Print preview shows the real page split and follows the UI light/dark theme;
   the continuous editor marks automatic page cuts with red dashed guides spaced
-  by the full page height (margins included). The guides are anchored to
+  by the full page height (margins included). Hovering a guide shows a red
+  "Page break - drag" label and a large grab band. The guides are anchored to
   document positions and follow the content while scrolling. Drag a guide, or
   the whole red line/label of an existing break (not just its handle), to move
   the cut; dragging near an edge auto-scrolls, so the target can go beyond the

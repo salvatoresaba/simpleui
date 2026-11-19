@@ -1718,8 +1718,10 @@ verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor c
 orizzontale su ogni interruzione di pagina automatica, distanziata dell'altezza
 completa della pagina (margini superiore e inferiore inclusi), agganciata al
 bordo del paragrafo più vicino (così non attraversa mai il testo) e disegnata in
-rosso. La linea è ancorata a una posizione del documento, non al viewport: si
-muove con il contenuto quando si scorre l'editor. Trascina una guida rossa
+rosso. Passando sopra la linea compare un'etichetta rossa "Page break - drag" e
+una fascia di presa ampia, quindi è facile afferrare tutta la linea. La linea è
+ancorata a una posizione del documento, non al viewport: si muove con il
+contenuto quando si scorre l'editor. Trascina una guida rossa
 tratteggiata per inserire un'interruzione prima del paragrafo o della tabella
 più vicini, oppure trascina la linea rossa di un'interruzione esistente (tutta
 l'etichetta/linea è trascinabile, non solo la piccola maniglia) per spostarla;

@@ -1743,8 +1743,10 @@ restore the document defaults. The default is A4 portrait with 15 mm top/bottom 
 left/right margins. The continuous editor draws a dashed horizontal guide at
 every automatic page cut, spaced by the full page height (top and bottom margins
 included) and snapped to the nearest paragraph edge so it never crosses text,
-and drawn in red. The line is anchored to a document position, not to the
-viewport: it moves with the editor content when the user scrolls. Drag a red
+and drawn in red. Hovering the line shows a red "Page break - drag" label and a
+large grab band, so the whole line is easy to grab. The line is anchored to a
+document position, not to the viewport: it moves with the editor content when
+the user scrolls. Drag a red
 dashed guide to insert a page break before the nearest paragraph or table, or
 drag the red line of an existing break (the whole label/line is a drag target,
 not only the small handle) to move it; dragging near an editor edge auto-scrolls

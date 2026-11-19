@@ -3317,15 +3317,26 @@ window.__SUI_RICH = (function () {
   function startPageDrag(inst, line, ev, breakNode) {
     ev.preventDefault();
     ev.stopPropagation();
+    // Capture any pending DOM edit before the drag, without notifying the host
+    // (a host re-render here would recreate the editor and the dragged line).
+    sync(inst);
+    if (inst.editor) inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
     var ed = inst.editor;
     var isBreak = !!breakNode;
     var layer = isBreak ? null : line.parentNode;
     var hostRect = layer ? layer.parentNode.getBoundingClientRect() : null;
     var edRect = ed.getBoundingClientRect();
-    var startY = ev.clientY, startScroll = ed.scrollTop;
-    var startContent = isBreak
-      ? (breakNode.getBoundingClientRect().top - edRect.top + startScroll)
-      : (parseFloat(line.style.top) || 0) - (edRect.top - hostRect.top) + startScroll;
+    var startY = ev.clientY, startScroll = ed.scrollTop, startEditorTop = edRect.top;
+    var startContent;
+    if (isBreak) {
+      startContent = breakNode.getBoundingClientRect().top - edRect.top + startScroll;
+    } else {
+      // The guide stores its document position in data-cut. Do not rebuild it
+      // from the current viewport top: a focus/scroll change can make the
+      // visual style stale and would map the drag to the start of the document.
+      var lineCut = parseFloat(line.getAttribute('data-cut'));
+      startContent = isFinite(lineCut) ? lineCut : (parseFloat(line.style.top) || 0) - (edRect.top - hostRect.top) + startScroll;
+    }
     var targetContent = startContent;
     var autoDir = 0, autoFrame = null, lastY = ev.clientY, moved = false;
     inst.guideDragging = true;
@@ -3345,7 +3356,11 @@ window.__SUI_RICH = (function () {
     }
     function refresh(clientY) {
       if (Math.abs(clientY - startY) > 2 || Math.abs(ed.scrollTop - startScroll) > 2) moved = true;
-      targetContent = startContent + (clientY - startY) + (ed.scrollTop - startScroll);
+      // Include both the editor scroll and any page/ancestor scroll: the
+      // target must stay on the content under the pointer, not on a viewport
+      // pixel that can drift when the page moves.
+      var editorShift = ed.getBoundingClientRect().top - startEditorTop;
+      targetContent = startContent + (clientY - startY) + (ed.scrollTop - startScroll) - editorShift;
       targetContent = Math.max(0, Math.min(guideContentHeight(inst), targetContent));
       targetContent = snapGuideContentY(inst, targetContent, breakNode);
       render();
@@ -3529,6 +3544,7 @@ window.__SUI_RICH = (function () {
       line.setAttribute('data-cut', String(cuts[c]));
       line.title = 'Drag to insert a page break at this point';
       line.setAttribute('data-sui-guide', '1');
+      line.appendChild(el('span', 'sui-rich-guide-label', 'Page break  \u28ff  drag'));
       layer.appendChild(line);
     }
   }
@@ -5132,7 +5148,15 @@ window.__SUI_RICH = (function () {
       positionPageGuides(inst);
       schedulePageGuides(inst);
     });
-    editor.addEventListener('blur', function () { setTimeout(function () { commit(inst, 'change'); }, 0); });
+    editor.addEventListener('blur', function () {
+      setTimeout(function () {
+        // Clicking a guide/page-break line blurs the editor. Do not commit and
+        // re-render the component in the middle of the drag: it would detach
+        // the line being dragged and reset its position.
+        if (inst.guideDragging) return;
+        commit(inst, 'change');
+      }, 0);
+    });
     editor.addEventListener('copy', function (e) {
       if (!inst.selectedCells || inst.selectedCells.length < 2) return;
       var text = copyCellSelection(inst, false);
@@ -8409,11 +8433,13 @@ const suiRichTextCss = `
 .sui-rich[data-rich-painter="1"] .sui-rich-editor { cursor: copy; }
 .sui-rich-guides { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
 .sui-rich-guide { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; border-top: 2px dashed color-mix(in srgb, var(--sui-rich-break, #dc2626) 72%, transparent); opacity: .9; pointer-events: auto; cursor: grab; }
-.sui-rich-guide::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 22px; }
+.sui-rich-guide::before { content: ''; position: absolute; left: 0; right: 0; top: -30px; height: 44px; }
 .sui-rich-guide::after { content: ''; position: absolute; left: 50%; top: -6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--sui-rich-break, #dc2626); opacity: 0; transition: opacity .12s ease; }
+.sui-rich-guide-label { position: absolute; left: 10px; top: -20px; padding: 2px 7px; border-radius: 4px; background: var(--sui-rich-break, #dc2626); color: #fff; font: 600 10px/1.2 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; opacity: 0; pointer-events: auto; cursor: grab; transition: opacity .12s ease; }
 .sui-rich-guide:hover, .sui-rich-guide.dragging { border-top-style: solid; border-top-color: var(--sui-rich-break, #dc2626); opacity: 1; }
-.sui-rich-guide:hover::after, .sui-rich-guide.dragging::after { opacity: 1; }
+.sui-rich-guide:hover::after, .sui-rich-guide.dragging::after, .sui-rich-guide:hover .sui-rich-guide-label, .sui-rich-guide.dragging .sui-rich-guide-label { opacity: 1; }
 .sui-rich-guide.dragging { cursor: grabbing; }
+.sui-rich-guide.dragging .sui-rich-guide-label { cursor: grabbing; }
 .sui-rich-paginated .sui-rich-guides { display: none; }
 .sui-rich-imagesettings-error { margin: 0; color: #fca5a5; font-size: 12px; }
 .sui-rich-image-menu { position: fixed; z-index: 6200; width: 182px; padding: 4px; border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 8px; background: var(--sui-rich-bg, #1d2129); box-shadow: 0 12px 30px rgba(0,0,0,.4); }

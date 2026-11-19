@@ -968,6 +968,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.set('editor', { type: 'doc', pageOverrides: {}, children: reqScrollRows });
     await wait(500);
     var reqScrollEditor = bsEditor();
+    reqScrollEditor.focus();
     reqScrollEditor.scrollTop = 900;
     reqScrollEditor.dispatchEvent(new Event('scroll'));
     await wait(300);
@@ -986,6 +987,9 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqScrollGuideRect = reqScrollGuide.getBoundingClientRect();
     reqScrollGuide.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqScrollGuideRect.left + 30, clientY: reqScrollGuideRect.top + 2 }));
     document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: reqScrollGuideRect.left + 30, clientY: reqScrollGuideRect.top - 90 }));
+    await wait(180);
+    if (!reqScrollGuide.isConnected) throw new Error('guide was detached while dragging');
+    if (bsEditor() !== reqScrollEditor) throw new Error('editor was re-rendered while dragging the guide');
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: reqScrollGuideRect.left + 30, clientY: reqScrollGuideRect.top - 90 }));
     await wait(600);
     var reqScrollDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
