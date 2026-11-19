@@ -33,8 +33,9 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   the continuous editor marks automatic page cuts with red dashed guides spaced
   by the full page height (margins included). The guides are anchored to
   document positions and follow the content while scrolling. Drag a guide, or
-  the handle of an existing break, to move the cut; dragging near an edge
-  auto-scrolls, so the target can go beyond the visible viewport. Each break
+  the whole red line/label of an existing break (not just its handle), to move
+  the cut; dragging near an edge auto-scrolls, so the target can go beyond the
+  visible viewport and a simple click does nothing. Each break
   has a delete control. Every move/delete recalculates the following breaks,
   and oversized paragraphs, lists and tables are split so printed content never
   enters the margins.

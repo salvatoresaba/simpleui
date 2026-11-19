@@ -932,6 +932,35 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (!reqBreakAfterDelete.length || reqBreakAfterDelete[0] >= reqBreakAfterMove[0]) throw new Error('guides were not recalculated after deleting the break');
     if (reqBreakAfterDelete.length > 1 && reqBreakAfterDelete[1] - reqBreakAfterDelete[0] < 700) throw new Error('page guides are not spaced by the full page height');
 
+    // The whole red page-break line (label included) must be draggable, not
+    // only the small handle, and a simple click must not move it.
+    var reqLineRows = [];
+    for (var lr2 = 0; lr2 < 40; lr2++) {
+      reqLineRows.push({ type: 'paragraph', children: [{ type: 'text', text: 'Draggable line row ' + lr2 + ' with enough text for a line.', marks: [] }] });
+      if (lr2 === 20) reqLineRows.push({ type: 'page_break' });
+    }
+    __SUI_RICH.set('editor', { type: 'doc', pageOverrides: {}, children: reqLineRows });
+    await wait(500);
+    var reqLineBreak = document.querySelector('.sui-rich-pagebreak');
+    reqLineBreak.scrollIntoView({ block: 'center' });
+    await wait(300);
+    var reqLineLabel = reqLineBreak.querySelector('.sui-rich-pagebreak-label');
+    var reqLineRect = reqLineLabel.getBoundingClientRect();
+    var reqLineX = Math.round(reqLineRect.left + 20), reqLineY = Math.round(reqLineRect.top + reqLineRect.height / 2);
+    reqLineLabel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqLineX, clientY: reqLineY }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: reqLineX, clientY: reqLineY }));
+    await wait(250);
+    var reqLineClickDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (reqLineClickDoc.children.findIndex(function (c) { return c.type === 'page_break'; }) !== 21) throw new Error('a click on the break line moved it');
+    reqLineLabel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqLineX, clientY: reqLineY }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: reqLineX, clientY: reqLineY - 80 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: reqLineX, clientY: reqLineY - 80 }));
+    await wait(600);
+    var reqLineDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var reqLineIndex = reqLineDoc.children.findIndex(function (c) { return c.type === 'page_break'; });
+    if (!(reqLineIndex < 21 && reqLineIndex > 0)) throw new Error('page break line was not dragged to an earlier position: ' + reqLineIndex);
+    if (document.querySelectorAll('.sui-rich-pagebreak').length !== 1) throw new Error('dragging the break line duplicated the break');
+
     // Dragging a guide while the editor is scrolled must move the target in
     // document coordinates, never jump to the first block of the document.
     var reqScrollRows = [];

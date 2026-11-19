@@ -1315,10 +1315,10 @@ window.__SUI_RICH = (function () {
         schedulePageGuides(inst);
         return;
       }
-      var handle = e.target && e.target.closest ? e.target.closest('[data-rich-pb-handle]') : null;
-      if (handle) {
-        var breakNode = handle.closest('.sui-rich-pagebreak');
-        if (breakNode) startPageBreakDrag(inst, breakNode, e);
+      var breakNode = e.target && e.target.closest ? e.target.closest('.sui-rich-pagebreak') : null;
+      if (breakNode) {
+        e.preventDefault(); e.stopPropagation();
+        startPageBreakDrag(inst, breakNode, e);
         return;
       }
     });
@@ -3314,27 +3314,37 @@ window.__SUI_RICH = (function () {
     commit(inst, 'change');
     schedulePageGuides(inst);
   }
-  function startPageDrag(inst, line, ev, breakNode, isPreview) {
+  function startPageDrag(inst, line, ev, breakNode) {
     ev.preventDefault();
     ev.stopPropagation();
-    var ed = inst.editor, layer = line.parentNode;
-    var hostRect = layer.parentNode.getBoundingClientRect();
+    var ed = inst.editor;
+    var isBreak = !!breakNode;
+    var layer = isBreak ? null : line.parentNode;
+    var hostRect = layer ? layer.parentNode.getBoundingClientRect() : null;
     var edRect = ed.getBoundingClientRect();
     var startY = ev.clientY, startScroll = ed.scrollTop;
-    var startContent = breakNode
+    var startContent = isBreak
       ? (breakNode.getBoundingClientRect().top - edRect.top + startScroll)
       : (parseFloat(line.style.top) || 0) - (edRect.top - hostRect.top) + startScroll;
     var targetContent = startContent;
-    var autoDir = 0, autoFrame = null, lastY = ev.clientY;
+    var autoDir = 0, autoFrame = null, lastY = ev.clientY, moved = false;
     inst.guideDragging = true;
     line.classList.add('dragging');
     line.__suiDragging = true;
+    if (isBreak) { line.style.position = 'relative'; line.style.zIndex = '6'; }
     function render() {
+      if (isBreak) {
+        // The page break itself follows the pointer: no tiny handle and no
+        // ghost line, the red line is the object being moved.
+        line.style.transform = 'translateY(' + (targetContent - startContent) + 'px)';
+        return;
+      }
       var currentRect = ed.getBoundingClientRect();
       line.style.top = ((currentRect.top - hostRect.top) + targetContent - ed.scrollTop) + 'px';
       line.setAttribute('data-cut', String(targetContent));
     }
     function refresh(clientY) {
+      if (Math.abs(clientY - startY) > 2 || Math.abs(ed.scrollTop - startScroll) > 2) moved = true;
       targetContent = startContent + (clientY - startY) + (ed.scrollTop - startScroll);
       targetContent = Math.max(0, Math.min(guideContentHeight(inst), targetContent));
       targetContent = snapGuideContentY(inst, targetContent, breakNode);
@@ -3360,16 +3370,20 @@ window.__SUI_RICH = (function () {
       refresh(moveEv.clientY);
       if (autoDir && !autoFrame) autoFrame = window.setTimeout(autoTick, 16);
     }
+    function resetVisual() {
+      line.classList.remove('dragging');
+      line.__suiDragging = false;
+      if (isBreak) { line.style.transform = ''; line.style.zIndex = ''; line.style.position = ''; }
+    }
     function up(upEv) {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
       if (autoFrame) { window.clearTimeout(autoFrame); autoFrame = null; }
-      line.classList.remove('dragging');
-      line.__suiDragging = false;
-      if (isPreview && line.parentNode) line.parentNode.removeChild(line);
+      resetVisual();
       inst.guideDragging = false;
+      if (!moved) { positionPageGuides(inst); return; }
       targetContent = snapGuideContentY(inst, targetContent, breakNode);
-      if (breakNode) {
+      if (isBreak) {
         movePageBreakTo(inst, breakNode, targetContent);
         commit(inst, 'change');
         schedulePageGuides(inst);
@@ -3382,15 +3396,10 @@ window.__SUI_RICH = (function () {
     document.addEventListener('mouseup', up);
   }
   function startPageBreakDrag(inst, node, ev) {
-    var layer = pageGuideLayer(inst);
-    if (!layer) return;
-    var preview = el('div', 'sui-rich-guide dragging');
-    preview.title = 'Drop to move the page break';
-    layer.appendChild(preview);
-    startPageDrag(inst, preview, ev, node, true);
+    startPageDrag(inst, node, ev, node);
   }
   function startPageGuideDrag(inst, line, ev) {
-    startPageDrag(inst, line, ev, null, false);
+    startPageDrag(inst, line, ev, null);
   }
   function pageGuideLayer(inst) {
     if (!inst || !inst.editor || !inst.editor.parentNode) return null;
@@ -8399,8 +8408,9 @@ const suiRichTextCss = `
 .sui-rich-btn[disabled] { opacity: .45; cursor: default; }
 .sui-rich[data-rich-painter="1"] .sui-rich-editor { cursor: copy; }
 .sui-rich-guides { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
-.sui-rich-guide { position: absolute; left: 0; right: 0; height: 12px; margin-top: -6px; border-top: 2px dashed color-mix(in srgb, var(--sui-rich-break, #dc2626) 72%, transparent); opacity: .9; pointer-events: auto; cursor: grab; }
-.sui-rich-guide::after { content: ''; position: absolute; left: 50%; top: -7px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--sui-rich-break, #dc2626); opacity: 0; transition: opacity .12s ease; }
+.sui-rich-guide { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; border-top: 2px dashed color-mix(in srgb, var(--sui-rich-break, #dc2626) 72%, transparent); opacity: .9; pointer-events: auto; cursor: grab; }
+.sui-rich-guide::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 22px; }
+.sui-rich-guide::after { content: ''; position: absolute; left: 50%; top: -6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--sui-rich-break, #dc2626); opacity: 0; transition: opacity .12s ease; }
 .sui-rich-guide:hover, .sui-rich-guide.dragging { border-top-style: solid; border-top-color: var(--sui-rich-break, #dc2626); opacity: 1; }
 .sui-rich-guide:hover::after, .sui-rich-guide.dragging::after { opacity: 1; }
 .sui-rich-guide.dragging { cursor: grabbing; }
@@ -8430,7 +8440,9 @@ const suiRichTextCss = `
 .sui-rich-editor .sui-rich-cell-blocks > *:last-child { margin-bottom: 0; }
 .sui-rich-editor .sui-rich-cell-blocks table { margin: 0; }
 .sui-rich-editor th, .sui-rich-editor td { border: 1px solid var(--sui-rich-paper-border); padding: 6px 8px; vertical-align: top; min-width: 40px; }
-.sui-rich-editor .sui-rich-pagebreak { display: flex; align-items: center; gap: 6px; margin: 16px 0; padding-top: 5px; border-top: 2px dashed var(--sui-rich-break, #dc2626); color: var(--sui-rich-break, #dc2626); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; user-select: none; }
+.sui-rich-editor .sui-rich-pagebreak { display: flex; align-items: center; gap: 6px; margin: 16px 0; padding-top: 5px; border-top: 2px dashed var(--sui-rich-break, #dc2626); color: var(--sui-rich-break, #dc2626); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; user-select: none; cursor: grab; }
+.sui-rich-editor .sui-rich-pagebreak:active { cursor: grabbing; }
+.sui-rich-editor .sui-rich-pagebreak.dragging { opacity: .92; cursor: grabbing; background: color-mix(in srgb, var(--sui-rich-break, #dc2626) 7%, transparent); border-radius: 4px; box-shadow: 0 4px 14px color-mix(in srgb, var(--sui-rich-break, #dc2626) 22%, transparent); }
 .sui-rich-pagebreak-handle { cursor: grab; font-size: 12px; padding: 0 2px; }
 .sui-rich-pagebreak-handle:active { cursor: grabbing; }
 .sui-rich-pagebreak-label { flex: 1 1 auto; }

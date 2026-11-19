@@ -1721,9 +1721,11 @@ bordo del paragrafo più vicino (così non attraversa mai il testo) e disegnata 
 rosso. La linea è ancorata a una posizione del documento, non al viewport: si
 muove con il contenuto quando si scorre l'editor. Trascina una guida rossa
 tratteggiata per inserire un'interruzione prima del paragrafo o della tabella
-più vicini, oppure trascina la maniglia di un'interruzione esistente per
-spostarla; trascinando vicino al bordo dell'editor lo scorrimento è automatico,
-così il punto può andare oltre la parte visibile. Anche le interruzioni
+più vicini, oppure trascina la linea rossa di un'interruzione esistente (tutta
+l'etichetta/linea è trascinabile, non solo la piccola maniglia) per spostarla;
+trascinando vicino al bordo dell'editor lo scorrimento è automatico, così il
+punto può andare oltre la parte visibile. Un semplice clic su una linea non crea
+né sposta un'interruzione. Anche le interruzioni
 esplicite e le loro linee sono rosse. Ogni interruzione ha un controllo di
 eliminazione; spostarla o eliminarla ricalcola tutte le interruzioni successive,
 tenendo conto di margini e bordi dei blocchi (incluse tabelle, righe spezzate e

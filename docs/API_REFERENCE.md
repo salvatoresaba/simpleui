@@ -1746,8 +1746,10 @@ included) and snapped to the nearest paragraph edge so it never crosses text,
 and drawn in red. The line is anchored to a document position, not to the
 viewport: it moves with the editor content when the user scrolls. Drag a red
 dashed guide to insert a page break before the nearest paragraph or table, or
-drag the handle of an existing break to move it; dragging near an editor edge
-auto-scrolls so the target can move beyond the visible viewport. Explicit breaks
+drag the red line of an existing break (the whole label/line is a drag target,
+not only the small handle) to move it; dragging near an editor edge auto-scrolls
+so the target can move beyond the visible viewport. A simple click on a line
+does not create or move a break. Explicit breaks
 and their lines are red too. Every break has a delete control, and moving or
 deleting a break recalculates all following breaks, taking block
 margins/borders (including table borders, split rows and vertical merges kept
