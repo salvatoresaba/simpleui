@@ -1700,6 +1700,12 @@ closest to the end of an existing toolbar (or at the left edge when the bar is
 empty); the other toolbars move aside. Floating positions are remembered per
 editor.
 
+**Menu bar:** File, Edit, Insert and View. Formatting is available from the
+toolbar, so the redundant Format and Tools menus are intentionally absent.
+Insert contains Link, Image, Table, Horizontal rule and Page break; Unlink and
+Image settings are not menu entries (Remove link is a toolbar button and image
+settings open on double-click or from the image context menu).
+
 **Find and replace:** `Ctrl+F` (or Edit > Find and replace) opens a find bar;
 Enter/F3 next, Shift+F3 previous, Esc closes. **Paste** from Word/Excel/HTML is
 sanitized into the document model and keeps bold/italic, colors, links, tables
@@ -1741,9 +1747,10 @@ They are applied to the paginated view, print, PDF, DOCX, ODT and RTF/DOC
 exports (exports use the first page's effective settings); DOCX and ODT import
 restore the document defaults. The default is A4 portrait with 15 mm top/bottom and 17 mm
 left/right margins. The continuous editor draws a dashed horizontal guide at
-every automatic page cut, spaced by the full page height (top and bottom margins
-included) and snapped to the nearest paragraph edge so it never crosses text,
-and drawn in red. Hovering the line shows a red "Page break - drag" label and a
+every automatic page cut, aligned with the exact page start used by the
+paginated view and print preview (same content height, table row splits and
+text splits) and snapped to the nearest paragraph/table edge so it never
+crosses text, and drawn in red. Hovering the line shows a red "Page break - drag" label and a
 large grab band, so the whole line is easy to grab. The line is anchored to a
 document position, not to the viewport: it moves with the editor content when
 the user scrolls. Drag a red
@@ -1778,8 +1785,8 @@ is one, otherwise to the word at the caret. Copy formatting activates a format
 painter: the next selection (or word) receives the source font, size, color,
 highlight and inline marks; Escape cancels it.
 
-**Paragraph settings** (button `paragraphSettings`, also Format > Paragraph
-settings...) applies to the selected paragraphs or to the paragraph at the
+**Paragraph settings** (toolbar button `paragraphSettings`, with explicit
+−/+ indent buttons for the selected paragraph or selection) applies to the selected paragraphs or to the paragraph at the
 caret: alignment, left indent, line height, space before and space after.
 The document default line height is in Document settings and individual
 paragraphs can override it.

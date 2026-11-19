@@ -1715,10 +1715,11 @@ numero di pagina e il totale. I default stanno in
 sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
 Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
-orizzontale su ogni interruzione di pagina automatica, distanziata dell'altezza
-completa della pagina (margini superiore e inferiore inclusi), agganciata al
-bordo del paragrafo più vicino (così non attraversa mai il testo) e disegnata in
-rosso. Passando sopra la linea compare un'etichetta rossa "Page break - drag" e
+orizzontale su ogni interruzione di pagina automatica, allineata all'inizio
+esatto della pagina usato dalla vista paginata e dall'anteprima di stampa
+(stessa altezza del contenuto, stesse divisioni di righe di tabella e di testo),
+agganciata al bordo del paragrafo/tabella più vicino (così non attraversa mai il
+testo) e disegnata in rosso. Passando sopra la linea compare un'etichetta rossa "Page break - drag" e
 una fascia di presa ampia, quindi è facile afferrare tutta la linea. La linea è
 ancorata a una posizione del documento, non al viewport: si muove con il
 contenuto quando si scorre l'editor. Trascina una guida rossa
@@ -1757,9 +1758,10 @@ altrimenti sulla parola al cursore. Copy formatting attiva un pennello di
 formato: la selezione (o parola) successiva riceve font, dimensione, colore,
 evidenziazione e mark inline della sorgente; Escape annulla.
 
-**Impostazioni paragrafo** (pulsante `paragraphSettings`, anche Formato >
-Impostazioni paragrafo...) agisce sui paragrafi selezionati o su quello al
-cursore: allineamento, rientro sinistro, interlinea, spazio prima e dopo.
+**Impostazioni paragrafo** (pulsante `paragraphSettings` nella toolbar, con
+pulsanti espliciti −/+ per l'indentazione) agisce sui paragrafi selezionati o su
+quello al cursore: allineamento, rientro sinistro, interlinea, spazio prima e
+dopo.
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla.
 
@@ -1818,6 +1820,12 @@ riporta sotto la toolbar principale. Le modifiche entrano nella cronologia undo/
 destra/inferiore di una tabella per ridimensionare colonne o righe, oppure
 l'angolo in basso a destra per ridimensionare l'intera tabella; le dimensioni
 sono salvate nel documento JSON. File > Import ed Export sono sottomenu.
+**Barra dei menu:** File, Modifica, Inserisci e Visualizza. La formattazione è
+nella toolbar, quindi i menu Formato e Strumenti ridondanti sono assenti.
+Inserisci contiene Link, Immagine, Tabella, Linea orizzontale e Interruzione di
+pagina; Rimuovi link e Impostazioni immagine non sono voci di menu (Rimuovi link
+è un pulsante della toolbar e le impostazioni immagine si aprono con doppio clic
+o dal menu contestuale dell'immagine).
 L'azione **Seleziona tutta la tabella** fa applicare l'allineamento alla
 tabella stessa. Il pulsante ⚙ apre **Proprietà tabella** per il padding delle
 celle, lo spessore/colore del bordo e i lati visibili (alto/destra/basso/

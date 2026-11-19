@@ -85,6 +85,16 @@ view main {
     var toolbarButtons = root.querySelectorAll('.sui-rich-toolbar [data-rich-cmd]').length;
     if (toolbarButtons < 8) throw new Error('toolbar not built: ' + toolbarButtons);
     if (!root.querySelector('.sui-rich-menu') || !root.querySelector('.sui-rich-status')) throw new Error('menu/status missing');
+    var menuLabels = [].map.call(root.querySelectorAll('.sui-rich-menu-btn'), function (b) { return b.textContent; });
+    if (menuLabels.join('|') !== 'File|Edit|Insert|View') throw new Error('menu labels: ' + menuLabels.join('|'));
+    if (root.querySelector('[data-rich-menu="format"]') || root.querySelector('[data-rich-menu="tools"]')) throw new Error('redundant Format/Tools menu still present');
+    var insertMenuBtn = [].filter.call(root.querySelectorAll('.sui-rich-menu-btn'), function (b) { return b.textContent === 'Insert'; })[0];
+    insertMenuBtn.click();
+    await wait(120);
+    var insertLabels = [].map.call(root.querySelectorAll('.sui-rich-menu-panel:not([hidden]) .sui-rich-menu-item'), function (b) { return b.textContent; });
+    insertMenuBtn.click();
+    if (insertLabels.indexOf('Unlink') >= 0 || insertLabels.indexOf('Image settings...') >= 0) throw new Error('redundant insert entries: ' + insertLabels.join(','));
+    if (insertLabels.indexOf('Page break') < 0) throw new Error('Insert menu lost Page break');
     editor.querySelector('p').textContent = 'Toolbar text';
     var textNode = editor.querySelector('p').firstChild;
     var range = document.createRange(); range.setStart(textNode, 0); range.setEnd(textNode, 7);
@@ -702,6 +712,27 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(200);
     if (bsEditor().querySelector('a')) throw new Error('unlink did not remove the link');
 
+    // Paragraph settings expose explicit -/+ indent buttons.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Indent panel', marks: [] }] }] });
+    await wait(300);
+    var indentPara = bsEditor().querySelector('p');
+    var indentRange = document.createRange(); indentRange.selectNodeContents(indentPara); indentRange.collapse(true);
+    var indentSel = window.getSelection(); indentSel.removeAllRanges(); indentSel.addRange(indentRange); bsEditor().focus();
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(250);
+    var paraPanel = document.querySelector('.sui-rich-paragraphsettings');
+    var indentInc = paraPanel && paraPanel.querySelector('[data-rich-paragraph-indent-inc]');
+    var indentDec = paraPanel && paraPanel.querySelector('[data-rich-paragraph-indent-dec]');
+    if (!indentInc || !indentDec) throw new Error('paragraph indent buttons missing');
+    indentInc.click(); await wait(350);
+    if (bsEditor().querySelector('p').style.paddingLeft !== '24px') throw new Error('paragraph indent increase failed: ' + bsEditor().querySelector('p').style.paddingLeft);
+    indentInc.click(); await wait(350);
+    indentDec.click(); await wait(350);
+    if (bsEditor().querySelector('p').style.paddingLeft !== '24px') throw new Error('paragraph indent decrease failed: ' + bsEditor().querySelector('p').style.paddingLeft);
+    var indentDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (parseFloat(indentDoc.children[0].indent || '0') !== 24) throw new Error('paragraph indent not stored: ' + indentDoc.children[0].indent);
+    if (paraPanel) paraPanel.hidden = true;
+
     // Page settings (page format) and Document settings (general defaults).
     __SUI_RICH.setToolbar('editor', 'pageSettings,printPreview,print,find');
     await wait(200);
@@ -1070,8 +1101,12 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     }
     if (Object.keys(reqSeen).length !== 70) throw new Error('paginated split table rows: ' + Object.keys(reqSeen).length);
     for (var sk in reqSeen) if (reqSeen[sk] !== 1) throw new Error('paginated split table duplicated row ' + sk);
+    var reqTablePages = reqTableSheets.length;
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(300);
+    var reqTableAutoGuides = document.querySelectorAll('.sui-rich-guide').length;
+    var reqTableExplicit = document.querySelectorAll('.sui-rich-pagebreak').length;
+    if (reqTablePages !== reqTableAutoGuides + reqTableExplicit + 1) throw new Error('editor guides and print pages disagree: pages ' + reqTablePages + ', guides ' + reqTableAutoGuides + ', explicit ' + reqTableExplicit);
     // Moving the explicit break line into the second table fragment must split
     // that fragment too, without duplicating or losing rows.
     var reqMoveBreak = document.querySelector('.sui-rich-pagebreak');
@@ -1146,8 +1181,10 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     }
     __SUI_RICH.command('editor', 'printPreview');
     await wait(3000);
+    var reqLongPages = reqLongSheets.length;
     var reqLongPreview = document.querySelectorAll('.sui-rich-preview-pages .sui-rich-page-sheet');
     if (reqLongPreview.length < 4) throw new Error('oversized paragraph preview pages: ' + reqLongPreview.length);
+    if (reqLongPreview.length !== reqLongPages) throw new Error('paginated view and preview page counts differ: ' + reqLongPages + ' vs ' + reqLongPreview.length);
     for (var lp = 0; lp < reqLongPreview.length; lp++) {
       var lpBody = reqLongPreview[lp].querySelector('.sui-rich-sheet-body');
       if (lpBody && lpBody.scrollHeight > lpBody.clientHeight + 1) throw new Error('preview oversized paragraph exceeds the printable area: page ' + lp + ' by ' + (lpBody.scrollHeight - lpBody.clientHeight) + 'px');
@@ -1157,6 +1194,8 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(300);
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(300);
+    var reqLongAutoGuides = document.querySelectorAll('.sui-rich-guide').length;
+    if (reqLongPages !== reqLongAutoGuides + 1) throw new Error('oversized paragraph guide/page mismatch: pages ' + reqLongPages + ', guides ' + reqLongAutoGuides);
 
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Link target', marks: [] }] }] });
     await wait(300);
@@ -1340,11 +1379,18 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"['portrait', 'Vertical']",
 		"['landscape', 'Horizontal']",
 		"['h4', 'Heading 4']",
-		"Unlink|unlink",
-		"Heading 4|h4",
+		"indent: 'Increase paragraph indent'",
+		"data-rich-paragraph-indent-inc",
+		"insert: ['Link|link', 'Image|image', 'Table|table'",
+		"var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', view: 'View' };",
 	} {
 		if !strings.Contains(suiRichTextRuntime, want) {
 			t.Errorf("rich text runtime is missing %q", want)
+		}
+	}
+	for _, unwanted := range []string{"Unlink|unlink", "Image settings...|imageSettings", "tools: [", "format: ["} {
+		if strings.Contains(suiRichTextRuntime, unwanted) {
+			t.Errorf("rich text runtime still contains redundant menu entry %q", unwanted)
 		}
 	}
 }

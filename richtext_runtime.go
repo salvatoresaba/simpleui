@@ -86,7 +86,7 @@ window.__SUI_RICH = (function () {
     superscript: 'Superscript', subscript: 'Subscript', fontSizeUp: 'Increase font size', fontSizeDown: 'Decrease font size', code: 'Inline code',
     codeBlock: 'Code block', clearFormat: 'Clear formatting', copyFormat: 'Copy formatting',
     alignLeft: 'Align left', alignCenter: 'Align center', alignRight: 'Align right', justify: 'Justify',
-    indent: 'Increase indent', outdent: 'Decrease indent',
+    indent: 'Increase paragraph indent', outdent: 'Decrease paragraph indent',
     bulletList: 'Bulleted list', orderedList: 'Numbered list',
     blockquote: 'Quote', link: 'Insert link', unlink: 'Remove link',
     image: 'Insert image', imageSettings: 'Image settings', table: 'Insert table', symbol: 'Insert symbol',
@@ -103,12 +103,10 @@ window.__SUI_RICH = (function () {
       { label: 'Import', items: ['JSON|importJSON', 'HTML|importHTML', 'Markdown|importMarkdown', 'XML|importXML'] },
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] }],
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
-    insert: ['Link|link', 'Unlink|unlink', 'Image|image', 'Image settings...|imageSettings', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
-    format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Heading 4|h4', 'Paragraph settings...|paragraphSettings', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Increase font size|fontSizeUp', 'Decrease font size|fontSizeDown', 'Inline code|code', 'Clear formatting|clearFormat', 'Copy formatting|copyFormat'],
-    view: ['Paginated view|paginatedView', 'Document settings|documentSettings', 'Page settings|pageSettings', 'Zoom to 100%|zoomReset', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
-    tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
+    insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
+    view: ['Paginated view|paginatedView', 'Document settings|documentSettings', 'Page settings|pageSettings', 'Zoom to 100%|zoomReset', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact']
   };
-  var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', format: 'Format', view: 'View', tools: 'Tools' };
+  var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', view: 'View' };
 
   function hasOwn(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function attr(root, name) { return root.getAttribute(name) || ''; }
@@ -818,7 +816,7 @@ window.__SUI_RICH = (function () {
   }
   function commit(inst, kind) {
     inst.scrollGuardUntil = Date.now() + 300;
-    sync(inst);
+    if (sync(inst)) inst.pageBreakSources = [];
     if (inst.editor) {
       inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
       inst.scrollTop = inst.editor.scrollTop;
@@ -828,12 +826,13 @@ window.__SUI_RICH = (function () {
     updateStats(inst);
     updatePageGuides(inst);
     notify(inst, kind || 'change');
-    if (inst.paginated) schedulePaginate(inst);
+    if (inst.paginated) schedulePaginate(inst); else schedulePageGuides(inst);
   }
   function restore(inst, text) {
     inst.scrollGuardUntil = Date.now() + 300;
     var keepScroll = inst.keepScrollTop || inst.scrollTop || (inst.editor ? inst.editor.scrollTop : 0);
     inst.doc = parseJSON(text, emptyDoc());
+    inst.pageBreakSources = [];
     inst.headerText = resolvedHeader(inst, inst.doc);
     inst.footerText = resolvedFooter(inst, inst.doc);
     inst.editor.innerHTML = '';
@@ -844,7 +843,7 @@ window.__SUI_RICH = (function () {
     refreshPageChrome(inst);
     updateStats(inst);
     updatePageGuides(inst);
-    if (inst.paginated) schedulePaginate(inst);
+    if (inst.paginated) schedulePaginate(inst); else schedulePageGuides(inst);
   }
   function undo(inst) {
     sync(inst);
@@ -2255,6 +2254,7 @@ window.__SUI_RICH = (function () {
     inst.scrollGuardUntil = Date.now() + 300;
     var keepScroll = inst.keepScrollTop || inst.scrollTop || (inst.editor ? inst.editor.scrollTop : 0);
     inst.doc = doc;
+    inst.pageBreakSources = [];
     inst.headerText = resolvedHeader(inst, doc);
     inst.footerText = resolvedFooter(inst, doc);
     refreshPageChrome(inst);
@@ -2265,6 +2265,7 @@ window.__SUI_RICH = (function () {
     remember(inst);
     updateStats(inst);
     updatePageGuides(inst);
+    if (inst.paginated) schedulePaginate(inst); else schedulePageGuides(inst);
     notify(inst, 'change');
     return [true, null];
   }
@@ -3154,7 +3155,7 @@ window.__SUI_RICH = (function () {
     var bar = inst.root.querySelector('.sui-rich-context');
     if (!bar) return;
     bar.innerHTML = '';
-    ['bold', 'italic', 'underline', 'strike', 'link', 'highlight', 'clearFormat'].forEach(function (cmd) { bar.appendChild(button(inst, cmd, cmd, cmd)); });
+    ['bold', 'italic', 'underline', 'strike', 'link', 'highlight', 'indent', 'outdent', 'clearFormat'].forEach(function (cmd) { bar.appendChild(button(inst, cmd, cmd, cmd)); });
   }
   function applyTheme(inst) {
     if (!inst || !inst.root) return;
@@ -3195,6 +3196,7 @@ window.__SUI_RICH = (function () {
     var label = inst.root && inst.root.querySelector('.sui-rich-zoom-label');
     if (label) label.textContent = Math.round(next * 100) + '%';
     updatePageGuides(inst);
+    schedulePageGuides(inst);
   }
   function setTheme(name, theme) {
     var inst = instances[name];
@@ -3630,8 +3632,19 @@ window.__SUI_RICH = (function () {
     if (inst.guideTimer) return;
     inst.guideTimer = setTimeout(function () {
       inst.guideTimer = null;
-      if (!inst.guideDragging) updatePageGuides(inst);
+      if (!inst.guideDragging) refreshPageBreaks(inst);
     }, 40);
+  }
+  async function refreshPageBreaks(inst) {
+    if (!inst || !inst.editor) return;
+    if (inst.breakBusy) { inst.breakPending = true; return; }
+    inst.breakBusy = true;
+    do {
+      inst.breakPending = false;
+      try { await paginate(inst, true); } catch (e) {}
+    } while (inst.breakPending);
+    inst.breakBusy = false;
+    updatePageGuides(inst);
   }
   function positionPageGuides(inst) {
     if (!inst || !inst.editor) return;
@@ -3649,6 +3662,45 @@ window.__SUI_RICH = (function () {
       line.style.top = (offset + cut - scroll) + 'px';
     }
   }
+  function pageBreakSourceY(inst, source) {
+    if (!inst || !inst.editor || !source) return null;
+    var ed = inst.editor;
+    var node = ed.children[source.block];
+    if (!node) return null;
+    if (node.classList && node.classList.contains('sui-rich-pagebreak')) return null;
+    var edRect = ed.getBoundingClientRect(), scroll = ed.scrollTop;
+    var tag = node.tagName ? node.tagName.toLowerCase() : '';
+    if (source.row != null && tag === 'table') {
+      var rows = Array.prototype.slice.call(node.querySelectorAll('tr')).filter(function (row) {
+        return row.closest('table') === node;
+      });
+      var row = rows[source.row];
+      if (row) return row.getBoundingClientRect().top - edRect.top + scroll;
+    }
+    if (source.offset != null) {
+      if (source.kind === 'list') {
+        var li = node.children[source.offset];
+        if (li) return li.getBoundingClientRect().top - edRect.top + scroll;
+      } else {
+        var walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+        var pos = 0, textNode;
+        while ((textNode = walker.nextNode())) {
+          var len = (textNode.nodeValue || '').length;
+          if (source.offset <= pos + len) {
+            var range = document.createRange();
+            range.setStart(textNode, Math.max(0, Math.min(len, source.offset - pos)));
+            range.collapse(true);
+            var rects = range.getClientRects();
+            var rect = rects.length ? rects[0] : range.getBoundingClientRect();
+            if (rect && (rect.height || rect.top)) return rect.top - edRect.top + scroll;
+            break;
+          }
+          pos += len;
+        }
+      }
+    }
+    return node.getBoundingClientRect().top - edRect.top + scroll;
+  }
   function updatePageGuides(inst) {
     if (!inst || !inst.editor) return;
     if (inst.guideDragging) { positionPageGuides(inst); return; }
@@ -3658,78 +3710,16 @@ window.__SUI_RICH = (function () {
     var ed = inst.editor;
     var m = pageMetrics(inst, 1);
     if (!(m.contentH > 40)) { layer.innerHTML = ''; return; }
-    var cs = getComputedStyle(ed);
-    var padTop = parseFloat(cs.paddingTop) || 0;
     var edRect = ed.getBoundingClientRect(), host = layer.parentNode, hostRect = host.getBoundingClientRect();
     var scroll = ed.scrollTop;
-    var cuts = [], start = padTop, used = 0, pageNo = 1;
-    var children = ed.children;
-    function snapGuideCut(cut) {
-      // Inside a long table, snap the line to a real row boundary so it never
-      // crosses a row of text and can be dropped as a table split.
-      var rowSplit = tableRowSplitAt(inst, cut);
-      if (rowSplit) return rowSplit.y;
-      for (var ti = 0; ti < children.length; ti++) {
-        var tc = children[ti];
-        if (tc.tagName && tc.tagName.toLowerCase() === 'table') {
-          var tr = tc.getBoundingClientRect();
-          var ttop = tr.top - edRect.top + scroll;
-          if (cut > ttop + 1 && cut < ttop + tr.height - 1) return cut;
-        }
-      }
-      // Outside tables the line is moved to the nearest paragraph edge so it
-      // never crosses text.
-      var best = cut, bestEdge = -Infinity;
-      for (var pi = 0; pi < children.length; pi++) {
-        var pc = children[pi];
-        if (pc.classList && pc.classList.contains('sui-rich-pagebreak')) continue;
-        if (pc.tagName && pc.tagName.toLowerCase() === 'table') continue;
-        var pr = pc.getBoundingClientRect();
-        var ptop = pr.top - edRect.top + scroll, pbottom = ptop + pr.height;
-        if (ptop <= cut + 0.5 && ptop > bestEdge) { bestEdge = ptop; best = ptop; }
-        if (pbottom <= cut + 0.5 && pbottom > bestEdge) { bestEdge = pbottom; best = pbottom; }
-      }
-      return best;
+    var sources = inst.pageBreakSources || [];
+    var cuts = [];
+    for (var i = 0; i < sources.length; i++) {
+      if (!sources[i] || sources[i].explicit) continue;
+      var y = pageBreakSourceY(inst, sources[i]);
+      if (y == null) continue;
+      if (!cuts.length || y > cuts[cuts.length - 1] + 2) cuts.push(y);
     }
-    for (var ci = 0; ci < children.length; ci++) {
-      var child = children[ci];
-      var cr = child.getBoundingClientRect();
-      var ccs = getComputedStyle(child);
-      var ch = cr.height + (parseFloat(ccs.marginTop) || 0) + (parseFloat(ccs.marginBottom) || 0);
-      if (child.classList && child.classList.contains('sui-rich-pagebreak')) {
-        start = cr.top - edRect.top + scroll + cr.height;
-        used = 0;
-        pageNo++;
-        m = pageMetrics(inst, pageNo);
-        continue;
-      }
-      if (used > 0 && used + ch > m.contentH - 2) {
-        cuts.push(start + m.height);
-        start += m.height;
-        used = 0;
-        pageNo++;
-        m = pageMetrics(inst, pageNo);
-      }
-      if (ch > m.contentH - 2) {
-        var remaining = ch;
-        while (remaining > m.contentH - 2) {
-          cuts.push(start + m.height);
-          start += m.height;
-          remaining -= m.contentH;
-          pageNo++;
-          m = pageMetrics(inst, pageNo);
-        }
-        used = remaining;
-      } else {
-        used += ch;
-      }
-    }
-    var snapped = [];
-    for (var sc = 0; sc < cuts.length; sc++) {
-      var scut = snapGuideCut(cuts[sc]);
-      if (!snapped.length || scut > snapped[snapped.length - 1] + 6) snapped.push(scut);
-    }
-    cuts = snapped;
     layer.innerHTML = '';
     var offset = edRect.top - hostRect.top;
     for (var c = 0; c < cuts.length; c++) {
@@ -3742,6 +3732,7 @@ window.__SUI_RICH = (function () {
       line.appendChild(el('span', 'sui-rich-guide-label', 'Page break  \u28ff  drag'));
       layer.appendChild(line);
     }
+    positionPageGuides(inst);
   }
   function pageMetrics(inst, pageNumber) {
     var page = pageConfig(inst, pageNumber || 1);
@@ -3809,18 +3800,32 @@ window.__SUI_RICH = (function () {
     shell.appendChild(tbody);
     return { shell: shell, tbody: tbody };
   }
-  async function paginate(inst) {
+  async function paginate(inst, recordOnly) {
     inst = resolveInstance(inst.name) || inst;
-    if (!inst.paginated && inst.root.getAttribute('data-sui-rich-paginated') === '1') inst.paginated = true;
-    if (!inst.paginated) return;
-    inst.root.classList.add('sui-rich-paginated');
-    inst.root.setAttribute('data-sui-rich-paginated', '1');
-    var wrap = inst.root.querySelector('.sui-rich-pages');
-    if (!wrap) {
-      wrap = el('div', 'sui-rich-pages');
-      inst.root.querySelector('.sui-rich-body').appendChild(wrap);
+    if (!recordOnly) {
+      if (!inst.paginated && inst.root.getAttribute('data-sui-rich-paginated') === '1') inst.paginated = true;
+      if (!inst.paginated) return;
+      inst.root.classList.add('sui-rich-paginated');
+      inst.root.setAttribute('data-sui-rich-paginated', '1');
     }
-    wrap.hidden = false;
+    if (recordOnly) {
+      sync(inst);
+      if (inst.editor) inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
+    }
+    var wrap;
+    if (recordOnly) {
+      wrap = el('div', 'sui-rich-pages');
+      wrap.style.cssText = 'position:absolute;left:-12000px;top:0;visibility:hidden;pointer-events:none;';
+      inst.root.querySelector('.sui-rich-body').appendChild(wrap);
+    } else {
+      wrap = inst.root.querySelector('.sui-rich-pages');
+      if (!wrap) {
+        wrap = el('div', 'sui-rich-pages');
+        inst.root.querySelector('.sui-rich-body').appendChild(wrap);
+      }
+      wrap.hidden = false;
+    }
+    var breakSources = [];
     var m = pageMetrics(inst, 1);
     wrap.innerHTML = '';
     var measure = el('div', 'sui-rich-editor sui-rich-sheet-body sui-rich-measure');
@@ -3832,11 +3837,11 @@ window.__SUI_RICH = (function () {
     var blocks = (inst.doc && inst.doc.children) || [];
     var items = [];
     for (var i = 0; i < blocks.length; i++) {
-      if (blocks[i].type === 'page_break') { items.push({ block: blocks[i], node: null }); continue; }
+      if (blocks[i].type === 'page_break') { items.push({ block: blocks[i], node: null, index: i }); continue; }
       var node = blockDom(blocks[i], 0);
       if (!node) continue;
       measure.appendChild(node);
-      items.push({ block: blocks[i], node: node });
+      items.push({ block: blocks[i], node: node, index: i });
     }
     var imgs = Array.prototype.slice.call(measure.querySelectorAll('img'));
     await Promise.all(imgs.map(function (img) {
@@ -3925,7 +3930,7 @@ window.__SUI_RICH = (function () {
       }
       var rest = cloneTextSlice(node, bestLen, total);
       if (!rest || !(rest.textContent || '').replace(/\s+/g, '')) return null;
-      return { head: best, rest: rest };
+      return { head: best, rest: rest, offset: bestLen };
     }
     function splitListBlock(node, maxH) {
       var items = Array.prototype.slice.call(node.children).filter(function (child) {
@@ -3942,7 +3947,7 @@ window.__SUI_RICH = (function () {
       if (!best || best >= items.length) return null;
       var rest = node.cloneNode(false);
       for (var j = best; j < items.length; j++) rest.appendChild(items[j].cloneNode(true));
-      return { head: bestClone, rest: rest };
+      return { head: bestClone, rest: rest, offset: best, kind: 'list' };
     }
     function splitBlockToFit(node, maxH) {
       var tag = (node.tagName || '').toLowerCase();
@@ -3950,11 +3955,12 @@ window.__SUI_RICH = (function () {
       if (tag === 'p' || tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4' || tag === 'blockquote' || tag === 'pre') return splitTextBlock(node, maxH);
       return null;
     }
-    function placeTextBlock(node) {
+    function placeTextBlock(node, itemIndex) {
       var limit = function () { return current.metrics.contentH - 8; };
       var h = measureBlock(node);
+      var baseOffset = 0, baseKind = '';
       if (current.used > 0 && h <= limit() && current.used + h > limit()) {
-        fresh(); current.used = 0;
+        fresh({ block: itemIndex, offset: baseOffset, kind: baseKind }); current.used = 0;
       }
       if (h <= limit()) { appendBlock(node, h); return; }
       // A single block taller than the printable area is split into parts; each
@@ -3964,30 +3970,35 @@ window.__SUI_RICH = (function () {
         var maxH = limit() - current.used;
         var rh = measureBlock(remaining);
         if (rh <= maxH) { appendBlock(remaining, rh); return; }
-        if (current.used > 0 && rh <= limit()) { fresh(); current.used = 0; continue; }
+        if (current.used > 0 && rh <= limit()) { fresh({ block: itemIndex, offset: baseOffset, kind: baseKind }); current.used = 0; continue; }
         var parts = splitBlockToFit(remaining, maxH);
         if (!parts) { appendBlock(remaining, rh); return; }
         var headH = measureBlock(parts.head);
         appendBlock(parts.head, headH);
         remaining = parts.rest;
+        var nextOffset = baseOffset + (parts.offset || 0);
+        var nextKind = parts.kind || '';
         if (!(remaining.textContent || '').replace(/\s+/g, '')) { takeFromMeasure(remaining); return; }
-        fresh(); current.used = 0;
+        fresh({ block: itemIndex, offset: nextOffset, kind: nextKind }); current.used = 0;
+        baseOffset = nextOffset;
+        baseKind = nextKind;
       }
     }
     var sheets = [];
     var current = sheetNode(inst, m);
     sheets.push(current); wrap.appendChild(current.sheet);
-    function fresh() {
+    function fresh(source) {
       var nextNo = sheets.length + 1;
       current = sheetNode(inst, pageMetrics(inst, nextNo));
       sheets.push(current); wrap.appendChild(current.sheet); current.used = 0;
+      if (source) breakSources.push(source);
     }
-    function placeTable(node, height) {
+    function placeTable(node, height, itemIndex) {
       var rows = Array.prototype.slice.call(node.querySelectorAll('tr'));
       var tcs = getComputedStyle(node);
       var tableEdge = (parseFloat(tcs.borderTopWidth) || 0) + (parseFloat(tcs.borderBottomWidth) || 0);
       var tableMarginTop = parseFloat(tcs.marginTop) || 0, tableMarginBottom = parseFloat(tcs.marginBottom) || 0;
-      if (rows.length <= 1) { fresh(); current.body.appendChild(node); current.used += height; return; }
+      if (rows.length <= 1) { fresh({ block: itemIndex }); current.body.appendChild(node); current.used += height; return; }
       var headerCount = 0;
       for (var hr = 0; hr < rows.length; hr++) {
         var cellsH = rows[hr].cells;
@@ -4042,14 +4053,12 @@ window.__SUI_RICH = (function () {
         var h = partHeight();
         if (current.used + h > limitForPage()) {
           removeRows(count);
-          if (bodyCount()) {
-            finishPart();
-            fresh();
-            current.used = 0;
-            newPart();
-            appendRange(group.start, group.end);
-            h = partHeight();
-          }
+          finishPart();
+          fresh({ block: itemIndex, row: headerCount + group.start });
+          current.used = 0;
+          newPart();
+          appendRange(group.start, group.end);
+          h = partHeight();
           if (current.used + h > limitForPage() && count > 1) {
             removeRows(count);
             for (var sr = group.start; sr <= group.end; sr++) {
@@ -4058,7 +4067,7 @@ window.__SUI_RICH = (function () {
               if (current.used + sh2 > limitForPage() && bodyCount() > 1) {
                 removeRows(1);
                 finishPart();
-                fresh();
+                fresh({ block: itemIndex, row: headerCount + sr });
                 current.used = 0;
                 newPart();
                 appendRange(sr, sr);
@@ -4072,19 +4081,24 @@ window.__SUI_RICH = (function () {
     }
     for (var it = 0; it < items.length; it++) {
       var item = items[it];
-      if (!item.node) { if (current.used > 0) fresh(); continue; }
+      if (!item.node) { if (current.used > 0) fresh({ block: it + 1, explicit: true }); continue; }
       var h = measureBlock(item.node);
       if (item.block.type === 'table') {
         if (h > current.metrics.contentH - 8 || (current.used > 0 && current.used + h > current.metrics.contentH - 8)) {
-          placeTable(item.node, h);
+          placeTable(item.node, h, item.index);
           continue;
         }
         appendBlock(item.node, h);
         continue;
       }
-      placeTextBlock(item.node);
+      placeTextBlock(item.node, item.index);
     }
     if (measure.parentNode) measure.parentNode.removeChild(measure);
+    inst.pageBreakSources = breakSources;
+    if (recordOnly) {
+      if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+      return;
+    }
     var total = sheets.length;
     for (var s2 = 0; s2 < sheets.length; s2++) {
       var sheet = sheets[s2];
@@ -4543,7 +4557,12 @@ window.__SUI_RICH = (function () {
       panel.appendChild(row);
       return input;
     }
-    numberRow('Indent left', 'indent', 0, 400, 1, 'px');
+    var indentInput = numberRow('Indent left', 'indent', 0, 400, 1, 'px');
+    var indentActions = el('div', 'sui-rich-indent-actions');
+    var indentLess = el('button', 'sui-rich-btn', '\u2212 Indent'); indentLess.type = 'button'; indentLess.setAttribute('data-rich-paragraph-indent-dec', '1');
+    var indentMore = el('button', 'sui-rich-btn', '+ Indent'); indentMore.type = 'button'; indentMore.setAttribute('data-rich-paragraph-indent-inc', '1');
+    indentActions.appendChild(indentLess); indentActions.appendChild(indentMore);
+    panel.appendChild(indentActions);
     numberRow('Line height', 'lineheight', 0.8, 3, 0.05, '');
     numberRow('Space before', 'before', 0, 200, 1, 'px');
     numberRow('Space after', 'after', 0, 200, 1, 'px');
@@ -4560,6 +4579,8 @@ window.__SUI_RICH = (function () {
       var target = ev.target;
       if (!target || !target.closest) return;
       if (target.closest('[data-rich-paragraph-apply]')) { applyParagraphSettings(inst); return; }
+      if (target.closest('[data-rich-paragraph-indent-dec]')) { changeParagraphIndent(inst, -24); return; }
+      if (target.closest('[data-rich-paragraph-indent-inc]')) { changeParagraphIndent(inst, 24); return; }
       if (target.closest('[data-rich-paragraph-reset]')) { fillParagraphSettings(inst, panel, null); return; }
       if (target.closest('[data-rich-paragraph-close]')) { panel.hidden = true; return; }
     });
@@ -4611,6 +4632,19 @@ window.__SUI_RICH = (function () {
       var input = panel.querySelector('[data-rich-paragraph-' + pair[1] + ']');
       if (input) input.value = source[pair[0]] == null ? '' : String(source[pair[0]]);
     });
+  }
+  function changeParagraphIndent(inst, delta) {
+    var blocks = paragraphTargets(inst);
+    for (var i = 0; i < blocks.length; i++) {
+      var block = blocks[i];
+      if (!block || !block.style) continue;
+      var current = parseFloat(block.style.paddingLeft || block.style.marginLeft || '0') || 0;
+      current = Math.max(0, Math.min(240, current + delta));
+      block.style.paddingLeft = current + 'px';
+    }
+    if (!blocks.length) return;
+    commit(inst, 'change');
+    fillParagraphSettings(inst, paragraphSettingsPanel(inst), null);
   }
   function applyParagraphSettings(inst) {
     inst = resolveInstance(inst.name) || inst;
@@ -5336,12 +5370,9 @@ window.__SUI_RICH = (function () {
       // A fresh editor reports scrollTop 0 before the stored position is
       // restored; do not let that transient value erase it.
       if (editor.scrollTop === 0 && (inst.keepScrollTop || inst.scrollTop) > 0 && Date.now() < (inst.scrollGuardUntil || 0)) return;
-      // Move the existing guides immediately so they stay glued to the content
-      // while scrolling; a full layout pass follows only when scrolling stops.
       inst.scrollTop = editor.scrollTop;
       inst.keepScrollTop = inst.scrollTop;
       positionPageGuides(inst);
-      schedulePageGuides(inst);
     });
     editor.addEventListener('blur', function () {
       setTimeout(function () {
@@ -5542,6 +5573,7 @@ window.__SUI_RICH = (function () {
         for (var rn in instances) if (instances[rn]) {
           if (instances[rn].paginated) schedulePaginate(instances[rn]);
           updatePageGuides(instances[rn]);
+          schedulePageGuides(instances[rn]);
         }
       });
     }
@@ -5652,6 +5684,7 @@ window.__SUI_RICH = (function () {
     setZoom(inst, inst.zoom || 1);
     updateStats(inst);
     updatePageGuides(inst);
+    schedulePageGuides(inst);
     restoreSelection(inst);
     // Restoring the caret can scroll the editor; put the stored position back
     // last so a re-render never jumps the document to the caret.
@@ -8724,6 +8757,8 @@ const suiRichTextCss = `
 .sui-rich-pagesettings-grid, .sui-rich-paragraphsettings .sui-rich-pagesettings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
 .sui-rich-pagesettings-hint { color: var(--sui-rich-muted); font-size: 11px; line-height: 1.4; }
 .sui-rich-pagesettings-actions { display: flex; gap: 6px; }
+.sui-rich-indent-actions { display: flex; gap: 6px; margin-top: -2px; }
+.sui-rich-indent-actions .sui-rich-btn { flex: 1; justify-content: center; }
 .sui-rich-pagesettings-actions .sui-rich-btn { flex: 1; border: 1px solid var(--sui-rich-border); }
 .sui-rich-tableprops[hidden] { display: none; }
 .sui-rich-tableprops-title { font-weight: 600; margin-bottom: 6px; }

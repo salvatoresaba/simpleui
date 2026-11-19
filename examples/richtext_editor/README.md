@@ -30,8 +30,9 @@ builds.
   line height and header/footer. Page settings overrides them for a single page.
 Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Print preview shows the real page split and follows the UI light/dark theme;
-  the continuous editor marks automatic page cuts with red dashed guides spaced
-  by the full page height (margins included). Hovering a guide shows a red
+  the continuous editor marks the actual print page starts with red dashed
+  guides, so the lines match the paginated view and print preview. Hovering a
+  guide shows a red
   "Page break - drag" label and a large grab band. The guides are anchored to
   document positions and follow the content while scrolling. Drag a guide, or
   the whole red line/label of an existing break (not just its handle), to move
@@ -43,14 +44,17 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   has a delete control. Every move/delete recalculates the following breaks,
   and oversized paragraphs, lists and tables are split so printed content never
   enters the margins.
-- Paragraph settings panel (alignment, indent, line height, space before/after),
-  zoom controls in the toolbar and a print preview overlay.
+- Paragraph settings panel (alignment, indent with explicit −/+ buttons, line
+  height, space before/after), zoom controls in the toolbar and a print preview
+  overlay. The main toolbar and the contextual selection toolbar both expose
+  indent/outdent for the current paragraph.
 - Font-size buttons A+/A− change the selected text (or the word at the caret);
   zoom only scales the view and never changes the document fonts.
 - Image settings: double-click an image or right-click it and choose Edit/Replace/Delete;
   edit the URL, replace it with a file, change alt/width/alignment or remove it.
-- Configurable toolbar groups, menu bar, contextual selection toolbar and
-  status bar (words, characters, paragraphs, caret, zoom). Toolbar categories are
+- Configurable toolbar groups, menu bar (File, Edit, Insert, View; no redundant
+  Format/Tools menus), contextual selection toolbar and status bar (words,
+  characters, paragraphs, caret, zoom). Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
   top bar to re-insert it at the nearest slot; the other toolbars move aside. A single theme button at the right of the toolbar
   cycles the interface between dark and light; the document page stays white
