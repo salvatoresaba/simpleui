@@ -1717,8 +1717,11 @@ Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
 orizzontale su ogni interruzione di pagina automatica, con reset dopo le
 interruzioni esplicite e tenendo conto di margini e bordi dei blocchi (incluse
-tabelle, righe spezzate e unioni verticali mantenute insieme); le guide sono
-nascoste nella vista paginata e in stampa.
+tabelle, righe spezzate e unioni verticali mantenute insieme). Trascina una
+guida tratteggiata per spostare l'interruzione: al rilascio viene inserita
+un'interruzione esplicita prima del paragrafo o della tabella più vicini, così
+la tabella non viene tagliata nel punto sbagliato. Le guide sono nascoste nella
+vista paginata e in stampa.
 
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
 inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un
@@ -1761,7 +1764,9 @@ sulla parola al cursore se non c'è selezione: ogni clic aumenta o riduce di
 
 **Anteprima di stampa** (pulsante `printPreview` e File > Anteprima di stampa)
 apre un'anteprima centrata già divisa nelle pagine reali, usando formato e
-margini effettivi di ogni pagina, intestazioni/piè di pagina e numeri di pagina. Stampa usa le stesse pagine;
+margini effettivi di ogni pagina, intestazioni/piè di pagina e numeri di pagina.
+La barra dell'anteprima segue il tema chiaro/scuro dell'interfaccia, mantenendo
+il testo leggibile. Stampa usa le stesse pagine;
 File > Salva con nome è elencato subito sotto Apri file.
 
 I comandi link, immagine, simbolo e importa contenuto aprono un overlay

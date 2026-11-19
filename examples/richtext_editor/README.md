@@ -29,8 +29,9 @@ builds.
 - Document settings (menu) provides page defaults: size, orientation, margins,
   line height and header/footer. Page settings overrides them for a single page.
 Both feed paginated view, print and PDF/DOCX/ODT exports.
-- Print preview shows the real page split; the continuous editor marks automatic
-  page cuts with dashed horizontal guides.
+- Print preview shows the real page split and follows the UI light/dark theme;
+  the continuous editor marks automatic page cuts with draggable dashed guides
+  that insert a page break before the nearest paragraph or table.
 - Paragraph settings panel (alignment, indent, line height, space before/after),
   zoom controls in the toolbar and a print preview overlay.
 - Font-size buttons A+/A− change the selected text (or the word at the caret);

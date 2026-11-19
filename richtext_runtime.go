@@ -3204,6 +3204,56 @@ window.__SUI_RICH = (function () {
   function mmToPt(mm) { return Number(mm) * 72 / 25.4; }
   function mmToTwips(mm) { return Math.round(Number(mm) * 1440 / 25.4); }
   function mmToCm(mm) { return (Number(mm) / 10).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'cm'; }
+  function insertPageBreakAt(inst, contentY) {
+    if (!inst || !inst.editor) return;
+    var ed = inst.editor;
+    var edRect = ed.getBoundingClientRect();
+    var scroll = ed.scrollTop;
+    var children = Array.prototype.slice.call(ed.children).filter(function (child) {
+      return !(child.classList && child.classList.contains('sui-rich-pagebreak'));
+    });
+    if (!children.length) return;
+    var best = null, bestDist = Infinity;
+    for (var i = 1; i < children.length; i++) {
+      var r = children[i].getBoundingClientRect();
+      var y = r.top - edRect.top + scroll;
+      var dist = Math.abs(y - contentY);
+      if (dist < bestDist) { bestDist = dist; best = children[i]; }
+    }
+    if (!best) best = children[children.length - 1].nextSibling;
+    if (best && best.classList && best.classList.contains('sui-rich-pagebreak')) return;
+    var br = el('div', 'sui-rich-pagebreak', 'Page break');
+    br.setAttribute('contenteditable', 'false');
+    br.setAttribute('data-sui-page-break', '1');
+    if (best && best.parentNode === ed) ed.insertBefore(br, best);
+    else ed.appendChild(br);
+    commit(inst, 'change');
+    schedulePageGuides(inst);
+  }
+  function startPageGuideDrag(inst, line, ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    var ed = inst.editor;
+    var layer = line.parentNode;
+    var startY = ev.clientY, startTop = parseFloat(line.style.top) || 0;
+    line.classList.add('dragging');
+    function move(moveEv) {
+      var top = startTop + (moveEv.clientY - startY);
+      top = Math.max(0, Math.min(ed.clientHeight - 1, top));
+      line.style.top = top + 'px';
+    }
+    function up(upEv) {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      line.classList.remove('dragging');
+      var edRect = ed.getBoundingClientRect(), hostRect = layer.parentNode.getBoundingClientRect();
+      var top = parseFloat(line.style.top) || 0;
+      var contentY = top - (edRect.top - hostRect.top) + ed.scrollTop;
+      insertPageBreakAt(inst, contentY);
+    }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
   function pageGuideLayer(inst) {
     if (!inst || !inst.editor || !inst.editor.parentNode) return null;
     var host = inst.editor.parentNode;
@@ -3213,6 +3263,13 @@ window.__SUI_RICH = (function () {
       layer.setAttribute('aria-hidden', 'true');
       host.appendChild(layer);
       if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    }
+    if (!layer.__suiGuideBound) {
+      layer.__suiGuideBound = true;
+      layer.addEventListener('mousedown', function (ev) {
+        var line = ev.target && ev.target.closest ? ev.target.closest('.sui-rich-guide') : null;
+        if (line) startPageGuideDrag(inst, line, ev);
+      });
     }
     return layer;
   }
@@ -3273,6 +3330,8 @@ window.__SUI_RICH = (function () {
       var top = offset + cuts[c] - scroll;
       var line = el('div', 'sui-rich-guide');
       line.style.top = top + 'px';
+      line.title = 'Drag to insert a page break at this point';
+      line.setAttribute('data-sui-guide', '1');
       layer.appendChild(line);
     }
   }
@@ -7971,7 +8030,9 @@ const suiRichTextCss = `
 .sui-rich-btn[disabled] { opacity: .45; cursor: default; }
 .sui-rich[data-rich-painter="1"] .sui-rich-editor { cursor: copy; }
 .sui-rich-guides { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
-.sui-rich-guide { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in srgb, var(--sui-rich-accent, #4c5cf7) 55%, transparent); opacity: .8; }
+.sui-rich-guide { position: absolute; left: 0; right: 0; height: 10px; margin-top: -5px; border-top: 1px dashed color-mix(in srgb, var(--sui-rich-accent, #4c5cf7) 55%, transparent); opacity: .8; pointer-events: auto; cursor: grab; }
+.sui-rich-guide:hover, .sui-rich-guide.dragging { border-top-color: var(--sui-rich-accent, #4c5cf7); opacity: 1; }
+.sui-rich-guide.dragging { cursor: grabbing; }
 .sui-rich-paginated .sui-rich-guides { display: none; }
 .sui-rich-imagesettings-error { margin: 0; color: #fca5a5; font-size: 12px; }
 .sui-rich-image-menu { position: fixed; z-index: 6200; width: 182px; padding: 4px; border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 8px; background: var(--sui-rich-bg, #1d2129); box-shadow: 0 12px 30px rgba(0,0,0,.4); }
@@ -8026,10 +8087,11 @@ const suiRichTextCss = `
 .sui-rich-prompt-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .sui-rich-prompt-actions .sui-rich-btn { border: 1px solid var(--sui-rich-border, #3d4556); }
 .sui-rich-preview { position: fixed; inset: 0; z-index: 6000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0, 0, 0, .55); }
-.sui-rich-preview-card { width: min(920px, 94vw); height: min(90vh, 900px); display: flex; flex-direction: column; overflow: hidden; background: #1d2129; border: 1px solid #3d4556; border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.5); }
-.sui-rich-preview-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: #e6e6ef; font-size: 13px; border-bottom: 1px solid #3d4556; }
+.sui-rich-preview-card { width: min(920px, 94vw); height: min(90vh, 900px); display: flex; flex-direction: column; overflow: hidden; background: var(--sui-rich-bg, #1d2129); color: var(--sui-rich-fg, #e6e6ef); border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.5); }
+.sui-rich-preview-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--sui-rich-bg, #1d2129); color: var(--sui-rich-fg, #e6e6ef); font-size: 13px; border-bottom: 1px solid var(--sui-rich-border, #3d4556); }
 .sui-rich-preview-bar strong { margin-right: auto; font-weight: 600; }
-.sui-rich-preview-bar .sui-rich-btn { border: 1px solid #3d4556; }
+.sui-rich-preview-bar .sui-rich-btn { background: transparent; color: var(--sui-rich-fg, #e6e6ef); border: 1px solid var(--sui-rich-border, #3d4556); }
+.sui-rich-preview-bar .sui-rich-btn:hover, .sui-rich-preview-bar .sui-rich-btn:focus-visible { background: var(--sui-rich-hover, #2d3340); color: var(--sui-rich-fg, #e6e6ef); border-color: var(--sui-rich-accent, #4c5cf7); outline: none; }
 .sui-rich-preview-pages { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 18px; background: #e6e9ef; }
 .sui-rich-preview-pages .sui-rich-page-sheet { margin: 0 auto 18px; }
 .sui-rich-preview-loading { color: #333; font-size: 13px; padding: 18px; text-align: center; }

@@ -1743,7 +1743,10 @@ restore the document defaults. The default is A4 portrait with 15 mm top/bottom 
 left/right margins. The continuous editor draws a dashed horizontal guide at
 every automatic page cut, resetting after explicit page breaks and taking block
 margins/borders (including table borders, split rows and vertical merges kept
-together) into account; guides are hidden in the paginated view and in print.
+together) into account. Drag a dashed guide to move the break: on release an
+explicit page break is inserted before the nearest paragraph or table, so a
+table is not split at a bad point. Guides are hidden in the paginated view and
+in print.
 
 Every text feature has a toolbar control: inline code (`code`) and Remove link
 (`unlink`) included. Unlink is disabled when the caret is outside a link, and
@@ -1785,7 +1788,8 @@ font size by 2 px and stores a `size` mark in the document model.
 
 **Print preview** (toolbar button `printPreview` and File > Print preview)
 opens a centered preview already split into the real pages, using each page's
-effective size/margins and the configured headers/footers and page numbers. Print uses those same sheet pages;
+effective size/margins and the configured headers/footers and page numbers. The
+preview toolbar follows the interface light/dark theme, so its text stays visible. Print uses those same sheet pages;
 File > Save as is listed directly under Open file.
 
 Link, image, symbol and import-content commands open a centered overlay with
