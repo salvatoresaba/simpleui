@@ -1732,7 +1732,10 @@ confine di una riga; rilasciandola la tabella viene divisa in due tabelle attorn
 all'interruzione esplicita, mantenendo insieme le righe unite da rowspan,
 ripetendo le righe di intestazione e conservando tutte le righe di dati.
 Spostando un'interruzione esistente dentro un frammento di tabella, il frammento
-viene diviso allo stesso modo. Anche le interruzioni
+viene diviso allo stesso modo. Quando un'interruzione viene spostata fuori dalla
+tabella o eliminata, i frammenti adiacenti della stessa tabella vengono
+ricomposti automaticamente in un'unica tabella, ripristinando righe e
+intestazione originali. Anche le interruzioni
 esplicite e le loro linee sono rosse. Ogni interruzione ha un controllo di
 eliminazione; spostarla o eliminarla ricalcola tutte le interruzioni successive,
 tenendo conto di margini e bordi dei blocchi (incluse tabelle, righe spezzate e

@@ -16,6 +16,7 @@ window.__SUI_RICH = (function () {
   var plugins = Object.create(null);
   var pluginOrder = [];
   var MAX_HISTORY = 120;
+  var tableGroupSeq = 0;
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
   var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
@@ -323,6 +324,8 @@ window.__SUI_RICH = (function () {
         flush();
         var tableAlign = node.style.marginLeft === 'auto' && node.style.marginRight === 'auto' ? 'center' : node.style.marginLeft === 'auto' ? 'right' : node.style.marginRight === 'auto' ? 'left' : '';
         var table = { type: 'table', rows: [], header: false, border: cssColor(node.style.borderColor || '') || '', borderWidth: cssLength(node.getAttribute('data-table-border-width') || '', ''), padding: cssLength(node.getAttribute('data-table-padding') || '', ''), width: cssLength(node.style.width, ''), height: cssLength(node.style.height, ''), align: tableAlign };
+        var tableGroup = node.getAttribute('data-sui-table-group');
+        if (tableGroup) table._tableGroup = tableGroup;
         if (node.getAttribute('data-table-borders') !== null) table.borders = tableBorderFlags(node);
         function cellPaddingOf(cellNode) {
           var shorthand = String(cellNode.style.padding || '').trim();
@@ -538,6 +541,7 @@ window.__SUI_RICH = (function () {
       if (node.borderWidth) box.setAttribute('data-table-border-width', cssLength(node.borderWidth, ''));
       if (node.padding) box.setAttribute('data-table-padding', cssLength(node.padding, ''));
       if (node.borders) box.setAttribute('data-table-borders', node.borders.join(','));
+      if (node._tableGroup) box.setAttribute('data-sui-table-group', String(node._tableGroup));
       if (node.width) box.style.width = cssLength(node.width, '');
       if (node.height) box.style.height = cssLength(node.height, '');
       if (node.align === 'center') { box.style.marginLeft = 'auto'; box.style.marginRight = 'auto'; }
@@ -1311,7 +1315,15 @@ window.__SUI_RICH = (function () {
         e.preventDefault(); e.stopPropagation();
         var pb = del.closest('.sui-rich-pagebreak');
         if (pb && pb.parentNode) pb.parentNode.removeChild(pb);
-        commit(inst, 'change');
+        sync(inst);
+        if (mergeAdjacentTableFragments(inst)) {
+          inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
+          remember(inst);
+          restore(inst, JSON.stringify(inst.doc));
+          notify(inst, 'change');
+        } else {
+          commit(inst, 'change');
+        }
         schedulePageGuides(inst);
         return;
       }
@@ -2298,6 +2310,8 @@ window.__SUI_RICH = (function () {
     var div = el('div');
     var kids = inst.doc.children || [];
     for (var i = 0; i < kids.length; i++) { var b = blockDom(kids[i], 0); if (b) div.appendChild(b); }
+    var tagged = div.querySelectorAll('[data-sui-table-group]');
+    for (var g = 0; g < tagged.length; g++) tagged[g].removeAttribute('data-sui-table-group');
     return div.innerHTML;
   }
   function blocksTextMarkdown(blocks, inlineFn) {
@@ -3352,6 +3366,55 @@ window.__SUI_RICH = (function () {
     }
     return count;
   }
+  function tableColumns(block) {
+    var rows = (block && block.rows) || [], max = 0;
+    for (var r = 0; r < rows.length; r++) {
+      var cells = rows[r].cells || [], n = 0;
+      for (var c = 0; c < cells.length; c++) n += Math.max(1, Number(cells[c].colspan) || 1);
+      if (n > max) max = n;
+    }
+    return max;
+  }
+  function tableMergeCompatible(left, right) {
+    if (!left || !right || left.type !== 'table' || right.type !== 'table') return false;
+    if (!left._tableGroup || left._tableGroup !== right._tableGroup) return false;
+    var leftCols = tableColumns(left), rightCols = tableColumns(right);
+    if (!leftCols || leftCols !== rightCols) return false;
+    if (tableHeaderCount(left) !== tableHeaderCount(right)) return false;
+    var keys = ['border', 'borderWidth', 'padding', 'width', 'height', 'align', 'header'];
+    for (var k = 0; k < keys.length; k++) {
+      if (String(left[keys[k]] || '') !== String(right[keys[k]] || '')) return false;
+    }
+    if (JSON.stringify(left.borders || []) !== JSON.stringify(right.borders || [])) return false;
+    return true;
+  }
+  function mergeAdjacentTableFragments(inst) {
+    var blocks = (inst && inst.doc && inst.doc.children) || [];
+    var changed = false;
+    for (var i = 1; i < blocks.length; ) {
+      var left = blocks[i - 1], right = blocks[i];
+      if (tableMergeCompatible(left, right)) {
+        var hc = tableHeaderCount(right);
+        left.rows = (left.rows || []).concat((right.rows || []).slice(hc));
+        if (!left.caption && right.caption) left.caption = right.caption;
+        blocks.splice(i, 1);
+        changed = true;
+      } else {
+        i++;
+      }
+    }
+    if (changed) {
+      var counts = {};
+      for (var b = 0; b < blocks.length; b++) {
+        var g = blocks[b] && blocks[b].type === 'table' ? blocks[b]._tableGroup : '';
+        if (g) counts[g] = (counts[g] || 0) + 1;
+      }
+      for (var t = 0; t < blocks.length; t++) {
+        if (blocks[t] && blocks[t].type === 'table' && blocks[t]._tableGroup && counts[blocks[t]._tableGroup] === 1) delete blocks[t]._tableGroup;
+      }
+    }
+    return changed;
+  }
   function splitTableBlock(inst, tableNode, splitIndex, removeBreakNode) {
     if (!inst || !inst.editor) return false;
     sync(inst);
@@ -3367,8 +3430,11 @@ window.__SUI_RICH = (function () {
     if (hc > 0 && splitIndex >= rows.length) splitIndex = rows.length - 1;
     if (splitIndex <= 0 || splitIndex >= rows.length) return false;
     if (rows.length < splitIndex + 1) return false;
+    var group = block._tableGroup || ('tbl-' + (++tableGroupSeq) + '-' + Date.now().toString(36));
     var first = JSON.parse(JSON.stringify(block));
     var second = JSON.parse(JSON.stringify(block));
+    first._tableGroup = group;
+    second._tableGroup = group;
     first.rows = rows.slice(0, splitIndex);
     second.rows = rows.slice(splitIndex);
     if (hc > 0 && splitIndex > hc) second.rows = rows.slice(0, hc).concat(rows.slice(splitIndex));
@@ -3384,6 +3450,7 @@ window.__SUI_RICH = (function () {
         if (blocks[modelBreak] && blocks[modelBreak].type === 'page_break') blocks.splice(modelBreak, 1);
       }
     }
+    mergeAdjacentTableFragments(inst);
     remember(inst);
     restore(inst, JSON.stringify(inst.doc));
     notify(inst, 'change');
@@ -3516,7 +3583,15 @@ window.__SUI_RICH = (function () {
         var targetSplit = tableRowSplitAt(inst, targetContent);
         if (targetSplit && splitTableBlock(inst, targetSplit.table, targetSplit.splitIndex, breakNode)) return;
         movePageBreakTo(inst, breakNode, targetContent);
-        commit(inst, 'change');
+        sync(inst);
+        if (mergeAdjacentTableFragments(inst)) {
+          inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
+          remember(inst);
+          restore(inst, JSON.stringify(inst.doc));
+          notify(inst, 'change');
+        } else {
+          commit(inst, 'change');
+        }
         schedulePageGuides(inst);
       } else {
         insertPageBreakAt(inst, targetContent);

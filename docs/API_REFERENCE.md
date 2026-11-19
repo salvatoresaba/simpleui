@@ -1755,7 +1755,9 @@ does not create or move a break. Inside a long table the line snaps to a table
 row boundary; dropping it splits the table into two tables around the explicit
 page break, keeping rows joined by rowspan together, repeating header rows and
 preserving every data row. Moving an existing break into a table fragment
-splits that fragment the same way. Explicit breaks
+splits that fragment the same way. When a break is moved out of the table or
+deleted, adjacent fragments of the same table are automatically recomposed into
+a single table, restoring the original rows and header. Explicit breaks
 and their lines are red too. Every break has a delete control, and moving or
 deleting a break recalculates all following breaks, taking block
 margins/borders (including table borders, split rows and vertical merges kept

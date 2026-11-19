@@ -1051,6 +1051,8 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
       }
     }
     if (reqBody !== 70 || Object.keys(reqLabels).length !== 70) throw new Error('long table split lost or duplicated rows: body ' + reqBody + ', labels ' + Object.keys(reqLabels).length);
+    var reqExportHtml = __SUI_RICH.exportFormat('editor', 'html');
+    if (reqExportHtml[0] && reqExportHtml[0].indexOf('data-sui-table-group') >= 0) throw new Error('internal table group leaked into exported HTML');
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(5000);
     var reqTableSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
@@ -1101,6 +1103,28 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
       }
     }
     if (reqMovedBody !== 70 || Object.keys(reqMovedLabels).length !== 70) throw new Error('moving the break inside the table lost rows: body ' + reqMovedBody + ', labels ' + Object.keys(reqMovedLabels).length);
+    // Deleting the break between adjacent fragments must recompose one table.
+    var reqMergeDelete = document.querySelector('.sui-rich-pagebreak [data-rich-pb-delete]');
+    if (!reqMergeDelete) throw new Error('merged table break delete control missing');
+    reqMergeDelete.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await wait(800);
+    var reqMergedDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var reqMergedTables = reqMergedDoc.children.filter(function (c) { return c.type === 'table'; });
+    if (reqMergedDoc.children.length !== 1 || reqMergedTables.length !== 1) throw new Error('adjacent table fragments were not merged: ' + JSON.stringify(reqMergedDoc.children.map(function (c) { return c.type; })));
+    if (reqMergedTables[0]._tableGroup) throw new Error('merged table kept a fragment group');
+    var reqMergedBody = 0, reqMergedLabels = {};
+    var reqMergedHc = 0;
+    for (var mh = 0; mh < reqMergedTables[0].rows.length; mh++) {
+      var mhcells = reqMergedTables[0].rows[mh].cells || [], mhall = mhcells.length > 0;
+      for (var mhc = 0; mhc < mhcells.length; mhc++) if (!mhcells[mhc].header) mhall = false;
+      if (mhall) reqMergedHc++; else break;
+    }
+    for (var mrb2 = reqMergedHc; mrb2 < reqMergedTables[0].rows.length; mrb2++) {
+      reqMergedBody++;
+      var mmcell = reqMergedTables[0].rows[mrb2].cells[0] || {}, mmtxt = (mmcell.children || []).map(function (c) { return c.text || ''; }).join('');
+      if (/^Row \d+$/.test(mmtxt)) reqMergedLabels[mmtxt] = true;
+    }
+    if (reqMergedBody !== 70 || Object.keys(reqMergedLabels).length !== 70) throw new Error('merged table lost rows: body ' + reqMergedBody + ', labels ' + Object.keys(reqMergedLabels).length);
 
     // A paragraph taller than the printable area is split across pages, in the
     // paginated view and in print preview, and never crosses the bottom margin.
