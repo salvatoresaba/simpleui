@@ -880,6 +880,23 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     }
     var reqBreakBefore = reqGuideTops();
     if (!reqBreakBefore.length) throw new Error('page break test needs automatic guides');
+    var reqBreakRoot = richRoot();
+    if (getComputedStyle(reqBreakRoot).getPropertyValue('--sui-rich-break').trim() !== '#dc2626') throw new Error('page break colour variable is not red');
+    var reqBreakLineColor = getComputedStyle(document.querySelector('.sui-rich-pagebreak')).borderTopColor;
+    if (!/220,\s*38,\s*38/.test(reqBreakLineColor)) throw new Error('page break line is not red: ' + reqBreakLineColor);
+    // Guides must keep a document position and follow the editor scroll.
+    var reqAnchorGuide = document.querySelector('.sui-rich-guide');
+    var reqAnchorCut = reqAnchorGuide.getAttribute('data-cut');
+    var reqAnchorTop = parseFloat(reqAnchorGuide.style.top) || 0;
+    bsEditor().scrollTop = 500;
+    bsEditor().dispatchEvent(new Event('scroll'));
+    await wait(220);
+    reqAnchorGuide = document.querySelector('.sui-rich-guide');
+    if (reqAnchorGuide.getAttribute('data-cut') !== reqAnchorCut) throw new Error('automatic guide lost its document anchor while scrolling');
+    var reqAnchorTop2 = parseFloat(reqAnchorGuide.style.top) || 0;
+    if (Math.abs((reqAnchorTop - reqAnchorTop2) - 500) > 5) throw new Error('automatic guide did not follow the editor scroll: top ' + reqAnchorTop + ' -> ' + reqAnchorTop2 + ', scroll ' + bsEditor().scrollTop + ', cut ' + reqAnchorCut + ', inRoot ' + richRoot().contains(reqAnchorGuide) + ', roots ' + document.querySelectorAll('[data-sui-rich]').length + ', eds ' + document.querySelectorAll('.sui-rich-editor').length + ', layers ' + document.querySelectorAll('.sui-rich-guides').length);
+    bsEditor().scrollTop = 0;
+    await wait(220);
     var reqBreakHandle = document.querySelector('.sui-rich-pagebreak [data-rich-pb-handle]');
     if (!reqBreakHandle) throw new Error('page break drag handle missing');
     var reqBreakHandleRect = reqBreakHandle.getBoundingClientRect();
@@ -914,6 +931,39 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqBreakAfterDelete = reqGuideTops();
     if (!reqBreakAfterDelete.length || reqBreakAfterDelete[0] >= reqBreakAfterMove[0]) throw new Error('guides were not recalculated after deleting the break');
     if (reqBreakAfterDelete.length > 1 && reqBreakAfterDelete[1] - reqBreakAfterDelete[0] < 700) throw new Error('page guides are not spaced by the full page height');
+
+    // Dragging a guide while the editor is scrolled must move the target in
+    // document coordinates, never jump to the first block of the document.
+    var reqScrollRows = [];
+    for (var sgr = 0; sgr < 90; sgr++) reqScrollRows.push({ type: 'paragraph', children: [{ type: 'text', text: 'Scrolled guide row ' + sgr + ' with enough text for a line.', marks: [] }] });
+    __SUI_RICH.set('editor', { type: 'doc', pageOverrides: {}, children: reqScrollRows });
+    await wait(500);
+    var reqScrollEditor = bsEditor();
+    reqScrollEditor.scrollTop = 900;
+    reqScrollEditor.dispatchEvent(new Event('scroll'));
+    await wait(300);
+    var reqScrollGuide = null;
+    var reqScrollGuides = [].slice.call(document.querySelectorAll('.sui-rich-guide'));
+    var reqScrollRect = reqScrollEditor.getBoundingClientRect();
+    for (var sgi = 0; sgi < reqScrollGuides.length; sgi++) {
+      var sgRect = reqScrollGuides[sgi].getBoundingClientRect();
+      if (sgRect.top >= reqScrollRect.top + 20 && sgRect.top <= reqScrollRect.bottom - 20) { reqScrollGuide = reqScrollGuides[sgi]; break; }
+    }
+    if (!reqScrollGuide) {
+      var reqScrollDebug = [].slice.call(reqScrollGuides).map(function (g) { var gr = g.getBoundingClientRect(); return Math.round(gr.top) + '/' + Math.round(gr.bottom) + '@' + g.getAttribute('data-cut'); }).join(', ');
+      throw new Error('no visible guide while the editor is scrolled: scroll ' + reqScrollEditor.scrollTop + ', editor ' + Math.round(reqScrollRect.top) + '..' + Math.round(reqScrollRect.bottom) + ', guides ' + reqScrollGuides.length + ' [' + reqScrollDebug + ']');
+    }
+    var reqScrollBefore = reqScrollEditor.scrollTop;
+    var reqScrollGuideRect = reqScrollGuide.getBoundingClientRect();
+    reqScrollGuide.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqScrollGuideRect.left + 30, clientY: reqScrollGuideRect.top + 2 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: reqScrollGuideRect.left + 30, clientY: reqScrollGuideRect.top - 90 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: reqScrollGuideRect.left + 30, clientY: reqScrollGuideRect.top - 90 }));
+    await wait(600);
+    var reqScrollDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var reqScrollBreakIndex = reqScrollDoc.children.findIndex(function (c) { return c.type === 'page_break'; });
+    if (reqScrollBreakIndex <= 5) throw new Error('scrolled guide drag created a break at the start: ' + reqScrollBreakIndex);
+    if (document.querySelectorAll('.sui-rich-pagebreak').length !== 1) throw new Error('scrolled guide drag created duplicate breaks');
+    if (reqScrollBefore > 200 && bsEditor().scrollTop === 0) throw new Error('editor scroll was reset after the guide drag: before ' + reqScrollBefore);
 
     // A paragraph taller than the printable area is split across pages, in the
     // paginated view and in print preview, and never crosses the bottom margin.

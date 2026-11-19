@@ -1716,14 +1716,18 @@ sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins
 Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
 orizzontale su ogni interruzione di pagina automatica, distanziata dell'altezza
-completa della pagina (margini superiore e inferiore inclusi) e agganciata al
-bordo del paragrafo più vicino, così non attraversa mai il testo, con reset dopo
-le interruzioni esplicite e tenendo conto di margini e bordi dei blocchi
-(incluse tabelle, righe spezzate e unioni verticali mantenute insieme).
-Trascina una guida tratteggiata per inserire un'interruzione prima del paragrafo
-o della tabella più vicini, oppure trascina la maniglia di un'interruzione
-esistente per spostarla. Ogni interruzione ha un controllo di eliminazione; spostarla o
-eliminarla ricalcola tutte le interruzioni successive. Nella vista paginata,
+completa della pagina (margini superiore e inferiore inclusi), agganciata al
+bordo del paragrafo più vicino (così non attraversa mai il testo) e disegnata in
+rosso. La linea è ancorata a una posizione del documento, non al viewport: si
+muove con il contenuto quando si scorre l'editor. Trascina una guida rossa
+tratteggiata per inserire un'interruzione prima del paragrafo o della tabella
+più vicini, oppure trascina la maniglia di un'interruzione esistente per
+spostarla; trascinando vicino al bordo dell'editor lo scorrimento è automatico,
+così il punto può andare oltre la parte visibile. Anche le interruzioni
+esplicite e le loro linee sono rosse. Ogni interruzione ha un controllo di
+eliminazione; spostarla o eliminarla ricalcola tutte le interruzioni successive,
+tenendo conto di margini e bordi dei blocchi (incluse tabelle, righe spezzate e
+unioni verticali mantenute insieme). Nella vista paginata,
 nell'anteprima di stampa e in stampa i paragrafi e gli elenchi troppo alti
 vengono divisi tra le pagine (le tabelle mantengono insieme i gruppi con
 rowspan), così il contenuto non supera mai l'area di stampa. Le guide sono

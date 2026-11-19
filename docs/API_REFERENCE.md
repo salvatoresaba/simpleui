@@ -1743,12 +1743,15 @@ restore the document defaults. The default is A4 portrait with 15 mm top/bottom 
 left/right margins. The continuous editor draws a dashed horizontal guide at
 every automatic page cut, spaced by the full page height (top and bottom margins
 included) and snapped to the nearest paragraph edge so it never crosses text,
-resetting after explicit page breaks and taking block margins/borders
-(including table borders, split rows and vertical merges kept together) into
-account. Drag a dashed guide to insert a page break before the nearest
-paragraph or table, or drag the handle of an existing break to move it.
-Every break has a delete control, and moving or deleting a break recalculates
-all following breaks. In the paginated view, print preview and print, oversized
+and drawn in red. The line is anchored to a document position, not to the
+viewport: it moves with the editor content when the user scrolls. Drag a red
+dashed guide to insert a page break before the nearest paragraph or table, or
+drag the handle of an existing break to move it; dragging near an editor edge
+auto-scrolls so the target can move beyond the visible viewport. Explicit breaks
+and their lines are red too. Every break has a delete control, and moving or
+deleting a break recalculates all following breaks, taking block
+margins/borders (including table borders, split rows and vertical merges kept
+together) into account. In the paginated view, print preview and print, oversized
 paragraphs and lists are split across pages (tables keep rowspan groups
 together) so the content never extends into the printable margins. Guides are
 hidden in the paginated view and in print.

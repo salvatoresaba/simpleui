@@ -30,11 +30,14 @@ builds.
   line height and header/footer. Page settings overrides them for a single page.
 Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Print preview shows the real page split and follows the UI light/dark theme;
-  the continuous editor marks automatic page cuts with dashed guides spaced by
-  the full page height (margins included). Drag a guide, or the handle of an
-  existing break, to move the cut; each break has a delete control. Every
-  move/delete recalculates the following breaks, and oversized paragraphs,
-  lists and tables are split so printed content never enters the margins.
+  the continuous editor marks automatic page cuts with red dashed guides spaced
+  by the full page height (margins included). The guides are anchored to
+  document positions and follow the content while scrolling. Drag a guide, or
+  the handle of an existing break, to move the cut; dragging near an edge
+  auto-scrolls, so the target can go beyond the visible viewport. Each break
+  has a delete control. Every move/delete recalculates the following breaks,
+  and oversized paragraphs, lists and tables are split so printed content never
+  enters the margins.
 - Paragraph settings panel (alignment, indent, line height, space before/after),
   zoom controls in the toolbar and a print preview overlay.
 - Font-size buttons A+/A− change the selected text (or the word at the caret);

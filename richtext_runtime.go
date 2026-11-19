@@ -813,7 +813,13 @@ window.__SUI_RICH = (function () {
     inst.index = inst.history.length - 1;
   }
   function commit(inst, kind) {
+    inst.scrollGuardUntil = Date.now() + 300;
     sync(inst);
+    if (inst.editor) {
+      inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
+      inst.scrollTop = inst.editor.scrollTop;
+      inst.keepScrollTop = inst.scrollTop;
+    }
     remember(inst);
     updateStats(inst);
     updatePageGuides(inst);
@@ -821,12 +827,16 @@ window.__SUI_RICH = (function () {
     if (inst.paginated) schedulePaginate(inst);
   }
   function restore(inst, text) {
+    inst.scrollGuardUntil = Date.now() + 300;
+    var keepScroll = inst.keepScrollTop || inst.scrollTop || (inst.editor ? inst.editor.scrollTop : 0);
     inst.doc = parseJSON(text, emptyDoc());
     inst.headerText = resolvedHeader(inst, inst.doc);
     inst.footerText = resolvedFooter(inst, inst.doc);
     inst.editor.innerHTML = '';
     inst.editor.appendChild(renderDoc(inst.doc));
+    inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
     applyPageLineHeight(inst);
+    applyEditorScroll(inst, keepScroll);
     refreshPageChrome(inst);
     updateStats(inst);
     updatePageGuides(inst);
@@ -2230,12 +2240,16 @@ window.__SUI_RICH = (function () {
     if (doc.pageOverrides === undefined && inst.doc && inst.doc.pageOverrides !== undefined) doc.pageOverrides = inst.doc.pageOverrides;
     if (doc.header == null && inst.doc && inst.doc.header != null) doc.header = inst.doc.header;
     if (doc.footer == null && inst.doc && inst.doc.footer != null) doc.footer = inst.doc.footer;
+    inst.scrollGuardUntil = Date.now() + 300;
+    var keepScroll = inst.keepScrollTop || inst.scrollTop || (inst.editor ? inst.editor.scrollTop : 0);
     inst.doc = doc;
     inst.headerText = resolvedHeader(inst, doc);
     inst.footerText = resolvedFooter(inst, doc);
     refreshPageChrome(inst);
     inst.editor.innerHTML = '';
     inst.editor.appendChild(renderDoc(inst.doc));
+    inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
+    applyEditorScroll(inst, keepScroll);
     remember(inst);
     updateStats(inst);
     updatePageGuides(inst);
@@ -3261,64 +3275,122 @@ window.__SUI_RICH = (function () {
     if (ref === node) return;
     ed.insertBefore(node, ref);
   }
+  function guideContentHeight(inst) {
+    var ed = inst.editor;
+    return Math.max(ed.scrollHeight, ed.clientHeight);
+  }
+  function snapGuideContentY(inst, contentY, excludeNode) {
+    if (!inst || !inst.editor) return contentY;
+    var ed = inst.editor;
+    var edRect = ed.getBoundingClientRect(), scroll = ed.scrollTop;
+    var children = ed.children, best = contentY, bestDist = Infinity;
+    for (var i = 0; i < children.length; i++) {
+      var child = children[i];
+      if (child === excludeNode) continue;
+      if (child.classList && child.classList.contains('sui-rich-pagebreak')) continue;
+      var r = child.getBoundingClientRect();
+      var top = r.top - edRect.top + scroll, bottom = top + r.height;
+      var dTop = Math.abs(top - contentY), dBottom = Math.abs(bottom - contentY);
+      if (dTop < bestDist) { bestDist = dTop; best = top; }
+      if (dBottom < bestDist) { bestDist = dBottom; best = bottom; }
+    }
+    return Math.max(0, Math.min(guideContentHeight(inst), best));
+  }
+  function breakInsertionBlocked(ed, point) {
+    var ref = point ? (point.after ? point.node.nextSibling : point.node) : ed.lastChild;
+    if (ref && ref.classList && ref.classList.contains('sui-rich-pagebreak')) return true;
+    if (ref && ref.previousSibling && ref.previousSibling.classList && ref.previousSibling.classList.contains('sui-rich-pagebreak')) return true;
+    if (!ref && ed.lastChild && ed.lastChild.classList && ed.lastChild.classList.contains('sui-rich-pagebreak')) return true;
+    return false;
+  }
   function insertPageBreakAt(inst, contentY) {
     if (!inst || !inst.editor) return;
+    var ed = inst.editor;
+    var point = breakInsertionPoint(inst, contentY, null);
+    // A break already sitting at this boundary must not be duplicated.
+    if (breakInsertionBlocked(ed, point)) { schedulePageGuides(inst); return; }
     var br = pageBreakNode();
     movePageBreakTo(inst, br, contentY);
     commit(inst, 'change');
     schedulePageGuides(inst);
   }
-  function startPageBreakDrag(inst, node, ev) {
+  function startPageDrag(inst, line, ev, breakNode, isPreview) {
     ev.preventDefault();
     ev.stopPropagation();
-    var ed = inst.editor;
-    var layer = pageGuideLayer(inst);
-    if (!layer) return;
+    var ed = inst.editor, layer = line.parentNode;
     var hostRect = layer.parentNode.getBoundingClientRect();
-    var preview = el('div', 'sui-rich-guide dragging');
-    preview.title = 'Drop to move the page break';
-    layer.appendChild(preview);
+    var edRect = ed.getBoundingClientRect();
+    var startY = ev.clientY, startScroll = ed.scrollTop;
+    var startContent = breakNode
+      ? (breakNode.getBoundingClientRect().top - edRect.top + startScroll)
+      : (parseFloat(line.style.top) || 0) - (edRect.top - hostRect.top) + startScroll;
+    var targetContent = startContent;
+    var autoDir = 0, autoFrame = null, lastY = ev.clientY;
+    inst.guideDragging = true;
+    line.classList.add('dragging');
+    line.__suiDragging = true;
+    function render() {
+      var currentRect = ed.getBoundingClientRect();
+      line.style.top = ((currentRect.top - hostRect.top) + targetContent - ed.scrollTop) + 'px';
+      line.setAttribute('data-cut', String(targetContent));
+    }
+    function refresh(clientY) {
+      targetContent = startContent + (clientY - startY) + (ed.scrollTop - startScroll);
+      targetContent = Math.max(0, Math.min(guideContentHeight(inst), targetContent));
+      targetContent = snapGuideContentY(inst, targetContent, breakNode);
+      render();
+    }
+    function autoTick() {
+      autoFrame = null;
+      if (!autoDir) return;
+      var before = ed.scrollTop;
+      ed.scrollTop = Math.max(0, Math.min(ed.scrollHeight - ed.clientHeight, before + autoDir * 14));
+      if (ed.scrollTop !== before) {
+        refresh(lastY);
+        positionPageGuides(inst);
+      }
+      autoFrame = window.setTimeout(autoTick, 16);
+    }
     function move(moveEv) {
-      var top = Math.max(0, Math.min(layer.parentNode.clientHeight, moveEv.clientY - hostRect.top));
-      preview.style.top = top + 'px';
+      lastY = moveEv.clientY;
+      var currentRect = ed.getBoundingClientRect();
+      if (moveEv.clientY < currentRect.top + 28) autoDir = -1;
+      else if (moveEv.clientY > currentRect.bottom - 28) autoDir = 1;
+      else autoDir = 0;
+      refresh(moveEv.clientY);
+      if (autoDir && !autoFrame) autoFrame = window.setTimeout(autoTick, 16);
     }
     function up(upEv) {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
-      if (preview.parentNode) preview.parentNode.removeChild(preview);
-      var edRect = ed.getBoundingClientRect();
-      var contentY = upEv.clientY - edRect.top + ed.scrollTop;
-      movePageBreakTo(inst, node, contentY);
-      commit(inst, 'change');
-      schedulePageGuides(inst);
+      if (autoFrame) { window.clearTimeout(autoFrame); autoFrame = null; }
+      line.classList.remove('dragging');
+      line.__suiDragging = false;
+      if (isPreview && line.parentNode) line.parentNode.removeChild(line);
+      inst.guideDragging = false;
+      targetContent = snapGuideContentY(inst, targetContent, breakNode);
+      if (breakNode) {
+        movePageBreakTo(inst, breakNode, targetContent);
+        commit(inst, 'change');
+        schedulePageGuides(inst);
+      } else {
+        insertPageBreakAt(inst, targetContent);
+      }
     }
-    move(ev);
+    render();
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   }
+  function startPageBreakDrag(inst, node, ev) {
+    var layer = pageGuideLayer(inst);
+    if (!layer) return;
+    var preview = el('div', 'sui-rich-guide dragging');
+    preview.title = 'Drop to move the page break';
+    layer.appendChild(preview);
+    startPageDrag(inst, preview, ev, node, true);
+  }
   function startPageGuideDrag(inst, line, ev) {
-    ev.preventDefault();
-    ev.stopPropagation();
-    var ed = inst.editor;
-    var layer = line.parentNode;
-    var startY = ev.clientY, startTop = parseFloat(line.style.top) || 0;
-    line.classList.add('dragging');
-    function move(moveEv) {
-      var top = startTop + (moveEv.clientY - startY);
-      top = Math.max(0, Math.min(ed.clientHeight - 1, top));
-      line.style.top = top + 'px';
-    }
-    function up(upEv) {
-      document.removeEventListener('mousemove', move);
-      document.removeEventListener('mouseup', up);
-      line.classList.remove('dragging');
-      var edRect = ed.getBoundingClientRect(), hostRect = layer.parentNode.getBoundingClientRect();
-      var top = parseFloat(line.style.top) || 0;
-      var contentY = top - (edRect.top - hostRect.top) + ed.scrollTop;
-      insertPageBreakAt(inst, contentY);
-    }
-    document.addEventListener('mousemove', move);
-    document.addEventListener('mouseup', up);
+    startPageDrag(inst, line, ev, null, false);
   }
   function pageGuideLayer(inst) {
     if (!inst || !inst.editor || !inst.editor.parentNode) return null;
@@ -3341,10 +3413,30 @@ window.__SUI_RICH = (function () {
   }
   function schedulePageGuides(inst) {
     if (inst.guideTimer) return;
-    inst.guideTimer = setTimeout(function () { inst.guideTimer = null; updatePageGuides(inst); }, 40);
+    inst.guideTimer = setTimeout(function () {
+      inst.guideTimer = null;
+      if (!inst.guideDragging) updatePageGuides(inst);
+    }, 40);
+  }
+  function positionPageGuides(inst) {
+    if (!inst || !inst.editor) return;
+    var host = inst.editor.parentNode;
+    var layer = host && host.querySelector(':scope > .sui-rich-guides');
+    if (!layer) return;
+    var ed = inst.editor;
+    var edRect = ed.getBoundingClientRect(), hostRect = layer.parentNode.getBoundingClientRect();
+    var offset = edRect.top - hostRect.top, scroll = ed.scrollTop;
+    for (var i = 0; i < layer.children.length; i++) {
+      var line = layer.children[i];
+      if (line.__suiDragging) continue;
+      var cut = parseFloat(line.getAttribute('data-cut'));
+      if (!isFinite(cut)) continue;
+      line.style.top = (offset + cut - scroll) + 'px';
+    }
   }
   function updatePageGuides(inst) {
     if (!inst || !inst.editor) return;
+    if (inst.guideDragging) { positionPageGuides(inst); return; }
     var layer = pageGuideLayer(inst);
     if (!layer) return;
     if (inst.paginated || (inst.root && inst.root.classList.contains('sui-rich-paginated'))) { layer.innerHTML = ''; return; }
@@ -3425,6 +3517,7 @@ window.__SUI_RICH = (function () {
       var top = offset + cuts[c] - scroll;
       var line = el('div', 'sui-rich-guide');
       line.style.top = top + 'px';
+      line.setAttribute('data-cut', String(cuts[c]));
       line.title = 'Drag to insert a page break at this point';
       line.setAttribute('data-sui-guide', '1');
       layer.appendChild(line);
@@ -5012,6 +5105,58 @@ window.__SUI_RICH = (function () {
     });
   }
 
+  function bindEditorSurface(inst) {
+    var editor = inst.editor;
+    if (!editor || editor.__suiRichSurfaceBound) return;
+    editor.__suiRichSurfaceBound = true;
+    editor.addEventListener('scroll', function () {
+      // A replaced editor can report scrollTop 0 while it is detached; ignore
+      // it so it cannot overwrite the scroll position kept for the live editor.
+      if (inst.editor !== editor || !editor.isConnected) return;
+      // A fresh editor reports scrollTop 0 before the stored position is
+      // restored; do not let that transient value erase it.
+      if (editor.scrollTop === 0 && (inst.keepScrollTop || inst.scrollTop) > 0 && Date.now() < (inst.scrollGuardUntil || 0)) return;
+      // Move the existing guides immediately so they stay glued to the content
+      // while scrolling; a full layout pass follows only when scrolling stops.
+      inst.scrollTop = editor.scrollTop;
+      inst.keepScrollTop = inst.scrollTop;
+      positionPageGuides(inst);
+      schedulePageGuides(inst);
+    });
+    editor.addEventListener('blur', function () { setTimeout(function () { commit(inst, 'change'); }, 0); });
+    editor.addEventListener('copy', function (e) {
+      if (!inst.selectedCells || inst.selectedCells.length < 2) return;
+      var text = copyCellSelection(inst, false);
+      if (!text) return;
+      e.preventDefault();
+      if (e.clipboardData) { e.clipboardData.setData('text/plain', text); }
+    });
+    editor.addEventListener('cut', function (e) {
+      if (!inst.selectedCells || inst.selectedCells.length < 2) return;
+      var text = copyCellSelection(inst, true);
+      if (!text) return;
+      e.preventDefault();
+      if (e.clipboardData) { e.clipboardData.setData('text/plain', text); }
+      commit(inst, 'change');
+    });
+    editor.addEventListener('paste', function (e) {
+      var data = e.clipboardData || window.clipboardData;
+      var textData = data && data.getData ? data.getData('text/plain') : '';
+      var table = closestIn(inst, 'table') || inst.selectedTable;
+      if (table && (inst.cellClipboard || (textData && (textData.indexOf('\t') >= 0 || textData.indexOf('\n') >= 0)))) {
+        e.preventDefault();
+        if (pasteCellMatrix(inst, textData)) { commit(inst, 'change'); return; }
+      }
+      var html = data && data.getData ? data.getData('text/html') : '';
+      if (html) {
+        e.preventDefault();
+        insertDocumentAtCaret(inst, importHTML(html));
+        materializeBlobImages(inst, inst.editor);
+        commit(inst, 'input');
+      } else setTimeout(function () { commit(inst, 'input'); }, 0);
+    });
+    bindCellSelection(inst); bindTableResize(inst);
+  }
   function bindRoot(inst) {
     var root = inst.root;
     if (root.__suiRichBound) return;
@@ -5073,7 +5218,6 @@ window.__SUI_RICH = (function () {
       if (!cmd) return;
       if (target.tagName === 'SELECT' || target.tagName === 'INPUT') command(inst.name, cmd, target.value);
     });
-    inst.editor.addEventListener('scroll', function () { schedulePageGuides(inst); });
     root.addEventListener('mouseup', function (e) {
       if (!inst.painter || !e.target || !inst.editor.contains(e.target)) return;
       setTimeout(function () { if (inst.painter) applyFormatPainter(inst); }, 0);
@@ -5154,7 +5298,6 @@ window.__SUI_RICH = (function () {
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') { e.preventDefault(); command(inst.name, 'underline'); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); commit(inst, 'change'); }
     });
-    bindCellSelection(inst); bindTableResize(inst);
     if (!inst.menuOutsideBound) {
       inst.menuOutsideBound = true;
       function closeMenusOutside(ev) {
@@ -5164,38 +5307,6 @@ window.__SUI_RICH = (function () {
       document.addEventListener('click', closeMenusOutside);
       document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeMenus(inst); });
     }
-    inst.editor.addEventListener('blur', function () { setTimeout(function () { commit(inst, 'change'); }, 0); });
-    inst.editor.addEventListener('copy', function (e) {
-      if (!inst.selectedCells || inst.selectedCells.length < 2) return;
-      var text = copyCellSelection(inst, false);
-      if (!text) return;
-      e.preventDefault();
-      if (e.clipboardData) { e.clipboardData.setData('text/plain', text); }
-    });
-    inst.editor.addEventListener('cut', function (e) {
-      if (!inst.selectedCells || inst.selectedCells.length < 2) return;
-      var text = copyCellSelection(inst, true);
-      if (!text) return;
-      e.preventDefault();
-      if (e.clipboardData) { e.clipboardData.setData('text/plain', text); }
-      commit(inst, 'change');
-    });
-    inst.editor.addEventListener('paste', function (e) {
-      var data = e.clipboardData || window.clipboardData;
-      var textData = data && data.getData ? data.getData('text/plain') : '';
-      var table = closestIn(inst, 'table') || inst.selectedTable;
-      if (table && (inst.cellClipboard || (textData && (textData.indexOf('\t') >= 0 || textData.indexOf('\n') >= 0)))) {
-        e.preventDefault();
-        if (pasteCellMatrix(inst, textData)) { commit(inst, 'change'); return; }
-      }
-      var html = data && data.getData ? data.getData('text/html') : '';
-      if (html) {
-        e.preventDefault();
-        insertDocumentAtCaret(inst, importHTML(html));
-        materializeBlobImages(inst, inst.editor);
-        commit(inst, 'input');
-      } else setTimeout(function () { commit(inst, 'input'); }, 0);
-    });
     document.addEventListener('selectionchange', function () { if (document.activeElement === inst.editor || inst.root.contains(document.activeElement)) updateStats(inst); });
     if (!window.__suiRichResizeBound) {
       window.__suiRichResizeBound = true;
@@ -5206,10 +5317,39 @@ window.__SUI_RICH = (function () {
         }
       });
     }
+    if (!window.__suiRichScrollBound) {
+      window.__suiRichScrollBound = true;
+      window.addEventListener('scroll', function () {
+        for (var sn in instances) if (instances[sn]) positionPageGuides(instances[sn]);
+      }, true);
+    }
   }
 
+  function applyEditorScroll(inst, value) {
+    if (!inst || !inst.editor || !(value > 0)) return;
+    if (inst.scrollRestoreTimer) { clearTimeout(inst.scrollRestoreTimer); inst.scrollRestoreTimer = null; }
+    inst.editor.scrollTop = value;
+    var applied = inst.editor.scrollTop;
+    if (applied === 0 && value > 0 && inst.editor.scrollHeight > inst.editor.clientHeight) {
+      // The editor may not have its final height yet in the same frame; retry
+      // once the layout is settled instead of losing the stored position.
+      inst.scrollRestoreTimer = setTimeout(function () {
+        inst.scrollRestoreTimer = null;
+        if (!inst.editor) return;
+        inst.editor.scrollTop = value;
+        inst.scrollTop = inst.keepScrollTop = inst.editor.scrollTop;
+        positionPageGuides(inst);
+      }, 0);
+      return;
+    }
+    inst.scrollTop = inst.keepScrollTop = applied;
+    positionPageGuides(inst);
+  }
   function init(root) {
     var name = attr(root, 'data-sui-rich-name') || 'richtext';
+    var earlyInst = instances[name];
+    if (earlyInst) earlyInst.scrollGuardUntil = Date.now() + 300;
+    var keepScroll = earlyInst ? (earlyInst.keepScrollTop || earlyInst.scrollTop || 0) : 0;
     var input = root.querySelector('.sui-rich-value');
     var editor = root.querySelector('.sui-rich-editor');
     if (!editor) return;
@@ -5233,7 +5373,7 @@ window.__SUI_RICH = (function () {
         headerText: attr(root, 'data-sui-rich-header') || ((initial && initial.header) ? String(initial.header) : ''),
         footerText: attr(root, 'data-sui-rich-footer') || ((initial && initial.footer) ? String(initial.footer) : ''),
         headerOverride: false, footerOverride: false,
-        history: [], index: -1, dirty: false, zoom: 1,
+        history: [], index: -1, dirty: false, zoom: 1, scrollTop: 0, keepScrollTop: 0,
         baseFontSize: parseFloat(attr(root, 'data-sui-rich-font-size') || '16') || 16
       };
       inst.history.push(JSON.stringify(inst.doc));
@@ -5280,11 +5420,14 @@ window.__SUI_RICH = (function () {
     if (menuEl && !boolAttr(root, 'data-sui-rich-menu', true)) menuEl.hidden = true;
     var statusEl = root.querySelector('.sui-rich-status');
     if (statusEl && !boolAttr(root, 'data-sui-rich-statusbar', true)) statusEl.hidden = true;
-    bindRoot(inst); bindProperties(inst);
+    bindEditorSurface(inst); bindRoot(inst); bindProperties(inst);
     setZoom(inst, inst.zoom || 1);
     updateStats(inst);
     updatePageGuides(inst);
     restoreSelection(inst);
+    // Restoring the caret can scroll the editor; put the stored position back
+    // last so a re-render never jumps the document to the caret.
+    applyEditorScroll(inst, keepScroll);
     var ready = attr(root, 'data-sui-rich-onready');
     if (ready && typeof window[ready] === 'function') window[ready](name, JSON.stringify(inst.doc));
   }
@@ -8174,6 +8317,7 @@ const suiRichTextCss = `
   --sui-rich-paper-fg: #1c2330;
   --sui-rich-paper-border: #c9d3e0;
   --sui-rich-paper-muted: #5a6577;
+  --sui-rich-break: #dc2626;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -8199,6 +8343,7 @@ const suiRichTextCss = `
   --sui-rich-paper-fg: #e6e6ef;
   --sui-rich-paper-border: #2c3444;
   --sui-rich-paper-muted: #9aa7b8;
+  --sui-rich-break: #f87171;
 }
 .sui-rich-title { padding: 10px 12px 0; font-weight: 600; color: var(--sui-rich-fg); }
 .sui-rich-menu { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; border-bottom: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); position: relative; z-index: 3; }
@@ -8254,8 +8399,10 @@ const suiRichTextCss = `
 .sui-rich-btn[disabled] { opacity: .45; cursor: default; }
 .sui-rich[data-rich-painter="1"] .sui-rich-editor { cursor: copy; }
 .sui-rich-guides { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
-.sui-rich-guide { position: absolute; left: 0; right: 0; height: 10px; margin-top: -5px; border-top: 1px dashed color-mix(in srgb, var(--sui-rich-accent, #4c5cf7) 55%, transparent); opacity: .8; pointer-events: auto; cursor: grab; }
-.sui-rich-guide:hover, .sui-rich-guide.dragging { border-top-color: var(--sui-rich-accent, #4c5cf7); opacity: 1; }
+.sui-rich-guide { position: absolute; left: 0; right: 0; height: 12px; margin-top: -6px; border-top: 2px dashed color-mix(in srgb, var(--sui-rich-break, #dc2626) 72%, transparent); opacity: .9; pointer-events: auto; cursor: grab; }
+.sui-rich-guide::after { content: ''; position: absolute; left: 50%; top: -7px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--sui-rich-break, #dc2626); opacity: 0; transition: opacity .12s ease; }
+.sui-rich-guide:hover, .sui-rich-guide.dragging { border-top-style: solid; border-top-color: var(--sui-rich-break, #dc2626); opacity: 1; }
+.sui-rich-guide:hover::after, .sui-rich-guide.dragging::after { opacity: 1; }
 .sui-rich-guide.dragging { cursor: grabbing; }
 .sui-rich-paginated .sui-rich-guides { display: none; }
 .sui-rich-imagesettings-error { margin: 0; color: #fca5a5; font-size: 12px; }
@@ -8283,12 +8430,12 @@ const suiRichTextCss = `
 .sui-rich-editor .sui-rich-cell-blocks > *:last-child { margin-bottom: 0; }
 .sui-rich-editor .sui-rich-cell-blocks table { margin: 0; }
 .sui-rich-editor th, .sui-rich-editor td { border: 1px solid var(--sui-rich-paper-border); padding: 6px 8px; vertical-align: top; min-width: 40px; }
-.sui-rich-editor .sui-rich-pagebreak { display: flex; align-items: center; gap: 6px; margin: 16px 0; padding-top: 5px; border-top: 2px dashed var(--sui-rich-paper-border); color: var(--sui-rich-paper-muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; user-select: none; }
+.sui-rich-editor .sui-rich-pagebreak { display: flex; align-items: center; gap: 6px; margin: 16px 0; padding-top: 5px; border-top: 2px dashed var(--sui-rich-break, #dc2626); color: var(--sui-rich-break, #dc2626); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; user-select: none; }
 .sui-rich-pagebreak-handle { cursor: grab; font-size: 12px; padding: 0 2px; }
 .sui-rich-pagebreak-handle:active { cursor: grabbing; }
 .sui-rich-pagebreak-label { flex: 1 1 auto; }
-.sui-rich-pagebreak-delete { border: 1px solid var(--sui-rich-paper-border); border-radius: 4px; background: transparent; color: var(--sui-rich-paper-muted); font: inherit; font-size: 12px; line-height: 1; padding: 1px 5px; cursor: pointer; }
-.sui-rich-pagebreak-delete:hover { color: #b91c1c; border-color: #b91c1c; }
+.sui-rich-pagebreak-delete { border: 1px solid color-mix(in srgb, var(--sui-rich-break, #dc2626) 45%, transparent); border-radius: 4px; background: transparent; color: var(--sui-rich-break, #dc2626); font: inherit; font-size: 12px; line-height: 1; padding: 1px 5px; cursor: pointer; }
+.sui-rich-pagebreak-delete:hover { color: #fff; background: var(--sui-rich-break, #dc2626); border-color: var(--sui-rich-break, #dc2626); }
 .sui-rich-editor tbody tr:hover, .sui-rich-editor thead tr:hover { background: transparent; }
 .sui-rich-editor th { background: color-mix(in srgb, var(--sui-rich-paper-fg) 8%, transparent); text-align: left; }
 .sui-rich-editor a { color: var(--sui-rich-accent); text-decoration: underline; }
