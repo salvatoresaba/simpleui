@@ -52,8 +52,9 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   zoom only scales the view and never changes the document fonts.
 - Image settings: double-click an image or right-click it and choose Edit/Replace/Delete;
   edit the URL, replace it with a file, change alt/width/alignment or remove it.
-- Configurable toolbar groups, menu bar (File, Edit, Insert, View; no redundant
-  Format/Tools menus), contextual selection toolbar and status bar (words,
+- Configurable toolbar groups, menu bar (File, Edit, Insert, Preferences; no
+  redundant Format/Tools/View menus; Preferences holds Document settings and
+  Page settings), contextual selection toolbar and status bar (words,
   characters, paragraphs, caret, zoom). Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
   top bar to re-insert it at the nearest slot; the other toolbars move aside. A single theme button at the right of the toolbar

@@ -86,8 +86,14 @@ view main {
     if (toolbarButtons < 8) throw new Error('toolbar not built: ' + toolbarButtons);
     if (!root.querySelector('.sui-rich-menu') || !root.querySelector('.sui-rich-status')) throw new Error('menu/status missing');
     var menuLabels = [].map.call(root.querySelectorAll('.sui-rich-menu-btn'), function (b) { return b.textContent; });
-    if (menuLabels.join('|') !== 'File|Edit|Insert|View') throw new Error('menu labels: ' + menuLabels.join('|'));
-    if (root.querySelector('[data-rich-menu="format"]') || root.querySelector('[data-rich-menu="tools"]')) throw new Error('redundant Format/Tools menu still present');
+    if (menuLabels.join('|') !== 'File|Edit|Insert|Preferences') throw new Error('menu labels: ' + menuLabels.join('|'));
+    if (root.querySelector('[data-rich-menu="format"]') || root.querySelector('[data-rich-menu="tools"]') || root.querySelector('[data-rich-menu="view"]')) throw new Error('redundant Format/Tools/View menu still present');
+    var prefMenuBtn = [].filter.call(root.querySelectorAll('.sui-rich-menu-btn'), function (b) { return b.textContent === 'Preferences'; })[0];
+    prefMenuBtn.click();
+    await wait(120);
+    var prefLabels = [].map.call(root.querySelectorAll('.sui-rich-menu-panel:not([hidden]) .sui-rich-menu-item'), function (b) { return b.textContent; });
+    prefMenuBtn.click();
+    if (prefLabels.join('|') !== 'Document settings|Page settings') throw new Error('Preferences items: ' + prefLabels.join('|'));
     var insertMenuBtn = [].filter.call(root.querySelectorAll('.sui-rich-menu-btn'), function (b) { return b.textContent === 'Insert'; })[0];
     insertMenuBtn.click();
     await wait(120);
@@ -1382,13 +1388,14 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"indent: 'Increase paragraph indent'",
 		"data-rich-paragraph-indent-inc",
 		"insert: ['Link|link', 'Image|image', 'Table|table'",
-		"var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', view: 'View' };",
+		"var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', preferences: 'Preferences' };",
+		"preferences: ['Document settings|documentSettings', 'Page settings|pageSettings']",
 	} {
 		if !strings.Contains(suiRichTextRuntime, want) {
 			t.Errorf("rich text runtime is missing %q", want)
 		}
 	}
-	for _, unwanted := range []string{"Unlink|unlink", "Image settings...|imageSettings", "tools: [", "format: ["} {
+	for _, unwanted := range []string{"Unlink|unlink", "Image settings...|imageSettings", "tools: [", "format: [", "view: ["} {
 		if strings.Contains(suiRichTextRuntime, unwanted) {
 			t.Errorf("rich text runtime still contains redundant menu entry %q", unwanted)
 		}

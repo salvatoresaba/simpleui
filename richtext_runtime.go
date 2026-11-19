@@ -104,9 +104,9 @@ window.__SUI_RICH = (function () {
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] }],
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
-    view: ['Paginated view|paginatedView', 'Document settings|documentSettings', 'Page settings|pageSettings', 'Zoom to 100%|zoomReset', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact']
+    preferences: ['Document settings|documentSettings', 'Page settings|pageSettings']
   };
-  var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', view: 'View' };
+  var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', preferences: 'Preferences' };
 
   function hasOwn(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function attr(root, name) { return root.getAttribute(name) || ''; }
@@ -3538,7 +3538,6 @@ window.__SUI_RICH = (function () {
       line.setAttribute('data-cut', String(targetContent));
     }
     function refresh(clientY) {
-      if (Math.abs(clientY - startY) > 2 || Math.abs(ed.scrollTop - startScroll) > 2) moved = true;
       // Include both the editor scroll and any page/ancestor scroll: the
       // target must stay on the content under the pointer, not on a viewport
       // pixel that can drift when the page moves.
@@ -3546,6 +3545,19 @@ window.__SUI_RICH = (function () {
       targetContent = startContent + (clientY - startY) + (ed.scrollTop - startScroll) - editorShift;
       targetContent = Math.max(0, Math.min(guideContentHeight(inst), targetContent));
       targetContent = snapGuideContentY(inst, targetContent, breakNode);
+      if (!isBreak) {
+        // An automatic break is already the latest possible cut. Moving it
+        // down would only add a redundant break and a mostly blank page, so
+        // automatic guides can be dragged earlier (up), never later (down).
+        if (targetContent >= startContent - 2) {
+          targetContent = startContent;
+          moved = false;
+        } else {
+          moved = true;
+        }
+      } else if (Math.abs(clientY - startY) > 2 || Math.abs(ed.scrollTop - startScroll) > 2) {
+        moved = true;
+      }
       render();
     }
     function autoTick() {
@@ -3727,9 +3739,9 @@ window.__SUI_RICH = (function () {
       var line = el('div', 'sui-rich-guide');
       line.style.top = top + 'px';
       line.setAttribute('data-cut', String(cuts[c]));
-      line.title = 'Drag to insert a page break at this point';
+      line.title = 'Automatic page break: drag up to move it earlier (it cannot be removed while the content needs another page)';
       line.setAttribute('data-sui-guide', '1');
-      line.appendChild(el('span', 'sui-rich-guide-label', 'Page break  \u28ff  drag'));
+      line.appendChild(el('span', 'sui-rich-guide-label', 'Auto break  \u28ff  drag up'));
       layer.appendChild(line);
     }
     positionPageGuides(inst);
@@ -8607,7 +8619,7 @@ const suiRichTextCss = `
   --sui-rich-break: #f87171;
 }
 .sui-rich-title { padding: 10px 12px 0; font-weight: 600; color: var(--sui-rich-fg); }
-.sui-rich-menu { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; border-bottom: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); position: relative; z-index: 3; }
+.sui-rich-menu { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; border-bottom: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); position: relative; z-index: 30; }
 .sui-rich-menu-wrap { position: relative; }
 .sui-rich-menu-btn { border: 0; background: transparent; color: var(--sui-rich-fg); padding: 5px 9px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
 .sui-rich-menu-btn:hover, .sui-rich-menu-btn:focus-visible { background: var(--sui-rich-hover); outline: none; }

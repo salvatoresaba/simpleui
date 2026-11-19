@@ -1700,11 +1700,13 @@ closest to the end of an existing toolbar (or at the left edge when the bar is
 empty); the other toolbars move aside. Floating positions are remembered per
 editor.
 
-**Menu bar:** File, Edit, Insert and View. Formatting is available from the
-toolbar, so the redundant Format and Tools menus are intentionally absent.
-Insert contains Link, Image, Table, Horizontal rule and Page break; Unlink and
-Image settings are not menu entries (Remove link is a toolbar button and image
-settings open on double-click or from the image context menu).
+**Menu bar:** File, Edit, Insert and Preferences. Formatting is available from
+the toolbar, so the redundant Format, Tools and View menus are intentionally
+absent; the Pages button in the status bar toggles the paginated view, and zoom
+and theme controls stay in the toolbar. Preferences contains Document settings
+and Page settings. Insert contains Link, Image, Table, Horizontal rule and Page
+break; Unlink and Image settings are not menu entries (Remove link is a toolbar
+button and image settings open on double-click or from the image context menu).
 
 **Find and replace:** `Ctrl+F` (or Edit > Find and replace) opens a find bar;
 Enter/F3 next, Shift+F3 previous, Esc closes. **Paste** from Word/Excel/HTML is
@@ -1717,8 +1719,7 @@ the browser print dialog on A4 pages with the header/footer repeated.
 **Lists:** bullet and numbered lists can be nested with Tab and moved back with
 Shift+Tab; DOCX and ODT export use native list numbering.
 
-**Paginated view:** the **Pages** button in the status bar (or View >
-Paginated view) shows A4 sheets with margins, optional header/footer and table
+**Paginated view:** the **Pages** button in the status bar shows A4 sheets with margins, optional header/footer and table
 rows split across pages; header rows are repeated on each page. Press **Edit**
 to return to the continuous editor. A single theme button at the right cycles the interface theme.
 
@@ -1734,10 +1735,10 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 remain available as custom tokens but are no longer in the default toolbar:
 they live in the Document settings and Paragraph settings panels.
 
-**Document settings** is a menu entry (View > Document settings) and holds the
+**Document settings** is a Preferences menu entry and holds the
 general defaults: page size (A4/Letter), orientation (**Vertical**/**Horizontal**),
 top/right/bottom/left margins, line height and header/footer text. **Page
-settings** (toolbar button `pageSettings`, also View > Page settings) overrides
+settings** (toolbar button `pageSettings` and Preferences > Page settings) overrides
 those defaults for one page: choose the page number, then set size, orientation
 and margins. The page panel's Reset returns that page to the document defaults. `{page}` and `{pages}` are replaced with
 the page number and total. Defaults are stored as

@@ -1686,8 +1686,7 @@ apre la stampa del browser su pagine A4 con header/footer ripetuti.
 **Liste:** elenchi puntati e numerati si annidano con Tab e si riportano indietro con
 Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
 
-**Vista paginata:** il pulsante **Pages** nella barra di stato (o Visualizza >
-Vista paginata) mostra fogli A4 con margini, header/footer e righe di tabella
+**Vista paginata:** il pulsante **Pages** nella barra di stato mostra fogli A4 con margini, header/footer e righe di tabella
 spezzate tra le pagine; l'intestazione della tabella si ripete su ogni pagina.
 Premi **Edit** per tornare all'editor continuo.
 
@@ -1702,11 +1701,10 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 restano disponibili come token personalizzati ma non sono più nella toolbar
 predefinita: sono nei pannelli Impostazioni documento e Impostazioni paragrafo.
 
-**Impostazioni documento** è una voce di menu (Visualizza > Impostazioni
-documento) e raccoglie i default generali: formato pagina (A4/Letter),
+**Impostazioni documento** è una voce del menu Preferences e raccoglie i default generali: formato pagina (A4/Letter),
 orientamento (**Verticale**/**Orizzontale**), margini alto/destra/basso/
 sinistra, interlinea e testo di intestazione/piè di pagina. **Impostazioni
-pagina** (pulsante `pageSettings`, anche Visualizza > Impostazioni pagina)
+pagina** (pulsante `pageSettings` e Preferences > Impostazioni pagina)
 sovrascrive quei default per una singola pagina: scegli il numero di pagina,
 poi imposta formato, orientamento e margini. Reset riporta la pagina ai default
 del documento. `{page}` e `{pages}` vengono sostituiti con il
@@ -1820,12 +1818,14 @@ riporta sotto la toolbar principale. Le modifiche entrano nella cronologia undo/
 destra/inferiore di una tabella per ridimensionare colonne o righe, oppure
 l'angolo in basso a destra per ridimensionare l'intera tabella; le dimensioni
 sono salvate nel documento JSON. File > Import ed Export sono sottomenu.
-**Barra dei menu:** File, Modifica, Inserisci e Visualizza. La formattazione è
-nella toolbar, quindi i menu Formato e Strumenti ridondanti sono assenti.
-Inserisci contiene Link, Immagine, Tabella, Linea orizzontale e Interruzione di
-pagina; Rimuovi link e Impostazioni immagine non sono voci di menu (Rimuovi link
-è un pulsante della toolbar e le impostazioni immagine si aprono con doppio clic
-o dal menu contestuale dell'immagine).
+**Barra dei menu:** File, Modifica, Inserisci e Preferences. La formattazione è
+nella toolbar, quindi i menu Formato, Strumenti e Visualizza ridondanti sono
+assenti; il pulsante Pages nella barra di stato attiva la vista paginata, mentre
+zoom e tema restano nella toolbar. Preferences contiene Impostazioni documento
+e Impostazioni pagina. Inserisci contiene Link, Immagine, Tabella, Linea
+orizzontale e Interruzione di pagina; Rimuovi link e Impostazioni immagine non
+sono voci di menu (Rimuovi link è un pulsante della toolbar e le impostazioni
+immagine si aprono con doppio clic o dal menu contestuale dell'immagine).
 L'azione **Seleziona tutta la tabella** fa applicare l'allineamento alla
 tabella stessa. Il pulsante ⚙ apre **Proprietà tabella** per il padding delle
 celle, lo spessore/colore del bordo e i lati visibili (alto/destra/basso/
