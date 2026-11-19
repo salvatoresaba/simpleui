@@ -1744,7 +1744,13 @@ quote. Il code block mantiene le interruzioni di riga con Enter: usa Escape,
 Normal o il pulsante Code per uscirne.
 
 I controlli **Zoom** sono in un gruppo della toolbar: −, percentuale corrente
-(clic per tornare al 100%) e +. Scalano l'editor continuo e la vista paginata.
+(clic per tornare al 100%) e +. Lo zoom è **solo visivo**: ingrandisce caratteri,
+immagini e tabelle senza modificare la dimensione dei font del documento né il
+JSON salvato.
+
+I pulsanti **dimensione font** (A+ e A−) agiscono sul testo selezionato, oppure
+sulla parola al cursore se non c'è selezione: ogni clic aumenta o riduce di
+2 px la dimensione di quel testo e salva un mark `size` nel modello.
 
 **Anteprima di stampa** (pulsante `printPreview` e File > Anteprima di stampa)
 apre un'anteprima centrata con i pulsanti Stampa e Chiudi; File > Salva con

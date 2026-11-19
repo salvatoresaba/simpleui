@@ -736,10 +736,11 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="in"]').click();
     await wait(100);
     if (!reqZoomLabel || reqZoomLabel.textContent !== '110%') throw new Error('zoom in did not update the label');
-    if (parseFloat(getComputedStyle(bsEditor()).fontSize) <= 16) throw new Error('zoom did not change the editor content size');
+    if (bsEditor().style.zoom !== '1.1') throw new Error('zoom did not scale the editor view: ' + bsEditor().style.zoom);
     reqZoomLabel.click();
     await wait(100);
     if (reqZoomLabel.textContent !== '100%') throw new Error('zoom reset did not return to 100%');
+    if (bsEditor().style.zoom !== '1') throw new Error('zoom reset did not restore the editor scale');
 
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Para', marks: [] }] }] });
     await wait(300);
@@ -818,6 +819,27 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqPlainStyle = getComputedStyle(reqPlainNode.parentElement);
     if (parseInt(reqPlainStyle.fontWeight, 10) < 600) throw new Error('copy format did not paint the target word');
     if (bsBtn('copyFormat').classList.contains('on')) throw new Error('format painter stayed active after painting');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Size me', marks: [] }] }] });
+    await wait(300);
+    var reqSizeNode = null, reqSizeWalk = document.createTreeWalker(bsEditor(), NodeFilter.SHOW_TEXT, null), reqSizeText;
+    while ((reqSizeText = reqSizeWalk.nextNode())) if (reqSizeText.nodeValue.indexOf('Size me') >= 0) { reqSizeNode = reqSizeText; break; }
+    var reqSizeRange = document.createRange(); reqSizeRange.setStart(reqSizeNode, 0); reqSizeRange.setEnd(reqSizeNode, 7);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(reqSizeRange);
+    __SUI_RICH.command('editor', 'fontSizeUp');
+    await wait(300);
+    var reqSizeSpan = bsEditor().querySelector('span[style*="font-size"]');
+    if (!reqSizeSpan || parseFloat(reqSizeSpan.style.fontSize) !== 18) throw new Error('increase font size did not apply: ' + (reqSizeSpan ? reqSizeSpan.style.fontSize : 'missing'));
+    var reqSizeDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0].children[0];
+    if (!reqSizeDoc.marks || !reqSizeDoc.marks.some(function (m) { return m.type === 'size' && parseFloat(m.value) === 18; })) throw new Error('font size mark not stored: ' + JSON.stringify(reqSizeDoc.marks));
+    var reqSizeNode2 = null, reqSizeWalk2 = document.createTreeWalker(bsEditor(), NodeFilter.SHOW_TEXT, null), reqSizeText2;
+    while ((reqSizeText2 = reqSizeWalk2.nextNode())) if (reqSizeText2.nodeValue.indexOf('Size me') >= 0) { reqSizeNode2 = reqSizeText2; break; }
+    var reqSizeRange2 = document.createRange(); reqSizeRange2.setStart(reqSizeNode2, 0); reqSizeRange2.setEnd(reqSizeNode2, 7);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(reqSizeRange2);
+    __SUI_RICH.command('editor', 'fontSizeDown');
+    await wait(300);
+    var reqSizeSpan2 = bsEditor().querySelector('span[style*="font-size"]');
+    if (!reqSizeSpan2 || parseFloat(reqSizeSpan2.style.fontSize) !== 16) throw new Error('decrease font size did not reduce the selection: ' + (reqSizeSpan2 ? reqSizeSpan2.style.fontSize : 'missing') + ' html=' + bsEditor().innerHTML + ' model=' + JSON.stringify(JSON.parse(__SUI_RICH.get('editor')[0]).children[0].children));
 
     var reqPng = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDQ4OCIvPjwvc3ZnPg==';
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'image', src: reqPng, alt: 'Old', width: '80px', marks: [] }] }] });
@@ -909,7 +931,7 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 	}
 	for _, token := range []string{
 		"undo", "redo", "copy", "cut", "paste",
-		"styleSelect", "fontFamily", "fontSize", "bold", "italic", "underline",
+		"styleSelect", "fontFamily", "fontSize", "fontSizeUp", "fontSizeDown", "bold", "italic", "underline",
 		"strike", "textColor", "highlight", "superscript", "subscript", "code",
 		"clearFormat", "alignLeft", "alignCenter", "alignRight", "justify",
 		"indent", "outdent", "paragraphSettings",

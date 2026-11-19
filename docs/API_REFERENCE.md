@@ -1723,6 +1723,7 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
 `orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
 `symbol`, `hr`, `pageBreak`, `imageSettings`, `pageSettings`, `printPreview`, `print`, `find`, `imageSettings`,
+`fontSizeUp`, `fontSizeDown`,
 `zoom`, `zoomIn`, `zoomOut`, `zoomReset`. The spacing and line-height selects
 remain available as custom tokens but are no longer in the default toolbar:
 they live in the Page settings and Paragraph settings panels.
@@ -1767,8 +1768,13 @@ Enter on the last empty line of a quote exits the quote. A code block keeps
 line breaks on Enter: use Escape, Normal or the Code button to leave it.
 
 **Zoom** controls live in a toolbar group: −, the current percentage (click it
-to return to 100%) and +. They scale the continuous editor and the paginated
-view.
+to return to 100%) and +. Zoom is a **view-only** scale: it magnifies
+characters, images and tables without changing the document font sizes or the
+saved JSON.
+
+**Font size** buttons (A+ and A−) apply to the selected text, or to the word at
+the caret when there is no selection: each click raises or lowers that text's
+font size by 2 px and stores a `size` mark in the document model.
 
 **Print preview** (toolbar button `printPreview` and File > Print preview)
 opens a centered preview with Print and Close buttons; File > Save as is

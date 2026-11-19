@@ -18,7 +18,7 @@ window.__SUI_RICH = (function () {
   var MAX_HISTORY = 120;
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
-  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,imageSettings,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
+  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,imageSettings,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -69,6 +69,8 @@ window.__SUI_RICH = (function () {
     blockquote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h5v5H6c0 2 2 3 4 3M14 7h5v5h-4c0 2 2 3 4 3"/></svg>',
     codeBlock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7 3 12l5 5M16 7l5 5-5 5M13 5l-2 14"/></svg>',
     code: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8 5 12l4 4M15 8l4 4-4 4"/></svg>',
+    fontSizeUp: '<span aria-hidden="true">A<sup>+</sup></span>',
+    fontSizeDown: '<span aria-hidden="true">A<sup>\u2212</sup></span>',
     textColor: '<span aria-hidden="true" style="font-weight:700">A</span>',
     highlight: '<span aria-hidden="true" style="background:#ffe066;color:#111;padding:0 2px">A</span>',
     paragraph: '<span aria-hidden="true">P</span>',
@@ -79,7 +81,7 @@ window.__SUI_RICH = (function () {
   var TOOL_LABELS = {
     undo: 'Undo', redo: 'Redo', copy: 'Copy', cut: 'Cut', paste: 'Paste',
     bold: 'Bold', italic: 'Italic', underline: 'Underline', strike: 'Strikethrough',
-    superscript: 'Superscript', subscript: 'Subscript', code: 'Inline code',
+    superscript: 'Superscript', subscript: 'Subscript', fontSizeUp: 'Increase font size', fontSizeDown: 'Decrease font size', code: 'Inline code',
     codeBlock: 'Code block', clearFormat: 'Clear formatting', copyFormat: 'Copy formatting',
     alignLeft: 'Align left', alignCenter: 'Align center', alignRight: 'Align right', justify: 'Justify',
     indent: 'Increase indent', outdent: 'Decrease indent',
@@ -100,7 +102,7 @@ window.__SUI_RICH = (function () {
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] }],
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Unlink|unlink', 'Image|image', 'Image settings...|imageSettings', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
-    format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Heading 4|h4', 'Paragraph settings...|paragraphSettings', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Inline code|code', 'Clear formatting|clearFormat', 'Copy formatting|copyFormat'],
+    format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Heading 4|h4', 'Paragraph settings...|paragraphSettings', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Increase font size|fontSizeUp', 'Decrease font size|fontSizeDown', 'Inline code|code', 'Clear formatting|clearFormat', 'Copy formatting|copyFormat'],
     view: ['Paginated view|paginatedView', 'Page settings|pageSettings', 'Zoom to 100%|zoomReset', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
   };
@@ -717,7 +719,7 @@ window.__SUI_RICH = (function () {
     var info = inst.savedSelection;
     if (!info || !info.active) return;
     inst.savedSelection = null;
-    if (info.blockIndex != null && info.blockIndex >= 0) {
+    if (info.start === info.end && info.blockIndex != null && info.blockIndex >= 0) {
       var blocks = inst.editor.children;
       var block = blocks[info.blockIndex];
       if (block) {
@@ -1745,6 +1747,74 @@ window.__SUI_RICH = (function () {
     }
     try { document.execCommand('removeFormat'); } catch (e) {}
   }
+  function firstTextInRange(range) {
+    if (!range) return null;
+    if (range.startContainer.nodeType === 3) return range.startContainer;
+    var root = range.commonAncestorContainer;
+    if (root.nodeType === 3) return root;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), node;
+    while ((node = walker.nextNode())) {
+      var hit = false;
+      try { hit = range.intersectsNode(node); } catch (e) { hit = true; }
+      if (hit) return node;
+    }
+    return null;
+  }
+  function changeFontSize(inst, delta) {
+    var range = selectionOrWordRange(inst);
+    if (!range || range.collapsed) return;
+    var textStart = firstTextInRange(range);
+    var start = textStart ? textStart.parentElement : (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement);
+    var current = parseFloat(getComputedStyle(start).fontSize) || (inst.baseFontSize || 16);
+    var next = Math.max(8, Math.min(96, Math.round((current + delta) * 100) / 100));
+    // If the whole selected text already sits in a size wrapper, update that
+    // wrapper in place instead of nesting a second size on top of it.
+    if (start && start.tagName === 'SPAN' && start.style.fontSize && range.toString().length >= String(start.textContent || '').length) {
+      start.style.fontSize = next + 'px';
+      inst.editor.focus();
+      saveSelection(inst);
+      commit(inst, 'change');
+      return;
+    }
+    var fragment = range.extractContents();
+    var spans = fragment.querySelectorAll('span');
+    for (var i = 0; i < spans.length; i++) if (spans[i].style.fontSize) spans[i].style.fontSize = '';
+    var fonts = fragment.querySelectorAll('font[size]');
+    for (var f = 0; f < fonts.length; f++) fonts[f].removeAttribute('size');
+    var walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT, null);
+    var nodes = [], node;
+    while ((node = walker.nextNode())) if (node.nodeValue) nodes.push(node);
+    for (var n = 0; n < nodes.length; n++) {
+      var textNode = nodes[n];
+      if (!textNode.parentNode) continue;
+      var span = el('span');
+      span.style.fontSize = next + 'px';
+      textNode.parentNode.insertBefore(span, textNode);
+      span.appendChild(textNode);
+    }
+    if (!fragment.firstChild) return;
+    var first = fragment.firstChild, last = fragment.lastChild;
+    range.insertNode(fragment);
+    // Extract+insert can leave an empty wrapper with the previous size.
+    var empties = inst.editor.querySelectorAll('span,font');
+    for (var e = empties.length - 1; e >= 0; e--) {
+      var empty = empties[e];
+      if (!empty.textContent && !empty.querySelector('img,br,table')) { empty.parentNode.removeChild(empty); continue; }
+      if (empty.tagName.toLowerCase() === 'span' && empty.getAttribute('style') !== null && !empty.getAttribute('style').trim()) {
+        empty.removeAttribute('style');
+        if (!empty.attributes.length) {
+          while (empty.firstChild) empty.parentNode.insertBefore(empty.firstChild, empty);
+          empty.parentNode.removeChild(empty);
+        }
+      }
+    }
+    var selected = document.createRange();
+    selected.setStartBefore(first); selected.setEndAfter(last);
+    selectRange(selected);
+    inst.editor.focus();
+    saveSelection(inst);
+    commit(inst, 'change');
+  }
   function clearFormatting(inst) {
     var range = selectionOrWordRange(inst);
     if (!range || range.collapsed) return;
@@ -1859,6 +1929,8 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'code') { if (!unwrapTag(inst, 'code')) wrapSelection(inst, 'code'); }
     else if (cmd === 'clearFormat') clearFormatting(inst);
     else if (cmd === 'copyFormat') copyFormat(inst);
+    else if (cmd === 'fontSizeUp') changeFontSize(inst, 2);
+    else if (cmd === 'fontSizeDown') changeFontSize(inst, -2);
     else if (cmd === 'paragraph') {
       var blockTag = String(value || '');
       applyBlock(inst, /^(h[1-4]|blockquote|pre)$/.test(blockTag) ? blockTag : 'p');
@@ -2557,7 +2629,7 @@ window.__SUI_RICH = (function () {
     var list = String(tokens || '').split(',');
     function has(re) { for (var i = 0; i < list.length; i++) if (re.test(list[i].trim())) return true; return false; }
     if (has(/^(undo|redo|copy|cut|paste)$/)) return 'History and clipboard';
-    if (has(/^(styleSelect|fontFamily|fontSize|bold|italic|underline|strike|textColor|highlight|superscript|subscript|code|clearFormat|copyFormat)$/)) return 'Text formatting';
+    if (has(/^(styleSelect|fontFamily|fontSize|fontSizeUp|fontSizeDown|bold|italic|underline|strike|textColor|highlight|superscript|subscript|code|clearFormat|copyFormat)$/)) return 'Text formatting';
     if (has(/^(align|indent|outdent|lineHeight|spaceBefore|spaceAfter|paragraphSettings|bulletList|orderedList|blockquote|codeBlock|justify)/)) return 'Paragraph';
     if (has(/^(link|unlink|image|imageSettings|table|symbol|hr|pageBreak)$/)) return 'Insert';
     if (has(/^(pageSettings|print|printPreview|find)$/)) return 'Document';
@@ -3025,7 +3097,12 @@ window.__SUI_RICH = (function () {
     var next = Math.max(0.6, Math.min(2, Number(value) || 1));
     next = Math.round(next * 100) / 100;
     inst.zoom = next;
-    if (inst.editor) inst.editor.style.fontSize = ((inst.baseFontSize || 16) * next) + 'px';
+    // Zoom is a view-only scale: CSS zoom magnifies characters, images and
+    // tables without touching the document font sizes or the JSON model.
+    if (inst.editor) {
+      if ('zoom' in inst.editor.style) { inst.editor.style.zoom = String(next); inst.editor.style.fontSize = ''; }
+      else inst.editor.style.fontSize = ((inst.baseFontSize || 16) * next) + 'px';
+    }
     var pages = inst.root && inst.root.querySelector('.sui-rich-pages');
     if (pages) pages.style.zoom = String(next);
     var label = inst.root && inst.root.querySelector('.sui-rich-zoom-label');
