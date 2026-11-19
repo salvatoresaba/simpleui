@@ -1722,21 +1722,24 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
 `paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
 `orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
-`symbol`, `hr`, `pageBreak`, `imageSettings`, `pageSettings`, `printPreview`, `print`, `find`, `imageSettings`,
+`symbol`, `hr`, `pageBreak`, `documentSettings`, `pageSettings`, `printPreview`, `print`, `find`,
 `fontSizeUp`, `fontSizeDown`,
 `zoom`, `zoomIn`, `zoomOut`, `zoomReset`. The spacing and line-height selects
 remain available as custom tokens but are no longer in the default toolbar:
-they live in the Page settings and Paragraph settings panels.
+they live in the Document settings and Paragraph settings panels.
 
-**Page settings** (button `pageSettings`, also View > Page settings) opens a
-panel for page size (A4/Letter), orientation (**Vertical**/**Horizontal**),
-the document line height, top/right/bottom/left margins in millimetres and the
-header/footer text. `{page}` and `{pages}` are replaced with
+**Document settings** (toolbar button `documentSettings`, also View >
+Document settings) holds the general defaults: line height and header/footer
+text. **Page settings** (toolbar button `pageSettings`, also View > Page
+settings) holds page size (A4/Letter), orientation (**Vertical**/**Horizontal**)
+and top/right/bottom/left margins in millimetres. `{page}` and `{pages}` are replaced with
 the page number and total. The settings are stored in the document as
 `page: { size, orientation, lineHeight, margins }` plus `header`/`footer`, and are applied
 to the paginated view, print, PDF, DOCX, ODT and RTF/DOC exports; DOCX and
 ODT import restore them. The default is A4 portrait with 15 mm top/bottom and 17 mm
-left/right margins.
+left/right margins. The continuous editor draws a dashed horizontal guide at
+every automatic page cut, resetting after explicit page breaks; guides are hidden
+in the paginated view and in print.
 
 Every text feature has a toolbar control: inline code (`code`) and Remove link
 (`unlink`) included. Unlink is disabled when the caret is outside a link, and
@@ -1753,8 +1756,8 @@ highlight and inline marks; Escape cancels it.
 **Paragraph settings** (button `paragraphSettings`, also Format > Paragraph
 settings...) applies to the selected paragraphs or to the paragraph at the
 caret: alignment, left indent, line height, space before and space after.
-The document default line height is in Page settings and individual paragraphs
-can override it.
+The document default line height is in Document settings and individual
+paragraphs can override it.
 
 The editor keeps the height configured with `height` (320 px by default); when
 the text exceeds that area a scrollbar appears inside the content instead of
@@ -1777,18 +1780,20 @@ the caret when there is no selection: each click raises or lowers that text's
 font size by 2 px and stores a `size` mark in the document model.
 
 **Print preview** (toolbar button `printPreview` and File > Print preview)
-opens a centered preview with Print and Close buttons; File > Save as is
-listed directly under Open file.
+opens a centered preview already split into the real pages, with the configured
+margins, headers/footers and page numbers. Print uses those same sheet pages;
+File > Save as is listed directly under Open file.
 
 Link, image, symbol and import-content commands open a centered overlay with
 instructions and the required fields, instead of a browser prompt. The overlay
 has no heading and keeps the caret selection to insert the link, image or
 symbol exactly where requested.
 
-**Image settings** (double-click an image, or the toolbar/menu entry) lets you
-edit the URL, replace the image with a local file, change the alternative text,
-width and left/center/right alignment, or remove it. The selected image is
-outlined in the editor.
+**Image settings** open on double-click or with the image context menu
+(right-click: Edit image, Replace image..., Delete image); there is no toolbar
+button for it. The panel lets you edit the URL, replace the image with a local
+file, change the alternative text, width and left/center/right alignment, or
+remove it. The selected image is outlined in the editor.
 
 Inside a table, dragging over the text keeps the native text selection, so cell
 content can be formatted normally. Shift/Ctrl-click or a drag started on the

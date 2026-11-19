@@ -18,7 +18,7 @@ window.__SUI_RICH = (function () {
   var MAX_HISTORY = 120;
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
-  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,imageSettings,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
+  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak|documentSettings,pageSettings,printPreview,print,find|zoom';
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -75,6 +75,7 @@ window.__SUI_RICH = (function () {
     highlight: '<span aria-hidden="true" style="background:#ffe066;color:#111;padding:0 2px">A</span>',
     paragraph: '<span aria-hidden="true">P</span>',
     pageSettings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 8h5M9 12h7M9 16h4"/></svg>',
+    documentSettings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 8h7M9 12h7M9 16h4"/><circle cx="17" cy="17" r="2.2"/></svg>',
     print: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H4V9h16v8h-3"/><rect x="7" y="13" width="10" height="7"/></svg>',
     find: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
   };
@@ -89,7 +90,7 @@ window.__SUI_RICH = (function () {
     blockquote: 'Quote', link: 'Insert link', unlink: 'Remove link',
     image: 'Insert image', imageSettings: 'Image settings', table: 'Insert table', symbol: 'Insert symbol',
     hr: 'Horizontal rule', pageBreak: 'Page break',
-    pageSettings: 'Page settings', printPreview: 'Print preview',
+    documentSettings: 'Document settings', pageSettings: 'Page settings', printPreview: 'Print preview',
     print: 'Print / Save as PDF', find: 'Find and replace',
     paragraphSettings: 'Paragraph settings',
     zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomReset: 'Reset zoom to 100%'
@@ -103,7 +104,7 @@ window.__SUI_RICH = (function () {
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Unlink|unlink', 'Image|image', 'Image settings...|imageSettings', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
     format: ['Paragraph|paragraph', 'Heading 1|h1', 'Heading 2|h2', 'Heading 3|h3', 'Heading 4|h4', 'Paragraph settings...|paragraphSettings', 'Bold|bold', 'Italic|italic', 'Underline|underline', 'Strikethrough|strike', 'Increase font size|fontSizeUp', 'Decrease font size|fontSizeDown', 'Inline code|code', 'Clear formatting|clearFormat', 'Copy formatting|copyFormat'],
-    view: ['Paginated view|paginatedView', 'Page settings|pageSettings', 'Zoom to 100%|zoomReset', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
+    view: ['Paginated view|paginatedView', 'Document settings|documentSettings', 'Page settings|pageSettings', 'Zoom to 100%|zoomReset', 'Theme: dark|themeDark', 'Theme: light|themeLight', 'Theme: auto|themeAuto', 'Toggle status bar|toggleStatus', 'Toggle context toolbar|toggleContext', 'Article template|templateArticle', 'Letter template|templateLetter', 'Report template|templateReport', 'Compact template|templateCompact'],
     tools: ['Clear formatting|clearFormat', 'Plugin information|pluginInfo']
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', format: 'Format', view: 'View', tools: 'Tools' };
@@ -816,18 +817,20 @@ window.__SUI_RICH = (function () {
     sync(inst);
     remember(inst);
     updateStats(inst);
+    updatePageGuides(inst);
     notify(inst, kind || 'change');
     if (inst.paginated) schedulePaginate(inst);
   }
   function restore(inst, text) {
     inst.doc = parseJSON(text, emptyDoc());
-    inst.headerText = inst.doc.header != null ? String(inst.doc.header) : (inst.headerAttr || '');
-    inst.footerText = inst.doc.footer != null ? String(inst.doc.footer) : (inst.footerAttr || '');
+    inst.headerText = resolvedHeader(inst, inst.doc);
+    inst.footerText = resolvedFooter(inst, inst.doc);
     inst.editor.innerHTML = '';
     inst.editor.appendChild(renderDoc(inst.doc));
     applyPageLineHeight(inst);
     refreshPageChrome(inst);
     updateStats(inst);
+    updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst);
   }
   function undo(inst) {
@@ -1305,6 +1308,15 @@ window.__SUI_RICH = (function () {
     inst.editor.addEventListener('dblclick', function (e) {
       var img = e.target && e.target.tagName === 'IMG' ? e.target : null;
       if (img) { e.preventDefault(); openImageSettings(inst, img); }
+    });
+    inst.editor.addEventListener('contextmenu', function (e) {
+      var img = e.target && e.target.tagName === 'IMG' ? e.target : null;
+      if (!img) return;
+      e.preventDefault();
+      selectImage(inst, img);
+      var images = inst.editor.querySelectorAll('img');
+      inst.imageIndex = Array.prototype.indexOf.call(images, img);
+      openImageMenu(inst, img, e.clientX, e.clientY);
     });
   }
   function cellTextHit(cell, e) {
@@ -2051,6 +2063,7 @@ window.__SUI_RICH = (function () {
       else document.execCommand('cut');
     }
     else if (cmd === 'paginatedView') { setPaginated(inst); }
+    else if (cmd === 'documentSettings') { openDocumentSettings(inst); }
     else if (cmd === 'pageSettings') { openPageSettings(inst); }
     else if (cmd === 'paragraphSettings') { openParagraphSettings(inst); }
     else if (cmd === 'imageSettings') { openImageSettings(inst, imageTarget(inst)); }
@@ -2144,7 +2157,7 @@ window.__SUI_RICH = (function () {
         var r = typeof pluginCmd.run === 'function' ? pluginCmd.run(inst, value) : runBuiltin(inst, pluginCmd.command, value);
         if (r === false) return [false, 'command failed: ' + cmd];
       }
-      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset)$/.test(cmd)) commit(inst, 'change');
+      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|documentSettings|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset)$/.test(cmd)) commit(inst, 'change');
       return [true, null];
     } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
   }
@@ -2167,19 +2180,33 @@ window.__SUI_RICH = (function () {
     if (!head && inst.headerText) buildPageChrome(inst);
     if (!foot && inst.footerText) buildPageChrome(inst);
   }
+  function resolvedHeader(inst, doc) {
+    if (inst.headerOverride) return doc && doc.header != null ? String(doc.header) : (inst.headerText || '');
+    return inst.headerAttr || (doc && doc.header != null ? String(doc.header) : '');
+  }
+  function resolvedFooter(inst, doc) {
+    if (inst.footerOverride) return doc && doc.footer != null ? String(doc.footer) : (inst.footerText || '');
+    return inst.footerAttr || (doc && doc.footer != null ? String(doc.footer) : '');
+  }
   function setValue(name, value) {
     var inst = resolveInstance(name);
     if (!inst) return [false, 'richtext instance not found: ' + name];
     var doc = typeof value === 'string' ? parseJSON(value, null) : value;
     if (!doc || typeof doc !== 'object') return [false, 'richtext document must be JSON'];
+    // Replacing/importing content keeps the document-level settings unless the
+    // incoming document explicitly provides them.
+    if (doc.page === undefined && inst.doc && inst.doc.page !== undefined) doc.page = inst.doc.page;
+    if (doc.header == null && inst.doc && inst.doc.header != null) doc.header = inst.doc.header;
+    if (doc.footer == null && inst.doc && inst.doc.footer != null) doc.footer = inst.doc.footer;
     inst.doc = doc;
-    inst.headerText = doc.header != null ? String(doc.header) : (inst.headerAttr || '');
-    inst.footerText = doc.footer != null ? String(doc.footer) : (inst.footerAttr || '');
+    inst.headerText = resolvedHeader(inst, doc);
+    inst.footerText = resolvedFooter(inst, doc);
     refreshPageChrome(inst);
     inst.editor.innerHTML = '';
     inst.editor.appendChild(renderDoc(inst.doc));
     remember(inst);
     updateStats(inst);
+    updatePageGuides(inst);
     notify(inst, 'change');
     return [true, null];
   }
@@ -2632,7 +2659,7 @@ window.__SUI_RICH = (function () {
     if (has(/^(styleSelect|fontFamily|fontSize|fontSizeUp|fontSizeDown|bold|italic|underline|strike|textColor|highlight|superscript|subscript|code|clearFormat|copyFormat)$/)) return 'Text formatting';
     if (has(/^(align|indent|outdent|lineHeight|spaceBefore|spaceAfter|paragraphSettings|bulletList|orderedList|blockquote|codeBlock|justify)/)) return 'Paragraph';
     if (has(/^(link|unlink|image|imageSettings|table|symbol|hr|pageBreak)$/)) return 'Insert';
-    if (has(/^(pageSettings|print|printPreview|find)$/)) return 'Document';
+    if (has(/^(documentSettings|pageSettings|print|printPreview|find)$/)) return 'Document';
     if (has(/^zoom$/)) return 'Zoom';
     return 'Tools';
   }
@@ -3107,6 +3134,7 @@ window.__SUI_RICH = (function () {
     if (pages) pages.style.zoom = String(next);
     var label = inst.root && inst.root.querySelector('.sui-rich-zoom-label');
     if (label) label.textContent = Math.round(next * 100) + '%';
+    updatePageGuides(inst);
   }
   function setTheme(name, theme) {
     var inst = instances[name];
@@ -3156,6 +3184,56 @@ window.__SUI_RICH = (function () {
   function mmToPt(mm) { return Number(mm) * 72 / 25.4; }
   function mmToTwips(mm) { return Math.round(Number(mm) * 1440 / 25.4); }
   function mmToCm(mm) { return (Number(mm) / 10).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'cm'; }
+  function pageGuideLayer(inst) {
+    if (!inst || !inst.editor || !inst.editor.parentNode) return null;
+    var host = inst.editor.parentNode;
+    var layer = host.querySelector(':scope > .sui-rich-guides');
+    if (!layer) {
+      layer = el('div', 'sui-rich-guides');
+      layer.setAttribute('aria-hidden', 'true');
+      host.appendChild(layer);
+      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    }
+    return layer;
+  }
+  function schedulePageGuides(inst) {
+    if (inst.guideTimer) return;
+    inst.guideTimer = setTimeout(function () { inst.guideTimer = null; updatePageGuides(inst); }, 40);
+  }
+  function updatePageGuides(inst) {
+    if (!inst || !inst.editor) return;
+    var layer = pageGuideLayer(inst);
+    if (!layer) return;
+    if (inst.paginated || (inst.root && inst.root.classList.contains('sui-rich-paginated'))) { layer.innerHTML = ''; return; }
+    var m = pageMetrics(inst), ed = inst.editor;
+    if (!(m.contentH > 40)) { layer.innerHTML = ''; return; }
+    var cs = getComputedStyle(ed);
+    var padTop = parseFloat(cs.paddingTop) || 0, padBottom = parseFloat(cs.paddingBottom) || 0;
+    var edRect = ed.getBoundingClientRect(), host = layer.parentNode, hostRect = host.getBoundingClientRect();
+    var scroll = ed.scrollTop;
+    var breaks = [];
+    var marks = ed.querySelectorAll('.sui-rich-pagebreak');
+    for (var i = 0; i < marks.length; i++) {
+      var r = marks[i].getBoundingClientRect();
+      breaks.push({ top: r.top - edRect.top + scroll, bottom: r.top - edRect.top + scroll + r.height });
+    }
+    breaks.sort(function (a, b) { return a.top - b.top; });
+    var cuts = [], start = padTop;
+    for (var b = 0; b < breaks.length; b++) {
+      while (start + m.contentH < breaks[b].top - 2) { start += m.contentH; cuts.push(start); }
+      start = Math.max(start, breaks[b].bottom);
+    }
+    var end = ed.scrollHeight - padBottom + 2;
+    while (start + m.contentH < end) { start += m.contentH; cuts.push(start); }
+    layer.innerHTML = '';
+    var offset = edRect.top - hostRect.top;
+    for (var c = 0; c < cuts.length; c++) {
+      var top = offset + cuts[c] - scroll;
+      var line = el('div', 'sui-rich-guide');
+      line.style.top = top + 'px';
+      layer.appendChild(line);
+    }
+  }
   function pageMetrics(inst) {
     var page = pageConfig(inst);
     var size = pageSizeMm(page);
@@ -3185,6 +3263,7 @@ window.__SUI_RICH = (function () {
       inst.root.querySelector('.sui-rich-body').appendChild(wrap);
     }
     wrap.hidden = !inst.paginated;
+    updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst);
   }
   function schedulePaginate(inst) {
@@ -3542,18 +3621,6 @@ window.__SUI_RICH = (function () {
     orientRow.appendChild(orientSelect);
     panel.appendChild(orientRow);
 
-    var lineRow = el('label');
-    lineRow.appendChild(el('span', '', 'Line height'));
-    var lineInput = el('input');
-    lineInput.type = 'number';
-    lineInput.min = '0.8';
-    lineInput.max = '3';
-    lineInput.step = '0.05';
-    lineInput.setAttribute('data-rich-page-lineheight', '1');
-    lineInput.setAttribute('aria-label', 'Default line height');
-    lineRow.appendChild(lineInput);
-    panel.appendChild(lineRow);
-
     panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Margins (mm)'));
     var grid = el('div', 'sui-rich-pagesettings-grid');
     panel.appendChild(grid);
@@ -3562,28 +3629,7 @@ window.__SUI_RICH = (function () {
     pageMarginInput(grid, 'bottom', 'Bottom');
     pageMarginInput(grid, 'left', 'Left');
 
-    var headerRow = el('label');
-    headerRow.appendChild(el('span', '', 'Header'));
-    var headerInput = el('input');
-    headerInput.type = 'text';
-    headerInput.maxLength = 500;
-    headerInput.setAttribute('data-rich-page-header', '1');
-    headerInput.setAttribute('aria-label', 'Header text');
-    headerInput.placeholder = 'Report \u00b7 {page}/{pages}';
-    headerRow.appendChild(headerInput);
-    panel.appendChild(headerRow);
-
-    var footerRow = el('label');
-    footerRow.appendChild(el('span', '', 'Footer'));
-    var footerInput = el('input');
-    footerInput.type = 'text';
-    footerInput.maxLength = 500;
-    footerInput.setAttribute('data-rich-page-footer', '1');
-    footerInput.setAttribute('aria-label', 'Footer text');
-    footerInput.placeholder = 'Page {page} of {pages}';
-    footerRow.appendChild(footerInput);
-    panel.appendChild(footerRow);
-    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Use {page} and {pages} in the header or footer. Margins accept 0-50 mm.'));
+    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Page size, orientation and margins (0-50 mm). Header, footer and line height are in Document settings.'));
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply');
@@ -3622,16 +3668,10 @@ window.__SUI_RICH = (function () {
     var orient = panel.querySelector('[data-rich-page-orientation]');
     if (size) size.value = page.size;
     if (orient) orient.value = page.orientation;
-    var line = panel.querySelector('[data-rich-page-lineheight]');
-    if (line) line.value = String(page.lineHeight);
     ['top', 'right', 'bottom', 'left'].forEach(function (side) {
       var input = panel.querySelector('[data-rich-page-margin="' + side + '"]');
       if (input) input.value = String(page.margins[side]);
     });
-    var header = panel.querySelector('[data-rich-page-header]');
-    var footer = panel.querySelector('[data-rich-page-footer]');
-    if (header) header.value = inst.headerText || '';
-    if (footer) footer.value = inst.footerText || '';
   }
   function applyPageLineHeight(inst) {
     var lh = String(pageConfig(inst).lineHeight);
@@ -3647,23 +3687,16 @@ window.__SUI_RICH = (function () {
       var node = panel.querySelector('[data-rich-page-margin="' + side + '"]');
       return node ? clampPageMargin(node.value, defaultPageConfig().margins[side]) : defaultPageConfig().margins[side];
     }
-    var lh = parseFloat(value('[data-rich-page-lineheight]'));
-    if (!isFinite(lh)) lh = defaultPageConfig().lineHeight;
+    var current = pageConfig(inst);
     var page = {
       size: value('[data-rich-page-size]') === 'letter' ? 'letter' : 'a4',
       orientation: value('[data-rich-page-orientation]') === 'landscape' ? 'landscape' : 'portrait',
-      lineHeight: Math.max(0.8, Math.min(3, Math.round(lh * 100) / 100)),
+      lineHeight: current.lineHeight,
       margins: { top: margin('top'), right: margin('right'), bottom: margin('bottom'), left: margin('left') }
     };
-    var header = value('[data-rich-page-header]').slice(0, 500).trim();
-    var footer = value('[data-rich-page-footer]').slice(0, 500).trim();
     inst.doc.page = page;
-    inst.doc.header = header;
-    inst.doc.footer = footer;
-    inst.headerText = header;
-    inst.footerText = footer;
-    applyPageLineHeight(inst);
     refreshPageChrome(inst);
+    updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst);
     commit(inst, 'change');
     panel.hidden = true;
@@ -3863,6 +3896,53 @@ window.__SUI_RICH = (function () {
     if (img) img.classList.add('sui-rich-image-selected');
     updateStats(inst);
   }
+  function closeImageMenu() {
+    var menu = document.querySelector('.sui-rich-image-menu');
+    if (menu && menu.parentNode) menu.parentNode.removeChild(menu);
+  }
+  function openImageMenu(inst, img, x, y) {
+    closeImageMenu();
+    var menu = el('div', 'sui-rich-image-menu');
+    menu.setAttribute('role', 'menu');
+    [['Edit image', 'edit'], ['Replace image...', 'replace'], ['Delete image', 'delete']].forEach(function (item) {
+      var button = el('button', 'sui-rich-menu-item', item[0]);
+      button.type = 'button';
+      button.setAttribute('role', 'menuitem');
+      button.setAttribute('data-rich-image-action', item[1]);
+      menu.appendChild(button);
+    });
+    document.body.appendChild(menu);
+    menu.style.left = Math.max(8, Math.min(window.innerWidth - 190, x)) + 'px';
+    menu.style.top = Math.max(8, Math.min(window.innerHeight - 120, y)) + 'px';
+    menu.addEventListener('click', function (ev) {
+      var target = ev.target;
+      if (!target || !target.closest) return;
+      var action = target.getAttribute('data-rich-image-action');
+      closeImageMenu();
+      if (action === 'edit') openImageSettings(inst, img);
+      else if (action === 'replace') {
+        openImageSettings(inst, img);
+        var panel = imageSettingsPanel(inst);
+        var file = panel.querySelector('[data-rich-image-file]');
+        if (file) file.click();
+      } else if (action === 'delete') {
+        var images = inst.editor.querySelectorAll('img');
+        inst.imageIndex = Array.prototype.indexOf.call(images, img);
+        removeImage(inst);
+      }
+    });
+    var close = function (ev) {
+      if (ev && ev.target && ev.target.closest && ev.target.closest('.sui-rich-image-menu')) return;
+      closeImageMenu();
+      document.removeEventListener('mousedown', close, true);
+      document.removeEventListener('keydown', onKey);
+    };
+    function onKey(ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } }
+    setTimeout(function () {
+      document.addEventListener('mousedown', close, true);
+      document.addEventListener('keydown', onKey);
+    }, 0);
+  }
   function imageSettingsPanel(inst) {
     var panel = document.querySelector('.sui-rich-imagesettings[data-rich-imagesettings="' + inst.name + '"]');
     if (panel) return panel;
@@ -4036,6 +4116,134 @@ window.__SUI_RICH = (function () {
     commit(inst, 'change');
     panel.hidden = true;
   }
+  function documentSettingsPanel(inst) {
+    var panel = document.querySelector('.sui-rich-documentsettings[data-rich-documentsettings="' + inst.name + '"]');
+    if (panel) return panel;
+    panel = el('div', 'sui-rich-documentsettings');
+    panel.setAttribute('data-rich-documentsettings', inst.name);
+    panel.hidden = true;
+    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Document settings'));
+
+    var lineRow = el('label');
+    lineRow.appendChild(el('span', '', 'Line height'));
+    var lineInput = el('input');
+    lineInput.type = 'number';
+    lineInput.min = '0.8';
+    lineInput.max = '3';
+    lineInput.step = '0.05';
+    lineInput.setAttribute('data-rich-doc-lineheight', '1');
+    lineInput.setAttribute('aria-label', 'Default document line height');
+    lineRow.appendChild(lineInput);
+    panel.appendChild(lineRow);
+
+    var headerRow = el('label');
+    headerRow.appendChild(el('span', '', 'Header'));
+    var headerInput = el('input');
+    headerInput.type = 'text';
+    headerInput.maxLength = 500;
+    headerInput.setAttribute('data-rich-doc-header', '1');
+    headerInput.setAttribute('aria-label', 'Header text');
+    headerInput.placeholder = 'Report \u00b7 {page}/{pages}';
+    headerRow.appendChild(headerInput);
+    panel.appendChild(headerRow);
+
+    var footerRow = el('label');
+    footerRow.appendChild(el('span', '', 'Footer'));
+    var footerInput = el('input');
+    footerInput.type = 'text';
+    footerInput.maxLength = 500;
+    footerInput.setAttribute('data-rich-doc-footer', '1');
+    footerInput.setAttribute('aria-label', 'Footer text');
+    footerInput.placeholder = 'Page {page} of {pages}';
+    footerRow.appendChild(footerInput);
+    panel.appendChild(footerRow);
+    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'General document defaults. Use {page} and {pages} in the header or footer; individual paragraphs can override the line height.'));
+
+    var actions = el('div', 'sui-rich-pagesettings-actions');
+    var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-doc-apply', '1');
+    var reset = el('button', 'sui-rich-btn', 'Reset'); reset.type = 'button'; reset.setAttribute('data-rich-doc-reset', '1');
+    var close = el('button', 'sui-rich-btn', 'Close'); close.type = 'button'; close.setAttribute('data-rich-doc-close', '1');
+    actions.appendChild(apply); actions.appendChild(reset); actions.appendChild(close);
+    panel.appendChild(actions);
+
+    panel.addEventListener('click', function (ev) {
+      var target = ev.target;
+      if (!target || !target.closest) return;
+      if (target.closest('[data-rich-doc-apply]')) { applyDocumentSettings(inst); return; }
+      if (target.closest('[data-rich-doc-reset]')) { fillDocumentSettings(inst, panel, defaultPageConfig()); return; }
+      if (target.closest('[data-rich-doc-close]')) { panel.hidden = true; return; }
+    });
+    document.body.appendChild(panel);
+    if (!window.__suiDocumentSettingsBound) {
+      window.__suiDocumentSettingsBound = true;
+      document.addEventListener('mousedown', function (ev) {
+        var target = ev.target;
+        if (target && target.closest && (target.closest('.sui-rich-documentsettings') || target.closest('[data-rich-cmd="documentSettings"]'))) return;
+        var panels = document.querySelectorAll('.sui-rich-documentsettings');
+        for (var i = 0; i < panels.length; i++) panels[i].hidden = true;
+      });
+    }
+    return panel;
+  }
+  function fillDocumentSettings(inst, panel, page) {
+    var line = panel.querySelector('[data-rich-doc-lineheight]');
+    if (line) line.value = String(page.lineHeight);
+    var header = panel.querySelector('[data-rich-doc-header]');
+    var footer = panel.querySelector('[data-rich-doc-footer]');
+    if (header) header.value = inst.headerText || '';
+    if (footer) footer.value = inst.footerText || '';
+  }
+  function applyDocumentSettings(inst) {
+    inst = resolveInstance(inst.name) || inst;
+    var panel = documentSettingsPanel(inst);
+    function value(sel) { var node = panel.querySelector(sel); return node ? String(node.value || '') : ''; }
+    var lh = parseFloat(value('[data-rich-doc-lineheight]'));
+    if (!isFinite(lh)) lh = defaultPageConfig().lineHeight;
+    var current = pageConfig(inst);
+    current.lineHeight = Math.max(0.8, Math.min(3, Math.round(lh * 100) / 100));
+    var header = value('[data-rich-doc-header]').slice(0, 500).trim();
+    var footer = value('[data-rich-doc-footer]').slice(0, 500).trim();
+    inst.doc.page = current;
+    inst.doc.header = header;
+    inst.doc.footer = footer;
+    inst.headerText = header;
+    inst.footerText = footer;
+    inst.headerOverride = true;
+    inst.footerOverride = true;
+    applyPageLineHeight(inst);
+    refreshPageChrome(inst);
+    updatePageGuides(inst);
+    if (inst.paginated) schedulePaginate(inst);
+    commit(inst, 'change');
+    panel.hidden = true;
+  }
+  function openDocumentSettings(inst) {
+    var liveRoot = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"]');
+    if (liveRoot) {
+      inst.root = liveRoot;
+      var liveEditor = liveRoot.querySelector('.sui-rich-editor');
+      if (liveEditor) inst.editor = liveEditor;
+    }
+    var panel = documentSettingsPanel(inst);
+    var rootStyle = getComputedStyle(inst.root);
+    ['--sui-rich-bg', '--sui-rich-fg', '--sui-rich-border', '--sui-rich-muted', '--sui-rich-hover', '--sui-rich-accent', '--sui-rich-shadow'].forEach(function (name) {
+      var value = rootStyle.getPropertyValue(name);
+      if (value) panel.style.setProperty(name, value);
+    });
+    fillDocumentSettings(inst, panel, pageConfig(inst));
+    panel.hidden = false;
+    var trigger = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"] .sui-rich-toolbar [data-rich-cmd="documentSettings"]');
+    var rect = trigger ? trigger.getBoundingClientRect() : inst.root.getBoundingClientRect();
+    var panelW = 300, panelH = 320;
+    var left = rect && rect.width ? rect.left : 16;
+    var top = rect && rect.height ? rect.bottom + 6 : 16;
+    left = Math.max(8, Math.min(window.innerWidth - panelW, left));
+    if (top + panelH > window.innerHeight) top = Math.max(8, window.innerHeight - panelH);
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    var first = panel.querySelector('[data-rich-doc-lineheight]');
+    if (first) first.focus();
+  }
   function escapePrintText(value) {
     return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -4078,10 +4286,15 @@ window.__SUI_RICH = (function () {
       '@media print { body { background: #fff; padding: 0; } .sui-preview-page { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; } }' +
       '</style></head><body><div class="sui-preview-page">' + head + '<main>' + body + '</main>' + foot + '</div></body></html>';
   }
-  function openPrintPreview(inst) {
+  async function openPrintPreview(inst) {
     inst = resolveInstance(inst.name) || inst;
     var existing = document.querySelector('.sui-rich-preview');
     if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    var page = pageConfig(inst), dims = pageSizeMm(page);
+    var pageSize = (page.size === 'letter' ? 'Letter' : 'A4') + (page.orientation === 'landscape' ? ' landscape' : '');
+    var pageStyle = document.getElementById('sui-preview-print-style');
+    if (!pageStyle) { pageStyle = document.createElement('style'); pageStyle.id = 'sui-preview-print-style'; document.head.appendChild(pageStyle); }
+    pageStyle.textContent = '@page { size: ' + pageSize + '; margin: 0; }';
     var overlay = el('div', 'sui-rich-preview');
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
@@ -4094,25 +4307,54 @@ window.__SUI_RICH = (function () {
     var closeBtn = el('button', 'sui-rich-btn', 'Close');
     closeBtn.type = 'button';
     bar.appendChild(printBtn); bar.appendChild(closeBtn);
-    var frame = el('iframe', 'sui-rich-preview-frame');
-    frame.setAttribute('title', 'Print preview');
-    frame.setAttribute('sandbox', 'allow-same-origin allow-modals');
-    frame.srcdoc = printPreviewHTML(inst);
-    card.appendChild(bar); card.appendChild(frame); overlay.appendChild(card);
+    var pages = el('div', 'sui-rich-preview-pages');
+    pages.appendChild(el('div', 'sui-rich-preview-loading', 'Preparing preview...'));
+    card.appendChild(bar); card.appendChild(pages); overlay.appendChild(card);
+    var rootStyle = getComputedStyle(inst.root);
+    for (var vi = 0; vi < rootStyle.length; vi++) {
+      var varName = rootStyle[vi];
+      if (varName && varName.indexOf('--sui-rich') === 0) {
+        var varValue = rootStyle.getPropertyValue(varName);
+        if (varValue) overlay.style.setProperty(varName, varValue);
+      }
+    }
     document.body.appendChild(overlay);
-    function close() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); document.removeEventListener('keydown', onKey); }
+    function close() {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      document.removeEventListener('keydown', onKey);
+      document.body.classList.remove('sui-rich-printing');
+      if (pageStyle && pageStyle.parentNode) pageStyle.parentNode.removeChild(pageStyle);
+    }
     function onKey(ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } }
     document.addEventListener('keydown', onKey);
     closeBtn.addEventListener('click', close);
     printBtn.addEventListener('click', function () {
-      frame.onload = function () {
-        frame.onload = null;
-        try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
-      };
-      frame.srcdoc = printHTML(inst);
+      document.body.classList.add('sui-rich-printing');
+      var done = function () { document.body.classList.remove('sui-rich-printing'); window.removeEventListener('afterprint', done); };
+      window.addEventListener('afterprint', done);
+      try { window.focus(); window.print(); } catch (e) {}
+      setTimeout(done, 1500);
     });
     overlay.addEventListener('mousedown', function (ev) { if (ev.target === overlay) close(); });
     printBtn.focus();
+    // Reuse the editor pagination so the preview is split exactly like the
+    // paginated view (headers/footers, repeated table headers, page numbers).
+    var wasPaginated = !!inst.paginated || (inst.root && inst.root.getAttribute('data-sui-rich-paginated') === '1');
+    try {
+      sync(inst);
+      if (!wasPaginated) setPaginated(inst, true);
+      clearTimeout(inst.pageTimer);
+      await paginate(inst);
+      if (!overlay.parentNode) return;
+      var wrap = inst.root.querySelector('.sui-rich-pages');
+      pages.innerHTML = wrap ? wrap.innerHTML : '';
+      if (!pages.children.length) pages.appendChild(el('div', 'sui-rich-preview-loading', 'No content to preview.'));
+    } catch (e) {
+      pages.innerHTML = '';
+      pages.appendChild(el('div', 'sui-rich-preview-loading', 'Preview error: ' + String(e && e.message ? e.message : e)));
+    } finally {
+      if (!wasPaginated && inst.root && inst.root.getAttribute('data-sui-rich-paginated') === '1') setPaginated(inst, false);
+    }
   }
   function promptRange(inst) {
     var sel = window.getSelection();
@@ -4321,6 +4563,7 @@ window.__SUI_RICH = (function () {
       if (!cmd) return;
       if (target.tagName === 'SELECT' || target.tagName === 'INPUT') command(inst.name, cmd, target.value);
     });
+    inst.editor.addEventListener('scroll', function () { schedulePageGuides(inst); });
     root.addEventListener('mouseup', function (e) {
       if (!inst.painter || !e.target || !inst.editor.contains(e.target)) return;
       setTimeout(function () { if (inst.painter) applyFormatPainter(inst); }, 0);
@@ -4447,7 +4690,10 @@ window.__SUI_RICH = (function () {
     if (!window.__suiRichResizeBound) {
       window.__suiRichResizeBound = true;
       window.addEventListener('resize', function () {
-        for (var rn in instances) if (instances[rn] && instances[rn].paginated) schedulePaginate(instances[rn]);
+        for (var rn in instances) if (instances[rn]) {
+          if (instances[rn].paginated) schedulePaginate(instances[rn]);
+          updatePageGuides(instances[rn]);
+        }
       });
     }
   }
@@ -4474,8 +4720,9 @@ window.__SUI_RICH = (function () {
         doc: initial || emptyDoc(),
         headerAttr: attr(root, 'data-sui-rich-header'),
         footerAttr: attr(root, 'data-sui-rich-footer'),
-        headerText: (initial && initial.header != null) ? String(initial.header) : attr(root, 'data-sui-rich-header'),
-        footerText: (initial && initial.footer != null) ? String(initial.footer) : attr(root, 'data-sui-rich-footer'),
+        headerText: attr(root, 'data-sui-rich-header') || ((initial && initial.header) ? String(initial.header) : ''),
+        footerText: attr(root, 'data-sui-rich-footer') || ((initial && initial.footer) ? String(initial.footer) : ''),
+        headerOverride: false, footerOverride: false,
         history: [], index: -1, dirty: false, zoom: 1,
         baseFontSize: parseFloat(attr(root, 'data-sui-rich-font-size') || '16') || 16
       };
@@ -4526,6 +4773,7 @@ window.__SUI_RICH = (function () {
     bindRoot(inst); bindProperties(inst);
     setZoom(inst, inst.zoom || 1);
     updateStats(inst);
+    updatePageGuides(inst);
     restoreSelection(inst);
     var ready = attr(root, 'data-sui-rich-onready');
     if (ready && typeof window[ready] === 'function') window[ready](name, JSON.stringify(inst.doc));
@@ -5858,9 +6106,25 @@ window.__SUI_RICH = (function () {
       var bytes = files[part];
       if (!bytes) return '';
       var partDom = new DOMParser().parseFromString(new TextDecoder().decode(bytes), 'application/xml');
-      var texts = partDom.getElementsByTagNameNS('*', 't'), value = '';
-      for (var i = 0; i < texts.length; i++) value += (texts[i].textContent || '') + ' ';
-      return value.replace(/\s+/g, ' ').trim();
+      var out = '';
+      function walk(node) {
+        if (!node) return;
+        if (node.nodeType === 3) { out += node.nodeValue || ''; return; }
+        if (node.nodeType !== 1) return;
+        var local = node.localName;
+        if (local === 'fldSimple') {
+          var instr = node.getAttribute('w:instr') || node.getAttribute('instr') || '';
+          if (/NUMPAGES/i.test(instr)) out += '{pages}';
+          else if (/PAGE/i.test(instr)) out += '{page}';
+          else for (var c = 0; c < node.childNodes.length; c++) walk(node.childNodes[c]);
+          return;
+        }
+        if (local === 'instrText') return;
+        if (local === 't') { out += node.textContent || ''; return; }
+        for (var i = 0; i < node.childNodes.length; i++) walk(node.childNodes[i]);
+      }
+      walk(partDom.documentElement);
+      return out.replace(/\s+/g, ' ').trim();
     }
     var headerText = '', footerText = '', pageCfg = null;
     var sect = body.getElementsByTagNameNS('*', 'sectPr')[0];
@@ -6177,9 +6441,19 @@ window.__SUI_RICH = (function () {
           if (!master) return '';
           var part = master.getElementsByTagNameNS('*', kind)[0];
           if (!part) return '';
-          var ps = part.getElementsByTagNameNS('*', 'p'), value = '';
-          for (var pi = 0; pi < ps.length; pi++) value += (ps[pi].textContent || '') + ' ';
-          return value.replace(/\s+/g, ' ').trim();
+          var out = '';
+          function walk(node) {
+            if (!node) return;
+            if (node.nodeType === 3) { out += node.nodeValue || ''; return; }
+            if (node.nodeType !== 1) return;
+            if (node.localName === 'page-number') { out += '{page}'; return; }
+            if (node.localName === 'page-count') { out += '{pages}'; return; }
+            if (node.localName === 's') { out += ' '; return; }
+            if (node.localName === 'tab') { out += ' '; return; }
+            for (var c = 0; c < node.childNodes.length; c++) walk(node.childNodes[c]);
+          }
+          walk(part);
+          return out.replace(/\s+/g, ' ').trim();
         }
         headerText = masterText('header');
         footerText = masterText('footer');
@@ -7468,7 +7742,12 @@ const suiRichTextCss = `
 .sui-rich-btn.on { background: var(--sui-rich-hover); color: var(--sui-rich-accent); border-color: var(--sui-rich-accent); }
 .sui-rich-btn[disabled] { opacity: .45; cursor: default; }
 .sui-rich[data-rich-painter="1"] .sui-rich-editor { cursor: copy; }
+.sui-rich-guides { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
+.sui-rich-guide { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in srgb, var(--sui-rich-accent, #4c5cf7) 55%, transparent); opacity: .8; }
+.sui-rich-paginated .sui-rich-guides { display: none; }
 .sui-rich-imagesettings-error { margin: 0; color: #fca5a5; font-size: 12px; }
+.sui-rich-image-menu { position: fixed; z-index: 6200; width: 182px; padding: 4px; border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 8px; background: var(--sui-rich-bg, #1d2129); box-shadow: 0 12px 30px rgba(0,0,0,.4); }
+.sui-rich-image-menu .sui-rich-menu-item { width: 100%; text-align: left; }
 .sui-rich-editor img.sui-rich-image-selected { outline: 2px solid var(--sui-rich-accent); outline-offset: 2px; }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
 .sui-rich-color { width: 34px; padding: 2px; cursor: pointer; }
@@ -7523,14 +7802,26 @@ const suiRichTextCss = `
 .sui-rich-preview-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: #e6e6ef; font-size: 13px; border-bottom: 1px solid #3d4556; }
 .sui-rich-preview-bar strong { margin-right: auto; font-weight: 600; }
 .sui-rich-preview-bar .sui-rich-btn { border: 1px solid #3d4556; }
-.sui-rich-preview-frame { flex: 1 1 auto; width: 100%; border: 0; background: #fff; }
-.sui-rich-pagesettings, .sui-rich-paragraphsettings, .sui-rich-imagesettings { position: fixed; z-index: 5000; width: 276px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: var(--sui-rich-shadow, 0 14px 34px rgba(0,0,0,.35)); color: var(--sui-rich-fg); font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
-.sui-rich-pagesettings[hidden], .sui-rich-paragraphsettings[hidden], .sui-rich-imagesettings[hidden] { display: none; }
-.sui-rich-pagesettings label, .sui-rich-paragraphsettings label, .sui-rich-imagesettings label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sui-rich-pagesettings select, .sui-rich-pagesettings input, .sui-rich-paragraphsettings select, .sui-rich-paragraphsettings input, .sui-rich-imagesettings select, .sui-rich-imagesettings input { height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 6px; min-width: 0; }
+.sui-rich-preview-pages { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 18px; background: #e6e9ef; }
+.sui-rich-preview-pages .sui-rich-page-sheet { margin: 0 auto 18px; }
+.sui-rich-preview-loading { color: #333; font-size: 13px; padding: 18px; text-align: center; }
+@media print {
+  body.sui-rich-printing > *:not(.sui-rich-preview) { display: none !important; }
+  body.sui-rich-printing .sui-rich-preview { position: static; inset: auto; display: block; padding: 0; background: #fff; }
+  body.sui-rich-printing .sui-rich-preview-card { width: auto; height: auto; display: block; border: 0; border-radius: 0; box-shadow: none; background: #fff; }
+  body.sui-rich-printing .sui-rich-preview-bar { display: none; }
+  body.sui-rich-printing .sui-rich-preview-pages { overflow: visible; height: auto; padding: 0; background: #fff; }
+  body.sui-rich-printing .sui-rich-preview-pages .sui-rich-page-sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
+  body.sui-rich-printing .sui-rich-preview-pages .sui-rich-page-sheet:last-child { break-after: auto; page-break-after: auto; }
+  .sui-rich-guides { display: none !important; }
+}
+.sui-rich-pagesettings, .sui-rich-documentsettings, .sui-rich-paragraphsettings, .sui-rich-imagesettings { position: fixed; z-index: 5000; width: 276px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: var(--sui-rich-shadow, 0 14px 34px rgba(0,0,0,.35)); color: var(--sui-rich-fg); font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sui-rich-pagesettings[hidden], .sui-rich-documentsettings[hidden], .sui-rich-paragraphsettings[hidden], .sui-rich-imagesettings[hidden] { display: none; }
+.sui-rich-pagesettings label, .sui-rich-documentsettings label, .sui-rich-paragraphsettings label, .sui-rich-imagesettings label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sui-rich-pagesettings select, .sui-rich-pagesettings input, .sui-rich-documentsettings select, .sui-rich-documentsettings input, .sui-rich-paragraphsettings select, .sui-rich-paragraphsettings input, .sui-rich-imagesettings select, .sui-rich-imagesettings input { height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 6px; min-width: 0; }
 .sui-rich-pagesettings input[type="number"], .sui-rich-paragraphsettings input[type="number"] { width: 72px; }
-.sui-rich-pagesettings label > span, .sui-rich-paragraphsettings label > span, .sui-rich-imagesettings label > span { flex: none; }
-.sui-rich-pagesettings label > input[type="text"], .sui-rich-paragraphsettings label > input[type="text"], .sui-rich-imagesettings label > input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+.sui-rich-pagesettings label > span, .sui-rich-documentsettings label > span, .sui-rich-paragraphsettings label > span, .sui-rich-imagesettings label > span { flex: none; }
+.sui-rich-pagesettings label > input[type="text"], .sui-rich-documentsettings label > input[type="text"], .sui-rich-paragraphsettings label > input[type="text"], .sui-rich-imagesettings label > input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
 .sui-rich-pagesettings-grid, .sui-rich-paragraphsettings .sui-rich-pagesettings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
 .sui-rich-pagesettings-hint { color: var(--sui-rich-muted); font-size: 11px; line-height: 1.4; }
 .sui-rich-pagesettings-actions { display: flex; gap: 6px; }

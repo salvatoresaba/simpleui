@@ -613,7 +613,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     // states follow the caret.
     __SUI_RICH.setToolbar('editor', '');
     await wait(200);
-    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','copyFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','paragraphSettings','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','imageSettings','table','symbol','hr','pageBreak','pageSettings','printPreview','print','find'];
+    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','copyFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','paragraphSettings','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak','documentSettings','pageSettings','printPreview','print','find'];
     for (var dt = 0; dt < defaultTokens.length; dt++) {
       if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="' + defaultTokens[dt] + '"]')) throw new Error('default toolbar missing control: ' + defaultTokens[dt]);
     }
@@ -657,11 +657,10 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(200);
     if (bsEditor().querySelector('a')) throw new Error('unlink did not remove the link');
 
-    // Page settings: margins, page size/orientation and header/footer are
-    // edited from the toolbar panel and applied to paginated view, print,
-    // PDF, DOCX and ODT.
-    __SUI_RICH.setToolbar('editor', 'pageSettings,print,find');
+    // Page settings (page format) and Document settings (general defaults).
+    __SUI_RICH.setToolbar('editor', 'documentSettings,pageSettings,printPreview,print,find');
     await wait(200);
+    if (bsBtn('imageSettings')) throw new Error('Image settings button must not be in the toolbar');
     var pageBtn = bsBtn('pageSettings');
     if (!pageBtn) throw new Error('page settings button missing');
     pageBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
@@ -673,20 +672,15 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     pagePanel.querySelector('[data-rich-page-orientation]').value = 'landscape';
     var orientationLabels = [].map.call(pagePanel.querySelector('[data-rich-page-orientation]').options, function (o) { return o.textContent; });
     if (orientationLabels.join(',') !== 'Vertical,Horizontal') throw new Error('page orientation labels: ' + orientationLabels.join(','));
-    pagePanel.querySelector('[data-rich-page-lineheight]').value = '1.8';
     pagePanel.querySelector('[data-rich-page-margin="top"]').value = '20';
     pagePanel.querySelector('[data-rich-page-margin="right"]').value = '25';
     pagePanel.querySelector('[data-rich-page-margin="bottom"]').value = '18';
     pagePanel.querySelector('[data-rich-page-margin="left"]').value = '22';
-    pagePanel.querySelector('[data-rich-page-header]').value = 'H {page}/{pages}';
-    pagePanel.querySelector('[data-rich-page-footer]').value = 'F {page}';
     pagePanel.querySelector('[data-rich-page-apply]').click();
     await wait(400);
     var pageDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
     if (!pageDoc.page || pageDoc.page.size !== 'letter' || pageDoc.page.orientation !== 'landscape') throw new Error('page size/orientation not stored: ' + JSON.stringify(pageDoc.page));
-    if (pageDoc.page.lineHeight !== 1.8 || bsEditor().style.lineHeight !== '1.8') throw new Error('document line height not applied: ' + JSON.stringify(pageDoc.page));
     if (pageDoc.page.margins.top !== 20 || pageDoc.page.margins.right !== 25 || pageDoc.page.margins.bottom !== 18 || pageDoc.page.margins.left !== 22) throw new Error('margins not stored: ' + JSON.stringify(pageDoc.page.margins));
-    if (pageDoc.header !== 'H {page}/{pages}' || pageDoc.footer !== 'F {page}') throw new Error('header/footer not stored');
     __SUI_RICH.command('editor', 'undo');
     await wait(250);
     var undonePage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
@@ -695,6 +689,22 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(250);
     var redonePage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
     if (!redonePage || redonePage.size !== 'letter' || redonePage.margins.left !== 22) throw new Error('redo did not restore the page settings');
+
+    var docBtn = bsBtn('documentSettings');
+    if (!docBtn) throw new Error('document settings button missing');
+    docBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    docBtn.click();
+    await wait(200);
+    var docPanel = document.querySelector('.sui-rich-documentsettings');
+    if (!docPanel || docPanel.hidden) throw new Error('document settings panel did not open');
+    docPanel.querySelector('[data-rich-doc-lineheight]').value = '1.8';
+    docPanel.querySelector('[data-rich-doc-header]').value = 'H {page}/{pages}';
+    docPanel.querySelector('[data-rich-doc-footer]').value = 'F {page}';
+    docPanel.querySelector('[data-rich-doc-apply]').click();
+    await wait(400);
+    pageDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (pageDoc.page.lineHeight !== 1.8 || bsEditor().style.lineHeight !== '1.8') throw new Error('document line height not applied: ' + JSON.stringify(pageDoc.page));
+    if (pageDoc.header !== 'H {page}/{pages}' || pageDoc.footer !== 'F {page}') throw new Error('header/footer not stored');
 
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(1000);
@@ -761,18 +771,27 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqParaDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (reqParaDoc.indent !== '24px' || reqParaDoc.lineHeight !== '1.4' || reqParaDoc.spaceBefore !== '6px' || reqParaDoc.spaceAfter !== '8px' || reqParaDoc.align !== 'right') throw new Error('paragraph settings not stored: ' + JSON.stringify(reqParaDoc));
 
+    __SUI_RICH.set('editor', { type: 'doc', children: manyRows });
+    await wait(400);
     richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="printPreview"]').click();
-    await wait(300);
-    var reqPreviewFrame = document.querySelector('.sui-rich-preview iframe');
-    if (!reqPreviewFrame) throw new Error('print preview did not open');
-    try {
-      var reqPreviewDoc = reqPreviewFrame.contentDocument;
-      var reqPreviewPage = reqPreviewDoc && reqPreviewDoc.querySelector('.sui-preview-page');
-      if (!reqPreviewPage || getComputedStyle(reqPreviewPage).paddingTop === '0px') throw new Error('print preview does not show page margins');
-    } catch (e) { throw new Error('print preview document not inspectable: ' + e.message); }
+    await wait(1500);
+    var reqPreviewPages = document.querySelector('.sui-rich-preview-pages');
+    var reqPreviewSheets = reqPreviewPages ? reqPreviewPages.querySelectorAll('.sui-rich-page-sheet') : [];
+    if (!reqPreviewPages || reqPreviewSheets.length < 2) throw new Error('print preview is not split into pages: ' + reqPreviewSheets.length);
+    var reqFirstSheet = reqPreviewSheets[0];
+    if (reqFirstSheet.style.width !== '1056px' || reqFirstSheet.style.minHeight !== '816px') throw new Error('preview page size wrong: ' + reqFirstSheet.style.width + ' x ' + reqFirstSheet.style.minHeight);
+    if (reqFirstSheet.style.padding !== '76px 94px 92px 83px') throw new Error('preview page margins missing: ' + reqFirstSheet.style.padding);
+    if (!/H 1\//.test((reqFirstSheet.querySelector('.sui-rich-sheet-header') || {}).textContent || '')) throw new Error('preview header missing');
     var reqPreviewClose = [].slice.call(document.querySelectorAll('.sui-rich-preview button')).filter(function (b) { return b.textContent === 'Close'; })[0];
     if (reqPreviewClose) reqPreviewClose.click();
-    await wait(100);
+    await wait(300);
+    var reqGuideCount = document.querySelectorAll('.sui-rich-guides .sui-rich-guide').length;
+    if (!reqGuideCount) throw new Error('automatic page break guides are missing in the editor');
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(300);
+    if (document.querySelectorAll('.sui-rich-guides .sui-rich-guide').length) throw new Error('page guides must be hidden in paginated view');
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(200);
 
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Link target', marks: [] }] }] });
     await wait(300);
@@ -846,7 +865,12 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(300);
     var reqImg = bsEditor().querySelector('img');
     if (!reqImg) throw new Error('image fixture missing');
-    reqImg.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    var reqImgRect = reqImg.getBoundingClientRect();
+    reqImg.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: reqImgRect.left + 5, clientY: reqImgRect.top + 5 }));
+    await wait(150);
+    var reqImgMenu = document.querySelector('.sui-rich-image-menu');
+    if (!reqImgMenu) throw new Error('image context menu did not open');
+    [].slice.call(reqImgMenu.querySelectorAll('button')).filter(function (b) { return b.textContent === 'Edit image'; })[0].click();
     await wait(250);
     var reqImgPanel = document.querySelector('.sui-rich-imagesettings');
     if (!reqImgPanel || reqImgPanel.hidden) throw new Error('image settings panel did not open');
@@ -936,8 +960,8 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"clearFormat", "alignLeft", "alignCenter", "alignRight", "justify",
 		"indent", "outdent", "paragraphSettings",
 		"bulletList", "orderedList", "blockquote", "codeBlock",
-		"link", "unlink", "image", "imageSettings", "table", "symbol", "hr", "pageBreak",
-		"pageSettings", "printPreview", "print", "find", "copyFormat", "zoom",
+		"link", "unlink", "image", "table", "symbol", "hr", "pageBreak",
+		"documentSettings", "pageSettings", "printPreview", "print", "find", "copyFormat", "zoom",
 	} {
 		if !items[token] {
 			t.Errorf("default toolbar is missing the %q control", token)

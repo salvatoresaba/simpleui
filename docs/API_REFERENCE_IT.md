@@ -1697,21 +1697,24 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
 `paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
 `orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
-`symbol`, `hr`, `pageBreak`, `imageSettings`, `pageSettings`, `printPreview`, `print`, `find`,
+`symbol`, `hr`, `pageBreak`, `documentSettings`, `pageSettings`, `printPreview`, `print`, `find`,
 `zoom`, `zoomIn`, `zoomOut`, `zoomReset`. I selettori di interlinea e spazi
 restano disponibili come token personalizzati ma non sono più nella toolbar
-predefinita: sono nei pannelli Impostazioni pagina e Impostazioni paragrafo.
+predefinita: sono nei pannelli Impostazioni documento e Impostazioni paragrafo.
 
-**Impostazioni pagina** (pulsante `pageSettings`, anche Visualizza >
-Impostazioni pagina) apre un pannello per formato pagina (A4/Letter),
-orientamento (**Verticale**/**Orizzontale**), interlinea predefinita del
-documento, margini alto/destra/basso/sinistra in millimetri e testo di
-intestazione/piè di pagina. `{page}` e `{pages}` vengono sostituiti con il
+**Impostazioni documento** (pulsante `documentSettings`, anche Visualizza >
+Impostazioni documento) raccoglie i default generali: interlinea e testo di
+intestazione/piè di pagina. **Impostazioni pagina** (pulsante `pageSettings`,
+anche Visualizza > Impostazioni pagina) gestisce formato pagina (A4/Letter),
+orientamento (**Verticale**/**Orizzontale**) e margini alto/destra/basso/
+sinistra in millimetri. `{page}` e `{pages}` vengono sostituiti con il
 numero di pagina e il totale. Le impostazioni sono salvate nel documento come
 `page: { size, orientation, lineHeight, margins }` più `header`/`footer`, e vengono usate
 dalla vista paginata, dalla stampa, dal PDF e dagli export DOCX/ODT e RTF/DOC;
 l'import DOCX/ODT le ripristina. Il default è A4 verticale con margini di 15 mm sopra/
-sotto e 17 mm a sinistra/destra.
+sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
+orizzontale su ogni interruzione di pagina automatica, con reset dopo le
+interruzioni esplicite; le guide sono nascoste nella vista paginata e in stampa.
 
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
 inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un
@@ -1728,7 +1731,7 @@ evidenziazione e mark inline della sorgente; Escape annulla.
 **Impostazioni paragrafo** (pulsante `paragraphSettings`, anche Formato >
 Impostazioni paragrafo...) agisce sui paragrafi selezionati o su quello al
 cursore: allineamento, rientro sinistro, interlinea, spazio prima e dopo.
-L'interlinea predefinita del documento è in Impostazioni pagina e i singoli
+L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla.
 
 L'editor mantiene l'altezza configurata con `height` (320 px di default);
@@ -1753,18 +1756,21 @@ sulla parola al cursore se non c'è selezione: ogni clic aumenta o riduce di
 2 px la dimensione di quel testo e salva un mark `size` nel modello.
 
 **Anteprima di stampa** (pulsante `printPreview` e File > Anteprima di stampa)
-apre un'anteprima centrata con i pulsanti Stampa e Chiudi; File > Salva con
-nome è elencato subito sotto Apri file.
+apre un'anteprima centrata già divisa nelle pagine reali, con margini,
+intestazioni/piè di pagina e numeri di pagina. Stampa usa le stesse pagine;
+File > Salva con nome è elencato subito sotto Apri file.
 
 I comandi link, immagine, simbolo e importa contenuto aprono un overlay
 centrato con le istruzioni e i campi necessari, al posto del prompt del
 browser. L'overlay non ha intestazione e conserva la selezione per inserire
 link, immagine o simbolo nel punto richiesto.
 
-**Impostazioni immagine** (doppio clic sull'immagine, oppure toolbar/menu)
-permette di modificare l'URL, sostituire l'immagine con un file locale,
-cambiare testo alternativo, larghezza e allineamento sinistra/centro/destra,
-oppure rimuoverla. L'immagine selezionata è evidenziata nell'editor.
+**Impostazioni immagine** si aprono con doppio clic o dal menu contestuale
+dell'immagine (clic destro: Modifica immagine, Sostituisci immagine..., Elimina
+immagine); non c'è un pulsante in toolbar. Il pannello permette di modificare
+l'URL, sostituire l'immagine con un file locale, cambiare testo alternativo,
+larghezza e allineamento sinistra/centro/destra, oppure rimuoverla. L'immagine
+selezionata è evidenziata nell'editor.
 
 Dentro una tabella, il trascinamento sul testo mantiene la selezione nativa e
 quindi il contenuto delle celle si formatta normalmente. Shift/Ctrl+clic o un
