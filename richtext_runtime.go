@@ -3332,6 +3332,12 @@ window.__SUI_RICH = (function () {
   }
   function tableShell(table) {
     var shell = table.cloneNode(false);
+    // Keep column definitions and captions; losing colgroup collapses the
+    // column widths when a table is split across pages.
+    var colgroup = table.querySelector('colgroup');
+    if (colgroup) shell.appendChild(colgroup.cloneNode(true));
+    var caption = table.querySelector('caption');
+    if (caption) shell.appendChild(caption.cloneNode(true));
     var tbody = el('tbody');
     shell.appendChild(tbody);
     return { shell: shell, tbody: tbody };
@@ -3390,7 +3396,6 @@ window.__SUI_RICH = (function () {
       var tableEdge = (parseFloat(tcs.borderTopWidth) || 0) + (parseFloat(tcs.borderBottomWidth) || 0);
       var tableMarginTop = parseFloat(tcs.marginTop) || 0, tableMarginBottom = parseFloat(tcs.marginBottom) || 0;
       if (rows.length <= 1) { fresh(); current.body.appendChild(node); current.used += height; return; }
-      current.used += tableMarginTop;
       var headerCount = 0;
       for (var hr = 0; hr < rows.length; hr++) {
         var cellsH = rows[hr].cells;
@@ -3398,33 +3403,79 @@ window.__SUI_RICH = (function () {
         for (var hc = 0; hc < cellsH.length; hc++) if (cellsH[hc].tagName.toLowerCase() !== 'th') allH = false;
         if (allH) headerCount++; else break;
       }
-      function startShell(withHeaders) {
-        var sh = tableShell(node);
-        measure.appendChild(sh.shell);
-        if (withHeaders) for (var hh = 0; hh < headerCount; hh++) sh.tbody.appendChild(rows[hh].cloneNode(true));
-        return sh;
+      var bodyRows = rows.slice(headerCount);
+      var groups = [], gi = 0;
+      while (gi < bodyRows.length) {
+        var groupEnd = gi, changed = true;
+        while (changed) {
+          changed = false;
+          for (var gr = gi; gr <= groupEnd && gr < bodyRows.length; gr++) {
+            var gcells = bodyRows[gr].cells || [];
+            for (var gc = 0; gc < gcells.length; gc++) {
+              var span = Number(gcells[gc].getAttribute('rowspan') || 1);
+              if (span > 1 && gr + span - 1 > groupEnd) {
+                groupEnd = Math.min(bodyRows.length - 1, gr + span - 1);
+                changed = true;
+              }
+            }
+          }
+        }
+        groups.push({ start: gi, end: groupEnd });
+        gi = groupEnd + 1;
       }
-      var shell = startShell(false);
-      var measureTable = shell.shell;
-      for (var r = 0; r < rows.length; r++) {
-        var row = rows[r].cloneNode(true);
-        shell.tbody.appendChild(row);
-        measureTable.querySelector('tbody').appendChild(rows[r].cloneNode(true));
-        var h = measureTable.getBoundingClientRect().height;
-        var limit = current.metrics.contentH - (current.used > 0 && r >= headerCount ? current.used : 0) - 8 - tableEdge;
-        if (h > limit && shell.tbody.children.length > headerCount + 1) {
-          shell.tbody.removeChild(row);
-          var mtBody = measureTable.querySelector('tbody');
-          mtBody.removeChild(mtBody.lastChild);
-          if (shell.tbody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height; }
-          fresh();
-          shell = startShell(true);
-          measureTable = shell.shell;
-          shell.tbody.appendChild(row);
-          measureTable.querySelector('tbody').appendChild(rows[r].cloneNode(true));
+      current.used += tableMarginTop;
+      var shell = null;
+      function newPart() {
+        shell = tableShell(node);
+        current.body.appendChild(shell.shell);
+        for (var hh = 0; hh < headerCount; hh++) shell.tbody.appendChild(rows[hh].cloneNode(true));
+      }
+      function partHeight() { return shell.shell.getBoundingClientRect().height; }
+      function bodyCount() { return shell.tbody.children.length - headerCount; }
+      function removeRows(n) { for (var rr = 0; rr < n; rr++) if (shell.tbody.lastChild) shell.tbody.removeChild(shell.tbody.lastChild); }
+      function finishPart() {
+        if (!shell) return false;
+        if (!bodyCount()) { if (shell.shell.parentNode) shell.shell.parentNode.removeChild(shell.shell); shell = null; return false; }
+        var h = partHeight();
+        current.used += h + tableEdge;
+        shell = null;
+        return true;
+      }
+      function appendRange(startIdx, endIdx) { for (var r = startIdx; r <= endIdx; r++) shell.tbody.appendChild(bodyRows[r].cloneNode(true)); }
+      newPart();
+      var limitForPage = function () { return current.metrics.contentH - 8 - tableEdge; };
+      for (var g = 0; g < groups.length; g++) {
+        var group = groups[g], count = group.end - group.start + 1;
+        appendRange(group.start, group.end);
+        var h = partHeight();
+        if (current.used + h > limitForPage()) {
+          removeRows(count);
+          if (bodyCount()) {
+            finishPart();
+            fresh();
+            current.used = 0;
+            newPart();
+            appendRange(group.start, group.end);
+            h = partHeight();
+          }
+          if (current.used + h > limitForPage() && count > 1) {
+            removeRows(count);
+            for (var sr = group.start; sr <= group.end; sr++) {
+              appendRange(sr, sr);
+              var sh2 = partHeight();
+              if (current.used + sh2 > limitForPage() && bodyCount() > 1) {
+                removeRows(1);
+                finishPart();
+                fresh();
+                current.used = 0;
+                newPart();
+                appendRange(sr, sr);
+              }
+            }
+          }
         }
       }
-      if (shell.tbody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height + tableEdge; }
+      finishPart();
       current.used += tableMarginBottom;
     }
     for (var it = 0; it < items.length; it++) {

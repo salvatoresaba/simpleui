@@ -384,6 +384,47 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     }
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(120);
+    // Large table with a vertical merge: every model row must appear exactly
+    // once, rowspan groups must stay together, and no table may cross the
+    // bottom margin in paginated view or print preview.
+    var spanRows = [];
+    for (var sr = 0; sr < 40; sr++) {
+      if (sr === 3) spanRows.push({ type: 'table_row', cells: [
+        { type: 'table_cell', rowspan: 3, children: [{ type: 'text', text: 'Merged', marks: [] }] },
+        { type: 'table_cell', children: [{ type: 'text', text: 'A', marks: [] }] }
+      ]});
+      else if (sr === 4 || sr === 5) spanRows.push({ type: 'table_row', cells: [{ type: 'table_cell', children: [{ type: 'text', text: 'B', marks: [] }] }] });
+      else spanRows.push({ type: 'table_row', cells: [
+        { type: 'table_cell', children: [{ type: 'text', text: 'R' + sr, marks: [] }] },
+        { type: 'table_cell', children: [{ type: 'text', text: 'V' + sr, marks: [] }] }
+      ]});
+    }
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'table', rows: spanRows }] });
+    await wait(400);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(1400);
+    var spanSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    var spanTotal = 0;
+    for (var ss = 0; ss < spanSheets.length; ss++) {
+      var spanBody = spanSheets[ss].querySelector('.sui-rich-sheet-body');
+      var spanTable = spanSheets[ss].querySelector('table');
+      if (spanBody && spanBody.scrollHeight > spanBody.clientHeight + 1) throw new Error('paginated table exceeds the bottom margin');
+      if (spanTable) spanTotal += spanTable.querySelectorAll('tr').length;
+    }
+    if (spanTotal !== 40) throw new Error('table rows duplicated or lost: ' + spanTotal);
+    __SUI_RICH.command('editor', 'printPreview');
+    await wait(1500);
+    var spanPreview = document.querySelectorAll('.sui-rich-preview-pages .sui-rich-page-sheet');
+    if (spanPreview.length < 2) throw new Error('span table preview pages: ' + spanPreview.length);
+    for (var sp = 0; sp < spanPreview.length; sp++) {
+      var spBody = spanPreview[sp].querySelector('.sui-rich-sheet-body');
+      if (spBody && spBody.scrollHeight > spBody.clientHeight + 1) throw new Error('preview table exceeds the bottom margin');
+    }
+    var spanClose = [].slice.call(document.querySelectorAll('.sui-rich-preview button')).filter(function (b) { return b.textContent === 'Close'; })[0];
+    if (spanClose) spanClose.click();
+    await wait(200);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(200);
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'table', rows: [
         { type: 'table_row', cells: [

@@ -1717,7 +1717,8 @@ Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
 orizzontale su ogni interruzione di pagina automatica, con reset dopo le
 interruzioni esplicite e tenendo conto di margini e bordi dei blocchi (incluse
-tabelle e righe spezzate); le guide sono nascoste nella vista paginata e in stampa.
+tabelle, righe spezzate e unioni verticali mantenute insieme); le guide sono
+nascoste nella vista paginata e in stampa.
 
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
 inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un

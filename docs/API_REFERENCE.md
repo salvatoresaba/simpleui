@@ -1742,8 +1742,8 @@ exports (exports use the first page's effective settings); DOCX and ODT import
 restore the document defaults. The default is A4 portrait with 15 mm top/bottom and 17 mm
 left/right margins. The continuous editor draws a dashed horizontal guide at
 every automatic page cut, resetting after explicit page breaks and taking block
-margins/borders (including table borders and split rows) into account; guides
-are hidden in the paginated view and in print.
+margins/borders (including table borders, split rows and vertical merges kept
+together) into account; guides are hidden in the paginated view and in print.
 
 Every text feature has a toolbar control: inline code (`code`) and Remove link
 (`unlink`) included. Unlink is disabled when the caret is outside a link, and
