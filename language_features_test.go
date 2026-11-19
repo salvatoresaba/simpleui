@@ -47,7 +47,7 @@ func runHeadlessFeature(t *testing.T, source, script string) {
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
 		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
 		"--no-first-run", "--no-default-browser-check", "--window-size=900,700",
-		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=30000", "--dump-dom", url,
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=90000", "--dump-dom", url,
 	}
 	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
 	text := string(out)

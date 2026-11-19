@@ -516,9 +516,7 @@ window.__SUI_RICH = (function () {
     } else if (type === 'hr') {
       return el('hr');
     } else if (type === 'page_break') {
-      box = el('div', 'sui-rich-pagebreak', 'Page break');
-      box.setAttribute('contenteditable', 'false');
-      box.setAttribute('data-sui-page-break', '1');
+      box = pageBreakNode();
       box.style.breakAfter = 'page';
       return box;
     } else if (type === 'image') {
@@ -1297,6 +1295,23 @@ window.__SUI_RICH = (function () {
       inst.editor.style.cursor = hit ? (hit.kind === 'row' ? 'row-resize' : hit.kind === 'table' ? 'nwse-resize' : 'col-resize') : '';
     });
     inst.editor.addEventListener('mouseleave', function () { inst.editor.style.cursor = ''; });
+    inst.editor.addEventListener('mousedown', function (e) {
+      var del = e.target && e.target.closest ? e.target.closest('[data-rich-pb-delete]') : null;
+      if (del) {
+        e.preventDefault(); e.stopPropagation();
+        var pb = del.closest('.sui-rich-pagebreak');
+        if (pb && pb.parentNode) pb.parentNode.removeChild(pb);
+        commit(inst, 'change');
+        schedulePageGuides(inst);
+        return;
+      }
+      var handle = e.target && e.target.closest ? e.target.closest('[data-rich-pb-handle]') : null;
+      if (handle) {
+        var breakNode = handle.closest('.sui-rich-pagebreak');
+        if (breakNode) startPageBreakDrag(inst, breakNode, e);
+        return;
+      }
+    });
     inst.editor.addEventListener('click', function (e) {
       var img = e.target && e.target.tagName === 'IMG' ? e.target : null;
       if (img) { selectImage(inst, img); return; }
@@ -1553,10 +1568,25 @@ window.__SUI_RICH = (function () {
     var range = document.createRange(); range.selectNodeContents(li); range.collapse(false);
     var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
   }
-  function insertPageBreak(inst) {
-    var node = el('div', 'sui-rich-pagebreak', 'Page break');
+  function pageBreakNode() {
+    var node = el('div', 'sui-rich-pagebreak');
     node.setAttribute('contenteditable', 'false');
     node.setAttribute('data-sui-page-break', '1');
+    node.title = 'Drag to move this page break';
+    var handle = el('span', 'sui-rich-pagebreak-handle', '\u28ff');
+    handle.setAttribute('data-rich-pb-handle', '1');
+    handle.setAttribute('aria-label', 'Move page break');
+    var label = el('span', 'sui-rich-pagebreak-label', 'Page break');
+    var del = el('button', 'sui-rich-pagebreak-delete', '\u00d7');
+    del.type = 'button';
+    del.setAttribute('data-rich-pb-delete', '1');
+    del.setAttribute('aria-label', 'Delete page break');
+    del.title = 'Delete page break';
+    node.appendChild(handle); node.appendChild(label); node.appendChild(del);
+    return node;
+  }
+  function insertPageBreak(inst) {
+    var node = pageBreakNode();
     insertBlock(inst, node);
     var next = el('p');
     next.appendChild(el('br'));
@@ -3204,31 +3234,67 @@ window.__SUI_RICH = (function () {
   function mmToPt(mm) { return Number(mm) * 72 / 25.4; }
   function mmToTwips(mm) { return Math.round(Number(mm) * 1440 / 25.4); }
   function mmToCm(mm) { return (Number(mm) / 10).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'cm'; }
-  function insertPageBreakAt(inst, contentY) {
-    if (!inst || !inst.editor) return;
+  function breakInsertionPoint(inst, contentY, excludeNode) {
+    if (!inst || !inst.editor) return null;
     var ed = inst.editor;
     var edRect = ed.getBoundingClientRect();
     var scroll = ed.scrollTop;
     var children = Array.prototype.slice.call(ed.children).filter(function (child) {
-      return !(child.classList && child.classList.contains('sui-rich-pagebreak'));
+      return child !== excludeNode && !(child.classList && child.classList.contains('sui-rich-pagebreak'));
     });
-    if (!children.length) return;
-    var best = null, bestDist = Infinity;
-    for (var i = 1; i < children.length; i++) {
+    if (!children.length) return null;
+    var best = null, bestDist = Infinity, after = false;
+    for (var i = 0; i < children.length; i++) {
       var r = children[i].getBoundingClientRect();
-      var y = r.top - edRect.top + scroll;
-      var dist = Math.abs(y - contentY);
-      if (dist < bestDist) { bestDist = dist; best = children[i]; }
+      var top = r.top - edRect.top + scroll, bottom = top + r.height;
+      var dTop = Math.abs(top - contentY), dBottom = Math.abs(bottom - contentY);
+      var dist = Math.min(dTop, dBottom);
+      if (dist < bestDist) { bestDist = dist; best = children[i]; after = dBottom < dTop; }
     }
-    if (!best) best = children[children.length - 1].nextSibling;
-    if (best && best.classList && best.classList.contains('sui-rich-pagebreak')) return;
-    var br = el('div', 'sui-rich-pagebreak', 'Page break');
-    br.setAttribute('contenteditable', 'false');
-    br.setAttribute('data-sui-page-break', '1');
-    if (best && best.parentNode === ed) ed.insertBefore(br, best);
-    else ed.appendChild(br);
+    return best ? { node: best, after: after } : null;
+  }
+  function movePageBreakTo(inst, node, contentY) {
+    var ed = inst.editor;
+    var point = breakInsertionPoint(inst, contentY, node);
+    if (!point) { ed.appendChild(node); return; }
+    var ref = point.after ? point.node.nextSibling : point.node;
+    if (ref === node) return;
+    ed.insertBefore(node, ref);
+  }
+  function insertPageBreakAt(inst, contentY) {
+    if (!inst || !inst.editor) return;
+    var br = pageBreakNode();
+    movePageBreakTo(inst, br, contentY);
     commit(inst, 'change');
     schedulePageGuides(inst);
+  }
+  function startPageBreakDrag(inst, node, ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    var ed = inst.editor;
+    var layer = pageGuideLayer(inst);
+    if (!layer) return;
+    var hostRect = layer.parentNode.getBoundingClientRect();
+    var preview = el('div', 'sui-rich-guide dragging');
+    preview.title = 'Drop to move the page break';
+    layer.appendChild(preview);
+    function move(moveEv) {
+      var top = Math.max(0, Math.min(layer.parentNode.clientHeight, moveEv.clientY - hostRect.top));
+      preview.style.top = top + 'px';
+    }
+    function up(upEv) {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      if (preview.parentNode) preview.parentNode.removeChild(preview);
+      var edRect = ed.getBoundingClientRect();
+      var contentY = upEv.clientY - edRect.top + ed.scrollTop;
+      movePageBreakTo(inst, node, contentY);
+      commit(inst, 'change');
+      schedulePageGuides(inst);
+    }
+    move(ev);
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
   }
   function startPageGuideDrag(inst, line, ev) {
     ev.preventDefault();
@@ -3291,6 +3357,29 @@ window.__SUI_RICH = (function () {
     var scroll = ed.scrollTop;
     var cuts = [], start = padTop, used = 0, pageNo = 1;
     var children = ed.children;
+    function snapGuideCut(cut) {
+      // A guide inside a table is kept where the table is split; elsewhere the
+      // line is moved to the nearest paragraph edge so it never crosses text.
+      for (var ti = 0; ti < children.length; ti++) {
+        var tc = children[ti];
+        if (tc.tagName && tc.tagName.toLowerCase() === 'table') {
+          var tr = tc.getBoundingClientRect();
+          var ttop = tr.top - edRect.top + scroll;
+          if (cut > ttop + 1 && cut < ttop + tr.height - 1) return cut;
+        }
+      }
+      var best = cut, bestEdge = -Infinity;
+      for (var pi = 0; pi < children.length; pi++) {
+        var pc = children[pi];
+        if (pc.classList && pc.classList.contains('sui-rich-pagebreak')) continue;
+        if (pc.tagName && pc.tagName.toLowerCase() === 'table') continue;
+        var pr = pc.getBoundingClientRect();
+        var ptop = pr.top - edRect.top + scroll, pbottom = ptop + pr.height;
+        if (ptop <= cut + 0.5 && ptop > bestEdge) { bestEdge = ptop; best = ptop; }
+        if (pbottom <= cut + 0.5 && pbottom > bestEdge) { bestEdge = pbottom; best = pbottom; }
+      }
+      return best;
+    }
     for (var ci = 0; ci < children.length; ci++) {
       var child = children[ci];
       var cr = child.getBoundingClientRect();
@@ -3304,8 +3393,8 @@ window.__SUI_RICH = (function () {
         continue;
       }
       if (used > 0 && used + ch > m.contentH - 2) {
-        cuts.push(start + used);
-        start += used;
+        cuts.push(start + m.height);
+        start += m.height;
         used = 0;
         pageNo++;
         m = pageMetrics(inst, pageNo);
@@ -3313,8 +3402,8 @@ window.__SUI_RICH = (function () {
       if (ch > m.contentH - 2) {
         var remaining = ch;
         while (remaining > m.contentH - 2) {
-          cuts.push(start + m.contentH);
-          start += m.contentH;
+          cuts.push(start + m.height);
+          start += m.height;
           remaining -= m.contentH;
           pageNo++;
           m = pageMetrics(inst, pageNo);
@@ -3324,6 +3413,12 @@ window.__SUI_RICH = (function () {
         used += ch;
       }
     }
+    var snapped = [];
+    for (var sc = 0; sc < cuts.length; sc++) {
+      var scut = snapGuideCut(cuts[sc]);
+      if (!snapped.length || scut > snapped[snapped.length - 1] + 6) snapped.push(scut);
+    }
+    cuts = snapped;
     layer.innerHTML = '';
     var offset = edRect.top - hostRect.top;
     for (var c = 0; c < cuts.length; c++) {
@@ -3417,6 +3512,9 @@ window.__SUI_RICH = (function () {
     wrap.innerHTML = '';
     var measure = el('div', 'sui-rich-editor sui-rich-sheet-body sui-rich-measure');
     measure.style.cssText = 'position:absolute;left:-12000px;top:0;width:' + m.contentW + 'px;height:auto;overflow:visible;padding:0;visibility:hidden;line-height:' + m.lineHeight + ';';
+    // .sui-rich-sheet-body forces width:auto !important, so the measurement
+    // copy would otherwise shrink-to-fit and report a single-line height.
+    measure.style.setProperty('width', m.contentW + 'px', 'important');
     inst.root.querySelector('.sui-rich-body').appendChild(measure);
     var blocks = (inst.doc && inst.doc.children) || [];
     var items = [];
@@ -3440,6 +3538,128 @@ window.__SUI_RICH = (function () {
         border = (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
       }
       return rect.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) + border;
+    }
+    function measureBlock(node) {
+      // Each page can have a different content width and line height (page
+      // overrides), so the measurement copy must follow the current page.
+      var wantWidth = current.metrics.contentW + 'px';
+      if (measure.style.getPropertyValue('width') !== wantWidth) measure.style.setProperty('width', wantWidth, 'important');
+      measure.style.lineHeight = String(current.metrics.lineHeight);
+      var detached = node.parentNode !== measure;
+      if (detached) measure.appendChild(node);
+      var h = blockHeight(node);
+      if (detached) measure.removeChild(node);
+      return h;
+    }
+    function takeFromMeasure(node) {
+      if (node && node.parentNode === measure) measure.removeChild(node);
+    }
+    function appendBlock(node, height) {
+      takeFromMeasure(node);
+      current.body.appendChild(node);
+      current.used += (height === undefined ? blockHeight(node) : height);
+    }
+    // Build a copy of a block containing only the text between two offsets.
+    // Inline marks survive because the whole subtree is cloned and every leaf
+    // text node is trimmed independently.
+    function cloneTextSlice(node, from, to) {
+      var clone = node.cloneNode(true);
+      var walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
+      var leaves = [], textNode, pos = 0;
+      while ((textNode = walker.nextNode())) {
+        var value = textNode.nodeValue || '';
+        leaves.push({ node: textNode, start: pos, end: pos + value.length });
+        pos += value.length;
+      }
+      if (!pos || from >= pos) return null;
+      to = Math.min(to, pos);
+      for (var li = 0; li < leaves.length; li++) {
+        var leaf = leaves[li], val = leaf.node.nodeValue || '';
+        var a = Math.max(0, from - leaf.start);
+        var b = Math.min(val.length, to - leaf.start);
+        leaf.node.nodeValue = b <= a ? '' : val.slice(a, b);
+      }
+      if (from > 0) {
+        var w2 = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
+        while ((textNode = w2.nextNode())) {
+          if ((textNode.nodeValue || '').length) {
+            textNode.nodeValue = textNode.nodeValue.replace(/^\s+/, '');
+            break;
+          }
+        }
+      }
+      return clone;
+    }
+    function splitTextBlock(node, maxH) {
+      var full = node.textContent || '';
+      var total = full.length;
+      if (total < 2) return null;
+      var best = null, bestLen = 0;
+      var lo = 1, hi = total, guard = 0;
+      while (lo <= hi && guard++ < 40) {
+        var mid = (lo + hi) >> 1;
+        var slice = cloneTextSlice(node, 0, mid);
+        if (!slice) { hi = mid - 1; continue; }
+        if (measureBlock(slice) <= maxH) { best = slice; bestLen = mid; lo = mid + 1; }
+        else hi = mid - 1;
+      }
+      if (!best || bestLen <= 0 || bestLen >= total) return null;
+      // Prefer a word boundary when it is close to the measured cut.
+      var space = full.lastIndexOf(' ', bestLen);
+      if (space > bestLen - 24 && space > bestLen / 2) {
+        var adjusted = cloneTextSlice(node, 0, space + 1);
+        if (adjusted && measureBlock(adjusted) <= maxH) { best = adjusted; bestLen = space + 1; }
+      }
+      var rest = cloneTextSlice(node, bestLen, total);
+      if (!rest || !(rest.textContent || '').replace(/\s+/g, '')) return null;
+      return { head: best, rest: rest };
+    }
+    function splitListBlock(node, maxH) {
+      var items = Array.prototype.slice.call(node.children).filter(function (child) {
+        return child.tagName && child.tagName.toLowerCase() === 'li';
+      });
+      if (items.length < 2) return null;
+      var best = 0, bestClone = null;
+      for (var k = 1; k <= items.length; k++) {
+        var clone = node.cloneNode(false);
+        for (var i = 0; i < k; i++) clone.appendChild(items[i].cloneNode(true));
+        if (measureBlock(clone) <= maxH) { best = k; bestClone = clone; }
+        else break;
+      }
+      if (!best || best >= items.length) return null;
+      var rest = node.cloneNode(false);
+      for (var j = best; j < items.length; j++) rest.appendChild(items[j].cloneNode(true));
+      return { head: bestClone, rest: rest };
+    }
+    function splitBlockToFit(node, maxH) {
+      var tag = (node.tagName || '').toLowerCase();
+      if (tag === 'ul' || tag === 'ol') return splitListBlock(node, maxH);
+      if (tag === 'p' || tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4' || tag === 'blockquote' || tag === 'pre') return splitTextBlock(node, maxH);
+      return null;
+    }
+    function placeTextBlock(node) {
+      var limit = function () { return current.metrics.contentH - 8; };
+      var h = measureBlock(node);
+      if (current.used > 0 && h <= limit() && current.used + h > limit()) {
+        fresh(); current.used = 0;
+      }
+      if (h <= limit()) { appendBlock(node, h); return; }
+      // A single block taller than the printable area is split into parts; each
+      // part is measured against the real page so it never enters the margins.
+      var remaining = node, guard = 0;
+      while (remaining && guard++ < 200) {
+        var maxH = limit() - current.used;
+        var rh = measureBlock(remaining);
+        if (rh <= maxH) { appendBlock(remaining, rh); return; }
+        if (current.used > 0 && rh <= limit()) { fresh(); current.used = 0; continue; }
+        var parts = splitBlockToFit(remaining, maxH);
+        if (!parts) { appendBlock(remaining, rh); return; }
+        var headH = measureBlock(parts.head);
+        appendBlock(parts.head, headH);
+        remaining = parts.rest;
+        if (!(remaining.textContent || '').replace(/\s+/g, '')) { takeFromMeasure(remaining); return; }
+        fresh(); current.used = 0;
+      }
     }
     var sheets = [];
     var current = sheetNode(inst, m);
@@ -3540,13 +3760,16 @@ window.__SUI_RICH = (function () {
     for (var it = 0; it < items.length; it++) {
       var item = items[it];
       if (!item.node) { if (current.used > 0) fresh(); continue; }
-      var h = blockHeight(item.node);
-      if ((current.used > 0 && current.used + h > current.metrics.contentH - 8) || (item.block.type === 'table' && h > current.metrics.contentH - 8)) {
-        if (item.block.type === 'table') { placeTable(item.node, h); continue; }
-        fresh();
+      var h = measureBlock(item.node);
+      if (item.block.type === 'table') {
+        if (h > current.metrics.contentH - 8 || (current.used > 0 && current.used + h > current.metrics.contentH - 8)) {
+          placeTable(item.node, h);
+          continue;
+        }
+        appendBlock(item.node, h);
+        continue;
       }
-      current.body.appendChild(item.node);
-      current.used += h;
+      placeTextBlock(item.node);
     }
     if (measure.parentNode) measure.parentNode.removeChild(measure);
     var total = sheets.length;
@@ -8000,6 +8223,7 @@ const suiRichTextCss = `
 .sui-rich-paginated .sui-rich-pages { display: block; }
 .sui-rich-page-sheet { position: relative; margin: 0 auto 22px; background: #ffffff; color: #1c2330; box-shadow: 0 10px 28px rgba(0,0,0,.28); box-sizing: border-box; overflow: hidden; }
 .sui-rich-sheet-body { padding: 0 !important; height: auto; min-height: 0; overflow: visible !important; max-width: none !important; width: auto !important; flex: none; }
+.sui-rich-sheet-body img { max-height: 100%; }
 .sui-rich-sheet-header { position: absolute; left: 64px; right: 64px; top: 26px; font-size: 11px; color: #65718a; text-align: center; border-bottom: 1px solid #d6dce8; padding-bottom: 3px; }
 .sui-rich-sheet-footer { position: absolute; left: 64px; right: 64px; bottom: 34px; font-size: 11px; color: #65718a; text-align: center; border-top: 1px solid #d6dce8; padding-top: 3px; }
 .sui-rich-sheet-number { position: absolute; right: 18px; bottom: 8px; font-size: 10px; color: #8a94a6; }
@@ -8059,7 +8283,12 @@ const suiRichTextCss = `
 .sui-rich-editor .sui-rich-cell-blocks > *:last-child { margin-bottom: 0; }
 .sui-rich-editor .sui-rich-cell-blocks table { margin: 0; }
 .sui-rich-editor th, .sui-rich-editor td { border: 1px solid var(--sui-rich-paper-border); padding: 6px 8px; vertical-align: top; min-width: 40px; }
-.sui-rich-editor .sui-rich-pagebreak { display: block; margin: 16px 0; padding-top: 5px; border-top: 2px dashed var(--sui-rich-paper-border); color: var(--sui-rich-paper-muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; text-align: center; user-select: none; }
+.sui-rich-editor .sui-rich-pagebreak { display: flex; align-items: center; gap: 6px; margin: 16px 0; padding-top: 5px; border-top: 2px dashed var(--sui-rich-paper-border); color: var(--sui-rich-paper-muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; user-select: none; }
+.sui-rich-pagebreak-handle { cursor: grab; font-size: 12px; padding: 0 2px; }
+.sui-rich-pagebreak-handle:active { cursor: grabbing; }
+.sui-rich-pagebreak-label { flex: 1 1 auto; }
+.sui-rich-pagebreak-delete { border: 1px solid var(--sui-rich-paper-border); border-radius: 4px; background: transparent; color: var(--sui-rich-paper-muted); font: inherit; font-size: 12px; line-height: 1; padding: 1px 5px; cursor: pointer; }
+.sui-rich-pagebreak-delete:hover { color: #b91c1c; border-color: #b91c1c; }
 .sui-rich-editor tbody tr:hover, .sui-rich-editor thead tr:hover { background: transparent; }
 .sui-rich-editor th { background: color-mix(in srgb, var(--sui-rich-paper-fg) 8%, transparent); text-align: left; }
 .sui-rich-editor a { color: var(--sui-rich-accent); text-decoration: underline; }

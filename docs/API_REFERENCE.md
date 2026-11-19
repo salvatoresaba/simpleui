@@ -1741,12 +1741,17 @@ They are applied to the paginated view, print, PDF, DOCX, ODT and RTF/DOC
 exports (exports use the first page's effective settings); DOCX and ODT import
 restore the document defaults. The default is A4 portrait with 15 mm top/bottom and 17 mm
 left/right margins. The continuous editor draws a dashed horizontal guide at
-every automatic page cut, resetting after explicit page breaks and taking block
-margins/borders (including table borders, split rows and vertical merges kept
-together) into account. Drag a dashed guide to move the break: on release an
-explicit page break is inserted before the nearest paragraph or table, so a
-table is not split at a bad point. Guides are hidden in the paginated view and
-in print.
+every automatic page cut, spaced by the full page height (top and bottom margins
+included) and snapped to the nearest paragraph edge so it never crosses text,
+resetting after explicit page breaks and taking block margins/borders
+(including table borders, split rows and vertical merges kept together) into
+account. Drag a dashed guide to insert a page break before the nearest
+paragraph or table, or drag the handle of an existing break to move it.
+Every break has a delete control, and moving or deleting a break recalculates
+all following breaks. In the paginated view, print preview and print, oversized
+paragraphs and lists are split across pages (tables keep rowspan groups
+together) so the content never extends into the printable margins. Guides are
+hidden in the paginated view and in print.
 
 Every text feature has a toolbar control: inline code (`code`) and Remove link
 (`unlink`) included. Unlink is disabled when the caret is outside a link, and

@@ -30,8 +30,11 @@ builds.
   line height and header/footer. Page settings overrides them for a single page.
 Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Print preview shows the real page split and follows the UI light/dark theme;
-  the continuous editor marks automatic page cuts with draggable dashed guides
-  that insert a page break before the nearest paragraph or table.
+  the continuous editor marks automatic page cuts with dashed guides spaced by
+  the full page height (margins included). Drag a guide, or the handle of an
+  existing break, to move the cut; each break has a delete control. Every
+  move/delete recalculates the following breaks, and oversized paragraphs,
+  lists and tables are split so printed content never enters the margins.
 - Paragraph settings panel (alignment, indent, line height, space before/after),
   zoom controls in the toolbar and a print preview overlay.
 - Font-size buttons A+/A− change the selected text (or the word at the caret);
@@ -78,7 +81,7 @@ and Ctrl+Enter.
 | `theme` | Interface theme: `dark` (default), `light` or `auto` |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark` |
 | `header` / `footer` | Text repeated on every page in PDF/DOCX/ODT/print; `\{page\}` and `\{pages\}` become page numbers |
-| `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter |
+| `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter; drag its handle to move it, use its control to delete it, and following breaks recalculate |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,

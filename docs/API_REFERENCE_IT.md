@@ -1715,13 +1715,19 @@ numero di pagina e il totale. I default stanno in
 sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
 Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
-orizzontale su ogni interruzione di pagina automatica, con reset dopo le
-interruzioni esplicite e tenendo conto di margini e bordi dei blocchi (incluse
-tabelle, righe spezzate e unioni verticali mantenute insieme). Trascina una
-guida tratteggiata per spostare l'interruzione: al rilascio viene inserita
-un'interruzione esplicita prima del paragrafo o della tabella più vicini, così
-la tabella non viene tagliata nel punto sbagliato. Le guide sono nascoste nella
-vista paginata e in stampa.
+orizzontale su ogni interruzione di pagina automatica, distanziata dell'altezza
+completa della pagina (margini superiore e inferiore inclusi) e agganciata al
+bordo del paragrafo più vicino, così non attraversa mai il testo, con reset dopo
+le interruzioni esplicite e tenendo conto di margini e bordi dei blocchi
+(incluse tabelle, righe spezzate e unioni verticali mantenute insieme).
+Trascina una guida tratteggiata per inserire un'interruzione prima del paragrafo
+o della tabella più vicini, oppure trascina la maniglia di un'interruzione
+esistente per spostarla. Ogni interruzione ha un controllo di eliminazione; spostarla o
+eliminarla ricalcola tutte le interruzioni successive. Nella vista paginata,
+nell'anteprima di stampa e in stampa i paragrafi e gli elenchi troppo alti
+vengono divisi tra le pagine (le tabelle mantengono insieme i gruppi con
+rowspan), così il contenuto non supera mai l'area di stampa. Le guide sono
+nascoste nella vista paginata e in stampa.
 
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
 inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un

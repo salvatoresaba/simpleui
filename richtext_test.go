@@ -864,6 +864,89 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(200);
 
+    // A page break can be dragged earlier and deleted; every following guide
+    // must be recalculated after each change.
+    var reqBreakRows = [];
+    for (var brp = 0; brp < 90; brp++) {
+      reqBreakRows.push({ type: 'paragraph', children: [{ type: 'text', text: 'Break row ' + brp + ' with enough text to wrap a line.', marks: [] }] });
+      if (brp === 5) reqBreakRows.push({ type: 'page_break' });
+    }
+    __SUI_RICH.set('editor', { type: 'doc', children: reqBreakRows });
+    await wait(500);
+    bsEditor().scrollTop = 0;
+    await wait(250);
+    function reqGuideTops() {
+      return [].slice.call(document.querySelectorAll('.sui-rich-guides .sui-rich-guide')).map(function (g) { return parseFloat(g.style.top) || 0; });
+    }
+    var reqBreakBefore = reqGuideTops();
+    if (!reqBreakBefore.length) throw new Error('page break test needs automatic guides');
+    var reqBreakHandle = document.querySelector('.sui-rich-pagebreak [data-rich-pb-handle]');
+    if (!reqBreakHandle) throw new Error('page break drag handle missing');
+    var reqBreakHandleRect = reqBreakHandle.getBoundingClientRect();
+    var reqBreakParas = [].slice.call(bsEditor().children).filter(function (c) { return c.tagName === 'P'; });
+    var reqBreakTargetRect = reqBreakParas[2].getBoundingClientRect();
+    reqBreakHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqBreakHandleRect.left + 2, clientY: reqBreakHandleRect.top + 2 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: reqBreakHandleRect.left + 2, clientY: reqBreakTargetRect.top + 2 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: reqBreakHandleRect.left + 2, clientY: reqBreakTargetRect.top + 2 }));
+    await wait(600);
+    var reqBreakDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var reqBreakIndex = reqBreakDoc.children.findIndex(function (c) { return c.type === 'page_break'; });
+    if (reqBreakIndex !== 2) throw new Error('page break was not moved before the target paragraph: ' + reqBreakIndex);
+    var reqBreakAfterMove = reqGuideTops();
+    if (!reqBreakAfterMove.length || reqBreakAfterMove[0] >= reqBreakBefore[0]) throw new Error('following guides were not recalculated after moving the break');
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(800);
+    var reqBreakPages = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    if (reqBreakPages.length < 2) throw new Error('moved break did not repaginate: ' + reqBreakPages.length);
+    for (var rbp = 0; rbp < reqBreakPages.length; rbp++) {
+      var rbpBody = reqBreakPages[rbp].querySelector('.sui-rich-sheet-body');
+      if (rbpBody && rbpBody.scrollHeight > rbpBody.clientHeight + 1) throw new Error('moved break leaves content past the printable area');
+    }
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(300);
+    var reqBreakDelete = document.querySelector('.sui-rich-pagebreak [data-rich-pb-delete]');
+    if (!reqBreakDelete) throw new Error('page break delete control missing');
+    reqBreakDelete.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await wait(500);
+    var reqBreakDeleted = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (reqBreakDeleted.children.some(function (c) { return c.type === 'page_break'; })) throw new Error('page break was not deleted');
+    if (document.querySelectorAll('.sui-rich-pagebreak').length) throw new Error('page break node remained after delete');
+    var reqBreakAfterDelete = reqGuideTops();
+    if (!reqBreakAfterDelete.length || reqBreakAfterDelete[0] >= reqBreakAfterMove[0]) throw new Error('guides were not recalculated after deleting the break');
+    if (reqBreakAfterDelete.length > 1 && reqBreakAfterDelete[1] - reqBreakAfterDelete[0] < 700) throw new Error('page guides are not spaced by the full page height');
+
+    // A paragraph taller than the printable area is split across pages, in the
+    // paginated view and in print preview, and never crosses the bottom margin.
+    var reqLongWords = [];
+    for (var lw = 0; lw < 2000; lw++) reqLongWords.push('longword' + lw);
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'paragraph', children: [{ type: 'text', text: 'Intro before a very long paragraph.', marks: [] }] },
+      { type: 'paragraph', children: [{ type: 'text', text: reqLongWords.join(' '), marks: [] }] },
+      { type: 'paragraph', children: [{ type: 'text', text: 'Tail after the long paragraph.', marks: [] }] }
+    ] });
+    await wait(500);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(5000);
+    var reqLongSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    if (reqLongSheets.length < 4) throw new Error('oversized paragraph was not split across pages: ' + reqLongSheets.length);
+    for (var ls = 0; ls < reqLongSheets.length; ls++) {
+      var lsBody = reqLongSheets[ls].querySelector('.sui-rich-sheet-body');
+      if (lsBody && lsBody.scrollHeight > lsBody.clientHeight + 1) throw new Error('oversized paragraph exceeds the printable area: sheet ' + ls + ' by ' + (lsBody.scrollHeight - lsBody.clientHeight) + 'px');
+    }
+    __SUI_RICH.command('editor', 'printPreview');
+    await wait(3000);
+    var reqLongPreview = document.querySelectorAll('.sui-rich-preview-pages .sui-rich-page-sheet');
+    if (reqLongPreview.length < 4) throw new Error('oversized paragraph preview pages: ' + reqLongPreview.length);
+    for (var lp = 0; lp < reqLongPreview.length; lp++) {
+      var lpBody = reqLongPreview[lp].querySelector('.sui-rich-sheet-body');
+      if (lpBody && lpBody.scrollHeight > lpBody.clientHeight + 1) throw new Error('preview oversized paragraph exceeds the printable area: page ' + lp + ' by ' + (lpBody.scrollHeight - lpBody.clientHeight) + 'px');
+    }
+    var reqLongClose = [].slice.call(document.querySelectorAll('.sui-rich-preview button')).filter(function (b) { return b.textContent === 'Close'; })[0];
+    if (reqLongClose) reqLongClose.click();
+    await wait(300);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(300);
+
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Link target', marks: [] }] }] });
     await wait(300);
     var reqLinkText = bsEditor().querySelector('p').firstChild;
