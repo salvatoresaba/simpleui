@@ -1751,7 +1751,11 @@ dashed guide to insert a page break before the nearest paragraph or table, or
 drag the red line of an existing break (the whole label/line is a drag target,
 not only the small handle) to move it; dragging near an editor edge auto-scrolls
 so the target can move beyond the visible viewport. A simple click on a line
-does not create or move a break. Explicit breaks
+does not create or move a break. Inside a long table the line snaps to a table
+row boundary; dropping it splits the table into two tables around the explicit
+page break, keeping rows joined by rowspan together, repeating header rows and
+preserving every data row. Moving an existing break into a table fragment
+splits that fragment the same way. Explicit breaks
 and their lines are red too. Every break has a delete control, and moving or
 deleting a break recalculates all following breaks, taking block
 margins/borders (including table borders, split rows and vertical merges kept

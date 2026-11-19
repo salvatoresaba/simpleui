@@ -36,7 +36,9 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   document positions and follow the content while scrolling. Drag a guide, or
   the whole red line/label of an existing break (not just its handle), to move
   the cut; dragging near an edge auto-scrolls, so the target can go beyond the
-  visible viewport and a simple click does nothing. Each break
+  visible viewport and a simple click does nothing. Inside a long table the line
+  snaps to a row edge and dropping it splits the table around the break,
+  preserving rowspan groups, header rows and all data rows. Each break
   has a delete control. Every move/delete recalculates the following breaks,
   and oversized paragraphs, lists and tables are split so printed content never
   enters the margins.

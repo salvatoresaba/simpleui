@@ -1727,7 +1727,12 @@ più vicini, oppure trascina la linea rossa di un'interruzione esistente (tutta
 l'etichetta/linea è trascinabile, non solo la piccola maniglia) per spostarla;
 trascinando vicino al bordo dell'editor lo scorrimento è automatico, così il
 punto può andare oltre la parte visibile. Un semplice clic su una linea non crea
-né sposta un'interruzione. Anche le interruzioni
+né sposta un'interruzione. Dentro una tabella lunga la linea si aggancia al
+confine di una riga; rilasciandola la tabella viene divisa in due tabelle attorno
+all'interruzione esplicita, mantenendo insieme le righe unite da rowspan,
+ripetendo le righe di intestazione e conservando tutte le righe di dati.
+Spostando un'interruzione esistente dentro un frammento di tabella, il frammento
+viene diviso allo stesso modo. Anche le interruzioni
 esplicite e le loro linee sono rosse. Ogni interruzione ha un controllo di
 eliminazione; spostarla o eliminarla ricalcola tutte le interruzioni successive,
 tenendo conto di margini e bordi dei blocchi (incluse tabelle, righe spezzate e

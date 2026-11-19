@@ -3279,8 +3279,120 @@ window.__SUI_RICH = (function () {
     var ed = inst.editor;
     return Math.max(ed.scrollHeight, ed.clientHeight);
   }
+  function tableRowSplitAt(inst, contentY) {
+    if (!inst || !inst.editor) return null;
+    var ed = inst.editor;
+    var edRect = ed.getBoundingClientRect(), scroll = ed.scrollTop;
+    var children = ed.children;
+    for (var ti = 0; ti < children.length; ti++) {
+      var table = children[ti];
+      if (!table.tagName || table.tagName.toLowerCase() !== 'table') continue;
+      var tr = table.getBoundingClientRect();
+      var ttop = tr.top - edRect.top + scroll, tbottom = ttop + tr.height;
+      if (contentY <= ttop + 1 || contentY >= tbottom - 1) continue;
+      var rows = Array.prototype.slice.call(table.querySelectorAll('tr')).filter(function (row) {
+        return row.closest('table') === table;
+      });
+      if (rows.length < 2) return null;
+      var headerCount = 0;
+      for (var hi = 0; hi < rows.length; hi++) {
+        var cells = rows[hi].cells, allH = !!(cells && cells.length);
+        for (var ci = 0; ci < cells.length; ci++) if (cells[ci].tagName.toLowerCase() !== 'th') allH = false;
+        if (allH) headerCount++; else break;
+      }
+      var body = rows.slice(headerCount);
+      // Keep rows joined by rowspan in the same fragment.
+      var groups = [], gi = 0;
+      while (gi < body.length) {
+        var groupEnd = gi, changed = true;
+        while (changed) {
+          changed = false;
+          for (var gr = gi; gr <= groupEnd && gr < body.length; gr++) {
+            var gcells = body[gr].cells || [];
+            for (var gc = 0; gc < gcells.length; gc++) {
+              var span = Number(gcells[gc].getAttribute('rowspan') || 1);
+              if (span > 1 && gr + span - 1 > groupEnd) {
+                groupEnd = Math.min(body.length - 1, gr + span - 1);
+                changed = true;
+              }
+            }
+          }
+        }
+        groups.push({ start: gi, end: groupEnd });
+        gi = groupEnd + 1;
+      }
+      var minIdx = headerCount > 0 ? headerCount + 1 : 1;
+      var maxIdx = rows.length - 1;
+      var best = null, bestDist = Infinity;
+      for (var g = 0; g < groups.length; g++) {
+        var startIdx = headerCount + groups[g].start;
+        var endIdx = headerCount + groups[g].end;
+        var candidates = [
+          { index: startIdx, y: rows[startIdx].getBoundingClientRect().top - edRect.top + scroll },
+          { index: endIdx + 1, y: rows[endIdx].getBoundingClientRect().bottom - edRect.top + scroll }
+        ];
+        for (var cd = 0; cd < candidates.length; cd++) {
+          var cand = candidates[cd];
+          if (cand.index < minIdx || cand.index > maxIdx) continue;
+          var dist = Math.abs(cand.y - contentY);
+          if (dist < bestDist) { bestDist = dist; best = cand; }
+        }
+      }
+      if (best) return { table: table, splitIndex: best.index, y: best.y, headerCount: headerCount, rows: rows.length };
+      return null;
+    }
+    return null;
+  }
+  function tableHeaderCount(block) {
+    var rows = (block && block.rows) || [], count = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var cells = rows[i].cells || [], allH = cells.length > 0;
+      for (var c = 0; c < cells.length; c++) if (!cells[c].header) allH = false;
+      if (allH) count++; else break;
+    }
+    return count;
+  }
+  function splitTableBlock(inst, tableNode, splitIndex, removeBreakNode) {
+    if (!inst || !inst.editor) return false;
+    sync(inst);
+    var idx = Array.prototype.indexOf.call(inst.editor.children, tableNode);
+    if (idx < 0) return false;
+    var blocks = inst.doc.children || [];
+    var block = blocks[idx];
+    if (!block || block.type !== 'table' || !block.rows) return false;
+    var rows = block.rows;
+    if (!(splitIndex > 0 && splitIndex < rows.length)) return false;
+    var hc = tableHeaderCount(block);
+    if (hc > 0 && splitIndex <= hc) splitIndex = Math.min(rows.length - 1, hc + 1);
+    if (hc > 0 && splitIndex >= rows.length) splitIndex = rows.length - 1;
+    if (splitIndex <= 0 || splitIndex >= rows.length) return false;
+    if (rows.length < splitIndex + 1) return false;
+    var first = JSON.parse(JSON.stringify(block));
+    var second = JSON.parse(JSON.stringify(block));
+    first.rows = rows.slice(0, splitIndex);
+    second.rows = rows.slice(splitIndex);
+    if (hc > 0 && splitIndex > hc) second.rows = rows.slice(0, hc).concat(rows.slice(splitIndex));
+    if (second.caption) second.caption = '';
+    var insertAt = idx;
+    blocks.splice(insertAt, 1, first, { type: 'page_break' }, second);
+    if (removeBreakNode && removeBreakNode.parentNode) {
+      var breakIdx = Array.prototype.indexOf.call(inst.editor.children, removeBreakNode);
+      if (breakIdx >= 0) {
+        // Remove the old break from the model; splitTableBlock inserted the new
+        // break between the two table fragments.
+        var modelBreak = breakIdx > insertAt ? breakIdx + 2 : breakIdx;
+        if (blocks[modelBreak] && blocks[modelBreak].type === 'page_break') blocks.splice(modelBreak, 1);
+      }
+    }
+    remember(inst);
+    restore(inst, JSON.stringify(inst.doc));
+    notify(inst, 'change');
+    return true;
+  }
   function snapGuideContentY(inst, contentY, excludeNode) {
     if (!inst || !inst.editor) return contentY;
+    var tableSplit = tableRowSplitAt(inst, contentY);
+    if (tableSplit) return tableSplit.y;
     var ed = inst.editor;
     var edRect = ed.getBoundingClientRect(), scroll = ed.scrollTop;
     var children = ed.children, best = contentY, bestDist = Infinity;
@@ -3305,6 +3417,8 @@ window.__SUI_RICH = (function () {
   }
   function insertPageBreakAt(inst, contentY) {
     if (!inst || !inst.editor) return;
+    var tableSplit = tableRowSplitAt(inst, contentY);
+    if (tableSplit) { splitTableBlock(inst, tableSplit.table, tableSplit.splitIndex, null); return; }
     var ed = inst.editor;
     var point = breakInsertionPoint(inst, contentY, null);
     // A break already sitting at this boundary must not be duplicated.
@@ -3399,6 +3513,8 @@ window.__SUI_RICH = (function () {
       if (!moved) { positionPageGuides(inst); return; }
       targetContent = snapGuideContentY(inst, targetContent, breakNode);
       if (isBreak) {
+        var targetSplit = tableRowSplitAt(inst, targetContent);
+        if (targetSplit && splitTableBlock(inst, targetSplit.table, targetSplit.splitIndex, breakNode)) return;
         movePageBreakTo(inst, breakNode, targetContent);
         commit(inst, 'change');
         schedulePageGuides(inst);
@@ -3474,8 +3590,10 @@ window.__SUI_RICH = (function () {
     var cuts = [], start = padTop, used = 0, pageNo = 1;
     var children = ed.children;
     function snapGuideCut(cut) {
-      // A guide inside a table is kept where the table is split; elsewhere the
-      // line is moved to the nearest paragraph edge so it never crosses text.
+      // Inside a long table, snap the line to a real row boundary so it never
+      // crosses a row of text and can be dropped as a table split.
+      var rowSplit = tableRowSplitAt(inst, cut);
+      if (rowSplit) return rowSplit.y;
       for (var ti = 0; ti < children.length; ti++) {
         var tc = children[ti];
         if (tc.tagName && tc.tagName.toLowerCase() === 'table') {
@@ -3484,6 +3602,8 @@ window.__SUI_RICH = (function () {
           if (cut > ttop + 1 && cut < ttop + tr.height - 1) return cut;
         }
       }
+      // Outside tables the line is moved to the nearest paragraph edge so it
+      // never crosses text.
       var best = cut, bestEdge = -Infinity;
       for (var pi = 0; pi < children.length; pi++) {
         var pc = children[pi];

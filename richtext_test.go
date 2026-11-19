@@ -998,6 +998,110 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (document.querySelectorAll('.sui-rich-pagebreak').length !== 1) throw new Error('scrolled guide drag created duplicate breaks');
     if (reqScrollBefore > 200 && bsEditor().scrollTop === 0) throw new Error('editor scroll was reset after the guide drag: before ' + reqScrollBefore);
 
+    // A guide inside a very long table must split the table at a row boundary,
+    // not create a break before/after the whole table (which would land at the
+    // document start when the table is the first block).
+    var reqTableRows = [{ type: 'table_row', cells: [
+      { type: 'table_cell', header: true, children: [{ type: 'text', text: 'Name', marks: [] }] },
+      { type: 'table_cell', header: true, children: [{ type: 'text', text: 'Value', marks: [] }] }
+    ] }];
+    for (var tr2 = 0; tr2 < 70; tr2++) reqTableRows.push({ type: 'table_row', cells: [
+      { type: 'table_cell', children: [{ type: 'text', text: 'Row ' + tr2, marks: [] }] },
+      { type: 'table_cell', children: [{ type: 'text', text: 'Value ' + tr2, marks: [] }] }
+    ] });
+    __SUI_RICH.set('editor', { type: 'doc', pageOverrides: {}, children: [{ type: 'table', header: true, rows: reqTableRows }] });
+    await wait(800);
+    var reqTableEditor = bsEditor();
+    var reqTableGuides0 = [].slice.call(document.querySelectorAll('.sui-rich-guide'));
+    if (!reqTableGuides0.length) throw new Error('long table has no automatic guides');
+    var reqFirstCut = parseFloat(reqTableGuides0[0].getAttribute('data-cut')) || 0;
+    reqTableEditor.scrollTop = Math.max(0, reqFirstCut - 200);
+    reqTableEditor.dispatchEvent(new Event('scroll'));
+    await wait(300);
+    var reqTableGuides = [].slice.call(document.querySelectorAll('.sui-rich-guide'));
+    var reqTableGuide = null;
+    for (var tg = 0; tg < reqTableGuides.length; tg++) {
+      var tgRect = reqTableGuides[tg].getBoundingClientRect();
+      var teRect = reqTableEditor.getBoundingClientRect();
+      if (tgRect.top > teRect.top + 20 && tgRect.top < teRect.bottom - 20) { reqTableGuide = reqTableGuides[tg]; break; }
+    }
+    if (!reqTableGuide) throw new Error('no guide visible inside the long table');
+    var reqTableGuideRect = reqTableGuide.getBoundingClientRect();
+    reqTableGuide.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqTableGuideRect.left + 30, clientY: reqTableGuideRect.top + 1 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: reqTableGuideRect.left + 30, clientY: reqTableGuideRect.top - 90 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: reqTableGuideRect.left + 30, clientY: reqTableGuideRect.top - 90 }));
+    await wait(800);
+    var reqTableDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (reqTableDoc.children.length !== 3 || reqTableDoc.children[0].type !== 'table' || reqTableDoc.children[1].type !== 'page_break' || reqTableDoc.children[2].type !== 'table') throw new Error('long table was not split around a page break: ' + JSON.stringify(reqTableDoc.children.map(function (c) { return c.type; })));
+    if (document.querySelectorAll('.sui-rich-pagebreak').length !== 1) throw new Error('long table split created duplicate breaks');
+    var reqBody = 0, reqLabels = {};
+    for (var tb = 0; tb < reqTableDoc.children.length; tb++) {
+      var tbl = reqTableDoc.children[tb];
+      if (tbl.type !== 'table') continue;
+      var hc2 = 0;
+      for (var rh2 = 0; rh2 < tbl.rows.length; rh2++) {
+        var rc2 = tbl.rows[rh2].cells || [], allH2 = rc2.length > 0;
+        for (var rc3 = 0; rc3 < rc2.length; rc3++) if (!rc2[rc3].header) allH2 = false;
+        if (allH2) hc2++; else break;
+      }
+      for (var rb2 = hc2; rb2 < tbl.rows.length; rb2++) {
+        reqBody++;
+        var cell2 = tbl.rows[rb2].cells[0] || {}, txt2 = (cell2.children || []).map(function (c) { return c.text || ''; }).join('');
+        if (/^Row \d+$/.test(txt2)) reqLabels[txt2] = true;
+      }
+    }
+    if (reqBody !== 70 || Object.keys(reqLabels).length !== 70) throw new Error('long table split lost or duplicated rows: body ' + reqBody + ', labels ' + Object.keys(reqLabels).length);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(5000);
+    var reqTableSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    var reqSeen = {};
+    for (var ts2 = 0; ts2 < reqTableSheets.length; ts2++) {
+      var tsBody = reqTableSheets[ts2].querySelector('.sui-rich-sheet-body');
+      if (tsBody && tsBody.scrollHeight > tsBody.clientHeight + 1) throw new Error('split long table exceeds the printable area');
+      if (!tsBody) continue;
+      var tsRows = tsBody.querySelectorAll('table tr');
+      for (var tr3 = 0; tr3 < tsRows.length; tr3++) {
+        var tcell = tsRows[tr3].querySelector('td');
+        var ttxt = tcell ? tcell.textContent.trim() : '';
+        if (/^Row \d+$/.test(ttxt)) reqSeen[ttxt] = (reqSeen[ttxt] || 0) + 1;
+      }
+    }
+    if (Object.keys(reqSeen).length !== 70) throw new Error('paginated split table rows: ' + Object.keys(reqSeen).length);
+    for (var sk in reqSeen) if (reqSeen[sk] !== 1) throw new Error('paginated split table duplicated row ' + sk);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(300);
+    // Moving the explicit break line into the second table fragment must split
+    // that fragment too, without duplicating or losing rows.
+    var reqMoveBreak = document.querySelector('.sui-rich-pagebreak');
+    reqMoveBreak.scrollIntoView({ block: 'center' });
+    await wait(300);
+    var reqMoveLabel = reqMoveBreak.querySelector('.sui-rich-pagebreak-label');
+    var reqMoveRect = reqMoveLabel.getBoundingClientRect();
+    reqMoveLabel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: reqMoveRect.left + 20, clientY: reqMoveRect.top + reqMoveRect.height / 2 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: reqMoveRect.left + 20, clientY: reqMoveRect.top + reqMoveRect.height / 2 + 140 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: reqMoveRect.left + 20, clientY: reqMoveRect.top + reqMoveRect.height / 2 + 140 }));
+    await wait(800);
+    var reqMovedDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    var reqMovedBreaks = reqMovedDoc.children.filter(function (c) { return c.type === 'page_break'; });
+    if (reqMovedBreaks.length !== 1 || document.querySelectorAll('.sui-rich-pagebreak').length !== 1) throw new Error('moving the break inside the table duplicated it');
+    var reqMovedBody = 0, reqMovedLabels = {};
+    for (var mb = 0; mb < reqMovedDoc.children.length; mb++) {
+      var mbt = reqMovedDoc.children[mb];
+      if (mbt.type !== 'table') continue;
+      var mhc = 0;
+      for (var mr = 0; mr < mbt.rows.length; mr++) {
+        var mrc = mbt.rows[mr].cells || [], mall = mrc.length > 0;
+        for (var mc = 0; mc < mrc.length; mc++) if (!mrc[mc].header) mall = false;
+        if (mall) mhc++; else break;
+      }
+      for (var mrb = mhc; mrb < mbt.rows.length; mrb++) {
+        reqMovedBody++;
+        var mcell = mbt.rows[mrb].cells[0] || {}, mtxt = (mcell.children || []).map(function (c) { return c.text || ''; }).join('');
+        if (/^Row \d+$/.test(mtxt)) reqMovedLabels[mtxt] = true;
+      }
+    }
+    if (reqMovedBody !== 70 || Object.keys(reqMovedLabels).length !== 70) throw new Error('moving the break inside the table lost rows: body ' + reqMovedBody + ', labels ' + Object.keys(reqMovedLabels).length);
+
     // A paragraph taller than the printable area is split across pages, in the
     // paginated view and in print preview, and never crosses the bottom margin.
     var reqLongWords = [];
