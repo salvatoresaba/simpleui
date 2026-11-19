@@ -377,6 +377,10 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     for (var rs = 0; rs < repeatSheets.length; rs++) {
       var rsBody = repeatSheets[rs].querySelector('.sui-rich-sheet-body');
       if (rsBody && rsBody.querySelector('tr') && rsBody.querySelector('tr').innerText.indexOf('HDRCELL') < 0) throw new Error('paginated table header not repeated');
+      if (rsBody) {
+        var rsLast = rsBody.lastElementChild;
+        if (rsLast && rsLast.getBoundingClientRect().bottom > rsBody.getBoundingClientRect().bottom + 1.5) throw new Error('table content overflows the page content area');
+      }
     }
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(120);
@@ -613,7 +617,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     // states follow the caret.
     __SUI_RICH.setToolbar('editor', '');
     await wait(200);
-    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','copyFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','paragraphSettings','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak','documentSettings','pageSettings','printPreview','print','find'];
+    var defaultTokens = ['bold','italic','underline','strike','superscript','subscript','code','clearFormat','copyFormat','textColor','highlight','fontFamily','fontSize','alignLeft','alignCenter','alignRight','justify','indent','outdent','paragraphSettings','bulletList','orderedList','blockquote','codeBlock','link','unlink','image','table','symbol','hr','pageBreak','pageSettings','printPreview','print','find'];
     for (var dt = 0; dt < defaultTokens.length; dt++) {
       if (!richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="' + defaultTokens[dt] + '"]')) throw new Error('default toolbar missing control: ' + defaultTokens[dt]);
     }
@@ -658,7 +662,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (bsEditor().querySelector('a')) throw new Error('unlink did not remove the link');
 
     // Page settings (page format) and Document settings (general defaults).
-    __SUI_RICH.setToolbar('editor', 'documentSettings,pageSettings,printPreview,print,find');
+    __SUI_RICH.setToolbar('editor', 'pageSettings,printPreview,print,find');
     await wait(200);
     if (bsBtn('imageSettings')) throw new Error('Image settings button must not be in the toolbar');
     var pageBtn = bsBtn('pageSettings');
@@ -668,6 +672,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(200);
     var pagePanel = document.querySelector('.sui-rich-pagesettings');
     if (!pagePanel || pagePanel.hidden) throw new Error('page settings panel did not open');
+    pagePanel.querySelector('[data-rich-page-number]').value = '1';
     pagePanel.querySelector('[data-rich-page-size]').value = 'letter';
     pagePanel.querySelector('[data-rich-page-orientation]').value = 'landscape';
     var orientationLabels = [].map.call(pagePanel.querySelector('[data-rich-page-orientation]').options, function (o) { return o.textContent; });
@@ -679,21 +684,19 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     pagePanel.querySelector('[data-rich-page-apply]').click();
     await wait(400);
     var pageDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
-    if (!pageDoc.page || pageDoc.page.size !== 'letter' || pageDoc.page.orientation !== 'landscape') throw new Error('page size/orientation not stored: ' + JSON.stringify(pageDoc.page));
-    if (pageDoc.page.margins.top !== 20 || pageDoc.page.margins.right !== 25 || pageDoc.page.margins.bottom !== 18 || pageDoc.page.margins.left !== 22) throw new Error('margins not stored: ' + JSON.stringify(pageDoc.page.margins));
+    var pageOne = pageDoc.pageOverrides && pageDoc.pageOverrides['1'];
+    if (!pageOne || pageOne.size !== 'letter' || pageOne.orientation !== 'landscape') throw new Error('page override not stored: ' + JSON.stringify(pageDoc.pageOverrides));
+    if (!pageOne.margins || pageOne.margins.top !== 20 || pageOne.margins.right !== 25 || pageOne.margins.bottom !== 18 || pageOne.margins.left !== 22) throw new Error('page override margins not stored: ' + JSON.stringify(pageOne.margins));
     __SUI_RICH.command('editor', 'undo');
     await wait(250);
-    var undonePage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
-    if (undonePage && undonePage.size === 'letter') throw new Error('undo did not restore the page settings');
+    var undoneOverrides = JSON.parse(__SUI_RICH.get('editor')[0]).pageOverrides;
+    if (undoneOverrides && undoneOverrides['1']) throw new Error('undo did not restore the page settings');
     __SUI_RICH.command('editor', 'redo');
     await wait(250);
-    var redonePage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
-    if (!redonePage || redonePage.size !== 'letter' || redonePage.margins.left !== 22) throw new Error('redo did not restore the page settings');
+    var redoneOverride = JSON.parse(__SUI_RICH.get('editor')[0]).pageOverrides;
+    if (!redoneOverride || !redoneOverride['1'] || redoneOverride['1'].size !== 'letter') throw new Error('redo did not restore the page settings');
 
-    var docBtn = bsBtn('documentSettings');
-    if (!docBtn) throw new Error('document settings button missing');
-    docBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    docBtn.click();
+    __SUI_RICH.command('editor', 'documentSettings');
     await wait(200);
     var docPanel = document.querySelector('.sui-rich-documentsettings');
     if (!docPanel || docPanel.hidden) throw new Error('document settings panel did not open');
@@ -771,6 +774,17 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqParaDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (reqParaDoc.indent !== '24px' || reqParaDoc.lineHeight !== '1.4' || reqParaDoc.spaceBefore !== '6px' || reqParaDoc.spaceAfter !== '8px' || reqParaDoc.align !== 'right') throw new Error('paragraph settings not stored: ' + JSON.stringify(reqParaDoc));
 
+    __SUI_RICH.command('editor', 'documentSettings');
+    await wait(200);
+    var reqDocDefaults = document.querySelector('.sui-rich-documentsettings');
+    reqDocDefaults.querySelector('[data-rich-doc-size]').value = 'a4';
+    reqDocDefaults.querySelector('[data-rich-doc-orientation]').value = 'portrait';
+    reqDocDefaults.querySelector('[data-rich-doc-margin="top"]').value = '15';
+    reqDocDefaults.querySelector('[data-rich-doc-margin="right"]').value = '17';
+    reqDocDefaults.querySelector('[data-rich-doc-margin="bottom"]').value = '15';
+    reqDocDefaults.querySelector('[data-rich-doc-margin="left"]').value = '17';
+    reqDocDefaults.querySelector('[data-rich-doc-apply]').click();
+    await wait(300);
     __SUI_RICH.set('editor', { type: 'doc', children: manyRows });
     await wait(400);
     richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="printPreview"]').click();
@@ -781,6 +795,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqFirstSheet = reqPreviewSheets[0];
     if (reqFirstSheet.style.width !== '1056px' || reqFirstSheet.style.minHeight !== '816px') throw new Error('preview page size wrong: ' + reqFirstSheet.style.width + ' x ' + reqFirstSheet.style.minHeight);
     if (reqFirstSheet.style.padding !== '76px 94px 92px 83px') throw new Error('preview page margins missing: ' + reqFirstSheet.style.padding);
+    if (reqPreviewSheets[1] && reqPreviewSheets[1].style.width === '1056px') throw new Error('page 2 wrongly inherits the page 1 override');
     if (!/H 1\//.test((reqFirstSheet.querySelector('.sui-rich-sheet-header') || {}).textContent || '')) throw new Error('preview header missing');
     var reqPreviewClose = [].slice.call(document.querySelectorAll('.sui-rich-preview button')).filter(function (b) { return b.textContent === 'Close'; })[0];
     if (reqPreviewClose) reqPreviewClose.click();
@@ -961,7 +976,7 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"indent", "outdent", "paragraphSettings",
 		"bulletList", "orderedList", "blockquote", "codeBlock",
 		"link", "unlink", "image", "table", "symbol", "hr", "pageBreak",
-		"documentSettings", "pageSettings", "printPreview", "print", "find", "copyFormat", "zoom",
+		"pageSettings", "printPreview", "print", "find", "copyFormat", "zoom",
 	} {
 		if !items[token] {
 			t.Errorf("default toolbar is missing the %q control", token)

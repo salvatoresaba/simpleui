@@ -1722,24 +1722,28 @@ Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
 `paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
 `orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
-`symbol`, `hr`, `pageBreak`, `documentSettings`, `pageSettings`, `printPreview`, `print`, `find`,
+`symbol`, `hr`, `pageBreak`, `pageSettings`, `printPreview`, `print`, `find`,
 `fontSizeUp`, `fontSizeDown`,
 `zoom`, `zoomIn`, `zoomOut`, `zoomReset`. The spacing and line-height selects
 remain available as custom tokens but are no longer in the default toolbar:
 they live in the Document settings and Paragraph settings panels.
 
-**Document settings** (toolbar button `documentSettings`, also View >
-Document settings) holds the general defaults: line height and header/footer
-text. **Page settings** (toolbar button `pageSettings`, also View > Page
-settings) holds page size (A4/Letter), orientation (**Vertical**/**Horizontal**)
-and top/right/bottom/left margins in millimetres. `{page}` and `{pages}` are replaced with
-the page number and total. The settings are stored in the document as
-`page: { size, orientation, lineHeight, margins }` plus `header`/`footer`, and are applied
-to the paginated view, print, PDF, DOCX, ODT and RTF/DOC exports; DOCX and
-ODT import restore them. The default is A4 portrait with 15 mm top/bottom and 17 mm
+**Document settings** is a menu entry (View > Document settings) and holds the
+general defaults: page size (A4/Letter), orientation (**Vertical**/**Horizontal**),
+top/right/bottom/left margins, line height and header/footer text. **Page
+settings** (toolbar button `pageSettings`, also View > Page settings) overrides
+those defaults for one page: choose the page number, then set size, orientation
+and margins. The page panel's Reset returns that page to the document defaults. `{page}` and `{pages}` are replaced with
+the page number and total. Defaults are stored as
+`page: { size, orientation, lineHeight, margins }` plus `header`/`footer`;
+per-page overrides are in `pageOverrides: { "1": { size, orientation, margins } }`.
+They are applied to the paginated view, print, PDF, DOCX, ODT and RTF/DOC
+exports (exports use the first page's effective settings); DOCX and ODT import
+restore the document defaults. The default is A4 portrait with 15 mm top/bottom and 17 mm
 left/right margins. The continuous editor draws a dashed horizontal guide at
-every automatic page cut, resetting after explicit page breaks; guides are hidden
-in the paginated view and in print.
+every automatic page cut, resetting after explicit page breaks and taking block
+margins/borders (including table borders and split rows) into account; guides
+are hidden in the paginated view and in print.
 
 Every text feature has a toolbar control: inline code (`code`) and Remove link
 (`unlink`) included. Unlink is disabled when the caret is outside a link, and
@@ -1780,8 +1784,8 @@ the caret when there is no selection: each click raises or lowers that text's
 font size by 2 px and stores a `size` mark in the document model.
 
 **Print preview** (toolbar button `printPreview` and File > Print preview)
-opens a centered preview already split into the real pages, with the configured
-margins, headers/footers and page numbers. Print uses those same sheet pages;
+opens a centered preview already split into the real pages, using each page's
+effective size/margins and the configured headers/footers and page numbers. Print uses those same sheet pages;
 File > Save as is listed directly under Open file.
 
 Link, image, symbol and import-content commands open a centered overlay with

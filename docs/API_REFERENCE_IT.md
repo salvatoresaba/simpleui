@@ -1697,24 +1697,27 @@ Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignLeft`, `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`,
 `paragraphSettings`, `lineHeight`, `spaceBefore`, `spaceAfter`, `bulletList`,
 `orderedList`, `blockquote`, `codeBlock`, `link`, `unlink`, `image`, `table`,
-`symbol`, `hr`, `pageBreak`, `documentSettings`, `pageSettings`, `printPreview`, `print`, `find`,
+`symbol`, `hr`, `pageBreak`, `pageSettings`, `printPreview`, `print`, `find`,
 `zoom`, `zoomIn`, `zoomOut`, `zoomReset`. I selettori di interlinea e spazi
 restano disponibili come token personalizzati ma non sono più nella toolbar
 predefinita: sono nei pannelli Impostazioni documento e Impostazioni paragrafo.
 
-**Impostazioni documento** (pulsante `documentSettings`, anche Visualizza >
-Impostazioni documento) raccoglie i default generali: interlinea e testo di
-intestazione/piè di pagina. **Impostazioni pagina** (pulsante `pageSettings`,
-anche Visualizza > Impostazioni pagina) gestisce formato pagina (A4/Letter),
-orientamento (**Verticale**/**Orizzontale**) e margini alto/destra/basso/
-sinistra in millimetri. `{page}` e `{pages}` vengono sostituiti con il
-numero di pagina e il totale. Le impostazioni sono salvate nel documento come
-`page: { size, orientation, lineHeight, margins }` più `header`/`footer`, e vengono usate
-dalla vista paginata, dalla stampa, dal PDF e dagli export DOCX/ODT e RTF/DOC;
-l'import DOCX/ODT le ripristina. Il default è A4 verticale con margini di 15 mm sopra/
-sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
+**Impostazioni documento** è una voce di menu (Visualizza > Impostazioni
+documento) e raccoglie i default generali: formato pagina (A4/Letter),
+orientamento (**Verticale**/**Orizzontale**), margini alto/destra/basso/
+sinistra, interlinea e testo di intestazione/piè di pagina. **Impostazioni
+pagina** (pulsante `pageSettings`, anche Visualizza > Impostazioni pagina)
+sovrascrive quei default per una singola pagina: scegli il numero di pagina,
+poi imposta formato, orientamento e margini. Reset riporta la pagina ai default
+del documento. `{page}` e `{pages}` vengono sostituiti con il
+numero di pagina e il totale. I default stanno in
+`page: { size, orientation, lineHeight, margins }` più `header`/`footer`; le
+sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
+Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
+verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
 orizzontale su ogni interruzione di pagina automatica, con reset dopo le
-interruzioni esplicite; le guide sono nascoste nella vista paginata e in stampa.
+interruzioni esplicite e tenendo conto di margini e bordi dei blocchi (incluse
+tabelle e righe spezzate); le guide sono nascoste nella vista paginata e in stampa.
 
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
 inline (`code`) e Rimuovi link (`unlink`). Unlink è disabilitato fuori da un
@@ -1756,8 +1759,8 @@ sulla parola al cursore se non c'è selezione: ogni clic aumenta o riduce di
 2 px la dimensione di quel testo e salva un mark `size` nel modello.
 
 **Anteprima di stampa** (pulsante `printPreview` e File > Anteprima di stampa)
-apre un'anteprima centrata già divisa nelle pagine reali, con margini,
-intestazioni/piè di pagina e numeri di pagina. Stampa usa le stesse pagine;
+apre un'anteprima centrata già divisa nelle pagine reali, usando formato e
+margini effettivi di ogni pagina, intestazioni/piè di pagina e numeri di pagina. Stampa usa le stesse pagine;
 File > Salva con nome è elencato subito sotto Apri file.
 
 I comandi link, immagine, simbolo e importa contenuto aprono un overlay

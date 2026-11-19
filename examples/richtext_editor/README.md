@@ -26,8 +26,9 @@ builds.
   printing and PDF export.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
-- Document settings (line height, header/footer) and Page settings (size,
-  orientation, margins) panels applied to paginated view, print and PDF/DOCX/ODT exports.
+- Document settings (menu) provides page defaults: size, orientation, margins,
+  line height and header/footer. Page settings overrides them for a single page.
+Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Print preview shows the real page split; the continuous editor marks automatic
   page cuts with dashed horizontal guides.
 - Paragraph settings panel (alignment, indent, line height, space before/after),
@@ -85,7 +86,7 @@ Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `alignCenter`, `alignRight`, `justify`, `indent`, `outdent`, `lineHeight`,
 `spaceBefore`, `spaceAfter`, `bulletList`, `orderedList`, `blockquote`,
 `codeBlock`, `link`, `unlink`, `image`, `table`, `symbol`, `hr`,
-`documentSettings`, `pageSettings`, `printPreview`, `print`, `find`, `copyFormat`,
+`pageSettings`, `printPreview`, `print`, `find`, `copyFormat`,
 `fontSizeUp`, `fontSizeDown`,
 `paragraphSettings`, `zoom`.
 The default toolbar exposes a zoom group (−, percentage reset to 100%, +).
@@ -280,7 +281,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|documentSettings,pageSettings,printPreview,print,find|zoom" onChange: changed
+			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

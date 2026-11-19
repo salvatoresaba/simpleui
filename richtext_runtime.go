@@ -18,7 +18,7 @@ window.__SUI_RICH = (function () {
   var MAX_HISTORY = 120;
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
-  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak|documentSettings,pageSettings,printPreview,print,find|zoom';
+  var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -801,6 +801,7 @@ window.__SUI_RICH = (function () {
     if (inst.doc && inst.doc.header !== undefined) next.header = inst.doc.header;
     if (inst.doc && inst.doc.footer !== undefined) next.footer = inst.doc.footer;
     if (inst.doc && inst.doc.page !== undefined) next.page = inst.doc.page;
+    if (inst.doc && inst.doc.pageOverrides !== undefined) next.pageOverrides = inst.doc.pageOverrides;
     var changed = JSON.stringify(next) !== JSON.stringify(inst.doc);
     if (changed) { inst.doc = next; inst.dirty = true; }
     return changed;
@@ -2196,6 +2197,7 @@ window.__SUI_RICH = (function () {
     // Replacing/importing content keeps the document-level settings unless the
     // incoming document explicitly provides them.
     if (doc.page === undefined && inst.doc && inst.doc.page !== undefined) doc.page = inst.doc.page;
+    if (doc.pageOverrides === undefined && inst.doc && inst.doc.pageOverrides !== undefined) doc.pageOverrides = inst.doc.pageOverrides;
     if (doc.header == null && inst.doc && inst.doc.header != null) doc.header = inst.doc.header;
     if (doc.footer == null && inst.doc && inst.doc.footer != null) doc.footer = inst.doc.footer;
     inst.doc = doc;
@@ -3157,7 +3159,7 @@ window.__SUI_RICH = (function () {
     if (!isFinite(n)) return fallback;
     return Math.max(0, Math.min(50, Math.round(n * 10) / 10));
   }
-  function pageConfig(inst) {
+  function documentPageConfig(inst) {
     var page = defaultPageConfig();
     var raw = inst && inst.doc && inst.doc.page;
     if (raw && typeof raw === 'object') {
@@ -3173,6 +3175,24 @@ window.__SUI_RICH = (function () {
         left: clampPageMargin(m.left, page.margins.left)
       };
     }
+    return page;
+  }
+  function pageConfig(inst, pageNumber) {
+    var page = documentPageConfig(inst);
+    if (!pageNumber || !inst || !inst.doc || !inst.doc.pageOverrides) return page;
+    var ov = inst.doc.pageOverrides[String(pageNumber)];
+    if (!ov || typeof ov !== 'object') return page;
+    if (ov.size === 'a4' || ov.size === 'letter') page.size = ov.size;
+    if (ov.orientation === 'landscape' || ov.orientation === 'portrait') page.orientation = ov.orientation;
+    var lh = Number(ov.lineHeight);
+    if (isFinite(lh) && lh >= 0.8 && lh <= 3) page.lineHeight = Math.round(lh * 100) / 100;
+    var m = ov.margins || {};
+    page.margins = {
+      top: clampPageMargin(m.top, page.margins.top),
+      right: clampPageMargin(m.right, page.margins.right),
+      bottom: clampPageMargin(m.bottom, page.margins.bottom),
+      left: clampPageMargin(m.left, page.margins.left)
+    };
     return page;
   }
   function pageSizeMm(page) {
@@ -3205,26 +3225,48 @@ window.__SUI_RICH = (function () {
     var layer = pageGuideLayer(inst);
     if (!layer) return;
     if (inst.paginated || (inst.root && inst.root.classList.contains('sui-rich-paginated'))) { layer.innerHTML = ''; return; }
-    var m = pageMetrics(inst), ed = inst.editor;
+    var ed = inst.editor;
+    var m = pageMetrics(inst, 1);
     if (!(m.contentH > 40)) { layer.innerHTML = ''; return; }
     var cs = getComputedStyle(ed);
-    var padTop = parseFloat(cs.paddingTop) || 0, padBottom = parseFloat(cs.paddingBottom) || 0;
+    var padTop = parseFloat(cs.paddingTop) || 0;
     var edRect = ed.getBoundingClientRect(), host = layer.parentNode, hostRect = host.getBoundingClientRect();
     var scroll = ed.scrollTop;
-    var breaks = [];
-    var marks = ed.querySelectorAll('.sui-rich-pagebreak');
-    for (var i = 0; i < marks.length; i++) {
-      var r = marks[i].getBoundingClientRect();
-      breaks.push({ top: r.top - edRect.top + scroll, bottom: r.top - edRect.top + scroll + r.height });
+    var cuts = [], start = padTop, used = 0, pageNo = 1;
+    var children = ed.children;
+    for (var ci = 0; ci < children.length; ci++) {
+      var child = children[ci];
+      var cr = child.getBoundingClientRect();
+      var ccs = getComputedStyle(child);
+      var ch = cr.height + (parseFloat(ccs.marginTop) || 0) + (parseFloat(ccs.marginBottom) || 0);
+      if (child.classList && child.classList.contains('sui-rich-pagebreak')) {
+        start = cr.top - edRect.top + scroll + cr.height;
+        used = 0;
+        pageNo++;
+        m = pageMetrics(inst, pageNo);
+        continue;
+      }
+      if (used > 0 && used + ch > m.contentH - 2) {
+        cuts.push(start + used);
+        start += used;
+        used = 0;
+        pageNo++;
+        m = pageMetrics(inst, pageNo);
+      }
+      if (ch > m.contentH - 2) {
+        var remaining = ch;
+        while (remaining > m.contentH - 2) {
+          cuts.push(start + m.contentH);
+          start += m.contentH;
+          remaining -= m.contentH;
+          pageNo++;
+          m = pageMetrics(inst, pageNo);
+        }
+        used = remaining;
+      } else {
+        used += ch;
+      }
     }
-    breaks.sort(function (a, b) { return a.top - b.top; });
-    var cuts = [], start = padTop;
-    for (var b = 0; b < breaks.length; b++) {
-      while (start + m.contentH < breaks[b].top - 2) { start += m.contentH; cuts.push(start); }
-      start = Math.max(start, breaks[b].bottom);
-    }
-    var end = ed.scrollHeight - padBottom + 2;
-    while (start + m.contentH < end) { start += m.contentH; cuts.push(start); }
     layer.innerHTML = '';
     var offset = edRect.top - hostRect.top;
     for (var c = 0; c < cuts.length; c++) {
@@ -3234,8 +3276,8 @@ window.__SUI_RICH = (function () {
       layer.appendChild(line);
     }
   }
-  function pageMetrics(inst) {
-    var page = pageConfig(inst);
+  function pageMetrics(inst, pageNumber) {
+    var page = pageConfig(inst, pageNumber || 1);
     var size = pageSizeMm(page);
     var width = Math.round(mmToPx(size.w)), height = Math.round(mmToPx(size.h));
     var padTop = Math.round(mmToPx(page.margins.top)), padRight = Math.round(mmToPx(page.margins.right));
@@ -3245,6 +3287,7 @@ window.__SUI_RICH = (function () {
       width: width, height: height,
       padTop: padTop, padRight: padRight, padBottom: padBottom, padLeft: padLeft,
       headerH: headerH, footerH: footerH,
+      lineHeight: page.lineHeight, pageNumber: pageNumber || 1,
       contentW: width - padLeft - padRight,
       contentH: height - padTop - padBottom - headerH - footerH
     };
@@ -3280,12 +3323,12 @@ window.__SUI_RICH = (function () {
     if (inst.headerText) { head = el('div', 'sui-rich-sheet-header', sheetChromeText(inst.headerText, 1, 1, false)); sheet.appendChild(head); }
     var body = el('div', 'sui-rich-editor sui-rich-sheet-body');
     body.style.height = m.contentH + 'px';
-    body.style.lineHeight = String(pageConfig(inst).lineHeight);
+    body.style.lineHeight = String(m.lineHeight);
     sheet.appendChild(body);
     if (inst.footerText) { foot = el('div', 'sui-rich-sheet-footer', sheetChromeText(inst.footerText, 1, 1, false)); sheet.appendChild(foot); }
     var number = el('div', 'sui-rich-sheet-number', '1');
     sheet.appendChild(number);
-    return { sheet: sheet, body: body, head: head, foot: foot, number: number, used: 0 };
+    return { sheet: sheet, body: body, head: head, foot: foot, number: number, used: 0, metrics: m };
   }
   function tableShell(table) {
     var shell = table.cloneNode(false);
@@ -3305,10 +3348,10 @@ window.__SUI_RICH = (function () {
       inst.root.querySelector('.sui-rich-body').appendChild(wrap);
     }
     wrap.hidden = false;
-    var m = pageMetrics(inst);
+    var m = pageMetrics(inst, 1);
     wrap.innerHTML = '';
     var measure = el('div', 'sui-rich-editor sui-rich-sheet-body sui-rich-measure');
-    measure.style.cssText = 'position:absolute;left:-12000px;top:0;width:' + m.contentW + 'px;height:auto;overflow:visible;padding:0;visibility:hidden;line-height:' + pageConfig(inst).lineHeight + ';';
+    measure.style.cssText = 'position:absolute;left:-12000px;top:0;width:' + m.contentW + 'px;height:auto;overflow:visible;padding:0;visibility:hidden;line-height:' + m.lineHeight + ';';
     inst.root.querySelector('.sui-rich-body').appendChild(measure);
     var blocks = (inst.doc && inst.doc.children) || [];
     var items = [];
@@ -3327,15 +3370,27 @@ window.__SUI_RICH = (function () {
     function blockHeight(node) {
       var rect = node.getBoundingClientRect();
       var cs = getComputedStyle(node);
-      return rect.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+      var border = 0;
+      if (cs.boxSizing !== 'border-box') {
+        border = (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+      }
+      return rect.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) + border;
     }
     var sheets = [];
     var current = sheetNode(inst, m);
     sheets.push(current); wrap.appendChild(current.sheet);
-    function fresh() { current = sheetNode(inst, m); sheets.push(current); wrap.appendChild(current.sheet); current.used = 0; }
+    function fresh() {
+      var nextNo = sheets.length + 1;
+      current = sheetNode(inst, pageMetrics(inst, nextNo));
+      sheets.push(current); wrap.appendChild(current.sheet); current.used = 0;
+    }
     function placeTable(node, height) {
       var rows = Array.prototype.slice.call(node.querySelectorAll('tr'));
+      var tcs = getComputedStyle(node);
+      var tableEdge = (parseFloat(tcs.borderTopWidth) || 0) + (parseFloat(tcs.borderBottomWidth) || 0);
+      var tableMarginTop = parseFloat(tcs.marginTop) || 0, tableMarginBottom = parseFloat(tcs.marginBottom) || 0;
       if (rows.length <= 1) { fresh(); current.body.appendChild(node); current.used += height; return; }
+      current.used += tableMarginTop;
       var headerCount = 0;
       for (var hr = 0; hr < rows.length; hr++) {
         var cellsH = rows[hr].cells;
@@ -3356,7 +3411,7 @@ window.__SUI_RICH = (function () {
         shell.tbody.appendChild(row);
         measureTable.querySelector('tbody').appendChild(rows[r].cloneNode(true));
         var h = measureTable.getBoundingClientRect().height;
-        var limit = m.contentH - (current.used > 0 && r >= headerCount ? current.used : 0) - 8;
+        var limit = current.metrics.contentH - (current.used > 0 && r >= headerCount ? current.used : 0) - 8 - tableEdge;
         if (h > limit && shell.tbody.children.length > headerCount + 1) {
           shell.tbody.removeChild(row);
           var mtBody = measureTable.querySelector('tbody');
@@ -3369,13 +3424,14 @@ window.__SUI_RICH = (function () {
           measureTable.querySelector('tbody').appendChild(rows[r].cloneNode(true));
         }
       }
-      if (shell.tbody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height; }
+      if (shell.tbody.children.length) { current.body.appendChild(shell.shell); current.used += measureTable.getBoundingClientRect().height + tableEdge; }
+      current.used += tableMarginBottom;
     }
     for (var it = 0; it < items.length; it++) {
       var item = items[it];
       if (!item.node) { if (current.used > 0) fresh(); continue; }
       var h = blockHeight(item.node);
-      if ((current.used > 0 && current.used + h > m.contentH - 8) || (item.block.type === 'table' && h > m.contentH - 8)) {
+      if ((current.used > 0 && current.used + h > current.metrics.contentH - 8) || (item.block.type === 'table' && h > current.metrics.contentH - 8)) {
         if (item.block.type === 'table') { placeTable(item.node, h); continue; }
         fresh();
       }
@@ -3389,7 +3445,7 @@ window.__SUI_RICH = (function () {
       sheet.number.textContent = String(s2 + 1);
       if (sheet.head) sheet.head.textContent = sheetChromeText(inst.headerText, s2 + 1, total, true);
       if (sheet.foot) sheet.foot.textContent = sheetChromeText(inst.footerText, s2 + 1, total, true);
-      sheet.body.style.height = m.contentH + 'px';
+      sheet.body.style.height = sheet.metrics.contentH + 'px';
     }
     var bodyBox = inst.root.querySelector('.sui-rich-body');
     var available = Math.max(320, bodyBox ? bodyBox.clientWidth - 36 : 760);
@@ -3581,7 +3637,8 @@ window.__SUI_RICH = (function () {
       page.appendChild(foot);
     }
   }
-  function pageMarginInput(parent, side, label) {
+  function pageMarginInput(parent, side, label, prefix) {
+    prefix = prefix || 'page';
     var row = el('label');
     row.appendChild(el('span', '', label));
     var input = el('input');
@@ -3589,11 +3646,47 @@ window.__SUI_RICH = (function () {
     input.min = '0';
     input.max = '50';
     input.step = '1';
-    input.setAttribute('data-rich-page-margin', side);
+    input.setAttribute('data-rich-' + prefix + '-margin', side);
     input.setAttribute('aria-label', label + ' margin (mm)');
     row.appendChild(input);
     parent.appendChild(row);
     return input;
+  }
+  function currentPageNumber(inst) {
+    if (!inst || !inst.editor) return 1;
+    var block = currentBlock(inst);
+    if (!block) return 1;
+    var ed = inst.editor;
+    var r = block.getBoundingClientRect(), er = ed.getBoundingClientRect();
+    var y = r.top - er.top + ed.scrollTop;
+    var cs = getComputedStyle(ed);
+    var start = parseFloat(cs.paddingTop) || 0, used = 0, page = 1;
+    var m = pageMetrics(inst, page);
+    var children = ed.children;
+    for (var i = 0; i < children.length; i++) {
+      var child = children[i];
+      var cr = child.getBoundingClientRect();
+      var ccs = getComputedStyle(child);
+      var h = cr.height + (parseFloat(ccs.marginTop) || 0) + (parseFloat(ccs.marginBottom) || 0);
+      if (child.classList && child.classList.contains('sui-rich-pagebreak')) {
+        var bottom = cr.top - er.top + ed.scrollTop + cr.height;
+        if (y < bottom) return page;
+        page++;
+        start = bottom;
+        used = 0;
+        m = pageMetrics(inst, page);
+        continue;
+      }
+      if (y < start + used + h) return page;
+      used += h;
+      if (used > m.contentH) {
+        start += m.contentH;
+        used -= m.contentH;
+        page++;
+        m = pageMetrics(inst, page);
+      }
+    }
+    return page;
   }
   function pageSettingsPanel(inst) {
     var panel = document.querySelector('.sui-rich-pagesettings[data-rich-pagesettings="' + inst.name + '"]');
@@ -3602,6 +3695,18 @@ window.__SUI_RICH = (function () {
     panel.setAttribute('data-rich-pagesettings', inst.name);
     panel.hidden = true;
     panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Page settings'));
+
+    var pageRow = el('label');
+    pageRow.appendChild(el('span', '', 'Page'));
+    var pageNumber = el('input');
+    pageNumber.type = 'number';
+    pageNumber.min = '1';
+    pageNumber.max = '999';
+    pageNumber.step = '1';
+    pageNumber.setAttribute('data-rich-page-number', '1');
+    pageNumber.setAttribute('aria-label', 'Page number');
+    pageRow.appendChild(pageNumber);
+    panel.appendChild(pageRow);
 
     var sizeRow = el('label');
     sizeRow.appendChild(el('span', '', 'Size'));
@@ -3629,7 +3734,7 @@ window.__SUI_RICH = (function () {
     pageMarginInput(grid, 'bottom', 'Bottom');
     pageMarginInput(grid, 'left', 'Left');
 
-    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Page size, orientation and margins (0-50 mm). Header, footer and line height are in Document settings.'));
+    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Overrides Document settings for this page. Reset restores the document defaults. Margins accept 0-50 mm.'));
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply');
@@ -3648,8 +3753,14 @@ window.__SUI_RICH = (function () {
       var target = ev.target;
       if (!target || !target.closest) return;
       if (target.closest('[data-rich-page-apply]')) { applyPageSettings(inst); return; }
-      if (target.closest('[data-rich-page-reset]')) { fillPageSettings(inst, panel, defaultPageConfig()); return; }
+      if (target.closest('[data-rich-page-reset]')) { resetPageOverride(inst, panel); return; }
       if (target.closest('[data-rich-page-close]')) { panel.hidden = true; return; }
+    });
+    panel.addEventListener('change', function (ev) {
+      if (!ev.target || ev.target.getAttribute('data-rich-page-number') === null) return;
+      var n = Math.max(1, Math.min(999, parseInt(ev.target.value, 10) || 1));
+      ev.target.value = String(n);
+      fillPageSettings(inst, panel, pageConfig(inst, n), n);
     });
     document.body.appendChild(panel);
     if (!window.__suiPageSettingsBound) {
@@ -3663,7 +3774,11 @@ window.__SUI_RICH = (function () {
     }
     return panel;
   }
-  function fillPageSettings(inst, panel, page) {
+  function fillPageSettings(inst, panel, page, pageNumber) {
+    if (pageNumber) {
+      var pageInput = panel.querySelector('[data-rich-page-number]');
+      if (pageInput) pageInput.value = String(pageNumber);
+    }
     var size = panel.querySelector('[data-rich-page-size]');
     var orient = panel.querySelector('[data-rich-page-orientation]');
     if (size) size.value = page.size;
@@ -3687,19 +3802,39 @@ window.__SUI_RICH = (function () {
       var node = panel.querySelector('[data-rich-page-margin="' + side + '"]');
       return node ? clampPageMargin(node.value, defaultPageConfig().margins[side]) : defaultPageConfig().margins[side];
     }
-    var current = pageConfig(inst);
-    var page = {
-      size: value('[data-rich-page-size]') === 'letter' ? 'letter' : 'a4',
-      orientation: value('[data-rich-page-orientation]') === 'landscape' ? 'landscape' : 'portrait',
-      lineHeight: current.lineHeight,
-      margins: { top: margin('top'), right: margin('right'), bottom: margin('bottom'), left: margin('left') }
-    };
-    inst.doc.page = page;
-    refreshPageChrome(inst);
+    var n = Math.max(1, Math.min(999, parseInt(value('[data-rich-page-number]'), 10) || 1));
+    var defaults = documentPageConfig(inst);
+    var override = {};
+    var size = value('[data-rich-page-size]') === 'letter' ? 'letter' : 'a4';
+    var orientation = value('[data-rich-page-orientation]') === 'landscape' ? 'landscape' : 'portrait';
+    if (size !== defaults.size) override.size = size;
+    if (orientation !== defaults.orientation) override.orientation = orientation;
+    var margins = {};
+    ['top', 'right', 'bottom', 'left'].forEach(function (side) {
+      var v = margin(side);
+      if (v !== defaults.margins[side]) margins[side] = v;
+    });
+    if (Object.keys(margins).length) override.margins = margins;
+    var overrides = inst.doc.pageOverrides || {};
+    if (Object.keys(override).length) overrides[String(n)] = override;
+    else delete overrides[String(n)];
+    inst.doc.pageOverrides = overrides;
     updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst);
     commit(inst, 'change');
     panel.hidden = true;
+  }
+  function resetPageOverride(inst, panel) {
+    inst = resolveInstance(inst.name) || inst;
+    var input = panel.querySelector('[data-rich-page-number]');
+    var n = Math.max(1, Math.min(999, parseInt(input ? input.value : '1', 10) || 1));
+    var overrides = inst.doc.pageOverrides || {};
+    delete overrides[String(n)];
+    inst.doc.pageOverrides = overrides;
+    fillPageSettings(inst, panel, documentPageConfig(inst), n);
+    updatePageGuides(inst);
+    if (inst.paginated) schedulePaginate(inst);
+    commit(inst, 'change');
   }
   function openPageSettings(inst) {
     var liveRoot = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"]');
@@ -3716,11 +3851,12 @@ window.__SUI_RICH = (function () {
       var value = rootStyle.getPropertyValue(name);
       if (value) panel.style.setProperty(name, value);
     });
-    fillPageSettings(inst, panel, pageConfig(inst));
+    var pageNo = currentPageNumber(inst);
+    fillPageSettings(inst, panel, pageConfig(inst, pageNo), pageNo);
     panel.hidden = false;
     var trigger = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"] .sui-rich-toolbar [data-rich-cmd="pageSettings"]');
     var rect = trigger ? trigger.getBoundingClientRect() : inst.root.getBoundingClientRect();
-    var panelW = 292, panelH = 372;
+    var panelW = 300, panelH = 400;
     var left = rect && rect.width ? rect.left : 16;
     var top = rect && rect.height ? rect.bottom + 6 : 16;
     left = Math.max(8, Math.min(window.innerWidth - panelW, left));
@@ -4124,6 +4260,32 @@ window.__SUI_RICH = (function () {
     panel.hidden = true;
     panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Document settings'));
 
+    var sizeRow = el('label');
+    sizeRow.appendChild(el('span', '', 'Size'));
+    var sizeSelect = el('select');
+    sizeSelect.setAttribute('data-rich-doc-size', '1');
+    sizeSelect.setAttribute('aria-label', 'Default page size');
+    [['a4', 'A4'], ['letter', 'Letter']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; sizeSelect.appendChild(op); });
+    sizeRow.appendChild(sizeSelect);
+    panel.appendChild(sizeRow);
+
+    var orientRow = el('label');
+    orientRow.appendChild(el('span', '', 'Orientation'));
+    var orientSelect = el('select');
+    orientSelect.setAttribute('data-rich-doc-orientation', '1');
+    orientSelect.setAttribute('aria-label', 'Default page orientation');
+    [['portrait', 'Vertical'], ['landscape', 'Horizontal']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; orientSelect.appendChild(op); });
+    orientRow.appendChild(orientSelect);
+    panel.appendChild(orientRow);
+
+    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Margins (mm)'));
+    var grid = el('div', 'sui-rich-pagesettings-grid');
+    panel.appendChild(grid);
+    pageMarginInput(grid, 'top', 'Top', 'doc');
+    pageMarginInput(grid, 'right', 'Right', 'doc');
+    pageMarginInput(grid, 'bottom', 'Bottom', 'doc');
+    pageMarginInput(grid, 'left', 'Left', 'doc');
+
     var lineRow = el('label');
     lineRow.appendChild(el('span', '', 'Line height'));
     var lineInput = el('input');
@@ -4157,7 +4319,7 @@ window.__SUI_RICH = (function () {
     footerInput.placeholder = 'Page {page} of {pages}';
     footerRow.appendChild(footerInput);
     panel.appendChild(footerRow);
-    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'General document defaults. Use {page} and {pages} in the header or footer; individual paragraphs can override the line height.'));
+    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'General defaults for every page; Page settings can override size, orientation and margins for a single page. Use {page} and {pages} in header/footer.'));
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-doc-apply', '1');
@@ -4186,6 +4348,14 @@ window.__SUI_RICH = (function () {
     return panel;
   }
   function fillDocumentSettings(inst, panel, page) {
+    var size = panel.querySelector('[data-rich-doc-size]');
+    var orient = panel.querySelector('[data-rich-doc-orientation]');
+    if (size) size.value = page.size;
+    if (orient) orient.value = page.orientation;
+    ['top', 'right', 'bottom', 'left'].forEach(function (side) {
+      var input = panel.querySelector('[data-rich-doc-margin="' + side + '"]');
+      if (input) input.value = String(page.margins[side]);
+    });
     var line = panel.querySelector('[data-rich-doc-lineheight]');
     if (line) line.value = String(page.lineHeight);
     var header = panel.querySelector('[data-rich-doc-header]');
@@ -4199,7 +4369,14 @@ window.__SUI_RICH = (function () {
     function value(sel) { var node = panel.querySelector(sel); return node ? String(node.value || '') : ''; }
     var lh = parseFloat(value('[data-rich-doc-lineheight]'));
     if (!isFinite(lh)) lh = defaultPageConfig().lineHeight;
-    var current = pageConfig(inst);
+    function margin(side) {
+      var node = panel.querySelector('[data-rich-doc-margin="' + side + '"]');
+      return node ? clampPageMargin(node.value, defaultPageConfig().margins[side]) : defaultPageConfig().margins[side];
+    }
+    var current = documentPageConfig(inst);
+    current.size = value('[data-rich-doc-size]') === 'letter' ? 'letter' : 'a4';
+    current.orientation = value('[data-rich-doc-orientation]') === 'landscape' ? 'landscape' : 'portrait';
+    current.margins = { top: margin('top'), right: margin('right'), bottom: margin('bottom'), left: margin('left') };
     current.lineHeight = Math.max(0.8, Math.min(3, Math.round(lh * 100) / 100));
     var header = value('[data-rich-doc-header]').slice(0, 500).trim();
     var footer = value('[data-rich-doc-footer]').slice(0, 500).trim();
@@ -4230,11 +4407,11 @@ window.__SUI_RICH = (function () {
       var value = rootStyle.getPropertyValue(name);
       if (value) panel.style.setProperty(name, value);
     });
-    fillDocumentSettings(inst, panel, pageConfig(inst));
+    fillDocumentSettings(inst, panel, documentPageConfig(inst));
     panel.hidden = false;
     var trigger = document.querySelector('[data-sui-rich][data-sui-rich-name="' + inst.name + '"] .sui-rich-toolbar [data-rich-cmd="documentSettings"]');
     var rect = trigger ? trigger.getBoundingClientRect() : inst.root.getBoundingClientRect();
-    var panelW = 300, panelH = 320;
+    var panelW = 300, panelH = 470;
     var left = rect && rect.width ? rect.left : 16;
     var top = rect && rect.height ? rect.bottom + 6 : 16;
     left = Math.max(8, Math.min(window.innerWidth - panelW, left));
@@ -4249,7 +4426,7 @@ window.__SUI_RICH = (function () {
   }
   function printHTML(inst) {
     var body = exportHTML(inst);
-    var page = pageConfig(inst);
+    var page = pageConfig(inst, 1);
     var header = inst.headerText ? '<div class="sui-print-header">' + escapePrintText(inst.headerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
     var footer = inst.footerText ? '<div class="sui-print-footer">' + escapePrintText(inst.footerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
     var pageSize = (page.size === 'letter' ? 'Letter' : 'A4') + (page.orientation === 'landscape' ? ' landscape' : '');
@@ -4266,7 +4443,7 @@ window.__SUI_RICH = (function () {
       '</style></head><body>' + header + '<main>' + body + '</main>' + footer + '</body></html>';
   }
   function printPreviewHTML(inst) {
-    var page = pageConfig(inst);
+    var page = pageConfig(inst, 1);
     var size = pageSizeMm(page);
     var body = exportHTML(inst);
     var head = inst.headerText ? '<div class="sui-preview-header">' + escapePrintText(sheetChromeText(inst.headerText, 1, 1, true)) + '</div>' : '';
@@ -5554,7 +5731,7 @@ window.__SUI_RICH = (function () {
     var fontDefs = '';
     for (var f = 0; f < rtfFonts.length; f++) fontDefs += '{\\f' + f + ' ' + rtfFonts[f] + ';}';
     var header = '{\\rtf1\\ansi\\deff0\\uc1{\\fonttbl' + fontDefs + '}';
-    var rtfPage = pageConfig(inst), rtfDims = pageSizeMm(rtfPage);
+    var rtfPage = pageConfig(inst, 1), rtfDims = pageSizeMm(rtfPage);
     header += '\\paperw' + mmToTwips(rtfDims.w) + '\\paperh' + mmToTwips(rtfDims.h) +
       '\\margl' + mmToTwips(rtfPage.margins.left) + '\\margr' + mmToTwips(rtfPage.margins.right) +
       '\\margt' + mmToTwips(rtfPage.margins.top) + '\\margb' + mmToTwips(rtfPage.margins.bottom);
@@ -5867,7 +6044,7 @@ window.__SUI_RICH = (function () {
     var footerRuns = inst.footerText ? docxChromeRuns(inst.footerText) : '';
     var headerXml = headerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + headerRuns + '</w:p></w:hdr>' : '';
     var footerXml = footerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:top w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + footerRuns + '</w:p></w:ftr>' : '';
-    var docxPage = pageConfig(inst), docxDims = pageSizeMm(docxPage);
+    var docxPage = pageConfig(inst, 1), docxDims = pageSizeMm(docxPage);
     var docxPgSz = '<w:pgSz w:w="' + mmToTwips(docxDims.w) + '" w:h="' + mmToTwips(docxDims.h) + '"' + (docxPage.orientation === 'landscape' ? ' w:orient="landscape"' : '') + '/>';
     var docxPgMar = '<w:pgMar w:top="' + mmToTwips(docxPage.margins.top) + '" w:right="' + mmToTwips(docxPage.margins.right) + '" w:bottom="' + mmToTwips(docxPage.margins.bottom) + '" w:left="' + mmToTwips(docxPage.margins.left) + '" w:header="720" w:footer="720" w:gutter="0"/>';
     var sectRefs = '';
@@ -6022,7 +6199,7 @@ window.__SUI_RICH = (function () {
       }
       return out;
     }
-    var odtPage = pageConfig(inst), odtDims = pageSizeMm(odtPage);
+    var odtPage = pageConfig(inst, 1), odtDims = pageSizeMm(odtPage);
     var odtPageProps = '<style:page-layout-properties fo:page-width="' + mmToCm(odtDims.w) + '" fo:page-height="' + mmToCm(odtDims.h) + '" fo:margin-top="' + mmToCm(odtPage.margins.top) + '" fo:margin-bottom="' + mmToCm(odtPage.margins.bottom) + '" fo:margin-left="' + mmToCm(odtPage.margins.left) + '" fo:margin-right="' + mmToCm(odtPage.margins.right) + '"/>';
     var styles;
     if (inst.headerText || inst.footerText) {
@@ -6996,7 +7173,7 @@ window.__SUI_RICH = (function () {
   function exportPDF(inst) {
     var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
     if (liveEditor) inst.editor = liveEditor;
-    var pageCfg = pageConfig(inst), pageDims = pageSizeMm(pageCfg);
+    var pageCfg = pageConfig(inst, 1), pageDims = pageSizeMm(pageCfg);
     var PAGE_W = Math.round(mmToPt(pageDims.w)), PAGE_H = Math.round(mmToPt(pageDims.h));
     var MARGIN = mmToPt(pageCfg.margins.left), MARGIN_R = mmToPt(pageCfg.margins.right);
     var MARGIN_T = mmToPt(pageCfg.margins.top), MARGIN_B = mmToPt(pageCfg.margins.bottom);
