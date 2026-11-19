@@ -39,7 +39,9 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   the cut; dragging near an edge auto-scrolls, so the target can go beyond the
   visible viewport and a simple click does nothing. Inside a long table the line
   snaps to a row edge and dropping it splits the table around the break,
-  preserving rowspan groups, header rows and all data rows. Moving the break
+  preserving rowspan groups, header rows and all data rows. A rowspan group
+  that does not fit the remaining page continues across the page boundary, so
+  the first page is filled instead of leaving blank space. Moving the break
   out or deleting it recomposes adjacent fragments into one table. Each break
   has a delete control. Every move/delete recalculates the following breaks,
   and oversized paragraphs, lists and tables are split so printed content never
@@ -47,7 +49,12 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Paragraph settings panel (alignment, indent with explicit −/+ buttons, line
   height, space before/after), zoom controls in the toolbar and a print preview
   overlay. The main toolbar and the contextual selection toolbar both expose
-  indent/outdent for the current paragraph.
+  indent/outdent for the current paragraph. Paragraphs and lists split at line
+  or item boundaries to fill each page; headings and images stay together.
+- Settings panels use labels plus a **?** hint icon with the explanation in its
+  tooltip instead of inline instruction paragraphs. The toolbar distinguishes
+  text color (plain **A** with a color bar) from background highlight
+  (highlighted **A** with a swatch).
 - Font-size buttons A+/A− change the selected text (or the word at the caret);
   zoom only scales the view and never changes the document fonts.
 - Image settings: double-click an image or right-click it and choose Edit/Replace/Delete;
@@ -55,7 +62,8 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Configurable toolbar groups, menu bar (File, Edit, Insert, Preferences; no
   redundant Format/Tools/View menus; Preferences holds Document settings and
   Page settings), contextual selection toolbar and status bar (words,
-  characters, paragraphs, caret, zoom). Toolbar categories are
+  characters, paragraphs, caret, zoom). The table toolbar is a dockable group
+  in the main toolbar and appears when the caret is in a table. Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
   top bar to re-insert it at the nearest slot; the other toolbars move aside. A single theme button at the right of the toolbar
   cycles the interface between dark and light; the document page stays white

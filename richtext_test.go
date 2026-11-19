@@ -188,19 +188,19 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     if (menuPanel.hidden) throw new Error('menu did not open');
     document.body.click();
     if (!menuPanel.hidden) throw new Error('menu did not close outside');
-    var tableBar = richRoot().querySelector('.sui-rich-tablebar');
+    var tableBar = richRoot().querySelector('[data-rich-table-group]');
     if (!tableBar || tableBar.hidden) throw new Error('table toolbar missing');
     var rowsBefore = richRoot().querySelectorAll('.sui-rich-editor tr').length;
     tableBar.querySelector('[data-rich-cmd="tableRowBelow"]').click();
     await wait(250);
     if (richRoot().querySelectorAll('.sui-rich-editor tr').length !== rowsBefore + 1) throw new Error('table row command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 
-    var tableSelect = richRoot().querySelector('.sui-rich-tablebar [data-rich-cmd="tableSelect"]');
+    var tableSelect = richRoot().querySelector('[data-rich-table-group] [data-rich-cmd="tableSelect"]');
     if (!tableSelect) throw new Error('table select command missing');
     tableSelect.click();
     await wait(100);
     if (!richRoot().querySelector('.sui-rich-editor table.sui-rich-table-selected')) throw new Error('whole table selection missing');
-    richRoot().querySelector('.sui-rich-tablebar [data-rich-cmd="tableAlignCenter"]').click();
+    richRoot().querySelector('[data-rich-table-group] [data-rich-cmd="tableAlignCenter"]').click();
     await wait(250);
     if ((richRoot().querySelector('.sui-rich-editor table').style.marginLeft || '') !== 'auto') throw new Error('table alignment: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 
@@ -1167,6 +1167,48 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     }
     if (reqMergedBody !== 70 || Object.keys(reqMergedLabels).length !== 70) throw new Error('merged table lost rows: body ' + reqMergedBody + ', labels ' + Object.keys(reqMergedLabels).length);
 
+    // A long table with a rowspan group after a preamble must start on page 1
+    // and fill it; the merged group continues on page 2 instead of moving the
+    // whole table and leaving the first page mostly empty.
+    var reqFillRows = [{ type: 'table_row', cells: [
+      { type: 'table_cell', header: true, children: [{ type: 'text', text: 'Name', marks: [] }] },
+      { type: 'table_cell', header: true, children: [{ type: 'text', text: 'Value', marks: [] }] }
+    ] }];
+    for (var fr = 0; fr < 40; fr++) {
+      var fcells = [];
+      if (fr === 0) fcells.push({ type: 'table_cell', rowspan: 8, children: [{ type: 'text', text: 'Group', marks: [] }] });
+      else if (fr > 0 && fr < 8) fcells.push({ type: 'table_cell', children: [{ type: 'text', text: '', marks: [] }] });
+      else fcells.push({ type: 'table_cell', children: [{ type: 'text', text: 'Row ' + fr, marks: [] }] });
+      fcells.push({ type: 'table_cell', children: [{ type: 'text', text: 'Value ' + fr, marks: [] }] });
+      reqFillRows.push({ type: 'table_row', cells: fcells });
+    }
+    var reqFillKids = [];
+    for (var fp = 0; fp < 18; fp++) reqFillKids.push({ type: 'paragraph', children: [{ type: 'text', text: 'Preamble ' + fp + ' before the table.', marks: [] }] });
+    reqFillKids.push({ type: 'table', header: true, rows: reqFillRows });
+    __SUI_RICH.set('editor', { type: 'doc', pageOverrides: {}, children: reqFillKids });
+    await wait(1500);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(6000);
+    var reqFillSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    var reqFillBody = reqFillSheets[0] ? reqFillSheets[0].querySelector('.sui-rich-sheet-body') : null;
+    if (!reqFillBody || !reqFillBody.querySelector('table')) throw new Error('long table did not start on the first page');
+    var reqFillMax = 0, reqFillRect = reqFillBody.getBoundingClientRect();
+    for (var fc = 0; fc < reqFillBody.children.length; fc++) {
+      var fcr = reqFillBody.children[fc].getBoundingClientRect();
+      if (fcr.bottom > reqFillMax) reqFillMax = fcr.bottom;
+    }
+    var reqFillFree = Math.round(reqFillRect.bottom - reqFillMax);
+    if (reqFillFree > 100) throw new Error('first page left too much free space: ' + reqFillFree);
+    for (var fs = 0; fs < reqFillSheets.length; fs++) {
+      var fsBody = reqFillSheets[fs].querySelector('.sui-rich-sheet-body');
+      if (fsBody && fsBody.scrollHeight > fsBody.clientHeight + 1) throw new Error('rowspan table exceeds the printable area on page ' + (fs + 1));
+    }
+    var reqFillPages = reqFillSheets.length;
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(300);
+    var reqFillGuides = document.querySelectorAll('.sui-rich-guide').length;
+    if (reqFillPages !== reqFillGuides + 1) throw new Error('rowspan table guide/page mismatch: pages ' + reqFillPages + ', guides ' + reqFillGuides);
+
     // A paragraph taller than the printable area is split across pages, in the
     // paginated view and in print preview, and never crosses the bottom margin.
     var reqLongWords = [];
@@ -1213,7 +1255,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var reqPrompt = document.querySelector('.sui-rich-prompt');
     if (!reqPrompt) throw new Error('link overlay missing');
     if (reqPrompt.querySelector('.sui-rich-tableprops-title, h1, h2, h3')) throw new Error('data overlay must not have a heading');
-    if (!/Enter the link URL/.test(reqPrompt.querySelector('.sui-rich-prompt-text').textContent)) throw new Error('link overlay instructions missing');
+    if (!/Enter the link URL/.test(reqPrompt.title || '')) throw new Error('link overlay hint missing');
     reqPrompt.querySelector('input').value = 'https://example.com';
     [].slice.call(reqPrompt.querySelectorAll('button')).filter(function (b) { return b.textContent === 'Insert link'; })[0].click();
     await wait(300);

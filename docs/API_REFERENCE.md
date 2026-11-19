@@ -1722,6 +1722,16 @@ Shift+Tab; DOCX and ODT export use native list numbering.
 **Paginated view:** the **Pages** button in the status bar shows A4 sheets with margins, optional header/footer and table
 rows split across pages; header rows are repeated on each page. Press **Edit**
 to return to the continuous editor. A single theme button at the right cycles the interface theme.
+Paragraphs and lists that do not fit the remaining printable area are split at
+line or item boundaries so the page is filled; headings and images stay together
+when possible.
+
+The table toolbar is a dockable group in the main toolbar and appears when the
+caret or selection is in a table; it is not a floating panel. The two toolbar
+color controls are distinguishable: a plain **A** with a color bar for text
+color and a highlighted **A** with a swatch for the background color. Settings
+panels use labels plus a **?** hint icon whose tooltip holds the explanation,
+instead of visible instruction paragraphs.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
@@ -1761,17 +1771,20 @@ not only the small handle) to move it; dragging near an editor edge auto-scrolls
 so the target can move beyond the visible viewport. A simple click on a line
 does not create or move a break. Inside a long table the line snaps to a table
 row boundary; dropping it splits the table into two tables around the explicit
-page break, keeping rows joined by rowspan together, repeating header rows and
-preserving every data row. Moving an existing break into a table fragment
+page break, keeping rowspan groups together when they fit, repeating header
+rows and preserving every data row. If a rowspan group does not fit the
+remaining page, it is split at the page boundary and the merged cell continues
+on the next page, so the first page is filled instead of leaving blank space. Moving an existing break into a table fragment
 splits that fragment the same way. When a break is moved out of the table or
 deleted, adjacent fragments of the same table are automatically recomposed into
 a single table, restoring the original rows and header. Explicit breaks
 and their lines are red too. Every break has a delete control, and moving or
 deleting a break recalculates all following breaks, taking block
 margins/borders (including table borders, split rows and vertical merges kept
-together) into account. In the paginated view, print preview and print, oversized
-paragraphs and lists are split across pages (tables keep rowspan groups
-together) so the content never extends into the printable margins. Guides are
+together or continued across pages) into account. In the paginated view, print preview and print, oversized
+paragraphs and lists are split across pages; table rowspan groups stay
+together when they fit and continue across pages when needed, so the content
+never extends into the printable margins and pages are filled. Guides are
 hidden in the paginated view and in print.
 
 Every text feature has a toolbar control: inline code (`code`) and Remove link

@@ -2753,12 +2753,21 @@ window.__SUI_RICH = (function () {
         else if (token === 'spaceBefore') group.appendChild(select(inst, 'spaceBefore', [['', 'Space before'], ['0', '0'], ['0.5em', '0.5em'], ['1em', '1em'], ['1.5em', '1.5em']], 'Space before'));
         else if (token === 'spaceAfter') group.appendChild(select(inst, 'spaceAfter', [['', 'Space after'], ['0', '0'], ['0.5em', '0.5em'], ['1em', '1em'], ['1.5em', '1.5em']], 'Space after'));
         else if (token === 'textColor' || token === 'highlight') {
+          var colorWrap = el('label', 'sui-rich-color-control');
+          colorWrap.title = token === 'textColor' ? 'Text color' : 'Highlight color';
+          var colorIcon = el('span', 'sui-rich-color-icon');
+          colorIcon.innerHTML = ICONS[token] || '';
           var color = el('input', 'sui-rich-color');
           color.type = 'color';
           color.setAttribute('data-rich-cmd', token);
           color.value = token === 'textColor' ? '#e6e6ef' : '#ffe066';
-          color.title = token === 'textColor' ? 'Text color' : 'Highlight color';
-          group.appendChild(color);
+          color.title = colorWrap.title;
+          color.setAttribute('aria-label', colorWrap.title);
+          colorWrap.style.setProperty('--sui-rich-color-current', color.value);
+          color.addEventListener('input', function () { colorWrap.style.setProperty('--sui-rich-color-current', color.value); });
+          colorWrap.appendChild(colorIcon);
+          colorWrap.appendChild(color);
+          group.appendChild(colorWrap);
         } else if (token === 'zoom') {
           var zoomOutBtn = button(inst, 'zoomOut', '\u2212', TOOL_LABELS.zoomOut);
           zoomOutBtn.setAttribute('data-rich-zoom', 'out');
@@ -2794,6 +2803,7 @@ window.__SUI_RICH = (function () {
     updateThemeButton(inst);
     bindToolbarDrag(inst);
     restoreToolbarPositions(inst);
+    buildTableBar(inst);
   }
   function saveToolbarPositions(inst) {
     var store = {};
@@ -2933,6 +2943,16 @@ window.__SUI_RICH = (function () {
       wrap.appendChild(b); wrap.appendChild(panel); bar.appendChild(wrap);
     });
   }
+  function panelTitle(text, hint) {
+    var title = el('div', 'sui-rich-tableprops-title', text);
+    if (hint) {
+      var mark = el('span', 'sui-rich-hint', '?');
+      mark.title = hint;
+      mark.setAttribute('aria-label', hint);
+      title.appendChild(mark);
+    }
+    return title;
+  }
   function tablePropsPanel(inst) {
     var panel = document.querySelector('.sui-rich-tableprops[data-rich-props="' + inst.name + '"]');
     if (!panel) {
@@ -3061,91 +3081,57 @@ window.__SUI_RICH = (function () {
     close.type = 'button';
     close.onclick = function () { panel.hidden = true; };
     panel.appendChild(close);
-    var bar = inst.root.querySelector('.sui-rich-tablebar');
+    var bar = inst.root.querySelector('[data-rich-table-group]');
     var rect = (bar && !bar.hidden ? bar : table).getBoundingClientRect();
     panel.style.left = Math.max(8, Math.min(window.innerWidth - 248, rect.left)) + 'px';
     panel.style.top = Math.min(window.innerHeight - 220, rect.bottom + 6) + 'px';
   }
   function buildTableBar(inst) {
-    var bar = inst.root.querySelector('.sui-rich-tablebar');
-    if (!bar) return;
-    bar.innerHTML = '';
-    var handle = el('span', 'sui-rich-tablebar-handle', '\u28ff');
-    handle.setAttribute('data-rich-table-drag', '1');
-    handle.setAttribute('title', 'Drag to reposition; double-click to dock');
-    bar.appendChild(handle);
-    var groups = [
-      [['tableSelect', 'T', 'Select whole table']],
-      [['tableRowAbove', '+R', 'Add row above'], ['tableRowBelow', '+R\u2193', 'Add row below'], ['tableRowDelete', '-R', 'Delete row']],
-      [['tableColLeft', '+C', 'Add column left'], ['tableColRight', '+C\u2192', 'Add column right'], ['tableColDelete', '-C', 'Delete column']],
-      [['tableHeader', 'H', 'Toggle header row'], ['tableMerge', 'M', 'Merge selected cells'], ['tableSplit', 'S', 'Split cell']],
-      [['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'], ['tableProps', '\u2699', 'Table properties'], ['tableDelete', '\u00d7', 'Delete table'], ['tableDock', 'D', 'Dock table toolbar']]
+    var toolbar = inst.root && inst.root.querySelector('.sui-rich-toolbar');
+    if (!toolbar) return;
+    var legacy = inst.root.querySelector('.sui-rich-tablebar');
+    if (legacy) { legacy.hidden = true; legacy.innerHTML = ''; }
+    var old = toolbar.querySelector('[data-rich-table-group]');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var group = el('div', 'sui-rich-group sui-rich-tool-group');
+    group.setAttribute('data-rich-cat', 'table');
+    group.setAttribute('data-rich-table-group', '1');
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', 'Table actions');
+    group.hidden = true;
+    var handle = el('span', 'sui-rich-tool-handle', '\u28ff');
+    handle.title = 'Drag to move this toolbar; drop it on the top bar to dock it';
+    handle.setAttribute('data-rich-tool-handle', '1');
+    group.appendChild(handle);
+    var specs = [
+      ['tableSelect', 'T', 'Select whole table'],
+      ['tableRowAbove', '+R', 'Add row above'], ['tableRowBelow', '+R\u2193', 'Add row below'], ['tableRowDelete', '-R', 'Delete row'],
+      ['tableColLeft', '+C', 'Add column left'], ['tableColRight', '+C\u2192', 'Add column right'], ['tableColDelete', '-C', 'Delete column'],
+      ['tableHeader', 'H', 'Toggle header row'], ['tableMerge', 'M', 'Merge selected cells'], ['tableSplit', 'S', 'Split cell'],
+      ['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'],
+      ['tableProps', '\u2699', 'Table properties'], ['tableDelete', '\u00d7', 'Delete table']
     ];
-    for (var gi = 0; gi < groups.length; gi++) {
-      var group = el('div', 'sui-rich-group');
-      for (var bi = 0; bi < groups[gi].length; bi++) {
-        var spec = groups[gi][bi];
-        group.appendChild(button(inst, spec[0], spec[1], spec[2]));
-      }
-      bar.appendChild(group);
-    }
+    for (var i = 0; i < specs.length; i++) group.appendChild(button(inst, specs[i][0], specs[i][1], specs[i][2]));
+    var theme = toolbar.querySelector('.sui-rich-theme-group');
+    toolbar.insertBefore(group, theme || null);
+    bindToolbarDrag(inst);
+    restoreToolbarPositions(inst);
+    updateTableBar(inst);
   }
   function updateTableBar(inst) {
-    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
-    if (!bar) return;
+    var group = inst.root && inst.root.querySelector('[data-rich-table-group]');
+    if (!group) return;
     var table = closestIn(inst, 'table');
     if (!table && inst.selectedTable && inst.selectedTable.isConnected) table = inst.selectedTable;
-    if (!table) { bar.hidden = true; try { clearCellSelection(inst); } catch (e) {} return; }
-    bar.hidden = false;
+    if (!table) { group.hidden = true; try { clearCellSelection(inst); } catch (e) {} return; }
+    group.hidden = false;
   }
   function dockTableBar(inst) {
-    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
-    if (!bar) return;
-    bar.classList.remove('floating');
-    bar.style.left = '';
-    bar.style.top = '';
-    try { localStorage.removeItem('sui-rich-tablebar-' + inst.name); } catch (e) {}
-  }
-  function restoreTableBarPosition(inst) {
-    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
-    if (!bar) return;
-    try {
-      var saved = localStorage.getItem('sui-rich-tablebar-' + inst.name);
-      if (saved) {
-        var pos = parseJSON(saved, null);
-        if (pos && isFinite(pos.x) && isFinite(pos.y)) {
-          bar.classList.add('floating');
-          bar.style.left = Math.max(0, Number(pos.x)) + 'px';
-          bar.style.top = Math.max(0, Number(pos.y)) + 'px';
-        }
-      }
-    } catch (e) {}
-  }
-  function bindTableBarDrag(inst) {
-    var bar = inst.root && inst.root.querySelector('.sui-rich-tablebar');
-    if (!bar) return;
-    var handle = bar.querySelector('[data-rich-table-drag]');
-    if (!handle || handle.__suiDragBound) return;
-    handle.__suiDragBound = true;
-    handle.addEventListener('dblclick', function (e) { e.preventDefault(); dockTableBar(inst); });
-    handle.addEventListener('mousedown', function (e) {
-      e.preventDefault(); e.stopPropagation();
-      var rect = bar.getBoundingClientRect();
-      var offsetX = e.clientX - rect.left, offsetY = e.clientY - rect.top;
-      if (!bar.classList.contains('floating')) { bar.style.left = rect.left + 'px'; bar.style.top = rect.top + 'px'; }
-      bar.classList.add('floating');
-      function move(ev) {
-        bar.style.left = Math.max(0, Math.min(window.innerWidth - 80, ev.clientX - offsetX)) + 'px';
-        bar.style.top = Math.max(0, Math.min(window.innerHeight - 40, ev.clientY - offsetY)) + 'px';
-      }
-      function up() {
-        document.removeEventListener('mousemove', move);
-        document.removeEventListener('mouseup', up);
-        try { localStorage.setItem('sui-rich-tablebar-' + inst.name, JSON.stringify({ x: parseFloat(bar.style.left) || 0, y: parseFloat(bar.style.top) || 0 })); } catch (err) {}
-      }
-      document.addEventListener('mousemove', move);
-      document.addEventListener('mouseup', up);
-    });
+    var group = inst.root && inst.root.querySelector('[data-rich-table-group]');
+    if (!group) return;
+    dockToolbar(inst, group);
+    var theme = inst.root.querySelector('.sui-rich-theme-group');
+    if (theme && theme.parentNode === group.parentNode) group.parentNode.insertBefore(group, theme);
   }
   function closeMenus(inst) {
     var panels = inst.root.querySelectorAll('.sui-rich-menu-panel');
@@ -3967,31 +3953,51 @@ window.__SUI_RICH = (function () {
       if (tag === 'p' || tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4' || tag === 'blockquote' || tag === 'pre') return splitTextBlock(node, maxH);
       return null;
     }
-    function placeTextBlock(node, itemIndex) {
+    function blockCanSplit(type) {
+      return type === 'paragraph' || type === 'pre' || type === 'code_block' ||
+        type === 'blockquote' || type === 'bullet_list' || type === 'ordered_list';
+    }
+    function placeTextBlock(node, itemIndex, blockType) {
       var limit = function () { return current.metrics.contentH - 8; };
       var h = measureBlock(node);
+      var splittable = blockCanSplit(blockType);
       var baseOffset = 0, baseKind = '';
-      if (current.used > 0 && h <= limit() && current.used + h > limit()) {
+      if (current.used > 0 && h <= limit() && current.used + h > limit() && !splittable) {
         fresh({ block: itemIndex, offset: baseOffset, kind: baseKind }); current.used = 0;
       }
-      if (h <= limit()) { appendBlock(node, h); return; }
-      // A single block taller than the printable area is split into parts; each
-      // part is measured against the real page so it never enters the margins.
+      if (current.used + h <= limit()) { appendBlock(node, h); return; }
+      if (h <= limit() && !splittable) {
+        fresh({ block: itemIndex, offset: baseOffset, kind: baseKind });
+        current.used = 0;
+        appendBlock(node, h);
+        return;
+      }
+      // A block that does not fit the remaining space is split so the page is
+      // filled; headings and images stay whole. Each part is measured against
+      // the real page so it never enters the margins.
       var remaining = node, guard = 0;
       while (remaining && guard++ < 200) {
         var maxH = limit() - current.used;
         var rh = measureBlock(remaining);
         if (rh <= maxH) { appendBlock(remaining, rh); return; }
-        if (current.used > 0 && rh <= limit()) { fresh({ block: itemIndex, offset: baseOffset, kind: baseKind }); current.used = 0; continue; }
         var parts = splitBlockToFit(remaining, maxH);
-        if (!parts) { appendBlock(remaining, rh); return; }
+        if (!parts) {
+          if (current.used > 0) {
+            fresh({ block: itemIndex, offset: baseOffset, kind: baseKind });
+            current.used = 0;
+            continue;
+          }
+          appendBlock(remaining, rh);
+          return;
+        }
         var headH = measureBlock(parts.head);
         appendBlock(parts.head, headH);
         remaining = parts.rest;
         var nextOffset = baseOffset + (parts.offset || 0);
         var nextKind = parts.kind || '';
         if (!(remaining.textContent || '').replace(/\s+/g, '')) { takeFromMeasure(remaining); return; }
-        fresh({ block: itemIndex, offset: nextOffset, kind: nextKind }); current.used = 0;
+        fresh({ block: itemIndex, offset: nextOffset, kind: nextKind });
+        current.used = 0;
         baseOffset = nextOffset;
         baseKind = nextKind;
       }
@@ -4056,35 +4062,85 @@ window.__SUI_RICH = (function () {
         shell = null;
         return true;
       }
-      function appendRange(startIdx, endIdx) { for (var r = startIdx; r <= endIdx; r++) shell.tbody.appendChild(bodyRows[r].cloneNode(true)); }
+      var pending = [];
+      function insertPending(tr) {
+        if (!pending.length) return;
+        pending.sort(function (a, b) { return a.col - b.col; });
+        for (var p = 0; p < pending.length; p++) {
+          var cell = pending[p].node.cloneNode(true);
+          var ref = tr.cells[pending[p].col] || null;
+          tr.insertBefore(cell, ref);
+        }
+        pending = [];
+      }
+      function appendRow(index) {
+        var tr = bodyRows[index].cloneNode(true);
+        if (shell.tbody.children.length === headerCount) insertPending(tr);
+        shell.tbody.appendChild(tr);
+        return tr;
+      }
+      function adjustPartRowspans() {
+        var body = Array.prototype.slice.call(shell.tbody.children).slice(headerCount);
+        var total = body.length, next = [];
+        for (var ri = 0; ri < total; ri++) {
+          var cells = body[ri].cells || [];
+          for (var ci = 0; ci < cells.length; ci++) {
+            var cell = cells[ci];
+            var span = Number(cell.getAttribute('rowspan') || 1);
+            if (span > 1 && ri + span > total) {
+              var remaining = span - (total - ri);
+              cell.setAttribute('rowspan', String(total - ri));
+              var clone = cell.cloneNode(false);
+              clone.setAttribute('rowspan', String(remaining));
+              next.push({ col: ci, node: clone });
+            }
+          }
+        }
+        return next;
+      }
       newPart();
       var limitForPage = function () { return current.metrics.contentH - 8 - tableEdge; };
       for (var g = 0; g < groups.length; g++) {
-        var group = groups[g], count = group.end - group.start + 1;
-        appendRange(group.start, group.end);
-        var h = partHeight();
-        if (current.used + h > limitForPage()) {
-          removeRows(count);
-          finishPart();
-          fresh({ block: itemIndex, row: headerCount + group.start });
-          current.used = 0;
-          newPart();
-          appendRange(group.start, group.end);
-          h = partHeight();
-          if (current.used + h > limitForPage() && count > 1) {
-            removeRows(count);
-            for (var sr = group.start; sr <= group.end; sr++) {
-              appendRange(sr, sr);
-              var sh2 = partHeight();
-              if (current.used + sh2 > limitForPage() && bodyCount() > 1) {
-                removeRows(1);
-                finishPart();
-                fresh({ block: itemIndex, row: headerCount + sr });
-                current.used = 0;
-                newPart();
-                appendRange(sr, sr);
+        var group = groups[g];
+        var sr = group.start;
+        var guard = 0;
+        while (sr <= group.end && guard++ < 200) {
+          var added = 0;
+          for (; sr <= group.end; sr++) {
+            var tr = appendRow(sr);
+            var h = partHeight();
+            if (current.used + h > limitForPage()) {
+              shell.tbody.removeChild(tr);
+              // A row taller than a whole page cannot fit anywhere; place it on
+              // an empty page so the loop can make progress (clipped by print).
+              if (added === 0 && bodyCount() === 0) {
+                shell.tbody.appendChild(tr);
+                added = 1;
+                sr++;
               }
+              break;
             }
+            added++;
+          }
+          if (added === 0) {
+            finishPart();
+            fresh({ block: itemIndex, row: headerCount + sr });
+            current.used = 0;
+            newPart();
+            continue;
+          }
+          var continuations = adjustPartRowspans();
+          if (sr <= group.end) {
+            // The part is full inside a rowspan group: keep the remaining
+            // merged rows in the next part and continue the merge there.
+            pending = continuations;
+            finishPart();
+            fresh({ block: itemIndex, row: headerCount + sr });
+            current.used = 0;
+            newPart();
+          } else {
+            if (continuations.length) pending = continuations;
+            break;
           }
         }
       }
@@ -4103,7 +4159,7 @@ window.__SUI_RICH = (function () {
         appendBlock(item.node, h);
         continue;
       }
-      placeTextBlock(item.node, item.index);
+      placeTextBlock(item.node, item.index, item.block.type);
     }
     if (measure.parentNode) measure.parentNode.removeChild(measure);
     inst.pageBreakSources = breakSources;
@@ -4320,6 +4376,7 @@ window.__SUI_RICH = (function () {
     input.step = '1';
     input.setAttribute('data-rich-' + prefix + '-margin', side);
     input.setAttribute('aria-label', label + ' margin (mm)');
+    input.title = label + ' margin in millimetres (0-50)';
     row.appendChild(input);
     parent.appendChild(row);
     return input;
@@ -4366,7 +4423,7 @@ window.__SUI_RICH = (function () {
     panel = el('div', 'sui-rich-pagesettings');
     panel.setAttribute('data-rich-pagesettings', inst.name);
     panel.hidden = true;
-    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Page settings'));
+    panel.appendChild(panelTitle('Page settings', 'Overrides Document settings for this page. Reset restores the document defaults. Margins accept 0-50 mm.'));
 
     var pageRow = el('label');
     pageRow.appendChild(el('span', '', 'Page'));
@@ -4377,6 +4434,7 @@ window.__SUI_RICH = (function () {
     pageNumber.step = '1';
     pageNumber.setAttribute('data-rich-page-number', '1');
     pageNumber.setAttribute('aria-label', 'Page number');
+    pageNumber.title = 'Page number for this override';
     pageRow.appendChild(pageNumber);
     panel.appendChild(pageRow);
 
@@ -4405,8 +4463,6 @@ window.__SUI_RICH = (function () {
     pageMarginInput(grid, 'right', 'Right');
     pageMarginInput(grid, 'bottom', 'Bottom');
     pageMarginInput(grid, 'left', 'Left');
-
-    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Overrides Document settings for this page. Reset restores the document defaults. Margins accept 0-50 mm.'));
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply');
@@ -4544,7 +4600,7 @@ window.__SUI_RICH = (function () {
     panel = el('div', 'sui-rich-paragraphsettings');
     panel.setAttribute('data-rich-paragraphsettings', inst.name);
     panel.hidden = true;
-    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Paragraph settings'));
+    panel.appendChild(panelTitle('Paragraph settings', 'Applies to the selection, or to the paragraph at the caret.'));
 
     var alignRow = el('label');
     alignRow.appendChild(el('span', '', 'Alignment'));
@@ -4565,6 +4621,7 @@ window.__SUI_RICH = (function () {
       input.step = String(step);
       input.setAttribute('data-rich-paragraph-' + key, '1');
       input.setAttribute('aria-label', label + (unit ? ' (' + unit + ')' : ''));
+      input.title = label + (unit ? ' in ' + unit : '');
       row.appendChild(input);
       panel.appendChild(row);
       return input;
@@ -4578,7 +4635,6 @@ window.__SUI_RICH = (function () {
     numberRow('Line height', 'lineheight', 0.8, 3, 0.05, '');
     numberRow('Space before', 'before', 0, 200, 1, 'px');
     numberRow('Space after', 'after', 0, 200, 1, 'px');
-    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Applies to the selection, or to the paragraph at the caret.'));
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-paragraph-apply', '1');
@@ -4777,7 +4833,7 @@ window.__SUI_RICH = (function () {
     panel = el('div', 'sui-rich-imagesettings');
     panel.setAttribute('data-rich-imagesettings', inst.name);
     panel.hidden = true;
-    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Image settings'));
+    panel.appendChild(panelTitle('Image settings', 'Edit the URL or choose a file to replace the image. Width is in pixels; leave it empty for automatic.'));
 
     var urlRow = el('label');
     urlRow.appendChild(el('span', '', 'URL'));
@@ -4785,6 +4841,7 @@ window.__SUI_RICH = (function () {
     url.type = 'text';
     url.setAttribute('data-rich-image-url', '1');
     url.setAttribute('aria-label', 'Image URL');
+    url.title = 'Image URL or data URL';
     url.placeholder = 'https://example.com/image.png';
     urlRow.appendChild(url);
     panel.appendChild(urlRow);
@@ -4817,6 +4874,7 @@ window.__SUI_RICH = (function () {
     width.step = '1';
     width.setAttribute('data-rich-image-width', '1');
     width.setAttribute('aria-label', 'Image width in pixels; empty for automatic');
+    width.title = 'Width in pixels; leave empty for automatic';
     widthRow.appendChild(width);
     panel.appendChild(widthRow);
 
@@ -4828,7 +4886,6 @@ window.__SUI_RICH = (function () {
     [['', 'Default'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; align.appendChild(op); });
     alignRow.appendChild(align);
     panel.appendChild(alignRow);
-    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'Edit the URL or choose a file to replace the image. Width is in pixels; leave it empty for automatic.'));
     var error = el('p', 'sui-rich-imagesettings-error');
     error.hidden = true;
     panel.appendChild(error);
@@ -4950,7 +5007,7 @@ window.__SUI_RICH = (function () {
     panel = el('div', 'sui-rich-documentsettings');
     panel.setAttribute('data-rich-documentsettings', inst.name);
     panel.hidden = true;
-    panel.appendChild(el('div', 'sui-rich-tableprops-title', 'Document settings'));
+    panel.appendChild(panelTitle('Document settings', 'General defaults for every page; Page settings can override size, orientation and margins for a single page. Use {page} and {pages} in header/footer.'));
 
     var sizeRow = el('label');
     sizeRow.appendChild(el('span', '', 'Size'));
@@ -4987,6 +5044,7 @@ window.__SUI_RICH = (function () {
     lineInput.step = '0.05';
     lineInput.setAttribute('data-rich-doc-lineheight', '1');
     lineInput.setAttribute('aria-label', 'Default document line height');
+    lineInput.title = 'Between 0.8 and 3';
     lineRow.appendChild(lineInput);
     panel.appendChild(lineRow);
 
@@ -4997,6 +5055,7 @@ window.__SUI_RICH = (function () {
     headerInput.maxLength = 500;
     headerInput.setAttribute('data-rich-doc-header', '1');
     headerInput.setAttribute('aria-label', 'Header text');
+    headerInput.title = 'Use {page} and {pages} for page numbers';
     headerInput.placeholder = 'Report \u00b7 {page}/{pages}';
     headerRow.appendChild(headerInput);
     panel.appendChild(headerRow);
@@ -5008,10 +5067,10 @@ window.__SUI_RICH = (function () {
     footerInput.maxLength = 500;
     footerInput.setAttribute('data-rich-doc-footer', '1');
     footerInput.setAttribute('aria-label', 'Footer text');
+    footerInput.title = 'Use {page} and {pages} for page numbers';
     footerInput.placeholder = 'Page {page} of {pages}';
     footerRow.appendChild(footerInput);
     panel.appendChild(footerRow);
-    panel.appendChild(el('div', 'sui-rich-pagesettings-hint', 'General defaults for every page; Page settings can override size, orientation and margins for a single page. Use {page} and {pages} in header/footer.'));
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-doc-apply', '1');
@@ -5255,7 +5314,9 @@ window.__SUI_RICH = (function () {
         if (value) card.style.setProperty(name, value);
       });
     }
-    card.appendChild(el('p', 'sui-rich-prompt-text', opts.instructions || ''));
+    card.title = opts.instructions || '';
+    overlay.title = opts.instructions || '';
+    overlay.setAttribute('aria-label', opts.instructions || 'Dialog');
     var inputs = {};
     var first = null;
     (opts.fields || []).forEach(function (field) {
@@ -5671,7 +5732,7 @@ window.__SUI_RICH = (function () {
     var readOnly = boolAttr(root, 'data-sui-rich-readonly', false);
     inst.editor.setAttribute('contenteditable', readOnly ? 'false' : 'true');
     if (attr(root, 'data-sui-rich-placeholder')) inst.editor.setAttribute('data-placeholder', attr(root, 'data-sui-rich-placeholder'));
-    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildTableBar(inst); restoreTableBarPosition(inst); bindTableBarDrag(inst); buildStatus(inst); buildFindBar(inst); buildPageChrome(inst);
+    buildToolbar(inst); buildMenu(inst); buildContext(inst); buildStatus(inst); buildFindBar(inst); buildPageChrome(inst);
     if (attr(root, 'data-sui-rich-paginated') === '1') setPaginated(inst, true);
     var savedTheme = '';
     try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
@@ -8631,6 +8692,7 @@ const suiRichTextCss = `
 .sui-rich-submenu { left: calc(100% + 4px); top: -5px; min-width: 150px; }
 .sui-rich-toolbar { display: flex; flex-wrap: wrap; gap: 5px; padding: 6px 8px; border-bottom: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); align-items: center; }
 .sui-rich-tool-group { display: flex; align-items: center; gap: 2px; padding: 2px 4px; border: 1px solid var(--sui-rich-border); border-radius: 9px; background: color-mix(in srgb, var(--sui-rich-fg) 4%, transparent); }
+.sui-rich-tool-group[hidden] { display: none; }
 .sui-rich-tool-handle { cursor: grab; color: var(--sui-rich-muted); font-size: 11px; padding: 0 2px; user-select: none; line-height: 1; }
 .sui-rich-tool-handle:active { cursor: grabbing; }
 .sui-rich-pages { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); padding: 18px 18px 26px; overflow: auto; background: #e6e9ef; }
@@ -8686,7 +8748,14 @@ const suiRichTextCss = `
 .sui-rich-image-menu .sui-rich-menu-item { width: 100%; text-align: left; }
 .sui-rich-editor img.sui-rich-image-selected { outline: 2px solid var(--sui-rich-accent); outline-offset: 2px; }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
-.sui-rich-color { width: 34px; padding: 2px; cursor: pointer; }
+.sui-rich-color-control { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 5px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; background: transparent; }
+.sui-rich-color-control:hover, .sui-rich-color-control:focus-within { background: var(--sui-rich-hover); border-color: var(--sui-rich-border); }
+.sui-rich-color-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; font-size: 13px; line-height: 1; }
+.sui-rich-color-icon::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 3px; border-radius: 2px; background: var(--sui-rich-color-current, #fff); }
+.sui-rich-color { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; flex: 0 0 auto; }
+.sui-rich-color::-webkit-color-swatch-wrapper { padding: 0; }
+.sui-rich-color::-webkit-color-swatch { border: 1px solid var(--sui-rich-border); border-radius: 4px; }
+.sui-rich-color::-moz-color-swatch { border: 1px solid var(--sui-rich-border); border-radius: 4px; }
 .sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }
 .sui-rich-editor { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); min-height: 0; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: anywhere; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
 .sui-rich-editor:empty::before, .sui-rich-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--sui-rich-muted); pointer-events: none; }
@@ -8733,7 +8802,6 @@ const suiRichTextCss = `
 .sui-rich-tableprops { position: fixed; z-index: 965; width: 232px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.35); color: var(--sui-rich-fg); font-size: 12px; }
 .sui-rich-prompt { position: fixed; inset: 0; z-index: 6200; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0, 0, 0, .55); }
 .sui-rich-prompt-card { width: min(440px, 92vw); max-height: 90vh; overflow: auto; padding: 16px; border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 12px; background: var(--sui-rich-bg, #1d2129); color: var(--sui-rich-fg, #e6e6ef); box-shadow: 0 18px 50px rgba(0,0,0,.5); }
-.sui-rich-prompt-text { margin: 0 0 12px; color: var(--sui-rich-muted, #8fa0b8); font-size: 13px; line-height: 1.5; }
 .sui-rich-prompt-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: 12px; color: var(--sui-rich-muted, #8fa0b8); }
 .sui-rich-prompt-field input, .sui-rich-prompt-field textarea { width: 100%; border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 6px; background: var(--sui-rich-bg, #1d2129); color: var(--sui-rich-fg, #e6e6ef); font: inherit; font-size: 13px; padding: 7px 8px; }
 .sui-rich-prompt-field textarea { min-height: 150px; resize: vertical; font-family: ui-monospace, Consolas, monospace; }
@@ -8767,7 +8835,8 @@ const suiRichTextCss = `
 .sui-rich-pagesettings label > span, .sui-rich-documentsettings label > span, .sui-rich-paragraphsettings label > span, .sui-rich-imagesettings label > span { flex: none; }
 .sui-rich-pagesettings label > input[type="text"], .sui-rich-documentsettings label > input[type="text"], .sui-rich-paragraphsettings label > input[type="text"], .sui-rich-imagesettings label > input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
 .sui-rich-pagesettings-grid, .sui-rich-paragraphsettings .sui-rich-pagesettings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
-.sui-rich-pagesettings-hint { color: var(--sui-rich-muted); font-size: 11px; line-height: 1.4; }
+.sui-rich-hint { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border: 1px solid var(--sui-rich-border); border-radius: 50%; color: var(--sui-rich-muted); font-size: 10px; font-weight: 700; line-height: 1; text-transform: none; cursor: help; vertical-align: middle; }
+.sui-rich-hint:hover { color: var(--sui-rich-fg); border-color: var(--sui-rich-accent); }
 .sui-rich-pagesettings-actions { display: flex; gap: 6px; }
 .sui-rich-indent-actions { display: flex; gap: 6px; margin-top: -2px; }
 .sui-rich-indent-actions .sui-rich-btn { flex: 1; justify-content: center; }

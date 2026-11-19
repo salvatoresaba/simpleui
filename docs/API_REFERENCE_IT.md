@@ -1688,7 +1688,16 @@ Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
 
 **Vista paginata:** il pulsante **Pages** nella barra di stato mostra fogli A4 con margini, header/footer e righe di tabella
 spezzate tra le pagine; l'intestazione della tabella si ripete su ogni pagina.
-Premi **Edit** per tornare all'editor continuo.
+Premi **Edit** per tornare all'editor continuo. I paragrafi e gli elenchi che
+non entrano nell'area residua vengono divisi a fine riga o a fine voce per
+riempire la pagina; titoli e immagini restano insieme quando possibile.
+
+La toolbar della tabella è un gruppo ancorabile nella toolbar principale e
+compare quando il cursore o la selezione è in una tabella; non è un pannello
+flottante. I due controlli colore della toolbar sono distinti: **A** semplice con
+barra colore per il testo e **A** evidenziata con campione per lo sfondo. I
+pannelli usano etichette e un'icona **?** con il suggerimento nel tooltip al
+posto delle istruzioni scritte.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
@@ -1728,8 +1737,11 @@ trascinando vicino al bordo dell'editor lo scorrimento è automatico, così il
 punto può andare oltre la parte visibile. Un semplice clic su una linea non crea
 né sposta un'interruzione. Dentro una tabella lunga la linea si aggancia al
 confine di una riga; rilasciandola la tabella viene divisa in due tabelle attorno
-all'interruzione esplicita, mantenendo insieme le righe unite da rowspan,
-ripetendo le righe di intestazione e conservando tutte le righe di dati.
+all'interruzione esplicita, mantenendo insieme i gruppi rowspan quando
+entrano, ripetendo le righe di intestazione e conservando tutte le righe di
+dati. Se un gruppo rowspan non entra nella pagina residua, viene diviso al
+confine di pagina e la cella unita continua nella pagina successiva, così la
+prima pagina viene riempita invece di lasciare spazio vuoto.
 Spostando un'interruzione esistente dentro un frammento di tabella, il frammento
 viene diviso allo stesso modo. Quando un'interruzione viene spostata fuori dalla
 tabella o eliminata, i frammenti adiacenti della stessa tabella vengono
@@ -1738,10 +1750,13 @@ intestazione originali. Anche le interruzioni
 esplicite e le loro linee sono rosse. Ogni interruzione ha un controllo di
 eliminazione; spostarla o eliminarla ricalcola tutte le interruzioni successive,
 tenendo conto di margini e bordi dei blocchi (incluse tabelle, righe spezzate e
-unioni verticali mantenute insieme). Nella vista paginata,
+unioni verticali mantenute insieme o continuate tra le pagine). Nella vista
+paginata,
 nell'anteprima di stampa e in stampa i paragrafi e gli elenchi troppo alti
 vengono divisi tra le pagine (le tabelle mantengono insieme i gruppi con
-rowspan), così il contenuto non supera mai l'area di stampa. Le guide sono
+rowspan) che restano insieme quando entrano e continuano tra le pagine quando
+serve, così il contenuto non supera mai l'area di stampa e le pagine vengono
+riempite. Le guide sono
 nascoste nella vista paginata e in stampa.
 
 Ogni funzionalità di testo ha un controllo nella toolbar: incluso il codice
