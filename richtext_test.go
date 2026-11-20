@@ -112,6 +112,11 @@ view main {
     if (before.indexOf('Toolbar') < 0) throw new Error('JSON model missing text: ' + before);
 
     function richRoot() { return document.querySelector('[data-sui-rich]'); }
+    function typeText(text) {
+      var typeEditor = richRoot().querySelector('.sui-rich-editor');
+      typeEditor.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: text, bubbles: true, cancelable: true }));
+      document.execCommand('insertText', false, text);
+    }
     var themeToggle = richRoot().querySelector('.sui-rich-toolbar [data-rich-theme-toggle]');
     if (!themeToggle) throw new Error('theme button missing from toolbar');
     if (richRoot().querySelector('.sui-rich-status [data-rich-theme]')) throw new Error('theme picker still in status bar');
@@ -176,7 +181,7 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
 
     // Color controls show the document defaults (black text, white highlight)
     // and follow an explicit inline color at the caret.
-    __SUI_RICH.setToolbar('editor', 'undo,redo|styleSelect,bold,italic,underline,textColor,highlight,bulletList,orderedList|link,image,table');
+    __SUI_RICH.setToolbar('editor', 'undo,redo|styleSelect,bold,italic,underline,textColor,highlight,codeBlock,bulletList,orderedList|link,image,table');
     await wait(150);
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Plain color', marks: [] }] }] });
     await wait(200);
@@ -207,6 +212,67 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     await wait(200);
     if (richRoot().querySelector('.sui-rich-editor strong, .sui-rich-editor b, .sui-rich-editor [style*="font-weight"]')) throw new Error('bold did not toggle off: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 
+    // With a collapsed caret a formatting button becomes a typing mode: it
+    // stays highlighted and applies to the text typed afterwards until it is
+    // pressed again.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Typing ', marks: [] }] }] });
+    await wait(200);
+    var typingEditor = richRoot().querySelector('.sui-rich-editor');
+    var typingRange = document.createRange(); typingRange.selectNodeContents(typingEditor.querySelector('p')); typingRange.collapse(false);
+    var typingSel = window.getSelection(); typingSel.removeAllRanges(); typingSel.addRange(typingRange); typingEditor.focus();
+    var boldButton = richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="bold"]');
+    __SUI_RICH.command('editor', 'bold');
+    await wait(150);
+    if (!boldButton.classList.contains('on') || !document.queryCommandState('bold')) throw new Error('collapsed bold did not turn on');
+    typeText('Bold');
+    await wait(200);
+    var typedBold = richRoot().querySelector('.sui-rich-editor strong, .sui-rich-editor b, .sui-rich-editor [style*="font-weight"]');
+    if (!typedBold || typedBold.textContent.indexOf('Bold') < 0) throw new Error('collapsed bold typing mode did not apply: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    __SUI_RICH.command('editor', 'bold');
+    await wait(150);
+    if (boldButton.classList.contains('on')) throw new Error('collapsed bold button stayed on');
+    typeText(' plain');
+    await wait(250);
+    var boldRuns = [].map.call(richRoot().querySelectorAll('.sui-rich-editor strong, .sui-rich-editor b, .sui-rich-editor [style*="font-weight"]'), function (node) { return node.textContent; }).join('|');
+    if (boldRuns.indexOf('plain') >= 0) throw new Error('collapsed bold off still typed bold: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+
+    // A color chosen with a collapsed caret stays in the swatch and colors the
+    // text typed afterwards; the same applies to the background highlight.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Color ', marks: [] }] }] });
+    await wait(200);
+    var typingColorEditor = richRoot().querySelector('.sui-rich-editor');
+    var typingColorRange = document.createRange(); typingColorRange.selectNodeContents(typingColorEditor.querySelector('p')); typingColorRange.collapse(false);
+    var typingColorSel = window.getSelection(); typingColorSel.removeAllRanges(); typingColorSel.addRange(typingColorRange); typingColorEditor.focus();
+    var typingTextColor = richRoot().querySelector('.sui-rich-color[data-rich-cmd="textColor"]');
+    var typingHighlight = richRoot().querySelector('.sui-rich-color[data-rich-cmd="highlight"]');
+    typingTextColor.value = '#cc0000'; typingTextColor.dispatchEvent(new Event('input', { bubbles: true })); typingTextColor.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(200);
+    if (typingTextColor.value !== '#cc0000') throw new Error('collapsed text color swatch: ' + typingTextColor.value);
+    typeText('Red');
+    await wait(200);
+    var redSpan = [].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).filter(function (span) { return /rgb\(204, 0, 0\)/.test(getComputedStyle(span).color); })[0];
+    if (!redSpan || redSpan.textContent.indexOf('Red') < 0) throw new Error('collapsed text color was not applied to typing');
+    typingHighlight.value = '#ffee00'; typingHighlight.dispatchEvent(new Event('input', { bubbles: true })); typingHighlight.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(200);
+    if (typingHighlight.value !== '#ffee00') throw new Error('collapsed highlight swatch: ' + typingHighlight.value);
+    typeText('Gold');
+    await wait(200);
+    var goldSpan = [].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).filter(function (span) { return /rgb\(255, 238, 0\)/.test(getComputedStyle(span).backgroundColor); })[0];
+    if (!goldSpan || goldSpan.textContent.indexOf('Gold') < 0) throw new Error('collapsed highlight was not applied to typing');
+
+    // Applying a color to a selection still colors the selected text only.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Selected text', marks: [] }] }] });
+    await wait(200);
+    var selColorEditor = richRoot().querySelector('.sui-rich-editor');
+    var selColorText = selColorEditor.querySelector('p').firstChild;
+    var selColorRange = document.createRange(); selColorRange.setStart(selColorText, 0); selColorRange.setEnd(selColorText, 8);
+    var selColorSel = window.getSelection(); selColorSel.removeAllRanges(); selColorSel.addRange(selColorRange); selColorEditor.focus();
+    var selColorInput = richRoot().querySelector('.sui-rich-color[data-rich-cmd="textColor"]');
+    selColorInput.value = '#0066cc'; selColorInput.dispatchEvent(new Event('input', { bubbles: true })); selColorInput.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(250);
+    var selColorSpan = [].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).filter(function (span) { return /rgb\(0, 102, 204\)/.test(getComputedStyle(span).color); })[0];
+    if (!selColorSpan || selColorSpan.textContent !== 'Selected') throw new Error('selection color not applied: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+
     // Four icon sets, persisted per editor and selectable from Preferences.
     var iconRoot = richRoot();
     var iconCommands = ['iconSetLine', 'iconSetBold', 'iconSetDuotone', 'iconSetBlocks'];
@@ -225,7 +291,7 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     // Inline code and code blocks use a readable contrast on the white page.
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'paragraph', children: [{ type: 'text', text: 'inline ', marks: [] }, { type: 'text', text: 'code', marks: [{ type: 'code' }] }] },
-      { type: 'code_block', text: 'line one\nline two' }
+      { type: 'code_block', text: 'line one\nline two\nline three' }
     ] });
     await wait(250);
     var codeEditor = richRoot().querySelector('.sui-rich-editor');
@@ -235,15 +301,17 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     if (!codeEl || getComputedStyle(codeEl).color !== editorColor) throw new Error('inline code contrast: ' + (codeEl ? getComputedStyle(codeEl).color : 'missing') + ' vs ' + editorColor);
     if (!preEl || getComputedStyle(preEl).color !== editorColor) throw new Error('code block contrast: ' + (preEl ? getComputedStyle(preEl).color : 'missing') + ' vs ' + editorColor);
 
-    // Turning a code block off keeps one paragraph per line.
-    var preRange = document.createRange(); preRange.selectNodeContents(preEl); preRange.collapse(false);
+    // Turning a code block off releases only the line with the caret; the
+    // other lines stay in code blocks.
+    var preText = preEl.querySelector('code').firstChild;
+    var preRange = document.createRange(); preRange.setStart(preText, 9); preRange.collapse(true);
     var preSel = window.getSelection(); preSel.removeAllRanges(); preSel.addRange(preRange); codeEditor.focus();
     __SUI_RICH.command('editor', 'codeBlock');
     await wait(250);
-    var codeParas = [].map.call(richRoot().querySelectorAll('.sui-rich-editor > p'), function (p) { return p.textContent; });
-    var codeTail = codeParas.slice(-2).join('|');
-    if (codeTail !== 'line one|line two') throw new Error('code block exit lost lines: ' + codeParas.join('|'));
-    if (richRoot().querySelector('.sui-rich-editor > pre')) throw new Error('code block did not turn off');
+    var codeBlocks = [].map.call(richRoot().querySelectorAll('.sui-rich-editor > pre, .sui-rich-editor > p'), function (n) { return n.tagName + ':' + n.textContent; });
+    var codeTail = codeBlocks.slice(-3).join('|');
+    if (codeTail !== 'PRE:line one|P:line two|PRE:line three') throw new Error('code block line exit: ' + codeBlocks.join('|'));
+    if (richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="codeBlock"]').classList.contains('on')) throw new Error('code block button stayed on after the line left the block');
 
     // Enter inside a list creates one list item per line.
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Left right', marks: [] }] }] }] }] });

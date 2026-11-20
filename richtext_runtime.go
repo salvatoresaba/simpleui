@@ -837,7 +837,8 @@ window.__SUI_RICH = (function () {
   }
   function commit(inst, kind) {
     inst.scrollGuardUntil = Date.now() + 300;
-    if (sync(inst)) inst.pageBreakSources = [];
+    var changed = sync(inst);
+    if (changed) inst.pageBreakSources = [];
     if (inst.editor) {
       inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
       inst.scrollTop = inst.editor.scrollTop;
@@ -846,7 +847,13 @@ window.__SUI_RICH = (function () {
     remember(inst);
     updateStats(inst);
     updatePageGuides(inst);
-    notify(inst, kind || 'change');
+    // A collapsed formatting toggle or color choice changes only the native
+    // typing state, not the document. Skipping the state setter keeps that
+    // typing state (and the caret) alive instead of re-rendering the editor.
+    if (changed || kind === 'input') {
+      if (!inst.suppressNotify || kind === 'input') notify(inst, kind || 'change');
+    }
+    inst.suppressNotify = false;
     if (inst.paginated) schedulePaginate(inst); else schedulePageGuides(inst);
   }
   function restore(inst, text) {
@@ -1012,6 +1019,85 @@ window.__SUI_RICH = (function () {
     else node.appendChild(el('br'));
     return node;
   }
+  function preFromLines(lines) {
+    var pre = el('pre');
+    var code = el('code');
+    code.textContent = lines.join('\n');
+    pre.appendChild(code);
+    return pre;
+  }
+  function preCaretOffset(pre, range) {
+    if (!range) return 0;
+    var container = range.startContainer, offset = range.startOffset;
+    var total = 0, found = null;
+    function walk(node) {
+      if (found !== null) return;
+      if (node.nodeType === 3) {
+        if (node === container) { total += Math.min(offset, String(node.nodeValue || '').length); found = total; return; }
+        total += String(node.nodeValue || '').length;
+        return;
+      }
+      if (node.nodeType !== 1) return;
+      var tag = node.tagName.toLowerCase();
+      if (tag === 'br') {
+        if (node === container) { found = total; return; }
+        total += 1;
+        return;
+      }
+      if (node === container) {
+        for (var c = 0; c < node.childNodes.length && c < offset; c++) walk(node.childNodes[c]);
+        if (found === null) found = total;
+        return;
+      }
+      for (var i = 0; i < node.childNodes.length; i++) { walk(node.childNodes[i]); if (found !== null) return; }
+    }
+    walk(pre);
+    return found === null ? total : found;
+  }
+  function toggleCodeBlockLine(inst, pre, tag) {
+    var sel = window.getSelection();
+    var range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    var lines = blockTextLines(pre);
+    var offset = preCaretOffset(pre, range);
+    var index = 0, start = 0;
+    for (var l = 0; l < lines.length; l++) {
+      var end = start + lines[l].length;
+      if (offset <= end) { index = l; break; }
+      start = end + 1;
+      if (l === lines.length - 1) index = l;
+    }
+    var before = lines.slice(0, index);
+    var after = lines.slice(index + 1);
+    var current = lines[index] == null ? '' : lines[index];
+    var offsetInLine = Math.max(0, Math.min(current.length, offset - start));
+    var parent = pre.parentNode;
+    var style = pre.getAttribute('style') || '';
+    function hasContent(list) {
+      for (var i = 0; i < list.length; i++) if (String(list[i]).length) return true;
+      return false;
+    }
+    if (before.length && hasContent(before)) {
+      var beforePre = preFromLines(before);
+      if (style) beforePre.setAttribute('style', style);
+      parent.insertBefore(beforePre, pre);
+    }
+    var caretHost = blockLine(tag === 'p' ? 'p' : tag, current);
+    parent.insertBefore(caretHost, pre);
+    if (after.length && hasContent(after)) {
+      var afterPre = preFromLines(after);
+      if (style) afterPre.setAttribute('style', style);
+      parent.insertBefore(afterPre, pre);
+    }
+    parent.removeChild(pre);
+    var caret = document.createRange();
+    var firstText = null;
+    for (var t = 0; t < caretHost.childNodes.length; t++) if (caretHost.childNodes[t].nodeType === 3) { firstText = caretHost.childNodes[t]; break; }
+    if (firstText) caret.setStart(firstText, offsetInLine);
+    else { caret.selectNodeContents(caretHost); }
+    caret.collapse(true);
+    if (sel) { sel.removeAllRanges(); sel.addRange(caret); }
+    if (inst.editor) inst.editor.focus();
+  }
   function applyBlock(inst, tag) {
     var block = currentBlock(inst);
     if (!block) return;
@@ -1025,39 +1111,10 @@ window.__SUI_RICH = (function () {
     }
     var blockTag = block.tagName ? block.tagName.toLowerCase() : '';
     if (tag === 'pre' && blockTag === 'pre') return;
-    // Turning a code block off must preserve the lines instead of flattening
-    // everything into a single paragraph.
+    // Turning a code block off releases only the line with the caret; the
+    // other lines stay inside code blocks instead of all becoming paragraphs.
     if (blockTag === 'pre' && tag !== 'pre') {
-      var lines = blockTextLines(block);
-      var parent = block.parentNode;
-      var first = null, last = null;
-      if (/^h[1-6]$/.test(tag)) {
-        first = blockLine(tag, lines.join(' '));
-        parent.insertBefore(first, block);
-      } else if (tag === 'blockquote') {
-        var box = el('blockquote');
-        for (var ql = 0; ql < lines.length; ql++) {
-          var qp = blockLine('p', lines[ql]);
-          box.appendChild(qp);
-          if (!first) first = qp;
-          last = qp;
-        }
-        parent.insertBefore(box, block);
-        first = box;
-      } else {
-        for (var ln = 0; ln < lines.length; ln++) {
-          var para = blockLine('p', lines[ln]);
-          parent.insertBefore(para, block);
-          if (!first) first = para;
-          last = para;
-        }
-      }
-      parent.removeChild(block);
-      var preSel = window.getSelection();
-      var preCaret = document.createRange();
-      preCaret.selectNodeContents(first || parent);
-      preCaret.collapse(false);
-      if (preSel) { preSel.removeAllRanges(); preSel.addRange(preCaret); }
+      toggleCodeBlockLine(inst, block, tag);
       syncBlockControls(inst);
       return;
     }
@@ -1176,7 +1233,11 @@ window.__SUI_RICH = (function () {
       else if (cmd === 'codeBlock') on = value === 'pre';
       else if (/^h[1-4]$/.test(cmd)) on = cmd === value;
       else if (inlineCmds[cmd]) {
-        if (inside) { try { on = document.queryCommandState(inlineCmds[cmd]); } catch (e) { on = false; } }
+        if (inside) {
+          var forcedTyping = !!(inst.typingMarks && inst.typingMarks[cmd] !== undefined && sel && sel.isCollapsed);
+          if (forcedTyping) on = !!inst.typingMarks[cmd];
+          else { try { on = document.queryCommandState(inlineCmds[cmd]); } catch (e) { on = false; } }
+        }
       }
       else if (cmd === 'code') on = inCode;
       else if (cmd === 'link') on = inLink;
@@ -1194,9 +1255,15 @@ window.__SUI_RICH = (function () {
     var colorInputs = inst.root.querySelectorAll('.sui-rich-color[data-rich-cmd]');
     var textColor = inside ? rgbHex(inlineAncestorValue(inst, 'color', 'color')) : '';
     var highlight = inside ? rgbHex(inlineAncestorValue(inst, 'backgroundColor', 'bgcolor')) : '';
+    var hasTextSelection = !!(inside && sel && sel.rangeCount && !sel.isCollapsed);
+    if (!hasTextSelection) {
+      // A color chosen with a collapsed caret is a typing color: keep showing
+      // it until the user picks another one, even while a color input has focus.
+      if (inst.typingColor) textColor = inst.typingColor;
+      if (inst.typingHighlight) highlight = inst.typingHighlight;
+    }
     for (var ci = 0; ci < colorInputs.length; ci++) {
       var colorCmd = colorInputs[ci].getAttribute('data-rich-cmd');
-      if (document.activeElement === colorInputs[ci]) continue;
       var nextColor = colorCmd === 'textColor' ? (textColor || '#000000') : (highlight || '#ffffff');
       if (colorInputs[ci].value !== nextColor) colorInputs[ci].value = nextColor;
       var colorControl = colorInputs[ci].closest('.sui-rich-color-control');
@@ -2196,6 +2263,72 @@ window.__SUI_RICH = (function () {
   // carets and mixed selections) and strips the mark explicitly if the
   // browser left the "on" state in place, so a second click always turns
   // bold/italic/underline/strike off.
+  function rememberTypingColor(inst, cmd, value) {
+    if (cmd === 'textColor') inst.typingColor = value;
+    else if (cmd === 'highlight') inst.typingHighlight = value;
+  }
+  function applyTypingState(inst) {
+    var native = { bold: 'bold', italic: 'italic', underline: 'underline', strike: 'strikeThrough', superscript: 'superscript', subscript: 'subscript' };
+    try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
+    for (var cmd in native) {
+      if (!hasOwn(native, cmd) || !inst.typingMarks || inst.typingMarks[cmd] === undefined) continue;
+      var state = false;
+      try { state = document.queryCommandState(native[cmd]); } catch (e) { state = false; }
+      if (state !== !!inst.typingMarks[cmd]) {
+        try { document.execCommand(native[cmd], false, null); } catch (e) {}
+      }
+    }
+    if (inst.typingColor) { try { document.execCommand('foreColor', false, inst.typingColor); } catch (e) {} }
+    if (inst.typingHighlight) { try { document.execCommand('hiliteColor', false, inst.typingHighlight); } catch (e) {} }
+  }
+  function markAncestor(inst, cmd) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !inst.editor || !inst.editor.contains(sel.anchorNode)) return null;
+    var node = sel.anchorNode;
+    if (node && node.nodeType !== 1) node = node.parentElement;
+    var tags = {
+      bold: ['b', 'strong'], italic: ['i', 'em'], underline: ['u'], strike: ['s', 'strike', 'del'],
+      superscript: ['sup'], subscript: ['sub'], code: ['code']
+    }[cmd] || [];
+    while (node && node !== inst.editor) {
+      if (node.nodeType === 1) {
+        var tag = node.tagName ? node.tagName.toLowerCase() : '';
+        if (tags.indexOf(tag) >= 0) return node;
+        var style = node.style || {};
+        if (cmd === 'bold' && style.fontWeight && (style.fontWeight === 'bold' || parseInt(style.fontWeight, 10) >= 600)) return node;
+        if (cmd === 'italic' && style.fontStyle === 'italic') return node;
+        if ((cmd === 'underline' || cmd === 'strike') && (style.textDecoration || style.textDecorationLine)) {
+          var wanted = cmd === 'underline' ? 'underline' : 'line-through';
+          if (String(style.textDecorationLine || style.textDecoration).indexOf(wanted) >= 0) return node;
+        }
+        if ((cmd === 'superscript' || cmd === 'subscript') && (style.verticalAlign === 'super' || style.verticalAlign === 'sub')) return node;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+  function splitMarkAtCaret(inst, mark, range) {
+    if (!mark || !mark.parentNode || !range) return;
+    var after = document.createRange();
+    after.setStart(range.startContainer, range.startOffset);
+    after.setEnd(mark, mark.childNodes.length);
+    var fragment = after.extractContents();
+    var clone = null;
+    if (fragment.textContent || fragment.querySelector('img,br,table')) {
+      clone = mark.cloneNode(false);
+      clone.appendChild(fragment);
+      mark.parentNode.insertBefore(clone, mark.nextSibling);
+    }
+    var isEmpty = !mark.textContent && !mark.querySelector('img,br,table');
+    var caret = document.createRange();
+    if (isEmpty && clone) caret.setStartBefore(clone);
+    else if (mark.parentNode) caret.setStartAfter(mark);
+    else if (clone) caret.setStartBefore(clone);
+    caret.collapse(true);
+    if (isEmpty && mark.parentNode) mark.parentNode.removeChild(mark);
+    var sel = window.getSelection();
+    if (sel) { sel.removeAllRanges(); sel.addRange(caret); }
+  }
   function toggleInlineMark(inst, cmd) {
     var native = {
       bold: 'bold', italic: 'italic', underline: 'underline',
@@ -2204,13 +2337,29 @@ window.__SUI_RICH = (function () {
     if (!native) return;
     var on = false;
     try { on = document.queryCommandState(native); } catch (e) { on = false; }
+    var sel = window.getSelection();
+    var collapsedMark = (on && sel && sel.rangeCount && sel.isCollapsed) ? markAncestor(inst, cmd) : null;
     try { document.execCommand(native, false, null); } catch (e) {}
     var still = false;
     try { still = document.queryCommandState(native); } catch (e) { still = false; }
-    if (on && still) {
-      var sel = window.getSelection();
+    var split = false;
+    if (on && collapsedMark && collapsedMark.parentNode && sel && sel.rangeCount && sel.isCollapsed) {
+      splitMarkAtCaret(inst, collapsedMark, sel.getRangeAt(0));
+      split = true;
+      inst.suppressNotify = true;
+      // The caret may still sit next to the closed mark; force the native
+      // typing state off so the next typed characters are plain.
+      try {
+        if (document.queryCommandState(native)) document.execCommand(native, false, null);
+      } catch (e) {}
+    }
+    if (on && still && !split) {
       if (sel && sel.rangeCount) stripInlineMark(inst, cmd, sel.getRangeAt(0));
     }
+    var finalState = false;
+    try { finalState = document.queryCommandState(native); } catch (e) { finalState = false; }
+    if (!inst.typingMarks) inst.typingMarks = {};
+    inst.typingMarks[cmd] = finalState;
     if (inst.editor) inst.editor.focus();
     saveSelection(inst);
   }
@@ -2440,8 +2589,16 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'tableSelect') tableCommand(inst, 'selectTable');
     else if (cmd === 'fontFamily') document.execCommand('fontName', false, String(value || ''));
     else if (cmd === 'fontSize') document.execCommand('fontSize', false, String(value || '3'));
-    else if (cmd === 'textColor') document.execCommand('foreColor', false, cssColor(value) || '#000000');
-    else if (cmd === 'highlight') document.execCommand('hiliteColor', false, cssColor(value) || '#ffff00');
+    else if (cmd === 'textColor') {
+      var textColorValue = cssColor(value) || '#000000';
+      document.execCommand('foreColor', false, textColorValue);
+      rememberTypingColor(inst, 'textColor', textColorValue);
+    }
+    else if (cmd === 'highlight') {
+      var highlightValue = cssColor(value) || '#ffffff';
+      document.execCommand('hiliteColor', false, highlightValue);
+      rememberTypingColor(inst, 'highlight', highlightValue);
+    }
     else if (cmd === 'lineHeight' || cmd === 'spaceBefore' || cmd === 'spaceAfter' || cmd === 'indentBy') {
       var block = currentBlock(inst);
       if (block) {
@@ -3215,8 +3372,10 @@ window.__SUI_RICH = (function () {
         else if (token === 'spaceBefore') group.appendChild(select(inst, 'spaceBefore', [['', 'Space before'], ['0', '0'], ['0.5em', '0.5em'], ['1em', '1em'], ['1.5em', '1.5em']], 'Space before'));
         else if (token === 'spaceAfter') group.appendChild(select(inst, 'spaceAfter', [['', 'Space after'], ['0', '0'], ['0.5em', '0.5em'], ['1em', '1em'], ['1.5em', '1.5em']], 'Space after'));
         else if (token === 'textColor' || token === 'highlight') {
-          var colorWrap = el('div', 'sui-rich-color-control');
+          var colorWrap = el('button', 'sui-rich-color-control');
+          colorWrap.type = 'button';
           colorWrap.title = token === 'textColor' ? 'Text color' : 'Highlight color';
+          colorWrap.setAttribute('aria-label', colorWrap.title);
           var colorIcon = el('span', 'sui-rich-color-icon');
           colorIcon.innerHTML = ICONS[token] || '';
           var color = el('input', 'sui-rich-color');
@@ -3228,6 +3387,16 @@ window.__SUI_RICH = (function () {
           colorWrap.style.setProperty('--sui-rich-color-current', color.value);
           (function (wrap, input) {
             input.addEventListener('input', function () { wrap.style.setProperty('--sui-rich-color-current', input.value); });
+            wrap.addEventListener('click', function (ev) {
+              ev.preventDefault();
+              saveSelection(inst);
+              try {
+                if (typeof input.showPicker === 'function') input.showPicker();
+                else input.click();
+              } catch (e) {
+                try { input.click(); } catch (x) {}
+              }
+            });
           })(colorWrap, color);
           colorWrap.appendChild(colorIcon);
           colorWrap.appendChild(color);
@@ -6484,6 +6653,13 @@ window.__SUI_RICH = (function () {
       clearTimeout(inst.inputTimer);
       inst.inputTimer = setTimeout(function () { saveSelection(inst); commit(inst, 'input'); }, 250);
     });
+    root.addEventListener('beforeinput', function (e) {
+      if (!inst.editor || !inst.editor.contains(e.target)) return;
+      if (e.inputType !== 'insertText' && e.inputType !== 'insertReplacementText') return;
+      var inputSel = window.getSelection();
+      if (!inputSel || !inputSel.rangeCount || !inputSel.isCollapsed) return;
+      applyTypingState(inst);
+    });
     root.addEventListener('keydown', function (e) {
       if (!inst.editor.contains(e.target)) return;
       // Escape leaves a quote/code block; Backspace at its very start does
@@ -6628,6 +6804,7 @@ window.__SUI_RICH = (function () {
         headerOverride: false, footerOverride: false,
         headerValue: '', footerValue: '', headerH: 0, footerH: 0, title: '',
         history: [], index: -1, dirty: false, zoom: 1, scrollTop: 0, keepScrollTop: 0,
+        typingMarks: {}, typingColor: '', typingHighlight: '',
         baseFontSize: parseFloat(attr(root, 'data-sui-rich-font-size') || '16') || 16
       };
       inst.history.push(JSON.stringify(inst.doc));
@@ -6636,6 +6813,7 @@ window.__SUI_RICH = (function () {
     } else {
       inst.root = root; inst.editor = editor;
     }
+    if (!inst.typingMarks) inst.typingMarks = {};
     var chromeTitle = root.querySelector('.sui-rich-title');
     inst.title = chromeTitle ? String(chromeTitle.textContent || '').trim() : (attr(root, 'data-sui-rich-title') || name);
     refreshChromeValues(inst);
@@ -9685,13 +9863,13 @@ const suiRichTextCss = `
 .sui-rich-image-menu .sui-rich-menu-item { width: 100%; text-align: left; }
 .sui-rich-editor img.sui-rich-image-selected { outline: 2px solid var(--sui-rich-accent); outline-offset: 2px; }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
-.sui-rich-color-control { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 48px; height: 34px; padding: 0 5px; border: 1px solid transparent; border-radius: 7px; cursor: pointer; background: transparent; overflow: hidden; }
-.sui-rich-color-control:hover, .sui-rich-color-control:focus-within { background: var(--sui-rich-hover); border-color: var(--sui-rich-border); }
+.sui-rich-color-control { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 48px; height: 34px; padding: 0 5px; border: 1px solid transparent; border-radius: 7px; cursor: pointer; background: transparent; color: var(--sui-rich-fg); font: inherit; overflow: hidden; }
+.sui-rich-color-control:hover, .sui-rich-color-control:focus-visible { background: var(--sui-rich-hover); border-color: var(--sui-rich-border); outline: none; }
 .sui-rich-color-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; font-size: 15px; line-height: 1; pointer-events: none; }
 .sui-rich-color-icon::after { content: ''; position: absolute; left: 1px; right: 1px; bottom: 0; height: 4px; border-radius: 2px; background: var(--sui-rich-color-current, #000); }
 .sui-rich-color-glyph { font-weight: 700; font-size: 18px; line-height: 1; }
 .sui-rich-color-glyph-highlight { padding: 0 3px; border-radius: 3px; background: var(--sui-rich-color-current, #fff); color: #111; box-shadow: inset 0 0 0 1px rgba(0,0,0,.22); }
-.sui-rich-color { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; z-index: 2; }
+.sui-rich-color { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; cursor: pointer; z-index: 2; }
 .sui-rich-color::-webkit-color-swatch-wrapper { padding: 0; }
 .sui-rich-color::-webkit-color-swatch { border: 0; }
 .sui-rich-color::-moz-color-swatch { border: 0; }

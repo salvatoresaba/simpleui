@@ -1727,8 +1727,8 @@ the real numbers instead of being stripped.
 Shift+Tab; Enter creates a new list item on every line (including a split in the
 middle of an item), and Enter on an empty item leaves the list. DOCX and ODT
 export use native list numbering. **Code blocks:** the Code block button is a
-toggle; turning it off converts every line back to its own paragraph, so line
-breaks are never flattened into one paragraph.
+toggle; turning it off releases only the line with the caret as a normal
+paragraph, so the other lines stay inside code blocks.
 
 **Paginated view:** the **Pages** button in the status bar shows A4 sheets with margins, optional header/footer and table
 rows split across pages; header rows are repeated on each page. Press **Edit**
@@ -1748,12 +1748,16 @@ The two toolbar color controls are distinguishable: a plain **A** with a color
 bar for text color and a highlighted **A** with a swatch for the background
 color. They show the document defaults (**black** text and **white** highlight)
 when the caret has no explicit color, follow the inline color at the caret, and
-open the browser color picker from anywhere in the control. Bold, italic,
-underline, strikethrough, superscript, subscript and inline code are on/off
-toggles: a second click removes the mark. Inline code and code blocks use the
-page text color (dark on the white page, light on a dark page) so they stay
-readable. Settings panels use labels plus a **?** hint icon whose tooltip holds
-the explanation, instead of visible instruction paragraphs.
+open the browser color picker from anywhere in the control. With a collapsed
+caret, Bold/Italic/Underline/Strikethrough/Superscript/Subscript/Inline code
+switch a typing mode: the button stays highlighted and the text typed next uses
+that format until the button is pressed again. A color chosen with a collapsed
+caret becomes the typing color and stays in the swatch until another color is
+picked; with a selection the same commands change only the selected text.
+Inline code and code blocks use the page text color (dark on the white page,
+light on a dark page) so they stay readable. Settings panels use labels plus a
+**?** hint icon whose tooltip holds the explanation, instead of visible
+instruction paragraphs.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,

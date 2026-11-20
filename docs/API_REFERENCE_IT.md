@@ -1689,8 +1689,8 @@ mostrano i numeri reali invece di essere rimossi.
 Shift+Tab; Invio crea una nuova voce per ogni riga (anche spezzando una voce a
 metà) e Invio su una voce vuota esce dall'elenco. L'export DOCX/ODT usa la
 numerazione nativa. **Blocchi di codice:** il pulsante Code block è un
-interruttore; disattivandolo ogni riga torna un paragrafo separato, quindi le
-interruzioni di riga non vengono appiattite in un unico paragrafo.
+interruttore; disattivandolo solo la riga con il cursore torna un paragrafo
+normale, mentre le altre righe restano nel blocco di codice.
 
 **Vista paginata:** il pulsante **Pages** nella barra di stato mostra fogli A4 con margini, header/footer e righe di tabella
 spezzate tra le pagine; l'intestazione della tabella si ripete su ogni pagina.
@@ -1707,12 +1707,16 @@ I due controlli colore della toolbar sono distinti: **A** semplice con
 barra colore per il testo e **A** evidenziata con campione per lo sfondo. Quando
 il cursore non ha un colore esplicito mostrano i default del documento (**nero**
 per il testo e **bianco** per lo sfondo), seguono il colore inline al cursore e
-aprono il selettore del browser da qualunque punto del controllo. Grassetto,
-corsivo, sottolineato, barrato, apice, pedice e codice inline sono interruttori:
-un secondo clic rimuove la formattazione. Il codice inline e i blocchi di codice
-usano il colore del testo della pagina (scuro sul foglio bianco, chiaro sul tema
-scuro) per restare leggibili. I pannelli usano etichette e un'icona **?** con il
-suggerimento nel tooltip al posto delle istruzioni scritte.
+aprono il selettore del browser da qualunque punto del controllo. Con il cursore
+collassato, Grassetto/Corsivo/Sottolineato/Barrato/Apice/Pedice/Codice inline
+attivano una modalità di scrittura: il pulsante resta evidenziato e il testo
+digitato usa quella formattazione finché il pulsante non viene premuto di nuovo.
+Un colore scelto con il cursore collassato diventa il colore di scrittura e resta
+nel campione finché non se ne sceglie un altro; con una selezione gli stessi
+comandi modificano solo il testo selezionato. Il codice inline e i blocchi di
+codice usano il colore del testo della pagina (scuro sul foglio bianco, chiaro
+sul tema scuro) per restare leggibili. I pannelli usano etichette e un'icona
+**?** con il suggerimento nel tooltip al posto delle istruzioni scritte.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,

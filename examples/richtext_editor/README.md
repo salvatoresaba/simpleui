@@ -22,17 +22,20 @@ builds.
 - Bold, italic, underline, strikethrough, superscript/subscript, inline code,
   color, background color, font family/size, headings, quotes, code blocks.
   Bold/italic/underline/strike/superscript/subscript/inline code are on/off
-  toggles: a second click removes the mark. The text-color control shows black
-  and the highlight control shows white when the caret has no explicit color,
-  then follows the color at the caret.
+  toggles. With a collapsed caret they become typing modes: the button stays
+  highlighted and the next typed text uses that format until pressed again. The
+  text-color control shows black and the highlight control shows white when no
+  color was chosen; a color chosen at the caret stays in the swatch and applies
+  to the text typed next, while a selection is colored immediately.
 - Paragraph alignment, indentation, line height, spacing before/after and manual
   page breaks (Insert > Page break, `pageBreak` toolbar token, Ctrl+Enter) for
   printing and PDF export.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
-  Enter creates one list item per line, and leaving a code block keeps every
-  line as its own paragraph. Inline code and code blocks use the page text
-  color, so they are readable on the white page.
+  Enter creates one list item per line, and leaving a code block releases only
+  the line with the caret while the other lines stay in code blocks. Inline code
+  and code blocks use the page text color, so they are readable on the white
+  page.
 - Insert image accepts a file from the PC (up to 8 MB, stored as a data URL) or
   an http(s)/data URL.
 - Table settings set the table width (fit to page inside the margins, pixels or
