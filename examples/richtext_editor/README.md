@@ -90,8 +90,12 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   the full TeX hyph-utf8 pattern sets (Italian, English, German, French, Spanish,
   Portuguese, Dutch, Polish, Swedish, Russian, Greek, Turkish, Czech, Hungarian,
   Romanian, Nordic and the other European languages), selected from the document
-  language, and the rest fall back to heuristics. DOCX/ODT/RTF/PDF
-  export optional or soft hyphens without changing paragraph line spacing. The
+  language, and the rest fall back to heuristics. The Inspector's **Rich text
+  editor > Hyphenation languages...** overlay chooses which dictionaries are
+  embedded at compile time with `hyphenLangs`; a small subset cuts `app.js` from
+  about 3.4 MB to about 1 MB, while `none` keeps only the heuristic fallback.
+  DOCX/ODT/RTF/PDF export optional or soft hyphens without changing paragraph
+  line spacing. The
   alignment menu offers **Justify** and **Justify + hyphenation**. **Code tab
   size** (2/4/8 spaces) controls code-line indentation and is stored as
   `tabSize`; **Line numbers (code)** toggles the line-number gutter on code

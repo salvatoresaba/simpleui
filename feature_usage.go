@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 // Component feature detection.
 //
 // A generated app only needs the JavaScript runtime of the components it
@@ -20,6 +22,11 @@ type progFeatures struct {
 	// fileUpload records http.postFiles/postFilesSafe: they read the files
 	// selected through the drag-and-drop/file-picker runtime.
 	fileUpload bool
+	// hyphenLangs is the union of the dictionaries requested by richtext tags
+	// through `hyphenLangs`. Restricted is true only when every richtext tag
+	// carries a literal selection, so no editor still needs the full set.
+	hyphenLangs           map[string]bool
+	hyphenLangsRestricted bool
 }
 
 func (f *progFeatures) hasTag(names ...string) bool {
@@ -174,9 +181,11 @@ func (f *progFeatures) needsOverlay() bool {
 // returns nil.
 func scanProgFeatures(p *Prog) *progFeatures {
 	f := &progFeatures{
-		tags:  map[string]bool{},
-		attrs: map[string]bool{},
-		apis:  map[string]bool{},
+		tags:                  map[string]bool{},
+		attrs:                 map[string]bool{},
+		apis:                  map[string]bool{},
+		hyphenLangs:           map[string]bool{},
+		hyphenLangsRestricted: true,
 	}
 	if p == nil {
 		return f
@@ -262,6 +271,7 @@ func scanProgFeatures(p *Prog) *progFeatures {
 					f.tags[e.tag] = true
 				}
 				parts(e.text)
+				foundHyphenLangs := false
 				for ai := range e.attrs {
 					a := &e.attrs[ai]
 					if a.key != "" {
@@ -274,6 +284,30 @@ func scanProgFeatures(p *Prog) *progFeatures {
 					if a.key == "animation" && (e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio") {
 						f.toggleMotion = true
 					}
+					if e.tag == "richtext" && a.key == "hyphenLangs" {
+						foundHyphenLangs = true
+						if a.hasExpr || strPartsHaveExpr(a.text) {
+							// A reactive selection cannot be resolved at build time.
+							f.hyphenLangsRestricted = false
+						} else {
+							value, _ := staticPartsLiteral(a.text)
+							value = strings.ToLower(strings.TrimSpace(value))
+							if value == "" || value == "*" || value == "all" {
+								f.hyphenLangsRestricted = false
+							} else {
+								for _, code := range strings.Split(value, ",") {
+									code = strings.TrimSpace(code)
+									if code != "" && code != "none" {
+										f.hyphenLangs[code] = true
+									}
+								}
+							}
+						}
+					}
+				}
+				if e.tag == "richtext" && !foundHyphenLangs {
+					// No restriction on this editor: it can hyphenate in any language.
+					f.hyphenLangsRestricted = false
 				}
 				nodes(childPtrs(e.children))
 			}

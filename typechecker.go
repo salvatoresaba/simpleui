@@ -4811,7 +4811,7 @@ func attrAllowed(key string, tag string) bool {
 	if tag == "richtext" && (key == "name" || key == "value" || key == "placeholder" || key == "height" ||
 		key == "readonly" || key == "toolbar" || key == "menu" ||
 		key == "contextToolbar" || key == "statusbar" || key == "theme" || key == "contentTheme" || key == "header" || key == "footer" ||
-		key == "toolbarItems" || key == "template" ||
+		key == "toolbarItems" || key == "template" || key == "hyphenLangs" ||
 		key == "onReady" || key == "onSelectionChange") {
 		return true
 	}

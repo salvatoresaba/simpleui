@@ -109,7 +109,7 @@ func TestGeneratedJsEmitsRuntimePerComponent(t *testing.T) {
 			[]string{suiTreeRuntime},
 			[]string{suiChartRuntime, suiRichTextRuntime}},
 		{"richtext", "examples/richtext_editor/app.sui",
-			[]string{suiRichTextRuntime, suiPdfFontsJS},
+			[]string{richTextRuntimeMarker, suiPdfFontsJS},
 			[]string{suiChartRuntime, suiTreeRuntime}},
 		{"dropzone", "examples/dropzone/app.sui",
 			[]string{suiDndRuntime, "__SUI_DND.afterRender();"},

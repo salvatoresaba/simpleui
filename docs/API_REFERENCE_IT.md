@@ -1668,6 +1668,7 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `contentTheme` | Tema della pagina: `light` (default, foglio bianco) o `dark`. Indipendente da `theme` |
 | `header` / `footer` | Testo o modello ricco ripetuto su ogni pagina. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) e le altre variabili vengono sostituiti nella vista paginata, anteprima, stampa, PDF, DOCX e ODT (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
+| `hyphenLangs` | Dizionari di sillabazione da incorporare in fase di compilazione, separati da virgole; omesso/`*`/`all` mantiene tutti i 57, `none` non ne incorpora (solo euristica). I tag di lingua vengono risolti nei set di pattern (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
 
 I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
 trascina la maniglia ⣿ per sganciarle, poi rilasciale sulla barra superiore per
@@ -1850,6 +1851,19 @@ semplice per tutte e 57 le lingue) sono incorporati nel runtime dell'editor
 ricco, quindi i programmi che usano `richtext` generano un `app.js` decisamente
 più grande; la lingua del documento resta usata per correttore ortografico e
 metadati DOCX/ODT.
+
+**Scelta dei dizionari.** L'Inspector del designer (**Editor di testo avanzato →
+Hyphenation languages...**) offre una multi-select ricercabile con tutti i 57
+dizionari incorporati, la dimensione per lingua e i pulsanti **All languages** /
+**European** / **None**. Scrive `hyphenLangs` sul tag, così il compilatore
+incorpora in `app.js` solo quei set di pattern TeX. Selezionare 4–10 lingue
+riduce un'app minimale da circa 3,4 MB a circa 1 MB; `none` elimina circa 1,9 MB
+di testo dei pattern. Viene usata l'unione di tutti i tag `richtext`, così editor
+diversi condividono i dizionari incorporati. Un attributo assente, `*`, `all`,
+un'espressione reattiva o un editor che usa solo l'API `richtext.*` mantiene il
+set completo. Le lingue non selezionate usano comunque le regole sillabiche
+euristiche integrate.
+
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
 (2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come

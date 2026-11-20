@@ -1422,8 +1422,12 @@ The **Content** palette group provides the **Rich text editor**, timeline,
 empty state, skeleton, carousel and stepper; the command palette is under
 **Overlay**. The editor inspector exposes name, value, placeholder, height,
 readonly, toolbar/menu/context/status toggles, theme, template and
-change/input/ready handlers. Binding `value` to a state stores the JSON
-document; use the `richtext.*` API or the toolbar at runtime.
+change/input/ready handlers. **Hyphenation languages...** opens a searchable
+multi-select overlay that writes `hyphenLangs` and embeds only the chosen TeX
+dictionaries in `app.js`; the **All languages**, **European** and **None** presets
+make it easy to trade hyphenation coverage for a much smaller bundle. Binding
+`value` to a state stores the JSON document; use the `richtext.*` API or the
+toolbar at runtime.
 
 - **Timeline** inserts three `timelineitem` events. Each item exposes **date**
   and **status** (pending, active, done, error).

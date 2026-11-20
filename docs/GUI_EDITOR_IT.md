@@ -1472,7 +1472,7 @@ eventuale stato separato `pickFiles`, `accept`, `multiple`, `directory`,
 
 ## Controlli contenuto e feedback
 
-Il gruppo **Content** include l'**Editor di testo avanzato**, timeline, empty state, skeleton, carousel e stepper. L'inspector espone nome, valore, placeholder, altezza, readonly, toggle toolbar/menu/contestuale/stato, tema, modello e handler change/input/ready. Collegando `value` a uno stato si salva il documento JSON; a runtime usa l'API `richtext.*` o la toolbar.
+Il gruppo **Content** include l'**Editor di testo avanzato**, timeline, empty state, skeleton, carousel e stepper. L'inspector espone nome, valore, placeholder, altezza, readonly, toggle toolbar/menu/contestuale/stato, tema, modello e handler change/input/ready. **Hyphenation languages...** apre un overlay multi-select ricercabile che scrive `hyphenLangs` e incorpora in `app.js` solo i dizionari TeX scelti; i pulsanti **All languages**, **European** e **None** permettono di ridurre molto la dimensione del bundle. Collegando `value` a uno stato si salva il documento JSON; a runtime usa l'API `richtext.*` o la toolbar.
 
 Il gruppo **Content** della palette fornisce timeline, stato vuoto, skeleton,
 carousel e stepper; la command palette è sotto **Overlay**.

@@ -372,6 +372,17 @@ input[type=color] { padding:0; height:26px; }
 .ins-ov-body .rowline { margin:5px 0; }
 .ins-ov-body .hint { margin:3px 0 6px; }
 .applyhot { background: var(--accent) !important; color: #fff !important; font-weight: 700; box-shadow: 0 0 0 2px rgba(76, 92, 247, .35); }
+/* richtext hyphenation language picker */
+.hyph-search { box-sizing:border-box; width:100%; margin:2px 0 6px; }
+.hyph-tools { display:flex; gap:5px; margin-bottom:6px; }
+.hyph-tools button { flex:1; font-size:10px; padding:3px 5px; }
+.hyph-list { max-height:48vh; overflow:auto; border:1px solid var(--border); border-radius:6px; padding:3px; background:var(--input-bg); }
+.hyph-row { display:flex; align-items:center; gap:5px; font-size:11px; padding:2px 4px; border-radius:3px; cursor:pointer; }
+.hyph-row:hover { background:var(--btn-hover); }
+.hyph-row input { margin:0; flex:none; }
+.hyph-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hyph-size { flex:none; font-size:10px; color:var(--muted); }
+.hyph-summary { margin-top:7px; font-size:11px; color:var(--muted); line-height:1.4; }
 /* inspector switch: graphical on/off control for binary attribute fields */
 label.isw { box-sizing:border-box; position:relative; width:36px; height:20px; flex:none; display:inline-block; }
 label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; cursor:pointer; z-index:2; }
@@ -2740,7 +2751,7 @@ errorboundary: ["fallback"],
   command: ["text", "shortcut"],
   accordion: ["text"],
   accordionitem: ["text"],
-  richtext: ["text", "name", "value", "placeholder", "height", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "contentTheme", "header", "footer", "onChange", "onInput", "onReady"],
+  richtext: ["text", "name", "value", "placeholder", "height", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "contentTheme", "header", "footer", "hyphenLangs", "onChange", "onInput", "onReady"],
   tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   treeitem: ["text", "key", "open", "rename", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
@@ -5820,7 +5831,7 @@ function applyLiveStyleMessage(d) {
   renderInspector();
   __skipOverlayRefresh = false;
 }
-var insOverlayOpen = false, insOverlayScope = "", insOverlayBuilder = null, __skipOverlayRefresh = false;
+var insOverlayOpen = false, insOverlayScope = "", insOverlayBuilder = null, __skipOverlayRefresh = false, insOverlayHint = "";
 function currentInspectScope() {
   return selBody ? "body" : (selPath ? selPath.join(",") : "");
 }
@@ -5838,11 +5849,12 @@ function ensureInspectorOverlay() {
   try { mgMakeDraggable("ins-overlay", "ins-overlay-h"); } catch (e) {}
   return p;
 }
-function openInspectorOverlay(title, builder) {
+function openInspectorOverlay(title, builder, hint) {
   var p = ensureInspectorOverlay();
   insOverlayOpen = true;
   insOverlayScope = currentInspectScope();
   insOverlayBuilder = builder;
+  insOverlayHint = hint || "";
   document.getElementById("ins-overlay-title").textContent = title;
   p.classList.add("on");
   refreshInspectorOverlay(true);
@@ -5857,7 +5869,7 @@ function refreshInspectorOverlay(resetScroll) {
   body.innerHTML = "";
   var cls = selClass();
   var hint = document.createElement("div"); hint.className = "hint";
-  hint.textContent = (selBody ? "Body rule" : (cls ? "Class rule: ." + cls : "No class rule yet")) + " — changes stay in sync with the CSS editor.";
+  hint.textContent = insOverlayHint || ((selBody ? "Body rule" : (cls ? "Class rule: ." + cls : "No class rule yet")) + " — changes stay in sync with the CSS editor.");
   body.appendChild(hint);
   var rows = insOverlayBuilder();
   (rows || []).forEach(function(r){ if (r) body.appendChild(r); });
@@ -16859,6 +16871,108 @@ function requiredControls(nodes) {
   return acc("Validation", [rr, hint]);
 }
 
+// Hyphenation dictionaries are embedded at compile time. This overlay edits
+// the hyphenLangs attribute of the selected richtext control: an empty value
+// means "all languages", "none" means no dictionaries (heuristic only).
+function hyphenLangList() { return window.SUI_HYPHEN_LANGUAGES || []; }
+function hyphenAllCodes() {
+  return hyphenLangList().filter(function(o){ return !!o.code; }).map(function(o){ return o.code; });
+}
+function hyphenNode() {
+  var paths = selectedPaths();
+  return paths.length ? byPath(paths[0], root.children) : null;
+}
+function hyphenCodes() {
+  var n = hyphenNode();
+  var raw = String(n ? (n.hyphenLangs || "") : "").trim().toLowerCase();
+  if (!raw || raw === "*" || raw === "all") return hyphenAllCodes();
+  if (raw === "none") return [];
+  var out = [], seen = {};
+  raw.split(/[,\s]+/).forEach(function(c){ if (c && !seen[c]) { seen[c] = true; out.push(c); } });
+  return out;
+}
+function hyphenWriteCodes(codes) {
+  var all = hyphenAllCodes();
+  var raw = codes.length >= all.length ? "" : (codes.length === 0 ? "none" : codes.join(","));
+  upd("hyphenLangs", raw);
+  refreshInspectorOverlay(false);
+}
+function hyphenBytesFor(codes) {
+  var counted = {}, bytes = 0;
+  hyphenLangList().forEach(function(o){
+    if (codes.indexOf(o.code) < 0) return;
+    var patterns = o.patterns || [];
+    var per = patterns.length ? o.bytes / patterns.length : 0;
+    patterns.forEach(function(p){ if (!counted[p]) { counted[p] = true; bytes += per; } });
+  });
+  return Math.round(bytes);
+}
+function hyphenTotalBytes() {
+  var total = 0;
+  hyphenLangList().forEach(function(o){ total += hyphenBytesFor([o.code]); });
+  return total;
+}
+function openHyphenationLanguages() {
+  if (!selectedPaths().length) return;
+  var filter = "";
+  var total = hyphenTotalBytes();
+  function builder() {
+    var rows = [];
+    var search = document.createElement("input");
+    search.type = "search"; search.className = "hyph-search";
+    search.placeholder = "Filter languages";
+    search.value = filter;
+    var list = document.createElement("div"); list.className = "hyph-list";
+    search.oninput = function() {
+      filter = search.value.toLowerCase().trim();
+      Array.prototype.forEach.call(list.children, function(r){
+        r.style.display = (!filter || r._hyphFilter.indexOf(filter) >= 0) ? "" : "none";
+      });
+    };
+    rows.push(search);
+    var tools = document.createElement("div"); tools.className = "hyph-tools";
+    [["All languages", function(){ hyphenWriteCodes(hyphenAllCodes()); }],
+     ["European", function(){ hyphenWriteCodes(["it","en","en-GB","de","fr","es","pt","nl","pl","sv"]); }],
+     ["None", function(){ hyphenWriteCodes([]); }]].forEach(function(entry) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn";
+      b.textContent = entry[0]; b.onclick = entry[1]; tools.appendChild(b);
+    });
+    rows.push(tools);
+    var codes = hyphenCodes();
+    hyphenLangList().forEach(function(o) {
+      if (!o.code) return;
+      var row = document.createElement("label"); row.className = "hyph-row";
+      var cb = document.createElement("input"); cb.type = "checkbox";
+      cb.checked = codes.indexOf(o.code) >= 0;
+      cb.onchange = function() {
+        var cur = hyphenCodes();
+        if (cb.checked) { if (cur.indexOf(o.code) < 0) cur.push(o.code); }
+        else { cur = cur.filter(function(c){ return c !== o.code; }); }
+        hyphenWriteCodes(cur);
+      };
+      row.appendChild(cb);
+      var name = document.createElement("span"); name.className = "hyph-name";
+      name.textContent = o.label + " (" + o.code + ")"; row.appendChild(name);
+      var size = document.createElement("span"); size.className = "hyph-size";
+      size.textContent = o.bytes ? Math.round(o.bytes / 1024) + " KB" : "-";
+      row.appendChild(size);
+      row._hyphFilter = (o.label + " " + o.code).toLowerCase();
+      if (filter && row._hyphFilter.indexOf(filter) < 0) row.style.display = "none";
+      list.appendChild(row);
+    });
+    rows.push(list);
+    var selected = hyphenCodes();
+    var summary = document.createElement("div"); summary.className = "hyph-summary";
+    summary.textContent = selected.length + " of " + hyphenAllCodes().length + " languages selected - about " +
+      Math.round(hyphenBytesFor(selected) / 1024) + " KB of patterns embedded (all: " + Math.round(total / 1024) + " KB). " +
+      "Unselected languages use heuristic syllable rules at runtime.";
+    rows.push(summary);
+    return rows;
+  }
+  openInspectorOverlay("Hyphenation languages", builder,
+    "Choose the TeX dictionaries embedded in app.js. Fewer languages mean a much smaller JavaScript file.");
+}
+
 function richtextControls(n) {
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
@@ -16882,6 +16996,15 @@ function richtextControls(n) {
   selectRow("Page theme", "contentTheme", [["light", "Light (white page)"], ["dark", "Dark page"]], "light");
   body.appendChild(rowInput("height", n.height || "", function(v){ upd("height", v); }, "e.g. 420px"));
   body.appendChild(rowInput("toolbar items", n.toolbarItems || "", function(v){ upd("toolbarItems", v); }, "undo,redo|bold,italic|link,image,table,pageBreak"));
+  var hyphRow = document.createElement("div"); hyphRow.className = "rowline";
+  var hyphBtn = document.createElement("button"); hyphBtn.type = "button"; hyphBtn.className = "btn";
+  hyphBtn.style.cssText = "font-size:11px;padding:4px 8px;width:100%";
+  hyphBtn.textContent = "Hyphenation languages...";
+  hyphBtn.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } openHyphenationLanguages(); };
+  hyphRow.appendChild(hyphBtn); body.appendChild(hyphRow);
+  var hyphHint = document.createElement("div"); hyphHint.className = "hint"; hyphHint.style.fontSize = "10px";
+  hyphHint.textContent = "Pick the dictionaries embedded in app.js; fewer languages produce much smaller JavaScript.";
+  body.appendChild(hyphHint);
   body.appendChild(rowInput("header", n.header || "", function(v){ upd("header", v); }, "e.g. Company name - {page}/{pages}"));
   body.appendChild(rowInput("footer", n.footer || "", function(v){ upd("footer", v); }, "e.g. Page {page} of {pages}"));
   [["toolbar", "Toolbar"], ["menu", "Menu bar"], ["contextToolbar", "Selection toolbar"], ["statusbar", "Status bar"], ["readonly", "Read only"]].forEach(function(pair) {
@@ -17955,6 +18078,7 @@ function attrsOf(n) {
     if (n.header) a += " header: \"" + esc(n.header) + "\"";
     if (n.footer) a += " footer: \"" + esc(n.footer) + "\"";
     if (n.template) a += " template: \"" + esc(n.template) + "\"";
+    if (n.hyphenLangs) a += " hyphenLangs: \"" + esc(n.hyphenLangs) + "\"";
   }
   if (n.kind === "emptystate") {
     if (n.icon) a += " icon: \"" + esc(n.icon) + "\"";

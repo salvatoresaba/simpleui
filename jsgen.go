@@ -1553,11 +1553,21 @@ func generateJsFor(p *Prog, target string, markers bool) string {
 	}
 	// Rich text editors keep a JSON document model, history and a configurable
 	// toolbar/plugin registry. The embedded PDF fonts travel with the editor.
+	// hyphenLangs on every richtext tag selects the dictionaries to embed;
+	// without it (or with an editor using the richtext API only) all are kept.
 	if feat.needsRichText() {
 		sb.WriteString("\n\n")
 		sb.WriteString(suiPdfFontsJS)
 		sb.WriteString("\n\n")
-		sb.WriteString(suiRichTextRuntime)
+		runtimeJS := suiRichTextRuntime
+		if feat.hasTag("richtext") && feat.hyphenLangsRestricted {
+			codes := make([]string, 0, len(feat.hyphenLangs))
+			for code := range feat.hyphenLangs {
+				codes = append(codes, code)
+			}
+			runtimeJS = richTextRuntimeSubset(codes)
+		}
+		sb.WriteString(runtimeJS)
 	}
 	// Charts parse JSON/XML/CSV data and draw inert SVG nodes. Large charts
 	// scroll their viewport or can be zoomed by the user.

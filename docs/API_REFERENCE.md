@@ -1693,6 +1693,7 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark`. Independent from `theme` |
 | `header` / `footer` | Text or a rich header/footer model repeated on every page. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) and the other variables are replaced in the paginated view, preview, print, PDF, DOCX and ODT (escape braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
+| `hyphenLangs` | Comma-separated hyphenation dictionaries to embed at build time; omit/`*`/`all` keeps all 57, `none` embeds none (heuristic only). Language tags resolve to pattern sets (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
 
 Toolbar groups (separated by `|`) are individual dockable toolbars: drag the
 ⣿ handle to float one, then drop it on the top bar to re-insert it in the slot
@@ -1886,6 +1887,18 @@ pattern data (about 1.9 MB of plain text for all 57 languages) is embedded in
 the rich text runtime, so programs that use `richtext` ship a noticeably larger
 `app.js`; the document language still drives spell checking and DOCX/ODT
 metadata.
+
+**Choosing dictionaries.** The designer's Inspector (**Rich text editor →
+Hyphenation languages...**) offers a searchable multi-select of all 57 embedded
+dictionaries, with per-language size and **All languages** / **European** /
+**None** presets. It writes `hyphenLangs` on the tag, so the compiler embeds only
+those TeX pattern sets in `app.js`. Selecting 4–10 languages cuts a minimal app
+from about 3.4 MB to about 1 MB; `none` removes about 1.9 MB of pattern text. The
+union of all `richtext` tags is used, so editors with different needs share the
+embedded dictionaries. An omitted attribute, `*`, `all`, a reactive expression,
+or an editor using only the `richtext.*` API keeps the full set. Unselected
+languages still hyphenate with the built-in heuristic rules.
+
 The document default line height is in Document settings and individual
 paragraphs can override it. Inside a code block, **Code tab size** (2, 4 or 8
 spaces) controls how many spaces indent/outdent inserts and is stored as
