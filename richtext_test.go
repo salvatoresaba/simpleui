@@ -1395,7 +1395,14 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
       ['pt', 'silabação', 'si-la-ba-ção'],
       ['nl', 'lettergrepen', 'let-ter-gre-pen'],
       ['pl', 'sylabizacja', 'sy-la-bi-za-cja'],
-      ['sv', 'stavelser', 'sta-vel-ser']
+      ['sv', 'stavelser', 'sta-vel-ser'],
+      ['ru', 'международный', 'меж-ду-на-род-ный'],
+      ['el', 'ανεξαρτησία', 'ανε-ξαρ-τη-σία'],
+      ['tr', 'sıcaklık', 'sı-cak-lık'],
+      ['cs', 'elektrárna', 'elek-trár-na'],
+      ['hu', 'nemzetközi', 'nem-zet-kö-zi'],
+      ['da', 'international', 'in-ter-na-tio-nal'],
+      ['sr', 'интернационални', 'ин-тер-на-ци-о-на-лни']
     ];
     for (var dc = 0; dc < dictCases.length; dc++) {
       __SUI_RICH.set('editor', { type: 'doc', page: { lang: dictCases[dc][0] }, children: [{ type: 'paragraph', hyphens: 'auto', children: [{ type: 'text', text: dictCases[dc][1], marks: [] }] }] });

@@ -1833,11 +1833,23 @@ sillabazione automatica insieme. La sillabazione inserisce **soft hyphen**
 ha il dizionario di sillabazione; è salvata come `hyphens: "auto"` nel modello
 del paragrafo ed è considerata dalla vista paginata e dalla stampa. Gli export
 DOCX, ODT e RTF scrivono soft/optional hyphen senza modificare l'interlinea del
-paragrafo; l'export PDF usa gli stessi soft hyphen nel proprio layout. Italiano,
-inglese, tedesco, francese, spagnolo, portoghese, olandese, polacco e svedese
-usano i dizionari completi di pattern TeX (hyph-utf8, LPPL/MIT); le altre lingue
-ricadono sulle regole sillabiche euristiche. La lingua del documento resta usata
-per correttore ortografico e metadati DOCX/ODT.
+paragrafo; l'export PDF usa gli stessi soft hyphen nel proprio layout. La
+sillabazione usa i dizionari completi di pattern TeX di **hyph-utf8**
+(LPPL/MIT) per 57 lingue: afrikaans, bielorusso, bulgaro, catalano, ceco,
+gallese, danese, tedesco, greco moderno e antico, inglese (US e UK), esperanto,
+spagnolo, estone, basco, finlandese, francese, friuliano, irlandese, galiziano,
+croato, alto sorabo, ungherese, armeno, interlingua, indonesiano, islandese,
+italiano, georgiano, kazako, kurmanji, latino, lituano, lettone, macedone,
+mongolo, olandese, norvegese nynorsk, occitano, polacco, piemontese,
+portoghese, romancio, rumeno, russo, sanscrito, serbo-croato, slovacco,
+sloveno, albanese, serbo, svedese, turkmeno, turco e ucraino; la lingua del
+documento (anche tag come `en-GB`, `de-CH` o `sr-Latn`) seleziona il set di
+pattern corrispondente. Le lingue senza dizionario ricadono sulle regole
+sillabiche euristiche integrate. I dati dei pattern (circa 1,9 MB di testo
+semplice per tutte e 57 le lingue) sono incorporati nel runtime dell'editor
+ricco, quindi i programmi che usano `richtext` generano un `app.js` decisamente
+più grande; la lingua del documento resta usata per correttore ortografico e
+metadati DOCX/ODT.
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
 (2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come

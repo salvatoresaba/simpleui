@@ -1870,11 +1870,22 @@ hyphens** (U+00AD), so words can break even when the browser has no hyphenation
 dictionary; it is stored as `hyphens: "auto"` in the paragraph model and is
 considered by the paginated view and print. DOCX, ODT and RTF exports write soft
 or optional hyphens without changing paragraph line spacing; the PDF export uses
-the same soft hyphens when laying out text. Italian, English, German, French,
-Spanish, Portuguese, Dutch, Polish and Swedish use the full TeX hyphenation
-pattern dictionaries (hyph-utf8, LPPL/MIT); other languages fall back to the
-built-in heuristic syllable rules. The document language still drives spell
-checking and DOCX/ODT metadata.
+the same soft hyphens when laying out text. Hyphenation uses the full TeX
+hyphenation pattern dictionaries from **hyph-utf8** (LPPL/MIT) for 57 languages:
+Afrikaans, Belarusian, Bulgarian, Catalan, Czech, Welsh, Danish, German, Modern
+and Ancient Greek, English (US and UK), Esperanto, Spanish, Estonian, Basque,
+Finnish, French, Friulian, Irish, Galician, Croatian, Upper Sorbian, Hungarian,
+Armenian, Interlingua, Indonesian, Icelandic, Italian, Georgian, Kazakh,
+Kurmanji, Latin, Lithuanian, Latvian, Macedonian, Mongolian, Dutch, Norwegian
+Nynorsk, Occitan, Polish, Piedmontese, Portuguese, Romansh, Romanian, Russian,
+Sanskrit, Serbo-Croatian, Slovak, Slovenian, Albanian, Serbian, Swedish,
+Turkmen, Turkish and Ukrainian; the document language (including tags such as
+`en-GB`, `de-CH` or `sr-Latn`) selects the matching pattern set. Languages
+without a dictionary fall back to the built-in heuristic syllable rules. The
+pattern data (about 1.9 MB of plain text for all 57 languages) is embedded in
+the rich text runtime, so programs that use `richtext` ship a noticeably larger
+`app.js`; the document language still drives spell checking and DOCX/ODT
+metadata.
 The document default line height is in Document settings and individual
 paragraphs can override it. Inside a code block, **Code tab size** (2, 4 or 8
 spaces) controls how many spaces indent/outdent inserts and is stored as
