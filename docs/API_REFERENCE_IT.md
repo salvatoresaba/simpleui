@@ -1713,7 +1713,9 @@ attivano una modalità di scrittura: il pulsante resta evidenziato e il testo
 digitato usa quella formattazione finché il pulsante non viene premuto di nuovo.
 Un colore scelto con il cursore collassato diventa il colore di scrittura e resta
 nel campione finché non se ne sceglie un altro; con una selezione gli stessi
-comandi modificano solo il testo selezionato. Il codice inline e i blocchi di
+comandi modificano solo il testo selezionato. Colori e sfondi di selezione sono
+scritti come span inline, quindi funzionano anche dentro i blocchi di codice e
+restano nel modello dopo il re-render. Il codice inline e i blocchi di
 codice usano il colore del testo della pagina (scuro sul foglio bianco, chiaro
 sul tema scuro) per restare leggibili. I pannelli usano etichette e un'icona
 **?** con il suggerimento nel tooltip al posto delle istruzioni scritte.
@@ -1804,8 +1806,12 @@ evidenziazione e mark inline della sorgente; Escape annulla.
 
 **Impostazioni paragrafo** (pulsante `paragraphSettings` nella toolbar, con
 pulsanti espliciti −/+ per l'indentazione) agisce sui paragrafi selezionati o su
-quello al cursore: allineamento, rientro sinistro, interlinea, spazio prima e
-dopo.
+quello al cursore: allineamento, rientro sinistro, interlinea, spazio prima,
+spazio dopo e **Sillabazione**. La sillabazione imposta `hyphens: auto` (con
+prefisso WebKit) per mandare a capo le parole lunghe con il trattino; è salvata
+come `hyphens: "auto"` nel modello del paragrafo ed è considerata dalla vista
+paginata e dalla stampa. Il dizionario di sillabazione segue il `lang`
+dell'editor (di default la lingua del browser).
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla.
 
@@ -1819,7 +1825,10 @@ pulsante attivo o scegli **Normal** per tornare a un paragrafo. Escape esce da
 quote e code block, Backspace all'inizio fa lo stesso, **Clear formatting**
 ripristina il paragrafo, ed Enter sull'ultima riga vuota di un quote esce dal
 quote. Il code block mantiene le interruzioni di riga con Enter: usa Escape,
-Normal o il pulsante Code per uscirne.
+Normal o il pulsante Code per uscirne. Gli stili delle parole dentro un blocco
+di codice (grassetto, corsivo, colore, evidenziazione) sono salvati in
+`children` e restano dopo il re-render e negli export; indent/outdent aggiunge o
+toglie due spazi alla riga di codice corrente invece di spostare tutto il blocco.
 
 I controlli **Zoom** sono in un gruppo della toolbar: −, percentuale corrente
 (clic per tornare al 100%) e +. Lo zoom è **solo visivo**: ingrandisce caratteri,
@@ -1919,7 +1928,10 @@ Tipi blocco: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 `list_item`, `blockquote`, `code_block`, `image`, `table`, `table_row`,
 `table_cell`, `hr`. Tipi inline: `text` con mark (`bold`, `italic`,
 `underline`, `strike`, `code`, `sup`, `sub`, `link`, `color`, `background`,
-`font`, `size`), più `break` e `image` inline.
+`font`, `size`), più `break` e `image` inline. Un `code_block` conserva `text`
+per gli export semplici, gli eventuali `children` ricchi (mark inline) e lo
+stile di blocco (`align`, `indent`, `lineHeight`, `spaceBefore`, `spaceAfter`,
+`hyphens`); così gli stili delle parole restano dopo il re-render.
 
 ### API
 

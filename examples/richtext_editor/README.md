@@ -33,9 +33,11 @@ builds.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
   Enter creates one list item per line, and leaving a code block releases only
-  the line with the caret while the other lines stay in code blocks. Inline code
-  and code blocks use the page text color, so they are readable on the white
-  page.
+  the line with the caret while the other lines stay in code blocks. Word styles
+  (bold, italic, color, highlight) inside code blocks are kept in the model and
+  survive re-renders; indent/outdent adds or removes two spaces on the current
+  code line. Inline code and code blocks use the page text color, so they are
+  readable on the white page.
 - Insert image accepts a file from the PC (up to 8 MB, stored as a data URL) or
   an http(s)/data URL.
 - Table settings set the table width (fit to page inside the margins, pixels or
@@ -71,14 +73,18 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   and oversized paragraphs, lists and tables are split so printed content never
   enters the margins.
 - Paragraph settings panel (alignment, indent with explicit −/+ buttons, line
-  height, space before/after), zoom controls in the toolbar and a print preview
-  overlay. The main toolbar and the contextual selection toolbar both expose
-  indent/outdent for the current paragraph. Paragraphs and lists split at line
-  or item boundaries to fill each page; headings and images stay together.
+  height, space before/after, hyphenation), zoom controls in the toolbar and a
+  print preview overlay. The hyphenation option sets automatic word breaking at
+  line ends and is stored in the paragraph model. The main toolbar and the
+  contextual selection toolbar both expose indent/outdent for the current
+  paragraph; inside a code block they indent the current code line. Paragraphs
+  and lists split at line or item boundaries to fill each page; headings and
+  images stay together.
 - Settings panels use labels plus a **?** hint icon with the explanation in its
   tooltip instead of inline instruction paragraphs. The toolbar distinguishes
   text color (plain **A** with a color bar, default black) from background
-  highlight (highlighted **A** with a swatch, default white).
+  highlight (highlighted **A** with a swatch, default white). Selection colors
+  and highlights are inline spans and also work inside code blocks.
 - Font-size buttons A+/A− change the selected text (or the word at the caret);
   zoom only scales the view and never changes the document fonts.
 - Image settings: double-click an image or right-click it and choose Edit/Replace/Delete;

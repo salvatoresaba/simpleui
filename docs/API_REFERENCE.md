@@ -1728,7 +1728,10 @@ Shift+Tab; Enter creates a new list item on every line (including a split in the
 middle of an item), and Enter on an empty item leaves the list. DOCX and ODT
 export use native list numbering. **Code blocks:** the Code block button is a
 toggle; turning it off releases only the line with the caret as a normal
-paragraph, so the other lines stay inside code blocks.
+paragraph, so the other lines stay inside code blocks. Word styles inside a code
+block (bold, italic, color, highlight) are stored as rich `children` and survive
+re-renders and exports; indent/outdent adds or removes two spaces on the current
+code line instead of moving the whole block.
 
 **Paginated view:** the **Pages** button in the status bar shows A4 sheets with margins, optional header/footer and table
 rows split across pages; header rows are repeated on each page. Press **Edit**
@@ -1754,6 +1757,8 @@ switch a typing mode: the button stays highlighted and the text typed next uses
 that format until the button is pressed again. A color chosen with a collapsed
 caret becomes the typing color and stays in the swatch until another color is
 picked; with a selection the same commands change only the selected text.
+Selection colors and highlights are written as inline spans, so they also work
+inside code blocks and are kept in the model after a re-render.
 Inline code and code blocks use the page text color (dark on the white page,
 light on a dark page) so they stay readable. Settings panels use labels plus a
 **?** hint icon whose tooltip holds the explanation, instead of visible
@@ -1840,7 +1845,12 @@ highlight and inline marks; Escape cancels it.
 
 **Paragraph settings** (toolbar button `paragraphSettings`, with explicit
 −/+ indent buttons for the selected paragraph or selection) applies to the selected paragraphs or to the paragraph at the
-caret: alignment, left indent, line height, space before and space after.
+caret: alignment, left indent, line height, space before, space after and
+**Hyphenation**. Hyphenation sets `hyphens: auto` (with the WebKit prefix) so
+long words wrap with hyphens at the line end; it is stored as `hyphens: "auto"`
+in the paragraph model and is considered by the paginated view and print. The
+hyphenation dictionary follows the editor `lang` (the browser locale by
+default).
 The document default line height is in Document settings and individual
 paragraphs can override it.
 
@@ -1934,7 +1944,10 @@ Block types: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 `list_item`, `blockquote`, `code_block`, `image`, `table`, `table_row`,
 `table_cell`, `hr`. Inline types: `text` with marks (`bold`, `italic`,
 `underline`, `strike`, `code`, `sup`, `sub`, `link`, `color`, `background`,
-`font`, `size`), plus `break` and inline `image`.
+`font`, `size`), plus `break` and inline `image`. A `code_block` stores `text`
+for plain exports plus optional rich `children` (inline marks) and the usual
+block style (`align`, `indent`, `lineHeight`, `spaceBefore`, `spaceAfter`,
+`hyphens`); this keeps word styles inside code blocks across re-renders.
 
 ### API
 

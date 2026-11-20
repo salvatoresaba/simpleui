@@ -242,7 +242,8 @@ window.__SUI_RICH = (function () {
       indent: cssLength(style.paddingLeft || style.marginLeft, ''),
       lineHeight: cssLength(style.lineHeight, ''),
       spaceBefore: cssLength(style.marginTop, ''),
-      spaceAfter: cssLength(style.marginBottom, '')
+      spaceAfter: cssLength(style.marginBottom, ''),
+      hyphens: style.hyphens || style.webkitHyphens || ''
     };
   }
 
@@ -316,7 +317,18 @@ window.__SUI_RICH = (function () {
       }
       if (tag === 'pre') {
         flush();
-        out.push({ type: 'code_block', text: node.textContent || '' });
+        var codeBlock = { type: 'code_block', text: node.textContent || '' };
+        var preStyle = blockStyle(node);
+        for (var pk in preStyle) if (hasOwn(preStyle, pk) && preStyle[pk]) codeBlock[pk] = preStyle[pk];
+        var codeHost = null;
+        for (var chn = 0; chn < node.children.length; chn++) {
+          if (node.children[chn].tagName && node.children[chn].tagName.toLowerCase() === 'code') { codeHost = node.children[chn]; break; }
+        }
+        if (!codeHost) codeHost = node;
+        var preInline = [];
+        for (var pnc = 0; pnc < codeHost.childNodes.length; pnc++) inlineFrom(codeHost.childNodes[pnc], [], preInline, depth + 1);
+        if (preInline.length) codeBlock.children = preInline;
+        out.push(codeBlock);
         continue;
       }
       if (tag === 'hr') { flush(); out.push({ type: 'hr' }); continue; }
@@ -400,6 +412,10 @@ window.__SUI_RICH = (function () {
     if (node.lineHeight) element.style.lineHeight = node.lineHeight;
     if (node.spaceBefore) element.style.marginTop = node.spaceBefore;
     if (node.spaceAfter) element.style.marginBottom = node.spaceAfter;
+    if (node.hyphens) {
+      element.style.hyphens = node.hyphens;
+      element.style.webkitHyphens = node.hyphens;
+    }
   }
 
   function applyMarks(text, marks) {
@@ -525,7 +541,13 @@ window.__SUI_RICH = (function () {
       for (var qi = 0; qi < q.length; qi++) { var qb = blockDom(q[qi], depth + 1); if (qb) box.appendChild(qb); }
       return box;
     } else if (type === 'code_block') {
-      box = el('pre'); box.appendChild(el('code', '', String(node.text == null ? '' : node.text))); return box;
+      box = el('pre');
+      var codeBox = el('code');
+      if (Array.isArray(node.children) && node.children.length) inlineDom(node.children, codeBox);
+      else codeBox.appendChild(document.createTextNode(String(node.text == null ? '' : node.text)));
+      box.appendChild(codeBox);
+      styleForBlock(box, node);
+      return box;
     } else if (type === 'hr') {
       return el('hr');
     } else if (type === 'page_break') {
@@ -1026,9 +1048,7 @@ window.__SUI_RICH = (function () {
     pre.appendChild(code);
     return pre;
   }
-  function preCaretOffset(pre, range) {
-    if (!range) return 0;
-    var container = range.startContainer, offset = range.startOffset;
+  function preOffsetOf(pre, container, offset) {
     var total = 0, found = null;
     function walk(node) {
       if (found !== null) return;
@@ -1053,6 +1073,101 @@ window.__SUI_RICH = (function () {
     }
     walk(pre);
     return found === null ? total : found;
+  }
+  function preCaretOffset(pre, range) {
+    return range ? preOffsetOf(pre, range.startContainer, range.startOffset) : 0;
+  }
+  function textPositionAt(root, target) {
+    var remaining = target, result = null;
+    function walk(node) {
+      if (result || !node) return;
+      if (node.nodeType === 3) {
+        var len = String(node.nodeValue || '').length;
+        if (remaining <= len) { result = { node: node, offset: remaining }; return; }
+        remaining -= len;
+        return;
+      }
+      if (node.nodeType !== 1) return;
+      if (node.tagName.toLowerCase() === 'br') {
+        if (remaining === 0) {
+          var parent = node.parentNode, index = 0;
+          while (index < parent.childNodes.length && parent.childNodes[index] !== node) index++;
+          result = { node: parent, offset: index };
+          return;
+        }
+        remaining -= 1;
+        return;
+      }
+      for (var i = 0; i < node.childNodes.length; i++) { walk(node.childNodes[i]); if (result) return; }
+    }
+    walk(root);
+    return result;
+  }
+  function codeLineInfo(pre) {
+    var lines = blockTextLines(pre);
+    var starts = [], pos = 0;
+    for (var i = 0; i < lines.length; i++) { starts.push(pos); pos += lines[i].length + 1; }
+    var sel = window.getSelection();
+    var range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    var start = 0, end = 0;
+    if (range && pre.contains(range.commonAncestorContainer)) {
+      start = preOffsetOf(pre, range.startContainer, range.startOffset);
+      end = preOffsetOf(pre, range.endContainer, range.endOffset);
+      if (range.collapsed) end = start;
+    } else {
+      start = end = preCaretOffset(pre, range);
+    }
+    function indexAt(offset) {
+      for (var i = 0; i < lines.length; i++) {
+        if (offset <= starts[i] + lines[i].length) return i;
+      }
+      return Math.max(0, lines.length - 1);
+    }
+    return { lines: lines, starts: starts, startLine: indexAt(start), endLine: indexAt(end), startOffset: start, endOffset: end };
+  }
+  // indentCodeLines indents the selected code lines with two spaces. It edits
+  // text nodes in place so bold/color spans inside the code block survive.
+  function indentCodeLines(inst, pre, delta) {
+    var info = codeLineInfo(pre);
+    var first = info.startLine, last = info.endLine;
+    if (last < first) { var swap = first; first = last; last = swap; }
+    var caretLine = info.startLine;
+    var caretColumn = Math.max(0, info.startOffset - info.starts[caretLine]);
+    for (var line = last; line >= first; line--) {
+      var lineStart = info.starts[line];
+      if (delta > 0) {
+        var pos = textPositionAt(pre, lineStart);
+        if (!pos) continue;
+        var range = document.createRange();
+        range.setStart(pos.node, pos.offset);
+        range.collapse(true);
+        range.insertNode(document.createTextNode('  '));
+      } else {
+        var leading = /^ */.exec(info.lines[line])[0].length;
+        var remove = Math.min(2, leading);
+        if (!remove) continue;
+        var from = textPositionAt(pre, lineStart);
+        var to = textPositionAt(pre, lineStart + remove);
+        if (!from || !to) continue;
+        var cut = document.createRange();
+        cut.setStart(from.node, from.offset);
+        cut.setEnd(to.node, to.offset);
+        cut.deleteContents();
+      }
+    }
+    var newInfo = codeLineInfo(pre);
+    var targetLine = Math.min(caretLine, newInfo.lines.length - 1);
+    var targetColumn = Math.max(0, caretColumn + (delta > 0 ? 2 : -Math.min(2, caretColumn)));
+    var target = textPositionAt(pre, newInfo.starts[targetLine] + targetColumn);
+    if (target) {
+      var caret = document.createRange();
+      caret.setStart(target.node, target.offset);
+      caret.collapse(true);
+      var sel = window.getSelection();
+      if (sel) { sel.removeAllRanges(); sel.addRange(caret); }
+    }
+    if (inst.editor) inst.editor.focus();
+    saveSelection(inst);
   }
   function toggleCodeBlockLine(inst, pre, tag) {
     var sel = window.getSelection();
@@ -1841,6 +1956,10 @@ window.__SUI_RICH = (function () {
       return;
     }
     if (!block) return;
+    if (block.tagName && block.tagName.toLowerCase() === 'pre') {
+      indentCodeLines(inst, block, delta);
+      return;
+    }
     var current = parseFloat(block.style.paddingLeft || block.style.marginLeft || '0') || 0;
     current = Math.max(0, Math.min(240, current + delta));
     block.style.paddingLeft = current + 'px';
@@ -2266,6 +2385,26 @@ window.__SUI_RICH = (function () {
   // carets and mixed selections) and strips the mark explicitly if the
   // browser left the "on" state in place, so a second click always turns
   // bold/italic/underline/strike off.
+  function applyRangeInlineStyle(inst, prop, value) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount || sel.isCollapsed || !inst.editor) return false;
+    var range = sel.getRangeAt(0);
+    if (!inst.editor.contains(range.commonAncestorContainer)) return false;
+    var probe = range.cloneContents();
+    if (probe.querySelector && probe.querySelector('p,div,table,pre,ul,ol,h1,h2,h3,h4,blockquote')) return false;
+    var span = el('span');
+    span.style[prop] = value;
+    try {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+    } catch (e) { return false; }
+    var selected = document.createRange();
+    selected.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(selected);
+    saveSelection(inst);
+    return true;
+  }
   function rememberTypingColor(inst, cmd, value) {
     if (cmd === 'textColor') inst.typingColor = value;
     else if (cmd === 'highlight') inst.typingHighlight = value;
@@ -2282,7 +2421,10 @@ window.__SUI_RICH = (function () {
       }
     }
     if (inst.typingColor) { try { document.execCommand('foreColor', false, inst.typingColor); } catch (e) {} }
-    if (inst.typingHighlight) { try { document.execCommand('hiliteColor', false, inst.typingHighlight); } catch (e) {} }
+    if (inst.typingHighlight) {
+      try { document.execCommand('hiliteColor', false, inst.typingHighlight); } catch (e) {}
+      try { document.execCommand('backColor', false, inst.typingHighlight); } catch (e) {}
+    }
   }
   function markAncestor(inst, cmd) {
     var sel = window.getSelection();
@@ -2634,12 +2776,19 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'fontSize') document.execCommand('fontSize', false, String(value || '3'));
     else if (cmd === 'textColor') {
       var textColorValue = cssColor(value) || '#000000';
-      document.execCommand('foreColor', false, textColorValue);
+      // Prefer an explicit span so the color works in every engine and inside
+      // code blocks, where execCommand is inconsistent.
+      if (!applyRangeInlineStyle(inst, 'color', textColorValue)) {
+        try { document.execCommand('foreColor', false, textColorValue); } catch (e) {}
+      }
       rememberTypingColor(inst, 'textColor', textColorValue);
     }
     else if (cmd === 'highlight') {
       var highlightValue = cssColor(value) || '#ffffff';
-      document.execCommand('hiliteColor', false, highlightValue);
+      if (!applyRangeInlineStyle(inst, 'backgroundColor', highlightValue)) {
+        try { document.execCommand('hiliteColor', false, highlightValue); } catch (e) {}
+        try { document.execCommand('backColor', false, highlightValue); } catch (e) {}
+      }
       rememberTypingColor(inst, 'highlight', highlightValue);
     }
     else if (cmd === 'lineHeight' || cmd === 'spaceBefore' || cmd === 'spaceAfter' || cmd === 'indentBy') {
@@ -5453,6 +5602,15 @@ window.__SUI_RICH = (function () {
     numberRow('Line height', 'lineheight', 0.8, 3, 0.05, '');
     numberRow('Space before', 'before', 0, 200, 1, 'px');
     numberRow('Space after', 'after', 0, 200, 1, 'px');
+    var hyphenRow = el('label', 'sui-rich-paragraph-check');
+    hyphenRow.appendChild(el('span', '', 'Hyphenation'));
+    var hyphen = el('input');
+    hyphen.type = 'checkbox';
+    hyphen.setAttribute('data-rich-paragraph-hyphens', '1');
+    hyphen.setAttribute('aria-label', 'Enable automatic hyphenation');
+    hyphen.title = 'Break long words with hyphens at the line end.';
+    hyphenRow.appendChild(hyphen);
+    panel.appendChild(hyphenRow);
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-paragraph-apply', '1');
@@ -5509,11 +5667,14 @@ window.__SUI_RICH = (function () {
         indent: parseFloat(block.style.paddingLeft) || 0,
         lineheight: parseFloat(block.style.lineHeight) || pageConfig(inst).lineHeight,
         before: parseFloat(block.style.marginTop) || 0,
-        after: parseFloat(block.style.marginBottom) || 0
+        after: parseFloat(block.style.marginBottom) || 0,
+        hyphens: block.style.hyphens || block.style.webkitHyphens || ''
       };
     }
     var align = panel.querySelector('[data-rich-paragraph-align]');
     if (align) align.value = source.align || '';
+    var hyphenInput = panel.querySelector('[data-rich-paragraph-hyphens]');
+    if (hyphenInput) hyphenInput.checked = source.hyphens === 'auto';
     [['indent', 'indent'], ['lineheight', 'lineheight'], ['before', 'before'], ['after', 'after']].forEach(function (pair) {
       var input = panel.querySelector('[data-rich-paragraph-' + pair[1] + ']');
       if (input) input.value = source[pair[0]] == null ? '' : String(source[pair[0]]);
@@ -5524,6 +5685,10 @@ window.__SUI_RICH = (function () {
     for (var i = 0; i < blocks.length; i++) {
       var block = blocks[i];
       if (!block || !block.style) continue;
+      if (block.tagName && block.tagName.toLowerCase() === 'pre') {
+        indentCodeLines(inst, block, delta);
+        continue;
+      }
       var current = parseFloat(block.style.paddingLeft || block.style.marginLeft || '0') || 0;
       current = Math.max(0, Math.min(240, current + delta));
       block.style.paddingLeft = current + 'px';
@@ -5541,6 +5706,8 @@ window.__SUI_RICH = (function () {
     var lineheight = parseFloat(value('[data-rich-paragraph-lineheight]'));
     var before = parseFloat(value('[data-rich-paragraph-before]'));
     var after = parseFloat(value('[data-rich-paragraph-after]'));
+    var hyphensInput = panel.querySelector('[data-rich-paragraph-hyphens]');
+    var hyphens = !!(hyphensInput && hyphensInput.checked);
     var blocks = paragraphTargets(inst);
     for (var i = 0; i < blocks.length; i++) {
       var block = blocks[i];
@@ -5549,6 +5716,13 @@ window.__SUI_RICH = (function () {
       if (isFinite(lineheight) && lineheight > 0) block.style.lineHeight = String(lineheight); else block.style.lineHeight = '';
       if (isFinite(before) && before > 0) block.style.marginTop = before + 'px'; else block.style.marginTop = '';
       if (isFinite(after) && after > 0) block.style.marginBottom = after + 'px'; else block.style.marginBottom = '';
+      if (hyphens && block.tagName && block.tagName.toLowerCase() !== 'pre') {
+        block.style.hyphens = 'auto';
+        block.style.webkitHyphens = 'auto';
+      } else {
+        block.style.hyphens = '';
+        block.style.webkitHyphens = '';
+      }
     }
     commit(inst, 'change');
     panel.hidden = true;
@@ -6832,6 +7006,7 @@ window.__SUI_RICH = (function () {
     if (!editor.getAttribute('role')) editor.setAttribute('role', 'textbox');
     if (!editor.getAttribute('aria-multiline')) editor.setAttribute('aria-multiline', 'true');
     if (!editor.getAttribute('aria-label')) editor.setAttribute('aria-label', attr(root, 'data-sui-rich-title') || 'Rich text editor');
+    if (!editor.getAttribute('lang')) editor.setAttribute('lang', navigator.language || document.documentElement.lang || 'en');
     if (boolAttr(root, 'data-sui-rich-readonly', false)) editor.setAttribute('aria-readonly', 'true');
     else editor.setAttribute('spellcheck', 'true');
     var inst = instances[name];
@@ -10009,6 +10184,7 @@ const suiRichTextCss = `
 .sui-rich-pagesettings-actions { display: flex; gap: 6px; }
 .sui-rich-indent-actions { display: flex; gap: 6px; margin-top: -2px; }
 .sui-rich-indent-actions .sui-rich-btn { flex: 1; justify-content: center; }
+.sui-rich-paragraph-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--sui-rich-accent); }
 .sui-rich-chrome { display: flex; flex-direction: column; gap: 4px; }
 .sui-rich-chrome-tools { display: flex; flex-wrap: wrap; gap: 4px; }
 .sui-rich-chrome-tools .sui-rich-btn { font-size: 11px; padding: 3px 6px; }

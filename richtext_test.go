@@ -272,6 +272,11 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     await wait(250);
     var selColorSpan = [].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).filter(function (span) { return /rgb\(0, 102, 204\)/.test(getComputedStyle(span).color); })[0];
     if (!selColorSpan || selColorSpan.textContent !== 'Selected') throw new Error('selection color not applied: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    var selBgInput = richRoot().querySelector('.sui-rich-color[data-rich-cmd="highlight"]');
+    selBgInput.value = '#ffe066'; selBgInput.dispatchEvent(new Event('input', { bubbles: true })); selBgInput.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(250);
+    var selBgSpan = [].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).filter(function (span) { return /rgb\(255, 224, 102\)/.test(getComputedStyle(span).backgroundColor); })[0];
+    if (!selBgSpan || selBgSpan.textContent !== 'Selected') throw new Error('selection highlight not applied: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 
     // Four icon sets, persisted per editor and selectable from Preferences.
     var iconRoot = richRoot();
@@ -312,6 +317,36 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     var codeTail = codeBlocks.slice(-3).join('|');
     if (codeTail !== 'PRE:line one|P:line two|PRE:line three') throw new Error('code block line exit: ' + codeBlocks.join('|'));
     if (richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="codeBlock"]').classList.contains('on')) throw new Error('code block button stayed on after the line left the block');
+
+    // Word styles inside a code block are stored in the model and survive a
+    // re-render; indent edits the current code line, not the whole block.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'code_block', text: 'alpha beta\nline two' }] });
+    await wait(250);
+    var richCodeEditor = richRoot().querySelector('.sui-rich-editor');
+    var richCodeText = richCodeEditor.querySelector('pre code').firstChild;
+    var richCodeRange = document.createRange(); richCodeRange.setStart(richCodeText, 0); richCodeRange.setEnd(richCodeText, 5);
+    var richCodeSel = window.getSelection(); richCodeSel.removeAllRanges(); richCodeSel.addRange(richCodeRange); richCodeEditor.focus();
+    __SUI_RICH.command('editor', 'bold');
+    await wait(250);
+    var richCodeDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (!richCodeDoc.children || !richCodeDoc.children.some(function (n) { return n.marks && n.marks.some(function (m) { return m.type === 'bold'; }); })) throw new Error('code block word style not stored: ' + JSON.stringify(richCodeDoc));
+    __SUI_RICH.set('editor', JSON.parse(__SUI_RICH.get('editor')[0]));
+    await wait(250);
+    if (!richRoot().querySelector('.sui-rich-editor pre strong, .sui-rich-editor pre b, .sui-rich-editor pre [style*="font-weight"]')) throw new Error('code block word style lost on re-render');
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'code_block', text: 'one\ntwo' }] });
+    await wait(250);
+    var indentCodeEditor = richRoot().querySelector('.sui-rich-editor');
+    var indentCodeText = indentCodeEditor.querySelector('pre code').firstChild;
+    var indentCodeRange = document.createRange(); indentCodeRange.setStart(indentCodeText, 4); indentCodeRange.collapse(true);
+    var indentCodeSel = window.getSelection(); indentCodeSel.removeAllRanges(); indentCodeSel.addRange(indentCodeRange); indentCodeEditor.focus();
+    __SUI_RICH.command('editor', 'indent');
+    await wait(200);
+    var indentedCode = richRoot().querySelector('.sui-rich-editor pre code');
+    if (!indentedCode || indentedCode.textContent !== 'one\n  two') throw new Error('code line indent: ' + JSON.stringify(indentedCode ? indentedCode.textContent : null));
+    __SUI_RICH.command('editor', 'outdent');
+    await wait(200);
+    if (richRoot().querySelector('.sui-rich-editor pre code').textContent !== 'one\ntwo') throw new Error('code line outdent: ' + JSON.stringify(richRoot().querySelector('.sui-rich-editor pre code').textContent));
 
     // Enter inside a list creates one list item per line.
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Left right', marks: [] }] }] }] }] });
@@ -1112,10 +1147,14 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     reqPara.querySelector('[data-rich-paragraph-before]').value = '6';
     reqPara.querySelector('[data-rich-paragraph-after]').value = '8';
     reqPara.querySelector('[data-rich-paragraph-align]').value = 'right';
+    var reqHyphen = reqPara.querySelector('[data-rich-paragraph-hyphens]');
+    if (!reqHyphen) throw new Error('paragraph hyphenation control missing');
+    reqHyphen.checked = true;
     reqPara.querySelector('[data-rich-paragraph-apply]').click();
     await wait(300);
     var reqParaDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
-    if (reqParaDoc.indent !== '24px' || reqParaDoc.lineHeight !== '1.4' || reqParaDoc.spaceBefore !== '6px' || reqParaDoc.spaceAfter !== '8px' || reqParaDoc.align !== 'right') throw new Error('paragraph settings not stored: ' + JSON.stringify(reqParaDoc));
+    if (reqParaDoc.indent !== '24px' || reqParaDoc.lineHeight !== '1.4' || reqParaDoc.spaceBefore !== '6px' || reqParaDoc.spaceAfter !== '8px' || reqParaDoc.align !== 'right' || reqParaDoc.hyphens !== 'auto') throw new Error('paragraph settings not stored: ' + JSON.stringify(reqParaDoc));
+    if (bsEditor().querySelector('p').style.hyphens !== 'auto') throw new Error('hyphenation not applied');
 
     __SUI_RICH.command('editor', 'documentSettings');
     await wait(200);
