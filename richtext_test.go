@@ -1282,6 +1282,23 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var plainJustifyDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (plainJustifyDoc.align !== 'justify' || plainJustifyDoc.hyphens) throw new Error('plain justify not applied: ' + JSON.stringify(plainJustifyDoc));
 
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'straordinariamente complicatissimo', marks: [] }] }] });
+    await wait(200);
+    var justifyFirstPara = bsEditor().querySelector('p');
+    var justifyFirstRange = document.createRange(); justifyFirstRange.selectNodeContents(justifyFirstPara); justifyFirstRange.collapse(true);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(justifyFirstRange);
+    __SUI_RICH.command('editor', 'justify');
+    await wait(200);
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(180);
+    var justifyFirstPanel = document.querySelector('.sui-rich-paragraphsettings');
+    justifyFirstPanel.querySelector('[data-rich-paragraph-hyphens]').checked = true;
+    justifyFirstPanel.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(250);
+    var justifyFirstDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (justifyFirstDoc.align !== 'justify' || justifyFirstDoc.hyphens !== 'auto') throw new Error('hyphenation not applied after justify: ' + JSON.stringify(justifyFirstDoc));
+    if (bsEditor().querySelector('p').textContent.indexOf('\u00AD') < 0) throw new Error('hyphenation after justify inserted no soft hyphens');
+
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', lineHeight: '1', spaceBefore: '5pt', spaceAfter: '5pt', children: [{ type: 'text', text: 'Spacing preserved', marks: [] }] }] });
     await wait(200);
     var spacingPara = bsEditor().querySelector('p');

@@ -5812,6 +5812,10 @@ window.__SUI_RICH = (function () {
     hyphen.title = 'Break long words with hyphens at the line end.';
     hyphenRow.appendChild(hyphen);
     panel.appendChild(hyphenRow);
+    align.addEventListener('change', function () {
+      if (align.value === 'justify') hyphen.checked = false;
+      else if (align.value === 'justifyHyphen') hyphen.checked = true;
+    });
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-paragraph-apply', '1');
@@ -5914,7 +5918,6 @@ window.__SUI_RICH = (function () {
     var after = parseFloat(value('[data-rich-paragraph-after]'));
     var hyphensInput = panel.querySelector('[data-rich-paragraph-hyphens]');
     var hyphens = !!(hyphensInput && hyphensInput.checked) || justifyHyphen;
-    if (alignValue === 'justify') hyphens = false;
     var tabSizeInput = panel.querySelector('[data-rich-paragraph-tabsize]');
     var tabSize = tabSizeInput ? String(tabSizeInput.value || '2') : '2';
     var blocks = paragraphTargets(inst);
