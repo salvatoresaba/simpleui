@@ -1690,7 +1690,12 @@ Shift+Tab; Invio crea una nuova voce per ogni riga (anche spezzando una voce a
 metà) e Invio su una voce vuota esce dall'elenco. L'export DOCX/ODT usa la
 numerazione nativa. **Blocchi di codice:** il pulsante Code block è un
 interruttore; disattivandolo solo la riga con il cursore torna un paragrafo
-normale, mentre le altre righe restano nel blocco di codice.
+normale, mentre le altre righe restano nel blocco di codice. Gli stili delle
+parole nel blocco (grassetto, corsivo, colore, evidenziazione) sono salvati in
+`children` e restano nell'editor; gli export DOCX, ODT, PDF e RTF conservano
+questi stili inline, HTML usa il markup ricco e Markdown mantiene il testo
+letterale del codice. Indent/outdent aggiunge o toglie due spazi alla riga
+corrente.
 
 **Vista paginata:** il pulsante **Pages** nella barra di stato mostra fogli A4 con margini, header/footer e righe di tabella
 spezzate tra le pagine; l'intestazione della tabella si ripete su ogni pagina.
@@ -1735,7 +1740,10 @@ predefinita: sono nei pannelli Impostazioni documento e Impostazioni paragrafo.
 
 **Impostazioni documento** è una voce del menu Preferences e raccoglie i default generali: formato pagina (A4/Letter),
 orientamento (**Verticale**/**Orizzontale**), margini alto/destra/basso/
-sinistra, interlinea e intestazione/piè di pagina. Header e footer si aprono in
+sinistra, interlinea, **Lingua** del documento e intestazione/piè di pagina. La
+lingua è usata dal correttore ortografico, dalla sillabazione e dai metadati
+linguistici degli export DOCX/ODT; **Automatico** segue la lingua del browser.
+Header e footer si aprono in
 un mini editor flottante dai pulsanti **Edit...** in Impostazioni documento o
 Impostazioni pagina. L'editor ha schede Header/Footer, testo multiriga,
 inserimento immagini, grassetto/corsivo/sottolineato e allineamento, pulsanti
@@ -1751,9 +1759,10 @@ Impostazioni pagina) sovrascrive i default del documento per una pagina: scegli
 il numero, poi formato, orientamento e margini. Reset riporta la pagina ai
 default. Le variabili vengono risolte nella vista paginata, anteprima, stampa
 diretta, PDF, DOCX e ODT. Testo multiriga e immagini restano nella vista
-paginata, nell'anteprima e nella stampa diretta; gli export file PDF, DOCX e ODT
-includono il testo e le variabili. I default stanno in
-`page: { size, orientation, lineHeight, margins }` più `header`/`footer`; le
+paginata, nell'anteprima e nella stampa diretta; gli export DOCX e ODT includono
+anche testo ricco e immagini di header/footer, mentre il PDF include ancora solo
+testo e variabili. I default stanno in
+`page: { size, orientation, lineHeight, lang, margins }` più `header`/`footer`; le
 sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
 Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
@@ -1812,8 +1821,10 @@ quello al cursore: allineamento, rientro sinistro, interlinea, spazio prima,
 spazio dopo e **Sillabazione**. La sillabazione imposta `hyphens: auto` (con
 prefisso WebKit) per mandare a capo le parole lunghe con il trattino; è salvata
 come `hyphens: "auto"` nel modello del paragrafo ed è considerata dalla vista
-paginata e dalla stampa. Il dizionario di sillabazione segue il `lang`
-dell'editor (di default la lingua del browser).
+paginata e dalla stampa. Gli export DOCX, ODT e RTF salvano la sillabazione
+automatica; l'export PDF usa un proprio layout e non sillaba ancora. Il
+dizionario segue la lingua del documento (Impostazioni documento → Lingua, o la
+lingua del browser con Automatico).
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla.
 
@@ -1895,7 +1906,8 @@ sinistra/interni) e la larghezza **Adatta alla pagina** (la larghezza del testo
 dentro i margini), in pixel o percentuale. Trascinando il bordo di una colonna si
 ridimensiona solo quella colonna: le altre mantengono la larghezza e i valori
 sono salvati nel modello (`colWidths`). Le tabelle inserite partono adattate
-alla pagina. I valori sono salvati nel modello e usati da editor, PDF e DOCX.
+alla pagina. I valori sono salvati nel modello e usati da editor, PDF, DOCX, ODT
+e RTF.
 Le tabelle possono essere **annidate**: inserisci una tabella col cursore dentro
 una cella; le tabelle annidate restano in JSON, DOCX, ODT, HTML e XML (il PDF
 rende il loro contenuto come testo nella cella esterna). Seleziona due o più celle e usa **Merge** per

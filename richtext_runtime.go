@@ -3135,6 +3135,8 @@ window.__SUI_RICH = (function () {
     if (doc.pageOverrides === undefined && inst.doc && inst.doc.pageOverrides !== undefined) doc.pageOverrides = inst.doc.pageOverrides;
     if (doc.header == null && inst.doc && inst.doc.header != null) doc.header = inst.doc.header;
     if (doc.footer == null && inst.doc && inst.doc.footer != null) doc.footer = inst.doc.footer;
+    if (doc.header != null) inst.headerOverride = true;
+    if (doc.footer != null) inst.footerOverride = true;
     inst.scrollGuardUntil = Date.now() + 300;
     var keepScroll = inst.keepScrollTop || inst.scrollTop || (inst.editor ? inst.editor.scrollTop : 0);
     inst.doc = doc;
@@ -4221,7 +4223,7 @@ window.__SUI_RICH = (function () {
     return applyPageTokens(text, page, total, known, inst);
   }
   function defaultPageConfig() {
-    return { size: 'a4', orientation: 'portrait', lineHeight: 1.65, margins: { top: 15, right: 17, bottom: 15, left: 17 } };
+    return { size: 'a4', orientation: 'portrait', lineHeight: 1.65, lang: '', margins: { top: 15, right: 17, bottom: 15, left: 17 } };
   }
   function clampPageMargin(value, fallback) {
     var n = Number(value);
@@ -4236,6 +4238,7 @@ window.__SUI_RICH = (function () {
       if (raw.orientation === 'landscape' || raw.orientation === 'portrait') page.orientation = raw.orientation;
       var lh = Number(raw.lineHeight);
       if (isFinite(lh) && lh >= 0.8 && lh <= 3) page.lineHeight = Math.round(lh * 100) / 100;
+      if (typeof raw.lang === 'string' && /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(raw.lang.trim())) page.lang = raw.lang.trim();
       var m = raw.margins || {};
       page.margins = {
         top: clampPageMargin(m.top, page.margins.top),
@@ -4263,6 +4266,11 @@ window.__SUI_RICH = (function () {
       left: clampPageMargin(m.left, page.margins.left)
     };
     return page;
+  }
+  function documentLanguage(inst) {
+    var page = inst ? pageConfig(inst, 1) : null;
+    if (page && page.lang) return page.lang;
+    return navigator.language || document.documentElement.lang || 'en';
   }
   function pageSizeMm(page) {
     var w = page.size === 'letter' ? 215.9 : 210;
@@ -6449,6 +6457,18 @@ window.__SUI_RICH = (function () {
     lineRow.appendChild(lineInput);
     panel.appendChild(lineRow);
 
+    var langRow = el('label');
+    langRow.appendChild(el('span', '', 'Language'));
+    var langSelect = el('select');
+    langSelect.setAttribute('data-rich-doc-lang', '1');
+    langSelect.setAttribute('aria-label', 'Document language');
+    langSelect.title = 'Used for spell checking and automatic hyphenation.';
+    [['', 'Automatic'], ['it', 'Italiano'], ['en', 'English'], ['de', 'Deutsch'], ['fr', 'Français'], ['es', 'Español'], ['pt', 'Português'], ['nl', 'Nederlands'], ['pl', 'Polski'], ['sv', 'Svenska']].forEach(function (o) {
+      var op = el('option', '', o[1]); op.value = o[0]; langSelect.appendChild(op);
+    });
+    langRow.appendChild(langSelect);
+    panel.appendChild(langRow);
+
     chromeSettingsRow(inst, panel, 'header', 'Header', true);
     chromeSettingsRow(inst, panel, 'footer', 'Footer', true);
 
@@ -6491,6 +6511,8 @@ window.__SUI_RICH = (function () {
     });
     var line = panel.querySelector('[data-rich-doc-lineheight]');
     if (line) line.value = String(page.lineHeight);
+    var lang = panel.querySelector('[data-rich-doc-lang]');
+    if (lang) lang.value = page.lang || '';
     var header = panel.querySelector('[data-rich-doc-header]');
     var footer = panel.querySelector('[data-rich-doc-footer]');
     if (header) { header.value = inst.headerText || ''; try { header.dispatchEvent(new Event('input')); } catch (e) {} }
@@ -6512,6 +6534,8 @@ window.__SUI_RICH = (function () {
     current.orientation = value('[data-rich-doc-orientation]') === 'landscape' ? 'landscape' : 'portrait';
     current.margins = { top: margin('top'), right: margin('right'), bottom: margin('bottom'), left: margin('left') };
     current.lineHeight = Math.max(0.8, Math.min(3, Math.round(lh * 100) / 100));
+    var langValue = value('[data-rich-doc-lang]').trim();
+    current.lang = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(langValue) ? langValue : '';
     var header = value('[data-rich-doc-header]').slice(0, 500).trim();
     var footer = value('[data-rich-doc-footer]').slice(0, 500).trim();
     inst.doc.page = current;
@@ -6519,6 +6543,7 @@ window.__SUI_RICH = (function () {
     if (footer !== inst.footerText) inst.doc.footer = footer;
     inst.headerOverride = true;
     inst.footerOverride = true;
+    if (inst.editor) inst.editor.setAttribute('lang', documentLanguage(inst));
     refreshChromeValues(inst);
     applyPageLineHeight(inst);
     refreshPageChrome(inst);
@@ -7110,7 +7135,6 @@ window.__SUI_RICH = (function () {
     if (!editor.getAttribute('role')) editor.setAttribute('role', 'textbox');
     if (!editor.getAttribute('aria-multiline')) editor.setAttribute('aria-multiline', 'true');
     if (!editor.getAttribute('aria-label')) editor.setAttribute('aria-label', attr(root, 'data-sui-rich-title') || 'Rich text editor');
-    if (!editor.getAttribute('lang')) editor.setAttribute('lang', navigator.language || document.documentElement.lang || 'en');
     if (boolAttr(root, 'data-sui-rich-readonly', false)) editor.setAttribute('aria-readonly', 'true');
     else editor.setAttribute('spellcheck', 'true');
     var inst = instances[name];
@@ -7140,6 +7164,7 @@ window.__SUI_RICH = (function () {
       inst.root = root; inst.editor = editor;
     }
     if (!inst.typingMarks) inst.typingMarks = {};
+    editor.setAttribute('lang', documentLanguage(inst));
     var chromeTitle = root.querySelector('.sui-rich-title');
     inst.title = chromeTitle ? String(chromeTitle.textContent || '').trim() : (attr(root, 'data-sui-rich-title') || name);
     refreshChromeValues(inst);
@@ -7968,7 +7993,7 @@ window.__SUI_RICH = (function () {
     return inlineFn(cell.children);
   }
   function exportRTF(inst) {
-    rtfFonts = ['Helvetica']; rtfFontMap = { helvetica: 0 }; rtfColors = []; rtfColorMap = {};
+    rtfFonts = ['Helvetica', 'Courier New']; rtfFontMap = { helvetica: 0, 'courier new': 1 }; rtfColors = []; rtfColorMap = {};
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) rtfNoteDoc(inst.doc.children[ci]);
     var fontDefs = '';
     for (var f = 0; f < rtfFonts.length; f++) fontDefs += '{\\f' + f + ' ' + rtfFonts[f] + ';}';
@@ -7977,6 +8002,7 @@ window.__SUI_RICH = (function () {
     header += '\\paperw' + mmToTwips(rtfDims.w) + '\\paperh' + mmToTwips(rtfDims.h) +
       '\\margl' + mmToTwips(rtfPage.margins.left) + '\\margr' + mmToTwips(rtfPage.margins.right) +
       '\\margt' + mmToTwips(rtfPage.margins.top) + '\\margb' + mmToTwips(rtfPage.margins.bottom);
+    if (docHasAutoHyphenation(inst.doc.children || [])) header += '\\hyphauto1';
     if (rtfColors.length) {
       header += '{\\colortbl;';
       for (var c = 0; c < rtfColors.length; c++) {
@@ -7986,14 +8012,14 @@ window.__SUI_RICH = (function () {
       header += '}';
     }
     var out = [header + '\\viewkind4'];
-    function inline(nodes) {
+    function inline(nodes, baseMarks) {
       var s = '';
       for (var i = 0; i < (nodes || []).length; i++) {
         var n = nodes[i];
         if (n.type === 'break') { s += '\\line '; continue; }
         if (n.type === 'image') { s += rtfPicture(n.src, n.width, n.height); continue; }
         if (n.type !== 'text') continue;
-        var m = rtfMarks(n.marks);
+        var m = rtfMarks((baseMarks || []).concat(n.marks || []));
         var value = String(n.text || '').replace(/\\/g, '\\\\').replace(/[{}]/g, '\\$&').replace(/\n/g, '\\line ');
         value = value.replace(/[^\x00-\x7F]/g, function (ch) { var code = ch.charCodeAt(0); return code > 32767 ? '\\u' + (code - 65536) + '?' : '\\u' + code + '?'; });
         s += m.open + value + m.close;
@@ -8022,7 +8048,10 @@ window.__SUI_RICH = (function () {
       } else if (n.type === 'paragraph') {
         out.push(paragraphProps(n) + ' ' + inline(n.children) + '\\par');
       } else if (n.type === 'blockquote') { for (var k = 0; k < (n.children || []).length; k++) block(n.children[k]); }
-      else if (n.type === 'code_block') { out.push('\\pard\\f0\\fs20 ' + String(n.text || '').replace(/\n/g, '\\line ') + '\\fs24\\par'); }
+      else if (n.type === 'code_block') {
+        var rtfCodeNodes = (Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }];
+        out.push(paragraphProps(n) + '\\f0\\fs20 ' + inline(rtfCodeNodes, [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }]) + '\\fs24\\par');
+      }
       else if (n.type === 'hr') out.push('\\pard\\brdrb\\brdrs\\brdrw10\\par');
       else if (n.type === 'page_break') out.push('\\page');
       else if (n.type === 'image') out.push('\\pard' + (rtfPicture(n.src, n.width, n.height) || ('[' + (n.alt || 'image') + ']')) + '\\par');
@@ -8032,13 +8061,30 @@ window.__SUI_RICH = (function () {
           out.push('\\pard\\li360 ' + (n.type === 'ordered_list' ? (i + 1) + '. ' : '\\u8226? ') + text + '\\par');
         }
       } else if (n.type === 'table') {
+        var rtfColTwips = [];
+        if (Array.isArray(n.colWidths) && n.colWidths.length) {
+          var rtwTotal = 0, rtwVals = [];
+          for (var rwi = 0; rwi < n.colWidths.length; rwi++) {
+            var rwv = parseFloat(n.colWidths[rwi]) || 0;
+            rtwVals.push(rwv); rtwTotal += rwv;
+          }
+          if (rtwTotal > 0) for (var rwj = 0; rwj < rtwVals.length; rwj++) rtfColTwips.push(Math.round((rtwVals[rwj] / rtwTotal) * 9638));
+        }
         for (var r = 0; r < (n.rows || []).length; r++) {
-          var defs = '', cells = '', x = 0;
+          var defs = '', cells = '', x = 0, rtfCol = 0;
           var row = n.rows[r];
           for (var cc = 0; cc < (row.cells || []).length; cc++) {
             var cell = row.cells[cc];
-            var pctMatch = /^([\d.]+)%$/.exec(String(cell.width || ''));
-            x += pctMatch ? Math.round((parseFloat(pctMatch[1]) / 100) * 9638) : Math.round(9638 / Math.max(1, row.cells.length));
+            var rtfSpan = Math.max(1, Number(cell.colspan) || 1);
+            if (rtfColTwips.length) {
+              var rtfCellW = 0;
+              for (var rws = 0; rws < rtfSpan; rws++) rtfCellW += rtfColTwips[rtfCol + rws] || 0;
+              x += rtfCellW || Math.round(9638 / Math.max(1, row.cells.length));
+              rtfCol += rtfSpan;
+            } else {
+              var pctMatch = /^([\d.]+)%$/.exec(String(cell.width || ''));
+              x += pctMatch ? Math.round((parseFloat(pctMatch[1]) / 100) * 9638) : Math.round(9638 / Math.max(1, row.cells.length));
+            }
             var ci2 = cell.background ? rtfColorIndex(cell.background) : 0;
             defs += '\\clbrdrt\\brdrs\\brdrw10\\clbrdrl\\brdrs\\brdrw10\\clbrdrb\\brdrs\\brdrw10\\clbrdrr\\brdrs\\brdrw10';
             if (ci2) defs += '\\clcbpat' + ci2;
@@ -8085,6 +8131,7 @@ window.__SUI_RICH = (function () {
     if (size > 0) { var half = Math.max(8, Math.min(192, Math.round(size * 2))); props += '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>'; }
     if (color) props += '<w:color w:val="' + color + '"/>';
     if (fill) props += '<w:shd w:val="clear" w:color="auto" w:fill="' + fill + '"/>';
+    if (docxLanguage) props += '<w:lang w:val="' + xmlEscapeText(docxLanguage) + '"/>';
     return '<w:r><w:rPr>' + props + (extra || '') + '</w:rPr><w:t xml:space="preserve">' + xmlEscapeText(text) + '</w:t></w:r>';
   }
   function docxInline(nodes, extra) {
@@ -8094,6 +8141,23 @@ window.__SUI_RICH = (function () {
       if (n.type === 'text') out += docxRun(n.text || '', n.marks, extra);
       else if (n.type === 'break') out += '<w:r><w:br/></w:r>';
       else if (n.type === 'image') out += docxImage(n.src, n.width, n.height) || docxRun('[' + (n.alt || 'image') + ']', [], extra);
+    }
+    return out;
+  }
+  function docxCodeInline(nodes, fallbackText) {
+    var baseMarks = [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }];
+    var list = (nodes && nodes.length) ? nodes : [{ type: 'text', text: String(fallbackText || ''), marks: [] }];
+    var out = '';
+    for (var i = 0; i < list.length; i++) {
+      var n = list[i];
+      if (n.type === 'break') { out += '<w:r><w:br/></w:r>'; continue; }
+      if (n.type === 'image') { out += docxImage(n.src, n.width, n.height) || docxRun('[' + (n.alt || 'image') + ']', baseMarks); continue; }
+      if (n.type !== 'text') continue;
+      var parts = String(n.text == null ? '' : n.text).split('\n');
+      for (var p = 0; p < parts.length; p++) {
+        if (p) out += '<w:r><w:br/></w:r>';
+        if (parts[p]) out += docxRun(parts[p], (n.marks || []).concat(baseMarks));
+      }
     }
     return out;
   }
@@ -8110,6 +8174,7 @@ window.__SUI_RICH = (function () {
     if (spacing) pPr += '<w:spacing' + spacing + '/>';
     var indent = parseFloat(n.indent);
     if (isFinite(indent) && indent > 0) pPr += '<w:ind w:left="' + Math.round(indent * 15) + '"/>';
+    if (docxAutoHyphenation && n.hyphens !== 'auto' && n.type !== 'code_block') pPr += '<w:suppressAutoHyphens/>';
     return '<w:pPr>' + (extra || '') + pPr + '</w:pPr>';
   }
   function docxCellProps(cell, continuation) {
@@ -8129,6 +8194,43 @@ window.__SUI_RICH = (function () {
     }
     if (!cellBody) cellBody = '<w:p><w:pPr>' + jc + '</w:pPr>' + docxInline(cell.children) + '</w:p>';
     return '<w:tc><w:tcPr>' + props + '</w:tcPr>' + cellBody + '</w:tc>';
+  }
+  function docxChromeInline(nodes, inst) {
+    var out = '';
+    var fieldRun = '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr><w:t>1</w:t></w:r>';
+    for (var i = 0; i < (nodes || []).length; i++) {
+      var n = nodes[i];
+      if (!n) continue;
+      if (n.type === 'break') { out += '<w:r><w:br/></w:r>'; continue; }
+      if (n.type === 'image') { out += docxImage(n.src, n.width, n.height) || ''; continue; }
+      if (n.type !== 'text') continue;
+      var value = applyPageTokens(n.text || '', 1, 1, false, inst);
+      var parts = String(value).split(/(__SUI_PAGE__|__SUI_PAGES__)/);
+      for (var p = 0; p < parts.length; p++) {
+        var part = parts[p];
+        if (!part) continue;
+        if (part === '__SUI_PAGE__') out += '<w:fldSimple w:instr=" PAGE ">' + fieldRun + '</w:fldSimple>';
+        else if (part === '__SUI_PAGES__') out += '<w:fldSimple w:instr=" NUMPAGES ">' + fieldRun + '</w:fldSimple>';
+        else out += docxRun(part, n.marks || []);
+      }
+    }
+    return out;
+  }
+  function docxChromeBody(value, inst) {
+    var doc = chromeDoc(value);
+    var blocks = doc.children || [];
+    var out = '';
+    for (var i = 0; i < blocks.length; i++) {
+      var block = blocks[i];
+      if (!block) continue;
+      if (block.type === 'paragraph' || block.type === 'heading') {
+        var border = i === blocks.length - 1 ? '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr>' : '';
+        out += '<w:p><w:pPr><w:jc w:val="center"/>' + border + '</w:pPr>' + docxChromeInline(block.children, inst) + '</w:p>';
+      } else if (block.type === 'image') {
+        out += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' + (docxImage(block.src, block.width, block.height) || '') + '</w:p>';
+      }
+    }
+    return out;
   }
   function docxChromeRuns(text, inst) {
     var format = '<w:rPr><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr>';
@@ -8185,7 +8287,10 @@ window.__SUI_RICH = (function () {
       return '<w:p>' + docxParagraphProps(n, '<w:keepNext/>') + docxInline(n.children, '<w:b/><w:sz w:val="' + Math.round(hsize * 2) + '"/>') + '</w:p>';
     }
     if (n.type === 'blockquote') return (n.children || []).map(docxBlock).join('');
-    if (n.type === 'code_block') return '<w:p><w:pPr><w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/></w:pPr>' + docxRun(String(n.text || ''), [{ type: 'font', value: 'Courier New' }]) + '</w:p>';
+    if (n.type === 'code_block') {
+      var codeExtra = '<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/><w:suppressAutoHyphens/>';
+      return '<w:p>' + docxParagraphProps(n, codeExtra) + docxCodeInline(n.children, n.text) + '</w:p>';
+    }
     if (n.type === 'hr') return '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="999999"/></w:pBdr></w:pPr></w:p>';
     if (n.type === 'page_break') return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
     if (n.type === 'image') return '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' + (docxImage(n.src, n.width, n.height) || docxRun('[' + (n.alt || 'image') + ']', [])) + '</w:p>';
@@ -8199,6 +8304,17 @@ window.__SUI_RICH = (function () {
         if (msum > maxCols) maxCols = msum;
       }
       var gridWeights = new Array(maxCols).fill(0);
+      var colWeights = [];
+      if (Array.isArray(n.colWidths) && n.colWidths.length) {
+        var cwValues = [], cwTotal = 0;
+        for (var cwi = 0; cwi < n.colWidths.length; cwi++) {
+          var cwNum = parseFloat(n.colWidths[cwi]);
+          if (isFinite(cwNum) && cwNum > 0) { cwValues.push(cwNum); cwTotal += cwNum; }
+          else cwValues.push(0);
+        }
+        if (cwTotal > 0) for (var cwj = 0; cwj < cwValues.length && cwj < maxCols; cwj++) colWeights[cwj] = cwValues[cwj] / cwTotal;
+      }
+      for (var cwk = 0; cwk < maxCols; cwk++) if (colWeights[cwk]) gridWeights[cwk] = colWeights[cwk];
       for (var gw = 0; gw < (n.rows || []).length; gw++) {
         var gcol = 0;
         for (var gc = 0; gc < (n.rows[gw].cells || []).length; gc++) {
@@ -8207,7 +8323,7 @@ window.__SUI_RICH = (function () {
           var gpct = /^([\d.]+)%$/.exec(String(gcell.width || ''));
           if (gpct) {
             var gshare = (parseFloat(gpct[1]) / 100) / gspan;
-            for (var gs = 0; gs < gspan && gcol + gs < maxCols; gs++) if (gshare > gridWeights[gcol + gs]) gridWeights[gcol + gs] = gshare;
+            for (var gs = 0; gs < gspan && gcol + gs < maxCols; gs++) if (!colWeights[gcol + gs] && gshare > gridWeights[gcol + gs]) gridWeights[gcol + gs] = gshare;
           }
           gcol += gspan;
         }
@@ -8257,8 +8373,29 @@ window.__SUI_RICH = (function () {
     }
     return '';
   }
+  var docxAutoHyphenation = false;
+  var docxLanguage = '';
+  function docHasAutoHyphenation(blocks) {
+    for (var i = 0; i < (blocks || []).length; i++) {
+      var n = blocks[i];
+      if (!n) continue;
+      if (n.hyphens === 'auto') return true;
+      if (n.children && docHasAutoHyphenation(n.children)) return true;
+      if (n.type === 'table') {
+        for (var r = 0; r < (n.rows || []).length; r++) {
+          for (var c = 0; c < (n.rows[r].cells || []).length; c++) {
+            var cell = n.rows[r].cells[c];
+            if (docHasAutoHyphenation(cell.blocks || cell.children || [])) return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
   function exportDOCX(inst) {
     docxImages = Object.create(null);
+    docxAutoHyphenation = docHasAutoHyphenation(inst.doc.children || []);
+    docxLanguage = String(documentLanguage(inst) || 'en');
     var media = [], relsXml = '', extSet = {}, imageId = 0, hasLists = false;
     function collect(node) {
       if (!node) return;
@@ -8280,12 +8417,15 @@ window.__SUI_RICH = (function () {
       if (node.type === 'table') for (var r = 0; r < (node.rows || []).length; r++) for (var c = 0; c < (node.rows[r].cells || []).length; c++) collect(node.rows[r].cells[c]);
     }
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) collect(inst.doc.children[ci]);
+    if (inst.headerValue) collect(inst.headerValue);
+    if (inst.footerValue) collect(inst.footerValue);
     var body = '';
     for (var i = 0; i < (inst.doc.children || []).length; i++) body += docxBlock(inst.doc.children[i]);
-    var headerRuns = inst.headerText ? docxChromeRuns(inst.headerText, inst) : '';
-    var footerRuns = inst.footerText ? docxChromeRuns(inst.footerText, inst) : '';
-    var headerXml = headerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + headerRuns + '</w:p></w:hdr>' : '';
-    var footerXml = footerRuns ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:jc w:val="center"/><w:pBdr><w:top w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr>' + footerRuns + '</w:p></w:ftr>' : '';
+    var headerBody = docxChromeBody(inst.headerValue || inst.headerText || '', inst);
+    var footerBody = docxChromeBody(inst.footerValue || inst.footerText || '', inst);
+    var chromeNS = ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+    var headerXml = headerBody ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + '>' + headerBody + '</w:hdr>' : '';
+    var footerXml = footerBody ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + '>' + footerBody + '</w:ftr>' : '';
     var docxPage = pageConfig(inst, 1), docxDims = pageSizeMm(docxPage);
     var docxPgSz = '<w:pgSz w:w="' + mmToTwips(docxDims.w) + '" w:h="' + mmToTwips(docxDims.h) + '"' + (docxPage.orientation === 'landscape' ? ' w:orient="landscape"' : '') + '/>';
     var docxPgMar = '<w:pgMar w:top="' + mmToTwips(docxPage.margins.top) + '" w:right="' + mmToTwips(docxPage.margins.right) + '" w:bottom="' + mmToTwips(docxPage.margins.bottom) + '" w:left="' + mmToTwips(docxPage.margins.left) + '" w:header="720" w:footer="720" w:gutter="0"/>';
@@ -8296,12 +8436,25 @@ window.__SUI_RICH = (function () {
     var defaults = '';
     for (var ext in extSet) if (Object.prototype.hasOwnProperty.call(extSet, ext)) defaults += '<Default Extension="' + ext + '" ContentType="' + extSet[ext] + '"/>';
     var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (headerXml ? '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' : '') + (footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '') + '</Types>';
+    var settingsXml = docxAutoHyphenation ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:autoHyphenation/><w:doNotHyphenateCaps/><w:defaultTabStop w:val="720"/></w:settings>' : '';
+    if (settingsXml) {
+      relsXml += '<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>';
+      contentTypes = contentTypes.replace('</Types>', '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>');
+    }
     var rootRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
     if (hasLists) {
       relsXml += '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
       contentTypes = contentTypes.replace('</Types>', '<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>');
     }
     var docRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + relsXml + '</Relationships>';
+    var chromeImageRels = '';
+    for (var chromeKey in docxImages) {
+      if (!hasOwn(docxImages, chromeKey)) continue;
+      var chromeInfo = docxImages[chromeKey];
+      chromeImageRels += '<Relationship Id="' + chromeInfo.rId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/' + chromeInfo.name + '"/>';
+    }
+    var headerRelsXml = (headerXml && chromeImageRels) ? '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + chromeImageRels + '</Relationships>' : '';
+    var footerRelsXml = (footerXml && chromeImageRels) ? '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + chromeImageRels + '</Relationships>' : '';
     var entries = [
       { name: '[Content_Types].xml', data: contentTypes },
       { name: '_rels/.rels', data: rootRels },
@@ -8309,19 +8462,52 @@ window.__SUI_RICH = (function () {
       { name: 'word/_rels/document.xml.rels', data: docRels }
     ];
     if (hasLists) entries.push({ name: 'word/numbering.xml', data: docxNumberingXml() });
+    if (settingsXml) entries.push({ name: 'word/settings.xml', data: settingsXml });
     if (headerXml) entries.push({ name: 'word/header1.xml', data: headerXml });
     if (footerXml) entries.push({ name: 'word/footer1.xml', data: footerXml });
+    if (headerRelsXml) entries.push({ name: 'word/_rels/header1.xml.rels', data: headerRelsXml });
+    if (footerRelsXml) entries.push({ name: 'word/_rels/footer1.xml.rels', data: footerRelsXml });
     for (var m = 0; m < media.length; m++) entries.push(media[m]);
     return zipStore(entries);
   }
   var odtImages = Object.create(null);
+  var odtHyphenStyles = Object.create(null);
+  var odtHyphenSeq = 0;
+  var odtLanguage = '';
+  var odtTableStyles = Object.create(null);
+  var odtTableSeq = 0;
+  var odtContentWcm = 17;
+  function odtTableColumns(n) {
+    var cols = Array.isArray(n.colWidths) ? n.colWidths : [];
+    if (!cols.length) return '';
+    var mx = 0;
+    for (var i = 0; i < cols.length; i++) mx += parseFloat(cols[i]) || 0;
+    if (!mx) return '';
+    var out = '';
+    for (var c = 0; c < cols.length; c++) {
+      var num = parseFloat(cols[c]) || 0;
+      var width = /%$/.test(String(cols[c])) ? (num / 100) * odtContentWcm : (num / 96) * 2.54;
+      if (!(width > 0)) width = odtContentWcm / cols.length;
+      var key = 'Col' + (++odtTableSeq);
+      odtTableStyles[key] = '<style:style style:name="' + key + '" style:family="table-column"><style:table-column-properties style:column-width="' + (Math.round(width * 100) / 100) + 'cm"/></style:style>';
+      out += '<table:table-column table:style-name="' + key + '"/>';
+    }
+    return out;
+  }
+  function odtHyphenStyle(n, parentStyle) {
+    if (!n || n.hyphens !== 'auto') return '';
+    var key = 'Hyphen' + (++odtHyphenSeq);
+    var parts = String(odtLanguage || 'en').split('-');
+    odtHyphenStyles[key] = '<style:style style:name="' + key + '" style:family="paragraph"' + (parentStyle ? ' style:parent-style-name="' + parentStyle + '"' : '') + '><style:paragraph-properties fo:hyphenate="true" fo:language="' + xmlEscapeText(parts[0] || 'en') + '"' + (parts[1] ? ' fo:country="' + xmlEscapeText(parts[1]) + '"' : '') + '/></style:style>';
+    return ' text:style-name="' + key + '"';
+  }
   function odtImage(src, width, height) {
     var info = odtImages[src];
     if (!info) return '';
     var w = Math.max(32, Number(width) || 160), h = Math.max(24, Number(height) || 120);
     return '<draw:frame draw:name="' + info.name + '" text:anchor-type="as-char" svg:width="' + w + 'px" svg:height="' + h + 'px"><draw:image xlink:href="Pictures/' + info.name + '" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>';
   }
-  function odtInline(nodes) {
+  function odtInline(nodes, baseStyle) {
     var out = '';
     for (var i = 0; i < (nodes || []).length; i++) {
       var n = nodes[i];
@@ -8329,6 +8515,7 @@ window.__SUI_RICH = (function () {
       if (n.type === 'image') { out += odtImage(n.src, n.width, n.height); continue; }
       if (n.type !== 'text') continue;
       var marks = n.marks || [], attrs = [];
+      if (baseStyle) attrs.push(baseStyle);
       for (var m = 0; m < marks.length; m++) {
         var t = marks[m].type;
         if (t === 'bold') attrs.push('font-weight:bold');
@@ -8343,6 +8530,7 @@ window.__SUI_RICH = (function () {
         else if (t === 'font' && marks[m].value) attrs.push('font-family:' + marks[m].value);
       }
       var text = xmlEscapeText(n.text || '');
+      if (text.indexOf('\n') >= 0) text = text.split('\n').join('<text:line-break/>');
       out += attrs.length ? '<text:span text:style-name="T' + (attrs.length % 7) + '" style="' + attrs.join(';') + '">' + text + '</text:span>' : text;
     }
     return out;
@@ -8355,7 +8543,7 @@ window.__SUI_RICH = (function () {
       out += '<text:list-item>';
       for (var b = 0; b < blocks.length; b++) {
         var inner = blocks[b];
-        if (inner.type === 'paragraph') out += '<text:p>' + odtInline(inner.children) + '</text:p>';
+        if (inner.type === 'paragraph') out += '<text:p' + odtHyphenStyle(inner) + '>' + odtInline(inner.children) + '</text:p>';
         else if (inner.type === 'bullet_list' || inner.type === 'ordered_list') out += odtList(inner);
         else out += odtBlock(inner);
       }
@@ -8372,25 +8560,68 @@ window.__SUI_RICH = (function () {
     }
     return '<text:list-style style:name="LBullets">' + bullets + '</text:list-style><text:list-style style:name="LNumbers">' + numbers + '</text:list-style>';
   }
+  function odtChromeInline(nodes, inst) {
+    var out = '';
+    for (var i = 0; i < (nodes || []).length; i++) {
+      var n = nodes[i];
+      if (!n) continue;
+      if (n.type === 'break') { out += '<text:line-break/>'; continue; }
+      if (n.type === 'image') { out += odtImage(n.src, n.width, n.height); continue; }
+      if (n.type !== 'text') continue;
+      var value = applyPageTokens(n.text || '', 1, 1, false, inst);
+      var parts = String(value).split(/(__SUI_PAGE__|__SUI_PAGES__)/);
+      for (var p = 0; p < parts.length; p++) {
+        var part = parts[p];
+        if (!part) continue;
+        if (part === '__SUI_PAGE__') out += '<text:page-number text:select-page="current">1</text:page-number>';
+        else if (part === '__SUI_PAGES__') out += '<text:page-count>1</text:page-count>';
+        else out += odtInline([{ type: 'text', text: part, marks: n.marks || [] }]);
+      }
+    }
+    return out;
+  }
+  function odtChromeBody(value, inst, styleName) {
+    var doc = chromeDoc(value);
+    var blocks = doc.children || [];
+    var out = '';
+    for (var i = 0; i < blocks.length; i++) {
+      var block = blocks[i];
+      if (!block) continue;
+      if (block.type === 'paragraph' || block.type === 'heading') {
+        out += '<text:p text:style-name="' + styleName + '">' + odtChromeInline(block.children, inst) + '</text:p>';
+      } else if (block.type === 'image') {
+        out += '<text:p text:style-name="' + styleName + '">' + (odtImage(block.src, block.width, block.height) || '') + '</text:p>';
+      }
+    }
+    return out;
+  }
   function odtBlock(n) {
     if (!n) return '';
-    if (n.type === 'heading') return '<text:h text:style-name="Heading_20_' + Math.min(6, Number(n.level) || 1) + '" text:outline-level="' + (Number(n.level) || 1) + '">' + odtInline(n.children) + '</text:h>';
+    if (n.type === 'heading') {
+      var odtHLevel = Math.min(6, Number(n.level) || 1);
+      var odtHName = 'Heading_20_' + odtHLevel;
+      var odtHStyle = odtHyphenStyle(n, odtHName) || (' text:style-name="' + odtHName + '"');
+      return '<text:h' + odtHStyle + ' text:outline-level="' + (Number(n.level) || 1) + '">' + odtInline(n.children) + '</text:h>';
+    }
     if (n.type === 'paragraph') {
       var css = [];
       if (n.align) css.push('text-align:' + n.align);
       var lh = lineHeightInfo(n.lineHeight);
       if (lh) css.push('line-height:' + (lh.multiple ? Math.round(lh.multiple * 100) + '%' : lh.pt + 'pt'));
       var style = css.length ? ' style="' + css.join(';') + '"' : '';
-      return '<text:p' + style + '>' + odtInline(n.children) + '</text:p>';
+      return '<text:p' + odtHyphenStyle(n) + style + '>' + odtInline(n.children) + '</text:p>';
     }
     if (n.type === 'blockquote') return '<text:section>' + (n.children || []).map(odtBlock).join('') + '</text:section>';
-    if (n.type === 'code_block') return '<text:p><text:span style="font-family:monospace">' + xmlEscapeText(n.text || '') + '</text:span></text:p>';
+    if (n.type === 'code_block') {
+      var odtCodeNodes = (Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }];
+      return '<text:p>' + odtInline(odtCodeNodes, 'font-family:monospace;font-size:9pt') + '</text:p>';
+    }
     if (n.type === 'hr') return '<text:p>---</text:p>';
     if (n.type === 'page_break') return '<text:p text:style-name="PageBreak"/>';
     if (n.type === 'image') return '<text:p>' + (odtImage(n.src, n.width, n.height) || ('[' + xmlEscapeText(n.alt || n.caption || 'image') + ']')) + '</text:p>';
     if (n.type === 'bullet_list' || n.type === 'ordered_list') return odtList(n);
     if (n.type === 'table') {
-      var out = '<table:table>';
+      var out = '<table:table>' + odtTableColumns(n);
       for (var r = 0; r < (n.rows || []).length; r++) {
         out += '<table:table-row>';
         for (var c = 0; c < (n.rows[r].cells || []).length; c++) {
@@ -8411,6 +8642,13 @@ window.__SUI_RICH = (function () {
   }
   function exportODT(inst) {
     odtImages = Object.create(null);
+    odtHyphenStyles = Object.create(null);
+    odtHyphenSeq = 0;
+    odtLanguage = String(documentLanguage(inst) || 'en');
+    odtTableStyles = Object.create(null);
+    odtTableSeq = 0;
+    var odtSetupPage = pageConfig(inst, 1), odtSetupDims = pageSizeMm(odtSetupPage);
+    odtContentWcm = mmToCm(odtSetupDims.w - odtSetupPage.margins.left - odtSetupPage.margins.right);
     var media = [], manifestMedia = '', imageId = 0;
     function collect(node) {
       if (!node) return;
@@ -8429,9 +8667,14 @@ window.__SUI_RICH = (function () {
       if (node.type === 'table') for (var r = 0; r < (node.rows || []).length; r++) for (var c = 0; c < (node.rows[r].cells || []).length; c++) collect(node.rows[r].cells[c]);
     }
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) collect(inst.doc.children[ci]);
+    if (inst.headerValue) collect(inst.headerValue);
+    if (inst.footerValue) collect(inst.footerValue);
     var body = '';
     for (var i = 0; i < (inst.doc.children || []).length; i++) body += odtBlock(inst.doc.children[i]);
-    var content = '<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2"><office:body><office:text>' + body + '</office:text></office:body></office:document-content>';
+    var odtAuto = '';
+    for (var ahs in odtHyphenStyles) if (Object.prototype.hasOwnProperty.call(odtHyphenStyles, ahs)) odtAuto += odtHyphenStyles[ahs];
+    for (var ats in odtTableStyles) if (Object.prototype.hasOwnProperty.call(odtTableStyles, ats)) odtAuto += odtTableStyles[ats];
+    var odtContent = '<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2">' + (odtAuto ? '<office:automatic-styles>' + odtAuto + '</office:automatic-styles>' : '') + '<office:body><office:text>' + body + '</office:text></office:body></office:document-content>';
     function odtChrome(text) {
       var parts = String(resolveChromeVariables(text, inst)).split(/(\{page\}|\{pages\}|\[page\]|\[pages\])/i), out = '';
       for (var p = 0; p < parts.length; p++) {
@@ -8445,8 +8688,10 @@ window.__SUI_RICH = (function () {
     var odtPageProps = '<style:page-layout-properties fo:page-width="' + mmToCm(odtDims.w) + '" fo:page-height="' + mmToCm(odtDims.h) + '" fo:margin-top="' + mmToCm(odtPage.margins.top) + '" fo:margin-bottom="' + mmToCm(odtPage.margins.bottom) + '" fo:margin-left="' + mmToCm(odtPage.margins.left) + '" fo:margin-right="' + mmToCm(odtPage.margins.right) + '"/>';
     var styles;
     if (inst.headerText || inst.footerText) {
-      var odtHeader = inst.headerText ? '<style:header><text:p text:style-name="Header">' + odtChrome(inst.headerText, inst) + '</text:p></style:header>' : '';
-      var odtFooter = inst.footerText ? '<style:footer><text:p text:style-name="Footer">' + odtChrome(inst.footerText, inst) + '</text:p></style:footer>' : '';
+      var odtHeaderBody = odtChromeBody(inst.headerValue || inst.headerText || '', inst, 'Header');
+      var odtFooterBody = odtChromeBody(inst.footerValue || inst.footerText || '', inst, 'Footer');
+      var odtHeader = odtHeaderBody ? '<style:header>' + odtHeaderBody + '</style:header>' : '';
+      var odtFooter = odtFooterBody ? '<style:footer>' + odtFooterBody + '</style:footer>' : '';
       styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2">' +
         '<office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style><style:style style:name="Header" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' +
         '<style:style style:name="Footer" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' + odtListStyles() + '</office:styles>' +
@@ -8459,10 +8704,11 @@ window.__SUI_RICH = (function () {
     } else {
       styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2"><office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style>' + odtListStyles() + '</office:styles><office:automatic-styles><style:page-layout style:name="pm1">' + odtPageProps + '</style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1"/></office:master-styles></office:document-styles>';
     }
+    styles = styles.replace('<office:document-styles ', '<office:document-styles xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" ');
     var manifest = '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>' + manifestMedia + '</manifest:manifest>';
     var entries = [
       { name: 'mimetype', data: utf8Bytes('application/vnd.oasis.opendocument.text') },
-      { name: 'content.xml', data: content },
+      { name: 'content.xml', data: odtContent },
       { name: 'styles.xml', data: styles },
       { name: 'META-INF/manifest.xml', data: manifest }
     ];
@@ -9484,14 +9730,14 @@ window.__SUI_RICH = (function () {
       var scale = Math.min(1, maxWidth / width);
       return { entry: entry, width: width * scale, height: height * scale };
     }
-    function runsOf(nodes) {
+    function runsOf(nodes, baseMarks) {
       var runs = [];
       for (var i = 0; i < (nodes || []).length; i++) {
         var node = nodes[i];
         if (!node) continue;
         if (node.type === 'text') {
           var text = String(node.text || '');
-          var marks = node.marks || [];
+          var marks = (baseMarks || []).concat(node.marks || []);
           var font = pdfFont(marks), size = pdfSize(marks), color = null, background = null, underline = false, strike = false, sup = false, sub = false;
           for (var m = 0; m < marks.length; m++) {
             var mark = marks[m];
@@ -9505,6 +9751,7 @@ window.__SUI_RICH = (function () {
           var current = null;
           for (var c = 0; c < text.length; c++) {
             var ch = text.charAt(c), base = { font: font, size: size, color: color, background: background, underline: underline, strike: strike, sup: sup, sub: sub };
+            if (ch === '\n') { runs.push({ type: 'break' }); current = null; continue; }
             if (ch === '\u2610' || ch === '\u2611' || ch === '\u2612') {
               runs.push({ type: 'checkbox', checked: ch === '\u2611', crossed: ch === '\u2612', size: size, width: size * 0.95 });
               current = null;
@@ -9534,12 +9781,12 @@ window.__SUI_RICH = (function () {
       }
       return runs;
     }
-    function wrapRuns(runs, maxWidth) {
+    function wrapRuns(runs, maxWidth, preserveSpace) {
       var lines = [], line = [], width = 0;
       var maxSize = 0;
       function flush() { lines.push({ runs: line, width: width, size: maxSize || 11 }); line = []; width = 0; maxSize = 0; }
       function add(part, run, isSpace) {
-        if (isSpace && !line.length) return;
+        if (isSpace && !line.length && !preserveSpace) return;
         line.push({ run: run, text: part, width: pdfTextWidth(part, run.font, run.fontSize) });
         width += line[line.length - 1].width;
         if (run.fontSize > maxSize) maxSize = run.fontSize;
@@ -9569,7 +9816,7 @@ window.__SUI_RICH = (function () {
           var isSpace = /^\s+$/.test(part);
           var w = pdfTextWidth(part, run.font, run.fontSize);
           if (width + w > maxWidth && line.length && !isSpace) flush();
-          if (isSpace && width + w > maxWidth) { flush(); continue; }
+          if (isSpace && !preserveSpace && width + w > maxWidth) { flush(); continue; }
           if (w > maxWidth && !isSpace) {
             var word = part;
             while (word) {
@@ -9878,12 +10125,10 @@ window.__SUI_RICH = (function () {
       else if (node.type === 'paragraph') paragraph(node);
       else if (node.type === 'blockquote') paragraph(node);
       else if (node.type === 'code_block') {
-        var codeLines = String(node.text || '').split(/\n/);
-        for (var i = 0; i < codeLines.length; i++) {
-          ensure(14);
-          ops.push('BT ' + pdfFill('#333333') + ' /F9 9 Tf ' + pdfNumber(MARGIN + 6) + ' ' + pdfNumber(ty(y + 9)) + ' Td (' + pdfEscape(pdfEncode(codeLines[i])) + ') Tj ET');
-          y += 12;
-        }
+        var codeNodes = (Array.isArray(node.children) && node.children.length) ? node.children : [{ type: 'text', text: String(node.text || ''), marks: [] }];
+        var codeRuns = runsOf(codeNodes, [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }]);
+        var codeLines = wrapRuns(codeRuns, CONTENT_W - 12, true);
+        drawLines(codeLines, MARGIN + 6, CONTENT_W - 12, node.align, node);
       } else if (node.type === 'hr') {
         ensure(10);
         ops.push('q ' + pdfStroke('#9aa7b8') + ' 0.7 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(y)) + ' m ' + pdfNumber(PAGE_W - MARGIN_R) + ' ' + pdfNumber(ty(y)) + ' l S Q');

@@ -576,6 +576,45 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (formatDocx.indexOf('word/header1.xml') < 0 || formatDocx.indexOf('Report ') < 0) throw new Error('docx header missing');
     if (formatDocx.indexOf('w:fldSimple w:instr=" PAGE "') < 0) throw new Error('docx header page field missing');
     if (formatDocx.indexOf('word/footer1.xml') < 0) throw new Error('docx footer missing');
+
+    // Rich code blocks, hyphenation and table column widths reach the file
+    // exports, not only the editor.
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'code_block', text: 'styled code', children: [
+        { type: 'text', text: 'styled', marks: [{ type: 'bold' }, { type: 'color', value: '#123456' }] },
+        { type: 'text', text: ' code', marks: [] }
+      ] },
+      { type: 'paragraph', hyphens: 'auto', children: [{ type: 'text', text: 'Hyphenated paragraph', marks: [] }] },
+      { type: 'paragraph', children: [{ type: 'text', text: 'Plain paragraph', marks: [] }] },
+      { type: 'table', colWidths: ['100px', '300px'], rows: [
+        { type: 'table_row', cells: [{ type: 'table_cell', children: [{ type: 'text', text: 'A', marks: [] }] }, { type: 'table_cell', children: [{ type: 'text', text: 'B', marks: [] }] }] }
+      ] }
+    ] });
+    await wait(120);
+    var exportDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (exportDocx.indexOf('Courier New') < 0 || exportDocx.indexOf('w:color w:val="123456"') < 0) throw new Error('docx rich code block missing');
+    if (exportDocx.indexOf('w:autoHyphenation') < 0 || exportDocx.indexOf('w:suppressAutoHyphens') < 0) throw new Error('docx hyphenation settings missing');
+    if (exportDocx.indexOf('word/settings.xml') < 0) throw new Error('docx settings part missing');
+    if (exportDocx.indexOf('w:gridCol') < 0) throw new Error('docx table grid missing');
+    var exportOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
+    if (exportOdt.indexOf('font-weight:bold') < 0 || exportOdt.indexOf('color:rgb(18, 52, 86)') < 0) throw new Error('odt rich code block missing');
+    if (exportOdt.indexOf('fo:hyphenate="true"') < 0) throw new Error('odt hyphenation missing');
+    if (exportOdt.indexOf('style:column-width') < 0) throw new Error('odt table column widths missing');
+    var exportRtf = toLatin(__SUI_RICH.exportBytes('editor', 'rtf')[0]);
+    if (exportRtf.indexOf('Courier New;') < 0 || exportRtf.indexOf('\\hyphauto1') < 0) throw new Error('rtf code/hyphenation export missing');
+    var exportPdf = __SUI_RICH.exportBytes('editor', 'pdf');
+    if (exportPdf[1] !== null || exportPdf[0].length < 1000) throw new Error('pdf export with rich code block failed');
+
+    var headerPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl9sAAAAASUVORK5CYII=';
+    __SUI_RICH.set('editor', { type: 'doc', header: { type: 'doc', children: [
+      { type: 'paragraph', children: [{ type: 'text', text: 'Logo ', marks: [{ type: 'bold' }] }, { type: 'image', src: headerPng, alt: 'logo', width: '16' }] }
+    ] }, children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Body', marks: [] }] }] });
+    await wait(150);
+    var headerDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (headerDocx.indexOf('word/_rels/header1.xml.rels') < 0 || headerDocx.indexOf('word/media/') < 0 || headerDocx.indexOf('<a:blip') < 0) throw new Error('docx header image missing: hdr=' + (headerDocx.indexOf('word/header1.xml') >= 0) + ' rels=' + (headerDocx.indexOf('header1.xml.rels') >= 0) + ' media=' + (headerDocx.indexOf('word/media/') >= 0) + ' blip=' + (headerDocx.indexOf('<a:blip') >= 0));
+    var headerOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
+    if (headerOdt.indexOf('Pictures/') < 0 || headerOdt.indexOf('draw:frame') < 0) throw new Error('odt header image missing');
+
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'bullet_list', children: [
         { type: 'list_item', children: [
@@ -611,7 +650,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(120);
     if (richRoot().classList.contains('sui-rich-paginated')) throw new Error('paginated view not disabled');
-    __SUI_RICH.set('editor', { type: 'doc', children: [
+    __SUI_RICH.set('editor', { type: 'doc', header: 'Report {page}/{pages}', footer: 'Footer {page}', children: [
       { type: 'paragraph', children: [{ type: 'text', text: 'RT', marks: [{ type: 'bold' }, { type: 'color', value: '#1F497D' }, { type: 'size', value: '14pt' }, { type: 'font', value: 'Georgia' }] }] },
       { type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Item', marks: [] }] }] }] }
     ] });
@@ -1187,8 +1226,10 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     reqDocDefaults.querySelector('[data-rich-doc-margin="right"]').value = '17';
     reqDocDefaults.querySelector('[data-rich-doc-margin="bottom"]').value = '15';
     reqDocDefaults.querySelector('[data-rich-doc-margin="left"]').value = '17';
+    reqDocDefaults.querySelector('[data-rich-doc-lang]').value = 'it';
     reqDocDefaults.querySelector('[data-rich-doc-apply]').click();
     await wait(300);
+    if (bsEditor().getAttribute('lang') !== 'it') throw new Error('document language not applied to the editor');
     __SUI_RICH.command('editor', 'themeLight');
     await wait(200);
     __SUI_RICH.set('editor', { type: 'doc', header: 'H {page}/{pages}', footer: '', children: manyRows });

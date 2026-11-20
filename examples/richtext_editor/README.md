@@ -38,6 +38,11 @@ builds.
   survive re-renders; indent/outdent adds or removes two spaces on the current
   code line. Inline code and code blocks use the page text color, so they are
   readable on the white page.
+- DOCX, ODT, PDF and RTF export the inline styles inside code blocks; DOCX and
+  ODT also export rich header/footer text and images. DOCX, ODT and RTF write the
+  table column widths and the automatic hyphenation setting. The PDF export uses
+  its own text layout, so it does not hyphenate yet and its header/footer stays
+  text-only.
 - Insert image accepts a file from the PC (up to 8 MB, stored as a data URL) or
   an http(s)/data URL.
 - Table settings set the table width (fit to page inside the margins, pixels or
@@ -47,7 +52,9 @@ builds.
   from Preferences > Icon style, with larger, clearer icons; the choice is
   remembered per editor.
 - Document settings (menu) provides page defaults: size, orientation, margins,
-  line height and header/footer. Page settings overrides them for a single page.
+  line height, document language and header/footer. The language drives
+  hyphenation, spell checking and DOCX/ODT language metadata. Page settings
+  overrides size/orientation/margins for a single page.
 - Header and footer open in a floating mini editor from Document settings or
   Page settings: Header/Footer tabs, multi-line text, images, bold/italic/
   underline/alignment, token buttons and a variable menu with `{page}`,
@@ -75,7 +82,8 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Paragraph settings panel (alignment, indent with explicit −/+ buttons, line
   height, space before/after, hyphenation), zoom controls in the toolbar and a
   print preview overlay. The hyphenation option sets automatic word breaking at
-  line ends and is stored in the paragraph model. The main toolbar and the
+  line ends and is stored in the paragraph model; DOCX/ODT/RTF exports save the
+  automatic hyphenation setting (the PDF layout does not hyphenate yet). The main toolbar and the
   contextual selection toolbar both expose indent/outdent for the current
   paragraph; inside a code block they indent the current code line. Paragraphs
   and lists split at line or item boundaries to fill each page; headings and

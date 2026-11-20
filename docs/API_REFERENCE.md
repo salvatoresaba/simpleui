@@ -1730,7 +1730,9 @@ export use native list numbering. **Code blocks:** the Code block button is a
 toggle; turning it off releases only the line with the caret as a normal
 paragraph, so the other lines stay inside code blocks. Word styles inside a code
 block (bold, italic, color, highlight) are stored as rich `children` and survive
-re-renders and exports; indent/outdent adds or removes two spaces on the current
+re-renders; DOCX, ODT, PDF and RTF exports keep those inline styles, while HTML
+uses the rendered rich markup and Markdown keeps the literal code text.
+Indent/outdent adds or removes two spaces on the current
 code line instead of moving the whole block.
 
 **Paginated view:** the **Pages** button in the status bar shows A4 sheets with margins, optional header/footer and table
@@ -1746,7 +1748,9 @@ caret or selection is in a table; it is not a floating panel. **Table settings**
 table width as **Fit to page** (the text width inside the page margins), pixels
 or percent. Drag a column edge to resize only that column: the other columns
 keep their widths, and the widths are stored in the document (`colWidths`).
-Tables inserted from the toolbar start fit to the page.
+Tables inserted from the toolbar start fit to the page. DOCX, ODT and RTF
+exports write `colWidths` as column widths; the PDF export reads the rendered
+table geometry.
 The two toolbar color controls are distinguishable: a plain **A** with a color
 bar for text color and a highlighted **A** with a swatch for the background
 color. They show the document defaults (**black** text and **white** highlight)
@@ -1780,7 +1784,9 @@ they live in the Document settings and Paragraph settings panels.
 
 **Document settings** is a Preferences menu entry and holds the
 general defaults: page size (A4/Letter), orientation (**Vertical**/**Horizontal**),
-top/right/bottom/left margins, line height and header/footer. Header and footer
+top/right/bottom/left margins, line height, document **Language** and header/footer. The language
+is used for spell checking, hyphenation and the language metadata of DOCX/ODT
+exports; **Automatic** follows the browser locale. Header and footer
 open in a floating mini editor from the **Edit...** buttons in Document settings
 or Page settings. The editor has Header/Footer tabs, multi-line text, image
 insertion, bold/italic/underline and alignment controls, `{page}`/`{pages}`
@@ -1796,10 +1802,12 @@ Preferences > Page settings) overrides the document defaults for one page:
 choose the page number, then set size, orientation and margins. The page panel's
 Reset returns that page to the document defaults. Variables are resolved in the
 paginated view, preview, direct print, PDF, DOCX and ODT. Multi-line text and
-images are kept in the paginated view, preview and direct Print; the PDF, DOCX
-and ODT file exports include the text content and variables. Defaults are stored as
-`page: { size, orientation, lineHeight, margins }` plus `header`/`footer`;
-per-page overrides are in `pageOverrides: { "1": { size, orientation, margins } }`.
+images are kept in the paginated view, preview and direct Print; DOCX and ODT
+exports now include rich header/footer text and images, while the PDF export
+still includes the text content and variables only. Defaults are stored as
+`page: { size, orientation, lineHeight, lang, margins }` plus
+`header`/`footer`; per-page overrides are in
+`pageOverrides: { "1": { size, orientation, margins } }`.
 They are applied to the paginated view, print, PDF, DOCX, ODT and RTF/DOC
 exports (exports use the first page's effective settings); DOCX and ODT import
 restore the document defaults. The default is A4 portrait with 15 mm top/bottom and 17 mm
@@ -1850,9 +1858,11 @@ highlight and inline marks; Escape cancels it.
 caret: alignment, left indent, line height, space before, space after and
 **Hyphenation**. Hyphenation sets `hyphens: auto` (with the WebKit prefix) so
 long words wrap with hyphens at the line end; it is stored as `hyphens: "auto"`
-in the paragraph model and is considered by the paginated view and print. The
-hyphenation dictionary follows the editor `lang` (the browser locale by
-default).
+in the paragraph model and is considered by the paginated view and print. DOCX,
+ODT and RTF exports save the automatic hyphenation setting; the PDF export uses
+its own text layout and does not hyphenate yet. The hyphenation dictionary
+follows the document language (Document settings → Language, or the browser
+locale when set to Automatic).
 The document default line height is in Document settings and individual
 paragraphs can override it.
 
