@@ -823,6 +823,37 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (reqEd.clientHeight < 300 || reqEd.clientHeight > 340) throw new Error('editor height is not fixed: ' + reqEd.clientHeight);
     if (reqEd.scrollHeight <= reqEd.clientHeight) throw new Error('long content does not scroll inside the editor');
 
+    // Header/footer editor: token buttons, live preview and both {page} and
+    // [page] syntaxes with real page numbers.
+    __SUI_RICH.command('editor', 'documentSettings');
+    await wait(220);
+    var chromePanel = document.querySelector('.sui-rich-documentsettings');
+    var chromeHeader = chromePanel.querySelector('[data-rich-doc-header]');
+    var chromeFooter = chromePanel.querySelector('[data-rich-doc-footer]');
+    var chromeTokens = [].slice.call(chromePanel.querySelectorAll('.sui-rich-chrome-tools .sui-rich-token'));
+    if (chromeTokens.length < 4) throw new Error('header/footer token buttons missing');
+    chromeHeader.value = ''; chromeHeader.focus();
+    chromeTokens[0].click(); chromeTokens[1].click();
+    if (chromeHeader.value.indexOf('{page}') < 0 || chromeHeader.value.indexOf('{pages}') < 0) throw new Error('header token buttons did not insert tokens: ' + chromeHeader.value);
+    chromeHeader.value = 'H [page]/[pages]'; chromeHeader.dispatchEvent(new Event('input'));
+    chromeFooter.value = 'F [page] of [pages]'; chromeFooter.dispatchEvent(new Event('input'));
+    var chromePreviews = [].slice.call(chromePanel.querySelectorAll('.sui-rich-chrome-preview')).map(function (p) { return p.textContent; });
+    if (!/H 1\/4/.test(chromePreviews[0]) || !/F 1 of 4/.test(chromePreviews[1])) throw new Error('header/footer preview missing: ' + chromePreviews.join(' | '));
+    chromePanel.querySelector('[data-rich-doc-apply]').click();
+    await wait(450);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(2000);
+    var chromeSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    if (chromeSheets.length < 2) throw new Error('header/footer test needs multiple pages: ' + chromeSheets.length);
+    for (var cs = 0; cs < chromeSheets.length; cs++) {
+      var csh = chromeSheets[cs].querySelector('.sui-rich-sheet-header');
+      var csf = chromeSheets[cs].querySelector('.sui-rich-sheet-footer');
+      if (!csh || csh.textContent !== 'H ' + (cs + 1) + '/' + chromeSheets.length) throw new Error('header page token wrong: ' + (csh ? csh.textContent : 'missing'));
+      if (!csf || csf.textContent !== 'F ' + (cs + 1) + ' of ' + chromeSheets.length) throw new Error('footer page token wrong: ' + (csf ? csf.textContent : 'missing'));
+    }
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(250);
+
     var reqZoomLabel = richRoot().querySelector('.sui-rich-toolbar .sui-rich-zoom-label');
     richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="in"]').click();
     await wait(100);

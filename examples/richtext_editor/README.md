@@ -101,7 +101,7 @@ and Ctrl+Enter.
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | Interface theme: `dark` (default), `light` or `auto` |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark` |
-| `header` / `footer` | Text repeated on every page in PDF/DOCX/ODT/print; `\{page\}` and `\{pages\}` become page numbers |
+| `header` / `footer` | Text repeated on every page in PDF/DOCX/ODT/print; `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) become page numbers |
 | `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter; drag its handle to move it, use its control to delete it, and following breaks recalculate |
 | `template` | `article`, `letter`, `report` or `compact` |
 

@@ -1691,7 +1691,7 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | Interface theme: `dark` (default), `light` or `auto`. A single toolbar button cycles dark/light and only styles the editor chrome |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark`. Independent from `theme` |
-| `header` / `footer` | Text repeated on every page in PDF, DOCX, ODT and print. `\{page\}` and `\{pages\}` are replaced with the page number and total (escape the braces in SUI strings) |
+| `header` / `footer` | Text repeated on every page in PDF, DOCX, ODT and print. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) are replaced with the page number and total (escape the braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar groups (separated by `|`) are individual dockable toolbars: drag the
@@ -1715,7 +1715,9 @@ and images. Word/Excel table styles are recovered too (cell padding, border
 width/color, visible sides and cell shading). `blob:` images from the clipboard
 are converted to data URLs. The
 editor enables the browser spell checker and exposes textbox/toolbar ARIA roles. **Print preview / PDF:** `Ctrl+P` (File > Print / Save as PDF) opens
-the browser print dialog on A4 pages with the header/footer repeated.
+the browser print dialog on A4 pages with the header/footer repeated. Direct
+Print uses the same paginated sheets as the preview, so page-number tokens show
+the real numbers instead of being stripped.
 **Lists:** bullet and numbered lists can be nested with Tab and moved back with
 Shift+Tab; DOCX and ODT export use native list numbering.
 
@@ -1747,11 +1749,15 @@ they live in the Document settings and Paragraph settings panels.
 
 **Document settings** is a Preferences menu entry and holds the
 general defaults: page size (A4/Letter), orientation (**Vertical**/**Horizontal**),
-top/right/bottom/left margins, line height and header/footer text. **Page
-settings** (toolbar button `pageSettings` and Preferences > Page settings) overrides
-those defaults for one page: choose the page number, then set size, orientation
-and margins. The page panel's Reset returns that page to the document defaults. `{page}` and `{pages}` are replaced with
-the page number and total. Defaults are stored as
+top/right/bottom/left margins, line height and header/footer text. Header and
+footer use a dedicated editor with `{page}`/`{pages}` token buttons, a
+"Page x of y" preset, a clear button and a live preview; square-bracket tokens
+`[page]`/`[pages]` are accepted too. **Page settings** (toolbar button
+`pageSettings` and Preferences > Page settings) overrides those defaults for one
+page: choose the page number, then set size, orientation and margins. The page
+panel's Reset returns that page to the document defaults. The tokens are
+replaced with the page number and total in the paginated view, preview, direct
+print, PDF, DOCX and ODT. Defaults are stored as
 `page: { size, orientation, lineHeight, margins }` plus `header`/`footer`;
 per-page overrides are in `pageOverrides: { "1": { size, orientation, margins } }`.
 They are applied to the paginated view, print, PDF, DOCX, ODT and RTF/DOC

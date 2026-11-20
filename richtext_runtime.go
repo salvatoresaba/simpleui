@@ -2227,8 +2227,8 @@ window.__SUI_RICH = (function () {
     var foot = inst.root.querySelector('.sui-rich-pagefooter');
     if (head && !inst.headerText) { head.parentNode.removeChild(head); head = null; }
     if (foot && !inst.footerText) { foot.parentNode.removeChild(foot); foot = null; }
-    if (head) head.textContent = (inst.headerText || '').replace(/\{pages?\}/g, '1');
-    if (foot) foot.textContent = (inst.footerText || '').replace(/\{pages?\}/g, '1');
+    if (head) head.textContent = applyPageTokens(inst.headerText, 1, 1, true);
+    if (foot) foot.textContent = applyPageTokens(inst.footerText, 1, 1, true);
     if (!head && inst.headerText) buildPageChrome(inst);
     if (!foot && inst.footerText) buildPageChrome(inst);
   }
@@ -3194,8 +3194,16 @@ window.__SUI_RICH = (function () {
     applyTheme(inst);
     return [true, null];
   }
+  function applyPageTokens(text, page, total, known) {
+    var value = String(text || '');
+    var pageValue = known ? String(page) : '__SUI_PAGE__';
+    var totalValue = known ? String(total) : '__SUI_PAGES__';
+    value = value.replace(/\{page\}/gi, pageValue).replace(/\{pages\}/gi, totalValue);
+    value = value.replace(/\[page\]/gi, pageValue).replace(/\[pages\]/gi, totalValue);
+    return value;
+  }
   function sheetChromeText(text, page, total, known) {
-    return String(text || '').replace(/\{page\}/gi, known ? String(page) : '__SUI_PAGE__').replace(/\{pages\}/gi, known ? String(total) : '__SUI_PAGES__');
+    return applyPageTokens(text, page, total, known);
   }
   function defaultPageConfig() {
     return { size: 'a4', orientation: 'portrait', lineHeight: 1.65, margins: { top: 15, right: 17, bottom: 15, left: 17 } };
@@ -4354,13 +4362,13 @@ window.__SUI_RICH = (function () {
     var page = el('div', 'sui-rich-page');
     body.insertBefore(page, inst.editor);
     if (inst.headerText) {
-      var head = el('div', 'sui-rich-pageheader', inst.headerText.replace(/\{pages?\}/g, '1'));
+      var head = el('div', 'sui-rich-pageheader', applyPageTokens(inst.headerText, 1, 1, true));
       head.setAttribute('contenteditable', 'false');
       page.appendChild(head);
     }
     page.appendChild(inst.editor);
     if (inst.footerText) {
-      var foot = el('div', 'sui-rich-pagefooter', inst.footerText.replace(/\{pages?\}/g, '1'));
+      var foot = el('div', 'sui-rich-pagefooter', applyPageTokens(inst.footerText, 1, 1, true));
       foot.setAttribute('contenteditable', 'false');
       page.appendChild(foot);
     }
@@ -5048,29 +5056,57 @@ window.__SUI_RICH = (function () {
     lineRow.appendChild(lineInput);
     panel.appendChild(lineRow);
 
-    var headerRow = el('label');
-    headerRow.appendChild(el('span', '', 'Header'));
-    var headerInput = el('input');
-    headerInput.type = 'text';
-    headerInput.maxLength = 500;
-    headerInput.setAttribute('data-rich-doc-header', '1');
-    headerInput.setAttribute('aria-label', 'Header text');
-    headerInput.title = 'Use {page} and {pages} for page numbers';
-    headerInput.placeholder = 'Report \u00b7 {page}/{pages}';
-    headerRow.appendChild(headerInput);
-    panel.appendChild(headerRow);
-
-    var footerRow = el('label');
-    footerRow.appendChild(el('span', '', 'Footer'));
-    var footerInput = el('input');
-    footerInput.type = 'text';
-    footerInput.maxLength = 500;
-    footerInput.setAttribute('data-rich-doc-footer', '1');
-    footerInput.setAttribute('aria-label', 'Footer text');
-    footerInput.title = 'Use {page} and {pages} for page numbers';
-    footerInput.placeholder = 'Page {page} of {pages}';
-    footerRow.appendChild(footerInput);
-    panel.appendChild(footerRow);
+    function chromeEditor(label, key, placeholder) {
+      var wrap = el('div', 'sui-rich-chrome');
+      var row = el('label');
+      row.appendChild(el('span', '', label));
+      var input = el('input');
+      input.type = 'text';
+      input.maxLength = 500;
+      input.setAttribute('data-rich-doc-' + key, '1');
+      input.setAttribute('aria-label', label + ' text');
+      input.title = 'Supports {page}/{pages} and [page]/[pages]';
+      input.placeholder = placeholder;
+      row.appendChild(input);
+      wrap.appendChild(row);
+      var tools = el('div', 'sui-rich-chrome-tools');
+      var preview = el('div', 'sui-rich-chrome-preview');
+      preview.hidden = true;
+      preview.title = 'Preview with sample page numbers';
+      function refresh() {
+        var value = String(input.value || '').trim();
+        preview.textContent = value ? applyPageTokens(value, 1, 4, true) : '';
+        preview.hidden = !value;
+      }
+      function insertToken(token) {
+        var start = input.selectionStart == null ? input.value.length : input.selectionStart;
+        var end = input.selectionEnd == null ? start : input.selectionEnd;
+        input.value = input.value.slice(0, start) + token + input.value.slice(end);
+        input.focus();
+        try { input.setSelectionRange(start + token.length, start + token.length); } catch (e) {}
+        refresh();
+      }
+      function toolButton(text, title, action, token) {
+        var b = el('button', 'sui-rich-btn' + (token ? ' sui-rich-token' : ''), text);
+        b.type = 'button';
+        b.title = title;
+        b.setAttribute('aria-label', title);
+        b.addEventListener('click', function (e) { e.preventDefault(); action(); });
+        tools.appendChild(b);
+      }
+      toolButton('{page}', 'Insert current page number', function () { insertToken('{page}'); }, true);
+      toolButton('{pages}', 'Insert total page count', function () { insertToken('{pages}'); }, true);
+      toolButton('Page x of y', 'Insert page counter template', function () { input.value = 'Page {page} of {pages}'; refresh(); }, false);
+      toolButton('Clear', 'Clear ' + label.toLowerCase(), function () { input.value = ''; refresh(); }, false);
+      input.addEventListener('input', refresh);
+      input.addEventListener('change', refresh);
+      wrap.appendChild(tools);
+      wrap.appendChild(preview);
+      panel.appendChild(wrap);
+      return input;
+    }
+    var headerInput = chromeEditor('Header', 'header', 'Report \u00b7 {page}/{pages}');
+    var footerInput = chromeEditor('Footer', 'footer', 'Page {page} of {pages}');
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-doc-apply', '1');
@@ -5111,8 +5147,8 @@ window.__SUI_RICH = (function () {
     if (line) line.value = String(page.lineHeight);
     var header = panel.querySelector('[data-rich-doc-header]');
     var footer = panel.querySelector('[data-rich-doc-footer]');
-    if (header) header.value = inst.headerText || '';
-    if (footer) footer.value = inst.footerText || '';
+    if (header) { header.value = inst.headerText || ''; try { header.dispatchEvent(new Event('input')); } catch (e) {} }
+    if (footer) { footer.value = inst.footerText || ''; try { footer.dispatchEvent(new Event('input')); } catch (e) {} }
   }
   function applyDocumentSettings(inst) {
     inst = resolveInstance(inst.name) || inst;
@@ -5178,8 +5214,8 @@ window.__SUI_RICH = (function () {
   function printHTML(inst) {
     var body = exportHTML(inst);
     var page = pageConfig(inst, 1);
-    var header = inst.headerText ? '<div class="sui-print-header">' + escapePrintText(inst.headerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
-    var footer = inst.footerText ? '<div class="sui-print-footer">' + escapePrintText(inst.footerText.replace(/\{pages?\}/g, '')) + '</div>' : '';
+    var header = inst.headerText ? '<div class="sui-print-header">' + escapePrintText(inst.headerText.replace(/\{pages?\}|\[pages?\]/gi, '')) + '</div>' : '';
+    var footer = inst.footerText ? '<div class="sui-print-footer">' + escapePrintText(inst.footerText.replace(/\{pages?\}|\[pages?\]/gi, '')) + '</div>' : '';
     var pageSize = (page.size === 'letter' ? 'Letter' : 'A4') + (page.orientation === 'landscape' ? ' landscape' : '');
     return '<!doctype html><html><head><meta charset="utf-8"><title>' + escapePrintText(inst.name) + '</title><style>' +
       '@page { size: ' + pageSize + '; margin: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; }' +
@@ -5214,7 +5250,7 @@ window.__SUI_RICH = (function () {
       '@media print { body { background: #fff; padding: 0; } .sui-preview-page { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; } }' +
       '</style></head><body><div class="sui-preview-page">' + head + '<main>' + body + '</main>' + foot + '</div></body></html>';
   }
-  async function openPrintPreview(inst) {
+  async function openPrintPreview(inst, autoPrint) {
     inst = resolveInstance(inst.name) || inst;
     var existing = document.querySelector('.sui-rich-preview');
     if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
@@ -5277,6 +5313,14 @@ window.__SUI_RICH = (function () {
       var wrap = inst.root.querySelector('.sui-rich-pages');
       pages.innerHTML = wrap ? wrap.innerHTML : '';
       if (!pages.children.length) pages.appendChild(el('div', 'sui-rich-preview-loading', 'No content to preview.'));
+      if (autoPrint) {
+        var autoClose = function () {
+          window.removeEventListener('afterprint', autoClose);
+          setTimeout(close, 250);
+        };
+        window.addEventListener('afterprint', autoClose);
+        setTimeout(function () { try { printBtn.click(); } catch (e) {} }, 150);
+      }
     } catch (e) {
       pages.innerHTML = '';
       pages.appendChild(el('div', 'sui-rich-preview-loading', 'Preview error: ' + String(e && e.message ? e.message : e)));
@@ -5372,19 +5416,9 @@ window.__SUI_RICH = (function () {
     if (first) { first.focus(); if (first.select) first.select(); }
   }
   function printDocument(inst) {
-    var html = printHTML(inst);
-    var frame = document.createElement('iframe');
-    frame.setAttribute('aria-hidden', 'true');
-    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-    document.body.appendChild(frame);
-    var doc = frame.contentWindow.document;
-    doc.open(); doc.write(html); doc.close();
-    var run = function () {
-      try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
-      setTimeout(function () { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 1500);
-    };
-    if (doc.readyState === 'complete') setTimeout(run, 120);
-    else frame.onload = function () { setTimeout(run, 120); };
+    // Print the same paginated sheets used by the preview, so headers and
+    // footers keep their real page numbers instead of being stripped.
+    openPrintPreview(inst, true);
   }
 
   function buildFindBar(inst) {
@@ -6700,11 +6734,11 @@ window.__SUI_RICH = (function () {
   }
   function docxChromeRuns(text) {
     var format = '<w:rPr><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr>';
-    var parts = String(text || '').split(/(\{page\}|\{pages\})/i), runs = '';
+    var parts = String(text || '').split(/(\{page\}|\{pages\}|\[page\]|\[pages\])/i), runs = '';
     for (var i = 0; i < parts.length; i++) {
       var part = parts[i];
-      if (/^\{page\}$/i.test(part)) runs += '<w:fldSimple w:instr=" PAGE "><w:r>' + format + '<w:t>1</w:t></w:r></w:fldSimple>';
-      else if (/^\{pages\}$/i.test(part)) runs += '<w:fldSimple w:instr=" NUMPAGES "><w:r>' + format + '<w:t>1</w:t></w:r></w:fldSimple>';
+      if (/^(\{page\}|\[page\])$/i.test(part)) runs += '<w:fldSimple w:instr=" PAGE "><w:r>' + format + '<w:t>1</w:t></w:r></w:fldSimple>';
+      else if (/^(\{pages\}|\[pages\])$/i.test(part)) runs += '<w:fldSimple w:instr=" NUMPAGES "><w:r>' + format + '<w:t>1</w:t></w:r></w:fldSimple>';
       else if (part) runs += '<w:r>' + format + '<w:t xml:space="preserve">' + xmlEscapeText(part) + '</w:t></w:r>';
     }
     return runs;
@@ -7001,10 +7035,10 @@ window.__SUI_RICH = (function () {
     for (var i = 0; i < (inst.doc.children || []).length; i++) body += odtBlock(inst.doc.children[i]);
     var content = '<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2"><office:body><office:text>' + body + '</office:text></office:body></office:document-content>';
     function odtChrome(text) {
-      var parts = String(text || '').split(/(\{page\}|\{pages\})/i), out = '';
+      var parts = String(text || '').split(/(\{page\}|\{pages\}|\[page\]|\[pages\])/i), out = '';
       for (var p = 0; p < parts.length; p++) {
-        if (/^\{page\}$/i.test(parts[p])) out += '<text:page-number text:select-page="current">1</text:page-number>';
-        else if (/^\{pages\}$/i.test(parts[p])) out += '<text:page-count>1</text:page-count>';
+        if (/^(\{page\}|\[page\])$/i.test(parts[p])) out += '<text:page-number text:select-page="current">1</text:page-number>';
+        else if (/^(\{pages\}|\[pages\])$/i.test(parts[p])) out += '<text:page-count>1</text:page-count>';
         else if (parts[p]) out += xmlEscapeText(parts[p]);
       }
       return out;
@@ -7999,7 +8033,9 @@ window.__SUI_RICH = (function () {
     var tableSeq = 0;
     function chromeLine(text, baseline) {
       var font = { id: 1, name: 'F1', family: 'helvetica', bold: false, italic: false, emb: null }, size = 9;
-      var value = String(text).replace(/\{page\}/gi, '__SUI_PAGE__').replace(/\{pages\}/gi, '__SUI_PAGES__');
+      var value = String(text)
+        .replace(/\{page\}/gi, '__SUI_PAGE__').replace(/\{pages\}/gi, '__SUI_PAGES__')
+        .replace(/\[page\]/gi, '__SUI_PAGE__').replace(/\[pages\]/gi, '__SUI_PAGES__');
       var width = pdfTextWidth(value.replace(/__SUI_(PAGE|PAGES)__/g, '00'), font, size);
       var x = MARGIN + Math.max(0, (CONTENT_W - width) / 2);
       ops.push('BT ' + pdfFill('#666666') + ' /' + font.name + ' ' + size + ' Tf ' + pdfNumber(x) + ' ' + pdfNumber(ty(baseline)) + ' Td (' + pdfEscape(value) + ') Tj ET');
@@ -8840,6 +8876,11 @@ const suiRichTextCss = `
 .sui-rich-pagesettings-actions { display: flex; gap: 6px; }
 .sui-rich-indent-actions { display: flex; gap: 6px; margin-top: -2px; }
 .sui-rich-indent-actions .sui-rich-btn { flex: 1; justify-content: center; }
+.sui-rich-chrome { display: flex; flex-direction: column; gap: 4px; }
+.sui-rich-chrome-tools { display: flex; flex-wrap: wrap; gap: 4px; }
+.sui-rich-chrome-tools .sui-rich-btn { font-size: 11px; padding: 3px 6px; }
+.sui-rich-token { font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+.sui-rich-chrome-preview { color: var(--sui-rich-muted); font-size: 11px; min-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sui-rich-pagesettings-actions .sui-rich-btn { flex: 1; border: 1px solid var(--sui-rich-border); }
 .sui-rich-tableprops[hidden] { display: none; }
 .sui-rich-tableprops-title { font-weight: 600; margin-bottom: 6px; }

@@ -1666,7 +1666,7 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
 | `theme` | Tema dell'interfaccia: `dark` (default), `light` o `auto`. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
 | `contentTheme` | Tema della pagina: `light` (default, foglio bianco) o `dark`. Indipendente da `theme` |
-| `header` / `footer` | Testo ripetuto su ogni pagina in PDF, DOCX, ODT e stampa. `\{page\}` e `\{pages\}` diventano numero e totale pagine (escape delle graffe nelle stringhe SUI) |
+| `header` / `footer` | Testo ripetuto su ogni pagina in PDF, DOCX, ODT e stampa. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) diventano numero e totale pagine (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
 
 I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
@@ -1682,7 +1682,9 @@ immagini (anche gli stili delle tabelle Word/Excel: padding celle, spessore/colo
 bordo, lati visibili e sfondo; le immagini `blob:` vengono convertite in data URL). Il correttore
 ortografico del browser è attivo e l'editor espone ruoli ARIA textbox/toolbar.
 **Anteprima di stampa / PDF:** `Ctrl+P` (File > Stampa / Salva come PDF)
-apre la stampa del browser su pagine A4 con header/footer ripetuti.
+apre la stampa del browser su pagine A4 con header/footer ripetuti. La stampa
+diretta usa gli stessi fogli paginati dell'anteprima, quindi i token di pagina
+mostrano i numeri reali invece di essere rimossi.
 **Liste:** elenchi puntati e numerati si annidano con Tab e si riportano indietro con
 Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
 
@@ -1712,12 +1714,15 @@ predefinita: sono nei pannelli Impostazioni documento e Impostazioni paragrafo.
 
 **Impostazioni documento** è una voce del menu Preferences e raccoglie i default generali: formato pagina (A4/Letter),
 orientamento (**Verticale**/**Orizzontale**), margini alto/destra/basso/
-sinistra, interlinea e testo di intestazione/piè di pagina. **Impostazioni
-pagina** (pulsante `pageSettings` e Preferences > Impostazioni pagina)
-sovrascrive quei default per una singola pagina: scegli il numero di pagina,
-poi imposta formato, orientamento e margini. Reset riporta la pagina ai default
-del documento. `{page}` e `{pages}` vengono sostituiti con il
-numero di pagina e il totale. I default stanno in
+sinistra, interlinea e testo di intestazione/piè di pagina. Header e footer
+usano un editor dedicato con pulsanti token `{page}`/`{pages}`, preset
+"Pagina x di y", pulsante di cancellazione e anteprima dal vivo; sono accettati
+anche `[page]`/`[pages]`. **Impostazioni pagina** (pulsante `pageSettings` e
+Preferences > Impostazioni pagina) sovrascrive quei default per una singola
+pagina: scegli il numero di pagina, poi imposta formato, orientamento e margini.
+Reset riporta la pagina ai default del documento. I token vengono sostituiti
+con numero di pagina e totale nella vista paginata, nell'anteprima, nella stampa
+diretta, in PDF, DOCX e ODT. I default stanno in
 `page: { size, orientation, lineHeight, margins }` più `header`/`footer`; le
 sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
 Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
