@@ -1666,7 +1666,7 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
 | `theme` | Tema dell'interfaccia: `dark` (default), `light` o `auto`. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
 | `contentTheme` | Tema della pagina: `light` (default, foglio bianco) o `dark`. Indipendente da `theme` |
-| `header` / `footer` | Testo ripetuto su ogni pagina in PDF, DOCX, ODT e stampa. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) diventano numero e totale pagine (escape delle graffe nelle stringhe SUI) |
+| `header` / `footer` | Testo o modello ricco ripetuto su ogni pagina. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) e le altre variabili vengono sostituiti nella vista paginata, anteprima, stampa, PDF, DOCX e ODT (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
 
 I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
@@ -1714,15 +1714,24 @@ predefinita: sono nei pannelli Impostazioni documento e Impostazioni paragrafo.
 
 **Impostazioni documento** è una voce del menu Preferences e raccoglie i default generali: formato pagina (A4/Letter),
 orientamento (**Verticale**/**Orizzontale**), margini alto/destra/basso/
-sinistra, interlinea e testo di intestazione/piè di pagina. Header e footer
-usano un editor dedicato con pulsanti token `{page}`/`{pages}`, preset
-"Pagina x di y", pulsante di cancellazione e anteprima dal vivo; sono accettati
-anche `[page]`/`[pages]`. **Impostazioni pagina** (pulsante `pageSettings` e
-Preferences > Impostazioni pagina) sovrascrive quei default per una singola
-pagina: scegli il numero di pagina, poi imposta formato, orientamento e margini.
-Reset riporta la pagina ai default del documento. I token vengono sostituiti
-con numero di pagina e totale nella vista paginata, nell'anteprima, nella stampa
-diretta, in PDF, DOCX e ODT. I default stanno in
+sinistra, interlinea e intestazione/piè di pagina. Header e footer si aprono in
+un mini editor flottante dai pulsanti **Edit...** in Impostazioni documento o
+Impostazioni pagina. L'editor ha schede Header/Footer, testo multiriga,
+inserimento immagini, grassetto/corsivo/sottolineato e allineamento, pulsanti
+token `{page}`/`{pages}`, menu delle variabili e pulsante **?** per l'aiuto.
+Sono accettati anche `[page]`/`[pages]`. Il mini editor misura l'altezza di
+header/footer, quindi testo multiriga e immagini ampliano l'area riservata senza
+sovrapporsi al contenuto. Le variabili sono: `{page}`, `{pages}`, `{title}`,
+`{name}`, `{date}`, `{time}`, `{datetime}`, `{words}` e `{chars}`; il pulsante
+**?** le elenca con il significato. I valori sono salvati come testo semplice o
+come modello ricco con paragrafi e immagini; i valori stringa esistenti restano
+supportati. **Impostazioni pagina** (pulsante `pageSettings` e Preferences >
+Impostazioni pagina) sovrascrive i default del documento per una pagina: scegli
+il numero, poi formato, orientamento e margini. Reset riporta la pagina ai
+default. Le variabili vengono risolte nella vista paginata, anteprima, stampa
+diretta, PDF, DOCX e ODT. Testo multiriga e immagini restano nella vista
+paginata, nell'anteprima e nella stampa diretta; gli export file PDF, DOCX e ODT
+includono il testo e le variabili. I default stanno in
 `page: { size, orientation, lineHeight, margins }` più `header`/`footer`; le
 sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
 Gli export usano le impostazioni efficaci della prima pagina. Il default è A4

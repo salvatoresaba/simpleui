@@ -1691,7 +1691,7 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | Interface theme: `dark` (default), `light` or `auto`. A single toolbar button cycles dark/light and only styles the editor chrome |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark`. Independent from `theme` |
-| `header` / `footer` | Text repeated on every page in PDF, DOCX, ODT and print. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) are replaced with the page number and total (escape the braces in SUI strings) |
+| `header` / `footer` | Text or a rich header/footer model repeated on every page. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) and the other variables are replaced in the paginated view, preview, print, PDF, DOCX and ODT (escape braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
 
 Toolbar groups (separated by `|`) are individual dockable toolbars: drag the
@@ -1749,15 +1749,24 @@ they live in the Document settings and Paragraph settings panels.
 
 **Document settings** is a Preferences menu entry and holds the
 general defaults: page size (A4/Letter), orientation (**Vertical**/**Horizontal**),
-top/right/bottom/left margins, line height and header/footer text. Header and
-footer use a dedicated editor with `{page}`/`{pages}` token buttons, a
-"Page x of y" preset, a clear button and a live preview; square-bracket tokens
-`[page]`/`[pages]` are accepted too. **Page settings** (toolbar button
-`pageSettings` and Preferences > Page settings) overrides those defaults for one
-page: choose the page number, then set size, orientation and margins. The page
-panel's Reset returns that page to the document defaults. The tokens are
-replaced with the page number and total in the paginated view, preview, direct
-print, PDF, DOCX and ODT. Defaults are stored as
+top/right/bottom/left margins, line height and header/footer. Header and footer
+open in a floating mini editor from the **Edit...** buttons in Document settings
+or Page settings. The editor has Header/Footer tabs, multi-line text, image
+insertion, bold/italic/underline and alignment controls, `{page}`/`{pages}`
+token buttons, a variable menu and a **?** help button. Square-bracket tokens
+such as `[page]`/`[pages]` are accepted too. The mini editor measures the
+header/footer height, so multi-line text and images expand the reserved area
+without overlapping the page body. The variables are: `{page}`, `{pages}`,
+`{title}`, `{name}`, `{date}`, `{time}`, `{datetime}`, `{words}` and `{chars}`;
+the **?** help lists them with their meaning. Header/footer values are stored as
+plain text or as a rich block model with paragraphs and images; existing string
+values remain supported. **Page settings** (toolbar button `pageSettings` and
+Preferences > Page settings) overrides the document defaults for one page:
+choose the page number, then set size, orientation and margins. The page panel's
+Reset returns that page to the document defaults. Variables are resolved in the
+paginated view, preview, direct print, PDF, DOCX and ODT. Multi-line text and
+images are kept in the paginated view, preview and direct Print; the PDF, DOCX
+and ODT file exports include the text content and variables. Defaults are stored as
 `page: { size, orientation, lineHeight, margins }` plus `header`/`footer`;
 per-page overrides are in `pageOverrides: { "1": { size, orientation, margins } }`.
 They are applied to the paginated view, print, PDF, DOCX, ODT and RTF/DOC

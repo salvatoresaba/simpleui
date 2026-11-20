@@ -792,7 +792,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var pageSheet = document.querySelector('.sui-rich-page-sheet');
     if (!pageSheet) throw new Error('paginated sheet missing');
     if (pageSheet.style.width !== '1056px' || pageSheet.style.minHeight !== '816px') throw new Error('Letter landscape sheet size wrong: ' + pageSheet.style.width + ' x ' + pageSheet.style.minHeight);
-    if (pageSheet.style.padding !== '76px 94px 92px 83px') throw new Error('page margins not applied to the sheet: ' + pageSheet.style.padding);
+    if (pageSheet.style.padding !== '76px 94px 68px 83px') throw new Error('page margins not applied to the sheet: ' + pageSheet.style.padding);
     if ((pageSheet.querySelector('.sui-rich-sheet-header') || {}).textContent !== 'H 1/1') throw new Error('sheet header text missing');
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(200);
@@ -823,36 +823,69 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (reqEd.clientHeight < 300 || reqEd.clientHeight > 340) throw new Error('editor height is not fixed: ' + reqEd.clientHeight);
     if (reqEd.scrollHeight <= reqEd.clientHeight) throw new Error('long content does not scroll inside the editor');
 
-    // Header/footer editor: token buttons, live preview and both {page} and
-    // [page] syntaxes with real page numbers.
+    // Header/footer mini editor: tabs, text toolbar, image insertion, token
+    // controls, variable help and real page numbers.
     __SUI_RICH.command('editor', 'documentSettings');
     await wait(220);
     var chromePanel = document.querySelector('.sui-rich-documentsettings');
-    var chromeHeader = chromePanel.querySelector('[data-rich-doc-header]');
-    var chromeFooter = chromePanel.querySelector('[data-rich-doc-footer]');
-    var chromeTokens = [].slice.call(chromePanel.querySelectorAll('.sui-rich-chrome-tools .sui-rich-token'));
-    if (chromeTokens.length < 4) throw new Error('header/footer token buttons missing');
-    chromeHeader.value = ''; chromeHeader.focus();
-    chromeTokens[0].click(); chromeTokens[1].click();
-    if (chromeHeader.value.indexOf('{page}') < 0 || chromeHeader.value.indexOf('{pages}') < 0) throw new Error('header token buttons did not insert tokens: ' + chromeHeader.value);
-    chromeHeader.value = 'H [page]/[pages]'; chromeHeader.dispatchEvent(new Event('input'));
-    chromeFooter.value = 'F [page] of [pages]'; chromeFooter.dispatchEvent(new Event('input'));
-    var chromePreviews = [].slice.call(chromePanel.querySelectorAll('.sui-rich-chrome-preview')).map(function (p) { return p.textContent; });
-    if (!/H 1\/4/.test(chromePreviews[0]) || !/F 1 of 4/.test(chromePreviews[1])) throw new Error('header/footer preview missing: ' + chromePreviews.join(' | '));
-    chromePanel.querySelector('[data-rich-doc-apply]').click();
-    await wait(450);
+    if (chromePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 2) throw new Error('header/footer settings rows missing');
+    chromePanel.querySelector('[data-rich-edit-chrome="header"]').click();
+    await wait(300);
+    var chromeOverlay = document.querySelector('.sui-rich-chrome-editor');
+    if (!chromeOverlay) throw new Error('header/footer mini editor did not open');
+    var chromeTabs = [].slice.call(chromeOverlay.querySelectorAll('.sui-rich-chrome-tab')).map(function (b) { return b.textContent; });
+    if (chromeTabs.join('|') !== 'Header|Footer') throw new Error('header/footer tabs: ' + chromeTabs.join('|'));
+    var chromeTools = [].slice.call(chromeOverlay.querySelectorAll('.sui-rich-chrome-toolbar .sui-rich-btn')).map(function (b) { return b.textContent; });
+    for (var ct = 0; ct < ['B','I','U','Image','{page}','{pages}','Clear','?'].length; ct++) {
+      if (chromeTools.indexOf(['B','I','U','Image','{page}','{pages}','Clear','?'][ct]) < 0) throw new Error('header/footer toolbar missing ' + ['B','I','U','Image','{page}','{pages}','Clear','?'][ct]);
+    }
+    var chromeVars = chromeOverlay.querySelector('.sui-rich-chrome-vars');
+    var chromeVarValues = chromeVars ? [].map.call(chromeVars.options, function (o) { return o.value; }) : [];
+    if (chromeVarValues.indexOf('{title}') < 0 || chromeVarValues.indexOf('{date}') < 0 || chromeVarValues.indexOf('{words}') < 0) throw new Error('header/footer variable list incomplete: ' + chromeVarValues.join(','));
+    var chromeHelpBtn = [].slice.call(chromeOverlay.querySelectorAll('.sui-rich-chrome-help'))[0];
+    chromeHelpBtn.click();
+    await wait(250);
+    var chromeHelp = document.querySelector('.sui-rich-chrome-help-overlay');
+    if (!chromeHelp) throw new Error('header/footer variable help did not open');
+    var chromeHelpText = chromeHelp.textContent;
+    if (chromeHelpText.indexOf('{title}') < 0 || chromeHelpText.indexOf('{date}') < 0 || chromeHelpText.indexOf('{words}') < 0) throw new Error('header/footer help misses variables');
+    [].slice.call(chromeHelp.querySelectorAll('button')).filter(function (b) { return b.textContent === 'Close'; })[0].click();
+    await wait(150);
+    var chromeHeaderSurface = chromeOverlay.querySelector('[data-rich-chrome-surface="header"]');
+    var chromeFooterSurface = chromeOverlay.querySelector('[data-rich-chrome-surface="footer"]');
+    var chromePng = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iNDAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iNDAiIGZpbGw9IiMzMzY2ZGQiLz48L3N2Zz4=';
+    chromeHeaderSurface.innerHTML = '<p>H [page]/[pages]</p><p><b>Line 2</b> {title}</p><p><img src="' + chromePng + '" alt="logo"></p>';
+    chromeFooterSurface.innerHTML = '<p>F [page] of [pages]</p>';
+    [].slice.call(chromeOverlay.querySelectorAll('.sui-rich-chrome-actions button')).filter(function (b) { return b.textContent === 'Apply'; })[0].click();
+    await wait(700);
+    var chromeDoc = JSON.parse(__SUI_RICH.get('editor')[0]);
+    if (!chromeDoc.header || !chromeDoc.header.children || chromeDoc.header.children.length !== 3) throw new Error('rich header model not stored');
     __SUI_RICH.command('editor', 'paginatedView');
-    await wait(2000);
+    await wait(2500);
     var chromeSheets = richRoot().querySelectorAll('.sui-rich-page-sheet');
     if (chromeSheets.length < 2) throw new Error('header/footer test needs multiple pages: ' + chromeSheets.length);
     for (var cs = 0; cs < chromeSheets.length; cs++) {
       var csh = chromeSheets[cs].querySelector('.sui-rich-sheet-header');
       var csf = chromeSheets[cs].querySelector('.sui-rich-sheet-footer');
-      if (!csh || csh.textContent !== 'H ' + (cs + 1) + '/' + chromeSheets.length) throw new Error('header page token wrong: ' + (csh ? csh.textContent : 'missing'));
+      var csBody = chromeSheets[cs].querySelector('.sui-rich-sheet-body');
+      if (!csh || csh.textContent.indexOf('H ' + (cs + 1) + '/' + chromeSheets.length) < 0) throw new Error('header page token wrong: ' + (csh ? csh.textContent : 'missing'));
       if (!csf || csf.textContent !== 'F ' + (cs + 1) + ' of ' + chromeSheets.length) throw new Error('footer page token wrong: ' + (csf ? csf.textContent : 'missing'));
+      if (!csh.querySelector('img')) throw new Error('header image missing on page ' + (cs + 1));
+      if (!csBody || csBody.getBoundingClientRect().top < csh.getBoundingClientRect().bottom - 1) throw new Error('header overlaps the page body');
     }
     __SUI_RICH.command('editor', 'paginatedView');
     await wait(250);
+    __SUI_RICH.command('editor', 'pageSettings');
+    await wait(220);
+    var chromePagePanel = document.querySelector('.sui-rich-pagesettings');
+    if (chromePagePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 2) throw new Error('page settings header/footer rows missing');
+    chromePagePanel.querySelector('[data-rich-edit-chrome="footer"]').click();
+    await wait(220);
+    if (!document.querySelector('.sui-rich-chrome-editor')) throw new Error('page settings did not open the mini editor');
+    [].slice.call(document.querySelectorAll('.sui-rich-chrome-editor .sui-rich-chrome-actions button')).filter(function (b) { return b.textContent === 'Cancel'; })[0].click();
+    var chromePageClose = chromePagePanel.querySelector('[data-rich-page-close]');
+    if (chromePageClose) chromePageClose.click();
+    await wait(200);
 
     var reqZoomLabel = richRoot().querySelector('.sui-rich-toolbar .sui-rich-zoom-label');
     richRoot().querySelector('.sui-rich-toolbar [data-rich-zoom="in"]').click();
@@ -896,7 +929,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(300);
     __SUI_RICH.command('editor', 'themeLight');
     await wait(200);
-    __SUI_RICH.set('editor', { type: 'doc', children: manyRows });
+    __SUI_RICH.set('editor', { type: 'doc', header: 'H {page}/{pages}', footer: '', children: manyRows });
     await wait(400);
     richRoot().querySelector('.sui-rich-toolbar [data-rich-cmd="printPreview"]').click();
     await wait(1500);
@@ -909,7 +942,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (!reqPreviewPages || reqPreviewSheets.length < 2) throw new Error('print preview is not split into pages: ' + reqPreviewSheets.length);
     var reqFirstSheet = reqPreviewSheets[0];
     if (reqFirstSheet.style.width !== '1056px' || reqFirstSheet.style.minHeight !== '816px') throw new Error('preview page size wrong: ' + reqFirstSheet.style.width + ' x ' + reqFirstSheet.style.minHeight);
-    if (reqFirstSheet.style.padding !== '76px 94px 92px 83px') throw new Error('preview page margins missing: ' + reqFirstSheet.style.padding);
+    if (reqFirstSheet.style.padding !== '76px 94px 68px 83px') throw new Error('preview page margins missing: ' + reqFirstSheet.style.padding);
     if (reqPreviewSheets[1] && reqPreviewSheets[1].style.width === '1056px') throw new Error('page 2 wrongly inherits the page 1 override');
     if (!/H 1\//.test((reqFirstSheet.querySelector('.sui-rich-sheet-header') || {}).textContent || '')) throw new Error('preview header missing');
     var reqPreviewClose = [].slice.call(document.querySelectorAll('.sui-rich-preview button')).filter(function (b) { return b.textContent === 'Close'; })[0];

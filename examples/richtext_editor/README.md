@@ -28,6 +28,12 @@ builds.
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
 - Document settings (menu) provides page defaults: size, orientation, margins,
   line height and header/footer. Page settings overrides them for a single page.
+- Header and footer open in a floating mini editor from Document settings or
+  Page settings: Header/Footer tabs, multi-line text, images, bold/italic/
+  underline/alignment, token buttons and a variable menu with `{page}`,
+  `{pages}`, `{title}`, `{name}`, `{date}`, `{time}`, `{datetime}`, `{words}` and
+  `{chars}`. The **?** button opens the variable help. Rich header/footer height
+  is measured so text and images do not overlap the page body.
 Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Print preview shows the real page split and follows the UI light/dark theme;
   the continuous editor marks the actual print page starts with red dashed
@@ -101,7 +107,7 @@ and Ctrl+Enter.
 | `toolbarItems` | Comma-separated commands, `|` separates groups |
 | `theme` | Interface theme: `dark` (default), `light` or `auto` |
 | `contentTheme` | Page theme: `light` (default, white paper) or `dark` |
-| `header` / `footer` | Text repeated on every page in PDF/DOCX/ODT/print; `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) become page numbers |
+| `header` / `footer` | Text or a rich block model repeated on every page; edited in a floating mini editor with text, images and variables (`{page}`, `{pages}`, `{title}`, `{name}`, `{date}`, `{time}`, `{datetime}`, `{words}`, `{chars}`) |
 | `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter; drag its handle to move it, use its control to delete it, and following breaks recalculate |
 | `template` | `article`, `letter`, `report` or `compact` |
 
