@@ -1144,6 +1144,44 @@ window.__SUI_RICH = (function () {
     for (var i = 0; i < CODE_LANGUAGES.length; i++) if (CODE_LANGUAGES[i][0] === lang) return lang;
     return 'plain';
   }
+  var CODE_TOKEN_COLORS = { keyword: '#7c3aed', string: '#0a7a3d', comment: '#6b7280', number: '#b45309', tag: '#1d4ed8', linenum: '#888888' };
+  function codeExportText(node) {
+    var text = String(node && node.text != null ? node.text : '');
+    if (!text && node && Array.isArray(node.children)) {
+      for (var i = 0; i < node.children.length; i++) {
+        var n = node.children[i];
+        if (!n) continue;
+        if (n.type === 'text') text += String(n.text || '');
+        else if (n.type === 'break') text += '\n';
+      }
+    }
+    return text;
+  }
+  function codeExportSegments(node) {
+    var text = codeExportText(node);
+    var lang = codeLanguage(node && node.codeLanguage);
+    var lines = text.split('\n');
+    var numberWidth = String(lines.length).length;
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+      if (node && node.lineNumbers) {
+        var num = String(i + 1);
+        while (num.length < numberWidth) num = ' ' + num;
+        out.push({ text: num + '  ', cls: 'linenum' });
+      }
+      if (lang === 'plain') out.push({ text: lines[i], cls: '' });
+      else out = out.concat(codeTokenize(lines[i], lang));
+      if (i < lines.length - 1) out.push({ text: '\n', cls: '' });
+    }
+    return out;
+  }
+  function codeSegmentMarks(seg) {
+    var marks = [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }];
+    var color = CODE_TOKEN_COLORS[seg.cls];
+    if (color) marks.push({ type: 'color', value: color });
+    if (seg.cls === 'keyword') marks.push({ type: 'bold' });
+    return marks;
+  }
   function codeTokenize(text, lang) {
     var tokens = [], source = String(text || '');
     if (!source) return tokens;
@@ -8392,6 +8430,7 @@ window.__SUI_RICH = (function () {
   }
   function exportRTF(inst) {
     rtfFonts = ['Helvetica', 'Courier New']; rtfFontMap = { helvetica: 0, 'courier new': 1 }; rtfColors = []; rtfColorMap = {};
+    Object.keys(CODE_TOKEN_COLORS).forEach(function (color) { rtfColorIndex(color); });
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) rtfNoteDoc(inst.doc.children[ci]);
     if (inst.headerValue) rtfNoteDoc(inst.headerValue);
     if (inst.footerValue) rtfNoteDoc(inst.footerValue);
@@ -8426,6 +8465,14 @@ window.__SUI_RICH = (function () {
         s += m.open + value + m.close;
       }
       return s;
+    }
+    function rtfCodeSegments(node) {
+      var segs = codeExportSegments(node), out = '';
+      for (var i = 0; i < segs.length; i++) {
+        if (!segs[i].text) continue;
+        out += inline([{ type: 'text', text: segs[i].text, marks: codeSegmentMarks(segs[i]) }], null, false);
+      }
+      return out;
     }
     function chromeInline(value) {
       var blocks = chromeDoc(value).children || [], s = '';
@@ -8483,8 +8530,11 @@ window.__SUI_RICH = (function () {
         out.push(paragraphProps(n) + ' ' + inline(n.children, null, n.hyphens === 'auto') + '\\par');
       } else if (n.type === 'blockquote') { for (var k = 0; k < (n.children || []).length; k++) block(n.children[k]); }
       else if (n.type === 'code_block') {
-        var rtfCodeNodes = (Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }];
-        out.push(paragraphProps(n) + '\\f0\\fs20 ' + inline(rtfCodeNodes, [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }]) + '\\fs24\\par');
+        var rtfCodeBody = (n.codeLanguage && n.codeLanguage !== 'plain') || n.lineNumbers ? rtfCodeSegments(n) : (function () {
+          var nodes = (Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }];
+          return inline(nodes, [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }]);
+        })();
+        out.push(paragraphProps(n) + '\\f0\\fs20 ' + rtfCodeBody + '\\fs24\\par');
       }
       else if (n.type === 'hr') out.push('\\pard\\brdrb\\brdrs\\brdrw10\\par');
       else if (n.type === 'page_break') out.push('\\page');
@@ -8576,6 +8626,19 @@ window.__SUI_RICH = (function () {
       if (n.type === 'text') out += docxRun(hyphenate ? hyphenateText(n.text) : n.text, n.marks, extra);
       else if (n.type === 'break') out += '<w:r><w:br/></w:r>';
       else if (n.type === 'image') out += docxImage(n.src, n.width, n.height) || docxRun('[' + (n.alt || 'image') + ']', [], extra);
+    }
+    return out;
+  }
+  function docxCodeSegments(node) {
+    var segs = codeExportSegments(node), out = '';
+    for (var i = 0; i < segs.length; i++) {
+      if (!segs[i].text) continue;
+      var parts = String(segs[i].text).split('\n');
+      var marks = codeSegmentMarks(segs[i]);
+      for (var p = 0; p < parts.length; p++) {
+        if (p) out += '<w:r><w:br/></w:r>';
+        if (parts[p]) out += docxRun(parts[p], marks);
+      }
     }
     return out;
   }
@@ -8723,7 +8786,8 @@ window.__SUI_RICH = (function () {
     if (n.type === 'blockquote') return (n.children || []).map(docxBlock).join('');
     if (n.type === 'code_block') {
       var codeExtra = '<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/><w:suppressAutoHyphens/>';
-      return '<w:p>' + docxParagraphProps(n, codeExtra) + docxCodeInline(n.children, n.text) + '</w:p>';
+      var codeBody = (n.codeLanguage && n.codeLanguage !== 'plain') || n.lineNumbers ? docxCodeSegments(n) : docxCodeInline(n.children, n.text);
+      return '<w:p>' + docxParagraphProps(n, codeExtra) + codeBody + '</w:p>';
     }
     if (n.type === 'hr') return '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="999999"/></w:pBdr></w:pPr></w:p>';
     if (n.type === 'page_break') return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
@@ -9025,6 +9089,14 @@ window.__SUI_RICH = (function () {
     }
     return out;
   }
+  function odtCodeSegments(node) {
+    var segs = codeExportSegments(node), out = '';
+    for (var i = 0; i < segs.length; i++) {
+      if (!segs[i].text) continue;
+      out += odtInline([{ type: 'text', text: segs[i].text, marks: codeSegmentMarks(segs[i]) }]);
+    }
+    return out;
+  }
   function odtBlock(n) {
     if (!n) return '';
     if (n.type === 'heading') {
@@ -9042,8 +9114,8 @@ window.__SUI_RICH = (function () {
     }
     if (n.type === 'blockquote') return '<text:section>' + (n.children || []).map(odtBlock).join('') + '</text:section>';
     if (n.type === 'code_block') {
-      var odtCodeNodes = (Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }];
-      return '<text:p>' + odtInline(odtCodeNodes, 'font-family:monospace;font-size:9pt') + '</text:p>';
+      var odtCodeBody = (n.codeLanguage && n.codeLanguage !== 'plain') || n.lineNumbers ? odtCodeSegments(n) : odtInline((Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }], 'font-family:monospace;font-size:9pt');
+      return '<text:p>' + odtCodeBody + '</text:p>';
     }
     if (n.type === 'hr') return '<text:p>---</text:p>';
     if (n.type === 'page_break') return '<text:p text:style-name="PageBreak"/>';
@@ -10274,6 +10346,19 @@ window.__SUI_RICH = (function () {
       }
       return runs;
     }
+    function codeRunsFromNode(node) {
+      var segs = codeExportSegments(node), runs = [];
+      for (var i = 0; i < segs.length; i++) {
+        if (!segs[i].text) continue;
+        var parts = String(segs[i].text).split('\n');
+        var marks = codeSegmentMarks(segs[i]);
+        for (var p = 0; p < parts.length; p++) {
+          if (p) runs.push({ type: 'break' });
+          if (parts[p]) runs = runs.concat(runsOf([{ type: 'text', text: parts[p], marks: marks }], null, false));
+        }
+      }
+      return runs;
+    }
     function wrapRuns(runs, maxWidth, preserveSpace) {
       var lines = [], line = [], width = 0;
       var maxSize = 0;
@@ -10646,7 +10731,7 @@ window.__SUI_RICH = (function () {
       else if (node.type === 'blockquote') paragraph(node);
       else if (node.type === 'code_block') {
         var codeNodes = (Array.isArray(node.children) && node.children.length) ? node.children : [{ type: 'text', text: String(node.text || ''), marks: [] }];
-        var codeRuns = runsOf(codeNodes, [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }]);
+        var codeRuns = (node.codeLanguage && node.codeLanguage !== 'plain') || node.lineNumbers ? codeRunsFromNode(node) : runsOf(codeNodes, [{ type: 'font', value: 'Courier New' }, { type: 'size', value: '9' }]);
         var codeLines = wrapRuns(codeRuns, CONTENT_W - 12, true);
         drawLines(codeLines, MARGIN + 6, CONTENT_W - 12, node.align, node);
       } else if (node.type === 'hr') {

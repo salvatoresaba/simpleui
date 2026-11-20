@@ -38,9 +38,10 @@ builds.
   survive re-renders; indent/outdent adds or removes two spaces on the current
   code line. Inline code and code blocks use the page text color, so they are
   readable on the white page.
-- DOCX, ODT, PDF and RTF export the inline styles inside code blocks and rich
-  header/footer text and images. DOCX, ODT and RTF write the table column widths
-  and the automatic hyphenation setting. The PDF export uses its own text layout,
+- DOCX, ODT, PDF and RTF export the inline styles inside code blocks; syntax
+  highlighting and line numbers are exported as colored runs/numbered lines too.
+  DOCX, ODT, PDF and RTF include rich header/footer text and images. DOCX, ODT
+  and RTF write the table column widths and the automatic hyphenation setting. The PDF export uses its own text layout,
   so it does not hyphenate yet.
 - Insert image accepts a file from the PC (up to 8 MB, stored as a data URL) or
   an http(s)/data URL.

@@ -1694,7 +1694,9 @@ normale, mentre le altre righe restano nel blocco di codice. Gli stili delle
 parole nel blocco (grassetto, corsivo, colore, evidenziazione) sono salvati in
 `children` e restano nell'editor; gli export DOCX, ODT, PDF e RTF conservano
 questi stili inline, HTML usa il markup ricco e Markdown mantiene il testo
-letterale del codice. Indent/outdent aggiunge o toglie due spazi alla riga
+letterale del codice. La colorazione sintattica e l'eventuale gutter dei numeri
+di riga vengono scritti in DOCX, ODT, RTF e PDF come run colorati e righe
+numerate. Indent/outdent aggiunge o toglie due spazi alla riga
 corrente.
 
 **Vista paginata:** il pulsante **Pages** nella barra di stato mostra fogli A4 con margini, header/footer e righe di tabella

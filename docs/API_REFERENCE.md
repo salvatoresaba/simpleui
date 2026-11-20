@@ -1732,6 +1732,8 @@ paragraph, so the other lines stay inside code blocks. Word styles inside a code
 block (bold, italic, color, highlight) are stored as rich `children` and survive
 re-renders; DOCX, ODT, PDF and RTF exports keep those inline styles, while HTML
 uses the rendered rich markup and Markdown keeps the literal code text.
+Syntax highlighting and the optional line-number gutter are also written to
+DOCX, ODT, RTF and PDF as colored runs and numbered code lines.
 Indent/outdent adds or removes two spaces on the current
 code line instead of moving the whole block.
 

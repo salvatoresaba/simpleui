@@ -679,6 +679,17 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var exportPdf = __SUI_RICH.exportBytes('editor', 'pdf');
     if (exportPdf[1] !== null || exportPdf[0].length < 1000) throw new Error('pdf export with rich code block failed');
 
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'code_block', text: 'const x = 42;\nfunction hi() {\n  return "ok";\n}', codeLanguage: 'javascript', lineNumbers: true }] });
+    await wait(150);
+    var syntaxDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (syntaxDocx.indexOf('7C3AED') < 0 || syntaxDocx.indexOf('888888') < 0) throw new Error('DOCX syntax colors/line numbers missing');
+    var syntaxOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
+    if (syntaxOdt.indexOf('#7c3aed') < 0 || syntaxOdt.indexOf('#888888') < 0) throw new Error('ODT syntax colors/line numbers missing');
+    var syntaxRtf = toLatin(__SUI_RICH.exportBytes('editor', 'rtf')[0]);
+    if (syntaxRtf.indexOf('Courier New;') < 0 || syntaxRtf.indexOf('\\cf') < 0) throw new Error('RTF syntax colors missing');
+    var syntaxPdf = __SUI_RICH.exportBytes('editor', 'pdf');
+    if (syntaxPdf[1] !== null || syntaxPdf[0].length < 1000) throw new Error('PDF syntax export failed');
+
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'paragraph', lineHeight: '1', spaceBefore: '5pt', spaceAfter: '5pt', hyphens: 'auto', children: [{ type: 'text', text: 'Turismo paragraph', marks: [] }] },
       { type: 'paragraph', lineHeight: '13.5pt', lineRule: 'atLeast', children: [{ type: 'text', text: 'At least spacing', marks: [] }] }
