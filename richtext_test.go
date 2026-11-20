@@ -611,15 +611,15 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(120);
     var exportDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
     if (exportDocx.indexOf('Courier New') < 0 || exportDocx.indexOf('w:color w:val="123456"') < 0) throw new Error('docx rich code block missing');
-    if (exportDocx.indexOf('w:autoHyphenation') < 0 || exportDocx.indexOf('w:suppressAutoHyphens') < 0) throw new Error('docx hyphenation settings missing');
-    if (exportDocx.indexOf('word/settings.xml') < 0) throw new Error('docx settings part missing');
+    if (exportDocx.indexOf('\u00AD') < 0) throw new Error('docx soft hyphenation missing');
+    if (exportDocx.indexOf('w:spacing') >= 0) throw new Error('hyphenation changed DOCX line spacing');
     if (exportDocx.indexOf('w:gridCol') < 0) throw new Error('docx table grid missing');
     var exportOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
     if (exportOdt.indexOf('font-weight:bold') < 0 || exportOdt.indexOf('color:rgb(18, 52, 86)') < 0) throw new Error('odt rich code block missing');
-    if (exportOdt.indexOf('fo:hyphenate="true"') < 0) throw new Error('odt hyphenation missing');
+    if (exportOdt.indexOf('\u00AD') < 0) throw new Error('odt soft hyphenation missing');
     if (exportOdt.indexOf('style:column-width') < 0) throw new Error('odt table column widths missing');
     var exportRtf = toLatin(__SUI_RICH.exportBytes('editor', 'rtf')[0]);
-    if (exportRtf.indexOf('Courier New;') < 0 || exportRtf.indexOf('\\hyphauto1') < 0) throw new Error('rtf code/hyphenation export missing');
+    if (exportRtf.indexOf('Courier New;') < 0 || exportRtf.indexOf('\\-') < 0) throw new Error('rtf code/hyphenation export missing');
     var exportPdf = __SUI_RICH.exportBytes('editor', 'pdf');
     if (exportPdf[1] !== null || exportPdf[0].length < 1000) throw new Error('pdf export with rich code block failed');
 

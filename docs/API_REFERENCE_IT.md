@@ -1824,13 +1824,14 @@ pulsanti espliciti −/+ per l'indentazione) agisce sui paragrafi selezionati o 
 quello al cursore: allineamento, rientro sinistro, interlinea, spazio prima,
 spazio dopo e **Sillabazione**. Il menu di allineamento include **Giustificato**
 e **Giustificato + sillabazione**; quest'ultimo imposta testo giustificato e
-sillabazione automatica insieme. La sillabazione imposta `hyphens: auto` (con
-prefisso WebKit) per mandare a capo le parole lunghe con il trattino; è salvata
-come `hyphens: "auto"` nel modello del paragrafo ed è considerata dalla vista
-paginata e dalla stampa. Gli export DOCX, ODT e RTF salvano la sillabazione
-automatica; l'export PDF usa un proprio layout e non sillaba ancora. Il
-dizionario segue la lingua del documento (Impostazioni documento → Lingua, o la
-lingua del browser con Automatico).
+sillabazione automatica insieme. La sillabazione inserisce **soft hyphen**
+(U+00AD) nei punti di sillaba, così le parole si spezzano anche se il browser non
+ha il dizionario di sillabazione; è salvata come `hyphens: "auto"` nel modello
+del paragrafo ed è considerata dalla vista paginata e dalla stampa. Gli export
+DOCX, ODT e RTF scrivono soft/optional hyphen senza modificare l'interlinea del
+paragrafo; l'export PDF usa un proprio layout e non sillaba ancora. I punti di
+sillabazione seguono la lingua del documento (Impostazioni documento → Lingua, o
+la lingua del browser con Automatico).
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
 (2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come

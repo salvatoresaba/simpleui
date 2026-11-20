@@ -186,7 +186,7 @@ window.__SUI_RICH = (function () {
   function inlineFrom(node, marks, out, depth) {
     if (!node || out.length > MAX_NODES || depth > 32) return;
     if (node.nodeType === 3) {
-      if (node.nodeValue) out.push({ type: 'text', text: node.nodeValue, marks: marks.slice() });
+      if (node.nodeValue) out.push({ type: 'text', text: String(node.nodeValue).replace(/\u00AD/g, ''), marks: marks.slice() });
       return;
     }
     if (node.nodeType !== 1) return;
@@ -518,6 +518,64 @@ window.__SUI_RICH = (function () {
       }
     }
   }
+  function hyphenateWord(word) {
+    var clean = String(word || '').replace(/\u00AD/g, '');
+    if (clean.length < 6 || !/^[A-Za-zÀ-ÖØ-öø-ÿ]+$/.test(clean)) return clean;
+    var lower = clean.toLowerCase();
+    var vowels = /[aeiouyàèéìòù]/;
+    var points = {};
+    for (var i = 2; i < clean.length - 2; i++) {
+      var prev = lower.charAt(i - 1), cur = lower.charAt(i), next = lower.charAt(i + 1);
+      // A vowel followed by a single consonant and another vowel is a safe
+      // syllable boundary in Italian and in many English words.
+      if (vowels.test(prev) && !vowels.test(cur) && vowels.test(next)) points[i] = 1;
+      // Split doubled consonants between the two letters (tissimo -> tis-simo).
+      if (cur === prev && !vowels.test(cur)) points[i] = 1;
+    }
+    var suffixes = ['tissimo', 'tissima', 'zione', 'zioni', 'mente', 'sione', 'sioni', 'logia', 'grafia', 'ità', 'zione', 'tion', 'sion', 'ment', 'ness', 'able', 'ible', 'ally', 'ing'];
+    for (var s = 0; s < suffixes.length; s++) {
+      var pos = lower.lastIndexOf(suffixes[s]);
+      if (pos >= 3 && pos < clean.length - 3) points[pos] = 1;
+    }
+    var keys = [];
+    for (var k in points) if (hasOwn(points, k)) keys.push(Number(k));
+    if (!keys.length) {
+      var middle = Math.floor(clean.length / 2);
+      if (middle >= 3 && middle < clean.length - 2) keys.push(middle);
+    }
+    keys.sort(function (a, b) { return a - b; });
+    var out = '', last = 0;
+    for (var p = 0; p < keys.length; p++) {
+      var at = keys[p];
+      if (at <= 1 || at >= clean.length - 1 || at <= last) continue;
+      out += clean.slice(last, at) + '\u00AD';
+      last = at;
+    }
+    return out + clean.slice(last);
+  }
+  function hyphenateText(text) {
+    return String(text == null ? '' : text).replace(/[A-Za-zÀ-ÖØ-öø-ÿ]{6,}/g, function (word) { return hyphenateWord(word); });
+  }
+  function removeSoftHyphens(root) {
+    if (!root) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), nodes = [], node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].nodeValue && nodes[i].nodeValue.indexOf('\u00AD') >= 0) nodes[i].nodeValue = nodes[i].nodeValue.replace(/\u00AD/g, '');
+    }
+  }
+  function softHyphenateElement(root) {
+    if (!root) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), nodes = [], node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    for (var i = 0; i < nodes.length; i++) {
+      var parent = nodes[i].parentElement;
+      if (parent && parent.closest && parent.closest('code,pre,script,style')) continue;
+      if (!nodes[i].nodeValue || nodes[i].nodeValue.indexOf('\u00AD') >= 0) continue;
+      nodes[i].nodeValue = hyphenateText(nodes[i].nodeValue);
+    }
+  }
+
   function blockDom(node, depth) {
     if (!node || typeof node !== 'object' || depth > 32) return null;
     var type = String(node.type || 'paragraph'), box = null;
@@ -637,6 +695,7 @@ window.__SUI_RICH = (function () {
       inlineDom(Array.isArray(node.children) ? node.children : [], box);
       if (!box.childNodes.length) box.appendChild(el('br'));
     }
+    if (box && node.hyphens === 'auto' && type !== 'code_block') softHyphenateElement(box);
     return box;
   }
 
@@ -5293,10 +5352,18 @@ window.__SUI_RICH = (function () {
     var needle = String(query).toLowerCase(), node;
     while ((node = walker.nextNode())) {
       var text = String(node.nodeValue || '');
-      var hay = text.toLowerCase();
+      var normalized = '', indexMap = [];
+      for (var ch = 0; ch < text.length; ch++) {
+        if (text.charAt(ch) === '\u00AD') continue;
+        normalized += text.charAt(ch);
+        indexMap.push(ch);
+      }
+      var hay = normalized.toLowerCase();
       var from = 0, at;
       while ((at = hay.indexOf(needle, from)) >= 0) {
-        matches.push({ node: node, start: at, end: at + needle.length });
+        var start = indexMap[at];
+        var end = indexMap[at + needle.length - 1] + 1;
+        matches.push({ node: node, start: start, end: end });
         from = at + needle.length;
       }
     }
@@ -5796,7 +5863,7 @@ window.__SUI_RICH = (function () {
       source = {
         align: block.style.textAlign || '',
         indent: parseFloat(block.style.paddingLeft) || 0,
-        lineheight: parseFloat(block.style.lineHeight) || pageConfig(inst).lineHeight,
+        lineheight: parseFloat(block.style.lineHeight) || '',
         before: parseFloat(block.style.marginTop) || 0,
         after: parseFloat(block.style.marginBottom) || 0,
         hyphens: block.style.hyphens || block.style.webkitHyphens || '',
@@ -5844,6 +5911,7 @@ window.__SUI_RICH = (function () {
     var after = parseFloat(value('[data-rich-paragraph-after]'));
     var hyphensInput = panel.querySelector('[data-rich-paragraph-hyphens]');
     var hyphens = !!(hyphensInput && hyphensInput.checked) || justifyHyphen;
+    if (alignValue === 'justify') hyphens = false;
     var tabSizeInput = panel.querySelector('[data-rich-paragraph-tabsize]');
     var tabSize = tabSizeInput ? String(tabSizeInput.value || '2') : '2';
     var blocks = paragraphTargets(inst);
@@ -5858,9 +5926,11 @@ window.__SUI_RICH = (function () {
       if (hyphens && block.tagName && block.tagName.toLowerCase() !== 'pre') {
         block.style.hyphens = 'auto';
         block.style.webkitHyphens = 'auto';
+        softHyphenateElement(block);
       } else {
         block.style.hyphens = '';
         block.style.webkitHyphens = '';
+        if (block.tagName && block.tagName.toLowerCase() !== 'pre') removeSoftHyphens(block);
       }
     }
     commit(inst, 'change');
@@ -8051,7 +8121,6 @@ window.__SUI_RICH = (function () {
     header += '\\paperw' + mmToTwips(rtfDims.w) + '\\paperh' + mmToTwips(rtfDims.h) +
       '\\margl' + mmToTwips(rtfPage.margins.left) + '\\margr' + mmToTwips(rtfPage.margins.right) +
       '\\margt' + mmToTwips(rtfPage.margins.top) + '\\margb' + mmToTwips(rtfPage.margins.bottom);
-    if (docHasAutoHyphenation(inst.doc.children || [])) header += '\\hyphauto1';
     if (rtfColors.length) {
       header += '{\\colortbl;';
       for (var c = 0; c < rtfColors.length; c++) {
@@ -8061,7 +8130,7 @@ window.__SUI_RICH = (function () {
       header += '}';
     }
     var out = [header + '\\viewkind4'];
-    function inline(nodes, baseMarks) {
+    function inline(nodes, baseMarks, hyphenate) {
       var s = '';
       for (var i = 0; i < (nodes || []).length; i++) {
         var n = nodes[i];
@@ -8069,7 +8138,9 @@ window.__SUI_RICH = (function () {
         if (n.type === 'image') { s += rtfPicture(n.src, n.width, n.height); continue; }
         if (n.type !== 'text') continue;
         var m = rtfMarks((baseMarks || []).concat(n.marks || []));
-        var value = String(n.text || '').replace(/\\/g, '\\\\').replace(/[{}]/g, '\\$&').replace(/\n/g, '\\line ');
+        var value = String(hyphenate ? hyphenateText(n.text) : (n.text || ''));
+        value = value.replace(/\\/g, '\\\\').replace(/[{}]/g, '\\$&').replace(/\n/g, '\\line ');
+        if (hyphenate) value = value.replace(/\u00AD/g, '\\-');
         value = value.replace(/[^\x00-\x7F]/g, function (ch) { var code = ch.charCodeAt(0); return code > 32767 ? '\\u' + (code - 65536) + '?' : '\\u' + code + '?'; });
         s += m.open + value + m.close;
       }
@@ -8126,9 +8197,9 @@ window.__SUI_RICH = (function () {
       if (!n) return;
       if (n.type === 'heading') {
         var hsize = Math.max(12, 20 - ((Math.max(1, Math.min(6, Number(n.level) || 1)) - 1) * 2));
-        out.push(paragraphProps(n) + '\\b\\fs' + Math.round(hsize * 2) + ' ' + inline(n.children) + '\\b0\\fs24\\par');
+        out.push(paragraphProps(n) + '\\b\\fs' + Math.round(hsize * 2) + ' ' + inline(n.children, null, n.hyphens === 'auto') + '\\b0\\fs24\\par');
       } else if (n.type === 'paragraph') {
-        out.push(paragraphProps(n) + ' ' + inline(n.children) + '\\par');
+        out.push(paragraphProps(n) + ' ' + inline(n.children, null, n.hyphens === 'auto') + '\\par');
       } else if (n.type === 'blockquote') { for (var k = 0; k < (n.children || []).length; k++) block(n.children[k]); }
       else if (n.type === 'code_block') {
         var rtfCodeNodes = (Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }];
@@ -8139,7 +8210,8 @@ window.__SUI_RICH = (function () {
       else if (n.type === 'image') out.push('\\pard' + (rtfPicture(n.src, n.width, n.height) || ('[' + (n.alt || 'image') + ']')) + '\\par');
       else if (n.type === 'bullet_list' || n.type === 'ordered_list') {
         for (var i = 0; i < (n.children || []).length; i++) {
-          var item = n.children[i], text = item.children && item.children[0] ? inline(item.children[0].children) : '';
+          var item = n.children[i], firstBlock = item.children && item.children[0];
+          var text = firstBlock ? inline(firstBlock.children, null, firstBlock.hyphens === 'auto') : '';
           out.push('\\pard\\li360 ' + (n.type === 'ordered_list' ? (i + 1) + '. ' : '\\u8226? ') + text + '\\par');
         }
       } else if (n.type === 'table') {
@@ -8216,11 +8288,11 @@ window.__SUI_RICH = (function () {
     if (docxLanguage) props += '<w:lang w:val="' + xmlEscapeText(docxLanguage) + '"/>';
     return '<w:r><w:rPr>' + props + (extra || '') + '</w:rPr><w:t xml:space="preserve">' + xmlEscapeText(text) + '</w:t></w:r>';
   }
-  function docxInline(nodes, extra) {
+  function docxInline(nodes, extra, hyphenate) {
     var out = '';
     for (var i = 0; i < (nodes || []).length; i++) {
       var n = nodes[i];
-      if (n.type === 'text') out += docxRun(n.text || '', n.marks, extra);
+      if (n.type === 'text') out += docxRun(hyphenate ? hyphenateText(n.text) : n.text, n.marks, extra);
       else if (n.type === 'break') out += '<w:r><w:br/></w:r>';
       else if (n.type === 'image') out += docxImage(n.src, n.width, n.height) || docxRun('[' + (n.alt || 'image') + ']', [], extra);
     }
@@ -8256,7 +8328,6 @@ window.__SUI_RICH = (function () {
     if (spacing) pPr += '<w:spacing' + spacing + '/>';
     var indent = parseFloat(n.indent);
     if (isFinite(indent) && indent > 0) pPr += '<w:ind w:left="' + Math.round(indent * 15) + '"/>';
-    if (docxAutoHyphenation && n.hyphens !== 'auto' && n.type !== 'code_block') pPr += '<w:suppressAutoHyphens/>';
     return '<w:pPr>' + (extra || '') + pPr + '</w:pPr>';
   }
   function docxCellProps(cell, continuation) {
@@ -8335,7 +8406,7 @@ window.__SUI_RICH = (function () {
         var inner = blocks[b];
         if (inner.type === 'paragraph') {
           var extra = '<w:numPr><w:ilvl w:val="' + Math.min(8, level) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
-          out += '<w:p>' + docxParagraphProps(inner, extra) + docxInline(inner.children) + '</w:p>';
+          out += '<w:p>' + docxParagraphProps(inner, extra) + docxInline(inner.children, '', inner.hyphens === 'auto') + '</w:p>';
         } else if (inner.type === 'bullet_list' || inner.type === 'ordered_list') {
           out += docxList(inner, level + 1);
         } else out += docxBlock(inner);
@@ -8362,11 +8433,11 @@ window.__SUI_RICH = (function () {
   function docxBlock(n, depth) {
     if (!n) return '';
     depth = depth || 0;
-    if (n.type === 'paragraph') return '<w:p>' + docxParagraphProps(n) + docxInline(n.children) + '</w:p>';
+    if (n.type === 'paragraph') return '<w:p>' + docxParagraphProps(n) + docxInline(n.children, '', n.hyphens === 'auto') + '</w:p>';
     if (n.type === 'heading') {
       var level = Math.max(1, Math.min(6, Number(n.level) || 1));
       var hsize = Math.max(12, 20 - (level - 1) * 2);
-      return '<w:p>' + docxParagraphProps(n, '<w:keepNext/>') + docxInline(n.children, '<w:b/><w:sz w:val="' + Math.round(hsize * 2) + '"/>') + '</w:p>';
+      return '<w:p>' + docxParagraphProps(n, '<w:keepNext/>') + docxInline(n.children, '<w:b/><w:sz w:val="' + Math.round(hsize * 2) + '"/>', n.hyphens === 'auto') + '</w:p>';
     }
     if (n.type === 'blockquote') return (n.children || []).map(docxBlock).join('');
     if (n.type === 'code_block') {
@@ -8518,11 +8589,7 @@ window.__SUI_RICH = (function () {
     var defaults = '';
     for (var ext in extSet) if (Object.prototype.hasOwnProperty.call(extSet, ext)) defaults += '<Default Extension="' + ext + '" ContentType="' + extSet[ext] + '"/>';
     var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (headerXml ? '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' : '') + (footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '') + '</Types>';
-    var settingsXml = docxAutoHyphenation ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:autoHyphenation/><w:doNotHyphenateCaps/><w:defaultTabStop w:val="720"/></w:settings>' : '';
-    if (settingsXml) {
-      relsXml += '<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>';
-      contentTypes = contentTypes.replace('</Types>', '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>');
-    }
+    var settingsXml = '';
     var rootRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
     if (hasLists) {
       relsXml += '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
@@ -8589,7 +8656,7 @@ window.__SUI_RICH = (function () {
     var w = Math.max(32, Number(width) || 160), h = Math.max(24, Number(height) || 120);
     return '<draw:frame draw:name="' + info.name + '" text:anchor-type="as-char" svg:width="' + w + 'px" svg:height="' + h + 'px"><draw:image xlink:href="Pictures/' + info.name + '" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>';
   }
-  function odtInline(nodes, baseStyle) {
+  function odtInline(nodes, baseStyle, hyphenate) {
     var out = '';
     for (var i = 0; i < (nodes || []).length; i++) {
       var n = nodes[i];
@@ -8611,7 +8678,7 @@ window.__SUI_RICH = (function () {
         else if (t === 'size' && marks[m].value) attrs.push('font-size:' + marks[m].value);
         else if (t === 'font' && marks[m].value) attrs.push('font-family:' + marks[m].value);
       }
-      var text = xmlEscapeText(n.text || '');
+      var text = xmlEscapeText(hyphenate ? hyphenateText(n.text) : (n.text || ''));
       if (text.indexOf('\n') >= 0) text = text.split('\n').join('<text:line-break/>');
       out += attrs.length ? '<text:span text:style-name="T' + (attrs.length % 7) + '" style="' + attrs.join(';') + '">' + text + '</text:span>' : text;
     }
@@ -8625,7 +8692,7 @@ window.__SUI_RICH = (function () {
       out += '<text:list-item>';
       for (var b = 0; b < blocks.length; b++) {
         var inner = blocks[b];
-        if (inner.type === 'paragraph') out += '<text:p' + odtHyphenStyle(inner) + '>' + odtInline(inner.children) + '</text:p>';
+        if (inner.type === 'paragraph') out += '<text:p>' + odtInline(inner.children, '', inner.hyphens === 'auto') + '</text:p>';
         else if (inner.type === 'bullet_list' || inner.type === 'ordered_list') out += odtList(inner);
         else out += odtBlock(inner);
       }
@@ -8682,8 +8749,7 @@ window.__SUI_RICH = (function () {
     if (n.type === 'heading') {
       var odtHLevel = Math.min(6, Number(n.level) || 1);
       var odtHName = 'Heading_20_' + odtHLevel;
-      var odtHStyle = odtHyphenStyle(n, odtHName) || (' text:style-name="' + odtHName + '"');
-      return '<text:h' + odtHStyle + ' text:outline-level="' + (Number(n.level) || 1) + '">' + odtInline(n.children) + '</text:h>';
+      return '<text:h text:style-name="' + odtHName + '" text:outline-level="' + (Number(n.level) || 1) + '">' + odtInline(n.children, '', n.hyphens === 'auto') + '</text:h>';
     }
     if (n.type === 'paragraph') {
       var css = [];
@@ -8691,7 +8757,7 @@ window.__SUI_RICH = (function () {
       var lh = lineHeightInfo(n.lineHeight);
       if (lh) css.push('line-height:' + (lh.multiple ? Math.round(lh.multiple * 100) + '%' : lh.pt + 'pt'));
       var style = css.length ? ' style="' + css.join(';') + '"' : '';
-      return '<text:p' + odtHyphenStyle(n) + style + '>' + odtInline(n.children) + '</text:p>';
+      return '<text:p' + style + '>' + odtInline(n.children, '', n.hyphens === 'auto') + '</text:p>';
     }
     if (n.type === 'blockquote') return '<text:section>' + (n.children || []).map(odtBlock).join('') + '</text:section>';
     if (n.type === 'code_block') {
@@ -8871,7 +8937,7 @@ window.__SUI_RICH = (function () {
         for (var i = 0; i < node.childNodes.length; i++) walk(node.childNodes[i]);
       }
       walk(partDom.documentElement);
-      return out.replace(/\s+/g, ' ').trim();
+      return out.replace(/\u00AD/g, '').replace(/\s+/g, ' ').trim();
     }
     var headerText = '', footerText = '', pageCfg = null;
     var sect = body.getElementsByTagNameNS('*', 'sectPr')[0];
