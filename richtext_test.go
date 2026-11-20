@@ -93,7 +93,7 @@ view main {
     await wait(120);
     var prefLabels = [].map.call(root.querySelectorAll('.sui-rich-menu-panel:not([hidden]) .sui-rich-menu-item'), function (b) { return b.textContent; });
     prefMenuBtn.click();
-    if (prefLabels.join('|') !== 'Document settings|Page settings|Icon style ▸|Line icons|Bold line icons|Duotone icons|Soft block icons') throw new Error('Preferences items: ' + prefLabels.join('|'));
+    if (prefLabels.join('|') !== 'Document settings|Page settings|Header and footer...|Icon style ▸|Line icons|Bold line icons|Duotone icons|Soft block icons') throw new Error('Preferences items: ' + prefLabels.join('|'));
     var insertMenuBtn = [].filter.call(root.querySelectorAll('.sui-rich-menu-btn'), function (b) { return b.textContent === 'Insert'; })[0];
     insertMenuBtn.click();
     await wait(120);
@@ -369,6 +369,24 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     __SUI_RICH.command('editor', 'outdent');
     await wait(200);
     if (richRoot().querySelector('.sui-rich-editor pre code').textContent !== 'one\ntwo') throw new Error('code line outdent: ' + JSON.stringify(richRoot().querySelector('.sui-rich-editor pre code').textContent));
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(200);
+    var tabPanel = document.querySelector('.sui-rich-paragraphsettings');
+    var tabSizeSelect = tabPanel ? tabPanel.querySelector('[data-rich-paragraph-tabsize]') : null;
+    if (!tabSizeSelect) throw new Error('code tab size control missing');
+    tabSizeSelect.value = '4';
+    tabPanel.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(200);
+    var tabCodeEditor = richRoot().querySelector('.sui-rich-editor');
+    var tabCodeText = tabCodeEditor.querySelector('pre code').firstChild;
+    var tabCodeRange = document.createRange(); tabCodeRange.setStart(tabCodeText, 4); tabCodeRange.collapse(true);
+    var tabCodeSel = window.getSelection(); tabCodeSel.removeAllRanges(); tabCodeSel.addRange(tabCodeRange); tabCodeEditor.focus();
+    __SUI_RICH.command('editor', 'indent');
+    await wait(200);
+    var tabbedCode = richRoot().querySelector('.sui-rich-editor pre code');
+    if (!tabbedCode || tabbedCode.textContent !== 'one\n    two') throw new Error('code tab size indent: ' + JSON.stringify(tabbedCode ? tabbedCode.textContent : null));
+    var tabCodeDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (String(tabCodeDoc.tabSize) !== '4') throw new Error('code tab size not stored: ' + JSON.stringify(tabCodeDoc));
 
     // Enter inside a list creates one list item per line.
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Left right', marks: [] }] }] }] }] });
@@ -1131,6 +1149,15 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(220);
     var chromePanel = document.querySelector('.sui-rich-documentsettings');
     if (chromePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 2) throw new Error('header/footer settings rows missing');
+    if (!chromePanel.querySelector('[data-rich-open-chrome]')) throw new Error('single header/footer editor button missing');
+    __SUI_RICH.command('editor', 'headerFooter');
+    await wait(220);
+    var quickChrome = document.querySelector('.sui-rich-chrome-editor');
+    if (!quickChrome) throw new Error('Preferences header/footer command did not open the editor');
+    var quickTabs = [].slice.call(quickChrome.querySelectorAll('.sui-rich-chrome-tab')).map(function (b) { return b.textContent; });
+    if (quickTabs.join('|') !== 'Header|Footer') throw new Error('single header/footer editor tabs: ' + quickTabs.join('|'));
+    [].slice.call(quickChrome.querySelectorAll('.sui-rich-chrome-actions button')).filter(function (b) { return b.textContent === 'Cancel'; })[0].click();
+    await wait(150);
     chromePanel.querySelector('[data-rich-edit-chrome="header"]').click();
     await wait(300);
     var chromeOverlay = document.querySelector('.sui-rich-chrome-editor');
@@ -1803,7 +1830,7 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"data-rich-paragraph-indent-inc",
 		"insert: ['Link|link', 'Image|image', 'Table|table'",
 		"var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', preferences: 'Preferences' };",
-		"preferences: ['Document settings|documentSettings', 'Page settings|pageSettings'",
+		"preferences: ['Document settings|documentSettings', 'Page settings|pageSettings', 'Header and footer...|headerFooter'",
 		"{ label: 'Icon style', items: ['Line icons|iconSetLine'",
 		"'Soft block icons|iconSetBlocks'",
 	} {

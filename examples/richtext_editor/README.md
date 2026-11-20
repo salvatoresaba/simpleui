@@ -46,7 +46,8 @@ builds.
   an http(s)/data URL.
 - Table settings set the table width (fit to page inside the margins, pixels or
   percent). Dragging a column edge resizes only that column and stores the
-  widths in the document.
+  widths in the document; column and row borders can also be dragged on touch
+  screens.
 - Four toolbar icon styles (Line, Bold line, Duotone, Soft blocks) are available
   from Preferences > Icon style, with larger, clearer icons; the choice is
   remembered per editor.
@@ -54,8 +55,10 @@ builds.
   line height, document language and header/footer. The language drives
   hyphenation, spell checking and DOCX/ODT language metadata. Page settings
   overrides size/orientation/margins for a single page.
-- Header and footer open in a floating mini editor from Document settings or
-  Page settings: Header/Footer tabs, multi-line text, images, bold/italic/
+- Header and footer open in a floating mini editor from the **Edit...** buttons,
+  from the single **Preferences > Header and footer...** entry or from the
+  **Header and footer...** button in Document settings. The editor always shows
+  Header/Footer tabs, multi-line text, images, bold/italic/
   underline/alignment, token buttons and a variable menu with `{page}`,
   `{pages}`, `{title}`, `{name}`, `{date}`, `{time}`, `{datetime}`, `{words}` and
   `{chars}`. The **?** button opens the variable help. Rich header/footer height
@@ -82,7 +85,9 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   height, space before/after, hyphenation), zoom controls in the toolbar and a
   print preview overlay. The hyphenation option sets automatic word breaking at
   line ends and is stored in the paragraph model; DOCX/ODT/RTF exports save the
-  automatic hyphenation setting (the PDF layout does not hyphenate yet). The main toolbar and the
+  automatic hyphenation setting (the PDF layout does not hyphenate yet).
+  **Code tab size** (2/4/8 spaces) controls code-line indentation and is stored
+  as `tabSize`. The main toolbar and the
   contextual selection toolbar both expose indent/outdent for the current
   paragraph; inside a code block they indent the current code line. Paragraphs
   and lists split at line or item boundaries to fill each page; headings and
@@ -100,7 +105,7 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   edit the URL, replace it with a file, change alt/width/alignment or remove it.
 - Configurable toolbar groups, menu bar (File, Edit, Insert, Preferences; no
   redundant Format/Tools/View menus; Preferences holds Document settings,
-  Page settings and Icon style), contextual selection toolbar and status bar (words,
+  Page settings, Header and footer... and Icon style), contextual selection toolbar and status bar (words,
   characters, paragraphs, caret, zoom). The table toolbar is a dockable group
   in the main toolbar and appears when the caret is in a table. Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the

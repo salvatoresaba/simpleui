@@ -1704,7 +1704,7 @@ editor.
 the toolbar, so the redundant Format, Tools and View menus are intentionally
 absent; the Pages button in the status bar toggles the paginated view, and zoom
 and theme controls stay in the toolbar. Preferences contains Document settings,
-Page settings and **Icon style** (Line icons, Bold line icons, Duotone icons,
+Page settings, **Header and footer...** and **Icon style** (Line icons, Bold line icons, Duotone icons,
 Soft block icons); the choice is remembered per editor. Preferred icon style can
 also be set with `richtext.command(name, "iconSet", "line|bold|duotone|blocks")`.
 Insert contains Link, Image, Table, Horizontal rule and Page
@@ -1750,7 +1750,7 @@ or percent. Drag a column edge to resize only that column: the other columns
 keep their widths, and the widths are stored in the document (`colWidths`).
 Tables inserted from the toolbar start fit to the page. DOCX, ODT and RTF
 exports write `colWidths` as column widths; the PDF export reads the rendered
-table geometry.
+table geometry. Column and row borders can also be dragged on touch screens.
 The two toolbar color controls are distinguishable: a plain **A** with a color
 bar for text color and a highlighted **A** with a swatch for the background
 color. They show the document defaults (**black** text and **white** highlight)
@@ -1788,7 +1788,10 @@ top/right/bottom/left margins, line height, document **Language** and header/foo
 is used for spell checking, hyphenation and the language metadata of DOCX/ODT
 exports; **Automatic** follows the browser locale. Header and footer
 open in a floating mini editor from the **Edit...** buttons in Document settings
-or Page settings. The editor has Header/Footer tabs, multi-line text, image
+or Page settings, or with the single **Preferences > Header and footer...**
+entry (and the **Header and footer...** button in Document settings); the editor
+always shows the Header and Footer tabs so both can be edited in one place. The
+editor has Header/Footer tabs, multi-line text, image
 insertion, bold/italic/underline and alignment controls, `{page}`/`{pages}`
 token buttons, a variable menu and a **?** help button. Square-bracket tokens
 such as `[page]`/`[pages]` are accepted too. The mini editor measures the
@@ -1864,7 +1867,9 @@ its own text layout and does not hyphenate yet. The hyphenation dictionary
 follows the document language (Document settings → Language, or the browser
 locale when set to Automatic).
 The document default line height is in Document settings and individual
-paragraphs can override it.
+paragraphs can override it. Inside a code block, **Code tab size** (2, 4 or 8
+spaces) controls how many spaces indent/outdent inserts and is stored as
+`tabSize`.
 
 The editor keeps the height configured with `height` (320 px by default); when
 the text exceeds that area a scrollbar appears inside the content instead of

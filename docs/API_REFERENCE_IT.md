@@ -1743,9 +1743,11 @@ orientamento (**Verticale**/**Orizzontale**), margini alto/destra/basso/
 sinistra, interlinea, **Lingua** del documento e intestazione/piè di pagina. La
 lingua è usata dal correttore ortografico, dalla sillabazione e dai metadati
 linguistici degli export DOCX/ODT; **Automatico** segue la lingua del browser.
-Header e footer si aprono in
-un mini editor flottante dai pulsanti **Edit...** in Impostazioni documento o
-Impostazioni pagina. L'editor ha schede Header/Footer, testo multiriga,
+Header e footer si aprono in un mini editor flottante dai pulsanti **Edit...**
+in Impostazioni documento o Impostazioni pagina, oppure dalla singola voce
+**Preferences > Header and footer...** (e dal pulsante **Header and footer...**
+in Impostazioni documento); l'editor mostra sempre le schede Header e Footer,
+così si possono modificare entrambi in un unico posto. L'editor ha schede Header/Footer, testo multiriga,
 inserimento immagini, grassetto/corsivo/sottolineato e allineamento, pulsanti
 token `{page}`/`{pages}`, menu delle variabili e pulsante **?** per l'aiuto.
 Sono accettati anche `[page]`/`[pages]`. Il mini editor misura l'altezza di
@@ -1826,7 +1828,9 @@ automatica; l'export PDF usa un proprio layout e non sillaba ancora. Il
 dizionario segue la lingua del documento (Impostazioni documento → Lingua, o la
 lingua del browser con Automatico).
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
-paragrafi possono sovrascriverla.
+paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
+(2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come
+`tabSize`.
 
 L'editor mantiene l'altezza configurata con `height` (320 px di default);
 quando il testo supera l'area compare una scrollbar nel contenuto invece di far
@@ -1890,7 +1894,7 @@ sono salvate nel documento JSON. File > Import ed Export sono sottomenu.
 nella toolbar, quindi i menu Formato, Strumenti e Visualizza ridondanti sono
 assenti; il pulsante Pages nella barra di stato attiva la vista paginata, mentre
 zoom e tema restano nella toolbar. Preferences contiene Impostazioni documento,
-Impostazioni pagina e **Icon style** (Line icons, Bold line icons, Duotone icons,
+Impostazioni pagina, **Header and footer...** e **Icon style** (Line icons, Bold line icons, Duotone icons,
 Soft block icons); la scelta viene ricordata per ogni editor. Lo stile si può
 impostare anche con `richtext.command(name, "iconSet", "line|bold|duotone|blocks")`.
 Inserisci contiene Link, Immagine, Tabella, Linea
@@ -1907,7 +1911,7 @@ dentro i margini), in pixel o percentuale. Trascinando il bordo di una colonna s
 ridimensiona solo quella colonna: le altre mantengono la larghezza e i valori
 sono salvati nel modello (`colWidths`). Le tabelle inserite partono adattate
 alla pagina. I valori sono salvati nel modello e usati da editor, PDF, DOCX, ODT
-e RTF.
+e RTF. I bordi di colonne e righe si possono trascinare anche su touch screen.
 Le tabelle possono essere **annidate**: inserisci una tabella col cursore dentro
 una cella; le tabelle annidate restano in JSON, DOCX, ODT, HTML e XML (il PDF
 rende il loro contenuto come testo nella cella esterna). Seleziona due o più celle e usa **Merge** per

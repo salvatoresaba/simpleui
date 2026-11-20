@@ -110,7 +110,7 @@ window.__SUI_RICH = (function () {
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] }],
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
-    preferences: ['Document settings|documentSettings', 'Page settings|pageSettings',
+    preferences: ['Document settings|documentSettings', 'Page settings|pageSettings', 'Header and footer...|headerFooter',
       { label: 'Icon style', items: ['Line icons|iconSetLine', 'Bold line icons|iconSetBold', 'Duotone icons|iconSetDuotone', 'Soft block icons|iconSetBlocks'] }]
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', preferences: 'Preferences' };
@@ -243,7 +243,8 @@ window.__SUI_RICH = (function () {
       lineHeight: cssLength(style.lineHeight, ''),
       spaceBefore: cssLength(style.marginTop, ''),
       spaceAfter: cssLength(style.marginBottom, ''),
-      hyphens: style.hyphens || style.webkitHyphens || ''
+      hyphens: style.hyphens || style.webkitHyphens || '',
+      tabSize: style.tabSize || ''
     };
   }
 
@@ -416,6 +417,7 @@ window.__SUI_RICH = (function () {
       element.style.hyphens = node.hyphens;
       element.style.webkitHyphens = node.hyphens;
     }
+    if (node.tabSize) element.style.tabSize = node.tabSize;
   }
 
   function applyMarks(text, marks) {
@@ -1132,6 +1134,7 @@ window.__SUI_RICH = (function () {
     var first = info.startLine, last = info.endLine;
     if (last < first) { var swap = first; first = last; last = swap; }
     var caretLine = info.startLine;
+    var step = Math.max(1, Math.min(8, parseInt(pre.style.tabSize, 10) || 2));
     var caretColumn = Math.max(0, info.startOffset - info.starts[caretLine]);
     for (var line = last; line >= first; line--) {
       var lineStart = info.starts[line];
@@ -1141,10 +1144,10 @@ window.__SUI_RICH = (function () {
         var range = document.createRange();
         range.setStart(pos.node, pos.offset);
         range.collapse(true);
-        range.insertNode(document.createTextNode('  '));
+        range.insertNode(document.createTextNode(new Array(step + 1).join(' ')));
       } else {
         var leading = /^ */.exec(info.lines[line])[0].length;
-        var remove = Math.min(2, leading);
+        var remove = Math.min(step, leading);
         if (!remove) continue;
         var from = textPositionAt(pre, lineStart);
         var to = textPositionAt(pre, lineStart + remove);
@@ -1157,7 +1160,7 @@ window.__SUI_RICH = (function () {
     }
     var newInfo = codeLineInfo(pre);
     var targetLine = Math.min(caretLine, newInfo.lines.length - 1);
-    var targetColumn = Math.max(0, caretColumn + (delta > 0 ? 2 : -Math.min(2, caretColumn)));
+    var targetColumn = Math.max(0, caretColumn + (delta > 0 ? step : -Math.min(step, caretColumn)));
     var target = textPositionAt(pre, newInfo.starts[targetLine] + targetColumn);
     if (target) {
       var caret = document.createRange();
@@ -1654,9 +1657,10 @@ window.__SUI_RICH = (function () {
     }
     return map;
   }
-  function tableResizeHit(inst, e) {
+  function tableResizeHit(inst, e, pad) {
     var cell = e.target && e.target.closest ? e.target.closest('td,th') : null;
     if (!cell) return null;
+    var edgePad = pad || 7;
     var table = cell.closest('table');
     if (!table) return null;
     var tr = table.getBoundingClientRect();
@@ -1664,7 +1668,7 @@ window.__SUI_RICH = (function () {
       return { kind: 'table', table: table, startX: e.clientX, startY: e.clientY, width: tr.width, height: tr.height };
     }
     var cr = cell.getBoundingClientRect();
-    if (e.clientX >= cr.right - 7) {
+    if (e.clientX >= cr.right - edgePad) {
       var map = tableGridMap(table);
       var rowMap = map[cell.parentNode.rowIndex] || [];
       var last = -1;
@@ -1677,24 +1681,24 @@ window.__SUI_RICH = (function () {
     }
     return null;
   }
+  function applyTableResize(hit, widths, dx, dy) {
+    if (hit.kind === 'table') {
+      hit.table.style.width = Math.max(120, hit.width + dx) + 'px';
+      hit.table.style.maxWidth = 'none';
+      hit.table.style.height = Math.max(60, hit.height + dy) + 'px';
+    } else if (hit.kind === 'col') {
+      var nextWidths = widths.slice();
+      nextWidths[hit.index] = Math.max(40, widths[hit.index] + dx);
+      applyTableColumnWidths(hit.table, nextWidths);
+    } else if (hit.kind === 'row') {
+      hit.row.style.height = Math.max(24, hit.height + dy) + 'px';
+    }
+  }
   function startTableResize(inst, e, hit) {
     e.preventDefault();
     e.stopPropagation();
-    var table = hit.table;
-    var widths = null;
-    if (hit.kind === 'col') widths = tableColumnWidths(table);
-    function move(ev) {
-      if (hit.kind === 'table') {
-        table.style.width = Math.max(120, hit.width + ev.clientX - hit.startX) + 'px';
-        table.style.height = Math.max(60, hit.height + ev.clientY - hit.startY) + 'px';
-      } else if (hit.kind === 'col') {
-        var nextWidths = widths.slice();
-        nextWidths[hit.index] = Math.max(40, widths[hit.index] + ev.clientX - hit.startX);
-        applyTableColumnWidths(table, nextWidths);
-      } else if (hit.kind === 'row') {
-        hit.row.style.height = Math.max(24, hit.height + ev.clientY - hit.startY) + 'px';
-      }
-    }
+    var widths = hit.kind === 'col' ? tableColumnWidths(hit.table) : null;
+    function move(ev) { applyTableResize(hit, widths, ev.clientX - hit.startX, ev.clientY - hit.startY); }
     function up() {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
@@ -1704,12 +1708,40 @@ window.__SUI_RICH = (function () {
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   }
+  function startTouchTableResize(inst, hit, touch) {
+    var widths = hit.kind === 'col' ? tableColumnWidths(hit.table) : null;
+    function move(ev) {
+      if (ev.touches && ev.touches.length) {
+        ev.preventDefault();
+        var t = ev.touches[0];
+        applyTableResize(hit, widths, t.clientX - hit.startX, t.clientY - hit.startY);
+      }
+    }
+    function up() {
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', up);
+      document.removeEventListener('touchcancel', up);
+      commit(inst, 'change');
+    }
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', up);
+    document.addEventListener('touchcancel', up);
+  }
   function bindTableResize(inst) {
     inst.editor.addEventListener('mousemove', function (e) {
       var hit = tableResizeHit(inst, e);
       inst.editor.style.cursor = hit ? (hit.kind === 'row' ? 'row-resize' : hit.kind === 'table' ? 'nwse-resize' : 'col-resize') : '';
     });
     inst.editor.addEventListener('mouseleave', function () { inst.editor.style.cursor = ''; });
+    inst.editor.addEventListener('touchstart', function (e) {
+      if (!e.touches || !e.touches.length) return;
+      var t = e.touches[0];
+      var hit = tableResizeHit(inst, { target: e.target, clientX: t.clientX, clientY: t.clientY }, 14);
+      if (!hit) return;
+      e.preventDefault();
+      e.stopPropagation();
+      startTouchTableResize(inst, hit, t);
+    }, { passive: false });
     inst.editor.addEventListener('mousedown', function (e) {
       var del = e.target && e.target.closest ? e.target.closest('[data-rich-pb-delete]') : null;
       if (del) {
@@ -2882,6 +2914,7 @@ window.__SUI_RICH = (function () {
     }
     else if (cmd === 'paginatedView') { setPaginated(inst); }
     else if (cmd === 'documentSettings') { openDocumentSettings(inst); }
+    else if (cmd === 'headerFooter') { openChromeEditor(inst, 'header'); }
     else if (cmd === 'pageSettings') { openPageSettings(inst); }
     else if (cmd === 'paragraphSettings') { openParagraphSettings(inst); }
     else if (cmd === 'imageSettings') { openImageSettings(inst, imageTarget(inst)); }
@@ -2980,7 +3013,7 @@ window.__SUI_RICH = (function () {
         var r = typeof pluginCmd.run === 'function' ? pluginCmd.run(inst, value) : runBuiltin(inst, pluginCmd.command, value);
         if (r === false) return [false, 'command failed: ' + cmd];
       }
-      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|documentSettings|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset|iconSet|iconSetLine|iconSetBold|iconSetDuotone|iconSetBlocks)$/.test(cmd)) commit(inst, 'change');
+      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|documentSettings|headerFooter|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset|iconSet|iconSetLine|iconSetBold|iconSetDuotone|iconSetBlocks)$/.test(cmd)) commit(inst, 'change');
       return [true, null];
     } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
   }
@@ -5532,6 +5565,7 @@ window.__SUI_RICH = (function () {
       var target = ev.target;
       if (!target || !target.closest) return;
       if (target.closest('[data-rich-edit-chrome]')) { openChromeEditor(inst, target.closest('[data-rich-edit-chrome]').getAttribute('data-rich-edit-chrome')); return; }
+      if (target.closest('[data-rich-open-chrome]')) { openChromeEditor(inst, 'header'); return; }
       if (target.closest('[data-rich-chrome-help]')) { openChromeHelp(inst); return; }
       if (target.closest('[data-rich-page-apply]')) { applyPageSettings(inst); return; }
       if (target.closest('[data-rich-page-reset]')) { resetPageOverride(inst, panel); return; }
@@ -5688,6 +5722,16 @@ window.__SUI_RICH = (function () {
     numberRow('Line height', 'lineheight', 0.8, 3, 0.05, '');
     numberRow('Space before', 'before', 0, 200, 1, 'px');
     numberRow('Space after', 'after', 0, 200, 1, 'px');
+    var tabRow = el('label');
+    tabRow.appendChild(el('span', '', 'Code tab size'));
+    var tabSelect = el('select');
+    tabSelect.setAttribute('data-rich-paragraph-tabsize', '1');
+    tabSelect.setAttribute('aria-label', 'Code indentation width');
+    [['2', '2 spaces'], ['4', '4 spaces'], ['8', '8 spaces']].forEach(function (o) {
+      var op = el('option', '', o[1]); op.value = o[0]; tabSelect.appendChild(op);
+    });
+    tabRow.appendChild(tabSelect);
+    panel.appendChild(tabRow);
     var hyphenRow = el('label', 'sui-rich-paragraph-check');
     hyphenRow.appendChild(el('span', '', 'Hyphenation'));
     var hyphen = el('input');
@@ -5754,13 +5798,16 @@ window.__SUI_RICH = (function () {
         lineheight: parseFloat(block.style.lineHeight) || pageConfig(inst).lineHeight,
         before: parseFloat(block.style.marginTop) || 0,
         after: parseFloat(block.style.marginBottom) || 0,
-        hyphens: block.style.hyphens || block.style.webkitHyphens || ''
+        hyphens: block.style.hyphens || block.style.webkitHyphens || '',
+        tabSize: block.style.tabSize || '2'
       };
     }
     var align = panel.querySelector('[data-rich-paragraph-align]');
     if (align) align.value = source.align || '';
     var hyphenInput = panel.querySelector('[data-rich-paragraph-hyphens]');
     if (hyphenInput) hyphenInput.checked = source.hyphens === 'auto';
+    var tabInput = panel.querySelector('[data-rich-paragraph-tabsize]');
+    if (tabInput) tabInput.value = source.tabSize || '2';
     [['indent', 'indent'], ['lineheight', 'lineheight'], ['before', 'before'], ['after', 'after']].forEach(function (pair) {
       var input = panel.querySelector('[data-rich-paragraph-' + pair[1] + ']');
       if (input) input.value = source[pair[0]] == null ? '' : String(source[pair[0]]);
@@ -5794,6 +5841,8 @@ window.__SUI_RICH = (function () {
     var after = parseFloat(value('[data-rich-paragraph-after]'));
     var hyphensInput = panel.querySelector('[data-rich-paragraph-hyphens]');
     var hyphens = !!(hyphensInput && hyphensInput.checked);
+    var tabSizeInput = panel.querySelector('[data-rich-paragraph-tabsize]');
+    var tabSize = tabSizeInput ? String(tabSizeInput.value || '2') : '2';
     var blocks = paragraphTargets(inst);
     for (var i = 0; i < blocks.length; i++) {
       var block = blocks[i];
@@ -5802,6 +5851,7 @@ window.__SUI_RICH = (function () {
       if (isFinite(lineheight) && lineheight > 0) block.style.lineHeight = String(lineheight); else block.style.lineHeight = '';
       if (isFinite(before) && before > 0) block.style.marginTop = before + 'px'; else block.style.marginTop = '';
       if (isFinite(after) && after > 0) block.style.marginBottom = after + 'px'; else block.style.marginBottom = '';
+      if (block.tagName && block.tagName.toLowerCase() === 'pre') block.style.tabSize = tabSize;
       if (hyphens && block.tagName && block.tagName.toLowerCase() !== 'pre') {
         block.style.hyphens = 'auto';
         block.style.webkitHyphens = 'auto';
@@ -6472,6 +6522,11 @@ window.__SUI_RICH = (function () {
 
     chromeSettingsRow(inst, panel, 'header', 'Header', true);
     chromeSettingsRow(inst, panel, 'footer', 'Footer', true);
+    var openChromeBtn = el('button', 'sui-rich-btn sui-rich-chrome-open', 'Header and footer...');
+    openChromeBtn.type = 'button';
+    openChromeBtn.setAttribute('data-rich-open-chrome', '1');
+    openChromeBtn.title = 'Open the header and footer editor with Header and Footer tabs';
+    panel.appendChild(openChromeBtn);
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-doc-apply', '1');
@@ -6484,6 +6539,7 @@ window.__SUI_RICH = (function () {
       var target = ev.target;
       if (!target || !target.closest) return;
       if (target.closest('[data-rich-edit-chrome]')) { openChromeEditor(inst, target.closest('[data-rich-edit-chrome]').getAttribute('data-rich-edit-chrome')); return; }
+      if (target.closest('[data-rich-open-chrome]')) { openChromeEditor(inst, 'header'); return; }
       if (target.closest('[data-rich-chrome-help]')) { openChromeHelp(inst); return; }
       if (target.closest('[data-rich-doc-apply]')) { applyDocumentSettings(inst); return; }
       if (target.closest('[data-rich-doc-reset]')) { fillDocumentSettings(inst, panel, defaultPageConfig()); return; }
