@@ -40,10 +40,10 @@ window.__SUI_RICH = (function () {
     alignCenter: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 10h10M4 14h16M8 18h8"/></svg>',
     alignRight: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M9 10h11M4 14h16M11 18h9"/></svg>',
     justify: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>',
-    indent: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M10 10h10M10 14h10M4 18h16M4 10l3 2-3 2"/></svg>',
-    outdent: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M10 10h10M10 14h10M4 18h16M7 10l-3 2 3 2"/></svg>',
-    bulletList: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="7" r="1.4"/><circle cx="5" cy="12" r="1.4"/><circle cx="5" cy="17" r="1.4"/><path d="M9 7h11M9 12h11M9 17h11"/></svg>',
-    orderedList: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h2v2H4zM4 11h2v2H4zM4 16h2v2H4zM9 7h11M9 12h11M9 17h11"/></svg>',
+    indent: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5h11M10 10h11M10 15h11M10 20h11M3 8v8M3 12h5M6 9l3 3-3 3"/></svg>',
+    outdent: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5h11M10 10h11M10 15h11M10 20h11M8 8v8M8 12H3M5 9l-3 3 3 3"/></svg>',
+    bulletList: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="4.5" cy="6.5" r="1.9"/><circle cx="4.5" cy="12" r="1.9"/><circle cx="4.5" cy="17.5" r="1.9"/><path d="M9 6.5h12M9 12h12M9 17.5h12"/></svg>',
+    orderedList: '<svg viewBox="0 0 24 24" aria-hidden="true"><text x="2.2" y="8.2" font-size="7.5" font-family="system-ui, sans-serif" style="fill:currentColor;stroke:none">1</text><text x="2.2" y="18.2" font-size="7.5" font-family="system-ui, sans-serif" style="fill:currentColor;stroke:none">2</text><path d="M9.5 6.5h11.5M9.5 16.5h11.5"/></svg>',
     link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>',
     unlink: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l16 16M10 13a5 5 0 0 0 7 0M14 11a5 5 0 0 0-7 0"/></svg>',
     image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>',
@@ -72,14 +72,20 @@ window.__SUI_RICH = (function () {
     code: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8 5 12l4 4M15 8l4 4-4 4"/></svg>',
     fontSizeUp: '<span aria-hidden="true">A<sup>+</sup></span>',
     fontSizeDown: '<span aria-hidden="true">A<sup>\u2212</sup></span>',
-    textColor: '<span aria-hidden="true" style="font-weight:700">A</span>',
-    highlight: '<span aria-hidden="true" style="background:#ffe066;color:#111;padding:0 2px">A</span>',
+    textColor: '<span class="sui-rich-color-glyph" aria-hidden="true">A</span>',
+    highlight: '<span class="sui-rich-color-glyph sui-rich-color-glyph-highlight" aria-hidden="true">A</span>',
     paragraph: '<span aria-hidden="true">P</span>',
     pageSettings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 8h5M9 12h7M9 16h4"/></svg>',
     documentSettings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 8h7M9 12h7M9 16h4"/><circle cx="17" cy="17" r="2.2"/></svg>',
     print: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H4V9h16v8h-3"/><rect x="7" y="13" width="10" height="7"/></svg>',
     find: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
   };
+  var ICON_SETS = [
+    ['line', 'Line icons'],
+    ['bold', 'Bold line icons'],
+    ['duotone', 'Duotone icons'],
+    ['blocks', 'Soft block icons']
+  ];
   var TOOL_LABELS = {
     undo: 'Undo', redo: 'Redo', copy: 'Copy', cut: 'Cut', paste: 'Paste',
     bold: 'Bold', italic: 'Italic', underline: 'Underline', strike: 'Strikethrough',
@@ -104,7 +110,8 @@ window.__SUI_RICH = (function () {
       { label: 'Export', items: ['JSON|exportJSON', 'HTML|exportHTML', 'Markdown|exportMarkdown', 'XML|exportXML'] }],
     edit: ['Undo|undo', 'Redo|redo', 'Copy|copy', 'Cut|cut', 'Paste|paste', 'Select all|selectAll', 'Find and replace|find'],
     insert: ['Link|link', 'Image|image', 'Table|table', 'Horizontal rule|hr', 'Page break|pageBreak'],
-    preferences: ['Document settings|documentSettings', 'Page settings|pageSettings']
+    preferences: ['Document settings|documentSettings', 'Page settings|pageSettings',
+      { label: 'Icon style', items: ['Line icons|iconSetLine', 'Bold line icons|iconSetBold', 'Duotone icons|iconSetDuotone', 'Soft block icons|iconSetBlocks'] }]
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', preferences: 'Preferences' };
 
@@ -322,6 +329,11 @@ window.__SUI_RICH = (function () {
         flush();
         var tableAlign = node.style.marginLeft === 'auto' && node.style.marginRight === 'auto' ? 'center' : node.style.marginLeft === 'auto' ? 'right' : node.style.marginRight === 'auto' ? 'left' : '';
         var table = { type: 'table', rows: [], header: false, border: cssColor(node.style.borderColor || '') || '', borderWidth: cssLength(node.getAttribute('data-table-border-width') || '', ''), padding: cssLength(node.getAttribute('data-table-padding') || '', ''), width: cssLength(node.style.width, ''), height: cssLength(node.style.height, ''), align: tableAlign };
+        var tableColEls = node.querySelectorAll('colgroup > col');
+        if (tableColEls.length) {
+          table.colWidths = [];
+          for (var tcl = 0; tcl < tableColEls.length; tcl++) table.colWidths.push(cssLength(tableColEls[tcl].style.width, ''));
+        }
         var tableGroup = node.getAttribute('data-sui-table-group');
         if (tableGroup) table._tableGroup = tableGroup;
         if (node.getAttribute('data-table-borders') !== null) table.borders = tableBorderFlags(node);
@@ -546,6 +558,15 @@ window.__SUI_RICH = (function () {
       else if (node.align === 'right') { box.style.marginLeft = 'auto'; box.style.marginRight = '0'; }
       else if (node.align === 'left') { box.style.marginLeft = '0'; box.style.marginRight = 'auto'; }
       if (node.width || node.height) box.style.tableLayout = 'fixed';
+      if (Array.isArray(node.colWidths) && node.colWidths.length) {
+        var colgroup = el('colgroup');
+        for (var cw = 0; cw < node.colWidths.length; cw++) {
+          var colNode = el('col');
+          if (node.colWidths[cw]) colNode.style.width = cssLength(node.colWidths[cw], '');
+          colgroup.appendChild(colNode);
+        }
+        box.appendChild(colgroup);
+      }
       var rows = Array.isArray(node.rows) ? node.rows : [];
       var tbody = el('tbody');
       for (var ri = 0; ri < rows.length; ri++) {
@@ -962,6 +983,35 @@ window.__SUI_RICH = (function () {
     }
     syncBlockControls(inst);
   }
+  // blockTextLines turns a block into logical lines, treating <br> and block
+  // boundaries as line breaks. It keeps the line breaks when a code block is
+  // converted back to normal paragraphs.
+  function blockTextLines(node) {
+    var text = '';
+    function walk(n) {
+      if (n.nodeType === 3) { text += String(n.nodeValue || ''); return; }
+      if (n.nodeType !== 1) return;
+      var tag = n.tagName.toLowerCase();
+      if (tag === 'br') { text += '\n'; return; }
+      if (tag === 'div' || tag === 'p') {
+        if (text && text.charAt(text.length - 1) !== '\n') text += '\n';
+        for (var c = n.firstChild; c; c = c.nextSibling) walk(c);
+        if (text && text.charAt(text.length - 1) !== '\n') text += '\n';
+        return;
+      }
+      for (var ch = n.firstChild; ch; ch = ch.nextSibling) walk(ch);
+    }
+    walk(node);
+    var normalized = String(text || '').replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
+    if (normalized.charAt(normalized.length - 1) === '\n') normalized = normalized.slice(0, -1);
+    return normalized.split('\n');
+  }
+  function blockLine(name, text) {
+    var node = el(name);
+    if (text) node.appendChild(document.createTextNode(text));
+    else node.appendChild(el('br'));
+    return node;
+  }
   function applyBlock(inst, tag) {
     var block = currentBlock(inst);
     if (!block) return;
@@ -973,7 +1023,60 @@ window.__SUI_RICH = (function () {
       block = currentBlock(inst);
       if (!block) return;
     }
-    if (tag === 'pre' && block.tagName && block.tagName.toLowerCase() === 'pre') return;
+    var blockTag = block.tagName ? block.tagName.toLowerCase() : '';
+    if (tag === 'pre' && blockTag === 'pre') return;
+    // Turning a code block off must preserve the lines instead of flattening
+    // everything into a single paragraph.
+    if (blockTag === 'pre' && tag !== 'pre') {
+      var lines = blockTextLines(block);
+      var parent = block.parentNode;
+      var first = null, last = null;
+      if (/^h[1-6]$/.test(tag)) {
+        first = blockLine(tag, lines.join(' '));
+        parent.insertBefore(first, block);
+      } else if (tag === 'blockquote') {
+        var box = el('blockquote');
+        for (var ql = 0; ql < lines.length; ql++) {
+          var qp = blockLine('p', lines[ql]);
+          box.appendChild(qp);
+          if (!first) first = qp;
+          last = qp;
+        }
+        parent.insertBefore(box, block);
+        first = box;
+      } else {
+        for (var ln = 0; ln < lines.length; ln++) {
+          var para = blockLine('p', lines[ln]);
+          parent.insertBefore(para, block);
+          if (!first) first = para;
+          last = para;
+        }
+      }
+      parent.removeChild(block);
+      var preSel = window.getSelection();
+      var preCaret = document.createRange();
+      preCaret.selectNodeContents(first || parent);
+      preCaret.collapse(false);
+      if (preSel) { preSel.removeAllRanges(); preSel.addRange(preCaret); }
+      syncBlockControls(inst);
+      return;
+    }
+    if (tag === 'pre') {
+      var codeLines = blockTextLines(block);
+      var pre = el('pre');
+      var code = el('code');
+      code.textContent = codeLines.join('\n');
+      pre.appendChild(code);
+      for (var pa = 0; pa < block.attributes.length; pa++) if (block.attributes[pa].name === 'style') pre.setAttribute('style', block.getAttribute('style'));
+      block.parentNode.replaceChild(pre, block);
+      var preInputSel = window.getSelection();
+      var preInputRange = document.createRange();
+      preInputRange.selectNodeContents(code);
+      preInputRange.collapse(false);
+      if (preInputSel) { preInputSel.removeAllRanges(); preInputSel.addRange(preInputRange); }
+      syncBlockControls(inst);
+      return;
+    }
     var next = el(tag);
     for (var i = 0; i < block.attributes.length; i++) if (block.attributes[i].name === 'style') next.setAttribute('style', block.getAttribute('style'));
     while (block.firstChild) next.appendChild(block.firstChild);
@@ -1008,6 +1111,45 @@ window.__SUI_RICH = (function () {
   // as toggles instead of trapping the caret in the format.
   function toggleBlock(inst, tag) {
     applyBlock(inst, blockKind(inst) === tag ? 'p' : tag);
+  }
+  function rgbHex(value) {
+    var text = String(value || '').trim();
+    var match = /^rgba?\(([^)]+)\)$/i.exec(text);
+    if (match) {
+      var parts = match[1].split(',');
+      if (parts.length >= 4 && Number(parts[3]) === 0) return '';
+      var r = Math.max(0, Math.min(255, Math.round(Number(parts[0]) || 0)));
+      var g = Math.max(0, Math.min(255, Math.round(Number(parts[1]) || 0)));
+      var b = Math.max(0, Math.min(255, Math.round(Number(parts[2]) || 0)));
+      return '#' + [r, g, b].map(function (n) { return ('0' + n.toString(16)).slice(-2); }).join('');
+    }
+    var hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text);
+    if (!hex) return '';
+    var body = hex[1];
+    if (body.length === 3) body = body.charAt(0) + body.charAt(0) + body.charAt(1) + body.charAt(1) + body.charAt(2) + body.charAt(2);
+    return '#' + body.toLowerCase();
+  }
+  // inlineAncestorValue reads only an explicit inline mark (not the paper
+  // color or a table cell background), so the color swatches can show the
+  // document default as black text and white highlight.
+  function inlineAncestorValue(inst, prop, attrName) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !inst.editor || !inst.editor.contains(sel.anchorNode)) return '';
+    var node = sel.anchorNode;
+    if (node && node.nodeType !== 1) node = node.parentElement;
+    while (node && node !== inst.editor) {
+      if (node.nodeType === 1) {
+        if (node.tagName && node.tagName.toLowerCase() === 'mark' && prop === 'backgroundColor') return '#ffff00';
+        var inline = node.style && node.style[prop];
+        if (inline) return inline;
+        if (attrName && node.getAttribute) {
+          var attrValue = node.getAttribute(attrName);
+          if (attrValue) return attrValue;
+        }
+      }
+      node = node.parentElement;
+    }
+    return '';
   }
   // syncBlockControls reflects the caret block in the toolbar: the style
   // select shows Quote/Code/Heading, and the matching buttons get their
@@ -1049,9 +1191,21 @@ window.__SUI_RICH = (function () {
         buttons[b].setAttribute('aria-disabled', disabled ? 'true' : 'false');
       }
     }
+    var colorInputs = inst.root.querySelectorAll('.sui-rich-color[data-rich-cmd]');
+    var textColor = inside ? rgbHex(inlineAncestorValue(inst, 'color', 'color')) : '';
+    var highlight = inside ? rgbHex(inlineAncestorValue(inst, 'backgroundColor', 'bgcolor')) : '';
+    for (var ci = 0; ci < colorInputs.length; ci++) {
+      var colorCmd = colorInputs[ci].getAttribute('data-rich-cmd');
+      if (document.activeElement === colorInputs[ci]) continue;
+      var nextColor = colorCmd === 'textColor' ? (textColor || '#000000') : (highlight || '#ffffff');
+      if (colorInputs[ci].value !== nextColor) colorInputs[ci].value = nextColor;
+      var colorControl = colorInputs[ci].closest('.sui-rich-color-control');
+      if (colorControl) colorControl.style.setProperty('--sui-rich-color-current', nextColor);
+    }
   }
   function buildTable(rows, cols) {
     var table = el('table');
+    table.style.width = '100%';
     var tbody = el('tbody');
     rows = Math.max(1, Math.min(30, Number(rows) || 3));
     cols = Math.max(1, Math.min(20, Number(cols) || 3));
@@ -1251,6 +1405,69 @@ window.__SUI_RICH = (function () {
     caretSel.removeAllRanges(); caretSel.addRange(caretRange);
     inst.editor.focus();
   }
+  function tableColumnWidths(table) {
+    var widths = [];
+    var firstRow = null;
+    for (var r = 0; r < table.rows.length; r++) {
+      if (table.rows[r].cells.length) { firstRow = table.rows[r]; break; }
+    }
+    if (!firstRow) return widths;
+    var colgroup = table.querySelector('colgroup');
+    var cols = colgroup ? colgroup.querySelectorAll('col') : [];
+    var tableWidth = table.getBoundingClientRect().width || 0;
+    for (var c = 0; c < cols.length; c++) {
+      var rawWidth = String(cols[c].style.width || '');
+      widths.push(/%$/.test(rawWidth) ? tableWidth * (parseFloat(rawWidth) || 0) / 100 : (parseFloat(rawWidth) || 0));
+    }
+    var measured = [];
+    for (var i = 0; i < firstRow.cells.length; i++) {
+      var cell = firstRow.cells[i];
+      var span = Math.max(1, Number(cell.colSpan) || 1);
+      var w = cell.getBoundingClientRect().width / span;
+      for (var s = 0; s < span; s++) measured.push(w);
+    }
+    for (var m = 0; m < measured.length; m++) if (!widths[m]) widths[m] = measured[m];
+    for (var f = 0; f < widths.length; f++) if (!widths[f]) widths[f] = Math.max(40, table.getBoundingClientRect().width / widths.length);
+    return widths;
+  }
+  function applyTableColumnWidths(table, widths) {
+    if (!widths || !widths.length) return;
+    var colgroup = table.querySelector('colgroup');
+    if (!colgroup) {
+      colgroup = el('colgroup');
+      table.insertBefore(colgroup, table.firstChild);
+    }
+    colgroup.innerHTML = '';
+    var total = 0;
+    for (var i = 0; i < widths.length; i++) {
+      var width = Math.max(32, Math.round(widths[i]));
+      var col = el('col');
+      col.style.width = width + 'px';
+      colgroup.appendChild(col);
+      total += width;
+    }
+    table.style.tableLayout = 'fixed';
+    table.style.width = total + 'px';
+  }
+  function tableGridMap(table) {
+    var map = [];
+    for (var r = 0; r < table.rows.length; r++) {
+      map[r] = map[r] || [];
+      var col = 0;
+      for (var c = 0; c < table.rows[r].cells.length; c++) {
+        while (map[r][col]) col++;
+        var cell = table.rows[r].cells[c];
+        var rowspan = Math.max(1, Number(cell.rowSpan) || 1);
+        var colspan = Math.max(1, Number(cell.colSpan) || 1);
+        for (var dr = 0; dr < rowspan; dr++) {
+          map[r + dr] = map[r + dr] || [];
+          for (var dc = 0; dc < colspan; dc++) map[r + dr][col + dc] = cell;
+        }
+        col += colspan;
+      }
+    }
+    return map;
+  }
   function tableResizeHit(inst, e) {
     var cell = e.target && e.target.closest ? e.target.closest('td,th') : null;
     if (!cell) return null;
@@ -1261,8 +1478,13 @@ window.__SUI_RICH = (function () {
       return { kind: 'table', table: table, startX: e.clientX, startY: e.clientY, width: tr.width, height: tr.height };
     }
     var cr = cell.getBoundingClientRect();
-    if (e.clientX >= cr.right - 6) {
-      return { kind: 'col', table: table, index: cell.cellIndex, startX: e.clientX, width: cr.width };
+    if (e.clientX >= cr.right - 7) {
+      var map = tableGridMap(table);
+      var rowMap = map[cell.parentNode.rowIndex] || [];
+      var last = -1;
+      for (var c = 0; c < rowMap.length; c++) if (rowMap[c] === cell) last = c;
+      if (last < 0) last = cell.cellIndex;
+      return { kind: 'col', table: table, index: last, startX: e.clientX, width: cr.width };
     }
     if (e.clientY >= cr.bottom - 6) {
       return { kind: 'row', table: table, row: cell.parentNode, startY: e.clientY, height: cr.height };
@@ -1273,21 +1495,16 @@ window.__SUI_RICH = (function () {
     e.preventDefault();
     e.stopPropagation();
     var table = hit.table;
-    if (hit.kind === 'col') {
-      table.style.tableLayout = 'fixed';
-      table.style.width = table.getBoundingClientRect().width + 'px';
-    }
+    var widths = null;
+    if (hit.kind === 'col') widths = tableColumnWidths(table);
     function move(ev) {
       if (hit.kind === 'table') {
         table.style.width = Math.max(120, hit.width + ev.clientX - hit.startX) + 'px';
         table.style.height = Math.max(60, hit.height + ev.clientY - hit.startY) + 'px';
       } else if (hit.kind === 'col') {
-        var width = Math.max(40, hit.width + ev.clientX - hit.startX);
-        for (var r = 0; r < table.rows.length; r++) {
-          for (var c = 0; c < table.rows[r].cells.length; c++) {
-            if (table.rows[r].cells[c].cellIndex === hit.index) table.rows[r].cells[c].style.width = width + 'px';
-          }
-        }
+        var nextWidths = widths.slice();
+        nextWidths[hit.index] = Math.max(40, widths[hit.index] + ev.clientX - hit.startX);
+        applyTableColumnWidths(table, nextWidths);
       } else if (hit.kind === 'row') {
         hit.row.style.height = Math.max(24, hit.height + ev.clientY - hit.startY) + 'px';
       }
@@ -1751,6 +1968,53 @@ window.__SUI_RICH = (function () {
       document.execCommand('insertLineBreak');
       return;
     }
+    var listItem = block.closest ? block.closest('li') : null;
+    if (listItem && listItem !== block && inst.editor.contains(listItem)) {
+      var emptyItem = !block.textContent.replace(/\u200b/g, '').trim() && !block.querySelector('img,table,hr');
+      if (emptyItem && !listItem.querySelector('ul,ol')) {
+        // Enter on an empty list item leaves the list at that point.
+        var listEl = listItem.parentNode;
+        var exit = el('p');
+        exit.appendChild(el('br'));
+        if (listEl.children.length === 1) {
+          listEl.parentNode.replaceChild(exit, listEl);
+        } else {
+          var rest = listEl.cloneNode(false);
+          var restItem = listItem.nextSibling;
+          while (restItem) { var restNext = restItem.nextSibling; rest.appendChild(restItem); restItem = restNext; }
+          listEl.removeChild(listItem);
+          listEl.parentNode.insertBefore(exit, listEl.nextSibling);
+          if (rest.children.length) listEl.parentNode.insertBefore(rest, exit.nextSibling);
+        }
+        inst.editor.focus();
+        var exitRange = document.createRange();
+        exitRange.selectNodeContents(exit);
+        exitRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(exitRange);
+        return;
+      }
+      var afterItem = range.cloneRange();
+      afterItem.setStart(range.endContainer, range.endOffset);
+      afterItem.setEnd(block, block.childNodes.length);
+      var itemFragment = afterItem.extractContents();
+      var itemNext = el(tag === 'li' ? 'p' : tag);
+      itemNext.appendChild(itemFragment);
+      if (!itemNext.textContent && !itemNext.querySelector('img,table,hr,br')) itemNext.appendChild(el('br'));
+      block.parentNode.insertBefore(itemNext, block.nextSibling);
+      var newItem = el('li');
+      newItem.appendChild(itemNext);
+      var follower = itemNext.nextSibling;
+      while (follower) { var followerNext = follower.nextSibling; newItem.appendChild(follower); follower = followerNext; }
+      listItem.parentNode.insertBefore(newItem, listItem.nextSibling);
+      inst.editor.focus();
+      var itemRange = document.createRange();
+      itemRange.selectNodeContents(itemNext);
+      itemRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(itemRange);
+      return;
+    }
     var nextTag = tag === 'li' ? 'li' : 'p';
     var after = range.cloneRange();
     after.setStart(range.endContainer, range.endOffset);
@@ -1885,6 +2149,71 @@ window.__SUI_RICH = (function () {
     var mode = blockKind(inst);
     if (mode === 'blockquote' || mode === 'pre') applyBlock(inst, 'p');
   }
+  function unwrapInlineNode(node) {
+    if (!node || !node.parentNode) return;
+    while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+    node.parentNode.removeChild(node);
+  }
+  function stripInlineMark(inst, cmd, range) {
+    if (!range || range.collapsed) return;
+    var tags = {
+      bold: 'b,strong', italic: 'i,em', underline: 'u', strike: 's,strike,del',
+      superscript: 'sup', subscript: 'sub'
+    };
+    var props = {
+      bold: ['fontWeight'], italic: ['fontStyle'], underline: ['textDecoration', 'textDecorationLine'],
+      strike: ['textDecoration', 'textDecorationLine'], superscript: ['verticalAlign'], subscript: ['verticalAlign']
+    };
+    var selector = tags[cmd];
+    if (selector) {
+      var nodes = inst.editor.querySelectorAll(selector);
+      for (var i = nodes.length - 1; i >= 0; i--) {
+        var hit = false;
+        try { hit = range.intersectsNode(nodes[i]); } catch (e) { hit = false; }
+        if (hit) unwrapInlineNode(nodes[i]);
+      }
+    }
+    var styled = inst.editor.querySelectorAll('[style]');
+    var remove = props[cmd] || [];
+    for (var s = 0; s < styled.length; s++) {
+      var elNode = styled[s];
+      var intersects = false;
+      try { intersects = range.intersectsNode(elNode); } catch (e) { intersects = false; }
+      if (!intersects || !elNode.style) continue;
+      if ((cmd === 'underline' || cmd === 'strike') && (elNode.style.textDecoration || elNode.style.textDecorationLine)) {
+        var wanted = cmd === 'underline' ? 'underline' : 'line-through';
+        var parts = String(elNode.style.textDecorationLine || elNode.style.textDecoration || '').split(/\s+/).filter(function (part) { return part && part !== wanted; });
+        if (parts.length) elNode.style.textDecoration = parts.join(' ');
+        else { elNode.style.removeProperty('text-decoration'); elNode.style.removeProperty('text-decoration-line'); }
+      } else {
+        for (var p = 0; p < remove.length; p++) elNode.style.removeProperty(remove[p].replace(/[A-Z]/g, function (m) { return '-' + m.toLowerCase(); }));
+      }
+      if (!elNode.getAttribute('style')) elNode.removeAttribute('style');
+      if (elNode.tagName.toLowerCase() === 'span' && !elNode.attributes.length) unwrapInlineNode(elNode);
+    }
+  }
+  // toggleInlineMark uses the native toggle first (it handles collapsed
+  // carets and mixed selections) and strips the mark explicitly if the
+  // browser left the "on" state in place, so a second click always turns
+  // bold/italic/underline/strike off.
+  function toggleInlineMark(inst, cmd) {
+    var native = {
+      bold: 'bold', italic: 'italic', underline: 'underline',
+      strike: 'strikeThrough', superscript: 'superscript', subscript: 'subscript'
+    }[cmd];
+    if (!native) return;
+    var on = false;
+    try { on = document.queryCommandState(native); } catch (e) { on = false; }
+    try { document.execCommand(native, false, null); } catch (e) {}
+    var still = false;
+    try { still = document.queryCommandState(native); } catch (e) { still = false; }
+    if (on && still) {
+      var sel = window.getSelection();
+      if (sel && sel.rangeCount) stripInlineMark(inst, cmd, sel.getRangeAt(0));
+    }
+    if (inst.editor) inst.editor.focus();
+    saveSelection(inst);
+  }
   function captureFormat(inst, range) {
     var node = range.startContainer;
     if (node.nodeType === 3) node = node.parentElement;
@@ -1983,12 +2312,12 @@ window.__SUI_RICH = (function () {
     try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
     if (cmd === 'undo') return undo(inst);
     if (cmd === 'redo') return redo(inst);
-    if (cmd === 'bold') document.execCommand('bold');
-    else if (cmd === 'italic') document.execCommand('italic');
-    else if (cmd === 'underline') document.execCommand('underline');
-    else if (cmd === 'strike') document.execCommand('strikeThrough');
-    else if (cmd === 'superscript') document.execCommand('superscript');
-    else if (cmd === 'subscript') document.execCommand('subscript');
+    if (cmd === 'bold') toggleInlineMark(inst, 'bold');
+    else if (cmd === 'italic') toggleInlineMark(inst, 'italic');
+    else if (cmd === 'underline') toggleInlineMark(inst, 'underline');
+    else if (cmd === 'strike') toggleInlineMark(inst, 'strike');
+    else if (cmd === 'superscript') toggleInlineMark(inst, 'superscript');
+    else if (cmd === 'subscript') toggleInlineMark(inst, 'subscript');
     else if (cmd === 'code') { if (!unwrapTag(inst, 'code')) wrapSelection(inst, 'code'); }
     else if (cmd === 'clearFormat') clearFormatting(inst);
     else if (cmd === 'copyFormat') copyFormat(inst);
@@ -2042,15 +2371,31 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'image') {
       var imageRange = promptRange(inst);
       richPrompt(inst, {
-        instructions: 'Enter the image URL and a short alternative text. The image is inserted at the caret.',
+        instructions: 'Choose an image from this PC or enter an image URL, then add a short alternative text. The image is inserted at the caret.',
         fields: [
+          { key: 'file', label: 'Image from this PC', type: 'file', accept: 'image/*' },
           { key: 'src', label: 'Image URL', value: 'https://', placeholder: 'https://example.com/image.png', autocomplete: 'url' },
           { key: 'alt', label: 'Alternative text', value: '', placeholder: 'Describe the image' }
         ],
         submitLabel: 'Insert image',
         onSubmit: function (v) {
+          if (v.file) {
+            if (!/^image\//i.test(String(v.file.type || ''))) return 'Choose an image file (PNG, JPEG, GIF, WebP or SVG).';
+            if (v.file.size > 8 * 1024 * 1024) return 'The image must be smaller than 8 MB.';
+            var reader = new FileReader();
+            reader.onload = function () {
+              var data = String(reader.result || '');
+              if (!/^data:image\//i.test(data)) return;
+              restorePromptRange(inst, imageRange);
+              insertHTMLNode(inst, 'img', { src: data, alt: v.alt || v.file.name || '' });
+              materializeBlobImages(inst, inst.editor);
+              commit(inst, 'change');
+            };
+            reader.readAsDataURL(v.file);
+            return null;
+          }
           var src = safeUrl(v.src, true);
-          if (!src) return 'Use an http(s) or data:image URL.';
+          if (!src) return 'Choose a file or use an http(s) or data:image URL.';
           restorePromptRange(inst, imageRange);
           insertHTMLNode(inst, 'img', { src: src, alt: v.alt || '' });
           commit(inst, 'change');
@@ -2121,6 +2466,11 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'zoomIn') { setZoom(inst, (inst.zoom || 1) + 0.1); }
     else if (cmd === 'zoomOut') { setZoom(inst, (inst.zoom || 1) - 0.1); }
     else if (cmd === 'zoomReset') { setZoom(inst, 1); }
+    else if (cmd === 'iconSet') { setIconSet(inst, value); }
+    else if (cmd === 'iconSetLine') { setIconSet(inst, 'line'); }
+    else if (cmd === 'iconSetBold') { setIconSet(inst, 'bold'); }
+    else if (cmd === 'iconSetDuotone') { setIconSet(inst, 'duotone'); }
+    else if (cmd === 'iconSetBlocks') { setIconSet(inst, 'blocks'); }
     else if (cmd === 'printPreview') { openPrintPreview(inst); }
     else if (cmd === 'print') { printDocument(inst); }
     else if (cmd === 'find') { openFindBar(inst); if (value) findInDocument(inst, value); }
@@ -2208,7 +2558,7 @@ window.__SUI_RICH = (function () {
         var r = typeof pluginCmd.run === 'function' ? pluginCmd.run(inst, value) : runBuiltin(inst, pluginCmd.command, value);
         if (r === false) return [false, 'command failed: ' + cmd];
       }
-      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|documentSettings|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset)$/.test(cmd)) commit(inst, 'change');
+      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|documentSettings|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset|iconSet|iconSetLine|iconSetBold|iconSetDuotone|iconSetBlocks)$/.test(cmd)) commit(inst, 'change');
       return [true, null];
     } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
   }
@@ -2865,18 +3215,20 @@ window.__SUI_RICH = (function () {
         else if (token === 'spaceBefore') group.appendChild(select(inst, 'spaceBefore', [['', 'Space before'], ['0', '0'], ['0.5em', '0.5em'], ['1em', '1em'], ['1.5em', '1.5em']], 'Space before'));
         else if (token === 'spaceAfter') group.appendChild(select(inst, 'spaceAfter', [['', 'Space after'], ['0', '0'], ['0.5em', '0.5em'], ['1em', '1em'], ['1.5em', '1.5em']], 'Space after'));
         else if (token === 'textColor' || token === 'highlight') {
-          var colorWrap = el('label', 'sui-rich-color-control');
+          var colorWrap = el('div', 'sui-rich-color-control');
           colorWrap.title = token === 'textColor' ? 'Text color' : 'Highlight color';
           var colorIcon = el('span', 'sui-rich-color-icon');
           colorIcon.innerHTML = ICONS[token] || '';
           var color = el('input', 'sui-rich-color');
           color.type = 'color';
           color.setAttribute('data-rich-cmd', token);
-          color.value = token === 'textColor' ? '#e6e6ef' : '#ffe066';
+          color.value = token === 'textColor' ? '#000000' : '#ffffff';
           color.title = colorWrap.title;
           color.setAttribute('aria-label', colorWrap.title);
           colorWrap.style.setProperty('--sui-rich-color-current', color.value);
-          color.addEventListener('input', function () { colorWrap.style.setProperty('--sui-rich-color-current', color.value); });
+          (function (wrap, input) {
+            input.addEventListener('input', function () { wrap.style.setProperty('--sui-rich-color-current', input.value); });
+          })(colorWrap, color);
           colorWrap.appendChild(colorIcon);
           colorWrap.appendChild(color);
           group.appendChild(colorWrap);
@@ -3075,6 +3427,13 @@ window.__SUI_RICH = (function () {
     }
     return panel;
   }
+  function clearTableColumnWidths(table) {
+    if (!table) return;
+    var colgroup = table.querySelector('colgroup');
+    if (colgroup && colgroup.parentNode) colgroup.parentNode.removeChild(colgroup);
+    var cells = table.querySelectorAll('td,th');
+    for (var i = 0; i < cells.length; i++) cells[i].style.width = '';
+  }
   function applyTableLook(inst, table, opts) {
     resolveInstance(inst.name);
     if (!table || !table.isConnected) return;
@@ -3141,7 +3500,7 @@ window.__SUI_RICH = (function () {
         for (var pi = 0; pi < panels.length; pi++) panels[pi].hidden = true;
       });
     }
-    var title = el('div', 'sui-rich-tableprops-title', 'Table properties');
+    var title = el('div', 'sui-rich-tableprops-title', 'Table settings');
     panel.appendChild(title);
     function property(label, input) {
       var row = el('div', 'sui-rich-tableprops-row');
@@ -3169,6 +3528,46 @@ window.__SUI_RICH = (function () {
     color.value = /^#[0-9a-f]{6}$/i.test(currentColor) ? currentColor : '#9aa7b8';
     color.onchange = function () { applyTableLook(inst, currentTable(), { borderColor: color.value }); };
     property('Border color', color);
+    var initialWidth = String(table.style.width || '');
+    var widthMode = (!initialWidth || initialWidth === '100%') ? 'fit' : (/%$/.test(initialWidth) ? 'percent' : 'px');
+    var widthSelect = el('select', 'sui-rich-prop');
+    [['fit', 'Fit to page'], ['px', 'Pixels'], ['percent', 'Percent']].forEach(function (option) {
+      var opt = el('option', '', option[1]);
+      opt.value = option[0];
+      widthSelect.appendChild(opt);
+    });
+    widthSelect.value = widthMode;
+    var widthValue = el('input', 'sui-rich-prop');
+    widthValue.type = 'number'; widthValue.min = '10'; widthValue.max = '2000'; widthValue.step = '1';
+    widthValue.value = String(Math.round(parseFloat(initialWidth) || (widthMode === 'percent' ? 100 : (table.getBoundingClientRect().width || 100))));
+    widthValue.disabled = widthMode === 'fit';
+    function applyWidthSetting() {
+      var current = currentTable();
+      if (!current) return;
+      if (widthSelect.value === 'fit') {
+        clearTableColumnWidths(current);
+        current.style.width = '100%';
+        current.style.maxWidth = '';
+        current.style.tableLayout = 'auto';
+        commit(inst, 'change');
+        return;
+      }
+      var value = Math.max(10, Math.min(2000, Number(widthValue.value) || 0));
+      if (!value) return;
+      clearTableColumnWidths(current);
+      current.style.width = value + (widthSelect.value === 'percent' ? '%' : 'px');
+      current.style.maxWidth = '';
+      current.style.tableLayout = 'auto';
+      commit(inst, 'change');
+    }
+    widthSelect.onchange = function () {
+      widthValue.disabled = widthSelect.value === 'fit';
+      if (widthSelect.value === 'fit') applyWidthSetting();
+    };
+    widthValue.onchange = applyWidthSetting;
+    property('Table width', widthSelect);
+    property('Width value', widthValue);
+    panel.appendChild(el('div', 'sui-rich-tableprops-note', 'Fit to page uses the text width inside the page margins. Drag a column edge to resize one column without changing the others.'));
     var flags = tableBorderFlags(table);
     var sidesBox = el('div', 'sui-rich-tableprops-sides');
     [['top', 'Top'], ['right', 'Right'], ['bottom', 'Bottom'], ['left', 'Left'], ['insideH', 'Inside H'], ['insideV', 'Inside V']].forEach(function (pair) {
@@ -3195,7 +3594,7 @@ window.__SUI_RICH = (function () {
     panel.appendChild(close);
     var bar = inst.root.querySelector('[data-rich-table-group]');
     var rect = (bar && !bar.hidden ? bar : table).getBoundingClientRect();
-    panel.style.left = Math.max(8, Math.min(window.innerWidth - 248, rect.left)) + 'px';
+    panel.style.left = Math.max(8, Math.min(window.innerWidth - 286, rect.left)) + 'px';
     panel.style.top = Math.min(window.innerHeight - 220, rect.bottom + 6) + 'px';
   }
   function buildTableBar(inst) {
@@ -3221,7 +3620,7 @@ window.__SUI_RICH = (function () {
       ['tableColLeft', '+C', 'Add column left'], ['tableColRight', '+C\u2192', 'Add column right'], ['tableColDelete', '-C', 'Delete column'],
       ['tableHeader', 'H', 'Toggle header row'], ['tableMerge', 'M', 'Merge selected cells'], ['tableSplit', 'S', 'Split cell'],
       ['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'],
-      ['tableProps', '\u2699', 'Table properties'], ['tableDelete', '\u00d7', 'Delete table']
+      ['tableProps', '\u2699', 'Table settings'], ['tableDelete', '\u00d7', 'Delete table']
     ];
     for (var i = 0; i < specs.length; i++) group.appendChild(button(inst, specs[i][0], specs[i][1], specs[i][2]));
     var theme = toolbar.querySelector('.sui-rich-theme-group');
@@ -3278,6 +3677,23 @@ window.__SUI_RICH = (function () {
   function updateThemeButton(inst) {
     if (!inst || !inst.root) return;
     applyTheme(inst);
+  }
+  function validIconSet(value) {
+    value = String(value || '').toLowerCase();
+    for (var i = 0; i < ICON_SETS.length; i++) if (ICON_SETS[i][0] === value) return value;
+    return 'line';
+  }
+  function applyIconSet(inst) {
+    if (!inst || !inst.root) return;
+    var set = validIconSet(inst.iconSet);
+    inst.iconSet = set;
+    inst.root.setAttribute('data-sui-rich-icons', set);
+    try { localStorage.setItem('sui-rich-icons-' + inst.name, set); } catch (e) {}
+  }
+  function setIconSet(inst, value) {
+    inst.iconSet = validIconSet(value);
+    applyIconSet(inst);
+    return inst.iconSet;
   }
   function setZoom(inst, value) {
     var next = Math.max(0.6, Math.min(2, Number(value) || 1));
@@ -5836,7 +6252,8 @@ window.__SUI_RICH = (function () {
       var input = field.multiline ? document.createElement('textarea') : document.createElement('input');
       if (field.multiline) input.rows = field.rows || 8;
       else input.type = field.type || 'text';
-      input.value = field.value == null ? '' : String(field.value);
+      if (field.type === 'file' && field.accept) input.accept = field.accept;
+      if (field.type !== 'file') input.value = field.value == null ? '' : String(field.value);
       if (field.placeholder) input.placeholder = field.placeholder;
       if (field.maxLength) input.maxLength = field.maxLength;
       if (field.autocomplete) input.autocomplete = field.autocomplete;
@@ -5865,7 +6282,9 @@ window.__SUI_RICH = (function () {
     }
     function submit() {
       var values = {};
-      for (var key in inputs) if (Object.prototype.hasOwnProperty.call(inputs, key)) values[key] = inputs[key].value;
+      for (var key in inputs) if (Object.prototype.hasOwnProperty.call(inputs, key)) {
+        values[key] = inputs[key].type === 'file' ? (inputs[key].files && inputs[key].files[0]) : inputs[key].value;
+      }
       var message = null;
       try { message = opts.onSubmit ? opts.onSubmit(values) : null; }
       catch (e) { message = String(e && e.message ? e.message : e); }
@@ -6252,6 +6671,10 @@ window.__SUI_RICH = (function () {
         if (themeMedia.addEventListener) themeMedia.addEventListener('change', function () { if (inst.theme === 'auto') applyTheme(inst); });
       } catch (e) {}
     }
+    var savedIconSet = '';
+    try { savedIconSet = localStorage.getItem('sui-rich-icons-' + name) || ''; } catch (e) {}
+    inst.iconSet = validIconSet(savedIconSet || attr(root, 'data-sui-rich-icons') || 'line');
+    applyIconSet(inst);
     var toolbarEl = root.querySelector('.sui-rich-toolbar');
     if (toolbarEl && !boolAttr(root, 'data-sui-rich-toolbar', true)) toolbarEl.hidden = true;
     var menuEl = root.querySelector('.sui-rich-menu');
@@ -9231,8 +9654,17 @@ const suiRichTextCss = `
 .sui-rich-group:last-child { border-right: 0; padding-right: 0; }
 .sui-rich-theme-group { margin-left: auto; }
 .sui-rich-theme-select { height: 28px; }
-.sui-rich-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; font: inherit; font-size: 12px; line-height: 1; }
-.sui-rich-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sui-rich-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 34px; padding: 0 8px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; font: inherit; font-size: 14px; line-height: 1; }
+.sui-rich-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.sui-rich-btn b, .sui-rich-btn strong { font-size: 18px; }
+.sui-rich-btn i, .sui-rich-btn em { font-size: 18px; }
+.sui-rich-btn u, .sui-rich-btn s { font-size: 17px; }
+.sui-rich[data-sui-rich-icons="bold"] .sui-rich-btn svg { width: 24px; height: 24px; stroke-width: 2.6; }
+.sui-rich[data-sui-rich-icons="bold"] .sui-rich-btn b, .sui-rich[data-sui-rich-icons="bold"] .sui-rich-btn strong { font-size: 20px; font-weight: 800; }
+.sui-rich[data-sui-rich-icons="duotone"] .sui-rich-btn svg { width: 23px; height: 23px; fill: currentColor; fill-opacity: .22; stroke-width: 1.7; }
+.sui-rich[data-sui-rich-icons="blocks"] .sui-rich-btn { background: color-mix(in srgb, var(--sui-rich-fg) 7%, transparent); border-color: color-mix(in srgb, var(--sui-rich-border) 70%, transparent); border-radius: 9px; }
+.sui-rich[data-sui-rich-icons="blocks"] .sui-rich-btn:hover, .sui-rich[data-sui-rich-icons="blocks"] .sui-rich-btn:focus-visible { background: var(--sui-rich-hover); }
+.sui-rich[data-sui-rich-icons="blocks"] .sui-rich-btn.on { background: color-mix(in srgb, var(--sui-rich-accent) 18%, var(--sui-rich-bg)); }
 .sui-rich-btn:hover, .sui-rich-btn:focus-visible { background: var(--sui-rich-hover); border-color: var(--sui-rich-border); outline: none; }
 .sui-rich-btn:active { transform: translateY(1px); }
 .sui-rich-btn.on { background: var(--sui-rich-hover); color: var(--sui-rich-accent); border-color: var(--sui-rich-accent); }
@@ -9253,14 +9685,16 @@ const suiRichTextCss = `
 .sui-rich-image-menu .sui-rich-menu-item { width: 100%; text-align: left; }
 .sui-rich-editor img.sui-rich-image-selected { outline: 2px solid var(--sui-rich-accent); outline-offset: 2px; }
 .sui-rich-select, .sui-rich-color, .sui-rich-prop { height: 28px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 5px; }
-.sui-rich-color-control { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 5px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; background: transparent; }
+.sui-rich-color-control { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 48px; height: 34px; padding: 0 5px; border: 1px solid transparent; border-radius: 7px; cursor: pointer; background: transparent; overflow: hidden; }
 .sui-rich-color-control:hover, .sui-rich-color-control:focus-within { background: var(--sui-rich-hover); border-color: var(--sui-rich-border); }
-.sui-rich-color-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; font-size: 13px; line-height: 1; }
-.sui-rich-color-icon::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 3px; border-radius: 2px; background: var(--sui-rich-color-current, #fff); }
-.sui-rich-color { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; flex: 0 0 auto; }
+.sui-rich-color-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; font-size: 15px; line-height: 1; pointer-events: none; }
+.sui-rich-color-icon::after { content: ''; position: absolute; left: 1px; right: 1px; bottom: 0; height: 4px; border-radius: 2px; background: var(--sui-rich-color-current, #000); }
+.sui-rich-color-glyph { font-weight: 700; font-size: 18px; line-height: 1; }
+.sui-rich-color-glyph-highlight { padding: 0 3px; border-radius: 3px; background: var(--sui-rich-color-current, #fff); color: #111; box-shadow: inset 0 0 0 1px rgba(0,0,0,.22); }
+.sui-rich-color { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; z-index: 2; }
 .sui-rich-color::-webkit-color-swatch-wrapper { padding: 0; }
-.sui-rich-color::-webkit-color-swatch { border: 1px solid var(--sui-rich-border); border-radius: 4px; }
-.sui-rich-color::-moz-color-swatch { border: 1px solid var(--sui-rich-border); border-radius: 4px; }
+.sui-rich-color::-webkit-color-swatch { border: 0; }
+.sui-rich-color::-moz-color-swatch { border: 0; }
 .sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }
 .sui-rich-editor { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); min-height: 0; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: anywhere; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
 .sui-rich-editor:empty::before, .sui-rich-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--sui-rich-muted); pointer-events: none; }
@@ -9270,8 +9704,9 @@ const suiRichTextCss = `
 .sui-rich-editor h3 { font-size: 1.28em; line-height: 1.35; }
 .sui-rich-editor h4 { font-size: 1.1em; }
 .sui-rich-editor blockquote { border-left: 3px solid var(--sui-rich-accent); padding: .2em 0 .2em 14px; color: var(--sui-rich-paper-muted); }
-.sui-rich-editor pre { background: color-mix(in srgb, var(--sui-rich-paper-fg) 7%, transparent); border: 1px solid var(--sui-rich-paper-border); border-radius: 8px; padding: 12px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
-.sui-rich-editor code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; background: rgba(127,127,127,.16); border-radius: 4px; padding: .1em .3em; }
+.sui-rich-editor pre { background: color-mix(in srgb, var(--sui-rich-paper-fg) 7%, transparent); color: var(--sui-rich-paper-fg); border: 1px solid var(--sui-rich-paper-border); border-radius: 8px; padding: 12px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; tab-size: 4; }
+.sui-rich-editor code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; color: var(--sui-rich-paper-fg); background: rgba(127,127,127,.16); border-radius: 4px; padding: .1em .3em; }
+.sui-rich-editor pre code { display: block; padding: 0; border-radius: 0; background: transparent; color: inherit; font-size: 1em; white-space: inherit; }
 .sui-rich-editor hr { border: 0; border-top: 1px solid var(--sui-rich-paper-border); margin: 1.2em 0; }
 .sui-rich-editor img { max-width: 100%; height: auto; border-radius: 6px; background: transparent; border: 0; box-shadow: none; padding: 0; object-fit: contain; }
 .sui-rich-editor figure { text-align: center; }
@@ -9292,6 +9727,10 @@ const suiRichTextCss = `
 .sui-rich-editor th { background: color-mix(in srgb, var(--sui-rich-paper-fg) 8%, transparent); text-align: left; }
 .sui-rich-editor a { color: var(--sui-rich-accent); text-decoration: underline; }
 .sui-rich-editor ul, .sui-rich-editor ol { padding-left: 1.6em; }
+.sui-rich-editor li { margin: 0; }
+.sui-rich-editor li > p { margin: 0 0 .15em; }
+.sui-rich-editor li > p:last-child { margin-bottom: 0; }
+.sui-rich-editor li::marker { color: var(--sui-rich-paper-fg); font-weight: 600; }
 .sui-rich-props { width: 210px; border-left: 1px solid var(--sui-rich-border); padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--sui-rich-toolbar-bg); }
 .sui-rich-props-title { font-size: 12px; font-weight: 700; color: var(--sui-rich-muted); text-transform: uppercase; letter-spacing: .05em; }
 .sui-rich-prop { width: 100%; }
@@ -9304,7 +9743,7 @@ const suiRichTextCss = `
 .sui-rich-zoom-label { width: auto; min-width: 48px; padding: 0 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
 .sui-rich-context { position: fixed; z-index: 900; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
 .sui-rich-context[hidden] { display: none; }
-.sui-rich-tableprops { position: fixed; z-index: 965; width: 232px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.35); color: var(--sui-rich-fg); font-size: 12px; }
+.sui-rich-tableprops { position: fixed; z-index: 965; width: 262px; padding: 10px 12px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,.35); color: var(--sui-rich-fg); font-size: 12px; }
 .sui-rich-prompt { position: fixed; inset: 0; z-index: 6200; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0, 0, 0, .55); }
 .sui-rich-prompt-card { width: min(440px, 92vw); max-height: 90vh; overflow: auto; padding: 16px; border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 12px; background: var(--sui-rich-bg, #1d2129); color: var(--sui-rich-fg, #e6e6ef); box-shadow: 0 18px 50px rgba(0,0,0,.5); }
 .sui-rich-prompt-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: 12px; color: var(--sui-rich-muted, #8fa0b8); }
@@ -9383,8 +9822,9 @@ const suiRichTextCss = `
 .sui-rich-tableprops-title { font-weight: 600; margin-bottom: 6px; }
 .sui-rich-tableprops-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
 .sui-rich-tableprops-row label { flex: 1; color: var(--sui-rich-muted); }
-.sui-rich-tableprops-row input { width: 76px; height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; padding: 0 6px; }
+.sui-rich-tableprops-row input, .sui-rich-tableprops-row select { width: 96px; height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; padding: 0 6px; }
 .sui-rich-tableprops-row input[type="color"] { padding: 1px; }
+.sui-rich-tableprops-note { margin: 6px 0 2px; color: var(--sui-rich-muted); font-size: 10.5px; line-height: 1.35; }
 .sui-rich-tableprops-close { margin-top: 6px; width: 100%; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: transparent; color: var(--sui-rich-fg); padding: 5px; cursor: pointer; }
 .sui-rich-tablebar { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; background: var(--sui-rich-toolbar-bg); border-bottom: 1px solid var(--sui-rich-border); position: relative; z-index: 4; }
 .sui-rich-tablebar[hidden] { display: none; }

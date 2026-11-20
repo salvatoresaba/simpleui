@@ -1686,7 +1686,11 @@ apre la stampa del browser su pagine A4 con header/footer ripetuti. La stampa
 diretta usa gli stessi fogli paginati dell'anteprima, quindi i token di pagina
 mostrano i numeri reali invece di essere rimossi.
 **Liste:** elenchi puntati e numerati si annidano con Tab e si riportano indietro con
-Shift+Tab; l'export DOCX/ODT usa la numerazione nativa.
+Shift+Tab; Invio crea una nuova voce per ogni riga (anche spezzando una voce a
+metà) e Invio su una voce vuota esce dall'elenco. L'export DOCX/ODT usa la
+numerazione nativa. **Blocchi di codice:** il pulsante Code block è un
+interruttore; disattivandolo ogni riga torna un paragrafo separato, quindi le
+interruzioni di riga non vengono appiattite in un unico paragrafo.
 
 **Vista paginata:** il pulsante **Pages** nella barra di stato mostra fogli A4 con margini, header/footer e righe di tabella
 spezzate tra le pagine; l'intestazione della tabella si ripete su ogni pagina.
@@ -1696,10 +1700,19 @@ riempire la pagina; titoli e immagini restano insieme quando possibile.
 
 La toolbar della tabella è un gruppo ancorabile nella toolbar principale e
 compare quando il cursore o la selezione è in una tabella; non è un pannello
-flottante. I due controlli colore della toolbar sono distinti: **A** semplice con
-barra colore per il testo e **A** evidenziata con campione per lo sfondo. I
-pannelli usano etichette e un'icona **?** con il suggerimento nel tooltip al
-posto delle istruzioni scritte.
+flottante. **Impostazioni tabella** (pulsante ⚙) imposta padding, bordo, lati
+visibili e larghezza **Adatta alla pagina**, in pixel o percentuale; trascinando
+il bordo di una colonna cambia solo quella colonna e le altre restano invariate.
+I due controlli colore della toolbar sono distinti: **A** semplice con
+barra colore per il testo e **A** evidenziata con campione per lo sfondo. Quando
+il cursore non ha un colore esplicito mostrano i default del documento (**nero**
+per il testo e **bianco** per lo sfondo), seguono il colore inline al cursore e
+aprono il selettore del browser da qualunque punto del controllo. Grassetto,
+corsivo, sottolineato, barrato, apice, pedice e codice inline sono interruttori:
+un secondo clic rimuove la formattazione. Il codice inline e i blocchi di codice
+usano il colore del testo della pagina (scuro sul foglio bianco, chiaro sul tema
+scuro) per restare leggibili. I pannelli usano etichette e un'icona **?** con il
+suggerimento nel tooltip al posto delle istruzioni scritte.
 
 Token toolbar: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,
@@ -1850,15 +1863,24 @@ sono salvate nel documento JSON. File > Import ed Export sono sottomenu.
 **Barra dei menu:** File, Modifica, Inserisci e Preferences. La formattazione è
 nella toolbar, quindi i menu Formato, Strumenti e Visualizza ridondanti sono
 assenti; il pulsante Pages nella barra di stato attiva la vista paginata, mentre
-zoom e tema restano nella toolbar. Preferences contiene Impostazioni documento
-e Impostazioni pagina. Inserisci contiene Link, Immagine, Tabella, Linea
+zoom e tema restano nella toolbar. Preferences contiene Impostazioni documento,
+Impostazioni pagina e **Icon style** (Line icons, Bold line icons, Duotone icons,
+Soft block icons); la scelta viene ricordata per ogni editor. Lo stile si può
+impostare anche con `richtext.command(name, "iconSet", "line|bold|duotone|blocks")`.
+Inserisci contiene Link, Immagine, Tabella, Linea
 orizzontale e Interruzione di pagina; Rimuovi link e Impostazioni immagine non
 sono voci di menu (Rimuovi link è un pulsante della toolbar e le impostazioni
 immagine si aprono con doppio clic o dal menu contestuale dell'immagine).
+Il dialogo **Immagine** accetta un file dal PC (`image/*`, fino a 8 MB, salvato
+come data URL) oppure un URL http(s)/data.
 L'azione **Seleziona tutta la tabella** fa applicare l'allineamento alla
-tabella stessa. Il pulsante ⚙ apre **Proprietà tabella** per il padding delle
-celle, lo spessore/colore del bordo e i lati visibili (alto/destra/basso/
-sinistra/interni); i valori sono salvati nel modello e usati da editor, PDF e DOCX.
+tabella stessa. Il pulsante ⚙ apre **Impostazioni tabella** per il padding delle
+celle, lo spessore/colore del bordo, i lati visibili (alto/destra/basso/
+sinistra/interni) e la larghezza **Adatta alla pagina** (la larghezza del testo
+dentro i margini), in pixel o percentuale. Trascinando il bordo di una colonna si
+ridimensiona solo quella colonna: le altre mantengono la larghezza e i valori
+sono salvati nel modello (`colWidths`). Le tabelle inserite partono adattate
+alla pagina. I valori sono salvati nel modello e usati da editor, PDF e DOCX.
 Le tabelle possono essere **annidate**: inserisci una tabella col cursore dentro
 una cella; le tabelle annidate restano in JSON, DOCX, ODT, HTML e XML (il PDF
 rende il loro contenuto come testo nella cella esterna). Seleziona due o più celle e usa **Merge** per

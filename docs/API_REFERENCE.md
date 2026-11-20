@@ -1703,10 +1703,15 @@ editor.
 **Menu bar:** File, Edit, Insert and Preferences. Formatting is available from
 the toolbar, so the redundant Format, Tools and View menus are intentionally
 absent; the Pages button in the status bar toggles the paginated view, and zoom
-and theme controls stay in the toolbar. Preferences contains Document settings
-and Page settings. Insert contains Link, Image, Table, Horizontal rule and Page
+and theme controls stay in the toolbar. Preferences contains Document settings,
+Page settings and **Icon style** (Line icons, Bold line icons, Duotone icons,
+Soft block icons); the choice is remembered per editor. Preferred icon style can
+also be set with `richtext.command(name, "iconSet", "line|bold|duotone|blocks")`.
+Insert contains Link, Image, Table, Horizontal rule and Page
 break; Unlink and Image settings are not menu entries (Remove link is a toolbar
 button and image settings open on double-click or from the image context menu).
+The **Image** dialog accepts a file from the PC (`image/*`, up to 8 MB, stored as
+a data URL) or an http(s)/data URL.
 
 **Find and replace:** `Ctrl+F` (or Edit > Find and replace) opens a find bar;
 Enter/F3 next, Shift+F3 previous, Esc closes. **Paste** from Word/Excel/HTML is
@@ -1719,7 +1724,11 @@ the browser print dialog on A4 pages with the header/footer repeated. Direct
 Print uses the same paginated sheets as the preview, so page-number tokens show
 the real numbers instead of being stripped.
 **Lists:** bullet and numbered lists can be nested with Tab and moved back with
-Shift+Tab; DOCX and ODT export use native list numbering.
+Shift+Tab; Enter creates a new list item on every line (including a split in the
+middle of an item), and Enter on an empty item leaves the list. DOCX and ODT
+export use native list numbering. **Code blocks:** the Code block button is a
+toggle; turning it off converts every line back to its own paragraph, so line
+breaks are never flattened into one paragraph.
 
 **Paginated view:** the **Pages** button in the status bar shows A4 sheets with margins, optional header/footer and table
 rows split across pages; header rows are repeated on each page. Press **Edit**
@@ -1729,11 +1738,22 @@ line or item boundaries so the page is filled; headings and images stay together
 when possible.
 
 The table toolbar is a dockable group in the main toolbar and appears when the
-caret or selection is in a table; it is not a floating panel. The two toolbar
-color controls are distinguishable: a plain **A** with a color bar for text
-color and a highlighted **A** with a swatch for the background color. Settings
-panels use labels plus a **?** hint icon whose tooltip holds the explanation,
-instead of visible instruction paragraphs.
+caret or selection is in a table; it is not a floating panel. **Table settings**
+(gear button) sets cell padding, border width/color and visible sides, plus the
+table width as **Fit to page** (the text width inside the page margins), pixels
+or percent. Drag a column edge to resize only that column: the other columns
+keep their widths, and the widths are stored in the document (`colWidths`).
+Tables inserted from the toolbar start fit to the page.
+The two toolbar color controls are distinguishable: a plain **A** with a color
+bar for text color and a highlighted **A** with a swatch for the background
+color. They show the document defaults (**black** text and **white** highlight)
+when the caret has no explicit color, follow the inline color at the caret, and
+open the browser color picker from anywhere in the control. Bold, italic,
+underline, strikethrough, superscript, subscript and inline code are on/off
+toggles: a second click removes the mark. Inline code and code blocks use the
+page text color (dark on the white page, light on a dark page) so they stay
+readable. Settings panels use labels plus a **?** hint icon whose tooltip holds
+the explanation, instead of visible instruction paragraphs.
 
 Toolbar tokens: `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `fontFamily`, `fontSize`, `bold`, `italic`, `underline`, `strike`, `textColor`,

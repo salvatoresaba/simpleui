@@ -21,11 +21,26 @@ builds.
 
 - Bold, italic, underline, strikethrough, superscript/subscript, inline code,
   color, background color, font family/size, headings, quotes, code blocks.
+  Bold/italic/underline/strike/superscript/subscript/inline code are on/off
+  toggles: a second click removes the mark. The text-color control shows black
+  and the highlight control shows white when the caret has no explicit color,
+  then follows the color at the caret.
 - Paragraph alignment, indentation, line height, spacing before/after and manual
   page breaks (Insert > Page break, `pageBreak` toolbar token, Ctrl+Enter) for
   printing and PDF export.
 - Bullet/numbered lists, images, links, tables (with a draggable table toolbar
   for rows, columns, header, merge/split, whole-table selection, cell copy/paste, alignment and deletion) and rules.
+  Enter creates one list item per line, and leaving a code block keeps every
+  line as its own paragraph. Inline code and code blocks use the page text
+  color, so they are readable on the white page.
+- Insert image accepts a file from the PC (up to 8 MB, stored as a data URL) or
+  an http(s)/data URL.
+- Table settings set the table width (fit to page inside the margins, pixels or
+  percent). Dragging a column edge resizes only that column and stores the
+  widths in the document.
+- Four toolbar icon styles (Line, Bold line, Duotone, Soft blocks) are available
+  from Preferences > Icon style, with larger, clearer icons; the choice is
+  remembered per editor.
 - Document settings (menu) provides page defaults: size, orientation, margins,
   line height and header/footer. Page settings overrides them for a single page.
 - Header and footer open in a floating mini editor from Document settings or
@@ -59,15 +74,15 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   or item boundaries to fill each page; headings and images stay together.
 - Settings panels use labels plus a **?** hint icon with the explanation in its
   tooltip instead of inline instruction paragraphs. The toolbar distinguishes
-  text color (plain **A** with a color bar) from background highlight
-  (highlighted **A** with a swatch).
+  text color (plain **A** with a color bar, default black) from background
+  highlight (highlighted **A** with a swatch, default white).
 - Font-size buttons A+/A− change the selected text (or the word at the caret);
   zoom only scales the view and never changes the document fonts.
 - Image settings: double-click an image or right-click it and choose Edit/Replace/Delete;
   edit the URL, replace it with a file, change alt/width/alignment or remove it.
 - Configurable toolbar groups, menu bar (File, Edit, Insert, Preferences; no
-  redundant Format/Tools/View menus; Preferences holds Document settings and
-  Page settings), contextual selection toolbar and status bar (words,
+  redundant Format/Tools/View menus; Preferences holds Document settings,
+  Page settings and Icon style), contextual selection toolbar and status bar (words,
   characters, paragraphs, caret, zoom). The table toolbar is a dockable group
   in the main toolbar and appears when the caret is in a table. Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the

@@ -62,7 +62,7 @@ async fn changedValue() -> null {
 
 view main {
 	col {
-		richtext "Article" name: "editor" value: doc height: "320px" theme: "dark" header: "Report \{page\}/\{pages\}" footer: "Footer \{page\}" menu: true toolbar: true contextToolbar: true statusbar: true onChange: changedValue onInput: changedValue toolbarItems: "undo,redo|styleSelect,bold,italic,underline,bulletList,orderedList|link,image,table"
+		richtext "Article" name: "editor" value: doc height: "320px" theme: "dark" header: "Report \{page\}/\{pages\}" footer: "Footer \{page\}" menu: true toolbar: true contextToolbar: true statusbar: true onChange: changedValue onInput: changedValue toolbarItems: "undo,redo|styleSelect,bold,italic,underline,textColor,highlight,bulletList,orderedList|link,image,table"
 		button "Run" onClick: run
 		p "{status}"
 		pre "{out}"
@@ -93,7 +93,7 @@ view main {
     await wait(120);
     var prefLabels = [].map.call(root.querySelectorAll('.sui-rich-menu-panel:not([hidden]) .sui-rich-menu-item'), function (b) { return b.textContent; });
     prefMenuBtn.click();
-    if (prefLabels.join('|') !== 'Document settings|Page settings') throw new Error('Preferences items: ' + prefLabels.join('|'));
+    if (prefLabels.join('|') !== 'Document settings|Page settings|Icon style ▸|Line icons|Bold line icons|Duotone icons|Soft block icons') throw new Error('Preferences items: ' + prefLabels.join('|'));
     var insertMenuBtn = [].filter.call(root.querySelectorAll('.sui-rich-menu-btn'), function (b) { return b.textContent === 'Insert'; })[0];
     insertMenuBtn.click();
     await wait(120);
@@ -173,6 +173,139 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     await wait(250);
     if (!richRoot().querySelector('.sui-rich-editor ul li')) throw new Error('list command: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
     if (richRoot().querySelector('.sui-rich-props')) throw new Error('properties panel should not exist');
+
+    // Color controls show the document defaults (black text, white highlight)
+    // and follow an explicit inline color at the caret.
+    __SUI_RICH.setToolbar('editor', 'undo,redo|styleSelect,bold,italic,underline,textColor,highlight,bulletList,orderedList|link,image,table');
+    await wait(150);
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Plain color', marks: [] }] }] });
+    await wait(200);
+    var colorEditor = richRoot().querySelector('.sui-rich-editor');
+    var colorText = colorEditor.querySelector('p').firstChild;
+    var colorRange = document.createRange(); colorRange.setStart(colorText, 2); colorRange.collapse(true);
+    var colorSel = window.getSelection(); colorSel.removeAllRanges(); colorSel.addRange(colorRange); colorEditor.focus();
+    document.dispatchEvent(new Event('selectionchange'));
+    await wait(120);
+    var colorInputs = [].slice.call(richRoot().querySelectorAll('.sui-rich-color'));
+    var textColorInput = colorInputs.filter(function (input) { return input.getAttribute('data-rich-cmd') === 'textColor'; })[0];
+    var highlightInput = colorInputs.filter(function (input) { return input.getAttribute('data-rich-cmd') === 'highlight'; })[0];
+    if (!textColorInput || textColorInput.value !== '#000000') throw new Error('default text color swatch: ' + (textColorInput ? textColorInput.value : 'missing'));
+    if (!highlightInput || highlightInput.value !== '#ffffff') throw new Error('default highlight swatch: ' + (highlightInput ? highlightInput.value : 'missing'));
+    if (Math.round(textColorInput.getBoundingClientRect().width) < 34) throw new Error('color control is too small to click');
+
+    // Bold/italic/underline must toggle off again.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Toggle format', marks: [] }] }] });
+    await wait(200);
+    var toggleEditor = richRoot().querySelector('.sui-rich-editor');
+    var toggleText = toggleEditor.querySelector('p').firstChild;
+    var toggleRange = document.createRange(); toggleRange.setStart(toggleText, 0); toggleRange.setEnd(toggleText, 6);
+    var toggleSel = window.getSelection(); toggleSel.removeAllRanges(); toggleSel.addRange(toggleRange); toggleEditor.focus();
+    __SUI_RICH.command('editor', 'bold');
+    await wait(200);
+    if (!richRoot().querySelector('.sui-rich-editor strong, .sui-rich-editor b, .sui-rich-editor [style*="font-weight"]')) throw new Error('bold did not apply: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    __SUI_RICH.command('editor', 'bold');
+    await wait(200);
+    if (richRoot().querySelector('.sui-rich-editor strong, .sui-rich-editor b, .sui-rich-editor [style*="font-weight"]')) throw new Error('bold did not toggle off: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+
+    // Four icon sets, persisted per editor and selectable from Preferences.
+    var iconRoot = richRoot();
+    var iconCommands = ['iconSetLine', 'iconSetBold', 'iconSetDuotone', 'iconSetBlocks'];
+    for (var is = 0; is < iconCommands.length; is++) {
+      __SUI_RICH.command('editor', iconCommands[is]);
+      await wait(80);
+      var expectedSet = iconCommands[is].replace('iconSet', '').toLowerCase();
+      if (iconRoot.getAttribute('data-sui-rich-icons') !== expectedSet) throw new Error('icon set not applied: ' + iconCommands[is]);
+    }
+    __SUI_RICH.command('editor', 'iconSetLine');
+    await wait(80);
+    var iconSvg = iconRoot.querySelector('.sui-rich-toolbar [data-rich-cmd="bulletList"] svg');
+    var iconSize = iconSvg ? parseFloat(getComputedStyle(iconSvg).width) : 0;
+    if (iconSize < 20) throw new Error('toolbar icons are still too small: ' + iconSize);
+
+    // Inline code and code blocks use a readable contrast on the white page.
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'paragraph', children: [{ type: 'text', text: 'inline ', marks: [] }, { type: 'text', text: 'code', marks: [{ type: 'code' }] }] },
+      { type: 'code_block', text: 'line one\nline two' }
+    ] });
+    await wait(250);
+    var codeEditor = richRoot().querySelector('.sui-rich-editor');
+    var codeEl = codeEditor.querySelector('p code');
+    var preEl = codeEditor.querySelector('pre');
+    var editorColor = getComputedStyle(codeEditor).color;
+    if (!codeEl || getComputedStyle(codeEl).color !== editorColor) throw new Error('inline code contrast: ' + (codeEl ? getComputedStyle(codeEl).color : 'missing') + ' vs ' + editorColor);
+    if (!preEl || getComputedStyle(preEl).color !== editorColor) throw new Error('code block contrast: ' + (preEl ? getComputedStyle(preEl).color : 'missing') + ' vs ' + editorColor);
+
+    // Turning a code block off keeps one paragraph per line.
+    var preRange = document.createRange(); preRange.selectNodeContents(preEl); preRange.collapse(false);
+    var preSel = window.getSelection(); preSel.removeAllRanges(); preSel.addRange(preRange); codeEditor.focus();
+    __SUI_RICH.command('editor', 'codeBlock');
+    await wait(250);
+    var codeParas = [].map.call(richRoot().querySelectorAll('.sui-rich-editor > p'), function (p) { return p.textContent; });
+    var codeTail = codeParas.slice(-2).join('|');
+    if (codeTail !== 'line one|line two') throw new Error('code block exit lost lines: ' + codeParas.join('|'));
+    if (richRoot().querySelector('.sui-rich-editor > pre')) throw new Error('code block did not turn off');
+
+    // Enter inside a list creates one list item per line.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Left right', marks: [] }] }] }] }] });
+    await wait(250);
+    var listEditor = richRoot().querySelector('.sui-rich-editor');
+    var listText = listEditor.querySelector('li p').firstChild;
+    var listRange = document.createRange(); listRange.setStart(listText, 4); listRange.collapse(true);
+    var listSel = window.getSelection(); listSel.removeAllRanges(); listSel.addRange(listRange); listEditor.focus();
+    listEditor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await wait(250);
+    var listItems = [].map.call(richRoot().querySelectorAll('.sui-rich-editor li'), function (li) { return li.textContent; });
+    if (listItems.join('|') !== 'Left| right') throw new Error('list Enter split: ' + listItems.join('|'));
+    if (richRoot().querySelectorAll('.sui-rich-editor li').length !== 2) throw new Error('list Enter did not create a second item');
+
+    // The image dialog offers a PC file picker and keeps the URL option.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Picture', marks: [] }] }] });
+    await wait(200);
+    __SUI_RICH.command('editor', 'image');
+    await wait(200);
+    var imagePrompt = document.querySelector('.sui-rich-prompt');
+    var imageFile = imagePrompt ? imagePrompt.querySelector('input[type="file"]') : null;
+    if (!imageFile || !/image\//.test(imageFile.accept)) throw new Error('image file picker missing');
+    if (!imagePrompt.querySelector('input[type="url"]') && !imagePrompt.textContent.match(/Image URL/)) throw new Error('image URL field missing');
+    var imageCancel = [].slice.call(imagePrompt.querySelectorAll('.sui-rich-prompt-actions button')).filter(function (b) { return b.textContent === 'Cancel'; })[0];
+    if (imageCancel) imageCancel.click();
+
+    // Table settings expose fit/px/% width and the column resize keeps the
+    // other columns independent.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'table', rows: [
+      { type: 'table_row', cells: [{ type: 'table_cell', children: [{ type: 'text', text: 'A', marks: [] }] }, { type: 'table_cell', children: [{ type: 'text', text: 'B', marks: [] }] }, { type: 'table_cell', children: [{ type: 'text', text: 'C', marks: [] }] }] },
+      { type: 'table_row', cells: [{ type: 'table_cell', children: [{ type: 'text', text: '1', marks: [] }] }, { type: 'table_cell', children: [{ type: 'text', text: '2', marks: [] }] }, { type: 'table_cell', children: [{ type: 'text', text: '3', marks: [] }] }] }
+    ] }] });
+    await wait(300);
+    var sizeTable = richRoot().querySelector('.sui-rich-editor table');
+    var sizeRange = document.createRange(); sizeRange.selectNodeContents(sizeTable.rows[0].cells[0]); sizeRange.collapse(true);
+    var sizeSel = window.getSelection(); sizeSel.removeAllRanges(); sizeSel.addRange(sizeRange);
+    __SUI_RICH.command('editor', 'tableProps');
+    await wait(200);
+    var tablePanel = document.querySelector('.sui-rich-tableprops');
+    var tableMode = tablePanel ? tablePanel.querySelector('select') : null;
+    if (!tableMode) throw new Error('table width mode missing');
+    var tableNumbers = tablePanel.querySelectorAll('input[type="number"]');
+    var tableWidthInput = tableNumbers[tableNumbers.length - 1];
+    tableMode.value = 'px'; tableMode.dispatchEvent(new Event('change', { bubbles: true }));
+    tableWidthInput.value = '360'; tableWidthInput.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(200);
+    if ((richRoot().querySelector('.sui-rich-editor table').style.width || '') !== '360px') throw new Error('table px width not applied: ' + richRoot().querySelector('.sui-rich-editor table').style.width);
+    var resizeTable = richRoot().querySelector('.sui-rich-editor table');
+    var resizeCells = resizeTable.rows[0].cells;
+    var resizeBefore = [].map.call(resizeCells, function (cell) { return Math.round(cell.getBoundingClientRect().width); });
+    var cellB = resizeCells[1].getBoundingClientRect();
+    var dragX = cellB.right - 2, dragY = cellB.top + 5;
+    resizeCells[1].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: dragX, clientY: dragY, button: 0 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: dragX + 24, clientY: dragY }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: dragX + 24, clientY: dragY }));
+    await wait(250);
+    var resizeCols = [].map.call(richRoot().querySelectorAll('.sui-rich-editor table colgroup col'), function (col) { return Math.round(parseFloat(col.style.width)); });
+    if (resizeCols.length !== 3) throw new Error('table columns not captured for resizing: ' + resizeCols.join(','));
+    if (resizeCols[0] !== resizeBefore[0] || resizeCols[2] !== resizeBefore[2]) throw new Error('table columns not independent: ' + resizeBefore.join(',') + ' -> ' + resizeCols.join(','));
+    if (Math.abs((resizeCols[1] - resizeBefore[1]) - 24) > 4) throw new Error('only the dragged column should grow: ' + resizeBefore.join(',') + ' -> ' + resizeCols.join(','));
+    var tablePanelClose = tablePanel.querySelector('.sui-rich-tableprops-close');
+    if (tablePanelClose) tablePanelClose.click();
 
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Table', marks: [] }] }] });
     await wait(200);
@@ -1495,7 +1628,9 @@ func TestRichTextDefaultToolbarCoversTextFeatures(t *testing.T) {
 		"data-rich-paragraph-indent-inc",
 		"insert: ['Link|link', 'Image|image', 'Table|table'",
 		"var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', preferences: 'Preferences' };",
-		"preferences: ['Document settings|documentSettings', 'Page settings|pageSettings']",
+		"preferences: ['Document settings|documentSettings', 'Page settings|pageSettings'",
+		"{ label: 'Icon style', items: ['Line icons|iconSetLine'",
+		"'Soft block icons|iconSetBlocks'",
 	} {
 		if !strings.Contains(suiRichTextRuntime, want) {
 			t.Errorf("rich text runtime is missing %q", want)
