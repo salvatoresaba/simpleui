@@ -574,7 +574,7 @@ window.__SUI_RICH = (function () {
       if (node.padding) box.setAttribute('data-table-padding', cssLength(node.padding, ''));
       if (node.borders) box.setAttribute('data-table-borders', node.borders.join(','));
       if (node._tableGroup) box.setAttribute('data-sui-table-group', String(node._tableGroup));
-      if (node.width) box.style.width = cssLength(node.width, '');
+      if (node.width) { box.style.width = cssLength(node.width, ''); box.style.maxWidth = 'none'; }
       if (node.height) box.style.height = cssLength(node.height, '');
       if (node.align === 'center') { box.style.marginLeft = 'auto'; box.style.marginRight = 'auto'; }
       else if (node.align === 'right') { box.style.marginLeft = 'auto'; box.style.marginRight = '0'; }
@@ -1633,6 +1633,7 @@ window.__SUI_RICH = (function () {
     }
     table.style.tableLayout = 'fixed';
     table.style.width = total + 'px';
+    table.style.maxWidth = 'none';
   }
   function tableGridMap(table) {
     var map = [];
@@ -3996,7 +3997,7 @@ window.__SUI_RICH = (function () {
       if (!value) return;
       clearTableColumnWidths(current);
       current.style.width = value + (widthSelect.value === 'percent' ? '%' : 'px');
-      current.style.maxWidth = '';
+      current.style.maxWidth = 'none';
       current.style.tableLayout = 'auto';
       commit(inst, 'change');
     }
@@ -7995,6 +7996,8 @@ window.__SUI_RICH = (function () {
   function exportRTF(inst) {
     rtfFonts = ['Helvetica', 'Courier New']; rtfFontMap = { helvetica: 0, 'courier new': 1 }; rtfColors = []; rtfColorMap = {};
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) rtfNoteDoc(inst.doc.children[ci]);
+    if (inst.headerValue) rtfNoteDoc(inst.headerValue);
+    if (inst.footerValue) rtfNoteDoc(inst.footerValue);
     var fontDefs = '';
     for (var f = 0; f < rtfFonts.length; f++) fontDefs += '{\\f' + f + ' ' + rtfFonts[f] + ';}';
     var header = '{\\rtf1\\ansi\\deff0\\uc1{\\fonttbl' + fontDefs + '}';
@@ -8026,6 +8029,39 @@ window.__SUI_RICH = (function () {
       }
       return s;
     }
+    function chromeInline(value) {
+      var blocks = chromeDoc(value).children || [], s = '';
+      for (var b = 0; b < blocks.length; b++) {
+        var block = blocks[b];
+        if (!block) continue;
+        if (block.type === 'paragraph' || block.type === 'heading') {
+          if (s) s += '\\line ';
+          for (var i = 0; i < (block.children || []).length; i++) {
+            var n = block.children[i];
+            if (!n) continue;
+            if (n.type === 'break') { s += '\\line '; continue; }
+            if (n.type === 'image') { s += rtfPicture(n.src, n.width, n.height); continue; }
+            if (n.type !== 'text') continue;
+            var valueText = applyPageTokens(n.text || '', 1, 1, false, inst);
+            var parts = String(valueText).split(/(__SUI_PAGE__|__SUI_PAGES__)/);
+            for (var p = 0; p < parts.length; p++) {
+              var part = parts[p];
+              if (!part) continue;
+              if (part === '__SUI_PAGE__') s += '{\\field{\\*\\fldinst PAGE}{\\fldrslt 1}}';
+              else if (part === '__SUI_PAGES__') s += '{\\field{\\*\\fldinst NUMPAGES}{\\fldrslt 1}}';
+              else s += inline([{ type: 'text', text: part, marks: n.marks || [] }]);
+            }
+          }
+        } else if (block.type === 'image') {
+          s += rtfPicture(block.src, block.width, block.height);
+        }
+      }
+      return s;
+    }
+    var rtfHeaderBody = chromeInline(inst.headerValue || inst.headerText || '');
+    var rtfFooterBody = chromeInline(inst.footerValue || inst.footerText || '');
+    if (rtfHeaderBody) out.splice(1, 0, '{\\header \\pard\\qc ' + rtfHeaderBody + '\\par}');
+    if (rtfFooterBody) out.splice(1 + (rtfHeaderBody ? 1 : 0), 0, '{\\footer \\pard\\qc ' + rtfFooterBody + '\\par}');
     function paragraphProps(n) {
       var p = '\\pard';
       if (n.align === 'center') p += '\\qc';
@@ -9667,30 +9703,86 @@ window.__SUI_RICH = (function () {
     var MARGIN_T = mmToPt(pageCfg.margins.top), MARGIN_B = mmToPt(pageCfg.margins.bottom);
     var CONTENT_W = PAGE_W - MARGIN - MARGIN_R;
     var headerText = inst.headerText || '', footerText = inst.footerText || '';
-    var HEADER_H = headerText ? 30 : 0, FOOTER_H = footerText ? 30 : 0;
-    var START_Y = MARGIN_T + HEADER_H, BOTTOM_LIMIT = PAGE_H - MARGIN_B - FOOTER_H;
+    var headerValue = inst.headerValue != null ? inst.headerValue : headerText;
+    var footerValue = inst.footerValue != null ? inst.footerValue : footerText;
+    var hasHeader = chromeHasContent(headerValue);
+    var hasFooter = chromeHasContent(footerValue);
+    var HEADER_H = hasHeader ? Math.max(30, (inst.headerH || 0) * 0.75) : 0;
+    var FOOTER_H = hasFooter ? Math.max(30, (inst.footerH || 0) * 0.75) : 0;
+    var headerSpace = hasHeader ? Math.max(MARGIN_T, HEADER_H + 12) : MARGIN_T;
+    var footerSpace = hasFooter ? Math.max(MARGIN_B, FOOTER_H + 12) : MARGIN_B;
+    var START_Y = headerSpace, BOTTOM_LIMIT = PAGE_H - footerSpace;
     pdfEmbUse = {};
     var pages = [], ops = [], y = START_Y, pageSeq = 0;
     var images = [], imageCache = {};
     var doc = inst.doc || { children: [] };
     var domTables = inst.editor ? inst.editor.querySelectorAll('table') : [];
     var tableSeq = 0;
-    function chromeLine(text, baseline) {
-      var font = { id: 1, name: 'F1', family: 'helvetica', bold: false, italic: false, emb: null }, size = 9;
-      var value = applyPageTokens(text, 1, 1, false, inst);
-      var width = pdfTextWidth(value.replace(/__SUI_(PAGE|PAGES)__/g, '00'), font, size);
-      var x = MARGIN + Math.max(0, (CONTENT_W - width) / 2);
-      ops.push('BT ' + pdfFill('#666666') + ' /' + font.name + ' ' + size + ' Tf ' + pdfNumber(x) + ' ' + pdfNumber(ty(baseline)) + ' Td (' + pdfEscape(value) + ') Tj ET');
+    function chromeRuns(nodes) {
+      var mapped = [];
+      for (var i = 0; i < (nodes || []).length; i++) {
+        var n = nodes[i];
+        if (n && n.type === 'text') mapped.push({ type: 'text', text: applyPageTokens(n.text || '', 1, 1, false, inst), marks: n.marks || [] });
+        else if (n) mapped.push(n);
+      }
+      return runsOf(mapped, [{ type: 'size', value: '9' }]);
+    }
+    function drawChromeRuns(runs, top, maxWidth, maxHeight) {
+      var total = 0;
+      for (var i = 0; i < runs.length; i++) {
+        var run = runs[i];
+        if (run.type === 'run') total += pdfTextWidth(run.text.replace(/__SUI_(PAGE|PAGES)__/g, '00'), run.font, run.fontSize);
+        else if (run.type === 'image') {
+          var sizedW = imageSize(run.node, maxWidth);
+          if (sizedW) {
+            var fit = Math.min(1, (maxHeight - 2) / sizedW.height);
+            total += sizedW.width * fit + 4;
+          }
+        }
+      }
+      var x = MARGIN + Math.max(0, (CONTENT_W - Math.min(total, maxWidth)) / 2);
+      for (var r = 0; r < runs.length; r++) {
+        var item = runs[r];
+        if (item.type === 'image') {
+          var sized = imageSize(item.node, maxWidth);
+          if (sized) {
+            var scale = Math.min(1, (maxHeight - 2) / sized.height);
+            var w = sized.width * scale, h = sized.height * scale;
+            drawImage(sized.entry, x, top, w, h);
+            x += w + 4;
+          }
+          continue;
+        }
+        if (item.type !== 'run') continue;
+        var width = pdfTextWidth(item.text.replace(/__SUI_(PAGE|PAGES)__/g, '00'), item.font, item.fontSize);
+        ops.push('BT ' + pdfFill(item.color || '#666666') + ' /' + item.font.name + ' ' + item.fontSize + ' Tf ' + pdfNumber(x) + ' ' + pdfNumber(ty(top + item.fontSize * 0.8)) + ' Td (' + pdfEscape(pdfEncode(item.text)) + ') Tj ET');
+        x += width;
+      }
+    }
+    function drawChromeValue(value, top, areaH, borderTop) {
+      var blocks = chromeDoc(value).children || [];
+      var lineTop = top;
+      for (var b = 0; b < blocks.length; b++) {
+        var block = blocks[b];
+        if (!block) continue;
+        if (block.type === 'paragraph' || block.type === 'heading') {
+          var runs = chromeRuns(block.children);
+          if (lineTop + 11 > top + areaH) break;
+          drawChromeRuns(runs, lineTop, CONTENT_W, Math.min(18, areaH));
+          lineTop += 11;
+        } else if (block.type === 'image') {
+          var sized = imageSize(block, CONTENT_W);
+          if (sized && lineTop + sized.height <= top + areaH) {
+            drawImage(sized.entry, MARGIN + Math.max(0, (CONTENT_W - sized.width) / 2), lineTop, sized.width, sized.height);
+            lineTop += sized.height + 2;
+          }
+        }
+      }
+      ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(borderTop)) + ' m ' + pdfNumber(PAGE_W - MARGIN_R) + ' ' + pdfNumber(ty(borderTop)) + ' l S Q');
     }
     function drawChrome() {
-      if (headerText) {
-        chromeLine(headerText, MARGIN_T - 16);
-        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(MARGIN_T - 7)) + ' m ' + pdfNumber(PAGE_W - MARGIN_R) + ' ' + pdfNumber(ty(MARGIN_T - 7)) + ' l S Q');
-      }
-      if (footerText) {
-        chromeLine(footerText, PAGE_H - MARGIN_B + 18);
-        ops.push('q ' + pdfStroke('#cccccc') + ' 0.5 w ' + pdfNumber(MARGIN) + ' ' + pdfNumber(ty(PAGE_H - MARGIN_B + 8)) + ' m ' + pdfNumber(PAGE_W - MARGIN_R) + ' ' + pdfNumber(ty(PAGE_H - MARGIN_B + 8)) + ' l S Q');
-      }
+      if (hasHeader) drawChromeValue(headerValue, 6, Math.max(12, headerSpace - 10), headerSpace - 3);
+      if (hasFooter) drawChromeValue(footerValue, PAGE_H - footerSpace + 4, Math.max(12, footerSpace - 10), PAGE_H - footerSpace + 3);
     }
     function newPage() { if (ops.length) pages.push(ops.join('\n')); ops = []; y = START_Y; pageSeq++; drawChrome(); }
     function ensure(h) { if (y + h > BOTTOM_LIMIT) newPage(); }

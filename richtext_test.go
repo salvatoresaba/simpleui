@@ -614,6 +614,11 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (headerDocx.indexOf('word/_rels/header1.xml.rels') < 0 || headerDocx.indexOf('word/media/') < 0 || headerDocx.indexOf('<a:blip') < 0) throw new Error('docx header image missing: hdr=' + (headerDocx.indexOf('word/header1.xml') >= 0) + ' rels=' + (headerDocx.indexOf('header1.xml.rels') >= 0) + ' media=' + (headerDocx.indexOf('word/media/') >= 0) + ' blip=' + (headerDocx.indexOf('<a:blip') >= 0));
     var headerOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
     if (headerOdt.indexOf('Pictures/') < 0 || headerOdt.indexOf('draw:frame') < 0) throw new Error('odt header image missing');
+    var headerPdfBytes = __SUI_RICH.exportBytes('editor', 'pdf');
+    var headerPdf = toLatin(headerPdfBytes[0]);
+    if (headerPdfBytes[1] !== null || headerPdf.indexOf('/Subtype /Image') < 0) throw new Error('pdf header image missing');
+    var headerRtf = toLatin(__SUI_RICH.exportBytes('editor', 'rtf')[0]);
+    if (headerRtf.indexOf('{\\header') < 0 || headerRtf.indexOf('{\\pict') < 0) throw new Error('rtf header image missing');
 
     __SUI_RICH.set('editor', { type: 'doc', children: [
       { type: 'bullet_list', children: [

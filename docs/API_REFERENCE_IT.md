@@ -1759,9 +1759,9 @@ Impostazioni pagina) sovrascrive i default del documento per una pagina: scegli
 il numero, poi formato, orientamento e margini. Reset riporta la pagina ai
 default. Le variabili vengono risolte nella vista paginata, anteprima, stampa
 diretta, PDF, DOCX e ODT. Testo multiriga e immagini restano nella vista
-paginata, nell'anteprima e nella stampa diretta; gli export DOCX e ODT includono
-anche testo ricco e immagini di header/footer, mentre il PDF include ancora solo
-testo e variabili. I default stanno in
+paginata, nell'anteprima e nella stampa diretta; gli export PDF, DOCX, ODT e RTF
+includono testo ricco e immagini di header/footer (il PDF li disegna nell'area
+misurata di intestazione/piè). I default stanno in
 `page: { size, orientation, lineHeight, lang, margins }` più `header`/`footer`; le
 sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
 Gli export usano le impostazioni efficaci della prima pagina. Il default è A4

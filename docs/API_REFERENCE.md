@@ -1802,9 +1802,9 @@ Preferences > Page settings) overrides the document defaults for one page:
 choose the page number, then set size, orientation and margins. The page panel's
 Reset returns that page to the document defaults. Variables are resolved in the
 paginated view, preview, direct print, PDF, DOCX and ODT. Multi-line text and
-images are kept in the paginated view, preview and direct Print; DOCX and ODT
-exports now include rich header/footer text and images, while the PDF export
-still includes the text content and variables only. Defaults are stored as
+images are kept in the paginated view, preview and direct Print; PDF, DOCX,
+ODT and RTF exports include rich header/footer text and images (PDF draws them
+in the measured header/footer area). Defaults are stored as
 `page: { size, orientation, lineHeight, lang, margins }` plus
 `header`/`footer`; per-page overrides are in
 `pageOverrides: { "1": { size, orientation, margins } }`.
