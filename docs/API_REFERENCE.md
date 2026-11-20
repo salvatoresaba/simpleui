@@ -1764,7 +1764,9 @@ picked; with a selection the same commands change only the selected text.
 Selection colors and highlights are written as inline spans, so they also work
 inside code blocks and are kept in the model after a re-render. The chosen color
 is previewed on the selection while the picker is open; closing the picker,
-including by clicking outside it, keeps and commits the selection.
+including by clicking outside it, keeps and commits the selection. The small
+**▾** button next to each color control opens a palette with preset colors and
+the recent colors used in that editor; **Custom...** opens the native picker.
 Inline code and code blocks use the page text color (dark on the white page,
 light on a dark page) so they stay readable. Settings panels use labels plus a
 **?** hint icon whose tooltip holds the explanation, instead of visible
@@ -1872,7 +1874,8 @@ checking and DOCX/ODT metadata.
 The document default line height is in Document settings and individual
 paragraphs can override it. Inside a code block, **Code tab size** (2, 4 or 8
 spaces) controls how many spaces indent/outdent inserts and is stored as
-`tabSize`.
+`tabSize`; **Line numbers (code)** adds an optional line-number gutter and is
+stored as `lineNumbers: true`.
 
 The editor keeps the height configured with `height` (320 px by default); when
 the text exceeds that area a scrollbar appears inside the content instead of

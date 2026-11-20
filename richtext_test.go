@@ -278,6 +278,29 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     var selBgSpan = [].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).filter(function (span) { return /rgb\(255, 224, 102\)/.test(getComputedStyle(span).backgroundColor); })[0];
     if (!selBgSpan || selBgSpan.textContent !== 'Selected') throw new Error('selection highlight not applied: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Palette color', marks: [] }] }] });
+    await wait(200);
+    var paletteEditor = richRoot().querySelector('.sui-rich-editor');
+    var paletteText = paletteEditor.querySelector('p').firstChild;
+    var paletteRange = document.createRange(); paletteRange.setStart(paletteText, 0); paletteRange.setEnd(paletteText, 7);
+    var paletteSel = window.getSelection(); paletteSel.removeAllRanges(); paletteSel.addRange(paletteRange); paletteEditor.focus();
+    var paletteButtons = [].slice.call(richRoot().querySelectorAll('.sui-rich-color-palette-btn'));
+    if (paletteButtons.length < 2) throw new Error('color palette buttons missing');
+    paletteButtons[0].click();
+    await wait(150);
+    var palettePanel = document.querySelector('.sui-rich-color-palette');
+    if (!palettePanel) throw new Error('color palette did not open');
+    var paletteSwatches = palettePanel.querySelectorAll('.sui-rich-color-swatch');
+    if (paletteSwatches.length < 12) throw new Error('color palette presets missing');
+    var redSwatch = [].slice.call(paletteSwatches).filter(function (sw) { return sw.getAttribute('title') === '#e03131'; })[0];
+    if (!redSwatch) throw new Error('red palette swatch missing');
+    redSwatch.click();
+    await wait(250);
+    if (document.querySelector('.sui-rich-color-palette')) throw new Error('color palette did not close');
+    if (![].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).some(function (span) { return /rgb\(224, 49, 49\)/.test(getComputedStyle(span).color); })) throw new Error('palette color not applied: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
+    var paletteDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (!paletteDoc.children.some(function (n) { return n.marks && n.marks.some(function (m) { return m.type === 'color' && /rgb\(224, 49, 49\)/.test(m.value); }); })) throw new Error('palette color not stored');
+
     // Picking a color previews it immediately; clicking outside to close the
     // picker must keep the color and commit it to the model.
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Preview color', marks: [] }] }] });
@@ -387,6 +410,26 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     if (!tabbedCode || tabbedCode.textContent !== 'one\n    two') throw new Error('code tab size indent: ' + JSON.stringify(tabbedCode ? tabbedCode.textContent : null));
     var tabCodeDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (String(tabCodeDoc.tabSize) !== '4') throw new Error('code tab size not stored: ' + JSON.stringify(tabCodeDoc));
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'code_block', text: 'one\ntwo\nthree' }] });
+    await wait(220);
+    var lineNumEditor = richRoot().querySelector('.sui-rich-editor');
+    var lineNumCode = lineNumEditor.querySelector('pre code');
+    var lineNumRange = document.createRange(); lineNumRange.selectNodeContents(lineNumCode); lineNumRange.collapse(true);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(lineNumRange);
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(180);
+    var lineNumPanel = document.querySelector('.sui-rich-paragraphsettings');
+    var lineNumCheck = lineNumPanel.querySelector('[data-rich-paragraph-linenumbers]');
+    if (!lineNumCheck) throw new Error('code line numbers control missing');
+    lineNumCheck.checked = true;
+    lineNumPanel.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(220);
+    var numberedPre = richRoot().querySelector('.sui-rich-editor pre[data-line-numbers]');
+    if (!numberedPre) throw new Error('code line numbers not rendered');
+    var numberedLines = String(numberedPre.getAttribute('data-line-numbers')).split('\n');
+    if (numberedLines.join('|') !== '1|2|3') throw new Error('code line numbers wrong: ' + numberedLines.join('|'));
+    var numberedDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (!numberedDoc.lineNumbers) throw new Error('code line numbers not stored');
 
     // Enter inside a list creates one list item per line.
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Left right', marks: [] }] }] }] }] });

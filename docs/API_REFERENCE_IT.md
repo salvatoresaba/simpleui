@@ -1722,7 +1722,9 @@ comandi modificano solo il testo selezionato. Colori e sfondi di selezione sono
 scritti come span inline, quindi funzionano anche dentro i blocchi di codice e
 restano nel modello dopo il re-render. Il colore scelto è mostrato in anteprima
 sulla selezione mentre il picker è aperto; chiudendolo, anche con un clic fuori,
-la scelta viene mantenuta e salvata. Il codice inline e i blocchi di
+la scelta viene mantenuta e salvata. Il piccolo pulsante **▾** accanto a ogni
+controllo colore apre una palette con colori predefiniti e i colori recenti
+dell'editor; **Custom...** apre il picker nativo. Il codice inline e i blocchi di
 codice usano il colore del testo della pagina (scuro sul foglio bianco, chiaro
 sul tema scuro) per restare leggibili. I pannelli usano etichette e un'icona
 **?** con il suggerimento nel tooltip al posto delle istruzioni scritte.
@@ -1835,7 +1837,8 @@ documento resta usata per correttore ortografico e metadati DOCX/ODT.
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
 (2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come
-`tabSize`.
+`tabSize`; **Line numbers (code)** aggiunge la gutter dei numeri di riga ed è
+salvato come `lineNumbers: true`.
 
 L'editor mantiene l'altezza configurata con `height` (320 px di default);
 quando il testo supera l'area compare una scrollbar nel contenuto invece di far

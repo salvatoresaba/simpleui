@@ -320,6 +320,7 @@ window.__SUI_RICH = (function () {
       if (tag === 'pre') {
         flush();
         var codeBlock = { type: 'code_block', text: node.textContent || '' };
+        if (node.getAttribute && node.getAttribute('data-line-numbers') !== null) codeBlock.lineNumbers = true;
         var preStyle = blockStyle(node);
         for (var pk in preStyle) if (hasOwn(preStyle, pk) && preStyle[pk]) codeBlock[pk] = preStyle[pk];
         var codeHost = null;
@@ -610,6 +611,7 @@ window.__SUI_RICH = (function () {
       else codeBox.appendChild(document.createTextNode(String(node.text == null ? '' : node.text)));
       box.appendChild(codeBox);
       styleForBlock(box, node);
+      if (node.lineNumbers) box.setAttribute('data-line-numbers', codeLineNumbers(codeBox));
       return box;
     } else if (type === 'hr') {
       return el('hr');
@@ -932,6 +934,7 @@ window.__SUI_RICH = (function () {
     }
     remember(inst);
     updateStats(inst);
+    refreshCodeLineNumbers(inst);
     updatePageGuides(inst);
     // A collapsed formatting toggle or color choice changes only the native
     // typing state, not the document. Skipping the state setter keeps that
@@ -1098,6 +1101,20 @@ window.__SUI_RICH = (function () {
     var normalized = String(text || '').replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
     if (normalized.charAt(normalized.length - 1) === '\n') normalized = normalized.slice(0, -1);
     return normalized.split('\n');
+  }
+  function codeLineNumbers(root) {
+    var lines = blockTextLines(root);
+    var out = [];
+    for (var i = 0; i < lines.length; i++) out.push(String(i + 1));
+    return out.join('\n');
+  }
+  function refreshCodeLineNumbers(inst) {
+    if (!inst || !inst.editor) return;
+    var pres = inst.editor.querySelectorAll('pre[data-line-numbers]');
+    for (var i = 0; i < pres.length; i++) {
+      var code = pres[i].querySelector('code') || pres[i];
+      pres[i].setAttribute('data-line-numbers', codeLineNumbers(code));
+    }
   }
   function blockLine(name, text) {
     var node = el(name);
@@ -2559,9 +2576,104 @@ window.__SUI_RICH = (function () {
     inst.colorPreview = null;
     inst.colorCommittedValue = value;
   }
+  var COLOR_PRESETS = ['#000000', '#ffffff', '#e03131', '#f08c00', '#ffd43b', '#2f9e44', '#0ca678', '#1971c2', '#5f3dc4', '#868e96', '#495057', '#f783ac'];
+  function rememberRecentColor(inst, color) {
+    var hex = rgbHex(color || '') || '';
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+    var key = 'sui-rich-colors-' + inst.name;
+    var list = [];
+    try { list = parseJSON(localStorage.getItem(key) || '[]', []) || []; } catch (e) { list = []; }
+    list = [hex].concat(list.filter(function (item) { return item !== hex; })).slice(0, 12);
+    try { localStorage.setItem(key, JSON.stringify(list)); } catch (e) {}
+  }
+  function closeColorPalette() {
+    var panel = document.querySelector('.sui-rich-color-palette');
+    if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+  }
+  function beginPaletteSelection(inst, input, cmd, anchor) {
+    var sel = window.getSelection();
+    var range = null;
+    if (sel && sel.rangeCount && inst.editor && inst.editor.contains(sel.anchorNode)) range = sel.getRangeAt(0).cloneRange();
+    else if (inst.savedSelection) {
+      restoreSelection(inst);
+      sel = window.getSelection();
+      if (sel && sel.rangeCount && inst.editor.contains(sel.anchorNode)) range = sel.getRangeAt(0).cloneRange();
+    }
+    closeColorPalette();
+    var panel = el('div', 'sui-rich-color-palette');
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', cmd === 'textColor' ? 'Text color palette' : 'Highlight color palette');
+    applyChromeTheme(inst, panel);
+    var title = el('div', 'sui-rich-color-palette-title', cmd === 'textColor' ? 'Text color' : 'Highlight color');
+    panel.appendChild(title);
+    var recent = [];
+    try { recent = parseJSON(localStorage.getItem('sui-rich-colors-' + inst.name) || '[]', []) || []; } catch (e) { recent = []; }
+    function grid(colors) {
+      var box = el('div', 'sui-rich-color-grid');
+      colors.forEach(function (color) {
+        var sw = el('button', 'sui-rich-color-swatch');
+        sw.type = 'button';
+        sw.style.backgroundColor = color;
+        sw.title = color;
+        sw.setAttribute('aria-label', color);
+        sw.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          var target = { cmd: cmd, range: range, input: input };
+          inst.colorSelection = target;
+          input.value = color;
+          var wrap = input.closest('.sui-rich-color-control');
+          if (wrap) wrap.style.setProperty('--sui-rich-color-current', color);
+          command(inst.name, cmd, color);
+          inst.colorSelection = null;
+          inst.colorPreview = null;
+          inst.colorCommittedValue = color;
+          rememberRecentColor(inst, color);
+          closeColorPalette();
+        });
+        box.appendChild(sw);
+      });
+      return box;
+    }
+    panel.appendChild(grid(COLOR_PRESETS));
+    if (recent.length) {
+      panel.appendChild(el('div', 'sui-rich-color-palette-title', 'Recent'));
+      panel.appendChild(grid(recent));
+    }
+    var custom = el('button', 'sui-rich-btn sui-rich-color-custom', 'Custom...');
+    custom.type = 'button';
+    custom.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      closeColorPalette();
+      beginColorSelection(inst, input, cmd);
+      saveSelection(inst);
+      try {
+        if (typeof input.showPicker === 'function') input.showPicker();
+        else input.click();
+      } catch (e) { try { input.click(); } catch (x) {} }
+    });
+    panel.appendChild(custom);
+    document.body.appendChild(panel);
+    var rect = anchor.getBoundingClientRect();
+    var width = 196;
+    var left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.left));
+    var top = rect.bottom + 6;
+    if (top + panel.offsetHeight > window.innerHeight) top = Math.max(8, rect.top - panel.offsetHeight - 6);
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    if (!window.__suiRichPaletteOutside) {
+      window.__suiRichPaletteOutside = true;
+      document.addEventListener('mousedown', function (ev) {
+        var p = document.querySelector('.sui-rich-color-palette');
+        if (!p) return;
+        if (p.contains(ev.target) || (ev.target.closest && ev.target.closest('.sui-rich-color-palette-btn'))) return;
+        closeColorPalette();
+      });
+    }
+  }
   function rememberTypingColor(inst, cmd, value) {
     if (cmd === 'textColor') inst.typingColor = value;
     else if (cmd === 'highlight') inst.typingHighlight = value;
+    rememberRecentColor(inst, value);
   }
   function applyTypingState(inst) {
     var native = { bold: 'bold', italic: 'italic', underline: 'underline', strike: 'strikeThrough', superscript: 'superscript', subscript: 'subscript' };
@@ -3768,6 +3880,17 @@ window.__SUI_RICH = (function () {
           colorWrap.appendChild(colorIcon);
           colorWrap.appendChild(color);
           group.appendChild(colorWrap);
+          var paletteBtn = el('button', 'sui-rich-color-palette-btn', '\u25be');
+          paletteBtn.type = 'button';
+          paletteBtn.title = 'Choose from a color palette';
+          paletteBtn.setAttribute('aria-label', paletteBtn.title);
+          (function (paletteInput, cmdToken, anchor) {
+            anchor.addEventListener('click', function (ev) {
+              ev.preventDefault();
+              beginPaletteSelection(inst, paletteInput, cmdToken, anchor);
+            });
+          })(color, token, paletteBtn);
+          group.appendChild(paletteBtn);
         } else if (token === 'zoom') {
           var zoomOutBtn = button(inst, 'zoomOut', '\u2212', TOOL_LABELS.zoomOut);
           zoomOutBtn.setAttribute('data-rich-zoom', 'out');
@@ -5803,6 +5926,15 @@ window.__SUI_RICH = (function () {
     });
     tabRow.appendChild(tabSelect);
     panel.appendChild(tabRow);
+    var lineNumRow = el('label', 'sui-rich-paragraph-check');
+    lineNumRow.appendChild(el('span', '', 'Line numbers (code)'));
+    var lineNum = el('input');
+    lineNum.type = 'checkbox';
+    lineNum.setAttribute('data-rich-paragraph-linenumbers', '1');
+    lineNum.setAttribute('aria-label', 'Show line numbers in code blocks');
+    lineNum.title = 'Show a line-number gutter in code blocks.';
+    lineNumRow.appendChild(lineNum);
+    panel.appendChild(lineNumRow);
     var hyphenRow = el('label', 'sui-rich-paragraph-check');
     hyphenRow.appendChild(el('span', '', 'Hyphenation'));
     var hyphen = el('input');
@@ -5874,7 +6006,8 @@ window.__SUI_RICH = (function () {
         before: parseFloat(block.style.marginTop) || 0,
         after: parseFloat(block.style.marginBottom) || 0,
         hyphens: block.style.hyphens || block.style.webkitHyphens || '',
-        tabSize: block.style.tabSize || '2'
+        tabSize: block.style.tabSize || '2',
+        lineNumbers: block.getAttribute && block.getAttribute('data-line-numbers') !== null
       };
     }
     var align = panel.querySelector('[data-rich-paragraph-align]');
@@ -5883,6 +6016,8 @@ window.__SUI_RICH = (function () {
     if (hyphenInput) hyphenInput.checked = source.hyphens === 'auto';
     var tabInput = panel.querySelector('[data-rich-paragraph-tabsize]');
     if (tabInput) tabInput.value = source.tabSize || '2';
+    var lineNumInput = panel.querySelector('[data-rich-paragraph-linenumbers]');
+    if (lineNumInput) lineNumInput.checked = !!source.lineNumbers;
     [['indent', 'indent'], ['lineheight', 'lineheight'], ['before', 'before'], ['after', 'after']].forEach(function (pair) {
       var input = panel.querySelector('[data-rich-paragraph-' + pair[1] + ']');
       if (input) input.value = source[pair[0]] == null ? '' : String(source[pair[0]]);
@@ -5920,6 +6055,8 @@ window.__SUI_RICH = (function () {
     var hyphens = !!(hyphensInput && hyphensInput.checked) || justifyHyphen;
     var tabSizeInput = panel.querySelector('[data-rich-paragraph-tabsize]');
     var tabSize = tabSizeInput ? String(tabSizeInput.value || '2') : '2';
+    var lineNumInput = panel.querySelector('[data-rich-paragraph-linenumbers]');
+    var lineNumbers = !!(lineNumInput && lineNumInput.checked);
     var blocks = paragraphTargets(inst);
     for (var i = 0; i < blocks.length; i++) {
       var block = blocks[i];
@@ -5940,7 +6077,11 @@ window.__SUI_RICH = (function () {
       var desiredAfter = isFinite(after) && after > 0 ? after : 0;
       var currentAfter = parseFloat(block.style.marginBottom) || 0;
       if (Math.abs(desiredAfter - currentAfter) > 0.01) block.style.marginBottom = desiredAfter > 0 ? desiredAfter + 'px' : '';
-      if (block.tagName && block.tagName.toLowerCase() === 'pre') block.style.tabSize = tabSize;
+      if (block.tagName && block.tagName.toLowerCase() === 'pre') {
+        block.style.tabSize = tabSize;
+        if (lineNumbers) block.setAttribute('data-line-numbers', codeLineNumbers(block.querySelector('code') || block));
+        else block.removeAttribute('data-line-numbers');
+      }
       var isPre = block.tagName && block.tagName.toLowerCase() === 'pre';
       var hasHyphens = block.style.hyphens === 'auto' || block.style.webkitHyphens === 'auto';
       if (!isPre && hyphens !== hasHyphens) {
@@ -10705,6 +10846,14 @@ const suiRichTextCss = `
 .sui-rich-color::-webkit-color-swatch-wrapper { padding: 0; }
 .sui-rich-color::-webkit-color-swatch { border: 0; }
 .sui-rich-color::-moz-color-swatch { border: 0; }
+.sui-rich-color-palette-btn { width: 18px; min-width: 18px; height: 34px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--sui-rich-muted); cursor: pointer; font: inherit; font-size: 11px; line-height: 1; }
+.sui-rich-color-palette-btn:hover, .sui-rich-color-palette-btn:focus-visible { background: var(--sui-rich-hover); color: var(--sui-rich-fg); outline: none; }
+.sui-rich-color-palette { position: fixed; z-index: 7300; width: 196px; padding: 8px; border: 1px solid var(--sui-rich-border, #3d4556); border-radius: 9px; background: var(--sui-rich-bg, #1d2129); color: var(--sui-rich-fg, #e6e6ef); box-shadow: 0 12px 30px rgba(0,0,0,.4); }
+.sui-rich-color-palette-title { margin: 2px 0 5px; color: var(--sui-rich-muted, #9aa7b8); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.sui-rich-color-grid { display: grid; grid-template-columns: repeat(6, 24px); gap: 5px; }
+.sui-rich-color-swatch { width: 24px; height: 24px; padding: 0; border: 1px solid rgba(0,0,0,.25); border-radius: 5px; cursor: pointer; }
+.sui-rich-color-swatch:hover, .sui-rich-color-swatch:focus-visible { outline: 2px solid var(--sui-rich-accent, #6f7cff); outline-offset: 1px; }
+.sui-rich-color-custom { width: 100%; margin-top: 7px; justify-content: center; border: 1px solid var(--sui-rich-border, #3d4556); }
 .sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }
 .sui-rich-editor { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); min-height: 0; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: break-word; word-break: normal; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
 .sui-rich-editor:empty::before, .sui-rich-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--sui-rich-muted); pointer-events: none; }
@@ -10717,6 +10866,9 @@ const suiRichTextCss = `
 .sui-rich-editor pre { background: color-mix(in srgb, var(--sui-rich-paper-fg) 7%, transparent); color: var(--sui-rich-paper-fg); border: 1px solid var(--sui-rich-paper-border); border-radius: 8px; padding: 12px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; tab-size: 4; }
 .sui-rich-editor code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; color: var(--sui-rich-paper-fg); background: rgba(127,127,127,.16); border-radius: 4px; padding: .1em .3em; }
 .sui-rich-editor pre code { display: block; padding: 0; border-radius: 0; background: transparent; color: inherit; font-size: 1em; white-space: inherit; }
+.sui-rich-editor pre[data-line-numbers] { position: relative; padding-left: 52px; white-space: pre; overflow: auto; }
+.sui-rich-editor pre[data-line-numbers] code { white-space: pre; }
+.sui-rich-editor pre[data-line-numbers]::before { content: attr(data-line-numbers); position: absolute; left: 0; top: 12px; width: 36px; padding-right: 8px; border-right: 1px solid var(--sui-rich-paper-border); color: var(--sui-rich-paper-muted); text-align: right; white-space: pre; pointer-events: none; font: inherit; font-size: 12px; line-height: 1.5; }
 .sui-rich-editor hr { border: 0; border-top: 1px solid var(--sui-rich-paper-border); margin: 1.2em 0; }
 .sui-rich-editor img { max-width: 100%; height: auto; border-radius: 6px; background: transparent; border: 0; box-shadow: none; padding: 0; object-fit: contain; }
 .sui-rich-editor figure { text-align: center; }

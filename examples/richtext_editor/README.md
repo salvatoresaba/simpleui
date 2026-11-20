@@ -89,7 +89,8 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   export optional or soft hyphens without changing paragraph line spacing. The
   alignment menu offers **Justify** and **Justify + hyphenation**. **Code tab
   size** (2/4/8 spaces) controls code-line indentation and is stored as
-  `tabSize`. The main toolbar and the
+  `tabSize`; **Line numbers (code)** toggles the line-number gutter on code
+  blocks (`lineNumbers: true`). The main toolbar and the
   contextual selection toolbar both expose indent/outdent for the current
   paragraph; inside a code block they indent the current code line. Paragraphs
   and lists split at line or item boundaries to fill each page; headings and
@@ -100,7 +101,8 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   highlight (highlighted **A** with a swatch, default white). Selection colors
   and highlights are inline spans and also work inside code blocks. The color is
   previewed while the picker is open and is kept when the picker is closed,
-  including by clicking outside it.
+  including by clicking outside it. A small **▾** opens a palette with presets
+  and recent colors; **Custom...** opens the native picker.
 - Font-size buttons A+/A− change the selected text (or the word at the caret);
   zoom only scales the view and never changes the document fonts.
 - Image settings: double-click an image or right-click it and choose Edit/Replace/Delete;
