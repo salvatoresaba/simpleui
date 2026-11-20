@@ -1743,11 +1743,11 @@ orientamento (**Verticale**/**Orizzontale**), margini alto/destra/basso/
 sinistra, interlinea, **Lingua** del documento e intestazione/piè di pagina. La
 lingua è usata dal correttore ortografico, dalla sillabazione e dai metadati
 linguistici degli export DOCX/ODT; **Automatico** segue la lingua del browser.
-Header e footer si aprono in un mini editor flottante dai pulsanti **Edit...**
-in Impostazioni documento o Impostazioni pagina, oppure dalla singola voce
-**Preferences > Header and footer...** (e dal pulsante **Header and footer...**
-in Impostazioni documento); l'editor mostra sempre le schede Header e Footer,
-così si possono modificare entrambi in un unico posto. L'editor ha schede Header/Footer, testo multiriga,
+Header e footer si aprono in un mini editor flottante dal singolo pulsante
+**Header and footer...** in Impostazioni documento o Impostazioni pagina, oppure
+da **Preferences > Header and footer...**; l'editor mostra sempre le schede
+Header e Footer, così si possono modificare entrambi in un unico posto.
+L'editor ha schede Header/Footer, testo multiriga,
 inserimento immagini, grassetto/corsivo/sottolineato e allineamento, pulsanti
 token `{page}`/`{pages}`, menu delle variabili e pulsante **?** per l'aiuto.
 Sono accettati anche `[page]`/`[pages]`. Il mini editor misura l'altezza di

@@ -1150,6 +1150,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var chromePanel = document.querySelector('.sui-rich-documentsettings');
     if (chromePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 2) throw new Error('header/footer settings rows missing');
     if (!chromePanel.querySelector('[data-rich-open-chrome]')) throw new Error('single header/footer editor button missing');
+    if (chromePanel.querySelector('[data-rich-edit-chrome]')) throw new Error('per-section header/footer edit buttons still present');
     __SUI_RICH.command('editor', 'headerFooter');
     await wait(220);
     var quickChrome = document.querySelector('.sui-rich-chrome-editor');
@@ -1158,7 +1159,7 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (quickTabs.join('|') !== 'Header|Footer') throw new Error('single header/footer editor tabs: ' + quickTabs.join('|'));
     [].slice.call(quickChrome.querySelectorAll('.sui-rich-chrome-actions button')).filter(function (b) { return b.textContent === 'Cancel'; })[0].click();
     await wait(150);
-    chromePanel.querySelector('[data-rich-edit-chrome="header"]').click();
+    chromePanel.querySelector('[data-rich-open-chrome]').click();
     await wait(300);
     var chromeOverlay = document.querySelector('.sui-rich-chrome-editor');
     if (!chromeOverlay) throw new Error('header/footer mini editor did not open');
@@ -1208,7 +1209,8 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(220);
     var chromePagePanel = document.querySelector('.sui-rich-pagesettings');
     if (chromePagePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 2) throw new Error('page settings header/footer rows missing');
-    chromePagePanel.querySelector('[data-rich-edit-chrome="footer"]').click();
+    if (chromePagePanel.querySelector('[data-rich-edit-chrome]')) throw new Error('page settings per-section edit buttons still present');
+    chromePagePanel.querySelector('[data-rich-open-chrome]').click();
     await wait(220);
     if (!document.querySelector('.sui-rich-chrome-editor')) throw new Error('page settings did not open the mini editor');
     [].slice.call(document.querySelectorAll('.sui-rich-chrome-editor .sui-rich-chrome-actions button')).filter(function (b) { return b.textContent === 'Cancel'; })[0].click();

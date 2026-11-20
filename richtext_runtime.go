@@ -5547,6 +5547,7 @@ window.__SUI_RICH = (function () {
 
     chromeSettingsRow(inst, panel, 'header', 'Document header', false);
     chromeSettingsRow(inst, panel, 'footer', 'Document footer', false);
+    chromeOpenButton(inst, panel);
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply');
@@ -6156,10 +6157,6 @@ window.__SUI_RICH = (function () {
     }
     var row = el('div', 'sui-rich-chrome-summary-row');
     row.appendChild(el('span', 'sui-rich-chrome-summary-label', label));
-    var edit = el('button', 'sui-rich-btn', 'Edit...');
-    edit.type = 'button';
-    edit.setAttribute('data-rich-edit-chrome', which);
-    edit.title = 'Edit ' + label.toLowerCase();
     var help = el('button', 'sui-rich-btn sui-rich-chrome-help', '?');
     help.type = 'button';
     help.setAttribute('data-rich-chrome-help', '1');
@@ -6168,8 +6165,16 @@ window.__SUI_RICH = (function () {
     var summary = el('div', 'sui-rich-chrome-summary');
     summary.setAttribute('data-rich-chrome-summary', which);
     summary.textContent = chromeSummaryText(which === 'header' ? inst.headerValue : inst.footerValue);
-    row.appendChild(edit); row.appendChild(help); row.appendChild(summary);
+    row.appendChild(help); row.appendChild(summary);
     panel.appendChild(row);
+  }
+  function chromeOpenButton(inst, panel) {
+    var open = el('button', 'sui-rich-btn sui-rich-chrome-open', 'Header and footer...');
+    open.type = 'button';
+    open.setAttribute('data-rich-open-chrome', '1');
+    open.title = 'Open the header and footer editor with Header and Footer tabs';
+    panel.appendChild(open);
+    return open;
   }
   function applyChromeTheme(inst, node) {
     if (!inst || !inst.root || !node) return;
@@ -6522,11 +6527,7 @@ window.__SUI_RICH = (function () {
 
     chromeSettingsRow(inst, panel, 'header', 'Header', true);
     chromeSettingsRow(inst, panel, 'footer', 'Footer', true);
-    var openChromeBtn = el('button', 'sui-rich-btn sui-rich-chrome-open', 'Header and footer...');
-    openChromeBtn.type = 'button';
-    openChromeBtn.setAttribute('data-rich-open-chrome', '1');
-    openChromeBtn.title = 'Open the header and footer editor with Header and Footer tabs';
-    panel.appendChild(openChromeBtn);
+    chromeOpenButton(inst, panel);
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-doc-apply', '1');
@@ -10691,6 +10692,7 @@ const suiRichTextCss = `
 .sui-rich-chrome-summary-label { min-width: 54px; color: var(--sui-rich-muted); font-size: 11px; }
 .sui-rich-chrome-summary { flex: 1 1 100px; color: var(--sui-rich-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sui-rich-chrome-summary-row .sui-rich-btn { font-size: 11px; padding: 3px 7px; }
+.sui-rich-chrome-open { width: 100%; margin: 7px 0 2px; justify-content: center; border: 1px solid var(--sui-rich-border); background: var(--sui-rich-hover); }
 .sui-rich-chrome-content p, .sui-rich-chrome-content h1, .sui-rich-chrome-content h2, .sui-rich-chrome-content h3, .sui-rich-chrome-content h4 { margin: 0 0 .2em; }
 .sui-rich-chrome-content > :last-child { margin-bottom: 0; }
 .sui-rich-chrome-content img { max-width: 100%; max-height: 64px; object-fit: contain; }

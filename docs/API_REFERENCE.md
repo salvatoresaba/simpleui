@@ -1787,11 +1787,10 @@ general defaults: page size (A4/Letter), orientation (**Vertical**/**Horizontal*
 top/right/bottom/left margins, line height, document **Language** and header/footer. The language
 is used for spell checking, hyphenation and the language metadata of DOCX/ODT
 exports; **Automatic** follows the browser locale. Header and footer
-open in a floating mini editor from the **Edit...** buttons in Document settings
-or Page settings, or with the single **Preferences > Header and footer...**
-entry (and the **Header and footer...** button in Document settings); the editor
-always shows the Header and Footer tabs so both can be edited in one place. The
-editor has Header/Footer tabs, multi-line text, image
+open in a floating mini editor from the single **Header and footer...** button in
+Document settings or Page settings, or from **Preferences > Header and footer...**;
+the editor always shows the Header and Footer tabs so both can be edited in one
+place. The editor has Header/Footer tabs, multi-line text, image
 insertion, bold/italic/underline and alignment controls, `{page}`/`{pages}`
 token buttons, a variable menu and a **?** help button. Square-bracket tokens
 such as `[page]`/`[pages]` are accepted too. The mini editor measures the
