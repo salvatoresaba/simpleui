@@ -1833,9 +1833,10 @@ sillabazione automatica insieme. La sillabazione inserisce **soft hyphen**
 ha il dizionario di sillabazione; è salvata come `hyphens: "auto"` nel modello
 del paragrafo ed è considerata dalla vista paginata e dalla stampa. Gli export
 DOCX, ODT e RTF scrivono soft/optional hyphen senza modificare l'interlinea del
-paragrafo; l'export PDF usa gli stessi soft hyphen nel proprio layout. I punti di
-sillabazione usano regole sillabiche italiano/inglese integrate; la lingua del
-documento resta usata per correttore ortografico e metadati DOCX/ODT.
+paragrafo; l'export PDF usa gli stessi soft hyphen nel proprio layout. Italiano e
+inglese usano i dizionari completi di pattern TeX (hyph-it e hyph-en-us,
+LPPL/MIT); le altre lingue ricadono sulle regole sillabiche euristiche. La lingua
+del documento resta usata per correttore ortografico e metadati DOCX/ODT.
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
 (2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come

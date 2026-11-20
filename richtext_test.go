@@ -1380,6 +1380,15 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var spacingAfterHyphen = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (spacingAfterHyphen.lineHeight !== '1' || spacingAfterHyphen.spaceBefore !== '5pt' || spacingAfterHyphen.spaceAfter !== '5pt') throw new Error('hyphenation changed paragraph spacing: ' + JSON.stringify(spacingAfterHyphen));
 
+    __SUI_RICH.set('editor', { type: 'doc', page: { lang: 'it' }, children: [{ type: 'paragraph', hyphens: 'auto', children: [{ type: 'text', text: 'sillabazione', marks: [] }] }] });
+    await wait(220);
+    var dictIt = bsEditor().querySelector('p').textContent.replace(/\u00AD/g, '-');
+    if (dictIt !== 'sil-la-ba-zio-ne') throw new Error('Italian hyphenation dictionary: ' + dictIt);
+    __SUI_RICH.set('editor', { type: 'doc', page: { lang: 'en' }, children: [{ type: 'paragraph', hyphens: 'auto', children: [{ type: 'text', text: 'hyphenation', marks: [] }] }] });
+    await wait(220);
+    var dictEn = bsEditor().querySelector('p').textContent.replace(/\u00AD/g, '-');
+    if (dictEn !== 'hy-phen-ation') throw new Error('English hyphenation dictionary: ' + dictEn);
+
     __SUI_RICH.command('editor', 'documentSettings');
     await wait(200);
     var reqDocDefaults = document.querySelector('.sui-rich-documentsettings');
