@@ -1866,9 +1866,9 @@ hyphens** (U+00AD), so words can break even when the browser has no hyphenation
 dictionary; it is stored as `hyphens: "auto"` in the paragraph model and is
 considered by the paginated view and print. DOCX, ODT and RTF exports write soft
 or optional hyphens without changing paragraph line spacing; the PDF export uses
-its own text layout and does not hyphenate yet. The break points follow the
-document language (Document settings → Language, or the browser locale when set
-to Automatic).
+its own text layout and does not hyphenate yet. Break points use built-in
+Italian/English syllable rules; the document language still drives spell
+checking and DOCX/ODT metadata.
 The document default line height is in Document settings and individual
 paragraphs can override it. Inside a code block, **Code tab size** (2, 4 or 8
 spaces) controls how many spaces indent/outdent inserts and is stored as

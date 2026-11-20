@@ -623,6 +623,15 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var exportPdf = __SUI_RICH.exportBytes('editor', 'pdf');
     if (exportPdf[1] !== null || exportPdf[0].length < 1000) throw new Error('pdf export with rich code block failed');
 
+    __SUI_RICH.set('editor', { type: 'doc', children: [
+      { type: 'paragraph', lineHeight: '1', spaceBefore: '5pt', spaceAfter: '5pt', hyphens: 'auto', children: [{ type: 'text', text: 'Turismo paragraph', marks: [] }] },
+      { type: 'paragraph', lineHeight: '13.5pt', lineRule: 'atLeast', children: [{ type: 'text', text: 'At least spacing', marks: [] }] }
+    ] });
+    await wait(120);
+    var spacingDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (spacingDocx.indexOf('w:lineRule="auto"') < 0 || spacingDocx.indexOf('w:lineRule="atLeast"') < 0) throw new Error('DOCX line spacing rule not preserved');
+    if (spacingDocx.indexOf('w:lineRule="exact"') >= 0) throw new Error('DOCX line spacing changed to exact');
+
     var headerPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl9sAAAAASUVORK5CYII=';
     __SUI_RICH.set('editor', { type: 'doc', header: { type: 'doc', children: [
       { type: 'paragraph', children: [{ type: 'text', text: 'Logo ', marks: [{ type: 'bold' }] }, { type: 'image', src: headerPng, alt: 'logo', width: '16' }] }
@@ -1272,6 +1281,20 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(220);
     var plainJustifyDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (plainJustifyDoc.align !== 'justify' || plainJustifyDoc.hyphens) throw new Error('plain justify not applied: ' + JSON.stringify(plainJustifyDoc));
+
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', lineHeight: '1', spaceBefore: '5pt', spaceAfter: '5pt', children: [{ type: 'text', text: 'Spacing preserved', marks: [] }] }] });
+    await wait(200);
+    var spacingPara = bsEditor().querySelector('p');
+    var spacingRange = document.createRange(); spacingRange.selectNodeContents(spacingPara); spacingRange.collapse(true);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(spacingRange);
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(180);
+    var spacingPanel = document.querySelector('.sui-rich-paragraphsettings');
+    spacingPanel.querySelector('[data-rich-paragraph-hyphens]').checked = true;
+    spacingPanel.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(220);
+    var spacingAfterHyphen = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (spacingAfterHyphen.lineHeight !== '1' || spacingAfterHyphen.spaceBefore !== '5pt' || spacingAfterHyphen.spaceAfter !== '5pt') throw new Error('hyphenation changed paragraph spacing: ' + JSON.stringify(spacingAfterHyphen));
 
     __SUI_RICH.command('editor', 'documentSettings');
     await wait(200);

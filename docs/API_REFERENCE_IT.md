@@ -1830,8 +1830,8 @@ ha il dizionario di sillabazione; è salvata come `hyphens: "auto"` nel modello
 del paragrafo ed è considerata dalla vista paginata e dalla stampa. Gli export
 DOCX, ODT e RTF scrivono soft/optional hyphen senza modificare l'interlinea del
 paragrafo; l'export PDF usa un proprio layout e non sillaba ancora. I punti di
-sillabazione seguono la lingua del documento (Impostazioni documento → Lingua, o
-la lingua del browser con Automatico).
+sillabazione usano regole sillabiche italiano/inglese integrate; la lingua del
+documento resta usata per correttore ortografico e metadati DOCX/ODT.
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
 (2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come

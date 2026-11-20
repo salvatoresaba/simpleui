@@ -244,7 +244,8 @@ window.__SUI_RICH = (function () {
       spaceBefore: cssLength(style.marginTop, ''),
       spaceAfter: cssLength(style.marginBottom, ''),
       hyphens: style.hyphens || style.webkitHyphens || '',
-      tabSize: style.tabSize || ''
+      tabSize: style.tabSize || '',
+      lineRule: node.getAttribute && node.getAttribute('data-line-rule') ? node.getAttribute('data-line-rule') : ''
     };
   }
 
@@ -418,6 +419,8 @@ window.__SUI_RICH = (function () {
       element.style.webkitHyphens = node.hyphens;
     }
     if (node.tabSize) element.style.tabSize = node.tabSize;
+    if (node.lineRule) element.setAttribute('data-line-rule', String(node.lineRule));
+    else if (element.removeAttribute) element.removeAttribute('data-line-rule');
   }
 
   function applyMarks(text, marks) {
@@ -5917,21 +5920,37 @@ window.__SUI_RICH = (function () {
     var blocks = paragraphTargets(inst);
     for (var i = 0; i < blocks.length; i++) {
       var block = blocks[i];
-      if (align) block.style.textAlign = align; else block.style.textAlign = '';
-      if (isFinite(indent) && indent > 0) block.style.paddingLeft = indent + 'px'; else block.style.paddingLeft = '';
-      if (isFinite(lineheight) && lineheight > 0) block.style.lineHeight = String(lineheight); else block.style.lineHeight = '';
-      if (isFinite(before) && before > 0) block.style.marginTop = before + 'px'; else block.style.marginTop = '';
-      if (isFinite(after) && after > 0) block.style.marginBottom = after + 'px'; else block.style.marginBottom = '';
-      if (block.tagName && block.tagName.toLowerCase() === 'pre') block.style.tabSize = tabSize;
-      if (hyphens && block.tagName && block.tagName.toLowerCase() !== 'pre') {
-        block.style.hyphens = 'auto';
-        block.style.webkitHyphens = 'auto';
-        softHyphenateElement(block);
-      } else {
-        block.style.hyphens = '';
-        block.style.webkitHyphens = '';
-        if (block.tagName && block.tagName.toLowerCase() !== 'pre') removeSoftHyphens(block);
+      var currentAlign = block.style.textAlign || '';
+      if (align !== currentAlign) block.style.textAlign = align;
+      var desiredIndent = isFinite(indent) && indent > 0 ? indent : 0;
+      var currentIndent = parseFloat(block.style.paddingLeft) || 0;
+      if (Math.abs(desiredIndent - currentIndent) > 0.01) block.style.paddingLeft = desiredIndent > 0 ? desiredIndent + 'px' : '';
+      var desiredLineHeight = isFinite(lineheight) && lineheight > 0 ? lineheight : 0;
+      var currentLineHeight = parseFloat(block.style.lineHeight) || 0;
+      if (Math.abs(desiredLineHeight - currentLineHeight) > 0.01) {
+        block.style.lineHeight = desiredLineHeight > 0 ? String(desiredLineHeight) : '';
+        if (block.removeAttribute) block.removeAttribute('data-line-rule');
       }
+      var desiredBefore = isFinite(before) && before > 0 ? before : 0;
+      var currentBefore = parseFloat(block.style.marginTop) || 0;
+      if (Math.abs(desiredBefore - currentBefore) > 0.01) block.style.marginTop = desiredBefore > 0 ? desiredBefore + 'px' : '';
+      var desiredAfter = isFinite(after) && after > 0 ? after : 0;
+      var currentAfter = parseFloat(block.style.marginBottom) || 0;
+      if (Math.abs(desiredAfter - currentAfter) > 0.01) block.style.marginBottom = desiredAfter > 0 ? desiredAfter + 'px' : '';
+      if (block.tagName && block.tagName.toLowerCase() === 'pre') block.style.tabSize = tabSize;
+      var isPre = block.tagName && block.tagName.toLowerCase() === 'pre';
+      var hasHyphens = block.style.hyphens === 'auto' || block.style.webkitHyphens === 'auto';
+      if (!isPre && hyphens !== hasHyphens) {
+        if (hyphens) {
+          block.style.hyphens = 'auto';
+          block.style.webkitHyphens = 'auto';
+          softHyphenateElement(block);
+        } else {
+          block.style.hyphens = '';
+          block.style.webkitHyphens = '';
+        }
+      }
+      if (!isPre && !hyphens) removeSoftHyphens(block);
     }
     commit(inst, 'change');
     panel.hidden = true;
@@ -8324,7 +8343,7 @@ window.__SUI_RICH = (function () {
     if (before > 0) spacing += ' w:before="' + Math.round(before * 20) + '"';
     if (after > 0) spacing += ' w:after="' + Math.round(after * 20) + '"';
     if (lineInfo && lineInfo.multiple) spacing += ' w:line="' + Math.round(lineInfo.multiple * 240) + '" w:lineRule="auto"';
-    else if (lineInfo && lineInfo.pt) spacing += ' w:line="' + Math.round(lineInfo.pt * 20) + '" w:lineRule="exact"';
+    else if (lineInfo && lineInfo.pt) spacing += ' w:line="' + Math.round(lineInfo.pt * 20) + '" w:lineRule="' + (n.lineRule === 'atLeast' ? 'atLeast' : 'exact') + '"';
     if (spacing) pPr += '<w:spacing' + spacing + '/>';
     var indent = parseFloat(n.indent);
     if (isFinite(indent) && indent > 0) pPr += '<w:ind w:left="' + Math.round(indent * 15) + '"/>';
@@ -9048,9 +9067,16 @@ window.__SUI_RICH = (function () {
       var spacing = pPr.getElementsByTagNameNS('*', 'spacing')[0];
       if (spacing) {
         var before = Number(spacing.getAttribute('w:before') || 0), after = Number(spacing.getAttribute('w:after') || 0), line = Number(spacing.getAttribute('w:line') || 0);
+        var rule = spacing.getAttribute('w:lineRule') || 'auto';
         if (before) props.spaceBefore = Math.round(before / 20) + 'pt';
         if (after) props.spaceAfter = Math.round(after / 20) + 'pt';
-        if (line) props.lineHeight = Math.round(line / 20) + 'pt';
+        if (line) {
+          if (rule === 'auto') props.lineHeight = String(Math.round((line / 240) * 100) / 100);
+          else {
+            props.lineHeight = Math.round(line / 20) + 'pt';
+            props.lineRule = rule;
+          }
+        }
       }
       var ind = pPr.getElementsByTagNameNS('*', 'ind')[0];
       if (ind) {
