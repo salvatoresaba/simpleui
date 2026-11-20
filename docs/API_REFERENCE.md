@@ -1859,7 +1859,9 @@ highlight and inline marks; Escape cancels it.
 **Paragraph settings** (toolbar button `paragraphSettings`, with explicit
 −/+ indent buttons for the selected paragraph or selection) applies to the selected paragraphs or to the paragraph at the
 caret: alignment, left indent, line height, space before, space after and
-**Hyphenation**. Hyphenation sets `hyphens: auto` (with the WebKit prefix) so
+**Hyphenation**. The alignment menu includes **Justify** and
+**Justify + hyphenation**; the latter sets justified text and automatic
+hyphenation together. Hyphenation sets `hyphens: auto` (with the WebKit prefix) so
 long words wrap with hyphens at the line end; it is stored as `hyphens: "auto"`
 in the paragraph model and is considered by the paginated view and print. DOCX,
 ODT and RTF exports save the automatic hyphenation setting; the PDF export uses

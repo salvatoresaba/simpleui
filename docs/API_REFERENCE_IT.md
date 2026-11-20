@@ -1822,7 +1822,9 @@ evidenziazione e mark inline della sorgente; Escape annulla.
 **Impostazioni paragrafo** (pulsante `paragraphSettings` nella toolbar, con
 pulsanti espliciti −/+ per l'indentazione) agisce sui paragrafi selezionati o su
 quello al cursore: allineamento, rientro sinistro, interlinea, spazio prima,
-spazio dopo e **Sillabazione**. La sillabazione imposta `hyphens: auto` (con
+spazio dopo e **Sillabazione**. Il menu di allineamento include **Giustificato**
+e **Giustificato + sillabazione**; quest'ultimo imposta testo giustificato e
+sillabazione automatica insieme. La sillabazione imposta `hyphens: auto` (con
 prefisso WebKit) per mandare a capo le parole lunghe con il trattino; è salvata
 come `hyphens: "auto"` nel modello del paragrafo ed è considerata dalla vista
 paginata e dalla stampa. Gli export DOCX, ODT e RTF salvano la sillabazione

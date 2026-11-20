@@ -1251,7 +1251,27 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(300);
     var reqParaDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (reqParaDoc.indent !== '24px' || reqParaDoc.lineHeight !== '1.4' || reqParaDoc.spaceBefore !== '6px' || reqParaDoc.spaceAfter !== '8px' || reqParaDoc.align !== 'right' || reqParaDoc.hyphens !== 'auto') throw new Error('paragraph settings not stored: ' + JSON.stringify(reqParaDoc));
-    if (bsEditor().querySelector('p').style.hyphens !== 'auto') throw new Error('hyphenation not applied');
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(180);
+    var justifyPanel = document.querySelector('.sui-rich-paragraphsettings');
+    if (!justifyPanel.querySelector('option[value="justifyHyphen"]')) throw new Error('justify + hyphenation option missing');
+    justifyPanel.querySelector('[data-rich-paragraph-align]').value = 'justifyHyphen';
+    justifyPanel.querySelector('[data-rich-paragraph-hyphens]').checked = false;
+    justifyPanel.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(220);
+    var justifyDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (justifyDoc.align !== 'justify' || justifyDoc.hyphens !== 'auto') throw new Error('justify + hyphenation not applied: ' + JSON.stringify(justifyDoc));
+    if (getComputedStyle(bsEditor().querySelector('p')).hyphens !== 'auto') throw new Error('hyphenation is not active on the paragraph');
+    if (!bsEditor().getAttribute('lang')) throw new Error('editor hyphenation language missing');
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(180);
+    var plainJustifyPanel = document.querySelector('.sui-rich-paragraphsettings');
+    plainJustifyPanel.querySelector('[data-rich-paragraph-align]').value = 'justify';
+    plainJustifyPanel.querySelector('[data-rich-paragraph-hyphens]').checked = false;
+    plainJustifyPanel.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(220);
+    var plainJustifyDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (plainJustifyDoc.align !== 'justify' || plainJustifyDoc.hyphens) throw new Error('plain justify not applied: ' + JSON.stringify(plainJustifyDoc));
 
     __SUI_RICH.command('editor', 'documentSettings');
     await wait(200);

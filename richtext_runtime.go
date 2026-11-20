@@ -4839,6 +4839,7 @@ window.__SUI_RICH = (function () {
   }
   function sheetNode(inst, m) {
     var sheet = el('div', 'sui-rich-page-sheet');
+    sheet.setAttribute('lang', documentLanguage(inst));
     sheet.style.width = m.width + 'px';
     sheet.style.minHeight = m.height + 'px';
     sheet.style.padding = m.padTop + 'px ' + m.padRight + 'px ' + m.padBottom + 'px ' + m.padLeft + 'px';
@@ -4906,6 +4907,7 @@ window.__SUI_RICH = (function () {
     var m = pageMetrics(inst, 1);
     wrap.innerHTML = '';
     var measure = el('div', 'sui-rich-editor sui-rich-sheet-body sui-rich-measure');
+    measure.setAttribute('lang', documentLanguage(inst));
     measure.style.cssText = 'position:absolute;left:-12000px;top:0;width:' + m.contentW + 'px;height:auto;overflow:visible;padding:0;visibility:hidden;line-height:' + m.lineHeight + ';';
     // .sui-rich-sheet-body forces width:auto !important, so the measurement
     // copy would otherwise shrink-to-fit and report a single-line height.
@@ -5693,7 +5695,7 @@ window.__SUI_RICH = (function () {
     var align = el('select');
     align.setAttribute('data-rich-paragraph-align', '1');
     align.setAttribute('aria-label', 'Paragraph alignment');
-    [['', 'Default'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['justify', 'Justify']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; align.appendChild(op); });
+    [['', 'Default'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['justify', 'Justify'], ['justifyHyphen', 'Justify + hyphenation']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; align.appendChild(op); });
     alignRow.appendChild(align);
     panel.appendChild(alignRow);
 
@@ -5802,7 +5804,7 @@ window.__SUI_RICH = (function () {
       };
     }
     var align = panel.querySelector('[data-rich-paragraph-align]');
-    if (align) align.value = source.align || '';
+    if (align) align.value = (source.align === 'justify' && source.hyphens === 'auto') ? 'justifyHyphen' : (source.align || '');
     var hyphenInput = panel.querySelector('[data-rich-paragraph-hyphens]');
     if (hyphenInput) hyphenInput.checked = source.hyphens === 'auto';
     var tabInput = panel.querySelector('[data-rich-paragraph-tabsize]');
@@ -5833,13 +5835,15 @@ window.__SUI_RICH = (function () {
     inst = resolveInstance(inst.name) || inst;
     var panel = paragraphSettingsPanel(inst);
     function value(sel) { var node = panel.querySelector(sel); return node ? String(node.value || '') : ''; }
-    var align = value('[data-rich-paragraph-align]');
+    var alignValue = value('[data-rich-paragraph-align]');
+    var justifyHyphen = alignValue === 'justifyHyphen';
+    var align = justifyHyphen ? 'justify' : alignValue;
     var indent = parseFloat(value('[data-rich-paragraph-indent]'));
     var lineheight = parseFloat(value('[data-rich-paragraph-lineheight]'));
     var before = parseFloat(value('[data-rich-paragraph-before]'));
     var after = parseFloat(value('[data-rich-paragraph-after]'));
     var hyphensInput = panel.querySelector('[data-rich-paragraph-hyphens]');
-    var hyphens = !!(hyphensInput && hyphensInput.checked);
+    var hyphens = !!(hyphensInput && hyphensInput.checked) || justifyHyphen;
     var tabSizeInput = panel.querySelector('[data-rich-paragraph-tabsize]');
     var tabSize = tabSizeInput ? String(tabSizeInput.value || '2') : '2';
     var blocks = paragraphTargets(inst);
@@ -10579,7 +10583,7 @@ const suiRichTextCss = `
 .sui-rich-color::-webkit-color-swatch { border: 0; }
 .sui-rich-color::-moz-color-swatch { border: 0; }
 .sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }
-.sui-rich-editor { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); min-height: 0; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: anywhere; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
+.sui-rich-editor { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); min-height: 0; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: break-word; word-break: normal; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
 .sui-rich-editor:empty::before, .sui-rich-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--sui-rich-muted); pointer-events: none; }
 .sui-rich-editor p, .sui-rich-editor h1, .sui-rich-editor h2, .sui-rich-editor h3, .sui-rich-editor h4, .sui-rich-editor blockquote, .sui-rich-editor pre, .sui-rich-editor figure, .sui-rich-editor table { margin: 0 0 .8em; }
 .sui-rich-editor h1 { font-size: 1.9em; line-height: 1.25; }
