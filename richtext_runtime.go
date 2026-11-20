@@ -5545,8 +5545,6 @@ window.__SUI_RICH = (function () {
     pageMarginInput(grid, 'bottom', 'Bottom');
     pageMarginInput(grid, 'left', 'Left');
 
-    chromeSettingsRow(inst, panel, 'header', 'Document header', false);
-    chromeSettingsRow(inst, panel, 'footer', 'Document footer', false);
     chromeOpenButton(inst, panel);
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
@@ -6147,26 +6145,14 @@ window.__SUI_RICH = (function () {
       summaries[i].textContent = chromeSummaryText(which === 'footer' ? inst.footerValue : inst.headerValue);
     }
   }
-  function chromeSettingsRow(inst, panel, which, label, includeInput) {
-    if (includeInput) {
+  function chromeHiddenInputs(inst, panel) {
+    ['header', 'footer'].forEach(function (which) {
       var input = el('input');
       input.type = 'hidden';
       input.setAttribute('data-rich-doc-' + which, '1');
       input.value = which === 'header' ? (inst.headerText || '') : (inst.footerText || '');
       panel.appendChild(input);
-    }
-    var row = el('div', 'sui-rich-chrome-summary-row');
-    row.appendChild(el('span', 'sui-rich-chrome-summary-label', label));
-    var help = el('button', 'sui-rich-btn sui-rich-chrome-help', '?');
-    help.type = 'button';
-    help.setAttribute('data-rich-chrome-help', '1');
-    help.title = 'Header/footer variables help';
-    help.setAttribute('aria-label', help.title);
-    var summary = el('div', 'sui-rich-chrome-summary');
-    summary.setAttribute('data-rich-chrome-summary', which);
-    summary.textContent = chromeSummaryText(which === 'header' ? inst.headerValue : inst.footerValue);
-    row.appendChild(help); row.appendChild(summary);
-    panel.appendChild(row);
+    });
   }
   function chromeOpenButton(inst, panel) {
     var open = el('button', 'sui-rich-btn sui-rich-chrome-open', 'Header and footer...');
@@ -6525,8 +6511,7 @@ window.__SUI_RICH = (function () {
     langRow.appendChild(langSelect);
     panel.appendChild(langRow);
 
-    chromeSettingsRow(inst, panel, 'header', 'Header', true);
-    chromeSettingsRow(inst, panel, 'footer', 'Footer', true);
+    chromeHiddenInputs(inst, panel);
     chromeOpenButton(inst, panel);
 
     var actions = el('div', 'sui-rich-pagesettings-actions');

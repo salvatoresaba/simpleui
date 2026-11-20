@@ -1148,7 +1148,8 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.command('editor', 'documentSettings');
     await wait(220);
     var chromePanel = document.querySelector('.sui-rich-documentsettings');
-    if (chromePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 2) throw new Error('header/footer settings rows missing');
+    if (chromePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 0) throw new Error('header/footer summaries should not be in Document settings');
+    if (chromePanel.querySelector('[data-rich-chrome-help]')) throw new Error('header/footer help should not be in Document settings');
     if (!chromePanel.querySelector('[data-rich-open-chrome]')) throw new Error('single header/footer editor button missing');
     if (chromePanel.querySelector('[data-rich-edit-chrome]')) throw new Error('per-section header/footer edit buttons still present');
     __SUI_RICH.command('editor', 'headerFooter');
@@ -1208,7 +1209,8 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     __SUI_RICH.command('editor', 'pageSettings');
     await wait(220);
     var chromePagePanel = document.querySelector('.sui-rich-pagesettings');
-    if (chromePagePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 2) throw new Error('page settings header/footer rows missing');
+    if (chromePagePanel.querySelectorAll('.sui-rich-chrome-summary-row').length !== 0) throw new Error('header/footer summaries should not be in Page settings');
+    if (chromePagePanel.querySelector('[data-rich-chrome-help]')) throw new Error('header/footer help should not be in Page settings');
     if (chromePagePanel.querySelector('[data-rich-edit-chrome]')) throw new Error('page settings per-section edit buttons still present');
     chromePagePanel.querySelector('[data-rich-open-chrome]').click();
     await wait(220);

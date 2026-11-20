@@ -57,8 +57,9 @@ builds.
   overrides size/orientation/margins for a single page.
 - Header and footer open in a floating mini editor from the single
   **Header and footer...** button in Document settings or Page settings, or from
-  **Preferences > Header and footer...**. The editor always shows Header/Footer
-  tabs, multi-line text, images, bold/italic/
+  **Preferences > Header and footer...**. The settings panels show only that
+  button; summaries and the variable help stay inside the editor. The editor
+  always shows Header/Footer tabs, multi-line text, images, bold/italic/
   underline/alignment, token buttons and a variable menu with `{page}`,
   `{pages}`, `{title}`, `{name}`, `{date}`, `{time}`, `{datetime}`, `{words}` and
   `{chars}`. The **?** button opens the variable help. Rich header/footer height

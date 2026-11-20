@@ -1746,7 +1746,9 @@ linguistici degli export DOCX/ODT; **Automatico** segue la lingua del browser.
 Header e footer si aprono in un mini editor flottante dal singolo pulsante
 **Header and footer...** in Impostazioni documento o Impostazioni pagina, oppure
 da **Preferences > Header and footer...**; l'editor mostra sempre le schede
-Header e Footer, così si possono modificare entrambi in un unico posto.
+Header e Footer, così si possono modificare entrambi in un unico posto. I
+pannelli mostrano solo il pulsante unico; riepiloghi e aiuto sulle variabili
+restano dentro l'editor.
 L'editor ha schede Header/Footer, testo multiriga,
 inserimento immagini, grassetto/corsivo/sottolineato e allineamento, pulsanti
 token `{page}`/`{pages}`, menu delle variabili e pulsante **?** per l'aiuto.

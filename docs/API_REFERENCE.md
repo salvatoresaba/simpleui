@@ -1790,7 +1790,8 @@ exports; **Automatic** follows the browser locale. Header and footer
 open in a floating mini editor from the single **Header and footer...** button in
 Document settings or Page settings, or from **Preferences > Header and footer...**;
 the editor always shows the Header and Footer tabs so both can be edited in one
-place. The editor has Header/Footer tabs, multi-line text, image
+place. The settings panels only show the single button; summaries and the
+variable help stay inside the editor. The editor has Header/Footer tabs, multi-line text, image
 insertion, bold/italic/underline and alignment controls, `{page}`/`{pages}`
 token buttons, a variable menu and a **?** help button. Square-bracket tokens
 such as `[page]`/`[pages]` are accepted too. The mini editor measures the
