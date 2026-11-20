@@ -1829,7 +1829,7 @@ sillabazione automatica insieme. La sillabazione inserisce **soft hyphen**
 ha il dizionario di sillabazione; è salvata come `hyphens: "auto"` nel modello
 del paragrafo ed è considerata dalla vista paginata e dalla stampa. Gli export
 DOCX, ODT e RTF scrivono soft/optional hyphen senza modificare l'interlinea del
-paragrafo; l'export PDF usa un proprio layout e non sillaba ancora. I punti di
+paragrafo; l'export PDF usa gli stessi soft hyphen nel proprio layout. I punti di
 sillabazione usano regole sillabiche italiano/inglese integrate; la lingua del
 documento resta usata per correttore ortografico e metadati DOCX/ODT.
 L'interlinea predefinita del documento è in Impostazioni documento e i singoli

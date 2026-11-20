@@ -9809,6 +9809,7 @@ window.__SUI_RICH = (function () {
   var PDF_ACCENTS = '\u00e0\u00e1\u00e2\u00e3\u00e4\u00e5\u00e7\u00e8\u00e9\u00ea\u00eb\u00ec\u00ed\u00ee\u00ef\u00f1\u00f2\u00f3\u00f4\u00f5\u00f6\u00f9\u00fa\u00fb\u00fc\u00fd\u00ff\u00c0\u00c1\u00c2\u00c3\u00c4\u00c5\u00c7\u00c8\u00c9\u00ca\u00cb\u00cc\u00cd\u00ce\u00cf\u00d1\u00d2\u00d3\u00d4\u00d5\u00d6\u00d9\u00da\u00db\u00dc\u00dd';
   var PDF_BASE_LETTERS = 'aaaaaaceeeeiiiinooooouuuuyyAAAAAACEEEEIIIINOOOOOUUUUY';
   function pdfCharWidth(ch, font) {
+    if (ch === '\u00AD') return 0;
     if (font.emb) {
       var egid = font.emb.gidFor(ch.charCodeAt(0));
       if (!egid) return 0.5;
@@ -9963,13 +9964,13 @@ window.__SUI_RICH = (function () {
       var scale = Math.min(1, maxWidth / width);
       return { entry: entry, width: width * scale, height: height * scale };
     }
-    function runsOf(nodes, baseMarks) {
+    function runsOf(nodes, baseMarks, hyphenate) {
       var runs = [];
       for (var i = 0; i < (nodes || []).length; i++) {
         var node = nodes[i];
         if (!node) continue;
         if (node.type === 'text') {
-          var text = String(node.text || '');
+          var text = hyphenate ? hyphenateText(node.text) : String(node.text || '');
           var marks = (baseMarks || []).concat(node.marks || []);
           var font = pdfFont(marks), size = pdfSize(marks), color = null, background = null, underline = false, strike = false, sup = false, sub = false;
           for (var m = 0; m < marks.length; m++) {
@@ -10024,6 +10025,42 @@ window.__SUI_RICH = (function () {
         width += line[line.length - 1].width;
         if (run.fontSize > maxSize) maxSize = run.fontSize;
       }
+      function addCharSplit(word, run) {
+        while (word) {
+          var take = '';
+          while (word.length) {
+            var candidate = take + word.charAt(0);
+            if (pdfTextWidth(candidate, run.font, run.fontSize) > maxWidth - width && take) break;
+            take = candidate; word = word.slice(1);
+          }
+          add(take, run, false);
+          if (word) flush();
+        }
+      }
+      function addHyphenated(part, run) {
+        var segs = part.split('\u00AD').filter(function (s) { return s.length > 0; });
+        if (segs.length < 2) { add(part.replace(/\u00AD/g, ''), run, false); return; }
+        var acc = '';
+        for (var s = 0; s < segs.length; s++) {
+          var seg = segs[s];
+          var test = acc + seg;
+          var testWidth = pdfTextWidth(test, run.font, run.fontSize);
+          if (width + testWidth <= maxWidth || !acc) {
+            if (!acc && line.length && width + testWidth > maxWidth) flush();
+            acc = test;
+            continue;
+          }
+          var hyphenWidth = pdfTextWidth('-', run.font, run.fontSize);
+          var accWidth = pdfTextWidth(acc, run.font, run.fontSize);
+          add(width + accWidth + hyphenWidth <= maxWidth + 0.5 ? acc + '-' : acc, run, false);
+          flush();
+          acc = seg;
+        }
+        if (acc) {
+          if (pdfTextWidth(acc, run.font, run.fontSize) > maxWidth && !line.length) addCharSplit(acc, run);
+          else add(acc, run, false);
+        }
+      }
       for (var i = 0; i < runs.length; i++) {
         var run = runs[i];
         if (run.type === 'break') { flush(); continue; }
@@ -10050,18 +10087,9 @@ window.__SUI_RICH = (function () {
           var w = pdfTextWidth(part, run.font, run.fontSize);
           if (width + w > maxWidth && line.length && !isSpace) flush();
           if (isSpace && !preserveSpace && width + w > maxWidth) { flush(); continue; }
+          if (!isSpace && part.indexOf('\u00AD') >= 0) { addHyphenated(part, run); continue; }
           if (w > maxWidth && !isSpace) {
-            var word = part;
-            while (word) {
-              var take = '';
-              while (word.length) {
-                var candidate = take + word.charAt(0);
-                if (pdfTextWidth(candidate, run.font, run.fontSize) > maxWidth - width && take) break;
-                take = candidate; word = word.slice(1);
-              }
-              add(take, run, false);
-              if (word) flush();
-            }
+            addCharSplit(part, run);
             continue;
           }
           add(part, run, isSpace);
@@ -10147,7 +10175,7 @@ window.__SUI_RICH = (function () {
       var before = spacing(node, 'spaceBefore'), after = spacing(node, 'spaceAfter');
       if (before) y += before;
       var indent = Math.max(0, (parseFloat(node.indent) || 0) * 0.75);
-      var runs = runsOf(node.children);
+      var runs = runsOf(node.children, null, node.hyphens === 'auto');
       var lines = wrapRuns(runs, Math.max(40, CONTENT_W - indent));
       drawLines(lines, MARGIN + indent, CONTENT_W - indent, node.align, node);
       if (after) y += after;
@@ -10156,7 +10184,7 @@ window.__SUI_RICH = (function () {
     function heading(node) {
       var level = Math.max(1, Math.min(6, Number(node.level) || 1));
       var size = Math.max(12, 20 - (level - 1) * 2);
-      var runs = runsOf(node.children);
+      var runs = runsOf(node.children, null, node.hyphens === 'auto');
       for (var i = 0; i < runs.length; i++) if (runs[i].type === 'run') {
         if (!runs[i].font.bold) {
           var family = runs[i].font.family;
@@ -10344,7 +10372,7 @@ window.__SUI_RICH = (function () {
             var prefix = node.type === 'ordered_list' ? (number + '. ') : '\u2022 ';
             var head = { type: 'run', text: prefix, font: pdfFont([]), size: 11, fontSize: 11, width: pdfTextWidth(prefix, pdfFont([]), 11) };
             var indent = level * 18;
-            var lines = wrapRuns([head].concat(runsOf(inner.children)), Math.max(40, CONTENT_W - indent - 18));
+            var lines = wrapRuns([head].concat(runsOf(inner.children, null, inner.hyphens === 'auto')), Math.max(40, CONTENT_W - indent - 18));
             drawLines(lines, MARGIN + indent + 18, Math.max(40, CONTENT_W - indent - 18), inner.align, null);
           } else if (inner.type === 'bullet_list' || inner.type === 'ordered_list') {
             pdfList(inner, level + 1);

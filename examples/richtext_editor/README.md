@@ -85,11 +85,11 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Paragraph settings panel (alignment, indent with explicit −/+ buttons, line
   height, space before/after, hyphenation), zoom controls in the toolbar and a
   print preview overlay. The hyphenation option inserts soft hyphens at syllable
-  boundaries, so words break even without a browser dictionary; DOCX/ODT/RTF
-  export optional hyphens without changing paragraph line spacing (the PDF
-  layout does not hyphenate yet). The alignment menu offers **Justify** and
-  **Justify + hyphenation**. **Code tab size** (2/4/8 spaces) controls code-line
-  indentation and is stored as `tabSize`. The main toolbar and the
+  boundaries, so words break even without a browser dictionary; DOCX/ODT/RTF/PDF
+  export optional or soft hyphens without changing paragraph line spacing. The
+  alignment menu offers **Justify** and **Justify + hyphenation**. **Code tab
+  size** (2/4/8 spaces) controls code-line indentation and is stored as
+  `tabSize`. The main toolbar and the
   contextual selection toolbar both expose indent/outdent for the current
   paragraph; inside a code block they indent the current code line. Paragraphs
   and lists split at line or item boundaries to fill each page; headings and
