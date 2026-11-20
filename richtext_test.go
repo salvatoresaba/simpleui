@@ -278,6 +278,28 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     var selBgSpan = [].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).filter(function (span) { return /rgb\(255, 224, 102\)/.test(getComputedStyle(span).backgroundColor); })[0];
     if (!selBgSpan || selBgSpan.textContent !== 'Selected') throw new Error('selection highlight not applied: ' + richRoot().querySelector('.sui-rich-editor').innerHTML);
 
+    // Picking a color previews it immediately; clicking outside to close the
+    // picker must keep the color and commit it to the model.
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Preview color', marks: [] }] }] });
+    await wait(200);
+    var previewEditor = richRoot().querySelector('.sui-rich-editor');
+    var previewText = previewEditor.querySelector('p').firstChild;
+    var previewRange = document.createRange(); previewRange.setStart(previewText, 0); previewRange.setEnd(previewText, 7);
+    var previewSel = window.getSelection(); previewSel.removeAllRanges(); previewSel.addRange(previewRange); previewEditor.focus();
+    var previewInput = richRoot().querySelector('.sui-rich-color[data-rich-cmd="textColor"]');
+    previewInput.showPicker = function () {};
+    previewInput.closest('.sui-rich-color-control').click();
+    await wait(80);
+    previewInput.value = '#00aa00';
+    previewInput.dispatchEvent(new Event('input', { bubbles: true }));
+    await wait(120);
+    if (![].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).some(function (span) { return /rgb\(0, 170, 0\)/.test(getComputedStyle(span).color); })) throw new Error('color preview not applied while picking');
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await wait(350);
+    var previewDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (!previewDoc.children || !previewDoc.children.some(function (n) { return n.marks && n.marks.some(function (m) { return m.type === 'color' && /rgb\(0, 170, 0\)/.test(m.value); }); })) throw new Error('color lost when closing the picker: ' + JSON.stringify(previewDoc));
+    if (![].slice.call(richRoot().querySelectorAll('.sui-rich-editor span')).some(function (span) { return /rgb\(0, 170, 0\)/.test(getComputedStyle(span).color); })) throw new Error('color not visible after closing the picker');
+
     // Four icon sets, persisted per editor and selectable from Preferences.
     var iconRoot = richRoot();
     var iconCommands = ['iconSetLine', 'iconSetBold', 'iconSetDuotone', 'iconSetBlocks'];

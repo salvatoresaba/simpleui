@@ -84,7 +84,9 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   tooltip instead of inline instruction paragraphs. The toolbar distinguishes
   text color (plain **A** with a color bar, default black) from background
   highlight (highlighted **A** with a swatch, default white). Selection colors
-  and highlights are inline spans and also work inside code blocks.
+  and highlights are inline spans and also work inside code blocks. The color is
+  previewed while the picker is open and is kept when the picker is closed,
+  including by clicking outside it.
 - Font-size buttons A+/A− change the selected text (or the word at the caret);
   zoom only scales the view and never changes the document fonts.
 - Image settings: double-click an image or right-click it and choose Edit/Replace/Delete;

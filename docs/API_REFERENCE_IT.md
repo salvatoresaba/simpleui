@@ -1715,7 +1715,9 @@ Un colore scelto con il cursore collassato diventa il colore di scrittura e rest
 nel campione finché non se ne sceglie un altro; con una selezione gli stessi
 comandi modificano solo il testo selezionato. Colori e sfondi di selezione sono
 scritti come span inline, quindi funzionano anche dentro i blocchi di codice e
-restano nel modello dopo il re-render. Il codice inline e i blocchi di
+restano nel modello dopo il re-render. Il colore scelto è mostrato in anteprima
+sulla selezione mentre il picker è aperto; chiudendolo, anche con un clic fuori,
+la scelta viene mantenuta e salvata. Il codice inline e i blocchi di
 codice usano il colore del testo della pagina (scuro sul foglio bianco, chiaro
 sul tema scuro) per restare leggibili. I pannelli usano etichette e un'icona
 **?** con il suggerimento nel tooltip al posto delle istruzioni scritte.

@@ -2405,6 +2405,65 @@ window.__SUI_RICH = (function () {
     saveSelection(inst);
     return true;
   }
+  function beginColorSelection(inst, input, cmd) {
+    var sel = window.getSelection();
+    var range = null;
+    if (sel && sel.rangeCount && inst.editor && inst.editor.contains(sel.anchorNode)) {
+      range = sel.getRangeAt(0).cloneRange();
+    } else if (inst.savedSelection) {
+      restoreSelection(inst);
+      sel = window.getSelection();
+      if (sel && sel.rangeCount && inst.editor.contains(sel.anchorNode)) range = sel.getRangeAt(0).cloneRange();
+    }
+    inst.colorSelection = { cmd: cmd, range: range, input: input };
+    inst.colorPreview = null;
+    inst.colorCommittedValue = input ? input.value : '';
+  }
+  function previewColor(inst, cmd, value) {
+    var info = inst.colorSelection;
+    if (!info || info.cmd !== cmd) return;
+    var prop = cmd === 'textColor' ? 'color' : 'backgroundColor';
+    var range = info.range;
+    if (!range) return;
+    if (range.collapsed) {
+      if (cmd === 'textColor') inst.typingColor = value;
+      else inst.typingHighlight = value;
+      return;
+    }
+    if (inst.colorPreview && inst.colorPreview.cmd === cmd && inst.colorPreview.span && inst.colorPreview.span.parentNode) {
+      inst.colorPreview.span.style[prop] = value;
+      inst.colorPreview.value = value;
+      return;
+    }
+    var probe = range.cloneContents();
+    if (probe.querySelector && probe.querySelector('p,div,table,pre,ul,ol,h1,h2,h3,h4,blockquote')) return;
+    var span = el('span');
+    span.style[prop] = value;
+    try {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+    } catch (e) { return; }
+    var selected = document.createRange();
+    selected.selectNodeContents(span);
+    var sel = window.getSelection();
+    if (sel) { sel.removeAllRanges(); sel.addRange(selected); }
+    info.range = selected.cloneRange();
+    inst.colorPreview = { cmd: cmd, span: span, value: value };
+    saveSelection(inst);
+  }
+  function finalizeColor(inst) {
+    var info = inst.colorSelection;
+    if (!info) return;
+    var cmd = info.cmd;
+    var input = info.input;
+    var value = input ? input.value : '';
+    // runBuiltin uses the locked range and any preview span before the state
+    // is cleared, so the color is kept even if focus moved outside the editor.
+    command(inst.name, cmd, value);
+    inst.colorSelection = null;
+    inst.colorPreview = null;
+    inst.colorCommittedValue = value;
+  }
   function rememberTypingColor(inst, cmd, value) {
     if (cmd === 'textColor') inst.typingColor = value;
     else if (cmd === 'highlight') inst.typingHighlight = value;
@@ -2632,6 +2691,15 @@ window.__SUI_RICH = (function () {
     if (liveEditor) inst.editor = liveEditor;
     var editor = inst.editor;
     var selection = window.getSelection();
+    if ((cmd === 'textColor' || cmd === 'highlight') && inst.colorSelection && inst.colorSelection.cmd === cmd) {
+      var lockedColorRange = inst.colorSelection.range;
+      if (lockedColorRange && lockedColorRange.startContainer && editor.contains(lockedColorRange.startContainer)) {
+        selection = window.getSelection();
+        if (selection) {
+          try { selection.removeAllRanges(); selection.addRange(lockedColorRange); } catch (e) {}
+        }
+      }
+    }
     if ((!selection || !selection.rangeCount || !editor.contains(selection.anchorNode)) && inst.savedSelection) {
       restoreSelection(inst);
       selection = window.getSelection();
@@ -2776,16 +2844,20 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'fontSize') document.execCommand('fontSize', false, String(value || '3'));
     else if (cmd === 'textColor') {
       var textColorValue = cssColor(value) || '#000000';
-      // Prefer an explicit span so the color works in every engine and inside
-      // code blocks, where execCommand is inconsistent.
-      if (!applyRangeInlineStyle(inst, 'color', textColorValue)) {
+      var textPreview = inst.colorPreview;
+      if (textPreview && textPreview.cmd === 'textColor' && textPreview.span && textPreview.span.parentNode) {
+        textPreview.span.style.color = textColorValue;
+      } else if (!applyRangeInlineStyle(inst, 'color', textColorValue)) {
         try { document.execCommand('foreColor', false, textColorValue); } catch (e) {}
       }
       rememberTypingColor(inst, 'textColor', textColorValue);
     }
     else if (cmd === 'highlight') {
       var highlightValue = cssColor(value) || '#ffffff';
-      if (!applyRangeInlineStyle(inst, 'backgroundColor', highlightValue)) {
+      var bgPreview = inst.colorPreview;
+      if (bgPreview && bgPreview.cmd === 'highlight' && bgPreview.span && bgPreview.span.parentNode) {
+        bgPreview.span.style.backgroundColor = highlightValue;
+      } else if (!applyRangeInlineStyle(inst, 'backgroundColor', highlightValue)) {
         try { document.execCommand('hiliteColor', false, highlightValue); } catch (e) {}
         try { document.execCommand('backColor', false, highlightValue); } catch (e) {}
       }
@@ -3577,10 +3649,15 @@ window.__SUI_RICH = (function () {
           color.title = colorWrap.title;
           color.setAttribute('aria-label', colorWrap.title);
           colorWrap.style.setProperty('--sui-rich-color-current', color.value);
-          (function (wrap, input) {
-            input.addEventListener('input', function () { wrap.style.setProperty('--sui-rich-color-current', input.value); });
+          (function (wrap, input, cmdToken) {
+            input.addEventListener('input', function () {
+              wrap.style.setProperty('--sui-rich-color-current', input.value);
+              previewColor(inst, cmdToken, input.value);
+            });
             wrap.addEventListener('click', function (ev) {
               ev.preventDefault();
+              if (inst.colorSelection) finalizeColor(inst);
+              beginColorSelection(inst, input, cmdToken);
               saveSelection(inst);
               try {
                 if (typeof input.showPicker === 'function') input.showPicker();
@@ -3589,7 +3666,7 @@ window.__SUI_RICH = (function () {
                 try { input.click(); } catch (x) {}
               }
             });
-          })(colorWrap, color);
+          })(colorWrap, color, token);
           colorWrap.appendChild(colorIcon);
           colorWrap.appendChild(color);
           group.appendChild(colorWrap);
@@ -6854,7 +6931,16 @@ window.__SUI_RICH = (function () {
       if (target.getAttribute('data-rich-theme') !== null) { setTheme(inst.name, target.value); return; }
       var cmd = target.getAttribute('data-rich-cmd');
       if (!cmd) return;
-      if (target.tagName === 'SELECT' || target.tagName === 'INPUT') command(inst.name, cmd, target.value);
+      if (target.tagName === 'SELECT' || target.tagName === 'INPUT') {
+        if ((cmd === 'textColor' || cmd === 'highlight') && !inst.colorSelection && inst.colorCommittedValue === target.value) return;
+        var changeValue = target.value;
+        command(inst.name, cmd, changeValue);
+        if (cmd === 'textColor' || cmd === 'highlight') {
+          inst.colorSelection = null;
+          inst.colorPreview = null;
+          inst.colorCommittedValue = changeValue;
+        }
+      }
     });
     root.addEventListener('mouseup', function (e) {
       if (!inst.painter || !e.target || !inst.editor.contains(e.target)) return;
@@ -6957,6 +7043,24 @@ window.__SUI_RICH = (function () {
       document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeMenus(inst); });
     }
     document.addEventListener('selectionchange', function () { if (document.activeElement === inst.editor || inst.root.contains(document.activeElement)) updateStats(inst); });
+    if (!window.__suiRichColorOutsideBound) {
+      window.__suiRichColorOutsideBound = true;
+      document.addEventListener('mousedown', function (ev) {
+        for (var colorName in instances) {
+          if (!hasOwn(instances, colorName)) continue;
+          var colorInst = instances[colorName];
+          if (!colorInst || !colorInst.colorSelection) continue;
+          var colorInput = colorInst.colorSelection.input;
+          var colorWrap = colorInput && colorInput.closest ? colorInput.closest('.sui-rich-color-control') : null;
+          if (colorWrap && (colorWrap === ev.target || colorWrap.contains(ev.target))) continue;
+          (function (pendingInst, pendingSelection) {
+            setTimeout(function () {
+              if (pendingInst.colorSelection === pendingSelection) finalizeColor(pendingInst);
+            }, 0);
+          })(colorInst, colorInst.colorSelection);
+        }
+      }, true);
+    }
     if (!window.__suiRichResizeBound) {
       window.__suiRichResizeBound = true;
       window.addEventListener('resize', function () {

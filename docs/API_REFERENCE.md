@@ -1758,7 +1758,9 @@ that format until the button is pressed again. A color chosen with a collapsed
 caret becomes the typing color and stays in the swatch until another color is
 picked; with a selection the same commands change only the selected text.
 Selection colors and highlights are written as inline spans, so they also work
-inside code blocks and are kept in the model after a re-render.
+inside code blocks and are kept in the model after a re-render. The chosen color
+is previewed on the selection while the picker is open; closing the picker,
+including by clicking outside it, keeps and commits the selection.
 Inline code and code blocks use the page text color (dark on the white page,
 light on a dark page) so they stay readable. Settings panels use labels plus a
 **?** hint icon whose tooltip holds the explanation, instead of visible
