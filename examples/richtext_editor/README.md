@@ -86,10 +86,10 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Paragraph settings panel (alignment, indent with explicit −/+ buttons, line
   height, space before/after, hyphenation), zoom controls in the toolbar and a
   print preview overlay. The hyphenation option inserts soft hyphens at syllable
-  boundaries, so words break even without a browser dictionary; Italian and
-  English use the full TeX hyph-it/hyph-en-us patterns, other languages fall
-  back to heuristics. DOCX/ODT/RTF/PDF export optional or soft hyphens without
-  changing paragraph line spacing. The
+  boundaries, so words break even without a browser dictionary; Italian,
+  English, German, French, Spanish, Portuguese, Dutch, Polish and Swedish use
+  full TeX patterns, other languages fall back to heuristics. DOCX/ODT/RTF/PDF
+  export optional or soft hyphens without changing paragraph line spacing. The
   alignment menu offers **Justify** and **Justify + hyphenation**. **Code tab
   size** (2/4/8 spaces) controls code-line indentation and is stored as
   `tabSize`; **Line numbers (code)** toggles the line-number gutter on code

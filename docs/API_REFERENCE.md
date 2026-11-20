@@ -1870,10 +1870,11 @@ hyphens** (U+00AD), so words can break even when the browser has no hyphenation
 dictionary; it is stored as `hyphens: "auto"` in the paragraph model and is
 considered by the paginated view and print. DOCX, ODT and RTF exports write soft
 or optional hyphens without changing paragraph line spacing; the PDF export uses
-the same soft hyphens when laying out text. Italian and English use the full
-TeX hyphenation pattern dictionaries (hyph-it and hyph-en-us, LPPL/MIT); other
-languages fall back to the built-in heuristic syllable rules. The document
-language still drives spell checking and DOCX/ODT metadata.
+the same soft hyphens when laying out text. Italian, English, German, French,
+Spanish, Portuguese, Dutch, Polish and Swedish use the full TeX hyphenation
+pattern dictionaries (hyph-utf8, LPPL/MIT); other languages fall back to the
+built-in heuristic syllable rules. The document language still drives spell
+checking and DOCX/ODT metadata.
 The document default line height is in Document settings and individual
 paragraphs can override it. Inside a code block, **Code tab size** (2, 4 or 8
 spaces) controls how many spaces indent/outdent inserts and is stored as

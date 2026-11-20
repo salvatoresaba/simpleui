@@ -1388,6 +1388,21 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     await wait(220);
     var dictEn = bsEditor().querySelector('p').textContent.replace(/\u00AD/g, '-');
     if (dictEn !== 'hy-phen-ation') throw new Error('English hyphenation dictionary: ' + dictEn);
+    var dictCases = [
+      ['de', 'Silbentrennung', 'Sil-ben-tren-nung'],
+      ['fr', 'syllabation', 'syl-la-ba-tion'],
+      ['es', 'silabación', 'si-la-ba-ción'],
+      ['pt', 'silabação', 'si-la-ba-ção'],
+      ['nl', 'lettergrepen', 'let-ter-gre-pen'],
+      ['pl', 'sylabizacja', 'sy-la-bi-za-cja'],
+      ['sv', 'stavelser', 'sta-vel-ser']
+    ];
+    for (var dc = 0; dc < dictCases.length; dc++) {
+      __SUI_RICH.set('editor', { type: 'doc', page: { lang: dictCases[dc][0] }, children: [{ type: 'paragraph', hyphens: 'auto', children: [{ type: 'text', text: dictCases[dc][1], marks: [] }] }] });
+      await wait(220);
+      var dictValue = bsEditor().querySelector('p').textContent.replace(/\u00AD/g, '-');
+      if (dictValue !== dictCases[dc][2]) throw new Error(dictCases[dc][0] + ' hyphenation dictionary: ' + dictValue);
+    }
 
     __SUI_RICH.command('editor', 'documentSettings');
     await wait(200);
