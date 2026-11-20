@@ -1239,7 +1239,10 @@ window.__SUI_RICH = (function () {
           else { try { on = document.queryCommandState(inlineCmds[cmd]); } catch (e) { on = false; } }
         }
       }
-      else if (cmd === 'code') on = inCode;
+      else if (cmd === 'code') {
+        if (inside && sel && sel.isCollapsed && inst.typingMarks && inst.typingMarks.code !== undefined) on = !!inst.typingMarks.code;
+        else on = inCode;
+      }
       else if (cmd === 'link') on = inLink;
       else if (cmd === 'copyFormat') on = !!inst.painter;
       else if (cmd === 'unlink') disabled = !inLink;
@@ -2329,6 +2332,46 @@ window.__SUI_RICH = (function () {
     var sel = window.getSelection();
     if (sel) { sel.removeAllRanges(); sel.addRange(caret); }
   }
+  function toggleInlineCode(inst) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    if (!sel.isCollapsed) {
+      if (!unwrapTag(inst, 'code')) wrapSelection(inst, 'code');
+      if (!inst.typingMarks) inst.typingMarks = {};
+      inst.typingMarks.code = !!closestIn(inst, 'code');
+      return;
+    }
+    var inCode = !!closestIn(inst, 'code');
+    var desired = inst.typingMarks && inst.typingMarks.code !== undefined ? !inst.typingMarks.code : !inCode;
+    if (!desired) {
+      var mark = markAncestor(inst, 'code');
+      if (mark) {
+        splitMarkAtCaret(inst, mark, range);
+        inst.suppressNotify = true;
+      }
+    }
+    if (!inst.typingMarks) inst.typingMarks = {};
+    inst.typingMarks.code = desired;
+    if (inst.editor) inst.editor.focus();
+    saveSelection(inst);
+  }
+  function insertTypedCode(inst, text) {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    range.deleteContents();
+    var code = el('code');
+    code.appendChild(document.createTextNode(String(text || '')));
+    range.insertNode(code);
+    var caret = document.createRange();
+    caret.selectNodeContents(code);
+    caret.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(caret);
+    saveSelection(inst);
+    commit(inst, 'input');
+  }
   function toggleInlineMark(inst, cmd) {
     var native = {
       bold: 'bold', italic: 'italic', underline: 'underline',
@@ -2467,7 +2510,7 @@ window.__SUI_RICH = (function () {
     else if (cmd === 'strike') toggleInlineMark(inst, 'strike');
     else if (cmd === 'superscript') toggleInlineMark(inst, 'superscript');
     else if (cmd === 'subscript') toggleInlineMark(inst, 'subscript');
-    else if (cmd === 'code') { if (!unwrapTag(inst, 'code')) wrapSelection(inst, 'code'); }
+    else if (cmd === 'code') { toggleInlineCode(inst); }
     else if (cmd === 'clearFormat') clearFormatting(inst);
     else if (cmd === 'copyFormat') copyFormat(inst);
     else if (cmd === 'fontSizeUp') changeFontSize(inst, 2);
@@ -6659,6 +6702,10 @@ window.__SUI_RICH = (function () {
       var inputSel = window.getSelection();
       if (!inputSel || !inputSel.rangeCount || !inputSel.isCollapsed) return;
       applyTypingState(inst);
+      if (inst.typingMarks && inst.typingMarks.code && e.data && !closestIn(inst, 'code')) {
+        e.preventDefault();
+        insertTypedCode(inst, e.data);
+      }
     });
     root.addEventListener('keydown', function (e) {
       if (!inst.editor.contains(e.target)) return;
