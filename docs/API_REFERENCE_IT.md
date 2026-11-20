@@ -1838,7 +1838,9 @@ L'interlinea predefinita del documento è in Impostazioni documento e i singoli
 paragrafi possono sovrascriverla. Dentro un blocco di codice, **Code tab size**
 (2, 4 o 8 spazi) imposta quanti spazi inserisce indent/outdent ed è salvato come
 `tabSize`; **Line numbers (code)** aggiunge la gutter dei numeri di riga ed è
-salvato come `lineNumbers: true`.
+salvato come `lineNumbers: true`. **Code language** attiva la colorazione
+sintattica (JavaScript, TypeScript, HTML, CSS, JSON, XML, Markdown, SQL, Python,
+Go, Java, C#, Bash) ed è salvato come `codeLanguage`.
 
 L'editor mantiene l'altezza configurata con `height` (320 px di default);
 quando il testo supera l'area compare una scrollbar nel contenuto invece di far
@@ -1957,7 +1959,8 @@ Tipi blocco: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 `font`, `size`), più `break` e `image` inline. Un `code_block` conserva `text`
 per gli export semplici, gli eventuali `children` ricchi (mark inline) e lo
 stile di blocco (`align`, `indent`, `lineHeight`, `spaceBefore`, `spaceAfter`,
-`hyphens`); così gli stili delle parole restano dopo il re-render.
+`hyphens`, `tabSize`), più `lineNumbers` e `codeLanguage` opzionali; così stili,
+gutter e colorazione sintattica restano dopo il re-render.
 
 ### API
 

@@ -90,7 +90,9 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   alignment menu offers **Justify** and **Justify + hyphenation**. **Code tab
   size** (2/4/8 spaces) controls code-line indentation and is stored as
   `tabSize`; **Line numbers (code)** toggles the line-number gutter on code
-  blocks (`lineNumbers: true`). The main toolbar and the
+  blocks (`lineNumbers: true`). **Code language** enables syntax highlighting
+  for JavaScript, TypeScript, HTML, CSS, JSON, XML, Markdown, SQL, Python, Go,
+  Java, C#, Bash and is stored as `codeLanguage`. The main toolbar and the
   contextual selection toolbar both expose indent/outdent for the current
   paragraph; inside a code block they indent the current code line. Paragraphs
   and lists split at line or item boundaries to fill each page; headings and

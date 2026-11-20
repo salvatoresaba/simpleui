@@ -1875,7 +1875,9 @@ The document default line height is in Document settings and individual
 paragraphs can override it. Inside a code block, **Code tab size** (2, 4 or 8
 spaces) controls how many spaces indent/outdent inserts and is stored as
 `tabSize`; **Line numbers (code)** adds an optional line-number gutter and is
-stored as `lineNumbers: true`.
+stored as `lineNumbers: true`. **Code language** enables syntax highlighting
+(JavaScript, TypeScript, HTML, CSS, JSON, XML, Markdown, SQL, Python, Go, Java,
+C#, Bash) and is stored as `codeLanguage`.
 
 The editor keeps the height configured with `height` (320 px by default); when
 the text exceeds that area a scrollbar appears inside the content instead of
@@ -1970,7 +1972,8 @@ Block types: `paragraph`, `heading`, `bullet_list`, `ordered_list`,
 `font`, `size`), plus `break` and inline `image`. A `code_block` stores `text`
 for plain exports plus optional rich `children` (inline marks) and the usual
 block style (`align`, `indent`, `lineHeight`, `spaceBefore`, `spaceAfter`,
-`hyphens`); this keeps word styles inside code blocks across re-renders.
+`hyphens`, `tabSize`), plus optional `lineNumbers` and `codeLanguage`; this keeps
+word styles, the line-number gutter and syntax highlighting across re-renders.
 
 ### API
 

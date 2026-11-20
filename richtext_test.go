@@ -410,7 +410,7 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     if (!tabbedCode || tabbedCode.textContent !== 'one\n    two') throw new Error('code tab size indent: ' + JSON.stringify(tabbedCode ? tabbedCode.textContent : null));
     var tabCodeDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (String(tabCodeDoc.tabSize) !== '4') throw new Error('code tab size not stored: ' + JSON.stringify(tabCodeDoc));
-    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'code_block', text: 'one\ntwo\nthree' }] });
+    __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'code_block', text: 'const one = 1;\nlet two = 2;\nreturn three;' }] });
     await wait(220);
     var lineNumEditor = richRoot().querySelector('.sui-rich-editor');
     var lineNumCode = lineNumEditor.querySelector('pre code');
@@ -430,6 +430,19 @@ var themeBefore = richRoot().getAttribute('data-sui-rich-theme');
     if (numberedLines.join('|') !== '1|2|3') throw new Error('code line numbers wrong: ' + numberedLines.join('|'));
     var numberedDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
     if (!numberedDoc.lineNumbers) throw new Error('code line numbers not stored');
+    __SUI_RICH.command('editor', 'paragraphSettings');
+    await wait(180);
+    var syntaxPanel = document.querySelector('.sui-rich-paragraphsettings');
+    var syntaxSelect = syntaxPanel.querySelector('[data-rich-paragraph-codelang]');
+    if (!syntaxSelect) throw new Error('code language control missing');
+    syntaxSelect.value = 'javascript';
+    syntaxPanel.querySelector('[data-rich-paragraph-apply]').click();
+    await wait(250);
+    var syntaxPre = richRoot().querySelector('.sui-rich-editor pre[data-code-language="javascript"]');
+    if (!syntaxPre) throw new Error('code language not applied');
+    if (!syntaxPre.querySelector('.sui-code-keyword')) throw new Error('syntax highlighting missing');
+    var syntaxDoc = JSON.parse(__SUI_RICH.get('editor')[0]).children[0];
+    if (syntaxDoc.codeLanguage !== 'javascript') throw new Error('code language not stored');
 
     // Enter inside a list creates one list item per line.
     __SUI_RICH.set('editor', { type: 'doc', children: [{ type: 'bullet_list', children: [{ type: 'list_item', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Left right', marks: [] }] }] }] }] });

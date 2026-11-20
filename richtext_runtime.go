@@ -321,6 +321,7 @@ window.__SUI_RICH = (function () {
         flush();
         var codeBlock = { type: 'code_block', text: node.textContent || '' };
         if (node.getAttribute && node.getAttribute('data-line-numbers') !== null) codeBlock.lineNumbers = true;
+        if (node.getAttribute && node.getAttribute('data-code-language')) codeBlock.codeLanguage = codeLanguage(node.getAttribute('data-code-language'));
         var preStyle = blockStyle(node);
         for (var pk in preStyle) if (hasOwn(preStyle, pk) && preStyle[pk]) codeBlock[pk] = preStyle[pk];
         var codeHost = null;
@@ -611,6 +612,10 @@ window.__SUI_RICH = (function () {
       else codeBox.appendChild(document.createTextNode(String(node.text == null ? '' : node.text)));
       box.appendChild(codeBox);
       styleForBlock(box, node);
+      if (node.codeLanguage && node.codeLanguage !== 'plain') {
+        box.setAttribute('data-code-language', node.codeLanguage);
+        highlightCodeBox(codeBox, node.codeLanguage);
+      }
       if (node.lineNumbers) box.setAttribute('data-line-numbers', codeLineNumbers(codeBox));
       return box;
     } else if (type === 'hr') {
@@ -1114,6 +1119,97 @@ window.__SUI_RICH = (function () {
     for (var i = 0; i < pres.length; i++) {
       var code = pres[i].querySelector('code') || pres[i];
       pres[i].setAttribute('data-line-numbers', codeLineNumbers(code));
+    }
+  }
+  var CODE_LANGUAGES = [
+    ['plain', 'Plain text'], ['javascript', 'JavaScript'], ['typescript', 'TypeScript'], ['html', 'HTML'],
+    ['css', 'CSS'], ['json', 'JSON'], ['xml', 'XML'], ['markdown', 'Markdown'], ['sql', 'SQL'],
+    ['python', 'Python'], ['go', 'Go'], ['java', 'Java'], ['csharp', 'C#'], ['bash', 'Bash']
+  ];
+  var CODE_KEYWORDS = {
+    javascript: 'const let var function return if else for while do switch case break continue class new import from export default async await try catch finally throw true false null undefined this typeof instanceof in of delete void yield static get set',
+    typescript: 'const let var function return if else for while do switch case break continue class interface type enum extends implements new import from export default async await try catch finally throw true false null undefined this typeof instanceof public private protected readonly as keyof namespace declare',
+    go: 'package import func type struct interface var const return if else for range switch case default break continue go defer chan map select fallthrough true false nil',
+    python: 'def class import from return if elif else for while in is not and or None True False try except finally with as lambda yield async await pass global nonlocal assert raise del',
+    java: 'public private protected class interface extends implements new return if else for while do switch case break continue try catch finally throw throws import package static final void int long double float boolean char String true false null this super',
+    csharp: 'public private protected internal class interface struct enum new return if else for foreach while do switch case break continue try catch finally throw using namespace static readonly const void string int long double float bool true false null this base var async await',
+    sql: 'select from where insert into update delete join left right inner outer on group by order having limit offset as and or not null is in exists create table alter drop primary key foreign references distinct union all case when then else end',
+    json: 'true false null',
+    css: '', html: '', xml: '', markdown: '',
+    bash: 'if then else elif fi for do done while case esac function echo export local read cd exit return in'
+  };
+  var CODE_TOKEN_SELECTOR = '.sui-code-keyword,.sui-code-string,.sui-code-comment,.sui-code-number,.sui-code-tag';
+  function codeLanguage(value) {
+    var lang = String(value || '').toLowerCase();
+    for (var i = 0; i < CODE_LANGUAGES.length; i++) if (CODE_LANGUAGES[i][0] === lang) return lang;
+    return 'plain';
+  }
+  function codeTokenize(text, lang) {
+    var tokens = [], source = String(text || '');
+    if (!source) return tokens;
+    var kw = CODE_KEYWORDS[lang] || '';
+    var parts = [];
+    if (lang === 'html' || lang === 'xml') parts.push('<\\/?[A-Za-z][^>]*>');
+    parts.push('\\/\\*[\\s\\S]*?\\*\\/');
+    if (lang === 'sql') parts.push('--[^\\n]*');
+    else parts.push('\\/\\/[^\\n]*');
+    if (lang === 'python' || lang === 'bash') parts.push('#[^\\n]*');
+    parts.push('<!--[\\s\\S]*?-->');
+    parts.push('"(?:\\\\.|[^"\\\\])*"');
+    parts.push("'(?:\\\\.|[^'\\\\])*'");
+    var bt = String.fromCharCode(96);
+    parts.push(bt + '(?:\\\\.|[^' + bt + '\\\\])*' + bt);
+    parts.push('\\b\\d+(?:\\.\\d+)?\\b');
+    var words = kw.split(/\s+/).filter(function (w) { return w; }).sort(function (a, b) { return b.length - a.length; });
+    if (words.length) parts.push('\\b(?:' + words.join('|') + ')\\b');
+    var re;
+    try { re = new RegExp('(' + parts.join('|') + ')', lang === 'sql' ? 'gi' : 'g'); } catch (e) { re = /$^/g; }
+    var last = 0, match;
+    while ((match = re.exec(source))) {
+      if (match.index > last) tokens.push({ text: source.slice(last, match.index), cls: '' });
+      var token = match[0], cls = '';
+      if (/^\/\*/.test(token) || /^\/\//.test(token) || /^#/.test(token) || /^--/.test(token) || /^<!--/.test(token)) cls = 'comment';
+      else if (/^["']/.test(token) || token.charCodeAt(0) === 96) cls = 'string';
+      else if (/^\d/.test(token)) cls = 'number';
+      else if ((lang === 'html' || lang === 'xml') && /^</.test(token)) cls = 'tag';
+      else cls = 'keyword';
+      tokens.push({ text: token, cls: cls });
+      last = match.index + token.length;
+      if (match[0] === '') re.lastIndex++;
+    }
+    if (last < source.length) tokens.push({ text: source.slice(last), cls: '' });
+    return tokens;
+  }
+  function clearCodeHighlight(root) {
+    if (!root) return;
+    var nodes = root.querySelectorAll(CODE_TOKEN_SELECTOR);
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      var node = nodes[i];
+      if (!node.parentNode) continue;
+      while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+      node.parentNode.removeChild(node);
+    }
+  }
+  function highlightCodeBox(root, lang) {
+    if (!root || !lang || lang === 'plain') return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), nodes = [], node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    for (var i = 0; i < nodes.length; i++) {
+      var parent = nodes[i].parentElement;
+      if (parent && parent.closest && parent.closest(CODE_TOKEN_SELECTOR)) continue;
+      var tokens = codeTokenize(nodes[i].nodeValue, lang);
+      if (tokens.length <= 1 && (!tokens[0] || !tokens[0].cls)) continue;
+      var frag = document.createDocumentFragment();
+      for (var t = 0; t < tokens.length; t++) {
+        if (!tokens[t].text) continue;
+        if (!tokens[t].cls) frag.appendChild(document.createTextNode(tokens[t].text));
+        else {
+          var span = el('span', 'sui-code-' + tokens[t].cls);
+          span.textContent = tokens[t].text;
+          frag.appendChild(span);
+        }
+      }
+      if (nodes[i].parentNode) nodes[i].parentNode.replaceChild(frag, nodes[i]);
     }
   }
   function blockLine(name, text) {
@@ -5935,6 +6031,16 @@ window.__SUI_RICH = (function () {
     lineNum.title = 'Show a line-number gutter in code blocks.';
     lineNumRow.appendChild(lineNum);
     panel.appendChild(lineNumRow);
+    var codeLangRow = el('label');
+    codeLangRow.appendChild(el('span', '', 'Code language'));
+    var codeLangSelect = el('select');
+    codeLangSelect.setAttribute('data-rich-paragraph-codelang', '1');
+    codeLangSelect.setAttribute('aria-label', 'Code syntax highlighting language');
+    CODE_LANGUAGES.forEach(function (pair) {
+      var op = el('option', '', pair[1]); op.value = pair[0]; codeLangSelect.appendChild(op);
+    });
+    codeLangRow.appendChild(codeLangSelect);
+    panel.appendChild(codeLangRow);
     var hyphenRow = el('label', 'sui-rich-paragraph-check');
     hyphenRow.appendChild(el('span', '', 'Hyphenation'));
     var hyphen = el('input');
@@ -6007,7 +6113,8 @@ window.__SUI_RICH = (function () {
         after: parseFloat(block.style.marginBottom) || 0,
         hyphens: block.style.hyphens || block.style.webkitHyphens || '',
         tabSize: block.style.tabSize || '2',
-        lineNumbers: block.getAttribute && block.getAttribute('data-line-numbers') !== null
+        lineNumbers: block.getAttribute && block.getAttribute('data-line-numbers') !== null,
+        codeLanguage: (block.getAttribute && block.getAttribute('data-code-language')) || 'plain'
       };
     }
     var align = panel.querySelector('[data-rich-paragraph-align]');
@@ -6018,6 +6125,8 @@ window.__SUI_RICH = (function () {
     if (tabInput) tabInput.value = source.tabSize || '2';
     var lineNumInput = panel.querySelector('[data-rich-paragraph-linenumbers]');
     if (lineNumInput) lineNumInput.checked = !!source.lineNumbers;
+    var codeLangInput = panel.querySelector('[data-rich-paragraph-codelang]');
+    if (codeLangInput) codeLangInput.value = source.codeLanguage || 'plain';
     [['indent', 'indent'], ['lineheight', 'lineheight'], ['before', 'before'], ['after', 'after']].forEach(function (pair) {
       var input = panel.querySelector('[data-rich-paragraph-' + pair[1] + ']');
       if (input) input.value = source[pair[0]] == null ? '' : String(source[pair[0]]);
@@ -6057,6 +6166,8 @@ window.__SUI_RICH = (function () {
     var tabSize = tabSizeInput ? String(tabSizeInput.value || '2') : '2';
     var lineNumInput = panel.querySelector('[data-rich-paragraph-linenumbers]');
     var lineNumbers = !!(lineNumInput && lineNumInput.checked);
+    var codeLangInput = panel.querySelector('[data-rich-paragraph-codelang]');
+    var codeLang = codeLanguage(codeLangInput ? codeLangInput.value : 'plain');
     var blocks = paragraphTargets(inst);
     for (var i = 0; i < blocks.length; i++) {
       var block = blocks[i];
@@ -6081,6 +6192,13 @@ window.__SUI_RICH = (function () {
         block.style.tabSize = tabSize;
         if (lineNumbers) block.setAttribute('data-line-numbers', codeLineNumbers(block.querySelector('code') || block));
         else block.removeAttribute('data-line-numbers');
+        var codeBox = block.querySelector('code') || block;
+        clearCodeHighlight(codeBox);
+        if (codeLang === 'plain') block.removeAttribute('data-code-language');
+        else {
+          block.setAttribute('data-code-language', codeLang);
+          highlightCodeBox(codeBox, codeLang);
+        }
       }
       var isPre = block.tagName && block.tagName.toLowerCase() === 'pre';
       var hasHyphens = block.style.hyphens === 'auto' || block.style.webkitHyphens === 'auto';
@@ -10869,6 +10987,16 @@ const suiRichTextCss = `
 .sui-rich-editor pre[data-line-numbers] { position: relative; padding-left: 52px; white-space: pre; overflow: auto; }
 .sui-rich-editor pre[data-line-numbers] code { white-space: pre; }
 .sui-rich-editor pre[data-line-numbers]::before { content: attr(data-line-numbers); position: absolute; left: 0; top: 12px; width: 36px; padding-right: 8px; border-right: 1px solid var(--sui-rich-paper-border); color: var(--sui-rich-paper-muted); text-align: right; white-space: pre; pointer-events: none; font: inherit; font-size: 12px; line-height: 1.5; }
+.sui-rich-editor .sui-code-keyword { color: #7c3aed; font-weight: 600; }
+.sui-rich-editor .sui-code-string { color: #0a7a3d; }
+.sui-rich-editor .sui-code-comment { color: #6b7280; font-style: italic; }
+.sui-rich-editor .sui-code-number { color: #b45309; }
+.sui-rich-editor .sui-code-tag { color: #1d4ed8; }
+.sui-rich[data-sui-rich-content="dark"] .sui-rich-editor .sui-code-keyword { color: #c4b5fd; }
+.sui-rich[data-sui-rich-content="dark"] .sui-rich-editor .sui-code-string { color: #86efac; }
+.sui-rich[data-sui-rich-content="dark"] .sui-rich-editor .sui-code-comment { color: #94a3b8; }
+.sui-rich[data-sui-rich-content="dark"] .sui-rich-editor .sui-code-number { color: #fbbf24; }
+.sui-rich[data-sui-rich-content="dark"] .sui-rich-editor .sui-code-tag { color: #93c5fd; }
 .sui-rich-editor hr { border: 0; border-top: 1px solid var(--sui-rich-paper-border); margin: 1.2em 0; }
 .sui-rich-editor img { max-width: 100%; height: auto; border-radius: 6px; background: transparent; border: 0; box-shadow: none; padding: 0; object-fit: contain; }
 .sui-rich-editor figure { text-align: center; }
