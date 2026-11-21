@@ -10937,13 +10937,6 @@ window.__SUI_RICH = (function () {
     hyphenationLanguage = documentLanguage(inst);
     var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
     if (liveEditor) inst.editor = liveEditor;
-    var pageCfg = pageConfig(inst, 1), pageDims = pageSizeMm(pageCfg);
-    var pdfInk = pageInkFor(pageCfg.background);
-    var currentInk = pdfInk;
-    var PAGE_W = Math.round(mmToPt(pageDims.w)), PAGE_H = Math.round(mmToPt(pageDims.h));
-    var MARGIN = mmToPt(pageCfg.margins.left), MARGIN_R = mmToPt(pageCfg.margins.right);
-    var MARGIN_T = mmToPt(pageCfg.margins.top), MARGIN_B = mmToPt(pageCfg.margins.bottom);
-    var CONTENT_W = PAGE_W - MARGIN - MARGIN_R;
     var headerText = inst.headerText || '', footerText = inst.footerText || '';
     var headerValue = inst.headerValue != null ? inst.headerValue : headerText;
     var footerValue = inst.footerValue != null ? inst.footerValue : footerText;
@@ -10951,9 +10944,22 @@ window.__SUI_RICH = (function () {
     var hasFooter = chromeHasContent(footerValue);
     var HEADER_H = hasHeader ? Math.max(30, (inst.headerH || 0) * 0.75) : 0;
     var FOOTER_H = hasFooter ? Math.max(30, (inst.footerH || 0) * 0.75) : 0;
-    var headerSpace = hasHeader ? Math.max(MARGIN_T, HEADER_H + 12) : MARGIN_T;
-    var footerSpace = hasFooter ? Math.max(MARGIN_B, FOOTER_H + 12) : MARGIN_B;
-    var START_Y = headerSpace, BOTTOM_LIMIT = PAGE_H - footerSpace;
+    var PAGE_W, PAGE_H, MARGIN, MARGIN_R, MARGIN_T, MARGIN_B, CONTENT_W;
+    var headerSpace, footerSpace, START_Y, BOTTOM_LIMIT;
+    var firstPageMeta = null, pageMeta = [];
+    function applyPdfPage(n) {
+      var cfg = pageConfig(inst, n), dims = pageSizeMm(cfg);
+      PAGE_W = Math.round(mmToPt(dims.w)); PAGE_H = Math.round(mmToPt(dims.h));
+      MARGIN = mmToPt(cfg.margins.left); MARGIN_R = mmToPt(cfg.margins.right);
+      MARGIN_T = mmToPt(cfg.margins.top); MARGIN_B = mmToPt(cfg.margins.bottom);
+      CONTENT_W = PAGE_W - MARGIN - MARGIN_R;
+      headerSpace = hasHeader ? Math.max(MARGIN_T, HEADER_H + 12) : MARGIN_T;
+      footerSpace = hasFooter ? Math.max(MARGIN_B, FOOTER_H + 12) : MARGIN_B;
+      START_Y = headerSpace; BOTTOM_LIMIT = PAGE_H - footerSpace;
+      if (n === 1) firstPageMeta = { w: PAGE_W, h: PAGE_H };
+      return cfg;
+    }
+    var currentInk = pageInkFor(applyPdfPage(1).background);
     pdfEmbUse = {};
     var pages = [], ops = [], y = START_Y, pageSeq = 0;
     var images = [], imageCache = {};
@@ -11027,9 +11033,14 @@ window.__SUI_RICH = (function () {
       if (hasFooter) drawChromeValue(footerValue, PAGE_H - footerSpace + 4, Math.max(12, footerSpace - 10), PAGE_H - footerSpace + 3);
     }
     function newPage() {
-      if (ops.length) pages.push(ops.join('\n'));
-      ops = []; y = START_Y; pageSeq++;
-      var pageBackground = cssColor(pageConfig(inst, pageSeq).background) || '#ffffff';
+      if (ops.length) {
+        pages.push(ops.join('\n'));
+        pageMeta.push({ w: PAGE_W, h: PAGE_H });
+      }
+      ops = []; pageSeq++;
+      var pageCfg = applyPdfPage(pageSeq);
+      y = START_Y;
+      var pageBackground = cssColor(pageCfg.background) || '#ffffff';
       currentInk = pageInkFor(pageBackground);
       if (hexColor(pageBackground) && hexColor(pageBackground) !== 'FFFFFF') {
         ops.push('q ' + pdfFill(pageBackground) + ' 0 0 ' + PAGE_W + ' ' + PAGE_H + ' re f Q');
@@ -11534,7 +11545,10 @@ window.__SUI_RICH = (function () {
     newPage();
     for (var i = 0; i < (doc.children || []).length; i++) block(doc.children[i]);
     newPage();
-    if (!pages.length) pages.push('');
+    if (!pages.length) {
+      pages.push('');
+      pageMeta.push(firstPageMeta || { w: PAGE_W, h: PAGE_H });
+    }
     var objects = [];
     objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
     for (var f = 0; f < PDF_FONTS.length; f++) objects[3 + f] = '<< /Type /Font /Subtype /Type1 /BaseFont /' + PDF_FONTS[f] + ' /Encoding /WinAnsiEncoding >>';
@@ -11571,7 +11585,8 @@ window.__SUI_RICH = (function () {
     var xobjRes = images.length ? ' /XObject << ' + images.map(function (_, index) { return '/Im' + index + ' ' + imageIds[index] + ' 0 R'; }).join(' ') + ' >>' : '';
     objects[2] = '<< /Type /Pages /Kids [' + pageIds.map(function (id) { return id + ' 0 R'; }).join(' ') + '] /Count ' + pages.length + ' >>';
     for (var pg = 0; pg < pages.length; pg++) {
-      objects[pageIds[pg]] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Resources << ' + fontRes + xobjRes + ' >> /Contents ' + contentIds[pg] + ' 0 R >>';
+      var pm = pageMeta[pg] || firstPageMeta || { w: PAGE_W, h: PAGE_H };
+      objects[pageIds[pg]] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pm.w + ' ' + pm.h + '] /Resources << ' + fontRes + xobjRes + ' >> /Contents ' + contentIds[pg] + ' 0 R >>';
       var streamPg = pages[pg].split('__SUI_PAGE__').join(String(pg + 1)).split('__SUI_PAGES__').join(String(pages.length));
       objects[contentIds[pg]] = '<< /Length ' + pdfBytes(streamPg).length + ' >>\nstream\n' + streamPg + '\nendstream';
     }

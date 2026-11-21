@@ -1257,6 +1257,23 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (multiOdt.indexOf('fo:background-color="#336699"') < 0 || multiOdt.indexOf('fo:background-color="#CC4422"') < 0) throw new Error('ODT per-page background colours missing');
     if (multiOdt.indexOf('style:master-page-name="Page2"') < 0 || multiOdt.indexOf('style:master-page-name="Page3"') < 0) throw new Error('ODT master page transitions missing');
 
+    __SUI_RICH.set('editor', {
+      type: 'doc',
+      page: { background: '#ffffff' },
+      pageOverrides: { '2': { size: 'letter', orientation: 'landscape', margins: { top: 20, right: 25, bottom: 18, left: 22 } } },
+      children: [pagePara('A4 page'), { type: 'page_break' }, pagePara('Letter page')]
+    });
+    await wait(200);
+    var sizedPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
+    if (sizedPdf.indexOf('/MediaBox [0 0 595 842]') < 0 || sizedPdf.indexOf('/MediaBox [0 0 792 612]') < 0) throw new Error('PDF per-page size missing');
+    __SUI_RICH.set('editor', {
+      type: 'doc',
+      page: { background: '#ffffff' },
+      pageOverrides: { '1': { size: 'letter', orientation: 'landscape', margins: { top: 20, right: 25, bottom: 18, left: 22 }, background: '#ffffff' } },
+      children: [pagePara('Restored')]
+    });
+    await wait(150);
+
     // Fixed control height with scrolling, toolbar zoom, paragraph panel,
     // print preview, prompt overlays, format painter and File menu order.
     __SUI_RICH.setToolbar('editor', 'zoom,paragraphSettings,printPreview,link,bold,copyFormat,clearFormat');

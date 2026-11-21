@@ -1814,9 +1814,10 @@ misurata di intestazione/piè). I default stanno in
 `page: { size, orientation, lineHeight, lang, background, margins }` più
 `header`/`footer`; le sovrascritture per pagina in
 `pageOverrides: { "1": { background, size, orientation, margins } }`.
-Vengono applicate alla vista paginata e alla stampa. Il PDF colora ogni pagina
-renderizzata con lo sfondo del suo numero, ma mantiene i default del documento
-per formato e margini. DOCX, ODT e RTF generano una sezione per ogni blocco
+Vengono applicate alla vista paginata e alla stampa. Il PDF applica a ogni pagina
+renderizzata sfondo, formato, orientamento e margini del suo numero; le pagine
+create dalla distribuzione automatica usano le impostazioni della pagina corrente.
+DOCX, ODT e RTF generano una sezione per ogni blocco
 esplicito `{ type: "page_break" }` che cambia impostazioni: sfondo, formato,
 orientamento e margini seguono quindi quelle sovrascritture; le pagine create
 dalla distribuzione automatica del programma di videoscrittura conservano le

@@ -1856,9 +1856,9 @@ Print; PDF, DOCX, ODT and RTF exports include rich header/footer text and images
 `page: { size, orientation, lineHeight, lang, background, margins }` plus
 `header`/`footer`; per-page overrides are in
 `pageOverrides: { "1": { background, size, orientation, margins } }`.
-They are applied to the paginated view and print. PDF paints each rendered page
-with that page's background, but keeps the document defaults for size and
-margins. DOCX, ODT and RTF emit a section for every changed explicit
+They are applied to the paginated view and print. PDF applies each rendered
+page's background, size, orientation and margins; automatic overflow uses the
+current page's settings. DOCX, ODT and RTF emit a section for every changed explicit
 `{ type: "page_break" }` block, so background, size, orientation and margins
 follow those overrides; pages created by automatic word-processor overflow keep
 the current section's settings. Use hex or `rgb()` backgrounds for binary
