@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 )
@@ -155,5 +156,77 @@ view main {
 	}
 	if strings.Contains(js, `data-sui-rich-content="dark"`) {
 		t.Error("contentTheme still changes the generated paper")
+	}
+}
+
+func TestRichTextInspectorIsMinimal(t *testing.T) {
+	start := strings.Index(guiHTML, "function richtextControls(n) {")
+	end := strings.Index(guiHTML, "function inputControls(nodes) {")
+	if start < 0 || end <= start {
+		t.Fatal("richtextControls function not found in the designer")
+	}
+	src := guiHTML[start:end]
+	for _, marker := range []string{
+		`rowInput("header"`,
+		`rowInput("footer"`,
+		`"Status bar"`,
+		`"Selection toolbar"`,
+		`className = "hint"`,
+	} {
+		if strings.Contains(src, marker) {
+			t.Errorf("richtext Inspector still renders %s", marker)
+		}
+	}
+	for _, marker := range []string{
+		`"Editor chrome theme"`,
+		`toolbarBtn.title = "Choose the toolbar buttons"`,
+		`hyphBtn.title = "Choose the embedded hyphenation dictionaries"`,
+		`roSwitch.title = "Show the document without editing controls"`,
+		`mkSwitch(n.readonly === undefined ? false : !!n.readonly`,
+	} {
+		if !strings.Contains(src, marker) {
+			t.Errorf("richtext Inspector missing %s", marker)
+		}
+	}
+}
+
+func TestRichTextReadOnlyAndStatusLayout(t *testing.T) {
+	for _, marker := range []string{
+		"function isReadOnly(inst)",
+		"function applyReadOnlyChrome(inst)",
+		"applyReadOnlyChrome(inst);",
+		"if (isReadOnly(inst)) return;",
+		"inst.config.context && !isReadOnly(inst)",
+		"root.style.setProperty('--sui-rich-content-height'",
+	} {
+		if !strings.Contains(suiRichTextRuntime, marker) {
+			t.Errorf("runtime missing read-only marker: %s", marker)
+		}
+	}
+	for _, marker := range []string{
+		".sui-rich-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;",
+		".sui-rich-status { display: flex; flex: none; align-items: center;",
+		".sui-rich-status[hidden] { display: none; }",
+		".sui-rich-menu[hidden] { display: none; }",
+		".sui-rich-toolbar[hidden] { display: none; }",
+	} {
+		if !strings.Contains(suiRichTextCss, marker) {
+			t.Errorf("editor CSS missing status layout marker: %s", marker)
+		}
+	}
+	if strings.Contains(suiRichTextRuntime, "inst.editor.style.height = editorHeight;") {
+		t.Error("editor still has a fixed inline height that overrides the content-height variable")
+	}
+}
+
+func TestRichTextExampleDropsLegacyToggles(t *testing.T) {
+	raw, err := os.ReadFile("examples/richtext_editor/app.sui")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{"menu: true", "toolbar: true", "contextToolbar: true", "statusbar: true"} {
+		if strings.Contains(string(raw), marker) {
+			t.Errorf("example still declares %s", marker)
+		}
 	}
 }

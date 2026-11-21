@@ -155,10 +155,10 @@ Ctrl+Enter.
 | `value` | Bound state containing the JSON document |
 | `onChange` / `onInput` | Change and live-typing handlers (state setter runs on change/blur) |
 | `onReady` / `onSelectionChange` | Ready and selection callbacks |
-| `height` | Minimum editor height (`px`, `rem`, `vh`, `%`) |
+| `height` | Content area height (`px`, `rem`, `vh`, `%`); the status bar stays pinned to the bottom border |
 | `placeholder` | Empty-document placeholder |
-| `readonly` | Disable editing |
-| `toolbar`, `menu`, `contextToolbar`, `statusbar` | Toggle UI areas |
+| `readonly` | Display-only mode: the content cannot be edited and no menu or toolbar is shown |
+| `toolbar`, `menu`, `contextToolbar`, `statusbar` | Legacy UI-area toggles, still honored in hand-written sources but not exposed in the designer |
 | `toolbarItems` | Comma-separated commands, `|` separates groups; `none` shows no formatting buttons |
 | `theme` | Interface theme: `dark` (default) or `light`; the attribute wins over a stored toolbar preference |
 | Document paper | Always white; the old `contentTheme` attribute is ignored by the compiler |
@@ -369,7 +369,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
+			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

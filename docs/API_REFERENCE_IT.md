@@ -1659,10 +1659,10 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `value` | Stato collegato che contiene il documento JSON |
 | `onChange` / `onInput` | Handler per modifica e digitazione |
 | `onReady` / `onSelectionChange` | Callback di pronto e selezione |
-| `height` | Altezza minima dell'editor (lunghezza CSS) |
+| `height` | Altezza dell'area di contenuto (lunghezza CSS). La barra di stato resta sempre sul bordo inferiore del controllo |
 | `placeholder` | Testo per documento vuoto |
-| `readonly` | Disabilita la modifica |
-| `menu`, `toolbar`, `contextToolbar`, `statusbar` | Mostra/nascondi aree |
+| `readonly` | Modalità sola lettura: il contenuto non è modificabile e non compaiono menu né toolbar |
+| `menu`, `toolbar`, `contextToolbar`, `statusbar` | Flag legacy per mostrare/nascondere aree, ancora rispettati nei sorgenti scritti a mano ma non esposti nel designer |
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi; `none` non mostra pulsanti di formattazione (resta il pulsante tema) |
 | `theme` | Tema dell'interfaccia: `dark` (default) o `light`. Nel designer l'attributo prevale su una preferenza salvata dalla toolbar. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
 | Foglio del documento | Sempre bianco; il vecchio attributo `contentTheme` viene ignorato dal compilatore |

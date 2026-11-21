@@ -1684,10 +1684,10 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `value` | Bound state containing the JSON document |
 | `onChange` / `onInput` | Change and live-typing handlers |
 | `onReady` / `onSelectionChange` | Ready and selection callbacks |
-| `height` | Minimum editor height (CSS length) |
+| `height` | Content area height (CSS length). The status bar always stays at the bottom border of the control |
 | `placeholder` | Empty-document placeholder |
-| `readonly` | Disable editing |
-| `menu`, `toolbar`, `contextToolbar`, `statusbar` | Show/hide UI areas |
+| `readonly` | Display-only mode: the content cannot be edited and no menu or toolbar is shown |
+| `menu`, `toolbar`, `contextToolbar`, `statusbar` | Legacy show/hide flags for UI areas, still honored in hand-written sources but not exposed in the designer |
 | `toolbarItems` | Comma-separated commands, `|` separates groups; `none` shows no formatting buttons (the theme button stays) |
 | `theme` | Interface theme: `dark` (default) or `light`. In the designer the attribute wins over a stored toolbar preference. A single toolbar button cycles dark/light and only styles the editor chrome |
 | Document paper | Always white; the old `contentTheme` attribute is ignored by the compiler |

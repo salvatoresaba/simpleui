@@ -17102,10 +17102,11 @@ function richtextControls(n) {
   h.onclick = function(){ a.classList.toggle("open"); };
   a.appendChild(h);
   var body = document.createElement("div"); body.className = "accbody";
-  function selectRow(label, field, options, def) {
+  function selectRow(label, field, options, def, tip) {
     var row = document.createElement("div"); row.className = "rowline";
     var lb = document.createElement("label"); lb.textContent = label; row.appendChild(lb);
     var sel = document.createElement("select");
+    if (tip) sel.title = tip;
     options.forEach(function(opt) {
       var o = document.createElement("option"); o.value = opt[0]; o.textContent = opt[1];
       if ((n[field] || def) === opt[0]) o.selected = true;
@@ -17114,39 +17115,26 @@ function richtextControls(n) {
     sel.onchange = function(){ upd(field, sel.value); };
     row.appendChild(sel); body.appendChild(row);
   }
-  selectRow("Interface theme", "theme", [["dark", "Dark"], ["light", "Light"]], "dark");
+  selectRow("Interface theme", "theme", [["dark", "Dark"], ["light", "Light"]], "dark", "Editor chrome theme");
   var toolbarRow = document.createElement("div"); toolbarRow.className = "rowline";
   var toolbarBtn = document.createElement("button"); toolbarBtn.type = "button"; toolbarBtn.className = "btn";
   toolbarBtn.style.cssText = "font-size:11px;padding:4px 8px;width:100%";
+  toolbarBtn.title = "Choose the toolbar buttons";
   toolbarBtn.textContent = (n.toolbarItems || "").trim().toLowerCase() === "none" ? "Toolbar items: none..." : "Toolbar items...";
   toolbarBtn.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } openToolbarItems(); };
   toolbarRow.appendChild(toolbarBtn); body.appendChild(toolbarRow);
-  var toolbarHint = document.createElement("div"); toolbarHint.className = "hint"; toolbarHint.style.fontSize = "10px";
-  toolbarHint.textContent = "Choose toolbar buttons in the overlay; height and width are in the Size section.";
-  body.appendChild(toolbarHint);
   var hyphRow = document.createElement("div"); hyphRow.className = "rowline";
   var hyphBtn = document.createElement("button"); hyphBtn.type = "button"; hyphBtn.className = "btn";
   hyphBtn.style.cssText = "font-size:11px;padding:4px 8px;width:100%";
+  hyphBtn.title = "Choose the embedded hyphenation dictionaries";
   hyphBtn.textContent = "Hyphenation languages...";
   hyphBtn.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } openHyphenationLanguages(); };
   hyphRow.appendChild(hyphBtn); body.appendChild(hyphRow);
-  var hyphHint = document.createElement("div"); hyphHint.className = "hint"; hyphHint.style.fontSize = "10px";
-  hyphHint.textContent = "Pick the dictionaries embedded in app.js; fewer languages produce much smaller JavaScript.";
-  body.appendChild(hyphHint);
-  body.appendChild(rowInput("header", n.header || "", function(v){ upd("header", v); }, "e.g. Company name - {page}/{pages}"));
-  body.appendChild(rowInput("footer", n.footer || "", function(v){ upd("footer", v); }, "e.g. Page {page} of {pages}"));
-  [["toolbar", "Toolbar"], ["menu", "Menu bar"], ["contextToolbar", "Selection toolbar"], ["statusbar", "Status bar"], ["readonly", "Read only"]].forEach(function(pair) {
-    var row = document.createElement("div"); row.className = "rowline";
-    var lb = document.createElement("label"); lb.textContent = pair[1]; row.appendChild(lb);
-    var def = pair[0] === "readonly" ? false : true;
-    var on = n[pair[0]] === undefined ? def : !!n[pair[0]];
-    row.appendChild(mkSwitch(on, false, function(val){ upd(pair[0], val); }));
-    body.appendChild(row);
-  });
-  var hint = document.createElement("div"); hint.className = "hint";
-  hint.style.fontSize = "10px";
-  hint.textContent = "The interface theme only styles the editor chrome; the document page is always white. The toolbar button cycles dark and light.";
-  body.appendChild(hint);
+  var roRow = document.createElement("div"); roRow.className = "rowline";
+  var roLabel = document.createElement("label"); roLabel.textContent = "Read only"; roRow.appendChild(roLabel);
+  var roSwitch = mkSwitch(n.readonly === undefined ? false : !!n.readonly, false, function(val){ upd("readonly", val); });
+  roSwitch.title = "Show the document without editing controls";
+  roRow.appendChild(roSwitch); body.appendChild(roRow);
   a.appendChild(body);
   return a;
 }

@@ -4040,6 +4040,34 @@ window.__SUI_RICH = (function () {
   function noFormatToolbar(inst) {
     return String((inst && inst.config && inst.config.toolbar) || '').trim().toLowerCase() === 'none';
   }
+  function isReadOnly(inst) {
+    return !!(inst && inst.root && boolAttr(inst.root, 'data-sui-rich-readonly', false));
+  }
+  // Read-only editors only display the document: no menu, no toolbars and no
+  // editing helpers are visible. Hand-written toolbar/menu/statusbar attributes
+  // keep working for editable instances for backwards compatibility.
+  function applyReadOnlyChrome(inst) {
+    if (!inst || !inst.root) return;
+    if (!isReadOnly(inst)) {
+      var pairs = [
+        ['.sui-rich-toolbar', 'data-sui-rich-toolbar'],
+        ['.sui-rich-menu', 'data-sui-rich-menu'],
+        ['.sui-rich-context', 'data-sui-rich-context'],
+        ['.sui-rich-status', 'data-sui-rich-statusbar']
+      ];
+      for (var i = 0; i < pairs.length; i++) {
+        var elm = inst.root.querySelector(pairs[i][0]);
+        if (elm) elm.hidden = !boolAttr(inst.root, pairs[i][1], true);
+      }
+      var tableBar = inst.root.querySelector('.sui-rich-tablebar');
+      if (tableBar) tableBar.hidden = true;
+      var findBar = inst.root.querySelector('.sui-rich-findbar');
+      if (findBar) findBar.hidden = true;
+      return;
+    }
+    var chrome = inst.root.querySelectorAll('.sui-rich-menu,.sui-rich-toolbar,.sui-rich-tablebar,.sui-rich-context,.sui-rich-findbar');
+    for (var j = 0; j < chrome.length; j++) chrome[j].hidden = true;
+  }
   function toolbarGroupLabel(tokens) {
     var list = String(tokens || '').split(',');
     function has(re) { for (var i = 0; i < list.length; i++) if (re.test(list[i].trim())) return true; return false; }
@@ -5785,6 +5813,7 @@ window.__SUI_RICH = (function () {
     }
   }
   function openFindBar(inst, query) {
+    if (isReadOnly(inst)) return;
     var bar = inst.root.querySelector('.sui-rich-findbar');
     if (!bar) return;
     bar.hidden = false;
@@ -7717,10 +7746,10 @@ window.__SUI_RICH = (function () {
     }
     inst.editor.__suiRichRendered = true;
     if (input) input.value = JSON.stringify(inst.doc);
-    var editorHeight = cssLength(attr(root, 'data-sui-rich-height'), '320px');
-    root.style.setProperty('--sui-rich-content-height', editorHeight);
-    inst.editor.style.height = editorHeight;
-    inst.editor.style.minHeight = '';
+    // The height attribute sizes the content area only. The CSS variable is the
+    // single source of truth so changing the control height (or the attribute)
+    // also moves the status bar, which stays pinned to the bottom of the shell.
+    root.style.setProperty('--sui-rich-content-height', cssLength(attr(root, 'data-sui-rich-height'), '320px'));
     applyPageLineHeight(inst);
     var savedTheme = '';
     try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
@@ -7752,12 +7781,7 @@ window.__SUI_RICH = (function () {
     try { savedIconSet = localStorage.getItem('sui-rich-icons-' + name) || ''; } catch (e) {}
     inst.iconSet = validIconSet(savedIconSet || attr(root, 'data-sui-rich-icons') || 'line');
     applyIconSet(inst);
-    var toolbarEl = root.querySelector('.sui-rich-toolbar');
-    if (toolbarEl && !boolAttr(root, 'data-sui-rich-toolbar', true)) toolbarEl.hidden = true;
-    var menuEl = root.querySelector('.sui-rich-menu');
-    if (menuEl && !boolAttr(root, 'data-sui-rich-menu', true)) menuEl.hidden = true;
-    var statusEl = root.querySelector('.sui-rich-status');
-    if (statusEl && !boolAttr(root, 'data-sui-rich-statusbar', true)) statusEl.hidden = true;
+    applyReadOnlyChrome(inst);
     bindEditorSurface(inst); bindRoot(inst); bindProperties(inst);
     setZoom(inst, inst.zoom || 1);
     updateStats(inst);
@@ -7809,13 +7833,14 @@ window.__SUI_RICH = (function () {
     if (!inst) return [false, 'richtext instance not found: ' + name];
     inst.config.toolbar = String(items || '');
     buildToolbar(inst); buildContext(inst); buildTableBar(inst);
+    applyReadOnlyChrome(inst);
     return [true, null];
   }
 
   document.addEventListener('selectionchange', function () {
     for (var name in instances) if (hasOwn(instances, name)) {
       var inst = instances[name];
-      if (inst.config.context && inst.root.contains(document.activeElement)) {
+      if (inst.config.context && !isReadOnly(inst) && inst.root.contains(document.activeElement)) {
         var info = selectionInfo(inst);
         var bar = inst.root.querySelector('.sui-rich-context');
         if (bar && info.inside && !info.collapsed) {
@@ -11079,6 +11104,7 @@ const suiRichTextCss = `
 }
 .sui-rich-title { padding: 10px 12px 0; font-weight: 600; color: var(--sui-rich-fg); }
 .sui-rich-menu { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; border-bottom: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); position: relative; z-index: 30; }
+.sui-rich-menu[hidden] { display: none; }
 .sui-rich-menu-wrap { position: relative; }
 .sui-rich-menu-btn { border: 0; background: transparent; color: var(--sui-rich-fg); padding: 5px 9px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
 .sui-rich-menu-btn:hover, .sui-rich-menu-btn:focus-visible { background: var(--sui-rich-hover); outline: none; }
@@ -11089,6 +11115,7 @@ const suiRichTextCss = `
 .sui-rich-menu-parent { display: flex; justify-content: space-between; align-items: center; }
 .sui-rich-submenu { left: calc(100% + 4px); top: -5px; min-width: 150px; }
 .sui-rich-toolbar { display: flex; flex-wrap: wrap; gap: 5px; padding: 6px 8px; border-bottom: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); align-items: center; }
+.sui-rich-toolbar[hidden] { display: none; }
 .sui-rich-tool-group { display: flex; align-items: center; gap: 2px; padding: 2px 4px; border: 1px solid var(--sui-rich-border); border-radius: 9px; background: color-mix(in srgb, var(--sui-rich-fg) 4%, transparent); }
 .sui-rich-tool-group[hidden] { display: none; }
 .sui-rich-tool-handle { cursor: grab; color: var(--sui-rich-muted); font-size: 11px; padding: 0 2px; user-select: none; line-height: 1; }
@@ -11173,7 +11200,7 @@ const suiRichTextCss = `
 .sui-rich-color-swatch { width: 24px; height: 24px; padding: 0; border: 1px solid rgba(0,0,0,.25); border-radius: 5px; cursor: pointer; }
 .sui-rich-color-swatch:hover, .sui-rich-color-swatch:focus-visible { outline: 2px solid var(--sui-rich-accent, #6f7cff); outline-offset: 1px; }
 .sui-rich-color-custom { width: 100%; margin-top: 7px; justify-content: center; border: 1px solid var(--sui-rich-border, #3d4556); }
-.sui-rich-body { display: flex; min-height: 220px; background: var(--sui-rich-paper); position: relative; }
+.sui-rich-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; background: var(--sui-rich-paper); position: relative; }
 .sui-rich-editor { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); min-height: 0; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: break-word; word-break: normal; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
 .sui-rich-editor:empty::before, .sui-rich-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--sui-rich-muted); pointer-events: none; }
 .sui-rich-editor p, .sui-rich-editor h1, .sui-rich-editor h2, .sui-rich-editor h3, .sui-rich-editor h4, .sui-rich-editor blockquote, .sui-rich-editor pre, .sui-rich-editor figure, .sui-rich-editor table { margin: 0 0 .8em; }
@@ -11227,7 +11254,8 @@ const suiRichTextCss = `
 .sui-rich-prop { width: 100%; }
 .sui-rich-prop-btn { border: 1px solid var(--sui-rich-border); border-radius: 6px; background: transparent; color: var(--sui-rich-fg); padding: 5px 8px; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
 .sui-rich-prop-btn:hover { background: var(--sui-rich-hover); }
-.sui-rich-status { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 5px 10px; border-top: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); color: var(--sui-rich-muted); font-size: 11px; }
+.sui-rich-status { display: flex; flex: none; align-items: center; flex-wrap: wrap; gap: 10px; padding: 5px 10px; border-top: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); color: var(--sui-rich-muted); font-size: 11px; }
+.sui-rich-status[hidden] { display: none; }
 .sui-rich-stats { margin-right: auto; }
 .sui-rich-saved { color: var(--sui-rich-muted); }
 .sui-rich-zoom-btn { width: 22px; height: 22px; border: 1px solid var(--sui-rich-border); border-radius: 5px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; line-height: 1; white-space: nowrap; }

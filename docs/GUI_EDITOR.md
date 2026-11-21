@@ -1420,18 +1420,23 @@ keep exactly two panes.
 
 The **Content** palette group provides the **Rich text editor**, timeline,
 empty state, skeleton, carousel and stepper; the command palette is under
-**Overlay**. The editor inspector exposes name, value, placeholder, readonly,
-toolbar/menu/context/status toggles, theme (`dark`/`light`), template and
-change/input/ready handlers. Height and width are edited in the generic **Size**
-section. **Toolbar items...** opens a searchable multi-select overlay built from
-the runtime toolbar commands; **Default**, **All items** and **None** are
-available as presets, and `None` leaves only the theme button. The document page
-is always white. **Hyphenation languages...** opens a searchable multi-select
-overlay that writes `hyphenLangs` and embeds only the chosen TeX dictionaries in
-`app.js`; the **All languages**, **European** and **None** presets make it easy
-to trade hyphenation coverage for a much smaller bundle. Binding `value` to a
-state stores the JSON document; use the `richtext.*` API or the toolbar at
-runtime.
+**Overlay**. The editor inspector exposes name, value, placeholder, theme
+(`dark`/`light`), **Toolbar items...**, **Hyphenation languages...**, a single
+**Read only** switch and the change/input/ready handlers. Header, footer and
+the toolbar/menu/context/status toggles are not offered here; those attributes
+remain available in hand-written sources. Controls carry short tooltips instead
+of explanatory text. Height and width are edited in the generic **Size**
+section: the height sizes the content area while the status bar stays pinned to
+the bottom border. **Toolbar items...** opens a searchable multi-select overlay
+built from the runtime toolbar commands; **Default**, **All items** and **None**
+are available as presets, and `None` leaves only the theme button. With
+**Read only** enabled no menu or toolbar is shown and the content cannot be
+changed. The document page is always white. **Hyphenation languages...** opens
+a searchable multi-select overlay that writes `hyphenLangs` and embeds only the
+chosen TeX dictionaries in `app.js`; the **All languages**, **European** and
+**None** presets make it easy to trade hyphenation coverage for a much smaller
+bundle. Binding `value` to a state stores the JSON document; use the
+`richtext.*` API or the toolbar at runtime.
 
 - **Timeline** inserts three `timelineitem` events. Each item exposes **date**
   and **status** (pending, active, done, error).
