@@ -1,4 +1,4 @@
-package main
+package sui
 
 // appearance_cli.go - validate the external control appearance catalog.
 //

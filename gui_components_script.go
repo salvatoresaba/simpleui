@@ -1,4 +1,4 @@
-package main
+package sui
 
 // guiComponentLibraryJS is served as /__gui__/components.js before the
 // designer's main script. The catalog stays external to the page so the main

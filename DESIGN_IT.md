@@ -212,7 +212,6 @@ Queste funzioni sono parte del linguaggio e il compilatore sa come tradurle:
 └── examples/                # Applicazioni di esempio in .sui
 ```
 
-> Adopted layout note: the Go 1.24 toolchain resolves packages by directory and
-> only resolves std + required modules for import paths, so this layout was
-> adapted to a flat single-package module (see `SPEC.md` §1). Revisit when the
-> toolchain supports local subpackages.
+> Nota sul layout adottato: la radice del modulo è il package importabile
+> `sui`, l'eseguibile è in `cmd/simpleui` e i runtime/test dei controlli sono in
+> `components/<controllo>/`. Vedere `SPEC.md` §1 per il contratto normativo.

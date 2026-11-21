@@ -8,9 +8,13 @@
 
 ## 1. Struttura del repository
 
-Il compilatore è un singolo package Go `main`, con file separati per lexer,
-parser, AST, typechecker, codegen JS/HTML/CSS, runtime desktop, CLI, GUI, LSP,
-MCP e documentazione. I test Go vivono negli stessi package.
+La radice del modulo è un package Go importabile `sui` con lexer, parser, AST,
+typechecker, codegen JS/HTML/CSS, runtime desktop, CLI, GUI, LSP, MCP e
+documentazione. L'eseguibile è un sottile wrapper `package main` in
+`cmd/simpleui`. I runtime browser e i test dei controlli stanno in
+`components/<controllo>/`; `component_runtimes.go` espone gli alias usati dal
+compilatore. I test trasversali restano nella radice, quelli dei controlli sono
+`package <controllo>_test`.
 
 ## 2. Linguaggio SUI
 

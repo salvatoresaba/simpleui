@@ -436,6 +436,8 @@ Esempi eseguibili: [`examples/security`](examples/security/README.md).
 
 ```
 .
+├── cmd/simpleui/main.go   # Entry point eseguibile (package main)
+├── components/<controllo>/ # Runtime browser e test per controllo
 ├── lexer.go, parser.go    # Tokenizzazione e parsing
 ├── ast.go, typechecker.go # AST e type checking
 ├── jsgen.go, htmlgen.go   # Generazione codice
@@ -447,6 +449,9 @@ Esempi eseguibili: [`examples/security`](examples/security/README.md).
 ├── lsp.go                 # Language Server
 └── examples/              # Esempi di utilizzo
 ```
+
+La radice del modulo è il package importabile `sui`; `cmd/simpleui` contiene
+solo il wrapper `package main` che chiama `sui.Main()`.
 
 ## Esempi inclusi
 

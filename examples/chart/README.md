@@ -375,7 +375,7 @@ emits them automatically when applying a literal.
 ## Build and run
 
 ```bash
-go build -o simpleui.exe .
+go build -o simpleui.exe ./cmd/simpleui
 ./simpleui.exe check examples/chart/app.sui --json
 ./simpleui.exe build examples/chart/app.sui --out examples/chart/dist
 ./simpleui.exe serve examples/chart/app.sui --watch

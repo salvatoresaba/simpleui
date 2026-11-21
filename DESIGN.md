@@ -125,5 +125,7 @@ examples/              # .sui example applications
 docs/                  # language/API/agent documentation
 ```
 
-The actual repository keeps the Go compiler phases at the root for a compact
-single-binary build; `SPEC.md` is the authoritative layout contract.
+The actual repository keeps the Go compiler phases in the importable root
+package `sui`, with the executable wrapper in `cmd/simpleui` and per-control
+runtime/test packages under `components/<control>/`. `SPEC.md` is the
+authoritative layout contract.

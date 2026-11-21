@@ -530,5 +530,5 @@ simpleui serve app.sui --watch --sourcemap
 
 Verifica nel browser: loading, successo, vuoto, errore di rete/JSON, URL iframe
 rifiutato, validazione form e azione riuscita. Per modifiche al compilatore:
-`go build -o simpleui.exe .`, `go vet ./...`, `go test -count=1 ./...`.
+`go build -o simpleui.exe ./cmd/simpleui`, `go vet ./...`, `go test -count=1 ./...`.
 

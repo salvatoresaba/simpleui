@@ -1,4 +1,4 @@
-package main
+package sui
 
 // ast.go defines the Abstract Syntax Tree for the SimpleUI language.
 //

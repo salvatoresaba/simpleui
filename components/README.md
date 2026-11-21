@@ -1,4 +1,27 @@
-# Component library folder
+# Component folder
+
+This folder has two related roles:
+
+1. **Catalogs** — `library.json`, `appearance.json` and `appearance.schema.json`
+   are the designer's external catalogs (documented below).
+2. **Control sources** — `components/<control>/` contains the browser runtime
+   (`runtime.go`, exporting `Runtime`) and the control's Go tests. The root
+   package `sui` imports these packages through `component_runtimes.go`, so the
+   canonical runtime source lives with its control while compiler call sites
+   keep their previous names.
+
+A minimal control package looks like:
+
+```go
+package accordion
+
+const Runtime = `(function(){ ... })();`
+```
+
+Control tests use `package <control>_test` and import `example.com/simpleui`
+for the shared compiler and designer helpers exported by `testapi.go`.
+
+## External component catalog
 
 The designer's external component library is `components/library.json` in the
 project directory (or next to the `simpleui` executable). The server looks for:

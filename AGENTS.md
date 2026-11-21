@@ -20,8 +20,8 @@ an interface.
 If the `simpleui` binary is not built yet:
 
 ```bash
-go build -o simpleui.exe .     # Windows
-go build -o simpleui .         # Linux/macOS
+go build -o simpleui.exe ./cmd/simpleui     # Windows
+go build -o simpleui ./cmd/simpleui         # Linux/macOS
 ```
 
 ## Non-negotiable rules
@@ -75,7 +75,9 @@ Whenever you add a new component, tag or control, deliver it as a complete
 feature, not only as runtime code:
 
 1. Add the compiler/type-checker support, generated HTML/CSS/JS, designer
-   palette entry and inspector fields.
+   palette entry and inspector fields. Put the browser runtime in
+   `components/<control>/runtime.go` as exported `Runtime` and its tests in
+   `components/<control>/`; root keeps only compatibility aliases.
 2. Add at least one runnable example that demonstrates **all** supported
    behavior: content, state, keyboard/accessibility, designer workflow and
    limitations. Prefer `examples/<component>/app.sui` with comments and an
@@ -95,6 +97,11 @@ feature, not only as runtime code:
 
 | Path | Purpose |
 |---|---|
+| `cmd/simpleui/main.go` | Executable entry point (`package main`) |
+| root `*.go` (`package sui`) | Importable compiler, designer, stdlib and CLI implementation |
+| `components/<control>/` | Per-control browser runtime (`Runtime`), helpers and tests |
+| `component_runtimes.go` | Root aliases that keep compiler call sites stable |
+| `testapi.go` | Exported designer/browser helpers for external component tests |
 | `lexer.go`, `parser.go` | Tokens, AST, source loading |
 | `ast.go`, `typechecker.go` | AST shapes and semantic/security checks |
 | `jsgen.go`, `htmlgen.go` | JS/CSS generation and runtime prelude |
@@ -104,6 +111,7 @@ feature, not only as runtime code:
 | `main.go`, `serve.go`, `docs_cli.go` | CLI, dev server, docs command |
 | `gui.go`, `guihtml.go` | Visual designer (live preview + `.sui` export) |
 | `mcp.go`, `lsp.go` | MCP server and language server |
+| `Test/` | Moved test fixtures and generated test artifacts (no Go packages) |
 | `examples/` | Runnable, compiling examples |
 | `docs/` | Navigation, recipes, API, stdlib and builtins |
 | `SECURITY.md` | Threat model, protections and residual risks |
@@ -113,7 +121,7 @@ feature, not only as runtime code:
 
 ```bash
 # Always after a language/compiler change
-go build -o simpleui.exe .
+go build -o simpleui.exe ./cmd/simpleui
 go vet ./...
 go test -count=1 ./...
 

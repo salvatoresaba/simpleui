@@ -225,11 +225,14 @@ Open the URL shown in the terminal to see the app with automatic updates on ever
 - Skill: `opencode` (`skills/autonomous-ai-agents/opencode/`)
 - Plugin: `opencode-preview` (`desktop-plugins/opencode-preview/plugin.js`)
 - VS Code extension: `vscode-hermes-extension/` (generated `.vsix`)
-- Build: `go build -o simpleui.exe .`
+- Build: `go build -o simpleui.exe ./cmd/simpleui`
 - Check: `./simpleui.exe check app.sui --json`
 
 ## Project structure
 
+- `cmd/simpleui/main.go`: executable entry point; the module root is the
+  importable `sui` package
+- `components/<control>/`: per-control browser runtime (`Runtime`) and tests
 - `parser.go` / `lexer.go`: lexical analysis and parsing of `.sui`
 - `typechecker.go`: static type checking with inference
 - `htmlgen.go` / `jsgen.go` / `cssmodel.go`: code generation for web

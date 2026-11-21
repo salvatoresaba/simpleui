@@ -1,4 +1,4 @@
-package main
+package sui
 
 import "archive/zip"
 import "bytes"

@@ -11,39 +11,44 @@ Version: **0.1.0-alpha** - Targets: **web**, **desktop** (system browser) and
 
 ## 1. Repository layout (adapted from the Design Document)
 
-The Design Document proposes `cmd/`, `pkg/`, `runtime/` subdirectories. **The Go
-1.24 toolchain resolves packages by directory and its module mode only
-resolves std + required modules for import paths; local intra-module
-subpackages are not resolvable in a module build.** We therefore use a **flat
-single-package layout**: every `.go` file lives in the module root and declares
-`package main`. Logical ownership is preserved by file names. All functions
-that cross files are **Capitalized** (Go lower-case names are file-scoped).
+The repository uses a hybrid layout. The module root is an importable library
+(`package sui`) containing the compiler, standard library, designer and CLI
+implementation. The executable is a thin `package main` wrapper under
+`cmd/simpleui`, so `go build -o simpleui.exe ./cmd/simpleui` works from the
+module root while control packages can import `example.com/simpleui` without an
+import cycle. Browser runtimes and their tests live under
+`components/<control>/`; each package exports `Runtime` and root
+`component_runtimes.go` keeps stable aliases for compiler call sites.
 
 ```
-/ (module root, package main)
-├── go.mod               module example.com/simpleui
-├── main.go              CLI entry (completed at integration time)
-├── version.go           AppName / AppVersion / AppTagline
-├── errors.go            Diag, DiagList
-├── ast.go               AST node types (shared contract)
-├── stdlib.go            standard library signatures
-├── lexer.go             tokenizer            (front-end)
-├── parser.go            recursive-descent     (front-end)
-├── astjson.go           AST -> JSON dump      (front-end)
-├── typechecker.go       inference + checks    (front-end)
-├── jsgen.go             -> app.js             (codegen)
-├── htmlgen.go           -> index.html + style.css (codegen)
-dnd.go               browser drag-and-drop runtime
-├── *_test.go            unit tests per module (Go `go test` files)
-├── Test/testdata/       .sui fixtures (NO .go files here)
-└── examples/            sample .sui apps (NO .go files here)
+/ (module root, package sui)
+├── go.mod                 module example.com/simpleui
+├── cmd/simpleui/main.go   executable entry point (package main)
+├── main.go                CLI implementation (func Main)
+├── version.go             AppName / AppVersion / AppTagline
+├── errors.go              Diag, DiagList
+├── ast.go                 AST node types (shared contract)
+├── stdlib.go              standard library signatures
+├── lexer.go               tokenizer            (front-end)
+├── parser.go              recursive-descent     (front-end)
+├── astjson.go             AST -> JSON dump      (front-end)
+├── typechecker.go         inference + checks    (front-end)
+├── jsgen.go               -> app.js             (codegen)
+├── htmlgen.go             -> index.html + style.css (codegen)
+├── component_runtimes.go  aliases for component Runtime constants
+├── testapi.go             exported designer/browser test helpers
+├── dnd.go                 browser drag-and-drop runtime
+├── components/<control>/  runtime.go + per-control tests
+├── *_test.go              cross-cutting unit and e2e tests
+├── Test/testdata/         .sui fixtures (NO .go files here)
+└── examples/              sample .sui apps (NO .go files here)
 ```
 
 Build/test commands (run from the module root):
 
 ```
-go build         # produces ./simpleui.exe
-go test          # runs every *_test.go TestXxx
+go build -o simpleui.exe ./cmd/simpleui   # produces ./simpleui.exe
+go test ./...                             # runs every TestXxx package
 ```
 
 ---
@@ -1319,7 +1324,9 @@ type error: cannot assign a value of type string to "counter" of type int
 
 ## 7. Go idioms the team must use (verified on this toolchain)
 
-- Package file header: `package main`.
+- Package file header: `package sui` in the module root, `package main` in
+  `cmd/simpleui`, and `package <control>` / `<control>_test` under
+  `components/<control>/`.
 - Struct: `type Foo struct { a int, b string }`; init `Foo{a: 1, b: "x"}`;
   pointer `*Foo` with `&x`; slices `[]Foo` with `x = append(x, v)`, `len(x)`,
   `x[i]`.
@@ -1332,8 +1339,9 @@ type error: cannot assign a value of type string to "counter" of type int
   `%v` if needed. `os.Exit(code)`.
 - Import order + only what is used (`go vet` FAILS on unused imports).
 - Cross-file functions: Capitalized. Within-file helpers: lower-case.
-- Tests: files `*_test.go`, `package main`, `import "testing"`,
-  `func TestXxx(t *testing.T) { if ... { t.Errorf("...") } }`. Run `go test`.
+- Tests: files `*_test.go`; root tests use `package sui`, component tests use
+  `package <control>_test` and import `example.com/simpleui` plus
+  `example.com/simpleui/components/<control>`. Run `go test ./...`.
 - Iterate only your own files; never edit another agent's file.
 
 ---

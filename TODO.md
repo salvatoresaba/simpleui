@@ -13,7 +13,7 @@ not mark an item complete only because it appears in documentation.
 Verified on 2026-10-25 with:
 
 ```bash
-go build -o simpleui.exe .
+go build -o simpleui.exe ./cmd/simpleui
 go vet ./...
 go test -count=1 ./...
 ```

@@ -1,4 +1,4 @@
-package main
+package sui
 
 // stdlib.go is the contract for the SimpleUI standard library.
 //

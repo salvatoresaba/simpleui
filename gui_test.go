@@ -1,4 +1,4 @@
-package main
+package sui
 
 import "fmt"
 import "net"
@@ -893,39 +893,4 @@ func TestGuiEditorToolsPanel(t *testing.T) {
 			t.Errorf("designer page missing %q", want)
 		}
 	}
-}
-
-func injectGuiTestScript(script string) string {
-	return strings.Replace(guiHTML, "<body>", "<body>"+script, 1)
-}
-
-// guiTestMux serves the external component library script next to the test
-// handlers. The designer loads it before its main inline script.
-func guiTestMux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /__gui__/components.js", func(w http.ResponseWriter, r *http.Request) {
-		writeRawHandler(w, "text/javascript; charset=utf-8", guiComponentLibraryJS)
-	})
-	mux.HandleFunc("GET /__gui__/appearance", func(w http.ResponseWriter, r *http.Request) {
-		writeRawHandler(w, "application/json; charset=utf-8", string(loadAppearanceLibraryPayload("")))
-	})
-	mux.HandleFunc("GET /__gui__/ping", func(w http.ResponseWriter, r *http.Request) {
-		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true}`)
-	})
-	mux.HandleFunc("POST /__gui__/check", func(w http.ResponseWriter, r *http.Request) {
-		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"diagDetails":[]}`)
-	})
-	mux.HandleFunc("POST /__gui__/component-preview", func(w http.ResponseWriter, r *http.Request) {
-		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"html":"<!doctype html><html><body><button>Preview</button></body></html>"}`)
-	})
-	mux.HandleFunc("POST /__gui__/source-preview", func(w http.ResponseWriter, r *http.Request) {
-		_ = r.ParseForm()
-		ok, html, msgs := renderSui(r.PostFormValue("sui"))
-		if !ok {
-			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"diagnostics":`+StringifyJson(msgs)+`}`)
-			return
-		}
-		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"html":`+StringifyJson(JStr(html))+`}`)
-	})
-	return mux
 }

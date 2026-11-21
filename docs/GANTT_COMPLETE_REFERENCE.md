@@ -8,8 +8,8 @@ boundaries and known limitations in one place.
 The executable source of truth is the implementation. If this document and the
 implementation disagree, inspect these files and update this document:
 
-- `chart_runtime.go` — parser, scheduler, SVG renderer, routing, table, editing,
-  keyboard behavior, persistence and versioning.
+- `components/chart/runtime.go` — parser, scheduler, SVG renderer, routing,
+  table, editing, keyboard behavior, persistence and versioning.
 - `htmlgen.go` — chart, Gantt, table, toolbar, menu and responsive CSS.
 - `jsgen.go` — chart attributes and callback data attributes.
 - `typechecker.go` — accepted chart attributes and callback names.

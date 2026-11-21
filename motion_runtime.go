@@ -1,4 +1,4 @@
-package main
+package sui
 
 // motion_runtime.go - state-to-state motion for elements and control presets.
 //

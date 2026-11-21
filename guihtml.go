@@ -1,4 +1,4 @@
-package main
+package sui
 
 // guihtml.go - the embedded visual design tool (structured CSS engine UI).
 // Plain HTML/CSS/JS shipped inside the single compiler binary.

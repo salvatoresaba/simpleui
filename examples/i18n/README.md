@@ -29,7 +29,7 @@ run.bat
 
 The scripts build a single-file `dist/app.html`, copy the source to
 `dist/app.sui` and open the result. They use `simpleui.exe` from the repository
-root; build it first with `go build -o simpleui.exe .` if needed.
+root; build it first with `go build -o simpleui.exe ./cmd/simpleui` if needed.
 
 Manual commands:
 

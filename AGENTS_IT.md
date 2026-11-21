@@ -19,8 +19,8 @@ compila in un'app web autonoma oppure in un eseguibile desktop. Questo documento
 Se il binario non esiste ancora:
 
 ```bash
-go build -o simpleui.exe .     # Windows
-go build -o simpleui .         # Linux/macOS
+go build -o simpleui.exe ./cmd/simpleui     # Windows
+go build -o simpleui ./cmd/simpleui         # Linux/macOS
 ```
 
 ## Lingua
@@ -69,7 +69,9 @@ Quando si aggiunge un nuovo componente, tag o controllo, consegnarlo come
 funzionalità completa, non solo come codice runtime:
 
 1. Aggiungere supporto a compilatore/type-checker, HTML/CSS/JS generati, voce
-   nella palette del designer e campi dell'inspector.
+   nella palette del designer e campi dell'inspector. Mettere il runtime browser
+   in `components/<controllo>/runtime.go` come `Runtime` esportato e i test in
+   `components/<controllo>/`; la radice conserva solo alias di compatibilità.
 2. Aggiungere almeno un esempio eseguibile che mostri **tutte** le funzionalità:
    contenuto, stato, tastiera/accessibilità, flusso nel designer e limiti.
    Preferire `examples/<componente>/app.sui` con commenti e un
@@ -90,6 +92,11 @@ funzionalità completa, non solo come codice runtime:
 
 | Percorso | Scopo |
 |---|---|
+| `cmd/simpleui/main.go` | Entry point eseguibile (`package main`) |
+| `*.go` nella radice (`package sui`) | Compilatore, designer, stdlib e CLI importabili |
+| `components/<controllo>/` | Runtime browser (`Runtime`), helper e test per controllo |
+| `component_runtimes.go` | Alias nella radice per mantenere stabili i call site |
+| `testapi.go` | Helper designer/browser esportati per i test esterni |
 | `lexer.go`, `parser.go` | Tokenizzazione, AST, caricamento sorgenti |
 | `ast.go`, `typechecker.go` | AST, semantica e controlli di sicurezza |
 | `jsgen.go`, `htmlgen.go` | Generazione JS/CSS e runtime |
@@ -99,6 +106,7 @@ funzionalità completa, non solo come codice runtime:
 | `main.go`, `serve.go`, `docs_cli.go` | CLI, dev server, comando docs |
 | `gui.go`, `guihtml.go` | Designer visuale, preview, export |
 | `mcp.go`, `lsp.go` | Server MCP e language server |
+| `Test/` | Fixture e artefatti di test spostati (nessun package Go) |
 | `examples/` | Esempi compilabili |
 | `docs/` | Navigazione, recipe, API, stdlib, builtin |
 | `SECURITY.md` | Minacce, protezioni e rischi residui |
@@ -108,7 +116,7 @@ funzionalità completa, non solo come codice runtime:
 
 ```bash
 # Dopo modifiche al compilatore/linguaggio
-go build -o simpleui.exe .
+go build -o simpleui.exe ./cmd/simpleui
 go vet ./...
 go test -count=1 ./...
 

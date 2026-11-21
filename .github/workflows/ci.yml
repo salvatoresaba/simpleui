@@ -21,7 +21,7 @@ jobs:
           node-version: 20
 
       - name: Build
-        run: go build -o simpleui.exe .
+        run: go build -o simpleui.exe ./cmd/simpleui
 
       - name: Vet
         run: go vet ./...

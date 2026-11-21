@@ -7,7 +7,7 @@ $src = Join-Path $root "app.sui"
 $out = Join-Path $root "dist"
 
 if (!(Test-Path $sui)) {
-    throw "simpleui.exe not found in $repo. Build it first with: go build -o simpleui.exe ."
+    throw "simpleui.exe not found in $repo. Build it first with: go build -o simpleui.exe ./cmd/simpleui"
 }
 
 New-Item -ItemType Directory -Force $out | Out-Null

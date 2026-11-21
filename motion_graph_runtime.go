@@ -1,4 +1,4 @@
-package main
+package sui
 
 // motion_graph_runtime.go - declarative state graphs for element animation.
 //

@@ -1,7 +1,6 @@
-package main
+package sui
 
 import (
-	"os"
 	"strings"
 	"testing"
 )
@@ -25,22 +24,16 @@ func TestMenuDropdownStatesAndKeyboard(t *testing.T) {
 		}
 	}
 
-	overlay, err := os.ReadFile("overlay_runtime.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	overlay := OverlayRuntime
 	for _, marker := range []string{"rightAligned", "align === 'start'", "align === 'end'"} {
-		if !strings.Contains(string(overlay), marker) {
+		if !strings.Contains(overlay, marker) {
 			t.Errorf("overlay runtime is missing edge alignment marker %q", marker)
 		}
 	}
 
-	menu, err := os.ReadFile("menu_runtime.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	menu := MenuRuntime
 	for _, marker := range []string{"topLevel", "ArrowLeft", "ArrowRight", "Home", "End", "'Enter'"} {
-		if !strings.Contains(string(menu), marker) {
+		if !strings.Contains(menu, marker) {
 			t.Errorf("menu runtime is missing keyboard marker %q", marker)
 		}
 	}

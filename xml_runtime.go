@@ -1,4 +1,4 @@
-package main
+package sui
 
 // xml_runtime.go - the browser/desktop implementation of the `xml` std module.
 //

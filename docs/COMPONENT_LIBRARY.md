@@ -17,7 +17,9 @@ directory:
 
 The repository ships an empty file in
 [`components/library.json`](../components/library.json) with the folder notes in
-[`components/README.md`](../components/README.md). When no file is found, the
+[`components/README.md`](../components/README.md). That folder also contains the
+Go source packages for the built-in controls (`components/<control>/`); those
+packages are compiler sources, not insertable JSON presets. When no file is found, the
 designer uses the built-in components and shows a soft warning; this is not an
 error. A library with `"groups": []` is valid and simply means "no custom
 component presets".

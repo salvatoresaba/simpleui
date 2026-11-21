@@ -1,4 +1,4 @@
-package main
+package sui
 
 import "bufio"
 import "bytes"

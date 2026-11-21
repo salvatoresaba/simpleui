@@ -605,7 +605,7 @@ If the browser tool is available, verify:
 For compiler changes, also run:
 
 ```bash
-go build -o simpleui.exe .
+go build -o simpleui.exe ./cmd/simpleui
 go vet ./...
 go test -count=1 ./...
 ```

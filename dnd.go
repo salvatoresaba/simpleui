@@ -1,4 +1,4 @@
-package main
+package sui
 
 // dnd.go - browser drag-and-drop runtime for generated SimpleUI apps.
 //

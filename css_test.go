@@ -1,4 +1,4 @@
-package main
+package sui
 
 import "strings"
 import "testing"
@@ -107,13 +107,6 @@ func TestGuiCssSet(t *testing.T) {
 	if strings.Contains(out3, "padding:") {
 		t.Errorf("empty value should remove the declaration:\n%v", out3)
 	}
-}
-
-func asBool(v JVal) bool {
-	if v.kind == "bool" {
-		return v.b
-	}
-	return false
 }
 
 // The special "body" styling target maps to the bare body element selector.

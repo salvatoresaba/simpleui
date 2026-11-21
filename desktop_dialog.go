@@ -1,4 +1,4 @@
-package main
+package sui
 
 // desktop_dialog.go - source for the native file/folder picker included in
 // every desktop build. The generated program uses OS dialogs:

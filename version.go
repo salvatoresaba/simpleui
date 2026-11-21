@@ -1,4 +1,4 @@
-package main
+package sui
 
 // Globals for the CLI. We use vars (not constants) to keep go vet happy and
 // to allow build metadata to be injected later.

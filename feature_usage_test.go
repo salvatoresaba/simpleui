@@ -1,4 +1,4 @@
-package main
+package sui
 
 import (
 	"os"
@@ -20,18 +20,6 @@ func generateJsFromSource(t *testing.T, path string) string {
 	}
 	if dl := Check(prog); dl.HasErrors() {
 		t.Fatalf("check %s: %v", path, dl.String())
-	}
-	return GenerateJs(prog)
-}
-
-func generateJsFromInline(t *testing.T, src string) string {
-	t.Helper()
-	prog, pdl := ParseSource(src, "feature_inline.sui")
-	if pdl.HasErrors() {
-		t.Fatalf("parse inline: %v", pdl.String())
-	}
-	if dl := Check(prog); dl.HasErrors() {
-		t.Fatalf("check inline: %v", dl.String())
 	}
 	return GenerateJs(prog)
 }

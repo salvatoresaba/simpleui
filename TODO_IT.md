@@ -13,7 +13,7 @@ Legenda: `[x]` implementato e verificato · `[~]` parziale · `[ ]` mancante.
 Verificato con:
 
 ```bash
-go build -o simpleui.exe .
+go build -o simpleui.exe ./cmd/simpleui
 go vet ./...
 go test -count=1 ./...
 ```

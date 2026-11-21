@@ -1,4 +1,4 @@
-package main
+package sui
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ import (
 // The desktop targets wrap the generated app in a native executable:
 // desktop opens the system browser, desktop-webview opens an embedded WebView.
 
-func main() {
+func Main() {
 	// A panic in any phase is a compiler bug: never dump a stack trace on the
 	// user. Report it cleanly and exit with a distinct code. (os.Exit paths
 	// below still exit immediately; this only catches unexpected panics.)

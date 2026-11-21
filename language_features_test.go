@@ -1,97 +1,9 @@
-package main
+package sui
 
 import (
-	"context"
-	"net"
-	"net/http"
-	"os/exec"
 	"strings"
 	"testing"
-	"time"
 )
-
-// runHeadlessFeature renders source, appends script before </body>, serves the
-// page and runs it in a headless browser. The script must call result(true) or
-// result(false, message) using the shared helper below.
-func runHeadlessFeature(t *testing.T, source, script string) {
-	t.Helper()
-	browser := findHeadlessBrowser()
-	if browser == "" {
-		t.Skip("no Chrome/Edge found")
-	}
-	index, css, js, diags, ok := guiBuildFiles(source)
-	if !ok {
-		t.Fatalf("build files: %s", StringifyJson(diags))
-	}
-	page := CombineSingleHTML(index, css, js, false)
-	if idx := strings.LastIndex(page, "</body>"); idx >= 0 {
-		page = page[:idx] + script + page[idx:]
-	} else {
-		t.Fatal("compiled page has no closing body")
-	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	defer ln.Close()
-	mux := guiTestMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		writeRawHandler(w, "text/html; charset=utf-8", page)
-	})
-	go func() { _ = http.Serve(ln, mux) }()
-	url := "http://" + ln.Addr().String() + "/"
-	time.Sleep(50 * time.Millisecond)
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-	args := []string{
-		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
-		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
-		"--no-first-run", "--no-default-browser-check", "--window-size=900,700",
-		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=90000", "--dump-dom", url,
-	}
-	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
-	text := string(out)
-	if err != nil {
-		t.Fatalf("headless browser failed: %v\n%s", err, text)
-	}
-	if strings.Contains(text, `id="e2e-result">OK<`) {
-		return
-	}
-	marker := strings.Index(text, `id="e2e-result"`)
-	detail := text
-	if marker >= 0 {
-		end := marker + 1800
-		if end > len(text) {
-			end = len(text)
-		}
-		detail = text[marker:end]
-	}
-	t.Fatalf("feature e2e failed:\n%s", detail)
-}
-
-const featureScriptHead = `<script>
-(async function () {
-  function result(ok, message) {
-    var el = document.getElementById('e2e-result');
-    if (!el) { el = document.createElement('div'); el.id = 'e2e-result'; document.body.insertBefore(el, document.body.firstChild); }
-    el.textContent = ok ? 'OK' : 'FAIL: ' + message;
-    document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
-  }
-  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-  function button(label) {
-    var all = Array.prototype.slice.call(document.querySelectorAll('button'));
-    for (var i = 0; i < all.length; i++) if (all[i].textContent === label) return all[i];
-    return null;
-  }
-  try {
-`
-
-const featureScriptTail = `    result(true);
-  } catch (err) {
-    result(false, err && err.message ? err.message : String(err));
-  }
-})();
-</script>`
 
 func TestRestParameters(t *testing.T) {
 	src := `fn addAll(base: int, ...values: array[int]) -> int {

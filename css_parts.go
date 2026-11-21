@@ -1,4 +1,4 @@
-package main
+package sui
 
 // Base stylesheet slices. generateCss emits only the slices a program
 // needs, in this exact order, so cascade and specificity are preserved.

@@ -1,10 +1,9 @@
-package main
+package sui
 
 import (
 	"context"
 	"net"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -201,34 +200,6 @@ func TestGuiMotionDesignerE2E(t *testing.T) {
 		detail = text[marker:end]
 	}
 	t.Fatalf("motion designer e2e failed:\n%s", detail)
-}
-
-func findHeadlessBrowser() string {
-	candidates := []string{
-		os.Getenv("CHROME_PATH"),
-		os.Getenv("EDGE_PATH"),
-		`C:\Program Files\Google\Chrome\Application\chrome.exe`,
-		`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
-		`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
-		`C:\Program Files\Microsoft\Edge\Application\msedge.exe`,
-		`/usr/bin/google-chrome`,
-		`/usr/bin/chromium`,
-		`/usr/bin/chromium-browser`,
-		`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`,
-	}
-	for _, path := range candidates {
-		if path != "" {
-			if info, err := os.Stat(path); err == nil && !info.IsDir() {
-				return path
-			}
-		}
-	}
-	for _, name := range []string{"google-chrome", "chromium", "chromium-browser", "chrome"} {
-		if path, err := exec.LookPath(name); err == nil {
-			return path
-		}
-	}
-	return ""
 }
 
 const guiE2EScript = `<script>

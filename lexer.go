@@ -1,4 +1,4 @@
-package main
+package sui
 
 // lexer.go — the SimpleUI tokenizer (SPEC §2.1). One flat package `main`;
 // see SPEC.md §1 for layout and §7 for Go idioms. This file is owned by
