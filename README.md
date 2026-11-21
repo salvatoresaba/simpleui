@@ -63,10 +63,13 @@ git clone <repo-url>
 cd GO_PROJECT_LANG
 
 # Build the compiler
-go build -o simpleui
+# Build from ./cmd/simpleui: the repository root is the importable `sui`
+# package, so `go build -o simpleui` there writes a Go archive, not a
+# runnable executable.
+go build -o simpleui ./cmd/simpleui
 
 # Or on Windows
-go build -o simpleui.exe
+go build -o simpleui.exe ./cmd/simpleui
 ```
 
 Verify the installation:
@@ -74,6 +77,9 @@ Verify the installation:
 ```bash
 ./simpleui version
 # Output: simpleui 0.1.0-alpha
+
+# On Windows
+.\simpleui.exe version
 ```
 
 ## Quick start
