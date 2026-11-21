@@ -261,6 +261,45 @@ view main {
     root('markup').querySelector('[data-rich-source-toggle]').click();
     await wait(120);
     if (root('viewer').querySelector('[data-rich-source-toggle]')) throw new Error('read-only viewer still offers source editing');
+
+    // Incompatible clipboard content is converted to the profile source format.
+    function pasteInto(name, kind, payload) {
+      var editor = root(name).querySelector('.sui-rich-editor');
+      editor.focus();
+      var ev = new Event('paste', { bubbles: true, cancelable: true });
+      Object.defineProperty(ev, 'clipboardData', { value: { getData: function (type) {
+        if (kind === 'html' && type === 'text/html') return payload;
+        if (kind === 'rtf' && type === 'text/rtf') return payload;
+        if (type === 'text/plain') return kind === 'plain' ? payload : '';
+        return '';
+      } } });
+      editor.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    }
+    if (!pasteInto('html', 'plain', '# Pasted heading\n\n**Pasted bold**')) throw new Error('HTML editor did not handle plain paste');
+    await wait(260);
+    var htmlAfterPaste = __SUI_RICH.get('html')[0];
+    if (htmlAfterPaste.indexOf('heading') < 0 || htmlAfterPaste.indexOf('Pasted heading') < 0) throw new Error('Markdown was not converted to HTML: ' + htmlAfterPaste);
+    var htmlStatus = __SUI_RICH.status('html')[0];
+    if (htmlStatus.indexOf('"detected":"markdown"') < 0 || htmlStatus.indexOf('"target":"html"') < 0) throw new Error('HTML paste import was not recorded: ' + htmlStatus);
+    var htmlNotice = root('html').querySelector('.sui-rich-notice');
+    if (!htmlNotice || htmlNotice.hidden || htmlNotice.textContent.indexOf('converted to HTML') < 0) throw new Error('HTML conversion notice missing');
+
+    if (!pasteInto('html', 'rtf', '{\\rtf1\\ansi Rich \\b bold\\b0}')) throw new Error('HTML editor did not handle RTF paste');
+    await wait(260);
+    if (root('html').querySelector('.sui-rich-editor').innerText.indexOf('Rich bold') < 0) throw new Error('RTF paste was not imported');
+    var rtfNotice = root('html').querySelector('.sui-rich-notice');
+    if (!rtfNotice || rtfNotice.getAttribute('data-notice-kind') !== 'warning' || rtfNotice.textContent.indexOf('best-effort') < 0) throw new Error('RTF lossy warning missing');
+
+    if (!pasteInto('markup', 'html', '<h2>Pasted HTML</h2><p><strong>Strong</strong></p>')) throw new Error('Markup editor did not handle HTML paste');
+    await wait(260);
+    var markupAfterPaste = __SUI_RICH.get('markup')[0];
+    if (markupAfterPaste.indexOf('Pasted HTML') < 0 || markupAfterPaste.indexOf('Strong') < 0) throw new Error('HTML was not converted to Markdown: ' + markupAfterPaste);
+    var markupStatus = __SUI_RICH.status('markup')[0];
+    if (markupStatus.indexOf('"detected":"html"') < 0 || markupStatus.indexOf('"target":"markdown"') < 0) throw new Error('Markup paste import was not recorded: ' + markupStatus);
+    var markupNotice = root('markup').querySelector('.sui-rich-notice');
+    if (!markupNotice || markupNotice.hidden || markupNotice.getAttribute('data-notice-kind') !== 'warning' || markupNotice.textContent.indexOf('simplified to Markdown') < 0) throw new Error('Markdown lossy warning missing');
+
     __SUI_RICH.command('html', 'documentSettings');
     await wait(150);
     var docPanel = document.querySelector('.sui-rich-documentsettings[data-rich-documentsettings="html"]');
@@ -412,6 +451,11 @@ func TestRichTextModeProfilesAndPageBackgroundMarkers(t *testing.T) {
 		"function menusForMode(mode)",
 		"function modeFileAccept(mode)",
 		"function modeFileAllowed(mode, filename)",
+		"function sniffRichTextFormat(",
+		"function convertPastedDoc(",
+		"function reportPastedImport(",
+		"sui-rich-notice",
+		"data-notice-kind",
 		"function chromeEnabled(inst)",
 		"function pageInkFor(background)",
 		"function applyPageBackground(inst)",

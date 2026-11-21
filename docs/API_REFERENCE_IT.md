@@ -1680,13 +1680,18 @@ insieme alla voce di menu relativa. In sola lettura il controllo è un visualizz
 in tutte le modalità.
 
 Nelle modalità HTML e Markup la status bar espone anche **Source**. Apre un
-editor sorgente con **Apply**, **Revert** e **Visual**. Si può incollare HTML o
-Markdown esterno; Apply lo sanifica nel documento JSON (`importHTML` o
-`importMarkdown`). Le modifiche vengono applicate automaticamente dopo una breve
-pausa e `get`, `exportFormat`, `exportBytes` e `saveAs` applicano il sorgente
-pendente prima della lettura. In modalità HTML si esporta/importa solo `html`,
-in Markup solo `markdown`/`md`; per il documento JSON interno usa
-`richtext.get`/`set`. `simpleui check` avvisa se in modalità HTML/Markup sono
+editor sorgente con **Apply**, **Revert** e **Visual**. Apply sanifica il testo
+sorgente nel documento JSON (`importHTML` o `importMarkdown`) e le modifiche
+vengono applicate automaticamente dopo una breve pausa; `get`, `exportFormat`,
+`exportBytes` e `saveAs` applicano il sorgente pendente prima della lettura.
+Il contenuto incollato viene convertito al formato sorgente del profilo attivo
+al momento dell'incolla: in modalità HTML Markdown, RTF e testo semplice diventano
+HTML; in Markup HTML, RTF e testo semplice diventano Markdown. La conversione è
+best-effort: gli input con perdite o non supportati vengono comunque inseriti,
+con un avviso nella status bar (`aria-live`) e `lastImport` in
+`richtext.status()`. In modalità HTML si esporta/importa solo `html` tramite le
+funzioni per formato, in Markup solo `markdown`/`md`; per il documento JSON
+interno usa `richtext.get`/`set`. `simpleui check` avvisa se in modalità HTML/Markup sono
 presenti `header`, `footer` o voci `toolbarItems` incompatibili; il designer
 mostra gli stessi avvisi in **Problems**. Anche scorciatoie e pulsanti plugin
 seguono lo stesso filtro: in Markup `Ctrl+P`, `Ctrl+Enter` e `Ctrl+U` vengono
@@ -2069,7 +2074,7 @@ gutter e colorazione sintattica restano dopo il re-render.
 | `richtext.saveAs(name, format)` | Scarica il documento; le modalità HTML e Markup consentono solo HTML e Markdown |
 | `richtext.registerPlugin(name, plugin)` | Registra comandi e voci toolbar |
 | `richtext.plugins()` | Nomi dei plugin registrati |
-| `richtext.status(name)` | JSON con parole/caratteri/paragrafi/cursore |
+| `richtext.status(name)` | JSON con parole/caratteri/paragrafi/cursore, più l'ultimo import/avviso dagli appunti (`lastImport`, `lastNotice`) |
 | `richtext.selection(name)` | JSON della selezione |
 | `richtext.setToolbar(name, items)` | Riconfigura i gruppi toolbar |
 | `richtext.setTemplate(name, template)` | Applica un modello documento |

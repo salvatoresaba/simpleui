@@ -1704,13 +1704,17 @@ remove header/footer from Document settings and Page settings, and hide the
 related menu entry. A read-only control is a viewer in every mode.
 
 In HTML and Markup modes the status bar also exposes a **Source** toggle. It
-opens a source editor with **Apply**, **Revert** and **Visual** actions. External
-HTML/Markdown can be pasted directly; Apply sanitizes it into the JSON document
-(`importHTML` or `importMarkdown`). Source edits are applied automatically after
-a short pause, and `get`, `exportFormat`, `exportBytes` and `saveAs` apply any
-pending source before reading it. Only `html` is exported/imported in HTML mode
-and only `markdown`/`md` in Markup mode; use `richtext.get`/`set` for the internal
-JSON document. `simpleui check` warns when `header`, `footer` or a
+opens a source editor with **Apply**, **Revert** and **Visual** actions. Apply
+sanitizes source text into the JSON document (`importHTML` or `importMarkdown`),
+and source edits are applied automatically after a short pause. `get`,
+`exportFormat`, `exportBytes` and `saveAs` apply any pending source before
+reading it. Pasted content is converted to the active profile's source format at
+paste time: Markdown, RTF and plain text become HTML in HTML mode; HTML, RTF and
+plain text become Markdown in Markup mode. Conversion is best-effort: lossy or
+unsupported input is still inserted after conversion, with a status-bar notice
+(`aria-live`) and `lastImport` in `richtext.status()`. Only `html` is
+exported/imported by format helpers in HTML mode and only `markdown`/`md` in
+Markup mode; use `richtext.get`/`set` for the internal JSON document. `simpleui check` warns when `header`, `footer` or a
 mode-incompatible `toolbarItems` entry is present in HTML/Markup mode; the designer
 shows the same warnings in **Problems**. Keyboard shortcuts and plugin toolbar
 buttons follow the same filter: `Ctrl+P`, `Ctrl+Enter` and `Ctrl+U` are ignored in
@@ -2075,7 +2079,7 @@ word styles, the line-number gutter and syntax highlighting across re-renders.
 | `richtext.saveAs(name, format)` | Download the document; HTML and Markup modes allow only HTML and Markdown respectively |
 | `richtext.registerPlugin(name, plugin)` | Register commands and toolbar entries |
 | `richtext.plugins()` | Registered plugin names |
-| `richtext.status(name)` | Word/character/paragraph/caret JSON |
+| `richtext.status(name)` | Word/character/paragraph/caret JSON, plus the last clipboard import/warning (`lastImport`, `lastNotice`) |
 | `richtext.selection(name)` | Selection JSON |
 | `richtext.setToolbar(name, items)` | Reconfigure toolbar groups |
 | `richtext.setTemplate(name, template)` | Apply a document template |

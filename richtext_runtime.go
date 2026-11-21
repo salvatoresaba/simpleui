@@ -6049,6 +6049,7 @@ window.__SUI_RICH = (function () {
     status.innerHTML = '';
     var stats = el('span', 'sui-rich-stats'); status.appendChild(stats);
     var pos = el('span', 'sui-rich-position'); status.appendChild(pos);
+    var notice = el('span', 'sui-rich-notice'); notice.hidden = true; notice.setAttribute('aria-live', 'polite'); status.appendChild(notice);
     var saved = el('span', 'sui-rich-saved', 'Ready'); status.appendChild(saved);
     var pagesBtn = el('button', 'sui-rich-zoom-btn sui-rich-pages-btn', 'Pages');
     pagesBtn.type = 'button';
@@ -6078,6 +6079,22 @@ window.__SUI_RICH = (function () {
     if (!inst || !inst.sourceStatus) return;
     inst.sourceStatus.textContent = String(text || '');
     inst.sourceStatus.title = String(text || '');
+  }
+  function setRichNotice(inst, text, kind) {
+    if (!inst || !inst.root) return;
+    var node = inst.root.querySelector('.sui-rich-notice');
+    if (!node) {
+      var status = inst.root.querySelector('.sui-rich-status');
+      if (!status) return;
+      node = el('span', 'sui-rich-notice');
+      node.setAttribute('aria-live', 'polite');
+      status.insertBefore(node, status.firstChild);
+    }
+    var message = String(text || '');
+    node.textContent = message;
+    node.setAttribute('data-notice-kind', String(kind || 'info'));
+    node.hidden = !message;
+    inst.lastNotice = message ? { message: message, kind: String(kind || 'info') } : null;
   }
   function updateSourceToggle(inst) {
     if (!inst || !inst.root) return;
@@ -7945,6 +7962,76 @@ window.__SUI_RICH = (function () {
     });
   }
 
+  function richWarn(list, code, message) {
+    for (var i = 0; i < list.length; i++) if (list[i].code === code) return;
+    list.push({ code: code, message: message });
+  }
+  function sniffRichTextFormat(text) {
+    var value = String(text == null ? '' : text).replace(/^\uFEFF/, '').trim();
+    if (!value) return 'plain';
+    if (/^\s*\{\\rtf/i.test(value)) return 'rtf';
+    if (/^(<\?xml|<!DOCTYPE|<document[\s>])/i.test(value)) return 'xml';
+    if (/<\/?[a-z][\s\S]*>/i.test(value)) {
+      try {
+        var dom = new DOMParser().parseFromString(value, 'text/html');
+        if (!dom.getElementsByTagName('parsererror').length && dom.body && (dom.body.children.length || /<\/?[a-z][^>]+>/i.test(value))) return 'html';
+      } catch (e) {}
+    }
+    var strong = 0, weak = 0;
+    if (/^#{1,6}\s/m.test(value)) strong++;
+    var fence = String.fromCharCode(96) + String.fromCharCode(96) + String.fromCharCode(96);
+    var fenced = value.split(/\r?\n/).some(function (line) { return line.trim().indexOf(fence) === 0; });
+    if (fenced) strong++;
+    if (/^\s*\|?\s*:?-+:?\s*\|/m.test(value)) strong++;
+    if (/\[[^\]]+\]\([^)]+\)/.test(value)) strong++;
+    if (/^\s*[-*+]\s+/m.test(value)) weak++;
+    if (/^\s*\d+[.)]\s+/m.test(value)) weak++;
+    if (/^\s*>\s?/m.test(value)) weak++;
+    if (/\*\*|__/.test(value)) weak++;
+    return strong >= 1 || weak >= 2 ? 'markdown' : 'plain';
+  }
+  function richDocFromFormat(format, text, warnings) {
+    if (format === 'rtf') return importRTF(text);
+    if (format === 'markdown') return importMarkdown(text);
+    if (format === 'html') return importHTML(text);
+    if (format === 'xml') return importXML(text);
+    return importPlain(text);
+  }
+  function convertPastedDoc(text, mode) {
+    var warnings = [], detected = sniffRichTextFormat(text);
+    var sourceDoc;
+    try {
+      sourceDoc = richDocFromFormat(detected, text, warnings);
+    } catch (err) {
+      richWarn(warnings, 'import-failed', 'The pasted format could not be imported; it was inserted as plain text.');
+      sourceDoc = importPlain(text);
+    }
+    var target = mode === 'markup' ? 'markdown' : mode === 'html' ? 'html' : 'richtext';
+    var doc = sourceDoc;
+    if (target === 'html' && detected !== 'html') {
+      richWarn(warnings, 'converted-format', 'Pasted ' + detected + ' content was converted to HTML.');
+      try { doc = importHTML(exportHTML({ doc: sourceDoc })); }
+      catch (err) { richWarn(warnings, 'conversion-failed', 'HTML conversion was incomplete; the content was kept as plain text.'); doc = sourceDoc; }
+    } else if (target === 'markdown' && detected !== 'markdown') {
+      richWarn(warnings, 'converted-format', 'Pasted ' + detected + ' content was converted to Markdown.');
+      try { doc = importMarkdown(exportMarkdown({ doc: sourceDoc })); }
+      catch (err) { richWarn(warnings, 'conversion-failed', 'Markdown conversion was incomplete; the content was kept as plain text.'); doc = sourceDoc; }
+    }
+    if (detected === 'rtf') richWarn(warnings, 'rtf-best-effort', 'RTF was imported best-effort; unsupported formatting may be lost.');
+    if (detected === 'html' && target === 'markdown') richWarn(warnings, 'html-to-markdown', 'HTML formatting was simplified to Markdown; colours, fonts and alignment may be lost.');
+    if (detected === 'xml') richWarn(warnings, 'xml-best-effort', 'XML was converted best-effort; unknown elements may be lost.');
+    var lossy = false;
+    for (var i = 0; i < warnings.length; i++) {
+      if (warnings[i].code !== 'converted-format') { lossy = true; break; }
+    }
+    return { doc: doc, warnings: warnings, lossy: lossy, detected: detected, target: target };
+  }
+  function reportPastedImport(inst, result) {
+    if (!result || !result.warnings || !result.warnings.length) { setRichNotice(inst, '', 'info'); return; }
+    var messages = [];
+    for (var i = 0; i < result.warnings.length; i++) messages.push(result.warnings[i].message);
+    setRichNotice(inst, messages.join(' '), result.lossy ? 'warning' : 'info');
+  }
   function bindEditorSurface(inst) {
     var editor = inst.editor;
     if (!editor || editor.__suiRichSurfaceBound) return;
@@ -7993,17 +8080,17 @@ window.__SUI_RICH = (function () {
         if (pasteCellMatrix(inst, textData)) { commit(inst, 'change'); return; }
       }
       var html = data && data.getData ? data.getData('text/html') : '';
-      if (html) {
+      var rtf = data && data.getData ? data.getData('text/rtf') : '';
+      var plain = textData;
+      var payload = html || rtf || plain;
+      if (payload) {
         e.preventDefault();
-        var pastedDoc = importHTML(html);
-        if (editorMode(inst) === 'markup') {
-          // Keep only what Markdown can round-trip: drop colors, fonts,
-          // alignment, merged cells and other rich-only formatting.
-          pastedDoc = importMarkdown(exportMarkdown({ doc: pastedDoc }));
-        }
-        insertDocumentAtCaret(inst, pastedDoc);
+        var result = convertPastedDoc(payload, editorMode(inst));
+        inst.lastImport = { detected: result.detected, target: result.target, warnings: result.warnings, lossy: result.lossy };
+        insertDocumentAtCaret(inst, result.doc);
         materializeBlobImages(inst, inst.editor);
         commit(inst, 'input');
+        reportPastedImport(inst, result);
       } else setTimeout(function () { commit(inst, 'input'); }, 0);
     });
     bindCellSelection(inst); bindTableResize(inst);
@@ -8374,7 +8461,7 @@ window.__SUI_RICH = (function () {
     if (!inst) return [null, 'richtext instance not found: ' + name];
     sync(inst);
     var stats = docStats(inst.doc), info = selectionInfo(inst);
-    return [JSON.stringify({ words: stats.words, chars: stats.chars, paragraphs: stats.paragraphs, cursor: info.start, selection: info.end, block: info.block, modified: inst.dirty, zoom: inst.zoom }), null];
+    return [JSON.stringify({ words: stats.words, chars: stats.chars, paragraphs: stats.paragraphs, cursor: info.start, selection: info.end, block: info.block, modified: inst.dirty, zoom: inst.zoom, lastImport: inst.lastImport || null, lastNotice: inst.lastNotice || null }), null];
   }
   function selection(name) {
     var inst = instances[name];
@@ -12168,6 +12255,10 @@ const suiRichTextCss = `
 .sui-rich-status[hidden] { display: none; }
 .sui-rich-stats { margin-right: auto; }
 .sui-rich-saved { color: var(--sui-rich-muted); }
+.sui-rich-notice { color: var(--sui-rich-muted); font-weight: 600; }
+.sui-rich-notice[data-notice-kind="warning"] { color: #b26000; }
+.sui-rich-notice[data-notice-kind="error"] { color: #b00020; }
+.sui-rich-notice[hidden] { display: none; }
 .sui-rich-zoom-btn { width: 22px; height: 22px; border: 1px solid var(--sui-rich-border); border-radius: 5px; background: transparent; color: var(--sui-rich-fg); cursor: pointer; line-height: 1; white-space: nowrap; }
 .sui-rich-zoom-label { width: auto; min-width: 48px; padding: 0 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
 .sui-rich-context { position: fixed; z-index: 900; display: flex; gap: 2px; padding: 4px; background: var(--sui-rich-bg); border: 1px solid var(--sui-rich-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
