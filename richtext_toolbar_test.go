@@ -183,6 +183,9 @@ func TestRichTextInspectorIsMinimal(t *testing.T) {
 		`hyphBtn.title = "Choose the embedded hyphenation dictionaries"`,
 		`roSwitch.title = "Show the document without editing controls"`,
 		`mkSwitch(n.readonly === undefined ? false : !!n.readonly`,
+		`nameInput.value = n.name || ""`,
+		`nameInput.title = "Runtime name used by richtext.*"`,
+		`upd("name", nameInput.value.trim())`,
 	} {
 		if !strings.Contains(src, marker) {
 			t.Errorf("richtext Inspector missing %s", marker)
@@ -241,8 +244,8 @@ func TestRichTextLoadContentWiring(t *testing.T) {
 	js := generateJsFromInline(t, `
 state doc = ""
 
-fn load() -> null {
-	ok, err = richtext.loadContent("editor", "# Loaded from code", "markdown")
+async fn load() -> null {
+	ok, err = richtext.loadContent("editor", "# Loaded from code", "markdown", "report.md")
 }
 
 view main {
@@ -252,7 +255,7 @@ view main {
 `)
 	for _, marker := range []string{
 		"richtext_loadcontent",
-		"__SUI_RICH.loadContent(name, content, fmt)",
+		"__SUI_RICH.loadContent(name, content, fmt, filename)",
 	} {
 		if !strings.Contains(js, marker) {
 			t.Errorf("generated JS missing loadContent marker: %s", marker)

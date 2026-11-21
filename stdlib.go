@@ -217,7 +217,7 @@ var StdFuncs = []StdFunc{
 	// table (core: always available, acts on the rendered table named with `name:`)
 	StdFunc{mod: "richtext", name: "get", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "richtext_get", async: false},
 	StdFunc{mod: "richtext", name: "set", params: []string{"string", "any"}, ret0: "bool", ret1: "string", jsKey: "richtext_set", async: false},
-	StdFunc{mod: "richtext", name: "loadContent", params: []string{"string", "any", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_loadcontent", async: false, optional: 1},
+	StdFunc{mod: "richtext", name: "loadContent", params: []string{"string", "any", "string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_loadcontent", async: true, optional: 2},
 	StdFunc{mod: "richtext", name: "command", params: []string{"string", "string", "any"}, ret0: "bool", ret1: "string", jsKey: "richtext_command", async: false, optional: 1},
 	StdFunc{mod: "richtext", name: "format", params: []string{"string", "string", "any"}, ret0: "bool", ret1: "string", jsKey: "richtext_format", async: false, optional: 1},
 	StdFunc{mod: "richtext", name: "insertText", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "richtext_inserttext", async: false},

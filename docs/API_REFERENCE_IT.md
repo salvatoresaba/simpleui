@@ -1672,7 +1672,11 @@ richtext name: "article" value: doc height: "420px" theme: "dark"
 
 Il testo dell'elemento (ad esempio `richtext "Articolo"`) è il titolo del documento
 usato dai token `{title}` e come nome runtime di fallback; non viene più mostrato
-sopra il menu. Usa `richtext.loadContent` per sostituire il documento dal codice.
+sopra il menu. Usa `richtext.loadContent` per sostituire il documento dal codice;
+per un file vero e proprio leggi prima i byte (ad esempio `fs.readBytes(path)` in
+una build desktop) e passali con il nome file:
+`richtext.loadContent(name, bytes, "report.docx")`. Sul web `richtext.openFile`
+apre già il selettore e importa il file scelto.
 
 I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
 trascina la maniglia ⣿ per sganciarle, poi rilasciale sulla barra superiore per
@@ -2004,7 +2008,7 @@ gutter e colorazione sintattica restano dopo il re-render.
 |---|---|
 | `richtext.get(name)` | Documento come JSON |
 | `richtext.set(name, jsonOrMap)` | Sostituisce il documento |
-| `richtext.loadContent(name, content, [format])` | Carica un documento dal codice: JSON (default), HTML, Markdown, XML o testo semplice; `content` può anche essere una mappa documento |
+| `richtext.loadContent(name, content, [format], [filename])` | Carica un documento dal codice: JSON (default), HTML, Markdown, XML o testo semplice, una mappa documento, oppure i byte di un file reale (`array[int]`, `Uint8Array`, `ArrayBuffer`, `Blob`). Il nome file seleziona l'importer. Asincrona: chiamala da una `async fn` |
 | `richtext.command(name, command, [value])` | Esegue un comando di formattazione/blocco/plugin |
 | `richtext.format(name, format, [value])` | Alias di `command` |
 | `richtext.insertText(name, text)` | Inserisce testo al cursore |

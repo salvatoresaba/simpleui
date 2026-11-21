@@ -2920,7 +2920,7 @@ func stdBodyJs(key string, target string) string {
 		return "(name, value) => __SUI_RICH.set(name, value)"
 	}
 	if key == "richtext_loadcontent" {
-		return "(name, content, fmt) => __SUI_RICH.loadContent(name, content, fmt)"
+		return "async (name, content, fmt, filename) => __SUI_RICH.loadContent(name, content, fmt, filename)"
 	}
 	if key == "richtext_command" {
 		return "(name, cmd, value) => __SUI_RICH.command(name, cmd, value)"

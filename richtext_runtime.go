@@ -3593,10 +3593,40 @@ window.__SUI_RICH = (function () {
     return [true, null];
   }
 
-  // loadContent loads a document from host code. JSON is the default and may be
-  // passed as an object, a JSON string, HTML, Markdown, XML or plain text.
-  function loadContent(name, content, format) {
+  // loadContent loads a document from host code. Strings carry JSON (default),
+  // HTML, Markdown, XML or plain text. A real file may be passed as bytes
+  // (array[int], Uint8Array, ArrayBuffer or Blob); the file name then selects
+  // the importer, exactly like richtext.importBytes.
+  function looksLikeContentBytes(value) {
+    if (!value || typeof value !== 'object') return false;
+    if (typeof Uint8Array !== 'undefined' && value instanceof Uint8Array) return true;
+    if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return true;
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return true;
+    if (!Array.isArray(value)) return false;
+    for (var i = 0; i < value.length; i++) if (typeof value[i] !== 'number') return false;
+    return true;
+  }
+  function loadContentFileName(content, format, filename) {
+    if (filename) return String(filename);
+    if (content && typeof content.name === 'string' && content.name) return content.name;
+    var hint = String(format || '');
+    if (!hint) return '';
+    if (/\.[a-z0-9]+$/i.test(hint)) return hint;
+    return 'document.' + hint.replace(/^\./, '');
+  }
+  async function loadContent(name, content, format, filename) {
     if (!resolveInstance(name)) return [false, 'richtext instance not found: ' + name];
+    if (looksLikeContentBytes(content)) {
+      var fname = loadContentFileName(content, format, filename);
+      if (!fname) return [false, 'richtext file name required: pass the file name as the third or fourth argument'];
+      try {
+        var bytes = content;
+        if (typeof content.arrayBuffer === 'function') {
+          bytes = new Uint8Array(await content.arrayBuffer());
+        }
+        return await importBytes(name, bytes, fname);
+      } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
+    }
     if (content && typeof content === 'object') return setValue(name, content);
     var text = content == null ? '' : String(content);
     var fmt = String(format || 'json').toLowerCase();

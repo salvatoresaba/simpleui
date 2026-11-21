@@ -17115,6 +17115,14 @@ function richtextControls(n) {
     sel.onchange = function(){ upd(field, sel.value); };
     row.appendChild(sel); body.appendChild(row);
   }
+  var nameRow = document.createElement("div"); nameRow.className = "rowline";
+  var nameLabel = document.createElement("label"); nameLabel.textContent = "name";
+  nameLabel.title = "Runtime name used by richtext.*"; nameRow.appendChild(nameLabel);
+  var nameInput = document.createElement("input");
+  nameInput.value = n.name || ""; nameInput.placeholder = "editor"; nameInput.spellcheck = false;
+  nameInput.title = "Runtime name used by richtext.*";
+  nameInput.onchange = function(){ upd("name", nameInput.value.trim()); };
+  nameRow.appendChild(nameInput); body.appendChild(nameRow);
   selectRow("Interface theme", "theme", [["dark", "Dark"], ["light", "Light"]], "dark", "Editor chrome theme");
   var toolbarRow = document.createElement("div"); toolbarRow.className = "rowline";
   var toolbarBtn = document.createElement("button"); toolbarBtn.type = "button"; toolbarBtn.className = "btn";
@@ -27656,7 +27664,7 @@ var DOCS = {
   "xml.merge3": { sig: "xml.merge3(base, ours, theirs, [options])", ret: "(array[string], string)", desc: "Three-way merge into ours; returns conflict descriptions." },
   "richtext.get": { sig: "richtext.get(name)", ret: "(string, string)", desc: "Reads the editor document as JSON." },
   "richtext.set": { sig: "richtext.set(name, jsonOrMap)", ret: "(bool, string)", desc: "Replaces the editor document." },
-  "richtext.loadContent": { sig: "richtext.loadContent(name, content, [format])", ret: "(bool, string)", desc: "Loads a document from code as JSON, HTML, Markdown, XML or plain text." },
+  "richtext.loadContent": { sig: "richtext.loadContent(name, content, [format], [filename])", ret: "(bool, string)", desc: "Loads text or real file bytes (async); the file name selects the importer.", async: true },
   "richtext.command": { sig: "richtext.command(name, command, [value])", ret: "(bool, string)", desc: "Runs a formatting or block command." },
   "richtext.insertText": { sig: "richtext.insertText(name, text)", ret: "(bool, string)", desc: "Inserts plain text at the caret." },
   "richtext.insertImage": { sig: "richtext.insertImage(name, src, [alt])", ret: "(bool, string)", desc: "Inserts a safe image URL." },

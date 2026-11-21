@@ -188,6 +188,7 @@ The `richtext` namespace is a core module (no import):
 docJson, err = richtext.get("article")
 ok, err = richtext.set("article", docJson)
 ok, err = richtext.loadContent("article", "# Loaded from code", "markdown")
+ok, err = richtext.loadContent("article", fileBytes, "report.docx")
 ok, err = richtext.command("article", "bold")
 ok, err = richtext.insertText("article", "Hello")
 ok, err = richtext.insertImage("article", "https://example.com/a.png", "alt")
@@ -205,6 +206,12 @@ ok, err = richtext.setToolbar("article", "bold,italic|link")
 ok, err = richtext.setTemplate("article", "letter")
 ok, err = richtext.destroy("article")
 ```
+
+`richtext.loadContent` is async. Besides strings (JSON, HTML, Markdown, XML or
+plain text) it accepts real file bytes (`array[int]` from `fs.readBytes` on
+desktop, or `Uint8Array`/`ArrayBuffer`/`Blob`); pass the file name as the third
+or fourth argument so the importer is detected from its extension. The example
+demonstrates the byte path with a DOCX round-trip.
 
 ### Declarative plugin
 
@@ -343,9 +350,19 @@ async fn importMarkdown() -> null {
 	out = ok ? "Markdown imported" : str(err)
 }
 
-fn loadFromCode() -> null {
+async fn loadFromCode() -> null {
 	ok, err = richtext.loadContent("article", "# Loaded from SUI code\n\nThis document was passed by **loadContent** as Markdown.\n\n- no file picker\n- no HTML string", "markdown")
 	out = ok ? "Content loaded from code" : str(err)
+}
+
+async fn loadFileBytes() -> null {
+	bytes, berr = richtext.exportBytes("article", "docx")
+	if berr != null {
+		out = str(berr)
+		return
+	}
+	ok, err = richtext.loadContent("article", bytes, "roundtrip.docx")
+	out = ok ? "File bytes loaded (DOCX round-trip)" : str(err)
 }
 
 fn registerPlugin() -> null {
@@ -376,6 +393,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 				button "Load from code" onClick: loadFromCode
+				button "Load file bytes" onClick: loadFileBytes
 			}
 			richtext name: "article" value: doc height: "420px" theme: "dark" toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
 			p "{status}" class: "muted"

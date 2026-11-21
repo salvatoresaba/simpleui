@@ -1420,9 +1420,9 @@ keep exactly two panes.
 
 The **Content** palette group provides the **Rich text editor**, timeline,
 empty state, skeleton, carousel and stepper; the command palette is under
-**Overlay**. The editor inspector exposes name, value, placeholder, theme
-(`dark`/`light`), **Toolbar items...**, **Hyphenation languages...**, a single
-**Read only** switch and the change/input/ready handlers. Header, footer and
+**Overlay**. The editor inspector exposes the runtime **name**, theme
+(`dark`/`light`), **Toolbar items...**, **Hyphenation languages...** and a single
+**Read only** switch. Header, footer and
 the toolbar/menu/context/status toggles are not offered here; those attributes
 remain available in hand-written sources. Controls carry short tooltips instead
 of explanatory text. Height and width are edited in the generic **Size**
