@@ -263,6 +263,20 @@ view main {
 	}
 }
 
+func TestRichTextLoadContentAcceptsExistingFiles(t *testing.T) {
+	for _, marker := range []string{
+		"function looksLikeDocumentPath(value)",
+		"async function readDesktopFile(path)",
+		"/__bridge__/file/readbytes",
+		"reading a local file path is available only in desktop builds",
+		"return openFile(name)",
+	} {
+		if !strings.Contains(suiRichTextRuntime, marker) {
+			t.Errorf("runtime missing file-loading marker: %s", marker)
+		}
+	}
+}
+
 func TestRichTextExampleDropsLegacyToggles(t *testing.T) {
 	raw, err := os.ReadFile("examples/richtext_editor/app.sui")
 	if err != nil {

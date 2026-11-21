@@ -208,9 +208,20 @@ ok, err = richtext.destroy("article")
 ```
 
 `richtext.loadContent` is async. Besides strings (JSON, HTML, Markdown, XML or
-plain text) it accepts real file bytes (`array[int]` from `fs.readBytes` on
-desktop, or `Uint8Array`/`ArrayBuffer`/`Blob`); pass the file name as the third
-or fourth argument so the importer is detected from its extension. The example
+plain text) it accepts an existing file path in desktop builds:
+
+```sui
+async fn openExisting() -> null {
+	ok, err = richtext.loadContent("article", "C:/docs/report.docx")
+}
+```
+
+The path must be inside a directory granted with `--allow-dir`. It also accepts
+real file bytes (`array[int]` from `fs.readBytes` on desktop, or
+`Uint8Array`/`ArrayBuffer`/`Blob`); pass the file name as the third or fourth
+argument so the importer is detected from its extension. On the web a local path
+cannot be read: use `richtext.loadContent("article")` or
+`richtext.openFile("article")` to open the native picker. The example
 demonstrates the byte path with a DOCX round-trip.
 
 ### Declarative plugin

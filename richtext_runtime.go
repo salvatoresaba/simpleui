@@ -3610,14 +3610,40 @@ window.__SUI_RICH = (function () {
     if (filename) return String(filename);
     if (content && typeof content.name === 'string' && content.name) return content.name;
     var hint = String(format || '');
-    if (!hint) return '';
+    if (!hint || hint === 'file' || hint === 'path' || hint === 'auto') return '';
     if (/\.[a-z0-9]+$/i.test(hint)) return hint;
     return 'document.' + hint.replace(/^\./, '');
   }
+  // A string that names a document file (rather than carrying its text) is
+  // routed to the desktop bridge, which enforces --allow-dir. On the web the
+  // same call fails with a hint to use the native file picker.
+  function looksLikeDocumentPath(value) {
+    var text = String(value || '').trim();
+    if (!text || text.indexOf('\n') >= 0) return false;
+    if (!/\.(txt|text|rtf|doc|docx|odt|html?|md|markdown|json|xml)$/i.test(text)) return false;
+    return /[\\/]/.test(text) || /^[a-zA-Z]:/.test(text) || /^\\\\/.test(text);
+  }
+  async function readDesktopFile(path) {
+    if (typeof __SUI_TOKEN === 'undefined' || !__SUI_TOKEN) {
+      return [null, 'reading a local file path is available only in desktop builds; use richtext.openFile(name) on the web'];
+    }
+    var fd = new URLSearchParams();
+    fd.set('token', __SUI_TOKEN);
+    fd.set('path', path);
+    try {
+      var response = await fetch('/__bridge__/file/readbytes', { method: 'POST', body: fd });
+      var result = await response.json();
+      if (!result.ok) return [null, result.message || 'cannot read the file'];
+      if (typeof __sui_b64_to_bytes !== 'function') return [null, 'file decoder unavailable'];
+      return [__sui_b64_to_bytes(result.data), null];
+    } catch (e) { return [null, String(e && e.message ? e.message : e)]; }
+  }
   async function loadContent(name, content, format, filename) {
     if (!resolveInstance(name)) return [false, 'richtext instance not found: ' + name];
+    var fmt = String(format || '').toLowerCase();
+    if (content == null || (content === '' && !fmt)) return openFile(name);
     if (looksLikeContentBytes(content)) {
-      var fname = loadContentFileName(content, format, filename);
+      var fname = loadContentFileName(content, fmt, filename);
       if (!fname) return [false, 'richtext file name required: pass the file name as the third or fourth argument'];
       try {
         var bytes = content;
@@ -3627,9 +3653,19 @@ window.__SUI_RICH = (function () {
         return await importBytes(name, bytes, fname);
       } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
     }
+    var pathMode = fmt === 'file' || fmt === 'path' || fmt === 'auto' || (!fmt && looksLikeDocumentPath(content));
+    if (pathMode) {
+      var path = String(content == null ? '' : content).trim();
+      if (!path) return [false, 'richtext file path required'];
+      var read = await readDesktopFile(path);
+      if (read[1] !== null) return [false, read[1]];
+      var parts = path.split(/[\\/]/);
+      var fileName = filename || parts[parts.length - 1] || 'document';
+      return await importBytes(name, read[0], fileName);
+    }
     if (content && typeof content === 'object') return setValue(name, content);
     var text = content == null ? '' : String(content);
-    var fmt = String(format || 'json').toLowerCase();
+    fmt = fmt || 'json';
     try {
       var doc;
       if (fmt === 'json' || fmt === '') doc = parseJSON(text, null);
