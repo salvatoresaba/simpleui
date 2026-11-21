@@ -383,6 +383,7 @@ input[type=color] { padding:0; height:26px; }
 .hyph-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .hyph-size { flex:none; font-size:10px; color:var(--muted); }
 .hyph-summary { margin-top:7px; font-size:11px; color:var(--muted); line-height:1.4; }
+.rt-group-head { margin:7px 4px 2px; font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
 /* inspector switch: graphical on/off control for binary attribute fields */
 label.isw { box-sizing:border-box; position:relative; width:36px; height:20px; flex:none; display:inline-block; }
 label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; cursor:pointer; z-index:2; }
@@ -2751,7 +2752,7 @@ errorboundary: ["fallback"],
   command: ["text", "shortcut"],
   accordion: ["text"],
   accordionitem: ["text"],
-  richtext: ["text", "name", "value", "placeholder", "height", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "contentTheme", "header", "footer", "hyphenLangs", "onChange", "onInput", "onReady"],
+  richtext: ["text", "name", "value", "placeholder", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "header", "footer", "hyphenLangs", "onChange", "onInput", "onReady"],
   tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   treeitem: ["text", "key", "open", "rename", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
@@ -2770,7 +2771,7 @@ errorboundary: ["fallback"],
   row: [], col: [], spacer: [], ul: [], ol: [], table: [], thead: [], tbody: [], tfoot: [], trow: [], form: [], fieldset: [], hr: [], br: [], a: ["text", "link"]
 };
 
-var TAG_LABELS = { text: "Text", onClick: "onClick", placeholder: "placeholder", value: "value", height: "height (e.g. 320px)", toolbar: "show toolbar", toolbarItems: "toolbar items (comma/| groups)", menu: "show menu bar", contextToolbar: "selection toolbar", statusbar: "status bar", theme: "theme (dark/light/auto)", contentTheme: "page theme (light/dark)", header: "header text ({page}/{pages})", footer: "footer text ({page}/{pages})", readonly: "read only", src: "src / href", link: "link", inputtype: "type", pattern: "pattern", minlength: "min length", maxlength: "max length", required: "required", options: "options (comma-separated, e.g. A,B,C)", label: "label", checked: "checked (state/bool)", disabled: "disabled", name: "name / modal id", min: "min", max: "max", step: "step", accept: "accept", multiple: "multiple", directory: "directory picker", draggable: "draggable", dragKey: "drag key expression", dropKey: "drop key expression", dropFiles: "drop files into state", pickFiles: "choose files into state", pickMode: "picker API mode", variant: "variant", close: "close after click", srcAllow: "src allow-list", sandbox: "sandbox tokens", allow: "permissions policy", referrerpolicy: "referrer policy", loading: "loading", empty: "empty result text", maxOptionLength: "max option text length", maxOptions: "max option count", mode: "date/time mode" };
+var TAG_LABELS = { text: "Text", onClick: "onClick", placeholder: "placeholder", value: "value", height: "height (e.g. 320px)", toolbar: "show toolbar", toolbarItems: "toolbar items (choose in overlay)", menu: "show menu bar", contextToolbar: "selection toolbar", statusbar: "status bar", theme: "theme (dark/light)", header: "header text ({page}/{pages})", footer: "footer text ({page}/{pages})", readonly: "read only", src: "src / href", link: "link", inputtype: "type", pattern: "pattern", minlength: "min length", maxlength: "max length", required: "required", options: "options (comma-separated, e.g. A,B,C)", label: "label", checked: "checked (state/bool)", disabled: "disabled", name: "name / modal id", min: "min", max: "max", step: "step", accept: "accept", multiple: "multiple", directory: "directory picker", draggable: "draggable", dragKey: "drag key expression", dropKey: "drop key expression", dropFiles: "drop files into state", pickFiles: "choose files into state", pickMode: "picker API mode", variant: "variant", close: "close after click", srcAllow: "src allow-list", sandbox: "sandbox tokens", allow: "permissions policy", referrerpolicy: "referrer policy", loading: "loading", empty: "empty result text", maxOptionLength: "max option text length", maxOptions: "max option count", mode: "date/time mode" };
 
 // Cross-browser expansion: a friendly control (e.g. "Trasparenza") maps to
 // one or more real CSS declarations, incl. vendor prefixes.
@@ -16973,6 +16974,127 @@ function openHyphenationLanguages() {
     "Choose the TeX dictionaries embedded in app.js. Fewer languages mean a much smaller JavaScript file.");
 }
 
+function richToolbarGroups() { return window.SUI_RICH_TOOLBAR_GROUPS || []; }
+function richToolbarNode() {
+  var paths = selectedPaths();
+  return paths.length ? byPath(paths[0], root.children) : null;
+}
+function richToolbarAllIDs() {
+  var out = [];
+  richToolbarGroups().forEach(function(g){ (g.items || []).forEach(function(o){ if (o.id && out.indexOf(o.id) < 0) out.push(o.id); }); });
+  return out;
+}
+function richToolbarDefaultIDs() {
+  var out = [];
+  richToolbarGroups().forEach(function(g){ (g.items || []).forEach(function(o){ if (o.default && o.id && out.indexOf(o.id) < 0) out.push(o.id); }); });
+  return out;
+}
+function richToolbarIDs() {
+  var n = richToolbarNode();
+  var raw = String(n ? (n.toolbarItems || "") : "").trim();
+  if (!raw) return richToolbarDefaultIDs();
+  if (raw.toLowerCase() === "none") return [];
+  var out = [], seen = {};
+  raw.split("|").forEach(function(group){
+    group.split(",").forEach(function(id){
+      id = id.trim();
+      if (id && !seen[id]) { seen[id] = true; out.push(id); }
+    });
+  });
+  return out;
+}
+function richToolbarPickerGroups() {
+  var groups = [];
+  richToolbarGroups().forEach(function(g){
+    groups.push({ name: g.name, items: (g.items || []).slice() });
+  });
+  var known = {};
+  richToolbarAllIDs().forEach(function(id){ known[id] = true; });
+  var custom = richToolbarIDs().filter(function(id){ return !known[id]; });
+  if (custom.length) {
+    groups.push({ name: "Custom", items: custom.map(function(id){ return { id: id, label: id, default: false }; }) });
+  }
+  return groups;
+}
+function richToolbarWriteIDs(ids) {
+  var out = [], seen = {};
+  (ids || []).forEach(function(id){ if (id && !seen[id]) { seen[id] = true; out.push(id); } });
+  var defaults = richToolbarDefaultIDs();
+  var isDefault = out.length === defaults.length && defaults.every(function(id){ return out.indexOf(id) >= 0; });
+  var raw = "";
+  if (!out.length) raw = "none";
+  else if (!isDefault) {
+    var parts = [];
+    richToolbarPickerGroups().forEach(function(g){
+      var chosen = (g.items || []).filter(function(o){ return out.indexOf(o.id) >= 0; }).map(function(o){ return o.id; });
+      if (chosen.length) parts.push(chosen.join(","));
+    });
+    raw = parts.join("|");
+  }
+  upd("toolbarItems", raw);
+  refreshInspectorOverlay(false);
+}
+function openToolbarItems() {
+  if (!selectedPaths().length) return;
+  var filter = "";
+  function builder() {
+    var rows = [];
+    var search = document.createElement("input");
+    search.type = "search"; search.className = "hyph-search";
+    search.placeholder = "Filter toolbar items";
+    search.value = filter;
+    var list = document.createElement("div"); list.className = "hyph-list";
+    search.oninput = function() {
+      filter = search.value.toLowerCase().trim();
+      Array.prototype.forEach.call(list.children, function(r){
+        if (!r._rtFilter) return;
+        r.style.display = (!filter || r._rtFilter.indexOf(filter) >= 0) ? "" : "none";
+      });
+    };
+    rows.push(search);
+    var tools = document.createElement("div"); tools.className = "hyph-tools";
+    [["Default", function(){ richToolbarWriteIDs(richToolbarDefaultIDs()); }],
+     ["All items", function(){ richToolbarWriteIDs(richToolbarAllIDs()); }],
+     ["None", function(){ richToolbarWriteIDs([]); }]].forEach(function(entry) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn";
+      b.textContent = entry[0]; b.onclick = entry[1]; tools.appendChild(b);
+    });
+    rows.push(tools);
+    var ids = richToolbarIDs();
+    richToolbarPickerGroups().forEach(function(g) {
+      var head = document.createElement("div"); head.className = "rt-group-head";
+      head.textContent = g.name; head._rtFilter = "";
+      list.appendChild(head);
+      (g.items || []).forEach(function(item) {
+        var row = document.createElement("label"); row.className = "hyph-row";
+        var cb = document.createElement("input"); cb.type = "checkbox";
+        cb.checked = ids.indexOf(item.id) >= 0;
+        cb.onchange = function() {
+          var cur = richToolbarIDs();
+          if (cb.checked) { if (cur.indexOf(item.id) < 0) cur.push(item.id); }
+          else { cur = cur.filter(function(id){ return id !== item.id; }); }
+          richToolbarWriteIDs(cur);
+        };
+        row.appendChild(cb);
+        var name = document.createElement("span"); name.className = "hyph-name";
+        name.textContent = item.label + " (" + item.id + ")"; row.appendChild(name);
+        row._rtFilter = (g.name + " " + item.label + " " + item.id).toLowerCase();
+        if (filter && row._rtFilter.indexOf(filter) < 0) row.style.display = "none";
+        list.appendChild(row);
+      });
+    });
+    rows.push(list);
+    var total = richToolbarAllIDs().length;
+    var summary = document.createElement("div"); summary.className = "hyph-summary";
+    summary.textContent = ids.length + " of " + total + " toolbar items selected. " +
+      "None leaves only the theme button; Default writes no toolbarItems attribute.";
+    rows.push(summary);
+    return rows;
+  }
+  openInspectorOverlay("Toolbar items", builder,
+    "Pick the buttons shown in the editor toolbar. The document page is always white.");
+}
+
 function richtextControls(n) {
   var a = document.createElement("div"); a.className = "acc open";
   var h = document.createElement("div"); h.className = "acchead";
@@ -16992,10 +17114,16 @@ function richtextControls(n) {
     sel.onchange = function(){ upd(field, sel.value); };
     row.appendChild(sel); body.appendChild(row);
   }
-  selectRow("Interface theme", "theme", [["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]], "dark");
-  selectRow("Page theme", "contentTheme", [["light", "Light (white page)"], ["dark", "Dark page"]], "light");
-  body.appendChild(rowInput("height", n.height || "", function(v){ upd("height", v); }, "e.g. 420px"));
-  body.appendChild(rowInput("toolbar items", n.toolbarItems || "", function(v){ upd("toolbarItems", v); }, "undo,redo|bold,italic|link,image,table,pageBreak"));
+  selectRow("Interface theme", "theme", [["dark", "Dark"], ["light", "Light"]], "dark");
+  var toolbarRow = document.createElement("div"); toolbarRow.className = "rowline";
+  var toolbarBtn = document.createElement("button"); toolbarBtn.type = "button"; toolbarBtn.className = "btn";
+  toolbarBtn.style.cssText = "font-size:11px;padding:4px 8px;width:100%";
+  toolbarBtn.textContent = (n.toolbarItems || "").trim().toLowerCase() === "none" ? "Toolbar items: none..." : "Toolbar items...";
+  toolbarBtn.onclick = function(ev){ if (ev) { ev.preventDefault(); ev.stopPropagation(); } openToolbarItems(); };
+  toolbarRow.appendChild(toolbarBtn); body.appendChild(toolbarRow);
+  var toolbarHint = document.createElement("div"); toolbarHint.className = "hint"; toolbarHint.style.fontSize = "10px";
+  toolbarHint.textContent = "Choose toolbar buttons in the overlay; height and width are in the Size section.";
+  body.appendChild(toolbarHint);
   var hyphRow = document.createElement("div"); hyphRow.className = "rowline";
   var hyphBtn = document.createElement("button"); hyphBtn.type = "button"; hyphBtn.className = "btn";
   hyphBtn.style.cssText = "font-size:11px;padding:4px 8px;width:100%";
@@ -17017,7 +17145,7 @@ function richtextControls(n) {
   });
   var hint = document.createElement("div"); hint.className = "hint";
   hint.style.fontSize = "10px";
-  hint.textContent = "The interface theme only styles the editor chrome; the page keeps its own theme. The theme button in the toolbar cycles dark and light.";
+  hint.textContent = "The interface theme only styles the editor chrome; the document page is always white. The toolbar button cycles dark and light.";
   body.appendChild(hint);
   a.appendChild(body);
   return a;

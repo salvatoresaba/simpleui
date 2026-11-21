@@ -5545,14 +5545,17 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	template := strings.ToLower(richTextTextAttr(e, "template"))
 	height := richTextTextAttr(e, "height")
 	placeholder := richTextTextAttr(e, "placeholder")
-	theme := strings.ToLower(richTextTextAttr(e, "theme"))
-	if theme != "light" && theme != "auto" {
-		theme = "dark"
+	themeAttr := findAttr(e, "theme")
+	theme := "dark"
+	themeExplicit := false
+	if themeAttr != nil && !themeAttr.hasExpr {
+		themeExplicit = true
+		if strings.ToLower(strings.TrimSpace(partsContent(themeAttr.text))) == "light" {
+			theme = "light"
+		}
 	}
-	contentTheme := strings.ToLower(richTextTextAttr(e, "contentTheme"))
-	if contentTheme != "dark" {
-		contentTheme = "light"
-	}
+	// The document paper is always white. contentTheme stays accepted by the
+	// checker for older projects, but the compiler no longer emits it.
 	headerText := richTextTextAttr(e, "header")
 	footerText := richTextTextAttr(e, "footer")
 	clean := *e
@@ -5582,7 +5585,10 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 		open += " data-sui-rich-height=\"" + htmlEscape(height) + "\""
 		open += " data-sui-rich-placeholder=\"" + htmlEscape(placeholder) + "\""
 		open += " data-sui-rich-theme=\"" + theme + "\""
-		open += " data-sui-rich-content=\"" + contentTheme + "\""
+		if themeExplicit {
+			open += " data-sui-rich-theme-explicit=\"1\""
+		}
+		open += " data-sui-rich-content=\"light\""
 		if headerText != "" {
 			open += " data-sui-rich-header=\"" + htmlEscape(headerText) + "\""
 		}

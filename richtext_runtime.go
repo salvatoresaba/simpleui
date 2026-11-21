@@ -4037,6 +4037,9 @@ window.__SUI_RICH = (function () {
     for (var i = 0; i < options.length; i++) { var o = el('option', '', options[i][1]); o.value = options[i][0]; s.appendChild(o); }
     return s;
   }
+  function noFormatToolbar(inst) {
+    return String((inst && inst.config && inst.config.toolbar) || '').trim().toLowerCase() === 'none';
+  }
   function toolbarGroupLabel(tokens) {
     var list = String(tokens || '').split(',');
     function has(re) { for (var i = 0; i < list.length; i++) if (re.test(list[i].trim())) return true; return false; }
@@ -4054,7 +4057,9 @@ window.__SUI_RICH = (function () {
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', 'Formatting toolbar');
     bar.innerHTML = '';
-    var items = inst.config.toolbar || defaultToolbar;
+    var configured = String(inst.config.toolbar || '').trim();
+    var noToolbar = noFormatToolbar(inst);
+    var items = noToolbar ? '' : (configured || defaultToolbar);
     var groups = String(items).split('|');
     for (var g = 0; g < groups.length; g++) {
       if (!groups[g].trim()) continue;
@@ -4142,7 +4147,7 @@ window.__SUI_RICH = (function () {
       var pl = plugins[pluginOrder[p]];
       if (pl && Array.isArray(pl.toolbar)) for (var ti = 0; ti < pl.toolbar.length; ti++) registered.push(pl.toolbar[ti]);
     }
-    if (registered.length) {
+    if (registered.length && !noToolbar) {
       var pg = el('div', 'sui-rich-group');
       for (var r = 0; r < registered.length; r++) pg.appendChild(button(inst, registered[r].id, registered[r].label || registered[r].id, registered[r].title || registered[r].label || registered[r].id));
       bar.appendChild(pg);
@@ -4494,6 +4499,7 @@ window.__SUI_RICH = (function () {
     if (legacy) { legacy.hidden = true; legacy.innerHTML = ''; }
     var old = toolbar.querySelector('[data-rich-table-group]');
     if (old && old.parentNode) old.parentNode.removeChild(old);
+    if (noFormatToolbar(inst)) return;
     var group = el('div', 'sui-rich-group sui-rich-tool-group');
     group.setAttribute('data-rich-cat', 'table');
     group.setAttribute('data-rich-table-group', '1');
@@ -4542,6 +4548,7 @@ window.__SUI_RICH = (function () {
     var bar = inst.root.querySelector('.sui-rich-context');
     if (!bar) return;
     bar.innerHTML = '';
+    if (noFormatToolbar(inst)) { bar.hidden = true; return; }
     ['bold', 'italic', 'underline', 'strike', 'link', 'highlight', 'indent', 'outdent', 'clearFormat'].forEach(function (cmd) { bar.appendChild(button(inst, cmd, cmd, cmd)); });
   }
   function applyTheme(inst) {
@@ -7715,6 +7722,18 @@ window.__SUI_RICH = (function () {
     inst.editor.style.height = editorHeight;
     inst.editor.style.minHeight = '';
     applyPageLineHeight(inst);
+    var savedTheme = '';
+    try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
+    // An explicit theme attribute wins over a preference saved by the toolbar
+    // toggle. This keeps generated apps and designer previews faithful to the
+    // .sui source instead of to a previous localStorage session. Resolve it
+    // before buildToolbar(), whose theme button calls applyTheme() while the
+    // toolbar is being assembled.
+    var explicitTheme = attr(root, 'data-sui-rich-theme-explicit') === '1';
+    var initialTheme = explicitTheme ? attr(root, 'data-sui-rich-theme') : (savedTheme || attr(root, 'data-sui-rich-theme') || 'dark');
+    if (initialTheme !== 'dark' && initialTheme !== 'light' && initialTheme !== 'auto') initialTheme = 'dark';
+    inst.theme = initialTheme;
+    applyTheme(inst);
     var initialTemplate = attr(root, 'data-sui-rich-template');
     if (initialTemplate) setTemplate(name, initialTemplate);
     var readOnly = boolAttr(root, 'data-sui-rich-readonly', false);
@@ -7722,12 +7741,6 @@ window.__SUI_RICH = (function () {
     if (attr(root, 'data-sui-rich-placeholder')) inst.editor.setAttribute('data-placeholder', attr(root, 'data-sui-rich-placeholder'));
     buildToolbar(inst); buildMenu(inst); buildContext(inst); buildStatus(inst); buildFindBar(inst); buildPageChrome(inst);
     if (attr(root, 'data-sui-rich-paginated') === '1') setPaginated(inst, true);
-    var savedTheme = '';
-    try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
-    var initialTheme = savedTheme || attr(root, 'data-sui-rich-theme') || 'dark';
-    if (initialTheme !== 'dark' && initialTheme !== 'light' && initialTheme !== 'auto') initialTheme = 'dark';
-    inst.theme = initialTheme;
-    applyTheme(inst);
     if (!inst.themeMediaBound && window.matchMedia) {
       inst.themeMediaBound = true;
       try {
@@ -7795,7 +7808,7 @@ window.__SUI_RICH = (function () {
     var inst = instances[name];
     if (!inst) return [false, 'richtext instance not found: ' + name];
     inst.config.toolbar = String(items || '');
-    buildToolbar(inst);
+    buildToolbar(inst); buildContext(inst); buildTableBar(inst);
     return [true, null];
   }
 

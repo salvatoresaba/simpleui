@@ -66,7 +66,8 @@ builds.
   `{chars}`. The **?** button opens the variable help. Rich header/footer height
   is measured so text and images do not overlap the page body.
 Both feed paginated view, print and PDF/DOCX/ODT exports.
-- Print preview shows the real page split and follows the UI light/dark theme;
+- Print preview shows the real page split on a white page while the editor
+  chrome follows the UI light/dark theme;
   the continuous editor marks the actual print page starts with red dashed
   guides, so the lines match the paginated view and print preview. Hovering a
   guide shows a red
@@ -125,8 +126,7 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   in the main toolbar and appears when the caret is in a table. Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
   top bar to re-insert it at the nearest slot; the other toolbars move aside. A single theme button at the right of the toolbar
-  cycles the interface between dark and light; the document page stays white
-  unless `contentTheme: "dark"` is set.
+  cycles the interface between dark and light; the document page is always white.
 - Undo/redo history, keyboard shortcuts, find and replace (Ctrl+F), sanitized
   paste from Word/Excel/HTML, print preview (Ctrl+P), a paginated A4 preview
   (Pages button) and JSON document binding.
@@ -140,10 +140,12 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   can also register custom commands and block renderers on `window.__SUI_RICH`.
 - Document templates: `article`, `letter`, `report`, `compact`.
 
-Select the editor in the designer: the **Rich text editor** section sets
-the interface theme (dark/light/auto), the page theme, height, toolbar items
-and the visible UI areas. The page break is available from Insert, the toolbar
-and Ctrl+Enter.
+Select the editor in the designer: the **Rich text editor** section sets the
+interface theme (dark/light), toolbar items and the visible UI areas. Toolbar
+items are picked in a multi-select overlay; `None` leaves only the theme button.
+Height and width are set in the generic **Size** section, and the document page
+is always white. The page break is available from Insert, the toolbar and
+Ctrl+Enter.
 
 ## Component attributes
 
@@ -157,9 +159,9 @@ and Ctrl+Enter.
 | `placeholder` | Empty-document placeholder |
 | `readonly` | Disable editing |
 | `toolbar`, `menu`, `contextToolbar`, `statusbar` | Toggle UI areas |
-| `toolbarItems` | Comma-separated commands, `|` separates groups |
-| `theme` | Interface theme: `dark` (default), `light` or `auto` |
-| `contentTheme` | Page theme: `light` (default, white paper) or `dark` |
+| `toolbarItems` | Comma-separated commands, `|` separates groups; `none` shows no formatting buttons |
+| `theme` | Interface theme: `dark` (default) or `light`; the attribute wins over a stored toolbar preference |
+| Document paper | Always white; the old `contentTheme` attribute is ignored by the compiler |
 | `header` / `footer` | Text or a rich block model repeated on every page; edited in a floating mini editor with text, images and variables (`{page}`, `{pages}`, `{title}`, `{name}`, `{date}`, `{time}`, `{datetime}`, `{words}`, `{chars}`) |
 | `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter; drag its handle to move it, use its control to delete it, and following breaks recalculate |
 | `template` | `article`, `letter`, `report` or `compact` |
@@ -173,7 +175,9 @@ Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 `pageSettings`, `printPreview`, `print`, `find`, `copyFormat`,
 `fontSizeUp`, `fontSizeDown`,
 `paragraphSettings`, `zoom`.
-The default toolbar exposes a zoom group (−, percentage reset to 100%, +).
+Set `toolbarItems: "none"` to hide every formatting button; the theme button
+stays available. The default toolbar exposes a zoom group (−, percentage reset
+to 100%, +).
 
 ## API
 
@@ -365,7 +369,7 @@ view main {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "auto" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
+			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" menu: true toolbar: true contextToolbar: true statusbar: true toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

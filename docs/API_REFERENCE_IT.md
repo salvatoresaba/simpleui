@@ -1663,9 +1663,9 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `placeholder` | Testo per documento vuoto |
 | `readonly` | Disabilita la modifica |
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Mostra/nascondi aree |
-| `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi |
-| `theme` | Tema dell'interfaccia: `dark` (default), `light` o `auto`. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
-| `contentTheme` | Tema della pagina: `light` (default, foglio bianco) o `dark`. Indipendente da `theme` |
+| `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi; `none` non mostra pulsanti di formattazione (resta il pulsante tema) |
+| `theme` | Tema dell'interfaccia: `dark` (default) o `light`. Nel designer l'attributo prevale su una preferenza salvata dalla toolbar. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
+| Foglio del documento | Sempre bianco; il vecchio attributo `contentTheme` viene ignorato dal compilatore |
 | `header` / `footer` | Testo o modello ricco ripetuto su ogni pagina. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) e le altre variabili vengono sostituiti nella vista paginata, anteprima, stampa, PDF, DOCX e ODT (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
 | `hyphenLangs` | Dizionari di sillabazione da incorporare in fase di compilazione, separati da virgole; omesso/`*`/`all` mantiene tutti i 57, `none` non ne incorpora (solo euristica). I tag di lingua vengono risolti nei set di pattern (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
@@ -2019,7 +2019,7 @@ gutter e colorazione sintattica restano dopo il re-render.
 | `richtext.selection(name)` | JSON della selezione |
 | `richtext.setToolbar(name, items)` | Riconfigura i gruppi toolbar |
 | `richtext.setTemplate(name, template)` | Applica un modello documento |
-| `richtext.setTheme(name, theme)` | Cambia tema `dark`, `light` o `auto` |
+| `richtext.setTheme(name, theme)` | Cambia tema `dark` o `light` (`auto` resta accettato per progetti precedenti) |
 | `richtext.destroy(name)` | Distrugge l'istanza runtime |
 
 Tutti i comandi sono centralizzati: lo stesso comando `bold` può essere

@@ -1688,9 +1688,9 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `placeholder` | Empty-document placeholder |
 | `readonly` | Disable editing |
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Show/hide UI areas |
-| `toolbarItems` | Comma-separated commands, `|` separates groups |
-| `theme` | Interface theme: `dark` (default), `light` or `auto`. A single toolbar button cycles dark/light and only styles the editor chrome |
-| `contentTheme` | Page theme: `light` (default, white paper) or `dark`. Independent from `theme` |
+| `toolbarItems` | Comma-separated commands, `|` separates groups; `none` shows no formatting buttons (the theme button stays) |
+| `theme` | Interface theme: `dark` (default) or `light`. In the designer the attribute wins over a stored toolbar preference. A single toolbar button cycles dark/light and only styles the editor chrome |
+| Document paper | Always white; the old `contentTheme` attribute is ignored by the compiler |
 | `header` / `footer` | Text or a rich header/footer model repeated on every page. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) and the other variables are replaced in the paginated view, preview, print, PDF, DOCX and ODT (escape braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
 | `hyphenLangs` | Comma-separated hyphenation dictionaries to embed at build time; omit/`*`/`all` keeps all 57, `none` embeds none (heuristic only). Language tags resolve to pattern sets (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
@@ -2030,7 +2030,7 @@ word styles, the line-number gutter and syntax highlighting across re-renders.
 | `richtext.selection(name)` | Selection JSON |
 | `richtext.setToolbar(name, items)` | Reconfigure toolbar groups |
 | `richtext.setTemplate(name, template)` | Apply a document template |
-| `richtext.setTheme(name, theme)` | Switch `dark`, `light` or `auto` theme |
+| `richtext.setTheme(name, theme)` | Switch `dark` or `light` theme (`auto` is still accepted for older projects) |
 | `richtext.destroy(name)` | Destroy the runtime instance |
 
 All commands are centralized: the same `bold` command can be invoked by the

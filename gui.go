@@ -29,7 +29,8 @@ import "time"
 // The designer's hyphenation picker uses the same language list as the editor,
 // generated from the dictionaries embedded in the compiler.
 var guiPage = strings.Replace(guiHTML, "</body>",
-	"<script>window.SUI_HYPHEN_LANGUAGES="+hyphenLanguagesJSON()+";</script></body>", 1)
+	"<script>window.SUI_HYPHEN_LANGUAGES="+hyphenLanguagesJSON()+";</script>"+
+		"<script>window.SUI_RICH_TOOLBAR_GROUPS="+richTextToolbarJSON()+";</script></body>", 1)
 
 // Fonts uploaded by the user through the designer. Each entry maps a
 // sanitised family name to a base64 data URL that can be embedded in an
@@ -3975,9 +3976,10 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			default:
 				o.obj["toastDuration"] = JStr(raw)
 			}
-		} else if a.key == "hyphenLangs" {
-			// Compile-time dictionary selection for richtext. Keep it in the
-			// model so opening and saving a project in the designer never drops it.
+		} else if e.tag == "richtext" && (a.key == "theme" || a.key == "contentTheme" || a.key == "toolbarItems" ||
+			a.key == "header" || a.key == "footer" || a.key == "template" || a.key == "hyphenLangs") {
+			// Richtext fields that have no generic model branch. Without this,
+			// opening and saving a project in the designer silently drops them.
 			o.obj[a.key] = JStr(partsLiteral(a.text))
 		} else if a.key == "tooltip" {
 			raw := ""
