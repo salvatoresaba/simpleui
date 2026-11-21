@@ -438,6 +438,30 @@ Gli iframe hanno `sandbox=""` e `referrerpolicy="no-referrer"` per default;
 `src` dinamico richiede un'allow-list `srcAllow` e viene validato a runtime.
 Esempi eseguibili: [`examples/security`](examples/security/README.md).
 
+## Integrazione con i coding agent
+
+Il compilatore include tutto ciò che serve a un agente per costruire
+interfacce SimpleUI. Nessuno di questi asset richiede un marketplace di
+plugin.
+
+| Asset | Scopo |
+|---|---|
+| Server MCP (`simpleui mcp`) | Tool, risorse documentali e prompt su stdio. Vedi [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md). |
+| [`.mcp.json`](.mcp.json) | Configurazione MCP di progetto pronta all'uso. |
+| [`AGENTS_IT.md`](AGENTS_IT.md) | Workflow operativo, regole di sicurezza e task routing. |
+| [`CLAUDE_IT.md`](CLAUDE_IT.md) | Puntatore per Claude Code. |
+| [`.cursor/rules/simpleui.mdc`](.cursor/rules/simpleui.mdc) | Regola Cursor. |
+| [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | Istruzioni per GitHub Copilot. |
+| [`llms.txt`](llms.txt) | Discovery compatta per client LLM. |
+| [`vscode-hermes-extension/`](vscode-hermes-extension) | Estensione VS Code (Hermes): check e build dei file `.sui`, pacchettata in `simpleui-vscode-0.1.0.vsix`. |
+
+- Build: `go build -o simpleui.exe ./cmd/simpleui`
+- Check: `./simpleui.exe check app.sui --json`
+
+Le cartelle skill e plugin di Hermes (`skills/`, `desktop-plugins/`) non fanno
+parte di questo repository: il server MCP e i file di istruzioni qui elencati
+offrono a un agente le stesse capacità.
+
 ## Struttura del progetto
 
 ```

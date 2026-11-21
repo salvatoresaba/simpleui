@@ -110,7 +110,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 - [CLAUDE.md](../CLAUDE.md) — pointer for Claude Code.
 - [llms.txt](../llms.txt) — compact LLM discovery file.
 - [Docs index](INDEX.md) — this page.
-- [Hermes integration](../README.md#integration-with-hermes) — skills, plugins and VS Code extension.
+- [Integration with coding agents](../README.md#integration-with-coding-agents) — MCP server, agent instruction files and VS Code extension.
 - Italian translations: [README_IT](../README_IT.md), [AGENTS_IT](../AGENTS_IT.md),
   [SECURITY_IT](../SECURITY_IT.md), [SPEC_IT](../SPEC_IT.md),
   [DESIGN_IT](../DESIGN_IT.md), [TODO_IT](../TODO_IT.md),
@@ -148,6 +148,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 ### Tooling and architecture
 
 - [GUI editor: drag and drop](GUI_EDITOR.md) — designer DnD vs application DnD, inspector properties, files and pickers.
+- [VS Code extension](../vscode-hermes-extension/README.md) — check and build `.sui` files from the editor.
 - [CLI](API_REFERENCE.md#cli)
 - [Compiler design](../DESIGN.md)
 - [Roadmap](../TODO.md)

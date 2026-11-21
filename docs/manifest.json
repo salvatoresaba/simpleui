@@ -87,7 +87,7 @@
       "audience": ["human", "agent"],
       "priority": 1,
       "tags": ["start", "overview", "cli", "examples"],
-      "sections": ["What is SimpleUI", "Quick start", "Project structure", "Documentation", "Integration with Hermes", "Implementation status"]
+      "sections": ["What is SimpleUI", "Quick start", "Project structure", "Documentation", "Integration with coding agents", "Implementation status"]
     },
     {
       "id": "examples",

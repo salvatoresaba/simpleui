@@ -117,6 +117,7 @@ feature, not only as runtime code:
 | `Test/` | Moved test fixtures and generated test artifacts (no Go packages) |
 | `examples/` | Runnable, compiling examples |
 | `docs/` | Navigation, recipes, API, stdlib and builtins |
+| `vscode-hermes-extension/` | VS Code extension (Hermes): check and build commands, packaged `.vsix` |
 | `SECURITY.md` | Threat model, protections and residual risks |
 | `SPEC.md` | Normative language/compiler/runtime contracts |
 

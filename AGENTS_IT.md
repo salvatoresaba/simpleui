@@ -113,6 +113,7 @@ funzionalità completa, non solo come codice runtime:
 | `Test/` | Fixture e artefatti di test spostati (nessun package Go) |
 | `examples/` | Esempi compilabili |
 | `docs/` | Navigazione, recipe, API, stdlib, builtin |
+| `vscode-hermes-extension/` | Estensione VS Code (Hermes): comandi check e build, `.vsix` pacchettato |
 | `SECURITY.md` | Minacce, protezioni e rischi residui |
 | `SPEC.md` | Contratti normativi |
 

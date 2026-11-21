@@ -116,6 +116,7 @@ Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
 ### Tooling e architettura
 
 - [Editor GUI: drag and drop](GUI_EDITOR_IT.md) — DnD del designer e dell'applicazione, proprietà, file e picker.
+- [Estensione VS Code](../vscode-hermes-extension/README.md) — check e build dei file `.sui` dall'editor.
 - [CLI](API_REFERENCE_IT.md#cli)
 - [Design del compilatore](../DESIGN_IT.md)
 - [Roadmap](../TODO_IT.md)

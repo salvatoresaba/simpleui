@@ -225,15 +225,28 @@ Open the URL shown in the terminal to see the app with automatic updates on ever
 ./simpleui --help
 ```
 
-## Integration with Hermes
-- Skill: `simpleui` (`skills/devops/simpleui/`)
-- Plugin: `simpleui-preview` (`desktop-plugins/simpleui-preview/plugin.js`)
-- Skill: `opencode` (`skills/autonomous-ai-agents/opencode/`)
-- Plugin: `opencode-preview` (`desktop-plugins/opencode-preview/plugin.js`)
-- VS Code extension: `vscode-hermes-extension/` (generated `.vsix`)
+## Integration with coding agents
+
+The compiler ships everything an agent needs to build SimpleUI interfaces.
+None of these assets require a plugin marketplace.
+
+| Asset | Purpose |
+|---|---|
+| MCP server (`simpleui mcp`) | Tools, documentation resources and prompts over stdio. See [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md). |
+| [`.mcp.json`](.mcp.json) | Ready project-scoped MCP configuration. |
+| [`AGENTS.md`](AGENTS.md) | Canonical agent workflow, security rules and task routing. |
+| [`CLAUDE.md`](CLAUDE.md) | Pointer for Claude Code. |
+| [`.cursor/rules/simpleui.mdc`](.cursor/rules/simpleui.mdc) | Cursor rule. |
+| [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | GitHub Copilot instructions. |
+| [`llms.txt`](llms.txt) | Compact discovery file for LLM clients. |
+| [`vscode-hermes-extension/`](vscode-hermes-extension) | VS Code extension (Hermes): check and build `.sui` files, packaged as `simpleui-vscode-0.1.0.vsix`. |
+
 - Build: `go build -o simpleui.exe ./cmd/simpleui`
 - Check: `./simpleui.exe check app.sui --json`
-- MCP server: `simpleui mcp` — registration for coding agents in [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md)
+
+The Hermes skill and preview plugin folders (`skills/`, `desktop-plugins/`)
+are not part of this repository: the MCP server and the agent instruction
+files above give an agent the same capabilities.
 
 ## Project structure
 
