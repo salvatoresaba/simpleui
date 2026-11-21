@@ -3593,6 +3593,26 @@ window.__SUI_RICH = (function () {
     return [true, null];
   }
 
+  // loadContent loads a document from host code. JSON is the default and may be
+  // passed as an object, a JSON string, HTML, Markdown, XML or plain text.
+  function loadContent(name, content, format) {
+    if (!resolveInstance(name)) return [false, 'richtext instance not found: ' + name];
+    if (content && typeof content === 'object') return setValue(name, content);
+    var text = content == null ? '' : String(content);
+    var fmt = String(format || 'json').toLowerCase();
+    try {
+      var doc;
+      if (fmt === 'json' || fmt === '') doc = parseJSON(text, null);
+      else if (fmt === 'html' || fmt === 'htm') doc = importHTML(text);
+      else if (fmt === 'markdown' || fmt === 'md') doc = importMarkdown(text);
+      else if (fmt === 'xml') doc = importXML(text);
+      else if (fmt === 'text' || fmt === 'txt' || fmt === 'plain') doc = importPlain(text);
+      else return [false, 'unsupported richtext format: ' + format];
+      if (!doc || typeof doc !== 'object') return [false, 'invalid richtext document'];
+      return setValue(name, doc);
+    } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
+  }
+
   function insertTextValue(name, text) {
     var inst = instances[name];
     if (!inst) return [false, 'richtext instance not found: ' + name];
@@ -11050,7 +11070,7 @@ window.__SUI_RICH = (function () {
   }
 
   return {
-    afterRender: afterRender, get: getValue, set: setValue, command: command, format: format,
+    afterRender: afterRender, get: getValue, set: setValue, loadContent: loadContent, command: command, format: format,
     insertText: insertTextValue, insertImage: insertImageValue, insertLink: insertLinkValue, insertTable: insertTableValue,
     undo: function (n) { var i = instances[n]; return i && undo(i) ? [true, null] : [false, 'nothing to undo']; },
     redo: function (n) { var i = instances[n]; return i && redo(i) ? [true, null] : [false, 'nothing to redo']; },

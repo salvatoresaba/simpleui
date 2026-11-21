@@ -1646,7 +1646,7 @@ generato e una rappresentazione `contenteditable` di quell'albero.
 
 ```sui
 state doc = ""
-richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
+richtext name: "article" value: doc height: "420px" theme: "dark"
   toolbarItems: "undo,redo|bold,italic,underline|link,image,table"
   onChange: changed onInput: typing
 ```
@@ -1669,6 +1669,10 @@ richtext "Articolo" name: "article" value: doc height: "420px" theme: "dark"
 | `header` / `footer` | Testo o modello ricco ripetuto su ogni pagina. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) e le altre variabili vengono sostituiti nella vista paginata, anteprima, stampa, PDF, DOCX e ODT (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
 | `hyphenLangs` | Dizionari di sillabazione da incorporare in fase di compilazione, separati da virgole; omesso/`*`/`all` mantiene tutti i 57, `none` non ne incorpora (solo euristica). I tag di lingua vengono risolti nei set di pattern (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
+
+Il testo dell'elemento (ad esempio `richtext "Articolo"`) è il titolo del documento
+usato dai token `{title}` e come nome runtime di fallback; non viene più mostrato
+sopra il menu. Usa `richtext.loadContent` per sostituire il documento dal codice.
 
 I gruppi della toolbar (separati da `|`) sono toolbar indipendenti e riposizionabili:
 trascina la maniglia ⣿ per sganciarle, poi rilasciale sulla barra superiore per
@@ -2000,6 +2004,7 @@ gutter e colorazione sintattica restano dopo il re-render.
 |---|---|
 | `richtext.get(name)` | Documento come JSON |
 | `richtext.set(name, jsonOrMap)` | Sostituisce il documento |
+| `richtext.loadContent(name, content, [format])` | Carica un documento dal codice: JSON (default), HTML, Markdown, XML o testo semplice; `content` può anche essere una mappa documento |
 | `richtext.command(name, command, [value])` | Esegue un comando di formattazione/blocco/plugin |
 | `richtext.format(name, format, [value])` | Alias di `command` |
 | `richtext.insertText(name, text)` | Inserisce testo al cursore |

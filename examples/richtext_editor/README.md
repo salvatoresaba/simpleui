@@ -153,6 +153,7 @@ Ctrl+Enter.
 |---|---|
 | `name` | Runtime instance name used by `richtext.*` (defaults to a generated name) |
 | `value` | Bound state containing the JSON document |
+| Element text | Document title for `{title}` tokens and fallback runtime name; it is not rendered above the menu |
 | `onChange` / `onInput` | Change and live-typing handlers (state setter runs on change/blur) |
 | `onReady` / `onSelectionChange` | Ready and selection callbacks |
 | `height` | Content area height (`px`, `rem`, `vh`, `%`); the status bar stays pinned to the bottom border |
@@ -186,6 +187,7 @@ The `richtext` namespace is a core module (no import):
 ```sui
 docJson, err = richtext.get("article")
 ok, err = richtext.set("article", docJson)
+ok, err = richtext.loadContent("article", "# Loaded from code", "markdown")
 ok, err = richtext.command("article", "bold")
 ok, err = richtext.insertText("article", "Hello")
 ok, err = richtext.insertImage("article", "https://example.com/a.png", "alt")
@@ -341,6 +343,11 @@ async fn importMarkdown() -> null {
 	out = ok ? "Markdown imported" : str(err)
 }
 
+fn loadFromCode() -> null {
+	ok, err = richtext.loadContent("article", "# Loaded from SUI code\n\nThis document was passed by **loadContent** as Markdown.\n\n- no file picker\n- no HTML string", "markdown")
+	out = ok ? "Content loaded from code" : str(err)
+}
+
 fn registerPlugin() -> null {
 	let plugin = {"commands": {"shout": {"title": "Shout", "command": "bold"}}, "toolbar": [{"id": "shout", "label": "Shout"}]}
 	ok, err = richtext.registerPlugin("demo", plugin)
@@ -368,8 +375,9 @@ view main {
 			row {
 				h1 "Rich text editor"
 				button "Load sample" onClick: loadSample
+				button "Load from code" onClick: loadFromCode
 			}
-			richtext "Article" name: "article" value: doc height: "420px" theme: "dark" toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
+			richtext name: "article" value: doc height: "420px" theme: "dark" toolbarItems: "undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr,pageBreak|pageSettings,printPreview,print,find|zoom" onChange: changed
 			p "{status}" class: "muted"
 			p "The editor is a reusable component: bind value to a state, listen to onChange/onInput, and call richtext.* APIs from any view, menu or plugin. Imported HTML/Markdown/XML is sanitized into the JSON model; scripts, event attributes and unsafe URLs are discarded." class: "muted"
 		}

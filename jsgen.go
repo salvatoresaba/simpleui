@@ -2919,6 +2919,9 @@ func stdBodyJs(key string, target string) string {
 	if key == "richtext_set" {
 		return "(name, value) => __SUI_RICH.set(name, value)"
 	}
+	if key == "richtext_loadcontent" {
+		return "(name, content, fmt) => __SUI_RICH.loadContent(name, content, fmt)"
+	}
 	if key == "richtext_command" {
 		return "(name, cmd, value) => __SUI_RICH.command(name, cmd, value)"
 	}
@@ -5589,6 +5592,11 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			open += " data-sui-rich-theme-explicit=\"1\""
 		}
 		open += " data-sui-rich-content=\"light\""
+		if title != "" {
+			// The title text is no longer rendered above the menu; it stays
+			// available for {title} page tokens and the accessible name.
+			open += " data-sui-rich-title=\"" + htmlEscape(title) + "\""
+		}
 		if headerText != "" {
 			open += " data-sui-rich-header=\"" + htmlEscape(headerText) + "\""
 		}
@@ -5618,11 +5626,6 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	var b strings.Builder
 	b.WriteString("`")
 	b.WriteString(open)
-	if title != "" {
-		b.WriteString("<div class=\"sui-rich-title\">")
-		b.WriteString(htmlTextParts(e.text))
-		b.WriteString("</div>")
-	}
 	b.WriteString("<input type=\"hidden\" class=\"sui-rich-value\" value=\"")
 	b.WriteString(valueJs)
 	b.WriteString("\">")

@@ -223,6 +223,43 @@ func TestRichTextReadOnlyAndStatusLayout(t *testing.T) {
 	}
 }
 
+func TestRichTextTitleIsMetadataOnly(t *testing.T) {
+	js := generateJsFromInline(t, `
+view main {
+	richtext "Article" name: "editor"
+}
+`)
+	if strings.Contains(js, `class="sui-rich-title"`) {
+		t.Error("richtext still renders a visible title above the menu")
+	}
+	if !strings.Contains(js, `data-sui-rich-title="Article"`) {
+		t.Error("richtext dropped the title metadata used by {title} tokens")
+	}
+}
+
+func TestRichTextLoadContentWiring(t *testing.T) {
+	js := generateJsFromInline(t, `
+state doc = ""
+
+fn load() -> null {
+	ok, err = richtext.loadContent("editor", "# Loaded from code", "markdown")
+}
+
+view main {
+	richtext name: "editor" value: doc
+	button "Load" onClick: load
+}
+`)
+	for _, marker := range []string{
+		"richtext_loadcontent",
+		"__SUI_RICH.loadContent(name, content, fmt)",
+	} {
+		if !strings.Contains(js, marker) {
+			t.Errorf("generated JS missing loadContent marker: %s", marker)
+		}
+	}
+}
+
 func TestRichTextExampleDropsLegacyToggles(t *testing.T) {
 	raw, err := os.ReadFile("examples/richtext_editor/app.sui")
 	if err != nil {

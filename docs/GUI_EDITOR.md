@@ -1427,7 +1427,9 @@ the toolbar/menu/context/status toggles are not offered here; those attributes
 remain available in hand-written sources. Controls carry short tooltips instead
 of explanatory text. Height and width are edited in the generic **Size**
 section: the height sizes the content area while the status bar stays pinned to
-the bottom border. **Toolbar items...** opens a searchable multi-select overlay
+the bottom border. The element text is not rendered above the menu; it only
+feeds the `{title}` token and the fallback runtime name. **Toolbar items...**
+opens a searchable multi-select overlay
 built from the runtime toolbar commands; **Default**, **All items** and **None**
 are available as presets, and `None` leaves only the theme button. With
 **Read only** enabled no menu or toolbar is shown and the content cannot be

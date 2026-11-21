@@ -1671,7 +1671,7 @@ document is a JSON tree, never an HTML string; the generated HTML is a
 
 ```sui
 state doc = ""
-richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
+richtext name: "article" value: doc height: "420px" theme: "dark"
   toolbarItems: "undo,redo|bold,italic,underline|link,image,table"
   onChange: changed onInput: typing
 ```
@@ -1694,6 +1694,10 @@ richtext "Article" name: "article" value: doc height: "420px" theme: "dark"
 | `header` / `footer` | Text or a rich header/footer model repeated on every page. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) and the other variables are replaced in the paginated view, preview, print, PDF, DOCX and ODT (escape braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
 | `hyphenLangs` | Comma-separated hyphenation dictionaries to embed at build time; omit/`*`/`all` keeps all 57, `none` embeds none (heuristic only). Language tags resolve to pattern sets (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
+
+The element text (for example `richtext "Article"`) is the document title used by
+`{title}` tokens and as a fallback runtime name; it is not rendered above the
+menu. Use `richtext.loadContent` to replace the document from code.
 
 Toolbar groups (separated by `|`) are individual dockable toolbars: drag the
 ⣿ handle to float one, then drop it on the top bar to re-insert it in the slot
@@ -2011,6 +2015,7 @@ word styles, the line-number gutter and syntax highlighting across re-renders.
 |---|---|
 | `richtext.get(name)` | Document as JSON |
 | `richtext.set(name, jsonOrMap)` | Replace the document |
+| `richtext.loadContent(name, content, [format])` | Load a document from code: JSON (default), HTML, Markdown, XML or plain text; `content` may also be a document map |
 | `richtext.command(name, command, [value])` | Run a formatting/block/plugin command |
 | `richtext.format(name, format, [value])` | Alias of `command` |
 | `richtext.insertText(name, text)` | Insert plain text at the caret |

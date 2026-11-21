@@ -37,6 +37,13 @@ async fn run() -> null {
 	okHtmlImport, errHtmlImport = richtext.importFormat("editor", "<h2>From HTML</h2><p>safe <strong>text</strong><script>bad()</script></p>", "html")
 	afterHtml, errAfterHtml = richtext.get("editor")
 	okXmlImport, errXmlImport = richtext.importFormat("editor", "<document><paragraph><text marks=\"bold\">From XML</text></paragraph></document>", "xml")
+	let loadSampleDoc = {"type": "doc", "children": [{"type": "paragraph", "children": [{"type": "text", "text": "Loaded from JSON", "marks": []}]}]}
+	loadJson, loadJsonErr = json.stringify(loadSampleDoc)
+	okLoadJson, errLoadJson = richtext.loadContent("editor", loadJson, "json")
+	afterLoadJson, errAfterLoadJson = richtext.get("editor")
+	okLoadMd, errLoadMd = richtext.loadContent("editor", "# Loaded from code\n\n**rich** content", "markdown")
+	loadedText, errLoaded = richtext.get("editor")
+	okLoadBad, errLoadBad = richtext.loadContent("editor", "bad", "bogus")
 	okUndo, errUndo = richtext.undo("editor")
 	okRedo, errRedo = richtext.redo("editor")
 	statusText, errStatus = richtext.status("editor")
@@ -50,6 +57,7 @@ async fn run() -> null {
 	out = out + "\nCMDS=" + str(okBold) + "|" + str(okHeading) + "|" + str(okList) + "|" + str(okImage) + "|" + str(okLink) + "|" + str(okTable)
 	out = out + "\nEXPORT=" + str(len(md)) + "|" + str(len(html)) + "|" + str(len(xmlText)) + "|" + str(len(jsonText)) + "|" + str(errMd == null) + "|" + str(errHtml == null) + "|" + str(errXml == null) + "|" + str(errJson == null)
 	out = out + "\nIMPORT=" + str(okImport) + "|" + str(contains(afterImport, "Imported")) + "|" + str(okHtmlImport) + "|" + str(contains(afterHtml, "From HTML")) + "|" + str(contains(afterHtml, "bad")) + "|" + str(okXmlImport) + "|" + str(errAfter == null) + "|" + str(errAfterHtml == null)
+	out = out + "\nLOAD=" + str(okLoadJson) + "|" + str(okLoadMd) + "|" + str(contains(afterLoadJson, "Loaded from JSON")) + "|" + str(contains(loadedText, "Loaded from code")) + "|" + str(okLoadBad) + "|" + str(errLoadJson == null) + "|" + str(errLoadMd == null) + "|" + str(errLoaded == null) + "|" + str(errAfterLoadJson == null) + "|" + str(errLoadBad != null) + "|" + str(loadJsonErr == null)
 	out = out + "\nHISTORY=" + str(okUndo) + "|" + str(okRedo) + "|" + str(errUndo == null) + "|" + str(errRedo == null)
 	out = out + "\nSTATUS=" + str(contains(statusText, "words")) + "|" + str(contains(selectionText, "collapsed")) + "|" + str(errStatus == null) + "|" + str(errSelection == null)
 	out = out + "\nPLUGIN=" + str(okPlugin) + "|" + str(len(pluginList)) + "|" + str(okPluginCmd) + "|" + str(errPlugin == null) + "|" + str(errPluginCmd == null)
@@ -75,6 +83,7 @@ view main {
     if (text.indexOf('SET=true|true|true|true') < 0) throw new Error('set/get: ' + text);
     if (text.indexOf('CMDS=true|true|true|true|true|true') < 0) throw new Error('commands: ' + text);
     if (text.indexOf('EXPORT=') < 0 || text.indexOf('IMPORT=true|true|true|true|false|true|true|true') < 0) throw new Error('import/export: ' + text);
+    if (text.indexOf('LOAD=true|true|true|true|false|true|true|true|true|true|true') < 0) throw new Error('loadContent: ' + text);
     if (text.indexOf('HISTORY=true|true|true|true') < 0) throw new Error('history: ' + text);
     if (text.indexOf('STATUS=true|true|true|true') < 0) throw new Error('status: ' + text);
     if (text.indexOf('PLUGIN=true|1|true|true|true') < 0) throw new Error('plugin: ' + text);
