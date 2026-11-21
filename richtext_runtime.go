@@ -3642,13 +3642,21 @@ window.__SUI_RICH = (function () {
     if (probe.parentNode) probe.parentNode.removeChild(probe);
     return Math.ceil(h);
   }
-  function refreshChromeHeights(inst) {
-    if (!inst) return;
-    var page = pageConfig(inst, 1);
+  function pageChromeMetrics(inst, pageNumber) {
+    var page = pageConfig(inst, pageNumber || 1);
     var size = pageSizeMm(page);
     var width = Math.round(mmToPx(size.w) - mmToPx(page.margins.left) - mmToPx(page.margins.right));
-    inst.headerH = chromeHasContent(inst.headerValue) ? Math.max(14, measureChromeHeight(inst, inst.headerValue, width)) : 0;
-    inst.footerH = chromeHasContent(inst.footerValue) ? Math.max(14, measureChromeHeight(inst, inst.footerValue, width)) : 0;
+    return {
+      header: page.header || '', footer: page.footer || '',
+      headerH: chromeHasContent(page.header) ? Math.max(14, measureChromeHeight(inst, page.header, width)) : 0,
+      footerH: chromeHasContent(page.footer) ? Math.max(14, measureChromeHeight(inst, page.footer, width)) : 0
+    };
+  }
+  function refreshChromeHeights(inst) {
+    if (!inst) return;
+    var chrome = pageChromeMetrics(inst, 1);
+    inst.headerH = chrome.headerH;
+    inst.footerH = chrome.footerH;
   }
   function refreshChromeValues(inst) {
     if (!chromeEnabled(inst)) {
@@ -4928,8 +4936,32 @@ window.__SUI_RICH = (function () {
   function sheetChromeText(text, page, total, known, inst) {
     return applyPageTokens(text, page, total, known, inst);
   }
+  // The global chrome may be a rich value (text plus images); per-page chrome
+  // imported from Office/RTF sections is plain text. Page configs resolve both
+  // into one effective value so rendering keeps the rich global value while an
+  // explicit per-page string overrides it.
+  function globalChromeText(inst, which) {
+    if (!inst || !inst.doc || !chromeEnabled(inst)) return '';
+    return which === 'header' ? resolvedHeader(inst, inst.doc) : resolvedFooter(inst, inst.doc);
+  }
+  function pageChromeText(inst, pageNumber, which) {
+    var base = globalChromeText(inst, which);
+    if (!pageNumber || !inst || !inst.doc || !inst.doc.pageOverrides) return base;
+    var ov = inst.doc.pageOverrides[String(pageNumber)];
+    if (!ov || typeof ov !== 'object') return base;
+    return typeof ov[which] === 'string' ? ov[which] : base;
+  }
+  // Exporters keep the original document value for the global fallback (it may
+  // be a rich model) and use the plain-text string of a per-page override.
+  function pageChromeValue(inst, pageNumber, which) {
+    var base = which === 'header' ? (inst.headerValue || inst.headerText || '') : (inst.footerValue || inst.footerText || '');
+    if (!pageNumber || !inst || !inst.doc || !inst.doc.pageOverrides) return base;
+    var ov = inst.doc.pageOverrides[String(pageNumber)];
+    if (ov && typeof ov === 'object' && typeof ov[which] === 'string') return ov[which];
+    return base;
+  }
   function defaultPageConfig() {
-    return { size: 'a4', orientation: 'portrait', lineHeight: 1.65, lang: '', background: '#ffffff', margins: { top: 15, right: 17, bottom: 15, left: 17 } };
+    return { size: 'a4', orientation: 'portrait', lineHeight: 1.65, lang: '', background: '#ffffff', header: '', footer: '', margins: { top: 15, right: 17, bottom: 15, left: 17 } };
   }
   function clampPageMargin(value, fallback) {
     var n = Number(value);
@@ -4955,6 +4987,8 @@ window.__SUI_RICH = (function () {
         left: clampPageMargin(m.left, page.margins.left)
       };
     }
+    page.header = globalChromeText(inst, 'header');
+    page.footer = globalChromeText(inst, 'footer');
     return page;
   }
   function pageConfig(inst, pageNumber) {
@@ -4968,6 +5002,8 @@ window.__SUI_RICH = (function () {
     if (isFinite(lh) && lh >= 0.8 && lh <= 3) page.lineHeight = Math.round(lh * 100) / 100;
     var bg = cssColor(ov.background);
     if (bg) page.background = bg;
+    if (typeof ov.header === 'string') page.header = ov.header;
+    if (typeof ov.footer === 'string') page.footer = ov.footer;
     var m = ov.margins || {};
     page.margins = {
       top: clampPageMargin(m.top, page.margins.top),
@@ -4998,7 +5034,7 @@ window.__SUI_RICH = (function () {
   // user edits Page settings.
   function exportPageSignature(cfg) {
     var d = pageSizeMm(cfg), m = cfg.margins || {};
-    return [hexColor(cfg.background) || 'FFFFFF', d.w, d.h, cfg.orientation, m.top, m.right, m.bottom, m.left].join('|');
+    return [hexColor(cfg.background) || 'FFFFFF', d.w, d.h, cfg.orientation, m.top, m.right, m.bottom, m.left, String(cfg.header || ''), String(cfg.footer || '')].join('|');
   }
   function pageFromMm(w, h) {
     var ww = Number(w), hh = Number(h);
@@ -5020,18 +5056,20 @@ window.__SUI_RICH = (function () {
       left: clampPageMargin(src.left, fb.left)
     };
   }
-  function pageConfigFromParts(size, orientation, margins, background) {
+  function pageConfigFromParts(size, orientation, margins, background, header, footer) {
     var cfg = {
       size: size === 'letter' ? 'letter' : 'a4',
       orientation: orientation === 'landscape' ? 'landscape' : 'portrait',
       margins: pageMarginsFrom(margins)
     };
     if (background) cfg.background = background;
+    if (typeof header === 'string') cfg.header = header;
+    if (typeof footer === 'string') cfg.footer = footer;
     return cfg;
   }
   function copyPageConfig(cfg) {
     var src = cfg || defaultPageConfig();
-    return pageConfigFromParts(src.size, src.orientation, src.margins, src.background);
+    return pageConfigFromParts(src.size, src.orientation, src.margins, src.background, src.header, src.footer);
   }
   function pageOverrideFromConfig(cfg, base) {
     var a = copyPageConfig(cfg), b = copyPageConfig(base), out = {};
@@ -5039,6 +5077,8 @@ window.__SUI_RICH = (function () {
     if (a.orientation !== b.orientation) out.orientation = a.orientation;
     var abg = (a.background || '#ffffff').toLowerCase(), bbg = (b.background || '#ffffff').toLowerCase();
     if (abg !== bbg) out.background = abg;
+    if ((a.header || '') !== (b.header || '')) out.header = a.header || '';
+    if ((a.footer || '') !== (b.footer || '')) out.footer = a.footer || '';
     var ma = a.margins, mb = b.margins;
     if (ma.top !== mb.top || ma.right !== mb.right || ma.bottom !== mb.bottom || ma.left !== mb.left) out.margins = ma;
     return out;
@@ -5579,12 +5619,14 @@ window.__SUI_RICH = (function () {
     var width = Math.round(mmToPx(size.w)), height = Math.round(mmToPx(size.h));
     var padTop = Math.round(mmToPx(page.margins.top)), padRight = Math.round(mmToPx(page.margins.right));
     var padBottom = Math.round(mmToPx(page.margins.bottom)), padLeft = Math.round(mmToPx(page.margins.left));
-    var headerH = inst.headerH || 0, footerH = inst.footerH || 0;
+    var chrome = pageChromeMetrics(inst, pageNumber);
+    var headerH = chrome.headerH, footerH = chrome.footerH;
     var topPad = Math.max(padTop, headerH ? headerH + 10 : 0);
     var bottomPad = Math.max(padBottom, footerH ? footerH + 10 : 0);
     return {
       width: width, height: height,
       padTop: topPad, padRight: padRight, padBottom: bottomPad, padLeft: padLeft,
+      header: chrome.header, footer: chrome.footer,
       headerH: headerH, footerH: footerH,
       lineHeight: page.lineHeight, pageNumber: pageNumber || 1,
       contentW: width - padLeft - padRight,
@@ -5626,7 +5668,7 @@ window.__SUI_RICH = (function () {
     sheet.style.minHeight = m.height + 'px';
     sheet.style.padding = m.padTop + 'px ' + m.padRight + 'px ' + m.padBottom + 'px ' + m.padLeft + 'px';
     var head = null, foot = null;
-    if (chromeHasContent(inst.headerValue)) {
+    if (chromeHasContent(m.header)) {
       head = el('div', 'sui-rich-sheet-header');
       head.style.left = m.padLeft + 'px';
       head.style.right = m.padRight + 'px';
@@ -5637,7 +5679,7 @@ window.__SUI_RICH = (function () {
     body.style.height = m.contentH + 'px';
     body.style.lineHeight = String(m.lineHeight);
     sheet.appendChild(body);
-    if (chromeHasContent(inst.footerValue)) {
+    if (chromeHasContent(m.footer)) {
       foot = el('div', 'sui-rich-sheet-footer');
       foot.style.left = m.padLeft + 'px';
       foot.style.right = m.padRight + 'px';
@@ -6034,8 +6076,8 @@ window.__SUI_RICH = (function () {
     for (var s2 = 0; s2 < sheets.length; s2++) {
       var sheet = sheets[s2];
       sheet.number.textContent = String(s2 + 1);
-      if (sheet.head) renderChromeInto(sheet.head, inst, inst.headerValue, s2 + 1, total);
-      if (sheet.foot) renderChromeInto(sheet.foot, inst, inst.footerValue, s2 + 1, total);
+      if (sheet.head) renderChromeInto(sheet.head, inst, sheet.metrics.header, s2 + 1, total);
+      if (sheet.foot) renderChromeInto(sheet.foot, inst, sheet.metrics.footer, s2 + 1, total);
       sheet.body.style.height = sheet.metrics.contentH + 'px';
     }
     var bodyBox = inst.root.querySelector('.sui-rich-body');
@@ -6714,6 +6756,12 @@ window.__SUI_RICH = (function () {
     });
     if (Object.keys(margins).length) override.margins = margins;
     var overrides = inst.doc.pageOverrides || {};
+    // Editing geometry keeps imported per-page chrome on the same override.
+    var existing = overrides[String(n)];
+    if (existing && typeof existing === 'object') {
+      if (typeof existing.header === 'string') override.header = existing.header;
+      if (typeof existing.footer === 'string') override.footer = existing.footer;
+    }
     if (Object.keys(override).length) overrides[String(n)] = override;
     else delete overrides[String(n)];
     inst.doc.pageOverrides = overrides;
@@ -8771,6 +8819,83 @@ window.__SUI_RICH = (function () {
     }
     return String.fromCharCode(code);
   }
+  function rtfGroupEnd(text, start) {
+    var level = 0, j = start;
+    while (j < text.length) {
+      var c = text.charAt(j);
+      if (c === '\\') { j += 2; continue; }
+      if (c === '{') level++;
+      else if (c === '}') { level--; if (level === 0) return j + 1; }
+      j++;
+    }
+    return text.length;
+  }
+  // Decode a RTF fragment to plain text. Only text, Unicode/ANSI escapes and
+  // paragraph breaks are kept. Pictures, VML shapes, field instructions and
+  // other destinations are skipped so hex image data never becomes header text.
+  function rtfPlainText(source) {
+    var out = '';
+    var skipDest = /^(pict|shp|shpinst|sp|nonshppict|fldinst|fldrslt|fonttbl|colortbl|stylesheet|info|object|themedata|datastore|latentstyles|header|footer|generator|docvar)$/i;
+    function emit(text) {
+      var i = 0;
+      while (i < text.length) {
+        var ch = text.charAt(i);
+        if (ch === '{') {
+          var end = rtfGroupEnd(text, i);
+          var group = text.slice(i, end), inner = text.slice(i + 1, end - 1);
+          var field = /\\fldinst\s+(NUMPAGES|PAGE)\b/i.exec(group);
+          if (field) out += /numpages/i.test(field[1]) ? '{pages}' : '{page}';
+          else {
+            var dest = /^\s*\\(?:\*\s*)?\\?([a-zA-Z]+)/.exec(inner);
+            if (!dest || !skipDest.test(dest[1])) emit(inner);
+          }
+          i = end; continue;
+        }
+        if (ch === '}') { i++; continue; }
+        if (ch === '\\') {
+          var next = text.charAt(i + 1);
+          if (next === '\\' || next === '{' || next === '}') { out += next; i += 2; continue; }
+          if (next === "'") { out += decodeCP1252(parseInt(text.substr(i + 2, 2), 16) || 0); i += 4; continue; }
+          if (/[a-zA-Z]/.test(next)) {
+            var j = i + 1;
+            while (j < text.length && /[a-zA-Z]/.test(text.charAt(j))) j++;
+            var word = text.slice(i + 1, j).toLowerCase();
+            i = j;
+            if (word === 'u') {
+              var k = i;
+              while (k < text.length && (text.charAt(k) === '-' || /[0-9]/.test(text.charAt(k)))) k++;
+              var code = parseInt(text.slice(i, k), 10) || 0;
+              if (code < 0) code += 65536;
+              out += String.fromCharCode(code);
+              i = k;
+              if (text.charAt(i) === '?') i++;
+            } else if (/^(par|line|row)$/.test(word)) out += '\n';
+            else if (word === 'tab') out += ' ';
+            if (text.charAt(i) === '-' || /[0-9]/.test(text.charAt(i))) {
+              while (i < text.length && /[0-9-]/.test(text.charAt(i))) i++;
+            }
+            if (text.charAt(i) === ' ') i++;
+            continue;
+          }
+          i++; continue;
+        }
+        out += ch; i++;
+      }
+    }
+    emit(source);
+    return out.replace(/\u00AD/g, '').replace(/[ \t]+/g, ' ').replace(/ ?\n ?/g, '\n').trim();
+  }
+  function rtfChromeFromChunk(chunk) {
+    var out = { header: '', footer: '' }, re = /\{\s*\\(header|footer)(?![a-zA-Z])/gi, m;
+    while ((m = re.exec(chunk))) {
+      var end = rtfGroupEnd(chunk, m.index);
+      var inner = chunk.slice(m.index, end).replace(/^\{\s*\\(header|footer)(?![a-zA-Z])\s*/i, '');
+      var text = rtfPlainText(inner), key = m[1].toLowerCase();
+      if (text && !out[key]) out[key] = text;
+      re.lastIndex = end;
+    }
+    return out;
+  }
   function rtfFillHex(value) {
     var n = Number(value);
     if (!isFinite(n)) return null;
@@ -8790,6 +8915,7 @@ window.__SUI_RICH = (function () {
     var dims = wm && hm ? pageFromMm(rtfTwipsMm(wm[1], 210), rtfTwipsMm(hm[1], 297)) : null;
     var fill = /\\sn\s+fillColor\}\s*\{\\sv\s+(-?\d+)/i.exec(chunk);
     var bg = fill ? rtfFillHex(fill[1]) : null;
+    var chrome = rtfChromeFromChunk(chunk);
     function margin(re, key) {
       var m = re.exec(chunk);
       return m ? rtfTwipsMm(m[1], fb && fb.margins ? fb.margins[key] : (key === 'right' || key === 'left' ? 17 : 15)) : (fb && fb.margins ? fb.margins[key] : (key === 'right' || key === 'left' ? 17 : 15));
@@ -8803,7 +8929,9 @@ window.__SUI_RICH = (function () {
         bottom: margin(/\\margb(\d+)/i, 'bottom'),
         left: margin(/\\margl(\d+)/i, 'left')
       },
-      bg || (fb ? fb.background : null)
+      bg || (fb ? fb.background : null),
+      chrome.header || (fb ? fb.header : ''),
+      chrome.footer || (fb ? fb.footer : '')
     );
   }
   function rtfScanSections(source) {
@@ -9246,13 +9374,18 @@ window.__SUI_RICH = (function () {
     rtfAssignRange(rtfSectionStart, rtfPage);
     if (!blocks.length) {
       var plainDoc = importPlain(source);
-      var plainPage = copyPageConfig(rtfPageConfigs['1'] || rtfSectionConfigs[0] || defaultPageConfig());
+      var plainSourcePage = rtfPageConfigs['1'] || rtfSectionConfigs[0] || defaultPageConfig();
+      var plainPage = copyPageConfig(plainSourcePage);
+      if (plainSourcePage.header) plainDoc.header = plainSourcePage.header;
+      if (plainSourcePage.footer) plainDoc.footer = plainSourcePage.footer;
       plainDoc.page = plainPage;
       plainDoc.pageOverrides = buildPageOverrides(rtfPageConfigs, plainPage);
       return plainDoc;
     }
     var doc = { type: 'doc', children: blocks };
     var restoredRtfPage = rtfPageConfigs['1'] || rtfSectionConfigs[0];
+    if (restoredRtfPage && restoredRtfPage.header) doc.header = restoredRtfPage.header;
+    if (restoredRtfPage && restoredRtfPage.footer) doc.footer = restoredRtfPage.footer;
     if (restoredRtfPage) doc.page = copyPageConfig(restoredRtfPage);
     doc.pageOverrides = buildPageOverrides(rtfPageConfigs, restoredRtfPage || defaultPageConfig());
     return doc;
@@ -9482,21 +9615,23 @@ window.__SUI_RICH = (function () {
       }
       return s;
     }
-    var rtfHeaderBody = chromeInline(inst.headerValue || inst.headerText || '');
-    var rtfFooterBody = chromeInline(inst.footerValue || inst.footerText || '');
     function rtfSectionChrome(section) {
       if (!multiPageStyle) return '';
+      var headerBody = chromeInline(pageChromeValue(inst, section.page, 'header'));
+      var footerBody = chromeInline(pageChromeValue(inst, section.page, 'footer'));
       var s = '', shape = rtfBackgroundShape(section.color);
-      if (shape || rtfHeaderBody) {
-        s += '{\\header ' + shape + (rtfHeaderBody ? '\\pard\\qc ' + rtfHeaderBody + '\\par' : '') + '}';
+      if (shape || headerBody) {
+        s += '{\\header ' + shape + (headerBody ? '\\pard\\qc ' + headerBody + '\\par' : '') + '}';
       }
-      if (rtfFooterBody) s += '{\\footer \\pard\\qc ' + rtfFooterBody + '\\par}';
+      if (footerBody) s += '{\\footer \\pard\\qc ' + footerBody + '\\par}';
       var d = pageSizeMm(section.config), m = section.config.margins;
       return s + '\\paperw' + mmToTwips(d.w) + '\\paperh' + mmToTwips(d.h) +
         '\\margl' + mmToTwips(m.left) + '\\margr' + mmToTwips(m.right) +
         '\\margt' + mmToTwips(m.top) + '\\margb' + mmToTwips(m.bottom);
     }
     if (!multiPageStyle) {
+      var rtfHeaderBody = chromeInline(pageChromeValue(inst, 1, 'header'));
+      var rtfFooterBody = chromeInline(pageChromeValue(inst, 1, 'footer'));
       if (rtfHeaderBody) out.splice(1, 0, '{\\header \\pard\\qc ' + rtfHeaderBody + '\\par}');
       if (rtfFooterBody) out.splice(1 + (rtfHeaderBody ? 1 : 0), 0, '{\\footer \\pard\\qc ' + rtfFooterBody + '\\par}');
     }
@@ -9916,16 +10051,18 @@ window.__SUI_RICH = (function () {
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) collect(inst.doc.children[ci]);
     if (inst.headerValue) collect(inst.headerValue);
     if (inst.footerValue) collect(inst.footerValue);
-    var headerBody = docxChromeBody(inst.headerValue || inst.headerText || '', inst);
-    var footerBody = docxChromeBody(inst.footerValue || inst.footerText || '', inst);
+    var headerBody = docxChromeBody(pageChromeValue(inst, 1, 'header'), inst);
+    var footerBody = docxChromeBody(pageChromeValue(inst, 1, 'footer'), inst);
     var chromeNS = ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
     var vmlNS = ' xmlns:v="urn:schemas-microsoft-com:vml"';
     var pageSections = exportPageSections(inst, inst.doc), multiPageStyle = pageSections.sections.length > 1;
+    function sectionHeaderBody(section) { return docxChromeBody(pageChromeValue(inst, section.page, 'header'), inst); }
+    function sectionFooterBody(section) { return docxChromeBody(pageChromeValue(inst, section.page, 'footer'), inst); }
     function docxSectionProps(section, finalSection) {
       var refs = '';
       if (multiPageStyle) {
         refs += '<w:headerReference w:type="default" r:id="rIdHeader' + section.id + '"/>';
-        if (footerBody) refs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>';
+        if (sectionFooterBody(section)) refs += '<w:footerReference w:type="default" r:id="rIdFooter' + section.id + '"/>';
       } else {
         if (headerBody) refs += '<w:headerReference w:type="default" r:id="rIdHeader1"/>';
         if (footerBody) refs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>';
@@ -9954,13 +10091,17 @@ window.__SUI_RICH = (function () {
       return '<w:p><w:r><w:pict><v:rect style="position:absolute;margin-left:0;margin-top:0;width:' + mmToPt(d.w) + 'pt;height:' + mmToPt(d.h) + 'pt;z-index:-251658752;mso-position-horizontal:absolute;mso-position-horizontal-relative:page;mso-position-vertical:absolute;mso-position-vertical-relative:page" filled="t" stroked="f"><v:fill color="#' + section.color + '"/><v:stroke weight="0"/></v:rect></w:pict></w:r></w:p>';
     }
     function docxSectionHeader(section) {
-      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + vmlNS + '>' + docxPageShape(section) + headerBody + '</w:hdr>';
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + vmlNS + '>' + docxPageShape(section) + sectionHeaderBody(section) + '</w:hdr>';
+    }
+    function docxSectionFooter(section) {
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + '>' + sectionFooterBody(section) + '</w:ftr>';
     }
     if (multiPageStyle) {
       for (var hs = 0; hs < pageSections.sections.length; hs++) {
-        relsXml += '<Relationship Id="rIdHeader' + pageSections.sections[hs].id + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header' + pageSections.sections[hs].id + '.xml"/>';
+        var hsec = pageSections.sections[hs];
+        relsXml += '<Relationship Id="rIdHeader' + hsec.id + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header' + hsec.id + '.xml"/>';
+        if (sectionFooterBody(hsec)) relsXml += '<Relationship Id="rIdFooter' + hsec.id + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer' + hsec.id + '.xml"/>';
       }
-      if (footerXml) relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>';
     } else {
       if (headerXml) relsXml += '<Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>';
       if (footerXml) relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>';
@@ -9971,12 +10112,18 @@ window.__SUI_RICH = (function () {
     var defaults = '';
     for (var ext in extSet) if (Object.prototype.hasOwnProperty.call(extSet, ext)) defaults += '<Default Extension="' + ext + '" ContentType="' + extSet[ext] + '"/>';
     var settingsXml = settingsNeeded ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:displayBackgroundShape/></w:settings>' : '';
-    var headerOverrides = '';
+    var headerOverrides = '', footerOverrides = '';
     if (multiPageStyle) {
-      for (var ho = 0; ho < pageSections.sections.length; ho++) headerOverrides += '<Override PartName="/word/header' + pageSections.sections[ho].id + '.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>';
-    } else if (headerXml) headerOverrides = '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>';
-    var footerOverride = footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '';
-    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (settingsXml ? '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>' : '') + headerOverrides + footerOverride + '</Types>';
+      for (var ho = 0; ho < pageSections.sections.length; ho++) {
+        var hoc = pageSections.sections[ho];
+        headerOverrides += '<Override PartName="/word/header' + hoc.id + '.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>';
+        if (sectionFooterBody(hoc)) footerOverrides += '<Override PartName="/word/footer' + hoc.id + '.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>';
+      }
+    } else {
+      if (headerXml) headerOverrides = '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>';
+      if (footerXml) footerOverrides = '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>';
+    }
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (settingsXml ? '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>' : '') + headerOverrides + footerOverrides + '</Types>';
     var rootRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
     if (hasLists) {
       relsXml += '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
@@ -10009,6 +10156,10 @@ window.__SUI_RICH = (function () {
         var hsec = pageSections.sections[hi];
         entries.push({ name: 'word/header' + hsec.id + '.xml', data: docxSectionHeader(hsec) });
         if (chromeImageRels) entries.push({ name: 'word/_rels/header' + hsec.id + '.xml.rels', data: chromeRelsXml });
+        if (sectionFooterBody(hsec)) {
+          entries.push({ name: 'word/footer' + hsec.id + '.xml', data: docxSectionFooter(hsec) });
+          if (chromeImageRels) entries.push({ name: 'word/_rels/footer' + hsec.id + '.xml.rels', data: chromeRelsXml });
+        }
       }
     }
     for (var m = 0; m < media.length; m++) entries.push(media[m]);
@@ -10258,22 +10409,30 @@ window.__SUI_RICH = (function () {
       var d = pageSizeMm(section.config), m = section.config.margins;
       return '<style:page-layout-properties fo:page-width="' + mmToCm(d.w) + '" fo:page-height="' + mmToCm(d.h) + '" fo:margin-top="' + mmToCm(m.top) + '" fo:margin-bottom="' + mmToCm(m.bottom) + '" fo:margin-left="' + mmToCm(m.left) + '" fo:margin-right="' + mmToCm(m.right) + '"' + (section.color !== 'FFFFFF' ? ' fo:background-color="#' + section.color + '"' : '') + '/>';
     }
-    var hasChrome = !!(inst.headerText || inst.footerText);
-    var odtHeader = '', odtFooter = '';
-    if (hasChrome) {
-      var odtHeaderBody = odtChromeBody(inst.headerValue || inst.headerText || '', inst, 'Header');
-      var odtFooterBody = odtChromeBody(inst.footerValue || inst.footerText || '', inst, 'Footer');
-      odtHeader = odtHeaderBody ? '<style:header>' + odtHeaderBody + '</style:header>' : '';
-      odtFooter = odtFooterBody ? '<style:footer>' + odtFooterBody + '</style:footer>' : '';
+    var hasChrome = false;
+    for (var chs = 0; chs < pageSections.sections.length; chs++) {
+      if (chromeHasContent(pageChromeValue(inst, pageSections.sections[chs].page, 'header')) || chromeHasContent(pageChromeValue(inst, pageSections.sections[chs].page, 'footer'))) { hasChrome = true; break; }
     }
-    var chromeLayoutProps = hasChrome ?
-      '<style:header-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-bottom="0.3cm"/></style:header-style>' +
-      '<style:footer-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-top="0.3cm"/></style:footer-style>' : '';
+    function sectionOdtChrome(section) {
+      var headerText = pageChromeValue(inst, section.page, 'header');
+      var footerText = pageChromeValue(inst, section.page, 'footer');
+      var hasHeader = chromeHasContent(headerText), hasFooter = chromeHasContent(footerText);
+      var headerBody = hasHeader ? odtChromeBody(headerText, inst, 'Header') : '';
+      var footerBody = hasFooter ? odtChromeBody(footerText, inst, 'Footer') : '';
+      return {
+        header: headerBody ? '<style:header>' + headerBody + '</style:header>' : '',
+        footer: footerBody ? '<style:footer>' + footerBody + '</style:footer>' : '',
+        layoutProps: (hasHeader || hasFooter) ?
+          '<style:header-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-bottom="0.3cm"/></style:header-style>' +
+          '<style:footer-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-top="0.3cm"/></style:footer-style>' : ''
+      };
+    }
     var odtLayouts = '', odtMasters = '';
     for (var pl = 0; pl < pageSections.sections.length; pl++) {
       var sec = pageSections.sections[pl];
-      odtLayouts += '<style:page-layout style:name="pm' + sec.id + '">' + odtPageProps(sec) + chromeLayoutProps + '</style:page-layout>';
-      odtMasters += '<style:master-page style:name="' + sec.master + '" style:page-layout-name="pm' + sec.id + '">' + odtHeader + odtFooter + '</style:master-page>';
+      var secChrome = sectionOdtChrome(sec);
+      odtLayouts += '<style:page-layout style:name="pm' + sec.id + '">' + odtPageProps(sec) + secChrome.layoutProps + '</style:page-layout>';
+      odtMasters += '<style:master-page style:name="' + sec.master + '" style:page-layout-name="pm' + sec.id + '">' + secChrome.header + secChrome.footer + '</style:master-page>';
     }
     var chromeStyles = hasChrome ?
       '<style:style style:name="Header" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' +
@@ -10370,7 +10529,7 @@ window.__SUI_RICH = (function () {
       walk(partDom.documentElement);
       return out.replace(/\u00AD/g, '').replace(/\s+/g, ' ').trim();
     }
-    var headerText = '', footerText = '', pageCfg = null;
+    var pageCfg = null;
     function twipsToMm(value, fallback) {
       if (value == null || value === '') return fallback;
       var n = Number(value);
@@ -10398,6 +10557,15 @@ window.__SUI_RICH = (function () {
       }
       return docBackground;
     }
+    function chromeRefText(sect, tag) {
+      var refs = sect.getElementsByTagNameNS('*', tag), chosen = null;
+      for (var i = 0; i < refs.length; i++) {
+        if ((refs[i].getAttribute('w:type') || 'default') === 'default') { chosen = refs[i]; break; }
+      }
+      if (!chosen && refs.length) chosen = refs[0];
+      if (!chosen) return '';
+      return textFrom(relTarget(relId(chosen, 'id')));
+    }
     function sectionConfig(sect) {
       var pgSz = sect.getElementsByTagNameNS('*', 'pgSz')[0];
       var pgMar = sect.getElementsByTagNameNS('*', 'pgMar')[0];
@@ -10410,20 +10578,13 @@ window.__SUI_RICH = (function () {
         right: twipsToMm(pgMar ? pgMar.getAttribute('w:right') : null, 17),
         bottom: twipsToMm(pgMar ? pgMar.getAttribute('w:bottom') : null, 15),
         left: twipsToMm(pgMar ? pgMar.getAttribute('w:left') : null, 17)
-      }, sectionBackground(sect));
+      }, sectionBackground(sect), chromeRefText(sect, 'headerReference'), chromeRefText(sect, 'footerReference'));
     }
     var sectPrs = body.getElementsByTagNameNS('*', 'sectPr');
     var sectionConfigs = [];
     for (var sp = 0; sp < sectPrs.length; sp++) {
       var sc = sectionConfig(sectPrs[sp]);
       if (sc) sectionConfigs.push(sc);
-    }
-    var sect = sectPrs[0];
-    if (sect) {
-      var refs = sect.getElementsByTagNameNS('*', 'headerReference');
-      if (refs.length) headerText = textFrom(relTarget(relId(refs[0], 'id')));
-      var frefs = sect.getElementsByTagNameNS('*', 'footerReference');
-      if (frefs.length) footerText = textFrom(relTarget(relId(frefs[0], 'id')));
     }
     pageCfg = sectionConfigs[0] || null;
     function imageFromRun(run) {
@@ -10708,8 +10869,9 @@ window.__SUI_RICH = (function () {
       assignPageRange(docxPageConfigs, docxSectionStart, docxPage, sectionConfigs[docxSectionIndex]);
       docxSectionIndex++; docxSectionStart = docxPage + 1; docxPage++;
     }
-    if (headerText) doc.header = headerText;
-    if (footerText) doc.footer = footerText;
+    var firstSection = sectionConfigs[0];
+    if (firstSection && firstSection.header) doc.header = firstSection.header;
+    if (firstSection && firstSection.footer) doc.footer = firstSection.footer;
     var restoredPage = docxPageConfigs['1'] || pageCfg;
     if (restoredPage) doc.page = copyPageConfig(restoredPage);
     doc.pageOverrides = buildPageOverrides(docxPageConfigs, restoredPage || defaultPageConfig());
@@ -10725,9 +10887,9 @@ window.__SUI_RICH = (function () {
     for (var fname in files) if (Object.prototype.hasOwnProperty.call(files, fname) && fname.indexOf('Pictures/') === 0) {
       mediaMap[fname] = dataUrlFromBytes(files[fname], fname);
     }
-    var orderedLists = Object.create(null), headerText = '', footerText = '', pageCfg = null;
+    var orderedLists = Object.create(null), pageCfg = null;
     var layoutConfigs = Object.create(null), layoutOrder = [];
-    var masterOrder = [], masterLayout = Object.create(null), breakStyles = Object.create(null);
+    var masterOrder = [], masterLayout = Object.create(null), masterChrome = Object.create(null), breakStyles = Object.create(null);
     function odtLengthMm(value, fallback) {
       var m = /^\s*([\d.]+)\s*(mm|cm|in|pt|pc)?\s*$/i.exec(String(value || ''));
       if (!m) return fallback;
@@ -10762,14 +10924,34 @@ window.__SUI_RICH = (function () {
         if (name && cfg && !layoutConfigs[name]) { layoutConfigs[name] = cfg; layoutOrder.push(name); }
       }
     }
+    function masterText(master, kind) {
+      if (!master) return '';
+      var part = master.getElementsByTagNameNS('*', kind)[0];
+      if (!part) return '';
+      var out = '';
+      function walk(node) {
+        if (!node) return;
+        if (node.nodeType === 3) { out += node.nodeValue || ''; return; }
+        if (node.nodeType !== 1) return;
+        if (node.localName === 'page-number') { out += '{page}'; return; }
+        if (node.localName === 'page-count') { out += '{pages}'; return; }
+        if (node.localName === 's' || node.localName === 'tab') { out += ' '; return; }
+        for (var c = 0; c < node.childNodes.length; c++) walk(node.childNodes[c]);
+      }
+      walk(part);
+      return out.replace(/\s+/g, ' ').trim();
+    }
     function collectOdtMasters(dom) {
       if (!dom) return;
       var masters = dom.getElementsByTagNameNS('*', 'master-page');
       for (var m = 0; m < masters.length; m++) {
         var name = masters[m].getAttribute('style:name') || masters[m].getAttribute('name') || '';
-        if (!name || masterOrder.indexOf(name) >= 0) continue;
-        masterOrder.push(name);
-        masterLayout[name] = masters[m].getAttribute('style:page-layout-name') || name;
+        if (!name) continue;
+        if (masterOrder.indexOf(name) < 0) {
+          masterOrder.push(name);
+          masterLayout[name] = masters[m].getAttribute('style:page-layout-name') || name;
+        }
+        if (!masterChrome[name]) masterChrome[name] = { header: masterText(masters[m], 'header'), footer: masterText(masters[m], 'footer') };
       }
     }
     function collectOdtBreakStyles(dom) {
@@ -10793,27 +10975,6 @@ window.__SUI_RICH = (function () {
           if (!listName) continue;
           orderedLists[listName] = listStyles[ls].getElementsByTagNameNS('*', 'list-level-style-number').length > 0;
         }
-        function masterText(kind) {
-          var master = stylesDom.getElementsByTagNameNS('*', 'master-page')[0];
-          if (!master) return '';
-          var part = master.getElementsByTagNameNS('*', kind)[0];
-          if (!part) return '';
-          var out = '';
-          function walk(node) {
-            if (!node) return;
-            if (node.nodeType === 3) { out += node.nodeValue || ''; return; }
-            if (node.nodeType !== 1) return;
-            if (node.localName === 'page-number') { out += '{page}'; return; }
-            if (node.localName === 'page-count') { out += '{pages}'; return; }
-            if (node.localName === 's') { out += ' '; return; }
-            if (node.localName === 'tab') { out += ' '; return; }
-            for (var c = 0; c < node.childNodes.length; c++) walk(node.childNodes[c]);
-          }
-          walk(part);
-          return out.replace(/\s+/g, ' ').trim();
-        }
-        headerText = masterText('header');
-        footerText = masterText('footer');
         collectOdtLayouts(stylesDom);
         collectOdtMasters(stylesDom);
         collectOdtBreakStyles(stylesDom);
@@ -10866,7 +11027,13 @@ window.__SUI_RICH = (function () {
     }
     var odtPageConfigs = Object.create(null), odtPage = 1, odtMasterIndex = 0, odtSectionStart = 1;
     function odtMasterAt(index) { return masterOrder[index] || layoutOrder[index] || ''; }
-    function odtConfigFor(name) { return name ? (layoutConfigs[masterLayout[name] || name] || null) : null; }
+    function odtConfigFor(name) {
+      if (!name) return null;
+      var cfg = layoutConfigs[masterLayout[name] || name];
+      if (!cfg) return null;
+      var chrome = masterChrome[name] || {};
+      return pageConfigFromParts(cfg.size, cfg.orientation, cfg.margins, cfg.background, chrome.header || '', chrome.footer || '');
+    }
     function odtAssignCurrent() { assignPageRange(odtPageConfigs, odtSectionStart, odtPage, odtConfigFor(odtMasterAt(odtMasterIndex))); }
     function blocks(parent) {
       var out = [];
@@ -10922,8 +11089,10 @@ window.__SUI_RICH = (function () {
     }
     var doc = { type: 'doc', children: blocks(body) };
     odtAssignCurrent();
-    if (headerText) doc.header = headerText;
-    if (footerText) doc.footer = footerText;
+    var firstOdtMaster = masterOrder[0] || layoutOrder[0] || '';
+    var firstOdtChrome = firstOdtMaster ? masterChrome[firstOdtMaster] : null;
+    if (firstOdtChrome && firstOdtChrome.header) doc.header = firstOdtChrome.header;
+    if (firstOdtChrome && firstOdtChrome.footer) doc.footer = firstOdtChrome.footer;
     var restoredOdtPage = odtPageConfigs['1'] || pageCfg;
     if (restoredOdtPage) doc.page = copyPageConfig(restoredOdtPage);
     doc.pageOverrides = buildPageOverrides(odtPageConfigs, restoredOdtPage || defaultPageConfig());
@@ -11353,18 +11522,20 @@ window.__SUI_RICH = (function () {
     hyphenationLanguage = documentLanguage(inst);
     var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
     if (liveEditor) inst.editor = liveEditor;
-    var headerText = inst.headerText || '', footerText = inst.footerText || '';
-    var headerValue = inst.headerValue != null ? inst.headerValue : headerText;
-    var footerValue = inst.footerValue != null ? inst.footerValue : footerText;
-    var hasHeader = chromeHasContent(headerValue);
-    var hasFooter = chromeHasContent(footerValue);
-    var HEADER_H = hasHeader ? Math.max(30, (inst.headerH || 0) * 0.75) : 0;
-    var FOOTER_H = hasFooter ? Math.max(30, (inst.footerH || 0) * 0.75) : 0;
+    var headerValue = '', footerValue = '';
+    var hasHeader = false, hasFooter = false, HEADER_H = 0, FOOTER_H = 0;
     var PAGE_W, PAGE_H, MARGIN, MARGIN_R, MARGIN_T, MARGIN_B, CONTENT_W;
     var headerSpace, footerSpace, START_Y, BOTTOM_LIMIT;
     var firstPageMeta = null, pageMeta = [];
     function applyPdfPage(n) {
       var cfg = pageConfig(inst, n), dims = pageSizeMm(cfg);
+      headerValue = pageChromeValue(inst, n, 'header');
+      footerValue = pageChromeValue(inst, n, 'footer');
+      hasHeader = chromeHasContent(headerValue);
+      hasFooter = chromeHasContent(footerValue);
+      var chrome = pageChromeMetrics(inst, n);
+      HEADER_H = hasHeader ? Math.max(30, chrome.headerH * 0.75) : 0;
+      FOOTER_H = hasFooter ? Math.max(30, chrome.footerH * 0.75) : 0;
       PAGE_W = Math.round(mmToPt(dims.w)); PAGE_H = Math.round(mmToPt(dims.h));
       MARGIN = mmToPt(cfg.margins.left); MARGIN_R = mmToPt(cfg.margins.right);
       MARGIN_T = mmToPt(cfg.margins.top); MARGIN_B = mmToPt(cfg.margins.bottom);

@@ -1224,14 +1224,33 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var pagePara = function (text) { return { type: 'paragraph', children: [{ type: 'text', text: text, marks: [] }] }; };
     __SUI_RICH.set('editor', {
       type: 'doc',
+      header: 'Global header',
+      footer: 'Global footer',
       page: { background: '#ffffff' },
       pageOverrides: {
         '1': { size: 'letter', orientation: 'landscape', margins: { top: 20, right: 25, bottom: 18, left: 22 }, background: '#ffffff' },
-        '2': { background: '#336699' },
-        '3': { background: '#cc4422' }
+        '2': { background: '#336699', header: 'Second header', footer: 'Second footer' },
+        '3': { background: '#cc4422', header: 'Third header', footer: 'Third footer' }
       },
       children: [pagePara('First'), { type: 'page_break' }, pagePara('Second'), { type: 'page_break' }, pagePara('Third')]
     });
+    await wait(200);
+    __SUI_RICH.command('editor', 'paginatedView');
+    await wait(1200);
+    var chromeSheetsMulti = richRoot().querySelectorAll('.sui-rich-page-sheet');
+    if (chromeSheetsMulti.length !== 3) throw new Error('per-page chrome test needs three sheets: ' + chromeSheetsMulti.length);
+    var chromeByPage = [
+      ['Global header', 'Global footer'],
+      ['Second header', 'Second footer'],
+      ['Third header', 'Third footer']
+    ];
+    for (var cpi = 0; cpi < chromeSheetsMulti.length; cpi++) {
+      var cpiHead = chromeSheetsMulti[cpi].querySelector('.sui-rich-sheet-header');
+      var cpiFoot = chromeSheetsMulti[cpi].querySelector('.sui-rich-sheet-footer');
+      if (!cpiHead || cpiHead.textContent !== chromeByPage[cpi][0]) throw new Error('paginated header page ' + (cpi + 1) + ': ' + (cpiHead ? cpiHead.textContent : 'missing'));
+      if (!cpiFoot || cpiFoot.textContent !== chromeByPage[cpi][1]) throw new Error('paginated footer page ' + (cpi + 1) + ': ' + (cpiFoot ? cpiFoot.textContent : 'missing'));
+    }
+    __SUI_RICH.command('editor', 'paginatedView');
     await wait(200);
     var multiPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
     if (multiPdf.indexOf('0.2 0.4 0.6 rg') < 0 || multiPdf.indexOf('0.8 0.27 0.13 rg') < 0) throw new Error('PDF per-page backgrounds missing');
@@ -1243,11 +1262,17 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     };
     if (multiRtf.indexOf('\\sect') < 0 || multiRtf.indexOf('{\\header') < 0 || multiRtf.indexOf('fBackground') < 0) throw new Error('RTF page sections missing');
     if (multiRtf.indexOf('fillColor}{\\sv ' + rtfBgr('336699') + '}') < 0 || multiRtf.indexOf('fillColor}{\\sv ' + rtfBgr('cc4422') + '}') < 0) throw new Error('RTF per-page background colours missing');
+    if (multiRtf.indexOf('Global header') < 0 || multiRtf.indexOf('Second header') < 0 || multiRtf.indexOf('Third header') < 0) throw new Error('RTF per-page headers missing');
+    if (multiRtf.indexOf('Global footer') < 0 || multiRtf.indexOf('Second footer') < 0 || multiRtf.indexOf('Third footer') < 0) throw new Error('RTF per-page footers missing');
 
     var multiDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
     if (multiDocx.indexOf('<w:background') >= 0) throw new Error('DOCX multi-page background must not stay document-level');
     if (multiDocx.indexOf('word/header2.xml') < 0 || multiDocx.indexOf('word/header3.xml') < 0) throw new Error('DOCX per-page header parts missing');
+    if (multiDocx.indexOf('word/footer2.xml') < 0 || multiDocx.indexOf('word/footer3.xml') < 0) throw new Error('DOCX per-page footer parts missing');
     if (multiDocx.indexOf('r:id="rIdHeader2"') < 0 || multiDocx.indexOf('r:id="rIdHeader3"') < 0) throw new Error('DOCX per-section header references missing');
+    if (multiDocx.indexOf('r:id="rIdFooter2"') < 0 || multiDocx.indexOf('r:id="rIdFooter3"') < 0) throw new Error('DOCX per-section footer references missing');
+    if (multiDocx.indexOf('Global header') < 0 || multiDocx.indexOf('Second header') < 0 || multiDocx.indexOf('Third header') < 0) throw new Error('DOCX per-page headers missing');
+    if (multiDocx.indexOf('Global footer') < 0 || multiDocx.indexOf('Second footer') < 0 || multiDocx.indexOf('Third footer') < 0) throw new Error('DOCX per-page footers missing');
     if ((multiDocx.match(/<w:sectPr>/g) || []).length < 3 || multiDocx.indexOf('<w:type w:val="nextPage"/>') < 0) throw new Error('DOCX page sections missing');
     if (multiDocx.indexOf('v:fill color="#336699"') < 0 || multiDocx.indexOf('v:fill color="#CC4422"') < 0) throw new Error('DOCX per-page background colours missing');
 
@@ -1256,12 +1281,16 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if ((multiOdt.match(/<style:master-page style:name=/g) || []).length < 3) throw new Error('ODT master pages missing');
     if (multiOdt.indexOf('fo:background-color="#336699"') < 0 || multiOdt.indexOf('fo:background-color="#CC4422"') < 0) throw new Error('ODT per-page background colours missing');
     if (multiOdt.indexOf('style:master-page-name="Page2"') < 0 || multiOdt.indexOf('style:master-page-name="Page3"') < 0) throw new Error('ODT master page transitions missing');
+    if (multiOdt.indexOf('Global header') < 0 || multiOdt.indexOf('Second header') < 0 || multiOdt.indexOf('Third header') < 0) throw new Error('ODT per-page headers missing');
+    if (multiOdt.indexOf('Global footer') < 0 || multiOdt.indexOf('Second footer') < 0 || multiOdt.indexOf('Third footer') < 0) throw new Error('ODT per-page footers missing');
 
     // Export -> import -> export restores explicit breaks and per-page settings.
     async function checkPageRoundTrip(format) {
       var exported = __SUI_RICH.exportBytes('editor', format)[0];
       __SUI_RICH.set('editor', {
         type: 'doc',
+        header: '',
+        footer: '',
         page: { background: '#ffffff' },
         pageOverrides: { '1': { background: '#abcdef' } },
         children: [pagePara('Old content')]
@@ -1280,7 +1309,12 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
       var overrides = restored.pageOverrides || {};
       if (!overrides['2'] || String(overrides['2'].background).toLowerCase() !== '#336699' || !overrides['3'] || String(overrides['3'].background).toLowerCase() !== '#cc4422') throw new Error(format + ' per-page overrides: ' + JSON.stringify(overrides));
       if (Object.prototype.hasOwnProperty.call(overrides, '1')) throw new Error(format + ' stale page 1 override survived');
+      if (restored.header !== 'Global header' || restored.footer !== 'Global footer') throw new Error(format + ' global chrome: ' + JSON.stringify([restored.header, restored.footer]));
+      if (!overrides['2'] || overrides['2'].header !== 'Second header' || overrides['2'].footer !== 'Second footer') throw new Error(format + ' page 2 chrome: ' + JSON.stringify(overrides['2']));
+      if (!overrides['3'] || overrides['3'].header !== 'Third header' || overrides['3'].footer !== 'Third footer') throw new Error(format + ' page 3 chrome: ' + JSON.stringify(overrides['3']));
       var again = toLatin(__SUI_RICH.exportBytes('editor', format)[0]);
+      if (again.indexOf('Global header') < 0 || again.indexOf('Second header') < 0 || again.indexOf('Third header') < 0) throw new Error(format + ' re-export headers missing');
+      if (again.indexOf('Global footer') < 0 || again.indexOf('Second footer') < 0 || again.indexOf('Third footer') < 0) throw new Error(format + ' re-export footers missing');
       if (format === 'docx' && (again.match(/<w:sectPr>/g) || []).length < 3) throw new Error('DOCX re-export sections missing');
       if (format === 'odt' && (again.match(/<style:master-page style:name=/g) || []).length < 3) throw new Error('ODT re-export masters missing');
       if (format === 'rtf' && again.indexOf('\\sect') < 0) throw new Error('RTF re-export sections missing');

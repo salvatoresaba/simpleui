@@ -1693,7 +1693,7 @@ richtext name: "article" value: doc height: "420px" theme: "dark"
 | `theme` | Interface theme: `dark` (default) or `light`. In the designer the attribute wins over a stored toolbar preference. A single toolbar button cycles dark/light and only styles the editor chrome |
 | Page background | White by default; Document settings and Page settings can change it (stored as `doc.page.background` and `doc.pageOverrides[n].background`). Text switches to a readable color on dark backgrounds |
 | `contentTheme` | Legacy attribute ignored by the compiler; use `mode` for the authoring profile and the page background setting for the paper color |
-| `header` / `footer` | Text or a rich header/footer model repeated on every page. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) and the other variables are replaced in the paginated view, preview, print, PDF, DOCX and ODT (escape braces in SUI strings) |
+| `header` / `footer` | Text or a rich header/footer model repeated on every page. A plain-text `pageOverrides[n].header` / `.footer` overrides it for that page. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) and the other variables are replaced in the paginated view, preview, print, PDF, DOCX, ODT and RTF (escape braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
 | `hyphenLangs` | Comma-separated hyphenation dictionaries to embed at build time; omit/`*`/`all` keeps all 57, `none` embeds none (heuristic only). Language tags resolve to pattern sets (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
 
@@ -1863,25 +1863,30 @@ plain text or as a rich block model with paragraphs and images; existing string
 values remain supported. **Page settings** (toolbar button `pageSettings` and
 Preferences > Page settings) overrides the document defaults for one page:
 choose the page number, then set background, size, orientation and margins. The
-page panel's Reset returns that page to the document defaults. Variables are
-resolved in the paginated view, preview, direct print, PDF, DOCX and ODT.
+page panel's Reset returns that page to the document defaults. Per-page header
+and footer text is not edited in the settings panels: set
+`pageOverrides[n].header` / `.footer` in the JSON document or import a file with
+per-section chrome. Variables are
+resolved in the paginated view, preview, direct print, PDF, DOCX, ODT and RTF.
 Multi-line text and images are kept in the paginated view, preview and direct
 Print; PDF, DOCX, ODT and RTF exports include rich header/footer text and images
 (PDF draws them in the measured header/footer area). Defaults are stored as
 `page: { size, orientation, lineHeight, lang, background, margins }` plus
 `header`/`footer`; per-page overrides are in
-`pageOverrides: { "1": { background, size, orientation, margins } }`.
-They are applied to the paginated view and print. PDF applies each rendered
-page's background, size, orientation and margins; automatic overflow uses the
-current page's settings. DOCX, ODT and RTF emit a section for every changed explicit
-`{ type: "page_break" }` block, so background, size, orientation and margins
-follow those overrides; pages created by automatic word-processor overflow keep
-the current section's settings. Use hex or `rgb()` backgrounds for binary
-exports (CSS colour names work in the editor but are ignored there). DOCX, ODT
-and RTF import restore explicit page breaks and per-page settings written by
-these exporters (background, size, orientation and margins) into `pageOverrides`;
-other files are imported best-effort and header/footer text is taken from the
-first section only. The default is A4 portrait with 15 mm top/bottom and 17 mm
+`pageOverrides: { "1": { background, size, orientation, margins, header, footer } }`.
+The per-page values are plain strings and override the global value for that
+page. They are applied to the paginated view, preview and print. PDF applies each
+rendered page's background, size, orientation, margins and header/footer; automatic
+overflow uses the current page's settings. DOCX, ODT and RTF emit a section for
+every changed explicit `{ type: "page_break" }` block, so background, size,
+orientation, margins and header/footer follow those overrides; pages created by
+automatic word-processor overflow keep the current section's settings. Use hex or
+`rgb()` backgrounds for binary exports (CSS colour names work in the editor but
+are ignored there). DOCX, ODT and RTF import restore explicit page breaks and
+per-page settings written by these exporters (background, size, orientation,
+margins, header and footer) into `pageOverrides`; header/footer text is read from
+every section or master, and the first section also supplies the global
+`header`/`footer`. Other files are imported best-effort. The default is A4 portrait with 15 mm top/bottom and 17 mm
 left/right margins. The continuous editor draws a dashed horizontal guide at
 every automatic page cut, aligned with the exact page start used by the
 paginated view and print preview (same content height, table row splits and

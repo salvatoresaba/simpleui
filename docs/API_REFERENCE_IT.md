@@ -1668,7 +1668,7 @@ richtext name: "article" value: doc height: "420px" theme: "dark"
 | `theme` | Tema dell'interfaccia: `dark` (default) o `light`. Nel designer l'attributo prevale su una preferenza salvata dalla toolbar. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
 | Sfondo pagina | Bianco per default; le impostazioni Documento e Pagina possono cambiarlo (salvato in `doc.page.background` e `doc.pageOverrides[n].background`). Su sfondi scuri il testo passa a un colore leggibile |
 | `contentTheme` | Attributo legacy ignorato dal compilatore; usa `mode` per il profilo di authoring e l'impostazione dello sfondo pagina per il colore della carta |
-| `header` / `footer` | Testo o modello ricco ripetuto su ogni pagina. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) e le altre variabili vengono sostituiti nella vista paginata, anteprima, stampa, PDF, DOCX e ODT (escape delle graffe nelle stringhe SUI) |
+| `header` / `footer` | Testo o modello ricco ripetuto su ogni pagina. Un `pageOverrides[n].header` / `.footer` di testo semplice lo sovrascrive per quella pagina. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) e le altre variabili vengono sostituiti nella vista paginata, anteprima, stampa, PDF, DOCX, ODT e RTF (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
 | `hyphenLangs` | Dizionari di sillabazione da incorporare in fase di compilazione, separati da virgole; omesso/`*`/`all` mantiene tutti i 57, `none` non ne incorpora (solo euristica). I tag di lingua vengono risolti nei set di pattern (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
 
@@ -1823,27 +1823,32 @@ come modello ricco con paragrafi e immagini; i valori stringa esistenti restano
 supportati. **Impostazioni pagina** (pulsante `pageSettings` e Preferences >
 Impostazioni pagina) sovrascrive i default del documento per una pagina: scegli
 il numero, poi sfondo, formato, orientamento e margini. Reset riporta la pagina
-ai default. Le variabili vengono risolte nella vista paginata, anteprima, stampa
-diretta, PDF, DOCX e ODT. Testo multiriga e immagini restano nella vista
-paginata, nell'anteprima e nella stampa diretta; gli export PDF, DOCX, ODT e RTF
-includono testo ricco e immagini di header/footer (il PDF li disegna nell'area
-misurata di intestazione/piè). I default stanno in
+ai default. Il testo di header/footer per pagina non si modifica nei pannelli:
+imposta `pageOverrides[n].header` / `.footer` nel documento JSON oppure importa
+un file con intestazioni/piè per sezione. Le variabili vengono risolte nella vista
+paginata, anteprima, stampa diretta, PDF, DOCX, ODT e RTF. Testo multiriga e
+immagini restano nella vista paginata, nell'anteprima e nella stampa diretta; gli
+export PDF, DOCX, ODT e RTF includono testo ricco e immagini di header/footer (il
+PDF li disegna nell'area misurata di intestazione/piè). I default stanno in
 `page: { size, orientation, lineHeight, lang, background, margins }` più
 `header`/`footer`; le sovrascritture per pagina in
-`pageOverrides: { "1": { background, size, orientation, margins } }`.
-Vengono applicate alla vista paginata e alla stampa. Il PDF applica a ogni pagina
-renderizzata sfondo, formato, orientamento e margini del suo numero; le pagine
-create dalla distribuzione automatica usano le impostazioni della pagina corrente.
+`pageOverrides: { "1": { background, size, orientation, margins, header, footer } }`.
+I valori per pagina sono stringhe semplici e sostituiscono il valore globale per
+quella pagina. Vengono applicati alla vista paginata, all'anteprima e alla
+stampa. Il PDF applica a ogni pagina renderizzata sfondo, formato, orientamento,
+margini e header/footer del suo numero; le pagine create dalla distribuzione
+automatica usano le impostazioni della pagina corrente.
 DOCX, ODT e RTF generano una sezione per ogni blocco
 esplicito `{ type: "page_break" }` che cambia impostazioni: sfondo, formato,
-orientamento e margini seguono quindi quelle sovrascritture; le pagine create
+orientamento, margini e header/footer seguono quindi quelle sovrascritture; le pagine create
 dalla distribuzione automatica del programma di videoscrittura conservano le
 impostazioni della sezione corrente. Per gli export binari usa sfondi esadecimali
 o `rgb()` (i nomi colore CSS funzionano nell'editor ma vengono ignorati lì).
 L'import DOCX, ODT e RTF ripristina le interruzioni esplicite e le impostazioni
-per pagina scritte da questi exporter (sfondo, formato, orientamento e margini)
-in `pageOverrides`; gli altri file vengono importati al meglio e il testo di
-header/footer viene letto solo dalla prima sezione. Il default è A4
+per pagina scritte da questi exporter (sfondo, formato, orientamento, margini,
+header e footer) in `pageOverrides`; il testo di header/footer viene letto da ogni
+sezione o master e la prima sezione fornisce anche i valori globali
+`header`/`footer`. Gli altri file vengono importati al meglio. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
 orizzontale su ogni interruzione di pagina automatica, allineata all'inizio
 esatto della pagina usato dalla vista paginata e dall'anteprima di stampa
