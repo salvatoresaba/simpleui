@@ -291,11 +291,21 @@
       "id": "stdlib",
       "path": "docs/STDLIB.md",
       "title": "Standard library",
-      "summary": "Importable std modules: http (including file upload), ws, fs, exec, json, the core table/tree/chart APIs and the desktop dialog picker.",
+      "summary": "Importable std modules: http (including file upload), ws, fs, exec, json, the core table/tree/chart APIs and the desktop dialog picker. Pure/in-memory data modules are documented in stdlib_data.",
       "audience": ["human", "agent"],
       "priority": 2,
       "tags": ["stdlib", "http", "upload", "ws", "fs", "exec", "json", "pointer", "rfc6901", "rfc6902", "rfc7386", "xml", "xsd", "diff", "patch", "merge", "bytes", "sourcemap", "debugging", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
       "sections": ["Import", "HTTP Module (`http`)", "WebSocket Module (`ws`)", "File System Module (`fs`)", "Exec Module (`exec`)", "JSON Module (`json`)", "Dialog Module (`dialog`, desktop)", "Table Module (`table`, core)", "Chart Module (`chart`, core)", "Tree Module (`tree`, core)", "Error Handling Pattern"]
+    },
+    {
+      "id": "stdlib_data",
+      "path": "docs/STDLIB_DATA.md",
+      "title": "Data standard library",
+      "summary": "Pure and in-memory std modules: bytes, bin, files, mime, color, units, print, history, stored ZIP archives, archive maps, CSV, read-only env, capabilities, local event buses, redacting logs and telemetry counters.",
+      "audience": ["human", "agent"],
+      "priority": 2,
+      "tags": ["stdlib", "bytes", "binary", "base64", "hex", "files", "mime", "color", "units", "print", "history", "zip", "archive", "csv", "env", "capabilities", "events", "bus", "log", "telemetry", "untrusted-data", "formula-escaping", "redaction"],
+      "sections": ["Import", "Bytes Module (`bytes`)", "Binary Module (`bin`)", "Files Module (`files`)", "MIME Module (`mime`)", "Color Module (`color`)", "Units Module (`units`)", "Print Module (`print`)", "History Module (`history`)", "ZIP Module (`zip`)", "Archive Module (`archive`)", "CSV Module (`csv`)", "Environment Module (`env`)", "Capabilities Module (`capabilities`)", "Events Module (`events`)", "Event Bus Module (`bus`)", "Log Module (`log`)", "Telemetry Module (`telemetry`)", "Security notes", "Example"]
     },
     {
       "id": "state_chart_runtime",
@@ -471,10 +481,20 @@
       "id": "stdlib_it",
       "path": "docs/STDLIB_IT.md",
       "title": "Standard library (Italian)",
-      "summary": "Italian translation of the standard library.",
+      "summary": "Italian translation of the standard library, with a pointer to the pure/in-memory data modules.",
       "audience": ["human"],
       "priority": 4,
       "tags": ["translation", "italian", "stdlib", "chart"],
+      "sections": []
+    },
+    {
+      "id": "stdlib_data_it",
+      "path": "docs/STDLIB_DATA_IT.md",
+      "title": "Data standard library (Italian)",
+      "summary": "Traduzione italiana dei moduli std puri e in-memory: bytes, bin, files, mime, color, units, print, history, ZIP stored, archive, CSV, env di sola lettura, capabilities, bus eventi locali, log con redaction e telemetria.",
+      "audience": ["human"],
+      "priority": 4,
+      "tags": ["translation", "italian", "stdlib", "bytes", "binary", "files", "mime", "color", "units", "print", "history", "zip", "archive", "csv", "env", "capabilities", "events", "bus", "log", "telemetry"],
       "sections": []
     },
     {

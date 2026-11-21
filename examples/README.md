@@ -24,6 +24,7 @@ For an agent-oriented walkthrough see
 | [`reactivity.sui`](reactivity.sui) | Computed values, batched updates, error boundaries and keyed lists. |
 | [`intl_format.sui`](intl_format.sui) | Intl date/number/currency/percent/relative formatting and time zone. |
 | [`stdlib_advanced.sui`](stdlib_advanced.sui) | Path, crypto, JSON Schema validation, storage quota and cross-tab sync. |
+| [`stdlib_data.sui`](stdlib_data.sui) | Pure/in-memory std modules: bytes, binary views, file names, MIME, colors, units, print sizes, history, ZIP, CSV, read-only env, capabilities, local event buses, redacting logs and telemetry. |
 | [`fs_operations.sui`](fs_operations.sui) | Desktop fs.copy, fs.move/rename, fs.isDir and fs.size with capability checks. |
 | [`xml_library.sui`](xml_library.sui) | XML parse/navigation/mutation, XPath, XSD subset, JSON/CSV, serialization and diff. |
 | [`todo.sui`](todo.sui) | Local form + list interactions. |

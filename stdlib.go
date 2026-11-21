@@ -40,6 +40,23 @@ var StdModules = []string{
 	"richtext",
 	"dialog",
 	"xml",
+	"bytes",
+	"bin",
+	"files",
+	"mime",
+	"color",
+	"units",
+	"print",
+	"history",
+	"zip",
+	"archive",
+	"csv",
+	"env",
+	"capabilities",
+	"events",
+	"bus",
+	"log",
+	"telemetry",
 }
 
 // CoreModules are intrinsic namespaces that are always available: they need no

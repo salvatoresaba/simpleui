@@ -1,0 +1,72 @@
+# stdlib_data.sui - pure and in-memory std modules.
+# Import only what you need; the runtime prelude is emitted only for imported
+# modules. All std calls follow the standard `value, err = module.fn(...)` form.
+
+import { bytes, bin, files, mime, color, units, print, history, zip, archive, csv, env, capabilities, events, bus, log, telemetry } from "std"
+
+state out = ""
+state notice = ""
+state payload = ""
+
+fn onPayload(value: any) -> null {
+	payload = str(value)
+}
+
+async fn run() -> null {
+	# Byte buffers and binary views.
+	raw, err1 = bytes.fromString("Ada", "utf-8")
+	b64, err2 = bytes.toBase64(raw)
+	header, err3 = bin.writeU16(258)
+	value, err4 = bin.u16(header, 0)
+
+	# Untrusted file names and MIME checks are pure string helpers.
+	name, err5 = files.name("C:/tmp/report.csv")
+	kind, err6 = mime.fromName(name)
+	valid, err7 = files.validate(name, {"allowedExt": "csv", "size": 10, "maxSize": 100})
+
+	# Colors, units and print helpers are deterministic and local.
+	parsed, err8 = color.parse("#336699")
+	hex, err9 = color.format(parsed, "hex")
+	mm, err10 = units.convert(1.0, "in", "mm")
+	paper, err11 = print.paper("A4", "landscape")
+
+	# Named undo history stores deep copies.
+	saved, err12 = history.push("report", {"title": "Draft"})
+	previous, err13 = history.current("report")
+
+	# Stored ZIP archives reject traversal, symlinks and compressed entries.
+	arc, err14 = zip.create()
+	added, err15 = zip.addText(arc, "hello.txt", "world")
+	packed, err16 = zip.finish(arc)
+	opened, err17 = zip.open(packed)
+	extracted, err18 = archive.unpackText(packed, "zip")
+
+	# CSV exports always escape spreadsheet formulas.
+	rows, err19 = csv.parse("name,score\nAda,10\n")
+	exported, err20 = csv.stringifyObjects([{"name": "Ada", "formula": "=1+1"}], {})
+
+	# Environment data is read-only and allow-listed.
+	target, err21 = env.target()
+	caps, err22 = capabilities.list()
+
+	# The event bus is local to the running app.
+	listeners, err23 = events.on("data", onPayload)
+	emitted, err24 = bus.emit("data", "ok")
+
+	# Logs stay in memory, redact secrets and are never sent anywhere.
+	log.info("demo", {"token": "secret"})
+	logged, err25 = log.entries(5)
+	requests, err26 = telemetry.counter("requests")
+
+	out = str(len(raw)) + "|" + b64 + "|" + str(value) + "|" + name + "|" + kind + "|" + str(valid)
+	out = out + "|" + hex + "|" + str(mm) + "|" + str(paper["width"]) + "|" + str(saved) + "|" + str(len(previous))
+	out = out + "|" + str(added) + "|" + extracted["hello.txt"] + "|" + str(len(rows)) + "|" + exported
+	out = out + "|" + target + "|" + str(len(caps)) + "|" + str(listeners) + "|" + str(emitted) + "|" + str(requests)
+	notice = "log entries: " + str(len(logged)) + " | payload: " + payload
+}
+
+view main {
+	p "{out}"
+	p "{notice}"
+	button "Run" onClick: run
+}

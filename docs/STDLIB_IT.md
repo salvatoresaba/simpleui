@@ -2,7 +2,7 @@
 
 Lo standard library di SimpleUI è importabile da `"std"`. Le chiamate vengono tradotte in `__SUI_STD.<jsKey>(...)` e implementate nel runtime. Tutte le funzioni **non-fire-and-forget** restituiscono **due valori**: `value, err` (con `err = "null"` in caso di successo). Le funzioni marcate come *fire-and-forget* restituiscono `null` e non richiedono binding completo.
 
-I moduli disponibili sono: `http`, `ws`, `fs`, `exec`, `json`, `table`, `tree`, `chart`, `dialog` (desktop).
+I moduli disponibili sono: `http`, `ws`, `fs`, `exec`, `json`, `table`, `tree`, `chart`, `dialog` (desktop) e i moduli dati puri/in-memory documentati in [STDLIB_DATA_IT](STDLIB_DATA_IT.md): `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log`, `telemetry`.
 
 ## Import
 

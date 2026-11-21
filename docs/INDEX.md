@@ -58,6 +58,7 @@ Recommended order for an agent:
 | Crypto hash/UUID/random bytes | [BUILTINS: crypto](BUILTINS.md#crypto-functions) | [SECURITY](../SECURITY.md) | `examples/stdlib_advanced.sui` |
 | JSON Pointer, JSON Patch, Merge Patch, keyed diff and JSON Schema validation | [STDLIB: json](STDLIB.md#json-module-json) | [BUILTINS](BUILTINS.md) | `examples/json_library.sui` |
 | Storage quota and cross-tab sync | [BUILTINS: storage](BUILTINS.md#storage-functions-cross-target) | [STDLIB](STDLIB.md) | `examples/stdlib_advanced.sui` |
+| Pure/in-memory data modules: bytes, binary views, file names, MIME, colors, units, print sizes, history, ZIP, CSV, env, capabilities, events, log and telemetry | [STDLIB_DATA](STDLIB_DATA.md) | [STDLIB](STDLIB.md) | `examples/stdlib_data.sui` |
 | Desktop fs copy/move/size/isDir | [STDLIB: fs](STDLIB.md#file-system-module-fs) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/fs_operations.sui` |
 | Debug generated JS/CSS with source maps | [API: CLI](API_REFERENCE.md#cli) | [README](../README.md) | `examples/counter.sui` |
 | XML DOM, XPath, XSD subset, keyed diff/patch/merge and conversion | [STDLIB: XML](STDLIB.md#xml-module-xml) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/xml_library.sui` |
@@ -114,7 +115,8 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
   [SECURITY_IT](../SECURITY_IT.md), [SPEC_IT](../SPEC_IT.md),
   [DESIGN_IT](../DESIGN_IT.md), [TODO_IT](../TODO_IT.md),
   [API_REFERENCE_IT](API_REFERENCE_IT.md), [BUILTINS_IT](BUILTINS_IT.md),
-  [STDLIB_IT](STDLIB_IT.md), [AGENT_RECIPES_IT](AGENT_RECIPES_IT.md),
+  [STDLIB_IT](STDLIB_IT.md), [STDLIB_DATA_IT](STDLIB_DATA_IT.md),
+  [AGENT_RECIPES_IT](AGENT_RECIPES_IT.md),
   [GUI_EDITOR_IT](GUI_EDITOR_IT.md), [INDEX_IT](INDEX_IT.md).
 
 ### Language and API
@@ -123,6 +125,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 - [SPEC](../SPEC.md) — normative language, compiler and runtime contracts.
 - [BUILTINS](BUILTINS.md) — functions that need no import.
 - [STDLIB](STDLIB.md) — `http`, `ws`, `fs`, `exec`, `json`, `table` and the desktop `dialog` picker.
+- [STDLIB_DATA](STDLIB_DATA.md) — pure/in-memory `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log` and `telemetry`.
 - [Chart table colors](TABLE_COLORS.md) — complete dark/light color audit with swatches and tokens ([visual version](table_colors.html)).
 - [Gantt complete reference](GANTT_COMPLETE_REFERENCE.md) — consolidated data, scheduling, routing, keyboard, persistence, commit/version and server-sync reference.
 

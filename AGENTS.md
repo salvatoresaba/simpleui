@@ -170,6 +170,7 @@ For desktop capabilities:
 | Batching, error boundaries and list keys | `docs/API_REFERENCE.md#reactive-updates-batching-error-boundaries-and-list-keys` | `examples/reactivity.sui` |
 | Locale formatting with Intl | `docs/API_REFERENCE.md#locale-formatting-intl` | `examples/intl_format.sui` |
 | Path, crypto, JSON Schema, storage quota/sync | `docs/BUILTINS.md#path-functions`, `docs/STDLIB.md#json-module-json` | `examples/stdlib_advanced.sui` |
+| Pure/in-memory data modules (bytes, bin, files, mime, color, units, print, history, ZIP, CSV, env, capabilities, events, log, telemetry) | `docs/STDLIB_DATA.md` | `examples/stdlib_data.sui` |
 | Desktop fs copy/move/isDir/size | `docs/STDLIB.md#file-system-module-fs` | `examples/fs_operations.sui` |
 | XML DOM/XPath/XSD/JSON/CSV library, keyed diff/patch/merge, binary I/O | `docs/STDLIB.md#xml-module-xml` | `examples/xml_library.sui` |
 | Debug generated JS/CSS with source maps | `docs/API_REFERENCE.md#cli` | `examples/counter.sui` |

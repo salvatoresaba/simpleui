@@ -47,6 +47,7 @@ Ordine consigliato per un agente:
 | Crypto hash/UUID/random bytes | [BUILTINS: crypto](BUILTINS_IT.md#funzioni-crypto) | [SECURITY](../SECURITY_IT.md) | `examples/stdlib_advanced.sui` |
 | JSON Pointer, JSON Patch, Merge Patch, diff con chiavi e validazione JSON Schema | [STDLIB: json](STDLIB_IT.md#modulo-json-json) | [BUILTINS](BUILTINS_IT.md) | `examples/json_library.sui` |
 | Quota storage e sync cross-tab | [BUILTINS: storage](BUILTINS_IT.md#funzioni-storage-cross-target) | [STDLIB](STDLIB_IT.md) | `examples/stdlib_advanced.sui` |
+| Moduli dati puri/in-memory: bytes, viste binarie, nomi file, MIME, colori, unità, formati stampa, history, ZIP, CSV, env, capabilities, eventi, log e telemetria | [STDLIB_DATA_IT](STDLIB_DATA_IT.md) | [STDLIB](STDLIB_IT.md) | `examples/stdlib_data.sui` |
 | fs copy/move/size/isDir desktop | [STDLIB: fs](STDLIB_IT.md#file-system-module-fs) | [SECURITY](../SECURITY_IT.md#bridge-desktop) | `examples/fs_operations.sui` |
 | Debug JS/CSS generati con source map | [API: CLI](API_REFERENCE_IT.md#cli) | [README](../README_IT.md) | `examples/counter.sui` |
 | XML DOM, XPath, XSD subset, diff/patch/merge con chiavi e conversione | [STDLIB: XML](STDLIB_IT.md#modulo-xml-xml) | [SECURITY](../SECURITY_IT.md#bridge-desktop) | `examples/xml_library.sui` |
@@ -94,6 +95,7 @@ Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
 - [SPEC_IT](../SPEC_IT.md) — specifica normativa di linguaggio, compilatore e runtime.
 - [BUILTINS](BUILTINS_IT.md) — funzioni senza import.
 - [STDLIB](STDLIB_IT.md) — `http`, `ws`, `fs`, `exec`, `json`, `table` e il picker desktop `dialog`.
+- [STDLIB_DATA_IT](STDLIB_DATA_IT.md) — moduli dati puri/in-memory `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log` e `telemetry`.
 
 ### Dati e interfacce
 

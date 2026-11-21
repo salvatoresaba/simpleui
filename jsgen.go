@@ -2633,6 +2633,9 @@ func stdObjJs(p *Prog, target string) string {
 	if jsonModuleImported(p) {
 		prefix += jsonRuntimeSource + "\n\n"
 	}
+	if extraRuntimeModuleImported(p) {
+		prefix += stdlibExtraRuntimeSource(target) + "\n\n"
+	}
 	return prefix + "const __SUI_STD = {\n" + strings.Join(entries, ",\n") + "\n};"
 }
 
@@ -2650,6 +2653,9 @@ var chartAccessorFields = map[string]string{
 }
 
 func stdBodyJs(key string, target string) string {
+	if body := stdlibExtraBody(key); body != "" {
+		return body
+	}
 	if strings.HasPrefix(key, "xml_") {
 		return xmlStdBodyJs(key, target)
 	}

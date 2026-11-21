@@ -6,7 +6,7 @@ SimpleUI's standard library is importable from `"std"`. Calls compile to
 (`err = "null"` on success). Functions marked *fire-and-forget* return `null`
 and do not require a full binding.
 
-Available modules: `http`, `ws`, `fs`, `exec`, `json`, `table`, `tree`, `chart`, `dialog` (desktop).
+Available modules: `http`, `ws`, `fs`, `exec`, `json`, `table`, `tree`, `chart`, `dialog` (desktop) and the pure/in-memory data modules documented in [STDLIB_DATA](STDLIB_DATA.md): `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log`, `telemetry`.
 
 ## Import
 
