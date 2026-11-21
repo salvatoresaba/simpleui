@@ -4052,13 +4052,16 @@ window.__SUI_RICH = (function () {
       var pairs = [
         ['.sui-rich-toolbar', 'data-sui-rich-toolbar'],
         ['.sui-rich-menu', 'data-sui-rich-menu'],
-        ['.sui-rich-context', 'data-sui-rich-context'],
         ['.sui-rich-status', 'data-sui-rich-statusbar']
       ];
       for (var i = 0; i < pairs.length; i++) {
         var elm = inst.root.querySelector(pairs[i][0]);
         if (elm) elm.hidden = !boolAttr(inst.root, pairs[i][1], true);
       }
+      // The selection toolbar stays hidden until a non-collapsed selection
+      // exists; selectionchange owns its visibility.
+      var contextBar = inst.root.querySelector('.sui-rich-context');
+      if (contextBar && !boolAttr(inst.root, 'data-sui-rich-context', true)) contextBar.hidden = true;
       var tableBar = inst.root.querySelector('.sui-rich-tablebar');
       if (tableBar) tableBar.hidden = true;
       var findBar = inst.root.querySelector('.sui-rich-findbar');

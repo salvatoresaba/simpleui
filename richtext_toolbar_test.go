@@ -198,10 +198,14 @@ func TestRichTextReadOnlyAndStatusLayout(t *testing.T) {
 		"if (isReadOnly(inst)) return;",
 		"inst.config.context && !isReadOnly(inst)",
 		"root.style.setProperty('--sui-rich-content-height'",
+		"if (contextBar && !boolAttr(inst.root, 'data-sui-rich-context', true)) contextBar.hidden = true;",
 	} {
 		if !strings.Contains(suiRichTextRuntime, marker) {
 			t.Errorf("runtime missing read-only marker: %s", marker)
 		}
+	}
+	if strings.Contains(suiRichTextRuntime, "['.sui-rich-context', 'data-sui-rich-context']") {
+		t.Error("editable editors force the selection toolbar visible at init")
 	}
 	for _, marker := range []string{
 		".sui-rich-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;",
