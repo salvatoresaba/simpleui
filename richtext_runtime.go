@@ -4990,6 +4990,47 @@ window.__SUI_RICH = (function () {
   function mmToPt(mm) { return Number(mm) * 72 / 25.4; }
   function mmToTwips(mm) { return Math.round(Number(mm) * 1440 / 25.4); }
   function mmToCm(mm) { return (Number(mm) / 10).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + 'cm'; }
+
+  // Export sections follow explicit page_break blocks. Automatic overflow is
+  // decided by the word processor, so it cannot be bound to pageOverrides[n]
+  // in a synchronous export. This matches how the UI numbers pages when the
+  // user edits Page settings.
+  function exportPageSignature(cfg) {
+    var d = pageSizeMm(cfg), m = cfg.margins || {};
+    return [hexColor(cfg.background) || 'FFFFFF', d.w, d.h, cfg.orientation, m.top, m.right, m.bottom, m.left].join('|');
+  }
+  function exportPageSections(inst, doc) {
+    var sections = [], breaks = [], breakByIndex = Object.create(null), page = 1, current = null;
+    function add(n) {
+      var cfg = pageConfig(inst, n), signature = exportPageSignature(cfg);
+      if (!current || current.signature !== signature) {
+        var id = sections.length + 1;
+        current = {
+          id: id,
+          page: n,
+          config: cfg,
+          signature: signature,
+          color: hexColor(cfg.background) || 'FFFFFF',
+          master: id === 1 ? 'Standard' : 'Page' + id
+        };
+        sections.push(current);
+      }
+      return current;
+    }
+    add(1);
+    var kids = (doc && doc.children) || [];
+    for (var i = 0; i < kids.length; i++) {
+      var b = kids[i];
+      if (!b || b.type !== 'page_break') continue;
+      var before = current, next = page + 1, after = add(next);
+      var info = { index: i, page: page, nextPage: next, changed: before !== after, from: before, to: after };
+      breaks.push(info);
+      breakByIndex[i] = info;
+      page = next;
+    }
+    return { sections: sections, breaks: breaks, breakByIndex: breakByIndex, totalPages: page };
+  }
+
   function breakInsertionPoint(inst, contentY, excludeNode) {
     if (!inst || !inst.editor) return null;
     var ed = inst.editor;
@@ -9002,6 +9043,18 @@ window.__SUI_RICH = (function () {
     for (var k = 0; k < kids.length; k++) rtfNoteDoc(kids[k]);
   }
   function rtfHexToRgb(hex) { return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)]; }
+  function rtfBackgroundShape(hex) {
+    if (!hex || hex === 'FFFFFF') return '';
+    // RTF shape colours are 0x00BBGGRR, so swap the RGB bytes from hexColor().
+    var rtfFill = (parseInt(hex.slice(4, 6), 16) << 16) | (parseInt(hex.slice(2, 4), 16) << 8) | parseInt(hex.slice(0, 2), 16);
+    return '{\\shp{\\*\\shpinst' +
+      '\\shpleft0\\shptop0\\shpright0\\shpbottom0\\shpfhdr0\\shpbxmargin\\shpbxignore' +
+      '\\shpbymargin\\shpbyignore\\shpwr0\\shpwrk0\\shpfblwtxt1\\shpz0\\shplid1025' +
+      '{\\sp{\\sn shapeType}{\\sv 1}}{\\sp{\\sn fFlipH}{\\sv 0}}{\\sp{\\sn fFlipV}{\\sv 0}}' +
+      '{\\sp{\\sn fillColor}{\\sv ' + rtfFill + '}}{\\sp{\\sn fFilled}{\\sv 1}}' +
+      '{\\sp{\\sn lineWidth}{\\sv 0}}{\\sp{\\sn fLine}{\\sv 0}}{\\sp{\\sn bWMode}{\\sv 9}}' +
+      '{\\sp{\\sn fBackground}{\\sv 1}}{\\sp{\\sn fLayoutInCell}{\\sv 1}}}}';
+  }
   function blocksTextRtf(blocks, inlineFn) {
     var parts = [];
     for (var i = 0; i < (blocks || []).length; i++) {
@@ -9038,22 +9091,22 @@ window.__SUI_RICH = (function () {
     var fontDefs = '';
     for (var f = 0; f < rtfFonts.length; f++) fontDefs += '{\\f' + f + ' ' + rtfFonts[f] + ';}';
     var header = '{\\rtf1\\ansi\\deff0\\uc1{\\fonttbl' + fontDefs + '}';
-    var rtfPage = pageConfig(inst, 1), rtfDims = pageSizeMm(rtfPage);
+    var pageSections = exportPageSections(inst, inst.doc), multiPageStyle = pageSections.sections.length > 1;
+    var rtfPage = pageSections.sections[0].config, rtfDims = pageSizeMm(rtfPage);
     header += '\\paperw' + mmToTwips(rtfDims.w) + '\\paperh' + mmToTwips(rtfDims.h) +
       '\\margl' + mmToTwips(rtfPage.margins.left) + '\\margr' + mmToTwips(rtfPage.margins.right) +
       '\\margt' + mmToTwips(rtfPage.margins.top) + '\\margb' + mmToTwips(rtfPage.margins.bottom);
-    var rtfBg = hexColor(rtfPage.background || '#ffffff');
-    if (rtfBg && rtfBg !== 'FFFFFF') {
-      // Word/WordPad render page colour through a background shape. RTF shape
-      // colours are 0x00BBGGRR, so swap the RGB bytes from hexColor().
-      var rtfFill = (parseInt(rtfBg.slice(4, 6), 16) << 16) | (parseInt(rtfBg.slice(2, 4), 16) << 8) | parseInt(rtfBg.slice(0, 2), 16);
-      header += '\\viewbksp1{\\*\\background {\\shp{\\*\\shpinst' +
-        '\\shpleft0\\shptop0\\shpright0\\shpbottom0\\shpfhdr0\\shpbxmargin\\shpbxignore' +
-        '\\shpbymargin\\shpbyignore\\shpwr0\\shpwrk0\\shpfblwtxt1\\shpz0\\shplid1025' +
-        '{\\sp{\\sn shapeType}{\\sv 1}}{\\sp{\\sn fFlipH}{\\sv 0}}{\\sp{\\sn fFlipV}{\\sv 0}}' +
-        '{\\sp{\\sn fillColor}{\\sv ' + rtfFill + '}}{\\sp{\\sn fFilled}{\\sv 1}}' +
-        '{\\sp{\\sn lineWidth}{\\sv 0}}{\\sp{\\sn fLine}{\\sv 0}}{\\sp{\\sn bWMode}{\\sv 9}}' +
-        '{\\sp{\\sn fBackground}{\\sv 1}}{\\sp{\\sn fLayoutInCell}{\\sv 1}}}}}';
+    var rtfBg = pageSections.sections[0].color;
+    if (!multiPageStyle && rtfBg && rtfBg !== 'FFFFFF') {
+      // A single colour stays document-level for compatibility with the
+      // existing RTF readers; multiple colours move into section headers.
+      header += '\\viewbksp1{\\*\\background ' + rtfBackgroundShape(rtfBg) + '}';
+    } else if (multiPageStyle) {
+      var rtfHasColor = false;
+      for (var ps = 0; ps < pageSections.sections.length; ps++) {
+        if (pageSections.sections[ps].color !== 'FFFFFF') rtfHasColor = true;
+      }
+      if (rtfHasColor) header += '\\viewbksp1';
     }
     if (rtfColors.length) {
       header += '{\\colortbl;';
@@ -9119,8 +9172,22 @@ window.__SUI_RICH = (function () {
     }
     var rtfHeaderBody = chromeInline(inst.headerValue || inst.headerText || '');
     var rtfFooterBody = chromeInline(inst.footerValue || inst.footerText || '');
-    if (rtfHeaderBody) out.splice(1, 0, '{\\header \\pard\\qc ' + rtfHeaderBody + '\\par}');
-    if (rtfFooterBody) out.splice(1 + (rtfHeaderBody ? 1 : 0), 0, '{\\footer \\pard\\qc ' + rtfFooterBody + '\\par}');
+    function rtfSectionChrome(section) {
+      if (!multiPageStyle) return '';
+      var s = '', shape = rtfBackgroundShape(section.color);
+      if (shape || rtfHeaderBody) {
+        s += '{\\header ' + shape + (rtfHeaderBody ? '\\pard\\qc ' + rtfHeaderBody + '\\par' : '') + '}';
+      }
+      if (rtfFooterBody) s += '{\\footer \\pard\\qc ' + rtfFooterBody + '\\par}';
+      var d = pageSizeMm(section.config), m = section.config.margins;
+      return s + '\\paperw' + mmToTwips(d.w) + '\\paperh' + mmToTwips(d.h) +
+        '\\margl' + mmToTwips(m.left) + '\\margr' + mmToTwips(m.right) +
+        '\\margt' + mmToTwips(m.top) + '\\margb' + mmToTwips(m.bottom);
+    }
+    if (!multiPageStyle) {
+      if (rtfHeaderBody) out.splice(1, 0, '{\\header \\pard\\qc ' + rtfHeaderBody + '\\par}');
+      if (rtfFooterBody) out.splice(1 + (rtfHeaderBody ? 1 : 0), 0, '{\\footer \\pard\\qc ' + rtfFooterBody + '\\par}');
+    }
     function paragraphProps(n) {
       var p = '\\pard';
       if (n.align === 'center') p += '\\qc';
@@ -9135,7 +9202,7 @@ window.__SUI_RICH = (function () {
       else if (lineInfo && lineInfo.pt) p += '\\sl' + Math.round(lineInfo.pt * 20) + '\\slmult0';
       return p;
     }
-    function block(n) {
+    function block(n, index) {
       if (!n) return;
       if (n.type === 'heading') {
         var hsize = Math.max(12, 20 - ((Math.max(1, Math.min(6, Number(n.level) || 1)) - 1) * 2));
@@ -9151,7 +9218,11 @@ window.__SUI_RICH = (function () {
         out.push(paragraphProps(n) + '\\f0\\fs20 ' + rtfCodeBody + '\\fs24\\par');
       }
       else if (n.type === 'hr') out.push('\\pard\\brdrb\\brdrs\\brdrw10\\par');
-      else if (n.type === 'page_break') out.push('\\page');
+      else if (n.type === 'page_break') {
+        var pageInfo = multiPageStyle ? pageSections.breakByIndex[index] : null;
+        if (pageInfo && pageInfo.changed) out.push(rtfSectionChrome(pageInfo.from) + '\\sect');
+        else out.push('\\page');
+      }
       else if (n.type === 'image') out.push('\\pard' + (rtfPicture(n.src, n.width, n.height) || ('[' + (n.alt || 'image') + ']')) + '\\par');
       else if (n.type === 'bullet_list' || n.type === 'ordered_list') {
         for (var i = 0; i < (n.children || []).length; i++) {
@@ -9198,7 +9269,8 @@ window.__SUI_RICH = (function () {
         out.push('\\pard');
       }
     }
-    for (var i = 0; i < (inst.doc.children || []).length; i++) block(inst.doc.children[i]);
+    for (var i = 0; i < (inst.doc.children || []).length; i++) block(inst.doc.children[i], i);
+    if (multiPageStyle) out.push(rtfSectionChrome(pageSections.sections[pageSections.sections.length - 1]));
     out.push('}');
     return out.join('\n');
   }
@@ -9532,27 +9604,67 @@ window.__SUI_RICH = (function () {
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) collect(inst.doc.children[ci]);
     if (inst.headerValue) collect(inst.headerValue);
     if (inst.footerValue) collect(inst.footerValue);
-    var body = '';
-    for (var i = 0; i < (inst.doc.children || []).length; i++) body += docxBlock(inst.doc.children[i]);
     var headerBody = docxChromeBody(inst.headerValue || inst.headerText || '', inst);
     var footerBody = docxChromeBody(inst.footerValue || inst.footerText || '', inst);
     var chromeNS = ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+    var vmlNS = ' xmlns:v="urn:schemas-microsoft-com:vml"';
+    var pageSections = exportPageSections(inst, inst.doc), multiPageStyle = pageSections.sections.length > 1;
+    function docxSectionProps(section, finalSection) {
+      var refs = '';
+      if (multiPageStyle) {
+        refs += '<w:headerReference w:type="default" r:id="rIdHeader' + section.id + '"/>';
+        if (footerBody) refs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>';
+      } else {
+        if (headerBody) refs += '<w:headerReference w:type="default" r:id="rIdHeader1"/>';
+        if (footerBody) refs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>';
+      }
+      var d = pageSizeMm(section.config), m = section.config.margins;
+      var pgSz = '<w:pgSz w:w="' + mmToTwips(d.w) + '" w:h="' + mmToTwips(d.h) + '"' + (section.config.orientation === 'landscape' ? ' w:orient="landscape"' : '') + '/>';
+      var pgMar = '<w:pgMar w:top="' + mmToTwips(m.top) + '" w:right="' + mmToTwips(m.right) + '" w:bottom="' + mmToTwips(m.bottom) + '" w:left="' + mmToTwips(m.left) + '" w:header="720" w:footer="720" w:gutter="0"/>';
+      return '<w:sectPr>' + refs + (finalSection ? '' : '<w:type w:val="nextPage"/>') + pgSz + pgMar + '</w:sectPr>';
+    }
+    var body = '';
+    for (var i = 0; i < (inst.doc.children || []).length; i++) {
+      var pageInfo = multiPageStyle ? pageSections.breakByIndex[i] : null;
+      if (pageInfo && pageInfo.changed) {
+        body += '<w:p><w:pPr>' + docxSectionProps(pageInfo.from, false) + '</w:pPr></w:p>';
+        continue;
+      }
+      body += docxBlock(inst.doc.children[i]);
+    }
     var headerXml = headerBody ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + '>' + headerBody + '</w:hdr>' : '';
     var footerXml = footerBody ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + '>' + footerBody + '</w:ftr>' : '';
-    var docxPage = pageConfig(inst, 1), docxDims = pageSizeMm(docxPage);
-    var docxPgSz = '<w:pgSz w:w="' + mmToTwips(docxDims.w) + '" w:h="' + mmToTwips(docxDims.h) + '"' + (docxPage.orientation === 'landscape' ? ' w:orient="landscape"' : '') + '/>';
-    var docxPgMar = '<w:pgMar w:top="' + mmToTwips(docxPage.margins.top) + '" w:right="' + mmToTwips(docxPage.margins.right) + '" w:bottom="' + mmToTwips(docxPage.margins.bottom) + '" w:left="' + mmToTwips(docxPage.margins.left) + '" w:header="720" w:footer="720" w:gutter="0"/>';
-    var sectRefs = '';
-    if (headerXml) { relsXml += '<Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'; sectRefs += '<w:headerReference w:type="default" r:id="rIdHeader1"/>'; }
-    if (footerXml) { relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'; sectRefs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>'; }
-    var docxBg = hexColor(docxPage.background);
-    var docxBackground = docxBg && docxBg !== 'FFFFFF' ? '<w:background w:color="' + docxBg + '"/>' : '';
-    if (docxBackground) relsXml += '<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>';
-    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' + docxBackground + '<w:body>' + body + '<w:sectPr>' + sectRefs + docxPgSz + docxPgMar + '</w:sectPr></w:body></w:document>';
+    var docxPage = pageSections.sections[0].config, docxBg = pageSections.sections[0].color;
+    var docxBackground = !multiPageStyle && docxBg && docxBg !== 'FFFFFF' ? '<w:background w:color="' + docxBg + '"/>' : '';
+    function docxPageShape(section) {
+      if (section.color === 'FFFFFF') return '';
+      var d = pageSizeMm(section.config);
+      return '<w:p><w:r><w:pict><v:rect style="position:absolute;margin-left:0;margin-top:0;width:' + mmToPt(d.w) + 'pt;height:' + mmToPt(d.h) + 'pt;z-index:-251658752;mso-position-horizontal:absolute;mso-position-horizontal-relative:page;mso-position-vertical:absolute;mso-position-vertical-relative:page" filled="t" stroked="f"><v:fill color="#' + section.color + '"/><v:stroke weight="0"/></v:rect></w:pict></w:r></w:p>';
+    }
+    function docxSectionHeader(section) {
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' + chromeNS + vmlNS + '>' + docxPageShape(section) + headerBody + '</w:hdr>';
+    }
+    if (multiPageStyle) {
+      for (var hs = 0; hs < pageSections.sections.length; hs++) {
+        relsXml += '<Relationship Id="rIdHeader' + pageSections.sections[hs].id + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header' + pageSections.sections[hs].id + '.xml"/>';
+      }
+      if (footerXml) relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>';
+    } else {
+      if (headerXml) relsXml += '<Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>';
+      if (footerXml) relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>';
+    }
+    var settingsNeeded = !!docxBackground || multiPageStyle;
+    if (settingsNeeded) relsXml += '<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>';
+    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' + docxBackground + '<w:body>' + body + docxSectionProps(pageSections.sections[pageSections.sections.length - 1], true) + '</w:body></w:document>';
     var defaults = '';
     for (var ext in extSet) if (Object.prototype.hasOwnProperty.call(extSet, ext)) defaults += '<Default Extension="' + ext + '" ContentType="' + extSet[ext] + '"/>';
-    var settingsXml = docxBackground ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:displayBackgroundShape/></w:settings>' : '';
-    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (settingsXml ? '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>' : '') + (headerXml ? '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' : '') + (footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '') + '</Types>';
+    var settingsXml = settingsNeeded ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:displayBackgroundShape/></w:settings>' : '';
+    var headerOverrides = '';
+    if (multiPageStyle) {
+      for (var ho = 0; ho < pageSections.sections.length; ho++) headerOverrides += '<Override PartName="/word/header' + pageSections.sections[ho].id + '.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>';
+    } else if (headerXml) headerOverrides = '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>';
+    var footerOverride = footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '';
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (settingsXml ? '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>' : '') + headerOverrides + footerOverride + '</Types>';
     var rootRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
     if (hasLists) {
       relsXml += '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
@@ -9565,8 +9677,9 @@ window.__SUI_RICH = (function () {
       var chromeInfo = docxImages[chromeKey];
       chromeImageRels += '<Relationship Id="' + chromeInfo.rId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/' + chromeInfo.name + '"/>';
     }
-    var headerRelsXml = (headerXml && chromeImageRels) ? '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + chromeImageRels + '</Relationships>' : '';
-    var footerRelsXml = (footerXml && chromeImageRels) ? '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + chromeImageRels + '</Relationships>' : '';
+    var chromeRelsXml = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + chromeImageRels + '</Relationships>';
+    var headerRelsXml = (!multiPageStyle && headerXml && chromeImageRels) ? chromeRelsXml : '';
+    var footerRelsXml = (footerXml && chromeImageRels) ? chromeRelsXml : '';
     var entries = [
       { name: '[Content_Types].xml', data: contentTypes },
       { name: '_rels/.rels', data: rootRels },
@@ -9575,10 +9688,17 @@ window.__SUI_RICH = (function () {
     ];
     if (hasLists) entries.push({ name: 'word/numbering.xml', data: docxNumberingXml() });
     if (settingsXml) entries.push({ name: 'word/settings.xml', data: settingsXml });
-    if (headerXml) entries.push({ name: 'word/header1.xml', data: headerXml });
+    if (!multiPageStyle && headerXml) entries.push({ name: 'word/header1.xml', data: headerXml });
     if (footerXml) entries.push({ name: 'word/footer1.xml', data: footerXml });
     if (headerRelsXml) entries.push({ name: 'word/_rels/header1.xml.rels', data: headerRelsXml });
     if (footerRelsXml) entries.push({ name: 'word/_rels/footer1.xml.rels', data: footerRelsXml });
+    if (multiPageStyle) {
+      for (var hi = 0; hi < pageSections.sections.length; hi++) {
+        var hsec = pageSections.sections[hi];
+        entries.push({ name: 'word/header' + hsec.id + '.xml', data: docxSectionHeader(hsec) });
+        if (chromeImageRels) entries.push({ name: 'word/_rels/header' + hsec.id + '.xml.rels', data: chromeRelsXml });
+      }
+    }
     for (var m = 0; m < media.length; m++) entries.push(media[m]);
     return zipStore(entries);
   }
@@ -9715,7 +9835,7 @@ window.__SUI_RICH = (function () {
     }
     return out;
   }
-  function odtBlock(n) {
+  function odtBlock(n, breakStyle) {
     if (!n) return '';
     if (n.type === 'heading') {
       var odtHLevel = Math.min(6, Number(n.level) || 1);
@@ -9730,13 +9850,13 @@ window.__SUI_RICH = (function () {
       var style = css.length ? ' style="' + css.join(';') + '"' : '';
       return '<text:p' + style + '>' + odtInline(n.children, '', n.hyphens === 'auto') + '</text:p>';
     }
-    if (n.type === 'blockquote') return '<text:section>' + (n.children || []).map(odtBlock).join('') + '</text:section>';
+    if (n.type === 'blockquote') return '<text:section>' + (n.children || []).map(function (child) { return odtBlock(child); }).join('') + '</text:section>';
     if (n.type === 'code_block') {
       var odtCodeBody = (n.codeLanguage && n.codeLanguage !== 'plain') || n.lineNumbers ? odtCodeSegments(n) : odtInline((Array.isArray(n.children) && n.children.length) ? n.children : [{ type: 'text', text: String(n.text || ''), marks: [] }], 'font-family:monospace;font-size:9pt');
       return '<text:p>' + odtCodeBody + '</text:p>';
     }
     if (n.type === 'hr') return '<text:p>---</text:p>';
-    if (n.type === 'page_break') return '<text:p text:style-name="PageBreak"/>';
+    if (n.type === 'page_break') return '<text:p text:style-name="' + (breakStyle || 'PageBreak') + '"/>';
     if (n.type === 'image') return '<text:p>' + (odtImage(n.src, n.width, n.height) || ('[' + xmlEscapeText(n.alt || n.caption || 'image') + ']')) + '</text:p>';
     if (n.type === 'bullet_list' || n.type === 'ordered_list') return odtList(n);
     if (n.type === 'table') {
@@ -9767,8 +9887,14 @@ window.__SUI_RICH = (function () {
     odtLanguage = String(documentLanguage(inst) || 'en');
     odtTableStyles = Object.create(null);
     odtTableSeq = 0;
-    var odtSetupPage = pageConfig(inst, 1), odtSetupDims = pageSizeMm(odtSetupPage);
-    odtContentWcm = mmToCm(odtSetupDims.w - odtSetupPage.margins.left - odtSetupPage.margins.right);
+    var pageSections = exportPageSections(inst, inst.doc), multiPageStyle = pageSections.sections.length > 1;
+    var odtSetupPage = pageSections.sections[0].config, odtSetupDims = pageSizeMm(odtSetupPage);
+    var odtContentWidth = odtSetupDims.w - odtSetupPage.margins.left - odtSetupPage.margins.right;
+    for (var os = 1; os < pageSections.sections.length; os++) {
+      var osCfg = pageSections.sections[os].config, osDims = pageSizeMm(osCfg);
+      odtContentWidth = Math.max(odtContentWidth, osDims.w - osCfg.margins.left - osCfg.margins.right);
+    }
+    odtContentWcm = mmToCm(odtContentWidth);
     var media = [], manifestMedia = '', imageId = 0;
     function collect(node) {
       if (!node) return;
@@ -9789,11 +9915,23 @@ window.__SUI_RICH = (function () {
     for (var ci = 0; ci < (inst.doc.children || []).length; ci++) collect(inst.doc.children[ci]);
     if (inst.headerValue) collect(inst.headerValue);
     if (inst.footerValue) collect(inst.footerValue);
+    function odtBreakStyle(section) { return section.id === 1 ? 'PageBreak' : 'PageBreak' + section.master; }
     var body = '';
-    for (var i = 0; i < (inst.doc.children || []).length; i++) body += odtBlock(inst.doc.children[i]);
+    for (var i = 0; i < (inst.doc.children || []).length; i++) {
+      var pageInfo = multiPageStyle ? pageSections.breakByIndex[i] : null;
+      var breakStyle = (pageInfo && pageInfo.changed) ? odtBreakStyle(pageInfo.to) : 'PageBreak';
+      body += odtBlock(inst.doc.children[i], breakStyle);
+    }
     var odtAuto = '';
     for (var ahs in odtHyphenStyles) if (Object.prototype.hasOwnProperty.call(odtHyphenStyles, ahs)) odtAuto += odtHyphenStyles[ahs];
     for (var ats in odtTableStyles) if (Object.prototype.hasOwnProperty.call(odtTableStyles, ats)) odtAuto += odtTableStyles[ats];
+    if (multiPageStyle) {
+      for (var ob = 0; ob < pageSections.breaks.length; ob++) {
+        var brk = pageSections.breaks[ob];
+        if (!brk.changed) continue;
+        odtAuto += '<style:style style:name="' + odtBreakStyle(brk.to) + '" style:family="paragraph"><style:paragraph-properties fo:break-before="page" style:master-page-name="' + brk.to.master + '"/></style:style>';
+      }
+    }
     var odtContent = '<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2">' + (odtAuto ? '<office:automatic-styles>' + odtAuto + '</office:automatic-styles>' : '') + '<office:body><office:text>' + body + '</office:text></office:body></office:document-content>';
     function odtChrome(text) {
       var parts = String(resolveChromeVariables(text, inst)).split(/(\{page\}|\{pages\}|\[page\]|\[pages\])/i), out = '';
@@ -9804,27 +9942,35 @@ window.__SUI_RICH = (function () {
       }
       return out;
     }
-    var odtPage = pageConfig(inst, 1), odtDims = pageSizeMm(odtPage);
-    var odtBg = hexColor(odtPage.background);
-    var odtPageProps = '<style:page-layout-properties fo:page-width="' + mmToCm(odtDims.w) + '" fo:page-height="' + mmToCm(odtDims.h) + '" fo:margin-top="' + mmToCm(odtPage.margins.top) + '" fo:margin-bottom="' + mmToCm(odtPage.margins.bottom) + '" fo:margin-left="' + mmToCm(odtPage.margins.left) + '" fo:margin-right="' + mmToCm(odtPage.margins.right) + '"' + (odtBg && odtBg !== 'FFFFFF' ? ' fo:background-color="#' + odtBg + '"' : '') + '/>';
-    var styles;
-    if (inst.headerText || inst.footerText) {
+    function odtPageProps(section) {
+      var d = pageSizeMm(section.config), m = section.config.margins;
+      return '<style:page-layout-properties fo:page-width="' + mmToCm(d.w) + '" fo:page-height="' + mmToCm(d.h) + '" fo:margin-top="' + mmToCm(m.top) + '" fo:margin-bottom="' + mmToCm(m.bottom) + '" fo:margin-left="' + mmToCm(m.left) + '" fo:margin-right="' + mmToCm(m.right) + '"' + (section.color !== 'FFFFFF' ? ' fo:background-color="#' + section.color + '"' : '') + '/>';
+    }
+    var hasChrome = !!(inst.headerText || inst.footerText);
+    var odtHeader = '', odtFooter = '';
+    if (hasChrome) {
       var odtHeaderBody = odtChromeBody(inst.headerValue || inst.headerText || '', inst, 'Header');
       var odtFooterBody = odtChromeBody(inst.footerValue || inst.footerText || '', inst, 'Footer');
-      var odtHeader = odtHeaderBody ? '<style:header>' + odtHeaderBody + '</style:header>' : '';
-      var odtFooter = odtFooterBody ? '<style:footer>' + odtFooterBody + '</style:footer>' : '';
-      styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2">' +
-        '<office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style><style:style style:name="Header" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' +
-        '<style:style style:name="Footer" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' + odtListStyles() + '</office:styles>' +
-        '<office:automatic-styles><style:page-layout style:name="pm1">' + odtPageProps +
-        '<style:header-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-bottom="0.3cm"/></style:header-style>' +
-        '<style:footer-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-top="0.3cm"/></style:footer-style>' +
-        '</style:page-layout></office:automatic-styles>' +
-        '<office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1">' + odtHeader + odtFooter + '</style:master-page></office:master-styles>' +
-        '</office:document-styles>';
-    } else {
-      styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2"><office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style>' + odtListStyles() + '</office:styles><office:automatic-styles><style:page-layout style:name="pm1">' + odtPageProps + '</style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1"/></office:master-styles></office:document-styles>';
+      odtHeader = odtHeaderBody ? '<style:header>' + odtHeaderBody + '</style:header>' : '';
+      odtFooter = odtFooterBody ? '<style:footer>' + odtFooterBody + '</style:footer>' : '';
     }
+    var chromeLayoutProps = hasChrome ?
+      '<style:header-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-bottom="0.3cm"/></style:header-style>' +
+      '<style:footer-style><style:header-footer-properties fo:min-height="0.8cm" fo:margin-top="0.3cm"/></style:footer-style>' : '';
+    var odtLayouts = '', odtMasters = '';
+    for (var pl = 0; pl < pageSections.sections.length; pl++) {
+      var sec = pageSections.sections[pl];
+      odtLayouts += '<style:page-layout style:name="pm' + sec.id + '">' + odtPageProps(sec) + chromeLayoutProps + '</style:page-layout>';
+      odtMasters += '<style:master-page style:name="' + sec.master + '" style:page-layout-name="pm' + sec.id + '">' + odtHeader + odtFooter + '</style:master-page>';
+    }
+    var chromeStyles = hasChrome ?
+      '<style:style style:name="Header" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' +
+      '<style:style style:name="Footer" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="9pt" fo:color="#666666"/></style:style>' : '';
+    var styles = '<?xml version="1.0" encoding="UTF-8"?><office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2">' +
+      '<office:styles><style:style style:name="PageBreak" style:family="paragraph"><style:paragraph-properties fo:break-before="page"/></style:style>' + chromeStyles + odtListStyles() + '</office:styles>' +
+      '<office:automatic-styles>' + odtLayouts + '</office:automatic-styles>' +
+      '<office:master-styles>' + odtMasters + '</office:master-styles>' +
+      '</office:document-styles>';
     styles = styles.replace('<office:document-styles ', '<office:document-styles xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" ');
     var manifest = '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>' + manifestMedia + '</manifest:manifest>';
     var entries = [

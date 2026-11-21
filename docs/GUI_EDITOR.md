@@ -1438,7 +1438,9 @@ are available as presets, and `None` leaves only the theme button. With
 **Read only** enabled no menu or toolbar is shown and the content cannot be
 changed; the control becomes a real viewer for rich text, HTML or Markdown.
 The page background is white by default and can be changed in Document settings
-and Page settings; dark backgrounds automatically use readable text. In HTML and
+and Page settings; dark backgrounds automatically use readable text. Page
+settings are keyed by number: explicit page breaks carry those backgrounds,
+sizes and margins into PDF, DOCX, ODT and RTF exports. In HTML and
 Markup modes the status bar also has a **Source** toggle: it opens a source
 editor where you can type, paste, apply or revert HTML/Markdown code, then return
 to the visual editor. Read-only controls never expose source editing.

@@ -1847,19 +1847,24 @@ the **?** help lists them with their meaning. Header/footer values are stored as
 plain text or as a rich block model with paragraphs and images; existing string
 values remain supported. **Page settings** (toolbar button `pageSettings` and
 Preferences > Page settings) overrides the document defaults for one page:
-choose the page number, then set size, orientation and margins. The page panel's
-Reset returns that page to the document defaults. Variables are resolved in the
-paginated view, preview, direct print, PDF, DOCX and ODT. Multi-line text and
-images are kept in the paginated view, preview and direct Print; PDF, DOCX,
-ODT and RTF exports include rich header/footer text and images (PDF draws them
-in the measured header/footer area). Defaults are stored as
-`page: { size, orientation, lineHeight, lang, margins }` plus
+choose the page number, then set background, size, orientation and margins. The
+page panel's Reset returns that page to the document defaults. Variables are
+resolved in the paginated view, preview, direct print, PDF, DOCX and ODT.
+Multi-line text and images are kept in the paginated view, preview and direct
+Print; PDF, DOCX, ODT and RTF exports include rich header/footer text and images
+(PDF draws them in the measured header/footer area). Defaults are stored as
+`page: { size, orientation, lineHeight, lang, background, margins }` plus
 `header`/`footer`; per-page overrides are in
-`pageOverrides: { "1": { size, orientation, margins } }`.
-They are applied to the paginated view, print, PDF, DOCX, ODT and RTF/DOC
-exports (exports use the first page's effective settings); DOCX and ODT import
-restore the document defaults. The default is A4 portrait with 15 mm top/bottom and 17 mm
-left/right margins. The continuous editor draws a dashed horizontal guide at
+`pageOverrides: { "1": { background, size, orientation, margins } }`.
+They are applied to the paginated view and print. PDF paints each rendered page
+with that page's background, but keeps the document defaults for size and
+margins. DOCX, ODT and RTF emit a section for every changed explicit
+`{ type: "page_break" }` block, so background, size, orientation and margins
+follow those overrides; pages created by automatic word-processor overflow keep
+the current section's settings. Use hex or `rgb()` backgrounds for binary
+exports (CSS colour names work in the editor but are ignored there). DOCX and
+ODT import restore the document defaults. The default is A4 portrait with 15 mm
+top/bottom and 17 mm left/right margins. The continuous editor draws a dashed horizontal guide at
 every automatic page cut, aligned with the exact page start used by the
 paginated view and print preview (same content height, table row splits and
 text splits) and snapped to the nearest paragraph/table edge so it never

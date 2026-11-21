@@ -1805,15 +1805,24 @@ sovrapporsi al contenuto. Le variabili sono: `{page}`, `{pages}`, `{title}`,
 come modello ricco con paragrafi e immagini; i valori stringa esistenti restano
 supportati. **Impostazioni pagina** (pulsante `pageSettings` e Preferences >
 Impostazioni pagina) sovrascrive i default del documento per una pagina: scegli
-il numero, poi formato, orientamento e margini. Reset riporta la pagina ai
-default. Le variabili vengono risolte nella vista paginata, anteprima, stampa
+il numero, poi sfondo, formato, orientamento e margini. Reset riporta la pagina
+ai default. Le variabili vengono risolte nella vista paginata, anteprima, stampa
 diretta, PDF, DOCX e ODT. Testo multiriga e immagini restano nella vista
 paginata, nell'anteprima e nella stampa diretta; gli export PDF, DOCX, ODT e RTF
 includono testo ricco e immagini di header/footer (il PDF li disegna nell'area
 misurata di intestazione/piè). I default stanno in
-`page: { size, orientation, lineHeight, lang, margins }` più `header`/`footer`; le
-sovrascritture per pagina in `pageOverrides: { "1": { size, orientation, margins } }`.
-Gli export usano le impostazioni efficaci della prima pagina. Il default è A4
+`page: { size, orientation, lineHeight, lang, background, margins }` più
+`header`/`footer`; le sovrascritture per pagina in
+`pageOverrides: { "1": { background, size, orientation, margins } }`.
+Vengono applicate alla vista paginata e alla stampa. Il PDF colora ogni pagina
+renderizzata con lo sfondo del suo numero, ma mantiene i default del documento
+per formato e margini. DOCX, ODT e RTF generano una sezione per ogni blocco
+esplicito `{ type: "page_break" }` che cambia impostazioni: sfondo, formato,
+orientamento e margini seguono quindi quelle sovrascritture; le pagine create
+dalla distribuzione automatica del programma di videoscrittura conservano le
+impostazioni della sezione corrente. Per gli export binari usa sfondi esadecimali
+o `rgb()` (i nomi colore CSS funzionano nell'editor ma vengono ignorati lì).
+L'import DOCX e ODT ripristina i default del documento. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
 orizzontale su ogni interruzione di pagina automatica, allineata all'inizio
 esatto della pagina usato dalla vista paginata e dall'anteprima di stampa

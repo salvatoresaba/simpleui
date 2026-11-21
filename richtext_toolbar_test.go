@@ -423,6 +423,15 @@ func TestRichTextModeProfilesAndPageBackgroundMarkers(t *testing.T) {
 		`fo:background-color="#`,
 		`\\*\\background`,
 		`pdfFill(pageBackground)`,
+		"function exportPageSignature(",
+		"function exportPageSections(",
+		"function rtfBackgroundShape(",
+		"function docxSectionProps(",
+		"function odtBreakStyle(",
+		`<w:type w:val="nextPage"/>`,
+		`<v:fill color="#`,
+		`style:master-page-name="`,
+		`\\sect`,
 	} {
 		if !strings.Contains(suiRichTextRuntime, marker) {
 			t.Errorf("runtime missing editor-mode/background marker: %s", marker)

@@ -1220,6 +1220,43 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     var importedPage = JSON.parse(__SUI_RICH.get('editor')[0]).page;
     if (pageImport[1] !== null || !importedPage || importedPage.size !== 'letter' || importedPage.orientation !== 'landscape' || importedPage.margins.left !== 22) throw new Error('DOCX page round-trip failed: ' + JSON.stringify(importedPage));
 
+    // Explicit page breaks with per-page overrides become real export sections.
+    var pagePara = function (text) { return { type: 'paragraph', children: [{ type: 'text', text: text, marks: [] }] }; };
+    __SUI_RICH.set('editor', {
+      type: 'doc',
+      page: { background: '#ffffff' },
+      pageOverrides: {
+        '1': { size: 'letter', orientation: 'landscape', margins: { top: 20, right: 25, bottom: 18, left: 22 }, background: '#ffffff' },
+        '2': { background: '#336699' },
+        '3': { background: '#cc4422' }
+      },
+      children: [pagePara('First'), { type: 'page_break' }, pagePara('Second'), { type: 'page_break' }, pagePara('Third')]
+    });
+    await wait(200);
+    var multiPdf = toLatin(__SUI_RICH.exportBytes('editor', 'pdf')[0]);
+    if (multiPdf.indexOf('0.2 0.4 0.6 rg') < 0 || multiPdf.indexOf('0.8 0.27 0.13 rg') < 0) throw new Error('PDF per-page backgrounds missing');
+    if (multiPdf.indexOf('/Count 3') < 0) throw new Error('PDF per-page section count missing');
+
+    var multiRtf = toLatin(__SUI_RICH.exportBytes('editor', 'rtf')[0]);
+    var rtfBgr = function (hex) {
+      return ((parseInt(hex.slice(4, 6), 16) << 16) | (parseInt(hex.slice(2, 4), 16) << 8) | parseInt(hex.slice(0, 2), 16)).toString();
+    };
+    if (multiRtf.indexOf('\\sect') < 0 || multiRtf.indexOf('{\\header') < 0 || multiRtf.indexOf('fBackground') < 0) throw new Error('RTF page sections missing');
+    if (multiRtf.indexOf('fillColor}{\\sv ' + rtfBgr('336699') + '}') < 0 || multiRtf.indexOf('fillColor}{\\sv ' + rtfBgr('cc4422') + '}') < 0) throw new Error('RTF per-page background colours missing');
+
+    var multiDocx = toLatin(__SUI_RICH.exportBytes('editor', 'docx')[0]);
+    if (multiDocx.indexOf('<w:background') >= 0) throw new Error('DOCX multi-page background must not stay document-level');
+    if (multiDocx.indexOf('word/header2.xml') < 0 || multiDocx.indexOf('word/header3.xml') < 0) throw new Error('DOCX per-page header parts missing');
+    if (multiDocx.indexOf('r:id="rIdHeader2"') < 0 || multiDocx.indexOf('r:id="rIdHeader3"') < 0) throw new Error('DOCX per-section header references missing');
+    if ((multiDocx.match(/<w:sectPr>/g) || []).length < 3 || multiDocx.indexOf('<w:type w:val="nextPage"/>') < 0) throw new Error('DOCX page sections missing');
+    if (multiDocx.indexOf('v:fill color="#336699"') < 0 || multiDocx.indexOf('v:fill color="#CC4422"') < 0) throw new Error('DOCX per-page background colours missing');
+
+    var multiOdt = toLatin(__SUI_RICH.exportBytes('editor', 'odt')[0]);
+    if ((multiOdt.match(/<style:page-layout style:name="pm/g) || []).length < 3) throw new Error('ODT page layouts missing');
+    if ((multiOdt.match(/<style:master-page style:name=/g) || []).length < 3) throw new Error('ODT master pages missing');
+    if (multiOdt.indexOf('fo:background-color="#336699"') < 0 || multiOdt.indexOf('fo:background-color="#CC4422"') < 0) throw new Error('ODT per-page background colours missing');
+    if (multiOdt.indexOf('style:master-page-name="Page2"') < 0 || multiOdt.indexOf('style:master-page-name="Page3"') < 0) throw new Error('ODT master page transitions missing');
+
     // Fixed control height with scrolling, toolbar zoom, paragraph panel,
     // print preview, prompt overlays, format painter and File menu order.
     __SUI_RICH.setToolbar('editor', 'zoom,paragraphSettings,printPreview,link,bold,copyFormat,clearFormat');
