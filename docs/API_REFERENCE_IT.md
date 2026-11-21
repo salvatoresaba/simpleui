@@ -1823,7 +1823,10 @@ orientamento e margini seguono quindi quelle sovrascritture; le pagine create
 dalla distribuzione automatica del programma di videoscrittura conservano le
 impostazioni della sezione corrente. Per gli export binari usa sfondi esadecimali
 o `rgb()` (i nomi colore CSS funzionano nell'editor ma vengono ignorati lì).
-L'import DOCX e ODT ripristina i default del documento. Il default è A4
+L'import DOCX, ODT e RTF ripristina le interruzioni esplicite e le impostazioni
+per pagina scritte da questi exporter (sfondo, formato, orientamento e margini)
+in `pageOverrides`; gli altri file vengono importati al meglio e il testo di
+header/footer viene letto solo dalla prima sezione. Il default è A4
 verticale con margini di 15 mm sopra/sotto e 17 mm a sinistra/destra. L'editor continuo disegna una linea tratteggiata
 orizzontale su ogni interruzione di pagina automatica, allineata all'inizio
 esatto della pagina usato dalla vista paginata e dall'anteprima di stampa

@@ -1257,6 +1257,38 @@ var firstCellText = tableRows[0].cells[0].children.map(function (n) { return n.t
     if (multiOdt.indexOf('fo:background-color="#336699"') < 0 || multiOdt.indexOf('fo:background-color="#CC4422"') < 0) throw new Error('ODT per-page background colours missing');
     if (multiOdt.indexOf('style:master-page-name="Page2"') < 0 || multiOdt.indexOf('style:master-page-name="Page3"') < 0) throw new Error('ODT master page transitions missing');
 
+    // Export -> import -> export restores explicit breaks and per-page settings.
+    async function checkPageRoundTrip(format) {
+      var exported = __SUI_RICH.exportBytes('editor', format)[0];
+      __SUI_RICH.set('editor', {
+        type: 'doc',
+        page: { background: '#ffffff' },
+        pageOverrides: { '1': { background: '#abcdef' } },
+        children: [pagePara('Old content')]
+      });
+      await wait(120);
+      var imported = await __SUI_RICH.importBytes('editor', exported, 'roundtrip.' + format);
+      await wait(220);
+      if (imported[1] !== null) throw new Error(format + ' import failed: ' + imported[1]);
+      var restored = JSON.parse(__SUI_RICH.get('editor')[0]);
+      var restoredBreaks = restored.children.filter(function (block) { return block.type === 'page_break'; });
+      if (restoredBreaks.length !== 2) throw new Error(format + ' page break count: ' + restoredBreaks.length);
+      if (restored.children[1].type !== 'page_break' || restored.children[3].type !== 'page_break') throw new Error(format + ' page break positions: ' + JSON.stringify(restored.children.map(function (block) { return block.type; })));
+      var paragraphs = restored.children.filter(function (block) { return block.type === 'paragraph'; });
+      if (paragraphs.length !== 3) throw new Error(format + ' paragraph count: ' + paragraphs.length);
+      if (!restored.page || restored.page.size !== 'letter' || restored.page.orientation !== 'landscape' || restored.page.margins.left !== 22) throw new Error(format + ' first page settings: ' + JSON.stringify(restored.page));
+      var overrides = restored.pageOverrides || {};
+      if (!overrides['2'] || String(overrides['2'].background).toLowerCase() !== '#336699' || !overrides['3'] || String(overrides['3'].background).toLowerCase() !== '#cc4422') throw new Error(format + ' per-page overrides: ' + JSON.stringify(overrides));
+      if (Object.prototype.hasOwnProperty.call(overrides, '1')) throw new Error(format + ' stale page 1 override survived');
+      var again = toLatin(__SUI_RICH.exportBytes('editor', format)[0]);
+      if (format === 'docx' && (again.match(/<w:sectPr>/g) || []).length < 3) throw new Error('DOCX re-export sections missing');
+      if (format === 'odt' && (again.match(/<style:master-page style:name=/g) || []).length < 3) throw new Error('ODT re-export masters missing');
+      if (format === 'rtf' && again.indexOf('\\sect') < 0) throw new Error('RTF re-export sections missing');
+    }
+    await checkPageRoundTrip('rtf');
+    await checkPageRoundTrip('docx');
+    await checkPageRoundTrip('odt');
+
     __SUI_RICH.set('editor', {
       type: 'doc',
       page: { background: '#ffffff' },

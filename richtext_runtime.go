@@ -4999,6 +4999,65 @@ window.__SUI_RICH = (function () {
     var d = pageSizeMm(cfg), m = cfg.margins || {};
     return [hexColor(cfg.background) || 'FFFFFF', d.w, d.h, cfg.orientation, m.top, m.right, m.bottom, m.left].join('|');
   }
+  function pageFromMm(w, h) {
+    var ww = Number(w), hh = Number(h);
+    if (!isFinite(ww) || !isFinite(hh) || ww <= 0 || hh <= 0) return { size: 'a4', orientation: 'portrait' };
+    var shortSide = Math.min(ww, hh), longSide = Math.max(ww, hh);
+    var letter = Math.abs(shortSide - 215.9) <= 8 && Math.abs(longSide - 279.4) <= 12;
+    return { size: letter ? 'letter' : 'a4', orientation: ww > hh ? 'landscape' : 'portrait' };
+  }
+  function pageBgHex(value) {
+    var hex = hexColor(value);
+    return !hex || hex === 'FFFFFF' ? null : '#' + hex;
+  }
+  function pageMarginsFrom(raw, fallback) {
+    var src = raw || {}, fb = fallback || { top: 15, right: 17, bottom: 15, left: 17 };
+    return {
+      top: clampPageMargin(src.top, fb.top),
+      right: clampPageMargin(src.right, fb.right),
+      bottom: clampPageMargin(src.bottom, fb.bottom),
+      left: clampPageMargin(src.left, fb.left)
+    };
+  }
+  function pageConfigFromParts(size, orientation, margins, background) {
+    var cfg = {
+      size: size === 'letter' ? 'letter' : 'a4',
+      orientation: orientation === 'landscape' ? 'landscape' : 'portrait',
+      margins: pageMarginsFrom(margins)
+    };
+    if (background) cfg.background = background;
+    return cfg;
+  }
+  function copyPageConfig(cfg) {
+    var src = cfg || defaultPageConfig();
+    return pageConfigFromParts(src.size, src.orientation, src.margins, src.background);
+  }
+  function pageOverrideFromConfig(cfg, base) {
+    var a = copyPageConfig(cfg), b = copyPageConfig(base), out = {};
+    if (a.size !== b.size) out.size = a.size;
+    if (a.orientation !== b.orientation) out.orientation = a.orientation;
+    var abg = (a.background || '#ffffff').toLowerCase(), bbg = (b.background || '#ffffff').toLowerCase();
+    if (abg !== bbg) out.background = abg;
+    var ma = a.margins, mb = b.margins;
+    if (ma.top !== mb.top || ma.right !== mb.right || ma.bottom !== mb.bottom || ma.left !== mb.left) out.margins = ma;
+    return out;
+  }
+  function assignPageConfig(map, page, cfg) {
+    if (page >= 1 && cfg) map[String(page)] = copyPageConfig(cfg);
+  }
+  function assignPageRange(map, from, to, cfg) {
+    for (var p = Math.max(1, from); p <= to; p++) assignPageConfig(map, p, cfg);
+  }
+  function buildPageOverrides(map, base) {
+    var out = {}, keys = Object.keys(map);
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (key === '1') continue;
+      var diff = pageOverrideFromConfig(map[key], base);
+      if (Object.keys(diff).length) out[key] = diff;
+    }
+    return out;
+  }
   function exportPageSections(inst, doc) {
     var sections = [], breaks = [], breakByIndex = Object.create(null), page = 1, current = null;
     function add(n) {
@@ -8531,8 +8590,59 @@ window.__SUI_RICH = (function () {
     }
     return String.fromCharCode(code);
   }
+  function rtfFillHex(value) {
+    var n = Number(value);
+    if (!isFinite(n)) return null;
+    var code = Math.round(n);
+    var parts = [code & 255, (code >> 8) & 255, (code >> 16) & 255];
+    return '#' + parts.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('').toUpperCase();
+  }
+  function rtfTwipsMm(value, fallback) {
+    if (value == null || value === '') return fallback;
+    var n = Number(value);
+    if (!isFinite(n) || n < 0) return fallback;
+    return Math.round(n * 25.4 / 1440 * 10) / 10;
+  }
+  function rtfConfigFromChunk(chunk, fallback) {
+    var fb = fallback || null;
+    var wm = /\\paperw(\d+)/i.exec(chunk), hm = /\\paperh(\d+)/i.exec(chunk);
+    var dims = wm && hm ? pageFromMm(rtfTwipsMm(wm[1], 210), rtfTwipsMm(hm[1], 297)) : null;
+    var fill = /\\sn\s+fillColor\}\s*\{\\sv\s+(-?\d+)/i.exec(chunk);
+    var bg = fill ? rtfFillHex(fill[1]) : null;
+    function margin(re, key) {
+      var m = re.exec(chunk);
+      return m ? rtfTwipsMm(m[1], fb && fb.margins ? fb.margins[key] : (key === 'right' || key === 'left' ? 17 : 15)) : (fb && fb.margins ? fb.margins[key] : (key === 'right' || key === 'left' ? 17 : 15));
+    }
+    return pageConfigFromParts(
+      dims ? dims.size : (fb ? fb.size : 'a4'),
+      dims ? dims.orientation : (fb ? fb.orientation : 'portrait'),
+      {
+        top: margin(/\\margt(\d+)/i, 'top'),
+        right: margin(/\\margr(\d+)/i, 'right'),
+        bottom: margin(/\\margb(\d+)/i, 'bottom'),
+        left: margin(/\\margl(\d+)/i, 'left')
+      },
+      bg || (fb ? fb.background : null)
+    );
+  }
+  function rtfScanSections(source) {
+    var matches = [], re = /\\sect(?![a-zA-Z])/g, match;
+    while ((match = re.exec(source))) matches.push(match);
+    var configs = [], prev = 0;
+    for (var s = 0; s < matches.length; s++) {
+      configs.push(rtfConfigFromChunk(source.slice(prev, matches[s].index), s ? configs[s - 1] : null));
+      prev = matches[s].index + matches[s][0].length;
+    }
+    configs.push(rtfConfigFromChunk(source.slice(prev), configs.length ? configs[configs.length - 1] : null));
+    return configs;
+  }
   function importRTF(text) {
     var source = String(text || '');
+    var rtfSectionConfigs = rtfScanSections(source);
+    var rtfPageConfigs = Object.create(null), rtfPage = 1, rtfSectionIndex = 0, rtfSectionStart = 1;
+    function rtfAssignRange(from, to) {
+      assignPageRange(rtfPageConfigs, from, to, rtfSectionConfigs[rtfSectionIndex] || rtfSectionConfigs[rtfSectionConfigs.length - 1] || null);
+    }
     var colorTable = [''];
     var colorGroup = /\\colortbl([^}]*)/i.exec(source);
     if (colorGroup) {
@@ -8862,7 +8972,17 @@ window.__SUI_RICH = (function () {
           rowCells = null; cellInline = null; align = ''; cellXs = []; cellProps = []; pendingVmerge = ''; rowHeight = '';
           continue;
         }
-        if (word === 'par' || word === 'sect' || word === 'page') flushBlock();
+        if (word === 'par') flushBlock();
+        else if (word === 'sect') {
+          flushBlock();
+          rtfAssignRange(rtfSectionStart, rtfPage);
+          blocks.push({ type: 'page_break' });
+          rtfPage++; rtfSectionIndex++; rtfSectionStart = rtfPage;
+        } else if (word === 'page') {
+          flushBlock();
+          blocks.push({ type: 'page_break' });
+          rtfPage++;
+        }
         else if (word === 'line') addBreak();
         else if (word === 'tab') addText('\t');
         else if (word === 'b') { flushText(); state.bold = !hasNum || num !== 0; }
@@ -8922,7 +9042,7 @@ window.__SUI_RICH = (function () {
     }
     flushBlock();
     for (var tb = 0; tb < blocks.length; tb++) if (blocks[tb] && blocks[tb].type === 'table') finalizeTable(blocks[tb]);
-    blocks = blocks.filter(function (b) { return b.type === 'table' || (b.children && b.children.length && !(b.children.length === 1 && b.children[0].type === 'text' && !b.children[0].text.trim())); });
+    blocks = blocks.filter(function (b) { return b.type === 'table' || b.type === 'page_break' || (b.children && b.children.length && !(b.children.length === 1 && b.children[0].type === 'text' && !b.children[0].text.trim())); });
     var headerPics = destinationPictures('header'), footerPics = destinationPictures('footer');
     if (headerPics.length || footerPics.length) {
       var existing = {};
@@ -8942,8 +9062,19 @@ window.__SUI_RICH = (function () {
       footerPics.forEach(function (pic) { if (!existing[pic.src]) { pic.align = 'center'; withPictures.push(pic); existing[pic.src] = true; } });
       blocks = withPictures;
     }
-    if (!blocks.length) return importPlain(source);
-    return { type: 'doc', children: blocks };
+    rtfAssignRange(rtfSectionStart, rtfPage);
+    if (!blocks.length) {
+      var plainDoc = importPlain(source);
+      var plainPage = copyPageConfig(rtfPageConfigs['1'] || rtfSectionConfigs[0] || defaultPageConfig());
+      plainDoc.page = plainPage;
+      plainDoc.pageOverrides = buildPageOverrides(rtfPageConfigs, plainPage);
+      return plainDoc;
+    }
+    var doc = { type: 'doc', children: blocks };
+    var restoredRtfPage = rtfPageConfigs['1'] || rtfSectionConfigs[0];
+    if (restoredRtfPage) doc.page = copyPageConfig(restoredRtfPage);
+    doc.pageOverrides = buildPageOverrides(rtfPageConfigs, restoredRtfPage || defaultPageConfig());
+    return doc;
   }
   function hexColor(value) {
     var v = String(value == null ? '' : value).trim();
@@ -10059,37 +10190,61 @@ window.__SUI_RICH = (function () {
       return out.replace(/\u00AD/g, '').replace(/\s+/g, ' ').trim();
     }
     var headerText = '', footerText = '', pageCfg = null;
-    var sect = body.getElementsByTagNameNS('*', 'sectPr')[0];
-    if (sect) {
+    function twipsToMm(value, fallback) {
+      if (value == null || value === '') return fallback;
+      var n = Number(value);
+      if (!isFinite(n) || n < 0) return fallback;
+      return Math.round(n * 25.4 / 1440 * 10) / 10;
+    }
+    function relId(node, name) {
+      return node ? (node.getAttribute('r:' + name) || node.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', name)) : '';
+    }
+    var backgroundNode = dom.getElementsByTagNameNS('*', 'background')[0];
+    var docBackground = backgroundNode ? pageBgHex(backgroundNode.getAttribute('w:color') || backgroundNode.getAttribute('color')) : null;
+    function sectionBackground(sect) {
       var refs = sect.getElementsByTagNameNS('*', 'headerReference');
-      if (refs.length) headerText = textFrom(relTarget(refs[0].getAttribute('r:id') || refs[0].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')));
-      var frefs = sect.getElementsByTagNameNS('*', 'footerReference');
-      if (frefs.length) footerText = textFrom(relTarget(frefs[0].getAttribute('r:id') || frefs[0].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')));
+      for (var hr = 0; hr < refs.length; hr++) {
+        var part = relTarget(relId(refs[hr], 'id'));
+        if (!part || !files[part]) continue;
+        try {
+          var hdom = new DOMParser().parseFromString(new TextDecoder().decode(files[part]), 'application/xml');
+          var fills = hdom.getElementsByTagNameNS('*', 'fill');
+          for (var fi = 0; fi < fills.length; fi++) {
+            var bg = pageBgHex(fills[fi].getAttribute('color') || fills[fi].getAttribute('v:color'));
+            if (bg) return bg;
+          }
+        } catch (e) {}
+      }
+      return docBackground;
+    }
+    function sectionConfig(sect) {
       var pgSz = sect.getElementsByTagNameNS('*', 'pgSz')[0];
       var pgMar = sect.getElementsByTagNameNS('*', 'pgMar')[0];
-      if (pgSz || pgMar) {
-        function twipsToMm(value, fallback) {
-          if (value == null || value === '') return fallback;
-          var n = Number(value);
-          if (!isFinite(n) || n < 0) return fallback;
-          return Math.round(n * 25.4 / 1440 * 10) / 10;
-        }
-        var wmm = pgSz ? twipsToMm(pgSz.getAttribute('w:w'), 210) : 210;
-        var hmm = pgSz ? twipsToMm(pgSz.getAttribute('w:h'), 297) : 297;
-        var shortSide = Math.min(wmm, hmm), longSide = Math.max(wmm, hmm);
-        var pageSize = (Math.abs(shortSide - 215.9) <= 8 && Math.abs(longSide - 279.4) <= 12) ? 'letter' : 'a4';
-        pageCfg = {
-          size: pageSize,
-          orientation: wmm > hmm ? 'landscape' : 'portrait',
-          margins: {
-            top: twipsToMm(pgMar ? pgMar.getAttribute('w:top') : null, 15),
-            right: twipsToMm(pgMar ? pgMar.getAttribute('w:right') : null, 17),
-            bottom: twipsToMm(pgMar ? pgMar.getAttribute('w:bottom') : null, 15),
-            left: twipsToMm(pgMar ? pgMar.getAttribute('w:left') : null, 17)
-          }
-        };
-      }
+      if (!pgSz && !pgMar) return null;
+      var wmm = pgSz ? twipsToMm(pgSz.getAttribute('w:w'), 210) : 210;
+      var hmm = pgSz ? twipsToMm(pgSz.getAttribute('w:h'), 297) : 297;
+      var dims = pageFromMm(wmm, hmm);
+      return pageConfigFromParts(dims.size, dims.orientation, {
+        top: twipsToMm(pgMar ? pgMar.getAttribute('w:top') : null, 15),
+        right: twipsToMm(pgMar ? pgMar.getAttribute('w:right') : null, 17),
+        bottom: twipsToMm(pgMar ? pgMar.getAttribute('w:bottom') : null, 15),
+        left: twipsToMm(pgMar ? pgMar.getAttribute('w:left') : null, 17)
+      }, sectionBackground(sect));
     }
+    var sectPrs = body.getElementsByTagNameNS('*', 'sectPr');
+    var sectionConfigs = [];
+    for (var sp = 0; sp < sectPrs.length; sp++) {
+      var sc = sectionConfig(sectPrs[sp]);
+      if (sc) sectionConfigs.push(sc);
+    }
+    var sect = sectPrs[0];
+    if (sect) {
+      var refs = sect.getElementsByTagNameNS('*', 'headerReference');
+      if (refs.length) headerText = textFrom(relTarget(relId(refs[0], 'id')));
+      var frefs = sect.getElementsByTagNameNS('*', 'footerReference');
+      if (frefs.length) footerText = textFrom(relTarget(relId(frefs[0], 'id')));
+    }
+    pageCfg = sectionConfigs[0] || null;
     function imageFromRun(run) {
       var blips = run.getElementsByTagNameNS('*', 'blip');
       for (var b = 0; b < blips.length; b++) {
@@ -10252,6 +10407,7 @@ window.__SUI_RICH = (function () {
       }
       for (var r3 = 0; r3 < rows.length; r3++) rows[r3].cells = keep[r3];
     }
+    var docxPageConfigs = Object.create(null), docxPage = 1, docxSectionIndex = 0, docxSectionStart = 1;
     function blocks(parent) {
       var out = [], stack = [];
       function closeLists(toLevel) {
@@ -10269,7 +10425,25 @@ window.__SUI_RICH = (function () {
             var style = pPr.getElementsByTagNameNS('*', 'pStyle')[0];
             if (style) { var m = /^Heading(\d)$/i.exec(style.getAttribute('w:val') || ''); if (m) heading = Number(m[1]); }
           }
-          var para = { type: heading ? 'heading' : 'paragraph', children: inline(n) };
+          var inlineNodes = inline(n);
+          var inlineSect = pPr ? pPr.getElementsByTagNameNS('*', 'sectPr')[0] : null;
+          if (inlineSect) {
+            assignPageRange(docxPageConfigs, docxSectionStart, docxPage, sectionConfigs[docxSectionIndex] || pageCfg);
+            if (inlineNodes.length) out.push({ type: heading ? 'heading' : 'paragraph', children: inlineNodes });
+            stack = [];
+            out.push({ type: 'page_break' });
+            docxPage++; docxSectionIndex++; docxSectionStart = docxPage;
+            continue;
+          }
+          var brs = n.getElementsByTagNameNS('*', 'br'), hasPageBreak = false;
+          for (var bri = 0; bri < brs.length; bri++) if ((brs[bri].getAttribute('w:type') || brs[bri].getAttribute('type')) === 'page') hasPageBreak = true;
+          if (hasPageBreak && !inlineNodes.length) {
+            stack = [];
+            out.push({ type: 'page_break' });
+            docxPage++;
+            continue;
+          }
+          var para = { type: heading ? 'heading' : 'paragraph', children: inlineNodes };
           if (heading) para.level = heading;
           var props = paragraphProps(pPr);
           for (var pk in props) if (Object.prototype.hasOwnProperty.call(props, pk)) para[pk] = props[pk];
@@ -10349,9 +10523,15 @@ window.__SUI_RICH = (function () {
       return out;
     }
     var doc = { type: 'doc', children: blocks(body) };
+    while (docxSectionIndex < sectionConfigs.length) {
+      assignPageRange(docxPageConfigs, docxSectionStart, docxPage, sectionConfigs[docxSectionIndex]);
+      docxSectionIndex++; docxSectionStart = docxPage + 1; docxPage++;
+    }
     if (headerText) doc.header = headerText;
     if (footerText) doc.footer = footerText;
-    if (pageCfg) doc.page = pageCfg;
+    var restoredPage = docxPageConfigs['1'] || pageCfg;
+    if (restoredPage) doc.page = copyPageConfig(restoredPage);
+    doc.pageOverrides = buildPageOverrides(docxPageConfigs, restoredPage || defaultPageConfig());
     return doc;
   }
   function importODT(files) {
@@ -10365,15 +10545,72 @@ window.__SUI_RICH = (function () {
       mediaMap[fname] = dataUrlFromBytes(files[fname], fname);
     }
     var orderedLists = Object.create(null), headerText = '', footerText = '', pageCfg = null;
+    var layoutConfigs = Object.create(null), layoutOrder = [];
+    var masterOrder = [], masterLayout = Object.create(null), breakStyles = Object.create(null);
+    function odtLengthMm(value, fallback) {
+      var m = /^\s*([\d.]+)\s*(mm|cm|in|pt|pc)?\s*$/i.exec(String(value || ''));
+      if (!m) return fallback;
+      var n = parseFloat(m[1]);
+      if (!isFinite(n) || n < 0) return fallback;
+      var unit = (m[2] || 'mm').toLowerCase();
+      if (unit === 'cm') return n * 10;
+      if (unit === 'in') return n * 25.4;
+      if (unit === 'pt') return n * 25.4 / 72;
+      if (unit === 'pc') return n * 25.4 / 6;
+      return n;
+    }
+    function odtLayoutConfig(props) {
+      if (!props) return null;
+      var w = odtLengthMm(props.getAttribute('fo:page-width'), 210);
+      var h = odtLengthMm(props.getAttribute('fo:page-height'), 297);
+      var dims = pageFromMm(w, h);
+      return pageConfigFromParts(dims.size, dims.orientation, {
+        top: odtLengthMm(props.getAttribute('fo:margin-top'), 15),
+        right: odtLengthMm(props.getAttribute('fo:margin-right'), 17),
+        bottom: odtLengthMm(props.getAttribute('fo:margin-bottom'), 15),
+        left: odtLengthMm(props.getAttribute('fo:margin-left'), 17)
+      }, pageBgHex(props.getAttribute('fo:background-color')));
+    }
+    function collectOdtLayouts(dom) {
+      if (!dom) return;
+      var layouts = dom.getElementsByTagNameNS('*', 'page-layout');
+      for (var l = 0; l < layouts.length; l++) {
+        var name = layouts[l].getAttribute('style:name') || layouts[l].getAttribute('name') || '';
+        var props = layouts[l].getElementsByTagNameNS('*', 'page-layout-properties')[0];
+        var cfg = odtLayoutConfig(props);
+        if (name && cfg && !layoutConfigs[name]) { layoutConfigs[name] = cfg; layoutOrder.push(name); }
+      }
+    }
+    function collectOdtMasters(dom) {
+      if (!dom) return;
+      var masters = dom.getElementsByTagNameNS('*', 'master-page');
+      for (var m = 0; m < masters.length; m++) {
+        var name = masters[m].getAttribute('style:name') || masters[m].getAttribute('name') || '';
+        if (!name || masterOrder.indexOf(name) >= 0) continue;
+        masterOrder.push(name);
+        masterLayout[name] = masters[m].getAttribute('style:page-layout-name') || name;
+      }
+    }
+    function collectOdtBreakStyles(dom) {
+      if (!dom) return;
+      var styles = dom.getElementsByTagNameNS('*', 'style');
+      for (var s = 0; s < styles.length; s++) {
+        var name = styles[s].getAttribute('style:name') || styles[s].getAttribute('name') || '';
+        var props = styles[s].getElementsByTagNameNS('*', 'paragraph-properties')[0];
+        if (!name || !props || props.getAttribute('fo:break-before') !== 'page') continue;
+        breakStyles[name] = props.getAttribute('style:master-page-name') || '';
+      }
+    }
     var stylesXml = files['styles.xml'] ? new TextDecoder().decode(files['styles.xml']) : '';
+    var stylesDom = null;
     if (stylesXml) {
       try {
-        var stylesDom = new DOMParser().parseFromString(stylesXml, 'application/xml');
+        stylesDom = new DOMParser().parseFromString(stylesXml, 'application/xml');
         var listStyles = stylesDom.getElementsByTagNameNS('*', 'list-style');
         for (var ls = 0; ls < listStyles.length; ls++) {
-          var name = listStyles[ls].getAttribute('style:name') || listStyles[ls].getAttribute('name') || '';
-          if (!name) continue;
-          orderedLists[name] = listStyles[ls].getElementsByTagNameNS('*', 'list-level-style-number').length > 0;
+          var listName = listStyles[ls].getAttribute('style:name') || listStyles[ls].getAttribute('name') || '';
+          if (!listName) continue;
+          orderedLists[listName] = listStyles[ls].getElementsByTagNameNS('*', 'list-level-style-number').length > 0;
         }
         function masterText(kind) {
           var master = stylesDom.getElementsByTagNameNS('*', 'master-page')[0];
@@ -10396,36 +10633,16 @@ window.__SUI_RICH = (function () {
         }
         headerText = masterText('header');
         footerText = masterText('footer');
-        var pageProps = stylesDom.getElementsByTagNameNS('*', 'page-layout-properties')[0];
-        if (pageProps) {
-          function odtLengthMm(value, fallback) {
-            var m = /^\s*([\d.]+)\s*(mm|cm|in|pt|pc)?\s*$/i.exec(String(value || ''));
-            if (!m) return fallback;
-            var n = parseFloat(m[1]);
-            if (!isFinite(n) || n < 0) return fallback;
-            var unit = (m[2] || 'mm').toLowerCase();
-            if (unit === 'cm') return n * 10;
-            if (unit === 'in') return n * 25.4;
-            if (unit === 'pt') return n * 25.4 / 72;
-            if (unit === 'pc') return n * 25.4 / 6;
-            return n;
-          }
-          var odtW = odtLengthMm(pageProps.getAttribute('fo:page-width'), 210);
-          var odtH = odtLengthMm(pageProps.getAttribute('fo:page-height'), 297);
-          var odtShort = Math.min(odtW, odtH), odtLong = Math.max(odtW, odtH);
-          pageCfg = {
-            size: (Math.abs(odtShort - 215.9) <= 8 && Math.abs(odtLong - 279.4) <= 12) ? 'letter' : 'a4',
-            orientation: odtW > odtH ? 'landscape' : 'portrait',
-            margins: {
-              top: odtLengthMm(pageProps.getAttribute('fo:margin-top'), 15),
-              right: odtLengthMm(pageProps.getAttribute('fo:margin-right'), 17),
-              bottom: odtLengthMm(pageProps.getAttribute('fo:margin-bottom'), 15),
-              left: odtLengthMm(pageProps.getAttribute('fo:margin-left'), 17)
-            }
-          };
-        }
+        collectOdtLayouts(stylesDom);
+        collectOdtMasters(stylesDom);
+        collectOdtBreakStyles(stylesDom);
       } catch (e) {}
     }
+    collectOdtLayouts(dom);
+    collectOdtMasters(dom);
+    collectOdtBreakStyles(dom);
+    var firstOdtLayout = masterOrder[0] || layoutOrder[0] || '';
+    pageCfg = firstOdtLayout ? (layoutConfigs[masterLayout[firstOdtLayout] || firstOdtLayout] || null) : null;
     function styleMarks(style) {
       var marks = [];
       if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(style)) marks.push({ type: 'bold' });
@@ -10466,6 +10683,10 @@ window.__SUI_RICH = (function () {
       }
       return out;
     }
+    var odtPageConfigs = Object.create(null), odtPage = 1, odtMasterIndex = 0, odtSectionStart = 1;
+    function odtMasterAt(index) { return masterOrder[index] || layoutOrder[index] || ''; }
+    function odtConfigFor(name) { return name ? (layoutConfigs[masterLayout[name] || name] || null) : null; }
+    function odtAssignCurrent() { assignPageRange(odtPageConfigs, odtSectionStart, odtPage, odtConfigFor(odtMasterAt(odtMasterIndex))); }
     function blocks(parent) {
       var out = [];
       for (var i = 0; i < parent.childNodes.length; i++) {
@@ -10475,9 +10696,20 @@ window.__SUI_RICH = (function () {
         if (tag === 'h') out.push({ type: 'heading', level: Number(n.getAttribute('outline-level') || 1), children: inline(n) });
         else if (tag === 'p') {
           var align = /text-align\s*:\s*(left|center|right|justify)/i.exec(n.getAttribute('style') || '');
+          var odtStyle = n.getAttribute('text:style-name') || n.getAttribute('style-name') || '';
           var p = { type: 'paragraph', children: inline(n) };
           if (align) p.align = align[1].toLowerCase();
-          out.push(p);
+          if (Object.prototype.hasOwnProperty.call(breakStyles, odtStyle)) {
+            odtAssignCurrent();
+            var targetMaster = breakStyles[odtStyle];
+            var targetIndex = targetMaster ? masterOrder.indexOf(targetMaster) : -1;
+            if (targetIndex < 0 && targetMaster) targetIndex = layoutOrder.indexOf(targetMaster);
+            if (p.children.length) out.push(p);
+            out.push({ type: 'page_break' });
+            if (targetIndex >= 0) { odtMasterIndex = targetIndex; odtPage = targetIndex + 1; }
+            else odtPage++;
+            odtSectionStart = odtPage;
+          } else out.push(p);
         }
         else if (tag === 'list') {
           var styleName = n.getAttribute('text:style-name') || n.getAttribute('style-name') || '';
@@ -10508,9 +10740,12 @@ window.__SUI_RICH = (function () {
       return out;
     }
     var doc = { type: 'doc', children: blocks(body) };
+    odtAssignCurrent();
     if (headerText) doc.header = headerText;
     if (footerText) doc.footer = footerText;
-    if (pageCfg) doc.page = pageCfg;
+    var restoredOdtPage = odtPageConfigs['1'] || pageCfg;
+    if (restoredOdtPage) doc.page = copyPageConfig(restoredOdtPage);
+    doc.pageOverrides = buildPageOverrides(odtPageConfigs, restoredOdtPage || defaultPageConfig());
     return doc;
   }
   function pdfEscape(text) { return String(text == null ? '' : text).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'); }

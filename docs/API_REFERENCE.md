@@ -1862,9 +1862,12 @@ current page's settings. DOCX, ODT and RTF emit a section for every changed expl
 `{ type: "page_break" }` block, so background, size, orientation and margins
 follow those overrides; pages created by automatic word-processor overflow keep
 the current section's settings. Use hex or `rgb()` backgrounds for binary
-exports (CSS colour names work in the editor but are ignored there). DOCX and
-ODT import restore the document defaults. The default is A4 portrait with 15 mm
-top/bottom and 17 mm left/right margins. The continuous editor draws a dashed horizontal guide at
+exports (CSS colour names work in the editor but are ignored there). DOCX, ODT
+and RTF import restore explicit page breaks and per-page settings written by
+these exporters (background, size, orientation and margins) into `pageOverrides`;
+other files are imported best-effort and header/footer text is taken from the
+first section only. The default is A4 portrait with 15 mm top/bottom and 17 mm
+left/right margins. The continuous editor draws a dashed horizontal guide at
 every automatic page cut, aligned with the exact page start used by the
 paginated view and print preview (same content height, table row splits and
 text splits) and snapped to the nearest paragraph/table edge so it never
