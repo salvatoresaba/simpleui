@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os/exec"
 	"strings"
 	"testing"
@@ -100,6 +101,17 @@ const motionGraphScript = `<script>
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function until(fn, timeoutMs) {
+    return (async function () {
+      var deadline = Date.now() + (timeoutMs || 5000);
+      for (;;) {
+        var value = fn();
+        if (value) return value;
+        if (Date.now() >= deadline) return null;
+        await wait(10);
+      }
+    })();
+  }
   try {
     var el = null;
     for (var i = 0; i < 100; i++) {
@@ -110,17 +122,56 @@ const motionGraphScript = `<script>
     if (!el) throw new Error('graph element missing');
     // Wait for the motion-graph runtime to attach its click handler; a busy
     // headless run can render the element before the runtime is ready.
-    for (var gi = 0; gi < 100 && !window.__SUI_MOTION_GRAPH; gi++) await wait(50);
+    if (!(await until(function () { return window.__SUI_MOTION_GRAPH && el.__suiGraphBound; }, 5000))) {
+      throw new Error('motion graph runtime did not bind the element');
+    }
     var before = Math.round(el.getBoundingClientRect().width);
     if (before !== 200) throw new Error('unexpected initial width ' + before);
+
+    // Sample the transition deterministically instead of relying on a fixed
+    // sleep: under load the animation can start slightly after the click, so
+    // a single 140ms sample sometimes still sees the initial width. The
+    // runtime exposes the WAAPI animation as el.__suiGraphAnim, so we can seek
+    // it to the middle and read the intermediate width directly. A sampler is
+    // kept as a fallback for browsers without WAAPI.
+    var samples = [];
+    var sampling = true;
+    (async function () {
+      for (var si = 0; si < 400 && sampling; si++) {
+        samples.push(Math.round(el.getBoundingClientRect().width));
+        await wait(5);
+      }
+    })();
+
     el.click();
-    await wait(140);
-    var mid = Math.round(el.getBoundingClientRect().width);
-    if (!(mid > 210 && mid < 350)) throw new Error('width did not tween: ' + mid);
-    await wait(420);
-    var end = Math.round(el.getBoundingClientRect().width);
-    if (end !== 360) throw new Error('final width ' + end);
-    if (el.__suiGraphState !== 'b') throw new Error('graph state ' + el.__suiGraphState);
+    var anim = await until(function () { return el.__suiGraphAnim || null; }, 2000);
+    var mid = NaN;
+    if (anim && typeof anim.pause === 'function') {
+      try { anim.pause(); } catch (e) {}
+      var timing = anim.effect && anim.effect.getTiming ? anim.effect.getTiming() : null;
+      var duration = timing && typeof timing.duration === 'number' ? timing.duration : 320;
+      var rate = anim.playbackRate || 1;
+      for (var fraction = 0.5; fraction > 0; fraction -= 0.125) {
+        try { anim.currentTime = (duration * fraction) / rate; } catch (e) {}
+        var seeked = Math.round(el.getBoundingClientRect().width);
+        if (seeked > before && seeked < 360) { mid = seeked; break; }
+      }
+      try { anim.finish(); } catch (e) { try { anim.play(); } catch (e2) {} }
+    } else {
+      await until(function () { return el.__suiGraphState === 'b' ? true : null; }, 5000);
+    }
+    sampling = false;
+    if (!(mid > before && mid < 360)) {
+      for (var k = 0; k < samples.length; k++) {
+        if (samples[k] > before && samples[k] < 360) { mid = samples[k]; break; }
+      }
+    }
+    if (!(mid > before && mid < 360)) throw new Error('width did not tween: ' + mid);
+
+    var end = await until(function () {
+      return el.__suiGraphState === 'b' && Math.round(el.getBoundingClientRect().width) === 360 ? 360 : null;
+    }, 5000);
+    if (end !== 360) throw new Error('final width ' + Math.round(el.getBoundingClientRect().width) + ' state ' + el.__suiGraphState);
     result(true);
   } catch (e) {
     result(false, e && e.message ? e.message : String(e));
@@ -1230,18 +1281,13 @@ func TestMotionGraphE2E(t *testing.T) {
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	defer ln.Close()
 	mux := guiTestMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
-	go func() { _ = http.Serve(ln, mux) }()
-	url := "http://" + ln.Addr().String() + "/"
-	time.Sleep(50 * time.Millisecond)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	url := server.URL + "/"
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	args := []string{

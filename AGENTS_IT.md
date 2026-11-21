@@ -133,8 +133,7 @@ go test -count=1 ./...
 ```
 
 Per tutte le verifiche in un solo comando usare `pwsh scripts/verify.ps1`
-(oppure `pwsh scripts/verify.ps1 -SkipFlaky` per escludere i due noti test E2E
-headless instabili).
+(include i test E2E headless).
 
 Per capability desktop:
 

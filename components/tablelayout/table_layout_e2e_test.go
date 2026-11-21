@@ -4,8 +4,8 @@ import . "example.com/simpleui"
 
 import (
 	"context"
-	"net"
 	"net/http"
+	"net/http/httptest"
 	"os/exec"
 	"strings"
 	"testing"
@@ -43,12 +43,6 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 	if page == GuiHTML {
 		t.Fatal("designer page has no closing body")
 	}
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	defer ln.Close()
 
 	var lastHTML string
 	mux := GUITestMux()
@@ -91,11 +85,10 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 		res := GuiCssSetSelectors(r.PostFormValue("css"), r.PostFormValue("selectors"), r.PostFormValue("at"), r.PostFormValue("decls"))
 		WriteRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
 	})
-	go func() { _ = http.Serve(ln, mux) }()
+	server := httptest.NewServer(mux)
+	defer server.Close()
 
-	url := "http://" + ln.Addr().String() + "/"
-	time.Sleep(50 * time.Millisecond)
-
+	url := server.URL + "/"
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	args := []string{
@@ -143,6 +136,17 @@ const tableLayoutE2EScript = `<script>
     document.title = ok ? 'E2E_OK' : 'E2E_FAIL';
   }
   function wait(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+  function until(fn, timeoutMs) {
+    return (async function () {
+      var deadline = Date.now() + (timeoutMs || 5000);
+      for (;;) {
+        var value = fn();
+        if (value) return value;
+        if (Date.now() >= deadline) return null;
+        await wait(20);
+      }
+    })();
+  }
   function frameDoc() {
     var f = document.getElementById('prev');
     return f && f.contentDocument ? f.contentDocument : null;
@@ -168,22 +172,52 @@ const tableLayoutE2EScript = `<script>
   function heads() {
     return Array.from(document.querySelectorAll('#inspector .acchead span:first-child')).map(function (h) { return h.textContent.trim(); });
   }
+  function selectionMatches(row, col, add) {
+    var cells = window.selLayoutCells;
+    if (!cells) return false;
+    return add ? cells.length >= 2 : cells.length === 1 && cells[0].row === row && cells[0].col === col;
+  }
   async function selectCell(row, col, add) {
-    var doc = frameDoc();
-    var pick = Array.from(doc.querySelectorAll('.sui-layout-pick-cell')).find(function (p) {
-      var c = p.parentElement;
-      return c && c.getAttribute('data-sui-layout-row') === String(row) && c.getAttribute('data-sui-layout-col') === String(col);
-    });
-    if (!pick) throw new Error('cell pick ' + row + ',' + col + ' not found');
-    if (add) pick.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
-    else pick.click();
-    await wait(450);
+    for (var attempt = 0; attempt < 5; attempt++) {
+      // Re-acquire the pick immediately before clicking: under load the
+      // preview can be re-rendered between two asynchronous waits, leaving a
+      // stale node whose click never reaches the designer.
+      var pick = await until(function () {
+        var d = frameDoc();
+        if (!d) return null;
+        return Array.from(d.querySelectorAll('.sui-layout-pick-cell')).find(function (p) {
+          var c = p.parentElement;
+          return c && c.getAttribute('data-sui-layout-row') === String(row) && c.getAttribute('data-sui-layout-col') === String(col);
+        }) || null;
+      }, 8000);
+      if (!pick) throw new Error('cell pick ' + row + ',' + col + ' not found');
+      if (add) pick.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+      else pick.click();
+      var selected = await until(function () { return selectionMatches(row, col, add) ? true : null; }, 8000);
+      if (!selected && selectionMatches(row, col, add)) selected = true;
+      if (!selected) {
+        await wait(100);
+        continue;
+      }
+      if (await until(function () { return acc('Layout cell') ? true : null; }, 8000)) return;
+      throw new Error('cell selection updated but the inspector did not render');
+    }
+    throw new Error('cell selection did not update (cells ' + JSON.stringify(window.selLayoutCells) + ')');
   }
   async function selectTable() {
-    var pick = frameDoc().querySelector('.sui-layout-pick-table');
-    if (!pick) throw new Error('table pick not found');
-    pick.click();
-    await wait(450);
+    for (var attempt = 0; attempt < 5; attempt++) {
+      var pick = await until(function () {
+        var d = frameDoc();
+        return d && d.querySelector('.sui-layout-pick-table') || null;
+      }, 8000);
+      if (!pick) throw new Error('table pick not found');
+      pick.click();
+      if (await until(function () {
+        return window.selLayoutCells && window.selLayoutCells.length === 0 ? true : null;
+      }, 8000)) return;
+      await wait(100);
+    }
+    throw new Error('table selection did not clear the cell selection');
   }
   function cell(row, col) {
     return frameDoc().querySelector('.sui-layout-cell[data-sui-layout-row="' + row + '"][data-sui-layout-col="' + col + '"]');
@@ -195,9 +229,13 @@ const tableLayoutE2EScript = `<script>
 
     // Opening Structure syncs the declared counters with the real grid.
     await selectTable();
-    var structBtn = Array.from(acc('Table layout').querySelectorAll('button')).find(function (b) {
-      return b.textContent.trim() === 'Structure table settings';
-    });
+    var structBtn = await until(function () {
+      var section = acc('Table layout');
+      if (!section) return null;
+      return Array.from(section.querySelectorAll('button')).find(function (b) {
+        return b.textContent.trim() === 'Structure table settings';
+      }) || null;
+    }, 8000);
     if (!structBtn) throw new Error('structure button missing');
     structBtn.click();
     await wait(700);
@@ -256,41 +294,48 @@ const tableLayoutE2EScript = `<script>
     target.dispatchEvent(new MouseEvent('mouseup', o));
     target.dispatchEvent(new MouseEvent('click', o));
     await wait(450);
+    if (!(await until(function () { return !!acc('Alignment'); }, 5000))) {
+      throw new Error('Alignment must be available for content inside a cell');
+    }
     var align = acc('Alignment');
-    if (!align) throw new Error('Alignment must be available for content inside a cell');
     var center = Array.from(align.querySelectorAll('button')).find(function (b) { return b.title === 'Center'; });
     if (!center) throw new Error('Center alignment button not found');
     center.click();
-    await wait(900);
+    if (!(await until(function () {
+      var d = frameDoc();
+      var para = d && d.querySelector('table.sui-layout-table p');
+      return para && d.defaultView.getComputedStyle(para).textAlign === 'center' ? true : null;
+    }, 8000))) throw new Error('text-align was not applied');
     doc = frameDoc();
     p = doc.querySelector('table.sui-layout-table p');
     var pc = p.parentElement;
     var pr = p.getBoundingClientRect(), cr = pc.getBoundingClientRect();
     if (doc.defaultView.getComputedStyle(pc).display !== 'table-cell') throw new Error('layout cell must stay a table-cell after alignment');
     if (Math.abs((pr.top - cr.top) - (cr.bottom - pr.bottom)) > 24) throw new Error('text is not vertically centered');
-    if (doc.defaultView.getComputedStyle(p).textAlign !== 'center') throw new Error('text-align was not applied');
 
     // Span merge and reset on the first cell.
     await selectCell(0, 0);
-    var span = secLabels('Layout cell');
-    if (span.indexOf('column span') < 0) throw new Error('column span field missing');
+    if (!(await until(function () { return secLabels('Layout cell').indexOf('column span') >= 0; }, 8000))) {
+      throw new Error('column span field missing');
+    }
     var spanRow = Array.from(acc('Layout cell').querySelectorAll('.rowline')).find(function (r) {
       var l = r.querySelector('label'); return l && l.textContent === 'column span';
     });
     var si = spanRow.querySelector('input');
     si.value = '2';
     si.dispatchEvent(new Event('change', { bubbles: true }));
-    await wait(900);
-    doc = frameDoc();
-    var first = cell(0, 0);
-    if (!first || first.getAttribute('colspan') !== '2') throw new Error('span merge did not update the preview');
-    if (doc.querySelectorAll('table.sui-layout-table td').length !== 3) throw new Error('span merge must remove the covered cell');
+    if (!(await until(function () {
+      var d = frameDoc();
+      var firstCell = d && d.querySelector('.sui-layout-cell[data-sui-layout-row="0"][data-sui-layout-col="0"]');
+      return firstCell && firstCell.getAttribute('colspan') === '2' && d.querySelectorAll('table.sui-layout-table td').length === 3 ? true : null;
+    }, 8000))) throw new Error('span merge did not update the preview');
     await selectCell(0, 0);
     var reset = Array.from(acc('Layout cell').querySelectorAll('button')).find(function (b) { return b.textContent.trim() === 'Reset to 1 x 1'; });
     reset.click();
-    await wait(900);
-    doc = frameDoc();
-    if (doc.querySelectorAll('table.sui-layout-table td').length !== 4) throw new Error('span reset must recreate the released cell');
+    if (!(await until(function () {
+      var d = frameDoc();
+      return d && d.querySelectorAll('table.sui-layout-table td').length === 4 ? true : null;
+    }, 8000))) throw new Error('span reset must recreate the released cell');
 
     // Multi-cell generic styles must apply to every selected cell.
     await selectCell(0, 0);
@@ -302,12 +347,13 @@ const tableLayoutE2EScript = `<script>
     var pi = padRow.querySelector('input');
     pi.value = '12px';
     pi.dispatchEvent(new Event('change', { bubbles: true }));
-    await wait(900);
+    if (!(await until(function () {
+      var c0 = cell(0, 0), c1 = cell(0, 1);
+      return c0 && c1 && /padding:\s*12px/.test(c0.getAttribute('style') || '') && /padding:\s*12px/.test(c1.getAttribute('style') || '') ? true : null;
+    }, 8000))) throw new Error('padding was not applied to every selected cell');
     doc = frameDoc();
     var mc0 = cell(0, 0), mc1 = cell(0, 1);
     if (!mc0 || !mc1) throw new Error('cells missing after multi-selection edit');
-    if (!/padding:\s*12px/.test(mc0.getAttribute('style') || '')) throw new Error('padding was not applied to the primary cell');
-    if (!/padding:\s*12px/.test(mc1.getAttribute('style') || '')) throw new Error('padding was not applied to the secondary cell');
     // Non-mapped generic CSS properties must reach every selected cell class too.
     var radiusRow = Array.from(acc('Border').querySelectorAll('.rowline')).find(function (r) {
       var l = r.querySelector('label'); return l && l.textContent === 'radius';
@@ -317,11 +363,13 @@ const tableLayoutE2EScript = `<script>
     var ri = radiusInputs[radiusInputs.length - 1];
     ri.value = '6px';
     ri.dispatchEvent(new Event('change', { bubbles: true }));
-    await wait(900);
+    if (!(await until(function () {
+      var d = frameDoc();
+      var c0 = cell(0, 0), c1 = cell(0, 1);
+      return d && c0 && c1 && d.defaultView.getComputedStyle(c0).borderTopLeftRadius === '6px' && d.defaultView.getComputedStyle(c1).borderTopLeftRadius === '6px' ? true : null;
+    }, 8000))) throw new Error('radius was not applied to every selected cell');
     doc = frameDoc();
     mc0 = cell(0, 0); mc1 = cell(0, 1);
-    if (doc.defaultView.getComputedStyle(mc0).borderTopLeftRadius !== '6px') throw new Error('radius was not applied to the primary cell');
-    if (doc.defaultView.getComputedStyle(mc1).borderTopLeftRadius !== '6px') throw new Error('radius was not applied to the secondary cell');
 
     // Split drag: the column widths must be written back.
     doc = frameDoc();
@@ -331,10 +379,12 @@ const tableLayoutE2EScript = `<script>
     handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, clientX: hr.left + 6, clientY: hr.top + 10 }));
     doc.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: hr.left + 34, clientY: hr.top + 10 }));
     doc.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: hr.left + 34, clientY: hr.top + 10 }));
-    await wait(1000);
+    if (!(await until(function () {
+      var d = frameDoc();
+      var colEl = d && d.querySelector('table.sui-layout-table colgroup col');
+      return colEl && colEl.getAttribute('style') ? true : null;
+    }, 8000))) throw new Error('split drag did not write column widths');
     doc = frameDoc();
-    var col = doc.querySelector('table.sui-layout-table colgroup col');
-    if (!col || !col.getAttribute('style')) throw new Error('split drag did not write column widths');
 
     // Reduce rows with content: Move must keep the elements.
     await selectTable();
@@ -352,10 +402,11 @@ const tableLayoutE2EScript = `<script>
     var move = document.getElementById('layoutreduce-move');
     if (!move) throw new Error('move content button missing');
     move.click();
-    await wait(900);
+    if (!(await until(function () {
+      var d = frameDoc();
+      return d && d.querySelectorAll('table.sui-layout-table tbody tr').length === 1 && d.querySelectorAll('table.sui-layout-table .sui-card').length === 3 ? true : null;
+    }, 8000))) throw new Error('grid reduction did not apply and keep all card content');
     doc = frameDoc();
-    if (doc.querySelectorAll('table.sui-layout-table tbody tr').length !== 1) throw new Error('grid reduction did not apply');
-    if (doc.querySelectorAll('table.sui-layout-table .sui-card').length !== 3) throw new Error('move must keep all card content');
 
     // A split that would go below the minimum asks first; Cancel keeps the grid.
     await selectCell(0, 0);
@@ -384,7 +435,11 @@ const tableLayoutE2EScript = `<script>
     var bStyle = bStyleRow && bStyleRow.querySelector('select');
     bStyle.value = 'solid';
     bStyle.dispatchEvent(new Event('change', { bubbles: true }));
-    await wait(700);
+    if (!(await until(function () {
+      var d = frameDoc();
+      var t = d && d.querySelector('table.sui-layout-table');
+      return t && d.defaultView.getComputedStyle(t).borderTopStyle === 'solid' ? true : null;
+    }, 8000))) throw new Error('table frame border style not applied');
     border = acc('Border');
     var bWidthRow = Array.from(border.querySelectorAll('.rowline')).find(function (r) {
       var l = r.querySelector('label'); return l && l.textContent === 'width';
@@ -392,17 +447,24 @@ const tableLayoutE2EScript = `<script>
     var bWidth = bWidthRow && bWidthRow.querySelector('input');
     bWidth.value = '3px';
     bWidth.dispatchEvent(new Event('change', { bubbles: true }));
-    await wait(700);
+    if (!(await until(function () {
+      var d = frameDoc();
+      var t = d && d.querySelector('table.sui-layout-table');
+      return t && parseFloat(d.defaultView.getComputedStyle(t).borderTopWidth) > 0 ? true : null;
+    }, 8000))) throw new Error('table frame border width not applied');
     border = acc('Border');
     var bHex = border && border.querySelector('.color-hex');
     bHex.value = '#ff0000';
     bHex.dispatchEvent(new Event('change', { bubbles: true }));
-    await wait(1000);
+    if (!(await until(function () {
+      var d = frameDoc();
+      var t = d && d.querySelector('table.sui-layout-table');
+      return t && d.defaultView.getComputedStyle(t).borderTopColor === 'rgb(255, 0, 0)' ? true : null;
+    }, 8000))) throw new Error('table frame border color not applied');
     doc = frameDoc();
     var frameTable = doc.querySelector('table.sui-layout-table');
     var fcs = doc.defaultView.getComputedStyle(frameTable);
     if (fcs.borderTopStyle !== 'solid') throw new Error('table frame border style not applied');
-    if (fcs.borderTopColor !== 'rgb(255, 0, 0)') throw new Error('table frame border color not applied: ' + fcs.borderTopColor);
     if (parseFloat(fcs.borderTopWidth) <= 0) throw new Error('table frame border width not applied');
 
     // Panels with an internal preview stay modal.

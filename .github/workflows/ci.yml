@@ -21,7 +21,7 @@ jobs:
           node-version: 20
 
       - name: Verify
-        run: pwsh scripts/verify.ps1 -SkipFlaky
+        run: pwsh scripts/verify.ps1
 
       - name: Ensure clean tracked tree
         run: |

@@ -139,8 +139,7 @@ go test -count=1 ./...
 # Always after editing the control appearance catalog
 ./simpleui.exe appearance check components/appearance.json --json
 
-# Full check set in one command (use -SkipFlaky to exclude the two known
-# headless-browser timing flakes)
+# Full check set in one command (includes the headless-browser E2E tests)
 pwsh scripts/verify.ps1
 ```
 

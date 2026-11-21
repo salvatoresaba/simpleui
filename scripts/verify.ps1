@@ -1,14 +1,5 @@
-param(
-    [switch]$SkipFlaky
-)
-
 # Single verification entry point for SimpleUI. Run it from any directory:
 #   pwsh scripts/verify.ps1
-#   pwsh scripts/verify.ps1 -SkipFlaky
-#
-# -SkipFlaky excludes the two known headless-browser timing flakes
-# (TestMotionGraphE2E and TestGuiTableLayoutVisualE2E) until their harness is
-# made deterministic. CI uses it so the pipeline is reproducible.
 
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path -Parent $PSScriptRoot)
@@ -38,12 +29,7 @@ go vet ./...
 Assert-LastExit 'go vet'
 
 Write-Host '== tests =='
-$testArgs = @('test', '-count=1')
-if ($SkipFlaky) {
-    $testArgs += @('-skip', 'TestMotionGraphE2E|TestGuiTableLayoutVisualE2E')
-}
-$testArgs += './...'
-go @testArgs
+go test -count=1 ./...
 Assert-LastExit 'go test'
 
 Write-Host '== example checks =='
