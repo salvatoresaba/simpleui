@@ -46,12 +46,12 @@ git switch -c feature/my-change
 
 ## What is versioned
 
-Source code, documentation, tests, `.sui` examples, run scripts and configuration
-are versioned. Build outputs are ignored because they can be regenerated and
-would make the repository large:
+Source code, documentation, tests, `.sui` examples, run scripts, configuration
+and the `Test/testdata/` fixtures are versioned. Build outputs are ignored because
+they can be regenerated and would make the repository large:
 
 - `*.exe`, `dist/`, `examples/*/dist/`, `examples/*/bin/`
-- `dist_*/`, `/testcombo2/`, `/testev/`, `/testout2/`
+- `dist_*/`, `Test/dist_*/`, `Test/testcombo2/`, `Test/testev/`, `Test/testout2/`
 - backup/local files such as `*.old`, `*~`, `*.broken`, `*.pid`, `server_out.txt`
 
 Rebuild after checking out an older revision:

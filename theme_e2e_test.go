@@ -475,7 +475,7 @@ func TestGuiThemeScreenshotGolden(t *testing.T) {
 	baseURL := "http://" + ln.Addr().String() + "/"
 	time.Sleep(50 * time.Millisecond)
 
-	goldenDir := filepath.Join("testdata", "theme_golden")
+	goldenDir := filepath.Join("Test", "testdata", "theme_golden")
 	update := os.Getenv("SUI_UPDATE_THEME_GOLDEN") == "1"
 	if update {
 		if err := os.MkdirAll(goldenDir, 0o755); err != nil {

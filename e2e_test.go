@@ -15,8 +15,8 @@ func resetKnownStateNames() {
 func PipelineWeb(source string, file string) (bool, string, string, string, DiagList) {
 	resetKnownStateNames()
 	var dl DiagList
-	if err := os.MkdirAll("testdata", 0o755); err != nil {
-		dl.Add(file, 1, 1, "cannot create testdata dir: "+err.Error())
+	if err := os.MkdirAll("Test/testdata", 0o755); err != nil {
+		dl.Add(file, 1, 1, "cannot create Test/testdata dir: "+err.Error())
 		return false, "", "", "", dl
 	}
 	if err := os.WriteFile(file, []byte(source), 0o644); err != nil {
@@ -45,7 +45,7 @@ func TestPipelineCounter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot read examples/counter.sui: %v", err)
 	}
-	ok, appJs, indexHtml, css, errs := PipelineWeb(string(data), "testdata/tmp_counter.sui")
+	ok, appJs, indexHtml, css, errs := PipelineWeb(string(data), "Test/testdata/tmp_counter.sui")
 	if !ok {
 		errs.Print()
 		t.Errorf("counter pipeline did not succeed")
@@ -74,11 +74,11 @@ func TestPipelineCounter(t *testing.T) {
 }
 
 func TestPipelineImportMerge(t *testing.T) {
-	data, err := os.ReadFile("testdata/entry.sui")
+	data, err := os.ReadFile("Test/testdata/entry.sui")
 	if err != nil {
-		t.Fatalf("cannot read testdata/entry.sui: %v", err)
+		t.Fatalf("cannot read Test/testdata/entry.sui: %v", err)
 	}
-	ok, appJs, _, _, errs := PipelineWeb(string(data), "testdata/tmp_import_entry.sui")
+	ok, appJs, _, _, errs := PipelineWeb(string(data), "Test/testdata/tmp_import_entry.sui")
 	if !ok {
 		errs.Print()
 		t.Errorf("import merge pipeline did not succeed")
@@ -92,11 +92,11 @@ func TestPipelineImportMerge(t *testing.T) {
 }
 
 func TestPipelineImportDuplicate(t *testing.T) {
-	data, err := os.ReadFile("testdata/dup_entry.sui")
+	data, err := os.ReadFile("Test/testdata/dup_entry.sui")
 	if err != nil {
-		t.Fatalf("cannot read testdata/dup_entry.sui: %v", err)
+		t.Fatalf("cannot read Test/testdata/dup_entry.sui: %v", err)
 	}
-	ok, _, _, _, errs := PipelineWeb(string(data), "testdata/tmp_dup_entry.sui")
+	ok, _, _, _, errs := PipelineWeb(string(data), "Test/testdata/tmp_dup_entry.sui")
 	if ok {
 		t.Errorf("duplicate-symbol fixture should not compile")
 	}
@@ -107,7 +107,7 @@ func TestPipelineImportDuplicate(t *testing.T) {
 
 func TestPipelineBadType(t *testing.T) {
 	src := "state badnum = 0\nfn f() -> null { badnum = \"s\" }\n"
-	ok, _, _, _, errs := PipelineWeb(src, "testdata/tmp_badtype.sui")
+	ok, _, _, _, errs := PipelineWeb(src, "Test/testdata/tmp_badtype.sui")
 	if ok {
 		t.Errorf("bad-type program (int state assigned a string) should not compile")
 	}
@@ -118,7 +118,7 @@ func TestPipelineBadType(t *testing.T) {
 
 func TestPipelineStdOutsideAsync(t *testing.T) {
 	src := "import { http } from \"std\"\nfn f() -> null { a, b = http.get(\"u\") }\n"
-	ok, _, _, _, errs := PipelineWeb(src, "testdata/tmp_std_sync.sui")
+	ok, _, _, _, errs := PipelineWeb(src, "Test/testdata/tmp_std_sync.sui")
 	if ok {
 		t.Errorf("std call outside async should not compile")
 	}
@@ -137,7 +137,7 @@ func TestPipelineAsyncJsonTuples(t *testing.T) {
 		"		data = d\n" +
 		"	}\n" +
 		"}\n"
-	ok, appJs, _, _, errs := PipelineWeb(src, "testdata/tmp_async.tmp")
+	ok, appJs, _, _, errs := PipelineWeb(src, "Test/testdata/tmp_async.tmp")
 	if !ok {
 		errs.Print()
 		t.Errorf("async+json pipeline did not succeed")
@@ -158,7 +158,7 @@ func TestPipelineAsyncJsonTuples(t *testing.T) {
 
 func TestPipelineViewBindings(t *testing.T) {
 	src := "state a = 1\nstate b = \"x\"\nview main {\n\tp \"{a} {b}\"\n}\n"
-	ok, appJs, _, _, errs := PipelineWeb(src, "testdata/tmp_refs.tmp")
+	ok, appJs, _, _, errs := PipelineWeb(src, "Test/testdata/tmp_refs.tmp")
 	if !ok {
 		errs.Print()
 		t.Errorf("view-bindings fixture did not compile")
@@ -172,13 +172,13 @@ func TestPipelineViewBindings(t *testing.T) {
 	if !strings.Contains(appJs, `__sui_bindView("b", "main")`) {
 		t.Errorf("missing binding for state b")
 	}
-	if err := os.MkdirAll("testdata", 0o755); err != nil {
-		t.Fatalf("cannot create testdata: %v", err)
+	if err := os.MkdirAll("Test/testdata", 0o755); err != nil {
+		t.Fatalf("cannot create Test/testdata: %v", err)
 	}
-	if err := os.WriteFile("testdata/tmp_refs.tmp", []byte(src), 0o644); err != nil {
+	if err := os.WriteFile("Test/testdata/tmp_refs.tmp", []byte(src), 0o644); err != nil {
 		t.Fatalf("cannot write fixture: %v", err)
 	}
-	prog, perrs := LoadProgram("testdata/tmp_refs.tmp")
+	prog, perrs := LoadProgram("Test/testdata/tmp_refs.tmp")
 	if perrs.HasErrors() {
 		perrs.Print()
 		t.Fatalf("reload of bindings fixture failed")
@@ -193,12 +193,12 @@ func TestPipelineViewBindings(t *testing.T) {
 	if len(refs) != 2 || refs[0] != "a" || refs[1] != "b" {
 		t.Errorf("ViewStateRefs(main) = %v, want [a b]", refs)
 	}
-	_ = os.Remove("testdata/tmp_refs.tmp")
+	_ = os.Remove("Test/testdata/tmp_refs.tmp")
 }
 
 func TestAstJsonParse(t *testing.T) {
 	src := "state a = 1\nview main {\n\tp \"hi\"\n}\n"
-	j, errs := AstJsonFromSource(src, "testdata/parse_fixture.sui")
+	j, errs := AstJsonFromSource(src, "Test/testdata/parse_fixture.sui")
 	if errs.HasErrors() {
 		errs.Print()
 		t.Errorf("parse JSON should have no diagnostics")
@@ -216,7 +216,7 @@ func TestAstJsonParse(t *testing.T) {
 
 func TestPipelineReservedNames(t *testing.T) {
 	src := "state cmd = \"x\"\nfn setCmd(v: string) -> null {\n\tcmd = v\n}\n"
-	ok, _, _, _, errs := PipelineWeb(src, "testdata/tmp_reserved.tmp")
+	ok, _, _, _, errs := PipelineWeb(src, "Test/testdata/tmp_reserved.tmp")
 	if ok {
 		t.Errorf("function colliding with a generated state setter should not compile")
 	}
@@ -225,7 +225,7 @@ func TestPipelineReservedNames(t *testing.T) {
 	}
 
 	src2 := "fn render_thing() -> null {}\n"
-	ok2, _, _, _, errs2 := PipelineWeb(src2, "testdata/tmp_reserved2.tmp")
+	ok2, _, _, _, errs2 := PipelineWeb(src2, "Test/testdata/tmp_reserved2.tmp")
 	if ok2 {
 		t.Errorf("function with render_ prefix should not compile")
 	}
@@ -249,7 +249,7 @@ func TestExamplesCompile(t *testing.T) {
 			t.Errorf("cannot read %v: %v", examples[i], err)
 			continue
 		}
-		ok, _, _, _, errs := PipelineWeb(string(data), "testdata/tmp_example.tmp")
+		ok, _, _, _, errs := PipelineWeb(string(data), "Test/testdata/tmp_example.tmp")
 		if !ok {
 			errs.Print()
 			t.Errorf("example %v did not compile through the pipeline", examples[i])

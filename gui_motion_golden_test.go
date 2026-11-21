@@ -20,7 +20,7 @@ import (
 // field. It uses text, field order, option lists and visibility flags rather
 // than pixels, so it stays deterministic across fonts and platforms while
 // still catching designer regressions. Set SUI_UPDATE_GUI_MOTION_GOLDEN=1 to
-// regenerate testdata/gui_motion_golden/panels.json.
+// regenerate Test/testdata/gui_motion_golden/panels.json.
 type guiMotionGolden struct {
 	PanelOn bool `json:"panelOn"`
 	Exit    struct {
@@ -133,7 +133,7 @@ func TestGuiMotionPanelsGolden(t *testing.T) {
 		t.Fatalf("invalid golden snapshot: %v", err)
 	}
 
-	goldenPath := filepath.Join("testdata", "gui_motion_golden", "panels.json")
+	goldenPath := filepath.Join("Test", "testdata", "gui_motion_golden", "panels.json")
 	update := os.Getenv("SUI_UPDATE_GUI_MOTION_GOLDEN") == "1"
 	wantJSON, marshalErr := json.MarshalIndent(got, "", "  ")
 	if marshalErr != nil {

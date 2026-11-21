@@ -35,7 +35,7 @@ that cross files are **Capitalized** (Go lower-case names are file-scoped).
 ├── htmlgen.go           -> index.html + style.css (codegen)
 dnd.go               browser drag-and-drop runtime
 ├── *_test.go            unit tests per module (Go `go test` files)
-├── testdata/            .sui fixtures (NO .go files here)
+├── Test/testdata/       .sui fixtures (NO .go files here)
 └── examples/            sample .sui apps (NO .go files here)
 ```
 

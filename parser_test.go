@@ -225,12 +225,12 @@ func TestParseErrors(t *testing.T) {
 }
 
 func TestLoadProgramMerge(t *testing.T) {
-	prog, dl := LoadProgram("testdata/entry.sui")
+	prog, dl := LoadProgram("Test/testdata/entry.sui")
 	if dl.Count() != 0 {
 		t.Errorf("merge: %v diagnostics: %v", dl.Count(), diagMsgs(dl))
 		return
 	}
-	if prog.file != "testdata/entry.sui" {
+	if prog.file != "Test/testdata/entry.sui" {
 		t.Errorf("prog.file: %q", prog.file)
 	}
 	names := ""
@@ -265,7 +265,7 @@ func TestLoadProgramMerge(t *testing.T) {
 }
 
 func TestLoadProgramDuplicate(t *testing.T) {
-	prog, dl := LoadProgram("testdata/dup_entry.sui")
+	prog, dl := LoadProgram("Test/testdata/dup_entry.sui")
 	if dl.Count() < 2 {
 		t.Errorf("duplicate symbol: got %v diagnostics: %v", dl.Count(), diagMsgs(dl))
 	}
@@ -282,7 +282,7 @@ func TestLoadProgramDuplicate(t *testing.T) {
 }
 
 func TestLoadProgramMissing(t *testing.T) {
-	prog, dl := LoadProgram("testdata/missing_entry.sui")
+	prog, dl := LoadProgram("Test/testdata/missing_entry.sui")
 	if dl.Count() == 0 {
 		t.Errorf("missing import should be a diagnostic")
 		return
@@ -294,7 +294,7 @@ func TestLoadProgramMissing(t *testing.T) {
 }
 
 func TestLoadProgramCycle(t *testing.T) {
-	prog, dl := LoadProgram("testdata/cycle_a.sui")
+	prog, dl := LoadProgram("Test/testdata/cycle_a.sui")
 	if dl.Count() == 0 {
 		t.Errorf("import cycle should be a diagnostic")
 		return

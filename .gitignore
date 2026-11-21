@@ -7,13 +7,14 @@
 *~
 /dist/
 /dist_*/
+/Test/dist_*/
 /examples/*/dist/
 /examples/*/bin/
 /examples/*/public/
 /examples/*/server/*.exe
-/testcombo2/
-/testev/
-/testout2/
+/Test/testcombo2/
+/Test/testev/
+/Test/testout2/
 /node_modules/
 
 # Scratch / local state
