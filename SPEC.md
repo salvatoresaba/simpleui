@@ -838,6 +838,8 @@ binding).
 |-----------|--------|------|------|-------|
 | http.get  | string | string | string | http_get |
 | http.getStatus | string | int | string | http_getstatus |
+| http.getBytes | string | array[int] | string | http_getbytes |
+| http.getBytesSafe | string, string | array[int] | string | http_getbytessafe |
 | http.post | string, string | string | string | http_post |
 | http.postFiles | string | string | string | http_postfiles |
 | http.postFilesSafe | string, string | string | string | http_postfilessafe |

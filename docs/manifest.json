@@ -177,7 +177,7 @@
       "audience": ["agent", "human"],
       "priority": 1,
       "tags": ["recipes", "local", "remote", "forms", "table", "drag", "files", "http", "desktop", "json", "pointer", "patch", "iframe"],
-      "sections": ["Workflow", "Common skeleton", "Drag and drop", "Local application", "Remote API", "CRUD form", "Polling dashboard", "Desktop files and commands", "Spreadsheet data", "Iframe", "Security checklist", "Verification"]
+      "sections": ["Workflow", "Common skeleton", "Drag and drop", "Local application", "Remote API", "CRUD form", "Polling dashboard", "Desktop files and commands", "Binary documents", "Spreadsheet data", "Iframe", "Security checklist", "Verification"]
     },
     {
       "id": "api",
@@ -563,6 +563,22 @@
         "Use `drag.files()` for immediate metadata and `drag.error()` for rejected input.",
         "Open `docs/GUI_EDITOR.md` for inspector steps and for the list/table/component editing limits.",
         "Treat dropped names as untrusted text; browsers expose names/relative paths, not absolute paths."
+      ]
+    },
+    {
+      "id": "binary-documents",
+      "title": "Binary documents (PDF, images, archives)",
+      "when": "The app loads a remote document, a file in a folder it may read, or a file the user picked, without corrupting the bytes.",
+      "target": "local",
+      "docs": ["stdlib", "stdlib_data", "api", "security"],
+      "examples": ["examples/binary_bytes.sui"],
+      "steps": [
+        "Never read a binary payload with `http.get` or `http.post`: they decode the body as text and corrupt it. Use `http.getBytes(url)` or `http.getBytesSafe(url, allow)` for a remote document.",
+        "On desktop read a file of an allowed folder with `fs.readBytes(path)`; the build-time `--allow-dir` capability still applies.",
+        "In the browser read the file the user picked or dropped with `files.readBytes(name)`: it never reads a path and rejects files over 10 MB.",
+        "Check the returned error and show it: the byte functions follow the standard `(value, error)` convention.",
+        "Validate the magic bytes before parsing (`bytes.slice` + `bytes.toHex`) and keep the caller size limit in mind.",
+        "Treat the bytes as untrusted data: never inject them into HTML, CSS or a URL."
       ]
     },
     {

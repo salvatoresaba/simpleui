@@ -4,7 +4,8 @@ This document covers the pure and in-memory std modules. They never access the
 network, the filesystem, the process environment or the DOM. They are available
 on both web and desktop targets and follow the normal std convention:
 `value, err = module.function(...)` with `err = null` on success. All functions
-in these modules are synchronous.
+in these modules are synchronous, with one exception: `files.readBytes` is
+asynchronous because it reads the bytes of a file the user selected.
 
 The modules are `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`,
 `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log`
@@ -81,6 +82,14 @@ desktop `fs` module for actual file I/O. File names are treated as untrusted.
 | `files.validate(name, [options])` | string, any? | (bool, string) | Validate name, hidden flag, extension and size |
 | `files.isHidden(name)` | string | (bool, string) | Whether the base name starts with `.` |
 | `files.extAllowed(name, allow)` | string, string | (bool, string) | Check an extension allow-list |
+| `files.readBytes(name)` | string | (array[int], string) | Read the bytes of a file in the current selection (web only) |
+
+`files.readBytes(name)` reads the bytes of a file in the current selection
+(`pickFiles:`/`dropFiles:`). The browser only exposes the files the user picked
+or dropped, so it never reads a path: `name` matches the selected file name or
+relative path, and an empty name reads the only selected file. Files over 10 MB
+are rejected. On desktop the picker returns paths, so use `fs.readBytes(path)`
+there (it requires the `--allow-dir` capability).
 
 `files.validate` options are `maxName` (default 200), `allowHidden` (default
 false), `allowedExt` or `allow` (comma/space separated list or array), `size`

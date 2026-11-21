@@ -21,6 +21,8 @@ import { fs } from "std"
 |---|---|---|---|---|
 | `http.get(url)` | string | (string, string) | true | HTTP GET; returns the body as string |
 | `http.getStatus(url)` | string | (int, string) | true | HTTP GET; returns the status code |
+| `http.getBytes(url)` | string | (array[int], string) | true | HTTP GET; returns the body as raw bytes (binary-safe) |
+| `http.getBytesSafe(url, allow)` | string, string | (array[int], string) | true | GET as raw bytes with SSRF allow-list |
 | `http.post(url, body)` | string, string | (string, string) | true | HTTP POST with a string body (JSON/text) |
 | `http.postFiles(url)` | string | (string, string) | true | POST the current selected/dropped files as `multipart/form-data` field `files` |
 | `http.postFilesSafe(url, allow)` | string, string | (string, string) | true | File upload with SSRF allow-list |
@@ -38,7 +40,7 @@ import { fs } from "std"
 | `http.uploadWithHeaders(url, fieldName, filename, content, headers)` | string, string, string, string, any | (string, string) | true | Upload content as `multipart/form-data` with custom headers |
 | `http.uploadWithHeadersSafe(url, fieldName, filename, content, headers, allow)` | string, string, string, string, any, string | (string, string) | true | Upload content with custom headers and SSRF allow-list |
 
-**SSRF:** `http.get/getStatus/post/postFiles/getWithHeaders/postWithHeaders/request/upload/uploadWithHeaders` accept only **literal** URLs. A dynamic URL
+**SSRF:** `http.get/getStatus/getBytes/post/postFiles/getWithHeaders/postWithHeaders/request/upload/uploadWithHeaders` accept only **literal** URLs. A dynamic URL
 must use the `*Safe` variant with a **literal** allow-list (the compiler rejects
 a variable). Entries are separated by commas/spaces:
 
@@ -57,6 +59,13 @@ as multipart data under the field name `files`. It also sends a parallel
 folder/subfolder context. It uploads the actual file bytes; the backend must
 enforce size/count limits and validate file names. Use `postFilesSafe` with a
 literal allow-list when the destination is dynamic.
+
+**Binary responses:** `http.get` and `http.post` decode the body as text, which
+corrupts binary payloads such as PDF. Use `http.getBytes` (and
+`http.getBytesSafe`) to receive the body as raw bytes (`array[int]`). The byte
+variants return an error for a non-2xx status and reject responses over 10 MB;
+the `*Safe` variant applies the same SSRF guard, timeout and size limit as the
+text variants.
 
 ## WebSocket Module (`ws`)
 

@@ -22,6 +22,9 @@ type progFeatures struct {
 	// fileUpload records http.postFiles/postFilesSafe: they read the files
 	// selected through the drag-and-drop/file-picker runtime.
 	fileUpload bool
+	// fileRead records files.readBytes: it reads the bytes of a file in the
+	// current selection, so the drag-and-drop/file-picker runtime is needed.
+	fileRead bool
 	// hyphenLangs is the union of the dictionaries requested by richtext tags
 	// through `hyphenLangs`. Restricted is true only when every richtext tag
 	// carries a literal selection, so no editor still needs the full set.
@@ -65,7 +68,7 @@ func (f *progFeatures) needsTable() bool {
 
 // needsDnd reports whether the drag-and-drop/file-picker runtime is required.
 func (f *progFeatures) needsDnd() bool {
-	return f.fileUpload || f.hasTag("dropzone") ||
+	return f.fileUpload || f.fileRead || f.hasTag("dropzone") ||
 		f.hasAttr("draggable", "dragKey", "dropKey", "dropFiles", "pickFiles", "pickMode", "directory") ||
 		f.hasAPI("drag")
 }
@@ -203,6 +206,9 @@ func scanProgFeatures(p *Prog) *progFeatures {
 			f.apis[e.obj.name] = true
 			if e.obj.name == "http" && (e.memb == "postFiles" || e.memb == "postFilesSafe") {
 				f.fileUpload = true
+			}
+			if e.obj.name == "files" && e.memb == "readBytes" {
+				f.fileRead = true
 			}
 		}
 		expr(e.obj)

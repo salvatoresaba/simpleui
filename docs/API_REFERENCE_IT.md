@@ -446,7 +446,9 @@ utile a `onDrop`.
 - Limiti: 2.000 file, profondità 16, 4.096 caratteri per percorso. Input non
   valido produce un messaggio visibile `Cannot accept the files: ...`.
 - Su textarea i percorsi sono separati da newline; su input da `, `.
-- Il runtime legge solo metadati, mai il contenuto dei file.
+- Il runtime legge solo metadati, mai il contenuto dei file, salvo richiesta
+  esplicita: `files.readBytes(name)` per il file scelto o trascinato e
+  `fs.readBytes(path)` su desktop (con la capability `--allow-dir`).
 
 I nomi dei file sono dati non fidati: visualizzarli tramite state (escaping
 automatico) o `textContent`; non usarli come HTML, CSS o URL non validati. Il

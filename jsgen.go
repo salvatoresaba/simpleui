@@ -648,6 +648,29 @@ var SuiPrelude = "\"use strict\";\n" +
 	"    if (timer) clearTimeout(timer);\n" +
 	"  }\n" +
 	"}\n" +
+	"async function __sui_fetch_bytes_guarded(url, allow) {\n" +
+	"  var g = __sui_url_guard(url, allow, false);\n" +
+	"  if (g[1]) return [null, g[1]];\n" +
+	"  var opts = { redirect: 'error' };\n" +
+	"  var ctrl = null, timer = null;\n" +
+	"  if (typeof AbortController !== 'undefined') { ctrl = new AbortController(); opts.signal = ctrl.signal; timer = setTimeout(function(){ ctrl.abort(); }, 30000); }\n" +
+	"  try {\n" +
+	"    var r = await fetch(g[0], opts);\n" +
+	"    var len = Number(r.headers.get('content-length') || 0);\n" +
+	"    if (len > 10485760) { if (r.body && r.body.cancel) { try { r.body.cancel(); } catch(e) {} } return [null, 'response too large']; }\n" +
+	"    var buf = await r.arrayBuffer();\n" +
+	"    if (buf.byteLength > 10485760) return [null, 'response too large'];\n" +
+	"    var v = new Uint8Array(buf);\n" +
+	"    var out = new Array(v.length);\n" +
+	"    for (var i = 0; i < v.length; i++) out[i] = v[i];\n" +
+	"    return [out, null];\n" +
+	"  } catch(e) {\n" +
+	"    if (ctrl && ctrl.signal && ctrl.signal.aborted) return [null, 'request timed out after 30000ms'];\n" +
+	"    return [null, String(e)];\n" +
+	"  } finally {\n" +
+	"    if (timer) clearTimeout(timer);\n" +
+	"  }\n" +
+	"}\n" +
 	"async function __sui_fetch_status_guarded(url, allow) {\n" +
 	"  var g = __sui_url_guard(url, allow, false);\n" +
 	"  if (g[1]) return [null, g[1]];\n" +
@@ -2664,6 +2687,12 @@ func stdBodyJs(key string, target string) string {
 	}
 	if key == "http_getstatus" {
 		return "async (url) => { try { const r = await fetch(url); return [r.status, null]; } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "http_getbytes" {
+		return "async (url) => { try { const r = await fetch(url); if (!r.ok) return [null, 'http error ' + r.status]; const buf = await r.arrayBuffer(); if (buf.byteLength > 10485760) return [null, 'response too large']; const v = new Uint8Array(buf); const out = new Array(v.length); for (var i = 0; i < v.length; i++) out[i] = v[i]; return [out, null]; } catch (e) { return [null, String(e)]; } }"
+	}
+	if key == "http_getbytessafe" {
+		return "async (url, allow) => __sui_fetch_bytes_guarded(url, allow)"
 	}
 	if key == "http_post" {
 		return "async (url, data) => { try { const r = await fetch(url, {method: \"POST\", headers: {\"Content-Type\": \"application/json\"}, body: data}); return [await r.text(), null]; } catch (e) { return [null, String(e)]; } }"

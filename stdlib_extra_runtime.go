@@ -373,6 +373,22 @@ const stdlibExtraRuntimeRaw = `var __SUI_STD_EXTRA = (function () {
         if (!list.length) return ok(true);
         return ok(list.indexOf(extOf(name).replace(/^\./, '')) >= 0);
       } catch (e) { return failFalse('files.extAllowed: ' + msg(e)); }
+    },
+    readBytes: function (name) {
+      // The only data-module function that touches bytes: it reads the file
+      // the user selected or dropped in this app, never a path and never the
+      // network. The desktop target reads files through fs.readBytes.
+      if (TARGET === 'desktop') {
+        return Promise.resolve([null, 'files.readBytes is not available on the desktop target: use fs.readBytes(path)']);
+      }
+      if (typeof __sui_dnd_read_bytes !== 'function') {
+        return Promise.resolve([null, 'files.readBytes needs a selection: add a file control with pickFiles or drop a file']);
+      }
+      return Promise.resolve(__sui_dnd_read_bytes(name)).then(function (r) {
+        return r;
+      }, function (e) {
+        return [null, String(e && e.message ? e.message : e)];
+      });
     }
   };
 

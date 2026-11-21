@@ -466,6 +466,50 @@ i conflitti. `json.loadFile`/`saveFile` e `loadBytes`/`saveBytes` sono solo
 desktop e richiedono `--allow-dir`. Vedi
 [`examples/json_library.sui`](../examples/json_library.sui).
 
+## Documenti binari
+
+PDF, immagini e archivi non devono mai viaggiare come testo: `http.get` decodifica il body come UTF-8 e corrompe i byte. Tre funzioni mantengono intatto un payload binario, una per sorgente.
+
+```sui
+import { http, files, bytes } from "std"
+
+state picked = ""
+state size = 0
+state magic = ""
+
+async fn loadRemote() -> null {
+	data, err = http.getBytes("https://example.com/report.pdf")
+	if err != null { magic = err; return }
+	size = len(data)
+	head, herr = bytes.slice(data, 0, 4)
+	if herr != null { magic = herr; return }
+	hex, xerr = bytes.toHex(head)
+	if xerr != null { magic = xerr; return }
+	magic = hex
+}
+
+async fn loadPicked() -> null {
+	data, err = files.readBytes(picked)
+	if err != null { magic = err; return }
+	size = len(data)
+}
+
+view main {
+	row {
+		button "Remote" onClick: loadRemote
+		file accept: ".pdf" pickFiles: picked
+	}
+	p "bytes: {size} magic: {magic}"
+}
+```
+
+- Remoto: `http.getBytes(url)`, oppure `http.getBytesSafe(url, allow)` per URL dinamici. Entrambe rifiutano uno status non 2xx e un body oltre 10 MB.
+- Cartella che l'app puo leggere (desktop): `fs.readBytes(path)`; vale sempre la capability `--allow-dir` concessa a build time.
+- File scelto o trascinato dall'utente (web): `files.readBytes(name)`, dove `name` corrisponde al nome o al percorso relativo del file selezionato: non legge mai un percorso.
+- Validare i magic byte prima di interpretare il file e trattare ogni byte come dato non fidato.
+
+Esempio eseguibile: [`examples/binary_bytes.sui`](../examples/binary_bytes.sui).
+
 ## Spreadsheet data
 
 SimpleUI non legge XLSX/ODS nel browser. Converti a monte con `sheet2json`:

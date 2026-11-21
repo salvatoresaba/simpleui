@@ -518,6 +518,56 @@ async fn syncFiles() -> null {
 `loadBytes`/`saveBytes` are desktop-only and require `--allow-dir`.
 See [`examples/json_library.sui`](../examples/json_library.sui).
 
+## Binary documents
+
+PDF, images and archives must never travel as text: `http.get` decodes the body
+as UTF-8 and corrupts the bytes. Three functions keep a binary payload intact,
+one per source.
+
+```sui
+import { http, files, bytes } from "std"
+
+state picked = ""
+state size = 0
+state magic = ""
+
+async fn loadRemote() -> null {
+	data, err = http.getBytes("https://example.com/report.pdf")
+	if err != null { magic = err; return }
+	size = len(data)
+	head, herr = bytes.slice(data, 0, 4)
+	if herr != null { magic = herr; return }
+	hex, xerr = bytes.toHex(head)
+	if xerr != null { magic = xerr; return }
+	magic = hex
+}
+
+async fn loadPicked() -> null {
+	data, err = files.readBytes(picked)
+	if err != null { magic = err; return }
+	size = len(data)
+}
+
+view main {
+	row {
+		button "Remote" onClick: loadRemote
+		file accept: ".pdf" pickFiles: picked
+	}
+	p "bytes: {size} magic: {magic}"
+}
+```
+
+- Remote: `http.getBytes(url)`, or `http.getBytesSafe(url, allow)` for a dynamic
+  URL. Both reject a non-2xx status and a body over 10 MB.
+- Folder the app may read (desktop): `fs.readBytes(path)`; the build-time
+  `--allow-dir` capability still applies.
+- File the user picked or dropped (web): `files.readBytes(name)`, where `name`
+  matches the selected file name or relative path. It never reads a path.
+- Validate the magic bytes before parsing, and treat every byte as untrusted
+  data.
+
+Runnable example: [`examples/binary_bytes.sui`](../examples/binary_bytes.sui).
+
 ## Spreadsheet data
 
 SimpleUI does not parse binary XLSX/ODS in the browser. Convert upstream with

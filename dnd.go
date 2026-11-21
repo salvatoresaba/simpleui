@@ -524,6 +524,41 @@ function __sui_drag_folder() { return __SUI_DND.folder(); }
 function __sui_drag_error() { return __SUI_DND.error(); }
 function __sui_drag_active() { return __SUI_DND.active(); }
 function __sui_drag_clear() { return __SUI_DND.clear(); }
+// __sui_dnd_read_bytes reads the bytes of a file in the current selection.
+// The browser only exposes the files the user picked or dropped, so this never
+// touches a path: the name matches the selected file name or relative path.
+function __sui_dnd_read_bytes(name) {
+  var want = String(name === null || name === undefined ? '' : name).trim();
+  var files = __SUI_DND.objects() || [];
+  var meta = __SUI_DND.files() || [];
+  if (!files.length) return Promise.resolve([null, 'no file is selected']);
+  var idx = -1;
+  for (var i = 0; i < files.length; i++) {
+    var m = meta[i] || {};
+    var f = files[i] || {};
+    var p = String(m.path || m.name || '');
+    var base = p.slice(p.lastIndexOf('/') + 1);
+    var n = String(f.name || '');
+    if (want && (p === want || base === want || n === want)) { idx = i; break; }
+  }
+  if (idx < 0) {
+    if (!want && files.length === 1) idx = 0;
+    else return Promise.resolve([null, 'the file "' + want + '" is not part of the current selection']);
+  }
+  var file = files[idx];
+  if (!file || typeof file.arrayBuffer !== 'function') {
+    return Promise.resolve([null, 'the browser cannot read the bytes of this file']);
+  }
+  return file.arrayBuffer().then(function (buf) {
+    var v = new Uint8Array(buf);
+    if (v.length > 10000000) return [null, 'the file is too large (limit 10000000 bytes)'];
+    var out = new Array(v.length);
+    for (var i = 0; i < v.length; i++) out[i] = v[i];
+    return [out, null];
+  }).catch(function (e) {
+    return [null, String(e && e.message ? e.message : e)];
+  });
+}
 function __sui_files_form() {
   var files = __SUI_DND.objects();
   if (!files || !files.length) return null;

@@ -461,8 +461,10 @@ state used by any visible element. Always set `dragKey` on a source; a bare
   or oversized input is rejected with a visible
   `Cannot accept the files: ...` message.
 - On a textarea, paths are separated by newlines; on an input, by `, `.
-- Only metadata is read. File bytes are not read, uploaded or written by this
-  runtime.
+- Only metadata is read by default. File bytes are not read, uploaded or written
+  by this runtime unless the app asks for them explicitly with
+  `files.readBytes(name)` (the file the user selected or dropped) or
+  `fs.readBytes(path)` (desktop, with the `--allow-dir` capability).
 
 Treat file names as untrusted text: render them through state (escaped by the
 view) or `textContent`; never use them as HTML, CSS or an unvalidated URL. A

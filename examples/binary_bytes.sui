@@ -1,0 +1,68 @@
+# binary_bytes.sui - binary documents over the three sources.
+#
+# A viewer (PDF, spreadsheet, image) must never read a binary payload as
+# text: `http.get` decodes the body as UTF-8 and corrupts it. These three
+# functions keep the bytes intact:
+#
+#   http.getBytes(url)     a remote document, as raw bytes
+#   fs.readBytes(path)     a file in a folder the app may read (desktop only)
+#   files.readBytes(name)  a file the user picked or dropped in the app (web)
+#
+# Every call follows the standard `value, err = module.fn(...)` form.
+
+import { http, files, bytes } from "std"
+
+state picked = ""
+state remoteSize = 0
+state localSize = 0
+state remoteMagic = ""
+state notice = ""
+
+async fn loadRemote() -> null {
+	data, err = http.getBytes("https://example.com/report.pdf")
+	if err != null {
+		notice = "remote error: " + err
+		return
+	}
+	remoteSize = len(data)
+	# The first bytes identify the format: "%PDF" for a PDF document.
+	head, err1 = bytes.slice(data, 0, 4)
+	if err1 != null {
+		notice = "slice error: " + err1
+		return
+	}
+	magic, err2 = bytes.toHex(head)
+	if err2 != null {
+		notice = "hex error: " + err2
+		return
+	}
+	remoteMagic = magic
+}
+
+async fn loadPicked() -> null {
+	if picked == "" {
+		notice = "pick a file first"
+		return
+	}
+	data, err = files.readBytes(picked)
+	if err != null {
+		notice = "local error: " + err
+		return
+	}
+	localSize = len(data)
+}
+
+view main {
+	col {
+		h2 "Binary documents"
+		row {
+			button "Load remote" onClick: loadRemote
+			file accept: ".pdf" pickFiles: picked
+		}
+		p "remote bytes: {remoteSize}"
+		p "remote magic (hex): {remoteMagic}"
+		p "picked: {picked}"
+		p "picked bytes: {localSize}"
+		p "{notice}"
+	}
+}

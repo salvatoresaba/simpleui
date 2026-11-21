@@ -85,6 +85,10 @@ var StdFuncs = []StdFunc{
 	// http
 	StdFunc{mod: "http", name: "get", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "http_get", async: true},
 	StdFunc{mod: "http", name: "getStatus", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "http_getstatus", async: true},
+	// Binary response: the body is returned as raw bytes (array[int]), not as
+	// text, so PDF and other binary payloads survive the transport.
+	StdFunc{mod: "http", name: "getBytes", params: []string{"string"}, ret0: "array[int]", ret1: "string", jsKey: "http_getbytes", async: true},
+	StdFunc{mod: "http", name: "getBytesSafe", params: []string{"string", "string"}, ret0: "array[int]", ret1: "string", jsKey: "http_getbytessafe", async: true},
 	StdFunc{mod: "http", name: "post", params: []string{"string", "string"}, ret0: "string", ret1: "string", jsKey: "http_post", async: true},
 	StdFunc{mod: "http", name: "postFiles", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "http_postfiles", async: true},
 	StdFunc{mod: "http", name: "postFilesSafe", params: []string{"string", "string"}, ret0: "string", ret1: "string", jsKey: "http_postfilessafe", async: true},

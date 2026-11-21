@@ -17,6 +17,8 @@ import { fs } from "std"
 |---|---|---|---|---|
 | `http.get(url)` | string | (string, string) | true | GET HTTP request. Restituisce body come stringa |
 | `http.getStatus(url)` | string | (int, string) | true | GET HTTP request. Restituisce status code come int |
+| `http.getBytes(url)` | string | (array[int], string) | true | GET HTTP request. Restituisce il body come byte grezzi (sicuro per binari) |
+| `http.getBytesSafe(url, allow)` | string, string | (array[int], string) | true | GET come byte grezzi con allow-list SSRF |
 | `http.post(url, body)` | string, string | (string, string) | true | POST HTTP request. Body come stringa (JSON/text) |
 | `http.postFiles(url)` | string | (string, string) | true | POST dei file selezionati/drop come `multipart/form-data`, campo `files` |
 | `http.postFilesSafe(url, allow)` | string, string | (string, string) | true | Upload file con allow-list SSRF |
@@ -34,7 +36,7 @@ import { fs } from "std"
 | `http.uploadWithHeaders(url, fieldName, filename, content, headers)` | string, string, string, string, any | (string, string) | true | Caricamento multipart con header personalizzati |
 | `http.uploadWithHeadersSafe(url, fieldName, filename, content, headers, allow)` | string, string, string, string, any, string | (string, string) | true | Caricamento multipart con header e allow-list SSRF |
 
-**SSRF:** `http.get/getStatus/post/postFiles/getWithHeaders/postWithHeaders/request/upload/uploadWithHeaders` accettano solo URL **letterali**. Un URL
+**SSRF:** `http.get/getStatus/getBytes/post/postFiles/getWithHeaders/postWithHeaders/request/upload/uploadWithHeaders` accettano solo URL **letterali**. Un URL
 dinamico deve usare la variante `*Safe` con una allow-list **letterale** (il
 compilatore rifiuta una variabile). Voci separate da virgole/spazi:
 
@@ -53,6 +55,13 @@ percorsi relativi visibili al browser, cosi il backend puo mostrare il contesto
 cartella/sottocartella. Carica i byte reali; il backend deve imporre limiti di
 dimensione/numero e validare i nomi. Usare `postFilesSafe` con una allow-list
 letterale per destinazioni dinamiche.
+
+**Risposte binarie:** `http.get` e `http.post` decodificano il body come testo,
+cosa che corrompe payload binari come un PDF. Usare `http.getBytes` (e
+`http.getBytesSafe`) per ricevere il body come byte grezzi (`array[int]`). Le
+varianti byte restituiscono un errore su status non 2xx e rifiutano risposte
+oltre 10 MB; la variante `*Safe` applica lo stesso guard SSRF, lo stesso
+timeout e lo stesso limite di dimensione delle varianti testuali.
 
 ## WebSocket Module (`ws`)
 

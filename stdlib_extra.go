@@ -71,6 +71,10 @@ var extraStdFuncs = []StdFunc{
 	StdFunc{mod: "files", name: "validate", params: []string{"string", "any"}, ret0: "bool", ret1: "string", jsKey: "files_validate", optional: 1},
 	StdFunc{mod: "files", name: "isHidden", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "files_ishidden"},
 	StdFunc{mod: "files", name: "extAllowed", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "files_extallowed"},
+	// The single exception in the data modules: it reads the bytes of a file
+	// the user selected or dropped in this app (never a path, never the
+	// network). The desktop target uses fs.readBytes(path) instead.
+	StdFunc{mod: "files", name: "readBytes", params: []string{"string"}, ret0: "array[int]", ret1: "string", jsKey: "files_readbytes", async: true},
 	// mime
 	StdFunc{mod: "mime", name: "fromName", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "mime_fromname"},
 	StdFunc{mod: "mime", name: "fromBytes", params: []string{"any"}, ret0: "string", ret1: "string", jsKey: "mime_frombytes"},
