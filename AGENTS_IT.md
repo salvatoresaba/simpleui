@@ -59,7 +59,9 @@ italiane: quando la versione inglese cambia, aggiorna anche la copia `_IT`.
 - **Configurazione di sicurezza rigorosa.** Un file malformato o un valore
   sconosciuto blocca il build.
 - **Non modificare l'output generato** (`dist/`, preview, file temporanei).
-- **Non inserire backtick in `guihtml.go`**: è una stringa Go raw con JS.
+- **Mantenere gli asset embedded come file separati**: la pagina del designer è
+  `assets/designer.html` e i font PDF sono `assets/pdf_fonts.js`, inclusi con
+  `go:embed`. Non riportarli dentro stringhe Go raw.
 - **Non inventare API**: verifica su `docs/API_REFERENCE.md`,
   `docs/STDLIB.md`, `docs/BUILTINS.md` o compila con `simpleui check`.
 
@@ -97,6 +99,8 @@ funzionalità completa, non solo come codice runtime:
 | `components/<controllo>/` | Runtime browser (`Runtime`), helper e test per controllo |
 | `component_runtimes.go` | Alias nella radice per mantenere stabili i call site |
 | `testapi.go` | Helper designer/browser esportati per i test esterni |
+| `assets/` | Pagina designer, font PDF e asset runtime embedded |
+| `scripts/verify.ps1` | Unico comando di verifica (format, build, vet, test, check) |
 | `lexer.go`, `parser.go` | Tokenizzazione, AST, caricamento sorgenti |
 | `ast.go`, `typechecker.go` | AST, semantica e controlli di sicurezza |
 | `jsgen.go`, `htmlgen.go` | Generazione JS/CSS e runtime |
@@ -127,6 +131,10 @@ go test -count=1 ./...
 ./simpleui.exe build app.sui --single --minify --out app.html
 ./simpleui.exe serve app.sui --watch
 ```
+
+Per tutte le verifiche in un solo comando usare `pwsh scripts/verify.ps1`
+(oppure `pwsh scripts/verify.ps1 -SkipFlaky` per escludere i due noti test E2E
+headless instabili).
 
 Per capability desktop:
 

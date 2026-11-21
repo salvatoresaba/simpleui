@@ -14,7 +14,8 @@ documentazione. L'eseguibile è un sottile wrapper `package main` in
 `cmd/simpleui`. I runtime browser e i test dei controlli stanno in
 `components/<controllo>/`; `component_runtimes.go` espone gli alias usati dal
 compilatore. I test trasversali restano nella radice, quelli dei controlli sono
-`package <controllo>_test`.
+`package <controllo>_test`. La pagina del designer e i font PDF sono file in
+`assets/` inclusi con `go:embed`; `scripts/verify.ps1` esegue tutte le verifiche.
 
 ## 2. Linguaggio SUI
 

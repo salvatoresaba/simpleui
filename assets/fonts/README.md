@@ -15,5 +15,6 @@ py -3 -m fontTools.subset LiberationSans-Regular.ttf \
   --layout-features='*' --no-hinting --desubroutinize
 ```
 
-The `pdf_fonts.go` file in the repository root embeds these files as base64 in
-the runtime (`window.SUI_PDF_FONTS`). Rebuild it after changing a font file.
+The `assets/pdf_fonts.js` file embeds these subsets as base64 and is included
+by `pdf_fonts.go` with `go:embed` as `window.SUI_PDF_FONTS`. Regenerate it
+after changing a font file.

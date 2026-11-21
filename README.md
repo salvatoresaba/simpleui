@@ -233,6 +233,8 @@ Open the URL shown in the terminal to see the app with automatic updates on ever
 - `cmd/simpleui/main.go`: executable entry point; the module root is the
   importable `sui` package
 - `components/<control>/`: per-control browser runtime (`Runtime`) and tests
+- `assets/`: embedded designer page, PDF font data and web runtime assets
+- `scripts/verify.ps1`: single verification command (format, build, vet, tests, checks)
 - `parser.go` / `lexer.go`: lexical analysis and parsing of `.sui`
 - `typechecker.go`: static type checking with inference
 - `htmlgen.go` / `jsgen.go` / `cssmodel.go`: code generation for web

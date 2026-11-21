@@ -308,6 +308,13 @@ func TestAppearanceKeyframeAllowListMatchesCSS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The designer stylesheet is embedded from an HTML asset, not a Go raw
+	// string, so include it in the same source scan.
+	assets, err := filepath.Glob(filepath.Join("assets", "*.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	files = append(files, assets...)
 	re := regexp.MustCompile(`@keyframes\s+(sui-[A-Za-z0-9_-]+)`)
 	defined := map[string]bool{}
 	for _, file := range files {

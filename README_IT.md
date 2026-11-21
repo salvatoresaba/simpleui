@@ -438,6 +438,8 @@ Esempi eseguibili: [`examples/security`](examples/security/README.md).
 .
 ├── cmd/simpleui/main.go   # Entry point eseguibile (package main)
 ├── components/<controllo>/ # Runtime browser e test per controllo
+├── assets/                # Pagina designer, font PDF, asset runtime
+├── scripts/verify.ps1     # Verifica completa in un comando
 ├── lexer.go, parser.go    # Tokenizzazione e parsing
 ├── ast.go, typechecker.go # AST e type checking
 ├── jsgen.go, htmlgen.go   # Generazione codice

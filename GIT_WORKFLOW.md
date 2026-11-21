@@ -58,6 +58,6 @@ Rebuild after checking out an older revision:
 
 ```bash
 go build -o simpleui.exe ./cmd/simpleui
-go test -count=1 ./...
+pwsh scripts/verify.ps1 -SkipFlaky
 simpleui build examples/process_monitor/app.sui --out examples/process_monitor/dist
 ```

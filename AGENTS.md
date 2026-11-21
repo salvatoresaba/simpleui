@@ -61,8 +61,9 @@ These rules are part of the language's security model. Do not work around them.
   malformed or unknown data blocks the build. Defaults are secure.
 - **Do not edit generated output.** `dist/`, preview HTML and temporary files
   are results, not sources.
-- **Do not put backticks inside `guihtml.go`.** It is a Go raw string containing
-  JavaScript; adding a backtick breaks the Go string.
+- **Keep embedded assets as plain files.** The designer page is
+  `assets/designer.html` and the PDF fonts are `assets/pdf_fonts.js`; both are
+  included with `go:embed`. Do not inline them back into Go raw strings.
 - **Do not invent APIs.** Confirm in `docs/API_REFERENCE.md`,
   `docs/STDLIB.md`, `docs/BUILTINS.md` or run `simpleui check`.
 - **Documentation language.** Canonical documentation, code comments and UI
@@ -102,6 +103,8 @@ feature, not only as runtime code:
 | `components/<control>/` | Per-control browser runtime (`Runtime`), helpers and tests |
 | `component_runtimes.go` | Root aliases that keep compiler call sites stable |
 | `testapi.go` | Exported designer/browser helpers for external component tests |
+| `assets/` | Embedded designer page, PDF font data and web runtime assets |
+| `scripts/verify.ps1` | Single verification entry point (format, build, vet, tests, checks) |
 | `lexer.go`, `parser.go` | Tokens, AST, source loading |
 | `ast.go`, `typechecker.go` | AST shapes and semantic/security checks |
 | `jsgen.go`, `htmlgen.go` | JS/CSS generation and runtime prelude |
@@ -135,6 +138,10 @@ go test -count=1 ./...
 
 # Always after editing the control appearance catalog
 ./simpleui.exe appearance check components/appearance.json --json
+
+# Full check set in one command (use -SkipFlaky to exclude the two known
+# headless-browser timing flakes)
+pwsh scripts/verify.ps1
 ```
 
 `check --json` returns `ok` plus structured diagnostics; use it in an edit loop

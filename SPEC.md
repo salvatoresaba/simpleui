@@ -37,6 +37,8 @@ import cycle. Browser runtimes and their tests live under
 ├── htmlgen.go             -> index.html + style.css (codegen)
 ├── component_runtimes.go  aliases for component Runtime constants
 ├── testapi.go             exported designer/browser test helpers
+├── assets/                embedded designer page, PDF fonts, web runtime
+├── scripts/verify.ps1     full verification entry point
 ├── dnd.go                 browser drag-and-drop runtime
 ├── components/<control>/  runtime.go + per-control tests
 ├── *_test.go              cross-cutting unit and e2e tests
