@@ -66,15 +66,15 @@ view main {
 				richtext name: "rich" mode: "richtext" value: richDoc height: "280px" theme: "dark"
 			}
 			card "" class: "card" {
-				richtext name: "html" mode: "html" value: htmlDoc height: "280px" theme: "dark"
+				richtext name: "html" mode: "html" value: htmlDoc height: "280px" theme: "dark" toolbarItems: "undo,redo|bold,italic,link|documentSettings,sourceMode"
 			}
 			card "" class: "card" {
-				richtext name: "markup" mode: "markup" value: markdownDoc height: "280px" theme: "dark"
+				richtext name: "markup" mode: "markup" value: markdownDoc height: "280px" theme: "dark" toolbarItems: "undo,redo|bold,italic,link|documentSettings,sourceMode"
 			}
 			card "" class: "card" {
 				richtext name: "viewer" mode: "html" readonly: true value: viewerDoc height: "280px" theme: "dark"
 			}
 		}
-		p "Use the Source button in the status bar of the HTML and Markup editors to edit or paste source code. The page background is set per document and per page in Document/Page settings." class: "muted"
+		p "Use the Source button in the status bar or the sourceMode tool in the Document toolbar group to edit HTML/Markdown source. The editor shows line numbers and lightweight highlighting; Tab and Shift+Tab indent selected lines. The page background is set per document and per page in Document/Page settings." class: "muted"
 	}
 }

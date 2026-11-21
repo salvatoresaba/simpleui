@@ -1703,20 +1703,31 @@ tables, rules and find/settings, and saves/imports Markdown only. Both profiles
 remove header/footer from Document settings and Page settings, and hide the
 related menu entry. A read-only control is a viewer in every mode.
 
-In HTML and Markup modes the status bar also exposes a **Source** toggle. It
-opens a source editor with **Apply**, **Revert** and **Visual** actions. Apply
-sanitizes source text into the JSON document (`importHTML` or `importMarkdown`),
-and source edits are applied automatically after a short pause. `get`,
-`exportFormat`, `exportBytes` and `saveAs` apply any pending source before
-reading it. Pasted content is converted to the active profile's source format at
+In HTML and Markup modes the status bar also exposes a **Source** toggle; the
+same editor can be opened from the optional `sourceMode` toolbar item (label
+**Source code**, grouped under **Document** in the toolbar picker). It is off by
+default in every toolbar preset and is available in both profiles. The source
+editor has a line-number gutter and a lightweight, escaped highlighting mirror;
+the textarea remains the accessible input, with a visible caret and selection.
+Tab indents selected lines by two spaces and Shift+Tab removes up to two;
+Ctrl/Cmd+Enter or **Apply** sanitizes the source into the JSON document
+(`importHTML` or `importMarkdown`), **Revert** discards pending edits and
+**Visual** returns to the document. Source edits are applied automatically after
+a short pause. `get`, `exportFormat`, `exportBytes` and `saveAs` apply any
+pending source before reading it. Highlighting is capped at 200,000 characters;
+larger sources are shown as plain text without affecting the document.
+
+Pasted content is converted to the active profile's source format at
 paste time: Markdown, RTF and plain text become HTML in HTML mode; HTML, RTF and
 plain text become Markdown in Markup mode. Conversion is best-effort: lossy or
 unsupported input is still inserted after conversion, with a status-bar notice
 (`aria-live`) and `lastImport` in `richtext.status()`. Only `html` is
 exported/imported by format helpers in HTML mode and only `markdown`/`md` in
 Markup mode; use `richtext.get`/`set` for the internal JSON document. `simpleui check` warns when `header`, `footer` or a
-mode-incompatible `toolbarItems` entry is present in HTML/Markup mode; the designer
-shows the same warnings in **Problems**. Keyboard shortcuts and plugin toolbar
+mode-incompatible `toolbarItems` entry is present in HTML/Markup mode; dynamic
+`header`, `footer` and `toolbarItems` bindings produce the corresponding "bound
+value" or "cannot be verified" warning. The designer shows them in **Problems**.
+Keyboard shortcuts and plugin toolbar
 buttons follow the same filter: `Ctrl+P`, `Ctrl+Enter` and `Ctrl+U` are ignored in
 Markup mode, and plugin commands outside the active profile are not exposed or
 invoked.

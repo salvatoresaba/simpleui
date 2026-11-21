@@ -30,6 +30,7 @@ var richTextToolbarExtraLabels = map[string]string{
 	"spaceBefore": "Space before",
 	"spaceAfter":  "Space after",
 	"zoom":        "Zoom controls",
+	"sourceMode":  "Source code",
 }
 
 var richTextToolbarExtraGroups = map[string]string{
@@ -38,6 +39,7 @@ var richTextToolbarExtraGroups = map[string]string{
 	"spaceAfter":       "Paragraph",
 	"imageSettings":    "Insert",
 	"documentSettings": "Document",
+	"sourceMode":       "Document",
 }
 
 var (
@@ -60,7 +62,7 @@ var (
 	}
 	richTextDocumentTools = map[string]bool{
 		"documentSettings": true, "pageSettings": true, "print": true,
-		"printPreview": true, "find": true,
+		"printPreview": true, "find": true, "sourceMode": true,
 	}
 )
 
@@ -166,7 +168,7 @@ func richTextToolbarGroups() []richTextToolbarGroup {
 			groups = append(groups, richTextToolbarGroup{Name: richTextToolbarGroupName(tokens), Items: items})
 		}
 	}
-	for _, id := range []string{"lineHeight", "spaceBefore", "spaceAfter", "imageSettings", "documentSettings"} {
+	for _, id := range []string{"lineHeight", "spaceBefore", "spaceAfter", "imageSettings", "documentSettings", "sourceMode"} {
 		if seen[id] {
 			continue
 		}

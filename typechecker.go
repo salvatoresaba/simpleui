@@ -1105,7 +1105,7 @@ func richTextModeToolbarAllowed(mode, id string) bool {
 			"styleSelect", "bold", "italic", "strike", "code", "clearFormat",
 			"bulletList", "orderedList", "blockquote", "codeBlock",
 			"link", "unlink", "image", "table", "hr",
-			"documentSettings", "pageSettings", "find":
+			"documentSettings", "pageSettings", "find", "sourceMode":
 			return true
 		}
 		return false
@@ -1139,34 +1139,48 @@ func (c *Checker) checkRichTextModeNodes(nodes []ViewNode, known map[string]bool
 			e := n.elem
 			if e.tag == "richtext" {
 				mode := ""
-				if a := findAttr(e, "mode"); a != nil && !a.hasExpr {
+				if a := findAttr(e, "mode"); a != nil && !attrIsDynamic(a) {
 					mode = strings.ToLower(strings.TrimSpace(partsContent(a.text)))
 				}
 				if mode == "html" || mode == "markup" {
 					for _, key := range []string{"header", "footer"} {
 						if a := findAttr(e, key); a != nil {
 							value := strings.TrimSpace(partsContent(a.text))
-							if a.hasExpr || value != "" {
+							if attrIsDynamic(a) {
+								c.dd.AddEx(a.span.file, a.span.line, a.span.col, "warning",
+									"richtext "+key+" is ignored in "+mode+" mode (bound value)",
+									"remove "+key+" or use mode: \"richtext\"")
+							} else if value != "" {
 								c.dd.AddEx(a.span.file, a.span.line, a.span.col, "warning",
 									"richtext "+key+" is ignored in "+mode+" mode",
 									"remove "+key+" or use mode: \"richtext\"")
 							}
 						}
 					}
-					if a := findAttr(e, "toolbarItems"); a != nil && !a.hasExpr {
-						raw := strings.TrimSpace(partsContent(a.text))
-						if raw != "" && strings.ToLower(raw) != "none" {
-							reported := map[string]bool{}
-							for _, group := range strings.Split(raw, "|") {
-								for _, token := range strings.Split(group, ",") {
-									token = strings.TrimSpace(token)
-									if token == "" || !known[token] || reported[token] || richTextModeToolbarAllowed(mode, token) {
-										continue
+					if a := findAttr(e, "toolbarItems"); a != nil {
+						if attrIsDynamic(a) {
+							hint := "dynamic values cannot be checked; avoid pageBreak in html mode"
+							if mode == "markup" {
+								hint = "dynamic values cannot be checked; avoid textColor, alignLeft and pageBreak in markup mode"
+							}
+							c.dd.AddEx(a.span.file, a.span.line, a.span.col, "warning",
+								"richtext toolbarItems is bound dynamically; compatibility with "+mode+" mode cannot be verified",
+								hint)
+						} else {
+							raw := strings.TrimSpace(partsContent(a.text))
+							if raw != "" && strings.ToLower(raw) != "none" {
+								reported := map[string]bool{}
+								for _, group := range strings.Split(raw, "|") {
+									for _, token := range strings.Split(group, ",") {
+										token = strings.TrimSpace(token)
+										if token == "" || !known[token] || reported[token] || richTextModeToolbarAllowed(mode, token) {
+											continue
+										}
+										reported[token] = true
+										c.dd.AddEx(a.span.file, a.span.line, a.span.col, "warning",
+											"toolbar item \""+token+"\" is not available in "+mode+" mode",
+											"remove it from toolbarItems or switch to mode: \"richtext\"")
 									}
-									reported[token] = true
-									c.dd.AddEx(a.span.file, a.span.line, a.span.col, "warning",
-										"toolbar item \""+token+"\" is not available in "+mode+" mode",
-										"remove it from toolbarItems or switch to mode: \"richtext\"")
 								}
 							}
 						}

@@ -9,9 +9,12 @@ profiles and one read-only viewer:
 - **viewer** - HTML rendered read-only, without editing chrome.
 
 Load the samples to see different page backgrounds. Use the **Source** button
-in the status bar of the HTML and Markup editors to edit the source directly or
-paste external code. **Load external HTML** and **Load external Markdown** use
-`richtext.loadContent` to sanitize and import code from the page.
+in the status bar or the **Source code** (`sourceMode`) tool in the **Document**
+toolbar group of the HTML and Markup editors to edit the source directly or paste
+external code. The source editor has a line-number gutter, lightweight syntax
+highlighting and Tab/Shift+Tab indentation for selected lines. **Load external
+HTML** and **Load external Markdown** use `richtext.loadContent` to sanitize and
+import code from the page.
 
 The page background is stored in the document JSON and can be changed from
 Document settings and Page settings; dark backgrounds automatically use
@@ -97,16 +100,16 @@ view main {
 				richtext name: "rich" mode: "richtext" value: richDoc height: "280px" theme: "dark"
 			}
 			card "" class: "card" {
-				richtext name: "html" mode: "html" value: htmlDoc height: "280px" theme: "dark"
+				richtext name: "html" mode: "html" value: htmlDoc height: "280px" theme: "dark" toolbarItems: "undo,redo|bold,italic,link|documentSettings,sourceMode"
 			}
 			card "" class: "card" {
-				richtext name: "markup" mode: "markup" value: markdownDoc height: "280px" theme: "dark"
+				richtext name: "markup" mode: "markup" value: markdownDoc height: "280px" theme: "dark" toolbarItems: "undo,redo|bold,italic,link|documentSettings,sourceMode"
 			}
 			card "" class: "card" {
 				richtext name: "viewer" mode: "html" readonly: true value: viewerDoc height: "280px" theme: "dark"
 			}
 		}
-		p "Use the Source button in the status bar of the HTML and Markup editors to edit or paste source code. The page background is set per document and per page in Document/Page settings." class: "muted"
+		p "Use the Source button in the status bar or the sourceMode tool in the Document toolbar group to edit HTML/Markdown source. The editor shows line numbers and lightweight highlighting; Tab and Shift+Tab indent selected lines. The page background is set per document and per page in Document/Page settings." class: "muted"
 	}
 }
 

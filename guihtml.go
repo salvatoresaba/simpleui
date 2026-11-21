@@ -17005,7 +17005,7 @@ function richToolbarModeAllows(mode, id) {
   if (mode === "markup") {
     return ["undo","redo","copy","cut","paste","selectAll","styleSelect","bold","italic","strike","code","clearFormat",
       "bulletList","orderedList","blockquote","codeBlock","link","unlink","image","table","hr",
-      "documentSettings","pageSettings","find"].indexOf(id) >= 0;
+      "documentSettings","pageSettings","find","sourceMode"].indexOf(id) >= 0;
   }
   if (mode === "html") return id !== "pageBreak";
   return true;

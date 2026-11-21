@@ -1679,11 +1679,21 @@ Markdown. Entrambi i profili rimuovono header/footer da Documento e Pagina,
 insieme alla voce di menu relativa. In sola lettura il controllo è un visualizzatore
 in tutte le modalità.
 
-Nelle modalità HTML e Markup la status bar espone anche **Source**. Apre un
-editor sorgente con **Apply**, **Revert** e **Visual**. Apply sanifica il testo
-sorgente nel documento JSON (`importHTML` o `importMarkdown`) e le modifiche
-vengono applicate automaticamente dopo una breve pausa; `get`, `exportFormat`,
-`exportBytes` e `saveAs` applicano il sorgente pendente prima della lettura.
+Nelle modalità HTML e Markup la status bar espone anche **Source**. Lo stesso
+editor si apre con lo strumento opzionale `sourceMode` (etichetta **Source code**,
+raggruppato sotto **Document** nel selettore toolbar). È disattivato di default
+in tutti i preset ed è disponibile in entrambi i profili. L'editor sorgente ha
+una gutter con i numeri di riga e uno specchio di evidenziazione leggero ed
+escaped; la textarea resta l'input accessibile, con caret e selezione visibili.
+Tab indenta di due spazi le righe selezionate e Shift+Tab rimuove fino a due
+spazi; Ctrl/Cmd+Enter o **Apply** sanificano il sorgente nel documento JSON
+(`importHTML` o `importMarkdown`), **Revert** scarta le modifiche pendenti e
+**Visual** torna al documento. Le modifiche vengono applicate automaticamente
+dopo una breve pausa; `get`, `exportFormat`, `exportBytes` e `saveAs` applicano il
+sorgente pendente prima della lettura. L'evidenziazione è limitata a 200.000
+caratteri: oltre quella soglia il sorgente è mostrato come testo semplice, senza
+effetti sul documento.
+
 Il contenuto incollato viene convertito al formato sorgente del profilo attivo
 al momento dell'incolla: in modalità HTML Markdown, RTF e testo semplice diventano
 HTML; in Markup HTML, RTF e testo semplice diventano Markdown. La conversione è
@@ -1692,7 +1702,9 @@ con un avviso nella status bar (`aria-live`) e `lastImport` in
 `richtext.status()`. In modalità HTML si esporta/importa solo `html` tramite le
 funzioni per formato, in Markup solo `markdown`/`md`; per il documento JSON
 interno usa `richtext.get`/`set`. `simpleui check` avvisa se in modalità HTML/Markup sono
-presenti `header`, `footer` o voci `toolbarItems` incompatibili; il designer
+presenti `header`, `footer` o voci `toolbarItems` incompatibili; i binding dinamici
+di `header`, `footer` e `toolbarItems` generano gli avvisi "bound value" o
+"cannot be verified". Il designer
 mostra gli stessi avvisi in **Problems**. Anche scorciatoie e pulsanti plugin
 seguono lo stesso filtro: in Markup `Ctrl+P`, `Ctrl+Enter` e `Ctrl+U` vengono
 ignorati e i comandi plugin non compatibili non sono esposti né invocabili.

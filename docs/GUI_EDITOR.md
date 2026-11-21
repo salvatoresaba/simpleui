@@ -1434,7 +1434,9 @@ the bottom border. The element text is not rendered above the menu; it only
 feeds the `{title}` token and the fallback runtime name. **Toolbar items...**
 opens a searchable multi-select overlay
 built from the runtime toolbar commands; **Default**, **All items** and **None**
-are available as presets, and `None` leaves only the theme button. With
+are available as presets, and `None` leaves only the theme button. **Source code**
+(`sourceMode`) is an opt-in item under **Document**, off in every preset: it opens
+the HTML/Markdown source editor in the HTML and Markup profiles. With
 **Read only** enabled no menu or toolbar is shown and the content cannot be
 changed; the control becomes a real viewer for rich text, HTML or Markdown.
 The page background is white by default and can be changed in Document settings

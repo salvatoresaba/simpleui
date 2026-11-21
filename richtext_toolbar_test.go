@@ -32,7 +32,7 @@ func TestRichTextToolbarGroupsFromRuntime(t *testing.T) {
 			t.Errorf("default toolbar item %q not exposed to the designer", id)
 		}
 	}
-	for _, id := range []string{"lineHeight", "spaceBefore", "spaceAfter", "imageSettings", "documentSettings"} {
+	for _, id := range []string{"lineHeight", "spaceBefore", "spaceAfter", "imageSettings", "documentSettings", "sourceMode"} {
 		if !ids[id] {
 			t.Errorf("extra toolbar item %q not exposed to the designer", id)
 		}
@@ -50,6 +50,12 @@ func TestRichTextToolbarDesignerInjection(t *testing.T) {
 	}
 	if !strings.Contains(guiPage, "window.SUI_RICH_TOOLBAR_GROUPS="+raw+";") {
 		t.Fatal("designer page does not inject the toolbar groups")
+	}
+	if !strings.Contains(guiPage, `"find","sourceMode"`) {
+		t.Fatal("designer toolbar picker does not allow sourceMode in markup mode")
+	}
+	if !strings.Contains(suiRichTextRuntime, "sourceMode: 'Source code'") {
+		t.Fatal("runtime does not label the sourceMode toolbar button")
 	}
 	if !strings.Contains(suiRichTextRuntime, "function noFormatToolbar(inst)") {
 		t.Fatal("runtime does not implement toolbarItems: none")
@@ -215,7 +221,7 @@ state mdDoc = ""
 state viewerDoc = ""
 view main {
 	richtext name: "html" mode: "html" value: htmlDoc height: "240px" theme: "dark" header: "HTML header" footer: "HTML footer"
-	richtext name: "markup" mode: "markup" value: mdDoc height: "240px" theme: "dark" header: "MD header" footer: "MD footer"
+	richtext name: "markup" mode: "markup" value: mdDoc height: "240px" theme: "dark" header: "MD header" footer: "MD footer" toolbarItems: "bold,link,documentSettings,sourceMode"
 	richtext name: "viewer" mode: "html" readonly: true value: viewerDoc height: "160px" theme: "dark"
 }`
 	script := featureScriptHead + `
@@ -232,6 +238,8 @@ view main {
     if (!cmd('html', 'bold') || !cmd('html', 'documentSettings') || !cmd('html', 'pageSettings')) throw new Error('HTML profile is missing basic tools');
     if (cmd('markup', 'textColor') || cmd('markup', 'alignLeft') || cmd('markup', 'pageBreak')) throw new Error('markup profile still offers rich-text tools');
     if (!cmd('markup', 'bold') || !cmd('markup', 'link') || !cmd('markup', 'documentSettings')) throw new Error('markup profile is missing basic tools');
+    if (!cmd('markup', 'sourceMode')) throw new Error('markup toolbar does not expose sourceMode');
+    if (cmd('markup', 'sourceMode').closest('[role="group"]').getAttribute('aria-label') !== 'Document') throw new Error('sourceMode is not grouped under Document');
     if (!root('html').querySelector('[data-rich-cmd="saveHTML"]') || root('html').querySelector('[data-rich-cmd="saveDOCX"]') || root('html').querySelector('[data-rich-cmd="headerFooter"]')) throw new Error('HTML file menu is not restricted');
     if (!root('markup').querySelector('[data-rich-cmd="saveMarkdown"]') || root('markup').querySelector('[data-rich-cmd="saveHTML"]') || root('markup').querySelector('[data-rich-cmd="headerFooter"]')) throw new Error('markup file menu is not restricted');
     var htmlSourceBtn = root('html').querySelector('[data-rich-source-toggle]');
@@ -242,6 +250,26 @@ view main {
     if (!htmlSource || htmlSource.hidden) throw new Error('HTML source panel did not open');
     var htmlArea = htmlSource.querySelector('.sui-rich-source-code');
     if (htmlArea.value.indexOf('HTML body') < 0) throw new Error('HTML source did not reflect the document');
+    var gutter = htmlSource.querySelector('.sui-rich-source-gutter');
+    var mirror = htmlSource.querySelector('.sui-rich-source-mirror');
+    if (!gutter || !mirror || gutter.textContent.trim() !== '1') throw new Error('source gutter is missing or wrong');
+    if (mirror.textContent !== htmlArea.value) throw new Error('source highlight mirror does not match the editor');
+    htmlArea.value = 'alpha\nbeta';
+    htmlArea.dispatchEvent(new Event('input', { bubbles: true }));
+    if (gutter.textContent !== '1\n2' || mirror.textContent !== 'alpha\nbeta') throw new Error('source gutter/mirror did not follow edits');
+    htmlArea.focus();
+    htmlArea.setSelectionRange(0, 11);
+    var tabKey = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    htmlArea.dispatchEvent(tabKey);
+    if (!tabKey.defaultPrevented || htmlArea.value !== '  alpha\n  beta') throw new Error('Tab did not indent source lines: ' + htmlArea.value);
+    var shiftTabKey = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+    htmlArea.dispatchEvent(shiftTabKey);
+    if (!shiftTabKey.defaultPrevented || htmlArea.value !== 'alpha\nbeta') throw new Error('Shift+Tab did not outdent source lines: ' + htmlArea.value);
+    var unsafeSource = '<script>window.__SUI_SCRIPT_RAN=1<\/script><p>safe</p>';
+    htmlArea.value = unsafeSource;
+    htmlArea.dispatchEvent(new Event('input', { bubbles: true }));
+    if (htmlSource.querySelector('script') || window.__SUI_SCRIPT_RAN) throw new Error('source mirror executed raw HTML');
+    if (mirror.textContent !== unsafeSource) throw new Error('source mirror did not escape raw HTML');
     htmlArea.value = '<h2>From source</h2><p>External <b>HTML</b></p>';
     htmlArea.dispatchEvent(new Event('input', { bubbles: true }));
     await wait(650);
@@ -249,10 +277,10 @@ view main {
     root('html').querySelector('[data-rich-source-toggle]').click();
     await wait(120);
     if (!htmlSource.hidden) throw new Error('HTML source panel did not close');
-    var mdSourceBtn = root('markup').querySelector('[data-rich-source-toggle]');
-    mdSourceBtn.click();
+    cmd('markup', 'sourceMode').click();
     await wait(120);
     var mdSource = root('markup').querySelector('.sui-rich-source');
+    if (!mdSource || mdSource.hidden || mdSource.querySelector('.sui-rich-source-label').textContent !== 'Markdown source') throw new Error('sourceMode toolbar button did not open the Markdown source editor');
     var mdArea = mdSource.querySelector('.sui-rich-source-code');
     mdArea.value = '# From markdown\n\n**external** code';
     mdArea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -456,6 +484,12 @@ func TestRichTextModeProfilesAndPageBackgroundMarkers(t *testing.T) {
 		"function reportPastedImport(",
 		"sui-rich-notice",
 		"data-notice-kind",
+		"sourceMode: 'Source code'",
+		"function updateSourceGutter(",
+		"function updateSourceMirror(",
+		"function indentSourceSelection(",
+		"sui-rich-source-gutter",
+		"sui-rich-source-mirror",
 		"function chromeEnabled(inst)",
 		"function pageInkFor(background)",
 		"function applyPageBackground(inst)",
@@ -491,6 +525,9 @@ func TestRichTextModeProfilesAndPageBackgroundMarkers(t *testing.T) {
 	}
 	if !strings.Contains(suiRichTextCss, ".sui-rich-page-sheet") {
 		t.Error("page sheet styles missing")
+	}
+	if !strings.Contains(suiRichTextCss, ".sui-rich-source-editor") || !strings.Contains(suiRichTextCss, ".sui-rich-source-mirror .sui-code-tag") {
+		t.Error("source editor gutter/highlight styles missing")
 	}
 }
 
