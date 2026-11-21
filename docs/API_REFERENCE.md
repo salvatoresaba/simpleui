@@ -1703,6 +1703,20 @@ tables, rules and find/settings, and saves/imports Markdown only. Both profiles
 remove header/footer from Document settings and Page settings, and hide the
 related menu entry. A read-only control is a viewer in every mode.
 
+In HTML and Markup modes the status bar also exposes a **Source** toggle. It
+opens a source editor with **Apply**, **Revert** and **Visual** actions. External
+HTML/Markdown can be pasted directly; Apply sanitizes it into the JSON document
+(`importHTML` or `importMarkdown`). Source edits are applied automatically after
+a short pause, and `get`, `exportFormat`, `exportBytes` and `saveAs` apply any
+pending source before reading it. Only `html` is exported/imported in HTML mode
+and only `markdown`/`md` in Markup mode; use `richtext.get`/`set` for the internal
+JSON document. `simpleui check` warns when `header`, `footer` or a
+mode-incompatible `toolbarItems` entry is present in HTML/Markup mode; the designer
+shows the same warnings in **Problems**. Keyboard shortcuts and plugin toolbar
+buttons follow the same filter: `Ctrl+P`, `Ctrl+Enter` and `Ctrl+U` are ignored in
+Markup mode, and plugin commands outside the active profile are not exposed or
+invoked.
+
 The element text (for example `richtext "Article"`) is the document title used by
 `{title}` tokens and as a fallback runtime name; it is not rendered above the
 menu. Use `richtext.loadContent` to replace the document from code. It accepts a

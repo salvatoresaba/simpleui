@@ -54,7 +54,7 @@ func TestRichTextToolbarDesignerInjection(t *testing.T) {
 	if !strings.Contains(suiRichTextRuntime, "function noFormatToolbar(inst)") {
 		t.Fatal("runtime does not implement toolbarItems: none")
 	}
-	if !strings.Contains(suiRichTextRuntime, "if (registered.length && !noToolbar)") {
+	if !strings.Contains(suiRichTextRuntime, "if (allowedRegistered.length && !noToolbar)") {
 		t.Fatal("toolbarItems: none still shows plugin toolbar buttons")
 	}
 	for _, marker := range []string{
@@ -234,6 +234,33 @@ view main {
     if (!cmd('markup', 'bold') || !cmd('markup', 'link') || !cmd('markup', 'documentSettings')) throw new Error('markup profile is missing basic tools');
     if (!root('html').querySelector('[data-rich-cmd="saveHTML"]') || root('html').querySelector('[data-rich-cmd="saveDOCX"]') || root('html').querySelector('[data-rich-cmd="headerFooter"]')) throw new Error('HTML file menu is not restricted');
     if (!root('markup').querySelector('[data-rich-cmd="saveMarkdown"]') || root('markup').querySelector('[data-rich-cmd="saveHTML"]') || root('markup').querySelector('[data-rich-cmd="headerFooter"]')) throw new Error('markup file menu is not restricted');
+    var htmlSourceBtn = root('html').querySelector('[data-rich-source-toggle]');
+    if (!htmlSourceBtn) throw new Error('HTML source toggle missing');
+    htmlSourceBtn.click();
+    await wait(120);
+    var htmlSource = root('html').querySelector('.sui-rich-source');
+    if (!htmlSource || htmlSource.hidden) throw new Error('HTML source panel did not open');
+    var htmlArea = htmlSource.querySelector('.sui-rich-source-code');
+    if (htmlArea.value.indexOf('HTML body') < 0) throw new Error('HTML source did not reflect the document');
+    htmlArea.value = '<h2>From source</h2><p>External <b>HTML</b></p>';
+    htmlArea.dispatchEvent(new Event('input', { bubbles: true }));
+    await wait(650);
+    if (root('html').querySelector('.sui-rich-editor').textContent.indexOf('From source') < 0) throw new Error('HTML source was not applied');
+    root('html').querySelector('[data-rich-source-toggle]').click();
+    await wait(120);
+    if (!htmlSource.hidden) throw new Error('HTML source panel did not close');
+    var mdSourceBtn = root('markup').querySelector('[data-rich-source-toggle]');
+    mdSourceBtn.click();
+    await wait(120);
+    var mdSource = root('markup').querySelector('.sui-rich-source');
+    var mdArea = mdSource.querySelector('.sui-rich-source-code');
+    mdArea.value = '# From markdown\n\n**external** code';
+    mdArea.dispatchEvent(new Event('input', { bubbles: true }));
+    await wait(650);
+    if (root('markup').querySelector('.sui-rich-editor').textContent.indexOf('From markdown') < 0) throw new Error('Markdown source was not applied');
+    root('markup').querySelector('[data-rich-source-toggle]').click();
+    await wait(120);
+    if (root('viewer').querySelector('[data-rich-source-toggle]')) throw new Error('read-only viewer still offers source editing');
     __SUI_RICH.command('html', 'documentSettings');
     await wait(150);
     var docPanel = document.querySelector('.sui-rich-documentsettings[data-rich-documentsettings="html"]');
@@ -250,7 +277,7 @@ view main {
     var htmlBody = root('html').querySelector('.sui-rich-body');
     if (getComputedStyle(htmlBody).backgroundColor !== 'rgb(17, 34, 51)') throw new Error('document background was not applied: ' + getComputedStyle(htmlBody).backgroundColor);
     if (getComputedStyle(root('html').querySelector('.sui-rich-editor')).color !== 'rgb(245, 247, 250)') throw new Error('page text did not adapt to a dark background');
-    if (__SUI_RICH.exportFormat('html', 'json')[0].indexOf('#112233') < 0) throw new Error('document background was not stored in the document JSON');
+    if (__SUI_RICH.get('html')[0].indexOf('#112233') < 0) throw new Error('document background was not stored in the document JSON');
     __SUI_RICH.command('html', 'paginatedView');
     await wait(650);
     if (root('html').querySelector('.sui-rich-sheet-header, .sui-rich-sheet-footer, .sui-rich-pageheader, .sui-rich-pagefooter')) throw new Error('HTML mode still renders header/footer');
@@ -263,9 +290,21 @@ view main {
     await wait(500);
     var firstSheet = root('html').querySelector('.sui-rich-page-sheet[data-rich-page="1"]');
     if (!firstSheet || getComputedStyle(firstSheet).backgroundColor !== 'rgb(255, 243, 205)') throw new Error('page background override was not applied');
-    if (__SUI_RICH.exportFormat('html', 'json')[0].indexOf('#fff3cd') < 0) throw new Error('page background override was not stored in the document JSON');
+    if (__SUI_RICH.get('html')[0].indexOf('#fff3cd') < 0) throw new Error('page background override was not stored in the document JSON');
     if (__SUI_RICH.saveAs('html', 'docx')[0] !== false) throw new Error('HTML mode saved a DOCX file');
     if (__SUI_RICH.saveAs('markup', 'html')[0] !== false) throw new Error('markup mode saved an HTML file');
+    if (__SUI_RICH.exportFormat('html', 'json')[0] !== null) throw new Error('HTML mode exported JSON through exportFormat');
+    if (__SUI_RICH.exportBytes('html', 'docx')[0] !== null) throw new Error('HTML mode exported DOCX bytes');
+    if (__SUI_RICH.importFormat('markup', '# x', 'html')[0] !== false) throw new Error('markup mode imported HTML');
+    __SUI_RICH.registerPlugin('modetest', { commands: { shout: { title: 'Shout', command: 'bold' } }, toolbar: [{ id: 'shout', label: 'Shout' }] });
+    if (!root('html').querySelector('[data-rich-cmd="shout"]')) throw new Error('HTML mode hid an allowed plugin button');
+    if (root('markup').querySelector('[data-rich-cmd="shout"]')) throw new Error('markup mode still shows a plugin button');
+    if (__SUI_RICH.command('markup', 'shout')[0] !== false) throw new Error('markup mode ran a plugin command');
+    var markupEditor = root('markup').querySelector('.sui-rich-editor');
+    markupEditor.focus();
+    var printKey = new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true, cancelable: true });
+    markupEditor.dispatchEvent(printKey);
+    if (!printKey.defaultPrevented) throw new Error('markup mode did not swallow the print shortcut');
     var viewer = root('viewer');
     if (viewer.querySelector('.sui-rich-editor').getAttribute('contenteditable') !== 'false') throw new Error('read-only HTML is still editable');
     if (!viewer.querySelector('.sui-rich-toolbar').hidden || !viewer.querySelector('.sui-rich-menu').hidden) throw new Error('read-only HTML still shows editing chrome');
@@ -380,6 +419,10 @@ func TestRichTextModeProfilesAndPageBackgroundMarkers(t *testing.T) {
 		"data-rich-page-background",
 		"var sheetBg = cssColor(pageConfig(inst, pageNo || 1).background) || '#ffffff';",
 		"sheet.style.backgroundColor = sheetBg;",
+		`<w:background w:color="`,
+		`fo:background-color="#`,
+		`\\*\\background`,
+		`pdfFill(pageBackground)`,
 	} {
 		if !strings.Contains(suiRichTextRuntime, marker) {
 			t.Errorf("runtime missing editor-mode/background marker: %s", marker)

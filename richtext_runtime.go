@@ -29,6 +29,11 @@ window.__SUI_RICH = (function () {
     link: 1, unlink: 1, image: 1, table: 1, hr: 1,
     documentSettings: 1, pageSettings: 1, find: 1
   };
+  var markupTableTokens = {
+    tableSelect: 1, tableRowAbove: 1, tableRowBelow: 1, tableRowDelete: 1,
+    tableColLeft: 1, tableColRight: 1, tableColDelete: 1, tableHeader: 1,
+    tableDelete: 1
+  };
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -135,6 +140,7 @@ window.__SUI_RICH = (function () {
     if (mode === 'html') return token !== 'pageBreak';
     return true;
   }
+  function shortcutAllowed(inst, token) { return modeAllowsToken(editorMode(inst), token); }
   function toolbarForMode(inst, configured) {
     var mode = editorMode(inst);
     var raw = String(configured || '');
@@ -189,6 +195,12 @@ window.__SUI_RICH = (function () {
   function modeFileAllowed(mode, filename) {
     if (mode === 'html') return /\.html?$/i.test(String(filename || ''));
     if (mode === 'markup') return /\.(md|markdown)$/i.test(String(filename || ''));
+    return true;
+  }
+  function modeAllowsDataFormat(mode, format) {
+    var fmt = String(format || '').toLowerCase();
+    if (mode === 'html') return fmt === 'html';
+    if (mode === 'markup') return fmt === 'markdown' || fmt === 'md';
     return true;
   }
 
@@ -3393,6 +3405,7 @@ window.__SUI_RICH = (function () {
       else document.execCommand('cut');
     }
     else if (cmd === 'paginatedView') { setPaginated(inst); }
+    else if (cmd === 'sourceMode') { toggleSource(inst); }
     else if (cmd === 'documentSettings') { openDocumentSettings(inst); }
     else if (cmd === 'headerFooter') { openChromeEditor(inst, 'header'); }
     else if (cmd === 'pageSettings') { openPageSettings(inst); }
@@ -3488,12 +3501,16 @@ window.__SUI_RICH = (function () {
     try {
       var handled = runBuiltin(inst, cmd, value);
       if (!handled) {
+        if (!modeAllowsToken(editorMode(inst), cmd)) {
+          return [false, cmd + ' is not available in ' + editorMode(inst) + ' mode'];
+        }
         var pluginCmd = commands[cmd];
         if (!pluginCmd) return [false, 'unknown richtext command: ' + cmd];
         var r = typeof pluginCmd.run === 'function' ? pluginCmd.run(inst, value) : runBuiltin(inst, pluginCmd.command, value);
         if (r === false) return [false, 'command failed: ' + cmd];
       }
-      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|pageSettings|documentSettings|headerFooter|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset|iconSet|iconSetLine|iconSetBold|iconSetDuotone|iconSetBlocks)$/.test(cmd)) commit(inst, 'change');
+      if (!/^(tableSelect|tableDock|copy|tableProps|find|findNext|findPrev|findClose|print|printPreview|paginatedView|sourceMode|pageSettings|documentSettings|headerFooter|paragraphSettings|imageSettings|copyFormat|zoomIn|zoomOut|zoomReset|iconSet|iconSetLine|iconSetBold|iconSetDuotone|iconSetBlocks)$/.test(cmd)) commit(inst, 'change');
+      if (inst.sourceMode && !inst.sourceDirty) refreshSourceText(inst);
       return [true, null];
     } catch (e) { return [false, String(e && e.message ? e.message : e)]; }
   }
@@ -3503,6 +3520,8 @@ window.__SUI_RICH = (function () {
   function getValue(name) {
     var inst = resolveInstance(name);
     if (!inst) return [null, 'richtext instance not found: ' + name];
+    var sourceSync = syncSourceBeforeSave(inst);
+    if (sourceSync[1] !== null) return [null, sourceSync[1]];
     sync(inst);
     return [JSON.stringify(inst.doc), null];
   }
@@ -3674,6 +3693,7 @@ window.__SUI_RICH = (function () {
     updateStats(inst);
     updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst); else schedulePageGuides(inst);
+    if (inst.sourceMode && !inst.sourceDirty) refreshSourceText(inst);
     notify(inst, 'change');
     return [true, null];
   }
@@ -4091,8 +4111,12 @@ window.__SUI_RICH = (function () {
   function exportFormat(name, format) {
     var inst = instances[name];
     if (!inst) return [null, 'richtext instance not found: ' + name];
+    var sourceSync = syncSourceBeforeSave(inst);
+    if (sourceSync[1] !== null) return [null, sourceSync[1]];
     sync(inst);
     var fmt = String(format || 'json').toLowerCase();
+    var mode = editorMode(inst);
+    if (!modeAllowsDataFormat(mode, fmt)) return [null, mode === 'html' ? 'HTML editor exports only HTML' : 'Markup editor exports only Markdown'];
     try {
       if (fmt === 'json') return [JSON.stringify(inst.doc), null];
       if (fmt === 'html') return [exportHTML(inst), null];
@@ -4105,6 +4129,8 @@ window.__SUI_RICH = (function () {
     var inst = instances[name];
     if (!inst) return [false, 'richtext instance not found: ' + name];
     var fmt = String(format || 'json').toLowerCase();
+    var mode = editorMode(inst);
+    if (!modeAllowsDataFormat(mode, fmt)) return [false, mode === 'html' ? 'HTML editor imports only HTML' : 'Markup editor imports only Markdown'];
     try {
       var doc;
       if (fmt === 'json') doc = parseJSON(text, null);
@@ -4245,6 +4271,12 @@ window.__SUI_RICH = (function () {
     }
     var chrome = inst.root.querySelectorAll('.sui-rich-menu,.sui-rich-toolbar,.sui-rich-tablebar,.sui-rich-context,.sui-rich-findbar');
     for (var j = 0; j < chrome.length; j++) chrome[j].hidden = true;
+    var sourcePanel = inst.root.querySelector('.sui-rich-source');
+    if (sourcePanel) sourcePanel.hidden = true;
+    var sourceBtn = inst.root.querySelector('[data-rich-source-toggle]');
+    if (sourceBtn) sourceBtn.hidden = true;
+    inst.sourceMode = false;
+    inst.root.removeAttribute('data-sui-rich-source');
   }
   function toolbarGroupLabel(tokens) {
     var list = String(tokens || '').split(',');
@@ -4353,9 +4385,10 @@ window.__SUI_RICH = (function () {
       var pl = plugins[pluginOrder[p]];
       if (pl && Array.isArray(pl.toolbar)) for (var ti = 0; ti < pl.toolbar.length; ti++) registered.push(pl.toolbar[ti]);
     }
-    if (registered.length && !noToolbar) {
+    var allowedRegistered = registered.filter(function (item) { return modeAllowsToken(editorMode(inst), item.id); });
+    if (allowedRegistered.length && !noToolbar) {
       var pg = el('div', 'sui-rich-group');
-      for (var r = 0; r < registered.length; r++) pg.appendChild(button(inst, registered[r].id, registered[r].label || registered[r].id, registered[r].title || registered[r].label || registered[r].id));
+      for (var r = 0; r < allowedRegistered.length; r++) pg.appendChild(button(inst, allowedRegistered[r].id, allowedRegistered[r].label || allowedRegistered[r].id, allowedRegistered[r].title || allowedRegistered[r].label || allowedRegistered[r].id));
       bar.appendChild(pg);
     }
     var themeGroup = el('div', 'sui-rich-group sui-rich-theme-group');
@@ -4725,7 +4758,11 @@ window.__SUI_RICH = (function () {
       ['tableAlignLeft', 'L', 'Align cell left'], ['tableAlignCenter', 'C', 'Align cell center'], ['tableAlignRight', 'R', 'Align cell right'],
       ['tableProps', '\u2699', 'Table settings'], ['tableDelete', '\u00d7', 'Delete table']
     ];
-    for (var i = 0; i < specs.length; i++) group.appendChild(button(inst, specs[i][0], specs[i][1], specs[i][2]));
+    var tableMode = editorMode(inst);
+    for (var i = 0; i < specs.length; i++) {
+      if (tableMode === 'markup' && !markupTableTokens[specs[i][0]]) continue;
+      group.appendChild(button(inst, specs[i][0], specs[i][1], specs[i][2]));
+    }
     var theme = toolbar.querySelector('.sui-rich-theme-group');
     toolbar.insertBefore(group, theme || null);
     bindToolbarDrag(inst);
@@ -5919,8 +5956,145 @@ window.__SUI_RICH = (function () {
     pagesBtn.title = 'Paginated preview (A4 pages)';
     pagesBtn.setAttribute('aria-pressed', 'false');
     status.appendChild(pagesBtn);
+    if (editorMode(inst) !== 'richtext' && !isReadOnly(inst)) {
+      var sourceBtn = el('button', 'sui-rich-zoom-btn sui-rich-pages-btn', 'Source');
+      sourceBtn.type = 'button';
+      sourceBtn.setAttribute('data-rich-source-toggle', '1');
+      sourceBtn.setAttribute('aria-pressed', 'false');
+      sourceBtn.title = 'Edit the HTML/Markdown source';
+      status.appendChild(sourceBtn);
+      updateSourceToggle(inst);
+    }
     // Zoom lives in the toolbar (see the "zoom" token); the status bar keeps
-    // only the paginated-view toggle. 100% reset is the label button itself.
+    // only the paginated-view and source toggles. 100% reset is the label button itself.
+  }
+
+  function sourceFormat(inst) { return editorMode(inst) === 'markup' ? 'markdown' : 'html'; }
+  function sourceLabel(inst) { return editorMode(inst) === 'markup' ? 'Markdown source' : 'HTML source'; }
+  function sourceTextNow(inst) {
+    return sourceFormat(inst) === 'markdown' ? exportMarkdown(inst) : exportHTML(inst);
+  }
+  function setSourceStatus(inst, text) {
+    if (!inst || !inst.sourceStatus) return;
+    inst.sourceStatus.textContent = String(text || '');
+    inst.sourceStatus.title = String(text || '');
+  }
+  function updateSourceToggle(inst) {
+    if (!inst || !inst.root) return;
+    var btn = inst.root.querySelector('[data-rich-source-toggle]');
+    if (!btn) return;
+    btn.textContent = inst.sourceMode ? 'Visual' : 'Source';
+    btn.classList.toggle('on', !!inst.sourceMode);
+    btn.setAttribute('aria-pressed', inst.sourceMode ? 'true' : 'false');
+    btn.title = inst.sourceMode ? 'Return to the visual editor' : 'Edit the HTML/Markdown source';
+  }
+  function ensureSourcePanel(inst) {
+    if (inst.sourcePanel && inst.sourcePanel.parentNode) return inst.sourcePanel;
+    var panel = el('div', 'sui-rich-source');
+    panel.hidden = true;
+    var bar = el('div', 'sui-rich-source-bar');
+    var label = el('span', 'sui-rich-source-label', sourceLabel(inst));
+    bar.appendChild(label);
+    var status = el('span', 'sui-rich-source-status', '');
+    bar.appendChild(status);
+    var apply = el('button', 'sui-rich-zoom-btn', 'Apply');
+    apply.type = 'button';
+    apply.setAttribute('data-rich-source-apply', '1');
+    apply.title = 'Parse the source and update the visual document';
+    var revert = el('button', 'sui-rich-zoom-btn', 'Revert');
+    revert.type = 'button';
+    revert.setAttribute('data-rich-source-revert', '1');
+    revert.title = 'Discard edits and reload the current document source';
+    var visual = el('button', 'sui-rich-zoom-btn', 'Visual');
+    visual.type = 'button';
+    visual.setAttribute('data-rich-source-visual', '1');
+    visual.title = 'Apply the source and return to the visual editor';
+    bar.appendChild(apply); bar.appendChild(revert); bar.appendChild(visual);
+    panel.appendChild(bar);
+    var area = el('textarea', 'sui-rich-source-code');
+    area.spellcheck = false;
+    area.setAttribute('aria-label', sourceLabel(inst));
+    area.setAttribute('wrap', 'off');
+    panel.appendChild(area);
+    var body = inst.root.querySelector('.sui-rich-body');
+    if (body) inst.root.insertBefore(panel, body);
+    else inst.root.appendChild(panel);
+    inst.sourcePanel = panel;
+    inst.sourceTextarea = area;
+    inst.sourceStatus = status;
+    area.addEventListener('input', function () {
+      inst.sourceDirty = true;
+      setSourceStatus(inst, 'Editing - not applied yet');
+      clearTimeout(inst.sourceTimer);
+      inst.sourceTimer = setTimeout(function () { applySource(inst, false); }, 350);
+    });
+    area.addEventListener('keydown', function (ev) {
+      if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') { ev.preventDefault(); applySource(inst, true); }
+      if (ev.key === 'Escape') { ev.preventDefault(); closeSource(inst); }
+    });
+    apply.addEventListener('click', function (ev) { if (ev) ev.preventDefault(); applySource(inst, true); });
+    revert.addEventListener('click', function (ev) { if (ev) ev.preventDefault(); fillSource(inst); setSourceStatus(inst, 'Reverted'); });
+    visual.addEventListener('click', function (ev) { if (ev) ev.preventDefault(); closeSource(inst); });
+    return panel;
+  }
+  function fillSource(inst) {
+    if (!inst || !inst.sourceTextarea) return;
+    inst.sourceTextarea.value = sourceTextNow(inst);
+    inst.sourceDirty = false;
+  }
+  function applySource(inst, announce) {
+    if (!inst || !inst.sourceTextarea) return [true, null];
+    clearTimeout(inst.sourceTimer);
+    var text = String(inst.sourceTextarea.value || '');
+    try {
+      var doc = sourceFormat(inst) === 'markdown' ? importMarkdown(text) : importHTML(text);
+      if (!doc || typeof doc !== 'object') throw new Error('source did not produce a document');
+      var result = setValue(inst.name, doc);
+      if (result && result[1] !== null) throw new Error(result[1]);
+      inst.sourceDirty = false;
+      setSourceStatus(inst, announce ? 'Applied' : 'Applied automatically');
+      return [true, null];
+    } catch (err) {
+      var message = String(err && err.message ? err.message : err);
+      setSourceStatus(inst, message);
+      return [false, message];
+    }
+  }
+  function openSource(inst) {
+    if (!inst || editorMode(inst) === 'richtext' || isReadOnly(inst)) return;
+    var panel = ensureSourcePanel(inst);
+    closeMenus(inst);
+    closeFindBar(inst);
+    panel.hidden = false;
+    inst.root.setAttribute('data-sui-rich-source', '1');
+    inst.sourceMode = true;
+    fillSource(inst);
+    setSourceStatus(inst, 'Ready');
+    updateSourceToggle(inst);
+    if (inst.sourceTextarea) { try { inst.sourceTextarea.focus(); } catch (e) {} }
+  }
+  function closeSource(inst) {
+    if (!inst || !inst.sourceMode) return;
+    if (inst.sourceDirty) {
+      var result = applySource(inst, true);
+      if (result[1] !== null) return;
+    }
+    if (inst.sourcePanel) inst.sourcePanel.hidden = true;
+    inst.root.removeAttribute('data-sui-rich-source');
+    inst.sourceMode = false;
+    inst.sourceDirty = false;
+    updateSourceToggle(inst);
+  }
+  function toggleSource(inst) {
+    if (inst.sourceMode) closeSource(inst); else openSource(inst);
+  }
+  function refreshSourceText(inst) {
+    if (!inst || !inst.sourceMode || inst.sourceDirty || !inst.sourceTextarea) return;
+    fillSource(inst);
+  }
+  function syncSourceBeforeSave(inst) {
+    if (!inst || !inst.sourceMode || !inst.sourceDirty) return [true, null];
+    return applySource(inst, true);
   }
 
   function findTextNodes(inst, query) {
@@ -7721,7 +7895,13 @@ window.__SUI_RICH = (function () {
       var html = data && data.getData ? data.getData('text/html') : '';
       if (html) {
         e.preventDefault();
-        insertDocumentAtCaret(inst, importHTML(html));
+        var pastedDoc = importHTML(html);
+        if (editorMode(inst) === 'markup') {
+          // Keep only what Markdown can round-trip: drop colors, fonts,
+          // alignment, merged cells and other rich-only formatting.
+          pastedDoc = importMarkdown(exportMarkdown({ doc: pastedDoc }));
+        }
+        insertDocumentAtCaret(inst, pastedDoc);
         materializeBlobImages(inst, inst.editor);
         commit(inst, 'input');
       } else setTimeout(function () { commit(inst, 'input'); }, 0);
@@ -7767,6 +7947,8 @@ window.__SUI_RICH = (function () {
       }
       var pagesToggle = target.closest('[data-rich-pages]');
       if (pagesToggle) { setPaginated(inst); return; }
+      var sourceToggle = target.closest('[data-rich-source-toggle]');
+      if (sourceToggle) { toggleSource(inst); return; }
       var zoom = target.closest('[data-rich-zoom]');
       if (zoom) {
         var zoomAction = zoom.getAttribute('data-rich-zoom');
@@ -7869,7 +8051,11 @@ window.__SUI_RICH = (function () {
         commit(inst, 'input');
         return;
       }
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); command(inst.name, 'pageBreak'); return; }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (shortcutAllowed(inst, 'pageBreak')) command(inst.name, 'pageBreak');
+        return;
+      }
       if (e.key === 'Tab') {
         var tabBlock = currentBlock(inst);
         if (tabBlock && tabBlock.tagName && tabBlock.tagName.toLowerCase() === 'li') {
@@ -7879,14 +8065,20 @@ window.__SUI_RICH = (function () {
           return;
         }
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); command(inst.name, 'find'); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') { e.preventDefault(); command(inst.name, 'print'); return; }
-      if (e.key === 'F3') { e.preventDefault(); var fbar = inst.root.querySelector('.sui-rich-findbar'); if (!fbar || fbar.hidden) command(inst.name, 'find'); else command(inst.name, e.shiftKey ? 'findPrev' : 'findNext'); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); if (shortcutAllowed(inst, 'find')) command(inst.name, 'find'); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') { e.preventDefault(); if (shortcutAllowed(inst, 'print')) command(inst.name, 'print'); return; }
+      if (e.key === 'F3') {
+        e.preventDefault();
+        if (!shortcutAllowed(inst, 'find')) return;
+        var fbar = inst.root.querySelector('.sui-rich-findbar');
+        if (!fbar || fbar.hidden) command(inst.name, 'find'); else command(inst.name, e.shiftKey ? 'findPrev' : 'findNext');
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(inst); else undo(inst); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(inst); }
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); command(inst.name, 'bold'); }
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') { e.preventDefault(); command(inst.name, 'italic'); }
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') { e.preventDefault(); command(inst.name, 'underline'); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); if (shortcutAllowed(inst, 'bold')) command(inst.name, 'bold'); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') { e.preventDefault(); if (shortcutAllowed(inst, 'italic')) command(inst.name, 'italic'); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') { e.preventDefault(); if (shortcutAllowed(inst, 'underline')) command(inst.name, 'underline'); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); commit(inst, 'change'); }
     });
     if (!inst.menuOutsideBound) {
@@ -7996,6 +8188,12 @@ window.__SUI_RICH = (function () {
       instances[name] = inst;
     } else {
       inst.root = root; inst.editor = editor; inst.mode = mode;
+    }
+    if ((mode === 'richtext' || isReadOnly(inst)) && inst.sourcePanel) {
+      inst.sourcePanel.hidden = true;
+      inst.sourceMode = false;
+      inst.sourceDirty = false;
+      root.removeAttribute('data-sui-rich-source');
     }
     if (!inst.typingMarks) inst.typingMarks = {};
     editor.setAttribute('lang', documentLanguage(inst));
@@ -8844,6 +9042,19 @@ window.__SUI_RICH = (function () {
     header += '\\paperw' + mmToTwips(rtfDims.w) + '\\paperh' + mmToTwips(rtfDims.h) +
       '\\margl' + mmToTwips(rtfPage.margins.left) + '\\margr' + mmToTwips(rtfPage.margins.right) +
       '\\margt' + mmToTwips(rtfPage.margins.top) + '\\margb' + mmToTwips(rtfPage.margins.bottom);
+    var rtfBg = hexColor(rtfPage.background || '#ffffff');
+    if (rtfBg && rtfBg !== 'FFFFFF') {
+      // Word/WordPad render page colour through a background shape. RTF shape
+      // colours are 0x00BBGGRR, so swap the RGB bytes from hexColor().
+      var rtfFill = (parseInt(rtfBg.slice(4, 6), 16) << 16) | (parseInt(rtfBg.slice(2, 4), 16) << 8) | parseInt(rtfBg.slice(0, 2), 16);
+      header += '\\viewbksp1{\\*\\background {\\shp{\\*\\shpinst' +
+        '\\shpleft0\\shptop0\\shpright0\\shpbottom0\\shpfhdr0\\shpbxmargin\\shpbxignore' +
+        '\\shpbymargin\\shpbyignore\\shpwr0\\shpwrk0\\shpfblwtxt1\\shpz0\\shplid1025' +
+        '{\\sp{\\sn shapeType}{\\sv 1}}{\\sp{\\sn fFlipH}{\\sv 0}}{\\sp{\\sn fFlipV}{\\sv 0}}' +
+        '{\\sp{\\sn fillColor}{\\sv ' + rtfFill + '}}{\\sp{\\sn fFilled}{\\sv 1}}' +
+        '{\\sp{\\sn lineWidth}{\\sv 0}}{\\sp{\\sn fLine}{\\sv 0}}{\\sp{\\sn bWMode}{\\sv 9}}' +
+        '{\\sp{\\sn fBackground}{\\sv 1}}{\\sp{\\sn fLayoutInCell}{\\sv 1}}}}}';
+    }
     if (rtfColors.length) {
       header += '{\\colortbl;';
       for (var c = 0; c < rtfColors.length; c++) {
@@ -9334,11 +9545,14 @@ window.__SUI_RICH = (function () {
     var sectRefs = '';
     if (headerXml) { relsXml += '<Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'; sectRefs += '<w:headerReference w:type="default" r:id="rIdHeader1"/>'; }
     if (footerXml) { relsXml += '<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'; sectRefs += '<w:footerReference w:type="default" r:id="rIdFooter1"/>'; }
-    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' + body + '<w:sectPr>' + sectRefs + docxPgSz + docxPgMar + '</w:sectPr></w:body></w:document>';
+    var docxBg = hexColor(docxPage.background);
+    var docxBackground = docxBg && docxBg !== 'FFFFFF' ? '<w:background w:color="' + docxBg + '"/>' : '';
+    if (docxBackground) relsXml += '<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>';
+    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' + docxBackground + '<w:body>' + body + '<w:sectPr>' + sectRefs + docxPgSz + docxPgMar + '</w:sectPr></w:body></w:document>';
     var defaults = '';
     for (var ext in extSet) if (Object.prototype.hasOwnProperty.call(extSet, ext)) defaults += '<Default Extension="' + ext + '" ContentType="' + extSet[ext] + '"/>';
-    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (headerXml ? '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' : '') + (footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '') + '</Types>';
-    var settingsXml = '';
+    var settingsXml = docxBackground ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:displayBackgroundShape/></w:settings>' : '';
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + defaults + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' + (settingsXml ? '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>' : '') + (headerXml ? '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' : '') + (footerXml ? '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' : '') + '</Types>';
     var rootRels = '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
     if (hasLists) {
       relsXml += '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
@@ -9591,7 +9805,8 @@ window.__SUI_RICH = (function () {
       return out;
     }
     var odtPage = pageConfig(inst, 1), odtDims = pageSizeMm(odtPage);
-    var odtPageProps = '<style:page-layout-properties fo:page-width="' + mmToCm(odtDims.w) + '" fo:page-height="' + mmToCm(odtDims.h) + '" fo:margin-top="' + mmToCm(odtPage.margins.top) + '" fo:margin-bottom="' + mmToCm(odtPage.margins.bottom) + '" fo:margin-left="' + mmToCm(odtPage.margins.left) + '" fo:margin-right="' + mmToCm(odtPage.margins.right) + '"/>';
+    var odtBg = hexColor(odtPage.background);
+    var odtPageProps = '<style:page-layout-properties fo:page-width="' + mmToCm(odtDims.w) + '" fo:page-height="' + mmToCm(odtDims.h) + '" fo:margin-top="' + mmToCm(odtPage.margins.top) + '" fo:margin-bottom="' + mmToCm(odtPage.margins.bottom) + '" fo:margin-left="' + mmToCm(odtPage.margins.left) + '" fo:margin-right="' + mmToCm(odtPage.margins.right) + '"' + (odtBg && odtBg !== 'FFFFFF' ? ' fo:background-color="#' + odtBg + '"' : '') + '/>';
     var styles;
     if (inst.headerText || inst.footerText) {
       var odtHeaderBody = odtChromeBody(inst.headerValue || inst.headerText || '', inst, 'Header');
@@ -10577,6 +10792,8 @@ window.__SUI_RICH = (function () {
     var liveEditor = inst.root && inst.root.querySelector('.sui-rich-editor');
     if (liveEditor) inst.editor = liveEditor;
     var pageCfg = pageConfig(inst, 1), pageDims = pageSizeMm(pageCfg);
+    var pdfInk = pageInkFor(pageCfg.background);
+    var currentInk = pdfInk;
     var PAGE_W = Math.round(mmToPt(pageDims.w)), PAGE_H = Math.round(mmToPt(pageDims.h));
     var MARGIN = mmToPt(pageCfg.margins.left), MARGIN_R = mmToPt(pageCfg.margins.right);
     var MARGIN_T = mmToPt(pageCfg.margins.top), MARGIN_B = mmToPt(pageCfg.margins.bottom);
@@ -10634,7 +10851,7 @@ window.__SUI_RICH = (function () {
         }
         if (item.type !== 'run') continue;
         var width = pdfTextWidth(item.text.replace(/__SUI_(PAGE|PAGES)__/g, '00'), item.font, item.fontSize);
-        ops.push('BT ' + pdfFill(item.color || '#666666') + ' /' + item.font.name + ' ' + item.fontSize + ' Tf ' + pdfNumber(x) + ' ' + pdfNumber(ty(top + item.fontSize * 0.8)) + ' Td (' + pdfEscape(pdfEncode(item.text)) + ') Tj ET');
+        ops.push('BT ' + pdfFill(item.color || currentInk) + ' /' + item.font.name + ' ' + item.fontSize + ' Tf ' + pdfNumber(x) + ' ' + pdfNumber(ty(top + item.fontSize * 0.8)) + ' Td (' + pdfEscape(pdfEncode(item.text)) + ') Tj ET');
         x += width;
       }
     }
@@ -10663,7 +10880,16 @@ window.__SUI_RICH = (function () {
       if (hasHeader) drawChromeValue(headerValue, 6, Math.max(12, headerSpace - 10), headerSpace - 3);
       if (hasFooter) drawChromeValue(footerValue, PAGE_H - footerSpace + 4, Math.max(12, footerSpace - 10), PAGE_H - footerSpace + 3);
     }
-    function newPage() { if (ops.length) pages.push(ops.join('\n')); ops = []; y = START_Y; pageSeq++; drawChrome(); }
+    function newPage() {
+      if (ops.length) pages.push(ops.join('\n'));
+      ops = []; y = START_Y; pageSeq++;
+      var pageBackground = cssColor(pageConfig(inst, pageSeq).background) || '#ffffff';
+      currentInk = pageInkFor(pageBackground);
+      if (hexColor(pageBackground) && hexColor(pageBackground) !== 'FFFFFF') {
+        ops.push('q ' + pdfFill(pageBackground) + ' 0 0 ' + PAGE_W + ' ' + PAGE_H + ' re f Q');
+      }
+      drawChrome();
+    }
     function ensure(h) { if (y + h > BOTTOM_LIMIT) newPage(); }
     function ty(top) { return PAGE_H - top; }
     function imageFor(node) {
@@ -10900,7 +11126,7 @@ window.__SUI_RICH = (function () {
           var run2 = piece2.run, fontSize2 = run2.fontSize;
           var drawBaseline = baseline + (run2.sup ? -fontSize2 * 0.35 : run2.sub ? fontSize2 * 0.22 : 0);
           openText(seg2.x, drawBaseline);
-          var fill2 = run2.color || '#000000';
+          var fill2 = run2.color || currentInk;
           if (fill2 !== lastFill) { ops.push(pdfFill(fill2)); lastFill = fill2; }
           if (run2.font.name !== lastFont || fontSize2 !== lastSize) { ops.push('/' + run2.font.name + ' ' + pdfNumber(fontSize2) + ' Tf'); lastFont = run2.font.name; lastSize = fontSize2; }
           if (run2.font.emb) { registerEmbText(run2.font, piece2.text); ops.push('<' + pdfGids(piece2.text, run2.font.emb) + '> Tj'); }
@@ -10911,8 +11137,8 @@ window.__SUI_RICH = (function () {
           var segU = segments[u], runU = segU.piece.run;
           if (!runU) continue;
           var baselineU = baseline + (runU.sup ? -runU.fontSize * 0.35 : runU.sub ? runU.fontSize * 0.22 : 0);
-          if (runU.underline) ops.push('q ' + pdfStroke(runU.color || '#000000') + ' 0.5 w ' + pdfNumber(segU.x) + ' ' + pdfNumber(ty(baselineU + 1.5)) + ' m ' + pdfNumber(segU.x + segU.piece.width) + ' ' + pdfNumber(ty(baselineU + 1.5)) + ' l S Q');
-          if (runU.strike) ops.push('q ' + pdfStroke(runU.color || '#000000') + ' 0.5 w ' + pdfNumber(segU.x) + ' ' + pdfNumber(ty(baselineU - runU.fontSize * 0.3)) + ' m ' + pdfNumber(segU.x + segU.piece.width) + ' ' + pdfNumber(ty(baselineU - runU.fontSize * 0.3)) + ' l S Q');
+          if (runU.underline) ops.push('q ' + pdfStroke(runU.color || currentInk) + ' 0.5 w ' + pdfNumber(segU.x) + ' ' + pdfNumber(ty(baselineU + 1.5)) + ' m ' + pdfNumber(segU.x + segU.piece.width) + ' ' + pdfNumber(ty(baselineU + 1.5)) + ' l S Q');
+          if (runU.strike) ops.push('q ' + pdfStroke(runU.color || currentInk) + ' 0.5 w ' + pdfNumber(segU.x) + ' ' + pdfNumber(ty(baselineU - runU.fontSize * 0.3)) + ' m ' + pdfNumber(segU.x + segU.piece.width) + ' ' + pdfNumber(ty(baselineU - runU.fontSize * 0.3)) + ' l S Q');
         }
         y += height;
       }
@@ -11159,7 +11385,7 @@ window.__SUI_RICH = (function () {
         pdfList(node, 0);
       } else if (node.type === 'table') table(node);
     }
-    drawChrome();
+    newPage();
     for (var i = 0; i < (doc.children || []).length; i++) block(doc.children[i]);
     newPage();
     if (!pages.length) pages.push('');
@@ -11222,8 +11448,12 @@ window.__SUI_RICH = (function () {
   function exportBytes(name, format) {
     var inst = instances[name];
     if (!inst) return [null, 'richtext instance not found: ' + name];
+    var sourceSync = syncSourceBeforeSave(inst);
+    if (sourceSync[1] !== null) return [null, sourceSync[1]];
     sync(inst);
     var fmt = String(format || 'txt').toLowerCase();
+    var mode = editorMode(inst);
+    if (!modeAllowsDataFormat(mode, fmt)) return [null, mode === 'html' ? 'HTML editor exports only HTML' : 'Markup editor exports only Markdown'];
     try {
       if (fmt === 'txt' || fmt === 'text') return [bytesFromText(plainTextFromDoc(inst.doc)), null];
       if (fmt === 'rtf' || fmt === 'doc') return [bytesFromText(exportRTF(inst)), null];
@@ -11474,6 +11704,16 @@ const suiRichTextCss = `
 .sui-rich-color-swatch { width: 24px; height: 24px; padding: 0; border: 1px solid rgba(0,0,0,.25); border-radius: 5px; cursor: pointer; }
 .sui-rich-color-swatch:hover, .sui-rich-color-swatch:focus-visible { outline: 2px solid var(--sui-rich-accent, #6f7cff); outline-offset: 1px; }
 .sui-rich-color-custom { width: 100%; margin-top: 7px; justify-content: center; border: 1px solid var(--sui-rich-border, #3d4556); }
+.sui-rich-source { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; background: var(--sui-rich-bg); }
+.sui-rich-source[hidden] { display: none; }
+.sui-rich-source-bar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--sui-rich-border); background: var(--sui-rich-toolbar-bg); }
+.sui-rich-source-label { font-weight: 600; font-size: 12px; color: var(--sui-rich-fg); }
+.sui-rich-source-status { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--sui-rich-muted); }
+.sui-rich-source-code { flex: 1 1 auto; width: 100%; min-height: 160px; box-sizing: border-box; resize: none; border: 0; outline: none; padding: 14px 16px; background: var(--sui-rich-paper); color: var(--sui-rich-paper-fg); font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.55; tab-size: 2; white-space: pre; overflow: auto; }
+.sui-rich[data-sui-rich-source="1"] .sui-rich-body { display: none; }
+.sui-rich[data-sui-rich-source="1"] .sui-rich-toolbar,
+.sui-rich[data-sui-rich-source="1"] .sui-rich-tablebar,
+.sui-rich[data-sui-rich-source="1"] .sui-rich-context { display: none; }
 .sui-rich-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; background: var(--sui-rich-paper); position: relative; }
 .sui-rich-editor { flex: 1 1 auto; min-width: 0; height: var(--sui-rich-content-height, 320px); min-height: 0; padding: 22px 26px; outline: none; overflow: auto; font-size: 16px; line-height: 1.65; color: var(--sui-rich-paper-fg); overflow-wrap: break-word; word-break: normal; font-family: system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif; }
 .sui-rich-editor:empty::before, .sui-rich-editor[data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--sui-rich-muted); pointer-events: none; }

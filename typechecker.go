@@ -1035,6 +1035,7 @@ func Check(prog *Prog) DiagList {
 	// wrong instance, so reject them per runtime family (chart and graph share
 	// one family; a table and a modal may reuse the same name safely).
 	c.checkRuntimeNames(prog)
+	c.checkRichTextModeCompat(prog)
 
 	return dl
 }
@@ -1090,6 +1091,94 @@ func (c *Checker) checkRuntimeNamesIn(nodes []ViewNode, seen map[string]map[stri
 			c.checkRuntimeNamesIn(derefNodeList(n.else_), seen)
 		} else if n.kind == "list" {
 			c.checkRuntimeNamesIn(derefNodeList(n.body), seen)
+		}
+	}
+}
+
+func richTextModeToolbarAllowed(mode, id string) bool {
+	if mode == "html" {
+		return id != "pageBreak"
+	}
+	if mode == "markup" {
+		switch id {
+		case "undo", "redo", "copy", "cut", "paste", "selectAll",
+			"styleSelect", "bold", "italic", "strike", "code", "clearFormat",
+			"bulletList", "orderedList", "blockquote", "codeBlock",
+			"link", "unlink", "image", "table", "hr",
+			"documentSettings", "pageSettings", "find":
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+func knownRichTextToolbarIDs() map[string]bool {
+	known := map[string]bool{}
+	for _, group := range richTextToolbarGroups() {
+		for _, item := range group.Items {
+			if item.ID != "" {
+				known[item.ID] = true
+			}
+		}
+	}
+	return known
+}
+
+func (c *Checker) checkRichTextModeCompat(prog *Prog) {
+	known := knownRichTextToolbarIDs()
+	for i := 0; i < len(prog.views); i++ {
+		c.checkRichTextModeNodes(prog.views[i].body, known)
+	}
+}
+
+func (c *Checker) checkRichTextModeNodes(nodes []ViewNode, known map[string]bool) {
+	for i := 0; i < len(nodes); i++ {
+		n := &nodes[i]
+		if n.kind == "element" && n.elem != nil {
+			e := n.elem
+			if e.tag == "richtext" {
+				mode := ""
+				if a := findAttr(e, "mode"); a != nil && !a.hasExpr {
+					mode = strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+				}
+				if mode == "html" || mode == "markup" {
+					for _, key := range []string{"header", "footer"} {
+						if a := findAttr(e, key); a != nil {
+							value := strings.TrimSpace(partsContent(a.text))
+							if a.hasExpr || value != "" {
+								c.dd.AddEx(a.span.file, a.span.line, a.span.col, "warning",
+									"richtext "+key+" is ignored in "+mode+" mode",
+									"remove "+key+" or use mode: \"richtext\"")
+							}
+						}
+					}
+					if a := findAttr(e, "toolbarItems"); a != nil && !a.hasExpr {
+						raw := strings.TrimSpace(partsContent(a.text))
+						if raw != "" && strings.ToLower(raw) != "none" {
+							reported := map[string]bool{}
+							for _, group := range strings.Split(raw, "|") {
+								for _, token := range strings.Split(group, ",") {
+									token = strings.TrimSpace(token)
+									if token == "" || !known[token] || reported[token] || richTextModeToolbarAllowed(mode, token) {
+										continue
+									}
+									reported[token] = true
+									c.dd.AddEx(a.span.file, a.span.line, a.span.col, "warning",
+										"toolbar item \""+token+"\" is not available in "+mode+" mode",
+										"remove it from toolbarItems or switch to mode: \"richtext\"")
+								}
+							}
+						}
+					}
+				}
+			}
+			c.checkRichTextModeNodes(e.children, known)
+		} else if n.kind == "if" {
+			c.checkRichTextModeNodes(derefNodeList(n.then_), known)
+			c.checkRichTextModeNodes(derefNodeList(n.else_), known)
+		} else if n.kind == "list" {
+			c.checkRichTextModeNodes(derefNodeList(n.body), known)
 		}
 	}
 }

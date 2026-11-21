@@ -195,9 +195,16 @@ to 100%, +).
   Markdown only.
 
 HTML and Markup remove header/footer from the rendered document and from
-Document/Page settings. In both modes, `readonly: true` shows a viewer with no
-editing chrome. The page background is edited in Document/Page settings and is
-white by default.
+Document/Page settings. In both modes the status bar exposes **Source**, a
+source editor for typing or pasting HTML/Markdown, with Apply/Revert/Visual;
+read-only shows a viewer with no editing chrome. The page background is edited in
+Document/Page settings and is white by default. It is included in the editor,
+paginated/print preview, browser print, PDF, DOCX, ODT and RTF exports.
+
+File dialogs and `saveAs`/`openFile`/`importBytes`/`loadContent` file paths accept
+only HTML in HTML mode and only Markdown in Markup mode. `exportFormat`,
+`exportBytes` and `importFormat` follow the same restriction; use
+`richtext.get`/`set` for the internal JSON document.
 
 ## API
 

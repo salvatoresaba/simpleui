@@ -1679,6 +1679,19 @@ Markdown. Entrambi i profili rimuovono header/footer da Documento e Pagina,
 insieme alla voce di menu relativa. In sola lettura il controllo è un visualizzatore
 in tutte le modalità.
 
+Nelle modalità HTML e Markup la status bar espone anche **Source**. Apre un
+editor sorgente con **Apply**, **Revert** e **Visual**. Si può incollare HTML o
+Markdown esterno; Apply lo sanifica nel documento JSON (`importHTML` o
+`importMarkdown`). Le modifiche vengono applicate automaticamente dopo una breve
+pausa e `get`, `exportFormat`, `exportBytes` e `saveAs` applicano il sorgente
+pendente prima della lettura. In modalità HTML si esporta/importa solo `html`,
+in Markup solo `markdown`/`md`; per il documento JSON interno usa
+`richtext.get`/`set`. `simpleui check` avvisa se in modalità HTML/Markup sono
+presenti `header`, `footer` o voci `toolbarItems` incompatibili; il designer
+mostra gli stessi avvisi in **Problems**. Anche scorciatoie e pulsanti plugin
+seguono lo stesso filtro: in Markup `Ctrl+P`, `Ctrl+Enter` e `Ctrl+U` vengono
+ignorati e i comandi plugin non compatibili non sono esposti né invocabili.
+
 Il testo dell'elemento (ad esempio `richtext "Articolo"`) è il titolo del documento
 usato dai token `{title}` e come nome runtime di fallback; non viene più mostrato
 sopra il menu. Usa `richtext.loadContent` per sostituire il documento dal codice.

@@ -174,7 +174,7 @@ For desktop capabilities:
 | XML DOM/XPath/XSD/JSON/CSV library, keyed diff/patch/merge, binary I/O | `docs/STDLIB.md#xml-module-xml` | `examples/xml_library.sui` |
 | Debug generated JS/CSS with source maps | `docs/API_REFERENCE.md#cli` | `examples/counter.sui` |
 | JSON Pointer/Patch/Merge, keyed diff, schema validation, binary I/O | `docs/STDLIB.md#json-module-json` | `examples/json_library.sui` |
-| Rich text editor, JSON document model, toolbar, plugins, import/export | `docs/API_REFERENCE.md#rich-text-editor` | `examples/richtext_editor/README.md` |
+| Rich text editor, JSON document model, toolbar, plugins, import/export | `docs/API_REFERENCE.md#rich-text-editor` | `examples/richtext_editor/README.md`, `examples/richtext_modes/README.md` |
 | External component library (add/regroup palette presets) | `docs/COMPONENT_LIBRARY.md` | `components/library.json` |
 | Control appearance (structure/style/animation, themes, navigator) | `docs/APPEARANCE_LIBRARY.md` | a `button` in the designer |
 | Structural table layout for arranging UI regions | `docs/API_REFERENCE.md#table-layout`, `docs/GUI_EDITOR.md#table-layout-control` | `examples/table_layout/README.md` |

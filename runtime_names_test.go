@@ -81,6 +81,27 @@ func TestDesignerExposesRuntimeNamesAndLiveChecks(t *testing.T) {
 	}
 }
 
+func TestRichTextModeCompatibilityWarnings(t *testing.T) {
+	dl := checkRuntimeNamesSource(t, `state doc = ""
+view main {
+	richtext name: "page" mode: "html" value: doc header: "H" footer: "F" toolbarItems: "bold,pageBreak"
+	richtext name: "md" mode: "markup" value: doc toolbarItems: "bold,textColor"
+}`)
+	if dl.HasErrors() {
+		t.Fatalf("compatibility warnings must not become errors: %v", dl.String())
+	}
+	for _, want := range []string{
+		`richtext header is ignored in html mode`,
+		`richtext footer is ignored in html mode`,
+		`toolbar item "pageBreak" is not available in html mode`,
+		`toolbar item "textColor" is not available in markup mode`,
+	} {
+		if !strings.Contains(dl.String(), want) {
+			t.Errorf("missing compatibility warning %q in %s", want, dl.String())
+		}
+	}
+}
+
 func TestRuntimeNamesUniquePass(t *testing.T) {
 	dl := checkRuntimeNamesSource(t, `state doc = ""
 state flow = []

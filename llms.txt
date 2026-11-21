@@ -28,6 +28,7 @@
 - [examples/README.md](examples/README.md): Index of runnable examples.
 - [examples/table_data.sui](examples/table_data.sui): Table data and CSV import/export.
 - [examples/richtext_editor/README.md](examples/richtext_editor/README.md): Rich text editor with JSON model, formatting, tables/images/links, plugins and JSON/HTML/Markdown/XML import/export.
+- [examples/richtext_modes/README.md](examples/richtext_modes/README.md): Rich text, HTML and Markup authoring profiles with editable source, read-only viewer and page backgrounds.
 - [examples/menu_bar.sui](examples/menu_bar.sui): Configurable menu bar with submenus, links and actions.
 - [examples/tabs.sui](examples/tabs.sui): Working tab set with clickable panels and keyboard navigation.
 - [examples/pages/README.md](examples/pages/README.md): Multi-page navigation with `navigate()`, shared state and a complete walkthrough.

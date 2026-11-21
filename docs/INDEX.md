@@ -61,7 +61,7 @@ Recommended order for an agent:
 | Desktop fs copy/move/size/isDir | [STDLIB: fs](STDLIB.md#file-system-module-fs) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/fs_operations.sui` |
 | Debug generated JS/CSS with source maps | [API: CLI](API_REFERENCE.md#cli) | [README](../README.md) | `examples/counter.sui` |
 | XML DOM, XPath, XSD subset, keyed diff/patch/merge and conversion | [STDLIB: XML](STDLIB.md#xml-module-xml) | [SECURITY](../SECURITY.md#desktop-bridge) | `examples/xml_library.sui` |
-| Rich text editor with JSON model, toolbar, plugins, import/export | [API: rich text](API_REFERENCE.md#rich-text-editor) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/richtext_editor/README.md` |
+| Rich text editor with JSON model, toolbar, plugins, import/export | [API: rich text](API_REFERENCE.md#rich-text-editor) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/richtext_editor/README.md`, `examples/richtext_modes/README.md` |
 | Slideshow with dots and keyboard | [API: carousel](API_REFERENCE.md#carousel) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/carousel/README.md` |
 | Wizard / progress steps | [API: stepper](API_REFERENCE.md#stepper) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/stepper/README.md` |
 | Searchable command list / Ctrl+K overlay | [API: command palette](API_REFERENCE.md#command-palette) | [GUI editor: content controls](GUI_EDITOR.md#content-and-feedback-controls) | `examples/commandbar/README.md` |
