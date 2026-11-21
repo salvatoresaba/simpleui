@@ -20,6 +20,15 @@ window.__SUI_RICH = (function () {
   var MAX_NODES = 10000;
   var DEFAULT_DOC = { type: 'doc', children: [{ type: 'paragraph', children: [] }] };
   var defaultToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr,pageBreak|pageSettings,printPreview,print,find|zoom';
+  var htmlToolbar = 'undo,redo,copy,cut,paste|styleSelect,fontFamily,fontSize,fontSizeUp,fontSizeDown,bold,italic,underline,strike,textColor,highlight,superscript,subscript,code,clearFormat,copyFormat|alignLeft,alignCenter,alignRight,justify,indent,outdent,paragraphSettings,bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,symbol,hr|documentSettings,pageSettings,find,printPreview,print|zoom';
+  var markupToolbar = 'undo,redo,copy,cut,paste|styleSelect,bold,italic,strike,code,clearFormat|bulletList,orderedList,blockquote,codeBlock|link,unlink,image,table,hr|documentSettings,pageSettings,find';
+  var markupTokens = {
+    undo: 1, redo: 1, copy: 1, cut: 1, paste: 1, selectAll: 1,
+    styleSelect: 1, bold: 1, italic: 1, strike: 1, code: 1, clearFormat: 1,
+    bulletList: 1, orderedList: 1, blockquote: 1, codeBlock: 1,
+    link: 1, unlink: 1, image: 1, table: 1, hr: 1,
+    documentSettings: 1, pageSettings: 1, find: 1
+  };
   var ICONS = {
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5V3M5 7c3-4 10-4 13 1s1 11-4 13"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h4V3m0 4c-3-4-10-4-13 1s-1 11 4 13"/></svg>',
@@ -114,6 +123,74 @@ window.__SUI_RICH = (function () {
       { label: 'Icon style', items: ['Line icons|iconSetLine', 'Bold line icons|iconSetBold', 'Duotone icons|iconSetDuotone', 'Soft block icons|iconSetBlocks'] }]
   };
   var MENU_LABELS = { file: 'File', edit: 'Edit', insert: 'Insert', preferences: 'Preferences' };
+
+  function editorMode(inst) {
+    var mode = String((inst && inst.mode) || 'richtext').toLowerCase();
+    if (mode === 'html' || mode === 'markup') return mode;
+    return 'richtext';
+  }
+  function chromeEnabled(inst) { return editorMode(inst) === 'richtext'; }
+  function modeAllowsToken(mode, token) {
+    if (mode === 'markup') return !!markupTokens[token];
+    if (mode === 'html') return token !== 'pageBreak';
+    return true;
+  }
+  function toolbarForMode(inst, configured) {
+    var mode = editorMode(inst);
+    var raw = String(configured || '');
+    if (!raw) raw = mode === 'markup' ? markupToolbar : mode === 'html' ? htmlToolbar : defaultToolbar;
+    var groups = [];
+    raw.split('|').forEach(function (group) {
+      var tokens = [];
+      group.split(',').forEach(function (token) {
+        token = String(token || '').trim();
+        if (token && modeAllowsToken(mode, token)) tokens.push(token);
+      });
+      if (tokens.length) groups.push(tokens.join(','));
+    });
+    return groups.join('|');
+  }
+  function fileMenuForMode(mode) {
+    if (mode === 'html') {
+      return ['New document|newDoc', 'Open file...|openFile',
+        { label: 'Save as', items: ['HTML (.html)|saveHTML'] },
+        'Print preview|printPreview', 'Print / Save as PDF|print',
+        { label: 'Import', items: ['HTML|importHTML'] },
+        { label: 'Export', items: ['HTML|exportHTML'] }];
+    }
+    if (mode === 'markup') {
+      return ['New document|newDoc', 'Open file...|openFile',
+        { label: 'Save as', items: ['Markdown (.md)|saveMarkdown'] },
+        { label: 'Import', items: ['Markdown|importMarkdown'] },
+        { label: 'Export', items: ['Markdown|exportMarkdown'] }];
+    }
+    return MENUS.file;
+  }
+  function menusForMode(mode) {
+    var menus = {
+      file: fileMenuForMode(mode),
+      edit: MENUS.edit.slice(),
+      insert: MENUS.insert.slice(),
+      preferences: MENUS.preferences.slice()
+    };
+    if (mode !== 'richtext') {
+      menus.insert = menus.insert.filter(function (item) { return String(item).indexOf('|pageBreak') < 0; });
+      menus.preferences = menus.preferences.filter(function (item) {
+        return !(item && typeof item === 'string' && item.indexOf('|headerFooter') >= 0);
+      });
+    }
+    return menus;
+  }
+  function modeFileAccept(mode) {
+    if (mode === 'html') return '.html,.htm';
+    if (mode === 'markup') return '.md,.markdown';
+    return '.txt,.text,.rtf,.doc,.docx,.odt,.html,.htm,.md,.markdown,.json,.xml';
+  }
+  function modeFileAllowed(mode, filename) {
+    if (mode === 'html') return /\.html?$/i.test(String(filename || ''));
+    if (mode === 'markup') return /\.(md|markdown)$/i.test(String(filename || ''));
+    return true;
+  }
 
   function hasOwn(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function attr(root, name) { return root.getAttribute(name) || ''; }
@@ -3554,6 +3631,13 @@ window.__SUI_RICH = (function () {
     inst.footerH = chromeHasContent(inst.footerValue) ? Math.max(14, measureChromeHeight(inst, inst.footerValue, width)) : 0;
   }
   function refreshChromeValues(inst) {
+    if (!chromeEnabled(inst)) {
+      // HTML and markup profiles do not have document headers/footers.
+      inst.headerValue = []; inst.footerValue = [];
+      inst.headerText = ''; inst.footerText = '';
+      inst.headerH = 0; inst.footerH = 0;
+      return;
+    }
     inst.headerValue = resolvedHeader(inst, inst.doc);
     inst.footerValue = resolvedFooter(inst, inst.doc);
     inst.headerText = chromePlainText(inst.headerValue);
@@ -3581,6 +3665,7 @@ window.__SUI_RICH = (function () {
     refreshChromeValues(inst);
     hyphenationLanguage = documentLanguage(inst);
     refreshPageChrome(inst);
+    applyPageBackground(inst);
     inst.editor.innerHTML = '';
     inst.editor.appendChild(renderDoc(inst.doc));
     inst.editor.__suiRichDoc = JSON.stringify(inst.doc);
@@ -3639,12 +3724,15 @@ window.__SUI_RICH = (function () {
     } catch (e) { return [null, String(e && e.message ? e.message : e)]; }
   }
   async function loadContent(name, content, format, filename) {
-    if (!resolveInstance(name)) return [false, 'richtext instance not found: ' + name];
+    var inst = resolveInstance(name);
+    if (!inst) return [false, 'richtext instance not found: ' + name];
+    var mode = editorMode(inst);
     var fmt = String(format || '').toLowerCase();
     if (content == null || (content === '' && !fmt)) return openFile(name);
     if (looksLikeContentBytes(content)) {
       var fname = loadContentFileName(content, fmt, filename);
       if (!fname) return [false, 'richtext file name required: pass the file name as the third or fourth argument'];
+      if (!modeFileAllowed(mode, fname)) return [false, mode === 'html' ? 'HTML editor loads only .html files' : 'Markup editor loads only Markdown files'];
       try {
         var bytes = content;
         if (typeof content.arrayBuffer === 'function') {
@@ -3657,6 +3745,7 @@ window.__SUI_RICH = (function () {
     if (pathMode) {
       var path = String(content == null ? '' : content).trim();
       if (!path) return [false, 'richtext file path required'];
+      if (!modeFileAllowed(mode, path)) return [false, mode === 'html' ? 'HTML editor loads only .html files' : 'Markup editor loads only Markdown files'];
       var read = await readDesktopFile(path);
       if (read[1] !== null) return [false, read[1]];
       var parts = path.split(/[\\/]/);
@@ -4176,7 +4265,7 @@ window.__SUI_RICH = (function () {
     bar.innerHTML = '';
     var configured = String(inst.config.toolbar || '').trim();
     var noToolbar = noFormatToolbar(inst);
-    var items = noToolbar ? '' : (configured || defaultToolbar);
+    var items = noToolbar ? '' : toolbarForMode(inst, configured);
     var groups = String(items).split('|');
     for (var g = 0; g < groups.length; g++) {
       if (!groups[g].trim()) continue;
@@ -4387,13 +4476,14 @@ window.__SUI_RICH = (function () {
     var bar = inst.root.querySelector('.sui-rich-menu');
     if (!bar) return;
     bar.innerHTML = '';
-    Object.keys(MENUS).forEach(function (key) {
+    var menus = menusForMode(editorMode(inst));
+    Object.keys(menus).forEach(function (key) {
       var wrap = el('div', 'sui-rich-menu-wrap');
       var b = el('button', 'sui-rich-menu-btn', MENU_LABELS[key]);
       b.type = 'button'; b.setAttribute('data-rich-menu', key); b.setAttribute('aria-haspopup', 'true');
       var panel = el('div', 'sui-rich-menu-panel');
       panel.hidden = true;
-      MENUS[key].forEach(function (spec) {
+      menus[key].forEach(function (spec) {
         if (spec && typeof spec === 'object' && Array.isArray(spec.items)) {
           var subwrap = el('div', 'sui-rich-menu-subwrap');
           var parent = el('button', 'sui-rich-menu-item sui-rich-menu-parent', spec.label + ' \u25b8');
@@ -4665,8 +4755,12 @@ window.__SUI_RICH = (function () {
     var bar = inst.root.querySelector('.sui-rich-context');
     if (!bar) return;
     bar.innerHTML = '';
-    if (noFormatToolbar(inst)) { bar.hidden = true; return; }
-    ['bold', 'italic', 'underline', 'strike', 'link', 'highlight', 'indent', 'outdent', 'clearFormat'].forEach(function (cmd) { bar.appendChild(button(inst, cmd, cmd, cmd)); });
+    var mode = editorMode(inst);
+    var commands = ['bold', 'italic', 'underline', 'strike', 'link', 'highlight', 'indent', 'outdent', 'clearFormat'].filter(function (cmd) {
+      return modeAllowsToken(mode, cmd);
+    });
+    if (noFormatToolbar(inst) || !commands.length) { bar.hidden = true; return; }
+    commands.forEach(function (cmd) { bar.appendChild(button(inst, cmd, cmd, cmd)); });
   }
   function applyTheme(inst) {
     if (!inst || !inst.root) return;
@@ -4797,7 +4891,7 @@ window.__SUI_RICH = (function () {
     return applyPageTokens(text, page, total, known, inst);
   }
   function defaultPageConfig() {
-    return { size: 'a4', orientation: 'portrait', lineHeight: 1.65, lang: '', margins: { top: 15, right: 17, bottom: 15, left: 17 } };
+    return { size: 'a4', orientation: 'portrait', lineHeight: 1.65, lang: '', background: '#ffffff', margins: { top: 15, right: 17, bottom: 15, left: 17 } };
   }
   function clampPageMargin(value, fallback) {
     var n = Number(value);
@@ -4813,6 +4907,8 @@ window.__SUI_RICH = (function () {
       var lh = Number(raw.lineHeight);
       if (isFinite(lh) && lh >= 0.8 && lh <= 3) page.lineHeight = Math.round(lh * 100) / 100;
       if (typeof raw.lang === 'string' && /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(raw.lang.trim())) page.lang = raw.lang.trim();
+      var bg = cssColor(raw.background);
+      if (bg) page.background = bg;
       var m = raw.margins || {};
       page.margins = {
         top: clampPageMargin(m.top, page.margins.top),
@@ -4832,6 +4928,8 @@ window.__SUI_RICH = (function () {
     if (ov.orientation === 'landscape' || ov.orientation === 'portrait') page.orientation = ov.orientation;
     var lh = Number(ov.lineHeight);
     if (isFinite(lh) && lh >= 0.8 && lh <= 3) page.lineHeight = Math.round(lh * 100) / 100;
+    var bg = cssColor(ov.background);
+    if (bg) page.background = bg;
     var m = ov.margins || {};
     page.margins = {
       top: clampPageMargin(m.top, page.margins.top),
@@ -5377,9 +5475,15 @@ window.__SUI_RICH = (function () {
     clearTimeout(inst.pageTimer);
     inst.pageTimer = setTimeout(function () { paginate(inst).catch(function (e) { try { console.error('PAGINATE', e && e.stack); inst.root.setAttribute('data-page-error', String(e && e.message)); } catch (x) {} }); }, 140);
   }
-  function sheetNode(inst, m) {
+  function sheetNode(inst, m, pageNo) {
     var sheet = el('div', 'sui-rich-page-sheet');
     sheet.setAttribute('lang', documentLanguage(inst));
+    sheet.setAttribute('data-rich-page', String(pageNo || 1));
+    var sheetBg = cssColor(pageConfig(inst, pageNo || 1).background) || '#ffffff';
+    var sheetInk = pageInkFor(sheetBg);
+    sheet.style.backgroundColor = sheetBg;
+    sheet.style.setProperty('--sui-rich-paper-fg', sheetInk);
+    sheet.style.setProperty('--sui-rich-paper-muted', sheetInk === '#1c2330' ? '#5a6577' : '#c9d3e0');
     sheet.style.width = m.width + 'px';
     sheet.style.minHeight = m.height + 'px';
     sheet.style.padding = m.padTop + 'px ' + m.padRight + 'px ' + m.padBottom + 'px ' + m.padLeft + 'px';
@@ -5624,11 +5728,11 @@ window.__SUI_RICH = (function () {
       }
     }
     var sheets = [];
-    var current = sheetNode(inst, m);
+    var current = sheetNode(inst, m, 1);
     sheets.push(current); wrap.appendChild(current.sheet);
     function fresh(source) {
       var nextNo = sheets.length + 1;
-      current = sheetNode(inst, pageMetrics(inst, nextNo));
+      current = sheetNode(inst, pageMetrics(inst, nextNo), nextNo);
       sheets.push(current); wrap.appendChild(current.sheet); current.used = 0;
       if (source) breakSources.push(source);
     }
@@ -5978,6 +6082,7 @@ window.__SUI_RICH = (function () {
     return matches.length;
   }
   function buildPageChrome(inst) {
+    if (!chromeEnabled(inst)) return;
     if (!chromeHasContent(inst.headerValue) && !chromeHasContent(inst.footerValue)) return;
     var body = inst.root.querySelector('.sui-rich-body');
     if (!body || body.querySelector('.sui-rich-page')) return;
@@ -6055,7 +6160,7 @@ window.__SUI_RICH = (function () {
     panel = el('div', 'sui-rich-pagesettings');
     panel.setAttribute('data-rich-pagesettings', inst.name);
     panel.hidden = true;
-    panel.appendChild(panelTitle('Page settings', 'Overrides Document settings for this page. Reset restores the document defaults. Margins accept 0-50 mm.'));
+    panel.appendChild(panelTitle('Page settings', 'Overrides Document settings for this page. Reset restores the document defaults. Margins accept 0-50 mm; the page background defaults to white.'));
 
     var pageRow = el('label');
     pageRow.appendChild(el('span', '', 'Page'));
@@ -6096,7 +6201,18 @@ window.__SUI_RICH = (function () {
     pageMarginInput(grid, 'bottom', 'Bottom');
     pageMarginInput(grid, 'left', 'Left');
 
-    chromeOpenButton(inst, panel);
+    var bgRow = el('label');
+    bgRow.appendChild(el('span', '', 'Page background'));
+    var bgInput = el('input');
+    bgInput.type = 'color';
+    bgInput.value = '#ffffff';
+    bgInput.setAttribute('data-rich-page-background', '1');
+    bgInput.setAttribute('aria-label', 'Page background color');
+    bgInput.title = 'Background color for this page';
+    bgRow.appendChild(bgInput);
+    panel.appendChild(bgRow);
+
+    if (chromeEnabled(inst)) chromeOpenButton(inst, panel);
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply');
@@ -6152,12 +6268,42 @@ window.__SUI_RICH = (function () {
       var input = panel.querySelector('[data-rich-page-margin="' + side + '"]');
       if (input) input.value = String(page.margins[side]);
     });
+    var bg = panel.querySelector('[data-rich-page-background]');
+    if (bg) bg.value = cssColor(page.background) || '#ffffff';
   }
   function applyPageLineHeight(inst) {
     var lh = String(pageConfig(inst).lineHeight);
     if (inst.editor) inst.editor.style.lineHeight = lh;
     var nodes = inst.root ? inst.root.querySelectorAll('.sui-rich-sheet-body, .sui-rich-measure') : [];
     for (var i = 0; i < nodes.length; i++) nodes[i].style.lineHeight = lh;
+  }
+  function pageInkFor(background) {
+    var match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(String(background || ''));
+    if (!match) return '#1c2330';
+    var hex = match[1];
+    if (hex.length === 3) hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
+    var r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.55 ? '#f5f7fa' : '#1c2330';
+  }
+  function applyPageBackground(inst) {
+    if (!inst || !inst.root) return;
+    var background = cssColor(pageConfig(inst, 1).background) || '#ffffff';
+    inst.root.style.setProperty('--sui-rich-paper', background);
+    inst.root.style.setProperty('--sui-rich-paper-fg', pageInkFor(background));
+    inst.root.style.setProperty('--sui-rich-paper-muted', pageInkFor(background) === '#1c2330' ? '#5a6577' : '#c9d3e0');
+    var body = inst.root.querySelector('.sui-rich-body');
+    if (body) body.style.backgroundColor = background;
+    var pages = inst.root.querySelectorAll('.sui-rich-page');
+    for (var p = 0; p < pages.length; p++) pages[p].style.backgroundColor = background;
+    var sheets = inst.root.querySelectorAll('.sui-rich-page-sheet');
+    for (var s = 0; s < sheets.length; s++) {
+      var pageNo = parseInt(sheets[s].getAttribute('data-rich-page') || '0', 10) || 0;
+      var sheetBg = cssColor(pageConfig(inst, pageNo).background) || '#ffffff';
+      var sheetInk = pageInkFor(sheetBg);
+      sheets[s].style.backgroundColor = sheetBg;
+      sheets[s].style.setProperty('--sui-rich-paper-fg', sheetInk);
+      sheets[s].style.setProperty('--sui-rich-paper-muted', sheetInk === '#1c2330' ? '#5a6577' : '#c9d3e0');
+    }
   }
   function applyPageSettings(inst) {
     inst = resolveInstance(inst.name) || inst;
@@ -6174,6 +6320,8 @@ window.__SUI_RICH = (function () {
     var orientation = value('[data-rich-page-orientation]') === 'landscape' ? 'landscape' : 'portrait';
     if (size !== defaults.size) override.size = size;
     if (orientation !== defaults.orientation) override.orientation = orientation;
+    var background = cssColor(value('[data-rich-page-background]')) || '#ffffff';
+    if (background !== defaults.background) override.background = background;
     var margins = {};
     ['top', 'right', 'bottom', 'left'].forEach(function (side) {
       var v = margin(side);
@@ -6184,6 +6332,7 @@ window.__SUI_RICH = (function () {
     if (Object.keys(override).length) overrides[String(n)] = override;
     else delete overrides[String(n)];
     inst.doc.pageOverrides = overrides;
+    applyPageBackground(inst);
     updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst);
     commit(inst, 'change');
@@ -6197,6 +6346,7 @@ window.__SUI_RICH = (function () {
     delete overrides[String(n)];
     inst.doc.pageOverrides = overrides;
     fillPageSettings(inst, panel, documentPageConfig(inst), n);
+    applyPageBackground(inst);
     updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst);
     commit(inst, 'change');
@@ -6832,6 +6982,7 @@ window.__SUI_RICH = (function () {
     document.addEventListener('keydown', onKey);
   }
   function openChromeEditor(inst, initialWhich) {
+    if (!chromeEnabled(inst)) return;
     closeChromeEditor();
     var overlay = el('div', 'sui-rich-chrome-editor');
     overlay.setAttribute('role', 'dialog');
@@ -7073,7 +7224,9 @@ window.__SUI_RICH = (function () {
     panel = el('div', 'sui-rich-documentsettings');
     panel.setAttribute('data-rich-documentsettings', inst.name);
     panel.hidden = true;
-    panel.appendChild(panelTitle('Document settings', 'General defaults for every page; Page settings can override size, orientation and margins for a single page. Use {page} and {pages} in header/footer.'));
+    panel.appendChild(panelTitle('Document settings', chromeEnabled(inst)
+      ? 'General defaults for every page; Page settings can override size, orientation, margins and background for a single page. Use {page} and {pages} in header/footer.'
+      : 'General defaults for every page; Page settings can override size, orientation, margins and background for a single page.'));
 
     var sizeRow = el('label');
     sizeRow.appendChild(el('span', '', 'Size'));
@@ -7114,6 +7267,17 @@ window.__SUI_RICH = (function () {
     lineRow.appendChild(lineInput);
     panel.appendChild(lineRow);
 
+    var bgRow = el('label');
+    bgRow.appendChild(el('span', '', 'Page background'));
+    var bgInput = el('input');
+    bgInput.type = 'color';
+    bgInput.value = '#ffffff';
+    bgInput.setAttribute('data-rich-doc-background', '1');
+    bgInput.setAttribute('aria-label', 'Default page background color');
+    bgInput.title = 'Default background color for every page';
+    bgRow.appendChild(bgInput);
+    panel.appendChild(bgRow);
+
     var langRow = el('label');
     langRow.appendChild(el('span', '', 'Language'));
     var langSelect = el('select');
@@ -7126,8 +7290,10 @@ window.__SUI_RICH = (function () {
     langRow.appendChild(langSelect);
     panel.appendChild(langRow);
 
-    chromeHiddenInputs(inst, panel);
-    chromeOpenButton(inst, panel);
+    if (chromeEnabled(inst)) {
+      chromeHiddenInputs(inst, panel);
+      chromeOpenButton(inst, panel);
+    }
 
     var actions = el('div', 'sui-rich-pagesettings-actions');
     var apply = el('button', 'sui-rich-btn', 'Apply'); apply.type = 'button'; apply.setAttribute('data-rich-doc-apply', '1');
@@ -7169,6 +7335,8 @@ window.__SUI_RICH = (function () {
     });
     var line = panel.querySelector('[data-rich-doc-lineheight]');
     if (line) line.value = String(page.lineHeight);
+    var bg = panel.querySelector('[data-rich-doc-background]');
+    if (bg) bg.value = cssColor(page.background) || '#ffffff';
     var lang = panel.querySelector('[data-rich-doc-lang]');
     if (lang) lang.value = page.lang || '';
     var header = panel.querySelector('[data-rich-doc-header]');
@@ -7192,19 +7360,23 @@ window.__SUI_RICH = (function () {
     current.orientation = value('[data-rich-doc-orientation]') === 'landscape' ? 'landscape' : 'portrait';
     current.margins = { top: margin('top'), right: margin('right'), bottom: margin('bottom'), left: margin('left') };
     current.lineHeight = Math.max(0.8, Math.min(3, Math.round(lh * 100) / 100));
+    current.background = cssColor(value('[data-rich-doc-background]')) || '#ffffff';
     var langValue = value('[data-rich-doc-lang]').trim();
     current.lang = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(langValue) ? langValue : '';
-    var header = value('[data-rich-doc-header]').slice(0, 500).trim();
-    var footer = value('[data-rich-doc-footer]').slice(0, 500).trim();
     inst.doc.page = current;
-    if (header !== inst.headerText) inst.doc.header = header;
-    if (footer !== inst.footerText) inst.doc.footer = footer;
-    inst.headerOverride = true;
-    inst.footerOverride = true;
+    if (chromeEnabled(inst)) {
+      var header = value('[data-rich-doc-header]').slice(0, 500).trim();
+      var footer = value('[data-rich-doc-footer]').slice(0, 500).trim();
+      if (header !== inst.headerText) inst.doc.header = header;
+      if (footer !== inst.footerText) inst.doc.footer = footer;
+      inst.headerOverride = true;
+      inst.footerOverride = true;
+    }
     if (inst.editor) inst.editor.setAttribute('lang', documentLanguage(inst));
     hyphenationLanguage = documentLanguage(inst);
     refreshChromeValues(inst);
     applyPageLineHeight(inst);
+    applyPageBackground(inst);
     refreshPageChrome(inst);
     updatePageGuides(inst);
     if (inst.paginated) schedulePaginate(inst);
@@ -7249,7 +7421,7 @@ window.__SUI_RICH = (function () {
     var pageSize = (page.size === 'letter' ? 'Letter' : 'A4') + (page.orientation === 'landscape' ? ' landscape' : '');
     return '<!doctype html><html><head><meta charset="utf-8"><title>' + escapePrintText(inst.name) + '</title><style>' +
       '@page { size: ' + pageSize + '; margin: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; }' +
-      'body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: #111; line-height: ' + page.lineHeight + '; }' +
+      'body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: ' + pageInkFor(page.background) + '; background: ' + (cssColor(page.background) || '#ffffff') + '; line-height: ' + page.lineHeight + '; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
       '.sui-print-header { position: fixed; top: 0; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; border-bottom: 1px solid #ccc; padding-bottom: 4px; }' +
       '.sui-print-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; border-top: 1px solid #ccc; padding-top: 4px; }' +
       'main { padding: 0; }' +
@@ -7270,7 +7442,7 @@ window.__SUI_RICH = (function () {
       '@page { size: ' + pageSize + '; margin: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; }' +
       'html, body { margin: 0; padding: 0; }' +
       'body { background: #e6e9ef; padding: 24px; font-family: Georgia, "Times New Roman", serif; color: #111; line-height: ' + page.lineHeight + '; }' +
-      '.sui-preview-page { box-sizing: border-box; width: ' + size.w + 'mm; min-height: ' + size.h + 'mm; margin: 0 auto; padding: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; background: #fff; box-shadow: 0 10px 28px rgba(0,0,0,.28); }' +
+      '.sui-preview-page { box-sizing: border-box; width: ' + size.w + 'mm; min-height: ' + size.h + 'mm; margin: 0 auto; padding: ' + page.margins.top + 'mm ' + page.margins.right + 'mm ' + page.margins.bottom + 'mm ' + page.margins.left + 'mm; background: ' + (cssColor(page.background) || '#ffffff') + '; color: ' + pageInkFor(page.background) + '; box-shadow: 0 10px 28px rgba(0,0,0,.28); }' +
       '.sui-preview-header { text-align: center; font-size: 10pt; color: #555; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px; }' +
       '.sui-preview-footer { text-align: center; font-size: 10pt; color: #555; border-top: 1px solid #ccc; padding-top: 4px; margin-top: 8px; }' +
       'main img { max-width: 100%; height: auto; }' +
@@ -7785,6 +7957,9 @@ window.__SUI_RICH = (function () {
   }
   function init(root) {
     var name = attr(root, 'data-sui-rich-name') || 'richtext';
+    var mode = String(attr(root, 'data-sui-rich-mode') || 'richtext').toLowerCase();
+    if (mode !== 'html' && mode !== 'markup') mode = 'richtext';
+    var toolbarAttr = attr(root, 'data-sui-rich-toolbar-items');
     var earlyInst = instances[name];
     if (earlyInst) earlyInst.scrollGuardUntil = Date.now() + 300;
     var keepScroll = earlyInst ? (earlyInst.keepScrollTop || earlyInst.scrollTop || 0) : 0;
@@ -7800,9 +7975,9 @@ window.__SUI_RICH = (function () {
     if (!inst) {
       var initial = input ? parseJSON(input.value, null) : null;
       inst = {
-        name: name, root: root, editor: editor, config: {
+        name: name, root: root, editor: editor, mode: mode, config: {
           context: boolAttr(root, 'data-sui-rich-context', true),
-          toolbar: attr(root, 'data-sui-rich-toolbar-items') || defaultToolbar,
+          toolbar: toolbarAttr,
           properties: boolAttr(root, 'data-sui-rich-properties', false)
         },
         doc: initial || emptyDoc(),
@@ -7820,7 +7995,7 @@ window.__SUI_RICH = (function () {
       inst.index = 0;
       instances[name] = inst;
     } else {
-      inst.root = root; inst.editor = editor;
+      inst.root = root; inst.editor = editor; inst.mode = mode;
     }
     if (!inst.typingMarks) inst.typingMarks = {};
     editor.setAttribute('lang', documentLanguage(inst));
@@ -7840,6 +8015,7 @@ window.__SUI_RICH = (function () {
     // also moves the status bar, which stays pinned to the bottom of the shell.
     root.style.setProperty('--sui-rich-content-height', cssLength(attr(root, 'data-sui-rich-height'), '320px'));
     applyPageLineHeight(inst);
+    applyPageBackground(inst);
     var savedTheme = '';
     try { savedTheme = localStorage.getItem('sui-rich-theme-' + name) || ''; } catch (e) {}
     // An explicit theme attribute wins over a preference saved by the toolbar
@@ -11064,6 +11240,8 @@ window.__SUI_RICH = (function () {
   async function importBytes(name, bytes, filename) {
     var inst = instances[name];
     if (!inst) return [false, 'richtext instance not found: ' + name];
+    var mode = editorMode(inst);
+    if (!modeFileAllowed(mode, filename)) return [false, mode === 'html' ? 'HTML editor loads only .html files' : 'Markup editor loads only Markdown files'];
     var fmt = formatFromName(filename || '');
     if (!fmt) fmt = 'txt';
     try {
@@ -11102,11 +11280,14 @@ window.__SUI_RICH = (function () {
     if (!inst) return [false, 'richtext instance not found: ' + name];
     var input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.txt,.text,.rtf,.doc,.docx,.odt,.html,.htm,.md,.markdown,.json,.xml';
+    input.accept = modeFileAccept(editorMode(inst));
     input.style.display = 'none';
     input.addEventListener('change', async function () {
       if (!input.files || !input.files[0]) return;
       var file = input.files[0];
+      var mode = editorMode(inst);
+      if (mode === 'html' && !/\.html?$/i.test(file.name)) { window.alert('The HTML editor opens only .html files.'); input.remove(); return; }
+      if (mode === 'markup' && !/\.(md|markdown)$/i.test(file.name)) { window.alert('The markup editor opens only Markdown files.'); input.remove(); return; }
       try {
         var buffer = await file.arrayBuffer();
         var res = await importBytes(name, new Uint8Array(buffer), file.name);
@@ -11121,7 +11302,11 @@ window.__SUI_RICH = (function () {
   function saveAs(name, format) {
     var inst = instances[name];
     if (!inst) return [false, 'richtext instance not found: ' + name];
+    var mode = editorMode(inst);
+    if (!format) format = mode === 'html' ? 'html' : mode === 'markup' ? 'md' : 'txt';
     var fmt = String(format || 'txt').toLowerCase();
+    if (mode === 'html' && fmt !== 'html') return [false, 'HTML editor can save only .html files'];
+    if (mode === 'markup' && fmt !== 'md' && fmt !== 'markdown') return [false, 'Markup editor can save only Markdown files'];
     var result = exportBytes(name, fmt);
     if (result[1] !== null) return [false, result[1]];
     var mime = fmt === 'pdf' ? 'application/pdf' : fmt === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : fmt === 'odt' ? 'application/vnd.oasis.opendocument.text' : fmt === 'rtf' || fmt === 'doc' ? 'application/rtf' : fmt === 'html' ? 'text/html' : fmt === 'md' || fmt === 'markdown' ? 'text/markdown' : fmt === 'json' ? 'application/json' : fmt === 'xml' ? 'application/xml' : 'text/plain';
@@ -11384,6 +11569,7 @@ const suiRichTextCss = `
 .sui-rich-pagesettings label, .sui-rich-documentsettings label, .sui-rich-paragraphsettings label, .sui-rich-imagesettings label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sui-rich-pagesettings select, .sui-rich-pagesettings input, .sui-rich-documentsettings select, .sui-rich-documentsettings input, .sui-rich-paragraphsettings select, .sui-rich-paragraphsettings input, .sui-rich-imagesettings select, .sui-rich-imagesettings input { height: 26px; border: 1px solid var(--sui-rich-border); border-radius: 6px; background: var(--sui-rich-bg); color: var(--sui-rich-fg); font: inherit; font-size: 12px; padding: 0 6px; min-width: 0; }
 .sui-rich-pagesettings input[type="number"], .sui-rich-paragraphsettings input[type="number"] { width: 72px; }
+.sui-rich-pagesettings input[type="color"], .sui-rich-documentsettings input[type="color"] { width: 52px; padding: 2px; }
 .sui-rich-pagesettings label > span, .sui-rich-documentsettings label > span, .sui-rich-paragraphsettings label > span, .sui-rich-imagesettings label > span { flex: none; }
 .sui-rich-pagesettings label > input[type="text"], .sui-rich-documentsettings label > input[type="text"], .sui-rich-paragraphsettings label > input[type="text"], .sui-rich-imagesettings label > input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
 .sui-rich-pagesettings-grid, .sui-rich-paragraphsettings .sui-rich-pagesettings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }

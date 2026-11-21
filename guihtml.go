@@ -2752,7 +2752,7 @@ errorboundary: ["fallback"],
   command: ["text", "shortcut"],
   accordion: ["text"],
   accordionitem: ["text"],
-  richtext: ["name", "value", "placeholder", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "header", "footer", "hyphenLangs", "onChange", "onInput", "onReady"],
+  richtext: ["name", "mode", "value", "placeholder", "readonly", "toolbar", "toolbarItems", "menu", "contextToolbar", "statusbar", "theme", "header", "footer", "hyphenLangs", "onChange", "onInput", "onReady"],
   tree: ["text", "name", "value", "editMode", "editDepth", "renameIcon", "showRenameIcon", "renameKey", "renameValue", "guides", "truncate", "checkbox", "counts", "rowHeight", "iconLeaf", "iconParent", "iconParentOpen", "toggleClosed", "toggleOpen", "multiSelect", "selection", "search", "drag", "contextMenu", "columns", "columnsEnabled", "columnLabels", "columnWidths", "sort", "persistSelection", "loadKey", "virtual", "tooltips", "fontStep", "onChange", "onRename", "onCheck", "onMove", "onLoad", "onContextMenu", "onTreeChange"],
   treeitem: ["text", "key", "open", "rename", "renameIcon", "showRenameIcon", "icon", "iconOpen", "badge", "badgeType", "meta", "checked", "lazy", "size", "date", "status"],
   chart: ["text", "name"],
@@ -16996,37 +16996,55 @@ function richToolbarNode() {
   var paths = selectedPaths();
   return paths.length ? byPath(paths[0], root.children) : null;
 }
-function richToolbarAllIDs() {
+function richToolbarNodeMode() {
+  var n = richToolbarNode();
+  var mode = n && n.mode ? String(n.mode).toLowerCase() : "richtext";
+  return mode === "html" || mode === "markup" ? mode : "richtext";
+}
+function richToolbarModeAllows(mode, id) {
+  if (mode === "markup") {
+    return ["undo","redo","copy","cut","paste","selectAll","styleSelect","bold","italic","strike","code","clearFormat",
+      "bulletList","orderedList","blockquote","codeBlock","link","unlink","image","table","hr",
+      "documentSettings","pageSettings","find"].indexOf(id) >= 0;
+  }
+  if (mode === "html") return id !== "pageBreak";
+  return true;
+}
+function richToolbarAllIDs(mode) {
+  mode = mode || richToolbarNodeMode();
   var out = [];
-  richToolbarGroups().forEach(function(g){ (g.items || []).forEach(function(o){ if (o.id && out.indexOf(o.id) < 0) out.push(o.id); }); });
+  richToolbarGroups().forEach(function(g){ (g.items || []).forEach(function(o){ if (o.id && richToolbarModeAllows(mode, o.id) && out.indexOf(o.id) < 0) out.push(o.id); }); });
   return out;
 }
-function richToolbarDefaultIDs() {
+function richToolbarDefaultIDs(mode) {
+  mode = mode || richToolbarNodeMode();
   var out = [];
-  richToolbarGroups().forEach(function(g){ (g.items || []).forEach(function(o){ if (o.default && o.id && out.indexOf(o.id) < 0) out.push(o.id); }); });
+  richToolbarGroups().forEach(function(g){ (g.items || []).forEach(function(o){ if (o.default && o.id && richToolbarModeAllows(mode, o.id) && out.indexOf(o.id) < 0) out.push(o.id); }); });
   return out;
 }
 function richToolbarIDs() {
+  var mode = richToolbarNodeMode();
   var n = richToolbarNode();
   var raw = String(n ? (n.toolbarItems || "") : "").trim();
-  if (!raw) return richToolbarDefaultIDs();
+  if (!raw) return richToolbarDefaultIDs(mode);
   if (raw.toLowerCase() === "none") return [];
   var out = [], seen = {};
   raw.split("|").forEach(function(group){
     group.split(",").forEach(function(id){
       id = id.trim();
-      if (id && !seen[id]) { seen[id] = true; out.push(id); }
+      if (id && !seen[id] && richToolbarModeAllows(mode, id)) { seen[id] = true; out.push(id); }
     });
   });
   return out;
 }
 function richToolbarPickerGroups() {
+  var mode = richToolbarNodeMode();
   var groups = [];
   richToolbarGroups().forEach(function(g){
-    groups.push({ name: g.name, items: (g.items || []).slice() });
+    groups.push({ name: g.name, items: (g.items || []).filter(function(o){ return richToolbarModeAllows(mode, o.id); }) });
   });
   var known = {};
-  richToolbarAllIDs().forEach(function(id){ known[id] = true; });
+  richToolbarAllIDs(mode).forEach(function(id){ known[id] = true; });
   var custom = richToolbarIDs().filter(function(id){ return !known[id]; });
   if (custom.length) {
     groups.push({ name: "Custom", items: custom.map(function(id){ return { id: id, label: id, default: false }; }) });
@@ -17140,6 +17158,18 @@ function richtextControls(n) {
   nameInput.title = "Runtime name used by richtext.*";
   nameInput.onchange = function(){ upd("name", nameInput.value.trim()); };
   nameRow.appendChild(nameInput); body.appendChild(nameRow);
+  var modeRow = document.createElement("div"); modeRow.className = "rowline";
+  var modeLabel = document.createElement("label"); modeLabel.textContent = "Mode";
+  modeLabel.title = "Rich text, HTML or Markdown authoring profile"; modeRow.appendChild(modeLabel);
+  var modeSelect = document.createElement("select");
+  modeSelect.title = "Rich text, HTML or Markdown authoring profile";
+  [["richtext", "Rich text editor"], ["html", "HTML editor"], ["markup", "Markup editor"]].forEach(function(o){
+    var opt = document.createElement("option"); opt.value = o[0]; opt.textContent = o[1];
+    if ((n.mode || "richtext") === o[0]) opt.selected = true;
+    modeSelect.appendChild(opt);
+  });
+  modeSelect.onchange = function(){ upd("mode", modeSelect.value === "richtext" ? "" : modeSelect.value); };
+  modeRow.appendChild(modeSelect); body.appendChild(modeRow);
   selectRow("Interface theme", "theme", [["dark", "Dark"], ["light", "Light"]], "dark", "Editor chrome theme");
   var toolbarRow = document.createElement("div"); toolbarRow.className = "rowline";
   var toolbarBtn = document.createElement("button"); toolbarBtn.type = "button"; toolbarBtn.className = "btn";
@@ -18207,6 +18237,7 @@ function attrsOf(n) {
     if (n.status) a += " status: \"" + esc(n.status) + "\"";
   }
   if (n.kind === "richtext") {
+    if (n.mode && n.mode !== "richtext") a += " mode: \"" + esc(n.mode) + "\"";
     if (n.height) a += " height: \"" + esc(n.height) + "\"";
     if (n.toolbarItems) a += " toolbarItems: \"" + esc(n.toolbarItems) + "\"";
     if (n.toolbar === false) a += " toolbar: false";

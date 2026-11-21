@@ -1420,9 +1420,12 @@ keep exactly two panes.
 
 The **Content** palette group provides the **Rich text editor**, timeline,
 empty state, skeleton, carousel and stepper; the command palette is under
-**Overlay**. The editor inspector exposes the runtime **name**, theme
-(`dark`/`light`), **Toolbar items...**, **Hyphenation languages...** and a single
-**Read only** switch. Header, footer and
+**Overlay**. The editor inspector exposes the runtime **name**, **Mode**
+(*Rich text editor*, *HTML editor* or *Markup editor*), theme (`dark`/`light`),
+**Toolbar items...**, **Hyphenation languages...** and a single **Read only**
+switch. HTML and Markup profiles restrict the toolbar, menus, file types and
+settings; they remove header/footer and use Document/Page settings without it.
+Header, footer and
 the toolbar/menu/context/status toggles are not offered here; those attributes
 remain available in hand-written sources. Controls carry short tooltips instead
 of explanatory text. Height and width are edited in the generic **Size**
@@ -1433,7 +1436,10 @@ opens a searchable multi-select overlay
 built from the runtime toolbar commands; **Default**, **All items** and **None**
 are available as presets, and `None` leaves only the theme button. With
 **Read only** enabled no menu or toolbar is shown and the content cannot be
-changed. The document page is always white. **Hyphenation languages...** opens
+changed; the control becomes a real viewer for rich text, HTML or Markdown.
+The page background is white by default and can be changed in Document settings
+and Page settings; dark backgrounds automatically use readable text.
+**Hyphenation languages...** opens
 a searchable multi-select overlay that writes `hyphenLangs` and embeds only the
 chosen TeX dictionaries in `app.js`; the **All languages**, **European** and
 **None** presets make it easy to trade hyphenation coverage for a much smaller

@@ -59,7 +59,7 @@ func TestRichTextToolbarDesignerInjection(t *testing.T) {
 	}
 	for _, marker := range []string{
 		"if (noFormatToolbar(inst)) return;",
-		"if (noFormatToolbar(inst)) { bar.hidden = true; return; }",
+		"if (noFormatToolbar(inst) || !commands.length) { bar.hidden = true; return; }",
 	} {
 		if !strings.Contains(suiRichTextRuntime, marker) {
 			t.Errorf("runtime missing none guard: %s", marker)
@@ -159,6 +159,21 @@ view main {
 	}
 }
 
+func TestRichTextModeDesignerRoundTrip(t *testing.T) {
+	prog, elem := richtextTestElement(t, `state doc = ""
+view main {
+	richtext name: "page" mode: "markup" value: doc
+}`)
+	js := GenerateJs(prog)
+	if !strings.Contains(js, `data-sui-rich-mode="markup"`) {
+		t.Error("generated JS lost the markup mode")
+	}
+	model := guiElementFrom(elem, map[string]bool{})
+	if got := model.obj["mode"].s; got != "markup" {
+		t.Errorf("designer model mode = %q, want markup", got)
+	}
+}
+
 func TestRichTextInspectorIsMinimal(t *testing.T) {
 	start := strings.Index(guiHTML, "function richtextControls(n) {")
 	end := strings.Index(guiHTML, "function inputControls(nodes) {")
@@ -186,11 +201,77 @@ func TestRichTextInspectorIsMinimal(t *testing.T) {
 		`nameInput.value = n.name || ""`,
 		`nameInput.title = "Runtime name used by richtext.*"`,
 		`upd("name", nameInput.value.trim())`,
+		`[["richtext", "Rich text editor"], ["html", "HTML editor"], ["markup", "Markup editor"]]`,
 	} {
 		if !strings.Contains(src, marker) {
 			t.Errorf("richtext Inspector missing %s", marker)
 		}
 	}
+}
+
+func TestRichTextEditorModesE2E(t *testing.T) {
+	src := `state htmlDoc = ""
+state mdDoc = ""
+state viewerDoc = ""
+view main {
+	richtext name: "html" mode: "html" value: htmlDoc height: "240px" theme: "dark" header: "HTML header" footer: "HTML footer"
+	richtext name: "markup" mode: "markup" value: mdDoc height: "240px" theme: "dark" header: "MD header" footer: "MD footer"
+	richtext name: "viewer" mode: "html" readonly: true value: viewerDoc height: "160px" theme: "dark"
+}`
+	script := featureScriptHead + `
+    function root(name) { return document.querySelector('[data-sui-rich-name="' + name + '"]'); }
+    function cmd(name, token) { return root(name).querySelector('[data-rich-cmd="' + token + '"]'); }
+    await wait(350);
+    __SUI_RICH.set('html', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'HTML body', marks: [] }] }] });
+    __SUI_RICH.set('markup', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Markup body', marks: [] }] }] });
+    __SUI_RICH.set('viewer', { type: 'doc', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Viewer body', marks: [] }] }] });
+    await wait(450);
+    if (root('html').getAttribute('data-sui-rich-mode') !== 'html') throw new Error('HTML mode attribute missing');
+    if (root('markup').getAttribute('data-sui-rich-mode') !== 'markup') throw new Error('markup mode attribute missing');
+    if (cmd('html', 'pageBreak')) throw new Error('HTML profile still offers page break');
+    if (!cmd('html', 'bold') || !cmd('html', 'documentSettings') || !cmd('html', 'pageSettings')) throw new Error('HTML profile is missing basic tools');
+    if (cmd('markup', 'textColor') || cmd('markup', 'alignLeft') || cmd('markup', 'pageBreak')) throw new Error('markup profile still offers rich-text tools');
+    if (!cmd('markup', 'bold') || !cmd('markup', 'link') || !cmd('markup', 'documentSettings')) throw new Error('markup profile is missing basic tools');
+    if (!root('html').querySelector('[data-rich-cmd="saveHTML"]') || root('html').querySelector('[data-rich-cmd="saveDOCX"]') || root('html').querySelector('[data-rich-cmd="headerFooter"]')) throw new Error('HTML file menu is not restricted');
+    if (!root('markup').querySelector('[data-rich-cmd="saveMarkdown"]') || root('markup').querySelector('[data-rich-cmd="saveHTML"]') || root('markup').querySelector('[data-rich-cmd="headerFooter"]')) throw new Error('markup file menu is not restricted');
+    __SUI_RICH.command('html', 'documentSettings');
+    await wait(150);
+    var docPanel = document.querySelector('.sui-rich-documentsettings[data-rich-documentsettings="html"]');
+    if (!docPanel || !docPanel.querySelector('[data-rich-doc-background]')) throw new Error('document background setting missing');
+    if (docPanel.querySelector('[data-rich-open-chrome]')) throw new Error('HTML settings still show header/footer');
+    __SUI_RICH.command('markup', 'pageSettings');
+    await wait(150);
+    var pagePanel = document.querySelector('.sui-rich-pagesettings[data-rich-pagesettings="markup"]');
+    if (!pagePanel || !pagePanel.querySelector('[data-rich-page-background]')) throw new Error('page background setting missing');
+    if (pagePanel.querySelector('[data-rich-open-chrome]')) throw new Error('markup settings still show header/footer');
+    docPanel.querySelector('[data-rich-doc-background]').value = '#112233';
+    docPanel.querySelector('[data-rich-doc-apply]').click();
+    await wait(200);
+    var htmlBody = root('html').querySelector('.sui-rich-body');
+    if (getComputedStyle(htmlBody).backgroundColor !== 'rgb(17, 34, 51)') throw new Error('document background was not applied: ' + getComputedStyle(htmlBody).backgroundColor);
+    if (getComputedStyle(root('html').querySelector('.sui-rich-editor')).color !== 'rgb(245, 247, 250)') throw new Error('page text did not adapt to a dark background');
+    if (__SUI_RICH.exportFormat('html', 'json')[0].indexOf('#112233') < 0) throw new Error('document background was not stored in the document JSON');
+    __SUI_RICH.command('html', 'paginatedView');
+    await wait(650);
+    if (root('html').querySelector('.sui-rich-sheet-header, .sui-rich-sheet-footer, .sui-rich-pageheader, .sui-rich-pagefooter')) throw new Error('HTML mode still renders header/footer');
+    __SUI_RICH.command('html', 'pageSettings');
+    await wait(120);
+    var htmlPagePanel = document.querySelector('.sui-rich-pagesettings[data-rich-pagesettings="html"]');
+    htmlPagePanel.querySelector('[data-rich-page-number]').value = '1';
+    htmlPagePanel.querySelector('[data-rich-page-background]').value = '#fff3cd';
+    htmlPagePanel.querySelector('[data-rich-page-apply]').click();
+    await wait(500);
+    var firstSheet = root('html').querySelector('.sui-rich-page-sheet[data-rich-page="1"]');
+    if (!firstSheet || getComputedStyle(firstSheet).backgroundColor !== 'rgb(255, 243, 205)') throw new Error('page background override was not applied');
+    if (__SUI_RICH.exportFormat('html', 'json')[0].indexOf('#fff3cd') < 0) throw new Error('page background override was not stored in the document JSON');
+    if (__SUI_RICH.saveAs('html', 'docx')[0] !== false) throw new Error('HTML mode saved a DOCX file');
+    if (__SUI_RICH.saveAs('markup', 'html')[0] !== false) throw new Error('markup mode saved an HTML file');
+    var viewer = root('viewer');
+    if (viewer.querySelector('.sui-rich-editor').getAttribute('contenteditable') !== 'false') throw new Error('read-only HTML is still editable');
+    if (!viewer.querySelector('.sui-rich-toolbar').hidden || !viewer.querySelector('.sui-rich-menu').hidden) throw new Error('read-only HTML still shows editing chrome');
+    if (!viewer.querySelector('.sui-rich-editor').innerText || viewer.querySelector('.sui-rich-editor').innerText.indexOf('Viewer body') < 0) throw new Error('read-only HTML is not a viewer');
+` + featureScriptTail
+	runHeadlessFeature(t, src, script)
 }
 
 func TestRichTextReadOnlyAndStatusLayout(t *testing.T) {
@@ -260,6 +341,52 @@ view main {
 		if !strings.Contains(js, marker) {
 			t.Errorf("generated JS missing loadContent marker: %s", marker)
 		}
+	}
+}
+
+func TestRichTextModeAttributeAndValidation(t *testing.T) {
+	js := generateJsFromInline(t, `
+state doc = ""
+view main {
+	richtext name: "page" mode: "html" value: doc
+}`)
+	if !strings.Contains(js, `data-sui-rich-mode="html"`) {
+		t.Error("generated HTML missing the richtext editor mode")
+	}
+
+	prog, pdl := ParseSource(`view main {
+	richtext name: "page" mode: "nonsense"
+}`, "mode.sui")
+	if pdl.HasErrors() {
+		t.Fatalf("parse: %v", pdl.String())
+	}
+	if dl := Check(prog); !dl.HasErrors() || !strings.Contains(dl.String(), "richtext mode must be one of") {
+		t.Fatalf("invalid mode was not rejected: %v", dl.String())
+	}
+}
+
+func TestRichTextModeProfilesAndPageBackgroundMarkers(t *testing.T) {
+	for _, marker := range []string{
+		"var htmlToolbar =",
+		"var markupToolbar =",
+		"function toolbarForMode(inst, configured)",
+		"function menusForMode(mode)",
+		"function modeFileAccept(mode)",
+		"function modeFileAllowed(mode, filename)",
+		"function chromeEnabled(inst)",
+		"function pageInkFor(background)",
+		"function applyPageBackground(inst)",
+		"data-rich-doc-background",
+		"data-rich-page-background",
+		"var sheetBg = cssColor(pageConfig(inst, pageNo || 1).background) || '#ffffff';",
+		"sheet.style.backgroundColor = sheetBg;",
+	} {
+		if !strings.Contains(suiRichTextRuntime, marker) {
+			t.Errorf("runtime missing editor-mode/background marker: %s", marker)
+		}
+	}
+	if !strings.Contains(suiRichTextCss, ".sui-rich-page-sheet") {
+		t.Error("page sheet styles missing")
 	}
 }
 

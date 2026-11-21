@@ -4870,7 +4870,7 @@ func attrAllowed(key string, tag string) bool {
 		return true
 	}
 	if tag == "richtext" && (key == "name" || key == "value" || key == "placeholder" || key == "height" ||
-		key == "readonly" || key == "toolbar" || key == "menu" ||
+		key == "readonly" || key == "toolbar" || key == "menu" || key == "mode" ||
 		key == "contextToolbar" || key == "statusbar" || key == "theme" || key == "contentTheme" || key == "header" || key == "footer" ||
 		key == "toolbarItems" || key == "template" || key == "hyphenLangs" ||
 		key == "onReady" || key == "onSelectionChange") {
@@ -5491,6 +5491,18 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		v = strings.Trim(v, "\"'")
 		if v != "none" && v != "editable" && v != "persistent" {
 			c.diagAt(a.span, "editMode must be one of: none, editable, persistent")
+		}
+		return
+	}
+	if tag == "richtext" && a.key == "mode" {
+		if a.hasExpr {
+			c.diagAt(a.span, "richtext mode must be a literal: richtext, html or markup")
+			return
+		}
+		v := strings.ToLower(strings.TrimSpace(partsContent(a.text)))
+		v = strings.Trim(v, "\"'")
+		if v != "richtext" && v != "html" && v != "markup" {
+			c.diagAt(a.span, "richtext mode must be one of: richtext, html, markup")
 		}
 		return
 	}

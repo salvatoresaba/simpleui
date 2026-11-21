@@ -1656,6 +1656,7 @@ richtext name: "article" value: doc height: "420px" theme: "dark"
 | Attributo | Significato |
 |---|---|
 | `name` | Nome runtime usato da `richtext.*` (univoco per editor) |
+| `mode` | Profilo di authoring: `richtext` (default, tutti i formati e le funzioni), `html` (solo file HTML) o `markup` (solo file Markdown). HTML e markup nascondono header/footer e adattano toolbar, menu e impostazioni |
 | `value` | Stato collegato che contiene il documento JSON |
 | `onChange` / `onInput` | Handler per modifica e digitazione |
 | `onReady` / `onSelectionChange` | Callback di pronto e selezione |
@@ -1665,10 +1666,18 @@ richtext name: "article" value: doc height: "420px" theme: "dark"
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Flag legacy per mostrare/nascondere aree, ancora rispettati nei sorgenti scritti a mano ma non esposti nel designer |
 | `toolbarItems` | Comandi separati da virgola, `|` separa i gruppi; `none` non mostra pulsanti di formattazione (resta il pulsante tema) |
 | `theme` | Tema dell'interfaccia: `dark` (default) o `light`. Nel designer l'attributo prevale su una preferenza salvata dalla toolbar. Un unico pulsante nella toolbar alterna dark/light e cambia solo la chrome dell'editor |
-| Foglio del documento | Sempre bianco; il vecchio attributo `contentTheme` viene ignorato dal compilatore |
+| Sfondo pagina | Bianco per default; le impostazioni Documento e Pagina possono cambiarlo (salvato in `doc.page.background` e `doc.pageOverrides[n].background`). Su sfondi scuri il testo passa a un colore leggibile |
+| `contentTheme` | Attributo legacy ignorato dal compilatore; usa `mode` per il profilo di authoring e l'impostazione dello sfondo pagina per il colore della carta |
 | `header` / `footer` | Testo o modello ricco ripetuto su ogni pagina. `\{page\}`/`\{pages\}` (oppure `[page]`/`[pages]`) e le altre variabili vengono sostituiti nella vista paginata, anteprima, stampa, PDF, DOCX e ODT (escape delle graffe nelle stringhe SUI) |
 | `template` | `article`, `letter`, `report` o `compact` |
 | `hyphenLangs` | Dizionari di sillabazione da incorporare in fase di compilazione, separati da virgole; omesso/`*`/`all` mantiene tutti i 57, `none` non ne incorpora (solo euristica). I tag di lingua vengono risolti nei set di pattern (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
+
+`mode: "html"` mantiene solo gli strumenti compatibili con HTML e le voci di
+import/export/salvataggio HTML; `mode: "markup"` mantiene formattazione Markdown,
+link, immagini, tabelle, righe e trova/impostazioni, e salva/importa solo
+Markdown. Entrambi i profili rimuovono header/footer da Documento e Pagina,
+insieme alla voce di menu relativa. In sola lettura il controllo è un visualizzatore
+in tutte le modalità.
 
 Il testo dell'elemento (ad esempio `richtext "Articolo"`) è il titolo del documento
 usato dai token `{title}` e come nome runtime di fallback; non viene più mostrato
@@ -2029,9 +2038,9 @@ gutter e colorazione sintattica restano dopo il re-render.
 | `richtext.exportFormat(name, format)` | JSON, HTML, Markdown, XML o testo semplice |
 | `richtext.exportBytes(name, format)` | Byte TXT, RTF, DOC, DOCX, ODT, PDF, HTML, Markdown, JSON o XML |
 | `richtext.importFormat(name, text, format)` | Importa testo nel documento |
-| `richtext.openFile(name)` | Selettore file del browser; importa per estensione |
+| `richtext.openFile(name)` | Selettore file del browser; importa per estensione (solo HTML/Markdown nelle rispettive modalità) |
 | `richtext.importBytes(name, bytes, filename)` | Importa byte; formato rilevato dal nome file |
-| `richtext.saveAs(name, format)` | Scarica il documento nel formato scelto |
+| `richtext.saveAs(name, format)` | Scarica il documento; le modalità HTML e Markup consentono solo HTML e Markdown |
 | `richtext.registerPlugin(name, plugin)` | Registra comandi e voci toolbar |
 | `richtext.plugins()` | Nomi dei plugin registrati |
 | `richtext.status(name)` | JSON con parole/caratteri/paragrafi/cursore |

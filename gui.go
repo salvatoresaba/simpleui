@@ -3977,7 +3977,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 				o.obj["toastDuration"] = JStr(raw)
 			}
 		} else if e.tag == "richtext" && (a.key == "theme" || a.key == "contentTheme" || a.key == "toolbarItems" ||
-			a.key == "header" || a.key == "footer" || a.key == "template" || a.key == "hyphenLangs") {
+			a.key == "mode" || a.key == "header" || a.key == "footer" || a.key == "template" || a.key == "hyphenLangs") {
 			// Richtext fields that have no generic model branch. Without this,
 			// opening and saving a project in the designer silently drops them.
 			o.obj[a.key] = JStr(partsLiteral(a.text))

@@ -40,7 +40,7 @@ Le principali caratteristiche:
 - **Formattazione Intl**: date, numeri, valute, percentuali, tempo relativo e fusi orari
 - **Stdlib avanzata**: fs copy/move/size, crypto hash/UUID/random bytes, helper path, validazione JSON Schema, quota storage e sync cross-tab
 - **Libreria JSON**: JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), diff con chiavi e spostamenti, merge a tre vie, validazione con più errori, byte UTF-8/UTF-16 e helper file desktop
-- **Editor di testo avanzato**: modello documento JSON, toolbar/menu/toolbar contestuale configurabili, barra di stato, undo/redo, supporto file TXT/RTF/DOC/DOCX/ODT/PDF, import/export JSON/HTML/Markdown/XML e comandi plugin
+- **Editor di testo avanzato**: modello documento JSON, profili rich text/HTML/Markdown, toolbar/menu/toolbar contestuale configurabili, barra di stato, undo/redo, supporto file TXT/RTF/DOC/DOCX/ODT/PDF, import/export JSON/HTML/Markdown/XML, sfondo pagina configurabile e comandi plugin
 - **Libreria XML**: navigazione/modifica DOM, XPath, namespace, commenti/CDATA/PI, sottoinsieme XSD con raccolta completa degli errori, conversione JSON/CSV, XSLT, diff con chiavi e rilevamento spostamenti, applicazione patch, merge update/a tre vie e I/O binario (UTF-8/UTF-16)
 - **Multi-target**: genera app web o eseguibili desktop standalone
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)

@@ -1681,6 +1681,7 @@ richtext name: "article" value: doc height: "420px" theme: "dark"
 | Attribute | Meaning |
 |---|---|
 | `name` | Runtime name used by `richtext.*` (use a unique name per editor) |
+| `mode` | Authoring profile: `richtext` (default, all document formats and features), `html` (HTML files only) or `markup` (Markdown files only). HTML and markup hide header/footer and adapt the toolbar, menus and settings |
 | `value` | Bound state containing the JSON document |
 | `onChange` / `onInput` | Change and live-typing handlers |
 | `onReady` / `onSelectionChange` | Ready and selection callbacks |
@@ -1690,10 +1691,17 @@ richtext name: "article" value: doc height: "420px" theme: "dark"
 | `menu`, `toolbar`, `contextToolbar`, `statusbar` | Legacy show/hide flags for UI areas, still honored in hand-written sources but not exposed in the designer |
 | `toolbarItems` | Comma-separated commands, `|` separates groups; `none` shows no formatting buttons (the theme button stays) |
 | `theme` | Interface theme: `dark` (default) or `light`. In the designer the attribute wins over a stored toolbar preference. A single toolbar button cycles dark/light and only styles the editor chrome |
-| Document paper | Always white; the old `contentTheme` attribute is ignored by the compiler |
+| Page background | White by default; Document settings and Page settings can change it (stored as `doc.page.background` and `doc.pageOverrides[n].background`). Text switches to a readable color on dark backgrounds |
+| `contentTheme` | Legacy attribute ignored by the compiler; use `mode` for the authoring profile and the page background setting for the paper color |
 | `header` / `footer` | Text or a rich header/footer model repeated on every page. `\{page\}`/`\{pages\}` (or `[page]`/`[pages]`) and the other variables are replaced in the paginated view, preview, print, PDF, DOCX and ODT (escape braces in SUI strings) |
 | `template` | `article`, `letter`, `report` or `compact` |
 | `hyphenLangs` | Comma-separated hyphenation dictionaries to embed at build time; omit/`*`/`all` keeps all 57, `none` embeds none (heuristic only). Language tags resolve to pattern sets (`el` → `el-monoton`, `de-CH` → `de`, `sr-Latn` → `sh-latn`) |
+
+`mode: "html"` keeps only HTML-compatible tools and the HTML import/export/save
+entries; `mode: "markup"` keeps Markdown-compatible formatting, links, images,
+tables, rules and find/settings, and saves/imports Markdown only. Both profiles
+remove header/footer from Document settings and Page settings, and hide the
+related menu entry. A read-only control is a viewer in every mode.
 
 The element text (for example `richtext "Article"`) is the document title used by
 `{title}` tokens and as a fallback runtime name; it is not rendered above the
@@ -2040,9 +2048,9 @@ word styles, the line-number gutter and syntax highlighting across re-renders.
 | `richtext.exportFormat(name, format)` | JSON, HTML, Markdown, XML or plain text |
 | `richtext.exportBytes(name, format)` | TXT, RTF, DOC, DOCX, ODT, PDF, HTML, Markdown, JSON or XML bytes |
 | `richtext.importFormat(name, text, format)` | Parse text into the document |
-| `richtext.openFile(name)` | Browser file picker; imports by extension |
+| `richtext.openFile(name)` | Browser file picker; imports by extension (HTML/Markdown only in those modes) |
 | `richtext.importBytes(name, bytes, filename)` | Import bytes; format detected from the file name |
-| `richtext.saveAs(name, format)` | Download the document in the selected format |
+| `richtext.saveAs(name, format)` | Download the document; HTML and Markup modes allow only HTML and Markdown respectively |
 | `richtext.registerPlugin(name, plugin)` | Register commands and toolbar entries |
 | `richtext.plugins()` | Registered plugin names |
 | `richtext.status(name)` | Word/character/paragraph/caret JSON |

@@ -5548,6 +5548,10 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 	template := strings.ToLower(richTextTextAttr(e, "template"))
 	height := richTextTextAttr(e, "height")
 	placeholder := richTextTextAttr(e, "placeholder")
+	mode := strings.ToLower(richTextTextAttr(e, "mode"))
+	if mode != "html" && mode != "markup" {
+		mode = ""
+	}
 	themeAttr := findAttr(e, "theme")
 	theme := "dark"
 	themeExplicit := false
@@ -5592,6 +5596,9 @@ func richTextElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 			open += " data-sui-rich-theme-explicit=\"1\""
 		}
 		open += " data-sui-rich-content=\"light\""
+		if mode != "" {
+			open += " data-sui-rich-mode=\"" + htmlEscape(mode) + "\""
+		}
 		if title != "" {
 			// The title text is no longer rendered above the menu; it stays
 			// available for {title} page tokens and the accessible name.

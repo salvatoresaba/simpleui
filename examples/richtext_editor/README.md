@@ -126,7 +126,8 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
   in the main toolbar and appears when the caret is in a table. Toolbar categories are
   separate dockable toolbars: drag the ⣿ handle to float one, then drop it on the
   top bar to re-insert it at the nearest slot; the other toolbars move aside. A single theme button at the right of the toolbar
-  cycles the interface between dark and light; the document page is always white.
+  cycles the interface between dark and light; the page background is white by
+  default and can be changed in Document/Page settings.
 - Undo/redo history, keyboard shortcuts, find and replace (Ctrl+F), sanitized
   paste from Word/Excel/HTML, print preview (Ctrl+P), a paginated A4 preview
   (Pages button) and JSON document binding.
@@ -141,17 +142,19 @@ Both feed paginated view, print and PDF/DOCX/ODT exports.
 - Document templates: `article`, `letter`, `report`, `compact`.
 
 Select the editor in the designer: the **Rich text editor** section sets the
-interface theme (dark/light), toolbar items and the visible UI areas. Toolbar
-items are picked in a multi-select overlay; `None` leaves only the theme button.
-Height and width are set in the generic **Size** section, and the document page
-is always white. The page break is available from Insert, the toolbar and
-Ctrl+Enter.
+runtime **name**, **Mode** (rich text, HTML or Markup), interface theme
+(dark/light), toolbar items and the visible UI areas. Toolbar items are picked in
+a multi-select overlay; `None` leaves only the theme button. Height and width are
+set in the generic **Size** section. The page background is white by default and
+is edited in Document/Page settings. The page break is available from Insert, the
+toolbar and Ctrl+Enter in rich text mode.
 
 ## Component attributes
 
 | Attribute | Meaning |
 |---|---|
 | `name` | Runtime instance name used by `richtext.*` (defaults to a generated name) |
+| `mode` | `richtext` (all features), `html` (HTML only) or `markup` (Markdown only); the latter restrict tools, menus, files and settings and remove header/footer |
 | `value` | Bound state containing the JSON document |
 | Element text | Document title for `{title}` tokens and fallback runtime name; it is not rendered above the menu |
 | `onChange` / `onInput` | Change and live-typing handlers (state setter runs on change/blur) |
@@ -162,7 +165,8 @@ Ctrl+Enter.
 | `toolbar`, `menu`, `contextToolbar`, `statusbar` | Legacy UI-area toggles, still honored in hand-written sources but not exposed in the designer |
 | `toolbarItems` | Comma-separated commands, `|` separates groups; `none` shows no formatting buttons |
 | `theme` | Interface theme: `dark` (default) or `light`; the attribute wins over a stored toolbar preference |
-| Document paper | Always white; the old `contentTheme` attribute is ignored by the compiler |
+| Page background | White by default; Document settings and Page settings can change it, with readable text on dark colors |
+| `contentTheme` | Legacy attribute ignored by the compiler |
 | `header` / `footer` | Text or a rich block model repeated on every page; edited in a floating mini editor with text, images and variables (`{page}`, `{pages}`, `{title}`, `{name}`, `{date}`, `{time}`, `{datetime}`, `{words}`, `{chars}`) |
 | `page break` | Insert > Page break, the `pageBreak` toolbar token or Ctrl+Enter; drag its handle to move it, use its control to delete it, and following breaks recalculate |
 | `template` | `article`, `letter`, `report` or `compact` |
@@ -179,6 +183,21 @@ Toolbar items include `undo`, `redo`, `copy`, `cut`, `paste`, `styleSelect`,
 Set `toolbarItems: "none"` to hide every formatting button; the theme button
 stays available. The default toolbar exposes a zoom group (−, percentage reset
 to 100%, +).
+
+### Editor modes
+
+- `mode: "richtext"` (default) keeps every document feature and opens/saves
+  TXT, RTF, DOC/DOCX, ODT, PDF, HTML, Markdown, JSON and XML.
+- `mode: "html"` keeps HTML-compatible formatting, links, images, tables and
+  rules; the file menu opens/saves/imports/exports HTML only.
+- `mode: "markup"` keeps Markdown-compatible formatting (headings, bold, italic,
+  strike, code, lists, quote, link, image, table, rule); the file menu works on
+  Markdown only.
+
+HTML and Markup remove header/footer from the rendered document and from
+Document/Page settings. In both modes, `readonly: true` shows a viewer with no
+editing chrome. The page background is edited in Document/Page settings and is
+white by default.
 
 ## API
 
