@@ -233,6 +233,7 @@ Open the URL shown in the terminal to see the app with automatic updates on ever
 - VS Code extension: `vscode-hermes-extension/` (generated `.vsix`)
 - Build: `go build -o simpleui.exe ./cmd/simpleui`
 - Check: `./simpleui.exe check app.sui --json`
+- MCP server: `simpleui mcp` — registration for coding agents in [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md)
 
 ## Project structure
 
@@ -256,6 +257,7 @@ Open the URL shown in the terminal to see the app with automatic updates on ever
 - [`docs/AGENT_RECIPES.md`](docs/AGENT_RECIPES.md) — local, remote, desktop and iframe recipes
 - [`docs/GUI_EDITOR.md`](docs/GUI_EDITOR.md) — designer drag and drop vs application drag and drop, inspector properties and pickers
 - [`docs/manifest.json`](docs/manifest.json) — machine-readable documentation map
+- [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md) — register the MCP server with a coding agent (ready `.mcp.json` blocks)
 - [`llms.txt`](llms.txt) — compact LLM discovery file
 - [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) — language and API reference
 - [`SECURITY.md`](SECURITY.md) — threat model, iframe/SSRF, bridge and residual risks

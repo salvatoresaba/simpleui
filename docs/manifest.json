@@ -150,6 +150,26 @@
       "sections": ["Start here", "What are you building?", "Documentation map", "Machine interfaces", "Conventions"]
     },
     {
+      "id": "mcp_config",
+      "path": ".mcp.json",
+      "title": "Project MCP configuration",
+      "summary": "Ready-to-copy project-scoped MCP configuration that starts the SimpleUI MCP server for a coding agent.",
+      "audience": ["agent", "human"],
+      "priority": 1,
+      "tags": ["mcp", "agent", "configuration", "client"],
+      "sections": []
+    },
+    {
+      "id": "mcp_setup",
+      "path": "docs/MCP_SETUP.md",
+      "title": "MCP setup for coding agents",
+      "summary": "Register the SimpleUI MCP server with a coding agent: ready .mcp.json blocks, project and user scope, per-client file layout, the exposed tools, resources and prompts, verification steps, troubleshooting and security notes.",
+      "audience": ["human", "agent"],
+      "priority": 1,
+      "tags": ["mcp", "agent", "setup", "configuration", "claude", "cursor", "copilot", "tools", "troubleshooting"],
+      "sections": ["MCP setup for coding agents", "Requirements", "Build the compiler", "Project configuration (.mcp.json)", "User configuration", "Client-specific configuration", "What the server exposes", "Verify the connection", "Agent instructions for your project", "Troubleshooting", "Security notes", "Related documents"]
+    },
+    {
       "id": "recipes",
       "path": "docs/AGENT_RECIPES.md",
       "title": "Agent recipes: local and remote interfaces",

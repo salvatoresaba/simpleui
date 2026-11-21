@@ -240,6 +240,11 @@ Typical client configuration:
 }
 ```
 
+Ready-to-copy configurations for Claude Code, Cursor and VS Code, plus
+verification, troubleshooting and security notes, are in
+[`docs/MCP_SETUP.md`](docs/MCP_SETUP.md). This repository also ships a
+working project configuration in [`.mcp.json`](.mcp.json).
+
 Offline documentation commands (work without MCP):
 
 ```bash

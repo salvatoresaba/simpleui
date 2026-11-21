@@ -152,6 +152,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 - [Compiler design](../DESIGN.md)
 - [Roadmap](../TODO.md)
 - [MCP and automation](../AGENTS.md#mcp-and-automation)
+- [MCP setup for coding agents](MCP_SETUP.md) — register the server with an agent.
 
 ### Examples
 
@@ -178,6 +179,7 @@ SimpleUI exposes documentation in stable, automatable formats:
 
 Client integration files: [`AGENTS.md`](../AGENTS.md),
 [`CLAUDE.md`](../CLAUDE.md), [`llms.txt`](../llms.txt),
+[`.mcp.json`](../.mcp.json),
 [`.github/copilot-instructions.md`](../.github/copilot-instructions.md),
 [`.cursor/rules/simpleui.mdc`](../.cursor/rules/simpleui.mdc).
 

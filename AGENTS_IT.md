@@ -193,6 +193,11 @@ Configurazione tipica:
 }
 ```
 
+Configurazioni pronte da copiare per Claude Code, Cursor e VS Code, con
+verifica, risoluzione dei problemi e note di sicurezza, sono in
+[`docs/MCP_SETUP.md`](docs/MCP_SETUP.md). Questo repository include anche una
+configurazione di progetto funzionante in [`.mcp.json`](.mcp.json).
+
 Documentazione offline:
 
 ```bash

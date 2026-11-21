@@ -8,6 +8,7 @@
 - [GIT_WORKFLOW.md](GIT_WORKFLOW.md): Mandatory commit policy for agents, baseline tag and restore commands.
 - [docs/INDEX.md](docs/INDEX.md): Human-friendly documentation map and task-based navigation.
 - [docs/AGENT_RECIPES.md](docs/AGENT_RECIPES.md): Code patterns for local forms/tables, drag and drop, remote APIs, CRUD, polling, desktop capabilities, spreadsheets and iframes.
+- [docs/MCP_SETUP.md](docs/MCP_SETUP.md): Register the MCP server with a coding agent - ready .mcp.json blocks, per-client setup, verification and troubleshooting.
 - [docs/GUI_EDITOR.md](docs/GUI_EDITOR.md): Designer drag and drop, application DnD properties, file drops and native pickers.
 - [docs/manifest.json](docs/manifest.json): Machine-readable index (documents, sections, tags, invariants, recipes).
 

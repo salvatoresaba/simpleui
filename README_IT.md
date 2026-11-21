@@ -479,6 +479,7 @@ solo il wrapper `package main` che chiama `sui.Main()`.
 - [`docs/AGENT_RECIPES_IT.md`](docs/AGENT_RECIPES_IT.md) - Pattern per applicazioni locali, remote, desktop e iframe.
 - [`docs/GUI_EDITOR_IT.md`](docs/GUI_EDITOR_IT.md) - Drag and drop del designer e dell'applicazione, proprietà dell'inspector e picker.
 - [`docs/manifest.json`](docs/manifest.json) - Indice machine-readable di documenti, sezioni, tag e recipe.
+- [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md) - Registra il server MCP con un coding agent (blocchi `.mcp.json` pronti).
 - [`llms.txt`](llms.txt) - Discovery compatta per LLM.
 - [`docs/BUILTINS_IT.md`](docs/BUILTINS_IT.md) - Tutte le funzioni built-in (stringhe, array, math, time, regex, storage, etc.)
 - [`docs/STDLIB_IT.md`](docs/STDLIB_IT.md) - Standard library (`http`, `ws`, `fs`, `exec`, `json`, `table`, `dialog` desktop)

@@ -120,6 +120,7 @@ Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
 - [Design del compilatore](../DESIGN_IT.md)
 - [Roadmap](../TODO_IT.md)
 - [MCP e automazione](../AGENTS.md#mcp-and-automation)
+- [Setup MCP per coding agent](MCP_SETUP.md) — registra il server con un agente.
 
 ### Esempi
 
@@ -145,6 +146,7 @@ SimpleUI espone la documentazione in formati stabili e automatizzabili:
 
 File di integrazione per client diversi: [`AGENTS.md`](../AGENTS.md),
 [`CLAUDE.md`](../CLAUDE.md), [`llms.txt`](../llms.txt),
+[`.mcp.json`](../.mcp.json),
 [`.github/copilot-instructions.md`](../.github/copilot-instructions.md),
 [`.cursor/rules/simpleui.mdc`](../.cursor/rules/simpleui.mdc).
 

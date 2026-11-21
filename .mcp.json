@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "simpleui": {
+      "command": "go",
+      "args": ["run", "./cmd/simpleui", "mcp"]
+    }
+  }
+}
