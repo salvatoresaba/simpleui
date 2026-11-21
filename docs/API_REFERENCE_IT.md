@@ -3650,6 +3650,13 @@ table name: "utenti" {
 }
 ```
 
+`table`, `tree`, `chart`/`graph`, `richtext` e `modal` vengono indirizzati tramite
+`name:`. I nomi devono essere univoci all'interno della stessa famiglia runtime:
+due tabelle non possono chiamarsi entrambe `utenti`, e un chart e un graph non
+possono chiamarsi entrambi `sales`. Nomi di famiglie diverse possono ripetersi
+(una tabella e un modal possono chiamarsi entrambi `data`). `simpleui check`
+rifiuta i nomi letterali duplicati e il designer li segnala in **Problems**.
+
 ```sui
 fn load() -> null {
   n, e = table.display("utenti", data)     # JSON, CSV/TSV, array, oggetti

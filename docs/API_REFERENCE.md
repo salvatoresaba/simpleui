@@ -3744,6 +3744,12 @@ table name: "users" {
 }
 ```
 
+`table`, `tree`, `chart`/`graph`, `richtext` and `modal` are addressed by their
+`name:`. Names must be unique inside each runtime family: two tables cannot both
+be `users`, and a chart and a graph cannot both be `sales`. Names from different
+families may repeat (a table and a modal can both be `data`). `simpleui check`
+rejects duplicate literal names and the designer reports them in **Problems**.
+
 ```sui
 fn load() -> null {
   n, e = table.display("users", data)     # JSON, CSV/TSV, arrays, objects

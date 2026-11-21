@@ -3707,7 +3707,7 @@ function renderAll() {
   scheduleCssSync();
 }
 
-function setOut() { suiSource = generate(); setSuiEditor(); markAutosaveDirty(); dbg("setOut children=" + root.children.length + " kinds=[" + root.children.map(function(n){ return n.kind; }).join(",") + "]"); }
+function setOut() { suiSource = generate(); setSuiEditor(); markAutosaveDirty(); scheduleLiveCheck(); dbg("setOut children=" + root.children.length + " kinds=[" + root.children.map(function(n){ return n.kind; }).join(",") + "]"); }
 
 // ---- panel switching ------------------------------------------------------
 function switchLeft(t) {
@@ -12023,6 +12023,21 @@ function chartFieldRow(labelText, control, hintText) {
   if (hintText) label.title = hintText;
   return row;
 }
+// chartNameField edits the runtime target used by chart.* / graph.*. The
+// compiler rejects duplicate literal names in the same runtime family.
+function chartNameField(n) {
+  var input = document.createElement("input");
+  input.value = n.name || "";
+  input.placeholder = n.kind === "graph" ? "diagram" : "sales";
+  input.spellcheck = false;
+  input.title = "Runtime name used by chart.* (unique among charts and graphs)";
+  input.onchange = function(){
+    snap((n.kind === "graph" ? "graph" : "chart") + " name");
+    n.name = input.value.trim();
+    setOut(); autoPreview();
+  };
+  return chartFieldRow("name", input, "Runtime name used by chart.*; must be unique among charts and graphs.");
+}
 function graphControls(n) {
   var a = document.createElement("div");
   a.className = "acc open";
@@ -12033,6 +12048,7 @@ function graphControls(n) {
   a.appendChild(h);
   var b = document.createElement("div");
   b.className = "accbody";
+  b.appendChild(chartNameField(n));
 
   var settingsBtn = document.createElement("button");
   settingsBtn.type = "button";
@@ -12128,6 +12144,7 @@ function chartControls(n) {
   var b = document.createElement("div");
   b.className = "accbody";
   var fields = {};
+  b.appendChild(chartNameField(n));
 
   // 1. type
   var typeSel = document.createElement("select");

@@ -2044,6 +2044,7 @@ The dedicated **Chart** inspector is ordered for quick access:
 
 | Field | Meaning |
 |---|---|
+| name | runtime target used by `chart.*`; it must be unique among charts and graphs |
 | type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell or Gantt; the source attribute is `chartType` because `type` is reserved. Block diagrams use the separate **Graph** control |
 | Mode | chart only, accessible data table only, or both; formerly **table view** and available for every type |
 | settings | opens the unified **Chart settings** panel (appearance, points, tooltip, table, interactions, events, element hints and data fields) |
@@ -2053,6 +2054,11 @@ The dedicated **Chart** inspector is ordered for quick access:
 | show grid / show legend / show values | chart presentation toggles |
 | preset | 14 classic color presets plus one preset for every theme family (Light/Dark) that write CSS variables into `style expr` |
 | edit data | button that opens the movable, resizable chart-data overlay at the bottom of the inspector. Data columns and numeric series are auto-detected |
+
+Runtime names must be unique within their family (`richtext`, `table`, `tree`,
+`chart`/`graph`, `modal`). The designer runs the compiler check live, so a
+duplicate name appears in **Problems** and `simpleui check` rejects it; names
+from different families may repeat.
 
 **Point size** and **point width** live in **Chart settings → Points**.
 **Element hints** also appears in **Chart settings → Data**.
@@ -2526,6 +2532,7 @@ editing handles, so there is no separate diagram editing switch.
 The graph inspector is ordered as follows:
 | Field | Meaning |
 |---|---|
+| name | runtime target used by `chart.*`; it must be unique among charts and graphs |
 | Graph settings | first button; opens the same runtime panel as the chart gear (General plus GRID, SHAPES, LINKS, TAGS and HINTS) |
 | Styles | color preset and **Edit styles...**, which opens the Graph style editor with Title, Frame, Buttons, Table and Scrollbars tabs |
 | show table | shows or hides the synchronized data table |

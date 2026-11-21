@@ -1030,7 +1030,68 @@ func Check(prog *Prog) DiagList {
 		c.checkView(&prog.views[i])
 	}
 
+	// Runtime targets are addressed by name from table.*, tree.*, chart.*,
+	// richtext.* and modal.*. Duplicate literal names would silently target the
+	// wrong instance, so reject them per runtime family (chart and graph share
+	// one family; a table and a modal may reuse the same name safely).
+	c.checkRuntimeNames(prog)
+
 	return dl
+}
+
+type runtimeNameUse struct {
+	tag  string
+	span Span
+}
+
+func runtimeNameFamily(tag string) string {
+	switch tag {
+	case "richtext", "table", "tree", "modal":
+		return tag
+	case "chart", "graph":
+		return "chart"
+	}
+	return ""
+}
+
+func (c *Checker) checkRuntimeNames(prog *Prog) {
+	seen := map[string]map[string]runtimeNameUse{}
+	for i := 0; i < len(prog.views); i++ {
+		c.checkRuntimeNamesIn(prog.views[i].body, seen)
+	}
+}
+
+func (c *Checker) checkRuntimeNamesIn(nodes []ViewNode, seen map[string]map[string]runtimeNameUse) {
+	for i := 0; i < len(nodes); i++ {
+		n := &nodes[i]
+		if n.kind == "element" && n.elem != nil {
+			e := n.elem
+			if family := runtimeNameFamily(e.tag); family != "" {
+				if a := findAttr(e, "name"); a != nil && !a.hasExpr {
+					name := strings.TrimSpace(partsContent(a.text))
+					if name != "" {
+						familyNames := seen[family]
+						if familyNames == nil {
+							familyNames = map[string]runtimeNameUse{}
+							seen[family] = familyNames
+						}
+						if first, ok := familyNames[name]; ok {
+							c.diagAtEx(a.span, "duplicate runtime name \""+name+"\" for "+family,
+								"first used by "+first.tag+" at line "+strconv.Itoa(first.span.line))
+						} else {
+							familyNames[name] = runtimeNameUse{tag: e.tag, span: a.span}
+						}
+					}
+				}
+			}
+			c.checkRuntimeNamesIn(e.children, seen)
+		} else if n.kind == "if" {
+			c.checkRuntimeNamesIn(derefNodeList(n.then_), seen)
+			c.checkRuntimeNamesIn(derefNodeList(n.else_), seen)
+		} else if n.kind == "list" {
+			c.checkRuntimeNamesIn(derefNodeList(n.body), seen)
+		}
+	}
 }
 
 // register the standard module membership (from stdlib.go, re-exported)

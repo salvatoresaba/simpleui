@@ -2104,6 +2104,7 @@ L'inspector dedicato **Chart** è ordinato per accesso rapido:
 
 | Campo | Significato |
 |---|---|
+| name | nome runtime usato da `chart.*`; deve essere univoco tra chart e graph |
 | type | bar, horizontal bar, stacked bar, grouped bar, line, step, smooth, area, combo, pie, donut, scatter, histogram, waterfall, radar, gauge, funnel, heatmap, candlestick, treemap, box plot, bullet, dumbbell o Gantt; nel sorgente l'attributo è `chartType` perché `type` è riservato. I diagrammi a blocchi usano il controllo separato **Graph** |
 | Mode | solo grafico, tabella accessibile, oppure entrambi; ex **table view**, disponibile per ogni tipo |
 | settings | apre il pannello unificato **Chart settings** (aspetto, punti, tooltip, tabella, interazioni, eventi, element hints e campi dati) |
@@ -2113,6 +2114,11 @@ L'inspector dedicato **Chart** è ordinato per accesso rapido:
 | show grid / show legend / show values | toggle di presentazione |
 | preset | 14 preset colore classici più un preset per ogni famiglia di tema (Light/Dark) che scrivono variabili CSS in `style expr` |
 | edit data | pulsante in fondo che apre il pannello overlay spostabile e ridimensionabile dei dati. Colonne e serie numeriche sono rilevate automaticamente |
+
+I nomi runtime devono essere univoci nella loro famiglia (`richtext`, `table`,
+`tree`, `chart`/`graph`, `modal`). Il designer esegue il check del compilatore in
+tempo reale, quindi un nome duplicato compare in **Problems** e `simpleui check`
+lo rifiuta; nomi di famiglie diverse possono ripetersi.
 
 **Point size** e **point width** sono in **Chart settings → Points**.
 **Element hints** è anche in **Chart settings → Data**.
@@ -2587,6 +2593,7 @@ L'inspector del graph è ordinato così:
 
 | Campo | Significato |
 |---|---|
+| name | nome runtime usato da `chart.*`; deve essere univoco tra chart e graph |
 | Graph settings | primo pulsante; apre lo stesso pannello runtime dell'ingranaggio (Generale più GRID, SHAPES, LINKS, TAGS e HINTS) |
 | Styles | preset colore e **Edit styles...**, che apre il Graph style editor con i tab Title, Frame, Buttons, Table e Scrollbars |
 | show table | mostra o nasconde la tabella sincronizzata |
