@@ -1,8 +1,0 @@
-{
-  "name": "hermes-vscode-ext",
-  "version": "1.0.0",
-  "scripts": {
-    "compile": "echo 'Compiled (stub)'",
-    "package": "echo 'Package step (use vsce)"
-  }
-}

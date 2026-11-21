@@ -1,0 +1,7 @@
+node_modules/**
+src/**
+out/**/*.map
+tsconfig.json
+install.bat
+install.sh
+package-lock*.json

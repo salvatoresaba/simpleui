@@ -53,4 +53,21 @@ Write-Host '== embedded docs =='
 & $exe docs --agent | Out-Null
 Assert-LastExit 'docs --agent'
 
+Write-Host '== VS Code extension =='
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+    Push-Location 'vscode-hermes-extension'
+    try {
+        if (-not (Test-Path 'node_modules')) {
+            npm ci
+            Assert-LastExit 'npm ci'
+        }
+        npm run compile
+        Assert-LastExit 'npm run compile'
+    } finally {
+        Pop-Location
+    }
+} else {
+    Write-Host '  npm not found: skipping the VS Code extension compile'
+}
+
 Write-Host 'ALL CHECKS PASSED'

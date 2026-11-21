@@ -16,6 +16,8 @@
 /Test/testev/
 /Test/testout2/
 /node_modules/
+/vscode-hermes-extension/node_modules/
+/vscode-hermes-extension/out/
 
 # Scratch / local state
 *.broken

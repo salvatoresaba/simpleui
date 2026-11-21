@@ -1,0 +1,48 @@
+{
+  "name": "SimpleUI",
+  "scopeName": "source.sui",
+  "fileTypes": ["sui"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword" },
+    { "include": "#type" },
+    { "include": "#handler" },
+    { "include": "#tag" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        { "name": "comment.line.double-slash.sui", "match": "//.*$" },
+        { "name": "comment.block.sui", "begin": "/\\*", "end": "\\*/" }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.sui",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [{ "name": "constant.character.escape.sui", "match": "\\\\." }]
+    },
+    "number": {
+      "name": "constant.numeric.sui",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    },
+    "keyword": {
+      "name": "keyword.control.sui",
+      "match": "\\b(state|let|const|fn|return|if|else|for|while|break|continue|import|from|view|component|switch|case|default|async|await|match|is|as|in|of|true|false|null|readonly|enum|struct|type)\\b"
+    },
+    "type": {
+      "name": "support.type.sui",
+      "match": "\\b(int|string|bool|float|number|any|array|object|void)\\b"
+    },
+    "handler": {
+      "name": "entity.name.function.sui",
+      "match": "\\b(on[A-Z][A-Za-z0-9_]*)\\b"
+    },
+    "tag": {
+      "name": "entity.name.tag.sui",
+      "match": "\\b[a-z][a-z0-9]*\\b(?=\\s*(\\{|\"))"
+    }
+  }
+}

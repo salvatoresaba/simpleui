@@ -1,9 +1,13 @@
-#!/bin/bash
+#!/bin/sh
+# Build and package the SimpleUI VS Code extension.
 set -e
 cd "$(dirname "$0")"
-if [ ! -d node_modules ]; then npm install; fi
+if [ ! -d node_modules ]; then
+  echo "Installing dependencies..."
+  npm install
+fi
 echo "Compiling..."
 npm run compile
 echo "Packaging..."
-npx vsce package
-echo "Install the .vsix in VS Code: Extensions > Install from VSIX"
+npx --yes @vscode/vsce package --allow-missing-repository
+echo "Ready: install the .vsix in VS Code via Extensions > Install from VSIX"

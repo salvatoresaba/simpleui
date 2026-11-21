@@ -3,15 +3,50 @@
   "displayName": "SimpleUI VS Code",
   "version": "0.1.0",
   "publisher": "hermes",
-  "description": "Hermes agent integration for VS Code: build/check .sui files, run opencode tasks.",
+  "description": "Hermes agent integration for VS Code: check and build SimpleUI (.sui) files with the SimpleUI compiler.",
   "main": "./out/extension.js",
   "engines": { "vscode": "^1.74.0" },
-  "activationEvents": ["onCommand:hermes.buildSui", "onCommand:hermes.checkSui", "onLanguage:sui"],
+  "categories": ["Programming Languages", "Other"],
+  "activationEvents": [
+    "onCommand:hermes.buildSui",
+    "onCommand:hermes.checkSui",
+    "onLanguage:sui"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.4.5"
+  },
   "contributes": {
     "commands": [
       { "command": "hermes.buildSui", "title": "Hermes: Build .sui", "category": "Hermes" },
       { "command": "hermes.checkSui", "title": "Hermes: Check .sui", "category": "Hermes" }
     ],
-    "languages": [{ "id": "sui", "extensions": [".sui"], "aliases": ["SimpleUI"] }]
+    "languages": [
+      { "id": "sui", "extensions": [".sui"], "aliases": ["SimpleUI", "sui"] }
+    ],
+    "grammars": [
+      { "language": "sui", "scopeName": "source.sui", "path": "./syntaxes/sui.tmLanguage.json" }
+    ],
+    "configuration": {
+      "title": "SimpleUI",
+      "properties": {
+        "simpleui.compilerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the simpleui compiler. When empty the extension looks on PATH, then in the workspace root."
+        },
+        "simpleui.buildOutputDirectory": {
+          "type": "string",
+          "default": "dist",
+          "description": "Output directory of the web build, relative to the workspace folder."
+        }
+      }
+    }
   }
 }
