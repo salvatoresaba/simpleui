@@ -986,6 +986,20 @@ inserts the new component:
 
 The new element is selected after insertion.
 
+### PDF viewer sample
+
+Inserting a **PDF viewer** from the Media group creates a control that points
+at `sample.pdf`, a small document embedded in the designer and served at
+`/__gui__/sample.pdf`. The preview therefore shows a real PDF instead of an
+error: an empty `src` is a compile error, so a control without a source would
+break the whole page.
+
+The relative `src` also works in the exported app: it looks for `sample.pdf`
+next to `index.html`. Replace the `src` (Content section of the inspector) with
+your own document URL, a state, or the URL returned by `files.documentUrl()`
+before shipping. A desktop build embeds only the app assets, so there the
+document must come from a real URL or from the desktop bridge.
+
 ### Designer limitations
 
 - Dropping a node into its own subtree is intentionally blocked.

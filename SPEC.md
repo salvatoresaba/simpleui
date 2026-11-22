@@ -1491,7 +1491,10 @@ is not. The compiler and runtime enforce:
     (bytes checked with the PDF magic, blob type forced to `application/pdf`);
     a `blob:` source is accepted only when `pdf.blobSrc` is `allow` (the
     default), only for the app's own origin and only after its inner URL has
-    been checked against the same `srcAllow` allow-list.
+    been checked against the same `srcAllow` allow-list. In the designer the
+    palette inserts the control with the relative `src` `sample.pdf`, a
+    document embedded in the designer and served at `/__gui__/sample.pdf`, so
+    the preview shows a real PDF instead of a compile error.
 
 Residual risks (known-class visual spoofing, conservative CSS sanitizer, DNS
 rebinding / compromised allow-listed hosts, ReDoS, iframe origins, local

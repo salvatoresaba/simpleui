@@ -1023,6 +1023,21 @@ inserisce il nuovo componente:
 
 Il nuovo elemento viene selezionato dopo l'inserimento.
 
+### Il PDF di prova del visualizzatore PDF
+
+Inserire un **visualizzatore PDF** dal gruppo Media crea un controllo che
+puntata a `sample.pdf`, un piccolo documento incorporato nel designer e
+servito su `/__gui__/sample.pdf`. Il preview mostra quindi un PDF reale invece
+di un errore: un `src` vuoto è un errore di compilazione e un controllo senza
+sorgente romperebbe l'intera pagina.
+
+L'`src` relativo funziona anche nell'app esportata: cerca `sample.pdf` accanto
+a `index.html`. Sostituisci l'`src` (sezione Content dell'inspector) con
+l'URL del tuo documento, con uno stato o con l'URL restituito da
+`files.documentUrl()` prima di pubblicare. Una build desktop incorpora solo
+gli asset dell'app: lì il documento deve arrivare da un URL reale o dal bridge
+desktop.
+
 ### Limiti del designer
 
 - Il drop di un nodo dentro il proprio sottoalbero è bloccato intenzionalmente.

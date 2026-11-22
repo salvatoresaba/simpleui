@@ -65,8 +65,9 @@ italiane: quando la versione inglese cambia, aggiorna anche la copia `_IT`.
   sconosciuto blocca il build.
 - **Non modificare l'output generato** (`dist/`, preview, file temporanei).
 - **Mantenere gli asset embedded come file separati**: la pagina del designer è
-  `assets/designer.html` e i font PDF sono `assets/pdf_fonts.js`, inclusi con
-  `go:embed`. Non riportarli dentro stringhe Go raw.
+  `assets/designer.html`, i font PDF sono `assets/pdf_fonts.js` e il documento
+  di prova del designer è `assets/sample.pdf`; tutti inclusi con `go:embed`.
+  Non riportarli dentro stringhe Go raw.
 - **Non inventare API**: verifica su `docs/API_REFERENCE.md`,
   `docs/STDLIB.md`, `docs/BUILTINS.md` o compila con `simpleui check`.
 

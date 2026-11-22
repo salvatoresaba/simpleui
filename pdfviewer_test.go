@@ -1,9 +1,11 @@
 package sui
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -194,6 +196,49 @@ func TestGuiPdfViewerAttributesRoundTrip(t *testing.T) {
 		if !strings.Contains(string(page), want) {
 			t.Errorf("designer page is missing %q", want)
 		}
+	}
+}
+
+// Inserting a PDF viewer from the palette must produce a design that
+// compiles: an empty src is a compile error, so the designer points the new
+// control at the sample document it serves for the preview.
+func TestGuiPdfViewerInsertsSampleDocument(t *testing.T) {
+	page, err := os.ReadFile("assets/designer.html")
+	if err != nil {
+		t.Fatalf("read designer: %v", err)
+	}
+	src := string(page)
+	for _, want := range []string{
+		"function newPdfViewerNode()",
+		`n.src = "sample.pdf"`,
+		`if (kind === "pdfviewer") return newPdfViewerNode();`,
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("designer page is missing %q", want)
+		}
+	}
+	// The sample is a real PDF document, not a placeholder.
+	if !bytes.HasPrefix(guiSamplePDF, []byte("%PDF-")) {
+		t.Error("the designer sample is not a PDF document")
+	}
+	if !bytes.Contains(guiSamplePDF, []byte("%%EOF")) {
+		t.Error("the designer sample PDF is truncated")
+	}
+	// The designer serves it for the preview: the relative src resolves
+	// inside /__gui__/, where the preview frame lives.
+	rec := httptest.NewRecorder()
+	guiSamplePDFHandler(rec, httptest.NewRequest("GET", "/__gui__/sample.pdf", nil))
+	if rec.Code != 200 {
+		t.Fatalf("sample status: %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/pdf" {
+		t.Errorf("sample content type: %q", ct)
+	}
+	if rec.Body.Len() != len(guiSamplePDF) {
+		t.Errorf("sample body: %d bytes, want %d", rec.Body.Len(), len(guiSamplePDF))
+	}
+	if !bytes.HasPrefix(rec.Body.Bytes(), []byte("%PDF-")) {
+		t.Error("the served sample is not a PDF document")
 	}
 }
 

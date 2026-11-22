@@ -2,6 +2,7 @@ package sui
 
 import "archive/zip"
 import "bytes"
+import _ "embed"
 import "encoding/base64"
 import "encoding/json"
 import "fmt"
@@ -25,6 +26,14 @@ import "time"
 // POSTs the generated .sui source to /__gui__/render, the compiler parses,
 // checks and emits the app (index/style/app) in-process, and the result is
 // rendered in a sandboxed iframe. The whole tool is embedded in the binary.
+
+// guiSamplePDF is the document the designer shows when a PDF viewer is
+// inserted: it proves the control works before the user points it at a real
+// file. The designer serves it at /__gui__/sample.pdf, so the relative src
+// "sample.pdf" used by the inserted control resolves inside the preview.
+//
+//go:embed assets/sample.pdf
+var guiSamplePDF []byte
 
 // The designer's hyphenation picker uses the same language list as the editor,
 // generated from the dictionaries embedded in the compiler.
@@ -155,6 +164,7 @@ func CmdGui(args []string) {
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", guiPage)
 	})
+	mux.HandleFunc("GET /__gui__/sample.pdf", guiSamplePDFHandler)
 	mux.HandleFunc("GET /__gui__/components", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("reload") != "" {
 			payload := loadComponentLibraryPayload(initialDir)
@@ -731,6 +741,19 @@ func CmdGui(args []string) {
 		_ = exec.Command("xdg-open", url).Run()
 	}
 	select {}
+}
+
+// guiSamplePDFHandler serves the sample document used by the PDF viewer
+// inserted from the designer palette. The preview iframe lives under
+// /__gui__/, so the relative src "sample.pdf" resolves here.
+//
+// The response is a plain document: no script, no cookie, no token.
+func guiSamplePDFHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Length", strconv.Itoa(len(guiSamplePDF)))
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write(guiSamplePDF)
 }
 
 // guiFsRoots returns the top-level browse starting points: drive letters on

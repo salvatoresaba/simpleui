@@ -67,8 +67,9 @@ These rules are part of the language's security model. Do not work around them.
 - **Do not edit generated output.** `dist/`, preview HTML and temporary files
   are results, not sources.
 - **Keep embedded assets as plain files.** The designer page is
-  `assets/designer.html` and the PDF fonts are `assets/pdf_fonts.js`; both are
-  included with `go:embed`. Do not inline them back into Go raw strings.
+  `assets/designer.html`, the PDF fonts are `assets/pdf_fonts.js` and the
+  designer sample document is `assets/sample.pdf`; all are included with
+  `go:embed`. Do not inline them back into Go raw strings.
 - **Do not invent APIs.** Confirm in `docs/API_REFERENCE.md`,
   `docs/STDLIB.md`, `docs/BUILTINS.md` or run `simpleui check`.
 - **Documentation language.** Canonical documentation, code comments and UI

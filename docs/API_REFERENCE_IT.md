@@ -4004,6 +4004,13 @@ Sul target desktop il documento è servito dal bridge locale:
 il file dalle cartelle autorizzate con `--allow-dir` e serve solo i file i cui
 primi byte sono il magic PDF `%PDF-`.
 
+Nel designer, inserendo il controllo dalla palette viene creato con l'`src`
+relativo `sample.pdf`: un documento di prova incorporato nel designer e
+servito su `/__gui__/sample.pdf`, così il preview mostra un PDF reale (un
+`src` vuoto è un errore di compilazione). Sostituisci l'`src` con l'URL del
+tuo documento, con uno stato o con l'URL restituito da
+`files.documentUrl()`.
+
 Un file scelto nel browser viene mostrato **senza backend**:
 `files.documentUrl(name)` trasforma il file selezionato in un URL `blob:` che il
 visualizzatore nativo carica. I byte devono iniziare con il magic PDF `%PDF-` e

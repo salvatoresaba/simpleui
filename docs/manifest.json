@@ -725,6 +725,7 @@
         "Give a dynamic `src` a literal `srcAllow` allow-list; a literal URL needs none.",
         "On desktop build with `--allow-dir` and get the URL with `fs.documentUrl(path)`.",
         "On web show a file the user picked with `files.documentUrl(name)`: it returns a `blob:` URL, no backend needed.",
+        "In the designer the inserted control points at the bundled sample (`sample.pdf`): replace the `src` with your own document.",
         "The control only displays the document: never try to read its text, pages or annotations."
       ]
     }

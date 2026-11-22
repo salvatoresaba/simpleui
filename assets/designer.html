@@ -3390,6 +3390,16 @@ function newGraphNode(skipDefaults) {
   if (!skipDefaults) applyChartDefaultsToNode(n, "graph");
   return n;
 }
+function newPdfViewerNode() {
+  var n = newNode("pdfviewer");
+  // The designer serves a sample document at /__gui__/sample.pdf, so the
+  // relative src below resolves inside the preview and the control shows a
+  // real PDF before the user points it at their own document.
+  n.src = "sample.pdf";
+  n.width = "900";
+  n.height = "620";
+  return n;
+}
 function newNodeForKind(kind) {
   if (kind === "combobox") return newComboboxNode();
   if (kind === "datepicker") return newDatepickerNode();
@@ -3432,6 +3442,7 @@ function newNodeForKind(kind) {
     item.text = "Item";
     return item;
   }
+  if (kind === "pdfviewer") return newPdfViewerNode();
   return newNode(kind);
 }
 function newTextNode() {
@@ -6218,7 +6229,7 @@ function renderInspector() {
     });
     var pdfh = document.createElement("div"); pdfh.className = "hint";
     pdfh.style.cssText = "font-size:10px;margin-top:4px";
-    pdfh.textContent = "The frame is not sandboxed: the browser's native PDF viewer does not start inside a sandboxed frame. A dynamic src is rejected unless srcAllow lists its origin.";
+    pdfh.textContent = "The frame is not sandboxed: the browser's native PDF viewer does not start inside a sandboxed frame. A dynamic src is rejected unless srcAllow lists its origin. The inserted control points to the designer sample (sample.pdf): replace the src with your own document URL.";
     pdfSec.appendChild(pdfh);
     box.appendChild(pdfSec);
   }
