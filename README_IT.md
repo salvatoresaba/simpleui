@@ -46,49 +46,123 @@ Le principali caratteristiche:
 - **Zero-dipendenze**: il codice generato funziona ovunque (browser moderno)
 - **Sicuro per desktop**: bridge nativo con permessi basati su capability e dialoghi file/cartelle nativi
 
-## Requisiti
+## Dopo aver clonato il repository
 
-- [Go 1.24.2+](https://go.dev/dl/) per compilare il compilatore e le build desktop
-- Un browser moderno per eseguire le app web
+Tutto quello che segue si esegue dalla root del repository e richiede **solo
+Go**: il compilatore è un binario singolo e le app che produce sono HTML/CSS/JS
+puro. I comandi usano `simpleui.exe` su Windows e `simpleui` su Linux/macOS.
+
+### Prerequisiti
+
+- [Go 1.24.2+](https://go.dev/dl/) — l'unico requisito, `go version` deve funzionare
+- Un browser moderno, per eseguire le app compilate e il designer visuale
 - Windows/Linux/macOS per le build desktop
+- Node.js 20+ solo per compilare l'estensione VS Code in
+  `vscode-hermes-extension/` (`scripts/verify.ps1` salta quel passo se npm non
+  è presente)
+- Le build `desktop-webview` richiedono anche CGO, un toolchain C e il runtime
+  WebView della piattaforma (WebView2 su Windows, WKWebView su macOS,
+  WebKitGTK su Linux)
 
-## Compilazione del compilatore
-
-Clona o scarica il progetto e compila il binario:
+### 1. Scarica il codice e compila il compilatore
 
 ```bash
-# Clona il repository (se da git)
 git clone https://github.com/salvatoresaba/simpleui.git
-cd GO_PROJECT_LANG
+cd simpleui
 
-# Compila il compilatore
-# Compila da ./cmd/simpleui: la root del repository è il package importabile
-# `sui`, quindi `go build -o simpleui` lì scrive un archivio Go, non un
-# eseguibile avviabile.
-go build -o simpleui ./cmd/simpleui
-
-# Oppure su Windows
+# Windows
 go build -o simpleui.exe ./cmd/simpleui
+
+# Linux/macOS
+go build -o simpleui ./cmd/simpleui
 ```
 
-Il module path è `github.com/salvatoresaba/simpleui`: il compilatore può essere
-importato come libreria Go da un altro module.
+Compila da `./cmd/simpleui`: la root del repository è il package importabile
+`sui`, quindi `go build -o simpleui` lì scrive un archivio Go, non un
+eseguibile avviabile.
 
-Verifica l'installazione:
+Verifica che funzioni:
 
 ```bash
-./simpleui version
-# Output: simpleui 0.1.0-alpha
-
-# Su Windows
-.\simpleui.exe version
+./simpleui.exe version     # -> simpleui 0.1.0-alpha
+./simpleui.exe help        # -> l'elenco di tutti i comandi
 ```
+
+Il module path è `github.com/salvatoresaba/simpleui`: il compilatore può
+essere importato come libreria Go da un altro module.
+
+### 2. Apri il designer visuale
+
+```bash
+# Windows: doppio clic su GUI_editor.bat (compila il compilatore se manca)
+GUI_editor.bat
+
+# Linux/macOS
+chmod +x GUI_editor.sh
+./GUI_editor.sh
+
+# Oppure direttamente, con o senza un file
+./simpleui.exe gui
+./simpleui.exe gui examples/counter.sui
+```
+
+Il designer si apre nel browser all'URL locale mostrato nel terminale;
+**File → Save** riscrive sullo stesso file `.sui`. Su Windows puoi anche
+registrare l'editor per i file `.sui`: `./simpleui.exe associate`
+(`--dry-run` per vedere i comandi di registro, `--uninstall` per annullare).
+
+### 3. Compila ed esegui la prima app
+
+```bash
+# Parsing + type checking: ok più diagnostiche strutturate
+./simpleui.exe check examples/counter.sui --json
+
+# App web statica in dist/ (index.html, style.css, app.js)
+./simpleui.exe build examples/counter.sui --out dist
+
+# Server locale che ricompila e ricarica a ogni salvataggio
+./simpleui.exe serve examples/counter.sui --watch
+
+# Eseguibile desktop (apre il browser di sistema)
+./simpleui.exe build examples/counter.sui --target desktop --out dist
+```
+
+`dist/` è una app statica: puoi servirla con qualsiasi web server, oppure
+aprire direttamente `index.html`. Le build desktop non hanno permessi
+ambientali: `--allow-dir` e `--allow-exec` sono le uniche capability che
+assegni, e vanno sempre dichiarate esplicitamente.
+
+### 4. Esegui tutta la verifica
+
+```bash
+pwsh scripts/verify.ps1
+```
+
+Formato, build, vet, l'intera suite di test (inclusi i test E2E con browser
+headless), tutti gli esempi, il catalogo appearance, la documentazione
+embedded e l'estensione VS Code.
+
+### 5. Da dove proseguire
+
+| Voglio | Aprire |
+|---|---|
+| Imparare il linguaggio | [`docs/INDEX_IT.md`](docs/INDEX_IT.md), poi [`docs/API_REFERENCE_IT.md`](docs/API_REFERENCE_IT.md) |
+| Vedere app funzionanti | [`examples/README.md`](examples/README.md) |
+| Copiare pattern pronti | [`docs/AGENT_RECIPES.md`](docs/AGENT_RECIPES.md) |
+| Capire i contratti | [`SPEC.md`](SPEC.md), [`DESIGN.md`](DESIGN.md) |
+| Controllare il modello di sicurezza | [`SECURITY.md`](SECURITY.md) |
+| Lavorare sul compilatore | [`AGENTS.md`](AGENTS.md), [`docs/manifest.json`](docs/manifest.json) |
 
 ## Release
 
 I binari precompilati sono pubblicati come GitHub Releases: ogni tag `v*`
 compila il compilatore per Windows, Linux e macOS (`amd64` e `arm64`). Ogni
 release contiene un archivio per target e un file `SHA256SUMS`.
+
+**Non è ancora stata pubblicata nessuna release**, quindi i link di download
+qui sotto funzioneranno solo dopo il primo tag. Fino ad allora compila il
+binario dal sorgente con i comandi di
+[Dopo aver clonato il repository](#dopo-aver-clonato-il-repository).
 
 ```bash
 # Linux/macOS
@@ -189,45 +263,7 @@ JavaScript perché `app.html` viene renderizzato da `app.js`. Le mappe includono
 
 L'app si aprirà automaticamente nel browser di default, oppure puoi usare `--no-open` per avviarla in modalità headless.
 
-### 4. Modalità sviluppo
-
-Usa il dev server con live-reload:
-
-```bash
-./simpleui serve counter.sui --watch
-```
-
-Apri l'URL mostrato nel terminale per vedere l'app con aggiornamenti automatici ad ogni modifica del file `.sui`.
-
-### 5. Strumenti aggiuntivi
-
-```bash
-# Verifica parse + typecheck (--json per agenti/CI)
-./simpleui check counter.sui --json
-
-# Visualizza AST
-./simpleui parse counter.sui
-
-# Formatta il codice (canonical)
-./simpleui fmt counter.sui --write
-
-# Documentazione embedded (indice, contesto agente, ricerca, lettura)
-./simpleui docs
-./simpleui docs --agent
-./simpleui docs --search table
-./simpleui docs --read api
-
-# Editor visuale GUI (comando diretto)
-./simpleui gui
-
-# Language Server per editor (VSCode, Neovim, etc.)
-./simpleui lsp
-
-# MCP server per agenti (tool, risorse docs, prompt)
-./simpleui mcp
-```
-
-#### Editor grafico GUI
+### 4. Designer visuale
 
 L'editor grafico permette di creare e modificare file `.sui` in modo visivo, con preview live, tree editor drag&drop, styler CSS e molto altro.
 
@@ -278,6 +314,44 @@ In alternativa, puoi sempre usare il comando diretto:
 ```
 
 Il browser si aprirà automaticamente all'indirizzo locale mostrato nel terminale.
+
+### 5. Modalità sviluppo
+
+Usa il dev server con live-reload:
+
+```bash
+./simpleui serve counter.sui --watch
+```
+
+Apri l'URL mostrato nel terminale per vedere l'app con aggiornamenti automatici ad ogni modifica del file `.sui`.
+
+### 6. Strumenti aggiuntivi
+
+```bash
+# Verifica parse + typecheck (--json per agenti/CI)
+./simpleui check counter.sui --json
+
+# Visualizza AST
+./simpleui parse counter.sui
+
+# Formatta il codice (canonical)
+./simpleui fmt counter.sui --write
+
+# Documentazione embedded (indice, contesto agente, ricerca, lettura)
+./simpleui docs
+./simpleui docs --agent
+./simpleui docs --search table
+./simpleui docs --read api
+
+# Editor visuale GUI (comando diretto)
+./simpleui gui
+
+# Language Server per editor (VSCode, Neovim, etc.)
+./simpleui lsp
+
+# MCP server per agenti (tool, risorse docs, prompt)
+./simpleui mcp
+```
 
 ## Concetti fondamentali
 

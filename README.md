@@ -46,50 +46,120 @@ Key features:
 - **No Node/npm**: generated web code needs only a modern browser; desktop executables need the platform WebView runtime
 - **Secure for desktop**: native bridge with capability-based permission system and native file/folder dialogs
 
-## Requirements
+## After cloning the repository
 
-- [Go 1.24.2+](https://go.dev/dl/) to compile the compiler and desktop builds
-- A modern browser to run web apps
-- `desktop-webview` also needs CGO, a C toolchain and the platform WebView runtime (WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux)
+Everything below runs from the repository root and needs **only Go**: the
+compiler is a single binary and the apps it produces are plain HTML/CSS/JS.
+The commands use `simpleui.exe` on Windows and `simpleui` on Linux/macOS.
+
+### Prerequisites
+
+- [Go 1.24.2+](https://go.dev/dl/) — the only requirement, `go version` must work
+- A modern browser, to run the compiled apps and the visual designer
 - Windows/Linux/macOS for desktop builds
+- Node.js 20+ only to build the VS Code extension in `vscode-hermes-extension/`
+  (`scripts/verify.ps1` skips that step when npm is missing)
+- `desktop-webview` builds also need CGO, a C toolchain and the platform WebView
+  runtime (WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux)
 
-## Compiling the compiler
-
-Clone or download the project and build the binary:
+### 1. Get the code and build the compiler
 
 ```bash
-# Clone the repository (if from git)
 git clone https://github.com/salvatoresaba/simpleui.git
-cd GO_PROJECT_LANG
+cd simpleui
 
-# Build the compiler
-# Build from ./cmd/simpleui: the repository root is the importable `sui`
-# package, so `go build -o simpleui` there writes a Go archive, not a
-# runnable executable.
-go build -o simpleui ./cmd/simpleui
-
-# Or on Windows
+# Windows
 go build -o simpleui.exe ./cmd/simpleui
+
+# Linux/macOS
+go build -o simpleui ./cmd/simpleui
 ```
 
-The module path is `github.com/salvatoresaba/simpleui`: the compiler can be
-imported as a Go library from another module.
+Build from `./cmd/simpleui`: the repository root is the importable `sui`
+package, so `go build -o simpleui` there writes a Go archive, not a runnable
+executable.
 
-Verify the installation:
+Check that it works:
 
 ```bash
-./simpleui version
-# Output: simpleui 0.1.0-alpha
-
-# On Windows
-.\simpleui.exe version
+./simpleui.exe version     # -> simpleui 0.1.0-alpha
+./simpleui.exe help        # -> every available command
 ```
+
+The module path is `github.com/salvatoresaba/simpleui`: the compiler can also
+be imported as a Go library from another module.
+
+### 2. Open the visual designer
+
+```bash
+# Windows: double-click GUI_editor.bat (it compiles the compiler if missing)
+GUI_editor.bat
+
+# Linux/macOS
+chmod +x GUI_editor.sh
+./GUI_editor.sh
+
+# Or start it directly, with or without a file
+./simpleui.exe gui
+./simpleui.exe gui examples/counter.sui
+```
+
+The designer opens in your browser at the local URL printed in the terminal;
+**File → Save** writes back to the same `.sui` file. On Windows you can also
+register the editor for `.sui` files: `./simpleui.exe associate`
+(`--dry-run` to preview the registry commands, `--uninstall` to undo).
+
+### 3. Compile and run your first app
+
+```bash
+# Parse + typecheck: ok plus structured diagnostics
+./simpleui.exe check examples/counter.sui --json
+
+# Static web app in dist/ (index.html, style.css, app.js)
+./simpleui.exe build examples/counter.sui --out dist
+
+# Local server that rebuilds and reloads on every save
+./simpleui.exe serve examples/counter.sui --watch
+
+# Desktop executable (opens the system browser)
+./simpleui.exe build examples/counter.sui --target desktop --out dist
+```
+
+`dist/` is a plain static app: serve it with any web server, or open
+`index.html` directly. Desktop builds get no ambient permissions —
+`--allow-dir` and `--allow-exec` are the only capabilities you grant, and they
+are always explicit.
+
+### 4. Run the whole verification suite
+
+```bash
+pwsh scripts/verify.ps1
+```
+
+Format, build, vet, the complete test suite (including the headless-browser
+E2E tests), every example, the appearance catalog, the embedded documentation
+and the VS Code extension.
+
+### 5. Where to go next
+
+| I want to | Open |
+|---|---|
+| Learn the language | [`docs/INDEX.md`](docs/INDEX.md), then [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) |
+| See working apps | [`examples/README.md`](examples/README.md) |
+| Copy ready-made patterns | [`docs/AGENT_RECIPES.md`](docs/AGENT_RECIPES.md) |
+| Understand the contracts | [`SPEC.md`](SPEC.md), [`DESIGN.md`](DESIGN.md) |
+| Check the security model | [`SECURITY.md`](SECURITY.md) |
+| Work on the compiler itself | [`AGENTS.md`](AGENTS.md), [`docs/manifest.json`](docs/manifest.json) |
 
 ## Releases
 
 Prebuilt binaries are published as GitHub Releases: every tag `v*` builds the
 compiler for Windows, Linux and macOS (`amd64` and `arm64`). Each release
 contains one archive per target plus a `SHA256SUMS` file.
+
+**No release has been published yet**, so the download links below only start
+working once the first tag is pushed. Until then, build the binary from source
+with the commands in [After cloning the repository](#after-cloning-the-repository).
 
 ```bash
 # Linux/macOS

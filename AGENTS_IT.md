@@ -5,6 +5,37 @@ compila in un'app web autonoma oppure in un eseguibile desktop. Questo documento
 è la guida italiana per gli agenti; la versione canonica in inglese è
 [`AGENTS.md`](AGENTS.md).
 
+## Dopo aver clonato il repository
+
+Un agente che clona il repository non ha ancora il binario: compilalo prima,
+dalla root del repository.
+
+```bash
+git clone https://github.com/salvatoresaba/simpleui.git
+cd simpleui
+
+go build -o simpleui.exe ./cmd/simpleui     # Windows
+go build -o simpleui ./cmd/simpleui         # Linux/macOS
+./simpleui.exe version                      # -> simpleui 0.1.0-alpha
+```
+
+Compila da `./cmd/simpleui`: la root del repository è il package importabile
+`sui`, quindi `go build -o simpleui` lì scrive un archivio Go, non un
+eseguibile avviabile.
+
+Poi, una riga per operazione:
+
+```bash
+./simpleui.exe gui                          # designer visuale, si apre nel browser
+./simpleui.exe check app.sui --json         # parsing + type checking
+./simpleui.exe build app.sui --out dist     # app web statica
+./simpleui.exe serve app.sui --watch        # server locale, ricompila al salvataggio
+pwsh scripts/verify.ps1                    # verifica completa
+```
+
+Il percorso per le persone, con prerequisiti e spiegazioni, è la sezione
+"Dopo aver clonato il repository" di `README_IT.md`.
+
 ## Da dove iniziare
 
 1. Esegui `simpleui docs --agent` per un contesto compatto.
@@ -15,13 +46,6 @@ compila in un'app web autonoma oppure in un eseguibile desktop. Questo documento
    `simpleui check app.sui --json`.
 6. Compila con `simpleui build app.sui --out dist` e usa
    `simpleui serve app.sui --watch` per il browser.
-
-Se il binario non esiste ancora:
-
-```bash
-go build -o simpleui.exe ./cmd/simpleui     # Windows
-go build -o simpleui ./cmd/simpleui         # Linux/macOS
-```
 
 ## Lingua
 

@@ -4,6 +4,7 @@
 
 ## Start here
 
+- [README.md](README.md): Human quick start - prerequisites, build the compiler, open the designer, compile the first app, where to read next.
 - [AGENTS.md](AGENTS.md): Canonical coding-agent guide - workflow, security rules, repo map, commands, task routing.
 - [GIT_WORKFLOW.md](GIT_WORKFLOW.md): Mandatory commit policy for agents, baseline tag and restore commands.
 - [docs/INDEX.md](docs/INDEX.md): Human-friendly documentation map and task-based navigation.
@@ -43,7 +44,9 @@
 
 ## Automation
 
-- `simpleui docs --agent` — compact context bundle.
+- `go build -o simpleui.exe ./cmd/simpleui` - build the compiler (Windows; use `simpleui` without extension on Linux/macOS). Build from `./cmd/simpleui`: the module root is the importable `sui` package, so a build there writes a Go archive, not an executable.
+- `simpleui gui` - open the visual designer in the browser.
+- `simpleui docs --agent` - compact context bundle.
 - `simpleui docs --json` — full manifest.
 - `simpleui docs --read <id>` — one document.
 - `simpleui docs --search <term>` — search by title, tag or summary.

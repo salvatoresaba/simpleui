@@ -5,6 +5,37 @@ self-contained web app (HTML/CSS/JS) or a desktop executable. This file is the
 canonical entry point for coding agents. Read it before generating or editing
 an interface.
 
+## After cloning the repository
+
+An agent that clones the repository has no binary yet: build it first, from the
+repository root.
+
+```bash
+git clone https://github.com/salvatoresaba/simpleui.git
+cd simpleui
+
+go build -o simpleui.exe ./cmd/simpleui     # Windows
+go build -o simpleui ./cmd/simpleui         # Linux/macOS
+./simpleui.exe version                      # -> simpleui 0.1.0-alpha
+```
+
+Build from `./cmd/simpleui`: the repository root is the importable `sui`
+package, so `go build -o simpleui` there writes a Go archive, not a runnable
+executable.
+
+Then, one line each:
+
+```bash
+./simpleui.exe gui                          # visual designer, opens in the browser
+./simpleui.exe check app.sui --json         # parse + typecheck
+./simpleui.exe build app.sui --out dist     # static web app
+./simpleui.exe serve app.sui --watch        # local server, rebuilds on save
+pwsh scripts/verify.ps1                    # full verification suite
+```
+
+The human-facing walkthrough, with prerequisites and what each step does, is
+the "After cloning the repository" section of `README.md`.
+
 ## Start here
 
 1. Run `simpleui docs --agent` for a compact context bundle.
@@ -16,13 +47,6 @@ an interface.
 5. Write or edit the `.sui` file, then run `simpleui check app.sui --json`.
 6. Build with `simpleui build app.sui --out dist` and serve with
    `simpleui serve app.sui --watch` when a browser preview helps.
-
-If the `simpleui` binary is not built yet:
-
-```bash
-go build -o simpleui.exe ./cmd/simpleui     # Windows
-go build -o simpleui ./cmd/simpleui         # Linux/macOS
-```
 
 ## Non-negotiable rules
 
