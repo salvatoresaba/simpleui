@@ -389,6 +389,36 @@ const stdlibExtraRuntimeRaw = `var __SUI_STD_EXTRA = (function () {
       }, function (e) {
         return [null, String(e && e.message ? e.message : e)];
       });
+    },
+    documentUrl: function (name) {
+      // Builds a blob: URL for a file the user selected, so the PDF viewer
+      // can show it without a backend. The bytes are checked (PDF magic)
+      // and the type is forced: the native viewer must never receive a
+      // document the browser could execute. The desktop target reads files
+      // through the bridge (fs.documentUrl).
+      if (TARGET === 'desktop') {
+        return Promise.resolve([null, 'files.documentUrl is not available on the desktop target: use fs.documentUrl(path)']);
+      }
+      if (typeof __sui_dnd_read_bytes !== 'function') {
+        return Promise.resolve([null, 'files.documentUrl needs a selection: add a file control with pickFiles or drop a file']);
+      }
+      return Promise.resolve(__sui_dnd_read_bytes(name)).then(function (r) {
+        var bytes = r[0];
+        var err = r[1];
+        if (err !== null) return [null, err];
+        if (!bytes || bytes.length < 5) return [null, 'the file is not a PDF document'];
+        var head = '';
+        for (var i = 0; i < 5; i++) head += String.fromCharCode(bytes[i]);
+        if (head !== '%PDF-') return [null, 'the file is not a PDF document'];
+        try {
+          var blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+          return [URL.createObjectURL(blob), null];
+        } catch (e) {
+          return [null, String(e && e.message ? e.message : e)];
+        }
+      }, function (e) {
+        return [null, String(e && e.message ? e.message : e)];
+      });
     }
   };
 

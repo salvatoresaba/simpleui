@@ -6,8 +6,16 @@
 # Three ways to feed a document to the viewer:
 #
 #   1. a file in a folder the app may read (desktop): fs.documentUrl(path)
-#   2. a remote document served by your own backend: a plain URL
-#   3. a file the user picked with the native picker (desktop): a path
+#   2. a file the user picked with the native picker (desktop): a path
+#   3. a file the user picked in the browser (web): files.documentUrl(name)
+#
+# The third case needs no backend: the browser exposes the picked file, the
+# app turns it into a blob: URL and the native viewer loads it. The bytes are
+# checked (PDF magic) and the type is forced to application/pdf, so the
+# viewer never receives a document the browser could execute.
+#
+# A remote document (any backend that serves application/pdf) is the fourth
+# case and works on both targets.
 #
 # The frame that shows the document is NOT sandboxed: the browser's native
 # PDF viewer does not start inside a sandboxed frame. The source is therefore
@@ -21,11 +29,12 @@
 # The folder examples/pdfviewer/docs holds a sample document: open
 # "sample.pdf" to see the viewer working.
 
-import { fs, dialog } from "std"
+import { fs, files, dialog } from "std"
 
 state base = "docs"
 state name = "sample.pdf"
 state listing = ""
+state picked = ""
 state docUrl = ""
 state docName = ""
 state notice = "Pick a document to display."
@@ -53,18 +62,33 @@ fn open() -> null {
 }
 
 async fn pick() -> null {
-	picked, err = dialog.pickFile()
+	pickedPath, err = dialog.pickFile()
 	if err != null {
 		notice = err
 		return
 	}
-	if picked == "" {
+	if pickedPath == "" {
 		notice = "selection cancelled"
 		return
 	}
-	url, derr = fs.documentUrl(picked)
+	url, derr = fs.documentUrl(pickedPath)
 	if derr != null {
 		notice = "the picked file must be inside the allowed folder: " + derr
+		return
+	}
+	docUrl = url
+	docName = pickedPath
+	notice = "showing the picked file"
+}
+
+async fn openPicked() -> null {
+	if picked == "" {
+		notice = "pick a PDF file first"
+		return
+	}
+	url, err = files.documentUrl(picked)
+	if err != null {
+		notice = "document error: " + err
 		return
 	}
 	docUrl = url
@@ -86,6 +110,11 @@ view main {
 		p "{notice}" class: "muted"
 		if listing != "" {
 			pre "{listing}"
+		}
+		p "Pick a document from this device (web):" class: "muted"
+		row {
+			file accept: ".pdf" pickFiles: picked
+			button "Show picked file" onClick: openPicked
 		}
 		if docUrl != "" {
 			p "Showing: {docName}" class: "muted"

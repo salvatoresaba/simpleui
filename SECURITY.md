@@ -203,6 +203,18 @@ not evidence that a desktop path is safe to read; keep `fs` behind
   `Referer` header.
 - The viewer only displays the document: the app never reads the PDF bytes, so
   no text, page or annotation can be extracted.
+- On the web target the user can open a document from their own device, with no
+  backend:
+  - `files.documentUrl(name)` turns a file the user picked (`pickFiles:`/
+    `dropFiles:`) into a `blob:` URL for the viewer. The bytes must start with
+    the PDF magic `%PDF-` and the blob type is forced to `application/pdf`, so
+    the viewer never receives a document the browser could execute;
+  - a `blob:` source is accepted only when `pdf.blobSrc` is `allow` (the
+    default), only for the app's own origin, and only after its inner URL has
+    been checked against the same `srcAllow` allow-list;
+  - `pdf.blobSrc: "deny"` refuses `blob:` sources at runtime and shows an
+    explicit error instead of the frame;
+  - the URL lives as long as the page and never reaches the network.
 - On the desktop target the document is served by the local bridge:
   - a **separate per-run secret** (not the bridge token) is delivered in a
     `SameSite=Strict`, `HttpOnly` cookie scoped to the document endpoint, so it
@@ -252,7 +264,8 @@ with an explicit error. No configuration is silently accepted if it is invalid.
   },
   "pdf": {
     "dynamicSrc": "allowlist",
-    "unsandboxedFrame": "allow"
+    "unsandboxedFrame": "allow",
+    "blobSrc": "allow"
   }
 }
 ```
@@ -271,6 +284,7 @@ with an explicit error. No configuration is silently accepted if it is invalid.
 | `iframe.dynamicSrc` | `allowlist`, `sandbox`, `allow` | `allowlist` | `allowlist`: dynamic `src` requires `srcAllow`; others do not |
 | `pdf.dynamicSrc` | `allowlist`, `allow` | `allowlist` | `allowlist`: a dynamic `pdfviewer` `src` requires `srcAllow`; `allow`: does not |
 | `pdf.unsandboxedFrame` | `allow`, `deny` | `allow` | `deny`: the `pdfviewer` control is removed from the language (its frame is never sandboxed) |
+| `pdf.blobSrc` | `allow`, `deny` | `allow` | `allow`: the `pdfviewer` accepts a `blob:` source of the app's own origin (a file the user picked); `deny`: refuses it at runtime |
 
 **Not configurable** (security invariants):
 
@@ -374,6 +388,10 @@ Remaining risks:
   `127.0.0.1`) shares the app's origin: content that is not really a PDF could
   reach the app's DOM. The desktop endpoint refuses everything that is not a
   PDF; a remote same-origin URL is the app's own responsibility.
+- a `blob:` URL of the app's own origin (a file the user picked) is
+  same-origin too. The bytes are checked (PDF magic) and the type is forced to
+  `application/pdf`, but a PDF is an active document: keep the viewer for
+  documents the user is expected to open.
 - the user cannot see the embedded origin: show the document source in the UI.
 - `pdf.unsandboxedFrame: "deny"` is the switch for projects that do not accept
   an unsandboxed frame.

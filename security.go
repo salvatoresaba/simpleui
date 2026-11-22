@@ -35,6 +35,7 @@ type SecurityConfig struct {
 	IframeDynamicSrc  string // allowlist | sandbox | allow
 	PDFDynamicSrc     string // allowlist | allow (dynamic pdfviewer src)
 	PDFUnsandboxed    string // allow | deny (the pdf viewer frame is never sandboxed)
+	PDFBlobSrc        string // allow | deny (blob: sources for the pdf viewer)
 }
 
 // DefaultSecurity returns the strict, recommended policy.
@@ -54,6 +55,7 @@ func DefaultSecurity() SecurityConfig {
 		IframeDynamicSrc:  "allowlist",
 		PDFDynamicSrc:     "allowlist",
 		PDFUnsandboxed:    "allow",
+		PDFBlobSrc:        "allow",
 	}
 }
 
@@ -122,6 +124,11 @@ func (s SecurityConfig) Normalized() SecurityConfig {
 	default:
 		s.PDFUnsandboxed = d.PDFUnsandboxed
 	}
+	switch s.PDFBlobSrc {
+	case "allow", "deny":
+	default:
+		s.PDFBlobSrc = d.PDFBlobSrc
+	}
 	return s
 }
 
@@ -155,6 +162,7 @@ type securityFile struct {
 	PDF struct {
 		DynamicSrc       string `json:"dynamicSrc"`
 		UnsandboxedFrame string `json:"unsandboxedFrame"`
+		BlobSrc          string `json:"blobSrc"`
 	} `json:"pdf"`
 }
 
@@ -232,6 +240,10 @@ func LoadSecurityFile(path string) (SecurityConfig, []string, error) {
 	if raw.PDF.UnsandboxedFrame != "" {
 		cfg.PDFUnsandboxed = pickMode(raw.PDF.UnsandboxedFrame, cfg.PDFUnsandboxed,
 			[]string{"allow", "deny"}, "pdf.unsandboxedFrame", &problems)
+	}
+	if raw.PDF.BlobSrc != "" {
+		cfg.PDFBlobSrc = pickMode(raw.PDF.BlobSrc, cfg.PDFBlobSrc,
+			[]string{"allow", "deny"}, "pdf.blobSrc", &problems)
 	}
 	if len(problems) > 0 {
 		return cfg.Normalized(), nil, fmt.Errorf("%s", strings.Join(problems, "; "))

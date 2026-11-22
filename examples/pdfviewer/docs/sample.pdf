@@ -1,17 +1,14 @@
 %PDF-1.4
 1 0 obj
-undefined
-endobj
-2 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj
-3 0 obj
+2 0 obj
 << /Type /Pages /Kids [3 0 R] /Count 1 >>
 endobj
-4 0 obj
+3 0 obj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
 endobj
-5 0 obj
+4 0 obj
 << /Length 292 >>
 stream
 BT /F1 24 Tf 60 740 Td (SimpleUI PDF viewer) Tj ET
@@ -20,20 +17,19 @@ BT /F1 12 Tf 60 680 Td (The application never reads its bytes.) Tj ET
 BT /F1 12 Tf 60 660 Td (On the desktop target it is served by the local bridge.) Tj ET
 endstream
 endobj
-6 0 obj
+5 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 xref
-0 7
+0 6
 0000000000 65535 f 
 0000000009 00000 n 
-0000000034 00000 n 
-0000000083 00000 n 
-0000000140 00000 n 
-0000000266 00000 n 
-0000000609 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000584 00000 n 
 trailer
-<< /Size 7 /Root 1 0 R >>
+<< /Size 6 /Root 1 0 R >>
 startxref
-679
+654
 %%EOF

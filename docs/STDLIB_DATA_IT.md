@@ -1,6 +1,6 @@
 # Documentazione Stdlib Dati di SimpleUI
 
-Questo documento copre i moduli std puri e in-memory. Non accedono alla rete, al filesystem, alle variabili di processo o al DOM. Sono disponibili sia per target web sia desktop e seguono la convenzione std abituale: `value, err = modulo.funzione(...)` con `err = null` in caso di successo. Tutte le funzioni di questi moduli sono sincrone, con una sola eccezione: `files.readBytes` e asincrona perche legge i byte di un file selezionato dall'utente.
+Questo documento copre i moduli std puri e in-memory. Non accedono alla rete, al filesystem, alle variabili di processo o al DOM. Sono disponibili sia per target web sia desktop e seguono la convenzione std abituale: `value, err = modulo.funzione(...)` con `err = null` in caso di successo. Tutte le funzioni di questi moduli sono sincrone, con due eccezioni: `files.readBytes` e `files.documentUrl` sono asincrone perché leggono i byte di un file selezionato dall'utente.
 
 I moduli sono `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log` e `telemetry`. Per i moduli I/O (`http`, `ws`, `fs`, `exec`, `dialog`) vedere [STDLIB](STDLIB_IT.md).
 
@@ -71,6 +71,7 @@ Questi helper validano i nomi e **non** leggono né scrivono file. Per vero I/O 
 | `files.isHidden(name)` | string | (bool, string) | Se il nome base inizia con `.` |
 | `files.extAllowed(name, allow)` | string, string | (bool, string) | Controlla una allow-list di estensioni |
 | `files.readBytes(name)` | string | (array[int], string) | Legge i byte di un file della selezione corrente (solo web) |
+| `files.documentUrl(name)` | string | (string, string) | URL del browser (`blob:`) di un PDF della selezione corrente (solo web) |
 
 `files.readBytes(name)` legge i byte di un file della selezione corrente
 (`pickFiles:`/`dropFiles:`). Il browser espone solo i file scelti o trascinati,
@@ -78,6 +79,24 @@ quindi non legge mai un percorso: `name` corrisponde al nome o al percorso
 relativo del file selezionato, e un nome vuoto legge l'unico file selezionato.
 I file oltre 10 MB vengono rifiutati. Su desktop il picker restituisce percorsi:
 usare li `fs.readBytes(path)` (richiede la capability `--allow-dir`).
+
+`files.documentUrl(name)` trasforma il file selezionato in un URL che il
+visualizzatore PDF può caricare, così l'utente apre un documento da questo
+dispositivo senza backend. I byte devono iniziare con il magic PDF `%PDF-` e il
+tipo del blob è forzato a `application/pdf`: il visualizzatore nativo non
+riceve mai un documento che il browser potrebbe eseguire. L'URL vive finché
+vive la pagina. Su desktop usare invece `fs.documentUrl(path)`.
+
+```sui
+url, err = files.documentUrl(picked)
+if err == null {
+	docUrl = url
+}
+```
+
+```sui
+pdfviewer src: docUrl srcAllow: "/"
+```
 
 Le opzioni di `files.validate` sono `maxName` (predefinito 200), `allowHidden` (predefinito false), `allowedExt` o `allow` (elenco separato da virgole/spazi o array), `size` e `maxSize`. Traversal, separatori di percorso, lettere di unità, caratteri di controllo e nomi nascosti vengono rifiutati per predefinito.
 

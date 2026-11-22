@@ -3986,7 +3986,8 @@ pdfviewer src: "https://example.com/manual.pdf"
 pdfviewer src: docUrl srcAllow: "/" width: 900 height: 620
 ```
 
-- `src`: `http(s)` o relativo; un URL dinamico richiede `srcAllow` (default).
+- `src`: `http(s)`, relativo o (web) `blob:`; un URL dinamico richiede `srcAllow`
+  (default).
 - `srcAllow`: allow-list **letterale** di origini/prefix di path, separati da
   spazio o virgola. Non viene emessa nell'HTML.
 - `width`, `height`: interi letterali.
@@ -4003,9 +4004,26 @@ Sul target desktop il documento è servito dal bridge locale:
 il file dalle cartelle autorizzate con `--allow-dir` e serve solo i file i cui
 primi byte sono il magic PDF `%PDF-`.
 
-Un file scelto nel browser non può essere mostrato direttamente: il
-visualizzatore nativo non carica gli URL `blob:`. Caricalo sul tuo backend e
-usa l'URL che ti restituisce.
+Un file scelto nel browser viene mostrato **senza backend**:
+`files.documentUrl(name)` trasforma il file selezionato in un URL `blob:` che il
+visualizzatore nativo carica. I byte devono iniziare con il magic PDF `%PDF-` e
+il tipo del blob è forzato a `application/pdf`, così il visualizzatore non
+riceve mai un documento che il browser potrebbe eseguire. Una sorgente `blob:`
+è accettata solo se `pdf.blobSrc` è `allow` (il default), solo per l'origine
+dell'app e solo dopo che il suo URL interno è stato controllato con la stessa
+allow-list `srcAllow`; con `pdf.blobSrc: "deny"` al posto del frame compare un
+errore.
+
+```simpleui
+file accept: ".pdf" pickFiles: picked
+button "Mostra" onClick: openPicked
+
+# dentro openPicked:
+url, err = files.documentUrl(picked)
+if err == null {
+	docUrl = url
+}
+```
 
 ## CLI
 

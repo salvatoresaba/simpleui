@@ -1486,7 +1486,12 @@ is not. The compiler and runtime enforce:
     in a `SameSite=Strict`/`HttpOnly` cookie scoped to that endpoint, files
     limited to the `--allow-dir` folders, only files whose first bytes are the
     PDF magic `%PDF-`, range requests supported, and no anti-framing headers
-    (the frame must be embeddable).
+    (the frame must be embeddable). On the web target a file the user picked is
+    shown without a backend: `files.documentUrl(name)` returns a `blob:` URL
+    (bytes checked with the PDF magic, blob type forced to `application/pdf`);
+    a `blob:` source is accepted only when `pdf.blobSrc` is `allow` (the
+    default), only for the app's own origin and only after its inner URL has
+    been checked against the same `srcAllow` allow-list.
 
 Residual risks (known-class visual spoofing, conservative CSS sanitizer, DNS
 rebinding / compromised allow-listed hosts, ReDoS, iframe origins, local

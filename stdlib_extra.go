@@ -75,6 +75,12 @@ var extraStdFuncs = []StdFunc{
 	// the user selected or dropped in this app (never a path, never the
 	// network). The desktop target uses fs.readBytes(path) instead.
 	StdFunc{mod: "files", name: "readBytes", params: []string{"string"}, ret0: "array[int]", ret1: "string", jsKey: "files_readbytes", async: true},
+	// files.documentUrl builds a browser URL for a file the user selected,
+	// so the PDF viewer can display it without a backend. The bytes are
+	// checked and the type is forced to application/pdf: the native viewer
+	// must never receive a document the browser could execute. The desktop
+	// target uses fs.documentUrl(path).
+	StdFunc{mod: "files", name: "documentUrl", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "files_documenturl", async: true},
 	// mime
 	StdFunc{mod: "mime", name: "fromName", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "mime_fromname"},
 	StdFunc{mod: "mime", name: "fromBytes", params: []string{"any"}, ret0: "string", ret1: "string", jsKey: "mime_frombytes"},

@@ -275,6 +275,19 @@ non dimostra che un percorso desktop sia sicuro da leggere. `fs` resta dietro
   così l'URL del documento non trapela nell'header `Referer`.
 - Il visualizzatore mostra soltanto il documento: l'app non legge mai i byte del
   PDF, quindi non può estrarne testo, pagine o annotazioni.
+- Sul target web l'utente può aprire un documento dal proprio dispositivo, senza
+  backend:
+  - `files.documentUrl(name)` trasforma in un URL `blob:` un file scelto
+    dall'utente (`pickFiles:`/`dropFiles:`) per il visualizzatore. I byte
+    devono iniziare con il magic PDF `%PDF-` e il tipo del blob è forzato a
+    `application/pdf`, così il visualizzatore non riceve mai un documento che il
+    browser potrebbe eseguire;
+  - una sorgente `blob:` è accettata solo se `pdf.blobSrc` è `allow` (il
+    default), solo per l'origine dell'app e solo dopo che il suo URL interno è
+    stato controllato con la stessa allow-list `srcAllow`;
+  - `pdf.blobSrc: "deny"` rifiuta le sorgenti `blob:` a runtime e mostra un
+    errore esplicito invece del frame;
+  - l'URL vive finché vive la pagina e non raggiunge mai la rete.
 - Sul target desktop il documento è servito dal bridge locale:
   - un **secret separato** per ogni esecuzione (non il token del bridge) viene
     consegnato in un cookie `SameSite=Strict` e `HttpOnly` limitato
@@ -328,7 +341,8 @@ configurazione viene accettato se non è valido.
   },
   "pdf": {
     "dynamicSrc": "allowlist",
-    "unsandboxedFrame": "allow"
+    "unsandboxedFrame": "allow",
+    "blobSrc": "allow"
   }
 }
 ```
@@ -347,6 +361,7 @@ configurazione viene accettato se non è valido.
 | `iframe.dynamicSrc` | `allowlist`, `sandbox`, `allow` | `allowlist` | `allowlist`: `src` dinamico richiede `srcAllow`; gli altri valori no |
 | `pdf.dynamicSrc` | `allowlist`, `allow` | `allowlist` | `allowlist`: un `src` dinamico di `pdfviewer` richiede `srcAllow`; `allow`: non richiede nulla |
 | `pdf.unsandboxedFrame` | `allow`, `deny` | `allow` | `deny`: il controllo `pdfviewer` viene tolto dal linguaggio (il suo frame non è mai sandboxato) |
+| `pdf.blobSrc` | `allow`, `deny` | `allow` | `allow`: il `pdfviewer` accetta una sorgente `blob:` dell'origine dell'app (un file scelto dall'utente); `deny`: la rifiuta a runtime |
 
 **Non configurabili** (invarianti di sicurezza):
 
@@ -521,6 +536,10 @@ Rischi residui:
   davvero PDF potrebbero raggiungere il DOM dell'app. L'endpoint desktop
   rifiuta tutto ciò che non è un PDF; un URL remoto della stessa origine è
   responsabilità dell'app;
+- un URL `blob:` dell'origine dell'app (un file scelto dall'utente) è a sua
+  volta della stessa origine. I byte vengono controllati (magic PDF) e il tipo
+  è forzato a `application/pdf`, ma un PDF è un documento attivo: riserva il
+  visualizzatore ai documenti che l'utente è tenuto ad aprire;
 - l'utente non vede l'origine incorporata: mostra la sorgente del documento
   nella UI;
 - `pdf.unsandboxedFrame: "deny"` è l'interruttore per i progetti che non

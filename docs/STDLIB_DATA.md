@@ -83,6 +83,7 @@ desktop `fs` module for actual file I/O. File names are treated as untrusted.
 | `files.isHidden(name)` | string | (bool, string) | Whether the base name starts with `.` |
 | `files.extAllowed(name, allow)` | string, string | (bool, string) | Check an extension allow-list |
 | `files.readBytes(name)` | string | (array[int], string) | Read the bytes of a file in the current selection (web only) |
+| `files.documentUrl(name)` | string | (string, string) | Browser URL (`blob:`) of a PDF in the current selection (web only) |
 
 `files.readBytes(name)` reads the bytes of a file in the current selection
 (`pickFiles:`/`dropFiles:`). The browser only exposes the files the user picked
@@ -90,6 +91,24 @@ or dropped, so it never reads a path: `name` matches the selected file name or
 relative path, and an empty name reads the only selected file. Files over 10 MB
 are rejected. On desktop the picker returns paths, so use `fs.readBytes(path)`
 there (it requires the `--allow-dir` capability).
+
+`files.documentUrl(name)` turns the selected file into a URL the PDF viewer can
+load, so the user can open a document from this device without a backend. The
+bytes must start with the PDF magic `%PDF-` and the blob type is forced to
+`application/pdf`: the native viewer never receives a document the browser
+could execute. The URL lives as long as the page. On desktop use
+`fs.documentUrl(path)` instead.
+
+```sui
+url, err = files.documentUrl(picked)
+if err == null {
+	docUrl = url
+}
+```
+
+```sui
+pdfviewer src: docUrl srcAllow: "/"
+```
 
 `files.validate` options are `maxName` (default 200), `allowHidden` (default
 false), `allowedExt` or `allow` (comma/space separated list or array), `size`

@@ -579,6 +579,26 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  return '<div class=\"sui-iframe-error\" role=\"alert\" data-sui-pdf-error>Cannot display the document: ' +\n" +
 	"    __sui_esc(reason || 'invalid URL') + '</div>';\n" +
 	"}\n" +
+	// __sui_pdf_src validates the source of the PDF viewer. It accepts the
+	// http(s) sources of an iframe and, when the project allows it, a
+	// blob: URL of the app's own origin: a blob points to bytes the app
+	// already holds (a file the user picked), and the browser's native
+	// viewer loads it. The inner URL is checked against the same
+	// allow-list, so a blob of another origin is refused.
+	"function __sui_pdf_src(v, allow, required, blob) {\n" +
+	"  var s = String(v === null || v === undefined ? '' : v).trim();\n" +
+	"  if (s.slice(0, 5).toLowerCase() !== 'blob:') return __sui_iframe_src(v, allow, required);\n" +
+	"  if (!blob) return ['', 'blob URLs are not allowed'];\n" +
+	"  var inner;\n" +
+	"  try {\n" +
+	"    var u = new URL(s);\n" +
+	"    inner = new URL(u.pathname);\n" +
+	"  } catch (e) { return ['', 'invalid URL']; }\n" +
+	"  if (inner.origin !== location.origin) return ['', 'URL not allowed'];\n" +
+	"  var checked = __sui_iframe_src(inner.href, allow, required);\n" +
+	"  if (checked[1]) return checked;\n" +
+	"  return [s, null];\n" +
+	"}\n" +
 	"// __sui_url_guard is the SSRF guard used by http.getSafe/postSafe/\n" +
 	"// getStatusSafe and ws.connectSafe. The allow-list is a developer-written\n" +
 	"// literal: absolute origins (optionally with a path prefix), ws(s) origins\n" +
@@ -4939,7 +4959,11 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 						required = "true"
 					}
 				}
-				guard := "__sui_iframe_src(" + srcJs + ", " + allowJs + ", " + required + ")"
+				blobFlag := "false"
+				if genIframeCfg.PDFBlobSrc == "allow" {
+					blobFlag = "true"
+				}
+				guard := "__sui_pdf_src(" + srcJs + ", " + allowJs + ", " + required + ", " + blobFlag + ")"
 				open := openTagHtmlWithSrc(e, "iframe", interactive, idx, ctx, "__g[0]")
 				return "`${(function(){var __g=" + guard +
 					";if(__g[1])return __sui_pdf_error(__g[1]);return `" + open + "</iframe>`;})()}`"
