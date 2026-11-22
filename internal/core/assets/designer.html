@@ -5389,7 +5389,10 @@ function setCssOnClass(cls, decls, after) {
     fd.set("class", cls);
     fd.set("decls", JSON.stringify(decls));
     return fetch("/__css__/setbatch", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
-      if (!j.ok) return;
+      if (!j.ok) {
+        setStatus("CSS update rejected: " + (j.error || "invalid selector"));
+        return;
+      }
       syncing = true;
       root.css = j.css;
       ast = j.ast || ast;
@@ -5397,6 +5400,10 @@ function setCssOnClass(cls, decls, after) {
       syncing = false;
       scheduleCssSync();
       if (after) after();
+    }, function(){
+      // The write must never disappear silently: without this the inspector
+      // looks like it did nothing when the compiler does not answer.
+      setStatus("CSS update failed: the compiler did not answer");
     });
   }).catch(function(){});
 }

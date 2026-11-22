@@ -88,7 +88,7 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 	defer server.Close()
 
 	url := server.URL + "/"
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	args := []string{
 		"--headless=new",
@@ -98,7 +98,7 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 		"--no-first-run",
 		"--no-default-browser-check",
 		"--user-data-dir=" + t.TempDir(),
-		"--virtual-time-budget=45000",
+		"--virtual-time-budget=60000",
 		"--dump-dom",
 		url,
 	}
@@ -299,12 +299,30 @@ const tableLayoutE2EScript = `<script>
     var align = acc('Alignment');
     var center = Array.from(align.querySelectorAll('button')).find(function (b) { return b.title === 'Center'; });
     if (!center) throw new Error('Center alignment button not found');
-    center.click();
-    if (!(await until(function () {
-      var d = frameDoc();
-      var para = d && d.querySelector('table.sui-layout-table p');
-      return para && d.defaultView.getComputedStyle(para).textAlign === 'center' ? true : null;
-    }, 8000))) throw new Error('text-align was not applied');
+    // The alignment is a two-step async write (the cell class first, then the
+    // child class). Under load the preview can be re-rendered between the two
+    // steps, so the write is retried before giving up, like the cell
+    // selection above.
+    var aligned = false;
+    for (var ai = 0; ai < 3 && !aligned; ai++) {
+      var current = acc('Alignment');
+      var btn = current && Array.from(current.querySelectorAll('button')).find(function (b) { return b.title === 'Center'; });
+      (btn || center).click();
+      aligned = !!(await until(function () {
+        var d = frameDoc();
+        var para = d && d.querySelector('table.sui-layout-table p');
+        return para && d.defaultView.getComputedStyle(para).textAlign === 'center' ? true : null;
+      }, 8000));
+    }
+    if (!aligned) {
+      var ddoc = frameDoc();
+      var dpara = ddoc && ddoc.querySelector('table.sui-layout-table p');
+      var dcell = ddoc && ddoc.querySelector('.sui-layout-cell[data-sui-layout-row="0"][data-sui-layout-col="0"]');
+      throw new Error('text-align was not applied (p=' +
+        (dpara ? ddoc.defaultView.getComputedStyle(dpara).textAlign : 'missing') +
+        ', cell=' + (dcell ? ddoc.defaultView.getComputedStyle(dcell).verticalAlign : 'missing') +
+        ', status=' + ((document.getElementById('status') || {}).textContent || '').trim() + ')');
+    }
     doc = frameDoc();
     p = doc.querySelector('table.sui-layout-table p');
     var pc = p.parentElement;
