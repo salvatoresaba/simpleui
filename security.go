@@ -33,6 +33,8 @@ type SecurityConfig struct {
 	IframeReferrer    string // referrerpolicy default, or unset
 	IframeScriptsSame string // error | warn | allow (allow-scripts + allow-same-origin)
 	IframeDynamicSrc  string // allowlist | sandbox | allow
+	PDFDynamicSrc     string // allowlist | allow (dynamic pdfviewer src)
+	PDFUnsandboxed    string // allow | deny (the pdf viewer frame is never sandboxed)
 }
 
 // DefaultSecurity returns the strict, recommended policy.
@@ -50,6 +52,8 @@ func DefaultSecurity() SecurityConfig {
 		IframeReferrer:    "no-referrer",
 		IframeScriptsSame: "error",
 		IframeDynamicSrc:  "allowlist",
+		PDFDynamicSrc:     "allowlist",
+		PDFUnsandboxed:    "allow",
 	}
 }
 
@@ -108,6 +112,16 @@ func (s SecurityConfig) Normalized() SecurityConfig {
 	default:
 		s.IframeDynamicSrc = d.IframeDynamicSrc
 	}
+	switch s.PDFDynamicSrc {
+	case "allowlist", "allow":
+	default:
+		s.PDFDynamicSrc = d.PDFDynamicSrc
+	}
+	switch s.PDFUnsandboxed {
+	case "allow", "deny":
+	default:
+		s.PDFUnsandboxed = d.PDFUnsandboxed
+	}
 	return s
 }
 
@@ -138,6 +152,10 @@ type securityFile struct {
 		ScriptsSameOrigin string `json:"scriptsSameOrigin"`
 		DynamicSrc        string `json:"dynamicSrc"`
 	} `json:"iframe"`
+	PDF struct {
+		DynamicSrc       string `json:"dynamicSrc"`
+		UnsandboxedFrame string `json:"unsandboxedFrame"`
+	} `json:"pdf"`
 }
 
 // LoadSecurityFile reads a JSON security policy. Missing file is an error when
@@ -206,6 +224,14 @@ func LoadSecurityFile(path string) (SecurityConfig, []string, error) {
 	if raw.Iframe.DynamicSrc != "" {
 		cfg.IframeDynamicSrc = pickMode(raw.Iframe.DynamicSrc, cfg.IframeDynamicSrc,
 			[]string{"allowlist", "sandbox", "allow"}, "iframe.dynamicSrc", &problems)
+	}
+	if raw.PDF.DynamicSrc != "" {
+		cfg.PDFDynamicSrc = pickMode(raw.PDF.DynamicSrc, cfg.PDFDynamicSrc,
+			[]string{"allowlist", "allow"}, "pdf.dynamicSrc", &problems)
+	}
+	if raw.PDF.UnsandboxedFrame != "" {
+		cfg.PDFUnsandboxed = pickMode(raw.PDF.UnsandboxedFrame, cfg.PDFUnsandboxed,
+			[]string{"allow", "deny"}, "pdf.unsandboxedFrame", &problems)
 	}
 	if len(problems) > 0 {
 		return cfg.Normalized(), nil, fmt.Errorf("%s", strings.Join(problems, "; "))

@@ -133,6 +133,9 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "fs", name: "size", params: []string{"string"}, ret0: "int", ret1: "string", jsKey: "fs_size", async: true},
 	StdFunc{mod: "fs", name: "readBytes", params: []string{"string"}, ret0: "array[int]", ret1: "string", jsKey: "fs_readbytes", async: true},
 	StdFunc{mod: "fs", name: "writeBytes", params: []string{"string", "any"}, ret0: "null", ret1: "string", jsKey: "fs_writebytes", async: true},
+	// fs.documentUrl builds the URL of the desktop document endpoint: the
+	// PDF viewer frame loads the file through the local bridge.
+	StdFunc{mod: "fs", name: "documentUrl", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "fs_documenturl", async: false},
 	// exec
 	StdFunc{mod: "exec", name: "run", params: []string{"string", "array[string]"}, ret0: "string", ret1: "string", jsKey: "exec_run", async: true},
 	// json

@@ -118,6 +118,8 @@ func writeBaseCss(sb *strings.Builder, feat *progFeatures) {
 	add(feat.needsTable(), suiCssTable)
 	// The iframe error box is produced by the runtime for any iframe.
 	add(true, suiCssIframeError)
+	// The PDF viewer frame: the native viewer fills it.
+	add(true, suiCssPdfViewer)
 	add(feat.needsDnd(), suiCssDnd)
 	add(feat.needsMenu() || feat.needsPopover(), suiCssMenuShared)
 	add(feat.needsPopover(), suiCssPopover)
@@ -387,6 +389,10 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 	}
 	if e.tag == "dropzone" {
 		writeStaticDropzone(sb, e, ind)
+		return
+	}
+	if e.tag == "pdfviewer" {
+		writeStaticPdfViewer(sb, e, ind)
 		return
 	}
 	if e.tag == "timeline" {
@@ -2700,6 +2706,30 @@ func writeStaticMenu(sb *strings.Builder, e *Element, ind string) {
 	sb.WriteString("</div>\n")
 }
 
+// writeStaticPdfViewer renders the static form of the pdf viewer (the
+// designer preview and the static HTML export). It is an <iframe> with the
+// document type and without a sandbox attribute: every sandbox token
+// disables the browser's native PDF viewer.
+func writeStaticPdfViewer(sb *strings.Builder, e *Element, ind string) {
+	sb.WriteString(ind)
+	sb.WriteString("<iframe class=\"sui-pdfviewer")
+	staticClassSuffix(sb, e)
+	sb.WriteString("\" type=\"application/pdf\" referrerpolicy=\"no-referrer\"")
+	if src := findAttr(e, "src"); src != nil && !src.hasExpr {
+		sb.WriteString(" src=\"")
+		sb.WriteString(htmlEscape(partsContent(src.text)))
+		sb.WriteString("\"")
+	}
+	for _, key := range []string{"width", "height"} {
+		if a := findAttr(e, key); a != nil && !a.hasExpr {
+			sb.WriteString(" " + key + "=\"")
+			sb.WriteString(htmlEscape(partsContent(a.text)))
+			sb.WriteString("\"")
+		}
+	}
+	sb.WriteString("></iframe>\n")
+}
+
 func staticLinkOpen(e *Element) string {
 	a := findAttr(e, "link")
 	if a == nil {
@@ -2888,7 +2918,7 @@ func staticUserAttrsOpt(sb *strings.Builder, e *Element, dlId string, skipClass 
 		if a.key == "onCheck" {
 			continue
 		}
-		if a.key == "head" || a.key == "options" || a.key == "link" ||
+		if a.key == "head" || a.key == "options" || a.key == "link" || a.key == "srcAllow" ||
 			a.key == "dropFiles" || a.key == "pickFiles" || a.key == "pickMode" || a.key == "dragKey" || a.key == "dropKey" {
 			continue
 		}

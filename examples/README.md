@@ -26,6 +26,7 @@ For an agent-oriented walkthrough see
 | [`stdlib_advanced.sui`](stdlib_advanced.sui) | Path, crypto, JSON Schema validation, storage quota and cross-tab sync. |
 | [`stdlib_data.sui`](stdlib_data.sui) | Pure/in-memory std modules: bytes, binary views, file names, MIME, colors, units, print sizes, history, ZIP, CSV, read-only env, capabilities, local event buses, redacting logs and telemetry. |
 | [`binary_bytes.sui`](binary_bytes.sui) | Binary documents: `http.getBytes` for a remote file, `files.readBytes` for a picked file and the format magic bytes. |
+| [`pdfviewer.sui`](pdfviewer.sui) | Display a PDF document with the browser's native viewer: a remote document, a local file through the desktop bridge and a picked file. |
 | [`fs_operations.sui`](fs_operations.sui) | Desktop fs.copy, fs.move/rename, fs.isDir and fs.size with capability checks. |
 | [`xml_library.sui`](xml_library.sui) | XML parse/navigation/mutation, XPath, XSD subset, JSON/CSV, serialization and diff. |
 | [`todo.sui`](todo.sui) | Local form + list interactions. |

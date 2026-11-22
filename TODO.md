@@ -121,6 +121,10 @@ Known accuracy corrections from the previous TODO:
 
 - [x] **Error boundaries** — subtree error fallback
 - [x] **List keys** — `list item in items key: item.id`
+- [x] **PDF viewer** — `pdfviewer` shows a document in the browser's native PDF
+      viewer: a remote URL, a local file through the desktop bridge
+      (`fs.documentUrl`) or a picked file. Display only: the app never reads
+      the PDF bytes
 - [ ] **Suspense-like loading** — async loading states
 - [ ] **Context/Provide-Inject** — avoid prop drilling
 

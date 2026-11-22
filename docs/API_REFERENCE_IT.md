@@ -3972,6 +3972,41 @@ iframe src: videoUrl srcAllow: "https://example.com"
 - Un URL dinamico rifiutato non viene caricato: al suo posto compare
   `Cannot accept the data: ...`.
 
+### Visualizzatore PDF
+
+Il controllo `pdfviewer` mostra un documento nel visualizzatore PDF nativo del
+browser. Mostra soltanto il documento: l'app non legge mai i byte del PDF, quindi
+non può estrarne testo, pagine o annotazioni.
+
+```simpleui
+# Un documento remoto servito dal tuo backend.
+pdfviewer src: "https://example.com/manual.pdf"
+
+# Un file in una cartella che l'app può leggere (desktop).
+pdfviewer src: docUrl srcAllow: "/" width: 900 height: 620
+```
+
+- `src`: `http(s)` o relativo; un URL dinamico richiede `srcAllow` (default).
+- `srcAllow`: allow-list **letterale** di origini/prefix di path, separati da
+  spazio o virgola. Non viene emessa nell'HTML.
+- `width`, `height`: interi letterali.
+- Il frame **non** è sandboxato: il visualizzatore PDF nativo del browser non
+  parte dentro un frame sandboxato. La sorgente del documento è quindi il
+  confine di sicurezza: un `src` dinamico richiede una allow-list letterale e
+  `pdf.unsandboxedFrame: "deny"` toglie il controllo dal linguaggio nei progetti
+  che non vogliono un frame non sandboxato.
+- Un URL dinamico rifiutato non viene caricato: al suo posto compare
+  `Cannot display the document: ...`.
+
+Sul target desktop il documento è servito dal bridge locale:
+`fs.documentUrl(path)` restituisce l'URL dell'endpoint dei documenti, che legge
+il file dalle cartelle autorizzate con `--allow-dir` e serve solo i file i cui
+primi byte sono il magic PDF `%PDF-`.
+
+Un file scelto nel browser non può essere mostrato direttamente: il
+visualizzatore nativo non carica gli URL `blob:`. Caricalo sul tuo backend e
+usa l'URL che ti restituisce.
+
 ## CLI
 
 ```bash

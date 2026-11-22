@@ -573,6 +573,12 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  return '<div class=\"sui-iframe-error\" role=\"alert\" data-sui-iframe-error>Cannot accept the data: ' +\n" +
 	"    __sui_esc(reason || 'invalid URL') + '</div>';\n" +
 	"}\n" +
+	// The pdf viewer shows the same message when its source is refused: the
+	// document is never loaded, and the reason is visible in the page.
+	"function __sui_pdf_error(reason) {\n" +
+	"  return '<div class=\"sui-iframe-error\" role=\"alert\" data-sui-pdf-error>Cannot display the document: ' +\n" +
+	"    __sui_esc(reason || 'invalid URL') + '</div>';\n" +
+	"}\n" +
 	"// __sui_url_guard is the SSRF guard used by http.getSafe/postSafe/\n" +
 	"// getStatusSafe and ws.connectSafe. The allow-list is a developer-written\n" +
 	"// literal: absolute origins (optionally with a path prefix), ws(s) origins\n" +
@@ -2862,6 +2868,15 @@ func stdBodyJs(key string, target string) string {
 		}
 		return "async function (path, bytes) { return [null, \"fs.writeBytes is not available on the web target\"]; }"
 	}
+	if key == "fs_documenturl" {
+		if target == "desktop" {
+			// The URL points to the local document endpoint. It carries no
+			// secret: the endpoint is protected by the per-run document
+			// cookie that the app page sets.
+			return "(path) => [\"/__bridge__/file/document?path=\" + encodeURIComponent(String(path === null || path === undefined ? '' : path)), null]"
+		}
+		return "(path) => [\"\", \"fs.documentUrl is not available on the web target\"]"
+	}
 	if key == "fs_copy" {
 		if target == "desktop" {
 			return "async (src, dst) => { const fd = new URLSearchParams(); fd.set(\"token\", __SUI_TOKEN); fd.set(\"src\", src); fd.set(\"dst\", dst); try { const r = await fetch(\"/__bridge__/fs/copy\", {method: \"POST\", body: fd}); const j = await r.json(); return j.ok ? [null, null] : [null, j.message]; } catch (e) { return [null, String(e)]; } }"
@@ -3731,6 +3746,11 @@ func elemHtmlTag(tag string) string {
 	if tag == "text" {
 		return "span"
 	}
+	if tag == "pdfviewer" {
+		// The pdf viewer is an iframe without a sandbox attribute: the
+		// browser's native PDF viewer does not start inside a sandboxed frame.
+		return "iframe"
+	}
 	if tag == "body" {
 		return "div"
 	}
@@ -4052,6 +4072,22 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 			sb.WriteString(" referrerpolicy=\"" + htmlEscape(genIframeCfg.IframeReferrer) + "\"")
 		}
 	}
+	if e.tag == "pdfviewer" {
+		// The native PDF viewer needs the document type, and the document URL
+		// must not leak through the Referer header. No sandbox attribute is
+		// written: every sandbox token disables the native viewer.
+		sb.WriteString(" type=\"application/pdf\"")
+		sb.WriteString(" referrerpolicy=\"no-referrer\"")
+		// The frame size: the base class fills the width, so an explicit
+		// size is emitted as an inline style (the HTML width/height
+		// attributes are presentational hints and lose against the
+		// stylesheet). A user style attribute keeps the precedence.
+		if findAttr(e, "style") == nil {
+			if size := pdfViewerSizeStyle(e); size != "" {
+				sb.WriteString(" style=\"" + size + "\"")
+			}
+		}
+	}
 	// Table behavior flags: rendered as data attributes so the base CSS and the
 	// small runtime script can make cells editable / truncate long content.
 	if e.tag == "table" {
@@ -4185,6 +4221,7 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 
 // newControlClass maps a control tag to its built-in base class and input type.
 var newControlClass = map[string]string{
+	"pdfviewer":     "sui-pdfviewer",
 	"checkbox":      "sui-checkbox",
 	"radio":         "sui-radio",
 	"switch":        "sui-switch",
@@ -4373,6 +4410,25 @@ func writeUserAttrs(sb *strings.Builder, e *Element, ctx *JsCtx) {
 
 // writeUserAttrsWithSrc is writeUserAttrs with an optional iframe src
 // override (a JS expression yielding an already validated URL).
+// pdfViewerSizeStyle renders the explicit frame size of the PDF viewer as
+// inline CSS. The values are literal integers, validated at compile time
+// (checkPdfViewer rejects a dynamic width or height).
+func pdfViewerSizeStyle(e *Element) string {
+	var sb strings.Builder
+	for _, key := range []string{"width", "height"} {
+		a := findAttr(e, key)
+		if a == nil || a.hasExpr {
+			continue
+		}
+		lit := strings.TrimSpace(partsContent(a.text))
+		if lit == "" {
+			continue
+		}
+		sb.WriteString(key + ":" + lit + "px;")
+	}
+	return sb.String()
+}
+
 func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSrc string) {
 	// Auto-apply the base class and input type for new controls. The base class
 	// always stays; a user class (static or reactive) is appended to it.
@@ -4584,6 +4640,10 @@ func writeUserAttrsWithSrc(sb *strings.Builder, e *Element, ctx *JsCtx, iframeSr
 			continue
 		}
 		if e.tag == "iframe" && a.key == "src" && iframeSrc != "" {
+			sb.WriteString(" src=\"${__sui_esc(" + iframeSrc + ")}\"")
+			continue
+		}
+		if e.tag == "pdfviewer" && a.key == "src" && iframeSrc != "" {
 			sb.WriteString(" src=\"${__sui_esc(" + iframeSrc + ")}\"")
 			continue
 		}
@@ -4861,6 +4921,30 @@ func elemJs(e *Element, g *ViewGen, ctx *JsCtx) string {
 	}
 	if e.tag == "modal" {
 		return modalElemJs(e, g, ctx, idx)
+	}
+	if e.tag == "pdfviewer" {
+		if src := findAttr(e, "src"); src != nil {
+			allow := findAttr(e, "srcAllow")
+			if attrIsDynamic(src) || allow != nil {
+				srcJs := "''"
+				if src.hasExpr && src.expr != nil {
+					srcJs = ExprToJs(src.expr)
+				} else if lit, ok := staticPartsLiteral(src.text); ok {
+					srcJs = jsString(lit)
+				}
+				allowJs, required := "''", "false"
+				if allow != nil {
+					if lit, ok := staticPartsLiteral(allow.text); ok {
+						allowJs = jsString(lit)
+						required = "true"
+					}
+				}
+				guard := "__sui_iframe_src(" + srcJs + ", " + allowJs + ", " + required + ")"
+				open := openTagHtmlWithSrc(e, "iframe", interactive, idx, ctx, "__g[0]")
+				return "`${(function(){var __g=" + guard +
+					";if(__g[1])return __sui_pdf_error(__g[1]);return `" + open + "</iframe>`;})()}`"
+			}
+		}
 	}
 	if e.tag == "combobox" {
 		return comboboxElemJs(e, g, ctx, idx)

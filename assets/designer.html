@@ -2297,7 +2297,7 @@ var PALETTE = [
       { name: "Feedback", tags: ["progress", "badge", "alert", "spinner"] },
       { name: "Advanced", tags: ["table", "graph", "chart"] }
     ] },
-  { group: "Media", tags: ["img", "video", "audio", "iframe"] }
+  { group: "Media", tags: ["img", "video", "audio", "iframe", "pdfviewer"] }
 ];
 
 var PALETTE_LABEL = { 
@@ -2322,7 +2322,8 @@ var PALETTE_LABEL = {
   tree: "Tree", treeitem: "Tree item", chart: "Chart", graph: "Graph", table: "Table",
   menubar: "Menu bar", menu: "Menu", menuitem: "Menu item", modal: "Modal", modalbutton: "Modal button", toast: "Toast host",
   progress: "Progress",
-  badge: "Badge", alert: "Alert", spinner: "Spinner", divider: "Divider"
+  badge: "Badge", alert: "Alert", spinner: "Spinner", divider: "Divider",
+  pdfviewer: "PDF viewer"
 };
 
 // Font choices for the Typography inspector: web-safe stacks plus any fonts
@@ -2696,6 +2697,7 @@ var TAG_FIELDS = {
   list: [],
   button: ["text", "onClick"], checkbox: ["label", "checked", "disabled", "onClick", "onChange", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"], switch: ["label", "checked", "disabled", "onClick", "onChange", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"], radio: ["label", "value", "name", "checked", "disabled", "onClick", "onChange", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"], input: ["value", "placeholder", "inputtype", "disabled", "onClick", "onChange"], textarea: ["value", "placeholder", "disabled", "onClick", "onChange"], select: ["value", "options", "disabled", "onClick", "onChange"], number: ["value", "placeholder", "min", "max", "step", "onClick", "onChange"], slider: ["value", "min", "max", "step", "onClick", "onChange"], file: ["accept", "multiple", "onClick", "onChange"], color: ["value", "onClick", "onChange"], date: ["value", "onClick", "onChange"], time: ["value", "onClick", "onChange"], card: ["text"], a: ["text", "link", "onClick"], progress: ["value", "max"], badge: ["text"], alert: ["text"], spinner: [], divider: [], tabs: ["text"], tab: ["text"], menubar: ["text"], menu: ["text"], menuitem: ["text", "link", "onClick"], modal: ["text", "name"], modalbutton: ["text", "onClick"], 
   img: ["src"], video: ["src"], audio: ["src"], iframe: ["src", "srcAllow", "sandbox", "allow", "referrerpolicy", "loading", "width", "height"],
+  pdfviewer: ["src", "srcAllow", "width", "height"],
   input: ["value", "placeholder", "inputtype", "disabled", "required"],
   textarea: ["value", "placeholder", "disabled", "required"],
   checkbox: ["label", "checked", "disabled", "shape", "theme", "animation", "duration", "easing", "delay", "stagger"],
@@ -2786,7 +2788,7 @@ function newNode(kind) {
   return n;
 }
 // "Leaf" tags cannot contain children; everything else can nest.
-var LEAF = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, button:1, input:1, textarea:1, img:1, video:1, audio:1, iframe:1, a:1, br:1, hr:1, spacer:1, text:1, code:1, mark:1, strong:1, em:1, small:1, legend:1, option:1, list:1, checkbox:1, radio:1, switch:1, select:1, combobox:1, datepicker:1, number:1, slider:1, file:1, color:1, date:1, time:1, progress:1, badge:1, spinner:1, divider:1, menuitem:1, modalbutton:1, toast:1, chart:1, graph:1 };
+var LEAF = { h1:1, h2:1, h3:1, h4:1, h5:1, h6:1, p:1, button:1, input:1, textarea:1, img:1, video:1, audio:1, iframe:1, pdfviewer:1, a:1, br:1, hr:1, spacer:1, text:1, code:1, mark:1, strong:1, em:1, small:1, legend:1, option:1, list:1, checkbox:1, radio:1, switch:1, select:1, combobox:1, datepicker:1, number:1, slider:1, file:1, color:1, date:1, time:1, progress:1, badge:1, spinner:1, divider:1, menuitem:1, modalbutton:1, toast:1, chart:1, graph:1 };
 function canNest(k) { return !LEAF[k]; }
 function normalizeTables(nodes) {
   // inheritMatrix: when the parsed model carries style matrices (cstyles /
@@ -6197,6 +6199,30 @@ function renderInspector() {
     box.appendChild(ifSec);
   }
 
+  if (nodes.length && everyKind(nodes, function(k){ return k === "pdfviewer"; })) {
+    var pdfSec = document.createElement("div"); pdfSec.className = "ins-sec"; pdfSec.innerHTML = '<div class="ins-sec-h">PDF viewer</div>';
+    var pdfFields = [
+      ["width", "width", "640", "Integer pixels"],
+      ["height", "height", "360", "Integer pixels"],
+      ["srcAllow", "src allow-list", "https://example.com", "Literal origin/path allow-list, required for dynamic src."]
+    ];
+    pdfFields.forEach(function(f) {
+      var row = document.createElement("div"); row.className = "rowline";
+      var lb = document.createElement("label"); lb.textContent = f[1]; lb.title = f[3]; row.appendChild(lb);
+      var inp = document.createElement("input");
+      inp.value = commonVal(nodes, f[0]) || "";
+      inp.placeholder = f[2];
+      inp.oninput = function(ev){ upd(f[0], ev.target.value); };
+      row.appendChild(inp);
+      pdfSec.appendChild(row);
+    });
+    var pdfh = document.createElement("div"); pdfh.className = "hint";
+    pdfh.style.cssText = "font-size:10px;margin-top:4px";
+    pdfh.textContent = "The frame is not sandboxed: the browser's native PDF viewer does not start inside a sandboxed frame. A dynamic src is rejected unless srcAllow lists its origin.";
+    pdfSec.appendChild(pdfh);
+    box.appendChild(pdfSec);
+  }
+
   var sel = selClass();
   var rule = findRule(sel);
   var spec = rule ? (rule.specificity && rule.specificity[0] ? rule.specificity[0] : "0,0,0") : "";
@@ -6599,7 +6625,7 @@ var TEXT_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:
   timeline:1, timelineitem:1, emptystate:1, carousel:1, slide:1, stepper:1, step:1, commandbar:1, command:1,
   modal:1, modalbutton:1, menubar:1, menu:1, menuitem:1 };
 var LINK_KINDS = { a:1 };
-var SRC_KINDS = { img:1, video:1, audio:1, iframe:1 };
+var SRC_KINDS = { img:1, video:1, audio:1, iframe:1, pdfviewer:1 };
 // Flow-level shaping (display/flex/grid internals) only makes sense on
 // containers and block/lexical elements.
 var BOX_KINDS = { div:1, section:1, article:1, main:1, header:1, footer:1, nav:1, aside:1, block:1, row:1, col:1, card:1, form:1, fieldset:1, tabs:1, tab:1, accordion:1, accordionitem:1, toast:1, modal:1, menubar:1, menu:1, ul:1, ol:1, list:1, body:1, chart:1, dropdown:1, popover:1, drawer:1, splitter:1, pane:1, dropzone:1, timeline:1, timelineitem:1, emptystate:1, carousel:1, slide:1, stepper:1, step:1, commandbar:1 };
@@ -18519,6 +18545,11 @@ function attrsOf(n) {
     if (n.width) a += " width: \"" + esc(String(n.width)) + "\"";
     if (n.height) a += " height: \"" + esc(String(n.height)) + "\"";
   }
+  if (n.kind === "pdfviewer") {
+    if (n.srcAllow) a += " srcAllow: \"" + esc(n.srcAllow) + "\"";
+    if (n.width) a += " width: \"" + esc(String(n.width)) + "\"";
+    if (n.height) a += " height: \"" + esc(String(n.height)) + "\"";
+  }
   return a;
 }
 function toSui(n, depth) {
@@ -20720,6 +20751,7 @@ var PAL_ICON = {
   video: '<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M10 9.5l5 2.5-5 2.5z"/>',
   audio: '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a3 3 0 0 1 0 6"/>',
   iframe: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M9 9l-2 3 2 3M15 9l2 3-2 3"/>',
+  pdfviewer: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/>',
   hr: '<line x1="4" y1="12" x2="20" y2="12"/><line x1="4.5" y1="9.5" x2="4.5" y2="14.5"/><line x1="19.5" y1="9.5" x2="19.5" y2="14.5"/>',
   br: '<path d="M8 5v9a3 3 0 0 0 3 3h6"/><path d="M15 14l3 3-3 3"/>',
   button: '<rect x="4" y="8" width="16" height="8" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/>',
@@ -23083,7 +23115,7 @@ var COMPONENT_DEFS = [
     ],
     css: ".sui-divider { border: none; border-top: var(--sui-divider-thickness, 1px) var(--sui-divider-style, solid) var(--sui-divider-color, #3d4556); margin: var(--sui-divider-margin, 8px 0); }\n.sui-divider:hover { border-top-color: var(--sui-divider-hover-color, var(--sui-divider-color, #3d4556)); border-top-width: var(--sui-divider-hover-thickness, var(--sui-divider-thickness, 1px)); }"
   },
-  { id: "media", label: "Images & media", group: "Layout", kinds: ["img", "video", "audio", "iframe"],
+  { id: "media", label: "Images & media", group: "Layout", kinds: ["img", "video", "audio", "iframe", "pdfviewer"],
     categories: [
       { name: "Colors", fields: [
         { key: "--sui-media-bg", label: "Background", type: "color", def: "#1d2129" },

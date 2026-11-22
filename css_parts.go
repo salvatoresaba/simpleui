@@ -2343,6 +2343,19 @@ th.sui-table-filter-active { box-shadow: inset 0 -2px 0 #4c5cf7; }
 const suiCssIframeError = `.sui-iframe-error { padding: 10px 14px; border: 1px solid #a33; border-radius: 8px; background: #2b1719; color: #ffb4b4; font-size: 13px; line-height: 1.4; }
 `
 
+const suiCssPdfViewer = `/* PDF viewer: the native viewer paints inside the frame. The frame keeps a
+   minimum height and the panel background so a document stays readable
+   without extra styling. */
+.sui-pdfviewer {
+  display: block;
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--sui-border, #3d4556);
+  border-radius: 8px;
+  background: var(--sui-panel, #1d2129);
+}
+`
+
 const suiCssDnd = `/* Drag and drop: the runtime toggles these classes on the current source and
    drop target. The error is inserted as a sibling with textContent. */
 .sui-dragging { opacity: .55; }

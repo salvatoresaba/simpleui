@@ -51,6 +51,11 @@ italiane: quando la versione inglese cambia, aggiorna anche la copia `_IT`.
   `sandbox=""`; se manca `referrerpolicy` viene aggiunto `no-referrer`. Un
   `src` dinamico richiede `srcAllow` e viene validato a runtime. Non usare
   `srcdoc` né markup di fallback.
+- **Il frame del visualizzatore PDF non è mai sandboxato.** Per i documenti
+  usa `pdfviewer` (non `iframe`): il visualizzatore PDF nativo non parte dentro
+  un frame sandboxato, quindi la sorgente è il confine di sicurezza. Un `src`
+  dinamico richiede `srcAllow`; il controllo mostra solo il documento e l'app
+  non legge mai i byte del PDF.
 - **Dati tabella inerti.** Le celle usano `textContent`; usa `table.display` e
   controlla l'errore. Per CSV aperti in Excel/LibreOffice usa
   `;formula=escape`.

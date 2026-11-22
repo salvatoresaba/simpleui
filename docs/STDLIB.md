@@ -96,7 +96,7 @@ Notes:
 
 Filesystem access is available through the **desktop bridge** with capability
 security (`--allow-dir`). Some operations may be unavailable in a web context.
-All functions are async.
+All functions are async, except `fs.documentUrl`, which only builds a URL.
 
 | Function | Params | Return | Async | Description |
 |---|---|---|---|---|
@@ -114,11 +114,28 @@ All functions are async.
 | `fs.size(path)` | string | (int, string) | true | Size in bytes of a file (directories are rejected) |
 | `fs.readBytes(path)` | string | (array[int], string) | true | Read a file as raw bytes |
 | `fs.writeBytes(path, bytes)` | string, array[int] | (null, string) | true | Write raw bytes (base64 over the bridge) |
+| `fs.documentUrl(path)` | string | (string, string) | false | URL of the local document endpoint for a PDF file (desktop only) |
 
 Both source and destination are checked against the `--allow-dir` capability
 list. `fs.copy` copies regular files only; create the destination directory
 first and use `fs.move` for directories. On the web target these calls return
 an error.
+
+`fs.documentUrl(path)` returns the URL that the `pdfviewer` control loads: the
+desktop bridge serves the file from the allowed directories and only as a PDF
+document. The URL carries no secret; the endpoint is protected by a per-run
+cookie. Use it with a literal allow-list:
+
+```simpleui
+url, err = fs.documentUrl("docs/report.pdf")
+if err == null {
+	docUrl = url
+}
+```
+
+```simpleui
+pdfviewer src: docUrl srcAllow: "/"
+```
 
 ## Exec Module (`exec`)
 

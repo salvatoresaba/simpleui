@@ -559,9 +559,10 @@ componente. In questo modo lo stato hover fa parte dello stesso tema.
 Anche **Progress bar**, **Spinner** e **Divider** espongono una tab **Hover**,
 quindi i controlli non interattivi possono comunque reagire al puntatore.
 
-Il pannello **Images & media** applica il tema a immagini, video, audio e
-iframe: sfondo, bordo, raggio, ombra, object fit e padding. Partecipa ai temi di
-progetto e agli override del singolo elemento come gli altri pannelli.
+Il pannello **Images & media** applica il tema a immagini, video, audio, iframe e
+visualizzatore PDF: sfondo, bordo, raggio, ombra, object fit e padding.
+Partecipa ai temi di progetto e agli override del singolo elemento come gli
+altri pannelli.
 
 ### Preset grafici e animazioni
 

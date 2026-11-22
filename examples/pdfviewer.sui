@@ -1,0 +1,97 @@
+# pdfviewer.sui - show a PDF document with the browser's native viewer.
+#
+# The pdfviewer control displays the document and nothing else: the app never
+# reads the PDF bytes, so it cannot extract text, pages or annotations.
+#
+# Three ways to feed a document to the viewer:
+#
+#   1. a file in a folder the app may read (desktop): fs.documentUrl(path)
+#   2. a remote document served by your own backend: a plain URL
+#   3. a file the user picked with the native picker (desktop): a path
+#
+# The frame that shows the document is NOT sandboxed: the browser's native
+# PDF viewer does not start inside a sandboxed frame. The source is therefore
+# the security boundary, so a dynamic src needs a literal srcAllow
+# allow-list, and the desktop build must grant the folder with --allow-dir.
+#
+# Desktop build:
+#   simpleui build examples/pdfviewer.sui --target desktop --out dist \
+#     --allow-dir ./examples/pdfviewer/docs
+#
+# The folder examples/pdfviewer/docs holds a sample document: open
+# "sample.pdf" to see the viewer working.
+
+import { fs, dialog } from "std"
+
+state base = "docs"
+state name = "sample.pdf"
+state listing = ""
+state docUrl = ""
+state docName = ""
+state notice = "Pick a document to display."
+
+async fn refresh() -> null {
+	list, err = fs.list(base)
+	if err != null {
+		notice = "list error: " + err
+		return
+	}
+	listing = join(list, "\n")
+	notice = str(len(list)) + " file(s) in " + base
+}
+
+fn open() -> null {
+	let full = path.join(base, name)
+	url, err = fs.documentUrl(full)
+	if err != null {
+		notice = "document error: " + err
+		return
+	}
+	docUrl = url
+	docName = name
+	notice = "showing " + name
+}
+
+async fn pick() -> null {
+	picked, err = dialog.pickFile()
+	if err != null {
+		notice = err
+		return
+	}
+	if picked == "" {
+		notice = "selection cancelled"
+		return
+	}
+	url, derr = fs.documentUrl(picked)
+	if derr != null {
+		notice = "the picked file must be inside the allowed folder: " + derr
+		return
+	}
+	docUrl = url
+	docName = picked
+	notice = "showing the picked file"
+}
+
+view main {
+	title "PDF viewer"
+	col {
+		h1 "PDF viewer"
+		p "The document is displayed by the browser's own PDF viewer. The app never reads its bytes."
+		row {
+			input "File name" value: name
+			button "Refresh list" onClick: refresh
+			button "Open" onClick: open
+			button "Pick file..." onClick: pick
+		}
+		p "{notice}" class: "muted"
+		if listing != "" {
+			pre "{listing}"
+		}
+		if docUrl != "" {
+			p "Showing: {docName}" class: "muted"
+			pdfviewer src: docUrl srcAllow: "/" width: "900" height: "620"
+		}
+		p "Remote document (any backend that serves application/pdf):" class: "muted"
+		pdfviewer src: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" width: "900" height: "320"
+	}
+}

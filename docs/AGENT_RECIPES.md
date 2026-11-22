@@ -617,6 +617,42 @@ iframe src: videoUrl srcAllow: "https://example.com" sandbox: "allow-scripts"
 
 See [`examples/security/untrusted_iframe.sui`](../examples/security/untrusted_iframe.sui).
 
+## PDF viewer
+
+```sui
+import { fs } from "std"
+
+state docUrl = ""
+
+fn open() -> null {
+	url, err = fs.documentUrl("docs/report.pdf")
+	if err == null {
+		docUrl = url
+	}
+}
+
+view main {
+	button "Open" onClick: open
+
+	# A remote document served by your own backend.
+	pdfviewer src: "https://example.com/manual.pdf"
+
+	# A local file (desktop): the URL comes from the local bridge.
+	pdfviewer src: docUrl srcAllow: "/" width: 900 height: 620
+}
+```
+
+- Use `pdfviewer`, not `iframe`: the browser's native PDF viewer does not start
+  inside a sandboxed frame, so the viewer frame is never sandboxed.
+- The source is the security boundary: a dynamic `src` needs a literal
+  `srcAllow` allow-list; a literal URL needs none.
+- On desktop, grant the folder at build time (`--allow-dir`) and get the URL
+  with `fs.documentUrl(path)`; the bridge serves only real PDF files.
+- The control only displays the document: never read its text, pages or
+  annotations, and never feed the bytes to another tool.
+
+See [`examples/pdfviewer.sui`](../examples/pdfviewer.sui).
+
 ## Security checklist
 
 Before finishing, verify:
@@ -627,6 +663,8 @@ Before finishing, verify:
 - [ ] Every dynamic HTTP/WS URL uses `*Safe` with a literal allow-list.
 - [ ] Every iframe has a trusted static `src` or a literal `srcAllow`; sandbox
       tokens are minimal.
+- [ ] Every `pdfviewer` has a trusted static `src` or a literal `srcAllow`: its
+      frame is never sandboxed.
 - [ ] Table/CSV/JSON/bridge errors are checked and displayed.
 - [ ] CSV exported for Excel/LibreOffice includes `;formula=escape`.
 - [ ] Desktop capabilities are minimal and user input is validated on top.

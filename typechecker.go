@@ -4888,7 +4888,7 @@ func isAllowedTag(tag string) bool {
 		// tables
 		"table", "caption", "thead", "tbody", "tfoot", "trow", "tcell",
 		// media & embed
-		"a", "img", "video", "audio", "iframe", "hr", "br",
+		"a", "img", "video", "audio", "iframe", "pdfviewer", "hr", "br",
 		// feedback & nav
 		"progress", "badge", "alert", "spinner", "divider", "combobox", "datepicker",
 		"tabs", "tab", "accordion", "accordionitem", "tree", "treeitem", "richtext", "chart", "graph", "toast",
@@ -5044,6 +5044,10 @@ func attrAllowed(key string, tag string) bool {
 	}
 	if tag == "iframe" && (key == "sandbox" || key == "allow" || key == "referrerpolicy" ||
 		key == "loading" || key == "width" || key == "height" || key == "srcAllow") {
+		return true
+	}
+	if tag == "pdfviewer" && (key == "src" || key == "srcAllow" ||
+		key == "width" || key == "height") {
 		return true
 	}
 	if tag == "a" && key == "href" {
@@ -5361,6 +5365,9 @@ func (c *Checker) checkElement(e *Element) {
 	}
 	if e.tag == "iframe" {
 		c.checkIframe(e)
+	}
+	if e.tag == "pdfviewer" {
+		c.checkPdfViewer(e)
 	}
 	if (e.tag == "chart" || e.tag == "graph") && len(e.children) > 0 {
 		kind := "chart"
@@ -6187,8 +6194,9 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 	}
 	if a.key == "href" || a.key == "src" || a.key == "link" {
 		// Iframe src has a stricter validator in checkIframe (http(s), relative
-		// and about:blank only) with a "cannot accept" diagnostic.
-		if !(tag == "iframe" && a.key == "src") {
+		// and about:blank only) with a "cannot accept" diagnostic; the pdfviewer
+		// uses the same validator in checkPdfViewer.
+		if !(tag == "iframe" && a.key == "src") && !(tag == "pdfviewer" && a.key == "src") {
 			if lit, ok := staticPartsLiteral(a.text); ok && hasActiveURLScheme(lit) {
 				// Image data URIs are inert inside <img> (scripts do not run).
 				// The designer asset manager embeds uploaded GIF/PNG/JPEG

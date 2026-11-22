@@ -96,6 +96,7 @@ Recommended order for an agent:
 | Desktop files and commands | [desktop-files](AGENT_RECIPES.md#desktop-files-and-commands) | [SECURITY](../SECURITY.md#desktop-bridge), [STDLIB](STDLIB.md#file-system-module-fs) | `examples/security/desktop_files.sui`, `examples/desktop_picker.sui` |
 | Import XLSX/ODS | [spreadsheet-data](AGENT_RECIPES.md#spreadsheet-data) | [Spreadsheet README](../examples/spreadsheet_table/README.md) | `examples/spreadsheet_table/app.sui` |
 | Embed video/maps/documents | [iframe-embed](AGENT_RECIPES.md#iframe) | [API](API_REFERENCE.md#iframe), [SECURITY](../SECURITY.md#iframe-risks-in-detail) | `examples/security/untrusted_iframe.sui` |
+| Display a PDF document | [pdf-viewer](AGENT_RECIPES.md#pdf-viewer) | [API](API_REFERENCE.md#pdf-viewer), [SECURITY](../SECURITY.md#pdf-viewer-risks-in-detail) | `examples/pdfviewer.sui` |
 | Review security | [security-review](AGENT_RECIPES.md#security-checklist) | [SECURITY](../SECURITY.md), [security examples](../examples/security/README.md) | `examples/security/*.sui` |
 
 For the full list of recipes, tags and paths, use `docs/manifest.json` or
@@ -135,6 +136,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 - [Table module](STDLIB.md#table-module-table-core)
 - [Spreadsheet XLSX/ODS](../examples/spreadsheet_table/README.md)
 - [Safe iframes](API_REFERENCE.md#iframe)
+- [PDF viewer](API_REFERENCE.md#pdf-viewer)
 
 ### Security
 
@@ -142,6 +144,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 - [Language protections](../SECURITY.md#language-protections)
 - [Security configuration](../SECURITY.md#security-configuration)
 - [Iframe risks in detail](../SECURITY.md#iframe-risks-in-detail)
+- [PDF viewer risks in detail](../SECURITY.md#pdf-viewer-risks-in-detail)
 - [Residual risks](../SECURITY.md#residual-risks)
 - [Security examples](../examples/security/README.md)
 

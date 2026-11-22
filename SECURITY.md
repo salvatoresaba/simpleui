@@ -188,6 +188,32 @@ not evidence that a desktop path is safe to read; keep `fs` behind
 - The token is visible to a local process reading `app.js`; the bridge does not
   defend against a malicious local process, only against web content.
 
+### 13. PDF viewer
+
+- The `pdfviewer` control is the only **unsandboxed** frame in the language: the
+  browser's native PDF viewer does not start inside a sandboxed frame (measured
+  in Chromium and Electron).
+- The document source is therefore the security boundary: a literal `src` is
+  validated like an iframe source, and a dynamic `src` requires a literal
+  `srcAllow` allow-list (`pdf.dynamicSrc`, default `allowlist`).
+- `pdf.unsandboxedFrame: "deny"` removes the control from the language for
+  projects that do not want an unsandboxed frame.
+- The frame always carries `type="application/pdf"` and
+  `referrerpolicy="no-referrer"`, so the document URL does not leak through the
+  `Referer` header.
+- The viewer only displays the document: the app never reads the PDF bytes, so
+  no text, page or annotation can be extracted.
+- On the desktop target the document is served by the local bridge:
+  - a **separate per-run secret** (not the bridge token) is delivered in a
+    `SameSite=Strict`, `HttpOnly` cookie scoped to the document endpoint, so it
+    cannot be replayed on the other bridge endpoints;
+  - the endpoint is a `GET` (an iframe cannot POST), it accepts only files
+    inside the folders granted with `--allow-dir`, and it serves only files
+    whose first bytes are the PDF magic `%PDF-`;
+  - it answers range requests, so the native viewer can read large documents;
+  - the document response carries no `X-Frame-Options`/`frame-ancestors` (it
+    must be embeddable) but keeps `nosniff` and `no-referrer`.
+
 ## Security configuration
 
 Defaults are strict. A project can change compile-time policies with
@@ -223,6 +249,10 @@ with an explicit error. No configuration is silently accepted if it is invalid.
     "referrerPolicy": "no-referrer",
     "scriptsSameOrigin": "error",
     "dynamicSrc": "allowlist"
+  },
+  "pdf": {
+    "dynamicSrc": "allowlist",
+    "unsandboxedFrame": "allow"
   }
 }
 ```
@@ -239,6 +269,8 @@ with an explicit error. No configuration is silently accepted if it is invalid.
 | `iframe.referrerPolicy` | valid policy, `unset` | `no-referrer` | Add `referrerpolicy` when missing; `unset`: add nothing |
 | `iframe.scriptsSameOrigin` | `error`, `warn`, `allow` | `error` | `allow-scripts allow-same-origin` combination |
 | `iframe.dynamicSrc` | `allowlist`, `sandbox`, `allow` | `allowlist` | `allowlist`: dynamic `src` requires `srcAllow`; others do not |
+| `pdf.dynamicSrc` | `allowlist`, `allow` | `allowlist` | `allowlist`: a dynamic `pdfviewer` `src` requires `srcAllow`; `allow`: does not |
+| `pdf.unsandboxedFrame` | `allow`, `deny` | `allow` | `deny`: the `pdfviewer` control is removed from the language (its frame is never sandboxed) |
 
 **Not configurable** (security invariants):
 
@@ -325,6 +357,27 @@ Deployment still needs:
 - a `postMessage` helper for app-specific protocols;
 - minimal sandbox tokens and trusted endpoints only.
 
+## PDF viewer risks in detail
+
+The viewer frame is not sandboxed, so the document owns the full frame power: it
+can navigate the top window, open popups, download files and read the cookies
+of its own origin. The mitigations are:
+
+- the frame is a **document** context: the desktop endpoint serves
+  `application/pdf` with `nosniff`, so the bytes are never executed as markup;
+- the source is restricted by `srcAllow` for dynamic URLs;
+- the referrer policy keeps the document URL out of the `Referer` header.
+
+Remaining risks:
+
+- a **same-origin** document (for example the desktop bridge, which serves from
+  `127.0.0.1`) shares the app's origin: content that is not really a PDF could
+  reach the app's DOM. The desktop endpoint refuses everything that is not a
+  PDF; a remote same-origin URL is the app's own responsibility.
+- the user cannot see the embedded origin: show the document source in the UI.
+- `pdf.unsandboxedFrame: "deny"` is the switch for projects that do not accept
+  an unsandboxed frame.
+
 ## Residual risks
 
 - **CSS**: static `style:` is trusted developer code; dynamic `cssSafe` is
@@ -340,6 +393,10 @@ Deployment still needs:
   `allow-scripts`, `allow-same-origin`, `allow-popups` or permissions are
   enabled, risks return; `postMessage` and `frame-src` remain app/deployment
   responsibilities.
+- **PDF viewer**: the frame is not sandboxed, so a same-origin document can
+  reach the app's DOM and the frame can navigate the top window. Use
+  `pdf.unsandboxedFrame: "deny"` when an unsandboxed frame is not acceptable,
+  and keep the document on a dedicated origin when the app has one.
 - **ReDoS**: regexes built from untrusted input can block the thread; limit
   length/patterns.
 - **Prototype pollution**: do not merge untrusted JSON into shared objects;

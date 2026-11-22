@@ -126,9 +126,23 @@ func main() {
 		}
 	}
 	secret := newToken(32)
+	// The document secret is separate from the bridge secret: it is handed to
+	// the browser in a cookie scoped to the document endpoint, so it can never
+	// be used for the other bridge calls (exec, file write, ...).
+	docSecret := newToken(32)
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		// The document cookie is set when the app page is served: the PDF
+		// viewer frame loads the document from the same origin and the
+		// browser sends the cookie back.
+		http.SetCookie(w, &http.Cookie{
+			Name:     "sui_doc",
+			Value:    docSecret,
+			Path:     documentPath,
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+		})
 		writeRaw(w, "text/html; charset=utf-8", assetIndex)
 	})
 	mux.HandleFunc("GET /style.css", func(w http.ResponseWriter, r *http.Request) {
@@ -159,6 +173,7 @@ func main() {
 	mux.HandleFunc("POST /__bridge__/exec", makeExec(secret))
 	mux.HandleFunc("POST /__bridge__/pick-file", makePickFile(secret))
 	mux.HandleFunc("POST /__bridge__/pick-directory", makePickDirectory(secret))
+	mux.HandleFunc("GET "+documentPath, makeDocument(docSecret))
 
 	addr := "127.0.0.1:0"
 	if port != 0 {
@@ -182,8 +197,13 @@ func main() {
 			return
 		}
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
+		if r.URL.Path != documentPath {
+			// The document endpoint is the only response that may be framed:
+			// the PDF viewer needs an embeddable frame, so the global
+			// anti-framing headers are not applied to it.
+			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
+		}
 		mux.ServeHTTP(w, r)
 	})
 	server := &http.Server{
@@ -308,6 +328,127 @@ func makeReadBytes(secret string) http.HandlerFunc {
 		}
 		bridgeJSON(w, true, base64.StdEncoding.EncodeToString(data), "")
 	}
+}
+
+// documentPath is the bridge endpoint that serves a PDF document to the
+// browser's native viewer. It is a GET (an iframe cannot POST) and it is
+// protected by the per-run document cookie, not by the bridge token.
+const documentPath = "/__bridge__/file/document"
+
+// documentSecretOk checks the per-run document cookie. The cookie is scoped
+// to the document endpoint, so it cannot be replayed on the other bridge
+// endpoints, which keep using the bridge token.
+func documentSecretOk(secret string, r *http.Request) bool {
+	cookie, err := r.Cookie("sui_doc")
+	if err != nil || len(cookie.Value) != len(secret) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(secret)) == 1
+}
+
+// makeDocument serves one PDF file to the native viewer. The frame that
+// shows it is not sandboxed (the native viewer does not start inside a
+// sandboxed frame), so the endpoint is deliberately narrow: it reads only
+// files inside the allowed directories, it serves only files whose first
+// bytes are the PDF magic "%PDF-", and it never writes anything.
+func makeDocument(secret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !documentSecretOk(secret, r) {
+			http.Error(w, "forbidden: missing or invalid document cookie", http.StatusForbidden)
+			return
+		}
+		if strings.EqualFold(r.Header.Get("Sec-Fetch-Site"), "cross-site") {
+			http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+			return
+		}
+		path := r.URL.Query().Get("path")
+		if !pathAllowed(path) {
+			http.Error(w, "forbidden: path outside the allowed directories", http.StatusForbidden)
+			return
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			http.Error(w, "document: "+err.Error(), http.StatusNotFound)
+			return
+		}
+		if info.IsDir() {
+			http.Error(w, "document: path is a directory", http.StatusBadRequest)
+			return
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			http.Error(w, "document: "+err.Error(), http.StatusNotFound)
+			return
+		}
+		defer file.Close()
+		head := make([]byte, 5)
+		n, _ := io.ReadFull(file, head)
+		if n < 5 || string(head) != "%PDF-" {
+			http.Error(w, "document: not a PDF file", http.StatusUnsupportedMediaType)
+			return
+		}
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		size := info.Size()
+		start, end, hasRange := parseByteRange(r.Header.Get("Range"), size)
+		if hasRange {
+			w.Header().Set("Content-Range", "bytes "+strconv.FormatInt(start, 10)+"-"+
+				strconv.FormatInt(end, 10)+"/"+strconv.FormatInt(size, 10))
+			w.Header().Set("Content-Length", strconv.FormatInt(end-start+1, 10))
+			w.WriteHeader(http.StatusPartialContent)
+			if _, err := file.Seek(start, io.SeekStart); err == nil {
+				_, _ = io.CopyN(w, file, end-start+1)
+			}
+			return
+		}
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+		w.WriteHeader(http.StatusOK)
+		if _, err := file.Seek(0, io.SeekStart); err == nil {
+			_, _ = io.Copy(w, file)
+		}
+	}
+}
+
+// parseByteRange parses a single "bytes=start-end" range. It reports false
+// when the header is absent or is not a simple range: the caller then sends
+// the whole document, which every browser accepts.
+func parseByteRange(header string, size int64) (int64, int64, bool) {
+	if !strings.HasPrefix(header, "bytes=") || size <= 0 {
+		return 0, 0, false
+	}
+	spec := strings.TrimSpace(strings.TrimPrefix(header, "bytes="))
+	if strings.Contains(spec, ",") {
+		return 0, 0, false
+	}
+	dash := strings.Index(spec, "-")
+	if dash < 0 {
+		return 0, 0, false
+	}
+	startText := strings.TrimSpace(spec[:dash])
+	endText := strings.TrimSpace(spec[dash+1:])
+	if startText == "" {
+		return 0, 0, false
+	}
+	start, err := strconv.ParseInt(startText, 10, 64)
+	if err != nil || start < 0 || start >= size {
+		return 0, 0, false
+	}
+	end := size - 1
+	if endText != "" {
+		last, err := strconv.ParseInt(endText, 10, 64)
+		if err != nil {
+			return 0, 0, false
+		}
+		if last < start {
+			return 0, 0, false
+		}
+		if last < end {
+			end = last
+		}
+	}
+	return start, end, true
 }
 
 func makeWriteBytes(secret string) http.HandlerFunc {

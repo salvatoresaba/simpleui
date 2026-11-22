@@ -537,9 +537,10 @@ makes hover feedback part of the same theme instead of an extra CSS edit.
 **Progress bar**, **Spinner** and **Divider** also expose a **Hover** tab, so
 non-interactive controls can still react to the pointer.
 
-The **Images & media** panel themes the image, video, audio and iframe elements:
-background, border, radius, shadow, object fit and padding. It participates in
-project themes and in per-element overrides like the other component panels.
+The **Images & media** panel themes the image, video, audio, iframe and PDF
+viewer elements: background, border, radius, shadow, object fit and padding. It
+participates in project themes and in per-element overrides like the other
+component panels.
 
 ### Style presets and animations
 

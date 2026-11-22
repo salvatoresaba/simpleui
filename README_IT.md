@@ -436,6 +436,9 @@ Le policy di compilazione sono modificabili con `simpleui.security.json`
 (accanto al `.sui`) o `--security <file>`: default severi, override esplicito.
 Gli iframe hanno `sandbox=""` e `referrerpolicy="no-referrer"` per default;
 `src` dinamico richiede un'allow-list `srcAllow` e viene validato a runtime.
+Il visualizzatore PDF (`pdfviewer`) è l'unico frame non sandboxato: la sorgente
+del documento è il confine di sicurezza, quindi un `src` dinamico richiede
+ugualmente `srcAllow`.
 Esempi eseguibili: [`examples/security`](examples/security/README.md).
 
 ## Integrazione con i coding agent

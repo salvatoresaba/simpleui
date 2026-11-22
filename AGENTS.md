@@ -51,6 +51,11 @@ These rules are part of the language's security model. Do not work around them.
   missing `referrerpolicy` becomes `no-referrer`. A dynamic `src` requires a
   literal `srcAllow` allow-list and is validated at runtime. Never use
   `srcdoc` or fallback markup.
+- **The PDF viewer frame is never sandboxed.** Use `pdfviewer` (not `iframe`)
+  for documents: the native PDF viewer does not start inside a sandboxed
+  frame, so the source is the security boundary. A dynamic `src` requires a
+  literal `srcAllow` allow-list; the control only displays the document and the
+  app never reads the PDF bytes.
 - **Table data is inert.** Cells are written with `textContent`. Use
   `table.display`/`table.importText`, check the error, and preserve the table's
   styling. Use `;formula=escape` when exporting CSV for Excel/LibreOffice.

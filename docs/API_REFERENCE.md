@@ -4069,6 +4069,41 @@ iframe src: videoUrl srcAllow: "https://example.com"
 - A rejected dynamic URL is not loaded; the page shows
   `Cannot accept the data: ...`.
 
+### PDF viewer
+
+The `pdfviewer` control shows a document in the browser's own PDF viewer. It
+only displays the document: the app never reads the PDF bytes, so no text,
+page or annotation can be extracted from it.
+
+```simpleui
+# A remote document served by your own backend.
+pdfviewer src: "https://example.com/manual.pdf"
+
+# A file in a folder the app may read (desktop).
+pdfviewer src: docUrl srcAllow: "/" width: 900 height: 620
+```
+
+- `src`: `http(s)` or relative; a dynamic URL requires `srcAllow` (default).
+- `srcAllow`: literal origin/path allow-list, separated by spaces or commas.
+  It is not emitted into the HTML.
+- `width`, `height`: literal integers.
+- The frame is **not sandboxed**: the browser's native PDF viewer does not
+  start inside a sandboxed frame. The document source is therefore the
+  security boundary: a dynamic `src` needs a literal allow-list, and
+  `pdf.unsandboxedFrame: "deny"` removes the control from the language for
+  projects that do not want an unsandboxed frame.
+- A rejected dynamic URL is not loaded; the page shows
+  `Cannot display the document: ...`.
+
+On the desktop target the document is served by the local bridge:
+`fs.documentUrl(path)` returns the URL of the document endpoint, which reads
+the file from the folders granted with `--allow-dir` and only serves files
+whose first bytes are the PDF magic `%PDF-`.
+
+A file picked in the browser cannot be shown directly: the native viewer does
+not load `blob:` URLs. Upload it to your own backend and use the URL it
+returns.
+
 ## CLI
 
 ```bash

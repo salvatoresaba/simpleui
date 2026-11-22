@@ -1473,6 +1473,20 @@ is not. The compiler and runtime enforce:
     a `Cannot accept the data: ...` alert. `allow-scripts` +
     `allow-same-origin` is an error by default; `srcdoc`/fallback markup is
     rejected.
+12. **PDF viewer** (`pdfviewer`: `src`, `srcAllow`, `width`, `height`): the
+    control is an `<iframe>` with `type="application/pdf"` and
+    `referrerpolicy="no-referrer"` and **without** a sandbox attribute, because
+    the browser's native PDF viewer does not start inside a sandboxed frame.
+    The document source is the security boundary: a literal `src` is validated
+    like an iframe source, a dynamic `src` requires a literal `srcAllow`
+    (`pdf.dynamicSrc`), and `pdf.unsandboxedFrame: "deny"` removes the control
+    from the language. The control only displays the document: the app never
+    reads the PDF bytes. On the desktop target the document is served by the
+    local bridge (`GET /__bridge__/file/document`): a separate per-run secret
+    in a `SameSite=Strict`/`HttpOnly` cookie scoped to that endpoint, files
+    limited to the `--allow-dir` folders, only files whose first bytes are the
+    PDF magic `%PDF-`, range requests supported, and no anti-framing headers
+    (the frame must be embeddable).
 
 Residual risks (known-class visual spoofing, conservative CSS sanitizer, DNS
 rebinding / compromised allow-listed hosts, ReDoS, iframe origins, local
@@ -1481,8 +1495,9 @@ patterns are documented in `SECURITY.md`; runnable examples live in
 `examples/security/`.
 
 **Security policy file.** The compile-time policies (dynamic style/class,
-dynamic URLs, static active schemes), table/CSV defaults and iframe sandbox/
-allow-list defaults are configurable with `simpleui.security.json` next to the
+dynamic URLs, static active schemes), table/CSV defaults, iframe sandbox/
+allow-list defaults and the PDF viewer policies are configurable with
+`simpleui.security.json` next to the
 entry `.sui` or `--security <file>`. Defaults are strict; a malformed file, an
 unknown field or an invalid value is a build error. HTTP escaping, the runtime
 URL-scheme filter, iframe runtime URL validation, table `textContent`, bridge

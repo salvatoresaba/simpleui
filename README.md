@@ -261,7 +261,7 @@ files above give an agent the same capabilities.
 - `dnd.go`: browser drag-and-drop runtime (component keys and file/folder drops)
 - `desktop.go` / `runtime.go`: desktop target and capability-checked bridge
 - `gui.go` / `guihtml.go`: visual designer, preview, exports and desktop build dialog
-- `security.go` / `iframe.go`: security policy and iframe validation
+- `security.go` / `iframe.go` / `pdfviewer.go`: security policy, iframe and PDF viewer validation
 
 ## Documentation
 

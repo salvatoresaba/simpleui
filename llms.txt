@@ -7,21 +7,21 @@
 - [AGENTS.md](AGENTS.md): Canonical coding-agent guide - workflow, security rules, repo map, commands, task routing.
 - [GIT_WORKFLOW.md](GIT_WORKFLOW.md): Mandatory commit policy for agents, baseline tag and restore commands.
 - [docs/INDEX.md](docs/INDEX.md): Human-friendly documentation map and task-based navigation.
-- [docs/AGENT_RECIPES.md](docs/AGENT_RECIPES.md): Code patterns for local forms/tables, drag and drop, remote APIs, CRUD, polling, desktop capabilities, spreadsheets and iframes.
+- [docs/AGENT_RECIPES.md](docs/AGENT_RECIPES.md): Code patterns for local forms/tables, drag and drop, remote APIs, CRUD, polling, desktop capabilities, spreadsheets, iframes and PDF documents.
 - [docs/MCP_SETUP.md](docs/MCP_SETUP.md): Register the MCP server with a coding agent - ready .mcp.json blocks, per-client setup, verification and troubleshooting.
 - [docs/GUI_EDITOR.md](docs/GUI_EDITOR.md): Designer drag and drop, application DnD properties, file drops and native pickers.
 - [docs/manifest.json](docs/manifest.json): Machine-readable index (documents, sections, tags, invariants, recipes).
 
 ## Language and API
 
-- [docs/API_REFERENCE.md](docs/API_REFERENCE.md): Essential syntax, drag and drop, tables, iframe attributes, security and CLI.
+- [docs/API_REFERENCE.md](docs/API_REFERENCE.md): Essential syntax, drag and drop, tables, iframe attributes, PDF viewer, security and CLI.
 - [docs/BUILTINS.md](docs/BUILTINS.md): Built-in functions that need no import.
 - [docs/STDLIB.md](docs/STDLIB.md): `http`, `ws`, `fs`, `exec`, `json`, the core `table` API and the desktop `dialog` picker.
 - [SPEC.md](SPEC.md): Normative language, compiler, runtime and CLI contracts.
 
 ## Security
 
-- [SECURITY.md](SECURITY.md): Threat model, escaping, CSS/classes, SSRF, iframe hardening, bridge, residual risks.
+- [SECURITY.md](SECURITY.md): Threat model, escaping, CSS/classes, SSRF, iframe hardening, PDF viewer risks, bridge, residual risks.
 - [examples/security/README.md](examples/security/README.md): Runnable untrusted-input examples.
 
 ## Examples

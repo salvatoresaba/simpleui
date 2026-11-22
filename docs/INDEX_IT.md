@@ -74,6 +74,7 @@ Ordine consigliato per un agente:
 | File e comandi su desktop | [desktop-files](AGENT_RECIPES_IT.md#desktop-files-and-commands) | [SECURITY](../SECURITY_IT.md#bridge-desktop), [STDLIB](STDLIB_IT.md#file-system-module-fs) | `examples/security/desktop_files.sui`, `examples/desktop_picker.sui` |
 | Importare XLSX/ODS | [spreadsheet-data](AGENT_RECIPES_IT.md#spreadsheet-data) | [Spreadsheet README](../examples/spreadsheet_table/README.md) | `examples/spreadsheet_table/app.sui` |
 | Incorporare video/mappe/documenti | [iframe-embed](AGENT_RECIPES_IT.md#iframe) | [API](API_REFERENCE_IT.md#iframe), [SECURITY](../SECURITY_IT.md#iframe-rischi-dettagliati) | `examples/security/untrusted_iframe.sui` |
+| Mostrare un documento PDF | [pdf-viewer](AGENT_RECIPES_IT.md#visualizzatore-pdf) | [API](API_REFERENCE_IT.md#visualizzatore-pdf), [SECURITY](../SECURITY_IT.md#visualizzatore-pdf-rischi-dettagliati) | `examples/pdfviewer.sui` |
 | Rivedere la sicurezza | [security-review](AGENT_RECIPES_IT.md#security-checklist) | [SECURITY_IT](../SECURITY_IT.md), [security examples](../examples/security/README.md) | `examples/security/*.sui` |
 
 Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
@@ -103,6 +104,7 @@ Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
 - [Table module](STDLIB_IT.md#table-module-table-core)
 - [Spreadsheet XLSX/ODS](../examples/spreadsheet_table/README.md)
 - [Iframe sicuri](API_REFERENCE_IT.md#iframe)
+- [Visualizzatore PDF](API_REFERENCE_IT.md#visualizzatore-pdf)
 
 ### Sicurezza
 
@@ -110,6 +112,7 @@ Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
 - [Protezioni del linguaggio](../SECURITY_IT.md#protezioni-del-linguaggio)
 - [Configurazione della sicurezza](../SECURITY_IT.md#configurazione-della-sicurezza)
 - [Iframe: rischi dettagliati](../SECURITY_IT.md#iframe-rischi-dettagliati)
+- [Visualizzatore PDF: rischi dettagliati](../SECURITY_IT.md#visualizzatore-pdf-rischi-dettagliati)
 - [Rischi residui](../SECURITY_IT.md#rischi-residui)
 - [Esempi security](../examples/security/README.md)
 

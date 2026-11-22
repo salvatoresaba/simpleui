@@ -89,7 +89,7 @@ WebSocket reali integrati con runtime. Richiede import `ws` da "std".
 
 ## File System Module (`fs`)
 
-FS accessibile via **Desktop Bridge** (target desktop) con capability-based security (`--allow-dir`). Su web target alcune operazioni potrebbero non essere disponibili a seconda del contesto. Tutte async.
+FS accessibile via **Desktop Bridge** (target desktop) con capability-based security (`--allow-dir`). Su web target alcune operazioni potrebbero non essere disponibili a seconda del contesto. Tutte async, tranne `fs.documentUrl` che costruisce solo un URL.
 
 | Function | Params | Return | Async | Description |
 |---|---|---|---|---|
@@ -107,11 +107,28 @@ FS accessibile via **Desktop Bridge** (target desktop) con capability-based secu
 | `fs.size(path)` | string | (int, string) | true | Dimensione in byte di un file (le directory sono rifiutate) |
 | `fs.readBytes(path)` | string | (array[int], string) | true | Legge un file come byte grezzi |
 | `fs.writeBytes(path, bytes)` | string, array[int] | (null, string) | true | Scrive byte grezzi (base64 sul bridge) |
+| `fs.documentUrl(path)` | string | (string, string) | false | URL dell'endpoint locale dei documenti per un file PDF (solo desktop) |
 
 Sorgente e destinazione sono controllati contro la capability `--allow-dir`.
 `fs.copy` copia solo file regolari; crea prima la directory di destinazione e
 usa `fs.move` per le directory. Sul target web queste chiamate restituiscono un
 errore.
+
+`fs.documentUrl(path)` restituisce l'URL che carica il controllo `pdfviewer`: il
+bridge desktop serve il file dalle cartelle autorizzate e solo come documento
+PDF. L'URL non contiene segreti; l'endpoint è protetto da un cookie per
+esecuzione. Usalo con una allow-list letterale:
+
+```simpleui
+url, err = fs.documentUrl("docs/report.pdf")
+if err == null {
+	docUrl = url
+}
+```
+
+```simpleui
+pdfviewer src: docUrl srcAllow: "/"
+```
 
 ## Exec Module (`exec`)
 
