@@ -12,36 +12,42 @@ Version: **0.1.0-alpha** - Targets: **web**, **desktop** (system browser) and
 ## 1. Repository layout (adapted from the Design Document)
 
 The repository uses a hybrid layout. The module root is an importable library
-(`package sui`) containing the compiler, standard library, designer and CLI
-implementation. The executable is a thin `package main` wrapper under
-`cmd/simpleui`, so `go build -o simpleui.exe ./cmd/simpleui` works from the
-module root while control packages can import `github.com/salvatoresaba/simpleui`
-without an import cycle. Browser runtimes and their tests live under
-`components/<control>/`; each package exports `Runtime` and root
-`component_runtimes.go` keeps stable aliases for compiler call sites.
+(`package sui`) that exposes the public API of the compiler; the implementation
+lives in `internal/core` (`package core`) and the root package re-exports it
+through type aliases and thin wrappers, so importers keep using
+`github.com/salvatoresaba/simpleui` without an import cycle. The executable is
+a thin `package main` wrapper under `cmd/simpleui`, so
+`go build -o simpleui.exe ./cmd/simpleui` works from the module root. Browser
+runtimes and their tests live under `components/<control>/`; each package
+exports `Runtime` and `internal/core/component_runtimes.go` keeps stable
+aliases for compiler call sites.
 
 ```
-/ (module root, package sui)
+/ (module root, package sui — public facade)
 ├── go.mod                 module github.com/salvatoresaba/simpleui
 ├── cmd/simpleui/main.go   executable entry point (package main)
-├── main.go                CLI implementation (func Main)
-├── version.go             AppName / AppVersion / AppTagline
-├── errors.go              Diag, DiagList
-├── ast.go                 AST node types (shared contract)
-├── stdlib.go              standard library signatures
-├── lexer.go               tokenizer            (front-end)
-├── parser.go              recursive-descent     (front-end)
-├── astjson.go             AST -> JSON dump      (front-end)
-├── typechecker.go         inference + checks    (front-end)
-├── jsgen.go               -> app.js             (codegen)
-├── htmlgen.go             -> index.html + style.css (codegen)
-├── component_runtimes.go  aliases for component Runtime constants
-├── testapi.go             exported designer/browser test helpers
-├── assets/                embedded designer page, PDF fonts, web runtime
+├── facade.go              generated public API (aliases + wrappers)
+├── embed_root.go          embedded documentation tree
+├── internal/core/         compiler, stdlib, designer and CLI (package core)
+│   ├── main.go            CLI implementation (func Main)
+│   ├── version.go         AppName / AppVersion / AppTagline
+│   ├── errors.go          Diag, DiagList
+│   ├── ast.go             AST node types (shared contract)
+│   ├── stdlib.go          standard library signatures
+│   ├── lexer.go           tokenizer            (front-end)
+│   ├── parser.go          recursive-descent     (front-end)
+│   ├── astjson.go         AST -> JSON dump      (front-end)
+│   ├── typechecker.go     inference + checks    (front-end)
+│   ├── jsgen.go           -> app.js             (codegen)
+│   ├── htmlgen.go         -> index.html + style.css (codegen)
+│   ├── component_runtimes.go  aliases for component Runtime constants
+│   ├── testapi.go         exported designer/browser test helpers
+│   ├── assets/            embedded designer page, PDF fonts, web runtime
+│   ├── dnd.go             browser drag-and-drop runtime
+│   └── *_test.go          cross-cutting unit and e2e tests
+├── internal/apitools/     public API snapshot, parity test, facade generator
 ├── scripts/verify.ps1     full verification entry point
-├── dnd.go                 browser drag-and-drop runtime
 ├── components/<control>/  runtime.go + per-control tests
-├── *_test.go              cross-cutting unit and e2e tests
 ├── Test/testdata/         .sui fixtures (NO .go files here)
 └── examples/              sample .sui apps (NO .go files here)
 ```
@@ -809,7 +815,7 @@ view main {
    view-list evaluables need `bool` / `array` / `range`.
 5. `array[T]` indexing -> `T`; `map[string]V` indexing -> `V`; loop variable
    types follow the iterable.
-6. std intrinsics (see §3) are typed via `stdlib.go` (`StdLookup`). A std call
+6. std intrinsics (see §3) are typed via `internal/core/stdlib.go` (`StdLookup`). A std call
    is allowed **only** as the RHS of a two-target assignment, and only inside
    `async` functions or event-callback functions of `async`-capable... note:
    std intrinsics may be called from `async fn` only. Calling a user `async fn`
@@ -822,7 +828,7 @@ view main {
 
 ---
 
-## 3. Standard library (contract — see `stdlib.go`)
+## 3. Standard library (contract — see `internal/core/stdlib.go`)
 
 Imported with `import { http, ws, fs, exec, json, dialog } from "std"` (only names
 actually used should be imported; the compiler is lenient but the checker
@@ -905,7 +911,7 @@ Web behavior: `http.*` and `ws.*` use native `fetch`/`WebSocket`;
 ## 4. Phase interfaces (drop-in contracts)
 
 All cross-file functions must be **Capitalized**. Error streams are
-`DiagList` from `errors.go` (never `panic` for user errors — collect and
+`DiagList` from `internal/core/errors.go` (never `panic` for user errors — collect and
 print). `Span`/`Diag` positions are 1-based.
 
 ### lexer.go — Agent A
@@ -1066,7 +1072,7 @@ setters `set<Name>` per state, and the `render_<view>` renderer functions must
 not be reused by user declarations — the typechecker rejects them.
 
 **std module object** — only imported modules appear; entry names from
-`stdlib.go` jsKeys; bodies as specified in §3 (`fetch`, `WebSocket`,
+`internal/core/stdlib.go` jsKeys; bodies as specified in §3 (`fetch`, `WebSocket`,
 `/api/fs/...`, disabled exec). `ws_connect` builds on `class __SUI_WS`
 (send/close/open/onMessage/onClose/onError) which is part of the prelude when
 `ws` is imported.
@@ -1135,7 +1141,7 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
 - `docs` serves the embedded documentation (also usable outside the repo):
   default index, `--json` manifest, `--list`, `--agent` compact context,
   `--full` concatenated docs, `--read <id>` and `--search <q>`. Documents are
-  embedded with `//go:embed`; `docs_nav_test.go` checks links, anchors,
+  embedded with `//go:embed`; `internal/core/docs_nav_test.go` checks links, anchors,
   manifest coverage and that the embedded copy matches disk.
 - `mcp` exposes `sui_check`, `sui_model`, `sui_compile`, `sui_render` and
   `sui_docs` tools, `sui://docs/<path>` resources, and the prompts
@@ -1166,7 +1172,7 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
   tree + Design Tokens), center workspace (Preview | SUI | CSS tabs), right
   inspector (visual styler), collapsible bottom panel (Problems | History).
   The **live preview fills the remaining space** and is a sandboxed iframe.
-  - **structured CSS engine** (`cssmodel.go`): CSS is treated as an AST, not
+  - **structured CSS engine** (`internal/core/cssmodel.go`): CSS is treated as an AST, not
     text — a tolerant parser (text → AST, with per-rule error recovery and
     diagnostics), a pretty-printing generator (AST → text), a specificity
     calculator, and an analyzer reporting **unused classes, overridden

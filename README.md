@@ -281,16 +281,20 @@ files above give an agent the same capabilities.
 
 - `cmd/simpleui/main.go`: executable entry point; the module root is the
   importable `sui` package
+- `facade.go`: generated public API of `sui` (type aliases and wrappers over
+  `internal/core`)
 - `components/<control>/`: per-control browser runtime (`Runtime`) and tests
-- `assets/`: embedded designer page, PDF font data and web runtime assets
+- `internal/core/`: compiler, designer, stdlib and CLI implementation
+- `internal/core/assets/`: embedded designer page, PDF font data and web runtime assets
+- `internal/apitools/`: public API snapshot, parity test and facade generator
 - `scripts/verify.ps1`: single verification command (format, build, vet, tests, checks)
-- `parser.go` / `lexer.go`: lexical analysis and parsing of `.sui`
-- `typechecker.go`: static type checking with inference
-- `htmlgen.go` / `jsgen.go` / `cssmodel.go`: code generation for web
-- `dnd.go`: browser drag-and-drop runtime (component keys and file/folder drops)
-- `desktop.go` / `runtime.go`: desktop target and capability-checked bridge
-- `gui.go` / `guihtml.go`: visual designer, preview, exports and desktop build dialog
-- `security.go` / `iframe.go` / `pdfviewer.go`: security policy, iframe and PDF viewer validation
+- `internal/core/parser.go` / `internal/core/lexer.go`: lexical analysis and parsing of `.sui`
+- `internal/core/typechecker.go`: static type checking with inference
+- `internal/core/htmlgen.go` / `internal/core/jsgen.go` / `internal/core/cssmodel.go`: code generation for web
+- `internal/core/dnd.go`: browser drag-and-drop runtime (component keys and file/folder drops)
+- `internal/core/desktop.go` / `internal/core/runtime.go`: desktop target and capability-checked bridge
+- `internal/core/gui.go` / `internal/core/guihtml.go`: visual designer, preview, exports and desktop build dialog
+- `internal/core/security.go` / `internal/core/iframe.go` / `internal/core/pdfviewer.go`: security policy, iframe and PDF viewer validation
 
 ## Documentation
 

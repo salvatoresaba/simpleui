@@ -1,6 +1,6 @@
 ---
 description: SimpleUI coding-agent workflow and security rules
-globs: ["**/*.sui", "docs/**/*.md", "*.go"]
+globs: ["**/*.sui", "docs/**/*.md", "*.go", "internal/**/*.go", "components/**/*.go"]
 alwaysApply: false
 ---
 

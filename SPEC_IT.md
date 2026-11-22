@@ -8,14 +8,17 @@
 
 ## 1. Struttura del repository
 
-La radice del modulo è un package Go importabile `sui` con lexer, parser, AST,
-typechecker, codegen JS/HTML/CSS, runtime desktop, CLI, GUI, LSP, MCP e
-documentazione. L'eseguibile è un sottile wrapper `package main` in
+La radice del modulo è il package Go importabile `sui`: espone l'API pubblica
+del compilatore (lexer, parser, AST, typechecker, codegen JS/HTML/CSS, runtime
+desktop, CLI, GUI, LSP, MCP e documentazione), mentre l'implementazione sta in
+`internal/core` (`package core`) ed è ri-esportata dalla radice con alias di
+tipo e wrapper sottili. L'eseguibile è un sottile wrapper `package main` in
 `cmd/simpleui`. I runtime browser e i test dei controlli stanno in
-`components/<controllo>/`; `component_runtimes.go` espone gli alias usati dal
-compilatore. I test trasversali restano nella radice, quelli dei controlli sono
-`package <controllo>_test`. La pagina del designer e i font PDF sono file in
-`assets/` inclusi con `go:embed`; `scripts/verify.ps1` esegue tutte le verifiche.
+`components/<controllo>/`; `internal/core/component_runtimes.go` espone gli
+alias usati dal compilatore. I test trasversali stanno in `internal/core`, quelli
+dei controlli sono `package <controllo>_test`. La pagina del designer e i font
+PDF sono file in `internal/core/assets/` inclusi con `go:embed`;
+`scripts/verify.ps1` esegue tutte le verifiche.
 Il module path è `github.com/salvatoresaba/simpleui`: il compilatore può essere
 importato come libreria Go da un altro module.
 

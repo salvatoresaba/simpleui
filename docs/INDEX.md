@@ -199,7 +199,7 @@ are relative to the repository root.
 - **Do not invent APIs**: if a function is not in the references, check the
   source or compile with `simpleui check`.
 - **Stable links**: prefer links to existing files and headings; the
-  `docs_nav_test.go` test checks local links and manifest consistency.
+  `internal/core/docs_nav_test.go` test checks local links and manifest consistency.
 - **Security first**: every example consuming external data must show the error
   path and protections (`cssSafe`, `*Safe`, `srcAllow`, `table`, desktop
   capabilities).

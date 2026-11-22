@@ -500,20 +500,20 @@ offrono a un agente le stesse capacità.
 ```
 .
 ├── cmd/simpleui/main.go   # Entry point eseguibile (package main)
+├── facade.go              # API pubblica generata di `sui`
 ├── components/<controllo>/ # Runtime browser e test per controllo
-├── assets/                # Pagina designer, font PDF, asset runtime
+├── internal/core/         # Compilatore, designer, stdlib e CLI
+├── internal/core/assets/  # Pagina designer, font PDF, asset runtime
+├── internal/apitools/     # Snapshot API, test di parità, generatore facade
 ├── scripts/verify.ps1     # Verifica completa in un comando
-├── lexer.go, parser.go    # Tokenizzazione e parsing
-├── ast.go, typechecker.go # AST e type checking
-├── jsgen.go, htmlgen.go   # Generazione codice
-├── dnd.go                 # Runtime drag and drop nel browser
-├── runtime.go             # Runtime e bridge desktop
-├── builtins.go, stdlib.go # Librerie built-in e standard
-├── main.go                # CLI
-├── gui.go                 # Editor visuale
-├── lsp.go                 # Language Server
+├── tools/                 # Script scratch locali
 └── examples/              # Esempi di utilizzo
 ```
+
+Dentro `internal/core/` trovi l'implementazione: `lexer.go`, `parser.go`,
+`ast.go`, `typechecker.go`, `jsgen.go`, `htmlgen.go`, `dnd.go`, `runtime.go`,
+`builtins.go`, `stdlib.go`, `main.go` (CLI), `gui.go`, `lsp.go` e `mcp.go`,
+tutti con lo stesso nome del file e della cartella che li contiene.
 
 La radice del modulo è il package importabile `sui`; `cmd/simpleui` contiene
 solo il wrapper `package main` che chiama `sui.Main()`.

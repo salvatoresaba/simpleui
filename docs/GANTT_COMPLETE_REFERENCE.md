@@ -10,10 +10,10 @@ implementation disagree, inspect these files and update this document:
 
 - `components/chart/runtime.go` — parser, scheduler, SVG renderer, routing,
   table, editing, keyboard behavior, persistence and versioning.
-- `htmlgen.go` — chart, Gantt, table, toolbar, menu and responsive CSS.
-- `jsgen.go` — chart attributes and callback data attributes.
-- `typechecker.go` — accepted chart attributes and callback names.
-- `guihtml.go`, `gui.go` — designer inspector and source round-trip.
+- `internal/core/htmlgen.go` — chart, Gantt, table, toolbar, menu and responsive CSS.
+- `internal/core/jsgen.go` — chart attributes and callback data attributes.
+- `internal/core/typechecker.go` — accepted chart attributes and callback names.
+- `internal/core/guihtml.go`, `internal/core/gui.go` — designer inspector and source round-trip.
 - `examples/gantt_construction/`, `examples/gantt_project/`,
   `examples/gantt_calendar/`, `examples/gantt_wbs/` — runnable examples.
 
@@ -1030,7 +1030,7 @@ Key runtime functions and responsibilities:
 - `renderGanttTable`, `renderGanttResourceTable` — synchronized table and
   resources.
 - `bindZoom`, `ganttTimelineZoomAt` — timeline zoom and scroll-centered redraw.
-- CSS in `htmlgen.go` under `.sui-chart-gantt-*`, `.sui-chart-table-*`,
+- CSS in `internal/core/htmlgen.go` under `.sui-chart-gantt-*`, `.sui-chart-table-*`,
   calendar/link/resource dialogs and chart controls.
 
 Examples:

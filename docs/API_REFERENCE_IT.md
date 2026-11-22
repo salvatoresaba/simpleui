@@ -2127,7 +2127,7 @@ esportando. Selettore
 file e download sono azioni dell'utente e non richiedono permessi del bridge
 desktop. L'export DOCX/ODT crea il pacchetto nel browser, senza servizi esterni.
 Il PDF incorpora sottoinsiemi latini dei font Liberation Sans/Serif (SIL OFL);
-i file stanno in `assets/fonts` e vengono compilati nel runtime.
+i file stanno in `internal/core/assets/fonts` e vengono compilati nel runtime.
 L'import DOCX/ODT recupera font, dimensioni, colori, evidenziazioni, link,
 spaziatura/rientro dei paragrafi, liste puntate/numerate, testo di
 intestazione/piede e colonne/sfondi delle tabelle.

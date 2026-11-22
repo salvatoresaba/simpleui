@@ -370,7 +370,7 @@
       "audience": ["human", "agent"],
       "priority": 3,
       "tags": ["spec", "language", "compiler", "runtime", "contract", "drag", "picker"],
-      "sections": ["1. Repository layout (adapted from the Design Document)", "2. The SUI language", "3. Standard library (contract — see `stdlib.go`)", "5. Generated-web-app contract (the runtime surface)", "6. CLI contract (main.go — integration milestone)", "9. Security model (untrusted data)"]
+      "sections": ["1. Repository layout (adapted from the Design Document)", "2. The SUI language", "3. Standard library (contract — see `internal/core/stdlib.go`)", "5. Generated-web-app contract (the runtime surface)", "6. CLI contract (main.go — integration milestone)", "9. Security model (untrusted data)"]
     },
     {
       "id": "design",

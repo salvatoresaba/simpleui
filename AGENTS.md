@@ -67,9 +67,10 @@ These rules are part of the language's security model. Do not work around them.
 - **Do not edit generated output.** `dist/`, preview HTML and temporary files
   are results, not sources.
 - **Keep embedded assets as plain files.** The designer page is
-  `assets/designer.html`, the PDF fonts are `assets/pdf_fonts.js` and the
-  designer sample document is `assets/sample.pdf`; all are included with
-  `go:embed`. Do not inline them back into Go raw strings.
+  `internal/core/assets/designer.html`, the PDF fonts are
+  `internal/core/assets/pdf_fonts.js` and the designer sample document is
+  `internal/core/assets/sample.pdf`; all are included with `go:embed`. Do not
+  inline them back into Go raw strings.
 - **Do not invent APIs.** Confirm in `docs/API_REFERENCE.md`,
   `docs/STDLIB.md`, `docs/BUILTINS.md` or run `simpleui check`.
 - **Documentation language.** Canonical documentation, code comments and UI
@@ -84,7 +85,7 @@ feature, not only as runtime code:
 1. Add the compiler/type-checker support, generated HTML/CSS/JS, designer
    palette entry and inspector fields. Put the browser runtime in
    `components/<control>/runtime.go` as exported `Runtime` and its tests in
-   `components/<control>/`; root keeps only compatibility aliases.
+   `components/<control>/`; the root facade keeps only compatibility aliases.
 2. Add at least one runnable example that demonstrates **all** supported
    behavior: content, state, keyboard/accessibility, designer workflow and
    limitations. Prefer `examples/<component>/app.sui` with comments and an
@@ -105,24 +106,28 @@ feature, not only as runtime code:
 | Path | Purpose |
 |---|---|
 | `cmd/simpleui/main.go` | Executable entry point (`package main`) |
-| root `*.go` (`package sui`) | Importable compiler, designer, stdlib and CLI implementation |
+| `facade.go` | Generated public API of `package sui`: type aliases and wrappers over `internal/core` |
+| `embed_root.go` | Embedded documentation tree, injected into the implementation |
+| `internal/core/` | Compiler, designer, stdlib and CLI implementation (`package core`) |
+| `internal/core/assets/` | Embedded designer page, PDF font data and web runtime assets |
+| `internal/apitools/` | Public API snapshot, parity test and facade generator |
 | `components/<control>/` | Per-control browser runtime (`Runtime`), helpers and tests |
-| `component_runtimes.go` | Root aliases that keep compiler call sites stable |
-| `testapi.go` | Exported designer/browser helpers for external component tests |
-| `assets/` | Embedded designer page, PDF font data and web runtime assets |
+| `internal/core/component_runtimes.go` | Aliases that keep compiler call sites stable |
+| `internal/core/testapi.go` | Exported designer/browser helpers for external component tests |
 | `scripts/verify.ps1` | Single verification entry point (format, build, vet, tests, checks) |
-| `lexer.go`, `parser.go` | Tokens, AST, source loading |
-| `ast.go`, `typechecker.go` | AST shapes and semantic/security checks |
-| `jsgen.go`, `htmlgen.go` | JS/CSS generation and runtime prelude |
-| `dnd.go` | Browser drag-and-drop runtime (component keys and file/folder drops) |
-| `runtime.go`, `desktop_dialog.go` | Desktop bridge, served runtime and native dialogs |
-| `builtins.go`, `stdlib.go` | Builtins and std modules |
-| `main.go`, `serve.go`, `docs_cli.go` | CLI, dev server, docs command |
-| `gui.go`, `guihtml.go` | Visual designer (live preview + `.sui` export) |
-| `mcp.go`, `lsp.go` | MCP server and language server |
+| `internal/core/lexer.go`, `internal/core/parser.go` | Tokens, AST, source loading |
+| `internal/core/ast.go`, `internal/core/typechecker.go` | AST shapes and semantic/security checks |
+| `internal/core/jsgen.go`, `internal/core/htmlgen.go` | JS/CSS generation and runtime prelude |
+| `internal/core/dnd.go` | Browser drag-and-drop runtime (component keys and file/folder drops) |
+| `internal/core/runtime.go`, `internal/core/desktop_dialog.go` | Desktop bridge, served runtime and native dialogs |
+| `internal/core/builtins.go`, `internal/core/stdlib.go` | Builtins and std modules |
+| `internal/core/main.go`, `internal/core/serve.go`, `internal/core/docs_cli.go` | CLI, dev server, docs command |
+| `internal/core/gui.go`, `internal/core/guihtml.go` | Visual designer (live preview + `.sui` export) |
+| `internal/core/mcp.go`, `internal/core/lsp.go` | MCP server and language server |
 | `Test/` | Moved test fixtures and generated test artifacts (no Go packages) |
 | `examples/` | Runnable, compiling examples |
 | `docs/` | Navigation, recipes, API, stdlib and builtins |
+| `tools/` | Local scratch scripts kept out of the repository root |
 | `vscode-hermes-extension/` | VS Code extension (Hermes): check and build commands, packaged `.vsix` |
 | `SECURITY.md` | Threat model, protections and residual risks |
 | `SPEC.md` | Normative language/compiler/runtime contracts |

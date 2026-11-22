@@ -144,7 +144,7 @@ func ExtractDir(dir string) (*Surface, error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(fi os.FileInfo) bool {
 		return !strings.HasSuffix(fi.Name(), "_test.go")
-	}, 0)
+	}, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("parse %s: %w", dir, err)
 	}

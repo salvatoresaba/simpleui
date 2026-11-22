@@ -2130,7 +2130,7 @@ URLs and re-embedded on export. File pickers
 and downloads are user-driven and do not require desktop bridge permissions.
 DOCX/ODT export creates the package in the browser; no external service is
 used. PDF export embeds Latin subsets of the SIL OFL Liberation Sans/Serif
-fonts (the files live in `assets/fonts` and are compiled into the runtime). Importing DOCX/ODT recovers fonts, sizes, colors, highlights, links,
+fonts (the files live in `internal/core/assets/fonts` and are compiled into the runtime). Importing DOCX/ODT recovers fonts, sizes, colors, highlights, links,
 paragraph spacing/indent, bullet/numbered lists, header/footer text and table
 column spans/shading.
 

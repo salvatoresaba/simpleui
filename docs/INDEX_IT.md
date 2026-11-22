@@ -166,7 +166,7 @@ Gli agenti possono anche leggere direttamente `AGENTS.md` e
 - **Non inventare API**: se una funzione non è nei riferimenti, verifica nel
   codice o compila con `simpleui check`.
 - **Link stabili**: preferisci link a file e heading esistenti; il test
-  `docs_nav_test.go` controlla i link locali e la coerenza del manifest.
+  `internal/core/docs_nav_test.go` controlla i link locali e la coerenza del manifest.
 - **Sicurezza first**: ogni esempio che consuma dati esterni deve mostrare
   anche il percorso di errore e le protezioni (`cssSafe`, `*Safe`, `srcAllow`,
   `table`, capability desktop).
