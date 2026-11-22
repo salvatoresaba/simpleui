@@ -1,6 +1,6 @@
 package tablelayout_test
 
-import . "example.com/simpleui"
+import . "github.com/salvatoresaba/simpleui"
 
 import (
 	"context"

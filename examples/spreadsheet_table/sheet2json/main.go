@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"example.com/simpleui/examples/spreadsheet_table/sheetconv"
+	"github.com/salvatoresaba/simpleui/examples/spreadsheet_table/sheetconv"
 )
 
 var (

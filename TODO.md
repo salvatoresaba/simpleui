@@ -315,8 +315,8 @@ Known accuracy corrections from the previous TODO:
       and arm64, one archive per target plus `SHA256SUMS`
       (`.github/workflows/release.yml`, triggered by a `v*` tag)
 - [x] **MIT license** — `LICENSE` at the repository root
-- [ ] **Module path** — `example.com/simpleui` is still a placeholder: rename it
-      to the repository URL before publishing the compiler as a Go library
+- [x] **Module path** — `github.com/salvatoresaba/simpleui`: the compiler is
+      importable as a Go library
 
 ## 7. Security & Desktop Bridge
 

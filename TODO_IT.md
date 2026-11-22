@@ -80,6 +80,7 @@ Completati di recente:
 
 - [x] Workflow di release: binari precompilati per Windows/Linux/macOS su amd64 e arm64, un archivio per target più `SHA256SUMS` (`.github/workflows/release.yml`, attivato da un tag `v*`).
 - [x] Licenza MIT: file `LICENSE` nella root del repository.
+- [x] Module path `github.com/salvatoresaba/simpleui`: il compilatore è importabile come libreria Go.
 
 ## Correzioni di accuratezza
 

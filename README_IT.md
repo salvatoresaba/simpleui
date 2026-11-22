@@ -58,7 +58,7 @@ Clona o scarica il progetto e compila il binario:
 
 ```bash
 # Clona il repository (se da git)
-git clone <repo-url>
+git clone https://github.com/salvatoresaba/simpleui.git
 cd GO_PROJECT_LANG
 
 # Compila il compilatore
@@ -71,8 +71,8 @@ go build -o simpleui ./cmd/simpleui
 go build -o simpleui.exe ./cmd/simpleui
 ```
 
-Il module path è ancora il placeholder `example.com/simpleui`: va sostituito
-con l'URL del repository prima di importare il compilatore come libreria Go.
+Il module path è `github.com/salvatoresaba/simpleui`: il compilatore può essere
+importato come libreria Go da un altro module.
 
 Verifica l'installazione:
 
@@ -92,11 +92,11 @@ release contiene un archivio per target e un file `SHA256SUMS`.
 
 ```bash
 # Linux/macOS
-curl -LO https://github.com/<owner>/<repo>/releases/latest/download/simpleui_linux_amd64.zip
+curl -LO https://github.com/salvatoresaba/simpleui/releases/latest/download/simpleui_linux_amd64.zip
 unzip simpleui_linux_amd64.zip && ./simpleui version
 
 # Windows (PowerShell)
-Invoke-WebRequest -OutFile simpleui_windows_amd64.zip https://github.com/<owner>/<repo>/releases/latest/download/simpleui_windows_amd64.zip
+Invoke-WebRequest -OutFile simpleui_windows_amd64.zip https://github.com/salvatoresaba/simpleui/releases/latest/download/simpleui_windows_amd64.zip
 Expand-Archive simpleui_windows_amd64.zip
 .\simpleui.exe version
 ```

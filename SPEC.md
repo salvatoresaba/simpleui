@@ -15,15 +15,14 @@ The repository uses a hybrid layout. The module root is an importable library
 (`package sui`) containing the compiler, standard library, designer and CLI
 implementation. The executable is a thin `package main` wrapper under
 `cmd/simpleui`, so `go build -o simpleui.exe ./cmd/simpleui` works from the
-module root while control packages can import `example.com/simpleui` without an
-import cycle. `example.com/simpleui` is a placeholder: it must be replaced by
-the repository URL before the compiler is published as a Go library. Browser runtimes and their tests live under
+module root while control packages can import `github.com/salvatoresaba/simpleui`
+without an import cycle. Browser runtimes and their tests live under
 `components/<control>/`; each package exports `Runtime` and root
 `component_runtimes.go` keeps stable aliases for compiler call sites.
 
 ```
 / (module root, package sui)
-├── go.mod                 module example.com/simpleui
+├── go.mod                 module github.com/salvatoresaba/simpleui
 ├── cmd/simpleui/main.go   executable entry point (package main)
 ├── main.go                CLI implementation (func Main)
 ├── version.go             AppName / AppVersion / AppTagline
@@ -1345,8 +1344,8 @@ type error: cannot assign a value of type string to "counter" of type int
 - Import order + only what is used (`go vet` FAILS on unused imports).
 - Cross-file functions: Capitalized. Within-file helpers: lower-case.
 - Tests: files `*_test.go`; root tests use `package sui`, component tests use
-  `package <control>_test` and import `example.com/simpleui` plus
-  `example.com/simpleui/components/<control>`. Run `go test ./...`.
+  `package <control>_test` and import `github.com/salvatoresaba/simpleui` plus
+  `github.com/salvatoresaba/simpleui/components/<control>`. Run `go test ./...`.
 - Iterate only your own files; never edit another agent's file.
 
 ---

@@ -59,7 +59,7 @@ Clone or download the project and build the binary:
 
 ```bash
 # Clone the repository (if from git)
-git clone <repo-url>
+git clone https://github.com/salvatoresaba/simpleui.git
 cd GO_PROJECT_LANG
 
 # Build the compiler
@@ -72,8 +72,8 @@ go build -o simpleui ./cmd/simpleui
 go build -o simpleui.exe ./cmd/simpleui
 ```
 
-The module path is still the placeholder `example.com/simpleui`: rename it to
-the repository URL before importing the compiler as a Go library.
+The module path is `github.com/salvatoresaba/simpleui`: the compiler can be
+imported as a Go library from another module.
 
 Verify the installation:
 
@@ -93,11 +93,11 @@ contains one archive per target plus a `SHA256SUMS` file.
 
 ```bash
 # Linux/macOS
-curl -LO https://github.com/<owner>/<repo>/releases/latest/download/simpleui_linux_amd64.zip
+curl -LO https://github.com/salvatoresaba/simpleui/releases/latest/download/simpleui_linux_amd64.zip
 unzip simpleui_linux_amd64.zip && ./simpleui version
 
 # Windows (PowerShell)
-Invoke-WebRequest -OutFile simpleui_windows_amd64.zip https://github.com/<owner>/<repo>/releases/latest/download/simpleui_windows_amd64.zip
+Invoke-WebRequest -OutFile simpleui_windows_amd64.zip https://github.com/salvatoresaba/simpleui/releases/latest/download/simpleui_windows_amd64.zip
 Expand-Archive simpleui_windows_amd64.zip
 .\simpleui.exe version
 ```

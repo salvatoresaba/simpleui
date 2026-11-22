@@ -18,7 +18,7 @@ package accordion
 const Runtime = `(function(){ ... })();`
 ```
 
-Control tests use `package <control>_test` and import `example.com/simpleui`
+Control tests use `package <control>_test` and import `github.com/salvatoresaba/simpleui`
 for the shared compiler and designer helpers exported by `testapi.go`.
 
 ## External component catalog

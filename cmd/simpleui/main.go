@@ -1,6 +1,6 @@
 package main
 
-import sui "example.com/simpleui"
+import sui "github.com/salvatoresaba/simpleui"
 
 func main() {
 	sui.Main()
