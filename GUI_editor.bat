@@ -33,6 +33,9 @@ if not exist "%BIN%" (
 
 REM Avvia l'editor GUI. Gli argomenti extra sono passati al comando gui,
 REM per esempio: GUI_editor.bat percorso\file.sui
+REM "start" risolve solo il path assoluto del programma: con un path
+REM relativo il comando non trova l'eseguibile.
+for %%I in ("%BIN%") do set "BIN=%%~fI"
 start "" "%BIN%" gui %*
 
 echo Editor GUI avviato. Il browser dovrebbe aprirsi automaticamente.
