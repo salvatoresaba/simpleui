@@ -1,0 +1,251 @@
+# functions
+func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem
+func AppendInlineSourceMap(code string, mapJSON string, kind string) string
+func ApplyDefaultSecurityFile(dir string) ([]string, error)
+func ArgsAfter(args []string, n int) []string
+func AsBool(v JVal) bool
+func AsStr(v JVal) string
+func AstJsonFromSource(source string, file string) (string, DiagList)
+func BuildDesktop(prog *Prog, outDir string, allowExec []string, allowDirs []string)
+func BuildDesktopWebview(prog *Prog, outDir string, allowExec []string, allowDirs []string)
+func BuildSingleHTML(prog *Prog, minify bool) string
+func BuildSingleHTMLOpts(prog *Prog, minify bool, sourcemap bool) string
+func BuildWebInto(entryFile string, outDir string, hr *HotReloader, notify bool) error
+func BuildWebIntoOpts(entryFile string, outDir string, hr *HotReloader, notify bool, sourcemap bool) error
+func Check(prog *Prog) DiagList
+func CmdAppearance(args []string)
+func CmdAssociate(args []string)
+func CmdBuild(args []string)
+func CmdCheck(args []string)
+func CmdDocs(args []string)
+func CmdFmt(args []string)
+func CmdGui(args []string)
+func CmdLsp(args []string)
+func CmdMcp(args []string)
+func CmdParse(args []string)
+func CmdServe(args []string)
+func CombineSingleHTML(index string, css string, js string, minify bool) string
+func DefaultSecurity() SecurityConfig
+func DefaultSecurityPolicy() SecurityConfig
+func DesignerElementFrom(elem *Element, seen map[string]bool) JVal
+func DesktopMainSource(allowExec []string, allowDirs []string) string
+func DesktopWebviewMainSource(allowExec []string, allowDirs []string, title string) string
+func EscapeJsStr(s string) string
+func EscapeJsTemplate(s string) string
+func ExprToJs(e *Expr) string
+func ExtractTokens(s *CssSheet) []CssToken
+func Fatal(format string, args ...interface{}) error
+func FindElementByTag(p *Prog, tag string) *Element
+func FindHeadlessBrowser() string
+func FormatSource(source string, file string) (string, *DiagList)
+func GUIBuildFiles(src string) (string, string, string, JVal, bool)
+func GUITestMux() *http.ServeMux
+func GenCss(s *CssSheet) string
+func GenerateCss(p *Prog) string
+func GenerateCssWithSourceMap(p *Prog, sourceBase string) (string, string)
+func GenerateHtmlPage(p *Prog) string
+func GenerateIndexHtml(p *Prog) string
+func GenerateJs(p *Prog) string
+func GenerateJsFor(p *Prog, target string) string
+func GenerateJsFromInline(t *testing.T, src string) string
+func GenerateJsWithSourceMap(p *Prog, target string, sourceBase string) (string, string)
+func Get(o JVal, key string) JVal
+func GuiCssSetBatch(css string, class string, declsJson string) JVal
+func GuiCssSetSelectors(css string, selectorsJson string, atRule string, declsJson string) JVal
+func GuiModelJSON(prog *Prog) JVal
+func GuiOpen(src string) (JVal, JVal, bool)
+func HyphenLanguagesJSON() string
+func HyphenPatternCodes(codes []string) []string
+func InjectGuiTestScript(script string) string
+func IsAsyncBuiltin(name string) bool
+func IsBuiltin(name string) bool
+func IsCoreModule(name string) bool
+func IsStdModule(name string) bool
+func JArr(items ...interface{}) JVal
+func JBool(b bool) JVal
+func JInt(i int) JVal
+func JNull() JVal
+func JNum(f float64) JVal
+func JObj(vals ...interface{}) JVal
+func JStr(s string) JVal
+func Lex(source string, file string) ([]Token, DiagList)
+func ListenLocal() (net.Listener, error)
+func LoadAppearanceLibraryPayload(projectDir string) []byte
+func LoadProgram(entryFile string) (*Prog, DiagList)
+func LoadSecurityFile(path string) (SecurityConfig, []string, error)
+func Main()
+func NewExprPart(e *Expr) StrPart
+func NewHotReloader() *HotReloader
+func NewLocalServer(handler http.Handler) *httptest.Server
+func NewSType(kind string) *SType
+func NewSpan(file string, line int, col int) Span
+func NewTextPart(text string) StrPart
+func PageTitle(p *Prog) string
+func ParseCss(src string) *CssSheet
+func ParseJson(s string) (JVal, error)
+func ParseSource(source string, file string) (*Prog, DiagList)
+func PrintHelp()
+func ProgToJson(prog *Prog) string
+func RegisterSource(file string, content string)
+func RenderSui(src string) (bool, string, JVal)
+func RepoPath(parts ...string) string
+func RichTextRuntimeSubset(codes []string) string
+func RichTextToolbarGroups() []RichTextToolbarGroup
+func RichTextToolbarJSON() string
+func RunDesktopBuild(prog *Prog, outDir string, allowExec []string, allowDirs []string) error
+func RunDesktopWebviewBuild(prog *Prog, outDir string, allowExec []string, allowDirs []string) error
+func RunHeadlessFeature(t *testing.T, source string, script string)
+func SecurityForEntry(entryFile string, override string) (SecurityConfig, []string, error)
+func SecurityPathFor(dir string) string
+func SecurityPathOverride() string
+func SetDefaultSecurity(c SecurityConfig)
+func SetSecurityPath(path string)
+func SingleOutputPath(out string) string
+func SourceMapFromMarked(marked string, opts SourceMapOptions) (string, string)
+func Specificity(sel string) CssSpecificity
+func SplitFlag(arg string) (name string, value string, hasValue bool)
+func StatementsToJs(stmts []*Stmt) string
+func StdLookup(full string) (*StdFunc, bool)
+func StringifyJson(v JVal) string
+func UsageError(msg string)
+func ViewNodesSource(nodes []ViewNode, ind int) string
+func ViewStateRefs(v *ViewDecl) []string
+func WriteFileTo(dir string, name string, content string)
+func WriteRawHandler(w http.ResponseWriter, ct string, body string)
+
+# types
+type AppearanceAnimationJSON
+type AppearanceControlJSON
+type AppearanceDefinitionsJSON
+type AppearanceFeedbackJSON
+type AppearanceLibraryJSON
+type AppearanceVariantJSON
+type Attr
+type Builtin
+type Checker
+type ComponentEntryJSON
+type ComponentGroupJSON
+type ComponentLibraryJSON
+type ComponentNodeJSON
+type ComputedDecl
+type ConstDecl
+type CssDecl
+type CssDiag
+type CssNode
+type CssProblem
+type CssSheet
+type CssSpan
+type CssSpecificity
+type CssToken
+type Diag
+type DiagList
+type DocEntry
+type DocInvariant
+type DocRecipe
+type DocsManifest
+type Element
+type EnumDecl
+type Expr
+type Field
+type FmtComment
+type FnSig
+type FuncDecl
+type GuiTpl
+type HotReloader
+type HyphenLangOption
+type I18nDecl
+type I18nMessage
+type ImportDecl
+type JVal
+type JsCtx
+type JsonParse
+type Loader
+type Param
+type Parser
+type Prog
+type RefAcc
+type RichTextToolbarGroup
+type SType
+type Scope
+type SecurityConfig
+type SourceMapOptions
+type Span
+type StateDecl
+type StdFunc
+type Stmt
+type StrPart
+type SwitchCase
+type Token
+type TypeDecl
+type VarEntry
+type ViewDecl
+type ViewGen
+type ViewNode
+type Wire
+
+# constants
+const AccordionRuntime
+const CarouselRuntime
+const ChartRuntime
+const ComboboxRuntime
+const CommandbarRuntime
+const DatePickerRuntime
+const DrawerRuntime
+const FeatureScriptHead
+const FeatureScriptTail
+const GUIComponentLibraryJS
+const GuiPreviewPicker
+const HyphenPatternsEnd
+const HyphenPatternsStart
+const MenuRuntime
+const ModalRuntime
+const OverlayRuntime
+const PopoverRuntime
+const RichTextCSS
+const RichTextRuntime
+const RichTextRuntimeMarker
+const SplitterRuntime
+const StepperRuntime
+const SuiCssBase
+const TableRuntime
+const TabsRuntime
+const ToastRuntime
+const TokenPlaceholder
+const TooltipRuntime
+const TreeRuntime
+
+# variables
+var AppName
+var AppTagline
+var AppVersion
+var Builtins
+var CoreModules
+var GuiHTML
+var GuiPage
+var HyphenOptions
+var HyphenPatterns
+var KnownStateNames
+var StdFuncs
+var StdModules
+var SuiPrelude
+var SuiWsClass
+
+# methods
+CssSpecificity.String
+(*DiagList).Add
+(*DiagList).AddEx
+(*DiagList).AddHint
+(*DiagList).Count
+(*DiagList).Extend
+(*DiagList).FullString
+(*DiagList).HasErrors
+(*DiagList).Kind
+(*DiagList).Print
+(*DiagList).String
+(*DiagList).WarningCount
+(*HotReloader).NotifyBuild
+(*HotReloader).ServeSSE
+(*Prog).Views
+SecurityConfig.Normalized
+(*ViewDecl).Body
+
