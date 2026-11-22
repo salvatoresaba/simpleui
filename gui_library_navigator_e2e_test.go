@@ -2,7 +2,6 @@ package sui
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -25,7 +24,7 @@ func TestGuiLibraryNavigatorE2E(t *testing.T) {
 }`
 	const library = `{"ok":true,"source":"components/library.json","groups":[{"id":"cards","label":"Cards","components":[{"id":"metric","label":"Metric card","kind":"card","default":true,"class":"lib-metric","css":".lib-metric { padding: 12px; border-radius: 12px; background: #111827; color: #ffffff; }","children":[{"kind":"p","text":"Revenue"}]}]},{"id":"inputs","label":"Inputs","components":[{"id":"search","label":"Search bar","kind":"row","default":true,"class":"lib-search","css":".lib-search { display: flex; gap: 8px; }"}]}]}`
 	page := injectGuiTestScript(guiLibraryNavigatorScript)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

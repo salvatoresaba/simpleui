@@ -3,7 +3,6 @@ package sui
 import (
 	"context"
 	"encoding/base64"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -33,7 +32,7 @@ func TestGuiSpinnerImageE2E(t *testing.T) {
 	spinner "Loading"
 }`
 	page := injectGuiTestScript(guiSpinnerImageScript)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

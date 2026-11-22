@@ -2,7 +2,6 @@ package sui
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -28,7 +27,7 @@ view main {
 }`
 	const library = `{"ok":true,"source":"components/library.json","groups":[{"id":"custom","label":"Custom","components":[{"id":"lib-new","label":"New default","kind":"card","default":true,"class":"lib-new","css":".lib-new { padding: 12px; border-radius: 12px; background: #0ea5e9; color: #ffffff; }"}]}]}`
 	page := injectGuiTestScript(guiComponentFallbackScript)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

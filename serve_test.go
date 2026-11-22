@@ -2,7 +2,6 @@ package sui
 
 import (
 	"bufio"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -44,7 +43,7 @@ func TestServeHotReloadEndpoints(t *testing.T) {
 		t.Fatalf("build: %v", err)
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

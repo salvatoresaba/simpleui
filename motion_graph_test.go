@@ -3,9 +3,7 @@ package sui
 import (
 	"context"
 	"encoding/json"
-	"net"
 	"net/http"
-	"net/http/httptest"
 	"os/exec"
 	"strings"
 	"testing"
@@ -16,6 +14,35 @@ func suiGraphLiteral(v any) string {
 	b, _ := json.Marshal(v)
 	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, `{`, `\{`, `}`, `\}`)
 	return r.Replace(string(b))
+}
+
+// motionEnabledScript emulates a browser that allows animations. The motion
+// runtime reads prefers-reduced-motion once, when the generated app script
+// runs, so the override has to be installed before it: it is injected right
+// after <body>. A headless Windows runner reports "reduce" (the server OS
+// has no client-area animation), which would make every transition instant
+// and silently skip the tween, the cancel event and the exit clone.
+const motionEnabledScript = `<script>
+(function () {
+  var native = window.matchMedia;
+  function fake(media, matches) {
+    return { matches: matches, media: media, onchange: null,
+      addListener: function () {}, removeListener: function () {},
+      addEventListener: function () {}, removeEventListener: function () {},
+      dispatchEvent: function () { return false; } };
+  }
+  window.matchMedia = function (q) {
+    var media = String(q);
+    if (/prefers-reduced-motion/.test(media)) return fake(media, false);
+    if (native) return native.call(window, q);
+    return fake(media, false);
+  };
+})();
+</script>`
+
+// withMotionEnabled injects the animation emulation into a compiled page.
+func withMotionEnabled(page string) string {
+	return strings.Replace(page, "<body>", "<body>"+motionEnabledScript, 1)
 }
 
 func TestMotionGraphAttrs(t *testing.T) {
@@ -166,6 +193,8 @@ const motionGraphScript = `<script>
         if (samples[k] > before && samples[k] < 360) { mid = samples[k]; break; }
       }
     }
+    // The tween must be observable: the emulation above enables animations
+    // explicitly, so a missing intermediate frame is a real failure.
     if (!(mid > before && mid < 360)) throw new Error('width did not tween: ' + mid);
 
     var end = await until(function () {
@@ -310,7 +339,7 @@ func TestMotionGraphEdgeCasesE2E(t *testing.T) {
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
@@ -582,12 +611,13 @@ func TestMotionGraphLoopsAndEventsE2E(t *testing.T) {
 		t.Fatalf("build files: %s", StringifyJson(diags))
 	}
 	page := CombineSingleHTML(index, css, js, false)
+	page = withMotionEnabled(page)
 	if idx := strings.LastIndex(page, "</body>"); idx >= 0 {
 		page = page[:idx] + motionGraphLoopsScript + page[idx:]
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
@@ -994,12 +1024,13 @@ func TestMotionGraphGuardsGesturesExitE2E(t *testing.T) {
 		t.Fatalf("build files: %s", StringifyJson(diags))
 	}
 	page := CombineSingleHTML(index, css, js, false)
+	page = withMotionEnabled(page)
 	if idx := strings.LastIndex(page, "</body>"); idx >= 0 {
 		page = page[:idx] + motionGraphGuardsGesturesExitScript + page[idx:]
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
@@ -1113,7 +1144,7 @@ func TestMotionGraphReducedMotionE2E(t *testing.T) {
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
@@ -1215,7 +1246,7 @@ func TestMotionGraphVisibilityFallbackE2E(t *testing.T) {
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
@@ -1276,6 +1307,7 @@ func TestMotionGraphE2E(t *testing.T) {
 		t.Fatalf("build files: %s", StringifyJson(diags))
 	}
 	page := CombineSingleHTML(index, css, js, false)
+	page = withMotionEnabled(page)
 	if idx := strings.LastIndex(page, "</body>"); idx >= 0 {
 		page = page[:idx] + motionGraphScript + page[idx:]
 	} else {
@@ -1285,7 +1317,7 @@ func TestMotionGraphE2E(t *testing.T) {
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
-	server := httptest.NewServer(mux)
+	server := NewLocalServer(mux)
 	defer server.Close()
 	url := server.URL + "/"
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)

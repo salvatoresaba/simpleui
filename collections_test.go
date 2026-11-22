@@ -2,7 +2,6 @@ package sui
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -141,7 +140,7 @@ func TestCollectionBuiltinsRuntimeE2E(t *testing.T) {
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

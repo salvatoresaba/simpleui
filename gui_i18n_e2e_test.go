@@ -2,7 +2,6 @@ package sui
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -29,7 +28,7 @@ func TestGuiI18nEditorE2E(t *testing.T) {
 		t.Skip("no Chrome/Edge found; skipping i18n designer test")
 	}
 	page := injectGuiTestScript(guiI18nScript)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

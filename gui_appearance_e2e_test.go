@@ -2,7 +2,6 @@ package sui
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -25,7 +24,7 @@ func TestGuiAppearanceLibraryE2E(t *testing.T) {
 	}
 }`
 	page := injectGuiTestScript(guiAppearanceScript)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

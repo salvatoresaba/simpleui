@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"image/png"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -46,7 +45,7 @@ func TestGuiThemeVisualE2E(t *testing.T) {
 		t.Fatal("designer page has no closing body")
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
@@ -430,7 +429,7 @@ func TestGuiThemeScreenshotGolden(t *testing.T) {
 		pages[id] = page
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

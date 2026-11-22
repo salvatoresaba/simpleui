@@ -5,7 +5,6 @@ import . "github.com/salvatoresaba/simpleui"
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"os/exec"
 	"strings"
 	"testing"
@@ -184,7 +183,7 @@ view main {
 		"</style></head><body><div id=\"app\"></div><script>" + js + "</script>" +
 		treeRuntimeE2EScript + "</body></html>"
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := NewLocalServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte(html))
 	}))

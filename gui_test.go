@@ -1,7 +1,6 @@
 package sui
 
 import "fmt"
-import "net"
 import "net/http"
 import "net/url"
 import "os"
@@ -14,7 +13,7 @@ import "time"
 // compile-and-preview endpoint.
 
 func startGui(t *testing.T, keep bool) string {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

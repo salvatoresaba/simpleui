@@ -2,7 +2,6 @@ package sui
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -151,7 +150,7 @@ func TestI18nRuntimeE2E(t *testing.T) {
 	} else {
 		t.Fatal("compiled page has no closing body")
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
@@ -161,7 +160,11 @@ func TestI18nRuntimeE2E(t *testing.T) {
 		writeRawHandler(w, "text/html; charset=utf-8", page)
 	})
 	go func() { _ = http.Serve(ln, mux) }()
-	url := "http://" + ln.Addr().String() + "/"
+	// The runtime picks the active locale from ?locale=, then localStorage,
+	// then the browser languages. The browser default differs per machine
+	// (the CI runner reports en-US), so pin the locale explicitly and keep
+	// the assertion on the catalog behavior, not on the host environment.
+	url := "http://" + ln.Addr().String() + "/?locale=it"
 	time.Sleep(50 * time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -209,7 +212,7 @@ const i18nScript = `<script>
   try {
     await wait(500);
     var text = document.body.innerText;
-    assert(text.indexOf('locale: it') >= 0, 'default locale is not it: ' + text);
+    assert(text.indexOf('locale: it') >= 0, 'locale is not it: ' + text);
     assert(text.indexOf('save: Salva') >= 0, 'italian message missing: ' + text);
     assert(text.indexOf('items: 1 elemento') >= 0, 'italian singular missing: ' + text);
     assert(text.indexOf('available: it,en,ar') >= 0, 'available locales missing: ' + text);
@@ -279,7 +282,7 @@ func TestI18nLocaleQueryParam(t *testing.T) {
 		t.Fatalf("check: %v", dl.String())
 	}
 	page := CombineSingleHTML(GenerateIndexHtml(prog), GenerateCss(prog), GenerateJs(prog), false)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := ListenLocal()
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}

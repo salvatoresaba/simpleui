@@ -3,7 +3,6 @@ package sui
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,7 +41,7 @@ view main {
 	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte(page), 0o644); err != nil {
 		t.Fatalf("write page: %v", err)
 	}
-	srv := httptest.NewServer(http.FileServer(http.Dir(dir)))
+	srv := NewLocalServer(http.FileServer(http.Dir(dir)))
 	defer srv.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()

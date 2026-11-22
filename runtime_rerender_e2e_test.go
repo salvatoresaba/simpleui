@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -84,7 +83,7 @@ view main {
 	if err := os.WriteFile(filepath.Join(dir, "pixel.png"), pixel, 0o644); err != nil {
 		t.Fatalf("write pixel: %v", err)
 	}
-	srv := httptest.NewServer(http.FileServer(http.Dir(dir)))
+	srv := NewLocalServer(http.FileServer(http.Dir(dir)))
 	defer srv.Close()
 	pageURL := srv.URL + "/index.html"
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)

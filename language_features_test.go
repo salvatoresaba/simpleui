@@ -365,7 +365,8 @@ view main {
     if (text.indexOf('1.234,50') < 0) throw new Error('currency: ' + text);
     if (text.indexOf('25.6%') < 0) throw new Error('percent: ' + text);
     if (text.indexOf('2 days ago') < 0) throw new Error('relative: ' + text);
-    if (!/[A-Za-z]+\/[A-Za-z_]+/.test(text)) throw new Error('timezone missing: ' + text);
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!tz || text.indexOf(tz) < 0) throw new Error('timezone missing: ' + tz + ' | ' + text);
 `+featureScriptTail)
 
 	bad := []struct{ name, src, want string }{

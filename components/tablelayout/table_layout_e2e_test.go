@@ -5,7 +5,6 @@ import . "github.com/salvatoresaba/simpleui"
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"os/exec"
 	"strings"
 	"testing"
@@ -85,7 +84,7 @@ func TestGuiTableLayoutVisualE2E(t *testing.T) {
 		res := GuiCssSetSelectors(r.PostFormValue("css"), r.PostFormValue("selectors"), r.PostFormValue("at"), r.PostFormValue("decls"))
 		WriteRawHandler(w, "application/json; charset=utf-8", StringifyJson(res))
 	})
-	server := httptest.NewServer(mux)
+	server := NewLocalServer(mux)
 	defer server.Close()
 
 	url := server.URL + "/"
