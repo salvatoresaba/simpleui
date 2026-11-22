@@ -371,9 +371,15 @@ const tableLayoutE2EScript = `<script>
     mc0 = cell(0, 0); mc1 = cell(0, 1);
 
     // Split drag: the column widths must be written back.
-    doc = frameDoc();
-    var handle = doc.querySelector('.sui-layout-split-v');
+    // The span reset above re-rendered the preview, so the split handle is
+    // not in the frame yet: wait for it instead of reading it once.
+    var handle = await until(function () {
+      var d = frameDoc();
+      var h = d && d.querySelector('.sui-layout-split-v');
+      return h ? h : null;
+    }, 8000);
     if (!handle) throw new Error('split handle not found');
+    doc = frameDoc();
     var hr = handle.getBoundingClientRect();
     handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, clientX: hr.left + 6, clientY: hr.top + 10 }));
     doc.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: hr.left + 34, clientY: hr.top + 10 }));
