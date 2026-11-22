@@ -16,6 +16,8 @@ documentazione. L'eseguibile è un sottile wrapper `package main` in
 compilatore. I test trasversali restano nella radice, quelli dei controlli sono
 `package <controllo>_test`. La pagina del designer e i font PDF sono file in
 `assets/` inclusi con `go:embed`; `scripts/verify.ps1` esegue tutte le verifiche.
+Il module path `example.com/simpleui` è un placeholder: va sostituito con
+l'URL del repository prima di pubblicare il compilatore come libreria Go.
 
 ## 2. Linguaggio SUI
 

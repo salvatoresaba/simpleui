@@ -71,6 +71,9 @@ go build -o simpleui ./cmd/simpleui
 go build -o simpleui.exe ./cmd/simpleui
 ```
 
+Il module path è ancora il placeholder `example.com/simpleui`: va sostituito
+con l'URL del repository prima di importare il compilatore come libreria Go.
+
 Verifica l'installazione:
 
 ```bash
@@ -80,6 +83,33 @@ Verifica l'installazione:
 # Su Windows
 .\simpleui.exe version
 ```
+
+## Release
+
+I binari precompilati sono pubblicati come GitHub Releases: ogni tag `v*`
+compila il compilatore per Windows, Linux e macOS (`amd64` e `arm64`). Ogni
+release contiene un archivio per target e un file `SHA256SUMS`.
+
+```bash
+# Linux/macOS
+curl -LO https://github.com/<owner>/<repo>/releases/latest/download/simpleui_linux_amd64.zip
+unzip simpleui_linux_amd64.zip && ./simpleui version
+
+# Windows (PowerShell)
+Invoke-WebRequest -OutFile simpleui_windows_amd64.zip https://github.com/<owner>/<repo>/releases/latest/download/simpleui_windows_amd64.zip
+Expand-Archive simpleui_windows_amd64.zip
+.\simpleui.exe version
+```
+
+Verifica il download prima di eseguirlo:
+
+```bash
+sha256sum --check SHA256SUMS
+```
+
+Gli archivi sono prodotti da `.github/workflows/release.yml` dallo stesso
+sorgente del workflow CI; la release non è firmata, quindi controlla i
+checksum.
 
 ## Uso rapido
 
@@ -527,5 +557,6 @@ simpleui mcp
 
 ## Licenza
 
-Questo progetto è in stato **0.1.0-alpha**. Usa con consapevolezza in ambienti di sviluppo/sperimentazione.
+MIT — vedi [`LICENSE`](LICENSE). Il progetto è in stato **0.1.0-alpha**: usa
+con consapevolezza in ambienti di sviluppo/sperimentazione.
 

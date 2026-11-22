@@ -72,6 +72,9 @@ go build -o simpleui ./cmd/simpleui
 go build -o simpleui.exe ./cmd/simpleui
 ```
 
+The module path is still the placeholder `example.com/simpleui`: rename it to
+the repository URL before importing the compiler as a Go library.
+
 Verify the installation:
 
 ```bash
@@ -81,6 +84,32 @@ Verify the installation:
 # On Windows
 .\simpleui.exe version
 ```
+
+## Releases
+
+Prebuilt binaries are published as GitHub Releases: every tag `v*` builds the
+compiler for Windows, Linux and macOS (`amd64` and `arm64`). Each release
+contains one archive per target plus a `SHA256SUMS` file.
+
+```bash
+# Linux/macOS
+curl -LO https://github.com/<owner>/<repo>/releases/latest/download/simpleui_linux_amd64.zip
+unzip simpleui_linux_amd64.zip && ./simpleui version
+
+# Windows (PowerShell)
+Invoke-WebRequest -OutFile simpleui_windows_amd64.zip https://github.com/<owner>/<repo>/releases/latest/download/simpleui_windows_amd64.zip
+Expand-Archive simpleui_windows_amd64.zip
+.\simpleui.exe version
+```
+
+Verify the download before running it:
+
+```bash
+sha256sum --check SHA256SUMS
+```
+
+The archives are built by `.github/workflows/release.yml` from the same source
+as the CI workflow; the release is not signed, so check the checksums.
 
 ## Quick start
 
@@ -283,3 +312,8 @@ change.
 ## Implementation status
 
 The verified status is tracked in [`TODO.md`](TODO.md). WebSocket reconnect, advanced filesystem operations, crypto and multipart upload are **not** complete yet and are not exposed as stable APIs. Clipboard, storage, timers, regex, validation, tables, the core HTTP/WebSocket safe guards and opt-in JS/CSS source maps are implemented.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE). The project is at **0.1.0-alpha**: use it with
+awareness in development and experimental environments.

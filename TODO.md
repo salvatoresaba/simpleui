@@ -311,6 +311,12 @@ Known accuracy corrections from the previous TODO:
 - [ ] **Benchmarks** for parse/typecheck/build
 - [ ] **Cross-platform CI** — Windows/Linux/macOS matrix
 - [ ] **Desktop executable e2e on CI** — run the produced binary headlessly
+- [x] **Release workflow** — prebuilt binaries for Windows/Linux/macOS on amd64
+      and arm64, one archive per target plus `SHA256SUMS`
+      (`.github/workflows/release.yml`, triggered by a `v*` tag)
+- [x] **MIT license** — `LICENSE` at the repository root
+- [ ] **Module path** — `example.com/simpleui` is still a placeholder: rename it
+      to the repository URL before publishing the compiler as a Go library
 
 ## 7. Security & Desktop Bridge
 

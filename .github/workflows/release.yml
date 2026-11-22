@@ -1,0 +1,119 @@
+name: Release
+
+# Publishes the prebuilt compiler binaries for every tag `v*`:
+# Windows, Linux and macOS on amd64 and arm64.
+#
+# The release is created with the `gh` CLI (already present on the runners)
+# instead of a third-party action: the project has no external dependency.
+# The archives are not signed, so the release ships a SHA256SUMS file.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify
+        run: pwsh scripts/verify.ps1
+
+  build:
+    name: ${{ matrix.goos }}-${{ matrix.goarch }}
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build the compiler
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          ext=""
+          if [ "$GOOS" = "windows" ]; then ext=".exe"; fi
+          # The compiler is pure Go: it cross-compiles without a C toolchain.
+          CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" \
+            -o "dist/simpleui${ext}" ./cmd/simpleui
+          cp README.md LICENSE dist/
+          cd dist
+          zip "simpleui_${GOOS}_${GOARCH}.zip" "simpleui${ext}" README.md LICENSE
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: simpleui-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          cd artifacts
+          find . -name '*.zip' -print0 | sort -z | xargs -0 sha256sum \
+            | sed 's#\./##' > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cd artifacts
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" ./*.zip ./SHA256SUMS --clobber
+          else
+            gh release create "$TAG" ./*.zip ./SHA256SUMS \
+              --verify-tag --generate-notes --title "$TAG"
+          fi

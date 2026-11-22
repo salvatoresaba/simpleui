@@ -78,6 +78,9 @@ Completati di recente:
 - [x] Libreria JSON: JSON Pointer (RFC 6901), JSON Patch (RFC 6902), Merge Patch (RFC 7386), diff con chiavi e spostamenti, `merge3`, `validateAll`, byte UTF-8/UTF-16 e helper desktop `loadFile`/`saveFile`/`loadBytes`/`saveBytes`.
 - [x] Editor di testo avanzato: modello JSON, toolbar/menu/contestuale e barra di stato, modelli, undo/redo, plugin, apertura/salvataggio TXT/RTF/DOC/DOCX/ODT, export PDF e import/export JSON/HTML/Markdown/XML.
 
+- [x] Workflow di release: binari precompilati per Windows/Linux/macOS su amd64 e arm64, un archivio per target più `SHA256SUMS` (`.github/workflows/release.yml`, attivato da un tag `v*`).
+- [x] Licenza MIT: file `LICENSE` nella root del repository.
+
 ## Correzioni di accuratezza
 
 - fs avanzato, crypto, path utilities, JSON Schema, storage quota/sync e source map opt-in sono ora implementati e documentati.

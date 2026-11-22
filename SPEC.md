@@ -16,7 +16,8 @@ The repository uses a hybrid layout. The module root is an importable library
 implementation. The executable is a thin `package main` wrapper under
 `cmd/simpleui`, so `go build -o simpleui.exe ./cmd/simpleui` works from the
 module root while control packages can import `example.com/simpleui` without an
-import cycle. Browser runtimes and their tests live under
+import cycle. `example.com/simpleui` is a placeholder: it must be replaced by
+the repository URL before the compiler is published as a Go library. Browser runtimes and their tests live under
 `components/<control>/`; each package exports `Runtime` and root
 `component_runtimes.go` keeps stable aliases for compiler call sites.
 
