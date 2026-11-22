@@ -214,6 +214,16 @@ With a file argument the editor opens that file immediately and **Save** writes
 back to the same path. Use `--port N` for a fixed editor port and
 `--security <file>` for an explicit policy.
 
+On Windows and Linux/macOS the repository also ships one-click launchers:
+`GUI_editor.bat` and `GUI_editor.sh`. They start the editor from the
+repository root and compile the compiler automatically if the binary is
+missing, so they work on a fresh checkout:
+
+```bash
+./GUI_editor.bat                    # Windows
+./GUI_editor.sh examples/counter.sui # Linux/macOS, optional file argument
+```
+
 On Windows you can associate `.sui` files with the editor once:
 
 ```bash

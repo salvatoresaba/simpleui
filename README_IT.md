@@ -250,6 +250,10 @@ Fai doppio clic su `GUI_editor.bat` oppure esegui da terminale:
 GUI_editor.bat
 ```
 
+Gli script avviano l'editor dalla root del repository e **compilano il
+compilatore se manca**, quindi funzionano anche su un checkout appena clonato.
+Accettano anche un file da aprire: `GUI_editor.bat percorso\file.sui`.
+
 **Linux/macOS:**
 
 Rendi eseguibile lo script (solo la prima volta):
@@ -263,6 +267,9 @@ Avvialo:
 ```bash
 ./GUI_editor.sh
 ```
+
+Come su Windows, lo script compila il compilatore se manca e accetta un file
+da aprire: `./GUI_editor.sh percorso/file.sui`.
 
 In alternativa, puoi sempre usare il comando diretto:
 
