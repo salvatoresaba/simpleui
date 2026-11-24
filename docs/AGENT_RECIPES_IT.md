@@ -431,11 +431,18 @@ fn boot() -> null {
   al backend, mai flag locali: solo il backend sa quali unita' sono gia' fatte.
 - Mostra gli errori del backend come sono. Una parte fallita e' un errore
   vero, non una riga vuota.
+- Lascia ripartire da sola un'unita' fallita. L'endpoint riceve il numero
+  dell'unita' e rimette in coda solo quella; l'operatore la seleziona nella
+  tabella, quindi la tabella deve conservare la selezione (un refresh la
+  azzera).
+- Separa la vista live dai dati: barre e contatori per l'avanzamento, le
+  tabelle in un'altra tab, cosi' lo schermo resta leggibile.
 
 Vedi [`examples/download_manager/`](../examples/download_manager/README.md) per
-l'esempio completo: un backend Go che divide un file in parti, scarica ogni
-parte con una richiesta `Range` propria, conserva i byte di una parte in pausa
-e ricompone il file con un controllo SHA-256.
+l'esempio completo: un backend Go che scarica l'URL indicato sulla riga di
+comando, divide il file in parti, scarica ogni parte con una richiesta
+`Range` propria, conserva i byte di una parte in pausa, riavvia da solo una
+parte fallita e ricompone il file con un controllo della dimensione.
 
 ## Desktop files and commands
 

@@ -1,28 +1,31 @@
 // download_manager — the Go backend of the SimpleUI "Download manager" example.
 //
-// It does three things on one origin:
+// It serves the compiled SimpleUI app and drives chunked downloads:
 //
-//	GET  /                        the compiled SimpleUI app (assets from --web-dir)
-//	GET  /files/{name}            a file to download, with HTTP Range support
-//	GET  /api/files               the catalog of downloadable files
-//	POST /api/downloads            start a chunked download
-//	GET  /api/downloads            status of the download jobs
-//	POST /api/downloads/{id}/{act} pause | resume | cancel
-//	GET  /api/downloads/{id}/file  the reassembled file
+//	GET  /                            the compiled SimpleUI app (assets from --web-dir)
+//	GET  /files/{name}                a local file, for offline demos
+//	GET  /api/config                  the CLI configuration (default URL, part size, ...)
+//	GET  /api/downloads               the jobs, most recent first
+//	POST /api/downloads               start a job: {"url": "...", "partSize": "1 MiB"}
+//	POST /api/downloads/{id}/{act}    pause | resume | cancel
+//	POST /api/downloads/{id}/parts/{n}/retry    retry one failed part
+//	POST /api/downloads/{id}/retry-failed       retry every failed part
+//	GET  /api/downloads/{id}/file     the reassembled file
 //
 // The point of the example is the download manager itself: the file is split
 // into parts according to its size, every part is fetched with its own Range
 // request, the parts are tracked one by one, a pause keeps the bytes already
-// downloaded, and the parts are finally concatenated and verified against the
-// SHA-256 of the original file.
+// downloaded, a failed part can be retried alone and the parts are finally
+// concatenated and checked against the size the server announced.
+//
+// The CLI takes the URL to download and the other configuration parameters:
+//
+//	dm.exe --url https://example.com/file.bin --part-size 1 MiB --workers 4
 //
 // Run it after building the app:
 //
 //	simpleui build app.sui --target web --out public
-//	cd server && go run . --port 8090 --web-dir ../public
-//
-// The example ships run.ps1 / run.bat which do both steps and open the
-// browser.
+//	cd server && go run . --port 8090 --web-dir ../public --url https://example.com/file.bin
 
 package main
 
@@ -35,11 +38,11 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,11 +60,13 @@ type Part struct {
 	Percent  int    `json:"Percent"`
 	State    string `json:"State"`
 	Error    string `json:"Error,omitempty"`
+	Attempts int    `json:"Attempts"`
 }
 
-// Job is one download: the file, how it was split, and how far it got.
+// Job is one download: the target URL, how it was split and how far it got.
 type Job struct {
 	ID       string `json:"id"`
+	URL      string `json:"url"`
 	File     string `json:"file"`
 	State    string `json:"state"`
 	PartSize int64  `json:"partSize"`
@@ -74,6 +79,7 @@ type Job struct {
 	ETATx    string `json:"etaText"`
 	PartCnt  int    `json:"partCount"`
 	PartTx   string `json:"partSizeText"`
+	Range    bool   `json:"rangeSupported"`
 	Merged   string `json:"merged"`
 	MergedSz int64  `json:"mergedSize"`
 	SHA      string `json:"sha"`
@@ -83,20 +89,18 @@ type Job struct {
 
 	parts []*Part
 	dir   string
-	src   string
 
-	baseURLValue string
-	clientValue  *http.Client
+	clientValue *http.Client
 
-	mu       sync.Mutex
-	ctx      context.Context
-	cancel   context.CancelFunc
-	wg       sync.WaitGroup
-	workers  int
-	expected string
-	merging  bool
-	seq      int
-	throttle int64
+	mu        sync.Mutex
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
+	workers   int
+	active    int
+	throttle  int64
+	merging   bool
+	expectSHA string
 }
 
 // Manager keeps the jobs of the process.
@@ -105,136 +109,110 @@ type Manager struct {
 	jobs     map[string]*Job
 	order    []string
 	seq      int
+	outDir   string
 	filesDir string
-	workDir  string
-	baseURL  string
 	workers  int
 	throttle int64
+	maxParts int
+	expect   string
+	hosts    []string
 	client   *http.Client
 }
 
 func main() {
-	port := 8090
-	webDir := filepath.Join("..", "public")
-	filesDir := filepath.Join("..", "files")
-	workDir := filepath.Join("..", "downloads")
-	sampleMiB := 24
-	workers := 4
-	throttle := int64(0)
-	noOpen := false
+	opts := options{
+		port:      8090,
+		partSize:  "1 MiB",
+		workers:   4,
+		maxParts:  256,
+		filesDir:  filepath.Join("..", "files"),
+		outDir:    filepath.Join("..", "downloads"),
+		sampleMiB: 24,
+	}
+	opts.parse(os.Args[1:])
 
-	for i := 1; i < len(os.Args); i++ {
-		switch os.Args[i] {
-		case "--port":
-			if i+1 < len(os.Args) {
-				if p, err := strconv.Atoi(os.Args[i+1]); err == nil && p >= 0 && p < 65536 {
-					port = p
-				}
-			}
-			i++
-		case "--web-dir":
-			if i+1 < len(os.Args) {
-				webDir = os.Args[i+1]
-			}
-			i++
-		case "--files-dir":
-			if i+1 < len(os.Args) {
-				filesDir = os.Args[i+1]
-			}
-			i++
-		case "--work-dir":
-			if i+1 < len(os.Args) {
-				workDir = os.Args[i+1]
-			}
-			i++
-		case "--sample-mib":
-			if i+1 < len(os.Args) {
-				if v, err := strconv.Atoi(os.Args[i+1]); err == nil && v > 0 {
-					sampleMiB = v
-				}
-			}
-			i++
-		case "--workers":
-			if i+1 < len(os.Args) {
-				if v, err := strconv.Atoi(os.Args[i+1]); err == nil && v > 0 && v <= 32 {
-					workers = v
-				}
-			}
-			i++
-		case "--throttle":
-			if i+1 < len(os.Args) {
-				if v, err := strconv.ParseInt(os.Args[i+1], 10, 64); err == nil && v >= 0 {
-					throttle = v
-				}
-			}
-			i++
-		case "--no-open":
-			noOpen = true
-		}
-	}
-
-	if err := os.MkdirAll(filesDir, 0o755); err != nil {
-		fmt.Fprintln(os.Stderr, "files dir:", err)
-		os.Exit(1)
-	}
-	if err := os.MkdirAll(workDir, 0o755); err != nil {
-		fmt.Fprintln(os.Stderr, "work dir:", err)
-		os.Exit(1)
-	}
-	sample := filepath.Join(filesDir, "sample.bin")
-	if _, err := os.Stat(sample); os.IsNotExist(err) {
-		if err := generateSample(sample, int64(sampleMiB)); err != nil {
-			fmt.Fprintln(os.Stderr, "sample file:", err)
+	if opts.filesDir != "" {
+		if err := os.MkdirAll(opts.filesDir, 0o755); err != nil {
+			fmt.Fprintln(os.Stderr, "files dir:", err)
 			os.Exit(1)
 		}
-		fmt.Printf("server: created the sample file %s (%d MiB)\n", sample, sampleMiB)
+		sample := filepath.Join(opts.filesDir, "sample.bin")
+		if _, err := os.Stat(sample); os.IsNotExist(err) && opts.sampleMiB > 0 {
+			if err := generateSample(sample, int64(opts.sampleMiB)); err != nil {
+				fmt.Fprintln(os.Stderr, "sample file:", err)
+				os.Exit(1)
+			}
+			fmt.Printf("server: created the sample file %s (%d MiB)\n", sample, opts.sampleMiB)
+		}
+	}
+	if err := os.MkdirAll(opts.outDir, 0o755); err != nil {
+		fmt.Fprintln(os.Stderr, "out dir:", err)
+		os.Exit(1)
 	}
 
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	// Port 0 asks the OS for a free port: the base URL is then built from
 	// the address the listener actually got.
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", opts.port))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "listen:", err)
 		os.Exit(1)
 	}
-	baseURL = "http://" + ln.Addr().String()
+	baseURL := "http://" + ln.Addr().String()
 
 	mgr := &Manager{
 		jobs:     map[string]*Job{},
-		filesDir: filesDir,
-		workDir:  workDir,
-		baseURL:  baseURL,
-		workers:  workers,
-		throttle: throttle,
-		client:   &http.Client{Timeout: 60 * time.Second},
+		outDir:   opts.outDir,
+		filesDir: opts.filesDir,
+		workers:  opts.workers,
+		throttle: opts.throttle,
+		maxParts: opts.maxParts,
+		expect:   strings.ToLower(strings.TrimSpace(opts.expectSHA)),
+		hosts:    opts.allowHosts,
+		client:   &http.Client{Timeout: 120 * time.Second},
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/files", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, mgr.catalog())
-	})
-	mux.HandleFunc("POST /api/downloads", func(w http.ResponseWriter, r *http.Request) {
-		mgr.handleCreate(w, r)
+	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"url":        opts.url,
+			"partSize":   opts.partSize,
+			"workers":    opts.workers,
+			"maxParts":   opts.maxParts,
+			"throttle":   opts.throttle,
+			"outDir":     absPath(opts.outDir),
+			"allowHosts": opts.allowHosts,
+			"expectSHA":  opts.expectSHA,
+		})
 	})
 	mux.HandleFunc("GET /api/downloads", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"jobs": mgr.snapshot()})
 	})
+	mux.HandleFunc("POST /api/downloads", func(w http.ResponseWriter, r *http.Request) {
+		mgr.handleCreate(w, r)
+	})
 	mux.HandleFunc("POST /api/downloads/{id}/{action}", func(w http.ResponseWriter, r *http.Request) {
 		mgr.handleAction(w, r)
+	})
+	mux.HandleFunc("POST /api/downloads/{id}/parts/{index}/retry", func(w http.ResponseWriter, r *http.Request) {
+		mgr.handleRetryPart(w, r)
+	})
+	mux.HandleFunc("POST /api/downloads/{id}/retry-failed", func(w http.ResponseWriter, r *http.Request) {
+		mgr.handleRetryFailed(w, r)
 	})
 	mux.HandleFunc("GET /api/downloads/{id}/file", func(w http.ResponseWriter, r *http.Request) {
 		mgr.handleMergedFile(w, r)
 	})
-	mux.HandleFunc("GET /files/{name}", func(w http.ResponseWriter, r *http.Request) {
-		mgr.handleFile(w, r)
-	})
+	if opts.filesDir != "" {
+		mux.HandleFunc("GET /files/{name}", func(w http.ResponseWriter, r *http.Request) {
+			mgr.handleFile(w, r)
+		})
+	}
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if path == "/" {
 			path = "/index.html"
 		}
-		file := filepath.Join(webDir, filepath.FromSlash(strings.TrimPrefix(path, "/")))
+		file := filepath.Join(opts.webDir, filepath.FromSlash(strings.TrimPrefix(path, "/")))
 		data, err := os.ReadFile(file)
 		if err != nil {
 			http.NotFound(w, r)
@@ -256,55 +234,243 @@ func main() {
 	srv := &http.Server{Handler: cors(logRequests(mux))}
 	go func() { _ = srv.Serve(ln) }()
 
-	url := baseURL + "/"
 	fmt.Println("======================================================")
-	fmt.Printf("download manager + app running at %v\n", url)
-	fmt.Printf("  files dir : %v\n", absPath(filesDir))
-	fmt.Printf("  work dir  : %v\n", absPath(workDir))
-	fmt.Println("  the app calls /api/downloads, /api/files and /api/downloads/{id}/...")
+	fmt.Printf("download manager + app running at %v/\n", baseURL)
+	if opts.url != "" {
+		fmt.Printf("  target url   : %v\n", opts.url)
+	} else {
+		fmt.Println("  target url   : (none, type one in the app)")
+	}
+	fmt.Printf("  part size    : %v\n", opts.partSize)
+	fmt.Printf("  workers      : %v\n", opts.workers)
+	fmt.Printf("  out dir      : %v\n", absPath(opts.outDir))
+	if len(opts.allowHosts) > 0 {
+		fmt.Printf("  allowed hosts: %v\n", strings.Join(opts.allowHosts, ", "))
+	}
+	if opts.filesDir != "" {
+		fmt.Printf("  local files  : %v (try http://%v/files/sample.bin)\n", absPath(opts.filesDir), ln.Addr().String())
+	}
+	fmt.Println("  the app calls /api/downloads, /api/config and /api/downloads/{id}/...")
 	fmt.Println("======================================================")
-	if !noOpen {
-		openBrowser(url)
+	if !opts.noOpen {
+		openBrowser(baseURL + "/")
 	}
 	select {}
 }
 
-// ---------------------------------------------------------------- catalog ---
+// ------------------------------------------------------------------ flags ---
 
-type catalogEntry struct {
-	Name string `json:"Name"`
-	Size int64  `json:"Size"`
-	Text string `json:"SizeText"`
+type options struct {
+	url        string
+	partSize   string
+	workers    int
+	throttle   int64
+	maxParts   int
+	outDir     string
+	webDir     string
+	filesDir   string
+	expectSHA  string
+	allowHosts []string
+	port       int
+	sampleMiB  int
+	noOpen     bool
 }
 
-func (m *Manager) catalog() []catalogEntry {
-	entries, err := os.ReadDir(m.filesDir)
+func (o *options) parse(args []string) {
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--url":
+			if i+1 < len(args) {
+				o.url = strings.TrimSpace(args[i+1])
+			}
+			i++
+		case "--part-size":
+			if i+1 < len(args) {
+				o.partSize = args[i+1]
+			}
+			i++
+		case "--workers":
+			if i+1 < len(args) {
+				if v, err := strconv.Atoi(args[i+1]); err == nil && v > 0 && v <= 32 {
+					o.workers = v
+				}
+			}
+			i++
+		case "--throttle":
+			if i+1 < len(args) {
+				if v, err := strconv.ParseInt(args[i+1], 10, 64); err == nil && v >= 0 {
+					o.throttle = v
+				}
+			}
+			i++
+		case "--max-parts":
+			if i+1 < len(args) {
+				if v, err := strconv.Atoi(args[i+1]); err == nil && v > 0 {
+					o.maxParts = v
+				}
+			}
+			i++
+		case "--out-dir":
+			if i+1 < len(args) {
+				o.outDir = args[i+1]
+			}
+			i++
+		case "--web-dir":
+			if i+1 < len(args) {
+				o.webDir = args[i+1]
+			}
+			i++
+		case "--files-dir":
+			if i+1 < len(args) {
+				o.filesDir = args[i+1]
+			}
+			i++
+		case "--sample-mib":
+			if i+1 < len(args) {
+				if v, err := strconv.Atoi(args[i+1]); err == nil && v >= 0 {
+					o.sampleMiB = v
+				}
+			}
+			i++
+		case "--expect-sha256":
+			if i+1 < len(args) {
+				o.expectSHA = args[i+1]
+			}
+			i++
+		case "--allow-host":
+			if i+1 < len(args) {
+				o.allowHosts = append(o.allowHosts, strings.ToLower(strings.TrimSpace(args[i+1])))
+			}
+			i++
+		case "--port":
+			if i+1 < len(args) {
+				if p, err := strconv.Atoi(args[i+1]); err == nil && p >= 0 && p < 65536 {
+					o.port = p
+				}
+			}
+			i++
+		case "--no-open":
+			o.noOpen = true
+		}
+	}
+}
+
+// ------------------------------------------------------------------- urls ---
+
+// validateTarget checks the URL the operator asked to download. Only http and
+// https are accepted, credentials in the URL are refused and, when the CLI
+// lists the allowed hosts, the host must be one of them.
+func validateTarget(raw string, allowed []string) (*url.URL, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, fmt.Errorf("missing url")
+	}
+	u, err := url.Parse(raw)
 	if err != nil {
-		return []catalogEntry{}
+		return nil, fmt.Errorf("invalid url: %v", err)
 	}
-	out := []catalogEntry{}
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		out = append(out, catalogEntry{
-			Name: e.Name(),
-			Size: info.Size(),
-			Text: humanSize(info.Size()),
-		})
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("unsupported scheme %q: only http and https are allowed", u.Scheme)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
-	return out
+	if u.Host == "" {
+		return nil, fmt.Errorf("invalid url: missing host")
+	}
+	if u.User != nil {
+		return nil, fmt.Errorf("invalid url: credentials are not allowed")
+	}
+	if len(allowed) > 0 {
+		host := strings.ToLower(u.Hostname())
+		ok := false
+		for _, a := range allowed {
+			if a != "" && (a == host || strings.HasSuffix(host, "."+a)) {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return nil, fmt.Errorf("host %q is not in the allowed list", host)
+		}
+	}
+	return u, nil
+}
+
+// fileNameFromURL returns a safe file name for the reassembled file.
+func fileNameFromURL(u *url.URL) string {
+	base := filepath.Base(u.Path)
+	base = strings.TrimSpace(base)
+	if base == "" || base == "." || base == "/" {
+		base = "download.bin"
+	}
+	var b strings.Builder
+	for _, r := range base {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '.' || r == '-' || r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('_')
+		}
+	}
+	name := b.String()
+	if name == "" || name == "." || name == ".." {
+		name = "download.bin"
+	}
+	return name
+}
+
+// probe asks the server for the first byte. A 206 answers with the total
+// size and tells that the server honours the Range requests; a 200 means the
+// server ignored the range and the file cannot be split.
+func probe(ctx context.Context, u *url.URL, client *http.Client) (int64, bool, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return 0, false, err
+	}
+	req.Header.Set("Range", "bytes=0-0")
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, false, err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusPartialContent:
+		total := parseContentRangeTotal(resp.Header.Get("Content-Range"))
+		if total <= 0 {
+			return 0, false, fmt.Errorf("the server did not announce the file size")
+		}
+		return total, true, nil
+	case http.StatusOK:
+		if resp.ContentLength > 0 {
+			return resp.ContentLength, false, nil
+		}
+		return 0, false, nil
+	default:
+		return 0, false, fmt.Errorf("unexpected HTTP %d from %v", resp.StatusCode, u.Host)
+	}
+}
+
+// parseContentRangeTotal reads the total size from "bytes 0-0/12345".
+func parseContentRangeTotal(header string) int64 {
+	idx := strings.LastIndex(header, "/")
+	if idx < 0 {
+		return 0
+	}
+	total := strings.TrimSpace(header[idx+1:])
+	if total == "*" {
+		return 0
+	}
+	n, err := strconv.ParseInt(total, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 // ------------------------------------------------------------------ files ---
 
-// handleFile serves a file with Range support: the download manager asks for
-// one part at a time with "bytes=start-end" and gets a 206 back.
+// handleFile serves a local file with Range support: the download manager can
+// point at http://127.0.0.1:8090/files/sample.bin to try the example offline.
 func (m *Manager) handleFile(w http.ResponseWriter, r *http.Request) {
 	name := filepath.Base(r.PathValue("name"))
 	path := filepath.Join(m.filesDir, name)
@@ -379,10 +545,9 @@ func parseRange(header string, size int64) (int64, int64, bool) {
 // ------------------------------------------------------------------- jobs ---
 
 type createRequest struct {
-	File     string `json:"file"`
+	URL      string `json:"url"`
 	PartSize string `json:"partSize"`
 	Workers  int    `json:"workers"`
-	Throttle int64  `json:"throttle"`
 }
 
 func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -392,15 +557,14 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request: " + err.Error()})
 		return
 	}
-	name := filepath.Base(strings.TrimSpace(req.File))
-	if name == "" || name == "." || name == ".." {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid file name"})
+	rawURL := strings.TrimSpace(req.URL)
+	if rawURL == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing url"})
 		return
 	}
-	src := filepath.Join(m.filesDir, name)
-	info, err := os.Stat(src)
-	if err != nil || info.IsDir() {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "file not found: " + name})
+	u, err := validateTarget(rawURL, m.hosts)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	partSize, err := parseSize(req.PartSize)
@@ -408,25 +572,42 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	total := info.Size()
-	partCount := int((total + partSize - 1) / partSize)
-	if partCount < 1 {
-		partCount = 1
-	}
-	if partCount > 512 {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("too many parts (%d): use a bigger part size", partCount)})
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	total, rangeOK, err := probe(ctx, u, m.client)
+	cancel()
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "cannot reach the url: " + err.Error()})
 		return
 	}
+
+	partCount := 1
+	if rangeOK && total > 0 {
+		partCount = int((total + partSize - 1) / partSize)
+		if partCount < 1 {
+			partCount = 1
+		}
+		if partCount > m.maxParts {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": fmt.Sprintf("too many parts (%d): use a bigger part size (max %d)", partCount, m.maxParts),
+			})
+			return
+		}
+	} else {
+		// The server does not honour the ranges: the file is one single part.
+		partSize = total
+	}
+	if partSize <= 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "the file size is unknown"})
+		return
+	}
+
 	workers := req.Workers
 	if workers <= 0 {
 		workers = m.workers
 	}
 	if workers > partCount {
 		workers = partCount
-	}
-	throttle := req.Throttle
-	if throttle <= 0 {
-		throttle = m.throttle
 	}
 
 	m.mu.Lock()
@@ -436,25 +617,26 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	job := &Job{
 		ID:       id,
-		File:     name,
+		URL:      u.String(),
+		File:     fileNameFromURL(u),
 		State:    "running",
 		PartSize: partSize,
 		Total:    total,
 		PartCnt:  partCount,
 		PartTx:   humanSize(partSize),
+		Range:    rangeOK,
 		Created:  time.Now().Format("15:04:05"),
-		dir:      filepath.Join(m.workDir, id),
-		src:      src,
+		dir:      filepath.Join(m.outDir, id),
 		workers:  workers,
 
-		baseURLValue: m.baseURL,
-		clientValue:  m.client,
-		throttle:     throttle,
+		clientValue: m.client,
+		throttle:    m.throttle,
+		expectSHA:   m.expect,
 	}
 	for i := 0; i < partCount; i++ {
 		start := int64(i) * partSize
 		end := start + partSize - 1
-		if end > total-1 {
+		if rangeOK && total > 0 && end > total-1 {
 			end = total - 1
 		}
 		job.parts = append(job.parts, &Part{
@@ -469,9 +651,8 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	job.expected = fileSHA256(src)
-	fmt.Printf("server: new job %s  file=%s size=%s parts=%d x %s workers=%d\n",
-		id, name, humanSize(total), partCount, job.PartTx, workers)
+	fmt.Printf("server: new job %s  url=%s size=%s parts=%d x %s workers=%d\n",
+		id, job.URL, humanSize(total), partCount, job.PartTx, workers)
 
 	m.mu.Lock()
 	m.jobs[id] = job
@@ -485,9 +666,7 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 func (m *Manager) handleAction(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	action := r.PathValue("action")
-	m.mu.Lock()
-	job := m.jobs[id]
-	m.mu.Unlock()
+	job := m.job(id)
 	if job == nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown download: " + id})
 		return
@@ -509,11 +688,51 @@ func (m *Manager) handleAction(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, job.snapshot())
 }
 
-func (m *Manager) handleMergedFile(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+// handleRetryPart restarts a single part: the bytes of that part are dropped
+// and it is queued again, the other parts are not touched.
+func (m *Manager) handleRetryPart(w http.ResponseWriter, r *http.Request) {
+	job := m.job(r.PathValue("id"))
+	if job == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown download: " + r.PathValue("id")})
+		return
+	}
+	index, err := strconv.Atoi(r.PathValue("index"))
+	if err != nil || index < 1 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid part number: " + r.PathValue("index")})
+		return
+	}
+	if err := job.retryPart(index); err != nil {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+		return
+	}
+	fmt.Printf("server: job %s part %d queued again\n", job.ID, index)
+	writeJSON(w, http.StatusOK, job.snapshot())
+}
+
+// handleRetryFailed restarts every part that failed.
+func (m *Manager) handleRetryFailed(w http.ResponseWriter, r *http.Request) {
+	job := m.job(r.PathValue("id"))
+	if job == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown download: " + r.PathValue("id")})
+		return
+	}
+	n, err := job.retryFailed()
+	if err != nil {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+		return
+	}
+	fmt.Printf("server: job %s queued %d failed parts again\n", job.ID, n)
+	writeJSON(w, http.StatusOK, job.snapshot())
+}
+
+func (m *Manager) job(id string) *Job {
 	m.mu.Lock()
-	job := m.jobs[id]
-	m.mu.Unlock()
+	defer m.mu.Unlock()
+	return m.jobs[id]
+}
+
+func (m *Manager) handleMergedFile(w http.ResponseWriter, r *http.Request) {
+	job := m.job(r.PathValue("id"))
 	if job == nil {
 		http.Error(w, "unknown download", http.StatusNotFound)
 		return
@@ -545,9 +764,7 @@ func (m *Manager) snapshot() []map[string]any {
 	m.mu.Unlock()
 	out := []map[string]any{}
 	for i := len(ids) - 1; i >= 0; i-- {
-		m.mu.Lock()
-		job := m.jobs[ids[i]]
-		m.mu.Unlock()
+		job := m.job(ids[i])
 		if job == nil {
 			continue
 		}
@@ -560,11 +777,19 @@ func (m *Manager) snapshot() []map[string]any {
 
 func (j *Job) start() {
 	j.mu.Lock()
+	if j.cancel != nil {
+		// Stop the previous generation of workers, if any.
+		j.cancel()
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	j.ctx, j.cancel = ctx, cancel
+	j.active = 0
 	j.mu.Unlock()
 	for i := 0; i < j.workers; i++ {
 		j.wg.Add(1)
+		j.mu.Lock()
+		j.active++
+		j.mu.Unlock()
 		go j.worker(ctx)
 	}
 	go j.watcher(ctx)
@@ -572,6 +797,11 @@ func (j *Job) start() {
 
 func (j *Job) worker(ctx context.Context) {
 	defer j.wg.Done()
+	defer func() {
+		j.mu.Lock()
+		j.active--
+		j.mu.Unlock()
+	}()
 	for {
 		if ctx.Err() != nil {
 			return
@@ -600,14 +830,11 @@ func (j *Job) nextPending() *Part {
 	return nil
 }
 
-// progressWriter updates the counters while the bytes flow, and logs the
-// part progress so the server console tells the same story as the GUI.
+// progressWriter updates the counters while the bytes flow.
 type progressWriter struct {
-	job   *Job
-	part  *Part
-	w     io.Writer
-	last  time.Time
-	shout bool
+	job  *Job
+	part *Part
+	w    io.Writer
 }
 
 func (p *progressWriter) Write(b []byte) (int, error) {
@@ -619,11 +846,6 @@ func (p *progressWriter) Write(b []byte) (int, error) {
 		p.part.Percent = percent(p.part.Received, p.part.Size)
 		p.job.Percent = percent(p.job.Received, p.job.Total)
 		throttle := p.job.throttle
-		now := time.Now()
-		if !p.shout && (now.Sub(p.last) > 500*time.Millisecond || p.part.Received == p.part.Size) {
-			p.shout = true
-			p.last = now
-		}
 		p.job.mu.Unlock()
 		if throttle > 0 {
 			// Slow the stream down so the progress is visible and a pause
@@ -650,10 +872,10 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/files/%s", j.baseURL(), j.File)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, j.URL, nil)
 	if err != nil {
 		j.setPartState(p, "error", err.Error())
+		j.settle()
 		return
 	}
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, p.End))
@@ -664,11 +886,13 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 			return
 		}
 		j.setPartState(p, "error", err.Error())
+		j.settle()
 		return
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusPartialContent {
 		j.setPartState(p, "error", fmt.Sprintf("HTTP %d from the file server", resp.StatusCode))
+		j.settle()
 		return
 	}
 
@@ -676,11 +900,12 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		j.setPartState(p, "error", err.Error())
+		j.settle()
 		return
 	}
 	defer f.Close()
 
-	w := &progressWriter{job: j, part: p, w: f, last: time.Now()}
+	w := &progressWriter{job: j, part: p, w: f}
 	if _, err := io.Copy(w, resp.Body); err != nil {
 		if ctx.Err() != nil {
 			// Paused: the bytes already written stay on disk.
@@ -688,6 +913,7 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 			return
 		}
 		j.setPartState(p, "error", err.Error())
+		j.settle()
 		return
 	}
 
@@ -696,15 +922,108 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 	j.mu.Unlock()
 	if !complete {
 		j.setPartState(p, "error", fmt.Sprintf("received %d bytes out of %d", p.Received, p.Size))
+		j.settle()
 		return
 	}
 	j.setPartState(p, "done", "")
 	fmt.Printf("server: job %s part %d/%d ok (%s)\n", j.ID, p.Index, j.PartCnt, humanSize(p.Size))
+	j.settle()
 	j.maybeMerge()
 }
 
+// settle closes the job when no part is running any more and some of them
+// failed: the operator can then retry the failed parts one by one.
+func (j *Job) settle() {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	if j.State != "running" {
+		return
+	}
+	failed := 0
+	pending := 0
+	for _, p := range j.parts {
+		switch p.State {
+		case "error":
+			failed++
+		case "pending", "downloading":
+			pending++
+		}
+	}
+	if pending == 0 && failed > 0 {
+		j.State = "error"
+		j.Error = fmt.Sprintf("%d part(s) failed: retry them from the app", failed)
+	}
+}
+
+// retryPart queues one part again: its bytes are dropped and it is fetched
+// from the start.
+func (j *Job) retryPart(index int) error {
+	j.mu.Lock()
+	if j.State == "canceled" || j.State == "done" {
+		state := j.State
+		j.mu.Unlock()
+		return fmt.Errorf("the download is %s: it cannot be retried", state)
+	}
+	var part *Part
+	for _, p := range j.parts {
+		if p.Index == index {
+			part = p
+			break
+		}
+	}
+	if part == nil {
+		j.mu.Unlock()
+		return fmt.Errorf("unknown part %d", index)
+	}
+	part.State = "pending"
+	part.Received = 0
+	part.Percent = 0
+	part.Error = ""
+	part.Attempts++
+	j.mu.Unlock()
+
+	// The bytes of the failed part are dropped: the part is fetched again
+	// from its first byte.
+	if err := os.Remove(j.partPath(index)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	j.mu.Lock()
+	j.State = "running"
+	j.Error = ""
+	needsWorkers := j.active == 0
+	j.mu.Unlock()
+
+	if needsWorkers {
+		// The job had stopped on a failed part: the workers are gone, so
+		// they are started again for the retried part.
+		j.start()
+	}
+	return nil
+}
+
+// retryFailed queues every failed part again.
+func (j *Job) retryFailed() (int, error) {
+	j.mu.Lock()
+	var indexes []int
+	for _, p := range j.parts {
+		if p.State == "error" {
+			indexes = append(indexes, p.Index)
+		}
+	}
+	j.mu.Unlock()
+	if len(indexes) == 0 {
+		return 0, fmt.Errorf("there is no failed part to retry")
+	}
+	for _, idx := range indexes {
+		if err := j.retryPart(idx); err != nil {
+			return 0, err
+		}
+	}
+	return len(indexes), nil
+}
+
 // maybeMerge concatenates the parts when they are all complete and checks
-// the result against the SHA-256 of the original file.
+// the result against the size the server announced.
 func (j *Job) maybeMerge() {
 	j.mu.Lock()
 	if j.merging || j.State != "running" {
@@ -752,9 +1071,16 @@ func (j *Job) maybeMerge() {
 			size = info.Size()
 		}
 		sum := fileSHA256(merged)
-		verify := "SHA-256 differs from the original"
-		if sum == j.expected {
-			verify = "SHA-256 matches the original"
+		verify := "size matches the server"
+		if j.Total > 0 && size != j.Total {
+			verify = fmt.Sprintf("size mismatch: %d bytes instead of %d", size, j.Total)
+		}
+		if j.expectSHA != "" {
+			if sum == j.expectSHA {
+				verify = "SHA-256 matches the expected value"
+			} else {
+				verify = "SHA-256 does not match the expected value"
+			}
 		}
 		j.mu.Lock()
 		j.Merged = merged
@@ -884,6 +1210,7 @@ type partView struct {
 	Percent  int    `json:"Percent"`
 	State    string `json:"State"`
 	Error    string `json:"Error,omitempty"`
+	Attempts int    `json:"Attempts"`
 }
 
 // snapshot is the JSON view of the job.
@@ -891,7 +1218,11 @@ func (j *Job) snapshot() map[string]any {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	parts := []partView{}
+	failed := 0
 	for _, p := range j.parts {
+		if p.State == "error" {
+			failed++
+		}
 		parts = append(parts, partView{
 			Part:     p.Index,
 			From:     p.Start,
@@ -901,38 +1232,40 @@ func (j *Job) snapshot() map[string]any {
 			Percent:  p.Percent,
 			State:    p.State,
 			Error:    p.Error,
+			Attempts: p.Attempts,
 		})
 	}
 	return map[string]any{
-		"id":           j.ID,
-		"file":         j.File,
-		"state":        j.State,
-		"partSize":     j.PartSize,
-		"partSizeText": j.PartTx,
-		"partCount":    j.PartCnt,
-		"throttle":     j.throttle,
-		"total":        j.Total,
-		"totalText":    humanSize(j.Total),
-		"received":     j.Received,
-		"receivedText": humanSize(j.Received),
-		"percent":      j.Percent,
-		"speed":        j.Speed,
-		"speedText":    j.SpeedTx,
-		"eta":          j.ETA,
-		"etaText":      j.ETATx,
-		"merged":       j.Merged,
-		"mergedSize":   j.MergedSz,
-		"sha":          j.SHA,
-		"verified":     j.Verify,
-		"error":        j.Error,
-		"created":      j.Created,
-		"parts":        parts,
+		"id":             j.ID,
+		"url":            j.URL,
+		"file":           j.File,
+		"state":          j.State,
+		"partSize":       j.PartSize,
+		"partSizeText":   j.PartTx,
+		"partCount":      j.PartCnt,
+		"throttle":       j.throttle,
+		"total":          j.Total,
+		"totalText":      humanSize(j.Total),
+		"received":       j.Received,
+		"receivedText":   humanSize(j.Received),
+		"percent":        j.Percent,
+		"speed":          j.Speed,
+		"speedText":      j.SpeedTx,
+		"eta":            j.ETA,
+		"etaText":        j.ETATx,
+		"merged":         j.Merged,
+		"mergedSize":     j.MergedSz,
+		"sha":            j.SHA,
+		"verified":       j.Verify,
+		"error":          j.Error,
+		"created":        j.Created,
+		"rangeSupported": j.Range,
+		"failedParts":    failed,
+		"parts":          parts,
 	}
 }
 
 // ----------------------------------------------------------------- paths ---
-
-func (j *Job) baseURL() string { return j.baseURLValue }
 
 func (j *Job) client() *http.Client { return j.clientValue }
 

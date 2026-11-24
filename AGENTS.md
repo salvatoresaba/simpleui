@@ -247,7 +247,7 @@ For desktop capabilities:
 | HTTP headers, multipart upload & advanced WebSocket | `docs/STDLIB.md#http-module-http`, `docs/STDLIB.md#websocket-module-ws` | `examples/networking_suite/README.md` |
 | POST/update remote data | `docs/AGENT_RECIPES.md#remote-crud-form`, `SECURITY.md` | `examples/users/app.sui` |
 | Polling dashboard | `docs/AGENT_RECIPES.md#polling-dashboard` | `examples/monitor.sui` |
-| Long job driven from a Go backend (pause/resume, per-unit table) | `docs/AGENT_RECIPES.md#long-job-with-a-go-backend` | `examples/download_manager/README.md` |
+| Long job driven from a Go backend (download of a URL, pause/resume, per-unit retry) | `docs/AGENT_RECIPES.md#long-job-with-a-go-backend` | `examples/download_manager/README.md` |
 | Desktop files/commands | `docs/AGENT_RECIPES.md#desktop-files-and-commands`, `SECURITY.md#desktop-bridge` | `examples/security/desktop_files.sui` |
 | Native file/folder dialogs | `docs/STDLIB.md#dialog-module-dialog-desktop` | `examples/desktop_picker.sui` |
 | XLSX/ODS conversion | `examples/spreadsheet_table/README.md` | `examples/spreadsheet_table/app.sui` |

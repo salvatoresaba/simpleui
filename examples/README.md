@@ -67,7 +67,7 @@ For an agent-oriented walkthrough see
 | [`monitor.sui`](monitor.sui) | Polling dashboard with `interval` and error/loading states. |
 | [`chat.sui`](chat.sui) | Chat-like state and list rendering. |
 | [`users/app.sui`](users/app.sui) | Remote JSON API, validation, table rendering and diagnostics. |
-| [`download_manager/`](download_manager/README.md) | Go backend + SimpleUI GUI: chunked download with Range requests, per-part tracking, pause/resume, reassembly and SHA-256 verification (see its [README](download_manager/README.md)). |
+| [`download_manager/`](download_manager/README.md) | Go backend + SimpleUI GUI: download of a URL split into parts with Range requests, a progress bar per part, pause/resume/cancel, retry of a single failed part and reassembly (see its [README](download_manager/README.md)). |
 | [`userdata_table/app.sui`](userdata_table/app.sui) | Desktop bridge + external command + table. |
 | [`spreadsheet_table/app.sui`](spreadsheet_table/app.sui) | XLSX/ODS conversion into a table (see its [README](spreadsheet_table/README.md)). |
 | [`security/untrusted_text.sui`](security/untrusted_text.sui) | Escaping of untrusted text and URLs. |

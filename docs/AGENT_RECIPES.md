@@ -477,11 +477,17 @@ fn boot() -> null {
   already done.
 - Report the backend errors as they are. A failed part is a real failure, not
   an empty row.
+- Let a failed unit restart alone. The endpoint takes the unit number and
+  requeues only that unit; the operator selects it in the table, so the table
+  keeps the selection of the operator (a table refresh drops it).
+- Keep the live view and the data apart: bars and counters for the progress,
+  the tables in another tab, so the screen stays readable.
 
 See [`examples/download_manager/`](../examples/download_manager/README.md) for
-the complete example: a Go backend that splits a file into parts, downloads
-each part with its own `Range` request, keeps the bytes of a paused part and
-reassembles the file with a SHA-256 check.
+the complete example: a Go backend that downloads the URL given on the command
+line, splits the file into parts, fetches each part with its own `Range`
+request, keeps the bytes of a paused part, restarts a failed part on its own
+and reassembles the file with a size check.
 
 ## Desktop files and commands
 

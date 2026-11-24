@@ -668,7 +668,9 @@
         "Use `http.postSafe` with a literal allow-list for the dynamic URLs.",
         "Show the progress per unit (parts, steps, items), not only a percentage.",
         "Let the backend own pause, resume and cancel: only it knows what is done.",
-        "Show the backend errors as they are."
+        "Show the backend errors as they are.",
+        "Let a failed unit restart alone: the endpoint takes the unit number.",
+        "Keep the live view and the tables apart: the data belongs to another tab."
       ]
     },
     {

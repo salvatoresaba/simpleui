@@ -200,7 +200,7 @@ Per capability desktop:
 | HTTP header, multipart upload e WebSocket avanzato | `docs/STDLIB_IT.md`, `docs/API_REFERENCE_IT.md` | `examples/networking_suite/README.md` |
 | CRUD remoto | `docs/AGENT_RECIPES_IT.md`, `SECURITY_IT.md` | `examples/users/app.sui` |
 | Dashboard polling | `docs/AGENT_RECIPES_IT.md` | `examples/monitor.sui` |
-| Lavoro lungo pilotato da un backend Go (pausa/ripresa, tabella per unita') | `docs/AGENT_RECIPES_IT.md#long-job-with-a-go-backend` | `examples/download_manager/README.md` |
+| Lavoro lungo pilotato da un backend Go (download di una URL, pausa/ripresa, riavvio per unita') | `docs/AGENT_RECIPES_IT.md#long-job-with-a-go-backend` | `examples/download_manager/README.md` |
 | File/comandi desktop | `docs/AGENT_RECIPES_IT.md`, `SECURITY_IT.md` | `examples/security/desktop_files.sui` |
 | Dialoghi nativi file/cartelle | `docs/STDLIB_IT.md#dialog-module-dialog-desktop` | `examples/desktop_picker.sui` |
 | XLSX/ODS | `examples/spreadsheet_table/README.md` | `examples/spreadsheet_table/app.sui` |
