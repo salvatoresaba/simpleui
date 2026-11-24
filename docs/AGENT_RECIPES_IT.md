@@ -367,6 +367,76 @@ view main {
 `interval` riceve il nome di una funzione, non una lambda. Evita richieste
 sovrapposte. Per WebSocket reali usa `ws.connectSafe` con allow-list letterale.
 
+## Long job with a Go backend
+
+Un'operazione lunga (un download, un'importazione, un batch) sta nel backend:
+l'app SUI e' il pannello di controllo, non il motore. Il backend possiede lo
+stato del lavoro; l'app lo interroga e mostra cosa sta succedendo.
+
+```sui
+import { http, json } from "std"
+
+state jobId = ""
+state jobState = "nessun download"
+state percent = 0
+state message = "Pronto."
+
+async fn aggiorna() -> null {
+	if jobId == "" { return }
+	body, err = http.get("http://127.0.0.1:8090/api/downloads")
+	if err != null {
+		message = "backend non raggiungibile: " + err
+		return
+	}
+	data, jerr = json.parse(body)
+	if jerr != null {
+		message = "risposta non valida: " + jerr
+		return
+	}
+	let jobs = data["jobs"]
+	if len(jobs) == 0 { return }
+	let job = jobs[0]
+	jobId = str(job["id"])
+	jobState = str(job["state"])
+	percent = job["percent"]
+	n, terr = table.display("parti", job["parts"])
+	if terr != null {
+		message = "tabella parti non aggiornata: " + terr
+	}
+}
+
+# L'URL dell'azione contiene l'id del lavoro, quindi e' dinamico: uso la
+# variante *Safe con allow-list letterale.
+async fn pausa() -> null {
+	if jobId == "" { return }
+	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/pause", "", "http://127.0.0.1:8090")
+	if err != null {
+		message = "pausa fallita: " + err
+		return
+	}
+	aggiorna()
+}
+
+fn boot() -> null {
+	interval(500, aggiorna)
+}
+```
+
+- Tieni l'identificativo del lavoro in uno stato e costruisci da li' gli URL
+  delle azioni: un URL dinamico richiede `http.postSafe` con allow-list
+  **letterale**.
+- Mostra l'avanzamento per unita' (le parti, i passi, gli elementi), non solo
+  una percentuale: e' quello che dice all'operatore che il lavoro avanza.
+- Il backend possiede la verita'. Pausa, ripresa e annullamento sono richieste
+  al backend, mai flag locali: solo il backend sa quali unita' sono gia' fatte.
+- Mostra gli errori del backend come sono. Una parte fallita e' un errore
+  vero, non una riga vuota.
+
+Vedi [`examples/download_manager/`](../examples/download_manager/README.md) per
+l'esempio completo: un backend Go che divide un file in parti, scarica ogni
+parte con una richiesta `Range` propria, conserva i byte di una parte in pausa
+e ricompone il file con un controllo SHA-256.
+
 ## Desktop files and commands
 
 ```bash

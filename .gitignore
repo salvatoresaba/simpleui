@@ -11,6 +11,8 @@
 /examples/*/dist/
 /examples/*/bin/
 /examples/*/public/
+/examples/*/files/
+/examples/*/downloads/
 /examples/*/server/*.exe
 /Test/testcombo2/
 /Test/testev/

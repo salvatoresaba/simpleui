@@ -657,6 +657,21 @@
       ]
     },
     {
+      "id": "long-job-backend",
+      "title": "Long job with a Go backend",
+      "when": "A long running operation must be driven, paused and resumed from the UI.",
+      "target": "remote",
+      "docs": ["recipes", "stdlib", "security"],
+      "examples": ["examples/download_manager/app.sui"],
+      "steps": [
+        "Keep the job identifier in a state and build the action URLs from it.",
+        "Use `http.postSafe` with a literal allow-list for the dynamic URLs.",
+        "Show the progress per unit (parts, steps, items), not only a percentage.",
+        "Let the backend own pause, resume and cancel: only it knows what is done.",
+        "Show the backend errors as they are."
+      ]
+    },
+    {
       "id": "desktop-files",
       "title": "Desktop files and commands",
       "when": "The app must read/write local files or run a helper executable.",

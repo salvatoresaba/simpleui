@@ -411,6 +411,78 @@ view main {
 guard against overlapping requests. For real WebSockets use `ws.connectSafe`
 with a literal `ws://`/`wss://` allow-list.
 
+## Long job with a Go backend
+
+A long running operation (a download, an import, a batch) belongs in a backend:
+the SUI app is the control panel, not the engine. The backend owns the job
+state; the app polls it and shows what happens.
+
+```sui
+import { http, json } from "std"
+
+state jobId = ""
+state jobState = "no download"
+state percent = 0
+state message = "Ready."
+
+# Polling: the job id makes the status URL stable, but the per-part table is
+# always refilled from the payload.
+async fn refresh() -> null {
+	if jobId == "" { return }
+	body, err = http.get("http://127.0.0.1:8090/api/downloads")
+	if err != null {
+		message = "backend unreachable: " + err
+		return
+	}
+	data, jerr = json.parse(body)
+	if jerr != null {
+		message = "invalid response: " + jerr
+		return
+	}
+	let jobs = data["jobs"]
+	if len(jobs) == 0 { return }
+	let job = jobs[0]
+	jobId = str(job["id"])
+	jobState = str(job["state"])
+	percent = job["percent"]
+	n, terr = table.display("parts", job["parts"])
+	if terr != null {
+		message = "parts table not updated: " + terr
+	}
+}
+
+# The action URL contains the job id, so it is dynamic: use the *Safe variant
+# with a literal allow-list.
+async fn pauseDownload() -> null {
+	if jobId == "" { return }
+	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/pause", "", "http://127.0.0.1:8090")
+	if err != null {
+		message = "pause failed: " + err
+		return
+	}
+	refresh()
+}
+
+fn boot() -> null {
+	interval(500, refresh)
+}
+```
+
+- Keep the job identifier in a state and build the action URLs from it; a
+  dynamic URL requires `http.postSafe` with a **literal** allow-list.
+- Show the per-unit progress (the parts, the steps, the items), not only a
+  percentage: it is what tells the operator that the job is really moving.
+- The backend owns the truth. A pause, a resume or a cancel is a request to
+  the backend, never a local flag: only the backend knows which units are
+  already done.
+- Report the backend errors as they are. A failed part is a real failure, not
+  an empty row.
+
+See [`examples/download_manager/`](../examples/download_manager/README.md) for
+the complete example: a Go backend that splits a file into parts, downloads
+each part with its own `Range` request, keeps the bytes of a paused part and
+reassembles the file with a SHA-256 check.
+
 ## Desktop files and commands
 
 Desktop capabilities are granted only at build time:

@@ -1,0 +1,270 @@
+import { http, json } from "std"
+
+# Download manager - the front end of the chunked downloader.
+#
+# The Go backend (server/main.go) splits the file into parts according to its
+# size, downloads every part with its own Range request, tracks each part and
+# finally reassembles them into one file verified against the SHA-256 of the
+# original.
+#
+# The GUI follows the progress, shows the table of the parts and lets the
+# operator pause, resume and cancel the download.
+#
+# The backend listens on port 8090: the URLs below are literals, and the only
+# dynamic URL (the one that carries the job id) goes through http.postSafe
+# with a literal allow-list.
+
+state fileOptions = ""
+state selectedFile = ""
+state partSize = "1 MiB"
+state jobId = ""
+state jobState = "no download"
+state percent = 0
+state progressText = "waiting"
+state speedText = "--"
+state etaText = "--"
+state verifyText = ""
+state message = "Pick a file and press Start download."
+
+fn onFileChange() -> null {
+	message = "Selected file: " + selectedFile
+}
+
+fn onPartSizeChange() -> null {
+	message = "Every part will be " + partSize
+}
+
+# Catalog of the downloadable files: fills the combobox and the table.
+async fn loadCatalog() -> null {
+	body, err = http.get("http://127.0.0.1:8090/api/files")
+	if err != null {
+		message = "backend unreachable: " + err
+		return
+	}
+	items, jerr = json.parse(body)
+	if jerr != null {
+		message = "invalid response: " + jerr
+		return
+	}
+	let names = ""
+	let i = 0
+	while i < len(items) {
+		let name = str(items[i]["Name"])
+		if names == "" {
+			names = name
+			# The default file is selected in the same render as the options:
+			# a value set earlier would not be in the list yet and the control
+			# would drop it.
+			selectedFile = name
+		} else {
+			names = names + "," + name
+		}
+		i = i + 1
+	}
+	fileOptions = names
+	n, terr = table.display("files", items)
+	if terr != null {
+		message = "files table not updated: " + terr
+	}
+	loadStatus()
+}
+
+# State of the downloads: the most recent job and its parts.
+async fn loadStatus() -> null {
+	body, err = http.get("http://127.0.0.1:8090/api/downloads")
+	if err != null {
+		message = "backend unreachable: " + err
+		return
+	}
+	data, jerr = json.parse(body)
+	if jerr != null {
+		message = "invalid response: " + jerr
+		return
+	}
+	let jobs = data["jobs"]
+	if len(jobs) == 0 {
+		return
+	}
+	updateJob(jobs[0])
+}
+
+# Polling: re-read the state of the current download.
+async fn refresh() -> null {
+	if jobId == "" {
+		return
+	}
+	body, err = http.get("http://127.0.0.1:8090/api/downloads")
+	if err != null {
+		message = "backend unreachable: " + err
+		return
+	}
+	data, jerr = json.parse(body)
+	if jerr != null {
+		message = "invalid response: " + jerr
+		return
+	}
+	let jobs = data["jobs"]
+	if len(jobs) == 0 {
+		return
+	}
+	updateJob(jobs[0])
+}
+
+# Refresh the view with the state of a job.
+fn updateJob(job: any) -> null {
+	jobId = str(job["id"])
+	jobState = str(job["state"])
+	percent = job["percent"]
+	progressText = str(job["percent"]) + "% - " + str(job["receivedText"]) + " of " + str(job["totalText"])
+	speedText = str(job["speedText"])
+	etaText = str(job["etaText"])
+	verifyText = str(job["verified"])
+	n, terr = table.display("parts", job["parts"])
+	if terr != null {
+		message = "parts table not updated: " + terr
+	}
+}
+
+# Start a download: the backend picks the parts according to the size.
+async fn startDownload() -> null {
+	if selectedFile == "" {
+		message = "pick a file first"
+		return
+	}
+	payload, jerr = json.stringify({"file": selectedFile, "partSize": partSize})
+	if jerr != null {
+		message = "invalid request: " + jerr
+		return
+	}
+	body, err = http.post("http://127.0.0.1:8090/api/downloads", payload)
+	if err != null {
+		message = "could not start: " + err
+		return
+	}
+	job, perr = json.parse(body)
+	if perr != null {
+		message = "invalid response: " + perr
+		return
+	}
+	jobId = str(job["id"])
+	message = "download started: " + str(job["file"]) + " - " + str(job["partCount"]) + " parts of " + str(job["partSizeText"])
+	updateJob(job)
+}
+
+# Pause: the parts already downloaded stay, the download restarts from there.
+async fn pauseDownload() -> null {
+	runAction("pause")
+}
+
+# Resume: the backend continues every part from the byte it stopped at.
+async fn resumeDownload() -> null {
+	runAction("resume")
+}
+
+# Cancel: the download is interrupted.
+async fn cancelDownload() -> null {
+	runAction("cancel")
+}
+
+# The URL contains the job id, so it is dynamic: the *Safe variant with a
+# literal allow-list is the one the security rules require.
+async fn runAction(act: string) -> null {
+	if jobId == "" {
+		message = "no download to manage"
+		return
+	}
+	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/" + act, "", "http://127.0.0.1:8090")
+	if err != null {
+		message = "operation " + act + " failed: " + err
+		return
+	}
+	job, jerr = json.parse(body)
+	if jerr != null {
+		message = "invalid response: " + jerr
+		return
+	}
+	updateJob(job)
+	message = "operation " + act + " done"
+}
+
+async fn boot() -> null {
+	interval(500, refresh)
+	loadCatalog()
+}
+
+view main {
+	title "Download manager"
+	onLoad: boot
+
+	h1 "Download manager"
+	p "The backend splits the file into parts, downloads every one with its own Range request, tracks them and finally reassembles the file checking its SHA-256."
+
+	card {
+		h3 "1. Pick what to download"
+		row {
+			combobox "File" options: fileOptions value: selectedFile onChange: onFileChange placeholder: "Pick a file..." empty: "No file available" maxOptionLength: 64 maxOptions: 32
+			combobox "Part size" options: "256 KiB,512 KiB,1 MiB,2 MiB,4 MiB,8 MiB,16 MiB" value: partSize onChange: onPartSizeChange
+		}
+		row {
+			button "Start download" onClick: startDownload
+			button "Pause" onClick: pauseDownload
+			button "Resume" onClick: resumeDownload
+			button "Cancel" onClick: cancelDownload
+		}
+	}
+
+	card {
+		h3 "2. Progress"
+		progress value: percent max: 100
+		p "State: {jobState} - {progressText}"
+		p "Speed: {speedText} - time left: {etaText}"
+		p "{verifyText}"
+		if jobState == "done" {
+			a "Download the reassembled file" href: "http://127.0.0.1:8090/api/downloads/" + jobId + "/file"
+		}
+	}
+
+	h3 "3. Parts of the download"
+	table name: "parts" {
+		thead {
+			trow {
+				tcell "Part" head: true
+				tcell "From" head: true
+				tcell "To" head: true
+				tcell "Size" head: true
+				tcell "Received" head: true
+				tcell "State" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "-"
+				tcell "-"
+				tcell "-"
+				tcell "-"
+				tcell "-"
+				tcell "-"
+			}
+		}
+	}
+
+	h3 "Available files"
+	table name: "files" {
+		thead {
+			trow {
+				tcell "Name" head: true
+				tcell "Size" head: true
+			}
+		}
+		tbody {
+			trow {
+				tcell "-"
+				tcell "-"
+			}
+		}
+	}
+
+	p "{message}" class: "muted"
+}
+
+css "body \{ margin: 0; background: #f4f6fb; color: #0f172a; font-family: system-ui, sans-serif; \} .muted \{ color: #64748b; font-size: 13px; \} h3 \{ margin: 18px 0 8px; \} card \{ display: block; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 12px 0; \} row \{ gap: 12px; flex-wrap: wrap; margin: 8px 0; \} table \{ width: 100%; margin-bottom: 12px; \}"
