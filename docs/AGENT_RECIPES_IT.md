@@ -437,10 +437,26 @@ fn boot() -> null {
   azzera).
 - Separa la vista live dai dati: barre e contatori per l'avanzamento, le
   tabelle in un'altra tab, cosi' lo schermo resta leggibile.
+- Un solo pulsante per tutto il ciclo di vita. Icona e testo del pulsante di
+  azione seguono la fase del lavoro (start / pausa / ripresa): l'operatore non
+  legge mai un pulsante che non vale per lo stato corrente. Il pulsante di
+  annullamento compare solo nelle fasi in cui ha senso.
+- Mostra gli errori come toast (`toast.show(messaggio, "error", 5000)`) e non
+  solo come riga di testo: una richiesta fallita deve essere visibile anche
+  mentre l'operatore guarda le barre di avanzamento. Deduplica il messaggio
+  ripetuto.
+- Riproduci un suono alla fine del lavoro con `sound.play(url)`: l'URL e'
+  letterale, un URL dinamico richiede `sound.playSafe` con allow-list
+  letterale. Il browser puo' rifiutare la riproduzione (policy autoplay):
+  mostra l'errore, non far fallire il lavoro.
+- Tieni le impostazioni in un pannello sovrapposto (`modal`): modalita',
+  dimensione delle parti e parallelismo appartengono alla configurazione, non
+  alla vista principale.
 
 Vedi [`examples/download_manager/`](../examples/download_manager/README.md) per
 l'esempio completo: un backend Go che scarica l'URL indicato sulla riga di
-comando, divide il file in parti, scarica ogni parte con una richiesta
+comando, divide il file in parti (o lo scarica in un pezzo solo), scarica ogni
+parte con una richiesta
 `Range` propria, conserva i byte di una parte in pausa, riavvia da solo una
 parte fallita e ricompone il file con un controllo della dimensione.
 

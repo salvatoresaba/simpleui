@@ -30,12 +30,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -86,6 +89,7 @@ type Job struct {
 	Verify   string `json:"verified"`
 	Error    string `json:"error"`
 	Created  string `json:"created"`
+	Single   bool   `json:"single"`
 
 	parts []*Part
 	dir   string
@@ -201,6 +205,13 @@ func main() {
 	})
 	mux.HandleFunc("GET /api/downloads/{id}/file", func(w http.ResponseWriter, r *http.Request) {
 		mgr.handleMergedFile(w, r)
+	})
+	// The sound the app plays when a download is complete.
+	mux.HandleFunc("GET /sound.wav", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "audio/wav")
+		w.Header().Set("Content-Length", strconv.Itoa(len(soundBytes)))
+		w.Header().Set("Cache-Control", "no-store")
+		_, _ = w.Write(soundBytes)
 	})
 	if opts.filesDir != "" {
 		mux.HandleFunc("GET /files/{name}", func(w http.ResponseWriter, r *http.Request) {
@@ -547,7 +558,24 @@ func parseRange(header string, size int64) (int64, int64, bool) {
 type createRequest struct {
 	URL      string `json:"url"`
 	PartSize string `json:"partSize"`
-	Workers  int    `json:"workers"`
+	// Workers accepts a number or a string: the app sends the value of a
+	// number control, that is a string.
+	Workers any  `json:"workers"`
+	Single  bool `json:"single"`
+}
+
+// workersFrom reads the number of parts downloaded at the same time. The
+// value can be a JSON number or a string.
+func workersFrom(v any, def int) int {
+	switch n := v.(type) {
+	case float64:
+		return int(n)
+	case string:
+		if i, err := strconv.Atoi(strings.TrimSpace(n)); err == nil && i > 0 {
+			return i
+		}
+	}
+	return def
 }
 
 func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -582,7 +610,17 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	partCount := 1
-	if rangeOK && total > 0 {
+	switch {
+	case req.Single:
+		// One single part: the whole file in one request, no split at all.
+		partCount = 1
+		if total > 0 {
+			partSize = total
+		} else {
+			// The server does not announce the size: the part is open ended.
+			partSize = 0
+		}
+	case rangeOK && total > 0:
 		partCount = int((total + partSize - 1) / partSize)
 		if partCount < 1 {
 			partCount = 1
@@ -593,19 +631,16 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-	} else {
+	default:
 		// The server does not honour the ranges: the file is one single part.
 		partSize = total
 	}
-	if partSize <= 0 {
+	if partSize <= 0 && !req.Single {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "the file size is unknown"})
 		return
 	}
 
-	workers := req.Workers
-	if workers <= 0 {
-		workers = m.workers
-	}
+	workers := workersFrom(req.Workers, m.workers)
 	if workers > partCount {
 		workers = partCount
 	}
@@ -628,6 +663,7 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 		Created:  time.Now().Format("15:04:05"),
 		dir:      filepath.Join(m.outDir, id),
 		workers:  workers,
+		Single:   req.Single,
 
 		clientValue: m.client,
 		throttle:    m.throttle,
@@ -878,7 +914,13 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 		j.settle()
 		return
 	}
-	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, p.End))
+	if p.End >= 0 {
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, p.End))
+	} else {
+		// The size of the file is unknown: ask for everything from the byte
+		// the part stopped at.
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", start))
+	}
 	resp, err := j.client().Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -890,7 +932,10 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 		return
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusPartialContent {
+	// A part that covers the whole file also accepts a plain 200 answer: some
+	// servers ignore the Range header when the range is the whole file.
+	wholeFile := start == 0 && (p.End < 0 || p.End >= j.Total-1)
+	if resp.StatusCode != http.StatusPartialContent && !(resp.StatusCode == http.StatusOK && wholeFile) {
 		j.setPartState(p, "error", fmt.Sprintf("HTTP %d from the file server", resp.StatusCode))
 		j.settle()
 		return
@@ -918,7 +963,7 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 	}
 
 	j.mu.Lock()
-	complete := p.Received >= p.Size
+	complete := p.Size <= 0 || p.Received >= p.Size
 	j.mu.Unlock()
 	if !complete {
 		j.setPartState(p, "error", fmt.Sprintf("received %d bytes out of %d", p.Received, p.Size))
@@ -1106,6 +1151,10 @@ func (j *Job) failMerge(msg string) {
 func (j *Job) setPartState(p *Part, state, msg string) {
 	j.mu.Lock()
 	p.State = state
+	if state == "done" && p.Size <= 0 {
+		// The size of the file was unknown: the bar is full when the part is.
+		p.Percent = 100
+	}
 	if msg != "" {
 		p.Error = msg
 	}
@@ -1243,6 +1292,8 @@ func (j *Job) snapshot() map[string]any {
 		"partSize":       j.PartSize,
 		"partSizeText":   j.PartTx,
 		"partCount":      j.PartCnt,
+		"workers":        j.workers,
+		"single":         j.Single,
 		"throttle":       j.throttle,
 		"total":          j.Total,
 		"totalText":      humanSize(j.Total),
@@ -1428,6 +1479,59 @@ func binaryPut(b []byte, v uint64) {
 	for i := 0; i < 8 && i < len(b); i++ {
 		b[i] = byte(v >> (8 * i))
 	}
+}
+
+// soundBytes is the chime the app plays when a download is complete: it is
+// built once at startup and served as a WAV file.
+var soundBytes = buildChime()
+
+// buildChime renders a short two-tone chime as a 16 bit PCM WAV file: the
+// app plays it with the sound module when the download is complete.
+func buildChime() []byte {
+	const rate = 44100
+	notes := []struct {
+		freq   float64
+		length float64
+	}{
+		{783.99, 0.17},  // G5
+		{1046.50, 0.33}, // C6
+	}
+	total := 0.0
+	for _, n := range notes {
+		total += n.length
+	}
+	samples := make([]int16, int(total*rate))
+	pos := 0
+	for _, n := range notes {
+		count := int(n.length * rate)
+		for i := 0; i < count && pos < len(samples); i++ {
+			env := math.Exp(-4.2 * float64(i) / float64(count))
+			v := math.Sin(2*math.Pi*n.freq*float64(i)/rate) * env * 0.32
+			samples[pos] = int16(v * 32767)
+			pos++
+		}
+	}
+	data := make([]byte, len(samples)*2)
+	for i, s := range samples {
+		binary.LittleEndian.PutUint16(data[i*2:], uint16(s))
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("RIFF")
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(36+len(data)))
+	buf.WriteString("WAVE")
+	buf.WriteString("fmt ")
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(16))
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(1)) // PCM
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(1)) // mono
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(rate))
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(rate*2))
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(2))
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(16))
+	buf.WriteString("data")
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(len(data)))
+	buf.Write(data)
+	return buf.Bytes()
 }
 
 func absPath(p string) string {

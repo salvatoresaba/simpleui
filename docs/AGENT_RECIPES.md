@@ -482,12 +482,25 @@ fn boot() -> null {
   keeps the selection of the operator (a table refresh drops it).
 - Keep the live view and the data apart: bars and counters for the progress,
   the tables in another tab, so the screen stays readable.
+- One button for the whole lifecycle. The icon and the label of the action
+  button follow the phase of the job (start / pause / resume): the operator
+  never reads a button that does not apply to the current state. The cancel
+  button appears only in the phases where it makes sense.
+- Show the errors as toasts (`toast.show(message, "error", 5000)`) and not only
+  as a line of text: a failed request must be visible even when the operator
+  is looking at the progress bars. Deduplicate the repeated message.
+- Play a sound when the job ends with `sound.play(url)`: the URL is a literal,
+  a dynamic one needs `sound.playSafe` with a literal allow-list. The browser
+  may refuse to play it (autoplay policy): show the error, do not fail the job.
+- Keep the settings in a collapsible overlay (`modal`): the mode, the size of
+  the parts and the parallelism belong to the configuration, not to the main
+  view.
 
 See [`examples/download_manager/`](../examples/download_manager/README.md) for
 the complete example: a Go backend that downloads the URL given on the command
-line, splits the file into parts, fetches each part with its own `Range`
-request, keeps the bytes of a paused part, restarts a failed part on its own
-and reassembles the file with a size check.
+line, splits the file into parts (or downloads it in one piece), fetches each
+part with its own `Range` request, keeps the bytes of a paused part, restarts
+a failed part on its own and reassembles the file with a size check.
 
 ## Desktop files and commands
 
