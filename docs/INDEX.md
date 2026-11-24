@@ -92,6 +92,7 @@ Recommended order for an agent:
 | Analyze selected files with a Go backend | [file-type-analyzer](AGENT_RECIPES.md#file-type-analysis-with-a-go-backend) | [STDLIB](STDLIB.md#http-module-http), [API](API_REFERENCE.md#drag-and-drop) | `examples/file_analyzer/README.md` |
 | Read a remote JSON API | [remote-api-table](AGENT_RECIPES.md#remote-json-api--table) | [STDLIB](STDLIB.md#http-module-http), [SECURITY](../SECURITY.md) | `examples/users/app.sui` |
 | Drive a long job from a Go backend (download of a URL, pause/resume, per-part progress and retry) | [long-job-backend](AGENT_RECIPES.md#long-job-with-a-go-backend) | [STDLIB](STDLIB.md#http-module-http), [BUILTINS](BUILTINS.md#timer-functions), [SECURITY](../SECURITY.md) | `examples/download_manager/README.md` |
+| Play a sound effect (completion chime, notification) | [STDLIB](STDLIB.md#sound-module-sound) | [SECURITY](../SECURITY.md#9-dynamic-urls-and-ssrf) | `examples/download_manager/app.sui` |
 | Create/update data over HTTP | [remote-crud](AGENT_RECIPES.md#remote-crud-form) | [STDLIB](STDLIB.md#http-module-http), [SECURITY](../SECURITY.md) | `examples/users/app.sui` |
 | Dashboard with periodic refresh | [polling-dashboard](AGENT_RECIPES.md#polling-dashboard) | [BUILTINS](BUILTINS.md#timer-functions), [API](API_REFERENCE.md) | `examples/monitor.sui` |
 | Desktop files and commands | [desktop-files](AGENT_RECIPES.md#desktop-files-and-commands) | [SECURITY](../SECURITY.md#desktop-bridge), [STDLIB](STDLIB.md#file-system-module-fs) | `examples/security/desktop_files.sui`, `examples/desktop_picker.sui` |
@@ -126,7 +127,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 - [API_REFERENCE](API_REFERENCE.md) — essential syntax, tables, iframes and CLI.
 - [SPEC](../SPEC.md) — normative language, compiler and runtime contracts.
 - [BUILTINS](BUILTINS.md) — functions that need no import.
-- [STDLIB](STDLIB.md) — `http`, `ws`, `fs`, `exec`, `json`, `table` and the desktop `dialog` picker.
+- [STDLIB](STDLIB.md) — `http`, `ws`, `sound`, `fs`, `exec`, `json`, `table` and the desktop `dialog` picker.
 - [STDLIB_DATA](STDLIB_DATA.md) — pure/in-memory `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log` and `telemetry`.
 - [Chart table colors](TABLE_COLORS.md) — complete dark/light color audit with swatches and tokens ([visual version](table_colors.html)).
 - [Gantt complete reference](GANTT_COMPLETE_REFERENCE.md) — consolidated data, scheduling, routing, keyboard, persistence, commit/version and server-sync reference.

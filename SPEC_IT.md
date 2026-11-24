@@ -79,11 +79,12 @@ importato come libreria Go da un altro module.
 
 ## 4. Standard library
 
-Moduli: `http`, `ws`, `fs`, `exec`, `json`, `table` (core), `dialog` (desktop). Le funzioni con due
+Moduli: `http`, `ws`, `sound`, `fs`, `exec`, `json`, `table` (core), `dialog` (desktop). Le funzioni con due
 valori restituiscono `(value, error)`; le funzioni fire-and-forget restituiscono
 `null`. HTTP dinamico: `getSafe`, `getStatusSafe`, `postSafe`, `postFilesSafe`;
 upload file: `postFiles`; WebSocket:
-`connectSafe`. Table: `display`, `data`, `header`, `select`, `slice`,
+`connectSafe`. Suono: `play` (URL letterale) e `playSafe` (allow-list
+letterale). Table: `display`, `data`, `header`, `select`, `slice`,
 `importText`, `exportText`, `json`, `clear`. Dialog desktop: `pickFile`,
 `pickFiles`, `pickDirectory` (dialoghi nativi, solo target desktop).
 

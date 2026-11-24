@@ -15,7 +15,7 @@ package core
 
 // StdFunc describes one intrinsic std function.
 type StdFunc struct {
-	mod    string   // module: "http" | "ws" | "fs" | "exec" | "json"
+	mod    string   // module: "http" | "ws" | "sound" | "fs" | "exec" | "json"
 	name   string   // function name within the module
 	params []string // SUI type names: "int" "float" "string" "bool"
 	// "array[string]" "any" "null"
@@ -31,6 +31,7 @@ type StdFunc struct {
 var StdModules = []string{
 	"http",
 	"ws",
+	"sound",
 	"fs",
 	"exec",
 	"json",
@@ -118,6 +119,10 @@ var StdFuncs = []StdFunc{
 	StdFunc{mod: "ws", name: "status", params: []string{"any"}, ret0: "string", ret1: "string", jsKey: "ws_status", async: false},
 	StdFunc{mod: "ws", name: "reconnect", params: []string{"any"}, ret0: "null", ret1: "string", jsKey: "ws_reconnect", async: true},
 	StdFunc{mod: "ws", name: "close", params: []string{"any"}, ret0: "null", ret1: "string", jsKey: "ws_close", async: true},
+	// sound: play a sound effect. The plain variant takes a literal URL, the
+	// *Safe variant a dynamic one with a literal allow-list.
+	StdFunc{mod: "sound", name: "play", params: []string{"string"}, ret0: "bool", ret1: "string", jsKey: "sound_play", async: true},
+	StdFunc{mod: "sound", name: "playSafe", params: []string{"string", "string"}, ret0: "bool", ret1: "string", jsKey: "sound_playsafe", async: true},
 	// fs
 	StdFunc{mod: "fs", name: "read", params: []string{"string"}, ret0: "string", ret1: "string", jsKey: "fs_read", async: true},
 	StdFunc{mod: "fs", name: "write", params: []string{"string", "string"}, ret0: "null", ret1: "string", jsKey: "fs_write", async: true},

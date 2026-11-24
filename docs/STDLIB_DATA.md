@@ -9,7 +9,7 @@ asynchronous because it reads the bytes of a file the user selected.
 
 The modules are `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`,
 `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log`
-and `telemetry`. For I/O modules (`http`, `ws`, `fs`, `exec`, `dialog`) see
+and `telemetry`. For I/O modules (`http`, `ws`, `sound`, `fs`, `exec`, `dialog`) see
 [STDLIB](STDLIB.md).
 
 ## Import

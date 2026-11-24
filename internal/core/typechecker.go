@@ -2370,6 +2370,8 @@ func safeURLVariant(full string) string {
 	switch full {
 	case "http.get":
 		return "http.getSafe"
+	case "sound.play":
+		return "sound.playSafe"
 	case "http.getStatus":
 		return "http.getStatusSafe"
 	case "http.post":
@@ -2419,7 +2421,7 @@ func (c *Checker) checkStdURLSecurity(e *Expr, f *StdFunc) {
 	}
 	full := f.mod + "." + f.name
 	switch full {
-	case "http.get", "http.getStatus", "http.post", "http.postFiles", "http.getWithHeaders", "http.postWithHeaders", "http.upload", "http.uploadWithHeaders", "ws.connect", "ws.connectWithOptions":
+	case "http.get", "http.getStatus", "http.post", "http.postFiles", "http.getWithHeaders", "http.postWithHeaders", "http.upload", "http.uploadWithHeaders", "ws.connect", "ws.connectWithOptions", "sound.play":
 		if len(e.args) == 0 {
 			return
 		}
@@ -2443,7 +2445,7 @@ func (c *Checker) checkStdURLSecurity(e *Expr, f *StdFunc) {
 			msg := "dynamic URL: use http.requestSafe with an allow-list"
 			c.securityDiag(e.args[1].span, c.security.URLDynamic, msg)
 		}
-	case "http.getSafe", "http.getStatusSafe", "http.postSafe", "http.postFilesSafe", "http.getWithHeadersSafe", "http.postWithHeadersSafe", "http.requestSafe", "http.uploadSafe", "http.uploadWithHeadersSafe", "xml.loadUrlSafe", "ws.connectSafe", "ws.connectWithOptionsSafe":
+	case "http.getSafe", "http.getStatusSafe", "http.postSafe", "http.postFilesSafe", "http.getWithHeadersSafe", "http.postWithHeadersSafe", "http.requestSafe", "http.uploadSafe", "http.uploadWithHeadersSafe", "xml.loadUrlSafe", "ws.connectSafe", "ws.connectWithOptionsSafe", "sound.playSafe":
 		idx := 1
 		switch full {
 		case "http.postSafe", "http.getWithHeadersSafe", "ws.connectWithOptionsSafe":

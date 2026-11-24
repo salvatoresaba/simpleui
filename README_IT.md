@@ -620,7 +620,7 @@ solo il wrapper `package main` che chiama `sui.Main()`.
 - [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md) - Registra il server MCP con un coding agent (blocchi `.mcp.json` pronti).
 - [`llms.txt`](llms.txt) - Discovery compatta per LLM.
 - [`docs/BUILTINS_IT.md`](docs/BUILTINS_IT.md) - Tutte le funzioni built-in (stringhe, array, math, time, regex, storage, etc.)
-- [`docs/STDLIB_IT.md`](docs/STDLIB_IT.md) - Standard library (`http`, `ws`, `fs`, `exec`, `json`, `table`, `dialog` desktop)
+- [`docs/STDLIB_IT.md`](docs/STDLIB_IT.md) - Standard library (`http`, `ws`, `sound`, `fs`, `exec`, `json`, `table`, `dialog` desktop)
 - [`docs/API_REFERENCE_IT.md`](docs/API_REFERENCE_IT.md) - Riferimento completo API e sintassi
 - [`SECURITY_IT.md`](SECURITY_IT.md) - Modello di minaccia, escaping, bridge, limiti e rischi residui
 - [`SPEC_IT.md`](SPEC_IT.md) - Specifica tecnica del linguaggio

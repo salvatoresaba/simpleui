@@ -2,7 +2,7 @@
 
 Questo documento copre i moduli std puri e in-memory. Non accedono alla rete, al filesystem, alle variabili di processo o al DOM. Sono disponibili sia per target web sia desktop e seguono la convenzione std abituale: `value, err = modulo.funzione(...)` con `err = null` in caso di successo. Tutte le funzioni di questi moduli sono sincrone, con due eccezioni: `files.readBytes` e `files.documentUrl` sono asincrone perché leggono i byte di un file selezionato dall'utente.
 
-I moduli sono `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log` e `telemetry`. Per i moduli I/O (`http`, `ws`, `fs`, `exec`, `dialog`) vedere [STDLIB](STDLIB_IT.md).
+I moduli sono `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log` e `telemetry`. Per i moduli I/O (`http`, `ws`, `sound`, `fs`, `exec`, `dialog`) vedere [STDLIB](STDLIB_IT.md).
 
 ## Import
 

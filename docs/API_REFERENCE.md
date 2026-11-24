@@ -4033,7 +4033,7 @@ Interpolated values and attributes are **escaped automatically**;
 static active schemes are rejected at compile time. Dynamic `style:` requires
 `cssSafe(...)`; dynamic classes are filtered against the app class allow-list.
 Dynamic URLs require `http.getSafe`/`postSafe`/`getStatusSafe`/`getWithHeadersSafe`/`postWithHeadersSafe`/`requestSafe`/`uploadSafe` (or
-`ws.connectSafe`/`ws.connectWithOptionsSafe`) with a literal allow-list: no SSRF, redirects or credentials.
+`ws.connectSafe`/`ws.connectWithOptionsSafe`/`sound.playSafe`) with a literal allow-list: no SSRF, redirects or credentials.
 Do not concatenate untrusted data into `style` or unvalidated URLs.
 
 Iframe attributes are validated: malformed data is rejected at compile time;

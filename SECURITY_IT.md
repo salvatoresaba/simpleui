@@ -140,7 +140,7 @@ Oltre al type checking normale, il compilatore rifiuta:
   `href`/`src`/`link`;
 - `http.*`/`ws.connect` con URL **dinamico** richiedono la variante `*Safe`
   (`getSafe`, `getStatusSafe`, `postSafe`, `connectSafe`) e un’allow-list
-  letterale;
+  letterale; `sound.play` segue la stessa regola (`sound.playSafe`);
 - handler evento che non nominano una funzione dichiarata;
 - interpolazioni HTML grezze (non esistono: il testo è sempre escapato).
 
@@ -209,7 +209,9 @@ parte comunque** e può avere effetti collaterali.
 Politica:
 
 - `http.get`, `http.getStatus`, `http.post` e `ws.connect` accettano solo URL
-  **letterali** (scritti dallo sviluppatore).
+  **letterali** (scritti dallo sviluppatore). Anche `sound.play` accetta solo
+  un URL letterale: per un URL dinamico esiste `sound.playSafe` con la stessa
+  allow-list letterale delle altre varianti safe.
 - Un URL **dinamico** deve passare dalle varianti safe:
 
 ```sui

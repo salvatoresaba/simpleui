@@ -49,7 +49,7 @@
     },
     {
       "id": "safe-urls",
-      "rule": "Dynamic HTTP/WebSocket URLs require `*Safe` with a literal allow-list. Do not concatenate untrusted data into a literal URL to bypass this.",
+      "rule": "Dynamic HTTP/WebSocket/sound URLs require `*Safe` with a literal allow-list. Do not concatenate untrusted data into a literal URL to bypass this.",
       "docs": ["security", "stdlib"]
     },
     {
@@ -316,11 +316,11 @@
       "id": "stdlib",
       "path": "docs/STDLIB.md",
       "title": "Standard library",
-      "summary": "Importable std modules: http (including file upload), ws, fs, exec, json, the core table/tree/chart APIs and the desktop dialog picker. Pure/in-memory data modules are documented in stdlib_data.",
+      "summary": "Importable std modules: http (including file upload), ws, sound, fs, exec, json, the core table/tree/chart APIs and the desktop dialog picker. Pure/in-memory data modules are documented in stdlib_data.",
       "audience": ["human", "agent"],
       "priority": 2,
-      "tags": ["stdlib", "http", "upload", "ws", "fs", "exec", "json", "pointer", "rfc6901", "rfc6902", "rfc7386", "xml", "xsd", "diff", "patch", "merge", "bytes", "sourcemap", "debugging", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
-      "sections": ["Import", "HTTP Module (`http`)", "WebSocket Module (`ws`)", "File System Module (`fs`)", "Exec Module (`exec`)", "JSON Module (`json`)", "Dialog Module (`dialog`, desktop)", "Table Module (`table`, core)", "Chart Module (`chart`, core)", "Tree Module (`tree`, core)", "Error Handling Pattern"]
+      "tags": ["stdlib", "http", "upload", "ws", "sound", "audio", "fs", "exec", "json", "pointer", "rfc6901", "rfc6902", "rfc7386", "xml", "xsd", "diff", "patch", "merge", "bytes", "sourcemap", "debugging", "dialog", "table", "tree", "chart", "process-monitor", "ssrf"],
+      "sections": ["Import", "HTTP Module (`http`)", "WebSocket Module (`ws`)", "Sound Module (`sound`)", "File System Module (`fs`)", "Exec Module (`exec`)", "JSON Module (`json`)", "Dialog Module (`dialog`, desktop)", "Table Module (`table`, core)", "Chart Module (`chart`, core)", "Tree Module (`tree`, core)", "Error Handling Pattern"]
     },
     {
       "id": "stdlib_data",

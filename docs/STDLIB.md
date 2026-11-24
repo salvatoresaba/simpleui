@@ -6,7 +6,7 @@ SimpleUI's standard library is importable from `"std"`. Calls compile to
 (`err = "null"` on success). Functions marked *fire-and-forget* return `null`
 and do not require a full binding.
 
-Available modules: `http`, `ws`, `fs`, `exec`, `json`, `table`, `tree`, `chart`, `dialog` (desktop) and the pure/in-memory data modules documented in [STDLIB_DATA](STDLIB_DATA.md): `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log`, `telemetry`.
+Available modules: `http`, `ws`, `sound`, `fs`, `exec`, `json`, `table`, `tree`, `chart`, `dialog` (desktop) and the pure/in-memory data modules documented in [STDLIB_DATA](STDLIB_DATA.md): `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log`, `telemetry`.
 
 ## Import
 
@@ -91,6 +91,40 @@ Notes:
 - `ws.send`, `ws.onMessage`, `ws.onOpen`, `ws.onClose`, `ws.onError`, `ws.reconnect` and `ws.close` are fire-and-forget (`ret0 = "null"`).
 - `ws.onMessage` can be state-driven: update a state and trigger a re-render.
 - Reconnect and heartbeat are supported via `ws.connectWithOptions`: set `reconnect: "true"`, `reconnectDelay`, `maxReconnectDelay`, `heartbeat` (ms) and `ping` (message). Manual reconnect is available via `ws.reconnect(conn)`. Status is inspectable via `ws.status(conn)`.
+
+## Sound Module (`sound`)
+
+Sound effects played by the browser. Requires `import { sound } from "std"`.
+
+| Function | Params | Return | Async | Description |
+|---|---|---|---|---|
+| `sound.play(url)` | string | (bool, string) | true | Play the audio file at a **literal** URL; `true` when the browser accepted the playback |
+| `sound.playSafe(url, allow)` | string, string | (bool, string) | true | Play the audio file at a dynamic URL, guarded by a **literal** allow-list |
+
+Notes:
+
+- `sound.play` accepts only a literal URL: a dynamic one is a compile-time
+  error and the `*Safe` variant is required, exactly like `http.getSafe`.
+- The URL guard is the same one of the HTTP module: only `http`/`https`, no
+  credentials in the URL, no redirects, and the allow-list of `sound.playSafe`
+  must be a literal string.
+- The function resolves when the browser has **started** the playback, not
+  when the sound ends. A browser that blocks the autoplay policy (a sound
+  played without a user gesture) returns `(false, error)`: show the error,
+  do not treat it as a crash.
+- The runtime creates a detached `Audio` element for every call: the app does
+  not need an `audio` control in the view.
+
+```sui
+import { sound } from "std"
+
+async fn onDownloadDone() -> null {
+	ok, err = sound.play("https://example.com/done.wav")
+	if err != null {
+		notifyError("the browser blocked the sound: " + err)
+	}
+}
+```
 
 ## File System Module (`fs`)
 

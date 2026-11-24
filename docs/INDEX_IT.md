@@ -70,6 +70,7 @@ Ordine consigliato per un agente:
 | Analizzare i tipi di file con backend Go | [file-type-analyzer](AGENT_RECIPES_IT.md#analisi-dei-tipi-di-file-con-backend-go) | [STDLIB](STDLIB_IT.md#http-module-http), [API](API_REFERENCE_IT.md#drag-and-drop) | `examples/file_analyzer/README.md` |
 | Leggere un'API JSON remota | [remote-api-table](AGENT_RECIPES_IT.md#remote-json-api--table) | [STDLIB](STDLIB_IT.md#http-module-http), [SECURITY_IT](../SECURITY_IT.md) | `examples/users/app.sui` |
 | Gestire un lavoro lungo da un backend Go (download di una URL, pausa/ripresa, progresso e riavvio per singola parte) | [long-job-backend](AGENT_RECIPES_IT.md#long-job-with-a-go-backend) | [STDLIB](STDLIB_IT.md#http-module-http), [BUILTINS](BUILTINS_IT.md#timer-functions), [SECURITY_IT](../SECURITY_IT.md) | `examples/download_manager/README.md` |
+| Riprodurre un effetto sonoro (chime di fine lavoro, notifica) | [STDLIB](STDLIB_IT.md#sound-module-sound) | [SECURITY_IT](../SECURITY_IT.md#9-url-dinamici-e-ssrf) | `examples/download_manager/app.sui` |
 | Creare/modificare dati via HTTP | [remote-crud](AGENT_RECIPES_IT.md#remote-crud-form) | [STDLIB](STDLIB_IT.md#http-module-http), [SECURITY_IT](../SECURITY_IT.md) | `examples/users/app.sui` |
 | Dashboard con refresh periodico | [polling-dashboard](AGENT_RECIPES_IT.md#polling-dashboard) | [BUILTINS](BUILTINS_IT.md#timer-functions), [API](API_REFERENCE_IT.md) | `examples/monitor.sui` |
 | File e comandi su desktop | [desktop-files](AGENT_RECIPES_IT.md#desktop-files-and-commands) | [SECURITY](../SECURITY_IT.md#bridge-desktop), [STDLIB](STDLIB_IT.md#file-system-module-fs) | `examples/security/desktop_files.sui`, `examples/desktop_picker.sui` |
@@ -96,7 +97,7 @@ Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
 - [API_REFERENCE](API_REFERENCE_IT.md) — sintassi essenziale, tabelle, iframe, CLI.
 - [SPEC_IT](../SPEC_IT.md) — specifica normativa di linguaggio, compilatore e runtime.
 - [BUILTINS](BUILTINS_IT.md) — funzioni senza import.
-- [STDLIB](STDLIB_IT.md) — `http`, `ws`, `fs`, `exec`, `json`, `table` e il picker desktop `dialog`.
+- [STDLIB](STDLIB_IT.md) — `http`, `ws`, `sound`, `fs`, `exec`, `json`, `table` e il picker desktop `dialog`.
 - [STDLIB_DATA_IT](STDLIB_DATA_IT.md) — moduli dati puri/in-memory `bytes`, `bin`, `files`, `mime`, `color`, `units`, `print`, `history`, `zip`, `archive`, `csv`, `env`, `capabilities`, `events`, `bus`, `log` e `telemetry`.
 
 ### Dati e interfacce

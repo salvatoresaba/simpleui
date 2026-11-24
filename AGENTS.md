@@ -70,7 +70,8 @@ These rules are part of the language's security model. Do not work around them.
   classes for layout.
 - **Dynamic HTTP/WebSocket URLs require `*Safe`.** Use
   `http.getSafe/postSafe/getStatusSafe` or `ws.connectSafe` with a **literal**
-  allow-list. A literal URL may use `http.get`/`ws.connect`.
+  allow-list. A literal URL may use `http.get`/`ws.connect`. `sound.play` follows
+  the same rule: a dynamic sound URL needs `sound.playSafe`.
 - **Iframes are sandboxed by default.** Missing `sandbox` becomes `sandbox=""`;
   missing `referrerpolicy` becomes `no-referrer`. A dynamic `src` requires a
   literal `srcAllow` allow-list and is validated at runtime. Never use
@@ -245,6 +246,7 @@ For desktop capabilities:
 | Drag/drop or native file picker | `docs/GUI_EDITOR.md`, `docs/AGENT_RECIPES.md#drag-and-drop`, `docs/API_REFERENCE.md#drag-and-drop` | `examples/drag_drop.sui`, `examples/file_picker.sui` |
 | Remote JSON API | `docs/AGENT_RECIPES.md#remote-json-api--table`, `docs/STDLIB.md#http-module-http` | `examples/users/app.sui` |
 | HTTP headers, multipart upload & advanced WebSocket | `docs/STDLIB.md#http-module-http`, `docs/STDLIB.md#websocket-module-ws` | `examples/networking_suite/README.md` |
+| Sound effect on completion (browser audio) | `docs/STDLIB.md#sound-module-sound` | `examples/download_manager/app.sui` |
 | POST/update remote data | `docs/AGENT_RECIPES.md#remote-crud-form`, `SECURITY.md` | `examples/users/app.sui` |
 | Polling dashboard | `docs/AGENT_RECIPES.md#polling-dashboard` | `examples/monitor.sui` |
 | Long job driven from a Go backend (download of a URL, pause/resume, per-unit retry) | `docs/AGENT_RECIPES.md#long-job-with-a-go-backend` | `examples/download_manager/README.md` |

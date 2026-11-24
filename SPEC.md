@@ -830,7 +830,7 @@ view main {
 
 ## 3. Standard library (contract — see `internal/core/stdlib.go`)
 
-Imported with `import { http, ws, fs, exec, json, dialog } from "std"` (only names
+Imported with `import { http, ws, sound, fs, exec, json, dialog } from "std"` (only names
 actually used should be imported; the compiler is lenient but the checker
 validates they exist in `StdModules`).
 
@@ -857,6 +857,8 @@ binding).
 | ws.send   | any, string | null | string | ws_send |
 | ws.onMessage | any, string | null | string | ws_onmessage | handler is a declared fn receiving the message |
 | ws.close  | any | null | string | ws_close |
+| sound.play | string | bool | string | sound_play | literal URL only |
+| sound.playSafe | string, string | bool | string | sound_playsafe | literal allow-list |
 | fs.read   | string | string | string | fs_read |
 | fs.write  | string, string | null | string | fs_write |
 | fs.exists | string | bool | string | fs_exists |

@@ -638,6 +638,40 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  }\n" +
 	"  return ['', 'URL is not in the allow-list'];\n" +
 	"}\n" +
+	"// __sui_play_sound plays a sound effect. The URL is checked like the\n" +
+	"// other network calls: only http/https, without credentials, and\n" +
+	"// against the allow-list when the caller uses the *Safe variant.\n" +
+	"function __sui_play_sound(url, allow) {\n" +
+	"  return new Promise(function (resolve) {\n" +
+	"    var raw = String(url === null || url === undefined ? '' : url).trim();\n" +
+	"    if (!raw) { resolve([false, 'empty URL']); return; }\n" +
+	"    var href = raw;\n" +
+	"    if (allow !== null && allow !== undefined && String(allow) !== '') {\n" +
+	"      var g = __sui_url_guard(raw, allow, false);\n" +
+	"      if (g[1]) { resolve([false, g[1]]); return; }\n" +
+	"      href = g[0];\n" +
+	"    } else {\n" +
+	"      var u;\n" +
+	"      try { u = new URL(raw, location.origin); } catch (e) { resolve([false, 'invalid URL']); return; }\n" +
+	"      if (u.protocol !== 'http:' && u.protocol !== 'https:') { resolve([false, 'only http/https URLs are allowed']); return; }\n" +
+	"      if (u.username || u.password) { resolve([false, 'URL credentials are not allowed']); return; }\n" +
+	"      href = u.href;\n" +
+	"    }\n" +
+	"    try {\n" +
+	"      var a = new Audio();\n" +
+	"      a.preload = 'auto';\n" +
+	"      a.src = href;\n" +
+	"      var p = a.play();\n" +
+	"      if (p && p.then) {\n" +
+	"        p.then(function () { resolve([true, null]); }, function (e) { resolve([false, String(e)]); });\n" +
+	"      } else {\n" +
+	"        resolve([true, null]);\n" +
+	"      }\n" +
+	"    } catch (e) {\n" +
+	"      resolve([false, String(e)]);\n" +
+	"    }\n" +
+	"  });\n" +
+	"}\n" +
 	"function __sui_clean_headers(h) {\n" +
 	"  if (!h) return {};\n" +
 	"  if (typeof h === 'string') { try { h = JSON.parse(h); } catch(e) { return {}; } }\n" +
@@ -2731,6 +2765,12 @@ func stdBodyJs(key string, target string) string {
 	}
 	if key == "http_getsafe" {
 		return "async (url, allow) => __sui_fetch_guarded(url, allow, {})"
+	}
+	if key == "sound_play" {
+		return "async (url) => __sui_play_sound(url, null)"
+	}
+	if key == "sound_playsafe" {
+		return "async (url, allow) => __sui_play_sound(url, allow)"
 	}
 	if key == "http_getstatussafe" {
 		return "async (url, allow) => __sui_fetch_status_guarded(url, allow)"

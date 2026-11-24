@@ -77,6 +77,8 @@ set. Static classes are unchanged.
 Static active URLs are errors by default; dynamic styles must use `cssSafe`;
 dynamic URLs must use `*Safe` with a literal allow-list; unknown iframe
 attributes/data are rejected; duplicate attributes are rejected.
+`sound.play` follows the same rule: a literal URL only, a dynamic one needs
+`sound.playSafe` with a literal allow-list.
 
 ### 6. Inert table data
 
@@ -112,11 +114,16 @@ functions; JSON uses `JSON.parse`.
 
 ### 9. Dynamic URLs and SSRF
 
-`http.get/getStatus/post/postFiles` and `ws.connect` accept only literal URLs. Dynamic
-destinations use `getSafe/getStatusSafe/postSafe/connectSafe` with a **literal**
-allow-list. The runtime matches scheme/host/port (or a same-origin path prefix),
+`http.get/getStatus/post/postFiles`, `ws.connect` and `sound.play` accept only
+literal URLs. Dynamic destinations use `getSafe/getStatusSafe/postSafe/connectSafe`
+with a **literal** allow-list. The runtime matches scheme/host/port (or a same-origin path prefix),
 rejects credentials and active schemes, refuses redirects, applies a 30 s
 timeout and a 10 MB response cap.
+
+`sound.play` loads the audio file with the same URL guard: `sound.playSafe`
+takes the same literal allow-list, so a dynamic sound URL cannot widen the
+destination. The browser may still refuse to play the file (autoplay policy);
+the runtime returns `(false, error)` and the app shows the error.
 
 `http.postFiles` uploads the actual selected/dropped files as multipart data to
 a literal URL; `http.postFilesSafe` adds the same literal allow-list for dynamic

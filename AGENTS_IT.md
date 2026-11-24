@@ -70,7 +70,8 @@ italiane: quando la versione inglese cambia, aggiorna anche la copia `_IT`.
   stile dinamico; gli stili statici sono fidati.
 - **Classi dinamiche filtrate** sulla allow-list dell'app.
 - **URL dinamici con `*Safe`.** Usa `http.getSafe/postSafe/getStatusSafe` o
-  `ws.connectSafe` con allow-list **letterale**.
+  `ws.connectSafe` con allow-list **letterale**. Vale anche per `sound.play`:
+  un URL audio dinamico richiede `sound.playSafe`.
 - **Iframe sandbox di default.** Se manca `sandbox` viene aggiunto
   `sandbox=""`; se manca `referrerpolicy` viene aggiunto `no-referrer`. Un
   `src` dinamico richiede `srcAllow` e viene validato a runtime. Non usare
@@ -198,6 +199,7 @@ Per capability desktop:
 | Drag/drop o dialogo file nativo | `docs/GUI_EDITOR_IT.md`, `docs/AGENT_RECIPES_IT.md#drag-and-drop`, `docs/API_REFERENCE_IT.md#drag-and-drop` | `examples/drag_drop.sui`, `examples/file_picker.sui` |
 | API JSON remota | `docs/AGENT_RECIPES_IT.md`, `docs/STDLIB_IT.md` | `examples/users/app.sui` |
 | HTTP header, multipart upload e WebSocket avanzato | `docs/STDLIB_IT.md`, `docs/API_REFERENCE_IT.md` | `examples/networking_suite/README.md` |
+| Effetto sonoro al completamento (audio del browser) | `docs/STDLIB_IT.md#sound-module-sound` | `examples/download_manager/app.sui` |
 | CRUD remoto | `docs/AGENT_RECIPES_IT.md`, `SECURITY_IT.md` | `examples/users/app.sui` |
 | Dashboard polling | `docs/AGENT_RECIPES_IT.md` | `examples/monitor.sui` |
 | Lavoro lungo pilotato da un backend Go (download di una URL, pausa/ripresa, riavvio per unita') | `docs/AGENT_RECIPES_IT.md#long-job-with-a-go-backend` | `examples/download_manager/README.md` |

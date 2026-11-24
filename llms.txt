@@ -17,7 +17,7 @@
 
 - [docs/API_REFERENCE.md](docs/API_REFERENCE.md): Essential syntax, drag and drop, tables, iframe attributes, PDF viewer, security and CLI.
 - [docs/BUILTINS.md](docs/BUILTINS.md): Built-in functions that need no import.
-- [docs/STDLIB.md](docs/STDLIB.md): `http`, `ws`, `fs`, `exec`, `json`, the core `table` API and the desktop `dialog` picker.
+- [docs/STDLIB.md](docs/STDLIB.md): `http`, `ws`, `sound`, `fs`, `exec`, `json`, the core `table` API and the desktop `dialog` picker.
 - [SPEC.md](SPEC.md): Normative language, compiler, runtime and CLI contracts.
 
 ## Security
