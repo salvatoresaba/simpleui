@@ -21,22 +21,23 @@ not add a dependency to the root module.
 - **The CLI takes the URL of the file.** `dm.exe --url https://example.com/file.bin`
   is the file to download; the other flags are the configuration (part size,
   workers, throttle, allowed hosts, expected checksum). The GUI reads the
-  defaults from `GET /api/config`, shows them in one line at the top and lets
-  the operator change them in the settings panel.
-- **Two ways to download.** The settings panel (the small ⚙ button) chooses
-  between **one single file** (one request, no parts, no reassembly) and
-  **split into parts**. In split mode the panel also shows the size of the
-  parts and how many parts are downloaded at the same time.
+  defaults from `GET /api/config` and shows them under the URL box, where the
+  operator can change them in the settings panel.
+- **Two ways to download.** The settings panel (the small ⚙ button of the
+  header) chooses between **one single file** (one request, no parts, no
+  reassembly) and **split into parts**. In split mode the panel also shows the
+  size of the parts and how many parts are downloaded at the same time.
 - **A split decided by the size.** The file is cut into parts of a chosen
   length (`256 KiB` … `16 MiB`); the number of parts follows from the file
   size. A 24 MiB file with 1 MiB parts becomes 24 parts.
 - **One Range request per part.** Every part is fetched with its own
   `Range: bytes=start-end` request, so the parts are really independent
   requests and not a single stream split in the client.
-- **Two levels of progress.** A bar for the whole download and, under it, one
-  bar per part with its state, its bytes and its error message. The bars
-  start from the **most recent** part and the list has a limited height with a
-  scroll bar, so the part that is running now is always visible.
+- **Two levels of progress.** A bar for the whole download and, inside the same
+  panel, a collapsible section with one bar per part. Only the parts whose
+  download has started get a bar: a part that is still waiting shows nothing.
+  The bars start from the **most recent** part and the list has a limited
+  height with a scroll bar, so the part that is running now is always visible.
 - **The data in another tab.** The tables of the parts and of the jobs live in
   the second tab, so the live view stays readable.
 - **One button for the whole lifecycle.** The lightning button next to the URL
@@ -52,8 +53,10 @@ not add a dependency to the root module.
   repeated twice in a row.
 - **A sound at the end.** When the download completes the app plays a short
   chime served by the backend (`GET /sound.wav`) with the new `sound` module.
-- **A status bar.** The percentage, the size of the file, the bytes downloaded
-  and the estimated time left are always visible at the bottom of the screen.
+- **A status bar.** The state of the download and its message are in the
+  status bar at the bottom of the screen, in a row above the data of the
+  download: percentage, size of the file, bytes downloaded and estimated time
+  left.
 - **A failed part restarts alone.** The operator selects the failed row in the
   table and presses "Retry part N": only that part is fetched again, its bytes
   are reset and the other parts are not touched. "Retry all failed" does the
@@ -128,22 +131,23 @@ prints the URL it listens on.
 
 ## The GUI
 
-1. **Top bar** – the configuration in one line (mode, size of the parts, parts
-   at the same time) and the small ⚙ button that opens the settings panel as
-   an overlay.
+1. **Header** – the title of the application and the small ⚙ button that opens
+   the settings panel as an overlay.
 2. **Target** – the URL of the file (prefilled with the `--url` of the CLI) and
    the single action button: ⚡ to start, ❚❚ to pause, ► to resume. Below it
-   the hint of the current phase. The ✕ cancel button appears next to it only
-   while the download is paused.
-3. **Progress tab** – the bar of the whole download and, under it, a
-   collapsible panel with one bar per part (the most recent one first), shown
-   only when the download runs in split mode. When the download is complete a
-   link appears to download the reassembled file.
+   the hint of the current phase and the configuration of the job (mode, size
+   of the parts, parts at the same time). The ✕ cancel button appears next to
+   the action button only while the download is paused.
+3. **Progress tab** – the card of the total progress: the bar of the whole
+   download and, inside it, the collapsible section with one bar per part (the
+   most recent one first, only the parts whose download has started). When the
+   download is complete a link appears to download the reassembled file.
 4. **Data tab** – the table of the parts and the table of the jobs. Clicking a
    row of the parts table selects the part: the "Retry part N" button fetches
    that part again, "Retry all failed" requeues every failed part.
-5. **Status bar** – the percentage, the size of the file, the bytes downloaded
-   and the estimated time left, always at the bottom of the screen.
+5. **Status bar** – the state of the download and its message in the first
+   row, the percentage, the size of the file, the bytes downloaded and the
+   estimated time left in the row below.
 
 ## HTTP API
 
@@ -309,9 +313,11 @@ async fn updateJob(job: any) -> null {
 	verifyText = str(job["verified"])
 	failedParts = job["failedParts"]
 	let parts = job["parts"]
-	# The bars start from the most recent part: what is happening now is at
-	# the top of the list. The table keeps the order of the parts.
-	partsView = reverse(parts)
+	# Only the parts that have started get a bar: a pending part would show
+	# an empty bar. The bars start from the most recent part: what is
+	# happening now is at the top of the list. The table keeps the order of
+	# the parts.
+	partsView = reverse(filter(parts, isStarted))
 	partsTable = parts
 	refreshPartsTable(jobId + "|" + jobState + "|" + str(failedParts) + "|" + str(doneParts(parts)))
 	syncPhase()
@@ -345,6 +351,16 @@ fn syncPhase() -> null {
 	phase = "idle"
 	actionIcon = "⚡"
 	actionHint = "Start the download"
+}
+
+# A part shows its bar only when its download has started: a part that is
+# still waiting has nothing to show. A part that was interrupted keeps the
+# bytes already on disk, so it keeps its bar too.
+fn isStarted(part: any) -> bool {
+	if str(part["State"]) == "pending" {
+		return str(part["Received"]) != "0"
+	}
+	return true
 }
 
 # How many parts are complete: the table is refreshed when this changes, so
@@ -583,11 +599,8 @@ view main {
 	card class: "topbar" {
 		row class: "topbar-row" {
 			col class: "topbar-info" {
-				if single == true {
-					p "one single file - the whole file in one request" class: "config-line"
-				} else {
-					p "split in parts of {partSize} - {workers} at a time" class: "config-line"
-				}
+				h1 "Download manager"
+				p "The backend splits the file into parts, downloads every one with its own Range request and reassembles them at the end." class: "subtitle"
 			}
 			button "⚙" onClick: openSettings class: "btn-icon btn-icon-sm" tooltip: "Download settings"
 		}
@@ -603,9 +616,12 @@ view main {
 			}
 		}
 		p "{actionHint}" class: "action-hint"
-		row class: "status-row" {
-			badge "{jobState}" class: "state-badge"
-			p "{message}" class: "status"
+		# The configuration of the job: the mode, the size of the parts and how
+		# many parts are downloaded at the same time.
+		if single == true {
+			p "one single file - the whole file in one request" class: "config-line"
+		} else {
+			p "split in parts of {partSize} - {workers} at a time" class: "config-line"
 		}
 	}
 
@@ -618,23 +634,24 @@ view main {
 				if jobState == "done" {
 					a "Download the reassembled file" href: "http://127.0.0.1:8090/api/downloads/" + jobId + "/file" class: "dl-link"
 				}
-			}
-
-			if jobSingle == false {
-				accordion "Parts" {
-					accordionitem "{len(partsView)} parts - the most recent one first" {
-						if len(partsView) == 0 {
-							p "No download yet: the bars of the parts appear here." class: "muted"
-						} else {
-							div class: "parts-scroll" {
-								list part in partsView {
-									row class: "part-row" {
-										p "Part {part["Part"]}" class: "part-index"
-										progress value: part["Percent"] max: 100 class: "bar-part"
-										p "{part["State"]}" class: "part-state"
-										p "{part["Received"]} / {part["Size"]}" class: "part-bytes"
-										if part["State"] == "error" {
-											p "{part["Error"]}" class: "part-error"
+				# The parts are a child of the total progress: the bars of the
+				# parts belong to the progress of the download.
+				if jobSingle == false {
+					accordion "Parts" {
+						accordionitem "{len(partsView)} parts started - the most recent one first" {
+							if len(partsView) == 0 {
+								p "No download yet: the bars of the parts appear here." class: "muted"
+							} else {
+								div class: "parts-scroll" {
+									list part in partsView {
+										row class: "part-row" {
+											p "Part {part["Part"]}" class: "part-index"
+											progress value: part["Percent"] max: 100 class: "bar-part"
+											p "{part["State"]}" class: "part-state"
+											p "{part["Received"]} / {part["Size"]}" class: "part-bytes"
+											if part["State"] == "error" {
+												p "{part["Error"]}" class: "part-error"
+											}
 										}
 									}
 								}
@@ -707,6 +724,10 @@ view main {
 	}
 
 	div class: "statusbar" {
+		row class: "statusbar-status" {
+			badge "{jobState}" class: "state-badge"
+			p "{message}" class: "status"
+		}
 		row class: "statusbar-row" {
 			col class: "sb-item" {
 				p "{percent}%" class: "sb-value"
@@ -728,7 +749,7 @@ view main {
 	}
 }
 
-css "body \{ margin: 0; padding: 0 0 120px; background: radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%), linear-gradient(165deg, #0b1020 0%, #131a30 55%, #0e1426 100%); color: #e6e9f5; font-family: system-ui, sans-serif; } h1 \{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; } h3 \{ margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #a5b4fc; } p \{ line-height: 1.55; } card \{ background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 18px; padding: 20px 22px; margin: 16px 0; box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45); } .topbar \{ background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 10px 16px; margin: 18px 0 6px; box-shadow: none; } .topbar-row \{ align-items: center; gap: 14px; justify-content: space-between; } .topbar-info \{ flex: 1 1 auto; gap: 2px; } .config-line \{ margin: 0; font-size: 13px; color: #a8b1cc; letter-spacing: 0.02em; } .field \{ margin: 4px 0 10px; gap: 12px; align-items: center; } .url-input \{ flex: 1 1 auto; } .action-hint \{ margin: 0 0 12px; font-size: 12px; color: #7c86a8; text-transform: uppercase; letter-spacing: 0.08em; } .sui-button.btn-icon \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.35); width: 42px; height: 42px; padding: 0; border-radius: 12px; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: transform 140ms ease, box-shadow 140ms ease, color 140ms ease, background 140ms ease; } .sui-button.btn-icon:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.16), 0 10px 22px rgba(99, 102, 241, 0.35); } .sui-button.btn-action \{ background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%); color: #061021; border: 0; font-size: 19px; font-weight: 700; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35); } .sui-button.btn-action:hover \{ color: #061021; background: linear-gradient(135deg, #818cf8 0%, #67e8f9 100%); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22), 0 14px 30px rgba(99, 102, 241, 0.45); } .sui-button.btn-cancel \{ background: rgba(244, 63, 94, 0.14); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.38); } .sui-button.btn-cancel:hover \{ background: rgba(244, 63, 94, 0.26); color: #ffe4e6; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18); } .sui-button.btn-icon-sm \{ width: 32px; height: 32px; font-size: 15px; border-radius: 10px; } .status-row \{ gap: 12px; align-items: center; margin-top: 4px; } .status \{ color: #a8b1cc; font-size: 13px; margin: 0; } .state-badge \{ background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.30); } .verify \{ margin: 14px 0 0; color: #6ee7b7; font-size: 13px; } .dl-link \{ display: inline-block; margin-top: 12px; color: #67e8f9; font-weight: 600; } .parts-scroll \{ max-height: 320px; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 2px 2px; margin: 4px 0 10px; scrollbar-width: thin; scrollbar-color: rgba(129, 140, 248, 0.45) rgba(15, 23, 42, 0.4); } .parts-scroll::-webkit-scrollbar \{ width: 10px; } .parts-scroll::-webkit-scrollbar-track \{ background: rgba(15, 23, 42, 0.45); border-radius: 8px; } .parts-scroll::-webkit-scrollbar-thumb \{ background: rgba(129, 140, 248, 0.45); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } .row.part-row \{ display: grid; grid-template-columns: 64px minmax(120px, 1fr) 92px 148px; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.part-row:hover \{ background: rgba(148, 163, 184, 0.08); } .part-index \{ font-weight: 600; color: #c7d2fe; margin: 0; font-variant-numeric: tabular-nums; } .part-state \{ font-size: 12px; color: #8b93b0; margin: 0; } .part-bytes \{ font-size: 12px; color: #8b93b0; text-align: right; margin: 0; font-variant-numeric: tabular-nums; } .part-error \{ grid-column: 1 / -1; font-size: 12px; color: #fda4af; margin: 0; } progress.bar-total \{ --sui-progress-height: 12px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #6366f1; --sui-progress-value-end: #22d3ee; } progress.bar-part \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #818cf8; --sui-progress-value-end: #38bdf8; } .settings \{ display: flex; flex-direction: column; gap: 14px; min-width: 320px; } .setting \{ gap: 16px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); } .setting:last-child \{ border-bottom: 0; padding-bottom: 0; } .setting-text \{ gap: 2px; flex: 1 1 auto; } .setting-text p \{ margin: 0; font-size: 12px; color: #8b93b0; line-height: 1.45; } .setting-control \{ flex: 0 0 220px; } .mode-switch \{ flex: 0 0 auto; } .hint \{ color: #8b93b0; font-size: 13px; margin: 2px 0 10px; } .muted \{ color: #8b93b0; font-size: 13px; } .controls \{ gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .sui-button.btn-warn \{ background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.42); padding: 9px 16px; border-radius: 12px; } .sui-button.btn-ghost \{ background: transparent; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.28); padding: 9px 16px; border-radius: 12px; } .toast-host .sui-toast \{ width: 340px; } .sui-tabs \{ --sui-tabs-border: rgba(148, 163, 184, 0.16); --sui-tabs-radius: 16px; --sui-tabs-bg: rgba(255, 255, 255, 0.02); --sui-tablist-bg: rgba(15, 23, 42, 0.55); --sui-tab-padding: 10px 18px; --sui-tab-active-bg: rgba(99, 102, 241, 0.18); --sui-tab-accent: #22d3ee; --sui-tab-fg: #94a3b8; --sui-tab-active-fg: #e0e7ff; } .sui-tabpanels \{ padding: 18px 20px; } .statusbar \{ position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 12px 22px; background: rgba(11, 16, 32, 0.94); border-top: 1px solid rgba(148, 163, 184, 0.18); backdrop-filter: blur(8px); } .statusbar-row \{ gap: 18px; flex-wrap: wrap; } .sb-item \{ flex: 1 1 120px; gap: 2px; } .sb-value \{ margin: 0; font-size: 17px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .sb-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } @media (max-width: 760px) { .row.part-row \{ grid-template-columns: 56px 1fr; row-gap: 6px; } .parts-scroll \{ max-height: 240px; } .setting \{ flex-direction: column; gap: 8px; } .setting-control \{ flex: 1 1 100%; width: 100%; } }"
+css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%), linear-gradient(165deg, #0b1020 0%, #131a30 55%, #0e1426 100%); color: #e6e9f5; font-family: system-ui, sans-serif; } h1 \{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; } h3 \{ margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #a5b4fc; } p \{ line-height: 1.55; } card \{ background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 18px; padding: 20px 22px; margin: 16px 0; box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45); } .topbar \{ background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 10px 16px; margin: 18px 0 6px; box-shadow: none; } .topbar-row \{ align-items: center; gap: 14px; justify-content: space-between; } .topbar-info \{ flex: 1 1 auto; gap: 2px; } .subtitle \{ margin: 0; font-size: 13px; color: #8b93b0; line-height: 1.5; } .config-line \{ margin: 0; font-size: 13px; color: #a8b1cc; letter-spacing: 0.02em; } .field \{ margin: 4px 0 10px; gap: 12px; align-items: center; } .url-input \{ flex: 1 1 auto; } .action-hint \{ margin: 0 0 12px; font-size: 12px; color: #7c86a8; text-transform: uppercase; letter-spacing: 0.08em; } .sui-button.btn-icon \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.35); width: 42px; height: 42px; padding: 0; border-radius: 12px; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: transform 140ms ease, box-shadow 140ms ease, color 140ms ease, background 140ms ease; } .sui-button.btn-icon:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.16), 0 10px 22px rgba(99, 102, 241, 0.35); } .sui-button.btn-action \{ background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%); color: #061021; border: 0; font-size: 19px; font-weight: 700; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35); } .sui-button.btn-action:hover \{ color: #061021; background: linear-gradient(135deg, #818cf8 0%, #67e8f9 100%); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22), 0 14px 30px rgba(99, 102, 241, 0.45); } .sui-button.btn-cancel \{ background: rgba(244, 63, 94, 0.14); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.38); } .sui-button.btn-cancel:hover \{ background: rgba(244, 63, 94, 0.26); color: #ffe4e6; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18); } .sui-button.btn-icon-sm \{ width: 32px; height: 32px; font-size: 15px; border-radius: 10px; } .status \{ color: #a8b1cc; font-size: 13px; margin: 0; } .state-badge \{ background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.30); } .verify \{ margin: 14px 0 0; color: #6ee7b7; font-size: 13px; } .dl-link \{ display: inline-block; margin-top: 12px; color: #67e8f9; font-weight: 600; } .parts-scroll \{ max-height: 320px; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 2px 2px; margin: 4px 0 10px; scrollbar-width: thin; scrollbar-color: rgba(129, 140, 248, 0.45) rgba(15, 23, 42, 0.4); } .parts-scroll::-webkit-scrollbar \{ width: 10px; } .parts-scroll::-webkit-scrollbar-track \{ background: rgba(15, 23, 42, 0.45); border-radius: 8px; } .parts-scroll::-webkit-scrollbar-thumb \{ background: rgba(129, 140, 248, 0.45); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } .row.part-row \{ display: grid; grid-template-columns: 64px minmax(120px, 1fr) 92px 148px; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.part-row:hover \{ background: rgba(148, 163, 184, 0.08); } .part-index \{ font-weight: 600; color: #c7d2fe; margin: 0; font-variant-numeric: tabular-nums; } .part-state \{ font-size: 12px; color: #8b93b0; margin: 0; } .part-bytes \{ font-size: 12px; color: #8b93b0; text-align: right; margin: 0; font-variant-numeric: tabular-nums; } .part-error \{ grid-column: 1 / -1; font-size: 12px; color: #fda4af; margin: 0; } progress.bar-total \{ --sui-progress-height: 12px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #6366f1; --sui-progress-value-end: #22d3ee; } progress.bar-part \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #818cf8; --sui-progress-value-end: #38bdf8; } .settings \{ display: flex; flex-direction: column; gap: 14px; min-width: 320px; } .setting \{ gap: 16px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); } .setting:last-child \{ border-bottom: 0; padding-bottom: 0; } .setting-text \{ gap: 2px; flex: 1 1 auto; } .setting-text p \{ margin: 0; font-size: 12px; color: #8b93b0; line-height: 1.45; } .setting-control \{ flex: 0 0 220px; } .mode-switch \{ flex: 0 0 auto; } .hint \{ color: #8b93b0; font-size: 13px; margin: 2px 0 10px; } .muted \{ color: #8b93b0; font-size: 13px; } .controls \{ gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .sui-button.btn-warn \{ background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.42); padding: 9px 16px; border-radius: 12px; } .sui-button.btn-ghost \{ background: transparent; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.28); padding: 9px 16px; border-radius: 12px; } .toast-host .sui-toast \{ width: 340px; } .sui-tabs \{ --sui-tabs-border: rgba(148, 163, 184, 0.16); --sui-tabs-radius: 16px; --sui-tabs-bg: rgba(255, 255, 255, 0.02); --sui-tablist-bg: rgba(15, 23, 42, 0.55); --sui-tab-padding: 10px 18px; --sui-tab-active-bg: rgba(99, 102, 241, 0.18); --sui-tab-accent: #22d3ee; --sui-tab-fg: #94a3b8; --sui-tab-active-fg: #e0e7ff; } .sui-tabpanels \{ padding: 18px 20px; } .statusbar \{ position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 12px 22px; background: rgba(11, 16, 32, 0.94); border-top: 1px solid rgba(148, 163, 184, 0.18); backdrop-filter: blur(8px); } .statusbar-status \{ gap: 12px; align-items: center; margin-bottom: 10px; } .statusbar-row \{ gap: 18px; flex-wrap: wrap; } .sb-item \{ flex: 1 1 120px; gap: 2px; } .sb-value \{ margin: 0; font-size: 17px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .sb-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } @media (max-width: 760px) { .row.part-row \{ grid-template-columns: 56px 1fr; row-gap: 6px; } .parts-scroll \{ max-height: 240px; } .setting \{ flex-direction: column; gap: 8px; } .setting-control \{ flex: 1 1 100%; width: 100%; } }"
 ```
 
 ### How to edit it
@@ -763,7 +784,7 @@ css "body \{ margin: 0; padding: 0 0 120px; background: radial-gradient(1100px 5
   backend. The browser can refuse to play it (autoplay policy): the app shows
   the error in the status line, the download is still complete.
 - The toast host is at the top right of the window: the errors of the app and
-  of the backend are shown there and in the status line, never only in the
+  of the backend are shown there and in the status bar, never only in the
   console.
 
 ## Verified behaviour
@@ -782,6 +803,9 @@ Measured against this example (backend and GUI, not just the documentation):
 | Settings panel | the ⚙ button opens the overlay; in one-piece mode the part size and the parallelism disappear |
 | One-piece mode | the job has a single part and the parts panel is not shown |
 | Action button | ⚡ (start) → ❚❚ (pause) → ► (resume), with the ✕ cancel button only while paused |
+| Parts | the section of the parts is inside the card of the total progress |
+| Bars | only the parts whose download has started get a bar, the waiting ones show nothing |
+| Status bar | the state and the message are in the first row, the data of the download in the row below |
 | Errors | the failures are shown as error toasts, the same message is not repeated |
 | Completion | the toast "Download complete" is shown and the chime of `/sound.wav` is played |
 
