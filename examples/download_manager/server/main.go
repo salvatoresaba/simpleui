@@ -876,14 +876,14 @@ func (j *Job) watcher(ctx context.Context) {
 // Go sorts map keys alphabetically: with a struct the table shows the columns
 // in the order the operator expects.
 type partView struct {
-	Part        int    `json:"Part"`
-	From        int64  `json:"From"`
-	To          int64  `json:"To"`
-	Size        int64  `json:"Size"`
-	Received    int64  `json:"Received"`
-	Percent     int    `json:"Percent"`
-	State       string `json:"State"`
-	Error       string `json:"Error,omitempty"`
+	Part     int    `json:"Part"`
+	From     int64  `json:"From"`
+	To       int64  `json:"To"`
+	Size     int64  `json:"Size"`
+	Received int64  `json:"Received"`
+	Percent  int    `json:"Percent"`
+	State    string `json:"State"`
+	Error    string `json:"Error,omitempty"`
 }
 
 // snapshot is the JSON view of the job.
@@ -893,14 +893,14 @@ func (j *Job) snapshot() map[string]any {
 	parts := []partView{}
 	for _, p := range j.parts {
 		parts = append(parts, partView{
-			Part:        p.Index,
-			From:        p.Start,
-			To:          p.End,
-			Size:        p.Size,
-			Received:    p.Received,
-			Percent:     p.Percent,
-			State:       p.State,
-			Error:       p.Error,
+			Part:     p.Index,
+			From:     p.Start,
+			To:       p.End,
+			Size:     p.Size,
+			Received: p.Received,
+			Percent:  p.Percent,
+			State:    p.State,
+			Error:    p.Error,
 		})
 	}
 	return map[string]any{
