@@ -9,13 +9,15 @@
 #   pwsh run.ps1
 #   pwsh run.ps1 -Url "https://example.com/file.bin" -PartSize "2 MiB"
 #   pwsh run.ps1 -Url "https://example.com/file.bin" -AllowHost "example.com"
+#   pwsh run.ps1 -NoOpen
 param(
     [string]$Url = "http://127.0.0.1:8090/files/sample.bin",
     [string]$PartSize = "1 MiB",
     [int]$Workers = 4,
     [int]$Throttle = 0,
     [string]$OutDir = "",
-    [string[]]$AllowHost = @()
+    [string[]]$AllowHost = @(),
+    [switch]$NoOpen
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,6 +40,7 @@ $backendArgs = @(
     "--throttle", "$Throttle"
 )
 foreach ($allowed in $AllowHost) { $backendArgs += @("--allow-host", $allowed) }
+if ($NoOpen) { $backendArgs += "--no-open" }
 
 Write-Host "Starting the download manager ..."
 Write-Host "Open this in your browser:  http://127.0.0.1:8090/"

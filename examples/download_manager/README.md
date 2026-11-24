@@ -63,6 +63,9 @@ pwsh examples/download_manager/run.ps1
 # or a real file, with another part size
 pwsh examples/download_manager/run.ps1 -Url "https://example.com/file.bin" -PartSize "2 MiB"
 
+# headless: build and start the backend without opening the browser
+pwsh examples/download_manager/run.ps1 -NoOpen
+
 # or by hand
 simpleui build examples/download_manager/app.sui --target web --out examples/download_manager/public
 cd examples/download_manager/server
