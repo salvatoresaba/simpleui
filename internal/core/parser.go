@@ -331,6 +331,10 @@ func parseImport(p *Parser) *ImportDecl {
 		}
 		skipNewlines(p)
 	}
+	// The list may end on the next line: the formatter writes a multi-line
+	// import (`import {` / names / `} from "std"`) and the parser must accept
+	// what the formatter produces.
+	skipNewlines(p)
 	if !p.accept("}") {
 		p.diag("expected '}' after import list")
 	}

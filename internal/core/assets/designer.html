@@ -4489,6 +4489,9 @@ function bindRowEvents(row, p, node, tray, i) {
       if (pickedNode && pickedNode.kind === "table") selMode = "table";
     }
     renderTree(); fillPanel(); renderInspector();
+    // The preview follows the selection: without this the picked element is
+    // selected in the tree but nothing is outlined in the preview.
+    postHighlight();
   };
   // Right-click opens the element-list context menu. It is also the quick
   // menu editor: add/remove menu nodes without leaving the tree.
@@ -5176,8 +5179,38 @@ function cssSync() {
   });
 }
 function usedClassesList() {
+  return collectUsedClasses();
+}
+// collectUsedClasses returns every class the app uses, including the classes
+// of the raw blocks (the body of an `if` or of a `list`) that the designer
+// keeps as source instead of a visual tree.
+function collectUsedClasses() {
   var out = [];
-  function walk(nodes) { nodes.forEach(function(n){ if (n.class) n.class.trim().split(/\s+/).forEach(function(c){ if (c && out.indexOf(c)<0) out.push(c); }); if (n.children) walk(n.children); }); }
+  function add(c) { if (c && out.indexOf(c) < 0) out.push(c); }
+  // The runtime adds a class named after the tag for these elements, so a rule
+  // like `.row` styles them even when the author never writes it.
+  var TAG_CLASSES = { row: 1, col: 1, spacer: 1 };
+  // A raw block (the body of an `if` or of a `list`) is kept as source by the
+  // designer: its classes are used by the app even if the designer has no
+  // visual tree for them.
+  function scanRaw(text) {
+    if (!text) return;
+    var re = /([a-zA-Z][\w-]*)\s+class\s*:\s*"([^"]*)"/g, m;
+    while ((m = re.exec(text))) {
+      if (TAG_CLASSES[m[1]]) add(m[1]);
+      m[2].trim().split(/\s+/).forEach(add);
+    }
+    var re2 = /class\s*:\s*"([^"]*)"/g;
+    while ((m = re2.exec(text))) m[1].trim().split(/\s+/).forEach(add);
+  }
+  function walk(nodes) {
+    (nodes || []).forEach(function(n){
+      if (n.class) n.class.trim().split(/\s+/).forEach(add);
+      if (TAG_CLASSES[n.kind]) add(n.kind);
+      if (n.raw) scanRaw(n.raw);
+      if (n.children) walk(n.children);
+    });
+  }
   (root.pages || []).forEach(function(p){ walk(p.children || []); });
   return out;
 }
@@ -5194,13 +5227,7 @@ var SKIN_CLASSES = ["sui-input", "sui-textarea", "sui-select", "sui-checkbox", "
 // class would style them together).
 function assignedClassNames() {
   var used = {};
-  function walk(nodes) {
-    (nodes || []).forEach(function(n){
-      if (n.class) n.class.trim().split(/\s+/).forEach(function(c){ if (c) used[c] = 1; });
-      if (n.children) walk(n.children);
-    });
-  }
-  (root.pages || []).forEach(function(p){ walk(p.children || []); });
+  collectUsedClasses().forEach(function(c){ used[c] = 1; });
   return used;
 }
 
@@ -28162,7 +28189,17 @@ function applySuiCommon(src, o) {
   var fd = new URLSearchParams(); fd.set("sui", src);
   if (!o.quiet) setStatus("applying...");
   fetch("/__gui__/apply", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
-    if (!j.ok) { setStatus((j.diagnostics || []).join(" | ")); return; }
+    if (!j.ok) {
+      // A failed apply must leave a trace in the file itself: the structured
+      // diagnostics underline the offending lines instead of living only in
+      // the status bar.
+      __suiDiags = j.diagDetails || [];
+      renderProblems();
+      repaintEditor();
+      updateEditorStatus();
+      setStatus((j.diagnostics || []).join(" | "));
+      return;
+    }
     var model = j.model;
     var keepKind = null, keepCls = null, keepState = selState;
     if (o.keepSel && selPath) {

@@ -1179,6 +1179,13 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     diagnostics), a pretty-printing generator (AST → text), a specificity
     calculator, and an analyzer reporting **unused classes, overridden
     declarations (with the winning selector + why) and duplicate selectors**.
+    The analyzer is context-aware: the same selector in another at-rule
+    context (a media query, a print sheet) is a **conditional refinement**,
+    not a duplicate or an override, and the same holds for the structural
+    pseudo-classes (`:last-child`, `:nth-child()`, `:not()`, `:empty`) that
+    refine a base rule on purpose. A class used inside a conditional or
+    repeated block (`if`, `list`) counts as used: the designer keeps those
+    blocks as source, so the analyzer sees their classes too.
     Endpoints: `/__css__/parse` (format + AST + tokens + problems) and
     `/__css__/set` (edit one declaration on a class, creating the rule if
     needed) — the single source of truth is the CSS text; visual edits go
@@ -1189,6 +1196,8 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     clicking it in the preview) shows state buttons (base/:hover/:focus/
     :active), a specificity badge and accordion controls (layout/flex, box
     model, typography, background, size) that read/write the AST. The
+    selection is **reflected in the preview**: the picked element is outlined
+    there, whichever side the selection came from. The
     inspector is **dynamic per capability**: a field/section exists only for
     element kinds that can actually carry it — textual kinds get the Text
     field, media kinds get `src` (never a text field), only `a` gets `link`,
@@ -1276,7 +1285,15 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     parses + checks it in-process, and the first view's element tree plus the
     top-level `state`/`fn`/`title` are loaded into the designer (interpolated
     text keeps its literal parts; the export re-emits `state`s above the view,
-    `fn`s below, matching the canonical file layout).
+    `fn`s below, matching the canonical file layout);
+  - **editable source**: the SUI tab shows the source of the project and can
+    be edited by hand. An edit is applied through `/__gui__/apply`, which
+    checks the text the editor holds, formats it and recompiles it; the
+    formatter and the parser agree on every output (a multi-line import list
+    is accepted), so an edited file always applies. A failed apply returns
+    the **structured diagnostics** (`diagDetails`: line, column, kind, message)
+    that the editor turns into **inline underlines** in the file — the error
+    is visible where it happens, not only in the status bar.
 
   The design tool visualises every non-invoked view as a page and invoked
   views as raw components; `if`/`loop`/`list` blocks are

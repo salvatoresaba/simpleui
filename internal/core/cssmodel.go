@@ -690,31 +690,44 @@ func ExtractTokens(s *CssSheet) []CssToken {
 // cssRuleAt holds a flattened rule with its source position.
 type cssRuleAt struct {
 	node *CssNode
-	idx  int // global order
+	idx  int    // global order
+	ctx  string // at-rule context ("@media (max-width: 760px)"), empty at the top level
 }
 
 // flattenRules returns every rule in source order (including nested at-rules).
 // Keyframe steps (0%, to, ...) are not selectors and are intentionally skipped.
+// The at-rule context is kept: a rule inside a media query is a conditional
+// refinement of the same selector, not a duplicate of the top-level one.
 func flattenRules(s *CssSheet) []cssRuleAt {
 	var out []cssRuleAt
 	idx := 0
-	var walk func([]*CssNode)
-	walk = func(nodes []*CssNode) {
+	var walk func([]*CssNode, string)
+	walk = func(nodes []*CssNode, ctx string) {
 		for _, n := range nodes {
 			if n.kind == "rule" {
-				out = append(out, cssRuleAt{node: n, idx: idx})
+				out = append(out, cssRuleAt{node: n, idx: idx, ctx: ctx})
 				idx++
 			}
 			if len(n.nodes) > 0 {
 				if n.kind == "at" && strings.HasSuffix(strings.ToLower(n.name), "keyframes") {
 					continue
 				}
-				walk(n.nodes)
+				childCtx := ctx
+				if n.kind == "at" {
+					childCtx = n.name
+					if n.prelude != "" {
+						childCtx = n.name + " " + n.prelude
+					}
+					if ctx != "" {
+						childCtx = ctx + " / " + childCtx
+					}
+				}
+				walk(n.nodes, childCtx)
 			}
 		}
 	}
 	if s != nil {
-		walk(s.nodes)
+		walk(s.nodes, "")
 	}
 	return out
 }
@@ -795,6 +808,22 @@ func interactiveSelector(sel string) bool {
 	return false
 }
 
+// refinementSelector reports whether a selector targets a structural
+// pseudo-class (`:last-child`, `:nth-child(2)`, ...). Such a rule refines the
+// base rule on purpose: the cascade is the expected outcome, not a mistake.
+func refinementSelector(sel string) bool {
+	for _, state := range []string{
+		":first-child", ":last-child", ":only-child", ":first-of-type",
+		":last-of-type", ":only-of-type", ":nth-child", ":nth-last-child",
+		":nth-of-type", ":nth-last-of-type", ":not(", ":empty",
+	} {
+		if strings.Contains(sel, state) {
+			return true
+		}
+	}
+	return false
+}
+
 // AnalyzeCss reports problems: unused classes, overridden declarations,
 // duplicate selectors, and any parse diagnostics.
 func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
@@ -820,13 +849,17 @@ func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
 	for _, r := range rules {
 		for _, sel := range r.node.selectors {
 			key := strings.TrimSpace(sel)
-			if first, ok := seen[key]; ok {
+			// The key carries the at-rule context: the same selector in
+			// another context is a conditional refinement (a media query, a
+			// print sheet), not a duplicate.
+			seenKey := key + "\x00" + r.ctx
+			if first, ok := seen[seenKey]; ok {
 				layeredRoot := key == ":root" && onlyCustomProps(r.node) && onlyCustomProps(rules[first].node)
 				if !layeredRoot && sameSelectorOverlap(r.node, rules[first].node) {
 					probs = append(probs, CssProblem{kind: "duplicate", message: "selector " + key + " is defined more than once (see line " + strconv.Itoa(rules[first].node.span.line) + ")", line: r.node.span.line, sel: key})
 				}
 			} else {
-				seen[key] = r.idx
+				seen[seenKey] = r.idx
 			}
 
 			// unused classes. Runtime `sui-*` and state classes are generated
@@ -859,7 +892,16 @@ func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
 			if interactiveSelector(rec.sel) || interactiveSelector(other.sel) {
 				continue
 			}
+			if refinementSelector(rec.sel) || refinementSelector(other.sel) {
+				continue
+			}
 			if runtimeSelector(rec.sel) || runtimeSelector(other.sel) {
+				continue
+			}
+			// A declaration in another at-rule context (a media query, a print
+			// sheet) does not override the base rule: it applies under its own
+			// condition.
+			if rec.rule.ctx != other.rule.ctx {
 				continue
 			}
 			if !overlapSelectors(rec.sel, other.sel, classesA) {

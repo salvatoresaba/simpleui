@@ -302,10 +302,20 @@ i gruppi di cattura come `$1`.
 Quick Fix propone azioni per il diagnostico sotto il cursore, tra cui dichiarare
 uno stato mancante, definire un handler/funzione mancante e rendere `async` la
 funzione che contiene la chiamata. I diagnostici restano cliccabili nel pannello
-Problems. L'analisi CSS filtra il rumore generato: classi runtime (`sui-*`,
+Problems. Il sorgente SUI si può modificare a mano e applicare: una modifica
+che non compila viene **sottolineata nel file** alla riga interessata, non solo
+segnalata nella barra di stato, e le stesse sottolineature compaiono mentre si
+scrive (live check). L'analisi CSS filtra il rumore generato: classi runtime (`sui-*`,
 `suitbl` e classi di stato), passi delle keyframe, blocchi `:root` stratificati e
 regole hover/focus/checked o pseudo-elementi non vengono segnalati come
 problemi. Le classi dell'autore realmente inutilizzate restano elencate.
+L'analisi è **consapevole del contesto**: lo stesso selettore in un altro
+contesto di at-rule (una media query, un foglio di stampa) è una rifinitura
+condizionale, non un duplicato né un override; lo stesso vale per le
+pseudo-classi strutturali (`:last-child`, `:nth-child()`, `:not()`, `:empty`)
+che rifiniscono di proposito la regola base. Una classe usata dentro un
+blocco condizionale o ripetuto (`if`, `list`) conta come usata, anche se il
+designer conserva quei blocchi come sorgente.
 
 ### Status bar
 
@@ -396,6 +406,11 @@ esempio `0.2.3`). Passando sulla riga si vedono nome, key e percorso completi.
 
 Usa il `motionKey` o il percorso per distinguere card, righe e controlli ripetuti.
 Lo stesso codice è disponibile nel picker **event source** dei trigger.
+
+Cliccando una riga dell'albero l'elemento viene selezionato **e evidenziato
+nell'anteprima**, così i due lati del designer mostrano sempre lo stesso
+elemento. L'evidenziazione funziona anche nella direzione opposta: scegliere
+un elemento nell'anteprima seleziona la sua riga nell'albero.
 
 ### Design token
 

@@ -283,23 +283,7 @@ func CmdGui(args []string) {
 	})
 	mux.HandleFunc("POST /__gui__/apply", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
-		src := r.PostFormValue("sui")
-		formatted, fdl := FormatSource(src, "design.sui")
-		if fdl != nil && fdl.HasErrors() {
-			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"diagnostics":`+StringifyJson(guiMsgs(*fdl))+`}`)
-			return
-		}
-		prog, dl := ParseSource(formatted, "design.sui")
-		if !dl.HasErrors() {
-			c := Check(prog)
-			dl.Extend(&c)
-		}
-		if dl.HasErrors() {
-			writeRawHandler(w, "application/json; charset=utf-8", `{"ok":false,"diagnostics":`+StringifyJson(guiMsgs(dl))+`}`)
-			return
-		}
-		model := guiModelJson(prog)
-		writeRawHandler(w, "application/json; charset=utf-8", `{"ok":true,"sui":`+StringifyJson(JStr(formatted))+`,"html":`+StringifyJson(JStr(GenerateIndexHtml(prog)))+`,"js":`+StringifyJson(JStr(GenerateJs(prog)))+`,"model":`+StringifyJson(model)+`}`)
+		writeRawHandler(w, "application/json; charset=utf-8", StringifyJson(guiApplySource(r.PostFormValue("sui"))))
 	})
 	mux.HandleFunc("POST /__gui__/gen", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
@@ -2628,6 +2612,60 @@ func guiOpen(src string) (JVal, JVal, bool) {
 		return JNull(), JArr(), true
 	}
 	return guiModelJson(prog), JArr(), true
+}
+
+// guiApplySource compiles an edited SUI source and returns the designer
+// response: the model and the formatted source on success, the diagnostics
+// (plain and structured) on failure.
+//
+// The editor holds the author's text: its diagnostics are the ones the
+// operator can act on, so the source is checked before it is formatted and
+// the positions always refer to the text in the editor.
+func guiApplySource(src string) JVal {
+	prog, dl := ParseSource(src, "design.sui")
+	if !dl.HasErrors() {
+		c := Check(prog)
+		dl.Extend(&c)
+	}
+	if dl.HasErrors() {
+		return JObj(
+			"ok", JBool(false),
+			"diagnostics", guiMsgs(dl),
+			"diagDetails", guiDiags(dl),
+		)
+	}
+	formatted, fdl := FormatSource(src, "design.sui")
+	if fdl != nil && fdl.HasErrors() {
+		return JObj(
+			"ok", JBool(false),
+			"diagnostics", guiMsgs(*fdl),
+			"diagDetails", guiDiags(*fdl),
+		)
+	}
+	fprog, fdl2 := ParseSource(formatted, "design.sui")
+	if !fdl2.HasErrors() {
+		c := Check(fprog)
+		fdl2.Extend(&c)
+	}
+	if fdl2.HasErrors() {
+		// The formatted source does not compile although the original does:
+		// the formatter produced something invalid. Report it on the
+		// original text (the editor shows that one).
+		broken := DiagList{}
+		broken.Add("design.sui", 1, 1, "the formatted source is invalid: "+fdl2.list[0].msg)
+		return JObj(
+			"ok", JBool(false),
+			"diagnostics", guiMsgs(broken),
+			"diagDetails", guiDiags(broken),
+		)
+	}
+	return JObj(
+		"ok", JBool(true),
+		"sui", JStr(formatted),
+		"html", JStr(GenerateIndexHtml(fprog)),
+		"js", JStr(GenerateJs(fprog)),
+		"model", guiModelJson(fprog),
+	)
 }
 
 // guiOpenDiags is guiOpen plus structured diagnostics, used by the designer's

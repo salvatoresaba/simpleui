@@ -293,10 +293,19 @@ regular-expression mode the replacement supports capture groups such as `$1`.
 Quick Fix proposes actions for the diagnostic under the cursor, including
 declaring a missing state, defining a missing handler/function and making the
 enclosing function `async`. Diagnostics remain clickable in the Problems panel.
+The SUI source can be edited by hand and applied: an edit that does not compile
+is **underlined in the file** at the offending line, not only reported in the
+status bar, and the same underlines appear while typing (live check).
 CSS analysis filters generated noise: runtime classes (`sui-*`, `suitbl` and
 state classes), keyframe steps, layered `:root` variable blocks, and
 hover/focus/checked or pseudo-element rules are not reported as problems.
 Author classes that are genuinely unused are still listed.
+The analysis is **context-aware**: the same selector in another at-rule
+context (a media query, a print sheet) is a conditional refinement, not a
+duplicate or an override, and the structural pseudo-classes (`:last-child`,
+`:nth-child()`, `:not()`, `:empty`) refine their base rule on purpose.
+A class used inside a conditional or repeated block (`if`, `list`) counts as
+used even though the designer keeps those blocks as source.
 
 ### Status bar
 
@@ -383,6 +392,11 @@ the full name, key and path together.
 
 Use the `motionKey` or the path to distinguish repeated cards, rows and controls.
 The same code is available in the trigger **event source** picker.
+
+Clicking a tree row selects the element **and outlines it in the preview**, so
+the two sides of the designer always show the same element. The outline follows
+the selection in the other direction too: picking an element in the preview
+selects its tree row.
 
 ### Design tokens
 
