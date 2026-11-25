@@ -3485,19 +3485,75 @@ func guiDiags(dl DiagList) JVal {
 }
 
 func guiElementsFromNodes(nodes []ViewNode, viewNames map[string]bool) JVal {
+	return guiElementsFromNodesOpts(nodes, viewNames, false)
+}
+
+// guiElementsFromNodesOpts converts view nodes for the designer model.
+// keepBlockText keeps the original shape of the block text elements (see
+// guiElementFromOpts).
+func guiElementsFromNodesOpts(nodes []ViewNode, viewNames map[string]bool, keepBlockText bool) JVal {
 	arr := JArr()
 	for i := 0; i < len(nodes); i++ {
 		n := &nodes[i]
 		if n.kind == "element" && n.elem != nil {
-			arr = pushArr(arr, guiElementFrom(n.elem, viewNames))
+			arr = pushArr(arr, guiElementFromOpts(n.elem, viewNames, keepBlockText))
 		} else if n.kind == "if" || n.kind == "list" {
-			// The designer has no visual editor for dynamic blocks, but dropping
-			// them would silently delete content. Keep the canonical source in a
-			// raw node so the SUI tab and round-trip preserve it.
-			arr = pushArr(arr, JObj("raw", JStr(viewNodeSource(n, 0))))
+			arr = pushArr(arr, guiRawBlockFrom(n, viewNames))
 		}
 	}
 	return arr
+}
+
+// guiRawBlockFrom describes a dynamic block (the body of an `if` or of a
+// `list`).
+//
+// The designer has no visual editor for dynamic blocks, but dropping them
+// would silently delete content: the canonical source is kept in a raw node so
+// the SUI tab and the round-trip preserve it.
+//
+// The block still renders its children in the preview and every child carries
+// a data-sui-id. The designer needs them to keep the tree and the preview
+// aligned: without them every element after the block would be off by the
+// number of the hidden children and the tree would point at the wrong preview
+// element.
+func guiRawBlockFrom(n *ViewNode, viewNames map[string]bool) JVal {
+	return JObj(
+		"raw", JStr(viewNodeSource(n, 0)),
+		"block", JStr(n.kind),
+		"peek", guiElementsFromNodePtrs(dynamicBlockNodes(n), viewNames),
+	)
+}
+
+// guiElementsFromNodePtrs is guiElementsFromNodes for the pointer slices the
+// dynamic blocks keep. The block keeps its original source, so its children
+// keep their original shape too.
+func guiElementsFromNodePtrs(nodes []*ViewNode, viewNames map[string]bool) JVal {
+	arr := JArr()
+	for i := 0; i < len(nodes); i++ {
+		n := nodes[i]
+		if n == nil {
+			continue
+		}
+		if n.kind == "element" && n.elem != nil {
+			arr = pushArr(arr, guiElementFromOpts(n.elem, viewNames, true))
+		} else if n.kind == "if" || n.kind == "list" {
+			arr = pushArr(arr, guiRawBlockFrom(n, viewNames))
+		}
+	}
+	return arr
+}
+
+// dynamicBlockNodes returns the nodes a dynamic block renders: the `then`
+// branch first and the `else` branch after it (the compiler numbers the
+// preview ids in that order), the body of a `list` once.
+func dynamicBlockNodes(n *ViewNode) []*ViewNode {
+	if n.kind == "if" {
+		out := make([]*ViewNode, 0, len(n.then_)+len(n.else_))
+		out = append(out, n.then_...)
+		out = append(out, n.else_...)
+		return out
+	}
+	return n.body
 }
 
 // isEventAttr reports whether an attribute name is an element event handler
@@ -3514,6 +3570,17 @@ func isEventAttr(key string) bool {
 }
 
 func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
+	return guiElementFromOpts(e, viewNames, false)
+}
+
+// guiElementFromOpts converts an element for the designer model.
+//
+// keepBlockText keeps a block text element (p/h1..h6/blockquote/pre) in its
+// original shape instead of collapsing it into the designer's rich text
+// model. The dynamic blocks keep their original source, so the preview
+// numbers their ids from that source: a `p "inline"` is one element, while
+// the regenerated `p { text "inline" }` of the model is two.
+func guiElementFromOpts(e *Element, viewNames map[string]bool, keepBlockText bool) JVal {
 	o := JObj(
 		"kind", JStr(e.tag),
 		"text", JStr(guiTextSource(e.text)),
@@ -3538,6 +3605,9 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 		for i := 0; i < len(e.children); i++ {
 			if e.children[i].kind == "list" || e.children[i].kind == "if" {
 				o.obj["raw"] = JStr(elementSource(e, 0))
+				// The children are still rendered in the preview and carry
+				// their own ids: the designer needs them to stay aligned.
+				o.obj["peek"] = guiElementsFromNodesOpts(e.children, viewNames, true)
 				return o
 			}
 		}
@@ -3632,7 +3702,7 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		}
 	}
-	if isBlockTextTag(e.tag) {
+	if isBlockTextTag(e.tag) && !keepBlockText {
 		if tx, ok := guiTextFrom(e); ok {
 			for k, v := range tx.obj {
 				o.obj[k] = v
@@ -4082,8 +4152,8 @@ func guiElementFrom(e *Element, viewNames map[string]bool) JVal {
 			}
 		}
 	}
-	if e.tag != "table" && e.tag != "ul" && e.tag != "ol" && !isBlockTextTag(e.tag) {
-		o.obj["children"] = guiElementsFromNodes(e.children, viewNames)
+	if e.tag != "table" && e.tag != "ul" && e.tag != "ol" && (!isBlockTextTag(e.tag) || keepBlockText) {
+		o.obj["children"] = guiElementsFromNodesOpts(e.children, viewNames, keepBlockText)
 	}
 	return o
 }

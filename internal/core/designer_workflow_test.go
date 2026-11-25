@@ -142,6 +142,8 @@ view main {
 				p "inside" class: "note"
 			}
 		}
+		button "After" class: "after-btn" {
+		}
 		list item in items {
 			row class: "row-item" {
 				p "{item}"
@@ -364,7 +366,10 @@ const designerWorkflowScript = `<script>
     }
     step('css-ok');
 
-    // 2. picking an element in the tree must outline it in the preview
+    // 2. picking an element in the tree must outline it in the preview.
+    //    The picked element comes AFTER a dynamic block: the preview ids of
+    //    the block children must be counted, or the tree points at the wrong
+    //    preview element.
     var nodes = Array.prototype.slice.call(document.querySelectorAll('#nodes .node'));
     if (!nodes.length) {
       var status0 = (document.getElementById('status') || {}).textContent || '';
@@ -374,18 +379,49 @@ const designerWorkflowScript = `<script>
     }
     var target = null;
     for (var j = 0; j < nodes.length; j++) {
-      if ((nodes[j].textContent || '').indexOf('label') >= 0) { target = nodes[j]; break; }
+      if ((nodes[j].textContent || '').indexOf('after-btn') >= 0) { target = nodes[j]; break; }
     }
-    if (!target) target = nodes[0];
+    if (!target) throw new Error('the element after the dynamic block is not in the tree');
     target.click();
     await wait(700);
     var frame = document.getElementById('prev');
     var doc = frame && frame.contentDocument;
-    var outlined = doc ? doc.querySelectorAll('.sui-hl').length : 0;
-    if (!outlined) throw new Error('the picked element is not highlighted in the preview');
+    var outlined = doc ? doc.querySelectorAll('.sui-hl') : [];
+    if (!outlined.length) throw new Error('the picked element is not highlighted in the preview');
+    var outlinedClass = outlined[0].getAttribute('class') || '';
+    if (outlinedClass.indexOf('after-btn') < 0) {
+      throw new Error('the preview highlights the wrong element: ' + outlinedClass);
+    }
     step('hl-ok');
 
-    // 3. a manual edit must apply: the formatted source (with the import on
+    // the inspector on the right must show the picked element
+    var inspector = document.getElementById('inspector');
+    var inspectorText = inspector ? (inspector.textContent || '').replace(/\s+/g, ' ') : '';
+    if (inspectorText.indexOf('after-btn') < 0) {
+      throw new Error('the inspector does not show the picked element: ' + inspectorText.slice(0, 160));
+    }
+    step('inspector-ok');
+
+    // 3. picking an element in the preview must select it in the tree and
+    //    show its inspector. An element inside a dynamic block has no row of
+    //    its own: the element that contains the block is selected instead.
+    var pick = Array.prototype.slice.call(doc.querySelectorAll('[data-sui-id]')).filter(function (e) {
+      return (e.textContent || '').indexOf('inside') >= 0;
+    })[0];
+    if (!pick) throw new Error('the preview has no pickable element');
+    pick.click();
+    await wait(700);
+    if (!document.querySelectorAll('#nodes .node.sel').length) {
+      throw new Error('the element picked in the preview is not selected in the tree');
+    }
+    var inspector2 = document.getElementById('inspector');
+    var inspectorText2 = inspector2 ? (inspector2.textContent || '').replace(/\s+/g, ' ') : '';
+    if (inspectorText2.indexOf('card') < 0) {
+      throw new Error('the inspector does not show the element picked in the preview: ' + inspectorText2.slice(0, 160));
+    }
+    step('reverse-ok');
+
+    // 4. a manual edit must apply: the formatted source (with the import on
     //    several lines) must parse again
     ta.value = ta.value.replace('text "Hello"', 'text "Hello there"');
     ta.dispatchEvent(new Event('input', { bubbles: true }));
@@ -398,7 +434,7 @@ const designerWorkflowScript = `<script>
     if (applied.indexOf('Hello there') < 0) throw new Error('the manual edit was reverted: ' + applied.slice(0, 200));
     step('applied');
 
-    // 4. a broken edit must be underlined in the file, not only in the status bar
+    // 5. a broken edit must be underlined in the file, not only in the status bar
     ta.value = ta.value.replace('text "Hello there"', 'text "Hello there');
     ta.dispatchEvent(new Event('input', { bubbles: true }));
     await wait(2500);

@@ -3474,6 +3474,19 @@ function treeOwnerPath(path, arr) {
   }
   return path;
 }
+// peekOwnerPath maps a path inside a dynamic block (the body of an `if` or of
+// a `list`) to the closest element the tree can select: the block has no rows
+// of its own, so the element that contains it is selected.
+function peekOwnerPath(path) {
+  if (!path || !path.length) return null;
+  var probe = path.slice();
+  while (probe.length) {
+    probe.pop();
+    var node = byPath(probe, root.children);
+    if (node && !node.raw && node.kind) return probe;
+  }
+  return null;
+}
 // ---- structural tree-item editing (context menu / preview) ----------------
 function treeItemArray(p) {
   var parentPath = p.slice(0, -1);
@@ -3766,21 +3779,36 @@ function buildPickMap() {
   var pages = root.pages || [root];
   for (var pi = 0; pi < pages.length; pi++) {
     (function(pi) {
-      (function walk(nodes, path, ownerTreePath) {
+      (function walk(nodes, path, ownerTreePath, inPeek) {
         for (var i = 0; i < nodes.length; i++) {
           var n = nodes[i];
           var p = path.concat([i]);
-          if (n.raw) {
+          if (n.component) {
             // component invocation: rendered without a data-sui-id, so it must
             // not consume a pickMap slot (keeps ids aligned with the preview)
             continue;
           }
+          if (n.block) {
+            // A dynamic block (the body of an `if` or of a `list`) renders no
+            // element of its own, but its children do: they carry a
+            // data-sui-id, so the block must consume those ids, or every
+            // element after it is off by the number of the hidden children and
+            // the tree points at the wrong preview element.
+            if (n.peek) walk(n.peek, p, ownerTreePath, true);
+            continue;
+          }
           var pickPath = (n.kind === "treeitem" && ownerTreePath) ? ownerTreePath : p;
-          // Tab panels and accordion items are rendered by their parent
-          // control without a data-sui-id, so they must not consume a pickMap
-          // slot. Their children still do.
-          if (n.kind !== "tab" && n.kind !== "accordionitem" && n.kind !== "layoutcell") {
-            pickMap.push({ t: "n", pg: pi, p: pickPath });
+          // Tab panels, accordion items, layout cells and modal buttons are
+          // rendered by their parent control without a data-sui-id, so they
+          // must not consume a pickMap slot. Their children still do.
+          if (n.kind !== "tab" && n.kind !== "accordionitem" && n.kind !== "layoutcell" && n.kind !== "modalbutton") {
+            pickMap.push({ t: inPeek ? "peek" : "n", pg: pi, p: pickPath });
+          }
+          if (n.raw) {
+            // An element kept as raw source (a list container with a dynamic
+            // block inside): its children are only known through peek.
+            if (n.peek) walk(n.peek, p, ownerTreePath, true);
+            continue;
           }
           if (n.kind === "list") {
             for (var k = 0; k < (n.items || []).length; k++) {
@@ -3790,7 +3818,7 @@ function buildPickMap() {
             // each run renders as a leaf plus a wrapper per bold/italic flag
             (n.runs || []).forEach(function(r) {
               var extra = 1 + (r.b ? 1 : 0) + (r.i ? 1 : 0);
-              for (var k = 0; k < extra; k++) pickMap.push({ t: "n", pg: pi, p: p });
+              for (var k = 0; k < extra; k++) pickMap.push({ t: inPeek ? "peek" : "n", pg: pi, p: p });
             });
           } else if (n.kind === "table" && n.cols) {
             // caption is emitted as the table's first child when shown
@@ -3812,10 +3840,10 @@ function buildPickMap() {
               }
             }
           } else if (n.children && n.children.length) {
-            walk(n.children, p, n.kind === "tree" ? p : ownerTreePath);
+            walk(n.children, p, n.kind === "tree" ? p : ownerTreePath, inPeek);
           }
         }
-      })(pages[pi].children, [], null);
+      })(pages[pi].children, [], null, false);
     })(pi);
   }
 }
@@ -3980,6 +4008,14 @@ function selectLayoutCell(tableId, row, col, add) {
 function selectByDfs(id) {
   var t = pickMap[id];
   if (!t || t.pg !== root.page) return; // ignore picks from other (hidden) pages
+  // A pick inside a dynamic block (the body of an `if` or of a `list`) has no
+  // row of its own in the tree: the element that contains the block is
+  // selected instead.
+  if (t.t === "peek") {
+    var owner = peekOwnerPath(t.p);
+    if (!owner) return;
+    t = { t: "n", pg: t.pg, p: owner };
+  }
   selBody = false;
   selLayoutCell = null; selLayoutCells = []; selLayoutSplit = null; selLayoutSplits = [];
   multiSel = [];
@@ -4002,6 +4038,7 @@ function selectByDfs(id) {
   }
   expandTreePath(selPath);
   renderTree(); fillPanel(); renderInspector(); postHighlight();
+  scrollSelectedIntoView();
   if (!mgEdit && selPath) {
     var mgPanel = document.getElementById("mg-panel");
     if (mgPanel && mgPanel.classList.contains("on")) {
@@ -4186,6 +4223,14 @@ function expandTreePath(path) {
   if (!path || !path.length) return;
   for (var i = 1; i <= path.length; i++) delete __treeCollapsed[treeCollapseKey(path.slice(0, i))];
 }
+// scrollSelectedIntoView brings the selected row of the element tree into
+// view. Picking an element in the preview must show it in the tree, even
+// when the row sits far below the visible area of the panel.
+function scrollSelectedIntoView() {
+  var row = document.querySelector("#nodes .node.sel");
+  if (!row || !row.scrollIntoView) return;
+  try { row.scrollIntoView({ block: "nearest" }); } catch (e) { row.scrollIntoView(); }
+}
 function toggleTreeCollapsed(path) {
   var key = treeCollapseKey(path);
   if (__treeCollapsed[key]) delete __treeCollapsed[key];
@@ -4215,6 +4260,9 @@ function treeNodeName(n) {
 }
 function renderTree() {
   var box = document.getElementById("nodes");
+  // Rebuilding the tree resets the scroll position, and the selected row
+  // would jump out of view: keep it.
+  var keepScroll = box.scrollTop;
   box.innerHTML = "";
   var bl = document.createElement("div");
   bl.className = "node" + (selBody ? " sel" : "");
@@ -4233,6 +4281,7 @@ function renderTree() {
   if (ec) ec.textContent = "Elements (" + root.children.length + ")";
   renderNodes(root.children, 1, box, []);
   updateToolbar();
+  box.scrollTop = keepScroll;
 }
 function unusedClasses() {
   var set = {};
@@ -4426,13 +4475,17 @@ function renderNodes(children, depth, parent, path) {
       labelText = "menu '" + (node.text || "") + "'";
     } else if (node.kind === "menuitem") {
       labelText = "item '" + (node.text || "") + "'";
+    } else if (node.raw && node.block) {
+      // A dynamic block (the body of an `if` or of a `list`) is kept as
+      // source: the tree shows it as one row.
+      labelText = node.block === "list" ? "list block" : "if block";
     } else {
       var treeName = treeNodeName(node);
       labelText = treeName || node.kind;
     }
     var typeChip = document.createElement("span");
     typeChip.className = "node-type";
-    typeChip.textContent = node.kind === "text" && node.tag ? node.tag : node.kind;
+    typeChip.textContent = (node.kind === "text" && node.tag) ? node.tag : (node.raw && node.block ? node.block : node.kind);
     typeChip.title = "Exact element type";
     row.appendChild(typeChip);
     lab.className = "node-label";
@@ -4470,6 +4523,13 @@ function bindRowEvents(row, p, node, tray, i) {
     selLayoutCell = null; selLayoutCells = [];
     clearTableSelection();
     var sp = treeOwnerPath(p);
+    // A dynamic block has no element of its own: selecting its row selects
+    // the element that contains the block, the same way a pick inside the
+    // block does.
+    if (node && node.raw) {
+      var rawOwner = peekOwnerPath(p);
+      if (rawOwner) sp = rawOwner;
+    }
     if (ev.shiftKey) {
       rangeSelect((selPath || sp).slice(), sp);
     } else if (ev.ctrlKey || ev.metaKey) {
@@ -4492,6 +4552,7 @@ function bindRowEvents(row, p, node, tray, i) {
     // The preview follows the selection: without this the picked element is
     // selected in the tree but nothing is outlined in the preview.
     postHighlight();
+    scrollSelectedIntoView();
   };
   // Right-click opens the element-list context menu. It is also the quick
   // menu editor: add/remove menu nodes without leaving the tree.
@@ -20770,6 +20831,7 @@ function selectPaths(paths) {
   if (!paths.length) { multiSel = []; selPath = null; }
   else { multiSel = paths.map(function(p){ return p.slice(); }); selPath = paths[paths.length - 1].slice(); }
   renderTree(); fillPanel(); renderInspector(); postHighlight();
+  scrollSelectedIntoView();
 }
 
 // ---- palette + preferences ------------------------------------------------

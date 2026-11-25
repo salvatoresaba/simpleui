@@ -1297,7 +1297,10 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
 
   The design tool visualises every non-invoked view as a page and invoked
   views as raw components; `if`/`loop`/`list` blocks are
-  not visualised in the tree.
+  not visualised in the tree: they appear as a single row and keep their
+  source. The tree and the preview stay aligned anyway — the block children
+  carry their own preview ids, so the designer counts them and the element
+  picked in the preview resolves to the element that contains the block.
 
 - Flags are parsed manually (the `flag` package stops at the first positional):
   both `--name value` and `--name=value` are accepted.

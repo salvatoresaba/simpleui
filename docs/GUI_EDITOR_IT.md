@@ -410,7 +410,14 @@ Lo stesso codice è disponibile nel picker **event source** dei trigger.
 Cliccando una riga dell'albero l'elemento viene selezionato **e evidenziato
 nell'anteprima**, così i due lati del designer mostrano sempre lo stesso
 elemento. L'evidenziazione funziona anche nella direzione opposta: scegliere
-un elemento nell'anteprima seleziona la sua riga nell'albero.
+un elemento nell'anteprima seleziona la sua riga nell'albero. In entrambi i
+casi l'**inspector a destra** mostra l'elemento selezionato e la riga
+selezionata viene portata in vista nell'albero.
+
+Un **blocco dinamico** (il corpo di un `if` o di una `list`) non ha righe
+proprie: l'albero lo mostra come una singola riga **if block** / **list
+block**, e scegliere uno dei suoi elementi nell'anteprima seleziona l'elemento
+che contiene il blocco.
 
 ### Design token
 

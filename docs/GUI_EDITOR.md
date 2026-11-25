@@ -396,7 +396,13 @@ The same code is available in the trigger **event source** picker.
 Clicking a tree row selects the element **and outlines it in the preview**, so
 the two sides of the designer always show the same element. The outline follows
 the selection in the other direction too: picking an element in the preview
-selects its tree row.
+selects its tree row. Either way the **inspector on the right** shows the
+selected element, and the selected row is brought into view in the tree.
+
+A **dynamic block** (the body of an `if` or of a `list`) has no rows of its
+own: the tree shows it as a single **if block** / **list block** row and
+picking one of its elements in the preview selects the element that contains
+the block.
 
 ### Design tokens
 
