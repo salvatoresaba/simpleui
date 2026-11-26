@@ -269,6 +269,10 @@ scorciatoia, si raggiunge con le frecce e si esegue con Invio; Esc chiude il men
 
 Premere **Ctrl+F** per aprire la barra di ricerca e **Ctrl+H** per mostrare la
 riga di sostituzione.
+La scorciatoia funziona da ogni pannello dell'editor: quando il tab attivo è
+quello del preview, l'editor passa al tab **SUI** e apre la barra lì.
+Anche il pulsante **Find** nella toolbar SUI apre la stessa barra, così la
+ricerca è sempre raggiungibile senza tastiera.
 
 | Azione | Scorciatoia |
 |---|---|
@@ -995,6 +999,31 @@ Vedi [External component library](COMPONENT_LIBRARY.md) per lo schema JSON, i
 kind supportati, le allow-list di CSS e attributi, i limiti di dimensione e il
 check di compilazione eseguito su ogni componente.
 
+## Modalità Select del preview
+
+Fare click su un elemento nel preview lo seleziona **ed esegue** l'azione
+collegata: un bottone con `onClick` apre il suo modale, un link naviga, un
+controllo di form cambia lo stato dell'applicazione. Quando l'obiettivo è
+solo ispezionare o restilizzare quell'elemento, il pulsante **Select** nella
+toolbar del preview porta il preview in modalità selezione.
+
+| Modalità | Click nel preview |
+|---|---|
+| Normale | L'elemento viene selezionato e la sua azione viene eseguita |
+| Select (pulsante nella toolbar) | L'elemento viene selezionato, la sua azione **non** viene eseguita |
+
+In modalità Select il click non raggiunge l'applicazione: gli handler
+`onClick`, la navigazione dei link, l'invio dei form e il comportamento
+nativo dei controlli di form sono tutti soppressi, mentre il designer
+continua a selezionare l'elemento, ad aggiornare la riga dell'albero,
+l'inspector e l'evidenziazione nel preview. La modalità è un'impostazione
+dell'editor: viene ricordata fra le sessioni e viene reinviata al preview ogni
+volta che il preview viene ricostruito.
+
+È utile per ristilizzare un bottone senza aprire il modale che attiva, per
+ispezionare un controllo che altrimenti invierebbe un form, o per scegliere un
+elemento dentro un modale senza chiuderlo.
+
 ## Drag and drop del designer
 
 Il drag and drop interno del designer è sempre attivo. Non esiste un'impostazione,
@@ -1012,7 +1041,10 @@ dei componenti nell'editor.
 
 L'editor usa il modello interno degli elementi come fonte di verità. Un drop
 riuscito crea uno snapshot per l'undo, aggiorna l'albero, ridisegna il preview e
-rigenera il sorgente `.sui`.
+rigenera il sorgente `.sui`. L'elemento spostato conserva la selezione: la sua
+riga dell'albero resta selezionata, resta evidenziato nel preview e l'inspector
+continua a mostrarlo, così la relazione tra albero, preview e sorgente
+sopravvive allo spostamento.
 
 ### Drop nell'albero
 

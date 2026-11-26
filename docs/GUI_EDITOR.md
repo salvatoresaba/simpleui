@@ -261,6 +261,10 @@ can be reached with the arrow keys and run with Enter; Escape closes the menu.
 ### Find and replace
 
 Press **Ctrl+F** to open the find bar and **Ctrl+H** to show the replace row.
+The shortcut works from every panel of the editor: when the preview is the
+active tab the editor switches to the **SUI** tab and opens the bar there.
+The **Find** button in the SUI toolbar opens the same bar, so the search is
+always reachable without a keyboard.
 
 | Action | Shortcut |
 |---|---|
@@ -959,6 +963,30 @@ See [External component library](COMPONENT_LIBRARY.md) for the JSON schema, the
 supported kinds, the CSS and attribute allow-lists, the size limits and the
 compile check performed on every component.
 
+## Preview select mode
+
+Clicking an element in the preview selects it **and** runs the action bound to
+it: a button with an `onClick` opens its modal, a link navigates, a form
+control changes the application state. When the goal is only to inspect or
+restyle that element, the **Select** button in the preview toolbar switches the
+preview to select mode.
+
+| Mode | Click in the preview |
+|---|---|
+| Normal | The element is selected and its action runs |
+| Select (toolbar button) | The element is selected, its action does **not** run |
+
+In select mode the click never reaches the application: `onClick` handlers,
+link navigation, form submits and the native behaviour of form controls are
+all suppressed, while the designer still picks the element, updates the tree
+row, the inspector and the outline in the preview. The mode is a designer
+setting: it is remembered between sessions and it is re-sent to the preview
+every time the preview is rebuilt.
+
+Use it to restyle a button without opening the modal it triggers, to inspect a
+control that would otherwise submit a form, or to pick an element inside a
+modal without dismissing it.
+
 ## Designer drag and drop
 
 The designer's own drag and drop is always enabled. There is no setting,
@@ -975,7 +1003,10 @@ the generated application; it does not control moving components in the editor.
 
 The editor uses the internal element model as the source of truth. A successful
 drop creates an undo snapshot, updates the tree, re-renders the preview and
-regenerates the `.sui` source.
+regenerates the `.sui` source. The moved element keeps the selection: its tree
+row stays selected, it stays outlined in the preview and the inspector keeps
+showing it, so the relation between the tree, the preview and the source
+survives the move.
 
 ### Tree drops
 

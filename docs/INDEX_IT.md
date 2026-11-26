@@ -32,6 +32,8 @@ Ordine consigliato per un agente:
 |---|---|---|---|
 | Form locale con stato e tabella | [local-form-table](AGENT_RECIPES_IT.md#local-form--reactive-table) | [API](API_REFERENCE_IT.md), [STDLIB](STDLIB_IT.md) | `examples/todo.sui`, `examples/table_data.sui` |
 | Temi e strutture per spinner, checkbox, radio, progress, slider, schede, accordion e toast | [Libreria aspetto](APPEARANCE_LIBRARY.md) | [Editor GUI: aspetto dei controlli](GUI_EDITOR_IT.md#aspetto-dei-controlli) | `examples/appearance_gallery.html` |
+| Selezionare un elemento nel preview senza eseguire la sua azione | - | [Editor GUI: modalità Select del preview](GUI_EDITOR_IT.md#modalità-select-del-preview) | `examples/download_manager/README.md` |
+| Cercare nel sorgente SUI da qualsiasi pannello | - | [Editor GUI: trova e sostituisci](GUI_EDITOR_IT.md#trova-e-sostituisci) | `examples/counter.sui` |
 | Spinner con immagine / GIF | [API: spinner](API_REFERENCE_IT.md#spinner) | [Editor GUI: modalità immagine/GIF](GUI_EDITOR_IT.md#modalità-immaginegif-dello-spinner) | `examples/spinner_image/README.md` |
 | Traduzioni, plurali e cambio lingua | [API: i18n](API_REFERENCE_IT.md#internazionalizzazione-i18n) | [Editor GUI: lingue](GUI_EDITOR_IT.md#lingue) | `examples/i18n/README.md` |
 | Filtrare, trasformare e ridurre liste con funzioni | [Builtins: collections](BUILTINS_IT.md#collection-functions) | [API](API_REFERENCE_IT.md) | `examples/collections.sui` |

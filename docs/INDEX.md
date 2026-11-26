@@ -32,6 +32,8 @@ Recommended order for an agent:
 |---|---|---|---|
 | Local form with state and table | [local-form-table](AGENT_RECIPES.md#local-form--reactive-table) | [API](API_REFERENCE.md), [STDLIB](STDLIB.md) | `examples/todo.sui`, `examples/table_data.sui` |
 | External component catalog | [Component library](COMPONENT_LIBRARY.md) | [GUI editor](GUI_EDITOR.md#component-library) | `components/library.json` |
+| Select an element in the preview without running its action | - | [GUI editor: preview select mode](GUI_EDITOR.md#preview-select-mode) | `examples/download_manager/README.md` |
+| Search the SUI source from any panel | - | [GUI editor: find and replace](GUI_EDITOR.md#find-and-replace) | `examples/counter.sui` |
 | Per-control appearance themes and structures for spinner, checkbox, radio, progress, slider, tabs, accordion and toast | [Appearance library](APPEARANCE_LIBRARY.md) | [GUI editor](GUI_EDITOR.md#control-appearance) | a `button` in the designer |
 | Arrange UI regions in a structural table | [API: table layout](API_REFERENCE.md#table-layout) | [GUI editor: table layout](GUI_EDITOR.md#table-layout-control) | `examples/table_layout/README.md` |
 | Build a menu bar / navigation | [API: menu bar](API_REFERENCE.md#menu-bar) | [GUI editor: menu bar](GUI_EDITOR.md#menu-bar-control) | `examples/menu_bar.sui` |

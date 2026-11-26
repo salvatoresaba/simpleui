@@ -1236,6 +1236,21 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     while an element is selected — in the tree **or by clicking the widget
     directly inside the preview** (root-view elements carry a unique
     DFS-order `data-sui-id`; a picker script forwards clicks to the editor);
+  - **stable selection**: the selection survives every edit. A style change,
+    a tree drag & drop or a preview rebuild keeps the same element selected,
+    outlined in the preview and shown in the inspector: the replayed clicks
+    the designer uses internally (the tab restore after a rebuild) never
+    pick another element, and a moved node keeps the selection;
+  - **preview select mode**: the preview toolbar has a **Select** switch. When
+    it is on, a click in the preview picks the element but does not run the
+    action bound to it: the `onClick` handlers, the link navigation and the
+    native form behaviour are suppressed before the event reaches the app;
+  - **lossless source round-trip**: the regenerated `.sui` keeps the std
+    import line, so an edited project still compiles and the preview keeps
+    rendering the app;
+  - **find in the source**: **Ctrl+F** / **Ctrl+H** open the find bar from any
+    panel (the editor switches to the SUI tab) and the SUI toolbar carries a
+    **Find** button;
   - a **live preview**: the browser POSTs the generated `.sui` source to
     `/__gui__/render`, the compiler parses + checks + emits the app
     in-process, and the page renders it in a sandboxed iframe;

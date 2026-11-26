@@ -1255,6 +1255,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
           <button class="btn" style="font-size:11px;padding:3px 8px" onclick="setBp('tablet')">Tablet</button>
           <button class="btn" style="font-size:11px;padding:3px 8px" onclick="setBp('mobile')">Mobile</button>
           <span class="vsep"></span>
+          <button class="btn" id="select-mode-btn" title="Select mode: a click in the preview selects the element without running the action bound to it" style="font-size:11px;padding:3px 8px" onclick="toggleSelectMode()">&#9758; Select</button>
           <button class="btn" id="marquee-btn" title="Marquee select: drag on the preview to select multiple elements" style="font-size:11px;padding:3px 8px" onclick="toggleMarquee()">&#9618; Marquee</button>
           <span class="vsep"></span>
           <label for="preview-locale">Lang</label>
@@ -1277,6 +1278,7 @@ html[data-theme="light"] #mg-notify { background:#fef2f2; color:#7f1d1d; border-
             <button class="btn" style="font-size:11px" onclick="renameSymbol()" title="F2">Rename</button>
             <button class="btn" style="font-size:11px" onclick="toggleComment()" title="Ctrl+/">Comment</button>
             <button class="btn" style="font-size:11px" onclick="toggleOutlinePanel()" title="File structure">Outline</button>
+            <button class="btn" style="font-size:11px" onclick="showSuiFindBar(false)" title="Find in the SUI source (Ctrl+F)">&#128269; Find</button>
           </div>
         </div>
         <div id="outline" class="outline" style="display:none"></div>
@@ -3681,7 +3683,7 @@ function reparseSui() {
     reparseInFlight = false;
     if (j.ok && suiSource === src) {
       var prevName = curPage().name;
-      root = { consts: j.consts || [], computed: j.computed || [], types: j.types || [], states: j.states || [], funcs: j.funcs || [], css: j.css || "", i18n: j.i18n || [], enums: j.enums || [], components: j.components || [], page: 0,
+      root = { imports: j.imports || [], consts: j.consts || [], computed: j.computed || [], types: j.types || [], states: j.states || [], funcs: j.funcs || [], css: j.css || "", i18n: j.i18n || [], enums: j.enums || [], components: j.components || [], page: 0,
         pages: (j.pages && j.pages.length ? j.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || [] }; }) : [{ name: "main", title: j.title || "", children: j.elements || [] }]) };
       root.pages.forEach(function(p){ normalizeTables(p.children); });
       for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
@@ -3726,7 +3728,12 @@ function switchC(t) {
   document.querySelectorAll("#ctabs .tab").forEach(function(x){ x.classList.toggle("on", x.getAttribute("data-tab")===t); });
   document.getElementById("cpane-preview").classList.toggle("on", t==="preview");
   document.getElementById("cpane-sui").classList.toggle("on", t==="sui");
-  if (t === "sui") setSuiEditor();
+  if (t === "sui") {
+    // A pending edit is newer than the model: reloading the editor would
+    // throw it away, so the editor keeps its text until the auto-apply runs.
+    var ta = document.getElementById("out");
+    if (!ta || ta.value === suiSource) setSuiEditor();
+  }
 }
 function switchB(t) {
   document.querySelectorAll("#btabs .tab").forEach(function(x){ x.classList.toggle("on", x.getAttribute("data-tab")===t); });
@@ -4940,13 +4947,20 @@ function dropAt(srcStr, tray, index, targetNode, targetPath) {
     if (targetNode && canNest(targetNode.kind)) {
       // nest inside the target container
       targetNode.children.push(srcPass);
+      selPath = targetPath.concat([targetNode.children.length - 1]);
     } else {
       // reorder as a sibling, right before the target
       if (sameArray(srcParent, pathOf(tray)) && srcIdx < index) index = index - 1;
       tray.splice(index, 0, srcPass);
+      selPath = pathOf(tray).concat([index]);
     }
-    selPath = null;
+    multiSel = [];
   }, "move element");
+  // The moved element keeps the selection: after the move the tree row, the
+  // outline in the preview and the inspector must still point at it, otherwise
+  // the element loses its track in the SUI code and in the preview.
+  postHighlight();
+  scrollSelectedIntoView();
 }
 function isDescendant(ancestor, maybe) {
   if (maybe.length < ancestor.length) return false;
@@ -18929,6 +18943,9 @@ function capturePreviewTabs() {
   return out.length ? out : null;
 }
 function restorePreviewTabs() {
+  // The preview is a new document: it must learn the current select mode
+  // before any click reaches it.
+  try { postSelectMode(); } catch (e) {}
   var saved = __previewTabs;
   __previewTabs = null;
   if (!saved) return;
@@ -18976,9 +18993,12 @@ function restorePreviewTabs() {
       }
       // Let the tabs runtime record the selection for later view re-renders.
       // Suppress the picker's user-tab message: this is a restore, not a click.
-      try { d.defaultView.__suiSuppressTabPick = true; } catch (e) {}
+      // The preview picker must not pick anything either: the restore click
+      // would otherwise move the selection to the sheet table and hide the
+      // element the author is editing.
+      try { d.defaultView.__suiSuppressTabPick = true; d.defaultView.__suiSuppressPick = true; } catch (e) {}
       try { tabs[idx].click(); } catch (e) {}
-      try { d.defaultView.__suiSuppressTabPick = false; } catch (e) {}
+      try { d.defaultView.__suiSuppressTabPick = false; d.defaultView.__suiSuppressPick = false; } catch (e) {}
     });
     // A sheet added from the preview must open selected after the reload. The
     // force stays pending until the rebuilt preview actually contains it.
@@ -18992,9 +19012,9 @@ function restorePreviewTabs() {
         var forceIdx = __forcePreviewActive.active;
         if (forceTabs[forceIdx]) {
           var appliedForce = __forcePreviewActive;
-          try { d.defaultView.__suiSuppressTabPick = true; } catch (e) {}
+          try { d.defaultView.__suiSuppressTabPick = true; d.defaultView.__suiSuppressPick = true; } catch (e) {}
           try { forceTabs[forceIdx].click(); } catch (e) {}
-          try { d.defaultView.__suiSuppressTabPick = false; } catch (e) {}
+          try { d.defaultView.__suiSuppressTabPick = false; d.defaultView.__suiSuppressPick = false; } catch (e) {}
           // Keep the forced sheet through the paired preview reloads triggered
           // by withUndo + reparse, then release it so the user can switch.
           setTimeout(function() {
@@ -19006,6 +19026,8 @@ function restorePreviewTabs() {
     // A preview rebuild keeps the selected control/cell outlined and its
     // handles visible; typing itself never triggers this path.
     try { postHighlight(); } catch (e) {}
+    // The preview is a new document: it must learn the current select mode.
+    try { postSelectMode(); } catch (e) {}
   }
   apply();
   setTimeout(apply, 120);
@@ -20303,6 +20325,18 @@ document.addEventListener("keydown", function(ev) {
   if (isShortcut(ev, "preview")) { ev.preventDefault(); openPreviewWindow(); return; }
   if (isShortcut(ev, "format")) { ev.preventDefault(); formatSuiDocument(); return; }
   if (isShortcut(ev, "assets")) { ev.preventDefault(); openAssets(); return; }
+  // The find bar belongs to the SUI source: Ctrl+F must work from any panel
+  // (tree, inspector, preview) and not only when the editor has the focus.
+  if (!isFindFieldTarget(ev)) {
+    if (isShortcut(ev, "find")) { ev.preventDefault(); showSuiFindBar(false); return; }
+    if (isShortcut(ev, "replace")) { ev.preventDefault(); showSuiFindBar(true); return; }
+    if (ev.key === "F3") {
+      ev.preventDefault();
+      if (__find.open) findNext(ev.shiftKey ? -1 : 1);
+      else showSuiFindBar(false);
+      return;
+    }
+  }
   if (!(editing || tediting)) {
     if (isShortcut(ev, "copy")) { ev.preventDefault(); copySelected(); return; }
     if (isShortcut(ev, "cut")) { ev.preventDefault(); cutSelected(); return; }
@@ -20367,6 +20401,34 @@ function placeCaretAtEnd(el) {
 }
 
 // ---- marquee (rectangle) selection on the preview --------------------------
+// Select mode: a click in the preview picks the element under the cursor and
+// does NOT run the action bound to it (onClick, link navigation, form submit).
+// The mode is a designer-side switch: the preview runtime only needs to know
+// whether it must stop the click before it reaches the app handlers.
+var selectModeOn = false;
+function toggleSelectMode() {
+  selectModeOn = !selectModeOn;
+  prefs.selectMode = selectModeOn;
+  savePrefs();
+  updateSelectModeButton();
+  postSelectMode();
+  setStatus(selectModeOn
+    ? "Select mode on: a click in the preview selects the element, it does not run its action"
+    : "Select mode off: a click in the preview runs the action of the app");
+}
+function updateSelectModeButton() {
+  var b = document.getElementById("select-mode-btn");
+  if (b) b.classList.toggle("on", selectModeOn);
+  if (b) b.setAttribute("aria-pressed", selectModeOn ? "true" : "false");
+}
+// postSelectMode tells the preview runtime the current mode. It is sent again
+// after every rebuild: the preview is a fresh document each time.
+function postSelectMode() {
+  var f = document.getElementById("prev");
+  if (f && f.contentWindow) {
+    try { f.contentWindow.postMessage({ ty: "sui-select-mode", on: selectModeOn }, "*"); } catch (e) {}
+  }
+}
 function toggleMarquee() {
   marqueeMode = !marqueeMode;
   document.getElementById("marquee-btn").classList.toggle("on", marqueeMode);
@@ -21720,6 +21782,10 @@ function loadRemotePrefs() {
     prefs.palette = (p.palette && p.palette.length) ? p.palette.slice() : [];
     palColors = prefs.palette;
     renderPalStrips();
+    prefs.selectMode = !!p.selectMode;
+    selectModeOn = prefs.selectMode;
+    updateSelectModeButton();
+    postSelectMode();
     applyTheme();
     applyPanelVisibility();
     applyBarOrder();
@@ -28269,7 +28335,7 @@ function applySuiCommon(src, o) {
       if (sn) { keepKind = sn.kind; keepCls = (sn.class || "").trim().split(/\s+/)[0]; }
     }
     var prevName = curPage().name;
-    root = { consts: model.consts || [], computed: model.computed || [], types: model.types || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
+    root = { imports: model.imports || [], consts: model.consts || [], computed: model.computed || [], types: model.types || [], states: model.states || [], funcs: model.funcs || [], css: model.css || "", i18n: model.i18n || [], enums: model.enums || [], components: model.components || [], page: 0,
       pages: (model.pages && model.pages.length ? model.pages.map(function(p){ return { name: p.name || "main", title: p.title || "", children: p.elements || p.children || [] }; }) : [{ name: "main", title: model.title || "", children: model.elements || [] }]) };
     root.pages.forEach(function(p){ normalizeTables(p.children); });
     for (var i = 0; i < root.pages.length; i++) { if (root.pages[i].name === prevName) { root.page = i; break; } }
@@ -29302,6 +29368,22 @@ function recordFindHistory(query) {
   renderFindHistory();
   saveFindState();
 }
+// isFindFieldTarget tells whether a key event comes from a field that owns
+// the find shortcuts itself (the source editor handles them in editorKeydown,
+// the find and replace inputs handle Enter and Escape).
+function isFindFieldTarget(ev) {
+  var t = ev.target;
+  if (!t || !t.id) return false;
+  return t.id === "out" || t.id === "sui-find-input" || t.id === "sui-replace-input";
+}
+// showSuiFindBar opens the find bar of the SUI source from anywhere in the
+// designer: the bar lives in the SUI pane, so the pane is shown first when the
+// preview is the active tab.
+function showSuiFindBar(withReplace) {
+  var pane = document.getElementById("cpane-sui");
+  if (pane && !pane.classList.contains("on")) switchC("sui");
+  openFindBar(withReplace);
+}
 function openFindBar(withReplace) {
   var bar = findBarEl();
   var ta = document.getElementById("out");
@@ -30223,7 +30305,7 @@ function bindPointerResize(grip, cursor, startFn, moveFn, endFn) {
     if (bottom.offsetHeight > maxH()) bottom.style.height = maxH() + "px";
   });
 })();
-document.getElementById("prev").onload = function() { postHighlight(); updateGuides(); };
+document.getElementById("prev").onload = function() { postHighlight(); updateGuides(); postSelectMode(); };
 window.addEventListener("error", function(e) { setStatus("JS ERROR: " + (e.message || e)); });
 window.addEventListener("unhandledrejection", function(e) { setStatus("PROMISE ERROR: " + (e.reason && e.reason.message ? e.reason.message : e.reason)); });
 // Restore the in-memory project kept by the server (survives a page reload).

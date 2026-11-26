@@ -1593,6 +1593,7 @@ const guiPreviewPicker = `<script>
       parent.postMessage({ ty: 'sui-style', key: e.data.key, values: vals, parentValues: pvals }, '*');
     }
     if (e.data && e.data.ty === 'sui-marquee') { marqueeOn = !!e.data.on; }
+    if (e.data && e.data.ty === 'sui-select-mode') { window.__suiSelectOnly = !!e.data.on; return; }
     if (e.data && e.data.ty === 'sui-guides') {
       guidesOn = e.data.on;
       step = e.data.step || 8;
@@ -2072,6 +2073,17 @@ const guiPreviewPicker = `<script>
   }, 120);
   setTimeout(syncLayoutSplits, 0);
   document.addEventListener('click', function (e) {
+    // A click the designer replays on the preview (the tab restore after a
+    // rebuild) is internal: it must not pick an element, or the selection
+    // would jump to an unrelated node after every style change.
+    if (window.__suiSuppressPick) return;
+    // Select mode: the click only picks the element under the cursor. The app
+    // handlers (onClick, links, form controls) must not run, so the event is
+    // stopped before it reaches the target.
+    if (window.__suiSelectOnly) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     // Any click inside the preview dismisses the designer's context menus,
     // including clicks on empty preview space that select no element.
     parent.postMessage({ ty: 'sui-dismiss' }, '*');
