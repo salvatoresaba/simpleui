@@ -434,6 +434,13 @@ fn boot() -> null {
   dalla URL, tieni il nome che scrive e mandalo con la richiesta. Il backend lo
   pulisce (un nome di file non e' mai un percorso) e lo usa per il file che
   scrive.
+- Lascia che un download contenga piu' file. I file condividono la coda delle
+  unita' e i worker del lavoro, quindi con sei worker e due file le unita'
+  vengono prese tre per tre. Dai a ogni file la sua priorita' (bassa, normale,
+  alta) e prendi prima le unita' dei file con la priorita' piu' alta: lo
+  scheduler gira a round-robin sui file con la stessa priorita'.
+- Cancella le unita' quando il file e' stato ricomposto: le parti sul disco
+  sono spazio di lavoro, il file ricomposto e' il risultato.
 - Il backend possiede la verita'. Pausa, ripresa e annullamento sono richieste
   al backend, mai flag locali: solo il backend sa quali unita' sono gia' fatte.
 - Mostra gli errori del backend come sono. Una parte fallita e' un errore

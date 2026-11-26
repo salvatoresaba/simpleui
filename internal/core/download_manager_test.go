@@ -51,8 +51,19 @@ func TestDownloadManagerApp(t *testing.T) {
 		"setPartTotal",
 		"setPartActive",
 		"setPartDone",
+		// The files of the download: the plus button adds one, the priority
+		// of the selected file is changed with the priority endpoint.
+		"addFile",
+		"setPriorityLabel",
+		"priorityValue",
+		"setFiles",
+		"setFilesTable",
+		"onFileSelected",
+		"/files/",
+		"/priority",
 		// A refused request is shown, not swallowed.
 		"could not start: ",
+		"could not add the file: ",
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("download manager js missing %q", want)
@@ -69,7 +80,7 @@ func TestDownloadManagerApp(t *testing.T) {
 // not a plain file name is cleaned, and a request without a name keeps the
 // name that comes from the URL.
 func TestDownloadManagerFileNameE2E(t *testing.T) {
-	base, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "0")
+	base, _, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "0")
 	cl := &http.Client{Timeout: 20 * time.Second}
 	target := base + "/files/sample.bin"
 
@@ -100,10 +111,66 @@ func TestDownloadManagerFileNameE2E(t *testing.T) {
 	}
 }
 
+// TestDownloadManagerFilePriorityE2E checks the priority of a file: the
+// endpoint changes it, the file keeps the one it was added with when the
+// value is unknown, and every file of the download has its own priority.
+func TestDownloadManagerFilePriorityE2E(t *testing.T) {
+	base, _, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "0")
+	cl := &http.Client{Timeout: 20 * time.Second}
+	target := base + "/files/sample.bin"
+
+	job := postDownloadManager(t, cl, base+"/api/downloads",
+		`{"url":"`+target+`","partSize":"1 MiB","priority":"low"}`).(map[string]any)
+	id, _ := job["id"].(string)
+	if id == "" {
+		t.Fatalf("job without id: %v", job)
+	}
+	files, _ := job["files"].([]any)
+	if len(files) != 1 {
+		t.Fatalf("files = %d, want 1", len(files))
+	}
+	first, _ := files[0].(map[string]any)
+	if first["priority"] != "low" {
+		t.Errorf("the priority of the file = %v, want low", first["priority"])
+	}
+	fileID, _ := first["id"].(string)
+	if fileID == "" {
+		t.Fatalf("the file has no id: %v", first)
+	}
+
+	// The priority of the file is changed with its own endpoint.
+	changed := postDownloadManager(t, cl, base+"/api/downloads/"+id+"/files/"+fileID+"/priority",
+		`{"priority":"high"}`).(map[string]any)
+	changedFiles, _ := changed["files"].([]any)
+	cf, _ := changedFiles[0].(map[string]any)
+	if cf["priority"] != "high" {
+		t.Errorf("the priority of the file = %v, want high", cf["priority"])
+	}
+
+	// A priority the backend does not know becomes the normal one.
+	unknown := postDownloadManager(t, cl, base+"/api/downloads/"+id+"/files/"+fileID+"/priority",
+		`{"priority":"urgent"}`).(map[string]any)
+	unknownFiles, _ := unknown["files"].([]any)
+	uf, _ := unknownFiles[0].(map[string]any)
+	if uf["priority"] != "normal" {
+		t.Errorf("the priority of the file = %v, want normal", uf["priority"])
+	}
+
+	// A file that is not part of the download is refused.
+	resp, err := cl.Post(base+"/api/downloads/"+id+"/files/file-99/priority", "application/json", strings.NewReader(`{"priority":"high"}`))
+	if err != nil {
+		t.Fatalf("post the priority: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("status = %d, want 404 for a file that is not in the download", resp.StatusCode)
+	}
+}
+
 // TestDownloadManagerMergedFileNameE2E checks that the reassembled file is
 // served with the name the operator chose.
 func TestDownloadManagerMergedFileNameE2E(t *testing.T) {
-	base, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "0")
+	base, _, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "0")
 	cl := &http.Client{Timeout: 20 * time.Second}
 	job := postDownloadManager(t, cl, base+"/api/downloads",
 		`{"url":"`+base+`/files/sample.bin","partSize":"1 MiB","file":"relazione finale.pdf"}`).(map[string]any)
@@ -130,7 +197,7 @@ func TestDownloadManagerMergedFileNameE2E(t *testing.T) {
 // fetched with its own Range request, a pause keeps the bytes, a resume
 // continues from them and the reassembled file matches the original.
 func TestDownloadManagerServerE2E(t *testing.T) {
-	base, filesDir := startDownloadManager(t, "--sample-mib", "1", "--throttle", "131072")
+	base, filesDir, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "131072")
 	cl := &http.Client{Timeout: 20 * time.Second}
 
 	// The CLI configuration is what the app starts with.
@@ -211,7 +278,266 @@ func TestDownloadManagerServerE2E(t *testing.T) {
 	}
 }
 
-// TestDownloadManagerRetryPartE2E drives the retry of a single failed part:
+// TestDownloadManagerSharedQueueE2E checks the queue the files of a download
+// share: the workers of the job are split between the files, the file with
+// the highest priority goes first, and the part files are deleted when the
+// file is reassembled.
+func TestDownloadManagerSharedQueueE2E(t *testing.T) {
+	origin, reqs := gatedOrigin(t)
+	defer origin.Close()
+
+	base, _, workDir := startDownloadManager(t, "--sample-mib", "0", "--throttle", "0", "--workers", "2")
+	cl := &http.Client{Timeout: 30 * time.Second}
+
+	// The first file: four parts, two of them are picked right away.
+	job := postDownloadManager(t, cl, base+"/api/downloads",
+		`{"url":"`+origin.URL+`/a.bin","partSize":"512 KiB"}`).(map[string]any)
+	id, _ := job["id"].(string)
+	if id == "" {
+		t.Fatalf("job without id: %v", job)
+	}
+	first := waitGatedRequest(t, reqs)
+	if first.file != "a.bin" {
+		t.Fatalf("the first request is for %q, want a.bin", first.file)
+	}
+	second := waitGatedRequest(t, reqs)
+	if second.file != "a.bin" {
+		t.Fatalf("the second request is for %q, want a.bin", second.file)
+	}
+
+	// The second file joins the download with a high priority. The workers
+	// are busy with the first file, which still has parts in the queue: the
+	// next free worker must take a part of the file with the high priority.
+	added := postDownloadManager(t, cl, base+"/api/downloads/"+id+"/files",
+		`{"url":"`+origin.URL+`/b.bin","priority":"high"}`).(map[string]any)
+	files, _ := added["files"].([]any)
+	if len(files) != 2 {
+		t.Fatalf("the download has %d files, want 2", len(files))
+	}
+	bf, _ := files[1].(map[string]any)
+	if bf["priority"] != "high" {
+		t.Errorf("the priority of the second file = %v, want high", bf["priority"])
+	}
+	if bf["file"] != "b.bin" {
+		t.Errorf("the name of the second file = %v, want b.bin", bf["file"])
+	}
+
+	// The workers are held by the two requests of the first file: nothing
+	// else is asked for until one of them is released.
+	select {
+	case extra := <-reqs:
+		t.Fatalf("a request was made for %q while the workers were busy", extra.file)
+	case <-time.After(300 * time.Millisecond):
+	}
+	first.release <- struct{}{}
+	next := waitGatedRequest(t, reqs)
+	if next.file != "b.bin" {
+		t.Errorf("the next request is for %q, want b.bin: the high priority file goes first", next.file)
+	}
+
+	// The pool of the job is shared: the workers never exceed the number the
+	// job was given.
+	if origin.maxConcurrent() > 2 {
+		t.Errorf("%d requests at the same time, want at most 2 (the workers of the job)", origin.maxConcurrent())
+	}
+
+	// Let everything finish.
+	origin.releaseAll()
+	done := waitDownloadManager(t, cl, base, id)
+	if done["state"] != "done" {
+		t.Fatalf("final state = %v (%v)", done["state"], done["error"])
+	}
+	final, _ := done["files"].([]any)
+	if len(final) != 2 {
+		t.Fatalf("the download has %d files, want 2", len(final))
+	}
+	for _, f := range final {
+		fm := f.(map[string]any)
+		if fm["state"] != "done" {
+			t.Errorf("the file %v is %v, want done", fm["file"], fm["state"])
+		}
+		if fm["merged"] == "" {
+			t.Errorf("the file %v has no merged file", fm["file"])
+		}
+		// Every file of the download is served on its own endpoint, with the
+		// name it was given.
+		fileID, _ := fm["id"].(string)
+		resp, err := cl.Get(base + "/api/downloads/" + id + "/files/" + fileID + "/file")
+		if err != nil {
+			t.Fatalf("get the merged file of %v: %v", fm["file"], err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("the merged file of %v answers with %d, want 200", fm["file"], resp.StatusCode)
+		}
+		if float64(len(body)) != fm["total"].(float64) {
+			t.Errorf("the merged file of %v is %d bytes, want %v", fm["file"], len(body), fm["total"])
+		}
+		if got := resp.Header.Get("Content-Disposition"); !strings.Contains(got, fm["file"].(string)) {
+			t.Errorf("Content-Disposition = %q, want the name of the file", got)
+		}
+	}
+
+	// The part files are deleted when the file is reassembled: the merged
+	// file is the result of the download.
+	parts := 0
+	entries, err := os.ReadDir(filepath.Join(workDir, id))
+	if err != nil {
+		t.Fatalf("read the job folder: %v", err)
+	}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), "part-") {
+			parts++
+		}
+	}
+	if parts != 0 {
+		t.Errorf("%d part files are still on disk, want 0: the merge deletes them", parts)
+	}
+}
+
+// gatedRequest is a request the origin holds until the test lets it go.
+type gatedRequest struct {
+	file    string
+	release chan struct{}
+}
+
+// gatedOrigin serves two files with Range support and holds every request:
+// the order of the requests shows the order the scheduler picked the parts in.
+func gatedOrigin(t *testing.T) (*gatedServer, chan gatedRequest) {
+	t.Helper()
+	sizes := map[string]int{"/a.bin": 2 * 1024 * 1024, "/b.bin": 1024 * 1024}
+	reqs := make(chan gatedRequest, 64)
+	g := &gatedServer{sizes: sizes}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		size := g.sizes[r.URL.Path]
+		if size == 0 {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		// The probe of the backend asks for the first byte only: it is not a
+		// part, so it is not held and it does not count as a worker.
+		probe := r.Header.Get("Range") == "bytes=0-0"
+		if !probe && !g.isReleased() {
+			rel := make(chan struct{})
+			g.enter()
+			g.hold(rel)
+			reqs <- gatedRequest{file: filepath.Base(r.URL.Path), release: rel}
+			select {
+			case <-rel:
+			case <-r.Context().Done():
+				g.leave()
+				return
+			}
+			g.leave()
+		}
+		start, end := 0, size-1
+		if spec := strings.TrimPrefix(r.Header.Get("Range"), "bytes="); spec != r.Header.Get("Range") {
+			parts := strings.SplitN(spec, "-", 2)
+			if len(parts) == 2 {
+				if s, err := strconv.Atoi(parts[0]); err == nil {
+					start = s
+				}
+				if e, err := strconv.Atoi(parts[1]); err == nil && e < end {
+					end = e
+				}
+			}
+		}
+		if start < 0 {
+			start = 0
+		}
+		if end >= size {
+			end = size - 1
+		}
+		payload := make([]byte, end-start+1)
+		for i := range payload {
+			payload[i] = byte(i % 251)
+		}
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
+		w.WriteHeader(http.StatusPartialContent)
+		_, _ = w.Write(payload)
+	}))
+	g.srv = srv
+	g.URL = srv.URL
+	return g, reqs
+}
+
+// gatedServer counts the requests that are running at the same time.
+type gatedServer struct {
+	srv      *httptest.Server
+	URL      string
+	sizes    map[string]int
+	mu       sync.Mutex
+	live     int
+	peak     int
+	held     []chan struct{}
+	released bool
+}
+
+func (g *gatedServer) enter() {
+	g.mu.Lock()
+	g.live++
+	if g.live > g.peak {
+		g.peak = g.live
+	}
+	g.mu.Unlock()
+}
+
+func (g *gatedServer) leave() {
+	g.mu.Lock()
+	g.live--
+	g.mu.Unlock()
+}
+
+func (g *gatedServer) maxConcurrent() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.peak
+}
+
+// hold keeps the channel of a held request so that releaseAll can let it go.
+func (g *gatedServer) hold(rel chan struct{}) {
+	g.mu.Lock()
+	g.held = append(g.held, rel)
+	g.mu.Unlock()
+}
+
+// isReleased says whether the test already let the requests go: from that
+// moment on the origin answers without holding anything.
+func (g *gatedServer) isReleased() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.released
+}
+
+// releaseAll lets the held requests go and opens the gate: the requests that
+// come later are not held any more.
+func (g *gatedServer) releaseAll() {
+	g.mu.Lock()
+	held := g.held
+	g.held = nil
+	g.released = true
+	g.mu.Unlock()
+	for _, r := range held {
+		close(r)
+	}
+}
+
+func (g *gatedServer) Close() { g.srv.Close() }
+
+// waitGatedRequest waits for the next request the origin holds.
+func waitGatedRequest(t *testing.T, reqs chan gatedRequest) gatedRequest {
+	t.Helper()
+	select {
+	case r := <-reqs:
+		return r
+	case <-time.After(20 * time.Second):
+		t.Fatalf("the origin did not receive a request")
+		return gatedRequest{}
+	}
+}
+
 // the origin refuses one range once, the part is marked as failed, the job
 // waits for the operator, and the retry of that part alone completes the
 // download.
@@ -224,7 +550,7 @@ func TestDownloadManagerRetryPartE2E(t *testing.T) {
 	origin, failures := flakyOrigin(payload, failedRange)
 	defer origin.Close()
 
-	base, _ := startDownloadManager(t, "--sample-mib", "0", "--throttle", "0")
+	base, _, _ := startDownloadManager(t, "--sample-mib", "0", "--throttle", "0")
 	cl := &http.Client{Timeout: 20 * time.Second}
 
 	job := postDownloadManager(t, cl, base+"/api/downloads",
@@ -340,8 +666,9 @@ func flakyOrigin(payload []byte, failRange string) (*httptest.Server, *int) {
 }
 
 // startDownloadManager builds and starts the backend of the example and
-// returns its base URL and the folder with the local files.
-func startDownloadManager(t *testing.T, extra ...string) (string, string) {
+// returns its base URL, the folder with the local files and the folder with
+// the downloads.
+func startDownloadManager(t *testing.T, extra ...string) (string, string, string) {
 	t.Helper()
 	dir := t.TempDir()
 	pubDir := filepath.Join(dir, "public")
@@ -395,7 +722,7 @@ func startDownloadManager(t *testing.T, extra ...string) (string, string) {
 		_ = cmd.Wait()
 	})
 
-	return readDownloadManagerLine(t, stdout, &stderr), filesDir
+	return readDownloadManagerLine(t, stdout, &stderr), filesDir, workDir
 }
 
 // waitDownloadManager waits for a job to settle and returns its last state.

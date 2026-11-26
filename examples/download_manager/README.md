@@ -33,6 +33,23 @@ not add a dependency to the root module.
   header) chooses between **one single file** (one request, no parts, no
   reassembly) and **split into parts**. In split mode the panel also shows the
   size of the parts and how many parts are downloaded at the same time.
+- **More files in the same download.** The **+** button next to the lightning
+  adds the file of the form (URL, name, priority) to the download that is
+  running. The files **share the queue of the parts and the workers of the
+  job**: with six workers and two files of the same priority the parts are
+  taken three by three, and a file added later joins the queue of the parts
+  that are still waiting.
+- **A priority for every file.** Every file has its own priority — **low**,
+  **normal** or **high**. The scheduler always takes the parts of the files
+  with the highest priority first and then goes round-robin between the files
+  with the same priority. The priority of the file that is being added comes
+  from the combobox next to the name; the priority of a file that is already
+  in the download is changed from the **Files** tab (select the row, then
+  press Low, Normal or High).
+- **The parts of the file are deleted after the merge.** When a file is
+  reassembled the backend verifies the result and then removes the `part-*.bin`
+  files from the disk: only the reassembled file stays in the folder of the
+  download.
 - **A split decided by the size.** The file is cut into parts of a chosen
   length (`256 KiB` … `16 MiB`); the number of parts follows from the file
   size. A 24 MiB file with 1 MiB parts becomes 24 parts.
@@ -73,6 +90,8 @@ not add a dependency to the root module.
 - **Reassembly and verification.** When every part is complete the backend
   concatenates them in order and compares the size with the total the server
   announced; with `--expect-sha256` it also compares the SHA-256 of the result.
+  The parts are then deleted: the folder of the download keeps only the
+  reassembled files.
 - **Polling with `interval`.** The GUI polls the status endpoint every 500 ms
   and repaints the progress bars.
 - **A dynamic URL done safely.** The pause/resume/cancel URL contains the job
@@ -143,22 +162,30 @@ prints the URL it listens on.
 1. **Header** – the title of the application and the small ⚙ button that opens
    the settings panel as an overlay.
 2. **Target** – the URL of the file (prefilled with the `--url` of the CLI), the
-   single action button: ⚡ to start, ❚❚ to pause, ► to resume, and under the URL
-   the box with the **name of the file to save**: the program fills it from the
-   URL and the operator can change it before the download starts. Below it the
-   hint of the current phase and the configuration of the job (mode, size of the
-   parts, parts at the same time). The ✕ cancel button appears next to the
-   action button only while the download is paused.
+   single action button: ⚡ to start, ❚❚ to pause, ► to resume, and the **+**
+   button that adds the file of the form to the download. Under the URL the
+   box with the **name of the file to save**: the program fills it from the
+   URL and the operator can change it before the download starts; next to it
+   the combobox of the **priority** (Low, Normal, High) of the file that is
+   being added. Below it the hint of the current phase and the configuration of
+   the job (mode, size of the parts, parts at the same time). The ✕ cancel
+   button appears next to the action button only while the download is paused.
 3. **Progress tab** – the card of the total progress: the bar of the whole
    download and, inside it, the collapsible section with the counters of the
    parts (how many there are, how many are downloading, how many are complete)
    and one bar per part (the most recent one first, only the parts whose
    download has started). When the download is complete a link appears to
    download the reassembled file.
-4. **Data tab** – the table of the parts and the table of the jobs. Clicking a
-   row of the parts table selects the part: the "Retry part N" button fetches
-   that part again, "Retry all failed" requeues every failed part.
-5. **Status bar** – the state of the download and its message in the first
+4. **Files tab** – the files of the download: the table with the id, the name,
+   the priority, the state, the number of parts and the size of every file,
+   and under it one row per file with its progress bar, its priority badge and
+   the link to its reassembled file. Select a row of the table and press
+   **Low**, **Normal** or **High** to change the priority of that file.
+5. **Data tab** – the table of the parts (with the file and its priority) and
+   the table of the jobs. Clicking a row of the parts table selects the part:
+   the "Retry part N" button fetches that part again, "Retry all failed"
+   requeues every failed part.
+6. **Status bar** – the state of the download and its message in the first
    row, the percentage, the size of the file, the bytes downloaded and the
    estimated time left in the row below.
 
@@ -167,14 +194,17 @@ prints the URL it listens on.
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/config` | the configuration of the CLI (default URL, part size, workers, ...) |
-| `POST /api/downloads` | start a job: `{"url":"...","partSize":"2 MiB","workers":4,"single":false,"file":"report.pdf"}` |
+| `POST /api/downloads` | start a job: `{"url":"...","partSize":"2 MiB","workers":4,"single":false,"file":"report.pdf","priority":"normal"}` |
 | `GET /api/downloads` | all jobs, most recent first |
+| `POST /api/downloads/{id}/files` | add a file to the job: `{"url":"...","file":"report.pdf","priority":"high"}` |
+| `POST /api/downloads/{id}/files/{file}/priority` | change the priority of a file: `{"priority":"low"}` |
 | `POST /api/downloads/{id}/pause` | pause: keep the bytes, stop the requests |
 | `POST /api/downloads/{id}/resume` | resume: every part continues from its byte |
 | `POST /api/downloads/{id}/cancel` | cancel the job |
 | `POST /api/downloads/{id}/parts/{n}/retry` | download one failed part again |
 | `POST /api/downloads/{id}/retry-failed` | download every failed part again |
-| `GET /api/downloads/{id}/file` | the reassembled file |
+| `GET /api/downloads/{id}/file` | the reassembled file (the first one that is complete) |
+| `GET /api/downloads/{id}/files/{file}/file` | the reassembled file of one file of the job |
 | `GET /files/{name}` | a local file, with `Range` support |
 | `GET /sound.wav` | the short chime played when a download completes |
 
@@ -194,12 +224,22 @@ A job has a state of its own: `running`, `paused`, `merging`, `done`,
 `canceled` or `error`. A part has a state too: `pending`, `downloading`,
 `done` or `error`.
 
+A job holds one or more **files**. Every file has its own id (`file-1`,
+`file-2`, ...), its own name, its own priority (`low`, `normal` or `high`) and
+its own parts; the parts of the whole job are numbered together, so the part
+files of the job are `part-0001.bin`, `part-0002.bin`, ... The scheduler
+always takes a part of a file with the highest priority and walks the files
+of the same priority round-robin: with six workers and two files of the same
+priority the parts are taken three by three, and a file with the `high`
+priority jumps in front of the files with the `normal` one.
+
 The parts in the JSON response use the column names of the table, so the
 backend and the GUI always agree on what a part is:
 
 ```json
-{"Part": 3, "From": 2097152, "To": 3145727, "Size": 1048576,
- "Received": 1048576, "Percent": 100, "State": "done"}
+{"File": "report.pdf", "Priority": "high", "Part": 3, "From": 2097152,
+ "To": 3145727, "Size": 1048576, "Received": 1048576, "Percent": 100,
+ "State": "done"}
 ```
 
 ## The complete SUI source
@@ -215,17 +255,27 @@ import { http, json, sound } from "std"
 # parts according to the chosen part size, downloads every part with its own
 # Range request, tracks each part and finally reassembles them into one file.
 #
+# A download can hold more than one file. The "+" button adds the file of the
+# form (URL, name and priority) to the download that is running: the files
+# share the queue of the parts and the workers of the download, so with six
+# workers and two files the parts are taken three by three. Every file has its
+# own priority (low, normal or high): the scheduler takes the parts of the
+# files with the highest priority first and then goes round-robin between the
+# files with the same priority.
+#
 # The screen has three zones:
 #   - the top bar: the configuration in one row and the button that opens the
 #     settings panel (the file in one piece or split into parts, the size of
 #     the parts and the number of parts downloaded at the same time);
-#   - the target: the URL and a single button whose icon and function follow
-#     the phase of the download (start, pause, resume);
+#   - the target: the URL, the name of the file to save, the priority and the
+#     buttons that start the download or add another file to it;
 #   - the status bar at the bottom: the data of the download.
 #
-# The parts live in a collapsible panel of the Progress tab, shown only when
-# the download runs in split mode, and the bars start from the most recent
-# part. The errors are shown as toasts and the completion plays a sound.
+# The files of the download live in the Progress tab, with their progress and
+# the link to the reassembled file; the parts live in a collapsible panel of
+# the same tab, shown only when the download runs in split mode, and the bars
+# start from the most recent part. The errors are shown as toasts and the
+# completion plays a sound.
 #
 # The backend listens on port 8090: the URLs below are literals, and the only
 # dynamic URLs (the ones that carry the job id) go through http.postSafe with
@@ -265,6 +315,17 @@ state fileNameEdited = false
 state partTotal = 0
 state partActive = 0
 state partDone = 0
+# The priority of the file that is being added: the backend takes the parts of
+# the files with the highest priority first. The combobox shows the labels,
+# the API takes the lowercase names.
+state priorityLabel = "Normal"
+# The files of the download: the table shows them and the operator picks the
+# one whose priority has to change.
+state files: array[any] = []
+state filesTable: any = []
+state filesSignature = ""
+state selectedFile = ""
+state selectedFileName = ""
 
 # The configuration of the CLI: the default URL, the part size and the default
 # number of parts downloaded at the same time. The app starts with them, the
@@ -346,6 +407,18 @@ fn syncFileName() -> null {
 	fileName = wanted
 }
 
+# The priority the backend expects: the combobox shows the labels, the API
+# takes the lowercase names.
+fn priorityValue(label: string) -> string {
+	if label == "Low" {
+		return "low"
+	}
+	if label == "High" {
+		return "high"
+	}
+	return "normal"
+}
+
 # The errors are shown as a toast: the operator reads them without losing the
 # place in the page. The same message is not repeated twice in a row.
 fn notifyError(text: string) -> null {
@@ -408,7 +481,13 @@ async fn updateJob(job: any) -> null {
 	partTotal = len(parts)
 	partActive = countParts(parts, "downloading")
 	partDone = countParts(parts, "done")
+	# The files of the download: the table shows them and the operator picks
+	# the one whose priority has to change.
+	let jobFiles = job["files"]
+	files = jobFiles
+	filesTable = fileTable(jobFiles)
 	refreshPartsTable(jobId + "|" + jobState + "|" + str(failedParts) + "|" + str(partDone))
+	refreshFilesTable(jobId + "|" + filesStamp(jobFiles))
 	syncPhase()
 	let previous = lastState
 	lastState = jobState
@@ -420,6 +499,38 @@ async fn updateJob(job: any) -> null {
 			notifyError("the download failed: " + str(job["error"]))
 		}
 	}
+}
+
+# One row of the files table: the id comes first because the priority of a
+# file is changed with it.
+fn fileRow(f: any) -> array[string] {
+	return [str(f["id"]), str(f["file"]), str(f["priority"]), str(f["state"]), str(f["partCount"]), str(f["totalText"])]
+}
+
+# The rows of the files table. The rows are arrays and not objects: the table
+# then keeps the columns of the design.
+fn fileRows(jobFiles: any) -> array[any] {
+	return map(jobFiles, fileRow)
+}
+
+# The payload of the files table: the columns come with the rows, so the table
+# shows the columns of the design and not the keys of the JSON.
+fn fileTable(jobFiles: any) -> any {
+	return {"columns": ["Id", "File", "Priority", "State", "Parts", "Size"], "rows": fileRows(jobFiles)}
+}
+
+# The stamp of the files: it changes when a file is added, when its priority
+# changes or when it reaches another state. The progress of a file is not part
+# of it, so the table keeps the row the operator selected at every poll.
+fn filesStamp(jobFiles: any) -> string {
+	let stamp = ""
+	let i = 0
+	while i < len(jobFiles) {
+		let f = jobFiles[i]
+		stamp = stamp + str(f["id"]) + ":" + str(f["priority"]) + ":" + str(f["state"]) + ";"
+		i = i + 1
+	}
+	return stamp
 }
 
 # The single button follows the phase of the download: it starts it, pauses
@@ -479,9 +590,22 @@ fn refreshPartsTable(signature: string) -> null {
 	}
 }
 
+# The files table is filled only when its content really changes: a table
+# refresh drops the selected row.
+fn refreshFilesTable(signature: string) -> null {
+	if signature == filesSignature {
+		return
+	}
+	filesSignature = signature
+	n, terr = table.display("files", filesTable)
+	if terr != null {
+		notifyError("files table not updated: " + terr)
+	}
+}
+
 # The download is complete: a toast and a short sound.
 async fn announceDone(job: any) -> null {
-	toast.show("Download complete: " + str(job["file"]), "success", 4000)
+	toast.show("Download complete: " + str(len(job["files"])) + " files", "success", 4000)
 	ok, err = sound.play("http://127.0.0.1:8090/sound.wav")
 	if err != null {
 		message = "download complete (the browser blocked the sound)"
@@ -507,7 +631,7 @@ async fn startDownload() -> null {
 		notifyError("type the URL of the file to download")
 		return
 	}
-	payload, jerr = json.stringify({"url": urlText, "partSize": partSize, "workers": workers, "single": single, "file": fileName})
+	payload, jerr = json.stringify({"url": urlText, "partSize": partSize, "workers": workers, "single": single, "file": fileName, "priority": priorityValue(priorityLabel)})
 	if jerr != null {
 		notifyError("invalid request: " + jerr)
 		return
@@ -529,12 +653,62 @@ async fn startDownload() -> null {
 		return
 	}
 	selectedPart = ""
+	selectedFile = ""
+	selectedFileName = ""
 	updateJob(job)
+	# The form is empty again: the operator types the URL of the next file.
+	clearForm()
 	if single == true {
 		message = "download started: " + str(job["file"]) + " - one single file"
 	} else {
 		message = "download started: " + str(job["file"]) + " - " + str(job["partCount"]) + " parts of " + str(job["partSizeText"]) + ", " + str(job["workers"]) + " at a time"
 	}
+}
+
+# Add a file to the download: the file joins the queue of the parts of the
+# download, so it is downloaded with the same workers. The first file of a
+# download starts it.
+async fn addFile() -> null {
+	if trim(urlText) == "" {
+		notifyError("type the URL of the file to add")
+		return
+	}
+	if jobId == "" {
+		# There is no download yet: the file becomes its first file.
+		startDownload()
+		clearForm()
+		return
+	}
+	payload, jerr = json.stringify({"url": urlText, "file": fileName, "priority": priorityValue(priorityLabel)})
+	if jerr != null {
+		notifyError("invalid request: " + jerr)
+		return
+	}
+	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/files", payload, "http://127.0.0.1:8090")
+	if err != null {
+		notifyError("could not add the file: " + err)
+		return
+	}
+	job, perr = json.parse(body)
+	if perr != null {
+		notifyError("invalid response: " + perr)
+		return
+	}
+	if has(job, "error") and str(job["error"]) != "" {
+		notifyError("could not add the file: " + str(job["error"]))
+		return
+	}
+	updateJob(job)
+	clearForm()
+	notifyInfo("the file joined the download")
+}
+
+# The form is empty again: the operator types the URL of the next file.
+fn clearForm() -> null {
+	urlText = ""
+	fileName = ""
+	autoFileName = ""
+	fileNameEdited = false
 }
 
 # The URL contains the job id, so it is dynamic: the *Safe variant with a
@@ -597,6 +771,78 @@ fn onPartSelected() -> null {
 	message = "Part " + selectedPart + " selected: press Retry to download it again."
 }
 
+# The operator selects a row of the files table: the id of the file is kept in
+# a state, so the priority buttons know which file they change.
+fn onFileSelected() -> null {
+	sel, e = table.selectedRows("files")
+	if e != null {
+		notifyError("cannot read the selection: " + e)
+		return
+	}
+	if len(sel) == 0 {
+		return
+	}
+	rows, e2 = table.data("files")
+	if e2 != null {
+		notifyError("cannot read the files table: " + e2)
+		return
+	}
+	let idx = sel[0]
+	if idx < 0 or idx >= len(rows) {
+		return
+	}
+	selectedFile = str(rows[idx][0])
+	selectedFileName = str(rows[idx][1])
+	message = "File " + selectedFileName + " selected: choose the priority to apply."
+}
+
+# The priority of the file the operator selected.
+async fn setPriorityLow() -> null {
+	applyPriority("low")
+}
+
+async fn setPriorityNormal() -> null {
+	applyPriority("normal")
+}
+
+async fn setPriorityHigh() -> null {
+	applyPriority("high")
+}
+
+# Change the priority of a file of the download: the scheduler takes the parts
+# of the files with the highest priority first.
+async fn applyPriority(want: string) -> null {
+	if jobId == "" {
+		notifyError("no download to manage")
+		return
+	}
+	if selectedFile == "" {
+		notifyError("select a file in the Files table first")
+		return
+	}
+	payload, jerr = json.stringify({"priority": want})
+	if jerr != null {
+		notifyError("invalid request: " + jerr)
+		return
+	}
+	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/files/" + selectedFile + "/priority", payload, "http://127.0.0.1:8090")
+	if err != null {
+		notifyError("could not change the priority: " + err)
+		return
+	}
+	job, perr = json.parse(body)
+	if perr != null {
+		notifyError("invalid response: " + perr)
+		return
+	}
+	if has(job, "error") and str(job["error"]) != "" {
+		notifyError("could not change the priority: " + str(job["error"]))
+		return
+	}
+	updateJob(job)
+	notifyInfo("the priority of " + selectedFileName + " is now " + want)
+}
+
 # Retry one part: only that part is fetched again, the others are untouched.
 async fn retrySelectedPart() -> null {
 	if jobId == "" {
@@ -652,6 +898,8 @@ async fn boot() -> null {
 fn refreshData() -> null {
 	partsSignature = ""
 	refreshPartsTable("manual")
+	filesSignature = ""
+	refreshFilesTable("manual")
 }
 
 view main {
@@ -708,6 +956,9 @@ view main {
 		row class: "field" {
 			input "File URL" value: urlText placeholder: "https://example.com/file.bin" class: "url-input"
 			button "{actionIcon}" onClick: onAction class: "btn-icon btn-action"
+			# The plus button adds the file of the form to the download: the
+			# files share the queue of the parts and the workers.
+			button "+" onClick: addFile class: "btn-icon btn-add" tooltip: "Add this file to the download"
 			if phase == "paused" {
 				button "✕" onClick: cancelDownload class: "btn-icon btn-cancel" tooltip: "Cancel the download"
 			}
@@ -716,6 +967,7 @@ view main {
 		# the operator can change it before the download starts.
 		row class: "field field-file" {
 			input "Save as" value: fileName placeholder: "download.bin" class: "url-input file-input"
+			combobox "Priority" options: "Low,Normal,High" value: priorityLabel class: "prio-select"
 		}
 		if fileName == "" {
 			p "The name of the file to save appears here as soon as the URL is typed." class: "file-hint"
@@ -726,6 +978,7 @@ view main {
 				p "The file will be saved as {fileName}." class: "file-hint"
 			}
 		}
+		p "The file joins the download with the {priorityLabel} priority." class: "file-hint"
 		p "{actionHint}" class: "action-hint"
 		# The configuration of the job: the mode, the size of the parts and how
 		# many parts are downloaded at the same time.
@@ -789,6 +1042,60 @@ view main {
 			}
 		}
 
+		tab "Files" {
+			card class: "panel" {
+				h3 "Files"
+				row class: "controls" {
+					button "Low" onClick: setPriorityLow class: "btn-ghost"
+					button "Normal" onClick: setPriorityNormal class: "btn-ghost"
+					button "High" onClick: setPriorityHigh class: "btn-warn"
+					p "Select a file in the table to change its priority." class: "muted"
+				}
+				if len(files) == 0 {
+					p "No download yet: the files of the download appear here." class: "muted"
+				} else {
+					table name: "files" selection: "row" onRowSelect: onFileSelected {
+						thead {
+							trow {
+								tcell "Id" head: true
+								tcell "File" head: true
+								tcell "Priority" head: true
+								tcell "State" head: true
+								tcell "Parts" head: true
+								tcell "Size" head: true
+							}
+						}
+						tbody {
+							trow {
+								tcell "-"
+								tcell "-"
+								tcell "-"
+								tcell "-"
+								tcell "-"
+								tcell "-"
+							}
+						}
+					}
+					# The progress of every file of the download and the link to
+					# the file that has been reassembled.
+					div class: "files-list" {
+						list f in files {
+							row class: "file-row" {
+								p "{f["file"]}" class: "file-name"
+								badge "{f["priority"]}" class: "prio-badge"
+								progress value: f["percent"] max: 100 class: "bar-file"
+								p "{f["percent"]}%" class: "file-percent"
+								p "{f["receivedText"]} / {f["totalText"]}" class: "file-bytes"
+								if f["merged"] != "" {
+									a "Download" href: "http://127.0.0.1:8090/api/downloads/" + jobId + "/files/" + str(f["id"]) + "/file" class: "dl-file"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
 		tab "Data" {
 			card class: "panel" {
 				h3 "Parts"
@@ -801,6 +1108,8 @@ view main {
 				table name: "parts" selection: "row" onRowSelect: onPartSelected {
 					thead {
 						trow {
+							tcell "File" head: true
+							tcell "Priority" head: true
 							tcell "Part" head: true
 							tcell "From" head: true
 							tcell "To" head: true
@@ -812,6 +1121,8 @@ view main {
 					}
 					tbody {
 						trow {
+							tcell "-"
+							tcell "-"
 							tcell "-"
 							tcell "-"
 							tcell "-"
@@ -876,7 +1187,7 @@ view main {
 	}
 }
 
-css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%), linear-gradient(165deg, #0b1020 0%, #131a30 55%, #0e1426 100%); color: #e6e9f5; font-family: system-ui, sans-serif; } h1 \{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; } h3 \{ margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #a5b4fc; } p \{ line-height: 1.55; } card \{ background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 18px; padding: 20px 22px; margin: 16px 0; box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45); } .topbar \{ background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 10px 16px; margin: 18px 0 6px; box-shadow: none; } .topbar-row \{ align-items: center; gap: 14px; justify-content: space-between; } .topbar-info \{ flex: 1 1 auto; gap: 2px; } .subtitle \{ margin: 0; font-size: 13px; color: #8b93b0; line-height: 1.5; } .config-line \{ margin: 0; font-size: 13px; color: #a8b1cc; letter-spacing: 0.02em; } .field \{ margin: 4px 0 10px; gap: 12px; align-items: center; } .url-input \{ flex: 1 1 auto; } .action-hint \{ margin: 0 0 12px; font-size: 12px; color: #7c86a8; text-transform: uppercase; letter-spacing: 0.08em; } .sui-button.btn-icon \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.35); width: 42px; height: 42px; padding: 0; border-radius: 12px; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: transform 140ms ease, box-shadow 140ms ease, color 140ms ease, background 140ms ease; } .sui-button.btn-icon:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.16), 0 10px 22px rgba(99, 102, 241, 0.35); } .sui-button.btn-action \{ background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%); color: #061021; border: 0; font-size: 19px; font-weight: 700; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35); } .sui-button.btn-action:hover \{ color: #061021; background: linear-gradient(135deg, #818cf8 0%, #67e8f9 100%); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22), 0 14px 30px rgba(99, 102, 241, 0.45); } .sui-button.btn-cancel \{ background: rgba(244, 63, 94, 0.14); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.38); } .sui-button.btn-cancel:hover \{ background: rgba(244, 63, 94, 0.26); color: #ffe4e6; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18); } .sui-button.btn-icon-sm \{ width: 32px; height: 32px; font-size: 15px; border-radius: 10px; } .status \{ color: #a8b1cc; font-size: 13px; margin: 0; } .state-badge \{ background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.30); } .verify \{ margin: 14px 0 0; color: #6ee7b7; font-size: 13px; } .dl-link \{ display: inline-block; margin-top: 12px; color: #67e8f9; font-weight: 600; } .parts-scroll \{ max-height: 320px; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 2px 2px; margin: 4px 0 10px; scrollbar-width: thin; scrollbar-color: rgba(129, 140, 248, 0.45) rgba(15, 23, 42, 0.4); } .parts-scroll::-webkit-scrollbar \{ width: 10px; } .parts-scroll::-webkit-scrollbar-track \{ background: rgba(15, 23, 42, 0.45); border-radius: 8px; } .parts-scroll::-webkit-scrollbar-thumb \{ background: rgba(129, 140, 248, 0.45); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } .row.part-row \{ display: grid; grid-template-columns: 64px minmax(120px, 1fr) 92px 148px; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.part-row:hover \{ background: rgba(148, 163, 184, 0.08); } .part-index \{ font-weight: 600; color: #c7d2fe; margin: 0; font-variant-numeric: tabular-nums; } .part-state \{ font-size: 12px; color: #8b93b0; margin: 0; } .part-bytes \{ font-size: 12px; color: #8b93b0; text-align: right; margin: 0; font-variant-numeric: tabular-nums; } .part-error \{ grid-column: 1 / -1; font-size: 12px; color: #fda4af; margin: 0; } progress.bar-total \{ --sui-progress-height: 12px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #6366f1; --sui-progress-value-end: #22d3ee; } progress.bar-part \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #818cf8; --sui-progress-value-end: #38bdf8; } .settings \{ display: flex; flex-direction: column; gap: 14px; min-width: 320px; } .setting \{ gap: 16px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); } .setting:last-child \{ border-bottom: 0; padding-bottom: 0; } .setting-text \{ gap: 2px; flex: 1 1 auto; } .setting-text p \{ margin: 0; font-size: 12px; color: #8b93b0; line-height: 1.45; } .setting-control \{ flex: 0 0 220px; } .mode-switch \{ flex: 0 0 auto; } .hint \{ color: #8b93b0; font-size: 13px; margin: 2px 0 10px; } .muted \{ color: #8b93b0; font-size: 13px; } .controls \{ gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .sui-button.btn-warn \{ background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.42); padding: 9px 16px; border-radius: 12px; } .sui-button.btn-ghost \{ background: transparent; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.28); padding: 9px 16px; border-radius: 12px; } .toast-host .sui-toast \{ width: 340px; } .sui-tabs \{ --sui-tabs-border: rgba(148, 163, 184, 0.16); --sui-tabs-radius: 16px; --sui-tabs-bg: rgba(255, 255, 255, 0.02); --sui-tablist-bg: rgba(15, 23, 42, 0.55); --sui-tab-padding: 10px 18px; --sui-tab-active-bg: rgba(99, 102, 241, 0.18); --sui-tab-accent: #22d3ee; --sui-tab-fg: #94a3b8; --sui-tab-active-fg: #e0e7ff; } .sui-tabpanels \{ padding: 18px 20px; } .statusbar \{ position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 12px 22px; background: rgba(11, 16, 32, 0.94); border-top: 1px solid rgba(148, 163, 184, 0.18); backdrop-filter: blur(8px); } .statusbar-status \{ gap: 12px; align-items: center; margin-bottom: 10px; } .statusbar-row \{ gap: 18px; flex-wrap: wrap; } .sb-item \{ flex: 1 1 120px; gap: 2px; } .sb-value \{ margin: 0; font-size: 17px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .sb-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .field-file \{ margin: 0 0 8px; } .file-input \{ flex: 1 1 auto; } .file-hint \{ margin: 0 0 10px; font-size: 12px; color: #8b93b0; } .part-counts \{ gap: 16px; margin: 0 0 14px; flex-wrap: wrap; } .part-count \{ flex: 0 0 auto; gap: 2px; min-width: 76px; } .count-value \{ margin: 0; font-size: 20px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .count-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .count-active \{ color: #38bdf8; } .count-done \{ color: #34d399; } @media (max-width: 760px) { .row.part-row \{ grid-template-columns: 56px 1fr; row-gap: 6px; } .parts-scroll \{ max-height: 240px; } .setting \{ flex-direction: column; gap: 8px; } .setting-control \{ flex: 1 1 100%; width: 100%; } }"
+css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%), linear-gradient(165deg, #0b1020 0%, #131a30 55%, #0e1426 100%); color: #e6e9f5; font-family: system-ui, sans-serif; } h1 \{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; } h3 \{ margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #a5b4fc; } p \{ line-height: 1.55; } card \{ background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 18px; padding: 20px 22px; margin: 16px 0; box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45); } .topbar \{ background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 10px 16px; margin: 18px 0 6px; box-shadow: none; } .topbar-row \{ align-items: center; gap: 14px; justify-content: space-between; } .topbar-info \{ flex: 1 1 auto; gap: 2px; } .subtitle \{ margin: 0; font-size: 13px; color: #8b93b0; line-height: 1.5; } .config-line \{ margin: 0; font-size: 13px; color: #a8b1cc; letter-spacing: 0.02em; } .field \{ margin: 4px 0 10px; gap: 12px; align-items: center; } .url-input \{ flex: 1 1 auto; } .action-hint \{ margin: 0 0 12px; font-size: 12px; color: #7c86a8; text-transform: uppercase; letter-spacing: 0.08em; } .sui-button.btn-icon \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.35); width: 42px; height: 42px; padding: 0; border-radius: 12px; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: transform 140ms ease, box-shadow 140ms ease, color 140ms ease, background 140ms ease; } .sui-button.btn-icon:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.16), 0 10px 22px rgba(99, 102, 241, 0.35); } .sui-button.btn-action \{ background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%); color: #061021; border: 0; font-size: 19px; font-weight: 700; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35); } .sui-button.btn-action:hover \{ color: #061021; background: linear-gradient(135deg, #818cf8 0%, #67e8f9 100%); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22), 0 14px 30px rgba(99, 102, 241, 0.45); } .sui-button.btn-add \{ background: rgba(34, 211, 238, 0.16); color: #67e8f9; border: 1px solid rgba(34, 211, 238, 0.42); font-size: 22px; font-weight: 700; } .sui-button.btn-add:hover \{ background: rgba(34, 211, 238, 0.28); color: #cffafe; box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18); } .sui-button.btn-cancel \{ background: rgba(244, 63, 94, 0.14); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.38); } .sui-button.btn-cancel:hover \{ background: rgba(244, 63, 94, 0.26); color: #ffe4e6; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18); } .sui-button.btn-icon-sm \{ width: 32px; height: 32px; font-size: 15px; border-radius: 10px; } .status \{ color: #a8b1cc; font-size: 13px; margin: 0; } .state-badge \{ background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.30); } .verify \{ margin: 14px 0 0; color: #6ee7b7; font-size: 13px; } .dl-link \{ display: inline-block; margin-top: 12px; color: #67e8f9; font-weight: 600; } .dl-file \{ color: #67e8f9; font-weight: 600; font-size: 12px; white-space: nowrap; } .parts-scroll \{ max-height: 320px; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 2px 2px; margin: 4px 0 10px; scrollbar-width: thin; scrollbar-color: rgba(129, 140, 248, 0.45) rgba(15, 23, 42, 0.4); } .parts-scroll::-webkit-scrollbar \{ width: 10px; } .parts-scroll::-webkit-scrollbar-track \{ background: rgba(15, 23, 42, 0.45); border-radius: 8px; } .parts-scroll::-webkit-scrollbar-thumb \{ background: rgba(129, 140, 248, 0.45); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } .row.part-row \{ display: grid; grid-template-columns: 64px minmax(120px, 1fr) 92px 148px; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.part-row:hover \{ background: rgba(148, 163, 184, 0.08); } .part-index \{ font-weight: 600; color: #c7d2fe; margin: 0; font-variant-numeric: tabular-nums; } .part-state \{ font-size: 12px; color: #8b93b0; margin: 0; } .part-bytes \{ font-size: 12px; color: #8b93b0; text-align: right; margin: 0; font-variant-numeric: tabular-nums; } .part-error \{ grid-column: 1 / -1; font-size: 12px; color: #fda4af; margin: 0; } progress.bar-total \{ --sui-progress-height: 12px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #6366f1; --sui-progress-value-end: #22d3ee; } progress.bar-part \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #818cf8; --sui-progress-value-end: #38bdf8; } progress.bar-file \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #34d399; --sui-progress-value-end: #22d3ee; } .settings \{ display: flex; flex-direction: column; gap: 14px; min-width: 320px; } .setting \{ gap: 16px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); } .setting:last-child \{ border-bottom: 0; padding-bottom: 0; } .setting-text \{ gap: 2px; flex: 1 1 auto; } .setting-text p \{ margin: 0; font-size: 12px; color: #8b93b0; line-height: 1.45; } .setting-control \{ flex: 0 0 220px; } .mode-switch \{ flex: 0 0 auto; } .hint \{ color: #8b93b0; font-size: 13px; margin: 2px 0 10px; } .muted \{ color: #8b93b0; font-size: 13px; } .controls \{ gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .sui-button.btn-warn \{ background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.42); padding: 9px 16px; border-radius: 12px; } .sui-button.btn-ghost \{ background: transparent; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.28); padding: 9px 16px; border-radius: 12px; } .toast-host .sui-toast \{ width: 340px; } .sui-tabs \{ --sui-tabs-border: rgba(148, 163, 184, 0.16); --sui-tabs-radius: 16px; --sui-tabs-bg: rgba(255, 255, 255, 0.02); --sui-tablist-bg: rgba(15, 23, 42, 0.55); --sui-tab-padding: 10px 18px; --sui-tab-active-bg: rgba(99, 102, 241, 0.18); --sui-tab-accent: #22d3ee; --sui-tab-fg: #94a3b8; --sui-tab-active-fg: #e0e7ff; } .sui-tabpanels \{ padding: 18px 20px; } .statusbar \{ position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 12px 22px; background: rgba(11, 16, 32, 0.94); border-top: 1px solid rgba(148, 163, 184, 0.18); backdrop-filter: blur(8px); } .statusbar-status \{ gap: 12px; align-items: center; margin-bottom: 10px; } .statusbar-row \{ gap: 18px; flex-wrap: wrap; } .sb-item \{ flex: 1 1 120px; gap: 2px; } .sb-value \{ margin: 0; font-size: 17px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .sb-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .field-file \{ margin: 0 0 8px; } .file-input \{ flex: 1 1 auto; } .prio-select \{ flex: 0 0 150px; } .file-hint \{ margin: 0 0 10px; font-size: 12px; color: #8b93b0; } .part-counts \{ gap: 16px; margin: 0 0 14px; flex-wrap: wrap; } .part-count \{ flex: 0 0 auto; gap: 2px; min-width: 76px; } .count-value \{ margin: 0; font-size: 20px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .count-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .count-active \{ color: #38bdf8; } .count-done \{ color: #34d399; } .files-list \{ margin: 12px 0 6px; } .row.file-row \{ display: grid; grid-template-columns: minmax(120px, 1.2fr) 74px minmax(120px, 1fr) 56px 148px auto; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.file-row:hover \{ background: rgba(148, 163, 184, 0.08); } .file-name \{ margin: 0; font-weight: 600; color: #e0e7ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .prio-badge \{ background: rgba(129, 140, 248, 0.16); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.32); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; } .file-percent \{ margin: 0; font-size: 12px; color: #8b93b0; text-align: right; font-variant-numeric: tabular-nums; } .file-bytes \{ margin: 0; font-size: 12px; color: #8b93b0; text-align: right; font-variant-numeric: tabular-nums; } @media (max-width: 760px) { .row.part-row \{ grid-template-columns: 56px 1fr; row-gap: 6px; } .row.file-row \{ grid-template-columns: 1fr 74px; row-gap: 6px; } .parts-scroll \{ max-height: 240px; } .setting \{ flex-direction: column; gap: 8px; } .setting-control \{ flex: 1 1 100%; width: 100%; } }"
 ```
 
 ### How to edit it
@@ -893,13 +1204,22 @@ css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 5
 - The backend downloads the URL the operator asked for. `--allow-host` is the
   way to restrict it to known hosts; without it every `http`/`https` URL is
   accepted, so the example is not a client to point at an internal service.
-- The parts stay in `--out-dir` after the job ends. They are the evidence of
-  how the file was split, and deleting them is a deliberate act.
 - A job is not persisted between restarts of the backend: the example keeps
   the job state in memory and the parts on disk.
+- The parts of a file are deleted when the file is reassembled: the folder of
+  the job keeps only the `merged-*` files. The merged file of a file is named
+  `merged-<file id>-<name>`, so two files with the same name do not collide;
+  the name the browser saves it with is the one the operator chose.
+- The files of a download share the queue of the parts and the workers of the
+  job: the download is one job with many files, not one job per file. A pause,
+  a resume or a cancel acts on all of them. The scheduler takes the parts of
+  the files with the highest priority first and then walks the files of the
+  same priority round-robin.
 - The parts table is refilled only when its content really changes:
   `table.display` drops the selection, so a refresh at every poll would lose
-  the row the operator selected for the retry.
+  the row the operator selected for the retry. The same goes for the table of
+  the files: its stamp carries the id, the priority and the state of every
+  file, not the progress, so the selected row survives the poll.
 - The `value:` of an `input` is write-only: the values coming from the CLI are
   read from the state and shown in another element of the view.
 - The name of the file to save follows the URL with a short timer
@@ -937,6 +1257,13 @@ Measured against this example (backend and GUI, not just the documentation):
 | Parts | the section of the parts is inside the card of the total progress |
 | Counters of the parts | the section of the parts opens with the total number of parts, the ones in download and the ones completed |
 | Name of the file to save | the box under the URL is filled from the URL (`sample.bin`), a name typed by the operator is kept and the download uses it |
+| The + button | the file of the form joins the download that is running; the form is emptied so the next file is a new one |
+| Priority of a file | the combobox gives the priority of the file that is added; the Files tab changes the priority of a file that is already in the download |
+| Shared queue | the workers of the job are shared between the files: with two files and the same priority the parts are taken three by three |
+| High priority | the next part the scheduler takes is the one of the file with the `high` priority, even if the other files were waiting |
+| Files tab | the table shows the id, the name, the priority, the state, the parts and the size of every file; under it one bar per file |
+| Merged files | every file has its own endpoint and its own link; the file is served with the name the operator chose |
+| Parts deleted | after the merge the folder of the job holds only the `merged-*` files: no `part-*.bin` is left on the disk |
 | Bars | only the parts whose download has started get a bar, the waiting ones show nothing |
 | Status bar | the state and the message are in the first row, the data of the download in the row below |
 | Errors | the failures are shown as error toasts, the same message is not repeated |
@@ -950,3 +1277,11 @@ fails one range once and checks that the retry of that single part brings the
 job to `done`. Two more tests cover the name of the file to save: the name the
 operator chose is the name of the job, a name that tries to escape the folder
 of the job is cleaned, and the reassembled file is served with that name.
+
+Two more tests cover the download with many files: one checks that the
+priority of a file is changed with its own endpoint (and that an unknown
+priority becomes the normal one), the other uses an origin that holds every
+request: it checks that the workers of the job are shared between the files,
+that the file with the high priority is the one the scheduler takes first, and
+that the folder of the job holds no `part-*.bin` file once the files are
+reassembled.

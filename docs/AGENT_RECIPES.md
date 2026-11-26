@@ -478,6 +478,13 @@ fn boot() -> null {
 - Let the operator choose the name of the file to save: fill the box from the
   URL, keep the name they type, and send it with the request. The backend
   cleans it (a file name is never a path) and uses it for the file it writes.
+- Let a download hold more than one file. The files share the queue of the
+  units and the workers of the job, so with six workers and two files the
+  units are taken three by three. Give every file its own priority (low,
+  normal, high) and take the units of the files with the highest priority
+  first: the scheduler walks the files of the same priority round-robin.
+- Delete the units once the file is reassembled: the parts of the disk are
+  scratch space, the merged file is the result.
 - The backend owns the truth. A pause, a resume or a cancel is a request to
   the backend, never a local flag: only the backend knows which units are
   already done.

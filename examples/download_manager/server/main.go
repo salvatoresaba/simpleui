@@ -64,9 +64,76 @@ type Part struct {
 	State    string `json:"State"`
 	Error    string `json:"Error,omitempty"`
 	Attempts int    `json:"Attempts"`
+
+	// file is the file the part belongs to: the parts of the files of a job
+	// share the queue of the job.
+	file *File
 }
 
-// Job is one download: the target URL, how it was split and how far it got.
+// The priorities of a file. The lower the rank, the sooner the workers pick
+// the parts of the file.
+const (
+	prioHigh   = "high"
+	prioNormal = "normal"
+	prioLow    = "low"
+)
+
+// priorityRank turns a priority into its rank: high first, then normal, then
+// low.
+func priorityRank(p string) int {
+	switch p {
+	case prioHigh:
+		return 0
+	case prioLow:
+		return 2
+	default:
+		return 1
+	}
+}
+
+// normalizePriority accepts what the app sends and falls back to the normal
+// priority for anything unknown.
+func normalizePriority(p string) string {
+	switch strings.ToLower(strings.TrimSpace(p)) {
+	case prioHigh:
+		return prioHigh
+	case prioLow:
+		return prioLow
+	default:
+		return prioNormal
+	}
+}
+
+// File is one file of a download: its own URL, name, size, priority and
+// parts. The files of a job share the queue of the parts and the workers of
+// the job: the priority of a file decides how soon its parts are picked.
+type File struct {
+	ID       string
+	URL      string
+	Name     string
+	Priority string
+	Total    int64
+	Received int64
+	Percent  int
+	PartSize int64
+	PartCnt  int
+	PartTx   string
+	Range    bool
+	State    string
+	Error    string
+	Merged   string
+	MergedSz int64
+	SHA      string
+	Verify   string
+
+	parts []*Part
+	// pending counts the parts of the file that are still waiting: the
+	// scheduler uses it to know if the file has work left.
+	pending int
+}
+
+// Job is one download: the files to fetch, the workers that fetch their
+// parts and how far they got.
 type Job struct {
 	ID       string `json:"id"`
 	URL      string `json:"url"`
@@ -91,8 +158,17 @@ type Job struct {
 	Created  string `json:"created"`
 	Single   bool   `json:"single"`
 
+	// files are the files of the download, in the order they were added.
+	files []*File
+	// parts are all the parts of all the files, in the same order.
 	parts []*Part
-	dir   string
+	// rr is the cursor of the scheduler: the files at the same priority take
+	// turns, so the workers are shared fairly between them.
+	rr int
+	// seq numbers the files of the job.
+	seq int
+
+	dir string
 
 	clientValue *http.Client
 
@@ -103,7 +179,6 @@ type Job struct {
 	workers   int
 	active    int
 	throttle  int64
-	merging   bool
 	expectSHA string
 }
 
@@ -203,7 +278,20 @@ func main() {
 	mux.HandleFunc("POST /api/downloads/{id}/retry-failed", func(w http.ResponseWriter, r *http.Request) {
 		mgr.handleRetryFailed(w, r)
 	})
+	// Another file in a download that is already running: the files share the
+	// queue of the parts.
+	mux.HandleFunc("POST /api/downloads/{id}/files", func(w http.ResponseWriter, r *http.Request) {
+		mgr.handleAddFile(w, r)
+	})
+	// The priority of a file: the parts of the files with the highest
+	// priority are picked first.
+	mux.HandleFunc("POST /api/downloads/{id}/files/{file}/priority", func(w http.ResponseWriter, r *http.Request) {
+		mgr.handleSetPriority(w, r)
+	})
 	mux.HandleFunc("GET /api/downloads/{id}/file", func(w http.ResponseWriter, r *http.Request) {
+		mgr.handleMergedFile(w, r)
+	})
+	mux.HandleFunc("GET /api/downloads/{id}/files/{file}/file", func(w http.ResponseWriter, r *http.Request) {
 		mgr.handleMergedFile(w, r)
 	})
 	// The sound the app plays when a download is complete.
@@ -588,6 +676,21 @@ type createRequest struct {
 	// File is the name the operator chose for the file to save. It is
 	// optional: when it is empty the name comes from the URL.
 	File string `json:"file"`
+	// Priority decides how soon the parts of the file are picked: high,
+	// normal or low. The files of a job share the queue of the parts.
+	Priority string `json:"priority"`
+}
+
+// fileRequest adds a file to a download that is already running.
+type fileRequest struct {
+	URL      string `json:"url"`
+	File     string `json:"file"`
+	Priority string `json:"priority"`
+}
+
+// priorityRequest changes the priority of a file of a download.
+type priorityRequest struct {
+	Priority string `json:"priority"`
 }
 
 // workersFrom reads the number of parts downloaded at the same time. The
@@ -604,40 +707,24 @@ func workersFrom(v any, def int) int {
 	return def
 }
 
-func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
-	var req createRequest
-	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err := json.Unmarshal(body, &req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request: " + err.Error()})
-		return
-	}
-	rawURL := strings.TrimSpace(req.URL)
-	if rawURL == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing url"})
-		return
-	}
+// planFile probes the URL and works out how the file is split: it returns the
+// file with its parts ready to be queued. The part size is in bytes.
+func (m *Manager) planFile(job *Job, rawURL, chosenName string, partSize int64, single bool, priority string) (*File, error) {
 	u, err := validateTarget(rawURL, m.hosts)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-	partSize, err := parseSize(req.PartSize)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
+		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	total, rangeOK, err := probe(ctx, u, m.client)
 	cancel()
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "cannot reach the url: " + err.Error()})
-		return
+		return nil, fmt.Errorf("cannot reach the url: %w", err)
 	}
 
 	partCount := 1
 	switch {
-	case req.Single:
+	case single:
 		// One single part: the whole file in one request, no split at all.
 		partCount = 1
 		if total > 0 {
@@ -652,55 +739,33 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 			partCount = 1
 		}
 		if partCount > m.maxParts {
-			writeJSON(w, http.StatusBadRequest, map[string]string{
-				"error": fmt.Sprintf("too many parts (%d): use a bigger part size (max %d)", partCount, m.maxParts),
-			})
-			return
+			return nil, fmt.Errorf("too many parts (%d): use a bigger part size (max %d)", partCount, m.maxParts)
 		}
 	default:
 		// The server does not honour the ranges: the file is one single part.
 		partSize = total
 	}
-	if partSize <= 0 && !req.Single {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "the file size is unknown"})
-		return
+	if partSize <= 0 && !single {
+		return nil, fmt.Errorf("the file size is unknown")
 	}
-
-	workers := workersFrom(req.Workers, m.workers)
-	if workers > partCount {
-		workers = partCount
-	}
-
-	m.mu.Lock()
-	m.seq++
-	id := fmt.Sprintf("job-%d-%d", time.Now().Unix(), m.seq)
-	m.mu.Unlock()
 
 	// The name of the file to save: the one the operator chose in the GUI or,
 	// when there is none, the one that comes from the URL.
-	file := fileNameFromURL(u)
-	if chosen := chosenFileName(req.File); chosen != "" {
-		file = chosen
+	name := fileNameFromURL(u)
+	if chosen := chosenFileName(chosenName); chosen != "" {
+		name = chosen
 	}
 
-	job := &Job{
-		ID:       id,
+	f := &File{
 		URL:      u.String(),
-		File:     file,
-		State:    "running",
-		PartSize: partSize,
+		Name:     name,
+		Priority: normalizePriority(priority),
 		Total:    total,
+		PartSize: partSize,
 		PartCnt:  partCount,
 		PartTx:   humanSize(partSize),
 		Range:    rangeOK,
-		Created:  time.Now().Format("15:04:05"),
-		dir:      filepath.Join(m.outDir, id),
-		workers:  workers,
-		Single:   req.Single,
-
-		clientValue: m.client,
-		throttle:    m.throttle,
-		expectSHA:   m.expect,
+		State:    "pending",
 	}
 	for i := 0; i < partCount; i++ {
 		start := int64(i) * partSize
@@ -708,20 +773,89 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 		if rangeOK && total > 0 && end > total-1 {
 			end = total - 1
 		}
-		job.parts = append(job.parts, &Part{
-			Index: i + 1,
+		p := &Part{
 			Start: start,
 			End:   end,
 			Size:  end - start + 1,
 			State: "pending",
-		})
+			file:  f,
+		}
+		f.parts = append(f.parts, p)
+		f.pending++
 	}
+	return f, nil
+}
+
+// addFile puts a file in the download and updates the totals of the job. The
+// parts are numbered inside the whole download: the number is unique, so the
+// part files and the retry endpoint stay simple.
+func (j *Job) addFile(f *File) {
+	j.seq++
+	f.ID = fmt.Sprintf("file-%d", j.seq)
+	for _, p := range f.parts {
+		p.Index = len(j.parts) + 1
+		j.parts = append(j.parts, p)
+	}
+	j.files = append(j.files, f)
+	j.Total += f.Total
+	j.PartCnt += f.PartCnt
+	j.PartSize = f.PartSize
+	j.PartTx = f.PartTx
+	j.Range = f.Range
+	if j.URL == "" {
+		j.URL = f.URL
+		j.File = f.Name
+	}
+	j.Percent = percent(j.Received, j.Total)
+}
+
+func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
+	var req createRequest
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err := json.Unmarshal(body, &req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request: " + err.Error()})
+		return
+	}
+	rawURL := strings.TrimSpace(req.URL)
+	if rawURL == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing url"})
+		return
+	}
+
+	m.mu.Lock()
+	m.seq++
+	id := fmt.Sprintf("job-%d-%d", time.Now().Unix(), m.seq)
+	m.mu.Unlock()
+
+	job := &Job{
+		ID:      id,
+		State:   "running",
+		Created: time.Now().Format("15:04:05"),
+		dir:     filepath.Join(m.outDir, id),
+		workers: workersFrom(req.Workers, m.workers),
+		Single:  req.Single,
+
+		clientValue: m.client,
+		throttle:    m.throttle,
+		expectSHA:   m.expect,
+	}
+	partSize, err := parseSize(req.PartSize)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	f, err := m.planFile(job, rawURL, req.File, partSize, req.Single, req.Priority)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	job.addFile(f)
 	if err := os.MkdirAll(job.dir, 0o755); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	fmt.Printf("server: new job %s  url=%s size=%s parts=%d x %s workers=%d\n",
-		id, job.URL, humanSize(total), partCount, job.PartTx, workers)
+	fmt.Printf("server: new job %s  url=%s size=%s parts=%d x %s workers=%d priority=%s\n",
+		id, f.URL, humanSize(f.Total), f.PartCnt, f.PartTx, job.workers, f.Priority)
 
 	m.mu.Lock()
 	m.jobs[id] = job
@@ -729,6 +863,86 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 	m.mu.Unlock()
 
 	job.start()
+	writeJSON(w, http.StatusOK, job.snapshot())
+}
+
+// handleAddFile puts another file in a download that is already running: the
+// file joins the queue of the parts and the workers of the job.
+func (m *Manager) handleAddFile(w http.ResponseWriter, r *http.Request) {
+	job := m.job(r.PathValue("id"))
+	if job == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown download"})
+		return
+	}
+	if job.State == "canceled" {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "the download is canceled: it cannot take new files"})
+		return
+	}
+	var req fileRequest
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err := json.Unmarshal(body, &req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request: " + err.Error()})
+		return
+	}
+	rawURL := strings.TrimSpace(req.URL)
+	if rawURL == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing url"})
+		return
+	}
+
+	job.mu.Lock()
+	partSize := job.PartSize
+	single := job.Single
+	job.mu.Unlock()
+
+	f, err := m.planFile(job, rawURL, req.File, partSize, single, req.Priority)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	job.mu.Lock()
+	job.addFile(f)
+	job.State = "running"
+	job.Error = ""
+	job.mu.Unlock()
+	fmt.Printf("server: job %s takes the file %s (%s, priority %s)\n", job.ID, f.Name, f.PartTx, f.Priority)
+
+	// The workers of the job may have finished their queue: they start again
+	// to pick the parts of the new file.
+	job.ensureWorkers()
+	writeJSON(w, http.StatusOK, job.snapshot())
+}
+
+// handleSetPriority changes the priority of a file of a download: the
+// scheduler picks the parts of the files with the highest priority first.
+func (m *Manager) handleSetPriority(w http.ResponseWriter, r *http.Request) {
+	job := m.job(r.PathValue("id"))
+	if job == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown download"})
+		return
+	}
+	var req priorityRequest
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err := json.Unmarshal(body, &req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request: " + err.Error()})
+		return
+	}
+	priority := normalizePriority(req.Priority)
+	job.mu.Lock()
+	found := false
+	for _, f := range job.files {
+		if f.ID == r.PathValue("file") {
+			f.Priority = priority
+			found = true
+			break
+		}
+	}
+	job.mu.Unlock()
+	if !found {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown file in the download"})
+		return
+	}
+	fmt.Printf("server: job %s file %s priority %s\n", job.ID, r.PathValue("file"), priority)
 	writeJSON(w, http.StatusOK, job.snapshot())
 }
 
@@ -800,14 +1014,27 @@ func (m *Manager) job(id string) *Job {
 	return m.jobs[id]
 }
 
+// handleMergedFile serves the reassembled file of a download. Without a file
+// id it serves the first file that is complete.
 func (m *Manager) handleMergedFile(w http.ResponseWriter, r *http.Request) {
 	job := m.job(r.PathValue("id"))
 	if job == nil {
 		http.Error(w, "unknown download", http.StatusNotFound)
 		return
 	}
+	want := r.PathValue("file")
 	job.mu.Lock()
-	merged, state, name := job.Merged, job.State, job.File
+	var merged, state, name string
+	for _, f := range job.files {
+		if want != "" && f.ID != want {
+			continue
+		}
+		if f.Merged == "" {
+			continue
+		}
+		merged, state, name = f.Merged, f.State, f.Name
+		break
+	}
 	job.mu.Unlock()
 	if merged == "" || state != "done" {
 		http.Error(w, "the download is not complete yet", http.StatusConflict)
@@ -869,6 +1096,25 @@ func (j *Job) start() {
 	go j.watcher(ctx)
 }
 
+// ensureWorkers starts the workers of the job when they are not running: a
+// file added to a job whose queue was empty needs them again.
+func (j *Job) ensureWorkers() {
+	j.mu.Lock()
+	if j.State != "running" || j.active > 0 {
+		j.mu.Unlock()
+		return
+	}
+	pending := 0
+	for _, f := range j.files {
+		pending += f.pending
+	}
+	j.mu.Unlock()
+	if pending == 0 {
+		return
+	}
+	j.start()
+}
+
 func (j *Job) worker(ctx context.Context) {
 	defer j.wg.Done()
 	defer func() {
@@ -888,17 +1134,47 @@ func (j *Job) worker(ctx context.Context) {
 	}
 }
 
-// nextPending hands the next free part to a worker.
+// nextPending hands the next free part to a worker. The parts of the files
+// with the highest priority go first; inside a priority the files take turns,
+// so the workers are shared fairly between them: with six workers and two
+// files of the same priority three parts of each file are downloaded at the
+// same time.
 func (j *Job) nextPending() *Part {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if j.State != "running" {
 		return nil
 	}
-	for _, p := range j.parts {
-		if p.State == "pending" {
-			p.State = "downloading"
-			return p
+	best := ""
+	for _, f := range j.files {
+		if f.pending == 0 {
+			continue
+		}
+		if best == "" || priorityRank(f.Priority) < priorityRank(best) {
+			best = f.Priority
+		}
+	}
+	if best == "" {
+		return nil
+	}
+	for i := 0; i < len(j.files); i++ {
+		idx := (j.rr + i) % len(j.files)
+		f := j.files[idx]
+		if f.Priority != best || f.pending == 0 {
+			continue
+		}
+		for _, p := range f.parts {
+			if p.State == "pending" {
+				p.State = "downloading"
+				f.pending--
+				if f.State == "pending" {
+					f.State = "running"
+				}
+				// The next worker starts with the following file: the files of
+				// the same priority take turns.
+				j.rr = (idx + 1) % len(j.files)
+				return p
+			}
 		}
 	}
 	return nil
@@ -919,6 +1195,10 @@ func (p *progressWriter) Write(b []byte) (int, error) {
 		p.job.Received += int64(n)
 		p.part.Percent = percent(p.part.Received, p.part.Size)
 		p.job.Percent = percent(p.job.Received, p.job.Total)
+		if p.part.file != nil {
+			p.part.file.Received += int64(n)
+			p.part.file.Percent = percent(p.part.file.Received, p.part.file.Total)
+		}
 		throttle := p.job.throttle
 		p.job.mu.Unlock()
 		if throttle > 0 {
@@ -936,6 +1216,12 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 	j.mu.Lock()
 	start := p.Start + p.Received
 	state := j.State
+	url := j.URL
+	total := j.Total
+	if p.file != nil {
+		url = p.file.URL
+		total = p.file.Total
+	}
 	j.mu.Unlock()
 	if state != "running" {
 		return
@@ -946,7 +1232,7 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 		return
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, j.URL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		j.setPartState(p, "error", err.Error())
 		j.settle()
@@ -972,7 +1258,7 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 	defer resp.Body.Close()
 	// A part that covers the whole file also accepts a plain 200 answer: some
 	// servers ignore the Range header when the range is the whole file.
-	wholeFile := start == 0 && (p.End < 0 || p.End >= j.Total-1)
+	wholeFile := start == 0 && (p.End < 0 || p.End >= total-1)
 	if resp.StatusCode != http.StatusPartialContent && !(resp.StatusCode == http.StatusOK && wholeFile) {
 		j.setPartState(p, "error", fmt.Sprintf("HTTP %d from the file server", resp.StatusCode))
 		j.settle()
@@ -1024,17 +1310,40 @@ func (j *Job) settle() {
 	}
 	failed := 0
 	pending := 0
-	for _, p := range j.parts {
-		switch p.State {
-		case "error":
-			failed++
-		case "pending", "downloading":
-			pending++
+	for _, f := range j.files {
+		fileFailed := 0
+		filePending := 0
+		for _, p := range f.parts {
+			switch p.State {
+			case "error":
+				fileFailed++
+			case "pending", "downloading":
+				filePending++
+			}
+		}
+		failed += fileFailed
+		pending += filePending
+		if filePending == 0 && fileFailed > 0 && f.State != "done" {
+			f.State = "error"
+			f.Error = fmt.Sprintf("%d part(s) failed", fileFailed)
 		}
 	}
 	if pending == 0 && failed > 0 {
 		j.State = "error"
 		j.Error = fmt.Sprintf("%d part(s) failed: retry them from the app", failed)
+		return
+	}
+	if pending == 0 && failed == 0 {
+		allDone := len(j.files) > 0
+		for _, f := range j.files {
+			if f.State != "done" {
+				allDone = false
+				break
+			}
+		}
+		if allDone {
+			j.State = "done"
+		}
 	}
 }
 
@@ -1063,6 +1372,14 @@ func (j *Job) retryPart(index int) error {
 	part.Percent = 0
 	part.Error = ""
 	part.Attempts++
+	if part.file != nil {
+		// The part goes back to the queue of its file.
+		part.file.pending++
+		if part.file.State == "error" {
+			part.file.State = "pending"
+			part.file.Error = ""
+		}
+	}
 	j.mu.Unlock()
 
 	// The bytes of the failed part are dropped: the part is fetched again
@@ -1105,48 +1422,60 @@ func (j *Job) retryFailed() (int, error) {
 	return len(indexes), nil
 }
 
-// maybeMerge concatenates the parts when they are all complete and checks
-// the result against the size the server announced.
+// maybeMerge merges the files whose parts are all complete.
 func (j *Job) maybeMerge() {
 	j.mu.Lock()
-	if j.merging || j.State != "running" {
-		j.mu.Unlock()
-		return
-	}
-	for _, p := range j.parts {
-		if p.State != "done" {
-			j.mu.Unlock()
-			return
+	var ready []*File
+	for _, f := range j.files {
+		if f.Merged != "" || f.State == "merging" {
+			continue
+		}
+		all := true
+		for _, p := range f.parts {
+			if p.State != "done" {
+				all = false
+				break
+			}
+		}
+		if all && len(f.parts) > 0 {
+			f.State = "merging"
+			ready = append(ready, f)
 		}
 	}
-	j.merging = true
-	j.State = "merging"
 	j.mu.Unlock()
+	for _, f := range ready {
+		j.mergeFile(f)
+	}
+}
 
+// mergeFile concatenates the parts of one file and checks the result against
+// the size the server announced. The part files are deleted: the merged file
+// is the result of the download, the parts were only the pieces of it.
+func (j *Job) mergeFile(f *File) {
+	merged := filepath.Join(j.dir, "merged-"+f.ID+"-"+f.Name)
 	go func() {
-		merged := filepath.Join(j.dir, "merged-"+j.File)
 		out, err := os.Create(merged)
 		if err != nil {
-			j.failMerge(err.Error())
+			j.failMerge(f, err.Error())
 			return
 		}
-		for _, p := range j.parts {
+		for _, p := range f.parts {
 			in, err := os.Open(j.partPath(p.Index))
 			if err != nil {
 				out.Close()
-				j.failMerge(err.Error())
+				j.failMerge(f, err.Error())
 				return
 			}
 			if _, err := io.Copy(out, in); err != nil {
 				in.Close()
 				out.Close()
-				j.failMerge(err.Error())
+				j.failMerge(f, err.Error())
 				return
 			}
 			in.Close()
 		}
 		if err := out.Close(); err != nil {
-			j.failMerge(err.Error())
+			j.failMerge(f, err.Error())
 			return
 		}
 		size := int64(0)
@@ -1155,8 +1484,8 @@ func (j *Job) maybeMerge() {
 		}
 		sum := fileSHA256(merged)
 		verify := "size matches the server"
-		if j.Total > 0 && size != j.Total {
-			verify = fmt.Sprintf("size mismatch: %d bytes instead of %d", size, j.Total)
+		if f.Total > 0 && size != f.Total {
+			verify = fmt.Sprintf("size mismatch: %d bytes instead of %d", size, f.Total)
 		}
 		if j.expectSHA != "" {
 			if sum == j.expectSHA {
@@ -1165,30 +1494,53 @@ func (j *Job) maybeMerge() {
 				verify = "SHA-256 does not match the expected value"
 			}
 		}
+		// The parts are not needed any more: the merged file is the result of
+		// the download.
+		for _, p := range f.parts {
+			if err := os.Remove(j.partPath(p.Index)); err != nil && !os.IsNotExist(err) {
+				fmt.Printf("server: job %s part %d not removed: %v\n", j.ID, p.Index, err)
+			}
+		}
 		j.mu.Lock()
-		j.Merged = merged
-		j.MergedSz = size
-		j.SHA = sum
-		j.Verify = verify
-		j.State = "done"
-		j.merging = false
+		f.Merged = merged
+		f.MergedSz = size
+		f.SHA = sum
+		f.Verify = verify
+		f.State = "done"
+		f.Error = ""
+		j.Merged, j.MergedSz, j.SHA, j.Verify = merged, size, sum, verify
 		j.mu.Unlock()
 		fmt.Printf("server: job %s merged %s (%s) %s\n", j.ID, filepath.Base(merged), humanSize(size), verify)
+		j.settle()
 	}()
 }
 
-func (j *Job) failMerge(msg string) {
+func (j *Job) failMerge(f *File, msg string) {
 	j.mu.Lock()
+	if f != nil {
+		f.State = "error"
+		f.Error = msg
+	}
 	j.State = "error"
 	j.Error = msg
-	j.merging = false
 	j.mu.Unlock()
 	fmt.Printf("server: job %s merge failed: %s\n", j.ID, msg)
 }
 
 func (j *Job) setPartState(p *Part, state, msg string) {
 	j.mu.Lock()
+	old := p.State
 	p.State = state
+	if p.file != nil {
+		// The scheduler counts the parts that are still waiting: the counter
+		// follows the state of the part.
+		if old == "pending" && state != "pending" {
+			p.file.pending--
+		}
+		if state == "pending" && old != "pending" {
+			p.file.pending++
+		}
+	}
 	if state == "done" && p.Size <= 0 {
 		// The size of the file was unknown: the bar is full when the part is.
 		p.Percent = 100
@@ -1197,6 +1549,24 @@ func (j *Job) setPartState(p *Part, state, msg string) {
 		p.Error = msg
 	}
 	j.mu.Unlock()
+}
+
+// resetRunning sends the running parts back to the queue: the bytes already
+// on disk are kept, the download continues from them.
+func (j *Job) resetRunning() {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	for _, p := range j.parts {
+		if p.State == "downloading" {
+			p.State = "pending"
+			if p.file != nil {
+				p.file.pending++
+				if p.file.State == "running" {
+					p.file.State = "pending"
+				}
+			}
+		}
+	}
 }
 
 func (j *Job) pause() {
@@ -1212,13 +1582,7 @@ func (j *Job) pause() {
 		cancel()
 	}
 	j.wg.Wait()
-	j.mu.Lock()
-	for _, p := range j.parts {
-		if p.State == "downloading" {
-			p.State = "pending"
-		}
-	}
-	j.mu.Unlock()
+	j.resetRunning()
 }
 
 func (j *Job) resume() {
@@ -1245,13 +1609,7 @@ func (j *Job) cancelJob() {
 		cancel()
 	}
 	j.wg.Wait()
-	j.mu.Lock()
-	for _, p := range j.parts {
-		if p.State == "downloading" {
-			p.State = "pending"
-		}
-	}
-	j.mu.Unlock()
+	j.resetRunning()
 }
 
 // watcher keeps the speed and the ETA up to date.
@@ -1285,10 +1643,33 @@ func (j *Job) watcher(ctx context.Context) {
 	}
 }
 
+// fileView is the JSON view of a file of a download.
+type fileView struct {
+	ID       string `json:"id"`
+	URL      string `json:"url"`
+	File     string `json:"file"`
+	Priority string `json:"priority"`
+	State    string `json:"state"`
+	Total    int64  `json:"total"`
+	TotalTx  string `json:"totalText"`
+	Received int64  `json:"received"`
+	RecvTx   string `json:"receivedText"`
+	Percent  int    `json:"percent"`
+	PartCnt  int    `json:"partCount"`
+	PartTx   string `json:"partSizeText"`
+	Merged   string `json:"merged"`
+	MergedSz int64  `json:"mergedSize"`
+	SHA      string `json:"sha"`
+	Verify   string `json:"verified"`
+	Error    string `json:"error"`
+}
+
 // partView is the JSON view of a part. It is a struct, not a map, because
 // Go sorts map keys alphabetically: with a struct the table shows the columns
 // in the order the operator expects.
 type partView struct {
+	File     string `json:"File"`
+	Priority string `json:"Priority"`
 	Part     int    `json:"Part"`
 	From     int64  `json:"From"`
 	To       int64  `json:"To"`
@@ -1305,12 +1686,21 @@ func (j *Job) snapshot() map[string]any {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	parts := []partView{}
+	files := []fileView{}
 	failed := 0
 	for _, p := range j.parts {
 		if p.State == "error" {
 			failed++
 		}
+		name := ""
+		priority := ""
+		if p.file != nil {
+			name = p.file.Name
+			priority = p.file.Priority
+		}
 		parts = append(parts, partView{
+			File:     name,
+			Priority: priority,
 			Part:     p.Index,
 			From:     p.Start,
 			To:       p.End,
@@ -1320,6 +1710,27 @@ func (j *Job) snapshot() map[string]any {
 			State:    p.State,
 			Error:    p.Error,
 			Attempts: p.Attempts,
+		})
+	}
+	for _, f := range j.files {
+		files = append(files, fileView{
+			ID:       f.ID,
+			URL:      f.URL,
+			File:     f.Name,
+			Priority: f.Priority,
+			State:    f.State,
+			Total:    f.Total,
+			TotalTx:  humanSize(f.Total),
+			Received: f.Received,
+			RecvTx:   humanSize(f.Received),
+			Percent:  f.Percent,
+			PartCnt:  f.PartCnt,
+			PartTx:   f.PartTx,
+			Merged:   f.Merged,
+			MergedSz: f.MergedSz,
+			SHA:      f.SHA,
+			Verify:   f.Verify,
+			Error:    f.Error,
 		})
 	}
 	return map[string]any{
@@ -1350,6 +1761,7 @@ func (j *Job) snapshot() map[string]any {
 		"created":        j.Created,
 		"rangeSupported": j.Range,
 		"failedParts":    failed,
+		"files":          files,
 		"parts":          parts,
 	}
 }
