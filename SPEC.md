@@ -1240,7 +1240,10 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     a tree drag & drop or a preview rebuild keeps the same element selected,
     outlined in the preview and shown in the inspector: the replayed clicks
     the designer uses internally (the tab restore after a rebuild) never
-    pick another element, and a moved node keeps the selection;
+    pick another element, and a moved node keeps the selection. The outline
+    also follows the nodes when the application re-renders its views (a state
+    change rebuilds the DOM): the preview watches the app and puts the
+    outline back on the new node;
   - **preview select mode**: the preview toolbar has a **Select** switch. When
     it is on, a click in the preview picks the element but does not run the
     action bound to it: the `onClick` handlers, the link navigation and the

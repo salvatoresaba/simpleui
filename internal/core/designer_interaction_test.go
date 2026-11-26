@@ -32,15 +32,22 @@ func TestDesignerInteractionE2E(t *testing.T) {
 	const source = `import { json } from "std"
 
 state counter = 0
+state items = ["a"]
 
 fn increment() -> null {
 	counter = counter + 1
+	items = append(items, "b")
 }
 
 view main {
 	card "Panel" class: "panel" {
 		button "Increment" onClick: increment class: "bump"
 		p "Count: {counter}" class: "counter"
+		list item in items {
+			row class: "item" {
+				p "{item}" class: "item-text"
+			}
+		}
 	}
 	tabs "Sections" {
 		tab "First" {
@@ -229,6 +236,10 @@ const designerInteractionScript = `<script>
     if (ta.value.indexOf('import') < 0) throw new Error('the layout edit dropped the std import');
     var doc = previewDoc();
     if (!doc || !doc.body || !doc.body.children.length) throw new Error('the preview is empty after the layout edit');
+    // The app re-renders its views after the rebuild: the outline of the
+    // selected element must survive it.
+    var hlAfterEdit = doc.querySelectorAll('[class*="sui-hl"]');
+    if (!hlAfterEdit.length) throw new Error('the edited element is not outlined in the preview after the rebuild');
     step('layout-ok');
 
     // 2. a drag & drop keeps the moved element selected and outlined.
@@ -296,6 +307,18 @@ const designerInteractionScript = `<script>
     doc = previewDoc();
     text = (doc && doc.body ? doc.body.textContent : '') || '';
     if (text.indexOf('Count: 1') < 0) throw new Error('the action did not run outside select mode');
+    // The state change re-renders the views of the app: the outline of the
+    // selected element must follow the new nodes.
+    var hlAfterRun = doc.querySelectorAll('[class*="sui-hl"]');
+    if (!hlAfterRun.length) throw new Error('the outline did not survive the re-render of the app');
+    // The app replaces the nodes of the view (a state change rebuilds it):
+    // the outline must follow the new node of the selected element.
+    var marked = hlAfterRun[0];
+    var clone = marked.cloneNode(true);
+    clone.setAttribute('class', (clone.getAttribute('class') || '').replace(/sui-hl[a-z-]*/g, '').trim());
+    marked.parentNode.replaceChild(clone, marked);
+    await wait(700);
+    if (!doc.querySelectorAll('[class*="sui-hl"]').length) throw new Error('the outline did not follow the replaced node');
     step('select-ok');
 
     result(true, '');

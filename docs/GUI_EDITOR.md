@@ -1006,7 +1006,9 @@ drop creates an undo snapshot, updates the tree, re-renders the preview and
 regenerates the `.sui` source. The moved element keeps the selection: its tree
 row stays selected, it stays outlined in the preview and the inspector keeps
 showing it, so the relation between the tree, the preview and the source
-survives the move.
+survives the move. The outline also follows the element when the application
+re-renders its views (a state change replaces the DOM nodes of the preview):
+the editor watches the preview and puts the outline back on the new node.
 
 ### Tree drops
 

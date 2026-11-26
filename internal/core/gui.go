@@ -1274,6 +1274,20 @@ const guiPreviewPicker = `<script>
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   }
+  // lastHl remembers the current selection so the outline can follow the
+  // element when the application re-renders its views: a state change or a
+  // tab restore replaces the DOM nodes, and the new node would lose the
+  // outline (and the selection would look lost in the preview).
+  var lastHl = null;
+  function reapplyHl() {
+    if (!lastHl || !lastHl.ids || !lastHl.ids.length) return;
+    for (var i = 0; i < lastHl.ids.length; i++) {
+      var id = lastHl.ids[i];
+      if (id < 0) continue;
+      var el = document.querySelector('[data-sui-id="' + id + '"]');
+      if (el && !el.classList.contains(lastHl.cls)) { hl(lastHl.ids, lastHl.mode); return; }
+    }
+  }
   function hl(ids, mode) {
     currentMode = mode || 'el';
     if (layoutHl) { layoutHl.classList.remove('sui-hl-cell'); layoutHl = null; }
@@ -1288,9 +1302,10 @@ const guiPreviewPicker = `<script>
     clearHandles();
     current = [];
     resizeEl = null;
-    if (ids === null || ids === undefined) return;
+    if (ids === null || ids === undefined) { lastHl = null; return; }
     var arr = (typeof ids === 'number') ? [ids] : ids;
     var cls = mode === 'control' ? 'sui-hl-control' : mode === 'row' ? 'sui-hl-row' : mode === 'col' ? 'sui-hl-col' : mode === 'cell' ? 'sui-hl-cell' : 'sui-hl';
+    lastHl = { ids: arr || [], mode: mode || 'el', cls: cls };
     (arr || []).forEach(function (id) {
       if (id < 0) return;
       var el = document.querySelector('[data-sui-id="' + id + '"]');
@@ -1303,6 +1318,16 @@ const guiPreviewPicker = `<script>
       }
       showHandles(resizeEl || current[0]);
     } else if (current.length > 1) showHandles(unionRect(current));
+  }
+  // The observer watches the DOM of the app: when the application replaces
+  // the nodes of the selected element, the outline is put back on the new
+  // node. It only fires when the outline is really missing, so it never
+  // fights the application (and never loops).
+  if (typeof MutationObserver !== 'undefined') {
+    try {
+      var hlObserver = new MutationObserver(function(){ reapplyHl(); });
+      hlObserver.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (hlObserverErr) {}
   }
   function specOf(sel) {
     var id = (sel.match(/#[A-Za-z0-9_-]+/g) || []).length;

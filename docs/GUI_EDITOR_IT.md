@@ -1044,7 +1044,10 @@ riuscito crea uno snapshot per l'undo, aggiorna l'albero, ridisegna il preview e
 rigenera il sorgente `.sui`. L'elemento spostato conserva la selezione: la sua
 riga dell'albero resta selezionata, resta evidenziato nel preview e l'inspector
 continua a mostrarlo, così la relazione tra albero, preview e sorgente
-sopravvive allo spostamento.
+sopravvive allo spostamento. L'evidenziazione segue l'elemento anche quando
+l'applicazione ridisegna le proprie viste (un cambio di stato sostituisce i nodi
+del DOM del preview): l'editor osserva il preview e rimette l'evidenziazione sul
+nuovo nodo.
 
 ### Drop nell'albero
 
