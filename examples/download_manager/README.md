@@ -23,6 +23,12 @@ not add a dependency to the root module.
   workers, throttle, allowed hosts, expected checksum). The GUI reads the
   defaults from `GET /api/config` and shows them under the URL box, where the
   operator can change them in the settings panel.
+- **The name of the file to save.** Under the URL box there is a second box with
+  the name of the file to save. The program fills it from the URL (the last
+  segment of the path, cleaned) and the operator can change it before the
+  download starts; once it is changed the program stops filling it. The name
+  travels with the request and the backend uses it for the file it writes and
+  for the name the browser saves it with.
 - **Two ways to download.** The settings panel (the small ⚙ button of the
   header) chooses between **one single file** (one request, no parts, no
   reassembly) and **split into parts**. In split mode the panel also shows the
@@ -38,6 +44,9 @@ not add a dependency to the root module.
   download has started get a bar: a part that is still waiting shows nothing.
   The bars start from the **most recent** part and the list has a limited
   height with a scroll bar, so the part that is running now is always visible.
+- **The counters of the parts.** The section of the parts opens with three
+  numbers: how many parts the job has, how many are downloading right now and
+  how many are complete. They follow the state of the job at every poll.
 - **The data in another tab.** The tables of the parts and of the jobs live in
   the second tab, so the live view stays readable.
 - **One button for the whole lifecycle.** The lightning button next to the URL
@@ -133,15 +142,19 @@ prints the URL it listens on.
 
 1. **Header** – the title of the application and the small ⚙ button that opens
    the settings panel as an overlay.
-2. **Target** – the URL of the file (prefilled with the `--url` of the CLI) and
-   the single action button: ⚡ to start, ❚❚ to pause, ► to resume. Below it
-   the hint of the current phase and the configuration of the job (mode, size
-   of the parts, parts at the same time). The ✕ cancel button appears next to
-   the action button only while the download is paused.
+2. **Target** – the URL of the file (prefilled with the `--url` of the CLI), the
+   single action button: ⚡ to start, ❚❚ to pause, ► to resume, and under the URL
+   the box with the **name of the file to save**: the program fills it from the
+   URL and the operator can change it before the download starts. Below it the
+   hint of the current phase and the configuration of the job (mode, size of the
+   parts, parts at the same time). The ✕ cancel button appears next to the
+   action button only while the download is paused.
 3. **Progress tab** – the card of the total progress: the bar of the whole
-   download and, inside it, the collapsible section with one bar per part (the
-   most recent one first, only the parts whose download has started). When the
-   download is complete a link appears to download the reassembled file.
+   download and, inside it, the collapsible section with the counters of the
+   parts (how many there are, how many are downloading, how many are complete)
+   and one bar per part (the most recent one first, only the parts whose
+   download has started). When the download is complete a link appears to
+   download the reassembled file.
 4. **Data tab** – the table of the parts and the table of the jobs. Clicking a
    row of the parts table selects the part: the "Retry part N" button fetches
    that part again, "Retry all failed" requeues every failed part.
@@ -154,7 +167,7 @@ prints the URL it listens on.
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/config` | the configuration of the CLI (default URL, part size, workers, ...) |
-| `POST /api/downloads` | start a job: `{"url":"...","partSize":"2 MiB","workers":4,"single":false}` |
+| `POST /api/downloads` | start a job: `{"url":"...","partSize":"2 MiB","workers":4,"single":false,"file":"report.pdf"}` |
 | `GET /api/downloads` | all jobs, most recent first |
 | `POST /api/downloads/{id}/pause` | pause: keep the bytes, stop the requests |
 | `POST /api/downloads/{id}/resume` | resume: every part continues from its byte |
@@ -169,6 +182,13 @@ prints the URL it listens on.
 the job to the one-piece mode (one request, no parts, no reassembly). In the
 one-piece mode the size of the file is unknown until the server answers, so the
 part stays open and the request uses `Range: bytes=N-`.
+
+`file` is the name of the file to save, the one the operator chose in the GUI.
+It is optional: without it the name comes from the URL. The backend cleans it
+like the name of the URL (only letters, digits, dot, dash and underscore, the
+rest becomes an underscore), so a name can never point outside the folder of
+the job. The cleaned name is the name of the reassembled file and the name the
+browser saves it with.
 
 A job has a state of its own: `running`, `paused`, `merging`, `done`,
 `canceled` or `error`. A part has a state too: `pending`, `downloading`,
@@ -234,6 +254,17 @@ state failedParts = 0
 state partsSignature = ""
 state lastState = ""
 state lastError = ""
+# The name of the file to save: the program fills it from the URL and the
+# operator can change it before the download starts. autoFileName is the last
+# name the program filled in, fileNameEdited says the operator took over.
+state fileName = ""
+state autoFileName = ""
+state fileNameEdited = false
+# The counters of the parts: how many there are, how many are downloading and
+# how many are done.
+state partTotal = 0
+state partActive = 0
+state partDone = 0
 
 # The configuration of the CLI: the default URL, the part size and the default
 # number of parts downloaded at the same time. The app starts with them, the
@@ -260,6 +291,59 @@ async fn loadConfig() -> null {
 	if cfgWorkers != "" {
 		workers = cfgWorkers
 	}
+}
+
+# The name of the file to save, taken from the URL: the last segment of the
+# path, without the query string, cleaned like the backend does.
+fn fileNameFromUrl(u: string) -> string {
+	let clean = trim(u)
+	if clean == "" {
+		return "download.bin"
+	}
+	let noHash = split(clean, "#")
+	let noQuery = split(noHash[0], "?")
+	let segments = split(noQuery[0], "/")
+	let last = trim(segments[len(segments) - 1])
+	if last == "" {
+		return "download.bin"
+	}
+	if contains(last, ":") {
+		return "download.bin"
+	}
+	let safe = replaceRegex(last, "[^A-Za-z0-9._-]", "_")
+	if safe == "" {
+		return "download.bin"
+	}
+	if safe == "." {
+		return "download.bin"
+	}
+	if safe == ".." {
+		return "download.bin"
+	}
+	return safe
+}
+
+# The name of the file follows the URL, but only until the operator changes
+# it: after that the name they chose is kept and the program stops filling it.
+fn syncFileName() -> null {
+	if fileNameEdited {
+		return
+	}
+	if fileName != autoFileName {
+		# the operator typed a name of their own: keep it
+		fileNameEdited = true
+		return
+	}
+	# Without a URL there is no name to fill: the box keeps its placeholder.
+	if trim(urlText) == "" {
+		return
+	}
+	let wanted = fileNameFromUrl(urlText)
+	if wanted == fileName {
+		return
+	}
+	autoFileName = wanted
+	fileName = wanted
 }
 
 # The errors are shown as a toast: the operator reads them without losing the
@@ -319,7 +403,12 @@ async fn updateJob(job: any) -> null {
 	# the parts.
 	partsView = reverse(filter(parts, isStarted))
 	partsTable = parts
-	refreshPartsTable(jobId + "|" + jobState + "|" + str(failedParts) + "|" + str(doneParts(parts)))
+	# The counters of the parts: how many there are, how many are downloading
+	# and how many are done.
+	partTotal = len(parts)
+	partActive = countParts(parts, "downloading")
+	partDone = countParts(parts, "done")
+	refreshPartsTable(jobId + "|" + jobState + "|" + str(failedParts) + "|" + str(partDone))
 	syncPhase()
 	let previous = lastState
 	lastState = jobState
@@ -363,13 +452,13 @@ fn isStarted(part: any) -> bool {
 	return true
 }
 
-# How many parts are complete: the table is refreshed when this changes, so
-# the row the operator selected is not lost at every poll.
-fn doneParts(parts: any) -> int {
+# How many parts are in a given state: the table is refreshed when this
+# changes, so the row the operator selected is not lost at every poll.
+fn countParts(parts: any, want: string) -> int {
 	let n = 0
 	let i = 0
 	while i < len(parts) {
-		if str(parts[i]["State"]) == "done" {
+		if str(parts[i]["State"]) == want {
 			n = n + 1
 		}
 		i = i + 1
@@ -418,7 +507,7 @@ async fn startDownload() -> null {
 		notifyError("type the URL of the file to download")
 		return
 	}
-	payload, jerr = json.stringify({"url": urlText, "partSize": partSize, "workers": workers, "single": single})
+	payload, jerr = json.stringify({"url": urlText, "partSize": partSize, "workers": workers, "single": single, "file": fileName})
 	if jerr != null {
 		notifyError("invalid request: " + jerr)
 		return
@@ -431,6 +520,12 @@ async fn startDownload() -> null {
 	job, perr = json.parse(body)
 	if perr != null {
 		notifyError("invalid response: " + perr)
+		return
+	}
+	# A refused request (a bad URL, too many parts, a name the backend does not
+	# accept) answers with an error and no job: the operator reads why.
+	if has(job, "error") and str(job["error"]) != "" {
+		notifyError("could not start: " + str(job["error"]))
 		return
 	}
 	selectedPart = ""
@@ -548,6 +643,8 @@ async fn retryFailedParts() -> null {
 
 async fn boot() -> null {
 	interval(500, refresh)
+	# The name of the file to save follows the URL while it is typed.
+	interval(200, syncFileName)
 	loadConfig()
 }
 
@@ -615,6 +712,20 @@ view main {
 				button "✕" onClick: cancelDownload class: "btn-icon btn-cancel" tooltip: "Cancel the download"
 			}
 		}
+		# The name of the file to save: the program fills it from the URL and
+		# the operator can change it before the download starts.
+		row class: "field field-file" {
+			input "Save as" value: fileName placeholder: "download.bin" class: "url-input file-input"
+		}
+		if fileName == "" {
+			p "The name of the file to save appears here as soon as the URL is typed." class: "file-hint"
+		} else {
+			if fileNameEdited {
+				p "The file will be saved as {fileName} (the name you chose)." class: "file-hint"
+			} else {
+				p "The file will be saved as {fileName}." class: "file-hint"
+			}
+		}
 		p "{actionHint}" class: "action-hint"
 		# The configuration of the job: the mode, the size of the parts and how
 		# many parts are downloaded at the same time.
@@ -639,6 +750,22 @@ view main {
 				if jobSingle == false {
 					accordion "Parts" {
 						accordionitem "{len(partsView)} parts started - the most recent one first" {
+							# The counters of the parts: how many there are, how many
+							# are downloading and how many are done.
+							row class: "part-counts" {
+								col class: "part-count" {
+									p "{partTotal}" class: "count-value"
+									p "parts" class: "count-label"
+								}
+								col class: "part-count" {
+									p "{partActive}" class: "count-value count-active"
+									p "in download" class: "count-label"
+								}
+								col class: "part-count" {
+									p "{partDone}" class: "count-value count-done"
+									p "completed" class: "count-label"
+								}
+							}
 							if len(partsView) == 0 {
 								p "No download yet: the bars of the parts appear here." class: "muted"
 							} else {
@@ -749,7 +876,7 @@ view main {
 	}
 }
 
-css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%), linear-gradient(165deg, #0b1020 0%, #131a30 55%, #0e1426 100%); color: #e6e9f5; font-family: system-ui, sans-serif; } h1 \{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; } h3 \{ margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #a5b4fc; } p \{ line-height: 1.55; } card \{ background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 18px; padding: 20px 22px; margin: 16px 0; box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45); } .topbar \{ background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 10px 16px; margin: 18px 0 6px; box-shadow: none; } .topbar-row \{ align-items: center; gap: 14px; justify-content: space-between; } .topbar-info \{ flex: 1 1 auto; gap: 2px; } .subtitle \{ margin: 0; font-size: 13px; color: #8b93b0; line-height: 1.5; } .config-line \{ margin: 0; font-size: 13px; color: #a8b1cc; letter-spacing: 0.02em; } .field \{ margin: 4px 0 10px; gap: 12px; align-items: center; } .url-input \{ flex: 1 1 auto; } .action-hint \{ margin: 0 0 12px; font-size: 12px; color: #7c86a8; text-transform: uppercase; letter-spacing: 0.08em; } .sui-button.btn-icon \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.35); width: 42px; height: 42px; padding: 0; border-radius: 12px; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: transform 140ms ease, box-shadow 140ms ease, color 140ms ease, background 140ms ease; } .sui-button.btn-icon:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.16), 0 10px 22px rgba(99, 102, 241, 0.35); } .sui-button.btn-action \{ background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%); color: #061021; border: 0; font-size: 19px; font-weight: 700; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35); } .sui-button.btn-action:hover \{ color: #061021; background: linear-gradient(135deg, #818cf8 0%, #67e8f9 100%); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22), 0 14px 30px rgba(99, 102, 241, 0.45); } .sui-button.btn-cancel \{ background: rgba(244, 63, 94, 0.14); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.38); } .sui-button.btn-cancel:hover \{ background: rgba(244, 63, 94, 0.26); color: #ffe4e6; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18); } .sui-button.btn-icon-sm \{ width: 32px; height: 32px; font-size: 15px; border-radius: 10px; } .status \{ color: #a8b1cc; font-size: 13px; margin: 0; } .state-badge \{ background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.30); } .verify \{ margin: 14px 0 0; color: #6ee7b7; font-size: 13px; } .dl-link \{ display: inline-block; margin-top: 12px; color: #67e8f9; font-weight: 600; } .parts-scroll \{ max-height: 320px; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 2px 2px; margin: 4px 0 10px; scrollbar-width: thin; scrollbar-color: rgba(129, 140, 248, 0.45) rgba(15, 23, 42, 0.4); } .parts-scroll::-webkit-scrollbar \{ width: 10px; } .parts-scroll::-webkit-scrollbar-track \{ background: rgba(15, 23, 42, 0.45); border-radius: 8px; } .parts-scroll::-webkit-scrollbar-thumb \{ background: rgba(129, 140, 248, 0.45); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } .row.part-row \{ display: grid; grid-template-columns: 64px minmax(120px, 1fr) 92px 148px; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.part-row:hover \{ background: rgba(148, 163, 184, 0.08); } .part-index \{ font-weight: 600; color: #c7d2fe; margin: 0; font-variant-numeric: tabular-nums; } .part-state \{ font-size: 12px; color: #8b93b0; margin: 0; } .part-bytes \{ font-size: 12px; color: #8b93b0; text-align: right; margin: 0; font-variant-numeric: tabular-nums; } .part-error \{ grid-column: 1 / -1; font-size: 12px; color: #fda4af; margin: 0; } progress.bar-total \{ --sui-progress-height: 12px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #6366f1; --sui-progress-value-end: #22d3ee; } progress.bar-part \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #818cf8; --sui-progress-value-end: #38bdf8; } .settings \{ display: flex; flex-direction: column; gap: 14px; min-width: 320px; } .setting \{ gap: 16px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); } .setting:last-child \{ border-bottom: 0; padding-bottom: 0; } .setting-text \{ gap: 2px; flex: 1 1 auto; } .setting-text p \{ margin: 0; font-size: 12px; color: #8b93b0; line-height: 1.45; } .setting-control \{ flex: 0 0 220px; } .mode-switch \{ flex: 0 0 auto; } .hint \{ color: #8b93b0; font-size: 13px; margin: 2px 0 10px; } .muted \{ color: #8b93b0; font-size: 13px; } .controls \{ gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .sui-button.btn-warn \{ background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.42); padding: 9px 16px; border-radius: 12px; } .sui-button.btn-ghost \{ background: transparent; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.28); padding: 9px 16px; border-radius: 12px; } .toast-host .sui-toast \{ width: 340px; } .sui-tabs \{ --sui-tabs-border: rgba(148, 163, 184, 0.16); --sui-tabs-radius: 16px; --sui-tabs-bg: rgba(255, 255, 255, 0.02); --sui-tablist-bg: rgba(15, 23, 42, 0.55); --sui-tab-padding: 10px 18px; --sui-tab-active-bg: rgba(99, 102, 241, 0.18); --sui-tab-accent: #22d3ee; --sui-tab-fg: #94a3b8; --sui-tab-active-fg: #e0e7ff; } .sui-tabpanels \{ padding: 18px 20px; } .statusbar \{ position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 12px 22px; background: rgba(11, 16, 32, 0.94); border-top: 1px solid rgba(148, 163, 184, 0.18); backdrop-filter: blur(8px); } .statusbar-status \{ gap: 12px; align-items: center; margin-bottom: 10px; } .statusbar-row \{ gap: 18px; flex-wrap: wrap; } .sb-item \{ flex: 1 1 120px; gap: 2px; } .sb-value \{ margin: 0; font-size: 17px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .sb-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } @media (max-width: 760px) { .row.part-row \{ grid-template-columns: 56px 1fr; row-gap: 6px; } .parts-scroll \{ max-height: 240px; } .setting \{ flex-direction: column; gap: 8px; } .setting-control \{ flex: 1 1 100%; width: 100%; } }"
+css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%), linear-gradient(165deg, #0b1020 0%, #131a30 55%, #0e1426 100%); color: #e6e9f5; font-family: system-ui, sans-serif; } h1 \{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; } h3 \{ margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #a5b4fc; } p \{ line-height: 1.55; } card \{ background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 18px; padding: 20px 22px; margin: 16px 0; box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45); } .topbar \{ background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 10px 16px; margin: 18px 0 6px; box-shadow: none; } .topbar-row \{ align-items: center; gap: 14px; justify-content: space-between; } .topbar-info \{ flex: 1 1 auto; gap: 2px; } .subtitle \{ margin: 0; font-size: 13px; color: #8b93b0; line-height: 1.5; } .config-line \{ margin: 0; font-size: 13px; color: #a8b1cc; letter-spacing: 0.02em; } .field \{ margin: 4px 0 10px; gap: 12px; align-items: center; } .url-input \{ flex: 1 1 auto; } .action-hint \{ margin: 0 0 12px; font-size: 12px; color: #7c86a8; text-transform: uppercase; letter-spacing: 0.08em; } .sui-button.btn-icon \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.35); width: 42px; height: 42px; padding: 0; border-radius: 12px; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: transform 140ms ease, box-shadow 140ms ease, color 140ms ease, background 140ms ease; } .sui-button.btn-icon:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.16), 0 10px 22px rgba(99, 102, 241, 0.35); } .sui-button.btn-action \{ background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%); color: #061021; border: 0; font-size: 19px; font-weight: 700; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35); } .sui-button.btn-action:hover \{ color: #061021; background: linear-gradient(135deg, #818cf8 0%, #67e8f9 100%); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22), 0 14px 30px rgba(99, 102, 241, 0.45); } .sui-button.btn-cancel \{ background: rgba(244, 63, 94, 0.14); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.38); } .sui-button.btn-cancel:hover \{ background: rgba(244, 63, 94, 0.26); color: #ffe4e6; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18); } .sui-button.btn-icon-sm \{ width: 32px; height: 32px; font-size: 15px; border-radius: 10px; } .status \{ color: #a8b1cc; font-size: 13px; margin: 0; } .state-badge \{ background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.30); } .verify \{ margin: 14px 0 0; color: #6ee7b7; font-size: 13px; } .dl-link \{ display: inline-block; margin-top: 12px; color: #67e8f9; font-weight: 600; } .parts-scroll \{ max-height: 320px; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 2px 2px; margin: 4px 0 10px; scrollbar-width: thin; scrollbar-color: rgba(129, 140, 248, 0.45) rgba(15, 23, 42, 0.4); } .parts-scroll::-webkit-scrollbar \{ width: 10px; } .parts-scroll::-webkit-scrollbar-track \{ background: rgba(15, 23, 42, 0.45); border-radius: 8px; } .parts-scroll::-webkit-scrollbar-thumb \{ background: rgba(129, 140, 248, 0.45); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } .row.part-row \{ display: grid; grid-template-columns: 64px minmax(120px, 1fr) 92px 148px; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.part-row:hover \{ background: rgba(148, 163, 184, 0.08); } .part-index \{ font-weight: 600; color: #c7d2fe; margin: 0; font-variant-numeric: tabular-nums; } .part-state \{ font-size: 12px; color: #8b93b0; margin: 0; } .part-bytes \{ font-size: 12px; color: #8b93b0; text-align: right; margin: 0; font-variant-numeric: tabular-nums; } .part-error \{ grid-column: 1 / -1; font-size: 12px; color: #fda4af; margin: 0; } progress.bar-total \{ --sui-progress-height: 12px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #6366f1; --sui-progress-value-end: #22d3ee; } progress.bar-part \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #818cf8; --sui-progress-value-end: #38bdf8; } .settings \{ display: flex; flex-direction: column; gap: 14px; min-width: 320px; } .setting \{ gap: 16px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); } .setting:last-child \{ border-bottom: 0; padding-bottom: 0; } .setting-text \{ gap: 2px; flex: 1 1 auto; } .setting-text p \{ margin: 0; font-size: 12px; color: #8b93b0; line-height: 1.45; } .setting-control \{ flex: 0 0 220px; } .mode-switch \{ flex: 0 0 auto; } .hint \{ color: #8b93b0; font-size: 13px; margin: 2px 0 10px; } .muted \{ color: #8b93b0; font-size: 13px; } .controls \{ gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .sui-button.btn-warn \{ background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.42); padding: 9px 16px; border-radius: 12px; } .sui-button.btn-ghost \{ background: transparent; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.28); padding: 9px 16px; border-radius: 12px; } .toast-host .sui-toast \{ width: 340px; } .sui-tabs \{ --sui-tabs-border: rgba(148, 163, 184, 0.16); --sui-tabs-radius: 16px; --sui-tabs-bg: rgba(255, 255, 255, 0.02); --sui-tablist-bg: rgba(15, 23, 42, 0.55); --sui-tab-padding: 10px 18px; --sui-tab-active-bg: rgba(99, 102, 241, 0.18); --sui-tab-accent: #22d3ee; --sui-tab-fg: #94a3b8; --sui-tab-active-fg: #e0e7ff; } .sui-tabpanels \{ padding: 18px 20px; } .statusbar \{ position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 12px 22px; background: rgba(11, 16, 32, 0.94); border-top: 1px solid rgba(148, 163, 184, 0.18); backdrop-filter: blur(8px); } .statusbar-status \{ gap: 12px; align-items: center; margin-bottom: 10px; } .statusbar-row \{ gap: 18px; flex-wrap: wrap; } .sb-item \{ flex: 1 1 120px; gap: 2px; } .sb-value \{ margin: 0; font-size: 17px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .sb-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .field-file \{ margin: 0 0 8px; } .file-input \{ flex: 1 1 auto; } .file-hint \{ margin: 0 0 10px; font-size: 12px; color: #8b93b0; } .part-counts \{ gap: 16px; margin: 0 0 14px; flex-wrap: wrap; } .part-count \{ flex: 0 0 auto; gap: 2px; min-width: 76px; } .count-value \{ margin: 0; font-size: 20px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .count-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .count-active \{ color: #38bdf8; } .count-done \{ color: #34d399; } @media (max-width: 760px) { .row.part-row \{ grid-template-columns: 56px 1fr; row-gap: 6px; } .parts-scroll \{ max-height: 240px; } .setting \{ flex-direction: column; gap: 8px; } .setting-control \{ flex: 1 1 100%; width: 100%; } }"
 ```
 
 ### How to edit it
@@ -775,6 +902,10 @@ css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 5
   the row the operator selected for the retry.
 - The `value:` of an `input` is write-only: the values coming from the CLI are
   read from the state and shown in another element of the view.
+- The name of the file to save follows the URL with a short timer
+  (`interval(200, syncFileName)`): the view is re-rendered only when the name
+  really changes. The box keeps the name the operator chose: the program stops
+  filling it as soon as it sees a name that is not the one it filled.
 - If the server does not support `Range`, the file is downloaded as a single
   part: the split follows what the server can do, not what the operator asked.
 - In the one-piece mode the total size is unknown until the server answers, so
@@ -804,6 +935,8 @@ Measured against this example (backend and GUI, not just the documentation):
 | One-piece mode | the job has a single part and the parts panel is not shown |
 | Action button | ⚡ (start) → ❚❚ (pause) → ► (resume), with the ✕ cancel button only while paused |
 | Parts | the section of the parts is inside the card of the total progress |
+| Counters of the parts | the section of the parts opens with the total number of parts, the ones in download and the ones completed |
+| Name of the file to save | the box under the URL is filled from the URL (`sample.bin`), a name typed by the operator is kept and the download uses it |
 | Bars | only the parts whose download has started get a bar, the waiting ones show nothing |
 | Status bar | the state and the message are in the first row, the data of the download in the row below |
 | Errors | the failures are shown as error toasts, the same message is not repeated |
@@ -814,4 +947,6 @@ cycle headlessly: it builds the backend, splits a 1 MiB file into two 512 KiB
 parts, pauses, checks that no byte advances, resumes and compares the
 reassembled file with the original one. A second test uses an origin that
 fails one range once and checks that the retry of that single part brings the
-job to `done`.
+job to `done`. Two more tests cover the name of the file to save: the name the
+operator chose is the name of the job, a name that tries to escape the folder
+of the job is cleaned, and the reassembled file is served with that name.

@@ -472,6 +472,12 @@ fn boot() -> null {
   dynamic URL requires `http.postSafe` with a **literal** allow-list.
 - Show the per-unit progress (the parts, the steps, the items), not only a
   percentage: it is what tells the operator that the job is really moving.
+- Count the units as well: how many there are, how many are running right now
+  and how many are done. The numbers tell in one glance whether the job is
+  moving forward or stuck.
+- Let the operator choose the name of the file to save: fill the box from the
+  URL, keep the name they type, and send it with the request. The backend
+  cleans it (a file name is never a path) and uses it for the file it writes.
 - The backend owns the truth. A pause, a resume or a cancel is a request to
   the backend, never a local flag: only the backend knows which units are
   already done.

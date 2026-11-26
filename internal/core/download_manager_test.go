@@ -42,6 +42,17 @@ func TestDownloadManagerApp(t *testing.T) {
 		"http_postsafe",
 		"http://127.0.0.1:8090",
 		"/retry-failed",
+		// The name of the file to save: the app fills it from the URL and
+		// sends it with the request that starts the download.
+		"syncFileName",
+		"fileNameFromUrl",
+		`"file": fileName`,
+		// The counters of the parts.
+		"setPartTotal",
+		"setPartActive",
+		"setPartDone",
+		// A refused request is shown, not swallowed.
+		"could not start: ",
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("download manager js missing %q", want)
@@ -50,6 +61,67 @@ func TestDownloadManagerApp(t *testing.T) {
 	html := GenerateIndexHtml(prog)
 	if !strings.Contains(html, "<title>Download manager</title>") {
 		t.Errorf("download manager html title mismatch")
+	}
+}
+
+// TestDownloadManagerFileNameE2E checks the name of the file to save: the one
+// the operator chooses in the GUI is the one the backend uses, a name that is
+// not a plain file name is cleaned, and a request without a name keeps the
+// name that comes from the URL.
+func TestDownloadManagerFileNameE2E(t *testing.T) {
+	base, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "0")
+	cl := &http.Client{Timeout: 20 * time.Second}
+	target := base + "/files/sample.bin"
+
+	// No name in the request: the name comes from the URL.
+	auto := postDownloadManager(t, cl, base+"/api/downloads",
+		`{"url":"`+target+`","partSize":"1 MiB"}`).(map[string]any)
+	if got := auto["file"]; got != "sample.bin" {
+		t.Errorf("file name = %v, want sample.bin (the name of the URL)", got)
+	}
+
+	// The name the operator chose: it is the name of the job.
+	named := postDownloadManager(t, cl, base+"/api/downloads",
+		`{"url":"`+target+`","partSize":"1 MiB","file":"relazione finale 2026.pdf"}`).(map[string]any)
+	if got := named["file"]; got != "relazione_finale_2026.pdf" {
+		t.Errorf("file name = %v, want relazione_finale_2026.pdf", got)
+	}
+
+	// A name that tries to escape the folder of the job: the separators are
+	// cleaned, so the file stays inside the job.
+	traversal := postDownloadManager(t, cl, base+"/api/downloads",
+		`{"url":"`+target+`","partSize":"1 MiB","file":"../../etc/passwd"}`).(map[string]any)
+	name, _ := traversal["file"].(string)
+	if name != ".._.._etc_passwd" {
+		t.Errorf("file name = %q, want the path separators to be cleaned", name)
+	}
+	if strings.ContainsAny(name, `/\`) {
+		t.Errorf("file name %q still has a path separator", name)
+	}
+}
+
+// TestDownloadManagerMergedFileNameE2E checks that the reassembled file is
+// served with the name the operator chose.
+func TestDownloadManagerMergedFileNameE2E(t *testing.T) {
+	base, _ := startDownloadManager(t, "--sample-mib", "1", "--throttle", "0")
+	cl := &http.Client{Timeout: 20 * time.Second}
+	job := postDownloadManager(t, cl, base+"/api/downloads",
+		`{"url":"`+base+`/files/sample.bin","partSize":"1 MiB","file":"relazione finale.pdf"}`).(map[string]any)
+	id, _ := job["id"].(string)
+	if id == "" {
+		t.Fatalf("job without id: %v", job)
+	}
+	done := waitDownloadManager(t, cl, base, id)
+	if done["state"] != "done" {
+		t.Fatalf("final state = %v (%v)", done["state"], done["error"])
+	}
+	resp, err := cl.Get(base + "/api/downloads/" + id + "/file")
+	if err != nil {
+		t.Fatalf("get the merged file: %v", err)
+	}
+	defer resp.Body.Close()
+	if got := resp.Header.Get("Content-Disposition"); got != `attachment; filename="relazione_finale.pdf"` {
+		t.Errorf("Content-Disposition = %q, want the name the operator chose", got)
 	}
 }
 

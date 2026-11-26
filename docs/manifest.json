@@ -667,6 +667,8 @@
         "Keep the job identifier in a state and build the action URLs from it.",
         "Use `http.postSafe` with a literal allow-list for the dynamic URLs.",
         "Show the progress per unit (parts, steps, items), not only a percentage.",
+        "Count the units: how many there are, how many are running, how many are done.",
+        "Let the operator choose the name of the file to save: fill it from the URL and clean it in the backend.",
         "Let the backend own pause, resume and cancel: only it knows what is done.",
         "Show the backend errors as they are.",
         "Let a failed unit restart alone: the endpoint takes the unit number.",

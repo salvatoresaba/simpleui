@@ -412,6 +412,14 @@ func fileNameFromURL(u *url.URL) string {
 	if base == "" || base == "." || base == "/" {
 		base = "download.bin"
 	}
+	return cleanFileName(base)
+}
+
+// cleanFileName keeps only the characters a plain file name can have: letters,
+// digits, dot, dash and underscore. Everything else (spaces, path separators,
+// quotes) becomes an underscore, so a name can never point outside the folder
+// of the job.
+func cleanFileName(base string) string {
 	var b strings.Builder
 	for _, r := range base {
 		switch {
@@ -427,7 +435,22 @@ func fileNameFromURL(u *url.URL) string {
 	if name == "" || name == "." || name == ".." {
 		name = "download.bin"
 	}
+	// A name that is too long would not fit in the path of the job.
+	if len(name) > 120 {
+		name = name[:120]
+	}
 	return name
+}
+
+// chosenFileName returns the name the operator chose in the GUI. The name is
+// cleaned like the one taken from the URL, so it is always a plain file name
+// inside the folder of the job.
+func chosenFileName(raw string) string {
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return ""
+	}
+	return cleanFileName(name)
 }
 
 // probe asks the server for the first byte. A 206 answers with the total
@@ -562,6 +585,9 @@ type createRequest struct {
 	// number control, that is a string.
 	Workers any  `json:"workers"`
 	Single  bool `json:"single"`
+	// File is the name the operator chose for the file to save. It is
+	// optional: when it is empty the name comes from the URL.
+	File string `json:"file"`
 }
 
 // workersFrom reads the number of parts downloaded at the same time. The
@@ -650,10 +676,17 @@ func (m *Manager) handleCreate(w http.ResponseWriter, r *http.Request) {
 	id := fmt.Sprintf("job-%d-%d", time.Now().Unix(), m.seq)
 	m.mu.Unlock()
 
+	// The name of the file to save: the one the operator chose in the GUI or,
+	// when there is none, the one that comes from the URL.
+	file := fileNameFromURL(u)
+	if chosen := chosenFileName(req.File); chosen != "" {
+		file = chosen
+	}
+
 	job := &Job{
 		ID:       id,
 		URL:      u.String(),
-		File:     fileNameFromURL(u),
+		File:     file,
 		State:    "running",
 		PartSize: partSize,
 		Total:    total,
@@ -774,7 +807,7 @@ func (m *Manager) handleMergedFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	job.mu.Lock()
-	merged, state := job.Merged, job.State
+	merged, state, name := job.Merged, job.State, job.File
 	job.mu.Unlock()
 	if merged == "" || state != "done" {
 		http.Error(w, "the download is not complete yet", http.StatusConflict)
@@ -789,7 +822,12 @@ func (m *Manager) handleMergedFile(w http.ResponseWriter, r *http.Request) {
 	info, _ := f.Stat()
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", strconv.FormatInt(info.Size(), 10))
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+filepath.Base(merged)+"\"")
+	// The file is downloaded with the name the operator chose: on disk the
+	// merged file keeps the "merged-" prefix, so it cannot clash with a part.
+	if name == "" {
+		name = filepath.Base(merged)
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+name+"\"")
 	_, _ = io.Copy(w, f)
 }
 

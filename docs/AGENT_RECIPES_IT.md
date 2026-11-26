@@ -427,6 +427,13 @@ fn boot() -> null {
   **letterale**.
 - Mostra l'avanzamento per unita' (le parti, i passi, gli elementi), non solo
   una percentuale: e' quello che dice all'operatore che il lavoro avanza.
+- Conta anche le unita': quante sono, quante stanno girando adesso e quante
+  sono finite. I numeri dicono con un colpo d'occhio se il lavoro avanza o se
+  e' fermo.
+- Lascia che l'operatore scelga il nome del file da salvare: compili la casella
+  dalla URL, tieni il nome che scrive e mandalo con la richiesta. Il backend lo
+  pulisce (un nome di file non e' mai un percorso) e lo usa per il file che
+  scrive.
 - Il backend possiede la verita'. Pausa, ripresa e annullamento sono richieste
   al backend, mai flag locali: solo il backend sa quali unita' sono gia' fatte.
 - Mostra gli errori del backend come sono. Una parte fallita e' un errore
