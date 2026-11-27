@@ -320,6 +320,11 @@ pseudo-classi strutturali (`:last-child`, `:nth-child()`, `:not()`, `:empty`)
 che rifiniscono di proposito la regola base. Una classe usata dentro un
 blocco condizionale o ripetuto (`if`, `list`) conta come usata, anche se il
 designer conserva quei blocchi come sorgente.
+Un **override** viene segnalato solo quando due regole possono colpire **lo
+stesso elemento**: stesso contesto di antenati, tipo compatibile e classi del
+soggetto confrontabili. Le varianti mutuamente esclusive (`.row.part-row` contro
+`.row.file-row`) e le rifiniture discendenti (`.monitor` contro `.monitor h1`)
+non sono override, mentre `.card` contro `.card.primary` lo resta.
 
 ### Status bar
 

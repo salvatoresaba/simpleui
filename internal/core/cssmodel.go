@@ -878,12 +878,11 @@ func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
 	}
 
 	// override detection: for each declaration, find a LATER declaration of the
-	// same property on a selector that can match the same element (shares a
-	// class or identical selector) with >= specificity (or !important).
+	// same property on a selector that can match the same element with >= specificity
+	// (or !important).
 	for i := range byProp {
 		rec := byProp[i]
 		sp := Specificity(rec.sel)
-		classesA := selectorClasses(rec.sel)
 		for j := i + 1; j < len(byProp); j++ {
 			other := byProp[j]
 			if other.decl.prop != rec.decl.prop {
@@ -904,7 +903,7 @@ func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
 			if rec.rule.ctx != other.rule.ctx {
 				continue
 			}
-			if !overlapSelectors(rec.sel, other.sel, classesA) {
+			if !overlapSelectors(rec.sel, other.sel) {
 				continue
 			}
 			// !important rules
@@ -942,19 +941,104 @@ func AnalyzeCss(s *CssSheet, usedClasses map[string]bool) []CssProblem {
 	return probs
 }
 
-// overlapSelectors reports whether two selectors may target the same element:
-// identical selector, or they share at least one class.
-func overlapSelectors(a, b string, classesA []string) bool {
+// overlapSelectors reports whether two selectors may target the same element.
+//
+// The subject of a selector is its last compound (".card.active p" has the
+// subject "p"): the classes of the ancestors only describe the context, not
+// the element. Two rules conflict only when they share the context, can match
+// the same kind of element and their subjects share a class whose sets are
+// comparable.
+//
+// This keeps the useful warnings (".card" overridden by ".card.active") and
+// drops the noise:
+//   - mutually exclusive variants (".row.part-row" and ".row.file-row"),
+//   - descendant refinements (".monitor" and ".monitor h1").
+func overlapSelectors(a, b string) bool {
 	if strings.TrimSpace(a) == strings.TrimSpace(b) {
 		return true
 	}
-	classesB := selectorClasses(b)
+	ctxA, subjA := selectorParts(a)
+	ctxB, subjB := selectorParts(b)
+	if ctxA != ctxB {
+		return false
+	}
+	typeA, typeB := selectorType(subjA), selectorType(subjB)
+	if typeA != "" && typeB != "" && typeA != typeB {
+		return false
+	}
+	classesA := selectorClasses(subjA)
+	classesB := selectorClasses(subjB)
+	shared := false
 	for _, ca := range classesA {
 		for _, cb := range classesB {
 			if ca == cb {
-				return true
+				shared = true
 			}
 		}
 	}
-	return false
+	if !shared {
+		return false
+	}
+	if !classSetSubset(classesA, classesB) && !classSetSubset(classesB, classesA) {
+		return false
+	}
+	return true
+}
+
+// selectorParts splits a selector into its ancestor context and its subject
+// compound: ".card.active p" becomes (".card.active", "p").
+func selectorParts(sel string) (context, subject string) {
+	s := strings.TrimSpace(sel)
+	depth := 0
+	last := -1
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case ' ', '\t', '\n':
+			if depth == 0 {
+				last = i
+			}
+		}
+	}
+	if last < 0 {
+		return "", s
+	}
+	return strings.TrimSpace(s[:last]), strings.TrimSpace(s[last+1:])
+}
+
+// selectorType returns the element type of a compound selector ("p" for
+// "p.card"); it is empty for a universal selector.
+func selectorType(compound string) string {
+	i := 0
+	for i < len(compound) {
+		c := compound[i]
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' {
+			i++
+			continue
+		}
+		break
+	}
+	return compound[:i]
+}
+
+// classSetSubset reports whether every class of a is also in b.
+func classSetSubset(a, b []string) bool {
+	for _, ca := range a {
+		found := false
+		for _, cb := range b {
+			if ca == cb {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }

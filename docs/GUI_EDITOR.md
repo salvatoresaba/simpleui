@@ -310,6 +310,11 @@ duplicate or an override, and the structural pseudo-classes (`:last-child`,
 `:nth-child()`, `:not()`, `:empty`) refine their base rule on purpose.
 A class used inside a conditional or repeated block (`if`, `list`) counts as
 used even though the designer keeps those blocks as source.
+An **override** is reported only when two rules can hit the **same element**:
+the same ancestor context, a compatible type and comparable subject classes.
+Mutually exclusive variants (`.row.part-row` against `.row.file-row`) and
+descendant refinements (`.monitor` against `.monitor h1`) are not overrides,
+while `.card` against `.card.primary` still is.
 
 ### Status bar
 

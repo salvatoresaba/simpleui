@@ -142,6 +142,54 @@ func TestAnalyzeSkipsKeyframesAndLayeredRoot(t *testing.T) {
 	}
 }
 
+// TestAnalyzeOverrideOnlyForTheSameElement checks that an override is reported
+// only when the two rules can really fight over the same element.
+//
+// Two mutually exclusive variants (".row.part-row" and ".row.file-row") and a
+// descendant refinement (".monitor" and ".monitor h1") never apply to the same
+// element: reporting them is noise. A more specific variant of the same
+// element (".card" and ".card.primary") is a real cascade problem and must
+// stay reported.
+func TestAnalyzeOverrideOnlyForTheSameElement(t *testing.T) {
+	src := ".row.part-row { display: grid; gap: 14px; }\n" +
+		".row.file-row { display: grid; gap: 14px; }\n" +
+		".monitor { margin: 0; }\n" +
+		".monitor h1 { margin: 6px; }\n" +
+		".card { color: red; }\n" +
+		".card.primary { color: blue; }\n"
+	used := map[string]bool{"row": true, "part-row": true, "file-row": true, "monitor": true, "card": true, "primary": true}
+	probs := AnalyzeCss(ParseCss(src), used)
+	var over []string
+	for _, p := range probs {
+		if p.kind == "override" {
+			over = append(over, p.message)
+		}
+	}
+	if len(over) != 1 {
+		t.Fatalf("expected only the .card/.card.primary override, got %d: %v", len(over), over)
+	}
+	if !strings.Contains(over[0], ".card.primary") {
+		t.Errorf("expected the .card.primary override, got: %s", over[0])
+	}
+}
+
+// TestAnalyzeOverrideWithTheSameElement checks the case of two rules that
+// declare the same property for the same element: the later one wins and the
+// author should know it.
+func TestAnalyzeOverrideWithTheSameElement(t *testing.T) {
+	src := ".card { padding: 10px; }\n.card { padding: 20px; }\n"
+	probs := AnalyzeCss(ParseCss(src), map[string]bool{"card": true})
+	found := false
+	for _, p := range probs {
+		if p.kind == "override" && strings.Contains(p.message, "padding") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected the padding override to be reported: %+v", probs)
+	}
+}
+
 func TestExtractTokens(t *testing.T) {
 	src := ":root {\n  --primary: #ff0000;\n  --gap: 12px;\n}\n.card { color: var(--primary); }\n"
 	s := ParseCss(src)
