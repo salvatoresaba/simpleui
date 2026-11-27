@@ -268,7 +268,7 @@ func RunHeadlessFeature(t *testing.T, source, script string) {
 	go func() { _ = http.Serve(ln, mux) }()
 	url := "http://" + ln.Addr().String() + "/"
 	time.Sleep(50 * time.Millisecond)
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",

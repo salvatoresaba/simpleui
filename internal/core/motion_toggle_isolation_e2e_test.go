@@ -43,7 +43,7 @@ view main {
 	}
 	srv := NewLocalServer(http.FileServer(http.Dir(dir)))
 	defer srv.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",

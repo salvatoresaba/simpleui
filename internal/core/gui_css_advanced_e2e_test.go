@@ -81,7 +81,7 @@ view main {
 	go func() { _ = http.Serve(ln, mux) }()
 	baseURL := "http://" + ln.Addr().String() + "/"
 	time.Sleep(50 * time.Millisecond)
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",

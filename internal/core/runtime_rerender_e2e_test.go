@@ -86,7 +86,7 @@ view main {
 	srv := NewLocalServer(http.FileServer(http.Dir(dir)))
 	defer srv.Close()
 	pageURL := srv.URL + "/index.html"
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",

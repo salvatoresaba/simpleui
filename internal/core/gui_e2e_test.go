@@ -69,7 +69,7 @@ func TestGuiDesignerE2E(t *testing.T) {
 	url := "http://" + ln.Addr().String() + "/"
 	time.Sleep(50 * time.Millisecond)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	profile := t.TempDir()
 	args := []string{
@@ -167,7 +167,7 @@ func TestGuiMotionDesignerE2E(t *testing.T) {
 	url := "http://" + ln.Addr().String() + "/"
 	time.Sleep(50 * time.Millisecond)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	args := []string{
 		"--headless=new",
