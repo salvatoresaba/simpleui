@@ -52,6 +52,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -539,12 +540,35 @@ func ParseConfig(args []string) Config {
 
 // ------------------------------------------------------------------- urls ---
 
+// schemeRe finds the scheme of a URL written by the operator: the letters
+// and the digits before the first colon.
+var schemeRe = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
+
+// normalizeTarget adds the scheme when the operator pasted a URL without
+// one. A URL copied from a page often keeps the protocol-relative form
+// ("//host/path") or loses it completely ("host/path"): both become an https
+// URL, the safe default for a download. A URL that already names its scheme
+// is left alone, so an unknown scheme is still refused with a clear message.
+func normalizeTarget(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return raw
+	}
+	if strings.HasPrefix(raw, "//") {
+		return "https:" + raw
+	}
+	if strings.Contains(raw, "://") || schemeRe.MatchString(raw) {
+		return raw
+	}
+	return "https://" + raw
+}
+
 // validateTarget checks the URL the operator asked to download. http, https
 // and ftp are accepted, the credentials in the URL are refused (an ftp URL
 // carries the login instead) and, when the CLI lists the allowed hosts, the
 // host must be one of them.
 func validateTarget(raw string, allowed []string) (*url.URL, error) {
-	raw = strings.TrimSpace(raw)
+	raw = normalizeTarget(raw)
 	if raw == "" {
 		return nil, fmt.Errorf("missing url")
 	}
@@ -1707,7 +1731,12 @@ func (j *Job) mergeFile(f *File) {
 		}
 		sum := fileSHA256(merged)
 		verify := "size matches the server"
-		if f.Total > 0 && size != f.Total {
+		switch {
+		case f.Total <= 0:
+			// The server did not announce the size: there is nothing to
+			// compare the result with, so the check is not claimed.
+			verify = "the server did not announce the size"
+		case size != f.Total:
 			verify = fmt.Sprintf("size mismatch: %d bytes instead of %d", size, f.Total)
 		}
 		if j.expectSHA != "" {

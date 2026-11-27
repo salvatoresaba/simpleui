@@ -38,6 +38,11 @@ port and serves the app, from the disk or from the executable itself.
   know the restart command gets the whole file in one single part. The login of
   the ftp server travels in the URL (`ftp://user:password@host/file.bin`) and
   the password never shows in the app: the URL that is displayed is masked.
+- **A URL pasted without a scheme works.** A URL copied from a page often
+  keeps the protocol-relative form (`//host/path`) or loses the scheme
+  completely (`host/path`): both are read as an **https** URL, the safe default
+  for a download. A URL that names another scheme (say `mailto:`) is still
+  refused, with a message that says which schemes are allowed.
 - **The app finds the backend by itself.** When the app starts it asks the
   server that served the page for its configuration: if that server is the
   download manager (the usual case) the calls stay on the same origin, so the
@@ -213,10 +218,11 @@ to start it.
 | `--port` | `8090` | HTTP port |
 | `--no-open` | – | do not open the browser |
 
-Only `http`, `https` and `ftp` URLs are accepted. The credentials of an http
-URL are refused; an ftp URL carries the login of the server
-(`ftp://user:password@host/file.bin`) and the password is masked in the URL
-that the app displays. With `--allow-host` only the listed hosts can be
+Only `http`, `https` and `ftp` URLs are accepted. A URL written without a
+scheme (`//host/path` or `host/path`) is read as an **https** URL. The
+credentials of an http URL are refused; an ftp URL carries the login of the
+server (`ftp://user:password@host/file.bin`) and the password is masked in the
+URL that the app displays. With `--allow-host` only the listed hosts can be
 downloaded:
 
 ```bash

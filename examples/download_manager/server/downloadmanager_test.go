@@ -252,6 +252,51 @@ func TestTheDefaultURLFollowsThePort(t *testing.T) {
 	}
 }
 
+// A URL copied from a page often keeps the protocol-relative form or loses
+// the scheme: both are accepted and become an https URL.
+func TestAURLWithoutASchemeBecomesAnHTTPSURL(t *testing.T) {
+	for _, raw := range []string{
+		"//streamtape.com/get_video?id=7kRyDW8DBvFAL",
+		"streamtape.com/get_video?id=7kRyDW8DBvFAL",
+		"  //streamtape.com/get_video?id=7kRyDW8DBvFAL  ",
+	} {
+		u, err := validateTarget(raw, nil)
+		if err != nil {
+			t.Fatalf("the url %q should be accepted: %v", raw, err)
+		}
+		if u.Scheme != "https" {
+			t.Fatalf("the url %q has the scheme %q", raw, u.Scheme)
+		}
+		if u.Host != "streamtape.com" {
+			t.Fatalf("the url %q has the host %q", raw, u.Host)
+		}
+		if u.RawQuery != "id=7kRyDW8DBvFAL" {
+			t.Fatalf("the url %q lost the query: %q", raw, u.RawQuery)
+		}
+	}
+}
+
+// A URL that names its scheme is left alone, and an unknown scheme is still
+// refused with a clear message.
+func TestAURLWithASchemeIsLeftAlone(t *testing.T) {
+	for raw, want := range map[string]string{
+		"https://example.com/a.bin": "https",
+		"http://example.com/a.bin":  "http",
+		"ftp://example.com/a.bin":   "ftp",
+	} {
+		u, err := validateTarget(raw, nil)
+		if err != nil {
+			t.Fatalf("the url %q should be accepted: %v", raw, err)
+		}
+		if u.Scheme != want {
+			t.Fatalf("the url %q has the scheme %q, want %q", raw, u.Scheme, want)
+		}
+	}
+	if _, err := validateTarget("mailto:someone@example.com", nil); err == nil {
+		t.Fatal("the mailto scheme should have been refused")
+	}
+}
+
 // A file that does not fit in the parts the CLI allows is not refused: the
 // parts grow instead, so a big file from the internet still downloads.
 func TestThePartSizeGrowsForABigFile(t *testing.T) {
