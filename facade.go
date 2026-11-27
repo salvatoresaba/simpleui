@@ -302,6 +302,20 @@ func BuildDesktopWebview(prog *Prog, outDir string, allowExec []string, allowDir
 	core.BuildDesktopWebview(prog, outDir, allowExec, allowDirs)
 }
 
+// BuildDesktopWebviewWithBackend is BuildDesktopWebview with an embedded Go
+// backend (see BuildDesktopWithBackend).
+func BuildDesktopWebviewWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) {
+	core.BuildDesktopWebviewWithBackend(prog, outDir, allowExec, allowDirs, backendDir)
+}
+
+// BuildDesktopWithBackend is BuildDesktop with an embedded Go backend: the
+// backend module rooted at backendDir is linked into the produced executable,
+// so the user runs one process instead of two. An empty backendDir builds the
+// plain desktop app.
+func BuildDesktopWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) {
+	core.BuildDesktopWithBackend(prog, outDir, allowExec, allowDirs, backendDir)
+}
+
 // BuildSingleHTML compiles a program and returns one HTML document.
 func BuildSingleHTML(prog *Prog, minify bool) string {
 	return core.BuildSingleHTML(prog, minify)
@@ -410,11 +424,26 @@ func DesktopMainSource(allowExec []string, allowDirs []string) string {
 	return core.DesktopMainSource(allowExec, allowDirs)
 }
 
+// DesktopMainSourceWithBackend returns the main.go source for a desktop build
+// that embeds a Go backend. backendModule is the module path of the backend
+// package (empty when the build has no backend): the package is imported with
+// the "backend" alias and mounted in front of the app assets.
+func DesktopMainSourceWithBackend(allowExec []string, allowDirs []string, backendModule string) string {
+	return core.DesktopMainSourceWithBackend(allowExec, allowDirs, backendModule)
+}
+
 // DesktopWebviewMainSource returns the main.go source for the embedded-WebView
 // target. It reuses the desktop runtime (loopback server, token and bridge) and
 // replaces the browser launch with a native WebView window.
 func DesktopWebviewMainSource(allowExec []string, allowDirs []string, title string) string {
 	return core.DesktopWebviewMainSource(allowExec, allowDirs, title)
+}
+
+// DesktopWebviewMainSourceWithBackend returns the main.go source for the
+// embedded-WebView target with an embedded Go backend (see
+// DesktopMainSourceWithBackend).
+func DesktopWebviewMainSourceWithBackend(allowExec []string, allowDirs []string, title string, backendModule string) string {
+	return core.DesktopWebviewMainSourceWithBackend(allowExec, allowDirs, title, backendModule)
 }
 
 func EscapeJsStr(s string) string {
@@ -743,10 +772,24 @@ func RunDesktopBuild(prog *Prog, outDir string, allowExec []string, allowDirs []
 	return core.RunDesktopBuild(prog, outDir, allowExec, allowDirs)
 }
 
+// RunDesktopBuildWithBackend writes the runtime module under outDir and
+// compiles it into app(.exe), linking the backend module rooted at backendDir
+// into the executable. An empty backendDir builds the plain desktop app.
+func RunDesktopBuildWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) error {
+	return core.RunDesktopBuildWithBackend(prog, outDir, allowExec, allowDirs, backendDir)
+}
+
 // RunDesktopWebviewBuild writes and compiles the embedded-WebView variant.
 // The resulting executable no longer launches a separate browser.
 func RunDesktopWebviewBuild(prog *Prog, outDir string, allowExec []string, allowDirs []string) error {
 	return core.RunDesktopWebviewBuild(prog, outDir, allowExec, allowDirs)
+}
+
+// RunDesktopWebviewBuildWithBackend writes and compiles the embedded-WebView
+// variant, linking the backend module rooted at backendDir into the
+// executable. An empty backendDir builds the plain WebView app.
+func RunDesktopWebviewBuildWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) error {
+	return core.RunDesktopWebviewBuildWithBackend(prog, outDir, allowExec, allowDirs, backendDir)
 }
 
 // RunHeadlessFeature renders source, injects a feature script and runs it in a

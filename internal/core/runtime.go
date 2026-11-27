@@ -30,9 +30,29 @@ const TokenPlaceholder = "__SUI_TOKEN__"
 // DesktopMainSource returns the main.go source for a desktop build, with the
 // capability allow-lists compiled in.
 func DesktopMainSource(allowExec []string, allowDirs []string) string {
+	return DesktopMainSourceWithBackend(allowExec, allowDirs, "")
+}
+
+// DesktopMainSourceWithBackend returns the main.go source for a desktop build
+// that embeds a Go backend. backendModule is the module path of the backend
+// package (empty when the build has no backend): the package is imported with
+// the "backend" alias and mounted in front of the app assets.
+func DesktopMainSourceWithBackend(allowExec []string, allowDirs []string, backendModule string) string {
 	src := desktopRuntimeTemplate
 	src = strings.ReplaceAll(src, "%%ALLOW_EXEC%%", joinGoStrings(allowExec))
 	src = strings.ReplaceAll(src, "%%ALLOW_DIRS%%", joinGoStrings(allowDirs))
+	backendImport := ""
+	backendMount := "\tmux.Handle(\"/\", assets)"
+	if backendModule != "" {
+		backendImport = "\t" + backendAlias + " " + strconv.Quote(backendModule)
+		backendMount = "\tmux.Handle(\"/\", " + backendAlias + ".Handler(assets))"
+	}
+	src = strings.ReplaceAll(src, "%%BACKEND_IMPORT%%", backendImport)
+	src = strings.ReplaceAll(src, "%%BACKEND_MOUNT%%", backendMount)
+	if backendImport == "" {
+		// Drop the blank line left by the empty import placeholder.
+		src = strings.ReplaceAll(src, "\n\n\t\"time\"", "\n\t\"time\"")
+	}
 	return src
 }
 
@@ -40,7 +60,14 @@ func DesktopMainSource(allowExec []string, allowDirs []string) string {
 // target. It reuses the desktop runtime (loopback server, token and bridge) and
 // replaces the browser launch with a native WebView window.
 func DesktopWebviewMainSource(allowExec []string, allowDirs []string, title string) string {
-	src := DesktopMainSource(allowExec, allowDirs)
+	return DesktopWebviewMainSourceWithBackend(allowExec, allowDirs, title, "")
+}
+
+// DesktopWebviewMainSourceWithBackend returns the main.go source for the
+// embedded-WebView target with an embedded Go backend (see
+// DesktopMainSourceWithBackend).
+func DesktopWebviewMainSourceWithBackend(allowExec []string, allowDirs []string, title string, backendModule string) string {
+	src := DesktopMainSourceWithBackend(allowExec, allowDirs, backendModule)
 	src = strings.Replace(src, "\t\"time\"\n)", "\t\"time\"\n\n\twebview \"github.com/webview/webview_go\"\n)", 1)
 	const openBlock = "\tif !noOpen {\n\t\topenBrowser(url)\n\t}\n\tselect {}\n"
 	webviewBlock := "\tif noOpen {\n\t\tselect {}\n\t}\n" +
@@ -71,7 +98,16 @@ func joinGoStrings(items []string) string {
 // IMPORTANT: this template is stored inside a raw string literal, so the
 // generated source must NOT contain a backtick character. Every string in the
 // template is therefore a double-quoted Go literal with explicit escaping.
-// The only placeholders are %%ALLOW_EXEC%% and %%ALLOW_DIRS%%.
+// The placeholders are %%ALLOW_EXEC%%, %%ALLOW_DIRS%%, %%BACKEND_IMPORT%% and
+// %%BACKEND_MOUNT%%:
+//   - %%ALLOW_EXEC%% / %%ALLOW_DIRS%% become the Go slice literals of the
+//     capability allow-lists;
+//   - %%BACKEND_IMPORT%% becomes the import line of the backend module
+//     (e.g. `backend "downloadmanager"`), or nothing when there is no
+//     backend;
+//   - %%BACKEND_MOUNT%% becomes the code that mounts the backend in front of
+//     the app assets (or mounts the assets directly when there is no
+//     backend).
 const desktopRuntimeTemplate = `package main
 
 import (
@@ -91,6 +127,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+%%BACKEND_IMPORT%%
 	"time"
 )
 
@@ -131,24 +168,18 @@ func main() {
 	// be used for the other bridge calls (exec, file write, ...).
 	docSecret := newToken(32)
 	mux := http.NewServeMux()
+	// assets serves the compiled app (index.html, style.css, app.js). It is
+	// mounted behind the optional backend, which delegates to it every
+	// request it does not handle itself.
+	assets := http.NewServeMux()
 
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		// The document cookie is set when the app page is served: the PDF
-		// viewer frame loads the document from the same origin and the
-		// browser sends the cookie back.
-		http.SetCookie(w, &http.Cookie{
-			Name:     "sui_doc",
-			Value:    docSecret,
-			Path:     documentPath,
-			HttpOnly: true,
-			SameSite: http.SameSiteStrictMode,
-		})
+	assets.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		writeRaw(w, "text/html; charset=utf-8", assetIndex)
 	})
-	mux.HandleFunc("GET /style.css", func(w http.ResponseWriter, r *http.Request) {
+	assets.HandleFunc("GET /style.css", func(w http.ResponseWriter, r *http.Request) {
 		writeRaw(w, "text/css; charset=utf-8", assetStyle)
 	})
-	mux.HandleFunc("GET /app.js", func(w http.ResponseWriter, r *http.Request) {
+	assets.HandleFunc("GET /app.js", func(w http.ResponseWriter, r *http.Request) {
 		// app.js carries the bridge token. Refuse cross-site script inclusion;
 		// DNS rebinding is already blocked by the Host check below.
 		if !sameSiteRequest(r) {
@@ -174,6 +205,7 @@ func main() {
 	mux.HandleFunc("POST /__bridge__/pick-file", makePickFile(secret))
 	mux.HandleFunc("POST /__bridge__/pick-directory", makePickDirectory(secret))
 	mux.HandleFunc("GET "+documentPath, makeDocument(docSecret))
+%%BACKEND_MOUNT%%
 
 	addr := "127.0.0.1:0"
 	if port != 0 {
@@ -195,6 +227,19 @@ func main() {
 		if r.Method == http.MethodPost && strings.EqualFold(r.Header.Get("Sec-Fetch-Site"), "cross-site") {
 			http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
 			return
+		}
+		if r.Method == http.MethodGet {
+			// The document cookie is set on every GET: the PDF viewer frame
+			// loads the document from the same origin and the browser sends
+			// the cookie back. It is set here, outside the asset handlers,
+			// so it is issued even when the backend answers the request.
+			http.SetCookie(w, &http.Cookie{
+				Name:     "sui_doc",
+				Value:    docSecret,
+				Path:     documentPath,
+				HttpOnly: true,
+				SameSite: http.SameSiteStrictMode,
+			})
 		}
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		if r.URL.Path != documentPath {

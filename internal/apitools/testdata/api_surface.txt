@@ -8,6 +8,8 @@ func AsStr(v JVal) string
 func AstJsonFromSource(source string, file string) (string, DiagList)
 func BuildDesktop(prog *Prog, outDir string, allowExec []string, allowDirs []string)
 func BuildDesktopWebview(prog *Prog, outDir string, allowExec []string, allowDirs []string)
+func BuildDesktopWebviewWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string)
+func BuildDesktopWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string)
 func BuildSingleHTML(prog *Prog, minify bool) string
 func BuildSingleHTMLOpts(prog *Prog, minify bool, sourcemap bool) string
 func BuildWebInto(entryFile string, outDir string, hr *HotReloader, notify bool) error
@@ -29,7 +31,9 @@ func DefaultSecurity() SecurityConfig
 func DefaultSecurityPolicy() SecurityConfig
 func DesignerElementFrom(elem *Element, seen map[string]bool) JVal
 func DesktopMainSource(allowExec []string, allowDirs []string) string
+func DesktopMainSourceWithBackend(allowExec []string, allowDirs []string, backendModule string) string
 func DesktopWebviewMainSource(allowExec []string, allowDirs []string, title string) string
+func DesktopWebviewMainSourceWithBackend(allowExec []string, allowDirs []string, title string, backendModule string) string
 func EscapeJsStr(s string) string
 func EscapeJsTemplate(s string) string
 func ExprToJs(e *Expr) string
@@ -93,7 +97,9 @@ func RichTextRuntimeSubset(codes []string) string
 func RichTextToolbarGroups() []RichTextToolbarGroup
 func RichTextToolbarJSON() string
 func RunDesktopBuild(prog *Prog, outDir string, allowExec []string, allowDirs []string) error
+func RunDesktopBuildWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) error
 func RunDesktopWebviewBuild(prog *Prog, outDir string, allowExec []string, allowDirs []string) error
+func RunDesktopWebviewBuildWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) error
 func RunHeadlessFeature(t *testing.T, source string, script string)
 func SecurityForEntry(entryFile string, override string) (SecurityConfig, []string, error)
 func SecurityPathFor(dir string) string

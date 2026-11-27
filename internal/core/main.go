@@ -13,6 +13,7 @@ import (
 //   simpleui help
 //   simpleui parse <file.sui>
 //   simpleui build <file.sui> [--target web|desktop|desktop-webview] [--out <dir>]
+//                  [--backend <dir>]
 //
 // The desktop targets wrap the generated app in a native executable:
 // desktop opens the system browser, desktop-webview opens an embedded WebView.
@@ -102,12 +103,13 @@ func CmdBuild(args []string) {
 	var allowExec []string
 	var allowDirs []string
 	security := ""
+	backend := ""
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if strings.HasPrefix(arg, "--") {
 			name, value, hasValue := SplitFlag(arg)
 			needsValue := name == "target" || name == "out" || name == "allow-exec" ||
-				name == "allow-dir" || name == "security"
+				name == "allow-dir" || name == "security" || name == "backend"
 			if !hasValue && needsValue && i+1 < len(args) {
 				value, hasValue = args[i+1], true
 				i++
@@ -137,6 +139,11 @@ func CmdBuild(args []string) {
 					UsageError("--security needs a JSON file")
 				}
 				security = value
+			} else if name == "backend" {
+				if !hasValue {
+					UsageError("--backend needs a directory")
+				}
+				backend = value
 			} else if name == "single" {
 				single = true
 			} else if name == "minify" {
@@ -171,6 +178,9 @@ func CmdBuild(args []string) {
 	if single && (target == "desktop" || target == "desktop-webview") {
 		UsageError("--single is for web builds; the desktop targets are already one executable")
 	}
+	if backend != "" && target == "web" {
+		UsageError("--backend requires --target desktop or --target desktop-webview")
+	}
 	if !single && (strings.HasSuffix(strings.ToLower(out), ".html") || strings.HasSuffix(strings.ToLower(out), ".htm")) {
 		UsageError("--out ending in .html requires --single")
 	}
@@ -193,11 +203,11 @@ func CmdBuild(args []string) {
 	}
 
 	if target == "desktop" {
-		BuildDesktop(prog, out, allowExec, allowDirs)
+		BuildDesktopWithBackend(prog, out, allowExec, allowDirs, backend)
 		return
 	}
 	if target == "desktop-webview" {
-		BuildDesktopWebview(prog, out, allowExec, allowDirs)
+		BuildDesktopWebviewWithBackend(prog, out, allowExec, allowDirs, backend)
 		return
 	}
 	if single {
@@ -309,6 +319,7 @@ func PrintHelp() {
 	fmt.Printf("         --sourcemap      web: write app.js.map/style.css.map (inline with --single)\n")
 	fmt.Printf("         --allow-exec <c> (desktop) grant the bridge the command name <c>\n")
 	fmt.Printf("         --allow-dir <d>  (desktop) grant the bridge read/write under <d> (repeatable)\n")
+	fmt.Printf("         --backend <dir>   (desktop) link the Go module in <dir> into the executable\n")
 	fmt.Printf("         --security <f>   policy file (default: simpleui.security.json next to <file.sui>)\n")
 	fmt.Printf("\n")
 }

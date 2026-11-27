@@ -28,7 +28,15 @@ const webviewGoVersion = "v0.0.0-20240831120633-6173450d4dd6"
 
 // BuildDesktop is the CLI entry point: it runs the build and exits on failure.
 func BuildDesktop(prog *Prog, outDir string, allowExec []string, allowDirs []string) {
-	if err := RunDesktopBuild(prog, outDir, allowExec, allowDirs); err != nil {
+	BuildDesktopWithBackend(prog, outDir, allowExec, allowDirs, "")
+}
+
+// BuildDesktopWithBackend is BuildDesktop with an embedded Go backend: the
+// backend module rooted at backendDir is linked into the produced executable,
+// so the user runs one process instead of two. An empty backendDir builds the
+// plain desktop app.
+func BuildDesktopWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) {
+	if err := RunDesktopBuildWithBackend(prog, outDir, allowExec, allowDirs, backendDir); err != nil {
 		fmt.Fprintf(os.Stderr, "%v: desktop build failed: %v\n", AppName, err)
 		os.Exit(1)
 	}
@@ -37,7 +45,13 @@ func BuildDesktop(prog *Prog, outDir string, allowExec []string, allowDirs []str
 
 // BuildDesktopWebview is the CLI entry point for the embedded-WebView target.
 func BuildDesktopWebview(prog *Prog, outDir string, allowExec []string, allowDirs []string) {
-	if err := RunDesktopWebviewBuild(prog, outDir, allowExec, allowDirs); err != nil {
+	BuildDesktopWebviewWithBackend(prog, outDir, allowExec, allowDirs, "")
+}
+
+// BuildDesktopWebviewWithBackend is BuildDesktopWebview with an embedded Go
+// backend (see BuildDesktopWithBackend).
+func BuildDesktopWebviewWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) {
+	if err := RunDesktopWebviewBuildWithBackend(prog, outDir, allowExec, allowDirs, backendDir); err != nil {
 		fmt.Fprintf(os.Stderr, "%v: desktop-webview build failed: %v\n", AppName, err)
 		os.Exit(1)
 	}
@@ -48,17 +62,39 @@ func BuildDesktopWebview(prog *Prog, outDir string, allowExec []string, allowDir
 // app(.exe). On success it returns nil; on failure it returns an error whose
 // text includes the go build diagnostics. Test-friendly (never os.Exit).
 func RunDesktopBuild(prog *Prog, outDir string, allowExec []string, allowDirs []string) error {
+	return RunDesktopBuildWithBackend(prog, outDir, allowExec, allowDirs, "")
+}
+
+// RunDesktopBuildWithBackend writes the runtime module under outDir and
+// compiles it into app(.exe), linking the backend module rooted at backendDir
+// into the executable. An empty backendDir builds the plain desktop app.
+func RunDesktopBuildWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) error {
+	backend, err := prepareBackend(backendDir)
+	if err != nil {
+		return err
+	}
 	if err := writeDesktopAssets(prog, outDir); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "go.mod"), []byte("module desktopapp\n\ngo 1.24.2\n"), 0o644); err != nil {
+	goMod := "module desktopapp\n\ngo " + desktopBaseGoVersion + "\n"
+	mainSource := DesktopMainSource(allowExec, allowDirs)
+	if backend != nil {
+		goMod = backend.goMod(nil)
+		mainSource = DesktopMainSourceWithBackend(allowExec, allowDirs, backend.modulePath)
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "main.go"), []byte(DesktopMainSource(allowExec, allowDirs)), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outDir, "main.go"), []byte(mainSource), 0o644); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(outDir, "dialog.go"), []byte(desktopDialogSource), 0o644); err != nil {
 		return err
+	}
+	if backend != nil {
+		if err := backend.copyGoSum(outDir); err != nil {
+			return err
+		}
 	}
 	return runDesktopGoBuild(outDir, false)
 }
@@ -66,22 +102,44 @@ func RunDesktopBuild(prog *Prog, outDir string, allowExec []string, allowDirs []
 // RunDesktopWebviewBuild writes and compiles the embedded-WebView variant.
 // The resulting executable no longer launches a separate browser.
 func RunDesktopWebviewBuild(prog *Prog, outDir string, allowExec []string, allowDirs []string) error {
+	return RunDesktopWebviewBuildWithBackend(prog, outDir, allowExec, allowDirs, "")
+}
+
+// RunDesktopWebviewBuildWithBackend writes and compiles the embedded-WebView
+// variant, linking the backend module rooted at backendDir into the
+// executable. An empty backendDir builds the plain WebView app.
+func RunDesktopWebviewBuildWithBackend(prog *Prog, outDir string, allowExec []string, allowDirs []string, backendDir string) error {
+	backend, err := prepareBackend(backendDir)
+	if err != nil {
+		return err
+	}
 	if err := writeDesktopAssets(prog, outDir); err != nil {
 		return err
 	}
-	goMod := "module desktopapp\n\ngo 1.24.2\n\nrequire " + webviewGoModule + " " + webviewGoVersion + "\n"
-	if err := os.WriteFile(filepath.Join(outDir, "go.mod"), []byte(goMod), 0o644); err != nil {
-		return err
-	}
+	webviewRequire := webviewGoModule + " " + webviewGoVersion
+	goMod := "module desktopapp\n\ngo " + desktopBaseGoVersion + "\n\nrequire " + webviewRequire + "\n"
 	title := PageTitle(prog)
 	if strings.TrimSpace(title) == "" {
 		title = "SimpleUI App"
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "main.go"), []byte(DesktopWebviewMainSource(allowExec, allowDirs, title)), 0o644); err != nil {
+	mainSource := DesktopWebviewMainSource(allowExec, allowDirs, title)
+	if backend != nil {
+		goMod = backend.goMod([]string{webviewRequire})
+		mainSource = DesktopWebviewMainSourceWithBackend(allowExec, allowDirs, title, backend.modulePath)
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "go.mod"), []byte(goMod), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "main.go"), []byte(mainSource), 0o644); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(outDir, "dialog.go"), []byte(desktopDialogSource), 0o644); err != nil {
 		return err
+	}
+	if backend != nil {
+		if err := backend.copyGoSum(outDir); err != nil {
+			return err
+		}
 	}
 	if err := runGoCommand(outDir, "mod", "tidy"); err != nil {
 		return fmt.Errorf("%v\nhint: the WebView target needs Go modules access (first build downloads %v); on Linux install gtk+-3.0 and webkit2gtk-4.0 development packages", err, webviewGoModule)
