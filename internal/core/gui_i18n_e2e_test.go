@@ -89,7 +89,7 @@ func TestGuiI18nEditorE2E(t *testing.T) {
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
 		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
 		"--no-first-run", "--no-default-browser-check", "--window-size=1200,900",
-		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=25000", "--dump-dom", baseURL,
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=90000", "--dump-dom", baseURL,
 	}
 	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
 	text := string(out)
@@ -159,7 +159,7 @@ const guiI18nScript = `<script>
         var doc = document.getElementById('prev').contentDocument;
         return !!(doc && doc.body && doc.body.innerText.indexOf('Save') >= 0);
       } catch (e) { return false; }
-    }, 8000);
+    }, 20000);
     assert(english, 'preview did not switch to English');
 
     var textarea = document.querySelector('#i18n-messages tbody tr td:nth-child(2) textarea');

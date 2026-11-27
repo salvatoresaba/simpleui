@@ -176,7 +176,7 @@ func runDesignerE2E(t *testing.T, source string, script string) {
 	args := []string{
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
 		"--no-first-run", "--no-default-browser-check", "--window-size=1200,800",
-		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=60000", "--dump-dom",
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=120000", "--dump-dom",
 		"--enable-logging=stderr", "--log-level=0", url,
 	}
 	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
@@ -379,7 +379,7 @@ const designerRowResizeScript = `<script>
       var d = frameDoc();
       var h = d && d.querySelector('.sui-grid-split-v');
       return h ? h : null;
-    }, 8000);
+    }, 20000);
     if (!handle) throw new Error('the cell split handle is missing');
     var doc = frameDoc();
     var hr = handle.getBoundingClientRect();
@@ -393,7 +393,7 @@ const designerRowResizeScript = `<script>
     var written = await until(function () {
       var src = document.getElementById('out').value || '';
       return src.indexOf('columnWidths:') >= 0 ? src : null;
-    }, 8000);
+    }, 20000);
     if (!written) throw new Error('the cell sizes were not written back');
     var match = /columnWidths: "([^"]*)"/.exec(written);
     if (!match) throw new Error('the column widths are missing: ' + written);

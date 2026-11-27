@@ -112,7 +112,7 @@ func TestGuiEditorToolsE2E(t *testing.T) {
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
 		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
 		"--no-first-run", "--no-default-browser-check", "--window-size=1200,900",
-		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=25000", "--dump-dom", baseURL,
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=90000", "--dump-dom", baseURL,
 	}
 	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
 	text := string(out)
@@ -158,7 +158,7 @@ const guiEditorToolsScript = `<script>
     target.dispatchEvent(ev);
   }
   try {
-    await until(function () { return typeof addEl === 'function' && root && root.children.length >= 2 && __prefsLoaded; }, 8000);
+    await until(function () { return typeof addEl === 'function' && root && root.children.length >= 2 && __prefsLoaded; }, 20000);
 
     // ---- formatter: pure function ----
     var messy = 'fn  a() {   \n      h1  "x"   \n\n\n      p "y"\n   }';

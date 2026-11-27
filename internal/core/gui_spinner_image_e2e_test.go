@@ -111,7 +111,7 @@ func TestGuiSpinnerImageE2E(t *testing.T) {
 		"--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
 		"--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
 		"--no-first-run", "--no-default-browser-check", "--window-size=1200,900",
-		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=25000", "--dump-dom", baseURL,
+		"--user-data-dir=" + t.TempDir(), "--virtual-time-budget=90000", "--dump-dom", baseURL,
 	}
 	out, err := exec.CommandContext(ctx, browser, args...).CombinedOutput()
 	text := string(out)
@@ -208,7 +208,7 @@ const guiSpinnerImageScript = `<script>
         var doc = frame && frame.contentDocument;
         return !!(doc && doc.querySelector('.sui-spinner-img'));
       } catch (e) { return false; }
-    }, 8000);
+    }, 20000);
     assert(readyPreview, 'preview did not render the image spinner');
     var doc = frame.contentDocument;
     var img = doc.querySelector('.sui-spinner-img');

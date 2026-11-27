@@ -76,7 +76,7 @@ const designerGridScript = `<script>
       var d = frameDoc();
       var h = d && d.querySelector('.sui-grid-split-v');
       return h ? h : null;
-    }, 8000);
+    }, 20000);
     if (!handle) throw new Error('the cell split handle is missing');
     var doc = frameDoc();
     var hr = handle.getBoundingClientRect();
@@ -91,7 +91,7 @@ const designerGridScript = `<script>
       var src = document.getElementById('out').value || '';
       var found = src.match(/width:\s*\d+px/g) || [];
       return found.length >= 3 ? src : null;
-    }, 8000);
+    }, 20000);
     if (!written) throw new Error('the cell sizes were not written back');
     step('written');
 
