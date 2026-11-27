@@ -199,6 +199,10 @@ For desktop capabilities:
 ./simpleui.exe build app.sui --target desktop-webview --out dist \
   --allow-dir C:/data --allow-exec helper.exe
 
+# One executable with a Go backend inside: <dir> is the root of a Go module
+# whose root package exports func Handler(fallback http.Handler) http.Handler
+./simpleui.exe build app.sui --target desktop --out dist --backend ./server
+
 # Windows: double-click .sui files in the editor (HKCU, reversible)
 ./simpleui.exe associate
 ./simpleui.exe associate --uninstall

@@ -4120,6 +4120,8 @@ simpleui build examples/counter.sui --target desktop --out dist \
   --allow-exec cmd --allow-dir "C:/logs"
 simpleui build examples/counter.sui --target desktop-webview --out dist \
   --allow-exec cmd --allow-dir "C:/logs"
+simpleui build examples/download_manager/app.sui --target desktop --out dist \
+  --backend examples/download_manager/server
 simpleui serve examples/counter.sui --watch
 simpleui gui
 simpleui gui examples/counter.sui
@@ -4148,6 +4150,7 @@ simpleui mcp
   SUI → HTML è coperto dalla mappa JavaScript perché `app.js` costruisce il DOM.
 - **single HTML e CSP**: CSS/JS sono inline; se servi il file con una Content-Security-Policy restrittiva devi consentire `'unsafe-inline'` (o usare hash/nonce). La build multi-file non ha questo vincolo.
 - **desktop**: genera eseguibile single-file con bridge nativo (exec/fs) + micro-server localhost + apertura browser predefinito. Supporta `--no-open`, `--port N`. Non combinabile con `--single`.
+- **desktop con un backend (`--backend <dir>`)**: collega un modulo Go dentro l'eseguibile, così l'app e il suo backend girano in un solo processo. `<dir>` è la directory radice di un modulo Go (contiene un `go.mod` con la direttiva `module`) e il suo package radice deve esportare `func Handler(fallback http.Handler) http.Handler`. Il backend viene montato davanti agli asset dell'app: risponde di ciò che conosce e delega tutto il resto al fallback, che serve l'app compilata. I `require` e il `go.sum` del backend vengono riportati, così le sue dipendenze si risolvono; il modulo stesso è sostituito dalla sua directory locale, quindi non serve accesso alla rete. Il wrapper di sicurezza del target desktop (controllo host loopback, rifiuto delle POST cross-site, header anti-framing) continua a coprire anche il backend. Ha senso solo con `--target desktop` e `--target desktop-webview`.
 - **desktop-webview**: genera eseguibile single-file con lo stesso bridge e server localhost, ma apre una finestra WebView nativa invece del browser: WebView2 su Windows, WKWebView su macOS, WebKitGTK su Linux. Supporta `--no-open`, `--port N`. Non combinabile con `--single`. La prima build scarica `github.com/webview/webview_go`; il target richiede CGO e un toolchain C (Xcode Command Line Tools su macOS; su Linux installare i pacchetti di sviluppo GTK 3 e WebKitGTK 4.0).
 - **gui [file.sui]**: apre il designer visuale. Con un file lo carica subito e **Save** riscrive lo stesso percorso. `--port N` fissa la porta dell'editor; `--security <file>` seleziona la policy.
 - **associate**: su Windows associa i file `.sui` all'editor sotto `HKEY_CURRENT_USER` (senza diritti amministratore). `--uninstall` rimuove l'associazione e `--dry-run` stampa solo i comandi di registro. Un doppio clic su un file `.sui` apre `simpleui gui <file>`.

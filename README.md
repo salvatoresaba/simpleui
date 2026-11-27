@@ -271,6 +271,19 @@ Linux install `libgtk-3-dev` and `libwebkit2gtk-4.0-dev` (or the equivalents
 for your distribution). On Windows WebView2 Runtime is normally already present
 on Windows 10/11.
 
+One executable with a Go backend inside (the app and the backend in a single
+process):
+
+```bash
+./simpleui build app.sui --target desktop --out dist --backend ./server
+```
+
+`<dir>` is the root of a Go module whose root package exports
+`func Handler(fallback http.Handler) http.Handler`. The backend is mounted in
+front of the app assets and runs inside the same security wrapper as the app.
+See [`examples/download_manager`](examples/download_manager/README.md) for a
+complete example.
+
 ### 4. Visual designer
 
 Open an empty designer, or start directly from an existing `.sui` file:

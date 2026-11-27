@@ -480,6 +480,16 @@ fn boot() -> null {
 - Tieni le impostazioni in un pannello sovrapposto (`modal`): modalita',
   dimensione delle parti e parallelismo appartengono alla configurazione, non
   alla vista principale.
+- Includi il backend dentro l'eseguibile quando l'app e' una build desktop:
+  `simpleui build app.sui --target desktop --backend ./server`. Il backend e'
+  un modulo Go il cui package radice esporta
+  `func Handler(fallback http.Handler) http.Handler`; il compilatore lo monta
+  davanti agli asset dell'app, cosi' l'utente avvia un processo solo invece di
+  due. Il wrapper di sicurezza del target desktop lo copre comunque.
+- Accetta ogni protocollo che la sorgente offre davvero: l'esempio scarica da
+  server `http`, `https` e `ftp`. Il login ftp viaggia nell'URL
+  (`ftp://user:password@host/file.bin`), quindi maschera la password in tutto
+  cio' che l'app mostra e nei log.
 
 Vedi [`examples/download_manager/`](../examples/download_manager/README.md) per
 l'esempio completo: un backend Go che scarica l'URL indicato sulla riga di

@@ -98,6 +98,19 @@ Fasi: lexer → parser → typechecker → codegen. Gli errori confluiscono in
 - **Desktop:** eseguibile singolo con asset `go:embed`, micro-server
   `127.0.0.1`, bridge con capability e apertura browser. La WebView nativa è un
   follow-up.
+- **Desktop con backend Go (`--backend <dir>`):** il modulo Go indicato viene
+  collegato dentro l'eseguibile, cosi' app e backend girano in un processo solo.
+  `<dir>` e' la directory radice di un modulo Go (con un `go.mod`) e il suo
+  package radice deve esportare
+  `func Handler(fallback http.Handler) http.Handler`. Il backend viene montato
+  davanti agli asset dell'app: risponde di cio' che conosce e delega il resto
+  al fallback, che serve l'app compilata. Il `go.mod` generato richiede il
+  modulo e lo sostituisce con il suo percorso assoluto (nessun accesso alla
+  rete); i `require` e il `go.sum` del backend vengono riportati. Il backend
+  gira dentro il wrapper di sicurezza del target desktop, quindi il controllo
+  host loopback, il rifiuto delle POST cross-site e gli header anti-framing
+  valgono anche per le sue risposte. L'opzione ha senso solo con i target
+  desktop.
 
 ## 6. CLI
 
@@ -107,6 +120,8 @@ Comandi: `version`, `help`, `parse`, `check`, `fmt`, `docs`, `build`, `serve`,
 `check --json` restituisce `{ok, file, diagnostics}` ed esce con codice 1 in caso
 di errori. `docs` espone la documentazione embedded; `build --single` e
 `--target desktop` producono rispettivamente un HTML unico e un eseguibile.
+`build --backend <dir>` (solo target desktop) produce un eseguibile che
+contiene anche il backend Go indicato.
 
 ## 7. Runtime generato
 

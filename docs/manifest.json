@@ -73,6 +73,11 @@
       "docs": ["security", "stdlib", "recipes"]
     },
     {
+      "id": "desktop-backend",
+      "rule": "A Go backend linked with `--backend <dir>` is the root package of a Go module that exports `func Handler(fallback http.Handler) http.Handler`. It is mounted in front of the app assets and runs inside the desktop security wrapper.",
+      "docs": ["api", "recipes"]
+    },
+    {
       "id": "docs-first",
       "rule": "Use the manifest/recipes instead of inventing syntax. Search `simpleui docs --search <term>` and read the canonical doc before coding.",
       "docs": ["agents", "recipes"]

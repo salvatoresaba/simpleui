@@ -263,6 +263,19 @@ JavaScript perché `app.html` viene renderizzato da `app.js`. Le mappe includono
 
 L'app si aprirà automaticamente nel browser di default, oppure puoi usare `--no-open` per avviarla in modalità headless.
 
+Un solo eseguibile con dentro anche un backend Go (app e backend in un unico
+processo):
+
+```bash
+./simpleui build app.sui --target desktop --out dist --backend ./server
+```
+
+`<dir>` è la radice di un modulo Go il cui package radice esporta
+`func Handler(fallback http.Handler) http.Handler`: il backend viene montato
+davanti agli asset dell'app e gira dentro lo stesso wrapper di sicurezza.
+L'esempio completo è in
+[`examples/download_manager`](examples/download_manager/README.md).
+
 ### 4. Designer visuale
 
 L'editor grafico permette di creare e modificare file `.sui` in modo visivo, con preview live, tree editor drag&drop, styler CSS e molto altro.

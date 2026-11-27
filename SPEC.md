@@ -1514,6 +1514,37 @@ Runtime behaviour of the compiled executable:
 - The *compiler build step* requires a Go toolchain on the build machine, but
   the produced executable has zero runtimes/dependencies for end users.
 
+### 9a. Desktop target with a Go backend
+
+`simpleui build app.sui --target desktop|desktop-webview --backend <dir>`
+adds a Go module to the generated executable, so the app and its backend run in
+one process.
+
+- `<dir>` is the **root directory of a Go module**: it holds a `go.mod` with a
+  `module` directive, and its **root package** must export
+  `func Handler(fallback http.Handler) http.Handler`. The build fails with a
+  clear error when the directory has no `go.mod`, when the root package is a
+  `package main` (a main package cannot be imported) or when the exported
+  `Handler` has another signature.
+- The generated `go.mod` requires the backend module (`v0.0.0`) and replaces it
+  with its **absolute local path**, so the build needs no network access. The
+  `require` directives and the `go.sum` of the backend are carried over, so the
+  external dependencies of the backend resolve with the same checksums. The
+  `go` directive of the generated module is the newer of `1.24.2` and the one of
+  the backend.
+- The backend is mounted **in front of the app assets**: the generated runtime
+  builds an `assets` handler (the compiled `index.html`, `style.css` and
+  `app.js`) and passes it as the fallback, so the backend answers what it
+  knows and delegates everything else to the app. The backend package is
+  imported with the explicit alias `backend`: its package name is irrelevant.
+- The backend runs **inside the security wrapper** of the desktop target: the
+  loopback `Host` check, the cross-site POST refusal, `X-Content-Type-Options:
+  nosniff` and the anti-framing headers apply to its answers too. The document
+  cookie (`sui_doc`) is issued by the wrapper on every GET, so it is set even
+  when the backend answers the request instead of the app.
+- The flag is only meaningful for the desktop targets; `--target web` with
+  `--backend` is a usage error.
+
 JS mapping (`GenerateJsFor(p, "desktop")`): `fs.*`, `exec.run` and
 `dialog.pickFile/pickFiles/pickDirectory` become `fetch("/__bridge__/…")` posts
 carrying `__SUI_TOKEN`; `http.*`, `ws.*` and `json.*` keep their web

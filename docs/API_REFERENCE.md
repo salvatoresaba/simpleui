@@ -4213,6 +4213,8 @@ simpleui build examples/counter.sui --target desktop --out dist \
   --allow-exec cmd --allow-dir "C:/logs"
 simpleui build examples/counter.sui --target desktop-webview --out dist \
   --allow-exec cmd --allow-dir "C:/logs"
+simpleui build examples/download_manager/app.sui --target desktop --out dist \
+  --backend examples/download_manager/server
 simpleui serve examples/counter.sui --watch
 simpleui gui
 simpleui gui examples/counter.sui
@@ -4247,6 +4249,18 @@ simpleui mcp
 - **desktop**: emits one self-contained executable with a native bridge
   (`exec`/`fs`), a localhost micro-server and browser launch. Supports
   `--no-open`, `--port N`. Not combinable with `--single`.
+- **desktop with a backend (`--backend <dir>`)**: links a Go module into the
+  executable, so the app and its backend run in one process. `<dir>` is the root
+  directory of a Go module (it holds a `go.mod` with a `module` directive) and
+  its root package must export
+  `func Handler(fallback http.Handler) http.Handler`. The backend is mounted in
+  front of the app assets: it answers what it knows and delegates everything
+  else to the fallback, which serves the compiled app. The requirements and the
+  `go.sum` of the backend are carried over, so its own dependencies resolve;
+  the module itself is replaced by its local directory, so no network access is
+  needed. The security wrapper of the desktop target (loopback host check,
+  cross-site POST refusal, anti-framing headers) still covers the backend.
+  Only meaningful for `--target desktop` and `--target desktop-webview`.
 - **desktop-webview**: emits one self-contained executable with the same bridge
   and localhost server, but opens an embedded native WebView window instead of
   a browser: WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux.

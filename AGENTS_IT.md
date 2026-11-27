@@ -179,6 +179,14 @@ Per capability desktop:
   --allow-dir C:/data --allow-exec helper.exe
 ```
 
+Per un eseguibile che contiene anche un backend Go: `<dir>` e' la radice di un
+modulo Go il cui package radice esporta
+`func Handler(fallback http.Handler) http.Handler`.
+
+```bash
+./simpleui.exe build app.sui --target desktop --out dist --backend ./server
+```
+
 ## Task routing
 
 | Esigenza | Documento | Esempio |

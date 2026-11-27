@@ -520,6 +520,16 @@ fn boot() -> null {
 - Keep the settings in a collapsible overlay (`modal`): the mode, the size of
   the parts and the parallelism belong to the configuration, not to the main
   view.
+- Ship the backend inside the executable when the app is a desktop build:
+  `simpleui build app.sui --target desktop --backend ./server`. The backend is
+  a Go module whose root package exports
+  `func Handler(fallback http.Handler) http.Handler`; the compiler mounts it in
+  front of the app assets, so the user starts one process instead of two. The
+  security wrapper of the desktop target still covers it.
+- Accept every protocol the source really offers: the example downloads from
+  `http`, `https` and `ftp` servers. The ftp login travels in the URL
+  (`ftp://user:password@host/file.bin`), so mask the password in everything
+  the app displays and in the logs.
 
 See [`examples/download_manager/`](../examples/download_manager/README.md) for
 the complete example: a Go backend that downloads the URL given on the command
