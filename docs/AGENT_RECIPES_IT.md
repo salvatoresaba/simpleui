@@ -425,6 +425,13 @@ fn boot() -> null {
 - Tieni l'identificativo del lavoro in uno stato e costruisci da li' gli URL
   delle azioni: un URL dinamico richiede `http.postSafe` con allow-list
   **letterale**.
+- Trova il backend all'avvio invece di fissarne l'indirizzo: chiedi la
+  configurazione al server che ha servito la pagina (`GET /api/config` sulla
+  stessa origine) e usa la risposta come base dell'API. Le chiamate restano
+  relative, quindi l'app funziona su ogni porta; quando la pagina viene da un
+  altro host (la build desktop) l'app ripiega sull'indirizzo del backend.
+  L'allow-list degli URL dinamici puo' allora elencare entrambe le forme,
+  `/api http://127.0.0.1:8090/api`.
 - Mostra l'avanzamento per unita' (le parti, i passi, gli elementi), non solo
   una percentuale: e' quello che dice all'operatore che il lavoro avanza.
 - Conta anche le unita': quante sono, quante stanno girando adesso e quante

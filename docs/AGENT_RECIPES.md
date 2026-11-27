@@ -470,6 +470,12 @@ fn boot() -> null {
 
 - Keep the job identifier in a state and build the action URLs from it; a
   dynamic URL requires `http.postSafe` with a **literal** allow-list.
+- Find the backend at the start instead of hardcoding its address: ask the
+  server that served the page (`GET /api/config` on the same origin) and keep
+  the answer as the base of the API. The calls stay relative, so the app works
+  on every port; when the page comes from another host (the desktop build) the
+  app falls back to the address of the backend. The allow-list of the dynamic
+  URLs can then list both forms, `/api http://127.0.0.1:8090/api`.
 - Show the per-unit progress (the parts, the steps, the items), not only a
   percentage: it is what tells the operator that the job is really moving.
 - Count the units as well: how many there are, how many are running right now

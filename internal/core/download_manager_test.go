@@ -35,8 +35,13 @@ func TestDownloadManagerApp(t *testing.T) {
 	}
 	js := GenerateJs(prog)
 	for _, want := range []string{
-		"api/downloads",
-		"api/config",
+		// The backend is found at the start: the calls are relative when the
+		// page comes from the backend itself, and the address of the backend
+		// is the fallback when it does not.
+		"apiUrl",
+		"apiFallback",
+		"apiRoot",
+		"/api",
 		"table_display",
 		"setInterval(",
 		"http_postsafe",

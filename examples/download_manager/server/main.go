@@ -34,17 +34,20 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"embed"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	pathpkg "path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -52,6 +55,14 @@ import (
 	"sync"
 	"time"
 )
+
+// embeddedWeb is populated by build.ps1/build.bat: it holds the compiled
+// SimpleUI app, so a single executable carries the app and the downloader.
+// The placeholder README.txt keeps `go build` working before the first
+// frontend build.
+//
+//go:embed all:web
+var embeddedWeb embed.FS
 
 // Part is one slice of the file. The JSON keys are the column headers the
 // SUI table shows, so they are human readable on purpose.
@@ -242,6 +253,24 @@ func main() {
 	}
 	baseURL := "http://" + ln.Addr().String()
 
+	// Without a URL of its own the manager downloads the sample file it
+	// serves: the default follows the port the listener actually got.
+	if opts.url == "" {
+		opts.url = defaultTargetURL(baseURL)
+	}
+
+	// The frontend comes from the disk (--web-dir) or from the executable
+	// itself, when the app was embedded at build time.
+	var webFS fs.FS
+	if opts.webDir == "" {
+		sub, ferr := fs.Sub(embeddedWeb, "web")
+		if ferr != nil {
+			fmt.Fprintln(os.Stderr, "embedded web assets:", ferr)
+			os.Exit(1)
+		}
+		webFS = sub
+	}
+
 	mgr := &Manager{
 		jobs:     map[string]*Job{},
 		outDir:   opts.outDir,
@@ -315,29 +344,7 @@ func main() {
 			mgr.handleFile(w, r)
 		})
 	}
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		if path == "/" {
-			path = "/index.html"
-		}
-		file := filepath.Join(opts.webDir, filepath.FromSlash(strings.TrimPrefix(path, "/")))
-		data, err := os.ReadFile(file)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		ct := "application/octet-stream"
-		switch {
-		case strings.HasSuffix(path, ".html"):
-			ct = "text/html; charset=utf-8"
-		case strings.HasSuffix(path, ".css"):
-			ct = "text/css; charset=utf-8"
-		case strings.HasSuffix(path, ".js"):
-			ct = "application/javascript; charset=utf-8"
-		}
-		w.Header().Set("Content-Type", ct)
-		_, _ = w.Write(data)
-	})
+	mux.HandleFunc("GET /", frontendHandler(opts.webDir, webFS))
 
 	srv := &http.Server{Handler: cors(logRequests(mux))}
 	go func() { _ = srv.Serve(ln) }()
@@ -364,6 +371,51 @@ func main() {
 		openBrowser(baseURL + "/")
 	}
 	select {}
+}
+
+// ---------------------------------------------------------------- frontend ---
+
+// frontendHandler serves the compiled app: from the disk when a directory is
+// given (the development launcher) and from the executable itself when the
+// app was embedded at build time (the release build).
+func frontendHandler(webDir string, webFS fs.FS) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if path == "/" {
+			path = "/index.html"
+		}
+		// The path is cleaned before it is used, so it can never escape the
+		// directory of the app.
+		rel := strings.TrimPrefix(pathpkg.Clean("/"+path), "/")
+		var data []byte
+		var err error
+		if webFS != nil {
+			data, err = fs.ReadFile(webFS, rel)
+		} else {
+			data, err = os.ReadFile(filepath.Join(webDir, filepath.FromSlash(rel)))
+		}
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		ct := "application/octet-stream"
+		switch {
+		case strings.HasSuffix(path, ".html"):
+			ct = "text/html; charset=utf-8"
+		case strings.HasSuffix(path, ".css"):
+			ct = "text/css; charset=utf-8"
+		case strings.HasSuffix(path, ".js"):
+			ct = "application/javascript; charset=utf-8"
+		}
+		w.Header().Set("Content-Type", ct)
+		_, _ = w.Write(data)
+	}
+}
+
+// defaultTargetURL is the file the manager downloads when the CLI does not
+// name one: the sample file it serves, at the port the listener got.
+func defaultTargetURL(baseURL string) string {
+	return baseURL + "/files/sample.bin"
 }
 
 // ------------------------------------------------------------------ flags ---

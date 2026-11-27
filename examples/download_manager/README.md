@@ -9,8 +9,11 @@ one, pausable, resumable, restartable part by part and verifiable.
 examples/download_manager/
   app.sui        the SimpleUI GUI (one file, type-checked)
   server/main.go the Go backend: file server + chunked downloader
+  server/web/    the compiled app, embedded in the executable of the release
   run.ps1        launcher: builds the app and starts the backend
   run.bat        same for cmd.exe
+  build.ps1      release build: one executable with the app inside
+  build.bat      same for cmd.exe
 ```
 
 The backend lives in its own Go module (`server/go.mod`), so the example does
@@ -18,6 +21,17 @@ not add a dependency to the root module.
 
 ## What it demonstrates
 
+- **One executable, app and downloader inside.** `build.ps1` writes the compiled
+  app into `server/web/` and embeds it in the Go program, so the release build
+  is a single file that opens the app and downloads with it: no other file and
+  no other process are needed.
+- **The app finds the backend by itself.** When the app starts it asks the
+  server that served the page for its configuration: if that server is the
+  download manager (the usual case) the calls stay on the same origin, so the
+  app works on every port. If the page comes from somewhere else — the desktop
+  build, which serves the app alone — the app falls back to the address of the
+  backend. When the backend does not answer at all, the toast says how to
+  start it.
 - **The CLI takes the URL of the file.** `dm.exe --url https://example.com/file.bin`
   is the file to download; the other flags are the configuration (part size,
   workers, throttle, allowed hosts, expected checksum). The GUI reads the
@@ -119,6 +133,10 @@ not add a dependency to the root module.
 ## How to run
 
 ```bash
+# the release build: one executable with the app and the downloader inside
+pwsh examples/download_manager/build.ps1
+.\examples\download_manager\bin\download_manager.exe --port 8090
+
 # build the app and start the backend (Windows): by default the backend
 # downloads its own sample file, so the example works offline
 pwsh examples/download_manager/run.ps1
@@ -139,25 +157,28 @@ Then open <http://127.0.0.1:8090/>. The backend creates a deterministic
 24 MiB sample file (`files/sample.bin`) on first start, so the example works
 offline and always produces the same bytes.
 
-**The example needs the backend.** The GUI calls `http://127.0.0.1:8090`, so
-it must be served by the download manager itself: `run.ps1` does exactly that
-(the backend serves the compiled app from the same origin). The **desktop**
+**The example needs the backend.** The GUI talks to the download manager, so
+the two have to meet: the app looks for it at the start and asks the server
+that served the page first, then the address of the backend (`127.0.0.1:8090`).
+The **release build** (`build.ps1`) is the simple way: one executable carries
+the app and the backend, so the download works as soon as it is started. The
+**development launcher** (`run.ps1`) does the same, but it serves the app from
+the disk (`public/`), so the app can be rebuilt while it runs. The **desktop**
 target (`simpleui build app.sui --target desktop`) compiles the same GUI into
-an executable that serves it on its own port: the GUI opens and the row of the
-target is there, but the download cannot work, because the backend of the
-example is a separate program that the desktop build does not start.
+an executable that serves it on its own port: it finds the backend when one is
+running on 8090, and when there is none the toast says how to start it.
 
 ### The flags of the CLI
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--url` | (empty) | URL of the file to download; the GUI shows it and the operator can change it |
+| `--url` | (empty) | URL of the file to download; the GUI shows it and the operator can change it. Without it the manager downloads its own sample file, at the port it listens on |
 | `--part-size` | `1 MiB` | length of one part: the file is split accordingly |
 | `--workers` | `4` | parallel part downloads |
 | `--throttle` | `0` | bytes/s per worker; slows the download down so the progress is visible |
 | `--max-parts` | `256` | upper bound of the parts of one job |
 | `--out-dir` | `../downloads` | folder with the parts and the merged file |
-| `--web-dir` | (empty) | folder with the compiled SUI app |
+| `--web-dir` | (empty) | folder with the compiled SUI app; without it the app embedded in the executable is served |
 | `--files-dir` | `../files` | folder with the files offered for download |
 | `--sample-mib` | `24` | size of the generated sample file; `0` disables the generation |
 | `--expect-sha256` | (empty) | expected SHA-256 of the file: the merge verifies it |
@@ -172,13 +193,15 @@ refused. With `--allow-host` only the listed hosts can be downloaded:
 dm.exe --url https://example.com/file.bin --allow-host example.com --allow-host cdn.example.com
 ```
 
-### The port is part of the app
+### The port does not matter
 
-The GUI calls `http://127.0.0.1:8090/api/...` with **literal** URLs, and the
-dynamic job URL is allowed only for the literal origin `http://127.0.0.1:8090`.
-Running the backend on a different port therefore means editing `app.sui` too:
-change the three URLs and the allow-list, then rebuild the app. The backend
-prints the URL it listens on.
+The GUI asks the server that served the page for the configuration, so the
+calls of the API stay on that origin: the app works on every port and the
+backend does not have to be on 8090. When the page comes from another host
+(the desktop build), the app falls back to `http://127.0.0.1:8090`, and the
+dynamic job URL is allowed for the API of the backend only — the allow-list is
+the literal `/api http://127.0.0.1:8090/api`, exactly as the security rules
+require. The backend prints the URL it listens on.
 
 ## The GUI
 
@@ -302,9 +325,12 @@ import { http, json, sound } from "std"
 # start from the most recent part. The errors are shown as toasts and the
 # completion plays a sound.
 #
-# The backend listens on port 8090: the URLs below are literals, and the only
-# dynamic URLs (the ones that carry the job id) go through http.postSafe with
-# a literal allow-list.
+# The backend is found when the app starts: when the page is served by the
+# backend itself (the same origin) the calls are relative, so the app works on
+# every port. When the page is served by another host (the desktop build) the
+# backend has its own address. The calls with a dynamic URL (the ones that
+# carry the job id) go through http.postSafe with the API of the backend as
+# allow-list.
 
 state partSize = "1 MiB"
 state workers = "4"
@@ -340,6 +366,44 @@ state partDone = 0
 state files: array[any] = []
 state filesTable: any = []
 state filesSignature = ""
+# The base of the API: it is empty when the page comes from the backend
+# itself (the same origin) and it is the address of the backend when the page
+# comes from another host (the desktop build).
+state apiRoot = ""
+# The address of the backend used when the page does not come from it.
+state apiFallback = "http://127.0.0.1:8090"
+# The configuration of the backend, when it has answered.
+state backendConfig: any = null
+# The jobs of the backend, when they have been read.
+state jobsList: any = null
+
+# The URL of an API call: the base of the backend plus the path of the call.
+fn apiUrl(path: string) -> string {
+	return apiRoot + "/api" + path
+}
+
+# The URL of a file of the backend that is not part of the API (the sound of
+# the end of a download).
+fn backendUrl(path: string) -> string {
+	return apiRoot + path
+}
+
+# The answer of the backend: it is the configuration of the download manager
+# and not the page of another program (the desktop build answers every path
+# with its own page).
+fn isConfig(body: any) -> bool {
+	let text = str(body)
+	if text == "" {
+		return false
+	}
+	return contains(text, "partSize") and contains(text, "workers")
+}
+
+# The message the operator reads when the backend does not answer: it says how
+# to start it.
+fn backendDown() -> string {
+	return "the download manager is not running: start it with run.ps1"
+}
 
 # The configuration of the CLI: the default URL, the part size and the default
 # number of parts downloaded at the same time. The app starts with them, the
@@ -348,16 +412,33 @@ async fn loadConfig() -> null {
 	# The first row is there before the backend answers: the operator can type
 	# the URL of the file to download even when the backend is not there yet.
 	ensureFirstTarget()
-	body, err = http.get("http://127.0.0.1:8090/api/config")
-	if err != null {
-		notifyError("backend unreachable: " + err)
+	# The backend is looked for in the two possible places: the page can be
+	# served by the backend itself (the same origin) or by another host (the
+	# desktop build), where the backend has its own address.
+	backendConfig = null
+	body, err = http.getSafe(apiUrl("/config"), "/api http://127.0.0.1:8090/api")
+	if err == null {
+		parsed, jerr = json.parse(body)
+		if jerr == null and isConfig(body) {
+			backendConfig = parsed
+		}
+	}
+	if backendConfig == null {
+		apiRoot = apiFallback
+		body2, err2 = http.getSafe(apiUrl("/config"), "/api http://127.0.0.1:8090/api")
+		if err2 == null {
+			parsed2, jerr2 = json.parse(body2)
+			if jerr2 == null and isConfig(body2) {
+				backendConfig = parsed2
+			}
+		}
+	}
+	if backendConfig == null {
+		apiRoot = ""
+		notifyError(backendDown())
 		return
 	}
-	cfg, jerr = json.parse(body)
-	if jerr != null {
-		notifyError("invalid response: " + jerr)
-		return
-	}
+	let cfg = backendConfig
 	# The URL of the command line fills the first row, but only when the row is
 	# still empty: a row that already holds a file keeps its own URL. The rows
 	# can be gone (the operator can cancel them), so the list is checked.
@@ -663,7 +744,7 @@ async fn onTargetCancel(ev: any, id: string) -> null {
 		removeTarget(id)
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/files/" + fileId + "/cancel", "", "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/files/" + fileId + "/cancel"), "", "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("the cancel failed: " + err)
 		return
@@ -749,17 +830,35 @@ fn notifyInfo(text: string) -> null {
 
 # Polling: read the jobs and refresh the views.
 async fn refresh() -> null {
-	body, err = http.get("http://127.0.0.1:8090/api/downloads")
-	if err != null {
-		notifyError("backend unreachable: " + err)
+	# The answer can come from the same origin or from the address of the
+	# backend: when the page is served by another host the backend has its own
+	# address, and it can also start after the page.
+	jobsList = null
+	body, err = http.getSafe(apiUrl("/downloads"), "/api http://127.0.0.1:8090/api")
+	if err == null {
+		parsed, jerr = json.parse(body)
+		if jerr == null {
+			jobsList = parsed["jobs"]
+		}
+	}
+	if jobsList == null and apiRoot == "" {
+		apiRoot = apiFallback
+		body2, err2 = http.getSafe(apiUrl("/downloads"), "/api http://127.0.0.1:8090/api")
+		if err2 == null {
+			parsed2, jerr2 = json.parse(body2)
+			if jerr2 == null {
+				jobsList = parsed2["jobs"]
+			}
+		}
+		if jobsList == null {
+			apiRoot = ""
+		}
+	}
+	if jobsList == null {
+		notifyError(backendDown())
 		return
 	}
-	data, jerr = json.parse(body)
-	if jerr != null {
-		notifyError("invalid response: " + jerr)
-		return
-	}
-	let jobs = data["jobs"]
+	let jobs = jobsList
 	n, terr = table.display("jobs", jobs)
 	if terr != null {
 		notifyError("jobs table not updated: " + terr)
@@ -943,7 +1042,7 @@ fn refreshFilesTable(signature: string) -> null {
 # The download is complete: a toast and a short sound.
 async fn announceDone(job: any) -> null {
 	toast.show("Download complete: " + str(len(job["files"])) + " files", "success", 4000)
-	ok, err = sound.play("http://127.0.0.1:8090/sound.wav")
+	ok, err = sound.playSafe(backendUrl("/sound.wav"), "/sound.wav http://127.0.0.1:8090/sound.wav")
 	if err != null {
 		message = "download complete (the browser blocked the sound)"
 	}
@@ -981,7 +1080,7 @@ async fn startTarget(id: string) -> null {
 			notifyError("invalid request: " + jerr)
 			return
 		}
-		body, err = http.post("http://127.0.0.1:8090/api/downloads", payload)
+		body, err = http.postSafe(apiUrl("/downloads"), payload, "/api http://127.0.0.1:8090/api")
 		if err != null {
 			notifyError("could not start: " + err)
 			return
@@ -1007,7 +1106,7 @@ async fn startTarget(id: string) -> null {
 		notifyError("invalid request: " + jerr)
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/files", payload, "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/files"), payload, "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("could not add the file: " + err)
 		return
@@ -1050,7 +1149,7 @@ async fn restartTarget(id: string) -> null {
 		notifyError("invalid request: " + jerr)
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/files/" + fileId + "/restart", payload, "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/files/" + fileId + "/restart"), payload, "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("could not start the file again: " + err)
 		return
@@ -1074,7 +1173,7 @@ async fn fileAction(fileId: string, act: string) -> null {
 		notifyError("no download to manage")
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/files/" + fileId + "/" + act, "", "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/files/" + fileId + "/" + act), "", "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("the " + act + " failed: " + err)
 		return
@@ -1102,7 +1201,7 @@ async fn setFilePriority(fileId: string, want: string) -> null {
 		notifyError("invalid request: " + jerr)
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/files/" + fileId + "/priority", payload, "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/files/" + fileId + "/priority"), payload, "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("could not change the priority: " + err)
 		return
@@ -1126,7 +1225,7 @@ async fn runAction(act: string) -> null {
 		notifyError("no download to manage")
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/" + act, "", "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/" + act), "", "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("operation " + act + " failed: " + err)
 		return
@@ -1182,7 +1281,7 @@ async fn retrySelectedPart() -> null {
 		notifyError("select a row in the Data tab first")
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/parts/" + selectedPart + "/retry", "", "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/parts/" + selectedPart + "/retry"), "", "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("retry failed: " + err)
 		return
@@ -1202,7 +1301,7 @@ async fn retryFailedParts() -> null {
 		notifyError("no download to manage")
 		return
 	}
-	body, err = http.postSafe("http://127.0.0.1:8090/api/downloads/" + jobId + "/retry-failed", "", "http://127.0.0.1:8090")
+	body, err = http.postSafe(apiUrl("/downloads/" + jobId + "/retry-failed"), "", "/api http://127.0.0.1:8090/api")
 	if err != null {
 		notifyError("retry failed: " + err)
 		return
@@ -1324,7 +1423,7 @@ view main {
 				progress value: percent max: 100 class: "bar-total"
 				p "{verifyText}" class: "verify"
 				if jobState == "done" {
-					a "Download the reassembled file" href: "http://127.0.0.1:8090/api/downloads/" + jobId + "/file" class: "dl-link"
+					a "Download the reassembled file" href: apiUrl("/downloads/" + jobId + "/file") class: "dl-link"
 				}
 				# The parts are a child of the total progress: the bars of the
 				# parts belong to the progress of the download.
@@ -1404,7 +1503,7 @@ view main {
 							row class: "file-row" {
 								p "{f["file"]}" class: "file-name"
 								if f["merged"] != "" {
-									a "Download" href: "http://127.0.0.1:8090/api/downloads/" + jobId + "/files/" + str(f["id"]) + "/file" class: "dl-file"
+									a "Download" href: apiUrl("/downloads/" + jobId + "/files/" + str(f["id"]) + "/file") class: "dl-file"
 								}
 							}
 						}
@@ -1505,7 +1604,6 @@ view main {
 }
 
 css "body \{ margin: 0; padding: 0 0 150px; background: radial-gradient(1100px 520px at 12% -8%, rgba(99, 102, 241, 0.22) 0%, rgba(15, 23, 42, 0) 60%), linear-gradient(165deg, #0b1020 0%, #131a30 55%, #0e1426 100%); color: #e6e9f5; font-family: system-ui, sans-serif; } h1 \{ font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; } h3 \{ margin: 0 0 14px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #a5b4fc; } p \{ line-height: 1.55; } card \{ background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 18px; padding: 20px 22px; margin: 16px 0; box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45); } .topbar \{ background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 14px; padding: 10px 16px; margin: 18px 0 6px; box-shadow: none; } .topbar-row \{ align-items: center; gap: 14px; justify-content: space-between; } .topbar-actions \{ gap: 8px; align-items: center; } .targets-head \{ display: flex; align-items: center; justify-content: space-between; gap: 12px; } .targets-head h3 \{ margin: 0; } .panel-targets \{ padding: 14px 18px; } .target-row \{ display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(148, 163, 184, 0.10); } .target-url \{ flex: 1 1 auto; min-width: 0; } .target-url.target-locked \{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: #8b93b0; padding: 6px 2px; } .target-name \{ flex: 0 1 190px; min-width: 0; } .target-foot \{ display: flex; align-items: center; gap: 10px; padding-bottom: 8px; } .target-foot progress.sui-progress \{ flex: 1 1 auto; --sui-progress-height: 4px; --sui-progress-radius: 999px; } .target-bytes \{ margin: 0; font-size: 11px; color: #7c86a8; font-variant-numeric: tabular-nums; white-space: nowrap; } .sui-button.btn-prio \{ background: rgba(255, 255, 255, 0.05); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.30); width: 32px; height: 32px; padding: 0; border-radius: 9px; font-size: 14px; } .sui-button.btn-prio:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; } .sui-button.btn-play \{ background: linear-gradient(135deg, #6366f1, #22d3ee); color: #061021; border: 0; width: 34px; height: 34px; padding: 0; border-radius: 10px; font-size: 12px; } .sui-button.btn-play:hover \{ box-shadow: 0 6px 16px rgba(99, 102, 241, 0.45); } .sui-button.btn-stop \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(148, 163, 184, 0.30); width: 34px; height: 34px; padding: 0; border-radius: 10px; font-size: 12px; } .sui-button.btn-stop:hover \{ background: rgba(148, 163, 184, 0.20); color: #e0e7ff; } .sui-button.btn-icon \{ background: rgba(255, 255, 255, 0.06); color: #c7d2fe; border: 1px solid rgba(129, 140, 248, 0.35); width: 42px; height: 42px; padding: 0; border-radius: 12px; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: transform 140ms ease, box-shadow 140ms ease, color 140ms ease, background 140ms ease; } .sui-button.btn-icon:hover \{ background: rgba(99, 102, 241, 0.22); color: #e0e7ff; transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.16), 0 10px 22px rgba(99, 102, 241, 0.35); } .sui-button.btn-action \{ background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%); color: #061021; border: 0; font-size: 19px; font-weight: 700; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35); } .sui-button.btn-action:hover \{ color: #061021; background: linear-gradient(135deg, #818cf8 0%, #67e8f9 100%); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22), 0 14px 30px rgba(99, 102, 241, 0.45); } .sui-button.btn-add \{ background: rgba(34, 211, 238, 0.16); color: #67e8f9; border: 1px solid rgba(34, 211, 238, 0.42); font-size: 22px; font-weight: 700; } .sui-button.btn-add:hover \{ background: rgba(34, 211, 238, 0.28); color: #cffafe; box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18); } .sui-button.btn-cancel \{ background: rgba(244, 63, 94, 0.14); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.38); } .sui-button.btn-cancel:hover \{ background: rgba(244, 63, 94, 0.26); color: #ffe4e6; box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.18); } .sui-button.btn-icon-sm \{ width: 32px; height: 32px; font-size: 15px; border-radius: 10px; } .status \{ color: #a8b1cc; font-size: 13px; margin: 0; } .state-badge \{ background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.30); } .verify \{ margin: 14px 0 0; color: #6ee7b7; font-size: 13px; } .dl-link \{ display: inline-block; margin-top: 12px; color: #67e8f9; font-weight: 600; } .dl-file \{ color: #67e8f9; font-weight: 600; font-size: 12px; white-space: nowrap; } .parts-scroll \{ max-height: 320px; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 2px 2px; margin: 4px 0 10px; scrollbar-width: thin; scrollbar-color: rgba(129, 140, 248, 0.45) rgba(15, 23, 42, 0.4); } .parts-scroll::-webkit-scrollbar \{ width: 10px; } .parts-scroll::-webkit-scrollbar-track \{ background: rgba(15, 23, 42, 0.45); border-radius: 8px; } .parts-scroll::-webkit-scrollbar-thumb \{ background: rgba(129, 140, 248, 0.45); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } .row.part-row \{ display: grid; grid-template-columns: 64px minmax(120px, 1fr) 92px 148px; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.part-row:hover \{ background: rgba(148, 163, 184, 0.08); } .part-index \{ font-weight: 600; color: #c7d2fe; margin: 0; font-variant-numeric: tabular-nums; } .part-state \{ font-size: 12px; color: #8b93b0; margin: 0; } .part-bytes \{ font-size: 12px; color: #8b93b0; text-align: right; margin: 0; font-variant-numeric: tabular-nums; } .part-error \{ grid-column: 1 / -1; font-size: 12px; color: #fda4af; margin: 0; } progress.bar-total \{ --sui-progress-height: 12px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #6366f1; --sui-progress-value-end: #22d3ee; } progress.bar-part \{ --sui-progress-height: 8px; --sui-progress-radius: 999px; --sui-progress-track: rgba(148, 163, 184, 0.16); --sui-progress-value: #818cf8; --sui-progress-value-end: #38bdf8; } progress.settings \{ display: flex; flex-direction: column; gap: 14px; min-width: 320px; } .setting \{ gap: 16px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); } .setting:last-child \{ border-bottom: 0; padding-bottom: 0; } .setting-text \{ gap: 2px; flex: 1 1 auto; } .setting-text p \{ margin: 0; font-size: 12px; color: #8b93b0; line-height: 1.45; } .setting-control \{ flex: 0 0 220px; } .mode-switch \{ flex: 0 0 auto; } .hint \{ color: #8b93b0; font-size: 13px; margin: 2px 0 10px; } .muted \{ color: #8b93b0; font-size: 13px; } .controls \{ gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .sui-button.btn-warn \{ background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.42); padding: 9px 16px; border-radius: 12px; } .sui-button.btn-ghost \{ background: transparent; color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.28); padding: 9px 16px; border-radius: 12px; } .toast-host .sui-toast \{ width: 340px; } .sui-tabs \{ --sui-tabs-border: rgba(148, 163, 184, 0.16); --sui-tabs-radius: 16px; --sui-tabs-bg: rgba(255, 255, 255, 0.02); --sui-tablist-bg: rgba(15, 23, 42, 0.55); --sui-tab-padding: 10px 18px; --sui-tab-active-bg: rgba(99, 102, 241, 0.18); --sui-tab-accent: #22d3ee; --sui-tab-fg: #94a3b8; --sui-tab-active-fg: #e0e7ff; } .sui-tabpanels \{ padding: 18px 20px; } .statusbar \{ position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; padding: 12px 22px; background: rgba(11, 16, 32, 0.94); border-top: 1px solid rgba(148, 163, 184, 0.18); backdrop-filter: blur(8px); } .statusbar-status \{ gap: 12px; align-items: center; margin-bottom: 10px; } .statusbar-row \{ gap: 18px; flex-wrap: wrap; } .sb-item \{ flex: 1 1 120px; gap: 2px; } .sb-value \{ margin: 0; font-size: 17px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .sb-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .field-file \{ margin: 0 0 8px; } .part-counts \{ gap: 16px; margin: 0 0 14px; flex-wrap: wrap; } .part-count \{ flex: 0 0 auto; gap: 2px; min-width: 76px; } .count-value \{ margin: 0; font-size: 20px; font-weight: 700; color: #e0e7ff; font-variant-numeric: tabular-nums; } .count-label \{ margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #7c86a8; } .count-active \{ color: #38bdf8; } .count-done \{ color: #34d399; } .files-list \{ margin: 12px 0 6px; } .row.file-row \{ display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 10px; border-radius: 10px; } .row.file-row:hover \{ background: rgba(148, 163, 184, 0.08); } .file-name \{ margin: 0; font-weight: 600; color: #e0e7ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .file-bytes \{ margin: 0; font-size: 12px; color: #8b93b0; text-align: right; font-variant-numeric: tabular-nums; } @media (max-width: 760px) { .row.part-row \{ grid-template-columns: 56px 1fr; row-gap: 6px; } .row.file-row \{ grid-template-columns: 1fr 74px; row-gap: 6px; } .parts-scroll \{ max-height: 240px; } .setting \{ flex-direction: column; gap: 8px; } .setting-control \{ flex: 1 1 100%; width: 100%; } }"
-
 ```
 
 ### How to edit it
