@@ -315,6 +315,37 @@ The key is applied to the first element rendered for each item as
 Keys must be strings, numbers, booleans or enum values. They do not change the
 data or the generated markup structure. In the designer, dynamic `if`/`list` blocks are preserved as raw source and edited from the SUI tab.
 
+### Handlers inside a list
+
+The body of a list is rendered once per item, so every element it holds exists
+in every row. A handler declared in that body is wired for **every** row and
+receives the identity of the row it belongs to:
+
+```sui
+list item in items key: item.id {
+	button "Remove" onClick: removeItem
+	input value: item.name onInput: renameItem
+}
+```
+
+The handler is called with `(event, key)`: the second argument is the value of
+the `key:` expression of the list, or the number of the row when the list
+declares no key. A handler that declares only the event is still valid; the key
+is then ignored. The wiring is emitted after the render, over every row of the
+list, so a handler of a row is never attached to the first row only.
+
+```sui
+async fn removeItem(ev: any, id: string) -> null {
+	# id is the key of the row the button belongs to
+}
+```
+
+The item of the list is an ordinary expression: inside the body the fields of a
+dynamic item are read with the index syntax (`item["id"]`). A control whose
+`value` (or `checked`, `src`, `href`) reads the item of an enclosing `list` is
+**bound**: it follows the state the list iterates, exactly like a control that
+reads a state variable.
+
 ## Destructuring, spread and named arguments
 
 ```sui

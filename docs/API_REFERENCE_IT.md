@@ -312,6 +312,39 @@ La chiave viene applicata al primo elemento renderizzato per ogni item come
 riordinata. Le chiavi devono essere stringhe, numeri, booleani o valori enum.
 Non cambiano i dati né la struttura del markup generato. Nel designer i blocchi dinamici `if`/`list` vengono conservati come sorgente raw e si modificano dalla scheda SUI.
 
+### I gestori dentro una `list`
+
+Il corpo di una lista viene renderizzato una volta per item, quindi ogni
+elemento che contiene esiste in ogni riga. Un gestore dichiarato in quel
+corpo viene collegato a **tutte** le righe e riceve l'identità della riga a
+cui appartiene:
+
+```sui
+list item in items key: item.id {
+	button "Remove" onClick: removeItem
+	input value: item.name onInput: renameItem
+}
+```
+
+Il gestore viene chiamato con `(evento, chiave)`: il secondo argomento è il
+valore dell'espressione `key:` della lista, oppure il numero della riga quando
+la lista non dichiara una chiave. Un gestore che dichiara solo l'evento resta
+valido: la chiave viene allora ignorata. Il collegamento viene emesso dopo il
+render, su tutte le righe della lista, quindi il gestore di una riga non viene
+mai attaccato solo alla prima riga.
+
+```sui
+async fn removeItem(ev: any, id: string) -> null {
+	# id è la chiave della riga a cui appartiene il pulsante
+}
+```
+
+L'item della lista è un'espressione come le altre: dentro il corpo i campi di
+un item dinamico si leggono con la sintassi a indice (`item["id"]`). Un
+controllo il cui `value` (o `checked`, `src`, `href`) legge l'item di una
+`list` che lo contiene è **legato**: segue lo stato che la lista itera, come
+un controllo che legge una variabile di stato.
+
 ## Destructuring, spread e argomenti nominati
 
 ```sui

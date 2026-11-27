@@ -134,6 +134,17 @@ var SuiPrelude = "\"use strict\";\n" +
 	"  var k = __sui_esc(key);\n" +
 	"  return String(html).replace(/^\\s*<([a-zA-Z][\\w-]*)/, '<$1 data-sui-key=\"' + k + '\"');\n" +
 	"}\n" +
+	// __sui_rowkey gives the identity of a row of a list: the key of the row
+	// when the list declares one, the number of the row otherwise. A handler
+	// of a row receives it, so every row of a list can act on itself.
+	"function __sui_rowkey(el, index) {\n" +
+	"  var row = el && el.closest ? el.closest('[data-sui-key]') : null;\n" +
+	"  if (row) {\n" +
+	"    var key = row.getAttribute('data-sui-key');\n" +
+	"    if (key !== null && key !== '') return key;\n" +
+	"  }\n" +
+	"  return String(index);\n" +
+	"}\n" +
 	"function __sui_assert(cond, msg) {\n" +
 	"  if (!cond) throw new Error(msg == null || String(msg) === '' ? 'assertion failed' : String(msg));\n" +
 	"}\n" +
@@ -301,11 +312,21 @@ var SuiPrelude = "\"use strict\";\n" +
       id: focusHolder.getAttribute('data-sui-id') || '',
       key: focusKeyHolder ? (focusKeyHolder.getAttribute('data-sui-key') || '') : '',
       tag: focusEl.tagName,
+      idx: -1,
       start: null,
       end: null,
       scrollX: window.scrollX,
       scrollY: window.scrollY
     };
+    // A row of a list can hold more than one field: the position of the
+    // field inside its row tells which one has the focus, so the focus does
+    // not jump to the first field of the row at every re-render.
+    if (focusKeyHolder && focusHolder !== focusEl) {
+      var sameTag = focusKeyHolder.querySelectorAll(focusEl.tagName.toLowerCase());
+      for (var fi = 0; fi < sameTag.length; fi++) {
+        if (sameTag[fi] === focusEl) { focusInfo.idx = fi; break; }
+      }
+    }
     try { focusInfo.start = focusEl.selectionStart; focusInfo.end = focusEl.selectionEnd; } catch (e) {}
   }
   var scrollX = window.scrollX, scrollY = window.scrollY;
@@ -394,8 +415,16 @@ var SuiPrelude = "\"use strict\";\n" +
     if (!fHolder && focusInfo.id) fHolder = el.querySelector('[data-sui-id="' + focusInfo.id + '"]');
     var fTarget = null;
     if (fHolder) {
-      if (fHolder.tagName === focusInfo.tag) fTarget = fHolder;
-      else fTarget = fHolder.querySelector(focusInfo.tag.toLowerCase());
+      if (focusInfo.idx >= 0) {
+        // The row holds more than one field: the field that had the focus is
+        // the one at the same position.
+        var sameTag = fHolder.querySelectorAll(focusInfo.tag.toLowerCase());
+        if (focusInfo.idx < sameTag.length) fTarget = sameTag[focusInfo.idx];
+      }
+      if (!fTarget) {
+        if (fHolder.tagName === focusInfo.tag) fTarget = fHolder;
+        else fTarget = fHolder.querySelector(focusInfo.tag.toLowerCase());
+      }
       if (!fTarget && fHolder.matches && fHolder.matches('input,textarea,select')) fTarget = fHolder;
     }
     if (fTarget && fTarget.focus) {
@@ -1305,11 +1334,18 @@ type JsCtx struct {
 	states []string
 	scope  []string
 	tuples int
+	// listRows is true while the body of a `list` is generated: an element
+	// of a list is rendered once per item, so its handlers are wired for
+	// every row and receive the identity of the row.
+	listRows bool
 }
 
 type Wire struct {
 	idx   int
 	lines []string
+	// rows is true when the element belongs to the body of a list: the
+	// wiring then reaches every row and not only the first one.
+	rows bool
 }
 
 type ViewGen struct {
@@ -7545,6 +7581,13 @@ func menuElemJs(e *Element, g *ViewGen, ctx *JsCtx, idx int) string {
 
 func collectWiring(e *Element, idx int, g *ViewGen, ctx *JsCtx) {
 	var lines []string
+	// The element of a list is rendered once per item: the wiring reaches
+	// every row and the handler receives the identity of the row, so each
+	// row can act on itself.
+	el := "e" + strconv.Itoa(idx)
+	if ctx.listRows {
+		el = "__el"
+	}
 	// Bind each declared event handler to the matching DOM property. Done in a
 	// fixed order so generated output is deterministic.
 	for _, key := range elemEventOrder {
@@ -7555,7 +7598,14 @@ func collectWiring(e *Element, idx int, g *ViewGen, ctx *JsCtx) {
 		dom := eventAttrJs[key]
 		a := findAttr(e, key)
 		if a != nil && a.hasExpr && a.expr != nil {
-			lines = append(lines, "e"+strconv.Itoa(idx)+"."+dom+" = "+ExprToJs(a.expr)+";")
+			if ctx.listRows {
+				// The handler of a row gets the event and the identity of
+				// the row: the second argument is the key of the row (or
+				// its number when the list has no key).
+				lines = append(lines, el+"."+dom+" = (ev) => ("+ExprToJs(a.expr)+")(ev, __sui_rowkey(__el, __i));")
+				continue
+			}
+			lines = append(lines, el+"."+dom+" = "+ExprToJs(a.expr)+";")
 		}
 	}
 	// hasEv reports whether the element declares an explicit handler for the
@@ -7570,13 +7620,13 @@ func collectWiring(e *Element, idx int, g *ViewGen, ctx *JsCtx) {
 	if e.tag == "input" || e.tag == "textarea" || e.tag == "select" || e.tag == "number" || e.tag == "slider" {
 		val := findAttr(e, "value")
 		if val != nil && val.hasExpr && val.expr != nil && val.expr.kind == "ident" && ctxIsState(ctx, val.expr.name) && !hasEv("onInput") {
-			lines = append(lines, "e"+strconv.Itoa(idx)+".oninput = (ev) => "+setterName(val.expr.name)+"(ev.target.value);")
+			lines = append(lines, el+".oninput = (ev) => "+setterName(val.expr.name)+"(ev.target.value);")
 		}
 	}
 	if e.tag == "checkbox" || e.tag == "switch" || e.tag == "radio" {
 		val := findAttr(e, "checked")
 		if val != nil && val.hasExpr && val.expr != nil && val.expr.kind == "ident" && ctxIsState(ctx, val.expr.name) && !hasEv("onChange") {
-			lines = append(lines, "e"+strconv.Itoa(idx)+".onchange = (ev) => "+setterName(val.expr.name)+"(ev.target.checked);")
+			lines = append(lines, el+".onchange = (ev) => "+setterName(val.expr.name)+"(ev.target.checked);")
 		}
 	}
 	if e.tag == "input" {
@@ -7585,11 +7635,11 @@ func collectWiring(e *Element, idx int, g *ViewGen, ctx *JsCtx) {
 			for _, o := range opts {
 				quoted = append(quoted, jsString(o))
 			}
-			lines = append(lines, "__sui_ac(e"+strconv.Itoa(idx)+", ["+strings.Join(quoted, ", ")+"]);")
+			lines = append(lines, "__sui_ac("+el+", ["+strings.Join(quoted, ", ")+"]);")
 		}
 	}
 	if len(lines) > 0 {
-		g.wires = append(g.wires, Wire{idx: idx, lines: lines})
+		g.wires = append(g.wires, Wire{idx: idx, lines: lines, rows: ctx.listRows})
 	}
 }
 
@@ -7641,7 +7691,12 @@ func viewNodeJsRaw(n *ViewNode, g *ViewGen, ctx *JsCtx) string {
 		return "(" + ExprToJs(n.cond) + " ? " + thenC + " : " + elseC + ")"
 	}
 	if n.kind == "list" {
+		// The body of a list is rendered once per item: the elements it
+		// holds are wired for every row, not only for the first one.
+		savedRows := ctx.listRows
+		ctx.listRows = true
 		bodyC := viewNodesJs(n.body, g, ctx)
+		ctx.listRows = savedRows
 		itemC := bodyC
 		if n.key != nil {
 			itemC = "__sui_keyed(" + bodyC + ", " + ExprToJs(n.key) + ")"
@@ -7912,6 +7967,18 @@ func rendererJs(p *Prog, v *ViewDecl, ctx *JsCtx, multi bool, base *int, feat *p
 	}
 	for i := 0; i < len(g.wires); i++ {
 		w := g.wires[i]
+		if w.rows {
+			// An element of a list is rendered once per item: the wiring
+			// reaches every row and the handler receives the identity of
+			// the row it belongs to.
+			sb.WriteString("  const e" + strconv.Itoa(w.idx) + " = document.querySelectorAll('[data-sui-id=\"" + strconv.Itoa(w.idx) + "\"]');\n")
+			sb.WriteString("  e" + strconv.Itoa(w.idx) + ".forEach((__el, __i) => {\n")
+			for j := 0; j < len(w.lines); j++ {
+				sb.WriteString("    " + w.lines[j] + "\n")
+			}
+			sb.WriteString("  });\n")
+			continue
+		}
 		sb.WriteString("  const e" + strconv.Itoa(w.idx) + " = document.querySelector('[data-sui-id=\"" + strconv.Itoa(w.idx) + "\"]');\n")
 		// Conditional branches render only one side, so an element that belongs
 		// to the inactive branch is absent after a re-render. Guard the wiring

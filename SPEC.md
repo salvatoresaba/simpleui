@@ -473,6 +473,31 @@ Interpolation in view text refers to **state variables** (and is how views get
 their reactive bindings). In expressions, `onClick`/`onChange` must name a
 declared function; `value`/`src`/`href` may name a state or any expression.
 
+#### Handlers inside a `list`
+
+The body of a `list` is rendered once per item, so every element it holds
+exists in every row. A handler declared in that body is wired for **every** row
+and receives the identity of the row it belongs to:
+
+```
+list item in items key: item.id {
+    button "Remove" onClick: removeItem
+    input value: item.name onInput: renameItem
+}
+```
+
+The handler is called with `(event, key)`: the second argument is the value of
+the `key:` expression of the list, or the number of the row when the list
+declares no key. A handler that declares only the event is still valid; the key
+is then ignored. The wiring is emitted after the render, over every row of the
+list, so a handler of a row is never attached to the first row only.
+
+The item of the list is an ordinary expression: inside the body the fields of a
+dynamic item are read with the index syntax (`item["id"]`). A control whose
+`value` (or `checked`, `src`, `href`) reads the item of an enclosing `list` is
+**bound**: it follows the state the list iterates, exactly like a control that
+reads a state variable.
+
 #### Drag and drop
 
 Every element accepts `draggable: bool`, `dragKey: expr`, `dropKey: expr`,

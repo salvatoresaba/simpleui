@@ -729,6 +729,10 @@ type Checker struct {
 	methodNames    map[string]bool   // view-method names (globally unique)
 	instTypes      map[string]*SType // current view's instance-state types
 	security       SecurityConfig    // compile-time security policy
+	// listItems are the names of the item variables of the lists that
+	// enclose the element being checked: a value that comes from the item
+	// of a list comes from the state the list iterates.
+	listItems []string
 }
 
 func newChecker(dd *DiagList) *Checker {
@@ -5349,7 +5353,17 @@ func (c *Checker) checkViewNode(n *ViewNode) {
 				c.diagAt(n.key.span, "list key must be a string, number, bool or enum, got "+typeStr(kt))
 			}
 		}
+		// The body of the list sees the item: a value that comes from the
+		// item comes from the state the list iterates.
+		c.listItems = append(c.listItems, n.item)
+		if n.item2 != "" {
+			c.listItems = append(c.listItems, n.item2)
+		}
 		c.checkViewBody(derefNodeList(n.body))
+		c.listItems = c.listItems[:len(c.listItems)-1]
+		if n.item2 != "" {
+			c.listItems = c.listItems[:len(c.listItems)-1]
+		}
 		c.popScope()
 		return
 	}
@@ -5463,12 +5477,12 @@ func (c *Checker) checkControlBinding(e *Element) {
 	bound := false
 	if bindKey != "" {
 		if a := findAttr(e, bindKey); a != nil {
-			if a.hasExpr && c.exprUsesState(a.expr) {
+			if a.hasExpr && (c.exprUsesState(a.expr) || c.exprUsesListItem(a.expr)) {
 				bound = true
 			}
 			if !bound {
 				for i := 0; i < len(a.text); i++ {
-					if a.text[i].kind == "expr" && c.exprUsesState(a.text[i].expr) {
+					if a.text[i].kind == "expr" && (c.exprUsesState(a.text[i].expr) || c.exprUsesListItem(a.text[i].expr)) {
 						bound = true
 						break
 					}
@@ -5551,6 +5565,61 @@ func (c *Checker) exprUsesState(e *Expr) bool {
 	case "str":
 		for i := 0; i < len(e.parts); i++ {
 			if e.parts[i].kind == "expr" && c.exprUsesState(e.parts[i].expr) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// exprUsesListItem reports whether the expression reads the item of a list.
+// The item comes from the state the list iterates, so a control bound to it
+// is bound to the state as well.
+func (c *Checker) exprUsesListItem(e *Expr) bool {
+	if e == nil || len(c.listItems) == 0 {
+		return false
+	}
+	switch e.kind {
+	case "ident":
+		for _, name := range c.listItems {
+			if e.name == name {
+				return true
+			}
+		}
+	case "member", "index":
+		return c.exprUsesListItem(e.obj) || c.exprUsesListItem(e.idx)
+	case "unary":
+		return c.exprUsesListItem(e.operand)
+	case "call":
+		if c.exprUsesListItem(e.target) {
+			return true
+		}
+		for i := 0; i < len(e.args); i++ {
+			if c.exprUsesListItem(e.args[i]) {
+				return true
+			}
+		}
+	case "array":
+		for i := 0; i < len(e.elements); i++ {
+			if c.exprUsesListItem(e.elements[i]) {
+				return true
+			}
+		}
+	case "map", "structlit":
+		for i := 0; i < len(e.vals); i++ {
+			if c.exprUsesListItem(e.vals[i]) {
+				return true
+			}
+		}
+	case "binary":
+		return c.exprUsesListItem(e.l) || c.exprUsesListItem(e.r)
+	case "cond":
+		return c.exprUsesListItem(e.cond) || c.exprUsesListItem(e.l) || c.exprUsesListItem(e.r)
+	case "range":
+		return c.exprUsesListItem(e.lo) || c.exprUsesListItem(e.hi)
+	case "str":
+		for i := 0; i < len(e.parts); i++ {
+			if e.parts[i].kind == "expr" && c.exprUsesListItem(e.parts[i].expr) {
 				return true
 			}
 		}
