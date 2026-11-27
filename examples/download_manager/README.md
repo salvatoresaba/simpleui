@@ -7,24 +7,37 @@ one, pausable, resumable, restartable part by part and verifiable.
 
 ```
 examples/download_manager/
-  app.sui        the SimpleUI GUI (one file, type-checked)
-  server/main.go the Go backend: file server + chunked downloader
-  server/web/    the compiled app, embedded in the executable of the release
-  run.ps1        launcher: builds the app and starts the backend
-  run.bat        same for cmd.exe
-  build.ps1      release build: one executable with the app inside
-  build.bat      same for cmd.exe
+  app.sui           the SimpleUI GUI (one file, type-checked)
+  server/           the Go backend: the library of the download manager
+  server/cmd/dm/    the standalone program (the library and the app together)
+  run.ps1           launcher: builds the app and starts the backend
+  run.bat           same for cmd.exe
+  build.ps1         release build: one executable with the app and the backend
+  build.bat         same for cmd.exe
 ```
 
 The backend lives in its own Go module (`server/go.mod`), so the example does
-not add a dependency to the root module.
+not add a dependency to the root module. The root package of that module is a
+**library** (`downloadmanager`): it exports `Handler(fallback http.Handler) http.Handler`,
+the contract the compiler uses to mount a backend in front of a compiled app.
+The program of the example is `server/cmd/dm`: it starts the library on its own
+port and serves the app, from the disk or from the executable itself.
 
 ## What it demonstrates
 
-- **One executable, app and downloader inside.** `build.ps1` writes the compiled
-  app into `server/web/` and embeds it in the Go program, so the release build
-  is a single file that opens the app and downloads with it: no other file and
-  no other process are needed.
+- **One executable, app and downloader inside.** `build.ps1` asks the compiler
+  for a desktop build with the backend of the example:
+  `simpleui build app.sui --target desktop --backend server`. The compiler
+  mounts the Go backend in front of the compiled app, so the release build is a
+  single file that opens the app and downloads with it: no other file and no
+  other process are needed.
+- **http, https and ftp.** The URL of a target can be an http, an https or an
+  ftp address. The ftp client is written here, without any dependency: it asks
+  the server for the size of the file (`SIZE`), starts a transfer in the middle
+  of it (`REST`) and reads the bytes (`PASV` + `RETR`). A server that does not
+  know the restart command gets the whole file in one single part. The login of
+  the ftp server travels in the URL (`ftp://user:password@host/file.bin`) and
+  the password never shows in the app: the URL that is displayed is masked.
 - **The app finds the backend by itself.** When the app starts it asks the
   server that served the page for its configuration: if that server is the
   download manager (the usual case) the calls stay on the same origin, so the
@@ -47,6 +60,16 @@ not add a dependency to the root module.
   header) chooses between **one single file** (one request, no parts, no
   reassembly) and **split into parts**. In split mode the panel also shows the
   size of the parts and how many parts are downloaded at the same time.
+- **A big file still downloads.** The parts of a file are 1 MiB long by default, so
+  a file of 300 MiB would need more parts than the CLI allows (256). The
+  manager does not refuse the file: the parts grow (2 MiB, 4 MiB, ...) until
+  the file fits, and the title of the parts panel shows the length really
+  used.
+- **A server that does not announce the size is fine.** Some servers answer
+  without a `Content-Length` and ignore the `Range` header. The file is then
+  downloaded in one open ended part, that goes on until the server closes the
+  connection: there is no percentage and no time left (the status bar shows
+  `--`), but the bytes that have arrived are counted.
 - **One row for every file.** The **Targets** card holds one row for every file
   that is going to be downloaded, that is downloading or that has been
   downloaded. A row is the URL, the name of the file, the priority as an icon
@@ -135,7 +158,7 @@ not add a dependency to the root module.
 ```bash
 # the release build: one executable with the app and the downloader inside
 pwsh examples/download_manager/build.ps1
-.\examples\download_manager\bin\download_manager.exe --port 8090
+.\examples\download_manager\bin\download_manager.exe
 
 # build the app and start the backend (Windows): by default the backend
 # downloads its own sample file, so the example works offline
@@ -144,13 +167,16 @@ pwsh examples/download_manager/run.ps1
 # or a real file, with another part size
 pwsh examples/download_manager/run.ps1 -Url "https://example.com/file.bin" -PartSize "2 MiB"
 
+# a file of an ftp server: the login travels in the URL
+pwsh examples/download_manager/run.ps1 -Url "ftp://user:password@ftp.example.com/pub/file.bin"
+
 # headless: build and start the backend without opening the browser
 pwsh examples/download_manager/run.ps1 -NoOpen
 
 # or by hand
 simpleui build examples/download_manager/app.sui --target web --out examples/download_manager/public
 cd examples/download_manager/server
-go run . --port 8090 --web-dir ../public --files-dir ../files --out-dir ../downloads --url http://127.0.0.1:8090/files/sample.bin
+go run ./cmd/dm --port 8090 --web-dir ../public --files-dir ../files --out-dir ../downloads --url http://127.0.0.1:8090/files/sample.bin
 ```
 
 Then open <http://127.0.0.1:8090/>. The backend creates a deterministic
@@ -164,9 +190,10 @@ The **release build** (`build.ps1`) is the simple way: one executable carries
 the app and the backend, so the download works as soon as it is started. The
 **development launcher** (`run.ps1`) does the same, but it serves the app from
 the disk (`public/`), so the app can be rebuilt while it runs. The **desktop**
-target (`simpleui build app.sui --target desktop`) compiles the same GUI into
-an executable that serves it on its own port: it finds the backend when one is
-running on 8090, and when there is none the toast says how to start it.
+target without a backend (`simpleui build app.sui --target desktop`) compiles
+the same GUI into an executable that serves it on its own port: it finds the
+backend when one is running on 8090, and when there is none the toast says how
+to start it.
 
 ### The flags of the CLI
 
@@ -176,7 +203,7 @@ running on 8090, and when there is none the toast says how to start it.
 | `--part-size` | `1 MiB` | length of one part: the file is split accordingly |
 | `--workers` | `4` | parallel part downloads |
 | `--throttle` | `0` | bytes/s per worker; slows the download down so the progress is visible |
-| `--max-parts` | `256` | upper bound of the parts of one job |
+| `--max-parts` | `256` | upper bound of the parts of one job: when the file does not fit in them, the parts grow instead of refusing the download |
 | `--out-dir` | `../downloads` | folder with the parts and the merged file |
 | `--web-dir` | (empty) | folder with the compiled SUI app; without it the app embedded in the executable is served |
 | `--files-dir` | `../files` | folder with the files offered for download |
@@ -186,8 +213,11 @@ running on 8090, and when there is none the toast says how to start it.
 | `--port` | `8090` | HTTP port |
 | `--no-open` | – | do not open the browser |
 
-Only `http` and `https` URLs are accepted and credentials in the URL are
-refused. With `--allow-host` only the listed hosts can be downloaded:
+Only `http`, `https` and `ftp` URLs are accepted. The credentials of an http
+URL are refused; an ftp URL carries the login of the server
+(`ftp://user:password@host/file.bin`) and the password is masked in the URL
+that the app displays. With `--allow-host` only the listed hosts can be
+downloaded:
 
 ```bash
 dm.exe --url https://example.com/file.bin --allow-host example.com --allow-host cdn.example.com
@@ -302,9 +332,10 @@ import { http, json, sound } from "std"
 
 # Download manager - the front end of the chunked downloader.
 #
-# The Go backend (server/main.go) takes the URL of a file, splits it into
-# parts according to the chosen part size, downloads every part with its own
-# Range request, tracks each part and finally reassembles them into one file.
+# The Go backend (the library in server/) takes the URL of a file, splits it
+# into parts according to the chosen part size, downloads every part with its
+# own Range request, tracks each part and finally reassembles them into one
+# file.
 #
 # A download can hold more than one file. The screen shows the targets: every
 # file that is going to be downloaded, or that is being downloaded, has a row
@@ -344,6 +375,8 @@ state totalText = "0 B"
 state receivedText = "0 B"
 state etaText = "--"
 state verifyText = ""
+state jobPartSize = ""
+state sizeUnknown = false
 state message = ""
 state partsView: array[any] = []
 state partsTable: array[any] = []
@@ -457,6 +490,17 @@ async fn loadConfig() -> null {
 	if cfgWorkers != "" {
 		workers = cfgWorkers
 	}
+}
+
+# The title of the parts: how many there are and how long they are. The
+# backend grows the length of the parts when the file does not fit in the
+# parts the CLI allows, so the title shows the length really used.
+fn partsTitle() -> string {
+	let text = str(len(partsView)) + " parts started - the most recent one first"
+	if jobPartSize != "" {
+		text = text + " (" + jobPartSize + " each)"
+	}
+	return text
 }
 
 # The name of the file to save, taken from the URL: the last segment of the
@@ -880,6 +924,15 @@ async fn updateJob(job: any) -> null {
 	etaText = str(job["etaText"])
 	verifyText = str(job["verified"])
 	failedParts = job["failedParts"]
+	# The length of the parts the backend really uses: it grows the parts when
+	# the file does not fit in the parts the CLI allows.
+	jobPartSize = str(job["partSizeText"])
+	# The server does not always announce the size of the file: without it there
+	# is no percentage and no time left, only the bytes that have arrived.
+	sizeUnknown = str(job["total"]) == "0"
+	if sizeUnknown and jobState == "running" {
+		message = "the server does not announce the size: the download goes on until it ends"
+	}
 	let parts = job["parts"]
 	# Only the parts that have started get a bar: a pending part would show
 	# an empty bar. The bars start from the most recent part: what is
@@ -1392,7 +1445,7 @@ view main {
 		# when there is no row at all. The list never lives inside a branch of
 		# a conditional block: the rows would disappear with the branch.
 		if len(targets) == 0 {
-			p "Add a target: paste the URL and press play." class: "muted"
+			p "Add a target: paste the URL (http, https or ftp) and press play." class: "muted"
 		}
 		list t in targets key: t["id"] {
 			row class: "target-row" {
@@ -1429,7 +1482,7 @@ view main {
 				# parts belong to the progress of the download.
 				if jobSingle == false {
 					accordion "Parts" {
-						accordionitem "{len(partsView)} parts started - the most recent one first" {
+						accordionitem "{partsTitle()}" {
 							# The counters of the parts: how many there are, how many
 							# are downloading and how many are done.
 							row class: "part-counts" {
@@ -1584,11 +1637,19 @@ view main {
 		}
 		row class: "statusbar-row" {
 			col class: "sb-item" {
-				p "{percent}%" class: "sb-value"
+				if sizeUnknown {
+					p "--" class: "sb-value"
+				} else {
+					p "{percent}%" class: "sb-value"
+				}
 				p "progress" class: "sb-label"
 			}
 			col class: "sb-item" {
-				p "{totalText}" class: "sb-value"
+				if sizeUnknown {
+					p "--" class: "sb-value"
+				} else {
+					p "{totalText}" class: "sb-value"
+				}
 				p "size" class: "sb-label"
 			}
 			col class: "sb-item" {

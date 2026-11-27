@@ -2,7 +2,7 @@
 //
 // It serves the compiled SimpleUI app and drives chunked downloads:
 //
-//	GET  /                            the compiled SimpleUI app (assets from --web-dir)
+//	GET  /                            the compiled SimpleUI app (the fallback)
 //	GET  /files/{name}                a local file, for offline demos
 //	GET  /api/config                  the CLI configuration (default URL, part size, ...)
 //	GET  /api/downloads               the jobs, most recent first
@@ -19,6 +19,12 @@
 // downloaded, a failed part can be retried alone and the parts are finally
 // concatenated and checked against the size the server announced.
 //
+// The package is a library, not a program: the program is in cmd/dm. The
+// library exports Handler, so a desktop build of the app can carry the
+// download manager inside the same executable:
+//
+//	simpleui build app.sui --target desktop --backend ./server
+//
 // The CLI takes the URL to download and the other configuration parameters:
 //
 //	dm.exe --url https://example.com/file.bin --part-size 1 MiB --workers 4
@@ -26,28 +32,25 @@
 // Run it after building the app:
 //
 //	simpleui build app.sui --target web --out public
-//	cd server && go run . --port 8090 --web-dir ../public --url https://example.com/file.bin
+//	cd server && go run ./cmd/dm --port 8090 --web-dir ../public
 
-package main
+package downloadmanager
 
 import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"embed"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/fs"
 	"math"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
-	pathpkg "path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -55,14 +58,6 @@ import (
 	"sync"
 	"time"
 )
-
-// embeddedWeb is populated by build.ps1/build.bat: it holds the compiled
-// SimpleUI app, so a single executable carries the app and the downloader.
-// The placeholder README.txt keeps `go build` working before the first
-// frontend build.
-//
-//go:embed all:web
-var embeddedWeb embed.FS
 
 // Part is one slice of the file. The JSON keys are the column headers the
 // SUI table shows, so they are human readable on purpose.
@@ -145,6 +140,11 @@ type File struct {
 	// paused is true when the operator paused this file alone: its parts
 	// stay in the queue but the scheduler does not pick them.
 	paused bool
+	// src reads the bytes of the file: an http server or an ftp one.
+	src source
+	// rawURL is the URL the operator typed. The URL that is shown hides the
+	// password of an ftp login, so the original one is kept apart.
+	rawURL string
 }
 
 // Job is one download: the files to fetch, the workers that fetch their
@@ -213,40 +213,18 @@ type Manager struct {
 	client   *http.Client
 }
 
-func main() {
-	opts := options{
-		port:      8090,
-		partSize:  "1 MiB",
-		workers:   4,
-		maxParts:  256,
-		filesDir:  filepath.Join("..", "files"),
-		outDir:    filepath.Join("..", "downloads"),
-		sampleMiB: 24,
-	}
-	opts.parse(os.Args[1:])
-
-	if opts.filesDir != "" {
-		if err := os.MkdirAll(opts.filesDir, 0o755); err != nil {
-			fmt.Fprintln(os.Stderr, "files dir:", err)
-			os.Exit(1)
-		}
-		sample := filepath.Join(opts.filesDir, "sample.bin")
-		if _, err := os.Stat(sample); os.IsNotExist(err) && opts.sampleMiB > 0 {
-			if err := generateSample(sample, int64(opts.sampleMiB)); err != nil {
-				fmt.Fprintln(os.Stderr, "sample file:", err)
-				os.Exit(1)
-			}
-			fmt.Printf("server: created the sample file %s (%d MiB)\n", sample, opts.sampleMiB)
-		}
-	}
-	if err := os.MkdirAll(opts.outDir, 0o755); err != nil {
-		fmt.Fprintln(os.Stderr, "out dir:", err)
+// Serve starts the download manager and serves it. The fallback is the
+// handler of the compiled app: the manager answers the API and delegates
+// everything else to it.
+func Serve(cfg Config, fallback http.Handler) {
+	if err := cfg.prepare(); err != nil {
+		fmt.Fprintln(os.Stderr, "manager:", err)
 		os.Exit(1)
 	}
 
 	// Port 0 asks the OS for a free port: the base URL is then built from
 	// the address the listener actually got.
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", opts.port))
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", cfg.Port))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "listen:", err)
 		os.Exit(1)
@@ -255,45 +233,116 @@ func main() {
 
 	// Without a URL of its own the manager downloads the sample file it
 	// serves: the default follows the port the listener actually got.
-	if opts.url == "" {
-		opts.url = defaultTargetURL(baseURL)
+	if cfg.URL == "" {
+		cfg.URL = defaultTargetURL(baseURL)
 	}
 
-	// The frontend comes from the disk (--web-dir) or from the executable
-	// itself, when the app was embedded at build time.
-	var webFS fs.FS
-	if opts.webDir == "" {
-		sub, ferr := fs.Sub(embeddedWeb, "web")
-		if ferr != nil {
-			fmt.Fprintln(os.Stderr, "embedded web assets:", ferr)
-			os.Exit(1)
+	srv := &http.Server{Handler: cors(logRequests(apiHandler(cfg, fallback)))}
+	go func() { _ = srv.Serve(ln) }()
+
+	fmt.Println("======================================================")
+	fmt.Printf("download manager + app running at %v/\n", baseURL)
+	if cfg.URL != "" {
+		fmt.Printf("  target url   : %v\n", cfg.URL)
+	} else {
+		fmt.Println("  target url   : (none, type one in the app)")
+	}
+	fmt.Printf("  part size    : %v\n", cfg.PartSize)
+	fmt.Printf("  workers      : %v\n", cfg.Workers)
+	fmt.Printf("  out dir      : %v\n", absPath(cfg.OutDir))
+	if len(cfg.AllowHosts) > 0 {
+		fmt.Printf("  allowed hosts: %v\n", strings.Join(cfg.AllowHosts, ", "))
+	}
+	if cfg.FilesDir != "" {
+		fmt.Printf("  local files  : %v (try http://%v/files/sample.bin)\n", absPath(cfg.FilesDir), ln.Addr().String())
+	}
+	fmt.Println("  the app calls /api/downloads, /api/config and /api/downloads/{id}/...")
+	fmt.Println("======================================================")
+	if !cfg.NoOpen {
+		openBrowser(baseURL + "/")
+	}
+	select {}
+}
+
+// Handler returns the handler of the download manager with the default
+// configuration. It is the entry point of a desktop build: the executable
+// carries the app and the download manager together, and the manager answers
+// the API while the app is served by the fallback.
+func Handler(fallback http.Handler) http.Handler {
+	cfg := DefaultConfig()
+	// The desktop build runs the executable from the folder of the operator:
+	// the folders of the manager are relative to the working directory.
+	cfg.FilesDir = "files"
+	cfg.OutDir = "downloads"
+	return HandlerWithConfig(cfg, fallback)
+}
+
+// HandlerWithConfig returns the handler of the download manager with the
+// given configuration.
+func HandlerWithConfig(cfg Config, fallback http.Handler) http.Handler {
+	if err := cfg.prepare(); err != nil {
+		// The handler cannot stop the program it is mounted in: the error
+		// goes to the log and the manager goes on without the sample file.
+		fmt.Fprintln(os.Stderr, "manager:", err)
+	}
+	return cors(logRequests(apiHandler(cfg, fallback)))
+}
+
+// prepare creates the folders of the manager and the sample file it offers
+// for download, so the example works offline.
+func (c Config) prepare() error {
+	if c.FilesDir != "" {
+		if err := os.MkdirAll(c.FilesDir, 0o755); err != nil {
+			return fmt.Errorf("files dir: %w", err)
 		}
-		webFS = sub
+		sample := filepath.Join(c.FilesDir, "sample.bin")
+		if _, err := os.Stat(sample); os.IsNotExist(err) && c.SampleMiB > 0 {
+			if err := generateSample(sample, int64(c.SampleMiB)); err != nil {
+				return fmt.Errorf("sample file: %w", err)
+			}
+			fmt.Printf("server: created the sample file %s (%d MiB)\n", sample, c.SampleMiB)
+		}
 	}
+	if err := os.MkdirAll(c.OutDir, 0o755); err != nil {
+		return fmt.Errorf("out dir: %w", err)
+	}
+	return nil
+}
 
+// apiHandler returns the handler of the manager: the API, the local files and
+// the sound. Every other request is delegated to the fallback, that is the
+// compiled app.
+func apiHandler(cfg Config, fallback http.Handler) http.Handler {
 	mgr := &Manager{
 		jobs:     map[string]*Job{},
-		outDir:   opts.outDir,
-		filesDir: opts.filesDir,
-		workers:  opts.workers,
-		throttle: opts.throttle,
-		maxParts: opts.maxParts,
-		expect:   strings.ToLower(strings.TrimSpace(opts.expectSHA)),
-		hosts:    opts.allowHosts,
+		outDir:   cfg.OutDir,
+		filesDir: cfg.FilesDir,
+		workers:  cfg.Workers,
+		throttle: cfg.Throttle,
+		maxParts: cfg.MaxParts,
+		expect:   strings.ToLower(strings.TrimSpace(cfg.ExpectSHA)),
+		hosts:    cfg.AllowHosts,
 		client:   &http.Client{Timeout: 120 * time.Second},
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
+		target := cfg.URL
+		if target == "" {
+			// Without a URL of its own the manager downloads the sample file
+			// it serves: the address comes from the request, so the default
+			// follows the port of the server.
+			target = defaultTargetURL("http://" + r.Host)
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
-			"url":        opts.url,
-			"partSize":   opts.partSize,
-			"workers":    opts.workers,
-			"maxParts":   opts.maxParts,
-			"throttle":   opts.throttle,
-			"outDir":     absPath(opts.outDir),
-			"allowHosts": opts.allowHosts,
-			"expectSHA":  opts.expectSHA,
+			"url":        target,
+			"partSize":   cfg.PartSize,
+			"workers":    cfg.Workers,
+			"maxParts":   cfg.MaxParts,
+			"throttle":   cfg.Throttle,
+			"outDir":     absPath(cfg.OutDir),
+			"allowHosts": cfg.AllowHosts,
+			"expectSHA":  cfg.ExpectSHA,
 		})
 	})
 	mux.HandleFunc("GET /api/downloads", func(w http.ResponseWriter, r *http.Request) {
@@ -339,78 +388,17 @@ func main() {
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write(soundBytes)
 	})
-	if opts.filesDir != "" {
+	if cfg.FilesDir != "" {
 		mux.HandleFunc("GET /files/{name}", func(w http.ResponseWriter, r *http.Request) {
 			mgr.handleFile(w, r)
 		})
 	}
-	mux.HandleFunc("GET /", frontendHandler(opts.webDir, webFS))
-
-	srv := &http.Server{Handler: cors(logRequests(mux))}
-	go func() { _ = srv.Serve(ln) }()
-
-	fmt.Println("======================================================")
-	fmt.Printf("download manager + app running at %v/\n", baseURL)
-	if opts.url != "" {
-		fmt.Printf("  target url   : %v\n", opts.url)
-	} else {
-		fmt.Println("  target url   : (none, type one in the app)")
-	}
-	fmt.Printf("  part size    : %v\n", opts.partSize)
-	fmt.Printf("  workers      : %v\n", opts.workers)
-	fmt.Printf("  out dir      : %v\n", absPath(opts.outDir))
-	if len(opts.allowHosts) > 0 {
-		fmt.Printf("  allowed hosts: %v\n", strings.Join(opts.allowHosts, ", "))
-	}
-	if opts.filesDir != "" {
-		fmt.Printf("  local files  : %v (try http://%v/files/sample.bin)\n", absPath(opts.filesDir), ln.Addr().String())
-	}
-	fmt.Println("  the app calls /api/downloads, /api/config and /api/downloads/{id}/...")
-	fmt.Println("======================================================")
-	if !opts.noOpen {
-		openBrowser(baseURL + "/")
-	}
-	select {}
+	// Everything else is the app.
+	mux.Handle("/", fallback)
+	return mux
 }
 
 // ---------------------------------------------------------------- frontend ---
-
-// frontendHandler serves the compiled app: from the disk when a directory is
-// given (the development launcher) and from the executable itself when the
-// app was embedded at build time (the release build).
-func frontendHandler(webDir string, webFS fs.FS) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		if path == "/" {
-			path = "/index.html"
-		}
-		// The path is cleaned before it is used, so it can never escape the
-		// directory of the app.
-		rel := strings.TrimPrefix(pathpkg.Clean("/"+path), "/")
-		var data []byte
-		var err error
-		if webFS != nil {
-			data, err = fs.ReadFile(webFS, rel)
-		} else {
-			data, err = os.ReadFile(filepath.Join(webDir, filepath.FromSlash(rel)))
-		}
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		ct := "application/octet-stream"
-		switch {
-		case strings.HasSuffix(path, ".html"):
-			ct = "text/html; charset=utf-8"
-		case strings.HasSuffix(path, ".css"):
-			ct = "text/css; charset=utf-8"
-		case strings.HasSuffix(path, ".js"):
-			ct = "application/javascript; charset=utf-8"
-		}
-		w.Header().Set("Content-Type", ct)
-		_, _ = w.Write(data)
-	}
-}
 
 // defaultTargetURL is the file the manager downloads when the CLI does not
 // name one: the sample file it serves, at the port the listener got.
@@ -420,106 +408,141 @@ func defaultTargetURL(baseURL string) string {
 
 // ------------------------------------------------------------------ flags ---
 
-type options struct {
-	url        string
-	partSize   string
-	workers    int
-	throttle   int64
-	maxParts   int
-	outDir     string
-	webDir     string
-	filesDir   string
-	expectSHA  string
-	allowHosts []string
-	port       int
-	sampleMiB  int
-	noOpen     bool
+// Config is the configuration of the download manager: the URL of the file to
+// download and the other settings of the CLI.
+type Config struct {
+	// URL is the file to download: when it is empty the operator writes it
+	// in the app.
+	URL string
+	// PartSize is the length of one part.
+	PartSize string
+	// Workers is the number of parts downloaded at the same time.
+	Workers int
+	// Throttle slows the download down, in bytes per second and worker.
+	Throttle int64
+	// MaxParts is the upper bound of the parts of one job.
+	MaxParts int
+	// OutDir is the folder with the parts and the merged files.
+	OutDir string
+	// WebDir is the folder with the compiled app: the standalone program
+	// serves it from there, the library takes it from the fallback.
+	WebDir string
+	// FilesDir is the folder with the files offered for download.
+	FilesDir string
+	// ExpectSHA is the expected SHA-256 of the downloaded file.
+	ExpectSHA string
+	// AllowHosts are the hosts that may be downloaded.
+	AllowHosts []string
+	// Port is the port of the HTTP server.
+	Port int
+	// SampleMiB is the size of the generated sample file: 0 disables it.
+	SampleMiB int
+	// NoOpen tells the manager not to open the browser.
+	NoOpen bool
 }
 
-func (o *options) parse(args []string) {
+// DefaultConfig is the configuration used when the command line does not say
+// otherwise.
+func DefaultConfig() Config {
+	return Config{
+		Port:      8090,
+		PartSize:  "1 MiB",
+		Workers:   4,
+		MaxParts:  256,
+		FilesDir:  filepath.Join("..", "files"),
+		OutDir:    filepath.Join("..", "downloads"),
+		SampleMiB: 24,
+	}
+}
+
+// ParseConfig reads the command line of the manager.
+func ParseConfig(args []string) Config {
+	c := DefaultConfig()
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--url":
 			if i+1 < len(args) {
-				o.url = strings.TrimSpace(args[i+1])
+				c.URL = strings.TrimSpace(args[i+1])
 			}
 			i++
 		case "--part-size":
 			if i+1 < len(args) {
-				o.partSize = args[i+1]
+				c.PartSize = args[i+1]
 			}
 			i++
 		case "--workers":
 			if i+1 < len(args) {
 				if v, err := strconv.Atoi(args[i+1]); err == nil && v > 0 && v <= 32 {
-					o.workers = v
+					c.Workers = v
 				}
 			}
 			i++
 		case "--throttle":
 			if i+1 < len(args) {
 				if v, err := strconv.ParseInt(args[i+1], 10, 64); err == nil && v >= 0 {
-					o.throttle = v
+					c.Throttle = v
 				}
 			}
 			i++
 		case "--max-parts":
 			if i+1 < len(args) {
 				if v, err := strconv.Atoi(args[i+1]); err == nil && v > 0 {
-					o.maxParts = v
+					c.MaxParts = v
 				}
 			}
 			i++
 		case "--out-dir":
 			if i+1 < len(args) {
-				o.outDir = args[i+1]
+				c.OutDir = args[i+1]
 			}
 			i++
 		case "--web-dir":
 			if i+1 < len(args) {
-				o.webDir = args[i+1]
+				c.WebDir = args[i+1]
 			}
 			i++
 		case "--files-dir":
 			if i+1 < len(args) {
-				o.filesDir = args[i+1]
+				c.FilesDir = args[i+1]
 			}
 			i++
 		case "--sample-mib":
 			if i+1 < len(args) {
 				if v, err := strconv.Atoi(args[i+1]); err == nil && v >= 0 {
-					o.sampleMiB = v
+					c.SampleMiB = v
 				}
 			}
 			i++
 		case "--expect-sha256":
 			if i+1 < len(args) {
-				o.expectSHA = args[i+1]
+				c.ExpectSHA = args[i+1]
 			}
 			i++
 		case "--allow-host":
 			if i+1 < len(args) {
-				o.allowHosts = append(o.allowHosts, strings.ToLower(strings.TrimSpace(args[i+1])))
+				c.AllowHosts = append(c.AllowHosts, strings.ToLower(strings.TrimSpace(args[i+1])))
 			}
 			i++
 		case "--port":
 			if i+1 < len(args) {
 				if p, err := strconv.Atoi(args[i+1]); err == nil && p >= 0 && p < 65536 {
-					o.port = p
+					c.Port = p
 				}
 			}
 			i++
 		case "--no-open":
-			o.noOpen = true
+			c.NoOpen = true
 		}
 	}
+	return c
 }
 
 // ------------------------------------------------------------------- urls ---
 
-// validateTarget checks the URL the operator asked to download. Only http and
-// https are accepted, credentials in the URL are refused and, when the CLI
-// lists the allowed hosts, the host must be one of them.
+// validateTarget checks the URL the operator asked to download. http, https
+// and ftp are accepted, the credentials in the URL are refused (an ftp URL
+// carries the login instead) and, when the CLI lists the allowed hosts, the
+// host must be one of them.
 func validateTarget(raw string, allowed []string) (*url.URL, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -529,13 +552,13 @@ func validateTarget(raw string, allowed []string) (*url.URL, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid url: %v", err)
 	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, fmt.Errorf("unsupported scheme %q: only http and https are allowed", u.Scheme)
+	if u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "ftp" {
+		return nil, fmt.Errorf("unsupported scheme %q: only http, https and ftp are allowed", u.Scheme)
 	}
 	if u.Host == "" {
 		return nil, fmt.Errorf("invalid url: missing host")
 	}
-	if u.User != nil {
+	if u.User != nil && u.Scheme != "ftp" {
 		return nil, fmt.Errorf("invalid url: credentials are not allowed")
 	}
 	if len(allowed) > 0 {
@@ -600,37 +623,6 @@ func chosenFileName(raw string) string {
 		return ""
 	}
 	return cleanFileName(name)
-}
-
-// probe asks the server for the first byte. A 206 answers with the total
-// size and tells that the server honours the Range requests; a 200 means the
-// server ignored the range and the file cannot be split.
-func probe(ctx context.Context, u *url.URL, client *http.Client) (int64, bool, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return 0, false, err
-	}
-	req.Header.Set("Range", "bytes=0-0")
-	resp, err := client.Do(req)
-	if err != nil {
-		return 0, false, err
-	}
-	defer resp.Body.Close()
-	switch resp.StatusCode {
-	case http.StatusPartialContent:
-		total := parseContentRangeTotal(resp.Header.Get("Content-Range"))
-		if total <= 0 {
-			return 0, false, fmt.Errorf("the server did not announce the file size")
-		}
-		return total, true, nil
-	case http.StatusOK:
-		if resp.ContentLength > 0 {
-			return resp.ContentLength, false, nil
-		}
-		return 0, false, nil
-	default:
-		return 0, false, fmt.Errorf("unexpected HTTP %d from %v", resp.StatusCode, u.Host)
-	}
 }
 
 // parseContentRangeTotal reads the total size from "bytes 0-0/12345".
@@ -768,21 +760,19 @@ func workersFrom(v any, def int) int {
 	return def
 }
 
-// planFile probes the URL and works out how the file is split: it returns the
-// file with its parts ready to be queued. The part size is in bytes.
-func (m *Manager) planFile(job *Job, rawURL, chosenName string, partSize int64, single bool, priority string) (*File, error) {
-	u, err := validateTarget(rawURL, m.hosts)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	total, rangeOK, err := probe(ctx, u, m.client)
-	cancel()
-	if err != nil {
-		return nil, fmt.Errorf("cannot reach the url: %w", err)
-	}
-
+// planParts works out the length of the parts and how many there are.
+//
+//   - one single part: the whole file in one request, no split at all;
+//   - the server honours the ranges and announces the size: the file is cut
+//     in parts of the asked length;
+//   - the server does not honour the ranges: the file is one single part.
+//
+// The part length never refuses a file: when the file does not fit in the
+// parts the CLI allows, the parts grow instead (a download manager that says
+// no to a big file is useless). When the size of the file is unknown, the
+// part is open ended: the download goes on until the server closes the
+// connection.
+func planParts(total int64, rangeOK bool, single bool, partSize int64, maxParts int) (int64, int) {
 	partCount := 1
 	switch {
 	case single:
@@ -799,16 +789,69 @@ func (m *Manager) planFile(job *Job, rawURL, chosenName string, partSize int64, 
 		if partCount < 1 {
 			partCount = 1
 		}
-		if partCount > m.maxParts {
-			return nil, fmt.Errorf("too many parts (%d): use a bigger part size (max %d)", partCount, m.maxParts)
+		if partCount > maxParts {
+			partSize = partSizeForParts(total, maxParts, partSize)
+			partCount = int((total + partSize - 1) / partSize)
+			if partCount < 1 {
+				partCount = 1
+			}
 		}
 	default:
 		// The server does not honour the ranges: the file is one single part.
 		partSize = total
 	}
-	if partSize <= 0 && !single {
-		return nil, fmt.Errorf("the file size is unknown")
+	if partSize <= 0 {
+		// The size of the file is unknown: the part is open ended.
+		partSize = 0
+		partCount = 1
 	}
+	return partSize, partCount
+}
+
+// partSizeForParts returns the length of the parts that fits the file in
+// maxParts parts: the length grows in steps of 1 MiB (or of the part size
+// asked for, when it is bigger), so the parts keep their round length.
+func partSizeForParts(total int64, maxParts int, partSize int64) int64 {
+	if maxParts < 1 || total <= 0 {
+		return partSize
+	}
+	need := (total + int64(maxParts) - 1) / int64(maxParts)
+	step := int64(1) << 20
+	if partSize > step {
+		step = partSize
+	}
+	return ((need + step - 1) / step) * step
+}
+
+// planFile probes the URL and works out how the file is split: it returns the
+// file with its parts ready to be queued. The part size is in bytes.
+func (m *Manager) planFile(job *Job, rawURL, chosenName string, partSize int64, single bool, priority string) (*File, error) {
+	u, err := validateTarget(rawURL, m.hosts)
+	if err != nil {
+		return nil, err
+	}
+	src, err := newSource(u, m.client)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	total, rangeOK, err := src.Size(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot reach the url: %w", err)
+	}
+	if probe, ok := src.(rangeProbe); ok {
+		// Some servers cannot start a transfer in the middle of the file:
+		// the whole file is then downloaded in one single part.
+		canRange, err := probe.ProbeRange(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("cannot reach the url: %w", err)
+		}
+		rangeOK = rangeOK && canRange
+	}
+
+	partSize, partCount := planParts(total, rangeOK, single, partSize, m.maxParts)
 
 	// The name of the file to save: the one the operator chose in the GUI or,
 	// when there is none, the one that comes from the URL.
@@ -818,7 +861,11 @@ func (m *Manager) planFile(job *Job, rawURL, chosenName string, partSize int64, 
 	}
 
 	f := &File{
-		URL:      u.String(),
+		// The URL that is shown hides the password of an ftp login: the
+		// original one is kept apart, for the restart of the file.
+		URL:      redactURL(u),
+		rawURL:   rawURL,
+		src:      src,
 		Name:     name,
 		Priority: normalizePriority(priority),
 		Total:    total,
@@ -1072,7 +1119,7 @@ func (m *Manager) handleFileAction(w http.ResponseWriter, r *http.Request) {
 		job.cancelFile(f)
 	case "restart":
 		rawURL := strings.TrimSpace(req.URL)
-		if rawURL != "" && rawURL != f.URL {
+		if rawURL != "" && rawURL != f.rawURL {
 			// The operator changed the URL of a file that had stopped: the
 			// file is planned again and downloaded from the new URL.
 			job.mu.Lock()
@@ -1361,42 +1408,35 @@ func (p *progressWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
-// downloadPart fetches one part with its own Range request. The bytes
-// already on disk are kept: on resume the request starts where it stopped.
+// downloadPart fetches one part from the source of its file: an http server
+// with a Range request, an ftp server with the restart command. The bytes
+// already on disk are kept: on resume the transfer starts where it stopped.
 func (j *Job) downloadPart(ctx context.Context, p *Part) {
 	j.mu.Lock()
 	start := p.Start + p.Received
 	state := j.State
-	url := j.URL
-	total := j.Total
-	if p.file != nil {
-		url = p.file.URL
-		total = p.file.Total
-	}
 	j.mu.Unlock()
 	if state != "running" {
 		return
 	}
-	if start > p.End {
+	// An open ended part (the end is -1) has no known length: it is never
+	// complete before the request ends, so it is not checked here.
+	if partFinished(p, start) {
 		j.setPartState(p, "done", "")
 		j.maybeMerge()
 		return
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		j.setPartState(p, "error", err.Error())
+	var src source
+	if p.file != nil {
+		src = p.file.src
+	}
+	if src == nil {
+		j.setPartState(p, "error", "the part has no source")
 		j.settle()
 		return
 	}
-	if p.End >= 0 {
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, p.End))
-	} else {
-		// The size of the file is unknown: ask for everything from the byte
-		// the part stopped at.
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", start))
-	}
-	resp, err := j.client().Do(req)
+	body, err := src.Open(ctx, start, p.End)
 	if err != nil {
 		if ctx.Err() != nil {
 			j.setPartState(p, "pending", "")
@@ -1406,15 +1446,7 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 		j.settle()
 		return
 	}
-	defer resp.Body.Close()
-	// A part that covers the whole file also accepts a plain 200 answer: some
-	// servers ignore the Range header when the range is the whole file.
-	wholeFile := start == 0 && (p.End < 0 || p.End >= total-1)
-	if resp.StatusCode != http.StatusPartialContent && !(resp.StatusCode == http.StatusOK && wholeFile) {
-		j.setPartState(p, "error", fmt.Sprintf("HTTP %d from the file server", resp.StatusCode))
-		j.settle()
-		return
-	}
+	defer body.Close()
 
 	path := j.partPath(p.Index)
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
@@ -1425,7 +1457,7 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 	}
 
 	w := &progressWriter{job: j, part: p, w: f}
-	_, copyErr := io.Copy(w, resp.Body)
+	_, copyErr := io.Copy(w, body)
 	// The bytes are on disk: the handle is closed, so the file of the part can
 	// be deleted right away when its file has been canceled.
 	f.Close()
@@ -2193,6 +2225,16 @@ func (j *Job) client() *http.Client { return j.clientValue }
 
 func (j *Job) partPath(index int) string {
 	return filepath.Join(j.dir, fmt.Sprintf("part-%04d.bin", index))
+}
+
+// partFinished tells whether the part has all its bytes. An open ended part
+// (the end is -1, the size of the file is unknown) is never finished before
+// the request ends.
+func partFinished(p *Part, start int64) bool {
+	if p.End < 0 {
+		return false
+	}
+	return start > p.End
 }
 
 // ---------------------------------------------------------------- helpers ---

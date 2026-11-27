@@ -28,4 +28,4 @@ echo Starting the download manager ...
 echo Open this in your browser:  http://127.0.0.1:8090/
 echo File to download:  %URL%
 cd "%ROOT%server"
-go run . --port 8090 --web-dir "%ROOT%public" --files-dir "%ROOT%files" --out-dir "%ROOT%downloads" --url "%URL%" --part-size "%PARTSIZE%" --workers "%WORKERS%" --throttle "%THROTTLE%"
+go run ./cmd/dm --port 8090 --web-dir "%ROOT%public" --files-dir "%ROOT%files" --out-dir "%ROOT%downloads" --url "%URL%" --part-size "%PARTSIZE%" --workers "%WORKERS%" --throttle "%THROTTLE%"

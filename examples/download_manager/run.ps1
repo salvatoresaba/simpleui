@@ -46,7 +46,7 @@ Write-Host "Starting the download manager ..."
 Write-Host "Open this in your browser:  http://127.0.0.1:8090/"
 Write-Host "File to download:  $Url"
 Push-Location (Join-Path $root "server")
-go run . @backendArgs
+go run ./cmd/dm @backendArgs
 $code = $LASTEXITCODE
 Pop-Location
 exit $code

@@ -2,9 +2,10 @@ import { http, json, sound } from "std"
 
 # Download manager - the front end of the chunked downloader.
 #
-# The Go backend (server/main.go) takes the URL of a file, splits it into
-# parts according to the chosen part size, downloads every part with its own
-# Range request, tracks each part and finally reassembles them into one file.
+# The Go backend (the library in server/) takes the URL of a file, splits it
+# into parts according to the chosen part size, downloads every part with its
+# own Range request, tracks each part and finally reassembles them into one
+# file.
 #
 # A download can hold more than one file. The screen shows the targets: every
 # file that is going to be downloaded, or that is being downloaded, has a row
@@ -44,6 +45,8 @@ state totalText = "0 B"
 state receivedText = "0 B"
 state etaText = "--"
 state verifyText = ""
+state jobPartSize = ""
+state sizeUnknown = false
 state message = ""
 state partsView: array[any] = []
 state partsTable: array[any] = []
@@ -157,6 +160,17 @@ async fn loadConfig() -> null {
 	if cfgWorkers != "" {
 		workers = cfgWorkers
 	}
+}
+
+# The title of the parts: how many there are and how long they are. The
+# backend grows the length of the parts when the file does not fit in the
+# parts the CLI allows, so the title shows the length really used.
+fn partsTitle() -> string {
+	let text = str(len(partsView)) + " parts started - the most recent one first"
+	if jobPartSize != "" {
+		text = text + " (" + jobPartSize + " each)"
+	}
+	return text
 }
 
 # The name of the file to save, taken from the URL: the last segment of the
@@ -580,6 +594,15 @@ async fn updateJob(job: any) -> null {
 	etaText = str(job["etaText"])
 	verifyText = str(job["verified"])
 	failedParts = job["failedParts"]
+	# The length of the parts the backend really uses: it grows the parts when
+	# the file does not fit in the parts the CLI allows.
+	jobPartSize = str(job["partSizeText"])
+	# The server does not always announce the size of the file: without it there
+	# is no percentage and no time left, only the bytes that have arrived.
+	sizeUnknown = str(job["total"]) == "0"
+	if sizeUnknown and jobState == "running" {
+		message = "the server does not announce the size: the download goes on until it ends"
+	}
 	let parts = job["parts"]
 	# Only the parts that have started get a bar: a pending part would show
 	# an empty bar. The bars start from the most recent part: what is
@@ -1092,7 +1115,7 @@ view main {
 		# when there is no row at all. The list never lives inside a branch of
 		# a conditional block: the rows would disappear with the branch.
 		if len(targets) == 0 {
-			p "Add a target: paste the URL and press play." class: "muted"
+			p "Add a target: paste the URL (http, https or ftp) and press play." class: "muted"
 		}
 		list t in targets key: t["id"] {
 			row class: "target-row" {
@@ -1129,7 +1152,7 @@ view main {
 				# parts belong to the progress of the download.
 				if jobSingle == false {
 					accordion "Parts" {
-						accordionitem "{len(partsView)} parts started - the most recent one first" {
+						accordionitem "{partsTitle()}" {
 							# The counters of the parts: how many there are, how many
 							# are downloading and how many are done.
 							row class: "part-counts" {
@@ -1284,11 +1307,19 @@ view main {
 		}
 		row class: "statusbar-row" {
 			col class: "sb-item" {
-				p "{percent}%" class: "sb-value"
+				if sizeUnknown {
+					p "--" class: "sb-value"
+				} else {
+					p "{percent}%" class: "sb-value"
+				}
 				p "progress" class: "sb-label"
 			}
 			col class: "sb-item" {
-				p "{totalText}" class: "sb-value"
+				if sizeUnknown {
+					p "--" class: "sb-value"
+				} else {
+					p "{totalText}" class: "sb-value"
+				}
 				p "size" class: "sb-label"
 			}
 			col class: "sb-item" {

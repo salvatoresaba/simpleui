@@ -713,7 +713,9 @@ func startDownloadManager(t *testing.T, extra ...string) (string, string, string
 		exeName = exeName + ".exe"
 	}
 	exe := filepath.Join(dir, exeName)
-	ce := exec.Command("go", "build", "-o", exe, ".")
+	// The backend of the example is a library: the program that serves it is
+	// the command of the module (cmd/dm).
+	ce := exec.Command("go", "build", "-o", exe, "./cmd/dm")
 	ce.Dir = filepath.Join("examples", "download_manager", "server")
 	if out, err := ce.CombinedOutput(); err != nil {
 		t.Fatalf("server build: %v\n%v", err, string(out))

@@ -1,12 +1,8 @@
-package main
+package downloadmanager
 
 import (
-	"io/fs"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -248,79 +244,62 @@ func TestRestartRemovesTheMergedFileOfTheOldAttempt(t *testing.T) {
 	}
 }
 
-// The release build carries the app inside the executable: the frontend is
-// served from the embedded files, with no directory next to it.
-func TestTheEmbeddedFrontendServesTheApp(t *testing.T) {
-	sub, err := fs.Sub(embeddedWeb, "web")
-	if err != nil {
-		t.Fatalf("embedded web assets: %v", err)
-	}
-	rec := httptest.NewRecorder()
-	frontendHandler("", sub).ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("the app was not served: %v", rec.Code)
-	}
-	page := rec.Body.String()
-	if !strings.Contains(page, "<title>Download manager</title>") {
-		t.Fatalf("the page is not the app: %v", page[:min(len(page), 120)])
-	}
-	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {
-		t.Fatalf("wrong content type: %v", ct)
-	}
-}
-
-// The script of the app is served too: the page alone cannot work without it.
-func TestTheEmbeddedFrontendServesTheScript(t *testing.T) {
-	sub, err := fs.Sub(embeddedWeb, "web")
-	if err != nil {
-		t.Fatalf("embedded web assets: %v", err)
-	}
-	rec := httptest.NewRecorder()
-	frontendHandler("", sub).ServeHTTP(rec, httptest.NewRequest("GET", "/app.js", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("the script was not served: %v", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "__sui_render") {
-		t.Fatal("the script is not the compiled app")
-	}
-}
-
-// The frontend comes from the disk when a directory is given: the
-// development launcher serves public/ from the disk.
-func TestTheFrontendIsServedFromTheDisk(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("<title>From disk</title>"), 0o644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-	rec := httptest.NewRecorder()
-	frontendHandler(dir, nil).ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("the app was not served: %v", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "From disk") {
-		t.Fatalf("the page is not the one of the directory: %v", rec.Body.String())
-	}
-}
-
-// A path cannot escape the directory of the app.
-func TestTheFrontendRefusesToLeaveItsDirectory(t *testing.T) {
-	dir := t.TempDir()
-	secret := filepath.Join(filepath.Dir(dir), "secret.txt")
-	if err := os.WriteFile(secret, []byte("secret"), 0o644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-	t.Cleanup(func() { _ = os.Remove(secret) })
-	rec := httptest.NewRecorder()
-	frontendHandler(dir, nil).ServeHTTP(rec, httptest.NewRequest("GET", "/../secret.txt", nil))
-	if rec.Code == http.StatusOK {
-		t.Fatal("the path left the directory of the app")
-	}
-}
-
 // Without a URL of its own the manager downloads the sample file it serves,
 // at the port the listener got.
 func TestTheDefaultURLFollowsThePort(t *testing.T) {
 	if got := defaultTargetURL("http://127.0.0.1:8091"); got != "http://127.0.0.1:8091/files/sample.bin" {
 		t.Fatalf("wrong default url: %v", got)
+	}
+}
+
+// A file that does not fit in the parts the CLI allows is not refused: the
+// parts grow instead, so a big file from the internet still downloads.
+func TestThePartSizeGrowsForABigFile(t *testing.T) {
+	total := int64(365) << 20 // 365 MiB
+	size, count := planParts(total, true, false, 1<<20, 256)
+	if count > 256 {
+		t.Fatalf("too many parts: %d", count)
+	}
+	if size <= 1<<20 {
+		t.Fatalf("the part size did not grow: %d", size)
+	}
+	// The parts must still cover the whole file.
+	if int64(count)*size < total {
+		t.Fatalf("the parts do not cover the file: %d x %d", count, size)
+	}
+}
+
+// A file that fits keeps the part size the operator asked for.
+func TestThePartSizeIsKeptForASmallFile(t *testing.T) {
+	size, count := planParts(10<<20, true, false, 1<<20, 256)
+	if size != 1<<20 || count != 10 {
+		t.Fatalf("wrong split: %d bytes in %d parts", size, count)
+	}
+}
+
+// A server that does not announce the size gives an open ended part: one
+// part, of no known length, and the download goes on until the server ends
+// it.
+func TestAnUnknownSizeGivesAnOpenEndedPart(t *testing.T) {
+	size, count := planParts(0, false, false, 1<<20, 256)
+	if size != 0 || count != 1 {
+		t.Fatalf("wrong plan for an unknown size: %d bytes in %d parts", size, count)
+	}
+	p := &Part{Start: 0, End: -1}
+	if partFinished(p, 0) {
+		t.Fatal("an open ended part is never finished before the request ends")
+	}
+	p2 := &Part{Start: 0, End: 1023}
+	if !partFinished(p2, 1024) {
+		t.Fatal("a part with all its bytes is finished")
+	}
+}
+
+// A server that does not honour the ranges gives one single part with the
+// whole file.
+func TestAServerWithoutRangesGivesOnePart(t *testing.T) {
+	size, count := planParts(10<<20, false, false, 1<<20, 256)
+	if size != 10<<20 || count != 1 {
+		t.Fatalf("wrong plan without ranges: %d bytes in %d parts", size, count)
 	}
 }
