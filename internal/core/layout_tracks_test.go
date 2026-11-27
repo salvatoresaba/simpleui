@@ -22,19 +22,58 @@ func layoutTracksProg(t *testing.T, src string) *Prog {
 
 func TestRowLayoutTracksInGeneratedApp(t *testing.T) {
 	src := "view main {\n" +
-		"\trow columns: \"2\" columnWidths: \"60%, 40%\" width: \"100%\" height: \"200px\" {\n" +
+		"\trow columns: \"2\" columnWidths: \"60%, 40%\" {\n" +
 		"\t\tdiv { p \"one\" }\n" +
 		"\t\tdiv { p \"two\" }\n" +
 		"\t}\n" +
 		"}\n"
 	prog := layoutTracksProg(t, src)
 	js := GenerateJs(prog)
-	if !strings.Contains(js, "display:grid;grid-template-columns:60% 40%;width:100%;height:200px;") {
+	if !strings.Contains(js, "display:grid;grid-template-columns:60% 40%;") {
 		t.Fatalf("the row does not lay its cells out as columns:\n%s", js)
 	}
 	html := GenerateHtmlPage(prog)
-	if !strings.Contains(html, "display:grid;grid-template-columns:60% 40%;width:100%;height:200px;") {
+	if !strings.Contains(html, "display:grid;grid-template-columns:60% 40%;") {
 		t.Fatalf("the static page does not lay the cells out as columns:\n%s", html)
+	}
+}
+
+// The size of a row belongs to its CSS, like the size of every other element:
+// the inline style of the container must not override it.
+func TestRowLayoutKeepsTheSizeInTheCss(t *testing.T) {
+	src := "view main {\n" +
+		"\trow columns: \"2\" class: \"r\" {\n" +
+		"\t\tdiv { p \"one\" }\n" +
+		"\t\tdiv { p \"two\" }\n" +
+		"\t}\n" +
+		"}\n"
+	prog := layoutTracksProg(t, src)
+	js := GenerateJs(prog)
+	i := strings.Index(js, `class="row`)
+	if i < 0 {
+		t.Fatalf("the row is missing:\n%s", js)
+	}
+	rest := js[i:]
+	end := strings.Index(rest, ">")
+	tag := rest[:end]
+	if strings.Contains(tag, "width") || strings.Contains(tag, "height") {
+		t.Fatalf("the inline style of the row must not carry a size: %s", tag)
+	}
+	if !strings.Contains(tag, "display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);") {
+		t.Fatalf("the inline style of the row is wrong: %s", tag)
+	}
+}
+
+func TestRowLayoutRejectsTheSizeAttributes(t *testing.T) {
+	src := "view main {\n" +
+		"\trow columns: \"2\" width: \"100%\" {\n" +
+		"\t\tdiv { p \"one\" }\n" +
+		"\t\tdiv { p \"two\" }\n" +
+		"\t}\n" +
+		"}\n"
+	diagnostics := checkSrc(t, src)
+	if !hasMsg(diagnostics, "attribute \"width\" is not allowed on <row>") {
+		t.Fatalf("expected the size attribute diagnostic, got: %s", diagnostics.String())
 	}
 }
 

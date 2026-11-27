@@ -5128,12 +5128,10 @@ func attrAllowed(key string, tag string) bool {
 		key == "cellMinHeight" || key == "responsive" || key == "semantic" || key == "label") {
 		return true
 	}
-	if tag == "row" && (key == "columns" || key == "columnWidths" ||
-		key == "width" || key == "height") {
+	if tag == "row" && (key == "columns" || key == "columnWidths") {
 		return true
 	}
-	if tag == "col" && (key == "rows" || key == "rowHeights" ||
-		key == "width" || key == "height") {
+	if tag == "col" && (key == "rows" || key == "rowHeights") {
 		return true
 	}
 	if key == "colspan" || key == "rowspan" {

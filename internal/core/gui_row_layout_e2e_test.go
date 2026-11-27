@@ -13,7 +13,7 @@ import (
 // must read them from the model, show them in the Layout section of the
 // inspector and refuse a set of widths that does not fit the row.
 const designerRowLayoutSource = `view main {
-	row columns: "2" columnWidths: "60%, 40%" width: "100%" height: "200px" class: "r" {
+	row columns: "2" columnWidths: "60%, 40%" class: "r" {
 		div class: "c1" {
 			p "one"
 		}
@@ -274,8 +274,6 @@ const designerRowLayoutScript = `<script>
     var src = ta.value || '';
     if (src.indexOf('columns: "2"') < 0) throw new Error('the column count was lost: ' + src);
     if (src.indexOf('columnWidths: "60%, 40%"') < 0) throw new Error('the column widths were lost: ' + src);
-    if (src.indexOf('width: "100%"') < 0) throw new Error('the width of the row was lost: ' + src);
-    if (src.indexOf('height: "200px"') < 0) throw new Error('the height of the row was lost: ' + src);
     step('round-trip');
 
     // Select the row and read the Layout section of the inspector.

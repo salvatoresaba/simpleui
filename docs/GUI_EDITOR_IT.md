@@ -462,16 +462,18 @@ Una `row` o una `col` selezionata espone una sezione **Row layout** /
 - **columns** / **rows**: il numero di celle del contenitore. Alzare il numero
   aggiunge le celle vuote mancanti; abbassarlo rimuove le celle vuote in
   coda e non rimuove mai una cella che contiene contenuto;
-- **width** e **height**: la dimensione del contenitore, in `px` o `%`;
 - la dimensione di **ogni cella**: un numero e un'unità (`px`, `%` o **auto**).
   Una cella senza dimensione occupa lo spazio che le altre lasciano libero,
   quindi una cella fissa e una automatica riempiono sempre la riga. Le
   percentuali insieme non possono superare il `100%`: con una prima colonna
   del `60%` una seconda colonna del `50%` viene rifiutata e ripiega sul `40%`.
 
+La dimensione del contenitore non sta qui: larghezza e altezza sono nella
+sezione **Size**, come per ogni altro elemento.
+
 I valori vengono riportati nella sorgente come attributi `columns`,
-`columnWidths`, `rows`, `rowHeights`, `width` e `height` del contenitore, quindi
-sopravvivono a un ricaricamento e possono essere modificati a mano.
+`columnWidths`, `rows` e `rowHeights` del contenitore, quindi sopravvivono a
+un ricaricamento e possono essere modificati a mano.
 
 ### Design token
 

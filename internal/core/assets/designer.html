@@ -381,6 +381,15 @@ label.isw input { position:absolute; inset:0; width:100%; height:100%; opacity:0
 .node.sel { background:var(--sel); outline:1px solid var(--accent); }
 .node.multi { background:var(--btn-hover); }
 .node.unused { outline:1px dashed #ff7b72; }
+/* Branch separator: it marks the else branch of a conditional block. */
+.node.branchsep {
+  cursor:default;
+  color:var(--dim);
+  font-style:italic;
+  font-size:11px;
+  padding:2px 6px;
+  opacity:.8;
+}
 .node.twist {
   cursor:pointer; color:var(--muted); font-size:15px; font-weight:700;
   line-height:1; flex:none; width:16px; height:18px; padding:0;
@@ -4139,22 +4148,6 @@ function gridContainerControls(n) {
   var count = Math.max(isNaN(declared) ? 0 : declared, kids.length);
   if (count < 1) count = 1;
 
-  function textRow(labelText, field, placeholder, title) {
-    var row = document.createElement("div"); row.className = "rowline";
-    row.appendChild(lbl(labelText));
-    var inp = document.createElement("input");
-    inp.value = n[field] === undefined || n[field] === null ? "" : String(n[field]);
-    inp.placeholder = placeholder || "";
-    if (title) inp.title = title;
-    inp.spellcheck = false;
-    inp.onchange = function(){
-      var v = inp.value.trim();
-      withUndo(function(){ n[field] = v; }, "layout " + labelText);
-    };
-    row.appendChild(inp);
-    b.appendChild(row);
-    return inp;
-  }
   var countRowEl = document.createElement("div"); countRowEl.className = "rowline";
   countRowEl.appendChild(lbl(isRow ? "columns" : "rows"));
   var countInp = document.createElement("input");
@@ -4170,9 +4163,6 @@ function gridContainerControls(n) {
   };
   countRowEl.appendChild(countInp);
   b.appendChild(countRowEl);
-
-  textRow("width", "gridWidth", "auto", "Width of the container, in px or %.");
-  textRow("height", "gridHeight", "auto", "Height of the container, in px or %.");
 
   var head = document.createElement("div"); head.className = "rowth";
   head.textContent = "Size of every " + axis + " (leave it empty for automatic):";
@@ -4682,6 +4672,16 @@ function renderNodes(children, depth, parent, path) {
     }
     var row = document.createElement("div");
     var cls = node.class ? node.class.trim().split(/\s+/)[0] : "";
+    // The children of the else branch of a conditional block are marked, so
+    // the tree shows which branch an element belongs to. A separator row
+    // splits the two branches.
+    if (node.else && !(i > 0 && children[i - 1].else)) {
+      var sep = document.createElement("div");
+      sep.className = "node branchsep";
+      sep.textContent = "else branch";
+      sep.title = "The elements below belong to the else branch of the conditional block";
+      parent.appendChild(sep);
+    }
     var isUnused = cls && unused[cls];
     var isCellSel = false;
     for (var ls = 0; ls < layoutSel.length; ls++) if (samePath(layoutSel[ls], p)) { isCellSel = true; break; }
@@ -5209,7 +5209,13 @@ function pasteClipboard() {
     idx = container.length;
   }
   withUndo(function() {
-    for (var i = 0; i < clones.length; i++) container.splice(idx + i, 0, clones[i]);
+    // A pasted element joins the branch of the element it is pasted next to.
+    var pasteParent = selPath ? byPath(selPath.slice(0, -1), root.children) : null;
+    var pasteSel = selPath ? byPath(selPath, root.children) : null;
+    for (var i = 0; i < clones.length; i++) {
+      if (pasteParent && pasteParent.block === "if") clones[i].else = !!(pasteSel && pasteSel.else);
+      container.splice(idx + i, 0, clones[i]);
+    }
   }, "paste");
   setStatus("pasted " + clones.length + " element(s)");
 }
@@ -5235,11 +5241,17 @@ function dropAt(srcStr, tray, index, targetNode, targetPath) {
       // nest inside the target container
       targetNode.children.push(srcPass);
       selPath = targetPath.concat([targetNode.children.length - 1]);
+      // A nested element is not a direct child of the block: it follows the
+      // branch of the container that holds it.
+      srcPass.else = false;
     } else {
       // reorder as a sibling, right before the target
       if (sameArray(srcParent, pathOf(tray)) && srcIdx < index) index = index - 1;
       tray.splice(index, 0, srcPass);
       selPath = pathOf(tray).concat([index]);
+      // A moved element joins the branch of the element it lands next to:
+      // dropping it on the else branch moves it into the else branch.
+      if (targetNode) srcPass.else = !!targetNode.else;
     }
     multiSel = [];
   }, "move element");
@@ -5312,10 +5324,15 @@ function insertNodeAtSelection(node, kind) {
       } else {
         // leaf selected: insert as the next sibling
         var par = selPath.slice(0, -1);
-        var arr = par.length === 0 ? root.children : byPath(par, root.children).children;
+        var parentNode = par.length === 0 ? null : byPath(par, root.children);
+        var arr = par.length === 0 ? root.children : parentNode.children;
         var pos = selPath[selPath.length - 1] + 1;
         arr.splice(pos, 0, node);
         insPath = par.concat([pos]);
+        // A child of a conditional block belongs to the branch of the element
+        // it is inserted next to: an element added next to an element of the
+        // else branch must not fall back into the then branch.
+        if (parentNode && parentNode.block === "if") node.else = !!sel.else;
       }
     } else {
       // no selection: append at the root (inside the virtual body)
@@ -6367,11 +6384,21 @@ function blockInspector(node) {
   infoLabel.textContent = node.block === "list" ? "loop" : "condition";
   info.appendChild(infoLabel);
   var infoValue = document.createElement("input");
-  infoValue.readOnly = true;
-  infoValue.value = node.block === "list"
-    ? ((node.item || "") + (node.item2 ? ", " + node.item2 : "") + " in " + (node.iterable || ""))
-    : (node.cond || "");
-  infoValue.title = infoValue.value;
+  if (node.block === "list") {
+    infoValue.readOnly = true;
+    infoValue.value = (node.item || "") + (node.item2 ? ", " + node.item2 : "") + " in " + (node.iterable || "");
+  } else {
+    // The condition of a conditional block is editable: it is the expression
+    // the block tests. A wrong expression is reported by the Problems panel.
+    infoValue.value = node.cond || "";
+    infoValue.spellcheck = false;
+    infoValue.title = "Condition of the block, for example: flag == true";
+    infoValue.onchange = function () {
+      var v = infoValue.value.trim();
+      withUndo(function () { node.cond = v; }, "block condition");
+    };
+  }
+  infoValue.title = infoValue.title || infoValue.value;
   info.appendChild(infoValue);
   body.appendChild(info);
 
@@ -18957,8 +18984,6 @@ function attrsOf(n) {
     var gridCount = gridIsRow ? n.gridColumns : n.gridRows;
     var gridSizeField = gridIsRow ? "gridColumnWidths" : "gridRowHeights";
     if (gridCount) a += (gridIsRow ? " columns: \"" : " rows: \"") + esc(String(gridCount)) + "\"";
-    if (n.gridWidth) a += " width: \"" + esc(String(n.gridWidth)) + "\"";
-    if (n.gridHeight) a += " height: \"" + esc(String(n.gridHeight)) + "\"";
     var gridEntries = gridTrackEntries(n, gridSizeField);
     if (gridEntries.length) {
       a += (gridIsRow ? " columnWidths: \"" : " rowHeights: \"") + esc(gridTrackListText(gridEntries)) + "\"";

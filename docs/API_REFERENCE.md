@@ -3704,7 +3704,7 @@ Without further attributes they are flex containers. A container that declares
 its tracks describes the size of every cell:
 
 ```sui
-row columns: "3" columnWidths: "240px, 60%, " width: "100%" height: "320px" {
+row columns: "3" columnWidths: "240px, 60%, " class: "toolbar" {
   div { p "fixed" }
   div { p "share" }
   div { p "automatic" }
@@ -3720,8 +3720,9 @@ row columns: "3" columnWidths: "240px, 60%, " width: "100%" height: "320px" {
   value is automatic too.
 - The percentages together cannot exceed `100%`: with two columns `60%` and
   `50%` is rejected and the second column is limited to `40%`.
-- `width` / `height` set the size of the container (for example `"80%"` or
-  `"640px"`).
+- The size of the container is **not** an attribute: set the width and the
+  height with the CSS of the element (the `Size` section of the designer), like
+  for every other element.
 - A container that declares tracks is compiled as a CSS grid: the cells fill the
   tracks in order. A container without tracks keeps the flex layout, so existing
   projects are unchanged.

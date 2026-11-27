@@ -106,8 +106,12 @@ func layoutColTracks(e *Element) []string {
 }
 
 // layoutContainerStyle returns the inline style of a row or of a column
-// container that declares its tracks or its size. An empty result means the
-// container keeps the default flex layout.
+// container that declares its tracks. An empty result means the container
+// keeps the default flex layout.
+//
+// The size of the container is not part of it: the width and the height are
+// set with the CSS of the element, like for every other element, so the Size
+// section of the inspector keeps working.
 func layoutContainerStyle(e *Element) string {
 	var parts []string
 	switch e.tag {
@@ -120,12 +124,6 @@ func layoutContainerStyle(e *Element) string {
 			parts = append(parts, "display:grid", "grid-template-rows:"+strings.Join(tracks, " "))
 		}
 	}
-	if v := layoutSafeSize(layoutTableTextAttr(e, "width", "")); v != "" {
-		parts = append(parts, "width:"+v)
-	}
-	if v := layoutSafeSize(layoutTableTextAttr(e, "height", "")); v != "" {
-		parts = append(parts, "height:"+v)
-	}
 	if len(parts) == 0 {
 		return ""
 	}
@@ -133,7 +131,7 @@ func layoutContainerStyle(e *Element) string {
 }
 
 // layoutContainerStyleAttr writes the inline style of a row or of a column
-// container that declares its tracks or its size.
+// container that declares its tracks.
 func layoutContainerStyleAttr(sb *strings.Builder, e *Element) {
 	style := layoutContainerStyle(e)
 	if style == "" {

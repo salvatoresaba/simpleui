@@ -3613,7 +3613,7 @@ accanto all'altro (sono le sue **colonne**), una `col` li impila (sono le sue
 dichiara le proprie track descrive la dimensione di ogni cella:
 
 ```sui
-row columns: "3" columnWidths: "240px, 60%, " width: "100%" height: "320px" {
+row columns: "3" columnWidths: "240px, 60%, " class: "toolbar" {
   div { p "fissa" }
   div { p "quota" }
   div { p "automatica" }
@@ -3629,8 +3629,9 @@ row columns: "3" columnWidths: "240px, 60%, " width: "100%" height: "320px" {
   dalle altre. Anche un valore vuoto è automatico.
 - Le percentuali insieme non possono superare il `100%`: con due colonne `60%`
   e `50%` è rifiutato e la seconda colonna è limitata al `40%`.
-- `width` / `height` impostano la dimensione del contenitore (`"80%"`,
-  `"640px"`).
+- La dimensione del contenitore **non** è un attributo: imposta larghezza e
+  altezza nel CSS dell'elemento (la sezione **Size** del designer), come per
+  ogni altro elemento.
 - Un contenitore che dichiara le track viene compilato come una griglia CSS: le
   celle riempiono le track in ordine. Un contenitore senza track mantiene il
   layout flex, quindi i progetti esistenti non cambiano.

@@ -17,8 +17,9 @@ and not only of the CSS.
 - a row with **three columns** of different kinds: a fixed `220px` column, a
   column of `40%` and an **automatic** column that takes the space the other
   two leave free;
-- the size of the container itself (`width: "100%"`, `height: "180px"`);
 - a column container with two rows: a fixed `90px` row and an automatic one;
+- the size of the containers in the CSS of their class (`width: 100%`,
+  `height: 180px`), like for every other element;
 - a conditional block (`if` / `else`) that changes the number of columns of a
   row when a state variable changes;
 - the automatic cell written as an empty value in the source and as `auto` when
@@ -31,10 +32,13 @@ and not only of the CSS.
 # size of every cell. A cell without a size takes the space that the other
 # cells leave free, so a fixed cell and an automatic one always fill the row.
 #
-# The designer exposes the same values in the Row layout / Column layout
-# section of the inspector: select the row, change the number of columns, the
-# size of the container or the size of a single cell, and drag the boundary
-# between two cells in the preview.
+# The size of the container is not an attribute: it belongs to the CSS of the
+# element, like the size of every other element, and the designer sets it in
+# the Size section of the inspector.
+#
+# The designer exposes the tracks in the Row layout / Column layout section of
+# the inspector: select the row, change the number of columns or the size of a
+# single cell, and drag the boundary between two cells in the preview.
 
 state wide = true
 
@@ -42,7 +46,7 @@ fn toggle() -> null {
 	wide = not wide
 }
 
-css ".rl-page \{ max-width: 900px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; \} .rl-box \{ border: 1px solid #2b3242; border-radius: 10px; padding: 14px; \} .rl-title \{ font-weight: 600; \} .rl-note \{ color: #8fa0b8; font-size: 13px; \}"
+css ".rl-page \{ max-width: 900px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; \} .rl-box \{ border: 1px solid #2b3242; border-radius: 10px; padding: 14px; \} .rl-full \{ width: 100%; \} .rl-row \{ height: 180px; \} .rl-stack \{ width: 320px; \} .rl-title \{ font-weight: 600; \} .rl-note \{ color: #8fa0b8; font-size: 13px; \}"
 
 view main {
 	title "Row and column layout"
@@ -50,7 +54,7 @@ view main {
 		h1 "Row and column layout"
 		p "A row lays its children out as columns, a column container stacks them as rows. The size of every cell lives in the container."
 
-		row columns: "3" columnWidths: "220px, 40%, " width: "100%" height: "180px" class: "rl-box" {
+		row columns: "3" columnWidths: "220px, 40%, " class: "rl-box rl-full rl-row" {
 			col class: "rl-box" {
 				p "Fixed" class: "rl-title"
 				p "220px" class: "rl-note"
@@ -65,7 +69,7 @@ view main {
 			}
 		}
 
-		col rows: "2" rowHeights: "90px, " width: "320px" class: "rl-box" {
+		col rows: "2" rowHeights: "90px, " class: "rl-box rl-stack" {
 			div {
 				p "Top" class: "rl-title"
 			}
@@ -75,7 +79,7 @@ view main {
 		}
 
 		if wide {
-			row columns: "2" columnWidths: "50%, 50%" width: "100%" class: "rl-box" {
+			row columns: "2" columnWidths: "50%, 50%" class: "rl-box rl-full" {
 				div {
 					p "Two equal columns."
 				}
@@ -84,14 +88,14 @@ view main {
 				}
 			}
 		} else {
-			row columns: "1" columnWidths: "100%" width: "100%" class: "rl-box" {
+			row columns: "1" columnWidths: "100%" class: "rl-box rl-full" {
 				div {
 					p "One single column: the else branch."
 				}
 			}
 		}
 
-		row columns: "1" width: "100%" class: "rl-box" {
+		row columns: "1" class: "rl-box rl-full" {
 			div {
 				button "Toggle the layout" onClick: toggle
 			}
@@ -114,8 +118,9 @@ simpleui gui examples/row_layout/app.sui
 ```
 
 - Select a `row` or a `col` in the tree: the **Row layout** / **Column layout**
-  section of the inspector shows the number of columns (or rows), the size of
-  the container and the size of every cell.
+  section of the inspector shows the number of columns (or rows) and the size
+  of every cell. The size of the container is in the **Size** section, like
+  for every other element.
 - Change the unit of a cell between `px`, `%` and **auto**. An automatic cell
   takes the space that the other cells leave free.
 - The percentages together cannot exceed `100%`: a value that does not fit is

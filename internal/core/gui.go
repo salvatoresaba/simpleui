@@ -4000,10 +4000,10 @@ func guiElementFromOpts(e *Element, viewNames map[string]bool, keepBlockText boo
 	}
 	if e.tag == "row" || e.tag == "col" {
 		// A row or a column container can declare its tracks (the columns of a
-		// row, the rows of a column) and its own size. The designer reads them
-		// from the model and writes them back to the source.
-		o.obj["gridWidth"] = JStr(layoutTableTextAttr(e, "width", ""))
-		o.obj["gridHeight"] = JStr(layoutTableTextAttr(e, "height", ""))
+		// row, the rows of a column). The designer reads them from the model
+		// and writes them back to the source. The size of the container is not
+		// here: it belongs to the CSS of the element, like for every other
+		// element.
 		if e.tag == "row" {
 			o.obj["gridColumns"] = JStr(guiGridCountAttr(e, "columns", 24))
 			o.obj["gridColumnWidths"] = JStr(layoutTableTextAttr(e, "columnWidths", ""))

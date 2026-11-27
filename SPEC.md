@@ -391,8 +391,8 @@ Elements and their supported attributes (v0.1):
 | input    | yes* | class, placeholder, value (state), onChange (fn) | no |
 | img      | no   | class, src (string/expr), alt             | no       |
 | a        | yes  | class, href (string/expr)                 | no       |
-| row      | no   | class, columns, columnWidths, width, height | yes      |
-| col      | no   | class, rows, rowHeights, width, height      | yes      |
+| row      | no   | class, columns, columnWidths             | yes      |
+| col      | no   | class, rows, rowHeights                  | yes      |
 | spacer   | no   | class                                    | no       |
 | table    | no   | class, name, editable, fixed             | yes      |
 | tablelayout | no | class, style, rows, columns, width, height, columnWidths, rowHeights, gapX, gapY, borderStyle, borderWidth, borderColor, cellMinHeight, responsive, semantic, label | yes      |
@@ -424,8 +424,9 @@ instead:
   space the other cells leave free.
 - The percentages of a list together cannot exceed `100%`; a value that is
   neither a size in `px` nor a percentage is an error.
-- `width` / `height` set the size of the container, in `px`, `%` or a bare
-  number read as `px`.
+- The size of the container is not an attribute: `width` and `height` are not
+  allowed on a `row` or on a `col`, they belong to the CSS of the element like
+  for every other element.
 - A cell without a size is `minmax(0, 1fr)`: it takes the space that the
   other cells leave free.
 
@@ -1286,9 +1287,10 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     with an optional authenticated download of the produced binary;
   - **recursive element tree**: `row`/`col` containers nest arbitrarily deep,
     rendered as an indented tree in the left panel;
-  - **layout containers**: a selected `row` or `col` exposes a **Layout**
-    section in the inspector with the number of cells, the size of the
-    container and the size of every cell (`px`, `%` or automatic). The
+  - **layout containers**: a selected `row` or `col` exposes a **Row layout** /
+    **Column layout** section in the inspector with the number of cells and the
+    size of every cell (`px`, `%` or automatic); the size of the container
+    belongs to the **Size** section, like for every other element. The
     percentages together cannot exceed `100%`: a value that does not fit is
     refused and falls back to the largest value that fits. Dragging the
     boundary between two cells in the preview writes the new size into the
