@@ -516,6 +516,9 @@ func writeStaticElem(sb *strings.Builder, e *Element, ind string) {
 		sb.WriteString(e.tag)
 		staticClassSuffix(sb, e)
 		sb.WriteString("\"")
+		if e.tag == "row" || e.tag == "col" {
+			layoutContainerStyleAttr(sb, e)
+		}
 	case "card":
 		sb.WriteString(" class=\"sui-card\"")
 		staticClassSuffix(sb, e)

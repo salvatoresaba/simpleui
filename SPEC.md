@@ -391,7 +391,8 @@ Elements and their supported attributes (v0.1):
 | input    | yes* | class, placeholder, value (state), onChange (fn) | no |
 | img      | no   | class, src (string/expr), alt             | no       |
 | a        | yes  | class, href (string/expr)                 | no       |
-| row, col | no   | class                                    | yes      |
+| row      | no   | class, columns, columnWidths, width, height | yes      |
+| col      | no   | class, rows, rowHeights, width, height      | yes      |
 | spacer   | no   | class                                    | no       |
 | table    | no   | class, name, editable, fixed             | yes      |
 | tablelayout | no | class, style, rows, columns, width, height, columnWidths, rowHeights, gapX, gapY, borderStyle, borderWidth, borderColor, cellMinHeight, responsive, semantic, label | yes      |
@@ -408,6 +409,25 @@ Elements and their supported attributes (v0.1):
 | menuitem | yes  | class, style, link, onClick (fn)          | no       |
 
 \* `input` text is treated as its `placeholder`.
+
+A `row` lays its children out side by side (they are its **columns**) and a
+`col` stacks them (they are its **rows**). Both are flex containers by
+default. A container that declares its tracks is compiled as a CSS grid
+instead:
+
+- `columns` (on a `row`) is the number of columns, `1`-`24`; `rows` (on a
+  `col`) is the number of rows, `1`-`50`. When it is omitted the number of
+  cells decides.
+- `columnWidths` (on a `row`) and `rowHeights` (on a `col`) are literal lists
+  of sizes separated by commas, one per cell: a number in `px`, a percentage
+  of the container, or `auto` (or an empty value) for a cell that takes the
+  space the other cells leave free.
+- The percentages of a list together cannot exceed `100%`; a value that is
+  neither a size in `px` nor a percentage is an error.
+- `width` / `height` set the size of the container, in `px`, `%` or a bare
+  number read as `px`.
+- A cell without a size is `minmax(0, 1fr)`: it takes the space that the
+  other cells leave free.
 
 A `tabs` renders a `role=tablist` and panels from its direct `tab` children.
 Each `tab` text is the button label and its children are the panel content.
@@ -1266,6 +1286,15 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     with an optional authenticated download of the produced binary;
   - **recursive element tree**: `row`/`col` containers nest arbitrarily deep,
     rendered as an indented tree in the left panel;
+  - **layout containers**: a selected `row` or `col` exposes a **Layout**
+    section in the inspector with the number of cells, the size of the
+    container and the size of every cell (`px`, `%` or automatic). The
+    percentages together cannot exceed `100%`: a value that does not fit is
+    refused and falls back to the largest value that fits. Dragging the
+    boundary between two cells in the preview writes the new size into the
+    container: the dragged cell gets a fixed size and the cell on its right
+    becomes automatic; a container that does not declare its tracks keeps the
+    size in the class of each cell;
   - **dynamic blocks**: the body of an `if` or of a `list` is a real subtree of
     the tree. A block can be selected: the preview outlines every element it
     contains and the inspector offers the **preview** option, which shows the

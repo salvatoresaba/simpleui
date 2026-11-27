@@ -439,6 +439,23 @@ cursor, so a row, a column or a cell can be selected even when it holds other
 elements. The right-click menu of a `row` or of a `col` in the tree offers
 **Add column** / **Add row**, which adds an empty cell to the container.
 
+A selected `row` or `col` exposes a **Row layout** / **Column layout** section in
+the inspector:
+
+- **columns** / **rows**: the number of cells of the container. Raising the
+  number adds the missing empty cells; lowering it removes the trailing empty
+  cells and never removes a cell that holds content;
+- **width** and **height**: the size of the container, in `px` or `%`;
+- the size of **every cell**: a number and a unit (`px`, `%` or **auto**). A
+  cell without a size takes the space that the other cells leave free, so a
+  fixed cell and an automatic one always fill the row. The percentages together
+  cannot exceed `100%`: with a first column of `60%` a second column of `50%`
+  is refused and falls back to `40%`.
+
+The values are written to the source as the `columns`, `columnWidths`, `rows`,
+`rowHeights`, `width` and `height` attributes of the container, so they survive
+a reload and can be edited by hand.
+
 ### Design tokens
 
 The **Tokens** tab lists the design tokens found in the project CSS. A design

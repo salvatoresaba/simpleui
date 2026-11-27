@@ -3696,6 +3696,43 @@ Cancel/OK buttons. Right-click the `modal` row for **Add modal button**, or a
 stable `name`; select a button to edit its variant and close behaviour. See the
 [modal example](../examples/modal.sui).
 
+## Row and column layout
+
+`row` and `col` are layout containers: a `row` lays its children out side by
+side (they are its **columns**), a `col` stacks them (they are its **rows**).
+Without further attributes they are flex containers. A container that declares
+its tracks describes the size of every cell:
+
+```sui
+row columns: "3" columnWidths: "240px, 60%, " width: "100%" height: "320px" {
+  div { p "fixed" }
+  div { p "share" }
+  div { p "automatic" }
+}
+```
+
+- `columns` (on a `row`) is the number of columns, `1`-`24`; `rows` (on a `col`)
+  is the number of rows, `1`-`50`. When it is omitted the number of cells
+  decides.
+- `columnWidths` (on a `row`) and `rowHeights` (on a `col`) are comma-separated
+  sizes, one per cell: a number in `px`, a percentage of the container, or
+  `auto` for a cell that takes the space the other cells leave free. An empty
+  value is automatic too.
+- The percentages together cannot exceed `100%`: with two columns `60%` and
+  `50%` is rejected and the second column is limited to `40%`.
+- `width` / `height` set the size of the container (for example `"80%"` or
+  `"640px"`).
+- A container that declares tracks is compiled as a CSS grid: the cells fill the
+  tracks in order. A container without tracks keeps the flex layout, so existing
+  projects are unchanged.
+- A cell that is not a `div` is a cell too: the sizes describe the direct
+  children of the container.
+
+In the designer the container exposes a **Row layout** / **Column layout**
+section with the number of columns, the size of the container and the size of
+every cell; see
+[docs/GUI_EDITOR.md](GUI_EDITOR.md#row-and-column-containers).
+
 ## Table layout
 
 `tablelayout` is a **structural** container, not the data `table` control. It

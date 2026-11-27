@@ -137,6 +137,7 @@ Per l'elenco completo delle recipe, dei tag e dei percorsi, usa
 - [Esempi root](../examples/README.md)
 - [Security](../examples/security/README.md)
 - [Spreadsheet table](../examples/spreadsheet_table/README.md)
+- [Layout a righe e colonne](../examples/row_layout/README.md)
 
 ## Machine interfaces
 

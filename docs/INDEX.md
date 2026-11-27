@@ -36,6 +36,7 @@ Recommended order for an agent:
 | Search the SUI source from any panel | - | [GUI editor: find and replace](GUI_EDITOR.md#find-and-replace) | `examples/counter.sui` |
 | Per-control appearance themes and structures for spinner, checkbox, radio, progress, slider, tabs, accordion and toast | [Appearance library](APPEARANCE_LIBRARY.md) | [GUI editor](GUI_EDITOR.md#control-appearance) | a `button` in the designer |
 | Arrange UI regions in a structural table | [API: table layout](API_REFERENCE.md#table-layout) | [GUI editor: table layout](GUI_EDITOR.md#table-layout-control) | `examples/table_layout/README.md` |
+| Arrange UI regions in a row or a column with a declared size for every cell | [API: row and column layout](API_REFERENCE.md#row-and-column-layout) | [GUI editor: row and column containers](GUI_EDITOR.md#row-and-column-containers) | `examples/row_layout/README.md` |
 | Build a menu bar / navigation | [API: menu bar](API_REFERENCE.md#menu-bar) | [GUI editor: menu bar](GUI_EDITOR.md#menu-bar-control) | `examples/menu_bar.sui` |
 | Action menu on a button | [API: dropdown](API_REFERENCE.md#dropdown-menu) | [GUI editor: dropdown](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/dropdown/README.md` |
 | Rich anchored panel | [API: popover](API_REFERENCE.md#popover) | [GUI editor: popover](GUI_EDITOR.md#dropdown-and-popover-controls) | `examples/popover/README.md` |
@@ -170,6 +171,7 @@ For the full list of recipes, tags and paths, use `docs/manifest.json` or
 - [Security](../examples/security/README.md)
 - [Spreadsheet table](../examples/spreadsheet_table/README.md)
 - [Table layout](../examples/table_layout/README.md)
+- [Row and column layout](../examples/row_layout/README.md)
 
 ## Machine interfaces
 

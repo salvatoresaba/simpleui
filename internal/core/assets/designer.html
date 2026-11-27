@@ -3981,6 +3981,13 @@ function addGridCell(node) {
     // A container that declares its cells keeps the count in sync.
     if (node.kind === "row" && node.gridColumns) node.gridColumns = String(node.children.length);
     if (node.kind === "col" && node.gridRows) node.gridRows = String(node.children.length);
+    // The new cell takes the space that the other cells leave free.
+    if (node.kind === "row" && node.gridColumnWidths) {
+      node.gridColumnWidths = gridTrackListText(gridTrackEntries(node, "gridColumnWidths").concat([""]));
+    }
+    if (node.kind === "col" && node.gridRowHeights) {
+      node.gridRowHeights = gridTrackListText(gridTrackEntries(node, "gridRowHeights").concat([""]));
+    }
   }, "add cell");
 }
 function applyLayoutResize(tableId, axis, sizes) {
@@ -4000,36 +4007,43 @@ function applyLayoutResize(tableId, axis, sizes) {
 // The cells of a container that declares its columns keep their size in the
 // container itself (the column widths of the row); the other ones keep it in
 // their own class, so the size survives every reparse.
-function applyGridResize(hostId, axis, sizes) {
+function applyGridResize(hostId, axis, sizes, edge) {
   var t = pickMap[hostId];
   if (!t || t.pg !== root.page || !sizes || !sizes.length) return;
   var host = byPath(t.p, root.children);
   if (!host || (host.kind !== "row" && host.kind !== "col")) return;
   var kids = host.children || [];
   var prop = axis === "y" ? "height" : "width";
-  var writes = [];
-  for (var i = 0; i < kids.length && i < sizes.length; i++) {
-    var cell = kids[i];
-    if (!cell) continue;
-    var px = Math.max(8, Math.round(Number(sizes[i]))) + "px";
-    if (gridHostWidths(host)) {
-      // The container declares the size of its columns: they belong to the
-      // container, not to the single cells.
-      writes.push({ host: true, value: px });
-      continue;
-    }
-    writes.push({ cell: cell, cls: ensureClass(cell), value: px });
-  }
-  snap("resize cells");
-  var value = writes.map(function(w){ return w.value; }).join(", ");
+  var isRow = host.kind === "row";
+  var sizeField = isRow ? "gridColumnWidths" : "gridRowHeights";
+  var countField = isRow ? "gridColumns" : "gridRows";
+  var edgeIdx = Number(edge);
+  if (!isFinite(edgeIdx) || edgeIdx < 1) edgeIdx = 1;
   if (gridHostWidths(host)) {
-    if (axis === "y") host.gridRowHeights = value;
-    else host.gridColumnWidths = value;
+    // The container declares the size of its cells: the dragged cell becomes a
+    // fixed size and the cell on its right takes the space left free. The
+    // other cells keep the size they had.
+    var current = gridTrackEntries(host, sizeField);
+    var out = [];
+    for (var i = 0; i < kids.length; i++) {
+      var prev = i < current.length ? current[i] : "";
+      if (i === edgeIdx - 1) out.push(Math.max(8, Math.round(Number(sizes[i]) || 0)) + "px");
+      else if (i === edgeIdx) out.push("");
+      else out.push(prev);
+    }
+    snap("resize cells");
+    host[sizeField] = gridTrackListText(out);
+    host[countField] = String(kids.length);
     renderTree(); setOut(); autoPreview(); renderInspector();
     return;
   }
-  // Every cell has its own class: the sizes are written one by one, in the
-  // order the cells appear in the container.
+  var writes = [];
+  for (var k = 0; k < kids.length && k < sizes.length; k++) {
+    var cell = kids[k];
+    if (!cell) continue;
+    var px = Math.max(8, Math.round(Number(sizes[k]))) + "px";
+    writes.push({ cell: cell, cls: ensureClass(cell), value: px });
+  }
   var done = 0;
   writes.forEach(function(w){
     if (!w.cell) return;
@@ -4045,6 +4059,176 @@ function gridHostWidths(host) {
   if (!host) return false;
   if (host.kind === "row") return !!(host.gridColumns || host.gridColumnWidths);
   return !!(host.gridRows || host.gridRowHeights);
+}
+// ---- row and column containers: tracks and sizes -------------------------
+// A row lays its children out as columns, a column container lays them out as
+// rows. The size of the cells lives in the container (gridColumnWidths /
+// gridRowHeights): a cell without a size takes the space that the other cells
+// leave free, so a fixed cell and an automatic one always fill the row.
+function gridTrackEntries(n, sizeField) {
+  var raw = String((n && n[sizeField]) || "");
+  if (!raw.trim()) return [];
+  return raw.split(",").map(function(s){ return s.trim(); });
+}
+function gridTrackValue(v) {
+  v = String(v == null ? "" : v).trim();
+  if (!v || v === "auto" || v === "1fr") return "";
+  return v;
+}
+function gridTrackNumber(v) {
+  var m = /^(\d+(?:\.\d+)?)/.exec(gridTrackValue(v));
+  return m ? m[1] : "";
+}
+function gridTrackUnit(v) {
+  var t = gridTrackValue(v);
+  if (!t) return "auto";
+  return t.indexOf("%") >= 0 ? "%" : "px";
+}
+function gridTrackPercent(v) {
+  var t = gridTrackValue(v);
+  if (t.indexOf("%") < 0) return null;
+  var n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+// gridTrackListText writes the list of sizes: a cell without a size is written
+// as "auto", so the source always describes every cell of the container.
+function gridTrackListText(entries) {
+  return entries.map(function(v){ return gridTrackValue(v) || "auto"; }).join(", ");
+}
+// gridTrackPercentTotal returns the sum of the percentages of a list of sizes.
+function gridTrackPercentTotal(entries, skip) {
+  var total = 0;
+  entries.forEach(function(v, i){
+    if (i === skip) return;
+    var p = gridTrackPercent(v);
+    if (p !== null) total += p;
+  });
+  return total;
+}
+// gridSetCount sets the number of cells of a container: it adds the missing
+// empty cells and removes the trailing empty ones. A cell with content is
+// never removed.
+function gridSetCount(n, count) {
+  var isRow = n.kind === "row";
+  var countField = isRow ? "gridColumns" : "gridRows";
+  n.children = n.children || [];
+  while (n.children.length < count) n.children.push(newNode("div"));
+  while (n.children.length > count) {
+    var last = n.children[n.children.length - 1];
+    if (last && (last.children || []).length) break;
+    n.children.pop();
+  }
+  n[countField] = String(n.children.length);
+  return n.children.length;
+}
+function gridContainerControls(n) {
+  var isRow = n.kind === "row";
+  var countField = isRow ? "gridColumns" : "gridRows";
+  var sizeField = isRow ? "gridColumnWidths" : "gridRowHeights";
+  var axis = isRow ? "column" : "row";
+  var a = document.createElement("div"); a.className = "acc open";
+  var h = document.createElement("div"); h.className = "acchead";
+  h.innerHTML = '<span>' + (isRow ? "Row layout" : "Column layout") + '</span><span>\u25BE</span>';
+  h.onclick = function(){ a.classList.toggle("open"); };
+  a.appendChild(h);
+  var b = document.createElement("div"); b.className = "accbody";
+  var kids = (n.children || []).filter(function(c){ return c && !c.block; });
+  var declared = parseInt(n[countField] || "", 10);
+  // Every cell must be editable: a container with more cells than declared
+  // tracks shows all of them.
+  var count = Math.max(isNaN(declared) ? 0 : declared, kids.length);
+  if (count < 1) count = 1;
+
+  function textRow(labelText, field, placeholder, title) {
+    var row = document.createElement("div"); row.className = "rowline";
+    row.appendChild(lbl(labelText));
+    var inp = document.createElement("input");
+    inp.value = n[field] === undefined || n[field] === null ? "" : String(n[field]);
+    inp.placeholder = placeholder || "";
+    if (title) inp.title = title;
+    inp.spellcheck = false;
+    inp.onchange = function(){
+      var v = inp.value.trim();
+      withUndo(function(){ n[field] = v; }, "layout " + labelText);
+    };
+    row.appendChild(inp);
+    b.appendChild(row);
+    return inp;
+  }
+  var countRowEl = document.createElement("div"); countRowEl.className = "rowline";
+  countRowEl.appendChild(lbl(isRow ? "columns" : "rows"));
+  var countInp = document.createElement("input");
+  countInp.type = "number"; countInp.min = "1"; countInp.max = isRow ? "24" : "50"; countInp.step = "1";
+  countInp.value = String(count);
+  countInp.title = "Number of " + (isRow ? "columns" : "rows") + " of the container.";
+  countInp.onchange = function(){
+    var want = Math.max(1, parseInt(countInp.value, 10) || count);
+    withUndo(function(){
+      var got = gridSetCount(n, want);
+      if (got !== want) setStatus("cells with content were kept: the container still has " + got + " cells");
+    }, "layout count");
+  };
+  countRowEl.appendChild(countInp);
+  b.appendChild(countRowEl);
+
+  textRow("width", "gridWidth", "auto", "Width of the container, in px or %.");
+  textRow("height", "gridHeight", "auto", "Height of the container, in px or %.");
+
+  var head = document.createElement("div"); head.className = "rowth";
+  head.textContent = "Size of every " + axis + " (leave it empty for automatic):";
+  b.appendChild(head);
+  var entries = gridTrackEntries(n, sizeField);
+  while (entries.length < count) entries.push("");
+  if (entries.length > count) entries = entries.slice(0, count);
+  for (var i = 0; i < count; i++) {
+    (function(idx){
+      var row = document.createElement("div"); row.className = "rowline";
+      row.appendChild(lbl(axis + " " + (idx + 1)));
+      var num = document.createElement("input");
+      num.type = "number"; num.min = "0"; num.step = "1";
+      num.value = gridTrackNumber(entries[idx]);
+      num.placeholder = "auto";
+      num.style.flex = "1";
+      var unit = document.createElement("select");
+      [["auto", "auto"], ["px", "px"], ["%", "%"]].forEach(function(pair){
+        var o = document.createElement("option");
+        o.value = pair[0]; o.textContent = pair[1];
+        unit.appendChild(o);
+      });
+      unit.value = gridTrackUnit(entries[idx]);
+      function commit() {
+        var next = entries.slice();
+        var u = unit.value;
+        var v = u === "auto" ? "" : (Math.max(0, parseFloat(num.value) || 0) + u);
+        next[idx] = v;
+        var max = 100 - gridTrackPercentTotal(next, idx);
+        if (u === "%" && max < 100) {
+          if (max < 0) max = 0;
+          var val = Math.max(0, parseFloat(num.value) || 0);
+          if (val > max) {
+            val = max;
+            num.value = String(val);
+            next[idx] = val + "%";
+            setStatus("the " + axis + " cannot be wider than " + max + "%: the other cells already use the rest");
+          }
+        }
+        withUndo(function(){
+          n[sizeField] = gridTrackListText(next);
+          n[countField] = String(count);
+        }, "layout size");
+      }
+      num.onchange = commit;
+      unit.onchange = commit;
+      row.appendChild(num);
+      row.appendChild(unit);
+      b.appendChild(row);
+    })(i);
+  }
+  var note = document.createElement("div"); note.className = "rowth";
+  note.textContent = "Drag the boundary between two cells in the preview to resize them. A cell without a size takes the space the other cells leave free; the percentages together cannot exceed 100%.";
+  b.appendChild(note);
+  a.appendChild(b);
+  return a;
 }
 function selectLayoutCell(tableId, row, col, add) {
   var t = pickMap[tableId];
@@ -6694,6 +6878,9 @@ function renderInspector() {
   // edited one node at a time: single-selection only.
   if (nodes.length === 1 && n && n.kind === "table" && n.cols) {
     box.appendChild(tableControls(n, { compact: true }));
+  }
+  if (nodes.length === 1 && n && (n.kind === "row" || n.kind === "col")) {
+    box.appendChild(gridContainerControls(n));
   }
   if (nodes.length === 1 && n && n.kind === "tablelayout") {
     box.appendChild(layoutTableControls(n));
@@ -18763,6 +18950,20 @@ function attrsOf(n) {
   if (n.kind === "tree" && n.sort) a += " sort: \"" + esc(n.sort) + "\"";
   if (n.kind === "tree" && n.persistSelection) a += " persistSelection: true";
   if (n.kind === "tree" && n.loadKey) a += " loadKey: " + n.loadKey;
+  if (n.kind === "row" || n.kind === "col") {
+    // A row lays its children out as columns, a column container as rows: the
+    // number of tracks and the size of every cell belong to the container.
+    var gridIsRow = n.kind === "row";
+    var gridCount = gridIsRow ? n.gridColumns : n.gridRows;
+    var gridSizeField = gridIsRow ? "gridColumnWidths" : "gridRowHeights";
+    if (gridCount) a += (gridIsRow ? " columns: \"" : " rows: \"") + esc(String(gridCount)) + "\"";
+    if (n.gridWidth) a += " width: \"" + esc(String(n.gridWidth)) + "\"";
+    if (n.gridHeight) a += " height: \"" + esc(String(n.gridHeight)) + "\"";
+    var gridEntries = gridTrackEntries(n, gridSizeField);
+    if (gridEntries.length) {
+      a += (gridIsRow ? " columnWidths: \"" : " rowHeights: \"") + esc(gridTrackListText(gridEntries)) + "\"";
+    }
+  }
   if (n.kind === "tablelayout") {
     a += " rows: \"" + esc(String(n.layoutRows || "2")) + "\"";
     a += " columns: \"" + esc(String(n.layoutColumns || "2")) + "\"";
@@ -19704,7 +19905,7 @@ window.addEventListener("message", function(ev) {
     return;
   }
   if (ev.data.ty === "sui-layout-resize") { applyLayoutResize(Number(ev.data.table), String(ev.data.axis || "x"), ev.data.sizes || []); return; }
-  if (ev.data.ty === "sui-grid-resize") { applyGridResize(Number(ev.data.host), String(ev.data.axis || "x"), ev.data.sizes || []); return; }
+  if (ev.data.ty === "sui-grid-resize") { applyGridResize(Number(ev.data.host), String(ev.data.axis || "x"), ev.data.sizes || [], Number(ev.data.edge) || 1); return; }
   if (ev.data.ty === "sui-layout-split-select") { selectLayoutSplit(Number(ev.data.table), String(ev.data.axis || "x"), Number(ev.data.index), !!ev.data.add); return; }
   if (ev.data.ty === "sui-drop-layout") { dropFromPaletteLayout(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
   if (ev.data.ty === "sui") { if (mgEdit) mgMinimizePanel(); selectByDfs(ev.data.id); return; }

@@ -34,6 +34,7 @@ For an agent-oriented walkthrough see
 | [`table_data.sui`](table_data.sui) | `table.display` with arrays, objects, JSON, CSV, TSV and export. |
 | [`table_sheets/`](table_sheets/README.md) | Excel-like workbook: bottom sheet tabs, declarative columns, sorting, filtering, pagination, selection, validated editing, runtime table creation and row/column structure editing. |
 | [`table_layout/`](table_layout/README.md) | Structural HTML table for arranging cards and controls in columns; separate from the data `table` control. |
+| [`row_layout/`](row_layout/README.md) | `row` and `col` containers that declare the number of cells and the size of every cell, in `px`, `%` or automatic. |
 | [`chart/app.sui`](chart/app.sui) | Reactive JSON/XML/CSV charts, advanced types, compatibility checks, presets, scroll and zoom. |
 | [`graph/`](graph/README.md) | Dedicated Graph control for block diagrams, with layout, tags, links, grid and synchronized table. |
 | [`state_machine/`](state_machine/README.md) | Legacy `chartType: "state"` shape/link diagram with events, guards, actions, self-loop and synchronized shape/transition table. |

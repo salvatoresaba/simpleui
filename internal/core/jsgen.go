@@ -4037,10 +4037,12 @@ func openTagHtmlWithSrc(e *Element, tag string, interactive bool, idx int, ctx *
 	}
 	if e.tag == "row" {
 		writeContainerClass(&sb, e, ctx, "row")
+		layoutContainerStyleAttr(&sb, e)
 		writeDndAttrs(&sb, e, ctx)
 		writePickerAttrs(&sb, e, ctx)
 	} else if e.tag == "col" {
 		writeContainerClass(&sb, e, ctx, "col")
+		layoutContainerStyleAttr(&sb, e)
 		writeDndAttrs(&sb, e, ctx)
 		writePickerAttrs(&sb, e, ctx)
 	} else if e.tag == "spacer" {

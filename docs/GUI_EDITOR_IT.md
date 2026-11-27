@@ -456,6 +456,23 @@ anche quando contengono altri elementi. Il menu contestuale di una `row` o di
 una `col` nell'albero offre **Add column** / **Add row**, che aggiunge una
 cella vuota al contenitore.
 
+Una `row` o una `col` selezionata espone una sezione **Row layout** /
+**Column layout** nell'inspector:
+
+- **columns** / **rows**: il numero di celle del contenitore. Alzare il numero
+  aggiunge le celle vuote mancanti; abbassarlo rimuove le celle vuote in
+  coda e non rimuove mai una cella che contiene contenuto;
+- **width** e **height**: la dimensione del contenitore, in `px` o `%`;
+- la dimensione di **ogni cella**: un numero e un'unità (`px`, `%` o **auto**).
+  Una cella senza dimensione occupa lo spazio che le altre lasciano libero,
+  quindi una cella fissa e una automatica riempiono sempre la riga. Le
+  percentuali insieme non possono superare il `100%`: con una prima colonna
+  del `60%` una seconda colonna del `50%` viene rifiutata e ripiega sul `40%`.
+
+I valori vengono riportati nella sorgente come attributi `columns`,
+`columnWidths`, `rows`, `rowHeights`, `width` e `height` del contenitore, quindi
+sopravvivono a un ricaricamento e possono essere modificati a mano.
+
 ### Design token
 
 La tab **Tokens** elenca i design token presenti nel CSS del progetto. Un design

@@ -3605,6 +3605,43 @@ dell'inspector modifica il `name` stabile; selezionando un pulsante si modifican
 variant e comportamento di chiusura. Vedere l'[esempio
 modal](../examples/modal.sui).
 
+## Layout a righe e colonne
+
+`row` e `col` sono contenitori di layout: una `row` dispone i suoi figli uno
+accanto all'altro (sono le sue **colonne**), una `col` li impila (sono le sue
+**righe**). Senza altri attributi sono contenitori flex. Un contenitore che
+dichiara le proprie track descrive la dimensione di ogni cella:
+
+```sui
+row columns: "3" columnWidths: "240px, 60%, " width: "100%" height: "320px" {
+  div { p "fissa" }
+  div { p "quota" }
+  div { p "automatica" }
+}
+```
+
+- `columns` (su una `row`) è il numero di colonne, da `1` a `24`; `rows` (su una
+  `col`) è il numero di righe, da `1` a `50`. Se è omesso vale il numero di
+  celle.
+- `columnWidths` (su una `row`) e `rowHeights` (su una `col`) sono misure
+  separate da virgola, una per cella: un numero in `px`, una percentuale del
+  contenitore oppure `auto` per una cella che occupa lo spazio lasciato libero
+  dalle altre. Anche un valore vuoto è automatico.
+- Le percentuali insieme non possono superare il `100%`: con due colonne `60%`
+  e `50%` è rifiutato e la seconda colonna è limitata al `40%`.
+- `width` / `height` impostano la dimensione del contenitore (`"80%"`,
+  `"640px"`).
+- Un contenitore che dichiara le track viene compilato come una griglia CSS: le
+  celle riempiono le track in ordine. Un contenitore senza track mantiene il
+  layout flex, quindi i progetti esistenti non cambiano.
+- Una cella non `div` è comunque una cella: le misure descrivono i figli
+  diretti del contenitore.
+
+Nel designer il contenitore espone una sezione **Row layout** / **Column
+layout** con il numero di colonne, la dimensione del contenitore e la
+dimensione di ogni cella; vedere
+[docs/GUI_EDITOR_IT.md](GUI_EDITOR_IT.md#contenitori-row-e-column).
+
 ## Table layout
 
 `tablelayout` è un contenitore **strutturale**, non il controllo dati `table`.

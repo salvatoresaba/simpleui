@@ -5128,6 +5128,14 @@ func attrAllowed(key string, tag string) bool {
 		key == "cellMinHeight" || key == "responsive" || key == "semantic" || key == "label") {
 		return true
 	}
+	if tag == "row" && (key == "columns" || key == "columnWidths" ||
+		key == "width" || key == "height") {
+		return true
+	}
+	if tag == "col" && (key == "rows" || key == "rowHeights" ||
+		key == "width" || key == "height") {
+		return true
+	}
 	if key == "colspan" || key == "rowspan" {
 		return true
 	}
@@ -5859,13 +5867,16 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		return
 	}
 	if tag == "tablelayout" && (a.key == "width" || a.key == "height" ||
-		a.key == "columnWidths" || a.key == "rowHeights" ||
 		a.key == "gapX" || a.key == "gapY" ||
 		a.key == "borderWidth" || a.key == "borderColor" || a.key == "cellMinHeight" ||
 		a.key == "label") {
 		if a.hasExpr {
 			c.diagAt(a.span, a.key+" must be a literal value")
 		}
+		return
+	}
+	if tag == "tablelayout" && (a.key == "columnWidths" || a.key == "rowHeights") {
+		c.checkTrackList(a, a.key)
 		return
 	}
 	if tag == "tablelayout" && (a.key == "responsive" || a.key == "semantic") {
@@ -5900,6 +5911,35 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		if n < 0 || n > max {
 			c.diagAt(a.span, a.key+" must be an integer between 0 and "+strconv.Itoa(max))
 		}
+		return
+	}
+	if (tag == "row" && a.key == "columns") || (tag == "col" && a.key == "rows") {
+		n := 0
+		if a.hasExpr {
+			if a.expr == nil || a.expr.kind != "int" {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
+			}
+			n = a.expr.i
+		} else {
+			v, err := strconv.Atoi(strings.TrimSpace(partsContent(a.text)))
+			if err != nil {
+				c.diagAt(a.span, a.key+" must be a literal integer")
+				return
+			}
+			n = v
+		}
+		max := 24
+		if a.key == "rows" {
+			max = 50
+		}
+		if n < 1 || n > max {
+			c.diagAt(a.span, a.key+" must be an integer between 1 and "+strconv.Itoa(max))
+		}
+		return
+	}
+	if (tag == "row" && a.key == "columnWidths") || (tag == "col" && a.key == "rowHeights") {
+		c.checkTrackList(a, a.key)
 		return
 	}
 	if a.key == "colspan" || a.key == "rowspan" {
@@ -6224,6 +6264,38 @@ func (c *Checker) checkAttr(a *Attr, tag string) {
 		_ = c.inferExpr(a.expr)
 	} else {
 		c.checkViewParts(a.text)
+	}
+}
+
+// checkTrackList validates a list of track sizes: every value is a size in
+// pixels or a percentage (an empty value leaves the cell automatic) and the
+// percentages together cannot exceed 100%.
+func (c *Checker) checkTrackList(a *Attr, label string) {
+	if a.hasExpr {
+		c.diagAt(a.span, label+" must be a literal list of sizes")
+		return
+	}
+	raw := strings.TrimSpace(partsContent(a.text))
+	if raw == "" {
+		return
+	}
+	items := strings.Split(raw, ",")
+	total := 0.0
+	for _, item := range items {
+		v := strings.TrimSpace(item)
+		if v == "" {
+			continue
+		}
+		if _, ok := layoutTrackValue(v); !ok {
+			c.diagAt(a.span, label+" accepts only sizes in px or % (got \""+v+"\")")
+			return
+		}
+		if p, ok := layoutTrackPercentOf(v); ok {
+			total += p
+		}
+	}
+	if total > 100.0001 {
+		c.diagAt(a.span, label+" cannot exceed 100% (got "+strconv.FormatFloat(total, 'f', -1, 64)+"%)")
 	}
 }
 

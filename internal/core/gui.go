@@ -2295,7 +2295,7 @@ const guiPreviewPicker = `<script>
     if (!gridResize) return;
     var r = gridResize; gridResize = null;
     if (r.moved && r.sizes && r.sizes.length) {
-      parent.postMessage({ ty: 'sui-grid-resize', host: Number(r.host.getAttribute('data-sui-id')), axis: r.axis, sizes: r.sizes }, '*');
+      parent.postMessage({ ty: 'sui-grid-resize', host: Number(r.host.getAttribute('data-sui-id')), axis: r.axis, sizes: r.sizes, edge: r.index }, '*');
     }
     syncGridSplits();
   }, true);
@@ -3998,6 +3998,20 @@ func guiElementFromOpts(e *Element, viewNames map[string]bool, keepBlockText boo
 		o.obj["layoutSemantic"] = JBool(datepickerBool(e, "semantic"))
 		o.obj["layoutLabel"] = JStr(layoutTableTextAttr(e, "label", ""))
 	}
+	if e.tag == "row" || e.tag == "col" {
+		// A row or a column container can declare its tracks (the columns of a
+		// row, the rows of a column) and its own size. The designer reads them
+		// from the model and writes them back to the source.
+		o.obj["gridWidth"] = JStr(layoutTableTextAttr(e, "width", ""))
+		o.obj["gridHeight"] = JStr(layoutTableTextAttr(e, "height", ""))
+		if e.tag == "row" {
+			o.obj["gridColumns"] = JStr(guiGridCountAttr(e, "columns", 24))
+			o.obj["gridColumnWidths"] = JStr(layoutTableTextAttr(e, "columnWidths", ""))
+		} else {
+			o.obj["gridRows"] = JStr(guiGridCountAttr(e, "rows", 50))
+			o.obj["gridRowHeights"] = JStr(layoutTableTextAttr(e, "rowHeights", ""))
+		}
+	}
 	if e.tag == "layoutcell" {
 		o.obj["layoutRow"] = JStr(strconv.Itoa(layoutTableIntAttr(e, "row", 0, 0, 49)))
 		o.obj["layoutCol"] = JStr(strconv.Itoa(layoutTableIntAttr(e, "col", 0, 0, 11)))
@@ -4463,6 +4477,17 @@ func guiElementFromOpts(e *Element, viewNames map[string]bool, keepBlockText boo
 		o.obj["children"] = guiElementsFromNodesOpts(e.children, viewNames, keepBlockText)
 	}
 	return o
+}
+
+// guiGridCountAttr returns the declared number of tracks of a row or of a
+// column container. An empty string means the attribute is not declared: the
+// number of cells decides.
+func guiGridCountAttr(e *Element, key string, max int) string {
+	n := layoutTableIntAttr(e, key, 0, 0, max)
+	if n <= 0 {
+		return ""
+	}
+	return strconv.Itoa(n)
 }
 
 // guiTableFrom converts a table element's nested thead/tbody/trow/tcell
