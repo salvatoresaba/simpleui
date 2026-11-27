@@ -45,6 +45,23 @@ foreach ($file in $examples) {
 }
 Write-Host "  $($examples.Count) examples OK"
 
+Write-Host '== example backends =='
+# The examples with a Go backend live in their own module: they are vetted
+# here so a broken example never reaches the main branch.
+$modules = @(Get-ChildItem -Recurse -File -Filter 'go.mod' 'examples' | ForEach-Object { $_.Directory.FullName })
+foreach ($dir in $modules) {
+    Push-Location $dir
+    try {
+        go vet ./...
+        Assert-LastExit "go vet ($dir)"
+        go test ./...
+        Assert-LastExit "go test ($dir)"
+    } finally {
+        Pop-Location
+    }
+}
+Write-Host "  $($modules.Count) example backends OK"
+
 Write-Host '== appearance catalog =='
 & $exe appearance check components/appearance.json --json | Out-Null
 Assert-LastExit 'appearance check'

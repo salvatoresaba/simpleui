@@ -8,6 +8,7 @@
 //	GET  /api/downloads               the jobs, most recent first
 //	POST /api/downloads               start a job: {"url": "...", "partSize": "1 MiB"}
 //	POST /api/downloads/{id}/{act}    pause | resume | cancel
+//	POST /api/downloads/{id}/files/{fid}/{act}    pause | resume | stop | restart | cancel
 //	POST /api/downloads/{id}/parts/{n}/retry    retry one failed part
 //	POST /api/downloads/{id}/retry-failed       retry every failed part
 //	GET  /api/downloads/{id}/file     the reassembled file
@@ -130,6 +131,9 @@ type File struct {
 	// pending counts the parts of the file that are still waiting: the
 	// scheduler uses it to know if the file has work left.
 	pending int
+	// paused is true when the operator paused this file alone: its parts
+	// stay in the queue but the scheduler does not pick them.
+	paused bool
 }
 
 // Job is one download: the files to fetch, the workers that fetch their
@@ -287,6 +291,11 @@ func main() {
 	// priority are picked first.
 	mux.HandleFunc("POST /api/downloads/{id}/files/{file}/priority", func(w http.ResponseWriter, r *http.Request) {
 		mgr.handleSetPriority(w, r)
+	})
+	// One file of a download: pause, resume, stop, restart or cancel. The
+	// actions of a file do not touch the other files of the download.
+	mux.HandleFunc("POST /api/downloads/{id}/files/{file}/{action}", func(w http.ResponseWriter, r *http.Request) {
+		mgr.handleFileAction(w, r)
 	})
 	mux.HandleFunc("GET /api/downloads/{id}/file", func(w http.ResponseWriter, r *http.Request) {
 		mgr.handleMergedFile(w, r)
@@ -971,6 +980,96 @@ func (m *Manager) handleAction(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, job.snapshot())
 }
 
+// handleFileAction acts on one file of a download: pause, resume, stop,
+// restart or cancel. The other files of the download keep going.
+//
+//   - pause: the file stops, the bytes already on disk are kept;
+//   - resume: the file goes back into the queue;
+//   - stop: the file stops and its URL can be changed again;
+//   - restart: the file is downloaded again from its first byte, with the URL
+//     of the request when the operator changed it;
+//   - cancel: the file leaves the download and its bytes are deleted.
+func (m *Manager) handleFileAction(w http.ResponseWriter, r *http.Request) {
+	job := m.job(r.PathValue("id"))
+	if job == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown download: " + r.PathValue("id")})
+		return
+	}
+	action := r.PathValue("action")
+	f := job.fileByID(r.PathValue("file"))
+	if f == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown file in the download"})
+		return
+	}
+
+	var req fileRequest
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if len(strings.TrimSpace(string(body))) > 0 {
+		if err := json.Unmarshal(body, &req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request: " + err.Error()})
+			return
+		}
+	}
+
+	switch action {
+	case "pause":
+		job.pauseFile(f)
+	case "resume":
+		job.resumeFile(f)
+	case "stop":
+		job.cancelFile(f)
+	case "restart":
+		rawURL := strings.TrimSpace(req.URL)
+		if rawURL != "" && rawURL != f.URL {
+			// The operator changed the URL of a file that had stopped: the
+			// file is planned again and downloaded from the new URL.
+			job.mu.Lock()
+			partSize := job.PartSize
+			single := job.Single
+			priority := f.Priority
+			job.mu.Unlock()
+			fresh, err := m.planFile(job, rawURL, req.File, partSize, single, priority)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
+			fresh.ID = f.ID
+			job.mu.Lock()
+			oldParts := make([]*Part, 0, len(f.parts))
+			for _, p := range f.parts {
+				oldParts = append(oldParts, p)
+			}
+			oldMerged := f.Merged
+			job.mu.Unlock()
+			for _, p := range oldParts {
+				os.Remove(job.partPath(p.Index))
+			}
+			if oldMerged != "" {
+				os.Remove(oldMerged)
+			}
+			job.replaceFile(f, fresh)
+			job.mu.Lock()
+			job.State = "running"
+			job.Error = ""
+			job.mu.Unlock()
+			job.ensureWorkers()
+		} else if err := job.restartFile(f); err != nil {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+	case "cancel":
+		if err := job.removeFile(f); err != nil {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+	default:
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown action: " + action})
+		return
+	}
+	fmt.Printf("server: job %s file %s %s\n", job.ID, r.PathValue("file"), action)
+	writeJSON(w, http.StatusOK, job.snapshot())
+}
+
 // handleRetryPart restarts a single part: the bytes of that part are dropped
 // and it is queued again, the other parts are not touched.
 func (m *Manager) handleRetryPart(w http.ResponseWriter, r *http.Request) {
@@ -1147,7 +1246,7 @@ func (j *Job) nextPending() *Part {
 	}
 	best := ""
 	for _, f := range j.files {
-		if f.pending == 0 {
+		if f.pending == 0 || f.paused || f.State == "canceled" {
 			continue
 		}
 		if best == "" || priorityRank(f.Priority) < priorityRank(best) {
@@ -1160,7 +1259,7 @@ func (j *Job) nextPending() *Part {
 	for i := 0; i < len(j.files); i++ {
 		idx := (j.rr + i) % len(j.files)
 		f := j.files[idx]
-		if f.Priority != best || f.pending == 0 {
+		if f.Priority != best || f.pending == 0 || f.paused || f.State == "canceled" {
 			continue
 		}
 		for _, p := range f.parts {
@@ -1272,23 +1371,48 @@ func (j *Job) downloadPart(ctx context.Context, p *Part) {
 		j.settle()
 		return
 	}
-	defer f.Close()
 
 	w := &progressWriter{job: j, part: p, w: f}
-	if _, err := io.Copy(w, resp.Body); err != nil {
+	_, copyErr := io.Copy(w, resp.Body)
+	// The bytes are on disk: the handle is closed, so the file of the part can
+	// be deleted right away when its file has been canceled.
+	f.Close()
+	if copyErr != nil {
 		if ctx.Err() != nil {
 			// Paused: the bytes already written stay on disk.
 			j.setPartState(p, "pending", "")
 			return
 		}
-		j.setPartState(p, "error", err.Error())
+		j.setPartState(p, "error", copyErr.Error())
 		j.settle()
 		return
 	}
 
 	j.mu.Lock()
 	complete := p.Size <= 0 || p.Received >= p.Size
+	// The file may have been paused or canceled while the part was running:
+	// the part goes back to the queue of a paused file and is dropped from a
+	// canceled one.
+	dropped := false
+	if p.file != nil {
+		if p.file.State == "canceled" {
+			dropped = true
+		} else if p.file.paused && !complete {
+			j.mu.Unlock()
+			j.setPartState(p, "pending", "")
+			return
+		}
+	}
 	j.mu.Unlock()
+	if dropped {
+		j.setPartState(p, "canceled", "")
+		// The file of the part was canceled while it was downloading: its
+		// bytes are not wanted any more and the handle is closed now.
+		if err := os.Remove(j.partPath(p.Index)); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("server: job %s part %d not removed: %v\n", j.ID, p.Index, err)
+		}
+		return
+	}
 	if !complete {
 		j.setPartState(p, "error", fmt.Sprintf("received %d bytes out of %d", p.Received, p.Size))
 		j.settle()
@@ -1334,15 +1458,30 @@ func (j *Job) settle() {
 		return
 	}
 	if pending == 0 && failed == 0 {
-		allDone := len(j.files) > 0
+		// Nothing is running any more: the job follows the files that are
+		// left. A file paused on its own pauses the job when it is the only
+		// one with work left.
+		done, canceled, paused, other := 0, 0, 0, 0
 		for _, f := range j.files {
-			if f.State != "done" {
-				allDone = false
-				break
+			switch f.State {
+			case "done":
+				done++
+			case "canceled":
+				canceled++
+			case "paused":
+				paused++
+			default:
+				other++
 			}
 		}
-		if allDone {
+		total := len(j.files)
+		switch {
+		case total > 0 && done == total:
 			j.State = "done"
+		case total > 0 && other == 0 && canceled > 0 && paused == 0:
+			j.State = "canceled"
+		case total > 0 && other == 0 && paused > 0 && canceled == 0:
+			j.State = "paused"
 		}
 	}
 }
@@ -1506,8 +1645,12 @@ func (j *Job) mergeFile(f *File) {
 		f.MergedSz = size
 		f.SHA = sum
 		f.Verify = verify
-		f.State = "done"
 		f.Error = ""
+		// The file may have been stopped while its last part was running: it
+		// stays stopped, so the operator can still change its URL.
+		if f.State != "stopped" {
+			f.State = "done"
+		}
 		j.Merged, j.MergedSz, j.SHA, j.Verify = merged, size, sum, verify
 		j.mu.Unlock()
 		fmt.Printf("server: job %s merged %s (%s) %s\n", j.ID, filepath.Base(merged), humanSize(size), verify)
@@ -1596,6 +1739,7 @@ func (j *Job) resume() {
 	j.start()
 }
 
+// cancelJob stops the whole download: every file of the job is canceled.
 func (j *Job) cancelJob() {
 	j.mu.Lock()
 	if j.State == "done" {
@@ -1603,6 +1747,11 @@ func (j *Job) cancelJob() {
 		return
 	}
 	j.State = "canceled"
+	for _, f := range j.files {
+		if f.State != "done" {
+			f.State = "canceled"
+		}
+	}
 	cancel := j.cancel
 	j.mu.Unlock()
 	if cancel != nil {
@@ -1610,6 +1759,225 @@ func (j *Job) cancelJob() {
 	}
 	j.wg.Wait()
 	j.resetRunning()
+}
+
+// ---------------------------------------------------------------- per file --
+
+// fileByID returns the file of the download with the given id.
+func (j *Job) fileByID(id string) *File {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	for _, f := range j.files {
+		if f.ID == id {
+			return f
+		}
+	}
+	return nil
+}
+
+// pauseFile pauses one file of the download: the other files keep going. The
+// part that is downloading when the pause arrives finishes first: the pause
+// takes effect on the next part.
+func (j *Job) pauseFile(f *File) {
+	j.mu.Lock()
+	if f.State == "done" || f.State == "canceled" {
+		j.mu.Unlock()
+		return
+	}
+	f.paused = true
+	f.State = "paused"
+	j.mu.Unlock()
+}
+
+// resumeFile takes a paused file back into the queue.
+func (j *Job) resumeFile(f *File) {
+	j.mu.Lock()
+	if f.State == "done" || f.State == "canceled" {
+		j.mu.Unlock()
+		return
+	}
+	f.paused = false
+	if f.State == "paused" {
+		f.State = "pending"
+	}
+	j.State = "running"
+	j.Error = ""
+	j.mu.Unlock()
+	j.ensureWorkers()
+}
+
+// cancelFile stops one file of the download: the file stays in the list, but
+// it is not downloaded any more. The bytes already on disk are kept, so the
+// operator can start it again where it stopped. The URL of a stopped file can
+// be changed: the file is planned again from the new URL. A complete file can
+// be stopped too: its URL becomes editable again and the operator can start
+// the download once more.
+func (j *Job) cancelFile(f *File) {
+	j.mu.Lock()
+	if f.State == "canceled" {
+		j.mu.Unlock()
+		return
+	}
+	f.paused = true
+	f.State = "stopped"
+	// A download that was complete is not complete any more: the operator can
+	// start the file again from its first byte.
+	if j.State == "done" {
+		j.State = "paused"
+	}
+	j.mu.Unlock()
+}
+
+// removeFile takes a file out of the download: its parts leave the queue and
+// the bytes already on disk are deleted.
+func (j *Job) removeFile(f *File) error {
+	j.mu.Lock()
+	kept := make([]*File, 0, len(j.files))
+	var old *File
+	for _, x := range j.files {
+		if x == f {
+			old = x
+			continue
+		}
+		kept = append(kept, x)
+	}
+	if old == nil {
+		j.mu.Unlock()
+		return fmt.Errorf("unknown file in the download")
+	}
+	j.files = kept
+	parts := make([]*Part, 0, len(j.parts))
+	for _, p := range j.parts {
+		if p.file == old {
+			continue
+		}
+		parts = append(parts, p)
+	}
+	j.parts = parts
+	j.Received -= old.Received
+	if j.Received < 0 {
+		j.Received = 0
+	}
+	j.Total -= old.Total
+	if j.Total < 0 {
+		j.Total = 0
+	}
+	j.PartCnt -= old.PartCnt
+	old.State = "canceled"
+	j.Percent = percent(j.Received, j.Total)
+	indexes := make([]int, 0, len(old.parts))
+	merged := old.Merged
+	for _, p := range old.parts {
+		indexes = append(indexes, p.Index)
+	}
+	j.mu.Unlock()
+
+	// The bytes of the removed file are deleted: the operator does not want
+	// them on disk any more. A part that is downloading keeps its file open:
+	// on Windows the file cannot be deleted yet, so the part removes it when
+	// it ends.
+	for _, index := range indexes {
+		if err := os.Remove(j.partPath(index)); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("server: job %s part %d not removed yet: %v\n", j.ID, index, err)
+		}
+	}
+	if merged != "" {
+		os.Remove(merged)
+	}
+	return nil
+}
+
+// restartFile drops the bytes of a file and queues it again from its first
+// byte. The file becomes editable again: the operator can change the URL and
+// the name before it starts.
+func (j *Job) restartFile(f *File) error {
+	j.mu.Lock()
+	if f.State == "canceled" {
+		j.mu.Unlock()
+		return fmt.Errorf("the file has been canceled: it cannot be restarted")
+	}
+	oldMerged := f.Merged
+	oldReceived := f.Received
+	for _, p := range f.parts {
+		p.State = "pending"
+		p.Received = 0
+		p.Percent = 0
+		p.Error = ""
+		p.Attempts++
+	}
+	f.pending = len(f.parts)
+	f.Received = 0
+	f.Percent = 0
+	f.Error = ""
+	f.paused = false
+	f.State = "pending"
+	f.Merged = ""
+	f.MergedSz = 0
+	f.SHA = ""
+	f.Verify = ""
+	j.Received -= oldReceived
+	if j.Received < 0 {
+		j.Received = 0
+	}
+	j.Percent = percent(j.Received, j.Total)
+	j.State = "running"
+	j.Error = ""
+	j.mu.Unlock()
+
+	// The bytes of the old attempt are dropped: the file is fetched again
+	// from its first byte.
+	for _, p := range f.parts {
+		if err := os.Remove(j.partPath(p.Index)); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	// The merged file of the old attempt goes away too: the link of the files
+	// table must not point to the bytes of a download that is not there any
+	// more.
+	if oldMerged != "" {
+		os.Remove(oldMerged)
+	}
+	j.ensureWorkers()
+	return nil
+}
+
+// replaceFile swaps the parts of a file with a new plan: the operator changed
+// the URL of a file that had not started yet. The old parts leave the queue
+// and the new ones take their place.
+func (j *Job) replaceFile(old *File, fresh *File) {
+	j.mu.Lock()
+	kept := make([]*Part, 0, len(j.parts))
+	for _, p := range j.parts {
+		if p.file == old {
+			continue
+		}
+		kept = append(kept, p)
+	}
+	j.parts = kept
+	j.Received -= old.Received
+	if j.Received < 0 {
+		j.Received = 0
+	}
+	j.Total -= old.Total
+	if j.Total < 0 {
+		j.Total = 0
+	}
+	j.PartCnt -= old.PartCnt
+	fresh.pending = len(fresh.parts)
+	for _, p := range fresh.parts {
+		p.Index = len(j.parts) + 1
+		j.parts = append(j.parts, p)
+	}
+	for i, f := range j.files {
+		if f == old {
+			j.files[i] = fresh
+			break
+		}
+	}
+	j.Total += fresh.Total
+	j.PartCnt += fresh.PartCnt
+	j.Percent = percent(j.Received, j.Total)
+	j.mu.Unlock()
 }
 
 // watcher keeps the speed and the ETA up to date.
@@ -1662,6 +2030,7 @@ type fileView struct {
 	SHA      string `json:"sha"`
 	Verify   string `json:"verified"`
 	Error    string `json:"error"`
+	Paused   bool   `json:"paused"`
 }
 
 // partView is the JSON view of a part. It is a struct, not a map, because

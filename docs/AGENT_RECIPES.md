@@ -495,10 +495,16 @@ fn boot() -> null {
   keeps the selection of the operator (a table refresh drops it).
 - Keep the live view and the data apart: bars and counters for the progress,
   the tables in another tab, so the screen stays readable.
-- One button for the whole lifecycle. The icon and the label of the action
-  button follow the phase of the job (start / pause / resume): the operator
-  never reads a button that does not apply to the current state. The cancel
-  button appears only in the phases where it makes sense.
+- One button for the whole download in the header, and **one row per file**
+  below it: the row holds the URL, the name of the file, the priority as an
+  icon and the buttons of that file (play/pause, stop/start again, cancel).
+  The handlers declared inside a `list` are wired for **every** row and
+  receive the key of the row they belong to, so every row acts on itself and
+  never only the first one.
+- Lock the URL of a file while it downloads. The stop button turns the URL
+  back into an editable box: the operator writes the new URL and starts the
+  file again, and the backend downloads it from the new URL. A file that is
+  complete can be stopped too, so its URL can be changed in the same way.
 - Show the errors as toasts (`toast.show(message, "error", 5000)`) and not only
   as a line of text: a failed request must be visible even when the operator
   is looking at the progress bars. Deduplicate the repeated message.

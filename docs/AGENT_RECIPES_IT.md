@@ -451,10 +451,17 @@ fn boot() -> null {
   azzera).
 - Separa la vista live dai dati: barre e contatori per l'avanzamento, le
   tabelle in un'altra tab, cosi' lo schermo resta leggibile.
-- Un solo pulsante per tutto il ciclo di vita. Icona e testo del pulsante di
-  azione seguono la fase del lavoro (start / pausa / ripresa): l'operatore non
-  legge mai un pulsante che non vale per lo stato corrente. Il pulsante di
-  annullamento compare solo nelle fasi in cui ha senso.
+- Un solo pulsante per tutto il download nell'intestazione e **una riga per
+  ogni file** sotto: la riga contiene l'URL, il nome del file, la priorita'
+  come icona e i pulsanti di quel file (play/pausa, stop/riavvia, annulla).
+  I gestori dichiarati dentro una `list` vengono collegati a **tutte** le righe
+  e ricevono la chiave della riga a cui appartengono: ogni riga agisce su di
+  se' e mai solo sulla prima.
+- Blocca l'URL di un file mentre viene scaricato. Il pulsante di stop
+  trasforma di nuovo l'URL in una casella modificabile: l'operatore scrive il
+  nuovo URL e riavvia il file, e il backend lo scarica dalla nuova URL. Anche
+  un file completato puo' essere fermato, cosi' il suo URL si cambia allo
+  stesso modo.
 - Mostra gli errori come toast (`toast.show(messaggio, "error", 5000)`) e non
   solo come riga di testo: una richiesta fallita deve essere visibile anche
   mentre l'operatore guarda le barre di avanzamento. Deduplica il messaggio

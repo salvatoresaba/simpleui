@@ -44,23 +44,32 @@ func TestDownloadManagerApp(t *testing.T) {
 		"/retry-failed",
 		// The name of the file to save: the app fills it from the URL and
 		// sends it with the request that starts the download.
-		"syncFileName",
+		"syncTargetName",
 		"fileNameFromUrl",
-		`"file": fileName`,
+		`"file": name`,
 		// The counters of the parts.
 		"setPartTotal",
 		"setPartActive",
 		"setPartDone",
-		// The files of the download: the plus button adds one, the priority
-		// of the selected file is changed with the priority endpoint.
-		"addFile",
-		"setPriorityLabel",
-		"priorityValue",
+		// The targets: one row per file. The plus button adds a row and the
+		// priority of a file is changed with the priority endpoint.
+		"addTarget",
+		"setTargets",
 		"setFiles",
 		"setFilesTable",
-		"onFileSelected",
+		"onTargetPriority",
+		"setFilePriority",
 		"/files/",
 		"/priority",
+		// The buttons of a row act on the file of that row: the handler
+		// receives the key of its row.
+		"onTargetPlay",
+		"onTargetStop",
+		"onTargetCancel",
+		"restartTarget",
+		"fileAction",
+		"targetLocked",
+		"__sui_rowkey",
 		// A refused request is shown, not swallowed.
 		"could not start: ",
 		"could not add the file: ",
