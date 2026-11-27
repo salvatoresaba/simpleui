@@ -7626,6 +7626,16 @@ func viewNodeJsRaw(n *ViewNode, g *ViewGen, ctx *JsCtx) string {
 		if len(n.else_) > 0 {
 			elseC = viewNodesJs(n.else_, g, ctx)
 		}
+		// The designer preview can force a branch: both branches are compiled
+		// anyway, so the ids of the elements do not change.
+		switch n.previewMode {
+		case "both":
+			return "(" + thenC + " + " + elseC + ")"
+		case "then":
+			return "(" + thenC + ")"
+		case "else":
+			return "(" + elseC + ")"
+		}
 		return "(" + ExprToJs(n.cond) + " ? " + thenC + " : " + elseC + ")"
 	}
 	if n.kind == "list" {

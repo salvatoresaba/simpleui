@@ -141,6 +141,8 @@ view main {
 			div class: "inner" {
 				p "inside" class: "note"
 			}
+		} else {
+			p "other branch" class: "note"
 		}
 		button "After" class: "after-btn" {
 		}
@@ -237,7 +239,10 @@ func TestGuiDesignerWorkflowE2E(t *testing.T) {
 		json(w, `{"ok":true,`+body[1:])
 	})
 	on("/__gui__/render", func(w http.ResponseWriter, r *http.Request) {
-		ok, html, msgs := renderSui(formValue(r, "sui"))
+		// The designer can force a branch of a conditional block to check the
+		// final effect of both of them.
+		modes := parseIfPreviewModes(formValue(r, "ifpreview"))
+		ok, html, msgs := renderSuiModes(formValue(r, "sui"), modes)
 		if ok {
 			lastHTML = html
 			json(w, `{"ok":true}`)
@@ -429,7 +434,45 @@ const designerWorkflowScript = `<script>
     }
     step('reverse-ok');
 
-    // 4. a manual edit must apply: the formatted source (with the import on
+    // 4. a dynamic block is selectable: its inspector shows the condition and
+    //    the preview can show both branches, to check the final effect.
+    var blockRow = Array.prototype.slice.call(document.querySelectorAll('#nodes .node')).find(function (r) {
+      return (r.textContent || '').indexOf('if items != null') >= 0;
+    });
+    if (!blockRow) throw new Error('the conditional block is not in the tree');
+    blockRow.click();
+    await wait(700);
+    var ins = document.getElementById('inspector');
+    var insText = ins ? (ins.textContent || '').replace(/\s+/g, ' ') : '';
+    if (insText.indexOf('Conditional block') < 0) {
+      throw new Error('the inspector does not show the conditional block: ' + insText.slice(0, 200));
+    }
+    var modeSel = null;
+    var sels = ins.querySelectorAll('select');
+    for (var si = 0; si < sels.length && !modeSel; si++) {
+      var opts = sels[si].options || [];
+      for (var oi = 0; oi < opts.length; oi++) {
+        if (opts[oi].value === 'both') { modeSel = sels[si]; break; }
+      }
+    }
+    if (!modeSel) throw new Error('the branch selector of the block is missing');
+    modeSel.value = 'both';
+    modeSel.dispatchEvent(new Event('change', { bubbles: true }));
+    var bothShown = false;
+    for (var bw = 0; bw < 40; bw++) {
+      await wait(150);
+      var frame = document.getElementById('prev');
+      var bdoc = frame && frame.contentWindow ? frame.contentWindow.document : null;
+      var btext = bdoc ? (bdoc.body.textContent || '') : '';
+      if (btext.indexOf('other branch') >= 0) { bothShown = true; break; }
+    }
+    if (!bothShown) throw new Error('the preview does not show both branches');
+    // The preview option is not part of the source.
+    var blockSrc = ta.value;
+    if (blockSrc.indexOf('both') >= 0) throw new Error('the preview option leaked into the source');
+    step('block-ok');
+
+    // 5. a manual edit must apply: the formatted source (with the import on
     //    several lines) must parse again
     ta.value = ta.value.replace('text "Hello"', 'text "Hello there"');
     ta.dispatchEvent(new Event('input', { bubbles: true }));
@@ -442,7 +485,7 @@ const designerWorkflowScript = `<script>
     if (applied.indexOf('Hello there') < 0) throw new Error('the manual edit was reverted: ' + applied.slice(0, 200));
     step('applied');
 
-    // 5. a broken edit must be underlined in the file, not only in the status bar
+    // 6. a broken edit must be underlined in the file, not only in the status bar
     ta.value = ta.value.replace('text "Hello there"', 'text "Hello there');
     ta.dispatchEvent(new Event('input', { bubbles: true }));
     await wait(2500);

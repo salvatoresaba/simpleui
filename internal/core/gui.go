@@ -247,7 +247,10 @@ func CmdGui(args []string) {
 	mux.HandleFunc("POST /__gui__/render", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
 		src := r.PostFormValue("sui")
-		ok, html, msgs := renderSui(src)
+		// The designer can force a branch of a conditional block to check the
+		// final effect of both of them.
+		modes := parseIfPreviewModes(r.PostFormValue("ifpreview"))
+		ok, html, msgs := renderSuiModes(src, modes)
 		if ok {
 			srcMu.Lock()
 			currentSrc = src
@@ -801,6 +804,14 @@ func guiFsList(path string) JVal {
 // renderSui compiles an in-memory .sui source into a self-contained preview
 // page. Returns ok, html, diagnostics.
 func renderSui(src string) (bool, string, JVal) {
+	return renderSuiModes(src, nil)
+}
+
+// renderSuiModes compiles the preview page and forces the branches of the
+// conditional blocks listed in modes (source line -> "both", "then" or
+// "else"). The preview is the only place that forces a branch: the generated
+// application always evaluates the condition.
+func renderSuiModes(src string, modes map[int]string) (bool, string, JVal) {
 	prog, dl := ParseSource(src, "design.sui")
 	if !dl.HasErrors() {
 		dl = Check(prog)
@@ -812,10 +823,106 @@ func renderSui(src string) (bool, string, JVal) {
 	if dl.HasErrors() {
 		return false, "", diags
 	}
+	for line, mode := range modes {
+		if node := findIfNodeByLine(prog, line); node != nil {
+			node.previewMode = mode
+		}
+	}
 	js := GenerateJs(prog)
 	css := GenerateCss(prog)
 	html := "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>" + guiFontFaceCss() + css + "</style></head><body class=\"sui-designer-preview\"><div id=\"app\"></div><script>" + js + "</script>" + guiPreviewPicker + "</body></html>"
 	return true, html, diags
+}
+
+// parseIfPreviewModes reads the preview branch overrides sent by the designer:
+// a list of "line:mode" pairs, where the mode is "both", "then" or "else".
+func parseIfPreviewModes(raw string) map[int]string {
+	modes := map[int]string{}
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return modes
+	}
+	for _, item := range strings.Split(raw, ",") {
+		parts := strings.SplitN(strings.TrimSpace(item), ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		line, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+		if err != nil {
+			continue
+		}
+		switch mode := strings.TrimSpace(parts[1]); mode {
+		case "both", "then", "else":
+			modes[line] = mode
+		}
+	}
+	return modes
+}
+
+// findIfNodeByLine returns the conditional block that starts at the given
+// source line. The designer knows the line of a block and uses it to force one
+// of its branches in the preview.
+func findIfNodeByLine(prog *Prog, line int) *ViewNode {
+	if prog == nil {
+		return nil
+	}
+	for i := range prog.views {
+		if node := findIfNodeIn(prog.views[i].body, line); node != nil {
+			return node
+		}
+	}
+	return nil
+}
+
+// findIfNodeIn walks the nodes of a view body looking for the conditional
+// block that starts at the given line.
+func findIfNodeIn(nodes []ViewNode, line int) *ViewNode {
+	for i := range nodes {
+		if found := findIfNodeOne(&nodes[i], line); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+// findIfNodePtrs walks the branches of a block: they are kept as pointers.
+func findIfNodePtrs(nodes []*ViewNode, line int) *ViewNode {
+	for _, node := range nodes {
+		if found := findIfNodeOne(node, line); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+// findIfNodeOne inspects a node and its descendants.
+func findIfNodeOne(node *ViewNode, line int) *ViewNode {
+	if node == nil {
+		return nil
+	}
+	switch node.kind {
+	case "if":
+		if node.span.line == line {
+			return node
+		}
+		if found := findIfNodePtrs(node.then_, line); found != nil {
+			return found
+		}
+		if found := findIfNodePtrs(node.else_, line); found != nil {
+			return found
+		}
+	case "list":
+		if found := findIfNodePtrs(node.body, line); found != nil {
+			return found
+		}
+	case "element":
+		if node.elem != nil {
+			if found := findIfNodeIn(node.elem.children, line); found != nil {
+				return found
+			}
+		}
+	}
+	return nil
 }
 
 // guiBuildFiles compiles the .sui source into the static project the `build`
@@ -988,6 +1095,7 @@ const guiPreviewPicker = `<script>
   st.textContent = '.sui-hl { outline: 2px dashed #4c5cf7 !important; outline-offset: 3px; } .sui-hl-table { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-control { outline: 2px solid #4c5cf7 !important; outline-offset: 2px; } .sui-hl-cell { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-row { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-hl-col { background: rgba(76,92,247,.18) !important; box-shadow: inset 0 0 0 1px rgba(76,92,247,.55) !important; } .sui-drag-over { outline: 2px dashed #34d399 !important; outline-offset: 3px; position: relative; } .sui-rsz { position: fixed; width: 14px; height: 14px; background: #fff; border: 2px solid #4c5cf7; border-radius: 3px; z-index: 10000; box-sizing: border-box; box-shadow: 0 0 4px rgba(0,0,0,.4); } .sui-rsz.n { cursor: ns-resize; } .sui-rsz.s { cursor: ns-resize; } .sui-rsz.e { cursor: ew-resize; } .sui-rsz.w { cursor: ew-resize; } .sui-rsz.ne { cursor: nesw-resize; } .sui-rsz.sw { cursor: nesw-resize; } .sui-rsz.nw { cursor: nwse-resize; } .sui-rsz.se { cursor: nwse-resize; } .sui-tzone { position: fixed; z-index: 9000; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 2px; box-shadow: 0 0 0 1px rgba(76,92,247,.65); } .sui-tcorner { position: fixed; z-index: 9001; pointer-events: none; display: none; background: rgba(76,92,247,.34); border-radius: 3px; box-shadow: 0 0 0 1px rgba(76,92,247,.65), inset 0 0 0 3px rgba(255,255,255,.55); } .sui-grid { position: fixed; inset: 0; z-index: 8000; pointer-events: none; display: none; } .sui-tselect-host { position: relative !important; } .sui-tselect { position: absolute; left: 0; top: 0; width: 10px; height: 10px; background: rgba(76,92,247,.9); clip-path: polygon(0 0, 100% 0, 0 100%); cursor: pointer; z-index: 4; } .sui-tselect:hover { background: #4c5cf7; } .sui-tab-x { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 3px; font-size: 12px; line-height: 1; opacity: .65; cursor: pointer; } .sui-tab-x:hover { opacity: 1; background: rgba(239,68,68,.25); }';
   document.head.appendChild(st);
   st.textContent += ' .sui-layout-table > tbody > tr > td { outline: 1px dashed rgba(76,92,247,.55) !important; outline-offset: -1px; } .sui-layout-table > tbody > tr > td:hover { outline-color: #4c5cf7; background: rgba(76,92,247,.08); } .sui-layout-cell { position: relative !important; } .sui-layout-overlay { position: absolute; pointer-events: none; z-index: 100000; } .sui-layout-split-v, .sui-layout-split-h { position: absolute; z-index: 90000; background: transparent; pointer-events: auto; } .sui-layout-split-v { width: 12px; cursor: ew-resize; } .sui-layout-split-h { height: 12px; cursor: ns-resize; } .sui-layout-split-v::before { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: rgba(76,92,247,.35); } .sui-layout-split-h::before { content: ""; position: absolute; top: 5px; left: 0; right: 0; height: 2px; background: rgba(76,92,247,.35); } .sui-layout-split-v:hover::before, .sui-layout-split-h:hover::before, .sui-layout-split-on::before { background: #34d399 !important; } .sui-layout-split-v.sui-layout-split-dashed::before { background: repeating-linear-gradient(to bottom, rgba(76,92,247,.55) 0 4px, transparent 4px 8px); } .sui-layout-split-h.sui-layout-split-dashed::before { background: repeating-linear-gradient(to right, rgba(76,92,247,.55) 0 4px, transparent 4px 8px); } .sui-layout-split-on.sui-layout-split-dashed::before { background: repeating-linear-gradient(to bottom, rgba(52,211,153,.95) 0 4px, transparent 4px 8px) !important; } .sui-layout-split-h.sui-layout-split-on.sui-layout-split-dashed::before { background: repeating-linear-gradient(to right, rgba(52,211,153,.95) 0 4px, transparent 4px 8px) !important; } .sui-layout-cell::after, .sui-layout-table > tbody > tr:first-child > .sui-layout-cell:first-child::before { content: none !important; } .sui-layout-pick-cell { position: absolute; left: 0; bottom: 0; width: 0; height: 0; border-left: 14px solid rgba(76,92,247,.9); border-top: 14px solid transparent; opacity: 0; cursor: pointer; z-index: 100002; pointer-events: auto; } .sui-layout-cell:hover > .sui-layout-pick-cell { opacity: 1; } .sui-layout-pick-cell.sui-layout-pick-cell-visible { opacity: 1; } .sui-layout-pick-table { position: absolute; width: 0; height: 0; border-left: 16px solid rgba(52,211,153,.95); border-bottom: 16px solid transparent; opacity: .55; cursor: pointer; z-index: 100001; pointer-events: auto; } .sui-layout-pick-table:hover { opacity: 1; } .sui-hl-cell { background: rgba(76,92,247,.26) !important; box-shadow: inset 0 0 0 2px #4c5cf7, inset 0 0 0 5px rgba(255,255,255,.28) !important; } .sui-layout-cell.sui-hl-cell::after { content: "" !important; position: absolute !important; inset: 0 !important; border: 3px solid #4c5cf7 !important; box-shadow: inset 0 0 0 6px rgba(255,255,255,.3) !important; pointer-events: none !important; z-index: 100003 !important; } .sui-layout-responsive { display: table !important; } .sui-layout-responsive > colgroup { display: table-column-group !important; } .sui-layout-responsive > tbody { display: table-row-group !important; } .sui-layout-responsive > tbody > tr { display: table-row !important; } .sui-layout-responsive > tbody > tr > .sui-layout-cell { display: table-cell !important; width: auto !important; margin-bottom: 0 !important; }';
+  st.textContent += ' .sui-grid-split { position: fixed; z-index: 90000; background: transparent; pointer-events: auto; } .sui-grid-split-v { width: 12px; cursor: ew-resize; } .sui-grid-split-h { height: 12px; cursor: ns-resize; } .sui-grid-split-v::before { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: rgba(76,92,247,.35); } .sui-grid-split-h::before { content: ""; position: absolute; top: 5px; left: 0; right: 0; height: 2px; background: rgba(76,92,247,.35); } .sui-grid-split:hover::before { background: #34d399 !important; }';
   var current = [];
   var layoutHl = null;
   var handles = [];
@@ -2097,6 +2205,109 @@ const guiPreviewPicker = `<script>
     if (key !== lastLayoutKey) syncLayoutSplits();
   }, 120);
   setTimeout(syncLayoutSplits, 0);
+  // Row and column containers: the boundary between two cells can be dragged
+  // to change their size, and a cell can be picked even when it holds other
+  // elements.
+  var gridSplitEls = [];
+  var gridResize = null;
+  var lastGridKey = '';
+  function clearGridSplits() {
+    for (var i = 0; i < gridSplitEls.length; i++) { if (gridSplitEls[i].parentNode) gridSplitEls[i].parentNode.removeChild(gridSplitEls[i]); }
+    gridSplitEls = [];
+  }
+  function gridHostCells(host) {
+    var out = [];
+    var kids = host.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i].getAttribute && kids[i].getAttribute('data-sui-id')) out.push(kids[i]);
+    }
+    return out;
+  }
+  function gridHostAxis(host) {
+    return host.classList && host.classList.contains('col') ? 'y' : 'x';
+  }
+  function gridRectsKey() {
+    var hosts = document.querySelectorAll('.row[data-sui-id], .col[data-sui-id]');
+    var parts = [];
+    for (var i = 0; i < hosts.length; i++) {
+      var host = hosts[i];
+      var r = host.getBoundingClientRect();
+      parts.push(host.getAttribute('data-sui-id') + ':' + gridHostCells(host).length + ':' + Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.width) + ',' + Math.round(r.height));
+    }
+    return parts.join('|');
+  }
+  function syncGridSplits() {
+    clearGridSplits();
+    var hosts = document.querySelectorAll('.row[data-sui-id], .col[data-sui-id]');
+    for (var h = 0; h < hosts.length; h++) {
+      var host = hosts[h];
+      var cells = gridHostCells(host);
+      if (cells.length < 2) continue;
+      var axis = gridHostAxis(host);
+      var hostRect = host.getBoundingClientRect();
+      for (var i = 1; i < cells.length; i++) {
+        var a = cells[i - 1].getBoundingClientRect();
+        var b = cells[i].getBoundingClientRect();
+        var handle = document.createElement('div');
+        handle.className = 'sui-grid-split ' + (axis === 'x' ? 'sui-grid-split-v' : 'sui-grid-split-h');
+        handle.title = 'Drag to resize the cells';
+        if (axis === 'x') {
+          handle.style.left = ((a.right + b.left) / 2 - 6) + 'px';
+          handle.style.top = hostRect.top + 'px';
+          handle.style.height = hostRect.height + 'px';
+        } else {
+          handle.style.top = ((a.bottom + b.top) / 2 - 6) + 'px';
+          handle.style.left = hostRect.left + 'px';
+          handle.style.width = hostRect.width + 'px';
+        }
+        (function (hostEl, cellsRef, axisRef, idx) {
+          handle.addEventListener('mousedown', function (ev) {
+            ev.preventDefault(); ev.stopPropagation();
+            gridResize = { host: hostEl, cells: cellsRef, axis: axisRef, index: idx, start: axisRef === 'x' ? ev.clientX : ev.clientY, moved: false, sizes: null };
+          });
+        })(host, cells, axis, i);
+        document.body.appendChild(handle);
+        gridSplitEls.push(handle);
+      }
+    }
+    lastGridKey = gridRectsKey();
+  }
+  document.addEventListener('mousemove', function (e) {
+    if (!gridResize) return;
+    var delta = (gridResize.axis === 'x' ? e.clientX : e.clientY) - gridResize.start;
+    if (!gridResize.moved) { if (Math.abs(delta) < 4) return; gridResize.moved = true; }
+    var rects = [];
+    for (var i = 0; i < gridResize.cells.length; i++) rects.push(gridResize.cells[i].getBoundingClientRect());
+    var edges = [];
+    for (var j = 0; j < rects.length; j++) edges.push(gridResize.axis === 'x' ? rects[j].left : rects[j].top);
+    edges.push(gridResize.axis === 'x' ? rects[rects.length - 1].right : rects[rects.length - 1].bottom);
+    var idx = gridResize.index;
+    var min = 12;
+    edges[idx] = Math.max(edges[idx - 1] + min, Math.min(edges[idx + 1] - min, edges[idx] + delta));
+    var sizes = [];
+    for (var k = 0; k < edges.length - 1; k++) sizes.push(Math.max(min, Math.round(edges[k + 1] - edges[k])));
+    gridResize.sizes = sizes;
+    var first = gridResize.cells[idx - 1], second = gridResize.cells[idx];
+    if (gridResize.axis === 'x') { first.style.width = sizes[idx - 1] + 'px'; second.style.width = sizes[idx] + 'px'; }
+    else { first.style.height = sizes[idx - 1] + 'px'; second.style.height = sizes[idx] + 'px'; }
+  }, true);
+  document.addEventListener('mouseup', function () {
+    if (!gridResize) return;
+    var r = gridResize; gridResize = null;
+    if (r.moved && r.sizes && r.sizes.length) {
+      parent.postMessage({ ty: 'sui-grid-resize', host: Number(r.host.getAttribute('data-sui-id')), axis: r.axis, sizes: r.sizes }, '*');
+    }
+    syncGridSplits();
+  }, true);
+  window.addEventListener('resize', syncGridSplits);
+  window.addEventListener('scroll', syncGridSplits, true);
+  document.addEventListener('scroll', syncGridSplits, true);
+  setInterval(function () {
+    if (gridResize) return;
+    var key = gridRectsKey();
+    if (key !== lastGridKey) syncGridSplits();
+  }, 120);
+  setTimeout(syncGridSplits, 0);
   document.addEventListener('click', function (e) {
     // A click the designer replays on the preview (the tab restore after a
     // rebuild) is internal: it must not pick an element, or the selection
@@ -2265,14 +2476,30 @@ const guiPreviewPicker = `<script>
     // Alt+click anywhere inside a table selects the WHOLE table (the deepest
     // id would otherwise always be a cell, making the table unreachable).
     if (e.altKey) {
+      var altId = -1;
       var tn = e.target;
       while (tn && tn.nodeType === 1) {
         if (tn.tagName && tn.tagName.toLowerCase() === 'table') {
           var tid = tn.getAttribute('data-sui-id');
-          if (tid !== null && tid !== '-1') { id = Number(tid); break; }
+          if (tid !== null && tid !== '-1') { altId = Number(tid); break; }
         }
         tn = tn.parentNode;
       }
+      if (altId < 0) {
+        // Alt+click inside a row or a column container selects the CELL that
+        // holds the element, even when the cell holds other elements.
+        var cn = e.target;
+        while (cn && cn.nodeType === 1) {
+          var host = cn.parentElement;
+          if (host && host.classList && (host.classList.contains('row') || host.classList.contains('col'))) {
+            var cid = cn.getAttribute ? cn.getAttribute('data-sui-id') : null;
+            if (cid !== null && cid !== '-1') { altId = Number(cid); }
+            break;
+          }
+          cn = cn.parentNode;
+        }
+      }
+      if (altId >= 0) id = altId;
     }
     if (id >= 0) parent.postMessage({ ty: 'sui', id: id }, '*');
     if (isLink) e.preventDefault();

@@ -1266,6 +1266,11 @@ simpleui build <file.sui> --single [--minify] [--out <app.html|dir>]
     with an optional authenticated download of the produced binary;
   - **recursive element tree**: `row`/`col` containers nest arbitrarily deep,
     rendered as an indented tree in the left panel;
+  - **dynamic blocks**: the body of an `if` or of a `list` is a real subtree of
+    the tree. A block can be selected: the preview outlines every element it
+    contains and the inspector offers the **preview** option, which shows the
+    then branch, the else branch or both of them. The option is preview-only:
+    the generated application always evaluates the condition;
   - **drag & drop**: any node can be dragged onto another to reparent it
     (including into/out of containers) or reordered in place;
   - **undo/redo**: every mutation is pushed on a history stack (Ctrl+Z /

@@ -434,6 +434,28 @@ I due rami di un `if` restano separati: gli elementi del ramo `else` sono
 marcati con il prefisso `else` e rimangono nel ramo `else` anche quando un
 elemento del ramo `then` viene cancellato.
 
+Selezionando la riga **if block** si seleziona il blocco stesso: il preview
+evidenzia tutti gli elementi che contiene e l'inspector mostra la sezione
+**Conditional block** con la condizione, il numero di elementi di ogni ramo e
+l'opzione **preview**. L'opzione mostra nel preview il ramo `then`, il ramo
+`else` oppure **entrambi**, così si può verificare l'effetto finale dei due
+percorsi senza modificare la condizione. È un'opzione solo di anteprima: la
+sorgente salvata valuta sempre la condizione.
+
+### Contenitori row e column
+
+Un contenitore `row` o `col` dispone i suoi figli uno dopo l'altro. Il
+**confine tra due celle si può trascinare nel preview** per cambiarne la
+dimensione, e le nuove dimensioni vengono riportate nel progetto: la larghezza
+delle celle, oppure le larghezze delle colonne del contenitore quando le
+dichiara.
+
+**Alt+click** dentro una cella seleziona la **cella** e non l'elemento sotto
+il cursore, così una riga, una colonna o una cella si possono selezionare
+anche quando contengono altri elementi. Il menu contestuale di una `row` o di
+una `col` nell'albero offre **Add column** / **Add row**, che aggiunge una
+cella vuota al contenitore.
+
 ### Design token
 
 La tab **Tokens** elenca i design token presenti nel CSS del progetto. Un design

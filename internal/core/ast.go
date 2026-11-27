@@ -261,6 +261,11 @@ type ViewNode struct {
 	key      *Expr // optional stable identity for each item
 	body     []*ViewNode
 	span     Span
+	// previewMode is set only by the visual designer preview: "both" renders
+	// the then and the else branch together, "then" or "else" force one of
+	// them. The compiler of an application never sets it, so the generated
+	// app always evaluates the condition.
+	previewMode string
 }
 
 type ViewDecl struct {

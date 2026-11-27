@@ -2243,6 +2243,10 @@ function curPage() { remount(); return root.pages[root.page]; }
 var root = pagesModelEmpty();
 var suiSource = "";   // the canonical SUI source text (shown in the SUI tab)
 var selPath = null;
+// Preview-only branch overrides of the conditional blocks, keyed by the
+// source line of the block: "both", "then" or "else". The saved source always
+// evaluates the condition, so these never reach the .sui file.
+var ifPreviewModes = {};
 var selLayoutCell = null;
 var selLayoutCells = [];
 var selLayoutSplit = null;
@@ -3967,6 +3971,18 @@ function layoutDeleteSplits(n, splits) {
     if (tablePath) selPath = tablePath.slice();
   }, "delete layout splits");
 }
+// addGridCell adds a cell to a row or to a column container. The cell is an
+// empty container: the author fills it from the tree or from the preview.
+function addGridCell(node) {
+  withUndo(function() {
+    var cell = newNode("div");
+    node.children = node.children || [];
+    node.children.push(cell);
+    // A container that declares its cells keeps the count in sync.
+    if (node.kind === "row" && node.gridColumns) node.gridColumns = String(node.children.length);
+    if (node.kind === "col" && node.gridRows) node.gridRows = String(node.children.length);
+  }, "add cell");
+}
 function applyLayoutResize(tableId, axis, sizes) {
   var t = pickMap[tableId];
   if (!t || t.pg !== root.page || !sizes.length) return;
@@ -3977,6 +3993,58 @@ function applyLayoutResize(tableId, axis, sizes) {
     if (axis === "y") n.layoutRowHeights = value;
     else n.layoutColumnWidths = value;
   }, "table layout resize");
+}
+// applyGridResize writes the size of the cells of a row or of a column
+// container after a drag of the boundary between two of them.
+//
+// The cells of a container that declares its columns keep their size in the
+// container itself (the column widths of the row); the other ones keep it in
+// their own class, so the size survives every reparse.
+function applyGridResize(hostId, axis, sizes) {
+  var t = pickMap[hostId];
+  if (!t || t.pg !== root.page || !sizes || !sizes.length) return;
+  var host = byPath(t.p, root.children);
+  if (!host || (host.kind !== "row" && host.kind !== "col")) return;
+  var kids = host.children || [];
+  var prop = axis === "y" ? "height" : "width";
+  var writes = [];
+  for (var i = 0; i < kids.length && i < sizes.length; i++) {
+    var cell = kids[i];
+    if (!cell) continue;
+    var px = Math.max(8, Math.round(Number(sizes[i]))) + "px";
+    if (gridHostWidths(host)) {
+      // The container declares the size of its columns: they belong to the
+      // container, not to the single cells.
+      writes.push({ host: true, value: px });
+      continue;
+    }
+    writes.push({ cell: cell, cls: ensureClass(cell), value: px });
+  }
+  snap("resize cells");
+  var value = writes.map(function(w){ return w.value; }).join(", ");
+  if (gridHostWidths(host)) {
+    if (axis === "y") host.gridRowHeights = value;
+    else host.gridColumnWidths = value;
+    renderTree(); setOut(); autoPreview(); renderInspector();
+    return;
+  }
+  // Every cell has its own class: the sizes are written one by one, in the
+  // order the cells appear in the container.
+  var done = 0;
+  writes.forEach(function(w){
+    if (!w.cell) return;
+    setCssOnClass(w.cls, [{ prop: prop, value: w.value }], function () {
+      done++;
+      if (done === writes.length) scheduleCssSync();
+    });
+  });
+}
+// gridHostWidths reports whether a row or a column container declares the size
+// of its cells.
+function gridHostWidths(host) {
+  if (!host) return false;
+  if (host.kind === "row") return !!(host.gridColumns || host.gridColumnWidths);
+  return !!(host.gridRows || host.gridRowHeights);
 }
 function selectLayoutCell(tableId, row, col, add) {
   var t = pickMap[tableId];
@@ -4106,6 +4174,17 @@ function currentPeerIds() {
     if (ids.length) return ids;
   }
   if (selPath) {
+    // A dynamic block is highlighted as a whole: every element it contains is
+    // outlined, so the preview shows the block in its entirety.
+    var selNode = byPath(selPath, root.children);
+    if (selNode && selNode.block) {
+      var blockIds = [];
+      for (var bi = 0; bi < pickMap.length; bi++) {
+        var be = pickMap[bi];
+        if (be.pg === root.page && be.t === "n" && pathUnder(be.p, selPath)) blockIds.push(bi);
+      }
+      if (blockIds.length) return blockIds;
+    }
     for (var i = 0; i < pickMap.length; i++) {
       if (pickMap[i].pg === root.page && pickMap[i].t === "n" && samePath(pickMap[i].p, selPath)) return [i];
     }
@@ -4689,6 +4768,9 @@ function nodeContextActions(p, node) {
       }, "rename tree item");
     });
     sep();
+  } else if (node.kind === "row" || node.kind === "col") {
+    add(node.kind === "row" ? "Add column" : "Add row", function() { addGridCell(node); });
+    sep();
   } else if (node.kind === "menubar") {
     add("Add menu", function() { insertMenuNode(p, node, "menu"); });
     sep();
@@ -4845,6 +4927,12 @@ function moveNodeAt(p, delta) {
 function samePath(a, b) {
   if (!a || !b || a.length !== b.length) return false;
   for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+// pathUnder reports whether a path is a descendant of another one.
+function pathUnder(path, parent) {
+  if (!path || !parent || path.length <= parent.length) return false;
+  for (var i = 0; i < parent.length; i++) if (path[i] !== parent[i]) return false;
   return true;
 }
 function sameArray(a, b) {
@@ -6073,6 +6161,81 @@ function restoreInspectorFocus(state) {
     break;
   }
 }
+// blockInspector shows the settings of a dynamic block: the condition of an
+// `if` or the loop of a `list`, and the branch shown in the preview.
+//
+// The branch override is a preview-only setting: the saved source always
+// evaluates the condition, so the option never reaches the .sui file.
+function blockInspector(node) {
+  var sec = document.createElement("div");
+  sec.className = "ins-sec";
+  var head = document.createElement("div");
+  head.className = "ins-sec-h";
+  head.textContent = node.block === "list" ? "List block" : "Conditional block";
+  sec.appendChild(head);
+  var body = document.createElement("div");
+  body.className = "ins-sec-body";
+  sec.appendChild(body);
+
+  var info = document.createElement("div");
+  info.className = "rowline";
+  var infoLabel = document.createElement("label");
+  infoLabel.textContent = node.block === "list" ? "loop" : "condition";
+  info.appendChild(infoLabel);
+  var infoValue = document.createElement("input");
+  infoValue.readOnly = true;
+  infoValue.value = node.block === "list"
+    ? ((node.item || "") + (node.item2 ? ", " + node.item2 : "") + " in " + (node.iterable || ""))
+    : (node.cond || "");
+  infoValue.title = infoValue.value;
+  info.appendChild(infoValue);
+  body.appendChild(info);
+
+  var count = document.createElement("div");
+  count.className = "rowline";
+  var countLabel = document.createElement("label");
+  countLabel.textContent = "elements";
+  count.appendChild(countLabel);
+  var countValue = document.createElement("input");
+  countValue.readOnly = true;
+  countValue.value = (node.thenCount || 0) + " / " + (node.elseCount || 0);
+  countValue.title = "Elements of the then branch and of the else branch";
+  count.appendChild(countValue);
+  body.appendChild(count);
+
+  if (node.block !== "list") {
+    var modeRow = document.createElement("div");
+    modeRow.className = "rowline";
+    var modeLabel = document.createElement("label");
+    modeLabel.textContent = "preview";
+    modeLabel.title = "Which branch the preview shows";
+    modeRow.appendChild(modeLabel);
+    var modeSel = document.createElement("select");
+    var modes = [["auto", "Condition"], ["both", "Both branches"], ["then", "Then branch"], ["else", "Else branch"]];
+    var currentMode = ifPreviewModes[node.line] || "auto";
+    modes.forEach(function(m){
+      var opt = document.createElement("option");
+      opt.value = m[0];
+      opt.textContent = m[1];
+      if (m[0] === currentMode) opt.selected = true;
+      modeSel.appendChild(opt);
+    });
+    modeSel.onchange = function () {
+      if (modeSel.value === "auto") delete ifPreviewModes[node.line];
+      else ifPreviewModes[node.line] = modeSel.value;
+      autoPreview();
+    };
+    modeRow.appendChild(modeSel);
+    body.appendChild(modeRow);
+
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.cssText = "font-size:10px;margin-top:4px";
+    hint.textContent = "The preview shows one branch, the other one, or both of them. The saved source always evaluates the condition.";
+    body.appendChild(hint);
+  }
+  return sec;
+}
 function renderInspector() {
   if (selPath && (!multiSel || !multiSel.length)) {
     var ownerPath = treeOwnerPath(selPath);
@@ -6153,7 +6316,10 @@ function renderInspector() {
     return;
   }
   if (nodes.some(function(m){ return m && m.block; })) {
-    box.insertAdjacentHTML("beforeend", '<div class="hint">This is a dynamic block: it renders the elements it contains when its condition is true. Select an element inside the block to edit it.</div>');
+    // A dynamic block is a real part of the tree: the inspector shows its
+    // condition and lets the preview force one branch, to check the final
+    // effect of both of them.
+    box.appendChild(blockInspector(nodes[0]));
     finishInspector();
     return;
   }
@@ -13256,6 +13422,9 @@ function syncInspectorSections() {
       openMap[appearanceKindLabel(sn.kind)] = true;
     }
     if (sn.motionKey || sn.motionGraph || sn.motion || sn.animation) openMap["Motion (animation panel)"] = true;
+    // The settings of a dynamic block are the only thing to see when a block
+    // is selected: the section opens with the selection.
+    if (sn.block) openMap[sn.block === "list" ? "List block" : "Conditional block"] = true;
   }
   for (var i = 0; i < sections.length; i++) {
     var a = sections[i];
@@ -19126,6 +19295,7 @@ function autoPreview() {
   var mySeq = ++pvSeq;
   var fd = new URLSearchParams();
   fd.set("sui", src);
+  fd.set("ifpreview", ifPreviewModesParam());
   fetch("/__gui__/render", { method: "POST", body: fd }).then(function(r){ return r.json(); }).then(function(j){
     if (mySeq !== pvSeq) return;
     if (j.ok) { document.getElementById("prev").src = previewUrl(); }
@@ -19133,6 +19303,18 @@ function autoPreview() {
   }).catch(function(){
     if (mySeq === pvSeq) setStatus("preview failed: server unavailable");
   });
+}
+// ifPreviewModesParam serializes the branch overrides of the conditional
+// blocks for the preview request: a list of "line:mode" pairs.
+function ifPreviewModesParam() {
+  var out = [];
+  for (var line in ifPreviewModes) {
+    if (!Object.prototype.hasOwnProperty.call(ifPreviewModes, line)) continue;
+    var mode = ifPreviewModes[line];
+    if (!mode || mode === "auto") continue;
+    out.push(line + ":" + mode);
+  }
+  return out.join(",");
 }
 (function wirePreviewTabRestore() {
   var prev = document.getElementById("prev");
@@ -19522,6 +19704,7 @@ window.addEventListener("message", function(ev) {
     return;
   }
   if (ev.data.ty === "sui-layout-resize") { applyLayoutResize(Number(ev.data.table), String(ev.data.axis || "x"), ev.data.sizes || []); return; }
+  if (ev.data.ty === "sui-grid-resize") { applyGridResize(Number(ev.data.host), String(ev.data.axis || "x"), ev.data.sizes || []); return; }
   if (ev.data.ty === "sui-layout-split-select") { selectLayoutSplit(Number(ev.data.table), String(ev.data.axis || "x"), Number(ev.data.index), !!ev.data.add); return; }
   if (ev.data.ty === "sui-drop-layout") { dropFromPaletteLayout(Number(ev.data.table), Number(ev.data.row), Number(ev.data.col)); return; }
   if (ev.data.ty === "sui") { if (mgEdit) mgMinimizePanel(); selectByDfs(ev.data.id); return; }

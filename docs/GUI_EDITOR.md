@@ -419,6 +419,26 @@ The two branches of an `if` are kept apart: the elements of the `else` branch
 are marked with an `else` prefix and stay in the `else` branch even when an
 element of the `then` branch is deleted.
 
+Selecting the **if block** row selects the block itself: the preview outlines
+every element it contains, and the inspector shows the **Conditional block**
+section with its condition, the number of elements of each branch and the
+**preview** option. The option shows the **then** branch, the **else** branch
+or **both of them** in the preview, so the final effect of the two paths can be
+checked without changing the condition. It is a preview-only setting: the
+saved source always evaluates the condition.
+
+### Row and column containers
+
+A `row` or a `col` container lays out its children one after the other. The
+**boundary between two cells can be dragged in the preview** to change their
+size, and the new sizes are written back to the project: the width of the
+cells, or the column widths of the container when it declares them.
+
+**Alt+click** inside a cell selects the **cell** and not the element under the
+cursor, so a row, a column or a cell can be selected even when it holds other
+elements. The right-click menu of a `row` or of a `col` in the tree offers
+**Add column** / **Add row**, which adds an empty cell to the container.
+
 ### Design tokens
 
 The **Tokens** tab lists the design tokens found in the project CSS. A design
